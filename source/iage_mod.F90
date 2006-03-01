@@ -61,7 +61,7 @@ module iage_mod
 
   integer(int_kind), parameter :: &
        iage_tracer_cnt = 1,       &
-       num_iage_tavg_fields = 11
+       num_iage_tavg_fields = 8
 
    character (char_len), dimension(iage_tracer_cnt), parameter ::  &
       iage_tracer_names =  (/ 'IAGE' /)
@@ -215,11 +215,14 @@ contains
     !------------------------------------------------------------------
     !   initialize tracer_d values
     !------------------------------------------------------------------
+
     do n=1,iage_tracer_cnt
       n_absolute = n + iage_ind_begin - 1
       tracer_d(n_absolute)%short_name = trim(iage_tracer_names(n))
       tracer_d(n_absolute)%long_name  = 'Ideal Age'
       tracer_d(n_absolute)%units      = 'years'
+      tracer_d(n_absolute)%tend_units = 'years/s'
+      tracer_d(n_absolute)%flux_units = 'cm years/s'
     enddo
 
     !------------------------------------------------------------------
@@ -803,96 +806,65 @@ contains
         tavg_iage_field( 2)%grid_loc    = '3111'
 
 
-        tavg_iage_field( 3)%short_name  = 'UE_'/&
-                                                &/trim(basename)
-        tavg_iage_field( 3)%long_name   = trim(basename)/&
-                                                   &/' Flux in grid-x direction'
-        
-        tavg_iage_field( 3)%units       = 'years/s'
-        tavg_iage_field( 3)%ndims       = 3
-        tavg_iage_field( 3)%coordinates = 'ULONG TLAT z_t time'
-        tavg_iage_field( 3)%grid_loc    = '3211'
-
-
-        tavg_iage_field( 4)%short_name  = 'VN_'/&
-                                                &/trim(basename)
-        tavg_iage_field( 4)%long_name   = trim(basename)/&
-                                                         &/' Flux in grid-y direction'
-        tavg_iage_field( 4)%units       = 'years/s'
-        tavg_iage_field( 4)%ndims       = 3
-        tavg_iage_field( 4)%coordinates = 'TLONG ULAT z_t time'
-        tavg_iage_field( 4)%grid_loc    = '3121'
-
-
-        tavg_iage_field( 5)%short_name  = 'WT_'/&
-                                                &/trim(basename)
-        tavg_iage_field( 5)%long_name   = trim(basename)/&
-                                                         &/' Flux Across Top Face'
-        tavg_iage_field( 5)%units       = 'years/s'
-        tavg_iage_field( 5)%ndims       = 3
-        tavg_iage_field( 5)%coordinates = 'TLONG TLAT z_w time'
-        tavg_iage_field( 5)%grid_loc    = '3112'
-
-
-        tavg_iage_field( 6)%short_name  = 'J_'/&
+        tavg_iage_field( 3)%short_name  = 'J_'/&
                                                &/trim(basename)
-        tavg_iage_field( 6)%long_name   = 'unknown J_IAGE'
-        tavg_iage_field( 6)%units       = 'unknown'
-        tavg_iage_field( 6)%ndims       = 9999
-        tavg_iage_field( 6)%coordinates = 'unknown'
-        tavg_iage_field( 6)%grid_loc    = 'unknown'
+        tavg_iage_field( 3)%long_name   = 'unknown J_IAGE'
+        tavg_iage_field( 3)%units       = 'unknown'
+        tavg_iage_field( 3)%ndims       = 9999
+        tavg_iage_field( 3)%coordinates = 'unknown'
+        tavg_iage_field( 3)%grid_loc    = 'unknown'
 
 
-        tavg_iage_field( 7)%short_name  = 'Jint_'/&
+        tavg_iage_field( 4)%short_name  = 'Jint_'/&
                                                   &/trim(basename)
-        tavg_iage_field( 7)%long_name   = 'unknown Jint_IAGE'
-        tavg_iage_field( 7)%units       = 'unknown'
-        tavg_iage_field( 7)%ndims       = 9999
-        tavg_iage_field( 7)%coordinates = 'unknown'
-        tavg_iage_field( 7)%grid_loc    = 'unknown'
+        tavg_iage_field( 4)%long_name   = 'unknown Jint_IAGE'
+        tavg_iage_field( 4)%units       = 'unknown'
+        tavg_iage_field( 4)%ndims       = 9999
+        tavg_iage_field( 4)%coordinates = 'unknown'
+        tavg_iage_field( 4)%grid_loc    = 'unknown'
 
 
-        tavg_iage_field( 8)%short_name  = 'STF_'/&
+        tavg_iage_field( 5)%short_name  = 'STF_'/&
                                                  &/trim(basename)
-        tavg_iage_field( 8)%long_name   = 'unknown STF_IAGE'
-        tavg_iage_field( 8)%units       = 'unknown'
-        tavg_iage_field( 8)%ndims       = 9999
-        tavg_iage_field( 8)%coordinates = 'unknown'
-        tavg_iage_field( 8)%grid_loc    = 'unknown'
+        tavg_iage_field( 5)%long_name   = 'unknown STF_IAGE'
+        tavg_iage_field( 5)%units       = 'unknown'
+        tavg_iage_field( 5)%ndims       = 9999
+        tavg_iage_field( 5)%coordinates = 'unknown'
+        tavg_iage_field( 5)%grid_loc    = 'unknown'
 
 
-        tavg_iage_field( 9)%short_name  = 'RESID_'/&
+        tavg_iage_field( 6)%short_name  = 'RESID_'/&
                                                    &/trim(basename)
-        tavg_iage_field( 9)%long_name   = 'Free-Surface Residual Flux '/&
+        tavg_iage_field( 6)%long_name   = 'Free-Surface Residual Flux '/&
                                                    &/'(' /&
                                                           &/trim(basename)/&
                                                                      &/')'
-        tavg_iage_field( 9)%units       = 'years/s'
-        tavg_iage_field( 9)%ndims       = 2
-        tavg_iage_field( 9)%coordinates = 'TLONG TLAT time'
-        tavg_iage_field( 9)%grid_loc    = '2110'
+        tavg_iage_field( 6)%units       = 'years/s'
+        tavg_iage_field( 6)%ndims       = 2
+        tavg_iage_field( 6)%coordinates = 'TLONG TLAT time'
+        tavg_iage_field( 6)%grid_loc    = '2110'
 
 
-        tavg_iage_field(10)%short_name  = 'FvPER_'/&
+        tavg_iage_field( 7)%short_name  = 'FvPER_'/&
                                                    &/trim(basename)
-        tavg_iage_field(10)%long_name   = 'Virtual Flux of '/&
+        tavg_iage_field( 7)%long_name   = 'Virtual Flux of '/&
                                                              &/trim(basename)/&
                                                                               &/', P-E+R'
-        tavg_iage_field(10)%units       = 'years/s'
-        tavg_iage_field(10)%ndims       = 2
-        tavg_iage_field(10)%coordinates = 'TLONG TLAT time'
-        tavg_iage_field(10)%grid_loc    = '2110'
+        tavg_iage_field( 7)%units       = 'years/s'
+        tavg_iage_field( 7)%ndims       = 2
+        tavg_iage_field( 7)%coordinates = 'TLONG TLAT time'
+        tavg_iage_field( 7)%grid_loc    = '2110'
 
 
-        tavg_iage_field(11)%short_name  = 'FvICE_'/&
+        tavg_iage_field( 8)%short_name  = 'FvICE_'/&
                                            &/trim(basename)
-        tavg_iage_field(11)%long_name   = 'Virtual Flux of '/&
+        tavg_iage_field( 8)%long_name   = 'Virtual Flux of '/&
                                                              &/trim(basename)/&
                                                                         &/', Ice Formation'
-        tavg_iage_field(11)%units       = 'years/s'
-        tavg_iage_field(11)%ndims       = 2
-        tavg_iage_field(11)%coordinates = 'TLONG TLAT time'
-        tavg_iage_field(11)%grid_loc    = '2110'
+        tavg_iage_field( 8)%units       = 'years/s'
+        tavg_iage_field( 8)%ndims       = 2
+        tavg_iage_field( 8)%coordinates = 'TLONG TLAT time'
+        tavg_iage_field( 8)%grid_loc    = '2110'
 
 !---------------------------------------------------------------------------------
 !  define tavg fields computed from passive_tracer routines

@@ -19,7 +19,9 @@
 ! !USES:
 
    use kinds_mod, only: r8, int_kind, char_len, log_kind
-   use constants, only: c0, p5, p125, p25, blank_fmt, delim_fmt, c2, ndelim_fmt, undefined_nf_r4
+   use constants, only: c0, c1, p5, p125, p25, blank_fmt, delim_fmt, c2, &
+       undefined_nf_r4, field_loc_center, field_type_scalar, &
+       field_loc_Eface, field_type_vector
    use blocks, only: nx_block, ny_block, block, get_block
    use domain_size
    use communicate, only: my_task, master_task
@@ -28,19 +30,21 @@
        partial_bottom_cells, DYU, DZU, DXU, DZR, DZ2R, KMU, TAREA_R, HTN,   &
        sfc_layer_type, sfc_layer_varthick, FCORT, KMTE,                     &
        KMTW, KMTEE, KMTN, KMTS, KMTNN, ugrid_to_tgrid
-   use domain, only: nblocks_clinic, blocks_clinic, distrb_clinic
-   use broadcast, only: broadcast_scalar
-!   use boundary, only: 
+   use domain, only: nblocks_clinic, blocks_clinic, distrb_clinic,          &
+       bndy_clinic
+   use broadcast, only: broadcast_scalar, broadcast_array
+   use boundary, only: update_ghost_cells
    use diagnostics, only: cfl_advect
    use state_mod, only: state
    use operators, only: zcurl
    use tavg, only: tavg_requested, ltavg_on, define_tavg_field,             &
        accumulate_tavg_field
    use io_types, only: nml_in, nml_filename, stdout
-   use time_management, only: max_blocks_clinic, km, nt, mix_pass
+   use time_management, only: max_blocks_clinic, km, nt, mix_pass, c2dtt
    use timers, only: timer_start, timer_stop, get_timer
    use hmix_gm, only: U_ISOP, V_ISOP, WBOT_ISOP, WTOP_ISOP
    use exit_mod, only: sigAbort, exit_pop, flushm
+   use prognostic, only: UVEL, VVEL, curtime, tracer_d
    use registry
 
    implicit none
@@ -49,6 +53,7 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
    public :: init_advection, &
+             comp_flux_vel_ghost, &
              advt,           &
              advu
 
@@ -62,9 +67,10 @@
 
    integer (int_kind), parameter :: &
       tadvect_centered = 1,  &! centered leap-frog tracer advection
-      tadvect_upwind3  = 2    ! 3rd-order upwind tracer advection
+      tadvect_upwind3  = 2,  &! 3rd-order upwind tracer advection
+      tadvect_lw_lim   = 3    ! 1d Lax-Wendroff with 1d flux limiters
 
-   integer (int_kind) :: &
+   integer (int_kind), dimension(nt) :: &
       tadvect_itype           ! users tracer advection choice
 
    logical (log_kind) :: &
@@ -82,6 +88,15 @@
 
 !-----------------------------------------------------------------------
 !
+!  geometric arrays necessary for non-centered advection
+!
+!-----------------------------------------------------------------------
+
+   real (r8), dimension(:,:,:,:), allocatable :: &
+      AUX
+
+!-----------------------------------------------------------------------
+!
 !  geometric arrays necessary for upwind advection
 !
 !-----------------------------------------------------------------------
@@ -94,8 +109,28 @@
       TALFXP,TBETXP,TGAMXP,TALFYP,TBETYP,TGAMYP, &
       TALFXM,TBETXM,TDELXM,TALFYM,TBETYM,TDELYM
 
+!-----------------------------------------------------------------------
+!
+!     geometric arrays necessary for lw_lim advection
+!
+!-----------------------------------------------------------------------
+
+   real (r8), dimension(:), allocatable :: &
+      p5_dz_ph_r
+
+   real (r8), dimension(:,:,:), allocatable :: &
+      p5_DXT_ph_R,        &! 1/(DXT(i,j)+DXT(i+1,j))
+      p5_DYT_ph_R,        &! 1/(DYT(i,j)+DYT(i,j+1))
+      UTE_jbm2,           &! UTE for j==jb-2
+      WTKB_jbm2,          &! WTKB for j==jb-2
+      WTKB_jep2,          &! WTKB for j==je+2
+      WTKB_ibm2,          &! WTKB for i==ib-2
+      WTKB_iep2            ! WTKB for i==ie+2
+
    real (r8), dimension(:,:,:,:), allocatable :: &
-      AUX
+      FLUX_VEL_prev,      &! flux velocities from prev k iteration
+      UTE_to_UVEL_E,      &! converts UTE to UVEL_E
+      VTN_to_VVEL_N        ! converts VTN to VVEL_E
 
 !-----------------------------------------------------------------------
 !
@@ -112,14 +147,6 @@
       tavg_UEV,          &! flux of merid momentum across east  face
       tavg_VNV,          &! flux of merid momentum across north face
       tavg_WTV,          &! flux of merid momentum across top   face
-      tavg_UET,          &! flux of heat across east  face
-      tavg_VNT,          &! flux of heat across north face
-      tavg_WTT,          &! flux of heat across top   face
-      tavg_UES,          &! flux of salt across east  face
-      tavg_VNS,          &! flux of salt across north face
-      tavg_WTS,          &! flux of salt across top   face
-      tavg_ADVT,         &! vertical average of T advective tendency
-      tavg_ADVS,         &! vertical average of S advective tendency
       tavg_PV,           &! potential vorticity
       tavg_Q,            &! z-derivative of pot density
       tavg_PD,           &! potential density 
@@ -135,6 +162,12 @@
       tavg_UQ,           &! advection of Q across east  face
       tavg_VQ             ! advection of Q across north face
 
+   integer (int_kind), dimension(nt) :: &
+      tavg_ADV_TRACER,   &! vertical average of tracer advective tendency
+      tavg_UE_TRACER,    &! flux of tracer across east  face
+      tavg_VN_TRACER,    &! flux of tracer across north face
+      tavg_WT_TRACER      ! flux of tracer across top   face
+
 !-----------------------------------------------------------------------
 !
 !  advection timers
@@ -144,6 +177,17 @@
    integer (int_kind) :: &
       timer_advt,        &! timer for tracer   advection
       timer_advu          ! timer for momentum advection
+
+!-----------------------------------------------------------------------
+!
+!  advection flags
+!
+!-----------------------------------------------------------------------
+
+   logical (log_kind) :: &
+      luse_centered,       &! is centered used by any tracer
+      luse_upwind3,        &! is upwind3 used by any tracer
+      luse_lw_lim           ! is lw_lim used by any tracer
 
 !EOC
 !***********************************************************************
@@ -184,7 +228,7 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: & 
-      i,j,k,             &! dummy loop indices
+      i,j,k,n,           &! dummy loop indices
       iblock,            &! local block number
       nattempts,         &! num of attempts to read namelist input
       nml_error           ! error flag for namelist read
@@ -196,8 +240,22 @@
    real (r8), dimension(:), allocatable :: & 
       dzc
 
+   real (r8), dimension(nx_block,ny_block) :: & 
+     WORK1                ! local temp space
+
    type (block) ::        &
       this_block          ! block information for current block
+
+!-----------------------------------------------------------------------
+!
+!  check that init_passive_tracers has been called
+!
+!-----------------------------------------------------------------------
+
+   if (.not. registry_match('init_passive_tracers')) then
+     call exit_POP(sigAbort,'ERROR: init_passive_tracers must be ' /&
+                         &/ 'called before init_advection')
+   end if
 
 !-----------------------------------------------------------------------
 !
@@ -253,16 +311,30 @@
          tadvect_itype = tadvect_upwind3
          write(stdout,'(a45)') & 
                        'Using 3rd-order upwind advection for tracers.'
+      case ('lw_lim')
+         tadvect_itype = tadvect_lw_lim
+         write(stdout,'(a45)') & 
+                       'Using flux-limited Lax-Wendroff advection for tracers.'
       case default
          tadvect_itype = -1000
       end select
 
    endif
-   call broadcast_scalar(tadvect_itype, master_task)
+   call broadcast_array(tadvect_itype, master_task)
 
-   if (tadvect_itype < 0) then
+   if (minval(tadvect_itype) < 0) then
       call exit_POP(sigAbort,'ERROR: unknown tracer advection method')
    endif
+
+!-----------------------------------------------------------------------
+!
+!  set use flags
+!
+!-----------------------------------------------------------------------
+
+   luse_centered = any(tadvect_itype == tadvect_centered)
+   luse_upwind3  = any(tadvect_itype == tadvect_upwind3)
+   luse_lw_lim   = any(tadvect_itype == tadvect_lw_lim)
 
 !-----------------------------------------------------------------------
 !
@@ -302,13 +374,28 @@
       luse_isopycnal = .false.
    endif
 
+   if (luse_lw_lim .and. luse_isopycnal) call exit_POP(sigAbort, &
+      'ERROR: lw_lim advection is not compatible with gm_bolus')
+
+!-----------------------------------------------------------------------
+!
+!  allocate and initialize non-centered arrays if necessary
+!
+!-----------------------------------------------------------------------
+
+   if (any(tadvect_itype /= tadvect_centered)) then
+
+      allocate (AUX   (nx_block,ny_block,nt,nblocks_clinic))
+
+   endif ! non-centered setup
+
 !-----------------------------------------------------------------------
 !
 !  allocate and initialize upwinding grid arrays if necessary
 !
 !-----------------------------------------------------------------------
 
-   if (tadvect_itype == tadvect_upwind3) then
+   if (luse_upwind3) then
 
       allocate (talfzp(km), &
                 tbetzp(km), &
@@ -329,8 +416,6 @@
                 TALFYM(nx_block,ny_block,nblocks_clinic), &
                 TBETYM(nx_block,ny_block,nblocks_clinic), &
                 TDELYM(nx_block,ny_block,nblocks_clinic))
-
-      allocate (AUX   (nx_block,ny_block,nt,nblocks_clinic))
 
       allocate (dzc(0:km+1))
 
@@ -481,6 +566,138 @@
 
 !-----------------------------------------------------------------------
 !
+!  allocate and initialize lw_lim grid arrays if necessary
+!
+!-----------------------------------------------------------------------
+
+   if (luse_lw_lim) then
+
+      allocate (p5_dz_ph_r(km), &
+                p5_DXT_ph_R(nx_block,ny_block,nblocks_clinic), &
+                p5_DYT_ph_R(nx_block,ny_block,nblocks_clinic), &
+                UTE_jbm2(nx_block,km,nblocks_clinic), &
+                WTKB_jbm2(nx_block,km,nblocks_clinic), &
+                WTKB_jep2(nx_block,km,nblocks_clinic), &
+                WTKB_ibm2(ny_block,km,nblocks_clinic), &
+                WTKB_iep2(ny_block,km,nblocks_clinic), &
+                FLUX_VEL_prev(nx_block,ny_block,5,nblocks_clinic) )
+
+      if (partial_bottom_cells) then
+
+         allocate (UTE_to_UVEL_E(nx_block,ny_block,km,nblocks_clinic), &
+                   VTN_to_VVEL_N(nx_block,ny_block,km,nblocks_clinic))
+
+      else
+
+         allocate (UTE_to_UVEL_E(nx_block,ny_block,1,nblocks_clinic), &
+                   VTN_to_VVEL_N(nx_block,ny_block,1,nblocks_clinic))
+
+      endif
+
+      p5_DXT_ph_R   = c0
+      p5_DYT_ph_R   = c0
+      UTE_jbm2      = c0
+      WTKB_jbm2     = c0
+      WTKB_jep2     = c0
+      WTKB_ibm2     = c0
+      WTKB_iep2     = c0
+      UTE_to_UVEL_E = c0
+      VTN_to_VVEL_N = c0
+
+      p5_dz_ph_r(1:km-1) = c1 / (dz(1:km-1) + dz(2:km))
+      p5_dz_ph_r(km)     = p5 / dz(km)
+
+      !***
+      !*** horizontal grid coeffs
+      !***
+
+      do iblock = 1,nblocks_clinic
+
+         this_block = get_block(blocks_clinic(iblock),iblock)
+
+         !***
+         !*** zonal grid coefficients
+         !***    compute in j halo because they are used
+         !***
+
+         do j=this_block%jb-2,this_block%je+2
+         do i=this_block%ib-1,this_block%ie
+
+            p5_DXT_ph_R(i,j,iblock) = c1 / (DXT(i,j,iblock) + &
+                                            DXT(i+1,j,iblock))
+
+         end do
+         end do
+
+         if (partial_bottom_cells) then
+
+            do k=1,km
+            do j=this_block%jb-2,this_block%je+2
+            do i=this_block%ib-2,this_block%ie+1
+
+               UTE_to_UVEL_E(i,j,k,iblock) = c1 / HTE(i,j,iblock) / &
+                  min(DZT(i,j,k,iblock), DZT(i+1,j,k,iblock))
+
+            end do
+            end do
+            end do
+
+         else
+
+            do j=this_block%jb-2,this_block%je+2
+            do i=this_block%ib-2,this_block%ie+1
+
+               UTE_to_UVEL_E(i,j,1,iblock) = c1 / HTE(i,j,iblock)
+
+            end do
+            end do
+
+         endif
+
+         !***
+         !*** poloidal grid coefficients     
+         !***
+
+         do j=this_block%jb-1,this_block%je
+         do i=this_block%ib,this_block%ie
+
+            p5_DYT_ph_R(i,j,iblock) = c1 / (DYT(i,j,iblock) + &
+                                            DYT(i,j+1,iblock))
+
+         end do
+         end do
+
+         if (partial_bottom_cells) then
+
+            do k=1,km
+            do j=this_block%jb-2,this_block%je+1
+            do i=this_block%ib,this_block%ie
+
+               VTN_to_VVEL_N(i,j,k,iblock) = c1 / HTN(i,j,iblock) / &
+                  min(DZT(i,j,k,iblock), DZT(i,j+1,k,iblock))
+
+            end do
+            end do
+            end do
+
+         else
+
+            do j=this_block%jb-2,this_block%je+1
+            do i=this_block%ib,this_block%ie
+
+               VTN_to_VVEL_N(i,j,1,iblock) = c1 / HTN(i,j,iblock)
+
+            end do
+            end do
+
+         endif
+
+      end do
+
+   endif ! lw_lim setup
+
+!-----------------------------------------------------------------------
+!
 !  initialize timers
 !
 !-----------------------------------------------------------------------
@@ -488,26 +705,31 @@
    call get_timer(timer_advu,'ADVECTION_MOMENTUM', nblocks_clinic, &
                                                    distrb_clinic%nprocs)
  
-   select case (tadvect_itype)
-   case(tadvect_centered)
+   if (all(tadvect_itype == tadvect_centered)) then
       call get_timer(timer_advt,'ADVECTION_TRACER_CENTERED', &
                                  nblocks_clinic, distrb_clinic%nprocs)
-   case(tadvect_upwind3)
+   else if (all(tadvect_itype == tadvect_upwind3)) then
       call get_timer(timer_advt,'ADVECTION_TRACER_UPWIND3', &
                                  nblocks_clinic, distrb_clinic%nprocs)
-   end select
+   else if (all(tadvect_itype == tadvect_lw_lim)) then
+      call get_timer(timer_advt,'ADVECTION_TRACER_LW_LIM', &
+                                 nblocks_clinic, distrb_clinic%nprocs)
+   else
+      call get_timer(timer_advt,'ADVECTION_TRACER', &
+                                 nblocks_clinic, distrb_clinic%nprocs)
+   endif
 
 !-----------------------------------------------------------------------
 !
 !  define tavg fields related to advection
 !
 !-----------------------------------------------------------------------
+
    call define_tavg_field(tavg_WVEL,'WVEL',3,                          &
                           long_name='Vertical Velocity',               &
                           missing_value=undefined_nf_r4,               &
                           units='centimeter/s', grid_loc='3112',       &
                           coordinates='TLONG TLAT z_w time')
-
 
    call define_tavg_field(tavg_UEU,'UEU',3,                            &
                           long_name='East Flux of Zonal Momentum',     &
@@ -539,26 +761,25 @@
                           missing_value=undefined_nf_r4,               &
                           units='cm/s^2', grid_loc='3222')
 
-   call define_tavg_field(tavg_UET,'UET',3,                            &
+   call define_tavg_field(tavg_UE_TRACER(1),'UET',3,                   &
                           long_name='Flux of Heat in grid-x direction',&
                           missing_value=undefined_nf_r4,               &
                           units='degC/s', grid_loc='3211',             &
                           coordinates='ULONG TLAT z_t time' )
 
-
-   call define_tavg_field(tavg_VNT,'VNT',3,                            &
+   call define_tavg_field(tavg_VN_TRACER(1),'VNT',3,                   &
                           long_name='Flux of Heat in grid-y direction',&
                           missing_value=undefined_nf_r4,               &
                           units='degC/s', grid_loc='3121',             &
                           coordinates='TLONG ULAT z_t time')
 
-   call define_tavg_field(tavg_WTT,'WTT',3,                            &
+   call define_tavg_field(tavg_WT_TRACER(1),'WTT',3,                   &
                           long_name='Heat Flux Across Top Face',       &
                           missing_value=undefined_nf_r4,               &
                           units='degC/s', grid_loc='3112',             &
                           coordinates='TLONG TLAT z_w time' )
 
-   call define_tavg_field(tavg_UES,'UES',3,                            &
+   call define_tavg_field(tavg_UE_TRACER(2),'UES',3,                   &
                           long_name='Salt Flux in grid-x direction',   &
                           scale_factor=1000.0_r4,                      &
                           missing_value=undefined_nf_r4/1000.0_r4,     &
@@ -566,7 +787,7 @@
                           units='gram/gram/s', grid_loc='3211',        &
                           coordinates='ULONG TLAT z_t time' )
 
-   call define_tavg_field(tavg_VNS,'VNS',3,                            &
+   call define_tavg_field(tavg_VN_TRACER(2),'VNS',3,                   &
                           long_name='Salt Flux in grid-y direction',   &
                           scale_factor=1000.0_r4,                      &
                           missing_value=undefined_nf_r4/1000.0_r4,     &
@@ -574,7 +795,7 @@
                           units='gram/gram/s', grid_loc='3121',        &
                           coordinates='TLONG ULAT z_t time')
 
-   call define_tavg_field(tavg_WTS,'WTS',3,                            &
+   call define_tavg_field(tavg_WT_TRACER(2),'WTS',3,                   &
                           long_name='Salt Flux Across Top Face',       &
                           scale_factor=1000.0_r4,                      &
                           missing_value=undefined_nf_r4/1000.0_r4,     &
@@ -582,19 +803,61 @@
                           units='gram/gram/s', grid_loc='3112',        &
                           coordinates='TLONG TLAT z_w time' )
 
-   call define_tavg_field(tavg_ADVT,'ADVT',2,                              &
+   call define_tavg_field(tavg_ADV_TRACER(1),'ADVT',2,                     &
                     long_name='Vertically-Integrated T Advection Tendency',&
                           missing_value=undefined_nf_r4,                   &
                           units='centimeter degC/s', grid_loc='2110',      &
                           coordinates='TLONG TLAT time')
 
-   call define_tavg_field(tavg_ADVS,'ADVS',2,                                 &
+   call define_tavg_field(tavg_ADV_TRACER(2),'ADVS',2,                        &
                     long_name='Vertically-Integrated S Advection Tendency',   &
                           scale_factor=1000.0_r4,                             &
                           missing_value=undefined_nf_r4/1000.0_r4,            &
                           fill_value   =undefined_nf_r4/1000.0_r4,            &
                           units='centimeter gram/kilogram/s', grid_loc='2110',&
                           coordinates='TLONG TLAT time')
+
+   do n=3,nt
+
+      call define_tavg_field(tavg_UE_TRACER(n),                        &
+                             'UE_' /&
+                                    &/ trim(tracer_d(n)%short_name),3, &
+                             long_name=trim(tracer_d(n)%short_name)   /&
+                                    &/ ' Flux in grid-x direction',    &
+                             units=trim(tracer_d(n)%tend_units),       &
+                             grid_loc='3211',                          &
+                             coordinates='ULONG TLAT z_t time' )
+
+      call define_tavg_field(tavg_VN_TRACER(n),                        &
+                             'VN_' /&
+                                    &/ trim(tracer_d(n)%short_name),3, &
+                             long_name=trim(tracer_d(n)%short_name)   /&
+                                    &/ ' Flux in grid-y direction',    &
+                             units=trim(tracer_d(n)%tend_units),       &
+                             grid_loc='3121',                          &
+                             coordinates='TLONG ULAT z_t time')
+
+      call define_tavg_field(tavg_WT_TRACER(n),                        &
+                             'WT_' /&
+                                    &/ trim(tracer_d(n)%short_name),3, &
+                             long_name=trim(tracer_d(n)%short_name)   /&
+                                    &/ ' Flux Across Top Face',        &
+                             units=trim(tracer_d(n)%tend_units),       &
+                             grid_loc='3112',                          &
+                             coordinates='TLONG TLAT z_w time' )
+
+      call define_tavg_field(tavg_ADV_TRACER(n),                       &
+                             'ADV_' /&
+                                     &/ trim(tracer_d(n)%short_name),2,&
+                             long_name='Vertically-Integrated '       /&
+                                     &/trim(tracer_d(n)%short_name)   /&
+                                     &/' Advection Tendency',          &
+                             missing_value=undefined_nf_r4,            &
+                             units=trim(tracer_d(n)%flux_units),       &
+                             grid_loc='2110',                          &
+                             coordinates='TLONG TLAT time' )
+
+   end do
 
    call define_tavg_field(tavg_PV,'PV',3,                              &
                           long_name='Potential Vorticity',             &
@@ -674,15 +937,105 @@
                           missing_value=undefined_nf_r4,               &
                           units='g/cm^3/s', grid_loc='3231')
 
+   call flushm (stdout)
+
 !-----------------------------------------------------------------------
 !EOC
-
- call flushm (stdout)
 
  end subroutine init_advection 
 
 !***********************************************************************
+!BOP
+! !IROUTINE: comp_flux_vel_ghost
+! !INTERFACE:
 
+ subroutine comp_flux_vel_ghost(DH)
+
+! !DESCRIPTION:
+!  Compute and store tracer flux velocities in ghost cells.
+
+! !INPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
+      intent(in) :: &
+      DH                   ! change in surface height at T points
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!         
+!  local variables:
+!
+!-----------------------------------------------------------------------
+
+   type (block) ::        &
+      this_block          ! block information for current block
+
+   integer (int_kind) ::  &
+      iblock,             &! local block number
+      i,j,                &! dummy indices for horizontal directions
+      k,n                  ! dummy indices for vertical level, tracer
+
+   real (r8), dimension(nx_block,ny_block,nblocks_clinic) :: & 
+      UTE,UTW,VTN,VTS,    &! tracer flux velocities across E,W,N,S faces
+      WTK,                &! vertical velocity at bottom of T box
+      WTKB                 ! vertical velocity at bottom of T box
+
+!-----------------------------------------------------------------------
+
+   if (.not. luse_lw_lim) return
+
+   do k = 1,km
+
+      !$OMP PARALLEL DO PRIVATE(iblock,this_block)
+
+      do iblock = 1,nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)  
+         if (k == 1) then
+            WTK(:,:,iblock) = DH(:,:,iblock)
+         else
+            WTK(:,:,iblock) = WTKB(:,:,iblock)
+         endif
+         call comp_flux_vel(k,UVEL(:,:,:,curtime,iblock),&
+                            VVEL(:,:,:,curtime,iblock),&
+                            WTK(:,:,iblock),&
+                            UTE(:,:,iblock),UTW(:,:,iblock),&
+                            VTN(:,:,iblock),VTS(:,:,iblock),&
+                            WTKB(:,:,iblock),this_block)
+      end do
+
+      !$OMP END PARALLEL DO
+
+      call update_ghost_cells(UTE, bndy_clinic, &
+                              field_loc_Eface, field_type_vector)
+
+      call update_ghost_cells(WTKB, bndy_clinic, &
+                              field_loc_center, field_type_scalar)
+
+      !$OMP PARALLEL DO PRIVATE(iblock,this_block)
+
+      do iblock = 1,nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)  
+         UTE_jbm2(:,k,iblock)  = UTE(:,this_block%jb-2,iblock)
+         WTKB_jbm2(:,k,iblock) = WTKB(:,this_block%jb-2,iblock)
+         WTKB_jep2(:,k,iblock) = WTKB(:,this_block%je+2,iblock)
+         WTKB_ibm2(:,k,iblock) = WTKB(this_block%ib-2,:,iblock)
+         WTKB_iep2(:,k,iblock) = WTKB(this_block%ie+2,:,iblock)
+      end do
+
+      !$OMP END PARALLEL DO
+
+   end do
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine comp_flux_vel_ghost
+
+!***********************************************************************
 !BOP
 ! !IROUTINE: advu
 ! !INTERFACE:
@@ -1153,12 +1506,13 @@
 !EOC
 
  end subroutine advu
+
 !***********************************************************************
 !BOP
 ! !IROUTINE: advt
 ! !INTERFACE:
 
- subroutine advt(k,LTK,WTK,TRCR,UUU,VVV,this_block)
+ subroutine advt(k,LTK,WTK,TMIX,TRCR,UUU,VVV,this_block)
 
 ! !DESCRIPTION:
 !  Advection of tracers - this routine actually computes only
@@ -1174,6 +1528,7 @@
       k  ! depth level index
 
    real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+      TMIX,              &! tracers for this block at mix     time
       TRCR                ! tracers for this block at current time
 
    real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
@@ -1201,6 +1556,9 @@
 !
 !-----------------------------------------------------------------------
 
+   logical (log_kind), dimension(nt) :: &
+     tr_mask              ! which tracers are using a particular advection scheme
+
    integer (int_kind) :: &
      i,j,n,              &! dummy loop indices
      ib, ie, jb, je,     &! domain limits
@@ -1208,7 +1566,6 @@
 
    real (r8), dimension(nx_block,ny_block) :: & 
      UTE,UTW,VTN,VTS,  &! tracer flux velocities across E,W,N,S faces
-     FC,               &! local temp space
      FVN,FUE,          &! north and east advective stencil weights
      WTKB,             &! vertical velocity at bottom of T box
      RHOK1,            &! pot density at k relative to k=1
@@ -1216,6 +1573,11 @@
      WORK,             &! local temp space
      WORK1,WORK2,      &! local temp space
      WORK3,WORK4
+
+   real (r8), dimension(nx_block,ny_block,nt) :: & 
+     TRACER_E,         &! tracer value on east face
+     TRACER_N,         &! tracer value on north face
+     FLUX_T             ! tracer tendency due to flux through top   face, volume normalized
 
 !-----------------------------------------------------------------------
 !
@@ -1231,70 +1593,25 @@
 
    call timer_start(timer_advt, block_id=bid)
 
-   UTE = c0
-   UTW = c0
-   VTN = c0
-   VTS = c0
-
-   if (partial_bottom_cells) then
-
-      do j=jb-1,je+1
-      do i=ib-1,ie+1
-
-         UTE(i,j) = p5*(UUU(i  ,j  ,k)*DYU(i  ,j    ,bid)*  &
-                                       DZU(i  ,j  ,k,bid) + &
-                        UUU(i  ,j-1,k)*DYU(i  ,j-1  ,bid)*  &
-                                       DZU(i  ,j-1,k,bid))
-         UTW(i,j) = p5*(UUU(i-1,j  ,k)*DYU(i-1,j    ,bid)*  &
-                                       DZU(i-1,j  ,k,bid) + &
-                        UUU(i-1,j-1,k)*DYU(i-1,j-1  ,bid)*  &
-                                       DZU(i-1,j-1,k,bid))
-
-         VTN(i,j) = p5*(VVV(i  ,j  ,k)*DXU(i  ,j    ,bid)*  &
-                                       DZU(i  ,j  ,k,bid) + &
-                        VVV(i-1,j  ,k)*DXU(i-1,j    ,bid)*  &
-                                       DZU(i-1,j  ,k,bid))
-         VTS(i,j) = p5*(VVV(i  ,j-1,k)*DXU(i  ,j-1  ,bid)*  &
-                                       DZU(i  ,j-1,k,bid) + &
-                        VVV(i-1,j-1,k)*DXU(i-1,j-1  ,bid)*  &
-                                       DZU(i-1,j-1,k,bid))
-
-      end do
-      end do
-
-   else
-
-      do j=jb-1,je+1
-      do i=ib-1,ie+1
-
-         UTE(i,j) = p5*(UUU(i  ,j  ,k)*DYU(i  ,j  ,bid) + &
-                        UUU(i  ,j-1,k)*DYU(i  ,j-1,bid))
-         UTW(i,j) = p5*(UUU(i-1,j  ,k)*DYU(i-1,j  ,bid) + &
-                        UUU(i-1,j-1,k)*DYU(i-1,j-1,bid))
-
-         VTN(i,j) = p5*(VVV(i  ,j  ,k)*DXU(i  ,j  ,bid) + &
-                        VVV(i-1,j  ,k)*DXU(i-1,j  ,bid))
-         VTS(i,j) = p5*(VVV(i  ,j-1,k)*DXU(i  ,j-1,bid) + &
-                        VVV(i-1,j-1,k)*DXU(i-1,j-1,bid))
-
-      end do
-      end do
-
-   endif ! partial bottom cells
-
 !-----------------------------------------------------------------------
 !
 !  calculate vertical velocity at bottom of kth level
 !  (vertical velocity is zero at bottom of T columns)
 !
+!  use flux velocities from k+1 of previous iteration if available
+!
 !-----------------------------------------------------------------------
 
-   FC = p5*(VTN - VTS + UTE - UTW)*TAREA_R(:,:,bid)
-   if (partial_bottom_cells) then
-      WTKB = merge(WTK+c2*FC, c0, k < KMT(:,:,bid))
+   if (k == 1 .or. .not. luse_lw_lim) then
+      call comp_flux_vel(k,UUU,VVV,WTK, &
+                         UTE,UTW,VTN,VTS,WTKB,this_block)
    else
-      WTKB = merge(WTK+c2dz(k)*FC, c0, k < KMT(:,:,bid))
-   endif
+      UTE  = FLUX_VEL_prev(:,:,1,bid)
+      UTW  = FLUX_VEL_prev(:,:,2,bid)
+      VTN  = FLUX_VEL_prev(:,:,3,bid)
+      VTS  = FLUX_VEL_prev(:,:,4,bid)
+      WTKB = FLUX_VEL_prev(:,:,5,bid)
+   end if
 
 !-----------------------------------------------------------------------
 !
@@ -1302,14 +1619,42 @@
 !
 !-----------------------------------------------------------------------
 
-   select case (tadvect_itype)
+   LTK = c0
 
-   case (tadvect_upwind3)
+   !*** lw_lim advection
+
+   if (luse_lw_lim) then
+
+      tr_mask = tadvect_itype == tadvect_lw_lim
+
+!-----------------------------------------------------------------------
+!     compute WTKB at bottom of level k+1 T box and store flux velocities
+!     WTKBp1 is stored in FLUX_VEL_prev(:,:,5,bid)
+!-----------------------------------------------------------------------
+
+      call comp_flux_vel(k+1,UUU,VVV,WTKB, &
+                         FLUX_VEL_prev(:,:,1,bid),&
+                         FLUX_VEL_prev(:,:,2,bid),&
+                         FLUX_VEL_prev(:,:,3,bid),&
+                         FLUX_VEL_prev(:,:,4,bid),&
+                         FLUX_VEL_prev(:,:,5,bid),this_block)
+
+      call advt_lw_lim(k,LTK,TMIX,WTK,WTKB,FLUX_VEL_prev(:,:,5,bid),&
+                       UTE,UTW,VTN,VTS,TRACER_E,TRACER_N,FLUX_T,&
+                       tr_mask,this_block)
+
+   end if
+
+   !*** upwind3 advection
+
+   if (luse_upwind3) then
+
+      tr_mask = tadvect_itype == tadvect_upwind3
 
       if (.not. luse_isopycnal) then
 
          call advt_upwind3(k,LTK,TRCR,WTK,WTKB,UTE,UTW,VTN,VTS, &
-                             this_block)
+                             TRACER_E,TRACER_N,FLUX_T,tr_mask,this_block)
  
       else
          !***
@@ -1353,15 +1698,21 @@
          endif
 
          call advt_upwind3(k,LTK,TRCR,WTK,WORK3,FUE,WORK1,FVN,WORK2, &
-                             this_block)
+                             TRACER_E,TRACER_N,FLUX_T,tr_mask,this_block)
  
       end if
+ 
+   end if
 
-   case(tadvect_centered)
+   !*** centered advection
+
+   if (luse_centered) then
+
+      tr_mask = tadvect_itype == tadvect_centered
 
       if (.not. luse_isopycnal) then
 
-         call advt_centered(k,LTK,TRCR,WTK,WTKB,UTE,VTN,this_block)
+         call advt_centered(k,LTK,TRCR,WTK,WTKB,UTE,VTN,tr_mask,this_block)
 
       else
 
@@ -1391,19 +1742,13 @@
 
          endif
 
-         call advt_centered(k,LTK,TRCR,WORK1,WORK2,FUE,FVN,this_block)
+         call advt_centered(k,LTK,TRCR,WORK1,WORK2,FUE,FVN,tr_mask,this_block)
 
       end if
-
-   case default
-
-      call exit_POP(sigAbort, &
-                    'ERROR: unknown advection type for tracers')
-
-   end select
+ 
+   end if
 
    call timer_stop(timer_advt, block_id=bid)
-
 
 !-----------------------------------------------------------------------
 !
@@ -1412,7 +1757,6 @@
 !-----------------------------------------------------------------------
 
    if (ltavg_on .and. mix_pass /= 1 ) then
-
 
       if (partial_bottom_cells) then
          FVN =  p5*VTN*TAREA_R(:,:,bid)/DZT(:,:,k,bid)
@@ -1426,73 +1770,66 @@
          call accumulate_tavg_field(WTK,tavg_WVEL,bid,k)
       endif
 
-      if (tavg_requested(tavg_UET)) then
-         WORK = FUE*(        TRCR(:,:,k,1) + &
-                     eoshift(TRCR(:,:,k,1),dim=1,shift=1))
-         call accumulate_tavg_field(WORK,tavg_UET,bid,k)
-      endif
+      do n=1,nt
+         if (tadvect_itype(n) == tadvect_centered) then
 
-      if (tavg_requested(tavg_VNT)) then
-         WORK = FVN*(        TRCR(:,:,k,1) + &
-                     eoshift(TRCR(:,:,k,1),dim=2,shift=1))
-         call accumulate_tavg_field(WORK,tavg_VNT,bid,k)
-      endif
-
-      if (tavg_requested(tavg_UES)) then
-         WORK = FUE*(        TRCR(:,:,k,2) + &
-                     eoshift(TRCR(:,:,k,2),dim=1,shift=1))
-         call accumulate_tavg_field(WORK,tavg_UES,bid,k)
-      endif
-
-      if (tavg_requested(tavg_VNS)) then
-         WORK = FVN*(        TRCR(:,:,k,2) + &
-                     eoshift(TRCR(:,:,k,2),dim=2,shift=1))
-         call accumulate_tavg_field(WORK,tavg_VNS,bid,k)
-      endif
-
-      if (tavg_requested(tavg_WTT)) then
-         if (k == 1) then
-            WORK = dzr(k)*WTK*TRCR(:,:,k,1)
-         else
-            WORK = dz2r(k)*WTK*(TRCR(:,:,k  ,1)  &
-                                         + TRCR(:,:,k-1,1))
-         endif
-         call accumulate_tavg_field(WORK,tavg_WTT,bid,k)
-      endif
-
-      if (tavg_requested(tavg_WTS)) then
-         if (k == 1) then
-            WORK = dzr(k)*WTK*TRCR(:,:,k,2)
-         else
-            WORK = dz2r(k)*WTK*(TRCR(:,:,k  ,2)  &
-                                         + TRCR(:,:,k-1,2))
-         endif
-         call accumulate_tavg_field(WORK,tavg_WTS,bid,k)
-      endif
-
-      if (tavg_requested(tavg_ADVT)) then
-         WORK = c0
-         do j=jb,je
-         do i=ib,ie
-            if (k <= KMT(i,j,bid)) then
-               WORK(i,j) = -dz(k)*LTK(i,j,1)
+            if (tavg_requested(tavg_UE_TRACER(n))) then
+               WORK = FUE*(        TRCR(:,:,k,n) + &
+                           eoshift(TRCR(:,:,k,n),dim=1,shift=1))
+               call accumulate_tavg_field(WORK,tavg_UE_TRACER(n),bid,k)
             endif
-         end do
-         end do
-         call accumulate_tavg_field(WORK,tavg_ADVT,bid,k)
-      endif
 
-      if (tavg_requested(tavg_ADVS)) then
-         WORK = c0
-         do j=jb,je
-         do i=ib,ie
-            if (k <= KMT(i,j,bid)) then
-               WORK(i,j) = -dz(k)*LTK(i,j,2)
+            if (tavg_requested(tavg_VN_TRACER(n))) then
+               WORK = FVN*(        TRCR(:,:,k,n) + &
+                           eoshift(TRCR(:,:,k,n),dim=2,shift=1))
+               call accumulate_tavg_field(WORK,tavg_VN_TRACER(n),bid,k)
             endif
-         end do
-         end do
-         call accumulate_tavg_field(WORK,tavg_ADVS,bid,k)
-      endif
+
+            if (tavg_requested(tavg_WT_TRACER(n))) then
+               if (k == 1) then
+                  if (sfc_layer_type /= sfc_layer_varthick) then
+                     WORK = dzr(k)*WTK*TRCR(:,:,k,n)
+                  else
+                     WORK = c0
+                  endif
+               else
+                  WORK = dz2r(k)*WTK*(TRCR(:,:,k  ,n)  &
+                                               + TRCR(:,:,k-1,n))
+               endif
+               call accumulate_tavg_field(WORK,tavg_WT_TRACER(n),bid,k)
+            endif
+
+         else
+
+            if (tavg_requested(tavg_UE_TRACER(n))) then
+               WORK = c2*FUE*TRACER_E(:,:,n)
+               call accumulate_tavg_field(WORK,tavg_UE_TRACER(n),bid,k)
+            endif
+
+            if (tavg_requested(tavg_VN_TRACER(n))) then
+               WORK = c2*FVN*TRACER_N(:,:,n)
+               call accumulate_tavg_field(WORK,tavg_VN_TRACER(n),bid,k)
+            endif
+
+            if (tavg_requested(tavg_WT_TRACER(n))) then
+               call accumulate_tavg_field(FLUX_T(:,:,n),tavg_WT_TRACER(n),bid,k)
+            endif
+
+         endif
+
+         if (tavg_requested(tavg_ADV_TRACER(n))) then
+            WORK = c0
+            do j=jb,je
+            do i=ib,ie
+               if (k <= KMT(i,j,bid)) then
+                  WORK(i,j) = -dz(k)*LTK(i,j,n)
+               endif
+            end do
+            end do
+            call accumulate_tavg_field(WORK,tavg_ADV_TRACER(n),bid,k)
+         endif
+
+      enddo
 
       !***
       !*** potential density referenced to k=1 needed for a variety of 
@@ -1567,7 +1904,6 @@
                        ,TRCR(:,:,k,2), this_block, &
                         RHOOUT=WORK)
 
-
          if (k == 1 ) then
             WORK3 = WORK
          else
@@ -1595,11 +1931,7 @@
             end do
          endif
 
-
-
-!################# debug -- keep this #######################
-         WORK1 = c0
-!############# END debug -- keep this #######################
+         call zero_ghost_cells(this_block,WORK1)
 
          do j=jb,je
          do i=ib,ie
@@ -1611,9 +1943,7 @@
          end do
          end do
 
-
          call zcurl(k,WORK3,UUU(:,:,k),VVV(:,:,k),this_block)
-
          WORK2 = WORK1*(WORK3*TAREA_R(:,:,bid) + &
                         FCORT(:,:,bid)) ! PV = pot vorticity
       endif
@@ -1677,10 +2007,171 @@
 
 !***********************************************************************
 !BOP
+! !IROUTINE: comp_flux_vel
+! !INTERFACE:
+
+ subroutine comp_flux_vel(k,UUU,VVV,WTK, &
+                          UTE,UTW,VTN,VTS,WTKB,this_block)
+
+! !DESCRIPTION:
+!  This routine computes the vertical velocity at bottom of a layer.
+!  It also returns the tracer flux velocities across the lateral faces.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      k                   ! depth level index
+
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      UUU, VVV            ! U,V for this block at current time
+
+   real (r8), dimension(nx_block,ny_block), intent(in) :: &
+      WTK                 ! vertical velocity at top of T box
+
+   type (block), intent(in) :: &
+      this_block          ! block information for this block
+
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block), intent(out) :: &
+      UTE,UTW,VTN,VTS,   &! tracer flux velocities across E,W,N,S faces
+      WTKB                ! vertical velocity at bottom of T box
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables:
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      i,j,               &! tracer loop index
+      ibeg,iend,         &! loop limits
+      jbeg,jend,         &! loop limits
+      bid                 ! local block index
+
+   real (r8), dimension(nx_block,ny_block) :: & 
+      FC                  ! local temp space
+
+!-----------------------------------------------------------------------
+
+   call zero_ghost_cells(this_block,UTE)
+   call zero_ghost_cells(this_block,UTW)
+   call zero_ghost_cells(this_block,VTN)
+   call zero_ghost_cells(this_block,VTS)
+
+   if (k > km) then
+
+      WTKB = c0
+      return
+
+   endif
+
+   jbeg = this_block%jb-1
+   jend = this_block%je+1
+   ibeg = this_block%ib-1
+   iend = this_block%ie+1
+
+   if (luse_lw_lim) jend = this_block%je+2
+
+   bid = this_block%local_id
+
+   if (partial_bottom_cells) then
+
+      do j=jbeg,jend
+      do i=ibeg,iend
+
+         UTE(i,j) = p5*(UUU(i  ,j  ,k)*DYU(i  ,j    ,bid)*  &
+                                       DZU(i  ,j  ,k,bid) + &
+                        UUU(i  ,j-1,k)*DYU(i  ,j-1  ,bid)*  &
+                                       DZU(i  ,j-1,k,bid))
+         UTW(i,j) = p5*(UUU(i-1,j  ,k)*DYU(i-1,j    ,bid)*  &
+                                       DZU(i-1,j  ,k,bid) + &
+                        UUU(i-1,j-1,k)*DYU(i-1,j-1  ,bid)*  &
+                                       DZU(i-1,j-1,k,bid))
+
+         VTN(i,j) = p5*(VVV(i  ,j  ,k)*DXU(i  ,j    ,bid)*  &
+                                       DZU(i  ,j  ,k,bid) + &
+                        VVV(i-1,j  ,k)*DXU(i-1,j    ,bid)*  &
+                                       DZU(i-1,j  ,k,bid))
+         VTS(i,j) = p5*(VVV(i  ,j-1,k)*DXU(i  ,j-1  ,bid)*  &
+                                       DZU(i  ,j-1,k,bid) + &
+                        VVV(i-1,j-1,k)*DXU(i-1,j-1  ,bid)*  &
+                                       DZU(i-1,j-1,k,bid))
+
+      end do
+      end do
+
+   else
+
+      do j=jbeg,jend
+      do i=ibeg,iend
+
+         UTE(i,j) = p5*(UUU(i  ,j  ,k)*DYU(i  ,j  ,bid) + &
+                        UUU(i  ,j-1,k)*DYU(i  ,j-1,bid))
+         UTW(i,j) = p5*(UUU(i-1,j  ,k)*DYU(i-1,j  ,bid) + &
+                        UUU(i-1,j-1,k)*DYU(i-1,j-1,bid))
+
+         VTN(i,j) = p5*(VVV(i  ,j  ,k)*DXU(i  ,j  ,bid) + &
+                        VVV(i-1,j  ,k)*DXU(i-1,j  ,bid))
+         VTS(i,j) = p5*(VVV(i  ,j-1,k)*DXU(i  ,j-1,bid) + &
+                        VVV(i-1,j-1,k)*DXU(i-1,j-1,bid))
+
+      end do
+      end do
+
+   endif ! partial bottom cells
+
+   if (luse_lw_lim) then
+      UTE(:,this_block%jb-2)  = UTE_jbm2(:,k,bid)
+      UTE(this_block%ib-2,:)  = UTW(this_block%ib-1,:)
+      VTN(:,this_block%jb-2)  = VTS(:,this_block%jb-1)
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  calculate vertical velocity at bottom of kth level
+!  (vertical velocity is zero at bottom of T columns)
+!
+!-----------------------------------------------------------------------
+
+   if (k < km) then
+
+      FC = (VTN - VTS + UTE - UTW)*TAREA_R(:,:,bid)
+      if (partial_bottom_cells) then
+         WTKB = merge(WTK+FC, c0, k < KMT(:,:,bid))
+      else
+         WTKB = merge(WTK+dz(k)*FC, c0, k < KMT(:,:,bid))
+      endif
+
+      if (luse_lw_lim) then
+         WTKB(:,this_block%jb-2) = WTKB_jbm2(:,k,bid)
+         WTKB(:,this_block%je+2) = WTKB_jep2(:,k,bid)
+         WTKB(this_block%ib-2,:) = WTKB_ibm2(:,k,bid)
+         WTKB(this_block%ie+2,:) = WTKB_iep2(:,k,bid)
+      endif
+
+   else
+
+      WTKB = c0
+
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine comp_flux_vel
+
+!***********************************************************************
+!BOP
 ! !IROUTINE: advt_centered
 ! !INTERFACE:
 
- subroutine advt_centered(k,LTK,TRCR,WTK,WTKB,UTE,VTN,this_block)
+ subroutine advt_centered(k,LTK,TRCR,WTK,WTKB,UTE,VTN,tr_mask,this_block)
 
 ! !DESCRIPTION:
 !  This routine computes the tracer advection tendencies using
@@ -1730,12 +2221,15 @@
       WTK,             &! vert velocity at top    of level k T box
       WTKB              ! vert velocity at bottom of level k T box
 
+   logical (log_kind), dimension(nt), intent(in) :: &
+      tr_mask           ! true for tracers using centered
+
    type (block), intent(in) :: &
       this_block          ! block information for this block
 
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,nt), intent(out) :: &
+   real (r8), dimension(nx_block,ny_block,nt), intent(inout) :: &
       LTK                 ! returned as L(T) for nth tracer at level k
 
 !EOP
@@ -1758,13 +2252,13 @@
 !-----------------------------------------------------------------------
 
    bid = this_block%local_id
-   LTK = c0
 
 !-----------------------------------------------------------------------
 
    if (partial_bottom_cells) then 
 
       do n=1,nt
+      if (.not. tr_mask(n)) cycle
       do j=this_block%jb,this_block%je
       do i=this_block%ib,this_block%ie
          LTK(i,j,n) = p5*((VTN(i,j)-VTN(i,j-1)+UTE(i,j)-UTE(i-1,j))  &
@@ -1782,6 +2276,7 @@
    else ! no partial bottom cells
 
       do n=1,nt
+      if (.not. tr_mask(n)) cycle
       do j=this_block%jb,this_block%je
       do i=this_block%ib,this_block%ie
          LTK(i,j,n) = p5*((VTN(i,j)-VTN(i,j-1)+UTE(i,j)-UTE(i-1,j))  &
@@ -1804,6 +2299,8 @@
 !-----------------------------------------------------------------------
 
    do n = 1,nt
+
+      if (.not. tr_mask(n)) cycle
 
       !*** no advection thru surface (k=1) in vs model
 
@@ -1848,7 +2345,8 @@
 ! !IROUTINE: advt_upwind3
 ! !INTERFACE:
 
- subroutine advt_upwind3(k,LTK,TRCR,WTK,WTKB,UTE,UTW,VTN,VTS,this_block)
+ subroutine advt_upwind3(k,LTK,TRCR,WTK,WTKB,UTE,UTW,VTN,VTS, &
+                           TRACER_E,TRACER_N,FLUX_T,tr_mask,this_block)
 
 ! !DESCRIPTION:
 !  This routine computes the advection of tracers using a 3rd-order 
@@ -1871,13 +2369,19 @@
       WTK,             &! vert velocity at top    of level k T box
       WTKB              ! vert velocity at bottom of level k T box
 
+   logical (log_kind), dimension(nt), intent(in) :: &
+      tr_mask           ! true for tracers using upwind3
+
    type (block), intent(in) :: &
       this_block          ! block information for this block
 
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,nt), intent(out) :: &
-      LTK                ! returned as L(T) for nth tracer at level k
+   real (r8), dimension(nx_block,ny_block,nt), intent(inout) :: &
+      LTK,              &! returned as L(T) for nth tracer at level k
+      TRACER_E,         &! tracer value on east face
+      TRACER_N,         &! tracer value on north face
+      FLUX_T             ! tracer tendency due to flux through top   face, volume normalized
 
 !EOP
 !BOC
@@ -1892,6 +2396,7 @@
       bid                 ! local block address for this block
 
    real (r8), dimension(nx_block,ny_block) :: &
+      WORK1,                                  &! local temp space
       FVN,FVS,FUE,FUW,                        &! flux velocities
       TPLUS,TMINUS,AZMINUS,DZMINUS
 
@@ -1908,19 +2413,20 @@
    bid = this_block%local_id
 
    if (partial_bottom_cells) then
-      FVN =  p5*VTN*TAREA_R(:,:,bid)/DZT(:,:,k,bid)
-      FVS = -p5*VTS*TAREA_R(:,:,bid)/DZT(:,:,k,bid) ! note sign
-      FUE =  p5*UTE*TAREA_R(:,:,bid)/DZT(:,:,k,bid)
-      FUW = -p5*UTW*TAREA_R(:,:,bid)/DZT(:,:,k,bid) ! note sign
+      WORK1 = TAREA_R(:,:,bid) / DZT(:,:,k,bid)
+      FVN =  VTN*WORK1
+      FVS = -VTS*WORK1 ! note sign
+      FUE =  UTE*WORK1
+      FUW = -UTW*WORK1 ! note sign
    else
-      FVN =  p5*VTN*TAREA_R(:,:,bid)
-      FVS = -p5*VTS*TAREA_R(:,:,bid)  ! note sign change
-      FUE =  p5*UTE*TAREA_R(:,:,bid)
-      FUW = -p5*UTW*TAREA_R(:,:,bid)  ! note sign change
+      FVN =  VTN*TAREA_R(:,:,bid)
+      FVS = -VTS*TAREA_R(:,:,bid)  ! note sign change
+      FUE =  UTE*TAREA_R(:,:,bid)
+      FUW = -UTW*TAREA_R(:,:,bid)  ! note sign change
    endif
 
-   call hupw3(k,LTK,TRCR,FVN,FVS,FUE,FUW, &
-                    bid, this_block)
+   call hupw3(k,LTK,TRCR,FVN,FVS,FUE,FUW,TRACER_E,TRACER_N, &
+                    bid, tr_mask, this_block)
 
 !-----------------------------------------------------------------------
 !
@@ -1941,6 +2447,8 @@
    end do
 
    do n = 1,nt
+
+      if (.not. tr_mask(n)) cycle
 
       if ( k < km-1 .and. k > 1) then
          TPLUS  = talfzp(k)*TRCR(:,:,k+1,n)  & 
@@ -1975,18 +2483,23 @@
 
       if (k == 1) then
          if (sfc_layer_type /= sfc_layer_varthick) then
+            FLUX_T(:,:,n) = dzr(k)*WTK*TRCR(:,:,k,n)
             LTK(:,:,n) = LTK(:,:,n)                            &
-                       + dzr(k)*WTK*TRCR(:,:,k,n)   &
+                       + FLUX_T(:,:,n)                         &
                        - dz2r(k)*AUXB(:,:,n)
          else
+            FLUX_T(:,:,n) = c0
             LTK(:,:,n) = LTK(:,:,n)                            &
                        - dz2r(k)*AUXB(:,:,n)
          endif
       else
          if (partial_bottom_cells) then
-            LTK(:,:,n) = LTK(:,:,n) + p5/DZT(:,:,k,bid)* &
+            WORK1 = p5 / DZT(:,:,k,bid)
+            FLUX_T(:,:,n) = WORK1*AUX(:,:,n,bid)
+            LTK(:,:,n) = LTK(:,:,n) + WORK1* &
                          (AUX(:,:,n,bid) - AUXB(:,:,n))
          else
+            FLUX_T(:,:,n) = dz2r(k)*AUX(:,:,n,bid)
             LTK(:,:,n) = LTK(:,:,n) + dz2r(k)* &
                          (AUX(:,:,n,bid) - AUXB(:,:,n))
          endif
@@ -2007,7 +2520,8 @@
 ! !IROUTINE: hupw3
 ! !INTERFACE:
 
- subroutine hupw3(k,XOUT,X,CN,CS,CE,CW,bid,this_block)
+ subroutine hupw3(k,XOUT,X,CN,CS,CE,CW,TRACER_E,TRACER_N, &
+                         bid,tr_mask,this_block)
 
 ! !DESCRIPTION:
 !  This routine is the horizontal stencil operator for 3rd-order upwind
@@ -2028,13 +2542,18 @@
    real (r8), dimension(nx_block,ny_block), intent(in) :: & 
       CN,CS,CE,CW           ! stencil weights based on flux velocities
 
+   logical (log_kind), dimension(nt), intent(in) :: &
+      tr_mask           ! true for tracers using upwind3
+
    type (block), intent(in) :: &
       this_block          ! block information for this block
 
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,nt) :: &
-      XOUT                ! output tracer advection
+   real (r8), dimension(nx_block,ny_block,nt), intent(inout) :: &
+      XOUT,              &! output tracer advection
+      TRACER_E,          &! tracer value on east face
+      TRACER_N            ! tracer value on north face
 
 !EOP
 !BOC
@@ -2047,10 +2566,8 @@
    integer (int_kind) :: &
       i,j,n               ! dummy loop indices
 
-   real (r8) ::                              &
-      tplus, tminus, tplusm1, tminusm1,      &
-      am, bm, dm, ap, bp, gp, work, work1,   &
-      amm1, bmm1, dmm1, apm1, bpm1, gpm1
+   real (r8) :: &
+      am, bm, dm, ap, bp, gp, work
 
 !-----------------------------------------------------------------------
 !
@@ -2058,150 +2575,711 @@
 !
 !-----------------------------------------------------------------------
 
-   do j=this_block%jb,this_block%je
-   do i=this_block%ib,this_block%ie
+   do n=1,nt
 
-      if (k <= KMTE(i,j,bid)) then
-         work  = TBETXP(i,j,bid)
-         ap    = TALFXP(i,j,bid)
-      else
-         work  = TBETXP(i,j,bid) + TALFXP(i,j,bid)
-         ap    = c0
-      endif
-      if (k <= KMTE(i-1,j,bid)) then
-         work1 = TBETXP(i-1,j,bid)
-         apm1  = TALFXP(i-1,j,bid)
-      else
-         work1 = TBETXP(i-1,j,bid) + TALFXP(i-1,j,bid)
-         apm1  = c0
-      endif
+      if (.not. tr_mask(n)) cycle
 
-      if (k <= KMTW(i,j,bid)) then
-         bp   = work
-         gp   = TGAMXP(i,j,bid)
-      else
-         bp   = work + TGAMXP(i,j,bid)
-         gp   = c0
-      endif
-      if (k <= KMTW(i-1,j,bid)) then
-         bpm1 = work1
-         gpm1 = TGAMXP(i-1,j,bid)
-      else
-         bpm1 = work1 + TGAMXP(i-1,j,bid)
-         gpm1 = c0
-      endif
+      call zero_ghost_cells(this_block,TRACER_E(:,:,n))
+      call zero_ghost_cells(this_block,TRACER_N(:,:,n))
 
-      if (k <= KMTEE(i,j,bid)) then
-         am   = TALFXM(i,j,bid)
-         dm   = TDELXM(i,j,bid)
-      else
-         am   = TALFXM(i,j,bid) + TDELXM(i,j,bid)
-         dm   = c0
-      endif
-      if (k <= KMTEE(i-1,j,bid)) then
-         amm1 = TALFXM(i-1,j,bid)
-         dmm1 = TDELXM(i-1,j,bid)
-      else
-         amm1 = TALFXM(i-1,j,bid) + TDELXM(i-1,j,bid)
-         dmm1 = c0
-      endif
-      bm   = TBETXM(i,j,bid)
-      bmm1 = TBETXM(i-1,j,bid)
+!-----------------------------------------------------------------------
+!     Compute grid-x direction contribution
+!-----------------------------------------------------------------------
 
-      do n=1,nt
-         tplus    = ap  *X(i+1,j,k,n) + bp  *X(i,j,k,n) +   & 
-                    gp  *X(i-1,j,k,n)
-         tplusm1  = apm1*X(i  ,j,k,n) + bpm1*X(i-1,j,k,n) + &
-                    gpm1*X(i-2,j,k,n)
+      do j=this_block%jb,this_block%je
+         do i=this_block%ib-1,this_block%ie
 
-         tminus   = am  *X(i+1,j,k,n) + bm  *X(i,j,k,n) +   &
-                    dm  *X(i+2,j,k,n)
-         tminusm1 = amm1*X(i  ,j,k,n) + bmm1*X(i-1,j,k,n) + &
-                    dmm1*X(i+1,j,k,n)
+            if (k <= KMTE(i,j,bid)) then
+               work  = TBETXP(i,j,bid)
+               ap    = TALFXP(i,j,bid)
+            else
+               work  = TBETXP(i,j,bid) + TALFXP(i,j,bid)
+               ap    = c0
+            endif
 
-         XOUT(i,j,n) = (CE(i,j)+abs(CE(i,j)))*tplus    +    &
-                       (CE(i,j)-abs(CE(i,j)))*tminus   +    &
-                       (CW(i,j)+abs(CW(i,j)))*tminusm1 +    &
-                       (CW(i,j)-abs(CW(i,j)))*tplusm1
-      end do
-   end do
-   end do
+            if (k <= KMTW(i,j,bid)) then
+               bp   = work
+               gp   = TGAMXP(i,j,bid)
+            else
+               bp   = work + TGAMXP(i,j,bid)
+               gp   = c0
+            endif
 
+            if (k <= KMTEE(i,j,bid)) then
+               am   = TALFXM(i,j,bid)
+               dm   = TDELXM(i,j,bid)
+            else
+               am   = TALFXM(i,j,bid) + TDELXM(i,j,bid)
+               dm   = c0
+            endif
+            bm   = TBETXM(i,j,bid)
 
-   do j=this_block%jb,this_block%je
-   do i=this_block%ib,this_block%ie
+            if (CE(i,j) > c0) then
+               TRACER_E(i,j,n) = ap*X(i+1,j,k,n) + &
+                  bp*X(i,j,k,n) + gp*X(i-1,j,k,n)
+            else
+               TRACER_E(i,j,n) = am*X(i+1,j,k,n) + &
+                  bm*X(i,j,k,n) + dm*X(i+2,j,k,n)
+            endif
 
-      if (k <= KMTN(i,j,bid)) then
-         work  = TBETYP(i,j,bid)
-         ap    = TALFYP(i,j,bid)
-      else
-         work  = TBETYP(i,j,bid) + TALFYP(i,j,bid)
-         ap    = c0
-      endif
-      if (k <= KMTN(i,j-1,bid)) then
-         work1 = TBETYP(i,j-1,bid)
-         apm1  = TALFYP(i,j-1,bid)
-      else
-         work1 = TBETYP(i,j-1,bid) + TALFYP(i,j-1,bid)
-         apm1  = c0
-      endif
+         end do ! i loop for grid-x contribution
 
-      if (k <= KMTS(i,j,bid)) then
-         bp   = work
-         gp   = TGAMYP(i,j,bid)
-      else
-         bp   = work + TGAMYP(i,j,bid)
-         gp   = c0
-      endif
-      if (k <= KMTS(i,j-1,bid)) then
-         bpm1 = work1
-         gpm1 = TGAMYP(i,j-1,bid)
-      else
-         bpm1 = work1 + TGAMYP(i,j-1,bid)
-         gpm1 = c0
-      endif
+         !*** i loop broken up to avoid dependency on previous i iteration
+         !*** and to allow different lower loop bounds
 
-      if (k <= KMTNN(i,j,bid)) then
-         am   = TALFYM(i,j,bid)
-         dm   = TDELYM(i,j,bid)
-      else
-         am   = TALFYM(i,j,bid) + TDELYM(i,j,bid)
-         dm   = c0
-      endif
-      if (k <= KMTNN(i,j-1,bid)) then
-         amm1 = TALFYM(i,j-1,bid)
-         dmm1 = TDELYM(i,j-1,bid)
-      else
-         amm1 = TALFYM(i,j-1,bid) + TDELYM(i,j-1,bid)
-         dmm1 = c0
-      endif
-      bm   = TBETYM(i,j,bid)
-      bmm1 = TBETYM(i,j-1,bid)
+         do i=this_block%ib,this_block%ie
 
-      do n=1,nt
-         tplus    = ap  *X(i,j+1,k,n) + bp  *X(i,j,k,n) +     & 
-                    gp  *X(i,j-1,k,n)
-         tplusm1  = apm1*X(i,j  ,k,n) + bpm1*X(i,j-1,k,n) +   &
-                    gpm1*X(i,j-2,k,n)
+            XOUT(i,j,n) = CE(i,j)*TRACER_E(i,j,n) + CW(i,j)*TRACER_E(i-1,j,n)
 
-         tminus   = am  *X(i,j+1,k,n) + bm  *X(i,j,k,n) +     &
-                    dm  *X(i,j+2,k,n)
-         tminusm1 = amm1*X(i,j  ,k,n) + bmm1*X(i,j-1,k,n) +   &
-                    dmm1*X(i,j+1,k,n)
+         end do ! i loop for grid-x contribution
+      end do ! j loop for grid-x contribution
 
-         XOUT(i,j,n) = XOUT(i,j,n) +                          &
-                     (CN(i,j)+abs(CN(i,j)))*tplus    +        &
-                     (CN(i,j)-abs(CN(i,j)))*tminus   +        &
-                     (CS(i,j)+abs(CS(i,j)))*tminusm1 +        &
-                     (CS(i,j)-abs(CS(i,j)))*tplusm1
-      end do
-   end do
-   end do
+!-----------------------------------------------------------------------
+!     Compute grid-y direction contribution
+!-----------------------------------------------------------------------
+
+      do j=this_block%jb-1,this_block%je
+         do i=this_block%ib,this_block%ie
+
+            if (k <= KMTN(i,j,bid)) then
+               work  = TBETYP(i,j,bid)
+               ap    = TALFYP(i,j,bid)
+            else
+               work  = TBETYP(i,j,bid) + TALFYP(i,j,bid)
+               ap    = c0
+            endif
+
+            if (k <= KMTS(i,j,bid)) then
+               bp   = work
+               gp   = TGAMYP(i,j,bid)
+            else
+               bp   = work + TGAMYP(i,j,bid)
+               gp   = c0
+            endif
+
+            if (k <= KMTNN(i,j,bid)) then
+               am   = TALFYM(i,j,bid)
+               dm   = TDELYM(i,j,bid)
+            else
+               am   = TALFYM(i,j,bid) + TDELYM(i,j,bid)
+               dm   = c0
+            endif
+            bm   = TBETYM(i,j,bid)
+
+            if (CN(i,j) > c0) then
+              TRACER_N(i,j,n) = ap*X(i,j+1,k,n) + &
+                bp*X(i,j,k,n) + gp*X(i,j-1,k,n)
+            else
+              TRACER_N(i,j,n) = am*X(i,j+1,k,n) + &
+                bm*X(i,j,k,n) + dm*X(i,j+2,k,n)
+            endif
+
+            !*** The formula below is not correct for j==this_block%jb-1
+            !*** because TRACER_N(:,this_block%jb-2,n) is not computed.
+            !*** This is OK because XOUT(:,this_block%jb-1,n) is not used.
+
+            XOUT(i,j,n) = XOUT(i,j,n) + &
+              CN(i,j)*TRACER_N(i,j,n) + CS(i,j)*TRACER_N(i,j-1,n)
+
+         end do ! i loop for grid-y contribution
+      end do ! j loop for grid-y contribution
+   end do ! tracer loop
 
 !-----------------------------------------------------------------------
 !EOC
 
  end subroutine hupw3 
+
+!***********************************************************************
+!BOP
+! !IROUTINE: advt_lw_lim
+! !INTERFACE:
+
+ subroutine advt_lw_lim(k,LTK,TMIX,WTK,WTKB,WTKBp1,UTE,UTW,VTN,VTS, &
+                          TRACER_E,TRACER_N,FLUX_T,tr_mask,this_block)
+
+! !DESCRIPTION:
+!  This routine computes the advection of tracers using a 2nd-order
+!  forward in time scheme with one-dimensional flux limiters.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: k  ! depth level index
+
+   real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+      TMIX              ! tracers for this block at mix     time
+
+   real (r8), dimension(nx_block,ny_block), intent(in) :: &
+      UTE,UTW,VTN,VTS, &! tracer flux velocities across E,W,N,S faces
+      WTK,             &! vert velocity at top    of level k T box
+      WTKB,            &! vert velocity at bottom of level k T box
+      WTKBp1            ! vert velocity at bottom of level k+1 T box
+
+   logical (log_kind), dimension(nt), intent(in) :: &
+      tr_mask           ! true for tracers using lw_lim
+
+   type (block), intent(in) :: &
+      this_block          ! block information for this block
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,nt), intent(inout) :: &
+      LTK,              &! returned as L(T) for nth tracer at level k
+      TRACER_E,         &! tracer value on east face
+      TRACER_N,         &! tracer value on north face
+      FLUX_T             ! tracer tendency due to flux through top   face, volume normalized
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables:
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: & 
+      i,j,n,             &! loop index
+      bid                 ! local block address for this block
+
+   real (r8) :: &
+      adv_dt              ! timestep for advection
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK1,             &! local temp space
+      WTK_EFF,           &! effective velocity at top of cell
+      FVN,FVS,FUE,FUW,   &! flux velocities
+      UVEL_E_dt,         &! dt * velocity on east face
+      VVEL_N_dt,         &! dt * velocity on north face
+      KMASKE,KMASKN       ! land mask on east and north faces
+
+   real (r8), dimension(nx_block,ny_block,nt) :: &
+      AUXB
+
+!-----------------------------------------------------------------------
+!
+!  set up scalars & arrays for call to lw_lim
+!
+!-----------------------------------------------------------------------
+
+   bid = this_block%local_id
+
+   adv_dt = c2dtt(k)
+
+   if (partial_bottom_cells) then
+      UVEL_E_dt = adv_dt * UTE * UTE_to_UVEL_E(:,:,k,bid)
+      VVEL_N_dt = adv_dt * VTN * VTN_to_VVEL_N(:,:,k,bid)
+
+      WORK1 = TAREA_R(:,:,bid) / DZT(:,:,k,bid)
+      FVN =  VTN*WORK1
+      FVS = -VTS*WORK1 ! note sign
+      FUE =  UTE*WORK1
+      FUW = -UTW*WORK1 ! note sign
+   else
+      UVEL_E_dt = adv_dt * UTE * UTE_to_UVEL_E(:,:,1,bid)
+      VVEL_N_dt = adv_dt * VTN * VTN_to_VVEL_N(:,:,1,bid)
+
+      FVN =  VTN*TAREA_R(:,:,bid)
+      FVS = -VTS*TAREA_R(:,:,bid)  ! note sign change
+      FUE =  UTE*TAREA_R(:,:,bid)
+      FUW = -UTW*TAREA_R(:,:,bid)  ! note sign change
+   endif
+
+   KMASKE = merge(c1, c0, k <= KMT(:,:,bid) .and. k <= KMTE(:,:,bid))
+   KMASKN = merge(c1, c0, k <= KMT(:,:,bid) .and. k <= KMTN(:,:,bid))
+
+!-----------------------------------------------------------------------
+!
+!  set flux at surface (k=1)
+!  store top of cell volume averaged flux
+!
+!-----------------------------------------------------------------------
+
+   if (k == 1 .and. sfc_layer_type == sfc_layer_varthick) then
+      WTK_EFF = c0
+   else
+      WTK_EFF = WTK
+   endif
+
+   if (partial_bottom_cells) then
+      do n = 1,nt
+         if (.not. tr_mask(n)) cycle
+         if (k == 1) AUX(:,:,n,bid) = WTK_EFF * TMIX(:,:,k,n)
+         FLUX_T(:,:,n) = AUX(:,:,n,bid) / DZT(:,:,k,bid)
+      enddo
+   else
+      do n = 1,nt
+         if (.not. tr_mask(n)) cycle
+         if (k == 1) AUX(:,:,n,bid) = WTK_EFF * TMIX(:,:,k,n)
+         FLUX_T(:,:,n) = AUX(:,:,n,bid)*dzr(k)
+      enddo
+   endif
+
+   call lw_lim(k,adv_dt,UVEL_E_dt,VVEL_N_dt,LTK,TMIX, &
+                 WTK_EFF,WTKB,WTKBp1,AUXB, &
+                 FVN,FVS,FUE,FUW,KMASKE,KMASKN, &
+                 TRACER_E,TRACER_N, &
+                 bid, tr_mask, this_block)
+
+!-----------------------------------------------------------------------
+!
+!  copy bottom flux to top for next k level
+!
+!-----------------------------------------------------------------------
+
+   do n = 1,nt
+      if (tr_mask(n)) AUX(:,:,n,bid) = AUXB(:,:,n)
+   enddo
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine advt_lw_lim
+
+!***********************************************************************
+!BOP
+! !IROUTINE: lw_lim
+! !INTERFACE:
+
+ subroutine lw_lim(k,adv_dt,UVEL_E_dt,VVEL_N_dt,XOUT,X, &
+                      WTK,WTKB,WTKBp1,AUXB, &
+                      CN,CS,CE,CW,KMASKE,KMASKN, &
+                      TRACER_E,TRACER_N,bid,tr_mask,this_block)
+
+! !DESCRIPTION:
+!  This routine computes the advection of tracers using a 2nd-order
+!  forward in time scheme with one-dimensional flux limiters.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) ::  &
+      k,                 &! vertical level index
+      bid                 ! local block address for this block
+
+   real (r8), intent(in) :: &
+      adv_dt              ! advection timestep
+
+   real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+      X                   ! input tracer array
+
+   real (r8), dimension(nx_block,ny_block), intent(in) :: &
+      UVEL_E_dt,         &! dt * velocity on east face
+      VVEL_N_dt,         &! dt * velocity on north face
+      WTK,WTKB,WTKBp1,   &! vert velocity at top of T box for levels k,k+1,k+2
+      CN,CS,CE,CW,       &! stencil weights based on flux velocities
+      KMASKE,KMASKN       ! land mask on east and north faces
+
+   logical (log_kind), dimension(nt), intent(in) :: &
+      tr_mask             ! true for tracers using lw_lim
+
+   type (block), intent(in) :: &
+      this_block          ! block information for this block
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,nt), intent(inout)  :: &
+      AUXB,              &! tracer flux through bottom of cell
+      XOUT,              &! output tracer advection
+      TRACER_E,          &! tracer value on east face
+      TRACER_N            ! tracer value on north face
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      nu                ,&! i/o unit number
+      reclength         ,&! record length
+      i,j,n               ! dummy loop indices
+
+   real (r8) :: &
+      adv_dt_r,          &
+      dzk_div_dt,        &
+      dzkp1_div_dt,      &
+      dTRm1, dTR, dTRp1, &! tracer differences at cell faces
+      psi,               &! fraction of tracer difference appearing in TRACER_E
+      psi_dTR,           &! psi * dTR
+      work1, work2, work3 ! temporary work space
+
+   real (r8), dimension(nx_block,ny_block)  :: &
+      DIV,               &! divergence of velocity field
+      XSTAR,             &! tracer w/ advective tendency terms added
+      MU_z,LW_z,         &! coefficients for z contribution
+      MU_x,LW_x,         &! coefficients for x contribution
+      MU_y,LW_y           ! coefficients for y contribution
+
+!-----------------------------------------------------------------------
+!  compute tracer independent coefficients
+!-----------------------------------------------------------------------
+
+   adv_dt_r = c1 / adv_dt
+
+   if (partial_bottom_cells) then
+
+      do j=this_block%jb-2,this_block%je+2
+         do i=this_block%ib-2,this_block%ie+2
+            if (WTKB(i,j) > c0) then
+               LW_z(i,j) = (DZT(i,j,k+1,bid) - adv_dt * WTKB(i,j)) / &
+                           (DZT(i,j,k,bid) + DZT(i,j,k+1,bid))
+               if (WTKBp1(i,j) > c0) then
+                  MU_z(i,j) = (DZT(i,j,k+1,bid) * adv_dt_r - WTKBp1(i,j)) / WTKB(i,j)
+               else
+                  MU_z(i,j) = c0
+               end if
+            else if (WTKB(i,j) < c0) then
+               LW_z(i,j) = (DZT(i,j,k,bid) + adv_dt * WTKB(i,j)) / &
+                           (DZT(i,j,k,bid) + DZT(i,j,k+1,bid))
+               if (WTK(i,j) < c0) then
+                  MU_z(i,j) = -(DZT(i,j,k,bid) * adv_dt_r + WTK(i,j)) / WTKB(i,j)
+               else
+                  MU_z(i,j) = c0
+               end if
+            end if
+         end do
+      end do
+
+   else
+
+      dzk_div_dt = dz(k) * adv_dt_r
+      if (k < km) dzkp1_div_dt = dz(k+1) * adv_dt_r
+
+      work1 = dz(k) * p5_dz_ph_r(k)
+      if (k < km) work2 = dz(k+1) * p5_dz_ph_r(k)
+      work3 = adv_dt * p5_dz_ph_r(k)
+
+      do j=this_block%jb-2,this_block%je+2
+         do i=this_block%ib-2,this_block%ie+2
+            if (WTKB(i,j) > c0) then
+               LW_z(i,j) = work2 - work3 * WTKB(i,j)
+               if (WTKBp1(i,j) > c0) then
+                  MU_z(i,j) = (dzkp1_div_dt - WTKBp1(i,j)) / WTKB(i,j)
+               else
+                  MU_z(i,j) = c0
+               end if
+            else if (WTKB(i,j) < c0) then
+               LW_z(i,j) = work1 + work3 * WTKB(i,j)
+               if (WTK(i,j) < c0) then
+                  MU_z(i,j) = -(dzk_div_dt + WTK(i,j)) / WTKB(i,j)
+               else
+                  MU_z(i,j) = c0
+               end if
+            end if
+         end do
+      end do
+
+   endif
+
+   do j=this_block%jb-2,this_block%je+2
+      do i=this_block%ib-1,this_block%ie
+         if (UVEL_E_dt(i,j) > c0) then
+            LW_x(i,j) = (DXT(i,j,bid) - UVEL_E_dt(i,j)) * p5_DXT_ph_R(i,j,bid)
+            if (UVEL_E_dt(i-1,j) > c0) then
+               MU_x(i,j) = (DXT(i,j,bid) - UVEL_E_dt(i-1,j)) / UVEL_E_dt(i,j)
+            else
+               MU_x(i,j) = c0
+            end if
+         else if (UVEL_E_dt(i,j) < c0) then
+            LW_x(i,j) = (DXT(i+1,j,bid) + UVEL_E_dt(i,j)) * p5_DXT_ph_R(i,j,bid)
+            if (UVEL_E_dt(i+1,j) < c0) then
+               MU_x(i,j) = -(DXT(i+1,j,bid) + UVEL_E_dt(i+1,j)) / UVEL_E_dt(i,j)
+            else
+               MU_x(i,j) = c0
+            end if
+         else
+            LW_x(i,j) = DXT(i,j,bid) * p5_DXT_ph_R(i,j,bid)
+         end if
+      end do
+   end do
+
+   do j=this_block%jb-1,this_block%je
+      do i=this_block%ib,this_block%ie
+         if (VVEL_N_dt(i,j) > c0) then
+            LW_y(i,j) = (DYT(i,j,bid) - VVEL_N_dt(i,j)) * p5_DYT_ph_R(i,j,bid)
+            if (VVEL_N_dt(i,j-1) > c0) then
+               MU_y(i,j) = (DYT(i,j,bid) - VVEL_N_dt(i,j-1)) / VVEL_N_dt(i,j)
+            else
+               MU_y(i,j) = c0
+            end if
+         else if (VVEL_N_dt(i,j) < c0) then
+            LW_y(i,j) = (DYT(i,j+1,bid) + VVEL_N_dt(i,j)) * p5_DYT_ph_R(i,j,bid)
+            if (VVEL_N_dt(i,j+1) < c0) then
+               MU_y(i,j) = -(DYT(i,j+1,bid) + VVEL_N_dt(i,j+1)) / VVEL_N_dt(i,j)
+            else
+               MU_y(i,j) = c0
+            end if
+         else
+            LW_y(i,j) = DYT(i,j,bid) * p5_DYT_ph_R(i,j,bid)
+         end if
+      end do
+   end do
+
+   if (partial_bottom_cells) then
+      DIV = (WTK - WTKB) / DZT(:,:,k,bid) + CE + CW + CN + CS
+   else
+      DIV = (WTK - WTKB) * dzr(k) + CE + CW + CN + CS
+   end if
+
+!-----------------------------------------------------------------------
+!  loop over tracers
+!-----------------------------------------------------------------------
+
+   do n=1,nt
+      if (.not. tr_mask(n)) cycle
+
+      call zero_ghost_cells(this_block,TRACER_E(:,:,n))
+      call zero_ghost_cells(this_block,TRACER_N(:,:,n))
+
+!-----------------------------------------------------------------------
+!     Compute vertical contribution
+!     Computations are done in the grix-x & grid-y halo regions
+!
+!     Compute grid-x direction contribution
+!     Computations are done in the grid-y halo regions because the
+!        grid-y computations, which use the grid-y halo region,
+!        rely on the grid-x results.
+!
+!     j loops for z and x contributions fused to improve performance
+!
+!     j loop for y contribution cannot easily be fused
+!        because of data dependencies
+!-----------------------------------------------------------------------
+
+      do j=this_block%jb-2,this_block%je+2
+         do i=this_block%ib-2,this_block%ie+2
+            if (k+1 <= KMT(i,j,bid)) then
+               dTR = (X(i,j,k+1,n) - X(i,j,k,n))
+               if (WTKB(i,j) > c0) then
+                  AUXB(i,j,n) = WTKB(i,j) * X(i,j,k+1,n)
+                  if (k+2 <= KMT(i,j,bid)) then
+                     dTRp1 = (X(i,j,k+2,n) - X(i,j,k+1,n))
+!!!                  if (dTR * dTRp1 > c0) then
+!!!                     psi = min(LW_z(i,j), MU_z(i,j) * dTRp1 / dTR)
+!!!                     AUXB(i,j,n) = WTKB(i,j) * (X(i,j,k+1,n) - psi * dTR)
+!!!                  end if
+                     if (dTR > c0 .and. dTRp1 > c0) then
+                        psi_dTR = min(LW_z(i,j) * dTR, MU_z(i,j) * dTRp1)
+                        AUXB(i,j,n) = WTKB(i,j) * (X(i,j,k+1,n) - psi_dTR)
+                     else if (dTR < c0 .and. dTRp1 < c0) then
+                        psi_dTR = max(LW_z(i,j) * dTR, MU_z(i,j) * dTRp1)
+                        AUXB(i,j,n) = WTKB(i,j) * (X(i,j,k+1,n) - psi_dTR)
+                     end if
+                  end if
+               else if (WTKB(i,j) < c0) then
+                  AUXB(i,j,n) = WTKB(i,j) * X(i,j,k,n)
+                  if (k > 1) then
+                     dTRm1 = (X(i,j,k,n) - X(i,j,k-1,n))
+!!!                  if (dTR * dTRm1 > c0) then
+!!!                     psi = min(LW_z(i,j), MU_z(i,j) * dTRm1 / dTR)
+!!!                     AUXB(i,j,n) = WTKB(i,j) * (X(i,j,k,n) + psi * dTR)
+!!!                  end if
+                     if (dTR > c0 .and. dTRm1 > c0) then
+                        psi_dTR = min(LW_z(i,j) * dTR, MU_z(i,j) * dTRm1)
+                        AUXB(i,j,n) = WTKB(i,j) * (X(i,j,k,n) + psi_dTR)
+                     else if (dTR < c0 .and. dTRm1 < c0) then
+                        psi_dTR = max(LW_z(i,j) * dTR, MU_z(i,j) * dTRm1)
+                        AUXB(i,j,n) = WTKB(i,j) * (X(i,j,k,n) + psi_dTR)
+                     end if
+                  end if
+               else
+                  AUXB(i,j,n) = c0
+               end if
+            else ! (k+1>KMT)
+               AUXB(i,j,n) = c0
+            end if
+
+            if (partial_bottom_cells) then
+                XOUT(i,j,n) = ( AUX(i,j,n,bid) - AUXB(i,j,n) - &
+                   (WTK(i,j) - WTKB(i,j)) * X(i,j,k,n) ) / DZT(i,j,k,bid)
+            else
+                XOUT(i,j,n) = ( AUX(i,j,n,bid) - AUXB(i,j,n) - &
+                   (WTK(i,j) - WTKB(i,j)) * X(i,j,k,n) ) * dzr(k)
+            end if
+            XSTAR(i,j) = X(i,j,k,n) - adv_dt * XOUT(i,j,n)
+         end do ! i loop for z contribution
+
+         do i=this_block%ib-1,this_block%ie
+
+             dTR = (XSTAR(i+1,j) - XSTAR(i,j)) * KMASKE(i,j)
+             if (CE(i,j) > c0) then
+                dTRm1 = (XSTAR(i,j) - XSTAR(i-1,j)) * KMASKE(i-1,j)
+!!!             if (dTR * dTRm1 > c0) then
+!!!                psi = min(LW_x(i,j), MU_x(i,j) * dTRm1 / dTR)
+!!!                TRACER_E(i,j,n) = XSTAR(i,j) + psi * dTR
+                if (dTR > c0 .and. dTRm1 > c0) then
+                   psi_dTR = min(LW_x(i,j) * dTR, MU_x(i,j) * dTRm1)
+                   TRACER_E(i,j,n) = XSTAR(i,j) + psi_dTR
+                else if (dTR < c0 .and. dTRm1 < c0) then
+                   psi_dTR = max(LW_x(i,j) * dTR, MU_x(i,j) * dTRm1)
+                   TRACER_E(i,j,n) = XSTAR(i,j) + psi_dTR
+                else
+                   TRACER_E(i,j,n) = XSTAR(i,j)
+                end if
+             else if (CE(i,j) < c0) then
+                dTRp1 = (XSTAR(i+2,j) - XSTAR(i+1,j)) * KMASKE(i+1,j)
+!!!             if (dTR * dTRp1 > c0) then
+!!!                psi = min(LW_x(i,j), MU_x(i,j) * dTRp1 / dTR)
+!!!                TRACER_E(i,j,n) = XSTAR(i+1,j) - psi * dTR
+                if (dTR > c0 .and. dTRp1 > c0) then
+                   psi_dTR = min(LW_x(i,j) * dTR, MU_x(i,j) * dTRp1)
+                   TRACER_E(i,j,n) = XSTAR(i+1,j) - psi_dTR
+                else if (dTR < c0 .and. dTRp1 < c0) then
+                   psi_dTR = max(LW_x(i,j) * dTR, MU_x(i,j) * dTRp1)
+                   TRACER_E(i,j,n) = XSTAR(i+1,j) - psi_dTR
+                else
+                   TRACER_E(i,j,n) = XSTAR(i+1,j)
+                end if
+             else
+                TRACER_E(i,j,n) = XSTAR(i,j) + LW_x(i,j) * dTR
+             end if
+          end do ! i loop for grid-x contribution
+
+          !*** i loop broken up to avoid dependency on previous i
+          !*** iteration and to avoid using an XSTAR value that
+          !*** contains grid-x direction contribution
+
+          do i=this_block%ib,this_block%ie
+             work1 = &
+                CE(i,j) * TRACER_E(i,j,n) + CW(i,j) * TRACER_E(i-1,j,n) - &
+                (CE(i,j) + CW(i,j)) * X(i,j,k,n)
+             XOUT(i,j,n) = XOUT(i,j,n) + work1
+             XSTAR(i,j) = XSTAR(i,j) - adv_dt * work1
+         end do ! i loop for grid-x contribution
+      end do ! j loop for z and grid-x contributions
+
+!-----------------------------------------------------------------------
+!     Compute grid-y direction contribution
+!     Add divergence term
+!-----------------------------------------------------------------------
+
+      do j=this_block%jb-1,this_block%je
+         do i=this_block%ib,this_block%ie
+
+             dTR = (XSTAR(i,j+1) - XSTAR(i,j)) * KMASKN(i,j)
+             if (CN(i,j) > c0) then
+                dTRm1 = (XSTAR(i,j) - XSTAR(i,j-1)) * KMASKN(i,j-1)
+!!!             if (dTR * dTRm1 > c0) then
+!!!                psi = min(LW_y(i,j), MU_y(i,j) * dTRm1 / dTR)
+!!!                TRACER_N(i,j,n) = XSTAR(i,j) + psi * dTR
+                if (dTR > c0 .and. dTRm1 > c0) then
+                   psi_dTR = min(LW_y(i,j) * dTR, MU_y(i,j) * dTRm1)
+                   TRACER_N(i,j,n) = XSTAR(i,j) + psi_dTR
+                else if (dTR < c0 .and. dTRm1 < c0) then
+                   psi_dTR = max(LW_y(i,j) * dTR, MU_y(i,j) * dTRm1)
+                   TRACER_N(i,j,n) = XSTAR(i,j) + psi_dTR
+                else
+                   TRACER_N(i,j,n) = XSTAR(i,j)
+                end if
+             else if (CN(i,j) < c0) then
+                dTRp1 = (XSTAR(i,j+2) - XSTAR(i,j+1)) * KMASKN(i,j+1)
+!!!             if (dTR * dTRp1 > c0) then
+!!!                psi = min(LW_y(i,j), MU_y(i,j) * dTRp1 / dTR)
+!!!                TRACER_N(i,j,n) = XSTAR(i,j+1) - psi * dTR
+                if (dTR > c0 .and. dTRp1 > c0) then
+                   psi_dTR = min(LW_y(i,j) * dTR, MU_y(i,j) * dTRp1)
+                   TRACER_N(i,j,n) = XSTAR(i,j+1) - psi_dTR
+                else if (dTR < c0 .and. dTRp1 < c0) then
+                   psi_dTR = max(LW_y(i,j) * dTR, MU_y(i,j) * dTRp1)
+                   TRACER_N(i,j,n) = XSTAR(i,j+1) - psi_dTR
+                else
+                   TRACER_N(i,j,n) = XSTAR(i,j+1)
+                end if
+             else
+                TRACER_N(i,j,n) = XSTAR(i,j) + LW_y(i,j) * dTR
+             end if
+
+             !*** The formula below is not correct for j==this_block%jb-1
+             !*** because TRACER_N(:,this_block%jb-2,n) is not computed.
+             !*** This is OK because XOUT(:,this_block%jb-1,n) is not used.
+
+             XOUT(i,j,n) = XOUT(i,j,n) + &
+               CN(i,j) * TRACER_N(i,j,n) + CS(i,j) * TRACER_N(i,j-1,n) - &
+               (CN(i,j) + CS(i,j) - DIV(i,j)) * X(i,j,k,n)
+
+             !*** do not update XSTAR in order to avoid using an XSTAR
+             !*** value that contains grid-y direction contribution
+
+         end do ! i loop for grid-y contribution
+      end do ! j loop for grid-y contribution
+
+   end do ! tracer loop
+
+!-----------------------------------------------------------------------
+
+ end subroutine lw_lim
+
+!-----------------------------------------------------------------------
+!EOC
+
+!***********************************************************************
+!BOP
+! !IROUTINE: zero_ghost_cells
+! !INTERFACE:
+
+ subroutine zero_ghost_cells(this_block,FIELD)
+
+! !DESCRIPTION:
+!  This routine sets ghost cell values to zero.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   type (block), intent(in) :: &
+      this_block          ! block information for this block
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block), intent(inout)  :: &
+      FIELD               ! FIELD to be masked
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      i,j                 ! dummy loop indices
+
+!-----------------------------------------------------------------------
+
+   do j=1,this_block%jb-1
+      do i=1,nx_block
+         FIELD(i,j) = c0
+      end do
+   end do
+
+   do j=this_block%jb,this_block%je
+      do i=1,this_block%ib-1
+         FIELD(i,j) = c0
+      end do
+      do i=this_block%ie+1,nx_block
+         FIELD(i,j) = c0
+      end do
+   end do
+
+   do j=this_block%je+1,ny_block
+      do i=1,nx_block
+         FIELD(i,j) = c0
+      end do
+   end do
+
+ end subroutine zero_ghost_cells
+
+!-----------------------------------------------------------------------
+!EOC
 
 !***********************************************************************
 

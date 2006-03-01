@@ -29,6 +29,7 @@
        rho_fw, sound, rho_air, rho_sw, ndelim_fmt
    use communicate, only: my_task, master_task, init_communicate
    !use boundary, only: 
+   use budget_diagnostics, only: init_budget_diagnostics
    use broadcast, only: broadcast_array, broadcast_scalar
    use prognostic, only: init_prognostic, max_blocks_clinic, nx_global,    &
        ny_global, km, nt, TRACER, curtime, RHO, newtime, oldtime
@@ -214,14 +215,6 @@
 
 !-----------------------------------------------------------------------
 !
-!  initialize advection variables
-!
-!-----------------------------------------------------------------------
-
-   call init_advection
-
-!-----------------------------------------------------------------------
-!
 !  initialize vertical mixing variables
 !
 !-----------------------------------------------------------------------
@@ -317,6 +310,14 @@
 
 !-----------------------------------------------------------------------
 !
+!  initialize advection variables
+!
+!-----------------------------------------------------------------------
+
+   call init_advection
+
+!-----------------------------------------------------------------------
+!
 !     initialize shortwave absorption
 !
 !-----------------------------------------------------------------------
@@ -370,6 +371,14 @@
 !-----------------------------------------------------------------------
  
       if (lcoupled .and. lms_balance) call init_ms_balance
+
+!-----------------------------------------------------------------------
+!
+!     initialize global budget diagnostics
+!
+!-----------------------------------------------------------------------
+
+      call init_budget_diagnostics
 
 !-----------------------------------------------------------------------
 !

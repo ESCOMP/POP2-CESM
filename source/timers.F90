@@ -46,6 +46,9 @@
 !
 !-----------------------------------------------------------------------
 
+   real (r8), external :: &
+      mpi_wtime
+
    integer (int_kind), parameter :: &
       max_timers    = 50       ! max number of timers
 
@@ -61,17 +64,17 @@
          num_blocks,          &! number of blocks using this timer
          num_nodes,           &! number of nodes  using this timer
          num_starts,          &! number of start requests
-         num_stops,           &! number of stop requests
-         node_cycles1,        &! cycle number at start for node timer
-         node_cycles2          ! cycle number at stop  for node timer
+         num_stops             ! number of stop requests
 
       real (r8) ::            &
-         node_accum_time       ! accumulated time for node timer
+         node_accum_time,     &! accumulated time for node timer
+         node_cycles1,        &! cycle number at start for node timer
+         node_cycles2          ! cycle number at stop  for node timer
 
       logical (log_kind), dimension(:), pointer :: &
          block_started         ! true if block timer started
 
-      integer (int_kind), dimension(:), pointer :: &
+      real (r8), dimension(:), pointer :: &
          block_cycles1,        &! cycle number at start for block timers
          block_cycles2          ! cycle number at stop  for block timers
 
@@ -83,7 +86,7 @@
    type (timer_data), dimension(max_timers) :: &
       all_timers               ! timer data for all timers
 
-   integer (int_kind) ::      & 
+   real (r8) ::      & 
       cycles_max               ! max clock cycles allowed by system
 
    real (r8) ::               &
@@ -127,18 +130,21 @@
 !
 !-----------------------------------------------------------------------
 
-   call system_clock(count_rate=cycles, count_max=cycles_max)
+!  call system_clock(count_rate=cycles, count_max=cycles_max)
+!
+!  if (cycles /= 0) then
+!     clock_rate = c1/real(cycles,kind=r8)
+!  else
+!     clock_rate = c0
+!     write(stdout,delim_fmt)
+!     write(stdout,blank_fmt)
+!     write(stdout,'(a33)') '--- No system clock available ---'
+!     write(stdout,blank_fmt)
+!     write(stdout,delim_fmt)
+!  endif
 
-   if (cycles /= 0) then
-      clock_rate = c1/real(cycles,kind=r8)
-   else
-      clock_rate = c0
-      write(stdout,delim_fmt)
-      write(stdout,blank_fmt)
-      write(stdout,'(a33)') '--- No system clock available ---'
-      write(stdout,blank_fmt)
-      write(stdout,delim_fmt)
-   endif
+   cycles_max = c0
+   clock_rate = c1
 
 !-----------------------------------------------------------------------
 !
@@ -156,8 +162,8 @@
       all_timers(n)%num_nodes    = 0
       all_timers(n)%num_starts   = 0
       all_timers(n)%num_stops    = 0
-      all_timers(n)%node_cycles1 = 0
-      all_timers(n)%node_cycles2 = 0
+      all_timers(n)%node_cycles1 = c0
+      all_timers(n)%node_cycles2 = c0
 
       all_timers(n)%node_accum_time = c0
 
@@ -239,8 +245,8 @@
                   all_timers(n)%block_accum_time(num_blocks))
 
          all_timers(n)%block_started    = .false.
-         all_timers(n)%block_cycles1    = 0
-         all_timers(n)%block_cycles2    = 0
+         all_timers(n)%block_cycles1    = c0
+         all_timers(n)%block_cycles2    = c0
          all_timers(n)%block_accum_time = c0
 
          exit srch_loop
@@ -296,8 +302,8 @@
       all_timers(timer_id)%num_nodes    = 0
       all_timers(timer_id)%num_starts   = 0
       all_timers(timer_id)%num_stops    = 0
-      all_timers(timer_id)%node_cycles1 = 0
-      all_timers(timer_id)%node_cycles2 = 0
+      all_timers(timer_id)%node_cycles1 = c0
+      all_timers(timer_id)%node_cycles2 = c0
 
       all_timers(timer_id)%node_accum_time = c0
 
@@ -349,14 +355,14 @@
       all_timers(timer_id)%node_started  = .false.
       all_timers(timer_id)%num_starts    = 0
       all_timers(timer_id)%num_stops     = 0
-      all_timers(timer_id)%node_cycles1  = 0
-      all_timers(timer_id)%node_cycles2  = 0
+      all_timers(timer_id)%node_cycles1  = c0
+      all_timers(timer_id)%node_cycles2  = c0
 
       all_timers(timer_id)%node_accum_time = c0
 
       all_timers(timer_id)%block_started(:)    = .false.
-      all_timers(timer_id)%block_cycles1(:)    = 0
-      all_timers(timer_id)%block_cycles2(:)    = 0
+      all_timers(timer_id)%block_cycles1(:)    = c0
+      all_timers(timer_id)%block_cycles2(:)    = c0
       all_timers(timer_id)%block_accum_time(:) = c0
    else
       call exit_POP(sigAbort, &
@@ -421,8 +427,9 @@
 
          all_timers(timer_id)%block_started(block_id) = .true.
 
-         call system_clock(count= &
-                   all_timers(timer_id)%block_cycles1(block_id))
+!        call system_clock(count= &
+!                  all_timers(timer_id)%block_cycles1(block_id))
+         all_timers(timer_id)%block_cycles1(block_id) = mpi_wtime()
 
          !*** start node timer if not already started by
          !*** another thread.  if already started, keep track
@@ -436,8 +443,9 @@
             all_timers(timer_id)%num_starts   = 1
             all_timers(timer_id)%num_stops    = 0
 
-            call system_clock(count= &
-                   all_timers(timer_id)%node_cycles1)
+!           call system_clock(count= &
+!                  all_timers(timer_id)%node_cycles1)
+            all_timers(timer_id)%node_cycles1 = mpi_wtime()
          else
             all_timers(timer_id)%num_starts = &
             all_timers(timer_id)%num_starts + 1
@@ -457,7 +465,8 @@
          !*** start node timer
 
          all_timers(timer_id)%node_started = .true.
-         call system_clock(count=all_timers(timer_id)%node_cycles1)
+!        call system_clock(count=all_timers(timer_id)%node_cycles1)
+         all_timers(timer_id)%node_cycles1 = mpi_wtime()
 
       endif
    else
@@ -505,7 +514,7 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   real (r8) :: &
       cycles1, cycles2   ! temps to hold cycle info before correction
 
 !-----------------------------------------------------------------------
@@ -514,7 +523,8 @@
 !
 !-----------------------------------------------------------------------
 
-   call system_clock(count=cycles2)
+!  call system_clock(count=cycles2)
+   cycles2 = mpi_wtime()
 
 !-----------------------------------------------------------------------
 !

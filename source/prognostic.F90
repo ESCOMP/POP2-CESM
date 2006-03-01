@@ -29,6 +29,8 @@
       character(char_len) :: short_name
       character(char_len) :: long_name
       character(char_len) :: units
+      character(char_len) :: tend_units
+      character(char_len) :: flux_units
    end type
 
 ! !PUBLIC DATA MEMBERS:

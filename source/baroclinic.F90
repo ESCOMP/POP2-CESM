@@ -21,7 +21,8 @@
    use domain_size
    use domain, only: nblocks_clinic, blocks_clinic, bndy_clinic
    use constants, only: delim_fmt, blank_fmt, p5, field_loc_center,          &
-       field_type_scalar, c0, c1, c2, grav, ndelim_fmt, undefined_nf_r4
+       field_type_scalar, c0, c1, c2, grav, ndelim_fmt, undefined_nf_r4,     &
+       hflux_factor, salinity_factor
    use prognostic, only: TRACER, UVEL, VVEL, max_blocks_clinic, km, mixtime, &
        RHO, newtime, oldtime, curtime, PSURF, nt
    use broadcast, only: broadcast_scalar
@@ -29,7 +30,7 @@
    use communicate, only: my_task, master_task
    use grid, only: FCOR, DZU, HUR, KMU, KMT, sfc_layer_type,                 &
        sfc_layer_varthick, partial_bottom_cells, dz, DZT, CALCT, dzw, dzr
-   use advection, only: advu, advt
+   use advection, only: advu, advt, comp_flux_vel_ghost
    use pressure_grad, only: lpressure_avg, gradp
    use horizontal_mix, only: hdiffu, hdifft
    use vertical_mix, only: vmix_coeffs, implicit_vertical_mix, vdiffu,       &
@@ -94,7 +95,10 @@
       tavg_T1_8,         &! tavg id for temperature in top 8 lvls
       tavg_S1_8,         &! tavg id for salinity    in top 8 lvls
       tavg_U1_8,         &! tavg id for U           in top 8 lvls
-      tavg_V1_8           ! tavg id for V           in top 8 lvls
+      tavg_V1_8,         &! tavg id for V           in top 8 lvls
+      tavg_RESID_T,      &! free-surface residual flux (T)
+      tavg_RESID_S        ! free-surface residual flux (S)
+
 
 !EOC
 !***********************************************************************
@@ -272,6 +276,20 @@
                           missing_value=undefined_nf_r4,               &
                           units='centimeter^2/s^2', grid_loc='3221')
 
+   call define_tavg_field(tavg_RESID_T,'RESID_T',2,                           &
+                    long_name='Free-Surface Residual Flux (T)',               &
+                          missing_value=undefined_nf_r4,                      &
+                          fill_value   =undefined_nf_r4,                      &
+                          units='watt/m^2', grid_loc='2110',&
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_RESID_S,'RESID_S',2,                           &
+                    long_name='Free-Surface Residual Flux (S)',               &
+                          missing_value=undefined_nf_r4,                      &
+                          fill_value   =undefined_nf_r4,                      &
+                          units='kg/m^2/s', grid_loc='2110',&
+                          coordinates='TLONG TLAT time')
+
 !-----------------------------------------------------------------------
 !EOC
 
@@ -355,8 +373,18 @@
       WUK,                &! vertical velocity at top of U box
       WTK                  ! vertical velocity at top of T box
 
+   real (r8)    ::        &
+      factor
    type (block) ::        &
       this_block           ! block information for current block
+
+!-----------------------------------------------------------------------
+!
+!  compute flux velocities in ghost cells
+!
+!-----------------------------------------------------------------------
+
+   call comp_flux_vel_ghost(DH)
 
 !-----------------------------------------------------------------------
 !
@@ -517,6 +545,24 @@
             call accumulate_tavg_field(RHO(:,:,k,curtime,iblock), &
                                        tavg_RHO,iblock,k)
          endif
+
+        if ( sfc_layer_type /= sfc_layer_varthick .and. k == 1) then
+          if (tavg_requested(tavg_RESID_T)) then
+              WORK1 = c0
+              factor = c1/hflux_factor  ! converts to W/m^2
+              where (CALCT(:,:,iblock))  &
+                WORK1=DH(:,:,iblock)*TRACER(:,:,1,1,curtime,iblock)*factor
+              call accumulate_tavg_field(WORK1,tavg_RESID_T,iblock,k)
+          endif
+
+          if (tavg_requested(tavg_RESID_S)) then
+              WORK1 = c0
+              factor = c1/salinity_factor  ! converts to kg(freshwater)/m^2/s
+              where (CALCT(:,:,iblock)) &
+                WORK1 = DH(:,:,iblock)*TRACER(:,:,k,2,curtime,iblock)*factor
+              call accumulate_tavg_field(WORK1,tavg_RESID_S,iblock,k)
+          endif
+        endif  ! sfc_layer_type
 
          if (nt > 2) call tavg_passive_tracers(iblock,k)
 
@@ -1476,8 +1522,7 @@
 
    endif
 
-
-   call advt(k,WORKN,WTK,TCUR,UCUR,VCUR,this_block)
+   call advt(k,WORKN,WTK,TMIX,TCUR,UCUR,VCUR,this_block)
 
    FT = FT - WORKN   ! advt returns WORKN = +L(T) 
 
