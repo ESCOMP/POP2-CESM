@@ -92,6 +92,7 @@ else if ($command == tavg_contents) then
    echo "UE_IAGE "    >> $tavg_contents_filename
    echo "VN_IAGE "    >> $tavg_contents_filename
    echo "WT_IAGE "    >> $tavg_contents_filename
+   echo "ADV_IAGE "   >> $tavg_contents_filename
    echo "J_IAGE "     >> $tavg_contents_filename
    echo "Jint_IAGE "  >> $tavg_contents_filename
    echo "STF_IAGE "   >> $tavg_contents_filename
