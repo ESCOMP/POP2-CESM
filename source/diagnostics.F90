@@ -11,7 +11,7 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
+!  CVS:$Name: ccsm_pop_2_1_20051215 $
 !
 ! !USES:
 
@@ -78,6 +78,24 @@
       DIAG_TRACER_SOURCE_2D, &!
       DIAG_TRACER_SFC_FLX
 
+!-----------------------------------------------------------------------
+!
+!     global budget diagnostics
+!
+!-----------------------------------------------------------------------
+
+   real (r8), dimension(nt),public ::   &
+     tracer_mean_initial,               &! SUM [volume*tracer] at the beginning 
+                                         !    of a time-averaging interval
+     tracer_mean_final                   ! SUM [volume*tracer] at the end of a
+                                         ! time-averaging interval
+
+   real (r8), public                ::  &
+      volume_t_initial,                 & ! T-point volume at the beginning of a
+                                          ! time-averaging interval
+      volume_t_final                      ! T-point volume at the end of a
+                                          ! time-averaging interval
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -131,6 +149,7 @@
 
    real (r8), dimension(km,nt) :: &
       avg_tracer_k                ! mean tracer at every level
+
 
 !-----------------------------------------------------------------------
 !

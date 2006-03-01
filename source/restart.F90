@@ -10,7 +10,7 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
+!  CVS:$Name: ccsm_pop_2_1_20051215 $
 !
 ! !USES:
 
@@ -81,8 +81,10 @@
 !
 !-----------------------------------------------------------------------
 
+   character (char_len_long) :: &
+      restart_outfile       ! restart output filename root
+
    character (char_len) :: &
-      restart_outfile,     &! restart output filename root
       restart_fmt           ! format (bin or nc) of output restart
 
    logical (log_kind) ::   &
@@ -1411,7 +1413,7 @@
 
        open(nu, file=restart_pointer_file, form='formatted', &
                 status='unknown')
-       write(nu,'(a80)') restart_filename
+       write(nu,'(a)') restart_filename
        close(nu)
        write(stdout,blank_fmt)
        write(stdout,*) ' restart pointer file written: ',trim(restart_pointer_file)

@@ -10,7 +10,7 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
+!  CVS:$Name: ccsm_pop_2_1_20051215 $
 
 ! !USES:
 
@@ -23,11 +23,13 @@
    use grid
    use time_management
    use registry
+   use operators, only: zcurl
    use gather_scatter
    use global_reductions
    use broadcast
    use io
    use io_ccsm
+   use diag_bsf, only: pcg_diag_bsf_solver, init_diag_bsf
    use exit_mod
    use shr_sys_mod
 
@@ -41,12 +43,14 @@
              define_tavg_field,     &
              accumulate_tavg_field, &
              tavg_requested,        &
+             tavg_id,               &
              write_tavg,            &
              read_tavg,             &
              tavg_set_flag,         &
              tavg_mask_lev,         &
              tavg_qflux_reset,      &
-             tavg_qflux_compute
+             tavg_qflux_compute,    &
+             tavg_global_sum_2D
 
 
 ! !PUBLIC DATA MEMBERS:
@@ -62,7 +66,8 @@
       tavg_method_max     = 3
 
    real (r8),public ::  &
-      tavg_sum_qflux
+      tavg_sum_qflux,   &
+      tavg_sum           ! accumulated time (in seconds)
 
 
 !EOP
@@ -116,6 +121,14 @@
 
 !-----------------------------------------------------------------------
 !
+!  ids for local tavg quantities
+!
+!-----------------------------------------------------------------------
+   integer (int_kind) ::  &
+      tavg_BSF
+
+!-----------------------------------------------------------------------
+!
 !  buffers for holding running tavg variables
 !
 !-----------------------------------------------------------------------
@@ -134,8 +147,8 @@
       TAVG_BUF_2D_METHOD,  &! method for each requested 2d field
       TAVG_BUF_3D_METHOD    ! method for each requested 3d field
 
-   real (r4), dimension(nx_block,ny_block,max_blocks_clinic)   ::  &
-      TAVG_QFLUX         ! time-averaged qflux 
+   real (r4), dimension(nx_block,ny_block,max_blocks_clinic),public   ::  &
+      TAVG_BUFF_QFLUX         ! time-averaged qflux 
 
 !-----------------------------------------------------------------------
 !
@@ -194,7 +207,6 @@
      upper_time_bound
 
    real (r8) ::        &
-      tavg_sum,        &! accumulated time (in seconds)
       dtavg             ! current time step
 
    character (10) :: &
@@ -386,9 +398,28 @@
    tavg_outfile_orig = char_blank
    tavg_outfile_orig = trim(tavg_outfile)
 
-   !*** initialize TAVG_QFLUX and tavg_sum_qflux
+!-----------------------------------------------------------------------
+!
+!  initialize qflux tavg quantities
+!
+!-----------------------------------------------------------------------
+
    call tavg_qflux_reset
 
+!-----------------------------------------------------------------------
+!
+!  initialize diagnostic barotropic streamfunction quantities
+!
+!-----------------------------------------------------------------------
+
+   call define_tavg_field(tavg_BSF,'BSF',2,                                 &
+                          long_name='Diagnostic barotropic streamfunction', &
+                          missing_value=undefined_nf_r4,                    &
+                          units='Sv', grid_loc='2220',                      &
+                          coordinates='ULONG ULAT time')
+
+   !*** add checking, registry, and other stuff later!!!
+   call init_diag_bsf
 
 !-----------------------------------------------------------------------
 !
@@ -673,26 +704,39 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
-   real (r4), dimension (nx_block, ny_block,nblocks_clinic) :: &
+   real (r8), dimension (nx_block, ny_block,max_blocks_clinic) ::  &
+      WORK1,WORK2,WORK3,  &
+      PSI_T, PSI_U
+
+   real (r4), dimension (nx_block, ny_block,max_blocks_clinic) ::  &
          TAVG_TEMP
 
-   integer (int_kind), dimension(nx_global,ny_global) :: &
+   integer (int_kind), dimension(nx_global,ny_global) ::  &
       KMU_G            ! k index of deepest grid cell on global U grid
 
-   real (r4), dimension(nx_global,ny_global) :: &
+   real (r4), dimension(nx_global,ny_global) ::  &
       ARRAY_G          ! global storage array used for masking
 
-   real (r4) :: & 
+   real (r4) ::  & 
       qflux_fill          !temporary kludge 
                        
-   integer (i4) :: &
-      nu,          &! i/o unit for output file
-      iblock,      &! dummy block index
-      nfield,      &! dummy field index
-      nindex,      &! dummy field index
-      loc,         &! buffer location for field
-      io_phase,    &!'define' or 'write'
-      k,n           ! indices
+   integer (i4) ::  &
+      nu,           &! i/o unit for output file
+      iblock,       &! dummy block index
+      nfield,       &! dummy field index
+      nindex,       &! dummy field index
+      loc,          &! buffer location for field
+      io_phase,     &!'define' or 'write'
+      k,n,          &! indices
+      i,j,ii,jj      ! indices
+
+   integer (int_kind) ::               &
+      tavg_id_SU,                      &
+      tavg_id_SV,                      &                    
+      tavg_id_BSF,                     &                    
+      tavg_loc_SU,                     &                    
+      tavg_loc_SV,                     &
+      tavg_loc_BSF
 
    character (char_len) ::  &
       file_suffix,          &! suffix to append to tavg file name
@@ -701,21 +745,23 @@
       tavg_pointer_file      ! filename for pointer file containing
                              !   location/name of last restart file
 
-   character (8) :: &
+   character (8) ::  &
       date_created   ! string with (real) date this file created
 
-   character (10) :: &
+   character (10) ::  &
       time_created   ! string with (real) date this file created
 
-   type (io_field_desc), dimension(:), allocatable :: &
+   type (io_field_desc), dimension(:), allocatable ::  &
       tavg_fields
 
-   type (io_field_desc)  :: &
+   type (io_field_desc)  ::  &
       qflux_field
 
+   type (block) ::        &
+      this_block          ! block information for current block
 
-   logical (log_kind) :: &
-      ltavg_write,       &! time to write a file
+   logical (log_kind) ::  &
+      ltavg_write,        &! time to write a file
       lreset_tavg         ! time to reset time averages (reg tavg dump)
 
 !-----------------------------------------------------------------------
@@ -850,12 +896,77 @@
          end do
 
       if (tavg_sum_qflux /= c0) then
-        TAVG_QFLUX(:,:,iblock) = TAVG_QFLUX(:,:,iblock)/tavg_sum_qflux
+        TAVG_BUFF_QFLUX(:,:,iblock) = TAVG_BUFF_QFLUX(:,:,iblock)/tavg_sum_qflux
       endif
 
       end do
       !$OMP END PARALLEL DO
 
+!-----------------------------------------------------------------------
+!
+!  compute barotropic stream function diagnostically from other tavg
+!  quantities -- do this after normalizing TAVG_BUF quantities
+!
+!-----------------------------------------------------------------------
+
+   !*** determine the tavg ids for tavg fields required by this module
+   tavg_id_SU  = tavg_id('SU')
+   tavg_id_SV  = tavg_id('SV')
+   tavg_id_BSF = tavg_id('BSF')
+ 
+   tavg_loc_SU  = avail_tavg_fields(tavg_id_SU)%buf_loc
+   tavg_loc_SV  = avail_tavg_fields(tavg_id_SV)%buf_loc
+   tavg_loc_BSF = avail_tavg_fields(tavg_id_BSF)%buf_loc
+
+   !$OMP PARALLEL DO PRIVATE (this_block,iblock)
+   do iblock=1,nblocks_clinic
+     this_block = get_block(blocks_clinic(iblock),iblock)
+
+     WORK2(:,:,iblock) = TAVG_BUF_2D(:,:,iblock,tavg_loc_SU)
+     WORK3(:,:,iblock) = TAVG_BUF_2D(:,:,iblock,tavg_loc_SV)
+     call zcurl (1,WORK1(:,:,iblock),WORK2(:,:,iblock),  &
+                  WORK3(:,:,iblock),this_block)
+   end do
+   !$OMP END PARALLEL DO
+     
+   WORK2 = c0
+   call pcg_diag_bsf_solver (WORK2,WORK1)
+ 
+   TAVG_BUF_2D(:,:,:,tavg_loc_BSF) =  &
+       merge(c0,WORK2, .not. CALCT)
+
+   !*** convert to Sv
+   TAVG_BUF_2D(:,:,:,tavg_loc_BSF) =  &
+     TAVG_BUF_2D(:,:,:,tavg_loc_BSF)*mass_to_Sv
+
+   PSI_T= TAVG_BUF_2D(:,:,:,tavg_loc_BSF)
+
+   !$OMP PARALLEL DO PRIVATE (iblock, i,j,ii,jj)
+   do iblock=1,nblocks_clinic
+
+      PSI_T(:,:,iblock) = TAVG_BUF_2D(:,:,iblock,tavg_loc_BSF)
+      do j=2,ny_block-1
+      do i=2,nx_block-1
+        if (KMT(i,j,iblock) == 0) then
+          ii_loop: do ii=i-1,i+1
+          jj_loop: do jj=j-1,j+1
+            if (KMT(ii,jj,iblock) /= 0) then
+              PSI_T(i,j,iblock) = PSI_T(ii,jj,iblock)
+              exit ii_loop
+            endif
+          enddo jj_loop
+          enddo ii_loop
+         endif
+      enddo ! i
+      enddo ! j
+ 
+      call tgrid_to_ugrid (PSI_U(:,:,iblock), PSI_T(:,:,iblock),iblock)
+ 
+      TAVG_BUF_2D(:,:,iblock,tavg_loc_BSF) = PSI_U(:,:,iblock)
+
+
+   end do
+   !$OMP END PARALLEL DO
 
 !-----------------------------------------------------------------------
 !
@@ -1067,7 +1178,7 @@
               coordinates =avail_tavg_fields(nfield)%coordinates,   &
              missing_value=avail_tavg_fields(nfield)%missing_value, &
                valid_range=avail_tavg_fields(nfield)%valid_range,   &
-                r2d_array =TAVG_QFLUX(:,:,:) )
+                r2d_array =TAVG_BUFF_QFLUX(:,:,:) )
             call add_attrib_io_field(qflux_field, 'cell_methods', 'time: mean')
             call add_attrib_io_field(qflux_field,   &
                  '_FillValue',avail_tavg_fields(nfield)%fill_value )
@@ -1081,7 +1192,7 @@
             qflux_fill = avail_tavg_fields(nfield)%fill_value
          endif
 
-         call gather_global(ARRAY_G, TAVG_QFLUX,master_task,distrb_clinic)
+         call gather_global(ARRAY_G, TAVG_BUFF_QFLUX,master_task,distrb_clinic)
          if (my_task == master_task) then
            call tavg_mask_lev(ARRAY_G,            &
                      KMU_G,                       &
@@ -1089,7 +1200,7 @@
                      trim(qflux_field%grid_loc),  &
                      qflux_fill,1)
           endif ! master_task
-          call tavg_mask_scatter(TAVG_QFLUX,ARRAY_G,    &
+          call tavg_mask_scatter(TAVG_BUFF_QFLUX,ARRAY_G,    &
                              trim(qflux_field%grid_loc) )
       endif ! lccsm
 
@@ -1220,7 +1331,7 @@
                   TAVG_BUF_3D(:,:,:,iblock,nfield)*tavg_sum
                endif
             end do
-         TAVG_QFLUX(:,:,iblock) = TAVG_QFLUX(:,:,iblock)*tavg_sum_qflux
+         TAVG_BUFF_QFLUX(:,:,iblock) = TAVG_BUFF_QFLUX(:,:,iblock)*tavg_sum_qflux
          end do
          !$OMP END PARALLEL DO
 
@@ -1656,6 +1767,144 @@
 
 !***********************************************************************
 !BOP
+! !IROUTINE: tavg_global_sum_2D
+! !INTERFACE:
+
+ function tavg_global_sum_2D (id)
+
+! !DESCRIPTION:
+!  Calculates the global sum of a requested 2D time-averaged field
+!  Presently, this is a special-purpose routine used only by the
+!  budget_diagnostics module.  It could be extended and generalized,
+!  and used with a revised version of subroutine tavg_global, if time
+!  and interest allow.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) ::  &
+      id                               ! identifier of time-averaged field 
+
+! !OUTPUT PARAMETERS:
+
+   real (r8) :: &
+      tavg_global_sum_2D     ! result of this function: the global sum of
+                             !   a requested 2D time-averaged field
+
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (i4) ::     &
+      loc,             &   ! field buffer location
+      iblock,          &   ! block index
+      nfield,          &   ! dummy field index
+      field_loc,       &   ! field location (center,Nface,Eface,NEcorner)
+      field_type           ! field type (scalar, vector, angle)
+
+   real (r8) ::            &
+      tavg_norm                ! normalization for average
+
+   real (r8), dimension (nx_block,ny_block,max_blocks_clinic) ::  &
+      WORK               ! temp for holding area_weighted field
+
+   real (r8), dimension (nx_block, ny_block) ::  &
+      RMASK              ! topography mask for global sum
+
+
+!-----------------------------------------------------------------------
+!
+!  test: does this field exist?
+!
+!-----------------------------------------------------------------------
+
+   if (.not. tavg_requested(id)) then
+      call exit_POP(sigAbort,'(tavg_global_sum_2D) ERROR: invalid field request')
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  test: is this a 2D field?
+!
+!-----------------------------------------------------------------------
+
+   if (avail_tavg_fields(id)%ndims /= 2) then
+      call exit_POP(sigAbort,'(tavg_global_sum_2D) ERROR: invalid dimension')
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  identify the requested field
+!
+!-----------------------------------------------------------------------
+
+   field_loc  = avail_tavg_fields(id)%field_loc
+   field_type = avail_tavg_fields(id)%field_type
+
+!-----------------------------------------------------------------------
+!
+!  identify the buffer location in TAVG_BUF_2D
+!
+!-----------------------------------------------------------------------
+
+   loc = avail_tavg_fields(id)%buf_loc
+
+!-----------------------------------------------------------------------
+!
+!  compute the global average of the 2D field
+!
+!-----------------------------------------------------------------------
+
+   if (avail_tavg_fields(id)%method == tavg_method_avg) then
+      tavg_norm = tavg_sum
+   else
+      tavg_norm = c1
+   endif
+
+   !$OMP PARALLEL DO
+   do iblock = 1,nblocks_clinic
+      select case(field_loc)
+        case(field_loc_center)
+           WORK(:,:,iblock)  = TAVG_BUF_2D(:,:,iblock,loc)* &
+                               TAREA(:,:,iblock)*RCALCT(:,:,iblock)
+        case(field_loc_NEcorner)
+           WORK(:,:,iblock)  = TAVG_BUF_2D(:,:,iblock,loc)* &
+                               UAREA(:,:,iblock)*RCALCU(:,:,iblock)
+        case default ! make U cell the default for all other cases
+           WORK(:,:,iblock)  = TAVG_BUF_2D(:,:,iblock,loc)* &
+                               UAREA(:,:,iblock)*RCALCU(:,:,iblock)
+      end select
+   end do
+   !$OMP END PARALLEL DO
+
+   tavg_global_sum_2D = global_sum(WORK, distrb_clinic, field_loc)
+
+   select case(field_loc)
+     case(field_loc_center)
+        tavg_global_sum_2D = tavg_global_sum_2D/(tavg_norm*area_t)
+     case(field_loc_NEcorner)
+        tavg_global_sum_2D = tavg_global_sum_2D/(tavg_norm*area_u)
+     case default ! make U cell the default for all other cases
+        tavg_global_sum_2D = tavg_global_sum_2D/(tavg_norm*area_u)
+   end select
+
+
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function tavg_global_sum_2D
+
+
+!***********************************************************************
+!BOP
 ! !IROUTINE: accumulate_tavg_field
 ! !INTERFACE:
 
@@ -2064,6 +2313,64 @@
 !EOC
 
  end function tavg_requested
+
+!***********************************************************************
+!BOP
+! !IROUTINE: tavg_id
+! !INTERFACE:
+
+ function tavg_id(short_name)
+
+! !DESCRIPTION:
+!  This function determines whether a tavg field has been defined
+!  by some module.  If so, then the id of that field is returned.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent(in)  :: &
+      short_name                  ! the short name of the tavg field
+
+! !OUTPUT PARAMETERS:
+
+   integer (int_kind) :: &
+      tavg_id               ! id of the tavg field, if it exists
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+   integer (int_kind) ::  &
+     id,                  &
+     n
+
+   id = 0
+
+   srch_loop: do n=1,num_avail_tavg_fields
+      if (trim(avail_tavg_fields(n)%short_name) == trim(short_name)) then
+         id = n
+         exit srch_loop
+      endif
+   end do srch_loop
+
+   if (id == 0) then
+      if (my_task == master_task) write(stdout,*) 'Requested ', &
+                                                  trim(short_name)
+      call exit_POP(sigAbort,'(tavg_id) ERROR: field is not defined')
+   endif
+
+   tavg_id = n
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function tavg_id
 
 !***********************************************************************
 !BOP
@@ -2477,12 +2784,20 @@
     start_time,    & 
     current_date,  &
     current_time,  &
-    cell_methods
+    cell_methods,  &
+    calendar
 
 
  call add_attrib_file(tavg_file_desc, 'contents', 'Diagnostic and Prognostic Variables')
  call add_attrib_file(tavg_file_desc, 'source', 'CCSM POP2, the CCSM Ocean Component')
- call add_attrib_file(tavg_file_desc, 'revision', '$Name$')
+ call add_attrib_file(tavg_file_desc, 'revision', '$Name: ccsm_pop_2_1_20051215 $')
+
+ if (allow_leapyear) then
+    write(calendar,'(a,i5,a,i5,a)')' Leap years allowed. Normal years have',days_in_norm_year,' days. Leap years have ' ,days_in_leap_year, ' days.'
+ else
+    write(calendar,'(a,i5,a)')'All years have exactly', days_in_norm_year, ' days.'
+ endif
+ call add_attrib_file(tavg_file_desc, 'calendar', trim(calendar))
 
  
  call date_and_time (date=current_date,time=current_time)
@@ -2685,6 +3000,9 @@
    real (r4), dimension(0:km) ::  &
       DZW_R4
 
+   real (r4), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
+      TLON_DEG, TLAT_DEG, ULON_DEG, ULAT_DEG
+
 
    save
 
@@ -2712,38 +3030,42 @@
    !*** ULONG
    ii=ii+1
 
+    ULON_DEG = ULON*radian
     tavg_time_invar_fields(ii) = construct_io_field(  &
         'ULONG', dim1=i_dim, dim2=j_dim,              &
          long_name='array of u-grid longitudes',      &
          units    ='degrees_east',                    &
-         d2d_array =ULON(:,:,:) )
+         r2d_array =ULON_DEG(:,:,:) )
 
    !*** ULAT
    ii=ii+1
 
+    ULAT_DEG = ULON*radian
     tavg_time_invar_fields(ii) = construct_io_field(  &
         'ULAT', dim1=i_dim, dim2=j_dim,               &
          long_name='array of u-grid latitudes',       &
          units    ='degrees_north',                   &
-         d2d_array =ULAT(:,:,:) )
+         r2d_array =ULAT_DEG(:,:,:) )
 
    !*** TLONG
    ii=ii+1
 
+    TLON_DEG = TLON*radian
     tavg_time_invar_fields(ii) = construct_io_field(  &
         'TLONG', dim1=i_dim, dim2=j_dim,              &
          long_name='array of t-grid longitudes',      &
          units    ='degrees_east',                    &
-         d2d_array =TLON(:,:,:) )
+         r2d_array =TLON_DEG(:,:,:) )
 
    !*** TLAT
    ii=ii+1
 
+    TLAT_DEG = TLAT*radian
     tavg_time_invar_fields(ii) = construct_io_field(  &
         'TLAT', dim1=i_dim, dim2=j_dim,               &
          long_name='array of t-grid latitudes',       &
          units    ='degrees_north',                   &
-         d2d_array =TLAT(:,:,:) )
+         r2d_array =TLAT_DEG(:,:,:) )
 
    !*** KMT
    ii=ii+1
@@ -3455,7 +3777,7 @@
 
    subroutine tavg_qflux_reset
    tavg_sum_qflux = c0
-   TAVG_QFLUX     = c0
+   TAVG_BUFF_QFLUX     = c0
    end subroutine tavg_qflux_reset
 
  
@@ -3479,7 +3801,7 @@
       bid                   ! local block id
  
    tavg_sum_qflux = tavg_sum_qflux + tlast_ice
-   TAVG_QFLUX(:,:,bid) = TAVG_QFLUX(:,:,bid) + tlast_ice * max (c0,QFLUX(:,:,bid))
+   TAVG_BUFF_QFLUX(:,:,bid) = TAVG_BUFF_QFLUX(:,:,bid) + tlast_ice * max (c0,QFLUX(:,:,bid))
 
 
    end subroutine tavg_qflux_compute

@@ -10,7 +10,7 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
+!  CVS:$Name: ccsm_pop_2_1_20051215 $
 !
 ! !USES:
 
@@ -21,7 +21,7 @@
    use domain, only: distrb_clinic, nblocks_clinic, bndy_clinic,            &
        blocks_clinic
    use constants, only: c2, field_loc_NEcorner, field_type_vector,          &
-       field_type_scalar, c3, p5, grav
+       field_type_scalar, c3, p5, grav, salt_to_ppt
    use prognostic, only: max_blocks_clinic, mixtime, newtime,               &
        field_loc_center, km, curtime, UBTROP, VBTROP, UVEL, VVEL, RHO,      &
        TRACER, oldtime, PGUESS, GRADPX, GRADPY, PSURF, nt
@@ -33,17 +33,18 @@
        ugrid_to_tgrid
 !   use io, only: 
    use diagnostics, only: diag_global_preupdate, diag_global_afterupdate,   &
-       diag_print, diag_transport, diag_init_sums
+       diag_print, diag_transport, diag_init_sums, tracer_mean_initial,     &
+       volume_t_initial
    use state_mod, only: state
    use time_management, only: mix_pass, matsuno_ts, leapfrogts, beta,       &
        alpha, c2dtt, c2dtu, c2dtp, dtp, c2dtq, theta, avg_ts, back_to_back, &
        time_to_do, freq_opt_nstep, dt, dtu, time_manager, check_time_flag,  &
-       init_time_flag
+       init_time_flag, check_time_flag_freq, check_time_flag_freq_opt
    use xdisplay, only: lxdisplay, nstep_xdisplay, display
    use baroclinic, only: baroclinic_driver, baroclinic_correct_adjust
    use barotropic, only: barotropic_driver
    use surface_hgt, only: dhdt
-   use tavg, only: tavg_set_flag, tavg_qflux_compute
+   use tavg, only: tavg_set_flag, tavg_qflux_compute, ltavg_on
    use forcing, only: FW_OLD, FW, set_surface_forcing, tavg_forcing, STF
    use forcing_coupled, only: lcoupled
    use ice, only: liceform, ice_cpl_flag, ice_flx_to_coupler, QFLUX, tlast_ice
@@ -51,6 +52,9 @@
    use shr_sys_mod
    use communicate, only: my_task, master_task
    use io_types, only: stdout
+   use budget_diagnostics, only: ldiag_global_tracer_budgets, diag_for_tracer_budgets, &
+       tracer_budgets
+
 
    implicit none
    private
@@ -66,7 +70,9 @@
 !
 !----------------------------------------------------------------------
    integer (int_kind), private :: &
-      cpl_stop_now                 ! flag id for stop_now flag
+      cpl_stop_now,               &! flag id for stop_now flag
+      tavg_flag                    ! flag to access tavg frequencies
+
 
 
 !EOP
@@ -116,8 +122,9 @@
       DH,DHU              ! time change of surface height minus
                           ! freshwater flux at T, U points
 
-   logical (log_kind), save :: &
-      first_call = .true.      ! flag for initializing timers
+   logical (log_kind), save ::    &
+      first_call = .true.,        &! flag for initializing timers
+      first_global_budget = .true.
 
    integer (int_kind), save :: &
       timer_baroclinic,        &! timer for baroclinic parts of step
@@ -135,6 +142,8 @@
 
    if (first_call) then
       cpl_stop_now  = init_time_flag('stop_now',default=.false.)
+      tavg_flag     = init_time_flag('tavg')
+
       call get_timer(timer_baroclinic,'BAROCLINIC',1, &
                                        distrb_clinic%nprocs)
       call get_timer(timer_barotropic,'BAROTROPIC',1, &
@@ -160,6 +169,25 @@
 !
 !  if(newday) call data_cmeters
 !
+
+!-----------------------------------------------------------------------
+!
+!     initialize the global budget arrays
+!
+!-----------------------------------------------------------------------
+
+        if ( first_global_budget .and. ldiag_global_tracer_budgets  .and.  &
+             ltavg_on ) then
+          call diag_for_tracer_budgets (tracer_mean_initial,volume_t_initial)
+
+          if ( my_task == master_task ) then
+            write (stdout,1001) volume_t_initial,tracer_mean_initial(1),   &
+                                salt_to_ppt*tracer_mean_initial(2)
+          endif
+
+          first_global_budget = .false.
+        endif
+
 !-----------------------------------------------------------------------
 !
 !  read fields for surface forcing
@@ -593,6 +621,13 @@
    call diag_print
    call diag_transport
 
+   if ( ldiag_global_tracer_budgets  .and.   &
+        time_to_do(check_time_flag_freq_opt(tavg_flag),  &
+                   check_time_flag_freq(tavg_flag) ))    then
+        call tracer_budgets
+   endif
+
+
 !-----------------------------------------------------------------------
 !
 !  display vertically integrated velocity and surface height in 
@@ -621,6 +656,13 @@
                     DH , field_loc_center)
 
    endif ! xdisplay
+
+ 1001 format (/, 10x, 'VOLUME AND TRACER BUDGET INITIALIZATION:',  &
+              /, 10x, '========================================',  &
+              /,  5x, ' volume_t (cm^3)           = ', e18.12,     &
+              /,  5x, ' SUM [volume*T] (C   cm^3) = ', e18.12,     &
+              /,  5x, ' SUM [volume*S] (ppt cm^3) = ', e18.12 )
+
 
 !-----------------------------------------------------------------------
 !EOC

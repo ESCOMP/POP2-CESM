@@ -11,7 +11,7 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
+!  CVS:$Name: ccsm_pop_2_1_20051215 $
 !
 ! !USES:
 
@@ -33,17 +33,19 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_time_manager1, &
-             init_time_manager2, &
-             time_manager,       &
-             init_time_flag,     &
-             set_time_flag,      &
-             set_time_flag_last, &
-             check_time_flag,    &
-             time_to_do,         &
-             time_to_start,      &
-             time_stamp,         &
-             int_to_char,        &
+   public :: init_time_manager1,        &
+             init_time_manager2,        &
+             time_manager,              &
+             init_time_flag,            &
+             set_time_flag,             &
+             set_time_flag_last,        &
+             check_time_flag,           &
+             check_time_flag_freq_opt,  &
+             check_time_flag_freq,      &
+             time_to_do,                &
+             time_to_start,             &
+             time_stamp,                &
+             int_to_char,               &
              ccsm_date_stamp
 
 
@@ -2036,6 +2038,88 @@
 !EOC
 
  end function check_time_flag
+
+!***********************************************************************
+!BOP
+! !IROUTINE: check_time_flag_freq_opt
+! !INTERFACE:
+
+ function check_time_flag_freq_opt(flag_id)
+
+! !DESCRIPTION:
+!  Returns the current frequency of time flag given by flag\_id.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      flag_id                ! index of flag array identifying flag
+
+! !OUTPUT PARAMETERS:
+
+   integer (int_kind) :: &
+      check_time_flag_freq_opt        ! current freqeuncy option of time flag
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  check for proper flag id and then return flag value
+!
+!-----------------------------------------------------------------------
+
+   if (flag_id < 1 .or. flag_id > num_time_flags) &
+      call exit_POP(sigAbort,'check_time_flag: invalid flag_id')
+
+   check_time_flag_freq_opt = time_flags(flag_id)%freq_opt
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function check_time_flag_freq_opt
+
+!***********************************************************************
+!BOP
+! !IROUTINE: check_time_flag_freq
+! !INTERFACE:
+
+ function check_time_flag_freq(flag_id)
+
+! !DESCRIPTION:
+!  Returns the current frequency of time flag given by flag\_id.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      flag_id                ! index of flag array identifying flag
+
+! !OUTPUT PARAMETERS:
+
+   integer (int_kind) :: &
+      check_time_flag_freq        ! current freqeuncy option of time flag
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  check for proper flag id and then return flag value
+!
+!-----------------------------------------------------------------------
+
+   if (flag_id < 1 .or. flag_id > num_time_flags) &
+      call exit_POP(sigAbort,'check_time_flag_freq: invalid flag_id')
+
+   check_time_flag_freq = time_flags(flag_id)%freq
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function check_time_flag_freq
 
 !***********************************************************************
 !BOP
