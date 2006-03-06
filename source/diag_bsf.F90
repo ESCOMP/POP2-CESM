@@ -9,8 +9,7 @@
 !  This module contains code to compute the barotropic stream function
 
 ! !REVISION HISTORY:
-!     CVS:$Id: diag_bsf.F90,v 1.1.2.1 2005/12/15 18:37:59 njn01 Exp $
-!     CVS:$Name: ccsm_pop_2_1_20051215 $
+!     CVS:$Id$
 
 ! !USES:
    use kinds_mod 

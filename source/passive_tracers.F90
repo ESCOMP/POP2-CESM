@@ -4,10 +4,14 @@
 
 !BOP
 ! !MODULE: passive_tracers
+ 
 ! !DESCRIPTION:
 !  This module provides support for passive tracers.
 !  The base model calls subroutines in this module which then call
 !     subroutines in individual passive tracer modules.
+ 
+! !REVISION HISTORY:
+!  CVS:$Id$
 
 ! !USES:
 
@@ -462,14 +466,20 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind), intent(in) :: k, bid  ! vertical level index
+ 
+   integer (int_kind) :: ii  ! local index
 
 !-----------------------------------------------------------------------
 !-----------------------------------------------------------------------
 
 
+!############ debug #########
+!  known problem -- return to this after MOC is completed
+!############ debug #########
    if (iage_on) then
-      call iage_tavg(bid, k,   &
-         TRACER(:,:,k,iage_ind_begin:iage_ind_end,curtime,bid))
+      do ii=iage_ind_begin, iage_ind_end
+        call iage_tavg(bid, k,TRACER(:,:,k,ii,curtime,bid))
+      enddo
    end if
 
 

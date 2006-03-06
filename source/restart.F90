@@ -10,7 +10,6 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name: ccsm_pop_2_1_20051215 $
 !
 ! !USES:
 
@@ -663,7 +662,7 @@
                    d3d_array = VVEL(:,:,:,oldtime,:))
    call data_set (restart_file, 'define', VVEL_OLD)
 
-!########### debug -- keep this #####################
+!########### debug -- keep this for now #####################
    if (nt .eq. 3) then
      tracer_d(nt)%short_name = 'IAGE'
      tracer_d(nt)%long_name  = 'Ideal Age'
@@ -748,15 +747,9 @@
    call data_set (restart_file, 'read', UVEL_OLD)
    call data_set (restart_file, 'read', VVEL_CUR)
    call data_set (restart_file, 'read', VVEL_OLD)
+
    do n=1,nt
-
-
       call data_set (restart_file, 'read', TRACER_CUR(n))
-
-
-   end do
-
-   do n=1,nt
       call data_set (restart_file, 'read', TRACER_OLD(n))
    end do
 
@@ -790,9 +783,6 @@
    call destroy_io_field (VVEL_OLD)
    do n=1,nt
       call destroy_io_field (TRACER_CUR(n))
-   end do
-
-   do n=1,nt
       call destroy_io_field (TRACER_OLD(n))
    end do
 
@@ -1338,8 +1328,6 @@
 
    do n=1,nt
       call data_set (restart_file, 'define', TRACER_CUR(n))
-   end do
-   do n=1,nt
       call data_set (restart_file, 'define', TRACER_OLD(n))
    end do
 
@@ -1379,8 +1367,6 @@
    call data_set (restart_file, 'write', VVEL_OLD)
    do n=1,nt
       call data_set (restart_file, 'write', TRACER_CUR(n))
-   end do
-   do n=1,nt
       call data_set (restart_file, 'write', TRACER_OLD(n))
    end do
 

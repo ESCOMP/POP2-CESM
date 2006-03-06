@@ -25,7 +25,7 @@ module iage_mod
        release_unit, destroy_file, add_attrib_file, destroy_io_field,       &
        extract_attrib_file
    use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field, &
-       tavg_field_desc
+       tavg_field_desc_ccsm
    use timers, only : get_timer
    use shr_sys_mod
 
@@ -775,7 +775,7 @@ contains
 
    subroutine iage_init_tavg 
 
-   type (tavg_field_desc), dimension (num_iage_tavg_fields) :: tavg_iage_field
+   type (tavg_field_desc_ccsm), dimension (num_iage_tavg_fields) :: tavg_iage_field
 
    integer (int_kind) ::  &
       nn,                 &

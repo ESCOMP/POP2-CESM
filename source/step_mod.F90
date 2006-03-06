@@ -10,7 +10,6 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name: ccsm_pop_2_1_20051215 $
 !
 ! !USES:
 
@@ -44,7 +43,7 @@
    use baroclinic, only: baroclinic_driver, baroclinic_correct_adjust
    use barotropic, only: barotropic_driver
    use surface_hgt, only: dhdt
-   use tavg, only: tavg_set_flag, tavg_qflux_compute, ltavg_on
+   use tavg, only: tavg_set_flag, accumulate_tavg_field, ltavg_on, tavg_id
    use forcing, only: FW_OLD, FW, set_surface_forcing, tavg_forcing, STF
    use forcing_coupled, only: lcoupled
    use ice, only: liceform, ice_cpl_flag, ice_flx_to_coupler, QFLUX, tlast_ice
@@ -608,7 +607,9 @@
      !$OMP PARALLEL DO
      do iblock = 1,nblocks_clinic
         call ice_flx_to_coupler(TRACER(:,:,:,:,curtime,iblock),iblock)
-        call tavg_qflux_compute(QFLUX(:,:,iblock), tlast_ice,iblock)
+        call accumulate_tavg_field(QFLUX(:,:,iblock), tavg_id('QFLUX'),  &
+                                   iblock,1,const=tlast_ice)
+                                   
      end do ! block loop
      !$OMP END PARALLEL DO
 !-----------------------------------------------------------------------

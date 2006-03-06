@@ -10,7 +10,6 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
 !
 ! !USES:
 
@@ -47,6 +46,7 @@
                       broadcast_array_real_1d, &
                       broadcast_array_int_1d,  &
                       broadcast_array_log_1d,  &
+                      broadcast_array_char_1d, &
                       broadcast_array_dbl_2d,  &
                       broadcast_array_real_2d, &
                       broadcast_array_int_2d,  &
@@ -484,6 +484,58 @@ subroutine broadcast_array_int_1d(array, root_pe)
 
  end subroutine broadcast_array_int_1d
 
+!***********************************************************************
+!BOP
+! !IROUTINE: broadcast_array_char_1d
+! !INTERFACE:
+
+subroutine broadcast_array_char_1d(array, root_pe)
+
+! !DESCRIPTION:
+!  Broadcasts a character vector from one processor (root_pe)
+!  to all other processors. This is a specific instance of the generic
+!  broadcast\_array interface.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INCLUDES:
+
+   include 'mpif.h'  ! MPI Fortran include file
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+     root_pe              ! processor number to broadcast from
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   character (char_len), dimension(:), intent(inout) :: &
+       array              ! array to be broadcast
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+     nelements,          &! size of array to be broadcast
+     ierr                 ! local MPI error flag
+
+!-----------------------------------------------------------------------
+
+   nelements = size(array)
+
+   call MPI_BCAST(array, nelements, MPI_CHARACTER, root_pe, MPI_COMM_OCN, ierr)
+   call MPI_BARRIER(MPI_COMM_OCN, ierr)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine broadcast_array_char_1d
 !***********************************************************************
 !BOP
 ! !IROUTINE: broadcast_array_log_1d

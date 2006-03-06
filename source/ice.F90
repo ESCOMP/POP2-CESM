@@ -14,7 +14,6 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
 
 ! !USES:
 
@@ -36,7 +35,9 @@
    use prognostic
    use passive_tracers, only : tracer_ref_val
    use grid, only: sfc_layer_varthick, sfc_layer_type
-   use tavg, only: tavg_qflux_reset
+
+   !*** ccsm
+   use shr_sys_mod
 
    implicit none
    private
@@ -229,6 +230,7 @@
          write(stdout,'(a30,i3,a13)') 'Ice formation computed in top ', &
                                        kmxice, ' levels only.'
       endif
+      call shr_sys_flush(stdout)
 
    endif
 
@@ -285,7 +287,7 @@
 
    FW_FREEZE = c0
 
-   call tavg_qflux_reset
+
 !-----------------------------------------------------------------------
 !EOC
 

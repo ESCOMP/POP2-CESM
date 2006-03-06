@@ -11,7 +11,6 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name: ccsm_pop_2_1_20051215 $
 !
 ! !USES:
 
@@ -31,6 +30,9 @@
                    accumulate_tavg_field, &
                    tavg_method_avg, tavg_method_max, tavg_method_min
    use vmix_kpp, only: HMXL, KPP_HBLT
+   use registry
+   use shr_sys_mod
+   use io_tools
 
    implicit none
    private
@@ -113,9 +115,24 @@
       diag_cfl_flag,         &! time flag id for cfl    diags
       diag_transp_flag        ! time flag id for transp diags
 
-   character (char_len) ::   &
-      diag_outfile,          &! filename for diagnostic output
-      diag_transport_outfile  ! filename for transport output
+   character (char_len_long) ::   &
+      diag_outfile,                  &! current  filename for diagnostic output
+      diag_outfile_old,              &! previous filename for the diagnostic output file
+      diag_outfile_root,             &! original filename for the diagnostic output file
+      diag_transport_outfile,        &! current  filename for transport output
+      diag_transport_outfile_old,    &! previous filename for transport output
+      diag_transport_outfile_root     ! original filename for transport output
+
+!-----------------------------------------------------------------------
+!
+!  variables specific to ccsm coupled code
+!
+!-----------------------------------------------------------------------
+   logical (log_kind) :: &
+      lccsm = .false.
+
+   character (char_len)     ::  &
+      ccsm_diag_date
 
 !-----------------------------------------------------------------------
 !
@@ -289,6 +306,15 @@
 
 !-----------------------------------------------------------------------
 !
+!  determine if this is a ccsm coupled run
+!
+!-----------------------------------------------------------------------
+
+   lccsm = registry_match('lcoupled')
+
+
+!-----------------------------------------------------------------------
+!
 !  read diagnostic file output frequency and filenames from namelist
 !
 !-----------------------------------------------------------------------
@@ -323,43 +349,56 @@
    endif
 
 !-----------------------------------------------------------------------
-!
+!  ccsm filenames must meet ccsm output-file naming conventions
+!  actual ccsm filenames will be constructed in diag_print
+!-----------------------------------------------------------------------
+   if (lccsm) then
+
+     diag_outfile_root           = trim(diag_outfile)
+     diag_transport_outfile_root = trim(diag_transport_outfile)
+
+   else
+
+!-----------------------------------------------------------------------
+!  non-ccsm filenames:
 !  append runid, initial date to output file names
 !  concatenation operator must be split across lines to avoid problems
 !    with preprocessors
 !
 !-----------------------------------------------------------------------
 
-   if (date_separator == ' ') then
-      cdate(1:4) = cyear
-      cdate(5:6) = cmonth
-      cdate(7:8) = cday
-      cdate(9:10)= '  '
-   else
-      cdate(1:4) = cyear
-      cdate(5:5) = date_separator
-      cdate(6:7) = cmonth
-      cdate(8:8) = date_separator
-      cdate(9:10) = cday
-   endif
+     if (date_separator == ' ') then
+        cdate(1:4) = cyear
+        cdate(5:6) = cmonth
+        cdate(7:8) = cday
+        cdate(9:10)= '  '
+     else
+        cdate(1:4) = cyear
+        cdate(5:5) = date_separator
+        cdate(6:7) = cmonth
+        cdate(8:8) = date_separator
+        cdate(9:10) = cday
+     endif
 
-   outfile_tmp = char_blank
-   outfile_tmp = trim(diag_outfile)/&
-                                    &/'.'/&
-                                    &/trim(runid)/&
-                                    &/'.'/&
-                                    &/trim(cdate)
-   diag_outfile = char_blank
-   diag_outfile = trim(outfile_tmp)
+     outfile_tmp = char_blank
+     outfile_tmp = trim(diag_outfile)/&
+                                      &/'.'/&
+                                      &/trim(runid)/&
+                                      &/'.'/&
+                                      &/trim(cdate)
+     diag_outfile = char_blank
+     diag_outfile = trim(outfile_tmp)
+  
+     outfile_tmp = char_blank
+     outfile_tmp = trim(diag_transport_outfile)/&
+                                                &/'.'/&
+                                                &/trim(runid)/&
+                                                &/'.'/&
+                                                &/trim(cdate)
+     diag_transport_outfile = char_blank
+     diag_transport_outfile = trim(outfile_tmp)
 
-   outfile_tmp = char_blank
-   outfile_tmp = trim(diag_transport_outfile)/&
-                                              &/'.'/&
-                                              &/trim(runid)/&
-                                              &/'.'/&
-                                              &/trim(cdate)
-   diag_transport_outfile = char_blank
-   diag_transport_outfile = trim(outfile_tmp)
+   endif ! lccsm
 
 !-----------------------------------------------------------------------
 !
@@ -402,8 +441,14 @@
       end select
 
       if (diag_global_freq_iopt /= freq_opt_never) then
-         write(stdout,'(a36,a)') &
-            'Global diagnostics written to file: ', trim(diag_outfile)
+         if (lccsm) then
+           write(stdout,'(a36,a)') &
+              'Global diagnostics written to file: ', &
+               trim(diag_outfile) // '_yyyy-mm-dd-sssss'
+         else
+           write(stdout,'(a36,a)') &
+              'Global diagnostics written to file: ', trim(diag_outfile)
+         endif ! lccsm
          if (diag_all_levels)     &
             write(stdout,'(a42)') &
                'Diagnostics output for all vertical levels'
@@ -436,8 +481,14 @@
       end select
 
       if (diag_cfl_freq_iopt /= freq_opt_never) then
-         write(stdout,'(a33,a)') &
-            'CFL diagnostics written to file: ',trim(diag_outfile)
+         if (lccsm) then
+           write(stdout,'(a33,a)') &
+              'CFL diagnostics written to file: ',trim(diag_outfile) /&
+                        &/ '_yyyy-mm-dd-sssss'
+         else
+           write(stdout,'(a33,a)') &
+              'CFL diagnostics written to file: ',trim(diag_outfile)
+         endif ! lccsm
          if (cfl_all_levels) then
             write(stdout,'(a46)') &
                'CFL diagnostics output for all vertical levels'
@@ -522,9 +573,15 @@
 
       call get_unit(nu)
       if (my_task == master_task) then
-         write(stdout,'(a39,a)') &
-            'Transport diagnostics written to file: ', &
-            trim(diag_transport_outfile)
+         if (lccsm) then
+           write(stdout,'(a39,a)') &
+              'Transport diagnostics written to file: ', &
+               trim(diag_transport_outfile)//'_yyyy-mm-dd-sssss'
+         else
+           write(stdout,'(a39,a)') &
+              'Transport diagnostics written to file: ', &
+               trim(diag_transport_outfile)
+         endif ! lccsm
          write(stdout,blank_fmt)
 
          open(nu, file=diag_transport_file, status='old')
@@ -540,7 +597,7 @@
 
       do n=1,num_transports
          if (my_task == master_task) then
-            read(nu,'(6(i4,1x),a5,2x,a80)') tmp_add, &
+            read(nu,'(6(i4,1x),a5,2x,a)') tmp_add, &
                                  transport_ctype, transports(n)%name
             write(stdout,'(a2,a)') '  ',trim(transports(n)%name)
 
@@ -723,6 +780,7 @@
                           missing_value=undefined_nf_r4,              &
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
+
 
 !EOC
 
@@ -1368,7 +1426,9 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: k,n ! dummy indices
+   integer (int_kind) ::  &
+      k,n,                &! dummy indices
+      ier
 
    character (25) :: diag_name  ! name of output diagnostic
 
@@ -1380,6 +1440,9 @@
 
    character (21), parameter :: &
       trcr_fmt = '(a24,i3,a19,1pe22.15)'
+
+   character (char_len) ::  &
+      string
 
 !-----------------------------------------------------------------------
 !
@@ -1547,10 +1610,23 @@
 !-----------------------------------------------------------------------
 
          close(diag_unit)
+         
+         if (lccsm) then ! conform to CCSM output file-naming conventions
+            call ccsm_date_stamp (ccsm_diag_date, 'ymds')
+ 
+            diag_outfile_old = trim(diag_outfile)
+            diag_outfile = trim(diag_outfile_root)//'.'//ccsm_diag_date
+ 
+            string = 'mv '//trim(diag_outfile_old)//' '//trim(diag_outfile)
+            call shr_sys_system (trim(string), ier)
+         endif ! lccsm
 
-         endif
+         endif ! master_task
 
       call timer_print_all()
+
+      call document ('diag_print', 'file written: '//trim(diag_outfile))
+
 
    endif ! ldiag_global
 
@@ -1583,7 +1659,8 @@
 
    integer (int_kind) :: &
       i,j,k,n,iblock,    &! dummy loop indices
-      ib,ie,jb,je         ! beg,end indices for block physical domain
+      ib,ie,jb,je,       &! beg,end indices for block physical domain
+      ier
 
    real (r8), dimension(nx_block,ny_block) :: &
       MASS_Z,              &! zonal transport of mass
@@ -1601,6 +1678,9 @@
       mass_tran,           &! local sum of mass transport
       heat_tran,           &! local sum of heat transport
       salt_tran             ! local sum of salt transport
+
+   character (char_len) ::  &
+      string
 
    type (block) ::         &
       this_block           ! block information for current block
@@ -1793,7 +1873,19 @@
          endif
       end do ! transport loop
 
-      if (my_task == master_task) close(trans_unit)
+      if (my_task == master_task) then
+        close(trans_unit)
+        if (lccsm) then
+           call ccsm_date_stamp (ccsm_diag_date, 'ymds')
+           diag_transport_outfile_old = trim(diag_transport_outfile)
+           diag_transport_outfile =  &
+           trim(diag_transport_outfile_root)//'.'//ccsm_diag_date
+           string =  &
+           'mv '//trim(diag_transport_outfile_old)//' '//trim(diag_transport_outfile)
+           call shr_sys_system (trim(string), ier)
+        endif ! lccsm
+      endif ! master_task
+      call document ('diag_transport', 'file written: '//trim(diag_transport_outfile))
 
    endif ! ldiag_transport
 

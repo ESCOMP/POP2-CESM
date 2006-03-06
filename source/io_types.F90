@@ -14,7 +14,6 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
 
 ! !USES:
 
@@ -35,6 +34,7 @@
       integer(i4) ::  id
       integer(i4) :: length  ! 1 to n, but 0 means unlimited
       integer(i4) :: start, stop, stride  ! For slicing and dicing
+      logical(log_kind)  :: active
       character(char_len)        :: name
       character(char_len)        :: units
    end type
@@ -86,7 +86,7 @@
    ! Generic data file descriptor
 
    type, public :: datafile
-      character(char_len)                        :: full_name
+      character(char_len_long)                   :: full_name
       character(char_len)                        :: data_format ! .bin or
                                                                 ! .nc
       character(char_len)                        :: root_name
@@ -1620,7 +1620,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   descriptor%full_name          = char_blank
+   descriptor%full_name          = char_blank_long
    descriptor%data_format        = char_blank
    descriptor%root_name          = char_blank
    descriptor%file_suffix        = char_blank
@@ -1794,6 +1794,16 @@ contains
 !BOC
 !-----------------------------------------------------------------------
 !
+!  local variables 
+!
+!-----------------------------------------------------------------------
+
+   logical (log_kind) ::  &
+      lactive_time_dim
+
+
+!-----------------------------------------------------------------------
+!
 !  variables to describe the field
 !
 !-----------------------------------------------------------------------
@@ -1852,11 +1862,22 @@ contains
 !
 !-----------------------------------------------------------------------
 
+   if (present (time_dim)) then
+     if (time_dim%active) then
+      lactive_time_dim = .true.
+     else
+      lactive_time_dim = .false.
+     endif
+   else
+      lactive_time_dim = .false.
+   endif
+
+
    descriptor%id = 0
 
    if (present(i3d_array) .or. present(r3d_array) .or. &
                                present(d3d_array)) then
-      if (present(time_dim)) then
+      if (lactive_time_dim) then
          descriptor%nfield_dims = 4
       else
          descriptor%nfield_dims = 3
@@ -1879,13 +1900,13 @@ contains
          call exit_POP(sigAbort, &
                        'construct_io_field: must supply 3d dim')
       endif
-      if (present(time_dim)) then
+      if (lactive_time_dim) then
          descriptor%field_dim(4) = time_dim
       endif
 
    else if (present(i2d_array) .or. present(r2d_array) .or. &
                                     present(d2d_array)) then
-      if (present(time_dim)) then
+      if (lactive_time_dim) then
          descriptor%nfield_dims = 3
       else
          descriptor%nfield_dims = 2
@@ -1902,7 +1923,7 @@ contains
          call exit_POP(sigAbort, &
                        'construct_io_field: must supply dim2')
       endif
-      if (present(time_dim)) then
+      if (lactive_time_dim) then
          descriptor%field_dim(3) = time_dim
       endif
 
@@ -3124,7 +3145,7 @@ contains
 ! !IROUTINE: construct_io_dim
 ! !INTERFACE:
 
- function construct_io_dim(name, length, start, stop, stride)
+ function construct_io_dim(name, length, start, stop, stride, active)
 
 ! !DESCRIPTION:
 !  Constructs a dimension for use in defining fields for io.
@@ -3143,6 +3164,8 @@ contains
    integer(i4), intent(in), optional :: &
       start, stop, stride  ! For slicing and dicing
 
+   logical(log_kind),intent(in), optional ::  &
+      active
 
 
 ! !OUTPUT PARAMETERS:
@@ -3179,6 +3202,12 @@ contains
       construct_io_dim%stride = stride
    else
       construct_io_dim%stride = 1
+   endif
+
+   if (present(active)) then
+      construct_io_dim%active = active
+   else
+      construct_io_dim%active = .true.
    endif
 
 

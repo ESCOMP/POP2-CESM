@@ -102,9 +102,6 @@
    tavg_contents  = 'INPUT/tavg_contents'
 /
 
-&scalar_nml
-   scalar_contents = 'INPUT/scalar_contents'
-/
 
 &history_nml
    history_freq_opt  = 'never'
@@ -370,9 +367,10 @@
 /
 
 &coupled_nml
-   lccsm             = .true.
    coupled_freq_opt  = 'nday'
    coupled_freq      = 1
+   qsw_diurnal_cycle = .false.
+   lccsm             = .true.
 /
 &sw_absorption_nml
    sw_absorption_type = 'chlorophyll'

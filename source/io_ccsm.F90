@@ -6,12 +6,15 @@
 ! !MODULE: io_ccsm
 !
 ! !DESCRIPTION:
-!  This module provides a kludge interface for writing time_bound 
+!  This module provides a kludge interface for writing nonstandard
+!  ccsm fields (eg, variables that are not on lat/lon grids and
+!  thus are unable to be defined via the construct_io_field function)
 !  to ccsm netCDF output files
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
+!  
+! 
 
 ! !USES:
 
@@ -25,6 +28,7 @@
    use io_netcdf
    use io_binary
    use io_types
+   use io_tools
 
    implicit none
    public  ! to get io_types without having to explicitly use io_types
@@ -33,10 +37,13 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: data_set_ccsm
+   public ::            &
+     data_set_nstd_ccsm
 
 !EOP
 !BOC
+ 
+
 !EOC
 !***********************************************************************
 
@@ -44,31 +51,94 @@ contains
 
 !***********************************************************************
 !BOP
-! !IROUTINE: data_set_ccsm
+! !IROUTINE: data_set_nstd_ccsm
 ! !INTERFACE:
 
- subroutine data_set_ccsm (data_file, operation, time_dim, d2_dim,  &
-                           time_bound_id, lower_time_bound, upper_time_bound)
+ subroutine data_set_nstd_ccsm (data_file,operation,field_id, &
+                                ndims,io_dims,nftype,         &
+                                short_name,long_name,units,   &
+                                coordinates,missing_value,    &
+                                fill_value,                   &
+                                implied_time_dim,             &
+                                data_1d_r8,                   &
+                                data_2d_r8,                   &
+                                data_2d_r4,                   &
+                                data_3d_r4,                   &
+                                data_4d_r4,                   &
+                                data_1d_ch,                   &
+                                data_2d_ch                    )
 
 ! !DESCRIPTION:
-!  This routine is kludge interface to define_time_bound_netcdf and 
-!  write_time_bound_netcdf
+!  This routine is kludge interface to defining and writing the nonstandard
+!  ccsm fields (eg, those not constructed via construct_io_field) 
+!  to a netCDF file
 !
 ! !REVISION HISTORY:
 !  same as module
 
 ! !INPUT PARAMETERS:
 
-   character (*), intent (in)   :: operation
+   integer (int_kind), intent(in) :: &
+      ndims
+
+   character (*), intent(in)  ::  &
+      operation,                  &
+      short_name,                 &
+      long_name,                  &
+      units,                      &
+      coordinates,                &
+      nftype
+
+   real (r4), dimension (:,:,:,:), intent(in) ::  &
+      data_4d_r4
+   real (r4), dimension (:,:,:),   intent(in) ::  &
+      data_3d_r4
+   real (r4), dimension (:,:),     intent(in) ::  &
+      data_2d_r4
+
+   real (r8), dimension (:,:), intent(in) ::  &
+      data_2d_r8
+   real (r8), dimension (:),   intent(in) ::  &
+      data_1d_r8
+
+   character (*), dimension (:,:), intent(in) ::  &
+      data_2d_ch
+   character (*), dimension (:),   intent(in) ::  &
+      data_1d_ch
+
+
+   real (r4), intent(in)  ::  &
+      fill_value,             &
+      missing_value
+
+   type (datafile),intent(inout) ::  &
+      data_file
 
 ! !INPUT/OUTPUT PARAMETERS:
+   integer (i4), intent(inout)   ::  &
+      field_id  
 
-   integer (i4),intent (inout)        :: time_bound_id
-   type (datafile),   intent (inout)  :: data_file
-   type (io_dim),     intent (inout)  :: time_dim, d2_dim
-   real (r8), intent(in), optional    ::  &
-      lower_time_bound,                   &
-      upper_time_bound
+   type (io_dim), intent(inout)  ::  &
+      io_dims(:)
+   
+   logical (log_kind), intent(inout) ::  &
+      implied_time_dim
+
+   optional ::            & 
+      implied_time_dim,   &
+      short_name,         &
+      long_name,          &
+      units,              &
+      coordinates,        &
+      missing_value,      &
+      fill_value,         &
+      data_1d_r8,         &
+      data_2d_r8,         &
+      data_2d_r4,         &
+      data_3d_r4,         &
+      data_4d_r4,         &
+      data_1d_ch,         &
+      data_2d_ch
 
 !EOP
 !BOC
@@ -81,18 +151,24 @@ contains
    integer (int_kind) :: num_writes  ! place-holder until more than one
                                      ! time level written to a single file
 
+   logical (log_kind) :: supported
+
+!-----------------------------------------------------------------------
+!
+!  Must be netCDF format -- binary version does not exist
+!
+!-----------------------------------------------------------------------
+
+   if (data_file%data_format=='bin') then
+         call exit_POP(sigAbort, &
+             '(data_set_nstd_ccsm) ERROR: cannot call this routine with bin format')
+   endif
 
 !-----------------------------------------------------------------------
 !
 !  select operation to perform
 !
 !-----------------------------------------------------------------------
-
-
-   if (data_file%data_format=='bin') then
-         call exit_POP(sigAbort, &
-             '(data_set_ccsm) ERROR: cannot call this routine with bin format')
-   endif
 
    select case (trim(operation))
 
@@ -104,7 +180,12 @@ contains
 
    case ('define')
 
-      call define_time_bound_netcdf(data_file, time_dim, d2_dim,time_bound_id)
+      call define_nstd_netcdf(data_file, ndims, io_dims, field_id,  &
+                              short_name, long_name, units,         &
+                              coordinates=coordinates,              &
+                              missing_value=missing_value,          &
+                              fill_value=fill_value,                &
+                              nftype=nftype                         )
 
 !-----------------------------------------------------------------------
 !
@@ -114,15 +195,19 @@ contains
 
    case ('write')
 
-      if (.not. present(lower_time_bound) .or. .not. present(upper_time_bound)) then
-         call exit_POP(sigAbort, &
-            '(data_set_ccsm) ERROR: must specify lower and upper time bounds')
-      endif
-
       num_writes =  1  ! for now, only support one time value per output file
-      call write_time_bound_netcdf(data_file, time_bound_id, num_writes, &
-                                   lower_time_bound=lower_time_bound,    &
-                                   upper_time_bound=upper_time_bound)
+      
+      call write_nstd_netcdf(                     &
+           data_file, field_id,num_writes,        &
+           ndims, io_dims,nftype,                 &
+           implied_time_dim=implied_time_dim,     &
+           indata_1d_r8=data_1d_r8,               & ! pass all data arrays 
+           indata_2d_r8=data_2d_r8,               & ! to write_nstd_netcdf
+           indata_2d_r4=data_2d_r4,               &
+           indata_3d_r4=data_3d_r4,               &
+           indata_4d_r4=data_4d_r4,               &
+           indata_1d_ch=data_1d_ch,               &
+           indata_2d_ch=data_2d_ch                )
 
 !-----------------------------------------------------------------------
 !
@@ -133,18 +218,17 @@ contains
    case default
 
       if (my_task == master_task) &
-         write(stdout,*) 'data_set_ccsm operation: ',trim(operation)
-      call exit_POP(sigAbort,'data_set_ccsm: Unknown operation')
+         write(stdout,*) 'data_set_nstd_ccsm operation: ',trim(operation)
+      call exit_POP(sigAbort,'data_set_nstd_ccsm: Unknown operation')
 
    end select
 
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine data_set_ccsm
+ end subroutine data_set_nstd_ccsm
 
 !***********************************************************************
-
 
  end module io_ccsm
 

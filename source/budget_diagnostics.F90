@@ -9,8 +9,7 @@
 !  This module contains routines for tracers budget diagnostics.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id: budget_diagnostics.F90,v 1.1.2.1 2005/12/15 18:37:59 njn01 Exp $
-!  CVS:$Name: ccsm_pop_2_1_20051215 $
+!  CVS:$Id$
 
 ! !USES:
 
@@ -443,6 +442,7 @@
       tavg_norm,    sum
 
    character*132 :: explanation
+
  
 !-----------------------------------------------------------------------
 
@@ -478,8 +478,7 @@
 
    qflux_t_mean = c0
    if ( tavg_sum_qflux /= c0 )  &
-     qflux_t_mean = global_sum(TAVG_BUFF_QFLUX*TAREA, distrb_clinic, field_loc_center, RCALCT) &
-                   / (tavg_sum_qflux * area_t)
+       qflux_t_mean = tavg_global_sum_2D(tavg_id('QFLUX'))/(tavg_sum_qflux * area_t)
 
    if ( sfc_layer_type == sfc_layer_varthick .and.  &
         .not. lfw_as_salt_flx ) then
