@@ -25,6 +25,7 @@
    use global_reductions
    use broadcast
    use io
+   use io_types
    use exit_mod
  
    !*** ccsm
@@ -131,7 +132,7 @@
 
    type (io_dim) ::   &
       i_dim, j_dim,   &! dimension descriptors for horiz dims
-      z_dim,          &! dimension descriptor for vert levels (z_t or z_w grid)
+      k_dim,          &! dimension descriptor for vert levels (z_t or z_w grid)
       time_dim         ! dimension descriptor for (unlimited) time dim
  
 
@@ -167,12 +168,14 @@
       tavg_start_iopt, &! start after option
       tavg_start        ! start tavg after tavg_start
 
-   character (char_len) ::    &
-      tavg_infile,            & ! filename for restart input
-      tavg_outfile,           & ! root filename for tavg output
-      tavg_outfile_orig,      & ! root filename for tavg output (original)
-      tavg_fmt_in,            & ! format (nc or bin) for reading
-      tavg_fmt_out              ! format (nc or bin) for writing
+   character (char_len_long) ::  &
+      tavg_infile,               & ! filename for restart input
+      tavg_outfile,              & ! root filename for tavg output
+      tavg_outfile_orig            ! root filename for tavg output (original)
+
+   character (char_len) ::       &
+      tavg_fmt_in,               & ! format (nc or bin) for reading
+      tavg_fmt_out                 ! format (nc or bin) for writing
 
    type (datafile) :: tavg_file_desc    ! IO file descriptor
  
@@ -242,6 +245,7 @@
       time_coordinate  (1)
  
    type (io_dim) ::       &
+      z_dim,              &! dimension descriptor for vert (z_t or z_w grid)
       zt_dim,             &! dimension descriptor for vert (z_t grid)
       zw_dim,             &! dimension descriptor for vert (z_w grid)
       tr_dim,             &! dimension descriptor 
@@ -565,28 +569,11 @@
    endif !tavg_freq_iopt
 
 
-!-----------------------------------------------------------------------
-!
-!  read restart file if necessary
-!
-!-----------------------------------------------------------------------
-
-   !*** make sure tavg flag is set correctly
-   call tavg_set_flag(flagonly=.true.)
-
-   if (ltavg_on .and. ltavg_restart) then
-      !*** do not read restart if last restart was at a tavg dump
-      !*** interval (should start new tavg sums in this case)
-
-      if (.not. time_to_do(tavg_freq_iopt, tavg_freq)) then
-         call read_tavg
-      endif
-   endif
 
    !*** define dimensions for tavg output files
    i_dim     = construct_io_dim('i',nx_global)
    j_dim     = construct_io_dim('j',ny_global)
-   z_dim     = construct_io_dim('k',km)
+   k_dim     = construct_io_dim('k',km)
    time_dim  = construct_io_dim('time',0) ! used only to set %active=.false.
  
 !-----------------------------------------------------------------------
@@ -635,7 +622,7 @@
         call gather_global(KMT_G, KMT, master_task, distrb_clinic)
  
         if (tavg_debug > 0) then
-          write(stdout,*)'(write_tavg): KMT_G is now allocated'
+          write(stdout,*)'(init_tavg): KMT_G is now allocated'
           call shr_sys_flush(stdout)
         endif
      endif
@@ -643,6 +630,26 @@
      call gather_global(KMU_G, KMU, master_task, distrb_clinic)
 
    endif ! lccsm
+ 
+
+!-----------------------------------------------------------------------
+!
+!  finally, read restart file if necessary
+!  must do this after i_dim, j_dim, etc are defined
+!-----------------------------------------------------------------------
+
+   !*** make sure tavg flag is set correctly
+   call tavg_set_flag(flagonly=.true.)
+
+   if (ltavg_on .and. ltavg_restart) then
+      !*** do not read restart if last restart was at a tavg dump
+      !*** interval (should start new tavg sums in this case)
+
+      if (.not. time_to_do(tavg_freq_iopt, tavg_freq)) then
+         call read_tavg
+      endif
+   endif
+
 
 !-----------------------------------------------------------------------
 !EOC
@@ -826,6 +833,7 @@
 
       !*** regular tavg dump
       if (ltavg_write) then
+         tavg_outfile = tavg_outfile_orig
          if (lccsm) then
            call tavg_create_suffix_ccsm(file_suffix,date_string='ymd')
          else
@@ -1048,6 +1056,8 @@
                      z_dim = zw_dim
                  end select
 
+               else
+                 z_dim = k_dim
                endif ! lccsm 
 
                tavg_fields(nfield) = construct_io_field(               &
@@ -1258,8 +1268,6 @@
    type (io_field_desc), dimension(:), allocatable :: &
       tavg_fields          ! io field description for each field in file
 
-   type (io_dim) :: &
-      k_dim          ! dimension descriptor  for vertical levels
 
 !-----------------------------------------------------------------------
 !
@@ -1340,6 +1348,15 @@
                                           in_nsteps_total)
    call extract_attrib_file(tavg_file_desc, 'tavg_sum', tavg_sum)
 
+   !*** report nsteps total and tavg_sum
+   if (my_task == master_task) then
+      write(stdout,'(i6,a29,i6,a35)') &
+      in_nsteps_total,' nsteps_total in tavg restart', &
+      nsteps_total,   ' nsteps_total in current simulation'
+      write(stdout,*) ' tavg_sum = ', tavg_sum, ' in tavg restart'
+      call shr_sys_flush(stdout)
+   endif
+
    !*** check nsteps total for validity
    if (in_nsteps_total /= nsteps_total) then
       if (my_task == master_task) then
@@ -1360,7 +1377,7 @@
 
    !*** define dimensions
 
-   k_dim = construct_io_dim('z_t',km)
+   z_dim = k_dim
 
    allocate(tavg_fields(num_avail_tavg_fields))
 
@@ -1383,9 +1400,10 @@
 
          else if (avail_tavg_fields(nfield)%ndims == 3) then
 
+
             tavg_fields(nfield) = construct_io_field(                &
                             avail_tavg_fields(nfield)%short_name,    &
-                            dim1=i_dim, dim2=j_dim, dim3=k_dim,      &
+                            dim1=i_dim, dim2=j_dim, dim3=z_dim,      &
                   long_name=avail_tavg_fields(nfield)%long_name,     &
                   units    =avail_tavg_fields(nfield)%units    ,     &
                   grid_loc =avail_tavg_fields(nfield)%grid_loc ,     &
@@ -1966,17 +1984,18 @@
         if (tavg_sum /= 0) then
           factor  = c1/tavg_sum
         else
+          call exit_POP(sigAbort,'ERROR in tavg_norm_field_all; attempt to divide by zero')
         endif
         if (tavg_sum_qflux /= 0) then
           factorq = c1/tavg_sum_qflux
         else
-          factorq = c1
+          call exit_POP(sigAbort,'ERROR in tavg_norm_field_all; attempt to divide by zero')
         endif
       case ('denormalize')
           factor  = tavg_sum
           factorq = tavg_sum_qflux
       case default
-          
+          call exit_POP(sigAbort,'ERROR in tavg_norm_field_all; unknown option')
    end select
  
  

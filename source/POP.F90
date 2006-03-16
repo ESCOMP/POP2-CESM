@@ -3,14 +3,17 @@
 ! !ROUTINE: POP
 ! !INTERFACE:
 
+#ifdef SINGLE_EXEC
+ subroutine POP()
+#else
  program POP
+#endif
 
 ! !DESCRIPTION:
 !  This is the main driver for the Parallel Ocean Program (POP).
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
 
 ! !USES:
 
@@ -20,7 +23,6 @@
    use POP_FinalMod
    use kinds_mod, only: int_kind, r8
    use communicate, only: my_task, master_task
-!   use constants, only: 
    use exit_mod
    use domain, only: distrb_clinic
    use timers, only: timer_print_all, get_timer, timer_start, timer_stop
@@ -30,9 +32,7 @@
    use initial, only: initialize_pop
    use diagnostics, only: check_KE
    use output, only: output_driver
-!   use exit_mod, only: 
    use solvers, only: solv_sum_iters
-!   use io, only: 
    use forcing_coupled, only: lcoupled
 
    implicit none
@@ -140,6 +140,10 @@
 !-----------------------------------------------------------------------
 !EOC
 
+#ifdef SINGLE_EXEC
+ end subroutine POP
+#else
  end program POP
+#endif
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||

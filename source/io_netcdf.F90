@@ -126,6 +126,7 @@
 !
 !-----------------------------------------------------------------------
 
+
    iostat = nf90_noerr
    data_file%id = 0
 
@@ -1723,6 +1724,7 @@
 !
 !-----------------------------------------------------------------------
 
+
    read_error = .false.
    if (my_task == master_task) then
       if (io_field%id == 0) read_error = .true.
@@ -1751,9 +1753,11 @@
 !-----------------------------------------------------------------------
 
    if (my_task == master_task) then
-      allocate(start (io_field%nfield_dims), &
-               length(io_field%nfield_dims))
-
+      if (associated(io_field%field_r_3d) .or. &
+          associated(io_field%field_d_3d) .or. &
+          associated(io_field%field_i_3d) ) then
+             allocate(start(3), length(3) )
+      endif
 !-----------------------------------------------------------------------
 !
 !     allocate global arrays - these are for 2-d slices of data which
@@ -1863,6 +1867,8 @@
          endif
       endif ! master task
 
+      call broadcast_scalar(read_error, master_task)
+
 !-----------------------------------------------------------------------
 !
 !  real 0d array (scalar)
@@ -1882,6 +1888,8 @@
             read_error = .true.
          endif
       endif ! master task
+
+      call broadcast_scalar(read_error, master_task)
 
 
 !-----------------------------------------------------------------------
@@ -1968,6 +1976,8 @@
          endif
       endif ! master task
 
+      call broadcast_scalar(read_error, master_task)
+
 !-----------------------------------------------------------------------
 !
 !  double 0d array (scalar)
@@ -1987,6 +1997,8 @@
             read_error = .true.
          endif
       endif ! master task
+
+      call broadcast_scalar(read_error, master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -2072,6 +2084,8 @@
          endif
       endif ! master task
 
+      call broadcast_scalar(read_error, master_task)
+
 !-----------------------------------------------------------------------
 !
 !  integer 0d array (scalar)
@@ -2092,9 +2106,11 @@
          endif
       endif ! master task
 
+      call broadcast_scalar(read_error, master_task)
+
 !-----------------------------------------------------------------------
 !
-!  check for write errors
+!  check for read errors
 !
 !-----------------------------------------------------------------------
 
@@ -2114,11 +2130,13 @@
 !-----------------------------------------------------------------------
 
    if (my_task == master_task) then
-      deallocate(start, length)
+      if (allocated(start))       deallocate(start)
+      if (allocated(length))      deallocate(length)
       if (allocated(global_r_2d)) deallocate(global_r_2d)
       if (allocated(global_d_2d)) deallocate(global_d_2d)
       if (allocated(global_i_2d)) deallocate(global_i_2d)
    endif
+
 
 !-----------------------------------------------------------------------
 !EOC
