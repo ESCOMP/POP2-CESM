@@ -396,3 +396,13 @@ DO NOT change transport_reg2_names unless you know exactly what you are doing.
                          'Hudson Bay'
 /  
 
+The gx3v5 version of tidal_energy does NOT yet exist.  Until this file exists,
+DO NOT set ltidal_mixing true.
+&tidal_nml
+  ltidal_mixing          = .false.
+  local_mixing_fraction  = 0.33
+  mixing_efficiency      = 0.2
+  vertical_decay_scale   = 500.0e02
+  tidal_mix_max          = 100.0
+  tidal_energy_file      = 'INPUT/tidal_energy'
+  tidal_energy_file_fmt  = 'bin'

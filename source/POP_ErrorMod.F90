@@ -26,13 +26,13 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
 !
 ! !USES:
 
    use POP_KindsMod
    !use POP_CommMod
    use communicate
+   use constants
    use POP_IOUnitsMod
 
    implicit none
@@ -175,7 +175,7 @@
       if (my_Task == PrintTask) then
       !if (POP_myTask == PrintTask) then
 
-         write(POP_stdout,*) ' '
+         write(POP_stdout,blank_fmt)
          write(POP_stdout,'(a34)') '----------------------------------'
 
          if (POP_ErrorMsgCount == 0) then ! no errors

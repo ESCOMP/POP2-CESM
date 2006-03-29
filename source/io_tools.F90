@@ -1,14 +1,19 @@
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
  module io_tools
-!===============
  
-!-----------------------------------------------------------------------
-!   This module contains routines to facilitate io
+!BOP
 !
+! !MODULE:  io_tools
+!
+! !DESCRIPTION:
+!   This module contains routines intended to facilitate io
+!   Presently, only routines used to document output are included
+!
+! !REVISION HISTORY:
 !   CVS:$Id$
-!   CVS:$Name$
 !
-!-----------------------------------------------------------------------
- 
+! !USES 
    use kinds_mod
    use grid
    use io    
@@ -16,6 +21,8 @@
       
    implicit none
    save
+!EOP
+!BOC
  
 !-----------------------------------------------------------------------
 !     interfaces
@@ -29,12 +36,34 @@
                         document_real 
    end interface
  
+!EOC
+!***********************************************************************
+
  contains
  
-   subroutine document_char (sub_name,message)
-!  ========================
+!***********************************************************************
+!BOP
+! !IROUTINE: document
+! !INTERFACE:
+
+ subroutine document_char (sub_name,message)
  
+! !DESCRIPTION:
+!  This routine writes out the calling subroutine name and an
+!  associated message
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !REMARKS:
+!  This is actually the specific interface for the generic document
+!  routine corresponding to a character string
+
+! !INPUT PARAMETERS:
    character (*) :: sub_name, message
+
+!EOP
+!BOC
  
    if (my_task == master_task) then
       write(stdout,1000)  sub_name, message
@@ -42,74 +71,149 @@
    endif
  
 1000  format(/,5x,'(',a,')  ', a ) 
+!EOC
  
-   end subroutine document_char
+ end subroutine document_char
  
+!***********************************************************************
+!BOP
+! !IROUTINE: document
+! !INTERFACE:
+ subroutine document_int (sub_name,message,ival)
  
-   subroutine document_int (sub_name,message,ival)
-!  =======================
- 
+! !DESCRIPTION:
+!  This routine writes out the calling subroutine name and an
+!  associated message
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !REMARKS:
+!  This is actually the specific interface for the generic document
+!  routine corresponding to an integer
+
+! !INPUT PARAMETERS:
    character (*)       :: sub_name, message
    integer (int_kind)  :: ival
- 
+
+!EOP
+!BOC
+
    if (my_task == master_task) then
       write(stdout,1000)  sub_name, message, ival
       call shr_sys_flush (stdout)
    endif
  
 1000  format(/,5x,'(',a,')  ', a,1x,i10)
+!EOC
  
-   end subroutine document_int
+ end subroutine document_int
  
+!***********************************************************************
+!BOP
+! !IROUTINE: document
+! !INTERFACE:
+ subroutine document_log (sub_name,message,lval)
  
-   subroutine document_log (sub_name,message,lval)
-!  =======================
- 
+
+! !DESCRIPTION:
+!  This routine writes out the calling subroutine name and an
+!  associated message
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !REMARKS:
+!  This is actually the specific interface for the generic document
+!  routine corresponding to a logical variable
+
+! !INPUT PARAMETERS:
    character (*)      :: sub_name, message
    logical (log_kind) :: lval
- 
+
+!EOP
+!BOC
+
    if (my_task == master_task) then
       write(stdout,1000)  sub_name, message, lval
       call shr_sys_flush (stdout)
    endif
  
 1000  format(/,5x,'(',a,')  ', a,1x,L3)
+!EOC
  
-   end subroutine document_log
+ end subroutine document_log
  
-   subroutine document_dbl (sub_name,message,dval)
-!  =======================
- 
+!***********************************************************************
+!BOP
+! !IROUTINE: document
+! !INTERFACE:
+ subroutine document_dbl (sub_name,message,dval)
+
+! !DESCRIPTION:
+!  This routine writes out the calling subroutine name and an
+!  associated message
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !REMARKS:
+!  This is actually the specific interface for the generic document
+!  routine corresponding to a r8 variable
+
+! !INPUT PARAMETERS:
    character (*) :: sub_name, message
    real (r8)     :: dval
  
+!EOP
+!BOC
+
    if (my_task == master_task) then
       write(stdout,1000)  sub_name, message, dval
       call shr_sys_flush (stdout)
    endif
  
 1000  format(/,5x,'(',a,')  ', a, 1x, 1pe15.5)
+!EOC
  
-   end subroutine document_dbl
+ end subroutine document_dbl
  
+!***********************************************************************
+!BOP
+! !IROUTINE: document
+! !INTERFACE:
+ subroutine document_real (sub_name,message,rval)
  
-   subroutine document_real (sub_name,message,rval)
-!  ========================
- 
+
+! !DESCRIPTION:
+!  This routine writes out the calling subroutine name and an
+!  associated message
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !REMARKS:
+!  This is actually the specific interface for the generic document
+!  routine corresponding to a r8 variable
+
+! !INPUT PARAMETERS:
    character (*) :: sub_name, message
    real(r4)    :: rval
  
+!EOP
+!BOC
+
    if (my_task == master_task) then
       write(stdout,1000)  sub_name, message, rval
       call shr_sys_flush (stdout)
    endif
  
 1000  format(/,5x,'(',a,')  ', a, 1x, 1pe15.5)
+!EOC
  
-   end subroutine document_real
+ end subroutine document_real
  
  
-!===================
  end module io_tools
-!===================
 
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||

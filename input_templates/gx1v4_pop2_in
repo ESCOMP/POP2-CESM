@@ -397,7 +397,7 @@ DO NOT change transport_reg2_names unless you know exactly what you are doing.
                          'Hudson Bay'
 /  
 
-The gx1v3 version of tidal_energy does NOT yet exist.  Until this file exists,
+The gx1v4 version of tidal_energy does NOT yet exist.  Until this file exists,
 DO NOT set ltidal_mixing true.
 &tidal_nml
   ltidal_mixing          = .false.

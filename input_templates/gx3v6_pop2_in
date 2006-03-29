@@ -155,7 +155,7 @@
 &vmix_kpp_nml
    bckgrnd_vdc1    = 0.524
    bckgrnd_vdc2    = 0.313
-   bckgrnd_vdc_dpth= 1000.0e02
+   bckgrnd_vdc_dpth= 1000.0e02 
    bckgrnd_vdc_linv= 4.5e-05
    Prandtl         = 10.0
    rich_mix        = 50.0
@@ -165,8 +165,9 @@
    lcheckekmo      = .false.
    num_v_smooth_Ri = 1
 /
+
 &advect_nml
-   tadvect_ctype = 'upwind'
+   tadvect_ctype = 'center'
 /
 
 &hmix_nml
@@ -177,13 +178,13 @@
 &hmix_del2u_nml
    lauto_hmix           = .false. 
    lvariable_hmix       = .false. 
-   am                   = 0.5e8
+   am                   = 1.e8
 /
 
 &hmix_del2t_nml
    lauto_hmix           = .false. 
    lvariable_hmix       = .false. 
-   ah                   = 0.6e7
+   ah                   = 1.e8
 /
 
 &hmix_del4u_nml
@@ -198,36 +199,37 @@
    ah                   = -0.2e20
 /
 
+
 &hmix_gm_nml
    kappa_choice         = 'constant'
    slope_control_choice = 'notanh'
    kappa_depth_1        = 1.0 
    kappa_depth_2        = 0.0
    kappa_depth_scale    = 150000.0
-   ah                   = 0.6e7
-   ah_bolus             = 0.6e7
+   ah                   = 0.8e7
+   ah_bolus             = 0.8e7
    ah_bkg               = 0.0
    slm_r                = 0.3
-   slm_b                = 0.3 
+   slm_b                = 0.3
    gm_bolus             = .false.
 /
 
 &hmix_aniso_nml
-   hmix_alignment_choice = 'east'
-   lvariable_hmix_aniso  = .false. 
-   lsmag_aniso = .true. 
-   visc_para   = 50.0e7
-   visc_perp   = 50.0e7
-   c_para      = 8.0
-   c_perp      = 8.0
-   u_para      = 5.0
-   u_perp      = 5.0
-   vconst_1    = 1.0e7
-   vconst_2    = 0.0  
-   vconst_3    = 0.16
-   vconst_4    = 2.e-8
-   vconst_5    = 3
-   vconst_6    = 1.0e7
+   hmix_alignment_choice = 'grid'
+   lvariable_hmix_aniso  = .true.  
+   lsmag_aniso    = .false.
+   visc_para      = 1.0
+   visc_perp      = 1.0
+   c_para         = 0.0
+   c_perp         = 0.0
+   u_para         = 0.0
+   u_perp         = 0.0
+   vconst_1       = 1.0e7
+   vconst_2       = 24.5 
+   vconst_3       = 0.2
+   vconst_4       = 1.0e-8
+   vconst_5       = 3
+   vconst_6       = 1.0e7
    smag_lat       = 20.0
    smag_lat_fact  = 0.98
    smag_lat_gauss = 98.0
@@ -254,7 +256,6 @@
    kmxice           = 1
    lactive_ice      = .true.
 /
-
 
 &pressure_grad_nml
    lpressure_avg  = .true.
@@ -311,7 +312,7 @@
    sfwf_filename          = 'INPUT/sfwf'
    sfwf_file_fmt          = 'bin'
    sfwf_data_renorm(1)    = 0.001
-   sfwf_weak_restore      = 0.184
+   sfwf_weak_restore      = 0.092
    sfwf_strong_restore    = 0.6648
    sfwf_strong_restore_ms = 0.6648
    ladjust_precip         = .false.
@@ -352,7 +353,6 @@
    s_interior_variable_restore  = .false.
    s_interior_restore_filename  = 'unknown-s_interior_restore'
    s_interior_restore_file_fmt  = 'bin'
-
 /
 
 &forcing_ap_nml
@@ -390,15 +390,12 @@ DO NOT change transport_reg2_names unless you know exactly what you are doing.
   n_heat_trans         = .true.
   n_salt_trans         = .true.
   transport_reg2_names = 'Atlantic Ocean',
-                         'Mediterranean Sea',
                          'Labrador Sea',
                          'GIN Sea',
                          'Arctic Ocean',
                          'Hudson Bay'
 /  
 
-The gx1v3 version of tidal_energy does NOT yet exist.  Until this file exists,
-DO NOT set ltidal_mixing true.
 &tidal_nml
   ltidal_mixing          = .false.
   local_mixing_fraction  = 0.33

@@ -2,13 +2,18 @@
 
       module forcing_coupled
 
-!***********************************************************************
+!BOP
+!MODULE: forcing_coupled
+! !DESCRIPTION:
+!  This module contains all the routines necessary for coupling POP to
+!  atmosphere and sea ice models using the NCAR CCSM flux coupler.  To
+!  enable the routines in this module, the coupled ifdef option must
+!  be specified during the make process.
 !
+! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
 !
-!-----------------------------------------------------------------------
-
+! !USES:
 
       use kinds_mod
       use blocks, only: nx_block, ny_block, block, get_block
@@ -26,10 +31,11 @@
       use ice, only: tfreez, tmelt, liceform,QFLUX, QICE, AQICE, tlast_ice
       use forcing_shf
       use forcing_sfwf
-!maltrud  need f90 versions of qflux_mod and ms_balance
-!     use qflux_mod
-      use ms_balance
       use timers
+
+      !*** ccsm
+      use ms_balance
+      use tavg
       use cpl_contract_mod
       use cpl_interface_mod
       use cpl_fields_mod
@@ -54,6 +60,26 @@
       integer (int_kind) ::  &
         coupled_freq_iopt,   &! coupler frequency option
         coupled_freq          ! frequency of coupling
+
+
+!-----------------------------------------------------------------------
+!
+!  ids for tavg diagnostics computed from forcing_coupled
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      tavg_EVAP_F,       &! tavg id for evaporation flux
+      tavg_PREC_F,       &! tavg id for precipitation flux (rain + snow)
+      tavg_SNOW_F,       &! tavg id for snow          flux
+      tavg_MELT_F,       &! tavg id for melt          flux
+      tavg_ROFF_F,       &! tavg id for river runoff  flux
+      tavg_SALT_F,       &! tavg id for salt          flux
+      tavg_SENH_F,       &! tavg id for sensible heat flux
+      tavg_LWUP_F,       &! tavg id for longwave heat flux up
+      tavg_LWDN_F,       &! tavg id for longwave heat flux dn
+      tavg_MELTH_F        ! tavg id for melt     heat flux
+
 
 !-----------------------------------------------------------------------
 !
@@ -202,25 +228,27 @@
 
 #endif
 !***********************************************************************
+!EOP
+!BOC
 
       contains
 
 !***********************************************************************
 
-      subroutine init_coupled(SMF, SMFT, STF, SHF_QSW, lsmft_avail)
+!BOP
+! !IROUTINE: init_coupled
+! !INTERFACE:
 
-!-----------------------------------------------------------------------
-!
-!     this routine sets up everything necessary for coupling with
-!     the CCSM2 flux coupler, version 6 (cpl6)
-!
-!-----------------------------------------------------------------------
+ subroutine init_coupled(SMF, SMFT, STF, SHF_QSW, lsmft_avail)
 
-!-----------------------------------------------------------------------
+! !DESCRIPTION:
+!  This routine sets up everything necessary for coupling with
+!  the CCSM2 flux coupler, version 6 (cpl6)
 !
-!     output variables
-!
-!-----------------------------------------------------------------------
+! !REVISION HISTORY:
+!  same as module
+
+! !OUTPUT PARAMETERS:
 
       real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic),  &
          intent(out) ::  &
@@ -237,6 +265,9 @@
 
       logical (log_kind), intent(out) ::  &
          lsmft_avail        ! true if SMFT is an available field
+
+!EOP
+!BOC
 
 !-----------------------------------------------------------------------
 !
@@ -490,6 +521,62 @@
       endif
 
 
+!-----------------------------------------------------------------------
+!
+!  define tavg fields computed from forcing_coupled routines
+!
+!-----------------------------------------------------------------------
+
+   call define_tavg_field(tavg_EVAP_F,'EVAP_F',2,                              &
+                          long_name='Evaporation Flux from Coupler',           &
+                          units='kg/m^2/s', grid_loc='2110',                   &
+                          missing_value=undefined_nf_r4,                       &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_PREC_F,'PREC_F',2,                              &
+                          long_name='Precipitation Flux from Cpl (rain+snow)', &
+                          missing_value=undefined_nf_r4,                       &
+                          units='kg/m^2/s', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_SNOW_F,'SNOW_F',2,                              &
+                          long_name='Snow Flux from Coupler',                  &
+                          missing_value=undefined_nf_r4,                       &
+                          units='kg/m^2/s', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_MELT_F,'MELT_F',2,                              &
+                          long_name='Melt Flux from Coupler',                  &
+                          missing_value=undefined_nf_r4,                       &
+                          units='kg/m^2/s', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_ROFF_F,'ROFF_F',2,                              &
+                          long_name='Runoff Flux from Coupler',                &
+                          missing_value=undefined_nf_r4,                       &
+                          units='kg/m^2/s', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_SALT_F,'SALT_F',2,                              &
+                          long_name='Salt Flux from Coupler (kg of salt/m^2/s)',&
+                          missing_value=undefined_nf_r4,                       &
+                          units='kg/m^2/s', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_SENH_F,'SENH_F',2,                              &
+                          long_name='Sensible Heat Flux from Coupler',         &
+                          missing_value=undefined_nf_r4,                       &
+                          units='watt/m^2', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_LWUP_F,'LWUP_F',2,                              &
+                          long_name='Longwave Heat Flux (up) from Coupler',    &
+                          missing_value=undefined_nf_r4,                       &
+                          units='watt/m^2', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_LWDN_F,'LWDN_F',2,                              &
+                          long_name='Longwave Heat Flux (dn) from Coupler',    &
+                          missing_value=undefined_nf_r4,                       &
+                          units='watt/m^2', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_MELTH_F,'MELTH_F',2,                            &
+                          long_name='Melt Heat Flux from Coupler',             &
+                          missing_value=undefined_nf_r4,                       &
+                          units='watt/m^2', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
 
 !-----------------------------------------------------------------------
 !
@@ -605,30 +692,33 @@
 
 #endif
 !-----------------------------------------------------------------------
+!EOC
 
       call flushm (stdout)
 
-      end subroutine init_coupled
+ end subroutine init_coupled
 
 !***********************************************************************
 
-      subroutine set_coupled_forcing(SMF,SMFT,STF,SHF_QSW,FW,TFW,IFRAC,  &
+!BOP
+! !IROUTINE: set_coupled_forcing
+! !INTERFACE:
+
+ subroutine set_coupled_forcing(SMF,SMFT,STF,SHF_QSW,FW,TFW,IFRAC,  &
         ATM_PRESS, U10_SQR)
 
 
-!-----------------------------------------------------------------------
+! !DESCRIPTION:
+!  This routine call coupler communication routines to set
+!  surface forcing data
 !
-!     this routine call coupler communication routines to set
-!     surface forcing data
-!
-!-----------------------------------------------------------------------
-      
-!-----------------------------------------------------------------------
-!     Note: We are using intent "inout" for SMF,SMFT, STF, SHF_QSW
-!           and IFRAC in order to preserve their values inbetween
-!           coupling timesteps.
-!-----------------------------------------------------------------------
- 
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT/OUTPUT PARAMETERS:
+!  Note: We are using intent "inout" for SMF,SMFT, STF, SHF_QSW
+!        and IFRAC in order to preserve their values inbetween
+!        coupling timesteps.
  
       real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic),  &
          intent(inout) ::  &
@@ -648,7 +738,9 @@
       ,  ATM_PRESS         &!  atmospheric pressure forcing
       ,  U10_SQR            !  10m wind speed squared
 
-     
+!EOP
+!BOC
+
 !-----------------------------------------------------------------------
 !
 !     local variables
@@ -745,8 +837,9 @@
 
 #endif
 !-----------------------------------------------------------------------
+!EOC
 
-      end subroutine set_coupled_forcing
+ end subroutine set_coupled_forcing
 
 !***********************************************************************
 
@@ -761,7 +854,10 @@
 ! This routine combines terms when the "partially-coupled"
 ! has been selected
 !
+! !REVISION HISTORY:
+!  same as module
  
+! !INPUT/OUTPUT PARAMETERS:
    real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
       intent(inout) :: &
       STF,             &! surface tracer fluxes at current timestep
@@ -772,9 +868,6 @@
       FW                !  fresh water flux
 
 
-!
-! !REVISION HISTORY:
-!  same as module
 
 !EOP
 !BOC
@@ -865,23 +958,20 @@
 #if coupled
 !***********************************************************************
 
-      subroutine recv_from_coupler(SMF,SMFT,STF,SHF_QSW,FW,TFW,   &
-        IFRAC,ATM_PRESS,U10_SQR)
+!BOP
+! !IROUTINE: init_coupled
+! !INTERFACE:
 
-!-----------------------------------------------------------------------
-!
-!     this routine receives message from coupler with surface flux
-!     data
-!
-!-----------------------------------------------------------------------
+ subroutine recv_from_coupler(SMF,SMFT,STF,SHF_QSW,FW,TFW,   &
+     IFRAC,ATM_PRESS,U10_SQR)
 
-
-!-----------------------------------------------------------------------
+! !DESCRIPTION:
+!  This routine receives message from coupler with surface flux data
 !
-!     output variables
-!
-!-----------------------------------------------------------------------
+! !REVISION HISTORY:
+!  same as module
 
+! !OUTPUT PARAMETERS:
       real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic), intent(out) ::  &
          SMF               &!  surface momentum fluxes (wind stress)
       ,  SMFT               !  surface momentum fluxes at T points
@@ -896,6 +986,9 @@
       ,  IFRAC             &!  fractional ice coverage
       ,  ATM_PRESS         &!  atmospheric pressure forcing
       ,  U10_SQR            !  10m wind speed squared
+
+!EOP
+!BOC
 
 !-----------------------------------------------------------------------
 !
@@ -1324,19 +1417,28 @@
 1100  format ('comm_diag ', a3, 1x, a4, 1x, a8, 1x, es26.19:, 1x, a6)
 
 !-----------------------------------------------------------------------
+!EOC
 
-      end subroutine recv_from_coupler
+ end subroutine recv_from_coupler
 
 !***********************************************************************
 
-      subroutine send_to_coupler
 
-!-----------------------------------------------------------------------
+!BOP
+! !IROUTINE: send_to_coupler
+! !INTERFACE:
+
+ subroutine send_to_coupler
+
+! !DESCRIPTION:
+!  This routine packs fields into a message buffer and sends the
+!  message to the flux coupler
 !
-!     this routine packs fields into a message buffer and sends the
-!     message to the flux coupler
-!
-!-----------------------------------------------------------------------
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
 
 
 !-----------------------------------------------------------------------
@@ -1561,19 +1663,27 @@
       deallocate(sbuf)
 
 !-----------------------------------------------------------------------
+!EOC
 
-      end subroutine send_to_coupler
+ end subroutine send_to_coupler
 
 !***********************************************************************
 
-      subroutine sum_buffer
+!BOP
+! !IROUTINE: sum_buffer
+! !INTERFACE:
 
-!-----------------------------------------------------------------------
+ subroutine sum_buffer
+
+! !DESCRIPTION:
+!  This routine accumulates sums for averaging fields to
+!   be sent to the coupler
 !
-!     this routine accumulates sums for averaging fields to
-!     be sent to the coupler
-!
-!-----------------------------------------------------------------------
+! !REVISION HISTORY:
+!  same as module
+!EOP
+!BOC
+
 !-----------------------------------------------------------------------
 !
 !     local variables
@@ -1641,15 +1751,119 @@
    enddo
    !$OMP END PARALLEL DO
 
-      end subroutine sum_buffer
-
-
-!-----------------------------------------------------------------------
-#endif
- 
 !EOC
+!-----------------------------------------------------------------------
+
+ end subroutine sum_buffer
+
  
 !***********************************************************************
+!BOP
+! !IROUTINE: tavg_coupled_forcing
+! !INTERFACE:
+
+ subroutine tavg_coupled_forcing
+
+! !DESCRIPTION:
+!  This routine accumulates tavg diagnostics related to forcing_coupled
+!  forcing.
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      iblock              ! block loop index
+
+   type (block) ::       &
+      this_block          ! block information for current block
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK                ! local temp space for tavg diagnostics
+
+!-----------------------------------------------------------------------
+!
+!  compute and accumulate tavg forcing diagnostics
+!
+!-----------------------------------------------------------------------
+
+   !$OMP PARALLEL DO PRIVATE(iblock,this_block,WORK)
+
+   do iblock = 1,nblocks_clinic
+
+      this_block = get_block(blocks_clinic(iblock),iblock)
+
+      if (tavg_requested(tavg_EVAP_F)) then
+         call accumulate_tavg_field(EVAP_F(:,:,iblock), &
+                                    tavg_EVAP_F,iblock,1)
+      endif
+
+      if (tavg_requested(tavg_PREC_F)) then
+         call accumulate_tavg_field(PREC_F(:,:,iblock), &
+                                    tavg_PREC_F,iblock,1)
+      endif
+
+      if (tavg_requested(tavg_SNOW_F)) then
+         call accumulate_tavg_field(SNOW_F(:,:,iblock), &
+                                    tavg_SNOW_F,iblock,1)
+      endif
+
+      if (tavg_requested(tavg_MELT_F)) then
+         call accumulate_tavg_field(MELT_F(:,:,iblock), &
+                                    tavg_MELT_F,iblock,1)
+      endif
+
+      if (tavg_requested(tavg_ROFF_F)) then
+         call accumulate_tavg_field(ROFF_F(:,:,iblock), &
+                                    tavg_ROFF_F,iblock,1)
+      endif
+
+      if (tavg_requested(tavg_SALT_F)) then
+         call accumulate_tavg_field(SALT_F(:,:,iblock), &
+                                    tavg_SALT_F,iblock,1)
+      endif
+
+      if (tavg_requested(tavg_SENH_F)) then
+         call accumulate_tavg_field(SENH_F(:,:,iblock), &
+                                    tavg_SENH_F,iblock,1)
+      endif
+
+      if (tavg_requested(tavg_LWUP_F)) then
+         call accumulate_tavg_field(LWUP_F(:,:,iblock), &
+                                    tavg_LWUP_F,iblock,1)
+      endif
+
+      if (tavg_requested(tavg_LWDN_F)) then
+         call accumulate_tavg_field(LWDN_F(:,:,iblock), &
+                                    tavg_LWDN_F,iblock,1)
+      endif
+
+      if (tavg_requested(tavg_MELTH_F)) then
+         call accumulate_tavg_field(MELTH_F(:,:,iblock), &
+                                    tavg_MELTH_F,iblock,1)
+      endif
+
+
+
+   end do
+
+   !$OMP END PARALLEL DO
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine tavg_coupled_forcing
+#endif
+
+!***********************************************************************
+
 
       end module forcing_coupled
 

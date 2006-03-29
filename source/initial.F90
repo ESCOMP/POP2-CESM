@@ -45,7 +45,7 @@
    use barotropic, only: init_barotropic
    use pressure_grad, only: init_pressure_grad
    use surface_hgt, only: init_surface_hgt
-   use vertical_mix, only: init_vertical_mix
+   use vertical_mix, only: init_vertical_mix, vmix_itype, vmix_type_kpp
    use horizontal_mix, only: init_horizontal_mix
    use advection, only: init_advection
    use diagnostics, only: init_diagnostics
@@ -73,6 +73,7 @@
    use shr_sys_mod
    use registry
    use qflux_mod, only: init_qflux
+   use tidal_mixing
 
    implicit none
    private
@@ -212,6 +213,14 @@
 
    call init_topostress
    call init_horizontal_mix
+
+!-----------------------------------------------------------------------
+!
+!  initialize tidally driven mixing
+!
+!-----------------------------------------------------------------------
+
+   call init_tidal_mixing
 
 !-----------------------------------------------------------------------
 !
@@ -395,7 +404,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call document_POP
+   call document_constants
 
 
 !-----------------------------------------------------------------------
@@ -405,6 +414,13 @@
 !-----------------------------------------------------------------------
        call trap_registry_failure
 
+!-----------------------------------------------------------------------
+!
+!     write model warnings into log file
+!
+!-----------------------------------------------------------------------
+
+      call POP_warnings
 
 !-----------------------------------------------------------------------
 !
@@ -888,21 +904,20 @@
 
  end subroutine init_ts
 
- subroutine document_POP
+!BOP
+! !IROUTINE: document_constants
+! !INTERFACE:
 
-!-----------------------------------------------------------------------
-!
-!     this routine writes POP model information to the output log file
-!
-!-----------------------------------------------------------------------
+ subroutine document_constants
 
+! !DESCRIPTION:
+! This routine writes the values of POP model constants to the output log file
 
+! !REVISION HISTORY:
+!  same as module
 
-!-----------------------------------------------------------------------
-!
-!     output model constant information to log file
-!
-!-----------------------------------------------------------------------
+!EOP
+!BOC
 
    if (my_task == master_task) then
      write(stdout,ndelim_fmt)
@@ -941,20 +956,29 @@
 1020 format (5x, a20, ' = ', 1pe25.15, 2x, a)
 
 !-----------------------------------------------------------------------
+!EOC
 
- end subroutine document_POP
+ end subroutine document_constants
  
+
+!BOP
+! !IROUTINE: POP_warnings
+! !INTERFACE:
+
  subroutine POP_warnings
 
-!-----------------------------------------------------------------------
-!
-!     this routine writes POP-model warnings to the output log file.
-!     these warning conditions usually involve conditions set in two or 
-!     more different modules, but this routine also serves as a 
-!     convenient place to collect all warning conditions. the warning
-!     may result in model shut-down
-!
-!-----------------------------------------------------------------------
+! !DESCRIPTION:
+!  This routine writes POP-model warnings to the output log file.
+!  These warning conditions usually involve conditions set in two or 
+!  more different modules, but this routine also serves as a 
+!  convenient place to collect all warning conditions. The warning
+!  may result in model shut-down
+
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
 
    character (char_len)      :: message
 
@@ -1029,6 +1053,28 @@
 
    number_of_fatal_errors = 0
  
+!-----------------------------------------------------------------------
+!
+!  Tidal mixing without KPP mixing
+!
+!-----------------------------------------------------------------------
+
+   if (my_task == master_task) then
+     write(stdout,blank_fmt)
+
+     if (ltidal_mixing .and. vmix_itype /= vmix_type_kpp) then
+         message =   &
+        'Error:  Tidally driven mixing is only allowed when KPP mixing is enabled' 
+         write(stdout,1100) message
+         call shr_sys_flush(stdout)
+
+         write(stdout,delim_fmt)
+         call shr_sys_flush(stdout)
+         number_of_fatal_errors = number_of_fatal_errors + 1
+
+     endif
+   endif !my_task
+
 
    call broadcast_scalar(number_of_fatal_errors, master_task)
  
@@ -1041,6 +1087,7 @@
 
 
 !-----------------------------------------------------------------------
+!EOC
 
  end subroutine POP_warnings
 !***********************************************************************

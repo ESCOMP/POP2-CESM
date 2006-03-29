@@ -12,16 +12,13 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
 
 ! !USES:
 
    use kinds_mod
    use communicate
    use constants
-#ifdef coupled
    use shr_sys_mod
-#endif
 
 
    implicit none

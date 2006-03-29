@@ -275,7 +275,7 @@
      upper_time_bound
 
    integer (int_kind) ::  &
-      tavg_debug  = 1           ! debug level: 0,1
+      tavg_debug  = 0           ! debug level: 0,1
  
 !EOC
 !***********************************************************************
@@ -548,6 +548,7 @@
          TAVG_BUF_3D_METHOD(tavg_bufsize_3d))
 
       tavg_sum = c0
+
       call time_stamp('now','ymd',date_string=beg_date)
       if (tavg_freq_iopt == freq_opt_nstep) &
          write(beg_date,'(i10)') nsteps_total
@@ -835,7 +836,7 @@
       if (ltavg_write) then
          tavg_outfile = tavg_outfile_orig
          if (lccsm) then
-           call tavg_create_suffix_ccsm(file_suffix,date_string='ymd')
+           call tavg_create_suffix_ccsm(file_suffix)
          else
            call tavg_create_suffix(file_suffix)
          endif
@@ -1984,12 +1985,19 @@
         if (tavg_sum /= 0) then
           factor  = c1/tavg_sum
         else
-          call exit_POP(sigAbort,'ERROR in tavg_norm_field_all; attempt to divide by zero')
+          call exit_POP(sigAbort, &
+           'ERROR in tavg_norm_field_all; attempt to divide by zero tavg_sum')
         endif
         if (tavg_sum_qflux /= 0) then
           factorq = c1/tavg_sum_qflux
+        elseif (tavg_freq_iopt == freq_opt_nhour   .or.  &
+                tavg_freq_iopt == freq_opt_nsecond .or.  &
+                tavg_freq_iopt == freq_opt_nstep         ) then
+          ! do nothing; these frequencies are not compatable with time-averaged qflux
+          factorq = c1
         else
-          call exit_POP(sigAbort,'ERROR in tavg_norm_field_all; attempt to divide by zero')
+          call exit_POP(sigAbort, &
+           'ERROR in tavg_norm_field_all; attempt to divide by zero tavg_sum_qflux')
         endif
       case ('denormalize')
           factor  = tavg_sum
@@ -4352,6 +4360,9 @@
       this_block          ! block information for current block
 
  
+   !*** return if attempting to compute every nstep timesteps
+   if (start_opt_nstep == tavg_start_iopt) return
+
    !*** zero out location identifiers
    tavg_loc_SU = 0; tavg_loc_SV  = 0; tavg_loc_BSF = 0
 
@@ -4466,6 +4477,7 @@
 
    if (.not. moc) return
 
+
    tavg_loc_WVEL      = 0 ; tavg_loc_VVEL      = 0
    tavg_loc_WISOP     = 0 ; tavg_loc_VISOP     = 0
  
@@ -4534,6 +4546,9 @@
         num_nstd_fields=num_avail_tavg_nstd_fields,      &
         max_nstd_fields=max_avail_tavg_nstd_fields       )
  
+   !*** return if attempting to compute every nstep timesteps
+   if (start_opt_nstep == tavg_start_iopt) return
+
    io_dims_nstd_ccsm(1,tavg_MOC) = lat_aux_grid_dim
    io_dims_nstd_ccsm(2,tavg_MOC) = moc_z_dim
    io_dims_nstd_ccsm(3,tavg_MOC) = moc_comp_dim
@@ -4614,6 +4629,7 @@
       n
 
    if (.not. (n_heat_trans .or. n_salt_trans)) return
+
 
    tavg_loc_ADVT      = 0 ; tavg_loc_ADVS      = 0
    tavg_loc_VNT       = 0 ; tavg_loc_VNS       = 0
@@ -4740,6 +4756,9 @@
    io_dims_nstd_ccsm(3,tavg_N_SALT) = transport_reg_dim
    io_dims_nstd_ccsm(4,tavg_N_SALT) = time_dim
    ndims_nstd_ccsm  (  tavg_N_SALT)  = 4
+
+   !*** return if attempting to compute every nstep timesteps
+   if (start_opt_nstep == tavg_start_iopt) return
 
    do n=1,2
      select case (n)

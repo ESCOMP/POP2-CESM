@@ -452,20 +452,6 @@
       call extract_attrib_file(restart_file, 'precip_fact', precip_fact)
       call extract_attrib_file(restart_file, 'ssh_initial', ssh_initial)
 
-!############### debug ##############
-      write(stdout,*) ' restart '
-      call shr_sys_flush(stdout)
-      write(stdout,*) ' shf_interp_last ' , shf_interp_last
-      call shr_sys_flush(stdout)
-      write(stdout,*) ' sfwf_interp_last ' , sfwf_interp_last
-      call shr_sys_flush(stdout)
-      write(stdout,*) ' ws_interp_last ' , ws_interp_last
-      call shr_sys_flush(stdout)
-      write(stdout,*) ' ap_interp_last ' , ap_interp_last
-      call shr_sys_flush(stdout)
-      write(stdout,*) ' pt_interior_interp_last ' , pt_interior_interp_last
-      call shr_sys_flush(stdout)
-!########### end debug ##############
 
       short_name = char_blank
       do k=1,km

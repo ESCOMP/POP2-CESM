@@ -413,26 +413,18 @@
 
 
          if (lsmft_avail) then
-!!!!!!!!    call vmix_coeffs(k,TRACER (:,:,:,:,mixtime,iblock), &
-!!!!!!!!                       UVEL   (:,:,:  ,mixtime,iblock), &
-!!!!!!!!                       VVEL   (:,:,:  ,mixtime,iblock), &
-            call vmix_coeffs(k,TRACER (:,:,:,:,oldtime,iblock), &
-                               UVEL   (:,:,:  ,oldtime,iblock), &
-                               VVEL   (:,:,:  ,oldtime,iblock), &
-                               RHO    (:,:,:  ,oldtime,iblock), &
-!!!!!!!!!                      RHO    (:,:,:  ,mixtime,iblock), &
+            call vmix_coeffs(k,TRACER (:,:,:,:,mixtime,iblock), &
+                               UVEL   (:,:,:  ,mixtime,iblock), &
+                               VVEL   (:,:,:  ,mixtime,iblock), &
+                               RHO    (:,:,:  ,mixtime,iblock), &
                                STF    (:,:,:          ,iblock), &
                                SHF_QSW(:,:            ,iblock), &
                                this_block, SMFT=SMFT(:,:,:,iblock))
          else
-!!!!!!!!    call vmix_coeffs(k,TRACER (:,:,:,:,mixtime,iblock), &
-!!!!!!!!                       UVEL   (:,:,:  ,mixtime,iblock), &
-!!!!!!!!                       VVEL   (:,:,:  ,mixtime,iblock), &
-            call vmix_coeffs(k,TRACER (:,:,:,:,oldtime,iblock), &
-                               UVEL   (:,:,:  ,oldtime,iblock), &
-                               VVEL   (:,:,:  ,oldtime,iblock), &
-                               RHO    (:,:,:  ,oldtime,iblock), &
-!!!!!!!!                       RHO    (:,:,:  ,mixtime,iblock), &
+            call vmix_coeffs(k,TRACER (:,:,:,:,mixtime,iblock), &
+                               UVEL   (:,:,:  ,mixtime,iblock), &
+                               VVEL   (:,:,:  ,mixtime,iblock), &
+                               RHO    (:,:,:  ,mixtime,iblock), &
                                STF    (:,:,:          ,iblock), &
                                SHF_QSW(:,:            ,iblock), &
                                this_block, SMF=SMF(:,:,:,iblock))

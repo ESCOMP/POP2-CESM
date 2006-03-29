@@ -13,7 +13,6 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
 
 ! !USES:
 
@@ -33,6 +32,7 @@
    use shr_sys_mod
    use io_types, only: stdout
    use communicate, only: my_task, master_task
+   use tidal_mixing
 
    implicit none
    private
@@ -76,6 +76,9 @@
 
    real (r8), parameter :: &
       epssfc = 0.1_r8       ! non-dimensional extent of sfc layer
+
+   real (r8) ::           &
+      Prandtl              ! Prandtl number
 
 !-----------------------------------------------------------------------
 !
@@ -169,8 +172,17 @@
       zgrid,               &! depth at cell interfaces
       hwide                 ! layer thickness at interfaces
 
+!-----------------------------------------------------------------------
+!
+!  ids for tavg diagnostics computed in this module
+!
+!-----------------------------------------------------------------------
+
+
    integer (int_kind) ::   &
-      tavg_QSW_HBL          ! tavg id for solar short-wave heat flux in bndry layer
+      tavg_QSW_HBL,        &! tavg id for solar short-wave heat flux in bndry layer
+      tavg_KVMIX,          &
+      tavg_TPOWER
 
 
 !EOC
@@ -215,8 +227,7 @@
       bckgrnd_vdc1,       &! diffusivity at depth dpth
       bckgrnd_vdc2,       &! variation in diffusivity
       bckgrnd_vdc_dpth,   &! depth at which diff equals vdc1
-      bckgrnd_vdc_linv,   &! inverse length for transition region
-      Prandtl              ! Prandtl number
+      bckgrnd_vdc_linv     ! inverse length for transition region
 
    namelist /vmix_kpp_nml/bckgrnd_vdc1, bckgrnd_vdc2,           &
                           bckgrnd_vdc_dpth, bckgrnd_vdc_linv,   &
@@ -232,6 +243,9 @@
 
    character (11), parameter :: &
       fmt_int  = '(a19,2x,i5)'
+
+   character (char_len) :: &
+      string
 
 !-----------------------------------------------------------------------
 !
@@ -334,6 +348,26 @@
 !
 !-----------------------------------------------------------------------
 
+
+!-----------------------------------------------------------------------
+!
+!  if tidal mixing is on, use vertically constant (internal wave)
+!  background diffusivity and viscosity
+!
+!-----------------------------------------------------------------------
+
+   if ( ltidal_mixing ) then 
+     if (bckgrnd_vdc2 /= c0 .and. my_task == master_task) then
+       write (stdout,*)
+       write (stdout,*) ' Variable vertical profile for diff/visc '
+       write (stdout,*) ' is not allowed when tidal mixing is on. '
+       write (stdout,*) ' ==> resetting bckgrnd_vdc2 to zero      '
+       write (stdout,*) ' bckgrnd_vdc1 value should be checked.   '
+     endif
+     bckgrnd_vdc2 = c0
+   endif
+
+
    if (bckgrnd_vdc2 /= c0 .and. my_task == master_task) then
       write (stdout,blank_fmt)
       write (stdout,'(a43)') &
@@ -400,11 +434,29 @@
 !
 !-----------------------------------------------------------------------
 
-   call define_tavg_field(tavg_QSW_HBL,'QSW_HBL',2,                    &
-                          long_name='Solar Short-Wave Heat Flux in bndry layer', &
-                          missing_value=undefined_nf_r4,               &
-                          units='watt/m^2', grid_loc='2110',           &
+   string = 'Solar Short-Wave Heat Flux in bndry layer'
+   call define_tavg_field(tavg_QSW_HBL,'QSW_HBL',2,           &
+                          long_name=trim(string),             &
+                          missing_value=undefined_nf_r4,      &
+                          units='watt/m^2', grid_loc='2110',  &
                           coordinates='TLONG TLAT time')
+
+   string = 'Vertical Mixing due to Tidal Mixing'
+   call define_tavg_field(tavg_KVMIX,'KVMIX',2,               &
+                          long_name=trim(string),             &
+                          missing_value=undefined_nf_r4,      &
+                          units='centimeter^2/s',             &
+                          grid_loc='3112',                    &
+                          coordinates  ='TLONG TLAT z_w time' ) 
+
+   string = 'Energy Used by Vertical Mixing'
+   call define_tavg_field(tavg_TPOWER,'TPOWER',2,             &
+                          long_name=trim(string),             &
+                          missing_value=undefined_nf_r4,      &
+                          units='erg/s',                      &
+                          grid_loc='3112',                    &
+                          coordinates  ='TLONG TLAT z_w time' ) 
+
 
 !-----------------------------------------------------------------------
 !EOC
@@ -418,7 +470,7 @@
 ! !IROUTINE: vmix_coeffs_kpp
 ! !INTERFACE:
 
- subroutine vmix_coeffs_kpp(VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, &
+ subroutine vmix_coeffs_kpp(VDC, VVC, TRCR, UUU, VVV, RHOMIX, STF, SHF_QSW, &
                             this_block, convect_diff, convect_visc, &
                             SMF, SMFT)
 
@@ -439,6 +491,9 @@
 
    real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
       UUU,VVV             ! velocities at current time
+
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      RHOMIX              ! density at mix time
 
    real (r8), dimension(nx_block,ny_block,nt), intent(in) :: &
       STF                 ! surface forcing for all tracers
@@ -528,7 +583,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, &
+   call ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, RHOMIX,&
                  convect_diff, convect_visc, this_block)
 
 !-----------------------------------------------------------------------
@@ -736,7 +791,7 @@
 ! !IROUTINE: ri_iwmix
 ! !INTERFACE:
 
- subroutine ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, &
+ subroutine ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, RHOMIX, &
                      convect_diff, convect_visc, this_block)
 
 ! !DESCRIPTION:
@@ -755,6 +810,9 @@
    real (r8), dimension(nx_block,ny_block,km), intent(in) :: & 
       VVV,             &! V velocities at current time
       DBLOC             ! buoyancy difference between adjacent levels
+
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      RHOMIX            ! density at mix time
 
    real (r8), intent(in) :: &
       convect_diff,         &! diffusivity to mimic convection
@@ -788,9 +846,14 @@
       n                   ! vertical smoothing index
 
    real (r8), dimension(nx_block,ny_block) :: &
+      KVMIX
+
+   real (r8), dimension(nx_block,ny_block) :: &
       VSHEAR,            &! (local velocity shear)^2
       RI_LOC,            &! local Richardson number 
-      FRI                 ! function of Ri for shear
+      FRI,               &! function of Ri for shear
+      FCON,              &
+      WORK1
 
 !-----------------------------------------------------------------------
 !
@@ -800,6 +863,7 @@
 
    bid = this_block%local_id
 
+   KVMIX       = c0
    VISC(:,:,0) = c0
 
    do k = 1,km
@@ -907,25 +971,74 @@
 !
 !-----------------------------------------------------------------------
 
-      if (lrich) then
-         FRI    = min((max(VISC(:,:,k),c0))/Riinfty, c1)
+      if ( ltidal_mixing ) then
 
-         VISC(:,:,k  ) = bckgrnd_vvc(k) + &
-                         rich_mix*(c1 - FRI*FRI)**3
+!-----------------------------------------------------------------------
+!
+!  consider the internal wave mixing first. rich_mix is used as the
+!  upper limit for internal wave mixing coefficient. bckgrnd_vvc
+!  was already multiplied by Prandtl. use VSHEAR as temp.
+!
+!  NOTE: no partial_bottom_cell implementation at this time 
+!
+!-----------------------------------------------------------------------
 
-         if ( k < km ) then
-            VDC (:,:,k,2) = bckgrnd_vdc(k) + &
-                            rich_mix*(c1 - FRI*FRI)**3
+        WORK1 = DBLOC(:,:,k)/(zgrid(k) - zgrid(k+1))
+
+        VSHEAR = merge(TIDAL_COEF(:,:,k,bid)/WORK1, c0, WORK1 > c0)
+
+        WORK1 = Prandtl*min(bckgrnd_vvc(k)/Prandtl+VSHEAR, tidal_mix_max)
+
+        if ( k < km ) then
+          VDC(:,:,k,2) = min(bckgrnd_vdc(k) + VSHEAR, tidal_mix_max)
+          KVMIX(:,:) = VDC(:,:,k,2)
+        endif
+
+        if (lrich) then
+          FRI    = min((max(VISC(:,:,k),c0))/Riinfty, c1)
+
+          VISC(:,:,k) = WORK1 + rich_mix*(c1 - FRI*FRI)**3
+
+          if ( k < km ) then
+            VDC(:,:,k,2) = VDC(:,:,k,2) + rich_mix*(c1 - FRI*FRI)**3
             VDC(:,:,k,1) = VDC(:,:,k,2)
-         endif
-      else
-         VISC(:,:,k  ) = bckgrnd_vvc(k)
+          endif
+        else
+          VISC(:,:,k) = WORK1 
 
-         if ( k < km ) then
-            VDC (:,:,k,2) = bckgrnd_vdc(k)
+          if ( k < km ) then
             VDC(:,:,k,1) = VDC(:,:,k,2)
-         endif
-      endif
+          endif
+        endif
+
+      else ! .not. ltidal_mixing
+
+        if ( k < km ) then
+          KVMIX(:,:) = bckgrnd_vdc(k)
+        endif
+
+
+        if (lrich) then
+           FRI    = min((max(VISC(:,:,k),c0))/Riinfty, c1)
+
+           VISC(:,:,k  ) = bckgrnd_vvc(k) + &
+                           rich_mix*(c1 - FRI*FRI)**3
+
+           if ( k < km ) then
+              VDC (:,:,k,2) = bckgrnd_vdc(k) + &
+                              rich_mix*(c1 - FRI*FRI)**3
+              VDC(:,:,k,1) = VDC(:,:,k,2)
+           endif
+        else
+           VISC(:,:,k  ) = bckgrnd_vvc(k)
+
+           if ( k < km ) then
+              VDC (:,:,k,2) = bckgrnd_vdc(k)
+              VDC(:,:,k,1) = VDC(:,:,k,2)
+           endif
+        endif
+
+      endif ! ltidal_mixing
 
 !-----------------------------------------------------------------------
 !
@@ -945,6 +1058,16 @@
          endif
       end do
       end do
+
+      if (tavg_requested(tavg_KVMIX)) then
+         call accumulate_tavg_field(KVMIX,tavg_KVMIX,bid,k)
+      endif
+ 
+      if (tavg_requested(tavg_TPOWER)) then
+         WORK1(:,:) = KVMIX(:,:)*RHOMIX(:,:,k)*DBLOC(:,:,k)/ &
+            (zgrid(k) - zgrid(k+1))
+         call accumulate_tavg_field(WORK1,tavg_TPOWER,bid,k)
+      endif
 
 !-----------------------------------------------------------------------
 !

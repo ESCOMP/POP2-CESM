@@ -19,7 +19,7 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
+!  CVS:$Name:  $
 
 ! !USES:
 
@@ -458,11 +458,11 @@
 ! !IROUTINE: vmix_coeffs
 ! !INTERFACE:
 
-!subroutine vmix_coeffs(k, TMIX, UMIX, VMIX, RHOMIX,             &
- subroutine vmix_coeffs(k, TOLD, UOLD, VOLD, RHOOLD,             &
+ subroutine vmix_coeffs(k, TMIX, UMIX, VMIX, RHOMIX,             &
                            STF, SHF_QSW,                         &
                            this_block,                           &
                            SMF, SMFT)
+
 
 ! !DESCRIPTION:
 !  This is a driver routine which calls the appropriate
@@ -477,14 +477,11 @@
    integer (int_kind), intent(in) :: &
       k                      ! vertical level index
 
-   real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
-      TOLD                   ! tracers at old     time level
    real (r8), dimension(nx_block,ny_block,km,nt)  :: TMIX
 
    real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
-      UOLD, VOLD,           &! U,V     at old     time level
-      RHOOLD                 ! density at old     time level
-   real (r8), dimension(nx_block,ny_block,km) :: RHOMIX, UMIX, VMIX
+      UMIX, VMIX,           &! U,V     at mix time level
+      RHOMIX                 ! density at mix time level
 
    real (r8), dimension(nx_block,ny_block,nt), intent(in) :: &
       STF                    ! surface forcing for all tracers
@@ -562,16 +559,16 @@
          if (present(SMFT)) then
             call vmix_coeffs_kpp(VDC(:,:,:,:,bid),           &
                                  VVC(:,:,:,  bid),           &
-!!!!!!!!!!!!!!                   TMIX,UMIX,VMIX,STF,SHF_QSW, &
-                                 TOLD,UOLD,VOLD,STF,SHF_QSW, &
+                                 TMIX,UMIX,VMIX,RHOMIX,      &
+                                 STF,SHF_QSW,                &
                                  this_block,                 &
                                  convect_diff, convect_visc, &
                                  SMFT=SMFT)
          else
             call vmix_coeffs_kpp(VDC(:,:,:,:,bid),           &
                                  VVC(:,:,:,  bid),           &
-!!!!!!!!!!!!!!                   TMIX,UMIX,VMIX,STF,SHF_QSW, &
-                                 TOLD,UOLD,VOLD,STF,SHF_QSW, &
+                                 TMIX,UMIX,VMIX,RHOMIX,      &
+                                 STF,SHF_QSW,                &
                                  this_block,                 &
                                  convect_diff, convect_visc, &
                                  SMF=SMF)

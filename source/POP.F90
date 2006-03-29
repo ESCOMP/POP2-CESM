@@ -4,7 +4,7 @@
 ! !INTERFACE:
 
 #ifdef SINGLE_EXEC
- subroutine POP()
+ subroutine ccsm_ocn()
 #else
  program POP
 #endif
@@ -141,7 +141,7 @@
 !EOC
 
 #ifdef SINGLE_EXEC
- end subroutine POP
+ end subroutine ccsm_ocn
 #else
  end program POP
 #endif

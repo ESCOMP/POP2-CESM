@@ -23,7 +23,6 @@
 !
 ! !REVISION HISTORY:
 !  CVS:$Id$
-!  CVS:$Name$
 
 ! !USES:
 
@@ -37,6 +36,8 @@
    use broadcast
    use time_management
    use exit_mod
+
+   !*** ccsm
    use shr_vmath_mod
 
    implicit none
