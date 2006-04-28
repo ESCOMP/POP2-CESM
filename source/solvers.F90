@@ -10,8 +10,7 @@
 !  system for surface pressure in the barotropic mode.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES:
 

@@ -1,6 +1,6 @@
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-      module tidal_mixing
+ module tidal_mixing
 
 !BOP
 ! !MODULE: tidal_mixing
@@ -20,7 +20,7 @@
 !      vol 6, 245-263.
 
 ! !REVISION HISTORY:
-! CVS:$Id$
+! SVN:$Id$
 
 ! !USES
 
@@ -46,6 +46,8 @@
  
    public :: init_tidal_mixing
 
+! !PUBLIC DATA MEMBERS:
+
    logical (log_kind), public ::  &
       ltidal_mixing        ! if true, tidal mixing is on  
 
@@ -62,7 +64,7 @@
 !EOC
 !***********************************************************************
 
-      contains
+   contains
 
 !***********************************************************************
 !BOP
@@ -87,10 +89,10 @@
 !-----------------------------------------------------------------------
 
    real (r8) ::              &
-     local_mixing_fraction,  &! fraction of energy available for
-                              ! mixing local to the generation region
-     mixing_efficiency,      &! mixing efficiency
-     vertical_decay_scale     ! vertical decay scale for turbulence (cm)
+      local_mixing_fraction,  &! fraction of energy available for
+                               ! mixing local to the generation region
+      mixing_efficiency,      &! mixing efficiency
+      vertical_decay_scale     ! vertical decay scale for turbulence (cm)
 
    integer (int_kind) ::     &
       iblock                  ! block index

@@ -12,8 +12,7 @@
 !  querying the block decomposition for a global domain.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 !
 ! !USES:
 

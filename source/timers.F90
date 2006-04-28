@@ -10,8 +10,7 @@
 !  and accumulates time for each individual block and node (task).
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 !
 ! !USES:
 

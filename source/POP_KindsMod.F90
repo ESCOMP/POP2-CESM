@@ -24,8 +24,7 @@
 !  character length, the default value may be increased.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES:
 !  uses no other modules

@@ -8,8 +8,7 @@
 !  This module contains all the prognostic variables used in POP.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES:
 

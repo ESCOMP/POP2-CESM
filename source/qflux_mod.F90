@@ -1,18 +1,18 @@
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-
  module qflux_mod
 
-!***********************************************************************
+!BOP
+! !MODULE: qflux_mod
+!
+! !DESCRIPTION:
+!  This module supports time-averaged qflux computations
+!
+! !REVISION HISTORY:
+! SVN:$Id$
+!
 
-!-----------------------------------------------------------------------
-!
-!     This module computes running time-averages of qflux
-!    
-!
-!     CVS:$Id$
-!
-!-----------------------------------------------------------------------
+! !USES:
 
    use kinds_mod
    use constants
@@ -22,16 +22,20 @@
    use shr_sys_mod
 
    implicit none
+   private
    save
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
    public :: init_qflux
  
+!EOP
+!BOC
+
    integer (int_kind) :: &
       tavg_QFLUX          ! tavg id for QFLUX 
 
-
+!EOC
 !***********************************************************************
 
       contains
@@ -43,8 +47,6 @@
    character (char_len) :: string
  
    
-   tavg_sum_qflux = c0
-
    string = 'Internal Ocean Heat Flux Due to Ice Formation; ' /&
              &/ 'heat of fusion > 0 or ice-melting potential < 0 '
  

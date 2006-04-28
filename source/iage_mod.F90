@@ -1,10 +1,18 @@
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 module iage_mod
 
-  !--------------------------------------------------------------------
-  !
-  !
-  !--------------------------------------------------------------------
+!BOP
+! !MODULE: iage_mod
+!
+! !DESCRIPTION:
+!  
+!
+! !REVISION HISTORY:
+!  SVN:$Id$
+
+! !USES:
+
 
    use blocks, only: nx_block, ny_block, block, get_block
    use domain_size, only: max_blocks_clinic, km, nx_global, ny_global
@@ -30,12 +38,11 @@ module iage_mod
    use shr_sys_mod
 
   implicit none
-
-  !--------------------------------------------------------------------
-  !   public/private declarations
-  !--------------------------------------------------------------------
-
   private
+
+
+! !PUBLIC MEMBER FUNCTIONS:
+
   public ::                    &
        iage_tracer_cnt,        &
        iage_ind_begin,         &
@@ -48,9 +55,8 @@ module iage_mod
        iage_set_interior,      &
        iage_reset
 
-  !--------------------------------------------------------------------
-  !--------------------------------------------------------------------
-
+!EOP
+!BOC
 
 !maltrud
      character(char_len) :: mmessage
@@ -114,7 +120,8 @@ module iage_mod
    logical(log_kind), dimension(:,:,:), allocatable, save :: &
       LAND_MASK
 
-  !*****************************************************************************
+!EOC
+!*****************************************************************************
 
 contains
 

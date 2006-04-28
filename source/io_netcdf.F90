@@ -9,7 +9,7 @@
 !  for writing arrays in netCDF format.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 
 ! !USES:
 

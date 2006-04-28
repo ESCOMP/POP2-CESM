@@ -166,7 +166,7 @@
    num_v_smooth_Ri = 1
 /
 &advect_nml
-   tadvect_ctype = 'upwind'
+   tadvect_ctype = 'lw_lim'
 /
 
 &hmix_nml
@@ -199,17 +199,23 @@
 /
 
 &hmix_gm_nml
-   kappa_choice         = 'constant'
-   slope_control_choice = 'notanh'
-   kappa_depth_1        = 1.0 
-   kappa_depth_2        = 0.0
-   kappa_depth_scale    = 150000.0
-   ah                   = 0.6e7
-   ah_bolus             = 0.6e7
-   ah_bkg               = 0.0
-   slm_r                = 0.3
-   slm_b                = 0.3 
-   gm_bolus             = .false.
+   kappa_isop_choice      = 'bfre'
+   kappa_thic_choice      = 'bfre'
+   kappa_freq_choice      = 'once_a_day'
+   slope_control_choice   = 'notanh'
+   kappa_depth_1          = 1.0 
+   kappa_depth_2          = 0.0
+   kappa_depth_scale      = 150000.0
+   ah                     = 0.6e7
+   ah_bolus               = 0.6e7
+   use_const_ah_bkg_srfbl = .true.
+   ah_bkg_srfbl           = 0.6e7
+   ah_bkg_bottom          = 0.0
+   slm_r                  = 0.3
+   slm_b                  = 0.3 
+   diag_gm_bolus          = .true.
+   transition_layer_on    = .true.
+   read_n2_data           = .false.
 /
 
 &hmix_aniso_nml

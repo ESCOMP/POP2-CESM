@@ -11,7 +11,7 @@
 !   Presently, only routines used to document output are included
 !
 ! !REVISION HISTORY:
-!   CVS:$Id$
+!   SVN:$Id$
 !
 ! !USES 
    use kinds_mod

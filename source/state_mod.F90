@@ -22,7 +22,7 @@
 !  \end{enumerate}
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 
 ! !USES:
 

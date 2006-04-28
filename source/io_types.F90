@@ -13,7 +13,7 @@
 !  and an io unit manager.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 
 ! !USES:
 
@@ -1903,6 +1903,7 @@ contains
       if (lactive_time_dim) then
          descriptor%field_dim(4) = time_dim
       endif
+
 
    else if (present(i2d_array) .or. present(r2d_array) .or. &
                                     present(d2d_array)) then

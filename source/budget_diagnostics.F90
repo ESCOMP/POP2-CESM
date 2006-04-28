@@ -9,7 +9,7 @@
 !  This module contains routines for tracers budget diagnostics.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 
 ! !USES:
 
@@ -478,7 +478,7 @@
 
    qflux_t_mean = c0
    if ( tavg_sum_qflux /= c0 )  &
-       qflux_t_mean = tavg_global_sum_2D(tavg_id('QFLUX'))/(tavg_sum_qflux * area_t)
+        qflux_t_mean = tavg_global_sum_2D(tavg_id('QFLUX'))
 
    if ( sfc_layer_type == sfc_layer_varthick .and.  &
         .not. lfw_as_salt_flx ) then

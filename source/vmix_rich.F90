@@ -11,8 +11,7 @@
 !  parameterization (e.g. Pacanowski-Philander).
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES
 

@@ -13,8 +13,7 @@
 !  stress isotropic.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES:
 

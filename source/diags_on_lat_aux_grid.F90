@@ -12,7 +12,7 @@
 !  transports, and zonal averages.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 !
 ! !USES:
 
@@ -21,14 +21,15 @@
    use domain
    use blocks
    use io
+   use io_tools
    use exit_mod
    use grid
    use global_reductions
    use gather_scatter
    use constants
-!  use hmix_gm_uvwisop
    use registry
    use timers
+   use shr_sys_mod
 
    implicit none
    private
@@ -41,11 +42,8 @@
      compute_moc,                    &
      compute_tracer_transports
 
+! !PUBLIC DATA MEMBERS:
 
-!############ debug ############
-   logical (log_kind) ::  gm_bolus = .false.
-!######## end debug ############
- 
    real (r8), dimension(:),public,allocatable ::  &
       lat_aux_center,     &! cell center latitude values (degrees north) 
       lat_aux_edge         ! cell edge   latitude values (degrees north)
@@ -816,13 +814,13 @@
 !  MOC may have 2 components:
 !
 !    n_moc_comp = 1 ----> Eulerian-mean
-!    n_moc_comp = 2 ----> Eddy-induced (bolus) if gm_bolus is true 
+!    n_moc_comp = 2 ----> Eddy-induced (bolus) if diag_gm_bolus is true 
 !                          and GM is on
 !
 !-----------------------------------------------------------------------
 
      n_moc_comp = 1
-     if ( gm_bolus )  n_moc_comp = 2
+     if ( registry_match('diag_gm_bolus') )  n_moc_comp = 2
 
 !-----------------------------------------------------------------------
 !
@@ -842,28 +840,28 @@
 !
 !(1) n_transport_comp = 1 ----> total [i.e. (2) + (3) ]
 !
-!(2) n_transport_comp = 2 ----> total advection if gm_bolus is true 
+!(2) n_transport_comp = 2 ----> total advection if diag_gm_bolus is true 
 !                               and GM is on
 !                                           OR
-!                               Eulerian-mean advection if gm_bolus 
+!                               Eulerian-mean advection if diag_gm_bolus 
 !                               is false or GM is not on
 !
 !(3) n_transport_comp = 3 ----> Eddy-induced advection plus diffusion
-!                               if gm_bolus is false and GM is on
+!                               if diag_gm_bolus is false and GM is on
 !                                              OR
-!                               diffusion if gm_bolus is true and 
+!                               diffusion if diag_gm_bolus is true and 
 !                               GM is on
 !                                              OR
 !                               diffusion if hmix_tracer_choice is not GM
 !
-!(4) n_transport_comp = 4 ----> Eddy-induced advection if gm_bolus
+!(4) n_transport_comp = 4 ----> Eddy-induced advection if diag_gm_bolus
 !                              is true and GM is on
 !
 !-----------------------------------------------------------------------
 
    if ( n_heat_trans .or. n_salt_trans ) then
      n_transport_comp = 3
-     if ( gm_bolus )  n_transport_comp = 4
+     if ( registry_match('diag_gm_bolus') )  n_transport_comp = 4
    endif
 
 !-----------------------------------------------------------------------
@@ -942,14 +940,21 @@
    real (r8), dimension(:,:,:), allocatable ::  &
       WORK1_G, WORK2_G          ! global work arrays
 
+   logical (log_kind) ::  &
+      ldiag_gm_bolus            ! local logical for diag_gm_bolus
+
    if (.not. moc) return
- 
-   if ( gm_bolus .and. (.not.present(W_I) .or. .not.present(V_I)) ) then
-     call exit_POP (SigAbort,'(compute_moc) gm_bolus is on, but the'  /&
-                  &/ ' necessary fields for the eddy-induced'       /&
-                  &/ ' transport computations are not present.')
+
+   if ( (      present(W_I) .and. .not.present(V_I))  .or.  &
+        ( .not.present(W_I) .and.      present(V_I)) ) then
+     call exit_POP (SigAbort,'(compute_moc) both W_I and V_I'   &
+                // ' are necessary fields for the eddy-induced' &
+                // ' transport computations, but one is missing.')
    endif
 
+   ldiag_gm_bolus = .false.
+   if ( present(W_I) )  ldiag_gm_bolus = .true.
+ 
    call timer_start (timer_moc)
 
    allocate ( WORK1(nx_block,ny_block,nblocks_clinic), &
@@ -957,7 +962,7 @@
 
    allocate ( WORK1_G(nx_global,ny_global,km) )
 
-   if ( gm_bolus ) allocate ( WORK2_G(nx_global,ny_global,km) )
+   if ( ldiag_gm_bolus ) allocate ( WORK2_G(nx_global,ny_global,km) )
 
    do k=1,km
     !$OMP PARALLEL DO PRIVATE(iblock,k)
@@ -968,7 +973,7 @@
 
      call gather_global (WORK1_G(:,:,k), WORK1, master_task,distrb_clinic)
 
-     if ( gm_bolus ) then
+     if ( ldiag_gm_bolus ) then
        !$OMP PARALLEL DO PRIVATE(iblock,k)
         do iblock = 1,nblocks_clinic
           WORK1(:,:,iblock) = merge(W_I(:,:,k,iblock)*TAREA(:,:,iblock), c0, k <= KMT(:,:,iblock))
@@ -993,11 +998,11 @@
                 do k=1,km
                   TAVG_MOC_G(n,k,1,m)=TAVG_MOC_G(n,k,1,m)+WORK1_G(i,j,k)
                 enddo
-                if ( gm_bolus ) then
+                if ( ldiag_gm_bolus ) then
                  do k=1,km
                   TAVG_MOC_G(n,k,2,m)=TAVG_MOC_G(n,k,2,m)+WORK2_G(i,j,k)
                  enddo
-                endif ! gm_bolus
+                endif 
              endif
            enddo ! m
           endif ! n
@@ -1030,7 +1035,7 @@
      call gather_global (WORK1_G(:,:,k), WORK1, master_task,distrb_clinic)
    enddo
 
-   if ( gm_bolus ) then
+   if ( ldiag_gm_bolus ) then
      do k=1,km
        !$OMP PARALLEL DO PRIVATE(iblock,k)
         do iblock = 1,nblocks_clinic
@@ -1049,11 +1054,11 @@
            do k=1,km
              moc_s(k,1,m) = moc_s(k,1,m) + WORK1_G(i,j,k)
            enddo ! k
-           if ( gm_bolus ) then
+           if ( ldiag_gm_bolus ) then
              do k=1,km
                moc_s(k,2,m) = moc_s(k,2,m) + WORK2_G(i,j,k)
              enddo ! k
-           endif ! gm_bolus
+           endif 
          endif ! REGION_MASK_LAT_AUX
        enddo ! i
      enddo ! m
@@ -1075,11 +1080,11 @@
          do n=1,n_lat_aux_grid+1
            TAVG_MOC_G(n,k,1,m) = TAVG_MOC_G(n,k,1,m) + moc_s(k,1,m)
          enddo
-         if ( gm_bolus ) then
+         if ( ldiag_gm_bolus ) then
          do n=1,n_lat_aux_grid+1
              TAVG_MOC_G(n,k,2,m) = TAVG_MOC_G(n,k,2,m) + moc_s(k,2,m) 
          enddo
-         endif ! gm_bolus
+         endif
        enddo
      enddo
 
@@ -1180,7 +1185,7 @@
  
    deallocate ( WORK1, WORK2, WORK1_G )
 
-   if ( gm_bolus )  deallocate ( WORK2_G )
+   if ( ldiag_gm_bolus )  deallocate ( WORK2_G )
 
    call timer_stop  (timer_moc)
 
@@ -1243,6 +1248,9 @@
       WORK1_G, WORK2_G,       &! global work arrays
       WORK3_G
 
+   logical (log_kind) ::  &
+      ldiag_gm_bolus           ! local logical for diag_gm_bolus
+
 !-----------------------------------------------------------------------
 !
 !  determine if this subroutine needs to be executed
@@ -1264,12 +1272,15 @@
      return
    endif
  
-   if ( gm_bolus .and. (.not.present(ADV_I) .or. .not.present(FN_I)) ) then
-        call exit_POP (SigAbort,'(compute_tracer_transports) gm_bolus is on,' /&
-                 &/ ' but the necessary fields for the related'               /&
-                 &/ ' transport computations are not present.')
+   if ( (     present(ADV_I) .and. .not.present(FN_I))  .or.  &
+        (.not.present(ADV_I) .and.      present(FN_I)) ) then
+        call exit_POP (SigAbort,'(compute_tracer_transports)'   &
+         // ' both ADV_I and FN_I are necessary fields for'     &
+         // ' the related transport computations, but one is missing.')
    endif  
 
+   ldiag_gm_bolus = .false.
+   if ( present(ADV_I) )  ldiag_gm_bolus = .true.
  
    call timer_start (timer_tracer_transports)
 
@@ -1290,7 +1301,7 @@
    WORK1 = - HDIF * TAREA
    call gather_global (WORK2_G, WORK1, master_task,distrb_clinic)
 
-   if ( gm_bolus ) then
+   if ( ldiag_gm_bolus ) then
      allocate ( WORK3_G(nx_global,ny_global) )
 
      WORK1 = - ADV_I * TAREA
@@ -1315,7 +1326,7 @@
                  TR_TRANS_G(n,1,m) = TR_TRANS_G(n,1,m) + WORK1_G(i,j) + WORK2_G(i,j)
                  TR_TRANS_G(n,2,m) = TR_TRANS_G(n,2,m) + WORK1_G(i,j)
                  TR_TRANS_G(n,3,m) = TR_TRANS_G(n,3,m) + WORK2_G(i,j)
-                 if ( gm_bolus ) then
+                 if ( ldiag_gm_bolus ) then
                    TR_TRANS_G(n,4,m) = TR_TRANS_G(n,4,m) + WORK3_G(i,j)
                  endif
                endif
@@ -1345,7 +1356,7 @@
     !$OMP END PARALLEL DO
      call gather_global (WORK1_G, WORK1, master_task,distrb_clinic)
 
-     if ( gm_bolus ) then
+     if ( ldiag_gm_bolus ) then
     !$OMP PARALLEL DO PRIVATE(iblock,k)
      do iblock = 1,nblocks_clinic
        WORK1(:,:,iblock) = FN_I(:,:,k,iblock) * TAREA(:,:,iblock) * dz(k)
@@ -1361,7 +1372,8 @@
          do i=1,nx_global
            if ( REGION_MASK_LAT_AUX(i,j+1,m) == 1 ) then
              trans_s(2,m) = trans_s(2,m) + WORK1_G(i,j)
-             if ( gm_bolus ) trans_s(4,m) = trans_s(4,m) + WORK2_G(i,j)
+             if ( ldiag_gm_bolus ) trans_s(4,m) = trans_s(4,m)  &
+                                                 + WORK2_G(i,j)
            endif
          enddo
        enddo
@@ -1381,7 +1393,8 @@
      do m=2,n_transport_reg
        do n=1,n_lat_aux_grid+1
          TR_TRANS_G(n,2,m) = TR_TRANS_G(n,2,m) + trans_s(2,m) 
-         if ( gm_bolus )   TR_TRANS_G(n,4,m) = TR_TRANS_G(n,4,m) + trans_s(4,m)
+         if ( ldiag_gm_bolus )   TR_TRANS_G(n,4,m) = TR_TRANS_G(n,4,m) &
+                                                    + trans_s(4,m)
        enddo
      enddo
 
@@ -1397,7 +1410,7 @@
 !
 !  mask the transports
 !
-!  - if gm_bolus is false, TR_TRANS_G(:,4,:) is filled with undefined_nf_r4.  
+!  - if diag_gm_bolus is false, TR_TRANS_G(:,4,:) is filled with undefined_nf_r4.  
 !  - because southern boundary diffusive transports are not available,
 !    the total and diffusive transport components are not computed
 !    for regions.  
@@ -1427,7 +1440,7 @@
    endif
  
    deallocate ( WORK1, WORK1_G, WORK2_G)
-   if ( gm_bolus )  deallocate ( WORK3_G )
+   if ( ldiag_gm_bolus )  deallocate ( WORK3_G )
  
    call timer_stop (timer_tracer_transports)
 

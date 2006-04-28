@@ -13,13 +13,12 @@
 !  tracers.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES:
 
-   use kinds_mod, only: r8, int_kind, char_len, log_kind
-   use constants, only: c0, c1, p5, p125, p25, blank_fmt, delim_fmt, c2, &
+   use kinds_mod, only: r4, r8, int_kind, char_len, log_kind
+   use constants, only: c0, c1, p5, p125, p25, blank_fmt, delim_fmt, ndelim_fmt, c2, &
        undefined_nf_r4, field_loc_center, field_type_scalar, &
        field_loc_Eface, field_type_vector
    use blocks, only: nx_block, ny_block, block, get_block
@@ -42,7 +41,6 @@
    use io_types, only: nml_in, nml_filename, stdout
    use time_management, only: max_blocks_clinic, km, nt, mix_pass, c2dtt
    use timers, only: timer_start, timer_stop, get_timer
-   use hmix_gm, only: U_ISOP, V_ISOP, WBOT_ISOP, WTOP_ISOP
    use exit_mod, only: sigAbort, exit_pop, flushm
    use prognostic, only: UVEL, VVEL, curtime, tracer_d
    use registry
@@ -72,10 +70,6 @@
 
    integer (int_kind), dimension(nt) :: &
       tadvect_itype           ! users tracer advection choice
-
-   logical (log_kind) :: &
-      luse_isopycnal          ! use isopycnal velocities generated
-                              ! in Gent-McWilliams horizontal mixing
 
 !-----------------------------------------------------------------------
 !
@@ -360,22 +354,6 @@
    !                                          field_type_scalar)
    !call update_ghost_cells(KYU, bndy_clinic, field_loc_u,     &
    !                                          field_type_scalar)
-
-!-----------------------------------------------------------------------
-!
-!  set flag for use of isopycnal velocities generated in Gent-McWilliams
-!  parameterization of horizontal mixing
-!
-!-----------------------------------------------------------------------
-
-   if (allocated(U_ISOP)) then
-      luse_isopycnal = .true.
-   else
-      luse_isopycnal = .false.
-   endif
-
-   if (luse_lw_lim .and. luse_isopycnal) call exit_POP(sigAbort, &
-      'ERROR: lw_lim advection is not compatible with gm_bolus')
 
 !-----------------------------------------------------------------------
 !
@@ -1651,57 +1629,9 @@
 
       tr_mask = tadvect_itype == tadvect_upwind3
 
-      if (.not. luse_isopycnal) then
+      call advt_upwind3(k,LTK,TRCR,WTK,WTKB,UTE,UTW,VTN,VTS, &
+                          TRACER_E,TRACER_N,FLUX_T,tr_mask,this_block)
 
-         call advt_upwind3(k,LTK,TRCR,WTK,WTKB,UTE,UTW,VTN,VTS, &
-                             TRACER_E,TRACER_N,FLUX_T,tr_mask,this_block)
- 
-      else
-         !***
-         !*** add isopycnal velocities to advective velocities
-         !***
-
-         
-         FUE   = c0
-         FVN   = c0
-         WORK1 = c0
-         WORK2 = c0
-         WORK3 = c0
-
-         if (partial_bottom_cells) then
-
-            do j=jb-1,je+1
-            do i=ib-1,ie+1
-               FUE  (i,j) = UTE (i,j) + U_ISOP(i  ,j,bid)*HTE(i  ,j,bid) &
-                                  *min(DZT(i,j,k,bid),DZT(i+1,j,k,bid))
-               WORK1(i,j) = UTW (i,j) + U_ISOP(i-1,j,bid)*HTE(i-1,j,bid) &
-                                  *min(DZT(i,j,k,bid),DZT(i-1,j,k,bid))
-               FVN  (i,j) = VTN (i,j) + V_ISOP(i,j  ,bid)*HTN(i,j  ,bid) &
-                                  *min(DZT(i,j,k,bid),DZT(i,j+1,k,bid))
-               WORK2(i,j) = VTS (i,j) + V_ISOP(i,j-1,bid)*HTN(i,j-1,bid) &
-                                  *min(DZT(i,j,k,bid),DZT(i,j-1,k,bid))
-               WORK3(i,j) = WTKB(i,j) + WBOT_ISOP(i,j,bid)
-            enddo
-            enddo
-
-         else
-
-            do j=jb-1,je+1
-            do i=ib-1,ie+1
-               FUE  (i,j) = UTE (i,j) + U_ISOP(i  ,j,bid)*HTE(i  ,j,bid)
-               WORK1(i,j) = UTW (i,j) + U_ISOP(i-1,j,bid)*HTE(i-1,j,bid)
-               FVN  (i,j) = VTN (i,j) + V_ISOP(i,j  ,bid)*HTN(i,j  ,bid)
-               WORK2(i,j) = VTS (i,j) + V_ISOP(i,j-1,bid)*HTN(i,j-1,bid)
-               WORK3(i,j) = WTKB(i,j) + WBOT_ISOP(i,j,bid)
-            end do
-            end do
-         endif
-
-         call advt_upwind3(k,LTK,TRCR,WTK,WORK3,FUE,WORK1,FVN,WORK2, &
-                             TRACER_E,TRACER_N,FLUX_T,tr_mask,this_block)
- 
-      end if
- 
    end if
 
    !*** centered advection
@@ -1710,42 +1640,8 @@
 
       tr_mask = tadvect_itype == tadvect_centered
 
-      if (.not. luse_isopycnal) then
+      call advt_centered(k,LTK,TRCR,WTK,WTKB,UTE,VTN,tr_mask,this_block)
 
-         call advt_centered(k,LTK,TRCR,WTK,WTKB,UTE,VTN,tr_mask,this_block)
-
-      else
-
-         !***
-         !*** add isopycnal velocities to advective velocities
-         !***
-
-         if (partial_bottom_cells) then
-
-            do j=jb-1,je+1
-            do i=ib-1,ie+1
-               FUE(i,j)  = UTE(i,j) + U_ISOP(i,j,bid)*HTE(i,j,bid) &
-                                  *min(DZT(i,j,k,bid),DZT(i+1,j,k,bid))
-               FVN(i,j)  = VTN(i,j) + V_ISOP(i,j,bid)*HTN(i,j,bid) & 
-                                  *min(DZT(i,j,k,bid),DZT(i,j+1,k,bid))
-               WORK1(i,j) = WTK (i,j) + WTOP_ISOP(i,j,bid)
-               WORK2(i,j) = WTKB(i,j) + WBOT_ISOP(i,j,bid)
-            enddo
-            enddo
-
-         else
-
-            FUE   = UTE  + U_ISOP(:,:,bid)*HTE(:,:,bid)
-            FVN   = VTN  + V_ISOP(:,:,bid)*HTN(:,:,bid)
-            WORK1 = WTK  + WTOP_ISOP(:,:,bid)
-            WORK2 = WTKB + WBOT_ISOP(:,:,bid)
-
-         endif
-
-         call advt_centered(k,LTK,TRCR,WORK1,WORK2,FUE,FVN,tr_mask,this_block)
-
-      end if
- 
    end if
 
    call timer_stop(timer_advt, block_id=bid)

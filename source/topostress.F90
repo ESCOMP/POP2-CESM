@@ -10,8 +10,7 @@
 !  due to bottom topography.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES:
    use kinds_mod

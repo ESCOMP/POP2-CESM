@@ -10,8 +10,7 @@
 !  diffusion of momentum and tracers.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES:
 

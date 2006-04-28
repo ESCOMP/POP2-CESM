@@ -11,8 +11,7 @@
 !  forcing at the surface.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 !
 ! !USES:
 

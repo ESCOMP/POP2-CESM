@@ -9,7 +9,7 @@
 !  This module contains code to compute the barotropic stream function
 
 ! !REVISION HISTORY:
-!     CVS:$Id$
+!     SVN:$Id$
 
 ! !USES:
    use kinds_mod 

@@ -10,8 +10,7 @@
 !  viscosity for constant vertical mixing.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES:
 

@@ -10,8 +10,7 @@
 !  including the use of pressure averaging.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES:
 

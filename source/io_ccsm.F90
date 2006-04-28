@@ -12,7 +12,7 @@
 !  to ccsm netCDF output files
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 !  
 ! 
 

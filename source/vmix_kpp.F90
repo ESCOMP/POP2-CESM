@@ -12,7 +12,7 @@
 !  November 1994).
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 
 ! !USES:
 
@@ -42,13 +42,17 @@
 ! !PUBLIC MEMBER FUNCTIONS:
    public :: init_vmix_kpp,   &
              vmix_coeffs_kpp, &
-             add_kpp_sources
+             add_kpp_sources, &
+             smooth_hblt
 
 ! !PUBLIC DATA MEMBERS:
 
    real (r8), dimension(:,:,:), allocatable, public :: & 
       HMXL,               &! mixed layer depth
       KPP_HBLT             ! boundary layer depth
+
+   real (r8), public ::   &
+      bckgrnd_vdc2         ! variation in diffusivity
 
 !EOP
 !BOC
@@ -225,7 +229,6 @@
 
    real (r8) ::           &
       bckgrnd_vdc1,       &! diffusivity at depth dpth
-      bckgrnd_vdc2,       &! variation in diffusivity
       bckgrnd_vdc_dpth,   &! depth at which diff equals vdc1
       bckgrnd_vdc_linv     ! inverse length for transition region
 
@@ -352,21 +355,9 @@
 !-----------------------------------------------------------------------
 !
 !  if tidal mixing is on, use vertically constant (internal wave)
-!  background diffusivity and viscosity
+!  background diffusivity and viscosity (see consistency testing in POP_check)
 !
 !-----------------------------------------------------------------------
-
-   if ( ltidal_mixing ) then 
-     if (bckgrnd_vdc2 /= c0 .and. my_task == master_task) then
-       write (stdout,*)
-       write (stdout,*) ' Variable vertical profile for diff/visc '
-       write (stdout,*) ' is not allowed when tidal mixing is on. '
-       write (stdout,*) ' ==> resetting bckgrnd_vdc2 to zero      '
-       write (stdout,*) ' bckgrnd_vdc1 value should be checked.   '
-     endif
-     bckgrnd_vdc2 = c0
-   endif
-
 
    if (bckgrnd_vdc2 /= c0 .and. my_task == master_task) then
       write (stdout,blank_fmt)
@@ -1601,7 +1592,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call smooth_hblt (KBL, HBLT, bid)
+   call smooth_hblt (.true., .false., bid, HBLT=HBLT, KBL=KBL)
 
 !-----------------------------------------------------------------------
 !
@@ -2513,43 +2504,59 @@
 ! !IROUTINE: smooth_hblt
 ! !INTERFACE:
 
- subroutine smooth_hblt(KBL, HBLT, bid)
+ subroutine smooth_hblt (overwrite_hblt, use_hmxl, &
+                         bid, HBLT, KBL, SMOOTH_OUT)
 
 ! !DESCRIPTION:
-!  this subroutine uses a 1-1-4-1-1 Gaussian filter one time
-!  on HBLT to eliminate any horizontal two-grid-point noise. After
-!  smoothing, KBL is adjusted.
+!  This subroutine uses a 1-1-4-1-1 Laplacian filter one time
+!  on HBLT or HMXL to reduce any horizontal two-grid-point noise.
+!  If HBLT is overwritten, KBL is adjusted after smoothing.
 !
 ! !REVISION HISTORY:
 !  same as module
 
 ! !INPUT PARAMETERS:
 
+   logical (log_kind), intent(in) :: &
+      overwrite_hblt,   &    ! if .true.,  HBLT is overwritten
+                             ! if .false., the result is returned in
+                             !  a dummy array
+      use_hmxl               ! if .true., smooth HMXL
+                             ! if .false., smooth HBLT
+
    integer (int_kind), intent(in) :: &
       bid                    ! local block address
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block), intent(inout) :: &
-      HBLT                 ! boundary layer depth
+   real (r8), dimension(nx_block,ny_block), optional, intent(inout) :: &
+      HBLT                   ! boundary layer depth
 
-   integer (int_kind), dimension(nx_block,ny_block), intent(inout) :: &
-      KBL                  ! index of first lvl below hbl
+   integer (int_kind), dimension(nx_block,ny_block), optional, intent(inout) :: &
+      KBL                    ! index of first lvl below hbl
+
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block), optional, intent(out) ::  &
+      SMOOTH_OUT              ! optional output array containing the
+                              !  smoothened field if overwrite_hblt is false
 
 !EOP
 !BOC
 !-----------------------------------------------------------------------
 !
-!  local variables
+!     local variables
 !
 !-----------------------------------------------------------------------
+   character (char_len) ::  &
+      message
 
    integer (int_kind) :: &
-      i, j,              &! horizontal loop indices
-      k                   ! vertical level index
+      i, j,              &  ! horizontal loop indices
+      k                     ! vertical level index
 
    real (r8), dimension(nx_block,ny_block) ::  &
-      WORK
+      WORK1, WORK2
 
    real (r8) ::  &
      cc, cw, ce, cn, cs, &  ! averaging weights
@@ -2557,60 +2564,125 @@
 
 !-----------------------------------------------------------------------
 !
-!  perform one smoothing pass since we cannot do the necessary 
-!  boundary updates for multiple passes.
+!     consistency checks 
 !
 !-----------------------------------------------------------------------
 
-   WORK = HBLT 
+   if ( overwrite_hblt  .and.  ( .not.present(KBL)  .or.        &
+                                 .not.present(HBLT) ) ) then      
+     message = 'incorrect subroutine arguments for smooth_hblt, error # 1'
+     call exit_POP (sigAbort, trim(message))
+   endif
+
+   if ( .not.overwrite_hblt  .and.  .not.present(SMOOTH_OUT) ) then 
+     message = 'incorrect subroutine arguments for smooth_hblt, error # 2'
+     call exit_POP (sigAbort, trim(message))
+   endif
+
+   if ( use_hmxl .and. .not.present(SMOOTH_OUT) ) then          
+     message = 'incorrect subroutine arguments for smooth_hblt, error # 3'
+     call exit_POP (sigAbort, trim(message))
+   endif
+
+   if ( overwrite_hblt  .and.  use_hmxl ) then                  
+     message = 'incorrect subroutine arguments for smooth_hblt, error # 4'
+     call exit_POP (sigAbort, trim(message))
+   endif
+
+!-----------------------------------------------------------------------
+!
+!     perform one smoothing pass since we cannot do the necessary 
+!     boundary updates for multiple passes.
+!
+!-----------------------------------------------------------------------
+
+   if ( use_hmxl ) then
+     WORK2 = HMXL(:,:,bid)
+   else
+     WORK2 = HBLT
+   endif
+
+   WORK1 = WORK2
    do j=2,ny_block-1
-   do i=2,nx_block-1
-      if ( KMT(i,j,bid) /= 0 ) then
+     do i=2,nx_block-1
+       if ( KMT(i,j,bid) /= 0 ) then
          cw = p125
          ce = p125
          cn = p125
          cs = p125
          cc = p5
          if ( KMT(i-1,j,bid) == 0 ) then
-            cc = cc + cw
-            cw = c0
+           cc = cc + cw
+           cw = c0
          endif
          if ( KMT(i+1,j,bid) == 0 ) then
-            cc = cc + ce
-            ce = c0
+           cc = cc + ce
+           ce = c0
          endif
          if ( KMT(i,j-1,bid) == 0 ) then
-            cc = cc + cs
-            cs = c0
+           cc = cc + cs
+           cs = c0
          endif
          if ( KMT(i,j+1,bid) == 0 ) then
-            cc = cc + cn
-            cn = c0
+           cc = cc + cn
+           cn = c0
          endif
-         HBLT(i,j) =  cw * WORK(i-1,j)   &
-                    + ce * WORK(i+1,j)   &
-                    + cs * WORK(i,j-1)   &
-                    + cn * WORK(i,j+1)   &
-                    + cc * WORK(i,j)
-      endif
-   enddo
+         WORK2(i,j) =  cw * WORK1(i-1,j)   &
+                     + ce * WORK1(i+1,j)   &
+                     + cs * WORK1(i,j-1)   &
+                     + cn * WORK1(i,j+1)   &
+                     + cc * WORK1(i,j)
+       endif
+     enddo
    enddo
 
    do k=1,km
-   do j=2,ny_block-1
-   do i=2,nx_block-1
-      if (partial_bottom_cells) then
-         ztmp = -zgrid(k-1) + p5*(DZT(i,j,k-1,bid) + &
-                                  DZT(i,j,k  ,bid))
-      else
-   	     ztmp = -zgrid(k)
-      endif
+     do j=2,ny_block-1
+       do i=2,nx_block-1
 
-      if ( (HBLT(i,j) >  -zgrid(k-1)) .and. &
-           (HBLT(i,j) <= ztmp)) KBL(i,j) = k
-   end do
-   end do
-   end do
+         if (partial_bottom_cells) then
+           ztmp = -zgrid(k-1) + p5*(DZT(i,j,k-1,bid) + &
+                                    DZT(i,j,k  ,bid))
+         else
+           ztmp = -zgrid(k)
+         endif
+
+         if ( k == KMT(i,j,bid)  .and.  WORK2(i,j) > ztmp ) then
+           WORK2(i,j) = ztmp
+         endif
+
+       enddo
+     enddo
+   enddo
+
+   if ( overwrite_hblt  .and.  .not.use_hmxl ) then
+
+     HBLT = WORK2
+
+     do k=1,km
+       do j=2,ny_block-1
+         do i=2,nx_block-1
+
+           if (partial_bottom_cells) then
+             ztmp = -zgrid(k-1) + p5*(DZT(i,j,k-1,bid) + &
+                                      DZT(i,j,k  ,bid))
+           else
+             ztmp = -zgrid(k)
+           endif
+
+           if ( KMT(i,j,bid) /= 0            .and.  &
+                ( HBLT(i,j) >  -zgrid(k-1) ) .and.  &
+                ( HBLT(i,j) <= ztmp        ) ) KBL(i,j) = k
+     
+         enddo
+       enddo
+     enddo
+
+   else
+
+     SMOOTH_OUT = WORK2
+
+   endif
 
 !-----------------------------------------------------------------------
 

@@ -11,7 +11,7 @@
 !     subroutines in individual passive tracer modules.
  
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 
 ! !USES:
 
@@ -83,12 +83,18 @@
 !  variables for automatically generated tavg passive-tracer fields
 !-----------------------------------------------------------------------
 
+! !PUBLIC DATA MEMBERS:
+
    integer (int_kind), parameter, public :: & 
       num_auto_gen_tr = 11,         &!number of auto-generated passive-tracer fields
       nt_passive      = nt-2         !number of passive tracers
 
    integer (int_kind), dimension (num_auto_gen_tr*nt_passive), public ::  &
       tavg_PASSIVE
+
+!EOP
+!BOC
+
 !-----------------------------------------------------------------------
 !  logical variables that denote if a passive tracer module is on
 !-----------------------------------------------------------------------
@@ -98,9 +104,6 @@
 
    namelist /passive_tracers_on_nml/  &
       ecosys_on, cfc11_on, mchl_on, iage_on, tracegas_on
-
-!EOP
-!BOC
 
 !EOC
 !***********************************************************************

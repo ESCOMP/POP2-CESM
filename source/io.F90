@@ -10,8 +10,7 @@
 !  for writing arrays.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES:
 
@@ -200,6 +199,7 @@ contains
  end subroutine data_set
 
 !***********************************************************************
+
 
  end module io
 

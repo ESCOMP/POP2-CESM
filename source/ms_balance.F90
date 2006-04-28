@@ -9,8 +9,7 @@
 !  ccsm coupled ocean model
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 !
 ! !USES:
 
@@ -35,8 +34,9 @@
 
    public :: init_ms_balance, &
              ms_balancing
-
  
+! !PUBLIC DATA MEMBERS:
+
    real (r8), dimension(:,:,:,:), allocatable :: MASK_FRAC
 
    real (r8), dimension(max_regions) :: &
@@ -44,6 +44,10 @@
      monthly_depth
 
 !EOP
+!BOC
+!EOC
+!***********************************************************************
+
  contains
  
  

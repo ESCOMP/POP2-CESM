@@ -10,8 +10,7 @@
 !  POP module.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 !
 ! !USES:
 
@@ -35,7 +34,7 @@
        ny_global, km, nt, TRACER, curtime, RHO, newtime, oldtime
    use solvers, only: init_solvers
    use grid, only: init_grid1, init_grid2, kmt, kmt_g, topo_smooth, zt,    &
-       fill_points
+       fill_points, sfc_layer_varthick, sfc_layer_type
    use io, only:  data_set
    use io_types, only: init_io, stdout, datafile, io_field_desc, io_dim,   &
        nml_in, nml_filename, construct_file, construct_io_dim,             &
@@ -46,17 +45,19 @@
    use pressure_grad, only: init_pressure_grad
    use surface_hgt, only: init_surface_hgt
    use vertical_mix, only: init_vertical_mix, vmix_itype, vmix_type_kpp
+   use vmix_kpp, only: bckgrnd_vdc2
    use horizontal_mix, only: init_horizontal_mix
    use advection, only: init_advection
    use diagnostics, only: init_diagnostics
    use state_mod, only: init_state, state
    use time_management, only: first_step, init_time_manager1, init_time_manager2, &
-                              dttxcel, dtuxcel
+                              dttxcel, dtuxcel, check_time_flag_freq,  &
+                              check_time_flag_freq_opt, init_time_flag
    use topostress, only: init_topostress
    use ice, only: init_ice
    use xdisplay, only: init_xdisplay
    use output, only: init_output
-   use tavg, only: ltavg_restart
+   use tavg, only: ltavg_restart, tavg_id, set_in_tavg_contents
    !use hydro_sections
    !use current_meters
    !use drifters
@@ -129,18 +130,17 @@
 !
 !-----------------------------------------------------------------------
 
-
    call init_communicate
 
 !-----------------------------------------------------------------------
 !
-!     initialize registry, which keeps track of which initialization
-!     routines have been called.  This feature is used for error checking
-!     in routines whose calling order is important
+!  initialize registry, which keeps track of which initialization
+!  routines have been called.  This feature is used for error checking
+!  in routines whose calling order is important
 !
 !-----------------------------------------------------------------------
-      call init_registry
 
+   call init_registry
 
 !-----------------------------------------------------------------------
 !
@@ -160,8 +160,9 @@
       write(stdout,blank_fmt)
       write(stdout,ndelim_fmt)
       write(stdout,blank_fmt)
-      write(stdout,'(a30)') ' Parallel Ocean Program (POP) '
-      write(stdout,'(a36)') ' Version 2.1alpha Jan 2005'
+      write(stdout,'(3a)') ' Parallel Ocean Program (POP) ', &
+                           ' Version 2.1alpha Jan 2005', &
+                           ' Modified for CCSM $Id$'
       write(stdout,blank_fmt)
       call shr_sys_flush(stdout)
    endif
@@ -315,7 +316,7 @@
 !
 !-----------------------------------------------------------------------
 
-      call init_passive_tracers
+   call init_passive_tracers
 
 !-----------------------------------------------------------------------
 !
@@ -327,20 +328,27 @@
 
 !-----------------------------------------------------------------------
 !
-!     initialize shortwave absorption
+!  initialize shortwave absorption
 !
 !-----------------------------------------------------------------------
 
-      call init_sw_absorption
+   call init_sw_absorption
 
 !-----------------------------------------------------------------------
 !
-!     initialize time-averaged qflux information
+!  initialize time-averaged qflux information
 !
 !-----------------------------------------------------------------------
 
-      call init_qflux
+   call init_qflux
 
+!-----------------------------------------------------------------------
+!
+!  initialize ms_balance
+!
+!-----------------------------------------------------------------------
+ 
+   if (lcoupled .and. lms_balance) call init_ms_balance
 
 !-----------------------------------------------------------------------
 !
@@ -349,7 +357,6 @@
 !-----------------------------------------------------------------------
 
    call init_diagnostics
-
 
 !-----------------------------------------------------------------------
 !
@@ -365,7 +372,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  Initialize drifters, hydrographic sections and current meters
+!  initialize drifters, hydrographic sections and current meters
 !
 !-----------------------------------------------------------------------
 
@@ -375,19 +382,11 @@
 
 !-----------------------------------------------------------------------
 !
-!     initialize ms_balance
-!
-!-----------------------------------------------------------------------
- 
-      if (lcoupled .and. lms_balance) call init_ms_balance
-
-!-----------------------------------------------------------------------
-!
-!     initialize global budget diagnostics
+!  initialize global budget diagnostics
 !
 !-----------------------------------------------------------------------
 
-      call init_budget_diagnostics
+   call init_budget_diagnostics
 
 !-----------------------------------------------------------------------
 !
@@ -397,30 +396,29 @@
 
    call init_xdisplay
 
+!-----------------------------------------------------------------------
+!
+!  check registry -- have any errors occured?
+!
+!-----------------------------------------------------------------------
+
+   call trap_registry_failure
 
 !-----------------------------------------------------------------------
 !
-!     write model information into log file
+!  check consistency of model options 
+!
+!-----------------------------------------------------------------------
+
+   call POP_check
+
+!-----------------------------------------------------------------------
+!
+!  write model information into log file
 !
 !-----------------------------------------------------------------------
 
    call document_constants
-
-
-!-----------------------------------------------------------------------
-!
-!     check registry -- have any errors occured?
-!
-!-----------------------------------------------------------------------
-       call trap_registry_failure
-
-!-----------------------------------------------------------------------
-!
-!     write model warnings into log file
-!
-!-----------------------------------------------------------------------
-
-      call POP_warnings
 
 !-----------------------------------------------------------------------
 !
@@ -961,18 +959,18 @@
  end subroutine document_constants
  
 
+!***********************************************************************
 !BOP
-! !IROUTINE: POP_warnings
+! !IROUTINE: POP_check
 ! !INTERFACE:
 
- subroutine POP_warnings
+ subroutine POP_check
 
 ! !DESCRIPTION:
-!  This routine writes POP-model warnings to the output log file.
-!  These warning conditions usually involve conditions set in two or 
-!  more different modules, but this routine also serves as a 
-!  convenient place to collect all warning conditions. The warning
-!  may result in model shut-down
+!  This routine tests for consistency between model options, usually involving
+!  two or more modules, then writes warning and error messages to the output log file.
+!  If one or more error conditions are detected, the pop model will be shut down 
+!  after all warning and error messages are printed.
 
 ! !REVISION HISTORY:
 !  same as module
@@ -980,46 +978,60 @@
 !EOP
 !BOC
 
-   character (char_len)      :: message
+   character (char_len)      ::  &
+      message,                   &! error message string
+      string                      ! temporary string
 
    integer (int_kind)        ::  &
-      number_of_fatal_errors,    &
-      n                           ! tracer index
+      number_of_fatal_errors,    &! counter for fatal error conditions
+      number_of_warnings,        &! counter for warning messages
+      n,                         &! loop index 
+      temp_tavg_id,              &! temporary tavg_id holder
+      coupled_flag,              &! flag for coupled_ts 
+      tavg_flag                   ! flag for tavg
 
    logical (log_kind)        ::  &
-      lref_val                    ! are any tracers specifying a non-zero ref_val
+      lref_val,                  &! are any tracers specifying a non-zero ref_val
+      ISOP_test,                 &! temporary logical associated with ISOP
+      ISOP_on                     ! are any ISOP tavg fields selected?
+
+   character (char_len), dimension(7) ::    &! var names for diag_gm_bolus test
+      strings = (/'UISOP    ' , 'VISOP    ' ,  &
+                  'WISOP    ' ,                &
+                  'ADVT_ISOP' , 'ADVS_ISOP' ,  &
+                  'VNT_ISOP ' , 'VNS_ISOP '   /)
 
 
-!-----------------------------------------------------------------------
-!
-!     warning conditions
-!     ==================
-!
-!-----------------------------------------------------------------------
+   if (my_task == master_task) then
+      write(stdout,blank_fmt)
+      write(stdout,ndelim_fmt)
+      write(stdout,blank_fmt)
+      write(stdout,*)' POP_check: Check for Option Inconsistencies'
+      write(stdout,blank_fmt)
+   endif
 
+
+   !====================!
+   ! warning conditions !
+   !====================!
+
+   number_of_warnings = 0
 
 !-----------------------------------------------------------------------
 !
 !  'varthick' and dtuxcel /= dttxcel(1)
 !
 !-----------------------------------------------------------------------
-   if (my_task == master_task) then
-     write(stdout,blank_fmt)
 
+   if (my_task == master_task) then
      if (sfc_layer_type == sfc_layer_varthick .and.  &
          dtuxcel /= dttxcel(1) ) then
-         message =   &
-        'Warning:  Surface tracer and momentum timesteps are unequal;' /&     
-                                                                        &/ &
-        'may cause instability when using variable-thickness surface layer.'
-         write(stdout,1100) message
-         call shr_sys_flush(stdout)
+       message = 'Warning:  Surface tracer and momentum timesteps are unequal; ' /&     
+       &/'may cause instability when using variable-thickness surface layer.'
+       call print_message (message)
+       number_of_warnings = number_of_warnings + 1
      endif
-
-     write(stdout,delim_fmt)
-     call shr_sys_flush(stdout)
    endif
-
  
 !-----------------------------------------------------------------------
 !
@@ -1028,68 +1040,175 @@
 !-----------------------------------------------------------------------
 
    if (my_task == master_task) then
-     write(stdout,blank_fmt)
-
      if (sfwf_formulation == 'bulk-NCEP' .and. lms_balance) then
-         message =   &
-        'Warning:  runoff and marginal seas balancing cannot be used with' /&
-                                                                            &/ &
-        'the bulk-NCEP option'
-         write(stdout,1100) message
-         call shr_sys_flush(stdout)
+       message = 'Warning:  runoff and marginal seas balancing cannot ' /&
+       &/ 'be used with the bulk-NCEP option'
+       call print_message (message)
+       number_of_warnings = number_of_warnings + 1
      endif
-
-     write(stdout,delim_fmt)
-     call shr_sys_flush(stdout)
-
-   endif !my_task
+   endif 
 
 !-----------------------------------------------------------------------
 !
-!     fatal error conditions
-!     ====================== 
+!  are time-averaging and coupling frequencies compatible?
 !
 !-----------------------------------------------------------------------
+
+   if (my_task == master_task) then
+     tavg_flag    = init_time_flag('tavg')
+     coupled_flag = init_time_flag('coupled_ts')
+     if (check_time_flag_freq_opt(tavg_flag) /=  &
+         check_time_flag_freq_opt(coupled_flag)) then
+       message = 'Warning:  time-averaging and coupling frequency ' /&
+       &/ 'may be incompatible; tavg must be integer multiple of coupling freq'
+       call print_message(message)
+       number_of_warnings = number_of_warnings + 1
+     else
+       if ( mod(check_time_flag_freq(tavg_flag),  &
+                check_time_flag_freq(coupled_flag)) .ne. 0) then
+         message = 'Warning: time-averaging frequency is incompatible with ' /&
+         &/ ' the coupling frequency'
+         call print_message (message)
+         number_of_warnings = number_of_warnings + 1
+        endif
+     endif
+   endif
+
+
+!-----------------------------------------------------------------------
+!
+!  Wrap up warning section with message
+!
+!-----------------------------------------------------------------------
+
+   call broadcast_scalar(number_of_warnings, master_task)
+ 
+   if (number_of_warnings == 0 ) then
+     if (my_task == master_task) then
+       message = 'No warning messages generated'
+       call print_message (message)
+     endif
+   endif
+
+
+   !========================!
+   ! fatal error conditions !
+   !========================!
 
    number_of_fatal_errors = 0
  
 !-----------------------------------------------------------------------
 !
-!  Tidal mixing without KPP mixing
+!  tidal mixing without KPP mixing
 !
 !-----------------------------------------------------------------------
 
    if (my_task == master_task) then
-     write(stdout,blank_fmt)
-
      if (ltidal_mixing .and. vmix_itype /= vmix_type_kpp) then
-         message =   &
-        'Error:  Tidally driven mixing is only allowed when KPP mixing is enabled' 
-         write(stdout,1100) message
-         call shr_sys_flush(stdout)
-
-         write(stdout,delim_fmt)
-         call shr_sys_flush(stdout)
-         number_of_fatal_errors = number_of_fatal_errors + 1
-
+       message =   &
+       'Error:  Tidally driven mixing is only allowed when KPP mixing is enabled' 
+       call print_message(message)
+       number_of_fatal_errors = number_of_fatal_errors + 1
      endif
    endif !my_task
 
+!-----------------------------------------------------------------------
+!
+!  tidal mixing without bckgrnd_vdc2 = 0.0
+!
+!-----------------------------------------------------------------------
+
+   if (my_task == master_task) then
+     if (ltidal_mixing .and. bckgrnd_vdc2 /= c0) then
+       message =   &
+      'Error:  bckgrnd_vdc2 must be zero when tidal_mixing option is enabled'
+       call print_message(message)
+       number_of_fatal_errors = number_of_fatal_errors + 1
+     endif
+   endif 
+
+!-----------------------------------------------------------------------
+!
+!  diag_gm_bolus = .true., but ISOP variables not activated in tavg_contents file
+!
+!-----------------------------------------------------------------------
+
+   if (registry_match('diag_gm_bolus') .and. my_task == master_task) then
+    ISOP_on = .true.
+    message = 'Error: '
+
+    do n=1,7
+      ISOP_test = .false. 
+      string = trim(strings(n))
+      ISOP_test = set_in_tavg_contents (tavg_id(trim(string),quiet=.true.))
+      if (.not. ISOP_test) then
+        message =  trim(message) // ' ' // trim(string)
+        ISOP_on = .false.
+      endif
+    enddo
+    
+    if (.not. ISOP_on) then
+     message =   trim(message) /&
+     &/' must be activated in tavg_contents file when diag_gm_bolus = .T.'
+     call print_message(message)
+     number_of_fatal_errors = number_of_fatal_errors + 1
+    endif
+  endif ! diag_gm_bolus
+
+
+!-----------------------------------------------------------------------
+!
+!  Now that error messages have been written, stop if there are fatal errors
+!
+!-----------------------------------------------------------------------
 
    call broadcast_scalar(number_of_fatal_errors, master_task)
  
    if (number_of_fatal_errors > 0 ) then
-      call exit_POP (sigAbort,  &
-               'correct the error condition(s) listed above before continuing')
+     call exit_POP (sigAbort,  &
+         'correct the error condition(s) listed above before continuing')
+   else
+     if (my_task == master_task) then
+       message = 'No fatal error conditions detected'
+       call print_message (message)
+     endif
    endif
  
- 1100 format(5x, a)   
-
 
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine POP_warnings
+ end subroutine POP_check
+
+!***********************************************************************
+!BOP
+! !IROUTINE: print_message
+! !INTERFACE:
+
+ subroutine print_message (message)
+
+! !DESCRIPTION:
+!  This routine prints error and warning messages from 
+!  subroutine POP_check
+
+! !REVISION HISTORY:
+!  same as module
+ 
+! !INPUT PARAMETERS:
+
+   character(*) , intent(in) ::  &
+      message
+
+!EOP
+!BOC
+
+   write(stdout,blank_fmt)
+   write(stdout,1100) message
+   call shr_sys_flush(stdout)
+
+ 1100 format(5x, a)   
+
+ end subroutine print_message
 !***********************************************************************
 
  end module initial

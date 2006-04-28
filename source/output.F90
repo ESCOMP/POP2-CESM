@@ -11,8 +11,7 @@
 !  modules.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 !
 ! !USES:
 
@@ -33,6 +32,7 @@
 
    public :: output_driver, &
              init_output
+
 
 !EOP
 !BOC
@@ -131,6 +131,7 @@
 !EOC
 
  end subroutine init_output
+
 
 !***********************************************************************
 

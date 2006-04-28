@@ -12,8 +12,7 @@
 !  Mat is ready to add it in...
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 !
 ! !USES
 

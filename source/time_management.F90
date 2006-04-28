@@ -10,8 +10,7 @@
 !  flags and other functions related to model time.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name: ccsm_pop_2_1_20051215 $
+!  SVN:$Id$
 !
 ! !USES:
 
@@ -470,7 +469,8 @@
 
    character (char_len) :: &
       time_mix_opt,        &! option for time mixing (Matsuno,averaging)
-      accel_file            ! file containing acceleration factors
+      accel_file,          &! file containing acceleration factors
+      message
 
    namelist /time_manager_nml/                                   &
                runid,          time_mix_opt,    time_mix_freq,   &
@@ -597,9 +597,22 @@
    call broadcast_scalar (allow_leapyear  , master_task)
    call broadcast_scalar (date_separator  , master_task)
  
+!-----------------------------------------------------------------------
+!
+!  error checking
+!
+!-----------------------------------------------------------------------
+
    if (tmix_iopt == -1000) then
       call exit_POP(sigAbort,'unknown option for time mixing')
    endif
+
+   if (tmix_iopt == tmix_matsuno) then
+      message = ' matsuno time-mixing option is not supported in CCSM; ' /&
+              &/' budget diagnostics are incorrect with matsuno and tavg may be incorrect'
+      call exit_POP(sigAbort,message)
+   endif
+
 
    len_runid = len_trim(runid)
 

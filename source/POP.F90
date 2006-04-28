@@ -13,7 +13,7 @@
 !  This is the main driver for the Parallel Ocean Program (POP).
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 
 ! !USES:
 

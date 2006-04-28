@@ -167,7 +167,7 @@
 /
 
 &advect_nml
-   tadvect_ctype = 'center'
+   tadvect_ctype = 'lw_lim'
 /
 
 &hmix_nml
@@ -178,13 +178,13 @@
 &hmix_del2u_nml
    lauto_hmix           = .false. 
    lvariable_hmix       = .false. 
-   am                   = 1.e8
+   am                   = 3.0e9
 /
 
 &hmix_del2t_nml
    lauto_hmix           = .false. 
    lvariable_hmix       = .false. 
-   ah                   = 1.e8
+   ah                   = 1.e7
 /
 
 &hmix_del4u_nml
@@ -199,19 +199,26 @@
    ah                   = -0.2e20
 /
 
-
 &hmix_gm_nml
-   kappa_choice         = 'constant'
-   slope_control_choice = 'notanh'
-   kappa_depth_1        = 1.0 
-   kappa_depth_2        = 0.0
-   kappa_depth_scale    = 150000.0
-   ah                   = 0.8e7
-   ah_bolus             = 0.8e7
-   ah_bkg               = 0.0
-   slm_r                = 0.3
-   slm_b                = 0.3
-   gm_bolus             = .false.
+   kappa_isop_choice      = 'bfre'
+   kappa_thic_choice      = 'bfre'
+   kappa_freq_choice      = 'once_a_day'
+   slope_control_choice   = 'notanh'
+   kappa_depth_1          = 1.0
+   kappa_depth_2          = 0.0
+   kappa_depth_scale      = 150000.0
+   ah                     = 4.0e7
+   ah_bolus               = 4.0e7
+   use_const_ah_bkg_srfbl = .true.
+   ah_bkg_srfbl           = 4.0e7
+   ah_bkg_bottom          = 0.
+   slm_r                  = 0.3
+   slm_b                  = 0.3
+   diag_gm_bolus          = .true.
+   transition_layer_on    = .true.
+   read_n2_data           = .false.
+   buoyancy_freq_filename = 'INPUT/buoyancy_freq'
+   buoyancy_freq_fmt      = 'nc'
 /
 
 &hmix_aniso_nml

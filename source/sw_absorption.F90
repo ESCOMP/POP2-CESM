@@ -1,12 +1,12 @@
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-   module sw_absorption
+ module sw_absorption
 
-!***********************************************************************
-
-!-----------------------------------------------------------------------
+!BOP
+! !MODULE: sw_absorption
 !
-!   Compute shortwave (sw) absorption in pop ocean model
+! !DESCRIPTION:
+!  This module computes shortwave absorption
 !
 !   sw_absorption_type 
 !     = 'top-layer'   :  all sw absorbed in top ocean layer
@@ -37,11 +37,11 @@
 !
 !   Chlorophyll based transmissions are calculated once a month and
 !   held fixed over the month in this implementation.
-!
-!     CVS:$Id$
-!     CVS:$Name$
-!
-!-----------------------------------------------------------------------
+
+! !REVISION HISTORY:
+!  SVN:$Id$
+
+! !USES:
 
    use kinds_mod
    use domain_size
@@ -81,6 +81,9 @@
                                   ! to depth ZTRANS
       TRANSKM1,                  &! transmission from surface to level k-1
       ZTRANS                      ! depth of transmission      cm
+
+!EOP
+!BOC
 
 
    character (char_len_long) ::  &
@@ -214,6 +217,7 @@
    integer (int_kind) :: &
       tavg_QSW_HTP        ! tavg id for QSW_HTP (solar short-wave heat flux in top layer)
 
+!EOC
 !***********************************************************************
 
    contains

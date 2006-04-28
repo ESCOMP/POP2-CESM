@@ -10,8 +10,7 @@
 !  baroclinic velocities and tracer fields.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES:
 
@@ -214,7 +213,7 @@
                           missing_value=undefined_nf_r4/1000.0_r4,     &
                           fill_value=undefined_nf_r4/1000.0_r4,        &
                           scale_factor=1000.0_r4,                      &
-                          units='gram/gram', grid_loc='2111')
+                          units='gram/kilogram', grid_loc='2111')
 
    call define_tavg_field(tavg_UVEL,'UVEL',3,                          &
                           long_name='Velocity in grid-x direction',    &

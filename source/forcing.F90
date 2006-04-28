@@ -12,7 +12,7 @@
 !  update routines for those fields.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 !
 ! !USES:
 

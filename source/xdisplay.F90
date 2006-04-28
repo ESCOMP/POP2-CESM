@@ -24,8 +24,7 @@
 !    cp ../input_templates/fix_64.C.unsupported ./fix_64.C
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES:
 

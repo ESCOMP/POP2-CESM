@@ -1,11 +1,17 @@
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 module cfc11_mod
 
-  !-----------------------------------------------------------------------------
-  !-----------------------------------------------------------------------------
-  !
-  !
-  !-----------------------------------------------------------------------------
+!BOP
+! !MODULE: cfc11_mod
+!
+! !DESCRIPTION:
+!  
+!
+! !REVISION HISTORY:
+!  SVN:$Id$
+
+! !USES:
 
    use blocks, only: nx_block, ny_block, block, get_block
    use domain_size, only: max_blocks_clinic, km, nx_global, ny_global
@@ -35,6 +41,9 @@ module cfc11_mod
   !-----------------------------------------------------------------------------
 
   private
+
+! !PUBLIC MEMBER FUNCTIONS:
+
   public :: &
        cfc11_tracer_cnt, &
        cfc11_ind_begin,             &
@@ -51,10 +60,9 @@ module cfc11_mod
        SCHMIDT_CFC
 
 
-  !-----------------------------------------------------------------------------
-  !-----------------------------------------------------------------------------
 
-
+!EOP
+!BOC
 !maltrud
      character(char_len) :: mmessage
 
@@ -196,11 +204,12 @@ module cfc11_mod
    real (r8), dimension(:,:), allocatable :: &
       cfc11_time_series ! time series of atm CFC11
 
-  !*****************************************************************************
+!EOC
+!***********************************************************************
 
 contains
 
-  !*****************************************************************************
+!***********************************************************************
 
   subroutine cfc11_init(TRACER_MODULE)
 
@@ -1721,11 +1730,11 @@ contains
 
       end function SOLUBILITY_CFC
   
-  !***********************************************************************
+!***********************************************************************
 
-   subroutine cfc11_tracer_field_info (num_auto_gen_tr, name, long_name,  &
-                                      num_dims, units, grid_loc,         &
-                                      coordinates)
+ subroutine cfc11_tracer_field_info (num_auto_gen_tr, name, long_name,  &
+                                     num_dims, units, grid_loc,         &
+                                     coordinates)
 
    integer   (int_kind), intent(in)  ::                               & 
       num_auto_gen_tr
@@ -1820,9 +1829,9 @@ contains
    end select
 
 
-   end subroutine cfc11_tracer_field_info 
+ end subroutine cfc11_tracer_field_info 
 
-  !***********************************************************************
-  !***********************************************************************
+!***********************************************************************
 
 end module cfc11_mod
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||

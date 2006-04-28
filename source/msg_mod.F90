@@ -1,38 +1,42 @@
-MODULE msg_mod
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-  !-----------------------------------------------------------------------------
-  !   module for printing messages
-  !   all msg_write calls have a routine name as the first argument
-  !   positional notation added to arguments to get module to compile
-  !   CVS:$Id$
-  !-----------------------------------------------------------------------------
+module msg_mod
 
-  !*****************************************************************************
+!BOP
+! !MODULE: msg_mod
+!
+! !DESCRIPTION:
+!  This module prints messages. 
+!  All msg_write calls have a routine name as the first argument
+!  positional notation added to arguments to get module to compile
+!-----------------------------------------------------------------------------
+!
+! !REVISION HISTORY:
+!  SVN:$Id$
 
+
+! !USES:
   use kinds_mod
 
-  IMPLICIT NONE
-  PRIVATE
-  SAVE
+  implicit none
+  private
+  save
 
-  !-----------------------------------------------------------------------------
-  !   public parameters & subroutines
-  !-----------------------------------------------------------------------------
 
-  PUBLIC :: &
+! !PUBLIC MEMBER FUNCTIONS:
+  public :: &
        msg_set_state, &
        msg_get_state, &
        msg_set_iunit, &
        msg_get_iunit, &
        msg_write
 
-  !-----------------------------------------------------------------------------
-  !   module variables
-  !-----------------------------------------------------------------------------
+!EOP
+!BOC
 
-  LOGICAL(KIND=log_kind) :: msg_state = .TRUE.
+  logical(kind=log_kind) :: msg_state = .TRUE.
 
-  INTEGER(KIND=int_kind) :: msg_iunit = 6
+  integer(kind=int_kind) :: msg_iunit = 6
 
   !-----------------------------------------------------------------------------
   !   generic interfaces
@@ -53,261 +57,262 @@ MODULE msg_mod
           msg_write_AAAIAI
   END INTERFACE
 
-  !*****************************************************************************
+!EOC
+!*****************************************************************************
 
-CONTAINS
+contains
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_set_state(state)
+  subroutine msg_set_state(state)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    LOGICAL(KIND=log_kind), INTENT(IN) :: state
+    logical(kind=log_kind), intent(in) :: state
 
     msg_state = state
 
-  END SUBROUTINE msg_set_state
+  end subroutine msg_set_state
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_get_state(state)
+  subroutine msg_get_state(state)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    LOGICAL(KIND=log_kind), INTENT(OUT) :: state
+    logical(kind=log_kind), intent(out) :: state
 
     state = msg_state
 
-  END SUBROUTINE msg_get_state
+  end subroutine msg_get_state
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_set_iunit(msg_iunit_in)
+  subroutine msg_set_iunit(msg_iunit_in)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    INTEGER(KIND=int_kind), INTENT(IN) :: msg_iunit_in
+    integer(kind=int_kind), intent(in) :: msg_iunit_in
 
     msg_iunit = msg_iunit_in
 
-  END SUBROUTINE msg_set_iunit
+  end subroutine msg_set_iunit
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_get_iunit(msg_iunit_out)
+  subroutine msg_get_iunit(msg_iunit_out)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    INTEGER(KIND=int_kind), INTENT(OUT) :: msg_iunit_out
+    integer(kind=int_kind), intent(out) :: msg_iunit_out
 
     msg_iunit_out = msg_iunit
 
-  END SUBROUTINE msg_get_iunit
+  end subroutine msg_get_iunit
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_write_A(sub_name, A1_1)
+  subroutine msg_write_A(sub_name, A1_1)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    CHARACTER(LEN=*), INTENT(IN) :: sub_name, A1_1
+    character(len=*), intent(in) :: sub_name, A1_1
 
-    IF (msg_state) THEN
-       WRITE(UNIT=msg_iunit, FMT="('(', A, ') ', A)") &
+    if (msg_state) then
+       write(unit=msg_iunit, fmt="('(', A, ') ', A)") &
             sub_name, A1_1
-    END IF
+    end if
 
-  END SUBROUTINE msg_write_A
+  end subroutine msg_write_A
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_write_AA(sub_name, A1_1, A2_2)
+  subroutine msg_write_AA(sub_name, A1_1, A2_2)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    CHARACTER(LEN=*), INTENT(IN) :: sub_name, A1_1, A2_2
+    character(len=*), intent(in) :: sub_name, A1_1, A2_2
 
-    IF (msg_state) THEN
-       WRITE(UNIT=msg_iunit, FMT="('(', A, ') ', A, A)") &
+    if (msg_state) then
+       write(unit=msg_iunit, fmt="('(', A, ') ', A, A)") &
             sub_name, A1_1, A2_2
-    END IF
+    end if
 
-  END SUBROUTINE msg_write_AA
+  end subroutine msg_write_AA
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_write_AI(sub_name, A1_1, I1_2)
+  subroutine msg_write_AI(sub_name, A1_1, I1_2)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    CHARACTER(LEN=*), INTENT(IN) :: sub_name, A1_1
-    INTEGER(KIND=int_kind), INTENT(IN) :: I1_2
+    character(len=*), intent(in) :: sub_name, A1_1
+    integer(kind=int_kind), intent(in) :: I1_2
 
-    IF (msg_state) THEN
-       WRITE(UNIT=msg_iunit, FMT="('(', A, ') ', A, I6)") &
+    if (msg_state) then
+       write(unit=msg_iunit, fmt="('(', A, ') ', A, I6)") &
             sub_name, A1_1, I1_2
-    END IF
+    end if
 
-  END SUBROUTINE msg_write_AI
+  end subroutine msg_write_AI
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_write_AAA(sub_name, A1_1, A2_2, A3_3)
+  subroutine msg_write_AAA(sub_name, A1_1, A2_2, A3_3)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    CHARACTER(LEN=*), INTENT(IN) :: sub_name, A1_1, A2_2, A3_3
+    character(len=*), intent(in) :: sub_name, A1_1, A2_2, A3_3
 
-    IF (msg_state) THEN
-       WRITE(UNIT=msg_iunit, FMT="('(', A, ') ', A, A, A)") &
+    if (msg_state) then
+       write(unit=msg_iunit, fmt="('(', A, ') ', A, A, A)") &
             sub_name, A1_1, A2_2, A3_3
-    END IF
+    end if
 
-  END SUBROUTINE msg_write_AAA
+  end subroutine msg_write_AAA
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_write_AAI(sub_name, A1_1, A2_2, I1_3)
+  subroutine msg_write_AAI(sub_name, A1_1, A2_2, I1_3)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    CHARACTER(LEN=*), INTENT(IN) :: sub_name, A1_1, A2_2
-    INTEGER(KIND=int_kind), INTENT(IN) :: I1_3
+    character(len=*), intent(in) :: sub_name, A1_1, A2_2
+    integer(kind=int_kind), intent(in) :: I1_3
 
-    IF (msg_state) THEN
-       WRITE(UNIT=msg_iunit, FMT="('(', A, ') ', A, A, I6)") &
+    if (msg_state) then
+       write(unit=msg_iunit, fmt="('(', A, ') ', A, A, I6)") &
             sub_name, A1_1, A2_2, I1_3
-    END IF
+    end if
 
-  END SUBROUTINE msg_write_AAI
+  end subroutine msg_write_AAI
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_write_AIA(sub_name, A1_1, I1_2, A2_3)
+  subroutine msg_write_AIA(sub_name, A1_1, I1_2, A2_3)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    CHARACTER(LEN=*), INTENT(IN) :: sub_name, A1_1, A2_3
-    INTEGER(KIND=int_kind), INTENT(IN) :: I1_2
+    character(len=*), intent(in) :: sub_name, A1_1, A2_3
+    integer(kind=int_kind), intent(in) :: I1_2
 
-    IF (msg_state) THEN
-       WRITE(UNIT=msg_iunit, FMT="('(', A, ') ', A, I6, A)") &
+    if (msg_state) then
+       write(unit=msg_iunit, fmt="('(', A, ') ', A, I6, A)") &
             sub_name, A1_1, I1_2, A2_3
-    END IF
+    end if
 
-  END SUBROUTINE msg_write_AIA
+  end subroutine msg_write_AIA
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_write_AAAA(sub_name, A1_1, A2_2, A3_3, A4_4)
+  subroutine msg_write_AAAA(sub_name, A1_1, A2_2, A3_3, A4_4)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    CHARACTER(LEN=*), INTENT(IN) :: sub_name, A1_1, A2_2, A3_3, A4_4
+    character(len=*), intent(in) :: sub_name, A1_1, A2_2, A3_3, A4_4
 
-    IF (msg_state) THEN
-       WRITE(UNIT=msg_iunit, FMT="('(', A, ') ', A, A, A, A)") &
+    if (msg_state) then
+       write(unit=msg_iunit, fmt="('(', A, ') ', A, A, A, A)") &
             sub_name, A1_1, A2_2, A3_3, A4_4
-    END IF
+    end if
 
-  END SUBROUTINE msg_write_AAAA
+  end subroutine msg_write_AAAA
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_write_AIAI(sub_name, A1_1, I1_2, A2_3, I2_4)
+  subroutine msg_write_AIAI(sub_name, A1_1, I1_2, A2_3, I2_4)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    CHARACTER(LEN=*), INTENT(IN) :: sub_name, A1_1, A2_3
-    INTEGER(KIND=int_kind), INTENT(IN) :: I1_2, I2_4
+    character(len=*), intent(in) :: sub_name, A1_1, A2_3
+    integer(kind=int_kind), intent(in) :: I1_2, I2_4
 
-    IF (msg_state) THEN
-       WRITE(UNIT=msg_iunit, FMT="('(', A, ') ', A, I6, A, I6)") &
+    if (msg_state) then
+       write(unit=msg_iunit, fmt="('(', A, ') ', A, I6, A, I6)") &
             sub_name, A1_1, I1_2, A2_3, I2_4
-    END IF
+    end if
 
-  END SUBROUTINE msg_write_AIAI
+  end subroutine msg_write_AIAI
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_write_AAAI(sub_name, A1_1, A2_2, A3_3, I1_4)
+  subroutine msg_write_AAAI(sub_name, A1_1, A2_2, A3_3, I1_4)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    CHARACTER(LEN=*), INTENT(IN) :: sub_name, A1_1, A2_2, A3_3
-    INTEGER(KIND=int_kind), INTENT(IN) :: I1_4
+    character(len=*), intent(in) :: sub_name, A1_1, A2_2, A3_3
+    integer(kind=int_kind), intent(in) :: I1_4
 
-    IF (msg_state) THEN
-       WRITE(UNIT=msg_iunit, FMT="('(', A, ') ', A, A, A, I6)") &
+    if (msg_state) then
+       write(unit=msg_iunit, fmt="('(', A, ') ', A, A, A, I6)") &
             sub_name, A1_1, A2_2, A3_3, I1_4
-    END IF
+    end if
 
-  END SUBROUTINE msg_write_AAAI
+  end subroutine msg_write_AAAI
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_write_AAIA(sub_name, A1_1, A2_2, I1_3, A3_4)
+  subroutine msg_write_AAIA(sub_name, A1_1, A2_2, I1_3, A3_4)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    CHARACTER(LEN=*), INTENT(IN) :: sub_name, A1_1, A2_2, A3_4
-    INTEGER(KIND=int_kind), INTENT(IN) :: I1_3
+    character(len=*), intent(in) :: sub_name, A1_1, A2_2, A3_4
+    integer(kind=int_kind), intent(in) :: I1_3
 
-    IF (msg_state) THEN
-       WRITE(UNIT=msg_iunit, FMT="('(', A, ') ', A, A, I6, A)") &
+    if (msg_state) then
+       write(unit=msg_iunit, fmt="('(', A, ') ', A, A, I6, A)") &
             sub_name, A1_1, A2_2, I1_3, A3_4
-    END IF
+    end if
 
-  END SUBROUTINE msg_write_AAIA
+  end subroutine msg_write_AAIA
 
-  !*****************************************************************************
+!*****************************************************************************
 
-  SUBROUTINE msg_write_AAAIAI(sub_name, A1_1, A2_2, A3_3, I1_4, A4_5, I2_6)
+  subroutine msg_write_AAAIAI(sub_name, A1_1, A2_2, A3_3, I1_4, A4_5, I2_6)
 
     !---------------------------------------------------------------------------
     !   arguments
     !---------------------------------------------------------------------------
 
-    CHARACTER(LEN=*), INTENT(IN) :: sub_name, A1_1, A2_2, A3_3, A4_5
-    INTEGER(KIND=int_kind), INTENT(IN) :: I1_4, I2_6
+    character(len=*), intent(in) :: sub_name, A1_1, A2_2, A3_3, A4_5
+    integer(kind=int_kind), intent(in) :: I1_4, I2_6
 
-    IF (msg_state) THEN
-       WRITE(UNIT=msg_iunit, &
-            FMT="('(', A, ') ', A, A, A, I6, A, I6)") &
+    if (msg_state) then
+       write(unit=msg_iunit, &
+            fmt="('(', A, ') ', A, A, A, I6, A, I6)") &
             sub_name, A1_1, A2_2, A3_3, I1_4, A4_5, I2_6
-    END IF
+    end if
 
-  END SUBROUTINE msg_write_AAAIAI
+  end subroutine msg_write_AAAIAI
 
-  !*****************************************************************************
+!*****************************************************************************
 
-END MODULE msg_mod
+end module msg_mod

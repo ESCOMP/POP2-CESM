@@ -9,8 +9,7 @@
 !  Contains routine for computing change in surface height.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES:
 

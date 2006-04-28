@@ -9,7 +9,7 @@
 !  time-averages of selected fields and writing this data to files.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 !  
 
 ! !USES:
@@ -47,6 +47,7 @@
              define_tavg_field,      &
              accumulate_tavg_field,  &
              tavg_requested,         &
+             set_in_tavg_contents,   &
              write_tavg,             &
              read_tavg,              &
              tavg_set_flag
@@ -77,6 +78,32 @@
       tavg_sum_qflux
 
 
+!-----------------------------------------------------------------------
+!
+!  tavg field descriptor data type and array of such types
+!
+!-----------------------------------------------------------------------
+
+! !PUBLIC TYPES:
+   !*** ccsm
+   type,public :: tavg_field_desc_ccsm
+      character(char_len)     :: short_name     ! short name for field
+      character(char_len)     :: long_name      ! long descriptive name
+      character(char_len)     :: units          ! units
+      character(char_len)     :: coordinates    ! coordinates
+      character(char_len)     :: nftype         ! indicates data type 
+      character(4)            :: grid_loc       ! location in grid
+      real (r4)               :: fill_value     ! _FillValue
+      real (r4)               :: missing_value  ! value on land pts
+      real (r4)               :: scale_factor   ! r4 scale factor
+      real (r4), dimension(2) :: valid_range    ! min/max
+      integer (i4)            :: ndims          ! num dims (2 or 3)
+      integer (i4)            :: buf_loc        ! location in buffer
+      integer (i4)            :: method         ! method for averaging
+      integer (i4)            :: field_loc      ! grid location and field
+      integer (i4)            :: field_type     ! type for io, ghost cells
+   end type
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -98,25 +125,6 @@
       integer (i4)            :: field_loc      ! grid location and field
       integer (i4)            :: field_type     !  type for io, ghost cells
    end type
- 
-   !*** ccsm
-   type,public :: tavg_field_desc_ccsm
-      character(char_len)     :: short_name     ! short name for field
-      character(char_len)     :: long_name      ! long descriptive name
-      character(char_len)     :: units          ! units
-      character(char_len)     :: coordinates    ! coordinates
-      character(char_len)     :: nftype         ! indicates data type 
-      character(4)            :: grid_loc       ! location in grid
-      real (r4)               :: fill_value     ! _FillValue
-      real (r4)               :: missing_value  ! value on land pts
-      real (r4)               :: scale_factor   ! r4 scale factor
-      real (r4), dimension(2) :: valid_range    ! min/max
-      integer (i4)            :: ndims          ! num dims (2 or 3)
-      integer (i4)            :: buf_loc        ! location in buffer
-      integer (i4)            :: method         ! method for averaging
-      integer (i4)            :: field_loc      ! grid location and field
-      integer (i4)            :: field_type     ! type for io, ghost cells
-   end type
 
    integer (int_kind), parameter :: &
       max_avail_tavg_fields = 200    ! limit on available fields - can
@@ -127,6 +135,7 @@
       num_requested_tavg_fields,        &! number of fields requested
       tavg_flag                          ! time flag for writing tavg files
 
+   !*** ccsm
    type (tavg_field_desc_ccsm), dimension(max_avail_tavg_fields) :: &
       avail_tavg_fields
 
@@ -265,17 +274,12 @@
    integer, dimension (max_avail_tavg_nstd_fields) ::  &
       ndims_nstd_ccsm
  
-!############### debug ############
-    logical (log_kind) ::    &
-      gm_bolus = .false.
-!########### end debug ############
-
    real (r8) ::        &
      lower_time_bound, &! lower time bound for time_bounds variable
      upper_time_bound
 
    integer (int_kind) ::  &
-      tavg_debug  = 0           ! debug level: 0,1
+      tavg_debug  = 0           ! debug level [0,1]  1 ==> messages
  
 !EOC
 !***********************************************************************
@@ -1522,7 +1526,7 @@
      write (stdout,*) 'Global Time Averages: ' // trim(date_string) // ' ' // trim(time_string)
    endif
 
-   do nfield=1,num_avail_tavg_fields
+   fields_loop: do nfield=1,num_avail_tavg_fields
       ifield = avail_tavg_fields(nfield)%buf_loc
       if (ifield > 0) then
 
@@ -1531,8 +1535,20 @@
 
          if (avail_tavg_fields(nfield)%method == tavg_method_avg) then
             tavg_norm = tavg_sum
+         else if (avail_tavg_fields(nfield)%method == tavg_method_qflux) then
+            tavg_norm = tavg_sum_qflux
          else
             tavg_norm = c1
+         endif
+
+         if (tavg_norm == c0) then
+            if (my_task == master_task) then
+              write(stdout,*) 'Cannot compute global integral of ', &
+                               trim (avail_tavg_fields(nfield)%short_name)
+              call shr_sys_flush(stdout)
+            endif
+            cycle fields_loop 
+            !*** call exit_POP (SigAbort,'ERROR: tavg_norm = 0 in tavg_global')
          endif
 
          !*** 2-d fields
@@ -1622,7 +1638,7 @@
                              ': ', tavg_field_sum
          endif
       endif
-   end do
+   end do fields_loop
 
    deallocate (RMASK, WORK)
 
@@ -1733,9 +1749,14 @@
 
    if (avail_tavg_fields(id)%method == tavg_method_avg) then
       tavg_norm = tavg_sum
+   else if (avail_tavg_fields(id)%method == tavg_method_qflux) then
+      tavg_norm = tavg_sum_qflux
    else
       tavg_norm = c1
    endif
+
+   if (tavg_norm == c0) &
+     call exit_POP (SigAbort,'ERROR: tavg_norm = 0 in tavg_global_sum_2D')
 
    !$OMP PARALLEL DO
    do iblock = 1,nblocks_clinic
@@ -1821,6 +1842,7 @@
 !-----------------------------------------------------------------------
 
    bufloc = avail_tavg_fields(field_id)%buf_loc
+
    if (bufloc <= 0) &
      call exit_POP(sigAbort, &
                     'tavg: attempt to accumulate bad tavg field')
@@ -2155,7 +2177,7 @@
  
    id = num_fields
 
-   if (my_task == master_task) then
+   if (my_task == master_task .and. nsteps_run <= 1) then
      write(stdout,*) 'define_tavg_field: id = ', id, ' ', short_name
      call shr_sys_flush(id)
    endif
@@ -2421,10 +2443,59 @@
 
 !***********************************************************************
 !BOP
+! !IROUTINE: set_in_tavg_contents
+! !INTERFACE:
+
+ function set_in_tavg_contents(id)
+
+! !DESCRIPTION:
+!  This function determines whether a tavg field has been set in
+!  the input contents file and returns true if it has.  This function is
+!  different from tavg_requested in that ltavg_on status is irrelevent.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      id                   ! id returned by the define function which
+                           !   gives the location of the field
+
+! !OUTPUT PARAMETERS:
+
+   logical (log_kind) ::      &
+      set_in_tavg_contents    ! result of checking whether the field has
+                               !   been requested
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  check the buffer location - if not zero, then the field is in the
+!  tavg contents file
+!
+!-----------------------------------------------------------------------
+
+   if (id < 1 .or. id > num_avail_tavg_fields) then
+     set_in_tavg_contents = .false.
+   elseif (avail_tavg_fields(id)%buf_loc /= 0) then
+     set_in_tavg_contents = .true.
+   else
+     set_in_tavg_contents = .false.
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function set_in_tavg_contents
+
+!***********************************************************************
+!BOP
 ! !IROUTINE: tavg_id
 ! !INTERFACE:
 
- function tavg_id(short_name)
+ function tavg_id(short_name,quiet)
 
 ! !DESCRIPTION:
 !  This function determines whether a tavg field has been defined
@@ -2439,6 +2510,9 @@
 
    character (*), intent(in)  :: &
       short_name                  ! the short name of the tavg field
+
+   logical (log_kind), intent(in), optional :: &
+      quiet                        ! do not print error message
 
 ! !OUTPUT PARAMETERS:
 
@@ -2457,6 +2531,9 @@
      id,                  &
      n
 
+   logical (log_kind) ::  &
+     msg
+
    id = 0
 
    srch_loop: do n=1,num_avail_tavg_fields
@@ -2466,7 +2543,12 @@
       endif
    end do srch_loop
 
-   if (id == 0) then
+   msg = .true.
+   if (present(quiet)) then
+     if (quiet) msg = .false.
+   endif
+     
+   if (id == 0 .and. msg) then
       if (my_task == master_task)  & 
           write(stdout,*) 'Field ', trim(short_name), ' has not been defined.'
    endif
@@ -2796,7 +2878,7 @@
 !-----------------------------------------------------------------------
      if (iii .lt. 1) &
        call exit_POP (sigAbort, &
-       '(write_tavg) error forming tavg_outfile_temp')
+       '(tavg_create_outfile_ccsm) error forming tavg_outfile_temp')
 
 !-----------------------------------------------------------------------
 !    replace the final character ('r') with the string 'rh'
@@ -2940,7 +3022,7 @@
 
  call add_attrib_file(tavg_file_desc, 'contents', 'Diagnostic and Prognostic Variables')
  call add_attrib_file(tavg_file_desc, 'source', 'CCSM POP2, the CCSM Ocean Component')
- call add_attrib_file(tavg_file_desc, 'revision', '$Name$')
+ call add_attrib_file(tavg_file_desc, 'revision', '$Id$')
 
  if (allow_leapyear) then
     write(calendar,'(a,i5,a,i5,a)')' Leap years allowed. Normal years have',days_in_norm_year,' days. Leap years have ' ,days_in_leap_year, ' days.'
@@ -3209,7 +3291,7 @@
    !*** ULAT
    ii=ii+1
 
-    ULAT_DEG = ULON*radian
+    ULAT_DEG = ULAT*radian
     ccsm_time_invar(ii) = construct_io_field(  &
         'ULAT', dim1=i_dim, dim2=j_dim,               &
          long_name='array of u-grid latitudes',       &
@@ -4088,14 +4170,15 @@
       if (indx /= 0) then
         ndims=2
         data_1d_ch(1) = 'Total'
-        if (gm_bolus .and. registry_match('init_gm') ) then
+        if (registry_match('diag_gm_bolus') .and.   &
+            registry_match('init_gm')) then
          data_1d_ch(2) = 'Total Advection'
          data_1d_ch(4) = 'Eddy-Induced (bolus) Advection'
         else
          data_1d_ch(2) = 'Eulerian-Mean Advection'
         endif
-        if (.not. gm_bolus .and. registry_match('init_gm') ) then
-                                ! bolus is automatically included
+        if (.not. registry_match('diag_gm_bolus') .and.   &
+            registry_match('init_gm') ) then ! bolus is automatically included
          data_1d_ch(3) = 'Eddy-Induced Advection (bolus) + Diffusion'
         else
          data_1d_ch(3) = 'Diffusion'
@@ -4138,7 +4221,7 @@
           tavg_file_desc,n_salt_id,1,4,io_dims_nstd_ccsm(:,3),& !<-- generalize later
           'float',                                         &  ! <-- generalize later
           implied_time_dim=implied_time_dim,               &
-          indata_3d_r4=TAVG_N_HEAT_TRANS_G)
+          indata_3d_r4=TAVG_N_SALT_TRANS_G)
    endif
 
 !!!! if (n_heat_trans) call write_nstd_netcdf( &
@@ -4361,7 +4444,14 @@
 
  
    !*** return if attempting to compute every nstep timesteps
-   if (start_opt_nstep == tavg_start_iopt) return
+   if (tavg_freq_iopt == freq_opt_nstep) then
+     if (nsteps_run <= 1 .and. my_task == master_task) then
+        write(stdout,*)  &
+        'WARNING: BSF diagnostic is not computed if tavg_freq_iopt == freq_opt_nstep'
+        call shr_sys_flush(stdout)
+     endif
+     return
+   endif
 
    !*** zero out location identifiers
    tavg_loc_SU = 0; tavg_loc_SV  = 0; tavg_loc_BSF = 0
@@ -4469,14 +4559,18 @@
       tavg_id_VVEL,         &
       tavg_id_WISOP,        &
       tavg_id_VISOP,        &
-      tavg_loc_WVEL,         &
-      tavg_loc_VVEL,         &
-      tavg_loc_WISOP,        &
+      tavg_loc_WVEL,        &
+      tavg_loc_VVEL,        &
+      tavg_loc_WISOP,       &
       tavg_loc_VISOP 
 
+   logical (log_kind) ::  &
+      ldiag_gm_bolus         ! local logical for diag_gm_bolus
 
    if (.not. moc) return
-
+ 
+   ldiag_gm_bolus = .false.
+   if ( registry_match('diag_gm_bolus') )  ldiag_gm_bolus = .true.
 
    tavg_loc_WVEL      = 0 ; tavg_loc_VVEL      = 0
    tavg_loc_WISOP     = 0 ; tavg_loc_VISOP     = 0
@@ -4505,7 +4599,7 @@
      call exit_POP (SigAbort, 'Fatal error')
    endif
 
-   if (gm_bolus) then
+   if (ldiag_gm_bolus) then
  
      tavg_id_WISOP  = tavg_id('WISOP')
      tavg_id_VISOP  = tavg_id('VISOP')
@@ -4531,7 +4625,7 @@
        call exit_POP (SigAbort, 'Fatal error')
      endif
  
-   endif ! gm_bolus
+   endif ! ldiag_gm_bolus
 
    !*** define MOC tavg variable and dimensions
    !*** note that this call fills avail_tavg_nstd_fields
@@ -4547,7 +4641,14 @@
         max_nstd_fields=max_avail_tavg_nstd_fields       )
  
    !*** return if attempting to compute every nstep timesteps
-   if (start_opt_nstep == tavg_start_iopt) return
+   if (tavg_freq_iopt == freq_opt_nstep) then
+     if (nsteps_run <= 1 .and. my_task == master_task) then
+        write(stdout,*)  &
+        'WARNING: MOC diagnostic is not computed if tavg_freq_iopt == freq_opt_nstep'
+        call shr_sys_flush(stdout)
+     endif
+     return
+   endif
 
    io_dims_nstd_ccsm(1,tavg_MOC) = lat_aux_grid_dim
    io_dims_nstd_ccsm(2,tavg_MOC) = moc_z_dim
@@ -4556,7 +4657,7 @@
    io_dims_nstd_ccsm(5,tavg_MOC) = time_dim
    ndims_nstd_ccsm  (  tavg_MOC) = 5
 
-   if (gm_bolus) then
+   if (ldiag_gm_bolus) then
      call compute_moc ( TAVG_BUF_3D(:,:,:,:,tavg_loc_WVEL ),  &
                         TAVG_BUF_3D(:,:,:,:,tavg_loc_VVEL ),  &
                   W_I = TAVG_BUF_3D(:,:,:,:,tavg_loc_WISOP),  &
@@ -4628,8 +4729,13 @@
       indx5,                &! index
       n
 
+   logical (log_kind) ::  &
+      ldiag_gm_bolus         ! local logical for diag_gm_bolus
+
    if (.not. (n_heat_trans .or. n_salt_trans)) return
 
+   ldiag_gm_bolus = .false.
+   if ( registry_match('diag_gm_bolus') )  ldiag_gm_bolus = .true.
 
    tavg_loc_ADVT      = 0 ; tavg_loc_ADVS      = 0
    tavg_loc_VNT       = 0 ; tavg_loc_VNS       = 0
@@ -4682,7 +4788,7 @@
        call exit_POP (SigAbort, 'Fatal error')
    endif
 
-   if (gm_bolus) then
+   if (ldiag_gm_bolus) then
  
        tavg_id_ADVT_ISOP = tavg_id('ADVT_ISOP')
        tavg_id_ADVS_ISOP = tavg_id('ADVS_ISOP')
@@ -4717,7 +4823,7 @@
           call document ('tavg_transport_ccsm', 'tavg_loc_VNS_ISOP ',  tavg_loc_VNS )
             call exit_POP (SigAbort, 'Fatal error')
        endif ! tavg_id testing
-   endif ! gm_bolus
+   endif ! ldiag_gm_bolus
 
   !*** define heat transport diagnostics fields and dimensions
   !*** note that this call fills avail_tavg_nstd_fields
@@ -4758,15 +4864,23 @@
    ndims_nstd_ccsm  (  tavg_N_SALT)  = 4
 
    !*** return if attempting to compute every nstep timesteps
-   if (start_opt_nstep == tavg_start_iopt) return
+   if (tavg_freq_iopt == freq_opt_nstep) then
+     if (nsteps_run <= 1 .and. my_task == master_task) then
+        write(stdout,*)  &
+        'WARNING: transport diagnostics are not computed if tavg_freq_iopt == freq_opt_nstep'
+        call shr_sys_flush(stdout)
+     endif
+     return
+   endif
 
    do n=1,2
+
      select case (n)
        case(1)
          indx1 = tavg_loc_ADVT
          indx2 = tavg_loc_HDIFT
          indx3 = tavg_loc_VNT
-         if (gm_bolus) then
+         if (ldiag_gm_bolus) then
            indx4 = tavg_loc_ADVT_ISOP
            indx5 = tavg_loc_VNT_ISOP
          endif
@@ -4774,7 +4888,7 @@
          indx1 = tavg_loc_ADVS
          indx2 = tavg_loc_HDIFS
          indx3 = tavg_loc_VNS
-         if (gm_bolus) then
+         if (ldiag_gm_bolus) then
            indx4 = tavg_loc_ADVS_ISOP
            indx5 = tavg_loc_VNS_ISOP
          endif
@@ -4782,7 +4896,7 @@
  
  
  
-     if ( gm_bolus ) then
+     if ( ldiag_gm_bolus ) then
        call compute_tracer_transports (n,       &
                    TAVG_BUF_2D(:,:,:,  indx1),  &
                    TAVG_BUF_2D(:,:,:,  indx2),  &

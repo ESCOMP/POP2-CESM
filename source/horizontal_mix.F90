@@ -10,8 +10,7 @@
 !  horizontal tracer and momentum mixing modules.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 !
 ! !USES:
 

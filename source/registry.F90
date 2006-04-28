@@ -1,15 +1,18 @@
-   module registry 
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-!***********************************************************************
+ module registry 
+
+!BOP
+! !MODULE: registry
 !
-!     This module provides a means for registering, checking, and
+! !DESCRIPTION:
+!  This module provides a means for registering, checking, and
 !     recording events that have occurred in CCSM POP
 !
-!     CVS:$Id$
-!     CVS:$Name$
-!
-!-----------------------------------------------------------------------
+! !REVISION HISTORY:
+!  SVN:$Id$
 
+! !USES:
 
    use kinds_mod
    use shr_sys_mod
@@ -17,25 +20,37 @@
    use io_tools
  
    implicit none
+   private
+   save
  
+! !PUBLIC MEMBER FUNCTIONS:
+   public ::                 &
+      init_registry,         &
+      registry_match,        &
+      register_string,       &
+      registry_err_check,    &
+      trap_registry_failure
 
-   integer (int_kind), parameter, private ::  &
+!EOP
+!BOC
+
+   integer (int_kind), parameter ::  &
       max_registry_size = 200        ! maximum size of registry
  
-   integer (int_kind), private ::  &
+   integer (int_kind) ::  &
       registry_failure_count, &
       registry_size
  
-   character (char_len), dimension (max_registry_size),private::  &
+   character (char_len), dimension (max_registry_size) ::  &
       registry_storage
  
-
+!EOC
 !***********************************************************************
 
    contains
 
 !***********************************************************************
-   subroutine init_registry 
+ subroutine init_registry 
 
 !-----------------------------------------------------------------------
 !
@@ -59,10 +74,10 @@
      registry_storage(n) = ' '
    end do 
  
-   end subroutine init_registry
+ end subroutine init_registry
 
  
-   function registry_match (string)
+ function registry_match (string)
 
 !-----------------------------------------------------------------------
 !  This function checks to see if a string has already been registered
@@ -101,15 +116,15 @@
      endif
    end do string_search
     
-   end function registry_match  
+ end function registry_match  
 
  
-   subroutine reset_registry_failure_count
+ subroutine reset_registry_failure_count
      registry_failure_count = 0
-   end subroutine reset_registry_failure_count
+ end subroutine reset_registry_failure_count
  
  
-   subroutine register_string (string)
+ subroutine register_string (string)
 
 !-----------------------------------------------------------------------
 !     this routine registers a character string in registry_storage
@@ -132,10 +147,10 @@
      registry_storage(registry_size) = string
    endif
  
-   end subroutine register_string
+ end subroutine register_string
  
  
-   subroutine registry_err_check (string,string_present,caller)
+ subroutine registry_err_check (string,string_present,caller)
 
 !-----------------------------------------------------------------------
 !    This routine complains if a string is in the registry but
@@ -187,10 +202,10 @@
  
    endif ! registry_match
     
-   end subroutine registry_err_check
+ end subroutine registry_err_check
 
  
-   subroutine trap_registry_failure
+ subroutine trap_registry_failure
 !-----------------------------------------------------------------------
 !
 !    This subroutine checks to see if there have been any registry
@@ -202,9 +217,8 @@
       'Registry failure count > 0 ; search output for "registry_error" for info')  
    endif
  
-   end subroutine trap_registry_failure
+ end subroutine trap_registry_failure
  
  
- 
-   end module registry 
+ end module registry 
 

@@ -13,7 +13,7 @@
 !  subroutinized ice model.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 
 ! !USES:
 

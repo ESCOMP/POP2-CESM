@@ -11,7 +11,7 @@
 !  be specified during the make process.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 !
 ! !USES:
 
@@ -45,6 +45,8 @@
       implicit none
       save
       
+!EOP
+!BOC
 !-----------------------------------------------------------------------
 !
 !     module variables
@@ -227,9 +229,8 @@
  
 
 #endif
+!EOC
 !***********************************************************************
-!EOP
-!BOC
 
       contains
 

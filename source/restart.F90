@@ -9,15 +9,16 @@
 !  for restarting a POP simulation.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 !
 ! !USES:
 
-   use kinds_mod, only: char_len, log_kind, int_kind, r8
+   use kinds_mod, only: char_len, char_len_long, log_kind, int_kind, r8
    use domain_size
    use domain, only: nblocks_clinic, blocks_clinic, bndy_clinic
    use constants, only: char_blank, field_loc_NEcorner, field_type_vector,  &
-       field_loc_center, field_type_scalar, blank_fmt, c0, grav
+       field_loc_center, field_type_scalar, blank_fmt, c0, grav,            &
+       char_blank_long
    use blocks, only: nx_block, ny_block, block, get_block
    use prognostic, only: UBTROP, VBTROP, PSURF, GRADPX, GRADPY, UVEL, VVEL, &
        PGUESS, TRACER, nt, nx_global, ny_global, km, curtime, oldtime,      &

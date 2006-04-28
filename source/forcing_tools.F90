@@ -9,8 +9,7 @@
 !  all of the individual forcing modules.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 !
 ! !USES:
 
