@@ -1,9 +1,10 @@
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-      module forcing_coupled
+ module forcing_coupled
 
 !BOP
 !MODULE: forcing_coupled
+
 ! !DESCRIPTION:
 !  This module contains all the routines necessary for coupling POP to
 !  atmosphere and sea ice models using the NCAR CCSM flux coupler.  To
@@ -14,55 +15,54 @@
 !  SVN:$Id$
 !
 ! !USES:
+ 
+   use kinds_mod
+   use blocks, only: nx_block, ny_block, block, get_block
+   use domain_size
+   use domain
+   use communicate
+   use global_reductions
+   use boundary
+   use constants
+   use io
+   use time_management
+   use grid
+   use prognostic
+   use exit_mod
+   use ice, only: tfreez, tmelt, liceform,QFLUX, QICE, AQICE, tlast_ice
+   use forcing_shf
+   use forcing_sfwf
+   use timers
 
-      use kinds_mod
-      use blocks, only: nx_block, ny_block, block, get_block
-      use domain_size
-      use domain
-      use communicate
-      use global_reductions
-      use boundary
-      use constants
-      use io
-      use time_management
-      use grid
-      use prognostic
-      use exit_mod
-      use ice, only: tfreez, tmelt, liceform,QFLUX, QICE, AQICE, tlast_ice
-      use forcing_shf
-      use forcing_sfwf
-      use timers
+   !*** ccsm
+   use ms_balance
+   use tavg
+   use cpl_contract_mod
+   use cpl_interface_mod
+   use cpl_fields_mod
+   use registry
+   use shr_sys_mod
+      
+   implicit none
+   save
 
-      !*** ccsm
-      use ms_balance
-      use tavg
-      use cpl_contract_mod
-      use cpl_interface_mod
-      use cpl_fields_mod
-      use registry
-      use shr_sys_mod
-      
-      implicit none
-      save
-      
 !EOP
 !BOC
 !-----------------------------------------------------------------------
 !
-!     module variables
+!  module variables
 !
 !-----------------------------------------------------------------------
 
-      logical (log_kind) ::  &
-        lcoupled,            &! flag for coupled forcing
-        ldiag_cpl = .false. ,&
-        lccsm                 ! flag to denote ccsm-specific code
+   logical (log_kind) ::   &
+      lcoupled,            &! flag for coupled forcing
+      ldiag_cpl = .false. ,&
+      lccsm                 ! flag to denote ccsm-specific code
 
 
-      integer (int_kind) ::  &
-        coupled_freq_iopt,   &! coupler frequency option
-        coupled_freq          ! frequency of coupling
-
+   integer (int_kind) ::   &
+      coupled_freq_iopt,   &! coupler frequency option
+      coupled_freq          ! frequency of coupling
 
 !-----------------------------------------------------------------------
 !
@@ -82,7 +82,6 @@
       tavg_LWDN_F,       &! tavg id for longwave heat flux dn
       tavg_MELTH_F        ! tavg id for melt     heat flux
 
-
 !-----------------------------------------------------------------------
 !
 !  diurnal cycle switch for the net shortwave heat flux
@@ -92,38 +91,39 @@
 !
 !-----------------------------------------------------------------------
 
-      logical (log_kind) :: qsw_diurnal_cycle
+   logical (log_kind) :: qsw_diurnal_cycle
 
       real (r8), dimension(:), allocatable ::  &
         diurnal_cycle_factor
 
 
-
 #if coupled
 
-      integer (int_kind) ::  &
-        timer_send_to_cpl    &
-      , timer_recv_from_cpl  &
-      , timer_recv_to_send   &
-      , timer_send_to_recv 
+   integer (int_kind) ::   &
+      timer_send_to_cpl,   &
+      timer_recv_from_cpl, &
+      timer_recv_to_send,  &
+      timer_send_to_recv 
  
-      integer (int_kind), private ::   &
-        cpl_stop_now         &! flag id for stop_now flag
-      , cpl_ts               &! flag id for coupled_ts flag
-      , cpl_write_restart    &! flag id for write restart
-      , cpl_write_history    &! flag id for write history
-      , cpl_write_tavg       &! flag id for write tavg      
-      , cpl_diag_global      &! flag id for computing diagnostics
-      , cpl_diag_transp       ! flag id for computing diagnostics
+   integer (int_kind), private ::   &
+      cpl_stop_now,        &! flag id for stop_now flag
+      cpl_ts,              &! flag id for coupled_ts flag
+      cpl_write_restart,   &! flag id for write restart
+      cpl_write_history,   &! flag id for write history
+      cpl_write_tavg,      &! flag id for write tavg      
+      cpl_diag_global,     &! flag id for computing diagnostics
+      cpl_diag_transp       ! flag id for computing diagnostics
 
-      integer (int_kind), dimension(cpl_fields_ibuf_total) ::  &
-         isbuf               &! integer control buffer for sends
-        ,irbuf                ! integer control buffer for receives
-      type(cpl_contract) ::  &
-         contractS           &! contract for sends to coupler
-        ,contractR            ! contract for receives from coupler
-      real (r8), dimension(:,:), allocatable ::  &
-         sbuf                 ! temporary send/recv buffer
+   integer (int_kind), dimension(cpl_fields_ibuf_total) ::  &
+      isbuf,               &! integer control buffer for sends
+      irbuf                 ! integer control buffer for receives
+ 
+   type(cpl_contract) ::  &
+      contractS,          &! contract for sends to coupler
+      contractR            ! contract for receives from coupler
+ 
+   real (r8), dimension(:,:), allocatable ::  &
+      sbuf                 ! temporary send/recv buffer
 
 !-----------------------------------------------------------------------
 !  The following variables are used in the exchange of 
@@ -132,7 +132,7 @@
 !  ocn --> cpl6
 !  ============
 !    cpl_fields_ibuf_total -- length of integer ocean "send buffer" vector (isbuf)
-!    cpl_fields_o2c_total --  total number of 2D fields sent to cpl6 from ocn
+!    nsend --  total number of 2D fields sent to cpl6 from ocn
 !
 !    integer send buffer indices (isbuf in subroutine init_coupled):  
 !
@@ -159,80 +159,105 @@
 !
 !    real send buffer indices (sbuf in subroutine send_to_coupler):
 !
-!      (1)  cpl_fields_o2c_u     -- surface u velocity
-!      (2)  cpl_fields_o2c_v     -- surface v velocity
-!      (3)  cpl_fields_o2c_t     -- surface temperature
-!      (4)  cpl_fields_o2c_s     -- surface salinity
-!      (5)  cpl_fields_o2c_dhdx  -- e,w surface slope
-!      (6)  cpl_fields_o2c_dhdy  -- n,s surface slope
-!      (7)  cpl_fields_o2c_q     -- qflux
+!      o  index_o2c_So_u     -- surface u velocity
+!      o  index_o2c_So_v     -- surface v velocity
+!      o  index_o2c_So_t     -- surface temperature
+!      o  index_o2c_So_s     -- surface salinity
+!      o  index_o2c_So_dhdx  -- e,w surface slope
+!      o  index_o2c_So_dhdy  -- n,s surface slope
+!      o  index_o2c_Fioo_q     -- qflux
 !
 !
 !    cpl6 --> ocn  
 !    ============
 !
-!      cpl_fields_ibuf_total -- length of integer ocean "receive buffer" vector (irbuf)
-!      cpl_fields_c2o_total --  total number of 2D fields sent to ocn from cpl6
+!    cpl_fields_ibuf_total -- length of integer ocean "receive buffer" vector (irbuf)
 !
-!      integer receive buffer indices (irbuf in subroutine recv_from_coupler):
+!    integer receive buffer indices (irbuf in subroutine recv_from_coupler):
 !
-!       o  cpl_fields_ibuf_stopnow  -- stop ocean integration now
-!       o  cpl_fields_ibuf_infobug  -- write ocean/coupler diagnostics now  
-!       o  cpl_fields_ibuf_resteod  -- write ocean restart files at end of day
-!       o  cpl_fields_ibuf_histeod  -- write ocean history files at end of day
-!       o  cpl_fields_ibuf_histtavg -- write ocean "tavg"  files at end of day
-!       o  cpl_fields_ibuf_diageod  -- write ocean diagnostics   at end of day
+!     o  cpl_fields_ibuf_stopnow  -- stop ocean integration now
+!     o  cpl_fields_ibuf_infobug  -- write ocean/coupler diagnostics now  
+!     o  cpl_fields_ibuf_resteod  -- write ocean restart files at end of day
+!     o  cpl_fields_ibuf_histeod  -- write ocean history files at end of day
+!     o  cpl_fields_ibuf_histtavg -- write ocean "tavg"  files at end of day
+!     o  cpl_fields_ibuf_diageod  -- write ocean diagnostics   at end of day
 !
-!      real receive buffer indices (sbuf in subroutine recv_from_coupler):
+!    real receive buffer indices (sbuf in subroutine recv_from_coupler):
 !
-!       o   cpl_fields_c2o_taux  -- zonal wind stress (taux)
-!       o   cpl_fields_c2o_tauy  -- meridonal wind stress (tauy)
-!       o   cpl_fields_c2o_snow  -- water flux due to snow
-!       o   cpl_fields_c2o_rain  -- water flux due to rain
-!       o   cpl_fields_c2o_evap  -- evaporation flux
-!       o   cpl_fields_c2o_meltw -- snow melt flux
-!       o   cpl_fields_c2o_roff  -- river runoff flux
-!       o   cpl_fields_c2o_salt  -- salt
-!       o   cpl_fields_c2o_swnet -- net short-wave heat flux
-!       o   cpl_fields_c2o_sen   -- sensible heat flux
-!       o   cpl_fields_c2o_lwup  -- longwave radiation (up)
-!       o   cpl_fields_c2o_lwdn  -- longwave radiation (down)
-!       o   cpl_fields_c2o_melth -- heat flux from snow&ice melt
-!       o   cpl_fields_c2o_ifrac -- ice fraction
-!       o   cpl_fields_c2o_press -- sea-level pressure
-!       o   cpl_fields_c2o_duu10 -- 10m wind speed squared
+!     o  index_c2o_Foxx_taux   -- zonal wind stress (taux)
+!     o  index_c2o_Foxx_tauy   -- meridonal wind stress (tauy)
+!     o  index_c2o_Foxx_snow   -- water flux due to snow
+!     o  index_c2o_Foxx_rain   -- water flux due to rain
+!     o  index_c2o_Foxx_evap   -- evaporation flux
+!     o  index_c2o_Foxx_meltw  -- snow melt flux
+!     o  index_c2o_Foxx_salt   -- salt
+!     o  index_c2o_Foxx_swnet  -- net short-wave heat flux
+!     o  index_c2o_Foxx_sen    -- sensible heat flux
+!     o  index_c2o_Foxx_lwup   -- longwave radiation (up)
+!     o  index_c2o_Foxx_lwdn   -- longwave radiation (down)
+!     o  index_c2o_Foxx_melth  -- heat flux from snow&ice melt
+!     o  index_c2o_Si_ifrac    -- ice fraction
+!     o  index_c2o_Sa_pslv     -- sea-level pressure
+!     o  index_c2o_Faoc_duu10n -- 10m wind speed squared
+!     o  index_c2o_Forr_roff   -- river runoff flux
 !
 !
 !-----------------------------------------------------------------------
 
+   integer(kind=int_kind) :: index_o2c_So_t        ! temperature
+   integer(kind=int_kind) :: index_o2c_So_u        ! velocity, zonal
+   integer(kind=int_kind) :: index_o2c_So_v        ! velocity, meridional
+   integer(kind=int_kind) :: index_o2c_So_s        ! salinity
+   integer(kind=int_kind) :: index_o2c_So_dhdx     ! surface slope, zonal
+   integer(kind=int_kind) :: index_o2c_So_dhdy     ! surface slope, meridional
+   integer(kind=int_kind) :: index_o2c_Fioo_q      ! heat of fusion (q>0) melt pot (q<0)
 
-      real (r8) ::  &
-        tlast_coupled
+   integer(kind=int_kind) :: index_c2o_Si_ifrac    ! state: ice fraction
+   integer(kind=int_kind) :: index_c2o_Sa_pslv     ! state: sea level pressure
+   integer(kind=int_kind) :: index_c2o_Faoc_duu10n ! state: 10m wind speed squared
+   integer(kind=int_kind) :: index_c2o_Foxx_taux   ! wind stress: zonal
+   integer(kind=int_kind) :: index_c2o_Foxx_tauy   ! wind stress: meridional
+   integer(kind=int_kind) :: index_c2o_Foxx_swnet  ! heat flux: shortwave net
+   integer(kind=int_kind) :: index_c2o_Foxx_lat    ! heat flux: latent
+   integer(kind=int_kind) :: index_c2o_Foxx_sen    ! heat flux: sensible
+   integer(kind=int_kind) :: index_c2o_Foxx_lwup   ! heat flux: long-wave up
+   integer(kind=int_kind) :: index_c2o_Foxx_lwdn   ! heat flux: long-wave dow
+   integer(kind=int_kind) :: index_c2o_Foxx_melth  ! heat flux: melt
+   integer(kind=int_kind) :: index_c2o_Foxx_salt   ! salt flux
+   integer(kind=int_kind) :: index_c2o_Foxx_prec   ! water flux: rain+snow
+   integer(kind=int_kind) :: index_c2o_Foxx_snow   ! water flux: snow
+   integer(kind=int_kind) :: index_c2o_Foxx_rain   ! water flux: rain
+   integer(kind=int_kind) :: index_c2o_Foxx_evap   ! water flux: evap
+   integer(kind=int_kind) :: index_c2o_Foxx_meltw  ! water flux: melt
+   integer(kind=int_kind) :: index_c2o_Forr_roff   ! water flux: runoff
 
-      real (r8),   &
-        dimension(nx_block,ny_block,max_blocks_clinic,cpl_fields_o2c_total) ::  &
-        SBUFF_SUM           ! accumulated sum of send buffer quantities
-                            ! for averaging before being sent
+   real (r8) ::  &
+      tlast_coupled
 
-      real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
-        EVAP_F = c0        &! evaporation   flux    from cpl (kg/m2/s)
-      , PREC_F = c0        &! precipitation flux    from cpl (kg/m2/s)
-                            ! (rain + snow)
-      , SNOW_F = c0        &! snow          flux    from cpl (kg/m2/s)
-      , MELT_F = c0        &! melt          flux    from cpl (kg/m2/s)
-      , ROFF_F = c0        &! river runoff  flux    from cpl (kg/m2/s)
-      , SALT_F = c0        &! salt          flux    from cpl (kg(salt)/m2/s)
-      , SENH_F = c0        &! sensible heat flux    from cpl (W/m2   )
-      , LWUP_F = c0        &! longwave heat flux up from cpl (W/m2   )
-      , LWDN_F = c0        &! longwave heat flux dn from cpl (W/m2   )
-      , MELTH_F= c0         ! melt     heat flux    from cpl (W/m2   )
+   real (r8),   &
+      dimension(:,:,:,:), allocatable ::  &
+      SBUFF_SUM           ! accumulated sum of send buffer quantities
+                          ! for averaging before being sent
+
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
+      EVAP_F = c0,       &! evaporation   flux    from cpl (kg/m2/s)
+      PREC_F = c0,       &! precipitation flux    from cpl (kg/m2/s)
+                          ! (rain + snow)
+      SNOW_F = c0,       &! snow          flux    from cpl (kg/m2/s)
+      MELT_F = c0,       &! melt          flux    from cpl (kg/m2/s)
+      ROFF_F = c0,       &! river runoff  flux    from cpl (kg/m2/s)
+      SALT_F = c0,       &! salt          flux    from cpl (kg(salt)/m2/s)
+      SENH_F = c0,       &! sensible heat flux    from cpl (W/m2   )
+      LWUP_F = c0,       &! longwave heat flux up from cpl (W/m2   )
+      LWDN_F = c0,       &! longwave heat flux dn from cpl (W/m2   )
+      MELTH_F= c0         ! melt     heat flux    from cpl (W/m2   )
  
 
 #endif
 !EOC
 !***********************************************************************
 
-      contains
+ contains
 
 !***********************************************************************
 
@@ -251,62 +276,63 @@
 
 ! !OUTPUT PARAMETERS:
 
-      real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic),  &
-         intent(out) ::  &
-         SMF               &!  surface momentum fluxes (wind stress)
-      ,  SMFT               !  surface momentum fluxes at T points
+   real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic),  &
+      intent(out) ::   &
+      SMF,             &!  surface momentum fluxes (wind stress)
+      SMFT              !  surface momentum fluxes at T points
 
-      real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic),  &
-         intent(out) ::  &
-         STF                !  surface tracer fluxes
+   real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic),  &
+      intent(out) ::   &
+      STF               !  surface tracer fluxes
 
-      real (r8), dimension(nx_block,ny_block,max_blocks_clinic),  &
-         intent(out) ::  &
-         SHF_QSW            !  penetrative solar heat flux
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic),  &
+      intent(out) ::  &
+      SHF_QSW          !  penetrative solar heat flux
 
-      logical (log_kind), intent(out) ::  &
-         lsmft_avail        ! true if SMFT is an available field
+   logical (log_kind), intent(out) ::  &
+      lsmft_avail        ! true if SMFT is an available field
 
 !EOP
 !BOC
 
 !-----------------------------------------------------------------------
 !
-!     local variables
+!  local variables
 !
 !-----------------------------------------------------------------------
 
-      character (char_len) ::  &
-        coupled_freq_opt
+   character (char_len) ::  &
+      coupled_freq_opt
 
-      namelist /coupled_nml/ coupled_freq_opt, coupled_freq,  &
-                             qsw_diurnal_cycle, lccsm
+   namelist /coupled_nml/ coupled_freq_opt, coupled_freq,  &
+                          qsw_diurnal_cycle, lccsm
 
-      integer (int_kind) :: k, iblock, &
-        ncouple_per_day,     &! num of coupler comms per day
-        nml_error             ! namelist i/o error flag
+   integer (int_kind) ::   &
+      k, iblock, nsend,    &
+      ncouple_per_day,     &! num of coupler comms per day
+      nml_error             ! namelist i/o error flag
 
    type (block) ::       &
       this_block          ! block information for current block
 
 !-----------------------------------------------------------------------
 !
-!     variables associated with the solar diurnal cycle
+!  variables associated with the solar diurnal cycle
 !
 !-----------------------------------------------------------------------
 
-      real (r8) ::  &
-         time_for_forcing,   &! time of day for surface forcing
-         frac_day_forcing,   &! fraction of day based on time_for_forcing
-         cycle_function,     &! intermediate result of the diurnal cycle function
-         weight_forcing,     &! forcing weights
-         sum_forcing          ! sum of forcing weights
+   real (r8) ::  &
+      time_for_forcing,   &! time of day for surface forcing
+      frac_day_forcing,   &! fraction of day based on time_for_forcing
+      cycle_function,     &! intermediate result of the diurnal cycle function
+      weight_forcing,     &! forcing weights
+      sum_forcing          ! sum of forcing weights
 
-      integer (int_kind) ::  &
-         count_forcing        ! time step counter (== nsteps_this_interval+1)
+   integer (int_kind) ::  &
+      count_forcing        ! time step counter (== nsteps_this_interval+1)
 
-      integer (int_kind) ::  &
-         i,j,n
+   integer (int_kind) ::  &
+      i,j,n
 
 !-----------------------------------------------------------------------
 !  for now:
@@ -319,17 +345,17 @@
 
 !-----------------------------------------------------------------------
 !
-!     read coupled_nml namelist to start coupling and determine
-!     coupling frequency
+!  read coupled_nml namelist to start coupling and determine
+!  coupling frequency
 !
 !-----------------------------------------------------------------------
       
-      lcoupled          = .false.
-      lccsm             = .false.
-      coupled_freq_opt  = 'never'
-      coupled_freq_iopt = freq_opt_never
-      coupled_freq      = 100000
-      qsw_diurnal_cycle = .false.
+   lcoupled          = .false.
+   lccsm             = .false.
+   coupled_freq_opt  = 'never'
+   coupled_freq_iopt = freq_opt_never
+   coupled_freq      = 100000
+   qsw_diurnal_cycle = .false.
       
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -440,8 +466,8 @@
 
 !-----------------------------------------------------------------------
 !
-!     check consistency of the qsw_diurnal_cycle option with various
-!     time manager options
+!  check consistency of the qsw_diurnal_cycle option with various
+!  time manager options
 !
 !-----------------------------------------------------------------------
 
@@ -458,8 +484,8 @@
 
 !-----------------------------------------------------------------------
 !
-!     allocate and compute the short wave heat flux multiplier for the 
-!     diurnal cycle
+!  allocate and compute the short wave heat flux multiplier for the 
+!  diurnal cycle
 !
 !-----------------------------------------------------------------------
 
@@ -579,12 +605,13 @@
                           units='watt/m^2', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
 
+
 !-----------------------------------------------------------------------
 !
-!     Initialize flags and shortwave absorption profile
-!     Note that the cpl_write_xxx flags have _no_ default value;
-!     therefore, they must be explicitly set .true. and .false.
-!     at the appropriate times
+!  Initialize flags and shortwave absorption profile
+!  Note that the cpl_write_xxx flags have _no_ default value;
+!  therefore, they must be explicitly set .true. and .false.
+!  at the appropriate times
 !
 !-----------------------------------------------------------------------
 
@@ -604,7 +631,7 @@
 
 !-----------------------------------------------------------------------
 !
-!       initialize and send buffer
+!   initialize and send buffer
 !
 !-----------------------------------------------------------------------
 
@@ -650,7 +677,7 @@
    enddo
 
 !-----------------------------------------------------------------------
-!     initialize the contracts
+!  initialize the contracts
 !-----------------------------------------------------------------------
 
       call cpl_interface_contractInit(contractS,cpl_fields_ocnname,  &
@@ -663,12 +690,43 @@
 
       deallocate(sbuf)
 
+      !--- allocate SBUFF_SUM
+      nsend = cpl_interface_contractNumatt(contractS)
+      allocate (SBUFF_SUM(nx_block,ny_block,max_blocks_clinic,nsend))
+
+      !--- determine send indices
+      index_o2c_So_u     = cpl_interface_contractIndex(contractS,'So_u')
+      index_o2c_So_v     = cpl_interface_contractIndex(contractS,'So_v')
+      index_o2c_So_t     = cpl_interface_contractIndex(contractS,'So_t')
+      index_o2c_So_s     = cpl_interface_contractIndex(contractS,'So_s')
+      index_o2c_So_dhdx  = cpl_interface_contractIndex(contractS,'So_dhdx')
+      index_o2c_So_dhdy  = cpl_interface_contractIndex(contractS,'So_dhdy')
+      index_o2c_Fioo_q   = cpl_interface_contractIndex(contractS,'Fioo_q')
+
+      !--- determine receive indices
+      index_c2o_Foxx_taux   = cpl_interface_contractIndex(contractR,'Foxx_taux')
+      index_c2o_Foxx_tauy   = cpl_interface_contractIndex(contractR,'Foxx_tauy')
+      index_c2o_Foxx_snow   = cpl_interface_contractIndex(contractR,'Foxx_snow')
+      index_c2o_Foxx_rain   = cpl_interface_contractIndex(contractR,'Foxx_rain')
+      index_c2o_Foxx_evap   = cpl_interface_contractIndex(contractR,'Foxx_evap')
+      index_c2o_Foxx_meltw  = cpl_interface_contractIndex(contractR,'Foxx_meltw')
+      index_c2o_Foxx_salt   = cpl_interface_contractIndex(contractR,'Foxx_salt')
+      index_c2o_Foxx_swnet  = cpl_interface_contractIndex(contractR,'Foxx_swnet')
+      index_c2o_Foxx_sen    = cpl_interface_contractIndex(contractR,'Foxx_sen')
+      index_c2o_Foxx_lwup   = cpl_interface_contractIndex(contractR,'Foxx_lwup')
+      index_c2o_Foxx_lwdn   = cpl_interface_contractIndex(contractR,'Foxx_lwdn')
+      index_c2o_Foxx_melth  = cpl_interface_contractIndex(contractR,'Foxx_melth')
+      index_c2o_Si_ifrac    = cpl_interface_contractIndex(contractR,'Si_ifrac')
+      index_c2o_Sa_pslv     = cpl_interface_contractIndex(contractR,'Sa_pslv')
+      index_c2o_Faoc_duu10n = cpl_interface_contractIndex(contractR,'Faoc_duu10n')
+      index_c2o_Forr_roff   = cpl_interface_contractIndex(contractR,'Forr_roff')
+
       !--- receive initial message from coupler
       call cpl_interface_ibufRecv(cpl_fields_cplname,irbuf)
 
 !-----------------------------------------------------------------------
 !
-!     send initial state info to coupler
+!  send initial state info to coupler
 !
 !-----------------------------------------------------------------------
 
@@ -678,7 +736,7 @@
 
 !-----------------------------------------------------------------------
 !
-!     initialize timers for coupled model
+!  initialize timers for coupled model
 !
 !-----------------------------------------------------------------------
       
@@ -712,43 +770,43 @@
 ! !DESCRIPTION:
 !  This routine call coupler communication routines to set
 !  surface forcing data
+!  Note: We are using intent "inout" for SMF,SMFT, STF, SHF_QSW
+!        and IFRAC in order to preserve their values inbetween
+!        coupling timesteps.
 !
 ! !REVISION HISTORY:
 !  same as module
 
 ! !INPUT/OUTPUT PARAMETERS:
-!  Note: We are using intent "inout" for SMF,SMFT, STF, SHF_QSW
-!        and IFRAC in order to preserve their values inbetween
-!        coupling timesteps.
  
-      real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic),  &
-         intent(inout) ::  &
-         SMF               &!  surface momentum fluxes (wind stress)
-      ,  SMFT               !  surface momentum fluxes at T points
+   real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic),  &
+      intent(inout) ::  &
+      SMF,              &!  surface momentum fluxes (wind stress)
+      SMFT               !  surface momentum fluxes at T points
 
-      real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic),  &
+   real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic),  &
          intent(inout) ::  &
       STF,             &!  surface tracer fluxes
       TFW               !  tracer concentration in water flux
 
-      real (r8), dimension(nx_block,ny_block,max_blocks_clinic),  &
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic),  &
          intent(inout) ::  &
-         SHF_QSW           &!  penetrative solar heat flux
-      ,  FW                &!  fresh water flux
-      ,  IFRAC             &!  fractional ice coverage
-      ,  ATM_PRESS         &!  atmospheric pressure forcing
-      ,  U10_SQR            !  10m wind speed squared
+      SHF_QSW,          &!  penetrative solar heat flux
+      FW,               &!  fresh water flux
+      IFRAC,            &!  fractional ice coverage
+      ATM_PRESS,        &!  atmospheric pressure forcing
+      U10_SQR            !  10m wind speed squared
 
 !EOP
 !BOC
-
+     
 !-----------------------------------------------------------------------
 !
-!     local variables
+!  local variables
 !
 !-----------------------------------------------------------------------
 
-      integer (int_kind) :: n, iblock
+   integer (int_kind) :: n, iblock
 
            
  
@@ -857,8 +915,9 @@
 !
 ! !REVISION HISTORY:
 !  same as module
- 
+
 ! !INPUT/OUTPUT PARAMETERS:
+ 
    real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
       intent(inout) :: &
       STF,             &! surface tracer fluxes at current timestep
@@ -867,7 +926,6 @@
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic),  &
       intent(inout) ::  &
       FW                !  fresh water flux
-
 
 
 !EOP
@@ -879,11 +937,11 @@
 !-----------------------------------------------------------------------
 
   integer (int_kind) ::  &
-      iblock,            &! local address of current block
-      n                   ! index
+     iblock,             &! local address of current block
+     n                    ! index
 
   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
-      WORK1, WORK2        ! local work arrays
+     WORK1, WORK2        ! local work arrays
 
 #if coupled
 
@@ -956,15 +1014,16 @@
 !EOC
 
  end subroutine set_combined_forcing
+ 
 #if coupled
 !***********************************************************************
 
 !BOP
-! !IROUTINE: init_coupled
+! !IROUTINE: recv_from_coupler
 ! !INTERFACE:
 
  subroutine recv_from_coupler(SMF,SMFT,STF,SHF_QSW,FW,TFW,   &
-     IFRAC,ATM_PRESS,U10_SQR)
+        IFRAC,ATM_PRESS,U10_SQR)
 
 ! !DESCRIPTION:
 !  This routine receives message from coupler with surface flux data
@@ -973,152 +1032,156 @@
 !  same as module
 
 ! !OUTPUT PARAMETERS:
-      real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic), intent(out) ::  &
-         SMF               &!  surface momentum fluxes (wind stress)
-      ,  SMFT               !  surface momentum fluxes at T points
 
-      real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), intent(out) ::  &
+   real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic), intent(out) ::  &
+      SMF,              &!  surface momentum fluxes (wind stress)
+      SMFT               !  surface momentum fluxes at T points
+
+   real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), intent(out) ::  &
       STF,             &!  surface tracer fluxes
       TFW               !  tracer concentration in water flux
 
-      real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(out) ::  &
-         SHF_QSW           &!  penetrative solar heat flux
-      ,  FW                &!  fresh water flux
-      ,  IFRAC             &!  fractional ice coverage
-      ,  ATM_PRESS         &!  atmospheric pressure forcing
-      ,  U10_SQR            !  10m wind speed squared
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(out) ::  &
+      SHF_QSW,          &!  penetrative solar heat flux
+      FW,               &!  fresh water flux
+      IFRAC,            &!  fractional ice coverage
+      ATM_PRESS,        &!  atmospheric pressure forcing
+      U10_SQR            !  10m wind speed squared
 
 !EOP
 !BOC
-
 !-----------------------------------------------------------------------
 !
-!     local variables
+!  local variables
 !
 !-----------------------------------------------------------------------
 
-      character (char_len)    :: label
+   character (char_len)    :: label
  
-      integer (int_kind) ::  &
-        i,j,k,n,iblock
+   integer (int_kind) ::  &
+      nrecv,              &
+      i,j,k,n,iblock
 
-      real (r8), dimension(nx_block,ny_block) :: WORKB
+   real (r8), dimension(nx_block,ny_block) ::  &
+      WORKB
 
-      real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::   &
-        WORK1, WORK2       &! local work space
-      , WORK3, WORK4       &! local work space
-      , WORK5               ! local work space
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::   &
+      WORK1, WORK2,      &! local work space
+      WORK3, WORK4,      &! local work space
+      WORK5               ! local work space
 
-      real (r8) ::   &
-         m2percm2  &
-      ,  gsum
+   real (r8) ::  &
+      m2percm2,  &
+      gsum
 
    type (block) :: this_block ! local block info
 
 !-----------------------------------------------------------------------
 !
-!     receive message from coupler and check for terminate signal
+!  receive message from coupler and check for terminate signal
 !
 !-----------------------------------------------------------------------
+
+   nrecv = cpl_interface_contractNumatt(contractR)
 
 !maltrud  ASSUME NBLOCKS_CLINIC = 1
-      iblock = 1
-      this_block = get_block(blocks_clinic(iblock),iblock)
+   iblock = 1
+   this_block = get_block(blocks_clinic(iblock),iblock)
 
-      allocate(sbuf((this_block%ie-this_block%ib+1)*(this_block%je-this_block%jb+1)  &
-      ,       cpl_fields_c2o_total))
-      call cpl_interface_contractRecv(cpl_fields_cplname,contractR  &
-      ,       irbuf,sbuf)
-
-!-----------------------------------------------------------------------
-!
-!     check all coupler flags and respond appropriately
-!
-!-----------------------------------------------------------------------
-
-      if (irbuf(cpl_fields_ibuf_stopnow) == 1) then
-        call set_time_flag(cpl_stop_now,.true.)
-        if (my_task == master_task) then
-          call int_to_char (4,iyear   , cyear  )
-          call int_to_char (2,imonth  , cmonth )
-          call int_to_char (2,iday    , cday   )
-          call int_to_char (2,ihour   , chour  )
-          call int_to_char (2,iminute , cminute)
-          call int_to_char (2,isecond , csecond)
-          write(stdout,*) '(recv_from_coupler) ',  &
-           'cpl requests termination now: ', &
-           cyear,'/',cmonth,'/',cday,' ', chour,':',cminute,':',csecond
-        endif
-        RETURN
-      endif
-
-
-      if (irbuf(cpl_fields_ibuf_infobug) >= 2) then
-         ldiag_cpl = .true. 
-      else
-         ldiag_cpl = .false.
-      endif
-
-      if (irbuf(cpl_fields_ibuf_resteod) == 1) then
-         call set_time_flag(cpl_write_restart,.true.)
-         if (my_task == master_task) then
-           write(stdout,*) '(recv_from_coupler) ', &
-             'cpl requests restart file at eod  ',cyear,'/',cmonth,'/',cday
-         endif
-      endif
-  
-!      if (irbuf(cpl_fields_ibuf_histeod) == 1) then
-!       ignore for now
-!        call set_time_flag(cpl_write_history,.true.)
-!        call int_to_char (4,iyear   , cyear )
-!        call int_to_char (2,imonth  ,cmonth )
-!        call int_to_char (2,iday    ,cday   )
-!        call int_to_char (2,ihour   ,chour  )
-!        call int_to_char (2,iminute ,cminute)
-!        call int_to_char (2,isecond ,csecond)
-!        if (my_task == master_task) then
-!        write(stdout,*) ' cpl requests history file at eod '  &
-!     ,                     ' ', cyear,'/',cmonth,'/',cday, '  '
-!        endif
-!      endif
-  
-  
-!      if (irbuf(cpl_fields_ibuf_histtavg) == 1) then
-!       ignore for now
-!        call set_time_flag(cpl_write_tavg, .true.)
-!        call int_to_char (4,iyear   , cyear )
-!        call int_to_char (2,imonth  ,cmonth )
-!        call int_to_char (2,iday    ,cday   )
-!        call int_to_char (2,ihour   ,chour  )
-!        call int_to_char (2,iminute ,cminute)
-!        call int_to_char (2,isecond ,csecond)
-!        if (my_task == master_task) then
-!        write(stdout,*) ' cpl requests tavg file at eod '  &
-!     ,                     ' ', cyear,'/',cmonth,'/',cday, '  '
-!        endif
-!      endif
-  
-       if (irbuf(cpl_fields_ibuf_diageod) == 1) then
-         call set_time_flag(cpl_diag_global,.true.)
-         call set_time_flag(cpl_diag_transp,.true.)
- 
-         call int_to_char (4,iyear   ,cyear  )
-         call int_to_char (2,imonth  ,cmonth )
-         call int_to_char (2,iday    ,cday   )
-         call int_to_char (2,ihour   ,chour  )
-         call int_to_char (2,iminute ,cminute)
-         call int_to_char (2,isecond ,csecond)
- 
-         if (my_task == master_task) then
-         write(stdout,*) ' cpl requests diagnostics at eod '  &
-      ,                     ' ', cyear,'/',cmonth,'/',cday, '  '
-         endif
-       endif
+   allocate(sbuf((this_block%ie-this_block%ib+1)*(this_block%je-this_block%jb+1), &
+      nrecv))
+   call cpl_interface_contractRecv(cpl_fields_cplname,contractR, &
+      irbuf,sbuf)
 
 !-----------------------------------------------------------------------
 !
-!     unpack and distribute wind stress, then convert to correct units
-!     and rotate components to local coordinates
+!  check all coupler flags and respond appropriately
+!
+!-----------------------------------------------------------------------
+
+   if (irbuf(cpl_fields_ibuf_stopnow) == 1) then
+     call set_time_flag(cpl_stop_now,.true.)
+     if (my_task == master_task) then
+       call int_to_char (4,iyear   , cyear  )
+       call int_to_char (2,imonth  , cmonth )
+       call int_to_char (2,iday    , cday   )
+       call int_to_char (2,ihour   , chour  )
+       call int_to_char (2,iminute , cminute)
+       call int_to_char (2,isecond , csecond)
+       write(stdout,*) '(recv_from_coupler) ',  &
+        'cpl requests termination now: ', &
+        cyear,'/',cmonth,'/',cday,' ', chour,':',cminute,':',csecond
+     endif
+     RETURN
+   endif
+
+
+   if (irbuf(cpl_fields_ibuf_infobug) >= 2) then
+     ldiag_cpl = .true. 
+   else
+     ldiag_cpl = .false.
+   endif
+
+   if (irbuf(cpl_fields_ibuf_resteod) == 1) then
+     call set_time_flag(cpl_write_restart,.true.)
+     if (my_task == master_task) then
+       write(stdout,*) '(recv_from_coupler) ', &
+         'cpl requests restart file at eod  ',cyear,'/',cmonth,'/',cday
+     endif
+   endif
+  
+!   if (irbuf(cpl_fields_ibuf_histeod) == 1) then
+!    ignore for now
+!     call set_time_flag(cpl_write_history,.true.)
+!     call int_to_char (4,iyear   , cyear )
+!     call int_to_char (2,imonth  ,cmonth )
+!     call int_to_char (2,iday    ,cday   )
+!     call int_to_char (2,ihour   ,chour  )
+!     call int_to_char (2,iminute ,cminute)
+!     call int_to_char (2,isecond ,csecond)
+!     if (my_task == master_task) then
+!     write(stdout,*) ' cpl requests history file at eod '  &
+!  ,                     ' ', cyear,'/',cmonth,'/',cday, '  '
+!     endif
+!   endif
+  
+  
+!   if (irbuf(cpl_fields_ibuf_histtavg) == 1) then
+!    ignore for now
+!     call set_time_flag(cpl_write_tavg, .true.)
+!     call int_to_char (4,iyear   , cyear )
+!     call int_to_char (2,imonth  ,cmonth )
+!     call int_to_char (2,iday    ,cday   )
+!     call int_to_char (2,ihour   ,chour  )
+!     call int_to_char (2,iminute ,cminute)
+!     call int_to_char (2,isecond ,csecond)
+!     if (my_task == master_task) then
+!     write(stdout,*) ' cpl requests tavg file at eod '  &
+!  ,                     ' ', cyear,'/',cmonth,'/',cday, '  '
+!     endif
+!   endif
+  
+    if (irbuf(cpl_fields_ibuf_diageod) == 1) then
+      call set_time_flag(cpl_diag_global,.true.)
+      call set_time_flag(cpl_diag_transp,.true.)
+
+      call int_to_char (4,iyear   ,cyear  )
+      call int_to_char (2,imonth  ,cmonth )
+      call int_to_char (2,iday    ,cday   )
+      call int_to_char (2,ihour   ,chour  )
+      call int_to_char (2,iminute ,cminute)
+      call int_to_char (2,isecond ,csecond)
+
+      if (my_task == master_task) then
+        write(stdout,*) ' cpl requests diagnostics at eod ' , &
+                        ' ', cyear,'/',cmonth,'/',cday, '  '
+      endif
+    endif
+
+!-----------------------------------------------------------------------
+!
+!  unpack and distribute wind stress, then convert to correct units
+!  and rotate components to local coordinates
 !
 !-----------------------------------------------------------------------
 
@@ -1129,15 +1192,15 @@
       do j=this_block%jb,this_block%je
       do i=this_block%ib,this_block%ie
          n = n + 1
-         WORK1(i,j,iblock) = sbuf(n,cpl_fields_c2o_taux)
-         WORK2(i,j,iblock) = sbuf(n,cpl_fields_c2o_tauy)
+         WORK1(i,j,iblock) = sbuf(n,index_c2o_Foxx_taux)
+         WORK2(i,j,iblock) = sbuf(n,index_c2o_Foxx_tauy)
       enddo
       enddo
    enddo
 
-      !***
-      !*** do boundary updates now to ensure correct T->U grid
-      !***
+   !***
+   !*** do boundary updates now to ensure correct T->U grid
+   !***
 
    call update_ghost_cells(WORK1, bndy_clinic, &
                            field_loc_center, field_type_vector)
@@ -1168,7 +1231,7 @@
 
 !-----------------------------------------------------------------------
 !
-!     unpack and distribute fresh water flux and salt flux
+!  unpack and distribute fresh water flux and salt flux
 !
 !-----------------------------------------------------------------------
 
@@ -1177,33 +1240,33 @@
       do j=this_block%jb,this_block%je
       do i=this_block%ib,this_block%ie
          n = n + 1
-         SNOW_F(i,j,iblock) = sbuf(n,cpl_fields_c2o_snow)
-         WORKB (i,j       ) = sbuf(n,cpl_fields_c2o_rain)
-         EVAP_F(i,j,iblock) = sbuf(n,cpl_fields_c2o_evap)
-         MELT_F(i,j,iblock) = sbuf(n,cpl_fields_c2o_meltw)
-         ROFF_F(i,j,iblock) = sbuf(n,cpl_fields_c2o_roff)
-         SALT_F(i,j,iblock) = sbuf(n,cpl_fields_c2o_salt)
+         SNOW_F(i,j,iblock) = sbuf(n,index_c2o_Foxx_snow)
+         WORKB (i,j       ) = sbuf(n,index_c2o_Foxx_rain)
+         EVAP_F(i,j,iblock) = sbuf(n,index_c2o_Foxx_evap)
+         MELT_F(i,j,iblock) = sbuf(n,index_c2o_Foxx_meltw)
+         ROFF_F(i,j,iblock) = sbuf(n,index_c2o_Forr_roff)
+         SALT_F(i,j,iblock) = sbuf(n,index_c2o_Foxx_salt)
 
          PREC_F(i,j,iblock) = WORKB(i,j) + SNOW_F(i,j,iblock)    ! rain + snow
 
-         WORKB(i,j        ) = sbuf(n,cpl_fields_c2o_swnet)
+         WORKB(i,j        ) = sbuf(n,index_c2o_Foxx_swnet)
          SHF_QSW(i,j,iblock) = WORKB(i,j)*  &
             RCALCT(i,j,iblock)*hflux_factor  !  convert from W/m**2
 
-         SENH_F(i,j,iblock)  = sbuf(n,cpl_fields_c2o_sen)
-         LWUP_F(i,j,iblock)  = sbuf(n,cpl_fields_c2o_lwup)
-         LWDN_F(i,j,iblock)  = sbuf(n,cpl_fields_c2o_lwdn)
-         MELTH_F(i,j,iblock) = sbuf(n,cpl_fields_c2o_melth)
+         SENH_F(i,j,iblock)  = sbuf(n,index_c2o_Foxx_sen)
+         LWUP_F(i,j,iblock)  = sbuf(n,index_c2o_Foxx_lwup)
+         LWDN_F(i,j,iblock)  = sbuf(n,index_c2o_Foxx_lwdn)
+         MELTH_F(i,j,iblock) = sbuf(n,index_c2o_Foxx_melth)
 
-         WORKB(i,j       ) = sbuf(n,cpl_fields_c2o_ifrac)
+         WORKB(i,j       ) = sbuf(n,index_c2o_Si_ifrac)
          IFRAC(i,j,iblock) = WORKB(i,j) * RCALCT(i,j,iblock)
 
-!     converting from Pa to dynes/cm**2
-         WORKB(i,j       ) = sbuf(n,cpl_fields_c2o_press)
+         !***  converting from Pa to dynes/cm**2
+         WORKB(i,j       ) = sbuf(n,index_c2o_Sa_pslv)
          ATM_PRESS(i,j,iblock) = c10 * WORKB(i,j) * RCALCT(i,j,iblock)
 
-!     converting from m**2/s**2 to cm**2/s**2
-         WORKB(i,j       ) = sbuf(n,cpl_fields_c2o_duu10)
+         !***  converting from m**2/s**2 to cm**2/s**2
+         WORKB(i,j       ) = sbuf(n,index_c2o_Faoc_duu10n)
          U10_SQR(i,j,iblock) = cmperm * cmperm * WORKB(i,j) * RCALCT(i,j,iblock)
 
       enddo
@@ -1244,9 +1307,9 @@
 
 !-----------------------------------------------------------------------
 !
-!     combine heat flux components into STF array and convert from W/m**2
-!           (note: latent heat flux = evaporation*latent_heat_vapor)
-!           (note: snow melt heat flux = - snow_f*latent_heat_fusion_mks)
+!  combine heat flux components into STF array and convert from W/m**2
+!        (note: latent heat flux = evaporation*latent_heat_vapor)
+!        (note: snow melt heat flux = - snow_f*latent_heat_fusion_mks)
 !
 !-----------------------------------------------------------------------
 
@@ -1263,10 +1326,10 @@
                                         
 !-----------------------------------------------------------------------
 !
-!     combine freshwater flux components
+!  combine freshwater flux components
 !
-!     for variable thickness surface layer, compute fresh water and
-!     salt fluxes
+!  for variable thickness surface layer, compute fresh water and
+!  salt fluxes
 !
 !-----------------------------------------------------------------------
 
@@ -1332,9 +1395,8 @@
 
 !-----------------------------------------------------------------------
 !
-!     if not a variable thickness surface layer or if fw_as_salt_flx
-!     flag is on, convert fresh and salt inputs to a virtual salinity
-!     flux
+!  if not a variable thickness surface layer or if fw_as_salt_flx
+!  flag is on, convert fresh and salt inputs to a virtual salinity flux
 !
 !-----------------------------------------------------------------------
 
@@ -1351,7 +1413,7 @@
  
 !-----------------------------------------------------------------------
 !
-!     balance salt/freshwater in marginal seas
+!  balance salt/freshwater in marginal seas
 !
 !-----------------------------------------------------------------------
  
@@ -1364,7 +1426,7 @@
  
 !-----------------------------------------------------------------------
 !
-!     diagnostics
+!  diagnostics
 !
 !-----------------------------------------------------------------------
 
@@ -1377,14 +1439,14 @@
          call int_to_char (2,ihour   ,chour  )
          call int_to_char (2,iminute ,cminute)
          call int_to_char (2,isecond ,csecond)
-         write(stdout,*)' Global averages of fluxes received from cpl'  &
-      ,                  ' at ', cyear,'/',cmonth ,'/',cday    &
-      ,                     ' ', chour,':',cminute,':',csecond
+         write(stdout,*)' Global averages of fluxes received from cpl',  &
+                         ' at ', cyear,'/',cmonth ,'/',cday,             &
+                            ' ', chour,':',cminute,':',csecond
          call shr_sys_flush(stdout)
       endif
  
       m2percm2  = mpercm*mpercm
-      do k = 1,cpl_fields_c2o_total
+      do k = 1,nrecv
 
          n = 0
          !$OMP PARALLEL DO PRIVATE(iblock,n)
@@ -1424,7 +1486,6 @@
 
 !***********************************************************************
 
-
 !BOP
 ! !IROUTINE: send_to_coupler
 ! !INTERFACE:
@@ -1441,42 +1502,43 @@
 !EOP
 !BOC
 
-
 !-----------------------------------------------------------------------
 !
-!     local variables
+!  local variables
 !
 !-----------------------------------------------------------------------
 
-      character (char_len)    :: label
+   character (char_len)    :: label
  
-      integer (int_kind) ::  &
-        i,j,k,n,iblock
+   integer (int_kind) ::  &
+      i,j,k,n,iblock,     &
+      nsend
 
-      real (r8), dimension(nx_block,ny_block) ::   &
-        WORK1, WORK2       &! local work space
-      , WORK3, WORK4
+   real (r8), dimension(nx_block,ny_block) ::   &
+      WORK1, WORK2,      &! local work space
+      WORK3, WORK4
 
-      real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::   &
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::   &
         WORKA               ! local work space with full block dimension
 
-      real (r8) ::   &
-         m2percm2  &
-      ,  gsum
+   real (r8) ::   &
+      m2percm2,   &
+      gsum
 
    type (block) :: this_block ! local block info
 
 !-----------------------------------------------------------------------
 !
-!     initialize control buffer
+!  initialize control buffer
 !
 !-----------------------------------------------------------------------
 
+      nsend = cpl_interface_contractNumatt(contractS)
       iblock = 1
       this_block = get_block(blocks_clinic(iblock),iblock)
 
       allocate(sbuf((this_block%ie-this_block%ib+1)*(this_block%je-this_block%jb+1)  &
-      ,       cpl_fields_o2c_total))
+      ,       nsend))
 
       isbuf = 0
 
@@ -1501,8 +1563,8 @@
       n = 0
    do iblock = 1, nblocks_clinic
 
-      call ugrid_to_tgrid(WORK3,SBUFF_SUM(:,:,iblock,cpl_fields_o2c_u),iblock)
-      call ugrid_to_tgrid(WORK4,SBUFF_SUM(:,:,iblock,cpl_fields_o2c_v),iblock)
+      call ugrid_to_tgrid(WORK3,SBUFF_SUM(:,:,iblock,index_o2c_So_u),iblock)
+      call ugrid_to_tgrid(WORK4,SBUFF_SUM(:,:,iblock,index_o2c_So_v),iblock)
 
       WORK1 = (WORK3*cos(ANGLET(:,:,iblock))+WORK4*sin(-ANGLET(:,:,iblock)))  &
              * mpercm/tlast_coupled
@@ -1514,8 +1576,8 @@
       do j=this_block%jb,this_block%je
       do i=this_block%ib,this_block%ie
          n = n + 1
-         sbuf(n,cpl_fields_o2c_u) = WORK1(i,j)
-         sbuf(n,cpl_fields_o2c_v) = WORK2(i,j)
+         sbuf(n,index_o2c_So_u) = WORK1(i,j)
+         sbuf(n,index_o2c_So_v) = WORK2(i,j)
       enddo
       enddo
 
@@ -1532,8 +1594,8 @@
       do j=this_block%jb,this_block%je
       do i=this_block%ib,this_block%ie
          n = n + 1
-         sbuf(n,cpl_fields_o2c_t) =   &
-             SBUFF_SUM(i,j,iblock,cpl_fields_o2c_t)/tlast_coupled + T0_Kelvin
+         sbuf(n,index_o2c_So_t) =   &
+             SBUFF_SUM(i,j,iblock,index_o2c_So_t)/tlast_coupled + T0_Kelvin
       enddo
       enddo
    enddo
@@ -1550,8 +1612,8 @@
       do j=this_block%jb,this_block%je
       do i=this_block%ib,this_block%ie
          n = n + 1
-         sbuf(n,cpl_fields_o2c_s) =   &
-             SBUFF_SUM(i,j,iblock,cpl_fields_o2c_s)*salt_to_ppt/tlast_coupled
+         sbuf(n,index_o2c_So_s) =   &
+             SBUFF_SUM(i,j,iblock,index_o2c_So_s)*salt_to_ppt/tlast_coupled
       enddo
       enddo
    enddo
@@ -1565,8 +1627,8 @@
       n = 0
    do iblock = 1, nblocks_clinic
       this_block = get_block(blocks_clinic(iblock),iblock)
-      call ugrid_to_tgrid(WORK3,SBUFF_SUM(:,:,iblock,cpl_fields_o2c_dhdx),iblock)
-      call ugrid_to_tgrid(WORK4,SBUFF_SUM(:,:,iblock,cpl_fields_o2c_dhdy),iblock)
+      call ugrid_to_tgrid(WORK3,SBUFF_SUM(:,:,iblock,index_o2c_So_dhdx),iblock)
+      call ugrid_to_tgrid(WORK4,SBUFF_SUM(:,:,iblock,index_o2c_So_dhdy),iblock)
  
       WORK1 = (WORK3*cos(ANGLET(:,:,iblock)) + WORK4*sin(-ANGLET(:,:,iblock)))  &
               /grav/tlast_coupled
@@ -1576,8 +1638,8 @@
       do j=this_block%jb,this_block%je
       do i=this_block%ib,this_block%ie
          n = n + 1
-         sbuf(n,cpl_fields_o2c_dhdx) = WORK1(i,j)
-         sbuf(n,cpl_fields_o2c_dhdy) = WORK2(i,j)
+         sbuf(n,index_o2c_So_dhdx) = WORK1(i,j)
+         sbuf(n,index_o2c_So_dhdy) = WORK2(i,j)
       enddo
       enddo
 
@@ -1595,7 +1657,7 @@
       do j=this_block%jb,this_block%je
       do i=this_block%ib,this_block%ie
          n = n + 1
-         sbuf(n,cpl_fields_o2c_q) = QFLUX(i,j,iblock)
+         sbuf(n,index_o2c_Fioo_q) = QFLUX(i,j,iblock)
       enddo
       enddo
    enddo
@@ -1607,7 +1669,7 @@
 
 !-----------------------------------------------------------------------
 !
-!     send fields to coupler
+!  send fields to coupler
 !
 !-----------------------------------------------------------------------
 
@@ -1634,7 +1696,7 @@
         endif
  
          m2percm2  = mpercm*mpercm
-         do k = 1,cpl_fields_o2c_total
+         do k = 1,nsend
             n = 0
    do iblock = 1, nblocks_clinic
       this_block = get_block(blocks_clinic(iblock),iblock)
@@ -1678,21 +1740,20 @@
 
 ! !DESCRIPTION:
 !  This routine accumulates sums for averaging fields to
-!   be sent to the coupler
+!  be sent to the coupler
 !
 ! !REVISION HISTORY:
 !  same as module
 !EOP
 !BOC
-
 !-----------------------------------------------------------------------
 !
-!     local variables
+!  local variables
 !
 !-----------------------------------------------------------------------
 
-      real (r8) ::   &
-        delt                ! time interval since last step
+   real (r8) ::   &
+      delt                ! time interval since last step
 
    integer (int_kind) :: iblock
 
@@ -1726,37 +1787,37 @@
 
    !$OMP PARALLEL DO PRIVATE(iblock)
    do iblock = 1, nblocks_clinic
-   SBUFF_SUM(:,:,iblock,cpl_fields_o2c_u) =   &
-      SBUFF_SUM(:,:,iblock,cpl_fields_o2c_u) + delt*  &
+   SBUFF_SUM(:,:,iblock,index_o2c_So_u) =   &
+      SBUFF_SUM(:,:,iblock,index_o2c_So_u) + delt*  &
                                    UVEL(:,:,1,curtime,iblock)
 
-   SBUFF_SUM(:,:,iblock,cpl_fields_o2c_v) =   &
-      SBUFF_SUM(:,:,iblock,cpl_fields_o2c_v) + delt*  &
+   SBUFF_SUM(:,:,iblock,index_o2c_So_v) =   &
+      SBUFF_SUM(:,:,iblock,index_o2c_So_v) + delt*  &
                                    VVEL(:,:,1,curtime,iblock)
 
-   SBUFF_SUM(:,:,iblock,cpl_fields_o2c_t ) =   &
-      SBUFF_SUM(:,:,iblock,cpl_fields_o2c_t ) + delt*  &
+   SBUFF_SUM(:,:,iblock,index_o2c_So_t ) =   &
+      SBUFF_SUM(:,:,iblock,index_o2c_So_t ) + delt*  &
                                    TRACER(:,:,1,1,curtime,iblock)
 
-   SBUFF_SUM(:,:,iblock,cpl_fields_o2c_s ) =   &
-      SBUFF_SUM(:,:,iblock,cpl_fields_o2c_s ) + delt*  &
+   SBUFF_SUM(:,:,iblock,index_o2c_So_s ) =   &
+      SBUFF_SUM(:,:,iblock,index_o2c_So_s ) + delt*  &
                                    TRACER(:,:,1,2,curtime,iblock)
 
-   SBUFF_SUM(:,:,iblock,cpl_fields_o2c_dhdx) =   &
-      SBUFF_SUM(:,:,iblock,cpl_fields_o2c_dhdx) + delt*  &
+   SBUFF_SUM(:,:,iblock,index_o2c_So_dhdx) =   &
+      SBUFF_SUM(:,:,iblock,index_o2c_So_dhdx) + delt*  &
                                    GRADPX(:,:,curtime,iblock)
 
-   SBUFF_SUM(:,:,iblock,cpl_fields_o2c_dhdy) =   &
-      SBUFF_SUM(:,:,iblock,cpl_fields_o2c_dhdy) + delt*  &
+   SBUFF_SUM(:,:,iblock,index_o2c_So_dhdy) =   &
+      SBUFF_SUM(:,:,iblock,index_o2c_So_dhdy) + delt*  &
                                    GRADPY(:,:,curtime,iblock)
    enddo
    !$OMP END PARALLEL DO
 
-!EOC
-!-----------------------------------------------------------------------
-
  end subroutine sum_buffer
 
+
+!-----------------------------------------------------------------------
+!EOC
  
 !***********************************************************************
 !BOP
@@ -1862,11 +1923,10 @@
 
  end subroutine tavg_coupled_forcing
 #endif
-
+ 
 !***********************************************************************
 
-
-      end module forcing_coupled
+ end module forcing_coupled
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 

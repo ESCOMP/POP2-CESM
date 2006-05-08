@@ -11,8 +11,7 @@
 !  of blocks of data (eg from baroclinic to barotropic and back).
 !
 ! !REVISION HISTORY:
-!  CVS: $Id$
-!  CVS: $Name$
+!  SVN: $Id$
 
 ! !USES:
 

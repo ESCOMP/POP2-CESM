@@ -1550,10 +1550,11 @@
               TAPER2 = merge(p5*  &
                  (c1-tanh(c10*SLA/slm_r-c4)), c0, SLA < slm_r)
 
-              TAPER3 = TAPER2
               if ( diff_tapering ) then
                 TAPER3 = merge(p5*  &
                  (c1-tanh(c10*SLA/slm_b-c4)), c0, SLA < slm_b)
+              else
+                TAPER3 = TAPER2
               endif
 
             case (slope_control_notanh)
@@ -1562,8 +1563,6 @@
 !     function = x*(1.-0.25*abs(x)) for |x|<2
 !              = sign(x)            for |x|>2
 !     (faster than DM95)
-
-              TAPER2 = c1 
 
               do j=1,ny_block
                 do i=1,nx_block
@@ -1578,8 +1577,6 @@
                 enddo
               enddo
 
-              TAPER3 = TAPER2
-
               if ( diff_tapering ) then
                 do j=1,ny_block
                   do i=1,nx_block
@@ -1593,6 +1590,8 @@
                     endif
                   end do
                 end do
+              else
+                TAPER3 = TAPER2
               endif
 
             case (slope_control_clip)
@@ -1638,8 +1637,6 @@
                 enddo
               enddo
 
-              TAPER3 = TAPER2
-
               if (diff_tapering) then
                 do j=1,ny_block
                   do i=1,nx_block
@@ -1647,6 +1644,8 @@
                       TAPER3(i,j) = (slm_b/SLA(i,j))**2
                   enddo
                 enddo
+              else
+                TAPER3 = TAPER2
               endif
 
             end select

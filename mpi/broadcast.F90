@@ -9,7 +9,7 @@
 !  particular version contains MPI versions of these routines.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
+!  SVN:$Id$
 !
 ! !USES:
 

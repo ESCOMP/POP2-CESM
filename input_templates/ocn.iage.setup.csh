@@ -9,8 +9,7 @@
 #    tavg_contents  tavg_contents_filename
 #    prestage       res_dpt_dir res_indpt_dir
 #
-#  CVS:$Id$
-#  CVS:$Name$
+#  SVN:$Id$
 #
 #===============================================================================
 

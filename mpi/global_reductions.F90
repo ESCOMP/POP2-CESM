@@ -9,8 +9,7 @@
 !  reductions like global sums, minvals, maxvals, etc.
 !
 ! !REVISION HISTORY:
-!  CVS:$Id$
-!  CVS:$Name$
+!  SVN:$Id$
 
 ! !USES:
 
