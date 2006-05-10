@@ -84,7 +84,7 @@
 !-----------------------------------------------------------------------
 
 
-   character (char_len_long) :: &
+   character (char_len) :: &
       path            ! filename to read
 
    character (80) :: &
@@ -392,7 +392,7 @@
 !
 !-----------------------------------------------------------------------
 
-   character (char_len_long) :: &
+   character (char_len) :: &
       path             ! temp to use for filename
 
    character (255) :: &

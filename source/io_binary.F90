@@ -104,7 +104,7 @@
 !
 !-----------------------------------------------------------------------
 
-   character (char_len_long) :: &
+   character (char_len) :: &
       path,          &! filename to read
       work_line,     &! temporary to use for parsing file lines
       comp_line,     &! temporary to use for parsing file lines

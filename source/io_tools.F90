@@ -46,11 +46,11 @@
 ! !IROUTINE: document
 ! !INTERFACE:
 
- subroutine document_char (sub_name,message)
+ subroutine document_char (sub_name,message,char_val)
  
 ! !DESCRIPTION:
-!  This routine writes out the calling subroutine name and an
-!  associated message
+!  This routine writes out the calling subroutine name and two
+!  associated messages
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -60,17 +60,24 @@
 !  routine corresponding to a character string
 
 ! !INPUT PARAMETERS:
-   character (*) :: sub_name, message
+   character (*) :: sub_name, message 
+   character (*), optional :: char_val
 
 !EOP
 !BOC
  
+   character(*),parameter :: fmt1 = "(  5x, '(',a,') ',a)"
+   character(*),parameter :: fmt2 = "(  5x, '(',a,') ',a,' = ',a)" 
+ 
    if (my_task == master_task) then
-      write(stdout,1000)  sub_name, message
-      call shr_sys_flush (stdout)
+     if (present(char_val)) then
+       write(stdout,fmt2)  sub_name, message, trim(char_val)
+     else
+       write(stdout,fmt1)  sub_name, trim(message)
+     endif
+     call shr_sys_flush (stdout)
    endif
  
-1000  format(/,5x,'(',a,')  ', a ) 
 !EOC
  
  end subroutine document_char
@@ -99,12 +106,13 @@
 !EOP
 !BOC
 
+   character(*),parameter :: fmt = "(  5x, '(',a,') ',a,' = ',i10)" 
+ 
    if (my_task == master_task) then
-      write(stdout,1000)  sub_name, message, ival
+      write(stdout,fmt)  sub_name, message, ival
       call shr_sys_flush (stdout)
    endif
  
-1000  format(/,5x,'(',a,')  ', a,1x,i10)
 !EOC
  
  end subroutine document_int
@@ -134,12 +142,13 @@
 !EOP
 !BOC
 
+   character(*),parameter :: fmt = "(  5x, '(',a,') ',a,' = ',L3)" 
+ 
    if (my_task == master_task) then
-      write(stdout,1000)  sub_name, message, lval
+      write(stdout,fmt)  sub_name, message, lval
       call shr_sys_flush (stdout)
    endif
  
-1000  format(/,5x,'(',a,')  ', a,1x,L3)
 !EOC
  
  end subroutine document_log
@@ -168,12 +177,13 @@
 !EOP
 !BOC
 
+   character(*),parameter :: fmt = "(  5x, '(',a,') ',a,' = ',1pe23.16)" 
+ 
    if (my_task == master_task) then
-      write(stdout,1000)  sub_name, message, dval
+      write(stdout,fmt)  sub_name, message, dval
       call shr_sys_flush (stdout)
    endif
  
-1000  format(/,5x,'(',a,')  ', a, 1x, 1pe15.5)
 !EOC
  
  end subroutine document_dbl
@@ -203,12 +213,13 @@
 !EOP
 !BOC
 
+   character(*),parameter :: fmt = "(  5x, '(',a,') ',a,' = ',1pe23.16)" 
+ 
    if (my_task == master_task) then
-      write(stdout,1000)  sub_name, message, rval
+      write(stdout,fmt)  sub_name, message, rval
       call shr_sys_flush (stdout)
    endif
  
-1000  format(/,5x,'(',a,')  ', a, 1x, 1pe15.5)
 !EOC
  
  end subroutine document_real

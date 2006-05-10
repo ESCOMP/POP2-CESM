@@ -86,7 +86,7 @@
    ! Generic data file descriptor
 
    type, public :: datafile
-      character(char_len_long)                   :: full_name
+      character(char_len)                        :: full_name
       character(char_len)                        :: data_format ! .bin or
                                                                 ! .nc
       character(char_len)                        :: root_name
@@ -151,7 +151,7 @@
    logical (log_kind), public :: &
       luse_pointer_files   ! use files to point to location of restarts
 
-   character (char_len_long), public :: &
+   character (char_len), public :: &
       pointer_filename     ! filename to use for pointer files
 !EOP
 !BOC
@@ -1620,7 +1620,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   descriptor%full_name          = char_blank_long
+   descriptor%full_name          = char_blank
    descriptor%data_format        = char_blank
    descriptor%root_name          = char_blank
    descriptor%file_suffix        = char_blank

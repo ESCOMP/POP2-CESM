@@ -172,7 +172,7 @@
 !   local variables
 !-----------------------------------------------------------------------
     
-   character (char_len_long) :: message   ! error message
+   character (char_len) :: message   ! error message
  
  
 !-----------------------------------------------------------------------

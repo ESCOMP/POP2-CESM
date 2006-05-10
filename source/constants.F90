@@ -101,9 +101,6 @@
    character (char_len), public ::  &
       char_blank          ! empty character string
 
-   character (char_len_long), public ::  &
-      char_blank_long          ! empty character string
-
    ! physical constants
    ! note that most internal ocean constants are in cgs units
    !  while atmosphere and surface flux constants are sometimes

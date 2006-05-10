@@ -13,12 +13,11 @@
 !
 ! !USES:
 
-   use kinds_mod, only: char_len, char_len_long, log_kind, int_kind, r8
+   use kinds_mod, only: char_len, log_kind, int_kind, r8
    use domain_size
    use domain, only: nblocks_clinic, blocks_clinic, bndy_clinic
    use constants, only: char_blank, field_loc_NEcorner, field_type_vector,  &
-       field_loc_center, field_type_scalar, blank_fmt, c0, grav,            &
-       char_blank_long
+       field_loc_center, field_type_scalar, blank_fmt, c0, grav
    use blocks, only: nx_block, ny_block, block, get_block
    use prognostic, only: UBTROP, VBTROP, PSURF, GRADPX, GRADPY, UVEL, VVEL, &
        PGUESS, TRACER, nt, nx_global, ny_global, km, curtime, oldtime,      &
@@ -81,7 +80,7 @@
 !
 !-----------------------------------------------------------------------
 
-   character (char_len_long) :: &
+   character (char_len) :: &
       restart_outfile       ! restart output filename root
 
    character (char_len) :: &
@@ -210,7 +209,7 @@
    real (r8), dimension(nx_block,ny_block) :: &
       WORK1,WORK2        ! work space for pressure correction
 
-   character (char_len_long) ::  &
+   character (char_len) ::  &
       restart_filename,     &! modified file name for restart file
       restart_pointer_file, &! file name for restart pointer file
       short_name, long_name  ! tracer name temporaries
@@ -235,8 +234,8 @@
 !
 !-----------------------------------------------------------------------
 
-   restart_filename = char_blank_long
-   restart_pointer_file = char_blank_long
+   restart_filename = char_blank
+   restart_pointer_file = char_blank
 
    if (luse_pointer_files .and. .not. lbranch) then
       call get_unit(nu)

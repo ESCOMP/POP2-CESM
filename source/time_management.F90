@@ -22,6 +22,7 @@
    use broadcast
    use grid
    use io
+   use io_tools
    use exit_mod
    use registry
    use shr_sys_mod
@@ -32,8 +33,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_time_manager1,        &
-             init_time_manager2,        &
+   public :: init_time1,        &
+             init_time2,        &
              time_manager,              &
              init_time_flag,            &
              set_time_flag,             &
@@ -432,10 +433,10 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: init_time_manager1
+! !IROUTINE: init_time1
 ! !INTERFACE:
 
- subroutine init_time_manager1
+ subroutine init_time1
 
 ! !DESCRIPTION:
 !  Initializes some time manager variables from namelist inputs
@@ -597,6 +598,7 @@
    call broadcast_scalar (allow_leapyear  , master_task)
    call broadcast_scalar (date_separator  , master_task)
  
+
 !-----------------------------------------------------------------------
 !
 !  error checking
@@ -796,22 +798,22 @@
 
 !-----------------------------------------------------------------------
 !
-!  Register init_time_manager1
+!  Register init_time1
 !
 !-----------------------------------------------------------------------
-   call register_string('init_time_manager1')
+   call register_string('init_time1')
 
    call flushm (stdout)
 !EOC
 
- end subroutine init_time_manager1
+ end subroutine init_time1
 
 !***********************************************************************
 !BOP
-! !IROUTINE: init_time_manager2
+! !IROUTINE: init_time2
 ! !INTERFACE:
 
- subroutine init_time_manager2
+ subroutine init_time2
 
 ! !DESCRIPTION:
 !  Completes initialization of time manager quantities now that
@@ -849,15 +851,15 @@
  
 !-----------------------------------------------------------------------
 !
-!   register init_time_manager2, then determine if both init_time_manager1 
+!   register init_time2, then determine if both init_time1 
 !   and init_ts have been registered
 !
 !-----------------------------------------------------------------------
-   call register_string   ('init_time_manager2')
-   call registry_err_check('init_time_manager1', .true., &
-                            caller='init_time_manager2' )
+   call register_string   ('init_time2')
+   call registry_err_check('init_time1', .true., &
+                            caller='init_time2' )
    call registry_err_check('init_ts', .true., &
-                            caller= 'init_time_manager2' )
+                            caller= 'init_time2' )
 
 !-----------------------------------------------------------------------
 !
@@ -1270,7 +1272,7 @@
 
  call flushm (stdout)
 
- end subroutine init_time_manager2
+ end subroutine init_time2
 
 !***********************************************************************
 !BOP

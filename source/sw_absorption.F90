@@ -86,10 +86,8 @@
 !BOC
 
 
-   character (char_len_long) ::  &
-      chl_filename                ! chlorophyll data file name
- 
    character (char_len) ::       &
+      chl_filename,              &! chlorophyll data file name
       chl_file_fmt,              &! chlorophyll data file format
       chl_data_name               ! chlorophyll short name (eg, 'CHL')
  

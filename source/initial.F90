@@ -50,7 +50,7 @@
    use advection, only: init_advection
    use diagnostics, only: init_diagnostics
    use state_mod, only: init_state, state
-   use time_management, only: first_step, init_time_manager1, init_time_manager2, &
+   use time_management, only: first_step, init_time1, init_time2, &
                               dttxcel, dtuxcel, check_time_flag_freq,  &
                               check_time_flag_freq_opt, init_time_flag
    use topostress, only: init_topostress
@@ -160,9 +160,9 @@
       write(stdout,blank_fmt)
       write(stdout,ndelim_fmt)
       write(stdout,blank_fmt)
-      write(stdout,'(3a)') ' Parallel Ocean Program (POP) ', &
-                           ' Version 2.1alpha Jan 2005', &
-                           ' Modified for CCSM $Id$'
+      write(stdout,'(a)') ' Parallel Ocean Program (POP) '
+      write(stdout,'(a)') ' Version 2.1alpha Jan 2005'
+      write(stdout,'(a)') ' Modified for CCSM $Id$'
       write(stdout,blank_fmt)
       call shr_sys_flush(stdout)
    endif
@@ -195,7 +195,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call init_time_manager1
+   call init_time1
 
 !-----------------------------------------------------------------------
 !
@@ -285,7 +285,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call init_time_manager2
+   call init_time2
 
 
 !-----------------------------------------------------------------------

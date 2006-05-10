@@ -115,7 +115,7 @@
       diag_cfl_flag,         &! time flag id for cfl    diags
       diag_transp_flag        ! time flag id for transp diags
 
-   character (char_len_long) ::   &
+   character (char_len) ::   &
       diag_outfile,                  &! current  filename for diagnostic output
       diag_outfile_old,              &! previous filename for the diagnostic output file
       diag_outfile_root,             &! original filename for the diagnostic output file
@@ -1625,7 +1625,7 @@
 
       call timer_print_all()
 
-      call document ('diag_print', 'file written: '//trim(diag_outfile))
+      call document ('diag_print', 'file written: '// trim(diag_outfile))
 
 
    endif ! ldiag_global

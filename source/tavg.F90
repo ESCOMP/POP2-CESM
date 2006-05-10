@@ -32,6 +32,7 @@
    use gather_scatter
    use operators, only: zcurl
    use io_ccsm
+   use io_tools
    use diag_bsf, only: pcg_diag_bsf_solver, init_diag_bsf
    use diags_on_lat_aux_grid
    use registry
@@ -177,14 +178,14 @@
       tavg_start_iopt, &! start after option
       tavg_start        ! start tavg after tavg_start
 
-   character (char_len_long) ::  &
-      tavg_infile,               & ! filename for restart input
-      tavg_outfile,              & ! root filename for tavg output
-      tavg_outfile_orig            ! root filename for tavg output (original)
+   character (char_len) ::  &
+      tavg_infile,          & ! filename for restart input
+      tavg_outfile,         & ! root filename for tavg output
+      tavg_outfile_orig       ! root filename for tavg output (original)
 
-   character (char_len) ::       &
-      tavg_fmt_in,               & ! format (nc or bin) for reading
-      tavg_fmt_out                 ! format (nc or bin) for writing
+   character (char_len) ::    &
+      tavg_fmt_in,            & ! format (nc or bin) for reading
+      tavg_fmt_out              ! format (nc or bin) for writing
 
    type (datafile) :: tavg_file_desc    ! IO file descriptor
  
