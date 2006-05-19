@@ -401,7 +401,7 @@ DO NOT change transport_reg2_names unless you know exactly what you are doing.
                          'GIN Sea',
                          'Arctic Ocean',
                          'Hudson Bay'
-/  
+/
 
 The gx1v4 version of tidal_energy does NOT yet exist.  Until this file exists,
 DO NOT set ltidal_mixing true.
@@ -413,3 +413,4 @@ DO NOT set ltidal_mixing true.
   tidal_mix_max          = 100.0
   tidal_energy_file      = 'INPUT/tidal_energy'
   tidal_energy_file_fmt  = 'bin'
+/

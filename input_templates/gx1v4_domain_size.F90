@@ -11,7 +11,7 @@
 !  modules for decomposing the model domain across processors.
 !
 ! !REVISION HISTORY:
-!  SVN:$Id: gx1v3_domain_size.F90 19 2005-12-12 17:50:21Z mvr $
+!  SVN:$Id$
 
 ! !USES:
 

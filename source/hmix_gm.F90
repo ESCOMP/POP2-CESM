@@ -1473,10 +1473,6 @@
 
           do kk_sub = ktp,kbt 
 
-            TAPER1 = c1 
-            TAPER2 = c1 
-            TAPER3 = c1 
-
             kid = kk + kk_sub - 2
 
 !-----------------------------------------------------------------------
@@ -1497,6 +1493,7 @@
                   + SLY(:,:,2,kk_sub,kk,bid)**2)/DYT(:,:,bid)**2)) &
                  + eps
 
+            TAPER1 = c1 
             if ( .not. transition_layer_on ) then
 
               if ( kk == 1 ) then
@@ -1541,6 +1538,9 @@
 !     methods to control slope
 !
 !-----------------------------------------------------------------------
+
+            TAPER2 = c1 
+            TAPER3 = c1 
 
             select case (slope_control)
             case (slope_control_tanh)

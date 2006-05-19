@@ -401,7 +401,7 @@ DO NOT change transport_reg2_names unless you know exactly what you are doing.
                          'GIN Sea',
                          'Arctic Ocean',
                          'Hudson Bay'
-/  
+/
 
 &tidal_nml
   ltidal_mixing          = .false.
@@ -411,3 +411,4 @@ DO NOT change transport_reg2_names unless you know exactly what you are doing.
   tidal_mix_max          = 100.0
   tidal_energy_file      = 'INPUT/tidal_energy'
   tidal_energy_file_fmt  = 'bin'
+/
