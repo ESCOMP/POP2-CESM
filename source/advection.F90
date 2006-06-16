@@ -599,7 +599,7 @@
          !***
 
          do j=this_block%jb-2,this_block%je+2
-         do i=this_block%ib-1,this_block%ie
+         do i=this_block%ib-2,this_block%ie+1
 
             p5_DXT_ph_R(i,j,iblock) = c1 / (DXT(i,j,iblock) + &
                                             DXT(i+1,j,iblock))
@@ -636,7 +636,7 @@
          !*** poloidal grid coefficients     
          !***
 
-         do j=this_block%jb-1,this_block%je
+         do j=this_block%jb-2,this_block%je+1
          do i=this_block%ib,this_block%ie
 
             p5_DYT_ph_R(i,j,iblock) = c1 / (DYT(i,j,iblock) + &
@@ -2024,6 +2024,8 @@
 
    if (luse_lw_lim) then
       UTE(:,this_block%jb-2)  = UTE_jbm2(:,k,bid)
+      UTW(2:nx_block,this_block%jb-2) = &
+         UTE(1:nx_block-1,this_block%jb-2)
       UTE(this_block%ib-2,:)  = UTW(this_block%ib-1,:)
       VTN(:,this_block%jb-2)  = VTS(:,this_block%jb-1)
    endif
@@ -2828,6 +2830,10 @@
                            (DZT(i,j,k,bid) + DZT(i,j,k+1,bid))
                if (WTKBp1(i,j) > c0) then
                   MU_z(i,j) = (DZT(i,j,k+1,bid) * adv_dt_r - WTKBp1(i,j)) / WTKB(i,j)
+               else if (WTKBp1(i,j) < c0) then
+                  MU_z(i,j) = -WTKBp1(i,j) / WTKB(i,j) * &
+                     (DZT(i,j,k+1,bid) + adv_dt * WTKBp1(i,j)) / &
+                     (DZT(i,j,k+1,bid) + DZT(i,j,k+2,bid))
                else
                   MU_z(i,j) = c0
                end if
@@ -2836,8 +2842,14 @@
                            (DZT(i,j,k,bid) + DZT(i,j,k+1,bid))
                if (WTK(i,j) < c0) then
                   MU_z(i,j) = -(DZT(i,j,k,bid) * adv_dt_r + WTK(i,j)) / WTKB(i,j)
+               else if (WTK(i,j) > c0) then
+                  MU_z(i,j) =  -WTK(i,j) / WTKB(i,j) * &
+                     (DZT(i,j,k,bid) - adv_dt * WTK(i,j)) / &
+                     (DZT(i,j,k-1,bid) + DZT(i,j,k,bid))
                else
                   MU_z(i,j) = c0
+               end if
+               if (WTK(i,j) > c0) then
                end if
             end if
          end do
@@ -2858,6 +2870,9 @@
                LW_z(i,j) = work2 - work3 * WTKB(i,j)
                if (WTKBp1(i,j) > c0) then
                   MU_z(i,j) = (dzkp1_div_dt - WTKBp1(i,j)) / WTKB(i,j)
+               else if (WTKBp1(i,j) < c0) then
+                  MU_z(i,j) = -WTKBp1(i,j) / WTKB(i,j) * &
+                     (dz(k+1) + adv_dt * WTKBp1(i,j)) * p5_dz_ph_r(k+1)
                else
                   MU_z(i,j) = c0
                end if
@@ -2865,6 +2880,9 @@
                LW_z(i,j) = work1 + work3 * WTKB(i,j)
                if (WTK(i,j) < c0) then
                   MU_z(i,j) = -(dzk_div_dt + WTK(i,j)) / WTKB(i,j)
+               else if (WTK(i,j) > c0) then
+                  MU_z(i,j) =  -WTK(i,j) / WTKB(i,j) * &
+                     (dz(k) - adv_dt * WTK(i,j)) * p5_dz_ph_r(k-1)
                else
                   MU_z(i,j) = c0
                end if
@@ -2875,6 +2893,10 @@
    endif
 
    do j=this_block%jb-2,this_block%je+2
+      i=this_block%ib-2
+      if (UVEL_E_dt(i,j) < c0) then
+         LW_x(i,j) = (DXT(i+1,j,bid) + UVEL_E_dt(i,j)) * p5_DXT_ph_R(i,j,bid)
+      end if
       do i=this_block%ib-1,this_block%ie
          if (UVEL_E_dt(i,j) > c0) then
             LW_x(i,j) = (DXT(i,j,bid) - UVEL_E_dt(i,j)) * p5_DXT_ph_R(i,j,bid)
@@ -2894,8 +2916,26 @@
             LW_x(i,j) = DXT(i,j,bid) * p5_DXT_ph_R(i,j,bid)
          end if
       end do
+      i=this_block%ie+1
+      if (UVEL_E_dt(i,j) > c0) then
+         LW_x(i,j) = (DXT(i,j,bid) - UVEL_E_dt(i,j)) * p5_DXT_ph_R(i,j,bid)
+      end if
+      do i=this_block%ib-1,this_block%ie
+         if ((UVEL_E_dt(i,j) > c0) .and. (UVEL_E_dt(i-1,j) < c0)) then
+            MU_x(i,j) = -UVEL_E_dt(i-1,j)/UVEL_E_dt(i,j)*LW_x(i-1,j)
+         end if
+         if ((UVEL_E_dt(i,j) < c0) .and. (UVEL_E_dt(i+1,j) > c0)) then
+            MU_x(i,j) = -UVEL_E_dt(i+1,j)/UVEL_E_dt(i,j)*LW_x(i+1,j)
+         end if
+      end do
    end do
 
+   j=this_block%jb-2
+   do i=this_block%ib,this_block%ie
+      if (VVEL_N_dt(i,j) < c0) then
+         LW_y(i,j) = (DYT(i,j+1,bid) + VVEL_N_dt(i,j)) * p5_DYT_ph_R(i,j,bid)
+      end if
+   end do
    do j=this_block%jb-1,this_block%je
       do i=this_block%ib,this_block%ie
          if (VVEL_N_dt(i,j) > c0) then
@@ -2914,6 +2954,22 @@
             end if
          else
             LW_y(i,j) = DYT(i,j,bid) * p5_DYT_ph_R(i,j,bid)
+         end if
+      end do
+   end do
+   j=this_block%je+1
+   do i=this_block%ib,this_block%ie
+      if (VVEL_N_dt(i,j) > c0) then
+         LW_y(i,j) = (DYT(i,j,bid) - VVEL_N_dt(i,j)) * p5_DYT_ph_R(i,j,bid)
+      end if
+   end do
+   do j=this_block%jb-1,this_block%je
+      do i=this_block%ib,this_block%ie
+         if ((VVEL_N_dt(i,j) > c0) .and. (VVEL_N_dt(i,j-1) < c0)) then
+            MU_y(i,j) = -VVEL_N_dt(i,j-1)/VVEL_N_dt(i,j)*LW_y(i,j-1)
+         end if
+         if ((VVEL_N_dt(i,j) < c0) .and. (VVEL_N_dt(i,j+1) > c0)) then
+            MU_y(i,j) = -VVEL_N_dt(i,j+1)/VVEL_N_dt(i,j)*LW_y(i,j+1)
          end if
       end do
    end do

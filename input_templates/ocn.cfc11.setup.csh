@@ -1,4 +1,4 @@
-#!/bin/csh -fv
+#!/bin/csh -f
 
 #===============================================================================
 #  ocn.cfc.setup.csh : perform setup tasks for cfc module

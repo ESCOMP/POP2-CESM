@@ -1,4 +1,4 @@
-#!/bin/csh -fv
+#!/bin/csh -f
 
 #===============================================================================
 #  ocn.iage.setup.csh : perform setup tasks for ideal age module

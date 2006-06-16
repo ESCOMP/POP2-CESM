@@ -1,0 +1,48 @@
+  s#NPROCS_CLINIC#$nprocs_clinic#
+  s#NPROCS_TROPIC#$nprocs_tropic#
+  s#OUTPUTL#$rundir#
+  s#OUTPUTR#$rundir/rest/$CASE.pop.r#
+  s#OUTPUTH#$rundir/hist/$CASE.pop.h#
+  s#OUTPUTD#$rundir/hist/$CASE.pop.d#
+  s#OUTPUT/pop2_pointer#$rundir/rpointer.ocn#
+  s#INPUT#$rundir/input#
+  s#RUNID#$CASE#
+  s#LOG_FILENAME#ocn.log.$LID#
+  s#INIT_TS_OPTION#$runtype#
+  s#RUNTYPE#$runtype#
+  s#RUNTIME_ARCH#$ARCH#
+  s#IYEAR0#$IYEAR0#;   s#IMONTH0#$IMONTH0#;   s#IDAY0#$IDAY0#
+  s#IHOUR0#0#;         s#IMINUTE0#0#;         s#ISECOND0#0#
+
+  s#FORMULATION#$formulation#
+  s#DATA_TYPE#$data_type#
+  s#LADJUST_PRECIP#$ladjust_precip#
+  s#LMS_BALANCE#$lms_balance#
+  s#LSEND_PRECIP_FACT#$lsend_precip_fact#
+  s#LACTIVE_ICE#$lactive_ice#
+
+  s#AM_DEL2_VALUE#$am_del2_value#
+  s#AH_DEL2_VALUE#$ah_del2_value#
+  s#AH_GM_VALUE#$ah_gm_value#
+  s#AH_BOLUS_VALUE#$ah_bolus_value#
+  s#AH_BKG_SRFBL#$ah_bkg_srfbl#
+  s#HMIX_ALIGNMENT_CHOICE#$hmix_alignment_choice#
+  s#LVARIABLE_HMIX_ANISO#$lvariable_hmix_aniso#
+  s#LSMAG_ANISO#$lsmag_aniso#
+  s#VISC_PARA#$visc_para#
+  s#VISC_PERP#$visc_perp#
+  s#C_PARA#$c_para#
+  s#C_PERP#$c_perp#
+  s#U_PARA#$u_para#
+  s#U_PERP#$u_perp#
+  s#VCONST_2#$vconst_2#
+  s#VCONST_3#$vconst_3#
+  s#VCONST_4#$vconst_4#
+  s#VCONST_5#$vconst_5#
+  s#VCONST_6#$vconst_6#
+  s#SFWF_WEAK_RESTORE#$sfwf_weak_restore#
+  s#QSW_DIURNAL_CYCLE#$qsw_diurnal_cycle#
+  s#TRANSPORT_REG2_NAMES#$transport_reg2_names#
+
+  s#LTIDAL_MIXING#$ltidal_mixing#
+  
