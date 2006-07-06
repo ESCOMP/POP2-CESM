@@ -33,9 +33,6 @@ if ( ${OCN_GRID} == gx3v5 || ${OCN_GRID} == gx3v6) then
 #..... forcing_sfwf_nml
  set sfwf_weak_restore = 0.092
 
-#..... coupled_nml
- set qsw_diurnal_cycle = .false.
-
 #..... transports_nml
  set transport_reg2_names = ("'Atlantic Ocean'","'Labrador Sea'","'GIN Sea'","'Arctic Ocean'","'Hudson Bay'")
 
@@ -73,9 +70,6 @@ else if ( ${OCN_GRID} == gx1v3 || ${OCN_GRID} == gx1v4) then
 
 #..... forcing_sfwf_nml
  set sfwf_weak_restore = 0.184
-
-#..... coupled_nml
- set qsw_diurnal_cycle = .true.
 
 #..... transports_nml
  set transport_reg2_names = ("'Atlantic Ocean'","'Mediterranean Sea'","'Labrador Sea'","'GIN Sea'","'Arctic Ocean'","'Hudson Bay'")

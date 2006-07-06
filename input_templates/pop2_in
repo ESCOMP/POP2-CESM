@@ -305,8 +305,8 @@ Note: Strings appearing in ALL CAPS will be replaced in the ccsm scripts
    shf_file_fmt         = 'bin'
    shf_data_renorm(3)   = 0.94
    shf_weak_restore     = 0.
-   shf_strong_restore   = 92.64
-   luse_cpl_ifrac       = .false.
+   shf_strong_restore   = 0.0
+   luse_cpl_ifrac       = .true.
    shf_strong_restore_ms= 92.64
 /
 
@@ -322,7 +322,7 @@ Note: Strings appearing in ALL CAPS will be replaced in the ccsm scripts
    sfwf_file_fmt          = 'bin'
    sfwf_data_renorm(1)    = 0.001
    sfwf_weak_restore      = SFWF_WEAK_RESTORE
-   sfwf_strong_restore    = 0.6648
+   sfwf_strong_restore    = 0.0
    sfwf_strong_restore_ms = 0.6648
    ladjust_precip         = LADJUST_PRECIP
    lms_balance            = LMS_BALANCE
