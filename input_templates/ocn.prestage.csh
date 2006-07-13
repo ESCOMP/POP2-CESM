@@ -58,7 +58,7 @@ else if ($OCN_GRID == gx1v4) then
     set R = ( $R $ocndata/forcing/shf_mm_all_85-88_20010308.ieeer8 )
 
     set L = ( $L sfwf )          
-    set R = ( $R $ocndata/forcing/sfwf_mm_PHC2_salx_flxio_20060314.ieeer8 )
+    set R = ( $R $ocndata/forcing/sfwf_mm_PHC2_salx_flxio_20060713.ieeer8 )
 
     set L = ( $L chl_data )      
     set R = ( $R $ocndata/forcing/chl_mm_SeaWiFs97-01_20030328.ieeer8 )
