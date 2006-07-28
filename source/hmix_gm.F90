@@ -1659,14 +1659,14 @@
               if ( .not. ( kk == 1 .and. kk_sub == ktp ) ) then 
 
                 if ( use_const_ah_bkg_srfbl ) then 
-                  HOR_DIFF(:,:,kk_sub,kk,bid) =              &
-                       merge( ah_bkg_srfbl * (c1 - TAPER2)   &
-                              * KAPPA_VERTICAL(:,:,kk,bid),  &
+                  HOR_DIFF(:,:,kk_sub,kk,bid) =                       &
+                       merge( ah_bkg_srfbl * (c1 - TAPER1 * TAPER2)   &
+                              * KAPPA_VERTICAL(:,:,kk,bid),           &
                               c0, dz_bottom <= BL_DEPTH(:,:,bid) )
                 else
                   HOR_DIFF(:,:,kk_sub,kk,bid) =                &
                          merge( KAPPA_ISOP(:,:,kk_sub,kk,bid)  &
-                               * (c1 - TAPER2),                &
+                               * (c1 - TAPER1 * TAPER2),       &
                               c0, dz_bottom <= BL_DEPTH(:,:,bid) )
                 endif
 
@@ -1675,7 +1675,7 @@
             endif
 
             KAPPA_ISOP(:,:,kk_sub,kk,bid) =  &
-                           TAPER2 * KAPPA_ISOP(:,:,kk_sub,kk,bid)
+                  TAPER1 * TAPER2 * KAPPA_ISOP(:,:,kk_sub,kk,bid)
             KAPPA_THIC(:,:,kk_sub,kk,bid) =  &
                   TAPER1 * TAPER3 * KAPPA_THIC(:,:,kk_sub,kk,bid)
 

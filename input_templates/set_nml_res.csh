@@ -82,14 +82,28 @@ endif
 
 if ( ${OCN_GRID} == gx3v6 ) then
 # ==============================
+
  cat >> $POP2BLDSCRIPT << EOF3
 
 #.... tidal_nml
  set ltidal_mixing = .true.
 EOF3
+
+else if ( ${OCN_GRID} == gx1v4 ) then
+# ==============================
+
+ cat >> $POP2BLDSCRIPT << EOF3
+
+#.... tidal_nml
+ set ltidal_mixing = .false.
+EOF3
+
 else
 
  cat >> $POP2BLDSCRIPT << EOF3
+
+#.... tidal_nml
  set ltidal_mixing = .false.
 EOF3
+
 endif

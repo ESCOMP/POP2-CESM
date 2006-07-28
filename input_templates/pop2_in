@@ -1,4 +1,4 @@
-Note: Strings appearing in ALL CAPS will be replaced in the ccsm scripts
+Note: Strings appearing in ALL CAPS are replaced by sed commands in the ccsm scripts
 
 &domain_nml
   nprocs_clinic = NPROCS_CLINIC
@@ -401,8 +401,8 @@ DO NOT change transport_reg2_names unless you know exactly what you are doing.
   transport_reg2_names = TRANSPORT_REG2_NAMES
 /
 
-Only the gx3v6 version of tidal_energy exists.  For all other resolutions,
-DO NOT set ltidal_mixing true.
+Only the gx3v6 and gx1v4 versions of tidal_energy exist.  For all other resolutions,
+set ltidal_mixing false.
 &tidal_nml
   ltidal_mixing          = LTIDAL_MIXING
   local_mixing_fraction  = 0.33
