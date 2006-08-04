@@ -342,6 +342,7 @@
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       TFRZ               
+   integer (int_kind) :: index_qsw
 
 !-----------------------------------------------------------------------
 !
@@ -388,10 +389,11 @@
 !
 !-----------------------------------------------------------------------
 
-!  index_qsw = mod(nsteps_this_interval,nsteps_per_interval) + 1
+      if (lcoupled) then
+         index_qsw = mod(nsteps_this_interval,nsteps_per_interval) + 1
 
-!      SHF_QSW = diurnal_cycle_factor(index_qsw) &
-!              * SHF_COMP(:,:,:,shf_comp_qsw)
+         SHF_QSW = diurnal_cycle_factor(index_qsw)*SHF_COMP(:,:,:,shf_comp_qsw)
+      endif
 
       if ( lcoupled .and. sfwf_formulation /= 'partially-coupled'  &
            .and. sfc_layer_type == sfc_layer_varthick .and.        &

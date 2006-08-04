@@ -84,7 +84,7 @@ Note: Strings appearing in ALL CAPS are replaced by sed commands in the ccsm scr
 
 &restart_nml
    restart_freq_opt    = 'nyear' 
-   restart_freq        = 1
+   restart_freq        = 100000
    restart_outfile     = 'OUTPUTR'
    restart_fmt         = 'bin'
    leven_odd_on        = .false. 

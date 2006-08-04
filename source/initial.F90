@@ -162,7 +162,7 @@
       write(stdout,blank_fmt)
       write(stdout,'(a)') ' Parallel Ocean Program (POP) '
       write(stdout,'(a)') ' Version 2.1alpha Jan 2005'
-      write(stdout,'(a)') ' Modified for CCSM $Id$'
+      write(stdout,'(a)') ' Modified for CCSM '
       write(stdout,blank_fmt)
       call shr_sys_flush(stdout)
    endif

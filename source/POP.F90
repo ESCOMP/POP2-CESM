@@ -17,6 +17,9 @@
 
 ! !USES:
 
+#ifdef SINGLE_EXEC
+   use MPH_module, only : MPH_get_argument
+#endif
    use POP_KindsMod
    use POP_ErrorMod
    use POP_InitMod
@@ -54,6 +57,14 @@
 
    integer (POP_i4) :: &
       errorCode         ! error code
+
+#ifdef SINGLE_EXEC
+   integer (int_kind) :: &
+      nthreads
+
+   call MPH_get_argument("THREADS", nthreads, "ocn")
+   call OMP_SET_NUM_THREADS(nthreads)
+#endif
 
 !-----------------------------------------------------------------------
 !

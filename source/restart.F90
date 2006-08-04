@@ -653,6 +653,10 @@
      tracer_d(nt)%short_name = 'IAGE'
      tracer_d(nt)%long_name  = 'Ideal Age'
      tracer_d(nt)%units      = 'years'
+   else
+     write(stdout,*) ' nt = ', nt
+     call exit_POP(sigAbort, &
+                  'ERROR ccsm pop2 does not correctly restart with nt > 3')
    endif
 !####### end debug -- keep this #####################
 

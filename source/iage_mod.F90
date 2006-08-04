@@ -344,10 +344,15 @@ contains
            call shr_sys_flush(stdout)
        endif
        
-!###################### debug #######################
+!###################### debug/temporary #######################
+!!!! presently, the restart.F90 module is set up
+!!!  such that it reads iage (nt = 3) from the standard
+!!!  restart file.  This will change when the LANL
+!!!  ecosystem model is incorporated into ccsm pop2.
+
 !!!!case ('restart','continue', 'branch', 'hybrid')
     case ('hide_restart','hide_continue', 'hide_branch', 'hide_hybrid')
-!################## end debug #######################
+!################## end debug/temporary #######################
        restart_filename = char_blank
        if (init_iage_init_file == 'same_as_TS') then
           if (init_ts_option /= 'restart' .and. init_ts_option /= 'branch') then
@@ -599,7 +604,12 @@ contains
 
     case default
        call msg_write(subname, 'init_iage_option = ', init_iage_option)
+!###################### debug/temporary #######################
+!!!    uncomment this when restart/hybrid/branch option has been 
+!!!    activated
+
 !      call exit_POP('ERROR: stopping in ' // subname)
+!################## end debug/temporary #######################
 
     end select
 
