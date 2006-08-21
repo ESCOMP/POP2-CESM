@@ -167,7 +167,7 @@
 ! !IROUTINE: read_restart
 ! !INTERFACE:
 
- subroutine read_restart(in_filename,lbranch,in_restart_fmt)
+ subroutine read_restart(in_filename,lccsm_branch,lccsm_hybrid,in_restart_fmt)
 
 ! !DESCRIPTION:
 !  This routine reads restart data from a file.
@@ -190,7 +190,8 @@
       in_restart_fmt             ! format of restart file (bin,nc)
 
    logical (log_kind), intent(in) :: &
-      lbranch        ! flag if branch initialization
+      lccsm_branch      ,&! flag if ccsm branch initialization
+      lccsm_hybrid        ! flag if ccsm branch initialization
 
 !EOP
 !BOC
@@ -237,7 +238,7 @@
    restart_filename = char_blank
    restart_pointer_file = char_blank
 
-   if (luse_pointer_files .and. .not. lbranch) then
+   if (luse_pointer_files) then
       call get_unit(nu)
       if (my_task == master_task) then
          restart_pointer_file = pointer_filename
@@ -373,9 +374,12 @@
 
    !*** extract scalars if not a branch
 
-   if (.not. lbranch) then
-
+   if (.not. lccsm_branch .and. .not. lccsm_hybrid) then
       call extract_attrib_file(restart_file, 'runid',    runid   )
+   endif
+
+
+   if (.not. lccsm_hybrid) then
       call extract_attrib_file(restart_file, 'iyear',    iyear   )
       call extract_attrib_file(restart_file, 'imonth',   imonth  )
       call extract_attrib_file(restart_file, 'iday',     iday    )
@@ -434,8 +438,13 @@
       call extract_attrib_file(restart_file, 'hours_in_year',     &
                                               hours_in_year)
       call extract_attrib_file(restart_file, 'tlast_ice', tlast_ice  )
+   endif ! .not. lccsm_hybrid
+
+
       call extract_attrib_file(restart_file, 'lcoupled_ts',       &
                                               lcoupled_ts)
+
+   if (.not. lccsm_hybrid) then
       call extract_attrib_file(restart_file, 'shf_interp_last',   &
                                               shf_interp_last)
       call extract_attrib_file(restart_file, 'sfwf_interp_last',  &
@@ -472,7 +481,7 @@
          call set_time_flag_last (restart_cpl_ts, lcoupled_ts)
       endif
 
-   endif ! lbranch
+   endif ! .not. lccsm_hybrid
 
 !-----------------------------------------------------------------------
 !

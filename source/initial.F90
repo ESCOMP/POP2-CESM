@@ -484,9 +484,8 @@
       iblock              ! local block address
 
    logical (log_kind) :: &
-      lbranch           ,&! flag for telling restart branch init
-      lredef_date       ,&! flag for ccsm 'hybrid' restart
-      lredef_case         ! flag for ccsm 'hybrid' restart
+      lccsm_branch      ,&! flag for ccsm 'branch' restart
+      lccsm_hybrid        ! flag for ccsm 'hybrid' restart
 
    type (block) ::       &
       this_block          ! block information for current block
@@ -594,8 +593,7 @@
          case ('continue', 'restart', 'branch', 'hybrid') 
             if (luse_pointer_files) then
                write(stdout,*) ' In this case, the init_ts_file' /&
-               &/ ' name will be read from the pointer file'     /&
-               &/ ' and the INIT_TS_FILE name will be ignored (see below)'
+               &/ ' name will be read from the pointer file.'   
                write(stdout,*) ' '
             endif
        end select
@@ -621,16 +619,15 @@
 !-----------------------------------------------------------------------
 
    case ('continue', 'restart')
-      first_step  = .false.
-      lbranch     = .false.
-      lredef_date = .false.
-      lredef_case = .false.
-      if (my_task == master_task) then
+      first_step   = .false.
+      lccsm_branch = .false.
+      lccsm_hybrid = .false.
+      if (my_task == master_task .and. .not. luse_pointer_files) then
          write(stdout,'(a35,a)') 'Initial T,S read from restart file:',&
                                   trim(init_ts_file)
          call shr_sys_flush(stdout)
       endif
-      call read_restart(init_ts_file,lbranch,init_ts_file_fmt)
+      call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid,init_ts_file_fmt)
       ltavg_restart = .true.
 
 !-----------------------------------------------------------------------
@@ -640,31 +637,29 @@
 !-----------------------------------------------------------------------
 
    case ('branch')
-      first_step  = .false.
-      lbranch     = .true.
-      lredef_date = .false.
-      lredef_case = .true.
-      if (my_task == master_task) then
+      first_step   = .false.
+      lccsm_branch = .true.
+      lccsm_hybrid = .false.
+      if (my_task == master_task .and. .not. luse_pointer_files) then
          write(stdout,'(a40,a)') &
             'Initial T,S branching from restart file:', &
             trim(init_ts_file)
          call shr_sys_flush(stdout)
       endif
-      call read_restart(init_ts_file,lbranch,init_ts_file_fmt)
+      call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid,init_ts_file_fmt)
       ltavg_restart = .false.
 
    case ('hybrid')
-      first_step  = .false.
-      lbranch     = .true.
-      lredef_date = .true.
-      lredef_case = .true.
-      if (my_task == master_task) then
+      first_step   = .false.
+      lccsm_branch = .false.
+      lccsm_hybrid = .true.
+      if (my_task == master_task .and. .not. luse_pointer_files) then
          write(stdout,'(a40,a)') &
             'Initial T,S hybrid start from restart file:', &
             trim(init_ts_file)
          call shr_sys_flush(stdout)
       endif
-      call read_restart(init_ts_file,lbranch,init_ts_file_fmt)
+      call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid,init_ts_file_fmt)
       ltavg_restart = .false.
 
 !-----------------------------------------------------------------------

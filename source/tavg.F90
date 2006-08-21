@@ -2180,7 +2180,7 @@
 
    if (my_task == master_task .and. nsteps_run <= 1) then
      write(stdout,*) 'define_tavg_field: id = ', id, ' ', short_name
-     call shr_sys_flush(id)
+     call shr_sys_flush(stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -3026,7 +3026,9 @@
  call add_attrib_file(tavg_file_desc, 'revision', '$Id$')
 
  if (allow_leapyear) then
-    write(calendar,'(a,i5,a,i5,a)')' Leap years allowed. Normal years have',days_in_norm_year,' days. Leap years have ' ,days_in_leap_year, ' days.'
+    write(calendar,'(a,i5,a,i5,a)') &
+       ' Leap years allowed. Normal years have',days_in_norm_year, &
+       ' days. Leap years have ' ,days_in_leap_year, ' days.'
  else
     write(calendar,'(a,i5,a)')'All years have exactly', days_in_norm_year, ' days.'
  endif

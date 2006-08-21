@@ -84,19 +84,11 @@
 
    call create_ocn_communicator
 
-!----------- temporary code ------------
-   write(6,*)'after create_ocn_communicator in init_communicate'
-   call flush_(6)
-!----------- temporary code ------------
 
 
    master_task = 0
    call MPI_COMM_RANK  (MPI_COMM_OCN, my_task, ierr)
 
-!----------- temporary code ------------
-   write(6,*)'after MPI_COMM_RANK in init_communicate'
-   call flush_(6)
-!----------- temporary code ------------
 
 !-----------------------------------------------------------------------
 !
@@ -271,14 +263,9 @@
 !  the stuff below cannot be used since my_task has not been defined yet
 !  if (my_task == master_task) then
 !     write(6,*)'call cpl_interface_init'
-!     call flush(6)
 !  endif
    call cpl_interface_init(cpl_fields_ocnname, MPI_COMM_OCN)
 
-!----------- temporary code ------------
-   write(6,*)'after call cpl_interface_init in communicate.f90'
-   call flush_(6)
-!----------- temporary code ------------
 
 #else
    call MPI_INIT(ierr)
