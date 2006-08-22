@@ -40,6 +40,7 @@
 
    integer (int_kind), parameter, public :: &
       mpitag_bndy_2d        = 1,    &! MPI tags for various
+      mpitag_bndy_3d        = 2000, &!
       mpitag_gs             = 1000   ! communication patterns
 
 !EOP
@@ -84,11 +85,8 @@
 
    call create_ocn_communicator
 
-
-
    master_task = 0
    call MPI_COMM_RANK  (MPI_COMM_OCN, my_task, ierr)
-
 
 !-----------------------------------------------------------------------
 !
@@ -263,9 +261,9 @@
 !  the stuff below cannot be used since my_task has not been defined yet
 !  if (my_task == master_task) then
 !     write(6,*)'call cpl_interface_init'
+!     call flush(6)
 !  endif
    call cpl_interface_init(cpl_fields_ocnname, MPI_COMM_OCN)
-
 
 #else
    call MPI_INIT(ierr)

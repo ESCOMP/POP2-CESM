@@ -84,10 +84,10 @@
      module procedure boundary_2d_dbl,  &
                       boundary_2d_real, &
                       boundary_2d_int,  &
-                      boundary_3d_dbl,  &
+                      boundary_3dvb_dbl,  &
                       boundary_3d_real, &
                       boundary_3d_int,  &
-                      boundary_4d_dbl,  &
+                      boundary_4dvb_dbl,  &
                       boundary_4d_real, &
                       boundary_4d_int
    end interface
@@ -111,6 +111,15 @@
    real (r8), dimension(:,:), allocatable :: &
       tripole_dbuf,  &
       tripole_dghost
+
+!whl - new 3d arrays
+   real (r8), dimension(:,:,:), allocatable :: &
+      tripole_dbuf_3d,  &
+      tripole_dghost_3d
+
+!maltrud debug
+   integer (int_kind) :: index_check
+
 
 !EOC
 !***********************************************************************
@@ -3071,6 +3080,682 @@ end subroutine boundary_4d_int
 !EOC
 
    end subroutine increment_message_counter
+
+
+
+ subroutine boundary_3dvb_dbl(ARRAY, in_bndy, grid_loc, field_type)
+
+! !DESCRIPTION:
+!  This routine updates ghost cells for an input array and is a
+!  member of a group of routines under the generic interface
+!  update\_ghost\_cells.  This routine is the specific interface
+!  for 2d horizontal arrays of double precision.
+!
+! !REVISION HISTORY:
+!  created Sept. 2004 by William Lipscomb based on boundary_2d_dbl above
+
+! !USER:
+
+   include 'mpif.h'   ! MPI Fortran include file
+
+! !INPUT PARAMETERS:
+
+   type (bndy), intent(in) :: &
+      in_bndy                 ! boundary update structure for the array
+
+   integer (int_kind), intent(in) :: &
+      field_type,               &! id for type of field (scalar, vector, angle)
+      grid_loc                   ! id for location on horizontal grid
+                                 !  (center, NEcorner, Nface, Eface)
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   real (r8), dimension(:,:,:,:), intent(inout) :: &
+      ARRAY              ! array containing horizontal slab to update
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) ::           &
+      i,j,k,m,n,                   &! dummy loop indices
+      narr,                        &! number of 2d arrays in ARRAY
+      ib_src,ie_src,jb_src,je_src, &! beg,end indices for bndy cells
+      ib_dst,ie_dst,jb_dst,je_dst, &!
+      nx_global,                   &! global domain size in x
+      src_block,                   &! local block number for source
+      dst_block,                   &! local block number for destination
+      bufsize,                     &! buffer size for send/recv buffers
+      xoffset, yoffset,            &! address shifts for tripole
+      isign,                       &! sign factor for tripole grids
+      ierr                          ! MPI error flag
+
+   integer (int_kind), dimension(:), allocatable :: &
+      snd_request,              &! MPI request ids
+      rcv_request                ! MPI request ids
+
+   integer (int_kind), dimension(:,:), allocatable :: &
+      snd_status,               &! MPI status flags
+      rcv_status                 ! MPI status flags
+
+   real (r8), dimension(:,:,:,:,:), allocatable :: &
+      buf_ew_snd,       &! message buffer for east-west sends
+      buf_ew_rcv,       &! message buffer for east-west recvs
+      buf_ns_snd,       &! message buffer for north-south sends
+      buf_ns_rcv         ! message buffer for north-south recvs
+
+   real (r8), dimension(:), allocatable :: &
+      xavg               ! scalar for enforcing symmetry at U pts
+
+   !logical (log_kind), save :: first_call = .true.
+   !integer (int_kind), save :: bndy_3d_local, bndy_3d_recv, &
+   !                            bndy_3d_send, bndy_3d_wait, bndy_3d_final
+
+   !call ice_timer_start(timer_bound)
+!-----------------------------------------------------------------------
+!
+!  allocate buffers for east-west sends and receives
+!
+!-----------------------------------------------------------------------
+
+   !if (first_call) then
+   !  first_call = .false.
+   !  call get_timer(bndy_3d_local, 'BNDY_3D_LOCAL')
+   !  call get_timer(bndy_3d_recv,  'BNDY_3D_RECV')
+   !  call get_timer(bndy_3d_send,  'BNDY_3D_SEND')
+   !  call get_timer(bndy_3d_wait,  'BNDY_3D_WAIT')
+   !  call get_timer(bndy_3d_final, 'BNDY_3D_FINAL')
+   !endif
+
+   narr = size(ARRAY,dim=3)
+
+   if (in_bndy%nmsg_ew_snd > 0) &
+      allocate(buf_ew_snd(nghost, ny_block, narr, &
+                          in_bndy%maxblocks_ew_snd, in_bndy%nmsg_ew_snd))
+
+   if (in_bndy%nmsg_ew_rcv > 0) &
+      allocate(buf_ew_rcv(nghost, ny_block, narr, &
+                          in_bndy%maxblocks_ew_rcv, in_bndy%nmsg_ew_rcv))
+
+   if (in_bndy%nmsg_ew_snd > 0) &
+      allocate(snd_request(in_bndy%nmsg_ew_snd), &
+               snd_status(MPI_STATUS_SIZE,in_bndy%nmsg_ew_snd))
+
+   if (in_bndy%nmsg_ew_rcv > 0) &
+      allocate(rcv_request(in_bndy%nmsg_ew_rcv), &
+               rcv_status(MPI_STATUS_SIZE,in_bndy%nmsg_ew_rcv))
+
+   if (allocated(tripole_dbuf)) then
+        nx_global = size(tripole_dbuf,dim=1)
+
+        ! allocate temporary 3d buffers
+        allocate (tripole_dbuf_3d  (nx_global,nghost+1,narr), &
+                  tripole_dghost_3d(nx_global,nghost+1,narr))
+    endif
+
+!-----------------------------------------------------------------------
+!
+!  post receives
+!
+!-----------------------------------------------------------------------
+
+   !call timer_start(bndy_3d_recv)
+   do n=1,in_bndy%nmsg_ew_rcv
+
+      bufsize = ny_block*nghost*narr*in_bndy%nblocks_ew_rcv(n)
+
+      call MPI_IRECV(buf_ew_rcv(1,1,1,1,n), bufsize, mpi_dbl, &
+                     in_bndy%ew_rcv_proc(n)-1,                &
+                     mpitag_bndy_3d + in_bndy%ew_rcv_proc(n), &
+                     in_bndy%communicator, rcv_request(n), ierr)
+   end do
+   !call timer_stop(bndy_3d_recv)
+
+!-----------------------------------------------------------------------
+!
+!  fill send buffer and post sends
+!
+!-----------------------------------------------------------------------
+
+   !call timer_start(bndy_3d_send)
+   do n=1,in_bndy%nmsg_ew_snd
+
+      bufsize = ny_block*nghost*narr*in_bndy%nblocks_ew_snd(n)
+
+      do i=1,in_bndy%nblocks_ew_snd(n)
+         ib_src    = in_bndy%ew_src_add(1,i,n)
+         ie_src    = ib_src + nghost - 1
+         src_block = in_bndy%ew_src_block(i,n)
+         buf_ew_snd(:,:,:,i,n) = ARRAY(ib_src:ie_src,:,:,src_block)
+      end do
+
+      call MPI_ISEND(buf_ew_snd(1,1,1,1,n), bufsize, mpi_dbl, &
+                     in_bndy%ew_snd_proc(n)-1, &
+                     mpitag_bndy_3d + my_task + 1, &
+                     in_bndy%communicator, snd_request(n), ierr)
+   end do
+   !call timer_stop(bndy_3d_send)
+
+
+!-----------------------------------------------------------------------
+!
+!  do local copies while waiting for messages to complete
+!  also initialize ghost cells to zero
+!
+!-----------------------------------------------------------------------
+
+   !call timer_start(bndy_3d_local)
+   do n=1,in_bndy%nlocal_ew
+      src_block = in_bndy%local_ew_src_block(n)
+      dst_block = in_bndy%local_ew_dst_block(n)
+
+      ib_src = in_bndy%local_ew_src_add(1,n)
+      ie_src = ib_src + nghost - 1
+      ib_dst = in_bndy%local_ew_dst_add(1,n)
+      ie_dst = ib_dst + nghost - 1
+
+      if (src_block /= 0) then
+         ARRAY(ib_dst:ie_dst,:,:,dst_block) = &
+         ARRAY(ib_src:ie_src,:,:,src_block)
+      else
+         ARRAY(ib_dst:ie_dst,:,:,dst_block) = c0
+      endif
+   end do
+   !call timer_stop(bndy_3d_local)
+
+!-----------------------------------------------------------------------
+!
+!  wait for receives to finish and then unpack the recv buffer into
+!  ghost cells
+!
+!-----------------------------------------------------------------------
+
+
+   !call timer_start(bndy_3d_wait)
+   if (in_bndy%nmsg_ew_rcv > 0)  &
+      call MPI_WAITALL(in_bndy%nmsg_ew_rcv, rcv_request, rcv_status, ierr)
+   !call timer_stop(bndy_3d_wait)
+
+   !call timer_start(bndy_3d_final)
+   do n=1,in_bndy%nmsg_ew_rcv
+   do k=1,in_bndy%nblocks_ew_rcv(n)
+      dst_block = in_bndy%ew_dst_block(k,n)
+
+      ib_dst = in_bndy%ew_dst_add(1,k,n)
+      ie_dst = ib_dst + nghost - 1
+
+      ARRAY(ib_dst:ie_dst,:,:,dst_block) = buf_ew_rcv(:,:,:,k,n)
+   end do
+   end do
+   !call timer_stop(bndy_3d_final)
+
+!-----------------------------------------------------------------------
+!
+!  wait for sends to complete and deallocate arrays
+!
+!-----------------------------------------------------------------------
+
+   !call timer_start(bndy_3d_wait)
+   if (in_bndy%nmsg_ew_snd > 0)  &
+      call MPI_WAITALL(in_bndy%nmsg_ew_snd, snd_request, snd_status, ierr)
+   !call timer_stop(bndy_3d_wait)
+
+   if (allocated(buf_ew_snd))  deallocate (buf_ew_snd)
+   if (allocated(buf_ew_rcv))  deallocate (buf_ew_rcv)
+   if (allocated(snd_request)) deallocate (snd_request)
+   if (allocated(rcv_request)) deallocate (rcv_request)
+   if (allocated(snd_status))  deallocate (snd_status)
+   if (allocated(rcv_status))  deallocate (rcv_status)
+
+!-----------------------------------------------------------------------
+!
+!  now exchange north-south boundary info
+!
+!-----------------------------------------------------------------------
+
+
+   if (in_bndy%nmsg_ns_snd > 0)  &
+      allocate(buf_ns_snd(nx_block, nghost+1, narr, &
+                       in_bndy%maxblocks_ns_snd, in_bndy%nmsg_ns_snd))
+
+   if (in_bndy%nmsg_ns_rcv > 0)  &
+      allocate(buf_ns_rcv(nx_block, nghost+1, narr, &
+                       in_bndy%maxblocks_ns_rcv, in_bndy%nmsg_ns_rcv))
+
+   if (in_bndy%nmsg_ns_snd > 0)  &
+      allocate(snd_request(in_bndy%nmsg_ns_snd), &
+               snd_status(MPI_STATUS_SIZE,in_bndy%nmsg_ns_snd))
+
+   if (in_bndy%nmsg_ns_rcv > 0)  &
+      allocate(rcv_request(in_bndy%nmsg_ns_rcv), &
+               rcv_status(MPI_STATUS_SIZE,in_bndy%nmsg_ns_rcv))
+
+!-----------------------------------------------------------------------
+!
+!  post receives
+!
+!-----------------------------------------------------------------------
+
+   !call timer_start(bndy_3d_recv)
+   do n=1,in_bndy%nmsg_ns_rcv
+
+      bufsize = nx_block*(nghost+1)*narr*in_bndy%nblocks_ns_rcv(n)
+
+      call MPI_IRECV(buf_ns_rcv(1,1,1,1,n), bufsize, mpi_dbl,   &
+                     in_bndy%ns_rcv_proc(n)-1,                &
+                     mpitag_bndy_3d + in_bndy%ns_rcv_proc(n), &
+                     in_bndy%communicator, rcv_request(n), ierr)
+   end do
+   !call timer_stop(bndy_3d_recv)
+
+!-----------------------------------------------------------------------
+!
+!  fill send buffer and post sends
+!
+!-----------------------------------------------------------------------
+
+   !call timer_start(bndy_3d_send)
+   do n=1,in_bndy%nmsg_ns_snd
+
+      bufsize = nx_block*(nghost+1)*narr*in_bndy%nblocks_ns_snd(n)
+
+      do i=1,in_bndy%nblocks_ns_snd(n)
+         jb_src    = in_bndy%ns_src_add(2,i,n)
+         je_src    = jb_src + nghost  ! nghost+1 rows needed for tripole
+         src_block = in_bndy%ns_src_block(i,n)
+         buf_ns_snd(:,:,:,i,n) = ARRAY(:,jb_src:je_src,:,src_block)
+      end do
+
+      call MPI_ISEND(buf_ns_snd(1,1,1,1,n), bufsize, mpi_dbl, &
+                     in_bndy%ns_snd_proc(n)-1, &
+                     mpitag_bndy_3d + my_task + 1, &
+                     in_bndy%communicator, snd_request(n), ierr)
+   end do
+   !call timer_stop(bndy_3d_send)
+
+!-----------------------------------------------------------------------
+!
+!  do local copies while waiting for messages to complete
+!
+!-----------------------------------------------------------------------
+
+
+   !call timer_start(bndy_3d_local)
+   do n=1,in_bndy%nlocal_ns
+
+      src_block = in_bndy%local_ns_src_block(n)
+      dst_block = in_bndy%local_ns_dst_block(n)
+
+      if (dst_block > 0) then ! straight local copy
+
+         jb_src = in_bndy%local_ns_src_add(2,n)
+         je_src = jb_src + nghost - 1
+         jb_dst = in_bndy%local_ns_dst_add(2,n)
+         je_dst = jb_dst + nghost - 1
+
+         if (src_block /= 0) then
+            ARRAY(:,jb_dst:je_dst,:,dst_block) = &
+            ARRAY(:,jb_src:je_src,:,src_block)
+         else
+            ARRAY(:,jb_dst:je_dst,:,dst_block) = c0
+         endif
+
+      else  !north boundary tripole grid - copy into global north buffer
+
+         jb_src = in_bndy%local_ns_src_add(2,n)
+         je_src = jb_src + nghost ! need nghost+1 rows for tripole
+
+         !*** determine start, end addresses of physical domain
+         !*** for both global buffer and local block
+
+         ib_dst = in_bndy%local_ns_src_add(1,n)
+         ie_dst = ib_dst + (nx_block-2*nghost) - 1
+         if (ie_dst > nx_global) ie_dst = nx_global
+         ib_src = nghost + 1
+         ie_src = ib_src + ie_dst - ib_dst
+!maltrud - debug         if (src_block /= 0) then
+         if (dst_block /= 0) then
+            tripole_dbuf_3d(ib_dst:ie_dst,:,:) = &
+                  ARRAY(ib_src:ie_src,jb_src:je_src,:,src_block)
+         endif
+
+      endif
+   end do
+   !call timer_stop(bndy_3d_local)
+!-----------------------------------------------------------------------
+!
+!  wait for receives to finish and then unpack the recv buffer into
+!  ghost cells
+!
+!-----------------------------------------------------------------------
+
+   !call timer_start(bndy_3d_wait)
+   if (in_bndy%nmsg_ns_rcv > 0)  &
+      call MPI_WAITALL(in_bndy%nmsg_ns_rcv, rcv_request, rcv_status, ierr)
+   !call timer_stop(bndy_3d_wait)
+
+   !call timer_start(bndy_3d_final)
+   do n=1,in_bndy%nmsg_ns_rcv
+   do k=1,in_bndy%nblocks_ns_rcv(n)
+      dst_block = in_bndy%ns_dst_block(k,n)  ! dest block
+
+      if (dst_block > 0) then  ! normal receive
+         jb_dst = in_bndy%ns_dst_add(2,k,n)
+         je_dst = jb_dst + nghost - 1
+
+         ARRAY(:,jb_dst:je_dst,:,dst_block) = buf_ns_rcv(:,1:nghost,:,k,n)
+      else ! northern tripole bndy: copy into global tripole buffer
+
+         !*** determine start,end of physical domain for both
+         !*** global buffer and local buffer
+
+         ib_dst = in_bndy%ns_dst_add(1,k,n)
+         ie_dst = ib_dst + (nx_block-2*nghost) - 1
+         if (ie_dst > nx_global) ie_dst = nx_global
+         ib_src = nghost + 1
+         ie_src = ib_src + ie_dst - ib_dst
+         if (src_block /= 0) then
+            tripole_dbuf_3d(ib_dst:ie_dst,:,:) = &
+            buf_ns_rcv(ib_src:ie_src,:,:,k,n)
+         endif
+      endif
+   end do
+   end do
+   !call timer_stop(bndy_3d_final)
+
+!-----------------------------------------------------------------------
+!
+!  take care of northern boundary in tripole case
+!
+!-----------------------------------------------------------------------
+
+   if (allocated(tripole_dbuf_3d)) then
+
+      allocate(xavg(narr))
+
+      select case (grid_loc)
+      case (field_loc_center)   ! cell center location
+         xoffset = 1
+         yoffset = 1
+         !*** first row of ghost cell buffer is actually the last
+         !*** row of physical domain (mostly for symmetry enforcement)
+         tripole_dghost_3d(:,1,:) = tripole_dbuf_3d(:,nghost+1,:)
+      case (field_loc_NEcorner)   ! cell corner (velocity) location
+         xoffset = 0
+         yoffset = 0
+         !*** enforce symmetry
+         !*** first row of ghost cell buffer is actually the last
+         !*** row of physical domain
+         do i = 1, nx_global/2
+            ib_dst = nx_global - i
+            if (ib_dst == 0) ib_dst = nx_global
+            xavg(:) = p5*(abs(tripole_dbuf_3d(i     ,nghost+1,:)) + &
+                          abs(tripole_dbuf_3d(ib_dst,nghost+1,:)))
+            tripole_dghost_3d(i     ,1,:) = sign(xavg(:), &
+                                             tripole_dbuf_3d(i,nghost+1,:))
+            tripole_dghost_3d(ib_dst,1,:) = sign(xavg(:), &
+                                             tripole_dbuf_3d(ib_dst,nghost+1,:))
+         end do
+         !*** catch nx_global point
+         tripole_dghost_3d(nx_global,1,:) = tripole_dbuf_3d(nx_global,nghost+1,:)
+         tripole_dbuf_3d(:,nghost+1,:) = tripole_dghost_3d(:,1,:)
+      case (field_loc_Eface)   ! cell center location
+         xoffset = 0
+         yoffset = 1
+         !*** first row of ghost cell buffer is actually the last
+         !*** row of physical domain (mostly for symmetry enforcement)
+         tripole_dghost_3d(:,1,:) = tripole_dbuf_3d(:,nghost+1,:)
+      case (field_loc_Nface)   ! cell corner (velocity) location
+         xoffset = 1
+         yoffset = 0
+         !*** enforce symmetry
+         !*** first row of ghost cell buffer is actually the last
+         !*** row of physical domain
+         do i = 1, nx_global/2
+            ib_dst = nx_global + 1 - i
+            xavg(:) = p5*(abs(tripole_dbuf_3d(i     ,nghost+1,:)) + &
+                          abs(tripole_dbuf_3d(ib_dst,nghost+1,:)))
+            tripole_dghost_3d(i     ,1,:) = sign(xavg(:), &
+                                             tripole_dbuf_3d(i,nghost+1,:))
+            tripole_dghost_3d(ib_dst,1,:) = sign(xavg(:), &
+                                             tripole_dbuf_3d(ib_dst,nghost+1,:))
+         end do
+         tripole_dbuf_3d(:,nghost+1,:) = tripole_dghost_3d(:,1,:)
+#if 0
+!lipscomb - added W face
+      case (field_loc_Wface)
+         xoffset = 1
+         yoffset = 1
+         !*** first row of ghost cell buffer is actually the last
+         !*** row of physical domain (mostly for symmetry enforcement)
+         tripole_dghost_3d(:,1,:) = tripole_dbuf_3d(:,nghost+1,:)
+#endif
+      case default
+         call exit_POP(sigAbort,'Unknown location in boundary_3d')
+      end select
+
+      deallocate(xavg)
+      select case (field_type)
+      case (field_type_scalar)
+         isign =  1
+      case (field_type_vector)
+         isign = -1
+      case (field_type_angle)
+         isign = -1
+      case default
+         call exit_POP(sigAbort,'Unknown field type in boundary')
+      end select
+
+      !*** copy source (physical) cells into ghost cells
+      !*** global source addresses are:
+      !*** nx_global + xoffset - i
+      !*** ny_global + yoffset - j
+      !*** in the actual tripole buffer, the indices are:
+      !*** nx_global + xoffset - i = ib_src - i
+      !*** ny_global + yoffset - j - (ny_global - nghost) + 1 =
+      !***    nghost + yoffset +1 - j = jb_src - j
+
+      ib_src = nx_global + xoffset
+      jb_src = nghost + yoffset + 1
+
+      do j=1,nghost
+      do i=1,nx_global
+!maltrud debug
+!        tripole_dghost_3d(i,1+j,:) = isign* &
+!                                   tripole_dbuf_3d(ib_src-i, jb_src-j,:)
+         index_check = max(ib_src-i,1)
+         tripole_dghost_3d(i,1+j,:) = isign* &
+                                 tripole_dbuf_3d(index_check, jb_src-j,:)
+      end do
+      end do
+
+      !*** copy out of global ghost cell buffer into local
+      !*** ghost cells
+
+      do n=1,in_bndy%nlocal_ns
+         dst_block = in_bndy%local_ns_dst_block(n)
+
+         if (dst_block < 0) then
+            dst_block = -dst_block
+
+            jb_dst = in_bndy%local_ns_dst_add(2,n)
+            je_dst = jb_dst + nghost
+            ib_src = in_bndy%local_ns_dst_add(1,n)
+            !*** ib_src is glob address of 1st point in physical
+            !*** domain.  must now adjust to properly copy
+            !*** east-west ghost cell info in the north boundary
+
+            if (ib_src == 1) then  ! western boundary
+               !*** impose cyclic conditions at western boundary
+               !*** then set up remaining indices to copy rest
+               !*** of domain from tripole ghost cell buffer
+               do i=1,nghost
+                  ARRAY(i,jb_dst:je_dst,:,dst_block) = &
+                     tripole_dghost_3d(nx_global-nghost+i,:,:)
+               end do
+               ie_src = ib_src + nx_block - nghost - 1
+               if (ie_src > nx_global) ie_src = nx_global
+               ib_dst = nghost + 1
+               ie_dst = ib_dst + (ie_src - ib_src)
+            else
+               ib_src = ib_src - nghost
+               ie_src = ib_src + nx_block - 1
+               if (ie_src > nx_global) ie_src = nx_global
+               ib_dst = 1
+               ie_dst = ib_dst + (ie_src - ib_src)
+            endif
+            if (ie_src == nx_global) then ! eastern boundary
+               !*** impose cyclic conditions in ghost cells
+               do i=1,nghost
+                  ARRAY(ie_dst+i,jb_dst:je_dst,:,dst_block) = &
+                     tripole_dghost_3d(i,:,:)
+               end do
+            endif
+
+            !*** now copy the remaining ghost cell values
+
+            ARRAY(ib_dst:ie_dst,jb_dst:je_dst,:,dst_block) = &
+               tripole_dghost_3d(ib_src:ie_src,:,:)
+         endif
+
+      end do
+
+      do n=1,in_bndy%nmsg_ns_rcv
+      do k=1,in_bndy%nblocks_ns_rcv(n)
+         dst_block = in_bndy%ns_dst_block(k,n)  ! dest block
+
+         if (dst_block < 0) then
+            dst_block = -dst_block
+
+            jb_dst = in_bndy%ns_dst_add(2,k,n)
+            je_dst = jb_dst + nghost ! last phys row incl for symmetry
+            ib_src = in_bndy%ns_dst_add(3,k,n)
+            !*** ib_src is glob address of 1st point in physical
+            !*** domain.  must now adjust to properly copy
+            !*** east-west ghost cell info in the north boundary
+
+            if (ib_src == 1) then  ! western boundary
+               !*** impose cyclic conditions at western boundary
+               !*** then set up remaining indices to copy rest
+               !*** of domain from tripole ghost cell buffer
+               do i=1,nghost
+                  ARRAY(i,jb_dst:je_dst,:,dst_block) = &
+                     tripole_dghost_3d(nx_global-nghost+i,:,:)
+               end do
+               ie_src = ib_src + nx_block - nghost - 1
+               if (ie_src > nx_global) ie_src = nx_global
+               ib_dst = nghost + 1
+               ie_dst = ib_dst + (ie_src - ib_src)
+            else
+               ib_src = ib_src - nghost
+               ie_src = ib_src + nx_block - 1
+               if (ie_src > nx_global) ie_src = nx_global
+               ib_dst = 1
+               ie_dst = ib_dst + (ie_src - ib_src)
+            endif
+            if (ie_src == nx_global) then ! eastern boundary
+               !*** impose cyclic conditions in ghost cells
+               do i=1,nghost
+                  ARRAY(ie_dst+i,jb_dst:je_dst,:,dst_block) = &
+                     tripole_dghost_3d(i,:,:)
+               end do
+            endif
+
+
+            ARRAY(ib_dst:ie_dst,jb_dst:je_dst,:,dst_block) = &
+               tripole_dghost_3d(ib_src:ie_src,:,:)
+         endif
+
+
+      end do
+      end do
+
+      deallocate(tripole_dbuf_3d, tripole_dghost_3d)
+
+   endif   ! allocated(tripole_dbuf_3d)
+
+!-----------------------------------------------------------------------
+!
+!  wait for sends to complete and deallocate arrays
+!
+!-----------------------------------------------------------------------
+
+   !call timer_start(bndy_3d_wait)
+   if (in_bndy%nmsg_ns_snd > 0)  &
+      call MPI_WAITALL(in_bndy%nmsg_ns_snd, snd_request, snd_status, ierr)
+   !call timer_stop(bndy_3d_wait)
+
+   if (allocated(buf_ns_snd))  deallocate (buf_ns_snd)
+   if (allocated(buf_ns_rcv))  deallocate (buf_ns_rcv)
+   if (allocated(snd_request)) deallocate (snd_request)
+   if (allocated(rcv_request)) deallocate (rcv_request)
+   if (allocated(snd_status))  deallocate (snd_status)
+   if (allocated(rcv_status))  deallocate (rcv_status)
+
+   !call ice_timer_stop(timer_bound)
+
+!-----------------------------------------------------------------------
+
+ end subroutine boundary_3dvb_dbl
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: update_ghost_cells
+! !INTERFACE:
+
+subroutine boundary_4dvb_dbl(ARRAY, in_bndy, grid_loc, field_type)
+
+! !DESCRIPTION:
+!  This routine updates ghost cells for an input array and is a
+!  member of a group of routines under the generic interface
+!  update\_ghost\_cells.  This routine is the specific interface
+!  for 3d horizontal arrays of double precision.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !USER:
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   type (bndy), intent(inout) :: &
+      in_bndy                 ! boundary update structure for the array
+
+   integer (int_kind), intent(in) :: &
+      field_type,               &! id for type of field (scalar, vector, angle)
+      grid_loc                   ! id for location on horizontal grid
+                                 !  (center, NEcorner, Nface, Eface)
+
+   real (r8), dimension(:,:,:,:,:), intent(inout) :: &
+      ARRAY              ! array containing horizontal slab to update
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) ::           &
+      k,l,m,n                      ! dummy loop indices
+
+!-----------------------------------------------------------------------
+
+   l = size(ARRAY,dim=3)
+   n = size(ARRAY,dim=4)
+   do m=1,n
+      call boundary_3dvb_dbl(ARRAY(:,:,:,m,:),in_bndy,grid_loc,field_type)
+   end do
+
+!-----------------------------------------------------------------------
+
+end subroutine boundary_4dvb_dbl
 
 !***********************************************************************
 
