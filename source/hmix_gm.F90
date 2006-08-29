@@ -3388,12 +3388,16 @@
 !
 !-----------------------------------------------------------------------
 
-      WORK5 = merge( c1 / ( c2 * TLT%DIABATIC_DEPTH(:,:,bid)  &
-                           + TLT%THICKNESS(:,:,bid) ),        &
-                     c0, KMT(:,:,bid) /= 0 )
+      WORK5 = c0
+      where (KMT(:,:,bid) /= 0)
+        WORK5(:,:) = c1 / ( c2 * TLT%DIABATIC_DEPTH(:,:,bid) &
+                   + TLT%THICKNESS(:,:,bid) )
+      endwhere
 
-      WORK6 = merge( WORK5 / TLT%THICKNESS(:,:,bid), c0,  &
-                 KMT(:,:,bid) /= 0 .and. TLT%THICKNESS(:,:,bid) > eps )
+      WORK6 = c0
+      where ((KMT(:,:,bid) /= 0) .AND. (TLT%THICKNESS(:,:,bid) > eps))
+        WORK6(:,:) = WORK5(:,:) / TLT%THICKNESS(:,:,bid)
+      endwhere
 
 !-----------------------------------------------------------------------
 !
