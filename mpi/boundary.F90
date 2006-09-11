@@ -3525,15 +3525,6 @@ end subroutine boundary_4d_int
                                              tripole_dbuf_3d(ib_dst,nghost+1,:))
          end do
          tripole_dbuf_3d(:,nghost+1,:) = tripole_dghost_3d(:,1,:)
-#if 0
-!lipscomb - added W face
-      case (field_loc_Wface)
-         xoffset = 1
-         yoffset = 1
-         !*** first row of ghost cell buffer is actually the last
-         !*** row of physical domain (mostly for symmetry enforcement)
-         tripole_dghost_3d(:,1,:) = tripole_dbuf_3d(:,nghost+1,:)
-#endif
       case default
          call exit_POP(sigAbort,'Unknown location in boundary_3d')
       end select

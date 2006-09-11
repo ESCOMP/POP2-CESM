@@ -63,6 +63,7 @@
    !use drifters
    use forcing, only: init_forcing
    use forcing_sfwf, only: sfwf_formulation, lms_balance
+   use forcing_shf, only: luse_cpl_ifrac, OCN_WGT
    use sw_absorption, only : init_sw_absorption
    use passive_tracers, only: init_passive_tracers
    use exit_mod, only: sigAbort, exit_pop, flushm
@@ -1149,6 +1150,21 @@
      number_of_fatal_errors = number_of_fatal_errors + 1
     endif
   endif ! diag_gm_bolus
+
+!-----------------------------------------------------------------------
+!
+!  luse_cpl_ifrac is true, but OCN_WGT is not allocated
+!
+!-----------------------------------------------------------------------
+
+   if (my_task == master_task) then
+     if (luse_cpl_ifrac .and. .not. allocated(OCN_WGT)) then
+       message =   &
+       'Error:  cannot set luse_cpl_ifrac .true. without allocating OCN_WGT'
+       call print_message(message)
+       number_of_fatal_errors = number_of_fatal_errors + 1
+     endif
+   endif !my_task
 
 
 !-----------------------------------------------------------------------

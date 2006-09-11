@@ -1604,7 +1604,7 @@ contains
 !
 !     ref: Zheng et al (1998), JGR, vol 103,No C1
 !
-!     PT_2D: temperature (degree Celcius)
+!     PT_2D: temperature (degree Celsius)
 !     kn: = 11 for CFC-11,  12 for CFC-12
 !
 !     J-C Dutay - LSCE
@@ -1621,7 +1621,7 @@ contains
       logical (log_kind), dimension(nx_block,ny_block) :: LAND_MASK
 
 !-----------------------------------------------------------------------
-!   coefficients with t in degre Celcius
+!   coefficients with t in degre Celsius
 !-----------------------------------------------------------------------
 
       a1(11) = 3501.8_r8
@@ -1655,7 +1655,7 @@ contains
 !     CFC 11 and 12 Solubilities in seawater
 !     ref: Warner & Weiss (1985) , Deep Sea Research, vol32
 !
-!     PT:       temperature (degre Celcius)
+!     PT:       temperature (degre Celsius)
 !     PS:       salinity    (o/oo)
 !       NOTE:  multiply term that uses PS by 1000 to get psu
 !     kn:       11 = CFC-11, 12 = CFC-12

@@ -21,6 +21,9 @@ if ($OCN_COUPLING  =~ *partial*) then
   set lms_balance       = .false.
   set lsend_precip_fact = .true.
 
+#... forcing_shf_nml
+  set luse_cpl_ifrac    = .true.
+
 EOF3
 else
  cat >> $POP2BLDSCRIPT << EOF3
@@ -32,6 +35,10 @@ else
   set ladjust_precip    = .false.
   set lms_balance       = .true.
   set lsend_precip_fact = .false.
+
+#... forcing_shf_nml
+  set luse_cpl_ifrac    = .false.
+
 EOF3
 endif
 

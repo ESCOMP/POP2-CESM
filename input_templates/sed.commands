@@ -21,6 +21,8 @@
   s#LSEND_PRECIP_FACT#$lsend_precip_fact#
   s#LACTIVE_ICE#$lactive_ice#
 
+  s#LUSE_CPL_IFRAC#$luse_cpl_ifrac#
+
   s#AM_DEL2_VALUE#$am_del2_value#
   s#AH_DEL2_VALUE#$ah_del2_value#
   s#AH_GM_VALUE#$ah_gm_value#

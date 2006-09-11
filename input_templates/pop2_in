@@ -306,7 +306,7 @@ Note: Strings appearing in ALL CAPS are replaced by sed commands in the ccsm scr
    shf_data_renorm(3)   = 0.94
    shf_weak_restore     = 0.
    shf_strong_restore   = 0.0
-   luse_cpl_ifrac       = .true.
+   luse_cpl_ifrac       = LUSE_CPL_IFRAC
    shf_strong_restore_ms= 92.64
 /
 

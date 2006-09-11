@@ -1961,7 +1961,7 @@
       hu,     &! height (m) for mean wind speed
       ht,     &! height (m) for mean air temperature
       hq,     &! height (m) for mean air humidity
-      tk0      ! Celcius zero point
+      tk0      ! Celsius zero point
 
 ! !OUTPUT PARAMETERS:
 

@@ -133,7 +133,7 @@
    !  conversion factors
 
    real (r8), public :: &
-      T0_Kelvin        ,&! zero point for Celcius
+      T0_Kelvin        ,&! zero point for Celsius
       mpercm           ,&! meters per cm
       cmperm           ,&! cm per meter
       salt_to_ppt      ,&! salt (g/g) to ppt
@@ -209,7 +209,7 @@
 !
 !-----------------------------------------------------------------------
 
-   T0_Kelvin = 273.16_r8             ! zero point for Celcius
+   T0_Kelvin = 273.16_r8             ! zero point for Celsius
    grav      = 980.6_r8              ! gravit. accel. (cm/s^2)
    omega     = 7.292123625e-5_r8     ! angular vel. of Earth 1/s
    radius    = 6370.0e5_r8           ! radius of Earth (cm)
@@ -249,7 +249,7 @@
 !
 !-----------------------------------------------------------------------
 
-   T0_Kelvin              = SHR_CONST_TKFRZ         ! zero point for Celcius
+   T0_Kelvin              = SHR_CONST_TKFRZ         ! zero point for Celsius
    grav                   = SHR_CONST_G*cmperm      ! cm/s^2
    omega                  = SHR_CONST_OMEGA         ! rad/s
    radius                 = SHR_CONST_REARTH*cmperm ! cm
