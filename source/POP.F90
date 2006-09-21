@@ -60,10 +60,12 @@
 
 #ifdef SINGLE_EXEC
    integer (int_kind) :: &
-      nthreads
+      nThreads
 
-   call MPH_get_argument("THREADS", nthreads, "ocn")
-   call OMP_SET_NUM_THREADS(nthreads)
+   call MPH_get_argument("THREADS", nThreads, "ocn")
+#ifdef _OPENMP
+   call OMP_SET_NUM_THREADS(nThreads)
+#endif
 #endif
 
 !-----------------------------------------------------------------------

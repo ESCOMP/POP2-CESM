@@ -19,7 +19,7 @@
    !use distribution, only: 
    use domain_size
    use domain, only: nblocks_clinic, blocks_clinic, init_domain_blocks,    &
-       init_domain_distribution
+       init_domain_distribution, distrb_clinic
    use constants, only: delim_fmt, blank_fmt, field_loc_center, blank_fmt, &
        c0, ppt_to_salt, mpercm, c1, field_type_scalar, init_constants,     &
        stefan_boltzmann, latent_heat_vapor, vonkar, emissivity, &
@@ -70,7 +70,7 @@
    use restart, only: read_restart
    use ms_balance, only: init_ms_balance
    use forcing_coupled, only: lcoupled
-   use global_reductions, only: init_global_reductions
+   use global_reductions, only: init_global_reductions, global_sum
    use timers, only: init_timers
    use shr_sys_mod
    use registry
@@ -971,8 +971,15 @@
 ! !REVISION HISTORY:
 !  same as module
 
+
 !EOP
 !BOC
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
 
    character (char_len)      ::  &
       message,                   &! error message string
@@ -1091,6 +1098,7 @@
    ! fatal error conditions !
    !========================!
 
+
    number_of_fatal_errors = 0
  
 !-----------------------------------------------------------------------
@@ -1099,14 +1107,12 @@
 !
 !-----------------------------------------------------------------------
 
-   if (my_task == master_task) then
-     if (ltidal_mixing .and. vmix_itype /= vmix_type_kpp) then
-       message =   &
-       'Error:  Tidally driven mixing is only allowed when KPP mixing is enabled' 
-       call print_message(message)
-       number_of_fatal_errors = number_of_fatal_errors + 1
-     endif
-   endif !my_task
+   if (check_all(ltidal_mixing .and. vmix_itype /= vmix_type_kpp)) then
+     message =   &
+     'Error:  Tidally driven mixing is only allowed when KPP mixing is enabled' 
+     call print_message(message)
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1114,14 +1120,12 @@
 !
 !-----------------------------------------------------------------------
 
-   if (my_task == master_task) then
-     if (ltidal_mixing .and. bckgrnd_vdc2 /= c0) then
-       message =   &
-      'Error:  bckgrnd_vdc2 must be zero when tidal_mixing option is enabled'
-       call print_message(message)
-       number_of_fatal_errors = number_of_fatal_errors + 1
-     endif
-   endif 
+   if (check_all(ltidal_mixing .and. bckgrnd_vdc2 /= c0)) then
+     message =   &
+    'Error:  bckgrnd_vdc2 must be zero when tidal_mixing option is enabled'
+     call print_message(message)
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1157,14 +1161,12 @@
 !
 !-----------------------------------------------------------------------
 
-   if (my_task == master_task) then
-     if (luse_cpl_ifrac .and. .not. allocated(OCN_WGT)) then
-       message =   &
-       'Error:  cannot set luse_cpl_ifrac .true. without allocating OCN_WGT'
-       call print_message(message)
-       number_of_fatal_errors = number_of_fatal_errors + 1
-     endif
-   endif !my_task
+   if (check_all(luse_cpl_ifrac .and. .not. allocated(OCN_WGT))) then
+     message =   &
+     'Error:  cannot set luse_cpl_ifrac .true. without allocating OCN_WGT'
+     call print_message(message)
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
 
 
 !-----------------------------------------------------------------------
@@ -1220,6 +1222,65 @@
  1100 format(5x, a)   
 
  end subroutine print_message
+
+
+
+
+
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: check_all
+! !INTERFACE:
+
+ function check_all(condition)
+
+! !DESCRIPTION:
+!   Tests input logical condition on all processors; if any element is 
+!     .true., check_all is set to .true.
+! 
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   logical (log_kind), intent(in) :: &
+      condition               ! logical condition to be checked
+
+! !OUTPUT PARAMETERS:
+
+   logical (log_kind) :: &
+      check_all               ! true if condition is true on any processor
+
+                     
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) ::  &
+      int_condition              ! integer form of logical input condition
+
+
+   if (condition) then
+     int_condition = 1
+   else
+     int_condition = 0
+   endif
+
+   check_all =  (global_sum(int_condition,distrb_clinic) > 0)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function check_all
+
 !***********************************************************************
 
  end module initial
