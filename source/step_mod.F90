@@ -33,12 +33,12 @@
 !   use io, only: 
    use diagnostics, only: diag_global_preupdate, diag_global_afterupdate,   &
        diag_print, diag_transport, diag_init_sums, tracer_mean_initial,     &
-       volume_t_initial
+       volume_t_initial, diag_velocity
    use state_mod, only: state
    use time_management, only: mix_pass, matsuno_ts, leapfrogts, beta,       &
        alpha, c2dtt, c2dtu, c2dtp, dtp, c2dtq, theta, avg_ts, back_to_back, &
        time_to_do, freq_opt_nstep, dt, dtu, time_manager, check_time_flag,  &
-       init_time_flag, check_time_flag_freq, check_time_flag_freq_opt
+       init_time_flag, check_time_flag_freq, check_time_flag_freq_opt, eod
    use xdisplay, only: lxdisplay, nstep_xdisplay, display
    use baroclinic, only: baroclinic_driver, baroclinic_correct_adjust
    use barotropic, only: barotropic_driver
@@ -621,6 +621,10 @@
    call diag_global_afterupdate
    call diag_print
    call diag_transport
+
+   if ( eod ) then
+     call diag_velocity
+   endif
 
    if ( ldiag_global_tracer_budgets  .and.   &
         time_to_do(check_time_flag_freq_opt(tavg_flag),  &

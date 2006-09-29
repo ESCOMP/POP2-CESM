@@ -37,6 +37,7 @@
   s#C_PERP#$c_perp#
   s#U_PARA#$u_para#
   s#U_PERP#$u_perp#
+  s#VCONST_1#$vconst_1#
   s#VCONST_2#$vconst_2#
   s#VCONST_3#$vconst_3#
   s#VCONST_4#$vconst_4#
@@ -47,4 +48,7 @@
   s#TRANSPORT_REG2_NAMES#$transport_reg2_names#
 
   s#LTIDAL_MIXING#$ltidal_mixing#
+
+  s#BCKGRND_VDC1#$bckgrnd_vdc1#
+  s#BCKGRND_VDC2#$bckgrnd_vdc2#
   

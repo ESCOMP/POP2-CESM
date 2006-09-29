@@ -30,8 +30,8 @@
       nt =  2            ! total number of tracers
 
    integer (int_kind), parameter, public :: &
-      block_size_x = nx_global/NPROC_X, &! size of block in first  horizontal dimension
-      block_size_y = ny_global/NPROC_Y   ! size of block in second horizontal dimension
+      block_size_x = (nx_global-1)/NPROC_X+1, &! size of block in 1st horizontal dimension
+      block_size_y = (ny_global-1)/NPROC_Y+1   ! size of block in 2nd horizontal dimension
 
    !*** The model will inform the user of the correct
    !*** values for the parameters below.  A value higher than

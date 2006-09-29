@@ -99,7 +99,7 @@
      jpts                            !  distribution region
  
  
-   integer (int_kind), dimension(nx_global,ny_global) :: &
+   integer (int_kind), allocatable, dimension(:,:) :: &
      REGION_MASK_G                   ! global region mask
  
    real (r8)                    :: &
@@ -115,7 +115,7 @@
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
      WORK
  
-   real (r8), dimension(nx_global,ny_global) :: &
+   real (r8), allocatable, dimension(:,:) :: &
      TLAT_G                        ,& ! global latitude  of cell center
      TLON_G                        ,& ! global longitude of cell center
      DXT_G,DYT_G                   ,& ! global {x,y} spacing centered at T points
@@ -141,7 +141,13 @@
 !     create global arrays of TLON, TLAT, DXT, DYT, and REGION_MASK
 !-----------------------------------------------------------------------
  
- 
+   allocate (REGION_MASK_G(nx_global,ny_global))
+   allocate (TLON_G(nx_global,ny_global), &
+             TLAT_G(nx_global,ny_global), &
+             DXT_G (nx_global,ny_global), &
+             DYT_G (nx_global,ny_global), &
+             MASK_G(nx_global,ny_global)  )
+
    WORK = TLON*radian              ! TLON in degrees
    call gather_global(TLON_G, WORK, master_task,distrb_clinic)
    
@@ -152,7 +158,7 @@
    call gather_global(DYT_G , DYT,  master_task,distrb_clinic)
  
    call gather_global(REGION_MASK_G,REGION_MASK,master_task,distrb_clinic)
- 
+
    if (debug1) call print_regions (REGION_MASK_G)
  
  
@@ -432,6 +438,13 @@
 !-----------------------------------------------------------------------
     end do marginal_seas
  
+   deallocate (REGION_MASK_G)
+   deallocate (TLON_G,  &
+               TLAT_G,  &
+               DXT_G,   &
+               DYT_G,   &
+               MASK_G   )
+
 1000  format(5x,'(',a,')', a )
 1002  format(5x,'(',a,')  ', a ,1x, 1pe15.5)
  

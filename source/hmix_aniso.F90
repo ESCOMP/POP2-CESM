@@ -408,11 +408,6 @@
 
       if (trim(var_viscosity_infile) == 'ccsm-internal') then
          call compute_ccsm_var_viscosity
-         if (trim(var_viscosity_outfile) /= &
-             'unknown_var_viscosity_outfile') then
-           call write_var_viscosity(trim(var_viscosity_outfile),   &
-                                    trim(var_viscosity_outfile_fmt))
-         endif
       else
          call read_var_viscosity(trim(var_viscosity_infile),   &
                                  trim(var_viscosity_infile_fmt))
@@ -467,6 +462,12 @@
          enddo
          enddo
          !$OMP END PARALLEL DO
+
+         if (trim(var_viscosity_outfile) /= &
+             'unknown_var_viscosity_outfile') then
+           call write_var_viscosity(trim(var_viscosity_outfile),   &
+                                    trim(var_viscosity_outfile_fmt))
+         endif
 
       else
 
@@ -1272,14 +1273,19 @@
       do j=1,ny_block
       do i=1,nx_block
 
-         visc_vel_scale = 100.0_r8 * exp(-zt(k)/vvsl)
+!gokhan
+!****    visc_vel_scale = 100.0_r8 * exp(-zt(k)/vvsl)
+         visc_vel_scale = c0
 
          ! use bu as temp
 
-         bu = 0.15_r8
-         if ( abs(ULAT(i,j,iblock)*radian) < 30._r8 )  &
-            bu = 0.425_r8*cos(pi*ULAT(i,j,iblock)*radian/30._r8) + &
-                 0.575_r8
+!gokhan
+!****     bu = 0.15_r8
+!****     if ( abs(ULAT(i,j,iblock)*radian) < 30._r8 )  &
+!****        bu = 0.425_r8*cos(pi*ULAT(i,j,iblock)*radian/30._r8) + &
+!****             0.575_r8
+
+         bu = c1
 
          F_PARA(i,j,k,iblock) = max(p5*visc_vel_scale*bu* &
                                     max(DXU(i,j,iblock),  &
@@ -1291,6 +1297,9 @@
          bv = bv*exp(-(vconst_4*DIST(i,j,iblock))**2)
 
          F_PERP(i,j,k,iblock) = max(bu,bv)
+
+!gokhan
+!****    F_PARA(i,j,k,iblock) = max(bv,F_PARA(i,j,k,iblock))
  
          ! the diffusive CFL criteria will be enforced in subroutine
          ! init_aniso

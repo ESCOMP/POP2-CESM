@@ -976,7 +976,10 @@
 
         WORK1 = DBLOC(:,:,k)/(zgrid(k) - zgrid(k+1))
 
-        VSHEAR = merge(TIDAL_COEF(:,:,k,bid)/WORK1, c0, WORK1 > c0)
+        VSHEAR = c0
+        where (WORK1 > c0)
+           VSHEAR = TIDAL_COEF(:,:,k,bid)/WORK1
+        endwhere
 
         WORK1 = Prandtl*min(bckgrnd_vvc(k)/Prandtl+VSHEAR, tidal_mix_max)
 

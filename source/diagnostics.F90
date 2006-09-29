@@ -33,6 +33,7 @@
    use registry
    use shr_sys_mod
    use io_tools
+   use gather_scatter
 
    implicit none
    private
@@ -50,7 +51,8 @@
              cfl_vdiff,               &
              cfl_hdiff,               &
              cfl_check,               &
-             check_KE
+             check_KE,                &
+             diag_velocity
 
 ! !PUBLIC DATA MEMBERS:
 
@@ -108,7 +110,8 @@
 
    integer (int_kind) ::     &
       diag_unit,             &! i/o unit for output diagnostic file
-      trans_unit              ! i/o unit for output transport file
+      trans_unit,            &! i/o unit for output transport file
+      velocity_unit           ! i/o unit for output velocity file
 
    integer (int_kind) ::     &
       diag_global_flag,      &! time flag id for global diags
@@ -121,7 +124,10 @@
       diag_outfile_root,             &! original filename for the diagnostic output file
       diag_transport_outfile,        &! current  filename for transport output
       diag_transport_outfile_old,    &! previous filename for transport output
-      diag_transport_outfile_root     ! original filename for transport output
+      diag_transport_outfile_root,   &! original filename for transport output
+      diag_velocity_outfile,         &! current  filename for velocity output
+      diag_velocity_outfile_old,     &! previous filename for velocity output
+      diag_velocity_outfile_root      ! original filename for velocity output
 
 !-----------------------------------------------------------------------
 !
@@ -234,6 +240,23 @@
       tavg_XBLT,         &! tavg id for maximum boundary layer depth
       tavg_TBLT           ! tavg id for minimum boundary layer depth
 
+!-----------------------------------------------------------------------
+!
+!  velocity diagnostics
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind), parameter ::  &
+      num_vel_loc = 5
+
+   integer (int_kind), dimension (num_vel_loc) ::     &
+      i_loc, j_loc
+
+   real (r8), dimension (num_vel_loc) ::     &
+      vlat_loc, vlon_loc 
+
+
+
 !EOC
 !***********************************************************************
 
@@ -263,6 +286,7 @@
    integer (int_kind) :: &
       nu,                &! unit for contents input file
       iblock, n,         &! dummy loop indices
+      nloc, nreach,      &!   ditto
       nml_error,         &! namelist i/o error flag
       ib,ie,jb,je         ! beg,end indices for block physical domain
 
@@ -299,10 +323,45 @@
                              diag_transp_freq_opt, diag_transp_freq, &
                              diag_transport_file,                    &
                              diag_all_levels, cfl_all_levels,        &
-                             diag_outfile, diag_transport_outfile
+                             diag_outfile, diag_transport_outfile,   &
+                             diag_velocity_outfile
 
    type (block) ::         &
       this_block           ! block information for current block
+
+!-----------------------------------------------------------------------
+!
+!  local variables for velocity diagnostics lat/lon search
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind), parameter :: search_error = -999
+
+   real (r8)     :: &
+      diag_vel_search_reach,  &! size of lat/lon search length
+      diag_vel_search_inc,    &! increment in " "
+      lat_reach,              &! local search-length names
+      lon_reach,              &
+      min_distance,           &!smallest distance from desired lat/lon point
+      distance                 !actual distance from desired lat/lon point
+
+   integer (int_kind) ::      &
+       i,j,                   &! dummy indices
+       diag_vel_search_max
+
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: WORK
+
+   real (r8), allocatable, dimension (:,:) :: &
+      ULAT_G,ULON_G   
+
+   integer (int_kind), allocatable, dimension(:,:) ::  &
+      REGION_MASK_G
+
+   real (r8), parameter, dimension (num_vel_loc) ::     &
+      lon_loc = (/ 220.0_r8, 220.0_r8, 335.0_r8, 335.0_r8, 250.0_r8 /)
+
+   real (r8), parameter, dimension (num_vel_loc) ::     &
+      lat_loc = (/   0.0_r8,   2.0_r8,   0.0_r8,   2.0_r8,   0.0_r8 /)
 
 !-----------------------------------------------------------------------
 !
@@ -329,6 +388,7 @@
    diag_transport_outfile = 'unknown_transport_outfile'
    diag_all_levels        = .false.
    cfl_all_levels         = .false.
+   diag_velocity_outfile  = 'unknown_velocity_outfile'
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -356,6 +416,7 @@
 
      diag_outfile_root           = trim(diag_outfile)
      diag_transport_outfile_root = trim(diag_transport_outfile)
+     diag_velocity_outfile_root  = trim(diag_velocity_outfile)
 
    else
 
@@ -452,6 +513,12 @@
          if (diag_all_levels)     &
             write(stdout,'(a42)') &
                'Diagnostics output for all vertical levels'
+      endif
+
+      if (lccsm) then
+        write (stdout,'(a39,a)') &
+           'Equatorial velocities written to file: ', &
+            trim(diag_velocity_outfile) // '_yyyy-mm-dd-sssss'
       endif
 
       select case (diag_cfl_freq_opt)
@@ -708,6 +775,15 @@
       endif
    endif
 
+   if ( lccsm ) then
+     call get_unit(velocity_unit)
+     if (my_task == master_task) then
+       open(velocity_unit, file=diag_velocity_outfile, status='unknown')
+       write(velocity_unit,*)' '
+       close(velocity_unit)
+     endif
+   endif
+
 !-----------------------------------------------------------------------
 !
 !  initialize cfl arrays if required
@@ -780,6 +856,114 @@
                           missing_value=undefined_nf_r4,              &
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
+
+
+!-----------------------------------------------------------------------
+!
+!  find global i,j indices close to specified lat,lon points
+!
+!-----------------------------------------------------------------------
+
+
+   j_loc = search_error
+   i_loc = search_error
+
+   allocate (ULAT_G(nx_global,ny_global), ULON_G(nx_global,ny_global))
+   allocate (REGION_MASK_G(nx_global,ny_global))
+
+   WORK=ULON*radian
+   call gather_global(ULON_G,WORK,master_task,distrb_clinic)
+ 
+   WORK=ULAT*radian
+   call gather_global(ULAT_G,WORK,master_task,distrb_clinic)
+
+   call gather_global(REGION_MASK_G,REGION_MASK,master_task,distrb_clinic)
+
+   diag_vel_search_reach = c0
+   diag_vel_search_inc   = 0.1_r8
+   diag_vel_search_max   = 10
+ 
+   if (my_task == master_task) then
+
+   do nloc = 1, num_vel_loc
+
+     min_distance  = c10
+     lat_reach = diag_vel_search_reach 
+     lon_reach = diag_vel_search_reach 
+
+     reach_loop: do nreach = 1,diag_vel_search_max
+
+       lat_reach = lat_reach + diag_vel_search_inc
+       lon_reach = lon_reach + diag_vel_search_inc
+
+
+       do j=1,ny_global
+       do i=1,nx_global
+
+         if (   (lat_loc(nloc) - lat_reach <= ULAT_G(i,j) )   .and.  &
+                (lat_loc(nloc) + lat_reach >= ULAT_G(i,j) )   .and.  &
+                (lon_loc(nloc) - lon_reach <= ULON_G(i,j) )   .and.  &
+                (lon_loc(nloc) + lon_reach >= ULON_G(i,j) ) ) then
+
+               !-----------------------------------------------------
+               ! accept point only if it is an ocean point
+               !-----------------------------------------------------
+
+               !---------------------------------------------------------
+               !*** note that REGION_MASK_G is on the t-grid; should test
+               !***  on the u-grid
+               !---------------------------------------------------------
+
+               if (REGION_MASK_G(i,j) /= 0) then
+
+                  !---------------------------------------------------------
+                  !*** note that this is crude approximation; will be changed
+                  !***  in a more permanent version at a later time
+                  distance = sqrt( (lat_loc(nloc)-ULAT_G(i,j))**2 + &
+                                   (lon_loc(nloc)-ULON_G(i,j))**2 )
+                  !---------------------------------------------------------
+
+                  if (distance < min_distance) then
+                    j_loc(nloc) = j
+                    i_loc(nloc) = i
+                    min_distance = distance
+                    vlat_loc(nloc) = ULAT_G(i,j)
+                    vlon_loc(nloc) = ULON_G(i,j)
+                  endif
+
+               endif ! ocean point
+         endif
+
+       enddo ! i
+       enddo ! j
+
+     enddo reach_loop
+
+   enddo ! nloc
+
+   write(stdout,*) ' '
+   write(stdout,*) '   Velocity diagnostics will be computed at the following locations:'
+   do nloc = 1, num_vel_loc
+   write(stdout,'(2x,a,i3,a,i3,a, 3x, a,F25.15,a,F25.15,a)' ) &
+                '(',   i_loc(nloc), ',',   j_loc(nloc),')',   &
+                '(',vlat_loc(nloc), ',',vlon_loc(nloc),')'
+   enddo
+   call shr_sys_flush(stdout)
+
+   endif
+ 
+   call broadcast_array(j_loc , master_task)
+   call broadcast_array(i_loc , master_task)
+
+   do nloc = 1, num_vel_loc
+     if ( j_loc(nloc) == search_error .or. i_loc(nloc) == search_error)  &
+       call exit_POP (sigAbort, 'velocity diagnostics lat/lon search failed')
+   enddo
+
+   deallocate (ULAT_G, ULON_G)
+   deallocate (REGION_MASK_G)
+
+
 
 
 !EOC
@@ -2405,6 +2589,79 @@
 !EOC
 
  end subroutine cfl_hdiff
+
+!***********************************************************************
+!BOP
+! !IROUTINE: diag_velocity
+! !INTERFACE:
+
+ subroutine diag_velocity
+
+! !DESCRIPTION:
+!  Writes velocity diagnostics info to velocity output file.
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variable
+!
+!-----------------------------------------------------------------------
+
+   character (15), parameter :: &
+     diag_fmt = '(4(1pe13.6,2x))'
+
+   character (char_len) ::  &
+     string
+
+   integer (int_kind) :: &
+     ier, n
+
+
+   real (r8), dimension(nx_global,ny_global) ::  &
+     ARRAY_G
+
+
+   if ( lccsm ) then
+
+     call gather_global (ARRAY_G, VVEL(:,:,1,curtime,:), master_task, &
+                         distrb_clinic)
+
+     if ( my_task == master_task ) then
+
+       !*** append velocity output to end of velocity output file
+
+       open (velocity_unit, file=diag_velocity_outfile, status='old', &
+            position='append')
+
+       do n=1,num_vel_loc
+          write (velocity_unit,diag_fmt) tday, vlon_loc(n), vlat_loc(n), &
+                                         ARRAY_G(i_loc(n),j_loc(n))
+       enddo
+
+       close (velocity_unit)
+
+       call ccsm_date_stamp (ccsm_diag_date, 'ymds')
+
+       diag_velocity_outfile_old = trim(diag_velocity_outfile)
+       diag_velocity_outfile = trim(diag_velocity_outfile_root) &
+                               //'.'//ccsm_diag_date
+
+       string = 'mv '//trim(diag_velocity_outfile_old) &
+              //' '//trim(diag_velocity_outfile)
+       call shr_sys_system (trim(string), ier)
+
+     endif 
+
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine diag_velocity 
 
 !***********************************************************************
 !BOP

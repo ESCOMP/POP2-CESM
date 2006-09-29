@@ -34,7 +34,7 @@ else if ( ${OCN_GRID} == gx1v3 || ${OCN_GRID} == gx1v4) then
 cat >> $POP2BLDSCRIPT << EOF3
 
 #..... coupled_nml
- set qsw_diurnal_cycle = .false.
+ set qsw_diurnal_cycle = .true.
 
 EOF3
 

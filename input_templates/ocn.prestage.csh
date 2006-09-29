@@ -1,7 +1,7 @@
 #! /bin/csh -f
  
 #=============
-# set verbose
+  set verbose
 #=============
 
 # This script copies remote, resolution-dependent ocean data files
@@ -52,7 +52,7 @@ else if ($OCN_GRID == gx1v4) then
     set R = ( $R $ocndata/grid/region_mask_20060206.ieeei4 )
 
     set L = ( $L topography )    
-    set R = ( $R $ocndata/grid/topography_20060206.ieeei4 )
+    set R = ( $R $ocndata/grid/topography_20060831.ieeei4 )
 
     set L = ( $L shf )           
     set R = ( $R $ocndata/forcing/shf_mm_all_85-88_20010308.ieeer8 )

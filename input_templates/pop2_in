@@ -76,6 +76,7 @@ Note: Strings appearing in ALL CAPS are replaced by sed commands in the ccsm scr
    diag_transport_outfile = 'OUTPUTDt'
    cfl_all_levels         = .false.
    diag_all_levels        = .false.
+   diag_velocity_outfile  = 'OUTPUTDv'
 /
 
 &budget_diagnostics_nml
@@ -155,8 +156,8 @@ Note: Strings appearing in ALL CAPS are replaced by sed commands in the ccsm scr
 /
 
 &vmix_kpp_nml
-   bckgrnd_vdc1    = 0.524
-   bckgrnd_vdc2    = 0.313
+   bckgrnd_vdc1    = BCKGRND_VDC1
+   bckgrnd_vdc2    = BCKGRND_VDC2
    bckgrnd_vdc_dpth= 1000.0e02 
    bckgrnd_vdc_linv= 4.5e-05
    Prandtl         = 10.0
@@ -233,7 +234,7 @@ Note: Strings appearing in ALL CAPS are replaced by sed commands in the ccsm scr
    c_perp         = C_PERP
    u_para         = U_PARA
    u_perp         = U_PERP
-   vconst_1       = 1.0e7
+   vconst_1       = VCONST_1
    vconst_2       = VCONST_2
    vconst_3       = VCONST_3
    vconst_4       = VCONST_4
