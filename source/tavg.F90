@@ -280,8 +280,32 @@
      upper_time_bound
 
    integer (int_kind) ::  &
-      tavg_debug  = 0           ! debug level [0,1]  1 ==> messages
+      tavg_debug  = 0      ! debug level [0,1]  1 ==> messages
  
+!-----------------------------------------------------------------------
+!
+!     variables for local spatial averaging of some time-averaged fields
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind), parameter ::  &
+      n_reg_0D = 4                    ! number of regions
+
+   real (r8), dimension(:), allocatable :: &
+      SAVG_0D,                             &! local- and time-mean value 
+      SAVG_0D_AREA                          ! area of the region
+
+   real (r8), dimension(:,:,:,:), allocatable ::  &
+      SAVG_0D_MASK                          ! mask for the region, i.e. 0 and 1 mean
+                                            ! outside and inside the region, respectively
+
+   character (char_len), dimension(:), allocatable ::  &
+      SAVG_0D_NAME                          ! name of the region
+
+   logical (log_kind) ::  &
+      lsavg_on = .false.   ! flag for local spatial averaging
+
+
 !EOC
 !***********************************************************************
 
@@ -318,6 +342,9 @@
       cindex,              &! character index for manipulating strings
       nml_error,           &! namelist i/o error flag
       contents_error        ! error flag for contents file read
+
+   integer (int_kind) ::   &
+      max_days            ! maximum number of days per month in a year
 
    character (char_len) :: &
       tavg_freq_opt,       &! choice for frequency of tavg output
@@ -635,6 +662,27 @@
 
      call gather_global(KMU_G, KMU, master_task, distrb_clinic)
 
+ 
+     !*** check if local spatial averaging is possible based on tavg options
+
+     max_days = maxval(days_in_month) 
+
+     if (tavg_id('TEMP') /= 0  ) then
+      if ( (tavg_freq_iopt == freq_opt_nmonth  &
+                  .and. tavg_freq == 1)  .or.  &
+           (tavg_freq_iopt == freq_opt_nday    &
+                  .and. tavg_freq <= max_days) .or.    &
+           (tavg_freq_iopt == freq_opt_nhour           &
+                  .and. tavg_freq <= max_days*24) .or. &
+           (tavg_freq_iopt == freq_opt_nsecond         &
+                   .and. tavg_freq <= max_days*24*seconds_in_hour) .or. &
+           (tavg_freq_iopt == freq_opt_nstep           &
+                   .and. tavg_freq <= max_days*nsteps_per_day) ) then
+          lsavg_on = .true. 
+          call tavg_init_local_spatial_avg
+      endif
+     endif ! tavg_id
+
    endif ! lccsm
  
 
@@ -941,6 +989,8 @@
       !*** northward heat/salt transport diagnostics
       if (lccsm .and. lreset_tavg) call tavg_transport_ccsm
 
+      !*** compute local means
+      if (lccsm .and. lsavg_on ) call tavg_local_spatial_avg
  
 !-----------------------------------------------------------------------
 !
@@ -4920,6 +4970,199 @@
 
   end subroutine tavg_transport_ccsm
 
+!***********************************************************************
+!BOP
+! !IROUTINE: tavg_init_local_spatial_avg
+! !INTERFACE:
+
+ subroutine tavg_init_local_spatial_avg
+
+! !DESCRIPTION:
+!
+!  Initialize geographical masks and arrays for local spatial
+!     averaging of some time-averaged fields
+!
+!       region key:
+!        n_reg_0D = 1 --> Nino 1+2 region
+!                 = 2 --> Nino  3  region
+!                 = 3 --> Nino 3.4 region
+!                 = 4 --> Nino  4  region
+!
+!       TLON_MIN_0D, TLON_MAX_0D, TLAT_MIN_0D, and TLAT_MAX_0D are all
+!        in degrees. Also, TLON_MIN_0D and TLON_MAX_0D are in degrees
+!        east.
+!
+!
+! !REVISION HISTORY:
+!  same as module
+
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!     local variables
+!
+!-----------------------------------------------------------------------
+   type (block) ::        &
+      this_block          ! block information for current block
+
+   real (r8), dimension(n_reg_0D) ::  &
+     TLON_MIN_0D = (/ 270.0_r8, 210.0_r8,      &
+                      190.0_r8, 160.0_r8 /),   &
+     TLON_MAX_0D = (/ 280.0_r8, 270.0_r8,      &
+                      240.0_r8, 210.0_r8 /),   &
+     TLAT_MIN_0D = (/ -10.0_r8,  -5.0_r8,      &
+                       -5.0_r8,  -5.0_r8 /),   &
+     TLAT_MAX_0D = (/   0.0_r8,   5.0_r8,      &
+                        5.0_r8,   5.0_r8 /)     
+
+   integer (int_kind) ::  &
+      iblock,            &! local block number
+      n_reg               ! loop index
+
+
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
+     TLATD, TLOND        ! lat/lon of T points in degrees
+
+!-----------------------------------------------------------------------
+!
+!     allocate and initialize arrays
+!
+!-----------------------------------------------------------------------
+
+   allocate ( SAVG_0D(n_reg_0D),       &
+              SAVG_0D_AREA(n_reg_0D),  &
+              SAVG_0D_NAME(n_reg_0D),  &
+              SAVG_0D_MASK(nx_block,ny_block,nblocks_clinic,n_reg_0D) )
+
+   SAVG_0D_NAME = (/'NINO_1_PLUS_2 ',  &
+                    'NINO_3        ',  &
+                    'NINO_3_POINT_4',  &
+                    'NINO_4        '/)
+
+   SAVG_0D      = c0
+   SAVG_0D_AREA = c0
+   SAVG_0D_MASK = c0
+
+   !*** determine masks for each region
+   TLATD = TLAT*radian
+   TLOND = TLON*radian
+
+   do iblock = 1,nblocks_clinic
+      this_block = get_block(blocks_clinic(iblock),iblock) 
+      do n_reg=1,n_reg_0D
+        where (   CALCT(:,:,iblock)              .and.   &
+                ( TLOND(:,:,iblock) >= TLON_MIN_0D(n_reg) )  .and.   &
+                ( TLOND(:,:,iblock) <= TLON_MAX_0D(n_reg) )  .and.   &
+                ( TLATD(:,:,iblock) >= TLAT_MIN_0D(n_reg) )  .and.   &
+                ( TLATD(:,:,iblock) <= TLAT_MAX_0D(n_reg) ) )
+          SAVG_0D_MASK(:,:,iblock,n_reg) = c1
+        endwhere
+      enddo ! n_reg
+   enddo ! iblock
+
+   !*** compute areas for each region to be used later for normalization
+   do n_reg=1,n_reg_0D
+     SAVG_0D_AREA(n_reg) = global_sum(TAREA(:,:,:),distrb_clinic,  &
+                              field_loc_center,SAVG_0D_MASK(:,:,:,n_reg) )
+     if ( SAVG_0D_AREA(n_reg) == c0 ) &
+       call exit_POP(sigAbort,  &
+          'ERROR in tavg_init_local_spatial_avg: SAVG_0D_AREA is zero.')
+   enddo
+
+!-----------------------------------------------------------------------
+!EOC
+
+  end subroutine tavg_init_local_spatial_avg
+
+!***********************************************************************
+!BOP
+! !IROUTINE: tavg_local_spatial_avg
+! !INTERFACE:
+
+ subroutine tavg_local_spatial_avg
+
+! !DESCRIPTION:
+!
+!  Compute local spatial averages from time-averaged TEMP
+!
+!
+! !REVISION HISTORY:
+!  same as module
+
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!     local variables
+!
+!-----------------------------------------------------------------------
+
+   type (block) ::        &
+      this_block          ! block information for current block
+
+   character (char_len) ::  &
+      time_string,          &
+      date_string
+
+   integer (int_kind) ::  &
+      iblock,             &! local block number
+      n_reg,              &! loop index
+      tavg_id_TEMP,       &! index for TEMP
+      tavg_loc_TEMP        ! location for TEMP in TAVG_BUF_3D
+
+   real (r8), dimension (nx_block,ny_block,max_blocks_clinic) ::  &
+      WORK
+
+   tavg_id_TEMP  = tavg_id('TEMP')
+
+   if (tavg_id_TEMP == 0) then
+     !*** do not abort; write warning message and proceed
+     call document ('tavg_local_spatial_avg', &
+       'WARNING: cannot compute spatial averages from time-averaged TEMP')
+     return
+   else
+     tavg_loc_TEMP = avail_tavg_fields(tavg_id_TEMP)%buf_loc
+   endif
+
+   do iblock = 1,nblocks_clinic
+      this_block = get_block(blocks_clinic(iblock),iblock) 
+      WORK(:,:,iblock)=  &
+          TAVG_BUF_3D(:,:,1,iblock,tavg_loc_TEMP)*TAREA(:,:,iblock)
+   enddo ! iblock
+
+   do n_reg=1,n_reg_0D
+     SAVG_0D(n_reg) = global_sum ( WORK(:,:,:),distrb_clinic,  &
+                         field_loc_center,SAVG_0D_MASK(:,:,:,n_reg))  &
+                         / SAVG_0D_AREA(n_reg)
+   enddo ! n_reg
+
+
+   if ( my_task == master_task ) then
+
+     call time_stamp('now','ymd',time_string=time_string)
+     call time_stamp('now','ymd',date_string=date_string)
+
+     write (stdout,*) ' '
+     write (stdout,*)  &
+     ' Local Time- and Space-Averages for Nino Regions: '  &
+      // trim(time_string) // ' ' // trim(date_string)
+
+     do n_reg=1,n_reg_0D
+       write (stdout,*) trim(SAVG_0D_NAME(n_reg)),': ',  &
+                        SAVG_0D(n_reg)
+     enddo
+
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+  end subroutine tavg_local_spatial_avg
  
  end module tavg
 

@@ -466,10 +466,12 @@
 
    character (char_len) :: &
       init_ts_option,      &! option for initializing t,s
+      init_ts_suboption,   &! suboption for initializing t,s (rest or spunup)
       init_ts_file,        &! filename for input T,S file
       init_ts_file_fmt      ! format (bin or nc) for input file
 
-   namelist /init_ts_nml/ init_ts_option, init_ts_file, init_ts_file_fmt
+   namelist /init_ts_nml/ init_ts_option, init_ts_file, init_ts_file_fmt, &
+                          init_ts_suboption
 
 !-----------------------------------------------------------------------
 !
@@ -562,6 +564,8 @@
 !
 !-----------------------------------------------------------------------
 
+   init_ts_suboption = 'rest'
+
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
       if (nml_error /= 0) then
@@ -590,6 +594,11 @@
        write(stdout,blank_fmt)
        write(stdout, init_ts_nml)
        write(stdout,blank_fmt)
+       if (trim(init_ts_option)    == 'startup' .and.  &
+           trim(init_ts_suboption) == 'spunup') then
+                init_ts_option = 'startup_spunup'
+                luse_pointer_files = .false.
+       endif
        select case (init_ts_option)
          case ('continue', 'restart', 'branch', 'hybrid') 
             if (luse_pointer_files) then
@@ -601,15 +610,18 @@
        call shr_sys_flush(stdout)
    endif
 
-   call broadcast_scalar(init_ts_option  , master_task)
-   call broadcast_scalar(init_ts_file    , master_task)
-   call broadcast_scalar(init_ts_file_fmt, master_task)
+   call broadcast_scalar(init_ts_option    , master_task)
+   call broadcast_scalar(init_ts_suboption , master_task)
+   call broadcast_scalar(luse_pointer_files, master_task)
+   call broadcast_scalar(init_ts_file      , master_task)
+   call broadcast_scalar(init_ts_file_fmt  , master_task)
 
 !-----------------------------------------------------------------------
 !
 !  initialize t,s or call restart based on init_ts_option
 !
 !-----------------------------------------------------------------------
+
 
    select case (init_ts_option)
 
@@ -655,13 +667,32 @@
       lccsm_branch = .false.
       lccsm_hybrid = .true.
       if (my_task == master_task .and. .not. luse_pointer_files) then
-         write(stdout,'(a40,a)') &
+         write(stdout,'(a80,a)') &
             'Initial T,S hybrid start from restart file:', &
             trim(init_ts_file)
          call shr_sys_flush(stdout)
       endif
       call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid,init_ts_file_fmt)
       ltavg_restart = .false.
+
+   case ('startup_spunup')
+!*********** debug ****************************************
+      write(stdout,*) ' startup_spunup option'
+      write(stdout,*) ' init_ts_option = ', init_ts_option
+!*********** debug ****************************************
+      first_step   = .false.
+      lccsm_branch = .false.
+      lccsm_hybrid = .true.
+      if (my_task == master_task .and. .not. luse_pointer_files) then
+         write(stdout,'(a80,a)') &
+            'Initial T,S startup run from spun-up restart file:', &
+            trim(init_ts_file)
+         call shr_sys_flush(stdout)
+      endif
+      call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid,init_ts_file_fmt)
+      ltavg_restart = .false.
+      !*** turn pointer file-creation back on
+      luse_pointer_files = .true.
 
 !-----------------------------------------------------------------------
 !

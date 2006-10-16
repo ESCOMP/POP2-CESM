@@ -59,9 +59,10 @@ Note: Strings appearing in ALL CAPS are replaced by sed commands in the ccsm scr
 /
 
 &init_ts_nml
-   init_ts_option = 'INIT_TS_OPTION'
-   init_ts_file   = 'INPUT/ts'
-   init_ts_file_fmt = 'bin'
+   init_ts_option    = 'INIT_TS_OPTION'
+   init_ts_suboption = 'null'
+   init_ts_file      = 'INPUT/ts'
+   init_ts_file_fmt  = 'bin'
 /
 
 &diagnostics_nml

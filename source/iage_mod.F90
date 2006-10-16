@@ -200,10 +200,12 @@ contains
 
    character (char_len) :: &
       init_ts_option,      &! option for initializing t,s
+      init_ts_suboption,   &! suboption for initializing t,s
       init_ts_file,        &! filename for input T,S file
       init_ts_file_fmt      ! format (bin or nc) for input file
 
-   namelist /init_ts_nml/ init_ts_option, init_ts_file, init_ts_file_fmt
+   namelist /init_ts_nml/ init_ts_option, init_ts_file, init_ts_file_fmt,  &
+                          init_ts_suboption
 
    type (datafile) :: &
       restart_file    ! io file descriptor
@@ -276,7 +278,7 @@ contains
     !   broadcast all namelist variables
     !------------------------------------------------------------------
 
-    call broadcast_scalar(init_iage_option, master_task)
+    call broadcast_scalar(init_iage_option , master_task)
     call broadcast_scalar(init_iage_init_file, master_task)
     call broadcast_scalar(init_iage_init_file_fmt, master_task)
 
@@ -296,6 +298,7 @@ contains
     !------------------------------------------------------------------
 
    init_ts_option  = 'unknown'
+   init_ts_suboption  = 'rest'
    init_ts_file    = 'unknown'
    init_ts_file_fmt= 'bin'
 
@@ -310,6 +313,10 @@ contains
          read(nml_in, nml=init_ts_nml,iostat=nml_error)
       end do
       if (nml_error == 0) close(nml_in)
+      if (trim(init_ts_option)    == 'startup' .and.  &
+          trim(init_ts_suboption) == 'spunup') then
+               init_ts_option = 'startup_spunup'
+      endif
    endif
 
     call broadcast_scalar(nml_error, master_task)
@@ -324,9 +331,10 @@ contains
     !   broadcast all namelist variables
     !------------------------------------------------------------------
 
-   call broadcast_scalar(init_ts_option  , master_task)
-   call broadcast_scalar(init_ts_file    , master_task)
-   call broadcast_scalar(init_ts_file_fmt, master_task)
+   call broadcast_scalar(init_ts_option    , master_task)
+   call broadcast_scalar(init_ts_suboption , master_task)
+   call broadcast_scalar(init_ts_file      , master_task)
+   call broadcast_scalar(init_ts_file_fmt  , master_task)
 
     !------------------------------------------------------------------
     !   initialize tracers
@@ -335,7 +343,7 @@ contains
 
     select case (init_iage_option)
 
-    case ('startup', 'zero')
+    case ('startup', 'zero', 'startup_spunup')
        TRACER_MODULE = c0
        if (my_task == master_task) then
            write(stdout,delim_fmt)
