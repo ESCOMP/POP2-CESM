@@ -1056,22 +1056,31 @@
       end do
 
       do k=2,km
+
+       if (partial_bottom_cells) then
 !CDIR COLLAPSE
-         do j=jb,je
-         do i=ib,ie
+        do j=jb,je
+        do i=ib,ie
+           C(i,j) = A(i,j)
+           A(i,j) = aidif*VDC(i,j,k,mt2,bid)/ &
+                    (p5*(DZT(i,j,k  ,bid) + &
+                         DZT(i,j,k+1,bid)))
+           hfac_t(k) = DZT(i,j,k,bid)/c2dtt(k)
+        end do
+        end do
+       else
+!CDIR COLLAPSE
+        do j=jb,je
+        do i=ib,ie
+           C(i,j) = A(i,j)
+           A(i,j) = afac_t(k)*VDC(i,j,k,mt2,bid)
+        end do
+        end do
+       endif ! partial_bottom_cells
 
-
-            C(i,j) = A(i,j)
-
-            if (partial_bottom_cells) then
-               A(i,j) = aidif*VDC(i,j,k,mt2,bid)/ &
-                        (p5*(DZT(i,j,k  ,bid) + &
-                             DZT(i,j,k+1,bid)))
-               hfac_t(k) = DZT(i,j,k,bid)/c2dtt(k)
-            else
-               A(i,j) = afac_t(k)*VDC(i,j,k,mt2,bid)
-            endif
-
+!CDIR COLLAPSE
+       do j=jb,je
+       do i=ib,ie
             if (k > KMT(i,j,bid)) then
                F(i,j,k) = c0
             else
@@ -1088,9 +1097,9 @@
                            C(i,j)*F(i,j,k-1))/D(i,j)
             endif
 
-         end do
-         end do
-      end do
+       end do ! i
+       end do ! j
+      end do  ! k
 
 
       do k=km-1,1,-1
@@ -1260,20 +1269,30 @@
       end do
 
       do k=2,km
+
+        if (partial_bottom_cells) then
 !CDIR COLLAPSE
-         do j=jb,je
-         do i=ib,ie
+          do j=jb,je
+          do i=ib,ie
+             C(i,j) = A(i,j)
+             A(i,j) = aidif*VDC(i,j,k,mt2,bid)/ &
+                      (p5*(DZT(i,j,k  ,bid) + DZT(i,j,k+1,bid)))
+             hfac_t(k) = DZT(i,j,k,bid)/c2dtt(k)
+          end do
+          end do
+        else
+!CDIR COLLAPSE
+          do j=jb,je
+          do i=ib,ie
+             C(i,j) = A(i,j)
+             A(i,j) = afac_t(k)*VDC(i,j,k,mt2,bid)
+          end do
+          end do
+        endif ! partial_bottom_cells
 
-            C(i,j) = A(i,j)
-
-            if (partial_bottom_cells) then
-               A(i,j) = aidif*VDC(i,j,k,mt2,bid)/ &
-                        (p5*(DZT(i,j,k  ,bid) + DZT(i,j,k+1,bid)))
-               hfac_t(k) = DZT(i,j,k,bid)/c2dtt(k)
-            else
-               A(i,j) = afac_t(k)*VDC(i,j,k,mt2,bid)
-            endif
-
+!CDIR COLLAPSE
+          do j=jb,je
+          do i=ib,ie
             if (k > KMT(i,j,bid)) then
                F(i,j,k) = c0
             else
@@ -1291,7 +1310,7 @@
 
          end do
          end do
-      end do
+      end do ! k
 
       !*** back substitution
 
@@ -1438,20 +1457,29 @@
 
    do k=2,km
 
+      if (partial_bottom_cells) then
+!CDIR COLLAPSE
+        do j=jb,je
+        do i=ib,ie
+           C(i,j) = A(i,j)
+           hfac_u(k) = DZU(i,j,k,bid)/c2dtu
+           A(i,j) = aidif*VVC(i,j,k,bid)/(p5*(DZU(i,j,k,bid) + &
+                                              DZU(i,j,k+1,bid)))
+        end do
+        end do
+      else
+!CDIR COLLAPSE
+        do j=jb,je
+        do i=ib,ie
+           C(i,j) = A(i,j)
+           A(i,j) = afac_u(k)*VVC(i,j,k,bid)
+        end do
+        end do
+      endif ! partial_bottom_cells
+
 !CDIR COLLAPSE
       do j=jb,je
       do i=ib,ie
-
-         C(i,j) = A(i,j)
-
-         if (partial_bottom_cells) then
-            hfac_u(k) = DZU(i,j,k,bid)/c2dtu
-            A(i,j) = aidif*VVC(i,j,k,bid)/(p5*(DZU(i,j,k,bid) + &
-                                               DZU(i,j,k+1,bid)))
-         else
-            A(i,j) = afac_u(k)*VVC(i,j,k,bid)
-         endif
-
          if (k < KMU(i,j,bid)) then
 
             D(i,j)    = hfac_u(k) + A(i,j) + B(i,j)
@@ -1478,7 +1506,7 @@
 
       end do
       end do
-   end do
+   end do ! k
 
    do k=km-1,1,-1
    do j=jb,je
