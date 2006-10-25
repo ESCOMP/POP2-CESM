@@ -151,12 +151,12 @@ c-----------------------------------------------------------------------
       if(ndrifters_total.gt.ndrifters_max) then
          write(*,*)' ** WARNING: ndrifters > ndrifters_max'
          write(*,*)'             Only first ',ndrifters_max,
-     #             ' drifters will be read in'
+     &             ' drifters will be read in'
          ndrifters_total = ndrifters_max
       endif
       do np = 1,ndrifters_total
          read(nu,*)i,
-     #      drifter_ijk(1,np),drifter_ijk(2,np),drifter_ijk(3,np)
+     &      drifter_ijk(1,np),drifter_ijk(2,np),drifter_ijk(3,np)
       enddo
 
       write(*,*)' '

@@ -51,6 +51,7 @@
    integer (int_kind) :: &
       timer_total,       &! timer number for total time
       timer_step,        &! timer number for step
+      timer_out,         &! timer number for output driver
       ierr,              &! error flag
       fstop_now,         &! flag id for stop_now flag
       nscan
@@ -87,10 +88,12 @@
 !
 !-----------------------------------------------------------------------
 
+   call get_timer(timer_step,'STEP',1,distrb_clinic%nprocs)
+   call get_timer(timer_out,'OUTPUT',1,distrb_clinic%nprocs)
+
    call get_timer(timer_total,'TOTAL',1,distrb_clinic%nprocs)
    call timer_start(timer_total)
 
-   call get_timer(timer_step,'STEP',1,distrb_clinic%nprocs)
 
 !-----------------------------------------------------------------------
 !
@@ -124,7 +127,9 @@
 !
 !-----------------------------------------------------------------------
 
+      call timer_start(timer_out)
       call output_driver
+      call timer_stop (timer_out)
 
    enddo advance
 

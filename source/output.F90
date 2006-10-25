@@ -15,14 +15,15 @@
 !
 ! !USES:
 
-   use kinds_mod, only: char_len
-!   use domain, only: 
+   use kinds_mod
+   use domain
 !   use constants, only: 
 !   use time_management, only: 
    use restart, only: write_restart, init_restart
    use history, only: write_history, init_history
    use movie, only: write_movie, init_movie
    use tavg, only: write_tavg, init_tavg
+   use timers, only: get_timer, timer_start, timer_stop
 
    implicit none
    private
@@ -66,6 +67,26 @@
       restart_type          ! type of restart being written - used
                             ! to pass restart info to tavg routines
 
+   integer (int_kind), save :: &
+      timer_tavg,              &! timer for tavg
+      timer_rest                ! timer for restart
+
+   logical (log_kind), save :: &
+      first_call = .true.       ! flag for initializing timers
+
+
+!-----------------------------------------------------------------------
+!
+!  if this is the first call to output_driver, start some timers
+!
+!-----------------------------------------------------------------------
+
+   if (first_call) then
+      call get_timer(timer_tavg,'OUTPUT TAVG',nblocks_clinic,distrb_clinic%nprocs)
+      call get_timer(timer_rest,'OUTPUT REST',nblocks_clinic,distrb_clinic%nprocs)
+      first_call = .false.
+   endif
+
 !-----------------------------------------------------------------------
 !
 !  write history, movie files - the decision when to write
@@ -83,7 +104,9 @@
 !
 !-----------------------------------------------------------------------
 
+   call timer_start(timer_rest)
    call write_restart(restart_type)
+   call timer_stop (timer_rest)
 
 !-----------------------------------------------------------------------
 !
@@ -93,7 +116,9 @@
 !
 !-----------------------------------------------------------------------
 
+   call timer_start(timer_tavg)
    call write_tavg(restart_type)
+   call timer_stop (timer_tavg)
 
 !-----------------------------------------------------------------------
 !EOC
