@@ -2174,6 +2174,7 @@
 
    if (status /= nf90_noerr) then
       write(stdout,*) trim(nf90_strerror(status))
+      call shr_sys_flush(stdout)
    end if
 
 !-----------------------------------------------------------------------
@@ -2271,6 +2272,7 @@
 !  define the field
 !
 !-----------------------------------------------------------------------
+
    if (present(nftype)) then
       select case (trim(nftype))
         case ('float','FLOAT')
@@ -2322,27 +2324,30 @@
        end if
 
       !*** coordinates
-       iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=field_id, &
-                                       name='coordinates')
-       if (iostat /= NF90_NOERR) then ! attrib probably not defined
-          iostat = NF90_PUT_ATT(ncid=NCID, varid=field_id,    &
-                                name='coordinates',           &
-                                values=trim(coordinates))
-          call check_status(iostat)
-          if (iostat /= NF90_NOERR) define_error = .true.
-       end if
+       if (present(coordinates)) then
+          iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=field_id, &
+                                          name='coordinates')
+          if (iostat /= NF90_NOERR) then ! attrib probably not defined
+             iostat = NF90_PUT_ATT(ncid=NCID, varid=field_id,    &
+                                   name='coordinates',           &
+                                   values=trim(coordinates))
+             call check_status(iostat)
+             if (iostat /= NF90_NOERR) define_error = .true.
+          end if
+       endif
 
       !*** missing_value
-       iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=field_id, &
-                                       name='missing_value')
-       if (iostat /= NF90_NOERR) then ! attrib probably not defined
-          iostat = NF90_PUT_ATT(ncid=NCID, varid=field_id,        &
-                                name='missing_value',             &
-                                values=missing_value)
-          call check_status(iostat)
-          if (iostat /= NF90_NOERR) define_error = .true.
-       end if
-
+       if (present(missing_value)) then
+          iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=field_id, &
+                                          name='missing_value')
+          if (iostat /= NF90_NOERR) then ! attrib probably not defined
+             iostat = NF90_PUT_ATT(ncid=NCID, varid=field_id,        &
+                                   name='missing_value',             &
+                                   values=missing_value)
+             call check_status(iostat)
+             if (iostat /= NF90_NOERR) define_error = .true.
+          end if
+       endif
 
    endif ! master_task
 
@@ -2722,10 +2727,8 @@
          dimid = 0
 
          !*** check to see whether dimension is already defined
-
          iostat = NF90_INQ_DIMID(ncid=ncid, name=trim(io_dims(n)%name),&
                                  dimid=dimid)
-
          if (iostat /= NF90_NOERR) then ! dimension not yet defined
             iostat = NF90_DEF_DIM (ncid=ncid, name=trim(io_dims(n)%name), &
                                    len=io_dims(n)%length, dimid=io_dims(n)%id)
@@ -2733,7 +2736,6 @@
             io_dims(n)%id = dimid
          end if
       end do
-
    endif ! master_task
 
 

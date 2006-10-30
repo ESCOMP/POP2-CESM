@@ -870,7 +870,6 @@
    type (block) ::        &
       this_block          ! block information for current block
 
-
    num_avail_tavg_nstd_fields = 0
 
 !-----------------------------------------------------------------------
@@ -953,7 +952,6 @@
    endif
 
 
-
 !-----------------------------------------------------------------------
 !
 !     compute global averages of tavg fields
@@ -971,7 +969,6 @@
 
       call tavg_norm_field_all ('normalize')
  
-
 !-----------------------------------------------------------------------
 !
 !  compute ccsm diagnostcs from tavg quantities
@@ -982,7 +979,6 @@
       !*** barotropic stream function
       if (lccsm .and. lreset_tavg) call tavg_bsf_ccsm
      
- 
       !*** MOC diagnostics
       if (lccsm .and. lreset_tavg) call tavg_moc_ccsm
  
@@ -1063,7 +1059,6 @@
         call tavg_define_scalars_ccsm         (tavg_file_desc)
         call tavg_define_labels_ccsm          (tavg_file_desc)
       endif
-
 
       allocate(tavg_fields(num_avail_tavg_fields))
 
@@ -2304,17 +2299,18 @@
    if (present(field_loc)) then
       tavg_field%field_loc = field_loc
    else
-      !*** try to decode field location from grid_loc
-      if (grid_loc(2:2) == '1' .and. grid_loc(3:3) == '1') then
-         tavg_field%field_loc = field_loc_center
-      else if (grid_loc(2:2) == '2' .and. grid_loc(3:3) == '2') then
-         tavg_field%field_loc = field_loc_NEcorner
-      else if (grid_loc(2:2) == '1' .and. grid_loc(3:3) == '2') then
-         tavg_field%field_loc = field_loc_Nface
-      else if (grid_loc(2:2) == '2' .and. grid_loc(3:3) == '1') then
-         tavg_field%field_loc = field_loc_Eface
-      else
-         tavg_field%field_loc = field_loc_noupdate
+      tavg_field%field_loc = field_loc_noupdate
+      if (present(grid_loc)) then
+         !*** try to decode field location from grid_loc
+         if (grid_loc(2:2) == '1' .and. grid_loc(3:3) == '1') then
+            tavg_field%field_loc = field_loc_center
+         else if (grid_loc(2:2) == '2' .and. grid_loc(3:3) == '2') then
+            tavg_field%field_loc = field_loc_NEcorner
+         else if (grid_loc(2:2) == '1' .and. grid_loc(3:3) == '2') then
+            tavg_field%field_loc = field_loc_Nface
+         else if (grid_loc(2:2) == '2' .and. grid_loc(3:3) == '1') then
+            tavg_field%field_loc = field_loc_Eface
+         endif
       endif
    endif
 
@@ -3974,8 +3970,6 @@
 
    save  
 
-
-
    !*** time
    TIME1D(1)=tday00
    time_coordinate(1) = construct_io_field('time',time_dim,               &
@@ -4652,6 +4646,7 @@
      call exit_POP (SigAbort, 'Fatal error')
    endif
 
+
    if (ldiag_gm_bolus) then
  
      tavg_id_WISOP  = tavg_id('WISOP')
@@ -4665,10 +4660,10 @@
        call document ('tavg_moc_ccsm', 'tavg_id_VISOP',  tavg_id_VISOP)
        call exit_POP (SigAbort, 'Fatal error')
      endif
- 
+
      tavg_loc_WISOP = avail_tavg_fields(tavg_id_WISOP)%buf_loc
      tavg_loc_VISOP = avail_tavg_fields(tavg_id_VISOP)%buf_loc
- 
+
      !*** error checking
      if (tavg_loc_WISOP  == 0 .or. tavg_loc_VISOP  == 0 ) then
        call document ('tavg_moc_ccsm', &
@@ -4677,11 +4672,12 @@
        call document ('tavg_moc_ccsm', 'tavg_loc_VISOP',  tavg_loc_VISOP)
        call exit_POP (SigAbort, 'Fatal error')
      endif
- 
+
    endif ! ldiag_gm_bolus
 
    !*** define MOC tavg variable and dimensions
    !*** note that this call fills avail_tavg_nstd_fields
+
    call define_tavg_field(                               &
         tavg_MOC, 'MOC', 5,                              &
         long_name='Meridional Overturning Circulation',  &
