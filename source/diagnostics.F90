@@ -1625,7 +1625,7 @@
    character (21), parameter :: &
       trcr_fmt = '(a24,i3,a19,1pe22.15)'
 
-   character (char_len) ::  &
+   character (char_len_long) ::  &
       string
 
 !-----------------------------------------------------------------------
@@ -1863,7 +1863,7 @@
       heat_tran,           &! local sum of heat transport
       salt_tran             ! local sum of salt transport
 
-   character (char_len) ::  &
+   character (char_len_long) ::  &
       string
 
    type (block) ::         &
@@ -2614,7 +2614,7 @@
    character (15), parameter :: &
      diag_fmt = '(4(1pe13.6,2x))'
 
-   character (char_len) ::  &
+   character (char_len_long) ::  &
      string
 
    integer (int_kind) :: &
@@ -2648,7 +2648,7 @@
 
        diag_velocity_outfile_old = trim(diag_velocity_outfile)
        diag_velocity_outfile = trim(diag_velocity_outfile_root) &
-                               //'.'//ccsm_diag_date
+                               //'.'//trim(ccsm_diag_date)
 
        string = 'mv '//trim(diag_velocity_outfile_old) &
               //' '//trim(diag_velocity_outfile)

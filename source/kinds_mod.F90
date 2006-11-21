@@ -23,6 +23,7 @@
 
    integer, parameter, public ::               &
       char_len       = 256                    ,&
+      char_len_long  = 512                    ,&
       log_kind       = kind(.true.)           ,&
       int_kind       = kind(1)                ,&
       i4             = selected_int_kind(6)   ,&
