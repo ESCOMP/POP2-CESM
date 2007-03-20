@@ -66,6 +66,29 @@ else if ($OCN_GRID == gx1v4) then
     set L = ( $L chl_data )      
     set R = ( $R $ocndata/forcing/chl_mm_SeaWiFs97-01_20030328.ieeer8 )
  
+else if ($OCN_GRID == gx1v5) then
+#                     =====
+    set L = ( $L horiz_grid )    
+    set R = ( $R $ocndata/grid/horiz_grid_20010402.ieeer8 )
+
+    set L = ( $L region_mask )   
+    set R = ( $R $ocndata/grid/region_mask_20061229.ieeei4 )
+
+    set L = ( $L topography )    
+    set R = ( $R $ocndata/grid/topography_20061229.ieeei4 )
+
+    set L = ( $L shf )           
+    set R = ( $R $ocndata/forcing/shf_mm_all_85-88_20010308.ieeer8 )
+
+    set L = ( $L sfwf )          
+    set R = ( $R $ocndata/forcing/sfwf_mm_PHC2_salx_flxio_20061230.ieeer8 )
+
+    set L = ( $L tidal_energy )      
+    set R = ( $R $ocndata/forcing/tidal_energy_gx1v5_20070102.ieeer8 )
+  
+    set L = ( $L chl_data )      
+    set R = ( $R $ocndata/forcing/chl_filled_gx1v5_20061230.ieeer8 )
+ 
 else if ($OCN_GRID == gx3v5) then
 #                     =====
     set L = ( $L horiz_grid )    
