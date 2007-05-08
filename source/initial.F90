@@ -64,12 +64,13 @@
    use forcing, only: init_forcing
    use forcing_sfwf, only: sfwf_formulation, lms_balance
    use forcing_shf, only: luse_cpl_ifrac, OCN_WGT
-   use sw_absorption, only : init_sw_absorption
+   use sw_absorption, only: init_sw_absorption
    use passive_tracers, only: init_passive_tracers
+   use ecosys_mod, only: ecosys_diurnal_cycle
    use exit_mod, only: sigAbort, exit_pop, flushm
-   use restart, only: read_restart
+   use restart, only: read_restart, restart_fmt, read_restart_filename
    use ms_balance, only: init_ms_balance
-   use forcing_coupled, only: lcoupled
+   use forcing_coupled, only: lcoupled, qsw_diurnal_cycle
    use global_reductions, only: init_global_reductions, global_sum
    use timers, only: init_timers
    use shr_sys_mod
@@ -92,6 +93,9 @@
 !     module variables
 !
 !-----------------------------------------------------------------------
+
+   character (char_len) :: &
+      init_ts_file_fmt      ! format (bin or nc) for input file
 
 !EOC
 !***********************************************************************
@@ -298,8 +302,6 @@
 !       o init_pt_interior
 !       o init_s_interior
 !       o init_ap
-!       o init_passive_tracers_sflux
-!       o init_passive_tracers_interior_restore
 !       o init_coupled
 !
 !-----------------------------------------------------------------------
@@ -317,7 +319,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call init_passive_tracers
+   call init_passive_tracers(init_ts_file_fmt, read_restart_filename)
 
 !-----------------------------------------------------------------------
 !
@@ -467,8 +469,7 @@
    character (char_len) :: &
       init_ts_option,      &! option for initializing t,s
       init_ts_suboption,   &! suboption for initializing t,s (rest or spunup)
-      init_ts_file,        &! filename for input T,S file
-      init_ts_file_fmt      ! format (bin or nc) for input file
+      init_ts_file          ! filename for input T,S file
 
    namelist /init_ts_nml/ init_ts_option, init_ts_file, init_ts_file_fmt, &
                           init_ts_suboption
@@ -1199,6 +1200,18 @@
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif
 
+!-----------------------------------------------------------------------
+!
+!  ecosystem requests diurnal cycle, but base model is not using it
+!
+!-----------------------------------------------------------------------
+
+   if (ecosys_diurnal_cycle .and. .not. qsw_diurnal_cycle) then
+     message =   &
+     'Error:  cannot set ecosys_diurnal_cycle=.true. without qsw_diurnal_cycle=.true.'
+     call print_message(message)
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
 
 !-----------------------------------------------------------------------
 !

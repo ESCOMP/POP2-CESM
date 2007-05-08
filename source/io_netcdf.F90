@@ -23,6 +23,7 @@
    use gather_scatter
    use exit_mod
    use io_types
+   use io_tools
    use netcdf
    use shr_sys_mod
 
@@ -197,12 +198,20 @@
 
          if (my_task == master_task) then
             iostat = nf90_inquire_attribute(ncid, NF90_GLOBAL, &
-                                            name='title', len=nsize)
+                                            'title', len=nsize)
 
             if (iostat == nf90_noerr) then
-               iostat = nf90_get_att(ncid=ncid, varid=NF90_GLOBAL, &
-                        name='title',values=data_file%title(1:nsize))
-               call check_status(iostat)
+               if (nsize <= len(data_file%title)) then
+                  iostat = nf90_get_att(ncid, NF90_GLOBAL, 'title', &
+                                        data_file%title(1:nsize))
+                  call check_status(iostat)
+               else
+                  call document('open_read_netcdf', 'nsize', nsize)
+                  call document('open_read_netcdf', 'len(data_file%title)', &
+                                len(data_file%title))
+                  write(stdout,*) 'not enough room to read title from ' /&
+                                  &/ trim(path)
+               endif
             endif
          endif
 
@@ -219,11 +228,19 @@
          data_file%history = char_blank
          if (my_task == master_task) then
             iostat = nf90_inquire_attribute(ncid, NF90_GLOBAL, &
-                                            'history',len=nsize)
+                                            'history', len=nsize)
             if (iostat == nf90_noerr) then
-               iostat = nf90_get_att(ncid, NF90_GLOBAL, 'history', &
-                                     data_file%history(1:nsize))
-               call check_status(iostat)
+               if (nsize <= len(data_file%history)) then
+                  iostat = nf90_get_att(ncid, NF90_GLOBAL, 'history', &
+                                        data_file%history(1:nsize))
+                  call check_status(iostat)
+               else
+                  call document('open_read_netcdf', 'nsize', nsize)
+                  call document('open_read_netcdf', 'len(data_file%history)', &
+                                len(data_file%history))
+                  write(stdout,*) 'not enough room to read history from ' /&
+                                  &/ trim(path)
+               endif
             endif
          endif
 
@@ -240,11 +257,19 @@
          data_file%conventions = char_blank
          if (my_task == master_task) then
             iostat = nf90_inquire_attribute(ncid, NF90_GLOBAL, &
-                                            'conventions',len=nsize)
+                                            'conventions', len=nsize)
             if (iostat == nf90_noerr) then
-               iostat = nf90_get_att(ncid, NF90_GLOBAL, 'conventions', &
-                                     data_file%conventions(1:nsize))
-               call check_status(iostat)
+               if (nsize <= len(data_file%conventions)) then
+                  iostat = nf90_get_att(ncid, NF90_GLOBAL, 'conventions', &
+                                        data_file%conventions(1:nsize))
+                  call check_status(iostat)
+               else
+                  call document('open_read_netcdf', 'nsize', nsize)
+                  call document('open_read_netcdf', 'len(data_file%conventions)', &
+                                len(data_file%conventions))
+                  write(stdout,*) 'not enough room to read conventions from ' /&
+                                  &/ trim(path)
+               endif
             endif
          endif
 
@@ -284,8 +309,19 @@
             work_line = char_blank
             call broadcast_scalar(nsize, master_task)
             if (my_task == master_task) then
-               iostat = nf90_get_att(ncid, NF90_GLOBAL, trim(att_name),&
-                                     work_line(1:nsize))
+               if (nsize <= len(work_line)) then
+                  iostat = nf90_get_att(ncid, NF90_GLOBAL, &
+                                        trim(att_name), &
+                                        work_line(1:nsize))
+               else
+                  call document('open_read_netcdf', 'nsize', nsize)
+                  call document('open_read_netcdf', 'len(work_line)', &
+                                len(work_line))
+                  write(stdout,*) 'not enough room to read ' /&
+                                  &/ trim(att_name) /&
+                                  &/ ' from ' /&
+                                  &/ trim(path)
+               endif
             endif
             call broadcast_scalar(iostat, master_task)
             if (iostat /= nf90_noerr) then
@@ -760,9 +796,19 @@
                                                'long_name', len=nsize)
 
                if (iostat == nf90_noerr) then
-                  iostat = nf90_get_att(ncid, io_field%id, 'long_name',&
-                                        io_field%long_name(1:nsize))
-                  call check_status(iostat)
+                  if (nsize <= len(io_field%long_name)) then
+                     iostat = nf90_get_att(ncid, io_field%id, 'long_name', &
+                                           io_field%long_name(1:nsize))
+                     call check_status(iostat)
+                  else
+                     call document('define_field_netcdf', 'nsize', nsize)
+                     call document('define_field_netcdf', 'len(io_field%long_name)', &
+                                   len(io_field%long_name))
+                     write(stdout,*) 'not enough room to read long_name of ' /&
+                                     &/ trim(io_field%short_name) /&
+                                     &/ ' from ' /&
+                                     &/ trim(data_file%full_name)
+                  endif
                endif
             endif
 
@@ -783,9 +829,19 @@
                                                'units', len=nsize)
 
                if (iostat == nf90_noerr) then
-                  iostat = nf90_get_att(ncid, io_field%id, 'units', &
-                                        io_field%units(1:nsize))
-                  call check_status(iostat)
+                  if (nsize <= len(io_field%units)) then
+                     iostat = nf90_get_att(ncid, io_field%id, 'units', &
+                                           io_field%units(1:nsize))
+                     call check_status(iostat)
+                  else
+                     call document('define_field_netcdf', 'nsize', nsize)
+                     call document('define_field_netcdf', 'len(io_field%units)', &
+                                   len(io_field%units))
+                     write(stdout,*) 'not enough room to read units of ' /&
+                                     &/ trim(io_field%short_name) /&
+                                     &/ ' from ' /&
+                                     &/ trim(data_file%full_name)
+                  endif
                endif
             endif
 
@@ -796,9 +852,24 @@
             io_field%coordinates = char_blank
 
             if (my_task == master_task) then
-               iostat = nf90_get_att(ncid, io_field%id, 'coordinates', &
-                                     io_field%coordinates)
-               call check_status(iostat)
+               iostat = nf90_inquire_attribute(ncid, io_field%id, &
+                                               'coordinates', len=nsize)
+
+               if (iostat == nf90_noerr) then
+                  if (nsize <= len(io_field%coordinates)) then
+                     iostat = nf90_get_att(ncid, io_field%id, 'coordinates', &
+                                           io_field%coordinates(1:nsize))
+                     call check_status(iostat)
+                  else
+                     call document('define_field_netcdf', 'nsize', nsize)
+                     call document('define_field_netcdf', 'len(io_field%coordinates)', &
+                                   len(io_field%coordinates))
+                     write(stdout,*) 'not enough room to read coordinates of ' /&
+                                     &/ trim(io_field%short_name) /&
+                                     &/ ' from ' /&
+                                     &/ trim(data_file%full_name)
+                  endif
+               endif
             endif
 
             call broadcast_scalar(iostat, master_task)
@@ -814,9 +885,24 @@
             io_field%grid_loc = '    '
 
             if (my_task == master_task) then
-               iostat = nf90_get_att(ncid, io_field%id, 'grid_loc', &
-                                     io_field%grid_loc)
-               call check_status(iostat)
+               iostat = nf90_inquire_attribute(ncid, io_field%id, &
+                                               'grid_loc', len=nsize)
+
+               if (iostat == nf90_noerr) then
+                  if (nsize <= len(io_field%grid_loc)) then
+                     iostat = nf90_get_att(ncid, io_field%id, 'grid_loc', &
+                                           io_field%grid_loc(1:nsize))
+                     call check_status(iostat)
+                  else
+                     call document('define_field_netcdf', 'nsize', nsize)
+                     call document('define_field_netcdf', 'len(io_field%grid_loc)', &
+                                   len(io_field%grid_loc))
+                     write(stdout,*) 'not enough room to read grid_loc of ' /&
+                                     &/ trim(io_field%short_name) /&
+                                     &/ ' from ' /&
+                                     &/ trim(data_file%full_name)
+                  endif
+               endif
             endif
 
             call broadcast_scalar(iostat, master_task)
@@ -909,9 +995,21 @@
                work_line = char_blank
                call broadcast_scalar(nsize, master_task)
                if (my_task == master_task) then
-                  iostat = nf90_get_att(ncid, io_field%id, &
-                                        trim(att_name),    &
-                                        work_line(1:nsize))
+                  if (nsize <= len(work_line)) then
+                     iostat = nf90_get_att(ncid, io_field%id, &
+                                           trim(att_name),    &
+                                           work_line(1:nsize))
+                  else
+                     call document('define_field_netcdf', 'nsize', nsize)
+                     call document('define_field_netcdf', 'len(work_line)', &
+                                   len(work_line))
+                     write(stdout,*) 'not enough room to read ' /&
+                                     &/ trim(att_name) /&
+                                     &/ ' of ' /&
+                                     &/ trim(io_field%short_name) /&
+                                     &/ ' from ' /&
+                                     &/ trim(data_file%full_name)
+                  endif
                endif
                call broadcast_scalar(iostat, master_task)
                if (iostat /= nf90_noerr) then
@@ -1402,7 +1500,8 @@
 
    if (associated(io_field%field_r_3d)) then
 
-      do k = 1,size(io_field%field_r_3d,dim=3)
+!!!   do k = 1,size(io_field%field_r_3d,dim=3)
+      do k = 1,io_field%field_dim(3)%length
          call gather_global(global_r_2d, io_field%field_r_3d(:,:,k,:), &
                             master_task, distrb_clinic)
          if (my_task == master_task) then
@@ -1481,7 +1580,8 @@
 
    else if (associated(io_field%field_d_3d)) then
 
-      do k = 1,size(io_field%field_d_3d,dim=3)
+!!!   do k = 1,size(io_field%field_d_3d,dim=3)
+      do k = 1,io_field%field_dim(3)%length
          call gather_global(global_d_2d, io_field%field_d_3d(:,:,k,:), &
                             master_task, distrb_clinic)
          if (my_task == master_task) then
@@ -1575,7 +1675,8 @@
 
    else if (associated(io_field%field_i_3d)) then
 
-      do k = 1,size(io_field%field_i_3d,dim=3)
+!!!   do k = 1,size(io_field%field_i_3d,dim=3)
+      do k = 1,io_field%field_dim(3)%length
          call gather_global(global_i_2d, io_field%field_i_3d(:,:,k,:), &
                             master_task, distrb_clinic)
          if (my_task == master_task) then
@@ -1653,8 +1754,11 @@
    end if
 
    call broadcast_scalar(write_error, master_task)
-   if (write_error) call exit_POP(sigAbort, &
+   if (write_error) then
+      call document('write_field_netcdf', 'short_name', io_field%short_name)
+      call exit_POP(sigAbort, &
                     'Error writing field to netCDF file')
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1791,7 +1895,8 @@
 
    if (associated(io_field%field_r_3d)) then
 
-      do k = 1,size(io_field%field_r_3d,dim=3)
+!!!   do k = 1,size(io_field%field_r_3d,dim=3)
+      do k = 1,io_field%field_dim(3)%length
          if (my_task == master_task) then
 
             !*** tell netCDF to only read slice n
@@ -1900,7 +2005,8 @@
 
    else if (associated(io_field%field_d_3d)) then
 
-      do k = 1,size(io_field%field_d_3d,dim=3)
+!!!   do k = 1,size(io_field%field_d_3d,dim=3)
+      do k = 1,io_field%field_dim(3)%length
          if (my_task == master_task) then
 
             !*** tell netCDF to only read slice n
@@ -2008,7 +2114,8 @@
 
    else if (associated(io_field%field_i_3d)) then
 
-      do k = 1,size(io_field%field_i_3d,dim=3)
+!!!   do k = 1,size(io_field%field_i_3d,dim=3)
+      do k = 1,io_field%field_dim(3)%length
          if (my_task == master_task) then
 
             !*** tell netCDF to only read slice n

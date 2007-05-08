@@ -43,6 +43,7 @@
    use timers, only: timer_start, timer_stop, get_timer
    use exit_mod, only: sigAbort, exit_pop, flushm
    use prognostic, only: UVEL, VVEL, curtime, tracer_d
+   use passive_tracers, only: tadvect_ctype_passive_tracers
    use registry
 
    implicit none
@@ -210,6 +211,9 @@
 !
 !-----------------------------------------------------------------------
 
+   character (*), parameter :: &
+      docfmt = "( 3x, a16, 3x, a16 )"
+
    character (char_len) :: &
       tadvect_ctype        ! character string for tracer advect choice
 
@@ -295,25 +299,32 @@
       write(stdout,blank_fmt)
       write(stdout,delim_fmt)
 
-      select case (tadvect_ctype(1:6))
+      tadvect_itype = tadvect_ctype_to_tadvect_itype(tadvect_ctype)
 
-      case ('center')
-         tadvect_itype = tadvect_centered
-         write(stdout,'(a46)') &
-                       'Using centered leapfrog advection for tracers.'
-      case ('upwind')
-         tadvect_itype = tadvect_upwind3
-         write(stdout,'(a45)') & 
-                       'Using 3rd-order upwind advection for tracers.'
-      case ('lw_lim')
-         tadvect_itype = tadvect_lw_lim
-         write(stdout,'(a45)') & 
-                       'Using flux-limited Lax-Wendroff advection for tracers.'
-      case default
-         tadvect_itype = -1000
-      end select
+      do n=3,nt
+         if (tadvect_ctype_passive_tracers(n) == 'base_model') then
+            tadvect_ctype_passive_tracers(n) = tadvect_ctype
+         else
+            tadvect_itype(n) = tadvect_ctype_to_tadvect_itype( &
+               tadvect_ctype_passive_tracers(n))
+         endif
+      end do
 
+      if (all(tadvect_itype == tadvect_itype(1))) then
+         write(stdout,*) 'Using ' /&
+            &/ trim(tadvect_ctype) /&
+            &/ ' for all tracers.'
+      else
+         write(stdout,docfmt) 'Tracer Name', 'Advection Option'
+         write(stdout,docfmt) 'TEMP', trim(tadvect_ctype)
+         write(stdout,docfmt) 'SALT', trim(tadvect_ctype)
+         do n=3,nt
+            write(stdout,docfmt) trim(tracer_d(n)%short_name), &
+                                 trim(tadvect_ctype_passive_tracers(n))
+         end do
+      end if
    endif
+
    call broadcast_array(tadvect_itype, master_task)
 
    if (minval(tadvect_itype) < 0) then
@@ -920,7 +931,47 @@
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine init_advection 
+ end subroutine init_advection
+
+!***********************************************************************
+!BOP
+! !IROUTINE: tadvect_ctype_to_tadvect_itype
+! !INTERFACE:
+
+ function tadvect_ctype_to_tadvect_itype(tadvect_ctype)
+
+! !DESCRIPTION:
+!  map an advection ctype to an itype
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character(len=char_len), intent(in) :: &
+      tadvect_ctype      ! character string for tracer advect choice
+
+! !OUTPUT PARAMETERS:
+
+   integer(kind=int_kind) :: tadvect_ctype_to_tadvect_itype
+
+!-----------------------------------------------------------------------
+
+   select case (tadvect_ctype(1:6))
+   case ('center')
+      tadvect_ctype_to_tadvect_itype = tadvect_centered
+   case ('upwind')
+      tadvect_ctype_to_tadvect_itype = tadvect_upwind3
+   case ('lw_lim')
+      tadvect_ctype_to_tadvect_itype = tadvect_lw_lim
+   case default
+      tadvect_ctype_to_tadvect_itype = -1000
+   end select
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function tadvect_ctype_to_tadvect_itype
 
 !***********************************************************************
 !BOP
@@ -931,6 +982,9 @@
 
 ! !DESCRIPTION:
 !  Compute and store tracer flux velocities in ghost cells.
+!
+! !REVISION HISTORY:
+!  same as module
 
 ! !INPUT PARAMETERS:
 
@@ -2989,6 +3043,7 @@
 
       call zero_ghost_cells(this_block,TRACER_E(:,:,n))
       call zero_ghost_cells(this_block,TRACER_N(:,:,n))
+      call zero_ghost_cells(this_block,AUXB(:,:,n))
 
 !-----------------------------------------------------------------------
 !     Compute vertical contribution

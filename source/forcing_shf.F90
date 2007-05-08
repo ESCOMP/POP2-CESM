@@ -40,7 +40,8 @@
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
       public, target :: &
-      SHF_QSW
+      SHF_QSW,          & ! incoming short wave
+      SHF_QSW_RAW         ! no masking, no diurnal cycle
 
    logical (log_kind), public :: &
       lsw_absorb    ! true if short wave available as separate flux
@@ -465,6 +466,7 @@
 
 
    SHF_QSW = c0
+   SHF_QSW_RAW = c0
 
 !-----------------------------------------------------------------------
 !
@@ -1565,6 +1567,7 @@
 
       SHF_QSW(:,:,iblock) = SHF_DATA(:,:,iblock,shf_data_qsw,now)* &
                             hflux_factor
+      SHF_QSW_RAW(:,:,iblock) = SHF_QSW(:,:,iblock)
 
    end do
    !$OMP END PARALLEL DO
@@ -1775,6 +1778,8 @@
 
       SHF_QSW(:,:,iblock) = SHF_COMP(:,:,iblock,shf_comp_qsw)* &
                              OCN_WGT(:,:,iblock)*MASK_SR(:,:,iblock)* &
+                            hflux_factor
+      SHF_QSW_RAW(:,:,iblock) = SHF_COMP(:,:,iblock,shf_comp_qsw)* &
                             hflux_factor
 
    end do

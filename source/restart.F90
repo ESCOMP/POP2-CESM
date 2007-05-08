@@ -61,6 +61,7 @@
    use exit_mod, only: sigAbort, exit_pop, flushm
    use registry
    use shr_sys_mod, only: shr_sys_flush
+   use passive_tracers, only: write_restart_passive_tracers
 
    implicit none
    private
@@ -71,6 +72,10 @@
    public :: init_restart,  &
              write_restart, &
              read_restart
+
+! !PUBLIC DATA MEMBERS:
+   public :: restart_fmt,   &
+             read_restart_filename
 
 !EOP
 !BOC
@@ -85,6 +90,9 @@
 
    character (char_len) :: &
       restart_fmt           ! format (bin or nc) of output restart
+
+   character (char_len) ::  &
+      read_restart_filename = 'undefined' ! file name for restart file
 
    logical (log_kind) ::   &
       pressure_correction, &! fix pressure for exact restart
@@ -211,7 +219,6 @@
       WORK1,WORK2        ! work space for pressure correction
 
    character (char_len) ::  &
-      restart_filename,     &! modified file name for restart file
       restart_pointer_file, &! file name for restart pointer file
       short_name, long_name  ! tracer name temporaries
 
@@ -235,7 +242,7 @@
 !
 !-----------------------------------------------------------------------
 
-   restart_filename = char_blank
+   read_restart_filename = char_blank
    restart_pointer_file = char_blank
 
    if (luse_pointer_files) then
@@ -250,12 +257,12 @@
          call shr_sys_flush(stdout)
          open(nu, file=trim(restart_pointer_file), form='formatted', &
                   status='old')
-         read(nu,'(a)') restart_filename
+         read(nu,'(a)') read_restart_filename
          close(nu)
       endif
       call release_unit(nu)
 
-      call broadcast_scalar(restart_filename, master_task)
+      call broadcast_scalar(read_restart_filename, master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -265,7 +272,7 @@
 
    else
       cindx2 = len_trim(in_filename)
-      restart_filename(1:cindx2) = trim(in_filename)
+      read_restart_filename(1:cindx2) = trim(in_filename)
    endif
 
 !-----------------------------------------------------------------------
@@ -275,7 +282,7 @@
 !-----------------------------------------------------------------------
 
    restart_file =  construct_file(in_restart_fmt,                   &
-                                  full_name=trim(restart_filename), &
+                                  full_name=trim(read_restart_filename), &
                                   record_length=rec_type_dbl,       &
                                   recl_words=nx_global*ny_global)
 
@@ -657,21 +664,7 @@
                    d3d_array = VVEL(:,:,:,oldtime,:))
    call data_set (restart_file, 'define', VVEL_OLD)
 
-!########### debug -- keep this for now #####################
-   if (nt .eq. 3) then
-     tracer_d(nt)%short_name = 'IAGE'
-     tracer_d(nt)%long_name  = 'Ideal Age'
-     tracer_d(nt)%units      = 'years'
-   else
-     write(stdout,*) ' nt = ', nt
-     call exit_POP(sigAbort, &
-                  'ERROR ccsm pop2 does not correctly restart with nt > 3')
-   endif
-!####### end debug -- keep this #####################
-
-
-
-   do n=1,nt
+   do n=1,2
       short_name = char_blank
       short_name = trim(tracer_d(n)%short_name)/&
                                                 &/'_CUR'
@@ -690,7 +683,7 @@
    end do
 
 
-     do n=1,nt
+     do n=1,2
 
       short_name = char_blank
       short_name = trim(tracer_d(n)%short_name)/&
@@ -747,7 +740,7 @@
    call data_set (restart_file, 'read', VVEL_CUR)
    call data_set (restart_file, 'read', VVEL_OLD)
 
-   do n=1,nt
+   do n=1,2
       call data_set (restart_file, 'read', TRACER_CUR(n))
       call data_set (restart_file, 'read', TRACER_OLD(n))
    end do
@@ -780,7 +773,7 @@
    call destroy_io_field (UVEL_OLD)
    call destroy_io_field (VVEL_CUR)
    call destroy_io_field (VVEL_OLD)
-   do n=1,nt
+   do n=1,2
       call destroy_io_field (TRACER_CUR(n))
       call destroy_io_field (TRACER_OLD(n))
    end do
@@ -789,7 +782,7 @@
 
    if (my_task == master_task) then
      write(stdout,blank_fmt)
-     write(stdout,*) ' file read: ', trim(restart_filename)
+     write(stdout,*) ' file read: ', trim(read_restart_filename)
    endif
 
    call destroy_file(restart_file)
@@ -835,7 +828,7 @@
          endwhere
       enddo
 
-      do n = 1,nt
+      do n = 1,2
          do k = 1,km
             where (k > KMT(:,:,iblock))
                TRACER(:,:,k,n,curtime,iblock) = c0
@@ -920,7 +913,7 @@
       nu                  ! i/o unit for pointer file writes
 
    character (char_len) ::  &
-      restart_filename,     &! modified file name for restart file
+      write_restart_filename, &! modified file name for restart file
       restart_pointer_file, &! file name for restart pointer file
       short_name,           &! temporary for short name for io fields
       long_name              ! temporary for long  name for io fields
@@ -1007,7 +1000,7 @@
 !
 !-----------------------------------------------------------------------
 
-   restart_filename = char_blank
+   write_restart_filename = char_blank
    file_suffix = char_blank
 
    if (lccsm) then
@@ -1018,8 +1011,8 @@
 
    !*** must split concatenation operator to avoid preprocessor mangling
 
-   restart_filename = trim(restart_outfile)/&
-                                            &/'.'/&
+   write_restart_filename = trim(restart_outfile)/&
+                                                  &/'.'/&
                                                   &/trim(file_suffix)
 
 !-----------------------------------------------------------------------
@@ -1029,7 +1022,7 @@
 !-----------------------------------------------------------------------
 
    restart_file =  construct_file(restart_fmt,                      &
-                                  full_name=trim(restart_filename), &
+                                  full_name=trim(write_restart_filename), &
                                   record_length=rec_type_dbl,       &
                                   recl_words=nx_global*ny_global)
 
@@ -1120,6 +1113,8 @@
       write(short_name,'(a11,i3.3)') 'sal_initial',k
       call add_attrib_file(restart_file,trim(short_name),sal_initial(k))
    end do
+
+   if (nt > 2) call write_restart_passive_tracers(restart_file,'add_attrib_file')
 
 !-----------------------------------------------------------------------
 !
@@ -1330,6 +1325,8 @@
       call data_set (restart_file, 'define', TRACER_OLD(n))
    end do
 
+   if (nt > 2) call write_restart_passive_tracers(restart_file,'define')
+
 !-----------------------------------------------------------------------
 !
 !  now we actually write each field
@@ -1369,6 +1366,8 @@
       call data_set (restart_file, 'write', TRACER_OLD(n))
    end do
 
+   if (nt > 2) call write_restart_passive_tracers(restart_file,'write')
+
 !-----------------------------------------------------------------------
 !
 !  close and destroy file
@@ -1379,7 +1378,7 @@
 
    if (my_task == master_task) then
      write(stdout,blank_fmt)
-     write(stdout,*) ' restart file written: ', trim(restart_filename)
+     write(stdout,*) ' restart file written: ', trim(write_restart_filename)
    endif
 
    call destroy_file(restart_file)
@@ -1398,7 +1397,7 @@
 
        open(nu, file=restart_pointer_file, form='formatted', &
                 status='unknown')
-       write(nu,'(a)') restart_filename
+       write(nu,'(a)') write_restart_filename
        close(nu)
        write(stdout,blank_fmt)
        write(stdout,*) ' restart pointer file written: ',trim(restart_pointer_file)

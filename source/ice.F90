@@ -33,7 +33,7 @@
        tmix_iopt, ice_ts
    use exit_mod, only: sigAbort, exit_pop, flushm
    use prognostic
-   use passive_tracers, only : tracer_ref_val
+   use passive_tracers, only: tracer_ref_val
    use grid, only: sfc_layer_varthick, sfc_layer_type
 
    !*** ccsm
@@ -77,6 +77,9 @@
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), public ::  &
       FW_FREEZE  ! water flux at T points due to frazil ice formation
 
+   real (r8), public ::  &
+      cp_over_lhfusion    ! cp_sw/latent_heat_fusion
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -91,8 +94,7 @@
                           ! ice formation
 
    real (r8) ::          &
-      salref,            &! ocean ref salinity in msu
-      cp_over_lhfusion    ! cp_sw/latent_heat_fusion
+      salref              ! ocean ref salinity in msu
 
 
 !EOC

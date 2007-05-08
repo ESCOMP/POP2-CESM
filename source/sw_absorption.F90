@@ -51,7 +51,7 @@
    use io_types
    use grid
    use forcing_tools
-   use forcing_coupled, only : lcoupled
+   use forcing_coupled, only: lcoupled
    use time_management
    use prognostic
    use forcing_shf
@@ -87,6 +87,7 @@
 
 
    character (char_len) ::       &
+      chl_option,                &! chlorophyll option ['file', 'model']
       chl_filename,              &! chlorophyll data file name
       chl_file_fmt,              &! chlorophyll data file format
       chl_data_name               ! chlorophyll short name (eg, 'CHL')
@@ -215,6 +216,12 @@
    integer (int_kind) :: &
       tavg_QSW_HTP        ! tavg id for QSW_HTP (solar short-wave heat flux in top layer)
 
+!-----------------------------------------------------------------------
+!     named field indices
+!-----------------------------------------------------------------------
+
+      integer (kind=int_kind) :: chl_nf_ind = 0
+
 !EOC
 !***********************************************************************
 
@@ -229,6 +236,9 @@
 !     initialize shortwave absorption.
 !
 !-----------------------------------------------------------------------
+
+   use registry, only: registry_match
+   use named_field_mod, only: named_field_get_index
 
    implicit none
 
@@ -255,8 +265,17 @@
    namelist /sw_absorption_nml/ &
         sw_absorption_type,     &! 'top-layer', 'jerlov' or 'chlorophyll'
         jerlov_water_type,      &! jerlov water type from 1 to 5
+        chl_option,             &! chlorophyll option ['file', 'model']
         chl_filename,           &! include local filepath in name
         chl_file_fmt             ! include local filepath in name
+
+!-----------------------------------------------------------------------
+
+   if (.not. registry_match('init_passive_tracers')) then
+      call exit_POP(sigAbort, 'init_passive_tracers not called ' /&
+         &/ 'before init_sw_absorption. This is necessary to ' /&
+         &/ 'allow for registry of model_chlorophyll.')
+   end if
 
 !-----------------------------------------------------------------------
 !
@@ -267,6 +286,7 @@
  
    sw_absorption_type   = 'jerlov'
    jerlov_water_type    =    3
+   chl_option           = 'file'
    chl_filename         = 'unknown-chl'
    chl_file_fmt         = 'bin'
 
@@ -303,6 +323,7 @@
 
    call broadcast_scalar(sw_absorption_type,    master_task)
    call broadcast_scalar(jerlov_water_type,     master_task)
+   call broadcast_scalar(chl_option,            master_task)
    call broadcast_scalar(chl_filename,          master_task)
 
    if (sw_absorption_type .ne. 'top-layer'.and.  &
@@ -311,6 +332,19 @@
      call exit_POP(sigAbort,'ERROR sw_absorption_type unknown')
    endif  
 
+   if (sw_absorption_type .eq. 'chlorophyll') then
+      if (chl_option .ne. 'file' .and. chl_option .ne. 'model') then
+         call exit_POP(sigAbort,'ERROR chl_option unknown')
+      endif
+      if (chl_option .eq. 'model') then
+         call named_field_get_index('model_chlorophyll', chl_nf_ind, &
+            exit_on_err=.false.)
+         if (chl_nf_ind == 0) then
+            call exit_POP(sigAbort,'chl_option==model, but ' /&
+               &/ 'model_chlorophyll is not registered')
+         endif
+      endif
+   endif
 
 !-----------------------------------------------------------------------
 !     define shortwave solar absorption model.
@@ -337,6 +371,7 @@
 
      call set_chl_trn   ! compute transmission table
 
+     if (chl_option == 'file') then
 !-----------------------------------------------------------------------
 !
 !   Read in chlorophyll data
@@ -407,6 +442,8 @@
      CHLINDX = max(CHLINDX,0)            ! minimum limit for chl index
      CHLINDX = min(CHLINDX,nsub)         ! maximum limit for chl index
 
+     end if ! chl_option == 'file'
+
    end select
 
    call define_tavg_field(tavg_QSW_HTP,'QSW_HTP',2,                    &
@@ -423,9 +460,10 @@
 
    subroutine set_chl
 
+   use named_field_mod, only: named_field_get
+
    integer (int_kind) ::     &
       iblock
-
  
 !-----------------------------------------------------------------------
 !
@@ -434,16 +472,26 @@
 !-----------------------------------------------------------------------
 
    if( sw_absorption_type .eq. 'chlorophyll' ) then
-     if (imonth .ne. imonth_last) then    ! if new month, update chl 
+      if (imonth .ne. imonth_last .or. &    ! if new month, update chl 
+          chl_option == 'model' ) then      ! update every timestep for 'model'
 
-       CHL(:,:,:) = CHL_DATA(:,:,:,imonth) ! constant across month
-       CHL = max(CHL,chlmin)               ! set lowest allowed limit
-       CHL = min(CHL,chlmax)               ! set highest allowed limit
-       CHLINDX = log10(CHL/chlmin)/dlogchl ! compute chlorphyll index
-       CHLINDX = max(CHLINDX,0)            ! minimum limit for chl index
-       CHLINDX = min(CHLINDX,nsub)         ! maximum limit for chl index
+         !$OMP PARALLEL DO PRIVATE(iblock)
+         do iblock=1,nblocks_clinic
+            if (chl_option == 'file') then
+               CHL(:,:,iblock) = CHL_DATA(:,:,iblock,imonth)            ! constant across month
+            else
+               call named_field_get(chl_nf_ind, iblock, CHL(:,:,iblock))
+            endif
+   
+            CHL(:,:,iblock) = max(CHL(:,:,iblock),chlmin)               ! set lowest allowed limit
+            CHL(:,:,iblock) = min(CHL(:,:,iblock),chlmax)               ! set highest allowed limit
+            CHLINDX(:,:,iblock) = log10(CHL(:,:,iblock)/chlmin)/dlogchl ! compute chlorphyll index
+            CHLINDX(:,:,iblock) = max(CHLINDX(:,:,iblock),0)            ! minimum limit for chl index
+            CHLINDX(:,:,iblock) = min(CHLINDX(:,:,iblock),nsub)         ! maximum limit for chl index
+         end do
+         !$OMP END PARALLEL DO
 
-     endif
+      endif
    endif
 
    end subroutine set_chl

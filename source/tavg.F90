@@ -46,6 +46,7 @@
 
    public :: init_tavg,              &
              define_tavg_field,      &
+             tavg_increment_sum_qflux,&
              accumulate_tavg_field,  &
              tavg_requested,         &
              set_in_tavg_contents,   &
@@ -128,7 +129,7 @@
    end type
 
    integer (int_kind), parameter :: &
-      max_avail_tavg_fields = 200    ! limit on available fields - can
+      max_avail_tavg_fields = 600    ! limit on available fields - can
                                      !   be pushed as high as necessary
 
    integer (int_kind) ::                &
@@ -224,7 +225,11 @@
       num_avail_tavg_labels        = 0, &! current number of ccsm labels
       num_ccsm_coordinates         = 0, &
       num_ccsm_time_invar          = 0, &
-      num_ccsm_scalars             = 0
+      num_ccsm_scalars             = 0, &
+      zt_150m_levs
+
+   real (r4), dimension(:), allocatable, target :: &
+      ZT_150m_R4   ! single precision array
  
    integer (int_kind) ::  &
       tavg_BSF,           &
@@ -253,10 +258,11 @@
       ccsm_time_invar  (max_num_ccsm_time_invar),   &
       ccsm_scalars     (max_num_ccsm_scalars),      &
       time_coordinate  (1)
- 
+
    type (io_dim) ::       &
       z_dim,              &! dimension descriptor for vert (z_t or z_w grid)
       zt_dim,             &! dimension descriptor for vert (z_t grid)
+      zt_150m_dim,        &! dimension descriptor for near-surf vert (z_t grid)
       zw_dim,             &! dimension descriptor for vert (z_w grid)
       tr_dim,             &! dimension descriptor 
       nchar_dim,          &! dimension descriptor for character arrays
@@ -304,7 +310,6 @@
 
    logical (log_kind) ::  &
       lsavg_on = .false.   ! flag for local spatial averaging
-
 
 !EOC
 !***********************************************************************
@@ -625,10 +630,16 @@
      call init_lat_aux_grid
      call init_moc_ts_transport_arrays
 
+     !*** how many levels have their midpoint shallower than 150m
+     zt_150m_levs = count(zt < 150.0e2_r8)
+     if (.not. allocated(ZT_150m_R4)) &
+       allocate(ZT_150m_R4(zt_150m_levs))
+
      !*** define dimensions for tavg output files
      i_dim      = construct_io_dim('nlon',nx_global)
      j_dim      = construct_io_dim('nlat',ny_global)
      zt_dim     = construct_io_dim('z_t',km)
+     zt_150m_dim= construct_io_dim('z_t_150m',zt_150m_levs)
      zw_dim     = construct_io_dim('z_w',km)
      time_dim   = construct_io_dim('time',0)    ! "0" ==> unlimited dimension
      tr_dim     = construct_io_dim('tracers',nt)
@@ -1109,7 +1120,10 @@
 
                else
                  z_dim = k_dim
-               endif ! lccsm 
+               endif ! lccsm
+
+               if (avail_tavg_fields(nfield)%grid_loc(4:4) == '3') &
+                 z_dim = zt_150m_dim
 
                tavg_fields(nfield) = construct_io_field(               &
                               avail_tavg_fields(nfield)%short_name,    &
@@ -1428,8 +1442,6 @@
 
    !*** define dimensions
 
-   z_dim = k_dim
-
    allocate(tavg_fields(num_avail_tavg_fields))
 
    do nfield = 1,num_avail_tavg_fields
@@ -1451,6 +1463,11 @@
 
          else if (avail_tavg_fields(nfield)%ndims == 3) then
 
+            if (avail_tavg_fields(nfield)%grid_loc(4:4) == '3') then
+               z_dim = zt_150m_dim
+            else
+               z_dim = k_dim
+            endif
 
             tavg_fields(nfield) = construct_io_field(                &
                             avail_tavg_fields(nfield)%short_name,    &
@@ -1838,6 +1855,33 @@
 
  end function tavg_global_sum_2D
 
+!***********************************************************************
+!BOP
+! !IROUTINE: tavg_increment_sum_qflux
+! !INTERFACE:
+
+ subroutine tavg_increment_sum_qflux(const)
+
+! !DESCRIPTION:
+!  Increment the scalar tavg_sum_qflux with the weight for this timestep.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   real (r8), intent(in) ::  &
+      const
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+
+   tavg_sum_qflux = tavg_sum_qflux + const ! const = tlast_ice
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine tavg_increment_sum_qflux
 
 !***********************************************************************
 !BOP
@@ -1895,6 +1939,10 @@
 
    ndims = avail_tavg_fields(field_id)%ndims
 
+   if ((ndims == 3) .and. &
+       (avail_tavg_fields(field_id)%grid_loc(4:4) == '3') .and. &
+       (k > zt_150m_levs)) return
+
 !-----------------------------------------------------------------------
 !
 !  update the field into the tavg buffer
@@ -1912,7 +1960,6 @@
          TAVG_BUF_3D(:,:,k,block,bufloc) + dtavg*ARRAY
       endif
    case (tavg_method_qflux)  
-         tavg_sum_qflux = tavg_sum_qflux + const ! const = tlast_ice
          TAVG_BUF_2D(:,:,block,bufloc) =  &
          TAVG_BUF_2D(:,:,block,bufloc) + const*max (c0,ARRAY)
                                     !*** const = tlast_ice
@@ -3173,9 +3220,9 @@
 !
 !-----------------------------------------------------------------------
    real (r4), dimension(km) ::  &
-      ZT_R4, &! single precision array
-      ZW_R4   ! single precision array
-  
+      ZT_R4,      &! single precision array
+      ZW_R4        ! single precision array
+
    real (r4), dimension(0:km) ::  &
       MOC_Z_R4
 
@@ -3202,6 +3249,18 @@
    call add_attrib_io_field(ccsm_coordinates(ii), 'positive', 'down')
    call add_attrib_io_field(ccsm_coordinates(ii), 'valid_min', ZT_R4(1))
    call add_attrib_io_field(ccsm_coordinates(ii), 'valid_max', ZT_R4(km))
+
+   !*** z_t
+   ii=ii+1
+   ZT_150m_R4 = zt(1:zt_150m_levs)
+   ccsm_coordinates(ii) = construct_io_field('z_t_150m',zt_150m_dim,          &
+                         long_name='depth from surface to midpoint of layer', &
+                         units    ='centimeters',                             &
+                         r1d_array =ZT_150m_R4)
+
+   call add_attrib_io_field(ccsm_coordinates(ii), 'positive', 'down')
+   call add_attrib_io_field(ccsm_coordinates(ii), 'valid_min', ZT_150m_R4(1))
+   call add_attrib_io_field(ccsm_coordinates(ii), 'valid_max', ZT_150m_R4(zt_150m_levs))
 
    !*** z_w
    ii=ii+1

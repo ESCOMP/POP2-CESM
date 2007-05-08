@@ -325,7 +325,9 @@
             do i=1,nx_block
                if (this_block%i_glob(i) > 0) then
                   if (KMTG(this_block%i_glob(i),&
-                           this_block%j_glob(j)) > 0) nocn(n) = nocn(n) + 1
+                           this_block%j_glob(j)) >= 0) nocn(n) = nocn(n) + 1
+!above line is a temporary work-around  (aka "the Gokhan fix")
+!original code:            this_block%j_glob(j)) >  0) nocn(n) = nocn(n) + 1
                endif
             end do
          endif

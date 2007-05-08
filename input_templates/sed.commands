@@ -43,6 +43,7 @@
   s#VCONST_4#$vconst_4#
   s#VCONST_5#$vconst_5#
   s#VCONST_6#$vconst_6#
+  s#VCONST_7#$vconst_7#
   s#SFWF_WEAK_RESTORE#$sfwf_weak_restore#
   s#QSW_DIURNAL_CYCLE#$qsw_diurnal_cycle#
   s#TRANSPORT_REG2_NAMES#$transport_reg2_names#

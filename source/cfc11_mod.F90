@@ -6,60 +6,49 @@ module cfc11_mod
 ! !MODULE: cfc11_mod
 !
 ! !DESCRIPTION:
-!  
 !
 ! !REVISION HISTORY:
 !  SVN:$Id$
 
 ! !USES:
 
-   use blocks, only: nx_block, ny_block, block, get_block
+   use blocks, only: nx_block, ny_block, block
    use domain_size, only: max_blocks_clinic, km, nx_global, ny_global
    use domain, only: nblocks_clinic, distrb_clinic
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
-   use prognostic, only: km, max_blocks_clinic, tracer_d
+   use prognostic, only: tracer_field
    use kinds_mod
-!maltrud added hflux_factor, c10
-   use constants, only : c0, c1, c10, hflux_factor, char_blank
-   use tracer_types, only : tavg_passive_interior_type, tavg_passive_stf_type
-   use msg_mod, only : msg_write
-   use io, only : data_set
-   use io_types, only: stdout, datafile, io_field_desc, io_dim,   &
-       nml_in, nml_filename, construct_file, construct_io_dim,             &
-       construct_io_field, rec_type_dbl, destroy_file, destroy_io_field,  &
-       luse_pointer_files, pointer_filename, get_unit,      &
-       release_unit, destroy_file, add_attrib_file, destroy_io_field,       &
-       extract_attrib_file
+   use constants, only: c0, c1, char_blank, delim_fmt
+   use io, only: data_set
+   use io_types, only: stdout, datafile, io_field_desc, io_dim,       &
+       nml_in, nml_filename, construct_file, construct_io_dim,        &
+       construct_io_field, rec_type_dbl, destroy_file,                &
+       destroy_io_field, get_unit, release_unit
+   use io_tools, only: document
    use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
-   use timers, only : get_timer
+   use shr_sys_mod, only: shr_sys_flush
+   use timers, only: get_timer
+   use passive_tracer_tools, only: forcing_monthly_every_ts,          &
+       init_forcing_monthly_every_ts, ind_name_pair, tracer_read,     &
+       rest_read_tracer_block, file_read_tracer_block, read_field
 
-  implicit none
+   implicit none
 
   !-----------------------------------------------------------------------------
   !   public/private declarations
   !-----------------------------------------------------------------------------
 
-  private
+   private
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-  public :: &
+   public :: &
        cfc11_tracer_cnt, &
-       cfc11_ind_begin,             &
-       cfc11_ind_end,               &
-       cfc11_tracer_names, &
-       cfc11_name2ind, &
-       cfc11_ind2name, &
        cfc11_init, &
-       cfc11_init_sflux, &
        cfc11_set_sflux,  &
-       cfc11_tavg,  &
        cfc11_tavg_forcing, &
-       cfc11_tracer_field_info, &
        SCHMIDT_CFC
-
-
 
 !EOP
 !BOC
@@ -73,15 +62,12 @@ module cfc11_mod
   integer(int_kind), parameter :: &
        cfc11_tracer_cnt = 1
 
-   character (char_len), dimension(cfc11_tracer_cnt), parameter ::  &
-      cfc11_tracer_names =  (/ 'CFC11' /)
-      
 !-----------------------------------------------------------------------
 !     index bounds of passive tracer module variables in TRACER
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::  &
-     cfc11_ind_begin, cfc11_ind_end, num_cfc11_years
+     num_cfc11_years
 
   !-----------------------------------------------------------------------------
   !   relative tracer indices
@@ -94,59 +80,17 @@ module cfc11_mod
   !   derived type & parameter for tracer index lookup
   !-----------------------------------------------------------------------------
 
-  type ind_name_pair
-     integer(int_kind) :: ind
-     character(char_len) :: name
-  end type ind_name_pair
-
-  type(ind_name_pair), dimension(cfc11_tracer_cnt), parameter :: &
+  type(ind_name_pair), dimension(cfc11_tracer_cnt) :: &
        ind_name_table = (/ ind_name_pair(cfc11_ind, 'CFC11') /)
 
   !-----------------------------------------------------------------------------
   !   derived type for tracer initialization
   !-----------------------------------------------------------------------------
 
-  type tracer_read
-     character(char_len) :: mod_varname, filename, file_varname, file_fmt
-     real(r8) :: scale_factor, default_val
-  end type tracer_read
-
     type(tracer_read) :: &
          gas_flux_fice,       & ! ice fraction for gas fluxes
          gas_flux_ws,         & ! wind speed for gas fluxes
          gas_flux_ap            ! atmospheric pressure for gas fluxes
-
-  !-----------------------------------------------------------------------------
-  !   monthly forcing variables
-  !-----------------------------------------------------------------------------
-
-  type forcing_monthly_every_ts
-     type(tracer_read) :: input
-     logical(log_kind) :: has_data
-     real(r8), dimension(:,:,:,:,:), pointer :: DATA
-     character(char_len) :: &
-          interp_type = 'linear',                 &
-          data_type   = 'monthly-calendar',       &
-          interp_freq = 'every-timestep',         &
-          filename    = 'not-used-for-monthly',   &
-          data_label  = 'not-used-for-monthly'
-     real(r8), dimension(12) :: &
-          data_time              ! times where DATA is given
-     real(r8), dimension(20) :: &
-          data_renorm            ! not used for monthly
-     real(r8) :: &
-          data_inc,            & ! not used for monthly data
-          data_next,           & ! time that will be used for the next
-                                 ! value of forcing data that is needed
-          data_update,         & ! time when the a new forcing value
-                                 ! needs to be added to interpolation set
-          interp_inc,          & ! not used for 'every-timestep' interp
-          interp_next,         & ! not used for 'every-timestep' interp
-          interp_last            ! not used for 'every-timestep' interp
-     integer(int_kind) :: &
-          data_time_min_loc      ! index of the third dimension of data_time
-                                 ! containing the minimum forcing time
-  end type forcing_monthly_every_ts
 
   type(forcing_monthly_every_ts), save :: &
        fice_file,              & ! ice fraction, if read from file
@@ -154,18 +98,10 @@ module cfc11_mod
        ap_file                   ! atmoshperic pressure, if read from file
 
   !-----------------------------------------------------------------------------
-  !   define tavg id for prognostic variables
-  !-----------------------------------------------------------------------------
-
-   integer (int_kind) :: &
-      tavg_CFC11    ! tavg id for CFC11
-
-  !-----------------------------------------------------------------------------
   !   define tavg id for 2d fields related to surface fluxes
   !-----------------------------------------------------------------------------
 
    integer (int_kind) :: &
-      tavg_CFC11_FLUX,   &! tavg id for cfc11 flux
       tavg_FICE,         &! tavg id for ice fraction
       tavg_XKW,          &! tavg id for xkw
       tavg_ATM_PRESS,    &! tavg id for atmospheric pressure
@@ -177,16 +113,12 @@ module cfc11_mod
   !-----------------------------------------------------------------------------
   !   define array for holding flux-related quantities that need to be time-averaged
   !   this is necessary since the forcing routines are called before tavg flags
-  ! NOTE, maybe make this allocatable
   !-----------------------------------------------------------------------------
 
-   real (r8), dimension(nx_block,ny_block,7,max_blocks_clinic) ::   &
+   real (r8), dimension(:,:,:,:), allocatable ::   &
       CFC11_SFLUX_TAVG
 
-   integer (int_kind), public :: cfc11_sflux_timer
-
-   type (io_field_desc), dimension(cfc11_tracer_cnt) :: &
-      TRACER_CUR, TRACER_OLD    ! tracers at current, old times
+   integer (int_kind) :: cfc11_sflux_timer
 
    character(char_len) :: &
          cfc11_formulation,           & ! how to calculate flux (ocmip or bulk)
@@ -210,29 +142,49 @@ module cfc11_mod
 contains
 
 !***********************************************************************
+!BOP
+! !IROUTINE: cfc11_init
+! !INTERFACE:
 
-  subroutine cfc11_init(TRACER_MODULE)
+ subroutine cfc11_init(init_ts_file_fmt, read_restart_filename, &
+                       tracer_d_module, TRACER_MODULE)
 
-    use broadcast, only : broadcast_scalar, broadcast_array
-    use constants, only : c0, c2, c1000, p5, field_loc_center, blank_fmt, &
-        field_type_scalar
-    use prognostic, only : nx_global, ny_global, curtime, oldtime
-    use grid, only : KMT, zt, zw
-    use forcing_tools, only : find_forcing_times
-    use msg_mod, only : msg_set_state, msg_set_iunit
-    use time_management, only : freq_opt_nyear, freq_opt_nmonth, init_time_flag
+! !DESCRIPTION:
+!  Initialize cfc11 tracer module. This involves setting metadata, reading
+!  the module's namelist and setting initial conditions.
 
-    !---------------------------------------------------------------------------
-    !   arguments
-    !---------------------------------------------------------------------------
+! !REVISION HISTORY:
+!  same as module
 
-    real(r8), dimension(nx_block, ny_block, km, cfc11_tracer_cnt,   &
-         3, max_blocks_clinic), &
-         intent(inout) :: TRACER_MODULE
+! !USES:
 
-    !---------------------------------------------------------------------------
-    !   local variables
-    !---------------------------------------------------------------------------
+   use broadcast, only: broadcast_scalar, broadcast_array
+   use constants, only: c0, field_loc_center, blank_fmt, &
+       field_type_scalar
+   use prognostic, only: nx_global, ny_global, curtime, oldtime
+   use grid, only: KMT, zt, zw, topo_smooth, fill_points
+   use forcing_tools, only: find_forcing_times
+   use time_management, only: freq_opt_nyear, freq_opt_nmonth
+
+! !INPUT PARAMETERS:
+
+   character (*), intent(in) ::  &
+      init_ts_file_fmt,    & ! format (bin or nc) for input file
+      read_restart_filename  ! file name for restart file
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   type (tracer_field), dimension(cfc11_tracer_cnt), intent(inout) :: &
+      tracer_d_module   ! descriptors for each tracer
+
+   real(r8), dimension(nx_block,ny_block,km,cfc11_tracer_cnt,3,max_blocks_clinic), &
+      intent(inout) :: TRACER_MODULE
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
 
     character(*), parameter :: subname = 'cfc11_mod:cfc11_init'
 
@@ -240,10 +192,6 @@ contains
          init_cfc11_option,           & ! option for initialization of bgc
          init_cfc11_init_file,        & ! filename for option 'file'
          init_cfc11_init_file_fmt       ! file format for option 'file'
-
-    logical(log_kind) :: &
-         default,             & ! arg to init_time_flag
-         lnml_found             ! Was cfc11_nml found ?
 
     integer(int_kind) :: &
          n,                   & ! index for looping over tracers
@@ -264,46 +212,26 @@ contains
          gas_flux_fice, gas_flux_ws, gas_flux_ap, &
          cfc11_formulation
 
-   type (datafile) ::    &
-      in_file             ! data file type for init ts file
-
-   type (io_field_desc) :: &
-      io_tracer           ! io field descriptors for input Tracer
-
-   type (io_dim) :: &
-      i_dim, j_dim, k_dim, month_dim ! dimension descriptors
-
-   real (r8), dimension(:,:,:,:), allocatable :: &
-      TEMP_DATA           ! temp array for reading Tracer data
-
    character (char_len) ::  &
-      restart_filename,     &! modified file name for restart file
-      restart_pointer_file   ! file name for restart pointer file
+      cfc11_restart_filename  ! modified file name for restart file
 
-   integer (int_kind) :: &
-      nu,                &! i/o unit for pointer file reads
-      n_absolute,        &! absolute tracer index
-      cindx,cindx2        ! indices into character strings
+!-----------------------------------------------------------------------
+!  initialize forcing_monthly_every_ts variables
+!-----------------------------------------------------------------------
 
-   character (char_len) :: &
-      init_ts_option,      &! option for initializing t,s
-      init_ts_file,        &! filename for input T,S file
-      init_ts_file_fmt      ! format (bin or nc) for input file
+   call init_forcing_monthly_every_ts(fice_file)
+   call init_forcing_monthly_every_ts(xkw_file)
+   call init_forcing_monthly_every_ts(ap_file)
 
-   namelist /init_ts_nml/ init_ts_option, init_ts_file, init_ts_file_fmt
+!-----------------------------------------------------------------------
+!  initialize tracer_d values
+!-----------------------------------------------------------------------
 
-   type (datafile) :: &
-      restart_file    ! io file descriptor
-
-   character (char_len) ::  &
-      short_name, long_name  ! tracer name temporaries
-
-    !---------------------------------------------------------------------------
-    !   initialize nf_wrap & msg_mod
-    !---------------------------------------------------------------------------
-
-    call msg_set_state(my_task == master_task)
-    call msg_set_iunit(stdout)
+   tracer_d_module(cfc11_ind)%short_name = 'CFC11'
+   tracer_d_module(cfc11_ind)%long_name  = 'CFC11'
+   tracer_d_module(cfc11_ind)%units      = 'fmol/cm^3'
+   tracer_d_module(cfc11_ind)%tend_units = 'fmol/cm^3/s'
+   tracer_d_module(cfc11_ind)%flux_units = 'fmol/cm^2/s'
 
     !---------------------------------------------------------------------------
     !   default namelist settings
@@ -344,22 +272,22 @@ contains
     gas_flux_ap%default_val  = c0
     gas_flux_ap%file_fmt     = 'bin'
 
-   if (my_task == master_task) then
-      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
-      if (nml_error /= 0) then  
-         nml_error = -1
-      else
-         nml_error =  1      
-      endif
-      do while (nml_error > 0)
-         read(nml_in, nml=cfc11_nml,iostat=nml_error)
-      end do
-      if (nml_error == 0) close(nml_in)
-   endif
+    if (my_task == master_task) then
+       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
+       if (nml_error /= 0) then
+          nml_error = -1
+       else
+          nml_error =  1
+       endif
+       do while (nml_error > 0)
+          read(nml_in, nml=cfc11_nml,iostat=nml_error)
+       end do
+       if (nml_error == 0) close(nml_in)
+    endif
 
     call broadcast_scalar(nml_error, master_task)
     if (nml_error /= 0) then
-       call msg_write(subname, 'cfc11_nml not found')
+       call document(subname, 'cfc11_nml not found')
        mmessage = 'ERROR : stopping in '/&
                                          &/ subname
        call exit_POP(sigAbort,mmessage)
@@ -411,292 +339,61 @@ contains
     end do
 
     !---------------------------------------------------------------------------
-    !   read in init_ts namelist in case we need it.
-    !---------------------------------------------------------------------------
-
-   init_ts_option  = 'unknown'
-   init_ts_file    = 'unknown'
-   init_ts_file_fmt= 'bin'
-
-   if (my_task == master_task) then
-      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
-      if (nml_error /= 0) then  
-         nml_error = -1
-      else
-         nml_error =  1      
-      endif
-      do while (nml_error > 0)
-         read(nml_in, nml=init_ts_nml,iostat=nml_error)
-      end do
-      if (nml_error == 0) close(nml_in)
-   endif
-
-    call broadcast_scalar(nml_error, master_task)
-    if (nml_error /= 0) then
-       call msg_write(subname, 'init_ts_nml not found')
-       mmessage = 'ERROR : stopping in '/&
-                                         &/ subname
-       call exit_POP(sigAbort,mmessage)
-    end if
-
-    !---------------------------------------------------------------------------
-    !   broadcast all namelist variables
-    !---------------------------------------------------------------------------
-
-   call broadcast_scalar(init_ts_option  , master_task)
-   call broadcast_scalar(init_ts_file    , master_task)
-   call broadcast_scalar(init_ts_file_fmt, master_task)
-
-    !---------------------------------------------------------------------------
     !   initialize tracers
     !---------------------------------------------------------------------------
 
     select case (init_cfc11_option)
 
-    case ('restart')
-       restart_filename = char_blank
+    case ('startup', 'zero', 'startup_spunup')
+      TRACER_MODULE = c0
+      if (my_task == master_task) then
+          write(stdout,delim_fmt)
+          write(stdout,*) ' Initial 3-d CFC11 set to all zeros'
+          write(stdout,delim_fmt)
+          call shr_sys_flush(stdout)
+      endif
+
+    case ('restart', 'continue', 'branch', 'hybrid' )
+
+       cfc11_restart_filename = char_blank
+
        if (init_cfc11_init_file == 'same_as_TS') then
-          if (init_ts_option /= 'restart' .and. init_ts_option /= 'branch') then
-             call exit_POP(sigAbort,  &
-                'init_ts_option and init_cfc11_option are inconsistent')
+          if (read_restart_filename == 'undefined') then
+             call exit_POP(sigAbort, &
+                'no restart file to read cfc11 from')
           end if
-          if (luse_pointer_files) then
-             restart_filename = char_blank
-             restart_pointer_file = char_blank
-             call get_unit(nu)
-             if (my_task == master_task) then
-                restart_pointer_file = pointer_filename
-                cindx = len_trim(pointer_filename) + 1
-                cindx2= cindx + 7
-                restart_pointer_file(cindx:cindx2) = '.restart'
-                write(stdout,*) 'Reading pointer file: ', &
-                                 trim(restart_pointer_file)
-                open(nu, file=trim(restart_pointer_file), form='formatted', &
-                         status='old')
-                read(nu,'(a80)') restart_filename
-                close(nu)
-             endif
-             call release_unit(nu)
-
-             call broadcast_scalar(restart_filename, master_task)
-
-!-----------------------------------------------------------------------
-!
-!  otherwise use input filename
-!
-!-----------------------------------------------------------------------
-
-          else
-             cindx2 = len_trim(init_ts_file)
-             restart_filename(1:cindx2) = trim(init_ts_file)
-          endif
-
+          cfc11_restart_filename = read_restart_filename
           init_cfc11_init_file_fmt = init_ts_file_fmt
 
-      else  ! do not read from TS restart file
+       else  ! do not read from TS restart file
 
-          cindx2 = len_trim(init_cfc11_init_file)
-          restart_filename(1:cindx2) = trim(init_cfc11_init_file)
+          cfc11_restart_filename = trim(init_cfc11_init_file)
 
-      end if
+       end if
 
-      restart_file = construct_file(init_cfc11_init_file_fmt,          &
-                        full_name=trim(restart_filename),          &
-                        record_length = rec_type_dbl,              &
-                        recl_words=nx_global*ny_global)
-
-      call data_set(restart_file, 'open_read')
-
-   i_dim = construct_io_dim('i', nx_global)
-   j_dim = construct_io_dim('j', ny_global)
-   k_dim = construct_io_dim('k', km)
-
-   do n=1,cfc11_tracer_cnt
-      n_absolute = n + cfc11_ind_begin - 1
-      short_name = char_blank
-      short_name = trim(tracer_d(n_absolute)%short_name)/&
-                                                &/'_CUR'
-      long_name = char_blank
-      long_name = trim(tracer_d(n_absolute)%long_name)/&
-                                              &/'at current time'
-
-      TRACER_CUR(n) = construct_io_field(trim(short_name),            &
-                   dim1=i_dim, dim2=j_dim, dim3=k_dim,                &
-                   long_name=trim(long_name),                         &
-                   units    =trim(tracer_d(n_absolute)%units),        &
-                   grid_loc ='3111',                                  &
-                   field_loc = field_loc_center,                      &
-                   field_type = field_type_scalar,                    &
-                   d3d_array = TRACER_MODULE(:,:,:,n,curtime,:))
-      call data_set (restart_file, 'define', TRACER_CUR(n))
-   end do
-
-   do n=1,cfc11_tracer_cnt
-      n_absolute = n + cfc11_ind_begin - 1
-      short_name = char_blank
-      short_name = trim(tracer_d(n_absolute)%short_name)/&
-                                                &/'_OLD'
-      long_name = char_blank
-      long_name = trim(tracer_d(n_absolute)%long_name)/&
-                                              &/'at old time'
-
-      TRACER_OLD(n) = construct_io_field(trim(short_name),            &
-                      dim1=i_dim, dim2=j_dim, dim3=k_dim,             &
-                      long_name=trim(long_name),                      &
-                      units    =trim(tracer_d(n_absolute)%units),     &
-                      grid_loc ='3111',                               &
-                      field_loc = field_loc_center,                   &
-                      field_type = field_type_scalar,                 &
-                      d3d_array = TRACER_MODULE(:,:,:,n,oldtime,:))
-
-      call data_set (restart_file, 'define', TRACER_OLD(n))
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  now we actually read each field
-!  after reading, get rid of io field descriptors and close file
-!
-!-----------------------------------------------------------------------
-
-   do n=1,cfc11_tracer_cnt
-      call data_set (restart_file, 'read', TRACER_CUR(n))
-   end do
-   do n=1,cfc11_tracer_cnt
-      call data_set (restart_file, 'read', TRACER_OLD(n))
-   end do
-
-   do n=1,cfc11_tracer_cnt
-      call destroy_io_field (TRACER_CUR(n))
-   end do
-   do n=1,cfc11_tracer_cnt
-      call destroy_io_field (TRACER_OLD(n))
-   end do
-
-   call data_set (restart_file, 'close')
-
-   if (my_task == master_task) then
-     write(stdout,blank_fmt)
-     write(stdout,*) ' file read: ', trim(restart_filename)
-   endif
+       call rest_read_tracer_block(init_cfc11_init_file_fmt, &
+                                   cfc11_restart_filename,   &
+                                   tracer_d_module,          &
+                                   TRACER_MODULE)
 
     case ('file')
-       call msg_write(subname, 'cfc11 being read from separate file')
+       call document(subname, 'cfc11 being read from separate file')
 
-       !------------------------------------------------------------------------
-       !   initialize internal tracer_init array
-       !------------------------------------------------------------------------
+       call file_read_tracer_block(init_cfc11_init_file_fmt, &
+                                   init_cfc11_init_file,     &
+                                   tracer_d_module,          &
+                                   ind_name_table,           &
+                                   tracer_init_ext,          &
+                                   TRACER_MODULE)
 
-       do n = 1,cfc11_tracer_cnt
-          tracer_init_int(n)%mod_varname  = cfc11_ind2name(n)
-          tracer_init_int(n)%filename     = init_cfc11_init_file
-          tracer_init_int(n)%file_varname = cfc11_ind2name(n)
-          tracer_init_int(n)%scale_factor = c1
-          tracer_init_int(n)%default_val  = c0
-          tracer_init_int(n)%file_fmt     = init_cfc11_init_file_fmt
-       end do
-
-       !------------------------------------------------------------------------
-       !   copy non-default values from external tracer_init array
-       !------------------------------------------------------------------------
-
-       do n = 1,cfc11_tracer_cnt
-          if (trim(tracer_init_ext(n)%mod_varname) /= 'unknown') then
-             ind = cfc11_name2ind(tracer_init_ext(n)%mod_varname)
-
-             if (trim(tracer_init_ext(n)%filename) /= 'unknown') &
-                  tracer_init_int(ind)%filename = &
-                  tracer_init_ext(n)%filename
-
-             if (trim(tracer_init_ext(n)%file_varname) /= 'unknown') &
-                  tracer_init_int(ind)%file_varname = &
-                  tracer_init_ext(n)%file_varname
-
-             if (tracer_init_ext(n)%scale_factor /= c1) &
-                  tracer_init_int(ind)%scale_factor = &
-                  tracer_init_ext(n)%scale_factor
-
-             if (tracer_init_ext(n)%default_val /= c1) &
-                  tracer_init_int(ind)%default_val = &
-                  tracer_init_ext(n)%default_val
-          end if
-       end do
-
-       !------------------------------------------------------------------------
-       !   process internal tracer_init array
-       !------------------------------------------------------------------------
-
-       do n = 1,cfc11_tracer_cnt
-          if (trim(tracer_init_int(n)%filename) == 'none' .or. &
-               trim(tracer_init_int(n)%filename) == 'unknown') then
-             mmessage = 'initializing ' /&
-                                         &/trim(tracer_init_int(n)%mod_varname)/&
-                                         &/' to default_val'
-             call msg_write(subname,mmessage)
-             do iblock = 1,nblocks_clinic
-                TRACER_MODULE(:,:,:,n,curtime,iblock) =  &
-                   tracer_init_int(n)%default_val
-             enddo
-          else
-             mmessage = 'initializing ' /&
-                                         &/trim(tracer_init_int(n)%mod_varname) /&
-                                         &/ ' with ' /&
-                                         &/trim(tracer_init_int(n)%file_varname) /&
-                                         &/ ' from ' /&
-                                         &/trim(tracer_init_int(n)%filename)
-             call msg_write(subname,mmessage)
-
-             allocate(TEMP_DATA(nx_block,ny_block,km,max_blocks_clinic))
-
-             in_file = construct_file(tracer_init_int(n)%file_fmt,          &
-                               full_name=trim(tracer_init_int(n)%filename), &
-                               record_length = rec_type_dbl,                &
-                               recl_words=nx_global*ny_global)
-             call data_set(in_file,'open_read')
-
-             i_dim = construct_io_dim('i',nx_global)
-             j_dim = construct_io_dim('j',ny_global)
-             k_dim = construct_io_dim('k',km)
-
-             io_tracer = &
-                 construct_io_field(trim(tracer_init_int(n)%file_varname), &
-                 dim1=i_dim, dim2=j_dim, dim3=k_dim,                       &
-                 field_loc = field_loc_center,                             &
-                 field_type = field_type_scalar,                           &
-                 d3d_array=TEMP_DATA)
-
-             call data_set(in_file,'define',io_tracer)
-
-             call data_set(in_file,'read'  ,io_tracer)
-             do iblock=1,nblocks_clinic
-                TRACER_MODULE(:,:,:,n,curtime,iblock) = &
-                  TEMP_DATA(:,:,:,iblock)*tracer_init_int(n)%scale_factor
-                where (TRACER_MODULE(:,:,:,n,curtime,iblock) < c0) &
-                  TRACER_MODULE(:,:,:,n,curtime,iblock) = c0
-             end do
-
-             call destroy_io_field(io_tracer)
-
-             deallocate(TEMP_DATA)
-
-             call data_set(in_file,'close')
-             call destroy_file(in_file)
-
-             if (my_task == master_task) then
-                write(stdout,blank_fmt)
-                write(stdout,'(a12,a)') ' file read: ', &
-                   trim(tracer_init_int(n)%filename)
-             endif
-
-          end if
-          do iblock=1,nblocks_clinic
-             TRACER_MODULE(:,:,:,n,oldtime,iblock) = &
-                TRACER_MODULE(:,:,:,n,curtime,iblock)
+       if (topo_smooth) then
+          do k=1,km
+             call fill_points(k,TRACER_MODULE(:,:,k,1,curtime,:))
           enddo
-       end do
+       endif
 
     case default
-       call msg_write(subname, 'init_cfc11_option = ', init_cfc11_option)
+       call document(subname, 'init_cfc11_option = ', init_cfc11_option)
 !      call exit_POP('ERROR: stopping in ' // subname)
 
     end select
@@ -730,147 +427,102 @@ contains
     allocate( LAND_MASK(nx_block,ny_block,max_blocks_clinic) )
     LAND_MASK = merge(.true., .false., KMT > 0)
 
-    call init_cfc11_tavg
-
     call get_timer(cfc11_sflux_timer, 'CFC11_SFLUX',1, &
                                           distrb_clinic%nprocs)
 
-  end subroutine cfc11_init
+!-------------------------------------------------------------------------------
+!  call other initialization subroutines
+!-------------------------------------------------------------------------------
 
-  !*****************************************************************************
+    call init_cfc11_tavg
+    call cfc11_init_sflux
 
-  function cfc11_name2ind(name)
+!-----------------------------------------------------------------------
+!EOC
 
-    !---------------------------------------------------------------------------
-    !   arguments
-    !---------------------------------------------------------------------------
+ end subroutine cfc11_init
 
-    character(char_len), intent(in) :: name
+!***********************************************************************
+!BOP
+! !IROUTINE: init_cfc11_tavg
+! !INTERFACE:
 
-    !---------------------------------------------------------------------------
-    !   result declaration
-    !---------------------------------------------------------------------------
+ subroutine init_cfc11_tavg
 
-    integer(int_kind) :: cfc11_name2ind
+! !DESCRIPTION:
+!  Define tavg fields not automatically handled by the base model.
 
-    !---------------------------------------------------------------------------
-    !   local variables
-    !---------------------------------------------------------------------------
+! !REVISION HISTORY:
+!  same as module
 
-    character(*), parameter :: subname = 'cfc11_mod:cfc11_name2ind'
-    integer(int_kind) :: i
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
 
-    do i = 1,cfc11_tracer_cnt
-       if (trim(name) == trim(ind_name_table(i)%name)) then
-          cfc11_name2ind = ind_name_table(i)%ind
-          return
-       end if
-    end do
+   integer (int_kind) :: &
+      var_cnt             ! how many tavg variables are defined
 
-    cfc11_name2ind = 0
+!-----------------------------------------------------------------------
 
-  end function cfc11_name2ind
+   var_cnt = 0
 
-  !*****************************************************************************
-
-  function cfc11_ind2name(ind)
-
-    !---------------------------------------------------------------------------
-    !   arguments
-    !---------------------------------------------------------------------------
-
-    integer(int_kind), intent(in) :: ind
-
-    !---------------------------------------------------------------------------
-    !   result declaration
-    !---------------------------------------------------------------------------
-
-    character(char_len) :: cfc11_ind2name
-
-    !---------------------------------------------------------------------------
-    !   local variables
-    !---------------------------------------------------------------------------
-
-    character(*), parameter :: subname = 'cfc11_mod:cfc11_ind2name'
-    integer(int_kind) :: i
-
-    do i = 1,cfc11_tracer_cnt
-       if (ind == ind_name_table(i)%ind) then
-          cfc11_ind2name = trim(ind_name_table(i)%name)
-          return
-       end if
-    end do
-
-    call msg_write(subname, 'lookup failed for ', ind)
-!   call exit_POP('ERROR : stopping in ' // subname)
-!      call exit_POP('ERROR : stopping in WHEREVER')
-
-  end function cfc11_ind2name
-
-  !*****************************************************************************
-
-  subroutine init_cfc11_tavg
-
-    !---------------------------------------------------------------------------
-    !   set up variables for tavg access
-    !   1) allocate single precision history buffers
-    !   2) initialize buffers to zero
-    !   3) register buffers so that tavg can access them
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !   prognostic variables
-    !--------------------------------------------------------------------------- 
-
-    call define_tavg_field(tavg_CFC11,'CFC11',3,                          &
-                          long_name='CFC11',           &
-                          units='mmol/m^3', grid_loc='3111')
-
-    !---------------------------------------------------------------------------
-    !   2D fields related to surface fluxes
-    !--------------------------------------------------------------------------- 
-
-    call define_tavg_field(tavg_CFC11_FLUX,'CFC11_FLUX',2,       &
-                          long_name='CFC11 Surface Flux',        &
-                          units='mmol/s/m^2', grid_loc='2111')
-
-    call define_tavg_field(tavg_FICE,'CFC11_FICE',2,           &
-                          long_name='CFC11 Ice Fraction',           &
+   call define_tavg_field(tavg_FICE,'CFC11_FICE',2,               &
+                          long_name='CFC11 Ice Fraction',         &
                           units='fraction', grid_loc='2111')
+   var_cnt = var_cnt+1
 
-    call define_tavg_field(tavg_XKW,'CFC11_XKW',2,           &
-                          long_name='CFC11 XKW',           &
+   call define_tavg_field(tavg_XKW,'CFC11_XKW',2,                 &
+                          long_name='CFC11 XKW',                  &
                           units='m/s', grid_loc='2111')
+   var_cnt = var_cnt+1
 
-    call define_tavg_field(tavg_pCFC11,'pCFC11',2,           &
-                          long_name='CFC11 partial pressure',           &
+   call define_tavg_field(tavg_pCFC11,'pCFC11',2,                 &
+                          long_name='CFC11 partial pressure',     &
                           units='atmospheres', grid_loc='2111')
+   var_cnt = var_cnt+1
 
-    call define_tavg_field(tavg_PV,'CFC11_PV',2,           &
-                          long_name='CFC11 piston velocity',           &
+   call define_tavg_field(tavg_PV,'CFC11_PV',2,                   &
+                          long_name='CFC11 piston velocity',      &
                           units='m/s', grid_loc='2111')
+   var_cnt = var_cnt+1
 
-    call define_tavg_field(tavg_ATM_PRESS,'CFC11_ATM_PRESS',2,           &
-                          long_name='CFC11 Atmospheric Pressure',           &
+   call define_tavg_field(tavg_ATM_PRESS,'CFC11_ATM_PRESS',2,     &
+                          long_name='CFC11 Atmospheric Pressure', &
                           units='atmospheres', grid_loc='2111')
+   var_cnt = var_cnt+1
 
-    call define_tavg_field(tavg_SCHMIDT_CFC11,'CFC11_SCHMIDT',2,           &
-                          long_name='CFC11 Schmidt Number',           &
+   call define_tavg_field(tavg_SCHMIDT_CFC11,'CFC11_SCHMIDT',2,   &
+                          long_name='CFC11 Schmidt Number',       &
                           units='none', grid_loc='2111')
+   var_cnt = var_cnt+1
 
-    call define_tavg_field(tavg_CFC11SAT,'CFC11_SAT',2,                          &
+   call define_tavg_field(tavg_CFC11SAT,'CFC11_SAT',2,            &
                           long_name='CFC11 Saturation',           &
                           units='mmol/m^3', grid_loc='2111')
+   var_cnt = var_cnt+1
 
-  end subroutine init_cfc11_tavg
+!-----------------------------------------------------------------------
 
-  !*****************************************************************************
+   allocate(CFC11_SFLUX_TAVG(nx_block,ny_block,var_cnt,max_blocks_clinic))
 
-  subroutine cfc11_init_sflux
+!-----------------------------------------------------------------------
+!EOC
 
-   use broadcast, only : broadcast_scalar, broadcast_array
-   use constants, only : field_loc_center, blank_fmt, field_type_scalar, p5
-   use grid, only : KMT, zt, zw
-    use forcing_tools, only : find_forcing_times
+ end subroutine init_cfc11_tavg
+
+!***********************************************************************
+!BOP
+! !IROUTINE: cfc11_init_sflux
+! !INTERFACE:
+
+ subroutine cfc11_init_sflux
+
+   use broadcast, only: broadcast_scalar, broadcast_array
+   use constants, only: field_loc_center, blank_fmt, field_type_scalar
+   use grid, only: KMT, zt, zw
+   use forcing_tools, only: find_forcing_times
 
    type (datafile) ::    &
       in_file             ! data file type for init ts file
@@ -1110,7 +762,7 @@ contains
 
     !---------------------------------------------------------------------------
     !   now read in hemispherically averaged CFC11 time series file
-    !   first, read until end of file to determine how big to allocate 
+    !   first, read until end of file to determine how big to allocate
     !      the time series array
     !---------------------------------------------------------------------------
 
@@ -1147,7 +799,7 @@ contains
     end if
 
     !---------------------------------------------------------------------------
-    !   allocate time series array on all processors, then read in on 
+    !   allocate time series array on all processors, then read in on
     !      master_task, then broadcast to all
     !   time series file has 3 columns:  year, Northern Hemisphere, Southern Hem
     !---------------------------------------------------------------------------
@@ -1166,50 +818,67 @@ contains
 
       call broadcast_array (cfc11_time_series, master_task)
 
-  end subroutine cfc11_init_sflux
+!-----------------------------------------------------------------------
+!EOC
 
-  !*****************************************************************************
+ end subroutine cfc11_init_sflux
 
-  subroutine cfc11_set_sflux(WIND_VEL,IFRAC,PRESS,SST,SSS,SURF_VALS,  &
+!***********************************************************************
+!BOP
+! !IROUTINE: cfc11_set_sflux
+! !INTERFACE:
+
+ subroutine cfc11_set_sflux(WIND_VEL,IFRAC,PRESS,SST,SSS,SURF_VALS,  &
                               STF_MODULE)
 
-    use constants, only : rho_sw, field_loc_center, field_type_scalar, &
-                          mpercm, salinity_factor, eps, p5, cmperm
-    use time_management, only : thour00, check_time_flag, iyear,  &
-                                seconds_this_year, seconds_in_year, tday
-    use broadcast, only : broadcast_scalar
-    use forcing_tools, only : update_forcing_data, interpolate_forcing
+! !DESCRIPTION:
+!  Compute CFC11 surface flux and store related tavg fields for
+!  subsequent accumulating.
 
-    !---------------------------------------------------------------------------
-    !   arguments
-    !---------------------------------------------------------------------------
+! !REVISION HISTORY:
+!  same as module
 
-    !---------------------------------------------------------------------------
-    !   NOTE that variables are a mish-mash of model/non-model units
-    !   WIND_VEL should be m/s
-    !   XKW should be cm/s
-    !   salinity should be psu
-    !   pressure should be dyne/cm**2 (NOT atmospheres or Pascals)
-    !---------------------------------------------------------------------------
+! !USES:
 
-    real(r8), dimension(nx_block,ny_block,2,max_blocks_clinic), intent(in) :: &
+   use constants, only: field_loc_center, field_type_scalar, &
+       mpercm, eps, p5, cmperm
+   use time_management, only: thour00, check_time_flag, iyear,  &
+       seconds_this_year, seconds_in_year, tday
+   use broadcast, only: broadcast_scalar
+   use forcing_tools, only: update_forcing_data, interpolate_forcing
+
+!-----------------------------------------------------------------------
+!   NOTE that variables are a mish-mash of model/non-model units
+!   WIND_VEL should be m/s
+!   XKW should be cm/s
+!   salinity should be psu
+!   pressure should be dyne/cm**2 (NOT atmospheres or Pascals)
+!-----------------------------------------------------------------------
+
+! !INPUT PARAMETERS:
+
+   real(r8), dimension(nx_block,ny_block,2,max_blocks_clinic), intent(in) :: &
          WIND_VEL ! surface wind velocity (m/s)
 
-    real(r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) :: &
+   real(r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) :: &
          IFRAC, & ! sea ice fraction (non-dimensional)
          PRESS, & ! sea level atmospheric pressure (dyne/cm**2)
          SST,   & ! sea surface temperature (C)
          SSS      ! sea surface salinity (psu)
 
-    real(r8), dimension(nx_block,ny_block,cfc11_tracer_cnt,max_blocks_clinic), &
+   real(r8), dimension(nx_block,ny_block,cfc11_tracer_cnt,max_blocks_clinic), &
          intent(in) :: SURF_VALS ! module tracers
 
-    real(r8), dimension(nx_block,ny_block,cfc11_tracer_cnt,max_blocks_clinic), &
+! !OUTPUT PARAMETERS:
+
+   real(r8), dimension(nx_block,ny_block,cfc11_tracer_cnt,max_blocks_clinic), &
          intent(inout) :: STF_MODULE
 
-    !---------------------------------------------------------------------------
-    !   local variables
-    !---------------------------------------------------------------------------
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
 
     character(*), parameter :: subname = 'cfc11_mod:cfc11_set_sflux'
 
@@ -1219,7 +888,7 @@ contains
 
     real(r8) :: &  !  used for linear interpolation of time series values
           pcfc11_north, pcfc11_south, del_year
-          
+
     real(r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
          FICE_USED,    & ! used ice fraction (non-dimensional)
          XKW,          & ! part of piston velocity (cm/s)
@@ -1402,7 +1071,7 @@ contains
 
     cfc11_first_year = int(cfc11_time_series(1,1) + eps)
     cfc11_last_year  = int(cfc11_time_series(num_cfc11_years,1) + eps)
-    if (iyear < cfc11_first_year .or. iyear > cfc11_last_year ) then 
+    if (iyear < cfc11_first_year .or. iyear > cfc11_last_year ) then
        call exit_POP(sigAbort,  &
                 'model year out of range of CFC11 years')
     end if
@@ -1450,7 +1119,7 @@ contains
     !---------------------------------------------------------------------------
 
     !$OMP PARALLEL DO PRIVATE(iblock,j,XKW_ICE,SCHMIDT_USED,PV,O2SAT_USED, O2SAT_1atm,FLUX,XCO2,PHLO,PHHI,PH_NEW,CO2STAR_ROW,DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW)
-                              
+
     do iblock = 1, nblocks_clinic
 
        XKW_ICE = XKW(:,:,iblock)
@@ -1495,66 +1164,43 @@ contains
 
     !$OMP END PARALLEL DO
 
-  end subroutine cfc11_set_sflux
-
-  !*****************************************************************************
-  
-  subroutine cfc11_tavg(bid, k, TRACER_MODULE)
-
-  implicit none
-
-  integer(int_kind) :: bid, k
-
-  real(r8), dimension(nx_block,ny_block,cfc11_tracer_cnt), intent(in) :: &
-         TRACER_MODULE
-
-  if (tavg_requested(tavg_CFC11)) then
-      call accumulate_tavg_field(TRACER_MODULE(:,:,cfc11_ind), &
-                                 tavg_CFC11,bid,k)
-   endif
-
-   end subroutine cfc11_tavg
-
-  !*****************************************************************************
-  
-  subroutine cfc11_tavg_forcing(STF_MODULE)
-
-  use constants, only : mpercm
-
-  implicit none
-
 !-----------------------------------------------------------------------
-!
-!  input variables
-!
-!-----------------------------------------------------------------------
+!EOC
 
-  real(r8), dimension(nx_block,ny_block,cfc11_tracer_cnt,max_blocks_clinic), &
-      intent(in) :: STF_MODULE
+ end subroutine cfc11_set_sflux
 
+!***********************************************************************
+!BOP
+! !IROUTINE: cfc11_tavg_forcing
+! !INTERFACE:
+
+ subroutine cfc11_tavg_forcing
+
+! !DESCRIPTION:
+!  Make accumulation calls for forcing related tavg fields. This is
+!  necessary because the forcing routines are called before tavg flags
+!  are set.
+
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
 !-----------------------------------------------------------------------
-!
 !  local variables
-!
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
       iblock              ! block loop index
 
 !-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
 
    !$OMP PARALLEL DO PRIVATE(iblock)
 
    do iblock = 1,nblocks_clinic
 
-      if (tavg_requested(tavg_CFC11_FLUX)) then
-         call accumulate_tavg_field(STF_MODULE(:,:,cfc11_ind,iblock)*mpercm  &
-                                    ,tavg_CFC11_FLUX,iblock,1)
-      endif
-
       if (tavg_requested(tavg_FICE)) then
-         call accumulate_tavg_field(CFC11_SFLUX_TAVG(:,:,1,iblock)  & 
+         call accumulate_tavg_field(CFC11_SFLUX_TAVG(:,:,1,iblock)  &
                                     ,tavg_FICE,iblock,1)
       endif
 
@@ -1592,246 +1238,181 @@ contains
 
    !$OMP END PARALLEL DO
 
-   end subroutine cfc11_tavg_forcing
-
-  !*****************************************************************************
-
-      function SCHMIDT_CFC(PT_2D,LAND_MASK,kn)
-
 !-----------------------------------------------------------------------
-!     CFC 11 and 12 schmidt number
-!     as a fonction of temperature.
-!
-!     ref: Zheng et al (1998), JGR, vol 103,No C1
-!
-!     PT_2D: temperature (degree Celsius)
-!     kn: = 11 for CFC-11,  12 for CFC-12
-!
-!     J-C Dutay - LSCE
-!-----------------------------------------------------------------------
+!EOC
 
-      implicit none
+ end subroutine cfc11_tavg_forcing
 
-      integer(int_kind) :: kn
-
-      real (r8), dimension(11:12) :: a1, a2, a3, a4
-      real (r8), dimension(nx_block,ny_block) :: PT_2D
-      real (r8), dimension(nx_block,ny_block) :: SCHMIDT_CFC
-
-      logical (log_kind), dimension(nx_block,ny_block) :: LAND_MASK
-
-!-----------------------------------------------------------------------
-!   coefficients with t in degre Celsius
-!-----------------------------------------------------------------------
-
-      a1(11) = 3501.8_r8
-      a2(11) = -210.31_r8
-      a3(11) =    6.1851_r8
-      a4(11) =   -0.07513_r8
-
-      a1(12) = 3845.4_r8
-      a2(12) = -228.95_r8
-      a3(12) =    6.1908_r8
-      a4(12) =   -0.067430_r8
-
-      where (LAND_MASK)
-         SCHMIDT_CFC = a1(kn) + a2(kn) * PT_2D + a3(kn) *PT_2D*PT_2D  &
-                     + a4(kn) *PT_2D*PT_2D*PT_2D
-      elsewhere
-         SCHMIDT_CFC = c0
-      endwhere
-
-      end function SCHMIDT_CFC
-
-  !***********************************************************************
-  !***********************************************************************
-
-      function SOLUBILITY_CFC(PT,PS,LAND_MASK,kn)
-
-      use constants, only : T0_Kelvin, c1000
-
-!-----------------------------------------------------------------------
-!
-!     CFC 11 and 12 Solubilities in seawater
-!     ref: Warner & Weiss (1985) , Deep Sea Research, vol32
-!
-!     PT:       temperature (degre Celsius)
-!     PS:       salinity    (o/oo)
-!       NOTE:  multiply term that uses PS by 1000 to get psu
-!     kn:       11 = CFC-11, 12 = CFC-12
-!     SOLUBILITY_CFC:  in mol/m3/pptv
-!               1 pptv = 1 part per trillion = 10^-12 atm = 1 picoatm
-!
-!     J-C Dutay - LSCE
-!-----------------------------------------------------------------------
-
-      real(r8), dimension(nx_block,ny_block) :: PT, PS
-
-      real(r8), dimension(nx_block,ny_block) :: WORK
-      real(r8), dimension(nx_block,ny_block) :: SOLUBILITY_CFC
-
-      real(r8), dimension(11:12) ::  &
-        a1, a2, a3, a4, b1, b2, b3
-
-      integer(int_kind) ::  kn
-
-      logical (log_kind), dimension(nx_block,ny_block) :: LAND_MASK
-
-!-----------------------------------------------------------------------
-! coefficient for solubility in  mol/l/atm
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!     for CFC 11
-!-----------------------------------------------------------------------
-
-      a1 ( 11) = -229.9261_r8 
-      a2 ( 11) =  319.6552_r8
-      a3 ( 11) =  119.4471_r8
-      a4 ( 11) =   -1.39165_r8
-      b1 ( 11) =   -0.142382_r8
-      b2 ( 11) =    0.091459_r8
-      b3 ( 11) =   -0.0157274_r8
-      
-!-----------------------------------------------------------------------
-!     for CFC/12
-!-----------------------------------------------------------------------
-
-      a1 ( 12) = -218.0971_r8
-      a2 ( 12) =  298.9702_r8
-      a3 ( 12) =  113.8049_r8
-      a4 ( 12) =   -1.39165_r8
-      b1 ( 12) =   -0.143566_r8
-      b2 ( 12) =    0.091015_r8
-      b3 ( 12) =   -0.0153924_r8
-
-      WORK = merge( ((PT + T0_Kelvin)* 0.01_r8), c1, LAND_MASK)
-
-      where (LAND_MASK)
-        SOLUBILITY_CFC  &
-          = exp ( a1 ( kn)   &
-          +       a2 ( kn)/ WORK   &
-          +       a3 ( kn)* log ( WORK )   &
-          +       a4 ( kn)* WORK * WORK   &
-          +       PS*(   &
-                            ( b3( kn)*WORK + b2( kn) )*WORK + b1(kn) )   &
-                   )
-      elsewhere
-        SOLUBILITY_CFC = c0
-      endwhere
-
-!     conversion from mol/(l * atm) to mol/(m^3 * atm)
-!     ------------------------------------------------
-      SOLUBILITY_CFC = c1000 * SOLUBILITY_CFC
-
-!     conversion from mol/(m^3 * atm) to mol/(m3 * pptv)
-!     --------------------------------------------------
-      SOLUBILITY_CFC = 1.0e-12_r8 * SOLUBILITY_CFC
-
-      end function SOLUBILITY_CFC
-  
 !***********************************************************************
+!BOP
+! !IROUTINE: SCHMIDT_CFC
+! !INTERFACE:
 
- subroutine cfc11_tracer_field_info (num_auto_gen_tr, name, long_name,  &
-                                     num_dims, units, grid_loc,         &
-                                     coordinates)
+ function SCHMIDT_CFC(PT_2D,LAND_MASK,kn)
 
-   integer   (int_kind), intent(in)  ::                               & 
-      num_auto_gen_tr
-   character (char_len), dimension(num_auto_gen_tr), intent(in)  ::   & 
-      name
-   
-   integer   (int_kind), dimension(num_auto_gen_tr), intent(out) ::   & 
-      num_dims
-   character (char_len), dimension(num_auto_gen_tr), intent(out) ::   & 
-      long_name, units, grid_loc, coordinates
+! !DESCRIPTION:
+!  CFC 11 and 12 schmidt number
+!  as a fonction of temperature.
+!
+!  ref: Zheng et al (1998), JGR, vol 103,No C1
+!
+!  Original author: J-C Dutay - LSCE
+!
+! !REVISION HISTORY:
+!  same as module
 
-   integer   (int_kind) :: nn
-   character (char_len) :: basename
+! !INPUT PARAMETERS:
 
-   basename = trim(name(1))
+   real(r8), dimension(nx_block,ny_block) :: &
+      PT_2D              ! temperature (degree Celsius)
 
-   select case (basename)
-      case ('CFC11')
-        do nn=1,num_auto_gen_tr
-          select case (trim(name(nn)))
-            case ('CFC11')
-                long_name  (nn) = 'CFC11'
-                units      (nn) = 'years'
-                num_dims   (nn) = 3
-                coordinates(nn) = 'TLONG TLAT z_t time'
-                grid_loc   (nn) = '3111'
-            case ('CFC11_SQR')
-                long_name  (nn) = 'Ideal Age Squared'
-                units      (nn) = 'years^2'
-                num_dims   (nn) = 3
-                coordinates(nn) = 'TLONG TLAT z_t time'
-                grid_loc   (nn) = '3111'
-            case ('UE_CFC11')
-                long_name  (nn) = 'CFC11 Flux in grid-x direction'
-                units      (nn) = 'years/s'
-                num_dims   (nn) = 3
-                coordinates(nn) = 'ULONG TLAT z_t time'
-                grid_loc   (nn) = '3211'
-            case ('VN_CFC11')
-                long_name  (nn) = 'CFC11 Flux in grid-y direction'
-                units      (nn) = 'years/s'
-                num_dims   (nn) = 3
-                coordinates(nn) = 'TLONG ULAT z_t time'
-                grid_loc   (nn) = '3121'
-            case ('WT_CFC11')
-                long_name  (nn) = 'CFC11 Flux Across Top Face'
-                units      (nn) = 'years/s'
-                num_dims   (nn) = 3
-                coordinates(nn) = 'TLONG TLAT z_w time'
-                grid_loc   (nn) = '3112'
-            case ('J_CFC11')
-                long_name  (nn) = 'unknown J_CFC11'
-                units      (nn) = 'unknown'
-                num_dims   (nn) = 9999
-                coordinates(nn) = 'unknown'
-                grid_loc   (nn) = 'unknown'
-            case ('Jint_CFC11')
-                long_name  (nn) = 'unknown Jint_CFC11'
-                units      (nn) = 'unknown'
-                num_dims   (nn) = 9999
-                coordinates(nn) = 'unknown'
-                grid_loc   (nn) = 'unknown'
-            case ('STF_CFC11')
-                long_name  (nn) = 'unknown STF_CFC11'
-                units      (nn) = 'unknown'
-                num_dims   (nn) = 9999
-                coordinates(nn) = 'unknown'
-                grid_loc   (nn) = 'unknown'
-            case ('RESID_CFC11')
-                long_name  (nn) = 'Free-Surface Residual Flux (CFC11)'
-                units      (nn) = 'years/s'
-                num_dims   (nn) = 2
-                coordinates(nn) = 'TLONG TLAT time'
-                grid_loc   (nn) = '2110'
-            case ('FvPER_CFC11')
-                long_name  (nn) = 'Virtual Flux of CFC11, P-E+R'
-                units      (nn) = 'years/s'
-                num_dims   (nn) = 2
-                coordinates(nn) = 'TLONG TLAT time'
-                grid_loc   (nn) = '2110'
-            case ('FvICE_CFC11')
-                long_name  (nn) = 'Virtual Flux of CFC11, Ice Formation'
-                units      (nn) = 'years/s'
-                num_dims   (nn) = 2
-                coordinates(nn) = 'TLONG TLAT time'
-                grid_loc   (nn) = '2110'
-          end select
-        enddo ! nn
-      case default
-         call exit_POP (sigAbort,   &
-                  '(cfc11_tracer_field_info) unrecognized tracer name')
-   end select
+   logical (log_kind), dimension(nx_block,ny_block) :: LAND_MASK
 
+   integer(int_kind) ::  &
+      kn                 ! 11 = CFC-11, 12 = CFC-12
 
- end subroutine cfc11_tracer_field_info 
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      SCHMIDT_CFC        ! returned value, non-dimensional
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   real (r8), dimension(11:12) :: a1, a2, a3, a4
+
+!-----------------------------------------------------------------------
+!   coefficients with t in degree Celsius
+!-----------------------------------------------------------------------
+
+   a1(11) = 3501.8_r8
+   a2(11) = -210.31_r8
+   a3(11) =    6.1851_r8
+   a4(11) =   -0.07513_r8
+
+   a1(12) = 3845.4_r8
+   a2(12) = -228.95_r8
+   a3(12) =    6.1908_r8
+   a4(12) =   -0.067430_r8
+
+   where (LAND_MASK)
+      SCHMIDT_CFC = a1(kn) + a2(kn) * PT_2D + a3(kn) *PT_2D*PT_2D  &
+                     + a4(kn) *PT_2D*PT_2D*PT_2D
+   elsewhere
+      SCHMIDT_CFC = c0
+   endwhere
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function SCHMIDT_CFC
+
+!***********************************************************************
+!BOP
+! !IROUTINE: SOLUBILITY_CFC
+! !INTERFACE:
+
+ function SOLUBILITY_CFC(PT,PS,LAND_MASK,kn)
+
+! !DESCRIPTION:
+!  CFC 11 and 12 Solubilities in seawater
+!  ref: Warner & Weiss (1985) , Deep Sea Research, vol32
+!
+!  Original author: J-C Dutay - LSCE
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !USES:
+
+   use constants, only: T0_Kelvin, c1000
+
+! !INPUT PARAMETERS:
+
+   real(r8), dimension(nx_block,ny_block) :: &
+      PT,              & ! temperature (degree Celsius)
+      PS                 ! salinity    (o/oo) (multiply by 1000 to get psu)
+
+   logical (log_kind), dimension(nx_block,ny_block) :: LAND_MASK
+
+   integer(int_kind) ::  &
+      kn                 ! 11 = CFC-11, 12 = CFC-12
+
+! !OUTPUT PARAMETERS:
+
+   real(r8), dimension(nx_block,ny_block) :: &
+      SOLUBILITY_CFC     ! returned value, in mol/m3/pptv
+                         ! 1 pptv = 1 part per trillion = 10^-12 atm = 1 picoatm
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   real(r8), dimension(nx_block,ny_block) :: WORK
+
+   real(r8), dimension(11:12) ::  &
+      a1, a2, a3, a4, b1, b2, b3
+
+!-----------------------------------------------------------------------
+!  for CFC 11
+!-----------------------------------------------------------------------
+
+   a1 ( 11) = -229.9261_r8
+   a2 ( 11) =  319.6552_r8
+   a3 ( 11) =  119.4471_r8
+   a4 ( 11) =   -1.39165_r8
+   b1 ( 11) =   -0.142382_r8
+   b2 ( 11) =    0.091459_r8
+   b3 ( 11) =   -0.0157274_r8
+
+!-----------------------------------------------------------------------
+!  for CFC/12
+!-----------------------------------------------------------------------
+
+   a1 ( 12) = -218.0971_r8
+   a2 ( 12) =  298.9702_r8
+   a3 ( 12) =  113.8049_r8
+   a4 ( 12) =   -1.39165_r8
+   b1 ( 12) =   -0.143566_r8
+   b2 ( 12) =    0.091015_r8
+   b3 ( 12) =   -0.0153924_r8
+
+   WORK = merge( ((PT + T0_Kelvin)* 0.01_r8), c1, LAND_MASK)
+
+!-----------------------------------------------------------------------
+!  coefficient for solubility in  mol/l/atm
+!-----------------------------------------------------------------------
+
+   where (LAND_MASK)
+      SOLUBILITY_CFC  &
+         = exp ( a1 ( kn)                &
+               + a2 ( kn)/ WORK          &
+               + a3 ( kn)* log ( WORK )  &
+               + a4 ( kn)* WORK * WORK   &
+               + PS*( ( b3( kn)*WORK + b2( kn) )*WORK + b1(kn) ) )
+   elsewhere
+      SOLUBILITY_CFC = c0
+   endwhere
+
+!-----------------------------------------------------------------------
+!  conversion from mol/(l * atm) to mol/(m^3 * atm) to mol/(m3 * pptv)
+!-----------------------------------------------------------------------
+
+   SOLUBILITY_CFC = c1000 * SOLUBILITY_CFC
+   SOLUBILITY_CFC = 1.0e-12_r8 * SOLUBILITY_CFC
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function SOLUBILITY_CFC
 
 !***********************************************************************
 
 end module cfc11_mod
+
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||

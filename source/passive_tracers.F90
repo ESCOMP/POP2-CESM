@@ -4,12 +4,12 @@
 
 !BOP
 ! !MODULE: passive_tracers
- 
+
 ! !DESCRIPTION:
 !  This module provides support for passive tracers.
 !  The base model calls subroutines in this module which then call
 !     subroutines in individual passive tracer modules.
- 
+
 ! !REVISION HISTORY:
 !  SVN:$Id$
 
@@ -18,47 +18,45 @@
    use kinds_mod, only: r8, int_kind, log_kind, char_len
    use blocks, only: block, nx_block, ny_block
    use domain_size, only: max_blocks_clinic, km, nt
+   use domain, only: nblocks_clinic
    use communicate, only: my_task, master_task
    use broadcast, only: broadcast_scalar
    use prognostic, only: TRACER, tracer_d, curtime
-   use forcing_shf, only: SHF_QSW
-   use io_types, only: stdout, nml_in, nml_filename,io_field_desc
+   use forcing_shf, only: SHF_QSW_RAW
+   use io_types, only: stdout, nml_in, nml_filename, io_field_desc, &
+       datafile
    use exit_mod, only: sigAbort, exit_pop
-   use shr_sys_mod
-   use timers, only : timer_start, timer_stop
-   use tavg, only: define_tavg_field
-   use constants, only : delim_fmt, char_blank, salt_to_ppt, ocn_ref_salinity, &
-      ppt_to_salt, c0
+   use shr_sys_mod, only: shr_sys_flush
+   use timers, only: timer_start, timer_stop
+   use tavg, only: define_tavg_field, tavg_method_qflux, ltavg_on, &
+       tavg_requested, accumulate_tavg_field
+   use constants, only: c0, c1, delim_fmt, char_blank, &
+       salt_to_ppt, ocn_ref_salinity, ppt_to_salt, sea_ice_salinity
+   use time_management, only: mix_pass
+   use grid, only: partial_bottom_cells, DZT, dz
    use registry, only: register_string, registry_match
+   use io_tools, only: document
 
-   use cfc11_mod, only :           &
-      cfc11_tracer_cnt,            &
-      cfc11_ind_begin,             &
-      cfc11_ind_end,               &
-      cfc11_tracer_names,          &
-      cfc11_init,                  &
-      cfc11_init_sflux,            &
-      cfc11_set_sflux,             &
-      cfc11_ind2name,              &
-      cfc11_name2ind,              &
-      cfc11_sflux_timer,           &
-      cfc11_tavg,                  &
-      cfc11_tavg_forcing,          &
-      cfc11_tracer_field_info
+   use ecosys_mod, only:           &
+       ecosys_tracer_cnt,          &
+       ecosys_init,                &
+       ecosys_tracer_ref_val,      &
+       ecosys_set_sflux,           &
+       ecosys_tavg_forcing,        &
+       ecosys_set_interior,        &
+       ecosys_write_restart
 
+   use cfc11_mod, only:            &
+       cfc11_tracer_cnt,           &
+       cfc11_init,                 &
+       cfc11_set_sflux,            &
+       cfc11_tavg_forcing
 
-   use iage_mod, only :           &
-      iage_tracer_cnt,            &
-      iage_ind_begin,             &
-      iage_ind_end,               &
-      iage_tracer_names,          &
-      iage_init,                  &
-      iage_set_interior,          &
-      iage_reset,                 &
-      iage_ind2name,              &
-      iage_name2ind,              &
-      iage_tavg
-
+   use iage_mod, only:             &
+       iage_tracer_cnt,            &
+       iage_init,                  &
+       iage_set_interior,          &
+       iage_reset
 
    implicit none
    private
@@ -68,42 +66,67 @@
 
    public ::                                 &
       init_passive_tracers,                  &
-      set_passive_tracers_interior,          &
-      set_passive_tracers_sflux,             &
-      init_passive_tracers_sflux,            &
-      init_passive_tracers_interior_restore, &
+      set_interior_passive_tracers,          &
+      set_sflux_passive_tracers,             &
       reset_passive_tracers,                 &
       write_restart_passive_tracers,         &
       tavg_passive_tracers,                  &
-      tavg_passive_tracers_sflux,            &
-      passive_tracer_ind2name,               &
-      tracer_ref_val
-
-!-----------------------------------------------------------------------
-!  variables for automatically generated tavg passive-tracer fields
-!-----------------------------------------------------------------------
-
-! !PUBLIC DATA MEMBERS:
-
-   integer (int_kind), parameter, public :: & 
-      num_auto_gen_tr = 11,         &!number of auto-generated passive-tracer fields
-      nt_passive      = nt-2         !number of passive tracers
-
-   integer (int_kind), dimension (num_auto_gen_tr*nt_passive), public ::  &
-      tavg_PASSIVE
+      passive_tracers_tavg_sflux,            &
+      passive_tracers_tavg_fvice,            &
+      tracer_ref_val,                        &
+      tadvect_ctype_passive_tracers
 
 !EOP
 !BOC
+
+!-----------------------------------------------------------------------
+!  tavg ids for automatically generated tavg passive-tracer fields
+!-----------------------------------------------------------------------
+
+   integer (int_kind), dimension (3:nt) ::  &
+      tavg_var,        & ! tracer
+      tavg_var_sqr,    & ! tracer square
+      tavg_var_J,      & ! tracer source sink term
+      tavg_var_Jint,   & ! vertically integrated tracer source sink term
+      tavg_var_stf,    & ! tracer surface flux
+      tavg_var_resid,  & ! tracer residual surface flux
+      tavg_var_fvper,  & ! virtual tracer flux from precip,evap,runoff
+      tavg_var_fvice     ! virtual tracer flux from ice formation
+
+!-----------------------------------------------------------------------
+!  array containing advection type for each passive tracer
+!-----------------------------------------------------------------------
+
+   character (char_len), dimension(3:nt) :: &
+      tadvect_ctype_passive_tracers
+
+!-----------------------------------------------------------------------
+!  PER virtual fluxes. The application of the flux happens in surface
+!  forcing subroutines, before tavg flags are set, so the tavg accumulation
+!  must be in a different subroutine than the application. The fluxes
+!  are stored to avoid recomputing them when accumulating.
+!-----------------------------------------------------------------------
+
+   real (r8), dimension(:,:,:,:), allocatable :: FvPER
 
 !-----------------------------------------------------------------------
 !  logical variables that denote if a passive tracer module is on
 !-----------------------------------------------------------------------
 
    logical (kind=log_kind) ::  &
-      ecosys_on, cfc11_on, mchl_on, iage_on, tracegas_on
+      ecosys_on, cfc11_on, iage_on
 
    namelist /passive_tracers_on_nml/  &
-      ecosys_on, cfc11_on, mchl_on, iage_on, tracegas_on
+      ecosys_on, cfc11_on, iage_on
+
+!-----------------------------------------------------------------------
+!     index bounds of passive tracer module variables in TRACER
+!-----------------------------------------------------------------------
+
+   integer (kind=int_kind) ::                       &
+      ecosys_ind_begin,     ecosys_ind_end,         &
+      iage_ind_begin,       iage_ind_end,           &
+      cfc11_ind_begin,      cfc11_ind_end
 
 !EOC
 !***********************************************************************
@@ -111,27 +134,49 @@
  contains
 
 !***********************************************************************
+!BOP
+! !IROUTINE: init_passive_tracers
+! !INTERFACE:
 
- subroutine init_passive_tracers
+ subroutine init_passive_tracers(init_ts_file_fmt, read_restart_filename)
 
+! !DESCRIPTION:
+!  Initialize passive tracers. This involves:
+!  1) reading passive_tracers_on_nml to see which module are on
+!  2) setting tracer module index bounds
+!  3) calling tracer module init subroutine
+!  4) define common tavg fields
+!  5) set up space for storing virtual fluxes
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent(in) ::  &
+      init_ts_file_fmt,    & ! format (bin or nc) for input file
+      read_restart_filename  ! file name for restart file
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   character(*), parameter :: subname = 'passive_tracers:init_passive_tracers'
 
    integer (int_kind) :: cumulative_nt, n
+   character (char_len) :: sname, lname, units
 
-   character (char_len) :: tracer_name
+!-----------------------------------------------------------------------
+!  register init_passive_tracers
+!-----------------------------------------------------------------------
 
-   !-----------------------------------------------------------------
-   !   register init_passive_tracers
-   !-----------------------------------------------------------------
- 
    call register_string('init_passive_tracers')
-
 
    ecosys_on    = .false.
    cfc11_on     = .false.
-   mchl_on      = .false.
    iage_on      = .false.
-   tracegas_on  = .false.
-
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old')
@@ -139,319 +184,469 @@
       read(nml_in, nml=passive_tracers_on_nml, err=10)
       close(nml_in)
    end if
-   
+
    if (my_task == master_task) then
-     write(stdout,*) ' '
-     write(stdout,*) ' Document Namelist Parameters:'
-     write(stdout,*) ' ============================ '
-     write(stdout,*) ' '
-     write(stdout, passive_tracers_on_nml)  
-     write(stdout,*) ' '
-     call shr_sys_flush (stdout)
+      write(stdout,*) ' '
+      write(stdout,*) ' Document Namelist Parameters:'
+      write(stdout,*) ' ============================ '
+      write(stdout,*) ' '
+      write(stdout, passive_tracers_on_nml)
+      write(stdout,*) ' '
+      call shr_sys_flush (stdout)
    endif
 
    call broadcast_scalar(ecosys_on, master_task)
    call broadcast_scalar(cfc11_on,  master_task)
-   call broadcast_scalar(mchl_on,  master_task)
-   call broadcast_scalar(iage_on,  master_task)
-   call broadcast_scalar(tracegas_on,  master_task)
+   call broadcast_scalar(iage_on,   master_task)
 
-
-
-   !-----------------------------------------------------------------
-   !  check for modules that require the flux coupler
-   !-----------------------------------------------------------------
+!-----------------------------------------------------------------------
+!  check for modules that require the flux coupler
+!-----------------------------------------------------------------------
 
    if (cfc11_on .and. .not. registry_match('lcoupled')) then
-     call exit_POP(sigAbort,'cfc module requires the flux coupler')
+      call exit_POP(sigAbort,'cfc module requires the flux coupler')
    end if
 
+!-----------------------------------------------------------------------
+!  default is for tracers to use same advection scheme as the base model
+!-----------------------------------------------------------------------
 
+   tadvect_ctype_passive_tracers(3:nt) = 'base_model'
 
-   !-----------------------------------------------------------------
-   !  set up indices for passive tracer modules that are on
-   !-----------------------------------------------------------------
+!-----------------------------------------------------------------------
+!  set up indices for passive tracer modules that are on
+!-----------------------------------------------------------------------
 
    cumulative_nt = 2
-      
+
+   if (ecosys_on) then
+      call set_tracer_indices('ECOSYS', ecosys_tracer_cnt, cumulative_nt,  &
+                              ecosys_ind_begin, ecosys_ind_end)
+   end if
 
    if (cfc11_on) then
-     call set_tracer_indices('CFC11', cfc11_tracer_cnt, cumulative_nt,  &
-                             cfc11_ind_begin, cfc11_ind_end)
+      call set_tracer_indices('CFC11', cfc11_tracer_cnt, cumulative_nt,  &
+                              cfc11_ind_begin, cfc11_ind_end)
    end if
-
 
    if (iage_on) then
-     call set_tracer_indices('IAGE', iage_tracer_cnt, cumulative_nt,  &
-                             iage_ind_begin, iage_ind_end)
+      call set_tracer_indices('IAGE', iage_tracer_cnt, cumulative_nt,  &
+                              iage_ind_begin, iage_ind_end)
    end if
-
 
    if (cumulative_nt /= nt) then
-     
-     call exit_POP(sigAbort, &
-      'ERROR in init_passive_tracers: declared nt does not match cumulative nt')
+      call document(subname, 'nt', nt)
+      call document(subname, 'cumulative_nt', cumulative_nt)
+      call exit_POP(sigAbort, &
+         'ERROR in init_passive_tracers: declared nt does not match cumulative nt')
    end if
 
-      !-----------------------------------------------------------------
-      !  print out tracer names from tracer modules that are on
-      !-----------------------------------------------------------------
+!-----------------------------------------------------------------------
+!  ECOSYS block
+!-----------------------------------------------------------------------
 
-   if (my_task == master_task) then
-     write(stdout,delim_fmt)
-     write(stdout,*) 'TRACER INDEX    TRACER NAME'
-     write(stdout,1010) 1, 'TEMP'
-     write(stdout,1010) 2, 'SALT'
-     call shr_sys_flush (stdout)
-     do n = 3, nt
-        call passive_tracer_ind2name(n, tracer_name)
-        write(stdout,1010) n, TRIM(tracer_name)
-        call shr_sys_flush (stdout)
-     enddo
-     write(stdout,delim_fmt)
-     call shr_sys_flush (stdout)
+   if (ecosys_on) then
+      call ecosys_init(init_ts_file_fmt, read_restart_filename, &
+                       tracer_d(ecosys_ind_begin:ecosys_ind_end), &
+                       TRACER(:,:,:,ecosys_ind_begin:ecosys_ind_end,:,:), &
+                       tadvect_ctype_passive_tracers(ecosys_ind_begin:ecosys_ind_end))
    end if
 
-
-      !-----------------------------------------------------------------
-      !  CFC11 block 
-      !-----------------------------------------------------------------
+!-----------------------------------------------------------------------
+!  CFC11 block
+!-----------------------------------------------------------------------
 
    if (cfc11_on) then
-      if (my_task == master_task) then
-         write(stdout,delim_fmt)
-         write(stdout,*) 'cfc11_ind_begin = ', cfc11_ind_begin
-         write(stdout,*) 'cfc11_ind_end   = ', cfc11_ind_end
-         write(stdout,delim_fmt)
-      end if
-
-      call cfc11_init(TRACER(:,:,:,cfc11_ind_begin:cfc11_ind_end,:,:))
-
+      call cfc11_init(init_ts_file_fmt, read_restart_filename, &
+                      tracer_d(cfc11_ind_begin:cfc11_ind_end), &
+                      TRACER(:,:,:,cfc11_ind_begin:cfc11_ind_end,:,:))
    end if
 
-
-      !-----------------------------------------------------------------
-      !  Ideal Age (IAGE) block 
-      !-----------------------------------------------------------------
+!-----------------------------------------------------------------------
+!  Ideal Age (IAGE) block
+!-----------------------------------------------------------------------
 
    if (iage_on) then
-
-      if (my_task == master_task) then
-         write(stdout,delim_fmt)
-         write(stdout,*) 'iage_ind_begin = ', iage_ind_begin
-         write(stdout,*) 'iage_ind_end   = ', iage_ind_end
-         write(stdout,delim_fmt)
-         call shr_sys_flush(stdout)
-      end if
-
-      call iage_init(TRACER(:,:,:,iage_ind_begin:iage_ind_end,:,:))
-
+      call iage_init(init_ts_file_fmt, read_restart_filename, &
+                     tracer_d(iage_ind_begin:iage_ind_end), &
+                     TRACER(:,:,:,iage_ind_begin:iage_ind_end,:,:))
    end if
 
+!-----------------------------------------------------------------------
+!  print out tracer names from tracer modules that are on
+!-----------------------------------------------------------------------
 
+   if (my_task == master_task) then
+      write(stdout,delim_fmt)
+      write(stdout,*) 'TRACER INDEX    TRACER NAME'
+      write(stdout,1010) 1, 'TEMP'
+      write(stdout,1010) 2, 'SALT'
+      call shr_sys_flush (stdout)
+      do n = 3, nt
+         write(stdout,1010) n, TRIM(tracer_d(n)%long_name)
+         call shr_sys_flush (stdout)
+      enddo
+      write(stdout,delim_fmt)
+      call shr_sys_flush (stdout)
+   end if
+
+!-----------------------------------------------------------------------
+!  generate common tavg fields for all tracers
+!-----------------------------------------------------------------------
+
+   do n = 3, nt
+      sname = tracer_d(n)%short_name
+      lname = tracer_d(n)%long_name
+      units = tracer_d(n)%units
+      call define_tavg_field(tavg_var(n),                           &
+                             sname, 3, long_name=lname,             &
+                             units=units, grid_loc='3111',          &
+                             coordinates='TLONG TLAT z_t time')
+
+      sname = trim(tracer_d(n)%short_name) /&
+                                            &/ '_SQR'
+      lname = trim(tracer_d(n)%long_name) /&
+                                           &/ ' Squared'
+      units = '(' /&
+                   &/ tracer_d(n)%units /&
+                                         &/ ')^2'
+      call define_tavg_field(tavg_var_sqr(n),                       &
+                             sname, 3, long_name=lname,             &
+                             units=units, grid_loc='3111',          &
+                             coordinates='TLONG TLAT z_t time')
+
+      sname = 'J_' /&
+                    &/ trim(tracer_d(n)%short_name)
+      lname = trim(tracer_d(n)%long_name) /&
+                                           &/ ' Source Sink Term'
+      units = tracer_d(n)%tend_units
+      call define_tavg_field(tavg_var_J(n),                         &
+                             sname, 3, long_name=lname,             &
+                             units=units, grid_loc='3111',          &
+                             coordinates='TLONG TLAT z_t time')
+
+      sname = 'Jint_' /&
+                       &/ trim(tracer_d(n)%short_name)
+      lname = trim(tracer_d(n)%long_name) /&
+                                           &/ ' Source Sink Term Vertical Integral'
+      units = tracer_d(n)%flux_units
+      call define_tavg_field(tavg_var_Jint(n),                      &
+                             sname, 2, long_name=lname,             &
+                             units=units, grid_loc='2110',          &
+                             coordinates='TLONG TLAT time')
+
+      sname = 'STF_' /&
+                      &/ trim(tracer_d(n)%short_name)
+      lname = trim(tracer_d(n)%long_name) /&
+                                           &/ ' Surface Flux'
+      units = tracer_d(n)%flux_units
+      call define_tavg_field(tavg_var_stf(n),                       &
+                             sname, 2, long_name=lname,             &
+                             units=units, grid_loc='3110',          &
+                             coordinates='TLONG TLAT z_t time')
+
+      sname = 'RESID_' /&
+                        &/ trim(tracer_d(n)%short_name)
+      lname = trim(tracer_d(n)%long_name) /&
+                                           &/ ' Residual Surface Flux'
+      units = tracer_d(n)%flux_units
+      call define_tavg_field(tavg_var_resid(n),                     &
+                             sname, 2, long_name=lname,             &
+                             units=units, grid_loc='3110',          &
+                             coordinates='TLONG TLAT z_t time')
+
+      sname = 'FvPER_' /&
+                        &/ trim(tracer_d(n)%short_name)
+      lname = trim(tracer_d(n)%long_name) /&
+                                           &/ ' Virtual Surface Flux, PER'
+      units = tracer_d(n)%flux_units
+      call define_tavg_field(tavg_var_fvper(n),                     &
+                             sname, 2, long_name=lname,             &
+                             units=units, grid_loc='3110',          &
+                             coordinates='TLONG TLAT z_t time')
+
+      sname = 'FvICE_' /&
+                        &/ trim(tracer_d(n)%short_name)
+      lname = trim(tracer_d(n)%long_name) /&
+                                           &/ ' Virtual Surface Flux, ICE'
+      units = tracer_d(n)%flux_units
+      call define_tavg_field(tavg_var_fvice(n),                     &
+                             sname, 2, long_name=lname,             &
+                             units=units, grid_loc='3110',          &
+                             tavg_method=tavg_method_qflux,         &
+                             coordinates='TLONG TLAT z_t time')
+   enddo
+
+!-----------------------------------------------------------------------
+!  allocate and initialize storage for virtual fluxes
+!-----------------------------------------------------------------------
+
+   allocate(FvPER(nx_block,ny_block,3:nt,nblocks_clinic))
+   FvPER = c0
 
  1010 format(5X,I2,10X,A)
 
 !-----------------------------------------------------------------------
+!EOC
 
-   end subroutine init_passive_tracers
+ end subroutine init_passive_tracers
 
 !***********************************************************************
+!BOP
+! !IROUTINE: set_interior_passive_tracers
+! !INTERFACE:
 
-   subroutine set_passive_tracers_interior(k, this_block, TRACER_SOURCE)
+ subroutine set_interior_passive_tracers(k, this_block, TRACER_SOURCE)
 
-!-----------------------------------------------------------------------
-!     input variables
-!-----------------------------------------------------------------------
+! !DESCRIPTION:
+!  call subroutines for each tracer module that compute source-sink terms
+!  accumulate commnon tavg fields related to source-sink terms
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
 
    integer (int_kind), intent(in) :: k  ! vertical level index
 
    type (block), intent(in) :: &
       this_block   ! block information for this block
 
-!-----------------------------------------------------------------------
-!     input/output variables
-!-----------------------------------------------------------------------
+! !INPUT/OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,nt), intent(inout) ::   &
+   real (r8), dimension(nx_block,ny_block,nt), intent(inout) :: &
       TRACER_SOURCE
 
+!EOP
+!BOC
 !-----------------------------------------------------------------------
-!     local variables
+!  local variables
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::  &
-      bid                  ! local block address for this block
+      bid,                & ! local block address for this block
+      n                     ! tracer index
 
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK
+
+!-----------------------------------------------------------------------
 
    bid = this_block%local_id
+
+!-----------------------------------------------------------------------
+!  ECOSYS block
+!-----------------------------------------------------------------------
+
+   if (ecosys_on) then
+      call ecosys_set_interior(k, TRACER(:,:,k,1,curtime,bid),     &
+         TRACER(:,:,k,ecosys_ind_begin:ecosys_ind_end,curtime,bid),&
+         TRACER_SOURCE(:,:,ecosys_ind_begin:ecosys_ind_end),       &
+         this_block)
+   end if
+
+!-----------------------------------------------------------------------
+!  CFC11 does not have source-sink terms
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  Ideal Age (IAGE) block
+!-----------------------------------------------------------------------
 
    if (iage_on) then
       call iage_set_interior(k,                                    &
          TRACER_SOURCE (:,:,iage_ind_begin:iage_ind_end) )
    end if
 
+!-----------------------------------------------------------------------
+!  accumulate time average if necessary
+!-----------------------------------------------------------------------
 
-   end subroutine set_passive_tracers_interior
+   if (ltavg_on .and. mix_pass /= 1) then
+      do n = 3, nt
+         if (tavg_requested(tavg_var_J(n))) then
+            call accumulate_tavg_field(TRACER_SOURCE(:,:,n),tavg_var_J(n),bid,k)
+         endif
+
+         if (tavg_requested(tavg_var_Jint(n))) then
+            if (partial_bottom_cells) then
+               WORK = TRACER_SOURCE(:,:,n) * DZT(:,:,k,bid)
+            else
+               WORK = TRACER_SOURCE(:,:,n) * dz(k)
+            endif
+            call accumulate_tavg_field(WORK,tavg_var_Jint(n),bid,k)
+         endif
+      enddo
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine set_interior_passive_tracers
 
 !***********************************************************************
+!BOP
+! !IROUTINE: set_sflux_passive_tracers
+! !INTERFACE:
 
-   subroutine set_passive_tracers_sflux(SMFT,ICE_FRAC,PRESS,STF)
+ subroutine set_sflux_passive_tracers(diurnal_scalar,U10_SQR,ICE_FRAC,PRESS,STF)
 
+! !DESCRIPTION:
+!  call subroutines for each tracer module that compute surface fluxes
+!
+! !REVISION HISTORY:
+!  same as module
 
-!-----------------------------------------------------------------------
-!     input variables
-!-----------------------------------------------------------------------
+! !INPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic), intent(in) :: &
-      SMFT   ! 'zonal' & 'merdional' surface velocity fluxes (cm^2/s^2)
+   real (r8), intent(in) :: &
+      diurnal_scalar ! factor to multiply SHF_QSW by to parameterize diurnal cycle
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) ::   &
-      ICE_FRAC, & ! sea ice fraction (non-dimensional)  
+      U10_SQR,  & ! 10m wind speed squared
+      ICE_FRAC, & ! sea ice fraction (non-dimensional)
       PRESS       ! sea level atmospheric pressure (Pascals)
 
-!-----------------------------------------------------------------------
-!     output variables
-!-----------------------------------------------------------------------
+! !INPUT/OUTPUT PARAMETERS:
 
    real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), intent(inout) :: &
       STF   ! surface fluxes for tracers
 
+!EOP
+!BOC
 !-----------------------------------------------------------------------
-!     local variables
+!  local variables
 !-----------------------------------------------------------------------
+
    real (r8)          :: ref_val
-   integer (int_kind) :: n
+   integer (int_kind) :: iblock, n
 
+!-----------------------------------------------------------------------
+!  ECOSYS block
+!-----------------------------------------------------------------------
 
-   if (iage_on) then
+   if (ecosys_on) then
+      call ecosys_set_sflux(                                       &
+         diurnal_scalar, SHF_QSW_RAW, U10_SQR, ICE_FRAC, PRESS,    &
+         TRACER(:,:,1,1,curtime,:),                                &
+         TRACER(:,:,1,2,curtime,:) * salt_to_ppt,                  &
+         TRACER(:,:,1,ecosys_ind_begin:ecosys_ind_end,curtime,:),  &
+         STF(:,:,ecosys_ind_begin:ecosys_ind_end,:))
+   end if
+
+!-----------------------------------------------------------------------
+!  CFC11 block
+!-----------------------------------------------------------------------
+
+!  if (cfc11_on) then
 !     iage has no surface flux
-   end if
+!     call cfc11_set_sflux(WIND_VEL,IFRAC,PRESS,SST,SSS,SURF_VALS,  &
+!                             STF_MODULE)
+!  end if
 
 !-----------------------------------------------------------------------
-!     add virtual fluxes for tracers that specify a non-zero ref_val
+!  IAGE does not have surface fluxes
 !-----------------------------------------------------------------------
 
+!-----------------------------------------------------------------------
+!  add virtual fluxes for tracers that specify a non-zero ref_val
+!-----------------------------------------------------------------------
+
+   !$OMP PARALLEL DO PRIVATE(iblock,n,ref_val)
+   do iblock = 1,nblocks_clinic
       do n=3,nt
-        ref_val = tracer_ref_val(n)
-        if (ref_val /= c0) STF(:,:,n,:) = STF(:,:,n,:) + &
-          (ref_val/(ocn_ref_salinity*ppt_to_salt))*STF(:,:,2,:)
+         ref_val = tracer_ref_val(n)
+         if (ref_val /= c0) then
+            FvPER(:,:,n,iblock) = &
+               (ref_val/(ocn_ref_salinity*ppt_to_salt)) * STF(:,:,2,iblock)
+            STF(:,:,n,iblock) = STF(:,:,n,iblock) + FvPER(:,:,n,iblock)
+         endif
       end do
+   end do
+   !$OMP END PARALLEL DO
 
-   end subroutine set_passive_tracers_sflux
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine set_sflux_passive_tracers
 
 !***********************************************************************
+!BOP
+! !IROUTINE: write_restart_passive_tracers
+! !INTERFACE:
 
-   subroutine init_passive_tracers_sflux
+ subroutine write_restart_passive_tracers(restart_file, action)
 
-!-----------------------------------------------------------------------
-!     input variables
-!-----------------------------------------------------------------------
+! !DESCRIPTION:
+!  call restart routines for each tracer module that
+!  write fields besides the tracers themselves
+!
+! !REVISION HISTORY:
+!  same as module
 
-!-----------------------------------------------------------------------
-!     local variables
-!-----------------------------------------------------------------------
+! !INPUT PARAMETERS:
 
-!-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
-
-   if (ecosys_on) then
-      !call ecosys_init_sflux
-   end if
-
-   if (cfc11_on) then
-      call cfc11_init_sflux
-   end if
-
-   if (mchl_on) then
-      !call mchl_init_sflux
-   end if
-
-   if (tracegas_on) then
-      !call tracegas_init_sflux
-   end if
-
-   end subroutine init_passive_tracers_sflux
-
-!***********************************************************************
-
-   subroutine init_passive_tracers_interior_restore
-
-!-----------------------------------------------------------------------
-!  assume actual restoring and updating occurs in set_passive_tracers_interior
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!     input variables
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!     local variables
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
-
-   if (ecosys_on) then
-      !call ecosys_init_interior_restore
-   end if
-
-   end subroutine init_passive_tracers_interior_restore
-
-!***********************************************************************
-
-   subroutine write_restart_passive_tracers(restart_file, action)
-
-!-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
-
-   use io_types, only: datafile
-
-!-----------------------------------------------------------------------
-!     input variables
-!-----------------------------------------------------------------------
+   character(*), intent(in) :: action
 
 ! !INPUT/OUTPUT PARAMETERS:
 
    type (datafile), intent (inout)  :: restart_file
-   character(*), intent(in) :: action
+
+!EOP
+!BOC
 
 !-----------------------------------------------------------------------
-!     local variables
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
+!  ECOSYS block
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      !call ecosys_write_restart(restart_file, action)
+      call ecosys_write_restart(restart_file, action)
    end if
 
-   end subroutine write_restart_passive_tracers
+!-----------------------------------------------------------------------
+!  CFC11 does not write additional restart fields
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  IAGE does not write additional restart fields
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine write_restart_passive_tracers
 
 !***********************************************************************
+!BOP
+! !IROUTINE: reset_passive_tracers
+! !INTERFACE:
 
-   subroutine reset_passive_tracers(TRACER_NEW, this_block, iblock)
+ subroutine reset_passive_tracers(TRACER_NEW)
 
-!-----------------------------------------------------------------------
-!     input variables
-!-----------------------------------------------------------------------
+! !DESCRIPTION:
+!  call subroutines for each tracer module to reset tracer values
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT/OUTPUT PARAMETERS:
 
    real(r8), dimension(nx_block,ny_block,km,nt), intent(inout) :: &
-         TRACER_NEW      ! all tracers at new time for a given block
+      TRACER_NEW      ! all tracers at new time for a given block
 
-   integer(int_kind), intent(in) :: &
-         iblock          ! block index
-
-   type (block), intent(in) :: &
-      this_block   ! block information for this block
+!EOP
+!BOC
 
 !-----------------------------------------------------------------------
-!     ecosys does not reset
-!     cfc11  does not reset
-!     mchl   does not reset
-!
-!     iage   does reset
+!  ECOSYS does not reset values
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  CFC11 does not reset values
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  IAGE block
 !-----------------------------------------------------------------------
 
    if (iage_on) then
@@ -459,187 +654,292 @@
          TRACER_NEW(:,:,:,iage_ind_begin:iage_ind_end) )
    end if
 
-   end subroutine reset_passive_tracers
-
-
-   subroutine tavg_passive_tracers(bid, k)
-
 !-----------------------------------------------------------------------
-!     input variables
-!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine reset_passive_tracers
+
+!***********************************************************************
+!BOP
+! !IROUTINE: tavg_passive_tracers
+! !INTERFACE:
+
+ subroutine tavg_passive_tracers(bid, k)
+
+! !DESCRIPTION:
+!  accumulate common tavg fields for tracers
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
 
    integer (int_kind), intent(in) :: k, bid  ! vertical level index
- 
-   integer (int_kind) :: ii  ! local index
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) ::  &
+      n                     ! tracer index
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK
 
 !-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
 
+   if (ltavg_on .and. mix_pass /= 1) then
+      do n = 3, nt
+         if (tavg_requested(tavg_var(n))) then
+            call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid),tavg_var(n),bid,k)
+         endif
 
-!############ debug #########
-!  known problem -- return to this after MOC is completed
-!############ debug #########
-   if (iage_on) then
-      do ii=iage_ind_begin, iage_ind_end
-        call iage_tavg(bid, k,TRACER(:,:,k,ii,curtime,bid))
+         if (tavg_requested(tavg_var_sqr(n))) then
+            WORK = TRACER(:,:,k,n,curtime,bid) ** 2
+            call accumulate_tavg_field(WORK,tavg_var_sqr(n),bid,k)
+         endif
       enddo
+   endif
+
+ end subroutine tavg_passive_tracers
+
+!-----------------------------------------------------------------------
+!EOC
+
+!***********************************************************************
+!BOP
+! !IROUTINE: passive_tracers_tavg_sflux
+! !INTERFACE:
+
+ subroutine passive_tracers_tavg_sflux(STF)
+
+! !DESCRIPTION:
+!  accumulate common tavg fields for tracer surface fluxes
+!  call accumation subroutines for tracer modules that have additional
+!     tavg fields related to surface fluxes
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+  real(r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
+      intent(in) :: STF
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: iblock, n
+
+!-----------------------------------------------------------------------
+!  accumulate surface flux and FvPER flux for all tracers
+!-----------------------------------------------------------------------
+
+   if (ltavg_on) then
+      !$OMP PARALLEL DO PRIVATE(iblock,n)
+      do iblock = 1,nblocks_clinic
+         do n = 3, nt
+            if (tavg_requested(tavg_var_stf(n))) then
+               call accumulate_tavg_field(STF(:,:,n,iblock),tavg_var_stf(n),iblock,1)
+            endif
+
+            if (tavg_requested(tavg_var_fvper(n))) then
+               call accumulate_tavg_field(FvPER(:,:,n,iblock),tavg_var_fvper(n),iblock,1)
+            endif
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+   endif
+
+!-----------------------------------------------------------------------
+!  call routines from modules that have additional sflux tavg fields
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  ECOSYS block
+!-----------------------------------------------------------------------
+
+   if (ecosys_on) then
+      call ecosys_tavg_forcing( &
+         STF(:,:,ecosys_ind_begin:ecosys_ind_end,:))
    end if
 
-
-   end subroutine tavg_passive_tracers
-!***********************************************************************
-
-
-   subroutine tavg_passive_tracers_sflux(STF)
-
 !-----------------------------------------------------------------------
-!     input variables
+!  CFC11 block
 !-----------------------------------------------------------------------
 
-  REAL(r8), DIMENSION(nx_block,ny_block,nt,max_blocks_clinic), &
-      INTENT(IN) :: STF
+   if (cfc11_on) then
+      call cfc11_tavg_forcing
+   end if
 
 !-----------------------------------------------------------------------
+!  IAGE does not have additional sflux tavg fields
 !-----------------------------------------------------------------------
 
-
-!  if (cfc11_on) then
-!     call cfc11_tavg_forcing(STF(:,:,cfc11_ind_begin:cfc11_ind_end,:))
-!  end if
-
-
-   end subroutine tavg_passive_tracers_sflux
-
-
-   subroutine set_tracer_indices(module_string, module_nt,  &
-        cumulative_nt, ind_begin, ind_end)
-      
 !-----------------------------------------------------------------------
-!     set the index bounds of a single passive tracer module
-!-----------------------------------------------------------------------
-      
-!-----------------------------------------------------------------------
-!     input variables
-!-----------------------------------------------------------------------
-          
-      character (*), intent(in) ::  &
-        module_string
-          
-      integer (kind=int_kind), intent(in) ::  &
-        module_nt
-          
-!-----------------------------------------------------------------------
-!     input/output variables
-!-----------------------------------------------------------------------
+!EOC
 
-      integer (kind=int_kind), intent(inout) ::  &
-        cumulative_nt
-      
-      integer (kind=int_kind), intent(out) ::  &
-        ind_begin  &
-      , ind_end
-      
-!-----------------------------------------------------------------------
-!     local variables
-!-----------------------------------------------------------------------
-          
-      character (char_len) ::  &
-        error_string
-
-!-----------------------------------------------------------------------
-
-      ind_begin = cumulative_nt + 1
-      ind_end = ind_begin + module_nt - 1
-      cumulative_nt = ind_end
-      if (my_task == master_task) then
-        write(stdout,delim_fmt)
-        write(stdout,*) module_string // ' ind_begin = ', ind_begin
-        write(stdout,*) module_string // ' ind_end   = ', ind_end
-        write(stdout,delim_fmt)
-      end if
-      if (cumulative_nt > nt) then
-         error_string = 'nt too small for module ' // module_string
-         call exit_POP(sigAbort, error_string)
-      end if
-
-
-!-----------------------------------------------------------------------
-
-      end subroutine set_tracer_indices
+ end subroutine passive_tracers_tavg_sflux
 
 !***********************************************************************
+!BOP
+! !IROUTINE: passive_tracers_tavg_FvICE
+! !INTERFACE:
 
-      subroutine passive_tracer_ind2name(ind, name)
+ subroutine passive_tracers_tavg_FvICE(cp_over_lhfusion, QICE, const)
 
-!-----------------------------------------------------------------------
-!     convert a TRACER index into a tracer name
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!     arguments
-!-----------------------------------------------------------------------
-
-      integer(kind=int_kind), intent(in)   :: ind
-      character(len=char_len), intent(out) :: name
-
-!-----------------------------------------------------------------------
-
-      if (ecosys_on) then
-        !if (ind >= ecosys_ind_begin .and. ind <= ecosys_ind_end) then
-        !  name = ecosys_tracer_names(ind-(ecosys_ind_begin-1))
-        !  return
-        !end if
-      end if
-
-      if (cfc11_on) then
-        if (ind >= cfc11_ind_begin .and. ind <= cfc11_ind_end) then
-          name = cfc11_tracer_names(ind-(cfc11_ind_begin-1))
-          return
-        end if
-      end if
-
-      if (mchl_on) then
-        !if (ind >= mchl_ind_begin .and. ind <= mchl_ind_end) then
-        !  name = mchl_tracer_names(ind-(mchl_ind_begin-1))
-        !  return
-        !end if
-      end if
-
-      if (iage_on) then
-        if (ind >= iage_ind_begin .and. ind <= iage_ind_end) then
-          name = iage_tracer_names(ind-(iage_ind_begin-1))
-          return
-        end if
-      end if
-
-      if (tracegas_on) then
-        !if (ind >= tracegas_ind_begin .and. ind <= tracegas_ind_end) then
-        !  name = tracegas_tracer_names(ind-(tracegas_ind_begin-1))
-        !  return
-        !end if
-      end if
-
-      call exit_POP(sigAbort, 'internal error in passive_tracer_ind2name')
-
-      end subroutine passive_tracer_ind2name
-
-  function tracer_ref_val(ind)
-
-!-----------------------------------------------------------------------
-! return reference value for tracer with global tracer index ind
-! this is used in virtual flux computations
+! !DESCRIPTION:
+!  accumulate FvICE fluxes passive tracers
 !
-! hooks are only put in for modules that use virtual fluxes
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) :: &
+      QICE                ! tot column cooling from ice form (in C*cm)
+
+   real (r8), intent(in) ::  &
+      cp_over_lhfusion,  &! cp_sw/latent_heat_fusion
+      const               ! accumulation weight = tlast_ice
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
 !-----------------------------------------------------------------------
 
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK
+
+   real (r8) ::        &
+      ref_val   ! temporary work array
+
+   integer (int_kind) :: iblock, n
 
 !-----------------------------------------------------------------------
-!  result & argument declarations
+
+   if (ltavg_on) then
+      !$OMP PARALLEL DO PRIVATE(iblock,n,ref_val,WORK)
+      do iblock = 1,nblocks_clinic
+         do n = 3, nt
+            if (tavg_requested(tavg_var_fvice(n))) then
+               ref_val = tracer_ref_val(n)
+               if (ref_val /= c0)  then
+                  WORK = ref_val * (c1 - sea_ice_salinity / ocn_ref_salinity) * &
+                     cp_over_lhfusion * max(c0, QICE(:,:,iblock))
+                  call accumulate_tavg_field(WORK,tavg_var_fvice(n),iblock,1,const)
+               endif
+            endif
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+   endif
+
 !-----------------------------------------------------------------------
+!EOC
+
+ end subroutine passive_tracers_tavg_FvICE
+
+!***********************************************************************
+!BOP
+! !IROUTINE: set_tracer_indices
+! !INTERFACE:
+
+ subroutine set_tracer_indices(module_string, module_nt,  &
+        cumulative_nt, ind_begin, ind_end)
+
+! !DESCRIPTION:
+!  set the index bounds of a single passive tracer module
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent(in) :: &
+      module_string
+
+   integer (kind=int_kind), intent(in) ::  &
+      module_nt
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   integer (kind=int_kind), intent(inout) ::  &
+      cumulative_nt
+
+   integer (kind=int_kind), intent(out) ::  &
+      ind_begin, &
+      ind_end
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   character(*), parameter :: subname = 'passive_tracers:set_tracer_indices'
+
+   character (char_len) ::  &
+      error_string
+
+!-----------------------------------------------------------------------
+
+   ind_begin = cumulative_nt + 1
+   ind_end = ind_begin + module_nt - 1
+   cumulative_nt = ind_end
+
+   if (my_task == master_task) then
+      write(stdout,delim_fmt)
+      write(stdout,*) module_string /&
+         &/ ' ind_begin = ', ind_begin
+      write(stdout,*) module_string /&
+         &/ ' ind_end   = ', ind_end
+      write(stdout,delim_fmt)
+   end if
+
+   if (cumulative_nt > nt) then
+      call document(subname, 'nt', nt)
+      call document(subname, 'cumulative_nt', cumulative_nt)
+      error_string = 'nt too small for module ' /&
+         &/ module_string
+      call exit_POP(sigAbort, error_string)
+   end if
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine set_tracer_indices
+
+!***********************************************************************
+!BOP
+! !IROUTINE: tracer_ref_val
+! !INTERFACE:
+
+ function tracer_ref_val(ind)
+
+! !DESCRIPTION:
+!  return reference value for tracer with global tracer index ind
+!  this is used in virtual flux computations
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer(int_kind), intent(in) :: ind
+
+! !OUTPUT PARAMETERS:
 
    real(r8) :: tracer_ref_val
 
-   integer(int_kind), intent(in) :: ind
+!EOP
+!BOC
 
 !-----------------------------------------------------------------------
 !  default value for reference value is 0
@@ -648,9 +948,27 @@
    tracer_ref_val = c0
 
 !-----------------------------------------------------------------------
+!  ECOSYS block
+!-----------------------------------------------------------------------
 
-  end function tracer_ref_val
+   if (ecosys_on) then
+      if (ind >= ecosys_ind_begin .and. ind <= ecosys_ind_end) then
+         tracer_ref_val = ecosys_tracer_ref_val(ind-ecosys_ind_begin+1)
+      endif
+   endif
 
+!-----------------------------------------------------------------------
+!  CFC11 does not use virtual fluxes
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  IAGE does not use virtual fluxes
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function tracer_ref_val
 
 !***********************************************************************
 

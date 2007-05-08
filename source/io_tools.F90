@@ -15,8 +15,8 @@
 !
 ! !USES 
    use kinds_mod
-   use grid
-   use io    
+   use io_types
+   use communicate
    use shr_sys_mod
       
    implicit none

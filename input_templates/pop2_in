@@ -171,7 +171,7 @@ Note: Strings appearing in ALL CAPS are replaced by sed commands in the ccsm scr
 /
 
 &advect_nml
-   tadvect_ctype = 'lw_lim'
+   tadvect_ctype = 'upwind3'
 /
 
 &hmix_nml
@@ -204,8 +204,8 @@ Note: Strings appearing in ALL CAPS are replaced by sed commands in the ccsm scr
 /
 
 &hmix_gm_nml
-   kappa_isop_choice      = 'bfre'
-   kappa_thic_choice      = 'bfre'
+   kappa_isop_choice      = 'constant'
+   kappa_thic_choice      = 'constant'
    kappa_freq_choice      = 'once_a_day'
    slope_control_choice   = 'notanh'
    kappa_depth_1          = 1.0
@@ -241,6 +241,7 @@ Note: Strings appearing in ALL CAPS are replaced by sed commands in the ccsm scr
    vconst_4       = VCONST_4
    vconst_5       = VCONST_5
    vconst_6       = VCONST_6
+   vconst_7       = VCONST_7
    smag_lat       = 20.0
    smag_lat_fact  = 0.98
    smag_lat_gauss = 98.0
@@ -385,6 +386,7 @@ Note: Strings appearing in ALL CAPS are replaced by sed commands in the ccsm scr
 /
 &sw_absorption_nml
    sw_absorption_type = 'chlorophyll'
+   chl_option         = 'CHL_OPTION'
    chl_filename       = 'INPUT/chl_data'
    chl_file_fmt       = 'bin'
    jerlov_water_type  = 3
@@ -401,6 +403,7 @@ DO NOT change transport_reg2_names unless you know exactly what you are doing.
   n_heat_trans         = .true.
   n_salt_trans         = .true.
   transport_reg2_names = TRANSPORT_REG2_NAMES
+  n_transport_reg      = 2
 /
 
 Only the gx3v6, gx1v4, and gx1v5 versions of tidal_energy exist.  For all other resolutions,

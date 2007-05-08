@@ -51,7 +51,7 @@
    use sw_absorption, only:  add_sw_absorb
    use forcing_pt_interior, only: set_pt_interior
    use forcing_s_interior, only: set_s_interior
-   use passive_tracers, only: set_passive_tracers_interior,  &
+   use passive_tracers, only: set_interior_passive_tracers,  &
        reset_passive_tracers, tavg_passive_tracers
    use exit_mod, only: sigAbort, exit_pop, flushm
    use shr_sys_mod, only: shr_sys_flush
@@ -1090,7 +1090,7 @@
 !-----------------------------------------------------------------------
 
       if (nt > 2) call reset_passive_tracers(  &
-         TRACER(:,:,:,:,newtime,iblock), this_block, iblock)
+         TRACER(:,:,:,:,newtime,iblock))
 
 
 !-----------------------------------------------------------------------
@@ -1591,7 +1591,7 @@
    call set_s_interior (k,this_block,WORKN(:,:,2))
 
 
-   if (nt > 2) call set_passive_tracers_interior(k, this_block, WORKN)
+   if (nt > 2) call set_interior_passive_tracers(k, this_block, WORKN)
    
 
 !-----------------------------------------------------------------------

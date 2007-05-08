@@ -11,9 +11,9 @@ if ( ${OCN_GRID} == gx3v5 || ${OCN_GRID} == gx3v6) then
  set ah_del2_value = 1.0e7
 
 #..... hmix_gm_nml
- set ah_gm_value    = 4.0e7
- set ah_bolus_value = 4.0e7
- set ah_bkg_srfbl   = 4.0e7
+ set ah_gm_value    = 0.8e7
+ set ah_bolus_value = 0.8e7
+ set ah_bkg_srfbl   = 0.8e7
 
 #..... hmix_aniso_nml
  set hmix_alignment_choice =  grid
@@ -31,6 +31,7 @@ if ( ${OCN_GRID} == gx3v5 || ${OCN_GRID} == gx3v6) then
  set vconst_4  =  1.0e-8
  set vconst_5  =  3
  set vconst_6  = 1.0e7
+ set vconst_7  = 90.0
 
 #..... forcing_sfwf_nml
  set sfwf_weak_restore = 0.092
@@ -51,9 +52,9 @@ else if ( ${OCN_GRID} == gx1v3 || ${OCN_GRID} == gx1v4 || ${OCN_GRID} == gx1v5 )
  set ah_del2_value = 0.6e7
 
 #..... hmix_gm_nml
- set ah_gm_value    = 3.0e7
- set ah_bolus_value = 3.0e7
- set ah_bkg_srfbl   = 3.0e7
+ set ah_gm_value    = 0.6e7
+ set ah_bolus_value = 0.6e7
+ set ah_bkg_srfbl   = 0.6e7
 
 #..... hmix_aniso_nml
  set hmix_alignment_choice =  east
@@ -66,11 +67,12 @@ else if ( ${OCN_GRID} == gx1v3 || ${OCN_GRID} == gx1v4 || ${OCN_GRID} == gx1v5 )
  set u_para    =  5.0
  set u_perp    =  5.0
  set vconst_1  =  0.6e7
- set vconst_2  =  2.0
+ set vconst_2  =  0.5
  set vconst_3  =  0.16
  set vconst_4  =  2.e-8
  set vconst_5  =  3
  set vconst_6  =  0.6e7
+ set vconst_7  =  45.0
 
 #..... forcing_sfwf_nml
  set sfwf_weak_restore = 0.0115

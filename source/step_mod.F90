@@ -43,11 +43,14 @@
    use baroclinic, only: baroclinic_driver, baroclinic_correct_adjust
    use barotropic, only: barotropic_driver
    use surface_hgt, only: dhdt
-   use tavg, only: tavg_set_flag, accumulate_tavg_field, ltavg_on, tavg_id
+   use tavg, only: tavg_set_flag, accumulate_tavg_field, ltavg_on, tavg_id, &
+       tavg_increment_sum_qflux
    use forcing, only: FW_OLD, FW, set_surface_forcing, tavg_forcing, STF
    use forcing_coupled, only: lcoupled
-   use ice, only: liceform, ice_cpl_flag, ice_flx_to_coupler, QFLUX, tlast_ice
-   use passive_tracers, only : tavg_passive_tracers_sflux
+   use ice, only: liceform, ice_cpl_flag, ice_flx_to_coupler, QFLUX,        &
+       tlast_ice, cp_over_lhfusion, QICE
+   use passive_tracers, only: passive_tracers_tavg_sflux,                   &
+       passive_tracers_tavg_FvICE
    use shr_sys_mod
    use communicate, only: my_task, master_task
    use io_types, only: stdout
@@ -223,7 +226,7 @@
 
    call tavg_set_flag
    call tavg_forcing
-   if (nt > 2) call tavg_passive_tracers_sflux(STF)
+   if (nt > 2) call passive_tracers_tavg_sflux(STF)
 
 
 !-----------------------------------------------------------------------
@@ -604,6 +607,7 @@
 !-----------------------------------------------------------------------
 
    if ( liceform .and. check_time_flag(ice_cpl_flag) ) then
+     call tavg_increment_sum_qflux(const=tlast_ice)
      !$OMP PARALLEL DO
      do iblock = 1,nblocks_clinic
         call ice_flx_to_coupler(TRACER(:,:,:,:,curtime,iblock),iblock)
@@ -613,9 +617,10 @@
      end do ! block loop
      !$OMP END PARALLEL DO
 !-----------------------------------------------------------------------
-!       time-averaging for ice formation related quantities
+!    time-averaging for ice formation related quantities
 !-----------------------------------------------------------------------
-!!!! if (nt > 2) call tavg_FvICE_compute
+     if (nt > 2) call passive_tracers_tavg_FvICE(cp_over_lhfusion, &
+                                                 QICE, const=tlast_ice)
    endif
 
    call diag_global_afterupdate

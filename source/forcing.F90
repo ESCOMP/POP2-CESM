@@ -30,10 +30,7 @@
    use forcing_ap
    use forcing_coupled
    use forcing_tools
-   use passive_tracers, only :      &
-       set_passive_tracers_sflux,   &
-       init_passive_tracers_sflux,  &
-       init_passive_tracers_interior_restore
+   use passive_tracers, only: set_sflux_passive_tracers
    use prognostic
    use tavg
    use time_management
@@ -157,10 +154,6 @@
    call init_pt_interior
    call init_s_interior
    call init_ap(ATM_PRESS)
-   if (nt > 2) then
-      call init_passive_tracers_sflux
-      call init_passive_tracers_interior_restore
-   endif
    call init_coupled(SMF, SMFT, STF, SHF_QSW, lsmft_avail)
 
 !-----------------------------------------------------------------------
@@ -365,8 +358,8 @@
       call set_ws(SMF)
    endif
 
-   call set_coupled_forcing(SMF,SMFT,STF,SHF_QSW,FW,TFW,IFRAC, &
-        ATM_PRESS, U10_SQR)
+   call set_coupled_forcing(SMF,SMFT,STF,SHF_QSW,SHF_QSW_RAW, &
+        FW,TFW,IFRAC,ATM_PRESS,U10_SQR)
 
    call set_chl   !  specify chlorophyll amount for sw absorption
                   !  if-test for chlorophyll is in subroutine set_chl
@@ -389,9 +382,8 @@
 !
 !-----------------------------------------------------------------------
 
+      index_qsw = mod(nsteps_this_interval,nsteps_per_interval) + 1
       if (lcoupled) then
-         index_qsw = mod(nsteps_this_interval,nsteps_per_interval) + 1
-
          SHF_QSW = diurnal_cycle_factor(index_qsw)*SHF_COMP(:,:,:,shf_comp_qsw)
       endif
 
@@ -417,7 +409,8 @@
 
 
    if (nt > 2)  &
-      call set_passive_tracers_sflux(SMFT,IFRAC,ATM_PRESS,STF)
+      call set_sflux_passive_tracers(diurnal_cycle_factor(index_qsw), &
+                                     U10_SQR,IFRAC,ATM_PRESS,STF)
 
 
    if (ANY(SHF_QSW < c0)) then

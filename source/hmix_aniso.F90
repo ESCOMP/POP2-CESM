@@ -70,6 +70,7 @@
       vconst_3,   &! coefficients for variable viscosity form
       vconst_4,   &! coefficients for variable viscosity form
       vconst_6,   &! coefficients for variable viscosity form
+      vconst_7,   &! coefficients for variable viscosity form
       smag_lat,   &! latitude at which to vary perp Smag visc
       smag_lat_fact, &! coeff of latitude-depend Smag visc
       smag_lat_gauss  ! Gaussian width of latitude-dep Smag visc
@@ -166,7 +167,7 @@
       hmix_alignment_choice, lvariable_hmix_aniso, lsmag_aniso,    &
       visc_para, visc_perp, c_para, c_perp, u_para, u_perp,        &
       vconst_1, vconst_2, vconst_3, vconst_4, vconst_5, vconst_6,  &
-      smag_lat, smag_lat_fact, smag_lat_gauss,                     &
+      vconst_7, smag_lat, smag_lat_fact, smag_lat_gauss,           &
       var_viscosity_infile,  var_viscosity_infile_fmt,             &
       var_viscosity_outfile, var_viscosity_outfile_fmt
 
@@ -190,6 +191,7 @@
 !  vconst_4                  : 1.e-8_r8
 !  vconst_5                  : 3
 !  vconst_6                  : 1.e7_r8
+!  vconst_7                  : 45.0_r8
 !  smag_lat                  : 20.0_r8
 !  smag_lat_fact             : 0.98_r8
 !  smag_lat_gauss            : 98.0_r8
@@ -211,6 +213,7 @@
    vconst_4       = 1.e-8_r8
    vconst_5       = 3
    vconst_6       = 1.e7_r8
+   vconst_7       = 45.0_r8
    smag_lat       = 20.0_r8
    smag_lat_fact  = 0.98_r8
    smag_lat_gauss = 98.0_r8
@@ -297,6 +300,7 @@
             write(stdout,param_fmt) '   vconst_4  = ',vconst_4 
             write(stdout,'(a15,2x,i6)') '   vconst_5  = ',vconst_5 
             write(stdout,param_fmt) '   vconst_6  = ',vconst_6 
+            write(stdout,param_fmt) '   vconst_7  = ',vconst_7 
             if (trim(var_viscosity_outfile) /= &
                 'unknown_var_viscosity_outfile') then
                write(stdout,'(a44,a)') &
@@ -327,6 +331,7 @@
    call broadcast_scalar(vconst_4,             master_task)
    call broadcast_scalar(vconst_5,             master_task)
    call broadcast_scalar(vconst_6,             master_task)
+   call broadcast_scalar(vconst_7,             master_task)
    call broadcast_scalar(smag_lat,             master_task)
    call broadcast_scalar(smag_lat_fact,        master_task)
    call broadcast_scalar(smag_lat_gauss,       master_task)
@@ -1071,46 +1076,25 @@
 ! !DESCRIPTION:
 !  This routine computes spatially-varying anisotropic viscosity
 !  coefficients similar to NCOM.
-!  \begin{equation}
-!   \nu_A = F_{PARA} \\ 
-!         = \max{(0.5*visc_vel_scale(z)*A*\max[dx,dy],vconst_6}
 !
-!  \end{equation}
-!   where
-!          A = 0.425 * cos(pi*y*radian/30) + 0.575   for |y*radian| < 30
-!          A = 0.15                                  otherwise 
+!gokhan   THIS SECTION WILL BE UPDATED LATER !!!!!!!!
 !
-!   Here, A provides a horizontal variation for visc_vel_scale.
-!
-!   "B_viscosity" = F_PERP = max( bu, bv)
-!
-!   and 
 !        F_PARA = min(F_PARA, AMAX_CFL),
 !        F_PERP = min(F_PERP, AMAX_CFL) 
 !
 !   are enforced in init_aniso and hdiffu_aniso for the lvariable_hmix_aniso
 !   and lsmag_aniso choices, respectively. 
 !
-!   In the above equations, 
-!
-!        bu  = vconst_1 * ( 1 + vconst_2
-!             * ( 1 + cos( 2*y + pi ) ) )
-!        bv  = vconst_3 * beta_f * dx^3
-!             * exp( - (vconst_4 * distance)^2 )
-!
-!   with 
 !        beta_f         (x,y)   = 2 * omega * cos(ULAT(i,j)) / radius
 !        distance       (x,y,z) = actual distance to "vconst_5" points
 !                                 west of the nearest western boundary
 !        dx             (x,y)   = DXU(i,j)
 !        dy             (x,y)   = DYU(i,j)
-!        visc_vel_scale (z)     = 100.0 * exp(-zt(k)/visc_vel_scale_length)
-!        visc_vel_scale_length  = e-folding scale ( = 1500.0e2 cm)
 !        y              (x,y)   = ULAT(i,j), latitude of "u/v" grid pts in radians 
 !
 !   Also, "vconst_#" are input parameters defined in namelist hmix_aniso_nml. 
-!   note that "vconst_1", "vconst_6", and "vconst_4" have dimensions of cm^2/s,
-!   cm^2/s, and 1/cm, respectively. "vconst_5" is an INTEGER.
+!   note that "vconst_1", "vconst_6", "vconst_4", and vconst_7" have dimensions of cm^2/s,
+!   cm^2/s, 1/cm, and degrees (of latitude) respectively. "vconst_5" is an INTEGER.
 !
 !   NOTE: The nearest western boundary computations are done along the
 !         model longitudinal grid lines. Therefore, the viscosity
@@ -1275,31 +1259,33 @@
 
 !gokhan
 !****    visc_vel_scale = 100.0_r8 * exp(-zt(k)/vvsl)
-         visc_vel_scale = c0
-
-         ! use bu as temp
-
-!gokhan
+!
+!         ! use bu as temp
+!
+!
 !****     bu = 0.15_r8
 !****     if ( abs(ULAT(i,j,iblock)*radian) < 30._r8 )  &
 !****        bu = 0.425_r8*cos(pi*ULAT(i,j,iblock)*radian/30._r8) + &
 !****             0.575_r8
+!
+!****     F_PARA(i,j,k,iblock) = max(p5*visc_vel_scale*bu* &
+!****                                max(DXU(i,j,iblock),  &
+!****                                    DYU(i,j,iblock)), vconst_6 )
+!
+!****     bu = vconst_1*(c1 + vconst_2*(c1 + &
+!****                                   cos((c2*ULAT(i,j,iblock))+pi)))
 
-         bu = c1
+         bv = (min(abs(ULAT(i,j,iblock)*radian),vconst_7) &
+              * 90._r8 / vconst_7) / radian 
 
-         F_PARA(i,j,k,iblock) = max(p5*visc_vel_scale*bu* &
-                                    max(DXU(i,j,iblock),  &
-                                        DYU(i,j,iblock)), vconst_6 )
+         bu = vconst_1 * ( c1 + vconst_2*(c1 - cos(c2*bv)) )
 
-         bu = vconst_1*(c1 + vconst_2*(c1 + &
-                                       cos((c2*ULAT(i,j,iblock))+pi)))
          bv = vconst_3*BETA_F(i,j,iblock)*(DXU(i,j,iblock)**3)
          bv = bv*exp(-(vconst_4*DIST(i,j,iblock))**2)
 
          F_PERP(i,j,k,iblock) = max(bu,bv)
 
-!gokhan
-!****    F_PARA(i,j,k,iblock) = max(bv,F_PARA(i,j,k,iblock))
+         F_PARA(i,j,k,iblock) = max(bv,vconst_6)
  
          ! the diffusive CFL criteria will be enforced in subroutine
          ! init_aniso

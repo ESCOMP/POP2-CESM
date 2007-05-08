@@ -559,6 +559,8 @@
    !*** compute ANGLE on T-grid
    !***
 
+   ANGLET = c0
+
    !$OMP PARALLEL DO PRIVATE (i,j,angle_0,angle_w,angle_s,angle_sw, & 
    !$OMP                      this_block)
 

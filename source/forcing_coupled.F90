@@ -42,6 +42,8 @@
    use cpl_fields_mod
    use registry
    use shr_sys_mod
+   use named_field_mod, only: named_field_register, named_field_get_index, &
+       named_field_set, named_field_get
       
    implicit none
    save
@@ -165,7 +167,8 @@
 !      o  index_o2c_So_s     -- surface salinity
 !      o  index_o2c_So_dhdx  -- e,w surface slope
 !      o  index_o2c_So_dhdy  -- n,s surface slope
-!      o  index_o2c_Fioo_q     -- qflux
+!      o  index_o2c_Fioo_q   -- qflux
+!      o  index_o2c_Faoo_fco2-- co2 flux
 !
 !
 !    cpl6 --> ocn  
@@ -200,7 +203,7 @@
 !     o  index_c2o_Sa_pslv     -- sea-level pressure
 !     o  index_c2o_Faoc_duu10n -- 10m wind speed squared
 !     o  index_c2o_Forr_roff   -- river runoff flux
-!
+!     o  index_c2o_Sa_co2prog  -- bottom atm level prognostic co2
 !
 !-----------------------------------------------------------------------
 
@@ -211,6 +214,7 @@
    integer(kind=int_kind) :: index_o2c_So_dhdx     ! surface slope, zonal
    integer(kind=int_kind) :: index_o2c_So_dhdy     ! surface slope, meridional
    integer(kind=int_kind) :: index_o2c_Fioo_q      ! heat of fusion (q>0) melt pot (q<0)
+   integer(kind=int_kind) :: index_o2c_Faoo_fco2   ! co2 flux
 
    integer(kind=int_kind) :: index_c2o_Si_ifrac    ! state: ice fraction
    integer(kind=int_kind) :: index_c2o_Sa_pslv     ! state: sea level pressure
@@ -230,6 +234,7 @@
    integer(kind=int_kind) :: index_c2o_Foxx_evap   ! water flux: evap
    integer(kind=int_kind) :: index_c2o_Foxx_meltw  ! water flux: melt
    integer(kind=int_kind) :: index_c2o_Forr_roff   ! water flux: runoff
+   integer(kind=int_kind) :: index_c2o_Sa_co2prog  ! bottom atm level prognostic co2
 
    real (r8) ::  &
       tlast_coupled
@@ -251,7 +256,13 @@
       LWUP_F = c0,       &! longwave heat flux up from cpl (W/m2   )
       LWDN_F = c0,       &! longwave heat flux dn from cpl (W/m2   )
       MELTH_F= c0         ! melt     heat flux    from cpl (W/m2   )
- 
+
+!-----------------------------------------------------------------------
+!  named field indices, for non-standard incoming fields
+!-----------------------------------------------------------------------
+
+   integer(kind=int_kind) :: &
+      ATM_CO2_nf_ind = 0    ! bottom atm level prognostic co2
 
 #endif
 !EOC
@@ -702,6 +713,7 @@
       index_o2c_So_dhdx  = cpl_interface_contractIndex(contractS,'So_dhdx')
       index_o2c_So_dhdy  = cpl_interface_contractIndex(contractS,'So_dhdy')
       index_o2c_Fioo_q   = cpl_interface_contractIndex(contractS,'Fioo_q')
+      index_o2c_Faoo_fco2= cpl_interface_contractIndex(contractS,'Faoo_fco2',perrWith='quiet')
 
       !--- determine receive indices
       index_c2o_Foxx_taux   = cpl_interface_contractIndex(contractR,'Foxx_taux')
@@ -720,6 +732,7 @@
       index_c2o_Sa_pslv     = cpl_interface_contractIndex(contractR,'Sa_pslv')
       index_c2o_Faoc_duu10n = cpl_interface_contractIndex(contractR,'Faoc_duu10n')
       index_c2o_Forr_roff   = cpl_interface_contractIndex(contractR,'Forr_roff')
+      index_c2o_Sa_co2prog  = cpl_interface_contractIndex(contractR,'Sa_co2prog',perrWith='quiet')
 
       !--- receive initial message from coupler
       call cpl_interface_ibufRecv(cpl_fields_cplname,irbuf)
@@ -749,6 +762,16 @@
    call get_timer (timer_send_to_recv , 'SEND to RECV', 1, &
                                          distrb_clinic%nprocs)
 
+!-----------------------------------------------------------------------
+!
+!     register non-standard incoming fields
+!
+!-----------------------------------------------------------------------
+
+      if (index_c2o_Sa_co2prog > 0) then
+        call named_field_register('ATM_CO2', ATM_CO2_nf_ind)
+      endif
+
 #endif
 !-----------------------------------------------------------------------
 !EOC
@@ -763,8 +786,8 @@
 ! !IROUTINE: set_coupled_forcing
 ! !INTERFACE:
 
- subroutine set_coupled_forcing(SMF,SMFT,STF,SHF_QSW,FW,TFW,IFRAC,  &
-        ATM_PRESS, U10_SQR)
+ subroutine set_coupled_forcing(SMF,SMFT,STF,SHF_QSW,SHF_QSW_RAW, &
+        FW,TFW,IFRAC,ATM_PRESS,U10_SQR)
 
 
 ! !DESCRIPTION:
@@ -792,6 +815,7 @@
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic),  &
          intent(inout) ::  &
       SHF_QSW,          &!  penetrative solar heat flux
+      SHF_QSW_RAW,      &!  penetrative solar heat flux
       FW,               &!  fresh water flux
       IFRAC,            &!  fractional ice coverage
       ATM_PRESS,        &!  atmospheric pressure forcing
@@ -848,6 +872,9 @@
      !$OMP PARALLEL DO PRIVATE(iblock,n)
  
      do iblock = 1, nblocks_clinic
+
+        SHF_QSW_RAW(:,:,iblock) = SHF_QSW(:,:,iblock)
+
         if ( shf_formulation == 'partially-coupled' ) then
           SHF_COMP(:,:,iblock,shf_comp_cpl) = STF(:,:,1,iblock) 
           if ( .not. lms_balance ) then
@@ -1066,15 +1093,17 @@
       WORKB
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::   &
-      WORK1, WORK2,      &! local work space
-      WORK3, WORK4,      &! local work space
-      WORK5               ! local work space
+      WORK1, WORK2        ! local work space
 
    real (r8) ::  &
       m2percm2,  &
       gsum
 
    type (block) :: this_block ! local block info
+
+   !*** need to zero out any padded cells
+   WORK1 = c0
+   WORK2 = c0
 
 !-----------------------------------------------------------------------
 !
@@ -1304,6 +1333,23 @@
                            field_loc_center, field_type_scalar)
    call update_ghost_cells(U10_SQR, bndy_clinic, &
                            field_loc_center, field_type_scalar)
+
+   if (index_c2o_Sa_co2prog > 0) then
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+            WORK1(i,j,iblock) = sbuf(n,index_c2o_Sa_co2prog)
+         enddo
+         enddo
+      enddo
+      call update_ghost_cells(WORK1, bndy_clinic, &
+                              field_loc_center, field_type_scalar)
+      call named_field_set(ATM_CO2_nf_ind, WORK1)
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1666,6 +1712,26 @@
    AQICE     = c0
    QICE      = c0
 
+!-----------------------------------------------------------------------
+!
+!     pack co2 flux, if requested (kg CO2/m^2/s)
+!     units conversion occurs where co2 flux is computed
+!
+!-----------------------------------------------------------------------
+
+   if (index_o2c_Faoo_fco2 > 0) then
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+            sbuf(n,index_o2c_Faoo_fco2) = &
+               SBUFF_SUM(i,j,iblock,index_o2c_Faoo_fco2)/tlast_coupled
+         enddo
+         enddo
+      enddo
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1752,36 +1818,69 @@
 !
 !-----------------------------------------------------------------------
 
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
+      WORK                ! local work arrays
+
    real (r8) ::   &
-      delt                ! time interval since last step
+      delt,             & ! time interval since last step
+      delt_last           ! time interval for previous step
 
-   integer (int_kind) :: iblock
+   integer (int_kind) :: &
+      iblock,           & ! block index
+      sflux_co2_nf_ind = 0! named field index of fco2
 
-!-----------------------------------------------------------------------
-!
-!     zero buffer if this is the first time after a coupling interval
-!
-!-----------------------------------------------------------------------
-
-      if (tlast_coupled == c0) SBUFF_SUM = c0
+   logical (log_kind) :: &
+      first = .true.      ! only true for first call
 
 !-----------------------------------------------------------------------
 !
-!     update time since last coupling
+!  zero buffer if this is the first time after a coupling interval
 !
 !-----------------------------------------------------------------------
+
+   if (tlast_coupled == c0) SBUFF_SUM = c0
+
+!-----------------------------------------------------------------------
+!
+!  update time since last coupling
+!
+!-----------------------------------------------------------------------
+
+   if (avg_ts .or. back_to_back) then
+      delt = p5*dtt
+   else
+      delt =    dtt
+   endif
+   tlast_coupled = tlast_coupled + delt
+
+!-----------------------------------------------------------------------
+!
+!  allow for fco2 field to not be registered on first call
+!     because init_forcing is called before init_passive_tracers
+!  use weight from previous timestep because flux used here is that
+!     computed during the previous timestep
+!
+!-----------------------------------------------------------------------
+
+   if (index_o2c_Faoo_fco2 > 0) then
+      if (sflux_co2_nf_ind == 0) then
+         call named_field_get_index('SFLUX_CO2', sflux_co2_nf_ind, &
+                                    exit_on_err=.not. first)
+      endif
 
       if (avg_ts .or. back_to_back) then
-        delt = p5*dtt
+         delt_last = p5*dtt
       else
-        delt =    dtt
+         delt_last =    dtt
       endif
-      tlast_coupled = tlast_coupled + delt
+   endif
 
 !-----------------------------------------------------------------------
 !
-!     accumulate sums of U,V,T,S and GRADP
-!     ice formation flux is handled separately in ice routine
+!  accumulate sums of U,V,T,S and GRADP
+!  accumulate sum of co2 flux, if requested
+!     implicitly use zero flux if fco2 field not registered yet
+!  ice formation flux is handled separately in ice routine
 !
 !-----------------------------------------------------------------------
 
@@ -1810,8 +1909,17 @@
    SBUFF_SUM(:,:,iblock,index_o2c_So_dhdy) =   &
       SBUFF_SUM(:,:,iblock,index_o2c_So_dhdy) + delt*  &
                                    GRADPY(:,:,curtime,iblock)
+
+   if (index_o2c_Faoo_fco2 > 0 .and. sflux_co2_nf_ind > 0) then
+      call named_field_get(sflux_co2_nf_ind, iblock, WORK(:,:,iblock))
+      SBUFF_SUM(:,:,iblock,index_o2c_Faoo_fco2) = &
+         SBUFF_SUM(:,:,iblock,index_o2c_Faoo_fco2) + delt_last*WORK(:,:,iblock)
+   endif
+
    enddo
    !$OMP END PARALLEL DO
+
+   first = .false.
 
  end subroutine sum_buffer
 
