@@ -434,8 +434,7 @@
    do iblock=1,nblocks_tropic
       this_block = get_block(blocks_tropic(iblock),iblock)
 
-      call btrop_operator_diag(WORK1(:,:,iblock),X(:,:,iblock),  &
-                               this_block,iblock)
+      call btrop_operator_diag(WORK1,X,this_block,iblock)
       WORK1(:,:,iblock) = B(:,:,iblock) - WORK1(:,:,iblock)
 
       where (CALCZ(:,:,iblock))
@@ -528,8 +527,7 @@
 !
 !-----------------------------------------------------------------------
 
-        call btrop_operator_diag ( WORK1(:,:,iblock),S(:,:,iblock),  &
-                                   this_block, iblock)
+        call btrop_operator_diag ( WORK1,S,this_block, iblock)
      end do ! block loop
      !$OMP END PARALLEL DO
 

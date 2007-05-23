@@ -37,6 +37,7 @@
    use diags_on_lat_aux_grid
    use registry
    use shr_sys_mod
+   use timers
 
    implicit none
    private
@@ -212,6 +213,9 @@
    logical (log_kind) :: &
       lccsm,             &
       implied_time_dim
+
+   logical (log_kind), dimension (:,:,:,:), allocatable ::  &
+      MASK_22
  
    integer (int_kind), parameter ::      &
       max_avail_tavg_nstd_fields =  20,  &! limit on available fields
@@ -237,7 +241,7 @@
       tavg_N_HEAT,        &
       tavg_N_SALT
 
-   integer (int_kind), dimension(nx_global,ny_global) ::  &
+   integer (int_kind), dimension(:,:), allocatable    ::  &
       KMU_G            ! k index of deepest grid cell on global U grid
 
    integer (i4) ::  &
@@ -311,6 +315,16 @@
    logical (log_kind) ::  &
       lsavg_on = .false.   ! flag for local spatial averaging
 
+   integer (int_kind) :: &
+      timer_write_std,   &
+      timer_write_nstd,  &
+      timer_mask_11,     &
+      timer_mask_22,     &
+      timer_tavg_global, &
+      timer_tavg_ccsm_diags_bsf, &
+      timer_tavg_ccsm_diags_moc, &
+      timer_tavg_ccsm_diags_trans
+
 !EOC
 !***********************************************************************
 
@@ -341,6 +355,7 @@
 
    integer (i4) ::         &
       n,                   &! dummy index
+      i,ip1,j,k,           &! dummy indices
       iblock,              &! local block index
       loc,                 &! location of field in buffer
       nu,                  &! unit for contents input file
@@ -362,6 +377,9 @@
 
    character (44), parameter :: &
       start_fmt = "('tavg sums accumulated starting at ',a5,i8)"
+
+   type (block) ::        &
+      this_block          ! block information for current block
 
    namelist /tavg_nml/ tavg_freq_opt, tavg_freq, tavg_infile,       &
                        tavg_outfile, tavg_contents, tavg_start_opt, &
@@ -656,25 +674,39 @@
          transport_comp_dim = construct_io_dim('transport_comp',n_transport_comp)
      endif
 
-     !*** determine if KMT_G is allocated;
-     !    if not, allocate it here
- 
-     if (.not. allocated(KMT_G)  ) then
-  
-        allocate(KMT_G(nx_global,ny_global))
+!-----------------------------------------------------------------------
+!
+!  set up masking arrays. allocate global arrays, use them, then deallocate
+!
+!-----------------------------------------------------------------------
 
-        call gather_global(KMT_G, KMT, master_task, distrb_clinic)
- 
-        if (tavg_debug > 0) then
-          write(stdout,*)'(init_tavg): KMT_G is now allocated'
-          call shr_sys_flush(stdout)
-        endif
-     endif
-
-     call gather_global(KMU_G, KMU, master_task, distrb_clinic)
+     allocate (MASK_22(nx_block,ny_block,km,nblocks_clinic))
 
  
-     !*** check if local spatial averaging is possible based on tavg options
+     !--------------------------------------------------------
+     !    create MASK_22, layer by layer
+     !--------------------------------------------------------
+ 
+ 
+     do iblock = 1,nblocks_clinic 
+     this_block = get_block(blocks_clinic(iblock),iblock)  
+       do k=1,km
+         MASK_22(:,:,k,iblock) = .false.
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            if (k > KMT(i  ,j,   iblock)   .and.  &
+                k > KMT(i+1,j,   iblock)   .and.  &
+                k > KMT(i  ,j+1, iblock)   .and.  &
+                k > KMT(i+1,j+1, iblock))   then
+                  MASK_22(i,j,k,iblock) = .true.
+            endif
+         enddo ! i
+         enddo ! j
+       enddo ! k
+     enddo ! iblock
+ 
+ 
+    !*** check if local spatial averaging is possible based on tavg options
 
      max_days = maxval(days_in_month) 
 
@@ -715,6 +747,20 @@
       endif
    endif
 
+!-----------------------------------------------------------------------
+!
+!  initialize timers
+!
+!-----------------------------------------------------------------------
+
+   call get_timer(timer_write_std,'TAVG_WRITE_STD', nblocks_clinic, distrb_clinic%nprocs)
+   call get_timer(timer_write_nstd,'TAVG_WRITE_NONSTD', nblocks_clinic, distrb_clinic%nprocs)
+   call get_timer(timer_mask_11,'TAVG_MASK_11', nblocks_clinic, distrb_clinic%nprocs)
+   call get_timer(timer_mask_22,'TAVG_MASK_22', nblocks_clinic, distrb_clinic%nprocs)
+   call get_timer(timer_tavg_global,'TAVG_GLOBAL', nblocks_clinic, distrb_clinic%nprocs)
+   call get_timer(timer_tavg_ccsm_diags_bsf,'TAVG_CCSM_DIAGS_BSF', nblocks_clinic, distrb_clinic%nprocs)
+   call get_timer(timer_tavg_ccsm_diags_moc,'TAVG_CCSM_DIAGS_MOC', nblocks_clinic, distrb_clinic%nprocs)
+   call get_timer(timer_tavg_ccsm_diags_trans,'TAVG_CCSM_DIAGS_TRANS', nblocks_clinic, distrb_clinic%nprocs)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -988,16 +1034,30 @@
 !-----------------------------------------------------------------------
 
       !*** barotropic stream function
-      if (lccsm .and. lreset_tavg) call tavg_bsf_ccsm
+      if (lccsm .and. lreset_tavg) then
+        call timer_start(timer_tavg_ccsm_diags_bsf)
+        call tavg_bsf_ccsm
+        call timer_stop(timer_tavg_ccsm_diags_bsf)
+      endif
+
      
       !*** MOC diagnostics
-      if (lccsm .and. lreset_tavg) call tavg_moc_ccsm
+      if (lccsm .and. lreset_tavg) then
+        call timer_start(timer_tavg_ccsm_diags_moc)
+        call tavg_moc_ccsm
+        call timer_stop(timer_tavg_ccsm_diags_moc)
+      endif
  
       !*** northward heat/salt transport diagnostics
-      if (lccsm .and. lreset_tavg) call tavg_transport_ccsm
+      if (lccsm .and. lreset_tavg) then
+        call timer_start(timer_tavg_ccsm_diags_trans)
+        call tavg_transport_ccsm
+        call timer_stop(timer_tavg_ccsm_diags_trans)
+      endif
 
       !*** compute local means
       if (lccsm .and. lsavg_on ) call tavg_local_spatial_avg
+
  
 !-----------------------------------------------------------------------
 !
@@ -1073,6 +1133,30 @@
 
       allocate(tavg_fields(num_avail_tavg_fields))
 
+      !-----------------------------------------------------------------------
+      ! Apply topography masking
+      !-----------------------------------------------------------------------
+
+      if (lccsm .and. lreset_tavg) then
+        do nfield = 1,num_avail_tavg_fields  ! check all available fields
+           loc = avail_tavg_fields(nfield)%buf_loc ! locate field in buffer
+           if (loc > 0) then  ! field is actually requested and in buffer
+              if (avail_tavg_fields(nfield)%ndims == 2) then
+              !*** mask 2D data fields
+                   call tavg_mask(TAVG_BUF_2D(:,:,:,loc),avail_tavg_fields(nfield),1)
+              else if (avail_tavg_fields(nfield)%ndims == 3) then
+                   !*** mask 3D data fields
+                   do k=1,km
+                     TAVG_TEMP(:,:,:)=TAVG_BUF_3D(:,:,k,:,loc)
+                     call tavg_mask(TAVG_TEMP(:,:,:),avail_tavg_fields(nfield),k)
+                     TAVG_BUF_3D(:,:,k,:,loc)=TAVG_TEMP(:,:,:)
+                   enddo ! k
+              endif ! ndims
+           endif ! loc
+        enddo ! nfield
+      endif ! lccsm .and. lreset_tavg
+
+
       do nfield = 1,num_avail_tavg_fields  ! check all available fields
 
          loc = avail_tavg_fields(nfield)%buf_loc ! locate field in buffer
@@ -1082,10 +1166,6 @@
             !*** construct io_field descriptors for each field
 
             if (avail_tavg_fields(nfield)%ndims == 2) then
-
-               !*** mask 2D data fields
-               if (lccsm .and. lreset_tavg) &
-                 call tavg_mask(TAVG_BUF_2D(:,:,:,loc),avail_tavg_fields(nfield),1)
 
                tavg_fields(nfield) = construct_io_field(               &
                               avail_tavg_fields(nfield)%short_name,    &
@@ -1103,21 +1183,12 @@
             else if (avail_tavg_fields(nfield)%ndims == 3) then
 
                if (lccsm .and. lreset_tavg) then
-
-                 !*** mask 3D data fields
-                 do k=1,km
-                 TAVG_TEMP(:,:,:)=TAVG_BUF_3D(:,:,k,:,loc)
-                 call tavg_mask(TAVG_TEMP,avail_tavg_fields(nfield),k)
-                 TAVG_BUF_3D(:,:,k,:,loc)=TAVG_TEMP(:,:,:)
-                 enddo ! k
-
                  select case (trim(avail_tavg_fields(nfield)%grid_loc(4:4)))
                    case('1')
                      z_dim = zt_dim
                    case('2')
                      z_dim = zw_dim
                  end select
-
                else
                  z_dim = k_dim
                endif ! lccsm
@@ -1195,6 +1266,7 @@
 !-----------------------------------------------------------------------
 
       if (lccsm .and. lreset_tavg) then
+          call timer_start(timer_write_nstd)
           call tavg_write_vars_ccsm (tavg_file_desc,1,time_coordinate)
           call tavg_write_vars_ccsm (tavg_file_desc,num_ccsm_coordinates,ccsm_coordinates)
           call tavg_write_vars_ccsm (tavg_file_desc,num_ccsm_time_invar, ccsm_time_invar)
@@ -1203,10 +1275,12 @@
           !*** ccsm nonstandard fields (uses data_set_nstd_ccsm to write)
           !*** time_bound, labels, transport diags
           call tavg_write_vars_nstd_ccsm (tavg_file_desc) 
+          call timer_stop(timer_write_nstd)
       endif
  
 
       !*** standard 2D and 3D fields
+      call timer_start(timer_write_std)
       do nfield = 1,num_avail_tavg_fields  ! check all available fields
          loc = avail_tavg_fields(nfield)%buf_loc ! locate field in buffer
          if (loc > 0) then  ! field is actually requested and in buffer
@@ -1214,6 +1288,7 @@
             call destroy_io_field(tavg_fields(nfield))
          endif
       end do
+      call timer_stop(timer_write_std)
 
 
 !-----------------------------------------------------------------------
@@ -4330,10 +4405,6 @@
           indata_3d_r4=TAVG_N_SALT_TRANS_G)
    endif
 
-!!!! if (n_heat_trans) call write_nstd_netcdf( &
-!!            tavg_file_desc,n_heat_id,1,4,indata_3d=TAVG_N_HEAT_TRANS_G)
-!!   if (n_salt_trans) call write_nstd_netcdf( &
-!!!!!         tavg_file_desc,n_salt_id,1,4,indata_3d=TAVG_N_SALT_TRANS_G)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -4346,7 +4417,7 @@
 ! !IROUTINE:  tavg_mask
 ! !INTERFACE:
 
- subroutine tavg_mask(ARRAY,tavg_field,klev)
+ subroutine tavg_mask(ARRAY,tavg_field,k)
 
 ! !DESCRIPTION:
 !
@@ -4362,7 +4433,10 @@
       tavg_field
 
    integer (int_kind), intent(in) ::  &
-      klev
+      k
+
+   type (block) ::        &
+      this_block          ! block information for current block
 
 !EOP
 !BOC
@@ -4371,23 +4445,27 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
-   real (r4), dimension (nx_global,ny_global) ::  &
-      ARRAY_G
+   integer (int_kind) :: iblock, i, j
 
-
-   call gather_global(ARRAY_G,ARRAY,master_task,distrb_clinic)
-
-   if (my_task == master_task)  &
-       call tavg_mask_lev_ccsm(ARRAY_G,tavg_field,klev)
 
    select case (trim(tavg_field%grid_loc(2:3)))
 
      case('11')
-        call scatter_global(ARRAY, ARRAY_G, master_task, distrb_clinic, &
-             field_loc_NEcorner, field_type_scalar)
+       
+        ARRAY(:,:,:) = merge (tavg_field%fill_value,ARRAY(:,:,:),  &
+                              k > KMT(:,:,:))
+ 
      case('22')
-        call scatter_global(ARRAY, ARRAY_G, master_task, distrb_clinic, &
-             field_loc_center, field_type_scalar)
+
+       do iblock=1,nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+             if (MASK_22(i,j,k,iblock)) ARRAY(i,j,iblock) = tavg_field%fill_value
+         enddo ! i
+         enddo ! j
+       enddo ! iblock
+ 
      case default
          !*** if field_desc is not on standard tracer or 
          !    velocity grid, never mind
@@ -4398,109 +4476,6 @@
 !EOC
  
  end subroutine tavg_mask
-
-
-!***********************************************************************
-!BOP
-! !IROUTINE:  tavg_mask_lev_ccsm
-! !INTERFACE:
-
- subroutine tavg_mask_lev_ccsm(ARRAY_G,tavg_field,klev)
-
-! !DESCRIPTION:
-!  This subroutine masks out land values 
-!  Note: presently, this routine only masks fields on the
-!        pure tracer; fields on pure velocity or hybrid
-!        grids are not yet masked
-
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
-   real (r4), dimension (nx_global,ny_global),intent (inout) :: &   
-      ARRAY_G      ! array to be masked
-
-   type (tavg_field_desc_ccsm), intent(in) ::  &
-     tavg_field
-
-   integer (int_kind) , intent (in) :: &   
-      klev         ! vertical level index
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
-
-   integer (int_kind)  ::  &
-      i,ip1,j               ! local indices
-
-
-!---------------------------------------------------------------------
-!  if field_desc is not on standard tracer or velocity grid, never mind
-!---------------------------------------------------------------------
-
-   select case (trim(tavg_field%grid_loc(2:3)))
-   case('11')
-     ! ok -- standard tracer grid
-   case('22')
-     ! ok -- standard velocity grid
-   case default
-     return
-   end select
-
-
-   select case (trim(tavg_field%grid_loc(2:3)))
-   case('11')
-    !**** mask variable on standard tracer grid
-
-      do j=1,ny_global
-      do i=1,nx_global
-        if ( klev > KMT_G(i,j) ) then
-           ARRAY_G(i,j) = tavg_field%fill_value
-        endif
-       enddo ! i
-       enddo ! j
-
-      case('22')
-
-       !**** mask variable on standard velocity grid; must treat boundaries separately
-      do j=1,ny_global-1
-      do i=1,nx_global-1
-            if (klev > KMU_G(i,j) ) then
-               if (klev > KMT_G(i  ,j  )    .and.  &
-                   klev > KMT_G(i+1,j  )    .and.  &
-                   klev > KMT_G(i  ,j+1)    .and.  &
-                   klev > KMT_G(i+1,j+1) )    then
-                   ARRAY_G(i,j) = tavg_field%fill_value
-               endif
-            endif
-      enddo ! i
-      enddo ! j
- 
-
-      ARRAY_G(:,ny_global) = tavg_field%fill_value
- 
-      do j=1,ny_global - 1
-         i   = nx_global 
-         ip1 = 1
-            if (klev > KMU_G(i,j) ) then
-               if (klev > KMT_G(i  ,j  )     .and.  &
-                   klev > KMT_G(ip1,j  )     .and.  &
-                   klev > KMT_G(i  ,j+1)     .and.  &
-                   klev > KMT_G(ip1,j+1) )    then
-                   ARRAY_G(i,j) = tavg_field%fill_value
-                endif
-            endif
-      enddo
-
-      end select
- 
- end subroutine tavg_mask_lev_ccsm
 
 
 !***********************************************************************

@@ -62,8 +62,9 @@ else
 
 endif
 
+
 if ($CONTINUE_RUN == FALSE) then
-   set IC_file_nml = INPUT/$IC_file
+   set IC_file_nml = $INPUT/$IC_file
 else
    set IC_file_nml = same_as_TS
 endif
@@ -131,7 +132,7 @@ else if ($command == namelist) then
    cat >> $pop_in_filename << EOF
 
 &ecosys_nml
-   init_ecosys_option              = 'RUNTYPE'
+   init_ecosys_option              = '$RUNTYPE'
    init_ecosys_init_file           = '$IC_file_nml'
    init_ecosys_init_file_fmt       = 'nc'
    tracer_init_ext(1)%mod_varname = 'ALK'
@@ -147,7 +148,7 @@ else if ($command == namelist) then
    ecosys_tadvect_ctype            = 'base_model'
    gas_flux_forcing_opt            = 'model'
    lmarginal_seas                  = .true.
-   ecosys_diurnal_cycle            = .true.
+   ecosys_diurnal_cycle            = .false.
    lsource_sink                    = .true.
    comp_surf_avg_freq_opt          = 'never'
    comp_surf_avg_freq              = 1
@@ -155,11 +156,11 @@ else if ($command == namelist) then
    surf_avg_dic_const              = 1944.0
    surf_avg_alk_const              = 2225.0
 !  iron_dust_flx_data_type         = 'monthly'
-   dust_flux_input%filename        = 'INPUT/$DST_file'
+   dust_flux_input%filename        = '$INPUT/$DST_file'
    dust_flux_input%file_fmt        = 'nc'
    dust_flux_input%file_varname    = 'DSTSF'
    dust_flux_input%scale_factor    = 1.0e-1    ! kg/m^2/sec -> g/cm^2/sec
-   iron_flux_input%filename        = 'INPUT/$DST_file'
+   iron_flux_input%filename        = '$INPUT/$DST_file'
    iron_flux_input%file_fmt        = 'nc'
    iron_flux_input%file_varname    = 'DSTSF'
    iron_flux_input%scale_factor    = 6.2668e4  ! kg/m^2/sec -> nmol/cm^2/sec, 3.5% iron by weight

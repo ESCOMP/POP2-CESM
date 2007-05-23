@@ -65,7 +65,7 @@ else if ($command == namelist) then
 #  Climate of the 20th Century IPCC run
 #===============================================================================
 
-   set init_cfc_option = RUNTYPE
+   set init_cfc_option = $RUNTYPE
    if ($IPCC_MODE == 1870_TO_PRESENT) then
       if ($CONTINUE_RUN == FALSE) set init_cfc_option = zero
       set model_year = 1870
@@ -81,7 +81,7 @@ else if ($command == namelist) then
    init_cfc_option = '$init_cfc_option'
    model_year      = $model_year
    data_year       = $data_year
-   pcfc_file       = 'INPUT/pcfc1112_atm.nc'
+   pcfc_file       = '$INPUT/pcfc1112_atm.nc'
 /
 EOF
 

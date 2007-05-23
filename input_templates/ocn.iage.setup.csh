@@ -63,7 +63,7 @@ else if ($command == namelist) then
    cat >> $pop_in_filename << EOF
 
 &iage_nml
-   init_iage_option = 'RUNTYPE'
+   init_iage_option = '$RUNTYPE'
    init_iage_init_file = 'same_as_TS'
 /
 EOF
