@@ -318,9 +318,6 @@
    integer (int_kind) :: &
       timer_write_std,   &
       timer_write_nstd,  &
-      timer_mask_11,     &
-      timer_mask_22,     &
-      timer_tavg_global, &
       timer_tavg_ccsm_diags_bsf, &
       timer_tavg_ccsm_diags_moc, &
       timer_tavg_ccsm_diags_trans
@@ -755,9 +752,6 @@
 
    call get_timer(timer_write_std,'TAVG_WRITE_STD', nblocks_clinic, distrb_clinic%nprocs)
    call get_timer(timer_write_nstd,'TAVG_WRITE_NONSTD', nblocks_clinic, distrb_clinic%nprocs)
-   call get_timer(timer_mask_11,'TAVG_MASK_11', nblocks_clinic, distrb_clinic%nprocs)
-   call get_timer(timer_mask_22,'TAVG_MASK_22', nblocks_clinic, distrb_clinic%nprocs)
-   call get_timer(timer_tavg_global,'TAVG_GLOBAL', nblocks_clinic, distrb_clinic%nprocs)
    call get_timer(timer_tavg_ccsm_diags_bsf,'TAVG_CCSM_DIAGS_BSF', nblocks_clinic, distrb_clinic%nprocs)
    call get_timer(timer_tavg_ccsm_diags_moc,'TAVG_CCSM_DIAGS_MOC', nblocks_clinic, distrb_clinic%nprocs)
    call get_timer(timer_tavg_ccsm_diags_trans,'TAVG_CCSM_DIAGS_TRANS', nblocks_clinic, distrb_clinic%nprocs)
@@ -3191,7 +3185,8 @@
 
  call add_attrib_file(tavg_file_desc, 'contents', 'Diagnostic and Prognostic Variables')
  call add_attrib_file(tavg_file_desc, 'source', 'CCSM POP2, the CCSM Ocean Component')
- call add_attrib_file(tavg_file_desc, 'revision', '$Id$')
+ call add_attrib_file(tavg_file_desc, 'revision', &
+   '$Id$')
 
  if (allow_leapyear) then
     write(calendar,'(a,i5,a,i5,a)') &

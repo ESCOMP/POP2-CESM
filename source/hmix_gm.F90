@@ -33,6 +33,7 @@
       use exit_mod
       use registry
       use shr_sys_mod
+      use timers, only: timer_start, timer_stop, get_timer
 
       implicit none
       private
@@ -236,6 +237,15 @@
                                 !  due to eddy-induced velocity
          tavg_VNS_ISOP          ! salt flux tendency in grid-y direction
                                 !  due to eddy-induced velocity
+
+!-----------------------------------------------------------------------
+!
+!  timers
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      timer_nloop         ! main n loop
 
 !EOC
 !***********************************************************************
@@ -992,6 +1002,9 @@
 
    endif
 
+      call get_timer(timer_nloop,'HMIX_TRACER_GM_NLOOP', &
+                                  nblocks_clinic, distrb_clinic%nprocs)
+
 !-----------------------------------------------------------------------
 !EOC
 
@@ -1059,7 +1072,6 @@
          CX, CY,                  &
          RZ,                      & ! Dz(rho)
          SLA,                     & ! absolute value of slope
-         FX, FY,                  & ! fluxes across east, north faces
          WORK1, WORK2,            & ! local work space
          WORK3, WORK4,            & ! local work space
          KMASK, KMASKE, KMASKN,   & ! ocean mask
@@ -1070,6 +1082,9 @@
          RXW, RYS,                & ! same on west, south faces
          DRDT, DRDS,              & ! expansion coefficients d(rho)/dT,S
          U_ISOP, V_ISOP             ! horizontal components of isopycnal velocities
+
+      real (r8), dimension(nx_block,ny_block,nt) :: &
+         FX, FY                     ! fluxes across east, north faces
 
       real (r8), dimension(nx_block,ny_block,2) :: &
          TXP, TYP, TZP, TEMP
@@ -1182,9 +1197,7 @@
                               * (TMIX(i+1,j,kk,n) - TMIX(i,j,kk,n))
                 enddo
               enddo
-            enddo
 
-            do n=1,nt
               do j=1,ny_block-1
                 do i=1,nx_block
                   TY(i,j,kk,n,bid) = KMASKN(i,j)  &
@@ -1264,15 +1277,6 @@
               enddo
             enddo
 
-            do n=1,nt
-              do j=1,ny_block
-                do i=1,nx_block-1
-                  TX(i,j,kk+1,n,bid) = KMASKE(i,j)  &
-                            * (TMIX(i+1,j,kk+1,n) - TMIX(i,j,kk+1,n))
-                enddo
-              enddo
-            enddo
-
             do j=1,ny_block-1
               do i=1,nx_block
                 TYP(i,j,ks) = KMASKN(i,j)*(TEMP(i,j+1,ks)  &
@@ -1281,6 +1285,13 @@
             enddo
 
             do n=1,nt
+              do j=1,ny_block
+                do i=1,nx_block-1
+                  TX(i,j,kk+1,n,bid) = KMASKE(i,j)  &
+                            * (TMIX(i+1,j,kk+1,n) - TMIX(i,j,kk+1,n))
+                enddo
+              enddo
+
               do j=1,ny_block-1
                 do i=1,nx_block
                   TY(i,j,kk+1,n,bid) = KMASKN(i,j)  &
@@ -1845,6 +1856,8 @@
         factor    = c0
       endif
 
+      call timer_start(timer_nloop, block_id=this_block%local_id)
+
       do n = 1,nt
 
 !-----------------------------------------------------------------------
@@ -1855,53 +1868,81 @@
 !
 !-----------------------------------------------------------------------
 
-        FX = dz(k) * CX * TX(:,:,k,n,bid) * WORK3
-        FY = dz(k) * CY * TY(:,:,k,n,bid) * WORK4 
+        FX(:,:,n) = dz(k) * CX * TX(:,:,k,n,bid) * WORK3
+        FY(:,:,n) = dz(k) * CY * TY(:,:,k,n,bid) * WORK4 
 
-        if ( .not. cancellation_occurs ) then
+      end do
+
+      if ( .not. cancellation_occurs ) then
+
+        do j=1,ny_block
+          do i=1,nx_block-1
+            WORK1(i,j) = KAPPA_ISOP(i,j,ktp,k,bid)                     &
+                         * SLX(i,j,ieast,ktp,k,bid) * dz(k)            &
+                         - SF_SLX(i,j,ieast,ktp,k,bid)
+            WORK2(i,j) = KAPPA_ISOP(i,j,kbt,k,bid)                     &
+                         * SLX(i,j,ieast,kbt,k,bid) * dz(k)            &
+                         - SF_SLX(i,j,ieast,kbt,k,bid)
+            WORK3(i,j) = KAPPA_ISOP(i+1,j,ktp,k,bid)                   &
+                         * SLX(i+1,j,iwest,ktp,k,bid) * dz(k)          &
+                         - SF_SLX(i+1,j,iwest,ktp,k,bid)
+            WORK4(i,j) = KAPPA_ISOP(i+1,j,kbt,k,bid)                   &
+                         * SLX(i+1,j,iwest,kbt,k,bid) * dz(k)          &
+                         - SF_SLX(i+1,j,iwest,kbt,k,bid)
+          enddo
+        enddo
+
+        do n = 1,nt
 
           if (n > 2 .and. k < km)  &
             TZ(:,:,k+1,n,bid) = TMIX(:,:,k  ,n) - TMIX(:,:,k+1,n)
 
           do j=1,ny_block
             do i=1,nx_block-1
-              FX(i,j) = FX(i,j) - CX(i,j)                              &
-               * ( ( KAPPA_ISOP(i,j,ktp,k,bid)                         &
-                   * SLX(i,j,ieast,ktp,k,bid) * dz(k)                  &
-                 - SF_SLX(i,j,ieast,ktp,k,bid) ) * TZ(i,j,k,n,bid)     &
-               + ( KAPPA_ISOP(i,j,kbt,k,bid)                           &
-                   * SLX(i,j,ieast,kbt,k,bid) * dz(k)                  &
-                 - SF_SLX(i,j,ieast,kbt,k,bid) ) * TZ(i,j,kp1,n,bid)   &
-               + ( KAPPA_ISOP(i+1,j,ktp,k,bid)                         &
-                   * SLX(i+1,j,iwest,ktp,k,bid) * dz(k)                &
-                 - SF_SLX(i+1,j,iwest,ktp,k,bid) ) * TZ(i+1,j,k,n,bid) &
-               + ( KAPPA_ISOP(i+1,j,kbt,k,bid)                         &
-                   * SLX(i+1,j,iwest,kbt,k,bid) * dz(k)                &
-                 - SF_SLX(i+1,j,iwest,kbt,k,bid) )                     &
-                   * TZ(i+1,j,kp1,n,bid) )
+              FX(i,j,n) = FX(i,j,n) - CX(i,j)                          &
+               * ( WORK1(i,j) * TZ(i,j,k,n,bid)                        &
+                   + WORK2(i,j) * TZ(i,j,kp1,n,bid)                    &
+                   + WORK3(i,j) * TZ(i+1,j,k,n,bid)                    &
+                   + WORK4(i,j) * TZ(i+1,j,kp1,n,bid) )
             enddo
           enddo
+
+        end do
+
+        do j=1,ny_block-1
+          do i=1,nx_block
+            WORK1(i,j) = KAPPA_ISOP(i,j,ktp,k,bid)                     &
+                         * SLY(i,j,jnorth,ktp,k,bid) * dz(k)           &
+                         - SF_SLY(i,j,jnorth,ktp,k,bid)
+            WORK2(i,j) = KAPPA_ISOP(i,j,kbt,k,bid)                     &
+                         * SLY(i,j,jnorth,kbt,k,bid) * dz(k)           &
+                         - SF_SLY(i,j,jnorth,kbt,k,bid)
+            WORK3(i,j) = KAPPA_ISOP(i,j+1,ktp,k,bid)                   &
+                         * SLY(i,j+1,jsouth,ktp,k,bid) * dz(k)         &
+                         - SF_SLY(i,j+1,jsouth,ktp,k,bid)
+            WORK4(i,j) = KAPPA_ISOP(i,j+1,kbt,k,bid)                   &
+                         * SLY(i,j+1,jsouth,kbt,k,bid) * dz(k)         &
+                         - SF_SLY(i,j+1,jsouth,kbt,k,bid)
+          enddo
+        enddo
+
+        do n = 1,nt
 
           do j=1,ny_block-1
             do i=1,nx_block
-              FY(i,j) = FY(i,j) - CY(i,j)                              &
-              * ( ( KAPPA_ISOP(i,j,ktp,k,bid)                          &
-                  * SLY(i,j,jnorth,ktp,k,bid) * dz(k)                  &
-                - SF_SLY(i,j,jnorth,ktp,k,bid) ) * TZ(i,j,k,n,bid)     &
-              + ( KAPPA_ISOP(i,j,kbt,k,bid)                            &
-                  * SLY(i,j,jnorth,kbt,k,bid) * dz(k)                  &
-                - SF_SLY(i,j,jnorth,kbt,k,bid) ) * TZ(i,j,kp1,n,bid)   &
-              + ( KAPPA_ISOP(i,j+1,ktp,k,bid)                          &
-                  * SLY(i,j+1,jsouth,ktp,k,bid) * dz(k)                &
-                - SF_SLY(i,j+1,jsouth,ktp,k,bid) ) * TZ(i,j+1,k,n,bid) &
-              + ( KAPPA_ISOP(i,j+1,kbt,k,bid)                          &
-                  * SLY(i,j+1,jsouth,kbt,k,bid) * dz(k)                &
-                - SF_SLY(i,j+1,jsouth,kbt,k,bid) )                     &
-                  * TZ(i,j+1,kp1,n,bid) )
+              FY(i,j,n) = FY(i,j,n) - CY(i,j)                          &
+               * ( WORK1(i,j) * TZ(i,j,k,n,bid)                        &
+                   + WORK2(i,j) * TZ(i,j,kp1,n,bid)                    &
+                   + WORK3(i,j) * TZ(i,j+1,k,n,bid)                    &
+                   + WORK4(i,j) * TZ(i,j+1,kp1,n,bid) )
             enddo
           enddo
 
-        endif
+        end do
+
+      endif
+
+      do n = 1,nt
 
 !-----------------------------------------------------------------------
 !
@@ -1958,8 +1999,8 @@
                       + SF_SLY(i  ,j  ,jsouth,ktp,kp1,bid)            &
                        * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) ) ) )
 
-                GTK(i,j,n) = ( FX(i,j) - FX(i-1,j)  &
-                             + FY(i,j) - FY(i,j-1)  &
+                GTK(i,j,n) = ( FX(i,j,n) - FX(i-1,j,n)  &
+                             + FY(i,j,n) - FY(i,j-1,n)  &
                       + FZTOP(i,j,n,bid) - fz )*dzr(k)*TAREA_R(i,j,bid)
 
                 FZTOP(i,j,n,bid) = fz
@@ -1992,8 +2033,8 @@
                       + SLY(i  ,j  ,jsouth,ktp,kp1,bid)               &
                        * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) ) )
 
-                GTK(i,j,n) = ( FX(i,j) - FX(i-1,j)  &
-                             + FY(i,j) - FY(i,j-1)  &
+                GTK(i,j,n) = ( FX(i,j,n) - FX(i-1,j,n)  &
+                             + FY(i,j,n) - FY(i,j-1,n)  &
                       + FZTOP(i,j,n,bid) - fz )*dzr(k)*TAREA_R(i,j,bid)
 
                 FZTOP(i,j,n,bid) = fz
@@ -2008,8 +2049,8 @@
           do j=this_block%jb,this_block%je
             do i=this_block%ib,this_block%ie
 
-              GTK(i,j,n) = ( FX(i,j) - FX(i-1,j)  &
-                           + FY(i,j) - FY(i,j-1)  &
+              GTK(i,j,n) = ( FX(i,j,n) - FX(i-1,j,n)  &
+                           + FY(i,j,n) - FY(i,j-1,n)  &
                     + FZTOP(i,j,n,bid) )*dzr(k)*TAREA_R(i,j,bid)
 
               FZTOP(i,j,n,bid) = c0 
@@ -2026,6 +2067,8 @@
 !-----------------------------------------------------------------------
 
       enddo
+
+      call timer_stop(timer_nloop, block_id=this_block%local_id)
 
 !-----------------------------------------------------------------------
 !

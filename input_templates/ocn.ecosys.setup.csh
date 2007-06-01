@@ -30,30 +30,16 @@ if ($OCN_GRID == gx3v5) then
    set DIC_scale_factor = 1.0
    set O2_scale_factor  = 1.0
    set DST_file = dst79gnx_gx3v5_20040426.nc
-
-else if ($OCN_GRID == gx1v3) then
-
-   set IC_file  = ecosys_jan_IC_gx1v3_20060509.nc
-   set ALK_scale_factor = 1.025
-   set DIC_scale_factor = 1.025
-   set O2_scale_factor  = 44.66
-   set DST_file = dst79gnx_gx1v3_20060505.nc
-
-else if ($OCN_GRID == gx1v4) then
-
-   set IC_file  = ecosys_jan_IC_gx1v4_20060511.nc
-   set ALK_scale_factor = 1.025
-   set DIC_scale_factor = 1.025
-   set O2_scale_factor  = 44.66
-   set DST_file = dst79gnx_gx1v4_20060510.nc
+   set fesed_file = fesedflux_gx3v5_20070521.nc
 
 else if ($OCN_GRID == gx1v5) then
 
-   set IC_file  = ecosys_jan_IC_gx1v5_20070329.nc
+   set IC_file  = ecosys_jan_IC_gx1v5_20070529.nc
    set ALK_scale_factor = 1.025
    set DIC_scale_factor = 1.025
    set O2_scale_factor  = 44.66
    set DST_file = dst79gnx_gx1v5_20070329.nc
+   set fesed_file = fesedflux_gx1v5_20070518.nc
 
 else
 
@@ -61,7 +47,6 @@ else
    exit 7
 
 endif
-
 
 if ($CONTINUE_RUN == FALSE) then
    set IC_file_nml = $INPUT/$IC_file
@@ -144,7 +129,7 @@ else if ($command == namelist) then
    lflux_gas_o2                    = .true.
    lflux_gas_co2                   = .true.
    atm_co2_opt                     = '$atm_co2_opt'
-   atm_co2_const                   = 280.0
+   atm_co2_const                   = $CCSM_CO2_PPMV
    ecosys_tadvect_ctype            = 'base_model'
    gas_flux_forcing_opt            = 'model'
    lmarginal_seas                  = .true.
@@ -164,6 +149,10 @@ else if ($command == namelist) then
    iron_flux_input%file_fmt        = 'nc'
    iron_flux_input%file_varname    = 'DSTSF'
    iron_flux_input%scale_factor    = 6.2668e4  ! kg/m^2/sec -> nmol/cm^2/sec, 3.5% iron by weight
+   fesedflux_input%filename       = '$INPUT/$fesed_file'
+   fesedflux_input%file_varname   = 'FESEDFLUXIN'
+   fesedflux_input%file_fmt        = 'nc'
+   fesedflux_input%scale_factor   = 1.1574e-6 ! umolFe/m2/day -> nmolFe/cm2/s
 !   dustflx_daily_input%interp_type    = 'linear'
 !   dustflx_daily_input%filename       = '/fiji/home/ivan/data/Mahowald/daily/dstgnx'
 !   dustflx_daily_input%data_renorm(1) = 1.e-1    ! kg/m^2/sec -> g/cm^2/sec
@@ -336,6 +325,7 @@ else if ($command == prestage) then
    endif
 
    \cp -f $res_dpt_dir/forcing/$DST_file $DST_file || exit 6
+   \cp -f $res_dpt_dir/forcing/$fesed_file $fesed_file || exit 6
 
    endif
 

@@ -75,7 +75,6 @@ MODULE ecosys_parms
        parm_Rain_SiO2,        & ! Rain ratio for SiO2
        parm_kappa_nitrif,     & ! nitrification inverse time constant (1/sec)
        parm_nitrif_par_lim,   & ! PAR limit for nitrif. (W/m^2)
-       parm_POC_flux_ref,     & ! reference POC flux (nmol C/cm^2/sec)
        parm_rest_prod_tau,    & ! time-scale for restoring prod (sec)
        parm_rest_prod_z_c,    & ! depth-limit for restoring (cm)
        parm_z_umax_0,         & ! max. zoo growth rate on sphyto at tref (1/sec)
@@ -115,7 +114,7 @@ MODULE ecosys_parms
       PCrefDiaz  = 0.4_r8  * dps,  & !max Diaz C-specific growth rate at tref (1/sec)
       diaz_mort  = 0.16_r8 * dps,  & !diaz mort rate (1/sec)
       diaz_kPO4  = 0.005_r8,      & !diaz half-sat. const. for P (diatom value)
-      diaz_kFe   = 0.1e-3_r8        !diaz half-sat. const. for Fe
+      diaz_kFe   = 0.06e-3_r8       !diaz half-sat. const. for Fe
 
   !---------------------------------------------------------------------
   !     Misc. Rate constants
@@ -124,17 +123,13 @@ MODULE ecosys_parms
        sp_agg_rate_max   = 0.2_r8, & !max agg. rate for small phyto (1/d)
        diat_agg_rate_max = 0.2_r8, & !max agg. rate for diatoms (1/d)
        diat_agg_rate_min = 0.01_r8,& !min agg. rate for diatoms (1/d)
-       fe_scavenge_rate0 = 0.12_r8,& !init Fe scaveng. rate (% of ambient)
-       fe_scavenge_thres1 = 0.6e-3_r8, & !upper thres. for Fe scavenging
-       fe_scavenge_thres2 = 0.5e-3_r8, & !lower thres. for Fe scavenging
-       dust_fescav_scale  = 0.833e8_r8, & !dust scavenging scale factor
-       thres_fe           = 1.0e5_r8,   & !thres. depth for Fe diff. flux
+       fe_scavenge_rate0 = 1.4_r8, & !base scavenging rate
+       fe_scavenge_thres1 = 0.6e-3_r8,  & !upper thres. for Fe scavenging
+       dust_fescav_scale  = 1.0e9,      & !dust scavenging scale factor
        fe_max_scale1      = 3.0_r8,     & !unitless scaling coeff.
-       fe_max_scale2      = 6.0_r8/1.4e-3_r8,& !unitless scaling coeff.
-       fe_diff_rate       = 2.3148e-6_r8,&!fe diffusion rate 
-                                                !   (nmolFe/cm2/sec)
-       f_fescav_P_iron    = 0.1_r8        !fraction of Fe scavenging 
-                                                !        to particulate Fe
+       fe_max_scale2      = 3300.0_r8,&   !unitless scaling coeff.
+       f_fescav_P_iron    = 0.9_r8        !fraction of Fe scavenging 
+                                          !        to particulate Fe
 
   !---------------------------------------------------------------------
   !     Compute iron remineralization and flux out.
@@ -284,7 +279,6 @@ CONTAINS
          parm_Rain_SiO2, &
          parm_kappa_nitrif, &
          parm_nitrif_par_lim, &
-         parm_POC_flux_ref, &
          parm_rest_prod_tau, &
          parm_rest_prod_z_c, &
          parm_z_umax_0, &
@@ -319,7 +313,6 @@ CONTAINS
     parm_Rain_SiO2      = 0.03_r8
     parm_kappa_nitrif   = 0.06_r8 * dps       ! (= 1/( days))
     parm_nitrif_par_lim = 5.0_r8
-    parm_POC_flux_ref   = 2.0e-3_r8
     parm_rest_prod_tau  = 30.0_r8 * spd       ! (= 30 days)
     parm_rest_prod_z_c  = 7500_r8
     parm_z_umax_0       = 2.75_r8 * dps
@@ -331,8 +324,8 @@ CONTAINS
     parm_diat_kNO3      = 2.5_r8
     parm_sp_kNH4        = 0.005_r8
     parm_diat_kNH4      = 0.08_r8
-    parm_sp_kFe         = 0.06e-3_r8
-    parm_diat_kFe       = 0.15e-3_r8
+    parm_sp_kFe         = 0.04e-3_r8
+    parm_diat_kFe       = 0.09e-3_r8
     parm_diat_kSiO3     = 1.0_r8
     parm_sp_kPO4        = 0.0003125_r8
     parm_diat_kPO4      = 0.005_r8
@@ -374,7 +367,6 @@ CONTAINS
     CALL broadcast_scalar(parm_Rain_SiO2, master_task)
     CALL broadcast_scalar(parm_kappa_nitrif, master_task)
     CALL broadcast_scalar(parm_nitrif_par_lim, master_task)
-    CALL broadcast_scalar(parm_POC_flux_ref, master_task)
     CALL broadcast_scalar(parm_rest_prod_tau, master_task)
     CALL broadcast_scalar(parm_rest_prod_z_c, master_task)
     CALL broadcast_scalar(parm_z_umax_0, master_task)
@@ -412,7 +404,6 @@ CONTAINS
        WRITE (stdout,*) 'parm_Rain_SiO2      = ', parm_Rain_SiO2
        WRITE (stdout,*) 'parm_kappa_nitrif   = ', parm_kappa_nitrif
        WRITE (stdout,*) 'parm_nitrif_par_lim = ', parm_nitrif_par_lim
-       WRITE (stdout,*) 'parm_POC_flux_ref   = ', parm_POC_flux_ref
        WRITE (stdout,*) 'parm_rest_prod_tau  = ', parm_rest_prod_tau
        WRITE (stdout,*) 'parm_rest_prod_z_c  = ', parm_rest_prod_z_c
        WRITE (stdout,*) 'parm_z_umax_0       = ', parm_z_umax_0

@@ -242,7 +242,8 @@ module ecosys_mod
       sio3_rest,           & ! restoring data for SiO3
       gas_flux_fice,       & ! ice fraction for gas fluxes
       gas_flux_ws,         & ! wind speed for gas fluxes
-      gas_flux_ap            ! atmospheric pressure for gas fluxes
+      gas_flux_ap,         & ! atmospheric pressure for gas fluxes
+      fesedflux_input        ! namelist input for iron_flux
 
 !-----------------------------------------------------------------------
 !  module variables related to ph computations
@@ -273,6 +274,9 @@ module ecosys_mod
 
    real (r8), dimension(:,:,:,:), allocatable, target :: &
       PO4_CLIM, NO3_CLIM, SiO3_CLIM
+
+   real (r8), dimension(:,:,:,:), allocatable, target :: &
+      FESEDFLUX
 
    character(char_len) :: &
       nutr_rest_file        ! file containing nutrient fields
@@ -589,7 +593,7 @@ contains
    namelist /ecosys_nml/ &
       init_ecosys_option, init_ecosys_init_file, tracer_init_ext, &
       init_ecosys_init_file_fmt, &
-      dust_flux_input, iron_flux_input, &
+      dust_flux_input, iron_flux_input, fesedflux_input, &
       gas_flux_forcing_opt, gas_flux_forcing_file, &
       gas_flux_fice, gas_flux_ws, gas_flux_ap, &
       lrest_po4, lrest_no3, lrest_sio3, &
@@ -743,6 +747,12 @@ contains
    iron_flux_input%scale_factor = c1
    iron_flux_input%default_val  = c0
    iron_flux_input%file_fmt     = 'bin'
+
+   fesedflux_input%filename     = 'unknown'
+   fesedflux_input%file_varname = 'FESEDFLUXIN'
+   fesedflux_input%scale_factor = c1
+   fesedflux_input%default_val  = c0
+   fesedflux_input%file_fmt     = 'bin'
 
    do n = 1,ecosys_tracer_cnt
       tracer_init_ext(n)%mod_varname  = 'unknown'
@@ -899,6 +909,12 @@ contains
    call broadcast_scalar(iron_flux_input%file_fmt, master_task)
 
    iron_flux%input = iron_flux_input
+
+   call broadcast_scalar(fesedflux_input%filename, master_task)
+   call broadcast_scalar(fesedflux_input%file_varname, master_task)
+   call broadcast_scalar(fesedflux_input%scale_factor, master_task)
+   call broadcast_scalar(fesedflux_input%default_val, master_task)
+   call broadcast_scalar(fesedflux_input%file_fmt, master_task)
 
    do n = 1,ecosys_tracer_cnt
       call broadcast_scalar(tracer_init_ext(n)%mod_varname, master_task)
@@ -2621,25 +2637,22 @@ contains
 !-----------------------------------------------------------------------
 !  Compute iron scavenging :
 !  1) compute in terms of loss per year per unit iron (%/year/fe)
-!  2) scale by sinking POC/Dust flux
+!  2) scale by sinking POMx6 + Dust + bSi + CaCO3 flux
 !  3) increase scavenging at higher iron (>0.6nM)
-!  4) decrease scavenging rates at low iron
-!  5) convert to net loss per second
+!  4) convert to net loss per second
 !-----------------------------------------------------------------------
 
    Fe_scavenge_rate = Fe_scavenge_rate0
 
    Fe_scavenge_rate = Fe_scavenge_rate * &
-      min(((POC%sflux_out(:,:,bid) + POC%hflux_out(:,:,bid) &
-          + ((dust%sflux_out(:,:,bid) + dust%hflux_out(:,:,bid)) * &
-             dust_fescav_scale)) / parm_POC_flux_ref), fe_max_scale1)
+      ((POC%sflux_out(:,:,bid) + POC%hflux_out(:,:,bid)) * 72.06_r8 + &
+       (P_CaCO3%sflux_out(:,:,bid) + P_CaCO3%hflux_out(:,:,bid)) * P_CaCO3%mass + &
+       (P_SiO2%sflux_out(:,:,bid)+P_SiO2%hflux_out(:,:,bid))*P_SiO2%mass + &
+       (dust%sflux_out(:,:,bid) + dust%hflux_out(:,:,bid)) * dust_fescav_scale)
 
    where (Fe_loc > Fe_scavenge_thres1) &
       Fe_scavenge_rate = Fe_scavenge_rate + &
                          (Fe_loc - Fe_scavenge_thres1) * fe_max_scale2
-
-   where (Fe_loc < Fe_scavenge_thres2) &
-      Fe_scavenge_rate = Fe_scavenge_rate * (Fe_loc / Fe_scavenge_thres2)
 
    Fe_scavenge = yps * Fe_loc * Fe_scavenge_rate
 
@@ -3248,7 +3261,8 @@ contains
       TfuncS,             & ! temperature scaling from soft POM remin
       DECAY_CaCO3,        & ! scaling factor for dissolution of CaCO3
       DECAY_dust,         & ! scaling factor for dissolution of dust
-      DECAY_Hard            ! scaling factor for dissolution of Hard Ballast
+      DECAY_Hard,         & ! scaling factor for dissolution of Hard Ballast
+      DECAY_HardDust        ! scaling factor for dissolution of Hard dust
 
    real (r8) :: &
       decay_POC_E,        & ! scaling factor for dissolution of excess POC
@@ -3290,13 +3304,15 @@ contains
 !-----------------------------------------------------------------------
 
    if (partial_bottom_cells) then
-      DECAY_CaCO3 = exp(-DZT(:,:,k,bid) / P_CaCO3%diss)
-      DECAY_dust  = exp(-DZT(:,:,k,bid) / dust%diss)
-      DECAY_Hard  = exp(-DZT(:,:,k,bid) / 4.0e6_r8)
+      DECAY_CaCO3    = exp(-DZT(:,:,k,bid) / P_CaCO3%diss)
+      DECAY_dust     = exp(-DZT(:,:,k,bid) / dust%diss)
+      DECAY_Hard     = exp(-DZT(:,:,k,bid) / 4.0e6_r8)
+      DECAY_HardDust = exp(-DZT(:,:,k,bid) / 1.2e7_r8)
    else
-      DECAY_CaCO3 = exp(-dz(k) / P_CaCO3%diss)
-      DECAY_dust  = exp(-dz(k) / dust%diss)
-      DECAY_Hard  = exp(-dz(k) / 4.0e6_r8)
+      DECAY_CaCO3    = exp(-dz(k) / P_CaCO3%diss)
+      DECAY_dust     = exp(-dz(k) / dust%diss)
+      DECAY_Hard     = exp(-dz(k) / 4.0e6_r8)
+      DECAY_HardDust = exp(-dz(k) / 1.2e7_r8)
    endif
 
 !----------------------------------------------------------------------
@@ -3362,7 +3378,7 @@ contains
 
             dust%sflux_out(i,j,bid) = dust%sflux_in(i,j,bid) * DECAY_dust(i,j)
 
-            dust%hflux_out(i,j,bid) = dust%hflux_in(i,j,bid) * DECAY_Hard(i,j)
+            dust%hflux_out(i,j,bid) = dust%hflux_in(i,j,bid) * DECAY_HardDust(i,j)
 
 !-----------------------------------------------------------------------
 !  Compute how much POC_PROD is available for deficit reduction
@@ -3467,7 +3483,8 @@ contains
             else
                P_iron%remin(i,j,bid) = (POC%remin(i,j,bid) * &
                   (P_iron%sflux_in(i,j,bid) + P_iron%hflux_in(i,j,bid)) / &
-                  (POC%sflux_in(i,j,bid) + POC%hflux_in(i,j,bid)))
+                  (POC%sflux_in(i,j,bid) + POC%hflux_in(i,j,bid))) + &
+                  (P_iron%sflux_in(i,j,bid) * 6.0e-6_r8)
             endif
 
             P_iron%sflux_out(i,j,bid) = P_iron%sflux_in(i,j,bid) + dz_loc * &
@@ -3484,11 +3501,13 @@ contains
 !
 !  dust remin gDust = 0.035 / 55.847 * 1.0e9 = 626712.0 nmolFe
 !                      gFe     molFe     nmolFe
+!  Also add in Fe source from sediments if applicable to this cell.
 !-----------------------------------------------------------------------
 
 
             P_iron%remin(i,j,bid) = P_iron%remin(i,j,bid) &
-               + dust%remin(i,j,bid) * dust_to_Fe
+               + dust%remin(i,j,bid) * dust_to_Fe &
+               + (FESEDFLUX(i,j,k,bid) * dzr_loc)
 
 !maltrud what is up here--jkm does not have this
             P_iron%hflux_out(i,j,bid) = P_iron%hflux_in(i,j,bid)
@@ -3530,10 +3549,10 @@ contains
             P_SiO2%sflux_out(i,j,bid) = c0
             P_SiO2%hflux_out(i,j,bid) = c0
 
-            dust%remin(i,j,bid) = dust%remin(i,j,bid) + &
-               (dust%sflux_out(i,j,bid) + dust%hflux_out(i,j,bid)) * dzr_loc
-            dust%sflux_out(i,j,bid) = c0
-            dust%hflux_out(i,j,bid) = c0
+!           dust%remin(i,j,bid) = dust%remin(i,j,bid) + &
+!              (dust%sflux_out(i,j,bid) + dust%hflux_out(i,j,bid)) * dzr_loc
+!           dust%sflux_out(i,j,bid) = c0
+!           dust%hflux_out(i,j,bid) = c0
 
             POC%remin(i,j,bid) = POC%remin(i,j,bid) + &
                (POC%sflux_out(i,j,bid) + POC%hflux_out(i,j,bid)) * dzr_loc
@@ -3544,19 +3563,6 @@ contains
                (P_iron%sflux_out(i,j,bid) + P_iron%hflux_out(i,j,bid)) * dzr_loc
             P_iron%sflux_out(i,j,bid) = c0
             P_iron%hflux_out(i,j,bid) = c0
-
-!-----------------------------------------------------------------------
-!  Add diffusive iron flux if depth < 1100.0m, based on
-!  Johnson et al.1999, value of 5.0 umolFe/m2/day.
-!
-!  eco2.42 - eco2.43, 0.5 umolFe/m2/day, 5.78704e-7 nmolFe/cm2/sec.
-!  begin run eco2.45, 1.0 umolFe/m2/day,  1.1574e-6 nmolFe/cm2/sec.
-!  begin run eco2.06, 2.0 umolFe/m2/day,  2.3148e-6 nmolFe/cm2/sec
-!-----------------------------------------------------------------------
-
-            if (zt(k) < thres_fe) then
-               P_iron%remin(i,j,bid) = P_iron%remin(i,j,bid) + (fe_diff_rate * dzr_loc)
-            endif
 
          endif
 
@@ -4068,7 +4074,26 @@ contains
          enddo
       end do
 
-    endif
+   endif
+
+!-----------------------------------------------------------------------
+!  load fesedflux
+!-----------------------------------------------------------------------
+
+   allocate(FESEDFLUX(nx_block,ny_block,km,max_blocks_clinic))
+
+   call read_field(fesedflux_input%file_fmt, &
+                   fesedflux_input%filename, &
+                   fesedflux_input%file_varname, &
+                   FESEDFLUX)
+
+   do iblock=1,nblocks_clinic
+      do k = 1, km
+         where (.not. LAND_MASK(:,:,iblock) .or. k > KMT(:,:,iblock)) &
+            FESEDFLUX(:,:,k,iblock) = c0
+         FESEDFLUX(:,:,k,iblock) = FESEDFLUX(:,:,k,iblock) * fesedflux_input%scale_factor
+      enddo
+   end do
 
 !-----------------------------------------------------------------------
 !EOC
