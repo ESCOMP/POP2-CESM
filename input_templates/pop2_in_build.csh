@@ -194,7 +194,7 @@ cat >> $POP2_NMLFILE << EOF
    tavg_freq      = 1
    tavg_start_opt = 'nstep'
    tavg_start     = 0
-   tavg_infile    = '$output_h/restart.end'
+   tavg_infile    = '${output_h}restart.end'
    tavg_fmt_in    = 'nc'
    tavg_outfile   = '$output_h'
    tavg_fmt_out   = 'nc'
