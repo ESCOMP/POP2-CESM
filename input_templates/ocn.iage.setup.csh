@@ -60,10 +60,13 @@ else if ($command == namelist) then
       exit 4
    endif
 
+   set init_iage_option = $RUN_TYPE
+   if ($CONTINUE_RUN == TRUE) set init_iage_option = continue
+
    cat >> $pop_in_filename << EOF
 
 &iage_nml
-   init_iage_option = '$RUNTYPE'
+   init_iage_option = '$init_iage_option'
    init_iage_init_file = 'same_as_TS'
 /
 EOF

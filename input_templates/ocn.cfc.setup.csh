@@ -18,6 +18,14 @@ if ($#argv < 1) then
    exit 1
 endif
 
+#===============================================================================
+#  set forcing files
+#===============================================================================
+
+set pcfc_file = pcfc1112_atm_20070125.nc
+
+#===============================================================================
+
 set command = $1
 
 if ($command == set_nt) then
@@ -65,8 +73,10 @@ else if ($command == namelist) then
 #  Climate of the 20th Century IPCC run
 #===============================================================================
 
-   set init_cfc_option = $RUNTYPE
-   if ($IPCC_MODE == 1870_TO_PRESENT) then
+   set init_cfc_option = $RUN_TYPE
+   if ($CONTINUE_RUN == TRUE) set init_cfc_option = continue
+
+   if ($CCSM_IPCC == 1870_to_2000_control) then
       if ($CONTINUE_RUN == FALSE) set init_cfc_option = zero
       set model_year = 1870
       set data_year  = 1870
@@ -78,10 +88,12 @@ else if ($command == namelist) then
    cat >> $pop_in_filename << EOF
 
 &cfc_nml
-   init_cfc_option = '$init_cfc_option'
-   model_year      = $model_year
-   data_year       = $data_year
-   pcfc_file       = '$INPUT/pcfc1112_atm.nc'
+   init_cfc_option    = '$init_cfc_option'
+   init_cfc_init_file = 'same_as_TS'
+   model_year         = $model_year
+   data_year          = $data_year
+   pcfc_file          = '$INPUT/$pcfc_file'
+   cfc_formulation    = 'model'
 /
 EOF
 
@@ -103,36 +115,28 @@ else if ($command == tavg_contents) then
       exit 5
    endif
 
-   if ! { grep ATM_PRESS $tavg_contents_filename } then
-      echo "2110 'ATM_PRESS' 'Atmospheric Pressure' 'dyne/cm^2'" >> \
-         $tavg_contents_filename
-   endif
-
-   if ! { grep IFRAC $tavg_contents_filename } then
-      echo "2110 'IFRAC' 'Ice Fraction' 'cm^2/cm^2'" >> $tavg_contents_filename
-   endif
-
-   if ! { grep U10_SQR $tavg_contents_filename } then
-      echo "2110 'U10_SQR' '10m Wind Speed Squared' 'cm^2/s^2'" >> $tavg_contents_filename
-   endif
-
    cat >> $tavg_contents_filename << EOF
-2110  'STF_CFC11'  'Surface Flux of CFC-11'  'fmol/cm^2/s'
-2110  'STF_CFC12'  'Surface Flux of CFC-12'  'fmol/cm^2/s'
-3111  'CFC11'      'CFC-11'                  'fmol/cm^3'
-3111  'CFC12'      'CFC-12'                  'fmol/cm^3'
+CFC_IFRAC
+CFC_XKW
+CFC_ATM_PRESS
+STF_CFC11
+STF_CFC12
+CFC11
+CFC12
 EOF
 
 #===============================================================================
-# The following are fields computed by the CFC modules that by default are not
-# placed in the tavg file.
+# The following are fields computed by the CFC modules that are not placed in
+# the tavg file by default.
 #
-# 2110  'pCFC11'         'Atmospheric CFC-11 surface partial pressure'  'pmol/mol'
-# 2110  'pCFC12'         'Atmospheric CFC-12 surface partial pressure'  'pmol/mol'
-# 2110  'surf_sat_CFC11' 'surface saturation concentration of CFC11'    'fmol/cm^3'
-# 2110  'surf_sat_CFC12' 'surface saturation concentration of CFC12'    'fmol/cm^3'
-# 2110  'schmidt_CFC11'  'surface Schmidt number for CFC11'             '1'
-# 2110  'schmidt_CFC12'  'surface Schmidt number for CFC12'             '1'
+# pCFC11
+# pCFC12
+# CFC11_SCHMIDT
+# CFC12_SCHMIDT
+# CFC11_PV
+# CFC11_surf_sat
+# CFC12_PV
+# CFC12_surf_sat
 #===============================================================================
 
 else if ($command == prestage) then
@@ -149,7 +153,7 @@ else if ($command == prestage) then
    set res_dpt_dir   = $2
    set res_indpt_dir = $3
 
-   \cp -f $res_indpt_dir/forcing/pcfc1112_atm.nc pcfc1112_atm.nc || exit 6
+   \cp -f $res_indpt_dir/forcing/$pcfc_file . || exit 6
 
 else
 

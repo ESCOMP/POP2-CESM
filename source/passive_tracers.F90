@@ -46,11 +46,11 @@
        ecosys_set_interior,        &
        ecosys_write_restart
 
-   use cfc11_mod, only:            &
-       cfc11_tracer_cnt,           &
-       cfc11_init,                 &
-       cfc11_set_sflux,            &
-       cfc11_tavg_forcing
+   use cfc_mod, only:              &
+       cfc_tracer_cnt,             &
+       cfc_init,                   &
+       cfc_set_sflux,              &
+       cfc_tavg_forcing
 
    use iage_mod, only:             &
        iage_tracer_cnt,            &
@@ -114,10 +114,10 @@
 !-----------------------------------------------------------------------
 
    logical (kind=log_kind) ::  &
-      ecosys_on, cfc11_on, iage_on
+      ecosys_on, cfc_on, iage_on
 
    namelist /passive_tracers_on_nml/  &
-      ecosys_on, cfc11_on, iage_on
+      ecosys_on, cfc_on, iage_on
 
 !-----------------------------------------------------------------------
 !     index bounds of passive tracer module variables in TRACER
@@ -126,7 +126,7 @@
    integer (kind=int_kind) ::                       &
       ecosys_ind_begin,     ecosys_ind_end,         &
       iage_ind_begin,       iage_ind_end,           &
-      cfc11_ind_begin,      cfc11_ind_end
+      cfc_ind_begin,        cfc_ind_end
 
 !EOC
 !***********************************************************************
@@ -175,7 +175,7 @@
    call register_string('init_passive_tracers')
 
    ecosys_on    = .false.
-   cfc11_on     = .false.
+   cfc_on       = .false.
    iage_on      = .false.
 
    if (my_task == master_task) then
@@ -196,14 +196,14 @@
    endif
 
    call broadcast_scalar(ecosys_on, master_task)
-   call broadcast_scalar(cfc11_on,  master_task)
+   call broadcast_scalar(cfc_on,    master_task)
    call broadcast_scalar(iage_on,   master_task)
 
 !-----------------------------------------------------------------------
 !  check for modules that require the flux coupler
 !-----------------------------------------------------------------------
 
-   if (cfc11_on .and. .not. registry_match('lcoupled')) then
+   if (cfc_on .and. .not. registry_match('lcoupled')) then
       call exit_POP(sigAbort,'cfc module requires the flux coupler')
    end if
 
@@ -224,9 +224,9 @@
                               ecosys_ind_begin, ecosys_ind_end)
    end if
 
-   if (cfc11_on) then
-      call set_tracer_indices('CFC11', cfc11_tracer_cnt, cumulative_nt,  &
-                              cfc11_ind_begin, cfc11_ind_end)
+   if (cfc_on) then
+      call set_tracer_indices('CFC', cfc_tracer_cnt, cumulative_nt,  &
+                              cfc_ind_begin, cfc_ind_end)
    end if
 
    if (iage_on) then
@@ -253,13 +253,13 @@
    end if
 
 !-----------------------------------------------------------------------
-!  CFC11 block
+!  CFC block
 !-----------------------------------------------------------------------
 
-   if (cfc11_on) then
-      call cfc11_init(init_ts_file_fmt, read_restart_filename, &
-                      tracer_d(cfc11_ind_begin:cfc11_ind_end), &
-                      TRACER(:,:,:,cfc11_ind_begin:cfc11_ind_end,:,:))
+   if (cfc_on) then
+      call cfc_init(init_ts_file_fmt, read_restart_filename, &
+                    tracer_d(cfc_ind_begin:cfc_ind_end), &
+                    TRACER(:,:,:,cfc_ind_begin:cfc_ind_end,:,:))
    end if
 
 !-----------------------------------------------------------------------
@@ -446,7 +446,7 @@
    end if
 
 !-----------------------------------------------------------------------
-!  CFC11 does not have source-sink terms
+!  CFC does not have source-sink terms
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
@@ -535,14 +535,16 @@
    end if
 
 !-----------------------------------------------------------------------
-!  CFC11 block
+!  CFC block
 !-----------------------------------------------------------------------
 
-!  if (cfc11_on) then
-!     iage has no surface flux
-!     call cfc11_set_sflux(WIND_VEL,IFRAC,PRESS,SST,SSS,SURF_VALS,  &
-!                             STF_MODULE)
-!  end if
+   if (cfc_on) then
+      call cfc_set_sflux(U10_SQR, ICE_FRAC, PRESS,                 &
+         TRACER(:,:,1,1,curtime,:),                                &
+         TRACER(:,:,1,2,curtime,:) * salt_to_ppt,                  &
+         TRACER(:,:,1,cfc_ind_begin:cfc_ind_end,curtime,:),        &
+         STF(:,:,cfc_ind_begin:cfc_ind_end,:))
+   end if
 
 !-----------------------------------------------------------------------
 !  IAGE does not have surface fluxes
@@ -604,7 +606,7 @@
    end if
 
 !-----------------------------------------------------------------------
-!  CFC11 does not write additional restart fields
+!  CFC does not write additional restart fields
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
@@ -642,7 +644,7 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-!  CFC11 does not reset values
+!  CFC does not reset values
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
@@ -770,11 +772,11 @@
    end if
 
 !-----------------------------------------------------------------------
-!  CFC11 block
+!  CFC block
 !-----------------------------------------------------------------------
 
-   if (cfc11_on) then
-      call cfc11_tavg_forcing
+   if (cfc_on) then
+      call cfc_tavg_forcing
    end if
 
 !-----------------------------------------------------------------------
@@ -958,7 +960,7 @@
    endif
 
 !-----------------------------------------------------------------------
-!  CFC11 does not use virtual fluxes
+!  CFC does not use virtual fluxes
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------

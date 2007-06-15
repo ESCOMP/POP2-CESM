@@ -48,7 +48,7 @@ else
 
 endif
 
-if ($CONTINUE_RUN == FALSE) then
+if (($RUN_TYPE == startup) && ($CONTINUE_RUN == FALSE)) then
    set IC_file_nml = $INPUT/$IC_file
 else
    set IC_file_nml = same_as_TS
@@ -114,10 +114,13 @@ else if ($command == namelist) then
       set use_nml_surf_vals = .false.
    endif
 
+   set init_ecosys_option = $RUN_TYPE
+   if ($CONTINUE_RUN == TRUE) set init_ecosys_option = continue
+
    cat >> $pop_in_filename << EOF
 
 &ecosys_nml
-   init_ecosys_option              = '$RUNTYPE'
+   init_ecosys_option              = '$init_ecosys_option'
    init_ecosys_init_file           = '$IC_file_nml'
    init_ecosys_init_file_fmt       = 'nc'
    tracer_init_ext(1)%mod_varname = 'ALK'
@@ -183,19 +186,10 @@ else if ($command == tavg_contents) then
       exit 5
    endif
 
-   if ! { grep ATM_PRESS $tavg_contents_filename } then
-      echo ATM_PRESS >> $tavg_contents_filename
-   endif
-
-   if ! { grep IFRAC $tavg_contents_filename } then
-      echo IFRAC >> $tavg_contents_filename
-   endif
-
-   if ! { grep U10_SQR $tavg_contents_filename } then
-      echo U10_SQR >> $tavg_contents_filename
-   endif
-
    cat >> $tavg_contents_filename << EOF
+ECOSYS_ATM_PRESS
+ECOSYS_IFRAC
+ECOSYS_XKW
 SCHMIDT_O2
 SCHMIDT_CO2
 IRON_FLUX

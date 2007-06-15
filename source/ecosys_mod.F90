@@ -279,30 +279,33 @@ module ecosys_mod
       FESEDFLUX
 
    character(char_len) :: &
-      nutr_rest_file        ! file containing nutrient fields
+      nutr_rest_file               ! file containing nutrient fields
 
 !maltrud variable restoring
    logical (log_kind) :: &
-      lnutr_variable_restore  ! geographically varying nutrient restoring
+      lnutr_variable_restore       ! geographically varying nutrient restoring
 
    character(char_len) :: &
-      nutr_variable_rest_file,      &! file containing variable restoring info
-      nutr_variable_rest_file_fmt    ! format of file containing variable restoring info
+      nutr_variable_rest_file,   & ! file containing variable restoring info
+      nutr_variable_rest_file_fmt  ! format of file containing variable restoring info
 
    real (r8), dimension(:,:,:), allocatable, target :: &
-      NUTR_RESTORE_RTAU  ! inverse restoring timescale for variable
-                         ! interior restoring
+      NUTR_RESTORE_RTAU            ! inverse restoring timescale for variable
+                                   ! interior restoring
 
    integer (int_kind), dimension(:,:,:), allocatable :: &
-      NUTR_RESTORE_MAX_LEVEL ! maximum level for applying variable
-                             ! interior restoring
+      NUTR_RESTORE_MAX_LEVEL       ! maximum level for applying variable
+                                   ! interior restoring
+
+   real (r8), dimension(:,:,:,:), allocatable :: &
+      INTERP_WORK                  ! temp array for interpolate_forcing output
 
    type(forcing_monthly_every_ts) :: &
-      dust_flux,              & ! surface dust flux
-      iron_flux,              & ! iron component of surface dust flux
-      fice_file,              & ! ice fraction, if read from file
-      xkw_file,               & ! a * wind-speed ** 2, if read from file
-      ap_file                   ! atmoshperic pressure, if read from file
+      dust_flux,                 & ! surface dust flux
+      iron_flux,                 & ! iron component of surface dust flux
+      fice_file,                 & ! ice fraction, if read from file
+      xkw_file,                  & ! a * wind-speed ** 2, if read from file
+      ap_file                      ! atmoshperic pressure, if read from file
 
 !-----------------------------------------------------------------------
 !  derived type for implicit handling of sinking particulate matter
@@ -329,9 +332,9 @@ module ecosys_mod
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      tavg_FICE,         &! tavg id for ice fraction
-      tavg_XKW,          &! tavg id for xkw
-      tavg_ATM_PRESS,    &! tavg id for atmospheric pressure
+      tavg_ECOSYS_IFRAC, &! tavg id for ice fraction
+      tavg_ECOSYS_XKW,   &! tavg id for xkw
+      tavg_ECOSYS_ATM_PRESS, &! tavg id for atmospheric pressure
       tavg_PV_O2,        &! tavg id for o2 piston velocity
       tavg_SCHMIDT_O2,   &! tavg id for O2 schmidt number
       tavg_O2SAT,        &! tavg id for O2 saturation
@@ -343,7 +346,6 @@ module ecosys_mod
       tavg_SCHMIDT_CO2,  &! tavg id for co2 schmidt number
       tavg_DIC_GAS_FLUX, &! tavg id for dic flux
       tavg_PH,           &! tavg id for surface pH
-      tavg_U10_SQR,      &! tavg id for wind speed^2
       tavg_ATM_CO2,      &! tavg id for atmospheric CO2
       tavg_IRON_FLUX,    &! tavg id for dust flux
       tavg_DUST_FLUX      ! tavg id for dust flux
@@ -1242,20 +1244,20 @@ contains
 
    var_cnt = 0
 
-   call define_tavg_field(tavg_FICE,'IFRAC',2,                         &
-                          long_name='Ice Fraction',                    &
+   call define_tavg_field(tavg_ECOSYS_IFRAC,'ECOSYS_IFRAC',2,          &
+                          long_name='Ice Fraction for ecosys fluxes',  &
                           units='fraction', grid_loc='2110',           &
                           coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
-   call define_tavg_field(tavg_XKW,'XKW',2,                            &
-                          long_name='XKW',                             &
+   call define_tavg_field(tavg_ECOSYS_XKW,'ECOSYS_XKW',2,              &
+                          long_name='XKW for ecosys fluxes',           &
                           units='cm/s', grid_loc='2110',               &
                           coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
-   call define_tavg_field(tavg_ATM_PRESS,'ATM_PRESS',2,                &
-                          long_name='Atmospheric Pressure',            &
+   call define_tavg_field(tavg_ECOSYS_ATM_PRESS,'ECOSYS_ATM_PRESS',2,  &
+                          long_name='Atmospheric Pressure for ecosys fluxes', &
                           units='atmospheres', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
@@ -1323,12 +1325,6 @@ contains
    call define_tavg_field(tavg_PH,'PH',2,                              &
                           long_name='Surface pH',                      &
                           units='none', grid_loc='2110',               &
-                          coordinates='TLONG TLAT time')
-   var_cnt = var_cnt+1
-
-   call define_tavg_field(tavg_U10_SQR,'U10_SQR',2,                    &
-                          long_name='10m Wind Speed Squared',          &
-                          units='cm^2/s^2', grid_loc='2110',           &
                           coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
@@ -3670,6 +3666,9 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
+   logical (log_kind) :: &
+      luse_INTERP_WORK     ! does INTERP_WORK need to be allocated
+
    integer (int_kind) :: &
       n,                 & ! index for looping over tracers
       iblock               ! index for looping over blocks
@@ -3680,11 +3679,17 @@ contains
       WORK_READ            ! temporary space to read in fields
 
 !-----------------------------------------------------------------------
+
+   luse_INTERP_WORK = .false.
+
+!-----------------------------------------------------------------------
 !  read gas flux forcing (if required)
 !-----------------------------------------------------------------------
 
    if ((lflux_gas_o2 .or. lflux_gas_co2) .and. &
        gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
+
+      luse_INTERP_WORK = .true.
 
 !-----------------------------------------------------------------------
 !  first, read ice file
@@ -3785,6 +3790,8 @@ contains
    if (trim(dust_flux%input%filename) /= 'none' .and. &
        trim(dust_flux%input%filename) /= 'unknown') then
 
+      luse_INTERP_WORK = .true.
+
       allocate(dust_flux%DATA(nx_block,ny_block,max_blocks_clinic,1,12))
       if (trim(dust_flux%input%filename) == 'unknown') &
          dust_flux%input%filename = gas_flux_forcing_file
@@ -3823,6 +3830,8 @@ contains
    if (trim(iron_flux%input%filename) /= 'none' .and. &
        trim(iron_flux%input%filename) /= 'unknown') then
 
+      luse_INTERP_WORK = .true.
+
       allocate(iron_flux%DATA(nx_block,ny_block,max_blocks_clinic,1,12))
       if (trim(iron_flux%input%filename) == 'unknown') &
          iron_flux%input%filename = gas_flux_forcing_file
@@ -3853,6 +3862,13 @@ contains
    else
       iron_flux%has_data = .false.
    endif
+
+!-----------------------------------------------------------------------
+!  allocate space for interpolate_forcing
+!-----------------------------------------------------------------------
+
+   if (luse_INTERP_WORK) &
+      allocate(INTERP_WORK(nx_block,ny_block,max_blocks_clinic,1))
 
 !-----------------------------------------------------------------------
 !  load iron PATCH flux fields (if required)
@@ -4110,12 +4126,6 @@ contains
 ! !DESCRIPTION:
 !  Compute surface fluxes for ecosys tracer module.
 !
-!  NOTE that variables are a mish-mash of model/non-model units
-!  U10_SQR should be (cm/s)**2
-!  XKW should be cm/s
-!  salinity should be psu
-!  pressure should be dyne/cm**2 (NOT atmospheres or Pascals)
-!
 ! !REVISION HISTORY:
 !  same as module
 
@@ -4161,8 +4171,8 @@ contains
       i,j, iblock     ! loop indices
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
-      FICE_USED,    & ! used ice fraction (non-dimensional)
-      XKW,          & ! portion of piston velocity (cm/s)
+      IFRAC_USED,   & ! used ice fraction (non-dimensional)
+      XKW_USED,     & ! portion of piston velocity (cm/s)
       AP_USED,      & ! used atm pressure (converted from dyne/cm**2 to atm)
       IRON_FLUX_IN    ! iron flux
 
@@ -4187,15 +4197,12 @@ contains
    character (char_len) :: &
       tracer_data_label          ! label for what is being updated
 
-   character (char_len), dimension(:), allocatable :: &
+   character (char_len), dimension(1) :: &
       tracer_data_names          ! short names for input data fields
 
-   integer (int_kind), dimension(:), allocatable :: &
+   integer (int_kind), dimension(1) :: &
       tracer_bndy_loc,          &! location and field type for ghost
       tracer_bndy_type           !    cell updates
-
-   real (r8), dimension(:,:,:,:), allocatable :: &
-      TEMP_DATA           ! temp array for reading Tracer data
 
    real (r8), dimension(nx_block,ny_block) :: &
       WORK1, WORK2 ! temporaries for averages
@@ -4207,10 +4214,10 @@ contains
 !-----------------------------------------------------------------------
 
    real (r8), parameter :: &
-      a = 8.6e-9_r8,      & ! a = 0.31 cm/hr s^2/m^2 in (s/cm)
-      phlo_init = 5.0_r8, & ! low bound for ph for no prev soln
-      phhi_init = 9.0_r8, & ! high bound for ph for no prev soln
-      del_ph = 0.25_r8      ! delta-ph for prev soln
+      xkw_coeff = 8.6e-9_r8,  & ! a = 0.31 cm/hr s^2/m^2 in (s/cm)
+      phlo_init = 5.0_r8,     & ! low bound for ph for no prev soln
+      phhi_init = 9.0_r8,     & ! high bound for ph for no prev soln
+      del_ph = 0.25_r8          ! delta-ph for prev soln
 
    call timer_start(ecosys_sflux_timer)
 
@@ -4252,9 +4259,6 @@ contains
    if ((lflux_gas_o2 .or. lflux_gas_co2) .and. &
         gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
       if (thour00 >= fice_file%data_update) then
-         allocate(tracer_data_names(1), &
-                  tracer_bndy_loc  (1), &
-                  tracer_bndy_type (1))
          tracer_data_names = fice_file%input%file_varname
          tracer_bndy_loc   = field_loc_center
          tracer_bndy_type  = field_type_scalar
@@ -4267,24 +4271,16 @@ contains
             tracer_data_label,            tracer_data_names,        &
             tracer_bndy_loc,              tracer_bndy_type,         &
             fice_file%filename,           fice_file%input%file_fmt)
-         deallocate(tracer_data_names, &
-                    tracer_bndy_loc  , &
-                    tracer_bndy_type )
       endif
-      allocate(TEMP_DATA(nx_block,ny_block,max_blocks_clinic,1))
-      call interpolate_forcing(TEMP_DATA, &
+      call interpolate_forcing(INTERP_WORK, &
          fice_file%DATA(:,:,:,:,1:12), &
          fice_file%data_time,         fice_file%interp_type, &
          fice_file%data_time_min_loc, fice_file%interp_freq, &
          fice_file%interp_inc,        fice_file%interp_next, &
          fice_file%interp_last,       0)
-      FICE_USED = TEMP_DATA(:,:,:,1)
-      deallocate(TEMP_DATA)
+      IFRAC_USED = INTERP_WORK(:,:,:,1)
 
       if (thour00 >= xkw_file%data_update) then
-         allocate(tracer_data_names(1), &
-                  tracer_bndy_loc  (1), &
-                  tracer_bndy_type (1))
          tracer_data_names = xkw_file%input%file_varname
          tracer_bndy_loc   = field_loc_center
          tracer_bndy_type  = field_type_scalar
@@ -4297,24 +4293,16 @@ contains
             tracer_data_label,           tracer_data_names,       &
             tracer_bndy_loc,             tracer_bndy_type,        &
             xkw_file%filename,           xkw_file%input%file_fmt)
-         deallocate(tracer_data_names, &
-                    tracer_bndy_loc  , &
-                    tracer_bndy_type )
       endif
-      allocate(TEMP_DATA(nx_block,ny_block,max_blocks_clinic,1))
-      call interpolate_forcing(TEMP_DATA,     &
+      call interpolate_forcing(INTERP_WORK,     &
          xkw_file%DATA(:,:,:,:,1:12), &
          xkw_file%data_time,         xkw_file%interp_type, &
          xkw_file%data_time_min_loc, xkw_file%interp_freq, &
          xkw_file%interp_inc,        xkw_file%interp_next, &
          xkw_file%interp_last,       0)
-      XKW = TEMP_DATA(:,:,:,1)
-      deallocate(TEMP_DATA)
+      XKW_USED = INTERP_WORK(:,:,:,1)
 
       if (thour00 >= ap_file%data_update) then
-         allocate(tracer_data_names(1), &
-                  tracer_bndy_loc  (1), &
-                  tracer_bndy_type (1))
          tracer_data_names = ap_file%input%file_varname
          tracer_bndy_loc   = field_loc_center
          tracer_bndy_type  = field_type_scalar
@@ -4327,32 +4315,14 @@ contains
             tracer_data_label,          tracer_data_names,      &
             tracer_bndy_loc,            tracer_bndy_type,       &
             ap_file%filename,           ap_file%input%file_fmt)
-         deallocate(tracer_data_names, &
-                    tracer_bndy_loc  , &
-                    tracer_bndy_type )
       endif
-      allocate(TEMP_DATA(nx_block,ny_block,max_blocks_clinic,1))
-      call interpolate_forcing(TEMP_DATA, &
+      call interpolate_forcing(INTERP_WORK, &
          ap_file%DATA(:,:,:,:,1:12), &
          ap_file%data_time,         ap_file%interp_type, &
          ap_file%data_time_min_loc, ap_file%interp_freq, &
          ap_file%interp_inc,        ap_file%interp_next, &
          ap_file%interp_last,       0)
-      AP_USED = TEMP_DATA(:,:,:,1)
-      deallocate(TEMP_DATA)
-
-
-   elseif ((lflux_gas_o2 .or. lflux_gas_co2) .and. &
-           gas_flux_forcing_iopt == gas_flux_forcing_iopt_model) then
-
-      !$OMP PARALLEL DO PRIVATE(iblock)
-      do iblock = 1, nblocks_clinic
-
-         FICE_USED(:,:,iblock) = IFRAC(:,:,iblock)
-         XKW(:,:,iblock) = a * U10_SQR(:,:,iblock) !  U10_SQR is (cm/s)**2, xkw is cm/s
-         AP_USED(:,:,iblock) = PRESS(:,:,iblock)
-      enddo
-      !$OMP END PARALLEL DO
+      AP_USED = INTERP_WORK(:,:,:,1)
 
    endif
 
@@ -4367,6 +4337,25 @@ contains
       do iblock = 1, nblocks_clinic
 
 !-----------------------------------------------------------------------
+!  Apply OCMIP ice fraction mask when input is from a file.
+!-----------------------------------------------------------------------
+
+         if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
+            where (IFRAC_USED(:,:,iblock) < 0.2000_r8) &
+               IFRAC_USED(:,:,iblock) = 0.2000_r8
+            where (IFRAC_USED(:,:,iblock) > 0.9999_r8) &
+               IFRAC_USED(:,:,iblock) = 0.9999_r8
+         endif
+
+         if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_model) then
+            IFRAC_USED(:,:,iblock) = IFRAC(:,:,iblock)
+            where (IFRAC_USED(:,:,iblock) < c0) IFRAC_USED(:,:,iblock) = c0
+            where (IFRAC_USED(:,:,iblock) > c1) IFRAC_USED(:,:,iblock) = c1
+            XKW_USED(:,:,iblock) = xkw_coeff * U10_SQR(:,:,iblock)
+            AP_USED(:,:,iblock) = PRESS(:,:,iblock)
+         endif
+
+!-----------------------------------------------------------------------
 !  assume PRESS is in cgs units (dyne/cm**2) since that is what is
 !    required for pressure forcing in barotropic
 !  want units to be atmospheres
@@ -4376,21 +4365,15 @@ contains
 
          AP_USED(:,:,iblock) = PRESS(:,:,iblock) / 101.325e+4_r8
 
+         ECO_SFLUX_TAVG(:,:,1,iblock) = IFRAC_USED(:,:,iblock)
+         ECO_SFLUX_TAVG(:,:,2,iblock) = XKW_USED(:,:,iblock)
+         ECO_SFLUX_TAVG(:,:,3,iblock) = AP_USED(:,:,iblock)
+
 !-----------------------------------------------------------------------
 !  Compute XKW_ICE. XKW is zero over land, so XKW_ICE is too.
 !-----------------------------------------------------------------------
 
-         XKW_ICE = XKW(:,:,iblock)
-         where (FICE_USED(:,:,iblock) > c0 .and. FICE_USED(:,:,iblock) < c1)
-            XKW_ICE = (c1 - FICE_USED(:,:,iblock)) * XKW_ICE
-         end where
-         where (FICE_USED(:,:,iblock) >= c1)
-            XKW_ICE = c0
-         end where
-
-         ECO_SFLUX_TAVG(:,:,1,iblock) = FICE_USED(:,:,iblock)
-         ECO_SFLUX_TAVG(:,:,2,iblock) = XKW_ICE(:,:)
-         ECO_SFLUX_TAVG(:,:,3,iblock) = AP_USED(:,:,iblock)
+         XKW_ICE = (c1 - IFRAC_USED(:,:,iblock)) * XKW_USED(:,:,iblock)
 
 !-----------------------------------------------------------------------
 !  compute O2 flux
@@ -4486,8 +4469,7 @@ contains
             ECO_SFLUX_TAVG(:,:,12,iblock) = SCHMIDT_USED
             ECO_SFLUX_TAVG(:,:,13,iblock) = FLUX
             ECO_SFLUX_TAVG(:,:,14,iblock) = PH_PREV(:,:,iblock)
-            ECO_SFLUX_TAVG(:,:,15,iblock) = U10_SQR(:,:,iblock)
-            ECO_SFLUX_TAVG(:,:,16,iblock) = XCO2
+            ECO_SFLUX_TAVG(:,:,15,iblock) = XCO2
 
          endif  !  lflux_gas_co2
 
@@ -4502,9 +4484,6 @@ contains
 
    if (iron_flux%has_data) then
       if (thour00 >= iron_flux%data_update) then
-         allocate(tracer_data_names(1), &
-                  tracer_bndy_loc  (1), &
-                  tracer_bndy_type (1))
          tracer_data_names = iron_flux%input%file_varname
          tracer_bndy_loc   = field_loc_center
          tracer_bndy_type  = field_type_scalar
@@ -4517,23 +4496,18 @@ contains
             tracer_data_label,            tracer_data_names,        &
             tracer_bndy_loc,              tracer_bndy_type,         &
             iron_flux%filename,           iron_flux%input%file_fmt)
-         deallocate(tracer_data_names, &
-                    tracer_bndy_loc  , &
-                    tracer_bndy_type )
       endif
-      allocate(TEMP_DATA(nx_block,ny_block,max_blocks_clinic,1))
-      call interpolate_forcing(TEMP_DATA,     &
+      call interpolate_forcing(INTERP_WORK,     &
          iron_flux%DATA(:,:,:,:,1:12), &
          iron_flux%data_time,         iron_flux%interp_type, &
          iron_flux%data_time_min_loc, iron_flux%interp_freq, &
          iron_flux%interp_inc,        iron_flux%interp_next, &
          iron_flux%interp_last,       0)
       if (liron_patch .and. imonth == iron_patch_month) then
-         IRON_FLUX_IN = TEMP_DATA(:,:,:,1) + IRON_PATCH_FLUX
+         IRON_FLUX_IN = INTERP_WORK(:,:,:,1) + IRON_PATCH_FLUX
       else
-         IRON_FLUX_IN = TEMP_DATA(:,:,:,1)
+         IRON_FLUX_IN = INTERP_WORK(:,:,:,1)
       endif
-      deallocate(TEMP_DATA)
    else
       IRON_FLUX_IN = c0
    endif
@@ -4544,9 +4518,6 @@ contains
 
    if (dust_flux%has_data) then
       if (thour00 >= dust_flux%data_update) then
-         allocate(tracer_data_names(1), &
-                  tracer_bndy_loc  (1), &
-                  tracer_bndy_type (1))
          tracer_data_names = dust_flux%input%file_varname
          tracer_bndy_loc   = field_loc_center
          tracer_bndy_type  = field_type_scalar
@@ -4559,20 +4530,14 @@ contains
             tracer_data_label,            tracer_data_names,        &
             tracer_bndy_loc,              tracer_bndy_type,         &
             dust_flux%filename,           dust_flux%input%file_fmt)
-         deallocate(tracer_data_names, &
-                    tracer_bndy_loc  , &
-                    tracer_bndy_type )
       endif
-      allocate(TEMP_DATA(nx_block,ny_block,max_blocks_clinic,1))
-      call interpolate_forcing(TEMP_DATA, &
+      call interpolate_forcing(INTERP_WORK, &
          dust_flux%DATA(:,:,:,:,1:12),    &
          dust_flux%data_time,         dust_flux%interp_type, &
          dust_flux%data_time_min_loc, dust_flux%interp_freq, &
          dust_flux%interp_inc,        dust_flux%interp_next, &
          dust_flux%interp_last,       0)
-      dust_FLUX_IN = TEMP_DATA(:,:,:,1)
-
-      deallocate(TEMP_DATA)
+      dust_FLUX_IN = INTERP_WORK(:,:,:,1)
 
 !-----------------------------------------------------------------------
 !  Reduce surface dust flux due to assumed instant surface dissolution
@@ -4832,17 +4797,17 @@ contains
 !  now do components of flux calculations saved in hack array
 !-----------------------------------------------------------------------
 
-      if (tavg_requested(tavg_FICE)) then
+      if (tavg_requested(tavg_ECOSYS_IFRAC)) then
          call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,1,iblock),  &
-                                    tavg_FICE,iblock,1)
+                                    tavg_ECOSYS_IFRAC,iblock,1)
       endif
-      if (tavg_requested(tavg_XKW)) then
+      if (tavg_requested(tavg_ECOSYS_XKW)) then
          call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,2,iblock),  &
-                                    tavg_XKW,iblock,1)
+                                    tavg_ECOSYS_XKW,iblock,1)
       endif
-      if (tavg_requested(tavg_ATM_PRESS)) then
+      if (tavg_requested(tavg_ECOSYS_ATM_PRESS)) then
          call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,3,iblock),  &
-                                    tavg_ATM_PRESS,iblock,1)
+                                    tavg_ECOSYS_ATM_PRESS,iblock,1)
       endif
       if (tavg_requested(tavg_PV_O2)) then
          call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,4,iblock),  &
@@ -4888,12 +4853,8 @@ contains
          call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,14,iblock),  &
                                     tavg_PH,iblock,1)
       endif
-      if (tavg_requested(tavg_U10_SQR)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,15,iblock),  &
-                                    tavg_U10_SQR,iblock,1)
-      endif
       if (tavg_requested(tavg_ATM_CO2)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,16,iblock),  &
+         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,15,iblock),  &
                                     tavg_ATM_CO2,iblock,1)
       endif
 
