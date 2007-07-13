@@ -417,15 +417,15 @@ EOF
 #  hmix_gm_nml
 #--------------------------------------------------------------------------
 
-set kappa_isop_choice = constant
-set kappa_thic_choice = constant
+set kappa_isop_choice = bfre
+set kappa_thic_choice = bfre
 
 if ( ${OCN_GRID} == gx3v5 || ${OCN_GRID} == gx3v6) then
  if ($kappa_isop_choice == 'constant' && $kappa_thic_choice == 'constant') then 
    set ah_gm_value    = 0.8e7
    set ah_bolus_value = 0.8e7
    set ah_bkg_srfbl   = 0.8e7
- else if ($kappa_isop_choice == 'bfre`' && $kappa_thic_choice == 'bfre`') then 
+ else if ($kappa_isop_choice == 'bfre' && $kappa_thic_choice == 'bfre') then 
    set ah_gm_value    = 4.0e7
    set ah_bolus_value = 4.0e7
    set ah_bkg_srfbl   = 4.0e7

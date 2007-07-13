@@ -459,6 +459,11 @@
       nu,                &! i/o unit number
       nm                  ! month index
 
+   logical (log_kind)   ::  &
+      last_step, error_code ! stepsize error testing
+
+   character (char_len) ::  &
+      stepsize_string, message_string ! last step/error condition reporting string
 !-----------------------------------------------------------------------
 !
 !  namelist input
@@ -664,43 +669,73 @@
 
    if (tmix_iopt  == tmix_avgfit) then
  
-      !*** determine the number of full, half, and total number of
-      !*** steps in each interval. an interval is typically one day,
-      !*** unless fit_freq is greater than one (eg, coupling 
-      !*** frequency > 1x/day)
+     !-----------------------------------------------------------------
+     !*** determine the number of full, half, and total number of
+     !*** steps in each interval. 
+     !*** fit_freq = 1 ==> coupling interval is one day
+     !*** fit_freq > 1 ==> coupling every day/fit_freq
+     !*** fit_freq < 1 ==> coupling every abs(fit_freq)*day  (not supported)
+     !-----------------------------------------------------------------
+   
+     !*** small values of time_mix_freq are not supported
 
-      nsteps_per_day         = steps_per_day
-      fullsteps_per_interval = nsteps_per_day/fit_freq
-      if (fullsteps_per_interval < 1) fullsteps_per_interval = 1
-      halfsteps_per_interval = 1 + & 
-                               nsteps_per_day/(fit_freq*time_mix_freq)
-      nsteps_per_interval    = fullsteps_per_interval + &
-                               halfsteps_per_interval
- 
-      !*** is an adjustment to the number of half and full steps in
-      !*** each interval needed?
- 
-      if ((fullsteps_per_interval/time_mix_freq) <  &  
-          (nsteps_per_interval   /time_mix_freq)    ) then
-         halfsteps_per_interval = halfsteps_per_interval + 1
-         nsteps_per_interval    = nsteps_per_interval    + 1
-      endif
- 
-      !*** determine the number of half, full, and total steps in
-      !*** each day
+     if (time_mix_freq <= 3) then
+       call document ('init_time1', &
+                      'unsupported time_mix_freq value: ', time_mix_freq)
+       call exit_POP (sigAbort,'time_mix_freq must be > 3')
+     endif
 
-      fullsteps_per_day      = fit_freq*fullsteps_per_interval
-      halfsteps_per_day      = fit_freq*halfsteps_per_interval
-      nsteps_per_day         = fullsteps_per_day + halfsteps_per_day
- 
-      !*** compute modified dtt value
+     nsteps_per_day         = steps_per_day
+     fullsteps_per_interval = nsteps_per_day/fit_freq
 
-      dtt = seconds_in_day/(fullsteps_per_day + 0.5*halfsteps_per_day)
-      steps_per_day  = seconds_in_day/dtt
+     !*** require at least one full step per interval
+
+     if (fullsteps_per_interval < 1) fullsteps_per_interval = 1
+
+     halfsteps_per_interval = (time_mix_freq +fullsteps_per_interval)/  &
+                              (time_mix_freq-1)
+     nsteps_per_interval    = fullsteps_per_interval +  halfsteps_per_interval
+
+     !*** do not allow last timestep in interval to be a half step
+
+     if (mod(nsteps_per_interval,time_mix_freq) == 0) then
+      fullsteps_per_interval = fullsteps_per_interval + 1
+      halfsteps_per_interval = (time_mix_freq +fullsteps_per_interval)/ &
+                               (time_mix_freq-1)
+      nsteps_per_interval    = fullsteps_per_interval +  halfsteps_per_interval
+        call document ('init_time1',   &
+       'fullsteps_per_interval was adjusted to avoid ending interval on half step')
+     endif
+
+     !*** do not allow last timestep in interval to be a half step -- 
+     !*** a special case
+
+     if (fullsteps_per_interval == 1 .and. halfsteps_per_interval == 1) then
+        fullsteps_per_interval = fullsteps_per_interval + 1
+        nsteps_per_interval    = fullsteps_per_interval +  halfsteps_per_interval
+        call document ('init_time1',   &
+       'fullsteps_per_interval was adjusted to avoid ending interval on half step')
+     endif
  
+     !*** determine the number of half, full, and total steps in
+     !*** each day
+
+     fullsteps_per_day = fit_freq*fullsteps_per_interval
+     halfsteps_per_day = fit_freq*halfsteps_per_interval
+     nsteps_per_day    = fullsteps_per_day + halfsteps_per_day
+
+     !*** compute modified dtt value
+
+     dtt = seconds_in_day/(fullsteps_per_day + 0.5*halfsteps_per_day)
+     steps_per_day  = seconds_in_day/dtt
+
+     !***  test and document tmix_avgfit timestep size and time-stepping logic
+
+     call test_timestep
    else
-      nsteps_per_interval = steps_per_day
-   endif
+     nsteps_per_interval = steps_per_day
+   endif ! tmix_avgfit
+
 
    dtt_input = dtt
    dtp       = dtt
@@ -807,6 +842,173 @@
 !EOC
 
  end subroutine init_time1
+
+!***********************************************************************
+!BOP
+! !IROUTINE: test_timestep
+! !INTERFACE:
+
+ subroutine test_timestep
+
+! !DESCRIPTION:
+!  Tests the timestep computations for the avgfit option. Documents
+!  the full and half steps taken for one full day.
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+   integer (int_kind) :: &
+      nfit,nn             ! dummy indices
+
+   logical (log_kind)   ::  &
+      last_step, error_code ! stepsize error testing
+
+   character (char_len) ::  &
+      stepsize_string, message_string ! last step/error condition reporting string
+
+!-----------------------------------------------------------------------
+!
+!  initialize nstep and seconds counters
+!
+!-----------------------------------------------------------------------
+    nsteps_this_interval = 0
+    nsteps_total = 0
+    seconds_this_day = c0
+    seconds_this_day_next = c0
+ 
+!-----------------------------------------------------------------------
+!
+!  document avgfit options
+!
+!-----------------------------------------------------------------------
+    nsteps_this_interval = 0
+    if (my_task == master_task) then
+      write(stdout,blank_fmt) 
+      write(stdout,*) 'The following information documents the time-step '
+      write(stdout,*) 'distribution for one full model day. '
+      write(stdout,blank_fmt) 
+      write(stdout,1100) ' time_mix_freq           ', time_mix_freq
+      if (fit_freq == 1) then
+        write(stdout,1100) ' fullsteps_per_day       ', fullsteps_per_day
+        write(stdout,1100) ' halfsteps_per_day       ', halfsteps_per_day
+        write(stdout,1100) ' nsteps_per_day          ', nsteps_per_day
+      else
+        write(stdout,1100) ' intervals per day       ', fit_freq
+        write(stdout,1100) ' fullsteps_per_interval  ', fullsteps_per_interval
+        write(stdout,1100) ' halfsteps_per_interval  ', halfsteps_per_interval
+        write(stdout,1100) ' nsteps_per_interval     ', nsteps_per_interval
+        write(stdout,blank_fmt) 
+        write(stdout,1100) ' fullsteps_per_day       ', fullsteps_per_day    
+        write(stdout,1100) ' halfsteps_per_day       ', halfsteps_per_day    
+        write(stdout,1100) ' nsteps_per_day          ', nsteps_per_day
+      endif
+      write(stdout,1101) ! write column header information
+    endif
+
+!-----------------------------------------------------------------------
+!
+!  cycle through one simulated day, documenting each full/half timestep
+!    and testing the last timestep of the interval for correctness
+!
+!-----------------------------------------------------------------------
+    do nfit = 1, fit_freq
+    do nn = 1, nsteps_per_interval
+
+      call reset_switches
+
+      nsteps_total = nsteps_total + 1
+      nsteps_this_interval = nsteps_this_interval + 1
+      if (nsteps_this_interval > nsteps_per_interval) nsteps_this_interval = 1
+ 
+      call set_switches
+
+      if (avg_ts) then
+        stepsize = p5*dtt
+      else
+        stepsize = dtt
+      endif
+
+      if (nsteps_total == 1) then
+         seconds_this_day = seconds_this_day + stepsize
+      else
+         seconds_this_day = seconds_this_day_next
+      endif
+
+      if (avg_ts_next) then
+        stepsize_next = p5*dtt
+      else
+        stepsize_next = dtt
+      endif
+
+      seconds_this_day_next = seconds_this_day + stepsize_next 
+
+      !*** label last step 
+      if (nn == nsteps_per_interval ) then
+        last_step = .true.
+        write(message_string,'(a,i3)')  '<-- LAST STEP in coupling interval ', nfit
+        if (nfit == fit_freq) message_string = '<-- LAST STEP in day'
+      else
+        last_step = .false.
+        message_string = ' '
+      endif
+
+      !*** label full and half steps
+      if (avg_ts) then
+        stepsize_string = 'H'
+      else
+        stepsize_string = 'F'
+      endif
+
+      !*** flag any errors
+      error_code = .false.
+      if (last_step) then
+        if (avg_ts) error_code = .true.
+        if (seconds_this_day > nfit*86400.0_r8/fit_freq + 0.0000001_r8 .or.  & 
+            seconds_this_day < nfit*86400.0_r8/fit_freq - 0.0000001_r8)      &
+            error_code = .true.
+      endif
+
+      if (error_code) message_string = trim(message_string)//' -- ERROR!'
+       
+      if (my_task == master_task) then 
+        write(stdout,1102) nsteps_total, trim(stepsize_string), seconds_this_day,   &
+                           trim(message_string)
+         
+        if (last_step .and. nfit == fit_freq) then
+          write(stdout,*) ' '
+          call shr_sys_flush(stdout)
+        endif
+      endif ! master_task
+
+     !*** error abort
+     if (error_code) call exit_POP(sigAbort, 'error in timestep-size computation')
+        
+    enddo ! nn
+    enddo ! nfit
+
+      
+!-----------------------------------------------------------------------
+!
+!  reset nstep and seconds counters
+!
+!-----------------------------------------------------------------------
+    nsteps_this_interval = 0
+    nsteps_total = 0
+    seconds_this_day = c0
+    seconds_this_day_next = c0
+
+1100 format (1x, a, ' = ', i7)
+1101 format (/,5x, 'Step  ', 3x,'Full/', 8x,'Time in',/, &
+               5x, 'Number', 3x,'Half ', 8x,'Seconds'/)
+1102 format (1x, i6, 8x,a, F25.15:,1x,a)
+ end subroutine test_timestep
 
 !***********************************************************************
 !BOP
@@ -4321,7 +4523,7 @@
       out_fmt7 =                                                     &
 "('Averaging time steps at the 2nd and ',i5,a2,' step of every day or coupled interval ')",&
       out_fmt8 = "('Surface ',a10,' time step = ',1pe12.6, ' seconds')",&
-      out_fmt9 = "('There are ', i3, a6,' steps each day')"
+      out_fmt9 = "('There are ', i6, a6,' steps each day')"
 
 !-----------------------------------------------------------------------
 !
@@ -4486,7 +4688,7 @@
  
             do nn = 3, nsteps_per_interval
                if (mod(nn,time_mix_freq) == 0) then
-                   write(mix_step,'(i2)' )  nn
+                   write(mix_step,'(i4)' )  nn
                    mix_steps = trim(mix_steps)/&
                                                &/',' /&
                                                       &/ trim(mix_step)
@@ -4495,7 +4697,7 @@
  
             if (fit_freq == 1) then
                write (stdout,'(a40,a,a9)') &
-                  'Averaging time steps are at step numbers', &
+                  'Averaging time steps are at step numbers ', &
                   trim(mix_steps), ' each day'
             else
                write (stdout,'(a40,a,a14)') &
