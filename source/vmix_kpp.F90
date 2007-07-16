@@ -433,7 +433,7 @@
                           coordinates='TLONG TLAT time')
 
    string = 'Vertical Mixing due to Tidal Mixing'
-   call define_tavg_field(tavg_KVMIX,'KVMIX',2,               &
+   call define_tavg_field(tavg_KVMIX,'KVMIX',3,               &
                           long_name=trim(string),             &
                           missing_value=undefined_nf_r4,      &
                           units='centimeter^2/s',             &
@@ -441,7 +441,7 @@
                           coordinates  ='TLONG TLAT z_w time' ) 
 
    string = 'Energy Used by Vertical Mixing'
-   call define_tavg_field(tavg_TPOWER,'TPOWER',2,             &
+   call define_tavg_field(tavg_TPOWER,'TPOWER',3,             &
                           long_name=trim(string),             &
                           missing_value=undefined_nf_r4,      &
                           units='erg/s',                      &
