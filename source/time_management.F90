@@ -4674,37 +4674,6 @@
          write (stdout,'(a71)') '  with timestep chosen to fit'/&
                                &/' exactly into one day or coupling'/&
                                &/' interval'
-         if (time_mix_freq > fullsteps_per_interval + 1) then
-            if (fit_freq == 1) then
-               write (stdout,'(a50)') &
-                  'Averaging time steps are at step number 2 each day'
-            else
-               write (stdout,'(a55)') &
-               'Averaging time steps are at step number 2 each interval'
-            endif
-         else
-            ind = 1
-            mix_steps = '2'
- 
-            do nn = 3, nsteps_per_interval
-               if (mod(nn,time_mix_freq) == 0) then
-                   write(mix_step,'(i4)' )  nn
-                   mix_steps = trim(mix_steps)/&
-                                               &/',' /&
-                                                      &/ trim(mix_step)
-               endif
-            enddo
- 
-            if (fit_freq == 1) then
-               write (stdout,'(a40,a,a9)') &
-                  'Averaging time steps are at step numbers ', &
-                  trim(mix_steps), ' each day'
-            else
-               write (stdout,'(a40,a,a14)') &
-                  'Averaging time steps are at step numbers', &
-                  trim(mix_steps), ' each interval'
-            endif
-         endif
  
       case (tmix_matsuno)
          write (stdout,'(a25,i6,a6)') &
