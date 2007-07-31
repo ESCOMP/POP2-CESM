@@ -207,10 +207,12 @@
 
    else
 
+      if (my_task == master_task)  &
       write(POP_stdout,'(a34)') '----------------------------------'
 
       if (POP_ErrorMsgCount == 0) then ! no errors
 
+         if (my_task == master_task)  &
          write(POP_stdout,'(a34)') 'Successful completion of POP model'
 
       else
@@ -231,6 +233,7 @@
 
       endif
 
+      if (my_task == master_task)  &
       write(POP_stdout,'(a34)') '----------------------------------'
 
    endif

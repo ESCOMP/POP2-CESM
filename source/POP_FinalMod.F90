@@ -101,9 +101,11 @@
 !  write final message to pop output log
 !
 !-----------------------------------------------------------------------
-    write(POP_stdout,*) '==================='
-    write(POP_stdout,*) 'completed POP_Final'
-    write(POP_stdout,*) '==================='
+    if (my_task == master_task) then
+      write(POP_stdout,*) '==================='
+      write(POP_stdout,*) 'completed POP_Final'
+      write(POP_stdout,*) '==================='
+    endif
 
 !-----------------------------------------------------------------------
 !

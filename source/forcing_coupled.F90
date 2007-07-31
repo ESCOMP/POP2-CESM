@@ -158,6 +158,7 @@
 !     o  cpl_fields_grid_area  -- TAREA(i,j)/(radius*radius)
 !     o  cpl_fields_grid_mask  -- float(REGION_MASK(i,j))
 !     o  cpl_fields_grid_index -- (j_global(j)-1)*(nx_global)+i_global(i)
+!     o  cpl_fields_grid_frac  -- "cell fraction" information
 !
 !    real send buffer indices (sbuf in subroutine send_to_coupler):
 !
@@ -683,6 +684,7 @@
          sbuf(n,cpl_fields_grid_mask ) = float(REGION_MASK(i,j,iblock))
          sbuf(n,cpl_fields_grid_index) =     &
             (this_block%j_glob(j)-1)*(nx_global) + this_block%i_glob(i)
+         sbuf(n,cpl_fields_grid_frac ) = 1.0_r8
       enddo
       enddo
    enddo
