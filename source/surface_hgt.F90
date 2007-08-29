@@ -21,7 +21,7 @@
    use constants, only: grav, c0, undefined_nf_r4
    use prognostic, only: max_blocks_clinic, PSURF, GRADPX, GRADPY, newtime,  &
        curtime, oldtime
-   use forcing, only: FW, FW_OLD
+   use forcing_fields, only: FW, FW_OLD
    use grid, only: sfc_layer_type, sfc_layer_varthick, sfc_layer_rigid,      &
        sfc_layer_oldfree, CALCU, tgrid_to_ugrid
    use time_management, only: mix_pass, dtp

@@ -21,22 +21,22 @@
    use MPH_module, only : MPH_get_argument
 #endif
    use POP_KindsMod
-   use POP_ErrorMod
-   use POP_InitMod
+   use POP_InitMod, only: POP_Initialize, fstop_now, nscan, timer_total
    use POP_FinalMod
    use kinds_mod, only: int_kind, r8
    use communicate, only: my_task, master_task
    use exit_mod
-   use domain, only: distrb_clinic
    use timers, only: timer_print_all, get_timer, timer_start, timer_stop
-   use time_management, only: init_time_flag, check_time_flag, sigAbort,    &
+   use time_management, only: init_time_flag, check_time_flag, sigAbort, &
        nsteps_run, stdout, sigExit, exit_pop, set_time_flag
    use step_mod, only: step
-   use initial, only: initialize_pop
    use diagnostics, only: check_KE
    use output, only: output_driver
    use solvers, only: solv_sum_iters
-   use forcing_coupled, only: lcoupled
+   use registry
+#if coupled
+   use forcing_coupled, only: pop_coupling
+#endif
 
    implicit none
 
@@ -47,14 +47,6 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
-
-   integer (int_kind) :: &
-      timer_total,       &! timer number for total time
-      timer_step,        &! timer number for step
-      timer_out,         &! timer number for output driver
-      ierr,              &! error flag
-      fstop_now,         &! flag id for stop_now flag
-      nscan
 
    integer (POP_i4) :: &
       errorCode         ! error code
@@ -71,16 +63,11 @@
 
 !-----------------------------------------------------------------------
 !
-!  initialize the model run
+!  initialize the model run 
 !
 !-----------------------------------------------------------------------
 
-   errorCode = POP_Success
-
    call POP_Initialize(errorCode)
-
-   fstop_now = init_time_flag('stop_now')
-   nscan = 0
 
 !-----------------------------------------------------------------------
 !
@@ -88,12 +75,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call get_timer(timer_step,'STEP',1,distrb_clinic%nprocs)
-   call get_timer(timer_out,'OUTPUT',1,distrb_clinic%nprocs)
-
-   call get_timer(timer_total,'TOTAL',1,distrb_clinic%nprocs)
    call timer_start(timer_total)
-
 
 !-----------------------------------------------------------------------
 !
@@ -103,11 +85,10 @@
 
    advance: do while (.not. check_time_flag(fstop_now))
 
-      call timer_start(timer_step)
-      call step
-      call timer_stop(timer_step)
+      call pop_coupling
+      if ( registry_match('lcoupled') .and. check_time_flag(fstop_now)) exit advance
 
-      if (lcoupled .and. check_time_flag(fstop_now)) exit advance
+      call step
 
       nscan = nscan + solv_sum_iters
 
@@ -127,9 +108,7 @@
 !
 !-----------------------------------------------------------------------
 
-      call timer_start(timer_out)
       call output_driver
-      call timer_stop (timer_out)
 
    enddo advance
 

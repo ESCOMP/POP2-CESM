@@ -51,13 +51,13 @@
    use io_types
    use grid
    use forcing_tools
-   use forcing_coupled, only: lcoupled
    use time_management
    use prognostic
    use forcing_shf
    use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
    use exit_mod
    use shr_sys_mod
+   use registry, only: registry_match
 
    implicit none
    private
@@ -237,7 +237,6 @@
 !
 !-----------------------------------------------------------------------
 
-   use registry, only: registry_match
    use named_field_mod, only: named_field_get_index
 
    implicit none
@@ -843,7 +842,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (lsw_absorb .or. lcoupled) then  ! short wave flux is available
+   if (lsw_absorb .or. registry_match('lcoupled')) then  ! short wave flux is available
 
       bid = this_block%local_id
 

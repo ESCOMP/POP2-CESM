@@ -32,6 +32,7 @@
    use ice, only: tfreez, tmelt, liceform,QFLUX, QICE, AQICE, tlast_ice
    use forcing_shf
    use forcing_sfwf
+   use forcing_ws, only: ws_data_type
    use timers
 
    !*** ccsm
@@ -44,6 +45,7 @@
    use shr_sys_mod
    use named_field_mod, only: named_field_register, named_field_get_index, &
        named_field_set, named_field_get
+   use forcing_fields
       
    implicit none
    save
@@ -57,9 +59,7 @@
 !-----------------------------------------------------------------------
 
    logical (log_kind) ::   &
-      lcoupled,            &! flag for coupled forcing
-      ldiag_cpl = .false. ,&
-      lccsm                 ! flag to denote ccsm-specific code
+      ldiag_cpl = .false. 
 
 
    integer (int_kind) ::   &
@@ -136,7 +136,7 @@
 !    cpl_fields_ibuf_total -- length of integer ocean "send buffer" vector (isbuf)
 !    nsend --  total number of 2D fields sent to cpl6 from ocn
 !
-!    integer send buffer indices (isbuf in subroutine init_coupled):  
+!    integer send buffer indices (isbuf in subroutine pop_init_coupled):  
 !
 !     o  cpl_fields_ibuf_cdate   -- ocean's character date string (yyyymmdd)
 !     o  cpl_fields_ibuf_sec     -- ocean's character time string (seconds)
@@ -151,7 +151,7 @@
 !     o  cpl_fields_ibuf_nfields -- cpl_fields_grid_total
 !     o  cpl_fields_ibuf_dead    --  0 ==>  not a "dead" model
 !
-!    real send buffer indices (sbuf in subroutine init_coupled):
+!    real send buffer indices (sbuf in subroutine pop_init_coupled):
 !
 !     o  cpl_fields_grid_lon   -- radian*TLON(i,j)
 !     o  cpl_fields_grid_lat   -- radian*TLAT(i,j)
@@ -160,7 +160,7 @@
 !     o  cpl_fields_grid_index -- (j_global(j)-1)*(nx_global)+i_global(i)
 !     o  cpl_fields_grid_frac  -- "cell fraction" information
 !
-!    real send buffer indices (sbuf in subroutine send_to_coupler):
+!    real send buffer indices 
 !
 !      o  index_o2c_So_u     -- surface u velocity
 !      o  index_o2c_So_v     -- surface v velocity
@@ -177,7 +177,7 @@
 !
 !    cpl_fields_ibuf_total -- length of integer ocean "receive buffer" vector (irbuf)
 !
-!    integer receive buffer indices (irbuf in subroutine recv_from_coupler):
+!    integer receive buffer indices (irbuf in subroutine pop_recv_from_coupler):
 !
 !     o  cpl_fields_ibuf_stopnow  -- stop ocean integration now
 !     o  cpl_fields_ibuf_infobug  -- write ocean/coupler diagnostics now  
@@ -186,7 +186,7 @@
 !     o  cpl_fields_ibuf_histtavg -- write ocean "tavg"  files at end of day
 !     o  cpl_fields_ibuf_diageod  -- write ocean diagnostics   at end of day
 !
-!    real receive buffer indices (sbuf in subroutine recv_from_coupler):
+!    real receive buffer indices (sbuf in subroutine pop_recv_from_coupler):
 !
 !     o  index_c2o_Foxx_taux   -- zonal wind stress (taux)
 !     o  index_c2o_Foxx_tauy   -- meridonal wind stress (tauy)
@@ -274,35 +274,19 @@
 !***********************************************************************
 
 !BOP
-! !IROUTINE: init_coupled
+! !IROUTINE: pop_init_coupled
 ! !INTERFACE:
 
- subroutine init_coupled(SMF, SMFT, STF, SHF_QSW, lsmft_avail)
+ subroutine pop_init_coupled
 
 ! !DESCRIPTION:
 !  This routine sets up everything necessary for coupling with
-!  the CCSM2 flux coupler, version 6 (cpl6)
+!  the CCSM3 flux coupler, version 6 (cpl6). Initial cpl information 
+!  is received from the coupler, but pop information is not sent
+!  from this routine
 !
 ! !REVISION HISTORY:
 !  same as module
-
-! !OUTPUT PARAMETERS:
-
-   real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic),  &
-      intent(out) ::   &
-      SMF,             &!  surface momentum fluxes (wind stress)
-      SMFT              !  surface momentum fluxes at T points
-
-   real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic),  &
-      intent(out) ::   &
-      STF               !  surface tracer fluxes
-
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic),  &
-      intent(out) ::  &
-      SHF_QSW          !  penetrative solar heat flux
-
-   logical (log_kind), intent(out) ::  &
-      lsmft_avail        ! true if SMFT is an available field
 
 !EOP
 !BOC
@@ -317,7 +301,7 @@
       coupled_freq_opt
 
    namelist /coupled_nml/ coupled_freq_opt, coupled_freq,  &
-                          qsw_diurnal_cycle, lccsm
+                          qsw_diurnal_cycle
 
    integer (int_kind) ::   &
       k, iblock, nsend,    &
@@ -352,7 +336,7 @@
 !-----------------------------------------------------------------------
 
    if (nblocks_clinic /= 1) then
-      call exit_POP(sigAbort,'ERROR init_coupled requires nblocks_clinic = 1')
+      call exit_POP(sigAbort,'ERROR pop_init_coupled requires nblocks_clinic = 1')
    endif
 
 !-----------------------------------------------------------------------
@@ -362,8 +346,6 @@
 !
 !-----------------------------------------------------------------------
       
-   lcoupled          = .false.
-   lccsm             = .false.
    coupled_freq_opt  = 'never'
    coupled_freq_iopt = freq_opt_never
    coupled_freq      = 100000
@@ -410,7 +392,6 @@
 
         case ('nday')
           if (coupled_freq == 1) then
-            lcoupled = .true.
             coupled_freq_iopt = freq_opt_nday
             ncouple_per_day = 1
           else
@@ -419,7 +400,6 @@
 
         case ('nhour')
           if (coupled_freq <= 24) then
-            lcoupled = .true.
             coupled_freq_iopt = freq_opt_nhour
             ncouple_per_day = 24/coupled_freq
           else
@@ -428,7 +408,6 @@
 
         case ('nsecond')
           if (coupled_freq <= seconds_in_day) then
-            lcoupled = .true.
             coupled_freq_iopt = freq_opt_nsecond
             ncouple_per_day = seconds_in_day/coupled_freq
           else
@@ -437,7 +416,6 @@
 
         case ('nstep')
           if (coupled_freq <= nsteps_per_day) then
-            lcoupled = .true.
             coupled_freq_iopt = freq_opt_nstep
             ncouple_per_day = nsteps_per_day/coupled_freq
           else
@@ -445,7 +423,7 @@
           endif
 
         case ('never')
-          lcoupled = .false.
+          coupled_freq_iopt = -9999
 
         case default
           coupled_freq_iopt = -2000
@@ -453,8 +431,6 @@
 
       endif
             
-      call broadcast_scalar(lcoupled,          master_task)
-      call broadcast_scalar(lccsm,             master_task)
       call broadcast_scalar(coupled_freq_iopt, master_task)
       call broadcast_scalar(coupled_freq     , master_task)
       call broadcast_scalar(qsw_diurnal_cycle, master_task)
@@ -467,14 +443,10 @@
                  'ERROR: Unknown option for coupling frequency')
       endif
 
-!-----------------------------------------------------------------------
-!
-!     register lcoupled if running with the flux coupler
-!
-!-----------------------------------------------------------------------
-
-      if (lcoupled) call register_string('lcoupled')
-      call register_string('init_coupled')
+      if (registry_match('lcoupled') .eqv. (coupled_freq_iopt == -9999)  ) then
+       call exit_POP(sigAbort,  &
+       'ERROR: inconsistency between lcoupled and coupled_freq_iopt settings')
+      endif
 
 !-----------------------------------------------------------------------
 !
@@ -554,10 +526,6 @@
       endif
       
 #if coupled
-      if (.not. lcoupled) then
-        call exit_POP(sigAbort,   &
-             'ERROR: Coupled ifdef option enabled but lcoupled=false')
-      endif
 
 
 !-----------------------------------------------------------------------
@@ -643,7 +611,7 @@
 
 !-----------------------------------------------------------------------
 !
-!   initialize and send buffer
+!   initialize the send buffer, but do not send from this routine
 !
 !-----------------------------------------------------------------------
 
@@ -741,16 +709,6 @@
 
 !-----------------------------------------------------------------------
 !
-!  send initial state info to coupler
-!
-!-----------------------------------------------------------------------
-
-      call sum_buffer
-
-      call send_to_coupler
-
-!-----------------------------------------------------------------------
-!
 !  initialize timers for coupled model
 !
 !-----------------------------------------------------------------------
@@ -774,54 +732,276 @@
         call named_field_register('ATM_CO2', ATM_CO2_nf_ind)
       endif
 
+      call register_string('pop_init_coupled')
+
 #endif
 !-----------------------------------------------------------------------
 !EOC
 
       call flushm (stdout)
 
- end subroutine init_coupled
+ end subroutine pop_init_coupled
 
 !***********************************************************************
-
 !BOP
-! !IROUTINE: set_coupled_forcing
+! !IROUTINE: init_partially_coupled
 ! !INTERFACE:
 
- subroutine set_coupled_forcing(SMF,SMFT,STF,SHF_QSW,SHF_QSW_RAW, &
-        FW,TFW,IFRAC,ATM_PRESS,U10_SQR)
+ subroutine init_partially_coupled
+
+! !DESCRIPTION:
+!  This routine initializes and allocates arrays for the partially-coupled
+!  option
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   logical (log_kind) ::   &
+      lcoupled
+
+   character (char_len) ::  &
+      message
+
+   integer (int_kind) ::   &
+      number_of_fatal_errors
+
+   lcoupled = registry_match('lcoupled')
+
+   if ( lcoupled .and. shf_formulation /= 'partially-coupled' ) then
+     shf_num_comps = 1
+     shf_comp_qsw  = 1
+
+     allocate(SHF_COMP(nx_block,ny_block,max_blocks_clinic,shf_num_comps))
+     SHF_COMP = c0
+    endif
+
+!-----------------------------------------------------------------------
+!
+!  initialize and allocate some partially coupled variables
+!
+!-----------------------------------------------------------------------
+
+   if ( lcoupled                                          &
+        .and. sfwf_formulation /= 'partially-coupled'     &
+        .and. sfc_layer_type == sfc_layer_varthick .and.  &
+        .not. lfw_as_salt_flx .and. liceform ) then
+
+     sfwf_num_comps = 1
+     sfwf_comp_cpl  = 1
+     tfw_num_comps  = 1
+     tfw_comp_cpl   = 1
+
+     allocate(SFWF_COMP(nx_block,ny_block,   max_blocks_clinic,sfwf_num_comps))
+     allocate( TFW_COMP(nx_block,ny_block,nt,max_blocks_clinic, tfw_num_comps))
+
+     SFWF_COMP = c0
+     TFW_COMP  = c0
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  check compatibility of partially-coupled option with other options
+!
+!-----------------------------------------------------------------------
+
+   number_of_fatal_errors = 0
+
+   if (.not. lcoupled .and. (shf_formulation  == 'partially-coupled' .or.  &
+                             sfwf_formulation == 'partially-coupled' ) ) then
+     message =   &
+         'ERROR: partially-coupled option is allowed only when coupled'
+     write(stdout,*) message
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
+
+   if (lcoupled .and. (shf_formulation  == 'partially-coupled' .and.  &
+                      sfwf_formulation /= 'partially-coupled') .or.  &
+                      (shf_formulation  /= 'partially-coupled' .and.  &
+                       sfwf_formulation == 'partially-coupled') ) then
+     message =   &
+        'partially-coupled must be used for both shf and sfwf'
+     write(stdout,*) message
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
+
+   if (lcoupled .and. shf_formulation /= 'partially-coupled' .and.  &
+       shf_data_type /= 'none') then
+     message =   &
+         'shf_data_type must be set to none or '/&
+      &/ 'shf_formulation must be partially_coupled when lcoupled is true'
+     write(stdout,*) message
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
+
+   if (lcoupled .and. sfwf_formulation /= 'partially-coupled' .and.  &
+       sfwf_data_type /= 'none') then
+     message =   &
+        'sfwf_data_type must be set to none or '/&
+     &/ 'sfwf_formulation must be partially_coupled when lcoupled is true'
+     write(stdout,*) message
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
+
+!-----------------------------------------------------------------------
+!
+!     check coupled compatibility with other forcing options
+!
+!-----------------------------------------------------------------------
+
+   if (lcoupled .and. ws_data_type /= 'none') then
+     message =   &
+       'ws_data_type must be set to none in coupled mode'
+     write(stdout,*) message
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
+   
+   if (number_of_fatal_errors /= 0)  &
+      call exit_POP(sigAbort,'subroutine init_partially_coupled')
+
+!-----------------------------------------------------------------------
+!EOC
+
+ call flushm (stdout)
+
+ end subroutine init_partially_coupled
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: pop_coupling
+! !INTERFACE:
+
+ subroutine pop_coupling
 
 
 ! !DESCRIPTION:
 !  This routine call coupler communication routines to set
 !  surface forcing data
-!  Note: We are using intent "inout" for SMF,SMFT, STF, SHF_QSW
-!        and IFRAC in order to preserve their values inbetween
-!        coupling timesteps.
 !
 ! !REVISION HISTORY:
 !  same as module
 
-! !INPUT/OUTPUT PARAMETERS:
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   logical (log_kind), save ::    &
+      first_call = .true.          ! flag for controlling pop_send_to_coupler
+     
+
+#if coupled
+
+   if (first_call) then
+     first_call = .false.
+   else
+     call pop_send_to_coupler
+   endif
+
+   call pop_recv_from_coupler
+
+   call pop_set_coupled_forcing
+
+#endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine pop_coupling
+
+
+!***********************************************************************
+
+!BOP
+! !IROUTINE: pop_send_to_coupler
+! !INTERFACE:
+
+ subroutine pop_send_to_coupler
+
+
+! !DESCRIPTION:
+!  This routine calls the routines necessary to send pop fields to
+!  the CCSM flux coupler
+!
+! !REVISION HISTORY:
+!  same as module
+
+
+!EOP
+!BOC
+     
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: n, iblock
+           
  
-   real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic),  &
-      intent(inout) ::  &
-      SMF,              &!  surface momentum fluxes (wind stress)
-      SMFT               !  surface momentum fluxes at T points
+#if coupled
+!-----------------------------------------------------------------------
+!
+!     send data to flux coupler
+!
+!-----------------------------------------------------------------------
 
-   real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic),  &
-         intent(inout) ::  &
-      STF,             &!  surface tracer fluxes
-      TFW               !  tracer concentration in water flux
+   call pop_sum_buffer
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic),  &
-         intent(inout) ::  &
-      SHF_QSW,          &!  penetrative solar heat flux
-      SHF_QSW_RAW,      &!  penetrative solar heat flux
-      FW,               &!  fresh water flux
-      IFRAC,            &!  fractional ice coverage
-      ATM_PRESS,        &!  atmospheric pressure forcing
-      U10_SQR            !  10m wind speed squared
+   if (check_time_flag(cpl_ts)) then
+     call timer_stop  (timer_recv_to_send)
+   endif
+
+   if (check_time_flag(cpl_ts) .or. nsteps_run == 0 ) then
+     !*** send state variables to coupler
+     call timer_start (timer_send_to_cpl)
+     call allocate_sbuf_send
+     call prepare_send_to_coupler
+     call cpl_interface_contractSend(cpl_fields_cplname,contractS,isbuf,sbuf)
+     call deallocate_sbuf_send
+     call timer_stop  (timer_send_to_cpl)
+
+     call timer_start (timer_send_to_recv)
+     call timer_stop  (timer_send_to_recv) 
+ 
+     call timer_start (timer_recv_to_send)
+   endif
+
+#endif
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine pop_send_to_coupler
+!***********************************************************************
+
+!BOP
+! !IROUTINE: pop_set_coupled_forcing
+! !INTERFACE:
+
+ subroutine pop_set_coupled_forcing
+
+
+! !DESCRIPTION:
+!  This routine call coupler communication routines to set
+!  surface forcing data
+!
+! !REVISION HISTORY:
+!  same as module
+
 
 !EOP
 !BOC
@@ -837,39 +1017,8 @@
            
  
 #if coupled
-!-----------------------------------------------------------------------
-!
-!     if it is time to couple, exchange data with flux coupler
-!     be sure to trigger communication on very first time step
-!
-!-----------------------------------------------------------------------
-
-   if (nsteps_run /= 0) call sum_buffer
 
    if (check_time_flag(cpl_ts) .or. nsteps_run == 0) then
-
-     !*** send state variables at end of coupling interval 
- 
-
-     if (nsteps_run /= 0) then
-        call timer_stop  (timer_recv_to_send)
- 
-        call timer_start (timer_send_to_cpl)
-        call send_to_coupler
-        call timer_stop  (timer_send_to_cpl)
-     endif
-
-     call timer_start (timer_send_to_recv)
-     call timer_stop  (timer_send_to_recv) 
- 
-     !*** recv data to advance next time step
-
-     call timer_start (timer_recv_from_cpl)
-     call recv_from_coupler(SMF,SMFT,STF,SHF_QSW,FW,TFW,IFRAC,ATM_PRESS,  &
-                            U10_SQR)
-     call timer_stop  (timer_recv_from_cpl)
-
-     call timer_start (timer_recv_to_send)
 
      !$OMP PARALLEL DO PRIVATE(iblock,n)
  
@@ -927,7 +1076,7 @@
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine set_coupled_forcing
+ end subroutine pop_set_coupled_forcing
 
 !***********************************************************************
 
@@ -969,10 +1118,9 @@
      iblock,             &! local address of current block
      n                    ! index
 
+#if coupled
   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
      WORK1, WORK2        ! local work arrays
-
-#if coupled
 
    if ( shf_formulation == 'partially-coupled' ) then
      !$OMP PARALLEL DO PRIVATE(iblock)
@@ -1048,34 +1196,16 @@
 !***********************************************************************
 
 !BOP
-! !IROUTINE: recv_from_coupler
+! !IROUTINE: pop_recv_from_coupler
 ! !INTERFACE:
 
- subroutine recv_from_coupler(SMF,SMFT,STF,SHF_QSW,FW,TFW,   &
-        IFRAC,ATM_PRESS,U10_SQR)
+ subroutine pop_recv_from_coupler
 
 ! !DESCRIPTION:
 !  This routine receives message from coupler with surface flux data
 !
 ! !REVISION HISTORY:
 !  same as module
-
-! !OUTPUT PARAMETERS:
-
-   real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic), intent(out) ::  &
-      SMF,              &!  surface momentum fluxes (wind stress)
-      SMFT               !  surface momentum fluxes at T points
-
-   real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), intent(out) ::  &
-      STF,             &!  surface tracer fluxes
-      TFW               !  tracer concentration in water flux
-
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(out) ::  &
-      SHF_QSW,          &!  penetrative solar heat flux
-      FW,               &!  fresh water flux
-      IFRAC,            &!  fractional ice coverage
-      ATM_PRESS,        &!  atmospheric pressure forcing
-      U10_SQR            !  10m wind speed squared
 
 !EOP
 !BOC
@@ -1102,6 +1232,10 @@
       gsum
 
    type (block) :: this_block ! local block info
+
+   if (check_time_flag(cpl_ts) .or. nsteps_run == 0) then
+
+   call timer_start (timer_recv_from_cpl)
 
    !*** need to zero out any padded cells
    WORK1 = c0
@@ -1139,7 +1273,7 @@
        call int_to_char (2,ihour   , chour  )
        call int_to_char (2,iminute , cminute)
        call int_to_char (2,isecond , csecond)
-       write(stdout,*) '(recv_from_coupler) ',  &
+       write(stdout,*) '(pop_recv_from_coupler) ',  &
         'cpl requests termination now: ', &
         cyear,'/',cmonth,'/',cday,' ', chour,':',cminute,':',csecond
      endif
@@ -1156,7 +1290,7 @@
    if (irbuf(cpl_fields_ibuf_resteod) == 1) then
      call set_time_flag(cpl_write_restart,.true.)
      if (my_task == master_task) then
-       write(stdout,*) '(recv_from_coupler) ', &
+       write(stdout,*) '(pop_recv_from_coupler) ', &
          'cpl requests restart file at eod  ',cyear,'/',cmonth,'/',cday
      endif
    endif
@@ -1524,25 +1658,29 @@
    endif
 
    deallocate(sbuf)
+   call timer_stop  (timer_recv_from_cpl)
+
+   endif ! check_time_flag
 
 1100  format ('comm_diag ', a3, 1x, a4, 1x, a8, 1x, es26.19:, 1x, a6)
 
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine recv_from_coupler
+ end subroutine pop_recv_from_coupler
+
 
 !***********************************************************************
 
 !BOP
-! !IROUTINE: send_to_coupler
+! !IROUTINE: prepare_send_to_coupler
 ! !INTERFACE:
 
- subroutine send_to_coupler
+ subroutine prepare_send_to_coupler
 
 ! !DESCRIPTION:
-!  This routine packs fields into a message buffer and sends the
-!  message to the flux coupler
+!  This routine packs fields into a message buffer in preparation
+!  for sending to the coupler
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -1582,11 +1720,12 @@
 !-----------------------------------------------------------------------
 
       nsend = cpl_interface_contractNumatt(contractS)
+!maltrud  ASSUME NBLOCKS_CLINIC = 1
       iblock = 1
       this_block = get_block(blocks_clinic(iblock),iblock)
 
-      allocate(sbuf((this_block%ie-this_block%ib+1)*(this_block%je-this_block%jb+1)  &
-      ,       nsend))
+      if (.not. allocated(sbuf)) call exit_POP(sigAbort, &
+          'ERROR: sbuf not allocated in subroutine prepare_send_to_coupler')
 
       isbuf = 0
 
@@ -1737,14 +1876,6 @@
 
 !-----------------------------------------------------------------------
 !
-!  send fields to coupler
-!
-!-----------------------------------------------------------------------
-
-      call cpl_interface_contractSend(cpl_fields_cplname,contractS,isbuf,sbuf)
- 
-!-----------------------------------------------------------------------
-!
 !     diagnostics
 !
 !-----------------------------------------------------------------------
@@ -1791,20 +1922,83 @@
 
       tlast_coupled = c0
 
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine prepare_send_to_coupler
+
+!***********************************************************************
+
+!BOP
+! !IROUTINE: allocate_sbuf_send
+! !INTERFACE:
+
+ subroutine allocate_sbuf_send
+
+! !DESCRIPTION:
+!  This routine allocates sbuf prior to sending information to the coupler
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+ 
+   integer (int_kind) ::  &
+      i,j,k,n,iblock,     &
+      nsend
+
+   type (block) :: this_block ! local block info
+
+      nsend = cpl_interface_contractNumatt(contractS)
+      iblock = 1
+      this_block = get_block(blocks_clinic(iblock),iblock)
+
+      allocate(sbuf((this_block%ie-this_block%ib+1)*(this_block%je-this_block%jb+1)  &
+      ,       nsend))
+
+!EOC
+
+ end subroutine allocate_sbuf_send
+
+!***********************************************************************
+
+!BOP
+! !IROUTINE: deallocate_sbuf_send
+! !INTERFACE:
+
+ subroutine deallocate_sbuf_send
+
+! !DESCRIPTION:
+!  This routine deallocates sbuf
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+
       deallocate(sbuf)
 
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine send_to_coupler
+ end subroutine deallocate_sbuf_send
 
 !***********************************************************************
 
 !BOP
-! !IROUTINE: sum_buffer
+! !IROUTINE: pop_sum_buffer
 ! !INTERFACE:
 
- subroutine sum_buffer
+ subroutine pop_sum_buffer
 
 ! !DESCRIPTION:
 !  This routine accumulates sums for averaging fields to
@@ -1923,7 +2117,7 @@
 
    first = .false.
 
- end subroutine sum_buffer
+ end subroutine pop_sum_buffer
 
 
 !-----------------------------------------------------------------------
@@ -2032,6 +2226,7 @@
 !EOC
 
  end subroutine tavg_coupled_forcing
+
 #endif
  
 !***********************************************************************

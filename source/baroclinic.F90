@@ -45,7 +45,7 @@
        gamma, c2dtt
    use io_types, only: nml_in, nml_filename, stdout
    use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
-   use forcing, only: STF, SMF, lsmft_avail, SMFT, TFW
+   use forcing_fields, only: STF, SMF, lsmft_avail, SMFT, TFW
    use forcing_shf, only: SHF_QSW
    use forcing_sfwf, only: lfw_as_salt_flx
    use sw_absorption, only:  add_sw_absorb

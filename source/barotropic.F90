@@ -33,7 +33,7 @@
    use time_management, only: mix_pass, leapfrogts, impcor, c2dtu, theta,     &
           gamma, f_euler_ts, beta, c2dtp, dtp
    use global_reductions, only: global_sum
-   use forcing, only: ATM_PRESS, FW
+   use forcing_fields, only: ATM_PRESS, FW
    use forcing_ap, only: ap_data_type
    use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
 

@@ -40,6 +40,7 @@
    use sw_absorption, only: set_chl
    use registry
    use shr_sys_mod
+   use forcing_fields
 
    implicit none
    private
@@ -47,33 +48,10 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_forcing,        &
-             set_surface_forcing, &
-             set_combined_forcing,&
+   public :: init_forcing,           &
+             set_surface_forcing,    &
+             set_combined_forcing,   &
              tavg_forcing
-
-! !PUBLIC DATA MEMBERS:
-
-   real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic), &
-      public, target :: &
-      SMF,  &!  surface momentum fluxes (wind stress)
-      SMFT   !  surface momentum fluxes on T points if avail
-
-   real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
-      public, target :: &
-      STF,  &!  surface tracer fluxes
-      TFW    ! tracer content in freshwater flux
-
-   logical (log_kind), public :: &
-      lsmft_avail   ! true if SMFT is an available field
-
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
-      public, target ::  &
-      IFRAC,             &! ice fraction; not initialized in this routine
-      U10_SQR,           &! 10m wind speed squared; not initialized in this routine
-      ATM_PRESS,         &! atmospheric pressure forcing
-      FW,FW_OLD           ! freshwater flux at T points (cm/s)
-                          ! FW_OLD is at time n-1
 
 !EOP
 !BOC
@@ -154,93 +132,6 @@
    call init_pt_interior
    call init_s_interior
    call init_ap(ATM_PRESS)
-   call init_coupled(SMF, SMFT, STF, SHF_QSW, lsmft_avail)
-
-!-----------------------------------------------------------------------
-!
-!  error check for coupled option
-!
-!-----------------------------------------------------------------------
-
-#ifndef coupled
-   if (lcoupled) then
-      call exit_POP(sigAbort, &
-               'ERROR: code must be compiled with coupled ifdef option')
-   endif
-#endif
-
-!-----------------------------------------------------------------------
-!
-!  check compatibility of partially-coupled option
-!
-!-----------------------------------------------------------------------
-
-   if ( .not. lcoupled  .and.                           &
-        ( shf_formulation  == 'partially-coupled' .or.  &
-          sfwf_formulation == 'partially-coupled' ) ) then
-     call exit_POP(sigAbort, &
-              'ERROR: partially-coupled option is allowed only when coupled')
-   endif
-
-!-----------------------------------------------------------------------
-!
-!     check coupled compatibility with other forcing options
-!
-!-----------------------------------------------------------------------
-
-   if (lcoupled) then
-     if (ws_data_type /= 'none') then
-       call exit_POP(sigAbort, &
-                'ws_data_type must be set to none in coupled mode')
-     endif
-     if ( (shf_formulation  == 'partially-coupled' .and.  &
-           sfwf_formulation /= 'partially-coupled') .or.  &
-          (shf_formulation  /= 'partially-coupled' .and.  &
-           sfwf_formulation == 'partially-coupled') ) then
-          call exit_POP(sigAbort, &
-                   'partially-coupled must be used for both shf and sfwf')
-     endif
-     if ( shf_formulation /= 'partially-coupled' .and.  &
-          shf_data_type /= 'none') then
-       call exit_POP(sigAbort, &
-                'shf_data_type must be set to none or '/&
-              &/ 'shf_formulation must be partially_coupled when lcoupled is true')
-     endif
-     if ( sfwf_formulation /= 'partially-coupled' .and.  &
-          sfwf_data_type /= 'none') then
-       call exit_POP(sigAbort, &
-                'sfwf_data_type must be set to none or '/&
-             &/ 'sfwf_formulation must be partially_coupled when lcoupled is true')
-     endif
-
-
-     if ( lcoupled .and. shf_formulation /= 'partially-coupled' ) then
-       shf_num_comps = 1
-       shf_comp_qsw  = 1
-
-       allocate(SHF_COMP(nx_block,ny_block,max_blocks_clinic,shf_num_comps))
-       SHF_COMP = c0
-      endif
-
-
-
-     if ( lcoupled .and. sfwf_formulation /= 'partially-coupled' &
-          .and. sfc_layer_type == sfc_layer_varthick .and.       &
-          .not. lfw_as_salt_flx .and. liceform ) then
-
-       sfwf_num_comps = 1
-       sfwf_comp_cpl  = 1
-       tfw_num_comps  = 1
-       tfw_comp_cpl   = 1
-
-       allocate(SFWF_COMP(nx_block,ny_block,   max_blocks_clinic,sfwf_num_comps))
-       allocate( TFW_COMP(nx_block,ny_block,nt,max_blocks_clinic, tfw_num_comps))
-
-       SFWF_COMP = c0
-       TFW_COMP  = c0
-     endif
-
-   endif !(lcoupled)
 
 !-----------------------------------------------------------------------
 !
@@ -297,10 +188,13 @@
                           units='kg/m^2/s', grid_loc='2110',         &
                           coordinates='TLONG TLAT time')
 
+
+
 !-----------------------------------------------------------------------
 !EOC
 
  end subroutine init_forcing
+
 
 !***********************************************************************
 !BOP
@@ -358,11 +252,7 @@
       call set_ws(SMF)
    endif
 
-   call set_coupled_forcing(SMF,SMFT,STF,SHF_QSW,SHF_QSW_RAW, &
-        FW,TFW,IFRAC,ATM_PRESS,U10_SQR)
-
-   call set_chl   !  specify chlorophyll amount for sw absorption
-                  !  if-test for chlorophyll is in subroutine set_chl
+   call set_chl   
 
    !*** NOTE: with bulk NCEP and partially-coupled forcing 
    !***       set_shf must be called before set_sfwf
@@ -383,12 +273,13 @@
 !-----------------------------------------------------------------------
 
       index_qsw = mod(nsteps_this_interval,nsteps_per_interval) + 1
-      if (lcoupled) then
+      if (registry_match('lcoupled')) then
          SHF_QSW = diurnal_cycle_factor(index_qsw)*SHF_COMP(:,:,:,shf_comp_qsw)
       endif
 
-      if ( lcoupled .and. sfwf_formulation /= 'partially-coupled'  &
-           .and. sfc_layer_type == sfc_layer_varthick .and.        &
+      if ( registry_match('lcoupled') &
+           .and. sfwf_formulation /= 'partially-coupled'  &
+           .and. sfc_layer_type == sfc_layer_varthick .and. &
            .not. lfw_as_salt_flx .and. liceform ) then
         FW  = SFWF_COMP(:,:,:,  sfwf_comp_cpl)
         TFW =  TFW_COMP(:,:,:,:, tfw_comp_cpl)
@@ -537,7 +428,7 @@
 
    !$OMP END PARALLEL DO
 
-   if (lcoupled) call tavg_coupled_forcing
+   if (registry_match('lcoupled')) call tavg_coupled_forcing
 
 !-----------------------------------------------------------------------
 !EOC

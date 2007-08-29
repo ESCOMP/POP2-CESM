@@ -22,6 +22,7 @@
    use broadcast
    use time_management
    use forcing
+   use forcing_fields
    use forcing_shf
    use exit_mod
 

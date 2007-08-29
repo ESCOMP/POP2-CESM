@@ -49,9 +49,8 @@
        freq_opt_nsecond, check_time_flag, month3_all, int_to_char,          &
        set_time_flag_last,set_time_flag,ccsm_date_stamp
    use ice, only: tlast_ice, liceform, AQICE, FW_FREEZE, QFLUX
-   use forcing, only: FW_OLD
+   use forcing_fields, only: FW_OLD
    use forcing_ap, only: ap_interp_last
-   use forcing_coupled, only: lccsm
    use forcing_ws, only: ws_interp_last
    use forcing_shf, only: shf_interp_last
    use forcing_sfwf, only: sfwf_interp_last, sum_precip, precip_fact,       &
@@ -1003,7 +1002,7 @@
    write_restart_filename = char_blank
    file_suffix = char_blank
 
-   if (lccsm) then
+   if (registry_match('lccsm')) then
      call create_restart_suffix_ccsm(file_suffix, restart_type,freq_opt_nsecond)
    else
      call create_restart_suffix(file_suffix, restart_type)

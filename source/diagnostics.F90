@@ -24,6 +24,7 @@
    use grid
    use solvers
    use forcing
+   use forcing_fields
    use timers
    use exit_mod
    use tavg, only: define_tavg_field, tavg_requested,  &
@@ -369,7 +370,7 @@
 !
 !-----------------------------------------------------------------------
 
-   lccsm = registry_match('lcoupled')
+   lccsm = registry_match('lccsm')
 
 
 !-----------------------------------------------------------------------

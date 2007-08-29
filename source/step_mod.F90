@@ -15,7 +15,6 @@
 
    use kinds_mod, only: int_kind, r8, log_kind
    use blocks, only: nx_block, ny_block, block, get_block
-!   use distribution, only: 
    use domain_size
    use domain, only: distrb_clinic, nblocks_clinic, bndy_clinic,            &
        blocks_clinic
@@ -24,13 +23,10 @@
    use prognostic, only: max_blocks_clinic, mixtime, newtime,               &
        field_loc_center, km, curtime, UBTROP, VBTROP, UVEL, VVEL, RHO,      &
        TRACER, oldtime, PGUESS, GRADPX, GRADPY, PSURF, nt
-!   use solvers, only: 
-!   use broadcast, only: 
    use boundary, only: update_ghost_cells
    use timers, only: get_timer, timer_start, timer_stop
    use grid, only: KMU, sfc_layer_type, sfc_layer_varthick, dz, hu,         &
        ugrid_to_tgrid
-!   use io, only: 
    use diagnostics, only: diag_global_preupdate, diag_global_afterupdate,   &
        diag_print, diag_transport, diag_init_sums, tracer_mean_initial,     &
        volume_t_initial, diag_velocity
@@ -44,14 +40,15 @@
    use barotropic, only: barotropic_driver
    use surface_hgt, only: dhdt
    use tavg, only: tavg_set_flag, accumulate_tavg_field, ltavg_on, tavg_id, &
-       tavg_increment_sum_qflux
-   use forcing, only: FW_OLD, FW, set_surface_forcing, tavg_forcing, STF
-   use forcing_coupled, only: lcoupled
+       tavg_increment_sum_qflux, tavg_requested
+   use forcing_fields, only: FW_OLD, FW, STF
+   use forcing, only: set_surface_forcing, tavg_forcing
    use ice, only: liceform, ice_cpl_flag, ice_flx_to_coupler, QFLUX,        &
        tlast_ice, cp_over_lhfusion, QICE
    use passive_tracers, only: passive_tracers_tavg_sflux,                   &
        passive_tracers_tavg_FvICE
    use shr_sys_mod
+   use registry
    use communicate, only: my_task, master_task
    use io_types, only: stdout
    use budget_diagnostics, only: ldiag_global_tracer_budgets, diag_for_tracer_budgets, &
@@ -64,7 +61,7 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: step
+   public :: step, init_step
 
 !----------------------------------------------------------------------
 !
@@ -72,9 +69,12 @@
 !
 !----------------------------------------------------------------------
    integer (int_kind), private :: &
-      cpl_stop_now,               &! flag id for stop_now flag
       tavg_flag                    ! flag to access tavg frequencies
 
+   integer (int_kind), private :: &
+      timer_step,              &! timer number for step
+      timer_baroclinic,        &! timer for baroclinic parts of step
+      timer_barotropic          ! timer for barotropic part  of step
 
 
 !EOP
@@ -128,30 +128,16 @@
       first_call = .true.,        &! flag for initializing timers
       first_global_budget = .true.
 
-   integer (int_kind), save :: &
-      timer_baroclinic,        &! timer for baroclinic parts of step
-      timer_barotropic          ! timer for barotropic part  of step
-
    type (block) ::        &
       this_block          ! block information for current block
 
 !-----------------------------------------------------------------------
 !
-!  if this is the first call to step, start some timers
+!  start step timer
 !
 !-----------------------------------------------------------------------
 
-
-   if (first_call) then
-      cpl_stop_now  = init_time_flag('stop_now',default=.false.)
-      tavg_flag     = init_time_flag('tavg')
-
-      call get_timer(timer_baroclinic,'BAROCLINIC',1, &
-                                       distrb_clinic%nprocs)
-      call get_timer(timer_barotropic,'BAROTROPIC',1, &
-                                       distrb_clinic%nprocs)
-      first_call = .false.
-   endif
+  call timer_start(timer_step)
 
 !-----------------------------------------------------------------------
 !
@@ -196,17 +182,7 @@
 !
 !-----------------------------------------------------------------------
 
-
    call set_surface_forcing
-
-
-!-----------------------------------------------------------------------
-!
-!  return if coupler has sent "stop now" signal
-!
-!-----------------------------------------------------------------------
-
-   if (lcoupled .and. check_time_flag(cpl_stop_now) ) RETURN
 
 !-----------------------------------------------------------------------
 !
@@ -215,8 +191,7 @@
 !
 !-----------------------------------------------------------------------
 
-
-   call time_manager(lcoupled, liceform)
+   call time_manager(registry_match('lcoupled'), liceform)
 
 !-----------------------------------------------------------------------
 !
@@ -611,6 +586,7 @@
      !$OMP PARALLEL DO
      do iblock = 1,nblocks_clinic
         call ice_flx_to_coupler(TRACER(:,:,:,:,curtime,iblock),iblock)
+        if (tavg_requested(tavg_id('QFLUX')) ) &
         call accumulate_tavg_field(QFLUX(:,:,iblock), tavg_id('QFLUX'),  &
                                    iblock,1,const=tlast_ice)
                                    
@@ -667,13 +643,19 @@
 
    endif ! xdisplay
 
+!-----------------------------------------------------------------------
+!
+!  stop step timer
+!
+!-----------------------------------------------------------------------
+
+  call timer_stop(timer_step)
+
  1001 format (/, 10x, 'VOLUME AND TRACER BUDGET INITIALIZATION:',  &
               /, 10x, '========================================',  &
               /,  5x, ' volume_t (cm^3)           = ', e18.12,     &
               /,  5x, ' SUM [volume*T] (C   cm^3) = ', e18.12,     &
               /,  5x, ' SUM [volume*S] (ppt cm^3) = ', e18.12 )
-
-
 !-----------------------------------------------------------------------
 !EOC
 
@@ -681,6 +663,38 @@
 
 !***********************************************************************
 
+!BOP
+! !IROUTINE: init_step
+! !INTERFACE:
+
+ subroutine init_step
+
+! !DESCRIPTION:
+!  This routine initializes timers and flags used in subroutine step.
+!
+! !REVISION HISTORY:
+!  added 17 August 2007 njn01
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!  initialize flags and timers
+!
+!-----------------------------------------------------------------------
+
+   tavg_flag     = init_time_flag('tavg')
+
+   call get_timer(timer_step,'STEP',1,distrb_clinic%nprocs)
+   call get_timer(timer_baroclinic,'BAROCLINIC',1,distrb_clinic%nprocs)
+   call get_timer(timer_barotropic,'BAROTROPIC',1,distrb_clinic%nprocs)
+
+
+!-----------------------------------------------------------------------
+!EOC
+
+   end subroutine init_step
  end module step_mod
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||

@@ -3,7 +3,7 @@
  module initial
 
 !BOP
-! !MODULE: intitial
+! !MODULE: initial
 ! !DESCRIPTION:
 !  This module contains routines for initializing a POP simulation,
 !  mostly by calling individual initialization routines for each
@@ -16,7 +16,6 @@
 
    use kinds_mod, only: r8, int_kind, log_kind, char_len
    use blocks, only: block, nx_block, ny_block, get_block
-   !use distribution, only: 
    use domain_size
    use domain, only: nblocks_clinic, blocks_clinic, init_domain_blocks,    &
        init_domain_distribution, distrb_clinic
@@ -27,7 +26,6 @@
        sea_ice_salinity, radius, cp_sw, grav, omega,cp_air,     &
        rho_fw, sound, rho_air, rho_sw, ndelim_fmt
    use communicate, only: my_task, master_task, init_communicate
-   !use boundary, only: 
    use budget_diagnostics, only: init_budget_diagnostics
    use broadcast, only: broadcast_array, broadcast_scalar
    use prognostic, only: init_prognostic, max_blocks_clinic, nx_global,    &
@@ -54,7 +52,7 @@
                               dttxcel, dtuxcel, check_time_flag_freq,  &
                               check_time_flag_freq_opt, init_time_flag
    use topostress, only: init_topostress
-   use ice, only: init_ice
+   use ice
    use xdisplay, only: init_xdisplay
    use output, only: init_output
    use tavg, only: ltavg_restart, tavg_id, set_in_tavg_contents
@@ -62,21 +60,23 @@
    !use current_meters
    !use drifters
    use forcing, only: init_forcing
-   use forcing_sfwf, only: sfwf_formulation, lms_balance
-   use forcing_shf, only: luse_cpl_ifrac, OCN_WGT
+   use forcing_sfwf, only: sfwf_formulation, lms_balance, sfwf_data_type
+   use forcing_shf, only: luse_cpl_ifrac, OCN_WGT, shf_formulation, shf_data_type
+   use forcing_ws, only: ws_data_type
    use sw_absorption, only: init_sw_absorption
    use passive_tracers, only: init_passive_tracers
    use ecosys_mod, only: ecosys_diurnal_cycle
    use exit_mod, only: sigAbort, exit_pop, flushm
    use restart, only: read_restart, restart_fmt, read_restart_filename
    use ms_balance, only: init_ms_balance
-   use forcing_coupled, only: lcoupled, qsw_diurnal_cycle
+   use forcing_coupled, only: pop_init_coupled, init_partially_coupled, qsw_diurnal_cycle
    use global_reductions, only: init_global_reductions, global_sum
    use timers, only: init_timers
    use shr_sys_mod
    use registry
    use qflux_mod, only: init_qflux
    use tidal_mixing
+   use step_mod, only: init_step
 
    implicit none
    private
@@ -84,7 +84,7 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: initialize_POP
+   public :: pop_init_phase1, pop_init_phase2
 
 !EOP
 !BOC
@@ -97,22 +97,25 @@
    character (char_len) :: &
       init_ts_file_fmt      ! format (bin or nc) for input file
 
+   logical (log_kind), public ::  &! context variables
+      lcoupled,                   &! T ==> pop is coupled to another system
+      lccsm                        ! T ==> pop is being run in the ccsm context
+
 !EOC
 !***********************************************************************
 
  contains
-
 !***********************************************************************
 !BOP
-! !IROUTINE: initialize_POP
+! !IROUTINE: pop_init_phase1
 ! !INTERFACE:
 
- subroutine initialize_POP
+ subroutine pop_init_phase1
 
 ! !DESCRIPTION:
-!  This routine initializes a POP run by calling various module
-!  initialization routines and setting up the initial temperature
-!  and salinity
+!  This routine is the first of a two-phase initialization process for
+!  a POP run. It calls various module initialization routines and sets up 
+!  the initial temperature and salinity
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -154,6 +157,14 @@
 !-----------------------------------------------------------------------
 
    call init_io
+
+!-----------------------------------------------------------------------
+!
+!  initialize context in which pop is being run
+!
+!-----------------------------------------------------------------------
+
+   call init_context
 
 !-----------------------------------------------------------------------
 !
@@ -295,27 +306,58 @@
 
 !-----------------------------------------------------------------------
 !
-!  initialize fields for surface forcing; init_forcing calls:
+!  initialize fields for surface forcing; do not initialize coupling here
 !       o init_ws
 !       o init_shf 
 !       o init_sfwf
 !       o init_pt_interior
 !       o init_s_interior
 !       o init_ap
-!       o init_coupled
 !
 !-----------------------------------------------------------------------
 
    call init_forcing
 
 !-----------------------------------------------------------------------
+!EOC
+
+ end subroutine pop_init_phase1
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: pop_init_phase2
+! !INTERFACE:
+
+ subroutine pop_init_phase2
+
+! !DESCRIPTION:
+!  This routine completes the two-phase initialization process for
+!  a POP run. 
 !
-!     initialize passive tracer modules
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      k,                      &! dummy vertical level index
+      ier                      ! error flag
+
+
+!-----------------------------------------------------------------------
+!
+!     initialize passive tracer modules -- after call init_forcing_coupled
 !     do this independently of nt so that
 !     1) consistency of nt and selected passive tracer modules
 !        can always be checked
 !     2) passive_tavg_nonstd_vars gets allocated
-!     this must be after init_forcing to ensure that lcoupled is set
 !
 !-----------------------------------------------------------------------
 
@@ -327,7 +369,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call init_advection
+  call init_advection
 
 !-----------------------------------------------------------------------
 !
@@ -336,6 +378,14 @@
 !-----------------------------------------------------------------------
 
    call init_sw_absorption
+
+!-----------------------------------------------------------------------
+!
+!  partial coupling forcing initialization
+!
+!-----------------------------------------------------------------------
+
+   call init_partially_coupled
 
 !-----------------------------------------------------------------------
 !
@@ -393,6 +443,14 @@
 
 !-----------------------------------------------------------------------
 !
+!  initialize step timers
+!
+!-----------------------------------------------------------------------
+
+   call init_step
+
+!-----------------------------------------------------------------------
+!
 !  initialize X display 
 !
 !-----------------------------------------------------------------------
@@ -440,7 +498,137 @@
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine initialize_POP
+ end subroutine pop_init_phase2
+
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: init_context
+! !INTERFACE:
+
+ subroutine init_context
+
+! !DESCRIPTION:
+!  This routine initializes the context in which POP is being run,
+!    including information about coupling and CCSM
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+
+   integer (int_kind)   ::  &
+      nml_error,            &! namelist i/o error flag
+      number_of_fatal_errors
+
+   character (char_len) ::  &
+      message                ! error message string
+
+   namelist /context_nml/ lcoupled, lccsm
+
+!-----------------------------------------------------------------------
+!
+!  read context_nml namelist to determine the context in which pop
+!  being run. check for errors and broadcast info to all processors
+!
+!-----------------------------------------------------------------------
+
+   lcoupled          = .false.
+   lccsm             = .false.
+
+   if (my_task == master_task) then
+      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
+      if (nml_error /= 0) then
+         nml_error = -1
+      else
+         nml_error =  1
+      endif
+      do while (nml_error > 0)
+         read(nml_in, nml=context_nml,iostat=nml_error)
+      end do
+      if (nml_error == 0) close(nml_in)
+   endif
+
+   call broadcast_scalar(nml_error, master_task)
+   if (nml_error /= 0) then
+      call exit_POP(sigAbort,'ERROR reading context_nml')
+   endif
+
+   call broadcast_scalar(lcoupled,          master_task)
+   call broadcast_scalar(lccsm,             master_task)
+
+!-----------------------------------------------------------------------
+!
+!  register information with the registry function, allowing other
+!  modules to access this information (avoids circular dependencies)
+!
+!-----------------------------------------------------------------------
+      if (lcoupled) call register_string('lcoupled')
+      if (lccsm)    call register_string('lccsm')
+
+!-----------------------------------------------------------------------
+!
+!  document the namelist information
+!
+!-----------------------------------------------------------------------
+
+   if (my_task == master_task) then
+       write(stdout,blank_fmt)
+       write(stdout,ndelim_fmt)
+       write(stdout,blank_fmt)
+       write(stdout,*) ' Context:'
+       write(stdout,blank_fmt)
+       write(stdout,*) ' context_nml namelist settings:'
+       write(stdout,blank_fmt)
+       write(stdout, context_nml)
+       write(stdout,blank_fmt)
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  error checking
+!
+!-----------------------------------------------------------------------
+
+   number_of_fatal_errors = 0
+
+   if (.not. (lcoupled .eqv. lccsm)) then
+     message = 'ERROR: presently, lcoupled and lccsm must have the same value'
+     call print_message(message)
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
+
+#ifdef coupled
+   if (.not. lcoupled) then
+     message = 'ERROR: inconsistent options.' &
+             // ' Cpp option coupled is defined, but lcoupled = .false.'
+     call print_message(message)
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
+#else
+   if (lcoupled) then
+     message = 'ERROR: inconsistent options.' &
+             // ' Cpp option coupled is not defined, but lcoupled = .true.'
+     call print_message(message)
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
+#endif
+
+   if (number_of_fatal_errors > 0) &
+     call exit_POP(sigAbort,'ERROR: subroutine init_context -- see preceeding message')
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine init_context
 
 !***********************************************************************
 !BOP
@@ -677,10 +865,8 @@
       ltavg_restart = .false.
 
    case ('startup_spunup')
-!*********** debug ****************************************
       write(stdout,*) ' startup_spunup option'
       write(stdout,*) ' init_ts_option = ', init_ts_option
-!*********** debug ****************************************
       first_step   = .false.
       lccsm_branch = .false.
       lccsm_hybrid = .true.
@@ -930,6 +1116,7 @@
 
  end subroutine init_ts
 
+!***********************************************************************
 !BOP
 ! !IROUTINE: document_constants
 ! !INTERFACE:
@@ -1132,7 +1319,7 @@
 
 
    number_of_fatal_errors = 0
- 
+
 !-----------------------------------------------------------------------
 !
 !  tidal mixing without KPP mixing
@@ -1266,12 +1453,6 @@
  1100 format(5x, a)   
 
  end subroutine print_message
-
-
-
-
-
-
 
 !***********************************************************************
 !BOP

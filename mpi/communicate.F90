@@ -258,13 +258,7 @@
 !
 
 #ifdef coupled
-!  the stuff below cannot be used since my_task has not been defined yet
-!  if (my_task == master_task) then
-!     write(6,*)'call cpl_interface_init'
-!     call flush(6)
-!  endif
    call cpl_interface_init(cpl_fields_ocnname, MPI_COMM_OCN)
-
 #else
    call MPI_INIT(ierr)
    call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_OCN, ierr)

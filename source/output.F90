@@ -69,6 +69,7 @@
 
    integer (int_kind), save :: &
       timer_tavg,              &! timer for tavg
+      timer_out,               &! timer for tavg
       timer_rest                ! timer for restart
 
    logical (log_kind), save :: &
@@ -81,11 +82,15 @@
 !
 !-----------------------------------------------------------------------
 
+
    if (first_call) then
+      call get_timer(timer_out, 'OUTPUT'     ,nblocks_clinic,distrb_clinic%nprocs)
       call get_timer(timer_tavg,'OUTPUT TAVG',nblocks_clinic,distrb_clinic%nprocs)
       call get_timer(timer_rest,'OUTPUT REST',nblocks_clinic,distrb_clinic%nprocs)
       first_call = .false.
    endif
+
+   call timer_start(timer_out)
 
 !-----------------------------------------------------------------------
 !
@@ -120,6 +125,7 @@
    call write_tavg(restart_type)
    call timer_stop (timer_tavg)
 
+   call timer_stop(timer_out)
 !-----------------------------------------------------------------------
 !EOC
 
