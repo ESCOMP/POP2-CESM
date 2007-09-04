@@ -814,7 +814,6 @@ cat >> $POP2_NMLFILE << EOF
    coupled_freq_opt  = 'nday'
    coupled_freq      = 1
    qsw_diurnal_cycle = $qsw_diurnal_cycle
-   lccsm             = .true.
 /
 
 EOF
@@ -893,4 +892,12 @@ For all other resolutions, set ltidal_mixing false.
   tidal_energy_file      = '$INPUT/tidal_energy'
   tidal_energy_file_fmt  = 'bin'
 /
+EOF
+
+cat >> $POP2_NMLFILE << EOF
+&context_nml
+   lcoupled          = .true.
+   lccsm             = .true.
+/
+
 EOF
