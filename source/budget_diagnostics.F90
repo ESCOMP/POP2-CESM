@@ -277,7 +277,8 @@
 ! !IROUTINE: diag_for_tracer_budgets
 ! !INTERFACE:
 
-   subroutine diag_for_tracer_budgets (tracer_mean, modified_volume_t)
+   subroutine diag_for_tracer_budgets (tracer_mean, modified_volume_t,  &
+                                       step_call)
 
 ! !DESCRIPTION:
 !
@@ -288,6 +289,10 @@
 ! !REVISION HISTORY:
 !  same as module
 
+
+! !INPUT PARAMETERS:
+
+   logical (kind=log_kind), optional, intent(in) :: step_call
 
 ! !OUTPUT PARAMETERS:
 
@@ -314,6 +319,20 @@
       k,                  &
       n
 
+   logical (log_kind), save ::    &
+      first_global_budget = .true.  ! flag for initializing budget diagnostics
+
+
+   if (present(step_call)) then
+   if (step_call) then
+     if ( first_global_budget .and. ldiag_global_tracer_budgets  .and.  &
+          ltavg_on ) then
+          ! continue with diagnostics computation
+     else
+       return
+     endif
+   endif ! step_call
+   endif ! present(step_call)
 
 !-----------------------------------------------------------------------
 !
@@ -391,6 +410,26 @@
    enddo ! k
 
    enddo ! n
+
+   if (present(step_call)) then
+   if (step_call) then
+     if ( first_global_budget .and. ldiag_global_tracer_budgets  .and.  &
+          ltavg_on ) then
+       if ( my_task == master_task ) then
+         write (stdout,1001) volume_t_initial,tracer_mean_initial(1),   &
+                             salt_to_ppt*tracer_mean_initial(2)
+       endif
+
+       first_global_budget = .false.
+     endif ! first_global_budget 
+   endif ! step_call
+   endif ! present(step_call)
+
+ 1001 format (/, 10x, 'VOLUME AND TRACER BUDGET INITIALIZATION:',  &
+              /, 10x, '========================================',  &
+              /,  5x, ' volume_t (cm^3)           = ', e18.12,     &
+              /,  5x, ' SUM [volume*T] (C   cm^3) = ', e18.12,     &
+              /,  5x, ' SUM [volume*S] (ppt cm^3) = ', e18.12 )
 
    end subroutine diag_for_tracer_budgets
 

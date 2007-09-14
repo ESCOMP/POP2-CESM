@@ -25,8 +25,11 @@
    use domain, only: distrb_clinic
    use timers, only: get_timer
    use time_management, only: init_time_flag
-#if coupled
-   use forcing_coupled, only: pop_init_coupled, pop_send_to_coupler
+
+#ifdef coupled
+   use POP_CouplingMod, only: pop_init_coupler_comm, pop_send_to_coupler, irbuf
+   use cpl_interface_mod, only: cpl_interface_ibufRecv
+   use cpl_fields_mod, only: cpl_fields_cplname
 #endif
 
    implicit none
@@ -47,7 +50,8 @@
 !
 !-----------------------------------------------------------------------
    integer (int_kind), public :: &
-      fstop_now,                 &! flag id for stop_now flag
+      stop_now,                  &! flag id for stop_now flag
+      cpl_ts,                    &! flag id for coupled timestep flag
       timer_total,               &! timer for entire run phase
       nscan
 
@@ -105,6 +109,7 @@
 !  exchange initial information with coupler
 !
 !-----------------------------------------------------------------------
+
    call POP_Initialize_coupling
 
 !-----------------------------------------------------------------------
@@ -233,7 +238,8 @@
 !  initialize driver-level flags and timers
 !
 !-----------------------------------------------------------------------
-   fstop_now  = init_time_flag('stop_now')
+   stop_now  = init_time_flag('stop_now')
+   cpl_ts    = init_time_flag('coupled_ts')
 
    call get_timer(timer_total,'TOTAL',1,distrb_clinic%nprocs)
 
@@ -271,23 +277,36 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
+   
+   logical (POP_Logical),save ::  &
+      coupled_ts = .false.      ! coupled_ts is false at initialization
 
 
 #if coupled
+
 !-----------------------------------------------------------------------
 !
 !  exchange initial information with coupler
 !
 !-----------------------------------------------------------------------
 
-   call pop_init_coupled
+   call pop_init_coupler_comm 
+
+!-----------------------------------------------------------------------
+!
+!  receive initial message from coupler
+!
+!-----------------------------------------------------------------------
+
+   call cpl_interface_ibufRecv(cpl_fields_cplname,irbuf)
 
 !-----------------------------------------------------------------------
 !
 !  send initial state information to the coupler
 !
 !-----------------------------------------------------------------------
-   call pop_send_to_coupler
+
+   call pop_send_to_coupler(coupled_ts)
 
 #endif
 

@@ -69,7 +69,7 @@
    use exit_mod, only: sigAbort, exit_pop, flushm
    use restart, only: read_restart, restart_fmt, read_restart_filename
    use ms_balance, only: init_ms_balance
-   use forcing_coupled, only: pop_init_coupled, init_partially_coupled, qsw_diurnal_cycle
+   use forcing_coupled, only: pop_init_coupled, pop_init_partially_coupled, qsw_diurnal_cycle
    use global_reductions, only: init_global_reductions, global_sum
    use timers, only: init_timers
    use shr_sys_mod
@@ -306,7 +306,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  initialize fields for surface forcing; do not initialize coupling here
+!  initialize fields for surface forcing
 !       o init_ws
 !       o init_shf 
 !       o init_sfwf
@@ -317,6 +317,15 @@
 !-----------------------------------------------------------------------
 
    call init_forcing
+
+!-----------------------------------------------------------------------
+!
+!  initialize generic aspects of coupled forcing (no coupling-specific 
+!  references)
+!
+!-----------------------------------------------------------------------
+
+   call pop_init_coupled
 
 !-----------------------------------------------------------------------
 !EOC
@@ -385,7 +394,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call init_partially_coupled
+   call pop_init_partially_coupled
 
 !-----------------------------------------------------------------------
 !

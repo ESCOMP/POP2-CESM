@@ -46,7 +46,8 @@
              time_to_start,             &
              time_stamp,                &
              int_to_char,               &
-             ccsm_date_stamp
+             ccsm_date_stamp,           &
+             ccsm_char_date_and_time
 
 
 ! !PUBLIC DATA TYPES:
@@ -4819,6 +4820,45 @@
 !EOC
 
  end subroutine int_to_char
+
+!***********************************************************************
+
+!BOP
+! !IROUTINE: ccsm_char_date_and_time
+! !INTERFACE:
+
+ subroutine ccsm_char_date_and_time
+
+! !DESCRIPTION:
+!  This routine converts integer date & time information into character
+!  strings.
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!  set character date and time information
+!
+!-----------------------------------------------------------------------
+
+   call int_to_char (4,iyear   , cyear  )
+   call int_to_char (2,imonth  , cmonth )
+   call int_to_char (2,iday    , cday   )
+   call int_to_char (2,ihour   , chour  )
+   call int_to_char (2,iminute , cminute)
+   call int_to_char (2,isecond , csecond)
+
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ccsm_char_date_and_time
+ 
+!***********************************************************************
 
 !***********************************************************************
 

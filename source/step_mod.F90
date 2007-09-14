@@ -51,8 +51,8 @@
    use registry
    use communicate, only: my_task, master_task
    use io_types, only: stdout
-   use budget_diagnostics, only: ldiag_global_tracer_budgets, diag_for_tracer_budgets, &
-       tracer_budgets
+   use budget_diagnostics, only: tracer_budgets,                            &
+       ldiag_global_tracer_budgets, diag_for_tracer_budgets
 
 
    implicit none
@@ -125,8 +125,7 @@
                           ! freshwater flux at T, U points
 
    logical (log_kind), save ::    &
-      first_call = .true.,        &! flag for initializing timers
-      first_global_budget = .true.
+      first_call = .true.          ! flag for initializing timers
 
    type (block) ::        &
       this_block          ! block information for current block
@@ -164,17 +163,9 @@
 !
 !-----------------------------------------------------------------------
 
-        if ( first_global_budget .and. ldiag_global_tracer_budgets  .and.  &
-             ltavg_on ) then
-          call diag_for_tracer_budgets (tracer_mean_initial,volume_t_initial)
+   call diag_for_tracer_budgets (tracer_mean_initial,volume_t_initial,  &
+                                 step_call = .true.)
 
-          if ( my_task == master_task ) then
-            write (stdout,1001) volume_t_initial,tracer_mean_initial(1),   &
-                                salt_to_ppt*tracer_mean_initial(2)
-          endif
-
-          first_global_budget = .false.
-        endif
 
 !-----------------------------------------------------------------------
 !
@@ -651,11 +642,6 @@
 
   call timer_stop(timer_step)
 
- 1001 format (/, 10x, 'VOLUME AND TRACER BUDGET INITIALIZATION:',  &
-              /, 10x, '========================================',  &
-              /,  5x, ' volume_t (cm^3)           = ', e18.12,     &
-              /,  5x, ' SUM [volume*T] (C   cm^3) = ', e18.12,     &
-              /,  5x, ' SUM [volume*S] (ppt cm^3) = ', e18.12 )
 !-----------------------------------------------------------------------
 !EOC
 

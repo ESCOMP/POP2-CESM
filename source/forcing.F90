@@ -28,7 +28,8 @@
    use forcing_pt_interior
    use forcing_s_interior
    use forcing_ap
-   use forcing_coupled
+   use forcing_coupled, only: set_combined_forcing, tavg_coupled_forcing,  &
+       liceform, diurnal_cycle_factor
    use forcing_tools
    use passive_tracers, only: set_sflux_passive_tracers
    use prognostic
@@ -50,7 +51,6 @@
 
    public :: init_forcing,           &
              set_surface_forcing,    &
-             set_combined_forcing,   &
              tavg_forcing
 
 !EOP

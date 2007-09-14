@@ -6,8 +6,8 @@ module forcing_fields
 ! !MODULE: forcing_fields
 
 ! !DESCRIPTION:
-!  Contains the forcing fields necessary for supporting high-level coupling
-!  These fields originally resided in module forcing
+!  Contains the forcing fields necessary for supporting high-level coupling.
+!  These fields originally resided in modules forcing and forcing_coupled.
 
 ! !REVISION HISTORY:
 !  SVN:$Id$
@@ -16,10 +16,33 @@ module forcing_fields
 
    use kinds_mod
    use blocks,      only: nx_block, ny_block
+   use constants,   only: c0
    use domain_size, only: max_blocks_clinic,nt
+      
+   implicit none
+   save
 
-
+!EOP
+!BOC
 ! !PUBLIC DATA MEMBERS:
+
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic),public ::  &
+      EVAP_F = c0,       &! evaporation   flux    from cpl (kg/m2/s)
+      PREC_F = c0,       &! precipitation flux    from cpl (kg/m2/s)
+                          ! (rain + snow)
+      SNOW_F = c0,       &! snow          flux    from cpl (kg/m2/s)
+      MELT_F = c0,       &! melt          flux    from cpl (kg/m2/s)
+      ROFF_F = c0,       &! river runoff  flux    from cpl (kg/m2/s)
+      SALT_F = c0,       &! salt          flux    from cpl (kg(salt)/m2/s)
+      SENH_F = c0,       &! sensible heat flux    from cpl (W/m2   )
+      LWUP_F = c0,       &! longwave heat flux up from cpl (W/m2   )
+      LWDN_F = c0,       &! longwave heat flux dn from cpl (W/m2   )
+      MELTH_F= c0         ! melt     heat flux    from cpl (W/m2   )
+
+
+   integer(kind=int_kind), public :: &
+      ATM_CO2_nf_ind = 0    ! bottom atm level prognostic co2
+
 
    real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic), &
       public, target :: &

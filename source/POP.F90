@@ -20,8 +20,10 @@
 #ifdef SINGLE_EXEC
    use MPH_module, only : MPH_get_argument
 #endif
+
    use POP_KindsMod
-   use POP_InitMod, only: POP_Initialize, fstop_now, nscan, timer_total
+   use POP_InitMod, only: POP_Initialize, stop_now, nscan, timer_total,cpl_ts 
+   use POP_CouplingMod, only: pop_coupling
    use POP_FinalMod
    use kinds_mod, only: int_kind, r8
    use communicate, only: my_task, master_task
@@ -34,9 +36,7 @@
    use output, only: output_driver
    use solvers, only: solv_sum_iters
    use registry
-#if coupled
-   use forcing_coupled, only: pop_coupling
-#endif
+
 
    implicit none
 
@@ -48,8 +48,9 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (POP_i4) :: &
+   integer (POP_i4) ::  &
       errorCode         ! error code
+
 
 #ifdef SINGLE_EXEC
    integer (int_kind) :: &
@@ -83,10 +84,10 @@
 !
 !-----------------------------------------------------------------------
 
-   advance: do while (.not. check_time_flag(fstop_now))
+   advance: do while (.not. check_time_flag(stop_now))
 
-      call pop_coupling
-      if ( registry_match('lcoupled') .and. check_time_flag(fstop_now)) exit advance
+      call pop_coupling(check_time_flag(cpl_ts))
+      if ( registry_match('lcoupled') .and. check_time_flag(stop_now)) exit advance
 
       call step
 
@@ -97,7 +98,7 @@
       !***
 
       if (check_KE(100.0_r8)) then
-         call set_time_flag(fstop_now,.true.)
+         call set_time_flag(stop_now,.true.)
          call output_driver
          call exit_POP(sigAbort,'ERROR: k.e. > 100 ')
       endif
