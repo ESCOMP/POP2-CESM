@@ -32,7 +32,7 @@
    use shr_sys_mod
    use io_types, only: stdout
    use communicate, only: my_task, master_task
-   use tidal_mixing
+   use tidal_mixing, only: TIDAL_COEF, tidal_mix_max, ltidal_mixing
 
    implicit none
    private

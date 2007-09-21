@@ -364,8 +364,6 @@
      call shr_sys_flush (stdout)
    endif
  
-
- 
 !-----------------------------------------------------------------------
 !
 !  more error checking
@@ -378,6 +376,14 @@
        call exit_POP (SigAbort,'(init_lat_aux_grid): '// trim(string))
    endif
  
+!-----------------------------------------------------------------------
+!
+!  if transport diagnostics are not activated, return
+!
+!-----------------------------------------------------------------------
+
+   if (.not. (moc .or. n_heat_trans .or. n_salt_trans)) RETURN
+
  
 !-----------------------------------------------------------------------
 !

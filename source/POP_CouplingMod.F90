@@ -74,6 +74,14 @@
       SBUFF_SUM           ! accumulated sum of send buffer quantities
                           ! for averaging before being sent
 
+   integer (int_kind), private ::   &
+      lsize_total,         &! aggregate total size of physical domain 
+                            !   over all nblocks_clinic
+      lisize_total,        &! aggregate total i points in physical domain
+                            !   over all nblocks_clinic
+      ljsize_total          ! aggregate total j points in physical domain
+                            !   over all nblocks_clinic
+
    integer (int_kind), dimension(cpl_fields_ibuf_total) ::  &
       isbuf,               &! integer control buffer for sends
       irbuf                 ! integer control buffer for receives
@@ -388,39 +396,43 @@
 !
 !-----------------------------------------------------------------------
 
-    isbuf = 0
+   isbuf = 0
 
-    isbuf(cpl_fields_ibuf_cdate  ) = iyear*10000 + imonth*100 + iday
-    isbuf(cpl_fields_ibuf_sec    ) =   &
-    ihour*seconds_in_hour + iminute*seconds_in_minute + isecond
+   isbuf(cpl_fields_ibuf_cdate  ) = iyear*10000 + imonth*100 + iday
+   isbuf(cpl_fields_ibuf_sec    ) =   &
+   ihour*seconds_in_hour + iminute*seconds_in_minute + isecond
 
-!maltrud  ASSUME NBLOCKS_CLINIC = 1
-    iblock = 1
-    this_block = get_block(blocks_clinic(iblock),iblock)
+   !***  determine total size of buffers over all blocks
+   lsize_total  = 0
+   lisize_total = 0
+   ljsize_total = 0
 
-    ib = this_block%ib
-    ie = this_block%ie
-    jb = this_block%jb
-    je = this_block%je
+   do iblock = 1, nblocks_clinic
+     this_block = get_block(blocks_clinic(iblock),iblock)
+     lisize_total = lisize_total + this_block%ie-this_block%ib+1
+     ljsize_total = ljsize_total + this_block%je-this_block%jb+1
+   enddo
 
-    isbuf(cpl_fields_ibuf_lsize  ) = (ie-ib+1)*(je-jb+1)
-    isbuf(cpl_fields_ibuf_lisize ) = (ie-ib+1)
-    isbuf(cpl_fields_ibuf_ljsize ) = (je-jb+1)
-    isbuf(cpl_fields_ibuf_gsize  ) = nx_global*ny_global
-    isbuf(cpl_fields_ibuf_gisize ) = nx_global
-    isbuf(cpl_fields_ibuf_gjsize ) = ny_global
-    isbuf(cpl_fields_ibuf_ncpl   ) = ncouple_per_day
-    isbuf(cpl_fields_ibuf_nfields) = cpl_fields_grid_total
-    isbuf(cpl_fields_ibuf_dead   ) = 0           ! not a dead model
+   lsize_total = lisize_total*ljsize_total
 
-    allocate(sbuf((ie-ib+1)*(je-jb+1),cpl_fields_grid_total))
-    sbuf = -888.0
-    n=0
+   isbuf(cpl_fields_ibuf_lsize  ) = lisize_total*ljsize_total
+   isbuf(cpl_fields_ibuf_lisize ) = lisize_total
+   isbuf(cpl_fields_ibuf_ljsize ) = ljsize_total
+   isbuf(cpl_fields_ibuf_gsize  ) = nx_global*ny_global
+   isbuf(cpl_fields_ibuf_gisize ) = nx_global
+   isbuf(cpl_fields_ibuf_gjsize ) = ny_global
+   isbuf(cpl_fields_ibuf_ncpl   ) = ncouple_per_day
+   isbuf(cpl_fields_ibuf_nfields) = cpl_fields_grid_total
+   isbuf(cpl_fields_ibuf_dead   ) = 0           ! not a dead model
 
-    do iblock = 1, nblocks_clinic
-      this_block = get_block(blocks_clinic(iblock),iblock)
-      do j=jb,je
-      do i=ib,ie
+   allocate(sbuf(lsize_total,cpl_fields_grid_total))
+   sbuf = -888.0
+   n=0
+
+   do iblock = 1, nblocks_clinic
+     this_block = get_block(blocks_clinic(iblock),iblock)
+      do j=this_block%jb,this_block%je
+      do i=this_block%ib,this_block%ie
          n=n+1
          sbuf(n,cpl_fields_grid_lon  ) = radian*TLON(i,j,iblock)
          sbuf(n,cpl_fields_grid_lat  ) = radian*TLAT(i,j,iblock)
@@ -893,10 +905,6 @@
 !
 !-----------------------------------------------------------------------
 
-!maltrud  ASSUME NBLOCKS_CLINIC = 1
-   iblock = 1
-   this_block = get_block(blocks_clinic(iblock),iblock)
-
    if (.not. allocated(sbuf)) call exit_POP(sigAbort, &
        'ERROR: sbuf not allocated in subroutine pop_prepare_send_to_coupler')
 
@@ -1125,13 +1133,9 @@
 
    type (block) :: this_block ! local block info
 
-!maltrud  ASSUME NBLOCKS_CLINIC = 1
-   iblock = 1
-   this_block = get_block(blocks_clinic(iblock),iblock)
 
    nsend = cpl_interface_contractNumatt(contractS)
-   allocate(sbuf((this_block%ie-this_block%ib+1)*(this_block%je-this_block%jb+1),  &
-       nsend))
+   allocate(sbuf(lsize_total, nsend))
 
 #endif
 
@@ -1169,13 +1173,9 @@
 
    type (block) :: this_block ! local block info
 
-!maltrud  ASSUME NBLOCKS_CLINIC = 1
-   iblock = 1
-   this_block = get_block(blocks_clinic(iblock),iblock)
 
    nrecv = cpl_interface_contractNumatt(contractR)
-   allocate(sbuf((this_block%ie-this_block%ib+1)*(this_block%je-this_block%jb+1), &
-      nrecv))
+   allocate(sbuf((lsize_total), nrecv))
 
 
 #endif

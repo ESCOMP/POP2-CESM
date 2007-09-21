@@ -118,7 +118,7 @@
    real (r8), allocatable, dimension(:,:) :: &
      TLAT_G                        ,& ! global latitude  of cell center
      TLON_G                        ,& ! global longitude of cell center
-     DXT_G,DYT_G                   ,& ! global {x,y} spacing centered at T points
+     AREAT_G                       ,& ! global areas centered at T points
      MASK_G                           ! global redistribution mask
  
  
@@ -138,15 +138,14 @@
 
  
 !-----------------------------------------------------------------------
-!     create global arrays of TLON, TLAT, DXT, DYT, and REGION_MASK
+!     create global arrays of TLON, TLAT, AREAT_G, and REGION_MASK
 !-----------------------------------------------------------------------
  
    allocate (REGION_MASK_G(nx_global,ny_global))
-   allocate (TLON_G(nx_global,ny_global), &
-             TLAT_G(nx_global,ny_global), &
-             DXT_G (nx_global,ny_global), &
-             DYT_G (nx_global,ny_global), &
-             MASK_G(nx_global,ny_global)  )
+   allocate (TLON_G  (nx_global,ny_global), &
+             TLAT_G  (nx_global,ny_global), &
+             AREAT_G (nx_global,ny_global), &
+             MASK_G  (nx_global,ny_global)  )
 
    WORK = TLON*radian              ! TLON in degrees
    call gather_global(TLON_G, WORK, master_task,distrb_clinic)
@@ -154,8 +153,8 @@
    WORK = TLAT*radian               ! TLAT  in degrees
    call gather_global(TLAT_G, WORK, master_task,distrb_clinic)
    
-   call gather_global(DXT_G , DXT,  master_task,distrb_clinic)
-   call gather_global(DYT_G , DYT,  master_task,distrb_clinic)
+   WORK = DXT*DYT
+   call gather_global(AREAT_G , WORK,  master_task,distrb_clinic)
  
    call gather_global(REGION_MASK_G,REGION_MASK,master_task,distrb_clinic)
 
@@ -272,7 +271,7 @@
                 npts        = npts + 1
                 ipts (npts) = i
                 jpts (npts) = j
-                areas(npts) = DXT_G(i,j)*DYT_G(i,j)
+                areas(npts) = AREAT_G(i,j)
                 area        = area + areas(npts)
  
                 !---------------------------------------------------
@@ -441,8 +440,7 @@
    deallocate (REGION_MASK_G)
    deallocate (TLON_G,  &
                TLAT_G,  &
-               DXT_G,   &
-               DYT_G,   &
+               AREAT_G, &
                MASK_G   )
 
 1000  format(5x,'(',a,')', a )

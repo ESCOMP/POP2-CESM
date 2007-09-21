@@ -209,6 +209,14 @@
 
 !-----------------------------------------------------------------------
 !
+!  exit if tidal mixing is not enabled
+!
+!-----------------------------------------------------------------------
+
+   if (.not. ltidal_mixing) return
+
+!-----------------------------------------------------------------------
+!
 !  if tidal mixing and partial_bottom_cells are both enabled,
 !  exit (until pbc option is added to tidal mixing code)
 !
@@ -218,12 +226,10 @@
       call exit_POP(SigAbort,  &
           'ERROR: partial bottom cells not implemented with tidal_mixing option')
 
-   if ( ltidal_mixing ) then
-
-     allocate ( TIDAL_ENERGY_FLUX(nx_block,ny_block,nblocks_clinic), &
-                VERTICAL_FUNC    (nx_block,ny_block,nblocks_clinic), &
-                WORK1            (nx_block,ny_block,nblocks_clinic), &
-                TIDAL_COEF       (nx_block,ny_block,km,nblocks_clinic))
+   allocate ( TIDAL_ENERGY_FLUX(nx_block,ny_block,nblocks_clinic), &
+              VERTICAL_FUNC    (nx_block,ny_block,nblocks_clinic), &
+              WORK1            (nx_block,ny_block,nblocks_clinic), &
+              TIDAL_COEF       (nx_block,ny_block,km,nblocks_clinic))
 
 !-----------------------------------------------------------------------
 !
@@ -233,21 +239,17 @@
 
    !***  first create input file 
 
-   tidal_mixing_file_in =                                         &
-                construct_file(tidal_energy_file_fmt,             &
-                               full_name=trim(tidal_energy_file), &
-                               record_length=rec_type_dbl,        &
-                               recl_words=nx_global*ny_global)
+   tidal_mixing_file_in = construct_file(tidal_energy_file_fmt,             &
+                                         full_name=trim(tidal_energy_file), &
+                                         record_length=rec_type_dbl,        &
+                                         recl_words=nx_global*ny_global)
 
    !*** open file and read attributes
-
    call data_set(tidal_mixing_file_in, 'open_read')
 
    !*** define dimensions
-
    i_dim = construct_io_dim('i', nx_global)
    j_dim = construct_io_dim('j', ny_global)
-
 
    !*** define field to be read
    TIDAL_ENERGY_FLUX_D =    &
@@ -318,7 +320,6 @@
    deallocate ( TIDAL_ENERGY_FLUX,VERTICAL_FUNC,WORK1)
 
 
- endif
 
 !-----------------------------------------------------------------------
 !EOC

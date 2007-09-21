@@ -846,8 +846,18 @@ EOF
 
 if      ( ${OCN_GRID} == gx3v5 || ${OCN_GRID} == gx3v6) then
  set transport_reg2_names = ("'Atlantic Ocean'","'Labrador Sea'","'GIN Sea'","'Arctic Ocean'","'Hudson Bay '")
+ set moc = .true.
+ set n_heat_trans = .true.
+ set n_salt_trans = .true.
 else if ( ${OCN_GRID} == gx1v3 || ${OCN_GRID} == gx1v4 || ${OCN_GRID} == gx1v5 ) then
  set transport_reg2_names = ("'Atlantic Ocean'","'Mediterranean Sea'","'Labrador Sea'","'GIN Sea'","'Arctic Ocean'","'Hudson Bay'")
+ set moc = .true.
+ set n_heat_trans = .true.
+ set n_salt_trans = .true.
+else # turn off transport diags with high-resolution grid
+ set moc = .false.
+ set n_heat_trans = .false.
+ set n_salt_trans = .false.
 endif
 
 cat >> $POP2_NMLFILE << EOF
@@ -858,9 +868,9 @@ DO NOT change transport_reg2_names unless you know exactly what you are doing.
   lat_aux_begin        = -90.0
   lat_aux_end          =  90.0
   n_lat_aux_grid       = 180 
-  moc                  = .true.
-  n_heat_trans         = .true.
-  n_salt_trans         = .true.
+  moc                  = $moc
+  n_heat_trans         = $n_heat_trans
+  n_salt_trans         = $n_salt_trans
   transport_reg2_names = $transport_reg2_names
   n_transport_reg      = 2
 /

@@ -1608,7 +1608,7 @@
    call add_kpp_sources(WORKN, k, this_block)
 
    !*** if sw flux available, add penetrative shortwave
-   call add_sw_absorb(WORKN, SHF_QSW, k, this_block)
+   call add_sw_absorb(WORKN, SHF_QSW(:,:,bid), k, this_block)
 
 
    FT = FT + WORKN

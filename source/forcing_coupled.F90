@@ -83,6 +83,7 @@
       tavg_LWDN_F,       &! tavg id for longwave heat flux dn
       tavg_MELTH_F        ! tavg id for melt     heat flux
 
+
    integer (int_kind) ::   &
       timer_send_to_cpl,   &
       timer_recv_from_cpl, &
@@ -173,14 +174,6 @@
    integer (int_kind) ::  &
       i,j,n
 
-!-----------------------------------------------------------------------
-!  for now:
-!  ONLY ALLOW 1 BLOCK PER PROCEESOR
-!-----------------------------------------------------------------------
-
-   if (nblocks_clinic /= 1) then
-      call exit_POP(sigAbort,'ERROR pop_init_coupled requires nblocks_clinic = 1')
-   endif
 
 !-----------------------------------------------------------------------
 !
@@ -377,6 +370,7 @@
 !  define tavg fields computed from forcing_coupled routines
 !
 !-----------------------------------------------------------------------
+
 
    call define_tavg_field(tavg_EVAP_F,'EVAP_F',2,                              &
                           long_name='Evaporation Flux from Coupler',           &
@@ -991,6 +985,7 @@
    do iblock = 1,nblocks_clinic
 
       this_block = get_block(blocks_clinic(iblock),iblock)
+
 
       if (tavg_requested(tavg_EVAP_F)) then
          call accumulate_tavg_field(EVAP_F(:,:,iblock), &
