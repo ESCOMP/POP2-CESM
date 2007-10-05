@@ -444,7 +444,7 @@
    call define_tavg_field(tavg_TPOWER,'TPOWER',3,             &
                           long_name=trim(string),             &
                           missing_value=undefined_nf_r4,      &
-                          units='erg/s',                      &
+                          units='erg/centimeter^3/s',         &
                           grid_loc='3112',                    &
                           coordinates  ='TLONG TLAT z_w time' ) 
 

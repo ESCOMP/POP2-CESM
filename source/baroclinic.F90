@@ -44,7 +44,8 @@
    use time_management, only: mix_pass, leapfrogts, impcor, c2dtu, beta,     &
        gamma, c2dtt
    use io_types, only: nml_in, nml_filename, stdout
-   use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
+   use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field, &
+       tavg_method_max, tavg_method_min
    use forcing_fields, only: STF, SMF, lsmft_avail, SMFT, TFW
    use forcing_shf, only: SHF_QSW
    use forcing_sfwf, only: lfw_as_salt_flx
@@ -82,6 +83,12 @@
    integer (int_kind) :: &
       tavg_UDP,          &! tavg id for pressure grad work
       tavg_TEMP,         &! tavg id for temperature
+      tavg_TEMP_MAX,     &! tavg id for maximum temperature
+      tavg_TEMP_MIN,     &! tavg id for maximum temperature
+      tavg_dTEMP_POS_3D, &! tavg id for positive temperature timestep difference
+      tavg_dTEMP_POS_2D, &! tavg id for positive temperature timestep difference
+      tavg_dTEMP_NEG_3D, &! tavg id for negative temperature timestep difference
+      tavg_dTEMP_NEG_2D, &! tavg id for negative temperature timestep difference
       tavg_SALT,         &! tavg id for salinity
       tavg_TEMP2,        &! tavg id for temperature squared
       tavg_SALT2,        &! tavg id for salinity    squared
@@ -238,6 +245,48 @@
                           missing_value=undefined_nf_r4,               &
                           units='degC', grid_loc='3111',               &
                           coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_TEMP_MAX,'TEMP_MAX',3,                  &
+                          tavg_method=tavg_method_max,                 &
+                          long_name='Maximum Potential Temperature',   &
+                          missing_value=undefined_nf_r4,               &
+                          units='degC', grid_loc='3111',               &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_TEMP_MIN,'TEMP_MIN',3,                  &
+                          tavg_method=tavg_method_min,                 &
+                          long_name='Minimum Potential Temperature',   &
+                          missing_value=undefined_nf_r4,               &
+                          units='degC', grid_loc='3111',               &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_dTEMP_POS_3D,'dTEMP_POS_3D',3,          &
+                          tavg_method=tavg_method_max,                 &
+                          long_name='max pos temperature timestep diff', &
+                          missing_value=undefined_nf_r4,               &
+                          units='degC', grid_loc='3111',               &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_dTEMP_POS_2D,'dTEMP_POS_2D',2,          &
+                          tavg_method=tavg_method_max,                 &
+                          long_name='max pos column temperature timestep diff', &
+                          missing_value=undefined_nf_r4,               &
+                          units='degC', grid_loc='2110',               &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_dTEMP_NEG_3D,'dTEMP_NEG_3D',3,          &
+                          tavg_method=tavg_method_min,                 &
+                          long_name='min neg temperature timestep diff', &
+                          missing_value=undefined_nf_r4,               &
+                          units='degC', grid_loc='3111',               &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_dTEMP_NEG_2D,'dTEMP_NEG_2D',2,          &
+                          tavg_method=tavg_method_min,                 &
+                          long_name='min neg column temperature timestep diff', &
+                          missing_value=undefined_nf_r4,               &
+                          units='degC', grid_loc='2110',               &
+                          coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_SALT,'SALT',3,                          &
                           long_name='Salinity',                        &
@@ -499,6 +548,40 @@
          if (tavg_requested(tavg_TEMP)) then
             call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
                                        tavg_TEMP,iblock,k)
+         endif
+
+         if (tavg_requested(tavg_TEMP_MAX)) then
+            call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
+                                       tavg_TEMP_MAX,iblock,k)
+         endif
+
+         if (tavg_requested(tavg_TEMP_MIN)) then
+            call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
+                                       tavg_TEMP_MIN,iblock,k)
+         endif
+
+         if (tavg_requested(tavg_dTEMP_POS_3D)) then
+            call accumulate_tavg_field(max(TRACER(:,:,k,1,curtime,iblock) - &
+                                           TRACER(:,:,k,1,oldtime,iblock), c0), &
+                                       tavg_dTEMP_POS_3D,iblock,k)
+         endif
+
+         if (tavg_requested(tavg_dTEMP_POS_2D)) then
+            call accumulate_tavg_field(max(TRACER(:,:,k,1,curtime,iblock) - &
+                                           TRACER(:,:,k,1,oldtime,iblock), c0), &
+                                       tavg_dTEMP_POS_2D,iblock,1)
+         endif
+
+         if (tavg_requested(tavg_dTEMP_NEG_3D)) then
+            call accumulate_tavg_field(min(TRACER(:,:,k,1,curtime,iblock) - &
+                                           TRACER(:,:,k,1,oldtime,iblock), c0), &
+                                       tavg_dTEMP_NEG_3D,iblock,k)
+         endif
+
+         if (tavg_requested(tavg_dTEMP_NEG_2D)) then
+            call accumulate_tavg_field(min(TRACER(:,:,k,1,curtime,iblock) - &
+                                           TRACER(:,:,k,1,oldtime,iblock), c0), &
+                                       tavg_dTEMP_NEG_2D,iblock,1)
          endif
 
          if (tavg_requested(tavg_T1_8) .and. k <= 8) then

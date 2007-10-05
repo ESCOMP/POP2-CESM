@@ -342,8 +342,8 @@
       units = tracer_d(n)%flux_units
       call define_tavg_field(tavg_var_stf(n),                       &
                              sname, 2, long_name=lname,             &
-                             units=units, grid_loc='3110',          &
-                             coordinates='TLONG TLAT z_t time')
+                             units=units, grid_loc='2110',          &
+                             coordinates='TLONG TLAT time')
 
       sname = 'RESID_' /&
                         &/ trim(tracer_d(n)%short_name)
@@ -352,8 +352,8 @@
       units = tracer_d(n)%flux_units
       call define_tavg_field(tavg_var_resid(n),                     &
                              sname, 2, long_name=lname,             &
-                             units=units, grid_loc='3110',          &
-                             coordinates='TLONG TLAT z_t time')
+                             units=units, grid_loc='2110',          &
+                             coordinates='TLONG TLAT time')
 
       sname = 'FvPER_' /&
                         &/ trim(tracer_d(n)%short_name)
@@ -362,8 +362,8 @@
       units = tracer_d(n)%flux_units
       call define_tavg_field(tavg_var_fvper(n),                     &
                              sname, 2, long_name=lname,             &
-                             units=units, grid_loc='3110',          &
-                             coordinates='TLONG TLAT z_t time')
+                             units=units, grid_loc='2110',          &
+                             coordinates='TLONG TLAT time')
 
       sname = 'FvICE_' /&
                         &/ trim(tracer_d(n)%short_name)
@@ -372,9 +372,9 @@
       units = tracer_d(n)%flux_units
       call define_tavg_field(tavg_var_fvice(n),                     &
                              sname, 2, long_name=lname,             &
-                             units=units, grid_loc='3110',          &
+                             units=units, grid_loc='2110',          &
                              tavg_method=tavg_method_qflux,         &
-                             coordinates='TLONG TLAT z_t time')
+                             coordinates='TLONG TLAT time')
    enddo
 
 !-----------------------------------------------------------------------
@@ -793,7 +793,7 @@
 ! !IROUTINE: passive_tracers_tavg_FvICE
 ! !INTERFACE:
 
- subroutine passive_tracers_tavg_FvICE(cp_over_lhfusion, QICE, const)
+ subroutine passive_tracers_tavg_FvICE(cp_over_lhfusion, QICE)
 
 ! !DESCRIPTION:
 !  accumulate FvICE fluxes passive tracers
@@ -807,8 +807,7 @@
       QICE                ! tot column cooling from ice form (in C*cm)
 
    real (r8), intent(in) ::  &
-      cp_over_lhfusion,  &! cp_sw/latent_heat_fusion
-      const               ! accumulation weight = tlast_ice
+      cp_over_lhfusion    ! cp_sw/latent_heat_fusion
 
 !EOP
 !BOC
@@ -835,7 +834,7 @@
                if (ref_val /= c0)  then
                   WORK = ref_val * (c1 - sea_ice_salinity / ocn_ref_salinity) * &
                      cp_over_lhfusion * max(c0, QICE(:,:,iblock))
-                  call accumulate_tavg_field(WORK,tavg_var_fvice(n),iblock,1,const)
+                  call accumulate_tavg_field(WORK,tavg_var_fvice(n),iblock,1,c1)
                endif
             endif
          enddo

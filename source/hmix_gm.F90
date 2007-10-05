@@ -63,6 +63,7 @@
          HXY,        &        ! dx/dy for y-z plane
          HYX,        &        ! dy/dx for x-z plane
          HYXW, HXYS, &        ! west and south-shifted values of above
+         RB,         &        ! Rossby radius
          RBR,        &        ! inverse of Rossby radius
          BTP,        &        ! beta plane approximation
          BL_DEPTH,   &        ! boundary layer depth
@@ -74,7 +75,8 @@
          SF_SLX, SF_SLY       ! components of the merged streamfunction
 
       real (r8), dimension(:,:,:,:,:), allocatable :: &
-         TX, TY, TZ           ! tracer differences in each direction
+         TX, TY, TZ,    &     ! tracer differences in each direction
+         SLA_SAVE             ! isopycnal slopes
 
       real (r8), dimension(:,:,:,:), allocatable :: &
          FZTOP                ! vertical flux
@@ -733,6 +735,13 @@
    TZ       = c0
    FZTOP    = c0
 
+   if ( transition_layer_on ) then
+     allocate (SLA_SAVE(nx_block,ny_block,2,km,nblocks_clinic))
+     allocate (RB(nx_block,ny_block,nblocks_clinic))
+     SLA_SAVE = c0
+     RB = c0
+   endif
+
 !-----------------------------------------------------------------------
 !
 !  initialize various time-independent arrays
@@ -793,6 +802,10 @@
                            c1/1.5e+6_r8)      ! Cg/|f| .ge. 15 km = 1.5e+6 cm
      RBR(:,:,iblock) = max(RBR(:,:,iblock),    &
                            1.e-7_r8)          ! Cg/|f| .le. 100 km = 1.e+7 cm
+
+     if ( transition_layer_on ) then
+       RB(:,:,iblock) = c1 / RBR(:,:,iblock)
+     endif
 
      !*** beta at t-points
 
@@ -1363,6 +1376,18 @@
             TLT%DIABATIC_DEPTH(:,:,bid) = zw(k)
           endif
 
+          do kk=1,km
+            do kk_sub = ktp,kbt
+              kid = kk + kk_sub - 2
+              SLA_SAVE(:,:,kk_sub,kk,bid) = dzw(kid)*sqrt(p5*(       &
+                     (SLX(:,:,1,kk_sub,kk,bid)**2                    &
+                    + SLX(:,:,2,kk_sub,kk,bid)**2)/DXT(:,:,bid)**2   &
+                   + (SLY(:,:,1,kk_sub,kk,bid)**2                    &
+                    + SLY(:,:,2,kk_sub,kk,bid)**2)/DYT(:,:,bid)**2)) &
+                   + eps
+            enddo
+          enddo
+
           call transition_layer ( this_block )
 
         endif
@@ -1497,12 +1522,16 @@
 !
 !-----------------------------------------------------------------------
 
-            SLA = dzw(kid)*sqrt(p5*(                               &
-                   (SLX(:,:,1,kk_sub,kk,bid)**2                    & 
-                  + SLX(:,:,2,kk_sub,kk,bid)**2)/DXT(:,:,bid)**2   &
-                 + (SLY(:,:,1,kk_sub,kk,bid)**2                    &
-                  + SLY(:,:,2,kk_sub,kk,bid)**2)/DYT(:,:,bid)**2)) &
-                 + eps
+            if ( transition_layer_on ) then
+              SLA = SLA_SAVE(:,:,kk_sub,kk,bid)
+            else
+              SLA = dzw(kid)*sqrt(p5*(                               &
+                     (SLX(:,:,1,kk_sub,kk,bid)**2                    & 
+                    + SLX(:,:,2,kk_sub,kk,bid)**2)/DXT(:,:,bid)**2   &
+                   + (SLY(:,:,1,kk_sub,kk,bid)**2                    &
+                    + SLY(:,:,2,kk_sub,kk,bid)**2)/DYT(:,:,bid)**2)) &
+                   + eps
+            endif
 
             TAPER1 = c1 
             if ( .not. transition_layer_on ) then
@@ -3085,7 +3114,6 @@
 
       integer (int_kind) :: &
          k, kk,     &        ! loop indices
-         ktmp,      &        ! k index for dzw
          bid                 ! local block address for this sub block
 
       integer (int_kind), dimension(nx_block,ny_block) :: &
@@ -3096,7 +3124,6 @@
          COMPUTE_TLT         ! flag
 
       real (r8), dimension(nx_block,ny_block) :: &
-         SLA,       &        ! absolute value of slope
          WORK                ! work space for TLT%THICKNESS
 
       real (r8), dimension(2) :: &
@@ -3112,8 +3139,6 @@
 
       K_START = 0
       K_SUB   = 0
-
-      SLA = c0
 
       TLT%THICKNESS(:,:,bid)      = c0
       TLT%INTERIOR_DEPTH(:,:,bid) = c0
@@ -3188,12 +3213,8 @@
 
         where ( COMPUTE_TLT  .and.  K_SUB == kbt  .and.  &
                 K_START < KMT(:,:,bid)  .and.  K_START == k )
-          SLA = dzw(k) * sqrt( p5 * (                           &
-                 ( SLX(:,:,1,kbt,k,bid)**2                      &
-                 + SLX(:,:,2,kbt,k,bid)**2 ) / DXT(:,:,bid)**2  &
-               + ( SLY(:,:,1,kbt,k,bid)**2                      &
-                 + SLY(:,:,2,kbt,k,bid)**2 ) / DYT(:,:,bid)**2 ) ) + eps
-          WORK = SLA / RBR(:,:,bid)
+          WORK = max(SLA_SAVE(:,:,kbt,k,bid), &
+                     SLA_SAVE(:,:,ktp,k+1,bid)) * RB(:,:,bid)
         endwhere
 
         where ( WORK /= c0  .and.  &
@@ -3230,18 +3251,23 @@
 
           WORK = c0
 
-          ktmp = k
-          if ( kk == ktp )  ktmp = k-1
-
-          where ( COMPUTE_TLT  .and.  K_START <= KMT(:,:,bid)  .and. &
-                  K_START == k )
-            SLA = dzw(ktmp) * sqrt( p5 * (                      &
-                  ( SLX(:,:,1,kk,k,bid)**2                      &
-                  + SLX(:,:,2,kk,k,bid)**2 ) / DXT(:,:,bid)**2  &
-                + ( SLY(:,:,1,kk,k,bid)**2                      &
-                  + SLY(:,:,2,kk,k,bid)**2 ) / DYT(:,:,bid)**2 ) ) + eps
-            WORK = SLA / RBR(:,:,bid)
-          endwhere
+          if (kk == ktp) then
+            where ( COMPUTE_TLT  .and.  K_START <= KMT(:,:,bid)  .and. &
+                    K_START == k )
+              WORK = max(SLA_SAVE(:,:,ktp,k,bid), &
+                         SLA_SAVE(:,:,kbt,k,bid)) * RB(:,:,bid)
+            endwhere
+          else
+            where ( COMPUTE_TLT  .and.  K_START < KMT(:,:,bid)  .and. &
+                    K_START == k )
+              WORK = max(SLA_SAVE(:,:,kbt,k,bid), &
+                         SLA_SAVE(:,:,ktp,k+1,bid)) * RB(:,:,bid)
+            endwhere
+            where ( COMPUTE_TLT  .and.  K_START == KMT(:,:,bid)  .and. &
+                    K_START == k )
+              WORK = SLA_SAVE(:,:,kbt,k,bid) * RB(:,:,bid)
+            endwhere
+          endif
 
           where ( WORK /= c0  .and.  &
            TLT%DIABATIC_DEPTH(:,:,bid) <  (reference_depth(kk) - WORK) )
@@ -3338,6 +3364,9 @@
          WORK1, WORK2, WORK3, WORK4   ! work arrays
 
       real (r8), dimension(nx_block,ny_block) :: &
+         WORK_NEXT                    ! WORK2 or WORK4 at next level
+
+      real (r8), dimension(nx_block,ny_block) :: &
          WORK5, WORK6, WORK7          ! more work arrays
 
       real (r8), dimension(2) :: &
@@ -3391,11 +3420,25 @@
               - KAPPA_THIC(:,:,ktp,k+1,bid) * SLX(:,:,kk,ktp,k+1,bid) &
                                             * dz(k+1) )
 
+            WORK_NEXT = c2 * ( &
+              KAPPA_THIC(:,:,ktp,k+1,bid) * SLX(:,:,kk,ktp,k+1,bid) - &
+              KAPPA_THIC(:,:,kbt,k+1,bid) * SLX(:,:,kk,kbt,k+1,bid) )
+
+            where (abs(WORK_NEXT) < abs(WORK2(:,:,kk))) &
+              WORK2(:,:,kk) = WORK_NEXT
+
             WORK3(:,:,kk) =  KAPPA_THIC(:,:,kbt,k,bid)  &
                            * SLY(:,:,kk,kbt,k,bid) * dz(k)
             WORK4(:,:,kk) = c2 * dzwr(k) * ( WORK3(:,:,kk)            &
               - KAPPA_THIC(:,:,ktp,k+1,bid) * SLY(:,:,kk,ktp,k+1,bid) &
                                             * dz(k+1) )
+
+            WORK_NEXT = c2 * ( &
+              KAPPA_THIC(:,:,ktp,k+1,bid) * SLY(:,:,kk,ktp,k+1,bid) - &
+              KAPPA_THIC(:,:,kbt,k+1,bid) * SLY(:,:,kk,kbt,k+1,bid) )
+
+            where (abs(WORK_NEXT) < abs(WORK4(:,:,kk))) &
+              WORK4(:,:,kk) = WORK_NEXT
 
           endwhere
 
@@ -3405,17 +3448,35 @@
 
             WORK1(:,:,kk) =  KAPPA_THIC(:,:,ktp,k+1,bid)     & 
                            * SLX(:,:,kk,ktp,k+1,bid)
-            WORK2(:,:,kk) =  WORK1(:,:,kk)                        &
+            WORK2(:,:,kk) =  c2 * ( WORK1(:,:,kk)                 &
                            - ( KAPPA_THIC(:,:,kbt,k+1,bid)        &
-                              * SLX(:,:,kk,kbt,k+1,bid) )  
+                              * SLX(:,:,kk,kbt,k+1,bid) ) )
             WORK1(:,:,kk) = WORK1(:,:,kk) * dz(k+1)
+
+            where ( TLT%K_LEVEL(:,:,bid) + 1 < KMT(:,:,bid) )
+              WORK_NEXT = c2 * dzwr(k+1) * ( &
+                KAPPA_THIC(:,:,kbt,k+1,bid) * SLX(:,:,kk,kbt,k+1,bid) * dz(k+1) - &
+                KAPPA_THIC(:,:,ktp,k+2,bid) * SLX(:,:,kk,ktp,k+2,bid) * dz(k+2))
+
+              where (abs(WORK_NEXT) < abs(WORK2(:,:,kk))) &
+                WORK2(:,:,kk) = WORK_NEXT
+            endwhere
 
             WORK3(:,:,kk) =  KAPPA_THIC(:,:,ktp,k+1,bid)     &
                            * SLY(:,:,kk,ktp,k+1,bid)
-            WORK4(:,:,kk) =  WORK3(:,:,kk)                        &
+            WORK4(:,:,kk) =  c2 * ( WORK3(:,:,kk)                 &
                            - ( KAPPA_THIC(:,:,kbt,k+1,bid)        &
-                              * SLY(:,:,kk,kbt,k+1,bid) ) 
+                              * SLY(:,:,kk,kbt,k+1,bid) ) )
             WORK3(:,:,kk) = WORK3(:,:,kk) * dz(k+1)
+
+            where ( TLT%K_LEVEL(:,:,bid) + 1 < KMT(:,:,bid) )
+              WORK_NEXT = c2 * dzwr(k+1) * ( &
+                KAPPA_THIC(:,:,kbt,k+1,bid) * SLY(:,:,kk,kbt,k+1,bid) * dz(k+1) - &
+                KAPPA_THIC(:,:,ktp,k+2,bid) * SLY(:,:,kk,ktp,k+2,bid) * dz(k+2))
+
+              where (abs(WORK_NEXT) < abs(WORK4(:,:,kk))) &
+                WORK4(:,:,kk) = WORK_NEXT
+            endwhere
 
           endwhere
 

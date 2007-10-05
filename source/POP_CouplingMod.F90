@@ -409,13 +409,14 @@
 
    do iblock = 1, nblocks_clinic
      this_block = get_block(blocks_clinic(iblock),iblock)
-     lisize_total = lisize_total + this_block%ie-this_block%ib+1
-     ljsize_total = ljsize_total + this_block%je-this_block%jb+1
+     do i=this_block%ib,this_block%ie
+       do j=this_block%jb,this_block%je
+         lsize_total = lsize_total + 1
+       enddo ! j
+     enddo ! i
    enddo
 
-   lsize_total = lisize_total*ljsize_total
-
-   isbuf(cpl_fields_ibuf_lsize  ) = lisize_total*ljsize_total
+   isbuf(cpl_fields_ibuf_lsize  ) = lsize_total
    isbuf(cpl_fields_ibuf_lisize ) = lisize_total
    isbuf(cpl_fields_ibuf_ljsize ) = ljsize_total
    isbuf(cpl_fields_ibuf_gsize  ) = nx_global*ny_global

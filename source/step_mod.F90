@@ -586,8 +586,7 @@
 !-----------------------------------------------------------------------
 !    time-averaging for ice formation related quantities
 !-----------------------------------------------------------------------
-     if (nt > 2) call passive_tracers_tavg_FvICE(cp_over_lhfusion, &
-                                                 QICE, const=tlast_ice)
+     if (nt > 2) call passive_tracers_tavg_FvICE(cp_over_lhfusion, QICE)
    endif
 
    call diag_global_afterupdate

@@ -2031,7 +2031,6 @@
    case (tavg_method_qflux)  
          TAVG_BUF_2D(:,:,block,bufloc) =  &
          TAVG_BUF_2D(:,:,block,bufloc) + const*max (c0,ARRAY)
-                                    !*** const = tlast_ice
    case (tavg_method_min)  ! replace with current minimum value
       if (ndims == 2) then
          where (ARRAY < TAVG_BUF_2D(:,:,block,bufloc))

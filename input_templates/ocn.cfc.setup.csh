@@ -76,7 +76,7 @@ else if ($command == namelist) then
    set init_cfc_option = $RUN_TYPE
    if ($CONTINUE_RUN == TRUE) set init_cfc_option = continue
 
-   if ($CCSM_IPCC == 1870_to_2000_control) then
+   if ($CCSM_IPCC == 1870-2000_control) then
       if ($CONTINUE_RUN == FALSE) set init_cfc_option = zero
       set model_year = 1870
       set data_year  = 1870
