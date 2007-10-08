@@ -811,7 +811,7 @@
 
    if (ldiag_cpl) then
 
-     write(message,'(6a,1x,a5)')  &
+     write(message,'(6a,1x,5a)')  &
          ' Global averages of fluxes received from cpl at ',  &
            cyear,'/',cmonth ,'/',cday,  chour,':',cminute,':',csecond
      call document ('pop_recv_from_coupler', message)
