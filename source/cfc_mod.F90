@@ -1102,24 +1102,24 @@ contains
    do iblock = 1, nblocks_clinic
 
       if (cfc_formulation == 'ocmip') then
-         where (LAND_MASK(:,:,iblock))
-            where (IFRAC_USED(:,:,iblock) < 0.2000_r8) &
-               IFRAC_USED(:,:,iblock) = 0.2000_r8
-            where (IFRAC_USED(:,:,iblock) > 0.9999_r8) &
-               IFRAC_USED(:,:,iblock) = 0.9999_r8
-         endwhere
+         where (LAND_MASK(:,:,iblock) .and. IFRAC_USED(:,:,iblock) < 0.2000_r8) &
+            IFRAC_USED(:,:,iblock) = 0.2000_r8
+         where (LAND_MASK(:,:,iblock) .and. IFRAC_USED(:,:,iblock) > 0.9999_r8) &
+            IFRAC_USED(:,:,iblock) = 0.9999_r8
       endif
 
       if (cfc_formulation == 'model') then
          where (LAND_MASK(:,:,iblock))
             IFRAC_USED(:,:,iblock) = IFRAC(:,:,iblock)
-            where (IFRAC_USED(:,:,iblock) < c0) IFRAC_USED(:,:,iblock) = c0
-            where (IFRAC_USED(:,:,iblock) > c1) IFRAC_USED(:,:,iblock) = c1
 
             XKW_USED(:,:,iblock) = xkw_coeff * U10_SQR(:,:,iblock)
 
             AP_USED(:,:,iblock) = PRESS(:,:,iblock)
          endwhere
+         where (LAND_MASK(:,:,iblock) .and. IFRAC_USED(:,:,iblock) < c0) &
+            IFRAC_USED(:,:,iblock) = c0
+         where (LAND_MASK(:,:,iblock) .and. IFRAC_USED(:,:,iblock) > c1) &
+            IFRAC_USED(:,:,iblock) = c1
       endif
 
 !-----------------------------------------------------------------------

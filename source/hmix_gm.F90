@@ -3364,10 +3364,13 @@
          WORK1, WORK2, WORK3, WORK4   ! work arrays
 
       real (r8), dimension(nx_block,ny_block) :: &
-         WORK_NEXT                    ! WORK2 or WORK4 at next level
+         WORK2_NEXT, WORK4_NEXT       ! WORK2 or WORK4 at next level
 
       real (r8), dimension(nx_block,ny_block) :: &
          WORK5, WORK6, WORK7          ! more work arrays
+
+      logical (log_kind), dimension(nx_block,ny_block) :: &
+         LMASK               ! flag
 
       real (r8), dimension(2) :: &
          reference_depth              ! zt or zw
@@ -3410,9 +3413,11 @@
 
         do kk=1,2
 
-          where ( TLT%K_LEVEL(:,:,bid) == k  .and.            &
+          LMASK = TLT%K_LEVEL(:,:,bid) == k  .and.            &
                   TLT%K_LEVEL(:,:,bid) < KMT(:,:,bid)  .and.  &
-                  TLT%ZTW(:,:,bid) == 1 )
+                  TLT%ZTW(:,:,bid) == 1
+
+          where ( LMASK )
 
             WORK1(:,:,kk) =  KAPPA_THIC(:,:,kbt,k,bid)  &
                            * SLX(:,:,kk,kbt,k,bid) * dz(k)
@@ -3420,12 +3425,9 @@
               - KAPPA_THIC(:,:,ktp,k+1,bid) * SLX(:,:,kk,ktp,k+1,bid) &
                                             * dz(k+1) )
 
-            WORK_NEXT = c2 * ( &
+            WORK2_NEXT = c2 * ( &
               KAPPA_THIC(:,:,ktp,k+1,bid) * SLX(:,:,kk,ktp,k+1,bid) - &
               KAPPA_THIC(:,:,kbt,k+1,bid) * SLX(:,:,kk,kbt,k+1,bid) )
-
-            where (abs(WORK_NEXT) < abs(WORK2(:,:,kk))) &
-              WORK2(:,:,kk) = WORK_NEXT
 
             WORK3(:,:,kk) =  KAPPA_THIC(:,:,kbt,k,bid)  &
                            * SLY(:,:,kk,kbt,k,bid) * dz(k)
@@ -3433,18 +3435,23 @@
               - KAPPA_THIC(:,:,ktp,k+1,bid) * SLY(:,:,kk,ktp,k+1,bid) &
                                             * dz(k+1) )
 
-            WORK_NEXT = c2 * ( &
+            WORK4_NEXT = c2 * ( &
               KAPPA_THIC(:,:,ktp,k+1,bid) * SLY(:,:,kk,ktp,k+1,bid) - &
               KAPPA_THIC(:,:,kbt,k+1,bid) * SLY(:,:,kk,kbt,k+1,bid) )
 
-            where (abs(WORK_NEXT) < abs(WORK4(:,:,kk))) &
-              WORK4(:,:,kk) = WORK_NEXT
-
           endwhere
 
-          where ( TLT%K_LEVEL(:,:,bid) == k  .and.           &
+          where ( LMASK .and. abs(WORK2_NEXT) < abs(WORK2(:,:,kk)) ) &
+            WORK2(:,:,kk) = WORK2_NEXT
+
+          where ( LMASK .and. abs(WORK4_NEXT) < abs(WORK4(:,:,kk)) ) &
+            WORK4(:,:,kk) = WORK4_NEXT
+
+          LMASK = TLT%K_LEVEL(:,:,bid) == k  .and.           &
                   TLT%K_LEVEL(:,:,bid) < KMT(:,:,bid)  .and. &
-                  TLT%ZTW(:,:,bid) == 2 )
+                  TLT%ZTW(:,:,bid) == 2
+
+          where ( LMASK )
 
             WORK1(:,:,kk) =  KAPPA_THIC(:,:,ktp,k+1,bid)     & 
                            * SLX(:,:,kk,ktp,k+1,bid)
@@ -3453,15 +3460,6 @@
                               * SLX(:,:,kk,kbt,k+1,bid) ) )
             WORK1(:,:,kk) = WORK1(:,:,kk) * dz(k+1)
 
-            where ( TLT%K_LEVEL(:,:,bid) + 1 < KMT(:,:,bid) )
-              WORK_NEXT = c2 * dzwr(k+1) * ( &
-                KAPPA_THIC(:,:,kbt,k+1,bid) * SLX(:,:,kk,kbt,k+1,bid) * dz(k+1) - &
-                KAPPA_THIC(:,:,ktp,k+2,bid) * SLX(:,:,kk,ktp,k+2,bid) * dz(k+2))
-
-              where (abs(WORK_NEXT) < abs(WORK2(:,:,kk))) &
-                WORK2(:,:,kk) = WORK_NEXT
-            endwhere
-
             WORK3(:,:,kk) =  KAPPA_THIC(:,:,ktp,k+1,bid)     &
                            * SLY(:,:,kk,ktp,k+1,bid)
             WORK4(:,:,kk) =  c2 * ( WORK3(:,:,kk)                 &
@@ -3469,16 +3467,27 @@
                               * SLY(:,:,kk,kbt,k+1,bid) ) )
             WORK3(:,:,kk) = WORK3(:,:,kk) * dz(k+1)
 
-            where ( TLT%K_LEVEL(:,:,bid) + 1 < KMT(:,:,bid) )
-              WORK_NEXT = c2 * dzwr(k+1) * ( &
-                KAPPA_THIC(:,:,kbt,k+1,bid) * SLY(:,:,kk,kbt,k+1,bid) * dz(k+1) - &
-                KAPPA_THIC(:,:,ktp,k+2,bid) * SLY(:,:,kk,ktp,k+2,bid) * dz(k+2))
+          endwhere
 
-              where (abs(WORK_NEXT) < abs(WORK4(:,:,kk))) &
-                WORK4(:,:,kk) = WORK_NEXT
-            endwhere
+          LMASK = LMASK .and. TLT%K_LEVEL(:,:,bid) + 1 < KMT(:,:,bid)
+
+          where ( LMASK )
+
+            WORK2_NEXT = c2 * dzwr(k+1) * ( &
+              KAPPA_THIC(:,:,kbt,k+1,bid) * SLX(:,:,kk,kbt,k+1,bid) * dz(k+1) - &
+              KAPPA_THIC(:,:,ktp,k+2,bid) * SLX(:,:,kk,ktp,k+2,bid) * dz(k+2))
+
+            WORK4_NEXT = c2 * dzwr(k+1) * ( &
+              KAPPA_THIC(:,:,kbt,k+1,bid) * SLY(:,:,kk,kbt,k+1,bid) * dz(k+1) - &
+              KAPPA_THIC(:,:,ktp,k+2,bid) * SLY(:,:,kk,ktp,k+2,bid) * dz(k+2))
 
           endwhere
+
+          where ( LMASK .and. abs(WORK2_NEXT) < abs(WORK2(:,:,kk)) ) &
+            WORK2(:,:,kk) = WORK2_NEXT
+
+          where ( LMASK .and. abs(WORK4_NEXT) < abs(WORK4(:,:,kk)) ) &
+            WORK4(:,:,kk) = WORK4_NEXT
 
         enddo
 
