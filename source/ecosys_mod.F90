@@ -509,7 +509,7 @@ contains
    use constants, only: c1000, p5, field_loc_center, &
        field_type_scalar, delim_fmt, ndelim_fmt, blank_fmt
    use prognostic, only: nx_global, ny_global, curtime, oldtime
-   use grid, only: KMT, topo_smooth, fill_points
+   use grid, only: KMT, n_topo_smooth, fill_points
    use forcing_tools, only: find_forcing_times
    use time_management, only: freq_opt_never, freq_opt_nyear, freq_opt_nmonth, &
        init_time_flag, time_to_do
@@ -1066,7 +1066,7 @@ contains
                                   tracer_init_ext,           &
                                   TRACER_MODULE)
 
-      if (topo_smooth) then
+      if (n_topo_smooth > 0) then
          do n = 1, ecosys_tracer_cnt
             do k=1,km
                call fill_points(k,TRACER_MODULE(:,:,k,n,curtime,:))

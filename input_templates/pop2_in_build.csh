@@ -100,19 +100,32 @@ EOF
 #  grid_nml
 #--------------------------------------------------------------------------
 
+# Note: topography_opt = bathymetry is a nonstandard option that requires
+# the user to provide nonstandard files in the users' <CASE>/SourceMods/src.pop2 directory
+
+set  topography_opt = file
+if ($topography_opt == 'bathymetry') then
+ set lremove_points = .true.
+else
+ set lremove_points = .false.
+endif
+
 cat >> $POP2_NMLFILE << EOF
 &grid_nml
    horiz_grid_opt       = 'file'
    horiz_grid_file      = '$INPUT/horiz_grid'
    vert_grid_opt        = 'file'
    vert_grid_file       = '$INPUT/vert_grid'
-   topography_opt       = 'file'
+   topography_opt       = '$topography_opt'
+   kmt_kmin             = 3
    topography_file      = '$INPUT/topography'
+   topography_outfile   = '${output_h}.topography_bathymetry.ieeer8'
+   bathymetry_file      = '$INPUT/bathymetry'
    partial_bottom_cells = .false.
    bottom_cell_file     = 'unknown_bottom_cell'
-   topo_smooth          = .false.
+   n_topo_smooth        = 0
    flat_bottom          = .false.
-   lremove_points       = .false.
+   lremove_points       = $lremove_points
    region_mask_file     = '$INPUT/region_mask'
    region_info_file     = '$INPUT/region_ids'
    sfc_layer_opt        = 'varthick'
@@ -124,12 +137,25 @@ EOF
 #  init_ts_nml
 #--------------------------------------------------------------------------
 
+set init_ts_option = $runtype
+
+if ($runtype == 'startup' && $topography_opt == 'bathymetry') then
+   set init_ts_option = PHC
+   set init_ts_file = 'ts_PHC2_jan_ic_resindpt'
+   set init_ts_file_fmt = nc
+else
+   set init_ts_file = 'ts'
+   set init_ts_file_fmt = bin
+endif
+
 cat >> $POP2_NMLFILE << EOF
 &init_ts_nml
-   init_ts_option    = '$runtype'
+   init_ts_option    = '$init_ts_option'
    init_ts_suboption = 'null'
-   init_ts_file      = '$INPUT/ts'
-   init_ts_file_fmt  = 'bin'
+   init_ts_file      = '$INPUT/$init_ts_file'
+   init_ts_file_fmt  = '$init_ts_file_fmt'
+   init_ts_outfile     = '${output_h}.ts_ic'
+   init_ts_outfile_fmt = 'nc'
 /
 
 EOF

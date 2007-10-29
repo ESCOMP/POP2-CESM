@@ -162,7 +162,7 @@ contains
    use constants, only: c0, field_loc_center, blank_fmt, &
        field_type_scalar
    use prognostic, only: nx_global, ny_global, curtime, oldtime
-   use grid, only: KMT, zt, zw, topo_smooth, fill_points
+   use grid, only: KMT, zt, zw, n_topo_smooth, fill_points
    use forcing_tools, only: find_forcing_times
    use time_management, only: freq_opt_nyear, freq_opt_nmonth
 
@@ -386,7 +386,7 @@ contains
                                    tracer_init_ext,          &
                                    TRACER_MODULE)
 
-       if (topo_smooth) then
+       if (n_topo_smooth > 0) then
           do k=1,km
              call fill_points(k,TRACER_MODULE(:,:,k,1,curtime,:))
           enddo

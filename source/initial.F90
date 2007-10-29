@@ -14,12 +14,12 @@
 !
 ! !USES:
 
-   use kinds_mod, only: r8, int_kind, log_kind, char_len
+   use kinds_mod, only: i4, i8, r8, int_kind, log_kind, char_len
    use blocks, only: block, nx_block, ny_block, get_block
    use domain_size
    use domain, only: nblocks_clinic, blocks_clinic, init_domain_blocks,    &
        init_domain_distribution, distrb_clinic
-   use constants, only: delim_fmt, blank_fmt, field_loc_center, blank_fmt, &
+   use constants, only: radian, delim_fmt, blank_fmt, field_loc_center, blank_fmt, &
        c0, ppt_to_salt, mpercm, c1, field_type_scalar, init_constants,     &
        stefan_boltzmann, latent_heat_vapor, vonkar, emissivity, &
        latent_heat_fusion, t0_kelvin, pi, ocn_ref_salinity,     &
@@ -31,13 +31,9 @@
    use prognostic, only: init_prognostic, max_blocks_clinic, nx_global,    &
        ny_global, km, nt, TRACER, curtime, RHO, newtime, oldtime
    use solvers, only: init_solvers
-   use grid, only: init_grid1, init_grid2, kmt, kmt_g, topo_smooth, zt,    &
-       fill_points, sfc_layer_varthick, sfc_layer_type
-   use io, only:  data_set
-   use io_types, only: init_io, stdout, datafile, io_field_desc, io_dim,   &
-       nml_in, nml_filename, construct_file, construct_io_dim,             &
-       construct_io_field, rec_type_dbl, destroy_file, get_unit,           &
-       release_unit, destroy_io_field, luse_pointer_files
+   use grid, only: init_grid1, init_grid2, kmt, kmt_g, n_topo_smooth, zt,    &
+       fill_points, sfc_layer_varthick, sfc_layer_type, TLON, TLAT
+   use io
    use baroclinic, only: init_baroclinic
    use barotropic, only: init_barotropic
    use pressure_grad, only: init_pressure_grad
@@ -77,6 +73,10 @@
    use qflux_mod, only: init_qflux
    use tidal_mixing
    use step_mod, only: init_step
+   use gather_scatter
+   use shr_ncread_mod
+   use shr_map_mod
+
 
    implicit none
    private
@@ -666,10 +666,13 @@
    character (char_len) :: &
       init_ts_option,      &! option for initializing t,s
       init_ts_suboption,   &! suboption for initializing t,s (rest or spunup)
-      init_ts_file          ! filename for input T,S file
+      init_ts_file,        &! filename for input T,S file
+      init_ts_outfile,     &! filename for output T,S file
+      init_ts_outfile_fmt   ! format for output T,S file (bin or nc)
 
    namelist /init_ts_nml/ init_ts_option, init_ts_file, init_ts_file_fmt, &
-                          init_ts_suboption
+                          init_ts_suboption, init_ts_outfile, &
+		  	  init_ts_outfile_fmt
 
 !-----------------------------------------------------------------------
 !
@@ -678,11 +681,17 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      k,                 &! vertical level index
+      i,j,k,icnt,        &! vertical level index
       n,                 &! tracer index
       kk,                &! indices for interpolating levitus data
       nu,                &! i/o unit for mean profile file
       iblock              ! local block address
+
+   integer (i4) :: &
+      PHCnx,PHCny,PHCnz
+
+   integer (i4), dimension(:,:), allocatable :: &
+      PHC_msk,MASK_G
 
    logical (log_kind) :: &
       lccsm_branch      ,&! flag for ccsm 'branch' restart
@@ -709,6 +718,26 @@
 
    real (r8), dimension(:,:,:,:), allocatable :: &
       TEMP_DATA           ! temp array for reading T,S data
+
+   real (r8), dimension(:,:,:,:), allocatable :: &
+      PHC_ktop,PHC_kbot     ! temp array for ncreading 3D PHC T,S data
+
+   real (r8), dimension(:,:), allocatable :: &
+      dataSrc,dataDst,     &! temp arrays for remapping PHC T,S data
+      PHC_x,               &! lon array for PHC data
+      PHC_y,               &! lat array for PHC data
+      PHC_kmod_T,          &! PHC data on model zgrid
+      PHC_kmod_S,          &! PHC data on model zgrid
+      MOD_T,MOD_S,         &! 2D model init T,S data on model zgrid
+      tmpkt,tmpkb,         &! 2D model init T,S data on model zgrid
+      TLON_G,              &! global tlon array
+      TLAT_G                ! global tlat array
+
+   real (r8), dimension(:), allocatable :: &
+      tmp1,tmp2,PHC_z             ! temp arrays
+
+   type(shr_map_mapType)    :: PHC_map           ! used to map PHC data
+
 
    !***
    !*** 1992 Levitus mean climatology for internal generation of t,s
@@ -763,6 +792,8 @@
 !-----------------------------------------------------------------------
 
    init_ts_suboption = 'rest'
+   init_ts_outfile   = 'unknown_init_ts_outfile'
+   init_ts_outfile_fmt = 'bin'
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -813,6 +844,8 @@
    call broadcast_scalar(luse_pointer_files, master_task)
    call broadcast_scalar(init_ts_file      , master_task)
    call broadcast_scalar(init_ts_file_fmt  , master_task)
+   call broadcast_scalar(init_ts_outfile      , master_task)
+   call broadcast_scalar(init_ts_outfile_fmt  , master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -970,7 +1003,7 @@
       end do
       !$OMP END PARALLEL DO
 
-      if (topo_smooth) then
+      if (n_topo_smooth > 0) then
          do k=1,km
             call fill_points(k,TRACER(:,:,k,1,curtime,:))
             call fill_points(k,TRACER(:,:,k,2,curtime,:))
@@ -1076,6 +1109,175 @@
          TRACER(:,:,:,:,oldtime,iblock)=TRACER(:,:,:,:,curtime,iblock)
       enddo
       !$OMP END PARALLEL DO
+
+!-----------------------------------------------------------------------
+!
+!  remap PHC Levitus data to POP grid
+!
+!-----------------------------------------------------------------------
+
+   case ('PHC')
+      first_step = .true.
+
+      if (my_task == master_task) then
+         write(stdout,'(a63)') &
+           'Initial T,S profile generated by 3D remapping of filled Levitus-PHC data'
+         call shr_sys_flush(stdout)
+
+         write(stdout,*) ' init_ts_option = PHC'
+         call shr_sys_flush(stdout)
+      endif
+
+
+      allocate (TLON_G(nx_global,ny_global),TLAT_G(nx_global,ny_global))
+      call gather_global(TLON_G, TLON, master_task,distrb_clinic)
+      call gather_global(TLAT_G, TLAT, master_task,distrb_clinic)
+
+      if (my_task == master_task) then
+
+       call shr_ncread_varDimSizes(trim(init_ts_file),'TEMP',PHCnx,PHCny,PHCnz)
+
+       allocate(MOD_T(nx_global,ny_global),MOD_S(nx_global,ny_global))
+       allocate(PHC_kmod_T(PHCnx,PHCny),PHC_kmod_S(PHCnx,PHCny))
+       allocate(PHC_ktop(PHCnx,PHCny,1,1),PHC_kbot(PHCnx,PHCny,1,1))
+       allocate(tmpkt(PHCnx,PHCny),tmpkb(PHCnx,PHCny))
+       allocate(PHC_x(PHCnx,PHCny),PHC_y(PHCnx,PHCny),PHC_msk(PHCnx,PHCny))
+       allocate(tmp1(PHCnx),tmp2(PHCny),PHC_z(PHCnz))
+       allocate (MASK_G(nx_global,ny_global))
+       allocate(dataSrc(2,PHCnx*PHCny))
+       allocate(dataDst(2,nx_global*ny_global))
+
+       PHC_msk(:,:) = 1
+       MASK_G(:,:) = 1
+
+       call shr_ncread_tField(trim(init_ts_file),1,'lon',tmp1)
+       call shr_ncread_tField(trim(init_ts_file),1,'lat',tmp2)
+       call shr_ncread_tField(trim(init_ts_file),1,'depth',PHC_z)
+
+       do j=1,PHCny 
+	  PHC_x(:,j) = tmp1/radian
+       enddo
+       do i=1,PHCnx 
+	  PHC_y(i,:) = tmp2/radian
+       enddo
+
+       call shr_map_mapSet(PHC_map, PHC_x, PHC_y, PHC_msk, &
+         &                 TLON_G,  TLAT_G, MASK_G, &
+         &                   name='phc_map',type='remap',algo='bilinear', &
+         &                   mask='dstmask',vect='scalar')
+
+       !-------------------------------------------------
+       ! copy input data to arrays ordered for mapping
+       !-------------------------------------------------
+
+      endif
+
+      do k=1,km
+        if (my_task == master_task) then
+           dpth_meters = zt(k)*mpercm
+
+           PHC_z_loop: do kk=1,PHCnz-1
+            if (dpth_meters >= PHC_z(kk) .and. &
+               dpth_meters <  PHC_z(kk+1)) exit PHC_z_loop
+           end do PHC_z_loop
+
+           sinterp = (dpth_meters - depth_levitus(kk))/ &
+                  (depth_levitus(kk+1) - depth_levitus(kk))
+
+       !-------------------------------------------------
+       ! do vertical remap of T
+       !-------------------------------------------------
+           call shr_ncread_field4dG(trim(init_ts_file),'TEMP', &
+		rfld=PHC_ktop, dim3='depth',dim3i=kk)
+           call shr_ncread_field4dG(trim(init_ts_file),'TEMP', &
+		rfld=PHC_kbot, dim3='depth',dim3i=kk+1)
+           tmpkt = reshape(PHC_ktop,(/PHCnx,PHCny/))
+           tmpkb = reshape(PHC_kbot,(/PHCnx,PHCny/))
+           PHC_kmod_T(:,:) = (c1 - sinterp)*tmpkt(:,:) + &
+                sinterp *tmpkb(:,:)
+
+       !-------------------------------------------------
+       ! do vertical remap of S
+       !-------------------------------------------------
+           call shr_ncread_field4dG(trim(init_ts_file),'SALT', &
+                rfld=PHC_ktop, dim3='depth',dim3i=kk)
+           call shr_ncread_field4dG(trim(init_ts_file),'SALT', &
+                rfld=PHC_kbot, dim3='depth',dim3i=kk+1)
+           tmpkt = reshape(PHC_ktop,(/PHCnx,PHCny/))
+           tmpkb = reshape(PHC_kbot,(/PHCnx,PHCny/))
+
+           PHC_kmod_S(:,:) = (c1 - sinterp)*tmpkt(:,:) + &
+                sinterp *tmpkb(:,:)
+
+       !-------------------------------------------------
+       ! do horizontal remap of T & S
+       !-------------------------------------------------
+           icnt = 0
+           do j=1,PHCny
+           do i=1,PHCnx
+              icnt = icnt + 1
+              dataSrc(1,icnt) = PHC_kmod_T(i,j)
+              dataSrc(2,icnt) = PHC_kmod_S(i,j)
+           enddo
+           enddo
+
+           call shr_map_mapData(dataSrc, dataDst, PHC_map)
+
+           icnt = 0
+           do j=1,ny_global
+           do i=1,nx_global
+              icnt = icnt + 1
+              MOD_T(i,j) = dataDst(1,icnt)
+              MOD_S(i,j) = dataDst(2,icnt)
+           enddo
+           enddo
+
+        endif
+
+        call scatter_global(TRACER(:,:,k,1,curtime,:), MOD_T, &
+                master_task, distrb_clinic, field_loc_center, field_type_scalar)
+        call scatter_global(TRACER(:,:,k,2,curtime,:), MOD_S, &
+                master_task, distrb_clinic, field_loc_center, field_type_scalar)
+
+      enddo
+
+      deallocate(TLON_G,TLAT_G)
+      if (my_task == master_task) then
+        deallocate(MOD_T, MOD_S)
+        deallocate(PHC_kmod_T,PHC_kmod_S)
+        deallocate(PHC_ktop,PHC_kbot)
+        deallocate(tmpkt,tmpkb,PHC_z)
+        deallocate(PHC_x, PHC_y, PHC_msk, tmp1, tmp2)
+        deallocate(MASK_G, dataSrc, dataDst)
+      endif
+
+      !$OMP PARALLEL DO PRIVATE(iblock, k, n)
+      do iblock = 1,nblocks_clinic
+         do n=1,nt
+         do k=1,km
+             where (k > KMT(:,:,iblock)) &
+                TRACER(:,:,k,n,curtime,iblock) = c0
+         end do
+         end do
+
+         !*** convert salinity to model units
+         TRACER(:,:,:,2,curtime,iblock) = &
+         TRACER(:,:,:,2,curtime,iblock)*ppt_to_salt
+      end do
+      !$OMP END PARALLEL DO
+
+      do iblock=1,nblocks_clinic
+         TRACER(:,:,:,:,newtime,iblock) = TRACER(:,:,:,:,curtime,iblock)
+         TRACER(:,:,:,:,oldtime,iblock) = TRACER(:,:,:,:,curtime,iblock)
+      end do
+
+      if (trim(init_ts_outfile) /= 'unknown_init_ts_outfile') then
+        if (my_task == master_task) then
+          write(stdout,*) 'remapped initial T & S written to',trim(init_ts_outfile)
+          call shr_sys_flush(stdout)
+        endif
+        call write_init_ts(trim(init_ts_outfile),trim(init_ts_outfile_fmt))
+      endif
 
 !-----------------------------------------------------------------------
 !
@@ -1462,6 +1664,108 @@
  1100 format(5x, a)   
 
  end subroutine print_message
+
+!***********************************************************************
+!BOP
+! !IROUTINE: write_init_ts
+! !INTERFACE:
+
+ subroutine write_init_ts(outfile, outfile_fmt)
+
+! !DESCRIPTION:
+!  This routine writes out initial TEMP and SALT mapped to
+!  POP grid for topography_opt='bathymetry'
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent(in) :: &
+      outfile,                  &! input file name (with path)
+      outfile_fmt                ! input file format (bin or nc)
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   type (datafile) ::     &
+      ts_file           ! io file type for viscosity file
+
+   type (io_field_desc) ::     &
+      TEMP_d, SALT_d      ! descriptors for temp and salt fields
+
+   type (io_dim) :: &
+      i_dim, j_dim, &! dimension descriptors for horiz dims
+      k_dim          ! dimension descriptor  for vertical levels
+
+!-----------------------------------------------------------------------
+!
+!  construct io file type and open for writing
+!
+!-----------------------------------------------------------------------
+
+   ts_file =  construct_file(outfile_fmt, root_name=outfile,    &
+                               record_length=rec_type_dbl,       &
+                               recl_words=nx_global*ny_global)
+
+   call data_set(ts_file, 'open')
+
+!-----------------------------------------------------------------------
+!
+!  define variables to be written
+!
+!-----------------------------------------------------------------------
+
+   !*** define dimensions
+
+   i_dim = construct_io_dim('i', nx_global)
+   j_dim = construct_io_dim('j', ny_global)
+   k_dim = construct_io_dim('k', km)
+
+   TEMP_d = construct_io_field('TEMP', dim1=i_dim, dim2=j_dim, dim3=k_dim,  &
+                   long_name='Potential Temperature',           &
+                   units    ='degC',                                 &
+                   grid_loc ='3111',                                  &
+                   field_loc = field_loc_center,                    &
+                   field_type = field_type_scalar,                    &
+                   d3d_array = TRACER(:,:,:,1,curtime,:))
+
+   SALT_d = construct_io_field('SALT', dim1=i_dim, dim2=j_dim, dim3=k_dim,  &
+                   long_name='Salinity',      &
+                   units    ='gram/kilogram',                                 &
+                   grid_loc ='3111',                                  &
+                   field_loc = field_loc_center,                    &
+                   field_type = field_type_scalar,                    &
+                   d3d_array = TRACER(:,:,:,2,curtime,:))
+
+   call data_set (ts_file, 'define', TEMP_d)
+   call data_set (ts_file, 'define', SALT_d)
+
+!-----------------------------------------------------------------------
+!
+!  write arrays then clean up
+!
+!-----------------------------------------------------------------------
+
+   call data_set (ts_file, 'write', TEMP_d)
+   call data_set (ts_file, 'write', SALT_d)
+
+   call destroy_io_field (TEMP_d)
+   call destroy_io_field (SALT_d)
+
+   call data_set (ts_file, 'close')
+   call destroy_file(ts_file)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine write_init_ts
+
 
 !***********************************************************************
 !BOP

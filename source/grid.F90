@@ -55,7 +55,9 @@
       volume_t_marg_k        ! tot marginal seas vol (T cells) at each dpth
 
    integer (int_kind), public :: &
-      sfc_layer_type         ! choice for type of surface layer
+      sfc_layer_type,       &! choice for type of surface layer
+      kmt_kmin, 	    &! minimum allowed non-zero KMT value
+      n_topo_smooth 	     ! number of topo smoothing passes
 
    integer (int_kind), parameter, public :: &
       sfc_layer_varthick = 1,  &! variable thickness surface layer
@@ -63,8 +65,11 @@
       sfc_layer_oldfree  = 3    ! old free surface form
 
    logical (log_kind), public ::    &
-      topo_smooth,          &! flag to smooth topography
       partial_bottom_cells   ! flag for partial bottom cells
+
+   real (r8), dimension(:,:), allocatable, public :: &
+      BATH_G           ! Observed ocean bathymetry mapped to global T grid
+                       ! for use in computing KMT internally
 
    integer (int_kind), dimension(:,:), allocatable, public :: &
       KMT_G            ! k index of deepest grid cell on global T grid
@@ -228,9 +233,11 @@
       horiz_grid_file,      &! input file for reading horiz grid info
       vert_grid_file,       &! input file for reading horiz grid info
       topography_file,      &! input file for reading horiz grid info
+      bathymetry_file,      &! input file for reading horiz grid info
       region_mask_file,     &! input file for region mask
       region_info_file,     &! input file with region identification
-      bottom_cell_file       ! input file for thickness of pbc
+      bottom_cell_file,     &! input file for thickness of pbc
+      topography_outfile     ! output file for writing horiz grid info
 
 !EOC
 !***********************************************************************
@@ -261,9 +268,10 @@
 
    namelist /grid_nml/horiz_grid_opt, vert_grid_opt, topography_opt,   &
                       horiz_grid_file, vert_grid_file, topography_file,&
-                      topo_smooth, flat_bottom, lremove_points,        &
+		      topography_outfile,bathymetry_file,             &
+                      n_topo_smooth, flat_bottom, lremove_points,      &
                       region_mask_file, region_info_file,sfc_layer_opt,&
-                      partial_bottom_cells, bottom_cell_file
+                      partial_bottom_cells, bottom_cell_file, kmt_kmin
 
    integer (int_kind) :: &
       nml_error           ! namelist i/o error flag
@@ -281,13 +289,16 @@
    horiz_grid_file      = 'unknown_horiz_grid_file'
    vert_grid_file       = 'unknown_vert_grid_file'
    topography_file      = 'unknown_topography_file'
+   topography_outfile   = 'unknown_topography_outfile'
+   bathymetry_file      = 'unknown_bathymetry_file'
    region_mask_file     = 'unknown_region_mask'
    region_info_file     = 'unknown_region_info'
-   topo_smooth          = .false.
+   n_topo_smooth        = 0
    flat_bottom          = .false.
    lremove_points       = .false.
    partial_bottom_cells = .false.
    bottom_cell_file     = 'unknown_bottom_cell_file'
+   kmt_kmin             = 3
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -322,7 +333,7 @@
    call broadcast_scalar(vert_grid_opt ,       master_task)
    call broadcast_scalar(sfc_layer_opt ,       master_task)
    call broadcast_scalar(topography_opt,       master_task)
-   call broadcast_scalar(topo_smooth,          master_task)
+   call broadcast_scalar(n_topo_smooth,        master_task)
    call broadcast_scalar(flat_bottom,          master_task)
    call broadcast_scalar(lremove_points,       master_task)
    call broadcast_scalar(region_mask_file,     master_task)
@@ -360,6 +371,14 @@
    case ('internal')
       call topography_internal(.true.)
       flat_bottom = .true.
+   case ('bathymetry')
+      call broadcast_scalar(kmt_kmin, master_task)
+      if (kmt_kmin < 3) then
+	call exit_POP(sigAbort,'ERROR: kmt_kmin >= 3 recommended')
+      endif
+      call broadcast_scalar(topography_outfile, master_task)
+      call broadcast_scalar(bathymetry_file, master_task)
+      call topography_bathymetry(bathymetry_file,vert_grid_file,.true.)
    case ('file')
       call broadcast_scalar(topography_file, master_task)
       call read_topography(topography_file,.true.)
@@ -397,7 +416,7 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      i,j,k,n,iblock,    &! dummy loop index variables
+      reclength,ioerr,nu,i,j,k,n,iblock,    &! dummy loop index variables
       range_count         ! counter for angle out of range
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
@@ -693,6 +712,10 @@
          ' Generating topography internally'
       call topography_internal(.false.)
       flat_bottom = .true.
+   case ('bathymetry')
+      if (my_task == master_task) write(stdout,'(a33)') &
+         ' Generating topography from bathymetry data'
+      call topography_bathymetry(bathymetry_file,vert_grid_file,.false.)
    case ('file')
       if (my_task == master_task) write(stdout,'(a30,a)') &
          ' Reading topography from file:', trim(topography_file)
@@ -703,23 +726,23 @@
    end select
 
    !***
+   !*** smooth topography
+   !***
+
+   if (n_topo_smooth > 0) then
+      if (my_task == master_task) write(stdout,'(a21)') &
+         ' Smoothing topography'
+      call smooth_topography(n_topo_smooth)
+   endif
+
+   !***
    !*** remove isolated lakes and disconnected points from grid
    !***
 
    if (lremove_points) then
       if (my_task == master_task) write(stdout,'(a58)') &
-         ' Removing isolated lakes and disconnected points from grid'
-      call remove_points
-   endif
-
-   !***
-   !*** smooth topography
-   !***
-
-   if (topo_smooth) then
-      if (my_task == master_task) write(stdout,'(a21)') &
-         ' Smoothing topography'
-      call smooth_topography
+         ' Removing isolated points from grid'
+      call remove_isolated_points
    endif
 
    !***
@@ -730,6 +753,33 @@
       if (my_task == master_task) write(stdout,'(a33)') &
          ' Enforcing flat-bottom topography'
       where (KMT /= 0) KMT = km
+   endif
+
+   !***
+   !*** write out topo file if needed
+   !***
+   if (topography_opt == 'bathymetry') then
+      if (my_task == master_task .and. .not. allocated(KMT_G)  ) &
+	allocate(KMT_G(nx_global,ny_global))
+      call gather_global(KMT_G, KMT, master_task, distrb_clinic)
+      if  (my_task == master_task) INQUIRE(iolength=reclength) KMT_G
+      call get_unit(nu)
+      if (my_task == master_task) then
+        open(nu, file=topography_outfile,status='unknown',form='unformatted', &
+            access='direct', recl=reclength, iostat=ioerr)
+      endif
+      call broadcast_scalar(ioerr, master_task)
+      if (ioerr /= 0) call exit_POP(sigAbort, &
+                              'Error opening topography_outfile')
+      if (my_task == master_task) then
+         write(nu, rec=1, iostat=ioerr) KMT_G
+         close(nu)
+      endif
+      call release_unit(nu)
+      call broadcast_scalar(ioerr, master_task)
+      if (ioerr /= 0) call exit_POP(sigAbort, &
+                              'Error writing topography_outfile')
+      if (my_task == master_task) deallocate(KMT_G)
    endif
 
    !***
@@ -1521,6 +1571,143 @@
 
 !***********************************************************************
 !BOP
+! !IROUTINE: topography_bathymetry
+! !INTERFACE:
+
+ subroutine topography_bathymetry(bathymetry_file,vert_grid_file,kmt_global)
+
+! !DESCRIPTION:
+!  Generates KMT field based on an input file containing
+!  observed bathymetry data mapped to the POP horizontal tracer grid.
+!  
+!  modified by S. Yeager Sep 2007
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (char_len), intent(in) :: &
+      bathymetry_file, & ! input file containing bathymetry field
+      vert_grid_file     ! input file containing vertical grid 
+
+   logical(log_kind), intent(in) :: &
+      kmt_global       ! flag for generating only global KMT field
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      i,j,ig,jg,k,n,bid,im1,ip1,jm1,jp1,npass,ntot, & ! dummy counters
+	reclength,ioerr,nu
+
+   logical (log_kind) :: &
+      land,lande,landw,landn,lands
+
+   real (r8) :: &
+      latd, lond     ! lat/lon in degrees
+
+   type (block) :: &
+      this_block    ! block info for current block
+
+!-----------------------------------------------------------------------
+!
+!  compute global KMT field (for use in setting up domain)
+!
+!-----------------------------------------------------------------------
+
+   if (kmt_global) then
+
+      call read_vert_grid(vert_grid_file)
+      dzw(0)  = p5*dz(1)
+      dzw(km) = p5*dz(km)
+      dzwr(0) = c1/dzw(0)
+      zw(1) = dz(1)
+      zt(1) = dzw(0)
+      do k = 1,km-1
+         dzw(k) = p5*(dz(k) + dz(k+1))
+         zw(k+1) = zw(k) + dz(k+1)
+         zt(k+1) = zt(k) + dzw(k)
+      enddo
+
+      allocate(BATH_G(nx_global,ny_global))
+      if (.not. allocated(KMT_G)) allocate(KMT_G(nx_global,ny_global))
+
+      INQUIRE(iolength=reclength) BATH_G
+      call get_unit(nu)
+      if (my_task == master_task) then
+         open(nu, file=bathymetry_file,status='old',form='unformatted', &
+                  access='direct', recl=reclength, iostat=ioerr)
+      endif
+
+      call broadcast_scalar(ioerr, master_task)
+      if (ioerr /= 0) call exit_POP(sigAbort, &
+                                 'Error opening bathymetry_file')
+
+      if (my_task == master_task) then
+         read(nu, rec=1, iostat=ioerr) BATH_G
+         close(nu)
+      endif
+      call release_unit(nu)
+
+      call broadcast_scalar(ioerr, master_task)
+      if (ioerr /= 0) call exit_POP(sigAbort, &
+                                 'Error reading bathymetry_file')
+
+      call broadcast_array(BATH_G, master_task)
+
+!-----------------------------------------------------------------------
+!
+!  convert bathymetry input to global kmt array
+!
+!-----------------------------------------------------------------------
+      where (BATH_G == c0) KMT_G = 0
+      where (BATH_G > c0 .and. BATH_G < zt(1)) KMT_G = kmt_kmin
+      do k = 1,km-1
+         where (BATH_G >= zt(k) .and. BATH_G < zt(k+1)) KMT_G = max(k,kmt_kmin)
+      enddo
+      where (BATH_G >= zt(km)) KMT_G = km
+
+      do i = 1,nx_global
+        if ((KMT_G(i,1) /= 0).or.(KMT_G(i,ny_global) /= 0)) then
+          if (my_task == master_task) then
+            write(stdout,*) 'i, KMT_G(i,1),KMT_G(i,ny_global) = ', &
+                             i, KMT_G(i,1),KMT_G(i,ny_global)
+          endif
+      	  call exit_POP(sigAbort, &
+                                 'KMT non-zero at meridional boundary')
+        endif
+      enddo
+
+      deallocate(BATH_G)
+
+!-----------------------------------------------------------------------
+!
+!  otherwise, scatter global into local KMT field
+!
+!-----------------------------------------------------------------------
+
+   else
+      if (.not. allocated(KMT_G)) call exit_POP(sigAbort, &
+                                 'KMT_G not allocated prior to scatter_global call')
+      call scatter_global(KMT, KMT_G, master_task, distrb_clinic, &
+                          field_loc_center, field_type_scalar)
+      deallocate(KMT_G)
+
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine topography_bathymetry
+
+!***********************************************************************
+!BOP
 ! !IROUTINE: topography_internal
 ! !INTERFACE:
 
@@ -1792,6 +1979,92 @@
 
 !***********************************************************************
 !BOP
+! !IROUTINE: remove_isolated_points
+! !INTERFACE:
+
+ subroutine remove_isolated_points
+
+! !DESCRIPTION:
+!  Removes isolated points from grid (KMT field)
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      i,j,k,n,             &! dummy loop indices
+      npoints_removed,    &! global number of points removed at k
+      npoints_removed_local, &! number of points removed per task
+      npoints_removed_total   ! global number of points removed, all k
+
+   integer(int_kind),dimension(nx_block,ny_block,max_blocks_clinic) ::&
+      ICOUNT            ! record of points removed
+
+   logical (log_kind) :: &
+      land,lande,landw,landn,lands
+
+   character (*), parameter :: &
+      rmpts_fmt = "(' points removed from grid:',2x,i10)"
+
+!-----------------------------------------------------------------------
+!
+!     removes isolated points at all levels.
+!     (points sandwiched between land on lateral boundaries:
+!           land to N and S, or, land to E and W)
+!
+!-----------------------------------------------------------------------
+   npoints_removed_total = 0
+   do k=km,1,-1
+1000    npoints_removed_local = 0
+
+   do n=1,nblocks_clinic
+     do j=2,ny_block-1
+     do i=2,nx_block-1
+        land   = k.gt.KMT(i,j,n)
+        lande  = k.gt.KMT(i+1,j,n)
+        landw  = k.gt.KMT(i-1,j,n)
+        landn  = k.gt.KMT(i,j+1,n)
+        lands  = k.gt.KMT(i,j-1,n)
+        if ( .not.land  .and. ((lande .and. landw) .or. &
+	(landn .and. lands)) ) then
+            KMT(i,j,n) = KMT(i,j,n) - 1 
+            if ( KMT(i,j,n) .lt. kmt_kmin) then
+ 		call exit_POP(sigAbort,'ERROR in remove_isolated_points')
+	    endif
+            npoints_removed_local = npoints_removed_local + 1
+        endif
+     end do
+     end do
+   end do
+   call update_ghost_cells(KMT, bndy_clinic, field_loc_center, &
+                                             field_type_scalar)
+   npoints_removed = global_sum(npoints_removed_local, distrb_clinic)
+   npoints_removed_total = npoints_removed_total + npoints_removed
+     if (npoints_removed .ne. 0) then
+	go to 1000
+     endif
+   end do
+
+   if (my_task == master_task) then
+      write(stdout,blank_fmt)
+      write(stdout,rmpts_fmt) npoints_removed_total
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine remove_isolated_points
+
+
+!***********************************************************************
+!BOP
 ! !IROUTINE: remove_points
 ! !INTERFACE:
 
@@ -1878,7 +2151,7 @@
 ! !IROUTINE: smooth_topography
 ! !INTERFACE:
 
- subroutine smooth_topography
+ subroutine smooth_topography(n_topo_smooth)
 
 ! !DESCRIPTION:
 !  This routine smooths topography to create new KMT, depth fields
@@ -1908,8 +2181,11 @@
 !
 !-----------------------------------------------------------------------
 
+   integer (int_kind), intent(in) :: &
+      n_topo_smooth        ! number of smoothing passes
+
    integer (int_kind) :: &
-      i,j,k,n            ! dummy loop indices
+      i,j,k,m,n            ! dummy loop indices
 
    integer(int_kind),dimension(nx_block,ny_block,max_blocks_clinic) ::&
       NB,                &! num points contributing to 9pt avg
@@ -1918,6 +2194,9 @@
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       HTNEW,             &! smoothed depth field at T points
       WORK                ! local work space
+
+   KMTOLD = KMT
+   do m=1,n_topo_smooth
 
 !-----------------------------------------------------------------------
 !
@@ -1980,7 +2259,6 @@
 !
 !-----------------------------------------------------------------------
 
-   KMTOLD = KMT
    do k = 1,km-1
       where (HTNEW > zt(k) .and. HTNEW <= zt(k+1)) KMT = k
    enddo
@@ -1988,6 +2266,8 @@
 
    call update_ghost_cells(KMT,  bndy_clinic, field_loc_center, &
                                               field_type_scalar)
+
+   enddo
 
 !-----------------------------------------------------------------------
 !EOC

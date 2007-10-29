@@ -84,7 +84,7 @@ contains
 
    use broadcast, only: broadcast_scalar
    use prognostic, only: curtime, oldtime
-   use grid, only: KMT, topo_smooth, fill_points
+   use grid, only: KMT, n_topo_smooth, fill_points
 
 ! !INPUT PARAMETERS:
 
@@ -247,7 +247,7 @@ contains
                                   tracer_init_ext,         &
                                   TRACER_MODULE)
  
-      if (topo_smooth) then
+      if (n_topo_smooth > 0) then
          do k=1,km
             call fill_points(k,TRACER_MODULE(:,:,k,1,curtime,:))
          enddo

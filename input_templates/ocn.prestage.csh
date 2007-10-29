@@ -22,7 +22,6 @@
     set L = ( )   # local  filenames
     set R = ( )   # remote filenames
 
- 
 if ($OCN_GRID == gx1v3) then
 #                =====
     set L = ( $L horiz_grid )    
@@ -89,6 +88,14 @@ else if ($OCN_GRID == gx1v5) then
     set L = ( $L chl_data )      
     set R = ( $R $ocndata/forcing/chl_filled_gx1v5_20061230.ieeer8 )
  
+# the following files support a non-standard research option:
+
+    set L = ( $L bathymetry  )    
+    set R = ( $R $ocndata/grid/bathymetry_20070521.ieeer8 )
+
+    set L = ( $L ts_PHC2_jan_ic_resindpt  )    
+    set R = ( $R $ocndata/../res_indpt/ic/ts_PHC2_jan_ic_resindpt_20070920.nc )
+
 else if ($OCN_GRID == gx3v5) then
 #                     =====
     set L = ( $L horiz_grid )    

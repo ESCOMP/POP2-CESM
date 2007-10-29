@@ -169,7 +169,7 @@ contains
 
    use constants, only: char_blank, delim_fmt
    use prognostic, only: curtime, oldtime
-   use grid, only: KMT, topo_smooth, fill_points
+   use grid, only: KMT, n_topo_smooth, fill_points
    use grid, only: REGION_MASK
    use io_types, only: nml_in, nml_filename
    use prognostic, only: tracer_field
@@ -401,7 +401,7 @@ contains
                                   tracer_init_ext,        &
                                   TRACER_MODULE)
 
-      if (topo_smooth) then
+      if (n_topo_smooth > 0) then
          do n = 1, cfc_tracer_cnt
             do k = 1, km
                call fill_points(k,TRACER_MODULE(:,:,k,n,curtime,:))
