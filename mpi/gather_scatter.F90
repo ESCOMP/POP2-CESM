@@ -77,7 +77,7 @@
 ! !IROUTINE: gather_global
 ! !INTERFACE:
 
- subroutine gather_global_dbl(ARRAY_G, ARRAY, dst_task, src_dist)
+ subroutine gather_global_dbl_orig(ARRAY_G, ARRAY, dst_task, src_dist)
 
 ! !DESCRIPTION:
 !  This subroutine gathers a distributed array to a global-sized
@@ -240,8 +240,181 @@
 
 !-----------------------------------------------------------------------
 
- end subroutine gather_global_dbl
+ end subroutine gather_global_dbl_orig
 
+!***********************************************************************
+!BOP
+! !IROUTINE: gather_global
+! !INTERFACE:
+
+
+subroutine gather_global_dbl(ARRAY_G, ARRAY, dst_task, src_dist)
+
+! !DESCRIPTION:
+!  This subroutine gathers a distributed array to a global-sized
+!  array on the processor dst_task.
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !REMARKS:
+!  This is the specific inteface for double precision arrays
+!  corresponding to the generic interface gather_global.  It is shown
+!  to provide information on the generic interface (the generic
+!  interface is identical, but chooses a specific inteface based
+!  on the data type of the input argument).
+
+
+! !USES:
+
+    include 'mpif.h'
+
+! !INPUT PARAMETERS:
+
+    integer (int_kind), intent(in) :: &
+      dst_task   ! task to which array should be gathered
+
+    type (distrb), intent(in) :: &
+      src_dist   ! distribution of blocks in the source array
+
+    real (r8), dimension(:,:,:), intent(in) :: &
+      ARRAY      ! array containing horizontal slab of distributed field
+
+! !OUTPUT PARAMETERS:
+
+    real (r8), dimension(:,:), intent(inout) :: &
+      ARRAY_G    ! array containing global horizontal field on dst_task
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+    integer (int_kind) :: &
+      i,j,n          ,&! dummy loop counters
+      nsends         ,&! number of actual sends
+      src_block      ,&! block locator for send
+      ierr             ! MPI error flag
+
+    integer (int_kind), dimension(MPI_STATUS_SIZE) :: &
+      status
+
+    integer (int_kind), dimension(:), allocatable :: &
+      snd_request
+
+    integer (int_kind), dimension(:,:), allocatable :: &
+      snd_status
+
+    real (r8), dimension(:,:), allocatable :: &
+      msg_buffer
+
+    type (block) :: &
+      this_block  ! block info for current block
+
+    integer (int_kind) :: signal = 1
+
+!-----------------------------------------------------------------------
+!
+!  if this task is the dst_task, copy local blocks into the global
+!  array and post receives for non-local blocks.
+!
+!-----------------------------------------------------------------------
+
+    if (my_task == dst_task) then
+
+      do n=1,nblocks_tot
+
+        !*** copy local blocks
+
+        if (src_dist%proc(n) == my_task+1) then
+
+          this_block = get_block(n,n)
+
+          do j=this_block%jb,this_block%je
+          do i=this_block%ib,this_block%ie
+            ARRAY_G(this_block%i_glob(i), &
+                    this_block%j_glob(j)) = &
+                   ARRAY(i,j,src_dist%local_block(n))
+          end do
+          end do
+
+        !*** fill land blocks with zeroes
+
+        else if (src_dist%proc(n) == 0) then
+
+          this_block = get_block(n,n)
+
+          do j=this_block%jb,this_block%je
+          do i=this_block%ib,this_block%ie
+            ARRAY_G(this_block%i_glob(i), &
+                    this_block%j_glob(j)) = c0
+          end do
+          end do
+        endif
+
+      end do
+
+      !*** receive blocks to fill up the rest
+
+      allocate (msg_buffer(nx_block,ny_block))
+
+      do n=1,nblocks_tot
+        if (src_dist%proc(n) > 0 .and. &
+            src_dist%proc(n) /= my_task+1) then
+
+          this_block = get_block(n,n)
+
+          call MPI_SEND(signal, 1, mpi_integer, &
+                        src_dist%proc(n)-1, 3*mpitag_gs+n, &
+                        MPI_COMM_OCN, ierr)
+
+          call MPI_RECV(msg_buffer, size(msg_buffer), &
+                        mpi_dbl, src_dist%proc(n)-1, 3*mpitag_gs+n, &
+                        MPI_COMM_OCN, status, ierr)
+
+          do j=this_block%jb,this_block%je
+          do i=this_block%ib,this_block%ie
+            ARRAY_G(this_block%i_glob(i), &
+                    this_block%j_glob(j)) = msg_buffer(i,j)
+          end do
+          end do
+        endif
+      end do
+
+      deallocate(msg_buffer)
+
+!-----------------------------------------------------------------------
+!
+!  otherwise send data to dst_task
+!
+!-----------------------------------------------------------------------
+
+    else
+
+
+      do n=1,nblocks_tot
+        if (src_dist%proc(n) == my_task+1) then
+
+          src_block = src_dist%local_block(n)
+
+          call MPI_RECV(signal, 1, mpi_integer, &
+                        dst_task, 3*mpitag_gs+n, &
+                        MPI_COMM_OCN, status, ierr)
+          call MPI_SEND(ARRAY(1,1,src_block), nx_block*ny_block, &
+                      mpi_dbl, dst_task, 3*mpitag_gs+n, &
+                      MPI_COMM_OCN, ierr)
+        endif
+      end do
+
+
+    endif
+
+!-----------------------------------------------------------------------
+
+end subroutine gather_global_dbl
 !***********************************************************************
 
  subroutine gather_global_real(ARRAY_G, ARRAY, dst_task, src_dist)
