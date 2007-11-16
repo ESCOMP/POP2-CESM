@@ -1163,7 +1163,7 @@
       if (liceform .and. mix_pass /= 1) then
          call ice_formation(TRACER(:,:,:,:,newtime,iblock),          &
                             STF(:,:,1,iblock) + SHF_QSW(:,:,iblock), &
-                            this_block,lfw_as_salt_flx)
+                            iblock,this_block,lfw_as_salt_flx)
       endif
 
 !-----------------------------------------------------------------------

@@ -39,6 +39,7 @@
       private
       save
 
+
 ! !PUBLIC MEMBER FUNCTIONS:
 
       public :: init_gm,   &
@@ -3393,6 +3394,8 @@
       WORK5 = c0
       WORK6 = c0
       WORK7 = c0
+      WORK2_NEXT = c0
+      WORK4_NEXT = c0
 
 !-----------------------------------------------------------------------
 !

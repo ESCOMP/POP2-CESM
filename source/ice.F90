@@ -301,7 +301,7 @@
 !BOP
 ! !IROUTINE:
 ! !INTERFACE:
-   subroutine ice_formation(TNEW, SHF_IN, this_block,lfw_as_salt_flx)
+   subroutine ice_formation(TNEW, SHF_IN, iblock,this_block,lfw_as_salt_flx)
 
 ! !DESCRIPTION:
 !  This subroutine computes ocean heat flux to the sea-ice. it forms
@@ -323,6 +323,9 @@
  
    real (r8), dimension(nx_block,ny_block), intent(in) :: &
       SHF_IN              ! surface heat flux
+
+   integer (int_kind), intent(in) :: &
+      iblock              ! block information for current block
 
    type (block), intent(in) :: &
       this_block          ! block information for current block
@@ -364,13 +367,15 @@
 !
 !-----------------------------------------------------------------------
 
-   if (avg_ts .or. back_to_back) then
-     time_weight = p5 
-   else
-     time_weight = c1 
-   endif
+   if (iblock == 1) then
+     if (avg_ts .or. back_to_back) then
+       time_weight = p5 
+     else
+       time_weight = c1 
+     endif
 
-   tlast_ice = tlast_ice + dtt*time_weight
+     tlast_ice = tlast_ice + dtt*time_weight
+   endif
 
 !-----------------------------------------------------------------------
 !

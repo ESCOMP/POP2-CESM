@@ -168,6 +168,8 @@
       TAVG_BUF_2D_METHOD,  &! method for each requested 2d field
       TAVG_BUF_3D_METHOD    ! method for each requested 3d field
 
+   real (r4), dimension (:,:,:), allocatable ::  &
+         TAVG_TEMP          ! work array in write_restart
 !-----------------------------------------------------------------------
 !
 !  variables for writing data
@@ -599,6 +601,8 @@
          TAVG_BUF_2D_METHOD(tavg_bufsize_2d),                              &
          TAVG_BUF_3D_METHOD(tavg_bufsize_3d))
 
+      allocate(TAVG_TEMP(nx_block,ny_block,nblocks_clinic))
+
       tavg_sum = c0
 
       call time_stamp('now','ymd',date_string=beg_date)
@@ -639,7 +643,6 @@
  
      !*** initialze barotropic stream function
      if (tavg_id('BSF') /= 0 ) call init_diag_bsf
-
 
      !*** initialze moc and heat/salt transport diagnostics
      call init_lat_aux_grid
@@ -876,8 +879,6 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
-   real (r4), dimension (nx_block, ny_block,max_blocks_clinic) ::  &
-         TAVG_TEMP
                        
    integer (int_kind) ::  &
       ndims
@@ -1052,7 +1053,6 @@
       !*** compute local means
       if (lccsm .and. lsavg_on ) call tavg_local_spatial_avg
 
- 
 !-----------------------------------------------------------------------
 !
 !     create data file descriptor
@@ -1840,6 +1840,8 @@
 !-----------------------------------------------------------------------
 
    if (.not. tavg_requested(id)) then
+      call document ('tavg_global_sum_2D', 'id  ', id)
+      call document ('tavg_global_sum_2D', 'tavg_requested(id) ', tavg_requested(id))
       call exit_POP(sigAbort,'(tavg_global_sum_2D) ERROR: invalid field request')
    endif
 
