@@ -1301,16 +1301,22 @@
 
    allocate ( WORK1_G(nx_global,ny_global), WORK2_G(nx_global,ny_global) )
 
-   WORK1 = - ADV * TAREA
+   do iblock = 1,nblocks_clinic
+   WORK1(:,:,iblock) = - ADV(:,:,iblock) * TAREA(:,:,iblock)
+   enddo
    call gather_global (WORK1_G, WORK1, master_task,distrb_clinic)
 
-   WORK1 = - HDIF * TAREA
+   do iblock = 1,nblocks_clinic
+   WORK1(:,:,iblock) = - HDIF(:,:,iblock) * TAREA(:,:,iblock)
+   enddo
    call gather_global (WORK2_G, WORK1, master_task,distrb_clinic)
 
    if ( ldiag_gm_bolus ) then
      allocate ( WORK3_G(nx_global,ny_global) )
 
-     WORK1 = - ADV_I * TAREA
+     do iblock = 1,nblocks_clinic
+     WORK1(:,:,iblock) = - ADV_I(:,:,iblock) * TAREA(:,:,iblock)
+     enddo
      call gather_global (WORK3_G, WORK1, master_task,distrb_clinic)
    endif
 

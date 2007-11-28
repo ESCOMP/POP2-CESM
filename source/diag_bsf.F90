@@ -130,7 +130,6 @@
       yne,yse,ynw,ysw,  &!   components of divergence
       ase,anw,asw
 
-
    if ( my_task == master_task ) then
      write (stdout,*) ' '
      write (stdout,*) 'Initializing diagnostic BSF variables ....'
@@ -158,7 +157,10 @@
 
    ISMASK_B = 0
    WORK1 = 0 
-   WORK2 = p25*merge( 1, 0, KMU > 0 )   ! WORK2 = 0.25*(0,1) on (land,ocean)
+
+   do iblock = 1, nblocks_clinic
+   WORK2(:,:,iblock) = p25*merge( 1, 0, KMU(:,:,iblock) > 0 )
+   enddo 
 
 !-----------------------------------------------------------------------
 !

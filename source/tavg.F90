@@ -4448,8 +4448,10 @@
 
      case('11')
        
-        ARRAY(:,:,:) = merge (tavg_field%fill_value,ARRAY(:,:,:),  &
-                              k > KMT(:,:,:))
+       do iblock=1,nblocks_clinic
+        ARRAY(:,:,iblock) = merge (tavg_field%fill_value,ARRAY(:,:,iblock),  &
+                              k > KMT(:,:,iblock))
+       enddo ! iblock
  
      case('22')
 
@@ -4530,6 +4532,7 @@
      return
    endif
 
+
    !*** zero out location identifiers
    tavg_loc_SU = 0; tavg_loc_SV  = 0; tavg_loc_BSF = 0
 
@@ -4561,14 +4564,18 @@
      WORK2 = c0
      call pcg_diag_bsf_solver (WORK2,WORK1)
  
-     TAVG_BUF_2D(:,:,:,tavg_loc_BSF) =  &
-         merge(c0,WORK2, .not. CALCT)
+     do iblock=1,nblocks_clinic
+     TAVG_BUF_2D(:,:,iblock,tavg_loc_BSF) =  &
+         merge(c0,WORK2(:,:,iblock), .not. CALCT(:,:,iblock))
+     enddo ! iblock
 
      !*** convert to Sv
      TAVG_BUF_2D(:,:,:,tavg_loc_BSF) =  &
        TAVG_BUF_2D(:,:,:,tavg_loc_BSF)*mass_to_Sv
 
-     PSI_T= TAVG_BUF_2D(:,:,:,tavg_loc_BSF)
+     do iblock=1,nblocks_clinic
+     PSI_T(:,:,iblock)= TAVG_BUF_2D(:,:,iblock,tavg_loc_BSF)
+     enddo
 
      !$OMP PARALLEL DO PRIVATE (iblock, i,j,ii,jj)
      do iblock=1,nblocks_clinic
@@ -5141,8 +5148,11 @@
       tavg_id_TEMP,       &! index for TEMP
       tavg_loc_TEMP        ! location for TEMP in TAVG_BUF_3D
 
-   real (r8), dimension (nx_block,ny_block,max_blocks_clinic) ::  &
+   real (r8), dimension (:,:,:), allocatable ::  &
       WORK
+
+   allocate (WORK(nx_block,ny_block,nblocks_clinic))
+   WORK = c0
 
    tavg_id_TEMP  = tavg_id('TEMP')
 
@@ -5184,6 +5194,8 @@
      enddo
 
    endif
+ 
+   deallocate (WORK)
 
 !-----------------------------------------------------------------------
 !EOC

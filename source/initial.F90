@@ -99,7 +99,9 @@
 
    logical (log_kind), public ::  &! context variables
       lcoupled,                   &! T ==> pop is coupled to another system
-      lccsm                        ! T ==> pop is being run in the ccsm context
+      lccsm,                      &! T ==> pop is being run in the ccsm context
+      b4b_flag                     ! T ==> pop is being run in the "bit-for-bit" mode
+
 
 !EOC
 !***********************************************************************
@@ -187,6 +189,22 @@
 
 !-----------------------------------------------------------------------
 !
+!  initialize timers 
+!
+!-----------------------------------------------------------------------
+
+   call init_timers
+
+!-----------------------------------------------------------------------
+!
+!  initialize additional communication routines
+!
+!-----------------------------------------------------------------------
+
+   call init_global_reductions
+
+!-----------------------------------------------------------------------
+!
 !  initialize domain and grid
 !
 !-----------------------------------------------------------------------
@@ -195,15 +213,6 @@
    call init_grid1
    call init_domain_distribution(KMT_G)
    call init_grid2
-
-!-----------------------------------------------------------------------
-!
-!  initialize timers and additional communication routines
-!
-!-----------------------------------------------------------------------
-
-   call init_timers
-   call init_global_reductions
 
 !-----------------------------------------------------------------------
 !
@@ -541,7 +550,7 @@
    character (char_len) ::  &
       message                ! error message string
 
-   namelist /context_nml/ lcoupled, lccsm
+   namelist /context_nml/ lcoupled, lccsm, b4b_flag
 
 !-----------------------------------------------------------------------
 !
@@ -552,6 +561,7 @@
 
    lcoupled          = .false.
    lccsm             = .false.
+   b4b_flag          = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -571,8 +581,9 @@
       call exit_POP(sigAbort,'ERROR reading context_nml')
    endif
 
-   call broadcast_scalar(lcoupled,          master_task)
-   call broadcast_scalar(lccsm,             master_task)
+   call broadcast_scalar(lcoupled, master_task)
+   call broadcast_scalar(lccsm,    master_task)
+   call broadcast_scalar(b4b_flag, master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -582,6 +593,7 @@
 !-----------------------------------------------------------------------
       if (lcoupled) call register_string('lcoupled')
       if (lccsm)    call register_string('lccsm')
+      if (b4b_flag) call register_string('b4b_flag')
 
 !-----------------------------------------------------------------------
 !

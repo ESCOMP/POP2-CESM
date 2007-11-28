@@ -934,6 +934,7 @@ cat >> $POP2_NMLFILE << EOF
 &context_nml
    lcoupled          = .true.
    lccsm             = .true.
+   b4b_flag          = .false.
 /
 
 EOF

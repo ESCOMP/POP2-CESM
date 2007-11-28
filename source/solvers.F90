@@ -74,7 +74,8 @@
 !-----------------------------------------------------------------------
 
    logical (log_kind) :: &
-      lprecond            ! true if computed preconditioner to be used
+      lprecond,          &! true if computed preconditioner to be used
+      pcg_b4b             ! if true, request reproducible global sums in pcg solver
 
    real (r8) ::          &
       solv_convrg,       &! convergence error criterion
@@ -251,7 +252,7 @@
       RCALC_TMP
 
    logical (log_kind) :: &
-      mlandne, mlandnw, mlandse, mlandsw ! land mask at nbr points
+      mlandne, mlandnw, mlandse, mlandsw   ! land mask at nbr points
 
    type (block) ::      &
       this_block         ! block information for current block
@@ -337,6 +338,8 @@
       call exit_POP(sigAbort, &
                  'unknown solver type: must be cg1, pcg, cgr or jacobi')
    endif
+
+   pcg_b4b = registry_match ('b4b_flag')
 
 !-----------------------------------------------------------------------
 !
@@ -629,6 +632,7 @@
 
    integer (int_kind) :: &
       i,j,m,             &! local iteration counter
+      nn,                &! local iteration counter
       iblock              ! local block     counter
 
    real (r8) :: & ! scalar results
@@ -642,6 +646,8 @@
 
    real (r8), dimension(nx_block,ny_block,2,max_blocks_tropic) :: & 
       WORKN              ! WORK array 
+   real (r8), dimension(nx_block,ny_block,max_blocks_tropic) :: & 
+      WORKTEST              ! WORK array 
 
    real (r8), dimension(2) :: &
       sumN               ! global sum results for multiple arrays
@@ -742,8 +748,16 @@
                                            field_type_scalar)
 
    !---- Form dot products
-   sumN = global_sum(WORKN, distrb_tropic, field_loc_center, RCALCT_B)
-
+   if (pcg_b4b) then
+     do nn=1,2
+       do iblock=1,nblocks_tropic
+       WORKTEST(:,:,iblock) = WORKN(:,:,nn,iblock)
+       enddo ! iblock
+       sumN(nn) = global_sum(WORKTEST, distrb_tropic, field_loc_center, RCALCT_B)
+     enddo ! nn
+   else
+     sumN = global_sum(WORKN, distrb_tropic, field_loc_center, RCALCT_B)
+   endif
    cg_rho_old = sumN(1) !(r,PCr)
    cg_sigma   = sumN(2) !(s,As)
    cg_alpha   = cg_rho_old/cg_sigma
@@ -795,7 +809,16 @@
       call update_ghost_cells(AZ, bndy_tropic, field_loc_center,&
                                                field_type_scalar)
 
-      sumN = global_sum(WORKN, distrb_tropic,field_loc_center, RCALCT_B)
+      if (pcg_b4b) then
+        do nn=1,2
+          do iblock=1,nblocks_tropic
+          WORKTEST(:,:,iblock) = WORKN(:,:,nn,iblock)
+          enddo ! iblock
+          sumN(nn) = global_sum(WORKTEST, distrb_tropic, field_loc_center, RCALCT_B)
+        enddo ! nn
+      else
+        sumN = global_sum(WORKN, distrb_tropic,field_loc_center, RCALCT_B)
+      endif
 
       cg_rho     = sumN(1)     ! (r,(PC)r)
       cg_delta   = sumN(2)   ! (A (PC)r,(PC)r)

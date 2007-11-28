@@ -20,6 +20,8 @@
    use distribution
    use domain_size
    use domain
+   use exit_mod
+   use registry
    !use timers
 
    implicit none
@@ -99,6 +101,8 @@
 
    !integer (int_kind) :: timer_local, timer_mpi
 
+    logical (log_kind) :: b4b
+
 !EOC
 !***********************************************************************
 
@@ -122,6 +126,11 @@
 
   !call get_timer(timer_local, 'SUM_LOCAL')
   !call get_timer(timer_mpi  , 'SUM_MPI')
+
+  b4b = registry_match('b4b_flag')
+
+  if (b4b .and. ltripole_grid) &
+    call exit_POP(SigAbort,'(global_sum_dbl) b4b is incompatible with tripole grid')
 
 !-----------------------------------------------------------------------
 !EOC
@@ -407,9 +416,9 @@
 !
 !-----------------------------------------------------------------------
 
-!   real (r8), dimension(:), allocatable :: &
-!      local_block_sum,    &! sum of local blocks
-!      global_block_sum     ! sum of all blocks
+    real (r8), dimension(:), allocatable :: &
+       local_block_sum,    &! sum of local blocks
+       global_block_sum     ! sum of all blocks
 
    real (r8) ::          &
       local_sum           ! sum of all local blocks
@@ -422,6 +431,9 @@
 
    type (block) :: &
       this_block          ! holds local block information
+
+
+   if (.not. b4b) then
 
 !-----------------------------------------------------------------------
 !
@@ -510,6 +522,7 @@
    endif
    !call timer_stop(timer_mpi)
 
+   else !b4b
 !-----------------------------------------------------------------------
 !
 !  use this code for sums that are more reproducible - performance
@@ -517,54 +530,57 @@
 !  NOTE: THIS CODE NOT MODIFIED FOR TRIPOLE GRIDS YET
 !
 !-----------------------------------------------------------------------
-!
-!   allocate (local_block_sum(nblocks_tot), &
-!             global_block_sum(nblocks_tot))
-!
-!   local_block_sum = c0
-!
-!   !call timer_start(timer_local)
-!   if (present(MASK)) then
-!     do n=1,nblocks_tot
-!       if (dist%proc(n) == my_task+1) then
-!         bid = dist%local_block(n)
-!         call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
-!         do j=jb,je
-!         do i=ib,ie
-!           local_block_sum(n) = &
-!           local_block_sum(n) + X(i,j,bid)*MASK(i,j,bid)
-!         end do
-!         end do
-!       endif
-!     end do
-!   else
-!     do n=1,nblocks_tot
-!       if (dist%proc(n) == my_task+1) then
-!         bid = dist%local_block(n)
-!         call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
-!         do j=jb,je
-!         do i=ib,ie
-!           local_block_sum(n) = &
-!           local_block_sum(n) + X(i,j,bid)
-!         end do
-!         end do
-!       endif
-!     end do
-!   endif
-!   !call timer_stop(timer_local)
-!
-!   !call timer_start(timer_mpi)
-!   call MPI_ALLREDUCE(local_block_sum, global_block_sum, nblocks_tot, &
-!                      mpi_dbl, MPI_SUM, dist%communicator, ierr)
-!   !call timer_stop(timer_mpi)
-!
-!   global_sum_dbl = c0
-!   do n=1,nblocks_tot
-!     global_sum_dbl = global_sum_dbl + global_block_sum(n)
-!   end do
-!
-!   deallocate ( local_block_sum, global_block_sum)
-!
+ 
+    allocate (local_block_sum(nblocks_tot), &
+              global_block_sum(nblocks_tot))
+ 
+    local_block_sum = c0
+ 
+    !call timer_start(timer_local)
+    if (present(MASK)) then
+      do n=1,nblocks_tot
+        if (dist%proc(n) == my_task+1) then
+          bid = dist%local_block(n)
+          call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
+          do j=jb,je
+          do i=ib,ie
+            local_block_sum(n) = &
+            local_block_sum(n) + X(i,j,bid)*MASK(i,j,bid)
+          end do
+          end do
+        endif
+      end do
+    else
+      do n=1,nblocks_tot
+        if (dist%proc(n) == my_task+1) then
+          bid = dist%local_block(n)
+          call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
+          do j=jb,je
+          do i=ib,ie
+            local_block_sum(n) = &
+            local_block_sum(n) + X(i,j,bid)
+          end do
+          end do
+        endif
+      end do
+    endif
+
+    !call timer_stop(timer_local)
+ 
+    !call timer_start(timer_mpi)
+    call MPI_ALLREDUCE(local_block_sum, global_block_sum, nblocks_tot, &
+                       mpi_dbl, MPI_SUM, dist%communicator, ierr)
+    !call timer_stop(timer_mpi)
+ 
+    global_sum_dbl = c0
+    do n=1,nblocks_tot
+      global_sum_dbl = global_sum_dbl + global_block_sum(n)
+    end do
+ 
+    deallocate ( local_block_sum, global_block_sum)
+
+    endif ! b4b
+ 
 !-----------------------------------------------------------------------
 
  end function global_sum_dbl
@@ -617,9 +633,9 @@
 !
 !-----------------------------------------------------------------------
 
-!   real (r4), dimension(:), allocatable :: &
-!      local_block_sum,    &! sum of local blocks
-!      global_block_sum     ! sum of all blocks
+    real (r4), dimension(:), allocatable :: &
+       local_block_sum,    &! sum of local blocks
+       global_block_sum     ! sum of all blocks
 
    real (r4) ::          &
       local_sum           ! sum of local blocks
@@ -632,6 +648,9 @@
 
    type (block) :: &
       this_block          ! holds local block information
+
+
+   if (.not. b4b) then
 
 !-----------------------------------------------------------------------
 !
@@ -718,6 +737,7 @@
       global_sum_real = local_sum
    endif
 
+   else ! b4b
 !-----------------------------------------------------------------------
 !
 !  use this code for sums that are more reproducible - performance
@@ -725,50 +745,52 @@
 !  NOTE: THIS CODE NOT MODIFIED FOR TRIPOLE GRIDS YET
 !
 !-----------------------------------------------------------------------
-!
-!   allocate (local_block_sum(nblocks_tot), &
-!             global_block_sum(nblocks_tot))
-!
-!   local_block_sum = c0
-!
-!   if (present(MASK)) then
-!     do n=1,nblocks_tot
-!       if (dist%proc(n) == my_task+1) then
-!         bid = dist%local_block(n)
-!         call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
-!         do j=jb,je
-!         do i=ib,ie
-!           local_block_sum(n) = &
-!           local_block_sum(n) + X(i,j,bid)*MASK(i,j,bid)
-!         end do
-!         end do
-!       endif
-!     end do
-!   else
-!     do n=1,nblocks_tot
-!       if (dist%proc(n) == my_task+1) then
-!         bid = dist%local_block(n)
-!         call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
-!         do j=jb,je
-!         do i=ib,ie
-!           local_block_sum(n) = &
-!           local_block_sum(n) + X(i,j,bid)
-!         end do
-!         end do
-!       endif
-!     end do
-!   endif
-!
-!   call MPI_ALLREDUCE(local_block_sum, global_block_sum, nblocks_tot, &
-!                      mpi_real, MPI_SUM, dist%communicator, ierr)
-!
-!   global_sum_real = c0
-!   do n=1,nblocks_tot
-!     global_sum_real = global_sum_real + global_block_sum(n)
-!   end do
-!
-!   deallocate ( local_block_sum, global_block_sum)
-!
+ 
+    allocate (local_block_sum(nblocks_tot), &
+              global_block_sum(nblocks_tot))
+ 
+    local_block_sum = c0
+ 
+    if (present(MASK)) then
+      do n=1,nblocks_tot
+        if (dist%proc(n) == my_task+1) then
+          bid = dist%local_block(n)
+          call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
+          do j=jb,je
+          do i=ib,ie
+            local_block_sum(n) = &
+            local_block_sum(n) + X(i,j,bid)*MASK(i,j,bid)
+          end do
+          end do
+        endif
+      end do
+    else
+      do n=1,nblocks_tot
+        if (dist%proc(n) == my_task+1) then
+          bid = dist%local_block(n)
+          call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
+          do j=jb,je
+          do i=ib,ie
+            local_block_sum(n) = &
+            local_block_sum(n) + X(i,j,bid)
+          end do
+          end do
+        endif
+      end do
+    endif
+ 
+    call MPI_ALLREDUCE(local_block_sum, global_block_sum, nblocks_tot, &
+                       mpi_real, MPI_SUM, dist%communicator, ierr)
+ 
+    global_sum_real = c0
+    do n=1,nblocks_tot
+      global_sum_real = global_sum_real + global_block_sum(n)
+    end do
+ 
+    deallocate ( local_block_sum, global_block_sum)
+  
+    endif ! b4b
+ 
 !-----------------------------------------------------------------------
 
  end function global_sum_real
@@ -821,9 +843,9 @@
 !
 !-----------------------------------------------------------------------
 
-!   integer (int_kind), dimension(:), allocatable :: &
-!      local_block_sum,    &! sum of local blocks
-!      global_block_sum     ! sum of all blocks
+    integer (int_kind), dimension(:), allocatable :: &
+       local_block_sum,    &! sum of local blocks
+       global_block_sum     ! sum of all blocks
 
    integer (int_kind) :: &
       local_sum           ! sum of local blocks
@@ -837,11 +859,15 @@
    type (block) :: &
       this_block          ! holds local block information
 
+
+   if (.not. b4b) then
+
 !-----------------------------------------------------------------------
 !
 !  use this code for sums that are not reproducible but perform better
 !
 !-----------------------------------------------------------------------
+
 
    local_sum = c0
 
@@ -922,6 +948,8 @@
       global_sum_int = local_sum
    endif
 
+   else ! b4b
+
 !-----------------------------------------------------------------------
 !
 !  use this code for sums that are more reproducible - performance
@@ -929,50 +957,52 @@
 !  NOTE: THIS CODE NOT YET CHANGED FOR TRIPOLE GRID
 !
 !-----------------------------------------------------------------------
-!
-!   allocate (local_block_sum(nblocks_tot), &
-!             global_block_sum(nblocks_tot))
-!
-!   local_block_sum = c0
-!
-!   if (present(MASK)) then
-!     do n=1,nblocks_tot
-!       if (dist%proc(n) == my_task+1) then
-!         bid = dist%local_block(n)
-!         call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
-!         do j=jb,je
-!         do i=ib,ie
-!           local_block_sum(n) = &
-!           local_block_sum(n) + X(i,j,bid)*MASK(i,j,bid)
-!         end do
-!         end do
-!       endif
-!     end do
-!   else
-!     do n=1,nblocks_tot
-!       if (dist%proc(n) == my_task+1) then
-!         bid = dist%local_block(n)
-!         call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
-!         do j=jb,je
-!         do i=ib,ie
-!           local_block_sum(n) = &
-!           local_block_sum(n) + X(i,j,bid)
-!         end do
-!         end do
-!       endif
-!     end do
-!   endif
-!
-!   call MPI_ALLREDUCE(local_block_sum, global_block_sum, nblocks_tot, &
-!                      mpi_integer, MPI_SUM, dist%communicator, ierr)
-!
-!   global_sum_int = 0
-!   do n=1,nblocks_tot
-!     global_sum_int = global_sum_int + global_block_sum(n)
-!   end do
-!
-!   deallocate ( local_block_sum, global_block_sum)
-!
+ 
+    allocate (local_block_sum(nblocks_tot), &
+              global_block_sum(nblocks_tot))
+ 
+    local_block_sum = c0
+ 
+    if (present(MASK)) then
+      do n=1,nblocks_tot
+        if (dist%proc(n) == my_task+1) then
+          bid = dist%local_block(n)
+          call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
+          do j=jb,je
+          do i=ib,ie
+            local_block_sum(n) = &
+            local_block_sum(n) + X(i,j,bid)*MASK(i,j,bid)
+          end do
+          end do
+        endif
+      end do
+    else
+      do n=1,nblocks_tot
+        if (dist%proc(n) == my_task+1) then
+          bid = dist%local_block(n)
+          call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
+          do j=jb,je
+          do i=ib,ie
+            local_block_sum(n) = &
+            local_block_sum(n) + X(i,j,bid)
+          end do
+          end do
+        endif
+      end do
+    endif
+ 
+    call MPI_ALLREDUCE(local_block_sum, global_block_sum, nblocks_tot, &
+                       mpi_integer, MPI_SUM, dist%communicator, ierr)
+ 
+    global_sum_int = 0
+    do n=1,nblocks_tot
+      global_sum_int = global_sum_int + global_block_sum(n)
+    end do
+ 
+    deallocate ( local_block_sum, global_block_sum)
+
+   endif ! b4b
+ 
 !-----------------------------------------------------------------------
 
  end function global_sum_int
@@ -1001,6 +1031,7 @@
    integer (int_kind) :: ierr ! MPI error flag
 
 !-----------------------------------------------------------------------
+
 
    if (dist%nprocs > 1) then
       if (my_task < dist%nprocs) then
@@ -1042,6 +1073,7 @@
 
 !-----------------------------------------------------------------------
 
+
    if (dist%nprocs > 1) then
       if (my_task < dist%nprocs) then
          call MPI_ALLREDUCE(local_scalar, global_sum_scalar_real, 1, &
@@ -1081,6 +1113,7 @@
    integer (int_kind) :: ierr ! MPI error flag
 
 !-----------------------------------------------------------------------
+
 
    if (dist%nprocs > 1) then
       if (my_task < dist%nprocs) then
@@ -1152,9 +1185,9 @@
 !
 !-----------------------------------------------------------------------
 
-!   real (r8), dimension(:), allocatable :: &
-!     local_block_sum,  &! sum of each block
-!     global_block_sum   ! global sum each block
+    real (r8), dimension(:), allocatable :: &
+      local_block_sum,  &! sum of each block
+      global_block_sum   ! global sum each block
 
    real (r8) ::         & 
      local_sum           ! sum of each block
@@ -1167,6 +1200,9 @@
 
    type (block) :: &
       this_block          ! holds local block information
+
+
+   if (b4b) then
 
 !-----------------------------------------------------------------------
 !
@@ -1256,6 +1292,8 @@
       global_sum_prod_dbl = local_sum
    endif
 
+   else ! b4b
+
 !-----------------------------------------------------------------------
 !
 !  use this code for sums that are more reproducible - performance
@@ -1263,50 +1301,52 @@
 !  NOTE: THIS CODE NOT YET CHANGED FOR TRIPOLE GRIDS
 !
 !-----------------------------------------------------------------------
-!
-!   allocate (local_block_sum(nblocks_tot), &
-!             global_block_sum(nblocks_tot))
-!
-!   local_block_sum = c0
-!
-!   if (present(MASK)) then
-!     do n=1,nblocks_tot
-!       if (dist%proc(n) == my_task+1) then
-!         bid = dist%local_block(n)
-!         call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
-!         do j=jb,je
-!         do i=ib,ie
-!           local_block_sum(n) = &
-!           local_block_sum(n) + X(i,j,bid)*Y(i,j,bid)*MASK(i,j,bid)
-!         end do
-!         end do
-!       endif
-!     end do
-!   else
-!     do n=1,nblocks_tot
-!       if (dist%proc(n) == my_task+1) then
-!         bid = dist%local_block(n)
-!         call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
-!         do j=jb,je
-!         do i=ib,ie
-!           local_block_sum(n) = &
-!           local_block_sum(n) + X(i,j,bid)*Y(i,j,bid)
-!         end do
-!         end do
-!       endif
-!     end do
-!   endif
-!
-!   call MPI_ALLREDUCE(local_block_sum, global_block_sum, nblocks_tot, &
-!                      mpi_dbl, MPI_SUM, dist%communicator, ierr)
-!
-!   global_sum_prod_dbl = c0
-!   do n=1,nblocks_tot
-!     global_sum_prod_dbl = global_sum_prod_dbl + global_block_sum(n)
-!   end do
-!
-!   deallocate ( local_block_sum, global_block_sum)
-!
+ 
+    allocate (local_block_sum(nblocks_tot), &
+              global_block_sum(nblocks_tot))
+ 
+    local_block_sum = c0
+ 
+    if (present(MASK)) then
+      do n=1,nblocks_tot
+        if (dist%proc(n) == my_task+1) then
+          bid = dist%local_block(n)
+          call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
+          do j=jb,je
+          do i=ib,ie
+            local_block_sum(n) = &
+            local_block_sum(n) + X(i,j,bid)*Y(i,j,bid)*MASK(i,j,bid)
+          end do
+          end do
+        endif
+      end do
+    else
+      do n=1,nblocks_tot
+        if (dist%proc(n) == my_task+1) then
+          bid = dist%local_block(n)
+          call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
+          do j=jb,je
+          do i=ib,ie
+            local_block_sum(n) = &
+            local_block_sum(n) + X(i,j,bid)*Y(i,j,bid)
+          end do
+          end do
+        endif
+      end do
+    endif
+ 
+    call MPI_ALLREDUCE(local_block_sum, global_block_sum, nblocks_tot, &
+                       mpi_dbl, MPI_SUM, dist%communicator, ierr)
+ 
+    global_sum_prod_dbl = c0
+    do n=1,nblocks_tot
+      global_sum_prod_dbl = global_sum_prod_dbl + global_block_sum(n)
+    end do
+ 
+    deallocate ( local_block_sum, global_block_sum)
+
+    endif ! b4b
+ 
 !-----------------------------------------------------------------------
 
  end function global_sum_prod_dbl
@@ -1360,9 +1400,9 @@
 !
 !-----------------------------------------------------------------------
 
-!   real (r8), dimension(:), allocatable :: &
-!     local_block_sum,  &! sum of each block
-!     global_block_sum   ! global sum each block
+    real (r8), dimension(:), allocatable :: &
+      local_block_sum,  &! sum of each block
+      global_block_sum   ! global sum each block
 
    real (r8) ::         &
      local_sum,         &! sum of local blocks
@@ -1376,6 +1416,9 @@
 
    type (block) :: &
       this_block          ! holds local block information
+
+
+   if (b4b) then
 
 !-----------------------------------------------------------------------
 !
@@ -1466,6 +1509,8 @@
       global_sum_prod_real = local_sum
    endif
 
+   else ! b4b
+
 !-----------------------------------------------------------------------
 !
 !  use this code for sums that are more reproducible - performance
@@ -1473,51 +1518,53 @@
 !  NOTE: THIS CODE NOT YET CHANGED FOR TRIPOLE GRIDS
 !
 !-----------------------------------------------------------------------
-!
-!
-!   allocate (local_block_sum(nblocks_tot), &
-!             global_block_sum(nblocks_tot))
-!
-!   local_block_sum = c0
-!
-!   if (present(MASK)) then
-!     do n=1,nblocks_tot
-!       if (dist%proc(n) == my_task+1) then
-!         bid = dist%local_block(n)
-!         call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
-!         do j=jb,je
-!         do i=ib,ie
-!           local_block_sum(n) = &
-!           local_block_sum(n) + X(i,j,bid)*Y(i,j,bid)*MASK(i,j,bid)
-!         end do
-!         end do
-!       endif
-!     end do
-!   else
-!     do n=1,nblocks_tot
-!       if (dist%proc(n) == my_task+1) then
-!         bid = dist%local_block(n)
-!         call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
-!         do j=jb,je
-!         do i=ib,ie
-!           local_block_sum(n) = &
-!           local_block_sum(n) + X(i,j,bid)*Y(i,j,bid)
-!         end do
-!         end do
-!       endif
-!     end do
-!   endif
-!
-!   call MPI_ALLREDUCE(local_block_sum, global_block_sum, nblocks_tot, &
-!                      mpi_dbl, MPI_SUM, dist%communicator, ierr)
-!
-!   global_sum_prod_real = c0
-!   do n=1,nblocks_tot
-!     global_sum_prod_real = global_sum_prod_real + global_block_sum(n)
-!   end do
-!
-!   deallocate ( local_block_sum, global_block_sum)
-!
+ 
+ 
+    allocate (local_block_sum(nblocks_tot), &
+              global_block_sum(nblocks_tot))
+ 
+    local_block_sum = c0
+ 
+    if (present(MASK)) then
+      do n=1,nblocks_tot
+        if (dist%proc(n) == my_task+1) then
+          bid = dist%local_block(n)
+          call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
+          do j=jb,je
+          do i=ib,ie
+            local_block_sum(n) = &
+            local_block_sum(n) + X(i,j,bid)*Y(i,j,bid)*MASK(i,j,bid)
+          end do
+          end do
+        endif
+      end do
+    else
+      do n=1,nblocks_tot
+        if (dist%proc(n) == my_task+1) then
+          bid = dist%local_block(n)
+          call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
+          do j=jb,je
+          do i=ib,ie
+            local_block_sum(n) = &
+            local_block_sum(n) + X(i,j,bid)*Y(i,j,bid)
+          end do
+          end do
+        endif
+      end do
+    endif
+ 
+    call MPI_ALLREDUCE(local_block_sum, global_block_sum, nblocks_tot, &
+                       mpi_dbl, MPI_SUM, dist%communicator, ierr)
+ 
+    global_sum_prod_real = c0
+    do n=1,nblocks_tot
+      global_sum_prod_real = global_sum_prod_real + global_block_sum(n)
+    end do
+ 
+    deallocate ( local_block_sum, global_block_sum)
+
+    endif ! b4b
+ 
 !-----------------------------------------------------------------------
 
  end function global_sum_prod_real
@@ -1571,9 +1618,9 @@
 !
 !-----------------------------------------------------------------------
 
-!   integer (int_kind), dimension(:), allocatable :: &
-!     local_block_sum,  &! sum of each block
-!     global_block_sum   ! global sum each block
+    integer (int_kind), dimension(:), allocatable :: &
+      local_block_sum,  &! sum of each block
+      global_block_sum   ! global sum each block
 
    integer (int_kind) :: &
      local_sum           ! sum of local blocks
@@ -1586,6 +1633,9 @@
 
    type (block) :: &
       this_block          ! holds local block information
+
+
+   if (b4b) then
 
 !-----------------------------------------------------------------------
 !
@@ -1675,6 +1725,8 @@
       global_sum_prod_int = local_sum
    endif
 
+   else ! b4b
+
 !-----------------------------------------------------------------------
 !
 !  use this code for sums that are more reproducible - performance
@@ -1682,50 +1734,52 @@
 !  NOTE: THIS CODE NOT YET CHANGED FOR TRIPOLE GRIDS
 !
 !-----------------------------------------------------------------------
-!
-!   allocate (local_block_sum(nblocks_tot), &
-!             global_block_sum(nblocks_tot))
-!
-!   local_block_sum = c0
-!
-!   if (present(MASK)) then
-!     do n=1,nblocks_tot
-!       if (dist%proc(n) == my_task+1) then
-!         bid = dist%local_block(n)
-!         call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
-!         do j=jb,je
-!         do i=ib,ie
-!           local_block_sum(n) = &
-!           local_block_sum(n) + X(i,j,bid)*Y(i,j,bid)*MASK(i,j,bid)
-!         end do
-!         end do
-!       endif
-!     end do
-!   else
-!     do n=1,nblocks_tot
-!       if (dist%proc(n) == my_task+1) then
-!         bid = dist%local_block(n)
-!         call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
-!         do j=jb,je
-!         do i=ib,ie
-!           local_block_sum(n) = &
-!           local_block_sum(n) + X(i,j,bid)*Y(i,j,bid)
-!         end do
-!         end do
-!       endif
-!     end do
-!   endif
-!
-!   call MPI_ALLREDUCE(local_block_sum, global_block_sum, nblocks_tot, &
-!                      mpi_integer, MPI_SUM, dist%communicator, ierr)
-!
-!   global_sum_prod_int = 0
-!   do n=1,nblocks_tot
-!     global_sum_prod_int = global_sum_prod_int + global_block_sum(n)
-!   end do
-!
-!   deallocate ( local_block_sum, global_block_sum)
-!
+ 
+    allocate (local_block_sum(nblocks_tot), &
+              global_block_sum(nblocks_tot))
+ 
+    local_block_sum = c0
+ 
+    if (present(MASK)) then
+      do n=1,nblocks_tot
+        if (dist%proc(n) == my_task+1) then
+          bid = dist%local_block(n)
+          call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
+          do j=jb,je
+          do i=ib,ie
+            local_block_sum(n) = &
+            local_block_sum(n) + X(i,j,bid)*Y(i,j,bid)*MASK(i,j,bid)
+          end do
+          end do
+        endif
+      end do
+    else
+      do n=1,nblocks_tot
+        if (dist%proc(n) == my_task+1) then
+          bid = dist%local_block(n)
+          call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
+          do j=jb,je
+          do i=ib,ie
+            local_block_sum(n) = &
+            local_block_sum(n) + X(i,j,bid)*Y(i,j,bid)
+          end do
+          end do
+        endif
+      end do
+    endif
+ 
+    call MPI_ALLREDUCE(local_block_sum, global_block_sum, nblocks_tot, &
+                       mpi_integer, MPI_SUM, dist%communicator, ierr)
+ 
+    global_sum_prod_int = 0
+    do n=1,nblocks_tot
+      global_sum_prod_int = global_sum_prod_int + global_block_sum(n)
+    end do
+ 
+    deallocate ( local_block_sum, global_block_sum)
+
+    endif ! b4b
+ 
 !-----------------------------------------------------------------------
 
  end function global_sum_prod_int
