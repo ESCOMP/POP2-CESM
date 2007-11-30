@@ -1,0 +1,517 @@
+#! /bin/csh -f
+
+#==============================================================================
+# Purpose: Create scripts that will
+#  (a) build an executable model (pop2, a CCSM active ocn component)
+#  (b) gather or create necessary input files
+#
+#==============================================================================
+
+set    srcdir       = $CODEROOT/ocn/pop2
+set    my_path      = $CASEROOT/SourceMods/src.pop2
+
+setenv POP2BLDSCRIPT  $CASEROOT/Buildnml_Prestage/pop2.buildnml_prestage.csh
+setenv POP2NMLDIR     $CASEROOT/Buildnml_Prestage/pop2nml
+setenv POP2_NMLFILE   $CASEROOT/Buildnml_Prestage/pop2nml/pop2_input_case_record
+
+if !(-d $CASEROOT/Buildnml_Prestage)         mkdir $CASEROOT/Buildnml_Prestage
+if !(-d $CASEROOT/Buildnml_Prestage/pop2nml) mkdir $CASEROOT/Buildnml_Prestage/pop2nml
+if !(-d $CASEROOT/Buildexe)  mkdir $CASEROOT/Buildexe
+
+#-----------------------------------------------------------------
+# setting up some internal environment variables and path names
+#-----------------------------------------------------------------
+
+if ( $OCN_GRID ==  gx1v3) then
+                           setenv INIT_TS_FILE ts_PHC2_jan_20010711
+else if ( $OCN_GRID ==  gx1v4) then
+                           setenv INIT_TS_FILE ts_PHC2_jan_ic_gx1v4_20060314
+else if ( $OCN_GRID ==  gx1v5) then
+                           setenv INIT_TS_FILE ts_PHC2_jan_ic_gx1v5_20061230
+else if ( $OCN_GRID ==  gx3v5) then
+                           setenv INIT_TS_FILE ts_PHC2_jan_20030806
+else if ( $OCN_GRID ==  gx3v6) then
+                           setenv INIT_TS_FILE modts_PHC2_jan_20050103
+else
+  echo "$0 ERROR: Cannot deal with GRID = $GRID "
+  exit -1
+endif
+
+#--------------------------------------------------------------------
+# write out executable generating directives to resolved file
+#--------------------------------------------------------------------
+
+cat >! $CASEROOT/Buildexe/pop2.buildexe.csh << EOF1
+#! /bin/csh -f
+
+source \$CASEROOT/env_conf || exit -1
+source \$CASEROOT/env_run  || exit -1
+source \$CASEROOT/env_mach.\$MACH  || exit -1
+source \$CASEROOT/env_pes.\$MACH  || exit -1
+
+#--------------------------------------------------------------------
+# check basic task and thread settings
+#--------------------------------------------------------------------
+
+if !(\$NTASKS_OCN > 0) then
+  echo "NTASKS_OCN must be > 0, please correct in env_pes and reconfigure"
+  exit -1
+endif
+if !(\$NTHRDS_OCN == 1) then
+  echo "NTHRDS_OCN must be 1, please correct in env_pes and reconfigure"
+  exit -1
+endif
+
+set exedir  = \$EXEROOT/ocn
+set rundir  = \$RUNROOT/ocn
+set objdir  = \$OBJROOT/ocn/obj
+set srcdir  = \$CODEROOT/ocn/pop2
+set my_path = \$CASEROOT/SourceMods/src.pop2
+
+set ntask   = \$NTASKS_OCN
+set ocn_tracers = (\`echo \$OCN_TRACER_MODULES\`)
+
+setenv INPUT    \$RUNROOT/ocn/input
+
+cd \$objdir
+
+echo -------------------------------------------------------------------------
+echo a. Build an executable in \$objdir
+echo -------------------------------------------------------------------------
+
+echo ------------------------------------------------------------------------
+echo  a.0 Document ocean tracers used in this run
+echo ------------------------------------------------------------------------
+echo ocn_tracers = \$ocn_tracers
+
+
+echo ------------------------------------------------------------------------
+echo  a.1 Calculate processor tiling based on \$ntask
+echo ------------------------------------------------------------------------
+
+if ( \$OS == 'ESOS' || \$OS == 'UNICOS' ) then
+  if (\$ntask ==  1)   setenv NX  1
+  if (\$ntask ==  2)   setenv NX  1
+  if (\$ntask ==  4)   setenv NX  1
+  if (\$ntask ==  8)   setenv NX  1
+  if (\$ntask == 10)   setenv NX  2
+  if (\$ntask == 12)   setenv NX  1
+  if (\$ntask == 16)   setenv NX  2
+  if (\$ntask == 20)   setenv NX  2
+  if (\$ntask == 24)   setenv NX  2
+  if (\$ntask == 32)   setenv NX  2
+  if (\$ntask == 40)   setenv NX  2
+  if (\$ntask == 48)   setenv NX  2
+  if (\$ntask == 64)   setenv NX  2
+  if (\$ntask == 80)   setenv NX  2
+  if (\$ntask == 96)   setenv NX  2
+  if !(\$?NX)          echo ERROR: ocn cant deal with ntask=\$ntask
+  if !(\$?NX)          exit -1
+else
+  if (\$ntask ==  1)   setenv NX  1
+  if (\$ntask ==  2)   setenv NX  1
+  if (\$ntask ==  4)   setenv NX  2
+  if (\$ntask ==  8)   setenv NX  4
+  if (\$ntask == 10)   setenv NX  5 
+  if (\$ntask == 12)   setenv NX  4
+  if (\$ntask == 16)   setenv NX  4
+  if (\$ntask == 20)   setenv NX  5
+  if (\$ntask == 24)   setenv NX  4
+  if (\$ntask == 32)   setenv NX  4 
+  if (\$ntask == 40)   setenv NX  5
+  if (\$ntask == 48)   setenv NX  8
+  if (\$ntask == 64)   setenv NX  8
+  if (\$ntask == 80)   setenv NX  8
+  if (\$ntask == 96)   setenv NX  8
+  if (\$ntask == 120)  setenv NX 10
+  if (\$ntask == 128)  setenv NX 16
+  if (\$ntask == 160)  setenv NX 10
+  if (\$ntask == 192)  setenv NX 16
+  if (\$ntask == 240)  setenv NX 10
+  if (\$ntask == 256)  setenv NX 16
+  if (\$ntask == 384)  setenv NX 16
+  if (\$ntask == 480)  setenv NX 20
+  if (\$ntask == 768)  setenv NX 32
+  if !(\$?NX)          echo ERROR: ocn cant deal with ntask=\$ntask
+  if !(\$?NX)          exit -1
+endif
+@ ny = \$ntask / \$NX; setenv NY \$ny
+
+echo -----------------------------------------------------------------
+echo  a2. creating the internal directory structure
+echo -----------------------------------------------------------------
+
+set compile_dir = \$objdir/compile
+set source_dir  = \$objdir/source
+if !(-d \$source_dir  ) mkdir -p \$source_dir
+if !(-d \$compile_dir ) mkdir -p \$compile_dir
+
+echo -----------------------------------------------------------------
+echo  a3. create domain_size.F90 in \$source_dir, first computing NT
+echo -----------------------------------------------------------------
+
+echo 2 > \$source_dir/NT
+foreach module ( \$ocn_tracers )
+  if (-f \${my_path}/ocn.\${module}.setup.csh) then
+     \${my_path}/ocn.\${module}.setup.csh set_nt \$source_dir/NT || exit \$status
+  else if (-f \$srcdir/input_templates/ocn.\${module}.setup.csh ) then
+     \$srcdir/input_templates/ocn.\${module}.setup.csh set_nt \$source_dir/NT || exit \$status
+  else
+     echo error in pop.buildexe.csh unknown tracer: \$module
+     exit -3
+  endif
+end
+set NT = \`cat \$source_dir/NT\`
+
+if (-f \${my_path}/${OCN_GRID}_domain_size.F90) then
+   set domain_size_infile = \${my_path}/${OCN_GRID}_domain_size.F90
+else
+   set domain_size_infile = \$srcdir/input_templates/${OCN_GRID}_domain_size.F90
+endif
+
+#
+#  If new domain_size.F90 is identical to existing one, do nothing.
+#  This is in order to preserve file timestamps and avoid unnecessary
+#  compilation cascade.
+#
+
+sed -e "s#nt *= *2#nt = \$NT#" < \$domain_size_infile > \$source_dir/domain_size.F90.new
+if (-f \$source_dir/domain_size.F90) then
+  diff \$source_dir/domain_size.F90.new \$source_dir/domain_size.F90
+  if (\$status) then
+    mv \$source_dir/domain_size.F90.new \$source_dir/domain_size.F90
+  else
+    rm -f \$source_dir/domain_size.F90.new
+  endif
+else
+  mv \$source_dir/domain_size.F90.new \$source_dir/domain_size.F90
+endif
+
+echo ' '
+echo '-----------------------------------------------------------------'
+echo ' copy the necessary files into \$source_dir                       '
+echo '-----------------------------------------------------------------'
+cd \$source_dir
+cp -fp \$srcdir/source/*.F90                .
+cp -fp \$srcdir/source/*.[Cc]               .
+cp -fp \$srcdir/mpi/*.F90                   .
+cp -fp \$srcdir/mpi/*.[Cc]                  .
+if (-d \$my_path ) cp -fp \$my_path/*.[FCc]* .
+rm -f ${OCN_GRID}_domain_size.F90
+#
+#  recompile if 2d decomp is changed
+#
+set recompile = FALSE
+echo $OCN_GRID \$ntask \$NX \$NY >! \$objdir/ocnres.new
+diff \$objdir/ocnres.new \$objdir/ocnres.old || set recompile = TRUE
+if (\$recompile == 'TRUE') then
+    touch \`grep -l NPROC \$objdir/source/*\`  # force recompile
+endif  
+echo $OCN_GRID \$ntask \$NX \$NY >! \$objdir/ocnres.old
+
+echo -----------------------------------------------------------------
+echo  a4. compile and copy the executable into \$exedir directory
+echo -----------------------------------------------------------------
+
+if (\$BLDTYPE == 'TRUE' || \$recompile == 'TRUE') then
+  cd \$compile_dir
+
+  if (\$OS == 'UNICOS') then
+    if (\`uname\` == 'Linux') then
+      # cross compiler needs to run dependency program locally
+      module purge
+      source \$CASEROOT/env_mach.\$MACH  || exit -1
+    endif
+  endif
+
+    cp \$BLDROOT/mkDepends . || exit 2
+    cp \$BLDROOT/mkSrcfiles . || exit 2
+
+    set EXEC = ocn_\${ntask}
+    set THREAD = FALSE ; if (\$NTHRDS_OCN > 1) set THREAD TRUE
+    if (\$SINGLE_EXEC == 'TRUE') then
+      gmake complib -j \$GMAKE_J -f \$BLDROOT/Makefile MACFILE=\$CASEROOT/Macros.\$MACH \
+        MODEL=pop2 NX=\$NX NY=\$NY THREAD=\$THREAD                \
+        VPATH=\$source_dir COMPLIB=\$objdir/libpop2.a               || exit 2
+    else
+      gmake -j \$GMAKE_J -f \$BLDROOT/Makefile MACFILE=\$CASEROOT/Macros.\$MACH \
+          MODEL=pop2 NX=\$NX NY=\$NY THREAD=\$THREAD                \
+          VPATH=\$source_dir EXEC=\$objdir/\$EXEC                  || exit 2
+    endif
+
+  # gmake -f \$BLDROOT/Makefile MACFILE=\$CASEROOT/Macros.\$MACH mostlyclean
+
+
+  #--- cp & link into \$exedir ---
+  if (\$SINGLE_EXEC == 'TRUE') then
+    rm -f \$exedir/libpop2.a
+    cp \$objdir/libpop2.a  \$exedir/libpop2.a
+  else
+    rm -f \$exedir/pop2
+    cp \$objdir/\$EXEC  \$exedir/pop2
+  endif
+endif
+
+
+if (\$SINGLE_EXEC == 'TRUE') then
+  if !(-f \$exedir/libpop2.a) then
+    echo "ERROR: pop2 library not available, check SETBLD"
+    exit -1
+  endif
+else
+  if !(-f \$exedir/pop2) then
+    echo "ERROR: pop2 executable not available, check SETBLD"
+    exit -1
+  endif
+endif
+
+EOF1
+
+#--------------------------------------------------------------------
+# write out resolved prestaging and namelist generating directives
+#--------------------------------------------------------------------
+
+set IYEAR0   = `echo $RUN_STARTDATE | cut -c1-4  | sed -e 's/^0*//'`
+set IMONTH0  = `echo $RUN_STARTDATE | cut -c6-7  | sed -e 's/^0*//'`
+set IDAY0    = `echo $RUN_STARTDATE | cut -c9-10 | sed -e 's/^0*//'`
+
+if ($RUN_TYPE == startup || $RUN_TYPE == hybrid  )  then
+  @ IDAY0 = $IDAY0 + 1
+endif
+
+cat >! $POP2BLDSCRIPT << EOF2
+#! /bin/csh -f
+
+source \$CASEROOT/env_run  || exit -1
+source \$CASEROOT/env_conf || exit -1
+source \$CASEROOT/env_mach.\$MACH  || exit -1
+source \$CASEROOT/env_pes.\$MACH  || exit -1
+source \$CASEROOT/Tools/env_setcomp || echo "problem sourcing env_setcomp" && exit -1
+
+# started as a $RUN_TYPE run
+
+set runtype = $RUN_TYPE
+if (\$CONTINUE_RUN == 'TRUE') set runtype = continue
+setenv RUNTYPE \$runtype
+
+set exedir  = \$EXEROOT/ocn
+set rundir  = \$RUNROOT/ocn
+set objdir  = \$OBJROOT/ocn/obj
+set srcdir  = \$CODEROOT/ocn/pop2
+set my_path = \$CASEROOT/SourceMods/src.pop2
+
+set POP2NMLDIR = $POP2NMLDIR
+setenv POP2_NMLFILE $POP2_NMLFILE
+
+set ocn_tracers = (\`echo \$OCN_TRACER_MODULES\`)
+echo ocn_tracers = \$ocn_tracers
+
+echo ' '
+echo ------------------------------------------------------------------------
+echo  Begin namelist construction
+echo ------------------------------------------------------------------------
+
+# -----------------------------------------------------------------
+#   namelist: set initial model date
+# -----------------------------------------------------------------
+
+setenv IYEAR0   $IYEAR0
+setenv IMONTH0  $IMONTH0
+setenv IDAY0    $IDAY0
+
+
+setenv NPROCS_CLINIC  \$NTASKS_OCN
+setenv NPROCS_TROPIC  \$NTASKS_OCN
+
+setenv rundir   \$RUNROOT/ocn
+setenv INPUT    \$RUNROOT/ocn/input
+
+echo -----------------------------------------------------------------
+echo   namelist: execute the script that generates pop2_input_case_record 
+echo -----------------------------------------------------------------
+if (-f \$POP2NMLDIR/pop2_input_case_record) rm \$POP2NMLDIR/pop2_input_case_record
+
+if (-f \${my_path}/pop2_in_build.csh) then
+ chmod u+x \${my_path}/pop2_in_build.csh
+ source \${my_path}/pop2_in_build.csh
+else
+ source \$srcdir/input_templates/pop2_in_build.csh 
+endif
+
+if (\$#ocn_tracers == 0) then
+  echo '' >> \$POP2NMLDIR/pop2_input_case_record
+  echo '&passive_tracers_on_nml' >> \$POP2NMLDIR/pop2_input_case_record
+  echo '/' >> \$POP2NMLDIR/pop2_input_case_record 
+else if (\$#ocn_tracers > 0) then
+  echo -----------------------------------------------------------------
+  echo   namelist: construct passive_tracers_on_nml in pop2_input_case_record 
+  echo             default for each module is off
+  echo -----------------------------------------------------------------
+
+  echo '' >> \$POP2NMLDIR/pop2_input_case_record 
+  echo '&passive_tracers_on_nml' >> \$POP2NMLDIR/pop2_input_case_record 
+  foreach module ( \$ocn_tracers )
+    echo "   \${module}_on = .true." >> \$POP2NMLDIR/pop2_input_case_record 
+  end
+  echo '/' >> \$POP2NMLDIR/pop2_input_case_record 
+
+  echo -----------------------------------------------------------------
+  echo   namelist: construct passive tracer module namelists in pop2_input_case_record 
+  echo -----------------------------------------------------------------
+
+  foreach module ( \$ocn_tracers )
+    if (-f \${my_path}/ocn.\${module}.setup.csh) then
+       \${my_path}/ocn.\${module}.setup.csh namelist \$POP2NMLDIR/pop2_input_case_record  || exit \$status
+    else if (-f \$srcdir/input_templates/ocn.\${module}.setup.csh) then
+       \$srcdir/input_templates/ocn.\${module}.setup.csh namelist \$POP2NMLDIR/pop2_input_case_record  || exit \$status
+    else
+       echo error in pop.buildnml_prestage.csh unknown tracer: \$module
+       exit -3
+    endif
+  end
+endif
+
+
+# -----------------------------------------------------------------------------
+#   namelist: copy pop2_input_case_record into execution directory
+# -----------------------------------------------------------------------------
+
+if (-f \$exedir/pop2_in) rm \$exedir/pop2_in
+cp  \$POP2NMLDIR/pop2_input_case_record \$exedir/pop2_in
+
+cd \$exedir
+EOF2
+
+if ($RUN_TYPE == branch || $RUN_TYPE == hybrid) then
+cat >> $POP2BLDSCRIPT << EOF2
+
+if (\$CONTINUE_RUN == 'FALSE') then
+
+# position the branch or hybrid files
+setenv INIT_TS_FILE ${RUN_REFCASE}.pop.r.$RUN_REFDATE-00000
+setenv TAVG_TS_FILE ${RUN_REFCASE}.pop.rh.$RUN_REFDATE-00000
+  if !(-d rest ) mkdir -p rest
+  cd rest
+  \$UTILROOT/Tools/ccsm_getfile  $RUN_REFCASE/ocn/rest/\$INIT_TS_FILE     || exit 99
+  \$UTILROOT/Tools/ccsm_getfile  $RUN_REFCASE/ocn/rest/\$INIT_TS_FILE.hdr || exit 99
+  \$UTILROOT/Tools/ccsm_getfile  $RUN_REFCASE/ocn/rest/\$TAVG_TS_FILE     # optional
+  \$UTILROOT/Tools/ccsm_getfile  $RUN_REFCASE/ocn/rest/\$TAVG_TS_FILE.hdr # optional
+  cd ..
+
+# generate the appropriate restart pointer files
+cat >! \$exedir/rpointer.ocn.restart << EOF
+\$cwd/rest/\$INIT_TS_FILE
+EOF
+
+cat >! \$exedir/rpointer.ocn.tavg << EOF
+\$cwd/rest/\$TAVG_TS_FILE
+EOF
+
+endif
+
+EOF2
+endif
+
+
+cat >> $POP2BLDSCRIPT << EOF2
+
+if ( \$OS == 'Linux' || \$OS == 'Linux-ia64' || \$OS == 'UNICOS' ) then
+   sed "s/num_iotasks *=* ./num_iotasks        = 1   /g" \$exedir/pop2_in >! \$exedir/pop2_in.yw || echo "num_iotasks not found "
+   cp -f \$exedir/pop2_in.yw \$exedir/pop2_in
+   rm -f \$exedir/pop2_in.yw
+endif
+
+# put pop2_in where pop2 can find it (specific to mpirun, poe, etc)
+ln -sf \$exedir/pop2_in \$exedir/..
+if (-d \$exedir/../all) ln -sf \$exedir/pop2_in \$exedir/../all
+
+echo '------------------------------------------------------------------------'
+echo   c. cp input datasets from \$srcdir ...
+echo '------------------------------------------------------------------------'
+
+if !( -d \$exedir/rest  )  mkdir -p \$exedir/rest   || exit 2
+if !( -d \$exedir/hist  )  mkdir -p \$exedir/hist   || exit 2
+if !( -d \$exedir/input )  mkdir -p \$exedir/input  || exit 2
+
+cd \$exedir/input
+
+foreach FILE (depth_accel history_contents \
+              movie_contents region_ids tavg_contents \
+              transport_contents vert_grid )
+  if (-f \$my_path/${OCN_GRID}_\$FILE) then
+    \$UTILROOT/Tools/ccsm_cpdata \$my_path/${OCN_GRID}_\$FILE \$FILE || exit 99
+  else
+    \$UTILROOT/Tools/ccsm_cpdata \$srcdir/input_templates/${OCN_GRID}_\$FILE \$FILE || exit 99
+  endif
+end
+foreach FILE (eos_coefficients.ieeer8 )
+  \$UTILROOT/Tools/ccsm_cpdata \$srcdir/input_templates/${OCN_GRID}_\$FILE \$FILE
+end
+
+
+if (\$#ocn_tracers > 0) then
+  echo -----------------------------------------------------------------
+  echo  add passive tracer module variables to tavg_contents
+  echo -----------------------------------------------------------------
+
+  foreach module ( \$ocn_tracers )
+    if (-f \${my_path}/ocn.\${module}.setup.csh) then
+      \${my_path}/ocn.\${module}.setup.csh tavg_contents tavg_contents || exit \$status
+    else
+      \$srcdir/input_templates/ocn.\${module}.setup.csh tavg_contents tavg_contents || exit \$status
+    endif
+  end
+endif
+
+echo '------------------------------------------------------------------------'
+echo   c. acquire initial/boundary datasets disk or MSS
+echo '------------------------------------------------------------------------'
+
+set ocndata = ocn/pop/$OCN_GRID  # point to disk copies
+
+EOF2
+
+if ($RUN_TYPE == startup ) then
+cat >> $POP2BLDSCRIPT << EOF2
+set INIT_TS_FILE = $INIT_TS_FILE
+\$UTILROOT/Tools/ccsm_getinput \$ocndata/ic/\${INIT_TS_FILE}.ieeer8         ts                  || exit 99
+\$UTILROOT/Tools/ccsm_getinput \$ocndata/ic/\${INIT_TS_FILE}.readme         ts.readme           || exit 99
+EOF2
+endif 
+ 
+cat >> $POP2BLDSCRIPT << EOF2
+ 
+echo ' '
+echo '-----------------------------------------------------------------'
+echo ' prestage resolution-dependent ocean input files                 '
+echo '-----------------------------------------------------------------'
+echo ' '
+if (-f \${my_path}/ocn.prestage.csh) then
+  \${my_path}/ocn.prestage.csh \$ocndata
+else
+  \$srcdir/input_templates/ocn.prestage.csh \$ocndata
+endif
+
+EOF2
+
+
+cat >> $POP2BLDSCRIPT << EOF2
+if (\$#ocn_tracers > 0) then
+  echo -----------------------------------------------------------------
+  echo  prestage passive tracer module files
+  echo -----------------------------------------------------------------
+
+  foreach module ( \$ocn_tracers )
+    if (-f \${my_path}/ocn.\${module}.setup.csh) then
+      \${my_path}/ocn.\${module}.setup.csh prestage \
+        \$DIN_LOC_ROOT/ocn/pop/$OCN_GRID \$DIN_LOC_ROOT/ocn/pop/res_indpt || exit \$status
+    else
+      \$srcdir/input_templates/ocn.\${module}.setup.csh prestage \
+        \$DIN_LOC_ROOT/ocn/pop/$OCN_GRID \$DIN_LOC_ROOT/ocn/pop/res_indpt || exit \$status
+    endif
+  end
+endif
+
+wait
+
+EOF2
