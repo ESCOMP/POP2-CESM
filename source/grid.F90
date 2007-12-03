@@ -477,6 +477,7 @@
       call exit_POP(sigAbort,'ERROR: unknown horizontal grid option')
    end select
 
+
 !-----------------------------------------------------------------------
 !
 !  if boundaries are closed, extend physical domain values into ghost
@@ -1327,6 +1328,10 @@
       where (HTE <= c0) HTE = c1
       where (HUS <= c0) HUS = c1
       where (HUW <= c0) HUW = c1
+      where (DXU <= c0) DXU = c1
+      where (DYU <= c0) DYU = c1
+      where (DXT <= c0) DXT = c1
+      where (DYT <= c0) DYT = c1
    endif
 
 !-----------------------------------------------------------------------
