@@ -16,6 +16,14 @@
 
 ! !USES:
 
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_IOUnitsMod
+   use POP_DomainSizeMod
+   use POP_BlocksMod
+   use POP_DistributionMod
+   use POP_HaloMod
+
    use kinds_mod
    use constants
    use communicate
@@ -46,6 +54,10 @@
       blocks_clinic    ,&! block ids for local blocks in baroclinic dist
       blocks_tropic      ! block ids for local blocks in barotropic dist
 
+   type (POP_distrb), public :: & !  block distribution info
+      distrbClinic    ,&! block distribution for baroclinic part
+      distrbTropic      ! block distribution for barotropic part
+
    type (distrb), public :: & !  block distribution info
       distrb_clinic    ,&! block distribution for baroclinic part
       distrb_tropic      ! block distribution for barotropic part
@@ -53,6 +65,10 @@
    type (bndy), public :: &!  ghost cell update info
       bndy_clinic        ,&! block distribution for baroclinic part
       bndy_tropic          ! block distribution for barotropic part
+
+   type (POP_Halo), public :: &!  ghost cell update info
+      haloClinic         ,&! halo update info for baroclinic distrb
+      haloTropic           ! halo update info for barotropic distrb
 
    logical (log_kind), public :: &!
       ltripole_grid        ! flag to signal use of tripole grid
@@ -66,6 +82,10 @@
 !   and init_domain2.
 !
 !-----------------------------------------------------------------------
+
+    integer (POP_i4) ::          &
+       clinicDistributionMethod, &! method for distributing blocks
+       tropicDistributionMethod   ! method for distributing blocks
 
     character (char_len) ::      &
        clinic_distribution_type, &! method to use for distributing
@@ -104,7 +124,8 @@
 !----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      nml_error          ! namelist read error flag
+      errorCode,         &! returned error code
+      nml_error           ! namelist read error flag
 
 !----------------------------------------------------------------------
 !
@@ -124,6 +145,7 @@
 !
 !----------------------------------------------------------------------
 
+   errorCode = POP_Success
 
    nprocs_clinic = -1
    nprocs_tropic = -1
@@ -158,6 +180,28 @@
    call broadcast_scalar(ew_boundary_type,         master_task)
    call broadcast_scalar(ns_boundary_type,         master_task)
 
+   select case (trim(clinic_distribution_type))
+   case ('cartesian','Cartesian','CARTESIAN')
+      clinicDistributionMethod = POP_distributionMethodCartesian
+   case ('balanced','Balanced','BALANCED')
+      clinicDistributionMethod = POP_distributionMethodRake
+   case default
+      call POP_ErrorSet(errorCode, &
+         'POP_DomainInit: unknown clinic distribution type')
+      return
+   end select
+
+   select case (trim(tropic_distribution_type))
+   case ('cartesian','Cartesian','CARTESIAN')
+      tropicDistributionMethod = POP_distributionMethodCartesian
+   case ('balanced','Balanced','BALANCED')
+      tropicDistributionMethod = POP_distributionMethodRake
+   case default
+      call POP_ErrorSet(errorCode, &
+         'POP_DomainInit: unknown tropic distribution type')
+      return
+   end select
+
 !----------------------------------------------------------------------
 !
 !  perform some basic checks on domain
@@ -169,8 +213,6 @@
    else
       ltripole_grid = .false.
    endif
-
-
 
    if (nx_global < 1 .or. ny_global < 1 .or. km < 1) then
       !***
@@ -206,9 +248,16 @@
 !
 !----------------------------------------------------------------------
 
-
    call create_blocks(nx_global, ny_global, trim(ew_boundary_type), &
                                             trim(ns_boundary_type))
+   call POP_BlocksCreate(nx_global, ny_global,   &
+                         trim(ew_boundary_type), &
+                         trim(ns_boundary_type), errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+               'init_domain_blocks: error creating blocks')
+      return
+   endif
 
 !----------------------------------------------------------------------
 !
@@ -248,7 +297,7 @@
 !----------------------------------------------------------------------
 !EOC
 
- call flushm (stdout)
+ call POP_IOUnitsFlush(stdout)
 
  end subroutine init_domain_blocks
 
@@ -280,6 +329,9 @@
 !  local variables
 !
 !----------------------------------------------------------------------
+
+   integer (POP_i4) :: &
+      errorCode
 
    character (char_len) :: outstring
 
@@ -359,6 +411,24 @@
 !
 !----------------------------------------------------------------------
 
+   distrbClinic = POP_DistributionCreate(clinicDistributionMethod, &
+                         nprocs_clinic, work_per_block, errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_DomainInitDistrb: error creating clinic distrb')
+      return
+   endif
+
+   distrbTropic = POP_DistributionCreate(tropicDistributionMethod, &
+                         nprocs_tropic, work_per_block, errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_DomainInitDistrb: error creating tropic distrb')
+      return
+   endif
+
    distrb_tropic = create_distribution(tropic_distribution_type, &
                                        nprocs_tropic, work_per_block)
 
@@ -424,6 +494,8 @@
      !call exit_POP(sigAbort,trim(outstring))
    endif
 
+   call POP_IOUnitsFlush(stdout)
+
 !----------------------------------------------------------------------
 !
 !  set up ghost cell updates for each distribution
@@ -440,10 +512,30 @@
                         trim(ew_boundary_type),     &
                         nx_global, ny_global)
 
+   haloClinic = POP_HaloCreate(distrbClinic,           &
+                               trim(ns_boundary_type), &
+                               trim(ew_boundary_type), &
+                               nx_global, errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_DomainInitDistrb: error creating clinic halo')
+      return
+   endif
+
+   haloTropic = POP_HaloCreate(distrbTropic,           &
+                               trim(ns_boundary_type), &
+                               trim(ew_boundary_type), &
+                               nx_global, errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_DomainInitDistrb: error creating tropic halo')
+      return
+   endif
+
 !----------------------------------------------------------------------
 !EOC
-
- call flushm (stdout)
 
  end subroutine init_domain_distribution
 

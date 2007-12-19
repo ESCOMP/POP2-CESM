@@ -23,7 +23,6 @@
    use POP_IOUnitsMod, only: POP_stdout
    use communicate
    use timers, only: timer_print_all
-   use xdisplay, only: lxdisplay, clear_display
    !use POP_CommMod
    !use esmf_mod
 
@@ -94,7 +93,6 @@
 !-----------------------------------------------------------------------
 
    call timer_print_all(stats=.true.)
-   if (lxdisplay) call clear_display
 
 !-----------------------------------------------------------------------
 !

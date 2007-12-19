@@ -187,6 +187,14 @@ else
   mv \$source_dir/domain_size.F90.new \$source_dir/domain_size.F90
 endif
 
+############### needed during LANL merge transition #####################
+if (-f \${my_path}/${OCN_GRID}_POP_DomainSizeMod.F90) then
+   cp -fp  \${my_path}/${OCN_GRID}_POP_DomainSizeMod.F90 \$source_dir
+else
+   cp -fp \$srcdir/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90 \$source_dir
+endif
+######################### end LANL merge transition #####################
+
 echo ' '
 echo '-----------------------------------------------------------------'
 echo ' copy the necessary files into \$source_dir                       '

@@ -6,15 +6,13 @@
 ! !MODULE: POP_ErrorMod
 ! !DESCRIPTION:
 !  This module contains POP error flags and facilities for logging and
-!  printing error messages.  Note that error flags are local to a 
-!  process and there is no synchronization of error flags across 
+!  printing error messages.  Note that error flags are local to a
+!  process and there is no synchronization of error flags across
 !  processes.  As routines trap error flags, they may add a message
 !  to the error log to aid in tracking the call sequence.
 !
-! !USERDOC:
 !  Users should not need to change any values in this module.
 !
-! !REFDOC:
 !  All routines in POP which encounter an error should return to
 !  the calling routine with the POP\_Fail error code set and a message
 !  added to the error log using the POP\_ErrorSet function.  Also,
@@ -26,13 +24,13 @@
 !
 ! !REVISION HISTORY:
 !  SVN:$Id$
+!  2006-07-10: Phil Jones
+!     Added new error module for logging and printing error messages.
 !
 ! !USES:
 
    use POP_KindsMod
-   !use POP_CommMod
-   use communicate
-   use constants
+   use POP_CommMod
    use POP_IOUnitsMod
 
    implicit none
@@ -59,14 +57,14 @@
 !-----------------------------------------------------------------------
 
    integer (POP_i4), parameter :: &
-      POP_ErrorLogDepth = 20   ! Max depth of call tree to properly
+      POP_errorLogDepth = 20   ! Max depth of call tree to properly
                                ! size the error log array
 
    integer (POP_i4) ::         &
-      POP_ErrorMsgCount =  0   ! tracks current number of log messages
+      POP_errorMsgCount =  0   ! tracks current number of log messages
 
    character (POP_CharLength), dimension(POP_ErrorLogDepth) :: &
-      POP_ErrorLog             ! list of error messages to be output
+      POP_errorLog             ! list of error messages to be output
 
 !EOC
 !***********************************************************************
@@ -78,15 +76,11 @@
 ! !IROUTINE: POP_ErrorSet -- sets error code and logs error message
 ! !INTERFACE:
 
- subroutine POP_ErrorSet(ErrorCode, ErrorMsg)
+ subroutine POP_ErrorSet(errorCode, errorMsg)
 
 ! !DESCRIPTION:
-!  This routine sets an error code to POP\_Fail and adds a message to 
+!  This routine sets an error code to POP\_Fail and adds a message to
 !  the error log for later printing.
-!
-! !USERDOC:
-!
-! !REFDOC:
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -94,12 +88,12 @@
 ! !OUTPUT PARAMETERS:
 
    integer (POP_i4), intent(out) :: &
-      ErrorCode              ! Error code to set to fail
+      errorCode              ! Error code to set to fail
 
 ! !INPUT PARAMETERS:
 
    character (*), intent(in) :: &
-      ErrorMsg               ! message to add to error log for printing
+      errorMsg               ! message to add to error log for printing
 
 !EOP
 !BOC
@@ -109,7 +103,7 @@
 !
 !-----------------------------------------------------------------------
 
-   ErrorCode = POP_Fail
+   errorCode = POP_Fail
 
 !-----------------------------------------------------------------------
 !
@@ -117,10 +111,10 @@
 !
 !-----------------------------------------------------------------------
 
-   POP_ErrorMsgCount = POP_ErrorMsgCount + 1
+   POP_errorMsgCount = POP_errorMsgCount + 1
 
-   if (POP_ErrorMsgCount <= POP_ErrorLogDepth) then
-      POP_ErrorLog(POP_ErrorMsgCount) = ErrorMsg
+   if (POP_errorMsgCount <= POP_errorLogDepth) then
+      POP_errorLog(POP_errorMsgCount) = errorMsg
    endif
 
 !-----------------------------------------------------------------------
@@ -133,15 +127,11 @@
 ! !IROUTINE: POP_ErrorPrint -- prints the error log
 ! !INTERFACE:
 
- subroutine POP_ErrorPrint(ErrorCode, PrintTask)
+ subroutine POP_ErrorPrint(errorCode, printTask)
 
 ! !DESCRIPTION:
-!  This routine prints all messages in the error log.  If a PrintTask
-!  is specified, only the log on that task will be printed.
-!
-! !USERDOC:
-!
-! !REFDOC:
+!  This routine prints all messages in the error log.  If a printTask
+!  is specified, only the message log on that task will be printed.
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -149,10 +139,10 @@
 ! !INPUT PARAMETERS:
 
    integer (POP_i4), intent(in) :: &
-      ErrorCode              ! input error code to check success/fail
+      errorCode              ! input error code to check success/fail
 
    integer (POP_i4), intent(in), optional :: &
-      PrintTask              ! Task from which to print error log
+      printTask              ! Task from which to print error log
 
 !EOP
 !BOC
@@ -170,15 +160,15 @@
 !
 !-----------------------------------------------------------------------
 
-   if (present(PrintTask)) then
+   if (present(printTask)) then
 
-      if (my_Task == PrintTask) then
-      !if (POP_myTask == PrintTask) then
+      if (POP_myTask == printTask) then
 
-         write(POP_stdout,blank_fmt)
-         write(POP_stdout,'(a34)') '----------------------------------'
+         write(POP_stdout,POP_blankFormat)
+         write(POP_stdout,POP_delimFormat)
+         write(POP_stdout,POP_blankFormat)
 
-         if (POP_ErrorMsgCount == 0) then ! no errors
+         if (POP_errorMsgCount == 0) then ! no errors
 
             write(POP_stdout,'(a34)') &
                                 'Successful completion of POP model'
@@ -186,55 +176,62 @@
          else
 
             write(POP_stdout,'(a14)') 'POP Exiting...'
-            do n=1,min(POP_ErrorMsgCount,POP_ErrorLogDepth)
-               write(POP_stderr,'(a)') trim(POP_ErrorLog(n))
+
+            do n=1,min(POP_errorMsgCount,POP_errorLogDepth)
+               write(POP_stderr,'(a)') trim(POP_errorLog(n))
                if (POP_stdout /= POP_stderr) then
-                  write(POP_stdout,'(a)') trim(POP_ErrorLog(n))
+                  write(POP_stdout,'(a)') trim(POP_errorLog(n))
                endif
             end do
-            if (POP_ErrorMsgCount > POP_ErrorLogDepth) then
-               write(POP_stderr,'(a)') 'Too many error messages'
+
+            if (POP_errorMsgCount > POP_errorLogDepth) then
+               write(POP_stderr,'(a23)') 'Too many error messages'
                if (POP_stdout /= POP_stderr) then
-                  write(POP_stdout,'(a)') 'Too many error messages'
+                  write(POP_stdout,'(a23)') 'Too many error messages'
                endif
             endif
 
          endif
 
-         write(POP_stdout,'(a34)') '----------------------------------'
+         write(POP_stdout,POP_blankFormat)
+         write(POP_stdout,POP_delimFormat)
+         write(POP_stdout,POP_blankFormat)
 
       endif
 
    else
 
-      if (my_task == master_task)  &
-      write(POP_stdout,'(a34)') '----------------------------------'
+      write(POP_stdout,POP_blankFormat)
+      write(POP_stdout,POP_delimFormat)
+      write(POP_stdout,POP_blankFormat)
 
-      if (POP_ErrorMsgCount == 0) then ! no errors
+      if (POP_errorMsgCount == 0) then ! no errors
 
-         if (my_task == master_task)  &
          write(POP_stdout,'(a34)') 'Successful completion of POP model'
 
       else
 
          write(POP_stdout,'(a14)') 'POP Exiting...'
-         do n=1,min(POP_ErrorMsgCount,POP_ErrorLogDepth)
-            write(POP_stderr,'(a)') trim(POP_ErrorLog(n))
+
+         do n=1,min(POP_errorMsgCount,POP_errorLogDepth)
+            write(POP_stderr,'(a)') trim(POP_errorLog(n))
             if (POP_stdout /= POP_stderr) then
-               write(POP_stdout,'(a)') trim(POP_ErrorLog(n))
+               write(POP_stdout,'(a)') trim(POP_errorLog(n))
             endif
          end do
-         if (POP_ErrorMsgCount > POP_ErrorLogDepth) then
-            write(POP_stderr,'(a)') 'Too many error messages'
+
+         if (POP_errorMsgCount > POP_errorLogDepth) then
+            write(POP_stderr,'(a23)') 'Too many error messages'
             if (POP_stdout /= POP_stderr) then
-               write(POP_stdout,'(a)') 'Too many error messages'
+               write(POP_stdout,'(a23)') 'Too many error messages'
             endif
          endif
 
       endif
 
-      if (my_task == master_task)  &
-      write(POP_stdout,'(a34)') '----------------------------------'
+      write(POP_stdout,POP_blankFormat)
+      write(POP_stdout,POP_delimFormat)
+      write(POP_stdout,POP_blankFormat)
 
    endif
 

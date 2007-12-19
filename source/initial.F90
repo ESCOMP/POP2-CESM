@@ -49,7 +49,6 @@
                               check_time_flag_freq_opt, init_time_flag
    use topostress, only: init_topostress
    use ice
-   use xdisplay, only: init_xdisplay
    use output, only: init_output
    use tavg, only: ltavg_restart, tavg_id, set_in_tavg_contents
    !use hydro_sections
@@ -466,14 +465,6 @@
 !-----------------------------------------------------------------------
 
    call init_step
-
-!-----------------------------------------------------------------------
-!
-!  initialize X display 
-!
-!-----------------------------------------------------------------------
-
-   call init_xdisplay
 
 !-----------------------------------------------------------------------
 !

@@ -35,7 +35,6 @@
        alpha, c2dtt, c2dtu, c2dtp, dtp, c2dtq, theta, avg_ts, back_to_back, &
        time_to_do, freq_opt_nstep, dt, dtu, time_manager, check_time_flag,  &
        init_time_flag, check_time_flag_freq, check_time_flag_freq_opt, eod
-   use xdisplay, only: lxdisplay, nstep_xdisplay, display
    use baroclinic, only: baroclinic_driver, baroclinic_correct_adjust
    use barotropic, only: barotropic_driver
    use surface_hgt, only: dhdt
@@ -602,36 +601,6 @@
                    check_time_flag_freq(tavg_flag) ))    then
         call tracer_budgets
    endif
-
-
-!-----------------------------------------------------------------------
-!
-!  display vertically integrated velocity and surface height in 
-!  X window if requested (use DHU, DH as temp arrays to store these).
-!
-!-----------------------------------------------------------------------
-
-   if (lxdisplay .and. & 
-       time_to_do(freq_opt_nstep,nstep_xdisplay)) then
-
-       do iblock = 1,nblocks_clinic
-
-          !*** store integrated velocity in DHU
-
-          DH(:,:,iblock) = HU(:,:,iblock)*                      &
-                           sqrt(UBTROP(:,:,curtime,iblock)**2 + &
-                                VBTROP(:,:,curtime,iblock)**2)
-
-          !*** integrated velocity at t-pts
-          call ugrid_to_tgrid(DHU(:,:,iblock),DH(:,:,iblock),iblock)
-
-          DH(:,:,iblock) = PSURF(:,:,curtime,iblock)/grav ! surface height
-       end do ! block loop
-
-       call display(DHU, field_loc_NEcorner, &
-                    DH , field_loc_center)
-
-   endif ! xdisplay
 
 !-----------------------------------------------------------------------
 !
