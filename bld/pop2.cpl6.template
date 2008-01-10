@@ -11,8 +11,6 @@ set    srcdir       = $CODEROOT/ocn/pop2
 set    my_path      = $CASEROOT/SourceMods/src.pop2
 
 setenv POP2BLDSCRIPT  $CASEROOT/Buildnml_Prestage/pop2.buildnml_prestage.csh
-setenv POP2NMLDIR     $CASEROOT/Buildnml_Prestage/pop2nml
-setenv POP2_NMLFILE   $CASEROOT/Buildnml_Prestage/pop2nml/pop2_input_case_record
 
 if !(-d $CASEROOT/Buildnml_Prestage)         mkdir $CASEROOT/Buildnml_Prestage
 if !(-d $CASEROOT/Buildnml_Prestage/pop2nml) mkdir $CASEROOT/Buildnml_Prestage/pop2nml
@@ -200,10 +198,11 @@ echo '-----------------------------------------------------------------'
 echo ' copy the necessary files into \$source_dir                       '
 echo '-----------------------------------------------------------------'
 cd \$source_dir
-cp -fp \$srcdir/source/*.F90                .
-cp -fp \$srcdir/source/*.[Cc]               .
-cp -fp \$srcdir/mpi/*.F90                   .
-cp -fp \$srcdir/mpi/*.[Cc]                  .
+cp -fp \$srcdir/source/*.F90                 .
+cp -fp \$srcdir/source/*.[Cc]                .
+cp -fp \$srcdir/mpi/*.F90                    .
+cp -fp \$srcdir/mpi/*.[Cc]                   .
+cp -fp \$srcdir/drivers/ccsm_cpl6/*.F90      .
 if (-d \$my_path ) cp -fp \$my_path/*.[FCc]* .
 rm -f ${OCN_GRID}_domain_size.F90
 #
@@ -308,8 +307,8 @@ set objdir  = \$OBJROOT/ocn/obj
 set srcdir  = \$CODEROOT/ocn/pop2
 set my_path = \$CASEROOT/SourceMods/src.pop2
 
-set POP2NMLDIR = $POP2NMLDIR
-setenv POP2_NMLFILE $POP2_NMLFILE
+set POP2NMLDIR    = \$CASEROOT/Buildnml_Prestage/pop2nml
+set POP2_NMLFILE  = \$CASEROOT/Buildnml_Prestage/pop2nml/pop2_input_case_record
 
 set ocn_tracers = (\`echo \$OCN_TRACER_MODULES\`)
 echo ocn_tracers = \$ocn_tracers
