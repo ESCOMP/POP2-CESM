@@ -214,6 +214,7 @@
 !-----------------------------------------------------------------------
    logical (log_kind) :: &
       lccsm,             &
+      ldiag_bsf,         &
       implied_time_dim
 
    logical (log_kind), dimension (:,:,:,:), allocatable ::  &
@@ -642,7 +643,10 @@
    if (lccsm) then
  
      !*** initialze barotropic stream function
-     if (tavg_id('BSF') /= 0 ) call init_diag_bsf
+
+     call init_diag_bsf(set_in_tavg_contents(tavg_BSF))
+
+     ldiag_bsf     = registry_match('ldiag_bsf')
 
      !*** initialze moc and heat/salt transport diagnostics
      call init_lat_aux_grid
@@ -755,8 +759,11 @@
 
    call get_timer(timer_write_std,'TAVG_WRITE_STD', nblocks_clinic, distrb_clinic%nprocs)
    call get_timer(timer_write_nstd,'TAVG_WRITE_NONSTD', nblocks_clinic, distrb_clinic%nprocs)
+   if (ldiag_bsf)  &
    call get_timer(timer_tavg_ccsm_diags_bsf,'TAVG_CCSM_DIAGS_BSF', nblocks_clinic, distrb_clinic%nprocs)
+   if (moc)  &
    call get_timer(timer_tavg_ccsm_diags_moc,'TAVG_CCSM_DIAGS_MOC', nblocks_clinic, distrb_clinic%nprocs)
+   if (n_heat_trans .or. n_salt_trans)  &
    call get_timer(timer_tavg_ccsm_diags_trans,'TAVG_CCSM_DIAGS_TRANS', nblocks_clinic, distrb_clinic%nprocs)
 
 !-----------------------------------------------------------------------
@@ -1028,26 +1035,16 @@
 !
 !-----------------------------------------------------------------------
 
-      !*** barotropic stream function
       if (lccsm .and. lreset_tavg) then
-        call timer_start(timer_tavg_ccsm_diags_bsf)
-        call tavg_bsf_ccsm
-        call timer_stop(timer_tavg_ccsm_diags_bsf)
-      endif
 
+        !*** barotropic stream function
+        call tavg_bsf_ccsm
      
-      !*** MOC diagnostics
-      if (lccsm .and. lreset_tavg) then
-        call timer_start(timer_tavg_ccsm_diags_moc)
+        !*** MOC diagnostics
         call tavg_moc_ccsm
-        call timer_stop(timer_tavg_ccsm_diags_moc)
-      endif
  
-      !*** northward heat/salt transport diagnostics
-      if (lccsm .and. lreset_tavg) then
-        call timer_start(timer_tavg_ccsm_diags_trans)
+        !*** northward heat/salt transport diagnostics
         call tavg_transport_ccsm
-        call timer_stop(timer_tavg_ccsm_diags_trans)
       endif
 
       !*** compute local means
@@ -4521,7 +4518,11 @@
    type (block) ::        &
       this_block          ! block information for current block
 
+   if (.not. ldiag_bsf) return
  
+   !*** start bsf timer
+   call timer_start(timer_tavg_ccsm_diags_bsf)
+
    !*** return if attempting to compute every nstep timesteps
    if (tavg_freq_iopt == freq_opt_nstep) then
      if (nsteps_run <= 1 .and. my_task == master_task) then
@@ -4606,6 +4607,9 @@
 
    endif ! test on BSF diagnostic
  
+   !*** stop bsf timer
+   call timer_stop(timer_tavg_ccsm_diags_bsf)
+
 !-----------------------------------------------------------------------
 !EOC
 
@@ -4652,6 +4656,9 @@
       ldiag_gm_bolus         ! local logical for diag_gm_bolus
 
    if (.not. moc) return
+  
+   !*** start timer
+   call timer_start(timer_tavg_ccsm_diags_moc)
  
    ldiag_gm_bolus = .false.
    if ( registry_match('diag_gm_bolus') )  ldiag_gm_bolus = .true.
@@ -4754,6 +4761,9 @@
   endif
 
  
+   ! stop timer
+   call timer_stop(timer_tavg_ccsm_diags_moc)
+
 !-----------------------------------------------------------------------
 !EOC
 
@@ -4819,6 +4829,9 @@
       ldiag_gm_bolus         ! local logical for diag_gm_bolus
 
    if (.not. (n_heat_trans .or. n_salt_trans)) return
+
+   !*** start timer
+   call timer_start(timer_tavg_ccsm_diags_trans)
 
    ldiag_gm_bolus = .false.
    if ( registry_match('diag_gm_bolus') )  ldiag_gm_bolus = .true.
@@ -4997,6 +5010,8 @@
      endif
    enddo
 
+   !*** stop timer
+   call timer_stop(timer_tavg_ccsm_diags_trans)
  
 !-----------------------------------------------------------------------
 !EOC

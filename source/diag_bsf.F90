@@ -24,6 +24,7 @@
    use grid
    use io
    use shr_sys_mod
+   use registry
 
    implicit none
    private
@@ -74,10 +75,10 @@
 !***********************************************************************
 
 !BOP
-! !IROUTINE: init_diag_bsf
+! !IROUTINE: init_diag_bsf 
 ! !INTERFACE:
 !
- subroutine init_diag_bsf 
+ subroutine init_diag_bsf (BSF_in_contents_file)
 
 !
 ! !DESCRIPTION:
@@ -86,6 +87,11 @@
 
 ! !REVISION HISTORY:
 !  same as module
+
+! !INPUT PARAMETERS:
+
+   logical (log_kind), intent(in)  ::  &
+    BSF_in_contents_file      ! true if BFS is in tavg_contents
 
 !EOP
 !BOC
@@ -106,7 +112,9 @@
    integer (int_kind) ::  &
       isle,               &
       iblock,             &
-      i,j
+      i,j,                &
+      bsf_error_flag,     &! error flag for the missing TAVG_2D fields, etc. 
+      nml_error            ! namelist i/o error flag
 
    integer (int_kind), dimension(:,:,:), allocatable ::  &
       ISMASK,                        &! island mask on baroclinic decomposition
@@ -118,24 +126,83 @@
    logical (log_kind) ::  &
       maskt
 
-
-!     coefficients for the 9-point operator
-
    real (r8), dimension(:,:,:), allocatable :: &
       BSFC, BSFN, BSFS, BSFE, BSFW, BSFNE, BSFSE, BSFNW, BSFSW,  &
-      WORK0,WORK2,RCALC_TMP
+      WORK0,WORK2,RCALC_TMP   ! coefficients for the 9-point operator
 
    real (r8) ::         &
       xne,xse,xnw,xsw,  &! contribution to coefficients from x,y
       yne,yse,ynw,ysw,  &!   components of divergence
       ase,anw,asw
 
-   if ( my_task == master_task ) then
-     write (stdout,*) ' '
+   logical (log_kind) :: ldiag_bsf
+
+   namelist /bsf_diagnostic_nml/ ldiag_bsf
+
+
+!-----------------------------------------------------------------------
+!
+!     read bsf diagnostic namelist
+!
+!-----------------------------------------------------------------------
+
+   ldiag_bsf = .false.
+ 
+   if (my_task == master_task) then
+      open (nml_in, file=nml_filename, status='old', iostat=nml_error)
+      if (nml_error /= 0) then
+        nml_error = -1
+      else
+        nml_error =  1
+      endif
+      !*** keep reading until find right namelist
+      do while (nml_error > 0)
+        read(nml_in, nml=bsf_diagnostic_nml,iostat=nml_error)
+      end do
+      if (nml_error == 0) close(nml_in)
+   end if
+
+   call broadcast_scalar(nml_error, master_task)
+   if (nml_error /= 0) then
+      call exit_POP(sigAbort,'ERROR reading bsf_diagnostic_nml namelist')
+   endif
+
+   call broadcast_scalar(ldiag_bsf, master_task)
+
+   if (my_task == master_task) then
+     write(stdout,blank_fmt)
+     write(stdout,ndelim_fmt)
+     write(stdout,blank_fmt)
+     write(stdout,*) ' Barotropic Streamfunction Diagnostic:'
+     write(stdout,blank_fmt)
+     write(stdout,*) ' bsf_diagnostic_nml namelist settings:'
+     write(stdout,blank_fmt)
+     write(stdout,bsf_diagnostic_nml)
+     write(stdout,blank_fmt)
+   endif
+
+!-----------------------------------------------------------------------
+!
+!     consistency check  (BSF must be requested in tavg_contents file)
+!
+!-----------------------------------------------------------------------
+
+   if (ldiag_bsf .and. .not. BSF_in_contents_file)  &
+      call exit_POP(sigAbort,'ERROR: BSF must be requested in tavg_contents file' )
+
+   if (BSF_in_contents_file .and. .not. ldiag_bsf) &
+      call exit_POP(sigAbort,'ERROR: BSF is in tavg_contents file, but ldiag_bsf is false.')
+
+   if (.not. ldiag_bsf) then
+    return
+   else
+     call register_string   ('ldiag_bsf')
+   endif 
+
+   if (my_task == master_task) then
      write (stdout,*) 'Initializing diagnostic BSF variables ....'
      call shr_sys_flush(stdout)
    endif
-
 
    allocate(WORK0    (nx_block,ny_block,nblocks_clinic), &
             WORK2    (nx_block,ny_block,nblocks_clinic), &
