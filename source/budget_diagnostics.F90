@@ -60,7 +60,8 @@
       tavg_id_RESID_S,                &
       tavg_id_FW,                     &
       tavg_id_TFW_T,                  &
-      tavg_id_TFW_S
+      tavg_id_TFW_S,                  &
+      tavg_id_QFLUX
 
    logical (kind=log_kind)     ::  &
       budget_warning_1st_step       ! warning flag for budget diagnostics
@@ -194,6 +195,7 @@
      tavg_id_FW         = tavg_id('FW')
      tavg_id_TFW_T      = tavg_id('TFW_T')
      tavg_id_TFW_S      = tavg_id('TFW_S')
+     tavg_id_QFLUX      = tavg_id('QFLUX')
 
  
    if (ldiag_global_tracer_budgets ) then
@@ -201,17 +203,17 @@
                                            budget_error_flag = -1000
     else
      
-     !*** cannot use tavg_requested, because averaging not yet started
-     !    this is not a particularly strong test, because the field may
-     !    be defined in the code, but not requested in tavg_contents
+     !*** determine if required fields are activated in the tavg_contents file
 
-     if (tavg_id_SHF     == 0 ) budget_error_flag = -2000
-     if (tavg_id_SFWF    == 0 ) budget_error_flag = -2000
-     if (tavg_id_RESID_T == 0 ) budget_error_flag = -2000
-     if (tavg_id_RESID_S == 0 ) budget_error_flag = -2000
-     if (tavg_id_FW      == 0 ) budget_error_flag = -2000
-     if (tavg_id_TFW_T   == 0 ) budget_error_flag = -2000
-     if (tavg_id_TFW_S   == 0 ) budget_error_flag = -2000
+     if (.not. set_in_tavg_contents(tavg_id_SHF))     budget_error_flag = -2000
+     if (.not. set_in_tavg_contents(tavg_id_SFWF))    budget_error_flag = -2000
+     if (.not. set_in_tavg_contents(tavg_id_RESID_T)) budget_error_flag = -2000
+     if (.not. set_in_tavg_contents(tavg_id_RESID_S)) budget_error_flag = -2000
+     if (.not. set_in_tavg_contents(tavg_id_FW))      budget_error_flag = -2000
+     if (.not. set_in_tavg_contents(tavg_id_TFW_T))   budget_error_flag = -2000
+     if (.not. set_in_tavg_contents(tavg_id_TFW_S))   budget_error_flag = -2000
+     if (.not. set_in_tavg_contents(tavg_id_QFLUX))   budget_error_flag = -2000
+
     endif
    endif
 
@@ -220,8 +222,8 @@
           &/    'tavg_freq_opt == freq_opt_never and ldiag_global_tracer_budgets = .true. '
      call exit_POP ( SigAbort, message)
    elseif ( budget_error_flag == -2000 ) then
-     message = 'ERROR: init_budget_diag: SHF, SFWF, RESID_T, RESID_S, '  /&
-           &/    'FW, TFW_T, and TFW_S must be included in the tavg_contents file.'
+     message = 'ERROR: init_budget_diag: SHF SFWF RESID_T RESID_S '  /&
+           &/    'FW TFW_T TFW_S and QFLUX must be included in the tavg_contents file.'
      call exit_POP ( SigAbort, message)
    endif
 
@@ -496,7 +498,7 @@
 
    if ( sfc_layer_type == sfc_layer_varthick .and.  &
         .not. lfw_as_salt_flx ) then
-     sfwf_mean = tavg_global_sum_2D(tavg_id('SFWF'))*rho_sw*c10
+     sfwf_mean = tavg_global_sum_2D(tavg_id_SFWF)*rho_sw*c10
    else
      sfwf_mean = tavg_global_sum_2D(tavg_id_SFWF)
    endif

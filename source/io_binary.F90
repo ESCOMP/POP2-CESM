@@ -332,7 +332,7 @@
 
    character (255) :: path
 
-   character (char_len) :: &
+   character (char_len_long) :: &
       work_line  ! temp space for manipulating strings 
 
    character (5), parameter :: &

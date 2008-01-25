@@ -424,6 +424,11 @@
       rminute_next,      &! rminute for next timestep
       rsecond_next        ! rsecond for next timestep
 
+   integer (int_kind), private, allocatable, dimension(:) ::  &
+      hour_at_interval,  &! hour value at end of each interval
+      min_at_interval,   &! min  value at end of each interval
+      sec_at_interval     ! sec  value at end of each interval
+
    logical (kind=log_kind),private   ::   &
       debug_time_management   = .false. 
 
@@ -726,12 +731,14 @@
      nsteps_per_day    = fullsteps_per_day + halfsteps_per_day
 
      !*** compute modified dtt value
-
      dtt = seconds_in_day/(fullsteps_per_day + 0.5*halfsteps_per_day)
      steps_per_day  = seconds_in_day/dtt
 
-     !***  test and document tmix_avgfit timestep size and time-stepping logic
+     !***  allocate arrays used for testing
+      allocate (hour_at_interval(fit_freq), min_at_interval(fit_freq),  &
+                sec_at_interval(fit_freq))
 
+     !***  test and document tmix_avgfit timestep size and time-stepping logic
      call test_timestep
    else
      nsteps_per_interval = steps_per_day
@@ -852,8 +859,10 @@
  subroutine test_timestep
 
 ! !DESCRIPTION:
-!  Tests the timestep computations for the avgfit option. Documents
-!  the full and half steps taken for one full day.
+!  * Tests the timestep computations for the avgfit option. 
+!  * Documents the full and half steps taken for one full day.
+!  * Identifies the hour, minute, and second at the end of each
+!     ocean coupling interval
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -865,8 +874,12 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
-   integer (int_kind) :: &
-      nfit,nn             ! dummy indices
+   real (r8)     ::  &
+      dummy
+
+   integer (int_kind)   ::  &
+      nfit,nn              ! dummy indices
+
 
    logical (log_kind)   ::  &
       last_step, error_code ! stepsize error testing
@@ -992,6 +1005,17 @@
      if (error_code) call exit_POP(sigAbort, 'error in timestep-size computation')
         
     enddo ! nn
+
+!-----------------------------------------------------------------------
+!
+!  identify and store hour, minute, and second at interval boundaries
+!
+!-----------------------------------------------------------------------
+    call hms (seconds_this_day, hour_at_interval(nfit), min_at_interval(nfit),  &
+              sec_at_interval(nfit), dummy,dummy,dummy)
+    write(stdout,1103) ' hour, min, sec at end of interval = ',         &
+                         hour_at_interval(nfit), min_at_interval(nfit), &
+                         sec_at_interval(nfit)
     enddo ! nfit
 
       
@@ -1005,10 +1029,12 @@
     seconds_this_day = c0
     seconds_this_day_next = c0
 
+    
 1100 format (1x, a, ' = ', i7)
 1101 format (/,5x, 'Step  ', 3x,'Full/', 8x,'Time in',/, &
                5x, 'Number', 3x,'Half ', 8x,'Seconds'/)
 1102 format (1x, i6, 8x,a, F25.15:,1x,a)
+1103 format (42x, a, 3i4)
  end subroutine test_timestep
 
 !***********************************************************************
@@ -1037,10 +1063,12 @@
       nm,                    &! month index
       days_in_month_temp,    &! temp for days in month
       days_in_year_end_run,  &! temp for days in last year of run
-      ndays_temp              ! temp for number of days
+      ndays_temp,            &! temp for number of days
+      nfit
 
    logical (log_kind) ::     &
-      leapyear_test           ! test for leap year
+      leapyear_test,         &! test for leap year
+      error_condition
 
    character (4) ::          &
       cyear_end_run           ! character version of ending year
@@ -1222,14 +1250,29 @@
 
 !-----------------------------------------------------------------------
 !
-!  error checking -- after restart file has been read
+!  begin error checking -- after restart file has been read
 !
 !-----------------------------------------------------------------------
 
    if (tmix_iopt == tmix_avgfit) then 
-      if (.not. midnight) then
+
+     !***  does this run start at the beginning of a coupling interval?
+
+      error_condition = .true.
+
+      do nfit = 1, fit_freq
+        if (ihour_start_run == hour_at_interval(nfit)  .and.  &
+            iminute_start_run == min_at_interval(nfit) .and.  &
+            isecond_start_run == sec_at_interval(nfit)) error_condition = .false.
+      enddo
+
+      if (error_condition) then
+         write(stdout,*) 'ihour_start_run   = ', ihour_start_run
+         write(stdout,*) 'iminute_start_run = ', iminute_start_run
+         write(stdout,*) 'isecond_start_run = ', isecond_start_run
+         call shr_sys_flush(stdout)
          call exit_POP(sigAbort, &
-                       'model run must start at day boundary '/&
+                       'model run must start at coupling boundary '/&
                      &/'when using avgfit option')
       endif
    endif

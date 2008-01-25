@@ -142,22 +142,6 @@
 ! !REVISION HISTORY:
 !  same as module
 
-! !INPUT PARAMETERS:
-   integer (int_kind) ::  &
-      tavg_id_WVEL,       &
-      tavg_id_VVEL,       &
-      tavg_id_WISOP,      &
-      tavg_id_VISOP,      &
-      tavg_id_ADVS,       &
-      tavg_id_VNS,        &
-      tavg_id_HDIFS,      &
-      tavg_id_ADVS_ISOP,  &
-      tavg_id_VNS_ISOP,   &      
-      tavg_id_ADVT,       &
-      tavg_id_VNT,        &
-      tavg_id_HDIFT,      &
-      tavg_id_ADVT_ISOP,  &
-      tavg_id_VNT_ISOP      
  
 !EOP
 !BOC
@@ -577,8 +561,10 @@
 !  initialize timers
 !-----------------------------------------------------------------------
  
+   if (moc)  &
    call get_timer(timer_moc,'MOC',  &
                   nblocks_clinic, distrb_clinic%nprocs)
+   if (n_heat_trans .or. n_salt_trans)  &
    call get_timer(timer_tracer_transports,'TRACER_TRANSPORTS',  &
                   nblocks_clinic, distrb_clinic%nprocs)
 

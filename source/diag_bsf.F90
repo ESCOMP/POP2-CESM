@@ -459,10 +459,8 @@
 !
 !-----------------------------------------------------------------------
 
-!######### debug? ##########
       call update_ghost_cells (X,bndy_tropic,field_loc_center,  &
                                field_type_scalar)
-!##### end debug? ##########
       R     = c0  
       Q     = c0
       WORK1 = c0
@@ -494,10 +492,8 @@
 !
 !-----------------------------------------------------------------------
 
-!########### debug? ##########
       call update_ghost_cells (X,bndy_tropic,field_loc_center,  &
                                field_type_scalar)
-!########### debug? ##########
 
    !$OMP PARALLEL DO PRIVATE(iblock,this_block)
    do iblock=1,nblocks_tropic

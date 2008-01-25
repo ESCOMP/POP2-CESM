@@ -322,17 +322,19 @@ contains
 
    else if (present(root_name)) then
       descriptor%root_name = char_blank
-      if (present(root_name)) then
-         descriptor%root_name = trim(root_name)
-      else
-         descriptor%root_name = 'root'
-      end if
+      descriptor%root_name = trim(root_name)
+
       descriptor%file_suffix = char_blank
       if (present(file_suffix)) then
+         if (trim(data_format) == 'nc') then
          descriptor%file_suffix = trim(file_suffix)/&
                                   &/'.'/&
                                   &/trim(data_format)
+         else
+         descriptor%file_suffix = trim(file_suffix)
+         endif
       else
+         if (trim(data_format) == 'nc') &
          descriptor%file_suffix = trim(data_format)
       end if
 

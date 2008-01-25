@@ -215,6 +215,7 @@
    logical (log_kind) :: &
       lccsm,             &
       ldiag_bsf,         &
+      ltavg_fmt_out_nc, &! true if netCDF output format
       implied_time_dim
 
    logical (log_kind), dimension (:,:,:,:), allocatable ::  &
@@ -301,6 +302,10 @@
 !
 !-----------------------------------------------------------------------
 
+   logical (log_kind) ::   &
+      ltavg_nino_diags    ! true if requesting nino diagnostics and if
+                          ! other requirements are met
+
    integer (int_kind), parameter ::  &
       n_reg_0D = 4                    ! number of regions
 
@@ -314,9 +319,6 @@
 
    character (char_len), dimension(:), allocatable ::  &
       SAVG_0D_NAME                          ! name of the region
-
-   logical (log_kind) ::  &
-      lsavg_on = .false.   ! flag for local spatial averaging
 
    integer (int_kind) :: &
       timer_write_std,   &
@@ -383,7 +385,8 @@
 
    namelist /tavg_nml/ tavg_freq_opt, tavg_freq, tavg_infile,       &
                        tavg_outfile, tavg_contents, tavg_start_opt, &
-                       tavg_start, tavg_fmt_in, tavg_fmt_out 
+                       tavg_start, tavg_fmt_in, tavg_fmt_out,       &
+                       ltavg_nino_diags
 
 
 !-----------------------------------------------------------------------
@@ -508,11 +511,18 @@
       call broadcast_scalar(tavg_contents,     master_task)
       call broadcast_scalar(tavg_fmt_in,       master_task)
       call broadcast_scalar(tavg_fmt_out,      master_task)
+      call broadcast_scalar(ltavg_nino_diags,  master_task)
 
       if (tavg_start_iopt == -1000) then
          call exit_POP(sigAbort,'unknown option for tavg start option')
       endif
 
+   endif
+
+   if (trim(tavg_fmt_out) == 'nc') then
+      ltavg_fmt_out_nc = .true.
+   else
+      ltavg_fmt_out_nc = .false.
    endif
 
    tavg_outfile_orig = char_blank
@@ -525,13 +535,11 @@
 !
 !-----------------------------------------------------------------------
 
-   if (lccsm)  &
    call define_tavg_field(tavg_BSF,'BSF',2,                                 &
                           long_name='Diagnostic barotropic streamfunction', &
                           missing_value=undefined_nf_r4,                    &
                           units='Sv', grid_loc='2220',                      &
                           coordinates='ULONG ULAT time')
-
 
 
 !-----------------------------------------------------------------------
@@ -709,28 +717,38 @@
        enddo ! k
      enddo ! iblock
  
- 
-    !*** check if local spatial averaging is possible based on tavg options
-
-     max_days = maxval(days_in_month) 
-
-     if (tavg_id('TEMP') /= 0  ) then
-      if ( (tavg_freq_iopt == freq_opt_nmonth  &
-                  .and. tavg_freq == 1)  .or.  &
-           (tavg_freq_iopt == freq_opt_nday    &
-                  .and. tavg_freq <= max_days) .or.    &
-           (tavg_freq_iopt == freq_opt_nhour           &
-                  .and. tavg_freq <= max_days*24) .or. &
-           (tavg_freq_iopt == freq_opt_nsecond         &
-                   .and. tavg_freq <= max_days*24*seconds_in_hour) .or. &
-           (tavg_freq_iopt == freq_opt_nstep           &
-                   .and. tavg_freq <= max_days*nsteps_per_day) ) then
-          lsavg_on = .true. 
-          call tavg_init_local_spatial_avg
-      endif
-     endif ! tavg_id
-
    endif ! lccsm
+ 
+  !*** check if local spatial averaging is possible based on tavg options
+  !*** and namelist settings
+
+   max_days = maxval(days_in_month) 
+
+   if (set_in_tavg_contents(tavg_id('TEMP'))  ) then
+    if ( (tavg_freq_iopt == freq_opt_nmonth  &
+                .and. tavg_freq == 1)  .or.  &
+         (tavg_freq_iopt == freq_opt_nday    &
+                .and. tavg_freq <= max_days) .or.    &
+         (tavg_freq_iopt == freq_opt_nhour           &
+                .and. tavg_freq <= max_days*24) .or. &
+         (tavg_freq_iopt == freq_opt_nsecond         &
+                 .and. tavg_freq <= max_days*24*seconds_in_hour) .or. &
+         (tavg_freq_iopt == freq_opt_nstep           &
+                 .and. tavg_freq <= max_days*nsteps_per_day) ) then
+         !*** ok to have ltavg_nino_diags enabled
+    else
+         !*** not ok to have ltavg_nino_diags enabled; disable it
+         if (ltavg_nino_diags)  &
+           call exit_POP(sigAbort,'init_tavg: nino diagnostics cannot be computed')
+    endif
+
+   else
+         !*** not ok to have ltavg_nino_diags enabled; disable it
+         if (ltavg_nino_diags)  call exit_POP(sigAbort,  &
+           'init_tavg: nino diagnostics cannot be computed -- TEMP is not in contents file')
+   endif ! tavg_id
+
+   call tavg_init_local_spatial_avg
  
 
 !-----------------------------------------------------------------------
@@ -750,6 +768,43 @@
          call read_tavg
       endif
    endif
+
+!-----------------------------------------------------------------------
+!
+!  error checking
+!
+!-----------------------------------------------------------------------
+   if (moc) then
+     if (.not. set_in_tavg_contents(tavg_id('WVEL')) .or.  &
+         .not. set_in_tavg_contents(tavg_id('VVEL')) )     &
+        call exit_POP (SigAbort,                        &
+       '(init_tavg) for moc diagnostics, WVEL and VVEL must be requested in tavg_contents file')
+   endif
+
+   if ( n_heat_trans .or. n_salt_trans) then
+     if (.not. set_in_tavg_contents(tavg_id('ADVT'))   .or. &
+         .not. set_in_tavg_contents(tavg_id('ADVS'))   .or. &
+         .not. set_in_tavg_contents(tavg_id('VNT'))    .or. &
+         .not. set_in_tavg_contents(tavg_id('VNS'))    .or. &
+         .not. set_in_tavg_contents(tavg_id('HDIFT'))  .or. &
+         .not. set_in_tavg_contents(tavg_id('HDIFS')) ) then
+          call exit_POP (SigAbort, &
+         '(init_tavg) for diag_gm_bolus, ADVT ADVS VNT VNS HDIFT HDIFS must all  be requested in tavg_contents file')
+     endif
+   endif
+
+   if (n_heat_trans .or. n_salt_trans) then
+   if (registry_match('diag_gm_bolus')) then
+     if (.not. set_in_tavg_contents(tavg_id('ADVT_ISOP'))   .or. &
+         .not. set_in_tavg_contents(tavg_id('ADVS_ISOP'))   .or. &
+         .not. set_in_tavg_contents(tavg_id('VNT_ISOP'))    .or. &
+         .not. set_in_tavg_contents(tavg_id('VNS_ISOP'))  ) then
+          call exit_POP (SigAbort, &
+         '(init_tavg) for diag_gm_bolus, ADVT_ISOP ADVS_ISOP VNT_ISOP VNS_ISOP must all  be requested in tavg_contents file')
+     endif
+   endif
+   endif
+
 
 !-----------------------------------------------------------------------
 !
@@ -918,7 +973,7 @@
 
    logical (log_kind) ::  &
       ltavg_write,        &! time to write a file
-      lreset_tavg          ! time to reset time averages (reg tavg dump)
+      lreg_tavg_dump       ! time to reset time averages and write reg tavg file
 
    type (io_field_desc), dimension(:), allocatable ::  &
       tavg_fields
@@ -937,21 +992,21 @@
 !
 !-----------------------------------------------------------------------
 
-   ltavg_write = .false.
-   lreset_tavg = .false.
+   ltavg_write    = .false.
+   lreg_tavg_dump = .false.
 
    if (ltavg_on) then
       ltavg_write = check_time_flag(tavg_flag)
 
       !*** regular tavg dump
       if (ltavg_write) then
+         lreg_tavg_dump = .true.
          tavg_outfile = tavg_outfile_orig
          if (lccsm) then
            call tavg_create_suffix_ccsm(file_suffix)
          else
            call tavg_create_suffix(file_suffix)
          endif
-         lreset_tavg = .true.
       endif
 
       !*** tavg restart
@@ -998,13 +1053,13 @@
 
 !-----------------------------------------------------------------------
 !
-!  do the rest only if it is time to do a tavg dump
+!  do the rest only if it is time to do a tavg dump (regular or restart)
 !
 !-----------------------------------------------------------------------
 
    if (ltavg_write) then
 
-   if (lccsm .and. lreset_tavg) then
+   if (lccsm .and. ltavg_fmt_out_nc .and. lreg_tavg_dump) then
      time_dim%active = .true.
    else
      time_dim%active = .false.
@@ -1035,7 +1090,7 @@
 !
 !-----------------------------------------------------------------------
 
-      if (lccsm .and. lreset_tavg) then
+      if (lreg_tavg_dump) then
 
         !*** barotropic stream function
         call tavg_bsf_ccsm
@@ -1048,7 +1103,7 @@
       endif
 
       !*** compute local means
-      if (lccsm .and. lsavg_on ) call tavg_local_spatial_avg
+      call tavg_local_spatial_avg
 
 !-----------------------------------------------------------------------
 !
@@ -1056,7 +1111,7 @@
 !
 !-----------------------------------------------------------------------
 
-      if (lccsm) then
+      if (ltavg_fmt_out_nc) then
          tavg_file_desc = construct_file(tavg_fmt_out,                    &
                                       root_name  = trim(tavg_outfile),    &
                                       file_suffix= trim(file_suffix),     &
@@ -1089,7 +1144,7 @@
       call add_attrib_file(tavg_file_desc, 'tavg_sum'    , tavg_sum)
       call add_attrib_file(tavg_file_desc, 'nsteps_total', nsteps_total)
 
-      if (lccsm .and. lreset_tavg) then
+      if (ltavg_fmt_out_nc .and. lreg_tavg_dump) then
         call tavg_add_attrib_file_ccsm (tavg_file_desc) 
       else
         call add_attrib_file(tavg_file_desc, 'tday'        , tday)
@@ -1114,7 +1169,7 @@
 !
 !-----------------------------------------------------------------------
 
-      if (lccsm .and. lreset_tavg) then
+      if (ltavg_fmt_out_nc .and. lreg_tavg_dump) then
         call tavg_define_time_ccsm            (tavg_file_desc)
         call tavg_define_coordinate_vars_ccsm (tavg_file_desc)
         call tavg_define_time_invar_ccsm      (tavg_file_desc)
@@ -1128,7 +1183,7 @@
       ! Apply topography masking
       !-----------------------------------------------------------------------
 
-      if (lccsm .and. lreset_tavg) then
+      if (ltavg_fmt_out_nc .and. lreg_tavg_dump) then
         do nfield = 1,num_avail_tavg_fields  ! check all available fields
            loc = avail_tavg_fields(nfield)%buf_loc ! locate field in buffer
            if (loc > 0) then  ! field is actually requested and in buffer
@@ -1145,7 +1200,7 @@
               endif ! ndims
            endif ! loc
         enddo ! nfield
-      endif ! lccsm .and. lreset_tavg
+      endif ! lccsm .and. ltavg_fmt_out_nc .and. lreg_tavg_dump
 
 
       do nfield = 1,num_avail_tavg_fields  ! check all available fields
@@ -1173,7 +1228,7 @@
 
             else if (avail_tavg_fields(nfield)%ndims == 3) then
 
-               if (lccsm .and. lreset_tavg) then
+               if (ltavg_fmt_out_nc .and. lreg_tavg_dump) then
                  select case (trim(avail_tavg_fields(nfield)%grid_loc(4:4)))
                    case('1')
                      z_dim = zt_dim
@@ -1203,7 +1258,7 @@
 
             endif ! 2D/3D test
 
-            if (lccsm .and. lreset_tavg) &
+            if (lccsm .and. lreg_tavg_dump) &
                call tavg_add_attrib_io_field_ccsm (tavg_fields(nfield),nfield)
 
             call data_set (tavg_file_desc, 'define', tavg_fields(nfield))
@@ -1217,7 +1272,8 @@
 !
 !-----------------------------------------------------------------------
 
-      if (lccsm) then
+
+      if (ltavg_fmt_out_nc) then
 
         do nn = 1, num_avail_tavg_nstd_fields
                      
@@ -1256,7 +1312,7 @@
 !
 !-----------------------------------------------------------------------
 
-      if (lccsm .and. lreset_tavg) then
+      if (ltavg_fmt_out_nc .and. lreg_tavg_dump) then
           call timer_start(timer_write_nstd)
           call tavg_write_vars_ccsm (tavg_file_desc,1,time_coordinate)
           call tavg_write_vars_ccsm (tavg_file_desc,num_ccsm_coordinates,ccsm_coordinates)
@@ -1304,7 +1360,7 @@
 !
 !-----------------------------------------------------------------------
 
-      if (luse_pointer_files .and. .not. lreset_tavg) then
+      if (luse_pointer_files .and. .not. lreg_tavg_dump) then
          call get_unit(nu)
          if (my_task == master_task) then
             tavg_pointer_file = trim(pointer_filename)/&
@@ -1326,7 +1382,7 @@
 !
 !-----------------------------------------------------------------------
 
-      if (lreset_tavg) then
+      if (lreg_tavg_dump) then
          tavg_sum = c0
          call time_stamp('now', 'ymd',date_string=beg_date)
          if (tavg_freq_iopt == freq_opt_nstep) &
@@ -4670,25 +4726,9 @@
    tavg_id_VVEL   = tavg_id('VVEL')
 
    !*** error checking
-   if (tavg_id_WVEL  == 0 .or. tavg_id_VVEL  == 0 ) then
-     call document ('tavg_moc_ccsm', &
-         'Error in moc diagnostics computations: none of the following should be zero')
-     call document ('tavg_moc_ccsm', 'tavg_id_WVEL', tavg_id_WVEL)
-     call document ('tavg_moc_ccsm', 'tavg_id_VVEL', tavg_id_VVEL)
-     call exit_POP (SigAbort, 'Fatal error')
-   endif
  
    tavg_loc_WVEL = avail_tavg_fields(tavg_id_WVEL)%buf_loc
    tavg_loc_VVEL = avail_tavg_fields(tavg_id_VVEL)%buf_loc
-
-   !*** error checking
-   if (tavg_loc_WVEL  == 0 .or. tavg_loc_VVEL  == 0 ) then
-     call document ('tavg_moc_ccsm', &
-         'Error in moc diagnostics computations: none of the following should be zero')
-     call document ('tavg_moc_ccsm', 'tavg_loc_WVEL', tavg_loc_WVEL)
-     call document ('tavg_moc_ccsm', 'tavg_loc_VVEL', tavg_loc_VVEL)
-     call exit_POP (SigAbort, 'Fatal error')
-   endif
 
 
    if (ldiag_gm_bolus) then
@@ -4796,16 +4836,6 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::    &
-      tavg_id_ADVT,         &
-      tavg_id_ADVS ,        &
-      tavg_id_VNT,          &
-      tavg_id_VNS,          &
-      tavg_id_HDIFT,        &
-      tavg_id_HDIFS,        &
-      tavg_id_ADVT_ISOP,    &
-      tavg_id_ADVS_ISOP,    &
-      tavg_id_VNT_ISOP,     &
-      tavg_id_VNS_ISOP,     &
       tavg_loc_ADVT,        &
       tavg_loc_ADVS ,       &
       tavg_loc_VNT,         &
@@ -4842,34 +4872,15 @@
    tavg_loc_ADVT_ISOP = 0 ; tavg_loc_ADVS_ISOP = 0
    tavg_loc_VNT_ISOP  = 0 ; tavg_loc_VNS_ISOP  = 0
  
-   tavg_id_ADVT  = tavg_id('ADVT')
-   tavg_id_ADVS  = tavg_id('ADVS')
-   tavg_id_VNT   = tavg_id('VNT')
-   tavg_id_VNS   = tavg_id('VNS')
-   tavg_id_HDIFT = tavg_id('HDIFT')
-   tavg_id_HDIFS = tavg_id('HDIFS')
 
    !*** error checking
-   if (tavg_id_ADVT  == 0 .or. tavg_id_ADVS  == 0 .or.  &
-       tavg_id_VNT   == 0 .or. tavg_id_VNS   == 0 .or.  &
-       tavg_id_HDIFT == 0 .or. tavg_id_HDIFS == 0) then
-       call document ('tavg_transport_ccsm', &
-         'Error in heat/salt transport diags: none of the following should be zero')
-       call document ('tavg_transport_ccsm', 'tavg_id_ADVT',  tavg_id_ADVT)
-       call document ('tavg_transport_ccsm', 'tavg_id_ADVS',  tavg_id_ADVS)
-       call document ('tavg_transport_ccsm', 'tavg_id_VNT ',  tavg_id_VNT )
-       call document ('tavg_transport_ccsm', 'tavg_id_VNS ',  tavg_id_VNS )
-       call document ('tavg_transport_ccsm', 'tavg_id_HDIFT', tavg_id_HDIFT)
-       call document ('tavg_transport_ccsm', 'tavg_id_HDIFS', tavg_id_HDIFS)
-       call exit_POP (SigAbort, 'Fatal error')
-   endif  
 
-   tavg_loc_ADVT   = avail_tavg_fields(tavg_id_ADVT )%buf_loc
-   tavg_loc_ADVS   = avail_tavg_fields(tavg_id_ADVS )%buf_loc
-   tavg_loc_VNT    = avail_tavg_fields(tavg_id_VNT  )%buf_loc
-   tavg_loc_VNS    = avail_tavg_fields(tavg_id_VNS  )%buf_loc
-   tavg_loc_HDIFT  = avail_tavg_fields(tavg_id_HDIFT)%buf_loc
-   tavg_loc_HDIFS  = avail_tavg_fields(tavg_id_HDIFS)%buf_loc
+   tavg_loc_ADVT   = avail_tavg_fields(tavg_id('ADVT' ))%buf_loc
+   tavg_loc_ADVS   = avail_tavg_fields(tavg_id('ADVS' ))%buf_loc
+   tavg_loc_VNT    = avail_tavg_fields(tavg_id('VNT'  ))%buf_loc
+   tavg_loc_VNS    = avail_tavg_fields(tavg_id('VNS'  ))%buf_loc
+   tavg_loc_HDIFT  = avail_tavg_fields(tavg_id('HDIFT'))%buf_loc
+   tavg_loc_HDIFS  = avail_tavg_fields(tavg_id('HDIFS'))%buf_loc
 
    !*** error checking
 
@@ -4889,27 +4900,10 @@
 
    if (ldiag_gm_bolus) then
  
-       tavg_id_ADVT_ISOP = tavg_id('ADVT_ISOP')
-       tavg_id_ADVS_ISOP = tavg_id('ADVS_ISOP')
-       tavg_id_VNT_ISOP  = tavg_id('VNT_ISOP')
-       tavg_id_VNS_ISOP  = tavg_id('VNS_ISOP')
-
-       !*** error checking
-       if (tavg_id_ADVT_ISOP  == 0 .or. tavg_id_ADVS_ISOP  == 0 .or.  &
-          tavg_id_VNT_ISOP   == 0 .or. tavg_id_VNS_ISOP   == 0 ) then
-          call document ('tavg_transport_ccsm', &
-            'Error in heat/salt transport diags: none of the following should be zero')
-          call document ('tavg_transport_ccsm', 'tavg_id_ADVT_ISOP',  tavg_id_ADVT)
-          call document ('tavg_transport_ccsm', 'tavg_id_ADVS_ISOP',  tavg_id_ADVS)
-          call document ('tavg_transport_ccsm', 'tavg_id_VNT_ISOP ',  tavg_id_VNT )
-          call document ('tavg_transport_ccsm', 'tavg_id_VNS_ISOP ',  tavg_id_VNS )
-            call exit_POP (SigAbort, 'Fatal error')
-       endif 
- 
-       tavg_loc_ADVT_ISOP = avail_tavg_fields(tavg_id_ADVT_ISOP)%buf_loc
-       tavg_loc_ADVS_ISOP = avail_tavg_fields(tavg_id_ADVS_ISOP)%buf_loc
-       tavg_loc_VNT_ISOP  = avail_tavg_fields(tavg_id_VNT_ISOP )%buf_loc
-       tavg_loc_VNS_ISOP  = avail_tavg_fields(tavg_id_VNS_ISOP )%buf_loc
+       tavg_loc_ADVT_ISOP = avail_tavg_fields(tavg_id('ADVT_ISOP'))%buf_loc
+       tavg_loc_ADVS_ISOP = avail_tavg_fields(tavg_id('ADVS_ISOP'))%buf_loc
+       tavg_loc_VNT_ISOP  = avail_tavg_fields(tavg_id('VNT_ISOP') )%buf_loc
+       tavg_loc_VNS_ISOP  = avail_tavg_fields(tavg_id('VNS_ISOP') )%buf_loc
 
        !*** error checking
        if (tavg_loc_ADVT_ISOP  == 0 .or. tavg_loc_ADVS_ISOP  == 0 .or.  &
@@ -5074,6 +5068,8 @@
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
      TLATD, TLOND        ! lat/lon of T points in degrees
 
+
+   if (.not. ltavg_nino_diags) return
 !-----------------------------------------------------------------------
 !
 !     allocate and initialize arrays
@@ -5165,6 +5161,9 @@
 
    real (r8), dimension (:,:,:), allocatable ::  &
       WORK
+
+
+   if (.not. ltavg_nino_diags) return
 
    allocate (WORK(nx_block,ny_block,nblocks_clinic))
    WORK = c0
