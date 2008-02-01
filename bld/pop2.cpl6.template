@@ -187,9 +187,9 @@ endif
 
 ############### needed during LANL merge transition #####################
 if (-f \${my_path}/${OCN_GRID}_POP_DomainSizeMod.F90) then
-   cp -fp  \${my_path}/${OCN_GRID}_POP_DomainSizeMod.F90 \$source_dir
+   cp -fp  \${my_path}/${OCN_GRID}_POP_DomainSizeMod.F90 \$source_dir/POP_DomainSizeMod.F90
 else
-   cp -fp \$srcdir/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90 \$source_dir
+   cp -fp \$srcdir/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90 \$source_dir/POP_DomainSizeMod.F90
 endif
 ######################### end LANL merge transition #####################
 

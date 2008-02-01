@@ -55,7 +55,6 @@
    use passive_tracers, only: set_interior_passive_tracers,  &
        reset_passive_tracers, tavg_passive_tracers
    use exit_mod, only: sigAbort, exit_pop, flushm
-   use shr_sys_mod, only: shr_sys_flush
 
    implicit none
    private
