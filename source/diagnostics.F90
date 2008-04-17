@@ -819,42 +819,36 @@
    call define_tavg_field(tavg_HMXL,'HMXL',2,                         &
                           tavg_method=tavg_method_avg,                &
                           long_name='Mixed-Layer Depth',              &
-                          missing_value=undefined_nf_r4,              &
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_XMXL,'XMXL',2,                       &
                           tavg_method=tavg_method_max,                &
                           long_name='Maximum Mixed-Layer Depth',      &
-                          missing_value=undefined_nf_r4,              &
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_TMXL,'TMXL',2,                       &
                           tavg_method=tavg_method_min,                &
                           long_name='Minimum Mixed-Layer Depth',      &
-                          missing_value=undefined_nf_r4,              &
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_HBLT,'HBLT',2,                         &
                           tavg_method=tavg_method_avg,                &
                           long_name='Boundary-Layer Depth',           &
-                          missing_value=undefined_nf_r4,              &
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_XBLT,'XBLT',2,                     &
                           tavg_method=tavg_method_max,                &
                           long_name='Maximum Boundary-Layer Depth',   &
-                          missing_value=undefined_nf_r4,              &
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_TBLT,'TBLT',2,                     &
                           tavg_method=tavg_method_min,                &
                           long_name='Minimum Boundary-Layer Depth',   &
-                          missing_value=undefined_nf_r4,              &
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 

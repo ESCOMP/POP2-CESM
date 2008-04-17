@@ -425,23 +425,19 @@
 
    call define_tavg_field(tavg_VUF,'VUF',3,                      &
                           long_name='Zonal viscous stress',      &
-                          missing_value=undefined_nf_r4,         &
                           units='    ', grid_loc='3222')
 
    call define_tavg_field(tavg_VVF,'VVF',3,                      &
                           long_name='Meridional viscous stress', &
-                          missing_value=undefined_nf_r4,         &
                           units='    ', grid_loc='3222')
 
    if (convection_itype == convect_type_adjust) then
      call define_tavg_field(tavg_PEC,'PEC',3,                          &
                       long_name='Potential energy release convection', &
-                            missing_value=undefined_nf_r4,             &
                             units='g/cm^3', grid_loc='3111')
 
      call define_tavg_field(tavg_NCNV,'NCNV',3,                        &
                         long_name='Convective adjustments per second', &
-                            missing_value=undefined_nf_r4,             &
                             units='adj/s', grid_loc='3111')
    endif
 

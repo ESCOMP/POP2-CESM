@@ -375,51 +375,41 @@
    call define_tavg_field(tavg_EVAP_F,'EVAP_F',2,                              &
                           long_name='Evaporation Flux from Coupler',           &
                           units='kg/m^2/s', grid_loc='2110',                   &
-                          missing_value=undefined_nf_r4,                       &
                           coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_PREC_F,'PREC_F',2,                              &
                           long_name='Precipitation Flux from Cpl (rain+snow)', &
-                          missing_value=undefined_nf_r4,                       &
                           units='kg/m^2/s', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_SNOW_F,'SNOW_F',2,                              &
                           long_name='Snow Flux from Coupler',                  &
-                          missing_value=undefined_nf_r4,                       &
                           units='kg/m^2/s', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_MELT_F,'MELT_F',2,                              &
                           long_name='Melt Flux from Coupler',                  &
-                          missing_value=undefined_nf_r4,                       &
                           units='kg/m^2/s', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_ROFF_F,'ROFF_F',2,                              &
                           long_name='Runoff Flux from Coupler',                &
-                          missing_value=undefined_nf_r4,                       &
                           units='kg/m^2/s', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_SALT_F,'SALT_F',2,                              &
                           long_name='Salt Flux from Coupler (kg of salt/m^2/s)',&
-                          missing_value=undefined_nf_r4,                       &
                           units='kg/m^2/s', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_SENH_F,'SENH_F',2,                              &
                           long_name='Sensible Heat Flux from Coupler',         &
-                          missing_value=undefined_nf_r4,                       &
                           units='watt/m^2', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_LWUP_F,'LWUP_F',2,                              &
                           long_name='Longwave Heat Flux (up) from Coupler',    &
-                          missing_value=undefined_nf_r4,                       &
                           units='watt/m^2', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_LWDN_F,'LWDN_F',2,                              &
                           long_name='Longwave Heat Flux (dn) from Coupler',    &
-                          missing_value=undefined_nf_r4,                       &
                           units='watt/m^2', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_MELTH_F,'MELTH_F',2,                            &
                           long_name='Melt Heat Flux from Coupler',             &
-                          missing_value=undefined_nf_r4,                       &
                           units='watt/m^2', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
 

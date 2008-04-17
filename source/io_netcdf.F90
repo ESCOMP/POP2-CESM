@@ -2312,7 +2312,7 @@
    type (datafile), intent (in)  :: &
       data_file       ! data file in which field contained
 
-   real (r4), intent (in)  ::  &
+   real (rtavg), intent (in)  ::  &
       fill_value,              &
       missing_value
 

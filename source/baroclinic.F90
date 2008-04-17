@@ -14,13 +14,13 @@
 
 ! !USES:
 
-   use kinds_mod, only: int_kind, r8, log_kind, r4
+   use kinds_mod, only: int_kind, r8, log_kind, r4, rtavg
    use blocks, only: nx_block, ny_block, block, get_block
 !   use distribution, only: 
    use domain_size
    use domain, only: nblocks_clinic, blocks_clinic, bndy_clinic
    use constants, only: delim_fmt, blank_fmt, p5, field_loc_center,          &
-       field_type_scalar, c0, c1, c2, grav, ndelim_fmt, undefined_nf_r4,     &
+       field_type_scalar, c0, c1, c2, grav, ndelim_fmt,                      &
        hflux_factor, salinity_factor
    use prognostic, only: TRACER, UVEL, VVEL, max_blocks_clinic, km, mixtime, &
        RHO, newtime, oldtime, curtime, PSURF, nt
@@ -196,144 +196,117 @@
 
    call define_tavg_field(tavg_UDP,'UDP',3,                            &
                           long_name='Pressure work',                   &
-                          missing_value=undefined_nf_r4,               &
                           units='erg', grid_loc='3221')
 
    call define_tavg_field(tavg_U1_8,'U1_8',2,                          &
                           long_name='Zonal Velocity lvls 1-8',         &
-                          missing_value=undefined_nf_r4,               &
                           units='centimeter/s', grid_loc='2221')
 
    call define_tavg_field(tavg_V1_8,'V1_8',2,                          &
                           long_name='Meridional Velocity lvls 1-8',    &
-                          missing_value=undefined_nf_r4,               &
                           units='centimeter/s', grid_loc='2221')
 
    call define_tavg_field(tavg_T1_8,'T1_8',2,                          &
                           long_name='Potential Temperature lvls 1-8',  &
-                          missing_value=undefined_nf_r4,               &
                           units='degC', grid_loc='2111')
 
    call define_tavg_field(tavg_S1_8,'S1_8',2,                          &
                           long_name='Salinity lvls 1-8',               &
-                          missing_value=undefined_nf_r4/1000.0_r4,     &
-                          fill_value=undefined_nf_r4/1000.0_r4,        &
-                          scale_factor=1000.0_r4,                      &
+                          scale_factor=1000.0_rtavg,                      &
                           units='gram/kilogram', grid_loc='2111')
 
    call define_tavg_field(tavg_UVEL,'UVEL',3,                          &
                           long_name='Velocity in grid-x direction',    &
-                          missing_value=undefined_nf_r4,               &
                           units='centimeter/s', grid_loc='3221',       &
                           coordinates='ULONG ULAT z_t time')
 
    call define_tavg_field(tavg_VVEL,'VVEL',3,                          &
                           long_name='Velocity in grid-y direction',    &
-                          missing_value=undefined_nf_r4,               &
                           units='centimeter/s', grid_loc='3221',       &
                           coordinates='ULONG ULAT z_t time')
 
    call define_tavg_field(tavg_KE,'KE',3,                              &
                           long_name='Horizontal Kinetic Energy',       &
-                          missing_value=undefined_nf_r4,               &
                           units='centimeter^2/s^2', grid_loc='3221',   &
                           coordinates='ULONG ULAT z_t time')
 
    call define_tavg_field(tavg_TEMP,'TEMP',3,                          &
                           long_name='Potential Temperature',           &
-                          missing_value=undefined_nf_r4,               &
                           units='degC', grid_loc='3111',               &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_TEMP_MAX,'TEMP_MAX',3,                  &
                           tavg_method=tavg_method_max,                 &
                           long_name='Maximum Potential Temperature',   &
-                          missing_value=undefined_nf_r4,               &
                           units='degC', grid_loc='3111',               &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_TEMP_MIN,'TEMP_MIN',3,                  &
                           tavg_method=tavg_method_min,                 &
                           long_name='Minimum Potential Temperature',   &
-                          missing_value=undefined_nf_r4,               &
                           units='degC', grid_loc='3111',               &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_dTEMP_POS_3D,'dTEMP_POS_3D',3,          &
                           tavg_method=tavg_method_max,                 &
                           long_name='max pos temperature timestep diff', &
-                          missing_value=undefined_nf_r4,               &
                           units='degC', grid_loc='3111',               &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_dTEMP_POS_2D,'dTEMP_POS_2D',2,          &
                           tavg_method=tavg_method_max,                 &
                           long_name='max pos column temperature timestep diff', &
-                          missing_value=undefined_nf_r4,               &
                           units='degC', grid_loc='2110',               &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_dTEMP_NEG_3D,'dTEMP_NEG_3D',3,          &
                           tavg_method=tavg_method_min,                 &
                           long_name='min neg temperature timestep diff', &
-                          missing_value=undefined_nf_r4,               &
                           units='degC', grid_loc='3111',               &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_dTEMP_NEG_2D,'dTEMP_NEG_2D',2,          &
                           tavg_method=tavg_method_min,                 &
                           long_name='min neg column temperature timestep diff', &
-                          missing_value=undefined_nf_r4,               &
                           units='degC', grid_loc='2110',               &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_SALT,'SALT',3,                          &
                           long_name='Salinity',                        &
-                          missing_value=undefined_nf_r4/1000.0_r4,     &
-                          fill_value=undefined_nf_r4/1000.0_r4,        &
                           units='gram/kilogram', grid_loc='3111',      &
-                          scale_factor=1000.0_r4,                      &
+                          scale_factor=1000.0_rtavg,                      &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_TEMP2,'TEMP2',3,                        &
                           long_name='Temperature**2',                  &
-                          missing_value=undefined_nf_r4,               &
                           units='degC^2', grid_loc='3111')
 
    call define_tavg_field(tavg_SALT2,'SALT2',3,                        &
                           long_name='Salinity**2 ',                    &
-                          missing_value=undefined_nf_r4,               &
                           units='(gram/gram)^2', grid_loc='3111',      &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_ST,'ST',3,                              &
                           long_name='Temperature*Salinity',            &
-                          missing_value=undefined_nf_r4,               &
                           units='degC*gram/gram', grid_loc='3111',     &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_RHO,'RHO',3,                            &
                           long_name='In-Situ Density',                 &
-                          missing_value=undefined_nf_r4,               &
                           units='gram/centimeter^3', grid_loc='3111',  &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_UV,'UV',3,                              &
                           long_name='UV velocity product',             &
-                          missing_value=undefined_nf_r4,               &
                           units='centimeter^2/s^2', grid_loc='3221')
 
    call define_tavg_field(tavg_RESID_T,'RESID_T',2,                           &
                     long_name='Free-Surface Residual Flux (T)',               &
-                          missing_value=undefined_nf_r4,                      &
-                          fill_value   =undefined_nf_r4,                      &
                           units='watt/m^2', grid_loc='2110',&
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_RESID_S,'RESID_S',2,                           &
                     long_name='Free-Surface Residual Flux (S)',               &
-                          missing_value=undefined_nf_r4,                      &
-                          fill_value   =undefined_nf_r4,                      &
                           units='kg/m^2/s', grid_loc='2110',&
                           coordinates='TLONG TLAT time')
 

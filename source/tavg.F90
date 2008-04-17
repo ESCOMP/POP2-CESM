@@ -96,9 +96,9 @@
       character(char_len)     :: coordinates    ! coordinates
       character(char_len)     :: nftype         ! indicates data type 
       character(4)            :: grid_loc       ! location in grid
-      real (r4)               :: fill_value     ! _FillValue
-      real (r4)               :: missing_value  ! value on land pts
-      real (r4)               :: scale_factor   ! r4 scale factor
+      real (rtavg)            :: fill_value     ! _FillValue
+      real (rtavg)            :: missing_value  ! value on land pts
+      real (rtavg)            :: scale_factor   ! r4 scale factor
       real (r4), dimension(2) :: valid_range    ! min/max
       integer (i4)            :: ndims          ! num dims (2 or 3)
       integer (i4)            :: buf_loc        ! location in buffer
@@ -158,17 +158,17 @@
       tavg_bufsize_2d,   &    ! size of buffer for 2d fields
       tavg_bufsize_3d         ! size of buffer for 3d fields
 
-   real (r4), dimension(:,:,:,:), allocatable :: &
+   real (rtavg), dimension(:,:,:,:), allocatable :: &
       TAVG_BUF_2D         ! buffer for holding accumulated sums
 
-   real (r4), dimension(:,:,:,:,:), allocatable :: &
+   real (rtavg), dimension(:,:,:,:,:), allocatable :: &
       TAVG_BUF_3D         ! buffer for holding accumulated sums
 
    integer (i4), dimension(:), allocatable :: &
       TAVG_BUF_2D_METHOD,  &! method for each requested 2d field
       TAVG_BUF_3D_METHOD    ! method for each requested 3d field
 
-   real (r4), dimension (:,:,:), allocatable ::  &
+   real (rtavg), dimension (:,:,:), allocatable ::  &
          TAVG_TEMP          ! work array in write_restart
 !-----------------------------------------------------------------------
 !
@@ -537,7 +537,6 @@
 
    call define_tavg_field(tavg_BSF,'BSF',2,                                 &
                           long_name='Diagnostic barotropic streamfunction', &
-                          missing_value=undefined_nf_r4,                    &
                           units='Sv', grid_loc='2220',                      &
                           coordinates='ULONG ULAT time')
 
@@ -1222,9 +1221,12 @@
                    field_loc =avail_tavg_fields(nfield)%field_loc,     &
                   field_type =avail_tavg_fields(nfield)%field_type,    &
                  coordinates =avail_tavg_fields(nfield)%coordinates,   &
-                missing_value=avail_tavg_fields(nfield)%missing_value, &
                   valid_range=avail_tavg_fields(nfield)%valid_range,   &
+#ifdef TAVG_R8
+                   d2d_array =TAVG_BUF_2D(:,:,:,loc) ) !nonstandard, debugging only
+#else
                    r2d_array =TAVG_BUF_2D(:,:,:,loc) )
+#endif
 
             else if (avail_tavg_fields(nfield)%ndims == 3) then
 
@@ -1251,10 +1253,13 @@
                     grid_loc =avail_tavg_fields(nfield)%grid_loc ,     &
                    field_loc =avail_tavg_fields(nfield)%field_loc,     &
                   field_type =avail_tavg_fields(nfield)%field_type,    &
-                missing_value=avail_tavg_fields(nfield)%missing_value, &
                  coordinates =avail_tavg_fields(nfield)%coordinates,   &
                   valid_range=avail_tavg_fields(nfield)%valid_range,   &
-                   r3d_array =TAVG_BUF_3D(:,:,:,:,loc) )
+#ifdef TAVG_R8
+                   d3d_array =TAVG_BUF_3D(:,:,:,:,loc) ) !nonstandard, debugging only
+#else
+                   r3d_array =TAVG_BUF_3D(:,:,:,:,loc) ) 
+#endif
 
             endif ! 2D/3D test
 
@@ -1579,9 +1584,13 @@
                   grid_loc =avail_tavg_fields(nfield)%grid_loc ,     &
                  field_loc =avail_tavg_fields(nfield)%field_loc,     &
                 field_type =avail_tavg_fields(nfield)%field_type,    &
-              missing_value=avail_tavg_fields(nfield)%missing_value, &
                 valid_range=avail_tavg_fields(nfield)%valid_range,   &
+#ifdef TAVG_R8
+                 d2d_array =TAVG_BUF_2D(:,:,:,loc) ) !nonstandard, debugging only
+#else
                  r2d_array =TAVG_BUF_2D(:,:,:,loc) )
+#endif
+
 
          else if (avail_tavg_fields(nfield)%ndims == 3) then
 
@@ -1599,9 +1608,12 @@
                   grid_loc =avail_tavg_fields(nfield)%grid_loc ,     &
                  field_loc =avail_tavg_fields(nfield)%field_loc,     &
                 field_type =avail_tavg_fields(nfield)%field_type,    &
-              missing_value=avail_tavg_fields(nfield)%missing_value, &
                 valid_range=avail_tavg_fields(nfield)%valid_range,   &
+#ifdef TAVG_R8
+                 d3d_array =TAVG_BUF_3D(:,:,:,:,loc) ) !nonstandard, debugging only
+#else
                  r3d_array =TAVG_BUF_3D(:,:,:,:,loc) )
+#endif
 
          endif
 
@@ -2284,8 +2296,7 @@
                                   long_name, units,                     &
                                   grid_loc, valid_range,                &
                                   field_loc, field_type,coordinates,    &
-                                  missing_value,                        &
-                                  scale_factor, fill_value,             &
+                                  scale_factor,                         &
                                   nftype,                               &
                                   nstd_fields,                          &
                                   num_nstd_fields, max_nstd_fields      )
@@ -2325,9 +2336,7 @@
    character(4), intent(in), optional :: &
       grid_loc                 ! location in grid (in 4-digit code)
 
-   real (r4), intent(in), optional :: &
-      fill_value,             &! _FillValue
-      missing_value,          &! value on land pts
+   real (rtavg), intent(in), optional :: &
       scale_factor             ! scale factor
 
    real (r4), dimension(2), intent(in), optional :: &
@@ -2432,23 +2441,19 @@
       tavg_field%method = tavg_method_avg
    endif
 
-   if (present(fill_value)) then
-      tavg_field%fill_value = fill_value
-   else
-      tavg_field%fill_value = undefined_nf_r4
-   endif
-
-   if (present(missing_value)) then
-      tavg_field%missing_value = missing_value
-   else
-      tavg_field%missing_value = undefined_nf_r4
-   endif
 
    if (present(scale_factor)) then
       tavg_field%scale_factor = scale_factor
+      if (scale_factor /= 0.0_rtavg) then
+        tavg_field%fill_value    = undefined_nf/scale_factor
+        tavg_field%missing_value = undefined_nf/scale_factor
+      endif
    else
-      tavg_field%scale_factor = undefined
+      tavg_field%scale_factor  = undefined_nf
+      tavg_field%fill_value    = undefined_nf
+      tavg_field%missing_value = undefined_nf
    endif
+
 
    if (present(valid_range)) then
       tavg_field%valid_range = valid_range
@@ -3301,16 +3306,15 @@
 !EOP
 !BOC
 
-
     call add_attrib_io_field(tavg_field, 'cell_methods', 'time: mean')
 
-    call add_attrib_io_field(tavg_field,   &
-                    '_FillValue',avail_tavg_fields(nfield)%fill_value )
+    if (avail_tavg_fields(nfield)%scale_factor /= undefined_nf) then
+      call add_attrib_io_field(tavg_field, 'scale_factor',avail_tavg_fields(nfield)%scale_factor)
+    endif
 
-    if (avail_tavg_fields(nfield)%scale_factor /= undefined .and.   &
-        avail_tavg_fields(nfield)%scale_factor /= undefined_nf_r4)  &
-        call add_attrib_io_field(tavg_field,   &
-        'scale_factor',avail_tavg_fields(nfield)%scale_factor)
+    call add_attrib_io_field(tavg_field,'_FillValue',avail_tavg_fields(nfield)%fill_value )
+    call add_attrib_io_field(tavg_field,'missing_value',avail_tavg_fields(nfield)%missing_value )
+
 
 !-----------------------------------------------------------------------
 !EOC
@@ -3472,8 +3476,11 @@
 !EOP
 !BOC
 
-!  type (io_dim) :: &
-!     i_dim, j_dim   ! dimension descriptors for horiz dims
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
 
    integer (int_kind) :: ii, n
 
@@ -3486,9 +3493,13 @@
    real (r4), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
       TLON_DEG, TLAT_DEG, ULON_DEG, ULAT_DEG
 
+   real (r4)          :: missing_value
+   integer (int_kind) :: missing_value_i
 
    save
 
+   missing_value   = undefined_nf_r4
+   missing_value_i = undefined_nf_int
 
    ii=0
 
@@ -3496,10 +3507,10 @@
    ii=ii+1
    DZ_R4 = dz 
    ccsm_time_invar(ii) = construct_io_field('dz',zt_dim,                    &
-                                long_name='thickness of layer k',                  &
-                                units    ='centimeters',                           &
-                                missing_value=undefined_nf_r4,                     &
+                                long_name='thickness of layer k',           &
+                                units    ='centimeters',                    &
                                 r1d_array =DZ_R4)
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** dzw
    ii=ii+1
@@ -3507,8 +3518,8 @@
    ccsm_time_invar(ii) = construct_io_field('dzw',zw_dim,                   &
                                 long_name='midpoint of k to midpoint of k+1',      &
                                 units    ='centimeters',                           &
-                                missing_value=undefined_nf_r4,                     &
                                 r1d_array =DZW_R4)
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** ULONG
    ii=ii+1
@@ -3557,8 +3568,8 @@
         'KMT', dim1=i_dim, dim2=j_dim,                        &
          long_name='k Index of Deepest Grid Cell on T Grid',  &
          coordinates = "TLONG TLAT",                          &
-         missing_value_i = undefined_nf_int,                  &
          i2d_array =KMT(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_i )
 
    !*** KMU
    ii=ii+1
@@ -3567,8 +3578,8 @@
         'KMU', dim1=i_dim, dim2=j_dim,                        &
          long_name='k Index of Deepest Grid Cell on U Grid',  &
          coordinates = "ULONG ULAT",                          &
-         missing_value_i = undefined_nf_int,                  &
          i2d_array =KMU(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_i )
 
 
    !*** REGION_MASK
@@ -3578,8 +3589,8 @@
         'REGION_MASK', dim1=i_dim, dim2=j_dim,                &
          long_name='basin index number (signed integers)',    &
          coordinates = "TLONG TLAT",                          &
-         missing_value_i = undefined_nf_int,                  &
          i2d_array =REGION_MASK(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_i )
 
    !*** UAREA
    ii=ii+1
@@ -3588,9 +3599,9 @@
         'UAREA', dim1=i_dim, dim2=j_dim,                      &
          long_name='area of U cells',                         &
          units    ='centimeter^2',                            &
-         missing_value=undefined_nf_r4,                       &
          coordinates = "ULONG ULAT",                          &
          d2d_array =UAREA(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** TAREA
    ii=ii+1
@@ -3599,9 +3610,9 @@
         'TAREA', dim1=i_dim, dim2=j_dim,                      &
          long_name='area of T cells',                         &
          units    ='centimeter^2',                            &
-         missing_value=undefined_nf_r4,                       &
          coordinates = "TLONG TLAT",                          &
          d2d_array =TAREA(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** HU
    ii=ii+1
@@ -3610,9 +3621,9 @@
         'HU', dim1=i_dim, dim2=j_dim,                         &
          long_name='ocean depth at U points',                 &
          units='centimeter',                                  &
-         missing_value=undefined_nf_r4,                       &
          coordinates = "ULONG ULAT",                          &
          d2d_array =HU(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** HT
    ii=ii+1
@@ -3621,9 +3632,9 @@
         'HT', dim1=i_dim, dim2=j_dim,                         &
          long_name='ocean depth at T points',                 &
          units='centimeter',                                  &
-         missing_value=undefined_nf_r4,                       &
          coordinates = "TLONG TLAT",                          &
          d2d_array =HT(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** DXU
    ii=ii+1
@@ -3632,9 +3643,9 @@
         'DXU', dim1=i_dim, dim2=j_dim,                        &
          long_name='x-spacing centered at U points',          &
          units='centimeters',                                 &
-         missing_value=undefined_nf_r4,                       &
          coordinates = "ULONG ULAT",                          &
          d2d_array =DXU(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** DYU
    ii=ii+1
@@ -3643,9 +3654,9 @@
         'DYU', dim1=i_dim, dim2=j_dim,                        &
          long_name='y-spacing centered at U points',          &
          units='centimeters',                                 &
-         missing_value=undefined_nf_r4,                       &
          coordinates = "ULONG ULAT",                          &
          d2d_array =DYU(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** DXT
    ii=ii+1
@@ -3654,9 +3665,9 @@
         'DXT', dim1=i_dim, dim2=j_dim,                        &
          long_name='x-spacing centered at T points',          &
          units='centimeters',                                 &
-         missing_value=undefined_nf_r4,                       &
          coordinates = "TLONG TLAT",                          &
          d2d_array =DXT(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** DYT
    ii=ii+1
@@ -3665,9 +3676,9 @@
         'DYT', dim1=i_dim, dim2=j_dim,                        &
          long_name='y-spacing centered at T points',          &
          units='centimeters',                                 &
-         missing_value=undefined_nf_r4,                       &
          coordinates = "TLONG TLAT",                          &
          d2d_array =DYT(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** HTN
    ii=ii+1
@@ -3676,9 +3687,9 @@
         'HTN', dim1=i_dim, dim2=j_dim,                        &
          long_name='cell widths on North sides of T cell',    &
          units='centimeters',                                 &
-         missing_value=undefined_nf_r4,                       &
          coordinates = "TLONG TLAT",                          &
          d2d_array =HTN(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** HTE
    ii=ii+1
@@ -3687,9 +3698,9 @@
         'HTE', dim1=i_dim, dim2=j_dim,                        &
          long_name='cell widths on East sides of T cell',     &
          units='centimeters',                                 &
-         missing_value=undefined_nf_r4,                       &
          coordinates = "TLONG TLAT",                          &
          d2d_array =HTE(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** HUS
    ii=ii+1
@@ -3698,9 +3709,9 @@
         'HUS', dim1=i_dim, dim2=j_dim,                        &
          long_name='cell widths on South sides of U cell',    &
          units='centimeters',                                 &
-         missing_value=undefined_nf_r4,                       &
          coordinates = "ULONG ULAT",                          &
          d2d_array =HUS(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** HUW
    ii=ii+1
@@ -3709,9 +3720,9 @@
         'HUW', dim1=i_dim, dim2=j_dim,                        &
          long_name='cell widths on West sides of U cell',     &
          units='centimeters',                                 &
-         missing_value=undefined_nf_r4,                       &
          coordinates = "ULONG ULAT",                          &
          d2d_array =HUW(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** ANGLE
    ii=ii+1
@@ -3720,9 +3731,9 @@
         'ANGLE', dim1=i_dim, dim2=j_dim,                      &
          long_name='angle grid makes with latitude line',     &
          units='radians',                                     &
-         missing_value=undefined_nf_r4,                       &
          coordinates = "ULONG ULAT",                          &
          d2d_array =ANGLE(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
    !*** ANGLET
    ii=ii+1
@@ -3731,9 +3742,9 @@
         'ANGLET', dim1=i_dim, dim2=j_dim,                          &
          long_name='angle grid makes with latitude line on T grid',&
          units='radians',                                          &
-         missing_value=undefined_nf_r4,                            &
          coordinates = "TLONG TLAT",                               &
          d2d_array =ANGLET(:,:,:) )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
 
 
 
@@ -4475,7 +4486,7 @@
 
 ! !INPUT PARAMETERS:
 
-   real (r4), dimension (:,:,:), intent(inout) ::  &
+   real (rtavg), dimension (:,:,:), intent(inout) ::  &
       ARRAY
 
    type (tavg_field_desc_ccsm), intent(in) ::  &
@@ -4500,7 +4511,7 @@
    select case (trim(tavg_field%grid_loc(2:3)))
 
      case('11')
-       
+          
        do iblock=1,nblocks_clinic
         ARRAY(:,:,iblock) = merge (tavg_field%fill_value,ARRAY(:,:,iblock),  &
                               k > KMT(:,:,iblock))
@@ -4765,7 +4776,6 @@
    call define_tavg_field(                               &
         tavg_MOC, 'MOC', 5,                              &
         long_name='Meridional Overturning Circulation',  &
-        missing_value=undefined_nf_r4,                   &
         units='Sverdrups',                               &
         coordinates='lat_aux_grid moc_z moc_components transport_region time',&
         nftype='float'   ,                               &
@@ -4923,7 +4933,6 @@
    call define_tavg_field     (                     &
         tavg_N_HEAT, 'N_HEAT', 4,                   &
         long_name='Northward Heat Transport',       &
-        missing_value=undefined_nf_r4,              &
         units='Pwatt',                              &
         coordinates='lat_aux_grid transport_components transport_regions time',&
         nftype='float',                             &
@@ -4942,7 +4951,6 @@
    call define_tavg_field     (                     &
         tavg_N_SALT, 'N_SALT', 4,                   &
         long_name='Northward Salt Transport',       &
-        missing_value=undefined_nf_r4,              &
         units='gram centimeter^3/kg/s',             &
         coordinates='lat_aux_grid transport_components transport_regions time',&
         nftype='float',                             &

@@ -17,9 +17,9 @@
 
 ! !USES:
 
-   use kinds_mod, only: r4, r8, int_kind, char_len, log_kind
+   use kinds_mod, only: r4, r8, int_kind, char_len, log_kind, rtavg
    use constants, only: c0, c1, p5, p125, p25, blank_fmt, delim_fmt, ndelim_fmt, c2, &
-       undefined_nf_r4, field_loc_center, field_type_scalar, &
+       undefined_nf, field_loc_center, field_type_scalar, &
        field_loc_Eface, field_type_vector
    use blocks, only: nx_block, ny_block, block, get_block
    use domain_size
@@ -716,93 +716,74 @@
 
    call define_tavg_field(tavg_WVEL,'WVEL',3,                          &
                           long_name='Vertical Velocity',               &
-                          missing_value=undefined_nf_r4,               &
                           units='centimeter/s', grid_loc='3112',       &
                           coordinates='TLONG TLAT z_w time')
 
    call define_tavg_field(tavg_UEU,'UEU',3,                            &
                           long_name='East Flux of Zonal Momentum',     &
-                          missing_value=undefined_nf_r4,               &
                           units='cm/s^2', grid_loc='3321')
 
    call define_tavg_field(tavg_VNU,'VNU',3,                            &
                           long_name='North Flux of Zonal Momentum',    &
-                          missing_value=undefined_nf_r4,               &
                           units='cm/s^2', grid_loc='3231')
 
    call define_tavg_field(tavg_UEV,'UEV',3,                            &
                           long_name='East Flux of Meridional Momentum',&
-                          missing_value=undefined_nf_r4,               &
                           units='cm/s^2', grid_loc='3321')
 
    call define_tavg_field(tavg_VNV,'VNV',3,                            &
                         long_name='North Flux of Meridional Momentum', &
-                          missing_value=undefined_nf_r4,               &
                           units='cm/s^2', grid_loc='3231')
 
    call define_tavg_field(tavg_WTU,'WTU',3,                            &
                           long_name='Top flux of Zonal Momentum',      &
-                          missing_value=undefined_nf_r4,               &
                           units='cm/s^2', grid_loc='3222')
 
    call define_tavg_field(tavg_WTV,'WTV',3,                            &
                           long_name='Top flux of Meridional Momentum', &
-                          missing_value=undefined_nf_r4,               &
                           units='cm/s^2', grid_loc='3222')
 
    call define_tavg_field(tavg_UE_TRACER(1),'UET',3,                   &
                           long_name='Flux of Heat in grid-x direction',&
-                          missing_value=undefined_nf_r4,               &
                           units='degC/s', grid_loc='3211',             &
                           coordinates='ULONG TLAT z_t time' )
 
    call define_tavg_field(tavg_VN_TRACER(1),'VNT',3,                   &
                           long_name='Flux of Heat in grid-y direction',&
-                          missing_value=undefined_nf_r4,               &
                           units='degC/s', grid_loc='3121',             &
                           coordinates='TLONG ULAT z_t time')
 
    call define_tavg_field(tavg_WT_TRACER(1),'WTT',3,                   &
                           long_name='Heat Flux Across Top Face',       &
-                          missing_value=undefined_nf_r4,               &
                           units='degC/s', grid_loc='3112',             &
                           coordinates='TLONG TLAT z_w time' )
 
    call define_tavg_field(tavg_UE_TRACER(2),'UES',3,                   &
                           long_name='Salt Flux in grid-x direction',   &
-                          scale_factor=1000.0_r4,                      &
-                          missing_value=undefined_nf_r4/1000.0_r4,     &
-                          fill_value   =undefined_nf_r4/1000.0_r4,     &
+                          scale_factor=1000.0_rtavg,                      &
                           units='gram/gram/s', grid_loc='3211',        &
                           coordinates='ULONG TLAT z_t time' )
 
    call define_tavg_field(tavg_VN_TRACER(2),'VNS',3,                   &
                           long_name='Salt Flux in grid-y direction',   &
-                          scale_factor=1000.0_r4,                      &
-                          missing_value=undefined_nf_r4/1000.0_r4,     &
-                          fill_value   =undefined_nf_r4/1000.0_r4,     &
+                          scale_factor=1000.0_rtavg,                      &
                           units='gram/gram/s', grid_loc='3121',        &
                           coordinates='TLONG ULAT z_t time')
 
    call define_tavg_field(tavg_WT_TRACER(2),'WTS',3,                   &
                           long_name='Salt Flux Across Top Face',       &
-                          scale_factor=1000.0_r4,                      &
-                          missing_value=undefined_nf_r4/1000.0_r4,     &
-                          fill_value   =undefined_nf_r4/1000.0_r4,     &
+                          scale_factor=1000.0_rtavg,                      &
                           units='gram/gram/s', grid_loc='3112',        &
                           coordinates='TLONG TLAT z_w time' )
 
    call define_tavg_field(tavg_ADV_TRACER(1),'ADVT',2,                     &
                     long_name='Vertically-Integrated T Advection Tendency',&
-                          missing_value=undefined_nf_r4,                   &
                           units='centimeter degC/s', grid_loc='2110',      &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_ADV_TRACER(2),'ADVS',2,                        &
                     long_name='Vertically-Integrated S Advection Tendency',   &
-                          scale_factor=1000.0_r4,                             &
-                          missing_value=undefined_nf_r4/1000.0_r4,            &
-                          fill_value   =undefined_nf_r4/1000.0_r4,            &
+                          scale_factor=1000.0_rtavg,                             &
                           units='centimeter gram/kilogram/s', grid_loc='2110',&
                           coordinates='TLONG TLAT time')
 
@@ -841,7 +822,6 @@
                              long_name='Vertically-Integrated '       /&
                                      &/trim(tracer_d(n)%short_name)   /&
                                      &/' Advection Tendency',          &
-                             missing_value=undefined_nf_r4,            &
                              units=trim(tracer_d(n)%flux_units),       &
                              grid_loc='2110',                          &
                              coordinates='TLONG TLAT time' )
@@ -850,80 +830,66 @@
 
    call define_tavg_field(tavg_PV,'PV',3,                              &
                           long_name='Potential Vorticity',             &
-                          missing_value=undefined_nf_r4,               &
                           units='1/s', grid_loc='3111',                &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_Q,'Q',3,                                &
                         long_name='Static Stability (d(rho(p_r))/dz)', &
-                          missing_value=undefined_nf_r4,               &
                           units='gram/centimeter^4', grid_loc='3111',  &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_PD,'PD',3,                              &
                           long_name='Potential Density Ref to Surface',&
-                          missing_value=undefined_nf_r4,               &
                           units='gram/centimeter^3', grid_loc='3111',  &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_RHOU,'RHOU',3,                          &
                           long_name='U times potential density',       &
-                          missing_value=undefined_nf_r4,               &
                           units='g/cm^2/s', grid_loc='3111',           &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_RHOV,'RHOV',3,                          &
                           long_name='V times potential density',       &
-                          missing_value=undefined_nf_r4,               &
                           units='g/cm^2/s', grid_loc='3111',           &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_URHO,'URHO',3,                          &
                      long_name='flux of pot density across east face', &
-                          missing_value=undefined_nf_r4,               &
                           units='g/cm^2/s', grid_loc='3321')
 
    call define_tavg_field(tavg_VRHO,'VRHO',3,                          &
                     long_name='flux of pot density across north face', &
-                          missing_value=undefined_nf_r4,               &
                           units='g/cm^2/s', grid_loc='3231')
 
    call define_tavg_field(tavg_WRHO,'WRHO',3,                          &
                       long_name='flux of pot density across top face', &
-                          missing_value=undefined_nf_r4,               &
                           units='g/cm^2/s', grid_loc='3112',           &
                           coordinates='TLONG TLAT z_w time' )
 
    call define_tavg_field(tavg_PVWM,'PVWM',3,                          &
                    long_name='flux of pot vorticity through top face', &
-                          missing_value=undefined_nf_r4,               &
                           units='cm/s^2', grid_loc='3112',             &
                           coordinates='TLONG TLAT z_w time' )
 
    call define_tavg_field(tavg_PVWP,'PVWP',3,                          &
                 long_name='flux of pot vorticity through bottom face', &
-                          missing_value=undefined_nf_r4,               &
                           units='cm/s^2', grid_loc='3111',             &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_UPV,'UPV',3,                            &
                   long_name='flux of pot vorticity through east face', &
-                          missing_value=undefined_nf_r4,               &
                           units='cm/s^2', grid_loc='3321')
 
    call define_tavg_field(tavg_VPV,'VPV',3,                            &
                  long_name='flux of pot vorticity through north face', &
-                          missing_value=undefined_nf_r4,               &
                           units='cm/s^2', grid_loc='3231')
 
    call define_tavg_field(tavg_UQ,'UQ',3,                              &
                           long_name='flux of Q through east face',     &
-                          missing_value=undefined_nf_r4,               &
                           units='g/cm^3/s', grid_loc='3321')
 
    call define_tavg_field(tavg_VQ,'VQ',3,                              &
                           long_name='flux of Q through north face',    &
-                          missing_value=undefined_nf_r4,               &
                           units='g/cm^3/s', grid_loc='3231')
 
    call flushm (stdout)

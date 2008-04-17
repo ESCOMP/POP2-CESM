@@ -141,50 +141,42 @@
 
    call define_tavg_field(tavg_SHF, 'SHF', 2,                                &
                           long_name='Total Surface Heat Flux, Including SW', &
-                          missing_value=undefined_nf_r4,                     &
                           units='watt/m^2', grid_loc='2110',                 &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_SHF_QSW, 'SHF_QSW', 2,                        &
                           long_name='Solar Short-Wave Heat Flux',            &
-                          missing_value=undefined_nf_r4,                     &
                           units='watt/m^2', grid_loc='2110',                 &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_SFWF,'SFWF',2,                                   &
                           long_name='Virtual Salt Flux in FW Flux formulation', &
-                          missing_value=undefined_nf_r4,                        &
                           units='kg/m^2/s', grid_loc='2110',                    &
                           coordinates='TLONG TLAT time')
 
 
    call define_tavg_field(tavg_TAUX,'TAUX',2,                         &
                           long_name='Windstress in grid-x direction', &
-                          missing_value=undefined_nf_r4,              &
                           units='dyne/centimeter^2', grid_loc='2220', &
                           coordinates='ULONG ULAT time')
 
    call define_tavg_field(tavg_TAUY,'TAUY',2,                         &
                           long_name='Windstress in grid-y direction', &
-                          missing_value=undefined_nf_r4,              &
                           units='dyne/centimeter^2', grid_loc='2220', &
                           coordinates='ULONG ULAT time')
 
    call define_tavg_field(tavg_FW,'FW',2,                        &
                           long_name='Freshwater Flux',           &
-                          missing_value=undefined_nf_r4,         &
                           units='centimeter/s', grid_loc='2110', &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_TFW_T,'TFW_T',2,                      &
                           long_name='T flux due to freshwater flux', &
-                          missing_value=undefined_nf_r4,             &
                           units='watt/m^2', grid_loc='2110',         &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_TFW_S,'TFW_S',2,                      &
                           long_name='S flux due to freshwater flux (kg of salt/m^2/s)', &
-                          missing_value=undefined_nf_r4,             &
                           units='kg/m^2/s', grid_loc='2110',         &
                           coordinates='TLONG TLAT time')
 

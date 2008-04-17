@@ -107,7 +107,7 @@ contains
       data_1d_ch
 
 
-   real (r4), intent(in)  ::  &
+   real (rtavg), intent(in)  ::  &
       fill_value,             &
       missing_value
 

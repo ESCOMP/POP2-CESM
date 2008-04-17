@@ -53,7 +53,6 @@
    call define_tavg_field(tavg_QFLUX,'QFLUX',2,               &
                           long_name=trim(string),             &
                           tavg_method=tavg_method_qflux,      &
-                          missing_value=undefined_nf_r4,      &
                           units='Watts/meter^2',              &
                           coordinates  ='TLONG TLAT time',    &
                           grid_loc ='2111')

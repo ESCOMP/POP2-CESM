@@ -903,11 +903,11 @@
 !  input variables. the present design assumes that these are 
 !  time-averaged inputs from tavg.F.
 !
-   real (r4), dimension(:,:,:,:), intent(in) ::  &
+   real (rtavg), dimension(:,:,:,:), intent(in) ::  &
       W_E,   &! Eulerian-mean vertical velocity component 
       V_E     ! Eulerian-mean velocity component in the grid-y direction
 
-   real (r4), dimension(:,:,:,:), optional, intent(in) ::  &
+   real (rtavg), dimension(:,:,:,:), optional, intent(in) ::  &
       W_I,   &! Eddy-induced (bolus) vertical velocity component
       V_I     ! Eddy-induced (bolus) velocity component in the
               !  grid-y direction
@@ -1108,7 +1108,7 @@
 !     &           MASK_LAT_DEPTH(n+1,k  ,m) .and.
 !     &           MASK_LAT_DEPTH(n  ,k+1,m) .and.
 !     &           MASK_LAT_DEPTH(n+1,k+1,m) ) 
-!     &          TAVG_MOC_G(n+1,k+1,:,m) = undefined_nf_r4 
+!     &          TAVG_MOC_G(n+1,k+1,:,m) = undefined_nf 
 !            enddo
 !          enddo
 !        enddo
@@ -1122,13 +1122,13 @@
 !     &        TAVG_MOC_G(n+1,1,:,m) = c0
 !            if ( MASK_LAT_DEPTH(n  ,1,m) .and.
 !     &           MASK_LAT_DEPTH(n+1,1,m) )
-!     &        TAVG_MOC_G(n+1,1,:,m) = undefined_nf_r4 
+!     &        TAVG_MOC_G(n+1,1,:,m) = undefined_nf 
 !            if ( MASK_LAT_DEPTH(n  ,km,m) .or.
 !     &           MASK_LAT_DEPTH(n+1,km,m) )
 !     &        TAVG_MOC_G(n+1,km+1,:,m) = c0
 !            if ( MASK_LAT_DEPTH(n  ,km,m) .and.
 !     &           MASK_LAT_DEPTH(n+1,km,m) )
-!     &        TAVG_MOC_G(n+1,km+1,:,m) = undefined_nf_r4 
+!     &        TAVG_MOC_G(n+1,km+1,:,m) = undefined_nf 
 !          enddo
 !        enddo
 !
@@ -1141,15 +1141,15 @@
 !     &        TAVG_MOC_G(1,k+1,:,m) = c0
 !            if ( MASK_LAT_DEPTH(1,k  ,m) .and.
 !     &           MASK_LAT_DEPTH(1,k+1,m) )
-!     &        TAVG_MOC_G(1,k+1,:,m) = undefined_nf_r4
+!     &        TAVG_MOC_G(1,k+1,:,m) = undefined_nf
 !          enddo
 !        enddo
 !
 !        do m=1,n_transport_reg
 !          if ( MASK_LAT_DEPTH(1,1 ,m) )
-!     &      TAVG_MOC_G(1,1   ,:,m) = undefined_nf_r4
+!     &      TAVG_MOC_G(1,1   ,:,m) = undefined_nf
 !          if ( MASK_LAT_DEPTH(1,km,m) )
-!     &      TAVG_MOC_G(1,km+1,:,m) = undefined_nf_r4
+!     &      TAVG_MOC_G(1,km+1,:,m) = undefined_nf
 !        enddo
 !
 !     northern boundary
@@ -1161,15 +1161,15 @@
 !     &        TAVG_MOC_G(n_lat_aux_grid+1,k+1,:,m) = c0
 !            if ( MASK_LAT_DEPTH(n_lat_aux_grid,k  ,m) .and.
 !     &           MASK_LAT_DEPTH(n_lat_aux_grid,k+1,m) )
-!     &        TAVG_MOC_G(n_lat_aux_grid+1,k+1,:,m) = undefined_nf_r4 
+!     &        TAVG_MOC_G(n_lat_aux_grid+1,k+1,:,m) = undefined_nf 
 !          enddo
 !        enddo
 !
 !        do m=1,n_transport_reg
 !          if ( MASK_LAT_DEPTH(n_lat_aux_grid,1 ,m) )
-!     &      TAVG_MOC_G(n_lat_aux_grid+1,1   ,:,m) = undefined_nf_r4 
+!     &      TAVG_MOC_G(n_lat_aux_grid+1,1   ,:,m) = undefined_nf 
 !          if ( MASK_LAT_DEPTH(n_lat_aux_grid,km,m) )
-!     &      TAVG_MOC_G(n_lat_aux_grid+1,km+1,:,m) = undefined_nf_r4 
+!     &      TAVG_MOC_G(n_lat_aux_grid+1,km+1,:,m) = undefined_nf 
 !        enddo
 !
    endif ! master_task
@@ -1201,22 +1201,22 @@
 !  input variables. the present design assumes that these are 
 !  time-averaged inputs from tavg.F.
 
-   real (r4), dimension(:,:,:), intent(in) ::  &
+   real (rtavg), dimension(:,:,:), intent(in) ::  &
       ADV,   &! vertically-integrated tracer (total) advection tendency
       HDIF    ! vertically-integrated horz diff tracer tendency
 
-   real (r4), dimension(:,:,:,:), intent(in) ::  &
+   real (rtavg), dimension(:,:,:,:), intent(in) ::  &
       FN      ! flux of tracer in grid-y direction due to the effective
               !  transport velocity (eulerian-mean + eddy-induced)
 
    integer (int_kind), optional, intent(in) ::  &
       tracer_index    
  
-   real (r4), dimension(:,:,:), optional, intent(in) :: &
+   real (rtavg), dimension(:,:,:), optional, intent(in) :: &
       ADV_I   ! vertically-integrated tracer eddy-induced advection
               !  tendency
 
-   real (r4), dimension(:,:,:,:), optional, intent(in) ::  &
+   real (rtavg), dimension(:,:,:,:), optional, intent(in) ::  &
       FN_I    ! flux of tracer in grid-y direction due to the
               !  eddy-induced velocity
 
@@ -1408,7 +1408,7 @@
 !
 !  mask the transports
 !
-!  - if diag_gm_bolus is false, TR_TRANS_G(:,4,:) is filled with undefined_nf_r4.  
+!  - if diag_gm_bolus is false, TR_TRANS_G(:,4,:) is filled with undefined_nf.  
 !  - because southern boundary diffusive transports are not available,
 !    the total and diffusive transport components are not computed
 !    for regions.  
@@ -1418,18 +1418,18 @@
      do m=1,n_transport_reg
        do n=1,n_lat_aux_grid-1
          if ( MASK_LAT_DEPTH(n  ,1,m) .and. MASK_LAT_DEPTH(n+1,1,m) ) then
-           TR_TRANS_G(n+1,:,m) = undefined_nf_r4
+           TR_TRANS_G(n+1,:,m) = undefined_nf
          endif
        enddo
-       if ( MASK_LAT_DEPTH(1,1,m) ) TR_TRANS_G(1,:,m) = undefined_nf_r4
+       if ( MASK_LAT_DEPTH(1,1,m) ) TR_TRANS_G(1,:,m) = undefined_nf
        if ( MASK_LAT_DEPTH(n_lat_aux_grid,1,m) ) then
-           TR_TRANS_G(n_lat_aux_grid+1,:,m) = undefined_nf_r4
+           TR_TRANS_G(n_lat_aux_grid+1,:,m) = undefined_nf
        endif
      enddo
 
      do m=2,n_transport_reg
-       TR_TRANS_G(:,1,m) = undefined_nf_r4
-       TR_TRANS_G(:,3,m) = undefined_nf_r4
+       TR_TRANS_G(:,1,m) = undefined_nf
+       TR_TRANS_G(:,3,m) = undefined_nf
      enddo
  
      if (tracer_index == 1) TAVG_N_HEAT_TRANS_G = TR_TRANS_G

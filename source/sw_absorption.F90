@@ -447,7 +447,6 @@
 
    call define_tavg_field(tavg_QSW_HTP,'QSW_HTP',2,                    &
                           long_name='Solar Short-Wave Heat Flux in top layer', &
-                          missing_value=undefined_nf_r4,               &
                           units='watt/m^2', grid_loc='2110',           &
                           coordinates='TLONG TLAT time')
 

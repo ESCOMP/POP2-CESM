@@ -904,19 +904,16 @@
 
    call define_tavg_field (tavg_KAPPA_ISOP, 'KAPPA_ISOP', 3,     &
                    long_name='Isopycnal diffusion coefficient',  &
-                   missing_value=undefined_nf_r4,                &
                    units='cm^2/s', grid_loc='3111',              &
                    coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field (tavg_KAPPA_THIC, 'KAPPA_THIC', 3,     &
                    long_name='Thickness diffusion coefficient',  &
-                   missing_value=undefined_nf_r4,                &
                    units='cm^2/s', grid_loc='3111',              &
                    coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field (tavg_HOR_DIFF, 'HOR_DIFF', 3,         &
                    long_name='Horizontal diffusion coefficient', &
-                   missing_value=undefined_nf_r4,                &
                    units='cm^2/s', grid_loc='3111',              &
                    coordinates='TLONG TLAT z_t time')
 
@@ -931,19 +928,16 @@
 
      call define_tavg_field (tavg_DIA_DEPTH, 'DIA_DEPTH', 2,       &
          long_name='Depth of the Diabatic Region at the Surface',  &
-                     missing_value=undefined_nf_r4,                &
                      units='cm', grid_loc='2110',                  &
                      coordinates='TLONG TLAT time')
 
      call define_tavg_field (tavg_TLT, 'TLT', 2,                   &
          long_name='Transition Layer Thickness',                   &
-                     missing_value=undefined_nf_r4,                &
                      units='cm', grid_loc='2110',                  &
                      coordinates='TLONG TLAT time')
 
      call define_tavg_field (tavg_INT_DEPTH, 'INT_DEPTH', 2,       &
          long_name='Depth at which the Interior Region Starts',    &
-                     missing_value=undefined_nf_r4,                &
                      units='cm', grid_loc='2110',                  &
                      coordinates='TLONG TLAT time')
 
@@ -972,45 +966,38 @@
 
      call define_tavg_field (tavg_UISOP, 'UISOP', 3,                &
       long_name='Bolus Velocity in grid-x direction (diagnostic)',  &
-                   missing_value=undefined_nf_r4,                   &
                    units='cm/s', grid_loc='3221',                   &
                    coordinates='TLONG TLAT z_t time')
 
      call define_tavg_field (tavg_VISOP, 'VISOP', 3,                &
       long_name='Bolus Velocity in grid-y direction (diagnostic)',  &
-                   missing_value=undefined_nf_r4,                   &
                    units='cm/s', grid_loc='3221',                   &
                    coordinates='TLONG TLAT z_t time')
 
      call define_tavg_field (tavg_WISOP, 'WISOP', 3,                &
       long_name='Vertical Bolus Velocity (diagnostic)',             &
-                   missing_value=undefined_nf_r4,                   &
                    units='cm/s', grid_loc='3112',                   &
                    coordinates='TLONG TLAT z_t time')
 
      call define_tavg_field (tavg_ADVT_ISOP, 'ADVT_ISOP', 2,                            &
       long_name='Vertically-Integrated T Eddy-Induced Advection Tendency (diagnostic)', &
-                   missing_value=undefined_nf_r4,                                       &
                    units='cm degC/s', grid_loc='2110',                                  &
                    coordinates='TLONG TLAT time')
 
      call define_tavg_field (tavg_ADVS_ISOP, 'ADVS_ISOP', 2,                            &
       long_name='Vertically-Integrated S Eddy-Induced Advection Tendency (diagnostic)', &
-                   missing_value=undefined_nf_r4/1000.0_r4,                             &
-                   scale_factor=1000.0_r4,                                              &
+                   scale_factor=1000.0_rtavg,                                              &
                    units='cm gram/kilogram/s', grid_loc='2110',                         &
                    coordinates='TLONG TLAT time')
 
      call define_tavg_field (tavg_VNT_ISOP, 'VNT_ISOP', 3,                               &
       long_name='Heat Flux Tendency in grid-y Dir due to Eddy-Induced Vel (diagnostic)', &
-                   missing_value=undefined_nf_r4,                                        &
                    units='degC/s', grid_loc='3121',                                      &
                    coordinates='TLONG TLAT z_t time')
 
      call define_tavg_field (tavg_VNS_ISOP, 'VNS_ISOP', 3,                               &
       long_name='Salt Flux Tendency in grid-y Dir due to Eddy-Induced Vel (diagnostic)', &
-                   missing_value=undefined_nf_r4/1000.0_r4,                              &
-                   scale_factor=1000.0_r4,                                               &
+                   scale_factor=1000.0_rtavg,                                               &
                    units='gram/kilogram/s', grid_loc='3121',                             &
                    coordinates='TLONG TLAT z_t time')
 

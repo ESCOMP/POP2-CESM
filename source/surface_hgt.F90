@@ -18,7 +18,7 @@
 !   use distribution, only: 
    use domain_size
    use domain, only: nblocks_clinic, blocks_clinic
-   use constants, only: grav, c0, undefined_nf_r4
+   use constants, only: grav, c0
    use prognostic, only: max_blocks_clinic, PSURF, GRADPX, GRADPY, newtime,  &
        curtime, oldtime
    use forcing_fields, only: FW, FW_OLD
@@ -80,20 +80,17 @@
    call define_tavg_field(tavg_SSH,'SSH',2,                            &
                           long_name='Sea Surface Height',              &
                           units='centimeter', grid_loc='2110',         &
-                          coordinates='TLONG TLAT time',               &
-                          missing_value=undefined_nf_r4)
+                          coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_H2,'H2',2,                              &
                           long_name='SSH**2',                          &
                           units='cm^2', grid_loc='2110',               &
-                          coordinates='TLONG TLAT time',               &
-                          missing_value=undefined_nf_r4)
+                          coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_H3,'H3',2,                              &
                           long_name='(Dx(SSH))**2 + (Dy(SSH))**2',     &
                           units='----', grid_loc='2110',               &
-                          coordinates='TLONG TLAT time',               &
-                          missing_value=undefined_nf_r4)
+                          coordinates='TLONG TLAT time')
 
 !-----------------------------------------------------------------------
 !EOC

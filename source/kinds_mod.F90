@@ -31,6 +31,14 @@
       r4             = selected_real_kind(6)  ,&
       r8             = selected_real_kind(13)
 
+
+   integer, parameter, public ::               &
+#ifdef TAVG_R8
+      rtavg          = r8 ! nonstandard r8 for debugging purposes only
+#else
+      rtavg          = r4 ! standard, single-precision
+#endif
+
 !EOP
 !BOC
 !EOC

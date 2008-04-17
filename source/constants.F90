@@ -58,6 +58,9 @@
       undefined_nf_r4  = NF_FILL_FLOAT,  &
       undefined        = -12345._r4
 
+   real (rtavg), public ::       &
+      undefined_nf
+
    integer (int_kind), parameter, public ::   &
       undefined_nf_int = NF_FILL_INT
 
@@ -194,7 +197,6 @@
    do n=1,char_len
      char_blank(n:n) = ' '
    end do
-
 
 
 !-----------------------------------------------------------------------
@@ -376,6 +378,19 @@
    fwmass_to_fwflux = 0.1_r8
 
 
+!-----------------------------------------------------------------------
+!
+!  support for "stealth option" for r8 tavg fields
+!
+!-----------------------------------------------------------------------
+
+   if (rtavg == r4) then
+      write(6,*) 'rtavg ==> single precision'
+      undefined_nf  = NF_FILL_FLOAT
+   else if (rtavg == r8) then
+      undefined_nf  = NF_FILL_DOUBLE
+      write(6,*) 'rtavg ==> double precision'
+   endif
 
 !EOC
 !-----------------------------------------------------------------------

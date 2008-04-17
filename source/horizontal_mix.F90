@@ -14,12 +14,12 @@
 !
 ! !USES:
 
-   use kinds_mod, only: int_kind, r8, r4, char_len
+   use kinds_mod, only: int_kind, r8, r4, char_len, rtavg
    use blocks, only: nx_block, ny_block, block
    use distribution, only: 
    use domain_size
    use domain, only: nblocks_clinic, distrb_clinic
-   use constants, only: c0, blank_fmt, delim_fmt, ndelim_fmt, undefined_nf_r4
+   use constants, only: c0, blank_fmt, delim_fmt, ndelim_fmt, undefined_nf
    use communicate, only: my_task, master_task
    use time_management, only: km, nt, mix_pass
    use broadcast, only: broadcast_scalar
@@ -265,16 +265,13 @@
 
    call define_tavg_field(tavg_HDIFT,'HDIFT',2,                            &
                     long_name='Vertically Integrated Horz Mix T tendency', &
-                          missing_value=undefined_nf_r4,                   &
                           coordinates='TLONG TLAT time',                   &
                           units='centimeter degC/s', grid_loc='2110')
 
    call define_tavg_field(tavg_HDIFS,'HDIFS',2,                             &
                     long_name='Vertically Integrated Horz Diff S tendency', &
-                          coordinates='TLONG TLAT time',                   &
-                          scale_factor=1000.0_r4,                           &
-                          missing_value=undefined_nf_r4/1000.0_r4,          &
-                          fill_value   =undefined_nf_r4/1000.0_r4,          &
+                          coordinates='TLONG TLAT time',                    &
+                          scale_factor=1000.0_rtavg,                        &
                           units='centimeter gram/gram/s', grid_loc='2110')
 
 !-----------------------------------------------------------------------

@@ -21,8 +21,7 @@
    use domain, only: distrb_clinic, blocks_clinic, nblocks_clinic,  &
        bndy_clinic
    use constants, only: field_type_vector, field_type_scalar,       &
-       grav, c1, c0, field_loc_NEcorner, field_loc_center,          &
-       undefined_nf_r4
+       grav, c1, c0, field_loc_NEcorner, field_loc_center
    use prognostic, only: max_blocks_clinic, GRADPX, GRADPY, UBTROP, VBTROP, &
        PSURF, curtime, oldtime, newtime, PGUESS
    use boundary, only: update_ghost_cells
@@ -137,13 +136,11 @@
 
    call define_tavg_field(tavg_SU,'SU',2,                                   &
             long_name='Vertically Integrated Velocity in grid-x direction', &
-                          missing_value=undefined_nf_r4,                    &
                           units='centimeter^2/s', grid_loc='2221',          &
                           coordinates='ULONG ULAT time')
 
    call define_tavg_field(tavg_SV,'SV',2,                                  &
            long_name='Vertically Integrated Velocity in grid-y direction', &
-                          missing_value=undefined_nf_r4,                   &
                           units='centimeter^2/s', grid_loc='2221',         &
                           coordinates='ULONG ULAT time')
 

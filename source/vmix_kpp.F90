@@ -428,14 +428,12 @@
    string = 'Solar Short-Wave Heat Flux in bndry layer'
    call define_tavg_field(tavg_QSW_HBL,'QSW_HBL',2,           &
                           long_name=trim(string),             &
-                          missing_value=undefined_nf_r4,      &
                           units='watt/m^2', grid_loc='2110',  &
                           coordinates='TLONG TLAT time')
 
    string = 'Vertical Mixing due to Tidal Mixing'
    call define_tavg_field(tavg_KVMIX,'KVMIX',3,               &
                           long_name=trim(string),             &
-                          missing_value=undefined_nf_r4,      &
                           units='centimeter^2/s',             &
                           grid_loc='3112',                    &
                           coordinates  ='TLONG TLAT z_w time' ) 
@@ -443,7 +441,6 @@
    string = 'Energy Used by Vertical Mixing'
    call define_tavg_field(tavg_TPOWER,'TPOWER',3,             &
                           long_name=trim(string),             &
-                          missing_value=undefined_nf_r4,      &
                           units='erg/centimeter^3/s',         &
                           grid_loc='3112',                    &
                           coordinates  ='TLONG TLAT z_w time' ) 
