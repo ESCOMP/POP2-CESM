@@ -351,7 +351,7 @@
    integer (POP_i4) :: &
      ierr                    ! error flag for MPI comms
 
-   integer (POP_i4), dimension(3) :: &
+   integer (POP_i4), dimension(3,1) :: &
      range                   ! range of tasks assigned to new dist
                              !  (assumed 0,num_procs-1)
 
@@ -363,9 +363,9 @@
 
    call MPI_COMM_GROUP (POP_Communicator, MPI_GROUP_OCN, ierr)
 
-   range(1) = 0
-   range(2) = numProcs-1
-   range(3) = 1
+   range(1,1) = 0
+   range(2,1) = numProcs-1
+   range(3,1) = 1
 
 !-----------------------------------------------------------------------
 !
