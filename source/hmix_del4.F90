@@ -14,7 +14,13 @@
 
 ! !USES:
 
-   use kinds_mod
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_FieldMod
+   use POP_GridHorzMod
+   use POP_HaloMod
+   use POP_ReductionsMod
+
    use blocks
    use communicate
    use distribution
@@ -24,8 +30,6 @@
    use grid
    use broadcast
    use io
-   use global_reductions
-   use boundary
    use diagnostics
    use exit_mod
 
@@ -85,7 +89,7 @@
 ! !IROUTINE: init_del4u
 ! !INTERFACE:
 
- subroutine init_del4u
+ subroutine init_del4u(errorCode)
 
 ! !DESCRIPTION:
 !  This routine calculates the coefficients of the 5-point stencils for
@@ -95,6 +99,11 @@
 !
 ! !REVISION HISTORY:
 !  same as module
+!
+! !OUTPUT PARAMETER:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode             ! returned error code
 
 !EOP
 !BOC
@@ -128,6 +137,8 @@
 !  read input namelist to set options
 !
 !-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    lauto_hmix = .false.
    lvariable_hmix = .false.
@@ -212,8 +223,8 @@
          AMF(:,:,iblock) = (UAREA(:,:,iblock)/uarea_equator)**1.5
       end do
 
-      amfmin = global_minval(AMF, distrb_clinic, field_loc_NEcorner, CALCU)
-      amfmax = global_maxval(AMF, distrb_clinic, field_loc_NEcorner, CALCU)
+      amfmin = POP_GlobalMinval(AMF, POP_distrbClinic, errorCode, CALCU)
+      amfmax = POP_GlobalMaxval(AMF, POP_distrbClinic, errorCode, CALCU)
 
       if (my_task == master_task) then
          write(stdout,'(a37)') 'Variable horizontal viscosity enabled'
@@ -221,8 +232,15 @@
               '  Min AMF =',amfmin,'Max AMF =',amfmax
       endif
 
-      call update_ghost_cells(AMF, bndy_clinic, field_loc_NEcorner, &
-                                                field_type_scalar)
+      call POP_HaloUpdate(AMF, POP_haloClinic, POP_gridHorzLocNECorner,&
+                               POP_fieldKindScalar, errorCode,         &
+                               fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_del4u: error updating halo for AMF')
+         return
+      endif
 
    else
 
@@ -345,28 +363,6 @@
 
    end do
 
-   !*** these coefficients need to be valid in the first layer
-   !*** of ghost cells.  as long as two ghost cells are used,
-   !*** and grid values are defined correctly in ghost cells,
-   !*** these should be defined correctly in the first layer
-   !*** and no update required
-   !call update_ghost_cells(DUN, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DUS, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DUE, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DUW, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DUM, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DMC, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DME, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DMN, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-
    DUC = -(DUN + DUS + DUE + DUW)               ! scalar laplacian
    DMW = -DME
    DMS = -DMN
@@ -393,7 +389,7 @@
 ! !IROUTINE: init_del4t
 ! !INTERFACE:
 
- subroutine init_del4t
+ subroutine init_del4t(errorCode)
 
 ! !DESCRIPTION:
 !  This routine reads parameters for biharmonic tracer mixing and
@@ -403,6 +399,11 @@
 !
 ! !REVISION HISTORY:
 !  same as module
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode         ! returned error code
 
 !EOP
 !BOC
@@ -434,6 +435,8 @@
 !  read input namelist to set options
 !
 !-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    lauto_hmix = .false.
    lvariable_hmix = .false.
@@ -518,8 +521,8 @@
          AHF(:,:,iblock) = (TAREA(:,:,iblock)/uarea_equator)**1.5
       end do
 
-      ahfmin = global_minval(AHF, distrb_clinic, field_loc_center, CALCT)
-      ahfmax = global_maxval(AHF, distrb_clinic, field_loc_center, CALCT)
+      ahfmin = POP_GlobalMinval(AHF, POP_distrbClinic, errorCode, CALCT)
+      ahfmax = POP_GlobalMaxval(AHF, POP_distrbClinic, errorCode, CALCT)
 
       if (my_task == master_task) then
          write(stdout,'(a39)') &
@@ -528,8 +531,15 @@
                '  Min AHF =',ahfmin,'Max AHF =',ahfmax
       endif
 
-      call update_ghost_cells(AHF, bndy_clinic, field_loc_center,&
-                                                field_type_scalar)
+      call POP_HaloUpdate(AHF, POP_haloClinic, POP_gridHorzLocCenter, &
+                               POP_fieldKindScalar, errorCode,        &
+                               fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_del4t: error updating halo for AHF')
+         return
+      endif
 
    endif
 
@@ -563,19 +573,6 @@
                         TAREA_R(:,:,iblock)
 
    end do
-
-   !*** these need to be correctly defined in the first layer
-   !*** of ghost cells.  if the grid quantities are defined
-   !*** correctly and the number of ghost cells is set to 2,
-   !*** these should not require a ghost cell update here
-   !call update_ghost_cells(DTN, bndy_clinic, field_loc_t,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DTS, bndy_clinic, field_loc_t,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DTE, bndy_clinic, field_loc_t,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DTW, bndy_clinic, field_loc_t,     &
-   !                                          field_type_scalar)
 
 !-----------------------------------------------------------------------
 !

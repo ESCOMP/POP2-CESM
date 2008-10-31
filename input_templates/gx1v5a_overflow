@@ -1,0 +1,106 @@
+-------------------------------------------------------------------------------------- 1
+                                                                                       2
+  Notes for Overflow Info file: First line total number of overflows. Then follows     3
+  blocks of lines having the same logical structure, one for each overflow. Each       4
+  overflow block starts with the number of the overflow, then a character descriptor.  5
+  The next seven lines are parameters specific to each overflow; note that the order   6
+  is important. Next block is for kmt changes; note, first line should be set to 0     7
+  if there are no kmt changes; each kmt change is i,j, old and new kmt indices. Next   8
+  block gives the inflow, source and entrainment regional average index boundaries,    9
+  after a blank comment line; each line is imin,imax,jmin,jmax,kmin,kmax. Next block  10
+  is the source grid box ijk values and sidewall orientation, with the first line the 11
+  number of boxes, followed by each ijk and orientation value, ordered to increase in 12
+  i or j, whichever is appropriate. Then follows entrainment grid box ijk and orienta-13
+  tion, similar to source, and finally the product grid boxes. Product grid boxes     14
+  have one or more sets ordered by increasing k (i.e. depth), one for each group of   15
+  gridboxes; first the number of product sets, then each set as number, ijk and       16
+  orientation.                                                                        17
+                                  Conventions                                         18
+                                                                                      19
+  Source (src) and entrainment (ent) grid values refer to the grid box that the       20
+  overflows flow INTO; product (prd) grid values refer to the grid box from which     21
+  the overflow flows OUT OF. All indices refer to the POP T-grid. All of the overflow 22
+  grid boxes (i.e. ijk values) are below the bottom topography but have sidewalls     23
+  adjacent to active ocean points from which overflow waters flow from or into.       24
+                                                                                      25
+  Orientation of overflow sidewalls: 1=increasing x direction, 2=increasing y         26
+  direction, 3=decreasing x direction and 4=decreasing y direction. As src,ent always 27
+  flow INTO an overflow gridbox and prd flows OUT, there should be no ambiguity. (!)  28
+  Looking down onto an overflow grid box:                                             29
+                                             2                                        30
+                                          ________                                    31
+                      y ^                |        |                                   32
+                        |               3|   ijk  |1                                  33
+                        +--->            |        |                                   34
+                            x            |________|                                   35
+                                             4                                        36
+                                                                                      37
+  Bruce P. Briegleb  30 October 2008     gx1v5a for DMS+FBC                           38
+                     Single product level input file                                  39
+--------------------------------------------------------------------------------------40
+ 2                              ! Total number of overflows
+ 1  'Denmark Strait'            ! number and name of overflow
+      65.0                      ! latitude of overflow (degrees)
+      4.0E06                    ! width of strait at surface (cm)
+      501.54E02                 ! depth of sill (cm)
+      350.0E02                  ! source water thickness (cm)
+      100.0E05                  ! distance from strait to shelf-slope break (cm)
+      2.8E-2                    ! bottom slope just over shelf-slope break (unitless)
+      2.5E-3                    ! bottom drag coefficient
+      5.5                       ! src to prd transit time (days)
+    3                           ! 3=number of kmt changes
+     19 372 33 32               ! pop up dms src
+     19 371 33 32               ! pop up dms src
+     19 370 33 32               ! pop up dms src
+                                ! regional ijk min and max
+     10  15 360 367 33 33       ! inflow imin=10, imax=15, jmin=360, jmax=367, kmin,max=34
+     20  30 370 372 33 33       ! src imin=20, imax=30, jmin=370, jmax=372, kmin,max=33
+     12  15 363 367 39 39       ! ent imin=12, imax=15, jmin=363, jmax=367, kmin,max=38
+   3                            ! src ijk orientation, 3=#points
+     19 370 33  1               ! i=19, j=370, k=33, 1=increasing x sidewall, etc....
+     19 371 33  1
+     19 372 33  1
+   5                            ! ent ijk orientation, 5=#points
+     16 363 39  3               ! i=16, j=363, kmt=39, 3=decreasing x sidewall, etc....
+     16 364 39  3
+     16 365 39  3
+     16 366 39  3
+     16 367 39  3
+   1                            ! prd ijk orientation, # prd sets
+   5                            ! number prd points (originally set 6)
+     10 359 49  3
+     10 360 49  3
+     10 361 49  3
+     10 362 49  3
+     10 363 49  3
+ 2  'Faroe Bank Channel'        ! number and name of overflow
+      62.55                     ! latitude of overflow (degrees)
+      1.5E06                    ! width of strait at surface (cm)
+      686.15E02                 ! depth of sill (cm)
+      275.0E02                  ! source water thickness (cm)
+      25.0E06                   ! distance from strait to shelf-slope break (cm)
+      2.5E-2                    ! bottom slope just over shelf-slope break (unitless)
+      2.0E-3                    ! bottom drag coefficient
+      4.0                       ! src to prd transit time (days)
+    3                           ! 3=number of kmt changes
+     38 349 38 37               ! pop up fbc src
+     38 350 38 37               ! pop up fbc src
+     38 351 38 37               ! pop up fbc src
+                                ! regional i,j,k min and max
+     25  30 352 357 38 38
+     39  43 351 355 38 38
+     28  31 352 355 40 40
+   3                            ! src ijk orientation, 3=#points
+     38 349 38  1
+     38 350 38  1
+     38 351 38  1
+   4                            ! ent ijk orientation, 3=#points
+     32 352 40  3
+     32 353 40  3
+     32 354 40  3
+     32 355 40  3
+   1                            ! prd ijk orientation, # prd sets
+   3                            ! number prd points (originally set 5)
+     23 350 49  3
+     23 351 49  3
+     23 352 49  3

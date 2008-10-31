@@ -193,7 +193,7 @@
 
    nprocsClinic = POP_CommGetNumProcs(POP_Communicator)
 
-   distrbClinic = POP_DistributionCreate(POP_distributionMethodRake, &
+   distrbClinic = POP_DistributionCreate(POP_distribMethodRake, &
                                          nProcsClinic, &
                                          workPerBlock, errorCode)
 
@@ -1344,6 +1344,1154 @@
    if (icount > 0) then
       call POP_ErrorSet(errorCode, &
          'Halo test: bad results from 4d i4 tripole halo - NE corner')
+   endif
+
+!----------------------------------------------------------------------
+!
+!  test roundoff in symmetry enforcement by doing repeated halo
+!  updates and checking for equivalence
+!  use halo updates at northeast corners
+!
+!----------------------------------------------------------------------
+
+   !*** set expected values in northern halo region and reset land
+   !*** mask
+
+   i4Expect = i4Orig
+   i4Test   = i4Orig 
+   r8Test   = r8Orig 
+
+   do n=1,nBlocksClinic
+
+      call POP_DistributionGetBlockID(distrbClinic, n, blockID, &
+                                      errorCode)
+
+      thisBlock = POP_BlocksGetBlock(blockID, errorCode)
+
+      if (thisBlock%jGlobal(thisBlock%je+1) < 0) then 
+         !*** this block contains the northern boundary
+
+         !*** set halo points
+
+         do j=1,POP_haloWidth
+            jg = POP_nyGlobal - j
+
+            do i=1,POP_nxBlock
+               ig = thisBlock%iGlobal(i)
+               if (ig > 0 .and. ig /= POP_nxGlobal .and. &
+                   ig /= POP_nxGlobal/2) then
+                  i4Expect(i,thisBlock%je+j,n) = i4ArrayG(POP_nxGlobal-ig,jg)
+               else if (ig == POP_nxGlobal/2) then
+                  i4Expect(i,thisBlock%je+j,n) = i4ArrayG(POP_nxGlobal/2,jg)
+               else if (ig == POP_nxGlobal) then
+                  i4Expect(i,thisBlock%je+j,n) = i4ArrayG(POP_nxGlobal,jg)
+               else
+                  i4Expect(i,thisBlock%je+j,n) = 0_POP_i4
+               end if
+            end do
+         end do
+
+         !*** enforce symmetry
+
+         jg = POP_nyGlobal
+
+         do i=1,POP_nxBlock
+            ig = thisBlock%iGlobal(i)
+            if (ig > 0 .and. ig < POP_nxGlobal .and. &
+                ig /= POP_nxGlobal/2) then
+               i4Expect(i,thisBlock%je,n) = 0.5_POP_r8*( &
+                    i4ArrayG(             ig,jg) +       &
+                    i4ArrayG(POP_nxGlobal-ig,jg))
+            else if (ig == POP_nxGlobal .or. &
+                     ig == POP_nxGlobal/2) then
+               i4Expect(i,thisBlock%je,n) = i4ArrayG(ig,jg)
+            else
+               i4Expect(i,thisBlock%je,n) = 0_POP_i4
+            end if
+         end do
+      endif
+   end do
+
+   r8Expect = i4Expect*100.0_POP_r8
+
+   call POP_HaloUpdate(r8Test, haloTripole,            &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue=0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 2d r8 tripole halo')
+   endif
+
+   call POP_HaloUpdate(r8Test, haloTripole,            &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue=0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 2d r8 tripole halo')
+   endif
+
+   if (count(r8Test /= r8Expect) > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 2d r8 tripole halo - roundoff')
+   endif
+
+!----------------------------------------------------------------------
+!
+!  test halo updates for vectors at cell centers
+!
+!----------------------------------------------------------------------
+
+   !*** set expected values in northern halo region and reset land
+   !*** mask
+
+   i4Expect = i4Orig
+   i4Test   = i4Orig 
+   r4Test   = r4Orig 
+   r8Test   = r8Orig 
+
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      r8Test3d(:,:,k,n) = r8Test(:,:,n)*k
+      r4Test3d(:,:,k,n) = r4Test(:,:,n)*k
+      i4Test3d(:,:,k,n) = i4Test(:,:,n)*k
+   end do
+   end do
+
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      r8Test4d(:,:,k,l,n) = r8Test(:,:,n)*k*l
+      r4Test4d(:,:,k,l,n) = r4Test(:,:,n)*k*l
+      i4Test4d(:,:,k,l,n) = i4Test(:,:,n)*k*l
+   end do
+   end do
+   end do
+
+   do n=1,nBlocksClinic
+
+      call POP_DistributionGetBlockID(distrbClinic, n, blockID, &
+                                      errorCode)
+
+      thisBlock = POP_BlocksGetBlock(blockID, errorCode)
+
+      if (thisBlock%jGlobal(thisBlock%je+1) < 0) then 
+         !*** this block contains the northern boundary
+
+         !*** set halo points
+
+         do j=1,POP_haloWidth
+            jg = POP_nyGlobal + 1 - j
+
+            do i=1,POP_nxBlock
+               ig = thisBlock%iGlobal(i)
+               if (ig > 0 .and. ig <= POP_nxGlobal) then
+                  i4Expect(i,thisBlock%je+j,n) = -i4ArrayG(POP_nxGlobal-ig+1,jg)
+               else
+                  i4Expect(i,thisBlock%je+j,n) = 0_POP_i4
+               end if
+            end do
+         end do
+
+      endif
+
+   end do
+
+   r4Expect = i4Expect*10.0_POP_r4
+   r8Expect = i4Expect*100.0_POP_r8
+
+   call POP_HaloUpdate(r8Test, haloTripole,            &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 2d r8 tripole vector')
+   endif
+
+   if (count(r8Test /= r8Expect) > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 2d r8 tripole vector - center')
+   endif
+
+   call POP_HaloUpdate(r4Test, haloTripole,            &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 2d r4 tripole vector')
+   endif
+
+   if (count(r4Test /= r4Expect) > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 2d r4 tripole vector - center')
+   endif
+
+   call POP_HaloUpdate(i4Test, haloTripole,            &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 2d i4 tripole vector')
+   endif
+
+   if (count(i4Test /= i4Expect) > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 2d i4 tripole vector - center')
+   endif
+
+   !*** test 3d arrays
+
+   call POP_HaloUpdate(r8Test3D, haloTripole,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 3d r8 tripole vector at center')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      icount = icount + count(r8Test3D(:,:,k,n) /= r8Expect(:,:,n)*k)
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 3d r8 tripole vector - center')
+   endif
+
+   call POP_HaloUpdate(r4Test3D, haloTripole,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 3d r4 tripole vector at NE corner')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      icount = icount + count(r4Test3D(:,:,k,n) /= r4Expect(:,:,n)*k)
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 3d r4 tripole vector - center')
+   endif
+
+   call POP_HaloUpdate(i4Test3D, haloTripole,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 3d i4 tripole vector at center')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      icount = icount + count(i4Test3D(:,:,k,n) /= i4Expect(:,:,n)*k)
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 3d i4 tripole vector - center')
+   endif
+
+   !*** test 4d arrays
+
+   call POP_HaloUpdate(r8Test4D, haloTripole,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 4d r8 tripole vector at center')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      icount = icount + count(r8Test4D(:,:,k,l,n) /=  & 
+                              r8Expect(:,:,n)*k*l)
+   end do
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 4d r8 tripole vector - center')
+   endif
+
+   call POP_HaloUpdate(r4Test4D, haloTripole,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 4d r4 tripole vector at center')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      icount = icount + count(r4Test4D(:,:,k,l,n) /=  & 
+                              r4Expect(:,:,n)*k*l)
+   end do
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 4d r4 tripole vector - center')
+   endif
+
+   call POP_HaloUpdate(i4Test4D, haloTripole,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 4d i4 tripole vector at center')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      icount = icount + count(i4Test4D(:,:,k,l,n) /=  & 
+                              i4Expect(:,:,n)*k*l)
+   end do
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 4d i4 tripole vector - center')
+   endif
+
+!----------------------------------------------------------------------
+!
+!  test halo updates for vectors at east faces
+!
+!----------------------------------------------------------------------
+
+   !*** set expected values in northern halo region and reset land
+   !*** mask
+
+   i4Expect = i4Orig
+   i4Test   = i4Orig 
+   r4Test   = r4Orig 
+   r8Test   = r8Orig 
+
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      r8Test3d(:,:,k,n) = r8Test(:,:,n)*k
+      r4Test3d(:,:,k,n) = r4Test(:,:,n)*k
+      i4Test3d(:,:,k,n) = i4Test(:,:,n)*k
+   end do
+   end do
+
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      r8Test4d(:,:,k,l,n) = r8Test(:,:,n)*k*l
+      r4Test4d(:,:,k,l,n) = r4Test(:,:,n)*k*l
+      i4Test4d(:,:,k,l,n) = i4Test(:,:,n)*k*l
+   end do
+   end do
+   end do
+
+   do n=1,nBlocksClinic
+
+      call POP_DistributionGetBlockID(distrbClinic, n, blockID, &
+                                      errorCode)
+
+      thisBlock = POP_BlocksGetBlock(blockID, errorCode)
+
+      if (thisBlock%jGlobal(thisBlock%je+1) < 0) then 
+         !*** this block contains the northern boundary
+
+         !*** set halo points
+
+         do j=1,POP_haloWidth
+            jg = POP_nyGlobal + 1 - j
+
+            do i=1,POP_nxBlock
+               ig = thisBlock%iGlobal(i)
+               if (ig > 0 .and. ig < POP_nxGlobal .and. &
+                   ig /= POP_nxGlobal/2) then
+                  i4Expect(i,thisBlock%je+j,n) = -i4ArrayG(POP_nxGlobal-ig,jg)
+               else if (ig == POP_nxGlobal/2) then
+                  i4Expect(i,thisBlock%je+j,n) = -i4ArrayG(POP_nxGlobal/2,jg)
+               else if (ig == POP_nxGlobal) then
+                  i4Expect(i,thisBlock%je+j,n) = -i4ArrayG(POP_nxGlobal,jg)
+               else
+                  i4Expect(i,thisBlock%je+j,n) = 0_POP_i4
+               end if
+            end do
+         end do
+
+      endif
+   end do
+
+   r4Expect = i4Expect*10.0_POP_r4
+   r8Expect = i4Expect*100.0_POP_r8
+
+   call POP_HaloUpdate(r8Test, haloTripole,            &
+                       POP_gridHorzLocEFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 2d r8 tripole vector')
+   endif
+
+   if (count(r8Test /= r8Expect) > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 2d r8 tripole vector - E Face')
+   endif
+
+   call POP_HaloUpdate(r4Test, haloTripole,            &
+                       POP_gridHorzLocEFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 2d r4 tripole vector')
+   endif
+
+   if (count(r4Test /= r4Expect) > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 2d r4 tripole vector - E Face')
+   endif
+
+   call POP_HaloUpdate(i4Test, haloTripole,            &
+                       POP_gridHorzLocEFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 2d i4 tripole vector')
+   endif
+
+   if (count(i4Test /= i4Expect) > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 2d i4 tripole vector - E Face')
+   endif
+
+   !*** test 3d arrays
+
+   call POP_HaloUpdate(r8Test3D, haloTripole,          &
+                       POP_gridHorzLocEFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 3d r8 tripole vector at E Face')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      icount = icount + count(r8Test3D(:,:,k,n) /= r8Expect(:,:,n)*k)
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 3d r8 tripole vector - E Face')
+   endif
+
+   call POP_HaloUpdate(r4Test3D, haloTripole,          &
+                       POP_gridHorzLocEFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 3d r4 tripole vector at E Face')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      icount = icount + count(r4Test3D(:,:,k,n) /= r4Expect(:,:,n)*k)
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 3d r4 tripole vector - E Face')
+   endif
+
+   call POP_HaloUpdate(i4Test3D, haloTripole,          &
+                       POP_gridHorzLocEFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 3d i4 tripole vector at E Face')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      icount = icount + count(i4Test3D(:,:,k,n) /= i4Expect(:,:,n)*k)
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 3d i4 tripole vector - E Face')
+   endif
+
+   !*** test 4d arrays
+
+   call POP_HaloUpdate(r8Test4D, haloTripole,          &
+                       POP_gridHorzLocEFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 4d r8 tripole vector at E Face')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      icount = icount + count(r8Test4D(:,:,k,l,n) /=  & 
+                              r8Expect(:,:,n)*k*l)
+   end do
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 4d r8 tripole vector - E Face')
+   endif
+
+   call POP_HaloUpdate(r4Test4D, haloTripole,          &
+                       POP_gridHorzLocEFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 4d r4 tripole vector at E Face')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      icount = icount + count(r4Test4D(:,:,k,l,n) /=  & 
+                              r4Expect(:,:,n)*k*l)
+   end do
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 4d r4 tripole vector - E Face')
+   endif
+
+   call POP_HaloUpdate(i4Test4D, haloTripole,          &
+                       POP_gridHorzLocEFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 4d i4 tripole vector at E Face')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      icount = icount + count(i4Test4D(:,:,k,l,n) /=  & 
+                              i4Expect(:,:,n)*k*l)
+   end do
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 4d i4 tripole vector - E Face')
+   endif
+
+!----------------------------------------------------------------------
+!
+!  test halo updates for vectors at north faces
+!
+!----------------------------------------------------------------------
+
+   !*** set expected values in northern halo region and reset land
+   !*** mask
+
+   i4Expect = i4Orig
+   i4Test   = i4Orig 
+   r4Test   = r4Orig 
+   r8Test   = r8Orig 
+
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      r8Test3d(:,:,k,n) = r8Test(:,:,n)*k
+      r4Test3d(:,:,k,n) = r4Test(:,:,n)*k
+      i4Test3d(:,:,k,n) = i4Test(:,:,n)*k
+   end do
+   end do
+
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      r8Test4d(:,:,k,l,n) = r8Test(:,:,n)*k*l
+      r4Test4d(:,:,k,l,n) = r4Test(:,:,n)*k*l
+      i4Test4d(:,:,k,l,n) = i4Test(:,:,n)*k*l
+   end do
+   end do
+   end do
+
+   do n=1,nBlocksClinic
+
+      call POP_DistributionGetBlockID(distrbClinic, n, blockID, &
+                                      errorCode)
+
+      thisBlock = POP_BlocksGetBlock(blockID, errorCode)
+
+      if (thisBlock%jGlobal(thisBlock%je+1) < 0) then 
+         !*** this block contains the northern boundary
+
+         !*** set halo points
+
+         do j=1,POP_haloWidth
+            jg = POP_nyGlobal - j
+
+            do i=1,POP_nxBlock
+               ig = thisBlock%iGlobal(i)
+               if (ig > 0 .and. ig <= POP_nxGlobal) then
+                  i4Expect(i,thisBlock%je+j,n) = -i4ArrayG(POP_nxGlobal+1-ig,jg)
+               else
+                  i4Expect(i,thisBlock%je+j,n) = 0_POP_i4
+               end if
+            end do
+         end do
+
+         !*** enforce symmetry
+
+         jg = POP_nyGlobal
+
+         do i=1,POP_nxBlock
+            ig = thisBlock%iGlobal(i)
+            if (ig > 0 .and. ig <= POP_nxGlobal) then
+               i4Expect(i,thisBlock%je,n) = 0.5_POP_r8*( &
+                    i4ArrayG(               ig,jg) +     &
+                    i4ArrayG(POP_nxGlobal+1-ig,jg))
+            else
+               i4Expect(i,thisBlock%je,n) = 0_POP_i4
+            end if
+         end do
+      endif
+   end do
+
+   r4Expect = i4Expect*10.0_POP_r4
+   r8Expect = i4Expect*100.0_POP_r8
+
+   call POP_HaloUpdate(r8Test, haloTripole,            &
+                       POP_gridHorzLocNFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 2d r8 tripole vector')
+   endif
+
+   if (count(r8Test /= r8Expect) > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 2d r8 tripole vector - N Face')
+   endif
+
+   call POP_HaloUpdate(r4Test, haloTripole,            &
+                       POP_gridHorzLocNFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 2d r4 tripole vector')
+   endif
+
+   if (count(r4Test /= r4Expect) > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 2d r4 tripole vector - N Face')
+   endif
+
+   call POP_HaloUpdate(i4Test, haloTripole,            &
+                       POP_gridHorzLocNFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 2d i4 tripole vector')
+   endif
+
+   if (count(i4Test /= i4Expect) > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 2d i4 tripole vector - N Face')
+   endif
+
+   !*** test 3d arrays
+
+   call POP_HaloUpdate(r8Test3D, haloTripole,          &
+                       POP_gridHorzLocNFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 3d r8 tripole vector at N Face')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      icount = icount + count(r8Test3D(:,:,k,n) /= r8Expect(:,:,n)*k)
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 3d r8 tripole vector - N Face')
+   endif
+
+   call POP_HaloUpdate(r4Test3D, haloTripole,          &
+                       POP_gridHorzLocNFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 3d r4 tripole vector at N Face')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      icount = icount + count(r4Test3D(:,:,k,n) /= r4Expect(:,:,n)*k)
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 3d r4 tripole vector - N Face')
+   endif
+
+   call POP_HaloUpdate(i4Test3D, haloTripole,          &
+                       POP_gridHorzLocNFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 3d i4 tripole vector at N Face')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      icount = icount + count(i4Test3D(:,:,k,n) /= i4Expect(:,:,n)*k)
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 3d i4 tripole vector - N Face')
+   endif
+
+   !*** test 4d arrays
+
+   call POP_HaloUpdate(r8Test4D, haloTripole,          &
+                       POP_gridHorzLocNFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 4d r8 tripole vector at N Face')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      icount = icount + count(r8Test4D(:,:,k,l,n) /=  & 
+                              r8Expect(:,:,n)*k*l)
+   end do
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 4d r8 tripole vector - N Face')
+   endif
+
+   call POP_HaloUpdate(r4Test4D, haloTripole,          &
+                       POP_gridHorzLocNFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 4d r4 tripole vector at N Face')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      icount = icount + count(r4Test4D(:,:,k,l,n) /=  & 
+                              r4Expect(:,:,n)*k*l)
+   end do
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 4d r4 tripole vector - N Face')
+   endif
+
+   call POP_HaloUpdate(i4Test4D, haloTripole,          &
+                       POP_gridHorzLocNFace,           &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 4d i4 tripole vector at N Face')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      icount = icount + count(i4Test4D(:,:,k,l,n) /=  & 
+                              i4Expect(:,:,n)*k*l)
+   end do
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 4d i4 tripole vector - N face')
+   endif
+
+!----------------------------------------------------------------------
+!
+!  test halo updates for vectors at northeast corners
+!
+!----------------------------------------------------------------------
+
+   !*** set expected values in northern halo region and reset land
+   !*** mask
+
+   i4Expect = i4Orig
+   i4Test   = i4Orig 
+   r4Test   = r4Orig 
+   r8Test   = r8Orig 
+
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      r8Test3d(:,:,k,n) = r8Test(:,:,n)*k
+      r4Test3d(:,:,k,n) = r4Test(:,:,n)*k
+      i4Test3d(:,:,k,n) = i4Test(:,:,n)*k
+   end do
+   end do
+
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      r8Test4d(:,:,k,l,n) = r8Test(:,:,n)*k*l
+      r4Test4d(:,:,k,l,n) = r4Test(:,:,n)*k*l
+      i4Test4d(:,:,k,l,n) = i4Test(:,:,n)*k*l
+   end do
+   end do
+   end do
+
+   do n=1,nBlocksClinic
+
+      call POP_DistributionGetBlockID(distrbClinic, n, blockID, &
+                                      errorCode)
+
+      thisBlock = POP_BlocksGetBlock(blockID, errorCode)
+
+      if (thisBlock%jGlobal(thisBlock%je+1) < 0) then 
+         !*** this block contains the northern boundary
+
+         !*** set halo points
+
+         do j=1,POP_haloWidth
+            jg = POP_nyGlobal - j
+
+            do i=1,POP_nxBlock
+               ig = thisBlock%iGlobal(i)
+               if (ig > 0 .and. ig < POP_nxGlobal .and. &
+                   ig /= POP_nxGlobal/2) then
+                  i4Expect(i,thisBlock%je+j,n) = -i4ArrayG(POP_nxGlobal-ig,jg)
+               else if (ig == POP_nxGlobal/2) then
+                  i4Expect(i,thisBlock%je+j,n) = -i4ArrayG(POP_nxGlobal/2,jg)
+               else if (ig == POP_nxGlobal) then
+                  i4Expect(i,thisBlock%je+j,n) = -i4ArrayG(POP_nxGlobal,jg)
+               else
+                  i4Expect(i,thisBlock%je+j,n) = 0_POP_i4
+               end if
+            end do
+         end do
+
+         !*** enforce symmetry
+
+         jg = POP_nyGlobal
+
+         do i=1,POP_nxBlock
+            ig = thisBlock%iGlobal(i)
+            if (ig > 0 .and. ig < POP_nxGlobal .and. &
+                ig /= POP_nxGlobal/2) then
+               i4Expect(i,thisBlock%je,n) = 0.5_POP_r8*( &
+                    i4ArrayG(             ig,jg) +       &
+                    i4ArrayG(POP_nxGlobal-ig,jg))
+            else if (ig == POP_nxGlobal .or. &
+                     ig == POP_nxGlobal/2) then
+               i4Expect(i,thisBlock%je,n) = i4ArrayG(ig,jg)
+            else
+               i4Expect(i,thisBlock%je,n) = 0_POP_i4
+            end if
+         end do
+      endif
+   end do
+
+   r4Expect = i4Expect*10.0_POP_r4
+   r8Expect = i4Expect*100.0_POP_r8
+
+   call POP_HaloUpdate(r8Test, haloTripole,            &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 2d r8 tripole vector')
+   endif
+
+   if (count(r8Test /= r8Expect) > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 2d r8 tripole vector - NE Corner')
+   endif
+
+   call POP_HaloUpdate(r4Test, haloTripole,            &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 2d r4 tripole vector')
+   endif
+
+   if (count(r4Test /= r4Expect) > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 2d r4 tripole vector - NE Corner')
+   endif
+
+   call POP_HaloUpdate(i4Test, haloTripole,            &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 2d i4 tripole vector')
+   endif
+
+   if (count(i4Test /= i4Expect) > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 2d i4 tripole vector - NE Corner')
+   endif
+
+   !*** test 3d arrays
+
+   call POP_HaloUpdate(r8Test3D, haloTripole,          &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 3d r8 tripole vector at NE corner')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      icount = icount + count(r8Test3D(:,:,k,n) /= r8Expect(:,:,n)*k)
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 3d r8 tripole vector - NE corner')
+   endif
+
+   call POP_HaloUpdate(r4Test3D, haloTripole,          &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 3d r4 tripole vector at NE corner')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      icount = icount + count(r4Test3D(:,:,k,n) /= r4Expect(:,:,n)*k)
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 3d r4 tripole vector - NE corner')
+   endif
+
+   call POP_HaloUpdate(i4Test3D, haloTripole,          &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 3d i4 tripole vector at NE corner')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do k=1,POP_km
+      icount = icount + count(i4Test3D(:,:,k,n) /= i4Expect(:,:,n)*k)
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 3d i4 tripole vector - NE corner')
+   endif
+
+   !*** test 4d arrays
+
+   call POP_HaloUpdate(r8Test4D, haloTripole,          &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 4d r8 tripole vector at NE corner')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      icount = icount + count(r8Test4D(:,:,k,l,n) /=  & 
+                              r8Expect(:,:,n)*k*l)
+   end do
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 4d r8 tripole vector - NE corner')
+   endif
+
+   call POP_HaloUpdate(r4Test4D, haloTripole,          &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0.0_POP_r4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 4d r4 tripole vector at NE corner')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      icount = icount + count(r4Test4D(:,:,k,l,n) /=  & 
+                              r4Expect(:,:,n)*k*l)
+   end do
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 4d r4 tripole vector - NE corner')
+   endif
+
+   call POP_HaloUpdate(i4Test4D, haloTripole,          &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue=0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: error in 4d i4 tripole vector at NE corner')
+   endif
+
+   icount = 0
+   do n=1,nBlocksClinic
+   do l=1,POP_nt
+   do k=1,POP_km
+      icount = icount + count(i4Test4D(:,:,k,l,n) /=  & 
+                              i4Expect(:,:,n)*k*l)
+   end do
+   end do
+   end do
+
+   if (icount > 0) then
+      call POP_ErrorSet(errorCode, &
+         'Halo test: bad results from 4d i4 tripole vector - NE corner')
    endif
 
 !----------------------------------------------------------------------

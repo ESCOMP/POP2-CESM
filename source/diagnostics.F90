@@ -14,6 +14,10 @@
 !
 ! !USES:
 
+   use POP_KindsMod
+   use POP_IOUnitsMod
+   use POP_SolversMod
+
    use domain
    use constants
    use prognostic
@@ -22,7 +26,6 @@
    use broadcast
    use global_reductions
    use grid
-   use solvers
    use forcing
    use forcing_fields
    use timers
@@ -32,9 +35,11 @@
                    tavg_method_avg, tavg_method_max, tavg_method_min
    use vmix_kpp, only: HMXL, KPP_HBLT
    use registry
-   use shr_sys_mod
    use io_tools
    use gather_scatter
+#ifdef CCSMCOUPLED
+   use shr_sys_mod
+#endif
 
    implicit none
    private
@@ -61,8 +66,10 @@
       ldiag_global,          &! time to compute global diagnostics
       ldiag_cfl,             &! time to compute cfl diagnostics
       ldiag_transport,       &! time to compute transport diagnostics
+      ldiag_velocity,        &! compute velocity diagnostics
       cfl_all_levels,        &! writes cfl  diags for all vert levels
-      diag_all_levels         ! writes some diags for all vert levels
+      diag_all_levels,       &! writes some diags for all vert levels
+      ldiag_system_call       ! controls system calls
 
    !***  arrays for holding various diagnostic results
    !***  public for now as they are modified directly in baroclinic
@@ -243,19 +250,31 @@
 
 !-----------------------------------------------------------------------
 !
-!  velocity diagnostics
+!  solver diagnostics
 !
 !-----------------------------------------------------------------------
 
+   integer (POP_i4) :: &
+      iterationCount    ! current solver iteration count
+
+   real (POP_r8) ::    &
+      rmsResidual       ! mean solver residual
+
+!-----------------------------------------------------------------------
+!
+!  velocity diagnostics
+!
+!-----------------------------------------------------------------------
+ 
    integer (int_kind), parameter ::  &
       num_vel_loc = 5
-
+ 
    integer (int_kind), dimension (num_vel_loc) ::     &
       i_loc, j_loc
-
+ 
    real (r8), dimension (num_vel_loc) ::     &
       vlat_loc, vlon_loc 
-
+ 
 
 
 !EOC
@@ -325,7 +344,8 @@
                              diag_transport_file,                    &
                              diag_all_levels, cfl_all_levels,        &
                              diag_outfile, diag_transport_outfile,   &
-                             diag_velocity_outfile
+                             diag_velocity_outfile,                  &
+                             ldiag_velocity, ldiag_system_call
 
    type (block) ::         &
       this_block           ! block information for current block
@@ -360,7 +380,7 @@
 
    real (r8), parameter, dimension (num_vel_loc) ::     &
       lon_loc = (/ 220.0_r8, 220.0_r8, 335.0_r8, 335.0_r8, 250.0_r8 /)
-
+ 
    real (r8), parameter, dimension (num_vel_loc) ::     &
       lat_loc = (/   0.0_r8,   2.0_r8,   0.0_r8,   2.0_r8,   0.0_r8 /)
 
@@ -389,6 +409,8 @@
    diag_transport_outfile = 'unknown_transport_outfile'
    diag_all_levels        = .false.
    cfl_all_levels         = .false.
+   ldiag_velocity         = .false.
+   ldiag_system_call      = .false.
    diag_velocity_outfile  = 'unknown_velocity_outfile'
 
    if (my_task == master_task) then
@@ -599,6 +621,8 @@
    call broadcast_scalar(diag_transp_freq,      master_task)
    call broadcast_scalar(diag_all_levels,       master_task)
    call broadcast_scalar(cfl_all_levels,        master_task)
+   call broadcast_scalar(ldiag_velocity,        master_task)
+   call broadcast_scalar(ldiag_system_call,     master_task)
 
    if (diag_global_freq_iopt == -1000) then
       call exit_POP(sigAbort, &
@@ -612,6 +636,8 @@
       call exit_POP(sigAbort, &
                     'ERROR: unknown transport diag frequency option')
    endif
+
+   if (ldiag_system_call) call register_string('ldiag_system_call')
 
 !-----------------------------------------------------------------------
 !
@@ -858,52 +884,53 @@
 !  find global i,j indices close to specified lat,lon points
 !
 !-----------------------------------------------------------------------
-
+ 
+  if (ldiag_velocity) then
 
    j_loc = search_error
    i_loc = search_error
-
+ 
    allocate (ULAT_G(nx_global,ny_global), ULON_G(nx_global,ny_global))
    allocate (REGION_MASK_G(nx_global,ny_global))
-
+ 
    WORK=ULON*radian
    call gather_global(ULON_G,WORK,master_task,distrb_clinic)
- 
+  
    WORK=ULAT*radian
    call gather_global(ULAT_G,WORK,master_task,distrb_clinic)
-
+ 
    call gather_global(REGION_MASK_G,REGION_MASK,master_task,distrb_clinic)
-
+ 
    diag_vel_search_reach = c0
    diag_vel_search_inc   = 0.1_r8
    diag_vel_search_max   = 10
- 
+  
    if (my_task == master_task) then
-
+ 
    do nloc = 1, num_vel_loc
 
      min_distance  = c10
      lat_reach = diag_vel_search_reach 
      lon_reach = diag_vel_search_reach 
-
+ 
      reach_loop: do nreach = 1,diag_vel_search_max
-
+ 
        lat_reach = lat_reach + diag_vel_search_inc
        lon_reach = lon_reach + diag_vel_search_inc
-
-
+ 
+ 
        do j=1,ny_global
        do i=1,nx_global
-
+ 
          if (   (lat_loc(nloc) - lat_reach <= ULAT_G(i,j) )   .and.  &
                 (lat_loc(nloc) + lat_reach >= ULAT_G(i,j) )   .and.  &
                 (lon_loc(nloc) - lon_reach <= ULON_G(i,j) )   .and.  &
                 (lon_loc(nloc) + lon_reach >= ULON_G(i,j) ) ) then
-
+ 
                !-----------------------------------------------------
                ! accept point only if it is an ocean point
                !-----------------------------------------------------
-
+ 
                !---------------------------------------------------------
                !*** note that REGION_MASK_G is on the t-grid; should test
                !***  on the u-grid
@@ -943,7 +970,8 @@
                 '(',   i_loc(nloc), ',',   j_loc(nloc),')',   &
                 '(',vlat_loc(nloc), ',',vlon_loc(nloc),')'
    enddo
-   call shr_sys_flush(stdout)
+   call POP_IOUnitsFlush(POP_stdout)
+   call POP_IOUnitsFlush(stdout) ! temporary
 
    endif
  
@@ -957,7 +985,7 @@
 
    deallocate (ULAT_G, ULON_G)
    deallocate (REGION_MASK_G)
-
+  endif !ldiag_velocity
 
 
 
@@ -1388,6 +1416,9 @@
 !
 !-----------------------------------------------------------------------
 
+   integer (POP_i4) :: &
+      errorCode         ! returned error code
+
    integer (int_kind) :: &
       i, k,              & ! horiz, vertical level index
       n ,                & ! tracer index
@@ -1575,6 +1606,15 @@
       sfc_tracer_flux(2) = sfc_tracer_flux(2)/salinity_factor ! FW flux
 
 !-----------------------------------------------------------------------
+!
+!     retrieve solver diagnostics
+!
+!-----------------------------------------------------------------------
+
+      call POP_SolversGetDiagnostics(iterationCount, rmsResidual, &
+                                     errorCode)
+
+!-----------------------------------------------------------------------
 
    endif ! ldiag_global
 
@@ -1712,7 +1752,7 @@
          write(stdout,'(a24,1pe22.15)') ' global mean sea level: ', &
                                           diag_sealevel
          write(stdout,'(a19,1pe22.15,2x,i4)') ' residual, scans : ', &
-                                          rms_residual, solv_sum_iters
+                                          rmsResidual, iterationCount
 
 !-----------------------------------------------------------------------
 !
@@ -1739,9 +1779,9 @@
          diag_name = 'mean sea level'
          write(diag_unit,diag_fmt) tday, diag_sealevel, diag_name
          diag_name = 'solver residual'
-         write(diag_unit,diag_fmt) tday, rms_residual, diag_name
+         write(diag_unit,diag_fmt) tday, rmsResidual, diag_name
          diag_name = 'solver iterations'
-         write(diag_unit,diag_fmt) tday, real(solv_sum_iters), diag_name
+         write(diag_unit,diag_fmt) tday, real(iterationCount), diag_name
 
          do n=1,nt
             write(diag_name,'(a7,i3,a11)') 'Tracer ',n,' change avg'
@@ -1790,20 +1830,21 @@
 
          close(diag_unit)
          
-         if (lccsm) then ! conform to CCSM output file-naming conventions
+         if (lccsm .and. ldiag_system_call) then ! conform to CCSM output file-naming conventions
             call ccsm_date_stamp (ccsm_diag_date, 'ymds')
  
             diag_outfile_old = trim(diag_outfile)
             diag_outfile = trim(diag_outfile_root)//'.'//ccsm_diag_date
  
             string = 'mv '//trim(diag_outfile_old)//' '//trim(diag_outfile)
+#ifdef CCSMCOUPLED
             call shr_sys_system (trim(string), ier)
+#endif
          endif ! lccsm
 
          endif ! master_task
 
       call timer_print_all()
-
       call document ('diag_print', 'file written: '// trim(diag_outfile))
 
 
@@ -2054,14 +2095,16 @@
 
       if (my_task == master_task) then
         close(trans_unit)
-        if (lccsm) then
+        if (lccsm .and. ldiag_system_call) then
            call ccsm_date_stamp (ccsm_diag_date, 'ymds')
            diag_transport_outfile_old = trim(diag_transport_outfile)
            diag_transport_outfile =  &
            trim(diag_transport_outfile_root)//'.'//ccsm_diag_date
            string =  &
            'mv '//trim(diag_transport_outfile_old)//' '//trim(diag_transport_outfile)
+#ifdef CCSMCOUPLED
            call shr_sys_system (trim(string), ier)
+#endif
         endif ! lccsm
       endif ! master_task
       call document ('diag_transport', 'file written: '//trim(diag_transport_outfile))
@@ -2639,15 +2682,19 @@
 
        close (velocity_unit)
 
-       call ccsm_date_stamp (ccsm_diag_date, 'ymds')
+       if (ldiag_system_call) then
+         call ccsm_date_stamp (ccsm_diag_date, 'ymds')
 
-       diag_velocity_outfile_old = trim(diag_velocity_outfile)
-       diag_velocity_outfile = trim(diag_velocity_outfile_root) &
-                               //'.'//trim(ccsm_diag_date)
+         diag_velocity_outfile_old = trim(diag_velocity_outfile)
+         diag_velocity_outfile = trim(diag_velocity_outfile_root) &
+                                 //'.'//trim(ccsm_diag_date)
 
-       string = 'mv '//trim(diag_velocity_outfile_old) &
-              //' '//trim(diag_velocity_outfile)
-       call shr_sys_system (trim(string), ier)
+         string = 'mv '//trim(diag_velocity_outfile_old) &
+                //' '//trim(diag_velocity_outfile)
+#ifdef CCSMCOUPLED
+         call shr_sys_system (trim(string), ier)
+#endif
+       endif ! ldiag_system_call
 
      endif 
 

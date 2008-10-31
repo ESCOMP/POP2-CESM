@@ -16,6 +16,9 @@
 !
 ! !USES:
 
+   use POP_KindsMod
+   use POP_IOUnitsMod
+
    use kinds_mod
    use domain_size
    use domain
@@ -29,7 +32,9 @@
    use constants
    use registry
    use timers
+#ifdef CCSMCOUPLED
    use shr_sys_mod
+#endif
 
    implicit none
    private
@@ -142,7 +147,6 @@
 ! !REVISION HISTORY:
 !  same as module
 
- 
 !EOP
 !BOC
  
@@ -345,8 +349,13 @@
      if (n_heat_trans) write (stdout,'(a)') 'N_HEAT'
      if (n_salt_trans) write (stdout,'(a)') 'N_SALT'
      write (stdout,*)
+#ifdef CCSMCOUPLED
      call shr_sys_flush (stdout)
+#endif
+     call POP_IOUnitsFlush(POP_stdout)
    endif
+ 
+
  
 !-----------------------------------------------------------------------
 !
@@ -360,14 +369,6 @@
        call exit_POP (SigAbort,'(init_lat_aux_grid): '// trim(string))
    endif
  
-!-----------------------------------------------------------------------
-!
-!  if transport diagnostics are not activated, return
-!
-!-----------------------------------------------------------------------
-
-   if (.not. (moc .or. n_heat_trans .or. n_salt_trans)) RETURN
-
  
 !-----------------------------------------------------------------------
 !
@@ -682,7 +683,10 @@
                           transport_region_info(nrtr)%number 
      enddo
 1000    format (2x, a35, '(',i2,')')
+#ifdef CCSMCOUPLED
      call shr_sys_flush (stdout)
+#endif
+     call POP_IOUnitsFlush(POP_stdout)
    endif
 
    endif  ! n_transport_reg > 1
@@ -803,16 +807,19 @@
    if ( moc ) then
 !-----------------------------------------------------------------------
 !
-!  MOC may have 2 components:
+!  MOC may have 3 components:
 !
 !    n_moc_comp = 1 ----> Eulerian-mean
 !    n_moc_comp = 2 ----> Eddy-induced (bolus) if diag_gm_bolus is true 
 !                          and GM is on
+!    n_moc_comp = 3 ----> Submesoscale contribution if GM is on and
+!                          submesoscale_mixing is true
 !
 !-----------------------------------------------------------------------
 
      n_moc_comp = 1
      if ( registry_match('diag_gm_bolus') )  n_moc_comp = 2
+     if ( registry_match('init_submeso') )   n_moc_comp = 3
 
 !-----------------------------------------------------------------------
 !
@@ -828,32 +835,34 @@
 
 !-----------------------------------------------------------------------  
 !
-!  T and S transports may have 4 components: 
+!  T and S transports may have 5 components: 
 !
-!(1) n_transport_comp = 1 ----> total [i.e. (2) + (3) ]
+!(1) n_transport_comp = 1 ----> total [i.e. (2) + (3)]
 !
-!(2) n_transport_comp = 2 ----> total advection if diag_gm_bolus is true 
-!                               and GM is on
-!                                           OR
-!                               Eulerian-mean advection if diag_gm_bolus 
-!                               is false or GM is not on
+!(2) n_transport_comp = 2 ----> Eulerian-mean advection
 !
 !(3) n_transport_comp = 3 ----> Eddy-induced advection plus diffusion
-!                               if diag_gm_bolus is false and GM is on
+!                               if GM is on
 !                                              OR
-!                               diffusion if diag_gm_bolus is true and 
-!                               GM is on
+!                               Eddy-induced advection plus submesoscale advection
+!                               plus diffusion if GM is on and 
+!                               submesoscale_mixing is true
 !                                              OR
 !                               diffusion if hmix_tracer_choice is not GM
 !
 !(4) n_transport_comp = 4 ----> Eddy-induced advection if diag_gm_bolus
-!                              is true and GM is on
+!                               is true and GM is on (diagnostic computation)
+!
+!(5) n_transport_comp = 5 ----> Submesoscale advection if GM is on and
+!                               submesoscale_mixing is true (diagnostic
+!                               computation)
 !
 !-----------------------------------------------------------------------
 
    if ( n_heat_trans .or. n_salt_trans ) then
      n_transport_comp = 3
      if ( registry_match('diag_gm_bolus') )  n_transport_comp = 4
+     if ( registry_match('init_submeso') )   n_transport_comp = 5
    endif
 
 !-----------------------------------------------------------------------
@@ -891,7 +900,7 @@
 !BOP
 ! !IROUTINE: compute_moc
 ! !INTERFACE:
- subroutine compute_moc ( W_E, V_E, W_I, V_I )
+ subroutine compute_moc ( W_E, V_E, W_I, V_I, W_SM, V_SM )
 
 ! !DESCRIPTION:
 ! This subroutine computes meridional overturning circulation
@@ -904,13 +913,15 @@
 !  time-averaged inputs from tavg.F.
 !
    real (rtavg), dimension(:,:,:,:), intent(in) ::  &
-      W_E,   &! Eulerian-mean vertical velocity component 
-      V_E     ! Eulerian-mean velocity component in the grid-y direction
+      W_E,    &! Eulerian-mean vertical velocity component 
+      V_E      ! Eulerian-mean velocity component in the grid-y direction
 
    real (rtavg), dimension(:,:,:,:), optional, intent(in) ::  &
-      W_I,   &! Eddy-induced (bolus) vertical velocity component
-      V_I     ! Eddy-induced (bolus) velocity component in the
-              !  grid-y direction
+      W_I,    &! Eddy-induced (bolus) vertical velocity component
+      V_I,    &! Eddy-induced (bolus) velocity component in the
+               !  grid-y direction
+      W_SM,   &! Submeso vertical velocity component
+      V_SM     ! Submeso velocity component in the grid-y direction
 
 !EOP
 !BOC
@@ -930,10 +941,11 @@
       WORK1, WORK2              ! work arrays
 
    real (r8), dimension(:,:,:), allocatable ::  &
-      WORK1_G, WORK2_G          ! global work arrays
+      WORK1_G, WORK2_G, WORK3_G ! global work arrays
 
    logical (log_kind) ::  &
-      ldiag_gm_bolus            ! local logical for diag_gm_bolus
+      ldiag_gm_bolus,     &     ! local logical for diag_gm_bolus
+      lsubmeso                  ! local logical for submesoscale_mixing
 
    if (.not. moc) return
 
@@ -944,8 +956,18 @@
                 // ' transport computations, but one is missing.')
    endif
 
+   if ( (      present(W_SM) .and. .not.present(V_SM))  .or.  &
+        ( .not.present(W_SM) .and.      present(V_SM)) ) then
+     call exit_POP (SigAbort,'(compute_moc) both W_SM and V_SM'   &
+                // ' are necessary fields for the submeso' &
+                // ' transport computations, but one is missing.')
+   endif
+
    ldiag_gm_bolus = .false.
    if ( present(W_I) )  ldiag_gm_bolus = .true.
+ 
+   lsubmeso = .false.
+   if ( present(W_SM) )  lsubmeso = .true.
  
    call timer_start (timer_moc)
 
@@ -955,6 +977,7 @@
    allocate ( WORK1_G(nx_global,ny_global,km) )
 
    if ( ldiag_gm_bolus ) allocate ( WORK2_G(nx_global,ny_global,km) )
+   if ( lsubmeso )       allocate ( WORK3_G(nx_global,ny_global,km) )
 
    do k=1,km
     !$OMP PARALLEL DO PRIVATE(iblock,k)
@@ -973,6 +996,16 @@
        !$OMP END PARALLEL DO
        call gather_global (WORK2_G(:,:,k), WORK1, master_task,distrb_clinic)
      endif
+
+     if ( lsubmeso ) then
+       !$OMP PARALLEL DO PRIVATE(iblock,k)
+        do iblock = 1,nblocks_clinic
+          WORK1(:,:,iblock) = merge(W_SM(:,:,k,iblock)*TAREA(:,:,iblock), c0, k <= KMT(:,:,iblock))
+        enddo
+       !$OMP END PARALLEL DO
+       call gather_global (WORK3_G(:,:,k), WORK1, master_task,distrb_clinic)
+     endif
+
    enddo
 
    if ( my_task == master_task )  then
@@ -995,6 +1028,11 @@
                   TAVG_MOC_G(n,k,2,m)=TAVG_MOC_G(n,k,2,m)+WORK2_G(i,j,k)
                  enddo
                 endif 
+                if ( lsubmeso ) then
+                 do k=1,km
+                  TAVG_MOC_G(n,k,3,m)=TAVG_MOC_G(n,k,3,m)+WORK3_G(i,j,k)
+                 enddo
+                endif
              endif
            enddo ! m
           endif ! n
@@ -1005,7 +1043,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  determine the southern boundary transports for all regional moc's 
+!  determine the southern boundary transports for all regional mocs 
 !
 !-----------------------------------------------------------------------
 
@@ -1037,6 +1075,17 @@
        call gather_global (WORK2_G(:,:,k), WORK1, master_task,distrb_clinic)
      enddo
    endif
+
+   if ( lsubmeso ) then
+     do k=1,km
+       !$OMP PARALLEL DO PRIVATE(iblock,k)
+        do iblock = 1,nblocks_clinic
+          WORK1(:,:,iblock) = V_SM(:,:,k,iblock) * HTN(:,:,iblock)
+        enddo ! iblock
+       !$OMP END PARALLEL DO
+       call gather_global (WORK3_G(:,:,k), WORK1, master_task,distrb_clinic)
+     enddo
+   endif
        
    if ( my_task == master_task ) then
      do m=2,n_transport_reg
@@ -1051,6 +1100,11 @@
                moc_s(k,2,m) = moc_s(k,2,m) + WORK2_G(i,j,k)
              enddo ! k
            endif 
+           if ( lsubmeso ) then
+             do k=1,km
+               moc_s(k,3,m) = moc_s(k,3,m) + WORK3_G(i,j,k)
+             enddo ! k
+           endif
          endif ! REGION_MASK_LAT_AUX
        enddo ! i
      enddo ! m
@@ -1063,7 +1117,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  add the southern boundary transports for all regional moc's 
+!  add the southern boundary transports for all regional mocs 
 !
 !-----------------------------------------------------------------------
 
@@ -1073,9 +1127,14 @@
            TAVG_MOC_G(n,k,1,m) = TAVG_MOC_G(n,k,1,m) + moc_s(k,1,m)
          enddo
          if ( ldiag_gm_bolus ) then
-         do n=1,n_lat_aux_grid+1
+           do n=1,n_lat_aux_grid+1
              TAVG_MOC_G(n,k,2,m) = TAVG_MOC_G(n,k,2,m) + moc_s(k,2,m) 
-         enddo
+           enddo
+         endif
+         if ( lsubmeso ) then
+           do n=1,n_lat_aux_grid+1
+             TAVG_MOC_G(n,k,3,m) = TAVG_MOC_G(n,k,3,m) + moc_s(k,3,m)
+           enddo
          endif
        enddo
      enddo
@@ -1178,6 +1237,7 @@
    deallocate ( WORK1, WORK2, WORK1_G )
 
    if ( ldiag_gm_bolus )  deallocate ( WORK2_G )
+   if ( lsubmeso )        deallocate ( WORK3_G )
 
    call timer_stop  (timer_moc)
 
@@ -1190,7 +1250,7 @@
 ! !IROUTINE: compute_tracer_transports
 ! !INTERFACE:
  subroutine compute_tracer_transports (tracer_index, ADV, HDIF, FN, &
-                                       ADV_I, FN_I ) 
+                                       ADV_I, FN_I, ADV_SM, FN_SM ) 
 ! !DESCRIPTION
 !  This subroutine computes northward tracer (T and S) transports 
 !
@@ -1202,24 +1262,29 @@
 !  time-averaged inputs from tavg.F.
 
    real (rtavg), dimension(:,:,:), intent(in) ::  &
-      ADV,   &! vertically-integrated tracer (total) advection tendency
-      HDIF    ! vertically-integrated horz diff tracer tendency
+      ADV,    &! vertically-integrated tracer Eulerian-mean advection tendency
+      HDIF     ! vertically-integrated horz diff tracer tendency (when GM
+               !  and submesoscale mixing are on, it includes eddy-induced and
+               !  submeso velocity contributions, respectively)
 
    real (rtavg), dimension(:,:,:,:), intent(in) ::  &
-      FN      ! flux of tracer in grid-y direction due to the effective
-              !  transport velocity (eulerian-mean + eddy-induced)
+      FN       ! flux of tracer in grid-y direction due to the Eulerian-mean 
+               !  transport velocity
 
    integer (int_kind), optional, intent(in) ::  &
       tracer_index    
  
    real (rtavg), dimension(:,:,:), optional, intent(in) :: &
-      ADV_I   ! vertically-integrated tracer eddy-induced advection
-              !  tendency
+      ADV_I,  &! vertically-integrated tracer eddy-induced advection
+               !  tendency (diagnostic)
+      ADV_SM   ! vertically-integrated tracer submeso advection tendency
+               !  (diagnostic)
 
    real (rtavg), dimension(:,:,:,:), optional, intent(in) ::  &
-      FN_I    ! flux of tracer in grid-y direction due to the
-              !  eddy-induced velocity
-
+      FN_I,   &! flux of tracer in grid-y direction due to the
+               !  eddy-induced velocity (diagnostic)
+      FN_SM    ! flux of tracer in grid-y direction due to the 
+               !  submeso velocity (diagnostic)
 
 !EOP
 !BOC
@@ -1238,10 +1303,11 @@
       WORK1                    ! work arrays
    real (r8), dimension(:,:), allocatable ::  & 
       WORK1_G, WORK2_G,       &! global work arrays
-      WORK3_G
+      WORK3_G, WORK4_G
 
    logical (log_kind) ::  &
-      ldiag_gm_bolus           ! local logical for diag_gm_bolus
+      ldiag_gm_bolus,     &    ! local logical for diag_gm_bolus
+      lsubmeso                 ! local logical for submesoscale_mixing
 
 !-----------------------------------------------------------------------
 !
@@ -1271,8 +1337,18 @@
          // ' the related transport computations, but one is missing.')
    endif  
 
+   if ( (     present(ADV_SM) .and. .not.present(FN_SM))  .or.  &
+        (.not.present(ADV_SM) .and.      present(FN_SM)) ) then
+        call exit_POP (SigAbort,'(compute_tracer_transports)'   &
+         // ' both ADV_SM and FN_SM are necessary fields for'     &
+         // ' the related transport computations, but one is missing.')
+   endif
+
    ldiag_gm_bolus = .false.
    if ( present(ADV_I) )  ldiag_gm_bolus = .true.
+ 
+   lsubmeso = .false.
+   if ( present(ADV_SM) ) lsubmeso = .true.
  
    call timer_start (timer_tracer_transports)
 
@@ -1288,12 +1364,12 @@
    allocate ( WORK1_G(nx_global,ny_global), WORK2_G(nx_global,ny_global) )
 
    do iblock = 1,nblocks_clinic
-   WORK1(:,:,iblock) = - ADV(:,:,iblock) * TAREA(:,:,iblock)
+     WORK1(:,:,iblock) = - ADV(:,:,iblock) * TAREA(:,:,iblock)
    enddo
    call gather_global (WORK1_G, WORK1, master_task,distrb_clinic)
 
    do iblock = 1,nblocks_clinic
-   WORK1(:,:,iblock) = - HDIF(:,:,iblock) * TAREA(:,:,iblock)
+     WORK1(:,:,iblock) = - HDIF(:,:,iblock) * TAREA(:,:,iblock)
    enddo
    call gather_global (WORK2_G, WORK1, master_task,distrb_clinic)
 
@@ -1301,11 +1377,19 @@
      allocate ( WORK3_G(nx_global,ny_global) )
 
      do iblock = 1,nblocks_clinic
-     WORK1(:,:,iblock) = - ADV_I(:,:,iblock) * TAREA(:,:,iblock)
+       WORK1(:,:,iblock) = - ADV_I(:,:,iblock) * TAREA(:,:,iblock)
      enddo
      call gather_global (WORK3_G, WORK1, master_task,distrb_clinic)
    endif
 
+   if ( lsubmeso ) then
+     allocate ( WORK4_G(nx_global,ny_global) )
+
+     do iblock = 1,nblocks_clinic
+       WORK1(:,:,iblock) = - ADV_SM(:,:,iblock) * TAREA(:,:,iblock)
+     enddo
+     call gather_global (WORK4_G, WORK1, master_task,distrb_clinic)
+   endif
      
    if ( my_task == master_task ) then
 
@@ -1326,6 +1410,9 @@
                  TR_TRANS_G(n,3,m) = TR_TRANS_G(n,3,m) + WORK2_G(i,j)
                  if ( ldiag_gm_bolus ) then
                    TR_TRANS_G(n,4,m) = TR_TRANS_G(n,4,m) + WORK3_G(i,j)
+                 endif
+                 if ( lsubmeso ) then
+                   TR_TRANS_G(n,5,m) = TR_TRANS_G(n,5,m) + WORK4_G(i,j)
                  endif
                endif
              endif
@@ -1360,7 +1447,16 @@
        WORK1(:,:,iblock) = FN_I(:,:,k,iblock) * TAREA(:,:,iblock) * dz(k)
      enddo
     !$OMP END PARALLEL DO
-       call gather_global (WORK2_G, WORK1, master_task,distrb_clinic)
+       call gather_global (WORK3_G, WORK1, master_task,distrb_clinic)
+     endif
+
+     if ( lsubmeso ) then
+    !$OMP PARALLEL DO PRIVATE(iblock,k)
+     do iblock = 1,nblocks_clinic
+       WORK1(:,:,iblock) = FN_SM(:,:,k,iblock) * TAREA(:,:,iblock) * dz(k)
+     enddo
+    !$OMP END PARALLEL DO
+       call gather_global (WORK4_G, WORK1, master_task,distrb_clinic)
      endif
 
      if ( my_task == master_task ) then
@@ -1371,7 +1467,9 @@
            if ( REGION_MASK_LAT_AUX(i,j+1,m) == 1 ) then
              trans_s(2,m) = trans_s(2,m) + WORK1_G(i,j)
              if ( ldiag_gm_bolus ) trans_s(4,m) = trans_s(4,m)  &
-                                                 + WORK2_G(i,j)
+                                                 + WORK3_G(i,j)
+             if ( lsubmeso )       trans_s(5,m) = trans_s(5,m)  &
+                                                 + WORK4_G(i,j)
            endif
          enddo
        enddo
@@ -1393,6 +1491,8 @@
          TR_TRANS_G(n,2,m) = TR_TRANS_G(n,2,m) + trans_s(2,m) 
          if ( ldiag_gm_bolus )   TR_TRANS_G(n,4,m) = TR_TRANS_G(n,4,m) &
                                                     + trans_s(4,m)
+         if ( lsubmeso )         TR_TRANS_G(n,5,m) = TR_TRANS_G(n,5,m) &
+                                                    + trans_s(5,m)
        enddo
      enddo
 
@@ -1408,7 +1508,7 @@
 !
 !  mask the transports
 !
-!  - if diag_gm_bolus is false, TR_TRANS_G(:,4,:) is filled with undefined_nf.  
+!  - any missing component is filled with undefined_nf.  
 !  - because southern boundary diffusive transports are not available,
 !    the total and diffusive transport components are not computed
 !    for regions.  
@@ -1439,6 +1539,7 @@
  
    deallocate ( WORK1, WORK1_G, WORK2_G)
    if ( ldiag_gm_bolus )  deallocate ( WORK3_G )
+   if ( lsubmeso )        deallocate ( WORK4_G )
  
    call timer_stop (timer_tracer_transports)
 

@@ -40,7 +40,8 @@
               POP_CommExitMessageEnvironment,  &
               POP_CommAbortMessageEnvironment, &
               POP_CommGetNumProcs,             &
-              POP_CommCreateCommunicator
+              POP_CommCreateCommunicator,      &
+              POP_Barrier
 
 ! !PUBLIC DATA MEMBERS:
 
@@ -324,6 +325,30 @@
  end subroutine POP_CommCreateCommunicator
 
 !***********************************************************************
+!***********************************************************************
+!BOP
+! !IROUTINE: POP_Barrier
+! !INTERFACE:
+
+ subroutine POP_Barrier
+
+! !DESCRIPTION:
+!   Because this is serial code this routine does nothing
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INCLUDES:
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine POP_Barrier
+
 
  end module POP_CommMod
 

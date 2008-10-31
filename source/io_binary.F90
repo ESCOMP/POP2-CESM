@@ -1,5 +1,4 @@
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-
  module io_binary
 
 !BOP
@@ -13,16 +12,28 @@
 
 ! !USES:
 
+   use POP_CommMod
    use kinds_mod
    use domain_size
    use domain
    use constants
-   use boundary
    use communicate
    use broadcast
    use gather_scatter
    use exit_mod
    use io_types
+
+#ifdef USEPIO
+   use piolib_mod, only:  &                             ! _EXTERNAL
+        PIO_OpenFile, PIO_CloseFile, PIO_CreateFile, &
+        PIO_write_darray, PIO_read_darray, &
+        PIO_numToRead, PIO_numToWrite
+
+   use pio_types, only: IO_desc_t, Var_desc_t, iotype_direct_pbinary,iosystem_desc_t          ! _EXTERNAL
+
+   use pio
+   use pioglobal, only: PIO_desc
+#endif
 
    implicit none
    private
@@ -130,6 +141,7 @@
       header_exists,     &! flag to check existence of header file
       lmatch              ! flag to use for attribute search
 
+   integer (i4) :: iostat,ierr
 !-----------------------------------------------------------------------
 !
 !  set the readonly flag in the data file descriptor
@@ -188,12 +200,16 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef USEPIOREAD
+   iostat = PIO_OpenFile(PIO_desc,data_file%file,iotype_direct_pbinary, trim(data_file%full_name))  
+#else
    if (my_task < data_file%num_iotasks) then
       path = trim(data_file%full_name)
       open (unit=data_file%id(1),action='read',status='unknown', &
             file=trim(path), form='unformatted',access='direct', &
             recl=data_file%record_length)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 !
@@ -342,6 +358,8 @@
       n,              &! loop index
       cindx1, cindx2, &! indices for character strings
       hdr_unit         ! unit number for header file
+    
+   integer(i4) :: ierr
 
 !-----------------------------------------------------------------------
 !
@@ -371,6 +389,9 @@
 
    path = trim(data_file%full_name)
 
+#ifdef USEPIO
+   ierr = PIO_CreateFile(PIO_desc,data_file%file,iotype_direct_pbinary, path)
+#else
    !*** open data file from all io tasks
 
    if (my_task < data_file%num_iotasks) then
@@ -378,6 +399,7 @@
            form='unformatted', recl=data_file%record_length, &
            status='unknown')
    endif
+#endif
 
    !*** initialize record number
 
@@ -570,8 +592,19 @@
 !  close a data file
 !
 !-----------------------------------------------------------------------
-
+#ifdef USEPIO
+   if(data_file%readonly) then
+#ifdef USEPIOREAD
+      call PIO_CloseFile(data_file%file)
+#else
+      if (my_task < data_file%num_iotasks) close(data_file%id(1))
+#endif
+   else
+      call PIO_CloseFile(data_file%file)
+   endif
+#else
    if (my_task < data_file%num_iotasks) close(data_file%id(1))
+#endif
 
    if (my_task == master_task .and. data_file%id(2) > 0) &
       close(data_file%id(2))
@@ -1033,10 +1066,10 @@
 
 ! !INPUT PARAMETERS:
 
-   type (datafile), intent (in)  :: &
+   type (datafile), intent (inout)  :: &
       data_file             ! file to which data will be written
 
-   type (io_field_desc), intent (in) :: &
+   type (io_field_desc), intent (inout) :: &
       io_field              ! field to be written
 
 ! !DESCRIPTION:
@@ -1070,6 +1103,24 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef USEPIO
+   if (associated(io_field%field_i_2d)) then
+      call write_array(data_file,io_field%varDesc, io_field%ioDesc, io_field%field_i_2d,record)
+   else if (associated(io_field%field_i_3d)) then
+      call write_array(data_file,io_field%varDesc, io_field%ioDesc, io_field%field_i_3d,record)
+   else if (associated(io_field%field_r_2d)) then
+      call write_array(data_file,io_field%varDesc, io_field%ioDesc, io_field%field_r_2d,record)
+   else if (associated(io_field%field_r_3d)) then
+      call write_array(data_file,io_field%varDesc, io_field%ioDesc, io_field%field_r_3d,record)
+   else if (associated(io_field%field_d_2d)) then
+      call write_array(data_file,io_field%varDesc, io_field%ioDesc, io_field%field_d_2d,record)
+   else if (associated(io_field%field_d_3d)) then
+      call write_array(data_file,io_field%varDesc, io_field%ioDesc, io_field%field_d_3d,record)
+   else
+      call exit_POP(sigAbort, &
+                   'write: No known binary field descriptor associated')
+   end if
+#else
    if (associated(io_field%field_i_2d)) then
       call write_array(data_file,io_field%field_i_2d,record)
    else if (associated(io_field%field_i_3d)) then
@@ -1086,6 +1137,7 @@
       call exit_POP(sigAbort, &
                    'write: No known binary field descriptor associated')
    end if
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1132,6 +1184,29 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef USEPIOREAD
+   if (associated(io_field%field_i_2d)) then
+      call read_array(data_file,io_field%varDesc, io_field%ioDesc, io_field%field_i_2d, &
+                io_field%id, io_field%field_loc, io_field%field_type)
+   else if (associated(io_field%field_i_3d)) then
+      call read_array(data_file,io_field%varDesc, io_field%ioDesc, io_field%field_i_3d, &
+                io_field%id, io_field%field_loc, io_field%field_type)
+   else if (associated(io_field%field_r_2d)) then
+      call read_array(data_file,io_field%varDesc, io_field%ioDesc, io_field%field_r_2d, &
+                io_field%id, io_field%field_loc, io_field%field_type)
+   else if (associated(io_field%field_r_3d)) then
+      call read_array(data_file,io_field%varDesc, io_field%ioDesc, io_field%field_r_3d, &
+                io_field%id, io_field%field_loc, io_field%field_type)
+   else if (associated(io_field%field_d_2d)) then
+      call read_array(data_file, io_field%varDesc, io_field%ioDesc, io_field%field_d_2d, &
+                io_field%id, io_field%field_loc, io_field%field_type)
+   else if (associated(io_field%field_d_3d)) then
+      call read_array(data_file, io_field%varDesc, io_field%ioDesc, io_field%field_d_3d, &
+                io_field%id, io_field%field_loc, io_field%field_type)
+   else
+      call exit_POP(sigAbort,'read_field: field not associated')
+   end if
+#else
    if (associated(io_field%field_i_2d)) then
       call read_array(data_file,io_field%field_i_2d,io_field%id, &
                                 io_field%field_loc, io_field%field_type)
@@ -1153,6 +1228,7 @@
    else
       call exit_POP(sigAbort,'read_field: field not associated')
    end if
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1164,8 +1240,13 @@
 ! !IROUTINE: read_int_2d
 ! !INTERFACE:
 
+#ifdef USEPIOREAD
+ subroutine read_int_2d(data_file, varDesc, ioDesc,  INT2D, start_record, &
+                        field_loc, field_type)
+#else
  subroutine read_int_2d(data_file, INT2D, start_record, &
                         field_loc, field_type)
+#endif
 
 ! !DESCRIPTION:
 !  Reads a 2-d horizontal slice of integers from a binary file
@@ -1175,8 +1256,13 @@
 
 ! !INPUT PARAMETERS:
 
-   type (datafile), intent(in) :: &
+   type (datafile), intent(inout) :: &
       data_file                   ! info about data file
+
+#ifdef USEPIOREAD
+   type (VAR_desc_t), intent(inout) :: varDesc
+   type (IO_desc_t),  intent(inout) :: ioDesc
+#endif
 
    integer (i4), intent(in) :: &
       start_record,            &! starting record of field in file
@@ -1199,6 +1285,21 @@
    integer (i4), dimension(:,:), allocatable ::  &
       IOBUFI                ! local global-sized buffer
 
+#ifdef USEPIOREAD
+   integer(i4) :: llen
+   integer(i4) :: iostat
+   integer(i4), dimension(:),allocatable :: lbuf_i4
+
+!DBG      write(*,*) 'read_int_2d'
+      llen = PIO_numToRead(ioDesc)
+      allocate(lbuf_i4(llen))
+      varDesc%rec = start_record
+      call PIO_read_darray(data_file%file,varDesc,ioDesc,lbuf_i4,iostat)
+      call Copyto2D(lbuf_i4,INT2d)
+!NEWPIO      call update_ghost_cells(INT2d,bndy_clinic,field_loc,field_type)
+      deallocate(lbuf_i4)
+#else
+
 !-----------------------------------------------------------------------
 !
 !  read in global 2-d slice from one processor
@@ -1220,6 +1321,7 @@
                        field_loc, field_type)
 
    if (my_task == master_task) deallocate(IOBUFI)
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1231,8 +1333,13 @@
 ! !IROUTINE: read_real4_2d
 ! !INTERFACE:
 
+#ifdef USEPIOREAD
+ subroutine read_real4_2d(data_file, varDesc, ioDesc, REAL2D, start_record, &
+                          field_loc, field_type)
+#else
  subroutine read_real4_2d(data_file, REAL2D, start_record, &
                           field_loc, field_type)
+#endif
 
 ! !DESCRIPTION:
 !  Reads a 2-d horizontal slice of reals from a binary file
@@ -1242,8 +1349,13 @@
 
 ! !INPUT PARAMETERS:
 
-   type (datafile), intent(in) :: &
+   type (datafile), intent(inout) :: &
       data_file                   ! info about data file
+
+#ifdef USEPIOREAD
+   type (Var_desc_t), intent(inout) :: varDesc
+   type (IO_desc_t), intent(inout)  :: ioDesc
+#endif
 
    integer (i4), intent(in) :: &
       start_record,            &! starting record of field in file
@@ -1266,6 +1378,22 @@
    real (r4), dimension(:,:), allocatable ::  &
       IOBUFR                ! local global-sized buffer
 
+#ifdef USEPIOREAD
+   integer(i4) :: llen
+   integer(i4) :: iostat
+   real(r4), dimension(:),allocatable :: lbuf_r4
+
+!      write(*,*) 'read_real4_2d'
+      llen = PIO_numToRead(ioDesc)
+      allocate(lbuf_r4(llen))
+      varDesc%rec = start_record
+      call PIO_read_darray(data_file%file,varDesc,ioDesc, lbuf_r4,iostat)
+      call Copyto2D(lbuf_r4,REAL2d)
+!NEWPIO      call update_ghost_cells(REAL2d,bndy_clinic,field_loc,field_type)
+      deallocate(lbuf_r4)
+
+#else
+
 !-----------------------------------------------------------------------
 !
 !  read in global 2-d slice from one processor
@@ -1287,6 +1415,7 @@
                        field_loc, field_type)
 
    if (my_task == master_task) deallocate(IOBUFR)
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1298,8 +1427,13 @@
 ! !IROUTINE: read_real8_2d
 ! !INTERFACE:
 
+#ifdef USEPIOREAD
+ subroutine read_real8_2d(data_file, varDesc,ioDesc,  DBL2D, start_record, &
+                          field_loc, field_type)
+#else
  subroutine read_real8_2d(data_file, DBL2D, start_record, &
                           field_loc, field_type)
+#endif
 
 ! !DESCRIPTION:
 !  Reads a 2-d horizontal slice of 64-bit reals from a binary file
@@ -1309,8 +1443,13 @@
 
 ! !INPUT PARAMETERS:
 
-   type (datafile), intent(in) :: &
+   type (datafile), intent(inout) :: &
       data_file                   ! info about data file
+
+#ifdef USEPIOREAD
+   type (VAR_desc_t), intent(inout) :: varDesc
+   type (IO_desc_t), intent(inout) :: ioDesc
+#endif
 
    integer (i4), intent(in) :: &
       start_record,            &! starting record of field in file
@@ -1333,6 +1472,21 @@
    real (r8), dimension(:,:), allocatable ::  &
       IOBUFD                ! local global-sized buffer
 
+#ifdef USEPIOREAD
+   integer(i4) :: llen
+   integer(i4) :: iostat
+   real(r8), dimension(:),allocatable :: lbuf_r8
+
+!      write(*,*) 'read_real8_2d'
+      llen = PIO_numToRead(ioDesc)
+      allocate(lbuf_r8(llen))
+      varDesc%rec = start_record
+      call PIO_read_darray(data_file%file,varDesc,ioDesc, lbuf_r8,iostat)
+      call Copyto2D(lbuf_r8,DBL2d)
+      deallocate(lbuf_r8)
+!NEWPIO      call update_ghost_cells(DBL2d,bndy_clinic,field_loc,field_type)
+#else
+
 !-----------------------------------------------------------------------
 !
 !  read in global 2-d slice from one processor
@@ -1354,6 +1508,7 @@
                        field_loc, field_type)
 
    if (my_task == master_task) deallocate(IOBUFD)
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1365,8 +1520,13 @@
 ! !IROUTINE: read_int_3d
 ! !INTERFACE:
 
+#ifdef USEPIOREAD
+ subroutine read_int_3d(data_file, varDesc, ioDesc, INT3D, start_record, &
+                        field_loc, field_type)
+#else
  subroutine read_int_3d(data_file, INT3D, start_record, &
                         field_loc, field_type)
+#endif
 
 ! !DESCRIPTION:
 !  Reads a 3-d integer array from a binary file
@@ -1376,8 +1536,13 @@
 
 ! !INPUT PARAMETERS:
 
-   type (datafile), intent(in) :: &
+   type (datafile), intent(inout) :: &
       data_file                   ! info on input data file
+
+#ifdef USEPIOREAD
+   type (VAR_desc_t), intent(inout) :: varDesc
+   type (IO_desc_t), intent(inout) :: ioDesc
+#endif
 
    integer (i4), intent(in) :: &
       start_record,            &! starting record of field in file
@@ -1399,6 +1564,12 @@
 
    integer (i4) k,n,krecs,klvl,nz
 
+#ifdef USEPIOREAD
+   integer(i4) :: llen
+   integer(i4), allocatable :: lbuf_i4(:)
+   integer(i4) :: iostat
+#endif
+
    integer (i4), dimension(:,:), allocatable ::  &
       IOBUFI                ! global-sized array buffer
 
@@ -1410,6 +1581,20 @@
 !-----------------------------------------------------------------------
 
    nz = size(INT3D, DIM=3)
+
+#ifdef USEPIOREAD
+
+!      write(*,*) 'read_int_3d'
+   llen = PIO_numToRead(ioDesc)
+   allocate(lbuf_i4(llen))
+   do k=1,nz
+      varDesc%rec = start_record + (k-1)
+      call PIO_read_darray(data_file%file,varDesc,ioDesc,lbuf_i4,iostat)
+      call Copyto2D(lbuf_i4,INT3d(:,:,k,:))
+   enddo
+   deallocate(lbuf_i4)
+!NEWPIO   call update_ghost_cells(INT3d,bndy_clinic,field_loc,field_type)
+#else
 
    if (mod(nz,data_file%num_iotasks) == 0) then
       krecs = nz/data_file%num_iotasks
@@ -1448,6 +1633,7 @@
    end do
 
    if (my_task < data_file%num_iotasks) deallocate(IOBUFI)
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1459,8 +1645,13 @@
 ! !IROUTINE: read_real4_3d
 ! !INTERFACE:
 
+#ifdef USEPIOREAD
+ subroutine read_real4_3d(data_file, varDesc, ioDesc, REAL3D, start_record, &
+                          field_loc, field_type)
+#else
  subroutine read_real4_3d(data_file, REAL3D, start_record, &
                           field_loc, field_type)
+#endif
 
 ! !DESCRIPTION:
 !  Reads a 3-d real array from a binary file
@@ -1470,8 +1661,13 @@
 
 ! !INPUT PARAMETERS:
 
-   type (datafile), intent(in) :: &
+   type (datafile), intent(inout) :: &
       data_file                   ! info on input data file
+
+#ifdef USEPIOREAD
+   type (VAR_desc_t), intent(inout) :: varDesc
+   type (IO_desc_t), intent(inout) :: ioDesc
+#endif
 
    integer (i4), intent(in) :: &
       start_record,            &! starting record of field in file
@@ -1493,6 +1689,12 @@
 
    integer (i4) k,n,krecs,klvl,nz
 
+#ifdef USEPIOREAD
+   integer(i4) :: llen
+   integer(i4) :: iostat
+   real(r4), allocatable :: lbuf_r4(:)
+#endif
+
    real (r4), dimension(:,:), allocatable ::  &
       IOBUFR                ! global-sized array buffer
 
@@ -1504,6 +1706,19 @@
 !-----------------------------------------------------------------------
 
    nz = size(REAL3D, DIM=3)
+
+#ifdef USEPIOREAD
+!      write(*,*) 'read_real4_3d'
+   llen = PIO_numToRead(ioDesc)
+   allocate(lbuf_r4(llen))
+   do k=1,nz
+      varDesc%rec = start_record + (k-1)
+      call PIO_read_darray(data_file%file,varDesc,ioDesc, lbuf_r4,iostat)
+      call Copyto2D(lbuf_r4,REAL3D(:,:,k,:))
+   enddo
+   deallocate(lbuf_r4)
+!NEWPIO   call update_ghost_cells(REAL3D,bndy_clinic,field_loc,field_type)
+#else
 
    if (mod(nz,data_file%num_iotasks) == 0) then
       krecs = nz/data_file%num_iotasks
@@ -1542,6 +1757,7 @@
    end do
 
    if (my_task < data_file%num_iotasks) deallocate(IOBUFR)
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1553,8 +1769,13 @@
 ! !IROUTINE: read_real8_3d
 ! !INTERFACE:
 
+#ifdef USEPIOREAD
+ subroutine read_real8_3d(data_file, varDesc, ioDesc, DBL3D, start_record, &
+                          field_loc, field_type)
+#else
  subroutine read_real8_3d(data_file, DBL3D, start_record, &
                           field_loc, field_type)
+#endif
 
 ! !DESCRIPTION:
 !  Reads a 3-d 64-bit real array from a binary file
@@ -1564,8 +1785,13 @@
 
 ! !INPUT PARAMETERS:
 
-   type (datafile), intent(in) :: &
+   type (datafile), intent(inout) :: &
       data_file                   ! info on input data file
+
+#ifdef USEPIOREAD
+   type (VAR_desc_t), intent(inout) :: varDesc
+   type (IO_desc_t), intent(inout) :: ioDesc
+#endif
 
    integer (i4), intent(in) :: &
       start_record,            &! starting record of field in file
@@ -1587,6 +1813,12 @@
 
    integer (i4) k,n,krecs,klvl,nz
 
+#ifdef USEPIOREAD
+   integer(i4)  :: llen,iostat
+   real (r8), allocatable, dimension(:) :: lbuf_r8
+   real (r8), dimension(:,:,:), allocatable :: DBL2D
+#endif
+
    real (r8), dimension(:,:), allocatable ::  &
       IOBUFD                ! global-sized array buffer
 
@@ -1598,6 +1830,19 @@
 !-----------------------------------------------------------------------
 
    nz = size(DBL3D, DIM=3)
+
+#ifdef USEPIOREAD
+!      write(*,*) 'read_real8_3d'
+   llen = PIO_numToRead(ioDesc)
+   allocate(lbuf_r8(llen))
+   do k=1,nz
+      varDesc%rec = start_record + (k-1)
+      call PIO_read_darray(data_file%file,varDesc,ioDesc,lbuf_r8,iostat)
+      call Copyto2D(lbuf_r8,DBL3d(:,:,k,:))
+   enddo
+   deallocate(lbuf_r8)
+!NEWPIO   call update_ghost_cells(DBL3d,bndy_clinic,field_loc,field_type)
+#else
 
    if (mod(nz,data_file%num_iotasks) == 0) then
       krecs = nz/data_file%num_iotasks
@@ -1636,6 +1881,7 @@
    end do
 
    if (my_task < data_file%num_iotasks) deallocate(IOBUFD)
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1647,7 +1893,11 @@
 ! !IROUTINE: write_int_2d
 ! !INTERFACE:
 
+#ifdef USEPIO
+ subroutine write_int_2d(data_file,varDesc, ioDesc, INT2D,start_record)
+#else
  subroutine write_int_2d(data_file,INT2D,start_record)
+#endif
 
 ! !DESCRIPTION:
 !  Writes a 2-d slab of integers to a binary file.
@@ -1657,8 +1907,13 @@
 
 ! !INPUT PARAMETERS:
 
-   type (datafile), intent(in) :: &
+   type (datafile), intent(inout) :: &
       data_file                   ! file information
+
+#ifdef USEPIO
+   type (VAR_desc_t), intent(inout) :: varDesc
+   type (IO_desc_t), intent(inout) :: ioDesc
+#endif
 
    integer (i4), intent(in) ::  &
       start_record              ! starting record of array in file
@@ -1677,6 +1932,18 @@
    integer (i4), dimension(:,:), allocatable ::  &
       IOBUFI                ! local global-sized buffer
 
+#ifdef USEPIO
+   integer(i4) :: llen
+   integer(i4), dimension(:), allocatable :: lbuf_i4
+   integer(i4) :: iostat
+
+     llen = PIO_numToWrite(ioDesc)
+     allocate(lbuf_i4(llen))
+     call Copyto1D(INT2D,lbuf_i4)
+     varDesc%rec = start_record
+     call PIO_write_darray(data_file%file,varDesc,ioDesc,lbuf_i4,iostat)
+     deallocate(lbuf_i4)
+#else
 !-----------------------------------------------------------------------
 !
 !  receive chunks from processors who own them
@@ -1697,6 +1964,7 @@
       write(data_file%id(1),rec=start_record) IOBUFI
       deallocate(IOBUFI)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1706,8 +1974,11 @@
 !BOP
 ! !IROUTINE: write_real4_2d
 ! !INTERFACE:
-
+#ifdef USEPIO
+ subroutine write_real4_2d(data_file,varDesc,ioDesc, REAL2D,start_record)
+#else
  subroutine write_real4_2d(data_file,REAL2D,start_record)
+#endif
 
 ! !DESCRIPTION:
 !  Writes a 2-d slab of reals to a binary file.
@@ -1717,8 +1988,13 @@
 
 ! !INPUT PARAMETERS:
 
-   type (datafile), intent(in) :: &
+   type (datafile), intent(inout) :: &
       data_file                   ! file information
+
+#ifdef USEPIO
+   type (VAR_desc_t), intent(inout) :: varDesc
+   type (IO_desc_t), intent(inout) :: ioDesc
+#endif
 
    integer (i4), intent(in) ::  &
       start_record              ! starting record of array in file
@@ -1742,6 +2018,20 @@
 !  receive chunks from processors who own them
 !
 !-----------------------------------------------------------------------
+#ifdef USEPIO
+   integer(i4) :: llen
+   real(r4), dimension(:), allocatable :: lbuf_r4
+   integer(i4) :: iostat
+
+     llen = PIO_numToWrite(ioDesc)
+     allocate(lbuf_r4(llen))
+     lbuf_r4 = c0
+!DBG     write(*,*) 'write_array(2D,R4): IAM: ',my_task,' rec: ',start_record
+     call Copyto1D(REAL2D,lbuf_r4)
+     varDesc%rec = start_record
+     call PIO_write_darray(data_file%file,varDesc,ioDesc,lbuf_r4,iostat)
+     deallocate(lbuf_r4)
+#else
 
    if (my_task == master_task) allocate(IOBUFR(nx_global,ny_global))
    call gather_global(IOBUFR, REAL2D, master_task, distrb_clinic)
@@ -1756,6 +2046,7 @@
       write(data_file%id(1),rec=start_record) IOBUFR
       deallocate(IOBUFR)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1766,7 +2057,11 @@
 ! !IROUTINE: write_real8_2d
 ! !INTERFACE:
 
+#ifdef USEPIO
+ subroutine write_real8_2d(data_file,varDesc, ioDesc, DBL2D,start_record)
+#else
  subroutine write_real8_2d(data_file,DBL2D,start_record)
+#endif
 
 ! !DESCRIPTION:
 !  Writes a 2-d slab of doubles to a binary file.
@@ -1776,8 +2071,13 @@
 
 ! !INPUT PARAMETERS:
 
-   type (datafile), intent(in) :: &
+   type (datafile), intent(inout) :: &
       data_file                   ! file information
+
+#ifdef USEPIO
+   type (VAR_desc_t), intent(inout) :: varDesc
+   type (IO_desc_t), intent(inout) :: ioDesc
+#endif
 
    integer (i4), intent(in) ::  &
       start_record              ! starting record of array in file
@@ -1796,11 +2096,27 @@
    real (r8), dimension(:,:), allocatable ::  &
       IOBUFD                ! local global-sized buffer
 
+#ifdef USEPIO
+   integer(i4) :: llen
+   real(r8), dimension(:), allocatable :: lbuf_r8
+   integer(i4) :: iostat
+#endif
 !-----------------------------------------------------------------------
 !
 !  receive chunks from processors who own them
 !
 !-----------------------------------------------------------------------
+#ifdef USEPIO
+     llen = PIO_numToWrite(ioDesc)
+     allocate(lbuf_r8(llen))
+     lbuf_r8 = c0
+     call Copyto1D_real8(DBL2D,lbuf_r8)
+     varDesc%rec = start_record
+!     rsum = MAXVAL(lbuf_r8);
+!     write(*,*) 'before PIO_write_darray IAM: ',my_task,' rec: ',start_record,rsum
+     call PIO_write_darray(data_file%file,varDesc,ioDesc,lbuf_r8,iostat)
+     deallocate(lbuf_r8)
+#else
 
    if (my_task == master_task) allocate(IOBUFD(nx_global,ny_global))
    call gather_global(IOBUFD, DBL2D, master_task, distrb_clinic)
@@ -1815,6 +2131,7 @@
       write(data_file%id(1),rec=start_record) IOBUFD
       deallocate(IOBUFD)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1825,7 +2142,11 @@
 ! !IROUTINE: write_int_3d
 ! !INTERFACE:
 
+#ifdef USEPIO
+ subroutine write_int_3d(data_file,varDesc,ioDesc,INT3D,start_record)
+#else
  subroutine write_int_3d(data_file,INT3D,start_record)
+#endif
 
 ! !DESCRIPTION:
 !  Writes a 3-d integer array as a series of 2-d slabs to a binary
@@ -1836,10 +2157,15 @@
 
 ! !INPUT PARAMETERS:
 
-   type (datafile), intent(in) :: &
+   type (datafile), intent(inout) :: &
       data_file                   ! info on output data file
 
-   integer (i4), intent(in) :: &
+#ifdef USEPIO
+   type (VAR_desc_t), intent(inout) :: varDesc
+   type (IO_desc_t), intent(inout) :: ioDesc
+#endif
+
+   integer (i4), intent(inout) :: &
       start_record             ! starting position of array in file
 
    integer (i4), dimension(:,:,:,:), intent(in) :: &
@@ -1862,6 +2188,11 @@
    integer (i4), dimension(:,:), allocatable ::  &
       IOBUFI                ! global-sized buffer array
 
+#ifdef USEPIO
+   integer(i4) :: llen
+   integer(i4), allocatable :: lbuf_i4(:)
+   integer(i4) :: iostat
+#endif
 !-----------------------------------------------------------------------
 !
 !  determine the number of records each i/o process must write to
@@ -1871,6 +2202,16 @@
 
    nz = size(INT3D, DIM=3)
 
+#ifdef USEPIO
+     llen = PIO_numToWrite(ioDesc)
+     allocate(lbuf_i4(llen))
+     do k=1,nz
+         varDesc%rec = start_record + (k-1)
+         call Copyto1D(INT3D(:,:,k,:),lbuf_i4)
+         call PIO_write_darray(data_file%file,varDesc,ioDesc,lbuf_i4,iostat)
+     enddo
+     deallocate(lbuf_i4)
+#else
    if (mod(nz,data_file%num_iotasks) == 0) then
       krecs = nz/data_file%num_iotasks
    else
@@ -1922,6 +2263,7 @@
 !-----------------------------------------------------------------------
 
    if (my_task < data_file%num_iotasks) deallocate(IOBUFI)
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1933,7 +2275,11 @@
 ! !IROUTINE: write_real4_3d
 ! !INTERFACE:
 
+#ifdef USEPIO
+ subroutine write_real4_3d(data_file,varDesc,ioDesc, REAL3D,start_record)
+#else
  subroutine write_real4_3d(data_file,REAL3D,start_record)
+#endif
 
 ! !DESCRIPTION:
 !  Writes a 3-d real array as a series of 2-d slabs to a binary
@@ -1944,8 +2290,13 @@
 
 ! !INPUT PARAMETERS:
 
-   type (datafile), intent(in) :: &
+   type (datafile), intent(inout) :: &
       data_file                   ! info on output data file
+
+#ifdef USEPIO
+   type (VAR_desc_t), intent(inout) :: varDesc
+   type (IO_desc_t), intent(inout) :: ioDesc
+#endif
 
    integer (i4), intent(in) :: &
       start_record             ! starting position of array in file
@@ -1967,6 +2318,12 @@
       klvl,   &  ! k index corresponding to current record
       nz         ! size of 3rd dimension of 3-d array to be written
 
+#ifdef USEPIO
+    integer(i4) :: llen,ierr
+    real(r4), allocatable :: lbuf_r4(:)
+    integer(i4) :: iostat
+#endif
+
    real (r4), dimension(:,:), allocatable ::  &
       IOBUFR                ! global-sized buffer array
 
@@ -1979,6 +2336,20 @@
 
    nz = size(REAL3D, DIM=3)
 
+#ifdef USEPIO
+     llen = PIO_numToWrite(ioDesc)
+     allocate(lbuf_r4(llen))
+     varDesc%rec = start_record
+     do k=1,nz
+         lbuf_r4 = c0
+         varDesc%rec = start_record + (k-1)
+!DBG         write(*,*) 'write_array(3D,R4): IAM: ',my_task,' rec: ',varDesc%rec
+         call Copyto1D(REAL3D(:,:,k,:),lbuf_r4)
+         call PIO_write_darray(data_file%file,varDesc,ioDesc,lbuf_r4,iostat)
+         call POP_barrier
+     enddo
+     deallocate(lbuf_r4)
+#else
    if (mod(nz,data_file%num_iotasks) == 0) then
       krecs = nz/data_file%num_iotasks
    else
@@ -2030,6 +2401,7 @@
 !-----------------------------------------------------------------------
 
    if (my_task < data_file%num_iotasks) deallocate(IOBUFR)
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -2041,7 +2413,11 @@
 ! !IROUTINE: write_real8_3d
 ! !INTERFACE:
 
+#ifdef USEPIO
+ subroutine write_real8_3d(data_file,varDesc, ioDesc, DBL3D,start_record)
+#else
  subroutine write_real8_3d(data_file,DBL3D,start_record)
+#endif
 
 ! !DESCRIPTION:
 !  Writes a 3-d 64-bit real array as a series of 2-d slabs to a binary
@@ -2052,8 +2428,13 @@
 
 ! !INPUT PARAMETERS:
 
-   type (datafile), intent(in) :: &
+   type (datafile), intent(inout) :: &
       data_file                   ! info on output data file
+
+#ifdef USEPIO
+   type (VAR_desc_t), intent(inout) :: varDesc
+   type (IO_desc_t), intent(inout) :: ioDesc
+#endif
 
    integer (i4), intent(in) :: &
       start_record             ! starting position of array in file
@@ -2075,6 +2456,12 @@
       klvl,   &  ! k index corresponding to current record
       nz         ! size of 3rd dimension of 3-d array to be written
 
+#ifdef USEPIO
+   integer(i4) :: llen
+   real(r8), allocatable :: lbuf_r8(:)
+   integer(i4) :: iostat
+#endif
+
    real (r8), dimension(:,:), allocatable ::  &
       IOBUFD                ! global-sized buffer array
 
@@ -2086,6 +2473,24 @@
 !-----------------------------------------------------------------------
 
    nz = size(DBL3D, DIM=3)
+
+#ifdef USEPIO
+!DBG     write(*,*) 'write_array(3D,R8): IAM: rec: ',data_file%file%comp_rank,start_record
+     llen = PIO_numToWrite(ioDesc)
+     allocate(lbuf_r8(llen))
+     varDesc%rec = start_record
+     do k=1,nz
+         lbuf_r8 = c0
+!DBG         if(my_task == 0) then
+!DBG             write(*,*) 'IAM: ',my_task,' write_array(3D,R8) [slice]: ',k
+!DBG         endif
+         varDesc%rec = start_record + (k-1)
+!JMD         call Copyto1D(DBL3D(:,:,k,:),lbuf_r8)
+         call Copyto1D(DBL3D,k,lbuf_r8)
+         call PIO_write_darray(data_file%file,varDesc,ioDesc,lbuf_r8,iostat)
+     enddo
+     deallocate(lbuf_r8)
+#else
 
    if (mod(nz,data_file%num_iotasks) == 0) then
       krecs = nz/data_file%num_iotasks
@@ -2138,6 +2543,7 @@
 !-----------------------------------------------------------------------
 
    if (my_task < data_file%num_iotasks) deallocate(IOBUFD)
+#endif
 
 !-----------------------------------------------------------------------
 !EOC

@@ -18,7 +18,7 @@
    use kinds_mod
    use communicate
    use constants
-   use shr_sys_mod
+   use POP_IOUnitsMod
 
 
    implicit none
@@ -84,7 +84,7 @@
    if (my_task == master_task) then
       write (6,delim_fmt)
       write (6,blank_fmt)
-      call shr_sys_flush(6)
+      call POP_IOUnitsFlush(6)
 
       select case(exit_mode)
       case(sigExit)
@@ -98,7 +98,7 @@
       write (6,*) exit_message
       write (6,blank_fmt)
       write (6,delim_fmt)
-      call shr_sys_flush(6)
+      call POP_IOUnitsFlush(6)
    endif
 
 !-----------------------------------------------------------------------
@@ -143,7 +143,7 @@
  integer (int_kind), intent(in) :: iunit
   
  if (my_task == master_task) then
-   call shr_sys_flush (iunit)
+   call POP_IOUnitsFlush(iunit)
  endif
 
  end subroutine flushm

@@ -15,6 +15,9 @@
 !              initialization, true multi-dimensional updates 
 !              (rather than serial call to two-dimensional updates), 
 !              fixes for non-existent blocks
+!  2008-01-30: Phil Jones, Elizabeth Hunke
+!              fixed some bugs including a hard-wired assumption of
+!                 halo width 2 and some redundant messaging
 
 ! !USES:
 
@@ -48,7 +51,8 @@
 
    public :: POP_HaloCreate,  &
              POP_HaloDestroy, &
-             POP_HaloUpdate
+             POP_HaloUpdate,  &
+             POP_HaloPrintStats
 
    interface POP_HaloUpdate  ! generic interface
       module procedure POP_HaloUpdate2DR8, &
@@ -137,10 +141,14 @@ contains
       northBlock, southBlock,      &! block id north, south neighbors
       neBlock, nwBlock,            &! block id northeast, northwest nbrs
       seBlock, swBlock,            &! block id southeast, southwest nbrs
+      blockSizeX,                  &! size of default phys domain in X
+      blockSizeY,                  &! size of default phys domain in Y
       srcProc, dstProc,            &! source, dest processor locations
       srcLocalID, dstLocalID,      &! local block index of src,dst blocks
       eastMsgSize, westMsgSize,    &! nominal sizes for e-w msgs
       northMsgSize, southMsgSize,  &! nominal sizes for n-s msgs
+      tripoleMsgSize,              &! tripole message size
+      tripoleMsgSizeOut,           &! tripole message size for copy out
       cornerMsgSize, msgSize        ! nominal size for corner msg
 
    integer (POP_i4), dimension(:), allocatable :: &
@@ -173,14 +181,18 @@ contains
 
    halo%communicator = communicator
 
-   eastMsgSize = POP_haloWidth*(POP_nyBlock - 2*POP_haloWidth)
-   westMsgSize = POP_haloWidth*(POP_nyBlock - 2*POP_haloWidth)
-   southMsgSize = POP_haloWidth*(POP_nxBlock - 2*POP_haloWidth)
+   blockSizeX  = POP_nxBlock - 2*POP_haloWidth
+   blockSizeY  = POP_nyBlock - 2*POP_haloWidth
+   eastMsgSize  = POP_haloWidth*blockSizeY
+   westMsgSize  = POP_haloWidth*blockSizeY
+   southMsgSize = POP_haloWidth*blockSizeX
+   northMsgSize = POP_haloWidth*blockSizeX
    cornerMsgSize = POP_haloWidth*POP_haloWidth
+   tripoleMsgSize    = (POP_haloWidth + 1)*blockSizeX
+   tripoleMsgSizeOut = (POP_haloWidth + 1)*POP_nxBlock
 
    if (nsBoundaryType == 'tripole') then
       tripoleFlag = .true.
-      northMsgSize = (POP_haloWidth+1)*(POP_nxBlock - 2*POP_haloWidth)
 
       !*** allocate tripole message buffers if not already done
 
@@ -199,7 +211,6 @@ contains
 
    else
       tripoleFlag = .false.
-      northMsgSize = POP_haloWidth*(POP_nxBlock - 2*POP_haloWidth)
    endif
 
 !-----------------------------------------------------------------------
@@ -247,6 +258,7 @@ contains
 
       if (northBlock > 0) then
          tripoleBlock = .false.
+         msgSize = northMsgSize
          call POP_DistributionGetBlockLoc(distrb, northBlock, dstProc, &
                                           dstLocalID, errorCode)
 
@@ -257,6 +269,7 @@ contains
          endif
       else if (northBlock < 0) then ! tripole north row, count block
          tripoleBlock = .true.
+         msgSize = tripoleMsgSize
          call POP_DistributionGetBlockLoc(distrb, abs(northBlock), &
                                  dstProc, dstLocalID, errorCode)
 
@@ -267,21 +280,22 @@ contains
          endif
       else
          tripoleBlock = .false.
+         msgSize = northMsgSize
          dstProc = 0
          dstLocalID = 0
       endif
 
-      call POP_HaloIncrementMsgCount(sendCount, recvCount,           &
-                                     srcProc, dstProc, northMsgSize, &
+      call POP_HaloIncrementMsgCount(sendCount, recvCount,      &
+                                     srcProc, dstProc, msgSize, &
                                      errorCode)
 
       !*** if a tripole boundary block, also create a local
       !*** message into and out of tripole buffer 
 
       if (tripoleBlock) then
-         call POP_HaloIncrementMsgCount(sendCount, recvCount,        &
-                                     srcProc, srcProc, northMsgSize, &
-                                     errorCode)
+         call POP_HaloIncrementMsgCount(sendCount, recvCount, &
+                                     srcProc, srcProc,        &
+                                     tripoleMsgSize, errorCode)
       endif
 
       if (errorCode /= POP_Success) then
@@ -291,9 +305,9 @@ contains
       endif
 
       if (tripoleBlock) then
-         call POP_HaloIncrementMsgCount(sendCount, recvCount,        &
-                                     srcProc, srcProc,               &
-                                     northMsgSize + 2*POP_haloWidth, &
+         call POP_HaloIncrementMsgCount(sendCount, recvCount,  &
+                                     srcProc, srcProc,         &
+                                     tripoleMsgSizeOut,        &
                                      errorCode)
       endif
 
@@ -373,21 +387,6 @@ contains
          return
       endif
 
-      !*** if a tripole boundary block, non-local east neighbor
-      !*** needs a chunk of the north boundary, so add a message
-      !*** for that
-
-      if (tripoleBlock .and. dstProc /= srcProc) then
-         call POP_HaloIncrementMsgCount(sendCount, recvCount,        &
-                                     srcProc, dstProc, northMsgSize, &
-                                     errorCode)
-         if (errorCode /= POP_Success) then
-            call POP_ErrorSet(errorCode, &
-            'POP_HaloCreate: error incrementing tripole east msg count')
-            return
-         endif
-      endif
-
       !*** find west neighbor block and add to message count
 
       westBlock = POP_BlocksGetNbrID(iblock, POP_BlocksWest,         &
@@ -423,21 +422,6 @@ contains
          return
       endif
 
-      !*** if a tripole boundary block, non-local west neighbor
-      !*** needs a chunk of the north boundary, so add a message
-      !*** for that
-
-      if (tripoleBlock .and. dstProc /= srcProc) then
-         call POP_HaloIncrementMsgCount(sendCount, recvCount,        &
-                                     srcProc, dstProc, northMsgSize, &
-                                     errorCode)
-         if (errorCode /= POP_Success) then
-            call POP_ErrorSet(errorCode, &
-            'POP_HaloCreate: error incrementing tripole west msg count')
-            return
-         endif
-      endif
-
       !*** find northeast neighbor block and add to message count
 
       neBlock = POP_BlocksGetNbrID(iblock, POP_BlocksNorthEast,    &
@@ -462,17 +446,6 @@ contains
             return
          endif
 
-      else if (neBlock < 0) then ! tripole north row
-         msgSize = northMsgSize  ! tripole needs whole top row of block
-
-         call POP_DistributionGetBlockLoc(distrb, abs(neBlock), dstProc, &
-                                          dstLocalID, errorCode)
-
-         if (errorCode /= POP_Success) then
-            call POP_ErrorSet(errorCode, &
-               'POP_HaloCreate: error finding northeast block location')
-            return
-         endif
       else
          dstProc = 0
          dstLocalID = 0
@@ -504,18 +477,6 @@ contains
          msgSize = cornerMsgSize ! normal NE corner update
 
          call POP_DistributionGetBlockLoc(distrb, nwBlock, dstProc, &
-                                          dstLocalID, errorCode)
-
-         if (errorCode /= POP_Success) then
-            call POP_ErrorSet(errorCode, &
-               'POP_HaloCreate: error finding northwest block location')
-            return
-         endif
-
-      else if (northBlock < 0) then ! tripole north row, count block
-         msgSize = northMsgSize ! tripole NE corner update - entire row needed
-
-         call POP_DistributionGetBlockLoc(distrb, abs(nwBlock), dstProc, &
                                           dstLocalID, errorCode)
 
          if (errorCode /= POP_Success) then
@@ -585,7 +546,7 @@ contains
          return
       endif
 
-      if (seBlock > 0) then
+      if (swBlock > 0) then
          call POP_DistributionGetBlockLoc(distrb, swBlock, dstProc, &
                                           dstLocalID, errorCode)
 
@@ -758,21 +719,6 @@ contains
          return
       endif
 
-      !*** for tripole grids, send a north tripole message to
-      !*** the east block to make sure enough information is
-      !*** available for tripole manipulations
-
-      if (tripoleBlock) then
-         call POP_HaloMsgCreate(halo, distrb, iblock, -eastBlock, &
-                                'north', errorCode)
- 
-         if (errorCode /= POP_Success) then
-            call POP_ErrorSet(errorCode, &
-            'POP_HaloCreate: error creating east tripole message')
-            return
-         endif
-      endif
-
       !***
       !*** find west neighbor block
       !***
@@ -795,21 +741,6 @@ contains
          return
       endif
 
-      !*** for tripole grids, send a north tripole message to
-      !*** the west block to make sure enough information is
-      !*** available for tripole manipulations
-      if (tripoleBlock) then
-
-         call POP_HaloMsgCreate(halo, distrb, iblock, -westBlock, &
-                             'north', errorCode)
- 
-         if (errorCode /= POP_Success) then
-            call POP_ErrorSet(errorCode, &
-            'POP_HaloCreate: error creating west tripole message')
-            return
-         endif
-      endif
-
       !***
       !*** find northeast neighbor block
       !***
@@ -823,13 +754,15 @@ contains
          return
       endif
 
-      call POP_HaloMsgCreate(halo, distrb, iblock, neBlock, &
-                             'northeast', errorCode)
+      if (neBlock > 0) then
+         call POP_HaloMsgCreate(halo, distrb, iblock, neBlock, &
+                                'northeast', errorCode)
  
-      if (errorCode /= POP_Success) then
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloCreate: error creating northeast message')
-         return
+         if (errorCode /= POP_Success) then
+            call POP_ErrorSet(errorCode, &
+               'POP_HaloCreate: error creating northeast message')
+            return
+         endif
       endif
 
       !***
@@ -846,13 +779,15 @@ contains
          return
       endif
 
-      call POP_HaloMsgCreate(halo, distrb, iblock, nwBlock, &
-                             'northwest', errorCode)
+      if (nwBlock > 0) then
+         call POP_HaloMsgCreate(halo, distrb, iblock, nwBlock, &
+                                'northwest', errorCode)
  
-      if (errorCode /= POP_Success) then
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloCreate: error creating northwest message')
-         return
+         if (errorCode /= POP_Success) then
+            call POP_ErrorSet(errorCode, &
+               'POP_HaloCreate: error creating northwest message')
+            return
+         endif
       endif
 
       !***
@@ -1065,7 +1000,10 @@ contains
    endif
 
    nxGlobal = 0
-   if (allocated(bufTripoleR8)) nxGlobal = size(bufTripoleR8,dim=1)
+   if (allocated(bufTripoleR8)) then
+      nxGlobal = size(bufTripoleR8,dim=1)
+      bufTripoleR8 = fill
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1108,6 +1046,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate2DR8: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -1121,15 +1071,19 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripoleR8(i   ,POP_haloWidth+1)
             x2 = bufTripoleR8(iDst,POP_haloWidth+1)
             xavg = 0.5_POP_r8*(abs(x1) + abs(x2))
-            bufTripoleR8(i   ,POP_haloWidth+1) = sign(xavg, x1)
-            bufTripoleR8(iDst,POP_haloWidth+1) = sign(xavg, x2)
+            bufTripoleR8(i   ,POP_haloWidth+1) = isign*sign(xavg, x2)
+            bufTripoleR8(iDst,POP_haloWidth+1) = isign*sign(xavg, x1)
          end do
+         bufTripoleR8(nxGlobal,POP_haloWidth+1) = isign* &
+         bufTripoleR8(nxGlobal,POP_haloWidth+1)
 
       case (POP_gridHorzLocEface)   ! cell center location
 
@@ -1143,31 +1097,21 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do i = 1,nxGlobal/2
             iDst = nxGlobal + 1 - i
             x1 = bufTripoleR8(i   ,POP_haloWidth+1)
             x2 = bufTripoleR8(iDst,POP_haloWidth+1)
             xavg = 0.5_POP_r8*(abs(x1) + abs(x2))
-            bufTripoleR8(i   ,POP_haloWidth+1) = sign(xavg, x1)
-            bufTripoleR8(iDst,POP_haloWidth+1) = sign(xavg, x2)
+            bufTripoleR8(i   ,POP_haloWidth+1) = isign*sign(xavg, x2)
+            bufTripoleR8(iDst,POP_haloWidth+1) = isign*sign(xavg, x1)
          end do
 
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate2DR8: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate2DR8: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -1297,7 +1241,10 @@ contains
    endif
 
    nxGlobal = 0
-   if (allocated(bufTripoleR4)) nxGlobal = size(bufTripoleR4,dim=1)
+   if (allocated(bufTripoleR4)) then
+      nxGlobal = size(bufTripoleR4,dim=1)
+      bufTripoleR4 = fill
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1340,6 +1287,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate2DR4: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -1353,15 +1312,19 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripoleR4(i   ,POP_haloWidth+1)
             x2 = bufTripoleR4(iDst,POP_haloWidth+1)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripoleR4(i   ,POP_haloWidth+1) = sign(xavg, x1)
-            bufTripoleR4(iDst,POP_haloWidth+1) = sign(xavg, x2)
+            bufTripoleR4(i   ,POP_haloWidth+1) = isign*sign(xavg, x2)
+            bufTripoleR4(iDst,POP_haloWidth+1) = isign*sign(xavg, x1)
          end do
+         bufTripoleR4(nxGlobal,POP_haloWidth+1) = isign* &
+         bufTripoleR4(nxGlobal,POP_haloWidth+1)
 
       case (POP_gridHorzLocEface)   ! cell center location
 
@@ -1375,31 +1338,21 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do i = 1,nxGlobal/2
             iDst = nxGlobal + 1 - i
             x1 = bufTripoleR4(i   ,POP_haloWidth+1)
             x2 = bufTripoleR4(iDst,POP_haloWidth+1)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripoleR4(i   ,POP_haloWidth+1) = sign(xavg, x1)
-            bufTripoleR4(iDst,POP_haloWidth+1) = sign(xavg, x2)
+            bufTripoleR4(i   ,POP_haloWidth+1) = isign*sign(xavg, x2)
+            bufTripoleR4(iDst,POP_haloWidth+1) = isign*sign(xavg, x1)
          end do
 
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate2DR4: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate2DR4: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -1529,7 +1482,10 @@ contains
    endif
 
    nxGlobal = 0
-   if (allocated(bufTripoleI4)) nxGlobal = size(bufTripoleI4,dim=1)
+   if (allocated(bufTripoleI4)) then
+      nxGlobal = size(bufTripoleI4,dim=1)
+      bufTripoleI4 = fill
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1572,6 +1528,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate2DI4: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -1585,15 +1553,19 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripoleI4(i   ,POP_haloWidth+1)
             x2 = bufTripoleI4(iDst,POP_haloWidth+1)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripoleI4(i   ,POP_haloWidth+1) = sign(xavg, x1)
-            bufTripoleI4(iDst,POP_haloWidth+1) = sign(xavg, x2)
+            bufTripoleI4(i   ,POP_haloWidth+1) = isign*sign(xavg, x2)
+            bufTripoleI4(iDst,POP_haloWidth+1) = isign*sign(xavg, x1)
          end do
+         bufTripoleI4(nxGlobal,POP_haloWidth+1) = isign* &
+         bufTripoleI4(nxGlobal,POP_haloWidth+1)
 
       case (POP_gridHorzLocEface)   ! cell center location
 
@@ -1607,31 +1579,21 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do i = 1,nxGlobal/2
             iDst = nxGlobal + 1 - i
             x1 = bufTripoleI4(i   ,POP_haloWidth+1)
             x2 = bufTripoleI4(iDst,POP_haloWidth+1)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripoleI4(i   ,POP_haloWidth+1) = sign(xavg, x1)
-            bufTripoleI4(iDst,POP_haloWidth+1) = sign(xavg, x2)
+            bufTripoleI4(i   ,POP_haloWidth+1) = isign*sign(xavg, x2)
+            bufTripoleI4(iDst,POP_haloWidth+1) = isign*sign(xavg, x1)
          end do
 
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate2DI4: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate2DI4: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -1776,6 +1738,7 @@ contains
             'POP_HaloUpdate3DR8: error allocating tripole buffer')
          return 
       endif
+      bufTripole3DR8 = fill
    endif
 
 !-----------------------------------------------------------------------
@@ -1825,6 +1788,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate3DR8: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -1838,16 +1813,20 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do k=1,nz
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripole3DR8(i   ,POP_haloWidth+1,k)
             x2 = bufTripole3DR8(iDst,POP_haloWidth+1,k)
             xavg = 0.5_POP_r8*(abs(x1) + abs(x2))
-            bufTripole3DR8(i   ,POP_haloWidth+1,k) = sign(xavg, x1)
-            bufTripole3DR8(iDst,POP_haloWidth+1,k) = sign(xavg, x2)
+            bufTripole3DR8(i   ,POP_haloWidth+1,k) = isign*sign(xavg, x2)
+            bufTripole3DR8(iDst,POP_haloWidth+1,k) = isign*sign(xavg, x1)
          end do
+         bufTripole3DR8(nxGlobal,POP_haloWidth+1,k) = isign* &
+         bufTripole3DR8(nxGlobal,POP_haloWidth+1,k)
          end do
 
       case (POP_gridHorzLocEface)   ! cell center location
@@ -1862,6 +1841,8 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do k=1,nz
          do i = 1,nxGlobal/2
@@ -1869,26 +1850,14 @@ contains
             x1 = bufTripole3DR8(i   ,POP_haloWidth+1,k)
             x2 = bufTripole3DR8(iDst,POP_haloWidth+1,k)
             xavg = 0.5_POP_r8*(abs(x1) + abs(x2))
-            bufTripole3DR8(i   ,POP_haloWidth+1,k) = sign(xavg, x1)
-            bufTripole3DR8(iDst,POP_haloWidth+1,k) = sign(xavg, x2)
+            bufTripole3DR8(i   ,POP_haloWidth+1,k) = isign*sign(xavg, x2)
+            bufTripole3DR8(iDst,POP_haloWidth+1,k) = isign*sign(xavg, x1)
          end do
          end do
 
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate3DR8: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate3DR8: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -2051,6 +2020,7 @@ contains
             'POP_HaloUpdate3DR4: error allocating tripole buffer')
          return 
       endif
+      bufTripole3DR4 = fill
    endif
 
 !-----------------------------------------------------------------------
@@ -2100,6 +2070,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate3DR4: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -2113,16 +2095,20 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do k=1,nz
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripole3DR4(i   ,POP_haloWidth+1,k)
             x2 = bufTripole3DR4(iDst,POP_haloWidth+1,k)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripole3DR4(i   ,POP_haloWidth+1,k) = sign(xavg, x1)
-            bufTripole3DR4(iDst,POP_haloWidth+1,k) = sign(xavg, x2)
+            bufTripole3DR4(i   ,POP_haloWidth+1,k) = isign*sign(xavg, x2)
+            bufTripole3DR4(iDst,POP_haloWidth+1,k) = isign*sign(xavg, x1)
          end do
+         bufTripole3DR4(nxGlobal,POP_haloWidth+1,k) = isign* &
+         bufTripole3DR4(nxGlobal,POP_haloWidth+1,k)
          end do
 
       case (POP_gridHorzLocEface)   ! cell center location
@@ -2137,6 +2123,8 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do k=1,nz
          do i = 1,nxGlobal/2
@@ -2144,26 +2132,14 @@ contains
             x1 = bufTripole3DR4(i   ,POP_haloWidth+1,k)
             x2 = bufTripole3DR4(iDst,POP_haloWidth+1,k)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripole3DR4(i   ,POP_haloWidth+1,k) = sign(xavg, x1)
-            bufTripole3DR4(iDst,POP_haloWidth+1,k) = sign(xavg, x2)
+            bufTripole3DR4(i   ,POP_haloWidth+1,k) = isign*sign(xavg, x2)
+            bufTripole3DR4(iDst,POP_haloWidth+1,k) = isign*sign(xavg, x1)
          end do
          end do
 
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate3DR4: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate3DR4: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -2326,6 +2302,7 @@ contains
             'POP_HaloUpdate3DI4: error allocating tripole buffer')
          return 
       endif
+      bufTripole3DI4 = fill
    endif
 
 !-----------------------------------------------------------------------
@@ -2375,6 +2352,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate3DI4: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -2388,16 +2377,20 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do k=1,nz
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripole3DI4(i   ,POP_haloWidth+1,k)
             x2 = bufTripole3DI4(iDst,POP_haloWidth+1,k)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripole3DI4(i   ,POP_haloWidth+1,k) = sign(xavg, x1)
-            bufTripole3DI4(iDst,POP_haloWidth+1,k) = sign(xavg, x2)
+            bufTripole3DI4(i   ,POP_haloWidth+1,k) = isign*sign(xavg, x2)
+            bufTripole3DI4(iDst,POP_haloWidth+1,k) = isign*sign(xavg, x1)
          end do
+         bufTripole3DI4(nxGlobal,POP_haloWidth+1,k) = isign* &
+         bufTripole3DI4(nxGlobal,POP_haloWidth+1,k)
          end do
 
       case (POP_gridHorzLocEface)   ! cell center location
@@ -2412,6 +2405,8 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do k=1,nz
          do i = 1,nxGlobal/2
@@ -2419,26 +2414,14 @@ contains
             x1 = bufTripole3DI4(i   ,POP_haloWidth+1,k)
             x2 = bufTripole3DI4(iDst,POP_haloWidth+1,k)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripole3DI4(i   ,POP_haloWidth+1,k) = sign(xavg, x1)
-            bufTripole3DI4(iDst,POP_haloWidth+1,k) = sign(xavg, x2)
+            bufTripole3DI4(i   ,POP_haloWidth+1,k) = isign*sign(xavg, x2)
+            bufTripole3DI4(iDst,POP_haloWidth+1,k) = isign*sign(xavg, x1)
          end do
          end do
 
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate3DI4: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate3DI4: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -2602,6 +2585,7 @@ contains
             'POP_HaloUpdate4DR8: error allocating tripole buffer')
          return 
       endif
+      bufTripole4DR8 = fill
    endif
 
 !-----------------------------------------------------------------------
@@ -2657,6 +2641,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate4DR8: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -2670,17 +2666,21 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do n=1,nt
          do k=1,nz
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripole4DR8(i   ,POP_haloWidth+1,k,n)
             x2 = bufTripole4DR8(iDst,POP_haloWidth+1,k,n)
             xavg = 0.5_POP_r8*(abs(x1) + abs(x2))
-            bufTripole4DR8(i   ,POP_haloWidth+1,k,n) = sign(xavg, x1)
-            bufTripole4DR8(iDst,POP_haloWidth+1,k,n) = sign(xavg, x2)
+            bufTripole4DR8(i   ,POP_haloWidth+1,k,n) = isign*sign(xavg, x2)
+            bufTripole4DR8(iDst,POP_haloWidth+1,k,n) = isign*sign(xavg, x1)
          end do
+         bufTripole4DR8(nxGlobal,POP_haloWidth+1,k,n) = isign* &
+         bufTripole4DR8(nxGlobal,POP_haloWidth+1,k,n)
          end do
          end do
 
@@ -2696,6 +2696,8 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do n=1,nt
          do k=1,nz
@@ -2704,8 +2706,8 @@ contains
             x1 = bufTripole4DR8(i   ,POP_haloWidth+1,k,n)
             x2 = bufTripole4DR8(iDst,POP_haloWidth+1,k,n)
             xavg = 0.5_POP_r8*(abs(x1) + abs(x2))
-            bufTripole4DR8(i   ,POP_haloWidth+1,k,n) = sign(xavg, x1)
-            bufTripole4DR8(iDst,POP_haloWidth+1,k,n) = sign(xavg, x2)
+            bufTripole4DR8(i   ,POP_haloWidth+1,k,n) = isign*sign(xavg, x2)
+            bufTripole4DR8(iDst,POP_haloWidth+1,k,n) = isign*sign(xavg, x1)
          end do
          end do
          end do
@@ -2713,18 +2715,6 @@ contains
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate4DR8: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate4DR8: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -2890,6 +2880,7 @@ contains
             'POP_HaloUpdate4DR4: error allocating tripole buffer')
          return 
       endif
+      bufTripole4DR4 = fill
    endif
 
 !-----------------------------------------------------------------------
@@ -2945,6 +2936,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate4DR4: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -2958,17 +2961,21 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do n=1,nt
          do k=1,nz
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripole4DR4(i   ,POP_haloWidth+1,k,n)
             x2 = bufTripole4DR4(iDst,POP_haloWidth+1,k,n)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripole4DR4(i   ,POP_haloWidth+1,k,n) = sign(xavg, x1)
-            bufTripole4DR4(iDst,POP_haloWidth+1,k,n) = sign(xavg, x2)
+            bufTripole4DR4(i   ,POP_haloWidth+1,k,n) = isign*sign(xavg, x2)
+            bufTripole4DR4(iDst,POP_haloWidth+1,k,n) = isign*sign(xavg, x1)
          end do
+         bufTripole4DR4(nxGlobal,POP_haloWidth+1,k,n) = isign* &
+         bufTripole4DR4(nxGlobal,POP_haloWidth+1,k,n)
          end do
          end do
 
@@ -2984,6 +2991,8 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do n=1,nt
          do k=1,nz
@@ -2992,8 +3001,8 @@ contains
             x1 = bufTripole4DR4(i   ,POP_haloWidth+1,k,n)
             x2 = bufTripole4DR4(iDst,POP_haloWidth+1,k,n)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripole4DR4(i   ,POP_haloWidth+1,k,n) = sign(xavg, x1)
-            bufTripole4DR4(iDst,POP_haloWidth+1,k,n) = sign(xavg, x2)
+            bufTripole4DR4(i   ,POP_haloWidth+1,k,n) = isign*sign(xavg, x2)
+            bufTripole4DR4(iDst,POP_haloWidth+1,k,n) = isign*sign(xavg, x1)
          end do
          end do
          end do
@@ -3001,18 +3010,6 @@ contains
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate4DR4: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate4DR4: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -3178,6 +3175,7 @@ contains
             'POP_HaloUpdate4DI4: error allocating tripole buffer')
          return 
       endif
+      bufTripole4DI4 = fill
    endif
 
 !-----------------------------------------------------------------------
@@ -3233,6 +3231,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate4DI4: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -3246,17 +3256,21 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do n=1,nt
          do k=1,nz
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripole4DI4(i   ,POP_haloWidth+1,k,n)
             x2 = bufTripole4DI4(iDst,POP_haloWidth+1,k,n)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripole4DI4(i   ,POP_haloWidth+1,k,n) = sign(xavg, x1)
-            bufTripole4DI4(iDst,POP_haloWidth+1,k,n) = sign(xavg, x2)
+            bufTripole4DI4(i   ,POP_haloWidth+1,k,n) = isign*sign(xavg, x2)
+            bufTripole4DI4(iDst,POP_haloWidth+1,k,n) = isign*sign(xavg, x1)
          end do
+         bufTripole4DI4(nxGlobal,POP_haloWidth+1,k,n) = isign* &
+         bufTripole4DI4(nxGlobal,POP_haloWidth+1,k,n)
          end do
          end do
 
@@ -3272,6 +3286,8 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
          do n=1,nt
          do k=1,nz
@@ -3280,8 +3296,8 @@ contains
             x1 = bufTripole4DI4(i   ,POP_haloWidth+1,k,n)
             x2 = bufTripole4DI4(iDst,POP_haloWidth+1,k,n)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripole4DI4(i   ,POP_haloWidth+1,k,n) = sign(xavg, x1)
-            bufTripole4DI4(iDst,POP_haloWidth+1,k,n) = sign(xavg, x2)
+            bufTripole4DI4(i   ,POP_haloWidth+1,k,n) = isign*sign(xavg, x2)
+            bufTripole4DI4(iDst,POP_haloWidth+1,k,n) = isign*sign(xavg, x1)
          end do
          end do
          end do
@@ -3289,18 +3305,6 @@ contains
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate4DI4: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate4DI4: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -3757,7 +3761,7 @@ contains
                msgIndx = msgIndx + 1
 
                halo%srcLocalAddr(1,msgIndx) = nxGlobal - iGlobal(i) + 1
-               halo%srcLocalAddr(2,msgIndx) = 5 - j
+               halo%srcLocalAddr(2,msgIndx) = POP_haloWidth + 3 - j
                halo%srcLocalAddr(3,msgIndx) = -srcLocalID
 
                halo%dstLocalAddr(1,msgIndx) = i
@@ -4207,6 +4211,49 @@ contains
 !EOC
 
    end subroutine POP_HaloMsgCreate
+
+!***********************************************************************
+!BOP
+! !IROUTINE: POP_HaloPrintStats
+! !INTERFACE:
+
+   subroutine POP_HaloPrintStats(halo, distrb, errorCode)
+
+! !DESCRIPTION:
+!  This routine compiles some message statistics for a given halo
+!  updates and writes them to stdout.  For serial execution, this
+!  routine does nothing.
+!
+! !REVISION HISTORY:
+!  Same as module.
+
+! !INPUT PARAMETERS:
+
+   type (POP_halo), intent(in)   :: &
+      halo               ! defined halo for which stats requested
+
+   type (POP_distrb), intent(in) :: &
+      distrb             ! associated block distribution for halo
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode          ! returned error code
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  do nothing
+!
+!-----------------------------------------------------------------------
+
+   errorCode = POP_Success
+
+!-----------------------------------------------------------------------
+!EOC
+
+   end subroutine  POP_HaloPrintStats
 
 !***********************************************************************
 

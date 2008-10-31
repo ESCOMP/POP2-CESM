@@ -17,7 +17,6 @@
 
    use kinds_mod
    use domain
-   use boundary
    use constants
    use broadcast
    use io

@@ -13,7 +13,7 @@ F90 = f95
 LD = f95
 CC = cc
 Cp = /bin/cp
-Cpp = /lib/cpp -P
+Cpp = cpp
 AWK = /usr/bin/gawk
 ABI = 
 COMMDIR = serial
@@ -43,7 +43,7 @@ TRAP_FPE = no
 Cpp_opts =   \
       $(DCOUPL)
 
-Cpp_opts := $(Cpp_opts) -DPOSIX
+Cpp_opts := $(Cpp_opts) -DPOSIX -P -traditional
  
 #----------------------------------------------------------------------------
 #

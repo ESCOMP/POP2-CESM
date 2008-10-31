@@ -14,19 +14,23 @@
 
 ! !USES:
 
-   use kinds_mod
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_FieldMod
+   use POP_GridHorzMod
+   use POP_HaloMod
+   use POP_ReductionsMod
+
    use blocks
    use communicate
    use distribution
    use domain_size
    use domain
    use broadcast
-   use boundary
    use constants
    use topostress
    use diagnostics
    use io
-   use global_reductions
    use grid
    use exit_mod
 
@@ -88,7 +92,7 @@
 ! !IROUTINE: init_del2u
 ! !INTERFACE:
 
- subroutine init_del2u
+ subroutine init_del2u(errorCode)
 
 ! !DESCRIPTION:
 !  This routine calculates the coefficients of the 5-point stencils for
@@ -98,6 +102,11 @@
 !
 ! !REVISION HISTORY:
 !  same as module
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode              ! returned error code
 
 !EOP
 !BOC
@@ -131,6 +140,8 @@
 !  read input namelist to set options
 !
 !-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    lauto_hmix = .false.
    lvariable_hmix = .false.
@@ -237,8 +248,8 @@
       !endwhere
       !RSx3
 
-      amfmin = global_minval(AMF, distrb_clinic, field_loc_NEcorner, CALCU)
-      amfmax = global_maxval(AMF, distrb_clinic, field_loc_NEcorner, CALCU)
+      amfmin = POP_GlobalMinval(AMF, POP_distrbClinic, errorCode, CALCU)
+      amfmax = POP_GlobalMaxval(AMF, POP_distrbClinic, errorCode, CALCU)
 
       if (my_task == master_task) then
          write(stdout,'(a37)') 'Variable horizontal viscosity enabled'
@@ -246,8 +257,15 @@
               '  Min AMF =',amfmin,'Max AMF =',amfmax
       endif
 
-      call update_ghost_cells(AMF, bndy_clinic, field_loc_NEcorner,&
-                                                field_type_scalar)
+      call POP_HaloUpdate(AMF, POP_haloClinic, POP_gridHorzLocNECorner,&
+                               POP_fieldKindScalar, errorCode,         &
+                               fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_del2u: error updating halo for AMF')
+         return
+      endif
 
    else
 
@@ -379,27 +397,6 @@
 
    end do
 
-   !*** these operator coefficients only needed in physical
-   !*** domain and should be valid there assuming grid quantities
-   !*** and AMF defined correctly in ghost cells
-   !*** if so, no boundary update needed here
-   !call update_ghost_cells(DUN, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DUS, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DUE, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DUW, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DUM, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DMC, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DME, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(DMN, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-
    DUC = -(DUN + DUS + DUE + DUW)               ! scalar laplacian
    DMW = -DME
    DMS = -DMN
@@ -426,7 +423,7 @@
 ! !IROUTINE: init_del2t
 ! !INTERFACE:
 
- subroutine init_del2t
+ subroutine init_del2t(errorCode)
 
 ! !DESCRIPTION:
 !  This routine reads parameters for Laplaciang tracer mixing and
@@ -436,6 +433,11 @@
 !
 ! !REVISION HISTORY:
 !  same as module
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode              ! returned error code
 
 !EOP
 !BOC
@@ -467,6 +469,8 @@
 !  read input namelist to set options
 !
 !-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    lauto_hmix = .false.
    lvariable_hmix = .false.
@@ -564,8 +568,8 @@
                            (c2*pi*radius/nx_global)**2)
       end do
 
-      ahfmin = global_minval(AHF, distrb_clinic, field_loc_center, CALCT)
-      ahfmax = global_maxval(AHF, distrb_clinic, field_loc_center, CALCT)
+      ahfmin = POP_GlobalMinval(AHF, POP_distrbClinic, errorCode, CALCT)
+      ahfmax = POP_GlobalMaxval(AHF, POP_distrbClinic, errorCode, CALCT)
 
       if (my_task == master_task) then
          write(stdout,'(a39)')  &
@@ -574,8 +578,16 @@
                '  Min AHF =',ahfmin,'Max AHF =',ahfmax
       endif
 
-      call update_ghost_cells(AHF, bndy_clinic, field_loc_center, &
-                                                field_type_scalar)
+      call POP_HaloUpdate(AHF, POP_haloClinic, POP_gridHorzLocCenter, &
+                               POP_fieldKindScalar, errorCode,        &
+                               fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_del2t: error updating halo for AHF')
+         return
+      endif
+
 
    else
 

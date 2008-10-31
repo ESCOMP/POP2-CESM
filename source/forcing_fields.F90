@@ -33,6 +33,7 @@ module forcing_fields
       SNOW_F = c0,       &! snow          flux    from cpl (kg/m2/s)
       MELT_F = c0,       &! melt          flux    from cpl (kg/m2/s)
       ROFF_F = c0,       &! river runoff  flux    from cpl (kg/m2/s)
+      IOFF_F = c0,       &! ice   runoff  flux    from cpl (kg/m2/s)
       SALT_F = c0,       &! salt          flux    from cpl (kg(salt)/m2/s)
       SENH_F = c0,       &! sensible heat flux    from cpl (W/m2   )
       LWUP_F = c0,       &! longwave heat flux up from cpl (W/m2   )

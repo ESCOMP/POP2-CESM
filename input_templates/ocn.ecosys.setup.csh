@@ -8,6 +8,8 @@
 #    namelist       pop_in_filename
 #    tavg_contents  tavg_contents_filename
 #    prestage       res_dpt_dir res_indpt_dir
+#    document       pop2_document_files
+#    ccsm_prestage  ccsm_prestage_file
 #
 #  CVS:$Id: ocn.ecosys.setup.csh 2448 2006-11-14 21:01:38Z njn01 $ 
 #  CVS:$Name$ 
@@ -23,35 +25,48 @@ endif
 #  set IC and forcing files
 #===============================================================================
 
-if ($OCN_GRID == gx3v5) then
+set relpath = ocn/pop/$OCN_GRID_INTERNAL
+if ($OCN_GRID_INTERNAL == gx3v5) then
 
-   set IC_file  = ecosys_jan_IC_gx3v5_20051214.nc
+   set IC_file  = $DIN_LOC_ROOT/$relpath/ic/ecosys_jan_IC_gx3v5_20051214.nc
    set ALK_scale_factor = 1.0
    set DIC_scale_factor = 1.0
    set O2_scale_factor  = 1.0
-   set DST_file = dst79gnx_gx3v5_20040426.nc
-   set fesed_file = fesedflux_gx3v5_20070521.nc
+   set DST_file = $DIN_LOC_ROOT/$relpath/forcing/dst79gnx_gx3v5_20040426.nc
+   set fesed_file = $DIN_LOC_ROOT/$relpath/forcing/fesedflux_gx3v5_20070521.nc
 
-else if ($OCN_GRID == gx1v5) then
+else if ($OCN_GRID_INTERNAL == gx1v5) then
 
-   set IC_file  = ecosys_jan_IC_gx1v5_20070529.nc
+   set IC_file  = $DIN_LOC_ROOT/$relpath/ic/ecosys_jan_IC_gx1v5_20070529.nc
    set ALK_scale_factor = 1.025
    set DIC_scale_factor = 1.025
    set O2_scale_factor  = 44.66
-   set DST_file = dst79gnx_gx1v5_20070329.nc
-   set fesed_file = fesedflux_gx1v5_20070518.nc
+   set DST_file = $DIN_LOC_ROOT/$relpath/forcing/dst79gnx_gx1v5_20070329.nc
+   set fesed_file = $DIN_LOC_ROOT/$relpath/forcing/fesedflux_gx1v5_20070518.nc
 
 else
 
-   echo $OCN_GRID not supported by ecosystem module
-   exit 7
+   echo $OCN_GRID_INTERNAL not supported by ecosystem module
+   exit 2
 
 endif
 
 if (($RUN_TYPE == startup) && ($CONTINUE_RUN == FALSE)) then
-   set IC_file_nml = $INPUT/$IC_file
+  if ($OCN_PRESTAGE == TRUE) then
+   set IC_file_nml = $INPUT/$IC_file:t
+  else
+   set IC_file_nml = $IC_file
+  endif
 else
    set IC_file_nml = same_as_TS
+endif
+
+if ($OCN_PRESTAGE == TRUE) then
+  set DST_file_nml   = $INPUT/$DST_file:t
+  set fesed_file_nml = $INPUT/$fesed_file:t
+else
+  set DST_file_nml   = $DST_file
+  set fesed_file_nml = $fesed_file
 endif
 
 #===============================================================================
@@ -136,23 +151,23 @@ else if ($command == namelist) then
    ecosys_tadvect_ctype            = 'base_model'
    gas_flux_forcing_opt            = 'model'
    lmarginal_seas                  = .true.
-   ecosys_diurnal_cycle            = .false.
    lsource_sink                    = .true.
    comp_surf_avg_freq_opt          = 'never'
    comp_surf_avg_freq              = 1
    use_nml_surf_vals               = $use_nml_surf_vals
    surf_avg_dic_const              = 1944.0
    surf_avg_alk_const              = 2225.0
+   ecosys_qsw_distrb_const         = .false.
 !  iron_dust_flx_data_type         = 'monthly'
-   dust_flux_input%filename        = '$INPUT/$DST_file'
+   dust_flux_input%filename        = '$DST_file_nml'
    dust_flux_input%file_fmt        = 'nc'
    dust_flux_input%file_varname    = 'DSTSF'
    dust_flux_input%scale_factor    = 1.0e-1    ! kg/m^2/sec -> g/cm^2/sec
-   iron_flux_input%filename        = '$INPUT/$DST_file'
+   iron_flux_input%filename        = '$DST_file_nml'
    iron_flux_input%file_fmt        = 'nc'
    iron_flux_input%file_varname    = 'DSTSF'
    iron_flux_input%scale_factor    = 6.2668e4  ! kg/m^2/sec -> nmol/cm^2/sec, 3.5% iron by weight
-   fesedflux_input%filename       = '$INPUT/$fesed_file'
+   fesedflux_input%filename       = '$fesed_file_nml'
    fesedflux_input%file_varname   = 'FESEDFLUXIN'
    fesedflux_input%file_fmt        = 'nc'
    fesedflux_input%scale_factor   = 1.1574e-6 ! umolFe/m2/day -> nmolFe/cm2/s
@@ -302,25 +317,66 @@ EOF
 
 else if ($command == prestage) then
 
+ if ($OCN_PRESTAGE == TRUE) then
+
    echo -----------------------------------------------------------------
    echo ocn.ecosys.setup.csh : prestaging data files
    echo -----------------------------------------------------------------
 
-   if ($#argv < 3) then
+   if ($#argv < 1) then
       echo input data directories missing
       exit 6
    endif
 
-   set res_dpt_dir   = $2
-   set res_indpt_dir = $3
-
    if ($CONTINUE_RUN == FALSE) then
-      \cp -f $res_dpt_dir/ic/$IC_file    $IC_file  || exit 6
+      \cp -f $IC_file    $IC_file_nml  || exit 6
    endif
 
-   \cp -f $res_dpt_dir/forcing/$DST_file $DST_file || exit 6
-   \cp -f $res_dpt_dir/forcing/$fesed_file $fesed_file || exit 6
+   \cp -f $DST_file $DST_file_nml || exit 6
+   \cp -f $fesed_file $fesed_file_nml || exit 6
 
+ else
+
+   echo -----------------------------------------------------------------
+   echo ocn.ecosys.setup.csh : data files are not being prestaged
+   echo -----------------------------------------------------------------
+
+ endif
+
+else if ($command == document) then
+
+   echo -----------------------------------------------------------------
+   echo ocn.ecosys.setup.csh : documenting inputdata files
+   echo -----------------------------------------------------------------
+
+   if ($#argv < 2) then
+      echo error documenting input files
+      exit 7
+   endif
+
+   set pop2_document_files   = $2
+
+  \ls -la $IC_file    >> $pop2_document_files || exit 7
+  \ls -la $DST_file   >> $pop2_document_files || exit 7
+  \ls -la $fesed_file >> $pop2_document_files || exit 7
+
+else if ($command == ccsm_prestage) then
+
+  #echo -----------------------------------------------------------------
+  #echo ocn.ecosys.setup.csh : writing ccsm prestaging information
+  #echo -----------------------------------------------------------------
+
+   if ($#argv < 2) then
+      echo error documenting input files
+      exit 8
+   endif
+
+   set ccsm_prestage_file = $2
+
+   if (-f $ccsm_prestage_file) then
+     echo "    set IC_file           = "\$DIN_LOC_ROOT/$relpath/ic/$IC_file:t         >> $ccsm_prestage_file || exit 8
+     echo "    set DST_file          = "\$DIN_LOC_ROOT/$relpath/forcing/$DST_file:t   >> $ccsm_prestage_file || exit 8
+     echo "    set fesed_file        = "\$DIN_LOC_ROOT/$relpath/forcing/$fesed_file:t >> $ccsm_prestage_file || exit 8
    endif
 
 else
@@ -329,6 +385,6 @@ else
    echo ocn.ecosys.setup.csh : unrecognized command $command
    echo -----------------------------------------------------------------
 
-   exit 2
+   exit 9
 
 endif

@@ -22,6 +22,9 @@ module cfc_mod
 
 ! !USES:
 
+   use POP_KindsMod
+   use POP_ErrorMod
+
    use kinds_mod
    use blocks, only: nx_block, ny_block, block
    use domain_size, only: max_blocks_clinic, km
@@ -34,7 +37,8 @@ module cfc_mod
    use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
    use passive_tracer_tools, only: forcing_monthly_every_ts, &
        ind_name_pair, tracer_read, read_field
-   use broadcast, only: broadcast_scalar
+   use broadcast
+   use netcdf
 
    implicit none
    save
@@ -156,11 +160,11 @@ contains
 ! !INTERFACE:
 
  subroutine cfc_init(init_ts_file_fmt, read_restart_filename, &
-                     tracer_d_module, TRACER_MODULE)
+                     tracer_d_module, TRACER_MODULE, errorCode)
 
 ! !DESCRIPTION:
 !  Initialize cfc tracer module. This involves setting metadata, reading
-!  the module's namelist and setting initial conditions.
+!  the modules namelist and setting initial conditions.
 
 ! !REVISION HISTORY:
 !  same as module
@@ -190,6 +194,11 @@ contains
 
    real (r8), dimension(nx_block,ny_block,km,cfc_tracer_cnt,3,max_blocks_clinic), &
       intent(inout) :: TRACER_MODULE
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode         ! returned error code
 
 !EOP
 !BOC
@@ -229,6 +238,8 @@ contains
 !-----------------------------------------------------------------------
 !  initialize forcing_monthly_every_ts variables
 !-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    call init_forcing_monthly_every_ts(fice_file)
    call init_forcing_monthly_every_ts(xkw_file)
@@ -404,7 +415,14 @@ contains
       if (n_topo_smooth > 0) then
          do n = 1, cfc_tracer_cnt
             do k = 1, km
-               call fill_points(k,TRACER_MODULE(:,:,k,n,curtime,:))
+               call fill_points(k,TRACER_MODULE(:,:,k,n,curtime,:), &
+                                errorCode)
+
+               if (errorCode /= POP_Success) then
+                  call POP_ErrorSet(errorCode, &
+                     'cfc_init: error in fill_points')
+                  return
+               endif
             end do
          end do
       endif
@@ -718,10 +736,6 @@ contains
 
 ! !USES:
 
-   use broadcast, only: broadcast_array
-
-   include 'netcdf.inc'
-
 !-----------------------------------------------------------------------
 !  local variables
 !-----------------------------------------------------------------------
@@ -747,9 +761,9 @@ contains
 
    if (my_task == master_task) then
 
-      stat = nf_open(pcfc_file, 0, ncid)
+      stat = nf90_open(pcfc_file, 0, ncid)
       if (stat /= 0) then
-         write(stdout,*) 'error from nf_open: ', nf_strerror(stat)
+         write(stdout,*) 'error from nf_open: ', nf90_strerror(stat)
          go to 99
       endif
 
@@ -760,16 +774,16 @@ contains
 
       varname = 'pcfc11_nh'
 
-      stat = nf_inq_varid(ncid, varname, varid)
+      stat = nf90_inq_varid(ncid, varname, varid)
 
       if (stat /= 0) then
-         write(stdout,*) 'error from nf_inq_varid for pcfc11_nh: ', nf_strerror(stat)
+         write(stdout,*) 'error from nf_inq_varid for pcfc11_nh: ', nf90_strerror(stat)
          go to 99
       endif
 
-      stat = nf_inq_varndims(ncid, varid, ndims)
+      stat = nf90_inquire_variable(ncid, varid, ndims=ndims)
       if (stat /= 0) then
-         write(stdout,*) 'nf_inq_varndims for pcfc11_nh: ', nf_strerror(stat)
+         write(stdout,*) 'nf_inq_varndims for pcfc11_nh: ', nf90_strerror(stat)
          go to 99
       endif
       if (ndims /= 1) then
@@ -777,15 +791,15 @@ contains
          go to 99
       endif
 
-      stat = nf_inq_vardimid(ncid, varid, data_dimid)
+      stat = nf90_inquire_variable(ncid, varid, dimids=data_dimid)
       if (stat /= 0) then
-         write(stdout,*) 'nf_inq_vardimid for pcfc11_nh: ', nf_strerror(stat)
+         write(stdout,*) 'nf_inq_vardimid for pcfc11_nh: ', nf90_strerror(stat)
          go to 99
       endif
 
-      stat = nf_inq_dimlen(ncid, data_dimid(1), pcfc_data_len)
+      stat = nf90_inquire_dimension(ncid, data_dimid(1), len=pcfc_data_len)
       if (stat /= 0) then
-         write(stdout,*) 'nf_inq_dimlen for pcfc11_nh: ', nf_strerror(stat)
+         write(stdout,*) 'nf_inq_dimlen for pcfc11_nh: ', nf90_strerror(stat)
          go to 99
       endif
 
@@ -797,9 +811,9 @@ contains
       allocate(pcfc12_nh(pcfc_data_len))
       allocate(pcfc12_sh(pcfc_data_len))
 
-      stat = nf_inq_dimname(ncid, data_dimid, varname)
+      stat = nf90_inquire_dimension(ncid, data_dimid(1), name=varname)
       if (stat /= 0) then
-         write(stdout,*) 'nf_inq_dimname for dim of pcfc11_nh: ', nf_strerror(stat)
+         write(stdout,*) 'nf_inq_dimname for dim of pcfc11_nh: ', nf90_strerror(stat)
          go to 99
       endif
 
@@ -814,9 +828,9 @@ contains
       call read_1dvar_cdf(ncid, data_dimid, 'pcfc12_sh', pcfc12_sh, stat)
       if (stat /= 0) go to 99
 
-      stat = nf_close(ncid)
+      stat = nf90_close(ncid)
       if (stat /= 0) then
-         write(stdout,*) 'nf_close: ', nf_strerror(stat)
+         write(stdout,*) 'nf_close: ', nf90_strerror(stat)
          go to 99
       endif
 
@@ -870,8 +884,6 @@ contains
 
 ! !USES:
 
-   include 'netcdf.inc'
-
 ! !INPUT PARAMETERS:
 
    integer (int_kind), intent(in) :: &
@@ -905,15 +917,15 @@ contains
 
 !-----------------------------------------------------------------------
 
-   stat = nf_inq_varid(ncid, varname, varid)
+   stat = nf90_inq_varid(ncid, varname, varid)
    if (stat /= 0) then
-      write(stdout,*) 'nf_inq_varid for ', trim(varname), ' : ', nf_strerror(stat)
+      write(stdout,*) 'nf_inq_varid for ', trim(varname), ' : ', nf90_strerror(stat)
       return
    endif
 
-   stat = nf_inq_varndims(ncid, varid, ndims)
+   stat = nf90_inquire_variable(ncid, varid, ndims=ndims)
    if (stat /= 0) then
-      write(stdout,*) 'nf_inq_varndims for ', trim(varname), ' : ', nf_strerror(stat)
+      write(stdout,*) 'nf_inq_varndims for ', trim(varname), ' : ', nf90_strerror(stat)
       return
    endif
    if (ndims /= 1) then
@@ -921,9 +933,9 @@ contains
       return
    endif
 
-   stat = nf_inq_vardimid(ncid, varid, dimid)
+   stat = nf90_inquire_variable(ncid, varid, dimids=dimid)
    if (stat /= 0) then
-      write(stdout,*) 'nf_inq_vardimid for ', trim(varname), ' : ', nf_strerror(stat)
+      write(stdout,*) 'nf_inq_vardimid for ', trim(varname), ' : ', nf90_strerror(stat)
       return
    endif
    if (dimid(1) /= data_dimid(1)) then
@@ -931,9 +943,9 @@ contains
       return
    endif
 
-   stat = nf_get_var_double(ncid, varid, data)
+   stat = nf90_get_var(ncid, varid, data)
    if (stat /= 0) then
-      write(stdout,*) 'nf_get_var_double for ', trim(varname), ' : ', nf_strerror(stat)
+      write(stdout,*) 'nf_get_var_double for ', trim(varname), ' : ', nf90_strerror(stat)
       return
    endif
 
@@ -947,7 +959,8 @@ contains
 ! !IROUTINE: cfc_set_sflux
 ! !INTERFACE:
 
- subroutine cfc_set_sflux(U10_SQR,IFRAC,PRESS,SST,SSS,SURF_VALS,STF_MODULE)
+ subroutine cfc_set_sflux(U10_SQR,IFRAC,PRESS,SST,SSS, &
+                          SURF_VALS_OLD,SURF_VALS_CUR,STF_MODULE)
 
 ! !DESCRIPTION:
 !  Compute CFC11 surface flux and store related tavg fields for
@@ -958,7 +971,7 @@ contains
 
 ! !USES:
 
-   use constants, only: field_loc_center, field_type_scalar
+   use constants, only: field_loc_center, field_type_scalar, p5
    use time_management, only: thour00
    use forcing_tools, only: update_forcing_data, interpolate_forcing
    use timers, only: timer_start, timer_stop
@@ -973,7 +986,7 @@ contains
       SSS          ! sea surface salinity (psu)
 
    real (r8), dimension(nx_block,ny_block,cfc_tracer_cnt,max_blocks_clinic), &
-         intent(in) :: SURF_VALS ! module tracers
+         intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR ! module tracers
 
 ! !OUTPUT PARAMETERS:
 
@@ -995,6 +1008,7 @@ contains
       AP_USED            ! used atm pressure (converted from dyne/cm**2 to atm)
 
    real (r8), dimension(nx_block,ny_block) :: &
+      SURF_VALS,       & ! filtered surface tracer values
       pCFC11,          & ! atmospheric CFC11 mole fraction (pmol/mol)
       pCFC12,          & ! atmospheric CFC11 mole fraction (pmol/mol)
       CFC11_SCHMIDT,   & ! CFC11 Schmidt number
@@ -1098,7 +1112,7 @@ contains
        AP_USED = INTERP_WORK(:,:,:,1)
    endif
 
-   !$OMP PARALLEL DO PRIVATE(iblock,pCFC11,pCFC12,CFC11_SCHMIDT,CFC12_SCHMIDT,CFC11_SOL_0,CFC12_SOL_0,XKW_ICE,PV,CFC_surf_sat)
+   !$OMP PARALLEL DO PRIVATE(iblock,SURF_VALS,pCFC11,pCFC12,CFC11_SCHMIDT,CFC12_SCHMIDT,CFC11_SOL_0,CFC12_SOL_0,XKW_ICE,PV,CFC_surf_sat)
    do iblock = 1, nblocks_clinic
 
       if (cfc_formulation == 'ocmip') then
@@ -1155,15 +1169,19 @@ contains
          CFC_SFLUX_TAVG(:,:,8,iblock) = PV
          CFC_surf_sat = AP_USED(:,:,iblock) * CFC11_SOL_0 * pCFC11
          CFC_SFLUX_TAVG(:,:,9,iblock) = CFC_surf_sat
+         SURF_VALS = p5*(SURF_VALS_OLD(:,:,cfc11_ind,iblock) + &
+                         SURF_VALS_CUR(:,:,cfc11_ind,iblock))
          STF_MODULE(:,:,cfc11_ind,iblock) = &
-            PV * (CFC_surf_sat - SURF_VALS(:,:,cfc11_ind,iblock))
+            PV * (CFC_surf_sat - SURF_VALS)
 
          PV = XKW_ICE * sqrt(660.0_r8 / CFC12_SCHMIDT)
          CFC_SFLUX_TAVG(:,:,10,iblock) = PV
          CFC_surf_sat = AP_USED(:,:,iblock) * CFC12_SOL_0 * pCFC12
          CFC_SFLUX_TAVG(:,:,11,iblock) = CFC_surf_sat
+         SURF_VALS = p5*(SURF_VALS_OLD(:,:,cfc12_ind,iblock) + &
+                         SURF_VALS_CUR(:,:,cfc12_ind,iblock))
          STF_MODULE(:,:,cfc12_ind,iblock) = &
-            PV * (CFC_surf_sat - SURF_VALS(:,:,cfc12_ind,iblock))
+            PV * (CFC_surf_sat - SURF_VALS)
       elsewhere
          STF_MODULE(:,:,cfc11_ind,iblock) = c0
          STF_MODULE(:,:,cfc12_ind,iblock) = c0
@@ -1345,7 +1363,7 @@ contains
 ! !IROUTINE: comp_cfc_schmidt
 ! !INTERFACE:
 
- subroutine comp_cfc_schmidt(LAND_MASK, SST, CFC11_SCHMIDT, CFC12_SCHMIDT)
+ subroutine comp_cfc_schmidt(LAND_MASK, SST_in, CFC11_SCHMIDT, CFC12_SCHMIDT)
 
 ! !DESCRIPTION:
 !  Compute Schmidt numbers of CFCs.
@@ -1360,7 +1378,7 @@ contains
       LAND_MASK          ! land mask for this block
 
    real (r8), dimension(nx_block,ny_block), intent(in) :: &
-      SST                ! sea surface temperature (C)
+      SST_in             ! sea surface temperature (C)
 
 ! !OUTPUT PARAMETERS:
 
@@ -1380,7 +1398,16 @@ contains
       a3_11 =    6.1851_r8,     a3_12 =    6.1908_r8, &
       a4_11 =   -0.07513_r8,    a4_12 =   -0.067430_r8
 
+   real (r8), dimension(nx_block,ny_block) :: &
+      SST                ! sea surface temperature (C)
+
 !-----------------------------------------------------------------------
+! Zheng's fit only uses data up to 30
+! when temp exceeds 35, use 35
+! CFC11 fit goes negative for temp > 42.15
+!-----------------------------------------------------------------------
+
+   SST = merge(SST_in, 35.0_r8, SST_in < 35.0_r8)
 
    where (LAND_MASK)
       CFC11_SCHMIDT = a1_11 + SST * (a2_11 + SST * (a3_11 + a4_11 * SST))

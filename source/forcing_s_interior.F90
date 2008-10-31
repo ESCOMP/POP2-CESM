@@ -18,7 +18,6 @@
    use blocks
    use domain
    use constants
-   use boundary
    use io
    use forcing_tools
    use time_management

@@ -25,7 +25,6 @@
    use grid, only: sfc_layer_type, sfc_layer_varthick, sfc_layer_rigid,      &
        sfc_layer_oldfree, CALCU, tgrid_to_ugrid
    use time_management, only: mix_pass, dtp
-!   use boundary, only: 
    use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
 
    implicit none
@@ -284,8 +283,6 @@
    end do  ! block loop
 
    !$OMP END PARALLEL DO
-
-   !call update_ghost_cells(DHU, bndy_clinic)
 
 !-----------------------------------------------------------------------
 

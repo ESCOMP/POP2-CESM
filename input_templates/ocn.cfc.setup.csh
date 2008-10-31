@@ -8,6 +8,8 @@
 #    namelist       pop_in_filename
 #    tavg_contents  tavg_contents_filename
 #    prestage       res_dpt_dir res_indpt_dir
+#    document       pop2_document
+#    ccsm_prestage  ccsm_prestage_file
 #
 #  SVN:$Id$
 #
@@ -22,7 +24,15 @@ endif
 #  set forcing files
 #===============================================================================
 
-set pcfc_file = pcfc1112_atm_20070125.nc
+set relpath = ocn/pop/res_indpt
+set pcfc_file = $DIN_LOC_ROOT/$relpath/forcing/pcfc1112_atm_20070125.nc
+
+if ($OCN_PRESTAGE == TRUE) then
+  set pcfc_file_nml = $INPUT/$pcfc_file:t
+else
+  set pcfc_file_nml = $pcfc_file
+endif
+
 
 #===============================================================================
 
@@ -92,7 +102,7 @@ else if ($command == namelist) then
    init_cfc_init_file = 'same_as_TS'
    model_year         = $model_year
    data_year          = $data_year
-   pcfc_file          = '$INPUT/$pcfc_file'
+   pcfc_file          = '$pcfc_file_nml'
    cfc_formulation    = 'model'
 /
 EOF
@@ -153,7 +163,43 @@ else if ($command == prestage) then
    set res_dpt_dir   = $2
    set res_indpt_dir = $3
 
-   \cp -f $res_indpt_dir/forcing/$pcfc_file . || exit 6
+if ($OCN_PRESTAGE == TRUE) then
+   \cp -f $pcfc_file $pcfc_file_nml || exit 6
+endif
+
+else if ($command == document) then
+
+   echo -----------------------------------------------------------------
+   echo ocn.cfc.setup.csh : documenting inputdata files
+   echo -----------------------------------------------------------------
+
+   if ($#argv < 2) then
+      echo error documenting input files
+      exit 7
+   endif
+
+   set pop2_document   = $2
+
+  \ls -la $pcfc_file    >> $pop2_document || exit 7
+
+
+else if ($command == ccsm_prestage) then
+
+  #echo -----------------------------------------------------------------
+  #echo ocn.cfc.setup.csh : writing ccsm prestaging information
+  #echo -----------------------------------------------------------------
+
+   if ($#argv < 2) then
+      echo error documenting input files
+      exit 8
+   endif
+
+   set ccsm_prestage_file = $2
+
+   if (-f $ccsm_prestage_file) then
+     echo "    set pcfc_file         = "\$DIN_LOC_ROOT/$relpath/forcing/$pcfc_file:t >> $ccsm_prestage_file || exit 8
+   endif
+
 
 else
 

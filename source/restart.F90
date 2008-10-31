@@ -13,17 +13,22 @@
 !
 ! !USES:
 
-   use kinds_mod, only: char_len, log_kind, int_kind, r8
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_IOUnitsMod
+   use POP_FieldMod
+   use POP_GridHorzMod
+   use POP_HaloMod
+
    use domain_size
-   use domain, only: nblocks_clinic, blocks_clinic, bndy_clinic
+   use domain
    use constants, only: char_blank, field_loc_NEcorner, field_type_vector,  &
        field_loc_center, field_type_scalar, blank_fmt, c0, grav
    use blocks, only: nx_block, ny_block, block, get_block
    use prognostic, only: UBTROP, VBTROP, PSURF, GRADPX, GRADPY, UVEL, VVEL, &
-       PGUESS, TRACER, nt, nx_global, ny_global, km, curtime, oldtime,      &
+       PGUESS, TRACER, nt, nx_global, ny_global, km, curtime, newtime, oldtime,      &
        tracer_d
    use broadcast, only: broadcast_scalar 
-   use boundary, only: update_ghost_cells
    use communicate, only: my_task, master_task
    use operators, only: div
    use grid, only: sfc_layer_type, sfc_layer_varthick, CALCU, CALCT, KMU,   &
@@ -34,20 +39,7 @@
        rec_type_dbl, construct_io_dim, nml_in, nml_filename, get_unit,      &
        release_unit, destroy_file, add_attrib_file, destroy_io_field,       &
        extract_attrib_file
-   use time_management, only: cday, cmonth, init_time_flag, freq_opt_nstep, &
-       freq_opt_nsecond, freq_opt_nhour, freq_opt_nday, freq_opt_nmonth,    &
-       freq_opt_nyear, freq_opt_never, hours_in_year, seconds_in_year,      &
-       days_in_prior_year, days_in_year, leapyear, newhour, newday,         &
-       adjust_year_next, midnight_last, eoy_last, eoy, eom_next, eom_last,  &
-       eom, eod_last, eod, nsteps_total, seconds_this_year_next,            &
-       seconds_this_year, seconds_this_day_next, seconds_this_day,          &
-       elapsed_days_this_year, elapsed_years, elapsed_months, elapsed_days, &
-       iday_of_year_last, iday_of_year, dtt, isecond0, iminute0, ihour0,    &
-       iday0, imonth0, iyear0, isecond, iminute, ihour, iday, imonth, iyear,&
-       runid, dtp, init_time_flag, cmonth3, freq_opt_nstep,                 &
-       freq_opt_nsecond, cyear, date_separator, freq_opt_nstep,             &
-       freq_opt_nsecond, check_time_flag, month3_all, int_to_char,          &
-       set_time_flag_last,set_time_flag,ccsm_date_stamp
+   use time_management
    use ice, only: tlast_ice, liceform, AQICE, FW_FREEZE, QFLUX
    use forcing_fields, only: FW_OLD
    use forcing_ap, only: ap_interp_last
@@ -59,8 +51,8 @@
    use forcing_s_interior, only: s_interior_interp_last
    use exit_mod, only: sigAbort, exit_pop, flushm
    use registry
-   use shr_sys_mod, only: shr_sys_flush
    use passive_tracers, only: write_restart_passive_tracers
+   use overflows
 
    implicit none
    private
@@ -84,21 +76,21 @@
 !
 !-----------------------------------------------------------------------
 
-   character (char_len) :: &
+   character (POP_charLength) :: &
       restart_outfile       ! restart output filename root
 
-   character (char_len) :: &
+   character (POP_charLength) :: &
       restart_fmt           ! format (bin or nc) of output restart
 
-   character (char_len) ::  &
+   character (POP_charLength) ::  &
       read_restart_filename = 'undefined' ! file name for restart file
 
-   logical (log_kind) ::   &
+   logical (POP_logical) ::   &
       pressure_correction, &! fix pressure for exact restart
       lrestart_on,         &! flag to turn restarts on/off
       leven_odd_on          ! flag to turn even_odd restarts on/off
 
-   integer (int_kind) ::  &
+   integer (POP_i4) ::  &
       even_odd_freq,      &! even/odd restart files every freq steps
       last_even_odd,      &! last even/odd dump
       restart_flag,       &! time flag id for restarts
@@ -106,9 +98,11 @@
       out_stop_now,       &! time flag id for stop_now flag
       restart_cpl_ts,     &! time flag id for coupled_ts time flag
       restart_freq_iopt,  &! restart frequency option
-      restart_freq         ! restart frequency
+      restart_freq,       &! restart frequency
+      restart_start_iopt, &! start after option 
+      restart_start        ! start regular restart writes after restart_start
 
-   integer (int_kind), parameter :: &
+   integer (POP_i4), parameter :: &
       even = 0,           &! integer for which even/odd dump
       odd  = 1
 
@@ -134,7 +128,7 @@
 !-----------------------------------------------------------------------
 !   ccsm coupling variable
 !-----------------------------------------------------------------------
-      integer (int_kind) ::  &
+      integer (POP_i4) ::  &
          cpl_write_restart     ! flag id for restart-file signal from cpl
 
 
@@ -174,7 +168,8 @@
 ! !IROUTINE: read_restart
 ! !INTERFACE:
 
- subroutine read_restart(in_filename,lccsm_branch,lccsm_hybrid,in_restart_fmt)
+ subroutine read_restart(in_filename,lccsm_branch,lccsm_hybrid, &
+                         in_restart_fmt, errorCode)
 
 ! !DESCRIPTION:
 !  This routine reads restart data from a file.
@@ -196,9 +191,14 @@
       in_filename,              &! filename of restart file
       in_restart_fmt             ! format of restart file (bin,nc)
 
-   logical (log_kind), intent(in) :: &
+   logical (POP_logical), intent(in) :: &
       lccsm_branch      ,&! flag if ccsm branch initialization
       lccsm_hybrid        ! flag if ccsm branch initialization
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode           ! returned error code
 
 !EOP
 !BOC
@@ -208,20 +208,20 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       n, k,              &! dummy counters
       nu,                &! i/o unit for pointer file reads
       iblock,            &! local block index
       cindx,cindx2        ! indices into character strings
 
-   real (r8), dimension(nx_block,ny_block) :: &
+   real (POP_r8), dimension(nx_block,ny_block) :: &
       WORK1,WORK2        ! work space for pressure correction
 
-   character (char_len) ::  &
+   character (POP_charLength) ::  &
       restart_pointer_file, &! file name for restart pointer file
       short_name, long_name  ! tracer name temporaries
 
-   logical (log_kind) ::   &
+   logical (POP_logical) ::   &
       lcoupled_ts           ! flag to check whether coupled time step
 
    type (block) ::         &
@@ -241,6 +241,8 @@
 !
 !-----------------------------------------------------------------------
 
+   errorCode = POP_Success
+
    read_restart_filename = char_blank
    restart_pointer_file = char_blank
 
@@ -253,7 +255,7 @@
          restart_pointer_file(cindx:cindx2) = '.restart'
          write(stdout,*) 'Reading pointer file: ', &
                           trim(restart_pointer_file)
-         call shr_sys_flush(stdout)
+         call POP_IOUnitsFlush(POP_stdout)
          open(nu, file=trim(restart_pointer_file), form='formatted', &
                   status='old')
          read(nu,'(a)') read_restart_filename
@@ -610,7 +612,7 @@
       if (lcoupled_ts) then
         QFLUXd = construct_io_field('QFLUX', dim1=i_dim, dim2=j_dim,            &
                      long_name='Internal Ocean Heat Flux Due to Ice Formation',&
-                     grid_loc ='2220',                                &
+                     grid_loc ='2110',                                &
                      field_loc = field_loc_center,                    &
                      field_type = field_type_scalar,                  &
                      d2d_array = QFLUX)
@@ -618,7 +620,7 @@
       else
         AQICEd = construct_io_field('AQICE', dim1=i_dim, dim2=j_dim,            &
                      long_name='accumulated ice melt/heat',           &
-                     grid_loc ='2220',                                &
+                     grid_loc ='2110',                                &
                      field_loc = field_loc_center,                    &
                      field_type = field_type_scalar,                  &
                      d2d_array = AQICE)
@@ -813,6 +815,18 @@
          PGUESS(:,:,iblock) = c0
       endwhere
 
+      if (liceform) then
+         if (lcoupled_ts) then
+         where (.not. CALCT(:,:,iblock))
+            QFLUX(:,:,iblock) = c0
+         endwhere
+         else
+         where (.not. CALCT(:,:,iblock))
+            AQICE(:,:,iblock) = c0
+         endwhere
+         endif
+      endif
+
       if (sfc_layer_type == sfc_layer_varthick) then
          where (.not. CALCT(:,:,iblock)) 
             FW_OLD   (:,:,iblock) = c0
@@ -820,12 +834,19 @@
          endwhere
       endif
 
+      if( overflows_on .and. overflows_interactive &
+          .and. overflows_restart_type /= 'startup' ) then
+              ! Do not set sidewall velocities to zero when overflows
+              ! on and interactive; otherwise, valid overflow velocities
+              ! will be lost
+      else
       do k = 1,km
          where (k > KMU(:,:,iblock))
             UVEL(:,:,k,curtime,iblock) = c0
             VVEL(:,:,k,curtime,iblock) = c0
          endwhere
       enddo
+      endif
 
       do n = 1,2
          do k = 1,km
@@ -861,9 +882,109 @@
    end do !block loop
 
    if (pressure_correction) then
-      call update_ghost_cells(PSURF(:,:,oldtime,:), bndy_clinic, &
-                              field_loc_center, field_type_scalar)
+      call POP_HaloUpdate(PSURF(:,:,oldtime,:), POP_haloClinic,       &
+                          POP_gridHorzLocCenter, POP_fieldKindScalar, &
+                          errorCode, fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'read_restart: error updating sfc pressure halo')
+         return
+      endif
    endif
+
+!-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
+
+   call POP_HaloUpdate(UBTROP,                         &
+                       POP_haloClinic,                 &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   call POP_HaloUpdate(VBTROP,                         &
+                       POP_haloClinic,                 &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   call POP_HaloUpdate(UVEL,                           &
+                       POP_haloClinic,                 &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   call POP_HaloUpdate(VVEL,                           &
+                       POP_haloClinic,                 &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   call POP_HaloUpdate(TRACER(:,:,:,:,curtime,:),      &
+                       POP_haloClinic,                 &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   call POP_HaloUpdate(TRACER(:,:,:,:,newtime,:),      &
+                       POP_haloClinic,                 &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   call POP_HaloUpdate(GRADPX,                         &
+                       POP_haloClinic,                 &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   call POP_HaloUpdate(GRADPY,                         &
+                       POP_haloClinic,                 &
+                       POP_gridHorzLocNECorner,        &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   call POP_HaloUpdate(PSURF,                          &
+                       POP_haloClinic,                 &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   call POP_HaloUpdate(PGUESS,                         &
+                       POP_haloClinic,                 &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (sfc_layer_type == sfc_layer_varthick) then
+   call POP_HaloUpdate(FW_OLD,                         &
+                       POP_haloClinic,                 &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   call POP_HaloUpdate(FW_FREEZE,                      &
+                       POP_haloClinic,                 &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+   if (liceform) then
+      if (lcoupled_ts) then
+   call POP_HaloUpdate(QFLUX,                      &
+                       POP_haloClinic,                 &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+      else
+   call POP_HaloUpdate(AQICE,                      &
+                       POP_haloClinic,                 &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+      endif
+   endif
+   endif
+
 
 !-----------------------------------------------------------------------
 !EOC
@@ -889,7 +1010,7 @@
 !
 ! !OUTPUT PARAMETERS:
 
-   character(char_len), intent(out) :: &
+   character(POP_charLength), intent(out) :: &
       restart_type  ! type of restart file written if any
                     ! possible values are: none,restart,even,odd,end
 
@@ -901,23 +1022,23 @@
 !
 !-----------------------------------------------------------------------
 
-   logical (log_kind) :: &
+   logical (POP_logical) :: &
       lrestart_write     ! flag to determine whether restart is written
 
-   character (char_len) :: &
+   character (POP_charLength) :: &
       file_suffix          ! suffix to append to root filename
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       k, n,              &! dummy counters
       nu                  ! i/o unit for pointer file writes
 
-   character (char_len) ::  &
+   character (POP_charLength) ::  &
       write_restart_filename, &! modified file name for restart file
       restart_pointer_file, &! file name for restart pointer file
       short_name,           &! temporary for short name for io fields
       long_name              ! temporary for long  name for io fields
 
-   logical (log_kind) ::   &
+   logical (POP_logical) ::   &
       lcoupled_ts           ! flag to check whether coupled time step
 
    type (datafile) :: &
@@ -926,6 +1047,21 @@
    type (io_dim) :: &
       i_dim, j_dim, &! dimension descriptors for horiz dims
       k_dim          ! dimension descriptor  for vertical levels
+
+
+!-----------------------------------------------------------------------
+!
+!  check to see if it is time to begin regularly writing restart files
+!
+!-----------------------------------------------------------------------
+
+
+   if (check_time_flag(out_stop_now) ) then
+    ! procede regardless of time_to_start option
+   else
+    if ( .not. time_to_start(restart_start_iopt,restart_start)) return
+   endif
+
 
 !-----------------------------------------------------------------------
 !
@@ -992,6 +1128,7 @@
 !-----------------------------------------------------------------------
 
    if (lrestart_write) then
+
 
 !-----------------------------------------------------------------------
 !
@@ -1216,12 +1353,12 @@
       if (lcoupled_ts) then
         QFLUXd = construct_io_field('QFLUX', dim1=i_dim, dim2=j_dim,            &
                      long_name='Internal Ocean Heat Flux Due to Ice Formation',&
-                     grid_loc ='2220',                                &
+                     grid_loc ='2110',                                &
                      d2d_array = QFLUX)
       else
         AQICEd = construct_io_field('AQICE', dim1=i_dim, dim2=j_dim,            &
                      long_name='accumulated ice melt/heat',           &
-                     grid_loc ='2220',                                &
+                     grid_loc ='2110',                                &
                      d2d_array = AQICE)
       endif
    endif
@@ -1396,14 +1533,26 @@
 
        open(nu, file=restart_pointer_file, form='formatted', &
                 status='unknown')
-       write(nu,'(a)') write_restart_filename
+       write(nu,'(a)') trim(write_restart_filename)
+       write(nu,'(a,a)') 'RESTART_FMT=',trim(restart_fmt)
        close(nu)
        write(stdout,blank_fmt)
        write(stdout,*) ' restart pointer file written: ',trim(restart_pointer_file)
-       call shr_sys_flush (stdout)
+       call POP_IOUnitsFlush(POP_stdout)
      endif
      call release_unit(nu)
    endif
+
+!-----------------------------------------------------------------------
+!
+!  write overflow restart file
+!
+!-----------------------------------------------------------------------
+
+    if ( overflows_on .and. overflows_interactive ) then
+       call ovf_write_broadcast
+       call ovf_write_restart
+    endif
 
 !-----------------------------------------------------------------------
 !
@@ -1417,6 +1566,7 @@
 !EOC
 
  end subroutine write_restart
+
 
 !***********************************************************************
 !BOP
@@ -1440,17 +1590,22 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
-      n,                 &! tracer loop index
-      nml_error           ! namelist i/o error flag
+   integer (POP_i4) :: &
+      n,                  &! tracer loop index
+      nml_error            ! namelist i/o error flag
 
-   character (char_len) :: &
-      restart_freq_opt      ! input option for freq of restart dumps
+   character (POP_charLength) :: &
+      restart_freq_opt,    &! input option for freq of restart dumps
+      restart_start_opt     ! choice for starting regular restart writes 
+
+   character (POP_charLength), parameter :: &
+      start_fmt = "('regular restart writes will start at ',a,i8)"
 
    namelist /restart_nml/ restart_freq_opt, restart_freq, &
                           restart_outfile, restart_fmt,   &
                           leven_odd_on, even_odd_freq,    &
-                          pressure_correction
+                          pressure_correction,            &
+                          restart_start_opt, restart_start
 
 !-----------------------------------------------------------------------
 !
@@ -1468,6 +1623,8 @@
    restart_outfile   = 'd'
    restart_fmt       = 'bin'
    restart_freq_iopt = freq_opt_never
+   restart_start_iopt= start_opt_nstep 
+   restart_start     = 0
    restart_freq      = 100000
    leven_odd_on      = .false.
    even_odd_freq     = 100000
@@ -1510,11 +1667,33 @@
       case default
          restart_freq_iopt = -1000
       end select
+
+      if (restart_freq_iopt /= freq_opt_never) then
+         select case (restart_start_opt)
+         case ('nstep')
+            restart_start_iopt = start_opt_nstep
+            write(stdout,start_fmt) 'step ', restart_start
+         case ('nday')
+            restart_start_iopt = start_opt_nday
+            write(stdout,start_fmt) 'day  ', restart_start
+         case ('nyear')
+            restart_start_iopt = start_opt_nyear
+            write(stdout,start_fmt) 'year ', restart_start
+         case ('date')
+            restart_start_iopt = start_opt_date
+            write(stdout,start_fmt) '     ', restart_start
+         case default
+            restart_start_iopt = -1000
+         end select
+      endif
+
    endif
 
    call broadcast_scalar (restart_outfile,      master_task)
    call broadcast_scalar (restart_freq_iopt,    master_task)
    call broadcast_scalar (restart_freq,         master_task)
+   call broadcast_scalar (restart_start_iopt,   master_task)
+   call broadcast_scalar (restart_start,        master_task)
    call broadcast_scalar (restart_fmt,          master_task)
    call broadcast_scalar (leven_odd_on,         master_task)
    call broadcast_scalar (even_odd_freq,        master_task)
@@ -1522,6 +1701,8 @@
 
    if (restart_freq_iopt == -1000) then
       call exit_POP(sigAbort,'unknown restart frequency option')
+   else if (restart_start_iopt == -1000) then
+      call exit_POP(sigAbort,'unknown restart start option')
    else if (restart_freq_iopt == freq_opt_never) then
       lrestart_on = .false.
    else
@@ -1579,7 +1760,7 @@
 
 ! !OUTPUT PARAMETERS:
 
-   character (char_len), intent(out) :: &
+   character (POP_charLength), intent(out) :: &
       file_suffix            ! suffix to append to root filename
 
 !EOP
@@ -1590,11 +1771,11 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       cindx, cindx2,     &! indices into character strings
       len_date            ! length of date string
 
-   character (char_len) :: &
+   character (POP_charLength) :: &
       char_temp            ! temp character space
 
    character (10) :: &
@@ -1724,13 +1905,13 @@
    character (*), intent(in)      :: &
       restart_type                  ! type of restart file to be written
                                     ! (restart,even,odd,end)
-   integer (int_kind), intent(in) :: &
+   integer (POP_i4), intent(in) :: &
       in_freq_opt                   ! type of ccsm date string
                                     ! (annual, monthly, daily, or instantaneous)
 
 ! !OUTPUT PARAMETERS:
 
-   character (char_len), intent(out) :: &
+   character (POP_charLength), intent(out) :: &
       file_suffix            ! suffix to append to root filename
 
 !EOP
@@ -1741,11 +1922,11 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       cindx, cindx2,     &! indices into character strings
       len_date            ! length of date string
 
-   character (char_len) :: &
+   character (POP_charLength) :: &
       char_temp,           &! temp character space
       ccsm_date_string
 
@@ -1817,8 +1998,20 @@
  
       file_suffix = trim(ccsm_date_string)
 
+   end select
 
 
+!-----------------------------------------------------------------------
+!
+!  for a restart file in netCDF format, append the suffix '.nc'
+!
+!-----------------------------------------------------------------------
+
+   select case (trim(restart_fmt))
+     case('nc')
+       file_suffix = trim(file_suffix)/&
+                                 &/'.'/&
+                                 &/'nc'
    end select
 
 !-----------------------------------------------------------------------

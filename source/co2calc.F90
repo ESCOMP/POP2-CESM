@@ -469,13 +469,13 @@ CONTAINS
     !   Keith Lindsay, Oct 1999
     !
     !   Algorithm comment :
-    !      Iteration from Newton's method is used unless it leaves
+    !      Iteration from Newtons method is used unless it leaves
     !      bracketing interval or the dx is > 0.5 the previous dx.
     !      In that case, bisection method is used.
     !---------------------------------------------------------------------------
 
     USE constants, ONLY : c0, c2, p5
-    USE shr_sys_mod, ONLY : shr_sys_abort
+    !USE shr_sys_mod, ONLY : shr_sys_abort
 
     !---------------------------------------------------------------------------
     !   input arguments
@@ -574,7 +574,7 @@ CONTAINS
 
     END DO ! iteration loop
 
-    CALL shr_sys_abort('lack of convergence in drtsafe_row')
+    !CALL shr_sys_abort('lack of convergence in drtsafe_row')
 
   END SUBROUTINE drtsafe_row
 

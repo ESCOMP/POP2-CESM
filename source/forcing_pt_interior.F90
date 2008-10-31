@@ -18,7 +18,6 @@
    use domain
    use constants
    use broadcast
-   use boundary
    use io
    use forcing_tools
    use time_management

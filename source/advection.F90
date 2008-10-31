@@ -16,10 +16,16 @@
 !  SVN:$Id$
 
 ! !USES:
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_CommMod
+   use POP_FieldMod
+   use POP_GridHorzMod
+   use POP_HaloMod
 
    use kinds_mod, only: r4, r8, int_kind, char_len, log_kind, rtavg
    use constants, only: c0, c1, p5, p125, p25, blank_fmt, delim_fmt, ndelim_fmt, c2, &
-       undefined_nf, field_loc_center, field_type_scalar, &
+       field_loc_center, field_type_scalar, &
        field_loc_Eface, field_type_vector
    use blocks, only: nx_block, ny_block, block, get_block
    use domain_size
@@ -30,9 +36,8 @@
        sfc_layer_type, sfc_layer_varthick, FCORT, KMTE,                     &
        KMTW, KMTEE, KMTN, KMTS, KMTNN, ugrid_to_tgrid
    use domain, only: nblocks_clinic, blocks_clinic, distrb_clinic,          &
-       bndy_clinic
+       POP_haloClinic
    use broadcast, only: broadcast_scalar, broadcast_array
-   use boundary, only: update_ghost_cells
    use diagnostics, only: cfl_advect
    use state_mod, only: state
    use operators, only: zcurl
@@ -45,6 +50,7 @@
    use prognostic, only: UVEL, VVEL, curtime, tracer_d
    use passive_tracers, only: tadvect_ctype_passive_tracers
    use registry
+   use overflows
 
    implicit none
    private
@@ -333,6 +339,26 @@
 
 !-----------------------------------------------------------------------
 !
+!  advection type must be implemented by overflows if on and interactive
+!
+!-----------------------------------------------------------------------
+
+   if ( overflows_on .and. overflows_interactive ) then
+      do n=1,nt
+         if( tadvect_itype(n) == tadvect_centered ) then
+            write(stdout,*) &
+              'advection: ERROR: advection type not implemented ', &
+                                'for interactive overflows'
+            write(stdout,*) ' advection type = ',tadvect_itype(n), &
+                            ' for tracer = ',n
+            write(stdout,*) ' only upwind3 and lw_lim implemented'
+            call exit_POP(sigAbort,'ERROR non-implemented advection with overflows')
+         endif
+      enddo
+   endif
+
+!-----------------------------------------------------------------------
+!
 !  set use flags
 !
 !-----------------------------------------------------------------------
@@ -361,10 +387,6 @@
    !*** KXU,KYU only needed in physical domain
    !*** no ghost cell update required assuming HUS,HUW,UAREA_R
    !*** were defined correctly in ghost cells
-   !call update_ghost_cells(KXU, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
-   !call update_ghost_cells(KYU, bndy_clinic, field_loc_u,     &
-   !                                          field_type_scalar)
 
 !-----------------------------------------------------------------------
 !
@@ -524,32 +546,7 @@
 
       !*** assuming DXT,DYT were defined correctly in ghost cells
       !*** these are valid from (ib-1:ie,jb-1:je) and are only
-      !*** accessed in that range so no update necessary
-
-      !call update_ghost_cells(TALFXP, bndy_clinic, field_loc_t,     &
-      !                                             field_type_scalar)
-      !call update_ghost_cells(TBETXP, bndy_clinic, field_loc_t,     &
-      !                                             field_type_scalar)
-      !call update_ghost_cells(TGAMXP, bndy_clinic, field_loc_t,     &
-      !                                             field_type_scalar)
-      !call update_ghost_cells(TALFYP, bndy_clinic, field_loc_t,     &
-      !                                             field_type_scalar)
-      !call update_ghost_cells(TBETYP, bndy_clinic, field_loc_t,     &
-      !                                             field_type_scalar)
-      !call update_ghost_cells(TGAMYP, bndy_clinic, field_loc_t,     &
-      !                                             field_type_scalar)
-      !call update_ghost_cells(TALFXM, bndy_clinic, field_loc_t,     &
-      !                                             field_type_scalar)
-      !call update_ghost_cells(TBETXM, bndy_clinic, field_loc_t,     &
-      !                                             field_type_scalar)
-      !call update_ghost_cells(TDELXM, bndy_clinic, field_loc_t,     &
-      !                                             field_type_scalar)
-      !call update_ghost_cells(TALFYM, bndy_clinic, field_loc_t,     &
-      !                                             field_type_scalar)
-      !call update_ghost_cells(TBETYM, bndy_clinic, field_loc_t,     &
-      !                                             field_type_scalar)
-      !call update_ghost_cells(TDELYM, bndy_clinic, field_loc_t,     &
-      !                                             field_type_scalar)
+      !*** accessed in that range so no halo update necessary
 
    endif ! 3rd order upwind setup
 
@@ -944,7 +941,7 @@
 ! !IROUTINE: comp_flux_vel_ghost
 ! !INTERFACE:
 
- subroutine comp_flux_vel_ghost(DH)
+ subroutine comp_flux_vel_ghost(DH, errorCode)
 
 ! !DESCRIPTION:
 !  Compute and store tracer flux velocities in ghost cells.
@@ -957,9 +954,10 @@
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
       intent(in) :: &
       DH                   ! change in surface height at T points
-!
-! !REVISION HISTORY:
-!  same as module
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: errorCode
 
 !EOP
 !BOC
@@ -984,6 +982,8 @@
 
 !-----------------------------------------------------------------------
 
+   errorCode = POP_Success
+
    if (.not. luse_lw_lim) return
 
    do k = 1,km
@@ -1007,11 +1007,27 @@
 
       !$OMP END PARALLEL DO
 
-      call update_ghost_cells(UTE, bndy_clinic, &
-                              field_loc_Eface, field_type_vector)
+      call POP_HaloUpdate(UTE, POP_haloClinic,   &
+                POP_gridHorzLocEFace,            &
+                POP_fieldKindVector, errorCode,  &
+                fillValue = 0.0_POP_r8)
 
-      call update_ghost_cells(WTKB, bndy_clinic, &
-                              field_loc_center, field_type_scalar)
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'comp_flux_vel_ghost: error updating halo for UTE')
+         return
+      endif
+
+      call POP_HaloUpdate(WTKB, POP_haloClinic,   &
+                POP_gridHorzLocCenter,            &
+                POP_fieldKindScalar, errorCode,   &
+                fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'comp_flux_vel_ghost: error updating halo for WTKB')
+         return
+      endif
 
       !$OMP PARALLEL DO PRIVATE(iblock,this_block)
 
@@ -2060,6 +2076,12 @@
    if (k < km) then
 
       FC = (VTN - VTS + UTE - UTW)*TAREA_R(:,:,bid)
+
+      if ( overflows_on ) then
+         WTKB = WTK+dz(k)*FC
+         call ovf_wtkb_check(k,WTKB,this_block)
+      endif
+
       if (partial_bottom_cells) then
          WTKB = merge(WTK+FC, c0, k < KMT(:,:,bid))
       else
@@ -2545,6 +2567,15 @@
          !*** i loop broken up to avoid dependency on previous i iteration
          !*** and to allow different lower loop bounds
 
+         end do ! j loop for grid-x TRACER_E evaluation
+         !***  j loop broken up for overflow TRACER_E modification
+
+         if ( overflows_on .and. overflows_interactive ) then
+            call ovf_advt(k,TRACER_E(:,:,n),TRACER_N(:,:,n),n,this_block, &
+                          CE,CW,CN,CS)
+         endif
+
+         do j=this_block%jb,this_block%je
          do i=this_block%ib,this_block%ie
 
             XOUT(i,j,n) = CE(i,j)*TRACER_E(i,j,n) + CW(i,j)*TRACER_E(i-1,j,n)
@@ -2592,6 +2623,18 @@
                 bm*X(i,j,k,n) + dm*X(i,j+2,k,n)
             endif
 
+         end do ! i loop for grid-y TRACER_N evaluation
+         end do ! j loop for grid-y TRACER_N evaluation
+
+         !***  i,j loops broken for overflow TRACER_N modification
+
+         if ( overflows_on .and. overflows_interactive ) then
+            call ovf_advt(k,TRACER_E(:,:,n),TRACER_N(:,:,n),n,this_block, &
+                          CE,CW,CN,CS)
+         endif
+
+         do j=this_block%jb-1,this_block%je
+         do i=this_block%ib,this_block%ie
             !*** The formula below is not correct for j==this_block%jb-1
             !*** because TRACER_N(:,this_block%jb-2,n) is not computed.
             !*** This is OK because XOUT(:,this_block%jb-1,n) is not used.
@@ -3119,6 +3162,16 @@
           !*** iteration and to avoid using an XSTAR value that
           !*** contains grid-x direction contribution
 
+          end do ! j loop for z and grid-x contributions
+
+          !***  j loop broken up for overflow TRACER_E modification
+
+          if ( overflows_on .and. overflows_interactive ) then
+             call ovf_advt(k,TRACER_E(:,:,n),TRACER_N(:,:,n),n,this_block, &
+                           CE,CW,CN,CS)
+          endif
+
+          do j=this_block%jb-2,this_block%je+2
           do i=this_block%ib,this_block%ie
              work1 = &
                 CE(i,j) * TRACER_E(i,j,n) + CW(i,j) * TRACER_E(i-1,j,n) - &
@@ -3168,6 +3221,18 @@
              else
                 TRACER_N(i,j,n) = XSTAR(i,j) + LW_y(i,j) * dTR
              end if
+         end do ! i loop for grid-y contribution
+         end do ! j loop for grid-y contribution
+
+        !***  i,j loops broken for overflow TRACER_N modification
+
+         if ( overflows_on .and. overflows_interactive ) then
+            call ovf_advt(k,TRACER_E(:,:,n),TRACER_N(:,:,n),n,this_block, &
+                          CE,CW,CN,CS)
+         endif
+
+         do j=this_block%jb-1,this_block%je
+         do i=this_block%ib,this_block%ie
 
              !*** The formula below is not correct for j==this_block%jb-1
              !*** because TRACER_N(:,this_block%jb-2,n) is not computed.

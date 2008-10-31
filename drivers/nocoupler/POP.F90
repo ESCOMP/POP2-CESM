@@ -3,40 +3,34 @@
 ! !ROUTINE: POP
 ! !INTERFACE:
 
-#ifdef SINGLE_EXEC
- subroutine ccsm_ocn()
-#else
  program POP
-#endif
 
 ! !DESCRIPTION:
 !  This is the main driver for the Parallel Ocean Program (POP).
 !
 ! !REVISION HISTORY:
-!  SVN:$Id$
+!  CVS:$Id: POP.F90,v 1.8 2003/01/28 23:21:19 pwjones Exp $
+!  CVS:$Name: POP_2_0_1 $
 
 ! !USES:
 
-#ifdef SINGLE_EXEC
-   use MPH_module, only : MPH_get_argument
-#endif
-
    use POP_KindsMod
-   use POP_InitMod, only: POP_Initialize, stop_now, nscan, timer_total,cpl_ts 
-   use POP_CouplingMod, only: pop_coupling
-   use POP_FinalMod
+   use POP_ErrorMod
+   use POP_CommMod
+   use POP_InitMod
+
    use kinds_mod, only: int_kind, r8
    use communicate, only: my_task, master_task
-   use exit_mod
+!   use constants, only: 
+   use domain, only: distrb_clinic
    use timers, only: timer_print_all, get_timer, timer_start, timer_stop
-   use time_management, only: init_time_flag, check_time_flag, sigAbort, &
-       nsteps_run, stdout, sigExit, exit_pop, set_time_flag
+   use time_management, only: init_time_flag, check_time_flag,    &
+       nsteps_run, stdout, exit_pop, set_time_flag
    use step_mod, only: step
    use diagnostics, only: check_KE
    use output, only: output_driver
-   use solvers, only: solv_sum_iters
-   use registry
-
+   use exit_mod, only: sigAbort, sigExit
+!   use io, only: 
 
    implicit none
 
@@ -48,27 +42,26 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (POP_i4) ::  &
-      errorCode         ! error code
+   integer (POP_i4) :: &
+      errorCode          ! error flag
 
-
-#ifdef SINGLE_EXEC
    integer (int_kind) :: &
-      nThreads
-
-   call MPH_get_argument("THREADS", nThreads, "ocn")
-#ifdef _OPENMP
-   call OMP_SET_NUM_THREADS(nThreads)
-#endif
-#endif
+      timer_step,        &! timer number for step
+      fstop_now           ! flag id for stop_now flag
 
 !-----------------------------------------------------------------------
 !
-!  initialize the model run 
+!  initialize the model run
 !
 !-----------------------------------------------------------------------
+
+   call POP_CommInitMessageEnvironment
+
+   errorCode = POP_Success
 
    call POP_Initialize(errorCode)
+
+   fstop_now = init_time_flag('stop_now')
 
 !-----------------------------------------------------------------------
 !
@@ -76,7 +69,10 @@
 !
 !-----------------------------------------------------------------------
 
+   call get_timer(timer_total,'TOTAL',1,distrb_clinic%nprocs)
    call timer_start(timer_total)
+
+   call get_timer(timer_step,'STEP',1,distrb_clinic%nprocs)
 
 !-----------------------------------------------------------------------
 !
@@ -84,21 +80,19 @@
 !
 !-----------------------------------------------------------------------
 
-   advance: do while (.not. check_time_flag(stop_now))
+   do while (.not. check_time_flag(fstop_now) .and. &
+             errorCode == POP_Success)
 
-      call pop_coupling(check_time_flag(cpl_ts))
-      if ( registry_match('lcoupled') .and. check_time_flag(stop_now)) exit advance
-
-      call step
-
-      nscan = nscan + solv_sum_iters
+      call timer_start(timer_step)
+      call step(errorCode)
+      call timer_stop(timer_step)
 
       !***
       !*** exit if energy is blowing
       !***
 
       if (check_KE(100.0_r8)) then
-         call set_time_flag(stop_now,.true.)
+         call set_time_flag(fstop_now,.true.)
          call output_driver
          call exit_POP(sigAbort,'ERROR: k.e. > 100 ')
       endif
@@ -111,18 +105,7 @@
 
       call output_driver
 
-   enddo advance
-
-!-----------------------------------------------------------------------
-!
-!  write an end restart if we are through the stepping loop 
-!  without an error
-!
-!-----------------------------------------------------------------------
-
-   nscan = nscan/nsteps_run
-   if (my_task == master_task) & 
-      write(stdout,*) ' average # scans =', nscan
+   enddo
 
 !-----------------------------------------------------------------------
 !
@@ -132,16 +115,15 @@
 !-----------------------------------------------------------------------
 
    call timer_stop(timer_total)
+   call timer_print_all(stats=.true.)
 
-   call POP_Final(errorCode)
+   call POP_ErrorPrint(errorCode, printTask=POP_masterTask)
+
+   call exit_POP(sigExit,'Successful completion of POP run')
 
 !-----------------------------------------------------------------------
 !EOC
 
-#ifdef SINGLE_EXEC
- end subroutine ccsm_ocn
-#else
  end program POP
-#endif
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||

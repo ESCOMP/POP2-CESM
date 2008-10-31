@@ -75,7 +75,6 @@
 !
 !-----------------------------------------------------------------------
 
-   call POP_CommInitMessageEnvironment
    call POP_CommInit
 
    MPI_COMM_OCN = POP_communicator

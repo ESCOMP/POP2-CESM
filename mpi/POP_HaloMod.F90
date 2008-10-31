@@ -15,12 +15,16 @@
 !              initialization, true multi-dimensional updates 
 !              (rather than serial call to two-dimensional updates), 
 !              fixes for non-existent blocks
+!  2008-01-30: Phil Jones, Elizabeth Hunke
+!              fixed some bugs Elizabeth found with one assumption
+!                of halo width 2, a typo on sw/se nbr, and
+!                tripole buffers uninitialized
 
 ! !USES:
 
-   use mpi
    use POP_KindsMod
    use POP_ErrorMod
+   use POP_IOUnitsMod
    use POP_CommMod
    use POP_BlocksMod
    use POP_ReductionsMod
@@ -31,6 +35,8 @@
    implicit none
    private
    save
+
+   include 'mpif.h'
 
 ! !PUBLIC TYPES:
 
@@ -61,7 +67,8 @@
 
    public :: POP_HaloCreate,  &
              POP_HaloDestroy, &
-             POP_HaloUpdate
+             POP_HaloUpdate,  &
+             POP_HaloPrintStats
 
    interface POP_HaloUpdate  ! generic interface
       module procedure POP_HaloUpdate2DR8, &
@@ -644,7 +651,7 @@ contains
          return
       endif
 
-      if (seBlock > 0) then
+      if (swBlock > 0) then
          call POP_DistributionGetBlockLoc(distrb, swBlock, dstProc, &
                                           dstLocalID, errorCode)
 
@@ -1339,7 +1346,7 @@ contains
          return
       endif
 
-      if (seBlock > 0) then
+      if (swBlock > 0) then
          call POP_DistributionGetBlockLoc(distrb, swBlock, dstProc, &
                                           dstLocalID, errorCode)
 
@@ -1679,6 +1686,7 @@ contains
    integer (POP_i4) ::           &
       i,j,n,nmsg,                &! dummy loop indices
       ierr,                      &! error or status flag for MPI,alloc
+      msgSize,                   &! size of an individual message
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
       iDst,jDst,                 &! dest   addresses for message
@@ -1714,7 +1722,10 @@ contains
    endif
 
    nxGlobal = 0
-   if (allocated(bufTripoleR8)) nxGlobal = size(bufTripoleR8,dim=1)
+   if (allocated(bufTripoleR8)) then
+      nxGlobal = size(bufTripoleR8,dim=1)
+      bufTripoleR8 = fill
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1741,9 +1752,10 @@ contains
 
    do nmsg=1,halo%numMsgRecv
 
-      call MPI_IRECV(bufRecvR8(:,nmsg), bufSizeRecv, POP_mpiR8, &
-                     halo%recvTask(nmsg),                       &
-                     POP_mpitagHalo + halo%recvTask(nmsg),      &
+      msgSize = halo%sizeRecv(nmsg)
+      call MPI_IRECV(bufRecvR8(1:msgSize,nmsg), msgSize, POP_mpiR8, &
+                     halo%recvTask(nmsg),                           &
+                     POP_mpitagHalo + halo%recvTask(nmsg),          &
                      halo%communicator, rcvRequest(nmsg), ierr)
    end do
 
@@ -1766,9 +1778,10 @@ contains
          bufSendR8(n,nmsg) = fill  ! fill remainder of buffer
       end do
 
-      call MPI_ISEND(bufSendR8(:,nmsg), bufSizeSend, POP_mpiR8, &
-                     halo%sendTask(nmsg),                       &
-                     POP_mpitagHalo + POP_myTask,               &
+      msgSize = halo%sizeSend(nmsg)
+      call MPI_ISEND(bufSendR8(1:msgSize,nmsg), msgSize, POP_mpiR8, &
+                     halo%sendTask(nmsg),                           &
+                     POP_mpitagHalo + POP_myTask,                   &
                      halo%communicator, sndRequest(nmsg), ierr)
    end do
 
@@ -1836,6 +1849,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate2DR8: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -1849,15 +1874,19 @@ contains
 
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
+         !*** swap locations with symmetric points so buffer has
+         !***   correct values during the copy out
 
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripoleR8(i   ,POP_haloWidth+1)
             x2 = bufTripoleR8(iDst,POP_haloWidth+1)
             xavg = 0.5_POP_r8*(abs(x1) + abs(x2))
-            bufTripoleR8(i   ,POP_haloWidth+1) = sign(xavg, x1)
-            bufTripoleR8(iDst,POP_haloWidth+1) = sign(xavg, x2)
+            bufTripoleR8(i   ,POP_haloWidth+1) = isign*sign(xavg, x2)
+            bufTripoleR8(iDst,POP_haloWidth+1) = isign*sign(xavg, x1)
          end do
+         bufTripoleR8(nxGlobal,POP_haloWidth+1) = isign* &
+         bufTripoleR8(nxGlobal,POP_haloWidth+1)
 
       case (POP_gridHorzLocEface)   ! cell center location
 
@@ -1877,25 +1906,13 @@ contains
             x1 = bufTripoleR8(i   ,POP_haloWidth+1)
             x2 = bufTripoleR8(iDst,POP_haloWidth+1)
             xavg = 0.5_POP_r8*(abs(x1) + abs(x2))
-            bufTripoleR8(i   ,POP_haloWidth+1) = sign(xavg, x1)
-            bufTripoleR8(iDst,POP_haloWidth+1) = sign(xavg, x2)
+            bufTripoleR8(i   ,POP_haloWidth+1) = isign*sign(xavg, x2)
+            bufTripoleR8(iDst,POP_haloWidth+1) = isign*sign(xavg, x1)
          end do
 
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate2DR8: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate2DR8: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -2015,6 +2032,7 @@ contains
    integer (POP_i4) ::           &
       i,j,n,nmsg,                &! dummy loop indices
       ierr,                      &! error or status flag for MPI,alloc
+      msgSize,                   &! size of an individual message
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
       iDst,jDst,                 &! dest   addresses for message
@@ -2050,7 +2068,10 @@ contains
    endif
 
    nxGlobal = 0
-   if (allocated(bufTripoleR4)) nxGlobal = size(bufTripoleR4,dim=1)
+   if (allocated(bufTripoleR4)) then
+      nxGlobal = size(bufTripoleR4,dim=1)
+      bufTripoleR4 = fill
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -2077,9 +2098,10 @@ contains
 
    do nmsg=1,halo%numMsgRecv
 
-      call MPI_IRECV(bufRecvR4(:,nmsg), bufSizeRecv, POP_mpiR4, &
-                     halo%recvTask(nmsg),                       &
-                     POP_mpitagHalo + halo%recvTask(nmsg),      &
+      msgSize = halo%sizeRecv(nmsg)
+      call MPI_IRECV(bufRecvR4(1:msgSize,nmsg), msgSize, POP_mpiR4, &
+                     halo%recvTask(nmsg),                           &
+                     POP_mpitagHalo + halo%recvTask(nmsg),          &
                      halo%communicator, rcvRequest(nmsg), ierr)
    end do
 
@@ -2102,9 +2124,10 @@ contains
          bufSendR4(n,nmsg) = fill  ! fill remainder of buffer
       end do
 
-      call MPI_ISEND(bufSendR4(:,nmsg), bufSizeSend, POP_mpiR4, &
-                     halo%sendTask(nmsg),                       &
-                     POP_mpitagHalo + POP_myTask,               &
+      msgSize = halo%sizeSend(nmsg)
+      call MPI_ISEND(bufSendR4(1:msgSize,nmsg), msgSize, POP_mpiR4, &
+                     halo%sendTask(nmsg),                           &
+                     POP_mpitagHalo + POP_myTask,                   &
                      halo%communicator, sndRequest(nmsg), ierr)
    end do
 
@@ -2172,6 +2195,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate2DR4: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -2186,14 +2221,16 @@ contains
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
 
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripoleR4(i   ,POP_haloWidth+1)
             x2 = bufTripoleR4(iDst,POP_haloWidth+1)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripoleR4(i   ,POP_haloWidth+1) = sign(xavg, x1)
-            bufTripoleR4(iDst,POP_haloWidth+1) = sign(xavg, x2)
+            bufTripoleR4(i   ,POP_haloWidth+1) = isign*sign(xavg, x2)
+            bufTripoleR4(iDst,POP_haloWidth+1) = isign*sign(xavg, x1)
          end do
+         bufTripoleR4(nxGlobal,POP_haloWidth+1) = isign* &
+         bufTripoleR4(nxGlobal,POP_haloWidth+1)
 
       case (POP_gridHorzLocEface)   ! cell center location
 
@@ -2213,25 +2250,13 @@ contains
             x1 = bufTripoleR4(i   ,POP_haloWidth+1)
             x2 = bufTripoleR4(iDst,POP_haloWidth+1)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripoleR4(i   ,POP_haloWidth+1) = sign(xavg, x1)
-            bufTripoleR4(iDst,POP_haloWidth+1) = sign(xavg, x2)
+            bufTripoleR4(i   ,POP_haloWidth+1) = isign*sign(xavg, x2)
+            bufTripoleR4(iDst,POP_haloWidth+1) = isign*sign(xavg, x1)
          end do
 
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate2DR4: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate2DR4: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -2351,6 +2376,7 @@ contains
    integer (POP_i4) ::           &
       i,j,n,nmsg,                &! dummy loop indices
       ierr,                      &! error or status flag for MPI,alloc
+      msgSize,                   &! size of an individual message
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
       iDst,jDst,                 &! dest   addresses for message
@@ -2386,7 +2412,10 @@ contains
    endif
 
    nxGlobal = 0
-   if (allocated(bufTripoleI4)) nxGlobal = size(bufTripoleI4,dim=1)
+   if (allocated(bufTripoleI4)) then
+      nxGlobal = size(bufTripoleI4,dim=1)
+      bufTripoleI4 = fill
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -2413,9 +2442,10 @@ contains
 
    do nmsg=1,halo%numMsgRecv
 
-      call MPI_IRECV(bufRecvI4(:,nmsg), bufSizeRecv, MPI_INTEGER, &
-                     halo%recvTask(nmsg),                       &
-                     POP_mpitagHalo + halo%recvTask(nmsg),      &
+      msgSize = halo%sizeRecv(nmsg)
+      call MPI_IRECV(bufRecvI4(1:msgSize,nmsg), msgSize, MPI_INTEGER, &
+                     halo%recvTask(nmsg),                             &
+                     POP_mpitagHalo + halo%recvTask(nmsg),            &
                      halo%communicator, rcvRequest(nmsg), ierr)
    end do
 
@@ -2438,9 +2468,10 @@ contains
          bufSendI4(n,nmsg) = fill  ! fill remainder of buffer
       end do
 
-      call MPI_ISEND(bufSendI4(:,nmsg), bufSizeSend, MPI_INTEGER, &
-                     halo%sendTask(nmsg),                       &
-                     POP_mpitagHalo + POP_myTask,               &
+      msgSize = halo%sizeSend(nmsg)
+      call MPI_ISEND(bufSendI4(1:msgSize,nmsg), msgSize, MPI_INTEGER, &
+                     halo%sendTask(nmsg),                             &
+                     POP_mpitagHalo + POP_myTask,                     &
                      halo%communicator, sndRequest(nmsg), ierr)
    end do
 
@@ -2508,6 +2539,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate2DI4: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -2522,14 +2565,16 @@ contains
          !*** top row is degenerate, so must enforce symmetry
          !***   use average of two degenerate points for value
 
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripoleI4(i   ,POP_haloWidth+1)
             x2 = bufTripoleI4(iDst,POP_haloWidth+1)
             xavg = nint(0.5_POP_r8*(abs(x1) + abs(x2)))
-            bufTripoleI4(i   ,POP_haloWidth+1) = sign(xavg, x1)
-            bufTripoleI4(iDst,POP_haloWidth+1) = sign(xavg, x2)
+            bufTripoleI4(i   ,POP_haloWidth+1) = isign*sign(xavg, x2)
+            bufTripoleI4(iDst,POP_haloWidth+1) = isign*sign(xavg, x1)
          end do
+         bufTripoleI4(nxGlobal,POP_haloWidth+1) = isign* &
+         bufTripoleI4(nxGlobal,POP_haloWidth+1)
 
       case (POP_gridHorzLocEface)   ! cell center location
 
@@ -2549,25 +2594,13 @@ contains
             x1 = bufTripoleI4(i   ,POP_haloWidth+1)
             x2 = bufTripoleI4(iDst,POP_haloWidth+1)
             xavg = nint(0.5_POP_r8*(abs(x1) + abs(x2)))
-            bufTripoleI4(i   ,POP_haloWidth+1) = sign(xavg, x1)
-            bufTripoleI4(iDst,POP_haloWidth+1) = sign(xavg, x2)
+            bufTripoleI4(i   ,POP_haloWidth+1) = isign*sign(xavg, x2)
+            bufTripoleI4(iDst,POP_haloWidth+1) = isign*sign(xavg, x1)
          end do
 
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate2DI4: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate2DI4: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -2687,6 +2720,7 @@ contains
    integer (POP_i4) ::           &
       i,j,k,n,nmsg,              &! dummy loop indices
       ierr,                      &! error or status flag for MPI,alloc
+      msgSize,                   &! size of an individual message
       nxGlobal,                  &! global domain size in x (tripole)
       nz,                        &! size of array in 3rd dimension
       iSrc,jSrc,                 &! source addresses for message
@@ -2758,13 +2792,24 @@ contains
 
    allocate(bufSend(bufSizeSend*nz, halo%numMsgSend), &
             bufRecv(bufSizeRecv*nz, halo%numMsgRecv), &
-            bufTripole(nxGlobal, POP_haloWidth+1, nz), &
             stat=ierr)
 
    if (ierr > 0) then
       call POP_ErrorSet(errorCode, &
          'POP_HaloUpdate3DR8: error allocating buffers')
       return
+   endif
+
+   if (nxGlobal > 0) then
+      allocate(bufTripole(nxGlobal, POP_haloWidth+1, nz), &
+               stat=ierr)
+      bufTripole = fill
+
+      if (ierr > 0) then
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate3DR8: error allocating buffers')
+         return
+      endif
    endif
 
 !-----------------------------------------------------------------------
@@ -2775,9 +2820,10 @@ contains
 
    do nmsg=1,halo%numMsgRecv
 
-      call MPI_IRECV(bufRecv(:,nmsg), bufSizeRecv*nz, POP_mpiR8,   &
-                     halo%recvTask(nmsg),                       &
-                     POP_mpitagHalo + halo%recvTask(nmsg),      &
+      msgSize = nz*halo%sizeRecv(nmsg)
+      call MPI_IRECV(bufRecv(1:msgSize,nmsg), msgSize, POP_mpiR8,   &
+                     halo%recvTask(nmsg),                           &
+                     POP_mpitagHalo + halo%recvTask(nmsg),          &
                      halo%communicator, rcvRequest(nmsg), ierr)
    end do
 
@@ -2804,9 +2850,10 @@ contains
          bufSend(n,nmsg) = fill  ! fill remainder of buffer
       end do
 
-      call MPI_ISEND(bufSend(:,nmsg), bufSizeSend*nz, POP_mpiR8, &
-                     halo%sendTask(nmsg),                        &
-                     POP_mpitagHalo + POP_myTask,                &
+      msgSize = nz*halo%sizeSend(nmsg)
+      call MPI_ISEND(bufSend(1:msgSize,nmsg), msgSize, POP_mpiR8, &
+                     halo%sendTask(nmsg),                         &
+                     POP_mpitagHalo + POP_myTask,                 &
                      halo%communicator, sndRequest(nmsg), ierr)
    end do
 
@@ -2887,6 +2934,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate3DR8: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -2902,14 +2961,16 @@ contains
          !***   use average of two degenerate points for value
 
          do k=1,nz
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripole(i   ,POP_haloWidth+1,k)
             x2 = bufTripole(iDst,POP_haloWidth+1,k)
             xavg = 0.5_POP_r8*(abs(x1) + abs(x2))
-            bufTripole(i   ,POP_haloWidth+1,k) = sign(xavg, x1)
-            bufTripole(iDst,POP_haloWidth+1,k) = sign(xavg, x2)
+            bufTripole(i   ,POP_haloWidth+1,k) = isign*sign(xavg, x2)
+            bufTripole(iDst,POP_haloWidth+1,k) = isign*sign(xavg, x1)
          end do
+         bufTripole(nxGlobal,POP_haloWidth+1,k) = isign* &
+         bufTripole(nxGlobal,POP_haloWidth+1,k)
          end do
 
       case (POP_gridHorzLocEface)   ! cell center location
@@ -2931,26 +2992,14 @@ contains
             x1 = bufTripole(i   ,POP_haloWidth+1,k)
             x2 = bufTripole(iDst,POP_haloWidth+1,k)
             xavg = 0.5_POP_r8*(abs(x1) + abs(x2))
-            bufTripole(i   ,POP_haloWidth+1,k) = sign(xavg, x1)
-            bufTripole(iDst,POP_haloWidth+1,k) = sign(xavg, x2)
+            bufTripole(i   ,POP_haloWidth+1,k) = isign*sign(xavg, x2)
+            bufTripole(iDst,POP_haloWidth+1,k) = isign*sign(xavg, x1)
          end do
          end do
 
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate3DR8: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate3DR8: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -3009,7 +3058,8 @@ contains
       return
    endif
 
-   deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
+   deallocate(bufSend, bufRecv, stat=ierr)
+   if (allocated(bufTripole)) deallocate(bufTripole, stat=ierr)
 
    if (ierr > 0) then
       call POP_ErrorSet(errorCode, &
@@ -3081,6 +3131,7 @@ contains
    integer (POP_i4) ::           &
       i,j,k,n,nmsg,              &! dummy loop indices
       ierr,                      &! error or status flag for MPI,alloc
+      msgSize,                   &! size of an individual message
       nxGlobal,                  &! global domain size in x (tripole)
       nz,                        &! size of array in 3rd dimension
       iSrc,jSrc,                 &! source addresses for message
@@ -3152,13 +3203,24 @@ contains
 
    allocate(bufSend(bufSizeSend*nz, halo%numMsgSend),  &
             bufRecv(bufSizeRecv*nz, halo%numMsgRecv),  &
-            bufTripole(nxGlobal, POP_haloWidth+1, nz), &
             stat=ierr)
 
    if (ierr > 0) then
       call POP_ErrorSet(errorCode, &
          'POP_HaloUpdate3DR4: error allocating buffers')
       return
+   endif
+
+   if (nxGlobal > 0) then
+      allocate(bufTripole(nxGlobal, POP_haloWidth+1, nz), &
+               stat=ierr)
+      bufTripole = fill
+
+      if (ierr > 0) then
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate3DR4: error allocating buffers')
+         return
+      endif
    endif
 
 !-----------------------------------------------------------------------
@@ -3169,9 +3231,10 @@ contains
 
    do nmsg=1,halo%numMsgRecv
 
-      call MPI_IRECV(bufRecv(:,nmsg), bufSizeRecv*nz, POP_mpiR4,   &
-                     halo%recvTask(nmsg),                          &
-                     POP_mpitagHalo + halo%recvTask(nmsg),         &
+      msgSize = nz*halo%sizeRecv(nmsg)
+      call MPI_IRECV(bufRecv(1:msgSize,nmsg), msgSize, POP_mpiR4,   &
+                     halo%recvTask(nmsg),                           &
+                     POP_mpitagHalo + halo%recvTask(nmsg),          &
                      halo%communicator, rcvRequest(nmsg), ierr)
    end do
 
@@ -3198,9 +3261,10 @@ contains
          bufSend(n,nmsg) = fill  ! fill remainder of buffer
       end do
 
-      call MPI_ISEND(bufSend(:,nmsg), bufSizeSend*nz, POP_mpiR4, &
-                     halo%sendTask(nmsg),                        &
-                     POP_mpitagHalo + POP_myTask,                &
+      msgSize = nz*halo%sizeSend(nmsg)
+      call MPI_ISEND(bufSend(1:msgSize,nmsg), msgSize, POP_mpiR4, &
+                     halo%sendTask(nmsg),                         &
+                     POP_mpitagHalo + POP_myTask,                 &
                      halo%communicator, sndRequest(nmsg), ierr)
    end do
 
@@ -3281,6 +3345,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate3DR4: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -3296,14 +3372,16 @@ contains
          !***   use average of two degenerate points for value
 
          do k=1,nz
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripole(i   ,POP_haloWidth+1,k)
             x2 = bufTripole(iDst,POP_haloWidth+1,k)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripole(i   ,POP_haloWidth+1,k) = sign(xavg, x1)
-            bufTripole(iDst,POP_haloWidth+1,k) = sign(xavg, x2)
+            bufTripole(i   ,POP_haloWidth+1,k) = isign*sign(xavg, x2)
+            bufTripole(iDst,POP_haloWidth+1,k) = isign*sign(xavg, x1)
          end do
+         bufTripole(nxGlobal,POP_haloWidth+1,k) = isign* &
+         bufTripole(nxGlobal,POP_haloWidth+1,k)
          end do
 
       case (POP_gridHorzLocEface)   ! cell center location
@@ -3325,26 +3403,14 @@ contains
             x1 = bufTripole(i   ,POP_haloWidth+1,k)
             x2 = bufTripole(iDst,POP_haloWidth+1,k)
             xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripole(i   ,POP_haloWidth+1,k) = sign(xavg, x1)
-            bufTripole(iDst,POP_haloWidth+1,k) = sign(xavg, x2)
+            bufTripole(i   ,POP_haloWidth+1,k) = isign*sign(xavg, x2)
+            bufTripole(iDst,POP_haloWidth+1,k) = isign*sign(xavg, x1)
          end do
          end do
 
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate3DR4: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate3DR4: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -3403,7 +3469,8 @@ contains
       return
    endif
 
-   deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
+   deallocate(bufSend, bufRecv, stat=ierr)
+   if (allocated(bufTripole)) deallocate(bufTripole, stat=ierr)
 
    if (ierr > 0) then
       call POP_ErrorSet(errorCode, &
@@ -3475,6 +3542,7 @@ contains
    integer (POP_i4) ::           &
       i,j,k,n,nmsg,              &! dummy loop indices
       ierr,                      &! error or status flag for MPI,alloc
+      msgSize,                   &! size of an individual message
       nxGlobal,                  &! global domain size in x (tripole)
       nz,                        &! size of array in 3rd dimension
       iSrc,jSrc,                 &! source addresses for message
@@ -3546,13 +3614,24 @@ contains
 
    allocate(bufSend(bufSizeSend*nz, halo%numMsgSend),  &
             bufRecv(bufSizeRecv*nz, halo%numMsgRecv),  &
-            bufTripole(nxGlobal, POP_haloWidth+1, nz), &
             stat=ierr)
 
    if (ierr > 0) then
       call POP_ErrorSet(errorCode, &
          'POP_HaloUpdate3DI4: error allocating buffers')
       return
+   endif
+
+   if (nxGlobal > 0) then
+      allocate(bufTripole(nxGlobal, POP_haloWidth+1, nz), &
+               stat=ierr)
+      bufTripole = fill
+
+      if (ierr > 0) then
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate3DR4: error allocating buffers')
+         return
+      endif
    endif
 
 !-----------------------------------------------------------------------
@@ -3563,9 +3642,10 @@ contains
 
    do nmsg=1,halo%numMsgRecv
 
-      call MPI_IRECV(bufRecv(:,nmsg), bufSizeRecv*nz, MPI_INTEGER, &
-                     halo%recvTask(nmsg),                          &
-                     POP_mpitagHalo + halo%recvTask(nmsg),         &
+      msgSize = nz*halo%sizeRecv(nmsg)
+      call MPI_IRECV(bufRecv(1:msgSize,nmsg), msgSize, MPI_INTEGER, &
+                     halo%recvTask(nmsg),                           &
+                     POP_mpitagHalo + halo%recvTask(nmsg),          &
                      halo%communicator, rcvRequest(nmsg), ierr)
    end do
 
@@ -3592,9 +3672,10 @@ contains
          bufSend(n,nmsg) = fill  ! fill remainder of buffer
       end do
 
-      call MPI_ISEND(bufSend(:,nmsg), bufSizeSend*nz, MPI_INTEGER, &
-                     halo%sendTask(nmsg),                        &
-                     POP_mpitagHalo + POP_myTask,                &
+      msgSize = nz*halo%sizeSend(nmsg)
+      call MPI_ISEND(bufSend(1:msgSize,nmsg), msgSize, MPI_INTEGER, &
+                     halo%sendTask(nmsg),                           &
+                     POP_mpitagHalo + POP_myTask,                   &
                      halo%communicator, sndRequest(nmsg), ierr)
    end do
 
@@ -3675,6 +3756,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate3DI4: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -3690,14 +3783,16 @@ contains
          !***   use average of two degenerate points for value
 
          do k=1,nz
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripole(i   ,POP_haloWidth+1,k)
             x2 = bufTripole(iDst,POP_haloWidth+1,k)
             xavg = nint(0.5_POP_r8*(abs(x1) + abs(x2)))
-            bufTripole(i   ,POP_haloWidth+1,k) = sign(xavg, x1)
-            bufTripole(iDst,POP_haloWidth+1,k) = sign(xavg, x2)
+            bufTripole(i   ,POP_haloWidth+1,k) = isign*sign(xavg, x2)
+            bufTripole(iDst,POP_haloWidth+1,k) = isign*sign(xavg, x1)
          end do
+         bufTripole(nxGlobal,POP_haloWidth+1,k) = isign* &
+         bufTripole(nxGlobal,POP_haloWidth+1,k)
          end do
 
       case (POP_gridHorzLocEface)   ! cell center location
@@ -3719,26 +3814,14 @@ contains
             x1 = bufTripole(i   ,POP_haloWidth+1,k)
             x2 = bufTripole(iDst,POP_haloWidth+1,k)
             xavg = nint(0.5_POP_r8*(abs(x1) + abs(x2)))
-            bufTripole(i   ,POP_haloWidth+1,k) = sign(xavg, x1)
-            bufTripole(iDst,POP_haloWidth+1,k) = sign(xavg, x2)
+            bufTripole(i   ,POP_haloWidth+1,k) = isign*sign(xavg, x2)
+            bufTripole(iDst,POP_haloWidth+1,k) = isign*sign(xavg, x1)
          end do
          end do
 
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate3DI4: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate3DI4: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -3797,7 +3880,8 @@ contains
       return
    endif
 
-   deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
+   deallocate(bufSend, bufRecv, stat=ierr)
+   if (allocated(bufTripole)) deallocate(bufTripole, stat=ierr)
 
    if (ierr > 0) then
       call POP_ErrorSet(errorCode, &
@@ -3869,6 +3953,7 @@ contains
    integer (POP_i4) ::           &
       i,j,k,l,n,nmsg,            &! dummy loop indices
       ierr,                      &! error or status flag for MPI,alloc
+      msgSize,                   &! size of an individual message
       nxGlobal,                  &! global domain size in x (tripole)
       nz, nt,                    &! size of array in 3rd,4th dimensions
       iSrc,jSrc,                 &! source addresses for message
@@ -3941,13 +4026,24 @@ contains
 
    allocate(bufSend(bufSizeSend*nz*nt, halo%numMsgSend),   &
             bufRecv(bufSizeRecv*nz*nt, halo%numMsgRecv),   &
-            bufTripole(nxGlobal, POP_haloWidth+1, nz, nt), &
             stat=ierr)
 
    if (ierr > 0) then
       call POP_ErrorSet(errorCode, &
          'POP_HaloUpdate4DR8: error allocating buffers')
       return
+   endif
+
+   if (nxGlobal > 0) then
+      allocate(bufTripole(nxGlobal, POP_haloWidth+1, nz, nt), &
+               stat=ierr)
+      bufTripole = fill
+
+      if (ierr > 0) then
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate3DR4: error allocating buffers')
+         return
+      endif
    endif
 
 !-----------------------------------------------------------------------
@@ -3958,9 +4054,10 @@ contains
 
    do nmsg=1,halo%numMsgRecv
 
-      call MPI_IRECV(bufRecv(:,nmsg), bufSizeRecv*nz*nt, POP_mpiR8, &
-                     halo%recvTask(nmsg),                           &
-                     POP_mpitagHalo + halo%recvTask(nmsg),          &
+      msgSize = nz*nt*halo%sizeRecv(nmsg)
+      call MPI_IRECV(bufRecv(1:msgSize,nmsg), msgSize, POP_mpiR8, &
+                     halo%recvTask(nmsg),                         &
+                     POP_mpitagHalo + halo%recvTask(nmsg),        &
                      halo%communicator, rcvRequest(nmsg), ierr)
    end do
 
@@ -3990,9 +4087,10 @@ contains
          bufSend(n,nmsg) = fill  ! fill remainder of buffer
       end do
 
-      call MPI_ISEND(bufSend(:,nmsg), bufSizeSend*nz*nt, POP_mpiR8, &
-                     halo%sendTask(nmsg),                           &
-                     POP_mpitagHalo + POP_myTask,                   &
+      msgSize = nz*nt*halo%sizeSend(nmsg)
+      call MPI_ISEND(bufSend(1:msgSize,nmsg), msgSize, POP_mpiR8, &
+                     halo%sendTask(nmsg),                         &
+                     POP_mpitagHalo + POP_myTask,                 &
                      halo%communicator, sndRequest(nmsg), ierr)
    end do
 
@@ -4083,6 +4181,18 @@ contains
 
    if (nxGlobal > 0) then
 
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate4DR8: Unknown field kind')
+      end select
+
       select case (fieldLoc)
       case (POP_gridHorzLocCenter)   ! cell center location
 
@@ -4099,14 +4209,16 @@ contains
 
          do l=1,nt
          do k=1,nz
-         do i = 1,nxGlobal/2 - 1
+         do i = 1,nxGlobal/2
             iDst = nxGlobal - i
             x1 = bufTripole(i   ,POP_haloWidth+1,k,l)
             x2 = bufTripole(iDst,POP_haloWidth+1,k,l)
             xavg = 0.5_POP_r8*(abs(x1) + abs(x2))
-            bufTripole(i   ,POP_haloWidth+1,k,l) = sign(xavg, x1)
-            bufTripole(iDst,POP_haloWidth+1,k,l) = sign(xavg, x2)
+            bufTripole(i   ,POP_haloWidth+1,k,l) = isign*sign(xavg, x2)
+            bufTripole(iDst,POP_haloWidth+1,k,l) = isign*sign(xavg, x1)
          end do
+         bufTripole(nxGlobal,POP_haloWidth+1,k,l) = isign* &
+         bufTripole(nxGlobal,POP_haloWidth+1,k,l)
          end do
          end do
 
@@ -4130,8 +4242,8 @@ contains
             x1 = bufTripole(i   ,POP_haloWidth+1,k,l)
             x2 = bufTripole(iDst,POP_haloWidth+1,k,l)
             xavg = 0.5_POP_r8*(abs(x1) + abs(x2))
-            bufTripole(i   ,POP_haloWidth+1,k,l) = sign(xavg, x1)
-            bufTripole(iDst,POP_haloWidth+1,k,l) = sign(xavg, x2)
+            bufTripole(i   ,POP_haloWidth+1,k,l) = isign*sign(xavg, x2)
+            bufTripole(iDst,POP_haloWidth+1,k,l) = isign*sign(xavg, x1)
          end do
          end do
          end do
@@ -4139,18 +4251,6 @@ contains
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate4DR8: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate4DR8: Unknown field kind')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -4211,7 +4311,8 @@ contains
       return
    endif
 
-   deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
+   deallocate(bufSend, bufRecv, stat=ierr)
+   if (allocated(bufTripole)) deallocate(bufTripole, stat=ierr)
 
    if (ierr > 0) then
       call POP_ErrorSet(errorCode, &
@@ -4283,6 +4384,7 @@ contains
    integer (POP_i4) ::           &
       i,j,k,l,n,nmsg,            &! dummy loop indices
       ierr,                      &! error or status flag for MPI,alloc
+      msgSize,                   &! size of an individual message
       nxGlobal,                  &! global domain size in x (tripole)
       nz, nt,                    &! size of array in 3rd,4th dimensions
       iSrc,jSrc,                 &! source addresses for message
@@ -4355,13 +4457,24 @@ contains
 
    allocate(bufSend(bufSizeSend*nz*nt, halo%numMsgSend),   &
             bufRecv(bufSizeRecv*nz*nt, halo%numMsgRecv),   &
-            bufTripole(nxGlobal, POP_haloWidth+1, nz, nt), &
             stat=ierr)
 
    if (ierr > 0) then
       call POP_ErrorSet(errorCode, &
          'POP_HaloUpdate4DR4: error allocating buffers')
       return
+   endif
+
+   if (nxGlobal > 0) then
+      allocate(bufTripole(nxGlobal, POP_haloWidth+1, nz, nt), &
+               stat=ierr)
+      bufTripole = fill
+
+      if (ierr > 0) then
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate3DR4: error allocating buffers')
+         return
+      endif
    endif
 
 !-----------------------------------------------------------------------
@@ -4372,7 +4485,439 @@ contains
 
    do nmsg=1,halo%numMsgRecv
 
-      call MPI_IRECV(bufRecv(:,nmsg), bufSizeRecv*nz*nt, POP_mpiR4, &
+      msgSize = nz*nt*halo%sizeRecv(nmsg)
+      call MPI_IRECV(bufRecv(1:msgSize,nmsg), msgSize, POP_mpiR4, &
+                     halo%recvTask(nmsg),                         &
+                     POP_mpitagHalo + halo%recvTask(nmsg),        &
+                     halo%communicator, rcvRequest(nmsg), ierr)
+   end do
+
+!-----------------------------------------------------------------------
+!
+!  fill send buffer and post sends
+!
+!-----------------------------------------------------------------------
+
+   do nmsg=1,halo%numMsgSend
+
+      i=0
+      do n=1,halo%sizeSend(nmsg)
+         iSrc     = halo%sendAddr(1,n,nmsg)
+         jSrc     = halo%sendAddr(2,n,nmsg)
+         srcBlock = halo%sendAddr(3,n,nmsg)
+
+         do l=1,nt
+         do k=1,nz
+            i = i + 1
+            bufSend(i,nmsg) = array(iSrc,jSrc,k,l,srcBlock)
+         end do
+         end do
+      end do
+
+      do n=i+1,bufSizeSend*nz*nt
+         bufSend(n,nmsg) = fill  ! fill remainder of buffer
+      end do
+
+      msgSize = nz*nt*halo%sizeSend(nmsg)
+      call MPI_ISEND(bufSend(1:msgSize,nmsg), msgSize, POP_mpiR4, &
+                     halo%sendTask(nmsg),                         &
+                     POP_mpitagHalo + POP_myTask,                 &
+                     halo%communicator, sndRequest(nmsg), ierr)
+   end do
+
+!-----------------------------------------------------------------------
+!
+!  do local copies while waiting for messages to complete
+!  if srcBlock is zero, that denotes an eliminated land block or a 
+!    closed boundary where ghost cell values are undefined
+!  if srcBlock is less than zero, the message is a copy out of the
+!    tripole buffer and will be treated later
+!
+!-----------------------------------------------------------------------
+
+   do nmsg=1,halo%numLocalCopies
+      iSrc     = halo%srcLocalAddr(1,nmsg)
+      jSrc     = halo%srcLocalAddr(2,nmsg)
+      srcBlock = halo%srcLocalAddr(3,nmsg)
+      iDst     = halo%dstLocalAddr(1,nmsg)
+      jDst     = halo%dstLocalAddr(2,nmsg)
+      dstBlock = halo%dstLocalAddr(3,nmsg)
+
+      if (srcBlock > 0) then
+         if (dstBlock > 0) then
+            do l=1,nt
+            do k=1,nz
+               array(iDst,jDst,k,l,dstBlock) = &
+               array(iSrc,jSrc,k,l,srcBlock)
+            end do
+            end do
+         else if (dstBlock < 0) then ! tripole copy into buffer
+            do l=1,nt
+            do k=1,nz
+               bufTripole(iDst,jDst,k,l) = &
+               array(iSrc,jSrc,k,l,srcBlock)
+            end do
+            end do
+         endif
+      else if (srcBlock == 0) then
+         do l=1,nt
+         do k=1,nz
+            array(iDst,jDst,k,l,dstBlock) = fill
+         end do
+         end do
+      endif
+   end do
+
+!-----------------------------------------------------------------------
+!
+!  wait for receives to finish and then unpack the recv buffer into
+!  ghost cells
+!
+!-----------------------------------------------------------------------
+
+   call MPI_WAITALL(halo%numMsgRecv, rcvRequest, rcvStatus, ierr)
+
+   do nmsg=1,halo%numMsgRecv
+      i = 0
+      do n=1,halo%sizeRecv(nmsg)
+         iDst     = halo%recvAddr(1,n,nmsg)
+         jDst     = halo%recvAddr(2,n,nmsg)
+         dstBlock = halo%recvAddr(3,n,nmsg)
+
+         if (dstBlock > 0) then
+            do l=1,nt
+            do k=1,nz
+               i = i + 1
+               array(iDst,jDst,k,l,dstBlock) = bufRecv(i,nmsg)
+            end do
+            end do
+         else if (dstBlock < 0) then !tripole
+            do l=1,nt
+            do k=1,nz
+               i = i + 1
+               bufTripole(iDst,jDst,k,l) = bufRecv(i,nmsg)
+            end do
+            end do
+         endif
+      end do
+   end do
+
+!-----------------------------------------------------------------------
+!
+!  take care of northern boundary in tripole case
+!  bufTripole array contains the top haloWidth+1 rows of physical
+!    domain for entire (global) top row 
+!
+!-----------------------------------------------------------------------
+
+   if (nxGlobal > 0) then
+
+      select case (fieldKind)
+      case (POP_fieldKindScalar)
+         isign =  1
+      case (POP_fieldKindVector)
+         isign = -1
+      case (POP_fieldKindAngle)
+         isign = -1
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate4DR4: Unknown field kind')
+      end select
+
+      select case (fieldLoc)
+      case (POP_gridHorzLocCenter)   ! cell center location
+
+         ioffset = 0
+         joffset = 0
+
+      case (POP_gridHorzLocNEcorner)   ! cell corner location
+
+         ioffset = 1
+         joffset = 1
+
+         !*** top row is degenerate, so must enforce symmetry
+         !***   use average of two degenerate points for value
+
+         do l=1,nt
+         do k=1,nz
+         do i = 1,nxGlobal/2
+            iDst = nxGlobal - i
+            x1 = bufTripole(i   ,POP_haloWidth+1,k,l)
+            x2 = bufTripole(iDst,POP_haloWidth+1,k,l)
+            xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
+            bufTripole(i   ,POP_haloWidth+1,k,l) = isign*sign(xavg, x2)
+            bufTripole(iDst,POP_haloWidth+1,k,l) = isign*sign(xavg, x1)
+         end do
+         bufTripole(nxGlobal,POP_haloWidth+1,k,l) = isign* &
+         bufTripole(nxGlobal,POP_haloWidth+1,k,l)
+         end do
+         end do
+
+      case (POP_gridHorzLocEface)   ! cell center location
+
+         ioffset = 1
+         joffset = 0
+
+      case (POP_gridHorzLocNface)   ! cell corner (velocity) location
+
+         ioffset = 0
+         joffset = 1
+
+         !*** top row is degenerate, so must enforce symmetry
+         !***   use average of two degenerate points for value
+
+         do l=1,nt
+         do k=1,nz
+         do i = 1,nxGlobal/2
+            iDst = nxGlobal + 1 - i
+            x1 = bufTripole(i   ,POP_haloWidth+1,k,l)
+            x2 = bufTripole(iDst,POP_haloWidth+1,k,l)
+            xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
+            bufTripole(i   ,POP_haloWidth+1,k,l) = isign*sign(xavg, x2)
+            bufTripole(iDst,POP_haloWidth+1,k,l) = isign*sign(xavg, x1)
+         end do
+         end do
+         end do
+
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate4DR4: Unknown field location')
+      end select
+
+      !*** copy out of global tripole buffer into local
+      !*** ghost cells
+
+      !*** look through local copies to find the copy out
+      !*** messages (srcBlock < 0)
+
+      do nmsg=1,halo%numLocalCopies
+         srcBlock = halo%srcLocalAddr(3,nmsg)
+
+         if (srcBlock < 0) then
+
+            iSrc     = halo%srcLocalAddr(1,nmsg) ! tripole buffer addr
+            jSrc     = halo%srcLocalAddr(2,nmsg)
+
+            iDst     = halo%dstLocalAddr(1,nmsg) ! local block addr
+            jDst     = halo%dstLocalAddr(2,nmsg)
+            dstBlock = halo%dstLocalAddr(3,nmsg)
+
+            !*** correct for offsets
+            iSrc = iSrc - ioffset
+            jSrc = jSrc - joffset
+            if (iSrc == 0) iSrc = nxGlobal
+
+            !*** for center and Eface, do not need to replace
+            !*** top row of physical domain, so jSrc should be
+            !*** out of range and skipped
+            !*** otherwise do the copy
+
+            if (jSrc <= POP_haloWidth+1) then
+               do l=1,nt
+               do k=1,nz
+                  array(iDst,jDst,k,l,dstBlock) = isign*    &
+                                  bufTripole(iSrc,jSrc,k,l)
+               end do
+               end do
+            endif
+
+         endif
+      end do
+
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  wait for sends to complete and deallocate arrays
+!
+!-----------------------------------------------------------------------
+
+   call MPI_WAITALL(halo%numMsgSend, sndRequest, sndStatus, ierr)
+
+   deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
+
+   if (ierr > 0) then
+      call POP_ErrorSet(errorCode, &
+         'POP_HaloUpdate4DR4: error deallocating req,status arrays')
+      return
+   endif
+
+   deallocate(bufSend, bufRecv, stat=ierr)
+   if (allocated(bufTripole)) deallocate(bufTripole, stat=ierr)
+
+   if (ierr > 0) then
+      call POP_ErrorSet(errorCode, &
+         'POP_HaloUpdate4DR4: error deallocating 4d buffers')
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine POP_HaloUpdate4DR4
+
+!***********************************************************************
+!BOP
+! !IROUTINE: POP_HaloUpdate4DI4
+! !INTERFACE:
+
+ subroutine POP_HaloUpdate4DI4(array, halo,                    &
+                               fieldLoc, fieldKind, errorCode, &
+                               fillValue)
+
+! !DESCRIPTION:
+!  This routine updates ghost cells for an input array and is a
+!  member of a group of routines under the generic interface
+!  POP\_HaloUpdate.  This routine is the specific interface
+!  for 4d horizontal integer arrays.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !USER:
+
+! !INPUT PARAMETERS:
+
+   type (POP_halo), intent(in) :: &
+      halo                 ! precomputed halo structure containing all
+                           !  information needed for halo update
+
+   character (*), intent(in) :: &
+      fieldKind,          &! id for type of field (scalar, vector, angle)
+      fieldLoc             ! id for location on horizontal grid
+                           !  (center, NEcorner, Nface, Eface)
+
+   integer (POP_i4), intent(in), optional :: &
+      fillValue            ! optional value to put in ghost cells
+                           !  where neighbor points are unknown
+                           !  (e.g. eliminated land blocks or
+                           !   closed boundaries)
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   integer (POP_i4), dimension(:,:,:,:,:), intent(inout) :: &
+      array                ! array containing field for which halo
+                           ! needs to be updated
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode            ! returned error code
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (POP_i4) ::           &
+      i,j,k,l,n,nmsg,            &! dummy loop indices
+      ierr,                      &! error or status flag for MPI,alloc
+      msgSize,                   &! size of an individual message
+      nxGlobal,                  &! global domain size in x (tripole)
+      nz, nt,                    &! size of array in 3rd,4th dimensions
+      iSrc,jSrc,                 &! source addresses for message
+      iDst,jDst,                 &! dest   addresses for message
+      srcBlock,                  &! local block number for source
+      dstBlock,                  &! local block number for destination
+      ioffset, joffset,          &! address shifts for tripole
+      isign                       ! sign factor for tripole grids
+
+   integer (POP_i4), dimension(:), allocatable :: &
+      sndRequest,      &! MPI request ids
+      rcvRequest        ! MPI request ids
+
+   integer (POP_i4), dimension(:,:), allocatable :: &
+      sndStatus,       &! MPI status flags
+      rcvStatus         ! MPI status flags
+
+   integer (POP_i4) :: &
+      fill,            &! value to use for unknown points
+      x1,x2,xavg        ! scalars for enforcing symmetry at U pts
+
+   integer (POP_i4), dimension(:,:), allocatable :: &
+      bufSend, bufRecv            ! 4d send,recv buffers
+
+   integer (POP_i4), dimension(:,:,:,:), allocatable :: &
+      bufTripole                  ! 4d tripole buffer
+
+!-----------------------------------------------------------------------
+!
+!  initialize error code and fill value
+!
+!-----------------------------------------------------------------------
+
+   errorCode = POP_Success
+
+   if (present(fillValue)) then
+      fill = fillValue
+   else
+      fill = 0_POP_i4
+   endif
+
+   nxGlobal = 0
+   if (allocated(bufTripoleI4)) nxGlobal = size(bufTripoleI4,dim=1)
+
+!-----------------------------------------------------------------------
+!
+!  allocate request and status arrays for messages
+!
+!-----------------------------------------------------------------------
+
+   allocate(sndRequest(halo%numMsgSend), &
+            rcvRequest(halo%numMsgRecv), &
+            sndStatus(MPI_STATUS_SIZE,halo%numMsgSend), &
+            rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
+
+   if (ierr > 0) then
+      call POP_ErrorSet(errorCode, &
+         'POP_HaloUpdate4DI4: error allocating req,status arrays')
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  allocate 4D buffers
+!
+!-----------------------------------------------------------------------
+
+   nz = size(array, dim=3)
+   nt = size(array, dim=4)
+
+   allocate(bufSend(bufSizeSend*nz*nt, halo%numMsgSend),   &
+            bufRecv(bufSizeRecv*nz*nt, halo%numMsgRecv),   &
+            stat=ierr)
+
+   if (ierr > 0) then
+      call POP_ErrorSet(errorCode, &
+         'POP_HaloUpdate4DI4: error allocating buffers')
+      return
+   endif
+
+   if (nxGlobal > 0) then
+      allocate(bufTripole(nxGlobal, POP_haloWidth+1, nz, nt), &
+               stat=ierr)
+      bufTripole = fill
+
+      if (ierr > 0) then
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate3DR4: error allocating buffers')
+         return
+      endif
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  post receives
+!
+!-----------------------------------------------------------------------
+
+   do nmsg=1,halo%numMsgRecv
+
+      msgSize = nz*nt*halo%sizeRecv(nmsg)
+      call MPI_IRECV(bufRecv(1:msgSize,nmsg), msgSize, MPI_INTEGER, &
                      halo%recvTask(nmsg),                           &
                      POP_mpitagHalo + halo%recvTask(nmsg),          &
                      halo%communicator, rcvRequest(nmsg), ierr)
@@ -4404,7 +4949,8 @@ contains
          bufSend(n,nmsg) = fill  ! fill remainder of buffer
       end do
 
-      call MPI_ISEND(bufSend(:,nmsg), bufSizeSend*nz*nt, POP_mpiR4, &
+      msgSize = nz*nt*halo%sizeSend(nmsg)
+      call MPI_ISEND(bufSend(1:msgSize,nmsg), msgSize, MPI_INTEGER, &
                      halo%sendTask(nmsg),                           &
                      POP_mpitagHalo + POP_myTask,                   &
                      halo%communicator, sndRequest(nmsg), ierr)
@@ -4497,478 +5043,6 @@ contains
 
    if (nxGlobal > 0) then
 
-      select case (fieldLoc)
-      case (POP_gridHorzLocCenter)   ! cell center location
-
-         ioffset = 0
-         joffset = 0
-
-      case (POP_gridHorzLocNEcorner)   ! cell corner location
-
-         ioffset = 1
-         joffset = 1
-
-         !*** top row is degenerate, so must enforce symmetry
-         !***   use average of two degenerate points for value
-
-         do l=1,nt
-         do k=1,nz
-         do i = 1,nxGlobal/2 - 1
-            iDst = nxGlobal - i
-            x1 = bufTripole(i   ,POP_haloWidth+1,k,l)
-            x2 = bufTripole(iDst,POP_haloWidth+1,k,l)
-            xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripole(i   ,POP_haloWidth+1,k,l) = sign(xavg, x1)
-            bufTripole(iDst,POP_haloWidth+1,k,l) = sign(xavg, x2)
-         end do
-         end do
-         end do
-
-      case (POP_gridHorzLocEface)   ! cell center location
-
-         ioffset = 1
-         joffset = 0
-
-      case (POP_gridHorzLocNface)   ! cell corner (velocity) location
-
-         ioffset = 0
-         joffset = 1
-
-         !*** top row is degenerate, so must enforce symmetry
-         !***   use average of two degenerate points for value
-
-         do l=1,nt
-         do k=1,nz
-         do i = 1,nxGlobal/2
-            iDst = nxGlobal + 1 - i
-            x1 = bufTripole(i   ,POP_haloWidth+1,k,l)
-            x2 = bufTripole(iDst,POP_haloWidth+1,k,l)
-            xavg = 0.5_POP_r4*(abs(x1) + abs(x2))
-            bufTripole(i   ,POP_haloWidth+1,k,l) = sign(xavg, x1)
-            bufTripole(iDst,POP_haloWidth+1,k,l) = sign(xavg, x2)
-         end do
-         end do
-         end do
-
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate4DR4: Unknown field location')
-      end select
-
-      select case (fieldKind)
-      case (POP_fieldKindScalar)
-         isign =  1
-      case (POP_fieldKindVector)
-         isign = -1
-      case (POP_fieldKindAngle)
-         isign = -1
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate4DR4: Unknown field kind')
-      end select
-
-      !*** copy out of global tripole buffer into local
-      !*** ghost cells
-
-      !*** look through local copies to find the copy out
-      !*** messages (srcBlock < 0)
-
-      do nmsg=1,halo%numLocalCopies
-         srcBlock = halo%srcLocalAddr(3,nmsg)
-
-         if (srcBlock < 0) then
-
-            iSrc     = halo%srcLocalAddr(1,nmsg) ! tripole buffer addr
-            jSrc     = halo%srcLocalAddr(2,nmsg)
-
-            iDst     = halo%dstLocalAddr(1,nmsg) ! local block addr
-            jDst     = halo%dstLocalAddr(2,nmsg)
-            dstBlock = halo%dstLocalAddr(3,nmsg)
-
-            !*** correct for offsets
-            iSrc = iSrc - ioffset
-            jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
-
-            !*** for center and Eface, do not need to replace
-            !*** top row of physical domain, so jSrc should be
-            !*** out of range and skipped
-            !*** otherwise do the copy
-
-            if (jSrc <= POP_haloWidth+1) then
-               do l=1,nt
-               do k=1,nz
-                  array(iDst,jDst,k,l,dstBlock) = isign*    &
-                                  bufTripole(iSrc,jSrc,k,l)
-               end do
-               end do
-            endif
-
-         endif
-      end do
-
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  wait for sends to complete and deallocate arrays
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgSend, sndRequest, sndStatus, ierr)
-
-   deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
-
-   if (ierr > 0) then
-      call POP_ErrorSet(errorCode, &
-         'POP_HaloUpdate4DR4: error deallocating req,status arrays')
-      return
-   endif
-
-   deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
-
-   if (ierr > 0) then
-      call POP_ErrorSet(errorCode, &
-         'POP_HaloUpdate4DR4: error deallocating 4d buffers')
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine POP_HaloUpdate4DR4
-
-!***********************************************************************
-!BOP
-! !IROUTINE: POP_HaloUpdate4DI4
-! !INTERFACE:
-
- subroutine POP_HaloUpdate4DI4(array, halo,                    &
-                               fieldLoc, fieldKind, errorCode, &
-                               fillValue)
-
-! !DESCRIPTION:
-!  This routine updates ghost cells for an input array and is a
-!  member of a group of routines under the generic interface
-!  POP\_HaloUpdate.  This routine is the specific interface
-!  for 4d horizontal integer arrays.
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !USER:
-
-! !INPUT PARAMETERS:
-
-   type (POP_halo), intent(in) :: &
-      halo                 ! precomputed halo structure containing all
-                           !  information needed for halo update
-
-   character (*), intent(in) :: &
-      fieldKind,          &! id for type of field (scalar, vector, angle)
-      fieldLoc             ! id for location on horizontal grid
-                           !  (center, NEcorner, Nface, Eface)
-
-   integer (POP_i4), intent(in), optional :: &
-      fillValue            ! optional value to put in ghost cells
-                           !  where neighbor points are unknown
-                           !  (e.g. eliminated land blocks or
-                           !   closed boundaries)
-
-! !INPUT/OUTPUT PARAMETERS:
-
-   integer (POP_i4), dimension(:,:,:,:,:), intent(inout) :: &
-      array                ! array containing field for which halo
-                           ! needs to be updated
-
-! !OUTPUT PARAMETERS:
-
-   integer (POP_i4), intent(out) :: &
-      errorCode            ! returned error code
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
-
-   integer (POP_i4) ::           &
-      i,j,k,l,n,nmsg,            &! dummy loop indices
-      ierr,                      &! error or status flag for MPI,alloc
-      nxGlobal,                  &! global domain size in x (tripole)
-      nz, nt,                    &! size of array in 3rd,4th dimensions
-      iSrc,jSrc,                 &! source addresses for message
-      iDst,jDst,                 &! dest   addresses for message
-      srcBlock,                  &! local block number for source
-      dstBlock,                  &! local block number for destination
-      ioffset, joffset,          &! address shifts for tripole
-      isign                       ! sign factor for tripole grids
-
-   integer (POP_i4), dimension(:), allocatable :: &
-      sndRequest,      &! MPI request ids
-      rcvRequest        ! MPI request ids
-
-   integer (POP_i4), dimension(:,:), allocatable :: &
-      sndStatus,       &! MPI status flags
-      rcvStatus         ! MPI status flags
-
-   integer (POP_i4) :: &
-      fill,            &! value to use for unknown points
-      x1,x2,xavg        ! scalars for enforcing symmetry at U pts
-
-   integer (POP_i4), dimension(:,:), allocatable :: &
-      bufSend, bufRecv            ! 4d send,recv buffers
-
-   integer (POP_i4), dimension(:,:,:,:), allocatable :: &
-      bufTripole                  ! 4d tripole buffer
-
-!-----------------------------------------------------------------------
-!
-!  initialize error code and fill value
-!
-!-----------------------------------------------------------------------
-
-   errorCode = POP_Success
-
-   if (present(fillValue)) then
-      fill = fillValue
-   else
-      fill = 0_POP_i4
-   endif
-
-   nxGlobal = 0
-   if (allocated(bufTripoleI4)) nxGlobal = size(bufTripoleI4,dim=1)
-
-!-----------------------------------------------------------------------
-!
-!  allocate request and status arrays for messages
-!
-!-----------------------------------------------------------------------
-
-   allocate(sndRequest(halo%numMsgSend), &
-            rcvRequest(halo%numMsgRecv), &
-            sndStatus(MPI_STATUS_SIZE,halo%numMsgSend), &
-            rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
-
-   if (ierr > 0) then
-      call POP_ErrorSet(errorCode, &
-         'POP_HaloUpdate4DI4: error allocating req,status arrays')
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  allocate 4D buffers
-!
-!-----------------------------------------------------------------------
-
-   nz = size(array, dim=3)
-   nt = size(array, dim=4)
-
-   allocate(bufSend(bufSizeSend*nz*nt, halo%numMsgSend),   &
-            bufRecv(bufSizeRecv*nz*nt, halo%numMsgRecv),   &
-            bufTripole(nxGlobal, POP_haloWidth+1, nz, nt), &
-            stat=ierr)
-
-   if (ierr > 0) then
-      call POP_ErrorSet(errorCode, &
-         'POP_HaloUpdate4DI4: error allocating buffers')
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  post receives
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgRecv
-
-      call MPI_IRECV(bufRecv(:,nmsg), bufSizeRecv*nz*nt, MPI_INTEGER, &
-                     halo%recvTask(nmsg),                             &
-                     POP_mpitagHalo + halo%recvTask(nmsg),            &
-                     halo%communicator, rcvRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  fill send buffer and post sends
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgSend
-
-      i=0
-      do n=1,halo%sizeSend(nmsg)
-         iSrc     = halo%sendAddr(1,n,nmsg)
-         jSrc     = halo%sendAddr(2,n,nmsg)
-         srcBlock = halo%sendAddr(3,n,nmsg)
-
-         do l=1,nt
-         do k=1,nz
-            i = i + 1
-            bufSend(i,nmsg) = array(iSrc,jSrc,k,l,srcBlock)
-         end do
-         end do
-      end do
-
-      do n=i+1,bufSizeSend*nz*nt
-         bufSend(n,nmsg) = fill  ! fill remainder of buffer
-      end do
-
-      call MPI_ISEND(bufSend(:,nmsg), bufSizeSend*nz*nt, MPI_INTEGER, &
-                     halo%sendTask(nmsg),                             &
-                     POP_mpitagHalo + POP_myTask,                     &
-                     halo%communicator, sndRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  do local copies while waiting for messages to complete
-!  if srcBlock is zero, that denotes an eliminated land block or a 
-!    closed boundary where ghost cell values are undefined
-!  if srcBlock is less than zero, the message is a copy out of the
-!    tripole buffer and will be treated later
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numLocalCopies
-      iSrc     = halo%srcLocalAddr(1,nmsg)
-      jSrc     = halo%srcLocalAddr(2,nmsg)
-      srcBlock = halo%srcLocalAddr(3,nmsg)
-      iDst     = halo%dstLocalAddr(1,nmsg)
-      jDst     = halo%dstLocalAddr(2,nmsg)
-      dstBlock = halo%dstLocalAddr(3,nmsg)
-
-      if (srcBlock > 0) then
-         if (dstBlock > 0) then
-            do l=1,nt
-            do k=1,nz
-               array(iDst,jDst,k,l,dstBlock) = &
-               array(iSrc,jSrc,k,l,srcBlock)
-            end do
-            end do
-         else if (dstBlock < 0) then ! tripole copy into buffer
-            do l=1,nt
-            do k=1,nz
-               bufTripole(iDst,jDst,k,l) = &
-               array(iSrc,jSrc,k,l,srcBlock)
-            end do
-            end do
-         endif
-      else if (srcBlock == 0) then
-         do l=1,nt
-         do k=1,nz
-            array(iDst,jDst,k,l,dstBlock) = fill
-         end do
-         end do
-      endif
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  wait for receives to finish and then unpack the recv buffer into
-!  ghost cells
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgRecv, rcvRequest, rcvStatus, ierr)
-
-   do nmsg=1,halo%numMsgRecv
-      i = 0
-      do n=1,halo%sizeRecv(nmsg)
-         iDst     = halo%recvAddr(1,n,nmsg)
-         jDst     = halo%recvAddr(2,n,nmsg)
-         dstBlock = halo%recvAddr(3,n,nmsg)
-
-         if (dstBlock > 0) then
-            do l=1,nt
-            do k=1,nz
-               i = i + 1
-               array(iDst,jDst,k,l,dstBlock) = bufRecv(i,nmsg)
-            end do
-            end do
-         else if (dstBlock < 0) then !tripole
-            do l=1,nt
-            do k=1,nz
-               i = i + 1
-               bufTripole(iDst,jDst,k,l) = bufRecv(i,nmsg)
-            end do
-            end do
-         endif
-      end do
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  take care of northern boundary in tripole case
-!  bufTripole array contains the top haloWidth+1 rows of physical
-!    domain for entire (global) top row 
-!
-!-----------------------------------------------------------------------
-
-   if (nxGlobal > 0) then
-
-      select case (fieldLoc)
-      case (POP_gridHorzLocCenter)   ! cell center location
-
-         ioffset = 0
-         joffset = 0
-
-      case (POP_gridHorzLocNEcorner)   ! cell corner location
-
-         ioffset = 1
-         joffset = 1
-
-         !*** top row is degenerate, so must enforce symmetry
-         !***   use average of two degenerate points for value
-
-         do l=1,nt
-         do k=1,nz
-         do i = 1,nxGlobal/2 - 1
-            iDst = nxGlobal - i
-            x1 = bufTripole(i   ,POP_haloWidth+1,k,l)
-            x2 = bufTripole(iDst,POP_haloWidth+1,k,l)
-            xavg = nint(0.5_POP_r8*(abs(x1) + abs(x2)))
-            bufTripole(i   ,POP_haloWidth+1,k,l) = sign(xavg, x1)
-            bufTripole(iDst,POP_haloWidth+1,k,l) = sign(xavg, x2)
-         end do
-         end do
-         end do
-
-      case (POP_gridHorzLocEface)   ! cell center location
-
-         ioffset = 1
-         joffset = 0
-
-      case (POP_gridHorzLocNface)   ! cell corner (velocity) location
-
-         ioffset = 0
-         joffset = 1
-
-         !*** top row is degenerate, so must enforce symmetry
-         !***   use average of two degenerate points for value
-
-         do l=1,nt
-         do k=1,nz
-         do i = 1,nxGlobal/2
-            iDst = nxGlobal + 1 - i
-            x1 = bufTripole(i   ,POP_haloWidth+1,k,l)
-            x2 = bufTripole(iDst,POP_haloWidth+1,k,l)
-            xavg = nint(0.5_POP_r8*(abs(x1) + abs(x2)))
-            bufTripole(i   ,POP_haloWidth+1,k,l) = sign(xavg, x1)
-            bufTripole(iDst,POP_haloWidth+1,k,l) = sign(xavg, x2)
-         end do
-         end do
-         end do
-
-      case default
-         call POP_ErrorSet(errorCode, &
-            'POP_HaloUpdate4DI4: Unknown field location')
-      end select
-
       select case (fieldKind)
       case (POP_fieldKindScalar)
          isign =  1
@@ -4979,6 +5053,66 @@ contains
       case default
          call POP_ErrorSet(errorCode, &
             'POP_HaloUpdate4DI4: Unknown field kind')
+      end select
+
+      select case (fieldLoc)
+      case (POP_gridHorzLocCenter)   ! cell center location
+
+         ioffset = 0
+         joffset = 0
+
+      case (POP_gridHorzLocNEcorner)   ! cell corner location
+
+         ioffset = 1
+         joffset = 1
+
+         !*** top row is degenerate, so must enforce symmetry
+         !***   use average of two degenerate points for value
+
+         do l=1,nt
+         do k=1,nz
+         do i = 1,nxGlobal/2
+            iDst = nxGlobal - i
+            x1 = bufTripole(i   ,POP_haloWidth+1,k,l)
+            x2 = bufTripole(iDst,POP_haloWidth+1,k,l)
+            xavg = nint(0.5_POP_r8*(abs(x1) + abs(x2)))
+            bufTripole(i   ,POP_haloWidth+1,k,l) = isign*sign(xavg, x2)
+            bufTripole(iDst,POP_haloWidth+1,k,l) = isign*sign(xavg, x1)
+         end do
+         bufTripole(nxGlobal,POP_haloWidth+1,k,l) = isign* &
+         bufTripole(nxGlobal,POP_haloWidth+1,k,l)
+         end do
+         end do
+
+      case (POP_gridHorzLocEface)   ! cell center location
+
+         ioffset = 1
+         joffset = 0
+
+      case (POP_gridHorzLocNface)   ! cell corner (velocity) location
+
+         ioffset = 0
+         joffset = 1
+
+         !*** top row is degenerate, so must enforce symmetry
+         !***   use average of two degenerate points for value
+
+         do l=1,nt
+         do k=1,nz
+         do i = 1,nxGlobal/2
+            iDst = nxGlobal + 1 - i
+            x1 = bufTripole(i   ,POP_haloWidth+1,k,l)
+            x2 = bufTripole(iDst,POP_haloWidth+1,k,l)
+            xavg = nint(0.5_POP_r8*(abs(x1) + abs(x2)))
+            bufTripole(i   ,POP_haloWidth+1,k,l) = isign*sign(xavg, x2)
+            bufTripole(iDst,POP_haloWidth+1,k,l) = isign*sign(xavg, x1)
+         end do
+         end do
+         end do
+
+      case default
+         call POP_ErrorSet(errorCode, &
+            'POP_HaloUpdate4DI4: Unknown field location')
       end select
 
       !*** copy out of global tripole buffer into local
@@ -5039,7 +5173,8 @@ contains
       return
    endif
 
-   deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
+   deallocate(bufSend, bufRecv, stat=ierr)
+   if (allocated(bufTripole)) deallocate(bufTripole, stat=ierr)
 
    if (ierr > 0) then
       call POP_ErrorSet(errorCode, &
@@ -5399,7 +5534,7 @@ contains
                msgIndx = msgIndx + 1
 
                halo%srcLocalAddr(1,msgIndx) = nxGlobal - iGlobal(i) + 1
-               halo%srcLocalAddr(2,msgIndx) = 5 - j
+               halo%srcLocalAddr(2,msgIndx) = POP_haloWidth + 3 - j
                halo%srcLocalAddr(3,msgIndx) = -srcLocalID
 
                halo%dstLocalAddr(1,msgIndx) = i
@@ -6301,6 +6436,181 @@ contains
 !EOC
 
    end subroutine POP_HaloMsgCreate
+
+!***********************************************************************
+!BOP
+! !IROUTINE: POP_HaloPrintStats
+! !INTERFACE:
+
+   subroutine POP_HaloPrintStats(halo, distrb, errorCode)
+
+! !DESCRIPTION:
+!  This routine compiles some message statistics for a given halo
+!  updates and writes them to stdout.  The routine only outputs
+!  information for 2D halos of type r8.  Other statistics can
+!  be obtained by scaling 2D r8 values accordingly.
+!
+! !REVISION HISTORY:
+!  Same as module.
+
+! !INPUT PARAMETERS:
+
+   type (POP_halo), intent(in)   :: &
+      halo               ! defined halo for which stats requested
+
+   type (POP_distrb), intent(in) :: &
+      distrb             ! associated block distribution for halo
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode          ! returned error code
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+ 
+   integer (POP_i4) ::              &
+      bytesSend,     bytesRecv,     &
+      maxBytesSend,  maxBytesRecv,  &
+      minBytesSend,  minBytesRecv,  & 
+      minNumMsgRecv, maxNumMsgRecv, &
+      numProcs, n
+
+   real (POP_r8) ::  &
+      avgBytesSend, avgBytesRecv
+
+!-----------------------------------------------------------------------
+!
+!  initialize num procs
+!
+!-----------------------------------------------------------------------
+
+   errorCode = POP_Success
+
+   call POP_DistributionGet(distrb,errorCode,numProcs = numProcs)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_HaloPrintStats: error getting num procs')
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  determine number of messages received
+!
+!-----------------------------------------------------------------------
+
+   maxNumMsgRecv = POP_GlobalMaxval(halo%numMsgRecv, distrb, errorCode) 
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_HaloPrintStats: error getting max number of messages')
+      return
+   endif
+
+   minNumMsgRecv = POP_GlobalMinval(halo%numMsgRecv, distrb, errorCode) 
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_HaloPrintStats: error getting min number of messages')
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  compute local number of bytes sent or received, then determine
+!  global statistics
+!
+!-----------------------------------------------------------------------
+
+   bytesSend = 0
+   do n=1,halo%numMsgSend
+      bytesSend = bytesSend + 8*halo%sizeSend(n)
+   end do
+
+   bytesRecv = 0
+   do n=1,halo%numMsgRecv
+      bytesRecv = bytesRecv + 8*halo%sizeRecv(n)
+   end do
+
+   maxBytesSend = POP_GlobalMaxval(bytesSend, distrb, errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_HaloPrintStats: error getting max bytes sent')
+      return
+   endif
+
+   minBytesSend = POP_GlobalMinval(bytesSend, distrb, errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_HaloPrintStats: error getting min bytes sent')
+      return
+   endif
+
+   avgBytesSend = POP_GlobalSum(real(bytesSend), distrb, errorCode)/ &
+	          real(numProcs)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_HaloPrintStats: error getting avg bytes sent')
+      return
+   endif
+
+   maxBytesRecv = POP_GlobalMaxval(bytesRecv, distrb, errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_HaloPrintStats: error getting max bytes received')
+      return
+   endif
+
+   minBytesRecv = POP_GlobalMinval(bytesRecv, distrb, errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_HaloPrintStats: error getting min bytes received')
+      return
+   endif
+
+   avgBytesRecv = POP_GlobalSum(real(bytesRecv), distrb, errorCode)/ &
+	          real(numProcs)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_HaloPrintStats: error getting avg bytes received')
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  output data to stdout
+!
+!-----------------------------------------------------------------------
+
+   if (POP_mastertask == POP_mytask) then 
+
+      write(POP_stdout,'(a30,2(i13))') 'bufSize{Recv,Send} [words] : ',&
+                                        bufSizeRecv, bufSizeSend
+      write(POP_stdout,'(a30,2(i13))') 'num messages: {min,max}: ',    &
+                                    minNumMsgRecv, maxNumMsgRecv
+      write(POP_stdout,'(a45,2(i13),2x,e10.3)')                        &
+                     'Bytes RECV for 2D bndy exch {min,max,avg}: ',    &
+                      minBytesRecv, maxBytesRecv, avgBytesRecv
+      write(POP_stdout,'(a45,2(i13),2x,e10.3)')                        &
+                     'Bytes SEND for 2D bndy exch {min,max,avg}: ',    &
+                      minBytesSend, maxBytesSend, avgBytesSend
+
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+   end subroutine  POP_HaloPrintStats
 
 !***********************************************************************
 

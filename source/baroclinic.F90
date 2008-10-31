@@ -1,5 +1,4 @@
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-
  module baroclinic
 
 !BOP
@@ -14,18 +13,24 @@
 
 ! !USES:
 
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_CommMod
+   use POP_FieldMod 
+   use POP_GridHorzMod
+   use POP_HaloMod 
+
    use kinds_mod, only: int_kind, r8, log_kind, r4, rtavg
    use blocks, only: nx_block, ny_block, block, get_block
 !   use distribution, only: 
    use domain_size
-   use domain, only: nblocks_clinic, blocks_clinic, bndy_clinic
+   use domain, only: nblocks_clinic, blocks_clinic, POP_haloClinic
    use constants, only: delim_fmt, blank_fmt, p5, field_loc_center,          &
        field_type_scalar, c0, c1, c2, grav, ndelim_fmt,                      &
        hflux_factor, salinity_factor
    use prognostic, only: TRACER, UVEL, VVEL, max_blocks_clinic, km, mixtime, &
        RHO, newtime, oldtime, curtime, PSURF, nt
    use broadcast, only: broadcast_scalar
-   use boundary, only: update_ghost_cells
    use communicate, only: my_task, master_task
    use grid, only: FCOR, DZU, HUR, KMU, KMT, sfc_layer_type,                 &
        sfc_layer_varthick, partial_bottom_cells, dz, DZT, CALCT, dzw, dzr
@@ -40,7 +45,7 @@
        DIAG_TRACER_HDIFF_2D, DIAG_PE_2D, DIAG_TRACER_ADV_2D,                 &
        DIAG_TRACER_SFC_FLX, DIAG_TRACER_VDIFF_2D, DIAG_TRACER_SOURCE_2D
    use state_mod, only: state
-   use ice, only: liceform, ice_formation
+   use ice, only: liceform, ice_formation, increment_tlast_ice
    use time_management, only: mix_pass, leapfrogts, impcor, c2dtu, beta,     &
        gamma, c2dtt
    use io_types, only: nml_in, nml_filename, stdout
@@ -55,6 +60,7 @@
    use passive_tracers, only: set_interior_passive_tracers,  &
        reset_passive_tracers, tavg_passive_tracers
    use exit_mod, only: sigAbort, exit_pop, flushm
+   use overflows
 
    implicit none
    private
@@ -322,7 +328,7 @@
 ! !IROUTINE: baroclinic_driver
 ! !INTERFACE:
 
- subroutine baroclinic_driver(ZX,ZY,DH,DHU)
+ subroutine baroclinic_driver(ZX,ZY,DH,DHU, errorCode)
 
 ! !DESCRIPTION:
 !  This routine is the main driver for the explicit time integration of
@@ -373,6 +379,9 @@
       intent(out) :: &
       ZX, ZY               ! vertical integrals of forcing
 
+   integer (POP_i4), intent(out) :: &
+      errorCode            ! returned error code
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -404,7 +413,15 @@
 !
 !-----------------------------------------------------------------------
 
-   call comp_flux_vel_ghost(DH)
+   errorCode = POP_Success
+
+   call comp_flux_vel_ghost(DH, errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'baroclinic_driver: error in comp_flux_vel_ghost')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -671,10 +688,31 @@
 !-----------------------------------------------------------------------
 
    if (lpressure_avg .and. leapfrogts) then
-      call update_ghost_cells(TRACER(:,:,:,1,newtime,:), bndy_clinic, &
-                              field_loc_center, field_type_scalar)
-      call update_ghost_cells(TRACER(:,:,:,2,newtime,:), bndy_clinic, &
-                              field_loc_center, field_type_scalar)
+
+      call POP_HaloUpdate(TRACER(:,:,:,1,newtime,:),          &
+                              POP_haloClinic,                 &
+                              POP_gridHorzLocCenter,          &
+                              POP_fieldKindScalar, errorCode, &
+                              fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'baroclinic_driver: error updating halo for PT')
+         return
+      endif
+
+      call POP_HaloUpdate(TRACER(:,:,:,2,newtime,:),          &
+                              POP_haloClinic,                 &
+                              POP_gridHorzLocCenter,          &
+                              POP_fieldKindScalar, errorCode, &
+                              fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'baroclinic_driver: error updating halo for salinity')
+         return
+      endif
+
    endif
 
 !-----------------------------------------------------------------------
@@ -809,6 +847,10 @@
                                    UVEL(:,:,:,newtime,iblock)  ! holds c2dtu*Fx
       VVEL(:,:,:,newtime,iblock) = VVEL(:,:,:,oldtime,iblock) + &
                                    VVEL(:,:,:,newtime,iblock)  ! holds c2dtu*Fy
+
+      if ( overflows_on .and. overflows_interactive ) then
+         call ovf_Utlda(iblock)
+      endif
 
 !-----------------------------------------------------------------------
 !
@@ -951,6 +993,14 @@
 
    type (block) ::       &
       this_block           ! block information for current block
+
+!-----------------------------------------------------------------------
+!
+!  increment tlast_ice outside of threaded region
+!
+!-----------------------------------------------------------------------
+
+   call increment_tlast_ice
 
 !-----------------------------------------------------------------------
 !

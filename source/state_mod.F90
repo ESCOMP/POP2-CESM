@@ -37,8 +37,10 @@
    use time_management
    use exit_mod
 
+#ifdef CCSMCOUPLED
    !*** ccsm
    use shr_vmath_mod
+#endif
 
    implicit none
    private
@@ -392,7 +394,11 @@
       p   = c10*pressz(kk)
 
       SQ  = c1000*SQ
+#ifdef CCSMCOUPLED
       call shr_vmath_sqrt(SQ, SQR, nx_block*ny_block)
+#else
+      SQR = sqrt(SQ)
+#endif
 
       !***
       !*** first calculate numerator of MWJF density [P_1(S,T,p)]

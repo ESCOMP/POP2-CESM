@@ -1,0 +1,801 @@
+#! /bin/csh -f
+
+
+#==============================================================================
+# Purpose: Create scripts that will
+#  (a) build an executable model (pop2.buildexe.csh)
+#  (b) gather or create necessary input files (pop2.buildnml_prestage.csh)
+#
+#==============================================================================
+
+set    srcdir       = $CODEROOT/ocn/pop2
+set    my_path      = $CASEROOT/SourceMods/src.pop2
+
+setenv OCN_PRESTAGE    TRUE
+setenv INPUT_TEMPLATES $srcdir/input_templates
+setenv POP2BLDSCRIPT   $CASEROOT/Buildnml_Prestage/pop2.buildnml_prestage.csh
+setenv POP2_DOCDIR     $CASEROOT/Buildnml_Prestage/pop2doc
+setenv POP2_NMLFILE    $POP2_DOCDIR/document_pop2_in
+setenv POP2_INLIST     $POP2_DOCDIR/document_pop2_input_files
+setenv INPUT           $EXEROOT/ocn/input
+
+if !(-d $CASEROOT/Buildnml_Prestage) mkdir $CASEROOT/Buildnml_Prestage
+if !(-d $CASEROOT/Buildexe)          mkdir $CASEROOT/Buildexe
+if !(-d $POP2_DOCDIR               ) mkdir $POP2_DOCDIR
+
+###================================================================###
+###      Support for developmental ocean grids                     ###
+###================================================================###
+set grid_suffix = ''
+
+if (${OCN_GRID} == gx1v5) then
+   set grid_suffix = 'a'
+   ###==================================###
+   ### exception for gx1v5/gx1v5a
+   ### use gx1v5 when ecosystem is active
+   ###==================================###
+
+  foreach module ( `echo $OCN_TRACER_MODULES`)
+    if ($module == ecosys) then
+     set grid_suffix = ''
+    endif
+  end
+endif
+
+# NOTE OCN_GRID_INTERNAL is used in ocn.*.setup.csh scripts
+setenv OCN_GRID_INTERNAL  ${OCN_GRID}${grid_suffix}
+
+###================================================================###
+###  I.  Begin construction of pop2.buildexe.csh                   ###
+###================================================================###
+
+cat >! $CASEROOT/Buildexe/pop2.buildexe.csh << EOF1
+#! /bin/csh -f
+
+#--------------------------------------------------------------------
+# check basic task and thread settings
+#--------------------------------------------------------------------
+
+if !(\$NTASKS_OCN > 0) then
+  echo "NTASKS_OCN must be > 0, please correct in env_pes and reconfigure"
+  exit -1
+endif
+if !(\$NTHRDS_OCN == 1) then
+  echo "NTHRDS_OCN must be 1, please correct in env_pes and reconfigure"
+  exit -1
+endif
+
+set exedir  = \$RUNDIR
+set rundir  = \$RUNDIR
+set objdir  = \$OBJROOT/ocn/obj
+set ocndir  = \$RUNDIR
+set srcdir  = \$CODEROOT/ocn/pop2
+set my_path = \$CASEROOT/SourceMods/src.pop2
+
+set ntask   = \$NTASKS_OCN
+set ocn_tracers = (\`echo \$OCN_TRACER_MODULES\`)
+
+setenv OCN_PRESTAGE $OCN_PRESTAGE
+setenv INPUT    $INPUT
+
+# NOTE OCN_GRID_INTERNAL is used in ocn.*.setup.csh scripts
+setenv OCN_GRID_INTERNAL $OCN_GRID_INTERNAL
+
+cd \$objdir
+
+echo -------------------------------------------------------------------------
+echo 4.0 "(pop2.buildexe.csh)" Begin the process of building the pop2 executable
+echo -------------------------------------------------------------------------
+echo " "
+
+echo -----------------------------------------------------------------------
+echo   4.1 "(pop2.buildexe.csh)" Document ocean tracers used in this run
+echo -----------------------------------------------------------------------
+echo ocn_tracers = \$ocn_tracers
+
+
+echo ------------------------------------------------------------------------
+echo    4.2 "(pop2.buildexe.csh)" Get processor tiling from env variables
+echo ------------------------------------------------------------------------
+
+setenv BLCKX \$POP_BLCKX
+setenv BLCKY \$POP_BLCKY
+setenv MXBLCKS \$POP_MXBLCKS
+setenv DECOMPTYPE \$POP_DECOMPTYPE
+
+echo -----------------------------------------------------------------
+echo    4.3 "(pop2.buildexe.csh)" Create the internal directory structure
+echo -----------------------------------------------------------------
+
+set compile_dir = \$objdir/compile
+set source_dir  = \$objdir/source
+if !(-d \$source_dir  ) mkdir -p \$source_dir
+if !(-d \$compile_dir ) mkdir -p \$compile_dir
+
+echo -----------------------------------------------------------------
+echo    4.4 "(pop2.buildexe.csh)" Create domain_size.F90 in \$source_dir, first computing NT
+echo -----------------------------------------------------------------
+
+echo 2 > \$source_dir/NT
+foreach module ( \$ocn_tracers )
+  if (-f \${my_path}/ocn.\${module}.setup.csh) then
+     \${my_path}/ocn.\${module}.setup.csh set_nt \$source_dir/NT || exit \$status
+  else if (-f \$srcdir/input_templates/ocn.\${module}.setup.csh ) then
+     \$srcdir/input_templates/ocn.\${module}.setup.csh set_nt \$source_dir/NT || exit \$status
+  else
+     echo error in pop.buildexe.csh unknown tracer: \$module
+     exit -3
+  endif
+end
+set NT = \`cat \$source_dir/NT\`
+
+if (-f \${my_path}/${OCN_GRID_INTERNAL}_domain_size.F90) then
+   set domain_size_infile = \${my_path}/${OCN_GRID_INTERNAL}_domain_size.F90
+else
+   set domain_size_infile = \$srcdir/input_templates/${OCN_GRID_INTERNAL}_domain_size.F90
+endif
+
+#
+#  If new domain_size.F90 is identical to existing one, do nothing.
+#  This is in order to preserve file timestamps and avoid unnecessary
+#  compilation cascade.
+#
+
+sed -e "s#nt *= *2#nt = \$NT#" < \$domain_size_infile > \$source_dir/domain_size.F90.new
+if (-f \$source_dir/domain_size.F90) then
+  diff \$source_dir/domain_size.F90.new \$source_dir/domain_size.F90
+  if (\$status) then
+    mv \$source_dir/domain_size.F90.new \$source_dir/domain_size.F90
+    cp \${my_path}/${OCN_GRID_INTERNAL}_domain_size.F90 domain_size.F90
+  else
+    rm -f \$source_dir/domain_size.F90.new
+  endif
+else
+  mv \$source_dir/domain_size.F90.new \$source_dir/domain_size.F90
+  cp \${my_path}/${OCN_GRID_INTERNAL}_domain_size.F90 domain_size.F90
+endif
+
+############### needed during LANL merge transition #####################
+if (-f \${my_path}/${OCN_GRID_INTERNAL}_POP_DomainSizeMod.F90) then
+   cp -fp  \${my_path}/${OCN_GRID_INTERNAL}_POP_DomainSizeMod.F90 \$source_dir/POP_DomainSizeMod.F90
+else
+   cp -fp \$srcdir/input_templates/${OCN_GRID_INTERNAL}_POP_DomainSizeMod.F90 \$source_dir/POP_DomainSizeMod.F90
+endif
+######################### end LANL merge transition #####################
+
+echo -----------------------------------------------------------------
+echo    4.5 "(pop2.buildexe.csh)" Copy the necessary files into \$source_dir                     
+echo -----------------------------------------------------------------
+cd \$source_dir
+cp -fp \$srcdir/source/*.F90                .
+cp -fp \$srcdir/mpi/*.F90                   .
+cp -fp \$srcdir/drivers/ccsm_cpl7/*.F90     .
+if (-d \$my_path ) cp -fp \$my_path/*.F90   .
+rm -f ${OCN_GRID_INTERNAL}_domain_size.F90
+#
+#  recompile if 2d decomp is changed
+#
+set recompile = FALSE
+echo $OCN_GRID_INTERNAL \$ntask \${BLCKX} \${BLCKY} \${MXBLCKS} >! \$objdir/ocnres.new
+diff \$objdir/ocnres.new \$objdir/ocnres.old || set recompile = TRUE
+if (\$recompile == 'TRUE') then
+    touch \`grep -l BLCKX \$objdir/source/*\`  # force recompile
+    touch \`grep -l BLCKY \$objdir/source/*\`  # force recompile
+    touch \`grep -l MXBLCKS \$objdir/source/*\`  # force recompile
+endif  
+echo $OCN_GRID_INTERNAL \$ntask \${BLCKX} \${BLCKY} \${MXBLCKS} >! \$objdir/ocnres.old
+
+echo -----------------------------------------------------------------
+echo    4.6 "(pop2.buildexe.csh)" Compile pop2 library
+echo -----------------------------------------------------------------
+cd \$compile_dir
+\cat >! Filepath <<EOF
+ \$source_dir
+EOF
+
+if (\$BLDTYPE == 'TRUE' || \$recompile == 'TRUE') then
+  cd \$compile_dir
+
+  cp \$BLDROOT/mkDepends . || exit 2
+  cp \$BLDROOT/mkSrcfiles . || exit 2
+
+  set SMP = FALSE ; if (\$NTHRDS_OCN > 1) set SMP = TRUE
+  gmake complib -j \$GMAKE_J MODEL=pop2 COMPLIB=\$LIBROOT/libocn.a SMP=\$SMP MACFILE=\$CASEROOT/Macros.\$MACH USER_CPPDEFS="-Dcoupled -DCCSMCOUPLED -DBLCKX=\$BLCKX -DBLCKY=\$BLCKY -DMXBLCKS=\$MXBLCKS" -f \$BLDROOT/Makefile || exit 2
+  cp -p *comp_*.mod \$LIBROOT/include/
+endif
+
+if !(-f \$LIBROOT/libocn.a) then
+  echo "ERROR: pop2 library not available, check SETBLD"
+  exit -1
+endif
+
+echo " "
+echo -------------------------------------------------------------------------
+echo  5.0 "(pop2.buildexe.csh)" Successful completion of the pop2 executable building process
+echo -------------------------------------------------------------------------
+EOF1
+
+#--------------------------------------------------------------------
+# write out resolved prestaging and namelist generating directives
+#--------------------------------------------------------------------
+
+set IYEAR0   = `echo $RUN_STARTDATE | cut -c1-4  | sed -e 's/^0*//'`
+set IMONTH0  = `echo $RUN_STARTDATE | cut -c6-7  | sed -e 's/^0*//'`
+set IDAY0    = `echo $RUN_STARTDATE | cut -c9-10 | sed -e 's/^0*//'`
+set IHOUR0   = 0
+
+#The following will not be done in a fully sequential system
+#TODO: need to modify this to work for either sequential or concurrent ocn
+
+if ($RUN_TYPE == startup || $RUN_TYPE == hybrid  )  then
+  if ($OCN_NCPL > 1) then 
+     @ IHOUR0 = $IHOUR0 + (24 / $OCN_NCPL)
+   else
+     @ IDAY0 = $IDAY0 + 1
+   endif
+endif
+
+###================================================================###
+###  II. Construct a list of all inputdata files for use by the    ###
+###      the ccsm prestaging script                                ###
+###================================================================###
+
+set inputdata_filename = ${OCN_GRID_INTERNAL}_inputdata
+
+if (-f ${my_path}/$inputdata_filename) then
+  cat $my_path/$inputdata_filename >&! $CASEROOT/Buildnml_Prestage/pop2.input_data_list
+else
+  cat $INPUT_TEMPLATES/$inputdata_filename >&! $CASEROOT/Buildnml_Prestage/pop2.input_data_list
+endif
+
+foreach module ( `echo $OCN_TRACER_MODULES`)  
+
+if (-f ${my_path}/ocn.${module}.setup.csh) then
+  ${my_path}/ocn.${module}.setup.csh ccsm_prestage $CASEROOT/Buildnml_Prestage/pop2.input_data_list || exit $status
+else if (-f $srcdir/input_templates/ocn.${module}.setup.csh ) then
+  $srcdir/input_templates/ocn.${module}.setup.csh ccsm_prestage $CASEROOT/Buildnml_Prestage/pop2.input_data_list   || exit $status
+else
+  echo error in pop.buildexe.csh unknown tracer: \$module
+  exit -3
+endif
+end
+
+
+
+###================================================================###
+###  III.  Begin construction of pop2.buildnml_prestage.csh        ###
+###================================================================###
+
+cat >! $POP2BLDSCRIPT << EOF2
+#! /bin/csh -f
+
+#vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+#
+# NOTICE: This script was custom-generated on `date` for 
+#         $CASEROOT
+#         as a $RUN_TYPE run using the pop2 ocean model at the $OCN_GRID_INTERNAL resolution
+#       
+#         DO NOT COPY to another case!
+#
+#         Use this script ONLY in $CASEROOT 
+#
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#======================================================================
+# Purpose: 
+#  1) prestage pop2 ascii input files 
+#  2) identify and optionally prestage pop2 binary input datasets
+#  3) document all pop2 input datasets
+#  4) build the pop2_in file, the file containing all pop2 namelists
+#
+# User modifications should be confined to section 1.2.3 and its
+# related sections (1.2.0 and 1.2.4)
+#======================================================================
+
+
+setenv runtype  $RUN_TYPE
+if (\$CONTINUE_RUN == 'TRUE') setenv runtype  continue
+setenv RUNTYPE \$runtype
+
+setenv OCN_PRESTAGE  $OCN_PRESTAGE 
+
+set exedir  = \$RUNDIR
+set ocndir  = \$EXEROOT/ocn
+set rundir  = \$RUNDIR
+set objdir  = \$OBJROOT/ocn/obj
+set srcdir  = \$CODEROOT/ocn/pop2
+set my_path = \$CASEROOT/SourceMods/src.pop2
+setenv INPUTDATA  \$DIN_LOC_ROOT/ocn/pop
+setenv INPUT    $INPUT
+
+setenv INPUT_TEMPLATES \$srcdir/input_templates
+
+setenv POP2_DOCDIR  \$CASEROOT/Buildnml_Prestage/pop2doc
+setenv POP2_NMLFILE \$POP2_DOCDIR/document_pop2_in
+setenv POP2_INLIST  \$POP2_DOCDIR/document_pop2_input_files
+
+# NOTE OCN_GRID_INTERNAL is used in ocn.*.setup.csh scripts
+setenv OCN_GRID_INTERNAL $OCN_GRID_INTERNAL
+
+set ocn_tracers = (\`echo \$OCN_TRACER_MODULES\`)
+echo ocn_tracers = \$ocn_tracers
+
+if !( -d \$ocndir/rest  )  mkdir -p \$ocndir/rest   || exit 2
+if !( -d \$ocndir/hist  )  mkdir -p \$ocndir/hist   || exit 2
+if !( -d \$ocndir/input )  mkdir -p \$ocndir/input  || exit 2
+
+#--------------------------------------------------------------------
+# 
+#  1.0  Identify and collect all pop2 input datasets
+# 
+#--------------------------------------------------------------------
+
+echo ----------------------------------------------------------------------------------------
+echo 1.0 "(pop2.buildnml_prestage.csh)" Begin identifying and collecting all pop2 input datasets
+echo ----------------------------------------------------------------------------------------
+EOF2
+
+#-----------------------------------------------
+# define *input_templates* files and filenames
+#-----------------------------------------------
+if (-f ${my_path}/input_templates.files) then
+  set input_templates_files     = (`cat ${my_path}/input_templates.files`)
+else
+  set input_templates_files     = (`cat $INPUT_TEMPLATES/input_templates.files`)
+endif
+set input_templates_filenames = ( )
+foreach file ($input_templates_files)
+set input_templates_filenames = ($input_templates_filenames ${file}_filename)
+end
+
+#-----------------------------------------------
+# define *inputdata* files and filenames
+#-----------------------------------------------
+set inputdata_files     = (`cat $INPUT_TEMPLATES/inputdata.files`)
+set inputdata_filenames = ( )
+foreach file ($inputdata_files)
+set inputdata_filenames = ($inputdata_filenames ${file}_filename)
+end
+
+cat >> $POP2BLDSCRIPT << EOF2
+
+  #------------------------------------------------------------------------
+  #
+  # 1.1  input_templates datasets
+  #
+  #      The input_templates datasets are small ascii text files that by 
+  #      default are located in \$srcdir/input_templates.  A user may 
+  #      choose to put a modified copy of the input_templates datasets in 
+  #      their \$my_path directory. The input_templates datasets are always 
+  #      copied ("prestaged") to \$ocndir/input prior to each run.
+  #
+  #------------------------------------------------------------------------
+
+    #-------------------------------------------------------------------------------
+    # 1.1.1 define root names of all input_templates files
+    #-------------------------------------------------------------------------------
+EOF2
+
+   echo "    set input_templates_files = (" $input_templates_files ")" >> $POP2BLDSCRIPT
+
+cat >> $POP2BLDSCRIPT << EOF2
+
+
+    #----------------------------------------------------------------------
+    # 1.1.2 identify all standard input_templates files; set unavailable 
+    #       filenames to 'unknown_\$file
+    #----------------------------------------------------------------------
+    set filenames_standard = ( )
+    foreach file (\$input_templates_files)
+      if (-f \$INPUT_TEMPLATES/${OCN_GRID_INTERNAL}_\$file) then
+        set filenames_standard =  (\$filenames_standard \$INPUT_TEMPLATES/${OCN_GRID_INTERNAL}_\$file)
+      else
+        set filenames_standard =  (\$filenames_standard unknown_\$file)
+      endif
+    end
+     
+    #----------------------------------------------------------------------
+    # 1.1.3 identify any nonstandard input_templates files located in
+    #       \$CASE/SourceMods/src.pop2
+    #----------------------------------------------------------------------
+    set filenames = ( )
+    @ i = 1
+    foreach file (\$input_templates_files)
+      if (-f \${my_path}/${OCN_GRID_INTERNAL}_\$file) then
+        set filenames =  (\$filenames \${my_path}/${OCN_GRID_INTERNAL}_\$file)
+      else
+        set filenames =  (\$filenames \$filenames_standard[\$i])
+      endif
+    @ i ++
+    end
+
+    #----------------------------------------------------------------------
+    # 1.1.4 document the origins of the input_templates files
+    #----------------------------------------------------------------------
+    if (-f \$POP2_INLIST) rm \$POP2_INLIST
+    echo " " >&! \$POP2_INLIST
+    echo "  ----------------------------------------------------------------------- " >> \$POP2_INLIST
+    echo "   List of all  \$CASE pop2 input datasets                                " >> \$POP2_INLIST
+    echo "       created     "   \`date\`                                             >> \$POP2_INLIST
+    echo "  ----------------------------------------------------------------------- " >> \$POP2_INLIST
+    echo " " >> \$POP2_INLIST
+
+    foreach filename (\$filenames)
+    if (-f \$filename) ls -l \$filename >> \$POP2_INLIST
+    end
+
+    #----------------------------------------------------------------------
+    # 1.1.5 copy all input_templates files into \$ocndir prior to execution
+    #----------------------------------------------------------------------
+    foreach filename (\$filenames)
+    if (-f \$filename) cp -fp \$filename \$ocndir/input
+    end
+
+    #----------------------------------------------------------------------
+    # 1.1.6 now that input_templates files are documented and have been 
+    #       copied to the \$ocndir/input directory, point the filenames to 
+    #       the copies in the \$ocndir/input directory.  These filenames
+    #       will be used by the pop2_in_build.csh script.
+    #----------------------------------------------------------------------
+    set input_filenames = ( )
+    foreach file (\$input_templates_files)
+    if (-f \$ocndir/input/${OCN_GRID_INTERNAL}_\$file) then
+      set input_filenames = (\$input_filenames \$ocndir/input/${OCN_GRID_INTERNAL}_\$file)
+    else
+      set input_filenames = (\$input_filenames unknown_\$file)
+    endif
+    end
+
+    @ i = 1
+    foreach file (\$input_templates_files)
+      setenv \${file}_filename  \$input_filenames[\$i]
+      @ i++
+    end
+
+
+  #------------------------------------------------------------------------
+  #
+  # 1.2  inputdata datasets
+  #
+  #      These large datasets reside in \$inputdata by default. They may be
+  #      copied ("prestaged") to  \$ocndir/input prior to each run or they may
+  #      be referenced directly without being copied, depending on \$OCN_PRESTAGE
+  #------------------------------------------------------------------------
+
+    #----------------------------------------------------
+    # 1.2.1 define root names of all inputdata files
+    #----------------------------------------------------
+EOF2
+ 
+echo "    set inputdata_files = ("$inputdata_files ")" >> $POP2BLDSCRIPT
+
+cat >> $POP2BLDSCRIPT << EOF2
+
+EOF2
+
+#----------------------------------------------------------------
+# define inputdata filenames (contains "set filename" statements)
+#----------------------------------------------------------------
+if (-f ${my_path}/$inputdata_filename) then
+  cat $my_path/$inputdata_filename >> $POP2BLDSCRIPT
+else
+  cat $INPUT_TEMPLATES/$inputdata_filename >> $POP2BLDSCRIPT
+endif
+
+
+################### branch/hybrid  needs more work ##################
+if ($RUN_TYPE == branch || $RUN_TYPE == hybrid) then
+cat >> $POP2BLDSCRIPT << EOF2
+
+    #----------------------------------------------------------------
+    # Special treatment of initial files for \$RUN_TYPE starts
+    #----------------------------------------------------------------
+    if (\$CONTINUE_RUN == 'TRUE') then
+      #----------------------------------------------------
+      # do nothing special; continuations use pointer files
+      #----------------------------------------------------
+    else if (\$CONTINUE_RUN == 'FALSE') then
+      #-------------------------------------------------------------------
+      # this script is customized for a branch or hybrid start, so it
+      # must identify and prestage pop2 "restart" files now
+      #-------------------------------------------------------------------
+      setenv INIT_TS_FILE ${RUN_REFCASE}.pop.r.$RUN_REFDATE-00000
+      setenv TAVG_TS_FILE ${RUN_REFCASE}.pop.rh.$RUN_REFDATE-00000.nc
+      cd \$exedir
+      #\$UTILROOT/Tools/ccsm_getfile  $RUN_REFCASE/ocn/rest/\$INIT_TS_FILE     || exit 99
+      #\$UTILROOT/Tools/ccsm_getfile  $RUN_REFCASE/ocn/rest/\$INIT_TS_FILE.hdr || exit 99
+      #\$UTILROOT/Tools/ccsm_getfile  $RUN_REFCASE/ocn/rest/\$TAVG_TS_FILE     # optional
+      #\$UTILROOT/Tools/ccsm_getfile  $RUN_REFCASE/ocn/rest/\$TAVG_TS_FILE.hdr # optional
+
+      #-----------------------------------------------
+      # generate the appropriate restart pointer files
+      #-----------------------------------------------
+cat >! \$exedir/rpointer.ocn.restart << EOF
+\$exedir/\$INIT_TS_FILE
+EOF
+
+cat >! \$exedir/rpointer.ocn.tavg << EOF
+\$exedir/\$TAVG_TS_FILE
+EOF
+    endif
+
+EOF2
+endif
+
+
+cat >> $POP2BLDSCRIPT << EOF2
+
+    #--------------------------------------------------------------------
+    # 1.2.3 put any nonstandard user-modifications to inputdata filenames here.
+    #       if adding new files, be sure to also modify \$inputdata_files in
+    #       section 1.2.0 and add a new code block for each new file in
+    #       section 1.2.4 
+    #--------------------------------------------------------------------
+
+    #--------------------------------------------------------------------
+    # 1.2.4 set filenames that will be used in pop2_in_build.csh to 
+    #       create pop2_in.  Each block in this section was auto-generated
+    #       for each possible inputdata file.
+    #--------------------------------------------------------------------
+    set filenames = ( )
+    @ i = 1
+    foreach file (\$inputdata_files)
+EOF2
+
+@ ii = 1
+foreach file (`echo $inputdata_files`)
+  if ($ii == 1) then
+    echo "      if ("\$file " =~ " $file") then" >> $POP2BLDSCRIPT
+  else
+    echo "      else if ("\$file " =~ " $file") then" >> $POP2BLDSCRIPT
+  endif
+  @ ii++
+
+  echo "        if ("\$\?${file}_data") then"                             >> $POP2BLDSCRIPT
+  echo "          set filenames = ("\$filenames " " \$${file}_data")"     >> $POP2BLDSCRIPT
+  echo "        else"                                                     >> $POP2BLDSCRIPT
+  echo "          set filenames = ("\$filenames " " unknown_\$file ")"    >> $POP2BLDSCRIPT
+  echo "        endif"                                                    >> $POP2BLDSCRIPT
+  echo " "                                                                >> $POP2BLDSCRIPT
+end
+
+set pop2_nmlfile = $POP2_NMLFILE
+cat >> $POP2BLDSCRIPT << EOF2
+
+      else
+        echo ERROR: (pop2.buildnml_prestage.csh)  Must define \${file}_data in step 1.2.3
+      endif
+    @ i++
+    end
+
+    @ i = 1
+    foreach file (\$inputdata_files)
+      set \${file}_filename = \$filenames[\$i]
+      @ i++
+    end
+
+    #-----------------------------------
+    # 1.2.5 document inputdata filenames
+    #-----------------------------------
+    foreach filename (\$filenames)
+     if (-f \$filename) ls -l \$filename >> \$POP2_INLIST
+    end
+
+
+    #----------------------------------------------------------------------
+    # 1.2.6 optionally prestage inputdata files to \$ocndir/input prior to
+    #       execution
+    #----------------------------------------------------------------------
+
+    if (\$OCN_PRESTAGE == TRUE) then
+      foreach filename (\$filenames)
+        if (-f \$filename) cp -fp \$filename \$ocndir/input
+      end
+
+      #----------------------------------------------------------------------
+      # 1.2.7 now that inputdata files are documented and copied to the
+      #       \$ocndir/input directory, point the filenames to the
+      #       \$ocndir/input directory
+      #----------------------------------------------------------------------
+      @ i = 1
+      foreach filename (\$filenames)
+        set file = \$inputdata_files[\$i]
+        if (\$filename !~ unknown*) then
+          set filename_local = \$filename:t
+          unset  \${file}_filename
+          setenv \${file}_filename \$ocndir/input/\$filename_local
+        else
+          unset  \${file}_filename
+          setenv \${file}_filename \$filename
+        endif
+        @ i++
+      end
+
+    else  # (OCN_PRESTAGE is FALSE)
+      @ i = 1
+       foreach filename (\$filenames)
+          set file = \$inputdata_files[\$i]
+          unset  \${file}_filename
+          setenv \${file}_filename \$filename
+        @ i++
+       end
+
+    endif # OCN_PRESTAGE
+
+#--------------------------------------------------------------------
+#
+# 2.0  Build the pop2_in namelist file
+#
+#--------------------------------------------------------------------
+
+echo ------------------------------------------------------------------------
+echo 2.0 "(pop2.buildnml_prestage.csh)" Begin building the pop2_in namelist file 
+echo ------------------------------------------------------------------------
+
+  #------------------------------------------------------------------
+  # 2.1  set environment variables used by pop2_in_build.csh to 
+  #      construct the pop2_in namelist files
+  #------------------------------------------------------------------
+
+    #-------------------------------
+    # 2.1.1  set initial model date
+    #-------------------------------
+
+    #-----------------------------------------------------------------------
+    #  WARNING: These values were determined at configuration time. 
+    #           The user must not change them.
+    #-----------------------------------------------------------------------
+    setenv IYEAR0   $IYEAR0
+    setenv IMONTH0  $IMONTH0
+    setenv IDAY0    $IDAY0
+    setenv IHOUR0   $IHOUR0
+
+    #--------------------------------------------
+    # 2.1.2  set domain decomposition information
+    #--------------------------------------------
+    setenv NPROCS_CLINIC  \$NTASKS_OCN
+    setenv NPROCS_TROPIC  \$NTASKS_OCN
+
+    #---------------------------------
+    # 2.1.3  set directory information
+    #---------------------------------
+    setenv rundir  \$RUNDIR
+    setenv INPUT   \$EXEROOT/ocn/input
+
+  #-----------------------------------------
+  # 2.2  determine pop restart-file format
+  #-----------------------------------------
+  if (-e \$exedir/rpointer.ocn.restart) then
+    grep 'RESTART_FMT=' \$exedir/rpointer.ocn.restart 
+    if (\$status == 0) then
+      setenv RESTART_INPUT_TS_FMT \`grep \'RESTART_FMT=\' \$exedir/rpointer.ocn.restart | cut -c13-15\`
+    else
+      setenv RESTART_INPUT_TS_FMT 'bin'
+    endif
+  else
+    setenv RESTART_INPUT_TS_FMT 'bin'
+  endif
+
+  #--------------------------------------------------------------
+  #  2.3 execute the script that generates $pop2_nmlfile:t
+  #--------------------------------------------------------------
+  if (-f \$POP2_NMLFILE) rm \$POP2_NMLFILE
+
+  if (-f \${my_path}/pop2_in_build.csh) then
+    #-----------------------------------------------------------------
+    # 2.3.1 if nonstandard version of pop2_in_build.csh exists, use it
+    #-----------------------------------------------------------------
+    chmod u+x \${my_path}/pop2_in_build.csh
+    \${my_path}/pop2_in_build.csh
+  else
+    #---------------------------------------
+    # 2.3.2 if not, use the standard version
+    #---------------------------------------
+    chmod u+x \$srcdir/input_templates/pop2_in_build.csh
+    \$srcdir/input_templates/pop2_in_build.csh
+  endif
+
+
+echo ---------------------------------------------------------------------------------------------
+echo   2.4 "(pop2.buildnml_prestage.csh)" Add passive-tracer info to the standard pop2_in namelist file 
+echo ---------------------------------------------------------------------------------------------
+
+if (\$#ocn_tracers == 0) then
+  echo '' >> \$POP2_NMLFILE
+  echo '&passive_tracers_on_nml' >> \$POP2_NMLFILE
+  echo '/' >> \$POP2_NMLFILE
+else if (\$#ocn_tracers > 0) then
+EOF2
+  # do we still want to echo this?
+  #echo -----------------------------------------------------------------
+  #echo   namelist: construct passive_tracers_on_nml in $pop2_nmlfile:t
+  #echo             default for each module is off
+  #echo -----------------------------------------------------------------
+cat >> $POP2BLDSCRIPT << EOF2
+
+  echo '' >> \$POP2_NMLFILE
+  echo '&passive_tracers_on_nml' >> \$POP2_NMLFILE
+  foreach module ( \$ocn_tracers )
+    echo "   \${module}_on = .true." >> \$POP2_NMLFILE
+  end
+  echo '/' >> \$POP2_NMLFILE
+EOF2
+  # do we still want to echo this?
+  #echo -----------------------------------------------------------------
+  #echo   namelist: construct passive tracer module namelists in $pop2_nmlfile:t
+  #echo -----------------------------------------------------------------
+cat >> $POP2BLDSCRIPT << EOF2
+
+  foreach module ( \$ocn_tracers )
+    if (-f \${my_path}/ocn.\${module}.setup.csh) then
+       \${my_path}/ocn.\${module}.setup.csh namelist \$POP2_NMLFILE  || exit \$status
+       \${my_path}/ocn.\${module}.setup.csh document \$POP2_INLIST   || exit \$status
+    else if (-f \$srcdir/input_templates/ocn.\${module}.setup.csh) then
+       \$srcdir/input_templates/ocn.\${module}.setup.csh namelist \$POP2_NMLFILE  || exit \$status
+       \$srcdir/input_templates/ocn.\${module}.setup.csh document \$POP2_INLIST   || exit \$status
+    else
+       echo error in pop.buildnml_prestage.csh unknown tracer: \$module
+       exit -3
+    endif
+  end
+endif
+
+echo ---------------------------------------------------------------------------------------------
+echo   2.5 "(pop2.buildnml_prestage.csh)" Copy $pop2_nmlfile:t to \$exedir/pop2_in
+echo       Note: this is the step that creates \$exedir/pop2_in
+echo ---------------------------------------------------------------------------------------------
+if (-f \$exedir/pop2_in) rm \$exedir/pop2_in
+cp  \$POP2_NMLFILE \$exedir/pop2_in
+
+cd \$exedir
+EOF2
+
+cat >> $POP2BLDSCRIPT << EOF2
+
+if ( \$OS == 'Linux' || \$OS == 'Linux-ia64' || \$OS == 'UNICOS' ) then
+   sed "s/num_iotasks *=* ./num_iotasks        = 1   /g" \$exedir/pop2_in >! \$exedir/pop2_in.yw || echo "num_iotasks not found "
+   cp -f \$exedir/pop2_in.yw \$exedir/pop2_in
+   rm -f \$exedir/pop2_in.yw
+endif
+
+
+if (\$#ocn_tracers > 0) then
+  echo --------------------------------------------------------------------------------------
+  echo  2.6 "(pop2.buildnml_prestage.csh)" Add passive tracer module variables to tavg_contents 
+  echo --------------------------------------------------------------------------------------
+
+  foreach module ( \$ocn_tracers )
+    if (-f \${my_path}/ocn.\${module}.setup.csh) then
+      \${my_path}/ocn.\${module}.setup.csh tavg_contents \$tavg_contents_filename || exit \$status
+    else
+      \$srcdir/input_templates/ocn.\${module}.setup.csh tavg_contents \$tavg_contents_filename || exit \$status
+    endif
+  end
+
+  echo ----------------------------------------------------------------------
+  echo  2.7 "(pop2.buildnml_prestage.csh)" Prestage passive tracer module files 
+  echo ----------------------------------------------------------------------
+
+  foreach module ( \$ocn_tracers )
+    if (-f \${my_path}/ocn.\${module}.setup.csh) then
+      \${my_path}/ocn.\${module}.setup.csh prestage \
+        \$DIN_LOC_ROOT/ocn/pop/$OCN_GRID_INTERNAL \$DIN_LOC_ROOT/ocn/pop/res_indpt || exit \$status
+    else
+      \$srcdir/input_templates/ocn.\${module}.setup.csh prestage \
+        \$DIN_LOC_ROOT/ocn/pop/$OCN_GRID_INTERNAL \$DIN_LOC_ROOT/ocn/pop/res_indpt || exit \$status
+    endif
+  end
+endif
+
+wait
+
+
+echo ----------------------------------------------------------------
+echo 3.0 "(pop2.buildnml_prestage.csh)" Successful completion
+echo ----------------------------------------------------------------
+echo " "
+exit 0
+
+EOF2
+
+chmod u+x $POP2BLDSCRIPT

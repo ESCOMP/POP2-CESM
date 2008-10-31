@@ -1,7 +1,7 @@
 #! /bin/csh -f
  
 #=============
-  set verbose
+#  set verbose
 #=============
 
 # This script copies remote, resolution-dependent ocean data files
@@ -87,14 +87,23 @@ else if ($OCN_GRID == gx1v5) then
   
     set L = ( $L chl_data )      
     set R = ( $R $ocndata/forcing/chl_filled_gx1v5_20061230.ieeer8 )
- 
-# the following files support a non-standard research option:
 
-    set L = ( $L bathymetry  )    
-    set R = ( $R $ocndata/grid/bathymetry_20070521.ieeer8 )
+else if ($OCN_GRID == tx0.1v2) then
+#                     =====
+    set L = ( $L horiz_grid )    
+    set R = ( $R $ocndata/grid/grid.3600x2400.fob.da )
 
-    set L = ( $L ts_PHC2_jan_ic_resindpt  )    
-    set R = ( $R $ocndata/../res_indpt/ic/ts_PHC2_jan_ic_resindpt_20070920.nc )
+    set L = ( $L region_mask )   
+    set R = ( $R $ocndata/grid/region_mask_0.1global_20080702.i4 )
+
+    set L = ( $L topography )    
+    set R = ( $R $ocndata/grid/kmt_pbc.3600x2400.tripole.s2.0.merge_caspian.da )
+
+    set L = ( $L dzbc )
+    set R = ( $R $ocndata/grid/dzbc_pbc.3600x2400.tripole.s2.0.merge_caspian.da )
+
+    set L = ( $L chl_data )      
+    set R = ( $R $ocndata/ic/chlorophyll_monthly_0.1tripole.r8 )
 
 else if ($OCN_GRID == gx3v5) then
 #                     =====

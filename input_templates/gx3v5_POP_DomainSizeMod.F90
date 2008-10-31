@@ -32,8 +32,8 @@
       POP_nt =  2            ! total number of tracers
 
    integer (POP_i4), parameter, public :: &
-      POP_blockSizeX = (POP_nxGlobal-1)/NPROC_X+1, &! size of block in first  horizontal dimension
-      POP_blockSizeY = (POP_nyGlobal-1)/NPROC_Y+1   ! size of block in second horizontal dimension
+      POP_blockSizeX = BLCKX, &! size of block in first  horizontal dimension
+      POP_blockSizeY = BLCKY   ! size of block in second horizontal dimension
 
    !*** The model will inform the user of the correct
    !*** values for the parameters below.  A value higher than
@@ -45,8 +45,8 @@
    !***         num_procs
  
    integer (POP_i4), parameter, public :: &
-      POP_maxBlocksClinic = 1,  &! max number of blocks per processor
-      POP_maxBlocksTropic = 1    !   in each distribution
+      POP_maxBlocksClinic = MXBLCKS,  &! max number of blocks per processor
+      POP_maxBlocksTropic = MXBLCKS    !   in each distribution
 
 !EOP
 !BOC

@@ -24,7 +24,7 @@
    use domain
    use constants
    use broadcast
-   use global_reductions
+   use POP_ReductionsMod
    use gather_scatter
    use diagnostics
    use time_management
@@ -157,6 +157,7 @@
    character (16), parameter :: &
       param_fmt = '(a15,2x,1pe12.5)'
 
+   integer(int_kind) :: errorCode
 !-----------------------------------------------------------------------
 !
 !  input namelist for setting various anisotropic viscosity options
@@ -419,14 +420,10 @@
       endif
 
       do k=1,km
-         f_para_min = global_minval(F_PARA(:,:,k,:), distrb_clinic, &
-                                                     field_loc_NEcorner)
-         f_para_max = global_maxval(F_PARA(:,:,k,:), distrb_clinic, &
-                                                     field_loc_NEcorner)
-         f_perp_min = global_minval(F_PERP(:,:,k,:), distrb_clinic, &
-                                                     field_loc_NEcorner)
-         f_perp_max = global_maxval(F_PERP(:,:,k,:), distrb_clinic, &
-                                                     field_loc_NEcorner)
+         f_para_min = POP_GlobalMinval(F_PARA(:,:,k,:), POP_distrbClinic, errorCode)
+         f_para_max = POP_GlobalMaxval(F_PARA(:,:,k,:), POP_distrbClinic, errorCode)
+         f_perp_min = POP_GlobalMinval(F_PERP(:,:,k,:), POP_distrbClinic, errorCode)
+         f_perp_max = POP_GlobalMaxval(F_PERP(:,:,k,:), POP_distrbClinic, errorCode)
          if (my_task == master_task) then
             write(stdout,"('  vertical level = ',i3)") k
             write(stdout,'(a14,1x,1pe12.5,3x,a12,1x,1pe12.5)') &
@@ -486,7 +483,7 @@
          end do
          !$OMP END PARALLEL DO
 
-         if (global_sum(cfl_warn1,distrb_clinic) /= 0) then
+         if (POP_GlobalSum(cfl_warn1,POP_distrbClinic,errorCode) /= 0) then
             if (my_task == master_task) then
                write(stdout,'(a21)') 'WARNING (hmix_aniso):'
                write(stdout,'(a51)') &
@@ -494,7 +491,7 @@
             endif
          endif
 
-         if (global_sum(cfl_warn2,distrb_clinic) /= 0) then
+         if (POP_GlobalSum(cfl_warn2,POP_distrbClinic,errorCode) /= 0) then
             if (my_task == master_task) then
                write(stdout,'(a21)') 'WARNING (hmix_aniso):'
                write(stdout,'(a56)') &
@@ -854,7 +851,7 @@
          VTMP1(i,j,iq) = min(   VTMP1(i,j,iq ), &
                              AMAX_CFL(i,j,bid))  ! parallel viscosity
          VTMP2(i,j,iq) = min(   VTMP2(i,j,iq ), &
-                             AMAX_CFL(i,j,bid))  ! perpendicular  "
+                             AMAX_CFL(i,j,bid))  ! perpendicular visc
       enddo
       enddo
       enddo
@@ -864,7 +861,7 @@
       if (lvariable_hmix_aniso) then
          do iq=1,4
             VTMP1(:,:,iq) = F_PARA(:,:,k,bid)         ! parallel viscosity
-            VTMP2(:,:,iq) = F_PERP(:,:,k,bid)         ! perpendicular "
+            VTMP2(:,:,iq) = F_PERP(:,:,k,bid)         ! perpendicular visc
          end do
       else
          VTMP1 = visc_para
@@ -1086,15 +1083,15 @@
 !   and lsmag_aniso choices, respectively. 
 !
 !        beta_f         (x,y)   = 2 * omega * cos(ULAT(i,j)) / radius
-!        distance       (x,y,z) = actual distance to "vconst_5" points
+!        distance       (x,y,z) = actual distance to vconst_5 points
 !                                 west of the nearest western boundary
 !        dx             (x,y)   = DXU(i,j)
 !        dy             (x,y)   = DYU(i,j)
-!        y              (x,y)   = ULAT(i,j), latitude of "u/v" grid pts in radians 
+!        y              (x,y)   = ULAT(i,j), latitude of u/v grid pts in radians 
 !
-!   Also, "vconst_#" are input parameters defined in namelist hmix_aniso_nml. 
-!   note that "vconst_1", "vconst_6", "vconst_4", and vconst_7" have dimensions of cm^2/s,
-!   cm^2/s, 1/cm, and degrees (of latitude) respectively. "vconst_5" is an INTEGER.
+!   Also, vconst_x are input parameters defined in namelist hmix_aniso_nml. 
+!   note that vconst_1, vconst_6, vconst_4, and vconst_7 have dimensions of cm^2/s,
+!   cm^2/s, 1/cm, and degrees (of latitude) respectively. vconst_5 is an INTEGER.
 !
 !   NOTE: The nearest western boundary computations are done along the
 !         model longitudinal grid lines. Therefore, the viscosity

@@ -48,6 +48,7 @@
      module procedure global_sum_dbl,              &
                       global_sum_real,             &
                       global_sum_int,              &
+                      global_sum_nfields_dbl,      &
                       global_sum_scalar_dbl,       &
                       global_sum_scalar_real,      &
                       global_sum_scalar_int
@@ -262,6 +263,162 @@
 !-----------------------------------------------------------------------
 
  end function global_sum_dbl
+
+!***********************************************************************
+!BOP
+! !IROUTINE: global_sum
+! !INTERFACE:
+
+ function global_sum_nfields_dbl(X, dist, field_loc, MASK)
+
+! !DESCRIPTION:
+!  computes the global sum of the _physical domain_ of an array
+!  containing several 2-d array.
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !REMARKS:
+!  This is actually the specific interface for the generic global_sum
+!  function corresponding to multiple double precision arrays.
+
+! !INPUT PARAMETERS:
+
+   real (r8), dimension(:,:,:,:), intent(in) :: &
+      X                    ! array to be summed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   integer (int_kind), intent(in) :: &
+      field_loc            ! location of field on staggered grid
+
+   real (r8), dimension(size(X,dim=1), &
+                        size(X,dim=2), &
+                        size(X,dim=4)), intent(in), optional :: &
+      MASK                 ! real multiplicative mask
+
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(size(X,dim=3)) :: &
+      global_sum_nfields_dbl       ! resulting global sum
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   real (r8), dimension(size(X,dim=3)) :: &
+      local_block_sum      ! sum of local block domain
+
+   integer (int_kind) :: &
+      i,j,n,m,           &! local counters
+      nfields,           &! number of 2d slices to sum
+      ib,ie,jb,je,       &! beg,end of physical domain
+      bid                 ! block location
+
+   type (block) :: &
+      this_block          ! block information for local block
+
+!-----------------------------------------------------------------------
+
+   global_sum_nfields_dbl = c0
+   nfields = size(X,dim=3)
+
+   if (ltripole_grid .and. (field_loc == field_loc_Nface .or. &
+                            field_loc == field_loc_NEcorner)) then
+      !*** must exclude redundant points
+      do n=1,nblocks_tot
+         if (dist%proc(n) /= 0) then
+            bid = dist%local_block(n)
+            this_block = get_block(n,bid)
+            ib = this_block%ib
+            ie = this_block%ie
+            jb = this_block%jb
+            je = this_block%je
+            local_block_sum = c0
+            if (this_block%jblock == nblocks_y) then
+               !*** for the topmost row, half the points are
+               !*** redundant so sum only the first half
+               if (present(MASK)) then
+                  do m=1,nfields
+                  do i=ib,ie
+                     if (this_block%i_glob(i) <= nx_global/2) &
+                        local_block_sum(m) = &
+                        local_block_sum(m) + X(i,je,m,bid)*MASK(i,je,bid)
+                  end do
+                  end do
+               else ! no mask
+                  do m=1,nfields
+                  do i=ib,ie
+                     if (this_block%i_glob(i) <= nx_global/2) &
+                        local_block_sum(m) = &
+                        local_block_sum(m) + X(i,je,m,bid)
+                  end do
+                  end do
+               endif
+               je = je - 1
+            endif
+            if (present(MASK)) then
+               do m=1,nfields
+               do j=jb,je
+               do i=ib,ie
+                  local_block_sum(m) = &
+                  local_block_sum(m) + X(i,j,m,bid)*MASK(i,j,bid)
+               end do
+               end do
+               end do
+            else
+               do m=1,nfields
+               do j=jb,je
+               do i=ib,ie
+                  local_block_sum(m) = &
+                  local_block_sum(m) + X(i,j,m,bid)
+               end do
+               end do
+               end do
+            endif
+            global_sum_nfields_dbl(:) = &
+            global_sum_nfields_dbl(:) + local_block_sum(:)
+         endif
+      end do
+   else ! normal global sum
+      do n=1,nblocks_tot
+         if (dist%proc(n) /= 0) then
+            bid = dist%local_block(n)
+            call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
+            local_block_sum = c0
+            if (present(MASK)) then
+               do m=1,nfields
+               do j=jb,je
+               do i=ib,ie
+                  local_block_sum(m) = &
+                  local_block_sum(m) + X(i,j,m,bid)*MASK(i,j,bid)
+               end do
+               end do
+               end do
+            else
+               do m=1,nfields
+               do j=jb,je
+               do i=ib,ie
+                  local_block_sum(m) = &
+                  local_block_sum(m) + X(i,j,m,bid)
+               end do
+               end do
+               end do
+            endif
+            global_sum_nfields_dbl(:) = &
+            global_sum_nfields_dbl(:) + local_block_sum(:)
+         endif
+      end do
+   endif
+
+!-----------------------------------------------------------------------
+
+ end function global_sum_nfields_dbl
 
 !***********************************************************************
 

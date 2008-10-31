@@ -29,18 +29,22 @@
    use forcing_s_interior
    use forcing_ap
    use forcing_coupled, only: set_combined_forcing, tavg_coupled_forcing,  &
-       liceform, diurnal_cycle_factor
+       liceform, qsw_12hr_factor, qsw_distrb_iopt, qsw_distrb_iopt_cosz, &
+       tday00_interval_beg, interval_cum_dayfrac, QSW_COSZ_WGHT_NORM, &
+       QSW_COSZ_WGHT, compute_cosz
    use forcing_tools
    use passive_tracers, only: set_sflux_passive_tracers
    use prognostic
    use tavg
    use time_management
    use exit_mod
+#ifdef CCSMCOUPLED
+   use shr_sys_mod, only: shr_sys_abort
+#endif
 
    !*** ccsm
    use sw_absorption, only: set_chl
    use registry
-   use shr_sys_mod
    use forcing_fields
 
    implicit none
@@ -221,7 +225,17 @@
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       TFRZ               
-   integer (int_kind) :: index_qsw
+   integer (int_kind) :: index_qsw, iblock
+   real (r8) ::  &
+      cosz_day,  &
+      qsw_eps
+
+
+#ifdef _HIRES
+   qsw_eps = -1.e-8_r8
+#else
+   qsw_eps = c0
+#endif
 
 !-----------------------------------------------------------------------
 !
@@ -260,13 +274,40 @@
 
 !-----------------------------------------------------------------------
 !
-! apply solar diurnal cycle if chosen
+! apply qsw 12hr if chosen
 !
 !-----------------------------------------------------------------------
 
       index_qsw = mod(nsteps_this_interval,nsteps_per_interval) + 1
-      if (registry_match('lcoupled')) then
-         SHF_QSW = diurnal_cycle_factor(index_qsw)*SHF_COMP(:,:,:,shf_comp_qsw)
+
+      if ( qsw_distrb_iopt == qsw_distrb_iopt_cosz ) then
+         cosz_day = tday00_interval_beg + interval_cum_dayfrac(index_qsw-1) &
+            - interval_cum_dayfrac(nsteps_per_interval)
+
+         !$OMP PARALLEL DO PRIVATE(iblock)
+         do iblock = 1, nblocks_clinic
+
+            call compute_cosz(cosz_day, iblock, QSW_COSZ_WGHT(:,:,iblock))
+
+            where (QSW_COSZ_WGHT_NORM(:,:,iblock) > c0)
+               QSW_COSZ_WGHT(:,:,iblock) = QSW_COSZ_WGHT(:,:,iblock) &
+                  * QSW_COSZ_WGHT_NORM(:,:,iblock)
+            elsewhere
+               QSW_COSZ_WGHT(:,:,iblock) = c1
+            endwhere
+
+            SHF_QSW(:,:,iblock) = QSW_COSZ_WGHT(:,:,iblock) &
+               * SHF_COMP(:,:,iblock,shf_comp_qsw)
+
+         enddo
+         !$OMP END PARALLEL DO
+
+      else
+
+         if (registry_match('lcoupled')) then
+            SHF_QSW = qsw_12hr_factor(index_qsw)*SHF_COMP(:,:,:,shf_comp_qsw)
+         endif
+
       endif
 
       if ( registry_match('lcoupled') &
@@ -292,13 +333,14 @@
 
 
    if (nt > 2)  &
-      call set_sflux_passive_tracers(diurnal_cycle_factor(index_qsw), &
-                                     U10_SQR,IFRAC,ATM_PRESS,STF)
+      call set_sflux_passive_tracers(U10_SQR,IFRAC,ATM_PRESS,STF)
 
 
-   if (ANY(SHF_QSW < c0)) then
-      call exit_POP(sigAbort,'ERROR: SHF_QSW < c0 in set_surface_forcing')
+#ifdef CCSMCOUPLED
+   if (ANY(SHF_QSW < qsw_eps)) then
+      call shr_sys_abort('(set_surface_forcing) ERROR: SHF_QSW < qsw_eps in set_surface_forcing')
    endif
+#endif
 
 
 !-----------------------------------------------------------------------

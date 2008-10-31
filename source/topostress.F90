@@ -13,7 +13,13 @@
 !  SVN:$Id$
 
 ! !USES:
-   use kinds_mod
+
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_FieldMod
+   use POP_GridHorzMod
+   use POP_HaloMod
+
    use domain
    use blocks
    use distribution
@@ -21,7 +27,6 @@
    use io
    use grid
    use broadcast
-   use boundary
    use exit_mod
 
    implicit none
@@ -34,10 +39,10 @@
 
 ! !PUBLIC DATA MEMBERS:
 
-   logical (log_kind), public :: &
+   logical (POP_logical), public :: &
      ltopostress         ! true if topographic stress desired
 
-   real (r8), dimension(:,:,:), allocatable, public :: & 
+   real (POP_r8), dimension(:,:,:), allocatable, public :: & 
      TSU, TSV            ! topographic stress velocities
 
 !EOP
@@ -52,7 +57,7 @@
 ! !IROUTINE: init_topostress
 ! !INTERFACE:
 
- subroutine init_topostress
+ subroutine init_topostress(errorCode)
 
 ! !DESCRIPTION:
 !  This routine allocates stress arrays if topographic stress is
@@ -60,6 +65,11 @@
 !
 ! !REVISION HISTORY:
 !  same as module
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode
 
 !EOP
 !BOC
@@ -69,10 +79,10 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       nsmooth_topo       ! number of passes of topography smoother
 
-   integer (int_kind) :: nml_error ! namelist i/o error flag
+   integer (POP_i4) :: nml_error ! namelist i/o error flag
 
    namelist /topostress_nml/ltopostress, nsmooth_topo
 
@@ -81,6 +91,8 @@
 !  read namelist to see if topostress desired
 !
 !-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    ltopostress = .false.
    nsmooth_topo= 0
@@ -136,7 +148,13 @@
       allocate (TSU(nx_block,ny_block,nblocks_clinic), & 
                 TSV(nx_block,ny_block,nblocks_clinic))
 
-      call topo_stress(nsmooth_topo)
+      call topo_stress(nsmooth_topo, errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_topostress: error in topo_stress')
+         return
+      endif
    endif
 
 !-----------------------------------------------------------------------
@@ -149,7 +167,7 @@
 ! !IROUTINE: topo_stress
 ! !INTERFACE:
 
- subroutine topo_stress(nsmooth_topo)
+ subroutine topo_stress(nsmooth_topo, errorCode)
 
 ! !DESCRIPTION:
 !  Calculate topographic stress (maximum entropy) velocities.  These
@@ -165,8 +183,13 @@
 
 ! !INPUT PARAMETERS:
 
-   integer (int_kind), intent(in) :: &
+   integer (POP_i4), intent(in) :: &
      nsmooth_topo      ! number of passes of topography smoother
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode        ! returned error code
 
 !EOP
 !BOC
@@ -176,20 +199,20 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) ::   &
+   integer (POP_i4) ::   &
       i,j,iter,iblock       ! local iteration counters
 
-   real (r8), dimension(nx_block,ny_block) :: & 
+   real (POP_r8), dimension(nx_block,ny_block) :: & 
       TSP,                 &! topo stress streamfunction
       SCALE,               &! scale length
       HTOLD                 ! old topography 
 
-   real (r8), dimension(nx_block,ny_block,nblocks_clinic) :: &
+   real (POP_r8), dimension(nx_block,ny_block,nblocks_clinic) :: &
       HTNEW                 ! smoothed topography
 
-   real (r8), parameter :: & 
-      tslse = 12.0e5_r8,   &! 
-      tslsp = 3.0e5_r8      !
+   real (POP_r8), parameter :: & 
+      tslse = 12.0e5_POP_r8,   &! 
+      tslsp = 3.0e5_POP_r8      !
 
    type (block) ::         &
       this_block            ! block information for current block
@@ -199,6 +222,8 @@
 !  smooth topography if requested
 !
 !-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    do iblock = 1,nblocks_clinic
       HTNEW(:,:,iblock) = HT(:,:,iblock)  ! initialize
@@ -214,8 +239,16 @@
          call smooth_topo2(HTOLD,HTNEW(:,:,iblock),this_block)
       end do
 
-      call update_ghost_cells(HTNEW, bndy_clinic, field_loc_center, &
-                                                  field_type_scalar)
+      call POP_HaloUpdate(HTNEW, POP_haloClinic, &
+                          POP_gridHorzLocCenter, POP_fieldKindScalar, &
+                          errorCode, fillValue = 0.0_POP_r8) 
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'topo_stress: error updating halo for htnew')
+         return
+      endif
+
    enddo
 
 !-----------------------------------------------------------------------
@@ -270,10 +303,25 @@
 
    end do  ! block loop
 
-   call update_ghost_cells(TSU, bndy_clinic, field_loc_NEcorner, &
-                                             field_type_vector)
-   call update_ghost_cells(TSV, bndy_clinic, field_loc_NEcorner, &
-                                             field_type_vector)
+   call POP_HaloUpdate(TSU, POP_haloClinic,                          &
+                       POP_gridHorzLocNECorner, POP_fieldKindVector, &
+                       errorCode, fillValue = 0.0_POP_r8) 
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'topo_stress: error updating halo for tsu')
+      return
+   endif
+
+   call POP_HaloUpdate(TSV, POP_haloClinic,                          &
+                       POP_gridHorzLocNECorner, POP_fieldKindVector, &
+                       errorCode, fillValue = 0.0_POP_r8) 
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'topo_stress: error updating halo for tsv')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -309,7 +357,7 @@
 
 ! !INPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block), intent(in) :: & 
+   real (POP_r8), dimension(nx_block,ny_block), intent(in) :: & 
       HTOLD               ! old HT field to be smoothed
 
    type (block), intent(in) :: &
@@ -317,7 +365,7 @@
 
 ! !OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block), intent(out) :: &
+   real (POP_r8), dimension(nx_block,ny_block), intent(out) :: &
       HTNEW               ! smoothed HT field
 
 !EOP
@@ -328,15 +376,15 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       i,j,               &! loop counters
       bid                 ! local block index
 
-   integer (int_kind), dimension(nx_block,ny_block) ::  &
+   integer (POP_i4), dimension(nx_block,ny_block) ::  &
       NB,                 &! array to compute number of ocean neighbors
       IWORK                ! local work space
 
-   real (r8), dimension(nx_block,ny_block) :: & 
+   real (POP_r8), dimension(nx_block,ny_block) :: & 
       WORK                 ! local work space
 
 !-----------------------------------------------------------------------

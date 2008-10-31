@@ -14,18 +14,24 @@
 
 ! !USES:
 
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_CommMod 
+   use POP_FieldMod
+   use POP_GridHorzMod
+   use POP_HaloMod
+   use POP_SolversMod
+
    use kinds_mod, only: int_kind, i4, r8
    use blocks, only: nx_block, ny_block, block, get_block
 !   use distribution, only: 
    use domain_size
    use domain, only: distrb_clinic, blocks_clinic, nblocks_clinic,  &
-       bndy_clinic
+       POP_haloClinic
    use constants, only: field_type_vector, field_type_scalar,       &
        grav, c1, c0, field_loc_NEcorner, field_loc_center
    use prognostic, only: max_blocks_clinic, GRADPX, GRADPY, UBTROP, VBTROP, &
        PSURF, curtime, oldtime, newtime, PGUESS
-   use boundary, only: update_ghost_cells
-   use solvers, only: A0_CLINIC, AC, elliptic_solver
    use operators, only: grad, div
    use grid, only: sfc_layer_type, sfc_layer_varthick, TAREA, REGION_MASK,    &
           KMT, FCOR, HU, CALCT, sfc_layer_rigid, sfc_layer_oldfree 
@@ -35,6 +41,8 @@
    use forcing_fields, only: ATM_PRESS, FW
    use forcing_ap, only: ap_data_type
    use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
+
+   use overflows
 
    implicit none
    private
@@ -165,7 +173,7 @@
          do j = 1,ny_block
          do i = 1,nx_block
 
-            n = this_block%i_glob(i) + this_block%j_glob(j)
+            n = this_block%i_glob(i) + abs(this_block%j_glob(j))
             CHECKER(i,j,iblock) = 2*mod(n,2) - 1
             CHECK_AREA(i,j,iblock) = CHECKER(i,j,iblock)* &
                                        TAREA(i,j,iblock)
@@ -221,7 +229,7 @@
 ! !IROUTINE: barotropic_driver
 ! !INTERFACE:
 
- subroutine barotropic_driver(ZX,ZY)
+ subroutine barotropic_driver(ZX,ZY,errorCode)
 
 ! !DESCRIPTION:
 !  This routine solves the barotropic equations for the surface 
@@ -328,8 +336,13 @@
 ! !INPUT PARAMETERS:
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
-      intent(in) :: &
+      intent(inout) :: &
       ZX, ZY             ! vertical integrals of forcing
+
+! !INPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode          ! returned error code
 
 !EOP
 !BOC
@@ -351,6 +364,7 @@
       WORKX,WORKY         ! local temp space
 
    real (r8), dimension(nx_block,ny_block) :: &
+      diagonalCorrection,     &! time dependent correction to operator
       WORK1,WORK2,WORK3,WORK4  ! local work space
 
    type (block) ::     &
@@ -361,6 +375,10 @@
 !  calculate r.h.s. of barotropic momentum equations.
 !
 !-----------------------------------------------------------------------
+
+   if ( overflows_on .and. overflows_interactive ) then
+      call ovf_solvers_9pt
+   endif
 
    !$OMP PARALLEL DO PRIVATE(iblock, this_block, &
    !$OMP                     WORK1, WORK2, WORK3, WORK4)
@@ -461,9 +479,17 @@
  
       endif
 
+      if ( overflows_on .and. overflows_interactive ) then
+         call ovf_brtrpc_renorm(WORK3,WORK4,iblock)
+      endif
+
       !*** div returns T-cell area * divergence
       call div(1,RHS(:,:,iblock),WORK3,WORK4,this_block)
       RHS(:,:,iblock) = RHS(:,:,iblock)/(beta*c2dtp)
+
+      if ( overflows_on .and. overflows_interactive ) then
+         call ovf_rhs_brtrpc_continuity(RHS,iblock)
+      endif
 
 !-----------------------------------------------------------------------
 !
@@ -475,26 +501,26 @@
       select case (sfc_layer_type)
 
       case(sfc_layer_varthick)
-         A0_CLINIC(:,:,iblock) =                                       & 
+         diagonalCorrection(:,:) =                                     & 
                         merge(TAREA(:,:,iblock)/(beta*c2dtp*dtp*grav), &
                               c0,CALCT(:,:,iblock))
          RHS(:,:,iblock) = RHS(:,:,iblock) -                           &
-                     A0_CLINIC(:,:,iblock)*PSURF(:,:,curtime,iblock) - &
-                     FW(:,:,iblock)*TAREA(:,:,iblock)/(beta*c2dtp)
-         A0_CLINIC(:,:,iblock) = AC(:,:,iblock) - A0_CLINIC(:,:,iblock)
+                   diagonalCorrection(:,:)*PSURF(:,:,curtime,iblock) - &
+                   FW(:,:,iblock)*TAREA(:,:,iblock)/(beta*c2dtp)
 
       case(sfc_layer_rigid)
-         A0_CLINIC(:,:,iblock) = AC(:,:,iblock)
+         diagonalCorrection(:,:) = 0.0_POP_r8
 
       case(sfc_layer_oldfree)
-         A0_CLINIC(:,:,iblock) =                                       &
+         diagonalCorrection(:,:) =                                     &
                         merge(TAREA(:,:,iblock)/(beta*c2dtp*dtp*grav), &
                               c0,CALCT(:,:,iblock))
          RHS(:,:,iblock) = RHS(:,:,iblock) -                           &
-                     A0_CLINIC(:,:,iblock)*PSURF(:,:,curtime,iblock)
-         A0_CLINIC(:,:,iblock) = AC(:,:,iblock) - A0_CLINIC(:,:,iblock)
+                     diagonalCorrection(:,:)*PSURF(:,:,curtime,iblock)
 
       end select
+
+      call POP_SolversDiagonal(diagonalCorrection, iblock, errorCode)
 
 !-----------------------------------------------------------------------
 !
@@ -515,8 +541,16 @@
 
    !$OMP END PARALLEL DO
 
-   call update_ghost_cells(RHS, bndy_clinic, field_loc_center, &
-                                             field_type_scalar)
+   call POP_HaloUpdate(RHS,POP_haloClinic,  &
+            POP_gridHorzLocCenter,          &
+            POP_fieldKindScalar, errorCode, &
+            fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_BarotropicDriver: error updating RHS halo')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -524,7 +558,13 @@
 !
 !-----------------------------------------------------------------------
 
-   call elliptic_solver(PSURF(:,:,newtime,:),RHS)
+   call POP_SolversRun(PSURF(:,:,newtime,:), RHS, errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_BarotropicDriver: error in solver')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -629,12 +669,38 @@
 
    !$OMP END PARALLEL DO
 
-   call update_ghost_cells(PSURF (:,:,newtime,:), bndy_clinic, &
-                           field_loc_center  , field_type_scalar)
-   call update_ghost_cells(GRADPX(:,:,newtime,:), bndy_clinic, &
-                           field_loc_NEcorner, field_type_vector)
-   call update_ghost_cells(GRADPY(:,:,newtime,:), bndy_clinic, &
-                           field_loc_NEcorner, field_type_vector)
+   call POP_HaloUpdate(PSURF(:,:,newtime,:),POP_haloClinic,   &
+                             POP_gridHorzLocCenter,           &
+                             POP_fieldKindScalar, errorCode,  &
+                             fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_BarotropicDriver: error updating PSURF halo')
+      return
+   endif
+
+   call POP_HaloUpdate(GRADPX(:,:,newtime,:),POP_haloClinic,  &
+                             POP_gridHorzLocNECorner,         &
+                             POP_fieldKindVector, errorCode,  &
+                             fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_BarotropicDriver: error updating GRADPX halo')
+      return
+   endif
+
+   call POP_HaloUpdate(GRADPY(:,:,newtime,:),POP_haloClinic,  &
+                             POP_gridHorzLocNECorner,         &
+                             POP_fieldKindVector, errorCode,  &
+                             fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_BarotropicDriver: error updating GRADPY halo')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !EOC

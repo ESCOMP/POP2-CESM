@@ -13,46 +13,36 @@
 !
 ! !USES:
 
-   use kinds_mod, only: int_kind, r8, log_kind
-   use blocks, only: nx_block, ny_block, block, get_block
-   use domain_size
-   use domain, only: distrb_clinic, nblocks_clinic, bndy_clinic,            &
-       blocks_clinic
-   use constants, only: c2, field_loc_NEcorner, field_type_vector,          &
-       field_type_scalar, c3, p5, grav, salt_to_ppt
-   use prognostic, only: max_blocks_clinic, mixtime, newtime,               &
-       field_loc_center, km, curtime, UBTROP, VBTROP, UVEL, VVEL, RHO,      &
-       TRACER, oldtime, PGUESS, GRADPX, GRADPY, PSURF, nt
-   use boundary, only: update_ghost_cells
-   use timers, only: get_timer, timer_start, timer_stop
-   use grid, only: KMU, sfc_layer_type, sfc_layer_varthick, dz, hu,         &
-       ugrid_to_tgrid
-   use diagnostics, only: diag_global_preupdate, diag_global_afterupdate,   &
-       diag_print, diag_transport, diag_init_sums, tracer_mean_initial,     &
-       volume_t_initial, diag_velocity
-   use state_mod, only: state
-   use time_management, only: mix_pass, matsuno_ts, leapfrogts, beta,       &
-       alpha, c2dtt, c2dtu, c2dtp, dtp, c2dtq, theta, avg_ts, back_to_back, &
-       time_to_do, freq_opt_nstep, dt, dtu, time_manager, check_time_flag,  &
-       init_time_flag, check_time_flag_freq, check_time_flag_freq_opt, eod
-   use baroclinic, only: baroclinic_driver, baroclinic_correct_adjust
-   use barotropic, only: barotropic_driver
-   use surface_hgt, only: dhdt
-   use tavg, only: tavg_set_flag, accumulate_tavg_field, ltavg_on, tavg_id, &
-       tavg_increment_sum_qflux, tavg_requested
-   use forcing_fields, only: FW_OLD, FW, STF
-   use forcing, only: set_surface_forcing, tavg_forcing
-   use ice, only: liceform, ice_cpl_flag, ice_flx_to_coupler, QFLUX,        &
-       tlast_ice, cp_over_lhfusion, QICE
-   use passive_tracers, only: passive_tracers_tavg_sflux,                   &
-       passive_tracers_tavg_FvICE
-   use shr_sys_mod
-   use registry
-   use communicate, only: my_task, master_task
-   use io_types, only: stdout
-   use budget_diagnostics, only: tracer_budgets,                            &
-       ldiag_global_tracer_budgets, diag_for_tracer_budgets
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_CommMod
+   use POP_FieldMod
+   use POP_GridHorzMod
+   use POP_HaloMod
 
+   use blocks
+   use domain_size
+   use domain
+   use constants
+   use prognostic
+   use timers
+   use grid
+   use diagnostics
+   use state_mod, only: state
+   use time_management
+   use baroclinic
+   use barotropic
+   use surface_hgt
+   use tavg
+   use forcing_fields
+   use forcing
+   use ice
+   use passive_tracers
+   use registry
+   use communicate
+   use io_types
+   use budget_diagnostics
+   use overflows
 
    implicit none
    private
@@ -67,15 +57,16 @@
 !   module variables
 !
 !----------------------------------------------------------------------
-   integer (int_kind), private :: &
+   integer (POP_i4), private :: &
       tavg_flag                    ! flag to access tavg frequencies
 
-   integer (int_kind), private :: &
+   integer (POP_i4), private :: &
       timer_step,              &! timer number for step
       timer_baroclinic,        &! timer for baroclinic parts of step
-      timer_barotropic          ! timer for barotropic part  of step
+      timer_barotropic,        &! timer for barotropic part  of step
+      timer_3dupdate		! timer for the 3D update after baroclinic component
 
-
+   integer (POP_i4) :: ierr
 !EOP
 !BOC
 !EOC
@@ -88,7 +79,7 @@
 ! !IROUTINE: step
 ! !INTERFACE:
 
- subroutine step
+ subroutine step(errorCode)
 
 ! !DESCRIPTION:
 !  This routine advances the simulation on timestep.
@@ -110,7 +101,10 @@
 !
 !-----------------------------------------------------------------------
  
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
+      errorCode
+
+   integer (POP_i4) :: &
       i,j,k,n,           &! loop indices
       tmptime,           &! temp space for time index swapping
       iblock,            &! block counter
@@ -118,12 +112,12 @@
       num_passes          ! number of passes through time step
                           ! (Matsuno requires two)
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       ZX,ZY,             &! vertically integrated forcing terms
       DH,DHU              ! time change of surface height minus
                           ! freshwater flux at T, U points
 
-   logical (log_kind), save ::    &
+   logical (POP_logical), save ::    &
       first_call = .true.          ! flag for initializing timers
 
    type (block) ::        &
@@ -135,7 +129,9 @@
 !
 !-----------------------------------------------------------------------
 
-  call timer_start(timer_step)
+   call timer_start(timer_step)
+
+   errorCode = POP_Success
 
 !-----------------------------------------------------------------------
 !
@@ -284,17 +280,49 @@
 !
 !-----------------------------------------------------------------------
 
+      if(profile_barrier) call POP_Barrier
       call timer_start(timer_baroclinic)
-      call baroclinic_driver(ZX,ZY,DH,DHU)
+      call baroclinic_driver(ZX,ZY,DH,DHU, errorCode)
+      if(profile_barrier) call POP_Barrier
       call timer_stop(timer_baroclinic)
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'step: error in baroclinic driver')
+         return
+      endif
 
+!-----------------------------------------------------------------------
+!
+!     compute overflow transports
+!
+!-----------------------------------------------------------------------
 
-      call update_ghost_cells(ZX, bndy_clinic, field_loc_NEcorner, &
-                                               field_type_vector)
-      call update_ghost_cells(ZY, bndy_clinic, field_loc_NEcorner, &
-                                               field_type_vector)
+      if( overflows_on ) then
+         call ovf_driver
+      endif
+      if ( overflows_on .and. overflows_interactive ) then
+         call ovf_rhs_brtrpc_momentum(ZX,ZY)
+      endif
 
+      call POP_HaloUpdate(ZX, POP_haloClinic, POP_gridHorzLocNECorner, &
+                              POP_fieldKindVector, errorCode,          &
+                              fillValue = 0.0_POP_r8)
 
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'step: error updating halo for ZX')
+         return
+      endif
+
+      call POP_HaloUpdate(ZY, POP_haloClinic, POP_gridHorzLocNECorner, &
+                              POP_fieldKindVector, errorCode,          &
+                              fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'step: error updating halo for ZY')
+         return
+      endif
 
 !-----------------------------------------------------------------------
 !
@@ -303,10 +331,17 @@
 !
 !-----------------------------------------------------------------------
 
+      if(profile_barrier) call POP_Barrier
       call timer_start(timer_barotropic)
-      call barotropic_driver(ZX,ZY)
+      call barotropic_driver(ZX,ZY,errorCode)
+      if(profile_barrier) call POP_Barrier
       call timer_stop(timer_barotropic)
 
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'Step: error in barotropic')
+         return
+      endif
 
 !-----------------------------------------------------------------------
 !
@@ -319,19 +354,111 @@
       call baroclinic_correct_adjust
       call timer_stop(timer_baroclinic)
 
+      if ( overflows_on .and. overflows_interactive ) then
+         call ovf_UV_solution
+      endif
 
-      call update_ghost_cells(UBTROP(:,:    ,newtime,:), bndy_clinic, &
-                              field_loc_NEcorner, field_type_vector)
-      call update_ghost_cells(VBTROP(:,:    ,newtime,:), bndy_clinic, &
-                              field_loc_NEcorner, field_type_vector)
-      call update_ghost_cells(UVEL  (:,:,:  ,newtime,:), bndy_clinic, &
-                              field_loc_NEcorner, field_type_vector)
-      call update_ghost_cells(VVEL  (:,:,:  ,newtime,:), bndy_clinic, &
-                              field_loc_NEcorner, field_type_vector)
-      call update_ghost_cells(RHO   (:,:,:  ,newtime,:), bndy_clinic, &
-                              field_loc_center, field_type_scalar)
-      call update_ghost_cells(TRACER(:,:,:,:,newtime,:), bndy_clinic, &
-                              field_loc_center, field_type_scalar)
+      if(profile_barrier) call POP_Barrier
+      call timer_start(timer_3dupdate)
+
+      call POP_HaloUpdate(UBTROP(:,:,newtime,:), &
+                                  POP_haloClinic,                 &
+                                  POP_gridHorzLocNECorner,        &
+                                  POP_fieldKindVector, errorCode, &
+                                  fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'step: error updating halo for UBTROP')
+         return
+      endif
+
+      call POP_HaloUpdate(VBTROP(:,:,newtime,:), &
+                                  POP_haloClinic,                 &
+                                  POP_gridHorzLocNECorner,        &
+                                  POP_fieldKindVector, errorCode, &
+                                  fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'step: error updating halo for VBTROP')
+         return
+      endif
+
+      call POP_HaloUpdate(UVEL(:,:,:,newtime,:), & 
+                                POP_haloClinic,                 &
+                                POP_gridHorzLocNECorner,        &
+                                POP_fieldKindVector, errorCode, &
+                                fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'step: error updating halo for UVEL')
+         return
+      endif
+
+      call POP_HaloUpdate(VVEL(:,:,:,newtime,:), &
+                                POP_haloClinic,                 &
+                                POP_gridHorzLocNECorner,        &
+                                POP_fieldKindVector, errorCode, &
+                                fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'step: error updating halo for VVEL')
+         return
+      endif
+
+      call POP_HaloUpdate(RHO(:,:,:,newtime,:), &
+                               POP_haloClinic,                 &
+                               POP_gridHorzLocCenter,          &
+                               POP_fieldKindScalar, errorCode, &
+                               fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'step: error updating halo for RHO')
+         return
+      endif
+
+      call POP_HaloUpdate(TRACER(:,:,:,:,newtime,:), POP_haloClinic, &
+                                  POP_gridHorzLocCenter,          &
+                                  POP_fieldKindScalar, errorCode, &
+                                  fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'step: error updating halo for TRACER')
+         return
+      endif
+
+      call POP_HaloUpdate(QICE(:,:,:), &
+                               POP_haloClinic,                 &
+                               POP_gridHorzLocCenter,          &
+                               POP_fieldKindScalar, errorCode, &
+                               fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'step: error updating halo for QICE')
+         return
+      endif
+
+      call POP_HaloUpdate(AQICE(:,:,:), &
+                               POP_haloClinic,                 &
+                               POP_gridHorzLocCenter,          &
+                               POP_fieldKindScalar, errorCode, &
+                               fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'step: error updating halo for AQICE')
+         return
+      endif
+
+
+      if(profile_barrier) call POP_Barrier
+      call timer_stop(timer_3dupdate)
 
 !-----------------------------------------------------------------------
 !
@@ -571,6 +698,7 @@
 !
 !-----------------------------------------------------------------------
 
+   if (registry_match('lcoupled')) then
    if ( liceform .and. check_time_flag(ice_cpl_flag) ) then
      call tavg_increment_sum_qflux(const=tlast_ice)
      !$OMP PARALLEL DO
@@ -587,13 +715,14 @@
 !-----------------------------------------------------------------------
      if (nt > 2) call passive_tracers_tavg_FvICE(cp_over_lhfusion, QICE)
    endif
+   endif
 
    call diag_global_afterupdate
    call diag_print
    call diag_transport
 
-   if ( eod ) then
-     call diag_velocity
+   if ( eod .and. ldiag_velocity) then
+      call diag_velocity
    endif
 
    if ( ldiag_global_tracer_budgets  .and.   &
@@ -643,6 +772,7 @@
    call get_timer(timer_step,'STEP',1,distrb_clinic%nprocs)
    call get_timer(timer_baroclinic,'BAROCLINIC',1,distrb_clinic%nprocs)
    call get_timer(timer_barotropic,'BAROTROPIC',1,distrb_clinic%nprocs)
+   call get_timer(timer_3dupdate,'3D-UPDATE',1,distrb_clinic%nprocs)
 
 
 !-----------------------------------------------------------------------

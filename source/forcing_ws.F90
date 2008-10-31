@@ -19,7 +19,6 @@
    use blocks
    use distribution
    use domain
-   use boundary
    use io
    use forcing_tools
    use time_management
@@ -274,8 +273,8 @@
       do iblock = 1,nblocks_clinic
 
          ! simple zonal windstress field
-         SMF (:,:,1,iblock) = c1 - c2*cos(ULAT(:,:,iblock))**2
-         SMFT(:,:,1,iblock) = c1 - c2*cos(TLAT(:,:,iblock))**2
+         SMF (:,:,1,iblock) = -cos(3.0_r8*ULAT(:,:,iblock))
+         SMFT(:,:,1,iblock) = -cos(3.0_r8*TLAT(:,:,iblock))
 
          ! Zero the zonal windstress at points within 1/100th degree 
          ! of the true North Pole.
@@ -287,10 +286,10 @@
          ! This problem should also be dealt with in forcing_coupled.F
          ! and any other routines that use ANGLE and ANGLET at the
          ! North Pole point.
-         where(abs(abs(radian*ULAT(:,:,iblock)) - 90.0_r8) < 0.01_r8) &
-                   SMF(:,:,1,iblock) = c0
-         where(abs(abs(radian*TLAT(:,:,iblock)) - 90.0_r8) < 0.01_r8) &
-                   SMFT(:,:,1,iblock) = c0
+         !where(abs(abs(radian*ULAT(:,:,iblock)) - 90.0_r8) < 0.01_r8) &
+         !          SMF(:,:,1,iblock) = c0
+         !where(abs(abs(radian*TLAT(:,:,iblock)) - 90.0_r8) < 0.01_r8) &
+         !          SMFT(:,:,1,iblock) = c0
 
          ! rotate vectors to grid
          SMF (:,:,2,iblock) = -sin(ANGLE (:,:,iblock))*SMF (:,:,1,iblock)

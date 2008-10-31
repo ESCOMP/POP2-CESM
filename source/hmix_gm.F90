@@ -21,7 +21,6 @@
       use domain
       use constants
       use broadcast
-      use boundary
       use grid
       use io
       use vertical_mix
@@ -32,13 +31,16 @@
       use diagnostics
       use exit_mod
       use registry
-      use shr_sys_mod
+
+#ifdef CCSMCOUPLED
+   use shr_sys_mod
+#endif
       use timers, only: timer_start, timer_stop, get_timer
+      use mix_submeso, only: SF_SUBM_X, SF_SUBM_Y, submeso
 
       implicit none
       private
       save
-
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
@@ -77,10 +79,12 @@
 
       real (r8), dimension(:,:,:,:,:), allocatable :: &
          TX, TY, TZ,    &     ! tracer differences in each direction
-         SLA_SAVE             ! isopycnal slopes
+         SLA_SAVE,      &     ! isopycnal slopes
+         RX, RY               ! Dx(rho) and Dy(rho)
 
       real (r8), dimension(:,:,:,:), allocatable :: &
-         FZTOP                ! vertical flux
+         FZTOP,         &     ! vertical flux
+         RZ_SAVE              ! Dz(rho)
 
       logical (log_kind), dimension(:), allocatable :: &
          compute_kappa        ! compute spatially varying coefficients
@@ -169,7 +173,7 @@
          slope_control          ! choice for slope control
 
       logical (log_kind) ::  &
-         diag_gm_bolus      ! true for diagnostic bolus velocity computation 
+         diag_gm_bolus          ! true for diagnostic bolus velocity computation 
 
 !-----------------------------------------------------------------------
 !
@@ -285,9 +289,6 @@
                                !  buoyancy frequency squared
       buoyancy_freq_fmt,      &! format (bin or netcdf) of buoyancy file
       message                  ! string to hold error message
-
-   real (r8), dimension(nx_global,ny_global,km) :: &
-      WORK
 
    type (datafile) :: &
       buoyancy_freq_data_file  ! data file descriptor for buoyancy freq data
@@ -705,6 +706,11 @@
              TY(nx_block,ny_block,km,nt,nblocks_clinic),  &
              TZ(nx_block,ny_block,km,nt,nblocks_clinic))
 
+   allocate (RX(nx_block,ny_block,2,km,nblocks_clinic),  &
+             RY(nx_block,ny_block,2,km,nblocks_clinic))
+
+   allocate (RZ_SAVE(nx_block,ny_block,km,nblocks_clinic))
+
    allocate (FZTOP(nx_block,ny_block,nt,nblocks_clinic))
 
    allocate (kappa_depth(km))
@@ -735,6 +741,9 @@
    TY       = c0
    TZ       = c0
    FZTOP    = c0
+   RX       = c0
+   RY       = c0
+   RZ_SAVE  = c0
 
    if ( transition_layer_on ) then
      allocate (SLA_SAVE(nx_block,ny_block,2,km,nblocks_clinic))
@@ -966,18 +975,18 @@
 
      call define_tavg_field (tavg_UISOP, 'UISOP', 3,                &
       long_name='Bolus Velocity in grid-x direction (diagnostic)',  &
-                   units='cm/s', grid_loc='3221',                   &
-                   coordinates='TLONG TLAT z_t time')
+                   units='cm/s', grid_loc='3211',                   &
+                   coordinates='ULONG TLAT z_t time')
 
      call define_tavg_field (tavg_VISOP, 'VISOP', 3,                &
       long_name='Bolus Velocity in grid-y direction (diagnostic)',  &
-                   units='cm/s', grid_loc='3221',                   &
-                   coordinates='TLONG TLAT z_t time')
+                   units='cm/s', grid_loc='3121',                   &
+                   coordinates='TLONG ULAT z_t time')
 
      call define_tavg_field (tavg_WISOP, 'WISOP', 3,                &
       long_name='Vertical Bolus Velocity (diagnostic)',             &
                    units='cm/s', grid_loc='3112',                   &
-                   coordinates='TLONG TLAT z_t time')
+                   coordinates='TLONG TLAT z_w time')
 
      call define_tavg_field (tavg_ADVT_ISOP, 'ADVT_ISOP', 2,                            &
       long_name='Vertically-Integrated T Eddy-Induced Advection Tendency (diagnostic)', &
@@ -986,20 +995,20 @@
 
      call define_tavg_field (tavg_ADVS_ISOP, 'ADVS_ISOP', 2,                            &
       long_name='Vertically-Integrated S Eddy-Induced Advection Tendency (diagnostic)', &
-                   scale_factor=1000.0_rtavg,                                              &
+                   scale_factor=1000.0_rtavg,                                           &
                    units='cm gram/kilogram/s', grid_loc='2110',                         &
                    coordinates='TLONG TLAT time')
 
      call define_tavg_field (tavg_VNT_ISOP, 'VNT_ISOP', 3,                               &
       long_name='Heat Flux Tendency in grid-y Dir due to Eddy-Induced Vel (diagnostic)', &
                    units='degC/s', grid_loc='3121',                                      &
-                   coordinates='TLONG TLAT z_t time')
+                   coordinates='TLONG ULAT z_t time')
 
      call define_tavg_field (tavg_VNS_ISOP, 'VNS_ISOP', 3,                               &
       long_name='Salt Flux Tendency in grid-y Dir due to Eddy-Induced Vel (diagnostic)', &
-                   scale_factor=1000.0_rtavg,                                               &
+                   scale_factor=1000.0_rtavg,                                            &
                    units='gram/kilogram/s', grid_loc='3121',                             &
-                   coordinates='TLONG TLAT z_t time')
+                   coordinates='TLONG ULAT z_t time')
 
    endif
 
@@ -1078,9 +1087,6 @@
          KMASK, KMASKE, KMASKN,   & ! ocean mask
          TAPER1, TAPER2, TAPER3,  & ! tapering factors
          UIB, VIB,                & ! work arrays for isopycnal mixing velocities
-         RX,                      & ! Dx(rho) on the east  face of T-cell
-         RY,                      & ! Dy(rho) on the north face of T-cell
-         RXW, RYS,                & ! same on west, south faces
          DRDT, DRDS,              & ! expansion coefficients d(rho)/dT,S
          U_ISOP, V_ISOP             ! horizontal components of isopycnal velocities
 
@@ -1090,6 +1096,9 @@
       real (r8), dimension(nx_block,ny_block,2) :: &
          TXP, TYP, TZP, TEMP
 
+      logical (log_kind) ::  &
+         lsubmeso               ! true for submesoscale mixing
+
 !-----------------------------------------------------------------------
 !
 !     initialize various quantities
@@ -1098,10 +1107,6 @@
 
       bid = this_block%local_id
 
-      RX     = c0
-      RY     = c0
-      RXW    = c0
-      RYS    = c0
       DRDT   = c0
       DRDS   = c0
       TXP    = c0
@@ -1114,6 +1119,10 @@
       WORK2  = c0
       WORK3  = c0
       WORK4  = c0
+
+      lsubmeso = registry_match ('init_submeso')
+
+      if ( lsubmeso )  cancellation_occurs = .false.
 
       if ( .not. implicit_vertical_mix )  &
         call exit_POP (sigAbort, &
@@ -1215,20 +1224,22 @@
 !     RX = Dx(rho) = DRDT*Dx(T) + DRDS*Dx(S)
 !     RY = Dy(rho) = DRDT*Dy(T) + DRDS*Dy(S)
 
-            RX = DRDT * TXP(:,:,kn) + DRDS * TX(:,:,kk,2,bid) 
-            RY = DRDT * TYP(:,:,kn) + DRDS * TY(:,:,kk,2,bid) 
+            RX(:,:,ieast ,kk,bid) = DRDT * TXP(:,:,kn)  &
+                                  + DRDS * TX(:,:,kk,2,bid) 
+            RY(:,:,jnorth,kk,bid) = DRDT * TYP(:,:,kn)  &
+                                  + DRDS * TY(:,:,kk,2,bid) 
 
             do j=1,ny_block
               do i=2,nx_block
-                RXW(i,j) = DRDT(i,j) * TXP(i-1,j,kn)  &
-                         + DRDS(i,j) * TX (i-1,j,kk,2,bid)
+                RX(i,j,iwest,kk,bid) = DRDT(i,j) * TXP(i-1,j,kn)  &
+                                     + DRDS(i,j) * TX (i-1,j,kk,2,bid)
               enddo
             enddo
 
             do j=2,ny_block
               do i=1,nx_block
-                RYS(i,j) = DRDT(i,j) * TYP(i,j-1,kn)  &
-                         + DRDS(i,j) * TY (i,j-1,kk,2,bid)
+                RY(i,j,jsouth,kk,bid) = DRDT(i,j) * TYP(i,j-1,kn)  &
+                                      + DRDS(i,j) * TY (i,j-1,kk,2,bid)
               enddo
             enddo
 
@@ -1255,10 +1266,10 @@
             RZ = DRDT * TZP(:,:,ks) + DRDS * TZ (:,:,kk+1,2,bid) 
             RZ = min(RZ,-eps2)
 
-            SLX(:,:,ieast ,kbt,kk,bid) = KMASK * RX  / RZ
-            SLX(:,:,iwest ,kbt,kk,bid) = KMASK * RXW / RZ
-            SLY(:,:,jnorth,kbt,kk,bid) = KMASK * RY  / RZ
-            SLY(:,:,jsouth,kbt,kk,bid) = KMASK * RYS / RZ
+            SLX(:,:,ieast ,kbt,kk,bid) = KMASK * RX(:,:,ieast ,kk,bid) / RZ
+            SLX(:,:,iwest ,kbt,kk,bid) = KMASK * RX(:,:,iwest ,kk,bid) / RZ
+            SLY(:,:,jnorth,kbt,kk,bid) = KMASK * RY(:,:,jnorth,kk,bid) / RZ
+            SLY(:,:,jsouth,kbt,kk,bid) = KMASK * RY(:,:,jsouth,kk,bid) / RZ
 
 !-----------------------------------------------------------------------
 !
@@ -1307,24 +1318,27 @@
                         TMIX(:,:,kk+1,2), this_block,  &
                         DRHODT=DRDT, DRHODS=DRDS)
 
-            RX = DRDT * TXP(:,:,ks) + DRDS * TX(:,:,kk+1,2,bid) 
-            RY = DRDT * TYP(:,:,ks) + DRDS * TY(:,:,kk+1,2,bid) 
+            RX(:,:,ieast ,kk+1,bid) = DRDT * TXP(:,:,ks)  &
+                                    + DRDS * TX(:,:,kk+1,2,bid) 
+            RY(:,:,jnorth,kk+1,bid) = DRDT * TYP(:,:,ks)  &
+                                    + DRDS * TY(:,:,kk+1,2,bid) 
 
             do j=1,ny_block
               do i=2,nx_block
-                RXW(i,j) = DRDT(i,j) * TXP(i-1,j,ks)  &
-                         + DRDS(i,j) * TX (i-1,j,kk+1,2,bid)
+                RX(i,j,iwest,kk+1,bid) = DRDT(i,j) * TXP(i-1,j,ks)  &
+                                       + DRDS(i,j) * TX (i-1,j,kk+1,2,bid)
               enddo
             enddo
 
             do j=2,ny_block
               do i=1,nx_block
-                RYS(i,j) = DRDT(i,j) * TYP(i,j-1,ks)  &
-                         + DRDS(i,j) * TY (i,j-1,kk+1,2,bid)
+                RY(i,j,jsouth,kk+1,bid) = DRDT(i,j) * TYP(i,j-1,ks)  &
+                                        + DRDS(i,j) * TY (i,j-1,kk+1,2,bid)
               enddo
             enddo
 
             RZ = DRDT * TZP(:,:,ks) + DRDS * TZ(:,:,kk+1,2,bid) 
+            RZ_SAVE(:,:,kk+1,bid) = min(RZ,c0)
             RZ = min(RZ,-eps2)
 
 !-----------------------------------------------------------------------
@@ -1334,10 +1348,10 @@
 !-----------------------------------------------------------------------
 
             where ( kk+1 <= KMT(:,:,bid) )
-              SLX(:,:,ieast, ktp,kk+1,bid) = RX  / RZ
-              SLX(:,:,iwest, ktp,kk+1,bid) = RXW / RZ
-              SLY(:,:,jnorth,ktp,kk+1,bid) = RY  / RZ
-              SLY(:,:,jsouth,ktp,kk+1,bid) = RYS / RZ
+              SLX(:,:,ieast, ktp,kk+1,bid) = RX(:,:,ieast ,kk+1,bid) / RZ
+              SLX(:,:,iwest, ktp,kk+1,bid) = RX(:,:,iwest ,kk+1,bid) / RZ
+              SLY(:,:,jnorth,ktp,kk+1,bid) = RY(:,:,jnorth,kk+1,bid) / RZ
+              SLY(:,:,jsouth,ktp,kk+1,bid) = RY(:,:,jsouth,kk+1,bid) / RZ
             end where
 
 !-----------------------------------------------------------------------
@@ -1775,6 +1789,9 @@
 
         endif
 
+        if ( lsubmeso )  &
+          call submeso (RX, RY, RZ_SAVE, TMIX, HYX, HXY, this_block)
+
       endif  ! end of k==1 if statement
 
       KMASK = merge(c1, c0, k < KMT(:,:,bid))
@@ -1909,6 +1926,17 @@
           enddo
         enddo
 
+        if ( lsubmeso ) then
+          do j=1,ny_block
+            do i=1,nx_block-1
+              WORK1(i,j) = WORK1(i,j) - SF_SUBM_X(i  ,j,ieast,ktp,k,bid)
+              WORK2(i,j) = WORK2(i,j) - SF_SUBM_X(i  ,j,ieast,kbt,k,bid)
+              WORK3(i,j) = WORK3(i,j) - SF_SUBM_X(i+1,j,iwest,ktp,k,bid)
+              WORK4(i,j) = WORK4(i,j) - SF_SUBM_X(i+1,j,iwest,kbt,k,bid)
+            enddo
+          enddo
+        endif
+
         do n = 1,nt
 
           if (n > 2 .and. k < km)  &
@@ -1943,6 +1971,17 @@
           enddo
         enddo
 
+        if ( lsubmeso ) then
+          do j=1,ny_block-1
+            do i=1,nx_block
+              WORK1(i,j) = WORK1(i,j) - SF_SUBM_Y(i,j  ,jnorth,ktp,k,bid)
+              WORK2(i,j) = WORK2(i,j) - SF_SUBM_Y(i,j  ,jnorth,kbt,k,bid)
+              WORK3(i,j) = WORK3(i,j) - SF_SUBM_Y(i,j+1,jsouth,ktp,k,bid)
+              WORK4(i,j) = WORK4(i,j) - SF_SUBM_Y(i,j+1,jsouth,kbt,k,bid)
+            enddo
+          enddo
+        endif 
+
         do n = 1,nt
 
           do j=1,ny_block-1
@@ -1975,6 +2014,38 @@
         if ( k < km ) then
 
           if ( .not. cancellation_occurs ) then
+
+            WORK1 = c0
+            WORK2 = c0
+
+            if ( lsubmeso ) then
+
+              do j=this_block%jb,this_block%je
+                do i=this_block%ib,this_block%ie
+               
+                  WORK1(i,j) = SF_SUBM_X(i  ,j  ,ieast ,kbt,k  ,bid)     &
+                             * HYX(i  ,j  ,bid) * TX(i  ,j  ,k  ,n,bid)  &
+                             + SF_SUBM_Y(i  ,j  ,jnorth,kbt,k  ,bid)     &
+                             * HXY(i  ,j  ,bid) * TY(i  ,j  ,k  ,n,bid)  &
+                             + SF_SUBM_X(i  ,j  ,iwest ,kbt,k  ,bid)     &
+                             * HYX(i-1,j  ,bid) * TX(i-1,j  ,k  ,n,bid)  &
+                             + SF_SUBM_Y(i  ,j  ,jsouth,kbt,k  ,bid)     &
+                             * HXY(i  ,j-1,bid) * TY(i  ,j-1,k  ,n,bid)
+
+                  WORK2(i,j) = factor                                    &
+                           * ( SF_SUBM_X(i  ,j  ,ieast ,ktp,kp1,bid)     &
+                             * HYX(i  ,j  ,bid) * TX(i  ,j  ,kp1,n,bid)  &
+                             + SF_SUBM_Y(i  ,j  ,jnorth,ktp,kp1,bid)     &
+                             * HXY(i  ,j  ,bid) * TY(i  ,j  ,kp1,n,bid)  &
+                             + SF_SUBM_X(i  ,j  ,iwest ,ktp,kp1,bid)     &
+                             * HYX(i-1,j  ,bid) * TX(i-1,j  ,kp1,n,bid)  &
+                             + SF_SUBM_Y(i  ,j  ,jsouth,ktp,kp1,bid)     &
+                             * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) ) 
+
+                enddo
+              enddo
+
+            endif
 
             do j=this_block%jb,this_block%je
               do i=this_block%ib,this_block%ie
@@ -2014,7 +2085,8 @@
                       + SF_SLX(i  ,j  ,iwest ,ktp,kp1,bid)            &
                        * HYX(i-1,j  ,bid) * TX(i-1,j  ,kp1,n,bid)     &
                       + SF_SLY(i  ,j  ,jsouth,ktp,kp1,bid)            &
-                       * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) ) ) )
+                       * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) ) ) &
+                   + WORK1(i,j) + WORK2(i,j) )
 
                 GTK(i,j,n) = ( FX(i,j,n) - FX(i-1,j,n)  &
                              + FY(i,j,n) - FY(i,j-1,n)  &
@@ -2125,6 +2197,10 @@
 
         U_ISOP = WORK1 * dzr(k) / HTE(:,:,bid)
         V_ISOP = WORK2 * dzr(k) / HTN(:,:,bid)
+
+        if ( linertial .and. k == 2 ) then
+          BOLUS_SP(:,:,bid) = 50.0_r8 * sqrt(U_ISOP**c2 + V_ISOP**c2)  
+        endif
 
         do j=this_block%jb,this_block%je
           do i=this_block%ib,this_block%ie
@@ -3173,10 +3249,12 @@
 
       enddo
 
+#ifdef CCSMCOUPLED
       if ( any(COMPUTE_TLT) ) then
         call shr_sys_abort ('Incorrect DIABATIC_DEPTH value in TLT'  &
                         //  ' computation')
       endif
+#endif
 
 !-----------------------------------------------------------------------
 !
@@ -3278,9 +3356,11 @@
 
       enddo
 
+#ifdef CCSMCOUPLED
       if ( any(COMPUTE_TLT) ) then
         call shr_sys_abort ('Incorrect TLT computations')
       endif
+#endif
 
 !-----------------------------------------------------------------------
 !
@@ -3307,9 +3387,11 @@
               TLT%INTERIOR_DEPTH(:,:,bid) /= c0 )  &
         COMPUTE_TLT = .true.
 
+#ifdef CCSMCOUPLED
       if ( any(COMPUTE_TLT) ) then
         call shr_sys_abort ('Incorrect TLT%INTERIOR_DEPTH computation')
       endif
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -3407,7 +3489,7 @@
                   TLT%K_LEVEL(:,:,bid) < KMT(:,:,bid)  .and.  &
                   TLT%ZTW(:,:,bid) == 1
 
-          where ( LMASK )
+          where ( LMASK ) 
 
             WORK1(:,:,kk) =  KAPPA_THIC(:,:,kbt,k,bid)  &
                            * SLX(:,:,kk,kbt,k,bid) * dz(k)

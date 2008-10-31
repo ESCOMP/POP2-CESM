@@ -36,12 +36,13 @@
 ! !DEFINED PARAMETERS:
 
    integer, parameter, public ::                &
-      POP_CharLength  = 100                    ,&
+      POP_CharLength  = 256                    ,&
       POP_Logical     = kind(.true.)           ,&
       POP_i4          = selected_int_kind(6)   ,&
       POP_i8          = selected_int_kind(13)  ,&
       POP_r4          = selected_real_kind(6)  ,&
-      POP_r8          = selected_real_kind(13)
+      POP_r8          = selected_real_kind(13) ,&
+      POP_r16         = selected_real_kind(26)
 
 !EOP
 !BOC

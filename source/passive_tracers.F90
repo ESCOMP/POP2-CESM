@@ -15,22 +15,25 @@
 
 ! !USES:
 
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_IOUnitsMod
+
    use kinds_mod, only: r8, int_kind, log_kind, char_len
    use blocks, only: block, nx_block, ny_block
    use domain_size, only: max_blocks_clinic, km, nt
    use domain, only: nblocks_clinic
    use communicate, only: my_task, master_task
    use broadcast, only: broadcast_scalar
-   use prognostic, only: TRACER, tracer_d, curtime
-   use forcing_shf, only: SHF_QSW_RAW
+   use prognostic, only: TRACER, tracer_d, curtime, oldtime
+   use forcing_shf, only: SHF_QSW_RAW, SHF_QSW
    use io_types, only: stdout, nml_in, nml_filename, io_field_desc, &
        datafile
    use exit_mod, only: sigAbort, exit_pop
-   use shr_sys_mod, only: shr_sys_flush
    use timers, only: timer_start, timer_stop
    use tavg, only: define_tavg_field, tavg_method_qflux, ltavg_on, &
        tavg_requested, accumulate_tavg_field
-   use constants, only: c0, c1, delim_fmt, char_blank, &
+   use constants, only: c0, c1, p5, delim_fmt, char_blank, &
        salt_to_ppt, ocn_ref_salinity, ppt_to_salt, sea_ice_salinity
    use time_management, only: mix_pass
    use grid, only: partial_bottom_cells, DZT, dz
@@ -74,7 +77,8 @@
       passive_tracers_tavg_sflux,            &
       passive_tracers_tavg_fvice,            &
       tracer_ref_val,                        &
-      tadvect_ctype_passive_tracers
+      tadvect_ctype_passive_tracers,         &
+      ecosys_on
 
 !EOP
 !BOC
@@ -128,6 +132,16 @@
       iage_ind_begin,       iage_ind_end,           &
       cfc_ind_begin,        cfc_ind_end
 
+!-----------------------------------------------------------------------
+!  filtered SST and SSS, if needed
+!-----------------------------------------------------------------------
+
+   logical (kind=log_kind) :: filtered_SST_SSS_needed
+
+   real (r8), dimension(:,:,:), allocatable :: &
+      SST_FILT,      & ! SST with time filter applied, [degC]
+      SSS_FILT         ! SSS with time filter applied, [psu]
+
 !EOC
 !***********************************************************************
 
@@ -138,7 +152,8 @@
 ! !IROUTINE: init_passive_tracers
 ! !INTERFACE:
 
- subroutine init_passive_tracers(init_ts_file_fmt, read_restart_filename)
+ subroutine init_passive_tracers(init_ts_file_fmt, &
+                                 read_restart_filename, errorCode)
 
 ! !DESCRIPTION:
 !  Initialize passive tracers. This involves:
@@ -157,6 +172,11 @@
       init_ts_file_fmt,    & ! format (bin or nc) for input file
       read_restart_filename  ! file name for restart file
 
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -165,12 +185,17 @@
 
    character(*), parameter :: subname = 'passive_tracers:init_passive_tracers'
 
-   integer (int_kind) :: cumulative_nt, n
+   integer (int_kind) :: cumulative_nt, n, &
+      nml_error,        &! error flag for nml read
+      iostat             ! io status flag
+
    character (char_len) :: sname, lname, units
 
 !-----------------------------------------------------------------------
 !  register init_passive_tracers
 !-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    call register_string('init_passive_tracers')
 
@@ -179,11 +204,24 @@
    iage_on      = .false.
 
    if (my_task == master_task) then
-      open (nml_in, file=nml_filename, status='old')
-   10    continue  !*** keep reading until find right namelist
-      read(nml_in, nml=passive_tracers_on_nml, err=10)
-      close(nml_in)
+      open (nml_in, file=nml_filename, status='old', iostat=nml_error)
+      if (nml_error /= 0) then
+        nml_error = -1
+      else
+        nml_error =  1
+      endif
+      !*** keep reading until find right namelist
+      do while (nml_error > 0)
+        read(nml_in, nml=passive_tracers_on_nml,iostat=nml_error)
+      end do
+      if (nml_error == 0) close(nml_in)
    end if
+
+   call broadcast_scalar(nml_error, master_task)
+   if (nml_error /= 0) then
+      call exit_POP(sigAbort,'ERROR reading passive_tracers_on namelist')
+   endif
+                                                                                
 
    if (my_task == master_task) then
       write(stdout,*) ' '
@@ -192,7 +230,7 @@
       write(stdout,*) ' '
       write(stdout, passive_tracers_on_nml)
       write(stdout,*) ' '
-      call shr_sys_flush (stdout)
+      call POP_IOUnitsFlush(POP_stdout)
    endif
 
    call broadcast_scalar(ecosys_on, master_task)
@@ -249,7 +287,15 @@
       call ecosys_init(init_ts_file_fmt, read_restart_filename, &
                        tracer_d(ecosys_ind_begin:ecosys_ind_end), &
                        TRACER(:,:,:,ecosys_ind_begin:ecosys_ind_end,:,:), &
-                       tadvect_ctype_passive_tracers(ecosys_ind_begin:ecosys_ind_end))
+                       tadvect_ctype_passive_tracers(ecosys_ind_begin:ecosys_ind_end), &
+                       errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_passive_tracers: error in ecosys_init')
+         return
+      endif
+
    end if
 
 !-----------------------------------------------------------------------
@@ -259,7 +305,15 @@
    if (cfc_on) then
       call cfc_init(init_ts_file_fmt, read_restart_filename, &
                     tracer_d(cfc_ind_begin:cfc_ind_end), &
-                    TRACER(:,:,:,cfc_ind_begin:cfc_ind_end,:,:))
+                    TRACER(:,:,:,cfc_ind_begin:cfc_ind_end,:,:), &
+                    errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_passive_tracers: error in cfc_init')
+         return
+      endif
+
    end if
 
 !-----------------------------------------------------------------------
@@ -269,7 +323,15 @@
    if (iage_on) then
       call iage_init(init_ts_file_fmt, read_restart_filename, &
                      tracer_d(iage_ind_begin:iage_ind_end), &
-                     TRACER(:,:,:,iage_ind_begin:iage_ind_end,:,:))
+                     TRACER(:,:,:,iage_ind_begin:iage_ind_end,:,:), &
+                     errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_passive_tracers: error in iage_init')
+         return
+      endif
+
    end if
 
 !-----------------------------------------------------------------------
@@ -281,13 +343,13 @@
       write(stdout,*) 'TRACER INDEX    TRACER NAME'
       write(stdout,1010) 1, 'TEMP'
       write(stdout,1010) 2, 'SALT'
-      call shr_sys_flush (stdout)
+      call POP_IOUnitsFlush(POP_stdout)
       do n = 3, nt
          write(stdout,1010) n, TRIM(tracer_d(n)%long_name)
-         call shr_sys_flush (stdout)
+         call POP_IOUnitsFlush(POP_stdout)
       enddo
       write(stdout,delim_fmt)
-      call shr_sys_flush (stdout)
+      call POP_IOUnitsFlush(POP_stdout)
    end if
 
 !-----------------------------------------------------------------------
@@ -384,6 +446,17 @@
    allocate(FvPER(nx_block,ny_block,3:nt,nblocks_clinic))
    FvPER = c0
 
+!-----------------------------------------------------------------------
+!  allocate space for filtered SST and SSS, if needed
+!-----------------------------------------------------------------------
+
+   filtered_SST_SSS_needed = ecosys_on .or. cfc_on
+
+   if (filtered_SST_SSS_needed) then
+      allocate(SST_FILT(nx_block,ny_block,max_blocks_clinic), &
+               SSS_FILT(nx_block,ny_block,max_blocks_clinic))
+   endif
+
  1010 format(5X,I2,10X,A)
 
 !-----------------------------------------------------------------------
@@ -439,8 +512,10 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      call ecosys_set_interior(k, TRACER(:,:,k,1,curtime,bid),     &
-         TRACER(:,:,k,ecosys_ind_begin:ecosys_ind_end,curtime,bid),&
+      call ecosys_set_interior(k,                                  &
+         TRACER(:,:,k,1,oldtime,bid), TRACER(:,:,k,1,curtime,bid), &
+         TRACER(:,:,:,ecosys_ind_begin:ecosys_ind_end,oldtime,bid),&
+         TRACER(:,:,:,ecosys_ind_begin:ecosys_ind_end,curtime,bid),&
          TRACER_SOURCE(:,:,ecosys_ind_begin:ecosys_ind_end),       &
          this_block)
    end if
@@ -489,7 +564,7 @@
 ! !IROUTINE: set_sflux_passive_tracers
 ! !INTERFACE:
 
- subroutine set_sflux_passive_tracers(diurnal_scalar,U10_SQR,ICE_FRAC,PRESS,STF)
+ subroutine set_sflux_passive_tracers(U10_SQR,ICE_FRAC,PRESS,STF)
 
 ! !DESCRIPTION:
 !  call subroutines for each tracer module that compute surface fluxes
@@ -498,9 +573,6 @@
 !  same as module
 
 ! !INPUT PARAMETERS:
-
-   real (r8), intent(in) :: &
-      diurnal_scalar ! factor to multiply SHF_QSW by to parameterize diurnal cycle
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) ::   &
       U10_SQR,  & ! 10m wind speed squared
@@ -522,14 +594,30 @@
    integer (int_kind) :: iblock, n
 
 !-----------------------------------------------------------------------
+!  compute filtered SST and SSS, if needed
+!-----------------------------------------------------------------------
+
+   if (filtered_SST_SSS_needed) then
+      !$OMP PARALLEL DO PRIVATE(iblock,n,ref_val)
+      do iblock = 1,nblocks_clinic
+         SST_FILT(:,:,iblock) = p5*(TRACER(:,:,1,1,oldtime,iblock) + &
+                                    TRACER(:,:,1,1,curtime,iblock))
+         SSS_FILT(:,:,iblock) = p5*(TRACER(:,:,1,2,oldtime,iblock) + &
+                                    TRACER(:,:,1,2,curtime,iblock)) * salt_to_ppt
+      end do
+      !$OMP END PARALLEL DO
+   end if
+
+!-----------------------------------------------------------------------
 !  ECOSYS block
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
       call ecosys_set_sflux(                                       &
-         diurnal_scalar, SHF_QSW_RAW, U10_SQR, ICE_FRAC, PRESS,    &
-         TRACER(:,:,1,1,curtime,:),                                &
-         TRACER(:,:,1,2,curtime,:) * salt_to_ppt,                  &
+         SHF_QSW_RAW, SHF_QSW,                                     &
+         U10_SQR, ICE_FRAC, PRESS,                                 &
+         SST_FILT, SSS_FILT,                                       &
+         TRACER(:,:,1,ecosys_ind_begin:ecosys_ind_end,oldtime,:),  &
          TRACER(:,:,1,ecosys_ind_begin:ecosys_ind_end,curtime,:),  &
          STF(:,:,ecosys_ind_begin:ecosys_ind_end,:))
    end if
@@ -540,8 +628,8 @@
 
    if (cfc_on) then
       call cfc_set_sflux(U10_SQR, ICE_FRAC, PRESS,                 &
-         TRACER(:,:,1,1,curtime,:),                                &
-         TRACER(:,:,1,2,curtime,:) * salt_to_ppt,                  &
+         SST_FILT, SSS_FILT,                                       &
+         TRACER(:,:,1,cfc_ind_begin:cfc_ind_end,oldtime,:),        &
          TRACER(:,:,1,cfc_ind_begin:cfc_ind_end,curtime,:),        &
          STF(:,:,cfc_ind_begin:cfc_ind_end,:))
    end if

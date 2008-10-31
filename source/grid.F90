@@ -14,7 +14,12 @@
 
 ! !USES:
 
-   use kinds_mod
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_FieldMod
+   use POP_GridHorzMod
+   use POP_HaloMod
+
    use communicate
    use blocks
    use distribution
@@ -25,8 +30,8 @@
    use broadcast
    use gather_scatter
    use global_reductions
-   use boundary
    use exit_mod
+   use registry
 
    implicit none
    private
@@ -38,40 +43,41 @@
               init_grid2,     &
               tgrid_to_ugrid, &
               ugrid_to_tgrid, &
-              fill_points
+              fill_points,    &
+              read_topography
 
 ! !PUBLIC DATA MEMBERS:
 
-   real (r8), public :: &
+   real (POP_r8), public :: &
       area_u, area_t       ,&! total ocean area of U,T cells
       volume_u, volume_t   ,&! total ocean volume of U,T cells
       volume_t_marg        ,&! volume of marginal seas (T cells)
       area_t_marg          ,&! area of marginal seas (T cells)
       uarea_equator          ! area of equatorial cell
 
-   real (r8), dimension(km), public :: &
+   real (POP_r8), dimension(km), public :: &
       area_t_k             ,&! total ocean area (T cells) at each dpth
       volume_t_k           ,&! total ocean volume (T cells) at each dpth
       volume_t_marg_k        ! tot marginal seas vol (T cells) at each dpth
 
-   integer (int_kind), public :: &
+   integer (POP_i4), public :: &
       sfc_layer_type,       &! choice for type of surface layer
       kmt_kmin, 	    &! minimum allowed non-zero KMT value
       n_topo_smooth 	     ! number of topo smoothing passes
 
-   integer (int_kind), parameter, public :: &
+   integer (POP_i4), parameter, public :: &
       sfc_layer_varthick = 1,  &! variable thickness surface layer
       sfc_layer_rigid    = 2,  &! rigid lid surface layer
       sfc_layer_oldfree  = 3    ! old free surface form
 
-   logical (log_kind), public ::    &
+   logical (POP_logical), public ::    &
       partial_bottom_cells   ! flag for partial bottom cells
 
-   real (r8), dimension(:,:), allocatable, public :: &
+   real (POP_r8), dimension(:,:), allocatable, public :: &
       BATH_G           ! Observed ocean bathymetry mapped to global T grid
                        ! for use in computing KMT internally
 
-   integer (int_kind), dimension(:,:), allocatable, public :: &
+   integer (POP_i4), dimension(:,:), allocatable, public :: &
       KMT_G            ! k index of deepest grid cell on global T grid
                        ! for use in performing work distribution
 
@@ -84,7 +90,7 @@
 
    !*** dimension(1:km)
 
-   real (r8), dimension(km), public :: &
+   real (POP_r8), dimension(km), public :: &
       dz                ,&! thickness of layer k
       c2dz              ,&! 2*dz
       dzr, dz2r         ,&! reciprocals of dz, c2dz
@@ -93,13 +99,13 @@
 
    !*** dimension(0:km)
 
-   real (r8), dimension(0:km), public :: &
+   real (POP_r8), dimension(0:km), public :: &
       dzw, dzwr          ! midpoint of k to midpoint of k+1
                          !   and its reciprocal
 
    !*** geometric 2d arrays
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), public :: &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic), public :: &
       DXU, DYU            ,&! {x,y} spacing centered at U points
       DXT, DYT            ,&! {x,y} spacing centered at T points
       DXUR, DYUR          ,&! reciprocals of DXU, DYU
@@ -116,37 +122,37 @@
 
    !*** 3d depth fields for partial bottom cells
 
-   real (r8), dimension(:,:,:,:), allocatable, public :: &
+   real (POP_r8), dimension(:,:,:,:), allocatable, public :: &
       DZU, DZT               ! thickness of U,T cell for pbc
 
    !*** 2d landmasks
 
-   integer (int_kind), dimension(nx_block,ny_block,max_blocks_clinic), &
+   integer (POP_i4), dimension(nx_block,ny_block,max_blocks_clinic), &
       public :: &
       KMT            ,&! k index of deepest grid cell on T grid
       KMU            ,&! k index of deepest grid cell on U grid
       KMTOLD           ! KMT field before smoothing
 
-   logical (log_kind), dimension(nx_block,ny_block,max_blocks_clinic), &
+   logical (POP_logical), dimension(nx_block,ny_block,max_blocks_clinic), &
       public :: &
       CALCT          ,&! flag=true if point is an ocean point
       CALCU            !   at the surface
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), public :: &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic), public :: &
       RCALCT         ,&! real equiv of CALCT,U to use as more
       RCALCU           !   efficient multiplicative mask
 
-   integer (int_kind), dimension(nx_block,ny_block,max_blocks_clinic), &
+   integer (POP_i4), dimension(nx_block,ny_block,max_blocks_clinic), &
       public :: &
       KMTN,KMTS,KMTE,KMTW   ,&! KMT field at neighbor points
       KMUN,KMUS,KMUE,KMUW     ! KMU field at neighbor points
 
-   integer (int_kind), dimension(nx_block,ny_block,max_blocks_clinic), &
+   integer (POP_i4), dimension(nx_block,ny_block,max_blocks_clinic), &
       public :: &
       KMTEE,KMTNN      ! KMT field 2 cells away for upwind stencil
                        ! allocated and computed in advection module
 
-   integer (int_kind), dimension(:,:,:), allocatable, public :: &
+   integer (POP_i4), dimension(:,:,:), allocatable, public :: &
       REGION_MASK      ! mask defining regions, marginal seas
 
 !-----------------------------------------------------------------------
@@ -154,36 +160,41 @@
 !     define types used with region masks and marginal seas balancing
 !
 !-----------------------------------------------------------------------
-   integer (int_kind), parameter, public :: &
+   integer (POP_i4), parameter, public :: &
       max_regions =   15, &              ! max no. ocean regions
       max_ms      =    7                 ! max no. marginal seas
  
-   integer (int_kind), public :: &
+   integer (POP_i4), public :: &
       num_regions, &
       num_ms
 
    type, public :: ms_bal
-      real    (r8)         :: lat         ! transport latitude
-      real    (r8)         :: lon         ! transport longitude
-      real    (r8)         :: area        ! total distribution area
-      real    (r8)         :: transport   ! total excess/deficit (E+P+M+R)
-      integer (int_kind)   :: mask_index  ! index of m-s balancing mask
+      real    (POP_r8)         :: lat         ! transport latitude
+      real    (POP_r8)         :: lon         ! transport longitude
+      real    (POP_r8)         :: area        ! total distribution area
+      real    (POP_r8)         :: transport   ! total excess/deficit (E+P+M+R)
+      integer (POP_i4)   :: mask_index  ! index of m-s balancing mask
    end type ms_bal
 
    type, public :: regions                ! region-mask info
-      integer   (int_kind) :: number 
+      integer   (POP_i4) :: number 
       character (char_len) :: name          
-      logical   (log_kind) :: marginal_sea
-      real      (r8      ) :: area
-      real      (r8      ) :: volume
+      logical   (POP_logical) :: marginal_sea
+      real      (POP_r8      ) :: area
+      real      (POP_r8      ) :: volume
       type      (ms_bal)   :: ms_bal
    end type regions       
 
    type (regions),dimension(max_regions), public :: region_info
 
-   integer (int_kind),public ::       &
+   integer (POP_i4),public ::       &
       nocean_u, nocean_t,      &! num of ocean U,T points
       nsurface_u, nsurface_t    ! num of ocean U,T points at surface
+
+!#################### temporary kludge for overflows ####################
+   character (char_len), public ::  &
+      topography_filename    ! copy of input topography filename 
+!########################################################################
 
 !EOP
 !BOC
@@ -195,14 +206,14 @@
 
    !*** geometric scalars
 
-   integer (int_kind) ::       &
+   integer (POP_i4) ::       &
       jeq                       ! j index of equatorial cell
 
-   logical (log_kind) ::  &
+   logical (POP_logical) ::  &
       flat_bottom,        &! flag for flat-bottom topography
       lremove_points       ! flag for removing isolated points
 
-   real (r8), dimension(:,:), allocatable :: &
+   real (POP_r8), dimension(:,:), allocatable :: &
       ULAT_G, ULON_G        ! {latitude,longitude} of U points
                             ! in global-sized array
 
@@ -216,7 +227,7 @@
 !
 !-----------------------------------------------------------------------
 
-   real (r8), dimension (nx_block,ny_block,max_blocks_clinic) :: &
+   real (POP_r8), dimension (nx_block,ny_block,max_blocks_clinic) :: &
       AT0,ATS,ATW,ATSW,AU0,AUN,AUE,AUNE
 
 !-----------------------------------------------------------------------
@@ -273,7 +284,7 @@
                       region_mask_file, region_info_file,sfc_layer_opt,&
                       partial_bottom_cells, bottom_cell_file, kmt_kmin
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       nml_error           ! namelist i/o error flag
 
 !-----------------------------------------------------------------------
@@ -382,6 +393,10 @@
    case ('file')
       call broadcast_scalar(topography_file, master_task)
       call read_topography(topography_file,.true.)
+!#################### temporary kludge for overflows ####################
+      topography_filename = topography_file
+!########################################################################
+      call register_string('topography_opt_file')
    case default
       call exit_POP(sigAbort,'ERROR: unknown topography option')
    end select
@@ -399,13 +414,18 @@
 ! !IROUTINE: init_grid2
 ! !INTERFACE:
 
- subroutine init_grid2
+ subroutine init_grid2(errorCode)
 
 ! !DESCRIPTION:
 !  Initializes all grid quantities
 !
 ! !REVISION HISTORY:
 !  same as module
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode              ! returned error code
 
 !EOP
 !BOC
@@ -415,14 +435,14 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       reclength,ioerr,nu,i,j,k,n,iblock,    &! dummy loop index variables
       range_count         ! counter for angle out of range
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       WORK                 ! local temp space
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       DZBC                 ! thickness of bottom T cell for pbc
 
    character (*), parameter ::  &! output formats
@@ -437,7 +457,7 @@
    type (block) :: &
       this_block  ! block info for current block
 
-   real (r8) ::         &
+   real (POP_r8) ::         &
       angle_0, angle_w, &! temporaries for computing angle at T points
       angle_s, angle_sw 
 
@@ -446,6 +466,8 @@
 !  output grid setup options to log file
 !
 !-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    if (my_task == master_task) then
       write(stdout,delim_fmt)
@@ -563,7 +585,13 @@
 !
 !-----------------------------------------------------------------------
 
-   call calc_tpoints
+   call calc_tpoints(errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_grid2: error in calc_tpoints')
+      return
+   endif
 
    !***
    !*** first, ensure that -pi <= ANGLE <= pi
@@ -622,8 +650,15 @@
    enddo
    !$OMP END PARALLEL DO
 
-   call update_ghost_cells(ANGLET, bndy_clinic, field_loc_center, &
-                                                field_type_angle)
+   call POP_HaloUpdate(ANGLET, POP_haloClinic, POP_gridHorzLocCenter, &
+                               POP_fieldKindAngle, errorCode,         &
+                               fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_grid2: error updating angleT halo')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -718,10 +753,13 @@
          ' Generating topography from bathymetry data'
       call topography_bathymetry(bathymetry_file,vert_grid_file,.false.)
    case ('file')
-      if (my_task == master_task) write(stdout,'(a30,a)') &
-         ' Reading topography from file:', trim(topography_file)
-      call broadcast_scalar(topography_file, master_task)
-      call read_topography(topography_file,.false.)
+!#################### temporary kludge for overflows ####################
+!      move this code into init_overflows2, in case KMT needs modification
+!     if (my_task == master_task) write(stdout,'(a30,a)') &
+!        ' Reading topography from file:', trim(topography_file)
+!     call broadcast_scalar(topography_file, master_task)
+!     call read_topography(topography_file,.false.)
+!########################################################################
    case default
       call exit_POP(sigAbort,'ERROR: unknown topography option')
    end select
@@ -733,7 +771,13 @@
    if (n_topo_smooth > 0) then
       if (my_task == master_task) write(stdout,'(a21)') &
          ' Smoothing topography'
-      call smooth_topography(n_topo_smooth)
+      call smooth_topography(n_topo_smooth, errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_grid2: error in smooth_topography')
+         return
+      endif
    endif
 
    !***
@@ -743,7 +787,13 @@
    if (lremove_points) then
       if (my_task == master_task) write(stdout,'(a58)') &
          ' Removing isolated points from grid'
-      call remove_isolated_points
+      call remove_isolated_points(errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_grid2: error in remove_isolated_points')
+         return
+      endif
    endif
 
    !***
@@ -795,8 +845,11 @@
                                  trim(bottom_cell_file)
       endif
       call read_bottom_cell(DZBC,bottom_cell_file)
-      allocate (DZT(nx_block,ny_block,km,max_blocks_clinic), &
-                DZU(nx_block,ny_block,km,max_blocks_clinic))
+! tqian
+      allocate (DZT(nx_block,ny_block,0:km+1,max_blocks_clinic), &
+                DZU(nx_block,ny_block,0:km+1,max_blocks_clinic))
+      DZT = c0
+      DZU = c0
 
       !$OMP PARALLEL DO PRIVATE(k,i,j)
       do n=1,nblocks_clinic
@@ -824,8 +877,16 @@
       end do
       end do
       !$OMP END PARALLEL DO
-      call update_ghost_cells(DZU, bndy_clinic, field_loc_NEcorner, &
-                                                field_type_scalar)
+
+      call POP_HaloUpdate(DZU, POP_haloClinic, POP_gridHorzLocNECorner,& 
+                          POP_fieldKindScalar, errorCode,              &
+                          fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_grid2: error updating dzu halo')
+         return
+      endif
 
    else
       if (my_task == master_task) write(stdout,'(a30)') &
@@ -845,8 +906,16 @@
    end do
    end do
    end do
-   call update_ghost_cells(KMU, bndy_clinic, field_loc_NEcorner, &
-                                             field_type_scalar)
+
+   call POP_HaloUpdate(KMU, POP_haloClinic, POP_gridHorzLocNECorner,& 
+                       POP_fieldKindScalar, errorCode,              &
+                       fillValue = 0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_grid2: error updating kmu halo')
+      return
+   endif
 
    !***
    !*** calculate depth field at T,U points
@@ -935,10 +1004,10 @@
       write(stdout,blank_fmt)
       write(stdout,topo_fmt1) nsurface_t, nsurface_u
       write(stdout,topo_fmt2) nocean_t, nocean_u
-      write(stdout,topo_fmt3) area_t*1.0e-10_r8, &
-                              area_u*1.0e-10_r8
-      write(stdout,topo_fmt4) volume_t*1.0e-15_r8, &
-                              volume_u*1.0e-15_r8
+      write(stdout,topo_fmt3) area_t*1.0e-10_POP_r8, &
+                              area_u*1.0e-10_POP_r8
+      write(stdout,topo_fmt4) volume_t*1.0e-15_POP_r8, &
+                              volume_u*1.0e-15_POP_r8
       write(stdout,blank_fmt)
    endif
 
@@ -970,7 +1039,7 @@
    where (WORK == uarea_equator)
       WORK = UAREA
    elsewhere
-      WORK = 1.e+20_r8
+      WORK = 1.e+20_POP_r8
    end where
 
    uarea_equator = global_minval(WORK, distrb_clinic, field_loc_NEcorner, CALCU)
@@ -1006,7 +1075,7 @@
 
 ! !INPUT PARAMETERS:
 
-   logical (log_kind), intent(in) :: &
+   logical (POP_logical), intent(in) :: &
       latlon_only       ! flag requesting only ULAT, ULON
 
 !EOP
@@ -1017,10 +1086,10 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       i,j,ig,jg,jm1,n    ! dummy counters
 
-   real (r8) :: &
+   real (POP_r8) :: &
       dlat, dlon,       &! lat/lon spacing for idealized grid
       lathalf,          &! lat at T points
       xdeg               ! temporary longitude variable
@@ -1035,8 +1104,8 @@
 !
 !-----------------------------------------------------------------------
 
-   dlon = 360.0_r8/real(nx_global)
-   dlat = 180.0_r8/real(ny_global)
+   dlon = 360.0_POP_r8/real(nx_global)
+   dlat = 180.0_POP_r8/real(ny_global)
 
    if (latlon_only) then
 
@@ -1045,12 +1114,12 @@
 
       do i=1,nx_global
          xdeg = i*dlon
-         if (xdeg > 180.0_r8) xdeg = xdeg - 360.0_r8
+         if (xdeg > 180.0_POP_r8) xdeg = xdeg - 360.0_POP_r8
          ULON_G(i,:) =  xdeg/radian
       enddo
 
       do j = 1,ny_global
-         ULAT_G(:,j)  = (-90.0_r8 + j*dlat)/radian
+         ULAT_G(:,j)  = (-90.0_POP_r8 + j*dlat)/radian
       enddo
 
 !-----------------------------------------------------------------------
@@ -1092,7 +1161,7 @@
                   ULAT(i,j,n) = ULAT_G(ig,jg)
                   HTN (i,j,n) = HTN(i,j,n)*cos(ULAT(i,j,n))
                   DXU (i,j,n) = HTN(i,j,n)
-                  lathalf = (-90.0_r8 + (jg-p5)*dlat)/radian
+                  lathalf = (-90.0_POP_r8 + (jg-p5)*dlat)/radian
                   HUS (i,j,n) = HUS(i,j,n)*cos(lathalf)
                   DXT (i,j,n) = dlon*radius/radian*       &
                                 p5*(cos(ULAT_G(ig,jg )) + &
@@ -1136,7 +1205,7 @@
    character (*), intent(in) :: &
       horiz_grid_file     ! filename of file containing grid data
 
-   logical (log_kind), intent(in) :: &
+   logical (POP_logical), intent(in) :: &
       latlon_only       ! flag requesting only ULAT, ULON
 
 !EOP
@@ -1147,7 +1216,7 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       i,j,iblock        ,&! loop counters
       ip1, im1, jp1, jm1,&! shift indexes
       nu                ,&! i/o unit number
@@ -1360,10 +1429,10 @@
 !
 !-----------------------------------------------------------------------
 
-   real (r8), parameter :: &
-      zmax    = 5500.0_r8,  &! max depth in meters
-      dz_sfc  =   25.0_r8,  &! thickness of sfc layer (meters)
-      dz_deep =  400.0_r8    ! thick of deep ocn layers (meters)
+   real (POP_r8), parameter :: &
+      zmax    = 5500.0_POP_r8,  &! max depth in meters
+      dz_sfc  =   25.0_POP_r8,  &! thickness of sfc layer (meters)
+      dz_deep =  400.0_POP_r8    ! thick of deep ocn layers (meters)
 
 !-----------------------------------------------------------------------
 !
@@ -1371,14 +1440,14 @@
 !
 !-----------------------------------------------------------------------
 
-   real (r8) :: &
+   real (POP_r8) :: &
       depth,             &! depth based on integrated thicknesses
       zlength,           &! adjustable parameter for thickness
       d0, d1,            &! depths used by midpoint search
       zl0, zl1,          &! parameter used by midpoint search
       dzl                 ! zl1-zl0
 
-   integer (int_kind) :: k  ! dummy vertical index
+   integer (POP_i4) :: k  ! dummy vertical index
 
 !-----------------------------------------------------------------------
 !
@@ -1443,7 +1512,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (abs(depth-zmax)/zmax > 0.01_r8) then
+   if (abs(depth-zmax)/zmax > 0.01_POP_r8) then
       if (my_task == master_task) then
          write(stdout,*) 'Integrated depth = ',depth,'   zmax = ',zmax
       endif
@@ -1472,14 +1541,14 @@
 
 ! !INPUT PARAMETERS:
 
-   real (r8), intent(in) :: &
+   real (POP_r8), intent(in) :: &
       zlength,          &! gaussian parameter for thickness func
       dz_sfc,           &! thickness of surface layer
       dz_deep            ! thickness of deep ocean layers
 
 ! !OUTPUT PARAMETERS:
 
-   real (r8), intent(out) :: &
+   real (POP_r8), intent(out) :: &
       depth               ! depth based on integrated thicknesses
 
 !EOP
@@ -1490,7 +1559,7 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: k
+   integer (POP_i4) :: k
 
 !-----------------------------------------------------------------------
 
@@ -1532,7 +1601,7 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       k,                 &! vertical level index
       nu,                &! i/o unit number
       ioerr               ! i/o error flag
@@ -1596,7 +1665,7 @@
       bathymetry_file, & ! input file containing bathymetry field
       vert_grid_file     ! input file containing vertical grid 
 
-   logical(log_kind), intent(in) :: &
+   logical(POP_logical), intent(in) :: &
       kmt_global       ! flag for generating only global KMT field
 
 !EOP
@@ -1607,14 +1676,14 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       i,j,ig,jg,k,n,bid,im1,ip1,jm1,jp1,npass,ntot, & ! dummy counters
 	reclength,ioerr,nu
 
-   logical (log_kind) :: &
+   logical (POP_logical) :: &
       land,lande,landw,landn,lands
 
-   real (r8) :: &
+   real (POP_r8) :: &
       latd, lond     ! lat/lon in degrees
 
    type (block) :: &
@@ -1726,7 +1795,7 @@
 
 ! !INPUT PARAMETERS:
 
-   logical(log_kind), intent(in) :: &
+   logical(POP_logical), intent(in) :: &
       kmt_global       ! flag for generating only global KMT field
 
 !EOP
@@ -1737,10 +1806,10 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       i,j,ig,jg,k,n,bid ! dummy counters
 
-   real (r8) :: &
+   real (POP_r8) :: &
       latd, lond     ! lat/lon in degrees
 
    type (block) :: &
@@ -1760,27 +1829,27 @@
       do i=1,nx_global
          latd = ULAT_G(i,j)*radian
          lond = ULON_G(i,j)*radian
-         if (lond < c0) lond = lond + 360.0_r8
+         if (lond < c0) lond = lond + 360.0_POP_r8
 
          KMT_G(i,j) = km  ! flat bottom
 
-         if ((latd > -35.0_r8) .and. &
-             (lond > 210.0_r8) .and. &
-             (lond < 250.0_r8)) KMT_G(i,j) = 0
+         if ((latd > -35.0_POP_r8) .and. &
+             (lond > 210.0_POP_r8) .and. &
+             (lond < 250.0_POP_r8)) KMT_G(i,j) = 0
 
-         if ((latd >  25.0_r8) .and. &
-             (lond > 210.0_r8) .and. &
-             (lond < 330.0_r8)) KMT_G(i,j) = 0
+         if ((latd >  25.0_POP_r8) .and. &
+             (lond > 210.0_POP_r8) .and. &
+             (lond < 330.0_POP_r8)) KMT_G(i,j) = 0
 
-         if ((latd >  60.0_r8) .and. &
-             (lond > 210.0_r8) .and. &
-             (lond < 150.0_r8)) KMT_G(i,j) = 0
+         if ((latd >  60.0_POP_r8) .and. &
+             (lond > 210.0_POP_r8) .and. &
+             (lond < 150.0_POP_r8)) KMT_G(i,j) = 0
 
-         if ((latd > -60.0_r8) .and. &
-             (lond > 110.0_r8) .and. &
-             (lond < 150.0_r8)) KMT_G(i,j) = 0
+         if ((latd > -60.0_POP_r8) .and. &
+             (lond > 110.0_POP_r8) .and. &
+             (lond < 150.0_POP_r8)) KMT_G(i,j) = 0
 
-         if (abs(latd) > 75.0_r8) KMT_G(i,j) = 0
+         if (abs(latd) > 75.0_POP_r8) KMT_G(i,j) = 0
 
       end do
       end do
@@ -1840,7 +1909,7 @@
    character (char_len), intent(in) :: &
       topography_file     ! input file containing KMT field
 
-   logical(log_kind), intent(in) :: &
+   logical(POP_logical), intent(in) :: &
       kmt_global       ! flag for generating only global KMT field
 
 !EOP
@@ -1851,7 +1920,7 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       nu                ,&! i/o unit number
       ioerr             ,&! i/o error flag
       reclength           ! record length
@@ -1926,7 +1995,7 @@
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic), &
       intent(inout) :: &
       DZBC            ! thickness of bottom cell in each column
 
@@ -1938,10 +2007,10 @@
 !
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(:,:), allocatable :: &
+   real (POP_r8), dimension(:,:), allocatable :: &
       DZBC_G              ! global bottom layer thickness (cm)
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       nu                ,&! i/o unit number
       ioerr               ! i/o error flag
 
@@ -1987,13 +2056,18 @@
 ! !IROUTINE: remove_isolated_points
 ! !INTERFACE:
 
- subroutine remove_isolated_points
+ subroutine remove_isolated_points(errorCode)
 
 ! !DESCRIPTION:
 !  Removes isolated points from grid (KMT field)
 !
 ! !REVISION HISTORY:
 !  same as module
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode                 ! returned error code
 
 !EOP
 !BOC
@@ -2003,16 +2077,16 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       i,j,k,n,             &! dummy loop indices
       npoints_removed,    &! global number of points removed at k
       npoints_removed_local, &! number of points removed per task
       npoints_removed_total   ! global number of points removed, all k
 
-   integer(int_kind),dimension(nx_block,ny_block,max_blocks_clinic) ::&
+   integer(POP_i4),dimension(nx_block,ny_block,max_blocks_clinic) ::&
       ICOUNT            ! record of points removed
 
-   logical (log_kind) :: &
+   logical (POP_logical) :: &
       land,lande,landw,landn,lands
 
    character (*), parameter :: &
@@ -2025,6 +2099,9 @@
 !           land to N and S, or, land to E and W)
 !
 !-----------------------------------------------------------------------
+
+   errorCode = POP_Success
+
    npoints_removed_total = 0
    do k=km,1,-1
 1000    npoints_removed_local = 0
@@ -2048,8 +2125,17 @@
      end do
      end do
    end do
-   call update_ghost_cells(KMT, bndy_clinic, field_loc_center, &
-                                             field_type_scalar)
+
+   call POP_HaloUpdate(KMT, POP_haloClinic, POP_gridHorzLocCenter,  & 
+                       POP_fieldKindScalar, errorCode,              &
+                       fillValue = 0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'remove_isolated_points: error updating kmt halo')
+      return
+   endif
+
    npoints_removed = global_sum(npoints_removed_local, distrb_clinic)
    npoints_removed_total = npoints_removed_total + npoints_removed
      if (npoints_removed .ne. 0) then
@@ -2073,13 +2159,18 @@
 ! !IROUTINE: remove_points
 ! !INTERFACE:
 
- subroutine remove_points
+ subroutine remove_points(errorCode)
 
 ! !DESCRIPTION:
 !  Removes isolated points from grid (KMT field)
 !
 ! !REVISION HISTORY:
 !  same as module
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode                 ! returned error code
 
 !EOP
 !BOC
@@ -2089,11 +2180,11 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       i,j,n,             &! dummy loop indices
       npoints_removed     ! number of points removed
 
-   integer(int_kind),dimension(nx_block,ny_block,max_blocks_clinic) ::&
+   integer(POP_i4),dimension(nx_block,ny_block,max_blocks_clinic) ::&
       ICOUNT            ! record of points removed
 
    character (*), parameter :: &
@@ -2136,8 +2227,15 @@
    end do
    end do
 
-   call update_ghost_cells(KMT, bndy_clinic, field_loc_center, &
-                                             field_type_scalar)
+   call POP_HaloUpdate(KMT, POP_haloClinic, POP_gridHorzLocCenter,  & 
+                       POP_fieldKindScalar, errorCode,              &
+                       fillValue = 0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'remove_points: error updating kmt halo')
+      return
+   endif
 
    npoints_removed = global_count(ICOUNT, distrb_clinic, field_loc_center)
 
@@ -2156,7 +2254,7 @@
 ! !IROUTINE: smooth_topography
 ! !INTERFACE:
 
- subroutine smooth_topography(n_topo_smooth)
+ subroutine smooth_topography(n_topo_smooth, errorCode)
 
 ! !DESCRIPTION:
 !  This routine smooths topography to create new KMT, depth fields
@@ -2178,6 +2276,11 @@
 ! !REVISION HISTORY:
 !  same as module
 !
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode                ! returned error code
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -2186,19 +2289,23 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind), intent(in) :: &
+   integer (POP_i4), intent(in) :: &
       n_topo_smooth        ! number of smoothing passes
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       i,j,k,m,n            ! dummy loop indices
 
-   integer(int_kind),dimension(nx_block,ny_block,max_blocks_clinic) ::&
+   integer(POP_i4),dimension(nx_block,ny_block,max_blocks_clinic) ::&
       NB,                &! num points contributing to 9pt avg
       IWORK               ! local work space
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       HTNEW,             &! smoothed depth field at T points
       WORK                ! local work space
+
+!-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    KMTOLD = KMT
    do m=1,n_topo_smooth
@@ -2269,8 +2376,15 @@
    enddo
    where (HTNEW > zt(k)) KMT = km
 
-   call update_ghost_cells(KMT,  bndy_clinic, field_loc_center, &
-                                              field_type_scalar)
+   call POP_HaloUpdate(KMT, POP_haloClinic, POP_gridHorzLocCenter,  & 
+                       POP_fieldKindScalar, errorCode,              &
+                       fillValue = 0_POP_i4)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'smooth_topography: error updating kmt halo')
+      return
+   endif
 
    enddo
 
@@ -2337,27 +2451,6 @@
    KMTEE = eoshift(KMT,dim=1,shift=2)
    KMTNN = eoshift(KMT,dim=2,shift=2)
 
-   !call update_ghost_cells(KMTN, bndy_clinic, field_loc_center, &
-   !                                           field_type_scalar)
-   !call update_ghost_cells(KMTS, bndy_clinic, field_loc_center, &
-   !                                           field_type_scalar)
-   !call update_ghost_cells(KMTE, bndy_clinic, field_loc_center, &
-   !                                           field_type_scalar)
-   !call update_ghost_cells(KMTW, bndy_clinic, field_loc_center, &
-   !                                           field_type_scalar)
-   !call update_ghost_cells(KMUN, bndy_clinic, field_loc_NEcorner, &
-   !                                           field_type_scalar)
-   !call update_ghost_cells(KMUS, bndy_clinic, field_loc_NEcorner, &
-   !                                           field_type_scalar)
-   !call update_ghost_cells(KMUE, bndy_clinic, field_loc_NEcorner, &
-   !                                           field_type_scalar)
-   !call update_ghost_cells(KMUW, bndy_clinic, field_loc_NEcorner, &
-   !                                           field_type_scalar)
-   !call update_ghost_cells(KMTEE, bndy_clinic, field_loc_center, &
-   !                                            field_type_scalar)
-   !call update_ghost_cells(KMTNN, bndy_clinic, field_loc_center, &
-   !                                            field_type_scalar)
-
 !-----------------------------------------------------------------------
 !EOC
 
@@ -2391,22 +2484,22 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       k, n,              &! loop counters
       nu,                &! i/o unit number
       reclength,         &! record length of file
       ioerr,             &! i/o error flag
       region              ! region counter
 
-   real (r8) :: &
+   real (POP_r8) :: &
       tmp_vol,  &! temporary volume
       sea_area, &! total volume of a particular sea
       sea_vol    ! total volume of a particular sea
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       WORK                ! temporary space
 
-   integer (int_kind), dimension(:,:), allocatable :: &
+   integer (POP_i4), dimension(:,:), allocatable :: &
       REGION_G            ! global-sized region mask
 
 !-----------------------------------------------------------------------
@@ -2454,6 +2547,7 @@
 !
 !---------------------------------------------------------------------
 
+
    if(info_filename == 'unknown_region_info') then
      call exit_POP (sigAbort,'ERROR: unknown region_info_filename')
    endif
@@ -2486,7 +2580,7 @@
    call broadcast_scalar(ioerr, master_task)
    if (ioerr /= 0) call exit_POP(sigAbort, &
                                  'Error reading region name file')
- 
+
    do n = 1,num_regions
      call broadcast_scalar(region_info(n)%name       ,master_task)
      call broadcast_scalar(region_info(n)%number     ,master_task)
@@ -2559,7 +2653,7 @@
          write(stdout,"('Region #',i2,' is a marginal sea')") region
          write(stdout, &
              "('  area (km^2) = ',e12.5, '  volume (km^3) = ',e12.5)") &
-             sea_area*1.0e-10_r8, sea_vol*1.0e-15_r8
+             sea_area*1.0e-10_POP_r8, sea_vol*1.0e-15_POP_r8
       endif
 
    enddo
@@ -2579,8 +2673,8 @@
       if (region_info(n)%marginal_sea) then
         write(stdout,1004) region_info(n)%number                   , &
                            trim(region_info(n)%name)               , &
-                           region_info(n)%area  *1.0e-10_r8        , &
-                           region_info(n)%volume*1.0e-15_r8      
+                           region_info(n)%area  *1.0e-10_POP_r8        , &
+                           region_info(n)%volume*1.0e-15_POP_r8      
       else
         write(stdout,1004) region_info(n)%number, trim(region_info(n)%name)
       endif
@@ -2607,8 +2701,8 @@
 
    do n = 1,num_regions
      if (region_info(n)%marginal_sea) then
-         region_info(n)%area  =region_info(n)%area  *1.0e-4_r8
-         region_info(n)%volume=region_info(n)%volume*1.0e-6_r8
+         region_info(n)%area  =region_info(n)%area  *1.0e-4_POP_r8
+         region_info(n)%volume=region_info(n)%volume*1.0e-6_POP_r8
      endif
    enddo
 
@@ -2695,7 +2789,7 @@
 ! !IROUTINE: calc_tpoints
 ! !INTERFACE:
 
- subroutine calc_tpoints
+ subroutine calc_tpoints(errorCode)
 
 ! !DESCRIPTION:
 !  Calculates lat/lon coordinates of T points from U points
@@ -2703,19 +2797,23 @@
 !
 ! !REVISION HISTORY:
 !  same as module
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode                ! returned error code
 
 !EOP
 !BOC
-
 !-----------------------------------------------------------------------
 !
 !  local variables
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: i,j,n
+   integer (POP_i4) :: i,j,n
 
-   real (r8) ::                   &
+   real (POP_r8) ::                   &
       xc,yc,zc,xs,ys,zs,xw,yw,zw, &! Cartesian coordinates for
       xsw,ysw,zsw,tx,ty,tz,da      !    nbr points
 
@@ -2825,20 +2923,38 @@
 !
 !-----------------------------------------------------------------------
 
-   call update_ghost_cells(TLAT, bndy_clinic, field_loc_center, &
-                                              field_type_scalar)
-   call update_ghost_cells(TLON, bndy_clinic, field_loc_center, &
-                                              field_type_scalar)
+   call POP_HaloUpdate(TLAT, POP_haloClinic, POP_gridHorzLocCenter,  & 
+                       POP_fieldKindScalar, errorCode,               &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'calc_tpoints: error updating tlat halo')
+      return
+   endif
+
+   call POP_HaloUpdate(TLON, POP_haloClinic, POP_gridHorzLocCenter,  & 
+                       POP_fieldKindScalar, errorCode,               &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'calc_tpoints: error updating tlon halo')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 
  end subroutine calc_tpoints
 
 !***********************************************************************
+!BOP
+! !IROUTINE: fill_points
+! !INTERFACE:
 
- subroutine fill_points(k,F)
+ subroutine fill_points(k,F,errorCode)
 
-!-----------------------------------------------------------------------
+! !DESCRIPTION:
 !
 !  if the depth-level field KMT has been smoothed, fill in
 !  values of a 2-d field at new ocean points that have appeared
@@ -2869,48 +2985,49 @@
 !  by the cell area before calling the routine, then divide by
 !  the cell area after the field is returned.
 !
-!-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
+! !REVISION HISTORY:
+!  same as module
 !
-!  input variables:
-!
-!-----------------------------------------------------------------------
+! !INPUT PARAMETERS:
 
-   integer (int_kind), intent(in) :: &
-     k                      ! depth level at which field is defined
-                            ! (k = 1 for sfc or vert-avg fields)
+   integer (POP_i4), intent(in) :: &
+      k                        ! depth level at which field is defined
+                               ! (k = 1 for sfc or vert-avg fields)
 
-!-----------------------------------------------------------------------
-!
-!  input/output:
-!
-!-----------------------------------------------------------------------
+! !INPUT/OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic), &
      intent(inout) :: &
      F             ! input as field well-defined at old ocean points
                    ! output as field with new points filled in
 
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode                ! returned error code
+
+!EOP
+!BOC
 !-----------------------------------------------------------------------
 !
 !  local variables:
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) ::  &
+   integer (POP_i4) ::  &
      i,j,n,               &! dummy indices
      npass,               &! num of passes thru grid filling points
      nfill_points          ! num of points left to be filled
 
-   logical(log_kind),dimension(nx_block,ny_block,max_blocks_clinic) ::&
+   logical(POP_logical),dimension(nx_block,ny_block,max_blocks_clinic) ::&
      MASKOLD,             &! true at old ocean points
      MASKNEW               ! true at new points not in old ocn field
 
-   integer(int_kind),dimension(nx_block,ny_block,max_blocks_clinic) ::&
+   integer(POP_i4),dimension(nx_block,ny_block,max_blocks_clinic) ::&
      NB,                  &! num points contributing to 9pt avg
      IWORK                 ! local work space
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
      FNEW,                &! smoothed F field after npass passes
      WORK                  ! local work space
 
@@ -2992,8 +3109,15 @@
        MASKOLD = .true.  ! update for next pass
      endwhere
 
-     call update_ghost_cells(F, bndy_clinic, field_loc_center, &
-                                             field_type_scalar)
+     call POP_HaloUpdate(F, POP_haloClinic, POP_gridHorzLocCenter,  & 
+                         POP_fieldKindScalar, errorCode,            &
+                         fillValue = 0.0_POP_r8)
+
+     if (errorCode /= POP_Success) then
+        call POP_ErrorSet(errorCode, &
+           'fill_points: error updating F halo')
+        return
+     endif
 
 !-----------------------------------------------------------------------
 !
@@ -3027,15 +3151,15 @@
 
 ! !INPUT PARAMETERS:
 
-   integer (int_kind), intent(in) :: &
+   integer (POP_i4), intent(in) :: &
      iblock                  ! index for block in baroclinic distrb
 
-   real (r8), dimension(nx_block,ny_block), intent(in) :: &
+   real (POP_r8), dimension(nx_block,ny_block), intent(in) :: &
      ARRAY_UGRID             ! field on U points
 
 ! !OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block), intent(out) :: &
+   real (POP_r8), dimension(nx_block,ny_block), intent(out) :: &
      ARRAY_TGRID             ! field on T points
 
 !EOP
@@ -3046,7 +3170,7 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
      i,j                 ! dummy indices
 
 !-----------------------------------------------------------------------
@@ -3092,15 +3216,15 @@
 
 ! !INPUT PARAMETERS:
 
-   integer (int_kind), intent(in) :: &
+   integer (POP_i4), intent(in) :: &
      iblock                  ! index for block in baroclinic distrb
 
-   real (r8), dimension(nx_block,ny_block), intent(in) :: &
+   real (POP_r8), dimension(nx_block,ny_block), intent(in) :: &
      ARRAY_TGRID    ! field on T points
 
 ! !OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block), intent(out) :: &
+   real (POP_r8), dimension(nx_block,ny_block), intent(out) :: &
      ARRAY_UGRID    ! field on U points
 
 !EOP
@@ -3111,7 +3235,7 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
      i,j                 ! dummy indices
 
 !-----------------------------------------------------------------------

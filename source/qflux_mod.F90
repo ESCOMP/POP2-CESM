@@ -19,7 +19,6 @@
    use exit_mod
    use time_management
    use tavg
-   use shr_sys_mod
 
    implicit none
    private

@@ -15,7 +15,6 @@
 ! !USES:
 
    use kinds_mod
-   use shr_sys_mod
    use exit_mod
    use io_tools
  
@@ -154,7 +153,7 @@
 
 !-----------------------------------------------------------------------
 !    This routine complains if a string is in the registry but
-!    shouldn't be, or is not in the registry but should be.
+!    should not be, or is not in the registry but should be.
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------

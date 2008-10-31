@@ -30,8 +30,8 @@
       nt =  2            ! total number of tracers
 
    integer (int_kind), parameter, public :: &
-      block_size_x = (nx_global-1)/NPROC_X+1, &! size of block in 1st horizontal dimension
-      block_size_y = (ny_global-1)/NPROC_Y+1   ! size of block in 2nd horizontal dimension
+      block_size_x = BLCKX, &! size of block in 1st horizontal dimension
+      block_size_y = BLCKY   ! size of block in 2nd horizontal dimension
 
    !*** The model will inform the user of the correct
    !*** values for the parameters below.  A value higher than
@@ -43,8 +43,8 @@
    !***         num_procs
  
    integer (int_kind), parameter, public :: &
-      max_blocks_clinic = 1,  &! max number of blocks per processor
-      max_blocks_tropic = 1    !   in each distribution
+      max_blocks_clinic = MXBLCKS,  &! max number of blocks per processor
+      max_blocks_tropic = MXBLCKS    !   in each distribution
 
 !EOP
 !BOC

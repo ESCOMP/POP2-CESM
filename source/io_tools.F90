@@ -14,10 +14,13 @@
 !   SVN:$Id$
 !
 ! !USES 
+
+   use POP_KindsMod
+   use POP_IOUnitsMod
+
    use kinds_mod
    use io_types
    use communicate
-   use shr_sys_mod
       
    implicit none
    save
@@ -75,7 +78,7 @@
      else
        write(stdout,fmt1)  sub_name, trim(message)
      endif
-     call shr_sys_flush (stdout)
+     call POP_IOUnitsFlush(POP_stdout)
    endif
  
 !EOC
@@ -110,7 +113,7 @@
  
    if (my_task == master_task) then
       write(stdout,fmt)  sub_name, message, ival
-      call shr_sys_flush (stdout)
+      call POP_IOUnitsFlush(POP_stdout)
    endif
  
 !EOC
@@ -146,7 +149,7 @@
  
    if (my_task == master_task) then
       write(stdout,fmt)  sub_name, message, lval
-      call shr_sys_flush (stdout)
+      call POP_IOUnitsFlush(POP_stdout)
    endif
  
 !EOC
@@ -181,7 +184,7 @@
  
    if (my_task == master_task) then
       write(stdout,fmt)  sub_name, message, dval
-      call shr_sys_flush (stdout)
+      call POP_IOUnitsFlush(POP_stdout)
    endif
  
 !EOC
@@ -217,7 +220,7 @@
  
    if (my_task == master_task) then
       write(stdout,fmt)  sub_name, message, rval
-      call shr_sys_flush (stdout)
+      call POP_IOUnitsFlush(POP_stdout)
    endif
  
 !EOC

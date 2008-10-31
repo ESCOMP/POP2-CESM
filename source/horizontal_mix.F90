@@ -14,12 +14,16 @@
 !
 ! !USES:
 
-   use kinds_mod, only: int_kind, r8, r4, char_len, rtavg
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_ConstantsMod
+
+   use kinds_mod
    use blocks, only: nx_block, ny_block, block
    use distribution, only: 
    use domain_size
    use domain, only: nblocks_clinic, distrb_clinic
-   use constants, only: c0, blank_fmt, delim_fmt, ndelim_fmt, undefined_nf
+   use constants, only: c0, blank_fmt, delim_fmt, ndelim_fmt
    use communicate, only: my_task, master_task
    use time_management, only: km, nt, mix_pass
    use broadcast, only: broadcast_scalar
@@ -33,7 +37,7 @@
    use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
    use timers, only: timer_start, timer_stop, get_timer
    use exit_mod, only: sigAbort, exit_pop, flushm
-   use shr_sys_mod
+   use mix_submeso, only: init_submeso
 
    implicit none
    private
@@ -52,7 +56,7 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind), parameter :: &! available choices for mixing type
+   integer (POP_i4), parameter :: &! available choices for mixing type
       hmix_momentum_type_del2 = 1,  &
       hmix_momentum_type_del4 = 2,  &
       hmix_momentum_type_anis = 3,  &
@@ -60,11 +64,15 @@
       hmix_tracer_type_del4 = 2,    &
       hmix_tracer_type_gm   = 3
 
-   integer (int_kind) ::            &
+   integer (POP_i4) ::            &
       hmix_momentum_itype,          &! users choice for type of mixing
       hmix_tracer_itype,            &! users choice for type of mixing
       tavg_HDIFT,                   &! tavg id for horizontal diffusion
       tavg_HDIFS                     ! tavg id for horizontal diffusion
+
+   logical (log_kind) ::            &
+      lsubmesoscale_mixing           ! if true, submesoscale mixing is on
+
 
 !-----------------------------------------------------------------------
 !
@@ -72,7 +80,7 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       timer_hdiffu,      &! timer for horizontal momentum mixing
       timer_hdifft        ! timer for horizontal tracer   mixing
 
@@ -86,13 +94,18 @@
 ! !IROUTINE: init_horizontal_mix
 ! !INTERFACE:
 
- subroutine init_horizontal_mix
+ subroutine init_horizontal_mix(errorCode)
 
 ! !DESCRIPTION:
 !  Initializes choice of mixing method based on namelist input.
 !
 ! !REVISION HISTORY:
 !  same as module
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode             ! returned error code
 
 !EOP
 !BOC
@@ -102,13 +115,14 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: nml_error  ! error flag for namelist
+   integer (POP_i4) :: nml_error  ! error flag for namelist
 
-   character (char_len) ::  &! character choice for type of mixing
+   character (POP_charLength) ::  &! character choice for type of mixing
       hmix_momentum_choice, &
       hmix_tracer_choice
 
-   namelist /hmix_nml/ hmix_momentum_choice, hmix_tracer_choice
+   namelist /hmix_nml/ hmix_momentum_choice, hmix_tracer_choice,  &
+                       lsubmesoscale_mixing
 
 !-----------------------------------------------------------------------
 !
@@ -116,8 +130,11 @@
 !
 !-----------------------------------------------------------------------
 
+   errorCode = POP_Success
+
    hmix_momentum_choice = 'unknown_hmix_momentum_choice'
    hmix_tracer_choice = 'unknown_hmix_tracer_choice'
+   lsubmesoscale_mixing = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -185,10 +202,17 @@
          hmix_tracer_itype = -1000
       end select
 
+      if ( lsubmesoscale_mixing ) then
+        write (stdout,blank_fmt)
+        write (stdout, '(a48)') &
+         'Submesoscale mixed layer parameterization is on.'
+      endif
+
    endif
 
    call broadcast_scalar(hmix_momentum_itype, master_task)
    call broadcast_scalar(hmix_tracer_itype,   master_task)
+   call broadcast_scalar(lsubmesoscale_mixing,master_task)
 
    if (hmix_momentum_itype == -1000) then
       call exit_POP(sigAbort, &
@@ -203,6 +227,12 @@
                     'Unknown type for horizontal tracer mixing')
    endif
 
+   if ( lsubmesoscale_mixing  .and.  &
+        hmix_tracer_itype /= hmix_tracer_type_gm ) then
+     call exit_POP(sigAbort, &
+                   'Submesoscale mixing can be used only when GM is on')
+   endif
+
 !-----------------------------------------------------------------------
 !
 !  calculate additional coefficients based on mixing parameterization
@@ -212,12 +242,26 @@
 
    select case (hmix_momentum_itype)
    case(hmix_momentum_type_del2)
-      call init_del2u
+      call init_del2u(errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_hmix: error initializing del2u')
+         return
+      endif
+
       call get_timer(timer_hdiffu,'HMIX_MOMENTUM_DEL2', &
                                   nblocks_clinic, distrb_clinic%nprocs)
 
    case(hmix_momentum_type_del4)
-      call init_del4u
+      call init_del4u(errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_hmix: error initializing del4u')
+         return
+      endif
+
       call get_timer(timer_hdiffu,'HMIX_MOMENTUM_DEL4', &
                                   nblocks_clinic, distrb_clinic%nprocs)
 
@@ -229,12 +273,27 @@
 
    select case (hmix_tracer_itype)
    case(hmix_tracer_type_del2)
-      call init_del2t
+      call init_del2t(errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_hmix: error initializing del2t')
+         return
+      endif
+
       call get_timer(timer_hdifft,'HMIX_TRACER_DEL2', &
                                   nblocks_clinic, distrb_clinic%nprocs)
 
    case(hmix_tracer_type_del4)
-      call init_del4t
+
+      call init_del4t(errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_hmix: error initializing del4t')
+         return
+      endif
+
       call get_timer(timer_hdifft,'HMIX_TRACER_DEL4', &
                                   nblocks_clinic, distrb_clinic%nprocs)
 
@@ -244,6 +303,14 @@
                                   nblocks_clinic, distrb_clinic%nprocs)
 
    end select
+
+!-----------------------------------------------------------------------
+!
+!  initialize submesoscale mixing
+!
+!-----------------------------------------------------------------------
+
+   if ( lsubmesoscale_mixing )  call init_submeso
 
 !-----------------------------------------------------------------------
 !
@@ -270,7 +337,7 @@
 
    call define_tavg_field(tavg_HDIFS,'HDIFS',2,                             &
                     long_name='Vertically Integrated Horz Diff S tendency', &
-                          coordinates='TLONG TLAT time',                    &
+                          coordinates='TLONG TLAT time',                   &
                           scale_factor=1000.0_rtavg,                        &
                           units='centimeter gram/gram/s', grid_loc='2110')
 
@@ -297,9 +364,9 @@
 
 ! !INPUT PARAMETERS:
 
-   integer (int_kind), intent(in) :: k   ! depth level index
+   integer (POP_i4), intent(in) :: k   ! depth level index
 
-   real (r8), dimension(nx_block,ny_block), intent(in) :: &
+   real (POP_r8), dimension(nx_block,ny_block), intent(in) :: &
       UMIXK, VMIXK         ! U,V at level k and mix time level
 
    type (block), intent(in) :: &
@@ -307,7 +374,7 @@
 
 ! !OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block), intent(out) :: &
+   real (POP_r8), dimension(nx_block,ny_block), intent(out) :: &
       HDUK,                   &! returned as Hdiff(U) at level k
       HDVK                     ! returned as Hdiff(V) at level k
 
@@ -356,12 +423,12 @@
 
 ! !INPUT PARAMETERS:
 
-   integer (int_kind), intent(in) :: k   ! depth level index
+   integer (POP_i4), intent(in) :: k   ! depth level index
 
-   real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+   real (POP_r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
       TMIX     ! tracers at mix time level
 
-   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+   real (POP_r8), dimension(nx_block,ny_block,km), intent(in) :: &
       UMIX, VMIX   ! U,V velocities at mix time level
 
    type (block), intent(in) :: &
@@ -369,7 +436,7 @@
 
 ! !OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,nt), intent(out) :: &
+   real (POP_r8), dimension(nx_block,ny_block,nt), intent(out) :: &
       HDTK                ! Hdiff(T) for nth tracer at level k
 
 !EOP
@@ -380,10 +447,10 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       bid                 ! local block id
 
-   real (r8), dimension(nx_block,ny_block) :: &
+   real (POP_r8), dimension(nx_block,ny_block) :: &
      WORK                 ! temporary to hold tavg field
 
 !-----------------------------------------------------------------------

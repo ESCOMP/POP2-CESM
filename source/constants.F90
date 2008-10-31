@@ -15,14 +15,16 @@
 ! !USES:
 
    use kinds_mod
+#ifdef CCSMCOUPLED
    use shr_kind_mod, only: SHR_KIND_R8
    use shr_const_mod
+#endif
+   use netcdf
 
    implicit none
    private
    save
 
-   include 'netcdf.inc'
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
@@ -55,14 +57,14 @@
       bignum = 1.0e+30_r8
 
    real (r4), parameter, public ::       &
-      undefined_nf_r4  = NF_FILL_FLOAT,  &
+      undefined_nf_r4  = NF90_FILL_FLOAT,  &
       undefined        = -12345._r4
 
    real (rtavg), public ::       &
       undefined_nf
 
    integer (int_kind), parameter, public ::   &
-      undefined_nf_int = NF_FILL_INT
+      undefined_nf_int = NF90_FILL_INT
 
    real (r8), public :: &
       pi, pih, pi2            ! pi, pi/2 and 2pi
@@ -185,8 +187,11 @@
 !-----------------------------------------------------------------------
 
 
-!   pi  = c4*atan(c1)
+#ifdef CCSMCOUPLED
     pi  = SHR_CONST_PI
+#else
+    pi  = c4*atan(c1)
+#endif
 
 
    pi2 = c2*pi
@@ -197,6 +202,7 @@
    do n=1,char_len
      char_blank(n:n) = ' '
    end do
+
 
 
 !-----------------------------------------------------------------------
@@ -251,6 +257,7 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef CCSMCOUPLED
    T0_Kelvin              = SHR_CONST_TKFRZ         ! zero point for Celsius
    grav                   = SHR_CONST_G*cmperm      ! cm/s^2
    omega                  = SHR_CONST_OMEGA         ! rad/s
@@ -267,6 +274,7 @@
    latent_heat_fusion_mks = SHR_CONST_LATICE        ! J/kg 
    ocn_ref_salinity       = SHR_CONST_OCN_REF_SAL   ! psu
    sea_ice_salinity       = SHR_CONST_ICE_REF_SAL   ! psu
+#endif
 
 !-----------------------------------------------------------------------
 !
@@ -377,7 +385,6 @@
 
    fwmass_to_fwflux = 0.1_r8
 
-
 !-----------------------------------------------------------------------
 !
 !  support for "stealth option" for r8 tavg fields
@@ -385,12 +392,11 @@
 !-----------------------------------------------------------------------
 
    if (rtavg == r4) then
-      write(6,*) 'rtavg ==> single precision'
-      undefined_nf  = NF_FILL_FLOAT
+      undefined_nf  = NF90_FILL_FLOAT
    else if (rtavg == r8) then
-      undefined_nf  = NF_FILL_DOUBLE
-      write(6,*) 'rtavg ==> double precision'
+      undefined_nf  = NF90_FILL_DOUBLE
    endif
+
 
 !EOC
 !-----------------------------------------------------------------------

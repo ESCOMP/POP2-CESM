@@ -25,7 +25,9 @@
    use io_tools
    use exit_mod
    use registry
+#ifdef CCSMCOUPLED
    use shr_sys_mod
+#endif
 
    implicit none
    public
@@ -124,7 +126,8 @@
       eod_last            ,&!   at the end of the day
       eom_last            ,&!   at the end of the month
       eoy_last            ,&!   at the end of the year
-      midnight_last         !   at midnight
+      midnight_last       ,&!   at midnight
+      avg_ts_last           !   an averaging timestep
 
    logical (log_kind)   :: &! the next timestep is:
       adjust_year_next    ,&!   step at which year values updated
@@ -410,6 +413,18 @@
       gamma = c1 - c2*alpha  ! for geostrophic balance, otherwise
                              ! coriolis and  surface-pressure gradient
                              ! are not time centered
+
+!-----------------------------------------------------------------------
+!
+!  variables documenting avgfit progression
+!
+!-----------------------------------------------------------------------
+
+   logical (kind=log_kind), dimension(:), allocatable :: &
+      interval_avg_ts
+
+   real (r8), dimension(:), allocatable :: &
+      interval_cum_dayfrac
 
 !EOP
 !BOC
@@ -931,7 +946,16 @@
 !  cycle through one simulated day, documenting each full/half timestep
 !    and testing the last timestep of the interval for correctness
 !
+!  store values of avg_ts and cum_stepsize for later use by qsw cosz option
+!
 !-----------------------------------------------------------------------
+
+    if (.not. allocated(interval_avg_ts)) then
+      allocate(interval_avg_ts(nsteps_per_interval))
+      allocate(interval_cum_dayfrac(0:nsteps_per_interval))
+    endif
+    interval_cum_dayfrac(0) = c0
+
     do nfit = 1, fit_freq
     do nn = 1, nsteps_per_interval
 
@@ -947,6 +971,12 @@
         stepsize = p5*dtt
       else
         stepsize = dtt
+      endif
+
+      if (nfit == 1) then
+        interval_avg_ts(nn) = avg_ts
+        interval_cum_dayfrac(nn) = interval_cum_dayfrac(nn-1) + &
+           stepsize / seconds_in_day
       endif
 
       if (nsteps_total == 1) then
@@ -997,7 +1027,7 @@
          
         if (last_step .and. nfit == fit_freq) then
           write(stdout,*) ' '
-          call shr_sys_flush(stdout)
+          call POP_IOUnitsFlush(POP_stdout)
         endif
       endif ! master_task
 
@@ -1013,9 +1043,11 @@
 !-----------------------------------------------------------------------
     call hms (seconds_this_day, hour_at_interval(nfit), min_at_interval(nfit),  &
               sec_at_interval(nfit), dummy,dummy,dummy)
-    write(stdout,1103) ' hour, min, sec at end of interval = ',         &
+      if(master_task == my_task )  then 
+         write(stdout,1103) ' hour, min, sec at end of interval = ',         &
                          hour_at_interval(nfit), min_at_interval(nfit), &
                          sec_at_interval(nfit)
+      endif
     enddo ! nfit
 
       
@@ -1270,7 +1302,9 @@
          write(stdout,*) 'ihour_start_run   = ', ihour_start_run
          write(stdout,*) 'iminute_start_run = ', iminute_start_run
          write(stdout,*) 'isecond_start_run = ', isecond_start_run
+#ifdef CCSMCOUPLED
          call shr_sys_flush(stdout)
+#endif
          call exit_POP(sigAbort, &
                        'model run must start at coupling boundary '/&
                      &/'when using avgfit option')
@@ -1562,6 +1596,8 @@
    eoy_last          = eoy
  
    midnight_last     = midnight
+
+   avg_ts_last       = avg_ts
  
 !-----------------------------------------------------------------------
 !
@@ -1802,7 +1838,10 @@
    if (eod) then
     if (my_task == master_task) then
         write(stdout,1000) iyear, cmonth3, iday, seconds_this_day
+#ifdef CCSMCOUPLED
         call shr_sys_flush(stdout)
+#endif
+        call POP_IOUnitsFlush(POP_stdout)
     endif
    endif
 1000 format (' (time_manager)', ' ocn date ', i4.4, '-', a3, '-', &

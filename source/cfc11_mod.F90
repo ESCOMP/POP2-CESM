@@ -12,6 +12,10 @@ module cfc11_mod
 
 ! !USES:
 
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_IOUnitsMod
+
    use blocks, only: nx_block, ny_block, block
    use domain_size, only: max_blocks_clinic, km, nx_global, ny_global
    use domain, only: nblocks_clinic, distrb_clinic
@@ -27,7 +31,6 @@ module cfc11_mod
        destroy_io_field, get_unit, release_unit
    use io_tools, only: document
    use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
-   use shr_sys_mod, only: shr_sys_flush
    use timers, only: get_timer
    use passive_tracer_tools, only: forcing_monthly_every_ts,          &
        init_forcing_monthly_every_ts, ind_name_pair, tracer_read,     &
@@ -147,11 +150,11 @@ contains
 ! !INTERFACE:
 
  subroutine cfc11_init(init_ts_file_fmt, read_restart_filename, &
-                       tracer_d_module, TRACER_MODULE)
+                       tracer_d_module, TRACER_MODULE, errorCode)
 
 ! !DESCRIPTION:
 !  Initialize cfc11 tracer module. This involves setting metadata, reading
-!  the module's namelist and setting initial conditions.
+!  the module namelist and setting initial conditions.
 
 ! !REVISION HISTORY:
 !  same as module
@@ -179,6 +182,11 @@ contains
 
    real(r8), dimension(nx_block,ny_block,km,cfc11_tracer_cnt,3,max_blocks_clinic), &
       intent(inout) :: TRACER_MODULE
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode         ! returned error code
 
 !EOP
 !BOC
@@ -218,6 +226,8 @@ contains
 !-----------------------------------------------------------------------
 !  initialize forcing_monthly_every_ts variables
 !-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    call init_forcing_monthly_every_ts(fice_file)
    call init_forcing_monthly_every_ts(xkw_file)
@@ -350,7 +360,7 @@ contains
           write(stdout,delim_fmt)
           write(stdout,*) ' Initial 3-d CFC11 set to all zeros'
           write(stdout,delim_fmt)
-          call shr_sys_flush(stdout)
+          call POP_IOUnitsFlush(POP_stdout)
       endif
 
     case ('restart', 'continue', 'branch', 'hybrid' )
@@ -388,7 +398,14 @@ contains
 
        if (n_topo_smooth > 0) then
           do k=1,km
-             call fill_points(k,TRACER_MODULE(:,:,k,1,curtime,:))
+             call fill_points(k,TRACER_MODULE(:,:,k,1,curtime,:), &
+                              errorCode)
+
+             if (errorCode /= POP_Success) then
+                call POP_ErrorSet(errorCode, &
+                   'cfc11_init: error in fill_points')
+                return
+             endif
           enddo
        endif
 

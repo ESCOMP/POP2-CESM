@@ -188,7 +188,7 @@
 
    nprocsClinic = POP_CommGetNumProcs(POP_Communicator)
 
-   distrbClinic = POP_DistributionCreate(POP_distributionMethodRake, &
+   distrbClinic = POP_DistributionCreate(POP_distribMethodRake, &
                                          nProcsClinic, &
                                          workPerBlock, errorCode)
 

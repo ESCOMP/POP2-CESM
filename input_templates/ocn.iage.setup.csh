@@ -8,6 +8,8 @@
 #    namelist       pop_in_filename
 #    tavg_contents  tavg_contents_filename
 #    prestage       res_dpt_dir res_indpt_dir
+#    document       pop2_document_files
+#    ccsm_prestage  ccsm_prestage_file
 #
 #  SVN:$Id$
 #
@@ -109,6 +111,18 @@ else if ($command == prestage) then
    echo -----------------------------------------------------------------
    echo ocn.iage.setup.csh : prestaging data files
    echo -----------------------------------------------------------------
+
+else if ($command == document) then
+
+   echo -----------------------------------------------------------------
+   echo ocn.iage.setup.csh : documenting inputdata files
+   echo -----------------------------------------------------------------
+
+else if ($command == ccsm_prestage) then
+
+  #echo -----------------------------------------------------------------
+  #echo ocn.iage.setup.csh : writing ccsm prestaging information
+  #echo -----------------------------------------------------------------
 
 else
 

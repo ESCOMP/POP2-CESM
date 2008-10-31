@@ -14,6 +14,10 @@
 
 ! !USES:
 
+   use POP_KindsMod
+   use POP_IOUnitsMod
+   use POP_ErrorMod
+
    use kinds_mod
    use blocks
    use distribution
@@ -36,8 +40,10 @@
    use diag_bsf, only: pcg_diag_bsf_solver, init_diag_bsf
    use diags_on_lat_aux_grid
    use registry
-   use shr_sys_mod
    use timers
+#ifdef CCSMCOUPLED
+   use shr_sys_mod
+#endif
 
    implicit none
    private
@@ -355,6 +361,9 @@
 !-----------------------------------------------------------------------
    save
 
+   integer (POP_i4) ::     &
+      errorCode
+
    integer (i4) ::         &
       n,                   &! dummy index
       i,ip1,j,k,           &! dummy indices
@@ -395,6 +404,8 @@
 !
 !-----------------------------------------------------------------------
 
+   errorCode = POP_Success
+
    lccsm = registry_match('lcoupled')
 
 !-----------------------------------------------------------------------
@@ -410,7 +421,7 @@
       write(stdout,'(a12)') ' Tavg:'
       write(stdout,blank_fmt)
       write(stdout,delim_fmt)
-      call shr_sys_flush(stdout)
+      call POP_IOUnitsFlush(POP_stdout)
    endif
 
    tavg_freq_iopt = freq_opt_never
@@ -445,7 +456,7 @@
       write(stdout,blank_fmt)
       write(stdout,tavg_nml)
       write(stdout,delim_fmt)
-      call shr_sys_flush(stdout)
+      call POP_IOUnitsFlush(POP_stdout)
    endif
 
    if (my_task == master_task) then
@@ -496,7 +507,7 @@
 
    endif
 
-   call shr_sys_flush(stdout)
+   call POP_IOUnitsFlush(POP_stdout)
 
    call broadcast_scalar(tavg_freq_iopt, master_task)
 
@@ -569,7 +580,7 @@
       if (my_task == master_task) then
          open(nu, file=tavg_contents, status='old')
          write(stdout,'(a38)') 'tavg diagnostics requested for fields:'
-         call shr_sys_flush(stdout)
+         call POP_IOUnitsFlush(POP_stdout)
       endif
 
       call broadcast_scalar(num_requested_tavg_fields, master_task)
@@ -584,7 +595,7 @@
             cindex = index(char_temp,' ')
             char_temp(cindex:) = ' '
             write(stdout,*) '  ',trim(char_temp)
-            call shr_sys_flush(stdout)
+            call POP_IOUnitsFlush(POP_stdout)
          endif
 
          call broadcast_scalar(contents_error, master_task)
@@ -651,7 +662,14 @@
  
      !*** initialze barotropic stream function
 
-     call init_diag_bsf(set_in_tavg_contents(tavg_BSF))
+     call init_diag_bsf(set_in_tavg_contents(tavg_BSF), errorCode)
+
+     if (errorCode /= POP_Success) then
+        call POP_ErrorSet(errorCode, &
+           'init_tavg: error in init_diag_bsf')
+        call exit_POP(sigAbort,'init_tavg: error in init_diag_bsf')
+        return
+     endif
 
      ldiag_bsf     = registry_match('ldiag_bsf')
 
@@ -1169,11 +1187,11 @@
 !-----------------------------------------------------------------------
 
       if (ltavg_fmt_out_nc .and. lreg_tavg_dump) then
-        call tavg_define_time_ccsm            (tavg_file_desc)
-        call tavg_define_coordinate_vars_ccsm (tavg_file_desc)
-        call tavg_define_time_invar_ccsm      (tavg_file_desc)
-        call tavg_define_scalars_ccsm         (tavg_file_desc)
-        call tavg_define_labels_ccsm          (tavg_file_desc)
+        call tavg_define_time_ccsm       (tavg_file_desc)
+        call tavg_define_coord_vars_ccsm (tavg_file_desc)
+        call tavg_define_time_invar_ccsm (tavg_file_desc)
+        call tavg_define_scalars_ccsm    (tavg_file_desc)
+        call tavg_define_labels_ccsm     (tavg_file_desc)
       endif
 
       allocate(tavg_fields(num_avail_tavg_fields))
@@ -1260,7 +1278,6 @@
 #else
                    r3d_array =TAVG_BUF_3D(:,:,:,:,loc) ) 
 #endif
-
             endif ! 2D/3D test
 
             if (lccsm .and. lreg_tavg_dump) &
@@ -1355,7 +1372,7 @@
       if (my_task == master_task) then
          write(stdout,blank_fmt)
          write(stdout,*) 'tavg file written: ', trim(tavg_file_desc%full_name)
-         call shr_sys_flush(stdout)
+         call POP_IOUnitsFlush(POP_stdout)
       endif
 
 !-----------------------------------------------------------------------
@@ -1546,7 +1563,7 @@
       in_nsteps_total,' nsteps_total in tavg restart', &
       nsteps_total,   ' nsteps_total in current simulation'
       write(stdout,*) ' tavg_sum = ', tavg_sum, ' in tavg restart'
-      call shr_sys_flush(stdout)
+      call POP_IOUnitsFlush(POP_stdout)
    endif
 
    !*** check nsteps total for validity
@@ -1590,8 +1607,6 @@
 #else
                  r2d_array =TAVG_BUF_2D(:,:,:,loc) )
 #endif
-
-
          else if (avail_tavg_fields(nfield)%ndims == 3) then
 
             if (avail_tavg_fields(nfield)%grid_loc(4:4) == '3') then
@@ -1614,7 +1629,6 @@
 #else
                  r3d_array =TAVG_BUF_3D(:,:,:,:,loc) )
 #endif
-
          endif
 
          call data_set (tavg_file_desc, 'define', tavg_fields(nfield))
@@ -1742,7 +1756,7 @@
             if (my_task == master_task) then
               write(stdout,*) 'Cannot compute global integral of ', &
                                trim (avail_tavg_fields(nfield)%short_name)
-              call shr_sys_flush(stdout)
+              call POP_IOUnitsFlush(POP_stdout)
             endif
             cycle fields_loop 
             !*** call exit_POP (SigAbort,'ERROR: tavg_norm = 0 in tavg_global')
@@ -2404,7 +2418,7 @@
 
    if (my_task == master_task .and. nsteps_run <= 1) then
      write(stdout,*) 'define_tavg_field: id = ', id, ' ', short_name
-     call shr_sys_flush(stdout)
+     call POP_IOUnitsFlush(POP_stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -2574,9 +2588,12 @@
    end do srch_loop
 
    if (id == 0) then
-   if (my_task == master_task) write(stdout,*) 'Requested ', &
-                                                trim(short_name)
-      call exit_POP(sigAbort,'tavg: requested field unknown')
+      if (my_task == master_task)  &
+         write(stdout,*) 'Requested ', trim(short_name)
+#ifdef CCSMCOUPLED
+      call shr_sys_flush(stdout)
+#endif
+      call exit_POP(sigAbort,'subroutine request_tavg_field: requested field unknown')
    endif
 
 !-----------------------------------------------------------------------
@@ -3195,7 +3212,7 @@
   if (my_task == master_task) then
      write(stdout,*) 'There are ',num_fields,  &
                     ' tavg fields requested via tavg_contents.'
-     call shr_sys_flush(stdout)
+     call POP_IOUnitsFlush(POP_stdout)
   endif
 
 !---------------------------------------------------------------------
@@ -3323,10 +3340,10 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: tavg_define_coordinate_vars_ccsm
+! !IROUTINE: tavg_define_coord_vars_ccsm
 ! !INTERFACE:
 
- subroutine tavg_define_coordinate_vars_ccsm(tavg_file_desc)
+ subroutine tavg_define_coord_vars_ccsm(tavg_file_desc)
 
 ! !DESCRIPTION:
 !  This routine defines the netCDF coordinates that are used in the
@@ -3453,7 +3470,7 @@
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine tavg_define_coordinate_vars_ccsm
+ end subroutine tavg_define_coord_vars_ccsm
  
 !***********************************************************************
 !BOP
@@ -4341,8 +4358,10 @@
       if (indx /= 0) then
         ndims=2
         data_1d_ch(1) = 'Eulerian Mean'
-        if (n_moc_comp == 2) &
+        if (n_moc_comp >= 2) &
           data_1d_ch(2) = 'Eddy-Induced (bolus)'
+        if (n_moc_comp >= 3) & 
+          data_1d_ch(3) = 'Submeso'
         io_dims(:) = io_dims_labels(:,indx)
         id = avail_tavg_labels_id(indx)
         nftype = 'char'
@@ -4411,19 +4430,16 @@
       if (indx /= 0) then
         ndims=2
         data_1d_ch(1) = 'Total'
-        if (registry_match('diag_gm_bolus') .and.   &
-            registry_match('init_gm')) then
-         data_1d_ch(2) = 'Total Advection'
-         data_1d_ch(4) = 'Eddy-Induced (bolus) Advection'
+        data_1d_ch(2) = 'Eulerian-Mean Advection'
+        if (registry_match('init_gm')) then 
+          data_1d_ch(3) = 'Eddy-Induced Advection (bolus) + Diffusion'
         else
-         data_1d_ch(2) = 'Eulerian-Mean Advection'
+          data_1d_ch(3) = 'Diffusion'
         endif
-        if (.not. registry_match('diag_gm_bolus') .and.   &
-            registry_match('init_gm') ) then ! bolus is automatically included
-         data_1d_ch(3) = 'Eddy-Induced Advection (bolus) + Diffusion'
-        else
-         data_1d_ch(3) = 'Diffusion'
-        endif
+        if ( n_transport_comp >= 4 ) & 
+          data_1d_ch(4) = 'Eddy-Induced (bolus) Advection'
+        if ( n_transport_comp >= 5 ) & 
+          data_1d_ch(5) = 'Submeso Advection'
         io_dims(:) = io_dims_labels(:,indx)
         id = avail_tavg_labels_id(indx)
         nftype = 'char'
@@ -4565,6 +4581,10 @@
 !     local variables
 !
 !-----------------------------------------------------------------------
+
+   integer (POP_i4) :: &
+      errorCode
+
    real (r8), dimension (nx_block, ny_block,max_blocks_clinic) ::  &
       WORK1,WORK2,WORK3,  &
       PSI_T, PSI_U
@@ -4585,6 +4605,10 @@
    type (block) ::        &
       this_block          ! block information for current block
 
+!-----------------------------------------------------------------------
+
+   errorCode = POP_Success
+
    if (.not. ldiag_bsf) return
  
    !*** start bsf timer
@@ -4595,7 +4619,7 @@
      if (nsteps_run <= 1 .and. my_task == master_task) then
         write(stdout,*)  &
         'WARNING: BSF diagnostic is not computed if tavg_freq_iopt == freq_opt_nstep'
-        call shr_sys_flush(stdout)
+        call POP_IOUnitsFlush(POP_stdout)
      endif
      return
    endif
@@ -4630,7 +4654,13 @@
      !$OMP END PARALLEL DO
        
      WORK2 = c0
-     call pcg_diag_bsf_solver (WORK2,WORK1)
+     call pcg_diag_bsf_solver (WORK2,WORK1, errorCode)
+     if (errorCode /= POP_Success) then
+        call POP_ErrorSet(errorCode, &
+           'tavg_bsf_ccsm: error in pcg_diag_bsf')
+        call exit_POP(sigAbort,'tavg_bsf_ccsm: error in pcg_diag_bsf')
+        return
+     endif
  
      do iblock=1,nblocks_clinic
      TAVG_BUF_2D(:,:,iblock,tavg_loc_BSF) =  &
@@ -4717,30 +4747,54 @@
       tavg_loc_WVEL,        &
       tavg_loc_VVEL,        &
       tavg_loc_WISOP,       &
-      tavg_loc_VISOP 
+      tavg_loc_VISOP,       &
+      tavg_id_WSUBM,        &
+      tavg_id_VSUBM,        &
+      tavg_loc_WSUBM,       &
+      tavg_loc_VSUBM 
 
    logical (log_kind) ::  &
-      ldiag_gm_bolus         ! local logical for diag_gm_bolus
+      ldiag_gm_bolus,     &  ! local logical for diag_gm_bolus
+      lsubmeso               ! local logical for submesoscale_mixing
 
    if (.not. moc) return
-  
+ 
    !*** start timer
    call timer_start(timer_tavg_ccsm_diags_moc)
- 
+
    ldiag_gm_bolus = .false.
    if ( registry_match('diag_gm_bolus') )  ldiag_gm_bolus = .true.
 
+   lsubmeso = .false.
+   if ( registry_match('init_submeso') )   lsubmeso = .true.
+
    tavg_loc_WVEL      = 0 ; tavg_loc_VVEL      = 0
    tavg_loc_WISOP     = 0 ; tavg_loc_VISOP     = 0
+   tavg_loc_WSUBM     = 0 ; tavg_loc_VSUBM     = 0
  
    tavg_id_WVEL   = tavg_id('WVEL')
    tavg_id_VVEL   = tavg_id('VVEL')
 
    !*** error checking
+   if (tavg_id_WVEL  == 0 .or. tavg_id_VVEL  == 0 ) then
+     call document ('tavg_moc_ccsm', &
+         'Error in moc diagnostics computations: none of the following should be zero')
+     call document ('tavg_moc_ccsm', 'tavg_id_WVEL', tavg_id_WVEL)
+     call document ('tavg_moc_ccsm', 'tavg_id_VVEL', tavg_id_VVEL)
+     call exit_POP (SigAbort, 'Fatal error')
+   endif
  
    tavg_loc_WVEL = avail_tavg_fields(tavg_id_WVEL)%buf_loc
    tavg_loc_VVEL = avail_tavg_fields(tavg_id_VVEL)%buf_loc
 
+   !*** error checking
+   if (tavg_loc_WVEL  == 0 .or. tavg_loc_VVEL  == 0 ) then
+     call document ('tavg_moc_ccsm', &
+         'Error in moc diagnostics computations: none of the following should be zero')
+     call document ('tavg_moc_ccsm', 'tavg_loc_WVEL', tavg_loc_WVEL)
+     call document ('tavg_moc_ccsm', 'tavg_loc_VVEL', tavg_loc_VVEL)
+     call exit_POP (SigAbort, 'Fatal error')
+   endif
 
    if (ldiag_gm_bolus) then
  
@@ -4770,6 +4824,34 @@
 
    endif ! ldiag_gm_bolus
 
+   if (lsubmeso) then
+
+     tavg_id_WSUBM  = tavg_id('WSUBM')
+     tavg_id_VSUBM  = tavg_id('VSUBM')
+
+     !*** error checking
+     if (tavg_id_WSUBM  == 0 .or. tavg_id_VSUBM  == 0 ) then
+       call document ('tavg_moc_ccsm', &
+           'Error in moc diagnostics computations: none of the following should be zero')
+       call document ('tavg_moc_ccsm', 'tavg_id_WSUBM',  tavg_id_WSUBM)
+       call document ('tavg_moc_ccsm', 'tavg_id_VSUBM',  tavg_id_VSUBM)
+       call exit_POP (SigAbort, 'Fatal error')
+     endif
+
+     tavg_loc_WSUBM = avail_tavg_fields(tavg_id_WSUBM)%buf_loc
+     tavg_loc_VSUBM = avail_tavg_fields(tavg_id_VSUBM)%buf_loc
+
+     !*** error checking
+     if (tavg_loc_WSUBM  == 0 .or. tavg_loc_VSUBM  == 0 ) then
+       call document ('tavg_moc_ccsm', &
+           'Error in moc diagnostics computations: none of the following should be zero')
+       call document ('tavg_moc_ccsm', 'tavg_loc_WSUBM',  tavg_loc_WSUBM)
+       call document ('tavg_moc_ccsm', 'tavg_loc_VSUBM',  tavg_loc_VSUBM)
+       call exit_POP (SigAbort, 'Fatal error')
+     endif
+
+   endif ! lsubmeso
+
    !*** define MOC tavg variable and dimensions
    !*** note that this call fills avail_tavg_nstd_fields
 
@@ -4788,7 +4870,11 @@
      if (nsteps_run <= 1 .and. my_task == master_task) then
         write(stdout,*)  &
         'WARNING: MOC diagnostic is not computed if tavg_freq_iopt == freq_opt_nstep'
+#ifdef CCSMCOUPLED
         call shr_sys_flush(stdout)
+#else
+        call POP_IOUnitsFlush(POP_stdout)
+#endif
      endif
      return
    endif
@@ -4800,24 +4886,36 @@
    io_dims_nstd_ccsm(5,tavg_MOC) = time_dim
    ndims_nstd_ccsm  (  tavg_MOC) = 5
 
-   if (ldiag_gm_bolus) then
+   if ( ldiag_gm_bolus  .and.  lsubmeso ) then
      call compute_moc ( TAVG_BUF_3D(:,:,:,:,tavg_loc_WVEL ),  &
                         TAVG_BUF_3D(:,:,:,:,tavg_loc_VVEL ),  &
                   W_I = TAVG_BUF_3D(:,:,:,:,tavg_loc_WISOP),  &
-                  V_I = TAVG_BUF_3D(:,:,:,:,tavg_loc_VISOP) )
+                  V_I = TAVG_BUF_3D(:,:,:,:,tavg_loc_VISOP),  &
+                 W_SM = TAVG_BUF_3D(:,:,:,:,tavg_loc_WSUBM),  &
+                 V_SM = TAVG_BUF_3D(:,:,:,:,tavg_loc_VSUBM))
+  elseif ( ldiag_gm_bolus  .and.  .not.lsubmeso ) then
+     call compute_moc ( TAVG_BUF_3D(:,:,:,:,tavg_loc_WVEL ),  &
+                        TAVG_BUF_3D(:,:,:,:,tavg_loc_VVEL ),  &
+                  W_I = TAVG_BUF_3D(:,:,:,:,tavg_loc_WISOP),  &
+                  V_I = TAVG_BUF_3D(:,:,:,:,tavg_loc_VISOP))
+  elseif ( .not.ldiag_gm_bolus  .and.  lsubmeso ) then
+     call compute_moc ( TAVG_BUF_3D(:,:,:,:,tavg_loc_WVEL ),  &
+                        TAVG_BUF_3D(:,:,:,:,tavg_loc_VVEL ),  &
+                 W_SM = TAVG_BUF_3D(:,:,:,:,tavg_loc_WSUBM),  &
+                 V_SM = TAVG_BUF_3D(:,:,:,:,tavg_loc_VSUBM))
   else
      call compute_moc ( TAVG_BUF_3D(:,:,:,:,tavg_loc_WVEL ),  &
                         TAVG_BUF_3D(:,:,:,:,tavg_loc_VVEL ))
   endif
 
- 
    ! stop timer
    call timer_stop(timer_tavg_ccsm_diags_moc)
-
+ 
 !-----------------------------------------------------------------------
 !EOC
 
   end subroutine tavg_moc_ccsm
+
 
 !***********************************************************************
 !BOP
@@ -4846,6 +4944,16 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::    &
+      tavg_id_ADVT,         &
+      tavg_id_ADVS ,        &
+      tavg_id_VNT,          &
+      tavg_id_VNS,          &
+      tavg_id_HDIFT,        &
+      tavg_id_HDIFS,        &
+      tavg_id_ADVT_ISOP,    &
+      tavg_id_ADVS_ISOP,    &
+      tavg_id_VNT_ISOP,     &
+      tavg_id_VNS_ISOP,     &
       tavg_loc_ADVT,        &
       tavg_loc_ADVS ,       &
       tavg_loc_VNT,         &
@@ -4855,7 +4963,15 @@
       tavg_loc_ADVT_ISOP,   &
       tavg_loc_ADVS_ISOP,   &
       tavg_loc_VNT_ISOP,    &
-      tavg_loc_VNS_ISOP    
+      tavg_loc_VNS_ISOP,    &
+      tavg_id_ADVT_SUBM,    &
+      tavg_id_ADVS_SUBM,    &
+      tavg_id_VNT_SUBM,     &
+      tavg_id_VNS_SUBM,     &
+      tavg_loc_ADVT_SUBM,   &
+      tavg_loc_ADVS_SUBM,   &
+      tavg_loc_VNT_SUBM,    &
+      tavg_loc_VNS_SUBM    
 
    integer (int_kind) ::    &
       indx1,                &! index
@@ -4863,10 +4979,13 @@
       indx3,                &! index
       indx4,                &! index
       indx5,                &! index
+      indx6,                &
+      indx7,                &
       n
 
    logical (log_kind) ::  &
-      ldiag_gm_bolus         ! local logical for diag_gm_bolus
+      ldiag_gm_bolus,     &  ! local logical for diag_gm_bolus
+      lsubmeso               ! local logical for submesoscale_mixing
 
    if (.not. (n_heat_trans .or. n_salt_trans)) return
 
@@ -4876,15 +4995,19 @@
    ldiag_gm_bolus = .false.
    if ( registry_match('diag_gm_bolus') )  ldiag_gm_bolus = .true.
 
+   lsubmeso = .false.
+   if ( registry_match('init_submeso') )   lsubmeso = .true.
+
    tavg_loc_ADVT      = 0 ; tavg_loc_ADVS      = 0
    tavg_loc_VNT       = 0 ; tavg_loc_VNS       = 0
    tavg_loc_HDIFT     = 0 ; tavg_loc_HDIFS     = 0
    tavg_loc_ADVT_ISOP = 0 ; tavg_loc_ADVS_ISOP = 0
    tavg_loc_VNT_ISOP  = 0 ; tavg_loc_VNS_ISOP  = 0
+   tavg_loc_ADVT_SUBM = 0 ; tavg_loc_ADVS_SUBM = 0
+   tavg_loc_VNT_SUBM  = 0 ; tavg_loc_VNS_SUBM  = 0
  
 
-   !*** error checking
-
+  !*** error checking 
    tavg_loc_ADVT   = avail_tavg_fields(tavg_id('ADVT' ))%buf_loc
    tavg_loc_ADVS   = avail_tavg_fields(tavg_id('ADVS' ))%buf_loc
    tavg_loc_VNT    = avail_tavg_fields(tavg_id('VNT'  ))%buf_loc
@@ -4909,13 +5032,13 @@
    endif
 
    if (ldiag_gm_bolus) then
- 
+       !*** note: error checking for tavg_id is done in POP_checks
        tavg_loc_ADVT_ISOP = avail_tavg_fields(tavg_id('ADVT_ISOP'))%buf_loc
        tavg_loc_ADVS_ISOP = avail_tavg_fields(tavg_id('ADVS_ISOP'))%buf_loc
        tavg_loc_VNT_ISOP  = avail_tavg_fields(tavg_id('VNT_ISOP') )%buf_loc
        tavg_loc_VNS_ISOP  = avail_tavg_fields(tavg_id('VNS_ISOP') )%buf_loc
 
-       !*** error checking
+       !*** error checking 
        if (tavg_loc_ADVT_ISOP  == 0 .or. tavg_loc_ADVS_ISOP  == 0 .or.  &
            tavg_loc_VNT_ISOP   == 0 .or. tavg_loc_VNS_ISOP   == 0 ) then
           call document ('tavg_transport_ccsm', &
@@ -4927,6 +5050,25 @@
             call exit_POP (SigAbort, 'Fatal error')
        endif ! tavg_id testing
    endif ! ldiag_gm_bolus
+
+   if (lsubmeso) then
+       tavg_loc_ADVT_SUBM = avail_tavg_fields(tavg_id('ADVT_SUBM'))%buf_loc
+       tavg_loc_ADVS_SUBM = avail_tavg_fields(tavg_id('ADVS_SUBM'))%buf_loc
+       tavg_loc_VNT_SUBM  = avail_tavg_fields(tavg_id('VNT_SUBM' ))%buf_loc
+       tavg_loc_VNS_SUBM  = avail_tavg_fields(tavg_id('VNS_SUBM' ))%buf_loc
+
+       !*** error checking
+       if (tavg_loc_ADVT_SUBM  == 0 .or. tavg_loc_ADVS_SUBM  == 0 .or.  &
+           tavg_loc_VNT_SUBM   == 0 .or. tavg_loc_VNS_SUBM   == 0 ) then
+          call document ('tavg_transport_ccsm', &
+            'Error in heat/salt transport diags: none of the following should be zero')
+          call document ('tavg_transport_ccsm', 'tavg_loc_ADVT_SUBM',  tavg_loc_ADVT_SUBM)
+          call document ('tavg_transport_ccsm', 'tavg_loc_ADVS_SUBM',  tavg_loc_ADVS_SUBM)
+          call document ('tavg_transport_ccsm', 'tavg_loc_VNT_SUBM ',  tavg_loc_VNT_SUBM )
+          call document ('tavg_transport_ccsm', 'tavg_loc_VNS_SUBM ',  tavg_loc_VNS_SUBM )
+            call exit_POP (SigAbort, 'Fatal error')
+       endif ! tavg_id testing
+   endif ! lsubmeso
 
   !*** define heat transport diagnostics fields and dimensions
   !*** note that this call fills avail_tavg_nstd_fields
@@ -4969,7 +5111,11 @@
      if (nsteps_run <= 1 .and. my_task == master_task) then
         write(stdout,*)  &
         'WARNING: transport diagnostics are not computed if tavg_freq_iopt == freq_opt_nstep'
+#ifdef CCSMCOUPLED
         call shr_sys_flush(stdout)
+#else
+        call POP_IOUnitsFlush(POP_stdout)
+#endif
      endif
      return
    endif
@@ -4985,6 +5131,10 @@
            indx4 = tavg_loc_ADVT_ISOP
            indx5 = tavg_loc_VNT_ISOP
          endif
+         if ( lsubmeso ) then
+           indx6 = tavg_loc_ADVT_SUBM
+           indx7 = tavg_loc_VNT_SUBM
+         endif
        case(2)
          indx1 = tavg_loc_ADVS
          indx2 = tavg_loc_HDIFS
@@ -4993,17 +5143,35 @@
            indx4 = tavg_loc_ADVS_ISOP
            indx5 = tavg_loc_VNS_ISOP
          endif
+         if ( lsubmeso ) then
+           indx6 = tavg_loc_ADVS_SUBM
+           indx7 = tavg_loc_VNS_SUBM
+         endif
      end select
  
- 
- 
-     if ( ldiag_gm_bolus ) then
+     if ( ldiag_gm_bolus  .and.  lsubmeso ) then
        call compute_tracer_transports (n,       &
                    TAVG_BUF_2D(:,:,:,  indx1),  &
                    TAVG_BUF_2D(:,:,:,  indx2),  &
                    TAVG_BUF_3D(:,:,:,:,indx3),  &
            ADV_I = TAVG_BUF_2D(:,:,:,  indx4),  &
-           FN_I  = TAVG_BUF_3D(:,:,:,:,indx5) )
+           FN_I  = TAVG_BUF_3D(:,:,:,:,indx5),  &
+          ADV_SM = TAVG_BUF_2D(:,:,:,  indx6),  &
+           FN_SM = TAVG_BUF_3D(:,:,:,:,indx7))
+     elseif ( ldiag_gm_bolus  .and.  .not.lsubmeso ) then
+       call compute_tracer_transports (n,       &
+                   TAVG_BUF_2D(:,:,:,  indx1),  &
+                   TAVG_BUF_2D(:,:,:,  indx2),  &
+                   TAVG_BUF_3D(:,:,:,:,indx3),  &
+           ADV_I = TAVG_BUF_2D(:,:,:,  indx4),  &
+           FN_I  = TAVG_BUF_3D(:,:,:,:,indx5))
+     elseif ( .not.ldiag_gm_bolus  .and.  lsubmeso ) then
+       call compute_tracer_transports (n,       &
+                   TAVG_BUF_2D(:,:,:,  indx1),  &
+                   TAVG_BUF_2D(:,:,:,  indx2),  &
+                   TAVG_BUF_3D(:,:,:,:,indx3),  &
+          ADV_SM = TAVG_BUF_2D(:,:,:,  indx6),  &
+           FN_SM = TAVG_BUF_3D(:,:,:,:,indx7))
      else
        call compute_tracer_transports (n,       &
                    TAVG_BUF_2D(:,:,:,  indx1),  &
@@ -5011,14 +5179,14 @@
                    TAVG_BUF_3D(:,:,:,:,indx3))
      endif
    enddo
-
-   !*** stop timer
-   call timer_stop(timer_tavg_ccsm_diags_trans)
  
+  !*** stop timer
+   call timer_stop(timer_tavg_ccsm_diags_trans)
 !-----------------------------------------------------------------------
 !EOC
 
   end subroutine tavg_transport_ccsm
+
 
 !***********************************************************************
 !BOP
@@ -5119,9 +5287,10 @@
    do n_reg=1,n_reg_0D
      SAVG_0D_AREA(n_reg) = global_sum(TAREA(:,:,:),distrb_clinic,  &
                               field_loc_center,SAVG_0D_MASK(:,:,:,n_reg) )
-     if ( SAVG_0D_AREA(n_reg) == c0 ) &
+     if ( SAVG_0D_AREA(n_reg) == c0 ) then
        call exit_POP(sigAbort,  &
           'ERROR in tavg_init_local_spatial_avg: SAVG_0D_AREA is zero.')
+     endif
    enddo
 
 !-----------------------------------------------------------------------

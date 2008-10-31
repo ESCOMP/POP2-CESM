@@ -16,15 +16,15 @@
 !   For chlorophyll based absorption, transmission from surface 
 !   (z=0) to level z = A_1 exp(-B_1 z) + A_2 exp(-B_2 z) 
 !
-!   A,B coefficients from Table 1a, J. Carter Ohlmann, 2002, "Ocean Radiant 
-!   Heating in Climate Models" Journal of Climate, 2003, in press. 
+!   A,B coefficients from Table 1a, J. Carter Ohlmann, 2002, Ocean Radiant 
+!   Heating in Climate Models, Journal of Climate, 2003, in press. 
 !   Chlorophyll concentration in mg/m^3. Values for chl < .01 mg/m^3 are 
 !   linear extrpolations from two smallest chlorophyll amounts. Values 
 !   over 3 mg/m^3 up to 10 mg/m^3 were provided by Carter specifically 
 !   for this application. Chlorophyll amounts limited from .001 to 10 mg/m^3
 !
 !   Note that A,B values are relative to the net shortwave flux just below 
-!   the ocean surface [E_d(0-) in Carter's notation]. This means ocean
+!   the ocean surface [E_d(0-) in Carter notation]. This means ocean
 !   albedo effects have been accounted for (i.e. E_d(0-) = E_d(0+)(1-alpha_o)
 !   where E_d(0+) is the down incident shortwave flux at the ocean surface
 !   and alpha_o is the ocean albedo).
@@ -43,6 +43,9 @@
 
 ! !USES:
 
+   use POP_KindsMod
+   use POP_IOUnitsMod
+
    use kinds_mod
    use domain_size
    use domain
@@ -56,7 +59,6 @@
    use forcing_shf
    use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
    use exit_mod
-   use shr_sys_mod
    use registry, only: registry_match
 
    implicit none
@@ -695,7 +697,7 @@
    if (my_task.eq.master_task) then
      write(stdout,blank_fmt)
      write(stdout,*) ' Chlorophyll transmission table computed'
-     call shr_sys_flush(stdout)
+     call POP_IOUnitsFlush(POP_stdout)
    endif
 
 

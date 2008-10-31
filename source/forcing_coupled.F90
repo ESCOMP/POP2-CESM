@@ -16,6 +16,13 @@
 !
 ! !USES:
  
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_CommMod
+   use POP_FieldMod
+   use POP_GridHorzMod
+   use POP_HaloMod
+
    use kinds_mod
    use blocks, only: nx_block, ny_block, block, get_block
    use domain_size
@@ -24,7 +31,6 @@
 
    use communicate
    use global_reductions
-   use boundary
    use constants
    use io
    use time_management
@@ -42,7 +48,6 @@
    use ms_balance
    use tavg
    use registry
-   use shr_sys_mod
    use named_field_mod, only: named_field_register, named_field_get_index, &
        named_field_set, named_field_get
    use forcing_fields
@@ -64,7 +69,7 @@
       ncouple_per_day       ! num of coupler comms per day
 
 
-#if coupled
+#if CCSMCOUPLED
 !-----------------------------------------------------------------------
 !
 !  ids for tavg diagnostics computed from forcing_coupled
@@ -77,11 +82,13 @@
       tavg_SNOW_F,       &! tavg id for snow          flux
       tavg_MELT_F,       &! tavg id for melt          flux
       tavg_ROFF_F,       &! tavg id for river runoff  flux
+      tavg_IOFF_F,       &! tavg id for ice   runoff  flux due to land-model snow capping
       tavg_SALT_F,       &! tavg id for salt          flux
       tavg_SENH_F,       &! tavg id for sensible heat flux
       tavg_LWUP_F,       &! tavg id for longwave heat flux up
       tavg_LWDN_F,       &! tavg id for longwave heat flux dn
-      tavg_MELTH_F        ! tavg id for melt     heat flux
+      tavg_MELTH_F,      &! tavg id for melt     heat flux
+      tavg_IFRAC          ! tavg id for ice fraction
 
 
    integer (int_kind) ::   &
@@ -94,17 +101,39 @@
 
 !-----------------------------------------------------------------------
 !
-!  diurnal cycle switch for the net shortwave heat flux
-!
-!     qsw_diurnal_cycle = .T.  diurnal cycle is ON
-!                       = .F.  diurnal cycle is OFF
+!  Options for distributing net shortwave heat flux over a coupling
+!  interval. All options preserve time-integrated flux.
 !
 !-----------------------------------------------------------------------
 
-   logical (log_kind) :: qsw_diurnal_cycle
+   integer (int_kind), parameter :: &
+      qsw_distrb_iopt_const   = 1, &! qsw constant over a coupling interval
+      qsw_distrb_iopt_12hr    = 2, &! qsw smoothly spread over 12 hour window
+                                    !    only works for daily coupling
+      qsw_distrb_iopt_cosz    = 3   ! qsw proportional to cos of solar zenith angle
 
-      real (r8), dimension(:), allocatable ::  &
-        diurnal_cycle_factor
+   integer (int_kind) :: qsw_distrb_iopt
+
+   real (r8), dimension(:), allocatable ::  &
+      qsw_12hr_factor
+
+!-----------------------------------------------------------------------
+!  variables for qsw cosz option
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: timer_compute_cosz
+
+   real (r8) ::  &
+      tday00_interval_beg,    & ! model time at beginning of coupling interval
+      orb_eccen,              & ! Earth eccentricity
+      orb_obliqr,             & ! Earth Obliquity
+      orb_lambm0,             & ! longitude of perihelion at v-equinox
+      orb_mvelpp                ! Earths Moving vernal equinox of orbit +pi
+
+   real (r8), dimension(:,:,:), allocatable :: &
+      QSW_COSZ_WGHT,      & ! weights
+      QSW_COSZ_WGHT_NORM    ! normalization for QSW_COSZ_WGHT
+
  
    integer (int_kind), private ::   &
       cpl_ts                ! flag id for coupled_ts flag
@@ -143,10 +172,9 @@
 !-----------------------------------------------------------------------
 
    character (char_len) ::  &
-      coupled_freq_opt
+      coupled_freq_opt, qsw_distrb_opt
 
-   namelist /coupled_nml/ coupled_freq_opt, coupled_freq,  &
-                          qsw_diurnal_cycle
+   namelist /coupled_nml/ coupled_freq_opt, coupled_freq, qsw_distrb_opt
 
    integer (int_kind) ::   &
       k, iblock, nsend,    &
@@ -157,14 +185,14 @@
 
 !-----------------------------------------------------------------------
 !
-!  variables associated with the solar diurnal cycle
+!  variables associated with qsw 12hr
 !
 !-----------------------------------------------------------------------
 
    real (r8) ::  &
       time_for_forcing,   &! time of day for surface forcing
       frac_day_forcing,   &! fraction of day based on time_for_forcing
-      cycle_function,     &! intermediate result of the diurnal cycle function
+      cycle_function,     &! intermediate result
       weight_forcing,     &! forcing weights
       sum_forcing          ! sum of forcing weights
 
@@ -185,7 +213,7 @@
    coupled_freq_opt  = 'never'
    coupled_freq_iopt = freq_opt_never
    coupled_freq      = 100000
-   qsw_diurnal_cycle = .false.
+   qsw_distrb_opt    = 'const'
       
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -265,12 +293,24 @@
           coupled_freq_iopt = -2000
         end select
 
+        select case (qsw_distrb_opt)
+        case ('const')
+          qsw_distrb_iopt = qsw_distrb_iopt_const
+        case ('12hr')
+          qsw_distrb_iopt = qsw_distrb_iopt_12hr
+        case ('cosz')
+          qsw_distrb_iopt = qsw_distrb_iopt_cosz
+          call register_string('qsw_distrb_iopt_cosz')
+        case default
+          qsw_distrb_iopt = -1000
+        end select
+
       endif
             
       call broadcast_scalar(coupled_freq_iopt, master_task)
       call broadcast_scalar(coupled_freq     , master_task)
-      call broadcast_scalar(qsw_diurnal_cycle, master_task)
-      call broadcast_scalar(ncouple_per_day,   master_task)
+      call broadcast_scalar(qsw_distrb_iopt  , master_task)
+      call broadcast_scalar(ncouple_per_day  , master_task)
 
       if (coupled_freq_iopt == -1000) then
         call exit_POP(sigAbort,  &
@@ -285,35 +325,42 @@
        'ERROR: inconsistency between lcoupled and coupled_freq_iopt settings')
       endif
 
-!-----------------------------------------------------------------------
-!
-!  check consistency of the qsw_diurnal_cycle option with various
-!  time manager options
-!
-!-----------------------------------------------------------------------
-
-      if ( qsw_diurnal_cycle ) then
-        if ( tmix_iopt /= tmix_avgfit )  &
-          call exit_POP(sigAbort,   &
-               'ERROR: time_mix_opt must be set to avgfit for solar diurnal cycle') 
-
-        if ( dttxcel(1) /= c1  .or.  dtuxcel /= c1 )   &
-          call exit_POP(sigAbort,   &
-               'ERROR: using the specified accelerated integration '/& 
-            &/ ' technique may not be appropriate for solar diurnal cycle')
+      if (qsw_distrb_iopt == -1000) then
+        call exit_POP(sigAbort,  &
+                 'ERROR: Unknown option for qsw_distrb_opt')
       endif
 
 !-----------------------------------------------------------------------
 !
-!  allocate and compute the short wave heat flux multiplier for the 
-!  diurnal cycle
+!  check consistency of the qsw_distrb_iopt option with various
+!  time manager options
 !
 !-----------------------------------------------------------------------
 
-      allocate ( diurnal_cycle_factor(nsteps_per_interval))
+     if ( (qsw_distrb_iopt == qsw_distrb_iopt_12hr) .or. &
+           (qsw_distrb_iopt == qsw_distrb_iopt_cosz) ) then
+        if ( tmix_iopt /= tmix_avgfit )  &
+          call exit_POP(sigAbort,   &
+               'ERROR: time_mix_opt must be set to avgfit for qsw_distrb_opt '/&
+            &/ 'of 12hr or cosz')
+
+        if ( dttxcel(1) /= c1  .or.  dtuxcel /= c1 )   &
+          call exit_POP(sigAbort,   &
+               'ERROR: using the specified accelerated integration '/&
+            &/ 'technique may not be appropriate for qsw_distrb_opt '/&
+            &/ 'of 12hr or cosz')
+      endif
+
+!-----------------------------------------------------------------------
+!
+!  allocate and compute the short wave heat flux multiplier for qsw 12hr
+!
+!-----------------------------------------------------------------------
+
+      allocate ( qsw_12hr_factor(nsteps_per_interval))
       
-      diurnal_cycle_factor = c1
-      if ( qsw_diurnal_cycle ) then
+      qsw_12hr_factor = c1
+      if ( qsw_distrb_iopt == qsw_distrb_iopt_12hr ) then
 
 !       mimic a day
 
@@ -324,7 +371,7 @@
         do n=1,nsteps_per_interval
           frac_day_forcing = time_for_forcing / seconds_in_day 
           cycle_function = cos( pi * ( c2 * frac_day_forcing - c1 ) )
-          diurnal_cycle_factor(n) = c2 * ( cycle_function      &
+          qsw_12hr_factor(n) = c2 * (      cycle_function      &
                                      + abs(cycle_function) )   &
                                      * cycle_function
           weight_forcing = c1
@@ -333,11 +380,11 @@
             weight_forcing = p5
           time_for_forcing = time_for_forcing + weight_forcing * dt(1)
           sum_forcing = sum_forcing   &
-                    + weight_forcing * dt(1) * diurnal_cycle_factor(n)
+                    + weight_forcing * dt(1) * qsw_12hr_factor(n)
           count_forcing = count_forcing + 1
         enddo
 
-        diurnal_cycle_factor = diurnal_cycle_factor * seconds_in_day   &
+        qsw_12hr_factor = qsw_12hr_factor * seconds_in_day   &
                               / sum_forcing
 
 !       check the final integral
@@ -351,19 +398,30 @@
             mod(count_forcing,time_mix_freq) == 0 )  &
             weight_forcing = p5
           sum_forcing = sum_forcing  &
-                    + weight_forcing * dt(1) * diurnal_cycle_factor(n)
+                    + weight_forcing * dt(1) * qsw_12hr_factor(n)
           count_forcing = count_forcing + 1
         enddo
 
         if ( sum_forcing < (seconds_in_day - 1.0e-5_r8)  .or.  &
              sum_forcing > (seconds_in_day + 1.0e-5_r8) )      &
           call exit_POP (sigAbort, &
-              'ERROR: qsw diurnal cycle temporal integral is incorrect')
+              'ERROR: qsw 12hr temporal integral is incorrect')
 
       endif
-      
 
-#if coupled
+!-----------------------------------------------------------------------
+!
+!  allocate space for qsw cosz fields
+!
+!-----------------------------------------------------------------------
+
+      if ( qsw_distrb_iopt == qsw_distrb_iopt_cosz ) then
+        allocate( &
+          QSW_COSZ_WGHT(nx_block,ny_block,nblocks_clinic), &
+          QSW_COSZ_WGHT_NORM(nx_block,ny_block,nblocks_clinic))
+      endif
+
+#if CCSMCOUPLED
 
 !-----------------------------------------------------------------------
 !
@@ -392,6 +450,10 @@
                           long_name='Runoff Flux from Coupler',                &
                           units='kg/m^2/s', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_IOFF_F,'IOFF_F',2,                              &
+                          long_name='Ice Runoff Flux from Coupler due to Land-Model Snow Capping',            &
+                          units='kg/m^2/s', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_SALT_F,'SALT_F',2,                              &
                           long_name='Salt Flux from Coupler (kg of salt/m^2/s)',&
                           units='kg/m^2/s', grid_loc='2110',                   &
@@ -411,6 +473,10 @@
    call define_tavg_field(tavg_MELTH_F,'MELTH_F',2,                            &
                           long_name='Melt Heat Flux from Coupler',             &
                           units='watt/m^2', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_IFRAC,'IFRAC',2,                                &
+                          long_name='Ice Fraction from Coupler',               &
+                          units='fraction', grid_loc='2110',                   &
                           coordinates='TLONG TLAT time')
 
 
@@ -444,7 +510,10 @@
                                          distrb_clinic%nprocs)
    call get_timer (timer_send_to_recv , 'SEND to RECV', 1, &
                                          distrb_clinic%nprocs)
-
+   if ( qsw_distrb_iopt == qsw_distrb_iopt_cosz ) then
+      call get_timer (timer_compute_cosz, 'COMPUTE_COSZ', nblocks_clinic, &
+                                          distrb_clinic%nprocs)
+   endif
 !-----------------------------------------------------------------------
 !
 !  register this subroutine
@@ -479,7 +548,7 @@
 !EOP
 !BOC
 
-#if coupled
+#if CCSMCOUPLED
 !-----------------------------------------------------------------------
 !
 !  local variables
@@ -611,7 +680,7 @@
 !  from the coupler. It combines fluxes received from the coupler into 
 !  the STF array and converts from W/m**2 into model units. It also 
 !  balances salt/freshwater in marginal seas and sets SHF_QSW_RAW 
-!  and SHF_COMP
+!  and SHF_COMP. Compute QSW_COSZ_WGHT_NORM if needed.
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -626,8 +695,10 @@
 !
 !-----------------------------------------------------------------------
 
-#if coupled
-   integer (int_kind) :: n, iblock
+#if CCSMCOUPLED
+   integer (int_kind) :: n, nn, iblock
+
+   real (r8) :: cosz_day ! time where cosz is computed
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::   &
       WORK1, WORK2        ! local work space
@@ -650,7 +721,7 @@
       STF(:,:,1,iblock) = (EVAP_F(:,:,iblock)*latent_heat_vapor             &
                            + SENH_F(:,:,iblock) + LWUP_F(:,:,iblock)        &
                            + LWDN_F(:,:,iblock) + MELTH_F(:,:,iblock)       &
-                           - SNOW_F(:,:,iblock) * latent_heat_fusion_mks)*  &
+                           -(SNOW_F(:,:,iblock)+IOFF_F(:,:,iblock)) * latent_heat_fusion_mks)*  &
                              RCALCT(:,:,iblock)*hflux_factor 
    enddo
    !$OMP END PARALLEL DO
@@ -674,7 +745,7 @@
 
          FW(:,:,iblock) = RCALCT(:,:,iblock) * &
             ( PREC_F(:,:,iblock)+EVAP_F(:,:,iblock)  &
-             +ROFF_F(:,:,iblock))*fwmass_to_fwflux
+             +ROFF_F(:,:,iblock)+IOFF_F(:,:,iblock))*fwmass_to_fwflux
 
          WORK1(:,:,iblock) = RCALCT(:,:,iblock) *   &
             MELT_F(:,:,iblock) * fwmass_to_fwflux
@@ -715,7 +786,7 @@
 
          TFW(:,:,2,iblock) =  RCALCT(:,:,iblock)*MELT_F(:,:,iblock)*  &
                          fwmass_to_fwflux*WORK1(:,:,iblock)
-           ! + PREC_F(:,:,iblock)*c0 + EVAP_F(:,:,iblock)*c0 + ROFF_F(:,:,iblock)*c0
+           ! + PREC_F(:,:,iblock)*c0 + EVAP_F(:,:,iblock)*c0 + ROFF_F(:,:,iblock)*c0 + IOFF_F(:,:,iblock)*c0
 
          do n=3,nt
             TFW(:,:,n,iblock) = c0  ! no additional tracers in fresh water
@@ -737,7 +808,7 @@
       do iblock = 1, nblocks_clinic
         STF(:,:,2,iblock) = RCALCT(:,:,iblock)*(  &
                      (PREC_F(:,:,iblock)+EVAP_F(:,:,iblock)+  &
-                      MELT_F(:,:,iblock)+ROFF_F(:,:,iblock))*salinity_factor   &
+                      MELT_F(:,:,iblock)+ROFF_F(:,:,iblock)+IOFF_F(:,:,iblock))*salinity_factor   &
                     + SALT_F(:,:,iblock)*sflux_factor)  
       enddo
       !$OMP END PARALLEL DO
@@ -749,7 +820,7 @@
 !-----------------------------------------------------------------------
  
       if  (lms_balance .and. sfwf_formulation /= 'partially-coupled' ) then
-       call ms_balancing (STF(:,:,2,:),EVAP_F, PREC_F, MELT_F,ROFF_F,   &
+       call ms_balancing (STF(:,:,2,:),EVAP_F, PREC_F, MELT_F,ROFF_F,IOFF_F,   &
                           SALT_F, QFLUX, 'salt')
       endif
  
@@ -804,8 +875,46 @@
 
     enddo
     !$OMP END PARALLEL DO
- 
 
+!-----------------------------------------------------------------------
+!  Compute QSW_COSZ_WGHT_NORM.
+!-----------------------------------------------------------------------
+
+    if ( qsw_distrb_iopt == qsw_distrb_iopt_cosz ) then
+       tday00_interval_beg = tday00
+
+       !$OMP PARALLEL DO PRIVATE(iblock,nn,cosz_day)
+       do iblock = 1, nblocks_clinic
+
+          QSW_COSZ_WGHT_NORM(:,:,iblock) = c0
+
+          do nn = 1, nsteps_per_interval
+             cosz_day = tday00_interval_beg + interval_cum_dayfrac(nn-1) &
+                - interval_cum_dayfrac(nsteps_per_interval)
+
+             call compute_cosz(cosz_day, iblock, QSW_COSZ_WGHT(:,:,iblock))
+
+             if (interval_avg_ts(nn)) then
+                QSW_COSZ_WGHT_NORM(:,:,iblock) = &
+                   QSW_COSZ_WGHT_NORM(:,:,iblock) &
+                   + p5 * QSW_COSZ_WGHT(:,:,iblock)
+             else
+                QSW_COSZ_WGHT_NORM(:,:,iblock) = &
+                   QSW_COSZ_WGHT_NORM(:,:,iblock) &
+                   + QSW_COSZ_WGHT(:,:,iblock)
+             endif
+
+          enddo
+
+          where (QSW_COSZ_WGHT_NORM(:,:,iblock) > c0) &
+             QSW_COSZ_WGHT_NORM(:,:,iblock) = &
+                (fullsteps_per_interval + p5 * halfsteps_per_interval) &
+                / QSW_COSZ_WGHT_NORM(:,:,iblock)
+
+       enddo
+       !$OMP END PARALLEL DO
+    endif
+ 
 #endif
 !-----------------------------------------------------------------------
 !EOC
@@ -853,7 +962,7 @@
      iblock,             &! local address of current block
      n                    ! index
 
-#if coupled
+#if CCSMCOUPLED
   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
      WORK1, WORK2        ! local work arrays
 
@@ -895,7 +1004,7 @@
          enddo
          !$OMP END PARALLEL DO
 
-         call ms_balancing (WORK2, EVAP_F,PREC_F, MELT_F, ROFF_F,    &
+         call ms_balancing (WORK2, EVAP_F,PREC_F, MELT_F, ROFF_F, IOFF_F,   &
                             SALT_F, QFLUX, 'salt', ICEOCN_F=WORK1)
 
          !$OMP PARALLEL DO PRIVATE(iblock,WORK2)
@@ -948,7 +1057,7 @@
 
 !EOP
 !BOC
-#if coupled
+#if CCSMCOUPLED
 !-----------------------------------------------------------------------
 !
 !  local variables
@@ -1002,6 +1111,11 @@
                                     tavg_ROFF_F,iblock,1)
       endif
 
+      if (tavg_requested(tavg_IOFF_F)) then
+         call accumulate_tavg_field(IOFF_F(:,:,iblock), &
+                                    tavg_IOFF_F,iblock,1)
+      endif
+
       if (tavg_requested(tavg_SALT_F)) then
          call accumulate_tavg_field(SALT_F(:,:,iblock), &
                                     tavg_SALT_F,iblock,1)
@@ -1027,6 +1141,11 @@
                                     tavg_MELTH_F,iblock,1)
       endif
 
+      if (tavg_requested(tavg_IFRAC)) then
+         call accumulate_tavg_field(IFRAC(:,:,iblock), &
+                                    tavg_IFRAC,iblock,1)
+      endif
+
 
 
    end do
@@ -1045,7 +1164,7 @@
 ! !IROUTINE: update_ghost_cells_coupler_fluxes
 ! !INTERFACE:
 
-   subroutine update_ghost_cells_coupler_fluxes
+   subroutine update_ghost_cells_coupler_fluxes(errorCode)
 
 ! !DESCRIPTION:
 !  This routine accumulates tavg diagnostics related to forcing_coupled
@@ -1054,45 +1173,185 @@
 ! !REVISION HISTORY:
 !  same as module
 
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: errorCode  
+
 !EOP
 !BOC
-#if coupled
 !-----------------------------------------------------------------------
 !
-!  local variables
+!  update halos for all coupler fields
 !
 !-----------------------------------------------------------------------
 
-   call update_ghost_cells(SNOW_F, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
-   call update_ghost_cells(PREC_F, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
-   call update_ghost_cells(EVAP_F, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
-   call update_ghost_cells(MELT_F, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
-   call update_ghost_cells(ROFF_F, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
-   call update_ghost_cells(SALT_F, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
+   errorCode = POP_Success
 
-   call update_ghost_cells(SENH_F, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
-   call update_ghost_cells(LWUP_F, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
-   call update_ghost_cells(LWDN_F, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
-   call update_ghost_cells(MELTH_F, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
-   call update_ghost_cells(SHF_QSW, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
+#if CCSMCOUPLED
+   call POP_HaloUpdate(SNOW_F,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
 
-   call update_ghost_cells(IFRAC, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
-   call update_ghost_cells(ATM_PRESS, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
-   call update_ghost_cells(U10_SQR, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating SNOW_F')
+      return
+   endif
+
+   call POP_HaloUpdate(PREC_F,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating PREC_F')
+      return
+   endif
+
+   call POP_HaloUpdate(EVAP_F,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating EVAP_F')
+      return
+   endif
+
+   call POP_HaloUpdate(MELT_F,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating MELT_F')
+      return
+   endif
+
+   call POP_HaloUpdate(ROFF_F,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating ROFF_F')
+      return
+   endif
+
+   call POP_HaloUpdate(IOFF_F,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating IOFF_F')
+      return
+   endif
+
+   call POP_HaloUpdate(SALT_F,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating SALT_F')
+      return
+   endif
+
+   call POP_HaloUpdate(SENH_F,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating SENH_F')
+      return
+   endif
+
+   call POP_HaloUpdate(LWUP_F,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating LWUP_F')
+      return
+   endif
+
+   call POP_HaloUpdate(LWDN_F,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating LWDN_F')
+      return
+   endif
+
+   call POP_HaloUpdate(MELTH_F,POP_haloClinic,         &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating MELTH_F')
+      return
+   endif
+
+   call POP_HaloUpdate(SHF_QSW,POP_haloClinic,         &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating SHF_QSW')
+      return
+   endif
+
+   call POP_HaloUpdate(IFRAC,POP_haloClinic,           &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating IFRAC')
+      return
+   endif
+
+   call POP_HaloUpdate(ATM_PRESS,POP_haloClinic,       &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating ATM_PRESS')
+      return
+   endif
+
+   call POP_HaloUpdate(U10_SQR,POP_haloClinic,         &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating U10_SQR')
+      return
+   endif
 
 #endif
 !-----------------------------------------------------------------------
@@ -1125,7 +1384,7 @@
 
 !EOP
 !BOC
-#if coupled
+#if CCSMCOUPLED
 !-----------------------------------------------------------------------
 !
 !  local variables
@@ -1159,6 +1418,74 @@
 !EOC
 
  end subroutine rotate_wind_stress
+
+!***********************************************************************
+!BOP
+! !IROUTINE: compute_cosz
+! !INTERFACE:
+
+ subroutine compute_cosz(tday, iblock, COSZ)
+
+! !DESCRIPTION:
+!  This subroutine computes cos of the solar zenith angle.
+!  Negative values are set to zero.
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !USES:
+
+   use shr_orb_mod, only: shr_orb_decl, shr_orb_cosz
+
+! !INPUT PARAMETERS:
+
+   real (r8), intent(in) :: tday
+   integer (int_kind), intent(in) :: iblock
+
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(:,:), intent(out) :: COSZ
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) ::   &
+      i, j            ! loop indices
+
+   real (r8) :: &
+      calday,       & ! Calendar day, including fraction
+      delta,        & ! Solar declination angle in rad
+      eccf            ! Earth-sun distance factor (ie. (1/r)**2)
+
+!-----------------------------------------------------------------------
+
+   call timer_start(timer_compute_cosz, block_id=iblock)
+
+!  shr_orb code assumes Jan 1 = calday 1, unlike Jan 1 = tday 0
+   calday = tday + c1
+
+   call shr_orb_decl(calday, orb_eccen, orb_mvelpp, orb_lambm0, &
+                     orb_obliqr, delta, eccf)
+
+   do j = 1, ny_block
+      do i = 1, nx_block
+         COSZ(i,j) = shr_orb_cosz(calday, TLAT(i,j,iblock), &
+                                  TLON(i,j,iblock), delta)
+         COSZ(i,j) = max(c0, COSZ(i,j))
+      enddo
+   enddo
+
+   call timer_stop(timer_compute_cosz, block_id=iblock)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine compute_cosz
 
 !***********************************************************************
 

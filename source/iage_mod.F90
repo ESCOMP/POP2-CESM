@@ -12,6 +12,10 @@ module iage_mod
 
 ! !USES:
 
+   use POP_KindsMod
+   use POP_IOUnitsMod
+   use POP_ErrorMod
+
    use blocks, only: nx_block, ny_block
    use domain_size, only: max_blocks_clinic, km
    use domain, only: nblocks_clinic
@@ -23,7 +27,6 @@ module iage_mod
    use io, only: data_set
    use io_types, only: stdout, nml_in, nml_filename
    use io_tools, only: document
-   use shr_sys_mod, only: shr_sys_flush
    use passive_tracer_tools, only: ind_name_pair, tracer_read, &
        rest_read_tracer_block, file_read_tracer_block
    implicit none
@@ -71,11 +74,11 @@ contains
 ! !INTERFACE:
 
  subroutine iage_init(init_ts_file_fmt, read_restart_filename, &
-                      tracer_d_module, TRACER_MODULE)
+                      tracer_d_module, TRACER_MODULE, errorCode)
 
 ! !DESCRIPTION:
 !  Initialize iage tracer module. This involves setting metadata, reading
-!  the module's namelist and setting initial conditions.
+!  the module namelist and setting initial conditions.
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -99,6 +102,11 @@ contains
 
    real(r8), dimension(nx_block,ny_block,km,iage_tracer_cnt,3,max_blocks_clinic), &
       intent(inout) :: TRACER_MODULE
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode            ! returned error code
 
 !EOP
 !BOC
@@ -137,6 +145,8 @@ contains
 !-----------------------------------------------------------------------
 !  initialize tracer_d values
 !-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    tracer_d_module(iage_ind)%short_name = 'IAGE'
    tracer_d_module(iage_ind)%long_name  = 'Ideal Age'
@@ -210,7 +220,7 @@ contains
           write(stdout,delim_fmt)
           write(stdout,*) ' Initial 3-d Ideal Age set to all zeros' 
           write(stdout,delim_fmt)
-          call shr_sys_flush(stdout)
+          call POP_IOUnitsFlush(POP_stdout)
       endif
        
    case ('restart', 'continue', 'branch', 'hybrid' )
@@ -249,7 +259,13 @@ contains
  
       if (n_topo_smooth > 0) then
          do k=1,km
-            call fill_points(k,TRACER_MODULE(:,:,k,1,curtime,:))
+            call fill_points(k,TRACER_MODULE(:,:,k,1,curtime,:), errorCode)
+
+            if (errorCode /= POP_Success) then
+               call POP_ErrorSet(errorCode, &
+                  'iage_init: error in fill_points for tracer 1')
+               return
+            endif
          enddo
       endif
 

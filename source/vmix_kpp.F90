@@ -29,7 +29,6 @@
    use exit_mod
    use sw_absorption
    use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
-   use shr_sys_mod
    use io_types, only: stdout
    use communicate, only: my_task, master_task
    use tidal_mixing, only: TIDAL_COEF, tidal_mix_max, ltidal_mixing
@@ -43,13 +42,16 @@
    public :: init_vmix_kpp,   &
              vmix_coeffs_kpp, &
              add_kpp_sources, &
-             smooth_hblt
+             smooth_hblt,     &
+             linertial
 
 ! !PUBLIC DATA MEMBERS:
 
    real (r8), dimension(:,:,:), allocatable, public :: & 
       HMXL,               &! mixed layer depth
-      KPP_HBLT             ! boundary layer depth
+      KPP_HBLT,           &! boundary layer depth
+      BOLUS_SP             ! scaled eddy-induced (bolus) speed used in inertial
+                           !  mixing parameterization
 
    real (r8), public ::   &
       bckgrnd_vdc2         ! variation in diffusivity
@@ -65,15 +67,17 @@
    real (r8) :: &
       rich_mix         ! coefficient for rich number term
 
-   real (r8), dimension(:), allocatable :: &
-      bckgrnd_vvc,         &! background value for viscosity
-      bckgrnd_vdc           ! background value for diffusivity
+   real (r8), dimension(:,:,:,:), allocatable :: &
+      bckgrnd_vvc,    &! background value for viscosity
+      bckgrnd_vdc      ! background value for diffusivity
 
    logical (log_kind) :: &
       lrich,        &! flag for computing Ri-dependent mixing
       ldbl_diff,    &! flag for computing double-diffusive mixing
       lshort_wave,  &! flag for computing short-wave forcing
-      lcheckekmo     ! check Ekman, Monin-Obhukov depth limit
+      lcheckekmo,   &! check Ekman, Monin-Obhukov depth limit
+      llangmuir,    &! flag for using Langmuir parameterization
+      linertial      ! flag for using inertial mixing parameterization
 
    integer (int_kind) :: & 
       num_v_smooth_Ri     ! num of times to vertically smooth Ri
@@ -83,6 +87,10 @@
 
    real (r8) ::           &
       Prandtl              ! Prandtl number
+
+   real (r8), dimension(:,:,:), allocatable :: &
+      FSTOKES        ! ratio of stokes velocity to ustar used in Langmuir 
+                     !  parameterization
 
 !-----------------------------------------------------------------------
 !
@@ -223,29 +231,44 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) ::  & 
+   integer (int_kind) ::  &
       k,                  &! local dummy index for vertical lvl
+      i, j, iblock,       &! local dummy indexes
       nml_error            ! namelist i/o error flag
 
    real (r8) ::           &
-      bckgrnd_vdc1,       &! diffusivity at depth dpth
+      bckgrnd_vdc1,       &! background diffusivity (Ledwell)  
+      bckgrnd_vdc_eq,     &! equatorial diffusivity (Gregg)
+      bckgrnd_vdc_psim,   &! Max. PSI induced diffusivity (MacKinnon)
+      bckgrnd_vdc_psin,   &! PSI diffusivity in northern hemisphere
+      bckgrnd_vdc_psis,   &! PSI diffusivity in southern hemisphere
+      bckgrnd_vdc_ban,    &! Banda Sea diffusivity (Gordon)
       bckgrnd_vdc_dpth,   &! depth at which diff equals vdc1
-      bckgrnd_vdc_linv     ! inverse length for transition region
+      bckgrnd_vdc_linv,   &! inverse length for transition region
+      tlatd,              &! tlat * radian  (degrees)
+      tlond                ! tlon * radian  (degrees)
+
+   logical (log_kind) ::  &
+      lhoriz_varying_bckgrnd
 
    namelist /vmix_kpp_nml/bckgrnd_vdc1, bckgrnd_vdc2,           &
+                          bckgrnd_vdc_eq, bckgrnd_vdc_psim,     &
+                          bckgrnd_vdc_ban,                      &
                           bckgrnd_vdc_dpth, bckgrnd_vdc_linv,   &
                           Prandtl, rich_mix,                    &
                           num_v_smooth_Ri, lrich, ldbl_diff,    &
-                          lshort_wave, lcheckekmo
+                          lshort_wave, lcheckekmo,              &
+                          lhoriz_varying_bckgrnd, llangmuir,    &
+                          linertial
 
    character (16), parameter :: &
-      fmt_real = '(a19,2x,1pe12.5)'
+      fmt_real = '(a30,2x,1pe12.5)'
 
    character (11), parameter :: &
-      fmt_log  = '(a19,2x,l7)'
+      fmt_log  = '(a30,2x,l7)'
 
    character (11), parameter :: &
-      fmt_int  = '(a19,2x,i5)'
+      fmt_int  = '(a30,2x,i5)'
 
    character (char_len) :: &
       string
@@ -256,17 +279,23 @@
 !
 !-----------------------------------------------------------------------
 
-   bckgrnd_vdc1    = 0.1_r8
-   bckgrnd_vdc2    = c0
-   bckgrnd_vdc_dpth= 2500.0e02_r8
-   bckgrnd_vdc_linv= 4.5e-05_r8
-   Prandtl         = 10.0_r8
-   rich_mix        = 50.0_r8
-   lrich           = .true.
-   ldbl_diff       = .false.
-   lshort_wave     = .false.
-   lcheckekmo      = .false.
-   num_v_smooth_Ri = 1
+   bckgrnd_vdc1           = 0.1_r8
+   bckgrnd_vdc2           = c0
+   bckgrnd_vdc_eq         = 0.01_r8
+   bckgrnd_vdc_psim       = 0.13_r8
+   bckgrnd_vdc_ban        = c1
+   bckgrnd_vdc_dpth       = 2500.0e02_r8
+   bckgrnd_vdc_linv       = 4.5e-05_r8
+   Prandtl                = 10.0_r8
+   rich_mix               = 50.0_r8
+   lrich                  = .true.
+   ldbl_diff              = .false.
+   lshort_wave            = .false.
+   lcheckekmo             = .false.
+   lhoriz_varying_bckgrnd = .false.
+   llangmuir              = .false.
+   linertial              = .false.
+   num_v_smooth_Ri        = 1
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -283,7 +312,7 @@
 
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
-      call exit_POP(sigAbort,'ERROR reading vmix_kpp_nml')
+      call exit_POP(sigAbort,'ERROR (init_vmix_kpp) reading vmix_kpp_nml')
    endif
 
    if (my_task == master_task) then
@@ -294,30 +323,42 @@
       write(stdout,vmix_kpp_nml)
       write(stdout,blank_fmt)
 
-      write(stdout,fmt_real) '  bckgrnd_vdc1    =', bckgrnd_vdc1
-      write(stdout,fmt_real) '  bckgrnd_vdc2    =', bckgrnd_vdc2
-      write(stdout,fmt_real) '  bckgrnd_vdc_dpth=', bckgrnd_vdc_dpth
-      write(stdout,fmt_real) '  bckgrnd_vdc_linv=', bckgrnd_vdc_linv
-      write(stdout,fmt_real) '  Prandtl         =', Prandtl
-      write(stdout,fmt_real) '  rich_mix        =', rich_mix
-      write(stdout,fmt_log ) '  Ri mixing       =', lrich
-      write(stdout,fmt_log ) '  double-diff     =', ldbl_diff
-      write(stdout,fmt_log ) '  short_wave      =', lshort_wave
-      write(stdout,fmt_log ) '  lcheckekmo      =', lcheckekmo
-      write(stdout,fmt_int ) '  num_smooth_Ri   =', num_v_smooth_Ri
+      write(stdout,fmt_real) '  bckgrnd_vdc1              =', bckgrnd_vdc1
+      write(stdout,fmt_real) '  bckgrnd_vdc2              =', bckgrnd_vdc2
+      write(stdout,fmt_real) '  bckgrnd_vdc_dpth          =', bckgrnd_vdc_dpth
+      write(stdout,fmt_real) '  bckgrnd_vdc_linv          =', bckgrnd_vdc_linv
+      write(stdout,fmt_real) '  bckgrnd_vdc_eq            =', bckgrnd_vdc_eq
+      write(stdout,fmt_real) '  bckgrnd_vdc_psim          =', bckgrnd_vdc_psim
+      write(stdout,fmt_real) '  bckgrnd_vdc_ban           =', bckgrnd_vdc_ban
+      write(stdout,fmt_real) '  Prandtl                   =', Prandtl
+      write(stdout,fmt_real) '  rich_mix                  =', rich_mix
+      write(stdout,fmt_log ) '  Ri mixing                 =', lrich
+      write(stdout,fmt_log ) '  double-diff               =', ldbl_diff
+      write(stdout,fmt_log ) '  short_wave                =', lshort_wave
+      write(stdout,fmt_log ) '  lcheckekmo                =', lcheckekmo
+      write(stdout,fmt_int ) '  num_smooth_Ri             =', num_v_smooth_Ri
+      write(stdout,fmt_log ) '  lhoriz_varying_bckgrnd    =', lhoriz_varying_bckgrnd
+      write(stdout,fmt_log ) '  langmuir parameterization =', llangmuir
+      write(stdout,fmt_log ) '  inertial mixing param.    =', linertial
    endif
 
-   call broadcast_scalar(bckgrnd_vdc1,    master_task)
-   call broadcast_scalar(bckgrnd_vdc2,    master_task)
-   call broadcast_scalar(bckgrnd_vdc_dpth,master_task)
-   call broadcast_scalar(bckgrnd_vdc_linv,master_task)
-   call broadcast_scalar(Prandtl,         master_task)
-   call broadcast_scalar(rich_mix,        master_task)
-   call broadcast_scalar(num_v_smooth_Ri, master_task)
-   call broadcast_scalar(lrich,           master_task)
-   call broadcast_scalar(ldbl_diff,       master_task)
-   call broadcast_scalar(lshort_wave,     master_task)
-   call broadcast_scalar(lcheckekmo,      master_task)
+   call broadcast_scalar(bckgrnd_vdc1,          master_task)
+   call broadcast_scalar(bckgrnd_vdc2,          master_task)
+   call broadcast_scalar(bckgrnd_vdc_dpth,      master_task)
+   call broadcast_scalar(bckgrnd_vdc_linv,      master_task)
+   call broadcast_scalar(bckgrnd_vdc_eq  ,      master_task)
+   call broadcast_scalar(bckgrnd_vdc_psim,      master_task)
+   call broadcast_scalar(bckgrnd_vdc_ban ,      master_task)
+   call broadcast_scalar(Prandtl,               master_task)
+   call broadcast_scalar(rich_mix,              master_task)
+   call broadcast_scalar(num_v_smooth_Ri,       master_task)
+   call broadcast_scalar(lrich,                 master_task)
+   call broadcast_scalar(ldbl_diff,             master_task)
+   call broadcast_scalar(lshort_wave,           master_task)
+   call broadcast_scalar(lcheckekmo,            master_task)
+   call broadcast_scalar(lhoriz_varying_bckgrnd,master_task)
+   call broadcast_scalar(llangmuir,             master_task)
+   call broadcast_scalar(linertial,             master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -331,8 +372,8 @@
 !-----------------------------------------------------------------------
 !
 !  define vertical grid coordinates and cell widths
-!  compute vertical profile of background (internal wave) 
-!  diffusivity and viscosity
+!  compute horizontally or vertically varying background 
+!  (internal wave) diffusivity and viscosity
 !
 !  the vertical profile has the functional form
 !
@@ -367,32 +408,118 @@
 
 !-----------------------------------------------------------------------
 !
+!  error checking
+!
+!-----------------------------------------------------------------------
+
+   if (lhoriz_varying_bckgrnd .and. bckgrnd_vdc2 /= c0) then
+      call exit_POP (sigAbort,  &
+       'ERROR (init_vmix_kpp): lhoriz_varying_bckgrnd .and. bckgrnd_vdc2 /= c0')
+   endif
+
+!-----------------------------------------------------------------------
+!
 !  initialize grid info (only need one block since the vertical grid is
 !  the same across blocks)
 !
 !-----------------------------------------------------------------------
 
    allocate  (zgrid(0:km+1), hwide(0:km+1))
-   allocate  (bckgrnd_vvc(km), bckgrnd_vdc(km))
 
    zgrid(0) = eps
    hwide(0) = eps
    do k=1,km
       zgrid(k) = -zt(k)
       hwide(k) =  dz(k)
-
-      bckgrnd_vdc(k) = bckgrnd_vdc1 + bckgrnd_vdc2* &
-                       atan(bckgrnd_vdc_linv*       &
-                            (zw(k)-bckgrnd_vdc_dpth))
-      bckgrnd_vvc(k) = Prandtl*bckgrnd_vdc(k)
-
-      if (bckgrnd_vdc2 /= c0 .and. my_task == master_task) then
-        write (stdout,'(2x,e12.6)') bckgrnd_vdc(k)
-      endif
-   end do
-
+   enddo
    zgrid(km+1) = -zw(km)
    hwide(km+1) = eps
+
+   allocate  (bckgrnd_vvc(nx_block,ny_block,km,nblocks_clinic))
+   allocate  (bckgrnd_vdc(nx_block,ny_block,km,nblocks_clinic))
+
+   if (lhoriz_varying_bckgrnd) then
+   
+     k = 1
+     do iblock=1,nblocks_clinic
+     do j=1,ny_block
+     do i=1,nx_block
+
+      tlatd = TLAT(i,j,iblock)*radian
+      tlond = TLON(i,j,iblock)*radian
+
+
+      bckgrnd_vdc_psis= bckgrnd_vdc_psim*exp(-(0.4_r8*(tlatd+28.9_r8))**c2)  
+      bckgrnd_vdc_psin= bckgrnd_vdc_psim*exp(-(0.4_r8*(tlatd-28.9_r8))**c2)  
+
+      bckgrnd_vdc(i,j,k,iblock)=bckgrnd_vdc_eq+bckgrnd_vdc_psin+bckgrnd_vdc_psis
+
+      if ( tlatd .lt. -10.0_r8 ) then
+        bckgrnd_vdc(i,j,k,iblock) = bckgrnd_vdc(i,j,k,iblock) + bckgrnd_vdc1
+      elseif  ( tlatd .le. 10.0_r8 ) then
+        bckgrnd_vdc(i,j,k,iblock) = bckgrnd_vdc(i,j,k,iblock) +         &
+        bckgrnd_vdc1 * (tlatd/10.0_r8)**c2
+      else
+        bckgrnd_vdc(i,j,k,iblock)=bckgrnd_vdc(i,j,k,iblock) + bckgrnd_vdc1       
+      endif
+      
+      !----------------
+      ! North Banda Sea
+      !----------------
+
+      if ( (tlatd .lt. -1.0_r8)  .and. (tlatd .gt. -4.0_r8)  .and.  & 
+           (tlond .gt. 103.0_r8) .and. (tlond .lt. 134.0_r8)) then
+           bckgrnd_vdc(i,j,k,iblock) = bckgrnd_vdc_ban
+      endif
+
+      !-----------------
+      ! Middle Banda Sea
+      !-----------------
+
+      if ( (tlatd .le. -4.0_r8)  .and. (tlatd .gt. -7.0_r8)  .and.  & 
+           (tlond .gt. 106.0_r8) .and. (tlond .lt. 140.0_r8)) then
+           bckgrnd_vdc(i,j,k,iblock) = bckgrnd_vdc_ban
+      endif
+
+      !----------------
+      ! South Banda Sea
+      !----------------
+
+      if ( (tlatd .le. -7.0_r8)  .and. (tlatd .gt. -8.3_r8)  .and.  & 
+           (tlond .gt. 111.0_r8) .and. (tlond .lt. 142.0_r8)) then
+           bckgrnd_vdc(i,j,k,iblock) = bckgrnd_vdc_ban
+      endif
+
+      bckgrnd_vvc(i,j,k,iblock) = Prandtl*bckgrnd_vdc(i,j,k,iblock)
+
+     end do ! i
+     end do ! j
+     end do ! iblock
+
+     do k=2,km
+      bckgrnd_vdc(:,:,k,:) = bckgrnd_vdc(:,:,1,:)
+      bckgrnd_vvc(:,:,k,:) = bckgrnd_vvc(:,:,1,:)
+     enddo
+   
+   else
+
+!-----------------------------------------------------------------------
+!
+!  only need one block since the vertical grid is the same across blocks
+!
+!-----------------------------------------------------------------------
+    do k=1,km
+      bckgrnd_vdc(:,:,k,:) = bckgrnd_vdc1 + bckgrnd_vdc2* &
+                       atan(bckgrnd_vdc_linv*       &
+                            (zw(k)-bckgrnd_vdc_dpth))
+      bckgrnd_vvc(:,:,k,:) = Prandtl*bckgrnd_vdc(:,:,k,:)
+
+      if (bckgrnd_vdc2 /= c0 .and. my_task == master_task) then
+        write (stdout,'(2x,e12.6)') bckgrnd_vdc(1,1,k,1)
+      endif
+    end do
+ 
+   endif ! lhoriz_varying_bckgrnd
 
 !-----------------------------------------------------------------------
 !
@@ -421,6 +548,32 @@
 
 !-----------------------------------------------------------------------
 !
+!  allocate and initialize the eddy-induced speed array
+!
+!-----------------------------------------------------------------------
+
+   if ( linertial ) then
+
+     allocate ( BOLUS_SP(nx_block,ny_block,nblocks_clinic) )
+
+     BOLUS_SP = c0
+
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  allocate and initialize ratio of stokes velocity to ustar 
+!
+!-----------------------------------------------------------------------
+
+   allocate (FSTOKES(nx_block,ny_block,nblocks_clinic))
+
+   do iblock=1,nblocks_clinic
+     FSTOKES(:,:,iblock) = 11._r8 - MAX( c5*cos(c3*TLAT(:,:,iblock)) , c0 )
+   enddo
+
+!-----------------------------------------------------------------------
+!
 !  define tavg fields computed from vmix_kpp module routines
 !
 !-----------------------------------------------------------------------
@@ -431,7 +584,11 @@
                           units='watt/m^2', grid_loc='2110',  &
                           coordinates='TLONG TLAT time')
 
-   string = 'Vertical Mixing due to Tidal Mixing'
+   if (ltidal_mixing) then
+     string = 'Vertical Mixing due to Tidal Mixing'
+   else
+     string = 'Background Vertical Mixing Coefficient'
+   endif
    call define_tavg_field(tavg_KVMIX,'KVMIX',3,               &
                           long_name=trim(string),             &
                           units='centimeter^2/s',             &
@@ -441,7 +598,7 @@
    string = 'Energy Used by Vertical Mixing'
    call define_tavg_field(tavg_TPOWER,'TPOWER',3,             &
                           long_name=trim(string),             &
-                          units='erg/centimeter^3/s',         &
+                          units='erg/s',                      &
                           grid_loc='3112',                    &
                           coordinates  ='TLONG TLAT z_w time' ) 
 
@@ -738,8 +895,12 @@
                  USTAR > c0 )   ! avoid divide by zero
             BFSFC = (VISC(:,:,k) - USTAR)/ &
                     (VISC(:,:,k)-VISC(:,:,k-1))
-            HMXL(:,:,bid) =   (zt(k-1) + p5*DZT(:,:,k-1,bid))*(c1-BFSFC) &
-                            + (zt(k-1) - p5*DZT(:,:,k-1,bid))*BFSFC
+! tqian
+!            HMXL(:,:,bid) =   (zt(k-1) + p5*DZT(:,:,k-1,bid))*(c1-BFSFC) &
+!                            + (zt(k-1) - p5*DZT(:,:,k-1,bid))*BFSFC
+             HMXL(:,:,bid) =   (zt(k-1) + p25*(DZT(:,:,k-1,bid)+DZT(:,:,k,bid)))*(c1-BFSFC) &
+                             + (zt(k-1) - p25*(DZT(:,:,k-2,bid)+DZT(:,:,k-1,bid)))*BFSFC
+
             USTAR(:,:) = c0
          endwhere
       enddo
@@ -978,10 +1139,10 @@
            VSHEAR = TIDAL_COEF(:,:,k,bid)/WORK1
         endwhere
 
-        WORK1 = Prandtl*min(bckgrnd_vvc(k)/Prandtl+VSHEAR, tidal_mix_max)
+        WORK1 = Prandtl*min(bckgrnd_vvc(:,:,k,bid)/Prandtl+VSHEAR, tidal_mix_max)
 
         if ( k < km ) then
-          VDC(:,:,k,2) = min(bckgrnd_vdc(k) + VSHEAR, tidal_mix_max)
+          VDC(:,:,k,2) = min(bckgrnd_vdc(:,:,k,bid) + VSHEAR, tidal_mix_max)
           KVMIX(:,:) = VDC(:,:,k,2)
         endif
 
@@ -1005,26 +1166,26 @@
       else ! .not. ltidal_mixing
 
         if ( k < km ) then
-          KVMIX(:,:) = bckgrnd_vdc(k)
+          KVMIX(:,:) = bckgrnd_vdc(:,:,k,bid)
         endif
 
 
         if (lrich) then
            FRI    = min((max(VISC(:,:,k),c0))/Riinfty, c1)
 
-           VISC(:,:,k  ) = bckgrnd_vvc(k) + &
+           VISC(:,:,k  ) = bckgrnd_vvc(:,:,k,bid) + &
                            rich_mix*(c1 - FRI*FRI)**3
 
            if ( k < km ) then
-              VDC (:,:,k,2) = bckgrnd_vdc(k) + &
+              VDC (:,:,k,2) = bckgrnd_vdc(:,:,k,bid) + &
                               rich_mix*(c1 - FRI*FRI)**3
               VDC(:,:,k,1) = VDC(:,:,k,2)
            endif
         else
-           VISC(:,:,k  ) = bckgrnd_vvc(k)
+           VISC(:,:,k  ) = bckgrnd_vvc(:,:,k,bid)
 
            if ( k < km ) then
-              VDC (:,:,k,2) = bckgrnd_vdc(k)
+              VDC (:,:,k,2) = bckgrnd_vdc(:,:,k,bid)
               VDC(:,:,k,1) = VDC(:,:,k,2)
            endif
         endif
@@ -1175,6 +1336,7 @@
       ZKL,               &! depth at current z level
       B_FRQNCY,          &! buoyancy frequency
       RSH_HBLT,          &! resolved shear contribution to HBLT (fraction)
+      HLANGM,            &! Langmuir depth
       HEKMAN,            &! Eckman depth limit
       HLIMIT              ! limit to mixed-layer depth
                           ! (= min(HEKMAN,HMONOB))
@@ -1276,11 +1438,13 @@
    RI_BULK(:,:,kup) = c0 
    KBL = merge(KMT(:,:,bid), 1, (KMT(:,:,bid) > 1))
 
+   HLANGM = c0
+
    do kl=1,km
       if (partial_bottom_cells) then
       	 if (kl > 1) then
-      	 	  ZKL = -zgrid(kl-1) + p5*(DZT(i,j,kl  ,bid) + &
-                                     DZT(i,j,kl-1,bid))
+      	 	  ZKL = -zgrid(kl-1) + p5*(DZT(:,:,kl  ,bid) + &
+                                     DZT(:,:,kl-1,bid))
          else
             ZKL = -zgrid(1)
          endif
@@ -1353,8 +1517,8 @@
                           DZU(:,:,kl-1,bid) - &
                           DZU(:,:,1   ,bid)))**2
 
-      	 ZKL = -zgrid(kl-1) + p5*(DZT(i,j,kl  ,bid) + &
-                                  DZT(i,j,kl-1,bid))
+      	 ZKL = -zgrid(kl-1) + p5*(DZT(:,:,kl  ,bid) + &
+                                  DZT(:,:,kl-1,bid))
       else
          ZKL = -zgrid(kl)
       endif
@@ -1503,7 +1667,11 @@
       else
          WORK = MERGE( (zgrid(1)-zgrid(kl))*DBSFC(:,:,kl), &
                       c0, KMT(:,:,bid) >= kl)
-         RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+eps)
+         if ( linertial ) then
+           RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+USTAR*BOLUS_SP(:,:,bid)+eps)
+         else
+           RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+eps)
+         endif
       endif
 
 !-----------------------------------------------------------------------
@@ -1514,6 +1682,7 @@
 !       Ri_bulk at z_up and Ri_bulk at zgrid(kl). the slope at
 !       z_up is computed linearly between z_upper and z_up.
 !
+!       compute Langmuir depth always 
 !-----------------------------------------------------------------------
 
       do j=1,ny_block
@@ -1544,6 +1713,9 @@
             RSH_HBLT(i,j) =  (VSHEAR(i,j)*Ricr(kl)/ &
                               (DBSFC(i,j,kl)+eps))/HBLT(i,j)
 
+            HLANGM(i,j) = USTAR(i,j) * SQRT( FSTOKES(i,j,bid)*ZKL(i,j)/(DBSFC(i,j,kl)+eps) ) &
+                          / 0.9_r8
+
          endif
       enddo
       enddo
@@ -1562,6 +1734,23 @@
       z_up    = zgrid(kl)
 
    end do
+
+!-----------------------------------------------------------------------
+!
+!     apply Langmuir parameterization if requested 
+!
+!-----------------------------------------------------------------------
+
+   if ( llangmuir ) then
+     do kl = km,2,-1
+        where ( HLANGM > HBLT          .and.   &
+                HLANGM >  -zgrid(kl-1) .and.   &
+                HLANGM <= ZKL                  )
+           HBLT  = HLANGM
+           KBL   = kl
+        end where
+     enddo
+   endif
 
 !-----------------------------------------------------------------------
 !

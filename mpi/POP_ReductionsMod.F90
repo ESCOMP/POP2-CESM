@@ -20,11 +20,11 @@
    use POP_DistributionMod
    use POP_GridHorzMod
 
-   use mpi
-
    implicit none
    private
    save
+
+   include 'mpif.h'
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
@@ -50,7 +50,8 @@
                       POP_GlobalSum2DI4,     &
                       POP_GlobalSumScalarR8, &
                       POP_GlobalSumScalarR4, &
-                      POP_GlobalSumScalarI4
+                      POP_GlobalSumScalarI4, &
+                      POP_GlobalSumNfields2DR8
    end interface
 
    interface POP_GlobalSumProd
@@ -161,9 +162,16 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef REPRODUCIBLE
+   real (POP_r16) :: &
+      blockSum,     &! sum of local block domain
+      localSum,     &! sum of all local block domains
+      globalSumTmp   ! higher precision global sum
+#else
    real (POP_r8) :: &
       blockSum,     &! sum of local block domain
       localSum       ! sum of all local block domains
+#endif
 
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
@@ -180,8 +188,12 @@
 !-----------------------------------------------------------------------
 
    errorCode = POP_Success
-   globalSum = 0.0_POP_r8
+#ifdef REPRODUCIBLE
+   localSum  = 0.0_POP_r16
+#else
    localSum  = 0.0_POP_r8
+#endif
+   globalSum = 0.0_POP_r8
 
    call POP_DistributionGet(dist, errorCode,            &
                             numLocalBlocks = numBlocks, &
@@ -217,7 +229,11 @@
       jb = thisBlock%jb
       je = thisBlock%je
 
+#ifdef REPRODUCIBLE
+      blockSum = 0.0_POP_r16
+#else
       blockSum = 0.0_POP_r8
+#endif
 
       if (present(mMask)) then
          do j=jb,je
@@ -290,10 +306,18 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef REPRODUCIBLE
+   if (POP_myTask < numProcs) then
+      call MPI_ALLREDUCE(localSum, globalSumTmp, 1, &
+                         POP_mpiR16, MPI_SUM, communicator, ierr)
+      globalSum = globalSumTmp
+   endif
+#else
    if (POP_myTask < numProcs) then
       call MPI_ALLREDUCE(localSum, globalSum, 1, &
                          POP_mpiR8, MPI_SUM, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -352,9 +376,16 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef REPRODUCIBLE
+   real (POP_r8) :: &
+      blockSum,     &! sum of local block domain
+      localSum,     &! sum of all local block domains
+      globalSumTmp   ! higher precision global sum
+#else
    real (POP_r4) :: &
       blockSum,     &! sum of local block domain
       localSum       ! sum of all local block domains
+#endif
 
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
@@ -371,7 +402,11 @@
 !-----------------------------------------------------------------------
 
    errorCode = POP_Success
+#ifdef REPRODUCIBLE
+   localSum  = 0.0_POP_r8
+#else
    localSum  = 0.0_POP_r4
+#endif
    globalSum = 0.0_POP_r4
 
    call POP_DistributionGet(dist, errorCode,            &
@@ -409,7 +444,11 @@
       je = thisBlock%je
 
 
+#ifdef REPRODUCIBLE
+      blockSum = 0.0_POP_r8
+#else
       blockSum = 0.0_POP_r4
+#endif
 
       if (present(mMask)) then
          do j=jb,je
@@ -482,10 +521,18 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef REPRODUCIBLE
+   if (POP_myTask < numProcs) then
+      call MPI_ALLREDUCE(localSum, globalSumTmp, 1, &
+                         POP_mpiR8, MPI_SUM, communicator, ierr)
+      globalSum = globalSumTmp
+   endif
+#else
    if (POP_myTask < numProcs) then
       call MPI_ALLREDUCE(localSum, globalSum, 1, &
                          POP_mpiR4, MPI_SUM, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -689,6 +736,238 @@
 ! !IROUTINE: POP_GlobalSum
 ! !INTERFACE:
 
+ function POP_GlobalSumNfields2DR8(array, dist, fieldLoc, errorCode, &
+                                   mMask, lMask)                     &
+          result(globalSum)
+
+! !DESCRIPTION:
+!  Computes the global sum of the physical domain of a set of
+!  2-d arrays.
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !REMARKS:
+!  This is actually the specific interface for the generic POP_GlobalSum
+!  function corresponding to a stack of double precision arrays.  The
+!  generic interface is identical but will handle real and integer 
+!  2-d slabs and real, integer, and double precision scalars.
+
+! !INPUT PARAMETERS:
+
+   real (POP_r8), dimension(:,:,:,:), intent(in) :: &
+      array                ! array to be summed
+
+   type (POP_distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   character (*), intent(in) :: &
+      fieldLoc             ! grid stagger location for this field
+
+   real (POP_r8), dimension(:,:,:), intent(in), optional :: &
+      mMask                ! optional multiplicative mask
+
+   logical (POP_logical), dimension(:,:,:), intent(in), optional :: &
+      lMask                ! optional logical mask
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode            ! returned error flag
+
+   real (POP_r8), dimension(size(array,dim=3)) :: &
+      globalSum            ! resulting global sum
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+#ifdef REPRODUCIBLE
+   real (POP_r16), dimension(size(array,dim=3)) :: &
+      blockSum,     &! sum of local block domain
+      localSum,     &! sum of all local block domains
+      globalSumTmp   ! higher precision global sum
+#else
+   real (POP_r8), dimension(size(array,dim=3)) :: &
+      blockSum,     &! sum of local block domain
+      localSum       ! sum of all local block domains
+#endif
+
+   integer (POP_i4) :: &
+      i,j,n,iblock,    &! local counters
+      ib,ie,jb,je,     &! beg,end of physical domain
+      ierr,            &! mpi error flag
+      blockID,         &! block location
+      numFields,       &! number of 2d arrays to sum
+      numProcs,        &! number of processor participating
+      numBlocks,       &! number of local blocks
+      communicator      ! communicator for this distribution
+
+   type (POP_Block) :: &
+      thisBlock         ! block information for local block
+
+!-----------------------------------------------------------------------
+
+   errorCode = POP_Success
+#ifdef REPRODUCIBLE
+   localSum  = 0.0_POP_r16
+#else
+   localSum  = 0.0_POP_r8
+#endif
+   globalSum = 0.0_POP_r8
+
+   numFields = size(array,dim=3)
+
+   call POP_DistributionGet(dist, errorCode,            &
+                            numLocalBlocks = numBlocks, &
+                            numProcs = numProcs,        &
+                            communicator = communicator)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalSum2DR8: error getting communicator')
+      return
+   endif
+
+   do iblock=1,numBlocks
+      call POP_DistributionGetBlockID(dist, iblock, &
+                                      blockID, errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'POP_GlobalSum2DR8: error getting block id')
+         return
+      endif
+
+      thisBlock = POP_BlocksGetBlock(blockID, errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'POP_GlobalSum2DR8: error getting block')
+         return
+      endif
+
+      ib = thisBlock%ib
+      ie = thisBlock%ie
+      jb = thisBlock%jb
+      je = thisBlock%je
+
+#ifdef REPRODUCIBLE
+      blockSum = 0.0_POP_r16
+#else
+      blockSum = 0.0_POP_r8
+#endif
+
+      if (present(mMask)) then
+         do n=1,numFields
+         do j=jb,je
+         do i=ib,ie
+            blockSum(n) = &
+            blockSum(n) + array(i,j,n,iblock)*mMask(i,j,iblock)
+         end do
+         end do
+         end do
+      else if (present(lMask)) then
+         do n=1,numFields
+         do j=jb,je
+         do i=ib,ie
+            if (lMask(i,j,iblock)) then
+               blockSum(n) = &
+               blockSum(n) + array(i,j,n,iblock)
+            endif
+         end do
+         end do
+         end do
+      else
+         do n=1,numFields
+         do j=jb,je
+         do i=ib,ie
+            blockSum(n) = blockSum(n) + array(i,j,n,iblock)
+         end do
+         end do
+         end do
+      endif
+
+      !*** if this block along tripole boundary and field 
+      !*** located on north face and northeast corner points
+      !*** must eliminate redundant points from global sum
+
+      if (thisBlock%tripole) then
+         if (fieldLoc == POP_gridHorzLocNface .or. &
+             fieldLoc == POP_gridHorzLocNEcorner) then
+
+            j = je
+
+            if (present(mMask)) then
+               do n=1,numFields
+               do i=ib,ie
+                  if (thisBlock%iGlobal(i) > thisBlock%nxGlobal/2) then
+                     blockSum(n) = &
+                     blockSum(n) - array(i,j,n,iblock)*mMask(i,j,iblock)
+                  endif
+               end do
+               end do
+            else if (present(lMask)) then
+               do n=1,numFields
+               do i=ib,ie
+                  if (thisBlock%iGlobal(i) > thisBlock%nxGlobal/2) then
+                     if (lMask(i,j,iblock)) &
+                     blockSum(n) = blockSum(n) - array(i,j,n,iblock)
+                  endif
+               end do
+               end do
+            else
+               do n=1,numFields
+               do i=ib,ie
+                  if (thisBlock%iGlobal(i) > thisBlock%nxGlobal/2) then
+                     blockSum(n) = blockSum(n) - array(i,j,n,iblock)
+                  endif
+               end do
+               end do
+            endif
+
+         endif
+      endif
+
+      !*** now add block sum to global sum
+
+      localSum(:) = localSum(:) + blockSum(:)
+
+   end do
+
+!-----------------------------------------------------------------------
+!
+!  now use MPI global reduction to reduce local sum to global sum
+!
+!-----------------------------------------------------------------------
+
+#ifdef REPRODUCIBLE
+   if (POP_myTask < numProcs) then
+      call MPI_ALLREDUCE(localSum, globalSumTmp, numFields, &
+                         POP_mpiR16, MPI_SUM, communicator, ierr)
+      globalSum = globalSumTmp 
+   endif
+#else
+   if (POP_myTask < numProcs) then
+      call MPI_ALLREDUCE(localSum, globalSum, numFields, &
+                         POP_mpiR8, MPI_SUM, communicator, ierr)
+   endif
+#endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function POP_GlobalSumNfields2DR8
+
+!***********************************************************************
+!BOP
+! !IROUTINE: POP_GlobalSum
+! !INTERFACE:
+
  function POP_GlobalSumScalarR8(scalar, dist, errorCode) &
           result(globalSum)
 
@@ -733,6 +1012,10 @@
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
 
+#ifdef REPRODUCIBLE
+   real (POP_r16) :: &
+      scalarTmp, globalSumTmp  ! higher precision for reproducibility
+#endif
 !-----------------------------------------------------------------------
 !
 !  get communicator for MPI calls
@@ -758,10 +1041,19 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef REPRODUCIBLE
+   if (POP_myTask < numProcs) then
+      scalarTmp = scalar
+      call MPI_ALLREDUCE(scalarTmp, globalSumTmp, 1, &
+                         POP_mpiR16, MPI_SUM, communicator, ierr)
+      globalSum = globalSumTmp
+   endif
+#else
    if (POP_myTask < numProcs) then
       call MPI_ALLREDUCE(scalar, globalSum, 1, &
                          POP_mpiR8, MPI_SUM, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -816,6 +1108,10 @@
       numProcs,        &! number of processor participating
       communicator      ! communicator for this distribution
 
+#ifdef REPRODUCIBLE
+   real (POP_r8) :: &
+      scalarTmp, globalSumTmp  ! higher precision for reproducibility
+#endif
 !-----------------------------------------------------------------------
 !
 !  get communicator for MPI calls
@@ -840,10 +1136,19 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef REPRODUCIBLE
+   if (POP_myTask < numProcs) then
+      scalarTmp = scalar
+      call MPI_ALLREDUCE(scalarTmp, globalSumTmp, 1, &
+                         POP_mpiR8, MPI_SUM, communicator, ierr)
+      globalSum = globalSumTmp
+   endif
+#else
    if (POP_myTask < numProcs) then
       call MPI_ALLREDUCE(scalar, globalSum, 1, &
                          POP_mpiR4, MPI_SUM, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -986,9 +1291,16 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef REPRODUCIBLE
+   real (POP_r16) :: &
+      blockSum,      &! sum of local block domain
+      localSum,      &! sum of all local block domains
+      globalSumTmp    ! higher precision for reproducibility
+#else
    real (POP_r8) :: &
       blockSum,     &! sum of local block domain
       localSum       ! sum of all local block domains
+#endif
 
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
@@ -1005,7 +1317,11 @@
 !-----------------------------------------------------------------------
 
    errorCode = POP_Success
+#ifdef REPRODUCIBLE
+   localSum  = 0.0_POP_r16
+#else
    localSum  = 0.0_POP_r8
+#endif
    globalSum = 0.0_POP_r8
 
    call POP_DistributionGet(dist, errorCode,            &
@@ -1042,8 +1358,11 @@
       jb = thisBlock%jb
       je = thisBlock%je
 
-
+#ifdef REPRODUCIBLE
+      blockSum = 0.0_POP_r16
+#else
       blockSum = 0.0_POP_r8
+#endif
 
       if (present(mMask)) then
          do j=jb,je
@@ -1120,10 +1439,18 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef REPRODUCIBLE
+   if (POP_myTask < numProcs) then
+      call MPI_ALLREDUCE(localSum, globalSumTmp, 1, &
+                         POP_mpiR16, MPI_SUM, communicator, ierr)
+      globalSum = globalSumTmp
+   endif
+#else
    if (POP_myTask < numProcs) then
       call MPI_ALLREDUCE(localSum, globalSum, 1, &
                          POP_mpiR8, MPI_SUM, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1184,9 +1511,16 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef REPRODUCIBLE
+   real (POP_r8) :: &
+      blockSum,     &! sum of local block domain
+      localSum,     &! sum of all local block domains
+      globalSumTmp   ! higher precision for reproducibility
+#else
    real (POP_r4) :: &
       blockSum,     &! sum of local block domain
       localSum       ! sum of all local block domains
+#endif
 
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
@@ -1203,7 +1537,11 @@
 !-----------------------------------------------------------------------
 
    errorCode = POP_Success
+#ifdef REPRODUCIBLE
+   localSum  = 0.0_POP_r8
+#else
    localSum  = 0.0_POP_r4
+#endif
    globalSum = 0.0_POP_r4
 
    call POP_DistributionGet(dist, errorCode,            &
@@ -1240,8 +1578,11 @@
       jb = thisBlock%jb
       je = thisBlock%je
 
-
+#ifdef REPRODUCIBLE
+      blockSum = 0.0_POP_r8
+#else
       blockSum = 0.0_POP_r4
+#endif
 
       if (present(mMask)) then
          do j=jb,je
@@ -1318,10 +1659,18 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef REPRODUCIBLE
+   if (POP_myTask < numProcs) then
+      call MPI_ALLREDUCE(localSum, globalSumTmp, 1, &
+                         POP_mpiR8, MPI_SUM, communicator, ierr)
+      globalSum = globalSumTmp
+   endif
+#else
    if (POP_myTask < numProcs) then
       call MPI_ALLREDUCE(localSum, globalSum, 1, &
                          POP_mpiR4, MPI_SUM, communicator, ierr)
    endif
+#endif
 
 !-----------------------------------------------------------------------
 !EOC

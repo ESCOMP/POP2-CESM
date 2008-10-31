@@ -100,8 +100,12 @@
 !
 !-----------------------------------------------------------------------
 
+#if (defined _NOIO) 
+! Insufficient memory to write history files on Blue Gene
+#else
    call write_history
    call write_movie
+#endif
 
 !-----------------------------------------------------------------------
 !
@@ -122,7 +126,11 @@
 !-----------------------------------------------------------------------
 
    call timer_start(timer_tavg)
+#if (defined _NOIO)
+! Insufficient memory to restart tavg files on Blue Gene
+#else
    call write_tavg(restart_type)
+#endif
    call timer_stop (timer_tavg)
 
    call timer_stop(timer_out)

@@ -13,19 +13,20 @@
 
 ! !USES:
 
+   use POP_KindsMod
+   use POP_IOUnitsMod
+
    use kinds_mod
    use domain_size
    use domain
    use constants
    use communicate
-   use boundary
    use broadcast
    use gather_scatter
    use exit_mod
    use io_types
    use io_tools
    use netcdf
-   use shr_sys_mod
 
    implicit none
    private
@@ -459,7 +460,11 @@
 
    if (my_task==master_task) then
       path = trim(data_file%full_name)
-      iostat = nf90_create(path=trim(path), cmode=nf90_write, ncid=ncid)
+      if (luse_nf_64bit_offset) then
+        iostat = nf90_create(path=trim(path), cmode=NF90_64BIT_OFFSET, ncid=ncid)
+      else
+        iostat = nf90_create(path=trim(path), cmode=nf90_write, ncid=ncid)
+      endif
       call check_status(iostat)
    endif
 
@@ -2281,7 +2286,7 @@
 
    if (status /= nf90_noerr) then
       write(stdout,*) trim(nf90_strerror(status))
-      call shr_sys_flush(stdout)
+      call POP_IOUnitsFlush(POP_stdout)
    end if
 
 !-----------------------------------------------------------------------

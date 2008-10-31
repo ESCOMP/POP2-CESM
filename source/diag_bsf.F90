@@ -12,9 +12,15 @@
 !     SVN:$Id$
 
 ! !USES:
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_IOUnitsMod
+   use POP_GridHorzMod
+   use POP_FieldMod
+   use POP_HaloMod
+
    use kinds_mod 
    use broadcast
-   use boundary
    use domain_size
    use domain
    use constants
@@ -23,7 +29,6 @@
    use gather_scatter
    use grid
    use io
-   use shr_sys_mod
    use registry
 
    implicit none
@@ -78,7 +83,7 @@
 ! !IROUTINE: init_diag_bsf 
 ! !INTERFACE:
 !
- subroutine init_diag_bsf (BSF_in_contents_file)
+ subroutine init_diag_bsf (BSF_in_contents_file, errorCode)
 
 !
 ! !DESCRIPTION:
@@ -90,8 +95,13 @@
 
 ! !INPUT PARAMETERS:
 
-   logical (log_kind), intent(in)  ::  &
-    BSF_in_contents_file      ! true if BFS is in tavg_contents
+   logical (POP_logical), intent(in)  ::  &
+      BSF_in_contents_file      ! true if BFS is in tavg_contents
+
+! !INPUT PARAMETERS:
+
+   integer (POP_i4), intent(out)  ::  &
+      errorCode               ! returned error code
 
 !EOP
 !BOC
@@ -145,6 +155,8 @@
 !     read bsf diagnostic namelist
 !
 !-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    ldiag_bsf = .false.
  
@@ -201,7 +213,7 @@
 
    if (my_task == master_task) then
      write (stdout,*) 'Initializing diagnostic BSF variables ....'
-     call shr_sys_flush(stdout)
+     call POP_IOUnitsFlush(POP_stdout)
    endif
 
    allocate(WORK0    (nx_block,ny_block,nblocks_clinic), &
@@ -282,22 +294,78 @@
       enddo ! j
    enddo  ! iblock
 
-   call update_ghost_cells (BSFN, bndy_clinic,field_loc_center,  &
-                            field_type_scalar)
-   call update_ghost_cells (BSFNE,bndy_clinic,field_loc_center,  &
-                            field_type_scalar)
-   call update_ghost_cells (BSFE, bndy_clinic,field_loc_center,  &
-                            field_type_scalar)
-   call update_ghost_cells (BSFSE,bndy_clinic,field_loc_center,  &
-                            field_type_scalar)
-   call update_ghost_cells (BSFS, bndy_clinic,field_loc_center,  &
-                            field_type_scalar)
-   call update_ghost_cells (BSFSW,bndy_clinic,field_loc_center,  &
-                            field_type_scalar)
-   call update_ghost_cells (BSFW, bndy_clinic,field_loc_center,  &
-                            field_type_scalar)
-   call update_ghost_cells (BSFNW,bndy_clinic,field_loc_center,  &
-                            field_type_scalar)
+   call POP_HaloUpdate (BSFN, POP_haloClinic,   &
+                        POP_gridHorzLocCenter,  &
+                        POP_fieldKindScalar, errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_diag_bsf: error updating halo for BSFN')
+      return
+   endif
+
+   call POP_HaloUpdate (BSFNE,POP_haloClinic,   &
+                        POP_gridHorzLocCenter,  &
+                        POP_fieldKindScalar, errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_diag_bsf: error updating halo for BSFNE')
+      return
+   endif
+
+   call POP_HaloUpdate (BSFE, POP_haloClinic,   &
+                        POP_gridHorzLocCenter,  &
+                        POP_fieldKindScalar, errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_diag_bsf: error updating halo for BSFE')
+      return
+   endif
+
+   call POP_HaloUpdate (BSFSE,POP_haloClinic,   &
+                        POP_gridHorzLocCenter,  &
+                        POP_fieldKindScalar, errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_diag_bsf: error updating halo for BSFSE')
+      return
+   endif
+
+   call POP_HaloUpdate (BSFS, POP_haloClinic,   &
+                        POP_gridHorzLocCenter,  &
+                        POP_fieldKindScalar, errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_diag_bsf: error updating halo for BSFS')
+      return
+   endif
+
+   call POP_HaloUpdate (BSFSW,POP_haloClinic,   &
+                        POP_gridHorzLocCenter,  &
+                        POP_fieldKindScalar, errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_diag_bsf: error updating halo for BSFSW')
+      return
+   endif
+
+   call POP_HaloUpdate (BSFW, POP_haloClinic,   &
+                        POP_gridHorzLocCenter,  &
+                        POP_fieldKindScalar, errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_diag_bsf: error updating halo for BSFW')
+      return
+   endif
+
+   call POP_HaloUpdate (BSFNW,POP_haloClinic,   &
+                        POP_gridHorzLocCenter,  &
+                        POP_fieldKindScalar, errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_diag_bsf: error updating halo for BSFNW')
+      return
+   endif
+
    call redistribute_blocks(BSF_AN,  distrb_tropic, BSFN,  distrb_clinic)
    call redistribute_blocks(BSF_AE,  distrb_tropic, BSFE,  distrb_clinic)
    call redistribute_blocks(BSF_ANE, distrb_tropic, BSFNE, distrb_clinic)
@@ -313,7 +381,12 @@
 !
 !-----------------------------------------------------------------------
 
-   call island_mask_diag_bsf (ISMASK)
+   call island_mask_diag_bsf (ISMASK, errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_diag_bsf: error in island_mask_diag_bsf')
+      return
+   endif
 
    call redistribute_blocks(ISMASK_B, distrb_tropic, ISMASK, distrb_clinic)
 
@@ -328,7 +401,7 @@
    if ( my_task == master_task ) then
      write (stdout,*) ' '
      write (stdout,*) ' island coefficients: '
-     call shr_sys_flush(stdout)
+     call POP_IOUnitsFlush(POP_stdout)
    endif
 
    do isle=1,nisle
@@ -382,7 +455,7 @@
 
    if ( my_task == master_task ) then 
      write (stdout,*) ' island ', isle, ' coefficient = ', c1/aislandr(isle)
-     call shr_sys_flush(stdout)
+     call POP_IOUnitsFlush(POP_stdout)
    endif
 
  enddo ! isle
@@ -403,7 +476,7 @@
 ! !IROUTINE: pcg_diag_bsf
 ! !INTERFACE:
 
- subroutine pcg_diag_bsf ( X, B )
+ subroutine pcg_diag_bsf ( X, B, errorCode )
 
 ! !DESCRIPTION:
 !
@@ -423,6 +496,11 @@
 
    real (r8),dimension(nx_block,ny_block,max_blocks_tropic),intent(inout) ::  &
      X
+
+! !OUTPUT PARAMETERS:
+
+   integer(POP_i4), intent(out) :: &
+      errorCode                 ! returned error code
 
 !EOP
 !BOC
@@ -455,12 +533,21 @@
 
 !-----------------------------------------------------------------------
 !
-!     initialization 
+!  initialization 
 !
 !-----------------------------------------------------------------------
 
-      call update_ghost_cells (X,bndy_tropic,field_loc_center,  &
-                               field_type_scalar)
+   errorCode = POP_Success
+
+      call POP_HaloUpdate (X, POP_haloTropic,      &
+                           POP_gridHorzLocCenter,  &
+                           POP_fieldKindScalar, errorCode)
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'pcg_diag_bsf: error updating halo for X')
+         return
+      endif
+
       R     = c0  
       Q     = c0
       WORK1 = c0
@@ -492,8 +579,14 @@
 !
 !-----------------------------------------------------------------------
 
-      call update_ghost_cells (X,bndy_tropic,field_loc_center,  &
-                               field_type_scalar)
+   call POP_HaloUpdate (X, POP_haloTropic,      &
+                        POP_gridHorzLocCenter,  &
+                        POP_fieldKindScalar, errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'pcg_diag_bsf: error updating halo for X')
+      return
+   endif
 
    !$OMP PARALLEL DO PRIVATE(iblock,this_block)
    do iblock=1,nblocks_tropic
@@ -523,7 +616,7 @@
      write (stdout,*) ' '
      write (stdout,*) ' convergence info from pcg_diag_bsf: '
      write (stdout,*) ' iter = ', 0, ' rms_resid = ', rms_residual
-     call shr_sys_flush(stdout)
+     call POP_IOUnitsFlush(POP_stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -532,8 +625,15 @@
 !
 !-----------------------------------------------------------------------
 
-      call update_ghost_cells (R,bndy_tropic,field_loc_center,  &
-                               field_type_scalar)
+      call POP_HaloUpdate (R, POP_haloTropic,      &
+                           POP_gridHorzLocCenter,  &
+                           POP_fieldKindScalar, errorCode)
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'pcg_diag_bsf: error updating halo for R')
+         return
+      endif
+
       S     = c0
       eta0  = c1
       mscan = mxscan
@@ -574,11 +674,23 @@
                         field_loc_center,BSF_RCALCT_B ) 
      eta2 = eta1/eta0
 
-     call update_ghost_cells (WORK1,bndy_tropic,field_loc_center,  &
-                              field_type_scalar)
-     call update_ghost_cells (S    ,bndy_tropic,field_loc_center,  &
-                              field_type_scalar)
+     call POP_HaloUpdate (WORK1, POP_haloTropic,  &
+                          POP_gridHorzLocCenter,  &
+                          POP_fieldKindScalar, errorCode)
+     if (errorCode /= POP_Success) then
+        call POP_ErrorSet(errorCode, &
+           'pcg_diag_bsf: error updating halo for WORK1')
+        return
+     endif
 
+     call POP_HaloUpdate (S,POP_haloTropic,       &
+                          POP_gridHorzLocCenter,  &
+                          POP_fieldKindScalar, errorCode)
+     if (errorCode /= POP_Success) then
+        call POP_ErrorSet(errorCode, &
+           'pcg_diag_bsf: error updating halo for S')
+        return
+     endif
 
      !$OMP PARALLEL DO PRIVATE(iblock,this_block)
      do iblock=1,nblocks_tropic
@@ -615,13 +727,27 @@
 !
 !-----------------------------------------------------------------------
 
-        call update_ghost_cells (Q,bndy_tropic, field_loc_center,  &
-                                 field_type_scalar)
-        call update_ghost_cells (S,bndy_tropic, field_loc_center,  &
-                                 field_type_scalar)
-        eta0 = eta1
-        eta1 = eta0/global_sum( WORK2*S, distrb_tropic,  &
-                                field_loc_center, BSF_RCALCT_B )
+     call POP_HaloUpdate (Q,POP_haloTropic,       &
+                          POP_gridHorzLocCenter,  &
+                          POP_fieldKindScalar, errorCode)
+     if (errorCode /= POP_Success) then
+        call POP_ErrorSet(errorCode, &
+           'pcg_diag_bsf: error updating halo for Q')
+        return
+     endif
+
+     call POP_HaloUpdate (S,POP_haloTropic,       &
+                          POP_gridHorzLocCenter,  &
+                          POP_fieldKindScalar, errorCode)
+     if (errorCode /= POP_Success) then
+        call POP_ErrorSet(errorCode, &
+           'pcg_diag_bsf: error updating halo for S')
+        return
+     endif
+
+     eta0 = eta1
+     eta1 = eta0/global_sum( WORK2*S, distrb_tropic,  &
+                             field_loc_center, BSF_RCALCT_B )
 
      !$OMP PARALLEL DO PRIVATE(iblock,this_block)
      do iblock=1,nblocks_tropic
@@ -694,7 +820,7 @@
 ! !IROUTINE: island_mask_diag_bsf
 ! !INTERFACE:
 
- subroutine island_mask_diag_bsf (ISMASK)
+ subroutine island_mask_diag_bsf (ISMASK, errorCode)
 
 !
 ! !DESCRIPTION:
@@ -708,6 +834,11 @@
    integer (int_kind), dimension(:,:,:), intent(inout) ::  &
       ISMASK                         ! island mask on baroclinic decomposition
   
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode          ! returned error code
+
 !EOP
 !BOC
   
@@ -729,6 +860,14 @@
 
    logical (log_kind), dimension(:,:), allocatable ::  &
      LAND, LANDLEFT 
+
+!-----------------------------------------------------------------------
+!
+!  allocate space
+!
+!-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    allocate(KALL     (nx_global,ny_global), &
             KINT     (nx_global,ny_global), &
@@ -875,9 +1014,14 @@
    call scatter_global(ISMASK, ISMASK_G, master_task, distrb_clinic, &
         field_loc_NEcorner, field_type_scalar)
 
-   call update_ghost_cells(ISMASK, bndy_clinic, &
-                           field_loc_center, field_type_scalar)
-
+   call POP_HaloUpdate (ISMASK, POP_haloClinic,   &
+                        POP_gridHorzLocCenter,    &
+                        POP_fieldKindScalar, errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'island_mask_diag_bsf: error updating halo for ISMASK')
+      return
+   endif
 
    call broadcast_scalar ( nisle,   master_task )
    call broadcast_array  ( npts_is, master_task )
@@ -963,7 +1107,7 @@
 ! !IROUTINE: pcg_diag_bsf_solver
 ! !INTERFACE:
 
- subroutine pcg_diag_bsf_solver(SOLN, RHS)
+ subroutine pcg_diag_bsf_solver(SOLN, RHS, errorCode)
 
 ! !DESCRIPTION:
 !  Solves the elliptic equation for bsf computation.
@@ -987,6 +1131,11 @@
      SOLN              ! on input,  initial guess
                        ! on output, final solution for sfc pressure
 
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode        ! returned error code
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -1005,6 +1154,8 @@
 !
 !-----------------------------------------------------------------------
 
+   errorCode = POP_Success
+
    call redistribute_blocks(S_TROPIC,   distrb_tropic, &
                             SOLN,       distrb_clinic)
    call redistribute_blocks(RHS_TROPIC, distrb_tropic, &
@@ -1016,7 +1167,12 @@
 !
 !-----------------------------------------------------------------------
 
-   call pcg_diag_bsf(S_TROPIC,RHS_TROPIC)      ! precond conjg grad solver
+   call pcg_diag_bsf(S_TROPIC,RHS_TROPIC, errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'pcg_diag_bsf_solver: error in pcg_diag_bsf')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1031,6 +1187,7 @@
 !EOC
 
  end subroutine pcg_diag_bsf_solver
+
 !***********************************************************************
 
  end module diag_bsf

@@ -21,6 +21,8 @@
    use POP_ErrorMod
    use POP_CommMod
    use POP_BlocksMod
+   
+   use spacecurve_mod
 
    implicit none
    private
@@ -49,15 +51,17 @@
              POP_DistributionDestroy,     &
              POP_DistributionGet,         &
              POP_DistributionGetBlockLoc, &
+             POP_DistributionGetPointLoc, &
              POP_DistributionGetBlockID
 
 ! !DEFINED PARAMETERS:
 
    ! supported methods for block distribution
    integer (POP_i4), parameter, public ::  &
-      POP_distributionMethodNone      = 0, &
-      POP_distributionMethodCartesian = 1, &
-      POP_distributionMethodRake      = 2
+      POP_distribMethodNone      = 0, &
+      POP_distribMethodCartesian = 1, &
+      POP_distribMethodRake      = 2, &
+      POP_distribMethodSpacecurve= 3
 
 !EOP
 !BOC
@@ -106,6 +110,9 @@
 
 !EOP
 !BOC
+
+   integer (POP_i4) :: maxWork
+   integer (POP_i4),allocatable :: work_per_block(:)
 !----------------------------------------------------------------------
 !
 !  select the appropriate distribution type
@@ -116,25 +123,59 @@
 
    select case (distrbMethod)
 
-   case(POP_distributionMethodCartesian)
+   case(POP_distribMethodCartesian)
 
+      !------------------------------------------------
+      ! The following comments and code were contributed
+      ! by John Dennis, CISL
+      !
+      ! these particular partitioning algorithms do not 
+      ! handle land block elimination anyway 
+      ! KLUDGE: probably should do something better here 
+      !------------------------------------------------
+      allocate(work_per_block(size(workPerBlock)))
+      maxWork = MAXVAL(workPerBlock)
+      work_per_block = maxWork
       newDistrb = POP_DistributionCreateCartesian(numProcs, &
-                                              workPerBlock, errorCode) 
-
+                                              work_per_block, errorCode) 
+      deallocate(work_per_block)
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
                'POP_DistributionCreate: error in cartesian create')
          return
       endif
 
-   case(POP_distributionMethodRake)
+   case(POP_distribMethodRake)
 
+      !------------------------------------------------
+      ! The following comments and code were contributed
+      ! by John Dennis, CISL
+      !
+      ! these particular partitioning algorithms do not 
+      ! handle land block elimination anyway 
+      ! KLUDGE: probably should do something better here 
+      !------------------------------------------------
+      allocate(work_per_block(size(workPerBlock)))
+      maxWork = MAXVAL(workPerBlock)
+      work_per_block = maxWork
       newDistrb = POP_DistributionCreateRake(numProcs, &
+                                             work_per_block, errorCode)
+
+      deallocate(work_per_block)
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+               'POP_DistributionCreate: error in rake create')
+         return
+      endif
+
+   case(POP_distribMethodSpacecurve)
+
+      newDistrb = POP_DistributionCreateSpacecurv(numProcs, &
                                              workPerBlock, errorCode)
 
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
-               'POP_DistributionCreate: error in rake create')
+               'POP_DistributionCreate: error in Spacecurve create')
          return
       endif
 
@@ -385,6 +426,128 @@
 !EOC
 
  end subroutine POP_DistributionGetBlockLoc
+
+!***********************************************************************
+!BOP
+! !IROUTINE: POP_DistributionGetPointLoc
+! !INTERFACE:
+
+ subroutine POP_DistributionGetPointLoc(distribution, iGlobal, jGlobal,&
+                                        processor, iLocal, jLocal,     & 
+                                        localBlock, errorCode) 
+
+! !DESCRIPTION:
+!  Given a distribution of blocks and a global point address (i,j),
+!  return the processor and local block index for the block containing
+!  this point. 
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   type (POP_distrb), intent(in) :: &
+      distribution           ! input distribution for which information
+                             !  is requested
+
+   integer (POP_i4), intent(in) :: &
+      iGlobal, jGlobal       ! global (i,j) for which location requested
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) ::  &
+      errorCode              ! returned error code
+
+   integer (POP_i4), intent(out) ::  &
+      processor,            &! processor on which point resides
+      iLocal, jLocal,       &! local i,j indices for this point
+      localBlock             ! local block index for this point
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (POP_i4) :: &
+      i,j,             &! horizontal indices
+      iblock,          &! block loop index
+      blockID           ! block id for found block
+
+   type (POP_block) :: &
+      thisBlock
+
+!-----------------------------------------------------------------------
+!
+!  first find the block containing this point
+!
+!-----------------------------------------------------------------------
+
+   errorCode = POP_Success
+   blockID   = 0
+   iLocal    = 0
+   jLocal    = 0
+
+   blockSearch: do iblock = 1,POP_numBlocks
+
+      thisBlock = POP_BlocksGetBlock(iblock, errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'POP_DistributionGetPointLoc: error retrieving block')
+         return
+      endif
+
+      if (jGlobal >= thisBlock%jGlobal(thisBlock%jb) .and. &
+          jGlobal <= thisBlock%jGlobal(thisBlock%je)) then ! block has j
+
+         if (iGlobal >= thisBlock%iGlobal(thisBlock%ib) .and. &
+             iGlobal <= thisBlock%iGlobal(thisBlock%ie)) then ! block has i
+
+            blockID = iblock
+
+            jLoop: do j=thisBlock%jb, thisBlock%je
+               if (jGlobal == thisBlock%jGlobal(j)) then ! found point
+                  jLocal = j
+                  exit jLoop
+               endif
+            end do jLoop
+
+            iLoop: do i=thisBlock%ib, thisBlock%ie
+               if (iGlobal == thisBlock%iGlobal(i)) then ! found point
+                  iLocal = i
+                  exit iLoop
+               endif
+            end do iLoop
+
+            exit blockSearch
+         endif
+      
+      endif
+      
+   end do blockSearch
+
+   if (blockID == 0 .or. iLocal == 0 .or. jLocal == 0) then
+      call POP_ErrorSet(errorCode, &
+         'POP_DistributionGetPointLoc: could not find point')
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  extract the location from the distribution data structure
+!
+!-----------------------------------------------------------------------
+
+   processor  = distribution%blockLocation(blockID)
+   localBlock = distribution%blockLocalID (blockID)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine POP_DistributionGetPointLoc
 
 !***********************************************************************
 !BOP
@@ -640,6 +803,284 @@
 
 !**********************************************************************
 !BOP
+! !IROUTINE: POP_DistributionCreateSpacecurv
+! !INTERFACE:
+
+ function POP_DistributionCreateSpacecurv(numProcs,workPerBlock,errorCode) result(newDistrb)
+
+! !Description:
+!  This function distributes blocks across processors in a
+!  load-balanced manner using space-filling curves
+!
+! !REVISION HISTORY:
+!  added by J. Dennis 3/10/06
+
+! !INPUT PARAMETERS:
+
+   integer (POP_i4), intent(in) :: &
+      numProcs                ! number of processors in this distribution
+
+   integer (POP_i4), dimension(:), intent(in) :: &
+      workPerBlock        ! amount of work per block
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode           ! returned error code
+
+   type (POP_distrb) :: &
+      newDistrb           ! resulting structure describing
+                          ! load-balanced distribution of blocks
+!EOP
+!BOC
+!----------------------------------------------------------------------
+!
+!  local variables
+!
+!----------------------------------------------------------------------
+
+   integer (POP_i4) :: &
+      i,j,k,n              ,&! dummy loop indices
+      pid                  ,&! dummy for processor id
+      local_block          ,&! local block position on processor
+      max_work             ,&! max amount of work in any block
+      numProcsX             ,&! num of procs in x for global domain
+      numProcsY               ! num of procs in y for global domain
+
+   integer (POP_i4), dimension(:),allocatable :: &
+        idxT_i,idxT_j
+
+   integer (POP_i4), dimension(:,:),allocatable :: Mesh, Mesh2, Mesh3 
+   integer (POP_i4) :: nblocksL,nblocks,ii,extra,i2,j2,tmp1,s1,ig
+
+   integer (POP_i4) :: ierr
+   logical, parameter :: Debug = .FALSE.
+
+   integer (POP_i4), dimension(:), allocatable :: &
+      priority           ,&! priority for moving blocks
+      work_tmp           ,&! work per row or column for rake algrthm
+      proc_tmp           ,&! temp processor id for rake algrthm
+      block_count          ! counter to determine local block indx
+
+   type (factor_t) :: xdim,ydim 
+   integer (POP_i4) :: it,jj
+   integer (POP_i4) :: curveSize,sb_x,sb_y,itmp,numfac
+   integer (POP_i4) :: subNum, sfcNum
+   logical          :: foundX  
+
+!----------------------------------------------------------------------
+!
+!  first set up as Cartesian distribution
+!  retain the Cartesian distribution if POP_numBlocks = numProcs
+!  to avoid processors with no work
+!
+!----------------------------------------------------------------------
+   errorCode = POP_Success
+   !------------------------------------------------------
+   ! Space filling curves only work if:
+   !
+   !    POP_numBlocksX = 2^m1 3^n1 5^o1 where m1,n1,o1 are integers
+   !    POP_numBlocksY = 2^m2 3^n2 5^o2 where m2,n2,o2 are integers
+   !------------------------------------------------------
+   if((.not. IsFactorable(POP_numBlocksY)) .or. (.not. IsFactorable(POP_numBlocksX))) then
+     newDistrb = POP_DistributionCreateCartesian(numProcs, workPerBlock,errorCode)
+     return
+   endif
+
+   !-----------------------------------------------
+   ! Factor the numbers of blocks in each dimension
+   !-----------------------------------------------
+   xdim = Factor(POP_numBlocksX)
+   ydim = Factor(POP_numBlocksY)
+   numfac = xdim%numfact
+
+   !---------------------------------------------
+   ! Match the common factors to create SFC curve
+   !---------------------------------------------
+   curveSize=1
+   do it=1,numfac
+      call MatchFactor(xdim,ydim,itmp,foundX)
+      curveSize = itmp*curveSize
+   enddo
+   !--------------------------------------
+   ! determine the size of the sub-blocks 
+   ! within the space-filling curve 
+   !--------------------------------------
+   sb_x = ProdFactor(xdim)
+   sb_y = ProdFactor(ydim)
+
+   call POP_CommCreateCommunicator(newDistrb%communicator, numProcs)
+
+   newDistrb%numProcs = numProcs
+!----------------------------------------------------------------------
+!
+!  allocate space for decomposition
+!
+!----------------------------------------------------------------------
+
+   allocate (newDistrb%blockLocation(POP_numBlocks), &
+             newDistrb%blockLocalID(POP_numBlocks))
+   newDistrb%blockLocation = 0
+   newDistrb%blockLocalID  = 0
+
+
+!----------------------------------------------------------------------
+!  Create the array to hold the SFC
+!----------------------------------------------------------------------
+   allocate(Mesh(curveSize,curveSize))
+   allocate(Mesh2(POP_numBlocksX,POP_numBlocksY),Mesh3(POP_numBlocksX,POP_numBlocksY) )
+
+   Mesh  = 0
+   Mesh2 = 0
+   Mesh3 = 0
+
+   allocate(idxT_i(POP_numBlocks),idxT_j(POP_numBlocks))
+
+
+!----------------------------------------------------------------------
+!  Generate the space-filling curve
+!----------------------------------------------------------------------
+   call GenSpaceCurve(Mesh)
+   Mesh = Mesh + 1 ! make it 1-based indexing
+   if(Debug) then
+     if(POP_myTask ==0) call PrintCurve(Mesh)
+   endif
+   !-----------------------------------------------
+   ! Reindex the SFC to address internal sub-blocks  
+   !-----------------------------------------------
+   do j=1,curveSize
+   do i=1,curveSize
+      sfcNum = (Mesh(i,j) - 1)*(sb_x*sb_y) + 1
+      do jj=1,sb_y
+      do ii=1,sb_x
+         subNum = (jj-1)*sb_x + (ii-1)
+         i2 = (i-1)*sb_x + ii
+         j2 = (j-1)*sb_y + jj
+         Mesh2(i2,j2) = sfcNum + subNum
+      enddo
+      enddo
+   enddo
+   enddo
+   !------------------------------------------------
+   ! create a linear array of i,j coordinates of SFC
+   !------------------------------------------------
+   idxT_i=0;idxT_j=0
+   do j=1,POP_numBlocksY
+     do i=1,POP_numBlocksX
+        n = (j-1)*POP_numBlocksX + i
+        ig = Mesh2(i,j)
+        if(workPerBlock(n) /= 0) then
+            idxT_i(ig)=i;idxT_j(ig)=j
+        endif
+     enddo
+   enddo
+   !-----------------------------
+   ! Compress out the land blocks
+   !-----------------------------
+   ii=0
+   do i=1,POP_numBlocks
+      if(IdxT_i(i) .gt. 0) then
+         ii=ii+1
+         Mesh3(idxT_i(i),idxT_j(i)) = ii
+      endif
+   enddo
+   if(Debug) then
+     if(POP_myTask==0) call PrintCurve(Mesh3)
+   endif
+
+   nblocks=ii 
+   nblocksL = nblocks/numProcs
+   ! every cpu gets nblocksL blocks, but the first 'extra' get nblocksL+1
+   extra = mod(nblocks,numProcs)
+   s1 = extra*(nblocksL+1)
+   ! split curve into two curves:
+   ! 1 ... s1  s2 ... nblocks
+   !
+   !  s1 = extra*(nblocksL+1)         (count be 0)
+   !  s2 = s1+1
+   !
+   ! First region gets nblocksL+1 blocks per partition
+   ! Second region gets nblocksL blocks per partition
+   if(Debug) write(*,*) 'numProcs,extra,nblocks,nblocksL,s1: ', &
+                numProcs,extra,nblocks,nblocksL,s1
+
+   do j=1,POP_numBlocksY
+   do i=1,POP_numBlocksX
+      n = (j-1)*POP_numblocksX + i
+!      i2 = idxT_i(n)
+!      j2 = idxT_j(n)
+      ii = Mesh3(i,j)
+      if(ii>0) then
+        !DBG if(POP_myTask ==0) write(*,*) 'i,j,ii:= ',i,j,ii
+        if(ii<=s1) then
+           ii=ii-1
+           tmp1 = ii/(nblocksL+1)
+           newDistrb%blockLocation(n) = tmp1+1
+        else
+           ii=ii-s1-1
+           tmp1 = ii/nblocksL
+           newDistrb%blockLocation(n) = extra + tmp1 + 1
+        endif
+      endif
+   enddo
+   enddo
+
+!----------------------------------------------------------------------
+!  Reset the newDistrb data structure
+!----------------------------------------------------------------------
+
+   allocate(proc_tmp(numProcs))
+   proc_tmp = 0
+
+   do n=1,POP_numBlocks
+      pid = newDistrb%blockLocation(n)
+      if(pid>0) then
+        proc_tmp(pid) = proc_tmp(pid) + 1
+        newDistrb%blockLocalID(n) = proc_tmp(pid)
+      endif
+   enddo
+   
+   !---------------------------------------
+   ! Set the number of active local blocks
+   !---------------------------------------
+   newDistrb%numLocalBlocks = proc_tmp(POP_myTask+1)
+
+   if (newDistrb%numLocalBlocks > 0) then
+      allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks))
+
+!      if (istat > 0) then
+!         call POP_ErrorSet(errorCode, &
+!         'POP_DistributionCreateSpaceCurve: error allocating blockLoc')
+!         return
+!      endif
+      i=1
+      do n=1,POP_numBlocks
+         pid = newDistrb%blockLocation(n)
+	 if(pid == POP_myTask+1) then 
+             newDistrb%blockGlobalID(i) = n   ! should work by construction
+             i=i+1 
+         endif
+      enddo
+   endif
+
+
+   if(Debug) then
+      if(POP_myTask==0) write(*,*) 'newDistrb%proc:= ',newDistrb%blockLocation
+      write(*,*) 'IAM: ',POP_myTask,' SpaceCurve: Number of blocks {total,local} :=', &
+                POP_numBlocks,nblocks,proc_tmp(POP_myTask+1)
+   endif
+
+   deallocate(proc_tmp)
+
+   deallocate(Mesh,Mesh2,Mesh3)
+   deallocate(idxT_i,idxT_j)
+!----------------------------------------------------------------------
+!EOC
+
+ end function POP_DistributionCreateSpacecurv
+
+!**********************************************************************
+!BOP
 ! !IROUTINE: POP_DistributionCreateRake
 ! !INTERFACE:
 
@@ -714,7 +1155,6 @@
          'POP_DistributionCreateRake: error creating initial dist')
       return
    endif
-
 !----------------------------------------------------------------------
 !
 !  if the number of blocks is close to the number of processors,

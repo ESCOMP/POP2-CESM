@@ -13,6 +13,9 @@
 !
 ! !USES:
 
+   use POP_KindsMod
+   use POP_IOUnitsMod
+
    use kinds_mod
    use domain_size
    use domain
@@ -21,7 +24,6 @@
    use grid   
    use communicate
    use io_tools
-   use shr_sys_mod
    use ice
    use constants
    use time_management
@@ -76,7 +78,7 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind), parameter :: max_points = 120, &
+   integer (int_kind), parameter :: max_points = 5000, &
                                     max_iter   =  16  
  
    logical (log_kind)           :: & ! Is this point a:
@@ -128,7 +130,7 @@
      write(stdout,'(a)') ' Marginal-sea balancing information'
      write(stdout,blank_fmt)
      write(stdout,delim_fmt)
-     call shr_sys_flush(stdout)
+     call POP_IOUnitsFlush(POP_stdout)
    endif
 
    allocate (MASK_FRAC (nx_block,ny_block,max_blocks_clinic,max_ms) )
@@ -354,13 +356,13 @@
                           &/ trim(region_info(n)%name)
         write(stdout,1000) '(init_ms_balance)', &
                            ' WARNING: distribution points span two regions' 
-          call shr_sys_flush (stdout)
+          call POP_IOUnitsFlush(POP_stdout)
           if (pt > 1) then
             write(stdout,*)'(init_ms_balance)', ' region1 : ' ,&
                              REGION_MASK_G(ipts(pt-1),jpts(pt-1)) 
             write(stdout,*) '(init_ms_balance)', ' region2 : ', &
                              REGION_MASK_G(ipts(pt),jpts(pt)) 
-            call shr_sys_flush (stdout)
+            call POP_IOUnitsFlush(POP_stdout)
           endif
         endif
      enddo
@@ -417,7 +419,7 @@
                     TLON_G(ipts(pt),jpts(pt)),        &
                     REGION_MASK_G(ipts(pt),jpts(pt)), &
                     fracs(pt)
-         call shr_sys_flush(stdout)
+         call POP_IOUnitsFlush(POP_stdout)
       enddo
      endif
 
@@ -456,7 +458,7 @@
 ! !IROUTINE:  ms_balancing
 ! !INTERFACE:
 
-   subroutine ms_balancing (STF2, EVAP_F, PREC_F, MELT_F,ROFF_F, &
+   subroutine ms_balancing (STF2, EVAP_F, PREC_F, MELT_F,ROFF_F, IOFF_F, &
                             SALT_F, QFLUX, flux_type, ICEOCN_F)
  
 ! !DESCRIPTION:
@@ -467,10 +469,10 @@
 !    The transport term, T, is computed in kg/s of freshwater:
 !
 !EOP
-!        T = [ max(0,QFLUX)*c_q +(E+P+M+R)*c_f +S*c_s ]*DXT*DYT*c_a
+!        T = [ max(0,QFLUX)*c_q +(E+P+M+R+I)*c_f +S*c_s ]*DXT*DYT*c_a
 !        T == 0  over marginal seas
 !
-!        c_f converts E+P+M+R kg/m^2/s freshwater to kg/m^2/s freshwater
+!        c_f converts E+P+M+R+I kg/m^2/s freshwater to kg/m^2/s freshwater
 !        c_f = c1
 !
 !        c_s converts S       kg/m^2/s salt       to kg/m^2/s freshwater
@@ -507,6 +509,7 @@
      PREC_F                     ,& ! precipitation flux kg/m^2/s  fw
      MELT_F                     ,& ! snow&ice melt flux kg/m^2/s  fw
      ROFF_F                     ,& ! river runoff  flux kg/m^2/s  fw
+     IOFF_F                     ,& ! ice   runoff  flux kg/m^2/s  fw
      SALT_F                     ,& ! salt          flux kg/m^2/s  salt
      QFLUX
 
@@ -571,7 +574,7 @@
     if (eoy) annual_depth  = c0
     if (eom) monthly_depth = c0
  
-    WORK = EVAP_F + PREC_F + MELT_F + ROFF_F
+    WORK = EVAP_F + PREC_F + MELT_F + ROFF_F + IOFF_F
     if ( iceocn_f_present )  WORK = WORK + ICEOCN_F
  
     do n=1,num_regions

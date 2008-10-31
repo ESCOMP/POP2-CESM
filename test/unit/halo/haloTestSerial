@@ -19,6 +19,8 @@ mkdir build
 /bin/cp ../../../source/POP_GridVertMod.F90 .
 /bin/cp ../../../source/POP_GridDimMod.F90 .
 /bin/cp ../../../source/POP_FieldMod.F90 .
+/bin/cp ../../../source/spacecurve_mod.F90 .
+/bin/cp ../../../source/kinds_mod.F90 .
 
 ### first test dipole grids
 
@@ -55,6 +57,8 @@ pop_db
 /bin/rm POP_GridDimMod.F90
 /bin/rm POP_FieldMod.F90
 /bin/rm POP.F90
+/bin/rm spacecurve_mod.F90
+/bin/rm kinds_mod.F90
 /bin/rm pop_db
 
 

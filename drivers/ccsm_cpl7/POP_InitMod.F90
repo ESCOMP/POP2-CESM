@@ -14,7 +14,7 @@
 ! !REFDOC:
 !
 ! !REVISION HISTORY:
-!  SVN:$Id$
+!  SVN:$Id: POP_InitMod.F90 808 2006-04-28 17:06:38Z njn01 $
 !
 ! !USES:
 
@@ -26,21 +26,13 @@
    use timers, only: get_timer
    use time_management, only: init_time_flag
 
-#ifdef coupled
-   use POP_CouplingMod, only: pop_init_coupler_comm, pop_send_to_coupler, irbuf
-   use cpl_interface_mod, only: cpl_interface_ibufRecv
-   use cpl_fields_mod, only: cpl_fields_cplname
-#endif
-
    implicit none
    private
    save
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: POP_Initialize, POP_Initialize1, POP_Initialize2,  &
-             POP_Initialize_coupling
-             
+   public :: POP_Initialize1, POP_Initialize2
 
 !EOP
 !BOC
@@ -61,70 +53,6 @@
 
  contains
 
-!***********************************************************************
-!BOP
-! !IROUTINE: POP_Initialize 
-! !INTERFACE:
-
- subroutine POP_Initialize(errorCode)
-
-! !DESCRIPTION:
-!  This routine is the initialization driver that initializes a POP run 
-!  by calling individual module initialization routines, with coupling
-!  calls inbetween initialization calls. When invoking CCSM with "coupling
-!  at the top," the routines called in this subroutine will be accessed 
-!  elsewhere, and this routine will not be called.
-!
-! !USERDOC:
-!
-! !REFDOC:
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT/OUTPUT PARAMETERS:
-
-   integer (POP_i4), intent(inout) :: &
-      errorCode              ! Returns an error code if any init fails
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
-
-
-!-----------------------------------------------------------------------
-!
-!  call pop initialization routines in two stages, with coupling inbetween
-!
-!-----------------------------------------------------------------------
-
-   call POP_Initialize1(errorCode)
-
-!-----------------------------------------------------------------------
-!
-!  exchange initial information with coupler
-!
-!-----------------------------------------------------------------------
-
-   call POP_Initialize_coupling
-
-!-----------------------------------------------------------------------
-!
-!  complete the initialiation of the model
-!
-!-----------------------------------------------------------------------
-
-   call POP_Initialize2(errorCode)
-
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine POP_Initialize 
 !***********************************************************************
 !BOP
 ! !IROUTINE: POP_Initialize1
@@ -171,7 +99,14 @@
 !
 !-----------------------------------------------------------------------
 
-   call pop_init_phase1
+   call pop_init_phase1(errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_Initialize1: error in pop_init_phase1')
+      return
+   endif
+
 
 !-----------------------------------------------------------------------
 !EOC
@@ -224,7 +159,13 @@
 !
 !-----------------------------------------------------------------------
 
-   call pop_init_phase2
+   call pop_init_phase2(errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_Initialize1: error in pop_init_phase2')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -250,70 +191,6 @@
  end subroutine POP_Initialize2
 
 !***********************************************************************
-
-!BOP
-! !IROUTINE: POP_Initialize_coupling
-! !INTERFACE:
-
- subroutine POP_Initialize_coupling
-
-! !DESCRIPTION:
-!  This routine is the initialization driver that initializes a POP run 
-!  by calling individual module initialization routines.
-!
-! !USERDOC:
-!
-! !REFDOC:
-!
-! !REVISION HISTORY:
-!  same as module
-! !USES
-
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
-   
-   logical (POP_Logical),save ::  &
-      coupled_ts = .false.      ! coupled_ts is false at initialization
-
-
-#if coupled
-
-!-----------------------------------------------------------------------
-!
-!  exchange initial information with coupler
-!
-!-----------------------------------------------------------------------
-
-   call pop_init_coupler_comm 
-
-!-----------------------------------------------------------------------
-!
-!  receive initial message from coupler
-!
-!-----------------------------------------------------------------------
-
-   call cpl_interface_ibufRecv(cpl_fields_cplname,irbuf)
-
-!-----------------------------------------------------------------------
-!
-!  send initial state information to the coupler
-!
-!-----------------------------------------------------------------------
-
-   call pop_send_to_coupler(coupled_ts)
-
-#endif
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine POP_Initialize_coupling
 
  end module POP_InitMod
 

@@ -17,6 +17,9 @@
 
 ! !USES:
 
+   use POP_KindsMod
+   use POP_IOUnitsMod
+
    use kinds_mod, only: int_kind, log_kind, char_len, r8
    use blocks, only: nx_block, ny_block, block
    use domain_size
@@ -36,9 +39,6 @@
    use passive_tracers, only: tracer_ref_val
    use grid, only: sfc_layer_varthick, sfc_layer_type
 
-   !*** ccsm
-   use shr_sys_mod
-
    implicit none
    private
    save
@@ -46,6 +46,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 
    public :: init_ice,           &
+             increment_tlast_ice,&
              ice_formation,      &
              tfreez,             &
              ice_flx_to_coupler, &
@@ -232,7 +233,7 @@
          write(stdout,'(a30,i3,a13)') 'Ice formation computed in top ', &
                                        kmxice, ' levels only.'
       endif
-      call shr_sys_flush(stdout)
+      call POP_IOUnitsFlush(POP_stdout)
 
    endif
 
@@ -301,6 +302,40 @@
 !BOP
 ! !IROUTINE:
 ! !INTERFACE:
+   subroutine increment_tlast_ice
+
+! !DESCRIPTION:
+!  This subroutine increments tlast_ice in a nonthreaded region.
+
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!  increment time since last evaluation
+!
+!-----------------------------------------------------------------------
+
+   if (avg_ts .or. back_to_back) then
+     time_weight = p5 
+   else
+     time_weight = c1 
+   endif
+
+   tlast_ice = tlast_ice + dtt*time_weight
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine increment_tlast_ice
+
+!***********************************************************************
+!BOP
+! !IROUTINE:
+! !INTERFACE:
    subroutine ice_formation(TNEW, SHF_IN, iblock,this_block,lfw_as_salt_flx)
 
 ! !DESCRIPTION:
@@ -360,26 +395,10 @@
    real (r8) ::        &
      ref_val             ! tracer reference value
 
-!-----------------------------------------------------------------------
-!
-!  increment time since last evaluation
-!  exit if this is not time to compute ice formation
-!
-!-----------------------------------------------------------------------
-
-   if (iblock == 1) then
-     if (avg_ts .or. back_to_back) then
-       time_weight = p5 
-     else
-       time_weight = c1 
-     endif
-
-     tlast_ice = tlast_ice + dtt*time_weight
-   endif
 
 !-----------------------------------------------------------------------
 !
-!  presently, the check_time_flag doesn't produce the same results
+!  presently, the check_time_flag does not produce the same results
 !  as ice_ts.  for now, ice_ts will be set in time_management and
 !  used here
 !-----------------------------------------------------------------------
@@ -577,6 +596,7 @@
    endif ! time to do ice
 
 !-----------------------------------------------------------------------
+!EOC
 
    end subroutine ice_formation
 
@@ -745,7 +765,9 @@
      call tfreez(TMLT,SALT)
    endif
 
+!-----------------------------------------------------------------------
 !EOC
+
    end subroutine tmelt
 
 

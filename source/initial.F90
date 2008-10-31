@@ -14,6 +14,11 @@
 !
 ! !USES:
 
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_IOUnitsMod
+   use POP_SolversMod
+
    use kinds_mod, only: i4, i8, r8, int_kind, log_kind, char_len
    use blocks, only: block, nx_block, ny_block, get_block
    use domain_size
@@ -30,16 +35,18 @@
    use broadcast, only: broadcast_array, broadcast_scalar
    use prognostic, only: init_prognostic, max_blocks_clinic, nx_global,    &
        ny_global, km, nt, TRACER, curtime, RHO, newtime, oldtime
-   use solvers, only: init_solvers
    use grid, only: init_grid1, init_grid2, kmt, kmt_g, n_topo_smooth, zt,    &
-       fill_points, sfc_layer_varthick, sfc_layer_type, TLON, TLAT
+       fill_points, sfc_layer_varthick, sfc_layer_type, TLON, TLAT, partial_bottom_cells
    use io
+#ifdef USEPIO
+   use pio, only: init_pio
+#endif
    use baroclinic, only: init_baroclinic
    use barotropic, only: init_barotropic
    use pressure_grad, only: init_pressure_grad
    use surface_hgt, only: init_surface_hgt
    use vertical_mix, only: init_vertical_mix, vmix_itype, vmix_type_kpp
-   use vmix_kpp, only: bckgrnd_vdc2
+   use vmix_kpp, only: bckgrnd_vdc2, linertial
    use horizontal_mix, only: init_horizontal_mix
    use advection, only: init_advection
    use diagnostics, only: init_diagnostics
@@ -55,27 +62,29 @@
    !use current_meters
    !use drifters
    use forcing, only: init_forcing
-   use forcing_sfwf, only: sfwf_formulation, lms_balance, sfwf_data_type
+   use forcing_sfwf, only: sfwf_formulation, lms_balance, sfwf_data_type, lfw_as_salt_flx
    use forcing_shf, only: luse_cpl_ifrac, OCN_WGT, shf_formulation, shf_data_type
    use forcing_ws, only: ws_data_type
    use sw_absorption, only: init_sw_absorption
-   use passive_tracers, only: init_passive_tracers
-   use ecosys_mod, only: ecosys_diurnal_cycle
+   use passive_tracers, only: init_passive_tracers, ecosys_on
+   use ecosys_mod, only: ecosys_qsw_distrb_const
    use exit_mod, only: sigAbort, exit_pop, flushm
    use restart, only: read_restart, restart_fmt, read_restart_filename
    use ms_balance, only: init_ms_balance
-   use forcing_coupled, only: pop_init_coupled, pop_init_partially_coupled, qsw_diurnal_cycle
+   use forcing_coupled, only: pop_init_coupled, pop_init_partially_coupled, &
+       qsw_distrb_iopt, qsw_distrb_iopt_const
    use global_reductions, only: init_global_reductions, global_sum
    use timers, only: init_timers
-   use shr_sys_mod
    use registry
    use qflux_mod, only: init_qflux
    use tidal_mixing
    use step_mod, only: init_step
    use gather_scatter
+#ifdef CCSMCOUPLED
    use shr_ncread_mod
    use shr_map_mod
-
+#endif
+   use overflows
 
    implicit none
    private
@@ -111,7 +120,7 @@
 ! !IROUTINE: pop_init_phase1
 ! !INTERFACE:
 
- subroutine pop_init_phase1
+ subroutine pop_init_phase1(errorCode)
 
 ! !DESCRIPTION:
 !  This routine is the first of a two-phase initialization process for
@@ -120,6 +129,11 @@
 !
 ! !REVISION HISTORY:
 !  same as module
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode         ! returned error code
 
 !EOP
 !BOC
@@ -138,6 +152,8 @@
 !  initialize message-passing or other communication protocol
 !
 !-----------------------------------------------------------------------
+
+   errorCode = POP_Success
 
    call init_communicate
 
@@ -181,7 +197,10 @@
       write(stdout,'(a)') ' Version 2.1alpha Jan 2005'
       write(stdout,'(a)') ' Modified for CCSM '
       write(stdout,blank_fmt)
-      call shr_sys_flush(stdout)
+      call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
    endif
 
    call init_constants
@@ -204,6 +223,14 @@
 
 !-----------------------------------------------------------------------
 !
+!  initialize overflows, part I
+!
+!-----------------------------------------------------------------------
+
+   call init_overflows1
+
+!-----------------------------------------------------------------------
+!
 !  initialize domain and grid
 !
 !-----------------------------------------------------------------------
@@ -211,7 +238,31 @@
    call init_domain_blocks
    call init_grid1
    call init_domain_distribution(KMT_G)
-   call init_grid2
+
+#ifdef USEPIO
+   ! -------------------------
+   ! initalize the parallel IO
+   ! -------------------------
+    call init_pio
+#endif
+
+!-----------------------------------------------------------------------
+!
+!  initialize overflows, part II. placed here so KMT_G scatter to
+!  KMT can be done (and NOT in init_grid2) for possible KMT mods; then
+!  finish with domain and grid initialization
+!
+!-----------------------------------------------------------------------
+
+   call init_overflows2
+
+   call init_grid2(errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_phase1: error initializing grid 2')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -236,8 +287,21 @@
 !
 !-----------------------------------------------------------------------
 
-   call init_topostress
-   call init_horizontal_mix
+   call init_topostress(errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_phase1: error in init_topostress')
+      return
+   endif
+
+   call init_horizontal_mix(errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_phase1: error in init_horizontal_mix')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -257,11 +321,25 @@
 
 !-----------------------------------------------------------------------
 !
-!  calculate time-independent stencil coefficients
+!  initialize barotropic elliptic solver
 !
 !-----------------------------------------------------------------------
 
-   call init_solvers    ! initialize barotropic solver and operators
+   call POP_SolversInit(errorCode)
+  
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_Init: error initializing solvers')
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  modify 9pt coefficients for barotropic solver for overflow use
+!
+!-----------------------------------------------------------------------
+
+   call init_overflows3
 
 !-----------------------------------------------------------------------
 !
@@ -300,7 +378,13 @@
 !
 !-----------------------------------------------------------------------
 
-   call init_ts
+   call init_ts(errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_phase1: error in init_ts')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -346,7 +430,7 @@
 ! !IROUTINE: pop_init_phase2
 ! !INTERFACE:
 
- subroutine pop_init_phase2
+ subroutine pop_init_phase2(errorCode)
 
 ! !DESCRIPTION:
 !  This routine completes the two-phase initialization process for
@@ -354,6 +438,11 @@
 !
 ! !REVISION HISTORY:
 !  same as module
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode      ! returned error code
 
 !EOP
 !BOC
@@ -378,7 +467,16 @@
 !
 !-----------------------------------------------------------------------
 
-   call init_passive_tracers(init_ts_file_fmt, read_restart_filename)
+   errorCode = POP_Success
+
+   call init_passive_tracers(init_ts_file_fmt, read_restart_filename, &
+                             errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_phase2: error in init_passive_tracers')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -490,19 +588,6 @@
 
    call document_constants
 
-!-----------------------------------------------------------------------
-!
-!  output delimiter to log file
-!
-!-----------------------------------------------------------------------
-
-   if (my_task == master_task) then
-      write(stdout,blank_fmt)
-      write(stdout,'(" End of initialization")')
-      write(stdout,blank_fmt)
-      write(stdout,ndelim_fmt)
-      call shr_sys_flush (stdout)
-   endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -618,7 +703,7 @@
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif
 
-#ifdef coupled
+#ifdef CCSMCOUPLED
    if (.not. lcoupled) then
      message = 'ERROR: inconsistent options.' &
              // ' Cpp option coupled is defined, but lcoupled = .false.'
@@ -647,7 +732,7 @@
 ! !IROUTINE: init_ts
 ! !INTERFACE:
 
- subroutine init_ts
+ subroutine init_ts(errorCode)
 
 ! !DESCRIPTION:
 !  Initializes temperature and salinity and
@@ -655,6 +740,11 @@
 !
 ! !REVISION HISTORY:
 !  same as module
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode             ! returned error code
 
 !EOP
 !BOC
@@ -689,6 +779,10 @@
       kk,                &! indices for interpolating levitus data
       nu,                &! i/o unit for mean profile file
       iblock              ! local block address
+
+   integer (int_kind) :: &
+      m,                 &! overflows dummy loop index
+      ib,ie,jb,je         ! local domain index boundaries
 
    integer (i4) :: &
       PHCnx,PHCny,PHCnz
@@ -739,7 +833,9 @@
    real (r8), dimension(:), allocatable :: &
       tmp1,tmp2,PHC_z             ! temp arrays
 
+#ifdef CCSMCOUPLED
    type(shr_map_mapType)    :: PHC_map           ! used to map PHC data
+#endif
 
 
    !***
@@ -794,6 +890,8 @@
 !
 !-----------------------------------------------------------------------
 
+   errorCode = POP_Success
+
    init_ts_suboption = 'rest'
    init_ts_outfile   = 'unknown_init_ts_outfile'
    init_ts_outfile_fmt = 'bin'
@@ -839,7 +937,10 @@
                write(stdout,*) ' '
             endif
        end select
-       call shr_sys_flush(stdout)
+       call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
    endif
 
    call broadcast_scalar(init_ts_option    , master_task)
@@ -872,9 +973,20 @@
       if (my_task == master_task .and. .not. luse_pointer_files) then
          write(stdout,'(a35,a)') 'Initial T,S read from restart file:',&
                                   trim(init_ts_file)
-         call shr_sys_flush(stdout)
+         call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
       endif
-      call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid,init_ts_file_fmt)
+      call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid, &
+                        init_ts_file_fmt, errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_ts: error in read_restart')
+         return
+      endif
+
       ltavg_restart = .true.
 
 !-----------------------------------------------------------------------
@@ -891,9 +1003,21 @@
          write(stdout,'(a40,a)') &
             'Initial T,S branching from restart file:', &
             trim(init_ts_file)
-         call shr_sys_flush(stdout)
+         call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
       endif
-      call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid,init_ts_file_fmt)
+
+      call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid, &
+                        init_ts_file_fmt, errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_ts: error in read_restart')
+         return
+      endif
+
       ltavg_restart = .false.
 
    case ('hybrid')
@@ -904,14 +1028,27 @@
          write(stdout,'(a80,a)') &
             'Initial T,S hybrid start from restart file:', &
             trim(init_ts_file)
-         call shr_sys_flush(stdout)
+         call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
       endif
-      call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid,init_ts_file_fmt)
+      call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid, &
+                        init_ts_file_fmt, errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_ts: error in read_restart')
+         return
+      endif
+
       ltavg_restart = .false.
 
    case ('startup_spunup')
-      write(stdout,*) ' startup_spunup option'
-      write(stdout,*) ' init_ts_option = ', init_ts_option
+      if(my_task == master_task )  then
+         write(stdout,*) ' startup_spunup option'
+         write(stdout,*) ' init_ts_option = ', init_ts_option
+      endif
       first_step   = .false.
       lccsm_branch = .false.
       lccsm_hybrid = .true.
@@ -919,9 +1056,20 @@
          write(stdout,'(a80,a)') &
             'Initial T,S startup run from spun-up restart file:', &
             trim(init_ts_file)
-         call shr_sys_flush(stdout)
+         call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
       endif
-      call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid,init_ts_file_fmt)
+      call read_restart(init_ts_file,lccsm_branch,lccsm_hybrid, &
+                        init_ts_file_fmt, errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_ts: error in read_restart')
+         return
+      endif
+
       ltavg_restart = .false.
       !*** turn pointer file-creation back on
       luse_pointer_files = .true.
@@ -938,7 +1086,10 @@
       if (my_task == master_task) then
          write(stdout,'(a31,a)') 'Initial 3-d T,S read from file:', &
                                  trim(init_ts_file)
-         call shr_sys_flush(stdout)
+         call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
       endif
 
       allocate(TEMP_DATA(nx_block,ny_block,km,max_blocks_clinic))
@@ -987,8 +1138,56 @@
       if (my_task == master_task) then
          write(stdout,blank_fmt)
          write(stdout,'(a12,a)') ' file read: ', trim(init_ts_file)
-         call shr_sys_flush(stdout)
+         call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
       endif
+
+!#################### temporary kludge for overflows ####################
+!-----------------------------------------------------------------------
+!   fill any overflow-deepened points with T,S values from above
+!-----------------------------------------------------------------------
+
+
+      if (overflows_on) then
+         ! fill any overflow-deepened points with T,S values from above
+         ! fill entire TRACER array for ghost (or halo) points
+         do iblock = 1,nblocks_clinic
+            this_block = get_block(blocks_clinic(iblock),iblock)
+            do j=1,ny_block
+            do i=1,nx_block
+                do n=1,num_ovf
+                   do m=1,ovf(n)%num_kmt
+                      if( ovf(n)%loc_kmt(m)%i.eq.this_block%i_glob(i).and.&
+                          ovf(n)%loc_kmt(m)%j.eq.this_block%j_glob(j) ) then
+                         if(ovf(n)%loc_kmt(m)%knew .gt. ovf(n)%loc_kmt(m)%korg) then
+                            do k=ovf(n)%loc_kmt(m)%korg+1,ovf(n)%loc_kmt(m)%knew
+                               ! use T,S from level above with slight increase in S
+                               TRACER(i,j,k,1,curtime,iblock) = &
+                                  TRACER(i,j,k-1,1,curtime,iblock)
+                               TRACER(i,j,k,2,curtime,iblock) = &
+                                  TRACER(i,j,k-1,2,curtime,iblock) * 1.001
+                               write(stdout,100) ovf(n)%loc_kmt(m)%i, &
+                                  ovf(n)%loc_kmt(m)%j,ovf(n)%loc_kmt(m)%korg, &
+                                  k,ovf(n)%loc_kmt(m)%knew
+                               100 format(' init_ts: T,S extended from ijKMT = ', &
+                                  3(i4,1x),' to k=',i3,' until KMT_new=',i3)
+                            enddo
+                         endif
+                      endif
+                   end do
+                end do
+            enddo
+            enddo
+         enddo
+      endif
+
+      call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
+!################ end temporary kludge for overflows ####################
 
 
       !$OMP PARALLEL DO PRIVATE(iblock, k, n)
@@ -1008,8 +1207,22 @@
 
       if (n_topo_smooth > 0) then
          do k=1,km
-            call fill_points(k,TRACER(:,:,k,1,curtime,:))
-            call fill_points(k,TRACER(:,:,k,2,curtime,:))
+            call fill_points(k,TRACER(:,:,k,1,curtime,:),errorCode)
+
+            if (errorCode /= POP_Success) then
+               call POP_ErrorSet(errorCode, &
+                  'init_ts: error in fill_points for temp')
+               return
+            endif
+
+            call fill_points(k,TRACER(:,:,k,2,curtime,:),errorCode)
+
+            if (errorCode /= POP_Success) then
+               call POP_ErrorSet(errorCode, &
+                  'init_ts: error in fill_points for salt')
+               return
+            endif
+
          enddo
       endif
 
@@ -1036,7 +1249,10 @@
          write(stdout,'(a40,a)') &
             'Initial mean T,S profile read from file:', &
             trim(init_ts_file)
-         call shr_sys_flush(stdout)
+         call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
          open(nu, file=init_ts_file, status='old')
          do k = 1,km
             read(nu,*) tinit(k),sinit(k)
@@ -1077,7 +1293,7 @@
       if (my_task == master_task) then
          write(stdout,'(a63)') & 
         'Initial T,S profile computed internally from 1992 Levitus data'
-         call shr_sys_flush(stdout)
+         call POP_IOUnitsFlush(POP_stdout)
       endif
 
       !$OMP PARALLEL DO PRIVATE(iblock, k, kk, &
@@ -1119,16 +1335,23 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef CCSMCOUPLED
    case ('PHC')
       first_step = .true.
 
       if (my_task == master_task) then
          write(stdout,'(a63)') &
            'Initial T,S profile generated by 3D remapping of filled Levitus-PHC data'
-         call shr_sys_flush(stdout)
+         call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
 
          write(stdout,*) ' init_ts_option = PHC'
-         call shr_sys_flush(stdout)
+         call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
       endif
 
 
@@ -1277,11 +1500,15 @@
       if (trim(init_ts_outfile) /= 'unknown_init_ts_outfile') then
         if (my_task == master_task) then
           write(stdout,*) 'remapped initial T & S written to',trim(init_ts_outfile)
-          call shr_sys_flush(stdout)
+          call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
         endif
         call write_init_ts(trim(init_ts_outfile),trim(init_ts_outfile_fmt))
       endif
 
+#endif
 !-----------------------------------------------------------------------
 !
 !  bad initialization option
@@ -1291,6 +1518,28 @@
    case default
       call exit_POP(sigAbort,'Unknown t,s initialization option')
    end select
+
+!-----------------------------------------------------------------------
+!
+!  check for appropriate initialization when overflows on and interactive
+!
+!-----------------------------------------------------------------------
+
+   select case (init_ts_option)
+   case ('mean', 'internal', 'PHC')
+      if( overflows_on .and. overflows_interactive ) then
+         write(stdout,*) &
+           'init_ts: ERROR initializing for interactive overflows'
+         write(stdout,*) &
+           'initialization must be either startup or file'
+          call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
+         call exit_POP(sigAbort,'ERROR wrong initialization with overflows')
+      endif
+   end select
+
 
 !-----------------------------------------------------------------------
 !
@@ -1375,8 +1624,13 @@
      write(stdout,1020) 'pi',               pi,               ' ' 
 
      write(stdout,blank_fmt)
+     write(stdout,ndelim_fmt)
+     write(stdout,blank_fmt)
 
-     call shr_sys_flush(stdout)
+     call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
 
    endif
 
@@ -1493,6 +1747,8 @@
    if (my_task == master_task) then
      tavg_flag    = init_time_flag('tavg')
      coupled_flag = init_time_flag('coupled_ts')
+     if (check_time_flag_freq_opt(tavg_flag) > 0 .and. &
+         check_time_flag_freq_opt(coupled_flag) > 0) then
      if (check_time_flag_freq_opt(tavg_flag) /=  &
          check_time_flag_freq_opt(coupled_flag)) then
        message = 'Warning:  time-averaging and coupling frequency ' /&
@@ -1507,6 +1763,7 @@
          call print_message (message)
          number_of_warnings = number_of_warnings + 1
         endif
+     endif
      endif
    endif
 
@@ -1607,11 +1864,72 @@
 !
 !-----------------------------------------------------------------------
 
-   if (ecosys_diurnal_cycle .and. .not. qsw_diurnal_cycle) then
-     message =   &
-     'Error:  cannot set ecosys_diurnal_cycle=.true. without qsw_diurnal_cycle=.true.'
+   if (ecosys_on) then
+
+     if ((.not. ecosys_qsw_distrb_const) .and. &
+         (qsw_distrb_iopt == qsw_distrb_iopt_const)) then
+       message = &
+       'Error: cannot set ecosys_qsw_distrb_const=.false. unless qsw_distrb_opt/=const'
+       call print_message(message)
+       number_of_fatal_errors = number_of_fatal_errors + 1
+     endif
+
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  untested forcing_coupled option
+!
+!-----------------------------------------------------------------------
+
+   if (sfc_layer_type == sfc_layer_varthick .and. .not. lfw_as_salt_flx) then
+     message =  'Error:  untested/unsupported combination of options'
+     message =   trim(message) /&
+     &/' (sfc_layer_type == sfc_layer_varthick .and. .not. lfw_as_salt_flx)'
      call print_message(message)
      number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  inertial mixing on
+!
+!-----------------------------------------------------------------------
+
+  if (linertial) then
+     message =  'Error:  inertial mixing option. '
+     message =   trim(message) /&
+     &/' This option does not exactly restart and is untested. DO NOT USE!'
+     call print_message(message)
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  inertial mixing inconsistencies
+!
+!-----------------------------------------------------------------------
+
+  if (linertial .and. (.not. registry_match('diag_gm_bolus') .or. partial_bottom_cells)) then
+     message =  'Error:  inertial mixing option inconsistency. '
+     message =   trim(message) /&
+     &/' diag_gm_bolus must be on and partial_bottom_cells must not be on'
+     call print_message(message)
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  overflow check: if overflow active, horiz_grid_opt must be 'file'
+!
+!-----------------------------------------------------------------------
+
+   if ( overflows_on ) then
+     if ( overflows_interactive .and. .not. registry_match('topography_opt_file') ) then
+        message = 'Error: interactive overflows without topography option = file'
+        call print_message(message)
+        number_of_fatal_errors = number_of_fatal_errors + 1
+     endif
    endif
 
 !-----------------------------------------------------------------------
@@ -1662,7 +1980,10 @@
 
    write(stdout,blank_fmt)
    write(stdout,1100) message
-   call shr_sys_flush(stdout)
+   call POP_IOUnitsFlush(POP_stdout)
+#ifdef CCSMCOUPLED
+      call POP_IOUnitsFlush(stdout)
+#endif
 
  1100 format(5x, a)   
 

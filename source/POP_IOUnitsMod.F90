@@ -40,6 +40,7 @@
    use POP_KindsMod
 #ifdef CCSMCOUPLED
    use shr_sys_mod
+   use shr_file_mod
 #endif
 
    implicit none
@@ -147,6 +148,9 @@ contains
 !
 !-----------------------------------------------------------------------
 
+#ifdef CCSMCOUPLED
+   iunit = shr_file_getUnit()
+#else
    srch_units: do n=POP_IOUnitsMinUnits, POP_IOUnitsMaxUnits
       if (.not. POP_IOUnitsInUse(n)) then   ! I found one, I found one
 
@@ -160,12 +164,13 @@ contains
          else
             !*** if inquire shows this unit in use, mark it as
             !***    in use to prevent further queries
-            POP_IOUnitsInUse(iunit) = .true.
+            POP_IOUnitsInUse(n) = .true.
          endif
       endif
    end do srch_units
 
    if (iunit > POP_IOUnitsMaxUnits) stop 'POP_IOUnitsGet: No free units'
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -211,7 +216,11 @@ contains
 !
 !-----------------------------------------------------------------------
 
+#ifdef CCSMCOUPLED
+   call shr_file_freeUnit(iunit)
+#else
    POP_IOUnitsInUse(iunit) = .false.  !  that was easy...
+#endif
 
 !-----------------------------------------------------------------------
 !EOC

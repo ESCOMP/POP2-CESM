@@ -22,11 +22,11 @@
    use POP_CommMod
    use POP_ErrorMod
 
-   use mpi
-
    implicit none
    private
    save
+
+   include 'mpif.h'
 
 ! !PUBLIC MEMBER FUNCTIONS:
 

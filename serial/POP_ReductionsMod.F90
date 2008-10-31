@@ -26,12 +26,12 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: POP_GlobalSum,      &
-             POP_GlobalSumProd,  &
-             POP_GlobalCount,    &
-             POP_GlobalMaxval,   &
-             POP_GlobalMinval,   &
-             POP_GlobalMaxloc,   &
+   public :: POP_GlobalSum,        &
+             POP_GlobalSumProd,    &
+             POP_GlobalCount,      &
+             POP_GlobalMaxval,     &
+             POP_GlobalMinval,     &
+             POP_GlobalMaxloc,     &
              POP_GlobalMinloc
 
 !EOP
@@ -43,12 +43,13 @@
 !-----------------------------------------------------------------------
 
    interface POP_GlobalSum
-     module procedure POP_GlobalSum2DR8,     &
-                      POP_GlobalSum2DR4,     &
-                      POP_GlobalSum2DI4,     &
-                      POP_GlobalSumScalarR8, &
-                      POP_GlobalSumScalarR4, &
-                      POP_GlobalSumScalarI4
+     module procedure POP_GlobalSum2DR8,        &
+                      POP_GlobalSum2DR4,        &
+                      POP_GlobalSum2DI4,        &
+                      POP_GlobalSumScalarR8,    &
+                      POP_GlobalSumScalarR4,    &
+                      POP_GlobalSumScalarI4,    &
+                      POP_GlobalSumNfields2DR8
    end interface
 
    interface POP_GlobalSumProd
@@ -159,12 +160,19 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef REPRODUCIBLE
+   real (POP_r16) :: &
+      localSum,      &! sum of local block domain
+      globalSumTmp    ! quad version of global sum
+#else
    real (POP_r8) :: &
       localSum       ! sum of local block domain
+#endif
 
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -173,9 +181,22 @@
 !-----------------------------------------------------------------------
 
    errorCode = POP_Success
+#ifdef REPRODUCIBLE
+   globalSumTmp = 0.0_POP_r16
+#else
    globalSum = 0.0_POP_r8
+#endif
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalSum2DR8: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -199,7 +220,11 @@
       je = thisBlock%je
 
 
+#ifdef REPRODUCIBLE
+      localSum = 0.0_POP_r16
+#else
       localSum = 0.0_POP_r8
+#endif
 
       if (present(mMask)) then
          do j=jb,je
@@ -262,9 +287,17 @@
 
       !*** now add block sum to global sum
 
+#ifdef REPRODUCIBLE
+      globalSumTmp = globalSumTmp + localSum
+#else
       globalSum = globalSum + localSum
+#endif
 
    end do
+
+#ifdef REPRODUCIBLE
+   globalSum = globalSumTmp
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -323,12 +356,19 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef REPRODUCIBLE
+   real (POP_r8) :: &
+      localSum,     &! sum of local block domain
+      globalSumTmp   ! hold higher precision global sum
+#else
    real (POP_r4) :: &
       localSum       ! sum of local block domain
+#endif
 
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -337,9 +377,22 @@
 !-----------------------------------------------------------------------
 
    errorCode = POP_Success
+#ifdef REPRODUCIBLE
+   globalSumTmp = 0.0_POP_r8
+#else
    globalSum = 0.0_POP_r4
+#endif
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalSum2DR4: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -363,7 +416,11 @@
       je = thisBlock%je
 
 
+#ifdef REPRODUCIBLE
+      localSum = 0.0_POP_r8
+#else
       localSum = 0.0_POP_r4
+#endif
 
       if (present(mMask)) then
          do j=jb,je
@@ -426,10 +483,17 @@
 
       !*** now add block sum to global sum
 
+#ifdef REPRODUCIBLE
+      globalSumTmp = globalSumTmp + localSum
+#else
       globalSum = globalSum + localSum
+#endif
 
    end do
 
+#ifdef REPRODUCIBLE
+   globalSum = globalSumTmp
+#endif
 !-----------------------------------------------------------------------
 !EOC
 
@@ -493,6 +557,7 @@
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -503,7 +568,16 @@
    errorCode = POP_Success
    globalSum = 0_POP_i4
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalSum2DI4: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -598,6 +672,219 @@
 !EOC
 
  end function POP_GlobalSum2DI4
+
+!***********************************************************************
+!BOP
+! !IROUTINE: POP_GlobalSum
+! !INTERFACE:
+
+ function POP_GlobalSumNfields2DR8(array, dist, fieldLoc, errorCode, &
+                                   mMask, lMask)                     &
+          result(globalSum)
+
+! !DESCRIPTION:
+!  Computes the global sum of the physical domain of a several
+!  2-d arrays simultaneously.
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !REMARKS:
+!  This is actually the specific interface for the generic POP_GlobalSum
+!  function corresponding to a stack of double precision arrays.  The
+!  generic interface is identical but will handle real and integer 2-d
+!  slabs and real, integer, and double precision scalars.
+
+! !INPUT PARAMETERS:
+
+   real (POP_r8), dimension(:,:,:,:), intent(in) :: &
+      array                ! set of arrays to be summed
+
+   type (POP_distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   character (*), intent(in) :: &
+      fieldLoc             ! grid stagger location for this field
+
+   real (POP_r8), dimension(:,:,:), intent(in), optional :: &
+      mMask                ! optional multiplicative mask
+
+   logical (POP_logical), dimension(:,:,:), intent(in), optional :: &
+      lMask                ! optional logical mask
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode            ! returned error flag
+
+   real (POP_r8), dimension(size(array,dim=3)) :: &
+      globalSum            ! resulting global sum
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+#ifdef REPRODUCIBLE
+   real (POP_r16), dimension(size(array,dim=3)) :: &
+      localSum,     &! sum of local block domain
+      globalSumTmp   ! high precision form of global sum
+#else
+   real (POP_r8), dimension(size(array,dim=3)) :: &
+      localSum       ! sum of local block domain
+#endif
+
+   integer (POP_i4) :: &
+      i,j,n,iblock,    &! local counters
+      ib,ie,jb,je,     &! beg,end of physical domain
+      nFields,         &! number of 2d fields to be summed
+      numBlocks,       &! number of local blocks in distribution
+      blockID           ! block location
+
+   type (POP_Block) :: &
+      thisBlock         ! block information for local block
+
+!-----------------------------------------------------------------------
+
+   errorCode = POP_Success
+   nFields   = size(array,dim=3)
+#ifdef REPRODUCIBLE
+   globalSumTmp = 0.0_POP_r16
+#else
+   globalSum = 0.0_POP_r8
+#endif
+
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalSum2DR8: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
+      call POP_DistributionGetBlockID(dist, iblock, &
+                                      blockID, errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'POP_GlobalSum2DR8: error getting block id')
+         return
+      endif
+
+      thisBlock = POP_BlocksGetBlock(blockID, errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'POP_GlobalSum2DR8: error getting block')
+         return
+      endif
+
+      ib = thisBlock%ib
+      ie = thisBlock%ie
+      jb = thisBlock%jb
+      je = thisBlock%je
+
+
+#ifdef REPRODUCIBLE
+      localSum = 0.0_POP_r16
+#else
+      localSum = 0.0_POP_r8
+#endif
+
+      if (present(mMask)) then
+         do n=1,nFields
+         do j=jb,je
+         do i=ib,ie
+            localSum(n) = &
+            localSum(n) + array(i,j,n,iblock)*mMask(i,j,iblock)
+         end do
+         end do
+         end do
+      else if (present(lMask)) then
+         do n=1,nFields
+         do j=jb,je
+         do i=ib,ie
+            if (lMask(i,j,iblock)) then
+               localSum(n) = &
+               localSum(n) + array(i,j,n,iblock)
+            endif
+         end do
+         end do
+         end do
+      else
+         do n=1,nFields
+         do j=jb,je
+         do i=ib,ie
+            localSum(n) = localSum(n) + array(i,j,n,iblock)
+         end do
+         end do
+         end do
+      endif
+
+      !*** if this block along tripole boundary and field 
+      !*** located on north face and northeast corner points
+      !*** must eliminate redundant points from global sum
+
+      if (thisBlock%tripole) then
+         if (fieldLoc == POP_gridHorzLocNface .or. &
+             fieldLoc == POP_gridHorzLocNEcorner) then
+
+            j = je
+
+            if (present(mMask)) then
+               do n=1,nFields
+               do i=ib,ie
+                  if (thisBlock%iGlobal(i) > thisBlock%nxGlobal/2) then
+                     localSum(n) = &
+                     localSum(n) - array(i,j,n,iblock)*mMask(i,j,iblock)
+                  endif
+               end do
+               end do
+            else if (present(lMask)) then
+               do n=1,nFields
+               do i=ib,ie
+                  if (thisBlock%iGlobal(i) > thisBlock%nxGlobal/2) then
+                     if (lMask(i,j,iblock)) &
+                     localSum(n) = localSum(n) - array(i,j,n,iblock)
+                  endif
+               end do
+               end do
+            else
+               do n=1,nFields
+               do i=ib,ie
+                  if (thisBlock%iGlobal(i) > thisBlock%nxGlobal/2) then
+                     localSum(n) = localSum(n) - array(i,j,n,iblock)
+                  endif
+               end do
+               end do
+            endif
+
+         endif
+      endif
+
+      !*** now add block sum to global sum
+
+#ifdef REPRODUCIBLE
+      globalSumTmp = globalSumTmp + localSum
+#else
+      globalSum = globalSum + localSum
+#endif
+
+   end do
+
+#ifdef REPRODUCIBLE
+   globalSum = globalSumTmp
+#endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function POP_GlobalSumNfields2DR8
 
 !***********************************************************************
 !BOP
@@ -806,12 +1093,19 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef REPRODUCIBLE
+   real (POP_r16) :: &
+      localSum,      &! sum of local block domain
+      globalSumTmp    ! higher precision global sum
+#else
    real (POP_r8) :: &
       localSum       ! sum of local block domain
+#endif
 
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -820,9 +1114,22 @@
 !-----------------------------------------------------------------------
 
    errorCode = POP_Success
+#ifdef REPRODUCIBLE
+   globalSumTmp = 0.0_POP_r16
+#else
    globalSum = 0.0_POP_r8
+#endif
 
-   do iblock=1,size(array1,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalSumProd2DR8: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -846,7 +1153,11 @@
       je = thisBlock%je
 
 
+#ifdef REPRODUCIBLE
+      localSum = 0.0_POP_r16
+#else
       localSum = 0.0_POP_r8
+#endif
 
       if (present(mMask)) then
          do j=jb,je
@@ -913,9 +1224,17 @@
 
       !*** now add block sum to global sum
 
+#ifdef REPRODUCIBLE
+      globalSumTmp = globalSumTmp + localSum
+#else
       globalSum = globalSum + localSum
+#endif
 
    end do
+
+#ifdef REPRODUCIBLE
+   globalSum = globalSumTmp
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -976,12 +1295,19 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef REPRODUCIBLE
+   real (POP_r8) :: &
+      localSum,     &! sum of local block domain
+      globalSumTmp   ! higher precision form of global sum
+#else
    real (POP_r4) :: &
       localSum       ! sum of local block domain
+#endif
 
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -990,9 +1316,22 @@
 !-----------------------------------------------------------------------
 
    errorCode = POP_Success
+#ifdef REPRODUCIBLE
+   globalSumTmp = 0.0_POP_r8
+#else
    globalSum = 0.0_POP_r4
+#endif
 
-   do iblock=1,size(array1,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalSumProd2DR4: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -1015,8 +1354,11 @@
       jb = thisBlock%jb
       je = thisBlock%je
 
-
+#ifdef REPRODUCIBLE
+      localSum = 0.0_POP_r8
+#else
       localSum = 0.0_POP_r4
+#endif
 
       if (present(mMask)) then
          do j=jb,je
@@ -1083,9 +1425,17 @@
 
       !*** now add block sum to global sum
 
+#ifdef REPRODUCIBLE
+      globalSumTmp = globalSumTmp + localSum
+#else
       globalSum = globalSum + localSum
+#endif
 
    end do
+
+#ifdef REPRODUCIBLE
+   globalSum = globalSumTmp
+#endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1151,6 +1501,7 @@
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -1161,7 +1512,16 @@
    errorCode = POP_Success
    globalSum = 0_POP_i4
 
-   do iblock=1,size(array1,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalSumProd2DI4: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -1311,6 +1671,7 @@
    integer (POP_i4) ::   &
       ib, ie, jb, je,    &! start,end of physical domain
       localCount,        &! count of local block
+      numBlocks,         &! number of local blocks in distribution
       blockID,           &! block id
       i,j,iblock          ! dummy counters
 
@@ -1322,7 +1683,16 @@
    errorCode = POP_Success
    globalCount = 0
 
-   do iblock=1,size(mask,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalCount2DR8: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -1435,6 +1805,7 @@
    integer (POP_i4) ::   &
       ib, ie, jb, je,    &! start,end of physical domain
       localCount,        &! count of local block
+      numBlocks,         &! number of local blocks in distribution
       blockID,           &! block id
       i,j,iblock          ! dummy counters
 
@@ -1446,7 +1817,16 @@
    errorCode = POP_Success
    globalCount = 0
 
-   do iblock=1,size(mask,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalCount2DR4: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -1559,6 +1939,7 @@
    integer (POP_i4) ::   &
       ib, ie, jb, je,    &! start,end of physical domain
       localCount,        &! count of local block
+      numBlocks,         &! number of local blocks in distribution
       blockID,           &! block id
       i,j,iblock          ! dummy counters
 
@@ -1570,7 +1951,16 @@
    errorCode = POP_Success
    globalCount = 0
 
-   do iblock=1,size(mask,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalCount2DI4: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -1683,6 +2073,7 @@
    integer (POP_i4) ::   &
       ib, ie, jb, je,    &! start,end of physical domain
       localCount,        &! count of local block
+      numBlocks,         &! number of local blocks in distribution
       blockID,           &! block id
       i,j,iblock          ! dummy counters
 
@@ -1694,7 +2085,16 @@
    errorCode = POP_Success
    globalCount = 0
 
-   do iblock=1,size(mask,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalCount2DLogical: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -1809,6 +2209,7 @@
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -1819,7 +2220,16 @@
    errorCode = POP_Success
    globalMaxval = -HUGE(0.0_POP_r8)
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalMaxval2DR8: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -1921,6 +2331,7 @@
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -1931,7 +2342,16 @@
    errorCode = POP_Success
    globalMaxval = -HUGE(0.0_POP_r4)
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalMaxval2DR4: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -2033,6 +2453,7 @@
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -2043,7 +2464,16 @@
    errorCode = POP_Success
    globalMaxval = -HUGE(0_POP_i4)
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalMaxval2DI4: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -2145,6 +2575,7 @@
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -2155,7 +2586,16 @@
    errorCode = POP_Success
    globalMinval = HUGE(0.0_POP_r8)
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalMinval2DR8: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -2257,6 +2697,7 @@
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -2267,7 +2708,16 @@
    errorCode = POP_Success
    globalMinval = HUGE(0.0_POP_r4)
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalMinval2DR4: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -2369,6 +2819,7 @@
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -2379,7 +2830,16 @@
    errorCode = POP_Success
    globalMinval = HUGE(0_POP_i4)
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalMinval2DI4: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -2786,6 +3246,7 @@
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -2798,7 +3259,16 @@
    iLoc     = 0
    jLoc     = 0
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalMaxloc2DR8: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -2903,6 +3373,7 @@
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -2915,7 +3386,16 @@
    iLoc     = 0
    jLoc     = 0
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalMaxloc2DR4: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -3020,6 +3500,7 @@
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -3032,7 +3513,16 @@
    iLoc     = 0
    jLoc     = 0
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalMaxloc2DI4: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -3137,6 +3627,7 @@
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -3149,7 +3640,16 @@
    iLoc     = 0
    jLoc     = 0
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalMinloc2DR8: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -3254,6 +3754,7 @@
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -3266,7 +3767,16 @@
    iLoc     = 0
    jLoc     = 0
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalMinloc2DR4: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 
@@ -3371,6 +3881,7 @@
    integer (POP_i4) :: &
       i,j,iblock,      &! local counters
       ib,ie,jb,je,     &! beg,end of physical domain
+      numBlocks,       &! number of local blocks in distribution
       blockID           ! block location
 
    type (POP_Block) :: &
@@ -3383,7 +3894,16 @@
    iLoc     = 0
    jLoc     = 0
 
-   do iblock=1,size(array,dim=3)
+   call POP_DistributionGet(dist, errorCode,          &
+                            numLocalBlocks = numBlocks)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_GlobalMinloc2DI4: error getting distribution info')
+      return
+   endif
+
+   do iblock=1,numBlocks
       call POP_DistributionGetBlockID(dist, iblock, &
                                       blockID, errorCode)
 

@@ -1,6 +1,6 @@
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-module ecosys_mod
+ module ecosys_mod
 
 !BOP
 ! !MODULE: ecosys_mod
@@ -86,27 +86,39 @@ module ecosys_mod
 
 ! !USES:
 
-   use kinds_mod
-   use blocks, only: nx_block, ny_block, block, get_block
-   use domain_size, only: max_blocks_clinic, km, nx_global, ny_global
-   use domain, only: nblocks_clinic, distrb_clinic
-   use exit_mod, only: sigAbort, exit_POP
-   use communicate, only: my_task, master_task
-   use constants, only: c0, c1, c2, c10, char_blank, mpercm
-   use io, only: data_set
-   use io_types, only: stdout, datafile, add_attrib_file
-   use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
-   use timers, only: timer_start, timer_stop
-   use passive_tracer_tools, only: forcing_monthly_every_ts, &
-       ind_name_pair, tracer_read, read_field
-   use named_field_mod, only: named_field_register, named_field_set
+   use POP_KindsMod
+   use POP_ErrorMod
 
+   use kinds_mod
+   use constants
+   use communicate
+   use broadcast
+   use global_reductions
+   use blocks
+   use domain_size
+   use domain
+   use exit_mod
+   use prognostic
+   use grid
+   use io
+   use io_types
+   use io_tools
+   use tavg
+   use timers
+   use passive_tracer_tools
+   use named_field_mod
+   use forcing_tools
+   use time_management
+   use ecosys_parms
+   use registry
+   use named_field_mod
+   use co2calc
+
+! !INPUT PARAMETERS:
 !-----------------------------------------------------------------------
 !  include ecosystem parameters
 !  all variables from this modules have a parm_ prefix
 !-----------------------------------------------------------------------
-
-   use ecosys_parms
 
    implicit none
    save
@@ -124,7 +136,7 @@ module ecosys_mod
       ecosys_tavg_forcing,          &
       ecosys_set_interior,          &
       ecosys_write_restart,         &
-      ecosys_diurnal_cycle
+      ecosys_qsw_distrb_const
 
 !-----------------------------------------------------------------------
 !  module variables required by forcing_passive_tracer
@@ -139,7 +151,6 @@ module ecosys_mod
 !-----------------------------------------------------------------------
 
   logical (log_kind) :: &
-     ecosys_diurnal_cycle, &
      lsource_sink, &
      lflux_gas_o2, &
      lflux_gas_co2
@@ -182,32 +193,35 @@ module ecosys_mod
 !-----------------------------------------------------------------------
 
    type(ind_name_pair), dimension(ecosys_tracer_cnt) :: &
-      ind_name_table = (/ &
-      ind_name_pair(po4_ind,         'PO4'), &
-      ind_name_pair(no3_ind,         'NO3'), &
-      ind_name_pair(sio3_ind,        'SiO3'), &
-      ind_name_pair(nh4_ind,         'NH4'), &
-      ind_name_pair(fe_ind,          'Fe'), &
-      ind_name_pair(o2_ind,          'O2'), &
-      ind_name_pair(dic_ind,         'DIC'), &
-      ind_name_pair(alk_ind,         'ALK'), &
-      ind_name_pair(doc_ind,         'DOC'), &
-      ind_name_pair(spC_ind,         'spC'), &
-      ind_name_pair(spChl_ind,       'spChl'), &
-      ind_name_pair(spCaCO3_ind,     'spCaCO3'), &
-      ind_name_pair(diatC_ind,       'diatC'), &
-      ind_name_pair(diatChl_ind,     'diatChl'), &
-      ind_name_pair(zooC_ind,        'zooC'), &
-      ind_name_pair(spFe_ind,        'spFe'), &
-      ind_name_pair(diatSi_ind,      'diatSi'), &
-      ind_name_pair(diatFe_ind,      'diatFe'), &
-      ind_name_pair(diazC_ind,       'diazC'), &
-      ind_name_pair(diazChl_ind,     'diazChl'), &
-      ind_name_pair(diazFe_ind,      'diazFe'), &
-      ind_name_pair(don_ind,         'DON'), &
-      ind_name_pair(dofe_ind,        'DOFe'), &
-      ind_name_pair(dop_ind,         'DOP') /)
+      ind_name_table
 
+!   type(ind_name_pair), dimension(ecosys_tracer_cnt) :: &
+!      ind_name_table = (/ &
+!      ind_name_pair(po4_ind,         'PO4'), &
+!      ind_name_pair(no3_ind,         'NO3'), &
+!      ind_name_pair(sio3_ind,        'SiO3'), &
+!      ind_name_pair(nh4_ind,         'NH4'), &
+!      ind_name_pair(fe_ind,          'Fe'), &
+!      ind_name_pair(o2_ind,          'O2'), &
+!      ind_name_pair(dic_ind,         'DIC'), &
+!      ind_name_pair(alk_ind,         'ALK'), &
+!      ind_name_pair(doc_ind,         'DOC'), &
+!      ind_name_pair(spC_ind,         'spC'), &
+!      ind_name_pair(spChl_ind,       'spChl'), &
+!      ind_name_pair(spCaCO3_ind,     'spCaCO3'), &
+!      ind_name_pair(diatC_ind,       'diatC'), &
+!      ind_name_pair(diatChl_ind,     'diatChl'), &
+!      ind_name_pair(zooC_ind,        'zooC'), &
+!      ind_name_pair(spFe_ind,        'spFe'), &
+!      ind_name_pair(diatSi_ind,      'diatSi'), &
+!      ind_name_pair(diatFe_ind,      'diatFe'), &
+!      ind_name_pair(diazC_ind,       'diazC'), &
+!      ind_name_pair(diazChl_ind,     'diazChl'), &
+!      ind_name_pair(diazFe_ind,      'diazFe'), &
+!      ind_name_pair(don_ind,         'DON'), &
+!      ind_name_pair(dofe_ind,        'DOFe'), &
+!      ind_name_pair(dop_ind,         'DOP') /)
+!
 !-----------------------------------------------------------------------
 !  options for forcing of gas fluxes
 !-----------------------------------------------------------------------
@@ -414,7 +428,7 @@ module ecosys_mod
       tavg_diat_SiO3_lim,  &! tavg id for diatom SiO3 limitation
       tavg_diat_light_lim, &! tavg id for diatom light limitation
       tavg_diaz_Fe_lim,    &! tavg id for diaz Fe limitation
-      tavg_diaz_P_lim,   &! tavg id for diaz PO4 limitation
+      tavg_diaz_P_lim,     &! tavg id for diaz PO4 limitation
       tavg_diaz_light_lim, &! tavg id for diaz light limitation
       tavg_CaCO3_form,     &! tavg id for CaCO3 formation
       tavg_diaz_Nfix,      &! tavg id for diaz N fixation
@@ -447,6 +461,9 @@ module ecosys_mod
 
    real (r8), dimension(ecosys_tracer_cnt) :: &
       surf_avg                  ! average surface tracer values
+
+   logical (log_kind) :: &
+      ecosys_qsw_distrb_const
 
 !-----------------------------------------------------------------------
 !  iron patch fertilization
@@ -493,33 +510,16 @@ contains
 ! !INTERFACE:
 
  subroutine ecosys_init(init_ts_file_fmt, read_restart_filename, &
-                        tracer_d_module, TRACER_MODULE, tadvect_ctype)
+                        tracer_d_module, TRACER_MODULE, tadvect_ctype, &
+                        errorCode)
 
 ! !DESCRIPTION:
 !  Initialize ecosys tracer module. This involves setting metadata, reading
-!  the module's namelist, setting initial conditions, setting up forcing,
+!  the module namelist, setting initial conditions, setting up forcing,
 !  and defining additional tavg variables.
 !
 ! !REVISION HISTORY:
 !  same as module
-
-! !USES:
-
-   use broadcast, only: broadcast_scalar
-   use constants, only: c1000, p5, field_loc_center, &
-       field_type_scalar, delim_fmt, ndelim_fmt, blank_fmt
-   use prognostic, only: nx_global, ny_global, curtime, oldtime
-   use grid, only: KMT, n_topo_smooth, fill_points
-   use forcing_tools, only: find_forcing_times
-   use time_management, only: freq_opt_never, freq_opt_nyear, freq_opt_nmonth, &
-       init_time_flag, time_to_do
-   use grid, only: REGION_MASK
-   use io_types, only: nml_in, nml_filename
-   use io_tools, only: document
-   use prognostic, only: tracer_field
-   use timers, only: get_timer
-   use passive_tracer_tools, only: init_forcing_monthly_every_ts, &
-       rest_read_tracer_block, file_read_tracer_block
 
 ! !INPUT PARAMETERS:
 
@@ -539,6 +539,9 @@ contains
 
    character (char_len), dimension(ecosys_tracer_cnt), intent(out) :: &
       tadvect_ctype     ! advection method for ecosys tracers
+
+   integer (POP_i4), intent(out) :: &
+      errorCode
 
 !EOP
 !BOC
@@ -603,7 +606,7 @@ contains
       nutr_rest_file, po4_rest, no3_rest, sio3_rest, &
       comp_surf_avg_freq_opt, comp_surf_avg_freq,  &
       use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
-      lmarginal_seas, ecosys_diurnal_cycle, &
+      ecosys_qsw_distrb_const, lmarginal_seas, &
       lsource_sink, lflux_gas_o2, lflux_gas_co2, &
       lnutr_variable_restore, nutr_variable_rest_file,  &
       nutr_variable_rest_file_fmt,atm_co2_opt,atm_co2_const, &
@@ -614,6 +617,37 @@ contains
       ecosys_restart_filename  ! modified file name for restart file
 
    real (r8), dimension (nx_block,ny_block) :: WORK
+
+!-----------------------------------------------------------------------
+!  initialize name table 
+!-----------------------------------------------------------------------
+
+   errorCode = POP_Success
+
+   ind_name_table( 1) = ind_name_pair(po4_ind,     'PO4')
+   ind_name_table( 2) = ind_name_pair(no3_ind,     'NO3')
+   ind_name_table( 3) = ind_name_pair(sio3_ind,    'SiO3')
+   ind_name_table( 4) = ind_name_pair(nh4_ind,     'NH4')
+   ind_name_table( 5) = ind_name_pair(fe_ind,      'Fe')
+   ind_name_table( 6) = ind_name_pair(o2_ind,      'O2')
+   ind_name_table( 7) = ind_name_pair(dic_ind,     'DIC')
+   ind_name_table( 8) = ind_name_pair(alk_ind,     'ALK')
+   ind_name_table( 9) = ind_name_pair(doc_ind,     'DOC')
+   ind_name_table(10) = ind_name_pair(spC_ind,     'spC')
+   ind_name_table(11) = ind_name_pair(spChl_ind,   'spChl')
+   ind_name_table(12) = ind_name_pair(spCaCO3_ind, 'spCaCO3')
+   ind_name_table(13) = ind_name_pair(diatC_ind,   'diatC')
+   ind_name_table(14) = ind_name_pair(diatChl_ind, 'diatChl')
+   ind_name_table(15) = ind_name_pair(zooC_ind,    'zooC')
+   ind_name_table(16) = ind_name_pair(spFe_ind,    'spFe')
+   ind_name_table(17) = ind_name_pair(diatSi_ind,  'diatSi')
+   ind_name_table(18) = ind_name_pair(diatFe_ind,  'diatFe')
+   ind_name_table(19) = ind_name_pair(diazC_ind,   'diazC')
+   ind_name_table(20) = ind_name_pair(diazChl_ind, 'diazChl')
+   ind_name_table(21) = ind_name_pair(diazFe_ind,  'diazFe')
+   ind_name_table(22) = ind_name_pair(don_ind,     'DON')
+   ind_name_table(23) = ind_name_pair(dofe_ind,    'DOFe')
+   ind_name_table(24) = ind_name_pair(dop_ind,     'DOP')
 
 !-----------------------------------------------------------------------
 !  initialize forcing_monthly_every_ts variables
@@ -766,7 +800,6 @@ contains
    end do
 
    lmarginal_seas        = .true.
-   ecosys_diurnal_cycle  = .false.
    lsource_sink          = .true.
    lflux_gas_o2          = .true.
    lflux_gas_co2         = .true.
@@ -776,6 +809,8 @@ contains
    use_nml_surf_vals             = .false.
    surf_avg_dic_const            = 1944.0_r8
    surf_avg_alk_const            = 2225.0_r8
+
+   ecosys_qsw_distrb_const  = .true.
 
    liron_patch              = .false.
    iron_patch_flux_filename = 'unknown_iron_patch_filename'
@@ -933,8 +968,9 @@ contains
    call broadcast_scalar(surf_avg_dic_const, master_task)
    call broadcast_scalar(surf_avg_alk_const, master_task)
 
+   call broadcast_scalar(ecosys_qsw_distrb_const, master_task)
+
    call broadcast_scalar(lmarginal_seas, master_task)
-   call broadcast_scalar(ecosys_diurnal_cycle, master_task)
    call broadcast_scalar(lsource_sink, master_task)
    call broadcast_scalar(lflux_gas_o2, master_task)
    call broadcast_scalar(lflux_gas_co2, master_task)
@@ -1054,7 +1090,8 @@ contains
       endif
 
       if (time_to_do(comp_surf_avg_freq_iopt, comp_surf_avg_freq)) &
-         call comp_surf_avg(TRACER_MODULE(:,:,1,:,curtime,:))
+         call comp_surf_avg(TRACER_MODULE(:,:,1,:,oldtime,:), &
+                            TRACER_MODULE(:,:,1,:,curtime,:))
 
    case ('file', 'startup')
       call document(subname, 'ecosystem vars being read from separate files')
@@ -1069,7 +1106,24 @@ contains
       if (n_topo_smooth > 0) then
          do n = 1, ecosys_tracer_cnt
             do k=1,km
-               call fill_points(k,TRACER_MODULE(:,:,k,n,curtime,:))
+               call fill_points(k,TRACER_MODULE(:,:,k,n,oldtime,:), &
+                                errorCode)
+
+               if (errorCode /= POP_Success) then
+                  call POP_ErrorSet(errorCode, &
+                     'ecosys_init: error in fill points for tracers(oldtime)')
+                  return
+               endif
+
+               call fill_points(k,TRACER_MODULE(:,:,k,n,curtime,:), &
+                                errorCode)
+
+               if (errorCode /= POP_Success) then
+                  call POP_ErrorSet(errorCode, &
+                     'ecosys_init: error in fill points for tracers(newtime)')
+                  return
+               endif
+
             enddo
          enddo
       endif
@@ -1081,7 +1135,8 @@ contains
          surf_avg(dic_ind) = surf_avg_dic_const
          surf_avg(alk_ind) = surf_avg_alk_const
       else
-         call comp_surf_avg(TRACER_MODULE(:,:,1,:,curtime,:))
+         call comp_surf_avg(TRACER_MODULE(:,:,1,:,oldtime,:), &
+                            TRACER_MODULE(:,:,1,:,curtime,:))
       endif
 
    case default
@@ -1151,12 +1206,6 @@ contains
 !
 ! !REVISION HISTORY:
 !  same as module
-
-! !USES:
-
-   use broadcast, only: broadcast_array
-   use io_types, only: construct_file, extract_attrib_file, destroy_file, &
-       rec_type_dbl
 
 ! !INPUT PARAMETERS:
 
@@ -1335,9 +1384,9 @@ contains
    var_cnt = var_cnt+1
 
 !-----------------------------------------------------------------------
-
+ 
    allocate(ECO_SFLUX_TAVG(nx_block,ny_block,var_cnt,max_blocks_clinic))
-
+ 
 !-----------------------------------------------------------------------
 
    call define_tavg_field(tavg_IRON_FLUX,'IRON_FLUX',2,                &
@@ -1683,7 +1732,8 @@ contains
 ! !IROUTINE: ecosys_set_interior
 ! !INTERFACE:
 
- subroutine ecosys_set_interior(k, TEMP, TRACER_MODULE, DTRACER_MODULE, this_block)
+ subroutine ecosys_set_interior(k, TEMP_OLD, TEMP_CUR, &
+    TRACER_MODULE_OLD, TRACER_MODULE_CUR, DTRACER_MODULE, this_block)
 
 ! !DESCRIPTION:
 !  Compute time derivatives for ecosystem state variables
@@ -1691,21 +1741,18 @@ contains
 ! !REVISION HISTORY:
 !  same as module
 
-! !USES:
-
-   use constants, only: p5, T0_Kelvin, c3
-   use grid, only: KMT, dz, zt, partial_bottom_cells, DZT
-
 ! !INPUT PARAMETERS:
 
    integer (int_kind), intent(in) :: &
       k                   ! vertical level index
 
    real (r8), dimension(nx_block,ny_block), intent(in) :: &
-      TEMP                ! potential temperature (C)
+      TEMP_OLD,          &! old potential temperature (C)
+      TEMP_CUR            ! current potential temperature (C)
 
-   real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt), intent(in) :: &
-      TRACER_MODULE       ! current tracer values
+   real (r8), dimension(nx_block,ny_block,km,ecosys_tracer_cnt), intent(in) :: &
+      TRACER_MODULE_OLD, &! old tracer values
+      TRACER_MODULE_CUR   ! current tracer values
 
    type (block), intent(in) :: &
       this_block          ! block info for the current block
@@ -1740,6 +1787,7 @@ contains
       QA_dust_def       ! incoming deficit in the QA(dust) POC flux
 
    real (r8), dimension(nx_block,ny_block) :: &
+      TEMP,           & ! local copy of model TEMP
       PO4_loc,        & ! local copy of model PO4
       NO3_loc,        & ! local copy of model NO3
       SiO3_loc,       & ! local copy of model SiO3
@@ -1929,28 +1977,52 @@ contains
 !  apply mask to local copies
 !-----------------------------------------------------------------------
 
-   PO4_loc      = max(c0, TRACER_MODULE(:,:,po4_ind))
-   NO3_loc      = max(c0, TRACER_MODULE(:,:,no3_ind))
-   SiO3_loc     = max(c0, TRACER_MODULE(:,:,sio3_ind))
-   NH4_loc      = max(c0, TRACER_MODULE(:,:,nh4_ind))
-   Fe_loc       = max(c0, TRACER_MODULE(:,:,fe_ind))
-   O2_loc       = max(c0, TRACER_MODULE(:,:,o2_ind))
-   DOC_loc      = max(c0, TRACER_MODULE(:,:,doc_ind))
-   spC_loc      = max(c0, TRACER_MODULE(:,:,spC_ind))
-   spChl_loc    = max(c0, TRACER_MODULE(:,:,spChl_ind))
-   spCaCO3_loc  = max(c0, TRACER_MODULE(:,:,spCaCO3_ind))
-   diatC_loc    = max(c0, TRACER_MODULE(:,:,diatC_ind))
-   diatChl_loc  = max(c0, TRACER_MODULE(:,:,diatChl_ind))
-   zooC_loc     = max(c0, TRACER_MODULE(:,:,zooC_ind))
-   spFe_loc     = max(c0, TRACER_MODULE(:,:,spFe_ind))
-   diatSi_loc   = max(c0, TRACER_MODULE(:,:,diatSi_ind))
-   diatFe_loc   = max(c0, TRACER_MODULE(:,:,diatFe_ind))
-   diazC_loc    = max(c0, TRACER_MODULE(:,:,diazC_ind))
-   diazChl_loc  = max(c0, TRACER_MODULE(:,:,diazChl_ind))
-   diazFe_loc   = max(c0, TRACER_MODULE(:,:,diazFe_ind))
-   DON_loc      = max(c0, TRACER_MODULE(:,:,don_ind))
-   DOFe_loc     = max(c0, TRACER_MODULE(:,:,dofe_ind))
-   DOP_loc      = max(c0, TRACER_MODULE(:,:,dop_ind))
+   TEMP         = p5*(TEMP_OLD + TEMP_CUR)
+
+   PO4_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,po4_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,po4_ind)))
+   NO3_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,no3_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,no3_ind)))
+   SiO3_loc     = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,sio3_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,sio3_ind)))
+   NH4_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,nh4_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,nh4_ind)))
+   Fe_loc       = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,fe_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,fe_ind)))
+   O2_loc       = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,o2_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,o2_ind)))
+   DOC_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,doc_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,doc_ind)))
+   spC_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,spC_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,spC_ind)))
+   spChl_loc    = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,spChl_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,spChl_ind)))
+   spCaCO3_loc  = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,spCaCO3_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,spCaCO3_ind)))
+   diatC_loc    = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,diatC_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,diatC_ind)))
+   diatChl_loc  = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,diatChl_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,diatChl_ind)))
+   zooC_loc     = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,zooC_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,zooC_ind)))
+   spFe_loc     = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,spFe_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,spFe_ind)))
+   diatSi_loc   = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,diatSi_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,diatSi_ind)))
+   diatFe_loc   = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,diatFe_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,diatFe_ind)))
+   diazC_loc    = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,diazC_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,diazC_ind)))
+   diazChl_loc  = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,diazChl_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,diazChl_ind)))
+   diazFe_loc   = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,diazFe_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,diazFe_ind)))
+   DON_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,don_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,don_ind)))
+   DOFe_loc     = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,dofe_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,dofe_ind)))
+   DOP_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,dop_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,dop_ind)))
 
    where (.not. LAND_MASK(:,:,bid) .or. k > KMT(:,:,bid))
       PO4_loc      = c0
@@ -3211,11 +3283,11 @@ contains
 !  Modified to allow different Q10 factors for soft POM and bSI remin,
 !  water TEMP is now passed in instead of Tfunc (1/2005, JKM)
 
+#ifdef CCSMCOUPLED
 ! !USES:
 
-   use grid, only: dz, KMT, zt, partial_bottom_cells, DZT
-   use constants, only: T0_Kelvin
    use shr_sys_mod, only: shr_sys_abort
+#endif
 
 ! !INPUT PARAMETERS:
 
@@ -3565,11 +3637,13 @@ contains
       end do
    end do
 
-   if (poc_error) then
-      call shr_sys_abort(subname /&
-                      &/ ': mass ratio of ballast ' /&
-                      &/ 'production exceeds POC production')
-   endif
+#ifdef CCSMCOUPLED
+    if (poc_error) then
+       call shr_sys_abort(subname /&
+                       &/ ': mass ratio of ballast ' /&
+                       &/ 'production exceeds POC production')
+    endif
+#endif
 
 !-----------------------------------------------------------------------
 !  Set tavg variables.
@@ -3647,12 +3721,6 @@ contains
 ! !INTERFACE:
 
  subroutine ecosys_init_sflux
-
-! !USES:
-
-   use forcing_tools, only: find_forcing_times
-   use registry, only: registry_match
-   use named_field_mod, only: named_field_get_index
 
 ! !DESCRIPTION:
 !  Initialize surface flux computations for ecosys tracer module.
@@ -3928,15 +3996,6 @@ contains
    endif
 
 !-----------------------------------------------------------------------
-!  verify running coupled if diurnal cycle being used
-!-----------------------------------------------------------------------
-
-   if (ecosys_diurnal_cycle .and. .not. registry_match('lcoupled')) then
-      call exit_POP(sigAbort, 'ecosys_init: ecosys module requires the ' /&
-                           &/ 'flux coupler when ecosys_diurnal_cycle=.true.')
-   endif
-
-!-----------------------------------------------------------------------
 !  get named field index for atmospheric CO2, if required
 !-----------------------------------------------------------------------
 
@@ -3961,12 +4020,6 @@ contains
 ! !INTERFACE:
 
  subroutine ecosys_init_interior_restore
-
-! !USES:
-
-   use constants, only: p5
-   use grid, only: KMT, zt
-   use time_management, only: seconds_in_day
 
 ! !DESCRIPTION:
 !  Initialize interior restoring computations for ecosys tracer module.
@@ -4121,7 +4174,9 @@ contains
 ! !IROUTINE: ecosys_set_sflux
 ! !INTERFACE:
 
- subroutine ecosys_set_sflux(diurnal_scalar,SHF_QSW,U10_SQR,IFRAC,PRESS,SST,SSS,SURF_VALS,STF_MODULE)
+ subroutine ecosys_set_sflux(SHF_QSW_RAW, SHF_QSW, &
+                             U10_SQR,IFRAC,PRESS,SST,SSS, &
+                             SURF_VALS_OLD,SURF_VALS_CUR,STF_MODULE)
 
 ! !DESCRIPTION:
 !  Compute surface fluxes for ecosys tracer module.
@@ -4129,30 +4184,19 @@ contains
 ! !REVISION HISTORY:
 !  same as module
 
-! !USES:
-
-   use constants, only: field_loc_center, field_type_scalar, hflux_factor
-   use time_management, only: thour00, check_time_flag, imonth
-   use broadcast, only: broadcast_scalar
-   use co2calc, only: co2calc_row
-   use forcing_tools, only: update_forcing_data, interpolate_forcing
-   use named_field_mod, only: named_field_get
-
 ! !INPUT PARAMETERS:
 
-   real (r8), intent(in) :: &
-      diurnal_scalar ! factor to multiply SHF_QSW by to parameterize diurnal cycle
-
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) :: &
-      SHF_QSW,&! penetrative solar heat flux (degC*cm/s)
-      U10_SQR,&! 10m wind speed squared (cm/s)**2
-      IFRAC, & ! sea ice fraction (non-dimensional)
-      PRESS, & ! sea level atmospheric pressure (dyne/cm**2)
-      SST,   & ! sea surface temperature (C)
-      SSS      ! sea surface salinity (psu)
+      SHF_QSW_RAW,  &! penetrative solar heat flux, from coupler (degC*cm/s)
+      SHF_QSW,      &! SHF_QSW used by physics, may have diurnal cylce imposed (degC*cm/s)
+      U10_SQR,      &! 10m wind speed squared (cm/s)**2
+      IFRAC,        &! sea ice fraction (non-dimensional)
+      PRESS,        &! sea level atmospheric pressure (dyne/cm**2)
+      SST,          &! sea surface temperature (C)
+      SSS            ! sea surface salinity (psu)
 
    real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
-      intent(in) :: SURF_VALS ! module tracers
+      intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR ! module tracers
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -4189,6 +4233,10 @@ contains
       PHLO,         & ! lower bound for ph in solver
       PHHI,         & ! upper bound for ph in solver
       PH_NEW,       & ! computed PH from solver
+      DIC_ROW,      & ! row of DIC values for solver
+      ALK_ROW,      & ! row of ALK values for solver
+      PO4_ROW,      & ! row of PO4 values for solver
+      SiO3_ROW,     & ! row of SiO3 values for solver
       CO2STAR_ROW,  & ! CO2STAR from solver
       DCO2STAR_ROW, & ! DCO2STAR from solver
       pCO2SURF_ROW, & ! pCO2SURF from solver
@@ -4224,7 +4272,7 @@ contains
 !-----------------------------------------------------------------------
 
    if (check_time_flag(comp_surf_avg_flag))  &
-      call comp_surf_avg(SURF_VALS)
+      call comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR)
 
 !-----------------------------------------------------------------------
 !  fluxes initially set to 0
@@ -4233,19 +4281,27 @@ contains
 !-----------------------------------------------------------------------
 
    scalar_temp = f_qsw_par / hflux_factor
-   if (ecosys_diurnal_cycle) scalar_temp = scalar_temp * diurnal_scalar
 
    !$OMP PARALLEL DO PRIVATE(iblock,WORK1)
    do iblock = 1, nblocks_clinic
       STF_MODULE(:,:,:,iblock) = c0
 
-      WORK1 = max(c0,SURF_VALS(:,:,spChl_ind,iblock)) + &
-              max(c0,SURF_VALS(:,:,diatChl_ind,iblock)) + &
-              max(c0,SURF_VALS(:,:,diazChl_ind,iblock))
+      WORK1 = max(c0,p5*(SURF_VALS_OLD(:,:,spChl_ind,iblock) + &
+                         SURF_VALS_CUR(:,:,spChl_ind,iblock))) + &
+              max(c0,p5*(SURF_VALS_OLD(:,:,diatChl_ind,iblock) + &
+                         SURF_VALS_CUR(:,:,diatChl_ind,iblock))) + &
+              max(c0,p5*(SURF_VALS_OLD(:,:,diazChl_ind,iblock) + &
+                         SURF_VALS_CUR(:,:,diazChl_ind,iblock)))
       call named_field_set(totChl_surf_nf_ind, iblock, WORK1)
 
+      if (ecosys_qsw_distrb_const) then
+         PAR_out(:,:,iblock) = SHF_QSW_RAW(:,:,iblock)
+      else
+         PAR_out(:,:,iblock) = SHF_QSW(:,:,iblock)
+      endif
+
       where (LAND_MASK(:,:,iblock))
-         PAR_out(:,:,iblock) = max(c0, scalar_temp * SHF_QSW(:,:,iblock))
+         PAR_out(:,:,iblock) = max(c0, scalar_temp * PAR_out(:,:,iblock))
       elsewhere
          PAR_out(:,:,iblock) = c0
       end where
@@ -4388,7 +4444,8 @@ contains
             where (LAND_MASK(:,:,iblock))
                PV = XKW_ICE * SQRT(660.0_r8 / SCHMIDT_USED)
                O2SAT_USED = AP_USED(:,:,iblock) * O2SAT_1atm
-               FLUX = PV * (O2SAT_USED - SURF_VALS(:,:,o2_ind,iblock))
+               FLUX = PV * (O2SAT_USED - p5*(SURF_VALS_OLD(:,:,o2_ind,iblock) + &
+                                             SURF_VALS_CUR(:,:,o2_ind,iblock)))
                STF_MODULE(:,:,o2_ind,iblock) = FLUX
             elsewhere
                O2SAT_USED = c0
@@ -4435,12 +4492,18 @@ contains
                   PHHI = phhi_init
                end where
 
+               DIC_ROW = p5*(SURF_VALS_OLD(:,j,dic_ind,iblock) + &
+                             SURF_VALS_CUR(:,j,dic_ind,iblock))
+               ALK_ROW = p5*(SURF_VALS_OLD(:,j,alk_ind,iblock) + &
+                             SURF_VALS_CUR(:,j,alk_ind,iblock))
+               PO4_ROW = p5*(SURF_VALS_OLD(:,j,po4_ind,iblock) + &
+                             SURF_VALS_CUR(:,j,po4_ind,iblock))
+               SiO3_ROW = p5*(SURF_VALS_OLD(:,j,sio3_ind,iblock) + &
+                              SURF_VALS_CUR(:,j,sio3_ind,iblock))
+
                call co2calc_row(LAND_MASK(:,j,iblock), &
                                 SST(:,j,iblock), SSS(:,j,iblock), &
-                                SURF_VALS(:,j,dic_ind,iblock), &
-                                SURF_VALS(:,j,alk_ind,iblock), &
-                                SURF_VALS(:,j,po4_ind,iblock), &
-                                SURF_VALS(:,j,sio3_ind,iblock), &
+                                DIC_ROW, ALK_ROW, PO4_ROW, SiO3_ROW, &
                                 PHLO, PHHI, PH_NEW, XCO2(:,j), &
                                 AP_USED(:,j,iblock), CO2STAR_ROW, &
                                 DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW)
@@ -4625,7 +4688,7 @@ contains
 !  THE FORMULA USED IS FROM PAGE 1310, EQUATION (8).
 !
 !  *** NOTE: THE "A_3*TS^2" TERM (IN THE PAPER) IS INCORRECT. ***
-!  *** IT SHOULDNOT BE THERE.                                ***
+!  *** IT SHOULD NOT BE THERE.                                ***
 !
 !  O2SAT IS DEFINED BETWEEN T(freezing) <= T <= 40(deg C) AND
 !  0 permil <= S <= 42 permil
@@ -4634,10 +4697,6 @@ contains
 !
 ! !REVISION HISTORY:
 !  same as module
-
-! !USES:
-
-   use constants, only: c1000, T0_Kelvin
 
 ! !INPUT PARAMETERS:
 
@@ -4872,7 +4931,7 @@ contains
 ! !IROUTINE: comp_surf_avg
 ! !INTERFACE:
 
- subroutine comp_surf_avg(SURF_VALS)
+ subroutine comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR)
 
 ! !DESCRIPTION:
 !  compute average surface tracer values
@@ -4883,16 +4942,10 @@ contains
 ! !REVISION HISTORY:
 !  same as module
 
-! !USES:
-
-   use domain, only: blocks_clinic
-   use grid, only: TAREA, RCALCT, area_t
-   use global_reductions, only: global_sum
-
 ! !INPUT PARAMETERS:
 
   real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
-      intent(in) :: SURF_VALS
+      intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR
 
 !EOP
 !BOC
@@ -4934,7 +4987,8 @@ contains
 
       do n = 1, ecosys_tracer_cnt
          if (vflux_flag(n)) then
-            WORK1 = SURF_VALS(:,:,n,iblock)*TFACT
+            WORK1 = p5*(SURF_VALS_OLD(:,:,n,iblock) + &
+                        SURF_VALS_CUR(:,:,n,iblock))*TFACT
             local_sums(iblock,n) = sum(WORK1(ib:ie,jb:je))
          endif
       end do
@@ -4974,11 +5028,6 @@ contains
 !
 ! !REVISION HISTORY:
 !  same as module
-
-! !USES:
-
-   use constants, only: field_loc_center,  field_type_scalar
-   use io_types, only: io_field_desc, io_dim, construct_io_dim, construct_io_field
 
 ! !INPUT PARAMETERS:
 
@@ -5077,6 +5126,6 @@ contains
 
 !***********************************************************************
 
-end module ecosys_mod
+ end module ecosys_mod
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||

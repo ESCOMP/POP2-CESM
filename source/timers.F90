@@ -45,8 +45,10 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef CCSMCOUPLED
    real (r8), external :: &
       mpi_wtime
+#endif
 
    integer (int_kind), parameter :: &
       max_timers    = 50       ! max number of timers
@@ -66,27 +68,47 @@
          num_stops             ! number of stop requests
 
       real (r8) ::            &
-         node_accum_time,     &! accumulated time for node timer
+         node_accum_time       ! accumulated time for node timer
+
+#ifdef CCSMCOUPLED
+      real (r8) ::            &
          node_cycles1,        &! cycle number at start for node timer
          node_cycles2          ! cycle number at stop  for node timer
+#else
+      integer (int_kind) ::            &
+         node_cycles1,        &! cycle number at start for node timer
+         node_cycles2          ! cycle number at stop  for node timer
+#endif
 
       logical (log_kind), dimension(:), pointer :: &
          block_started         ! true if block timer started
 
+#ifdef CCSMCOUPLED
       real (r8), dimension(:), pointer :: &
          block_cycles1,        &! cycle number at start for block timers
          block_cycles2          ! cycle number at stop  for block timers
+#else
+      integer (int_kind), dimension(:), pointer :: &
+         block_cycles1,        &! cycle number at start for block timers
+         block_cycles2          ! cycle number at stop  for block timers
+#endif
 
       real (r8), dimension(:), pointer :: &
          block_accum_time       ! accumulated time for block timers
+      logical :: use_barrier    ! if true use barrier before timer start and stop
 
    end type
 
    type (timer_data), dimension(max_timers) :: &
       all_timers               ! timer data for all timers
 
+#ifdef CCSMCOUPLED
    real (r8) ::      & 
       cycles_max               ! max clock cycles allowed by system
+#else
+   integer (int_kind) ::      & 
+      cycles_max               ! max clock cycles allowed by system
+#endif
 
    real (r8) ::               &
       clock_rate               ! clock rate in seconds for each cycle
@@ -129,21 +151,23 @@
 !
 !-----------------------------------------------------------------------
 
-!  call system_clock(count_rate=cycles, count_max=cycles_max)
-!
-!  if (cycles /= 0) then
-!     clock_rate = c1/real(cycles,kind=r8)
-!  else
-!     clock_rate = c0
-!     write(stdout,delim_fmt)
-!     write(stdout,blank_fmt)
-!     write(stdout,'(a33)') '--- No system clock available ---'
-!     write(stdout,blank_fmt)
-!     write(stdout,delim_fmt)
-!  endif
-
+#ifdef CCSMCOUPLED
    cycles_max = c0
    clock_rate = c1
+#else
+   call system_clock(count_rate=cycles, count_max=cycles_max)
+
+   if (cycles /= 0) then
+      clock_rate = c1/real(cycles,kind=r8)
+   else
+      clock_rate = c0
+      write(stdout,delim_fmt)
+      write(stdout,blank_fmt)
+      write(stdout,'(a33)') '--- No system clock available ---'
+      write(stdout,blank_fmt)
+      write(stdout,delim_fmt)
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 !
@@ -426,9 +450,12 @@
 
          all_timers(timer_id)%block_started(block_id) = .true.
 
-!        call system_clock(count= &
-!                  all_timers(timer_id)%block_cycles1(block_id))
+#ifdef CCSMCOUPLED
          all_timers(timer_id)%block_cycles1(block_id) = mpi_wtime()
+#else
+         call system_clock(count= &
+                   all_timers(timer_id)%block_cycles1(block_id))
+#endif
 
          !*** start node timer if not already started by
          !*** another thread.  if already started, keep track
@@ -442,9 +469,12 @@
             all_timers(timer_id)%num_starts   = 1
             all_timers(timer_id)%num_stops    = 0
 
-!           call system_clock(count= &
-!                  all_timers(timer_id)%node_cycles1)
+#ifdef CCSMCOUPLED
             all_timers(timer_id)%node_cycles1 = mpi_wtime()
+#else
+            call system_clock(count= &
+                   all_timers(timer_id)%node_cycles1)
+#endif
          else
             all_timers(timer_id)%num_starts = &
             all_timers(timer_id)%num_starts + 1
@@ -458,14 +488,18 @@
 
       else
 
+
          !*** stop timer if already started
          if (all_timers(timer_id)%node_started) call timer_stop(timer_id)
 
          !*** start node timer
 
          all_timers(timer_id)%node_started = .true.
-!        call system_clock(count=all_timers(timer_id)%node_cycles1)
+#ifdef CCSMCOUPLED
          all_timers(timer_id)%node_cycles1 = mpi_wtime()
+#else
+         call system_clock(count=all_timers(timer_id)%node_cycles1)
+#endif
 
       endif
    else
@@ -513,8 +547,13 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef CCSMCOUPLED
    real (r8) :: &
       cycles1, cycles2   ! temps to hold cycle info before correction
+#else
+   integer (int_kind) :: &
+      cycles1, cycles2   ! temps to hold cycle info before correction
+#endif
 
 !-----------------------------------------------------------------------
 !
@@ -522,8 +561,12 @@
 !
 !-----------------------------------------------------------------------
 
-!  call system_clock(count=cycles2)
+
+#ifdef CCSMCOUPLED
    cycles2 = mpi_wtime()
+#else
+   call system_clock(count=cycles2)
+#endif
 
 !-----------------------------------------------------------------------
 !

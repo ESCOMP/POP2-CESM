@@ -16,12 +16,18 @@
 !
 ! !USES:
 
-   use kinds_mod 
-#ifdef coupled
+   use POP_KindsMod
+   use POP_ErrorMod
+
+#ifdef CCSMCOUPLED
+   use POP_CommMod
+   use POP_FieldMod
+   use POP_GridHorzMod
+   use POP_HaloMod
+
    use constants
    use blocks
-   use boundary, only: update_ghost_cells
-   use domain, only: distrb_clinic
+   use domain
    use exit_mod
    use forcing_shf, only: SHF_QSW
    use forcing_sfwf, only: lsend_precip_fact, precip_fact
@@ -68,13 +74,13 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef coupled
-   real (r8),   &
+#ifdef CCSMCOUPLED
+   real (POP_r8),   &
       dimension(:,:,:,:), allocatable ::  &
       SBUFF_SUM           ! accumulated sum of send buffer quantities
                           ! for averaging before being sent
 
-   integer (int_kind), private ::   &
+   integer (POP_i4), private ::   &
       lsize_total,         &! aggregate total size of physical domain 
                             !   over all nblocks_clinic
       lisize_total,        &! aggregate total i points in physical domain
@@ -82,7 +88,7 @@
       ljsize_total          ! aggregate total j points in physical domain
                             !   over all nblocks_clinic
 
-   integer (int_kind), dimension(cpl_fields_ibuf_total) ::  &
+   integer (POP_i4), dimension(cpl_fields_ibuf_total) ::  &
       isbuf,               &! integer control buffer for sends
       irbuf                 ! integer control buffer for receives
  
@@ -90,13 +96,13 @@
       contractS,          &! contract for sends to coupler
       contractR            ! contract for receives from coupler
  
-   real (r8), dimension(:,:), allocatable ::  &
+   real (POP_r8), dimension(:,:), allocatable ::  &
       sbuf                 ! temporary send/recv buffer
 
-   real (r8) ::  &
+   real (POP_r8) ::  &
       tlast_coupled
 
-   integer (int_kind), private ::   &
+   integer (POP_i4), private ::   &
       nsend, nrecv
 
 !-----------------------------------------------------------------------
@@ -110,8 +116,8 @@
 !
 !    integer send buffer indices (isbuf in pop_init_coupler_comm):  
 !
-!     o  cpl_fields_ibuf_cdate   -- ocean's character date string (yyyymmdd)
-!     o  cpl_fields_ibuf_sec     -- ocean's character time string (seconds)
+!     o  cpl_fields_ibuf_cdate   -- oceans character date string (yyyymmdd)
+!     o  cpl_fields_ibuf_sec     -- oceans character time string (seconds)
 !     o  cpl_fields_ibuf_precadj -- precipitation adjustment factor*1e6
 !     o  cpl_fields_ibuf_lsize   -- (iphys_e-iphys_b+1)*(jphys_e-jphys_b+1)
 !     o  cpl_fields_ibuf_lisize  -- (iphys_e-iphys_b+1)
@@ -180,39 +186,39 @@
 !
 !-----------------------------------------------------------------------
 
-   integer(kind=int_kind) :: index_o2c_So_t        ! temperature
-   integer(kind=int_kind) :: index_o2c_So_u        ! velocity, zonal
-   integer(kind=int_kind) :: index_o2c_So_v        ! velocity, meridional
-   integer(kind=int_kind) :: index_o2c_So_s        ! salinity
-   integer(kind=int_kind) :: index_o2c_So_dhdx     ! surface slope, zonal
-   integer(kind=int_kind) :: index_o2c_So_dhdy     ! surface slope, meridional
-   integer(kind=int_kind) :: index_o2c_Fioo_q      ! heat of fusion (q>0) melt pot (q<0)
-   integer(kind=int_kind) :: index_o2c_Faoo_fco2   ! co2 flux
+   integer(kind=POP_i4) :: index_o2c_So_t        ! temperature
+   integer(kind=POP_i4) :: index_o2c_So_u        ! velocity, zonal
+   integer(kind=POP_i4) :: index_o2c_So_v        ! velocity, meridional
+   integer(kind=POP_i4) :: index_o2c_So_s        ! salinity
+   integer(kind=POP_i4) :: index_o2c_So_dhdx     ! surface slope, zonal
+   integer(kind=POP_i4) :: index_o2c_So_dhdy     ! surface slope, meridional
+   integer(kind=POP_i4) :: index_o2c_Fioo_q      ! heat of fusion (q>0) melt pot (q<0)
+   integer(kind=POP_i4) :: index_o2c_Faoo_fco2   ! co2 flux
 
-   integer(kind=int_kind) :: index_c2o_Si_ifrac    ! state: ice fraction
-   integer(kind=int_kind) :: index_c2o_Sa_pslv     ! state: sea level pressure
-   integer(kind=int_kind) :: index_c2o_Faoc_duu10n ! state: 10m wind speed squared
-   integer(kind=int_kind) :: index_c2o_Foxx_taux   ! wind stress: zonal
-   integer(kind=int_kind) :: index_c2o_Foxx_tauy   ! wind stress: meridional
-   integer(kind=int_kind) :: index_c2o_Foxx_swnet  ! heat flux: shortwave net
-   integer(kind=int_kind) :: index_c2o_Foxx_lat    ! heat flux: latent
-   integer(kind=int_kind) :: index_c2o_Foxx_sen    ! heat flux: sensible
-   integer(kind=int_kind) :: index_c2o_Foxx_lwup   ! heat flux: long-wave up
-   integer(kind=int_kind) :: index_c2o_Foxx_lwdn   ! heat flux: long-wave dow
-   integer(kind=int_kind) :: index_c2o_Foxx_melth  ! heat flux: melt
-   integer(kind=int_kind) :: index_c2o_Foxx_salt   ! salt flux
-   integer(kind=int_kind) :: index_c2o_Foxx_prec   ! water flux: rain+snow
-   integer(kind=int_kind) :: index_c2o_Foxx_snow   ! water flux: snow
-   integer(kind=int_kind) :: index_c2o_Foxx_rain   ! water flux: rain
-   integer(kind=int_kind) :: index_c2o_Foxx_evap   ! water flux: evap
-   integer(kind=int_kind) :: index_c2o_Foxx_meltw  ! water flux: melt
-   integer(kind=int_kind) :: index_c2o_Forr_roff   ! water flux: runoff
-   integer(kind=int_kind) :: index_c2o_Sa_co2prog  ! bottom atm level prognostic co2
+   integer(kind=POP_i4) :: index_c2o_Si_ifrac    ! state: ice fraction
+   integer(kind=POP_i4) :: index_c2o_Sa_pslv     ! state: sea level pressure
+   integer(kind=POP_i4) :: index_c2o_Faoc_duu10n ! state: 10m wind speed squared
+   integer(kind=POP_i4) :: index_c2o_Foxx_taux   ! wind stress: zonal
+   integer(kind=POP_i4) :: index_c2o_Foxx_tauy   ! wind stress: meridional
+   integer(kind=POP_i4) :: index_c2o_Foxx_swnet  ! heat flux: shortwave net
+   integer(kind=POP_i4) :: index_c2o_Foxx_lat    ! heat flux: latent
+   integer(kind=POP_i4) :: index_c2o_Foxx_sen    ! heat flux: sensible
+   integer(kind=POP_i4) :: index_c2o_Foxx_lwup   ! heat flux: long-wave up
+   integer(kind=POP_i4) :: index_c2o_Foxx_lwdn   ! heat flux: long-wave dow
+   integer(kind=POP_i4) :: index_c2o_Foxx_melth  ! heat flux: melt
+   integer(kind=POP_i4) :: index_c2o_Foxx_salt   ! salt flux
+   integer(kind=POP_i4) :: index_c2o_Foxx_prec   ! water flux: rain+snow
+   integer(kind=POP_i4) :: index_c2o_Foxx_snow   ! water flux: snow
+   integer(kind=POP_i4) :: index_c2o_Foxx_rain   ! water flux: rain
+   integer(kind=POP_i4) :: index_c2o_Foxx_evap   ! water flux: evap
+   integer(kind=POP_i4) :: index_c2o_Foxx_meltw  ! water flux: melt
+   integer(kind=POP_i4) :: index_c2o_Forr_roff   ! water flux: runoff
+   integer(kind=POP_i4) :: index_c2o_Sa_co2prog  ! bottom atm level prognostic co2
 
-   logical (log_kind) ::   &
+   logical (POP_logical) ::   &
       ldiag_cpl = .false.
 
-   integer (int_kind), private ::   &
+   integer (POP_i4), private ::   &
       cpl_stop_now,        &! flag id for stop_now flag
       cpl_write_restart,   &! flag id for write restart
       cpl_write_history,   &! flag id for write history
@@ -232,7 +238,7 @@
 ! !IROUTINE: pop_coupling
 ! !INTERFACE:
 
- subroutine pop_coupling(lcoupled_ts)
+ subroutine pop_coupling(lcoupled_ts, errorCode)
 
 ! !DESCRIPTION:
 !  This routine call coupler communication routines to set
@@ -243,31 +249,55 @@
 
 ! !INPUT PARAMETERS:
 
-   logical(log_kind), intent(in) :: &
+   logical(POP_logical), intent(in) :: &
       lcoupled_ts      ! flag indicating coupled timestep status
 
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode        ! returned error code
 
 !EOP
 !BOC
 
-#if coupled
+#if CCSMCOUPLED
 !-----------------------------------------------------------------------
 !
 !  local variables
 !
 !-----------------------------------------------------------------------
 
-   logical (log_kind), save ::    &
+   logical (POP_logical), save ::    &
       send = .false.               ! flag for controlling pop_send_to_coupler
      
+#endif
+!-----------------------------------------------------------------------
+!
+!  call necessary send and recv routines
+!-----------------------------------------------------------------------
 
+   errorCode = POP_Success
+
+#if CCSMCOUPLED
    if (send) then
-     call pop_send_to_coupler(lcoupled_ts)
+      call pop_send_to_coupler(lcoupled_ts, errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'pop_coupling: error in send_to_coupler')
+         return
+      endif
    endif
 
    if (lcoupled_ts .or. nsteps_run == 0) then
-     call pop_recv_from_coupler
-     call pop_set_coupled_forcing
+      call pop_recv_from_coupler(errorCode)
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'pop_coupling: error in recv_from_coupler')
+         return
+      endif
+
+      call pop_set_coupled_forcing
    endif
 
    send = .true.
@@ -286,7 +316,7 @@
 ! !IROUTINE: pop_send_to_coupler
 ! !INTERFACE:
 
- subroutine pop_send_to_coupler(lcoupled_ts)
+ subroutine pop_send_to_coupler(lcoupled_ts, errorCode)
 
 
 ! !DESCRIPTION:
@@ -298,21 +328,25 @@
 
 ! !INPUT PARAMETERS:
 
-   logical(log_kind), intent(in) :: &
+   logical(POP_logical), intent(in) :: &
       lcoupled_ts      ! flag indicating coupled timestep status
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode        ! returned error code
 
 !EOP
 !BOC
-     
-#if coupled
- 
 !-----------------------------------------------------------------------
 !
 !     send state variables to coupler
 !
 !-----------------------------------------------------------------------
 
+   errorCode = POP_Success
 
+#if CCSMCOUPLED
    call pop_sum_buffer
 
    if (lcoupled_ts) then
@@ -323,7 +357,14 @@
 
      call timer_start (timer_send_to_cpl)
      call pop_allocate_sbuf_send
-     call pop_prepare_send_to_coupler
+
+     call pop_prepare_send_to_coupler(errorCode)
+     if (errorCode /= POP_Success) then
+        call POP_ErrorSet(errorCode, &
+           'pop_send_to_coupler: error in prepare_send')
+        return
+     endif
+
      call cpl_interface_contractSend(cpl_fields_cplname,contractS,isbuf,sbuf)
      call pop_deallocate_sbuf
      call timer_stop  (timer_send_to_cpl)
@@ -361,14 +402,14 @@
 !EOP
 !BOC
 
-#ifdef coupled
+#ifdef CCSMCOUPLED
 !-----------------------------------------------------------------------
 !
 !  local variables
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) ::   &
+   integer (POP_i4) ::   &
       iblock, n,           &
       i,j,k,               &
       ib,ie,jb,je
@@ -441,7 +482,7 @@
          sbuf(n,cpl_fields_grid_mask ) = float(REGION_MASK(i,j,iblock))
          sbuf(n,cpl_fields_grid_index) =     &
             (this_block%j_glob(j)-1)*(nx_global) + this_block%i_glob(i)
-         sbuf(n,cpl_fields_grid_frac ) = 1.0_r8
+         sbuf(n,cpl_fields_grid_frac ) = 1.0_POP_r8
       enddo
       enddo
    enddo
@@ -548,7 +589,7 @@
 ! !IROUTINE: pop_recv_from_coupler
 ! !INTERFACE:
 
- subroutine pop_recv_from_coupler
+ subroutine pop_recv_from_coupler(errorCode)
 
 ! !DESCRIPTION:
 !  This routine receives surface flux data from coupler
@@ -556,6 +597,10 @@
 ! !REVISION HISTORY:
 !  same as module
 
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode         ! returned error code
 
 !EOP
 !BOC
@@ -565,7 +610,9 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef coupled
+   errorCode = POP_Success
+
+#ifdef CCSMCOUPLED
 
       call timer_start (timer_recv_from_cpl)
 
@@ -574,7 +621,12 @@
       call cpl_interface_contractRecv(cpl_fields_cplname,contractR, &
          irbuf,sbuf)
 
-      call pop_unpack_fluxes_from_coupler
+      call pop_unpack_fluxes_from_coupler(errorCode)
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'pop_recv_from_coupler: error in unpack_fluxes')
+         return
+      endif
 
       call pop_deallocate_sbuf
 
@@ -595,7 +647,7 @@
 ! !IROUTINE: pop_unpack_fluxes_from_coupler
 ! !INTERFACE:
 
- subroutine pop_unpack_fluxes_from_coupler
+ subroutine pop_unpack_fluxes_from_coupler(errorCode)
 
 ! !DESCRIPTION:
 !  This routine receives message from coupler with surface flux data
@@ -603,9 +655,14 @@
 ! !REVISION HISTORY:
 !  same as module
 
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode            ! returned error code
+
 !EOP
 !BOC
-#if coupled
+#ifdef CCSMCOUPLED
 !-----------------------------------------------------------------------
 !
 !  local variables
@@ -614,21 +671,21 @@
 
    character (char_len)    :: label, message
  
-   integer (int_kind) ::  &
+   integer (POP_i4) ::  &
       i,j,k,n,iblock
 
-   real (r8), dimension(nx_block,ny_block) ::  &
+   real (POP_r8), dimension(nx_block,ny_block) ::  &
       WORKB
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::   &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic) ::   &
       WORK1, WORK2        ! local work space
 
-   real (r8) ::  &
+   real (POP_r8) ::  &
       m2percm2,  &
       gsum
 
    type (block) :: this_block ! local block info
-
+#endif
 
 !-----------------------------------------------------------------------
 !
@@ -636,6 +693,9 @@
 !
 !-----------------------------------------------------------------------
 
+   errorCode = POP_Success
+
+#ifdef CCSMCOUPLED
    WORK1 = c0
    WORK2 = c0
 
@@ -703,13 +763,30 @@
    enddo
 
    !***
-   !*** do boundary updates now to ensure correct T->U grid
+   !*** do halo updates now to ensure correct T->U grid
    !***
 
-   call update_ghost_cells(WORK1, bndy_clinic, &
-                           field_loc_center, field_type_vector)
-   call update_ghost_cells(WORK2, bndy_clinic, &
-                           field_loc_center, field_type_vector)
+   call POP_HaloUpdate(WORK1, POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'pop_unpack_fluxes: error updating taux halo')
+      return
+   endif
+
+   call POP_HaloUpdate(WORK2, POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindVector, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'pop_unpack_fluxes: error updating tauy halo')
+      return
+   endif
 
    n = 0
    do iblock = 1, nblocks_clinic
@@ -778,7 +855,13 @@
 !
 !-----------------------------------------------------------------------
 
-   call update_ghost_cells_coupler_fluxes
+   call update_ghost_cells_coupler_fluxes(errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+        'pop_unpack_fluxes: error in update_ghost_cells_coupler_fluxes')
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -798,8 +881,18 @@
          enddo
          enddo
       enddo
-      call update_ghost_cells(WORK1, bndy_clinic, &
-                              field_loc_center, field_type_scalar)
+
+      call POP_HaloUpdate(WORK1, POP_haloClinic,          &
+                          POP_gridHorzLocCenter,          &
+                          POP_fieldKindScalar, errorCode, &
+                          fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'pop_unpack_fluxes: error updating co2 halo')
+         return
+      endif
+
       call named_field_set(ATM_CO2_nf_ind, WORK1)
    endif
  
@@ -834,9 +927,6 @@
          enddo
          !$OMP END PARALLEL DO
 
-!maltrud do we need this update
-!        call update_ghost_cells(WORK1, bndy_clinic, &
-!                                field_loc_center, field_type_scalar)
          gsum = global_sum_prod(WORK1 , TAREA, distrb_clinic, &
                                  field_loc_center, RCALCT)*m2percm2
          if (my_task == master_task) then
@@ -863,7 +953,7 @@
 ! !IROUTINE: pop_prepare_send_to_coupler
 ! !INTERFACE:
 
- subroutine pop_prepare_send_to_coupler
+ subroutine pop_prepare_send_to_coupler(errorCode)
 
 ! !DESCRIPTION:
 !  This routine packs fields into a message buffer in preparation
@@ -872,10 +962,15 @@
 ! !REVISION HISTORY:
 !  same as module
 
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode         ! returned error code
+
 !EOP
 !BOC
 
-#ifdef coupled
+#ifdef CCSMCOUPLED
 !-----------------------------------------------------------------------
 !
 !  local variables
@@ -884,28 +979,32 @@
 
    character (char_len)    :: label, message
  
-   integer (int_kind) ::  &
+   integer (POP_i4) ::  &
       i,j,k,n,iblock
 
-   real (r8), dimension(nx_block,ny_block) ::   &
+   real (POP_r8), dimension(nx_block,ny_block) ::   &
       WORK1, WORK2,      &! local work space
       WORK3, WORK4
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::   &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic) ::   &
         WORKA               ! local work space with full block dimension
 
-   real (r8) ::   &
+   real (POP_r8) ::   &
       m2percm2,   &
       gsum
 
    type (block) :: this_block ! local block info
 
+#endif
 !-----------------------------------------------------------------------
 !
 !  initialize control buffer
 !
 !-----------------------------------------------------------------------
 
+   errorCode = POP_Success
+
+#ifdef CCSMCOUPLED
    if (.not. allocated(sbuf)) call exit_POP(sigAbort, &
        'ERROR: sbuf not allocated in subroutine pop_prepare_send_to_coupler')
 
@@ -921,7 +1020,7 @@
       ihour*seconds_in_hour + iminute*seconds_in_minute + isecond
 
    if ( lsend_precip_fact )  &    ! send real as integer
-     isbuf(cpl_fields_ibuf_precadj) = precip_fact * 1.0e6_r8  
+     isbuf(cpl_fields_ibuf_precadj) = precip_fact * 1.0e6_POP_r8  
  
 !-----------------------------------------------------------------------
 !
@@ -1081,8 +1180,17 @@
            enddo
         enddo
 
-        call update_ghost_cells(WORKA, bndy_clinic, &
-                                field_loc_center, field_type_scalar)
+        call POP_HaloUpdate(WORKA, POP_haloClinic, &
+                            POP_gridHorzLocCenter, &
+                            POP_fieldKindScalar,   &
+                            errorCode, fillValue=0.0_POP_r8)
+
+        if (errorCode /= POP_Success) then
+           call POP_ErrorSet(errorCode, &
+              'pop_prepare_send: error updating halo for state')
+           return
+        endif
+
         gsum = global_sum_prod(WORKA , TAREA, distrb_clinic, &
                                    field_loc_center, RCALCT)*m2percm2
         if (my_task == master_task) then
@@ -1121,7 +1229,7 @@
 !EOP
 !BOC
 
-#ifdef coupled
+#ifdef CCSMCOUPLED
 !-----------------------------------------------------------------------
 !
 !  local variables
@@ -1129,7 +1237,7 @@
 !-----------------------------------------------------------------------
 
  
-   integer (int_kind) ::  &
+   integer (POP_i4) ::  &
       i,j,k,n,iblock
 
    type (block) :: this_block ! local block info
@@ -1162,14 +1270,14 @@
 !EOP
 !BOC
 
-#ifdef coupled
+#ifdef CCSMCOUPLED
 !-----------------------------------------------------------------------
 !
 !  local variables
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) ::  &
+   integer (POP_i4) ::  &
       iblock
 
    type (block) :: this_block ! local block info
@@ -1203,7 +1311,7 @@
 
 !EOP
 !BOC
-#ifdef coupled
+#ifdef CCSMCOUPLED
 
       deallocate(sbuf)
 
@@ -1230,25 +1338,25 @@
 !EOP
 !BOC
 
-#ifdef coupled
+#ifdef CCSMCOUPLED
 !-----------------------------------------------------------------------
 !
 !  local variables
 !
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
       WORK                ! local work arrays
 
-   real (r8) ::   &
+   real (POP_r8) ::   &
       delt,             & ! time interval since last step
       delt_last           ! time interval for previous step
 
-   integer (int_kind) :: &
+   integer (POP_i4) :: &
       iblock,           & ! block index
       sflux_co2_nf_ind = 0! named field index of fco2
 
-   logical (log_kind) :: &
+   logical (POP_logical) :: &
       first = .true.      ! only true for first call
 
 !-----------------------------------------------------------------------

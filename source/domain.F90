@@ -32,7 +32,6 @@
    use distribution
    use exit_mod
    use io_types
-   use boundary
    use domain_size
 
    implicit none
@@ -55,23 +54,32 @@
       blocks_tropic      ! block ids for local blocks in barotropic dist
 
    type (POP_distrb), public :: & !  block distribution info
-      distrbClinic    ,&! block distribution for baroclinic part
-      distrbTropic      ! block distribution for barotropic part
+      POP_distrbClinic    ,&! block distribution for baroclinic part
+      POP_distrbTropic      ! block distribution for barotropic part
 
    type (distrb), public :: & !  block distribution info
       distrb_clinic    ,&! block distribution for baroclinic part
       distrb_tropic      ! block distribution for barotropic part
 
-   type (bndy), public :: &!  ghost cell update info
-      bndy_clinic        ,&! block distribution for baroclinic part
-      bndy_tropic          ! block distribution for barotropic part
+!------------------------------------------------------------
+! Lets keep track of the land blocks for parallel IO reasons
+!------------------------------------------------------------
+   integer(int_kind), public :: &
+      nblocks_land    ! acount number of land blocks assigned to processor
 
-   type (POP_Halo), public :: &!  ghost cell update info
-      haloClinic         ,&! halo update info for baroclinic distrb
-      haloTropic           ! halo update info for barotropic distrb
+   integer(int_kind), dimension(:), pointer, public :: &
+      blocks_land     ! blocks ids for land block
+
+   type (distrb), public :: &! block distribution info for land
+      distrb_land
+
+   type (POP_halo), public :: &!  ghost cell update info
+      POP_haloClinic         ,&! halo information for baroclinic part
+      POP_haloTropic           ! halo information for barotropic part
 
    logical (log_kind), public :: &!
       ltripole_grid        ! flag to signal use of tripole grid
+
 
 !EOP
 !BOC
@@ -97,6 +105,7 @@
        nprocs_clinic     ,&! num of processors in baroclinic dist
        nprocs_tropic       ! num of processors in barotropic dist
 
+    logical, public :: profile_barrier
 !EOC
 !***********************************************************************
 
@@ -137,7 +146,8 @@
                          clinic_distribution_type, &
                          tropic_distribution_type, &
                          ew_boundary_type,         &
-                         ns_boundary_type
+                         ns_boundary_type,         &
+                         profile_barrier
 
 !----------------------------------------------------------------------
 !
@@ -153,6 +163,7 @@
    tropic_distribution_type = 'cartesian'
    ew_boundary_type = 'cyclic'
    ns_boundary_type = 'closed'
+   profile_barrier  = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -168,7 +179,6 @@
    endif
 
    call broadcast_scalar(nml_error, master_task)
-
    if (nml_error /= 0) then
       call exit_POP(sigAbort,'ERROR reading domain_nml')
    endif
@@ -179,12 +189,15 @@
    call broadcast_scalar(tropic_distribution_type, master_task)
    call broadcast_scalar(ew_boundary_type,         master_task)
    call broadcast_scalar(ns_boundary_type,         master_task)
+   call broadcast_scalar(profile_barrier,          master_task)
 
    select case (trim(clinic_distribution_type))
    case ('cartesian','Cartesian','CARTESIAN')
-      clinicDistributionMethod = POP_distributionMethodCartesian
+      clinicDistributionMethod = POP_distribMethodCartesian
    case ('balanced','Balanced','BALANCED')
-      clinicDistributionMethod = POP_distributionMethodRake
+      clinicDistributionMethod = POP_distribMethodRake
+   case ('spacecurve','Spacecurve','SPACECURVE')
+      clinicDistributionMethod = POP_distribMethodSpacecurve
    case default
       call POP_ErrorSet(errorCode, &
          'POP_DomainInit: unknown clinic distribution type')
@@ -193,9 +206,11 @@
 
    select case (trim(tropic_distribution_type))
    case ('cartesian','Cartesian','CARTESIAN')
-      tropicDistributionMethod = POP_distributionMethodCartesian
+      tropicDistributionMethod = POP_distribMethodCartesian
    case ('balanced','Balanced','BALANCED')
-      tropicDistributionMethod = POP_distributionMethodRake
+      tropicDistributionMethod = POP_distribMethodRake
+   case ('spacecurve','Spacecurve','SPACECURVE')
+      tropicDistributionMethod = POP_distribMethodSpacecurve
    case default
       call POP_ErrorSet(errorCode, &
          'POP_DomainInit: unknown tropic distribution type')
@@ -267,14 +282,9 @@
 !----------------------------------------------------------------------
 
    if (my_task == master_task) then
+     write(stdout,delim_fmt)
      write(stdout,blank_fmt)
-     write(stdout,ndelim_fmt)
-     write(stdout,blank_fmt)
-     write(stdout,*) 'Domain:'
-     write(stdout,blank_fmt)
-     write(stdout,*) 'domain_nml namelist settings:'
-     write(stdout,blank_fmt)
-     write(stdout,domain_nml)
+     write(stdout,'(a18)') 'Domain Information'
      write(stdout,blank_fmt)
      write(stdout,delim_fmt)
      write(stdout,'(a26,i6)') '  Horizontal domain: nx = ',nx_global
@@ -283,21 +293,21 @@
      write(stdout,'(a26,i6)') '  Number of tracers: nt = ',nt
      write(stdout,'(a26,i6)') '  Block size:  nx_block = ',nx_block
      write(stdout,'(a26,i6)') '               ny_block = ',ny_block
+     write(stdout,'(a26,i6)') '      max_blocks_clinic = ', max_blocks_clinic
+     write(stdout,'(a26,i6)') '      max_blocks_tropic = ', max_blocks_tropic
      write(stdout,'(a29,i6)') '  Processors for baroclinic: ', &
                                  nprocs_clinic
      write(stdout,'(a29,i6)') '  Processors for barotropic: ', &
                                  nprocs_tropic
-     write(stdout,'(a31,a9)') '  Distribution for baroclinic: ', &
+     write(stdout,'(a31,a10)') '  Distribution for baroclinic: ', &
                                  trim(clinic_distribution_type)
-     write(stdout,'(a31,a9)') '  Distribution for barotropic: ', &
+     write(stdout,'(a31,a10)') '  Distribution for barotropic: ', &
                                  trim(tropic_distribution_type)
      write(stdout,'(a25,i2)') '  Number of ghost cells: ', nghost
    endif
 
 !----------------------------------------------------------------------
 !EOC
-
- call POP_IOUnitsFlush(stdout)
 
  end subroutine init_domain_blocks
 
@@ -322,6 +332,9 @@
    integer (int_kind), dimension(nx_global,ny_global), intent(in) :: &
       KMTG             ! global KMT (topography) field
 
+   integer (POP_i4) :: &
+      errorCode
+
 !EOP
 !BOC
 !----------------------------------------------------------------------
@@ -329,9 +342,6 @@
 !  local variables
 !
 !----------------------------------------------------------------------
-
-   integer (POP_i4) :: &
-      errorCode
 
    character (char_len) :: outstring
 
@@ -355,6 +365,7 @@
    type (block) :: &
       this_block         ! block information for current block
 
+   integer (int_kind) :: jblock
 !----------------------------------------------------------------------
 !
 !  estimate the amount of work per processor using the topography
@@ -372,14 +383,18 @@
       !end do
       !end do
       !do j=1,ny_block
+      jblock = this_block%jblock
       do j=this_block%jb,this_block%je
          if (this_block%j_glob(j) > 0) then
-            do i=1,nx_block
+            do i=this_block%ib,this_block%ie
                if (this_block%i_glob(i) > 0) then
-                  if (KMTG(this_block%i_glob(i),&
-                           this_block%j_glob(j)) >= 0) nocn(n) = nocn(n) + 1
-!above line is a temporary work-around  (aka "the Gokhan fix")
-!original code:            this_block%j_glob(j)) >  0) nocn(n) = nocn(n) + 1
+#ifdef _HIRES
+                  if(KMTG(this_block%i_glob(i), this_block%j_glob(j)) > 0)  &
+                                nocn(n) = nocn(n) + 1
+#else
+                  if (KMTG(this_block%i_glob(i),this_block%j_glob(j)) >= 0) &
+                                nocn(n) = nocn(n) + 1
+#endif
                endif
             end do
          endif
@@ -404,6 +419,11 @@
      work_per_block = 0
    end where
    deallocate(nocn)
+   if(my_task == master_task) then 
+      write(stdout,'(a22,i6)') ' Active Ocean blocks: ',count(work_per_block > 0)
+   endif
+
+
 
 !----------------------------------------------------------------------
 !
@@ -411,7 +431,13 @@
 !
 !----------------------------------------------------------------------
 
-   distrbClinic = POP_DistributionCreate(clinicDistributionMethod, &
+   distrb_tropic = create_distribution(tropic_distribution_type, &
+                                       nprocs_tropic, work_per_block)
+
+   distrb_clinic = create_distribution(clinic_distribution_type, &
+                                       nprocs_clinic, work_per_block)
+
+   POP_distrbClinic = POP_DistributionCreate(clinicDistributionMethod, &
                          nprocs_clinic, work_per_block, errorCode)
 
    if (errorCode /= POP_Success) then
@@ -420,7 +446,7 @@
       return
    endif
 
-   distrbTropic = POP_DistributionCreate(tropicDistributionMethod, &
+   POP_distrbTropic = POP_DistributionCreate(tropicDistributionMethod, &
                          nprocs_tropic, work_per_block, errorCode)
 
    if (errorCode /= POP_Success) then
@@ -428,12 +454,6 @@
          'POP_DomainInitDistrb: error creating tropic distrb')
       return
    endif
-
-   distrb_tropic = create_distribution(tropic_distribution_type, &
-                                       nprocs_tropic, work_per_block)
-
-   distrb_clinic = create_distribution(clinic_distribution_type, &
-                                       nprocs_clinic, work_per_block)
 
    deallocate(work_per_block)
 
@@ -494,8 +514,6 @@
      !call exit_POP(sigAbort,trim(outstring))
    endif
 
-   call POP_IOUnitsFlush(stdout)
-
 !----------------------------------------------------------------------
 !
 !  set up ghost cell updates for each distribution
@@ -503,16 +521,7 @@
 !
 !----------------------------------------------------------------------
 
-   call create_boundary(bndy_clinic, distrb_clinic, &
-                        trim(ns_boundary_type),     &
-                        trim(ew_boundary_type),     &
-                        nx_global, ny_global)
-   call create_boundary(bndy_tropic, distrb_tropic, &
-                        trim(ns_boundary_type),     &
-                        trim(ew_boundary_type),     &
-                        nx_global, ny_global)
-
-   haloClinic = POP_HaloCreate(distrbClinic,           &
+   POP_haloClinic = POP_HaloCreate(POP_distrbClinic,   &
                                trim(ns_boundary_type), &
                                trim(ew_boundary_type), &
                                nx_global, errorCode)
@@ -523,7 +532,7 @@
       return
    endif
 
-   haloTropic = POP_HaloCreate(distrbTropic,           &
+   POP_haloTropic = POP_HaloCreate(POP_distrbTropic,   &
                                trim(ns_boundary_type), &
                                trim(ew_boundary_type), &
                                nx_global, errorCode)

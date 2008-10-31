@@ -23,16 +23,20 @@
 
    use POP_KindsMod
 
-   use mpi
-
 #ifdef CCSMCOUPLED
+#ifdef SEQ_MCT
+   use ocn_communicator, only: mpi_communicator_ocn
+#else
    use cpl_interface_mod, only : cpl_interface_init,cpl_interface_finalize
    use cpl_fields_mod, only : cpl_fields_ocnname
+#endif
 #endif
 
    implicit none
    private
    save
+
+   include 'mpif.h'
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
@@ -41,12 +45,16 @@
               POP_CommExitMessageEnvironment,  &
               POP_CommAbortMessageEnvironment, &
               POP_CommGetNumProcs,             &
-              POP_CommCreateCommunicator
+              POP_CommCreateCommunicator,      &
+              POP_Barrier
+
+   
 
 ! !PUBLIC DATA MEMBERS:
 
    integer (POP_i4), public :: &
       POP_communicator,         &! MPI communicator for ocn comms
+      POP_mpiR16,               &! MPI type for r16
       POP_mpiR8,                &! MPI type for r8
       POP_mpiR4,                &! MPI type for r4
       POP_myTask,               &! MPI task number for this task
@@ -106,9 +114,11 @@
 !  call CCSM coupler routine to return communicator
 !
 !-----------------------------------------------------------------------
-
-
+#ifdef SEQ_MCT
+   POP_communicator = mpi_communicator_ocn
+#else
    call cpl_interface_init(cpl_fields_ocnname, POP_communicator)
+#endif
 
 #else
 !-----------------------------------------------------------------------
@@ -138,8 +148,9 @@
 !
 !-----------------------------------------------------------------------
 
-   POP_mpiR8 = MPI_REAL8
-   POP_mpiR4 = MPI_REAL4
+   POP_mpiR16 = MPI_REAL16
+   POP_mpiR8  = MPI_REAL8
+   POP_mpiR4  = MPI_REAL4
 
 !-----------------------------------------------------------------------
 !EOC
@@ -256,7 +267,9 @@
 !-----------------------------------------------------------------------
 
 #ifdef CCSMCOUPLED
+#ifndef SEQ_MCT
    call cpl_interface_finalize(cpl_fields_ocnname)
+#endif
 #else
    call MPI_FINALIZE(ierr)
 #endif
@@ -298,7 +311,9 @@
    call MPI_BARRIER(POP_Communicator,ierr)
    ierr = 13
    call MPI_ABORT(0,errorCode, ierr)
+#ifndef SEQ_MCT
    call cpl_interface_finalize(cpl_fields_ocnname)
+#endif
 #else
    call MPI_BARRIER(POP_Communicator, ierr)
    call MPI_ABORT(MPI_COMM_WORLD, errorCode, ierr)
@@ -309,6 +324,7 @@
 !EOC
 
  end subroutine POP_CommAbortMessageEnvironment
+
 
 !***********************************************************************
 !BOP
@@ -351,7 +367,7 @@
    integer (POP_i4) :: &
      ierr                    ! error flag for MPI comms
 
-   integer (POP_i4), dimension(3,1) :: &
+   integer (POP_i4), dimension(3) :: &
      range                   ! range of tasks assigned to new dist
                              !  (assumed 0,num_procs-1)
 
@@ -363,9 +379,9 @@
 
    call MPI_COMM_GROUP (POP_Communicator, MPI_GROUP_OCN, ierr)
 
-   range(1,1) = 0
-   range(2,1) = numProcs-1
-   range(3,1) = 1
+   range(1) = 0
+   range(2) = numProcs-1
+   range(3) = 1
 
 !-----------------------------------------------------------------------
 !
@@ -386,6 +402,36 @@
  end subroutine POP_CommCreateCommunicator
 
 !***********************************************************************
+!BOP
+! !IROUTINE: POP_Barrier
+! !INTERFACE:
+
+ subroutine POP_Barrier
+
+! !DESCRIPTION:
+!  This routine performs a barrier.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INCLUDES:
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+   integer(POP_i4) :: ierr
+
+    call MPI_Barrier(POP_Communicator,ierr)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine POP_Barrier
+
 
  end module POP_CommMod
 
