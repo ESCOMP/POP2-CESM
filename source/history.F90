@@ -156,10 +156,10 @@
       i_dim, j_dim, &! dimension descriptors for horiz dims
       k_dim          ! dimension descriptor  for vertical levels
 
-   real (r4), dimension(nx_block,ny_block,max_blocks_clinic) :: &
+   real (r4), dimension(nx_block,ny_block,max_blocks_clinic), target :: &
       WORK2D        ! temp for holding 2d fields
 
-   real (r4), dimension(nx_block,ny_block,km,max_blocks_clinic) :: &
+   real (r4), dimension(nx_block,ny_block,km,max_blocks_clinic), target :: &
       WORK3D        ! temp for holding 3d fields
 
    integer (int_kind) :: &

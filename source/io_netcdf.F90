@@ -1595,7 +1595,7 @@
             io_field%field_dim(3)%start = k
             io_field%field_dim(3)%stop = k
 
-            do n=1,io_field%nfield_dims
+            do n=1,3
                start (n) = io_field%field_dim(n)%start
                length(n) = io_field%field_dim(n)%stop - start(n) + 1
             end do

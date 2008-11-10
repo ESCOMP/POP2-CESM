@@ -1,0 +1,42 @@
+===============================================================================
+
+
+===============================================================================
+Originator: njn01
+Date: Mon Nov 10 12::10 MST 2008
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20081110
+Testing:  
+History: 
+Summary of Changes: 
+    * bugfix for TAVG_R8 3D tavg netCDF output
+    * bugfix for history.F90: add target attribute
+    * add support for gx3v6 to pop_decomp.xml
+    * added executable property to pop2_in_build.csh
+      using the command "svn propset svn:executable ON pop2_in_build.csh"
+      in in the pop2/input_templates directory:
+            Property changes on: input_templates/pop2_in_build.csh
+            ___________________________________________________________________
+            Added: svn:executable
+               + *
+
+===============================================================================
+Originator: njn01
+Date: Fri 31 Oct 2008
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20081031
+Testing:  
+History: 
+Summary of Changes: This tag is based upon /pop2/branch_tags/hrpop_tags/hrpop61_ccsm_pop_2_1_20080125
+  Differences from hrpop61 include:
+       * removal of cpl6 support.
+       * the use of shr_sys_abort where needed (as a CCSMCOUPLED option that will remain in place 
+         until Phil's new error trapping is fully functional)
+       * error-trapping for SHF_QSW < epsilon in the high-res version
+       * corrections to high-res settings in pop2_in_build.csh
+       * parallel i/o development routines have not yet been ported to the pop2 trunk
+
+
+
+===============================================================================
+
