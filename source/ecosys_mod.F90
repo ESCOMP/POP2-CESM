@@ -1153,7 +1153,7 @@ contains
 
    call named_field_register('model_chlorophyll', totChl_surf_nf_ind)
 
-   !$OMP PARALLEL DO PRIVATE(iblock,n,k)
+   !$OMP PARALLEL DO PRIVATE(iblock,n,k,WORK)
    do iblock=1,nblocks_clinic
       do n = 1,ecosys_tracer_cnt
          do k = 1,km
@@ -1169,7 +1169,7 @@ contains
              max(c0,TRACER_MODULE(:,:,1,diazChl_ind,oldtime,iblock))
       call named_field_set(totChl_surf_nf_ind, iblock, WORK)
    enddo
-   !$OMP PARALLEL DO
+   !$OMP END PARALLEL DO
 
 !-----------------------------------------------------------------------
 !  timer init

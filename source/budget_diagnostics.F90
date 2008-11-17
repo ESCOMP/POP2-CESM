@@ -344,7 +344,7 @@
 
    k = 1
 
-   !$OMP PARALLEL DO PRIVATE(iblock,k,WORK2,WORK4)
+   !$OMP PARALLEL DO PRIVATE(iblock)
 
    do iblock = 1,nblocks_clinic
 
@@ -359,6 +359,7 @@
       WORK2(:,:,iblock) = merge(WORK2(:,:,iblock), c0, CALCT(:,:,iblock))
       WORK4(:,:,iblock) = merge(WORK4(:,:,iblock), c0, CALCT(:,:,iblock))
    enddo ! iblock
+   !$OMP END PARALLEL DO
 
    srf_volume = global_sum(WORK2,distrb_clinic, field_loc_center)
 
@@ -379,7 +380,7 @@
 
      do k=1,km
 
-       !$OMP PARALLEL DO PRIVATE(iblock,k,n,WORK1,WORK2,WORK3,WORK4)
+       !$OMP PARALLEL DO PRIVATE(iblock)
        do iblock = 1,nblocks_clinic
 
           if ( tmix_iopt == tmix_matsuno ) then

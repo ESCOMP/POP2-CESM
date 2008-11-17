@@ -3,6 +3,21 @@
 
 ===============================================================================
 Originator: njn01
+Date: 
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20081117
+Testing:  see testing log on web page
+Summary of Changes:  OpenMP corrections; fixes bug 852
+M           12674   source/diags_on_lat_aux_grid.F90  (OMP corrections)
+M           12674   source/POP_SolversMod.F90         (OMP corrections)
+M           12674   source/budget_diagnostics.F90     (OMP corrections)
+M           12674   source/cfc11_mod.F90              (OMP corrections)
+M           12674   source/ecosys_mod.F90             (OMP corrections)
+M           12820   ChangeLog
+
+
+===============================================================================
+Originator: njn01
 Date: Mon Nov 10 12::10 MST 2008
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20081110

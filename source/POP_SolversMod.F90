@@ -1308,7 +1308,7 @@
 !
 !-----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(iblock,this_block)
+   !$OMP PARALLEL DO PRIVATE(iblock,i,j)
 
    do iblock=1,numBlocks
 
@@ -1368,7 +1368,7 @@
 !
 !-----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(iblock,this_block)
+   !$OMP PARALLEL DO PRIVATE(iblock,i,j)
 
    do iblock=1,numBlocks
 
@@ -1434,7 +1434,7 @@
    cgAlpha  = cgRhoOld/cgSigma
 
    !---- compute first solution and residual
-   !$OMP PARALLEL DO PRIVATE(iblock)
+   !$OMP PARALLEL DO PRIVATE(iblock,i,j)
    do iblock=1,numBlocks
 
       do j=1,ny
@@ -1461,7 +1461,7 @@
 !
 !-----------------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblock,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblock,i,j)
       do iblock=1,numBlocks
 
          if (usePreconditioner) then
@@ -1523,7 +1523,7 @@
 !
 !-----------------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblock, this_block)
+      !$OMP PARALLEL DO PRIVATE(iblock, i,j)
       do iblock=1,numBlocks
 
          do j=1,ny

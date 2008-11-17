@@ -980,7 +980,7 @@
    if ( lsubmeso )       allocate ( WORK3_G(nx_global,ny_global,km) )
 
    do k=1,km
-    !$OMP PARALLEL DO PRIVATE(iblock,k)
+    !$OMP PARALLEL DO PRIVATE(iblock)
      do iblock = 1,nblocks_clinic
         WORK1(:,:,iblock) = merge(W_E(:,:,k,iblock)*TAREA(:,:,iblock), c0, k <= KMT(:,:,iblock))
      enddo
@@ -989,7 +989,7 @@
      call gather_global (WORK1_G(:,:,k), WORK1, master_task,distrb_clinic)
 
      if ( ldiag_gm_bolus ) then
-       !$OMP PARALLEL DO PRIVATE(iblock,k)
+       !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock = 1,nblocks_clinic
           WORK1(:,:,iblock) = merge(W_I(:,:,k,iblock)*TAREA(:,:,iblock), c0, k <= KMT(:,:,iblock))
         enddo
@@ -998,7 +998,7 @@
      endif
 
      if ( lsubmeso ) then
-       !$OMP PARALLEL DO PRIVATE(iblock,k)
+       !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock = 1,nblocks_clinic
           WORK1(:,:,iblock) = merge(W_SM(:,:,k,iblock)*TAREA(:,:,iblock), c0, k <= KMT(:,:,iblock))
         enddo
@@ -1050,7 +1050,7 @@
    moc_s = c0
 
    do k=1,km
-    !$OMP PARALLEL DO PRIVATE(iblock,k,i,j)
+    !$OMP PARALLEL DO PRIVATE(iblock,i,j)
      do iblock = 1,nblocks_clinic
        WORK1(:,:,iblock) = p5 * V_E(:,:,k,iblock) * DXU(:,:,iblock)
        do j=1,ny_block
@@ -1067,7 +1067,7 @@
 
    if ( ldiag_gm_bolus ) then
      do k=1,km
-       !$OMP PARALLEL DO PRIVATE(iblock,k)
+       !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock = 1,nblocks_clinic
           WORK1(:,:,iblock) = V_I(:,:,k,iblock) * HTN(:,:,iblock) 
         enddo ! iblock
@@ -1078,7 +1078,7 @@
 
    if ( lsubmeso ) then
      do k=1,km
-       !$OMP PARALLEL DO PRIVATE(iblock,k)
+       !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock = 1,nblocks_clinic
           WORK1(:,:,iblock) = V_SM(:,:,k,iblock) * HTN(:,:,iblock)
         enddo ! iblock
@@ -1434,7 +1434,7 @@
 
    do k=1,km
 
-    !$OMP PARALLEL DO PRIVATE(iblock,k)
+    !$OMP PARALLEL DO PRIVATE(iblock)
      do iblock = 1,nblocks_clinic
         WORK1(:,:,iblock) = FN(:,:,k,iblock) * TAREA(:,:,iblock) * dz(k) 
      enddo
@@ -1442,7 +1442,7 @@
      call gather_global (WORK1_G, WORK1, master_task,distrb_clinic)
 
      if ( ldiag_gm_bolus ) then
-    !$OMP PARALLEL DO PRIVATE(iblock,k)
+    !$OMP PARALLEL DO PRIVATE(iblock)
      do iblock = 1,nblocks_clinic
        WORK1(:,:,iblock) = FN_I(:,:,k,iblock) * TAREA(:,:,iblock) * dz(k)
      enddo
@@ -1451,7 +1451,7 @@
      endif
 
      if ( lsubmeso ) then
-    !$OMP PARALLEL DO PRIVATE(iblock,k)
+    !$OMP PARALLEL DO PRIVATE(iblock)
      do iblock = 1,nblocks_clinic
        WORK1(:,:,iblock) = FN_SM(:,:,k,iblock) * TAREA(:,:,iblock) * dz(k)
      enddo
