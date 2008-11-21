@@ -3,6 +3,49 @@
 
 ===============================================================================
 Originator: njn01
+Date:  Fri Nov 21 2008
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20081121
+Testing:  2-month gx1v5b exact restart tests, C and B compsets
+----------------------------------------------------------------
+Summary of Changes:  
+   * Correct bugs in overflows product water code
+   * Add support for gx1v5b resolution
+   * Delete support for gx1v5a resolution
+   * Correct bug in hmix_gm.F90 consistency checks
+   * Widen support for external environments in pop2.cpl7.template (TC mod)
+----------------------------------------------------------------
+M           12674   source/overflows.F90
+M           12674   source/hmix_gm.F90
+M           12674   source/barotropic.F90
+M           12674   bld/pop2.cpl7.template
+D           12674   input_templates/gx1v5a_transport_contents
+A               0   input_templates/gx1v5b_vert_grid
+A               0   input_templates/gx1v5b_inputdata
+D           12674   input_templates/gx1v5a_movie_contents
+D           12674   input_templates/gx1v5a_domain_size.F90
+A               0   input_templates/gx1v5b_domain_size.F90
+D           12674   input_templates/gx1v5a_POP_DomainSizeMod.F90
+D           12674   input_templates/gx1v5a_history_contents
+D           12674   input_templates/gx1v5a_tavg_contents
+D           12674   input_templates/gx1v5a_overflow
+A               0   input_templates/gx1v5b_history_contents
+A               0   input_templates/gx1v5b_region_ids
+D           12674   input_templates/gx1v5a_vert_grid
+D           12674   input_templates/gx1v5a_inputdata
+D           12674   input_templates/gx1v5a_depth_accel
+A               0   input_templates/gx1v5b_depth_accel
+A               0   input_templates/gx1v5b_overflow
+A               0   input_templates/gx1v5b_transport_contents
+A               0   input_templates/gx1v5b_POP_DomainSizeMod.F90
+A               0   input_templates/gx1v5b_tavg_contents
+D           12674   input_templates/gx1v5a_region_ids
+A               0   input_templates/gx1v5b_movie_contents
+M           12820   input_templates/pop2_in_build.csh
+M           12892   ChangeLog
+
+===============================================================================
+Originator: njn01
 Date: 
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20081117

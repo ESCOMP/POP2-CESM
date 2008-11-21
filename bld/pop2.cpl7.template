@@ -29,7 +29,7 @@ if !(-d $POP2_DOCDIR               ) mkdir $POP2_DOCDIR
 set grid_suffix = ''
 
 if (${OCN_GRID} == gx1v5) then
-   set grid_suffix = 'a'
+   set grid_suffix = 'b'
    ###==================================###
    ### exception for gx1v5/gx1v5a
    ### use gx1v5 when ecosystem is active
@@ -202,6 +202,7 @@ if (\$BLDTYPE == 'TRUE' || \$recompile == 'TRUE') then
   set SMP = FALSE ; if (\$NTHRDS_OCN > 1) set SMP = TRUE
   gmake complib -j \$GMAKE_J MODEL=pop2 COMPLIB=\$LIBROOT/libocn.a SMP=\$SMP MACFILE=\$CASEROOT/Macros.\$MACH USER_CPPDEFS="-Dcoupled -DCCSMCOUPLED -DBLCKX=\$BLCKX -DBLCKY=\$BLCKY -DMXBLCKS=\$MXBLCKS" -f \$BLDROOT/Makefile || exit 2
   cp -p *comp_*.mod \$LIBROOT/include/
+  cp -p *COMP_*.mod \$LIBROOT/include/
 endif
 
 if !(-f \$LIBROOT/libocn.a) then

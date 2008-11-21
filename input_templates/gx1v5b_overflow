@@ -34,28 +34,28 @@
                         +--->            |        |                                   34
                             x            |________|                                   35
                                              4                                        36
-                                                                                      37
-  Bruce P. Briegleb  30 October 2008     gx1v5a for DMS+FBC                           38
-                     Single product level input file                                  39
+  Bruce P. Briegleb  21 November 2008    gx1v5a for DMS+FBC                           37
+  zero rhsbcmom, all prd active = gx1v5a_overflow_last_hrpop58 + pop-ups + 6 kmt mods 38
+  + parameter changes + filling in DSM 4 src region points                            39
 --------------------------------------------------------------------------------------40
  2                              ! Total number of overflows
  1  'Denmark Strait'            ! number and name of overflow
       65.0                      ! latitude of overflow (degrees)
-      4.0E06                    ! width of strait at surface (cm)
-      501.54E02                 ! depth of sill (cm)
+      5.0E06                    ! width of strait at surface (cm)
+      500.0E02                  ! depth of sill (cm)
       350.0E02                  ! source water thickness (cm)
       100.0E05                  ! distance from strait to shelf-slope break (cm)
       2.8E-2                    ! bottom slope just over shelf-slope break (unitless)
-      2.5E-3                    ! bottom drag coefficient
+      5.0E-3                    ! bottom drag coefficient
       5.5                       ! src to prd transit time (days)
-    3                           ! 3=number of kmt changes
+   3                            ! 3=number of kmt changes
      19 372 33 32               ! pop up dms src
      19 371 33 32               ! pop up dms src
      19 370 33 32               ! pop up dms src
                                 ! regional ijk min and max
-     10  15 360 367 33 33       ! inflow imin=10, imax=15, jmin=360, jmax=367, kmin,max=34
-     20  30 370 372 33 33       ! src imin=20, imax=30, jmin=370, jmax=372, kmin,max=33
-     12  15 363 367 39 39       ! ent imin=12, imax=15, jmin=363, jmax=367, kmin,max=38
+     10  15 360 367 33 33       ! inflow imin=10, imax=15, jmin=360, jmax=367, kmin,max=33
+     20  30 370 372 33 33       ! src imin=20, imax=30, jmin=370, jmax=372, kmin=33,kmax=33
+     12  15 363 367 39 39       ! ent imin=12, imax=15, jmin=363, jmax=367, kmin,max=39
    3                            ! src ijk orientation, 3=#points
      19 370 33  1               ! i=19, j=370, k=33, 1=increasing x sidewall, etc....
      19 371 33  1
@@ -66,29 +66,66 @@
      16 365 39  3
      16 366 39  3
      16 367 39  3
-   1                            ! prd ijk orientation, # prd sets
-   5                            ! number prd points (originally set 6)
+   7                            ! prd ijk orientation, # prd sets
+   4                            ! number prd points in set 1
+     15 360 43  3
+     15 361 43  3
+     15 362 43  3
+     15 363 43  3
+   4                            ! number prd points in set 2
+     14 360 44  3
+     14 361 44  3
+     14 362 44  3
+     14 363 44  3
+   7                            ! number prd points in set 3
+     13 359 46  3
+     13 360 46  3
+     13 361 46  3
+     13 362 46  3
+     13 363 46  3
+     13 364 46  3
+     13 365 46  3
+   4                            ! number prd points in set 4
+     12 359 47  3
+     12 360 47  3
+     12 361 47  3
+     12 362 47  3
+   6                            ! number prd points in set 5
+     11 359 48  3
+     11 360 48  3
+     11 361 48  3
+     11 362 48  3
+     11 363 48  3
+     11 364 48  3
+   5                            ! number prd points in set 6
      10 359 49  3
      10 360 49  3
      10 361 49  3
      10 362 49  3
      10 363 49  3
+   6                            ! number prd points in set 7
+      7 352 50  3
+      7 353 50  3
+      7 354 50  3
+      7 355 50  3
+      7 356 50  3
+      7 357 50  3
  2  'Faroe Bank Channel'        ! number and name of overflow
-      62.55                     ! latitude of overflow (degrees)
+      62.00                     ! latitude of overflow (degrees)
       1.5E06                    ! width of strait at surface (cm)
-      686.15E02                 ! depth of sill (cm)
+      800.0E02                  ! depth of sill (cm)
       275.0E02                  ! source water thickness (cm)
       25.0E06                   ! distance from strait to shelf-slope break (cm)
-      2.5E-2                    ! bottom slope just over shelf-slope break (unitless)
-      2.0E-3                    ! bottom drag coefficient
+      2.0E-2                    ! bottom slope just over shelf-slope break (unitless)
+      5.0E-3                    ! bottom drag coefficient
       4.0                       ! src to prd transit time (days)
-    3                           ! 3=number of kmt changes
+   3                            ! 3=number of kmt changes
      38 349 38 37               ! pop up fbc src
      38 350 38 37               ! pop up fbc src
      38 351 38 37               ! pop up fbc src
                                 ! regional i,j,k min and max
      25  30 352 357 38 38
-     39  43 351 355 38 38
+     39  42 349 355 38 38       ! adjusted fbc src region
      28  31 352 355 40 40
    3                            ! src ijk orientation, 3=#points
      38 349 38  1
@@ -99,8 +136,30 @@
      32 353 40  3
      32 354 40  3
      32 355 40  3
-   1                            ! prd ijk orientation, # prd sets
-   3                            ! number prd points (originally set 5)
+   6                            ! prd ijk orientation, # prd sets
+   3                            ! number prd points in set 1
+     30 352 43  3
+     30 353 43  3
+     30 354 43  3
+   3                            ! number prd points in set 2
+     29 353 45  3
+     29 354 45  3
+     29 355 45  3
+   3                            ! number prd points in set 3
+     28 352 47  3
+     28 353 47  3
+     28 354 47  3
+   4                            ! number prd points in set 4
+     26 351 48  3
+     26 352 48  3
+     26 353 48  3
+     26 354 48  3
+   3                            ! number prd points in set 5
      23 350 49  3
      23 351 49  3
      23 352 49  3
+   4                            ! number prd points in set 6
+     20 346 50  3
+     20 347 50  3
+     20 348 50  3
+     20 349 50  3

@@ -376,10 +376,6 @@
 !
 !-----------------------------------------------------------------------
 
-   if ( overflows_on .and. overflows_interactive ) then
-      call ovf_solvers_9pt
-   endif
-
    !$OMP PARALLEL DO PRIVATE(iblock, this_block, &
    !$OMP                     WORK1, WORK2, WORK3, WORK4)
 

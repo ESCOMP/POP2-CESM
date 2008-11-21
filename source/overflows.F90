@@ -310,8 +310,8 @@
       real      (r8)                :: Mp_nm1                ! prd mass flux (Sv) at n-1
       real      (r8)                :: Tp                    ! prd temperature (C)
       real      (r8)                :: Sp                    ! prd salinity (ppt)
+      integer   (int_kind)          :: prd_set_n             ! prd set index previous time step
       integer   (int_kind)          :: prd_set               ! prd set index
-      logical   (log_kind)          :: prd_set_move          ! if true, prd set just moved
    end type overflow
 
    type (overflow), dimension(max_ovf), public :: ovf ! contains all overflow info
@@ -1419,7 +1419,8 @@
      do m=1,ovf(n)%num_prd_sets
        ovf(n)%rho_adj%prd(m)  = c0
      end do
-     ovf(n)%prd_set = 1
+     ovf(n)%prd_set_n = 1
+     ovf(n)%prd_set   = 1
      do nn=1,nt
        ovf(n)%trcr_reg%inf(nn) = c0
        ovf(n)%trcr_reg%src(nn) = c0
@@ -1474,11 +1475,6 @@
      call ovf_read_broadcast
 
    endif
-
-! to ensure first time through, 9pt coeff computed
-   do n=1,num_ovf
-     ovf(n)%prd_set_move = .true.
-   end do
 
 !-----------------------------------------------------------------------
 !EOC
@@ -2105,8 +2101,9 @@
       184 format(2x,1PE27.18,'   ! product temperature C')
       write(mu,185) ovf(n)%Sp
       185 format(2x,1PE27.18,'   ! product salinity')
+      write(mu,186) ovf(n)%prd_set_n
       write(mu,186) ovf(n)%prd_set
-      186 format(2x,i10,20x,'! product set index')
+      186 format(2x,i10,20x,'! product set index (first is previous time step)')
 ! tracers
       write(mu,187) nt
       187 format(2x,i10,20x,'! number of tracers')
@@ -2495,6 +2492,7 @@
       184 format(2x,1PE27.18)
       read(mu,185) ovf(n)%Sp
       185 format(2x,1PE27.18)
+      read(mu,186) ovf(n)%prd_set_n
       read(mu,186) ovf(n)%prd_set
       186 format(2x,i10,20x)
 ! tracers
@@ -2871,6 +2869,7 @@
       call broadcast_scalar(ovf(n)%Mp_nm1, master_task)
       call broadcast_scalar(ovf(n)%Tp, master_task)
       call broadcast_scalar(ovf(n)%Sp, master_task)
+      call broadcast_scalar(ovf(n)%prd_set_n, master_task)
       call broadcast_scalar(ovf(n)%prd_set, master_task)
       do nn=1,nt
          call broadcast_scalar(ovf(n)%trcr_reg%inf(nn), master_task)
@@ -2978,10 +2977,11 @@
 
    logical (log_kind), parameter :: prnt = .false.
 
-   if( prnt .and. my_task == master_task ) then
-      write(stdout,*) 'ovf_advt called '
-      call shr_sys_flush(stdout)
-   endif
+! turn off print   3 Nov 2008
+!   if( prnt .and. my_task == master_task ) then
+!      write(stdout,*) 'ovf_advt called '
+!      call shr_sys_flush(stdout)
+!   endif
 
    iblock = this_block%local_id
 
@@ -2999,11 +2999,11 @@
                   do i=1,nx_block
                      if( ovf(n)%loc_src(m)%i_adv .eq. this_block%i_glob(i) ) then
                         if( prnt ) then
-                           write(stdout,5) n,ovf(n)%loc_src(m)%i_adv, &
+                           write(stdout,5) nsteps_total,n,ovf(n)%loc_src(m)%i_adv, &
                            ovf(n)%loc_src(m)%j_adv,ovf(n)%loc_src(m)%k, &
                            ovf(n)%loc_src(m)%orient,ntr, &
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1)
-                           5 format(' In  ovf_advt src',i3,5(i3,1x),4(1pe11.4,1x))
+                           5  format(' In    ovf_advt src   ',i5,1x,6(i3,1x),4(1pe15.8,1x))
                         endif  ! print
                         if( i > 1 ) then
                            if( ovf(n)%loc_src(m)%orient .eq. 1 ) then
@@ -3022,14 +3022,23 @@
                            TRACER_N(i,j)   = ovf(n)%trcr_reg%src(ntr)
                         endif
                         if( prnt ) then
-                           write(stdout,10) n,ovf(n)%loc_src(m)%i_adv, &
+                           write(stdout,10) nsteps_total,n,ovf(n)%loc_src(m)%i_adv, &
                            ovf(n)%loc_src(m)%j_adv,ovf(n)%loc_src(m)%k, &
                            ovf(n)%loc_src(m)%orient,ntr, &
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1), &
+                                            nsteps_total,n,ovf(n)%loc_src(m)%i_adv, &
+                           ovf(n)%loc_src(m)%j_adv,ovf(n)%loc_src(m)%k, &
+                           ovf(n)%loc_src(m)%orient,ntr, &
            CE(i,j)*dz(ksrc)*TAREA(i,j,iblock),CW(i,j)*dz(ksrc)*TAREA(i,j,iblock), &
-           CN(i,j)*dz(ksrc)*TAREA(i,j,iblock),CS(i,j)*dz(ksrc)*TAREA(i,j,iblock)
-                           10 format(' Out ovf_advt src',i3,5(i3,1x),4(1pe11.4,1x)/ &
-                                     1x,4(1pe11.4,1x))
+           CN(i,j)*dz(ksrc)*TAREA(i,j,iblock),CS(i,j)*dz(ksrc)*TAREA(i,j,iblock), &
+                                            nsteps_total,n,ovf(n)%loc_src(m)%i_adv, &
+                           ovf(n)%loc_src(m)%j_adv,ovf(n)%loc_src(m)%k, &
+                           ovf(n)%loc_src(m)%orient,ntr, &
+           CE(i,j)*dz(ksrc)*TAREA(i,j,iblock)*TRACER_E(i,j), &
+           CW(i,j)*dz(ksrc)*TAREA(i,j,iblock)*TRACER_E(i-1,j)
+                           10 format(' Out   ovf_advt src   ',i5,1x,6(i3,1x),4(1pe15.8,1x)/ &
+                                     ' Out   ovf_advt src M ',i5,1x,6(i3,1x),4(1pe15.8,1x)/ &
+                                     ' Out   ovf_advt src CT',i5,1x,6(i3,1x),2(1pe15.8,1x))
                         endif  ! print
                      endif
                   end do  ! i
@@ -3046,11 +3055,11 @@
                   do i=1,nx_block
                      if( ovf(n)%loc_ent(m)%i_adv .eq. this_block%i_glob(i) ) then
                         if( prnt ) then
-                           write(stdout,15) n,ovf(n)%loc_ent(m)%i_adv, &
+                           write(stdout,15) nsteps_total,n,ovf(n)%loc_ent(m)%i_adv, &
                            ovf(n)%loc_ent(m)%j_adv,ovf(n)%loc_ent(m)%k, &
                            ovf(n)%loc_ent(m)%orient,ntr, &
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1)
-                           15 format(' In  ovf_advt ent',i3,5(i3,1x),4(1pe11.4,1x))
+                           15 format(' In    ovf_advt ent   ',i5,1x,6(i3,1x),4(1pe15.8,1x))
                         endif  ! print
                         if( i > 1 ) then
                            if( ovf(n)%loc_ent(m)%orient .eq. 1 ) then
@@ -3069,14 +3078,23 @@
                            TRACER_N(i,j)   = ovf(n)%trcr_reg%ent(ntr)
                         endif
                         if( prnt ) then
-                           write(stdout,20) n,ovf(n)%loc_ent(m)%i_adv, &
+                           write(stdout,20) nsteps_total,n,ovf(n)%loc_ent(m)%i_adv, &
                            ovf(n)%loc_ent(m)%j_adv,ovf(n)%loc_ent(m)%k, &
                            ovf(n)%loc_ent(m)%orient,ntr, &
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1), &
+                                            nsteps_total,n,ovf(n)%loc_ent(m)%i_adv, &
+                           ovf(n)%loc_ent(m)%j_adv,ovf(n)%loc_ent(m)%k, &
+                           ovf(n)%loc_ent(m)%orient,ntr, &
            CE(i,j)*dz(kent)*TAREA(i,j,iblock),CW(i,j)*dz(kent)*TAREA(i,j,iblock), &
-           CN(i,j)*dz(kent)*TAREA(i,j,iblock),CS(i,j)*dz(kent)*TAREA(i,j,iblock)
-                           20 format(' Out ovf_advt ent',i3,5(i3,1x),4(1pe11.4,1x)/ &
-                                    1x,4(1pe11.4,1x))
+           CN(i,j)*dz(kent)*TAREA(i,j,iblock),CS(i,j)*dz(kent)*TAREA(i,j,iblock), &
+                                            nsteps_total,n,ovf(n)%loc_ent(m)%i_adv, &
+                           ovf(n)%loc_ent(m)%j_adv,ovf(n)%loc_ent(m)%k, &
+                           ovf(n)%loc_ent(m)%orient,ntr, &
+           CE(i,j)*dz(kent)*TAREA(i,j,iblock)*TRACER_E(i,j), &
+           CW(i,j)*dz(kent)*TAREA(i,j,iblock)*TRACER_E(i-1,j)
+                           20 format(' Out   ovf_advt ent   ',i5,1x,6(i3,1x),4(1pe15.8,1x)/ &
+                                     ' Out   ovf_advt ent M ',i5,1x,6(i3,1x),4(1pe15.8,1x)/ &
+                                     ' Out   ovf_advt ent CT',i5,1x,6(i3,1x),2(1pe15.8,1x))
                         endif  ! print
                      endif
                   end do  ! i
@@ -3094,11 +3112,11 @@
                   do i=1,nx_block
                      if( ovf(n)%loc_prd(m,mp)%i_adv .eq. this_block%i_glob(i) ) then
                         if( prnt ) then
-                           write(stdout,25) n,ovf(n)%loc_prd(m,mp)%i_adv, &
+                           write(stdout,25) nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
                            ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
                            ovf(n)%loc_prd(m,mp)%orient,ntr, &
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1)
-                           25 format(' In  ovf_advt prd',i3,5(i3,1x),4(1pe11.4,1x))
+                           25 format(' In    ovf_advt prd   ',i5,1x,6(i3,1x),4(1pe15.8,1x))
                         endif  ! print
                         if( i > 1 ) then
                            if( ovf(n)%loc_prd(m,mp)%orient .eq. 1 ) then
@@ -3117,14 +3135,23 @@
                            TRACER_N(i,j)     = ovf(n)%trcr_reg%prd(ntr)
                         endif
                         if( prnt ) then
-                           write(stdout,35) n,ovf(n)%loc_prd(m,mp)%i_adv, &
+                           write(stdout,35) nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
                            ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
                            ovf(n)%loc_prd(m,mp)%orient,ntr, &
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1), &
+                                            nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
+                           ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
+                           ovf(n)%loc_prd(m,mp)%orient,ntr, &
            CE(i,j)*dz(kprd)*TAREA(i,j,iblock),CW(i,j)*dz(kprd)*TAREA(i,j,iblock), &
-           CN(i,j)*dz(kprd)*TAREA(i,j,iblock),CS(i,j)*dz(kprd)*TAREA(i,j,iblock)
-                           35 format(' Out ovf_advt prd',i3,5(i3,1x),4(1pe11.4,1x)/ &
-                                    1x,4(1pe11.4,1x))
+           CN(i,j)*dz(kprd)*TAREA(i,j,iblock),CS(i,j)*dz(kprd)*TAREA(i,j,iblock), &
+                                            nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
+                           ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
+                           ovf(n)%loc_prd(m,mp)%orient,ntr, &
+           CE(i,j)*dz(kprd)*TAREA(i,j,iblock)*TRACER_E(i,j), &
+           CW(i,j)*dz(kprd)*TAREA(i,j,iblock)*TRACER_E(i-1,j)
+                           35 format(' Out   ovf_advt prd   ',i5,1x,6(i3,1x),4(1pe15.8,1x)/ &
+                                     ' Out   ovf_advt prd M ',i5,1x,6(i3,1x),4(1pe15.8,1x)/ &
+                                     ' Out   ovf_advt prd CT',i5,1x,6(i3,1x),2(1pe15.8,1x))
                         endif  ! print
                      endif
                   end do  ! i
@@ -3132,7 +3159,70 @@
             end do  ! j
          endif  ! k
       end do  ! product points for insertion set
+! If prd set just moved and time averaging done previous time step
+      if( ovf(n)%prd_set .ne. ovf(n)%prd_set_n ) then
+       m = ovf(n)%prd_set_n  ! product set for insertion
+       do mp=1,ovf(n)%num_prd(m)  ! product points for insertion
+         kprd = ovf(n)%loc_prd(m,mp)%k
+         if( k == kprd ) then
+            do j=1,ny_block
+               if( ovf(n)%loc_prd(m,mp)%j_adv .eq. this_block%j_glob(j) ) then
+                  do i=1,nx_block
+                     if( ovf(n)%loc_prd(m,mp)%i_adv .eq. this_block%i_glob(i) ) then
+                        if( prnt ) then
+                           write(stdout,26) nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
+                           ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
+                           ovf(n)%loc_prd(m,mp)%orient,ntr, &
+                           TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1)
+                           26 format(' In_n  ovf_advt prd   ',i5,1x,6(i3,1x),4(1pe15.8,1x))
+                        endif  ! print
+                        if( avg_ts_last ) then
+                           if( i > 1 ) then
+                              if( ovf(n)%loc_prd(m,mp)%orient .eq. 1 ) then
+                                 TRACER_E(i-1,j)   = ovf(n)%trcr_reg%prd(ntr)
+                              endif
+                           endif
+                           if( j > 1 ) then
+                              if( ovf(n)%loc_prd(m,mp)%orient .eq. 2 ) then
+                                 TRACER_N(i,j-1)   = ovf(n)%trcr_reg%prd(ntr)
+                              endif
+                           endif
+                           if( ovf(n)%loc_prd(m,mp)%orient .eq. 3 ) then
+                              TRACER_E(i,j)     = ovf(n)%trcr_reg%prd(ntr)
+                           endif
+                           if( ovf(n)%loc_prd(m,mp)%orient .eq. 4 ) then
+                              TRACER_N(i,j)     = ovf(n)%trcr_reg%prd(ntr)
+                           endif
+                        endif
+                        if( prnt ) then
+                           write(stdout,36) nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
+                           ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
+                           ovf(n)%loc_prd(m,mp)%orient,ntr, &
+                           TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1), &
+                                            nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
+                           ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
+                           ovf(n)%loc_prd(m,mp)%orient,ntr, &
+           CE(i,j)*dz(kprd)*TAREA(i,j,iblock),CW(i,j)*dz(kprd)*TAREA(i,j,iblock), &
+           CN(i,j)*dz(kprd)*TAREA(i,j,iblock),CS(i,j)*dz(kprd)*TAREA(i,j,iblock), &
+                                            nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
+                           ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
+                           ovf(n)%loc_prd(m,mp)%orient,ntr, &
+           CE(i,j)*dz(kprd)*TAREA(i,j,iblock)*TRACER_E(i,j), &
+           CW(i,j)*dz(kprd)*TAREA(i,j,iblock)*TRACER_E(i-1,j)
+                           36 format(' Out_n ovf_advt prd   ',i5,1x,6(i3,1x),4(1pe15.8,1x)/ &
+                                     ' Out_n ovf_advt prd M ',i5,1x,6(i3,1x),4(1pe15.8,1x)/ &
+                                     ' Out_n ovf_advt prd CT',i5,1x,6(i3,1x),2(1pe15.8,1x))
+                        endif  ! print
+                     endif
+                  end do  ! i
+               endif
+            end do  ! j
+         endif  ! k
+       end do  ! product points for insertion set
+      endif
    end do  ! each overflow
+! special diagnostic  11 nov 2008
+   call ovf_UV_check
 
 !----------------------------------------------------------------------
 !EOC
@@ -3199,10 +3289,10 @@
                   if( ovf(n)%loc_src(m)%i .eq. this_block%i_glob(i) ) then
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
-                           write(stdout,10) n,ovf(n)%loc_src(m)%i, &
+                           write(stdout,10) n,nsteps_total,ovf(n)%loc_src(m)%i, &
   ovf(n)%loc_src(m)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
-  10 format(' ovf_wtkb_check n=',i3, &
-  ' src i,j,k         wtkb wtkb*tarea=',3(i3,1x),2(1pe12.5,2x))
+  10 format(' ovf_wtkb_ch n=',i3, &
+  ' src t,i,j,k         wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
                      endif
                   endif
@@ -3222,10 +3312,10 @@
                   if( ovf(n)%loc_ent(m)%i .eq. this_block%i_glob(i) ) then
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
-                           write(stdout,20) n,ovf(n)%loc_ent(m)%i, &
+                           write(stdout,20) n,nsteps_total,ovf(n)%loc_ent(m)%i, &
   ovf(n)%loc_ent(m)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
-  20 format(' ovf_wtkb_check n=',i3, &
-  ' ent i,j,k         wtkb wtkb*tarea=',3(i3,1x),2(1pe12.5,2x))
+  20 format(' ovf_wtkb_ch n=',i3, &
+  ' ent t,i,j,k         wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
                      endif
                   endif
@@ -3246,10 +3336,10 @@
                   if( ovf(n)%loc_prd(m,mp)%i .eq. this_block%i_glob(i) ) then
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
-                           write(stdout,30) n,ovf(n)%loc_prd(m,mp)%i, & 
+                           write(stdout,30) n,nsteps_total,ovf(n)%loc_prd(m,mp)%i, & 
   ovf(n)%loc_prd(m,mp)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
-  30 format(' ovf_wtkb_check n=',i3, & 
-  ' prd i,j,k         wtkb wtkb*tarea=',3(i3,1x),2(1pe12.5,2x))
+  30 format(' ovf_wtkb_ch n=',i3, & 
+  ' prd t,i,j,k         wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
                      endif
                   endif
@@ -3257,6 +3347,31 @@
             endif
          end do  ! j
       end do  ! product points for insertion set
+! prd
+      do m=1,ovf(n)%num_prd_sets
+       do mp=1,ovf(n)%num_prd(m)  ! product points for insertion
+         ib = this_block%ib
+         ie = this_block%ie
+         jb = this_block%jb
+         je = this_block%je
+         do j=jb,je
+            if( ovf(n)%loc_prd(m,mp)%j .eq. this_block%j_glob(j) ) then
+               do i=ib,ie
+                  if( ovf(n)%loc_prd(m,mp)%i .eq. this_block%i_glob(i) ) then
+                     if( k == KMT(i,j,iblock) ) then
+                        if( prnt ) then
+                           write(stdout,31) n,nsteps_total,ovf(n)%loc_prd(m,mp)%i, & 
+  ovf(n)%loc_prd(m,mp)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+  31 format(' ovf_wtkb_ch n=',i3, & 
+  ' all prd t,i,j,k         wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
+                        endif  ! print
+                     endif
+                  endif
+               end do  ! i
+            endif
+         end do  ! j
+       end do  ! product points for insertion set
+      end do  ! product sets
 ! ovf i_adv j_adv
 ! src
       do m=1,ovf(n)%num_src  ! source
@@ -3270,10 +3385,10 @@
                   if( ovf(n)%loc_src(m)%i_adv .eq. this_block%i_glob(i) ) then
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
-                           write(stdout,40) n,ovf(n)%loc_src(m)%i_adv, &
+                           write(stdout,40) n,nsteps_total,ovf(n)%loc_src(m)%i_adv, &
   ovf(n)%loc_src(m)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
-  40 format(' ovf_wtkb_check n=',i3, &
-  ' src i_adv,j_adv,k wtkb wtkb*tarea=',3(i3,1x),2(1pe12.5,2x))
+  40 format(' ovf_wtkb_ch n=',i3, &
+  ' src t,i_adv,j_adv,k wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
                      endif  ! k
                   endif
@@ -3293,10 +3408,10 @@
                   if( ovf(n)%loc_ent(m)%i_adv .eq. this_block%i_glob(i) ) then
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
-                           write(stdout,50) n,ovf(n)%loc_ent(m)%i_adv, &
+                           write(stdout,50) n,nsteps_total,ovf(n)%loc_ent(m)%i_adv, &
   ovf(n)%loc_ent(m)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
-  50 format(' ovf_wtkb_check n=',i3, &
-  ' ent i_adv,j_adv,k wtkb wtkb*tarea=',3(i3,1x),2(1pe12.5,2x))
+  50 format(' ovf_wtkb_ch n=',i3, &
+  ' ent t,i_adv,j_adv,k wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
                      endif  ! k
                   endif
@@ -3317,10 +3432,10 @@
                   if( ovf(n)%loc_prd(m,mp)%i_adv .eq. this_block%i_glob(i) ) then
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
-                           write(stdout,60) n,ovf(n)%loc_prd(m,mp)%i_adv, & 
+                           write(stdout,60) n,nsteps_total,ovf(n)%loc_prd(m,mp)%i_adv, & 
   ovf(n)%loc_prd(m,mp)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
-  60 format(' ovf_wtkb_check n=',i3, & 
-  ' prd i_adv,j_adv,k wtkb wtkb*tarea=',3(i3,1x),2(1pe12.5,2x))
+  60 format(' ovf_wtkb_ch n=',i3, & 
+  ' prd t,i_adv,j_adv,k wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
                      endif  ! k
                   endif
@@ -3328,6 +3443,31 @@
             endif
          end do  ! j
       end do  ! product points for insertion set
+! prd
+      do m=1,ovf(n)%num_prd_sets
+       do mp=1,ovf(n)%num_prd(m)  ! product points for insertion if moved
+         ib = this_block%ib
+         ie = this_block%ie
+         jb = this_block%jb
+         je = this_block%je
+         do j=jb,je
+            if( ovf(n)%loc_prd(m,mp)%j_adv .eq. this_block%j_glob(j) ) then
+               do i=ib,ie
+                  if( ovf(n)%loc_prd(m,mp)%i_adv .eq. this_block%i_glob(i) ) then
+                     if( k == KMT(i,j,iblock) ) then
+                        if( prnt ) then
+                           write(stdout,61) n,nsteps_total,ovf(n)%loc_prd(m,mp)%i_adv, & 
+  ovf(n)%loc_prd(m,mp)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+  61 format(' ovf_wtkb_ch n=',i3, & 
+  ' all prd t,i_adv,j_adv,k wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
+                        endif  ! print
+                     endif  ! k
+                  endif
+               end do  ! i
+            endif
+         end do  ! j
+       end do  ! product points for insertion set
+      end do  ! original product set if moved
    end do  ! each overflow
 
 !----------------------------------------------------------------------
@@ -3390,14 +3530,15 @@
                    write(stdout,15) n,ovf(n)%loc_src(m)%i_u, &
                    ovf(n)%loc_src(m)%j_u
                    15 format(' ovf_UV_check n=',i2,' src i_u j_u = ',2(i3,1x))
-                   do k=1,ksrc
-                     write(stdout,10) k,UVEL(i,j,k,oldtime,iblock), &
-                        UVEL(i,j,k,curtime,iblock),UVEL(i,j,k,newtime,iblock), &
-                        VVEL(i,j,k,oldtime,iblock), &
-                        VVEL(i,j,k,curtime,iblock),VVEL(i,j,k,newtime,iblock)
+!                   do k=1,ksrc
+                     k=ksrc
+!                     write(stdout,10) k,UVEL(i,j,k,oldtime,iblock), &
+!                        UVEL(i,j,k,curtime,iblock),UVEL(i,j,k,newtime,iblock), &
+!                        VVEL(i,j,k,oldtime,iblock), &
+!                        VVEL(i,j,k,curtime,iblock),VVEL(i,j,k,newtime,iblock)
                      10 format('   k old cur new UVEL= ',i2,1x,3(f9.5,1x), &
                      ' VVEL=',3(f9.5,1x))
-                   end do  ! k
+!                   end do  ! k
                  endif
                end do  ! i
              endif
@@ -3420,14 +3561,15 @@
                    write(stdout,25) n,ovf(n)%loc_ent(m)%i_u, &
                    ovf(n)%loc_ent(m)%j_u
                    25 format(' ovf_UV_check n=',i2,' ent i_u j_u = ',2(i3,1x))
-                   do k=1,kent
-                     write(stdout,20) k,UVEL(i,j,k,oldtime,iblock), &
-                        UVEL(i,j,k,curtime,iblock),UVEL(i,j,k,newtime,iblock), &
-                        VVEL(i,j,k,oldtime,iblock), &
-                        VVEL(i,j,k,curtime,iblock),VVEL(i,j,k,newtime,iblock)
+!                   do k=1,kent
+                     k=kent
+!                     write(stdout,20) k,UVEL(i,j,k,oldtime,iblock), &
+!                        UVEL(i,j,k,curtime,iblock),UVEL(i,j,k,newtime,iblock), &
+!                        VVEL(i,j,k,oldtime,iblock), &
+!                        VVEL(i,j,k,curtime,iblock),VVEL(i,j,k,newtime,iblock)
                      20 format('   k old cur new UVEL= ',i2,1x,3(f9.5,1x), &
                      ' VVEL=',3(f9.5,1x))
-                   end do  ! k
+!                   end do  ! k
                  endif
                end do  ! i
              endif
@@ -3435,7 +3577,7 @@
          enddo   ! block
        end do  ! entrainment
 ! prd
-       m = ovf(n)%prd_set  ! product set 
+      do m=1,ovf(n)%num_prd_sets
        do mp=1,ovf(n)%num_prd(m)
          kprd = ovf(n)%loc_prd(m,mp)%k 
          do iblock = 1,nblocks_clinic
@@ -3451,20 +3593,21 @@
                    write(stdout,35) n,ovf(n)%loc_prd(m,mp)%i_u, &
                    ovf(n)%loc_prd(m,mp)%j_u
                    35 format(' ovf_UV_check n=',i2,' prd i_u j_u = ',2(i3,1x))
-                   do k=1,kprd
-                     write(stdout,30) k,UVEL(i,j,k,oldtime,iblock), &
-                        UVEL(i,j,k,curtime,iblock),UVEL(i,j,k,newtime,iblock), &
-                        VVEL(i,j,k,oldtime,iblock), &
-                        VVEL(i,j,k,curtime,iblock),VVEL(i,j,k,newtime,iblock)
-                     30 format('   k old cur new UVEL= ',i2,1x,3(f9.5,1x), &
-                     ' VVEL=',3(f9.5,1x))
-                   end do  ! k
+!                   do k=1,kprd
+                     k=kprd
+                     write(stdout,30) nsteps_total,n, &
+                        ovf(n)%loc_prd(m,mp)%i_u,ovf(n)%loc_prd(m,mp)%j_u, &
+                        k,UVEL(i,j,k,oldtime,iblock), &
+                        UVEL(i,j,k,curtime,iblock),UVEL(i,j,k,newtime,iblock)
+                     30 format(' prd t,n,i,j,k old cur new UVEL= ',5(i4,1x),1x,3(f9.5,1x))
+!                   end do  ! k
                  endif
                end do  ! i
              endif
            end do  ! j
          enddo   ! block
        end do  ! product
+      end do
      end do  ! each overflow
   endif  ! print
 !----------------------------------------------------------------------
@@ -4133,10 +4276,14 @@
 !  append overflows diagnostics to end of overflows diagnostics output file
 !
 !-----------------------------------------------------------------------
-  print_overflows_diag = .false.
-  if (my_task == master_task .and. eod) then
-    open(ovf_diag_unit, file=overflows_diag_outfile, status='old', position='append')
+  if (eod) then
     print_overflows_diag = .true.
+  else
+    print_overflows_diag = .false.
+  endif
+
+  if (my_task == master_task .and. print_overflows_diag) then
+    open(ovf_diag_unit, file=overflows_diag_outfile, status='old', position='append')
   endif
 
 
@@ -4209,6 +4356,10 @@
       ovf(n)%Mp  = (N_ovf*ovf(n)%Mp_n + Mp)/(N_ovf+c1)
    ! recompute phi based on time smoothed transports
       phi        = ovf(n)%Me / (ovf(n)%Mp + c1)
+   ! if time averaging time step, include last time step 
+      if( avg_ts ) then
+        phi = (ovf(n)%Me_n + ovf(n)%Me) / (ovf(n)%Mp_n + ovf(n)%Mp + c1)
+      endif
       ovf(n)%phi = phi
    ! compute product T,S 
       T_p        = T_s*(c1-phi) + T_e*phi
@@ -4222,19 +4373,20 @@
                                  + ovf(n)%trcr_reg%ent(nn) * phi
       end do
    ! product set for insertion
-      m = ovf(n)%prd_set  
-      if (print_overflows_diag .and. my_task == master_task) then
-
-         write(ovf_diag_unit,1234) tday, n,phi_eq,Fgeo,1.e-12*Ms_eq,1.e-12*Me_eq,1.e-12*Mp_eq, &
-              N_ovf,phi,1.e-12*ovf(n)%Ms,1.e-12*ovf(n)%Me,1.e-12*ovf(n)%Mp,m
-         1234 format(' ovf_transports: ',1p,e22.15,0p,1x,  &
-                     i2,1x,5(f7.4,1x),1x,f9.2,2x,4(f7.4,1x),2x,i3)
-         write(ovf_diag_unit,1235) tday, n,T_i,S_i*c1000,T_s,S_s*c1000,T_e,S_e*c1000,T_p,S_p*c1000
-         1235 format(' ovf_TS: ',1p,e22.15,0p,1x,i2,2x,8(f7.4,1x))
-
-         
-         call shr_sys_flush(ovf_diag_unit)
-      endif
+      m = ovf(n)%prd_set
+ 
+       if (print_overflows_diag .and. my_task == master_task) then
+         if( my_task == master_task ) then
+           write(ovf_diag_unit,1234) tday, n,phi_eq,Fgeo,1.e-12*Ms_eq,1.e-12*Me_eq,1.e-12*Mp_eq, &
+                N_ovf,phi,1.e-12*ovf(n)%Ms,1.e-12*ovf(n)%Me,1.e-12*ovf(n)%Mp,m
+           1234 format(' ovf_transports: ',1p,e22.15,0p,1x,  &
+                       i2,1x,5(f7.4,1x),1x,f9.2,2x,4(f7.4,1x),2x,i3)
+           write(ovf_diag_unit,1235) tday, n,T_i,S_i*c1000,T_s,S_s*c1000,T_e,S_e*c1000,T_p,S_p*c1000
+           1235 format(' ovf_TS: ',1p,e22.15,0p,1x,i2,2x,8(f7.4,1x))
+           call shr_sys_flush(ovf_diag_unit)
+         endif
+       endif ! print_overflows_diag
+ 
    end do   ! n loop over all overflows
 
 !-----------------------------------------------------------------------
@@ -4530,8 +4682,6 @@
 !-----------------------------------------------------------------------
 
    do n=1,num_ovf
-      ! assume no prd movement initially
-      ovf(n)%prd_set_move = .false.
       ! find new product location
       T_p = ovf(n)%Tp
       S_p = ovf(n)%Sp
@@ -4542,24 +4692,28 @@
          k_p = (ovf(n)%adj_prd(1)%kmin+ovf(n)%adj_prd(1)%kmax)/2
          call ovf_state(T_p,S_p,zt(k_p),rho_p)
       else
-         do m=2,ovf(n)%num_prd_sets
+! search from deepest to shallowest to allow product water
+! to go to the deepest possible level
+         do m=ovf(n)%num_prd_sets-1,1,-1
             k_p = (ovf(n)%adj_prd(m)%kmin+ovf(n)%adj_prd(m)%kmax)/2
             ! get product level for this set
             call ovf_state(T_p,S_p,zt(k_p),rho_p)
-            if(rho_p .lt. ovf(n)%rho_adj%prd(m)) then
-               m_neut = m-1
-            else
-               m_neut = m
-            endif
             if(prnt .and. my_task == master_task) then
                write(stdout,5) m,(ovf(n)%rho_adj%prd(m-1)-c1)*c1000, &
                                  (ovf(n)%rho_adj%prd(m)-c1)*c1000, &
                                k_p,T_p,S_p,zt(k_p),(rho_p-c1)*c1000
                5 format(' neutral lev search- m rho_adj_m-1 rho_adj_m ', &
                         'k_p T_p S_p zt(k_p) rho_p =',/ &
-                        2x,i2,2x,2(f8.4,2x),4x,i2,4(f12.5,2x))
+                        2x,i2,2x,2(f12.8,2x),4x,i2,4(f12.8,2x))
+            endif
+            if(rho_p .gt. ovf(n)%rho_adj%prd(m)) then
+               m_neut = m+1
+               goto 999
+            else
+               m_neut = m
             endif
          enddo
+         999 continue
       endif
       ! error check
       if( m_neut .eq. 0 ) then
@@ -4569,17 +4723,17 @@
          call shr_sys_flush(stdout)
          call exit_POP(sigAbort,'ERROR no product level found')
       endif
-      ovf(n)%prd_set = m_neut
+      ovf(n)%prd_set_n = m_neut_org
+      ovf(n)%prd_set   = m_neut
       if(prnt .and. my_task == master_task) then
          write(stdout,20) n,T_p,S_p*c1000,(rho_p-c1)*c1000,m_neut
-         20 format(' For ovf = ',i3,' prd T,S,rho = ',3(f7.3,2x),' prd set =',i5)
+         20 format(' For ovf = ',i3,' prd T,S,rho = ',3(f12.8,2x),' prd set =',i5)
       endif
       if( m_neut_org .ne. 0 .and. m_neut_org .ne. m_neut ) then
 ! product point has moved
-         ! prd movement
-         ovf(n)%prd_set_move = .true.
          if ( overflows_on .and. my_task == master_task) then
-            write(stdout,*) 'ovf_loc_prd: ovf=',n,' swap ovf UV old/new ', &
+            write(stdout,*) 'ovf_loc_prd: nsteps_total=',nsteps_total, &
+                            ' ovf=',n,' swap ovf UV old/new ', &
                             'prd set old/new=',m_neut_org,m_neut
             call shr_sys_flush(stdout)
          endif
@@ -4772,6 +4926,12 @@
          end do  ! iblock
       end do  ! entrainment
 ! prd
+! set Wovf terms to zero at product points, incase product has moved
+      do m=1,ovf(n)%num_prd_sets
+        do mp=1,ovf(n)%num_prd(m)
+          ovf(n)%loc_prd(m,mp)%Wovf = c0
+        end do
+      end do
       m = ovf(n)%prd_set  ! product set for insertion
       do mp=1,ovf(n)%num_prd(m)  ! product points for each set
          ufrc = c1/real(ovf(n)%num_prd(m)-1)
@@ -5089,10 +5249,10 @@
                            dz_sidewall = dz_sidewall + dz(k)
                         enddo
                         ZX(i,j,iblock) = (ZX(i,j,iblock)* HU(i,j,iblock) + & 
-                           (ovf(n)%loc_src(m)%RHSbcmom_x/c2dtu)*dz(ksrc)) &
+                           (ovf(n)%loc_src(m)%RHSbcmom_x/c2dtu)) &
                            / (HU(i,j,iblock)+dz_sidewall)
                         ZY(i,j,iblock) = (ZY(i,j,iblock)* HU(i,j,iblock) + & 
-                           (ovf(n)%loc_src(m)%RHSbcmom_y/c2dtu)*dz(ksrc)) &
+                           (ovf(n)%loc_src(m)%RHSbcmom_y/c2dtu)) &
                            / (HU(i,j,iblock)+dz_sidewall)
                         if(prnt) then
                            write(stdout,10) n,ovf(n)%loc_src(m)%i_u,ovf(n)%loc_src(m)%j_u, &
@@ -5124,10 +5284,10 @@
                            dz_sidewall = dz_sidewall + dz(k)
                         enddo
                         ZX(i,j,iblock) = (ZX(i,j,iblock)* HU(i,j,iblock) + & 
-                           (ovf(n)%loc_ent(m)%RHSbcmom_x/c2dtu)*dz(kent)) &
+                           (ovf(n)%loc_ent(m)%RHSbcmom_x/c2dtu)) &
                            / (HU(i,j,iblock)+dz_sidewall)
                         ZY(i,j,iblock) = (ZY(i,j,iblock)* HU(i,j,iblock) + & 
-                           (ovf(n)%loc_ent(m)%RHSbcmom_y/c2dtu)*dz(kent)) &
+                           (ovf(n)%loc_ent(m)%RHSbcmom_y/c2dtu)) &
                            / (HU(i,j,iblock)+dz_sidewall)
                         if(prnt) then
                            write(stdout,20) n,ovf(n)%loc_ent(m)%i_u,ovf(n)%loc_ent(m)%j_u, &
@@ -5142,8 +5302,8 @@
          end do  ! iblock
       end do  ! entrainment
 ! prd
-      m = ovf(n)%prd_set
-      do mp=1,ovf(n)%num_prd(m)  ! product points for each set
+      do m=1,ovf(n)%num_prd_sets
+       do mp=1,ovf(n)%num_prd(m)  ! product points for each set
          kprd = ovf(n)%loc_prd(m,mp)%k
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
@@ -5160,10 +5320,10 @@
                            dz_sidewall = dz_sidewall + dz(k)
                         enddo
                         ZX(i,j,iblock) = (ZX(i,j,iblock)* HU(i,j,iblock) + & 
-                           (ovf(n)%loc_prd(m,mp)%RHSbcmom_x/c2dtu)*dz(kprd)) &
+                           (ovf(n)%loc_prd(m,mp)%RHSbcmom_x/c2dtu)) &
                            / (HU(i,j,iblock)+dz_sidewall)
                         ZY(i,j,iblock) = (ZY(i,j,iblock)* HU(i,j,iblock) + & 
-                           (ovf(n)%loc_prd(m,mp)%RHSbcmom_y/c2dtu)*dz(kprd)) &
+                           (ovf(n)%loc_prd(m,mp)%RHSbcmom_y/c2dtu)) &
                            / (HU(i,j,iblock)+dz_sidewall)
                         if(prnt) then
                            write(stdout,30) n,ovf(n)%loc_prd(m,mp)%i_u, &
@@ -5177,7 +5337,8 @@
                endif
             end do  ! j
          end do  ! iblock
-      end do  ! product points for each set
+       end do  ! product points for each set
+      end do  ! all product sets
    end do  ! each overflow
 
 !-----------------------------------------------------------------------
@@ -5291,8 +5452,8 @@
          end do  ! j
       end do  ! entrainment
 ! prd
-      m = ovf(n)%prd_set
-      do mp=1,ovf(n)%num_prd(m)  ! product points for each set
+      do m=1,ovf(n)%num_prd_sets
+       do mp=1,ovf(n)%num_prd(m)  ! product points for each set
          kprd = ovf(n)%loc_prd(m,mp)%k
          this_block = get_block(blocks_clinic(iblock),iblock)
          do j=1,ny_block
@@ -5317,7 +5478,8 @@
                end do  ! i
             endif
          end do  ! j
-      end do  ! product points for each set
+       end do  ! product points for each set
+      end do  ! all product sets
    end do  ! each overflow
 
 !-----------------------------------------------------------------------
@@ -5497,18 +5659,6 @@
       workEast,        &!
       workNE,          &!
       HUM               ! HU if no overflows; modified if overflows
-
-   logical (log_kind)   :: &
-      prd_set_move          ! true if prd set has moved
-
-
-!  if product set has not moved, no need to recompute stencil coefficients
-
-      prd_set_move = .false.
-      do n=1,num_ovf
-         if( ovf(n)%prd_set_move ) prd_set_move = .true.
-      end do
-      if( .not. prd_set_move ) return
 
 !-----------------------------------------------------------------------
 !
@@ -5778,8 +5928,8 @@
          end do  ! iblocks
       end do  ! entrainment
 ! prd
-      m = ovf(n)%prd_set
-      do mp=1,ovf(n)%num_prd(m)  ! product points for each set
+      do m=1,ovf(n)%num_prd_sets
+       do mp=1,ovf(n)%num_prd(m)  ! product points for each set
          kprd = ovf(n)%loc_prd(m,mp)%k
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
@@ -5806,7 +5956,8 @@
                endif
             end do  ! j
          end do  ! iblock
-      end do  ! product points for each set
+       end do  ! product points for each set
+      end do  ! all product sets
    end do  ! each overflow
 
 !-----------------------------------------------------------------------
@@ -5956,8 +6107,8 @@
          end do  ! iblock
       end do  ! entrainment
 ! prd
-      m = ovf(n)%prd_set
-      do mp=1,ovf(n)%num_prd(m)  ! product points for each set
+      do m=1,ovf(n)%num_prd_sets
+       do mp=1,ovf(n)%num_prd(m)  ! product points for each set
          kprd = ovf(n)%loc_prd(m,mp)%k
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
@@ -5999,7 +6150,8 @@
                endif
             end do  ! j
          end do  ! iblock
-      end do  ! product points for each set
+       end do  ! product points for each set
+      end do  ! all product sets
    end do  ! each overflow
 
 !----------------------------------------------------------------------
@@ -6088,14 +6240,22 @@
    utlda_bar = vert_sum/hu
 
 !  evaluate overflow modified baroclinic velocity for the column
-!  evaluate the right-hand-side (rhs) baroclinic momentum term 
-!  rhsbcmom for the next time step
-
    do k=1,KMU(i,j,iblock)
      UVEL(i,j,k,newtime,iblock) = utlda(k) - utlda_bar
    enddo
 
-   rhsbcmom = Uovf - ubar + utlda_bar - Uovf_nm1
+!  evaluate the right-hand-side (rhs) baroclinic  momentum term 
+!  rhsbcmom for the next time step
+!  below the topography but above the overflow
+
+   rhsbcmom = c0
+
+! keep rhs term zero  17 Nov 2008 BPB
+!  do k=KMU(i,j,iblock)+1,kovf-1
+!    rhsbcmom = rhsbcmom + (-ubar+utlda_bar)*dz(k)
+!  enddo
+!  evalute at overflow level
+!  rhsbcmom = rhsbcmom + (Uovf - ubar + utlda_bar - Uovf_nm1)*dz(kovf)
 
 !  check of zero vertical sum 
    hu       = c0
@@ -6221,14 +6381,22 @@
    utlda_bar = vert_sum/hu
 
 !  evaluate overflow modified baroclinic velocity for the column
-!  evaluate the right-hand-side (rhs) baroclinic  momentum term 
-!  rhsbcmom for the next time step
-
    do k=1,KMU(i,j,iblock)
      VVEL(i,j,k,newtime,iblock) = utlda(k) - utlda_bar
    enddo
 
-   rhsbcmom = Uovf - ubar + utlda_bar - Uovf_nm1
+!  evaluate the right-hand-side (rhs) baroclinic  momentum term 
+!  rhsbcmom for the next time step
+!  below the topography but above the overflow
+
+   rhsbcmom = c0
+
+! keep rhs term zero  17 Nov 2008 BPB
+!  do k=KMU(i,j,iblock)+1,kovf-1
+!    rhsbcmom = rhsbcmom + (-ubar+utlda_bar)*dz(k)
+!  enddo
+!  evalute at overflow level
+!  rhsbcmom = rhsbcmom + (Uovf - ubar + utlda_bar - Uovf_nm1)*dz(kovf)
 
 !  check of zero vertical sum 
    hu       = c0

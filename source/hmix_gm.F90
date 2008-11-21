@@ -612,7 +612,7 @@
    endif
 
    if ( kappa_isop_type == kappa_type_depth  .and.      &
-        ( kappa_thic_type /= kappa_type_const  .or.     &
+        ( kappa_thic_type /= kappa_type_const  .and.     &
           kappa_thic_type /= kappa_type_depth ) ) then   
      message = 'when kappa_isop_type is kappa_type_depth, kappa_thic_type '/&
            &/  'should be either kappa_type_const or kappa_type_depth.'
@@ -620,7 +620,7 @@
    endif
 
    if ( kappa_thic_type == kappa_type_depth  .and.      &
-        ( kappa_isop_type /= kappa_type_const  .or.     &
+        ( kappa_isop_type /= kappa_type_const  .and.     &
           kappa_isop_type /= kappa_type_depth ) ) then   
      message = 'when kappa_thic_type is kappa_type_depth, kappa_isop_type ' /&
             &/ 'should be either kappa_type_const or kappa_type_depth.'

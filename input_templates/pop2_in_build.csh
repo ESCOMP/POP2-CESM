@@ -12,7 +12,7 @@
 #  First, test for supported OCN_GRID resolution and control system calls
 #--------------------------------------------------------------------------
 
-if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 || ${OCN_GRID_INTERNAL} == gx1v5 || ${OCN_GRID_INTERNAL} == gx1v5a) then   
+if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 || ${OCN_GRID_INTERNAL} == gx1v5 || ${OCN_GRID_INTERNAL} == gx1v5a || ${OCN_GRID_INTERNAL} == gx1v5b ) then   
 # supported dipole resolutions
   set lsystem_call = .true.
 else if ( ${OCN_GRID_INTERNAL} == tx0.1v2 || ${OCN_GRID_INTERNAL} == tx1v1 ) then   
@@ -23,7 +23,7 @@ else
    echo "   =============================================================="
    echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
    echo "     ${OCN_GRID_INTERNAL} is not a supported grid.               "
-   echo "     Supported grids are: gx3v5, gx1v5, gx1v5a, and tx0.1v2      "
+   echo "     Supported grids are: gx3v5, gx1v5, gx1v5a, gx1v5b and tx0.1v2      "
   #echo "     Experimental grid: gx3v6                                    "
   #echo "     Testing grids:   tx1v1                                      "
    echo "   =============================================================="
@@ -1233,7 +1233,7 @@ else
 endif
 
 cat >> $POP2_NMLFILE << EOF
-Only the gx3v5, gx3v6, gx1v5, and gx1v5a versions of tidal_energy exist.  
+Only the gx3v5, gx3v6, gx1v5, gx1v5a, gx1v5b versions of tidal_energy exist.  
 For all other resolutions, set ltidal_mixing false.
 
 &tidal_nml
@@ -1258,12 +1258,12 @@ cat >> $POP2_NMLFILE << EOF
 
 EOF
 
-if ( ${OCN_GRID_INTERNAL} == gx1v5a ) then
- # ONLY gx1v5a -- not gx1v5
+if ( ${OCN_GRID_INTERNAL} == gx1v5a || ${OCN_GRID_INTERNAL} == gx1v5b ) then
+ # ONLY gx1v5a or gx1v5b -- not gx1v5
  set overflows_on = .true.
  set overflows_interactive = .true.
 else
- # for all resolutions except gx1v5a
+ # for all resolutions except gx1v5a or gx1v5b
  set overflows_on = .false.
  set overflows_interactive = .false.
 endif
