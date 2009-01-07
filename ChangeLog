@@ -5,6 +5,19 @@
 Originator: njn01
 Date:  Fri Nov 21 2008
 Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090107
+Testing:  Testing by tcraig.
+----------------------------------------------------------------
+Summary of Changes:  new pop2.cpl7.template file that is consistent
+ with ccsm script changes in the ccsm4_0_beta07 tag.
+
+M           13010   bld/pop2.cpl7.template
+M           13010   ChangeLog
+
+===============================================================================
+Originator: njn01
+Date:  Fri Nov 21 2008
+Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20081121
 Testing:  2-month gx1v5b exact restart tests, C and B compsets
 ----------------------------------------------------------------

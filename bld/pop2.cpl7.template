@@ -4,7 +4,7 @@
 #==============================================================================
 # Purpose: Create scripts that will
 #  (a) build an executable model (pop2.buildexe.csh)
-#  (b) gather or create necessary input files (pop2.buildnml_prestage.csh)
+#  (b) gather or create necessary input files (pop2.buildnml.csh)
 #
 #==============================================================================
 
@@ -13,15 +13,14 @@ set    my_path      = $CASEROOT/SourceMods/src.pop2
 
 setenv OCN_PRESTAGE    TRUE
 setenv INPUT_TEMPLATES $srcdir/input_templates
-setenv POP2BLDSCRIPT   $CASEROOT/Buildnml_Prestage/pop2.buildnml_prestage.csh
-setenv POP2_DOCDIR     $CASEROOT/Buildnml_Prestage/pop2doc
+setenv POP2BLDSCRIPT   $CASEBUILD/pop2.buildnml.csh
+setenv POP2_DOCDIR     $CASEBUILD/pop2doc
 setenv POP2_NMLFILE    $POP2_DOCDIR/document_pop2_in
 setenv POP2_INLIST     $POP2_DOCDIR/document_pop2_input_files
 setenv INPUT           $EXEROOT/ocn/input
 
-if !(-d $CASEROOT/Buildnml_Prestage) mkdir $CASEROOT/Buildnml_Prestage
-if !(-d $CASEROOT/Buildexe)          mkdir $CASEROOT/Buildexe
-if !(-d $POP2_DOCDIR               ) mkdir $POP2_DOCDIR
+if !(-d $CASEBUILD  ) mkdir $CASEBUILD
+if !(-d $POP2_DOCDIR) mkdir $POP2_DOCDIR
 
 ###================================================================###
 ###      Support for developmental ocean grids                     ###
@@ -49,21 +48,12 @@ setenv OCN_GRID_INTERNAL  ${OCN_GRID}${grid_suffix}
 ###  I.  Begin construction of pop2.buildexe.csh                   ###
 ###================================================================###
 
-cat >! $CASEROOT/Buildexe/pop2.buildexe.csh << EOF1
+cat >! $CASEBUILD/pop2.buildexe.csh << EOF1
 #! /bin/csh -f
 
 #--------------------------------------------------------------------
 # check basic task and thread settings
 #--------------------------------------------------------------------
-
-if !(\$NTASKS_OCN > 0) then
-  echo "NTASKS_OCN must be > 0, please correct in env_pes and reconfigure"
-  exit -1
-endif
-if !(\$NTHRDS_OCN == 1) then
-  echo "NTHRDS_OCN must be 1, please correct in env_pes and reconfigure"
-  exit -1
-endif
 
 set exedir  = \$RUNDIR
 set rundir  = \$RUNDIR
@@ -91,7 +81,7 @@ echo " "
 echo -----------------------------------------------------------------------
 echo   4.1 "(pop2.buildexe.csh)" Document ocean tracers used in this run
 echo -----------------------------------------------------------------------
-echo ocn_tracers = \$ocn_tracers
+#echo ocn_tracers = \$ocn_tracers
 
 
 echo ------------------------------------------------------------------------
@@ -107,8 +97,9 @@ echo -----------------------------------------------------------------
 echo    4.3 "(pop2.buildexe.csh)" Create the internal directory structure
 echo -----------------------------------------------------------------
 
-set compile_dir = \$objdir/compile
-set source_dir  = \$objdir/source
+set compile_dir = \$objdir
+set source_dir  = \$OBJROOT/ocn/source
+
 if !(-d \$source_dir  ) mkdir -p \$source_dir
 if !(-d \$compile_dir ) mkdir -p \$compile_dir
 
@@ -179,9 +170,9 @@ set recompile = FALSE
 echo $OCN_GRID_INTERNAL \$ntask \${BLCKX} \${BLCKY} \${MXBLCKS} >! \$objdir/ocnres.new
 diff \$objdir/ocnres.new \$objdir/ocnres.old || set recompile = TRUE
 if (\$recompile == 'TRUE') then
-    touch \`grep -l BLCKX \$objdir/source/*\`  # force recompile
-    touch \`grep -l BLCKY \$objdir/source/*\`  # force recompile
-    touch \`grep -l MXBLCKS \$objdir/source/*\`  # force recompile
+    touch \`grep -l BLCKX \$source_dir/*\`  # force recompile
+    touch \`grep -l BLCKY \$source_dir/*\`  # force recompile
+    touch \`grep -l MXBLCKS \$source_dir/*\`  # force recompile
 endif  
 echo $OCN_GRID_INTERNAL \$ntask \${BLCKX} \${BLCKY} \${MXBLCKS} >! \$objdir/ocnres.old
 
@@ -193,20 +184,12 @@ cd \$compile_dir
  \$source_dir
 EOF
 
-if (\$BLDTYPE == 'TRUE' || \$recompile == 'TRUE') then
-  cd \$compile_dir
+cd \$compile_dir
 
-  cp \$BLDROOT/mkDepends . || exit 2
-  cp \$BLDROOT/mkSrcfiles . || exit 2
-
-  set SMP = FALSE ; if (\$NTHRDS_OCN > 1) set SMP = TRUE
-  gmake complib -j \$GMAKE_J MODEL=pop2 COMPLIB=\$LIBROOT/libocn.a SMP=\$SMP MACFILE=\$CASEROOT/Macros.\$MACH USER_CPPDEFS="-Dcoupled -DCCSMCOUPLED -DBLCKX=\$BLCKX -DBLCKY=\$BLCKY -DMXBLCKS=\$MXBLCKS" -f \$BLDROOT/Makefile || exit 2
-  cp -p *comp_*.mod \$LIBROOT/include/
-  cp -p *COMP_*.mod \$LIBROOT/include/
-endif
+gmake complib -j \$GMAKE_J MODEL=pop2 COMPLIB=\$LIBROOT/libocn.a MACFILE=\$CASEROOT/Macros.\$MACH USER_CPPDEFS="-Dcoupled -DCCSMCOUPLED -DBLCKX=\$BLCKX -DBLCKY=\$BLCKY -DMXBLCKS=\$MXBLCKS" -f \$BLDROOT/Makefile || exit 2
 
 if !(-f \$LIBROOT/libocn.a) then
-  echo "ERROR: pop2 library not available, check SETBLD"
+  echo "ERROR: pop2 library not available"
   exit -1
 endif
 
@@ -244,17 +227,17 @@ endif
 set inputdata_filename = ${OCN_GRID_INTERNAL}_inputdata
 
 if (-f ${my_path}/$inputdata_filename) then
-  cat $my_path/$inputdata_filename >&! $CASEROOT/Buildnml_Prestage/pop2.input_data_list
+  cat $my_path/$inputdata_filename >&! $CASEBUILD/pop2.input_data_list
 else
-  cat $INPUT_TEMPLATES/$inputdata_filename >&! $CASEROOT/Buildnml_Prestage/pop2.input_data_list
+  cat $INPUT_TEMPLATES/$inputdata_filename >&! $CASEBUILD/pop2.input_data_list
 endif
 
 foreach module ( `echo $OCN_TRACER_MODULES`)  
 
 if (-f ${my_path}/ocn.${module}.setup.csh) then
-  ${my_path}/ocn.${module}.setup.csh ccsm_prestage $CASEROOT/Buildnml_Prestage/pop2.input_data_list || exit $status
+  ${my_path}/ocn.${module}.setup.csh ccsm_prestage $CASEBUILD/pop2.input_data_list || exit $status
 else if (-f $srcdir/input_templates/ocn.${module}.setup.csh ) then
-  $srcdir/input_templates/ocn.${module}.setup.csh ccsm_prestage $CASEROOT/Buildnml_Prestage/pop2.input_data_list   || exit $status
+  $srcdir/input_templates/ocn.${module}.setup.csh ccsm_prestage $CASEBUILD/pop2.input_data_list   || exit $status
 else
   echo error in pop.buildexe.csh unknown tracer: \$module
   exit -3
@@ -264,7 +247,7 @@ end
 
 
 ###================================================================###
-###  III.  Begin construction of pop2.buildnml_prestage.csh        ###
+###  III.  Begin construction of pop2.buildnml.csh        ###
 ###================================================================###
 
 cat >! $POP2BLDSCRIPT << EOF2
@@ -311,7 +294,7 @@ setenv INPUT    $INPUT
 
 setenv INPUT_TEMPLATES \$srcdir/input_templates
 
-setenv POP2_DOCDIR  \$CASEROOT/Buildnml_Prestage/pop2doc
+setenv POP2_DOCDIR  \$CASEBUILD/pop2doc
 setenv POP2_NMLFILE \$POP2_DOCDIR/document_pop2_in
 setenv POP2_INLIST  \$POP2_DOCDIR/document_pop2_input_files
 
@@ -319,7 +302,7 @@ setenv POP2_INLIST  \$POP2_DOCDIR/document_pop2_input_files
 setenv OCN_GRID_INTERNAL $OCN_GRID_INTERNAL
 
 set ocn_tracers = (\`echo \$OCN_TRACER_MODULES\`)
-echo ocn_tracers = \$ocn_tracers
+#echo ocn_tracers = \$ocn_tracers
 
 if !( -d \$ocndir/rest  )  mkdir -p \$ocndir/rest   || exit 2
 if !( -d \$ocndir/hist  )  mkdir -p \$ocndir/hist   || exit 2
@@ -332,7 +315,7 @@ if !( -d \$ocndir/input )  mkdir -p \$ocndir/input  || exit 2
 #--------------------------------------------------------------------
 
 echo ----------------------------------------------------------------------------------------
-echo 1.0 "(pop2.buildnml_prestage.csh)" Begin identifying and collecting all pop2 input datasets
+echo 1.0 "(pop2.buildnml.csh)" Begin identifying and collecting all pop2 input datasets
 echo ----------------------------------------------------------------------------------------
 EOF2
 
@@ -564,7 +547,7 @@ set pop2_nmlfile = $POP2_NMLFILE
 cat >> $POP2BLDSCRIPT << EOF2
 
       else
-        echo ERROR: (pop2.buildnml_prestage.csh)  Must define \${file}_data in step 1.2.3
+        echo ERROR: (pop2.buildnml.csh)  Must define \${file}_data in step 1.2.3
       endif
     @ i++
     end
@@ -630,7 +613,7 @@ cat >> $POP2BLDSCRIPT << EOF2
 #--------------------------------------------------------------------
 
 echo ------------------------------------------------------------------------
-echo 2.0 "(pop2.buildnml_prestage.csh)" Begin building the pop2_in namelist file 
+echo 2.0 "(pop2.buildnml.csh)" Begin building the pop2_in namelist file 
 echo ------------------------------------------------------------------------
 
   #------------------------------------------------------------------
@@ -698,7 +681,7 @@ echo ------------------------------------------------------------------------
 
 
 echo ---------------------------------------------------------------------------------------------
-echo   2.4 "(pop2.buildnml_prestage.csh)" Add passive-tracer info to the standard pop2_in namelist file 
+echo   2.4 "(pop2.buildnml.csh)" Add passive-tracer info to the standard pop2_in namelist file 
 echo ---------------------------------------------------------------------------------------------
 
 if (\$#ocn_tracers == 0) then
@@ -735,14 +718,14 @@ cat >> $POP2BLDSCRIPT << EOF2
        \$srcdir/input_templates/ocn.\${module}.setup.csh namelist \$POP2_NMLFILE  || exit \$status
        \$srcdir/input_templates/ocn.\${module}.setup.csh document \$POP2_INLIST   || exit \$status
     else
-       echo error in pop.buildnml_prestage.csh unknown tracer: \$module
+       echo error in pop.buildnml.csh unknown tracer: \$module
        exit -3
     endif
   end
 endif
 
 echo ---------------------------------------------------------------------------------------------
-echo   2.5 "(pop2.buildnml_prestage.csh)" Copy $pop2_nmlfile:t to \$exedir/pop2_in
+echo   2.5 "(pop2.buildnml.csh)" Copy $pop2_nmlfile:t to \$exedir/pop2_in
 echo       Note: this is the step that creates \$exedir/pop2_in
 echo ---------------------------------------------------------------------------------------------
 if (-f \$exedir/pop2_in) rm \$exedir/pop2_in
@@ -762,7 +745,7 @@ endif
 
 if (\$#ocn_tracers > 0) then
   echo --------------------------------------------------------------------------------------
-  echo  2.6 "(pop2.buildnml_prestage.csh)" Add passive tracer module variables to tavg_contents 
+  echo  2.6 "(pop2.buildnml.csh)" Add passive tracer module variables to tavg_contents 
   echo --------------------------------------------------------------------------------------
 
   foreach module ( \$ocn_tracers )
@@ -774,7 +757,7 @@ if (\$#ocn_tracers > 0) then
   end
 
   echo ----------------------------------------------------------------------
-  echo  2.7 "(pop2.buildnml_prestage.csh)" Prestage passive tracer module files 
+  echo  2.7 "(pop2.buildnml.csh)" Prestage passive tracer module files 
   echo ----------------------------------------------------------------------
 
   foreach module ( \$ocn_tracers )
@@ -792,7 +775,7 @@ wait
 
 
 echo ----------------------------------------------------------------
-echo 3.0 "(pop2.buildnml_prestage.csh)" Successful completion
+echo 3.0 "(pop2.buildnml.csh)" Successful completion
 echo ----------------------------------------------------------------
 echo " "
 exit 0
