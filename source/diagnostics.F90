@@ -68,8 +68,7 @@
       ldiag_transport,       &! time to compute transport diagnostics
       ldiag_velocity,        &! compute velocity diagnostics
       cfl_all_levels,        &! writes cfl  diags for all vert levels
-      diag_all_levels,       &! writes some diags for all vert levels
-      ldiag_system_call       ! controls system calls
+      diag_all_levels         ! writes some diags for all vert levels
 
    !***  arrays for holding various diagnostic results
    !***  public for now as they are modified directly in baroclinic
@@ -128,14 +127,8 @@
 
    character (char_len) ::   &
       diag_outfile,                  &! current  filename for diagnostic output
-      diag_outfile_old,              &! previous filename for the diagnostic output file
-      diag_outfile_root,             &! original filename for the diagnostic output file
       diag_transport_outfile,        &! current  filename for transport output
-      diag_transport_outfile_old,    &! previous filename for transport output
-      diag_transport_outfile_root,   &! original filename for transport output
-      diag_velocity_outfile,         &! current  filename for velocity output
-      diag_velocity_outfile_old,     &! previous filename for velocity output
-      diag_velocity_outfile_root      ! original filename for velocity output
+      diag_velocity_outfile           ! current  filename for velocity output
 
 !-----------------------------------------------------------------------
 !
@@ -320,7 +313,8 @@
       diag_transp_freq_opt, &! choice for freq of transport diagnostics
       diag_transport_file,  &! filename for choosing fields for output
       transport_ctype,      &! type of transport (zonal,merid)
-      outfile_tmp            ! temp for appending to outfile name
+      outfile_tmp,          &! temp for appending to outfile name
+      string                 ! temp for creating outfile name
 
    integer (int_kind) ::     &
       diag_global_freq_iopt, &! freq option for computing global diags
@@ -345,7 +339,7 @@
                              diag_all_levels, cfl_all_levels,        &
                              diag_outfile, diag_transport_outfile,   &
                              diag_velocity_outfile,                  &
-                             ldiag_velocity, ldiag_system_call
+                             ldiag_velocity
 
    type (block) ::         &
       this_block           ! block information for current block
@@ -410,7 +404,6 @@
    diag_all_levels        = .false.
    cfl_all_levels         = .false.
    ldiag_velocity         = .false.
-   ldiag_system_call      = .false.
    diag_velocity_outfile  = 'unknown_velocity_outfile'
 
    if (my_task == master_task) then
@@ -437,9 +430,22 @@
 !-----------------------------------------------------------------------
    if (lccsm) then
 
-     diag_outfile_root           = trim(diag_outfile)
-     diag_transport_outfile_root = trim(diag_transport_outfile)
-     diag_velocity_outfile_root  = trim(diag_velocity_outfile)
+     call ccsm_date_stamp (ccsm_diag_date, 'ymds')
+
+     string = diag_outfile
+     diag_outfile = trim(string)/&
+                                 &/'.'/&
+                                 &/trim(ccsm_diag_date)
+
+     string = diag_transport_outfile
+     diag_transport_outfile = trim(string)/&
+                                           &/'.'/&
+                                           &/trim(ccsm_diag_date)
+
+     string = diag_velocity_outfile
+     diag_velocity_outfile  = trim(string)/&
+                                           &/'.'/&
+                                           &/trim(ccsm_diag_date)
 
    else
 
@@ -525,23 +531,16 @@
       end select
 
       if (diag_global_freq_iopt /= freq_opt_never) then
-         if (lccsm) then
-           write(stdout,'(a36,a)') &
-              'Global diagnostics written to file: ', &
-               trim(diag_outfile) // '_yyyy-mm-dd-sssss'
-         else
            write(stdout,'(a36,a)') &
               'Global diagnostics written to file: ', trim(diag_outfile)
-         endif ! lccsm
          if (diag_all_levels)     &
             write(stdout,'(a42)') &
                'Diagnostics output for all vertical levels'
       endif
 
       if (lccsm) then
-        write (stdout,'(a39,a)') &
-           'Equatorial velocities written to file: ', &
-            trim(diag_velocity_outfile) // '_yyyy-mm-dd-sssss'
+        write (stdout,'(a39,a)') 'Equatorial velocities written to file: ', &
+            trim(diag_velocity_outfile)
       endif
 
       select case (diag_cfl_freq_opt)
@@ -571,14 +570,8 @@
       end select
 
       if (diag_cfl_freq_iopt /= freq_opt_never) then
-         if (lccsm) then
-           write(stdout,'(a33,a)') &
-              'CFL diagnostics written to file: ',trim(diag_outfile) /&
-                        &/ '_yyyy-mm-dd-sssss'
-         else
            write(stdout,'(a33,a)') &
               'CFL diagnostics written to file: ',trim(diag_outfile)
-         endif ! lccsm
          if (cfl_all_levels) then
             write(stdout,'(a46)') &
                'CFL diagnostics output for all vertical levels'
@@ -622,7 +615,6 @@
    call broadcast_scalar(diag_all_levels,       master_task)
    call broadcast_scalar(cfl_all_levels,        master_task)
    call broadcast_scalar(ldiag_velocity,        master_task)
-   call broadcast_scalar(ldiag_system_call,     master_task)
 
    if (diag_global_freq_iopt == -1000) then
       call exit_POP(sigAbort, &
@@ -637,7 +629,6 @@
                     'ERROR: unknown transport diag frequency option')
    endif
 
-   if (ldiag_system_call) call register_string('ldiag_system_call')
 
 !-----------------------------------------------------------------------
 !
@@ -667,15 +658,9 @@
 
       call get_unit(nu)
       if (my_task == master_task) then
-         if (lccsm) then
-           write(stdout,'(a39,a)') &
-              'Transport diagnostics written to file: ', &
-               trim(diag_transport_outfile)//'_yyyy-mm-dd-sssss'
-         else
-           write(stdout,'(a39,a)') &
-              'Transport diagnostics written to file: ', &
-               trim(diag_transport_outfile)
-         endif ! lccsm
+         write(stdout,'(a39,a)') &
+            'Transport diagnostics written to file: ', &
+             trim(diag_transport_outfile)
          write(stdout,blank_fmt)
 
          open(nu, file=diag_transport_file, status='old')
@@ -1829,20 +1814,8 @@
 !-----------------------------------------------------------------------
 
          close(diag_unit)
-         
-         if (lccsm .and. ldiag_system_call) then ! conform to CCSM output file-naming conventions
-            call ccsm_date_stamp (ccsm_diag_date, 'ymds')
- 
-            diag_outfile_old = trim(diag_outfile)
-            diag_outfile = trim(diag_outfile_root)//'.'//ccsm_diag_date
- 
-            string = 'mv '//trim(diag_outfile_old)//' '//trim(diag_outfile)
-#ifdef CCSMCOUPLED
-            call shr_sys_system (trim(string), ier)
-#endif
-         endif ! lccsm
 
-         endif ! master_task
+      endif ! master_task
 
       call timer_print_all()
       call document ('diag_print', 'file written: '// trim(diag_outfile))
@@ -2095,18 +2068,8 @@
 
       if (my_task == master_task) then
         close(trans_unit)
-        if (lccsm .and. ldiag_system_call) then
-           call ccsm_date_stamp (ccsm_diag_date, 'ymds')
-           diag_transport_outfile_old = trim(diag_transport_outfile)
-           diag_transport_outfile =  &
-           trim(diag_transport_outfile_root)//'.'//ccsm_diag_date
-           string =  &
-           'mv '//trim(diag_transport_outfile_old)//' '//trim(diag_transport_outfile)
-#ifdef CCSMCOUPLED
-           call shr_sys_system (trim(string), ier)
-#endif
-        endif ! lccsm
       endif ! master_task
+
       call document ('diag_transport', 'file written: '//trim(diag_transport_outfile))
 
    endif ! ldiag_transport
@@ -2681,20 +2644,6 @@
        enddo
 
        close (velocity_unit)
-
-       if (ldiag_system_call) then
-         call ccsm_date_stamp (ccsm_diag_date, 'ymds')
-
-         diag_velocity_outfile_old = trim(diag_velocity_outfile)
-         diag_velocity_outfile = trim(diag_velocity_outfile_root) &
-                                 //'.'//trim(ccsm_diag_date)
-
-         string = 'mv '//trim(diag_velocity_outfile_old) &
-                //' '//trim(diag_velocity_outfile)
-#ifdef CCSMCOUPLED
-         call shr_sys_system (trim(string), ier)
-#endif
-       endif ! ldiag_system_call
 
      endif 
 

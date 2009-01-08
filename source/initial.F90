@@ -528,6 +528,14 @@
 
 !-----------------------------------------------------------------------
 !
+!  initialize overflows output diagnostics filename
+!
+!-----------------------------------------------------------------------
+
+   call init_overflows4
+
+!-----------------------------------------------------------------------
+!
 !  initialize output; subroutine init_output calls 
 !       o init_restart
 !       o init_history

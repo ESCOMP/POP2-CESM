@@ -3,13 +3,28 @@
 
 ===============================================================================
 Originator: njn01
-Date:  Fri Nov 21 2008
+Date:  Wed Jan 7 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090107a
+Summary of Changes:  Remove system calls from diagnostics.F90 and overflows.F90
+Testing:  C compset, gx1v5 and gx3v5. Confirm output diagnostics
+   files are named with beginning model date, by inspection
+   Gokhan and Bruce confirmed diagnostics files are ok. 
+
+M           13010   source/overflows.F90
+M           12674   source/initial.F90
+M           12674   source/diagnostics.F90
+M           13010   input_templates/pop2_in_build.csh
+M           13801   ChangeLog
+
+===============================================================================
+Originator: njn01
+Date:  Wed Jan 7 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090107
-Testing:  Testing by tcraig.
-----------------------------------------------------------------
 Summary of Changes:  new pop2.cpl7.template file that is consistent
- with ccsm script changes in the ccsm4_0_beta07 tag.
+ with ccsm script changes in the ccsm4_0_beta07 tag. Provided by tcraig.
+Testing:  Testing by tcraig.
 
 M           13010   bld/pop2.cpl7.template
 M           13010   ChangeLog

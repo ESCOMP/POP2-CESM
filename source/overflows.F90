@@ -60,6 +60,7 @@
              init_overflows_kmt,        &
              init_overflows_mask,       &
              init_overflows3,           &   ! initial.F90
+             init_overflows4,           &   ! initial.F90
              ovf_write_restart,         &   ! step_mod.F90
              ovf_read_restart,          &   ! init_overflows1
              ovf_write_broadcast,       &   
@@ -113,8 +114,6 @@
    character (POP_charLength)  :: &
       overflows_infile,           &! overflow info file
       overflows_diag_outfile,     &! current filename for overflow output diagnostics file
-      overflows_diag_outfile_old, &! old     filename for overflow output diagnostics file
-      overflows_diag_outfile_root,&! root    filename for overflow output diagnostics file
       outfile_tmp                  ! temp for appending to outfile name
 
    character (POP_charLength), public  :: &
@@ -350,7 +349,7 @@
  subroutine init_overflows1
 
 ! !DESCRIPTION:
-!  This routine is the first of three which together initialize the overflow 
+!  This routine is the first of four which together initialize the overflow 
 !  parameterization. It reads the namelist and overflow_infile (text file 
 !  containing ovf info). See info file comments for description of text file 
 !  format. This routine also computes prd region limits based on prd input, 
@@ -467,65 +466,6 @@
    lccsm = registry_match('lccsm')
 
 !-----------------------------------------------------------------------
-!  set up output file and unit for overflow diagnostics
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!  initialize ccsm overflow diagnostics output filename; 
-!  actual ccsm filenames will be constructed in subroutine
-!-----------------------------------------------------------------------
-   if (lccsm) then
-     overflows_diag_outfile_root = trim(overflows_diag_outfile)
-   else
-!-----------------------------------------------------------------------
-!  append runid, initial date to output file names
-!  concatenation operator must be split across lines to avoid problems
-!    with preprocessors
-!-----------------------------------------------------------------------
-     if (date_separator == ' ') then
-        cdate(1:4) = cyear
-        cdate(5:6) = cmonth
-        cdate(7:8) = cday
-        cdate(9:10)= '  '
-     else
-        cdate(1:4) = cyear
-        cdate(5:5) = date_separator
-        cdate(6:7) = cmonth
-        cdate(8:8) = date_separator
-        cdate(9:10) = cday
-     endif
-     outfile_tmp = char_blank
-     outfile_tmp = trim(overflows_diag_outfile)/&
-                                          &/'.'/&
-                                          &/trim(runid)/&
-                                          &/'.'/&
-                                          &/trim(cdate)
-     overflows_diag_outfile = trim(outfile_tmp)
-   endif ! lccsm
-
-!  if (diag_global_freq_iopt /= freq_opt_never .or. &
-!      diag_cfl_freq_iopt    /= freq_opt_never) then
-
-      call get_unit(ovf_diag_unit)
-      if (my_task == master_task) then
-          open(ovf_diag_unit, file=overflows_diag_outfile, status='unknown')
-          write(ovf_diag_unit,*)' '
-          close(ovf_diag_unit)
-      endif
-!  endif
-
-!     if (diag_global_freq_iopt /= freq_opt_never) then
-         if (lccsm) then
-           write(stdout,'(a,a)') &
-              'Overflow diagnostics written to file: ', &
-               trim(overflows_diag_outfile) // '_yyyy-mm-dd-sssss'
-         else
-           write(stdout,'(a,a)') &
-              'Overflow diagnostics written to file: ', trim(overflows_diag_outfile)
-         endif ! lccsm
-!     endif
-
-!-----------------------------------------------------------------------
 !  overflows on; read overflows info file if startup; otherwise 
 !  read restart data
 !-----------------------------------------------------------------------
@@ -541,41 +481,26 @@
 
    if (my_task == master_task) then
 
-      write(stdout,1234) nu,ovf_diag_unit
-      1234 format(' init_overflows  units nu,ovf_diag_unit= ',2(i5,2x))
-      call shr_sys_flush(stdout)
-
       open(nu, file=overflows_infile, status='old',iostat=ovf_error)
-      open(ovf_diag_unit, file=overflows_diag_outfile, status='old', position='append')
-
 
       write(stdout,2345) ovf_error
       2345 format(' after open nu   ovf_error=',i5)
       write(stdout,'(a41)') 'reading overflows_infile: contents echoed'
       call shr_sys_flush(stdout)
 
-
-      write(stdout,3456) ovf_error
-      3456 format(' after open ovf_diag_unit   ovf_error=',i5)
       write(stdout,'(a41)') 'reading overflows_infile: contents echoed'
       call shr_sys_flush(stdout)
       write(stdout,'(a43,1x,a)') 'begin writing ovf info to',  overflows_diag_outfile
-      write(ovf_diag_unit,'(a20)') 'Overflow Text Output'
-      write(ovf_diag_unit,'(a27)') 'First: input from info file'
       call shr_sys_flush(stdout)
-      call shr_sys_flush(ovf_diag_unit)
 
       do m=1,40
          read(nu,'(a88)') line
          write(stdout,'(a88)') line
-         write(ovf_diag_unit,'(a88)') line
       end do
 
       read(nu,*) num_ovf
       write(stdout,*) num_ovf
-      write(ovf_diag_unit,*) num_ovf
       call shr_sys_flush(stdout)
-      call shr_sys_flush(ovf_diag_unit)
       if( num_ovf <= 0 .or. num_ovf > max_ovf ) then
          ovf_error = 1
          num_req   = num_ovf
@@ -586,7 +511,6 @@
         ovf(n)%interactive = overflows_interactive
         read(nu,*) index,ovf(n)%name
         write(stdout,*) index,ovf(n)%name
-        write(ovf_diag_unit,*) index,ovf(n)%name
 
         read(nu,*) ovf(n)%ovf_params%lat
         read(nu,*) ovf(n)%ovf_params%width
@@ -607,15 +531,6 @@
         write(stdout,*) ovf(n)%ovf_params%transit_time
         call shr_sys_flush(stdout)
 
-        write(ovf_diag_unit,*) ovf(n)%ovf_params%lat
-        write(ovf_diag_unit,*) ovf(n)%ovf_params%width
-        write(ovf_diag_unit,*) ovf(n)%ovf_params%depth_sill
-        write(ovf_diag_unit,*) ovf(n)%ovf_params%source_thick
-        write(ovf_diag_unit,*) ovf(n)%ovf_params%distnc_str_ssb
-        write(ovf_diag_unit,*) ovf(n)%ovf_params%bottom_slope
-        write(ovf_diag_unit,*) ovf(n)%ovf_params%bottom_drag
-        write(ovf_diag_unit,*) ovf(n)%ovf_params%transit_time
-        call shr_sys_flush(ovf_diag_unit)
 
 ! days to seconds for transit time
         ovf(n)%ovf_params%transit_time = &
@@ -624,7 +539,6 @@
 ! kmt changes if any
         read(nu,*) ovf(n)%num_kmt
         write(stdout,*) ovf(n)%num_kmt
-        write(ovf_diag_unit,*) ovf(n)%num_kmt
         if( ovf(n)%num_kmt < 0 .or. ovf(n)%num_kmt > max_kmt ) then
            ovf_error = 2
            num_req   = ovf(n)%num_kmt
@@ -639,13 +553,8 @@
                            ovf(n)%loc_kmt(m)%j,    &
                            ovf(n)%loc_kmt(m)%korg, &
                            ovf(n)%loc_kmt(m)%knew
-           write(ovf_diag_unit,*) ovf(n)%loc_kmt(m)%i,    &
-                       ovf(n)%loc_kmt(m)%j,    &
-                       ovf(n)%loc_kmt(m)%korg, &
-                       ovf(n)%loc_kmt(m)%knew
         end do
         call shr_sys_flush(stdout)
-        call shr_sys_flush(ovf_diag_unit)
 
         read(nu,*)
 
@@ -689,30 +598,10 @@
                         ovf(n)%reg_ent%kmax
         call shr_sys_flush(stdout)
 
-        write(ovf_diag_unit,*) ovf(n)%reg_inf%imin, &
-                    ovf(n)%reg_inf%imax, &
-                    ovf(n)%reg_inf%jmin, &
-                    ovf(n)%reg_inf%jmax, &
-                    ovf(n)%reg_inf%kmin, &
-                    ovf(n)%reg_inf%kmax
-        write(ovf_diag_unit,*) ovf(n)%reg_src%imin, &
-                    ovf(n)%reg_src%imax, &
-                    ovf(n)%reg_src%jmin, &
-                    ovf(n)%reg_src%jmax, &
-                    ovf(n)%reg_src%kmin, &
-                    ovf(n)%reg_src%kmax
-        write(ovf_diag_unit,*) ovf(n)%reg_ent%imin, &
-                    ovf(n)%reg_ent%imax, &
-                    ovf(n)%reg_ent%jmin, &
-                    ovf(n)%reg_ent%jmax, &
-                    ovf(n)%reg_ent%kmin, &
-                    ovf(n)%reg_ent%kmax
-        call shr_sys_flush(ovf_diag_unit)
 
 ! src points
         read(nu,*) ovf(n)%num_src
         write(stdout,*) ovf(n)%num_src
-        write(ovf_diag_unit,*) ovf(n)%num_src
         if( ovf(n)%num_src <= 1 .or. ovf(n)%num_src > max_src ) then
            ovf_error = 3
            num_req   = ovf(n)%num_src
@@ -768,12 +657,7 @@
                           ovf(n)%loc_src(m)%j, &
                           ovf(n)%loc_src(m)%k, &
                           ovf(n)%loc_src(m)%orient
-          write(ovf_diag_unit,*) ovf(n)%loc_src(m)%i, &
-                      ovf(n)%loc_src(m)%j, &
-                      ovf(n)%loc_src(m)%k, &
-                      ovf(n)%loc_src(m)%orient
           call shr_sys_flush(stdout)
-          call shr_sys_flush(ovf_diag_unit)
 ! check order of ij, constancy of k and range of orient
           if( m==1 ) then
              imin = ovf(n)%loc_src(m)%i 
@@ -827,7 +711,6 @@
 ! ent points
         read(nu,*) ovf(n)%num_ent
         write(stdout,*) ovf(n)%num_ent
-        write(ovf_diag_unit,*) ovf(n)%num_ent
         if( ovf(n)%num_ent <= 1 .or. ovf(n)%num_ent > max_ent ) then
            ovf_error = 4
            num_req   = ovf(n)%num_ent
@@ -883,12 +766,7 @@
                           ovf(n)%loc_ent(m)%j, &
                           ovf(n)%loc_ent(m)%k, &
                           ovf(n)%loc_ent(m)%orient
-          write(ovf_diag_unit,*) ovf(n)%loc_ent(m)%i, &
-                      ovf(n)%loc_ent(m)%j, &
-                      ovf(n)%loc_ent(m)%k, &
-                      ovf(n)%loc_ent(m)%orient
           call shr_sys_flush(stdout)
-          call shr_sys_flush(ovf_diag_unit)
 ! check order of ij, constancy of k and range of orient
           if( m==1 ) then
              imin = ovf(n)%loc_ent(m)%i
@@ -939,12 +817,10 @@
           endif
         end do
         call shr_sys_flush(stdout)
-        call shr_sys_flush(ovf_diag_unit)
 
 ! prd points
         read(nu,*) ovf(n)%num_prd_sets
         write(stdout,*) ovf(n)%num_prd_sets
-        write(ovf_diag_unit,*) ovf(n)%num_prd_sets
         if(ovf(n)%num_prd_sets<=0.or.ovf(n)%num_prd_sets>max_prd_sets) then
            ovf_error = 5
            num_req   = ovf(n)%num_prd_sets
@@ -953,7 +829,6 @@
         do m=1,ovf(n)%num_prd_sets
           read(nu,*) ovf(n)%num_prd(m)
           write(stdout,*) ovf(n)%num_prd(m)
-          write(ovf_diag_unit,*) ovf(n)%num_prd(m)
           if( ovf(n)%num_prd(m)<=1.or.ovf(n)%num_prd(m)>max_prd) then
              ovf_error = 6
              num_req   = ovf(n)%num_prd(m)
@@ -1009,12 +884,7 @@
                             ovf(n)%loc_prd(m,mp)%j, &
                             ovf(n)%loc_prd(m,mp)%k, &
                             ovf(n)%loc_prd(m,mp)%orient
-            write(ovf_diag_unit,*) ovf(n)%loc_prd(m,mp)%i, &
-                        ovf(n)%loc_prd(m,mp)%j, &
-                        ovf(n)%loc_prd(m,mp)%k, &
-                        ovf(n)%loc_prd(m,mp)%orient
             call shr_sys_flush(stdout)
-            call shr_sys_flush(ovf_diag_unit)
 ! check order of ij, constancy of k and range of orient
             if( mp==1 ) then
                imin = ovf(n)%loc_prd(m,mp)%i
@@ -1065,7 +935,6 @@
             endif
           end do
           call shr_sys_flush(stdout)
-          call shr_sys_flush(ovf_diag_unit)
         end do
 
 ! find src adj limits
@@ -1109,13 +978,6 @@
           ovf(n)%adj_src%jmax, &
           ovf(n)%adj_src%kmin, &
           ovf(n)%adj_src%kmax 
-        write(ovf_diag_unit,13)         &
-          ovf(n)%adj_src%imin, &
-          ovf(n)%adj_src%imax, &
-          ovf(n)%adj_src%jmin, &
-          ovf(n)%adj_src%jmax, &
-          ovf(n)%adj_src%kmin, &
-          ovf(n)%adj_src%kmax 
 13        format(' Computed source adjacent ijk min/max =',6(i4,2x))
 
 ! find ent adj limits
@@ -1153,13 +1015,6 @@
         end do
 ! print ent adj limits
         write(stdout,14)       &
-          ovf(n)%adj_ent%imin, &
-          ovf(n)%adj_ent%imax, &
-          ovf(n)%adj_ent%jmin, &
-          ovf(n)%adj_ent%jmax, &
-          ovf(n)%adj_ent%kmin, &
-          ovf(n)%adj_ent%kmax 
-        write(ovf_diag_unit,14)         &
           ovf(n)%adj_ent%imin, &
           ovf(n)%adj_ent%imax, &
           ovf(n)%adj_ent%jmin, &
@@ -1212,26 +1067,17 @@
             ovf(n)%adj_prd(m)%jmax, &
             ovf(n)%adj_prd(m)%kmin, &
             ovf(n)%adj_prd(m)%kmax 
-          write(ovf_diag_unit,15)     m,       &
-            ovf(n)%adj_prd(m)%imin, &
-            ovf(n)%adj_prd(m)%imax, &
-            ovf(n)%adj_prd(m)%jmin, &
-            ovf(n)%adj_prd(m)%jmax, &
-            ovf(n)%adj_prd(m)%kmin, &
-            ovf(n)%adj_prd(m)%kmax 
 15        format(' Computed product adjacent, set=',i3, &
                  ' ijk min/max =',6(i4,2x))
         end do
       end do  ! ovf loop
       call shr_sys_flush(stdout)
-      call shr_sys_flush(ovf_diag_unit)
 
 !-----------------------------------------------------------------------
 !  end master task section
 !-----------------------------------------------------------------------
 
       close (nu)
-      close (ovf_diag_unit)
    endif  ! master_task
    call release_unit(nu)
 
@@ -1797,6 +1643,92 @@
 !EOC
 
  end subroutine init_overflows3
+
+!***********************************************************************
+!EOP
+! !IROUTINE: init_overflows4
+! !INTERFACE:
+
+ subroutine init_overflows4
+
+! !DESCRIPTION:
+!  This routine creates the overflow output diagnostics filename, now
+!  that the initial model run time is known.
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+   character (char_len) ::  &
+      string
+
+   save
+
+!-----------------------------------------------------------------------
+!  if overflows off, exit
+!-----------------------------------------------------------------------
+
+   if (.not. overflows_on ) return
+
+!-----------------------------------------------------------------------
+!  set up output file and unit for overflow diagnostics
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  define ccsm overflow diagnostics output filename  
+!-----------------------------------------------------------------------
+   if (lccsm) then
+     call ccsm_date_stamp (ccsm_diag_date, 'ymds')
+     string = overflows_diag_outfile
+     overflows_diag_outfile = trim(string)/&
+                                           &/'.'/&
+                                           &/trim(ccsm_diag_date)
+   else
+!-----------------------------------------------------------------------
+!  append runid, initial date to output file names
+!  concatenation operator must be split across lines to avoid problems
+!    with preprocessors
+!-----------------------------------------------------------------------
+     if (date_separator == ' ') then
+        cdate(1:4) = cyear
+        cdate(5:6) = cmonth
+        cdate(7:8) = cday
+        cdate(9:10)= '  '
+     else
+        cdate(1:4) = cyear
+        cdate(5:5) = date_separator
+        cdate(6:7) = cmonth
+        cdate(8:8) = date_separator
+        cdate(9:10) = cday
+     endif
+     outfile_tmp = char_blank
+     outfile_tmp = trim(overflows_diag_outfile)/&
+                                          &/'.'/&
+                                          &/trim(runid)/&
+                                          &/'.'/&
+                                          &/trim(cdate)
+     overflows_diag_outfile = trim(outfile_tmp)
+   endif ! lccsm
+
+
+   call get_unit(ovf_diag_unit)
+   if (my_task == master_task) then
+       open(ovf_diag_unit, file=overflows_diag_outfile, status='unknown')
+       write(ovf_diag_unit,*)' '
+       close(ovf_diag_unit)
+   endif
+
+   write(stdout,'(a,a)') &
+      'Overflow diagnostics written to file: ', trim(overflows_diag_outfile)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine init_overflows4
 
 !***********************************************************************
 !EOP
@@ -4397,17 +4329,6 @@
 
    if (print_overflows_diag .and. my_task == master_task) then
       close(ovf_diag_unit)
-      if (lccsm .and. registry_match('ldiag_system_call')) then ! conform to CCSM output file-naming conventions
-         call ccsm_date_stamp (ccsm_diag_date, 'ymds')
-
-         overflows_diag_outfile_old = trim(overflows_diag_outfile)
-         overflows_diag_outfile = trim(overflows_diag_outfile_root)//'.'//ccsm_diag_date
-
-         string = 'mv '//trim(overflows_diag_outfile_old)//' '//trim(overflows_diag_outfile)
-#ifdef CCSMCOUPLED
-         call shr_sys_system (trim(string), ier)
-#endif
-      endif ! lccsm
    endif ! print_overflows_diag
 
 !----------------------------------------------------------------------

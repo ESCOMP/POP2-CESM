@@ -9,15 +9,13 @@
 #==========================================================================
 
 #--------------------------------------------------------------------------
-#  First, test for supported OCN_GRID resolution and control system calls
+#  First, test for supported OCN_GRID resolution 
 #--------------------------------------------------------------------------
 
 if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 || ${OCN_GRID_INTERNAL} == gx1v5 || ${OCN_GRID_INTERNAL} == gx1v5a || ${OCN_GRID_INTERNAL} == gx1v5b ) then   
 # supported dipole resolutions
-  set lsystem_call = .true.
 else if ( ${OCN_GRID_INTERNAL} == tx0.1v2 || ${OCN_GRID_INTERNAL} == tx1v1 ) then   
 # tripole resolutions
-  set lsystem_call = .false.
 else
    echo " "
    echo "   =============================================================="
@@ -236,7 +234,6 @@ else
    set diag_freq_opt = 'nmonth'
 endif
 
-set ldiag_system_call    = $lsystem_call
 
 if( ${OCN_GRID_INTERNAL} == tx0.1v2) then
    set ldiag_velocity       = .false.
@@ -244,15 +241,9 @@ else
    set ldiag_velocity       = .true.
 endif
 
-if ( $ldiag_system_call == .true.) then
-   set diag_transport_outfile = ${output_d}t
-   set diag_outfile           = ${output_d}d
-   set diag_velocity_outfile  = ${output_d}v
-else
-   set diag_transport_outfile = ${output_d}t.$LID
-   set diag_outfile           = ${output_d}d.$LID
-   set diag_velocity_outfile  = ${output_d}v.$LID
-endif
+set diag_transport_outfile = ${output_d}t
+set diag_outfile           = ${output_d}d
+set diag_velocity_outfile  = ${output_d}v
 
 cat >> $POP2_NMLFILE << EOF
 &diagnostics_nml
@@ -269,7 +260,6 @@ cat >> $POP2_NMLFILE << EOF
    diag_all_levels        = .false.
    diag_velocity_outfile  = '$diag_velocity_outfile'
    ldiag_velocity         = $ldiag_velocity
-   ldiag_system_call      = $ldiag_system_call
 /
 
 EOF
@@ -832,11 +822,7 @@ else if ( ${OCN_GRID_INTERNAL} == tx0.1v2 ) then
  set vconst_7  =  45.0
 endif
 
-if( $lsystem_call == .true.) then
-  set viscosity_outfile = ''${output_h}v''
-else 
-  set viscosity_outfile = 'unknown_var_viscosity_outfile'
-endif
+set viscosity_outfile = ''${output_h}v''
 
 cat >> $POP2_NMLFILE << EOF
 &hmix_aniso_nml
