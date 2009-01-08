@@ -1164,9 +1164,12 @@ contains
          end do
       end do
 
-      WORK = max(c0,TRACER_MODULE(:,:,1,spChl_ind,oldtime,iblock)) + &
-             max(c0,TRACER_MODULE(:,:,1,diatChl_ind,oldtime,iblock)) + &
-             max(c0,TRACER_MODULE(:,:,1,diazChl_ind,oldtime,iblock))
+      WORK = max(c0,p5*(TRACER_MODULE(:,:,1,spChl_ind,oldtime,iblock) + &
+                        TRACER_MODULE(:,:,1,spChl_ind,curtime,iblock))) + &
+             max(c0,p5*(TRACER_MODULE(:,:,1,diatChl_ind,oldtime,iblock) + &
+                        TRACER_MODULE(:,:,1,diatChl_ind,curtime,iblock))) + &
+             max(c0,p5*(TRACER_MODULE(:,:,1,diazChl_ind,oldtime,iblock) + &
+                        TRACER_MODULE(:,:,1,diazChl_ind,curtime,iblock)))
       call named_field_set(totChl_surf_nf_ind, iblock, WORK)
    enddo
    !$OMP END PARALLEL DO

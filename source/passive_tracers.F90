@@ -590,8 +590,15 @@
 !  local variables
 !-----------------------------------------------------------------------
 
+   logical (kind=log_kind) :: first_call = .true.
    real (r8)          :: ref_val
    integer (int_kind) :: iblock, n
+
+!-----------------------------------------------------------------------
+
+   if (first_call) then
+      call register_string('set_sflux_passive_tracers')
+   end if
 
 !-----------------------------------------------------------------------
 !  compute filtered SST and SSS, if needed
@@ -654,6 +661,10 @@
       end do
    end do
    !$OMP END PARALLEL DO
+
+!-----------------------------------------------------------------------
+
+   first_call = .false.
 
 !-----------------------------------------------------------------------
 !EOC

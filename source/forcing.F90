@@ -258,8 +258,6 @@
       call set_ws(SMF)
    endif
 
-   call set_chl   
-
    !*** NOTE: with bulk NCEP and partially-coupled forcing 
    !***       set_shf must be called before set_sfwf
 
@@ -335,6 +333,7 @@
    if (nt > 2)  &
       call set_sflux_passive_tracers(U10_SQR,IFRAC,ATM_PRESS,STF)
 
+   call set_chl   
 
 #ifdef CCSMCOUPLED
    if (ANY(SHF_QSW < qsw_eps)) then

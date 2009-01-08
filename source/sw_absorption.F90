@@ -462,8 +462,24 @@
 
    use named_field_mod, only: named_field_get
 
+   logical (kind=log_kind) :: first_call = .true.
+
    integer (int_kind) ::     &
       iblock
+
+!-----------------------------------------------------------------------
+!
+!  check that set_sflux_passive_tracers has been called
+!
+!-----------------------------------------------------------------------
+
+   if (first_call) then
+      if (.not. registry_match('set_sflux_passive_tracers')) then
+         call exit_POP(sigAbort, 'set_sflux_passive_tracers not ' /&
+            &/ 'called before set_chl. This is necessary for ' /&
+            &/ 'exact restart when Chl is prognostic.')
+      end if
+   endif
  
 !-----------------------------------------------------------------------
 !
@@ -493,6 +509,8 @@
 
       endif
    endif
+
+   first_call = .false.
 
    end subroutine set_chl
 

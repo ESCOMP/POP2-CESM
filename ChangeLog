@@ -1,5 +1,28 @@
 ===============================================================================
 
+===============================================================================
+Originator: klindsay
+Date:  Wed Jan 7 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090107b
+Summary of Changes:  
+Add time-filtering of surface Chl to initialization so that it is
+consistent with the time-filtering in the main time loop. Move set_chl
+call in subroutine set_surface_forcing of forcing.F90 to eliminate
+time-lag in prognostic Chl.
+
+Testing:  
+The mods ensure exact restart for compset CECO at resolutions T62_g35 &
+T62_g15. They do not change results (bit-for-bit) for compset B at
+resolution f19_g15 or for compset C at resolutions T62_g35 & T62_g15.
+The bit-for-bit verification is for a 5 day startup run with
+CONTINUE_RUN==FALSE as well as a 5 day continuation.
+
+M           12674   source/sw_absorption.F90
+M           12674   source/forcing.F90
+M           12674   source/passive_tracers.F90
+M           12892   source/ecosys_mod.F90
+M           13817   ChangeLog
 
 ===============================================================================
 Originator: njn01
