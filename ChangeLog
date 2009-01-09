@@ -1,6 +1,36 @@
 ===============================================================================
 
 ===============================================================================
+Originator: njn01
+Date:  Fri Jan 9 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090109
+Summary of Changes:  
+   1) New overflows.F90 module and gx1v5b_overflow input file from
+      Bruce B and Gokhan. The overflows.F90 module has been used
+      extensively in recent runs; njn01 modified it to be consistent
+      with the changes made in ccsm_pop_2_1_20090107a
+   2) tx0.1v2_tavg_contents file from a38hr02_hrpop43 (JD mods)
+   3) pop2_in_build.csh vmix_kpp_nml tx0.1v2 update
+   4) Comment out call MPI_BARRIER in POP_CommMod.F90 (JD mod)
+   5) Only check COMPUTE_TLT in hmix_gm.F90 if not _HIRES
+   6) Add new tx0.1v2 blocks to pop_decomp.xml file (from a38hr02_hrpop43 tag)
+
+Testing:  
+   1) Bruce B confirmed on 9 Jan 2009 that the resulting overflows *.do* files are ok
+   2) Compile and run a one-month gx1v5 C case.
+   3) No testing of tx0.1v2 mods, beyond inspection
+
+M           13817   source/overflows.F90
+M           13010   source/hmix_gm.F90
+M           12820   bld/pop_decomp.xml
+M           12674   mpi/POP_CommMod.F90
+M           13010   input_templates/gx1v5b_overflow
+M           12674   input_templates/tx0.1v2_tavg_contents
+M           13817   input_templates/pop2_in_build.csh
+M           13819   ChangeLog
+
+===============================================================================
 Originator: klindsay
 Date:  Wed Jan 7 2009
 Model: pop2

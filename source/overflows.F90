@@ -488,11 +488,6 @@
       write(stdout,'(a41)') 'reading overflows_infile: contents echoed'
       call shr_sys_flush(stdout)
 
-      write(stdout,'(a41)') 'reading overflows_infile: contents echoed'
-      call shr_sys_flush(stdout)
-      write(stdout,'(a43,1x,a)') 'begin writing ovf info to',  overflows_diag_outfile
-      call shr_sys_flush(stdout)
-
       do m=1,40
          read(nu,'(a88)') line
          write(stdout,'(a88)') line
@@ -530,7 +525,6 @@
         write(stdout,*) ovf(n)%ovf_params%bottom_drag
         write(stdout,*) ovf(n)%ovf_params%transit_time
         call shr_sys_flush(stdout)
-
 
 ! days to seconds for transit time
         ovf(n)%ovf_params%transit_time = &
@@ -597,7 +591,6 @@
                         ovf(n)%reg_ent%kmin, &
                         ovf(n)%reg_ent%kmax
         call shr_sys_flush(stdout)
-
 
 ! src points
         read(nu,*) ovf(n)%num_src
@@ -1679,7 +1672,7 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-!  define ccsm overflow diagnostics output filename  
+!  define ccsm overflow diagnostics output filename
 !-----------------------------------------------------------------------
    if (lccsm) then
      call ccsm_date_stamp (ccsm_diag_date, 'ymds')
@@ -4119,7 +4112,8 @@
    integer   (int_kind)  :: &
      n          ,& ! ovf loop index
      nn         ,& ! ovf tracer index
-     m             ! product level
+     m          ,& ! product level
+     k_p           ! product k level
 
    real (r8), parameter ::  &
      g     = 981.          ,& ! acceleration due to gravity (cm/s2)
@@ -4132,6 +4126,7 @@
      fs            ! coriolis parameter (/s)
 !
    real (r8) ::  &
+     hu         ,& ! upstream source thickness (cm)
      hs         ,& ! source water vertical thickness (cm)
      Ws         ,& ! source water width (cm)
      dsill      ,& ! depth of sill that overflows (cm)
@@ -4208,14 +4203,10 @@
 !  append overflows diagnostics to end of overflows diagnostics output file
 !
 !-----------------------------------------------------------------------
-  if (eod) then
-    print_overflows_diag = .true.
-  else
-    print_overflows_diag = .false.
-  endif
-
-  if (my_task == master_task .and. print_overflows_diag) then
+  print_overflows_diag = .false.
+  if (my_task == master_task .and. eod) then
     open(ovf_diag_unit, file=overflows_diag_outfile, status='old', position='append')
+    print_overflows_diag = .true.
   endif
 
 
@@ -4224,7 +4215,8 @@
    ! set parameters
       lat     = ovf(n)%ovf_params%lat
       fs      = c2*omg_e*sin(lat*pi/180.0_r8)
-      hs      = ovf(n)%ovf_params%source_thick
+      hu      = ovf(n)%ovf_params%source_thick
+      hs      = hu*(c2/c3)
       dsill   = ovf(n)%ovf_params%depth_sill
       xse     = ovf(n)%ovf_params%distnc_str_ssb
       alpha   = ovf(n)%ovf_params%bottom_slope
@@ -4247,7 +4239,7 @@
          call ovf_state(T_e,S_e,de,rho_e)
    ! compute inflow/source reduced gravity and source transport
       gp_s    = g*(rho_s-rho_i)/rho_0
-      Ms      = gp_s*hs*hs/(c2*fs)
+      Ms      = gp_s*hu*hu/(c2*fs)
       As      = hs*Ws
       Us      = Ms/As
    ! compute overflow spreading and entrainment transport
@@ -4255,21 +4247,25 @@
       Ugeo    = gp_e*alpha/fs
       Uavg    = p5*(Us+Ugeo)
       a       = fs*Ws/c2
-      b       = fs*Ws*dsill/c4 + c2*cd*Uavg*xse - Ms*fs/(c2*Ugeo)
-      c       = -fs*Ms*dsill/(c4*Ugeo)
+      b       = fs*Ws*hs/c2 + c2*cd*Uavg*xse - Ms*fs/(c2*Ugeo)
+      c       = -fs*Ms*hs/(c2*Ugeo)
       hgeo    = (-b + sqrt(b*b-c4*a*c))/(c2*a)
-      Kgeo    = cd*Uavg*Uavg/(fs*Us*(dsill/c2))
-      Wgeo    = Ws + c2*Kgeo*xse
       Fgeo    = Ugeo/sqrt(gp_e*hgeo)
       phi_eq  = c1-Fgeo**(-c2/c3)
       Me      = Ms*phi_eq/(c1-phi_eq)
-   ! zero transports if phi < 0 or gp_e < 0
-      if( phi_eq > c0 .and. gp_e > c0 ) then      
-        Mp  = Ms + Me
-      else
-        Ms  = c0
-        Me  = c0
-        Mp  = c0
+   ! zero transports if gp_e < 0
+      if( gp_e > c0 ) then
+      ! zero entrainment if phi_eq < c0
+        if( phi_eq > c0 ) then      
+          Mp  = Ms + Me
+        else
+          Me  = c0
+          Mp  = Ms
+        endif
+      else 
+          Ms  = c0
+          Me  = c0
+          Mp  = c0
       endif
    ! time shift transports and set output in ovf array
       ovf(n)%Ms_nm1 = ovf(n)%Ms_n
@@ -4306,19 +4302,18 @@
       end do
    ! product set for insertion
       m = ovf(n)%prd_set
- 
-       if (print_overflows_diag .and. my_task == master_task) then
-         if( my_task == master_task ) then
-           write(ovf_diag_unit,1234) tday, n,phi_eq,Fgeo,1.e-12*Ms_eq,1.e-12*Me_eq,1.e-12*Mp_eq, &
-                N_ovf,phi,1.e-12*ovf(n)%Ms,1.e-12*ovf(n)%Me,1.e-12*ovf(n)%Mp,m
-           1234 format(' ovf_transports: ',1p,e22.15,0p,1x,  &
-                       i2,1x,5(f7.4,1x),1x,f9.2,2x,4(f7.4,1x),2x,i3)
-           write(ovf_diag_unit,1235) tday, n,T_i,S_i*c1000,T_s,S_s*c1000,T_e,S_e*c1000,T_p,S_p*c1000
-           1235 format(' ovf_TS: ',1p,e22.15,0p,1x,i2,2x,8(f7.4,1x))
-           call shr_sys_flush(ovf_diag_unit)
-         endif
+       if (print_overflows_diag .and. my_task == master_task) then         
+         k_p = (ovf(n)%adj_prd(m)%kmin+ovf(n)%adj_prd(m)%kmax)/2
+         write(ovf_diag_unit,1234) tday, n,phi_eq,1.e-12*Ms_eq,1.e-12*Me_eq,1.e-12*Mp_eq, &
+              phi,1.e-12*ovf(n)%Ms,1.e-12*ovf(n)%Me,1.e-12*ovf(n)%Mp,m,zt(k_p)/100.
+         1234 format(' ovf_tr: ',f7.1,1x,  &
+                     i2,1x,4(f7.4,1x),4(f7.4,1x),1x,i2,1x,f8.1)
+         write(ovf_diag_unit,1235) tday, n,T_i,S_i*c1000,T_s,S_s*c1000,T_e,S_e*c1000,T_p,S_p*c1000
+         1235 format(' ovf_TS: ',f7.1,1x,i2,1x,8(f7.4,1x))
+         
+         call shr_sys_flush(ovf_diag_unit)
        endif ! print_overflows_diag
- 
+
    end do   ! n loop over all overflows
 
 !-----------------------------------------------------------------------

@@ -34,20 +34,20 @@
                         +--->            |        |                                   34
                             x            |________|                                   35
                                              4                                        36
-  Bruce P. Briegleb  21 November 2008    gx1v5a for DMS+FBC                           37
-  zero rhsbcmom, all prd active = gx1v5a_overflow_last_hrpop58 + pop-ups + 6 kmt mods 38
-  + parameter changes + filling in DSM 4 src region points                            39
+  Bruce P. Briegleb  9 January 2009      gx1v5b for DMS+FBC                           37
+  3 kmt pop-ups given below for each overflow                                         38
+                                                                                      39
 --------------------------------------------------------------------------------------40
  2                              ! Total number of overflows
  1  'Denmark Strait'            ! number and name of overflow
       65.0                      ! latitude of overflow (degrees)
       5.0E06                    ! width of strait at surface (cm)
       500.0E02                  ! depth of sill (cm)
-      350.0E02                  ! source water thickness (cm)
+      450.0E02                  ! source water thickness (cm)
       100.0E05                  ! distance from strait to shelf-slope break (cm)
-      2.8E-2                    ! bottom slope just over shelf-slope break (unitless)
-      5.0E-3                    ! bottom drag coefficient
-      5.5                       ! src to prd transit time (days)
+      2.5E-2                    ! bottom slope just over shelf-slope break (unitless)
+      3.0E-3                    ! bottom drag coefficient
+      0.0                       ! src to prd transit time (days)
    3                            ! 3=number of kmt changes
      19 372 33 32               ! pop up dms src
      19 371 33 32               ! pop up dms src
@@ -114,11 +114,11 @@
       62.00                     ! latitude of overflow (degrees)
       1.5E06                    ! width of strait at surface (cm)
       800.0E02                  ! depth of sill (cm)
-      275.0E02                  ! source water thickness (cm)
+      300.0E02                  ! source water thickness (cm)
       25.0E06                   ! distance from strait to shelf-slope break (cm)
-      2.0E-2                    ! bottom slope just over shelf-slope break (unitless)
-      5.0E-3                    ! bottom drag coefficient
-      4.0                       ! src to prd transit time (days)
+      1.5E-2                    ! bottom slope just over shelf-slope break (unitless)
+      3.0E-3                    ! bottom drag coefficient
+      0.0                       ! src to prd transit time (days)
    3                            ! 3=number of kmt changes
      38 349 38 37               ! pop up fbc src
      38 350 38 37               ! pop up fbc src

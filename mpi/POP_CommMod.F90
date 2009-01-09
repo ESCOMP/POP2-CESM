@@ -308,7 +308,7 @@
 !-----------------------------------------------------------------------
 
 #ifdef CCSMCOUPLED
-   call MPI_BARRIER(POP_Communicator,ierr)
+!  call MPI_BARRIER(POP_Communicator,ierr)
    ierr = 13
    call MPI_ABORT(0,errorCode, ierr)
 #ifndef SEQ_MCT

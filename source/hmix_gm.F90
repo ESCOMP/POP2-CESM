@@ -3250,10 +3250,12 @@
       enddo
 
 #ifdef CCSMCOUPLED
+#ifndef _HIRES
       if ( any(COMPUTE_TLT) ) then
         call shr_sys_abort ('Incorrect DIABATIC_DEPTH value in TLT'  &
                         //  ' computation')
       endif
+#endif
 #endif
 
 !-----------------------------------------------------------------------
@@ -3357,9 +3359,11 @@
       enddo
 
 #ifdef CCSMCOUPLED
+#ifndef _HIRES
       if ( any(COMPUTE_TLT) ) then
         call shr_sys_abort ('Incorrect TLT computations')
       endif
+#endif
 #endif
 
 !-----------------------------------------------------------------------
@@ -3388,9 +3392,11 @@
         COMPUTE_TLT = .true.
 
 #ifdef CCSMCOUPLED
+#ifndef _HIRES
       if ( any(COMPUTE_TLT) ) then
         call shr_sys_abort ('Incorrect TLT%INTERIOR_DEPTH computation')
       endif
+#endif
 #endif
 
 !-----------------------------------------------------------------------

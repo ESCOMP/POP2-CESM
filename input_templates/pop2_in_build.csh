@@ -445,6 +445,7 @@ EOF
 set lhoriz_varying_bckgrnd = .true.
 set llangmuir = .false.
 set linertial = .false.
+set bckgrnd_vdc_dpth = 1000.0e02
 
 if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 ) then
  if ($lhoriz_varying_bckgrnd == .true.) then
@@ -466,6 +467,16 @@ else if ( ${OCN_GRID_INTERNAL} =~ gx1v5* ) then
  set bckgrnd_vdc_eq     = 0.01
  set bckgrnd_vdc_psim   = 0.13
  set bckgrnd_vdc_ban    = 1.0
+else if ( ${OCN_GRID_INTERNAL} =~ tx0.1* ) then
+ set lhoriz_varying_bckgrnd = .false.
+ set llangmuir = .false.
+ set linertial = .false.
+ set bckgrnd_vdc1 = 0.55
+ set bckgrnd_vdc2 = 0.303615
+ set bckgrnd_vdc_dpth = 2500.0e02
+ set bckgrnd_vdc_eq     = 0.0
+ set bckgrnd_vdc_psim   = 0.0
+ set bckgrnd_vdc_ban    = 0.0
 else
  set bckgrnd_vdc1       = 0.524
  set bckgrnd_vdc2       = 0.313
@@ -481,7 +492,7 @@ cat >> $POP2_NMLFILE << EOF
    bckgrnd_vdc_eq         = $bckgrnd_vdc_eq
    bckgrnd_vdc_psim       = $bckgrnd_vdc_psim
    bckgrnd_vdc_ban        = $bckgrnd_vdc_ban
-   bckgrnd_vdc_dpth       = 1000.0e02 
+   bckgrnd_vdc_dpth       = $bckgrnd_vdc_dpth
    bckgrnd_vdc_linv       = 4.5e-05
    Prandtl                = 10.0
    rich_mix               = 50.0
