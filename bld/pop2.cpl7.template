@@ -1,6 +1,5 @@
 #! /bin/csh -f
 
-
 #==============================================================================
 # Purpose: Create scripts that will
 #  (a) build an executable model (pop2.buildexe.csh)
@@ -11,7 +10,7 @@
 set    srcdir       = $CODEROOT/ocn/pop2
 set    my_path      = $CASEROOT/SourceMods/src.pop2
 
-setenv OCN_PRESTAGE    TRUE
+setenv OCN_PRESTAGE    FALSE
 setenv INPUT_TEMPLATES $srcdir/input_templates
 setenv POP2BLDSCRIPT   $CASEBUILD/pop2.buildnml.csh
 setenv POP2_DOCDIR     $CASEBUILD/pop2doc
@@ -467,7 +466,6 @@ else
 endif
 
 
-################### branch/hybrid  needs more work ##################
 if ($RUN_TYPE == branch || $RUN_TYPE == hybrid) then
 cat >> $POP2BLDSCRIPT << EOF2
 
@@ -481,16 +479,13 @@ cat >> $POP2BLDSCRIPT << EOF2
     else if (\$CONTINUE_RUN == 'FALSE') then
       #-------------------------------------------------------------------
       # this script is customized for a branch or hybrid start, so it
-      # must identify and prestage pop2 "restart" files now
+      # must identify  pop2 reference-case files now
+      # note: presently, the ccsm4 scripts do not support prestaging branch/hybrid files
       #-------------------------------------------------------------------
       setenv INIT_TS_FILE ${RUN_REFCASE}.pop.r.$RUN_REFDATE-00000
-      setenv TAVG_TS_FILE ${RUN_REFCASE}.pop.rh.$RUN_REFDATE-00000.nc
+      setenv OVF_FILE     ${RUN_REFCASE}.pop.ro.$RUN_REFDATE-00000
+      setenv TAVG_FILE    ${RUN_REFCASE}.pop.rh.$RUN_REFDATE-00000.nc
       cd \$exedir
-      #\$UTILROOT/Tools/ccsm_getfile  $RUN_REFCASE/ocn/rest/\$INIT_TS_FILE     || exit 99
-      #\$UTILROOT/Tools/ccsm_getfile  $RUN_REFCASE/ocn/rest/\$INIT_TS_FILE.hdr || exit 99
-      #\$UTILROOT/Tools/ccsm_getfile  $RUN_REFCASE/ocn/rest/\$TAVG_TS_FILE     # optional
-      #\$UTILROOT/Tools/ccsm_getfile  $RUN_REFCASE/ocn/rest/\$TAVG_TS_FILE.hdr # optional
-
       #-----------------------------------------------
       # generate the appropriate restart pointer files
       #-----------------------------------------------
@@ -498,9 +493,14 @@ cat >! \$exedir/rpointer.ocn.restart << EOF
 \$exedir/\$INIT_TS_FILE
 EOF
 
-cat >! \$exedir/rpointer.ocn.tavg << EOF
-\$exedir/\$TAVG_TS_FILE
+cat >! \$exedir/rpointer.ocn.ovf << EOF
+\$exedir/\$OVF_FILE
 EOF
+
+cat >! \$exedir/rpointer.ocn.tavg << EOF
+\$exedir/\$TAVG_FILE
+EOF
+
     endif
 
 EOF2
@@ -675,7 +675,6 @@ echo ------------------------------------------------------------------------
     #---------------------------------------
     # 2.3.2 if not, use the standard version
     #---------------------------------------
-    chmod u+x \$srcdir/input_templates/pop2_in_build.csh
     \$srcdir/input_templates/pop2_in_build.csh
   endif
 

@@ -2,6 +2,25 @@
 
 ===============================================================================
 Originator: njn01
+Date:  Wed Jan 21 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090121
+Summary of Changes:  Correct bug #890 (branch start bug)
+
+Testing:  
+     njn01: Set up control run and branch case using ccsm4_0_beta08 tag.
+            Modify $case/Tools/Template/pop2.cpl7.template to correct the bug.
+            Build branch case (using new pop2.cpl7.template) and run. Confirm
+            that rpointer files are generated correctly and that the branch
+            case runs for five days.
+
+M           13801   bld/pop2.cpl7.template
+M           13884   ChangeLog
+Status against revision:  14023
+
+
+===============================================================================
+Originator: njn01
 Date:  Fri Jan 9 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090109
