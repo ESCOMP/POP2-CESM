@@ -32,6 +32,10 @@
      <nlons>320</nlons>
      <nlats>384</nlats>
   </size>
+  <size res="gx1v6">
+     <nlons>320</nlons>
+     <nlats>384</nlats>
+  </size>
   <size res="tx0.1v2">
      <nlons>3600</nlons>
      <nlats>2400</nlats>
@@ -181,183 +185,190 @@
   </decomp>
 
 <!-- -------------------------------------------------------------------------------- -->
-  <!-- gx1v[345] resolution -->
-  <decomp nproc="1" res="gx1v[345]" model="pop">
+  <!-- gx1v[3456] resolution -->
+  <decomp nproc="1" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >320</bsize_x>
     <bsize_y   >384</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="2" res="gx1v[345]" model="pop">
+  <decomp nproc="2" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >320</bsize_x>
     <bsize_y   >192</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="4" res="gx1v[345]" model="pop">
+  <decomp nproc="4" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >160</bsize_x>
     <bsize_y   >192</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="8" res="gx1v[345]" model="pop">
+  <decomp nproc="8" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >80</bsize_x>
     <bsize_y   >192</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="10" res="gx1v[345]" model="pop">
+  <decomp nproc="10" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >64</bsize_x>
     <bsize_y   >192</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="12" res="gx1v[345]" model="pop">
+  <decomp nproc="12" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >80</bsize_x>
     <bsize_y   >128</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="16" res="gx1v[345]" model="pop">
+  <decomp nproc="16" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >80</bsize_x>
     <bsize_y   >96</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="16" res="gx1v[345]" model="pop">
+  <decomp nproc="16" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >40</bsize_x>
     <bsize_y   >192</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="20" res="gx1v[345]" model="pop">
+  <decomp nproc="20" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >64</bsize_x>
     <bsize_y   >96</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="24" res="gx1v[345]" model="pop">
+  <decomp nproc="24" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >80</bsize_x>
     <bsize_y   >64</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="32" res="gx1v[345]" model="pop">
+  <decomp nproc="32" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >80</bsize_x>
     <bsize_y   >48</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="40" res="gx1v[345]" model="pop">
+  <decomp nproc="40" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >64</bsize_x>
     <bsize_y   >48</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="48" res="gx1v[345]" model="pop">
+  <decomp nproc="48" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >40</bsize_x>
     <bsize_y   >64</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="64" res="gx1v[345]" model="pop">
+  <decomp nproc="64" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >40</bsize_x>
     <bsize_y   >48</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="64" res="gx1v[345]" model="pop" platform ="UNICOS|ESOS">
+  <decomp nproc="64" res="gx1v[3456]" model="pop" platform ="UNICOS|ESOS">
     <maxblocks >1</maxblocks>
     <bsize_x   >10</bsize_x>
     <bsize_y   >192</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="80" res="gx1v[345]" model="pop">
+  <decomp nproc="80" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >32</bsize_x>
     <bsize_y   >48</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="96" res="gx1v[345]" model="pop">
+  <decomp nproc="96" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >40</bsize_x>
     <bsize_y   >32</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="128" res="gx1v[345]" model="pop">
+  <decomp nproc="128" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >40</bsize_x>
     <bsize_y   >24</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="128" res="gx1v[345]" model="pop" platform ="UNICOS|ESOS">
+  <decomp nproc="128" res="gx1v[3456]" model="pop" platform ="UNICOS|ESOS">
     <maxblocks >1</maxblocks>
     <bsize_x   >5</bsize_x>
     <bsize_y   >192</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="160" res="gx1v[345]" model="pop">
+  <decomp nproc="160" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >32</bsize_x>
     <bsize_y   >24</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="192" res="gx1v[345]" model="pop">
+  <decomp nproc="180" res="gx1v[3456]" model="pop">
+    <maxblocks >1</maxblocks>
+    <bsize_x   >32</bsize_x>
+    <bsize_y   >22</bsize_y>
+    <decomptype>cartesian</decomptype>
+  </decomp>
+
+  <decomp nproc="192" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >20</bsize_x>
     <bsize_y   >32</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="240" res="gx1v[345]" model="pop">
+  <decomp nproc="240" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >32</bsize_x>
     <bsize_y   >16</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="256" res="gx1v[345]" model="pop">
+  <decomp nproc="256" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >20</bsize_x>
     <bsize_y   >24</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="384" res="gx1v[345]" model="pop">
+  <decomp nproc="384" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >20</bsize_x>
     <bsize_y   >16</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="480" res="gx1v[345]" model="pop">
+  <decomp nproc="480" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >16</bsize_x>
     <bsize_y   >16</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="768" res="gx1v[345]" model="pop">
+  <decomp nproc="768" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >10</bsize_x>
     <bsize_y   >16</bsize_y>

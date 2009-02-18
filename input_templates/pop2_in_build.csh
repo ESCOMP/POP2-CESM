@@ -12,7 +12,7 @@
 #  First, test for supported OCN_GRID resolution 
 #--------------------------------------------------------------------------
 
-if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 || ${OCN_GRID_INTERNAL} == gx1v5 || ${OCN_GRID_INTERNAL} == gx1v5a || ${OCN_GRID_INTERNAL} == gx1v5b ) then   
+if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 || ${OCN_GRID_INTERNAL} == gx1v5 || ${OCN_GRID_INTERNAL} == gx1v5a || ${OCN_GRID_INTERNAL} == gx1v5b || ${OCN_GRID_INTERNAL} == gx1v6 ) then   
 # supported dipole resolutions
 else if ( ${OCN_GRID_INTERNAL} == tx0.1v2 || ${OCN_GRID_INTERNAL} == tx1v1 ) then   
 # tripole resolutions
@@ -21,7 +21,8 @@ else
    echo "   =============================================================="
    echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
    echo "     ${OCN_GRID_INTERNAL} is not a supported grid.               "
-   echo "     Supported grids are: gx3v5, gx1v5, gx1v5a, gx1v5b and tx0.1v2      "
+   echo "     Supported grids are: gx3v5, gx1v5, gx1v5a, gx1v5b,          "
+   echo "                          gx1v6 and tx0.1v2 "
   #echo "     Experimental grid: gx3v6                                    "
   #echo "     Testing grids:   tx1v1                                      "
    echo "   =============================================================="
@@ -109,7 +110,7 @@ EOF
 
 if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
   setenv DT_COUNT 12
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v5* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
   setenv DT_COUNT 23
 else if ( ${OCN_GRID_INTERNAL} == tx1v1 ) then
   setenv DT_COUNT 23
@@ -457,7 +458,7 @@ if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 ) then
  set bckgrnd_vdc_eq     = 0.16
  set bckgrnd_vdc_psim   = 0.13
  set bckgrnd_vdc_ban    = 1.0
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v5* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
  if ($lhoriz_varying_bckgrnd == .true.) then
    set bckgrnd_vdc1     = 0.16
  else
@@ -536,19 +537,22 @@ EOF
 if ( ${OCN_GRID_INTERNAL} =~ gx* ) then
   set hmix_momentum_choice = 'anis'
   set hmix_tracer_choice   = 'gent'
+  set lsubmesoscale_mixing = .true.
 else if (${OCN_GRID_INTERNAL} =~ tx1* ) then
   set hmix_momentum_choice = 'del4'
   set hmix_tracer_choice   = 'del4'
+  set lsubmesoscale_mixing = .false.
 else if (${OCN_GRID_INTERNAL} =~ tx0.1* ) then
   set hmix_momentum_choice = 'del4'
   set hmix_tracer_choice   = 'del4'
+  set lsubmesoscale_mixing = .false.
 endif
 
 cat >> $POP2_NMLFILE << EOF
 &hmix_nml
    hmix_momentum_choice = '$hmix_momentum_choice'
    hmix_tracer_choice   = '$hmix_tracer_choice'
-   lsubmesoscale_mixing = .true.
+   lsubmesoscale_mixing = $lsubmesoscale_mixing
 /
 
 EOF
@@ -562,7 +566,7 @@ if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
   set lauto_hmix      = .false.
   set lvariable_hmix  = .false.
   set am_del2_value   = 3.0e9
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v5* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
   set lauto_hmix      = .false.
   set lvariable_hmix  = .false.
   set am_del2_value   = 0.5e8
@@ -594,7 +598,7 @@ if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
   set lauto_hmix      = .false.
   set lvariable_hmix  = .false.
   set ah_del2_value   = 1.0e7
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v5* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
   set lauto_hmix      = .false.
   set lvariable_hmix  = .false.
   set ah_del2_value   = 0.6e7
@@ -684,7 +688,7 @@ if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
    set ah_bolus       = 4.0e7
    set ah_bkg_srfbl   = 4.0e7
  endif
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v5* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
    set diag_gm_bolus = .true.
  if ($kappa_isop_choice == 'constant' && $kappa_thic_choice == 'constant') then 
    set ah_gm_value    = 0.6e7
@@ -780,7 +784,7 @@ if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
  set vconst_5  =  3
  set vconst_6  = 1.0e7
  set vconst_7  = 90.0
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v5* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
  set hmix_alignment_choice =  east
  set lvariable_hmix_aniso =  .true.
  set lsmag_aniso          =  .false.
@@ -1021,7 +1025,7 @@ EOF
 
 if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
  set sfwf_weak_restore = 0.092
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v5* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
  set sfwf_weak_restore = 0.0115
 else if ( ${OCN_GRID_INTERNAL} == tx1v1 ) then
  set sfwf_weak_restore = 0.0115
@@ -1131,7 +1135,7 @@ EOF
 
 if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
  set qsw_distrb_opt = cosz
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v5* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
   if ($OCN_COUPLING  =~ *partial*) then
     set qsw_distrb_opt = cosz
   else if ($OCN_COUPLING  =~ *full*) then
@@ -1187,7 +1191,7 @@ if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
  set moc = .true.
  set n_heat_trans = .true.
  set n_salt_trans = .true.
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v5* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
  set transport_reg2_names = ("'Atlantic Ocean'","'Mediterranean Sea'","'Labrador Sea'","'GIN Sea'","'Arctic Ocean'","'Hudson Bay'")
  set moc = .true.
  set n_heat_trans = .true.
@@ -1223,14 +1227,14 @@ EOF
 
 if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 ) then
  set ltidal_mixing = .true.
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v5* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
  set ltidal_mixing = .true.
 else
  set ltidal_mixing = .false.
 endif
 
 cat >> $POP2_NMLFILE << EOF
-Only the gx3v5, gx3v6, gx1v5, gx1v5a, gx1v5b versions of tidal_energy exist.  
+Only the gx3v5, gx3v6, gx1v5, gx1v5a, gx1v5b, gx1v6 versions of tidal_energy exist.  
 For all other resolutions, set ltidal_mixing false.
 
 &tidal_nml
@@ -1255,8 +1259,8 @@ cat >> $POP2_NMLFILE << EOF
 
 EOF
 
-if ( ${OCN_GRID_INTERNAL} == gx1v5a || ${OCN_GRID_INTERNAL} == gx1v5b ) then
- # ONLY gx1v5a or gx1v5b -- not gx1v5
+if ( ${OCN_GRID_INTERNAL} == gx1v5a || ${OCN_GRID_INTERNAL} == gx1v5b  || ${OCN_GRID_INTERNAL} =~ gx1v6* ) then
+ # ONLY gx1v5a, gx1v5b, or gx1v6 -- not gx1v5
  set overflows_on = .true.
  set overflows_interactive = .true.
 else
@@ -1276,3 +1280,18 @@ cat >> $POP2_NMLFILE <<EOF
 /
 
 EOF
+
+#--------------------------------------------------------------------------
+#  Finally, test for conflicting options:
+#--------------------------------------------------------------------------
+
+if ($topography_opt == 'bathymetry' && $overflows_on == .true.) then
+   echo " "
+   echo "   =============================================================="
+   echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
+   echo "     Cannot select $topography_opt = 'bathymetry' when overflows "
+   echo "     are active                                                  "
+   echo "   =============================================================="
+   echo " "
+   exit -99
+endif

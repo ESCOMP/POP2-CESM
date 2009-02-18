@@ -48,7 +48,7 @@ require Decomp::Config;
 
 my $model    = "pop";
 my $platform = "XT";
-my $res      = "gx1v5";
+my $res      = "gx1v6";
 my $output   = "all";
 
 sub usage {
@@ -56,7 +56,7 @@ sub usage {
 SYNOPSIS
      $ProgName [options]
 OPTIONS
-     -res <resolution>    (or -r)   Horizontal resolution (gx1v5 etc.). (default $res))
+     -res <resolution>    (or -r)   Horizontal resolution (gx1v6 etc.). (default $res))
      -model <model>       (or -m)   Model type (pop or cice).	        (default $model)
      -platform <platform> (or -p)   Platform type (XT etc.).		(defualt $platform)
      -nproc <number>      (or -n)   Number of processors to use.	(required)
@@ -65,7 +65,7 @@ OPTIONS
 			  (default: $output)
 EXAMPLES
 
-   $ProgName -res gx1v5 -model cice -platform XT -nproc 80 -output maxblocks
+   $ProgName -res gx1v6 -model cice -platform XT -nproc 80 -output maxblocks
 
    will return a single value -- the optimum max number of blocks to use.
 

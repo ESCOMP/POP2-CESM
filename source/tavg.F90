@@ -2568,9 +2568,9 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
-      n,                 &! loop index
-      id                  ! location of field in avail_fields array
+   integer (int_kind)  ::  &
+      n,                   &! loop index
+      id                    ! location of field in avail_fields array
 
 !-----------------------------------------------------------------------
 !
@@ -2588,8 +2588,7 @@
    end do srch_loop
 
    if (id == 0) then
-      if (my_task == master_task)  &
-         write(stdout,*) 'Requested ', trim(short_name)
+      write(stdout,*) 'Requested ', trim(short_name)
 #ifdef CCSMCOUPLED
       call shr_sys_flush(stdout)
 #endif

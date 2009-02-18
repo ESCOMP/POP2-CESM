@@ -574,6 +574,7 @@ cat >> $POP2BLDSCRIPT << EOF2
     if (\$OCN_PRESTAGE == TRUE) then
       foreach filename (\$filenames)
         if (-f \$filename) cp -fp \$filename \$ocndir/input
+        if (-f \${filename}.hdr) cp -fp \${filename}.hdr \$ocndir/input
       end
 
       #----------------------------------------------------------------------
@@ -671,11 +672,13 @@ echo ------------------------------------------------------------------------
     #-----------------------------------------------------------------
     chmod u+x \${my_path}/pop2_in_build.csh
     \${my_path}/pop2_in_build.csh
+    if (\$status != 0) exit -99
   else
     #---------------------------------------
     # 2.3.2 if not, use the standard version
     #---------------------------------------
     \$srcdir/input_templates/pop2_in_build.csh
+    if (\$status != 0) exit -99
   endif
 
 

@@ -2,6 +2,59 @@
 
 ===============================================================================
 Originator: njn01
+Date:  
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090218
+Summary of Changes:  
+     * Add gx1v6 support
+     * Add support for startup/spunup *.hdr file
+     * Write tavg error message on all procs
+     * Add extra info to io_netcdf.F90 error message
+           ("string too short") to help eliminate confusion
+     * Modify tx0.1v2_inputdata to reflect approved inputdata dataset names
+
+Process:
+    Get gx1v6 datasets from Steve Yeager. Modify pop2_in_build.csh
+    to recognize gx1v6. Check gx1v6 datasets into inputdata and $SVN data
+    repo.  Create gx1v6_input_data, pointing to new gx1v6 datasets.
+    Modify pop_decomp.xml to recognize gx1v6. 
+
+Testing (njn01):
+     Modify ccsm4_0_beta09 (cice, clm, dice, dlnd, datm, scripts, pop2).
+     Set up B compset. Compare $comp_in for comp = (drv,ice,lnd,atm,pop)
+     with Steve Yeager's b40.008o case. Diff'd ocean and ice datasets
+     with Steve Yeager's b40.008o case.
+ 
+     Set up C compset. Will need new gx1v6 datasets before testing
+     can be completed.  
+
+     This tag will be updated, if necessary, after full gx1v6 test suite
+     is completed.
+
+M           12820   source/io_netcdf.F90
+M           13884   source/hmix_gm.F90
+M           12674   source/tavg.F90
+M           14024   bld/pop2.cpl7.template
+M           13884   bld/pop_decomp.xml
+M           12674   bld/generate_pop_decomp.pl
+A               0   input_templates/gx1v6_region_ids
+M           12674   input_templates/tx0.1v2_inputdata
+A               0   input_templates/gx1v6_transport_contents
+A               0   input_templates/gx1v6_movie_contents
+A               0   input_templates/gx1v6_domain_size.F90
+A               0   input_templates/gx1v6_POP_DomainSizeMod.F90
+A               0   input_templates/gx1v6_history_contents
+A               0   input_templates/gx1v6_tavg_contents
+A               0   input_templates/gx1v6_overflow
+A               0   input_templates/gx1v6_vert_grid
+A               0   input_templates/gx1v6_inputdata
+A               0   input_templates/gx1v6_depth_accel
+M           13884   input_templates/pop2_in_build.csh
+M           14024   ChangeLog
+Status against revision:  14443
+
+===============================================================================
+Originator: njn01
 Date:  Wed Jan 21 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090121

@@ -210,7 +210,7 @@
                   call document('open_read_netcdf', 'nsize', nsize)
                   call document('open_read_netcdf', 'len(data_file%title)', &
                                 len(data_file%title))
-                  write(stdout,*) 'not enough room to read title from ' /&
+                  write(stdout,*) 'string too short; not enough room to read title from ' /&
                                   &/ trim(path)
                endif
             endif
@@ -239,7 +239,7 @@
                   call document('open_read_netcdf', 'nsize', nsize)
                   call document('open_read_netcdf', 'len(data_file%history)', &
                                 len(data_file%history))
-                  write(stdout,*) 'not enough room to read history from ' /&
+                  write(stdout,*) 'string too short; not enough room to read history attribute from ' /&
                                   &/ trim(path)
                endif
             endif
@@ -268,7 +268,7 @@
                   call document('open_read_netcdf', 'nsize', nsize)
                   call document('open_read_netcdf', 'len(data_file%conventions)', &
                                 len(data_file%conventions))
-                  write(stdout,*) 'not enough room to read conventions from ' /&
+                  write(stdout,*) 'string too short; not enough room to read conventions from ' /&
                                   &/ trim(path)
                endif
             endif
@@ -318,7 +318,7 @@
                   call document('open_read_netcdf', 'nsize', nsize)
                   call document('open_read_netcdf', 'len(work_line)', &
                                 len(work_line))
-                  write(stdout,*) 'not enough room to read ' /&
+                  write(stdout,*) 'string too short; not enough room to read ' /&
                                   &/ trim(att_name) /&
                                   &/ ' from ' /&
                                   &/ trim(path)
@@ -809,7 +809,7 @@
                      call document('define_field_netcdf', 'nsize', nsize)
                      call document('define_field_netcdf', 'len(io_field%long_name)', &
                                    len(io_field%long_name))
-                     write(stdout,*) 'not enough room to read long_name of ' /&
+                     write(stdout,*) 'string too short; not enough room to read long_name of ' /&
                                      &/ trim(io_field%short_name) /&
                                      &/ ' from ' /&
                                      &/ trim(data_file%full_name)
@@ -842,7 +842,7 @@
                      call document('define_field_netcdf', 'nsize', nsize)
                      call document('define_field_netcdf', 'len(io_field%units)', &
                                    len(io_field%units))
-                     write(stdout,*) 'not enough room to read units of ' /&
+                     write(stdout,*) 'string too short; not enough room to read units of ' /&
                                      &/ trim(io_field%short_name) /&
                                      &/ ' from ' /&
                                      &/ trim(data_file%full_name)
@@ -869,7 +869,7 @@
                      call document('define_field_netcdf', 'nsize', nsize)
                      call document('define_field_netcdf', 'len(io_field%coordinates)', &
                                    len(io_field%coordinates))
-                     write(stdout,*) 'not enough room to read coordinates of ' /&
+                     write(stdout,*) 'string too short; not enough room to read coordinates of ' /&
                                      &/ trim(io_field%short_name) /&
                                      &/ ' from ' /&
                                      &/ trim(data_file%full_name)
@@ -902,7 +902,7 @@
                      call document('define_field_netcdf', 'nsize', nsize)
                      call document('define_field_netcdf', 'len(io_field%grid_loc)', &
                                    len(io_field%grid_loc))
-                     write(stdout,*) 'not enough room to read grid_loc of ' /&
+                     write(stdout,*) 'string too short; not enough room to read grid_loc of ' /&
                                      &/ trim(io_field%short_name) /&
                                      &/ ' from ' /&
                                      &/ trim(data_file%full_name)
@@ -1008,7 +1008,7 @@
                      call document('define_field_netcdf', 'nsize', nsize)
                      call document('define_field_netcdf', 'len(work_line)', &
                                    len(work_line))
-                     write(stdout,*) 'not enough room to read ' /&
+                     write(stdout,*) 'string too short; not enough room to read ' /&
                                      &/ trim(att_name) /&
                                      &/ ' of ' /&
                                      &/ trim(io_field%short_name) /&

@@ -1692,9 +1692,13 @@
 
             end select
 
-            if ( transition_layer_on ) then
+            if ( transition_layer_on  .and.  use_const_ah_bkg_srfbl ) then
 
               HOR_DIFF(:,:,kk_sub,kk,bid) = ah_bkg_srfbl
+
+            else if ( transition_layer_on .and. .not. use_const_ah_bkg_srfbl ) then
+
+              HOR_DIFF(:,:,kk_sub,kk,bid) = KAPPA_ISOP(:,:,kk_sub,kk,bid) 
 
             else
 

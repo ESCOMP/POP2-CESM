@@ -2,9 +2,9 @@
     #-----------------------------------------------------------------------------
     # 1.2.2 identify all tx0.1v2 datasets residing in $DIN_LOC_ROOT/ocn/pop
     #-----------------------------------------------------------------------------
-    set init_ts_data      = $DIN_LOC_ROOT/ocn/pop/tx0.1v2/ic/rest_GC007v3_jan_ic_tx0.1v2_20080629.ieeer8
-    set horiz_grid_data   = $DIN_LOC_ROOT/ocn/pop/tx0.1v2/grid/grid.3600x2400.fob.da 
-    set regionmask_data   = $DIN_LOC_ROOT/ocn/pop/tx0.1v2/grid/region_mask_0.1global_20080702.i4 
-    set topography_data   = $DIN_LOC_ROOT/ocn/pop/tx0.1v2/grid/kmt_pbc.3600x2400.tripole.s2.0.merge_caspian.da 
-    set bottom_cell_data  = $DIN_LOC_ROOT/ocn/pop/tx0.1v2/grid/dzbc_pbc.3600x2400.tripole.s2.0.merge_caspian.da 
-    set chl_data          = $DIN_LOC_ROOT/ocn/pop/tx0.1v2/ic/chlorophyll_monthly_0.1tripole.r8 
+    set init_ts_data      = $DIN_LOC_ROOT/ocn/pop/tx0.1v2/ic/GC007v3.pop.r.0001-01-16-00000
+    set bottom_cell_data  = $DIN_LOC_ROOT/ocn/pop/tx0.1v2/grid/dzbc_pbc_s2.0_200709.ieeer8
+    set horiz_grid_data   = $DIN_LOC_ROOT/ocn/pop/tx0.1v2/grid/horiz_grid_200709.ieeer8
+    set regionmask_data   = $DIN_LOC_ROOT/ocn/pop/tx0.1v2/grid/region_mask_20080702.ieeei4
+    set topography_data   = $DIN_LOC_ROOT/ocn/pop/tx0.1v2/grid/topography_200709.ieeer8
+    set chl_data          = $DIN_LOC_ROOT/ocn/pop/tx0.1v2/forcing/chlorophyll_1998-2003_monthly_20080418.ieeer8
