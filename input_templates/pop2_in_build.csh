@@ -38,12 +38,13 @@ endif
 #--------------------------------------------------------------------------
 
 set output_L = $rundir
-set output_r = $rundir/$CASE.pop.r
-set output_h = $rundir/$CASE.pop.h
 set output_d = $rundir/$CASE.pop.d
 
+set output_r     = ./$CASE.pop.r
+set output_h     = ./$CASE.pop.h
+set pop2_pointer = ./rpointer.ocn
+
 set log_filename =  ocn.log.$LID
-set pop2_pointer = $rundir/rpointer.ocn
 
 
 #--------------------------------------------------------------------------

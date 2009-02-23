@@ -2,6 +2,50 @@
 
 ===============================================================================
 Originator: njn01
+Date:  23 February 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090223b
+Summary of Changes:  
+     * Change path for output files from full pathname to relative filename
+     * Fix timer_total
+     * Eliminate references to ccsm3 timers (SEND,RECV,RECV to SEND, and SEND to RECV)
+Testing:
+     * /fis01/cgd/cseg/people/njn01/test/rpointer 
+          gx1v5 C two-month restart
+          gx1v5 C 8-day restart
+     * /fis01/cgd/cseg/people/njn01/test/timers
+          gx1v5 C one-month runs with and without timers changes
+
+M           14535   source/forcing_coupled.F90
+M           14536   input_templates/pop2_in_build.csh
+M           14535   ChangeLog
+M           14535   drivers/ccsm_cpl7/ocn_comp_mct.F90
+Status against revision:  14537
+
+
+===============================================================================
+Originator: njn01
+Date:  23 February 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090223
+Summary of Changes:  
+     * new hmix_gm.F90 option: Eden and Greatbatch
+     * small correction to hmix_gm.F90 (TAPER2; Gokhan; identified several years ago)
+     * pop2_in_build.csh modified to support Eden and Greatbatch option (on by default)
+Testing:
+   (1) out-of-box, 1-month, gx1v5 C
+   (2) same as (1), except use new hmix_gm.F90 and pop2_in_build.csh with eg option
+       off ***and*** TAPER2 correction turned off.  Should be b4b with (1)
+   (3) same as (2), except TAPER2 correction turned on and new hmix_gm_eg test.
+       This will NOT be b4b. Compare timing only.
+   (4) same as (3), except enable edgr option
+   (5) same as (4), except *disable* edgr option  (should be b4b with (3), but
+       this test uses the new pop2_in_build.csh and hmix_gm.F90 code that will be
+       checked in)
+
+
+===============================================================================
+Originator: njn01
 Date:  
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090218

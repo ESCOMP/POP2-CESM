@@ -90,13 +90,6 @@
       tavg_MELTH_F,      &! tavg id for melt     heat flux
       tavg_IFRAC          ! tavg id for ice fraction
 
-
-   integer (int_kind) ::   &
-      timer_send_to_cpl,   &
-      timer_recv_from_cpl, &
-      timer_recv_to_send,  &
-      timer_send_to_recv 
-
 #endif
 
 !-----------------------------------------------------------------------
@@ -498,18 +491,10 @@
 
 !-----------------------------------------------------------------------
 !
-!  initialize timers for coupled model
+!  initialize timer for computing cosz
 !
 !-----------------------------------------------------------------------
       
-   call get_timer (timer_send_to_cpl  , 'SEND'        , 1, &
-                                         distrb_clinic%nprocs)
-   call get_timer (timer_recv_from_cpl, 'RECV'        , 1, &
-                                         distrb_clinic%nprocs)
-   call get_timer (timer_recv_to_send , 'RECV to SEND', 1, &
-                                         distrb_clinic%nprocs)
-   call get_timer (timer_send_to_recv , 'SEND to RECV', 1, &
-                                         distrb_clinic%nprocs)
    if ( qsw_distrb_iopt == qsw_distrb_iopt_cosz ) then
       call get_timer (timer_compute_cosz, 'COMPUTE_COSZ', nblocks_clinic, &
                                           distrb_clinic%nprocs)

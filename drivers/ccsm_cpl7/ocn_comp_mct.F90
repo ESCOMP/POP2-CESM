@@ -46,7 +46,7 @@ module ocn_comp_mct
    use forcing_shf,       only: SHF_QSW
    use forcing_sfwf,      only: lsend_precip_fact, precip_fact
    use forcing_fields
-   use forcing_coupled,   only: ncouple_per_day, timer_recv_from_cpl,  &
+   use forcing_coupled,   only: ncouple_per_day,  &
                                 update_ghost_cells_coupler_fluxes, &
                                 rotate_wind_stress, pop_set_coupled_forcing, &
                                 pop_init_coupled,  &
@@ -59,7 +59,7 @@ module ocn_comp_mct
    use named_field_mod,   only: named_field_register, named_field_get_index, &
                                 named_field_set, named_field_get
    use prognostic
-   use timers,            only: get_timer
+   use timers,            only: get_timer, timer_start, timer_stop
    use diagnostics,       only: check_KE
    use output,            only: output_driver
    use step_mod,          only: step
@@ -161,7 +161,6 @@ contains
        pop_cpl_dt,  &
        shrlogunit,  &  ! old values
        shrloglev       ! old values
-       
 
     type(mct_gsMap), pointer :: &
        gsMap_o
@@ -532,6 +531,16 @@ contains
        call memmon_dump_fort('memmon.out',SubName//':start::',lbnum) 
     endif
 #endif
+
+!-----------------------------------------------------------------------
+!
+!  start up the main timer
+!
+!-----------------------------------------------------------------------
+
+   call timer_start(timer_total)
+
+
 !-----------------------------------------------------------------------
 !
 ! reset shr logging to my log file
@@ -652,8 +661,10 @@ contains
 !
 !----------------------------------------------------------------------------
 
-    call shr_file_setLogUnit (shrlogunit)
-    call shr_file_setLogLevel(shrloglev)
+   call shr_file_setLogUnit (shrlogunit)
+   call shr_file_setLogLevel(shrloglev)
+
+   call timer_stop(timer_total)
 
 #if (defined _MEMTRACE)
     if(my_task == 0) then
