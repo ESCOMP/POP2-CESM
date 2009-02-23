@@ -102,13 +102,16 @@
 !
 !     KAPPA_LATERAL and KAPPA_VERTICAL are 2D and 3D arrays, respectively,
 !     containing the spatial variations of the isopycnal (KAPPA_ISOP)
-!     and thickness (KAPPA_THIC) diffusion coefficients. KAPPA_LATERAL
-!     has the actual diffusion coefficient values in cm^2/s, whereas
-!     KAPPA_VERTICAL is unitless. So, the total coefficients are
+!     and thickness (KAPPA_THIC) diffusion coefficients. Except in kappa_type_eg,
+!     KAPPA_LATERAL has the actual diffusion coefficient values in cm^2/s,
+!     whereas KAPPA_VERTICAL is unitless. So, the total coefficients are
 !     constructed using
 !
 !      KAPPA_ISOP or KAPPA_THIC (:,:,:,k,bid) ~ KAPPA_LATERAL(:,:,bid)
 !                                             * KAPPA_VERTICAL(:,:,k,bid)
+!
+!     When kappa_type_eg, KAPPA_VERTICAL contains the isopycnal diffusivity
+!     coefficients in cm^2/s and KAPPA_LATERAL is not used!
 !
 !-----------------------------------------------------------------------
 
@@ -131,7 +134,8 @@
                             !  user-specified function
 
       real (r8), dimension(:,:,:,:), allocatable :: &
-         BUOY_FREQ_SQ       ! N^2 defined at level interfaces
+         BUOY_FREQ_SQ,    & ! N^2 defined at level interfaces
+         SIGMA_TOPO_MASK    ! bottom topography mask used with kappa_type_eg
 
 !-----------------------------------------------------------------------
 !
@@ -158,6 +162,7 @@
          kappa_type_bfreq_vmhs    = 7,   &
          kappa_type_bfreq_hdgr    = 8,   &
          kappa_type_bfreq_dradius = 9,   &
+         kappa_type_eg            = 10,  &
          slope_control_tanh   = 1,       &
          slope_control_notanh = 2,       &
          slope_control_clip   = 3,       &
@@ -196,6 +201,26 @@
                                 !  surface boundary layer
          slm_r,         &       ! max. slope allowed for redi diffusion
          slm_b                  ! max. slope allowed for bolus transport
+
+!-----------------------------------------------------------------------
+!
+!     the following set of variables are used in Eden and Greatbatch 
+!     (2008) KAPPA formulation. They are in the input namelist.
+!
+!-----------------------------------------------------------------------
+
+      real (r8) ::      &
+         const_eg,      &  ! tuning parameter (unitless)
+         gamma_eg,      &  ! (> 0) effective upper limit for inverse eddy 
+                           !  time scale (unitless)
+         kappa_min_eg,  &  ! minimum KAPPA (cm^2/s)
+         kappa_max_eg      ! maximum KAPPA (cm^2/s)
+
+!-----------------------------------------------------------------------
+!
+!     transition layer type variables
+!
+!----------------------------------------------------------------------- 
 
       type tlt_info
         real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
@@ -309,7 +334,8 @@
    integer (int_kind) :: &
       nml_error,         &  ! error flag for namelist
       k,                 &  ! vertical level index
-      iblock                ! block index
+      iblock,            &  ! block index
+      i, j                  ! lateral indices
 
    real (r8) ::          &
       kappa_depth_1,     &  ! parameters for variation of KAPPA 
@@ -334,7 +360,9 @@
                           slm_r, slm_b, diag_gm_bolus,           &
                           transition_layer_on, read_n2_data,     &
                           buoyancy_freq_filename,                &
-                          buoyancy_freq_fmt
+                          buoyancy_freq_fmt,                     &
+                          const_eg, gamma_eg,                    &
+                          kappa_min_eg, kappa_max_eg
 
 !-----------------------------------------------------------------------
 !
@@ -363,6 +391,10 @@
 !     diag_gm_bolus   : .true.
 !     transition_layer_on: .false.
 !     read_n2_data    : .false.
+!     const_eg        : 1.
+!     gamma_eg        : 300.
+!     kappa_min_eg    : 0.35e07 cm^2/s
+!     kappa_max_eg    : 5.00e07 cm^2/s
 !
 !-----------------------------------------------------------------------
 
@@ -393,6 +425,10 @@
    read_n2_data           = .false.
    buoyancy_freq_filename = 'unknown-buoyancy'
    buoyancy_freq_fmt      = 'nc'
+   const_eg               = c1 
+   gamma_eg               = 300.0_r8 
+   kappa_min_eg           = 0.35e7_r8
+   kappa_max_eg           = 5.0e7_r8
 
    if (my_task == master_task) then
      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -482,6 +518,8 @@
        kappa_isop_type = kappa_type_bfreq_hdgr
      case ('bfdr')
        kappa_isop_type = kappa_type_bfreq_dradius
+     case ('edgr')
+       kappa_isop_type = kappa_type_eg
      case default
        kappa_isop_type = -1000
      end select
@@ -505,6 +543,8 @@
        kappa_thic_type = kappa_type_bfreq_hdgr
      case ('bfdr')
        kappa_thic_type = kappa_type_bfreq_dradius
+     case ('edgr')
+       kappa_thic_type = kappa_type_eg
      case default
        kappa_thic_type = -1000
      end select
@@ -566,6 +606,20 @@
 
      endif
 
+     if ( kappa_isop_type == kappa_type_eg  .or.  &
+          kappa_thic_type == kappa_type_eg ) then
+
+       write(stdout,'(a16,1pe13.6)') '     const_eg = ',  &
+                                           const_eg 
+       write(stdout,'(a16,1pe13.6)') '     gamma_eg = ',  &
+                                           gamma_eg
+       write(stdout,'(a16,1pe13.6)') ' kappa_min_eg = ',  &
+                                       kappa_min_eg
+       write(stdout,'(a16,1pe13.6)') ' kappa_max_eg = ',  &
+                                       kappa_max_eg
+
+     endif
+
    endif
 
    call broadcast_scalar(kappa_isop_type,        master_task)
@@ -587,6 +641,10 @@
    call broadcast_scalar(read_n2_data,           master_task)
    call broadcast_scalar(buoyancy_freq_filename, master_task)
    call broadcast_scalar(buoyancy_freq_fmt,      master_task)
+   call broadcast_scalar(const_eg,               master_task)
+   call broadcast_scalar(gamma_eg,               master_task)
+   call broadcast_scalar(kappa_min_eg,           master_task)
+   call broadcast_scalar(kappa_max_eg,           master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -670,6 +728,38 @@
                     zt(km) <= 2.0e5_r8 ) then
      message = 'the max bottom depth should be > 2000.0 m' /&
            &/ ' when vmhs or hdgr dependency is chosen.'
+     call exit_POP(sigAbort, message)
+   endif
+
+   if ( ( kappa_isop_type == kappa_type_eg    .or.  &
+          kappa_thic_type == kappa_type_eg )  .and. &
+          use_const_ah_bkg_srfbl ) then
+     message = 'use_const_ah_bkg_srfbl should be false when ' /&
+            &/ 'kappa_type_eg is used.'
+     call exit_POP(sigAbort, message)
+   endif
+
+   if ( ( kappa_isop_type == kappa_type_vmhs           .or.    &
+          kappa_thic_type == kappa_type_vmhs           .or.    &
+          kappa_isop_type == kappa_type_hdgr           .or.    &
+          kappa_thic_type == kappa_type_hdgr           .or.    &
+          kappa_isop_type == kappa_type_dradius        .or.    &
+          kappa_thic_type == kappa_type_dradius        .or.    &
+          kappa_isop_type == kappa_type_bfreq_vmhs     .or.    &
+          kappa_thic_type == kappa_type_bfreq_vmhs     .or.    &
+          kappa_isop_type == kappa_type_bfreq_hdgr     .or.    &
+          kappa_thic_type == kappa_type_bfreq_hdgr     .or.    &
+          kappa_isop_type == kappa_type_bfreq_dradius  .or.    &
+          kappa_thic_type == kappa_type_bfreq_dradius  .or.    &
+          kappa_isop_type == kappa_type_eg             .or.    &
+          kappa_thic_type == kappa_type_eg             .or.    &
+          ( ( kappa_isop_type == kappa_type_bfreq  .or.        &
+              kappa_thic_type == kappa_type_bfreq ) .and.      &
+            .not. read_n2_data ) )                    .and.    &
+          kappa_freq == kappa_freq_never ) then
+
+     message = 'kappa_freq should not be set to never when model ' /&
+            &/ 'fields dependent kappa types are chosen.'
      call exit_POP(sigAbort, message)
    endif
 
@@ -907,6 +997,50 @@
 
 !-----------------------------------------------------------------------
 !
+!  initialize topography mask used with kappa_type_eg. This mask eliminates
+!  excessively large values of KAPPA near sloping topography.
+!
+!-----------------------------------------------------------------------
+
+   if ( kappa_isop_type == kappa_type_eg  .or.  &
+        kappa_thic_type == kappa_type_eg ) then 
+
+     allocate (SIGMA_TOPO_MASK(nx_block,ny_block,km,nblocks_clinic))
+
+     do iblock=1,nblocks_clinic
+
+       do k=1,km
+         where ( k < KMT(:,:,iblock) ) 
+           SIGMA_TOPO_MASK(:,:,k,iblock) = c1
+         elsewhere
+           SIGMA_TOPO_MASK(:,:,k,iblock) = c0
+         endwhere
+       enddo
+
+       do k=1,km-1
+         do j=2,ny_block-1
+           do i=2,nx_block-1 
+             if ( k < KMT(i,j,iblock) ) then
+               if ( k == KMT(i-1,j+1,iblock)  .or.  &
+                    k == KMT(i  ,j+1,iblock)  .or.  &
+                    k == KMT(i+1,j+1,iblock)  .or.  &
+                    k == KMT(i-1,j  ,iblock)  .or.  &
+                    k == KMT(i+1,j  ,iblock)  .or.  &
+                    k == KMT(i-1,j-1,iblock)  .or.  &
+                    k == KMT(i  ,j-1,iblock)  .or.  &
+                    k == KMT(i+1,j-1,iblock) )      &
+                 SIGMA_TOPO_MASK(i,j,k,iblock) = c0 
+             endif
+           enddo
+         enddo
+       enddo
+
+     enddo
+
+   endif
+
+!-----------------------------------------------------------------------
+!
 !  define tavg fields related to diffusivities 
 !
 !-----------------------------------------------------------------------
@@ -1098,6 +1232,9 @@
 
       logical (log_kind) ::  &
          lsubmeso               ! true for submesoscale mixing
+
+      real (r8), dimension(2) :: &
+         reference_depth
 
 !-----------------------------------------------------------------------
 !
@@ -1414,7 +1551,9 @@
                kappa_isop_type == kappa_type_bfreq_hdgr     .or.    &
                kappa_thic_type == kappa_type_bfreq_hdgr     .or.    &
                kappa_isop_type == kappa_type_bfreq_dradius  .or.    &
-               kappa_thic_type == kappa_type_bfreq_dradius ) .and.  &
+               kappa_thic_type == kappa_type_bfreq_dradius  .or.    &
+               kappa_isop_type == kappa_type_eg             .or.    &
+               kappa_thic_type == kappa_type_eg )            .and.  &
            ( ( kappa_freq == kappa_freq_every_time_step )           &
         .or. ( kappa_freq == kappa_freq_once_a_day .and. eod_last ) &
         .or. ( nsteps_total == 1 ) ) )  compute_kappa(bid) = .true.
@@ -1458,6 +1597,10 @@
                kappa_thic_type == kappa_type_bfreq_dradius )      &
             call buoyancy_frequency_dependent_profile (TMIX, this_block)
 
+          if ( kappa_isop_type == kappa_type_eg  .or.  &
+               kappa_thic_type == kappa_type_eg ) &
+            call kappa_eg (TMIX, UMIX, VMIX, this_block) 
+
           compute_kappa(bid) = .false.
 
         endif  ! end of ( compute_kappa ) if statement
@@ -1470,6 +1613,12 @@
 
         if ( kappa_isop_type == kappa_type_const ) then
           KAPPA_ISOP(:,:,:,:,bid) = ah
+        elseif ( kappa_isop_type == kappa_type_eg ) then
+          do kk_sub=ktp,kbt
+            do kk=1,km
+              KAPPA_ISOP(:,:,kk_sub,kk,bid) = KAPPA_VERTICAL(:,:,kk,bid)
+            enddo
+          enddo
         else
           do kk_sub=ktp,kbt
             do kk=1,km
@@ -1492,6 +1641,8 @@
                                         * KAPPA_VERTICAL(:,:,kk,bid)
             enddo
           enddo 
+        else if ( kappa_thic_type == kappa_type_eg ) then
+          KAPPA_THIC(:,:,:,:,bid) = KAPPA_ISOP(:,:,:,:,bid)
         else
           do kk_sub=ktp,kbt
             do kk=1,km
@@ -1508,6 +1659,11 @@
 !-----------------------------------------------------------------------
 
         do kk=1,km
+
+          kp1 = min(kk+1,km)
+          reference_depth(ktp) = zt(kp1)
+          reference_depth(kbt) = zw(kp1)
+          if ( kk == km )  reference_depth(ktp) = zw(kp1)
 
           do kk_sub = ktp,kbt 
 
@@ -1692,11 +1848,21 @@
 
             end select
 
+            if ( transition_layer_on ) then
+              TAPER2 = merge(c1, TAPER2, reference_depth(kk_sub) &
+                                         <= TLT%DIABATIC_DEPTH(:,:,bid))
+              TAPER3 = merge(c1, TAPER3, reference_depth(kk_sub) &
+                                         <= TLT%DIABATIC_DEPTH(:,:,bid))
+            endif
+
             if ( transition_layer_on  .and.  use_const_ah_bkg_srfbl ) then
 
               HOR_DIFF(:,:,kk_sub,kk,bid) = ah_bkg_srfbl
 
-            else if ( transition_layer_on .and. .not. use_const_ah_bkg_srfbl ) then
+            else if ( transition_layer_on .and.               &
+                    ( .not. use_const_ah_bkg_srfbl      .or.  &
+                      kappa_isop_type == kappa_type_eg  .or.  &
+                      kappa_thic_type == kappa_type_eg ) ) then
 
               HOR_DIFF(:,:,kk_sub,kk,bid) = KAPPA_ISOP(:,:,kk_sub,kk,bid) 
 
@@ -2636,6 +2802,209 @@
 !EOC
 
       end subroutine kappa_lon_lat_vmhs 
+
+!***********************************************************************
+!BOP
+! !IROUTINE: kappa_eg
+! !INTERFACE:
+
+      subroutine kappa_eg (TMIX, UMIX, VMIX, this_block)
+
+! !DESCRIPTION:
+!  Variable kappa parameterization by Eden and Greatbatch 
+!  (2008, Ocean Modelling, v. 20, 223-239):
+!  \begin{equation}
+!     KAPPA_ISOP = KAPPA_THIC = c {{L^2}*{\sigma}},
+!  \end{equation}
+!  where $c$ is a tuning parameter (=const_eg), $\sigma$ is the inverse eddy 
+!  time scale, and $L$ is the minimum of the Rossby deformation radius and
+!  Rhines scale.
+!
+!  This subroutine returns KAPPA_ISOP in KAPPA_VERTICAL. Here, KAPPA_VERTICAL
+!  serves as a temporary array because this subroutine may be called less
+!  frequently than every time step and KAPPA_ISOP is modified in each time step.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+      real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+         TMIX               ! tracers at all vertical levels
+                            !  at mixing time level
+
+      real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+         UMIX, VMIX         ! U,V at all vertical levels
+                            !  at mixing time level
+
+      type (block), intent(in) :: &
+         this_block         ! block info for this sub block
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+      integer (int_kind) :: &
+         k, kp1,            &  ! vertical level index
+         bid                   ! local block address for this sub block
+
+      real (r8), dimension(nx_block,ny_block) :: &
+         TK, TKP,                                &  ! level k and k+1 TMIX
+         WORK1, WORK2, WORK3,                    &  ! work arrays
+         C_ROSSBY,                               &  ! first baroclinic Rossby wave speed
+         L_ROSSBY,                               &  ! Rossby deformation radius
+         RHOT, RHOS                                 ! dRHOdT and dRHOdS
+
+
+      real (r8), dimension(nx_block,ny_block,km) :: &
+         SIGMA,         &  ! inverse eddy time scale
+         RI_NO             ! local Richardson number 
+
+!-----------------------------------------------------------------------
+!  initialization
+!-----------------------------------------------------------------------
+
+      bid = this_block%local_id
+
+      SIGMA = c0
+      RI_NO = c0
+
+      BUOY_FREQ_SQ(:,:,:,bid) = c0
+
+!-----------------------------------------------------------------------
+!
+!     compute buoyancy frequency and Richardson number at the bottom of 
+!     T box:
+!             Ri = -g*Dz(RHO)/RHO_0/(Dz(u)**2+Dz(v)**2)
+!
+!     RHO_0 ~ 1 in cgs units.
+!
+!-----------------------------------------------------------------------
+
+      do k=1,km-1
+
+        if ( k == 1 ) then
+          TK = max(-c2, TMIX(:,:,k,1))
+        endif
+
+        kp1 = k+1
+
+        call state (k, kp1, TMIX(:,:,k,1), TMIX(:,:,k,2), &
+                    this_block, DRHODT=RHOT, DRHODS=RHOS)
+
+        TKP = max(-c2, TMIX(:,:,kp1,1))
+
+        WORK1 = TK - TKP
+        WORK2 = TMIX(:,:,k,2) - TMIX(:,:,kp1,2)
+        WORK3 = RHOT * WORK1 + RHOS * WORK2
+        WORK3 = min(WORK3,-eps2)
+
+        WORK1 =  (UMIX(:,:,k) - UMIX(:,:,kp1))**2  &
+               + (VMIX(:,:,k) - VMIX(:,:,kp1))**2
+
+        call ugrid_to_tgrid (WORK2, WORK1, bid)
+
+        where (k < KMT(:,:,bid))
+          BUOY_FREQ_SQ(:,:,k,bid) = - grav * WORK3 * dzwr(k)
+          WORK1 = dzw(k)**2 / ( WORK2 + eps2 )
+          RI_NO(:,:,k) = WORK1 * BUOY_FREQ_SQ(:,:,k,bid) 
+        end where
+
+        TK  = TKP
+
+      end do
+
+!-----------------------------------------------------------------------
+!
+!     compute the first baroclinic gravity-wave phase speed.
+!     Computation of Rossby deformation radius follows Chelton et al.(1998)
+!
+!-----------------------------------------------------------------------
+
+      C_ROSSBY = c0
+
+      k = 1
+      where ( k < KMT(:,:,bid) )
+        C_ROSSBY = C_ROSSBY + sqrt(BUOY_FREQ_SQ(:,:,k,bid)) * dzw(k-1)
+      endwhere
+
+      do k=1,km
+        where ( k < KMT(:,:,bid) )
+          C_ROSSBY = C_ROSSBY + sqrt(BUOY_FREQ_SQ(:,:,k,bid)) * dzw(k)
+        endwhere
+        where ( k > 1  .and.  k == KMT(:,:,bid) )
+          C_ROSSBY = C_ROSSBY + sqrt(BUOY_FREQ_SQ(:,:,k-1,bid)) * dzw(k)
+        endwhere
+      enddo
+
+      C_ROSSBY = C_ROSSBY / pi
+
+      L_ROSSBY = min( C_ROSSBY / (abs(FCORT(:,:,bid))+eps), &
+                      sqrt( C_ROSSBY / (c2*BTP(:,:,bid)) ) )
+
+!-----------------------------------------------------------------------
+!
+!     compute the inverse time scale
+!
+!-----------------------------------------------------------------------
+
+      do k=1,km-1
+        WORK1 = max( abs( FCORT(:,:,bid) ), sqrt(C_ROSSBY * c2 * BTP(:,:,bid)) )
+        where (k < KMT(:,:,bid))
+          SIGMA(:,:,k) = SIGMA_TOPO_MASK(:,:,k,bid) * WORK1  &
+                        / sqrt( RI_NO(:,:,k) + gamma_eg )
+        end where
+      enddo
+
+!----------------------------------------------------------------------
+!
+!     compute KAPPA_ISOP = c_kappa * sigma * min( Rossby_radius, Rhines scales)^2.
+!     note that KAPPA_ISOP is stored in KAPPA_VERTICAL. KAPPA_VERTICAL is
+!     located at the T-grid points. in the following, KAPPA_ISOP computed at
+!     the lower interface of a T-grid box is assigned to the T-grid point 
+!     just above this interface for simplicity.
+!
+!-----------------------------------------------------------------------
+
+      do k=1,km
+
+        WORK1 = min(L_ROSSBY, SIGMA(:,:,k)/BTP(:,:,bid))
+
+        KAPPA_VERTICAL(:,:,k,bid) = const_eg * SIGMA(:,:,k) * WORK1**2 
+
+      enddo
+
+!----------------------------------------------------------------------
+!
+!     use below-diabatic-layer values of KAPPA_ISOP within the surface 
+!     diabatic layer
+!
+!----------------------------------------------------------------------
+
+      WORK1 = BL_DEPTH(:,:,bid)
+      if ( transition_layer_on )  &
+        WORK1 = TLT%DIABATIC_DEPTH(:,:,bid)
+
+      do k=km-1,1,-1
+        where ( zw(k) <= WORK1 )
+          KAPPA_VERTICAL(:,:,k,bid) = KAPPA_VERTICAL(:,:,k+1,bid)
+        endwhere
+      enddo
+
+!----------------------------------------------------------------------
+!
+!     impose lower and upper limits on KAPPA
+!
+!----------------------------------------------------------------------
+
+      KAPPA_VERTICAL(:,:,:,bid) = max(kappa_min_eg, KAPPA_VERTICAL(:,:,:,bid))
+      KAPPA_VERTICAL(:,:,:,bid) = min(kappa_max_eg, KAPPA_VERTICAL(:,:,:,bid))
+
+      end subroutine kappa_eg
 
 !***********************************************************************
 !BOP

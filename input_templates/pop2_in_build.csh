@@ -110,7 +110,7 @@ EOF
 
 if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
   setenv DT_COUNT 12
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
   setenv DT_COUNT 23
 else if ( ${OCN_GRID_INTERNAL} == tx1v1 ) then
   setenv DT_COUNT 23
@@ -458,7 +458,7 @@ if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 ) then
  set bckgrnd_vdc_eq     = 0.16
  set bckgrnd_vdc_psim   = 0.13
  set bckgrnd_vdc_ban    = 1.0
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
  if ($lhoriz_varying_bckgrnd == .true.) then
    set bckgrnd_vdc1     = 0.16
  else
@@ -566,7 +566,7 @@ if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
   set lauto_hmix      = .false.
   set lvariable_hmix  = .false.
   set am_del2_value   = 3.0e9
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
   set lauto_hmix      = .false.
   set lvariable_hmix  = .false.
   set am_del2_value   = 0.5e8
@@ -598,7 +598,7 @@ if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
   set lauto_hmix      = .false.
   set lvariable_hmix  = .false.
   set ah_del2_value   = 1.0e7
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
   set lauto_hmix      = .false.
   set lvariable_hmix  = .false.
   set ah_del2_value   = 0.6e7
@@ -674,8 +674,26 @@ EOF
 #  hmix_gm_nml
 #--------------------------------------------------------------------------
 
-set kappa_isop_choice = bfre
-set kappa_thic_choice = bfre
+if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
+   set kappa_isop_choice = edgr
+   set kappa_thic_choice = edgr
+else
+   set kappa_isop_choice = bfre
+   set kappa_thic_choice = bfre
+endif
+
+if ($kappa_isop_choice == 'edgr' && $kappa_thic_choice == 'edgr') then
+   # in this instance, the following values are irrelevent
+   set ah_gm_value    = 1.0
+   set ah_bolus       = 1.0
+   set ah_bkg_srfbl   = 1.0
+endif
+
+if ($kappa_isop_choice == 'edgr' && $kappa_thic_choice == 'edgr') then
+   set use_const_ah_bkg_srfbl = .false.
+else
+   set use_const_ah_bkg_srfbl = .true.
+endif
 
 if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
    set diag_gm_bolus = .true.
@@ -688,7 +706,7 @@ if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
    set ah_bolus       = 4.0e7
    set ah_bkg_srfbl   = 4.0e7
  endif
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
    set diag_gm_bolus = .true.
  if ($kappa_isop_choice == 'constant' && $kappa_thic_choice == 'constant') then 
    set ah_gm_value    = 0.6e7
@@ -735,7 +753,7 @@ cat >> $POP2_NMLFILE << EOF
    kappa_depth_scale      = 150000.0
    ah                     = $ah_gm_value
    ah_bolus               = $ah_bolus
-   use_const_ah_bkg_srfbl = .true.
+   use_const_ah_bkg_srfbl = $use_const_ah_bkg_srfbl
    ah_bkg_srfbl           = $ah_bkg_srfbl
    ah_bkg_bottom          = 0.0
    slm_r                  = 0.3
@@ -745,6 +763,10 @@ cat >> $POP2_NMLFILE << EOF
    read_n2_data           = .false.
    buoyancy_freq_filename = '$INPUT/buoyancy_freq'
    buoyancy_freq_fmt      = 'nc'
+   const_eg               = 1.0
+   gamma_eg               = 300.0
+   kappa_min_eg           = 0.35e7
+   kappa_max_eg           = 5.0e7
 /
 
 EOF
@@ -784,7 +806,7 @@ if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
  set vconst_5  =  3
  set vconst_6  = 1.0e7
  set vconst_7  = 90.0
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
  set hmix_alignment_choice =  east
  set lvariable_hmix_aniso =  .true.
  set lsmag_aniso          =  .false.
@@ -1025,7 +1047,7 @@ EOF
 
 if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
  set sfwf_weak_restore = 0.092
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
  set sfwf_weak_restore = 0.0115
 else if ( ${OCN_GRID_INTERNAL} == tx1v1 ) then
  set sfwf_weak_restore = 0.0115
@@ -1135,7 +1157,7 @@ EOF
 
 if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
  set qsw_distrb_opt = cosz
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
   if ($OCN_COUPLING  =~ *partial*) then
     set qsw_distrb_opt = cosz
   else if ($OCN_COUPLING  =~ *full*) then
@@ -1191,7 +1213,7 @@ if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
  set moc = .true.
  set n_heat_trans = .true.
  set n_salt_trans = .true.
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
  set transport_reg2_names = ("'Atlantic Ocean'","'Mediterranean Sea'","'Labrador Sea'","'GIN Sea'","'Arctic Ocean'","'Hudson Bay'")
  set moc = .true.
  set n_heat_trans = .true.
@@ -1227,7 +1249,7 @@ EOF
 
 if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 ) then
  set ltidal_mixing = .true.
-else if ( ${OCN_GRID_INTERNAL} =~ gx1v[56]* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
  set ltidal_mixing = .true.
 else
  set ltidal_mixing = .false.
