@@ -764,7 +764,7 @@ cat >> $POP2_NMLFILE << EOF
    read_n2_data           = .false.
    buoyancy_freq_filename = '$INPUT/buoyancy_freq'
    buoyancy_freq_fmt      = 'nc'
-   const_eg               = 1.0
+   const_eg               = 0.8
    gamma_eg               = 300.0
    kappa_min_eg           = 0.35e7
    kappa_max_eg           = 5.0e7

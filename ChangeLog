@@ -2,6 +2,20 @@
 
 ===============================================================================
 Originator: njn01
+Date:  24 February 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090224
+Summary of Changes:  
+     * Change const_eg = 1.0 ---> const_eg  = 0.8
+Testing:  Markus C compset control run
+Reviewer: Gokhan
+
+be1105en/fis/cgd/cseg/people/njn01/tags/pop2% svn status -u
+M           14542   ChangeLog
+M           14542   input_templates/pop2_in_build.csh
+
+===============================================================================
+Originator: njn01
 Date:  23 February 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090223b
