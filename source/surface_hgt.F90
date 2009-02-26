@@ -26,6 +26,7 @@
        sfc_layer_oldfree, CALCU, tgrid_to_ugrid
    use time_management, only: mix_pass, dtp
    use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
+   use movie, only: define_movie_field, movie_requested, update_movie_field
 
    implicit none
    private
@@ -48,6 +49,15 @@
       tavg_SSH,          &! tavg id for sea surface height
       tavg_H2,           &! tavg id for sea surface height squared
       tavg_H3             ! tavg id for (Dx(SSH))**2 + (Dy(SSH))**2
+
+!-----------------------------------------------------------------------
+!
+!  movie ids for surface height diagnostics
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      movie_SSH            ! movie id for sea surface height
 
 !EOC
 !***********************************************************************
@@ -90,6 +100,16 @@
                           long_name='(Dx(SSH))**2 + (Dy(SSH))**2',     &
                           units='----', grid_loc='2110',               &
                           coordinates='TLONG TLAT time')
+
+!-----------------------------------------------------------------------
+!
+!  define movie diagnostic fields
+!
+!-----------------------------------------------------------------------
+
+   call define_movie_field(movie_SSH,'SSH',0,                          &
+                          long_name='Sea Surface Height',              &
+                          units='cm', grid_loc='2110')
 
 !-----------------------------------------------------------------------
 !EOC
@@ -278,6 +298,17 @@
          WORK = ((GRADPX(:,:,curtime,iblock)/grav)**2 +  &
                  (GRADPY(:,:,curtime,iblock)/grav)**2)
         call accumulate_tavg_field(WORK, tavg_H3, iblock, 1)
+      endif
+
+!-----------------------------------------------------------------------
+!
+!     accumulate surface height movie diagnostics if requested
+!
+!-----------------------------------------------------------------------
+
+      if (movie_requested(movie_SSH) .and. mix_pass /= 1) then
+         WORK = PSURF(:,:,curtime,iblock)/grav
+         call update_movie_field(WORK, movie_SSH, iblock, 1)
       endif
 
    end do  ! block loop

@@ -2,6 +2,32 @@
 
 ===============================================================================
 Originator: njn01
+Date:  26 February 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090226
+Summary of Changes:  
+     * Update movie.F90 to support high-resolution work
+Testing:  See walkthrough summary/test log for details and testing
+Reviewer: Gokhan
+
+M           14563   source/surface_hgt.F90
+M           14563   source/diagnostics.F90
+M           14563   source/step_mod.F90
+M           14563   source/movie.F90
+M           14563   source/forcing.F90
+M           14563   source/baroclinic.F90
+M           14563   ChangeLog
+M           14563   input_templates/gx1v6_movie_contents
+M           14563   input_templates/tx1v1_movie_contents
+M           14563   input_templates/gx1v5_movie_contents
+M           14563   input_templates/gx1v5b_movie_contents
+M           14563   input_templates/gx3v6_movie_contents
+M           14563   input_templates/tx0.1v2_movie_contents
+M           14563   input_templates/gx3v5_movie_contents
+Status against revision:  14563
+
+===============================================================================
+Originator: njn01
 Date:  24 February 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090224

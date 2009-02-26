@@ -188,6 +188,7 @@
    call tavg_set_flag
    call tavg_forcing
    if (nt > 2) call passive_tracers_tavg_sflux(STF)
+   call movie_forcing
 
 
 !-----------------------------------------------------------------------

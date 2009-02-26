@@ -33,6 +33,7 @@
    use tavg, only: define_tavg_field, tavg_requested,  &
                    accumulate_tavg_field, &
                    tavg_method_avg, tavg_method_max, tavg_method_min
+   use movie, only: define_movie_field, movie_requested, update_movie_field
    use vmix_kpp, only: HMXL, KPP_HBLT
    use registry
    use io_tools
@@ -240,6 +241,16 @@
       tavg_HBLT,         &! tavg id for average boundary layer depth
       tavg_XBLT,         &! tavg id for maximum boundary layer depth
       tavg_TBLT           ! tavg id for minimum boundary layer depth
+
+!-----------------------------------------------------------------------
+!
+!  movie ids 
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      movie_HMXL,          &! movie id for average mixed layer depth
+      movie_HBLT            ! movie id for average boundary layer depth
 
 !-----------------------------------------------------------------------
 !
@@ -863,6 +874,19 @@
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
+!-----------------------------------------------------------------------
+!
+!  define movie diagnostic fields
+!
+!-----------------------------------------------------------------------
+
+   call define_movie_field(movie_HMXL,'HMXL',0,                       &
+                          long_name='Mixed-Layer Depth',              &
+                          units='cm', grid_loc='2110')
+
+   call define_movie_field(movie_HBLT,'HBLT',0,                       &
+                          long_name='Boundary-Layer Depth',           &
+                          units='cm', grid_loc='2110')
 
 !-----------------------------------------------------------------------
 !
@@ -1374,6 +1398,27 @@
         !$OMP END PARALLEL DO
       endif
 
+!-----------------------------------------------------------------------
+!
+!     accumulate movie diagnostics if requested
+!
+!-----------------------------------------------------------------------
+
+      if (movie_requested(movie_HMXL) ) then
+        !$OMP PARALLEL DO
+        do iblock=1,nblocks_clinic
+          call update_movie_field(HMXL(:,:,iblock), movie_HMXL, iblock, 1)
+        end do
+        !$OMP END PARALLEL DO
+      endif
+
+      if (movie_requested(movie_HBLT) ) then
+        !$OMP PARALLEL DO
+        do iblock=1,nblocks_clinic
+          call update_movie_field(KPP_HBLT(:,:,iblock), movie_HBLT, iblock, 1)
+        end do
+        !$OMP END PARALLEL DO
+      endif
 
 !EOC
 

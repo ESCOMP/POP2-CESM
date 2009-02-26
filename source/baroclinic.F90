@@ -27,7 +27,7 @@
    use domain, only: nblocks_clinic, blocks_clinic, POP_haloClinic
    use constants, only: delim_fmt, blank_fmt, p5, field_loc_center,          &
        field_type_scalar, c0, c1, c2, grav, ndelim_fmt,                      &
-       hflux_factor, salinity_factor
+       hflux_factor, salinity_factor, salt_to_ppt
    use prognostic, only: TRACER, UVEL, VVEL, max_blocks_clinic, km, mixtime, &
        RHO, newtime, oldtime, curtime, PSURF, nt
    use broadcast, only: broadcast_scalar
@@ -44,6 +44,7 @@
        DIAG_KE_ADV_2D, DIAG_KE_PRESS_2D, DIAG_KE_HMIX_2D, DIAG_KE_VMIX_2D,   &
        DIAG_TRACER_HDIFF_2D, DIAG_PE_2D, DIAG_TRACER_ADV_2D,                 &
        DIAG_TRACER_SFC_FLX, DIAG_TRACER_VDIFF_2D, DIAG_TRACER_SOURCE_2D
+   use movie, only: define_movie_field, movie_requested, update_movie_field
    use state_mod, only: state
    use ice, only: liceform, ice_formation, increment_tlast_ice
    use time_management, only: mix_pass, leapfrogts, impcor, c2dtu, beta,     &
@@ -110,6 +111,18 @@
       tavg_RESID_T,      &! free-surface residual flux (T)
       tavg_RESID_S        ! free-surface residual flux (S)
 
+!-----------------------------------------------------------------------
+!
+!  ids for movie diagnostics computed from baroclinic
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind), dimension(km) :: &
+      movie_TEMP,         &! movie id for temperature
+      movie_SALT,         &! movie id for salinity
+      movie_UVEL,         &! movie id for U velocity
+      movie_VVEL,         &! movie id for V velocity
+      movie_RHO            ! movie id for in-situ density
 
 !EOC
 !***********************************************************************
@@ -139,6 +152,7 @@
 
    integer (int_kind) :: &
       nml_error          ! namelist i/o error flag
+   integer (int_kind) :: k
 
    namelist /baroclinic_nml/ reset_to_freezing
 
@@ -315,6 +329,36 @@
                     long_name='Free-Surface Residual Flux (S)',               &
                           units='kg/m^2/s', grid_loc='2110',&
                           coordinates='TLONG TLAT time')
+
+!-----------------------------------------------------------------------
+!
+!  define movie fields computed from baroclinic driver routines
+!
+!-----------------------------------------------------------------------
+
+   do k = 1, km
+
+      call define_movie_field(movie_UVEL(k),'UVEL',k,                  &
+                          long_name='Zonal Velocity',                  &
+                          units='cm/s', grid_loc='3221')
+
+      call define_movie_field(movie_VVEL(k),'VVEL',k,                  &
+                          long_name='Meridional Velocity',             &
+                          units='cm/s', grid_loc='3221')
+
+      call define_movie_field(movie_TEMP(k),'TEMP',k,                  &
+                          long_name='Potential Temperature',           &
+                          units='degC', grid_loc='3111')
+
+      call define_movie_field(movie_SALT(k),'SALT',k,                  &
+                          long_name='Salinity',                        &
+                          units='psu', grid_loc='3111')
+
+      call define_movie_field(movie_RHO(k),'RHO',k,                    &
+                          long_name='In-situ density',                 &
+                          units='sigma units', grid_loc='3111')
+
+   enddo
 
 !-----------------------------------------------------------------------
 !EOC
@@ -628,6 +672,39 @@
         endif  ! sfc_layer_type
 
          if (nt > 2) call tavg_passive_tracers(iblock,k)
+
+!-----------------------------------------------------------------------
+!
+!        update movie fields if requested
+!
+!-----------------------------------------------------------------------
+
+         if (movie_requested(movie_UVEL(k))) then
+            call update_movie_field(UVEL(:,:,k,curtime,iblock), &
+                                       movie_UVEL(k),iblock,k)
+         endif
+
+         if (movie_requested(movie_VVEL(k))) then
+            call update_movie_field(VVEL(:,:,k,curtime,iblock), &
+                                       movie_VVEL(k),iblock,k)
+         endif
+
+         if (movie_requested(movie_TEMP(k))) then
+            call update_movie_field(TRACER(:,:,k,1,curtime,iblock), &
+                                       movie_TEMP(k),iblock,k)
+         endif
+
+         if (movie_requested(movie_SALT(k))) then
+            call update_movie_field(  &
+                 TRACER(:,:,k,2,curtime,iblock)*salt_to_ppt, &
+                                       movie_SALT(k),iblock,k)  !  convert to psu
+         endif
+
+         if (movie_requested(movie_RHO(k))) then
+            call update_movie_field(  &
+               salt_to_ppt*(RHO(:,:,k,curtime,iblock)-c1), movie_RHO(k),iblock,k)
+
+         endif
 
          endif ! mix_pass
 

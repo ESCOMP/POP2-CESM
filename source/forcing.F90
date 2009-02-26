@@ -36,6 +36,7 @@
    use passive_tracers, only: set_sflux_passive_tracers
    use prognostic
    use tavg
+   use movie, only: define_movie_field, movie_requested, update_movie_field
    use time_management
    use exit_mod
 #ifdef CCSMCOUPLED
@@ -55,7 +56,8 @@
 
    public :: init_forcing,           &
              set_surface_forcing,    &
-             tavg_forcing
+             tavg_forcing,           &
+             movie_forcing
 
 !EOP
 !BOC
@@ -70,6 +72,17 @@
       tavg_TFW_T,        &! tavg_id for T flux due to freshwater flux
       tavg_TFW_S          ! tavg_id for S flux due to freshwater flux
 
+!-----------------------------------------------------------------------
+!
+!  movie ids
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      movie_SHF,          &! movie id for surface heat flux
+      movie_SFWF,         &! movie id for surface freshwater flux
+      movie_TAUX,         &! movie id for wind stress in X direction
+      movie_TAUY           ! movie id for wind stress in Y direction
 
 !EOC
 !***********************************************************************
@@ -184,7 +197,27 @@
                           units='kg/m^2/s', grid_loc='2110',         &
                           coordinates='TLONG TLAT time')
 
+!-----------------------------------------------------------------------
+!
+!  define movie diagnostic fields
+!
+!-----------------------------------------------------------------------
 
+   call define_movie_field(movie_SHF,'SHF',0,                                &
+                          long_name='Total Surface Heat Flux, Including SW', &
+                          units='watt/m^2', grid_loc='2110')
+
+   call define_movie_field(movie_SFWF,'SFWF',0,                                 &
+                          long_name='Virtual Salt Flux in FW Flux formulation', &
+                          units='kg/m^2/s', grid_loc='2110')
+
+   call define_movie_field(movie_TAUX,'TAUX',0,                       &
+                          long_name='Windstress in grid-x direction', &
+                          units='dyne/centimeter^2', grid_loc='2220')
+
+   call define_movie_field(movie_TAUY,'TAUY',0,                       &
+                          long_name='Windstress in grid-y direction', &
+                          units='dyne/centimeter^2', grid_loc='2220')
 
 !-----------------------------------------------------------------------
 !EOC
@@ -467,6 +500,105 @@
 !EOC
 
  end subroutine tavg_forcing
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: movie_forcing
+! !INTERFACE:
+
+ subroutine movie_forcing
+
+! !DESCRIPTION:
+!  This routine accumulates movie diagnostics related to surface
+!  forcing.
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      iblock              ! block loop index
+
+   type (block) ::       &
+      this_block          ! block information for current block
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK                ! local temp space for movie diagnostics
+
+!-----------------------------------------------------------------------
+!
+!  compute and dump movie forcing diagnostics
+!
+!-----------------------------------------------------------------------
+
+   !$OMP PARALLEL DO PRIVATE(iblock,this_block,WORK)
+
+   do iblock = 1,nblocks_clinic
+
+      this_block = get_block(blocks_clinic(iblock),iblock)
+
+!-----------------------------------------------------------------------
+!
+!     dump movie diagnostics if requested
+!
+!-----------------------------------------------------------------------
+
+      if (movie_requested(movie_SHF) ) then
+         where (KMT(:,:,iblock) > 0)
+            WORK = (STF(:,:,1,iblock)+SHF_QSW(:,:,iblock))/ &
+                   hflux_factor ! W/m^2
+         elsewhere
+            WORK = c0
+         end where
+         call update_movie_field(WORK, movie_SHF, iblock, 1)
+      endif
+
+      if (movie_requested(movie_SFWF) ) then
+         if (sfc_layer_type == sfc_layer_varthick .and. &
+             .not. lfw_as_salt_flx) then
+            where (KMT(:,:,iblock) > 0)
+               WORK = FW(:,:,iblock)*seconds_in_year*mpercm ! m/yr
+            elsewhere
+               WORK = c0
+            end where
+         else
+            where (KMT(:,:,iblock) > 0) ! convert to kg(freshwater)/m^2/s
+               WORK = STF(:,:,2,iblock)/salinity_factor
+            elsewhere
+               WORK = c0
+            end where
+         endif
+         call update_movie_field(WORK, movie_SFWF, iblock, 1)
+      endif
+
+      if (movie_requested(movie_TAUX) ) then
+         call update_movie_field(SMF(:,:,1,iblock), &
+                                    movie_TAUX,iblock,1)
+      endif
+
+      if (movie_requested(movie_TAUY) ) then
+         call update_movie_field(SMF(:,:,2,iblock), &
+                                    movie_TAUY,iblock,1)
+      endif
+
+
+   end do
+
+   !$OMP END PARALLEL DO
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine movie_forcing
+
 
 !***********************************************************************
 
