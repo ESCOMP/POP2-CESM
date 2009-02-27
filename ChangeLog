@@ -1,5 +1,30 @@
 ===============================================================================
 
+Originator: njn01
+Date:  27 February 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090227
+Summary of Changes:  
+     * Update pop2_in_build.csh to reflect most recent hmix_gm eg namelist parameters
+Testing:  Gokhan, Markus
+Reviewer: None
+
+From Markus:
+Hi Nancy,
+
+here is our best estimate for the constants:
+
+   const_eg               = 0.8
+   gamma_eg               = 300.0
+   kappa_min_eg           = 0.35e7
+   kappa_max_eg           = 2.5e7
+
+                      Cheers,
+                       Markus
+
+M           14585   ChangeLog
+M           14585   input_templates/pop2_in_build.csh
+
 ===============================================================================
 Originator: njn01
 Date:  26 February 2009

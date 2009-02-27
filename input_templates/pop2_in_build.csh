@@ -767,7 +767,7 @@ cat >> $POP2_NMLFILE << EOF
    const_eg               = 0.8
    gamma_eg               = 300.0
    kappa_min_eg           = 0.35e7
-   kappa_max_eg           = 5.0e7
+   kappa_max_eg           = 2.5e7
 /
 
 EOF
