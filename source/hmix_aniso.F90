@@ -369,7 +369,7 @@
       allocate(DSMIN(nx_block,ny_block,nblocks_clinic))
    endif
 
-   !$OMP PARALLEL DO PRIVATE(WORKA, WORKB)
+!jw   !$OMP PARALLEL DO PRIVATE(iblock,i,j,WORKA,WORKB)   !this one definitely causes problems
    do iblock=1,nblocks_clinic
 
       H2S(:,:,iblock) = HTE(:,:,iblock)
@@ -398,7 +398,7 @@
       endif
 
    end do ! block loop
-   !$OMP END PARALLEL DO
+!jw   !$OMP END PARALLEL DO
 
 !-----------------------------------------------------------------------
 !
@@ -448,7 +448,7 @@
 
          ! Enforce limits through tapering
 
-         !$OMP PARALLEL DO PRIVATE(k)
+         !$OMP PARALLEL DO PRIVATE(iblock,k)
          do iblock=1,nblocks_clinic
          do k=1,km
 
@@ -476,7 +476,7 @@
          cfl_warn1 = 0
          cfl_warn2 = 0
 
-         !$OMP PARALLEL DO
+         !$OMP PARALLEL DO PRIVATE(iblock)
          do iblock=1,nblocks_clinic
             if (ANY(visc_para > AMAX_CFL(:,:,iblock))) cfl_warn1 = 1
             if (ANY(visc_perp > AMAX_CFL(:,:,iblock))) cfl_warn2 = 1
@@ -519,7 +519,7 @@
       !*** latitude dependence of F_PERP_SMAG for viscous CCSM runs
 
       if (smag_lat_fact /= c0) then
-         !$OMP PARALLEL DO
+         !$OMP PARALLEL DO PRIVATE(iblock,WORKA)
          do iblock=1,nblocks_clinic
             WORKA = abs(ULAT(:,:,iblock))*radian
             where (WORKA >= smag_lat)

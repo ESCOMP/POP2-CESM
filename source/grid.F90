@@ -508,7 +508,7 @@
 !
 !-----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(i,j,this_block)
+   !$OMP PARALLEL DO PRIVATE(iblock,i,j,this_block)
    do iblock=1,nblocks_clinic
       this_block = get_block(blocks_clinic(iblock),iblock)
 
@@ -609,7 +609,8 @@
 
    ANGLET = c0
 
-   !$OMP PARALLEL DO PRIVATE (i,j,angle_0,angle_w,angle_s,angle_sw, & 
+
+   !$OMP PARALLEL DO PRIVATE (n,i,j,angle_0,angle_w,angle_s,angle_sw, &
    !$OMP                      this_block)
 
    do n=1,nblocks_clinic
@@ -851,7 +852,7 @@
       DZT = c0
       DZU = c0
 
-      !$OMP PARALLEL DO PRIVATE(k,i,j)
+      !$OMP PARALLEL DO PRIVATE(n,k,i,j)  
       do n=1,nblocks_clinic
       do k=1,km
          do j=1,ny_block
@@ -922,7 +923,7 @@
    !***
 
    if (partial_bottom_cells) then
-      !$OMP PARALLEL DO PRIVATE(k,i,j)
+      !$OMP PARALLEL DO PRIVATE(n,k,i,j)
       do n=1,nblocks_clinic
          HT (:,:,n) = c0
          HU (:,:,n) = c0
@@ -944,7 +945,7 @@
       enddo
       !$OMP END PARALLEL DO
    else
-      !$OMP PARALLEL DO PRIVATE(k,i,j)
+      !$OMP PARALLEL DO PRIVATE(n,k,i,j)
       do n=1,nblocks_clinic
          HT (:,:,n) = c0
          HU (:,:,n) = c0
@@ -1132,7 +1133,7 @@
 
    else ! not latlon_only
 
-      !$OMP PARALLEL DO PRIVATE(this_block, i, j, ig, jg, lathalf)
+      !$OMP PARALLEL DO PRIVATE(n,this_block,i,j,ig,jg,jm1,lathalf)
       do n=1,nblocks_clinic
 
          this_block = get_block(blocks_clinic(n),n)
@@ -2828,7 +2829,7 @@
 !
 !-----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(i,j,xsw,ysw,zsw,xw,yw,zw,xs,ys,zs,xc,yc,zc, &
+   !$OMP PARALLEL DO PRIVATE(n,i,j,this_block,xsw,ysw,zsw,xw,yw,zw,xs,ys,zs,xc,yc,zc, &
    !$OMP                     tx,ty,tz,da)
 
    do n=1,nblocks_clinic

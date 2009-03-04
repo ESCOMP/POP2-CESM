@@ -1682,7 +1682,7 @@
 !
 !----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(iblock)
+   !$OMP PARALLEL DO PRIVATE(iblock,FRAC_CLOUD_COVER,RTEA)
    do iblock=1,nblocks_clinic
 
 !----------------------------------------------------------------------

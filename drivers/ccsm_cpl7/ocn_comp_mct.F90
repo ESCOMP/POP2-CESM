@@ -1186,7 +1186,7 @@ contains
      do k = 1,nrecv
 
          n = 0
-         !$OMP PARALLEL DO PRIVATE(iblock,n)
+         !$OMP PARALLEL DO PRIVATE(iblock,this_block,i,j,n)
          do iblock = 1, nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
 

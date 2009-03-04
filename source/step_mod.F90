@@ -242,7 +242,7 @@
 
       if (mix_pass == 1) then
 
-         !$OMP PARALLEL DO
+         !$OMP PARALLEL DO PRIVATE(iblock)
          do iblock = 1,nblocks_clinic
             UBTROP(:,:,oldtime,iblock) = UBTROP(:,:,curtime,iblock)
             VBTROP(:,:,oldtime,iblock) = VBTROP(:,:,curtime,iblock)
@@ -467,7 +467,7 @@
 !
 !-----------------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblock, k)
+      !$OMP PARALLEL DO PRIVATE(iblock,k,i,j)
       do iblock = 1,nblocks_clinic
 
 !CDIR NOVECTOR
@@ -513,7 +513,7 @@
 !
 !-----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO
+   !$OMP PARALLEL DO PRIVATE(iblock)
    do iblock = 1,nblocks_clinic
       PGUESS(:,:,iblock) = c3*(PSURF(:,:,newtime,iblock) -   &
                                PSURF(:,:,curtime,iblock)) +  &
@@ -544,7 +544,7 @@
 
    if (avg_ts .or. back_to_back) then     ! averaging step
 
-      !$OMP PARALLEL DO PRIVATE(iblock, k, n, this_block)
+      !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,n)
 
       do iblock = 1,nblocks_clinic
          this_block = get_block(blocks_clinic(iblock),iblock)  
@@ -663,7 +663,7 @@
 
    else  ! non-averaging step
   
-      !$OMP PARALLEL DO
+      !$OMP PARALLEL DO PRIVATE(iblock)
       do iblock = 1,nblocks_clinic
 
          if (mix_pass == 2) then ! reset time n variables on 2nd pass matsuno
@@ -702,7 +702,7 @@
    if (registry_match('lcoupled')) then
    if ( liceform .and. check_time_flag(ice_cpl_flag) ) then
      call tavg_increment_sum_qflux(const=tlast_ice)
-     !$OMP PARALLEL DO
+     !$OMP PARALLEL DO PRIVATE(iblock)
      do iblock = 1,nblocks_clinic
         call ice_flx_to_coupler(TRACER(:,:,:,:,curtime,iblock),iblock)
         if (tavg_requested(tavg_id('QFLUX')) ) &

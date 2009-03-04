@@ -474,7 +474,7 @@
 !-----------------------------------------------------------------------
 
 
-   !$OMP PARALLEL DO PRIVATE(iblock,k,kp1,km1,this_block,WTK)
+!jw    !$OMP PARALLEL DO PRIVATE(iblock,k,kp1,km1,this_block,WTK,WORK1,factor)
 
    do iblock = 1,nblocks_clinic
       this_block = get_block(blocks_clinic(iblock),iblock)  
@@ -753,7 +753,7 @@
 
    enddo ! first block loop
 
-   !$OMP END PARALLEL DO
+!jw   !$OMP END PARALLEL DO
 
 
 !-----------------------------------------------------------------------

@@ -1766,7 +1766,7 @@
 
          if (avail_tavg_fields(nfield)%ndims == 2) then
 
-            !$OMP PARALLEL DO
+            !$OMP PARALLEL DO PRIVATE(iblock)
             do iblock = 1,nblocks_clinic
                select case(field_loc)
                case(field_loc_center)
@@ -1797,7 +1797,7 @@
 
          else
       
-            !$OMP PARALLEL DO PRIVATE(k)
+            !$OMP PARALLEL DO PRIVATE(iblock,k,RMASK)
             do iblock = 1,nblocks_clinic
                WORK(:,:,iblock) = c0
 
@@ -1971,7 +1971,7 @@
    if (tavg_norm == c0) &
      call exit_POP (SigAbort,'ERROR: tavg_norm = 0 in tavg_global_sum_2D')
 
-   !$OMP PARALLEL DO
+   !$OMP PARALLEL DO PRIVATE(iblock)
    do iblock = 1,nblocks_clinic
       select case(field_loc)
         case(field_loc_center)
@@ -2168,7 +2168,7 @@
       nfield
 
 
-  !$OMP PARALLEL DO PRIVATE(nfield)
+  !$OMP PARALLEL DO PRIVATE(iblock,nfield)
   do iblock=1,nblocks_clinic
      do nfield=1,tavg_bufsize_2d
        select case (TAVG_BUF_2D_METHOD(nfield))
@@ -2271,7 +2271,7 @@
    end select
  
  
-   !$OMP PARALLEL DO PRIVATE(nfield)
+   !$OMP PARALLEL DO PRIVATE(iblock,nfield)
    do iblock=1,nblocks_clinic
       do nfield=1,tavg_bufsize_2d
          select case (TAVG_BUF_2D_METHOD(nfield))

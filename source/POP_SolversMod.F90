@@ -496,7 +496,8 @@
       return
    endif
 
-   !$OMP PARALLEL DO PRIVATE(iblock)
+   !$OMP PARALLEL DO PRIVATE(iblock,i,j,xne,xse,xnw,xsw,yne,yse,ynw,ysw, &
+   !$OMP                     ase,anw,asw)
 
    do iblock = 1,numBlocksClinic
 

@@ -1135,7 +1135,8 @@ contains
     !   Compute XKW_ICE. XKW is zero over land, so XKW_ICE is too.
     !---------------------------------------------------------------------------
 
-    !$OMP PARALLEL DO PRIVATE(iblock,j,XKW_ICE,SCHMIDT_USED,PV, FLUX)
+    !$OMP PARALLEL DO PRIVATE(iblock,j,XKW_ICE,SCHMIDT_USED,CFC11SAT_1atm, &
+    !$OMP                     CFC11SAT_USED,PV,FLUX)
 
     do iblock = 1, nblocks_clinic
 

@@ -711,7 +711,7 @@
          !*** compute local addresses for transport
          !***
 
-         !$OMP PARALLEL DO PRIVATE(this_block,ib,ie,jb,je)
+         !$OMP PARALLEL DO PRIVATE(iblock,this_block,ib,ie,jb,je)
 
          do iblock=1,nblocks_clinic
 
@@ -1168,8 +1168,8 @@
 
       local_sums = c0
 
-      !$OMP PARALLEL DO PRIVATE(this_block, ib, ie, jb, je, i, &
-      !$OMP                     k, n, dcount, WORK1, UFACT, TFACT)
+      !$OMP PARALLEL DO PRIVATE(iblock,this_block,ib,ie,jb,je,i, &
+      !$OMP                     k,n,dcount,WORK1,UFACT,TFACT)
 
       do iblock = 1,nblocks_clinic
 
@@ -1351,7 +1351,7 @@
 
 !-----------------------------------------------------------------------
       if (tavg_requested(tavg_HMXL)) then
-        !$OMP PARALLEL DO
+        !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock=1,nblocks_clinic
           call accumulate_tavg_field(HMXL(:,:,iblock), tavg_HMXL, iblock, 1)
         end do
@@ -1359,7 +1359,7 @@
       endif
 
       if (tavg_requested(tavg_XMXL)) then
-        !$OMP PARALLEL DO
+        !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock=1,nblocks_clinic
           call accumulate_tavg_field(HMXL(:,:,iblock), tavg_XMXL, iblock, 1)
         end do
@@ -1367,7 +1367,7 @@
       endif
 
       if (tavg_requested(tavg_TMXL)) then
-        !$OMP PARALLEL DO
+        !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock=1,nblocks_clinic
           call accumulate_tavg_field(HMXL(:,:,iblock), tavg_TMXL, iblock, 1)
         end do
@@ -1375,7 +1375,7 @@
       endif
 
       if (tavg_requested(tavg_HBLT)) then
-        !$OMP PARALLEL DO
+        !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock=1,nblocks_clinic
           call accumulate_tavg_field(KPP_HBLT(:,:,iblock), tavg_HBLT, iblock, 1)
         end do
@@ -1383,7 +1383,7 @@
       endif
 
       if (tavg_requested(tavg_XBLT)) then
-        !$OMP PARALLEL DO
+        !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock=1,nblocks_clinic
           call accumulate_tavg_field(KPP_HBLT(:,:,iblock), tavg_XBLT, iblock, 1)
         end do
@@ -1391,7 +1391,7 @@
       endif
 
       if (tavg_requested(tavg_TBLT)) then
-        !$OMP PARALLEL DO
+        !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock=1,nblocks_clinic
           call accumulate_tavg_field(KPP_HBLT(:,:,iblock), tavg_TBLT, iblock, 1)
         end do
@@ -1493,8 +1493,8 @@
       if (diag_all_levels) local_sums_k = c0
 
       !$OMP PARALLEL DO &
-      !$OMP PRIVATE(this_block, ib, ie, jb, je, i, dcount, &
-      !$OMP         WORK1, TFACT, UFACT)
+      !$OMP PRIVATE(iblock,this_block,ib,ie,jb,je,i,k,n,dcount, &
+      !$OMP         WORK1,TFACT,UFACT)
 
       do iblock = 1,nblocks_clinic
 
@@ -1950,9 +1950,9 @@
                heat_tran(nblocks_clinic,num_transports), &
                salt_tran(nblocks_clinic,num_transports))
 
-      !$OMP PARALLEL DO PRIVATE(WORK1, WORK2, MASS_M, SALT_M, HEAT_M, &
-      !$OMP                                   MASS_Z, SALT_Z, HEAT_Z, &
-      !$OMP                     this_block, i, j, k, ib, ie, jb, je)
+      !$OMP PARALLEL DO PRIVATE(WORK1, WORK2,MASS_M,SALT_M,HEAT_M, &
+      !$OMP                                  MASS_Z,SALT_Z,HEAT_Z, &
+      !$OMP                     iblock,this_block,i,j,k,n,ib,ie,jb,je)
 
       do iblock = 1,nblocks_clinic
 

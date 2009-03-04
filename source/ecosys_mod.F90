@@ -3980,7 +3980,7 @@ contains
 
    call named_field_register('SFLUX_CO2', sflux_co2_nf_ind)
    WORK = c0
-   !$OMP PARALLEL DO PRIVATE(iblock)
+   !$OMP PARALLEL DO PRIVATE(iblock,WORK)
    do iblock=1,nblocks_clinic
       call named_field_set(sflux_co2_nf_ind, iblock, WORK)
    end do
@@ -4391,7 +4391,10 @@ contains
 
    if (lflux_gas_o2 .or. lflux_gas_co2) then
 
-      !$OMP PARALLEL DO PRIVATE(iblock,j,XKW_ICE,SCHMIDT_USED,PV,O2SAT_USED, O2SAT_1atm,FLUX,XCO2,PHLO,PHHI,PH_NEW,CO2STAR_ROW,DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW)
+      !$OMP PARALLEL DO PRIVATE(iblock,j,XKW_ICE,SCHMIDT_USED,PV,O2SAT_USED, &
+      !$OMP                     O2SAT_1atm,FLUX,XCO2,PHLO,PHHI,DIC_ROW,ALK_ROW, &
+      !$OMP                     PO4_ROW,SiO3_ROW,PH_NEW,CO2STAR_ROW, &
+      !$OMP                     DCO2STAR_ROW,pCO2SURF_ROW,DpCO2_ROW)
 
       do iblock = 1, nblocks_clinic
 
@@ -4979,7 +4982,7 @@ contains
 
    local_sums = c0
 
-   !$OMP PARALLEL DO PRIVATE(iblock,n)
+   !$OMP PARALLEL DO PRIVATE(iblock,this_block,ib,ie,jb,je,TFACT,n,WORK1)
    do iblock = 1,nblocks_clinic
       this_block = get_block(blocks_clinic(iblock),iblock)
       ib = this_block%ib

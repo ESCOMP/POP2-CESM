@@ -646,7 +646,7 @@
 
    iter_loop: do m=1,mxscan
 
-     !$OMP PARALLEL DO PRIVATE(iblock,this_block)
+     !$OMP PARALLEL DO PRIVATE(iblock,this_block,isle)
      do iblock=1,nblocks_tropic
         this_block = get_block(blocks_tropic(iblock),iblock)
 

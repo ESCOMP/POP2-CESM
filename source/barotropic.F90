@@ -376,7 +376,7 @@
 !
 !-----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(iblock, this_block, &
+   !$OMP PARALLEL DO PRIVATE(iblock, this_block, diagonalCorrection, &
    !$OMP                     WORK1, WORK2, WORK3, WORK4)
 
    do iblock = 1,nblocks_clinic

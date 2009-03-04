@@ -596,10 +596,10 @@
         ! flux there
         !-----------------------------------------------------------
 
-         !$OMP PARALLEL DO PRIVATE(iblock,n)
+         !$OMP PARALLEL DO PRIVATE(iblock)
          do iblock = 1,nblocks_clinic
 
-         where (region_info(n)%number == REGION_MASK(:,:,iblock)) 
+         where (REGION_MASK(:,:,iblock) == region_info(n)%number)
            TRANSPORT(:,:,iblock) =                                    &
                                  ( max(c0,QFLUX(:,:,iblock))*c_q      &
                                  + WORK(:,:,iblock)*c_f               &
@@ -631,7 +631,7 @@
         !----------------------------------------------------------------
         ! transport excess/deficit to/from associated active-ocean region
         !----------------------------------------------------------------
-         !$OMP PARALLEL DO PRIVATE(iblock)
+         !$OMP PARALLEL DO PRIVATE(iblock,n)
          do iblock = 1,nblocks_clinic
 
          STF2(:,:,iblock) = STF2(:,:,iblock)  &
