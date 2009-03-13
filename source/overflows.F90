@@ -61,9 +61,9 @@
              init_overflows_mask,       &
              init_overflows3,           &   ! initial.F90
              init_overflows4,           &   ! initial.F90
+             init_overflows5,           &   ! initial.F90
              ovf_write_restart,         &   ! step_mod.F90
              ovf_read_restart,          &   ! init_overflows1
-             ovf_write_broadcast,       &   
              ovf_read_broadcast,        &   
              ovf_advt,                  &   ! advection.F90
              ovf_wtkb_check,            &   ! advection.F90
@@ -122,7 +122,7 @@
 
    integer (int_kind), parameter, public :: &
       max_ovf      =    10,&  ! max no. ocean overflows
-      max_kmt      =    50,&  ! max no. overflow kmt changes
+      max_kmt      =   200,&  ! max no. overflow kmt changes
       max_src      =    50,&  ! max no. overflow src locations
       max_ent      =    50,&  ! max no. overflow ent locations
       max_prd_sets =    20,&  ! max no. overflow prd sets
@@ -135,12 +135,10 @@
       real      (r8)    :: & 
         lat               ,&  ! latitude (degrees)
         width             ,&  ! strait width (cm)
-        depth_sill        ,&  ! depth of sill (cm)
         source_thick      ,&  ! source water thickness (cm)
         distnc_str_ssb    ,&  ! distance strait to ssb (cm)
         bottom_slope      ,&  ! bottom slope beyond ssb 
-        bottom_drag       ,&  ! bottom drag coefficient
-        transit_time          ! src to prd transit time (sec)
+        bottom_drag           ! bottom drag coefficient
    end type ovf_params
 
    type, public :: ovf_kmtbox        ! overflow grid-box for kmt changes
@@ -232,9 +230,7 @@
         Uovf_nm1          ,&  ! U at (n-1) speed on u grid
         Uovf_n            ,&  ! U at (n)   speed on u grid
         Uovf              ,&  ! U at (n+1) speed on u grid
-        Wovf              ,&  ! W at (n+1) vert speed on t grid
-        RHSbcmom_x        ,&  ! RHS baroclinic mom eqn x term on u grid
-        RHSbcmom_y            ! RHS baroclinic mom eqn y term on u grid
+        Wovf                  ! W at (n+1) vert speed on t grid
    end type ovf_gridbox
 
 !-------------------------------------------------------------------------------
@@ -509,26 +505,18 @@
 
         read(nu,*) ovf(n)%ovf_params%lat
         read(nu,*) ovf(n)%ovf_params%width
-        read(nu,*) ovf(n)%ovf_params%depth_sill
         read(nu,*) ovf(n)%ovf_params%source_thick
         read(nu,*) ovf(n)%ovf_params%distnc_str_ssb
         read(nu,*) ovf(n)%ovf_params%bottom_slope
         read(nu,*) ovf(n)%ovf_params%bottom_drag
-        read(nu,*) ovf(n)%ovf_params%transit_time
 
         write(stdout,*) ovf(n)%ovf_params%lat
         write(stdout,*) ovf(n)%ovf_params%width
-        write(stdout,*) ovf(n)%ovf_params%depth_sill
         write(stdout,*) ovf(n)%ovf_params%source_thick
         write(stdout,*) ovf(n)%ovf_params%distnc_str_ssb
         write(stdout,*) ovf(n)%ovf_params%bottom_slope
         write(stdout,*) ovf(n)%ovf_params%bottom_drag
-        write(stdout,*) ovf(n)%ovf_params%transit_time
         call shr_sys_flush(stdout)
-
-! days to seconds for transit time
-        ovf(n)%ovf_params%transit_time = &
-               ovf(n)%ovf_params%transit_time*seconds_in_day
 
 ! kmt changes if any
         read(nu,*) ovf(n)%num_kmt
@@ -1133,12 +1121,10 @@
 ! ovf data
       call broadcast_scalar(ovf(n)%ovf_params%lat, master_task)
       call broadcast_scalar(ovf(n)%ovf_params%width, master_task)
-      call broadcast_scalar(ovf(n)%ovf_params%depth_sill, master_task)
       call broadcast_scalar(ovf(n)%ovf_params%source_thick, master_task)
       call broadcast_scalar(ovf(n)%ovf_params%distnc_str_ssb, master_task)
       call broadcast_scalar(ovf(n)%ovf_params%bottom_slope, master_task)
       call broadcast_scalar(ovf(n)%ovf_params%bottom_drag, master_task)
-      call broadcast_scalar(ovf(n)%ovf_params%transit_time, master_task)
 ! kmt locations
       call broadcast_scalar(ovf(n)%num_kmt, master_task)
       do m=1,ovf(n)%num_kmt
@@ -1277,8 +1263,6 @@
        ovf(n)%loc_src(m)%Uovf_n     = c0
        ovf(n)%loc_src(m)%Uovf       = c0
        ovf(n)%loc_src(m)%Wovf       = c0
-       ovf(n)%loc_src(m)%RHSbcmom_x = c0
-       ovf(n)%loc_src(m)%RHSbcmom_y = c0
      end do
      do m=1,ovf(n)%num_ent
        do k=1,km
@@ -1289,8 +1273,6 @@
        ovf(n)%loc_ent(m)%Uovf_n     = c0
        ovf(n)%loc_ent(m)%Uovf       = c0
        ovf(n)%loc_ent(m)%Wovf       = c0
-       ovf(n)%loc_ent(m)%RHSbcmom_x = c0
-       ovf(n)%loc_ent(m)%RHSbcmom_y = c0
      end do
      do m=1,ovf(n)%num_prd_sets
        do mp=1,ovf(n)%num_prd(m)
@@ -1302,8 +1284,6 @@
          ovf(n)%loc_prd(m,mp)%Uovf_n     = c0
          ovf(n)%loc_prd(m,mp)%Uovf       = c0
          ovf(n)%loc_prd(m,mp)%Wovf       = c0
-         ovf(n)%loc_prd(m,mp)%RHSbcmom_x = c0
-         ovf(n)%loc_prd(m,mp)%RHSbcmom_y = c0
        end do
      end do
    end do  ! ovf initialization loop for all processors
@@ -1725,6 +1705,57 @@
 
 !***********************************************************************
 !EOP
+! !IROUTINE: init_overflows5
+! !INTERFACE:
+
+ subroutine init_overflows5
+
+! !DESCRIPTION:
+!  This routine computes regional aveages required at restart
+!  for overflow regions, using all available tracers, and also
+!  computes regional product values based on source and entrainment.
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+   save
+
+   integer   (int_kind)  :: &
+      n         ,& ! index of overflow
+     nn            ! ovf tracer index
+   real (r8) ::  &
+     phi           ! entrainment parameter from actual ratio Me/Mp
+
+!-----------------------------------------------------------------------
+!
+!  compute regional averages.
+!
+!-----------------------------------------------------------------------
+
+   if( overflows_on .and. overflows_interactive ) then
+      call ovf_reg_avgs(oldtime)
+! evaluate regional product values based on src,ent averages just computed
+      do n=1,num_ovf
+        phi = ovf(n)%phi
+        do nn=1,nt
+           ovf(n)%trcr_reg%prd(nn) = ovf(n)%trcr_reg%src(nn) * (c1 - phi) &
+                                   + ovf(n)%trcr_reg%ent(nn) * phi
+        end do
+      enddo
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine init_overflows5
+
+!***********************************************************************
+!EOP
 ! !IROUTINE: ovf_write_restart
 ! !INTERFACE:
 
@@ -1824,8 +1855,6 @@
       102 format(2x,1PE27.18,'   ! latitude in degrees')
       write(mu,103) ovf(n)%ovf_params%width
       103 format(2x,1PE27.18,'   ! channel width in meters')
-      write(mu,104) ovf(n)%ovf_params%depth_sill
-      104 format(2x,1PE27.18,'   ! depth of sill in meters')
       write(mu,105) ovf(n)%ovf_params%source_thick
       105 format(2x,1PE27.18,'   ! source thickness in meters')
       write(mu,106) ovf(n)%ovf_params%distnc_str_ssb
@@ -1834,8 +1863,6 @@
       107 format(2x,1PE27.18,'   ! bottom slope dy/dx ')
       write(mu,108) ovf(n)%ovf_params%bottom_drag
       108 format(2x,1PE27.18,'   ! bottom drag coefficient')
-      write(mu,109) ovf(n)%ovf_params%transit_time
-      109 format(2x,1PE27.18,'   ! source to product transit time')
 
 ! kmt changes, if any
       write(mu,1090) ovf(n)%num_kmt
@@ -2029,48 +2056,6 @@
       write(mu,186) ovf(n)%prd_set_n
       write(mu,186) ovf(n)%prd_set
       186 format(2x,i10,20x,'! product set index (first is previous time step)')
-! tracers
-      write(mu,187) nt
-      187 format(2x,i10,20x,'! number of tracers')
-      do nn=1,nt
-         write(mu,188) ovf(n)%trcr_reg%inf(nn)
-         188 format(2x,1PE27.18,'   ! inflow regional tracer')
-         write(mu,189) ovf(n)%trcr_reg%src(nn)
-         189 format(2x,1PE27.18,'   ! source regional tracer')
-         write(mu,190) ovf(n)%trcr_reg%ent(nn)
-         190 format(2x,1PE27.18,'   ! entrainment regional tracer')
-         write(mu,191) ovf(n)%trcr_reg%prd(nn)
-         191 format(2x,1PE27.18,'   ! product regional tracer')
-         write(mu,192) ovf(n)%trcr_adj%src(nn)
-         192 format(2x,1PE27.18,'   ! source adjacent tracer')
-         write(mu,193) ovf(n)%trcr_adj%ent(nn)
-         193 format(2x,1PE27.18,'   ! entrainment adjacent tracer')
-         write(mu,194) ovf(n)%trcr_adj%prd(nn)
-         194 format(2x,1PE27.18,'   ! product adjacent tracer')
-      end do
-! Velocity src
-      do m=1,ovf(n)%num_src
-         write(mu,199) ovf(n)%loc_src(m)%RHSbcmom_x
-         199 format(2x,1PE27.18,'   ! source RHSbcmom_x')
-         write(mu,200) ovf(n)%loc_src(m)%RHSbcmom_y
-         200 format(2x,1PE27.18,'   ! source RHSbcmom_y')
-      end do
-! Velocity ent
-      do m=1,ovf(n)%num_ent
-         write(mu,205) ovf(n)%loc_ent(m)%RHSbcmom_x
-         205 format(2x,1PE27.18,'   ! entrainment RHSbcmom_x')
-         write(mu,206) ovf(n)%loc_ent(m)%RHSbcmom_y
-         206 format(2x,1PE27.18,'   ! entrainment RHSbcmom_y')
-      end do
-! Velocity prd
-      do m=1,ovf(n)%num_prd_sets
-         do mp=1,ovf(n)%num_prd(m)
-            write(mu,211) ovf(n)%loc_prd(m,mp)%RHSbcmom_x
-            211 format(2x,1PE27.18,'   ! product RHSbcmom_x')
-            write(mu,212) ovf(n)%loc_prd(m,mp)%RHSbcmom_y
-            212 format(2x,1PE27.18,'   ! product RHSbcmom_y')
-         end do
-      end do
 
    end do  ! ovf loop 
 
@@ -2218,8 +2203,6 @@
       102 format(2x,1PE27.18)
       read(mu,103) ovf(n)%ovf_params%width
       103 format(2x,1PE27.18)
-      read(mu,104) ovf(n)%ovf_params%depth_sill
-      104 format(2x,1PE27.18)
       read(mu,105) ovf(n)%ovf_params%source_thick
       105 format(2x,1PE27.18)
       read(mu,106) ovf(n)%ovf_params%distnc_str_ssb
@@ -2228,8 +2211,6 @@
       107 format(2x,1PE27.18)
       read(mu,108) ovf(n)%ovf_params%bottom_drag
       108 format(2x,1PE27.18)
-      read(mu,109) ovf(n)%ovf_params%transit_time
-      109 format(2x,1PE27.18)
 ! kmt changes, if any
       read(mu,1090) ovf(n)%num_kmt
       1090 format(2x,i10,20x,'! number of kmt changes')
@@ -2420,48 +2401,6 @@
       read(mu,186) ovf(n)%prd_set_n
       read(mu,186) ovf(n)%prd_set
       186 format(2x,i10,20x)
-! tracers
-      read(mu,187) ntrcr
-      187 format(2x,i10,20x)
-      do nn=1,ntrcr
-         read(mu,188) ovf(n)%trcr_reg%inf(nn)
-         188 format(2x,1PE27.18)
-         read(mu,189) ovf(n)%trcr_reg%src(nn)
-         189 format(2x,1PE27.18)
-         read(mu,190) ovf(n)%trcr_reg%ent(nn)
-         190 format(2x,1PE27.18)
-         read(mu,191) ovf(n)%trcr_reg%prd(nn)
-         191 format(2x,1PE27.18)
-         read(mu,192) ovf(n)%trcr_adj%src(nn)
-         192 format(2x,1PE27.18)
-         read(mu,193) ovf(n)%trcr_adj%ent(nn)
-         193 format(2x,1PE27.18)
-         read(mu,194) ovf(n)%trcr_adj%prd(nn)
-         194 format(2x,1PE27.18)
-      end do
-! Velocity src
-      do m=1,ovf(n)%num_src
-         read(mu,199) ovf(n)%loc_src(m)%RHSbcmom_x
-         199 format(2x,1PE27.18)
-         read(mu,200) ovf(n)%loc_src(m)%RHSbcmom_y
-         200 format(2x,1PE27.18)
-      end do
-! Velocity ent
-      do m=1,ovf(n)%num_ent
-         read(mu,205) ovf(n)%loc_ent(m)%RHSbcmom_x
-         205 format(2x,1PE27.18)
-         read(mu,206) ovf(n)%loc_ent(m)%RHSbcmom_y
-         206 format(2x,1PE27.18)
-      end do
-! Velocity prd
-      do m=1,ovf(n)%num_prd_sets
-         do mp=1,ovf(n)%num_prd(m)
-            read(mu,211) ovf(n)%loc_prd(m,mp)%RHSbcmom_x
-            211 format(2x,1PE27.18)
-            read(mu,212) ovf(n)%loc_prd(m,mp)%RHSbcmom_y
-            212 format(2x,1PE27.18)
-         end do
-      end do
 
    end do  ! ovf loop 
 
@@ -2474,172 +2413,6 @@
 !EOC
 
  end subroutine ovf_read_restart
-
-!***********************************************************************
-!EOP
-! !IROUTINE: ovf_write_broadcast
-! !INTERFACE:
-
- subroutine ovf_write_broadcast
-
-! !DESCRIPTION:
-!  Broadcast RHSbcmom terms from my_task to all tasks.
-!
-! !REVISION HISTORY:
-!  same as module
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   integer (POP_i4)      :: &
-      nb,                   &! dummy index
-      bid,task_number,      &! block number and task number
-      errorCode              ! error return code
-
-   integer (int_kind)    :: &
-      n,m,mp,               &! dummy loop indices
-      ib,ie,jb,je,          &! local domain index boundaries
-      ib_g,ie_g,jb_g,je_g    ! global domain index boundaries
-
-   type (block)          :: &
-      this_block              ! block information for current block
-
-   logical (log_kind), parameter :: prnt = .false.
-
-   if( prnt .and. my_task == master_task ) then
-      write(stdout,*) 'ovf_write_broadcast called '
-      call shr_sys_flush(stdout)
-   endif
-
-! initialize overflow task numbers to 0
-
-      do n=1,num_ovf
-        do m=1,ovf(n)%num_src  ! source
-          ovf(n)%loc_src(m)%task_u = 0
-        enddo
-        do m=1,ovf(n)%num_ent  ! entrainment
-          ovf(n)%loc_ent(m)%task_u = 0
-        enddo
-        do m=1,ovf(n)%num_prd_sets  ! product
-           do mp=1,ovf(n)%num_prd(m)
-             ovf(n)%loc_prd(m,mp)%task_u = 0
-           enddo
-        enddo
-      enddo
-
-!-----------------------------------------------------------------------
-! Find task for each overflow "u" ij point for write of 
-! restart data. All tasks execute the following code.
-!-----------------------------------------------------------------------
-
-      if( prnt .and. my_task == master_task ) then
-         write(stdout,*) 'nblocks_tot master_task = ',nblocks_tot,master_task
-         call shr_sys_flush(stdout)
-      endif
-
-      do nb=1,POP_numBlocks 
-        call POP_DistributionGetBlockLoc(POP_distrbClinic,nb,task_number,bid,errorCode)
-        this_block = get_block(nb,bid)
-        ib = this_block%ib
-        ie = this_block%ie
-        jb = this_block%jb
-        je = this_block%je
-        ib_g = this_block%i_glob(ib)
-        ie_g = this_block%i_glob(ie)
-        jb_g = this_block%j_glob(jb)
-        je_g = this_block%j_glob(je)
-
-        if( prnt .and. my_task == master_task ) then
-           write(stdout,*) ' nb bid ib_g ie_g jb_g je_g task_number my_task = ', &
-                 nb,bid,ib_g,ie_g,jb_g,je_g,task_number,my_task
-           call shr_sys_flush(stdout)
-        endif
- 
-! Note that the task numbers returned by the POP_DistributionGetBlockLoc appear
-! to be numbered from 1 to total number of tasks, while the actual task numbers
-! for broadcast start from 0; therefore, the " - 1 " below in the task_u assignment.
-        do n=1,num_ovf
-          do m=1,ovf(n)%num_src  ! source
-            if(ovf(n)%loc_src(m)%j_u .ge. jb_g .and. &
-               ovf(n)%loc_src(m)%j_u .le. je_g) then
-              if(ovf(n)%loc_src(m)%i_u .ge. ib_g .and. &
-                 ovf(n)%loc_src(m)%i_u .le. ie_g) then
-                    ovf(n)%loc_src(m)%task_u = task_number - 1
-              endif
-            endif
-          end do
-          do m=1,ovf(n)%num_ent  ! entrainment
-             if(ovf(n)%loc_ent(m)%j_u .ge. jb_g .and. &
-               ovf(n)%loc_ent(m)%j_u .le. je_g) then
-              if(ovf(n)%loc_ent(m)%i_u .ge. ib_g .and. &
-                 ovf(n)%loc_ent(m)%i_u .le. ie_g) then
-                    ovf(n)%loc_ent(m)%task_u = task_number - 1
-              endif
-            endif
-          end do
-          do m=1,ovf(n)%num_prd_sets  ! product
-             do mp=1,ovf(n)%num_prd(m)
-               if(ovf(n)%loc_prd(m,mp)%j_u .ge. jb_g .and. &
-                  ovf(n)%loc_prd(m,mp)%j_u .le. je_g) then
-                 if(ovf(n)%loc_prd(m,mp)%i_u .ge. ib_g .and. &
-                    ovf(n)%loc_prd(m,mp)%i_u .le. ie_g) then
-                       ovf(n)%loc_prd(m,mp)%task_u = task_number - 1
-                 endif
-               endif
-             end do
-          end do
-        enddo
-     enddo
-
-!-----------------------------------------------------------------------
-! Now, broadcast selected ovf data from task with that
-! point to all others
-!-----------------------------------------------------------------------
-
-     do n=1,num_ovf
-       do m=1,ovf(n)%num_src  ! source
-         task_number = ovf(n)%loc_src(m)%task_u
-         call broadcast_scalar(ovf(n)%loc_src(m)%RHSbcmom_x,task_number)
-         call broadcast_scalar(ovf(n)%loc_src(m)%RHSbcmom_y,task_number)
-         if( prnt .and. my_task == master_task ) then
-            write(stdout,*) 'ovf src n m task_number my_task RHSbcmom_x,y =', &
-                 n,m,task_number,my_task, &
-                 ovf(n)%loc_src(m)%RHSbcmom_x,ovf(n)%loc_src(m)%RHSbcmom_y
-            call shr_sys_flush(stdout)
-         endif
-       enddo
-       do m=1,ovf(n)%num_ent  ! entrainment
-         task_number = ovf(n)%loc_ent(m)%task_u
-         call broadcast_scalar(ovf(n)%loc_ent(m)%RHSbcmom_x,task_number)
-         call broadcast_scalar(ovf(n)%loc_ent(m)%RHSbcmom_y,task_number)
-         if( prnt .and. my_task == master_task ) then
-            write(stdout,*) 'ovf ent n m task_number my_task RHSbcmom_x,y =', &
-                 n,m,task_number,my_task, &
-                 ovf(n)%loc_ent(m)%RHSbcmom_x,ovf(n)%loc_ent(m)%RHSbcmom_y
-            call shr_sys_flush(stdout)
-         endif
-       enddo
-       m = ovf(n)%prd_set
-       do mp=1,ovf(n)%num_prd(m)  ! product
-         task_number = ovf(n)%loc_prd(m,mp)%task_u
-         call broadcast_scalar(ovf(n)%loc_prd(m,mp)%RHSbcmom_x,task_number)
-         call broadcast_scalar(ovf(n)%loc_prd(m,mp)%RHSbcmom_y,task_number)
-         if( prnt .and. my_task == master_task ) then
-            write(stdout,*) 'ovf prd n m mp task_number my_task RHSbcmom_x,y =', &
-               n,m,mp,task_number,my_task, &
-               ovf(n)%loc_prd(m,mp)%RHSbcmom_x,ovf(n)%loc_prd(m,mp)%RHSbcmom_y
-            call shr_sys_flush(stdout)
-         endif
-       end do
-     enddo
-
-!----------------------------------------------------------------------
-!EOC
-
- end subroutine ovf_write_broadcast
 
 !***********************************************************************
 !EOP
@@ -2685,12 +2458,10 @@
 ! ovf data
       call broadcast_scalar(ovf(n)%ovf_params%lat, master_task)
       call broadcast_scalar(ovf(n)%ovf_params%width, master_task)
-      call broadcast_scalar(ovf(n)%ovf_params%depth_sill, master_task)
       call broadcast_scalar(ovf(n)%ovf_params%source_thick, master_task)
       call broadcast_scalar(ovf(n)%ovf_params%distnc_str_ssb, master_task)
       call broadcast_scalar(ovf(n)%ovf_params%bottom_slope, master_task)
       call broadcast_scalar(ovf(n)%ovf_params%bottom_drag, master_task)
-      call broadcast_scalar(ovf(n)%ovf_params%transit_time, master_task)
 ! kmt changes, if any
       call broadcast_scalar(ovf(n)%num_kmt, master_task)
       do m=1,ovf(n)%num_kmt
@@ -2804,23 +2575,6 @@
          call broadcast_scalar(ovf(n)%trcr_adj%src(nn), master_task)
          call broadcast_scalar(ovf(n)%trcr_adj%ent(nn), master_task)
          call broadcast_scalar(ovf(n)%trcr_adj%prd(nn), master_task)
-      end do
-! Velocity src
-      do m=1,ovf(n)%num_src
-         call broadcast_scalar(ovf(n)%loc_src(m)%RHSbcmom_x, master_task)
-         call broadcast_scalar(ovf(n)%loc_src(m)%RHSbcmom_y, master_task)
-      end do
-! Velocity ent
-      do m=1,ovf(n)%num_ent
-         call broadcast_scalar(ovf(n)%loc_ent(m)%RHSbcmom_x, master_task)
-         call broadcast_scalar(ovf(n)%loc_ent(m)%RHSbcmom_y, master_task)
-      end do
-! Velocity prd
-      do m=1,ovf(n)%num_prd_sets
-         do mp=1,ovf(n)%num_prd(m)
-            call broadcast_scalar(ovf(n)%loc_prd(m,mp)%RHSbcmom_x, master_task)
-            call broadcast_scalar(ovf(n)%loc_prd(m,mp)%RHSbcmom_y, master_task)
-         end do
       end do
 
    end do  ! ovf broadcast loop for all processors
@@ -3764,7 +3518,7 @@
 !
 !----------------------------------------------------------------------
 
-      call ovf_reg_avgs
+      call ovf_reg_avgs(curtime)
 
 !----------------------------------------------------------------------
 !
@@ -3808,13 +3562,20 @@
 ! !IROUTINE: ovf_reg_avgs
 ! !INTERFACE:
 
- subroutine ovf_reg_avgs
+ subroutine ovf_reg_avgs(time_level)
 
 ! !DESCRIPTION:
 !  Evaluate the ovf regional averages
 !
 ! !REVISION HISTORY:
 !  same as module
+
+!-----------------------------------------------------------------------
+!  input variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &! time indices for prognostic arrays
+      time_level          ! current time level  (n)
 
 !----------------------------------------------------------------------
 !
@@ -3861,7 +3622,7 @@
       do k = ovf(n)%reg_inf%kmin, ovf(n)%reg_inf%kmax
          vsum_reg_wght = vsum_reg_wght + ovf(n)%wght_reg%inf*dz(k)
          do iblock = 1,nblocks_clinic
-            WRK(:,:,iblock) = RHO(:,:,k,curtime,iblock) &
+            WRK(:,:,iblock) = RHO(:,:,k,time_level,iblock) &
                *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)   &
                *ovf(n)%mask_reg%inf(:,:,iblock)
          end do
@@ -3869,7 +3630,7 @@
             global_sum(WRK,distrb_clinic,field_loc_center)
          do nn = 1,nt
             do iblock = 1,nblocks_clinic
-               WRK(:,:,iblock) = TRACER(:,:,k,nn,curtime,iblock) &
+               WRK(:,:,iblock) = TRACER(:,:,k,nn,time_level,iblock) &
                   *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)         &
                   *ovf(n)%mask_reg%inf(:,:,iblock)
             end do
@@ -3901,7 +3662,7 @@
       do k = ovf(n)%reg_src%kmin, ovf(n)%reg_src%kmax
          vsum_reg_wght = vsum_reg_wght + ovf(n)%wght_reg%src*dz(k)
          do iblock = 1,nblocks_clinic
-            WRK(:,:,iblock) = RHO(:,:,k,curtime,iblock) &
+            WRK(:,:,iblock) = RHO(:,:,k,time_level,iblock) &
                *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)   &
                *ovf(n)%mask_reg%src(:,:,iblock)
          end do
@@ -3909,7 +3670,7 @@
             global_sum(WRK,distrb_clinic,field_loc_center)
          do nn = 1,nt
             do iblock = 1,nblocks_clinic
-               WRK(:,:,iblock) = TRACER(:,:,k,nn,curtime,iblock) &
+               WRK(:,:,iblock) = TRACER(:,:,k,nn,time_level,iblock) &
                   *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)         &
                   *ovf(n)%mask_reg%src(:,:,iblock)
             end do
@@ -3941,7 +3702,7 @@
          vsum_adj_wght = vsum_adj_wght + ovf(n)%wght_adj%src*dz(k)
          do nn = 1,nt
             do iblock = 1,nblocks_clinic
-               WRK(:,:,iblock) = TRACER(:,:,k,nn,curtime,iblock) &
+               WRK(:,:,iblock) = TRACER(:,:,k,nn,time_level,iblock) &
                   *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)         &
                   *ovf(n)%mask_adj%src(:,:,iblock)
             end do
@@ -3972,7 +3733,7 @@
       do k = ovf(n)%reg_ent%kmin, ovf(n)%reg_ent%kmax
          vsum_reg_wght = vsum_reg_wght + ovf(n)%wght_reg%ent*dz(k)
          do iblock = 1,nblocks_clinic
-            WRK(:,:,iblock) = RHO(:,:,k,curtime,iblock) &
+            WRK(:,:,iblock) = RHO(:,:,k,time_level,iblock) &
                *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)   &
                *ovf(n)%mask_reg%ent(:,:,iblock)
          end do
@@ -3980,7 +3741,7 @@
             global_sum(WRK,distrb_clinic,field_loc_center)
          do nn = 1,nt
             do iblock = 1,nblocks_clinic
-               WRK(:,:,iblock) = TRACER(:,:,k,nn,curtime,iblock) &
+               WRK(:,:,iblock) = TRACER(:,:,k,nn,time_level,iblock) &
                   *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)         &
                   *ovf(n)%mask_reg%ent(:,:,iblock)
             end do
@@ -4012,7 +3773,7 @@
          vsum_adj_wght = vsum_adj_wght + ovf(n)%wght_adj%ent*dz(k)
          do nn = 1,nt
             do iblock = 1,nblocks_clinic
-               WRK(:,:,iblock) = TRACER(:,:,k,nn,curtime,iblock) &
+               WRK(:,:,iblock) = TRACER(:,:,k,nn,time_level,iblock) &
                   *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)         &
                   *ovf(n)%mask_adj%ent(:,:,iblock)
             end do
@@ -4043,7 +3804,7 @@
          do k = ovf(n)%adj_prd(m)%kmin, ovf(n)%adj_prd(m)%kmax
             vsum_adj_wght = vsum_adj_wght + ovf(n)%wght_adj%prd(m)*dz(k)
             do iblock = 1,nblocks_clinic
-               WRK(:,:,iblock) = RHO(:,:,k,curtime,iblock) &
+               WRK(:,:,iblock) = RHO(:,:,k,time_level,iblock) &
                   *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)   &
                   *ovf(n)%mask_adj%prd(:,:,iblock,m)
             end do
@@ -4129,7 +3890,6 @@
      hu         ,& ! upstream source thickness (cm)
      hs         ,& ! source water vertical thickness (cm)
      Ws         ,& ! source water width (cm)
-     dsill      ,& ! depth of sill that overflows (cm)
      xse        ,& ! distance from source to entrainment (cm)
      di         ,& ! depth of inflow (cm)
      ds         ,& ! depth of source (cm)
@@ -4175,13 +3935,6 @@
      phi_eq     ,& ! equilibrium entrainment parameter (ratio Me/Mp)
      phi        ,& ! entrainment parameter from actual ratio Me/Mp
      Mp            ! product mass flux (Sv)
-!
-   real (r8) ::  &     
-     trans_t    ,& ! estimated overflow source to product transit time
-     N_ovf      ,& ! number of time steps for overflow transit time
-     Ms_eq      ,& ! source transport equilibrium value
-     Me_eq      ,& ! entrainment transport equilibrium value
-     Mp_eq         ! product transport equilibrium value
 
    logical (log_kind) :: &
      print_overflows_diag 
@@ -4217,11 +3970,9 @@
       fs      = c2*omg_e*sin(lat*pi/180.0_r8)
       hu      = ovf(n)%ovf_params%source_thick
       hs      = hu*(c2/c3)
-      dsill   = ovf(n)%ovf_params%depth_sill
       xse     = ovf(n)%ovf_params%distnc_str_ssb
       alpha   = ovf(n)%ovf_params%bottom_slope
       cd      = ovf(n)%ovf_params%bottom_drag
-      trans_t = ovf(n)%ovf_params%transit_time 
       di      = p5*(zt(ovf(n)%reg_inf%kmin)+zt(ovf(n)%reg_inf%kmax))
       ds      = zt(ovf(n)%loc_src(1)%k)
       de      = zt(ovf(n)%loc_ent(1)%k)
@@ -4274,15 +4025,10 @@
       ovf(n)%Me_n   = ovf(n)%Me
       ovf(n)%Mp_nm1 = ovf(n)%Mp_n
       ovf(n)%Mp_n   = ovf(n)%Mp
-   ! time smooth transports using transit time
-      N_ovf      = trans_t/dtt
-      Ms_eq      = Ms
-      Me_eq      = Me
-      Mp_eq      = Mp
-      ovf(n)%Ms  = (N_ovf*ovf(n)%Ms_n + Ms)/(N_ovf+c1)
-      ovf(n)%Me  = (N_ovf*ovf(n)%Me_n + Me)/(N_ovf+c1)
-      ovf(n)%Mp  = (N_ovf*ovf(n)%Mp_n + Mp)/(N_ovf+c1)
-   ! recompute phi based on time smoothed transports
+      ovf(n)%Ms     = Ms
+      ovf(n)%Me     = Me
+      ovf(n)%Mp     = Mp
+   ! recompute phi based on actual transports
       phi        = ovf(n)%Me / (ovf(n)%Mp + c1)
    ! if time averaging time step, include last time step 
       if( avg_ts ) then
@@ -4304,10 +4050,9 @@
       m = ovf(n)%prd_set
        if (print_overflows_diag .and. my_task == master_task) then         
          k_p = (ovf(n)%adj_prd(m)%kmin+ovf(n)%adj_prd(m)%kmax)/2
-         write(ovf_diag_unit,1234) tday, n,phi_eq,1.e-12*Ms_eq,1.e-12*Me_eq,1.e-12*Mp_eq, &
-              phi,1.e-12*ovf(n)%Ms,1.e-12*ovf(n)%Me,1.e-12*ovf(n)%Mp,m,zt(k_p)/100.
+         write(ovf_diag_unit,1234) tday,n,phi_eq,phi,1.e-12*Ms,1.e-12*Me,1.e-12*Mp,m,zt(k_p)/100.
          1234 format(' ovf_tr: ',f7.1,1x,  &
-                     i2,1x,4(f7.4,1x),4(f7.4,1x),1x,i2,1x,f8.1)
+                     i2,1x,2(f7.4,1x),2x,3(f7.4,1x),1x,i2,1x,f8.1)
          write(ovf_diag_unit,1235) tday, n,T_i,S_i*c1000,T_s,S_s*c1000,T_e,S_e*c1000,T_p,S_p*c1000
          1235 format(' ovf_TS: ',f7.1,1x,i2,1x,8(f7.4,1x))
          
@@ -5105,9 +4850,7 @@
  subroutine ovf_rhs_brtrpc_momentum(ZX,ZY)
 
 ! !DESCRIPTION:
-!  ZX and ZY vertical integrals of forcing are assumed complete when
-!  this routine called. now add the ovf contributions from topographic
-!  sidewalls. note this must be done after product point has moved.
+!  Renormalize overflow ZX and ZY vertical integrals of forcing
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -5164,17 +4907,14 @@
                         do k=KMU(i,j,iblock)+1,ksrc
                            dz_sidewall = dz_sidewall + dz(k)
                         enddo
-                        ZX(i,j,iblock) = (ZX(i,j,iblock)* HU(i,j,iblock) + & 
-                           (ovf(n)%loc_src(m)%RHSbcmom_x/c2dtu)) &
+                        ZX(i,j,iblock) = (ZX(i,j,iblock)* HU(i,j,iblock)) & 
                            / (HU(i,j,iblock)+dz_sidewall)
-                        ZY(i,j,iblock) = (ZY(i,j,iblock)* HU(i,j,iblock) + & 
-                           (ovf(n)%loc_src(m)%RHSbcmom_y/c2dtu)) &
+                        ZY(i,j,iblock) = (ZY(i,j,iblock)* HU(i,j,iblock)) & 
                            / (HU(i,j,iblock)+dz_sidewall)
                         if(prnt) then
-                           write(stdout,10) n,ovf(n)%loc_src(m)%i_u,ovf(n)%loc_src(m)%j_u, &
-                           ovf(n)%loc_src(m)%RHSbcmom_x,ovf(n)%loc_src(m)%RHSbcmom_y
+                           write(stdout,10) n,ovf(n)%loc_src(m)%i_u,ovf(n)%loc_src(m)%j_u
                            10 format(' ovf_rhs_brtrpc_momentum n=',i3, &
-                           ' src ZX,ZY adj at i_u j_u=',2(i3,1x),'RHS x,y=',2(1pe11.4,1x))
+                           ' src ZX,ZY adj at i_u j_u=',2(i3,1x))
                         endif
                      endif
                   end do  ! i
@@ -5199,17 +4939,14 @@
                         do k=KMU(i,j,iblock)+1,kent
                            dz_sidewall = dz_sidewall + dz(k)
                         enddo
-                        ZX(i,j,iblock) = (ZX(i,j,iblock)* HU(i,j,iblock) + & 
-                           (ovf(n)%loc_ent(m)%RHSbcmom_x/c2dtu)) &
+                        ZX(i,j,iblock) = (ZX(i,j,iblock)* HU(i,j,iblock)) & 
                            / (HU(i,j,iblock)+dz_sidewall)
-                        ZY(i,j,iblock) = (ZY(i,j,iblock)* HU(i,j,iblock) + & 
-                           (ovf(n)%loc_ent(m)%RHSbcmom_y/c2dtu)) &
+                        ZY(i,j,iblock) = (ZY(i,j,iblock)* HU(i,j,iblock)) & 
                            / (HU(i,j,iblock)+dz_sidewall)
                         if(prnt) then
-                           write(stdout,20) n,ovf(n)%loc_ent(m)%i_u,ovf(n)%loc_ent(m)%j_u, &
-                           ovf(n)%loc_ent(m)%RHSbcmom_x,ovf(n)%loc_ent(m)%RHSbcmom_y
+                           write(stdout,20) n,ovf(n)%loc_ent(m)%i_u,ovf(n)%loc_ent(m)%j_u
                            20 format(' ovf_rhs_brtrpc_momentum n=',i3, &
-                           ' ent ZX,ZY adj at i_u j_u=',2(i3,1x),'RHS x,y=',2(1pe11.4,1x))
+                           ' ent ZX,ZY adj at i_u j_u=',2(i3,1x))
                         endif
                      endif
                   end do  ! i
@@ -5235,18 +4972,15 @@
                         do k=KMU(i,j,iblock)+1,kprd
                            dz_sidewall = dz_sidewall + dz(k)
                         enddo
-                        ZX(i,j,iblock) = (ZX(i,j,iblock)* HU(i,j,iblock) + & 
-                           (ovf(n)%loc_prd(m,mp)%RHSbcmom_x/c2dtu)) &
+                        ZX(i,j,iblock) = (ZX(i,j,iblock)* HU(i,j,iblock)) & 
                            / (HU(i,j,iblock)+dz_sidewall)
-                        ZY(i,j,iblock) = (ZY(i,j,iblock)* HU(i,j,iblock) + & 
-                           (ovf(n)%loc_prd(m,mp)%RHSbcmom_y/c2dtu)) &
+                        ZY(i,j,iblock) = (ZY(i,j,iblock)* HU(i,j,iblock)) &
                            / (HU(i,j,iblock)+dz_sidewall)
                         if(prnt) then
                            write(stdout,30) n,ovf(n)%loc_prd(m,mp)%i_u, &
-                                            ovf(n)%loc_prd(m,mp)%j_u, &
-                           ovf(n)%loc_prd(m,mp)%RHSbcmom_x,ovf(n)%loc_prd(m,mp)%RHSbcmom_y
+                                              ovf(n)%loc_prd(m,mp)%j_u
                            30 format(' ovf_rhs_brtrpc_momentum n=',i3, &
-                           ' prd ZX,ZY adj at i_u j_u=',2(i3,1x),'RHS x,y=',2(1pe11.4,1x))
+                           ' prd ZX,ZY adj at i_u j_u=',2(i3,1x))
                         endif
                      endif
                   end do  ! i
@@ -5282,7 +5016,7 @@
 !  input variables
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(nx_block,ny_block), &
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
       intent(inout)      :: &
       WORK3,WORK4             ! grid x,y work arrays respectively
    integer (int_kind),      &
@@ -5325,9 +5059,9 @@
                      do k=KMU(i,j,iblock)+1,ksrc
                         dz_sidewall = dz_sidewall + dz(k)
                      enddo
-                     WORK3(i,j) = WORK3(i,j)*HUR(i,j,iblock) & 
+                     WORK3(i,j,iblock) = WORK3(i,j,iblock)*HUR(i,j,iblock) & 
                                           *(HU(i,j,iblock)+dz_sidewall)
-                     WORK4(i,j) = WORK4(i,j)*HUR(i,j,iblock) & 
+                     WORK4(i,j,iblock) = WORK4(i,j,iblock)*HUR(i,j,iblock) & 
                                           *(HU(i,j,iblock)+dz_sidewall)
                      if(prnt) then
                         write(stdout,10) n,ovf(n)%loc_src(m)%i_u, &
@@ -5352,9 +5086,9 @@
                      do k=KMU(i,j,iblock)+1,kent
                         dz_sidewall = dz_sidewall + dz(k)
                      enddo
-                     WORK3(i,j) = WORK3(i,j)*HUR(i,j,iblock) & 
+                     WORK3(i,j,iblock) = WORK3(i,j,iblock)*HUR(i,j,iblock) & 
                                           *(HU(i,j,iblock)+dz_sidewall)
-                     WORK4(i,j) = WORK4(i,j)*HUR(i,j,iblock) & 
+                     WORK4(i,j,iblock) = WORK4(i,j,iblock)*HUR(i,j,iblock) & 
                                           *(HU(i,j,iblock)+dz_sidewall)
                      if(prnt) then
                         write(stdout,20) n,ovf(n)%loc_ent(m)%i_u, &
@@ -5380,9 +5114,9 @@
                      do k=KMU(i,j,iblock)+1,kprd
                         dz_sidewall = dz_sidewall + dz(k)
                      enddo
-                     WORK3(i,j) = WORK3(i,j)*HUR(i,j,iblock) & 
+                     WORK3(i,j,iblock) = WORK3(i,j,iblock)*HUR(i,j,iblock) & 
                                           *(HU(i,j,iblock)+dz_sidewall)
-                     WORK4(i,j) = WORK4(i,j)*HUR(i,j,iblock) & 
+                     WORK4(i,j,iblock) = WORK4(i,j,iblock)*HUR(i,j,iblock) & 
                                           *(HU(i,j,iblock)+dz_sidewall)
                      if(prnt) then
                         write(stdout,30) n,ovf(n)%loc_prd(m,mp)%i_u, &
@@ -5911,8 +5645,7 @@
       Uovf,                 & ! overflow U
       Uovf_nm1,             & ! overflow U at n-1
       ubar,                 & ! barotropic velocity
-      utlda(km),            & ! unnormalized baroclinic velocity
-      rhsbcmom                ! right-hand-side baroclinic mom term
+      utlda(km)               ! unnormalized baroclinic velocity
 
    type (block)          :: &
       this_block              ! block information for current block
@@ -5928,13 +5661,6 @@
 !-----------------------------------------------------------------------
 
    do n=1,num_ovf  ! each overflow
-! set RHSbcmom terms to zero at product points, incase product has moved 
-      do m=1,ovf(n)%num_prd_sets
-        do mp=1,ovf(n)%num_prd(m)
-          ovf(n)%loc_prd(m,mp)%RHSbcmom_x = c0
-          ovf(n)%loc_prd(m,mp)%RHSbcmom_y = c0
-        end do
-      end do
 ! src
       do m=1,ovf(n)%num_src  ! source
          ksrc = ovf(n)%loc_src(m)%k
@@ -5961,8 +5687,7 @@
                         ubar     = UBTROP(i,j,newtime,iblock)
                         Uovf_nm1 = UVEL(i,j,ksrc,oldtime,iblock)
                         call ovf_U_column(i,j,ksrc,iblock, &
-                                 Uovf,ubar,utlda,Uovf_nm1,rhsbcmom)
-                        ovf(n)%loc_src(m)%RHSbcmom_x = rhsbcmom
+                                 Uovf,ubar,utlda,Uovf_nm1)
 ! V 
                         do k=1,km
                           utlda(k)  = ovf(n)%loc_src(m)%Vtlda(k)
@@ -5971,8 +5696,7 @@
                         ubar     = VBTROP(i,j,newtime,iblock)
                         Uovf_nm1 = VVEL(i,j,ksrc,oldtime,iblock)
                         call ovf_V_column(i,j,ksrc,iblock, &
-                                 Uovf,ubar,utlda,Uovf_nm1,rhsbcmom)
-                        ovf(n)%loc_src(m)%RHSbcmom_y = rhsbcmom
+                                 Uovf,ubar,utlda,Uovf_nm1)
                      endif
                   end do  ! i
                endif
@@ -6005,8 +5729,7 @@
                         ubar     = UBTROP(i,j,newtime,iblock)
                         Uovf_nm1 = UVEL(i,j,kent,oldtime,iblock)
                         call ovf_U_column(i,j,kent,iblock, &
-                                 Uovf,ubar,utlda,Uovf_nm1,rhsbcmom)
-                        ovf(n)%loc_ent(m)%RHSbcmom_x = rhsbcmom
+                                 Uovf,ubar,utlda,Uovf_nm1)
 ! V 
                         do k=1,km
                           utlda(k)  = ovf(n)%loc_ent(m)%Vtlda(k)
@@ -6015,8 +5738,7 @@
                         ubar     = VBTROP(i,j,newtime,iblock)
                         Uovf_nm1 = VVEL(i,j,kent,oldtime,iblock)
                         call ovf_V_column(i,j,kent,iblock, &
-                                 Uovf,ubar,utlda,Uovf_nm1,rhsbcmom)
-                        ovf(n)%loc_ent(m)%RHSbcmom_y = rhsbcmom
+                                 Uovf,ubar,utlda,Uovf_nm1)
                      endif
                   end do  ! i
                endif
@@ -6050,8 +5772,7 @@
                         ubar     = UBTROP(i,j,newtime,iblock)
                         Uovf_nm1 = UVEL(i,j,kprd,oldtime,iblock)
                         call ovf_U_column(i,j,kprd,iblock, &
-                                 Uovf,ubar,utlda,Uovf_nm1,rhsbcmom)
-                        ovf(n)%loc_prd(m,mp)%RHSbcmom_x = rhsbcmom
+                                 Uovf,ubar,utlda,Uovf_nm1)
 ! V 
                         do k=1,km
                           utlda(k)  = ovf(n)%loc_prd(m,mp)%Vtlda(k)
@@ -6060,8 +5781,7 @@
                         ubar     = VBTROP(i,j,newtime,iblock)
                         Uovf_nm1 = VVEL(i,j,kprd,oldtime,iblock)
                         call ovf_V_column(i,j,kprd,iblock, &
-                                 Uovf,ubar,utlda,Uovf_nm1,rhsbcmom)
-                        ovf(n)%loc_prd(m,mp)%RHSbcmom_y = rhsbcmom
+                                 Uovf,ubar,utlda,Uovf_nm1)
                      endif
                   end do  ! i
                endif
@@ -6081,8 +5801,7 @@
 ! !IROUTINE: ovf_U_column
 ! !INTERFACE:
 
- subroutine ovf_U_column(i,j,kovf,iblock,Uovf,ubar,utlda, &
-                          Uovf_nm1,rhsbcmom)
+ subroutine ovf_U_column(i,j,kovf,iblock,Uovf,ubar,utlda,Uovf_nm1)
 
 ! !DESCRIPTION:
 !  Evaluate ovf column solution for U baroclinic
@@ -6108,9 +5827,6 @@
       ubar,                  & ! barotropic velocity
       utlda(km),             & ! unnormalized baroclinic velocity
       Uovf_nm1                 ! overflow U at n-1
-
-   real (r8), intent(out) :: &
-      rhsbcmom                 ! right-hand-side baroclinic mom term
 
 !-----------------------------------------------------------------------
 !  local variables
@@ -6161,19 +5877,6 @@
      UVEL(i,j,k,newtime,iblock) = utlda(k) - utlda_bar
    enddo
 
-!  evaluate the right-hand-side (rhs) baroclinic  momentum term 
-!  rhsbcmom for the next time step
-!  below the topography but above the overflow
-
-   rhsbcmom = c0
-
-! keep rhs term zero  17 Nov 2008 BPB
-!  do k=KMU(i,j,iblock)+1,kovf-1
-!    rhsbcmom = rhsbcmom + (-ubar+utlda_bar)*dz(k)
-!  enddo
-!  evalute at overflow level
-!  rhsbcmom = rhsbcmom + (Uovf - ubar + utlda_bar - Uovf_nm1)*dz(kovf)
-
 !  check of zero vertical sum 
    hu       = c0
    vert_sum = c0
@@ -6192,9 +5895,9 @@
    if( prnt ) then
       write(stdout,*) 'ovf_U_column '
       write(stdout,5) KMU(i,j,iblock),kovf,Uovf,ubar,utlda_bar,Uovf_nm1, &
-                      rhsbcmom,vert_sum
-      5 format(' kmu,kovf,Uovf ubar utlda_bar Uovf_nm1 rhsbcmom vert_sum='/ &
-                 1x,2(i3,1x),2x,5(f10.5,1x),1pe11.4)
+                      vert_sum
+      5 format(' kmu,kovf,Uovf ubar utlda_bar Uovf_nm1 vert_sum='/ &
+                 1x,2(i3,1x),2x,4(f10.5,1x),1pe11.4)
       do k=1,kovf
         if( k <= KMU(i,j,iblock) ) then
           write(stdout,10) k,dz(k),utlda(k)-utlda_bar
@@ -6222,8 +5925,7 @@
 ! !IROUTINE: ovf_V_column
 ! !INTERFACE:
 
- subroutine ovf_V_column(i,j,kovf,iblock,Uovf,ubar,utlda, &
-                          Uovf_nm1,rhsbcmom)
+ subroutine ovf_V_column(i,j,kovf,iblock,Uovf,ubar,utlda,Uovf_nm1)
 
 ! !DESCRIPTION:
 !  Evaluate ovf column solution for V baroclinic
@@ -6249,9 +5951,6 @@
       ubar,                  & ! barotropic velocity
       utlda(km),             & ! unnormalized baroclinic velocity
       Uovf_nm1                 ! overflow U at n-1
-
-   real (r8), intent(out) :: &
-      rhsbcmom                 ! right-hand-side baroclinic mom term
 
 !-----------------------------------------------------------------------
 !  local variables
@@ -6302,19 +6001,6 @@
      VVEL(i,j,k,newtime,iblock) = utlda(k) - utlda_bar
    enddo
 
-!  evaluate the right-hand-side (rhs) baroclinic  momentum term 
-!  rhsbcmom for the next time step
-!  below the topography but above the overflow
-
-   rhsbcmom = c0
-
-! keep rhs term zero  17 Nov 2008 BPB
-!  do k=KMU(i,j,iblock)+1,kovf-1
-!    rhsbcmom = rhsbcmom + (-ubar+utlda_bar)*dz(k)
-!  enddo
-!  evalute at overflow level
-!  rhsbcmom = rhsbcmom + (Uovf - ubar + utlda_bar - Uovf_nm1)*dz(kovf)
-
 !  check of zero vertical sum 
    hu       = c0
    vert_sum = c0
@@ -6333,9 +6019,9 @@
    if( prnt ) then
       write(stdout,*) 'ovf_V_column '
       write(stdout,5) KMU(i,j,iblock),kovf,Uovf,ubar,utlda_bar,Uovf_nm1, &
-                      rhsbcmom,vert_sum
-      5 format(' kmu,kovf,Uovf ubar utlda_bar Uovf_nm1 rhsbcmom vert_sum='/ &
-                 1x,2(i3,1x),2x,5(f10.5,1x),1pe11.4)
+                      vert_sum
+      5 format(' kmu,kovf,Uovf ubar utlda_bar Uovf_nm1 vert_sum='/ &
+                 1x,2(i3,1x),2x,4(f10.5,1x),1pe11.4)
       do k=1,kovf
         if( k <= KMU(i,j,iblock) ) then
           write(stdout,10) k,dz(k),utlda(k)-utlda_bar

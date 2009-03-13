@@ -42,12 +42,10 @@
  1  'Denmark Strait'            ! number and name of overflow
       65.0                      ! latitude of overflow (degrees)
       5.0E06                    ! width of strait at surface (cm)
-      500.0E02                  ! depth of sill (cm)
       450.0E02                  ! source water thickness (cm)
       100.0E05                  ! distance from strait to shelf-slope break (cm)
       2.5E-2                    ! bottom slope just over shelf-slope break (unitless)
       3.0E-3                    ! bottom drag coefficient
-      0.0                       ! src to prd transit time (days)
    3                            ! 3=number of kmt changes
      19 372 33 32               ! pop up dms src
      19 371 33 32               ! pop up dms src
@@ -113,12 +111,10 @@
  2  'Faroe Bank Channel'        ! number and name of overflow
       62.00                     ! latitude of overflow (degrees)
       1.5E06                    ! width of strait at surface (cm)
-      800.0E02                  ! depth of sill (cm)
       300.0E02                  ! source water thickness (cm)
       25.0E06                   ! distance from strait to shelf-slope break (cm)
       1.5E-2                    ! bottom slope just over shelf-slope break (unitless)
       3.0E-3                    ! bottom drag coefficient
-      0.0                       ! src to prd transit time (days)
    3                            ! 3=number of kmt changes
      38 349 38 37               ! pop up fbc src
      38 350 38 37               ! pop up fbc src

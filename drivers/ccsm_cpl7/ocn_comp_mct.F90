@@ -1299,8 +1299,8 @@ contains
      do j=this_block%jb,this_block%je
      do i=this_block%ib,this_block%ie
         n = n + 1
-        o2x_o%rattr(index_o2x_So_u,n) = WORK1(i,j)
-        o2x_o%rattr(index_o2x_So_v,n) = WORK2(i,j)
+        o2x_o%rAttr(index_o2x_So_u,n) = WORK1(i,j)
+        o2x_o%rAttr(index_o2x_So_v,n) = WORK2(i,j)
      enddo
      enddo
   enddo

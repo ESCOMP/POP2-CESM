@@ -1550,7 +1550,6 @@
 !-----------------------------------------------------------------------
 
     if ( overflows_on .and. overflows_interactive ) then
-       call ovf_write_broadcast
        call ovf_write_restart
     endif
 

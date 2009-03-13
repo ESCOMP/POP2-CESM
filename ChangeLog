@@ -1,6 +1,30 @@
 
 
 ===============================================================================
+Originator: njn01
+Date: 13 March 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090313
+Summary of Changes:  
+     * overflows: generalize restart procedure to support ocean tracers
+     * ocn_comp_mct: change the two instances of "rattr" to "rAttr" to 
+        match all other instances of rAttr
+
+Testing: 
+         See walkthrough summary/test log for details and testing
+         http://www.cgd.ucar.edu/~njn01/ccsm_pop/log_by_date_2.1.html
+Reviewer: njn01
+
+M           14951   source/overflows.F90
+M           14951   source/initial.F90
+M           14951   source/restart.F90
+M           14951   ChangeLog
+M           14951   input_templates/gx1v5b_overflow
+M           14951   input_templates/gx1v6_overflow
+M           14951   drivers/ccsm_cpl7/ocn_comp_mct.F90
+
+
+===============================================================================
 
 Originator: njn01
 Date: 4 March 2009 
