@@ -72,7 +72,8 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: ierr  ! error flag
+   integer (int_kind) ::  &
+      ierr                 ! error flag
 
 !-----------------------------------------------------------------------
 !
@@ -81,7 +82,9 @@
 !
 !-----------------------------------------------------------------------
 
+#ifndef CCSMCOUPLED
    if (my_task == master_task) then
+#endif
       write (6,delim_fmt)
       write (6,blank_fmt)
       call POP_IOUnitsFlush(6)
@@ -99,7 +102,9 @@
       write (6,blank_fmt)
       write (6,delim_fmt)
       call POP_IOUnitsFlush(6)
+#ifndef CCSMCOUPLED
    endif
+#endif
 
 !-----------------------------------------------------------------------
 !

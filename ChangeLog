@@ -4,6 +4,29 @@
 Originator: njn01
 Date: 13 March 2009
 Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090313b
+Summary of Changes:  
+     * Allow all processors to print error message from exit_mod.F90
+     * Add error-detection logic to pop2_in_build.csh to prevent
+       setting ltavg_nino_diags when tavg averages are not created 
+       frequently enough
+Testing: 
+     * Confirmed that all tasks write exit_POP error message when
+       "if (my_task == master_task)" test is if-def'd out
+     * Set up case with annual tavg and ltavg_nino_diags .true. and confirmed
+       pop2_in_build.csh traps the error. 
+
+Reviewer: njn01
+
+M           14951   source/exit_mod.F90
+M           14951   input_templates/pop2_in_build.csh
+M           14952   ChangeLog
+
+
+===============================================================================
+Originator: njn01
+Date: 13 March 2009
+Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090313
 Summary of Changes:  
      * overflows: generalize restart procedure to support ocean tracers
@@ -13,7 +36,7 @@ Summary of Changes:
 Testing: 
          See walkthrough summary/test log for details and testing
          http://www.cgd.ucar.edu/~njn01/ccsm_pop/log_by_date_2.1.html
-Reviewer: njn01
+Reviewer: njn01, gokhan, bruceb
 
 M           14951   source/overflows.F90
 M           14951   source/initial.F90

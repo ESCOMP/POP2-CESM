@@ -9,7 +9,7 @@
 #==========================================================================
 
 #--------------------------------------------------------------------------
-#  First, test for supported OCN_GRID resolution 
+#  First, test for supported OCN_GRID resolution  
 #--------------------------------------------------------------------------
 
 if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 || ${OCN_GRID_INTERNAL} == gx1v5 || ${OCN_GRID_INTERNAL} == gx1v5a || ${OCN_GRID_INTERNAL} == gx1v5b || ${OCN_GRID_INTERNAL} == gx1v6 ) then   
@@ -22,7 +22,7 @@ else
    echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
    echo "     ${OCN_GRID_INTERNAL} is not a supported grid.               "
    echo "     Supported grids are: gx3v5, gx1v5, gx1v5a, gx1v5b,          "
-   echo "                          gx1v6 and tx0.1v2 "
+   echo "                          gx1v6 and tx0.1v2                      "
   #echo "     Experimental grid: gx3v6                                    "
   #echo "     Testing grids:   tx1v1                                      "
    echo "   =============================================================="
@@ -147,7 +147,7 @@ EOF
 
 
 #--------------------------------------------------------------------------
-#  grid_nml
+#  grid_nml -- see error checking below
 #--------------------------------------------------------------------------
 
 set partial_bottom_cells = .false.
@@ -323,13 +323,21 @@ EOF
 
 
 #--------------------------------------------------------------------------
-#  tavg_nml
+#  tavg_nml  -- see error checking below
 #--------------------------------------------------------------------------
+
+set tavg_freq_opt = nyear
+set tavg_freq     = 1
+set ltavg_nino_diags = .true.
+
+if ( $tavg_freq_opt == nyear || ($tavg_freq_opt == nmonth && $tavg_freq == 12) ) then
+  set ltavg_nino_diags = .false.
+endif
 
 cat >> $POP2_NMLFILE << EOF
 &tavg_nml
-   tavg_freq_opt    = 'nmonth'
-   tavg_freq        = 1
+   tavg_freq_opt    = '$tavg_freq_opt'
+   tavg_freq        =  $tavg_freq
    tavg_start_opt   = 'nstep'
    tavg_start       = 0
    tavg_infile      = '${output_h}restart.end'
@@ -337,7 +345,7 @@ cat >> $POP2_NMLFILE << EOF
    tavg_outfile     = '$output_h'
    tavg_fmt_out     = 'nc'
    tavg_contents    = '$tavg_contents_filename'
-   ltavg_nino_diags = .true.
+   ltavg_nino_diags = $ltavg_nino_diags
 /
 
 EOF
@@ -1282,12 +1290,16 @@ cat >> $POP2_NMLFILE << EOF
 
 EOF
 
+#--------------------------------------------------------------------------
+#  overflows -- see error checking below
+#--------------------------------------------------------------------------
+
 if ( ${OCN_GRID_INTERNAL} == gx1v5a || ${OCN_GRID_INTERNAL} == gx1v5b  || ${OCN_GRID_INTERNAL} =~ gx1v6* ) then
  # ONLY gx1v5a, gx1v5b, or gx1v6 -- not gx1v5
  set overflows_on = .true.
  set overflows_interactive = .true.
 else
- # for all resolutions except gx1v5a or gx1v5b
+ # for all other resolutions
  set overflows_on = .false.
  set overflows_interactive = .false.
 endif
@@ -1312,9 +1324,22 @@ if ($topography_opt == 'bathymetry' && $overflows_on == .true.) then
    echo " "
    echo "   =============================================================="
    echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
-   echo "     Cannot select $topography_opt = 'bathymetry' when overflows "
-   echo "     are active                                                  "
+   echo "     You cannot select $topography_opt = 'bathymetry' when       "
+   echo "     overflows are active                                        "
    echo "   =============================================================="
    echo " "
    exit -99
 endif
+
+if ( ($tavg_freq_opt == nmonth && $tavg_freq == 12) || $tavg_freq_opt == nyear) then
+  if ($ltavg_nino_diags == .true.) then
+   echo "   =============================================================="
+   echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
+   echo "     set ltavg_nino_diags == .false. in                          "
+   echo "     your copy of pop2_in_build.csh and resubmit                 "
+   echo "   =============================================================="
+   echo " "
+   exit -99
+  endif
+endif
+
