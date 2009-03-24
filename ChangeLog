@@ -2,6 +2,23 @@
 
 ===============================================================================
 Originator: njn01
+Date: 24 March 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090324
+Summary of Changes:  
+     * Default hmix_gm kappa_isop_choice,kappa_thic_choice = 'bfre'
+       (Gokhan 23 March 2009 email)
+     * Correction of overflows logic bug
+       (Bruce 24 March 2009: /home/bruceb/ccsm/ocn/overflow/pop2_conversion/info_nancy/24mar09)
+Testing: 
+     Gokhan, Bruce
+     http://www.cgd.ucar.edu/~njn01/ccsm_pop/log_by_date_2.1.html
+
+Reviewer: none
+
+
+===============================================================================
+Originator: njn01
 Date: 13 March 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090313b

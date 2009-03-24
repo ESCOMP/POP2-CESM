@@ -3932,7 +3932,6 @@
      Kgeo       ,& ! geostrophic Ekman number
      hgeo       ,& ! depth of geostrophically spread source (cm)
      Fgeo       ,& ! Froude number of entrained flow
-     phi_eq     ,& ! equilibrium entrainment parameter (ratio Me/Mp)
      phi        ,& ! entrainment parameter from actual ratio Me/Mp
      Mp            ! product mass flux (Sv)
 
@@ -3990,33 +3989,39 @@
          call ovf_state(T_e,S_e,de,rho_e)
    ! compute inflow/source reduced gravity and source transport
       gp_s    = g*(rho_s-rho_i)/rho_0
-      Ms      = gp_s*hu*hu/(c2*fs)
-      As      = hs*Ws
-      Us      = Ms/As
+   ! if no source overflow, zero out transports
+      if( gp_s > c0 ) then
+        Ms      = gp_s*hu*hu/(c2*fs)
+        As      = hs*Ws
+        Us      = Ms/As
    ! compute overflow spreading and entrainment transport
-      gp_e    = g*(rho_sed-rho_e)/rho_0
-      Ugeo    = gp_e*alpha/fs
-      Uavg    = p5*(Us+Ugeo)
-      a       = fs*Ws/c2
-      b       = fs*Ws*hs/c2 + c2*cd*Uavg*xse - Ms*fs/(c2*Ugeo)
-      c       = -fs*Ms*hs/(c2*Ugeo)
-      hgeo    = (-b + sqrt(b*b-c4*a*c))/(c2*a)
-      Fgeo    = Ugeo/sqrt(gp_e*hgeo)
-      phi_eq  = c1-Fgeo**(-c2/c3)
-      Me      = Ms*phi_eq/(c1-phi_eq)
-   ! zero transports if gp_e < 0
-      if( gp_e > c0 ) then
-      ! zero entrainment if phi_eq < c0
-        if( phi_eq > c0 ) then      
-          Mp  = Ms + Me
+        gp_e    = g*(rho_sed-rho_e)/rho_0
+   ! zero entrainment transport if gp_e < 0
+        if( gp_e > c0 ) then
+          Ugeo    = gp_e*alpha/fs
+          Uavg    = p5*(Us+Ugeo)
+          a       = fs*Ws/c2
+          b       = fs*Ws*hs/c2 + c2*cd*Uavg*xse - Ms*fs/(c2*Ugeo)
+          c       = -fs*Ms*hs/(c2*Ugeo)
+          hgeo    = (-b + sqrt(b*b-c4*a*c))/(c2*a)
+          Fgeo    = Ugeo/sqrt(gp_e*hgeo)
+          phi     = c1-Fgeo**(-c2/c3)
+          Me      = Ms*phi/(c1-phi)
+          ! zero entrainment transport if phi < c0
+          if( phi > c0 ) then
+            Mp  = Ms + Me
+          else
+            Me     = c0
+            Mp     = Ms
+          endif
         else
-          Me  = c0
-          Mp  = Ms
+          Me     = c0
+          Mp     = Ms
         endif
-      else 
-          Ms  = c0
-          Me  = c0
-          Mp  = c0
+      else
+        Ms     = c0
+        Me     = c0
+        Mp     = c0
       endif
    ! time shift transports and set output in ovf array
       ovf(n)%Ms_nm1 = ovf(n)%Ms_n
@@ -4029,7 +4034,7 @@
       ovf(n)%Me     = Me
       ovf(n)%Mp     = Mp
    ! recompute phi based on actual transports
-      phi        = ovf(n)%Me / (ovf(n)%Mp + c1)
+      phi = ovf(n)%Me / (ovf(n)%Mp + c1)
    ! if time averaging time step, include last time step 
       if( avg_ts ) then
         phi = (ovf(n)%Me_n + ovf(n)%Me) / (ovf(n)%Mp_n + ovf(n)%Mp + c1)
@@ -4050,12 +4055,10 @@
       m = ovf(n)%prd_set
        if (print_overflows_diag .and. my_task == master_task) then         
          k_p = (ovf(n)%adj_prd(m)%kmin+ovf(n)%adj_prd(m)%kmax)/2
-         write(ovf_diag_unit,1234) tday,n,phi_eq,phi,1.e-12*Ms,1.e-12*Me,1.e-12*Mp,m,zt(k_p)/100.
-         1234 format(' ovf_tr: ',f7.1,1x,  &
-                     i2,1x,2(f7.4,1x),2x,3(f7.4,1x),1x,i2,1x,f8.1)
+         write(ovf_diag_unit,1234) tday,n,phi,1.e-12*Ms,1.e-12*Me,1.e-12*Mp,m,zt(k_p)/100.
+         1234 format(' ovf_tr: ',f7.1,1x,i2,25x,f7.4,2x,3(f7.4,1x),1x,i2,1x,f8.1)
          write(ovf_diag_unit,1235) tday, n,T_i,S_i*c1000,T_s,S_s*c1000,T_e,S_e*c1000,T_p,S_p*c1000
-         1235 format(' ovf_TS: ',f7.1,1x,i2,1x,8(f7.4,1x))
-         
+         1235 format(' ovf_TS: ',f7.1,1x,i2,1x,8(f7.4,1x))         
          call shr_sys_flush(ovf_diag_unit)
        endif ! print_overflows_diag
 
@@ -5393,7 +5396,7 @@
       end do
       end do
    end do
-   !$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
 
 !-----------------------------------------------------------------------

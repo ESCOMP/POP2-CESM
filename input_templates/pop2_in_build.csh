@@ -684,8 +684,8 @@ EOF
 #--------------------------------------------------------------------------
 
 if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
-   set kappa_isop_choice = edgr
-   set kappa_thic_choice = edgr
+   set kappa_isop_choice = bfre
+   set kappa_thic_choice = bfre
 else
    set kappa_isop_choice = bfre
    set kappa_thic_choice = bfre
@@ -772,10 +772,10 @@ cat >> $POP2_NMLFILE << EOF
    read_n2_data           = .false.
    buoyancy_freq_filename = '$INPUT/buoyancy_freq'
    buoyancy_freq_fmt      = 'nc'
-   const_eg               = 0.8
-   gamma_eg               = 300.0
+   const_eg               = 1.2
+   gamma_eg               = 500.0
    kappa_min_eg           = 0.35e7
-   kappa_max_eg           = 2.5e7
+   kappa_max_eg           = 2.0e7
 /
 
 EOF
