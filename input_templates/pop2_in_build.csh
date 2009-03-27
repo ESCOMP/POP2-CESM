@@ -326,7 +326,7 @@ EOF
 #  tavg_nml  -- see error checking below
 #--------------------------------------------------------------------------
 
-set tavg_freq_opt = nyear
+set tavg_freq_opt = nmonth
 set tavg_freq     = 1
 set ltavg_nino_diags = .true.
 

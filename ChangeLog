@@ -2,6 +2,16 @@
 
 ===============================================================================
 Originator: njn01
+Date: 27 March 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090327
+Summary of Changes:  
+     * Change default tavg frequency back to nmonth
+Testing: none
+Reviewer: none
+
+===============================================================================
+Originator: njn01
 Date: 24 March 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090324
