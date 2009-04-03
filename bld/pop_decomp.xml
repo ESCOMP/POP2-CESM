@@ -40,6 +40,10 @@
      <nlons>3600</nlons>
      <nlats>2400</nlats>
   </size>
+  <size res="tx1v1">
+     <nlons>360</nlons>
+     <nlats>240</nlats>
+  </size>
   <size res="T31">
      <nlons>96</nlons>
      <nlats>48</nlats>

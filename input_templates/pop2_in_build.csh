@@ -237,7 +237,7 @@ else
 endif
 
 
-if( ${OCN_GRID_INTERNAL} == tx0.1v2) then
+if( ${OCN_GRID_INTERNAL} == tx0.1v2 || ${OCN_GRID_INTERNAL} =~ tx1v*) then
    set ldiag_velocity       = .false.
 else
    set ldiag_velocity       = .true.
@@ -273,7 +273,7 @@ EOF
 
   set ldiag_global_tracer_budgets = .true.
 
-if (${OCN_GRID_INTERNAL} =~ tx0.1* ) then
+if (${OCN_GRID_INTERNAL} =~ tx0.1*  || ${OCN_GRID_INTERNAL} =~ tx1* ) then
   set ldiag_global_tracer_budgets = .false.
 endif
 
@@ -291,7 +291,7 @@ EOF
 
   set ldiag_bsf = .true.
 
-if (${OCN_GRID_INTERNAL} =~ tx0.1*) then
+if (${OCN_GRID_INTERNAL} =~ tx0.1* || ${OCN_GRID_INTERNAL} =~ tx1* ) then
   set ldiag_bsf = .false.
 endif
 
@@ -478,6 +478,16 @@ else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
  set bckgrnd_vdc_psim   = 0.13
  set bckgrnd_vdc_ban    = 1.0
 else if ( ${OCN_GRID_INTERNAL} =~ tx0.1* ) then
+ set lhoriz_varying_bckgrnd = .false.
+ set llangmuir = .false.
+ set linertial = .false.
+ set bckgrnd_vdc1 = 0.55
+ set bckgrnd_vdc2 = 0.303615
+ set bckgrnd_vdc_dpth = 2500.0e02
+ set bckgrnd_vdc_eq     = 0.0
+ set bckgrnd_vdc_psim   = 0.0
+ set bckgrnd_vdc_ban    = 0.0
+else if ( ${OCN_GRID_INTERNAL} =~ tx1* ) then
  set lhoriz_varying_bckgrnd = .false.
  set llangmuir = .false.
  set linertial = .false.

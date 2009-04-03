@@ -2,6 +2,27 @@
 
 ===============================================================================
 Originator: njn01
+Date: 3 April 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090403
+Summary of Changes:  
+     * Add tx1v1 support to pop_decomp.xml
+     * Redefine tx1v1_tavg_contents so that it is identical to the tx0.1v2 version
+     * Modify pop2_in_build.csh tx1v1 settings (more closely related to tx0.1v2 settings)
+     * Rework ocn.cfc.setup.csh so that it correctly responds to new CCSM env variable and
+       time (CCSM_IPCC --> OCN_TRANSIENT and 1870-->1850)
+     * Correct typo in tx0.1v2_inputdata topography_data dataset name
+Testing: 5-day tx1v1 smoke test on bluefire, using tcraig's "sandbox"
+Reviewer: none
+M      bld/pop_decomp.xml
+M      input_templates/pop2_in_build.csh
+M      input_templates/tx1v1_tavg_contents
+M      input_templates/tx0.1v2_inputdata
+M      input_templates/ocn.cfc.setup.csh
+
+
+===============================================================================
+Originator: njn01
 Date: 27 March 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090327
