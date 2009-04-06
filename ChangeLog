@@ -2,6 +2,16 @@
 
 ===============================================================================
 Originator: njn01
+Date: 6 April 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090406
+Summary of Changes:  
+     * 1850-2000_control --> 1850-2000 in ocn.cfc.setup.csh
+       (this is now consistent with the upcoming compset definition)
+Testing: none
+Reviewer: gokhan, mvertens
+===============================================================================
+Originator: njn01
 Date: 3 April 2009
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090403

@@ -86,7 +86,7 @@ else if ($command == namelist) then
    set init_cfc_option = $RUN_TYPE
    if ($CONTINUE_RUN == TRUE) set init_cfc_option = continue
 
-   if ($OCN_TRANSIENT == 1850-2000_control) then
+   if ($OCN_TRANSIENT == 1850-2000) then
       if ($CONTINUE_RUN == FALSE) set init_cfc_option = zero
       set model_year = 1850
       set data_year  = 1850
