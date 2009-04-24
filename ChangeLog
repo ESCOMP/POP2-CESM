@@ -1,6 +1,18 @@
 
 
 ===============================================================================
+Originator: yeager, gokhan
+Date: 24 April 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090424
+Summary of Changes:  
+     * Change default setting for gx3v* grids:
+         set sfwf_weak_restore = 0.0115 
+Testing: none
+Reviewer: yeager, gokhan
+M           15492   input_templates/pop2_in_build.csh
+M           15509   ChangeLog
+===============================================================================
 Originator: njn01
 Date: 6 April 2009
 Model: pop2

@@ -1065,7 +1065,7 @@ EOF
 #--------------------------------------------------------------------------
 
 if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
- set sfwf_weak_restore = 0.092
+ set sfwf_weak_restore = 0.0115
 else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
  set sfwf_weak_restore = 0.0115
 else if ( ${OCN_GRID_INTERNAL} == tx1v1 ) then
