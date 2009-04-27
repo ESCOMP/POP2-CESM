@@ -452,33 +452,53 @@ EOF
 #  vmix_kpp_nml
 #--------------------------------------------------------------------------
 
-set lhoriz_varying_bckgrnd = .true.
 set llangmuir = .false.
 set linertial = .false.
 set bckgrnd_vdc_dpth = 1000.0e02
 
-if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 ) then
+if ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
+ set lhoriz_varying_bckgrnd = .false.
  if ($lhoriz_varying_bckgrnd == .true.) then
-   set bckgrnd_vdc1     = 0.16
+   echo "   =============================================================="
+   echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
+   echo "     you cannot set lhoriz_varying_bckgrnd = .true. at this     "
+   echo "     resolution: ${OCN_GRID_INTERNAL}                            "
+   echo "   =============================================================="
+   echo " "
+   exit -99
  else
-   set bckgrnd_vdc1     = 0.1
+   set bckgrnd_vdc1       = 0.524
+   set bckgrnd_vdc2       = 0.313
+   set bckgrnd_vdc_eq     = 0.0
+   set bckgrnd_vdc_psim   = 0.0
+   set bckgrnd_vdc_ban    = 0.0
  endif
- set bckgrnd_vdc2       = 0.0
- set bckgrnd_vdc_eq     = 0.16
- set bckgrnd_vdc_psim   = 0.13
- set bckgrnd_vdc_ban    = 1.0
 else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
+ set lhoriz_varying_bckgrnd = .true.
  if ($lhoriz_varying_bckgrnd == .true.) then
-   set bckgrnd_vdc1     = 0.16
+   set bckgrnd_vdc1       = 0.16
+   set bckgrnd_vdc2       = 0.0
+   set bckgrnd_vdc_eq     = 0.01
+   set bckgrnd_vdc_psim   = 0.13
+   set bckgrnd_vdc_ban    = 1.0
  else
-   set bckgrnd_vdc1     = 0.1
+   set bckgrnd_vdc1       = 0.524
+   set bckgrnd_vdc2       = 0.313
+   set bckgrnd_vdc_eq     = 0.0
+   set bckgrnd_vdc_psim   = 0.0
+   set bckgrnd_vdc_ban    = 0.0
  endif
- set bckgrnd_vdc2       = 0.0
- set bckgrnd_vdc_eq     = 0.01
- set bckgrnd_vdc_psim   = 0.13
- set bckgrnd_vdc_ban    = 1.0
 else if ( ${OCN_GRID_INTERNAL} =~ tx0.1* ) then
  set lhoriz_varying_bckgrnd = .false.
+ if ($lhoriz_varying_bckgrnd == .true.) then
+   echo "   =============================================================="
+   echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
+   echo "     you cannot set lhoriz_varying_bckgrnd = .true. at this     "
+   echo "     resolution: ${OCN_GRID_INTERNAL}                            "
+   echo "   =============================================================="
+   echo " "
+   exit -99
+ endif
  set llangmuir = .false.
  set linertial = .false.
  set bckgrnd_vdc1 = 0.55
@@ -489,17 +509,20 @@ else if ( ${OCN_GRID_INTERNAL} =~ tx0.1* ) then
  set bckgrnd_vdc_ban    = 0.0
 else if ( ${OCN_GRID_INTERNAL} =~ tx1* ) then
  set lhoriz_varying_bckgrnd = .false.
+ if ($lhoriz_varying_bckgrnd == .true.) then
+   echo "   =============================================================="
+   echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
+   echo "     you cannot set lhoriz_varying_bckgrnd = .true. at this     "
+   echo "     resolution: ${OCN_GRID_INTERNAL}                            "
+   echo "   =============================================================="
+   echo " "
+   exit -99
+ endif
  set llangmuir = .false.
  set linertial = .false.
  set bckgrnd_vdc1 = 0.55
  set bckgrnd_vdc2 = 0.303615
  set bckgrnd_vdc_dpth = 2500.0e02
- set bckgrnd_vdc_eq     = 0.0
- set bckgrnd_vdc_psim   = 0.0
- set bckgrnd_vdc_ban    = 0.0
-else
- set bckgrnd_vdc1       = 0.524
- set bckgrnd_vdc2       = 0.313
  set bckgrnd_vdc_eq     = 0.0
  set bckgrnd_vdc_psim   = 0.0
  set bckgrnd_vdc_ban    = 0.0

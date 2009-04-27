@@ -1,6 +1,24 @@
 
 
 ===============================================================================
+Originator: gokhan
+Date: 27 April 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090427
+Summary of Changes:  
+     * Change default setting for gx3*,tx* grids:
+       for vmix_kpp (these changes should have been made in August 2008)
+Testing: 
+       ccsm4_0_beta14 tag. set up oob and new B gx1v6, C gx3v5, C tx1v1 cases:
+     * new and old B gx1v6: pop2_in files are identical (except for filenames)
+     * new and old C gx3v5: pop2_in files are identical (except for filenames)
+     * new C gx3v5 with lhoriz_varying_bckgrnd = .true. (model stops building, with error msg)
+     * new C tx1v1 with lhoriz_varying_bckgrnd = .true. (model stops building, with error msg)
+Reviewer: none
+M           15775   input_templates/pop2_in_build.csh
+M           15775   ChangeLog
+Status against revision:  15792
+===============================================================================
 Originator: yeager, gokhan
 Date: 24 April 2009
 Model: pop2
