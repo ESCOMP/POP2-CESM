@@ -1,6 +1,32 @@
 
 
 ===============================================================================
+Originator: klindsay
+Date: 1 May 2009
+Model: pop2
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090506
+Summary of Changes:  
+     * Initialize arrays in cfc_mod.F90, which allows the ocean model compiled
+       in DEBUG mode (NaN initialization and signal trapping) to properly execute.
+      
+Testing: preliminary testing: klindsay, mai Further testing: njn01
+         All of the following tests pass.  In addition, the binary ocean restart files
+         from ERT1850.f19_g16.B20TRTR1.bluefire and ERT1850.f19_g16.B20TRTR1.bluefire.with_cfc
+         at the end of two months are identical
+
+         DEBUG tests:
+          * SMS_D.f19_g16.B20TRTR1.bluefire with Keith's cfc_mod.F90 in SourceMods/src.pop2
+          * SMS_D.T62_g35.C.bluefire with Keith's cfc_mod.F90 *and* ltidal_mixing = .false.
+            (so that the case will run)
+
+         Exact-restart tests:
+          * ERT1850.f19_g16.B20TRTR1.bluefire out-of-box (2-month exact restart test)
+          * ERT1850.f19_g16.B20TRTR1.bluefire with Keith's cfc_mod.F90 in SourceMods/src.pop2
+Reviewer: none
+M           15792   source/cfc_mod.F90
+M           15793   ChangeLog
+Status against revision:  15914
+===============================================================================
 Originator: gokhan
 Date: 27 April 2009
 Model: pop2

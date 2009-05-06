@@ -1002,6 +1002,8 @@ contains
    integer (int_kind) :: &
       iblock             ! block index
 
+   integer (int_kind) :: i, j
+
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       IFRAC_USED,      & ! used ice fraction (non-dimensional)
       XKW_USED,        & ! part of piston velocity (cm/s)
@@ -1039,6 +1041,12 @@ contains
 !-----------------------------------------------------------------------
 
    call timer_start(cfc_sflux_timer)
+
+   do iblock = 1, nblocks_clinic
+      IFRAC_USED(:,:,iblock) = c0
+      XKW_USED(:,:,iblock) = c0
+      AP_USED(:,:,iblock) = c0
+   end do
 
 !-----------------------------------------------------------------------
 !  Interpolate gas flux forcing data if necessary
