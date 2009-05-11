@@ -1,8 +1,28 @@
 
 
 ===============================================================================
+Originator: 
+Date:  11 May 2009
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090511
+Summary of Changes:  
+     * bugfix: tavg.F90 cell_methods correction (correctly identify minimum and maximum quantities
+        in netCDF tavg history output files)
+     * bugfix: correct gx3v5 pop2_in_build.csh so that this case runs without error-detection shutdown
+     * add  ltidal_mixing/lhoriz_varying_bckgrnd dependencies to pop2_in_build.csh (to catch problems
+        at buildnml time, rather than at execution time)
+     * add iter-option consistency checking to pop2_in_build.csh  
+        (to protect users from selecting internally inconsistent options)
+      
+Testing:  See test logs
+Reviewer: Gokhan (pop2_in_build.csh), klindsay (tavg/cell methods)
+M           15792   source/tavg.F90
+M           15793   input_templates/pop2_in_build.csh
+M           15915   ChangeLog
+Status against revision:  15951
+
+===============================================================================
 Originator: klindsay
-Date: 1 May 2009
+Date: 1 May 2009  (testing completed, and tag created, on 20090506)
 Model: pop2
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090506
 Summary of Changes:  

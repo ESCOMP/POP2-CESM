@@ -3321,16 +3321,46 @@
  
 !EOP
 !BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+ 
+ character (char_len) ::   &
+    string
 
-    call add_attrib_io_field(tavg_field, 'cell_methods', 'time: mean')
+   string = char_blank
 
-    if (avail_tavg_fields(nfield)%scale_factor /= undefined_nf) then
-      call add_attrib_io_field(tavg_field, 'scale_factor',avail_tavg_fields(nfield)%scale_factor)
-    endif
+   select case (avail_tavg_fields(nfield)%method)
 
-    call add_attrib_io_field(tavg_field,'_FillValue',avail_tavg_fields(nfield)%fill_value )
-    call add_attrib_io_field(tavg_field,'missing_value',avail_tavg_fields(nfield)%missing_value )
+     case(tavg_method_avg)
+        string='time: mean'
 
+     case(tavg_method_min)
+        string='time: minimum'
+
+     case(tavg_method_max)
+        string='time: maximum'
+
+     case(tavg_method_qflux)
+        string='time: mean'
+
+     case default
+        write(string,'(a,1x,i4)') 'ERROR (tavg_add_attrib_io_field_ccsm): unknown method = ', &
+          avail_tavg_fields(nfield)%method
+        call exit_POP(sigAbort,trim(string))
+
+   end select
+
+   call add_attrib_io_field(tavg_field, 'cell_methods', trim(string))
+
+   if (avail_tavg_fields(nfield)%scale_factor /= undefined_nf) then
+     call add_attrib_io_field(tavg_field, 'scale_factor',avail_tavg_fields(nfield)%scale_factor)
+   endif
+
+   call add_attrib_io_field(tavg_field,'_FillValue',avail_tavg_fields(nfield)%fill_value )
+   call add_attrib_io_field(tavg_field,'missing_value',avail_tavg_fields(nfield)%missing_value )
 
 !-----------------------------------------------------------------------
 !EOC

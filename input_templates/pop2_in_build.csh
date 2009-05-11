@@ -449,6 +449,33 @@ EOF
 
 
 #--------------------------------------------------------------------------
+#  tidal_nml -- must be defined prior to vmix_kpp_nml
+#--------------------------------------------------------------------------
+
+if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 ) then
+ set ltidal_mixing = .true.
+else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
+ set ltidal_mixing = .true.
+else
+ # tidal mixing forcing files exist only for gx1 and gx3 resolutions
+ set ltidal_mixing = .false.
+endif
+
+cat >> $POP2_NMLFILE << EOF
+&tidal_nml
+  ltidal_mixing          = $ltidal_mixing
+  local_mixing_fraction  = 0.33
+  mixing_efficiency      = 0.2
+  vertical_decay_scale   = 500.0e02
+  tidal_mix_max          = 100.0
+  tidal_energy_file      = '$tidal_mixing_filename'
+  tidal_energy_file_fmt  = 'bin'
+/
+
+EOF
+
+
+#--------------------------------------------------------------------------
 #  vmix_kpp_nml
 #--------------------------------------------------------------------------
 
@@ -467,8 +494,14 @@ if ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
    echo " "
    exit -99
  else
-   set bckgrnd_vdc1       = 0.524
-   set bckgrnd_vdc2       = 0.313
+   if ($ltidal_mixing == .true.) then
+     set bckgrnd_vdc1       = 0.2
+     set bckgrnd_vdc2       = 0.0
+   else
+     set bckgrnd_vdc1       = 0.524
+     set bckgrnd_vdc2       = 0.313
+   endif
+ 
    set bckgrnd_vdc_eq     = 0.0
    set bckgrnd_vdc_psim   = 0.0
    set bckgrnd_vdc_ban    = 0.0
@@ -476,38 +509,35 @@ if ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
 else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
  set lhoriz_varying_bckgrnd = .true.
  if ($lhoriz_varying_bckgrnd == .true.) then
-   set bckgrnd_vdc1       = 0.16
-   set bckgrnd_vdc2       = 0.0
+   if ($ltidal_mixing == .true.) then
+     set bckgrnd_vdc1       = 0.16
+     set bckgrnd_vdc2       = 0.0
+   else
+      echo "   =============================================================="
+      echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
+      echo "     do not set lhoriz_varying_bckgrnd = .true. and              "
+      echo "     ltidal_mixing = .false.  Proper settings for bckgrnd_vdc    "
+      echo "     variables are unknown at this time.                         "
+      echo "   =============================================================="
+      echo " "
+      exit -99
+   endif
    set bckgrnd_vdc_eq     = 0.01
    set bckgrnd_vdc_psim   = 0.13
    set bckgrnd_vdc_ban    = 1.0
  else
-   set bckgrnd_vdc1       = 0.524
-   set bckgrnd_vdc2       = 0.313
+   if ($ltidal_mixing == .true.) then
+     set bckgrnd_vdc1       = 0.16
+     set bckgrnd_vdc2       = 0.0
+   else
+     set bckgrnd_vdc1       = 0.524
+     set bckgrnd_vdc2       = 0.313
+   endif
    set bckgrnd_vdc_eq     = 0.0
    set bckgrnd_vdc_psim   = 0.0
    set bckgrnd_vdc_ban    = 0.0
  endif
-else if ( ${OCN_GRID_INTERNAL} =~ tx0.1* ) then
- set lhoriz_varying_bckgrnd = .false.
- if ($lhoriz_varying_bckgrnd == .true.) then
-   echo "   =============================================================="
-   echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
-   echo "     you cannot set lhoriz_varying_bckgrnd = .true. at this     "
-   echo "     resolution: ${OCN_GRID_INTERNAL}                            "
-   echo "   =============================================================="
-   echo " "
-   exit -99
- endif
- set llangmuir = .false.
- set linertial = .false.
- set bckgrnd_vdc1 = 0.55
- set bckgrnd_vdc2 = 0.303615
- set bckgrnd_vdc_dpth = 2500.0e02
- set bckgrnd_vdc_eq     = 0.0
- set bckgrnd_vdc_psim   = 0.0
- set bckgrnd_vdc_ban    = 0.0
-else if ( ${OCN_GRID_INTERNAL} =~ tx1* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ tx* ) then
  set lhoriz_varying_bckgrnd = .false.
  if ($lhoriz_varying_bckgrnd == .true.) then
    echo "   =============================================================="
@@ -1285,35 +1315,6 @@ DO NOT change transport_reg2_names unless you know exactly what you are doing.
 EOF
 
 
-#--------------------------------------------------------------------------
-#  tidal_nml
-#--------------------------------------------------------------------------
-
-if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 ) then
- set ltidal_mixing = .true.
-else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
- set ltidal_mixing = .true.
-else
- set ltidal_mixing = .false.
-endif
-
-cat >> $POP2_NMLFILE << EOF
-Only the gx3v5, gx3v6, gx1v5, gx1v5a, gx1v5b, gx1v6 versions of tidal_energy exist.  
-For all other resolutions, set ltidal_mixing false.
-
-&tidal_nml
-  ltidal_mixing          = $ltidal_mixing
-  local_mixing_fraction  = 0.33
-  mixing_efficiency      = 0.2
-  vertical_decay_scale   = 500.0e02
-  tidal_mix_max          = 100.0
-  tidal_energy_file      = '$tidal_mixing_filename'
-  tidal_energy_file_fmt  = 'bin'
-/
-
-EOF
-
-
 cat >> $POP2_NMLFILE << EOF
 &context_nml
    lcoupled          = .true.
@@ -1370,6 +1371,20 @@ if ( ($tavg_freq_opt == nmonth && $tavg_freq == 12) || $tavg_freq_opt == nyear) 
    echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
    echo "     set ltavg_nino_diags == .false. in                          "
    echo "     your copy of pop2_in_build.csh and resubmit                 "
+   echo "   =============================================================="
+   echo " "
+   exit -99
+  endif
+endif
+
+if ($ltidal_mixing == .true.) then
+  if !($bckgrnd_vdc2 == 0.0) then
+   echo "   =============================================================="
+   echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
+   echo "     when ltidal_mixing == .true. , you must set bckgrnd_vdc2 = 0.0    "
+   echo "     ltidal_mixing = $ltidal_mixing                              "
+   echo "     bckgrnd_vdc2  = $bckgrnd_vdc2                               "
+   echo "     Edit your copy of pop2_in_build.csh and resubmit            "
    echo "   =============================================================="
    echo " "
    exit -99
