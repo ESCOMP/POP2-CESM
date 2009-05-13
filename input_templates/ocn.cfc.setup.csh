@@ -196,8 +196,16 @@ else if ($command == ccsm_prestage) then
 
    set ccsm_prestage_file = $2
 
+   #----------------------------------------------------------------------
+   # Note: the following info is used only by the ccsm check_input_data
+   # data-checking utility. Everything to the right of the equals sign
+   # is ignored by check_input_data.
+   #----------------------------------------------------------------------
+
    if (-f $ccsm_prestage_file) then
-     echo "    set pcfc_file         = "\$DIN_LOC_ROOT/$relpath/forcing/$pcfc_file:t >> $ccsm_prestage_file || exit 8
+    if ($pcfc_file:h == $DIN_LOC_ROOT/$relpath/forcing) then
+      echo "    set cfc_pcfc_file     = "\$DIN_LOC_ROOT/$relpath/forcing/$pcfc_file:t >> $ccsm_prestage_file || exit 8
+    endif
    endif
 
 

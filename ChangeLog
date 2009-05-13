@@ -2,6 +2,24 @@
 
 ===============================================================================
 Originator: 
+Date:  13 May 2009
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090513
+Summary of Changes:  
+     * Modify ocn.*.setup.csh scripts so that they only echo *default*
+       input files into pop2.input_data_list file. This will allow users
+       to select nonstandard files from their $case directory without
+       causing the check_input_data script to stop with an error message.
+      
+Testing:  See test log
+Reviewer: klindsay (walkthrough)
+M           15792   input_templates/ocn.cfc.setup.csh
+M           15792   input_templates/ocn.ecosys.setup.csh
+M           15792   input_templates/ocn.cfc11.setup.csh
+M           15952   ChangeLog
+Status against revision:  16008
+
+===============================================================================
+Originator: 
 Date:  11 May 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090511
 Summary of Changes:  

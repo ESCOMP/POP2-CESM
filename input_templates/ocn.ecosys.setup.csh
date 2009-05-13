@@ -373,10 +373,21 @@ else if ($command == ccsm_prestage) then
 
    set ccsm_prestage_file = $2
 
+   #----------------------------------------------------------------------
+   # Note: the following info is used only by the ccsm check_input_data
+   # data-checking utility. Everything to the right of the equals sign
+   # is ignored by check_input_data.
+   #----------------------------------------------------------------------
    if (-f $ccsm_prestage_file) then
-     echo "    set IC_file           = "\$DIN_LOC_ROOT/$relpath/ic/$IC_file:t         >> $ccsm_prestage_file || exit 8
-     echo "    set DST_file          = "\$DIN_LOC_ROOT/$relpath/forcing/$DST_file:t   >> $ccsm_prestage_file || exit 8
-     echo "    set fesed_file        = "\$DIN_LOC_ROOT/$relpath/forcing/$fesed_file:t >> $ccsm_prestage_file || exit 8
+     if ($IC_file:h == $DIN_LOC_ROOT/$relpath/ic) then
+       echo "    set ecosys_IC_file    = "\$DIN_LOC_ROOT/$relpath/ic/$IC_file:t         >> $ccsm_prestage_file || exit 8
+     endif
+     if ($DST_file:h == $DIN_LOC_ROOT/$relpath/forcing) then
+       echo "    set ecosys_DST_file   = "\$DIN_LOC_ROOT/$relpath/forcing/$DST_file:t   >> $ccsm_prestage_file || exit 8
+     endif
+     if ($fesed_file:h == $DIN_LOC_ROOT/$relpath/forcing) then
+       echo "    set ecosys_fesed_file = "\$DIN_LOC_ROOT/$relpath/forcing/$fesed_file:t >> $ccsm_prestage_file || exit 8
+     endif
    endif
 
 else
