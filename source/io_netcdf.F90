@@ -139,8 +139,10 @@
    endif
 
    call broadcast_scalar(iostat, master_task)
-   if (iostat /= nf90_noerr) &
+   if (iostat /= nf90_noerr) then
+      write(stdout,*) 'filename = ', trim(data_file%full_name)
       call exit_POP(sigAbort,'error opening netCDF file for reading')
+   endif
 
    call broadcast_scalar(ncid, master_task)
    data_file%id(1) = ncid

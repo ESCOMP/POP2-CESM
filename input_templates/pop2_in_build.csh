@@ -401,7 +401,7 @@ EOF
 
 
 #--------------------------------------------------------------------------
-#  vertical_mix_nml
+#  vertical_mix_nml 
 #--------------------------------------------------------------------------
 
 cat >> $POP2_NMLFILE << EOF
@@ -411,8 +411,8 @@ cat >> $POP2_NMLFILE << EOF
    implicit_vertical_mix = .true.
    convection_type       = 'diffusion'
    nconvad               = 2
-   convect_diff          = 1000.0
-   convect_visc          = 1000.0
+   convect_diff          = 10000.0
+   convect_visc          = 10000.0
    bottom_drag           = 1.0e-3
    bottom_heat_flx       = 0.0
    bottom_heat_flx_depth = 1000.0e2

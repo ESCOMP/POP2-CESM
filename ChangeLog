@@ -2,6 +2,22 @@
 
 ===============================================================================
 Originator: 
+Date:  22 May 2009
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090522
+Summary of Changes:  
+     * Change pop2_in_build.csh settings, according to directions from
+       Gokhan (see ocean doc pages)
+     * Add useful write statement to io_netCDF.F90, to help in debugging
+      
+Testing:  none
+Reviewer: none
+M           16215   source/io_netcdf.F90
+M           16215   ChangeLog
+M           16215   input_templates/pop2_in_build.csh
+Status against revision:  16215
+
+===============================================================================
+Originator: 
 Date:  13 May 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090513
 Summary of Changes:  
