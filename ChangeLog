@@ -1,7 +1,19 @@
 
 
+Originator: njn01 (new ccsm4 requirement)
+Date:  9 June 2009
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090609
+Summary of Changes:  
+     * Remove all references to SEQ_MCT
+      
+Testing:  C compset smoke test in ccsm4_0_beta17 context
+Reviewer: none
+M           16535   source/io_types.F90
+M           16535   mpi/POP_CommMod.F90
+M           16535   ChangeLog
+
 ===============================================================================
-Originator: 
+Originator: njn01
 Date:  22 May 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090522
 Summary of Changes:  
@@ -17,7 +29,7 @@ M           16215   input_templates/pop2_in_build.csh
 Status against revision:  16215
 
 ===============================================================================
-Originator: 
+Originator: njn0
 Date:  13 May 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090513
 Summary of Changes:  
@@ -35,7 +47,7 @@ M           15952   ChangeLog
 Status against revision:  16008
 
 ===============================================================================
-Originator: 
+Originator: njn01
 Date:  11 May 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090511
 Summary of Changes:  

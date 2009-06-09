@@ -26,9 +26,7 @@
    use broadcast
    use exit_mod
 #ifdef CCSMCOUPLED
-#ifdef SEQ_MCT
    use shr_file_mod
-#endif
 #ifdef USEPIO
    use pio_types, only : File_desc_t, IO_desc_t, Var_desc_t, iotype_direct_pbinary, iotype_pnetcdf, &
 	PIO_rearr_none   ! _EXTERNAL
@@ -151,7 +149,7 @@
 
 ! !PUBLIC DATA MEMBERS:
 
-#ifndef SEQ_MCT
+#ifndef CCSMCOUPLED
    integer (i4), parameter, public :: &
       nml_in    = 10,         &! reserved unit for namelist input
       stdin     =  5,         &! reserved unit for standard input
@@ -3346,7 +3344,7 @@ contains
    in_use(stdin) = .true.           ! reserved units
    in_use(stdout) = .true.
    in_use(stderr) = .true.
-#ifndef SEQ_MCT
+#ifndef CCSMCOUPLED
    in_use(nml_in) = .true.
 #endif
 
@@ -3364,7 +3362,7 @@ contains
    num_iotasks = 1         ! set default num io tasks
 
    if (my_task == master_task) then
-#ifdef SEQ_MCT
+#ifdef CCSMCOUPLED
       call get_unit(nml_in)
 #endif
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -3401,7 +3399,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#ifndef SEQ_MCT
+#ifndef CCSMCOUPLED
    if (lredirect_stdout .and. my_task == master_task) then
        open (stdout,file=trim(log_filename),form='formatted',position='append')
    end if
@@ -3472,7 +3470,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#ifdef SEQ_MCT
+#ifdef CCSMCOUPLED
    iunit = shr_file_getUnit()
 #else
    srch_units: do n=1,max_units
@@ -3516,7 +3514,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#ifdef SEQ_MCT
+#ifdef CCSMCOUPLED
    call shr_file_freeUnit(iunit)	
 #else
    in_use(iunit) = .false.  !  that was easy...

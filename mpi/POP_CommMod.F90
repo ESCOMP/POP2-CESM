@@ -24,12 +24,7 @@
    use POP_KindsMod
 
 #ifdef CCSMCOUPLED
-#ifdef SEQ_MCT
    use ocn_communicator, only: mpi_communicator_ocn
-#else
-   use cpl_interface_mod, only : cpl_interface_init,cpl_interface_finalize
-   use cpl_fields_mod, only : cpl_fields_ocnname
-#endif
 #endif
 
    implicit none
@@ -114,11 +109,7 @@
 !  call CCSM coupler routine to return communicator
 !
 !-----------------------------------------------------------------------
-#ifdef SEQ_MCT
    POP_communicator = mpi_communicator_ocn
-#else
-   call cpl_interface_init(cpl_fields_ocnname, POP_communicator)
-#endif
 
 #else
 !-----------------------------------------------------------------------
@@ -266,11 +257,7 @@
 
 !-----------------------------------------------------------------------
 
-#ifdef CCSMCOUPLED
-#ifndef SEQ_MCT
-   call cpl_interface_finalize(cpl_fields_ocnname)
-#endif
-#else
+#ifndef CCSMCOUPLED
    call MPI_FINALIZE(ierr)
 #endif
 
@@ -311,9 +298,6 @@
 !  call MPI_BARRIER(POP_Communicator,ierr)
    ierr = 13
    call MPI_ABORT(0,errorCode, ierr)
-#ifndef SEQ_MCT
-   call cpl_interface_finalize(cpl_fields_ocnname)
-#endif
 #else
    call MPI_BARRIER(POP_Communicator, ierr)
    call MPI_ABORT(MPI_COMM_WORLD, errorCode, ierr)
