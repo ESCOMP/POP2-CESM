@@ -159,7 +159,14 @@ echo -----------------------------------------------------------------
 cd \$source_dir
 cp -fp \$srcdir/source/*.F90                .
 cp -fp \$srcdir/mpi/*.F90                   .
-cp -fp \$srcdir/drivers/ccsm_cpl7/*.F90     .
+if (\$COMP_INTERFACE == 'MCT') then
+  cp -fp \$srcdir/drivers/cpl_mct/*.F90     .
+else if (\$COMP_INTERFACE == 'ESMF') then
+  cp -fp \$srcdir/drivers/cpl_esmf/*.F90    .
+else
+  echo "ERROR: must specifiy valid \$COMP_INTERFACE value"
+  exit -1
+endif
 if (-d \$my_path ) cp -fp \$my_path/*.F90   .
 rm -f ${OCN_GRID_INTERNAL}_domain_size.F90
 #
