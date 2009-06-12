@@ -1,0 +1,63 @@
+#!/bin/csh -f
+
+### specifics of the test
+
+setenv POPEXEDIR .
+setenv POPSOURCEDIR ../../..
+setenv POPDIR .
+setenv POPARCH ibm 
+
+set SOURCE_FILES = ( time_management kinds_mod constants blocks domain grid io io_tools exit_mod registry POP_KindsMod POP_IOUnitsMod POP_ErrorMod POP_BlocksMod POP_DistributionMod spacecurve_mod POP_FieldMod POP_GridDimMod POP_GridHorzMod POP_GridVertMod distribution io_types io_netcdf io_binary)
+foreach file ($SOURCE_FILES)
+ if !(-e ${file}.F90) /bin/cp $POPSOURCEDIR/source/${file}.F90 .
+end
+
+set SERIAL_FILES = ( broadcast communicate  POP_CommMod POP_HaloMod gather_scatter global_reductions )
+foreach file ($SERIAL_FILES)
+ if !(-e ${file}.F90) /bin/cp $POPSOURCEDIR/serial/${file}.F90 .
+end
+
+set optimize yes
+
+### build
+
+/bin/cp ../../../build/GNUmakefile .
+
+mkdir build
+/bin/cp -r ../../../build/*.awk build
+/bin/cp -r ../../../build/*.mk  build
+/bin/cp -r ../../../build/*.gnu build
+
+### test time management
+
+if ($optimize == yes) then
+  gmake OPTIMIZE=yes
+  pop
+else
+  gmake OPTIMIZE=no
+  pop_db
+endif
+
+######
+#exit
+######
+
+if ($optimize == yes) then
+  /bin/rm pop
+else
+  /bin/rm pop_db
+endif
+
+/bin/rm compile/*.f90 *.o
+
+/bin/rm -r build
+/bin/rm -r compile
+/bin/rm GNUmakefile
+foreach file ($SOURCE_FILES)
+/bin/rm $file.F90
+end
+
+foreach file ($SERIAL_FILES)
+/bin/rm $file.F90
+end
+

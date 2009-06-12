@@ -375,7 +375,15 @@
       contents_error        ! error flag for contents file read
 
    integer (int_kind) ::   &
-      max_days            ! maximum number of days per month in a year
+      max_days              ! maximum number of days per month in a year
+
+   logical (log_kind) ::    &
+      ltavg_has_offset_date  ! T if tavg time-flag has an offset date
+
+   integer (int_kind) ::    &
+      tavg_offset_year,     &! tavg-flag offset year 
+      tavg_offset_month,    &! tavg-flag offset month
+      tavg_offset_day        ! tavg-flag offset day
 
    character (char_len) :: &
       tavg_freq_opt,       &! choice for frequency of tavg output
@@ -395,8 +403,8 @@
    namelist /tavg_nml/ tavg_freq_opt, tavg_freq, tavg_infile,       &
                        tavg_outfile, tavg_contents, tavg_start_opt, &
                        tavg_start, tavg_fmt_in, tavg_fmt_out,       &
-                       ltavg_nino_diags
-
+                       ltavg_nino_diags, ltavg_has_offset_date,     &
+                       tavg_offset_year, tavg_offset_month, tavg_offset_day
 
 !-----------------------------------------------------------------------
 !
@@ -431,6 +439,16 @@
    tavg_infile    = 'unknown_tavg_infile'
    tavg_outfile   = 't'
    tavg_contents  = 'unknown_tavg_contents'
+   ltavg_has_offset_date = .false.
+   if (registry_match ('init_time1')) then
+      tavg_offset_year  = iyear0
+      tavg_offset_month = imonth0
+      tavg_offset_day   = iday0
+   else
+      tavg_offset_year  = 1
+      tavg_offset_month = 1
+      tavg_offset_day   = 2
+   endif    
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -488,13 +506,13 @@
 
       if (tavg_freq_iopt /= freq_opt_never) then
          select case (tavg_start_opt)
-         case ('nstep')
+         case ('nstep', 'nsteps')
             tavg_start_iopt = start_opt_nstep
             write(stdout,start_fmt) 'step ', tavg_start
-         case ('nday')
+         case ('nday', 'ndays')
             tavg_start_iopt = start_opt_nday
             write(stdout,start_fmt) 'day  ', tavg_start
-         case ('nyear')
+         case ('nyear', 'nyears')
             tavg_start_iopt = start_opt_nyear
             write(stdout,start_fmt) 'year ', tavg_start
          case ('date')
@@ -503,6 +521,13 @@
          case default
             tavg_start_iopt = -1000
          end select
+      endif
+
+      if (ltavg_has_offset_date) then
+         write(stdout,*) ' '
+         write(stdout,*) '(init_tavg): tavg_offset_year  = ', tavg_offset_year
+         write(stdout,*) '(init_tavg): tavg_offset_month = ', tavg_offset_month
+         write(stdout,*) '(init_tavg): tavg_offset_day   = ', tavg_offset_day  
       endif
 
    endif
@@ -514,21 +539,26 @@
    if (tavg_freq_iopt == -1000) then
       call exit_POP(sigAbort,'unknown option for tavg file frequency')
    else if (tavg_freq_iopt /= freq_opt_never) then
-      call broadcast_scalar(tavg_freq,         master_task)
-      call broadcast_scalar(tavg_start_iopt,   master_task)
-      call broadcast_scalar(tavg_start,        master_task)
-      call broadcast_scalar(tavg_infile,       master_task)
-      call broadcast_scalar(tavg_outfile,      master_task)
-      call broadcast_scalar(tavg_contents,     master_task)
-      call broadcast_scalar(tavg_fmt_in,       master_task)
-      call broadcast_scalar(tavg_fmt_out,      master_task)
-      call broadcast_scalar(ltavg_nino_diags,  master_task)
+      call broadcast_scalar(tavg_freq,             master_task)
+      call broadcast_scalar(tavg_start_iopt,       master_task)
+      call broadcast_scalar(tavg_start,            master_task)
+      call broadcast_scalar(tavg_infile,           master_task)
+      call broadcast_scalar(tavg_outfile,          master_task)
+      call broadcast_scalar(tavg_contents,         master_task)
+      call broadcast_scalar(tavg_fmt_in,           master_task)
+      call broadcast_scalar(tavg_fmt_out,          master_task)
+      call broadcast_scalar(ltavg_nino_diags,      master_task)
+      call broadcast_scalar(ltavg_has_offset_date, master_task) 
+      call broadcast_scalar(tavg_offset_year,      master_task) 
+      call broadcast_scalar(tavg_offset_month,     master_task)
+      call broadcast_scalar(tavg_offset_day,       master_task)
 
       if (tavg_start_iopt == -1000) then
          call exit_POP(sigAbort,'unknown option for tavg start option')
       endif
 
    endif
+
 
    if (trim(tavg_fmt_out) == 'nc') then
       ltavg_fmt_out_nc = .true.
@@ -558,9 +588,22 @@
 !
 !-----------------------------------------------------------------------
 
-   tavg_flag = init_time_flag('tavg',default=.false.,    &
-                              freq_opt = tavg_freq_iopt, &
-                              freq     = tavg_freq)
+   if (ltavg_has_offset_date) then
+     call init_time_flag('tavg', tavg_flag,                  &
+                          owner        = 'init_tavg',        &
+                          default      =.false.,             &
+                          freq_opt     = tavg_freq_iopt,     &
+                          freq         = tavg_freq,          &
+                          offset_year  = tavg_offset_year,   &
+                          offset_month = tavg_offset_month,  & 
+                          offset_day   = tavg_offset_day     ) 
+   else
+     call init_time_flag('tavg', tavg_flag,              &
+                          owner        = 'init_tavg',    &
+                          default      =.false.,         &
+                          freq_opt     = tavg_freq_iopt, &
+                          freq         = tavg_freq       )
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -776,14 +819,12 @@
 
    !*** make sure tavg flag is set correctly
    call tavg_set_flag(flagonly=.true.)
+   call eval_time_flag(tavg_flag) ! evaluates time_flag(tavg_flag)%value via time_to_do
 
    if (ltavg_on .and. ltavg_restart) then
       !*** do not read restart if last restart was at a tavg dump
       !*** interval (should start new tavg sums in this case)
-
-      if (.not. time_to_do(tavg_freq_iopt, tavg_freq)) then
-         call read_tavg
-      endif
+      if (.not. check_time_flag(tavg_flag)) call read_tavg
    endif
 
 !-----------------------------------------------------------------------
@@ -875,6 +916,11 @@
 
    logical (log_kind) :: update_time
 
+   update_time = .true.
+   if (present(flagonly)) then
+      if (flagonly) update_time = .false.
+   endif
+
 !-----------------------------------------------------------------------
 !
 !  if tavg requested and tavg not already turned on, check to see
@@ -911,11 +957,6 @@
 !  for 1 1/4 steps.
 !
 !-----------------------------------------------------------------------
-
-   update_time = .true.
-   if (present(flagonly)) then
-      if (flagonly) update_time = .false.
-   endif
 
    if (ltavg_on .and. update_time) then
       if (avg_ts .or. back_to_back) then
@@ -1158,8 +1199,10 @@
 !
 !-----------------------------------------------------------------------
 
-      call add_attrib_file(tavg_file_desc, 'tavg_sum'    , tavg_sum)
-      call add_attrib_file(tavg_file_desc, 'nsteps_total', nsteps_total)
+      call add_attrib_file(tavg_file_desc, 'tavg_sum'        , tavg_sum)
+      call add_attrib_file(tavg_file_desc, 'nsteps_total'    , nsteps_total)
+      call add_attrib_file(tavg_file_desc, 'lower_time_bound', lower_time_bound)
+      call add_attrib_file(tavg_file_desc, 'tavg_sum_qflux'  , tavg_sum_qflux)
 
       if (ltavg_fmt_out_nc .and. lreg_tavg_dump) then
         call tavg_add_attrib_file_ccsm (tavg_file_desc) 
@@ -1452,27 +1495,32 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (i4) ::     &
-     nu,               &   ! i/o unit
-     iblock,           &   ! dummy block index
-     n,                &   ! dummy for indexing character string
-     in_fields,        &   ! num of fields in restart file
-     nfield,           &   ! dummy field counter
-     hdr_error,        &   ! error file for reading restart hdr
-     in_nsteps_total,  &   ! nsteps_total according to tavg file
-     in_iyear,         &   ! iyear according to tavg file
-     in_imonth,        &   ! imonth according to tavg file
-     in_iday,          &   ! iday according to tavg file
-     loc                   ! buffer location
+   integer (i4) ::      &
+     nu,                &! i/o unit
+     iblock,            &! dummy block index
+     n,                 &! dummy for indexing character string
+     in_fields,         &! num of fields in restart file
+     nfield,            &! dummy field counter
+     hdr_error,         &! error file for reading restart hdr
+     in_nsteps_total,   &! nsteps_total according to tavg file
+     in_iyear,          &! iyear according to tavg file
+     in_imonth,         &! imonth according to tavg file
+     in_iday,           &! iday according to tavg file
+     loc,               &! buffer location
+     errVal              ! internal error flag
 
-   real (r8) ::        &
-     in_tday               ! tday according to tavg file
+   real (r8) ::         &
+     in_tday             ! tday according to tavg file
+
+   logical (log_kind  ) ::  &
+     file_exists
 
    character (char_len) ::  &
-     header_filename,   &  ! filename for restart contents
-     char_temp,         &  ! for string manipulation
-     tavg_pointer_file     ! filename for pointer file containing
-                           !   location/name of last restart file
+     string,            &
+     header_filename,   &! filename for restart contents
+     char_temp,         &! for string manipulation
+     tavg_pointer_file   ! filename for pointer file containing
+                         !   location/name of last restart file
 
    type (io_field_desc), dimension(:), allocatable :: &
       tavg_fields          ! io field description for each field in file
@@ -1485,6 +1533,8 @@
 !
 !-----------------------------------------------------------------------
 
+   errVal = 0
+
    call get_unit(nu)
 
    if (luse_pointer_files) then
@@ -1495,11 +1545,29 @@
                                                    &/'.tavg'
          write(stdout,*) 'Reading pointer file: ', &
                          trim(tavg_pointer_file)
-         open(nu, file=trim(tavg_pointer_file), form='formatted', &
-                  status='old')
-         read(nu,'(a)') tavg_infile
-         close(nu)
+         inquire(file=trim(tavg_pointer_file),exist=file_exists)
+         if (file_exists) then
+            open(nu, file=trim(tavg_pointer_file), form='formatted', &
+                     status='old')
+            read(nu,'(a)') tavg_infile
+            close(nu)
+         else
+            errVal = -1
+         endif
+
       endif
+      call broadcast_scalar(errVal, master_task)
+
+      if (errVal .ne. 0) then
+        write(stdout,*) char_blank
+        write(string,*) 'FATAL ERROR: tavg_rpointer_file does not exist. pop2 model will exit'
+        write(stdout,*) string
+#ifdef CCSMCOUPLED
+         call shr_sys_flush(stdout)
+#endif
+        call exit_POP(sigAbort,'(read_tavg) ERROR: tavg_rpointer_file does not exist ')
+      endif
+
       call broadcast_scalar(tavg_infile, master_task)
 
    endif
@@ -1534,6 +1602,9 @@
    endif
    call add_attrib_file(tavg_file_desc, 'nsteps_total', nsteps_total)
    call add_attrib_file(tavg_file_desc, 'tavg_sum'    , tavg_sum)
+   call add_attrib_file(tavg_file_desc, 'lower_time_bound', lower_time_bound)
+   call add_attrib_file(tavg_file_desc, 'tavg_sum_qflux'  , tavg_sum_qflux)
+
 
 !-----------------------------------------------------------------------
 !
@@ -1556,6 +1627,8 @@
    call extract_attrib_file(tavg_file_desc, 'nsteps_total', &
                                           in_nsteps_total)
    call extract_attrib_file(tavg_file_desc, 'tavg_sum', tavg_sum)
+   call extract_attrib_file(tavg_file_desc, 'lower_time_bound', lower_time_bound)
+   call extract_attrib_file(tavg_file_desc, 'tavg_sum_qflux', tavg_sum_qflux)
 
    !*** report nsteps total and tavg_sum
    if (my_task == master_task) then
@@ -1569,9 +1642,12 @@
    !*** check nsteps total for validity
    if (in_nsteps_total /= nsteps_total) then
       if (my_task == master_task) then
-      write(stdout,'(i6,a29,i6,a35)') &
+         write(stdout,'(i6,a29,i6,a35)') &
          in_nsteps_total,' nsteps_total in tavg restart', &
          nsteps_total,   ' nsteps_total in current simulation'
+#ifdef CCSMCOUPLED
+         call shr_sys_flush(stdout)
+#endif
       endif
       call exit_POP(sigAbort,'TAVG:restart file has wrong time step?')
    endif
@@ -4370,7 +4446,6 @@
                 data_2d_r8 = data_2d_r8)
 
    lower_time_bound = tday00 
-
 
    !*** moc-related variables
    if (moc) then

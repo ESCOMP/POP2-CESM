@@ -24,7 +24,7 @@
    use initial
    use domain, only: distrb_clinic
    use timers, only: get_timer
-   use time_management, only: init_time_flag
+   use time_management, only: get_time_flag_id
 
 #ifdef coupled
    use POP_CouplingMod, only: pop_init_coupler_comm, pop_send_to_coupler, irbuf
@@ -264,8 +264,8 @@
 !  initialize driver-level flags and timers
 !
 !-----------------------------------------------------------------------
-   stop_now  = init_time_flag('stop_now')
-   cpl_ts    = init_time_flag('coupled_ts')
+   stop_now  = get_time_flag_id('stop_now')
+   cpl_ts    = get_time_flag_id('coupled_ts')
 
    call get_timer(timer_total,'TOTAL',1,distrb_clinic%nprocs)
 

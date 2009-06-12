@@ -113,7 +113,7 @@
 !
 !-----------------------------------------------------------------------
 
-   tavg_flag = init_time_flag('tavg')
+   tavg_flag = get_time_flag_id('tavg')
 
 !-----------------------------------------------------------------------
 !
@@ -199,8 +199,8 @@
 
  
    if (ldiag_global_tracer_budgets ) then
-    if (check_time_flag_freq_opt(tavg_flag) == freq_opt_never) then
-                                           budget_error_flag = -1000
+    if (check_time_flag_int(tavg_flag,freq_opt=.true.) == freq_opt_never) then
+       budget_error_flag = -1000
     else
      
      !*** determine if required fields are activated in the tavg_contents file
@@ -231,29 +231,29 @@
 
    if (ldiag_global_tracer_budgets ) then
      if ( my_task == master_task ) then
-       select case (check_time_flag_freq_opt(tavg_flag))
+       select case (check_time_flag_int(tavg_flag,freq_opt=.true.))
 
         case ( freq_opt_never ) 
           write(stdout,1100) 'no budget interval specified'
           budget_error_flag = -1000
  
         case ( freq_opt_nyear ) 
-          write(stdout,1101) check_time_flag_freq(tavg_flag),' years'
+          write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' years'
  
         case ( freq_opt_nmonth ) 
-          write(stdout,1101) check_time_flag_freq(tavg_flag),' months'
+          write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' months'
  
         case ( freq_opt_nday ) 
-          write(stdout,1101) check_time_flag_freq(tavg_flag),' days'
+          write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' days'
 
         case ( freq_opt_nhour ) 
-          write(stdout,1101) check_time_flag_freq(tavg_flag),' hours'
+          write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' hours'
 
         case ( freq_opt_nsecond )
-          write(stdout,1101) check_time_flag_freq(tavg_flag),' seconds'
+          write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' seconds'
  
         case ( freq_opt_nstep )
-          write(stdout,1101) check_time_flag_freq(tavg_flag),' steps'
+          write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' steps'
  
        end select
      endif

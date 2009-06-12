@@ -1001,9 +1001,9 @@ contains
       call exit_POP(sigAbort, 'unknown comp_surf_avg_freq_opt')
    end select
 
-   comp_surf_avg_flag = init_time_flag('ecosys_comp_surf_avg',  &
+   call init_time_flag('ecosys_comp_surf_avg', comp_surf_avg_flag, &
       default=.false., freq_opt=comp_surf_avg_freq_iopt,  &
-      freq=comp_surf_avg_freq)
+      freq=comp_surf_avg_freq, owner='ecosys_init')
 
    select case (atm_co2_opt)
    case ('const')
@@ -1089,7 +1089,9 @@ contains
                                ecosys_restart_filename)
       endif
 
-      if (time_to_do(comp_surf_avg_freq_iopt, comp_surf_avg_freq)) &
+      call eval_time_flag(comp_surf_avg_flag) ! evaluates time_flag(comp_surf_avg_flag)%value via time_to_do
+
+      if (check_time_flag(comp_surf_avg_flag)) &
          call comp_surf_avg(TRACER_MODULE(:,:,1,:,oldtime,:), &
                             TRACER_MODULE(:,:,1,:,curtime,:))
 

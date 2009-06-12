@@ -478,9 +478,10 @@
          ' History output format: ',trim(history_fmt)
    endif
 
-   history_flag = init_time_flag('history',default=.false.,    &
-                                 freq_opt = history_freq_iopt, &
-                                 freq     = history_freq)
+   call init_time_flag('history',history_flag, default=.false.,  &
+                        owner    = 'init_history',               & 
+                        freq_opt = history_freq_iopt,            &
+                        freq     = history_freq)
 
 !-----------------------------------------------------------------------
 !

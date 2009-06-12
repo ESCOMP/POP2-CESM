@@ -2012,7 +2012,8 @@
       DZBC_G              ! global bottom layer thickness (cm)
 
    integer (POP_i4) :: &
-      nu                ,&! i/o unit number
+      nu,                &! i/o unit number
+      reclength,         &! record length
       ioerr               ! i/o error flag
 
 !-----------------------------------------------------------------------
@@ -2021,11 +2022,11 @@
 !
 !-----------------------------------------------------------------------
 
+   INQUIRE(iolength=reclength) DZBC_G
    call get_unit(nu)
    if (my_task == master_task) then
       open(nu, file=bottom_cell_file,status='old',form='unformatted', &
-               access='direct', recl=8*nx_global*ny_global, &
-               iostat=ioerr)
+               access='direct', recl=reclength, iostat=ioerr)
    endif
 
    call broadcast_scalar(ioerr, master_task)

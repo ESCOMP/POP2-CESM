@@ -335,7 +335,9 @@
 
    case (state_range_check)
 
-      if (time_to_do(freq_opt_nstep, state_range_freq)) then
+      call exit_POP(sigAbort,  &
+          '(state) ERROR unsupported option -- must define time flag and use check_time_flag')
+!***  if (time_to_do(freq_opt_nstep, state_range_freq)) then
 
          ib = this_block%ib
          ie = this_block%ie
@@ -358,7 +360,7 @@
             write(stdout,'(a9,i6,a44,i3)') 'WARNING: ',out_of_range, &
                   'points outside of valid salt range at level ',kk
 
-      endif
+!***  endif
 
       TQ = TEMPK
       SQ = SALTK

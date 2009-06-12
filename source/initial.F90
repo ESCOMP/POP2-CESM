@@ -52,8 +52,8 @@
    use diagnostics, only: init_diagnostics
    use state_mod, only: init_state, state
    use time_management, only: first_step, init_time1, init_time2, &
-                              dttxcel, dtuxcel, check_time_flag_freq,  &
-                              check_time_flag_freq_opt, init_time_flag
+                              dttxcel, dtuxcel, check_time_flag_int,  &
+                              get_time_flag_id
    use topostress, only: init_topostress
    use ice
    use output, only: init_output
@@ -1760,26 +1760,28 @@
 !
 !-----------------------------------------------------------------------
 
+   tavg_flag    = get_time_flag_id('tavg')
+   coupled_flag = get_time_flag_id('coupled_ts')
+
    if (my_task == master_task) then
-     tavg_flag    = init_time_flag('tavg')
-     coupled_flag = init_time_flag('coupled_ts')
-     if (check_time_flag_freq_opt(tavg_flag) > 0 .and. &
-         check_time_flag_freq_opt(coupled_flag) > 0) then
-     if (check_time_flag_freq_opt(tavg_flag) /=  &
-         check_time_flag_freq_opt(coupled_flag)) then
-       message = 'Warning:  time-averaging and coupling frequency ' /&
-       &/ 'may be incompatible; tavg must be integer multiple of coupling freq'
-       call print_message(message)
-       number_of_warnings = number_of_warnings + 1
-     else
-       if ( mod(check_time_flag_freq(tavg_flag),  &
-                check_time_flag_freq(coupled_flag)) .ne. 0) then
-         message = 'Warning: time-averaging frequency is incompatible with ' /&
-         &/ ' the coupling frequency'
-         call print_message (message)
-         number_of_warnings = number_of_warnings + 1
-        endif
-     endif
+     if (check_time_flag_int(tavg_flag,   freq_opt=.true.) > 0 .and. &
+         check_time_flag_int(coupled_flag,freq_opt=.true.) > 0) then
+
+       if (check_time_flag_int(tavg_flag,   freq_opt=.true.) /=  &
+           check_time_flag_int(coupled_flag,freq_opt=.true.)) then
+           message = 'Warning:  time-averaging and coupling frequency ' /&
+           &/ 'may be incompatible; tavg must be integer multiple of coupling freq'
+           call print_message(message)
+           number_of_warnings = number_of_warnings + 1
+       else
+         if ( mod(check_time_flag_int(tavg_flag,   freq=.true.),  &
+                  check_time_flag_int(coupled_flag,freq=.true.)) .ne. 0) then
+           message = 'Warning: time-averaging frequency is incompatible with ' /&
+           &/ ' the coupling frequency'
+           call print_message (message)
+           number_of_warnings = number_of_warnings + 1
+         endif
+       endif
      endif
    endif
 

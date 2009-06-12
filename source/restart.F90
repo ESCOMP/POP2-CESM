@@ -485,8 +485,8 @@
       !*** set old value for the time flag 'coupled_ts'
 
       if (lcoupled_ts) then
-         restart_cpl_ts = init_time_flag('coupled_ts')
-         call set_time_flag_last (restart_cpl_ts, lcoupled_ts)
+         restart_cpl_ts = get_time_flag_id('coupled_ts')
+         call override_time_flag (restart_cpl_ts, old_value=lcoupled_ts)
       endif
 
    endif ! .not. lccsm_hybrid
@@ -1116,8 +1116,8 @@
 
    !*** turn off cpl_write_restart if necessary
 
-   if (check_time_flag(cpl_write_restart) .and. eod) &
-       call set_time_flag(cpl_write_restart, .false.)
+   if  (check_time_flag(cpl_write_restart) .and. eod) & 
+     call override_time_flag(cpl_write_restart, value=.false.)
 
 
 !-----------------------------------------------------------------------
@@ -1714,24 +1714,33 @@
 !
 !-----------------------------------------------------------------------
 
-   restart_flag   = init_time_flag('restart', default=.false.,   &
-                                   freq_opt = restart_freq_iopt, &
-                                   freq     = restart_freq)
+   call init_time_flag('restart',restart_flag,  default=.false.,    &
+                        owner    = 'init_restart',                  &
+                        freq_opt = restart_freq_iopt,               &
+                        freq     = restart_freq)
 
    if (leven_odd_on) then
       last_even_odd = even
-      evenodd_flag   = init_time_flag('evenodd', default=.false.,   &
-                                      freq_opt = freq_opt_nstep,    &
-                                      freq     = even_odd_freq)
+      call init_time_flag('evenodd', evenodd_flag, default=.false., &
+                           owner    = 'init_restart',               &
+                           freq_opt = freq_opt_nstep,               &
+                           freq     = even_odd_freq)
    else
-      evenodd_flag   = init_time_flag('evenodd', default=.false.,   &
-                                      freq_opt = freq_opt_never,    &
-                                      freq     = even_odd_freq)
+      call init_time_flag('evenodd',evenodd_flag, default=.false.,  &
+                           owner    = 'init_restart',               &
+                           freq_opt = freq_opt_never,               &
+                           freq     = even_odd_freq)
    endif
 
-   cpl_write_restart = init_time_flag('cpl_write_restart')
-   restart_cpl_ts    = init_time_flag('coupled_ts')
-   out_stop_now      = init_time_flag('stop_now') ! get id for stop flag
+!-----------------------------------------------------------------------
+!
+!  get handle for time flags defined in other modules
+!
+!-----------------------------------------------------------------------
+
+   cpl_write_restart = get_time_flag_id('cpl_write_restart')
+   restart_cpl_ts    = get_time_flag_id('coupled_ts')
+   out_stop_now      = get_time_flag_id('stop_now')    
 
 !-----------------------------------------------------------------------
 !EOC

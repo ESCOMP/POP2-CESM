@@ -353,17 +353,17 @@ contains
 !-----------------------------------------------------------------------
 !
 !  Initialize flags and shortwave absorption profile
-!  Note that the cpl_write_xxx flags have _no_ default value;
-!  therefore, they must be explicitly set .true. and .false.
-!  at the appropriate times
+!  Note that these cpl_write_xxx flags have no freqency options
+!  set; therefore, they will retain a default value of .false.
+!  unless they are explicitly set .true.  at the appropriate times
 !
 !-----------------------------------------------------------------------
 
-   cpl_write_restart = init_time_flag('cpl_write_restart')
-   cpl_write_history = init_time_flag('cpl_write_history')
-   cpl_write_tavg    = init_time_flag('cpl_write_tavg'   )
-   cpl_diag_global   = init_time_flag('cpl_diag_global'  )
-   cpl_diag_transp   = init_time_flag('cpl_diag_transp'  )
+   call init_time_flag('cpl_write_restart',cpl_write_restart, owner = 'ocn_init_mct')
+   call init_time_flag('cpl_write_history',cpl_write_history, owner = 'ocn_init_mct')
+   call init_time_flag('cpl_write_tavg'   ,cpl_write_tavg,    owner = 'ocn_init_mct')
+   call init_time_flag('cpl_diag_global'  ,cpl_diag_global,   owner = 'ocn_init_mct')
+   call init_time_flag('cpl_diag_transp'  ,cpl_diag_transp,   owner = 'ocn_init_mct')
 
    lsmft_avail = .true.
    tlast_coupled = c0
@@ -441,6 +441,15 @@ contains
      call document ('ocn_import_mct', 'orb_lambm0  ',  orb_lambm0)
      call document ('ocn_import_mct', 'orb_obliqr  ',  orb_obliqr)
     endif
+
+!-----------------------------------------------------------------------
+!
+!  Now document all time flags, because this is the last step of pop2 
+!    initialization
+!
+!-----------------------------------------------------------------------
+
+   call document_time_flags
 
 !-----------------------------------------------------------------------
 !
@@ -570,7 +579,7 @@ contains
 
     rstwr = seq_timemgr_RestartAlarmIsOn(EClock)
     if (rstwr) then
-       call set_time_flag(cpl_write_restart,.true.)
+       call override_time_flag(cpl_write_restart,value=.true.)
        call ccsm_char_date_and_time ! set time_management module vars cyear, cmonth, ..
        write(message,'(6a)') 'driver requests restart file at eod  ',  &
             cyear,'/',cmonth,'/',cday
@@ -584,8 +593,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-    ! Note that all user defined timer flags are set in routine set_time_flag_all
-    ! in routine time_manager that is called by routine step
+    ! Note that all ocean time flags are evaluated each timestep in time_manager
     ! ocn_import_mct is analogous to pop_unpack_fluxes_from_coupler in cpl6 
     ! ocn_export_mct is analogous to prepare_send_to_coupler in cpl6
     ! tlast_coupled is set to zero at the end of ocn_export_mct

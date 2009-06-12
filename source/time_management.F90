@@ -35,20 +35,19 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_time1,        &
-             init_time2,        &
-             time_manager,              &
-             init_time_flag,            &
-             set_time_flag,             &
-             set_time_flag_last,        &
-             check_time_flag,           &
-             check_time_flag_freq_opt,  &
-             check_time_flag_freq,      &
-             time_to_do,                &
-             time_to_start,             &
-             time_stamp,                &
-             int_to_char,               &
-             ccsm_date_stamp,           &
+   public :: init_time1,            &
+             init_time2,            &
+             time_manager,          &
+             init_time_flag,        &
+             get_time_flag_id,      &
+             override_time_flag,    &
+             eval_time_flag,        &
+             check_time_flag,       &
+             check_time_flag_int,   &
+             time_to_start,         &
+             time_stamp,            &
+             int_to_char,           &
+             ccsm_date_stamp,       &
              ccsm_char_date_and_time
 
 
@@ -56,18 +55,27 @@
 
    type time_flag
 
-      character (char_len) :: &
-         name                  ! name for flag
+      character (char_len) ::  &
+         name,                 &! name for flag
+         owner                  ! name of initializing routine
 
-      logical (log_kind) ::   &
-         value,               &! logical state of flag
-         old_value,           &! last state of flag
-         default,             &! default state of flag
-         has_default           ! T if default defined, F if no default
+      logical (log_kind) ::    &
+         value,                &! logical state of flag
+         old_value,            &! last state of flag
+         default,              &! default state of flag
+         has_default,          &! T if default defined, F if no default
+         has_offset_date,      &! T if flag has reference-date/offset value; F if not
+         is_initialized         ! T if flag has been initialized via init_time_flag; F if not
 
-      integer (int_kind) ::   &
-         freq_opt,            &! frequency units for switching flag on
-         freq                  ! freq in above units for switching flag
+      integer (int_kind) ::    &
+         freq_opt,             &! frequency units for switching flag on
+         freq,                 &! freq in above units for switching flag
+         offset_year,          &! offset/reference year  (input;optional)
+         offset_month,         &! offset/reference month (input;optional)
+         offset_day,           &! offset/reference day   (input;optional)
+         eyears,               &! elapsed years  between 01-01-0000 and ref date (computed)
+         emonths,              &! elapsed months between 01-01-0000 and ref date (computed)
+         edays                  ! elapsed days   between 01-01-0000 and ref date (computed)
 
    end type
 
@@ -206,7 +214,7 @@
       days_in_prior_year      ,&! days in prior   year 
       elapsed_days            ,&! full days elapsed since    01-01-0000
       elapsed_days0           ,&! full days elapsed between  01-01-0000 
-                                !                   and day0 
+                                !      and initial start date
       elapsed_days_jan1       ,&! full days elapsed prior to 01-01-iyear
       elapsed_days_this_run   ,&! full days elapsed since beginning of
                                 !                   this segment of run
@@ -215,14 +223,18 @@
       elapsed_days_end_run    ,&! full days elapsed from 01-01-0000 to end
                                 !                   of this run
       elapsed_days_max        ,&! maximum number of full days allowed 
-      elapsed_months          ,&! full months elapsed since 01-01-0000
+      elapsed_months          ,&! full months elapsed since   01-01-0000
+      elapsed_months0         ,&! full months elapsed between 01-01-0000
+                                !       and initial start date
       elapsed_months_this_run ,&! full months elapsed since beginning of
                                 !                     this segment of run
-      elapsed_months_init_date,&! full months elapsed since initial time
-      elapsed_years           ,&! full years  elapsed since 01-01-0000
+      elapsed_months_init_date,&! full months elapsed since initial start date
+      elapsed_years           ,&! full years  elapsed since   01-01-0000
+      elapsed_years0          ,&! full years  elapsed between 01-01-0000 
+                                !      and initial start date
       elapsed_years_this_run  ,&! full years  elapsed since beginning of
-                                !                     this segment of run
-      elapsed_years_init_date   ! full years  elapsed since initial time
+                                !      this segment of run
+      elapsed_years_init_date   ! full years  elapsed since initial start date
  
    integer (int_kind), parameter :: &
       days_in_leap_year = 366,      & !   days in a leap year
@@ -434,6 +446,8 @@
 !
 !-----------------------------------------------------------------------
 
+   private :: time_to_do  !access via time-flags only
+
    real (r8), private ::          &
       rhour_next,        &! rhour   for next timestep
       rminute_next,      &! rminute for next timestep
@@ -512,12 +526,12 @@
 
 !-----------------------------------------------------------------------
 !
-!  Set logical flags to default values.
+!  Define and initialize time flags
 !
 !-----------------------------------------------------------------------
 
-   stop_now    = init_time_flag('stop_now'   ,default=.false.)
-   coupled_ts  = init_time_flag('coupled_ts')
+   call init_time_flag('stop_now' , stop_now,   owner='init_time1', default=.false.)
+   call init_time_flag('coupled_ts',coupled_ts, owner='init_time1' )
 
    call reset_switches
 
@@ -1133,7 +1147,10 @@
 
    call ymd2eday (iyear , imonth , iday , elapsed_days     )
    call ymd2eday (iyear , 1      , 1    , elapsed_days_jan1)
-   call ymd2eday (iyear0, imonth0, iday0, elapsed_days0    )
+
+   elapsed_years0   = iyear0
+   elapsed_months0  = elapsed_years0*12 + imonth0 - 1
+   call ymd2eday      (iyear0, imonth0, iday0, elapsed_days0)
 
    elapsed_days_this_year   = elapsed_days - elapsed_days_jan1
 
@@ -1601,11 +1618,12 @@
  
 !-----------------------------------------------------------------------
 !
-!  set logical switches to default values
+!  set logical switches and time_flags to their default values
 !
 !-----------------------------------------------------------------------
 
    call reset_switches
+   call reset_time_flags 
 
 !-----------------------------------------------------------------------
 !
@@ -1721,16 +1739,17 @@
 
 !-----------------------------------------------------------------------
 !
-!  set all user-defined time flags
+!  now that new date and time are determined, evaluate all user-defined 
+!   time flags
 !
 !-----------------------------------------------------------------------
 
-   call set_time_flag_all
+   call eval_time_flags
 
 !-----------------------------------------------------------------------
 !
 !  ice formation or sample qflux this timestep?
-!  this section must follow call set_time_flag_all
+!  this section must follow call eval_time_flags
 !
 !-----------------------------------------------------------------------
       
@@ -1784,7 +1803,7 @@
 !-----------------------------------------------------------------------
 
    if (tmix_iopt == tmix_matsuno) then
-      if (check_time_flag_last(coupled_ts) .and. nsteps_run > 1 ) then
+      if (check_time_flag(coupled_ts,old_value=.true.) .and. nsteps_run > 1 ) then
          matsuno_ts = .true.
          leapfrogts = .false.
       endif
@@ -1797,35 +1816,35 @@
 !-----------------------------------------------------------------------
 
    if (stop_option == 'nstep' .or. stop_option == 'nsteps') then
-      if (nsteps_run == stop_count) call set_time_flag(stop_now,.true.)
+      if (nsteps_run == stop_count) call override_time_flag(stop_now,value=.true.)
 
    else if (stop_iopt /= stop_opt_never .and. eod) then
  
       if (iyear == iyear_end_run .and. imonth == imonth_end_run   &
                                  .and. iday == iday_end_run) then
 
-         call set_time_flag(stop_now,.true.)
+         call override_time_flag(stop_now,value=.true.)
  
          if (stop_option == 'eoy' .and. .not. eoy) then
-            call set_time_flag(stop_now,.false.)
+            call override_time_flag(stop_now,value=.false.)
          endif
          if (stop_option == 'eom' .and. .not. eom) then
-            call set_time_flag(stop_now,.false.)
+            call override_time_flag(stop_now,value=.false.)
          endif
  
       else if (elapsed_days > elapsed_days_max ) then
 
-         call set_time_flag(stop_now,.true.)
+         call override_time_flag(stop_now,value=.true.)
 
       endif
 
       if (stop_option == 'eoy' .and.  eoy  .and. &
           elapsed_years_this_run == stop_count)  &
-         call set_time_flag(stop_now,.true.)
+         call override_time_flag(stop_now,value=.true.)
 
       if (stop_option == 'eom' .and.  eom  .and. &
           elapsed_months_this_run == stop_count) &
-         call set_time_flag(stop_now,.true.)
+         call override_time_flag(stop_now,value=.true.)
  
    endif
 
@@ -1837,7 +1856,11 @@
 
    if (eod) then
     if (my_task == master_task) then
+        if (iyear <= 9999) then
         write(stdout,1000) iyear, cmonth3, iday, seconds_this_day
+        else
+        write(stdout,1001) iyear, cmonth3, iday, seconds_this_day
+        endif
 #ifdef CCSMCOUPLED
         call shr_sys_flush(stdout)
 #endif
@@ -1845,6 +1868,8 @@
     endif
    endif
 1000 format (' (time_manager)', ' ocn date ', i4.4, '-', a3, '-', &
+                                  i2.2,', ', 1pe12.6, ' sec') 
+1001 format (' (time_manager)', ' ocn date ', i5.5, '-', a3, '-', &
                                   i2.2,', ', 1pe12.6, ' sec') 
 
 !-----------------------------------------------------------------------
@@ -1886,7 +1911,6 @@
    ice_ts             = .false.  ! not an ice timestep
    sample_qflux_ts    = .false.  ! do not sample qflux 
 
-   call reset_time_flag_all
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1998,7 +2022,8 @@
 ! !IROUTINE: init_time_flag
 ! !INTERFACE:
 
- function init_time_flag(flag_name, default, freq_opt, freq)
+ subroutine init_time_flag(flag_name, flag_id, owner, default, freq_opt, freq,  &
+                           offset_year, offset_month, offset_day)
 
 ! !DESCRIPTION:
 !  Creates a user-defined time flag with optional default values
@@ -2012,17 +2037,163 @@
    character (*), intent(in) :: &
       flag_name               ! name for this flag
 
+   character (*), intent(in), optional :: &
+      owner                   ! name of routine initializing this flag
+
    logical (log_kind), intent(in), optional :: &
       default                 ! default state for this flag
 
    integer (int_kind), intent(in), optional :: &
-      freq_opt,              &! optional freq option for setting flag
-      freq                    ! freq in above units  for setting flag
+      freq_opt,                                &! optional freq option for setting flag
+      freq,                                    &! freq in above units  for setting flag
+      offset_year,                             &! optional reference/offset year
+      offset_month,                            &! optional reference/offset month
+      offset_day                                ! optional reference/offset day
+
+! !OUTPUT PARAMETERS:
+  
+   integer (int_kind), intent(out) ::  &
+      flag_id
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+   logical (log_kind) :: &
+      init_time_flag_error
+
+!-----------------------------------------------------------------------
+!
+!  get flag identifier
+!
+!-----------------------------------------------------------------------
+
+   flag_id = get_time_flag_id(trim(flag_name))
+
+!-----------------------------------------------------------------------
+!
+!  initialize time flag
+!
+!-----------------------------------------------------------------------
+
+   time_flags(flag_id)%is_initialized  = .true.
+   time_flags(flag_id)%owner           = 'unknown'
+   time_flags(flag_id)%has_default     = .false.
+   time_flags(flag_id)%has_offset_date = .false.
+   time_flags(flag_id)%default         = .false.
+   time_flags(flag_id)%freq_opt        = freq_opt_never
+   time_flags(flag_id)%freq            = 0
+   time_flags(flag_id)%value           = .false.
+   time_flags(flag_id)%old_value       = .false.
+
+!-----------------------------------------------------------------------
+!
+!  set default value of flag, if requested
+!
+!  NOTE: If flag previously defined and optional arguments are 
+!        present, this will override any previous definition of 
+!        optional arguments. user must make sure calls do not 
+!        contain optional arguments or else that the last call to 
+!        this routine for a specific flag contains desired values.
+!
+!-----------------------------------------------------------------------
+
+   if (present(default)) then
+      time_flags(flag_id)%has_default = .true.
+      time_flags(flag_id)%default     = default
+      time_flags(flag_id)%value       = default
+      time_flags(flag_id)%old_value   = default
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  define optional flag owner information
+!
+!-----------------------------------------------------------------------
+
+   if (present(owner)) then
+      time_flags(flag_id)%owner     = trim(owner)
+   endif
+
+
+!-----------------------------------------------------------------------
+!
+!  define optional frequency for setting flag
+!
+!-----------------------------------------------------------------------
+
+   if (present(freq_opt)) then
+      time_flags(flag_id)%freq_opt = freq_opt
+      time_flags(flag_id)%freq     = freq
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  define optional offset date information
+!
+!-----------------------------------------------------------------------
+
+   !*** first, do some error checking. Must have all three offset_* values, or none
+
+   init_time_flag_error = .false.
+
+   if (present(offset_year)) then
+      if (.not. present(offset_month) .or. .not. present(offset_day  )) init_time_flag_error = .true.
+   else 
+      if (present(offset_month) .or. present(offset_day)) init_time_flag_error = .true.
+   endif
+
+   if (init_time_flag_error) then
+        write(stdout,*) '  time_file name  = ', trim(time_flags(flag_id)%name)
+        call exit_POP(sigAbort,'ERROR (init_time_flag): missing time_flag ref values')
+   endif
+
+   !*** now compute elapsed reference years, months, days since 01-01-0000
+   if (present(offset_year)) then
+      time_flags(flag_id)%has_offset_date = .true.
+      time_flags(flag_id)%offset_year     = offset_year
+      time_flags(flag_id)%offset_month    = offset_month
+      time_flags(flag_id)%offset_day      = offset_day
+      time_flags(flag_id)%eyears          = offset_year
+      time_flags(flag_id)%emonths         = 12*offset_year + offset_month - 1
+      call ymd2eday (offset_year,offset_month,offset_day,time_flags(flag_id)%edays)
+   endif
+
+ 
+   if (debug_time_management) call document_time_flag(flag_id)
+
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine init_time_flag
+
+!***********************************************************************
+!BOP
+! !IROUTINE: get_time_flag_id
+! !INTERFACE:
+
+ function get_time_flag_id(flag_name)
+
+! !DESCRIPTION:
+!  Assigns a new flag_id for a new flag; reports an old flag_id for an existing flag
+!
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent(in) :: &
+      flag_name               ! name for this flag
 
 ! !OUTPUT PARAMETERS:
 
    integer (int_kind) :: &
-      init_time_flag          ! flag id which also is integer index 
+      get_time_flag_id        ! flag id which also is integer index 
                               !    into time flag array
 
 !EOP
@@ -2045,7 +2216,7 @@
 
    isearch = 0
    flag_search: do n=1,num_time_flags
-      if (trim(time_flags(n)%name) == flag_name) then
+      if (trim(time_flags(n)%name) == trim(flag_name)) then
          isearch = n
          exit flag_search
       endif
@@ -2057,80 +2228,26 @@
 !
 !-----------------------------------------------------------------------
 
-   if (isearch == 0) then  ! no flag exists - define new flag
+   if (isearch == 0) then  ! no flag exists - assign new flag_id
 
-      num_time_flags = num_time_flags + 1
-      isearch = num_time_flags
-
-      time_flags(isearch)%name = flag_name
-
-      time_flags(isearch)%has_default = .false.
-      time_flags(isearch)%default     = .false.
-      time_flags(isearch)%freq_opt    = freq_opt_never
-      time_flags(isearch)%freq        = 0
-      time_flags(isearch)%value       = .false.
-      time_flags(isearch)%old_value   = .false.
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  set default if requested
-!
-!  NOTE: If flag previously defined and optional arguments are 
-!        present, this will override any previous definition of 
-!        optional arguments. user must make sure calls do not 
-!        contain optional arguments or else that the last call to 
-!        this routine for a specific flag contains desired values.
-!
-!-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
-!
-!  set default value of flag
-!
-!-----------------------------------------------------------------------
-
-   if (present(default)) then
-      time_flags(isearch)%has_default = .true.
-      time_flags(isearch)%default     = default
-      time_flags(isearch)%value       = default
-      time_flags(isearch)%old_value   = default
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  define optional frequency for setting flag
-!
-!-----------------------------------------------------------------------
-
-   if (present(freq_opt)) then
-      time_flags(isearch)%freq_opt = freq_opt
-      time_flags(isearch)%freq     = freq
-   endif
-
-!-----------------------------------------------------------------------
-!
-!     print time_flag information for debugging purposes
-!
-!-----------------------------------------------------------------------
- 
-      if (debug_time_management .and. my_task == master_task) then
-        write(stdout,*) ' initialize time_flag(',isearch,')'
-        write(stdout,*)  '   name              = '  &
-      , trim(time_flags(isearch)%name)
-        write(stdout,*) '   has_default        = '  &
-      , time_flags(isearch)%has_default
-        write(stdout,*) '   default            = '  &
-      , time_flags(isearch)%default
-        write(stdout,*) '   freq_opt           = '  &
-      , time_flags(isearch)%freq_opt
-        write(stdout,*) '   freq               = '  &
-      , time_flags(isearch)%freq
-        write(stdout,*) '   value              = '  &
-      , time_flags(isearch)%value
-        write(stdout,*) '   old_value          = '  &
-      , time_flags(isearch)%old_value
-        write(stdout,*) '   '
+      if (num_time_flags + 1 <= max_time_flags) then
+         num_time_flags = num_time_flags + 1
+         isearch = num_time_flags
+      else
+         call exit_POP(sigAbort,'ERROR: num_time_flags exceeds max_time_flags')
       endif
+
+!-----------------------------------------------------------------------
+!
+!  assign/reserve flag name.  At this point, the time_flag name is reserved,
+!  but it is not yet initialized. init_time_flag sets time_flags%is_initialized = .true.
+!
+!-----------------------------------------------------------------------
+
+      time_flags(isearch)%name            = trim(flag_name)
+      time_flags(isearch)%is_initialized  = .false.
+
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -2138,87 +2255,241 @@
 !
 !-----------------------------------------------------------------------
 
-   init_time_flag = isearch
+   get_time_flag_id = isearch
 
 !-----------------------------------------------------------------------
 !EOC
 
- end function init_time_flag
+ end function get_time_flag_id
 
 !***********************************************************************
 !BOP
-! !IROUTINE: set_time_flag
+! !IROUTINE: document_time_flags
 ! !INTERFACE:
 
- subroutine set_time_flag(flag_id, value)
+ subroutine document_time_flags
 
 ! !DESCRIPTION:
-!  Sets the time flag given by flag\_id to the value.
+!  Documents all time flags
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+  integer (int_kind) ::  &
+     n
+
+   if (my_task == master_task) then
+      write(stdout,blank_fmt)
+      write(stdout,ndelim_fmt)
+      write(stdout,blank_fmt)
+      write(stdout,*) ' Time Flags '
+      write(stdout,blank_fmt)
+   endif ! master_task
+     
+   do n=1,num_time_flags
+     call document_time_flag(n)
+   enddo
+
+   if (my_task == master_task) then
+      write(stdout,blank_fmt)
+      write(stdout,ndelim_fmt)
+      write(stdout,blank_fmt)
+   endif ! master_task
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine document_time_flags
+
+!***********************************************************************
+!BOP
+! !IROUTINE: document_time_flag
+! !INTERFACE:
+
+ subroutine document_time_flag(flag_id)
+
+! !DESCRIPTION:
+!  Documents time flag
 !
 ! !REVISION HISTORY:
 !  same as module
 
 ! !INPUT PARAMETERS:
 
-   integer (int_kind), intent(in) :: &
+   integer (int_kind), intent(in), optional :: &
       flag_id                ! index of flag array identifying flag
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
 
-   logical (log_kind), intent(in) :: &
-      value                  ! value requested for flag
+  integer (int_kind) ::   n
+
+  character (char_len) ::  string
+
+   if (my_task == master_task) then
+      write(stdout,blank_fmt)
+
+      do n = flag_id,flag_id
+      if (time_flags(n)%is_initialized) then
+ 
+        select case (time_flags(n)%freq_opt)
+           case (freq_opt_never)
+             string = '  (never)'
+           case (freq_opt_nyear)
+             string = '  (nyear)'
+           case (freq_opt_nmonth)
+             string = '  (nmonth)'
+           case (freq_opt_nday)
+             string = '  (nday)'
+           case (freq_opt_nhour)
+             string = '  (nhour)'
+           case (freq_opt_nsecond)
+             string = '  (nsecond)'
+           case (freq_opt_nstep)
+             string = '  (nstep)'
+        end select
+
+        write(stdout,*) 'time_flag id = ', n
+        write(stdout,*) '   name               = ', trim(time_flags(n)%name)
+        write(stdout,*) '   owner              = ', trim(time_flags(n)%owner)
+        write(stdout,*) '   has_default        = ', time_flags(n)%has_default
+        write(stdout,*) '   default            = ', time_flags(n)%default
+        write(stdout,*) '   freq_opt           = ', time_flags(n)%freq_opt, trim(string)
+        write(stdout,*) '   freq               = ', time_flags(n)%freq
+        write(stdout,*) '   value              = ', time_flags(n)%value
+        write(stdout,*) '   old_value          = ', time_flags(n)%old_value
+        write(stdout,*) '   has_offset_date    = ', time_flags(n)%has_offset_date 
+        if (time_flags(n)%has_offset_date) then
+          write(stdout,1100) '   Reference date: ', time_flags(n)%offset_year,'-',  &
+                                                    time_flags(n)%offset_month,'-', &
+                                                    time_flags(n)%offset_day
+          write(stdout,*) '   eyears           = ', time_flags(n)%eyears 
+          write(stdout,*) '   emonths          = ', time_flags(n)%emonths 
+          write(stdout,*) '   edays            = ', time_flags(n)%edays  
+        endif
+       else
+        write(stdout,*) 'time_flag #', n, ' is NOT initialized'
+        write(stdout,*) '   name              = ', trim(time_flags(n)%name)
+       endif ! is_initialized
+       write(stdout,*) '   '
+      enddo ! n
+
+   endif ! master_task
+
+#ifdef CCSMCOUPLED
+   call shr_sys_flush(stdout)
+#endif
+
+1100 format (1x, a, 1x, i4.4, a, i2.2, a, i2.2)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine document_time_flag
+
+!***********************************************************************
+!BOP
+! !IROUTINE: override_time_flag
+! !INTERFACE:
+
+ subroutine override_time_flag(flag_id, value, old_value)
+
+! !DESCRIPTION:
+!  Explicitly overrides the current value of the time flag by
+!  setting the time flag to the value specified, as follows:
+!     if (present(value), time-flag value is set to value
+!     if (present(old_value), time-flag old value is set to old_value
+!  NOTE: the override is in effect only until the start of the next timestep
+ 
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      flag_id                         ! index of flag array identifying flag
+
+   logical (log_kind), intent(in), optional :: &
+      value,                                   &! value requested for flag
+      old_value
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!  check for proper flag id and then set flag
+!
+!-----------------------------------------------------------------------
+
+   call error_check_time_flag(flag_id,'override_time_flag')
+
+!-----------------------------------------------------------------------
+!
+!  Set the time-flag as follows:
+!     if (present(value),     time_flags(flag_id)%value = value 
+!     if (present(old_value), time_flags(flag_id)%old_value = old_value 
+!
+!-----------------------------------------------------------------------
+
+   if (present(value)) then
+     time_flags(flag_id)%value = value
+   else if (present(old_value)) then
+     time_flags(flag_id)%old_value = old_value
+   else
+     call exit_POP(sigAbort,'(override_time_flag) ERROR -- must specify value or old_value')
+   endif
+      
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine override_time_flag
+
+!***********************************************************************
+!BOP
+! !IROUTINE: reset_time_flags
+! !INTERFACE:
+
+ subroutine reset_time_flags
+
+! !DESCRIPTION:
+!  Reset all time flags to their default values
+!
+! !REVISION HISTORY:
+!  same as module
 
 !EOP
 !BOC
 !-----------------------------------------------------------------------
 !
-!  check for proper flag id and then set flag
+!  local variables
 !
 !-----------------------------------------------------------------------
 
-   if (flag_id < 1 .or. flag_id > num_time_flags) &
-      call exit_POP(sigAbort,'set_time_flag: invalid flag_id')
+   integer (int_kind) :: n  ! dummy index
 
-   time_flags(flag_id)%value = value
+   do n=1,num_time_flags
+      call reset_time_flag(n)
+   end do
 
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine set_time_flag
+ end subroutine reset_time_flags
 
-!***********************************************************************
-!BOP
-! !IROUTINE: set_time_flag_last
-! !INTERFACE:
-
- subroutine set_time_flag_last(flag_id, old_value)
-
-! !DESCRIPTION:
-!  Sets the old value of time flag given by flag\_id to old\_value.
-!
-! !REVISION HISTORY:
-
-! !INPUT VARIABLES:
-
-   integer (int_kind), intent(in) :: &
-      flag_id                ! index of flag array identifying flag
-
-   logical (log_kind), intent(in) :: &
-      old_value              ! old value requested for flag
-
-!-----------------------------------------------------------------------
-!
-!  check for proper flag id and then set flag
-!
-!-----------------------------------------------------------------------
-
-   if (flag_id < 1 .or. flag_id > num_time_flags) &
-      call exit_POP(sigAbort,'set_time_flag: invalid flag_id')
-
-   time_flags(flag_id)%old_value = old_value
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine set_time_flag_last
 
 !***********************************************************************
 !BOP
@@ -2246,8 +2517,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (flag_id < 1 .or. flag_id > num_time_flags) &
-      call exit_POP(sigAbort,'reset_time_flag: invalid flag_id')
+   call error_check_time_flag(flag_id, 'reset_time_flag')
 
    if (time_flags(flag_id)%has_default) then
       time_flags(flag_id)%value = time_flags(flag_id)%default
@@ -2258,52 +2528,13 @@
 
  end subroutine reset_time_flag
 
-!***********************************************************************
-!BOP
-! !IROUTINE: reset_time_flag_all
-! !INTERFACE:
-
- subroutine reset_time_flag_all
-
-! !DESCRIPTION:
-!  Sets all time flags to default value (if exists).
-!
-! !REVISION HISTORY:
-!  same as module
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
-
-   integer (int_kind) :: n  ! dummy index
-
-!-----------------------------------------------------------------------
-!
-!  check all flags for default value and set value if default exists
-!
-!-----------------------------------------------------------------------
-
-   do n=1,num_time_flags
-      if (time_flags(n)%has_default) then
-         time_flags(n)%value = time_flags(n)%default
-      endif
-   end do
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine reset_time_flag_all
 
 !***********************************************************************
 !BOP
 ! !IROUTINE: check_time_flag
 ! !INTERFACE:
 
- function check_time_flag(flag_id)
+ function check_time_flag(flag_id,old_value)
 
 ! !DESCRIPTION:
 !  Returns the current value of time flag given by flag\_id.
@@ -2316,23 +2547,44 @@
    integer (int_kind), intent(in) :: &
       flag_id                ! index of flag array identifying flag
 
+   logical (log_kind), intent(in), optional :: &
+      old_value                    ! check old value of time flag
+
 ! !OUTPUT PARAMETERS:
 
    logical (log_kind) :: &
-      check_time_flag        ! current value of time flag
+      check_time_flag      ! resulting value of time flag (logical)
 
 !EOP
 !BOC
 !-----------------------------------------------------------------------
 !
-!  check for proper flag id and then return flag value
+!  local variables
 !
 !-----------------------------------------------------------------------
 
-   if (flag_id < 1 .or. flag_id > num_time_flags) &
-      call exit_POP(sigAbort,'check_time_flag: invalid flag_id')
+   logical (log_kind) :: &
+      check_old_value      ! check old value, not present value
 
-   check_time_flag = time_flags(flag_id)%value
+!-----------------------------------------------------------------------
+!
+!  check for proper flag id and then set flag
+!
+!-----------------------------------------------------------------------
+
+   call error_check_time_flag(flag_id, 'check_time_flag')
+
+   if (present(old_value)) then
+     check_old_value = old_value
+   else
+     check_old_value = .false.
+   endif
+      
+   if (check_old_value) then
+      check_time_flag = time_flags(flag_id)%old_value
+   else
+      check_time_flag = time_flags(flag_id)%value
+   endif
 
 !-----------------------------------------------------------------------
 !EOC
@@ -2341,13 +2593,13 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: check_time_flag_freq_opt
+! !IROUTINE: check_time_flag_int
 ! !INTERFACE:
 
- function check_time_flag_freq_opt(flag_id)
+ function check_time_flag_int(flag_id, freq, freq_opt)
 
 ! !DESCRIPTION:
-!  Returns the current frequency of time flag given by flag\_id.
+!  Returns the current integer value of time flag given by flag\_id.
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -2357,121 +2609,81 @@
    integer (int_kind), intent(in) :: &
       flag_id                ! index of flag array identifying flag
 
+   logical (log_kind), intent(in), optional :: &
+      freq,                 &! check flag frequency
+      freq_opt               ! check flag frequency option
+
+
 ! !OUTPUT PARAMETERS:
 
    integer (int_kind) :: &
-      check_time_flag_freq_opt        ! current freqeuncy option of time flag
+      check_time_flag_int        ! current freqeuncy option of time flag
 
 !EOP
 !BOC
 !-----------------------------------------------------------------------
 !
-!  check for proper flag id and then return flag value
+!  local variables
 !
 !-----------------------------------------------------------------------
-
-   if (flag_id < 1 .or. flag_id > num_time_flags) &
-      call exit_POP(sigAbort,'check_time_flag: invalid flag_id')
-
-   check_time_flag_freq_opt = time_flags(flag_id)%freq_opt
-
-!-----------------------------------------------------------------------
-!EOC
-
- end function check_time_flag_freq_opt
-
-!***********************************************************************
-!BOP
-! !IROUTINE: check_time_flag_freq
-! !INTERFACE:
-
- function check_time_flag_freq(flag_id)
-
-! !DESCRIPTION:
-!  Returns the current frequency of time flag given by flag\_id.
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
-   integer (int_kind), intent(in) :: &
-      flag_id                ! index of flag array identifying flag
-
-! !OUTPUT PARAMETERS:
-
-   integer (int_kind) :: &
-      check_time_flag_freq        ! current freqeuncy option of time flag
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!
-!  check for proper flag id and then return flag value
-!
-!-----------------------------------------------------------------------
-
-   if (flag_id < 1 .or. flag_id > num_time_flags) &
-      call exit_POP(sigAbort,'check_time_flag_freq: invalid flag_id')
-
-   check_time_flag_freq = time_flags(flag_id)%freq
-
-!-----------------------------------------------------------------------
-!EOC
-
- end function check_time_flag_freq
-
-!***********************************************************************
-!BOP
-! !IROUTINE: check_time_flag_last
-! !INTERFACE:
-
- function check_time_flag_last(flag_id)
-
-! !DESCRIPTION:
-!  Returns the value of time flag given by flag\_id at previous
-!  time step
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
-   integer (int_kind), intent(in) :: &
-      flag_id                ! index of flag array identifying flag
-
-! !OUTPUT PARAMETERS:
-
    logical (log_kind) :: &
-      check_time_flag_last   ! value of time flag at last timestep
-
-!EOP
-!BOC
+      check_freq,        &! check flag frequency
+      check_freq_opt      ! check flag frequency option
+ 
 !-----------------------------------------------------------------------
 !
-!  check for proper flag id and then return old flag value
+!  check for proper flag id and then return flag value
 !
 !-----------------------------------------------------------------------
 
-   if (flag_id < 1 .or. flag_id > num_time_flags) &
-      call exit_POP(sigAbort,'check_time_flag_last: invalid flag_id')
+   call error_check_time_flag(flag_id, 'check_time_flag_int')
 
-   check_time_flag_last = time_flags(flag_id)%old_value
+   if (present(freq)) then
+     check_freq = freq
+   else
+     check_freq = .false.
+   endif
+
+   if (present(freq_opt)) then
+     check_freq_opt= freq_opt
+   else
+     check_freq_opt = .false.
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  check one option per call
+!
+!-----------------------------------------------------------------------
+
+   if (check_freq .and. check_freq_opt) then
+      call exit_POP(sigAbort,'(check_time_flag_int): ERROR: check one option at a time')
+   else if (.not. (check_freq .or. check_freq_opt)) then
+      call exit_POP(sigAbort,'(check_time_flag_int): ERROR: must check at leaset one option')
+   endif
+      
+   if (check_freq) then
+      check_time_flag_int = time_flags(flag_id)%freq
+   endif
+   
+   if (check_freq_opt) then
+      check_time_flag_int = time_flags(flag_id)%freq_opt
+   endif
 
 !-----------------------------------------------------------------------
 !EOC
 
- end function check_time_flag_last
+ end function check_time_flag_int
 
 !***********************************************************************
 !BOP
-! !IROUTINE: set_time_flag_all
+! !IROUTINE: eval_time_flags
 ! !INTERFACE:
 
- subroutine set_time_flag_all
+ subroutine eval_time_flags
 
 ! !DESCRIPTION:
-!  Sets all time flags based on frequency options.
+!  Evaluates all time flags based upon flag frequencies, via the function time_to_do
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -2488,32 +2700,129 @@
 
 !-----------------------------------------------------------------------
 !
-!  if it is time, set time flag and save value from old time
+!  if it is time, save value from old time and set new value
 !
 !-----------------------------------------------------------------------
 
    do n=1,num_time_flags
-
-      if (time_flags(n)%freq_opt /= freq_opt_never) then
-
-         time_flags(n)%old_value = time_flags(n)%value
-         time_flags(n)%value = time_to_do(time_flags(n)%freq_opt, & 
-                                          time_flags(n)%freq)
-
-      endif
-
+     call eval_time_flag(n)
    end do
 
 !-----------------------------------------------------------------------
 
- end subroutine set_time_flag_all
+ end subroutine eval_time_flags
+
+!***********************************************************************
+!BOP
+! !IROUTINE: eval_time_flag
+! !INTERFACE:
+
+ subroutine eval_time_flag(flag_id)
+
+! !DESCRIPTION:
+!  Evaluates the requested time flag based upon flag frequency, via the function time_to_do
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      flag_id                ! index of flag array identifying flag
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!  check valid time flag
+!
+!-----------------------------------------------------------------------
+
+  call error_check_time_flag(flag_id, 'eval_time_flag')
+
+!-----------------------------------------------------------------------
+!
+!  if it is time, save value from old time and set new value
+!
+!-----------------------------------------------------------------------
+
+  if (time_flags(flag_id)%freq_opt /= freq_opt_never) then
+
+      time_flags(flag_id)%old_value = time_flags(flag_id)%value
+      time_flags(flag_id)%value     = time_to_do(flag_id)
+
+  endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine eval_time_flag
+
+!***********************************************************************
+!BOP
+! !IROUTINE: error_check_time_flag
+! !INTERFACE:
+
+ subroutine error_check_time_flag(flag_id, calling_routine)
+
+! !DESCRIPTION:
+!  Explicitly overrides the current value of the time flag by
+!  setting the time flag to the value specified, as follows:
+!     if (present(value), time-flag value is set to value
+!     if (present(old_value), time-flag old value is set to old_value
+!  NOTE: the override is in effect only until the start of the next timestep
+ 
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      flag_id                         ! index of flag array identifying flag
+
+   character (*) :: calling_routine
+
+!EOP
+!BOC
+
+   character (char_len) ::  string
+
+!-----------------------------------------------------------------------
+!
+!  check for proper flag id 
+!
+!-----------------------------------------------------------------------
+
+
+   if (flag_id < 1 .or. flag_id > num_time_flags) then
+     write(string,'(a)') trim(calling_routine) // trim(time_flags(flag_id)%name)//': invalid flag_id'
+     call exit_POP(sigAbort,string)
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  check for initialized time_flag
+!
+!-----------------------------------------------------------------------
+
+   if (.not. time_flags(flag_id)%is_initialized) then
+     write(string,'(a)') trim(calling_routine) // trim(time_flags(flag_id)%name)//': is not initialized'
+     call exit_POP(sigAbort,string)
+   endif
+      
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine error_check_time_flag
 
 !***********************************************************************
 !BOP
 ! !IROUTINE: time_to_do
 ! !INTERFACE:
 
- function time_to_do (in_freq_opt, in_freq)
+ function time_to_do (flag_id)
 
 ! !DESCRIPTION:
 !  Determines whether it is time to take a particular action based on 
@@ -2525,8 +2834,7 @@
 ! !INPUT PARAMETERS:
 
    integer (int_kind), intent(in) :: &
-      in_freq_opt,          &! frequency option for this action
-      in_freq                ! frequency in above intervals for action
+      flag_id                         ! flag id
 
 ! !OUTPUT PARAMETERS:
 
@@ -2537,38 +2845,85 @@
 !EOP
 !BOC
 !-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      mod_test,          &
+      freq_opt,          &
+      freq
+
+   logical (log_kind) :: &
+      has_offset_date
+
+!-----------------------------------------------------------------------
+!
+!  check for proper flag id and proper time sequencing, then set time_to_do
+!
+!-----------------------------------------------------------------------
+
+   call error_check_time_flag(flag_id, 'time_to_do')
+
+   if (.not. registry_match('init_time2')) &
+      call exit_POP(sigAbort,'(time_to_do) has not yet called init_time2')
 
    time_to_do = .false.
+ 
+   freq_opt        = time_flags(flag_id)%freq_opt
+   freq            = time_flags(flag_id)%freq
+   has_offset_date = time_flags(flag_id)%has_offset_date
 
-   select case (in_freq_opt)
+   select case (time_flags(flag_id)%freq_opt)
 
    case (freq_opt_nyear)
-      if (eoy .and. mod(elapsed_years_init_date,in_freq) == 0) &
-         time_to_do = .true.
+   !-----------------------------------------------------------
+   ! elapsed whole years between current time and {ref date or start date}
+   !-----------------------------------------------------------
+      if (has_offset_date) then
+        mod_test = elapsed_years - time_flags(flag_id)%eyears 
+      else
+        mod_test = elapsed_years - elapsed_years0              
+      endif
+      if (eoy .and. mod(mod_test,freq) == 0) time_to_do = .true.
 
    case (freq_opt_nmonth)
-      if (eom .and. mod(elapsed_months_init_date,in_freq) == 0) &
-         time_to_do = .true.
+   !-----------------------------------------------------------
+   ! elapsed whole months between current time and {ref date or start date}
+   !-----------------------------------------------------------
+      if (has_offset_date) then
+        mod_test = elapsed_months - time_flags(flag_id)%emonths
+      else
+        mod_test = elapsed_months-elapsed_months0              
+      endif
+      if (eom .and. mod(mod_test,freq) == 0) time_to_do = .true.
 
    case (freq_opt_nday)
+   !-----------------------------------------------------------
+   ! elapsed whole days between current time and {ref date or start date}
+   !-----------------------------------------------------------
+      if (has_offset_date) then
+        mod_test = elapsed_days - time_flags(flag_id)%edays
+      else
+        mod_test = elapsed_days - elapsed_days0      
+      endif
       if (eod) then
          if (midnight) then
-            if (mod(elapsed_days_init_date  ,in_freq) == 0) &
-               time_to_do = .true.
+            if (mod(mod_test  ,freq) == 0)  time_to_do = .true.
          else
-            if (mod(elapsed_days_init_date+1,in_freq) == 0) &
-               time_to_do = .true.
+            if (mod(mod_test+1,freq) == 0)  time_to_do = .true.
          endif
       endif
 
    case (freq_opt_nhour)
-      if (newhour .and. mod(ihour,in_freq) == 0) time_to_do = .true.
+      if (newhour .and. mod(ihour,freq) == 0) time_to_do = .true.
 
    case (freq_opt_nsecond)
-      if (mod(isecond,in_freq) == 0) time_to_do = .true.
+      if (mod(isecond,freq) == 0) time_to_do = .true.
 
    case (freq_opt_nstep)
-      if (mod(nsteps_total,in_freq) == 0) time_to_do = .true.
+      if (mod(nsteps_total,freq) == 0) time_to_do = .true.
 
    case default
    end select

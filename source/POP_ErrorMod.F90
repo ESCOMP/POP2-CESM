@@ -32,6 +32,9 @@
    use POP_KindsMod
    use POP_CommMod
    use POP_IOUnitsMod
+#ifdef CCSMCOUPLED
+   use io_types
+#endif
 
    implicit none
    private
@@ -152,7 +155,7 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (POP_i4) :: n
+   integer (POP_i4) :: n, local_unit
 
 !-----------------------------------------------------------------------
 !
@@ -160,78 +163,84 @@
 !
 !-----------------------------------------------------------------------
 
+#ifdef CCSMCOUPLED
+    ! unnecessary after fully converting to new pop2 infrastructure
+    local_unit = stdout
+#else
+    local_unit = POP_stdout
+#endif
    if (present(printTask)) then
 
       if (POP_myTask == printTask) then
 
-         write(POP_stdout,POP_blankFormat)
-         write(POP_stdout,POP_delimFormat)
-         write(POP_stdout,POP_blankFormat)
+         write(local_unit,POP_blankFormat)
+         write(local_unit,POP_delimFormat)
+         write(local_unit,POP_blankFormat)
 
          if (POP_errorMsgCount == 0) then ! no errors
 
-            write(POP_stdout,'(a34)') &
+            write(local_unit,'(a34)') &
                                 'Successful completion of POP model'
 
          else
 
-            write(POP_stdout,'(a14)') 'POP Exiting...'
+            write(local_unit,'(a14)') 'POP Exiting...'
 
             do n=1,min(POP_errorMsgCount,POP_errorLogDepth)
                write(POP_stderr,'(a)') trim(POP_errorLog(n))
-               if (POP_stdout /= POP_stderr) then
-                  write(POP_stdout,'(a)') trim(POP_errorLog(n))
+               if (local_unit /= POP_stderr) then
+                  write(local_unit,'(a)') trim(POP_errorLog(n))
                endif
             end do
 
             if (POP_errorMsgCount > POP_errorLogDepth) then
                write(POP_stderr,'(a23)') 'Too many error messages'
-               if (POP_stdout /= POP_stderr) then
-                  write(POP_stdout,'(a23)') 'Too many error messages'
+               if (local_unit /= POP_stderr) then
+                  write(local_unit,'(a23)') 'Too many error messages'
                endif
             endif
 
          endif
 
-         write(POP_stdout,POP_blankFormat)
-         write(POP_stdout,POP_delimFormat)
-         write(POP_stdout,POP_blankFormat)
+         write(local_unit,POP_blankFormat)
+         write(local_unit,POP_delimFormat)
+         write(local_unit,POP_blankFormat)
 
       endif
 
    else
 
-      write(POP_stdout,POP_blankFormat)
-      write(POP_stdout,POP_delimFormat)
-      write(POP_stdout,POP_blankFormat)
+      write(local_unit,POP_blankFormat)
+      write(local_unit,POP_delimFormat)
+      write(local_unit,POP_blankFormat)
 
       if (POP_errorMsgCount == 0) then ! no errors
 
-         write(POP_stdout,'(a34)') 'Successful completion of POP model'
+         write(local_unit,'(a34)') 'Successful completion of POP model'
 
       else
 
-         write(POP_stdout,'(a14)') 'POP Exiting...'
+         write(local_unit,'(a14)') 'POP Exiting...'
 
          do n=1,min(POP_errorMsgCount,POP_errorLogDepth)
             write(POP_stderr,'(a)') trim(POP_errorLog(n))
-            if (POP_stdout /= POP_stderr) then
-               write(POP_stdout,'(a)') trim(POP_errorLog(n))
+            if (local_unit /= POP_stderr) then
+               write(local_unit,'(a)') trim(POP_errorLog(n))
             endif
          end do
 
          if (POP_errorMsgCount > POP_errorLogDepth) then
             write(POP_stderr,'(a23)') 'Too many error messages'
-            if (POP_stdout /= POP_stderr) then
-               write(POP_stdout,'(a23)') 'Too many error messages'
+            if (local_unit /= POP_stderr) then
+               write(local_unit,'(a23)') 'Too many error messages'
             endif
          endif
 
       endif
 
-      write(POP_stdout,POP_blankFormat)
-      write(POP_stdout,POP_delimFormat)
-      write(POP_stdout,POP_blankFormat)
+      write(local_unit,POP_blankFormat)
+      write(local_unit,POP_delimFormat)
+      write(local_unit,POP_blankFormat)
 
    endif
 

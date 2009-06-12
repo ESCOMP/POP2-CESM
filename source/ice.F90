@@ -33,7 +33,7 @@
        freq_opt_nhour, freq_opt_nsecond, freq_opt_nstep, init_time_flag,     &
        max_blocks_clinic, km, nt, avg_ts, back_to_back, dtt, check_time_flag,&
        partial_bottom_cells, KMT, DZT, DZ, freq_opt_nmonth, dt, tmix_matsuno,&
-       tmix_iopt, ice_ts
+       tmix_iopt, ice_ts, get_time_flag_id
    use exit_mod, only: sigAbort, exit_pop, flushm
    use prognostic
    use passive_tracers, only: tracer_ref_val
@@ -259,14 +259,15 @@
       call broadcast_scalar(salref,   master_task)
  
       !***
-      !*** set up time flag
+      !*** set up ice time flag and get coupled_ts id for local use
       !***
 
-      ice_flag = init_time_flag('ice',default=.false.,    &
-                                freq_opt = ice_freq_iopt, &
-                                freq     = ice_freq)
+      call init_time_flag('ice',ice_flag, default=.false.,  &
+                           owner    = 'init_ice',           &
+                           freq_opt = ice_freq_iopt,        &
+                           freq     = ice_freq)
 
-      ice_cpl_flag = init_time_flag('coupled_ts')
+      ice_cpl_flag = get_time_flag_id('coupled_ts')
 
       !***
       !*** must keep track of time since last ice flux computed

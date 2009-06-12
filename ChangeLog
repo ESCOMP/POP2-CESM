@@ -1,5 +1,63 @@
 
 
+===============================================================================
+Originator: njn01
+Date:  12 June 2009
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090612
+Summary of Changes:  time-flag changes; add time_management unit tester
+     * time-flag changes:
+         o add support for an offset/reference date in time_to_do
+         o reorganize/rename/restructure time-flag definitions, routines, and interfaces
+         o add documentation
+         o modify time-flag interfaces in modules using time flags (including stand-alone
+            version, but no testing of these changes)
+         o add offset-date support to tavg_nml in pop2_in_build.csh
+     * add new time_management.F90 unit tester
+     * define record length in read_bottom_cell via an INQUIRE statement (bug #968)
+     * remove ^M characters from serial/communicate.F90
+     * restore printed completion messages to ocn.log.* output (use stdout, not POP_stdout)
+        and print only from master-task (eliminates messages from each task in ccsm.log.*)
+     * modify pop2.cpl7.template so that $INPUT is not resolved in the pop2.build* scripts 
+        that the template script creates
+      
+Testing:   See test log linked to ocn doc page
+Reviewers: klindsay, gokhan, yeager
+A               0   build/ibm.gnu
+M           16539   serial/communicate.F90
+A               0   test/unit/time_management
+A               0   test/unit/time_management/pop2_in
+A               0   test/unit/time_management/POP.F90
+A               0   test/unit/time_management/POP_DomainSizeMod.F90
+A               0   test/unit/time_management/timeTest
+A               0   test/unit/time_management/domain_size.F90
+M           16539   source/io_tools.F90
+M           16539   source/initial.F90
+M           16539   source/time_management.F90
+M           16539   source/ice.F90
+M           16539   source/diagnostics.F90
+M           16539   source/step_mod.F90
+M           16539   source/movie.F90
+M           16539   source/grid.F90
+M           16539   source/budget_diagnostics.F90
+M           16539   source/forcing_coupled.F90
+M           16539   source/ecosys_mod.F90
+M           16539   source/restart.F90
+M           16539   source/history.F90
+M           16539   source/tavg.F90
+M           16539   source/POP_ErrorMod.F90
+M           16539   source/state_mod.F90
+M           16539   bld/pop2.cpl7.template
+M           16539   ChangeLog
+M           16539   input_templates/pop2_in_build.csh
+M           16539   drivers/nocoupler/POP.F90
+M           16539   drivers/nocoupler/POP_CouplingMod.F90
+M           16539   drivers/nocoupler/POP_InitMod.F90
+M           16539   drivers/ccsm_cpl7/POP_FinalMod.F90
+M           16539   drivers/ccsm_cpl7/ocn_comp_mct.F90
+M           16539   drivers/ccsm_cpl7/POP_InitMod.F90
+Status against revision:  16638
+
+===============================================================================
 Originator: njn01 (new ccsm4 requirement)
 Date:  9 June 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090609

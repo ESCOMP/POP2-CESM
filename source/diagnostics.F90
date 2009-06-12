@@ -647,17 +647,20 @@
 !
 !-----------------------------------------------------------------------
 
-   diag_global_flag = init_time_flag('diag_global', default=.false.,   &
-                                     freq_opt = diag_global_freq_iopt, &
-                                     freq     = diag_global_freq)
+   call init_time_flag('diag_global', diag_global_flag, default=.false.,  &
+                                      owner    = 'init_diagnostics',      &
+                                      freq_opt = diag_global_freq_iopt,   &
+                                      freq     = diag_global_freq)
 
-   diag_cfl_flag    = init_time_flag('diag_cfl', default=.false.,   &
-                                     freq_opt = diag_cfl_freq_iopt, &
-                                     freq     = diag_cfl_freq)
+   call init_time_flag('diag_cfl',    diag_cfl_flag, default=.false.,     &
+                                      owner    = 'init_diagnostics',      &
+                                      freq_opt = diag_cfl_freq_iopt,      &
+                                      freq     = diag_cfl_freq)
 
-   diag_transp_flag = init_time_flag('diag_transp', default=.false.,   &
-                                     freq_opt = diag_transp_freq_iopt, &
-                                     freq     = diag_transp_freq)
+   call init_time_flag('diag_transp', diag_transp_flag, default=.false.,  &
+                                      owner    = 'init_diagnostics',      &
+                                      freq_opt = diag_transp_freq_iopt,   &
+                                      freq     = diag_transp_freq)
 
 !-----------------------------------------------------------------------
 !

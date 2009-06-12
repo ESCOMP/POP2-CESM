@@ -24,8 +24,8 @@
 !   use constants, only: 
    use domain, only: distrb_clinic
    use timers, only: timer_print_all, get_timer, timer_start, timer_stop
-   use time_management, only: init_time_flag, check_time_flag,    &
-       nsteps_run, stdout, exit_pop, set_time_flag
+   use time_management, only: get_time_flag_id, check_time_flag,    &
+       nsteps_run, stdout, exit_pop, override_time_flag
    use step_mod, only: step
    use diagnostics, only: check_KE
    use output, only: output_driver
@@ -61,7 +61,7 @@
 
    call POP_Initialize(errorCode)
 
-   fstop_now = init_time_flag('stop_now')
+   fstop_now = get_time_flag_id('stop_now')
 
 !-----------------------------------------------------------------------
 !
@@ -92,7 +92,7 @@
       !***
 
       if (check_KE(100.0_r8)) then
-         call set_time_flag(fstop_now,.true.)
+         call override_time_flag(fstop_now,value=.true.)
          call output_driver
          call exit_POP(sigAbort,'ERROR: k.e. > 100 ')
       endif

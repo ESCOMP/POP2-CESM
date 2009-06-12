@@ -65,7 +65,7 @@ set ntask   = \$NTASKS_OCN
 set ocn_tracers = (\`echo \$OCN_TRACER_MODULES\`)
 
 setenv OCN_PRESTAGE $OCN_PRESTAGE
-setenv INPUT    $INPUT
+setenv INPUT    \$EXEROOT/ocn/input
 
 # NOTE OCN_GRID_INTERNAL is used in ocn.*.setup.csh scripts
 setenv OCN_GRID_INTERNAL $OCN_GRID_INTERNAL
@@ -289,7 +289,7 @@ set objdir  = \$OBJROOT/ocn/obj
 set srcdir  = \$CODEROOT/ocn/pop2
 set my_path = \$CASEROOT/SourceMods/src.pop2
 setenv INPUTDATA  \$DIN_LOC_ROOT/ocn/pop
-setenv INPUT    $INPUT
+setenv INPUT    \$EXEROOT/ocn/input
 
 setenv INPUT_TEMPLATES \$srcdir/input_templates
 

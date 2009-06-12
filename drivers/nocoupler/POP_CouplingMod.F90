@@ -557,13 +557,13 @@
 !
 !-----------------------------------------------------------------------
 
-   cpl_stop_now      = init_time_flag('stop_now',default=.false.)
-   cpl_write_restart = init_time_flag('cpl_write_restart')
-   cpl_write_history = init_time_flag('cpl_write_history')
-   cpl_write_tavg    = init_time_flag('cpl_write_tavg'   )
-   cpl_diag_global   = init_time_flag('cpl_diag_global')
-   cpl_diag_transp   = init_time_flag('cpl_diag_transp')
-      
+   call init_time_flag('stop_now',         cpl_stop_now, default=.false.)
+   call init_time_flag('cpl_write_restart',cpl_write_restart)
+   call init_time_flag('cpl_write_history',cpl_write_history)
+   call init_time_flag('cpl_write_tavg'   ,cpl_write_tavg)
+   call init_time_flag('cpl_diag_global'  ,cpl_diag_global)
+   call init_time_flag('cpl_diag_transp'  ,cpl_diag_transp)
+
 
 !-----------------------------------------------------------------------
 !
@@ -714,7 +714,7 @@
 !-----------------------------------------------------------------------
 
    if (irbuf(cpl_fields_ibuf_stopnow) == 1) then
-     call set_time_flag(cpl_stop_now,.true.)
+     call override_time_flag(cpl_stop_now,value=.true.)
      write(message,'(6a,1x,5a)')  'cpl requests termination now: ', &
         cyear,'/',cmonth,'/',cday,   chour,':',cminute,':',csecond
      call document ('pop_recv_from_coupler', message)
@@ -728,15 +728,15 @@
    endif
 
    if (irbuf(cpl_fields_ibuf_resteod) == 1) then
-     call set_time_flag(cpl_write_restart,.true.)
+     call override_time_flag(cpl_write_restart,value=.true.)
      write(message,'(6a)') 'cpl requests restart file at eod  ',  &
                             cyear,'/',cmonth,'/',cday
      call document ('pop_recv_from_coupler', message)
    endif
   
    if (irbuf(cpl_fields_ibuf_diageod) == 1) then
-     call set_time_flag(cpl_diag_global,.true.)
-     call set_time_flag(cpl_diag_transp,.true.)
+     call override_time_flag(cpl_diag_global,value=.true.)
+     call override_time_flag(cpl_diag_transp,value=.true.)
      write(message,'(6a)') ' cpl requests diagnostics at eod ',  &
                              cyear,'/',cmonth,'/',cday
      call document ('pop_recv_from_coupler', message)

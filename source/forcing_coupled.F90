@@ -482,9 +482,10 @@
 !
 !-----------------------------------------------------------------------
 
-      cpl_ts = init_time_flag('coupled_ts',                  &
-                              freq_opt = coupled_freq_iopt,  &
-                              freq     = coupled_freq)
+      call init_time_flag('coupled_ts', cpl_ts,           &
+                           owner='pop_init_coupled',      &
+                           freq_opt = coupled_freq_iopt,  &
+                           freq     = coupled_freq)
 
       lsmft_avail = .true.
 

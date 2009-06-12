@@ -22,9 +22,8 @@
    use POP_ErrorMod
    use POP_IOUnitsMod, only: POP_stdout
    use communicate
+   use io_types
    use timers, only: timer_print_all
-   !use POP_CommMod
-   !use esmf_mod
 
    implicit none
    private
@@ -84,7 +83,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call POP_ErrorPrint(ErrorCode)
+   call POP_ErrorPrint(errorCode, printTask=master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -100,9 +99,9 @@
 !
 !-----------------------------------------------------------------------
     if (my_task == master_task) then
-      write(POP_stdout,*) '==================='
-      write(POP_stdout,*) 'completed POP_Final'
-      write(POP_stdout,*) '==================='
+      write(stdout,*) '==================='
+      write(stdout,*) 'completed POP_Final'
+      write(stdout,*) '==================='
     endif
 
 !-----------------------------------------------------------------------

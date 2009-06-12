@@ -336,16 +336,20 @@ endif
 
 cat >> $POP2_NMLFILE << EOF
 &tavg_nml
-   tavg_freq_opt    = '$tavg_freq_opt'
-   tavg_freq        =  $tavg_freq
-   tavg_start_opt   = 'nstep'
-   tavg_start       = 0
-   tavg_infile      = '${output_h}restart.end'
-   tavg_fmt_in      = 'nc'
-   tavg_outfile     = '$output_h'
-   tavg_fmt_out     = 'nc'
-   tavg_contents    = '$tavg_contents_filename'
-   ltavg_nino_diags = $ltavg_nino_diags
+   tavg_freq_opt         = '$tavg_freq_opt'
+   tavg_freq             =  $tavg_freq
+   tavg_start_opt        = 'nstep'
+   tavg_start            = 0
+   tavg_infile           = '${output_h}restart.end'
+   tavg_fmt_in           = 'nc'
+   tavg_outfile          = '$output_h'
+   tavg_fmt_out          = 'nc'
+   tavg_contents         = '$tavg_contents_filename'
+   ltavg_nino_diags      = $ltavg_nino_diags
+   ltavg_has_offset_date = .false.
+   tavg_offset_year      = 1
+   tavg_offset_month     = 1
+   tavg_offset_day       = 2
 /
 
 EOF

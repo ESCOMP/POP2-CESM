@@ -265,9 +265,10 @@
 !
 !-----------------------------------------------------------------------
 
-   movie_flag = init_time_flag('movie',default=.false.,    &
-                              freq_opt = movie_freq_iopt, &
-                              freq     = movie_freq)
+   call init_time_flag('movie',movie_flag, default=.false.,  &
+                        owner    = 'init_movie',             &
+                        freq_opt = movie_freq_iopt,          &
+                        freq     = movie_freq)
 
 !-----------------------------------------------------------------------
 !

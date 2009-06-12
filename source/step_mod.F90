@@ -726,9 +726,7 @@
       call diag_velocity
    endif
 
-   if ( ldiag_global_tracer_budgets  .and.   &
-        time_to_do(check_time_flag_freq_opt(tavg_flag),  &
-                   check_time_flag_freq(tavg_flag) ))    then
+   if ( ldiag_global_tracer_budgets .and. check_time_flag(tavg_flag)) then
         call tracer_budgets
    endif
 
@@ -764,11 +762,11 @@
 
 !-----------------------------------------------------------------------
 !
-!  initialize flags and timers
+!  get tavg time-flag handle and initialize timers
 !
 !-----------------------------------------------------------------------
 
-   tavg_flag     = init_time_flag('tavg')
+   tavg_flag = get_time_flag_id('tavg')
 
    call get_timer(timer_step,'STEP',1,distrb_clinic%nprocs)
    call get_timer(timer_baroclinic,'BAROCLINIC',1,distrb_clinic%nprocs)
