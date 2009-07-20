@@ -43,7 +43,7 @@ endif
 SRCDIRS = $(POPEXEDIR)/
 SRCDIRS := $(SRCDIRS) $(POPDIR)/source/
 SRCDIRS := $(SRCDIRS) $(POPDIR)/$(COMMDIR)/
-SRCDIRS := $(SRCDIRS) $(POPDIR)/drivers/nocoupler/
+SRCDIRS := $(SRCDIRS) $(POPDIR)/drivers/cpl_none/
 
 #----------------------------------------------------------------------------
 #

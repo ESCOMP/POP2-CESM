@@ -209,11 +209,7 @@
        write(stdout,'(a54)') ' horizontal length scale varies both in space and time'
      endif
 
-#ifdef CCSMCOUPLED
-     call shr_sys_flush(stdout)
-#else
-     call POP_IOUnitsFlush(POP_stdout)
-#endif
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    endif
 
    call broadcast_scalar (efficiency_factor,          master_task)

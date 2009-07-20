@@ -1350,7 +1350,8 @@
 !BOP
 ! !IROUTINE: rotate_wind_stress
 ! !INTERFACE:
-   subroutine rotate_wind_stress (WORK1,WORK2,iblock)
+
+   subroutine rotate_wind_stress (WORK1,WORK2)
 
 ! !DESCRIPTION:
 !   This subroutine rotates true zonal/meridional wind stress into local
@@ -1364,9 +1365,6 @@
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) ::   &
       WORK1, WORK2        ! contains taux and tauy from coupler
 
-   integer (kind=int_kind), intent(in) :: &
-      iblock  
-
 
 !EOP
 !BOC
@@ -1376,6 +1374,8 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
+   integer (kind=int_kind) :: iblock  
+   integer (POP_i4)        :: errorCode  
 
 !-----------------------------------------------------------------------
 !
@@ -1383,20 +1383,39 @@
 !
 !-----------------------------------------------------------------------
 
-   SMFT(:,:,1,iblock) = (WORK1(:,:,iblock)*cos(ANGLET(:,:,iblock)) +   &
-                         WORK2(:,:,iblock)*sin(ANGLET(:,:,iblock)))*  &
-                         RCALCT(:,:,iblock)*momentum_factor
-   SMFT(:,:,2,iblock) = (WORK2(:,:,iblock)*cos(ANGLET(:,:,iblock)) -   &
-                         WORK1(:,:,iblock)*sin(ANGLET(:,:,iblock)))*  &
-                         RCALCT(:,:,iblock)*momentum_factor
+   SMFT(:,:,1,:) = (WORK1(:,:,:)*cos(ANGLET(:,:,:)) +  &
+                    WORK2(:,:,:)*sin(ANGLET(:,:,:)))*  &
+                    RCALCT(:,:,:)*momentum_factor
+   SMFT(:,:,2,:) = (WORK2(:,:,:)*cos(ANGLET(:,:,:)) -  &
+                    WORK1(:,:,:)*sin(ANGLET(:,:,:)))*  &
+                    RCALCT(:,:,:)*momentum_factor
+
+!-----------------------------------------------------------------------
+!
+!  perform halo updates following the vector rotation
+!
+!-----------------------------------------------------------------------
+
+   call POP_HaloUpdate(SMFT(:,:,1,:),POP_haloClinic,  &
+                      POP_gridHorzLocCenter,          &
+                      POP_fieldKindVector, errorCode, &
+                      fillValue = 0.0_POP_r8)
+
+   call POP_HaloUpdate(SMFT(:,:,2,:),POP_haloClinic,  &
+                      POP_gridHorzLocCenter,          &
+                      POP_fieldKindVector, errorCode, &
+                      fillValue = 0.0_POP_r8)
+
 !-----------------------------------------------------------------------
 !
 !  shift SMFT to U grid
 !
 !-----------------------------------------------------------------------
 
+   do iblock=1,nblocks_clinic
    call tgrid_to_ugrid(SMF(:,:,1,iblock),SMFT(:,:,1,iblock),iblock)
    call tgrid_to_ugrid(SMF(:,:,2,iblock),SMFT(:,:,2,iblock),iblock)
+   enddo ! iblock
 
 
 #endif

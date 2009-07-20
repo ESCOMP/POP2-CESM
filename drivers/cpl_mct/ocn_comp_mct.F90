@@ -271,6 +271,14 @@ contains
 
    call POP_Initialize2(errorCode)
 
+!-----------------------------------------------------------------------
+!
+!  initialize time-stamp information
+!
+!-----------------------------------------------------------------------
+
+   call ccsm_char_date_and_time
+
    call t_stopf ('pop_init')
 
 !----------------------------------------------------------------------------
@@ -940,6 +948,7 @@ contains
 
   end subroutine ocn_domain_mct
 
+
 !***********************************************************************
 !BOP
 ! !IROUTINE: ocn_import_mct
@@ -1018,46 +1027,28 @@ contains
          WORK2(i,j,iblock) = x2o_o%rAttr(index_x2o_Foxx_tauy,n)
       enddo
       enddo
-   enddo
+   enddo ! iblock
 
    !***
-   !*** do halo updates now to ensure correct T->U grid
+   !*** do NOT perform halo updates now, because vector updates must
+   !***   be done after the rotation is completed.
    !***
-
-   call POP_HaloUpdate(WORK1,POP_haloClinic,          &
-                      POP_gridHorzLocCenter,          &
-                      POP_fieldKindVector, errorCode, &
-                      fillValue = 0.0_POP_r8)
-
-   if (errorCode /= POP_Success) then
-      call POP_ErrorSet(errorCode, &
-         'ocn_import_mct: error updating taux halo')
-      return
-   endif
-
-   call POP_HaloUpdate(WORK2,POP_haloClinic,          &
-                      POP_gridHorzLocCenter,          &
-                      POP_fieldKindVector, errorCode, &
-                      fillValue = 0.0_POP_r8)
-
-   if (errorCode /= POP_Success) then
-      call POP_ErrorSet(errorCode, &
-         'ocn_import_mct: error updating tauy halo')
-      return
-   endif
-
-   n = 0
-   do iblock = 1, nblocks_clinic
-      this_block = get_block(blocks_clinic(iblock),iblock)
 
 !-----------------------------------------------------------------------
 !
 !  rotate true zonal/meridional wind stress into local coordinates,
 !  convert to dyne/cm**2, and shift SMFT to U grid
 !
+!  halo updates are performed in subroutine rotate_wind_stress, 
+!  following the rotation
+!
 !-----------------------------------------------------------------------
 
-      call rotate_wind_stress(WORK1, WORK2,iblock)
+      call rotate_wind_stress(WORK1, WORK2)
+
+   n = 0
+   do iblock = 1, nblocks_clinic
+      this_block = get_block(blocks_clinic(iblock),iblock)
 
 !-----------------------------------------------------------------------
 !
@@ -1086,7 +1077,6 @@ contains
          WORKB(i,j        ) = x2o_o%rAttr(index_x2o_Foxx_swnet,n)
          SHF_QSW(i,j,iblock) = WORKB(i,j)*  &
             RCALCT(i,j,iblock)*hflux_factor  !  convert from W/m**2
-
          SENH_F(i,j,iblock)  = x2o_o%rAttr(index_x2o_Foxx_sen,n)
          LWUP_F(i,j,iblock)  = x2o_o%rAttr(index_x2o_Foxx_lwup,n)
          LWDN_F(i,j,iblock)  = x2o_o%rAttr(index_x2o_Foxx_lwdn,n)
@@ -1188,7 +1178,7 @@ contains
      write(message,'(6a,1x,5a)')  &
          ' Global averages of fluxes received from cpl at ',  &
            cyear,'/',cmonth ,'/',cday,  chour,':',cminute,':',csecond
-     call document ('pop_recv_from_coupler', message)
+     call document ('pop_recv_from_coupler', trim(message))
  
      m2percm2  = mpercm*mpercm
      do k = 1,nrecv
@@ -1224,7 +1214,6 @@ contains
 !EOC
 
  end subroutine ocn_import_mct
-
 !***********************************************************************
 !BOP
 ! !IROUTINE: ocn_export_mct

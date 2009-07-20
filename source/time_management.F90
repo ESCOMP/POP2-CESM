@@ -25,9 +25,6 @@
    use io_tools
    use exit_mod
    use registry
-#ifdef CCSMCOUPLED
-   use shr_sys_mod
-#endif
 
    implicit none
    public
@@ -1041,7 +1038,7 @@
          
         if (last_step .and. nfit == fit_freq) then
           write(stdout,*) ' '
-          call POP_IOUnitsFlush(POP_stdout)
+          call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
         endif
       endif ! master_task
 
@@ -1319,9 +1316,7 @@
          write(stdout,*) 'ihour_start_run   = ', ihour_start_run
          write(stdout,*) 'iminute_start_run = ', iminute_start_run
          write(stdout,*) 'isecond_start_run = ', isecond_start_run
-#ifdef CCSMCOUPLED
-         call shr_sys_flush(stdout)
-#endif
+         call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
          call exit_POP(sigAbort, &
                        'model run must start at coupling boundary '/&
                      &/'when using avgfit option')
@@ -1861,10 +1856,7 @@
         else
         write(stdout,1001) iyear, cmonth3, iday, seconds_this_day
         endif
-#ifdef CCSMCOUPLED
-        call shr_sys_flush(stdout)
-#endif
-        call POP_IOUnitsFlush(POP_stdout)
+        call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
     endif
    endif
 1000 format (' (time_manager)', ' ocn date ', i4.4, '-', a3, '-', &
@@ -2388,9 +2380,7 @@
 
    endif ! master_task
 
-#ifdef CCSMCOUPLED
-   call shr_sys_flush(stdout)
-#endif
+   call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
 
 1100 format (1x, a, 1x, i4.4, a, i2.2, a, i2.2)
 

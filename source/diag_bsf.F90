@@ -213,7 +213,7 @@
 
    if (my_task == master_task) then
      write (stdout,*) 'Initializing diagnostic BSF variables ....'
-     call POP_IOUnitsFlush(POP_stdout)
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    endif
 
    allocate(WORK0    (nx_block,ny_block,nblocks_clinic), &
@@ -401,7 +401,7 @@
    if ( my_task == master_task ) then
      write (stdout,*) ' '
      write (stdout,*) ' island coefficients: '
-     call POP_IOUnitsFlush(POP_stdout)
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    endif
 
    do isle=1,nisle
@@ -455,7 +455,7 @@
 
    if ( my_task == master_task ) then 
      write (stdout,*) ' island ', isle, ' coefficient = ', c1/aislandr(isle)
-     call POP_IOUnitsFlush(POP_stdout)
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    endif
 
  enddo ! isle
@@ -616,7 +616,7 @@
      write (stdout,*) ' '
      write (stdout,*) ' convergence info from pcg_diag_bsf: '
      write (stdout,*) ' iter = ', 0, ' rms_resid = ', rms_residual
-     call POP_IOUnitsFlush(POP_stdout)
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    endif
 
 !-----------------------------------------------------------------------

@@ -715,7 +715,7 @@
    if (my_task.eq.master_task) then
      write(stdout,blank_fmt)
      write(stdout,*) ' Chlorophyll transmission table computed'
-     call POP_IOUnitsFlush(POP_stdout)
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    endif
 
 

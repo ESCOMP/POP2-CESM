@@ -565,23 +565,23 @@
    if ( my_task == master_task ) then
 
      write (stdout,1000) 
-     call POP_IOUnitsFlush(POP_stdout)
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
  
      if (budget_warning_1st_step) then
          write (stdout,10001)
-         call POP_IOUnitsFlush(POP_stdout)
+         call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
          budget_warning_1st_step = .false.
      endif
  
      if (tmix_iopt == tmix_matsuno) write (stdout,1001 )
 
      write (stdout,1002)
-     call POP_IOUnitsFlush(POP_stdout)
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
 
      sum = - volume_change + fw_mean
      explanation = ' Imbalance = -tendency + FW flux '
      write (stdout,1003) volume_change, fw_mean, sum, explanation
-     call POP_IOUnitsFlush(POP_stdout)
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
 
      write (stdout,1004)
      sum = - T_change+ shf_mean + qflux_t_mean + tfw_t_mean &
@@ -593,15 +593,15 @@
      write (stdout, 1005) T_change, shf_mean, qflux_t_mean, &
                           tfw_t_mean,  resid_t_mean, sum,   &
                           explanation
-     call POP_IOUnitsFlush(POP_stdout)
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
 
      if ( sfc_layer_type == sfc_layer_varthick .and.  &
           .not. lfw_as_salt_flx ) then
        write (stdout,1006)
-       call POP_IOUnitsFlush(POP_stdout)
+       call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
      else
        write (stdout,1007)
-       call POP_IOUnitsFlush(POP_stdout)
+       call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
      endif
      sum = - S_change + sfwf_mean + qflux_s_mean + tfw_s_mean  &
            + resid_s_mean
@@ -611,7 +611,7 @@
      write (stdout, 1008) S_change, sfwf_mean, qflux_s_mean, &
                           tfw_s_mean,  resid_s_mean, sum,    &
                           explanation
-     call POP_IOUnitsFlush(POP_stdout)
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
 
    endif
 

@@ -2,6 +2,65 @@
 
 ===============================================================================
 Originator: njn01
+Date:     July 2009
+Tag: pop2/trunk_tags/ccsm_pop_2_1_200907xx
+Summary of Changes:  
+     * Corrections:
+         o update the tx1v1 chlorophyll dataset; the old one was mistakenly written 
+            in little-endian format
+         o add tripole-grid correction to DYU in grid.F90 (Gokhan/Keith)
+         o interchange the order of allocate and INQUIRE statements in read_bottom_cell, 
+             so that the record length for the partial bottom cell file is correctly determined
+             (affected tx0.1v2 oob only)
+         o modify pop2_in_build.csh to support restarts from netCDF restart files
+     * Minor corrections (b4b solutions):
+         o correct a minor bug in tavg.F90 module: write out ULON_DEG, TLON_DEG, ULAT_DEG,
+            and TLAT_DEG in double precision
+         o correct a minor bug in restart.F90 module: always set the variable "restart_type",
+            every call, because tavg.F90 code depends on the value of restart_type.
+     * Misc changes:
+         o rename pop2/drivers/nocouple  pop2/drivers/cpl_none for improved name parallelism
+            and modify build/* nocouple references to point to cpl_none
+         o add "call POP_IOUnitsFlush(stdout) " to locations where POP_IOUnitsFlush(POP_stdout) 
+            calls exist; this restores the flushes in ccsm coupled context during the
+            transition from old to new pop2 infrastructure
+         o eliminate some "call shr_sys_flush (stdout)" references and replace with
+               call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+            This touches a lot of files.
+
+M           16648   build/preprocess.mk
+M           16648   source/io_tools.F90
+M           16648   source/sw_absorption.F90
+M           16648   source/initial.F90
+M           16648   source/time_management.F90
+M           16648   source/ice.F90
+M           16648   source/diags_on_lat_aux_grid.F90
+M           16648   source/diagnostics.F90
+M           16648   source/grid.F90
+M           16648   source/budget_diagnostics.F90
+M           16648   source/iage_mod.F90
+M           16648   source/io_netcdf.F90
+M           16648   source/mix_submeso.F90
+M           16648   source/cfc11_mod.F90
+M           16648   source/diag_bsf.F90
+M           16648   source/forcing_coupled.F90
+M           16648   source/ms_balance.F90
+M           16648   source/restart.F90
+M           16648   source/tavg.F90
+M           16648   bld/pop2.cpl7.template
+M           16648   ChangeLog
+M           16648   input_templates/pop2_in_build.csh
+M           16648   input_templates/tx1v1_inputdata
+M           16648   drivers/cpl_mct/ocn_comp_mct.F90
+D           16648   drivers/nocoupler
+D           16648   drivers/nocoupler/POP_FinalMod.F90
+D           16648   drivers/nocoupler/POP.F90
+D           16648   drivers/nocoupler/POP_CouplingMod.F90
+D           16648   drivers/nocoupler/POP_InitMod.F90
+A  +            -   drivers/cpl_none
+
+===============================================================================
+Originator: njn01
 Date:  12 June 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090612
 Summary of Changes:  time-flag changes; add time_management unit tester

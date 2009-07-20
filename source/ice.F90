@@ -233,7 +233,7 @@
          write(stdout,'(a30,i3,a13)') 'Ice formation computed in top ', &
                                        kmxice, ' levels only.'
       endif
-      call POP_IOUnitsFlush(POP_stdout)
+      call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
 
    endif
 

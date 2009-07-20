@@ -220,7 +220,7 @@ contains
           write(stdout,delim_fmt)
           write(stdout,*) ' Initial 3-d Ideal Age set to all zeros' 
           write(stdout,delim_fmt)
-          call POP_IOUnitsFlush(POP_stdout)
+          call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
       endif
        
    case ('restart', 'continue', 'branch', 'hybrid' )

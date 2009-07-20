@@ -130,7 +130,7 @@
      write(stdout,'(a)') ' Marginal-sea balancing information'
      write(stdout,blank_fmt)
      write(stdout,delim_fmt)
-     call POP_IOUnitsFlush(POP_stdout)
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    endif
 
    allocate (MASK_FRAC (nx_block,ny_block,max_blocks_clinic,max_ms) )
@@ -356,13 +356,13 @@
                           &/ trim(region_info(n)%name)
         write(stdout,1000) '(init_ms_balance)', &
                            ' WARNING: distribution points span two regions' 
-          call POP_IOUnitsFlush(POP_stdout)
+          call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
           if (pt > 1) then
             write(stdout,*)'(init_ms_balance)', ' region1 : ' ,&
                              REGION_MASK_G(ipts(pt-1),jpts(pt-1)) 
             write(stdout,*) '(init_ms_balance)', ' region2 : ', &
                              REGION_MASK_G(ipts(pt),jpts(pt)) 
-            call POP_IOUnitsFlush(POP_stdout)
+            call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
           endif
         endif
      enddo
@@ -419,7 +419,7 @@
                     TLON_G(ipts(pt),jpts(pt)),        &
                     REGION_MASK_G(ipts(pt),jpts(pt)), &
                     fracs(pt)
-         call POP_IOUnitsFlush(POP_stdout)
+         call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
       enddo
      endif
 

@@ -203,7 +203,7 @@ if ($runtype == 'startup' && $topography_opt == 'bathymetry') then
    set init_ts_file_fmt = nc
 else
    set init_ts_file = 'ts'
-   set init_ts_file_fmt = bin
+   set init_ts_file_fmt = $RESTART_INPUT_TS_FMT
 endif
 
 set init_ts_suboption = null

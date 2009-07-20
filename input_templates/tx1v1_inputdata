@@ -8,4 +8,4 @@
     set topography_data   = $DIN_LOC_ROOT/ocn/pop/tx1v1/grid/topography_20050510.ieeei4
     set shf_data          = $DIN_LOC_ROOT/ocn/pop/tx1v1/forcing/shf_mm_all_85-88_20080505.ieeer8
     set sfwf_data         = $DIN_LOC_ROOT/ocn/pop/tx1v1/forcing/sfwf_mm_PHC2_salx_flxio_20080502.ieeer8
-    set chl_data          = $DIN_LOC_ROOT/ocn/pop/tx1v1/forcing/chl_filled_tx1v1_20080506.ieeer8
+    set chl_data          = $DIN_LOC_ROOT/ocn/pop/tx1v1/forcing/chl_filled_tx1v1_20090701.ieeer8

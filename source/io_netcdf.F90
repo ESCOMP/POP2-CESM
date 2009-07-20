@@ -2288,7 +2288,7 @@
 
    if (status /= nf90_noerr) then
       write(stdout,*) trim(nf90_strerror(status))
-      call POP_IOUnitsFlush(POP_stdout)
+      call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    end if
 
 !-----------------------------------------------------------------------

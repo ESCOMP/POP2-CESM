@@ -78,7 +78,7 @@
      else
        write(stdout,fmt1)  sub_name, trim(message)
      endif
-     call POP_IOUnitsFlush(stdout)
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    endif
  
 !EOC
@@ -113,7 +113,7 @@
  
    if (my_task == master_task) then
       write(stdout,fmt)  sub_name, message, ival
-      call POP_IOUnitsFlush(stdout)
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    endif
  
 !EOC
@@ -149,7 +149,7 @@
  
    if (my_task == master_task) then
       write(stdout,fmt)  sub_name, message, lval
-      call POP_IOUnitsFlush(stdout)
+      call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    endif
  
 !EOC
@@ -184,7 +184,7 @@
  
    if (my_task == master_task) then
       write(stdout,fmt)  sub_name, message, dval
-      call POP_IOUnitsFlush(stdout)
+      call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    endif
  
 !EOC
@@ -220,7 +220,7 @@
  
    if (my_task == master_task) then
       write(stdout,fmt)  sub_name, message, rval
-      call POP_IOUnitsFlush(stdout)
+      call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    endif
  
 !EOC

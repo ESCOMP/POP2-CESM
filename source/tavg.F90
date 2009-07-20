@@ -3612,7 +3612,7 @@
    real (r4), dimension(0:km-1) ::  &
       DZW_R4
 
-   real (r4), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
       TLON_DEG, TLAT_DEG, ULON_DEG, ULAT_DEG
 
    real (r4)          :: missing_value
@@ -3651,7 +3651,7 @@
         'ULONG', dim1=i_dim, dim2=j_dim,              &
          long_name='array of u-grid longitudes',      &
          units    ='degrees_east',                    &
-         r2d_array =ULON_DEG(:,:,:) )
+         d2d_array =ULON_DEG(:,:,:) )
 
    !*** ULAT
    ii=ii+1
@@ -3661,7 +3661,7 @@
         'ULAT', dim1=i_dim, dim2=j_dim,               &
          long_name='array of u-grid latitudes',       &
          units    ='degrees_north',                   &
-         r2d_array =ULAT_DEG(:,:,:) )
+         d2d_array =ULAT_DEG(:,:,:) )
 
    !*** TLONG
    ii=ii+1
@@ -3671,7 +3671,7 @@
         'TLONG', dim1=i_dim, dim2=j_dim,              &
          long_name='array of t-grid longitudes',      &
          units    ='degrees_east',                    &
-         r2d_array =TLON_DEG(:,:,:) )
+         d2d_array =TLON_DEG(:,:,:) )
 
    !*** TLAT
    ii=ii+1
@@ -3681,7 +3681,7 @@
         'TLAT', dim1=i_dim, dim2=j_dim,               &
          long_name='array of t-grid latitudes',       &
          units    ='degrees_north',                   &
-         r2d_array =TLAT_DEG(:,:,:) )
+         d2d_array =TLAT_DEG(:,:,:) )
 
    !*** KMT
    ii=ii+1

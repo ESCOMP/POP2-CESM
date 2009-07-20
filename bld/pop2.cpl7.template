@@ -496,9 +496,11 @@ cat >> $POP2BLDSCRIPT << EOF2
       #-----------------------------------------------
       # generate the appropriate restart pointer files
       #-----------------------------------------------
-cat >! \$exedir/rpointer.ocn.restart << EOF
-\$exedir/\$INIT_TS_FILE
-EOF
+
+      #-------------------------------------------------------------------
+      # NOTE: in order to support branch and hybrid runs with netCDF ocean
+      # restart file, rpointer.ocn.restart file is NOT generated here. 
+      #-------------------------------------------------------------------
 
 cat >! \$exedir/rpointer.ocn.ovf << EOF
 \$exedir/\$OVF_FILE
@@ -657,7 +659,17 @@ echo ------------------------------------------------------------------------
   #-----------------------------------------
   # 2.2  determine pop restart-file format
   #-----------------------------------------
-  if (-e \$exedir/rpointer.ocn.restart) then
+EOF2
+
+#-------------------------------------------------------------
+#  Determine restart-file format from rpointer file information
+#  Ignore pointer file info on the initial segment of a startup 
+#    run.
+#-------------------------------------------------------------
+
+if ($RUN_TYPE == startup) then
+cat >> $POP2BLDSCRIPT << EOF2
+   if (-e \$exedir/rpointer.ocn.restart && \$CONTINUE_RUN == 'TRUE') then
     grep 'RESTART_FMT=' \$exedir/rpointer.ocn.restart 
     if (\$status == 0) then
       setenv RESTART_INPUT_TS_FMT \`grep \'RESTART_FMT=\' \$exedir/rpointer.ocn.restart | cut -c13-15\`
@@ -667,7 +679,27 @@ echo ------------------------------------------------------------------------
   else
     setenv RESTART_INPUT_TS_FMT 'bin'
   endif
+EOF2
+endif
 
+
+if ($RUN_TYPE == branch || $RUN_TYPE == hybrid) then
+cat >> $POP2BLDSCRIPT << EOF2
+if (-e \$exedir/rpointer.ocn.restart) then
+    grep 'RESTART_FMT=' \$exedir/rpointer.ocn.restart 
+    if (\$status == 0) then
+      setenv RESTART_INPUT_TS_FMT \`grep \'RESTART_FMT=\' \$exedir/rpointer.ocn.restart | cut -c13-15\`
+    else
+      setenv RESTART_INPUT_TS_FMT 'bin'
+    endif
+  else
+    setenv RESTART_INPUT_TS_FMT 'bin'
+  endif
+EOF2
+endif
+
+
+cat >> $POP2BLDSCRIPT << EOF2
   #--------------------------------------------------------------
   #  2.3 execute the script that generates $pop2_nmlfile:t
   #--------------------------------------------------------------

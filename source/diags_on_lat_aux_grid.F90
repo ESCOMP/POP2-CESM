@@ -32,9 +32,6 @@
    use constants
    use registry
    use timers
-#ifdef CCSMCOUPLED
-   use shr_sys_mod
-#endif
 
    implicit none
    private
@@ -349,10 +346,7 @@
      if (n_heat_trans) write (stdout,'(a)') 'N_HEAT'
      if (n_salt_trans) write (stdout,'(a)') 'N_SALT'
      write (stdout,*)
-#ifdef CCSMCOUPLED
-     call shr_sys_flush (stdout)
-#endif
-     call POP_IOUnitsFlush(POP_stdout)
+     call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
    endif
  
 
@@ -683,10 +677,7 @@
                           transport_region_info(nrtr)%number 
      enddo
 1000    format (2x, a35, '(',i2,')')
-#ifdef CCSMCOUPLED
-     call shr_sys_flush (stdout)
-#endif
-     call POP_IOUnitsFlush(POP_stdout)
+     call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
    endif
 
    endif  ! n_transport_reg > 1
@@ -890,6 +881,14 @@
      call document ('init_moc_ts_transport_arrays','allocate TR_TRANS_G')
    endif
 
+   if (my_task == master_task) then
+     write(stdout,blank_fmt)
+     write(stdout,*) 'End of transport regions initialization'
+     write(stdout,blank_fmt)
+     write(stdout,ndelim_fmt)
+     write(stdout,blank_fmt)
+     call POP_IOUnitsFlush(POP_stdout);  call POP_IOUnitsFlush(stdout)
+   endif
  
 !-----------------------------------------------------------------------
 !EOC

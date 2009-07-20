@@ -1367,6 +1367,20 @@
             ULON_G(i,j) = p5*(ULAT_G(i,j) + ULAT_G(i,jp1))
          end do
       end do
+
+!-----------------------------------------------------------------------
+!
+!   Add tripole-grid correction (KL and GD)
+!
+!-----------------------------------------------------------------------
+
+      if (ltripole_grid) then
+         j=ny_global
+         do i=1,nx_global
+            ULON_G(i,j) = ULAT_G(i,j)
+         end do
+      endif
+
       call scatter_global(DYU, ULON_G, master_task, distrb_clinic, &
                           field_loc_NEcorner, field_type_scalar)
 
@@ -2022,9 +2036,11 @@
 !
 !-----------------------------------------------------------------------
 
-   INQUIRE(iolength=reclength) DZBC_G
    call get_unit(nu)
+
    if (my_task == master_task) then
+      allocate(DZBC_G(nx_global,ny_global))
+      INQUIRE(iolength=reclength) DZBC_G
       open(nu, file=bottom_cell_file,status='old',form='unformatted', &
                access='direct', recl=reclength, iostat=ioerr)
    endif
@@ -2034,10 +2050,10 @@
                                  'Error opening bottom_cell_file')
 
    if (my_task == master_task) then
-      allocate(DZBC_G(nx_global,ny_global))
       read(nu, rec=1, iostat=ioerr) DZBC_G
       close(nu)
    endif
+
    call release_unit(nu)
 
    call broadcast_scalar(ioerr, master_task)

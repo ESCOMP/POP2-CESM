@@ -255,7 +255,7 @@
          restart_pointer_file(cindx:cindx2) = '.restart'
          write(stdout,*) 'Reading pointer file: ', &
                           trim(restart_pointer_file)
-         call POP_IOUnitsFlush(POP_stdout)
+         call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
          open(nu, file=trim(restart_pointer_file), form='formatted', &
                   status='old')
          read(nu,'(a)') read_restart_filename
@@ -1048,6 +1048,14 @@
       i_dim, j_dim, &! dimension descriptors for horiz dims
       k_dim          ! dimension descriptor  for vertical levels
 
+!-----------------------------------------------------------------------
+!
+!  always set restart_type, because it is used in write_tavg
+!
+!-----------------------------------------------------------------------
+
+   restart_type = char_blank
+   restart_type = 'none'
 
 !-----------------------------------------------------------------------
 !
@@ -1062,7 +1070,6 @@
     if ( .not. time_to_start(restart_start_iopt,restart_start)) return
    endif
 
-
 !-----------------------------------------------------------------------
 !
 !  check to see whether it is time to write files
@@ -1070,8 +1077,6 @@
 !-----------------------------------------------------------------------
 
    lrestart_write = .false.
-   restart_type = char_blank
-   restart_type = 'none'
 
    !*** write restart files if code is stopping for any reason
 
@@ -1538,7 +1543,7 @@
        close(nu)
        write(stdout,blank_fmt)
        write(stdout,*) ' restart pointer file written: ',trim(restart_pointer_file)
-       call POP_IOUnitsFlush(POP_stdout)
+       call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
      endif
      call release_unit(nu)
    endif

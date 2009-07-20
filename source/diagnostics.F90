@@ -38,9 +38,6 @@
    use registry
    use io_tools
    use gather_scatter
-#ifdef CCSMCOUPLED
-   use shr_sys_mod
-#endif
 
    implicit none
    private
@@ -680,7 +677,7 @@
          open(nu, file=diag_transport_file, status='old')
          read(nu,*) num_transports
 
-         write(stdout,'(a14,i4,a27)') 'The following ',num_transports, &
+         write(stdout,'(a14,i4,1x,a27)') 'The following ',num_transports, &
                                     'transports will be computed'
       endif
 
@@ -982,8 +979,7 @@
                 '(',   i_loc(nloc), ',',   j_loc(nloc),')',   &
                 '(',vlat_loc(nloc), ',',vlon_loc(nloc),')'
    enddo
-   call POP_IOUnitsFlush(POP_stdout)
-   call POP_IOUnitsFlush(stdout) ! temporary
+   call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
 
    endif
  
@@ -998,6 +994,16 @@
    deallocate (ULAT_G, ULON_G)
    deallocate (REGION_MASK_G)
   endif !ldiag_velocity
+
+   if (my_task == master_task) then
+      write(stdout,blank_fmt)
+      write(stdout,delim_fmt)
+      write(stdout,blank_fmt)
+      write(stdout,'(a18)') 'End Diagnostic options'
+      write(stdout,blank_fmt)
+      write(stdout,delim_fmt)
+      call POP_IOUnitsFlush(POP_stdout);  call POP_IOUnitsFlush(stdout) ! temporary
+   endif
 
 
 
