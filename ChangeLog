@@ -2,8 +2,18 @@
 
 ===============================================================================
 Originator: njn01
-Date:     July 2009
-Tag: pop2/trunk_tags/ccsm_pop_2_1_200907xx
+Date:  27  July 2009
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090727
+Summary of Changes:  
+     * Corrections:
+         o pop2.cpl7.template -- changes for jaguar    
+
+M           17212   bld/pop2.cpl7.template
+M           17212   ChangeLog
+===============================================================================
+Originator: njn01
+Date:  20  July 2009
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090720
 Summary of Changes:  
      * Corrections:
          o update the tx1v1 chlorophyll dataset; the old one was mistakenly written 

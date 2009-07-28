@@ -672,7 +672,7 @@ cat >> $POP2BLDSCRIPT << EOF2
    if (-e \$exedir/rpointer.ocn.restart && \$CONTINUE_RUN == 'TRUE') then
     grep 'RESTART_FMT=' \$exedir/rpointer.ocn.restart 
     if (\$status == 0) then
-      setenv RESTART_INPUT_TS_FMT \`grep \'RESTART_FMT=\' \$exedir/rpointer.ocn.restart | cut -c13-15\`
+      setenv RESTART_INPUT_TS_FMT \`grep RESTART_FMT\= \$exedir/rpointer.ocn.restart | cut -c13-15\`
     else
       setenv RESTART_INPUT_TS_FMT 'bin'
     endif
