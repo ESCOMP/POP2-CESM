@@ -2,6 +2,16 @@
 
 ===============================================================================
 Originator: njn01
+Date:  28  July 2009
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090728
+Summary of Changes:  
+     * Corrections:
+         o pop2.cpl7.template -- changes for jaguar branch and hybrid cases
+M           17322   bld/pop2.cpl7.template
+M           17322   ChangeLog
+
+===============================================================================
+Originator: njn01
 Date:  27  July 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090727
 Summary of Changes:  
