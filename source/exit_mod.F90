@@ -47,7 +47,7 @@
 ! !IROUTINE: exit_POP
 ! !INTERFACE:
 
- subroutine exit_POP(exit_mode, exit_message)
+ subroutine exit_POP(exit_mode, exit_message, out_unit)
 
 ! !DESCRIPTION:
 !  This routine prints a message, exits any message environment
@@ -61,6 +61,9 @@
    integer (int_kind), intent(in) :: &
      exit_mode    ! method for exiting (normal exit or abort)
 
+   integer (int_kind), optional, intent(in) :: &
+     out_unit    ! optional output unit specifier
+
    character (*), intent(in) :: &
      exit_message ! message to print before stopping
 
@@ -73,7 +76,8 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::  &
-      ierr                 ! error flag
+      ierr,               &! error flag
+      local_unit
 
 !-----------------------------------------------------------------------
 !
@@ -82,26 +86,32 @@
 !
 !-----------------------------------------------------------------------
 
+   if (present(out_unit)) then
+     local_unit = out_unit
+   else
+     local_unit = 6
+   endif
+
 #ifndef CCSMCOUPLED
    if (my_task == master_task) then
 #endif
-      write (6,delim_fmt)
-      write (6,blank_fmt)
-      call POP_IOUnitsFlush(6)
+      write (local_unit,delim_fmt)
+      write (local_unit,blank_fmt)
+      call POP_IOUnitsFlush(local_unit)
 
       select case(exit_mode)
       case(sigExit)
-         write (6,'(a14)') 'POP exiting...'
+         write (local_unit,'(a14)') 'POP exiting...'
       case(sigAbort)
-         write (6,'(a15)') 'POP aborting...'
+         write (local_unit,'(a15)') 'POP aborting...'
       case default
-         write (6,'(a37)') 'POP exiting with unknown exit mode...'
+         write (local_unit,'(a37)') 'POP exiting with unknown exit mode...'
       end select
 
-      write (6,*) exit_message
-      write (6,blank_fmt)
-      write (6,delim_fmt)
-      call POP_IOUnitsFlush(6)
+      write (local_unit,*) exit_message
+      write (local_unit,blank_fmt)
+      write (local_unit,delim_fmt)
+      call POP_IOUnitsFlush(local_unit)
 #ifndef CCSMCOUPLED
    endif
 #endif

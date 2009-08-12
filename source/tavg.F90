@@ -41,9 +41,6 @@
    use diags_on_lat_aux_grid
    use registry
    use timers
-#ifdef CCSMCOUPLED
-   use shr_sys_mod
-#endif
 
    implicit none
    private
@@ -1562,9 +1559,7 @@
         write(stdout,*) char_blank
         write(string,*) 'FATAL ERROR: tavg_rpointer_file does not exist. pop2 model will exit'
         write(stdout,*) string
-#ifdef CCSMCOUPLED
-         call shr_sys_flush(stdout)
-#endif
+        call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
         call exit_POP(sigAbort,'(read_tavg) ERROR: tavg_rpointer_file does not exist ')
       endif
 
@@ -1645,9 +1640,7 @@
          write(stdout,'(i6,a29,i6,a35)') &
          in_nsteps_total,' nsteps_total in tavg restart', &
          nsteps_total,   ' nsteps_total in current simulation'
-#ifdef CCSMCOUPLED
-         call shr_sys_flush(stdout)
-#endif
+         call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
       endif
       call exit_POP(sigAbort,'TAVG:restart file has wrong time step?')
    endif
@@ -2665,9 +2658,7 @@
 
    if (id == 0) then
       write(stdout,*) 'Requested ', trim(short_name)
-#ifdef CCSMCOUPLED
-      call shr_sys_flush(stdout)
-#endif
+      call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
       call exit_POP(sigAbort,'subroutine request_tavg_field: requested field unknown')
    endif
 
@@ -3616,11 +3607,13 @@
       TLON_DEG, TLAT_DEG, ULON_DEG, ULAT_DEG
 
    real (r4)          :: missing_value
+   real (r8)          :: missing_value_d
    integer (int_kind) :: missing_value_i
 
    save
 
    missing_value   = undefined_nf_r4
+   missing_value_d = undefined_nf_r8
    missing_value_i = undefined_nf_int
 
    ii=0
@@ -3723,7 +3716,7 @@
          units    ='centimeter^2',                            &
          coordinates = "ULONG ULAT",                          &
          d2d_array =UAREA(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_d )
 
    !*** TAREA
    ii=ii+1
@@ -3734,7 +3727,7 @@
          units    ='centimeter^2',                            &
          coordinates = "TLONG TLAT",                          &
          d2d_array =TAREA(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_d )
 
    !*** HU
    ii=ii+1
@@ -3745,7 +3738,7 @@
          units='centimeter',                                  &
          coordinates = "ULONG ULAT",                          &
          d2d_array =HU(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_d )
 
    !*** HT
    ii=ii+1
@@ -3756,7 +3749,7 @@
          units='centimeter',                                  &
          coordinates = "TLONG TLAT",                          &
          d2d_array =HT(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_d )
 
    !*** DXU
    ii=ii+1
@@ -3767,7 +3760,7 @@
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
          d2d_array =DXU(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_d )
 
    !*** DYU
    ii=ii+1
@@ -3778,7 +3771,7 @@
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
          d2d_array =DYU(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_d )
 
    !*** DXT
    ii=ii+1
@@ -3789,7 +3782,7 @@
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
          d2d_array =DXT(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_d )
 
    !*** DYT
    ii=ii+1
@@ -3800,7 +3793,7 @@
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
          d2d_array =DYT(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_d )
 
    !*** HTN
    ii=ii+1
@@ -3811,7 +3804,7 @@
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
          d2d_array =HTN(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_d )
 
    !*** HTE
    ii=ii+1
@@ -3822,7 +3815,7 @@
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
          d2d_array =HTE(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_d )
 
    !*** HUS
    ii=ii+1
@@ -3833,7 +3826,7 @@
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
          d2d_array =HUS(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_d )
 
    !*** HUW
    ii=ii+1
@@ -3844,7 +3837,7 @@
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
          d2d_array =HUW(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_d )
 
    !*** ANGLE
    ii=ii+1
@@ -3855,7 +3848,7 @@
          units='radians',                                     &
          coordinates = "ULONG ULAT",                          &
          d2d_array =ANGLE(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_d )
 
    !*** ANGLET
    ii=ii+1
@@ -3866,7 +3859,7 @@
          units='radians',                                          &
          coordinates = "TLONG TLAT",                               &
          d2d_array =ANGLET(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value )
+   call add_attrib_io_field(ccsm_time_invar(ii),'missing_value',missing_value_d )
 
 
 
@@ -4974,11 +4967,7 @@
      if (nsteps_run <= 1 .and. my_task == master_task) then
         write(stdout,*)  &
         'WARNING: MOC diagnostic is not computed if tavg_freq_iopt == freq_opt_nstep'
-#ifdef CCSMCOUPLED
-        call shr_sys_flush(stdout)
-#else
-        call POP_IOUnitsFlush(POP_stdout)
-#endif
+        call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
      endif
      return
    endif
@@ -5215,11 +5204,7 @@
      if (nsteps_run <= 1 .and. my_task == master_task) then
         write(stdout,*)  &
         'WARNING: transport diagnostics are not computed if tavg_freq_iopt == freq_opt_nstep'
-#ifdef CCSMCOUPLED
-        call shr_sys_flush(stdout)
-#else
-        call POP_IOUnitsFlush(POP_stdout)
-#endif
+        call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
      endif
      return
    endif

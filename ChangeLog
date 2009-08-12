@@ -1,5 +1,41 @@
 
+===============================================================================
+Originator: njn01
+Date:  12  August 2009
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090812
+Summary of Changes:  
+     * Major time-flag revision:
+          Create the routine "access_time_flag" to allow
+            other routines to access a time_flag defined in another module.
+          Refactor routines to create smaller, single-purpose subroutines
+            that can be combined in various ways to support robust time_flag
+            creation and use.
+          Allow only one module to initialize a time flag. 
+          Add error checking to prevent using a noninitialized time_flag. 
+     * add definition of undefined_nf_r8 to constants.F90
+     * add optional output unit specifier to exit_POP
+     * add support for overriding cpl_ts%old_value based upon restart information
+     * remove code for overriding cpl_ts%old_value from read_restart 
+         (now, override cpl_ts%old_value after it has been initialized)
+     * change get_time_flag_id to access_time_flag in ice.F90, restart.F90,
+     * remove shr_sys_flush references; use POP_IOUnitsFlush instead
+     * replace missing_value with missing_value_d (double-precision value) in
+         tavg attributes, for double-precision attributes.
 
+svn status -u
+M           17758   source/time_management.F90
+M           17758   source/ice.F90
+M           17758   source/forcing_coupled.F90
+M           17758   source/exit_mod.F90
+M           17758   source/restart.F90
+M           17758   source/tavg.F90
+M           17758   source/constants.F90
+
+Summary of Testing:  (in ccsm4_0_beta21 context)
+  PASS  ERS.T62_g16.C.bluefire 
+  PASS  ERS.f19_g16.BTR1.bluefire 
+  PASS  ERH.f19_g16.BTR1.bluefire 
+  PASS  ERB.f19_g16.BTR1.bluefire
 ===============================================================================
 Originator: njn01
 Date:  28  July 2009

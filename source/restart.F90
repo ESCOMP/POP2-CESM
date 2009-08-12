@@ -485,8 +485,8 @@
       !*** set old value for the time flag 'coupled_ts'
 
       if (lcoupled_ts) then
-         restart_cpl_ts = get_time_flag_id('coupled_ts')
-         call override_time_flag (restart_cpl_ts, old_value=lcoupled_ts)
+         call register_string('coupled_ts_last_true')
+         ! coupled_ts will be initialized accordingly in pop_init_coupled
       endif
 
    endif ! .not. lccsm_hybrid
@@ -1743,9 +1743,9 @@
 !
 !-----------------------------------------------------------------------
 
-   cpl_write_restart = get_time_flag_id('cpl_write_restart')
-   restart_cpl_ts    = get_time_flag_id('coupled_ts')
-   out_stop_now      = get_time_flag_id('stop_now')    
+   call access_time_flag('cpl_write_restart',cpl_write_restart)
+   call access_time_flag('coupled_ts',restart_cpl_ts)
+   call access_time_flag('stop_now',out_stop_now)
 
 !-----------------------------------------------------------------------
 !EOC

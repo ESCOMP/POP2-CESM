@@ -56,11 +56,14 @@
       eps2   = 1.0e-20_r8  ,&
       bignum = 1.0e+30_r8
 
-   real (r4), parameter, public ::       &
+   real (r4), parameter, public ::         &
       undefined_nf_r4  = NF90_FILL_FLOAT,  &
       undefined        = -12345._r4
 
-   real (rtavg), public ::       &
+   real (r8), parameter, public ::         &
+      undefined_nf_r8  = NF90_FILL_DOUBLE
+
+   real (rtavg), public ::  &
       undefined_nf
 
    integer (int_kind), parameter, public ::   &

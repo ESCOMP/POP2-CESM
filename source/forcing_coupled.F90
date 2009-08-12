@@ -487,6 +487,17 @@
                            freq_opt = coupled_freq_iopt,  &
                            freq     = coupled_freq)
 
+!-----------------------------------------------------------------------
+!
+!  If this is a restart, then read_restart knows the last timestep was
+!  a coupled timestep and has registered the string 'coupled_ts_last_true'
+!  (read_restart was called prior to the initialization of coupled_ts)
+!
+!-----------------------------------------------------------------------
+
+      if (registry_match('coupled_ts_last_true') )  &
+          call override_time_flag (cpl_ts, old_value=.true.)
+
       lsmft_avail = .true.
 
 

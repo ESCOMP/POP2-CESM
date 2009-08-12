@@ -36,6 +36,7 @@
              init_time2,            &
              time_manager,          &
              init_time_flag,        &
+             access_time_flag,      &
              get_time_flag_id,      &
              override_time_flag,    &
              eval_time_flag,        &
@@ -62,7 +63,8 @@
          default,              &! default state of flag
          has_default,          &! T if default defined, F if no default
          has_offset_date,      &! T if flag has reference-date/offset value; F if not
-         is_initialized         ! T if flag has been initialized via init_time_flag; F if not
+         is_initialized,       &! T if flag has been initialized via init_time_flag; F if not
+         is_reserved            ! T if flag has been "reserved" by non-owner routine
 
       integer (int_kind) ::    &
          freq_opt,             &! frequency units for switching flag on
@@ -527,8 +529,8 @@
 !
 !-----------------------------------------------------------------------
 
-   call init_time_flag('stop_now' , stop_now,   owner='init_time1', default=.false.)
-   call init_time_flag('coupled_ts',coupled_ts, owner='init_time1' )
+   call init_time_flag  ('stop_now' , stop_now,   owner='init_time1', default=.false.)
+   call access_time_flag('coupled_ts',coupled_ts)
 
    call reset_switches
 
@@ -2029,7 +2031,7 @@
    character (*), intent(in) :: &
       flag_name               ! name for this flag
 
-   character (*), intent(in), optional :: &
+   character (*), intent(in) :: &
       owner                   ! name of routine initializing this flag
 
    logical (log_kind), intent(in), optional :: &
@@ -2057,13 +2059,48 @@
    logical (log_kind) :: &
       init_time_flag_error
 
+   integer (int_kind) :: &
+      isearch
+
 !-----------------------------------------------------------------------
 !
-!  get flag identifier
+!  search time flags; isearch = 0 ==> flag does not yet exist
 !
 !-----------------------------------------------------------------------
 
-   flag_id = get_time_flag_id(trim(flag_name))
+   call search_time_flags(flag_name,isearch)
+
+!-----------------------------------------------------------------------
+!
+!  only one owner can initialize a flag
+!
+!-----------------------------------------------------------------------
+
+   if (isearch > 0 ) then
+    if ( .not. time_flags(isearch)%is_reserved) then  
+      call document ('init_time_flag', 'Fatal Error: Cannot initialize an existing time flag')
+      call document ('init_time_flag', 'flag_name = ', trim(flag_name))
+      call document ('init_time_flag', 'owner     = ', trim(owner))
+      call document ('init_time_flag', 'time_flag = ', isearch)
+      call exit_POP(sigAbort, &
+         '(init_time_flag) ERROR: Cannot initialize an existing time_flag ')
+    endif
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  get new flag_id, if flag has not already been reserved
+!  use existing id if flag has been reserved
+!
+!-----------------------------------------------------------------------
+
+   if (isearch == 0) then
+      call set_num_time_flags (num_time_flags)
+      flag_id = num_time_flags
+   else
+      flag_id = isearch
+   endif
+
 
 !-----------------------------------------------------------------------
 !
@@ -2071,8 +2108,9 @@
 !
 !-----------------------------------------------------------------------
 
+   time_flags(flag_id)%name            = trim(flag_name)
    time_flags(flag_id)%is_initialized  = .true.
-   time_flags(flag_id)%owner           = 'unknown'
+   time_flags(flag_id)%owner           = trim(owner)
    time_flags(flag_id)%has_default     = .false.
    time_flags(flag_id)%has_offset_date = .false.
    time_flags(flag_id)%default         = .false.
@@ -2099,17 +2137,6 @@
       time_flags(flag_id)%value       = default
       time_flags(flag_id)%old_value   = default
    endif
-
-!-----------------------------------------------------------------------
-!
-!  define optional flag owner information
-!
-!-----------------------------------------------------------------------
-
-   if (present(owner)) then
-      time_flags(flag_id)%owner     = trim(owner)
-   endif
-
 
 !-----------------------------------------------------------------------
 !
@@ -2165,13 +2192,133 @@
 
 !***********************************************************************
 !BOP
+! !IROUTINE: access_time_flag
+! !INTERFACE:
+
+ subroutine access_time_flag(flag_name, flag_id)
+
+! !DESCRIPTION:
+!  Allows non-owner routines to access time_flag information. If
+!  a routine tries to use the time flag prior to its initialization
+!  the time flag is "reserved" and can be initialized later.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent(in) :: &
+      flag_name               ! name for this flag
+
+! !OUTPUT PARAMETERS:
+  
+   integer (int_kind), intent(out) ::  &
+      flag_id
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      isearch
+
+!-----------------------------------------------------------------------
+!
+!  search time flags; isearch = 0 ==> flag does not yet exist
+!
+!-----------------------------------------------------------------------
+
+   call search_time_flags(flag_name,isearch)
+
+!-----------------------------------------------------------------------
+!
+!  if time_flag does not yet exist, reserve the time_flag name and assign id
+!  if time_flag does exist, then return its id
+!
+!-----------------------------------------------------------------------
+
+   if (isearch == 0) then  
+
+      !---------------------
+      !  get new flag_id
+      !---------------------
+
+      call set_num_time_flags (num_time_flags)
+
+      flag_id = num_time_flags
+
+      !-----------------------
+      !  reserve time flag
+      !-----------------------
+
+      time_flags(flag_id)%name            = trim(flag_name)
+      time_flags(flag_id)%is_reserved     = .true.
+
+   else
+
+      flag_id = isearch
+
+   endif
+
+ 
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine access_time_flag
+
+!***********************************************************************
+!BOP
+! !IROUTINE: set_num_time_flags
+! !INTERFACE:
+
+ subroutine set_num_time_flags(num_time_flags)
+
+! !DESCRIPTION:
+!  Sets the value of num_time_flags 
+!
+!
+! !REVISION HISTORY:
+!  same as module
+
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   integer (int_kind), intent(inout) :: &
+      num_time_flags          ! flag id which also is integer index 
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!  increment num_time_flags; cannot exceed maximum number of time flags
+!
+!-----------------------------------------------------------------------
+
+   if (num_time_flags + 1 <= max_time_flags) then
+       num_time_flags = num_time_flags + 1
+   else
+       call exit_POP(sigAbort,'ERROR: num_time_flags exceeds max_time_flags')
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine set_num_time_flags
+
+!***********************************************************************
+!BOP
 ! !IROUTINE: get_time_flag_id
 ! !INTERFACE:
 
  function get_time_flag_id(flag_name)
 
 ! !DESCRIPTION:
-!  Assigns a new flag_id for a new flag; reports an old flag_id for an existing flag
+!  Returns flag_id for existing flag. Fatal error if flag does not exist.
 !
 !
 ! !REVISION HISTORY:
@@ -2196,49 +2343,38 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
-      n,                 &! dummy loop index
+   character (char_len) ::  &
+      string               ! dummy string
+
+   integer (int_kind) ::  &
+      n,                  &! dummy loop index
       isearch             ! index of flag during search
 
 !-----------------------------------------------------------------------
 !
-!  search to determine if flag already exists
+!  search for existing time_flag
 !
 !-----------------------------------------------------------------------
 
-   isearch = 0
-   flag_search: do n=1,num_time_flags
-      if (trim(time_flags(n)%name) == trim(flag_name)) then
-         isearch = n
-         exit flag_search
-      endif
-   end do flag_search
+   call search_time_flags(flag_name, isearch)
 
 !-----------------------------------------------------------------------
 !
-!  if no flag defined, define new flag and initialize
+!  if flag does not exist, or if it has not been initialized, fatal error
 !
 !-----------------------------------------------------------------------
 
-   if (isearch == 0) then  ! no flag exists - assign new flag_id
-
-      if (num_time_flags + 1 <= max_time_flags) then
-         num_time_flags = num_time_flags + 1
-         isearch = num_time_flags
-      else
-         call exit_POP(sigAbort,'ERROR: num_time_flags exceeds max_time_flags')
-      endif
-
-!-----------------------------------------------------------------------
-!
-!  assign/reserve flag name.  At this point, the time_flag name is reserved,
-!  but it is not yet initialized. init_time_flag sets time_flags%is_initialized = .true.
-!
-!-----------------------------------------------------------------------
-
-      time_flags(isearch)%name            = trim(flag_name)
-      time_flags(isearch)%is_initialized  = .false.
-
+   if (isearch == 0) then
+      string = 'Cannot request id of a nonexistent time_flag; model will abort'
+      call document ('get_time_flag_id', 'flag_name = ', trim(flag_name))
+      call document ('get_time_flag_id', trim(string) )
+      call exit_POP(sigAbort, trim(string))
+   else if (.not. time_flags(isearch)%is_initialized) then
+      string = 'Cannot request id of time_flag that has not been initialized; model will abort'
+      call document ('get_time_flag_id', 'flag_name = ', trim(flag_name))
+      call document ('get_time_flag_id', 'flag_id   = ', isearch)
+      call document ('get_time_flag_id', trim(string) )
+      call exit_POP(sigAbort, trim(string))
    endif
 
 !-----------------------------------------------------------------------
@@ -2253,6 +2389,62 @@
 !EOC
 
  end function get_time_flag_id
+
+!***********************************************************************
+!BOP
+! !IROUTINE: search_time_flags
+! !INTERFACE:
+
+ subroutine search_time_flags(flag_name,isearch)
+
+! !DESCRIPTION:
+!  Determines a time_flag id; time_flag_id = 0 ==> does not exist
+!
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent(in) :: &
+      flag_name               ! name for this flag
+
+! !OUTPUT PARAMETERS:
+
+   integer (int_kind) :: &
+      isearch                 ! index of flag from search
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) ::  n  ! dummy loop index
+
+!-----------------------------------------------------------------------
+!
+!  search to determine if flag already exists 
+!     isearch = 0 ==> does not exist
+!     isearch > 0 == flag id
+!
+!-----------------------------------------------------------------------
+
+   isearch = 0
+   flag_search: do n=1,num_time_flags
+      if (trim(time_flags(n)%name) == trim(flag_name)) then
+         isearch = n
+         exit flag_search
+      endif
+   end do flag_search
+
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine search_time_flags
 
 !***********************************************************************
 !BOP
@@ -2374,6 +2566,7 @@
        else
         write(stdout,*) 'time_flag #', n, ' is NOT initialized'
         write(stdout,*) '   name              = ', trim(time_flags(n)%name)
+        write(stdout,*) '   is_reserved       = ', time_flags(n)%is_reserved
        endif ! is_initialized
        write(stdout,*) '   '
       enddo ! n
@@ -2786,7 +2979,7 @@
 
 
    if (flag_id < 1 .or. flag_id > num_time_flags) then
-     write(string,'(a)') trim(calling_routine) // trim(time_flags(flag_id)%name)//': invalid flag_id'
+     write(string,'(a)') trim(calling_routine) // ' ' // trim(time_flags(flag_id)%name)//': invalid flag_id'
      call exit_POP(sigAbort,string)
    endif
 
@@ -2797,7 +2990,7 @@
 !-----------------------------------------------------------------------
 
    if (.not. time_flags(flag_id)%is_initialized) then
-     write(string,'(a)') trim(calling_routine) // trim(time_flags(flag_id)%name)//': is not initialized'
+     write(string,'(a)') trim(calling_routine) // ' ' // trim(time_flags(flag_id)%name)//': is not initialized'
      call exit_POP(sigAbort,string)
    endif
       
