@@ -126,27 +126,27 @@ else if ($command == tavg_contents) then
    endif
 
    cat >> $tavg_contents_filename << EOF
-CFC_IFRAC
-CFC_XKW
-CFC_ATM_PRESS
-STF_CFC11
-STF_CFC12
-CFC11
-CFC12
+1  CFC_IFRAC
+1  CFC_XKW
+1  CFC_ATM_PRESS
+1  STF_CFC11
+1  STF_CFC12
+1  CFC11
+1  CFC12
 EOF
 
 #===============================================================================
 # The following are fields computed by the CFC modules that are not placed in
 # the tavg file by default.
 #
-# pCFC11
-# pCFC12
-# CFC11_SCHMIDT
-# CFC12_SCHMIDT
-# CFC11_PV
-# CFC11_surf_sat
-# CFC12_PV
-# CFC12_surf_sat
+#1  pCFC11
+#1  pCFC12
+#1  CFC11_SCHMIDT
+#1  CFC12_SCHMIDT
+#1  CFC11_PV
+#1  CFC11_surf_sat
+#1  CFC12_PV
+#1  CFC12_surf_sat
 #===============================================================================
 
 else if ($command == prestage) then

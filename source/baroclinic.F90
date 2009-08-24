@@ -95,6 +95,7 @@
       tavg_dTEMP_POS_2D, &! tavg id for positive temperature timestep difference
       tavg_dTEMP_NEG_3D, &! tavg id for negative temperature timestep difference
       tavg_dTEMP_NEG_2D, &! tavg id for negative temperature timestep difference
+      tavg_SST,          &! tavg id for surface temperature
       tavg_SALT,         &! tavg id for salinity
       tavg_TEMP2,        &! tavg id for temperature squared
       tavg_SALT2,        &! tavg id for salinity    squared
@@ -288,6 +289,11 @@
    call define_tavg_field(tavg_dTEMP_NEG_2D,'dTEMP_NEG_2D',2,          &
                           tavg_method=tavg_method_min,                 &
                           long_name='min neg column temperature timestep diff', &
+                          units='degC', grid_loc='2110',               &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_SST,'SST',2,                            &
+                          long_name='Surface Potential Temperature',   &
                           units='degC', grid_loc='2110',               &
                           coordinates='TLONG TLAT time')
 
@@ -625,6 +631,11 @@
          if (tavg_requested(tavg_TEMP2)) then
             call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock)**2, &
                                        tavg_TEMP2,iblock,k)
+         endif
+
+         if (tavg_requested(tavg_SST) .and. k == 1) then
+            call accumulate_tavg_field(TRACER(:,:,1,1,curtime,iblock), &
+                                       tavg_SST,iblock,1)
          endif
 
          if (tavg_requested(tavg_SALT)) then

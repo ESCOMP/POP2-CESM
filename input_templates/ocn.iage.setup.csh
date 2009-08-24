@@ -91,7 +91,7 @@ else if ($command == tavg_contents) then
       exit 5
    endif
 
-   echo "IAGE "       >> $tavg_contents_filename
+   echo "1  IAGE "       >> $tavg_contents_filename
 
 #  disable the following until they are computed correctly
 #  echo "IAGE_SQR "   >> $tavg_contents_filename

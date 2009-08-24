@@ -57,8 +57,6 @@
 !   module variables
 !
 !----------------------------------------------------------------------
-   integer (POP_i4), private :: &
-      tavg_flag                    ! flag to access tavg frequencies
 
    integer (POP_i4), private :: &
       timer_step,              &! timer number for step
@@ -185,7 +183,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call tavg_set_flag
+   call tavg_set_flag(update_time=.true.)
    call tavg_forcing
    if (nt > 2) call passive_tracers_tavg_sflux(STF)
    call movie_forcing
@@ -726,9 +724,7 @@
       call diag_velocity
    endif
 
-   if ( ldiag_global_tracer_budgets .and. check_time_flag(tavg_flag)) then
-        call tracer_budgets
-   endif
+   if (ldiag_global_tracer_budgets) call tracer_budgets
 
 !-----------------------------------------------------------------------
 !
@@ -762,11 +758,9 @@
 
 !-----------------------------------------------------------------------
 !
-!  get tavg time-flag handle and initialize timers
+!  initialize timers
 !
 !-----------------------------------------------------------------------
-
-   tavg_flag = get_time_flag_id('tavg')
 
    call get_timer(timer_step,'STEP',1,distrb_clinic%nprocs)
    call get_timer(timer_baroclinic,'BAROCLINIC',1,distrb_clinic%nprocs)

@@ -326,30 +326,37 @@ EOF
 #  tavg_nml  -- see error checking below
 #--------------------------------------------------------------------------
 
-set tavg_freq_opt = nmonth
-set tavg_freq     = 1
-set ltavg_nino_diags = .true.
+set n_tavg_streams               = 2
+set tavg_freq_opt_values         = ("'nmonth'", "'nday'")
+set tavg_freq_values             = (1,1)
+set tavg_start_opt_values        = ("'nstep'", "'nstep'")
+set tavg_start_values            = (0,0)
+set tavg_fmt_in_values           = ("'nc'", "'nc'")
+set tavg_fmt_out_values          = ("'nc'", "'nc'")
+set ltavg_has_offset_date_values = (.false., .false.)
+set tavg_offset_year_values      = (1,1)
+set tavg_offset_month_values     = (1,1)
+set tavg_offset_day_values       = (2,2)
 
-if ( $tavg_freq_opt == nyear || ($tavg_freq_opt == nmonth && $tavg_freq == 12) ) then
-  set ltavg_nino_diags = .false.
-endif
+set ltavg_nino_diags_requested   = .true. 
 
 cat >> $POP2_NMLFILE << EOF
 &tavg_nml
-   tavg_freq_opt         = '$tavg_freq_opt'
-   tavg_freq             =  $tavg_freq
-   tavg_start_opt        = 'nstep'
-   tavg_start            = 0
-   tavg_infile           = '${output_h}restart.end'
-   tavg_fmt_in           = 'nc'
-   tavg_outfile          = '$output_h'
-   tavg_fmt_out          = 'nc'
-   tavg_contents         = '$tavg_contents_filename'
-   ltavg_nino_diags      = $ltavg_nino_diags
-   ltavg_has_offset_date = .false.
-   tavg_offset_year      = 1
-   tavg_offset_month     = 1
-   tavg_offset_day       = 2
+   n_tavg_streams             = $n_tavg_streams
+   tavg_freq_opt              = $tavg_freq_opt_values
+   tavg_freq                  = $tavg_freq_values
+   tavg_start_opt             = $tavg_start_opt_values
+   tavg_start                 = $tavg_start_values
+   tavg_fmt_in                = $tavg_fmt_in_values
+   tavg_fmt_out               = $tavg_fmt_out_values
+   tavg_contents              ='$tavg_contents_filename'
+   ltavg_nino_diags_requested = $ltavg_nino_diags_requested
+   tavg_infile                ='${output_h}restart.end'
+   tavg_outfile               ='$output_h'
+   ltavg_has_offset_date      = $ltavg_has_offset_date_values
+   tavg_offset_years          = $tavg_offset_year_values
+   tavg_offset_months         = $tavg_offset_month_values
+   tavg_offset_days           = $tavg_offset_day_values
 /
 
 EOF
@@ -1369,17 +1376,21 @@ if ($topography_opt == 'bathymetry' && $overflows_on == .true.) then
    exit -99
 endif
 
-if ( ($tavg_freq_opt == nmonth && $tavg_freq == 12) || $tavg_freq_opt == nyear) then
-  if ($ltavg_nino_diags == .true.) then
-   echo "   =============================================================="
-   echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
-   echo "     set ltavg_nino_diags == .false. in                          "
-   echo "     your copy of pop2_in_build.csh and resubmit                 "
-   echo "   =============================================================="
-   echo " "
-   exit -99
-  endif
-endif
+######################### need to revise this to be compatible with multiple tavg streams
+#@ ns = 0
+#foreach tavg_freq_opt_value ($tavg_freq_opt_values)
+#if ( ($tavg_freq_opt_value == nmonth && $tavg_freq_values[$ns] == 12) || $tavg_freq_opt_value == nyear) then
+#  if ($ltavg_nino_diags[$ns] == .true.) then
+#   echo "   =============================================================="
+#   echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
+#   echo "     set ltavg_nino_diags == .false. in                          "
+#   echo "     your copy of pop2_in_build.csh and resubmit                 "
+#   echo "   =============================================================="
+#   echo " "
+#   exit -99
+#  endif
+#  @ ns++
+#endif
 
 if ($ltidal_mixing == .true.) then
   if !($bckgrnd_vdc2 == 0.0) then

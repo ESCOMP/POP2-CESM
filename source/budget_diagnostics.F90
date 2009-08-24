@@ -63,10 +63,12 @@
       tavg_id_TFW_S,                  &
       tavg_id_QFLUX
 
+   integer (int_kind) ::  &
+      budget_stream        ! number of the stream containing budget TAVG fields
+
    logical (kind=log_kind)     ::  &
       budget_warning_1st_step       ! warning flag for budget diagnostics
  
-
 !EOC
 
 !***********************************************************************
@@ -105,15 +107,6 @@
  
    namelist /budget_diagnostics_nml/ldiag_global_tracer_budgets  
 
-!-----------------------------------------------------------------------
-!
-!  initialize tavg_flag index, in order to access its frequency
-!    (tavg_flag frequency options are set in init_tavg; this flag must
-!     match the name specified in init_tavg)
-!
-!-----------------------------------------------------------------------
-
-   tavg_flag = get_time_flag_id('tavg')
 
 !-----------------------------------------------------------------------
 !
@@ -197,8 +190,13 @@
      tavg_id_TFW_S      = tavg_id('TFW_S')
      tavg_id_QFLUX      = tavg_id('QFLUX')
 
+   !*** determine in which stream the budget diagnostics fields reside
+   !    (see also the test below)
+
+   budget_stream =  tavg_in_which_stream(tavg_id_SHF)
  
    if (ldiag_global_tracer_budgets ) then
+    tavg_flag = tavg_streams(budget_stream)%flag
     if (check_time_flag_int(tavg_flag,freq_opt=.true.) == freq_opt_never) then
        budget_error_flag = -1000
     else
@@ -218,12 +216,38 @@
    endif
 
    if     ( budget_error_flag == -1000 ) then
-     message = 'ERROR: init_budget_diag: you cannot select both '    /&
+     message = 'ERROR: init_budget_diagnostics: you cannot select both '    /&
           &/    'tavg_freq_opt == freq_opt_never and ldiag_global_tracer_budgets = .true. '
      call exit_POP ( SigAbort, message)
    elseif ( budget_error_flag == -2000 ) then
-     message = 'ERROR: init_budget_diag: SHF SFWF RESID_T RESID_S '  /&
+     message = 'ERROR: init_budget_diagnostics: SHF SFWF RESID_T RESID_S '  /&
            &/    'FW TFW_T TFW_S and QFLUX must be included in the tavg_contents file.'
+     call exit_POP ( SigAbort, message)
+   endif
+
+   !*** determine if all required fields are activated in the *the same* tavg_contents file
+   if (ldiag_global_tracer_budgets ) then
+
+
+     if (tavg_in_this_stream(tavg_id_SFWF   ,budget_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_RESID_T,budget_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_RESID_S,budget_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_FW     ,budget_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_TFW_T  ,budget_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_TFW_S  ,budget_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_QFLUX  ,budget_stream) ) then
+            ! ok -- all fields are in the same stream
+     else
+         budget_error_flag = -3000
+     endif
+
+   endif
+   
+   if ( budget_error_flag == -3000 ) then
+     message = 'ERROR: init_budget_diagnostics: you must select all budget diagnostics' /&
+          &/    ' fields in the same stream: SFWF,RESID_T,RESID_S,FW,TFW_T,TFW_S,QFLUX'
+     write(stdout,*) trim(message)
+     call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout) 
      call exit_POP ( SigAbort, message)
    endif
 
@@ -262,13 +286,13 @@
    call broadcast_scalar (budget_error_flag, master_task)
 
    if ( budget_error_flag == -1000 ) &
-     call exit_POP (SigAbort, 'ERROR: init_budget_diag: no budget interval is specified.' ) 
+     call exit_POP (SigAbort, 'ERROR: init_budget_diagnostics: no budget interval is specified.' ) 
 
 
     call flushm (stdout)
 
-1100  format ('(init_budget_diag): ',a)
-1101  format ('(init_budget_diag): tracer budgets are for every ',i4,a)
+1100  format ('(init_budget_diagnostics): ',a)
+1101  format ('(init_budget_diagnostics): tracer budgets are for every ',i4,a)
  
 !EOC
    end subroutine init_budget_diagnostics 
@@ -324,11 +348,13 @@
    logical (log_kind), save ::    &
       first_global_budget = .true.  ! flag for initializing budget diagnostics
 
+tavg_id_SHF        = tavg_id('SHF')
 
    if (present(step_call)) then
    if (step_call) then
-     if ( first_global_budget .and. ldiag_global_tracer_budgets  .and.  &
-          ltavg_on ) then
+     !############# debug -- is ltavg_on necessary? ###########################
+     if ( first_global_budget .and. ldiag_global_tracer_budgets   .and.  &
+          ltavg_on(tavg_in_which_stream(tavg_id('TEMP')))) then
           ! continue with diagnostics computation
      else
        return
@@ -416,8 +442,9 @@
 
    if (present(step_call)) then
    if (step_call) then
-     if ( first_global_budget .and. ldiag_global_tracer_budgets  .and.  &
-          ltavg_on ) then
+     !############# debug -- is ltavg_on necessary? ###########################
+     if ( first_global_budget .and. ldiag_global_tracer_budgets   .and. &
+          ltavg_on(tavg_in_which_stream(tavg_id('TEMP')))) then
        if ( my_task == master_task ) then
          write (stdout,1001) volume_t_initial,tracer_mean_initial(1),   &
                              salt_to_ppt*tracer_mean_initial(2)
@@ -489,7 +516,10 @@
 !-----------------------------------------------------------------------
 
 
-   tavg_norm = c1 / (tavg_sum * area_t)
+   if (.not. check_time_flag(tavg_streams(budget_stream)%flag)) return
+
+
+   tavg_norm = c1 / (tavg_sum(budget_stream) * area_t)
 
 !-----------------------------------------------------------------------
 !
@@ -565,23 +595,23 @@
    if ( my_task == master_task ) then
 
      write (stdout,1000) 
-     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+     call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
  
      if (budget_warning_1st_step) then
          write (stdout,10001)
-         call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+         call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
          budget_warning_1st_step = .false.
      endif
  
      if (tmix_iopt == tmix_matsuno) write (stdout,1001 )
 
      write (stdout,1002)
-     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+     call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
 
      sum = - volume_change + fw_mean
      explanation = ' Imbalance = -tendency + FW flux '
      write (stdout,1003) volume_change, fw_mean, sum, explanation
-     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+     call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
 
      write (stdout,1004)
      sum = - T_change+ shf_mean + qflux_t_mean + tfw_t_mean &
@@ -593,15 +623,15 @@
      write (stdout, 1005) T_change, shf_mean, qflux_t_mean, &
                           tfw_t_mean,  resid_t_mean, sum,   &
                           explanation
-     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+     call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
 
      if ( sfc_layer_type == sfc_layer_varthick .and.  &
           .not. lfw_as_salt_flx ) then
        write (stdout,1006)
-       call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+       call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
      else
        write (stdout,1007)
-       call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+       call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
      endif
      sum = - S_change + sfwf_mean + qflux_s_mean + tfw_s_mean  &
            + resid_s_mean
@@ -611,7 +641,7 @@
      write (stdout, 1008) S_change, sfwf_mean, qflux_s_mean, &
                           tfw_s_mean,  resid_s_mean, sum,    &
                           explanation
-     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+     call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
 
    endif
 

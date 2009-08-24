@@ -32,7 +32,7 @@
    use exit_mod, only: sigAbort, exit_pop
    use timers, only: timer_start, timer_stop
    use tavg, only: define_tavg_field, tavg_method_qflux, ltavg_on, &
-       tavg_requested, accumulate_tavg_field
+       tavg_requested, accumulate_tavg_field, tavg_in_which_stream
    use constants, only: c0, c1, p5, delim_fmt, char_blank, &
        salt_to_ppt, ocn_ref_salinity, ppt_to_salt, sea_ice_salinity
    use time_management, only: mix_pass
@@ -497,8 +497,9 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::  &
-      bid,                & ! local block address for this block
-      n                     ! tracer index
+      bid,                &! local block address for this block
+      n,                  &! tracer index
+      tavg_var_J_stream    ! stream in which var_J is defined
 
    real (r8), dimension(nx_block,ny_block) :: &
       WORK
@@ -537,19 +538,24 @@
 !  accumulate time average if necessary
 !-----------------------------------------------------------------------
 
-   if (ltavg_on .and. mix_pass /= 1) then
+   if (mix_pass /= 1) then
       do n = 3, nt
          if (tavg_requested(tavg_var_J(n))) then
+            tavg_var_J_stream = tavg_in_which_stream(tavg_var_J(n))
+            if (ltavg_on(tavg_var_J_stream))  &
             call accumulate_tavg_field(TRACER_SOURCE(:,:,n),tavg_var_J(n),bid,k)
          endif
 
          if (tavg_requested(tavg_var_Jint(n))) then
-            if (partial_bottom_cells) then
-               WORK = TRACER_SOURCE(:,:,n) * DZT(:,:,k,bid)
-            else
-               WORK = TRACER_SOURCE(:,:,n) * dz(k)
+            tavg_var_J_stream = tavg_in_which_stream(tavg_var_Jint(n))
+            if (ltavg_on(tavg_var_J_stream)) then
+              if (partial_bottom_cells) then
+                 WORK = TRACER_SOURCE(:,:,n) * DZT(:,:,k,bid)
+              else
+                 WORK = TRACER_SOURCE(:,:,n) * dz(k)
+              endif
+              call accumulate_tavg_field(WORK,tavg_var_Jint(n),bid,k)
             endif
-            call accumulate_tavg_field(WORK,tavg_var_Jint(n),bid,k)
          endif
       enddo
    endif
@@ -784,22 +790,30 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::  &
-      n                     ! tracer index
+      n,                  &! tracer index
+      tavg_var_stream      ! stream in which var is defined
 
    real (r8), dimension(nx_block,ny_block) :: &
       WORK
 
 !-----------------------------------------------------------------------
 
-   if (ltavg_on .and. mix_pass /= 1) then
+   if (mix_pass /= 1) then
       do n = 3, nt
+
+
          if (tavg_requested(tavg_var(n))) then
+            tavg_var_stream = tavg_in_which_stream(tavg_var(n))
+            if (ltavg_on(tavg_var_stream)) &
             call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid),tavg_var(n),bid,k)
          endif
 
          if (tavg_requested(tavg_var_sqr(n))) then
-            WORK = TRACER(:,:,k,n,curtime,bid) ** 2
-            call accumulate_tavg_field(WORK,tavg_var_sqr(n),bid,k)
+            tavg_var_stream = tavg_in_which_stream(tavg_var_sqr(n))
+            if (ltavg_on(tavg_var_stream)) then
+              WORK = TRACER(:,:,k,n,curtime,bid) ** 2
+              call accumulate_tavg_field(WORK,tavg_var_sqr(n),bid,k)
+            endif
          endif
       enddo
    endif
@@ -835,27 +849,30 @@
 !  local variables
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: iblock, n
+   integer (int_kind) :: iblock, n, tavg_var_stream
+ 
 
 !-----------------------------------------------------------------------
 !  accumulate surface flux and FvPER flux for all tracers
 !-----------------------------------------------------------------------
 
-   if (ltavg_on) then
-      !$OMP PARALLEL DO PRIVATE(iblock,n)
-      do iblock = 1,nblocks_clinic
-         do n = 3, nt
-            if (tavg_requested(tavg_var_stf(n))) then
-               call accumulate_tavg_field(STF(:,:,n,iblock),tavg_var_stf(n),iblock,1)
-            endif
+   !$OMP PARALLEL DO PRIVATE(iblock,n)
+   do iblock = 1,nblocks_clinic
+      do n = 3, nt
+         if (tavg_requested(tavg_var_stf(n))) then
+           tavg_var_stream = tavg_in_which_stream(tavg_var_stf(n))
+           if (ltavg_on(tavg_var_stream)) &
+              call accumulate_tavg_field(STF(:,:,n,iblock),tavg_var_stf(n),iblock,1)
+         endif
 
-            if (tavg_requested(tavg_var_fvper(n))) then
-               call accumulate_tavg_field(FvPER(:,:,n,iblock),tavg_var_fvper(n),iblock,1)
-            endif
-         enddo
+         if (tavg_requested(tavg_var_fvper(n))) then
+           tavg_var_stream = tavg_in_which_stream(tavg_var_fvper(n))
+           if (ltavg_on(tavg_var_stream)) &
+              call accumulate_tavg_field(FvPER(:,:,n,iblock),tavg_var_fvper(n),iblock,1)
+         endif
       enddo
-      !$OMP END PARALLEL DO
-   endif
+   enddo
+   !$OMP END PARALLEL DO
 
 !-----------------------------------------------------------------------
 !  call routines from modules that have additional sflux tavg fields
@@ -920,26 +937,28 @@
    real (r8) ::        &
       ref_val   ! temporary work array
 
-   integer (int_kind) :: iblock, n
+   integer (int_kind) :: iblock, n, tavg_var_stream
 
 !-----------------------------------------------------------------------
 
-   if (ltavg_on) then
-      !$OMP PARALLEL DO PRIVATE(iblock,n,ref_val,WORK)
-      do iblock = 1,nblocks_clinic
-         do n = 3, nt
-            if (tavg_requested(tavg_var_fvice(n))) then
-               ref_val = tracer_ref_val(n)
-               if (ref_val /= c0)  then
-                  WORK = ref_val * (c1 - sea_ice_salinity / ocn_ref_salinity) * &
-                     cp_over_lhfusion * max(c0, QICE(:,:,iblock))
-                  call accumulate_tavg_field(WORK,tavg_var_fvice(n),iblock,1,c1)
-               endif
-            endif
-         enddo
+
+   !$OMP PARALLEL DO PRIVATE(iblock,n,ref_val,WORK)
+   do iblock = 1,nblocks_clinic
+      do n = 3, nt
+         if (tavg_requested(tavg_var_fvice(n))) then
+           tavg_var_stream = tavg_in_which_stream(tavg_var_fvice(n))
+           if (ltavg_on(tavg_var_stream) ) then
+              ref_val = tracer_ref_val(n)
+              if (ref_val /= c0)  then
+                 WORK = ref_val * (c1 - sea_ice_salinity / ocn_ref_salinity) * &
+                    cp_over_lhfusion * max(c0, QICE(:,:,iblock))
+                 call accumulate_tavg_field(WORK,tavg_var_fvice(n),iblock,1,c1)
+              endif
+           endif
+         endif
       enddo
-      !$OMP END PARALLEL DO
-   endif
+   enddo
+   !$OMP END PARALLEL DO
 
 !-----------------------------------------------------------------------
 !EOC

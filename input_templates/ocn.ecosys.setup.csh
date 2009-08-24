@@ -202,118 +202,118 @@ else if ($command == tavg_contents) then
    endif
 
    cat >> $tavg_contents_filename << EOF
-ECOSYS_ATM_PRESS
-ECOSYS_IFRAC
-ECOSYS_XKW
-SCHMIDT_O2
-SCHMIDT_CO2
-IRON_FLUX
-PH
-O2SAT
-STF_O2
-CO2STAR
-DCO2STAR
-pCO2SURF
-DpCO2
-FG_CO2
-ATM_CO2
-FvPER_DIC
-FvICE_DIC
-FvPER_ALK
-FvICE_ALK
-Jint_PO4
-Jint_NO3
-Jint_SiO3
-Jint_NH4
-Jint_Fe
-Jint_O2
-Jint_DIC
-Jint_ALK
-Jint_DOC
-Jint_spC
-Jint_spChl
-Jint_spCaCO3
-Jint_diatC
-Jint_diatChl
-Jint_zooC
-PO4
-NO3
-SiO3
-NH4
-Fe
-O2
-DIC
-ALK
-DOC
-spC
-spChl
-spCaCO3
-diatC
-diatChl
-zooC
-spFe
-diatSi
-diatFe
-diazC
-diazChl
-diazFe
-DON
-DOFe
-DOP
-graze_sp
-graze_diat
-graze_diaz
-sp_agg
-diat_agg
-photoC_sp
-photoC_diat
-photoC_diaz
-Fe_scavenge
-Fe_scavenge_rate
-CaCO3_form
-diaz_Nfix
-bSi_form
-NITRIF
-DENITRIF
-POC_PROD
-CaCO3_PROD
-SiO2_PROD
-P_iron_PROD
-POC_FLUX_IN
-CaCO3_FLUX_IN
-SiO2_FLUX_IN
-P_iron_FLUX_IN
-PAR_avg
-sp_Fe_lim
-diat_Fe_lim
-diaz_Fe_lim
-sp_N_lim
-diat_N_lim
-sp_PO4_lim
-diat_PO4_lim
-diaz_P_lim
-diat_SiO3_lim
-sp_light_lim
-diat_light_lim
-diaz_light_lim
-DOC_prod
-DON_prod
-DOFe_prod
-DOP_prod
-sp_loss
-diat_loss
-zoo_loss
-diaz_loss
+1  ECOSYS_ATM_PRESS
+1  ECOSYS_IFRAC
+1  ECOSYS_XKW
+1  SCHMIDT_O2
+1  SCHMIDT_CO2
+1  IRON_FLUX
+1  PH
+1  O2SAT
+1  STF_O2
+1  CO2STAR
+1  DCO2STAR
+1  pCO2SURF
+1  DpCO2
+1  FG_CO2
+1  ATM_CO2
+1  FvPER_DIC
+1  FvICE_DIC
+1  FvPER_ALK
+1  FvICE_ALK
+1  Jint_PO4
+1  Jint_NO3
+1  Jint_SiO3
+1  Jint_NH4
+1  Jint_Fe
+1  Jint_O2
+1  Jint_DIC
+1  Jint_ALK
+1  Jint_DOC
+1  Jint_spC
+1  Jint_spChl
+1  Jint_spCaCO3
+1  Jint_diatC
+1  Jint_diatChl
+1  Jint_zooC
+1  PO4
+1  NO3
+1  SiO3
+1  NH4
+1  Fe
+1  O2
+1  DIC
+1  ALK
+1  DOC
+1  spC
+1  spChl
+1  spCaCO3
+1  diatC
+1  diatChl
+1  zooC
+1  spFe
+1  diatSi
+1  diatFe
+1  diazC
+1  diazChl
+1  diazFe
+1  DON
+1  DOFe
+1  DOP
+1  graze_sp
+1  graze_diat
+1  graze_diaz
+1  sp_agg
+1  diat_agg
+1  photoC_sp
+1  photoC_diat
+1  photoC_diaz
+1  Fe_scavenge
+1  Fe_scavenge_rate
+1  CaCO3_form
+1  diaz_Nfix
+1  bSi_form
+1  NITRIF
+1  DENITRIF
+1  POC_PROD
+1  CaCO3_PROD
+1  SiO2_PROD
+1  P_iron_PROD
+1  POC_FLUX_IN
+1  CaCO3_FLUX_IN
+1  SiO2_FLUX_IN
+1  P_iron_FLUX_IN
+1  PAR_avg
+1  sp_Fe_lim
+1  diat_Fe_lim
+1  diaz_Fe_lim
+1  sp_N_lim
+1  diat_N_lim
+1  sp_PO4_lim
+1  diat_PO4_lim
+1  diaz_P_lim
+1  diat_SiO3_lim
+1  sp_light_lim
+1  diat_light_lim
+1  diaz_light_lim
+1  DOC_prod
+1  DON_prod
+1  DOFe_prod
+1  DOP_prod
+1  sp_loss
+1  diat_loss
+1  zoo_loss
+1  diaz_loss
 EOF
 
-# dust_FLUX_IN
-# DOC_remin
-# DON_remin
-# DOFe_remin
-# DOP_remin
-# photoFe_diaz
-# photoFe_diat
-# photoFe_sp
+#1  dust_FLUX_IN
+#1   DOC_remin
+#1   DON_remin
+#1   DOFe_remin
+#1   DOP_remin
+#1   photoFe_diaz
+#1   photoFe_diat
+#1   photoFe_sp
 
 else if ($command == prestage) then
 

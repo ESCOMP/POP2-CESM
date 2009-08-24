@@ -353,7 +353,8 @@
    integer (int_kind) :: &
       i, j, k, kk,       &  ! dummy loop counters
       kp1,               &
-      bid                   ! local block address for this sub block
+      bid,               &  ! local block address for this sub block
+      tavg_stream           ! temporary stream id
 
    real (r8), dimension(nx_block,ny_block) :: &
       ML_DEPTH,          &  ! mixed layer depth
@@ -650,25 +651,30 @@
 !
 !-----------------------------------------------------------------------
 
-     if ( ltavg_on .and. mix_pass /= 1 ) then
+     if ( mix_pass /= 1 ) then
 
-       if ( tavg_requested(tavg_HLS_SUBM)  .and.  k == 1 ) then
+       tavg_stream = tavg_in_which_stream(tavg_HLS_SUBM)
+       if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_HLS_SUBM)  .and.  k == 1 ) then
          call accumulate_tavg_field (HLS, tavg_HLS_SUBM, bid, 1)  
        endif
 
-       if ( tavg_requested(tavg_USUBM) ) then
+       tavg_stream = tavg_in_which_stream(tavg_USUBM)
+       if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_USUBM) ) then
          call accumulate_tavg_field (U_SUBM, tavg_USUBM, bid, k)
        endif
 
-       if ( tavg_requested(tavg_VSUBM) ) then
+       tavg_stream = tavg_in_which_stream(tavg_VSUBM)
+       if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_VSUBM) ) then
          call accumulate_tavg_field (V_SUBM, tavg_VSUBM, bid, k)
        endif
 
-       if ( tavg_requested(tavg_WSUBM) ) then
+       tavg_stream = tavg_in_which_stream(tavg_WSUBM)
+       if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_WSUBM) ) then
          call accumulate_tavg_field (WTOP_SUBM, tavg_WSUBM, bid, k) 
        endif
 
-       if ( tavg_requested(tavg_ADVT_SUBM) ) then
+       tavg_stream = tavg_in_which_stream(tavg_ADVT_SUBM)
+       if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_ADVT_SUBM) ) then
 
          WORK1 = p5 * HTE(:,:,bid) * U_SUBM * ( TMIX(:,:,k,1)  &
                    + eoshift(TMIX(:,:,k,1), dim=1, shift=1) )
@@ -693,7 +699,8 @@
 
        endif
 
-       if ( tavg_requested(tavg_ADVS_SUBM) ) then
+       tavg_stream = tavg_in_which_stream(tavg_ADVS_SUBM)
+       if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_ADVS_SUBM) ) then
 
          WORK1 = p5 * HTE(:,:,bid) * U_SUBM * ( TMIX(:,:,k,2)  &
                    + eoshift(TMIX(:,:,k,2), dim=1, shift=1) )
@@ -723,7 +730,8 @@
 
          WORK1 = p5 * V_SUBM * HTN(:,:,bid) * TAREA_R(:,:,bid)
 
-         if ( tavg_requested(tavg_VNT_SUBM) ) then
+         tavg_stream = tavg_in_which_stream(tavg_VNT_SUBM)
+         if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_VNT_SUBM) ) then
 
            WORK2 = WORK1 * (    TMIX(:,:,k,1)  &
                       + eoshift(TMIX(:,:,k,1), dim=2, shift=1) )
@@ -732,7 +740,8 @@
 
          endif
 
-         if ( tavg_requested(tavg_VNS_SUBM) ) then
+         tavg_stream = tavg_in_which_stream(tavg_VNS_SUBM)
+         if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_VNS_SUBM) ) then
 
            WORK2 = WORK1 * (    TMIX(:,:,k,2)  &
                       + eoshift(TMIX(:,:,k,2), dim=2, shift=1) )
@@ -743,7 +752,7 @@
 
        endif
 
-     endif            ! ltavg_on and mix_pass ne 1
+     endif ! mix_pass ne 1
 
 !-----------------------------------------------------------------------
 !

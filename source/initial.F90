@@ -57,7 +57,7 @@
    use topostress, only: init_topostress
    use ice
    use output, only: init_output
-   use tavg, only: ltavg_restart, tavg_id, set_in_tavg_contents
+   use tavg, only: ltavg_restart, tavg_id, set_in_tavg_contents,n_tavg_streams
    !use hydro_sections
    !use current_meters
    !use drifters
@@ -1641,12 +1641,14 @@
 
    character (char_len)      ::  &
       message,                   &! error message string
-      string                      ! temporary string
+      string,                    &! temporary string
+      char_temp                   ! temporary string for tavg_flag ids
 
    integer (int_kind)        ::  &
       number_of_fatal_errors,    &! counter for fatal error conditions
       number_of_warnings,        &! counter for warning messages
       n,                         &! loop index 
+      ns,                        &! streams loop index
       temp_tavg_id,              &! temporary tavg_id holder
       coupled_flag,              &! flag for coupled_ts 
       tavg_flag                   ! flag for tavg
@@ -1715,10 +1717,12 @@
 !
 !-----------------------------------------------------------------------
 
-   tavg_flag    = get_time_flag_id('tavg')
    coupled_flag = get_time_flag_id('coupled_ts')
 
    if (my_task == master_task) then
+     do ns=1,n_tavg_streams
+     write(char_temp,1100) 'tavg',ns ; 1100 format (a,i1)
+     tavg_flag    = get_time_flag_id(trim(char_temp))
      if (check_time_flag_int(tavg_flag,   freq_opt=.true.) > 0 .and. &
          check_time_flag_int(coupled_flag,freq_opt=.true.) > 0) then
 
@@ -1738,6 +1742,7 @@
          endif
        endif
      endif
+     enddo ! ns
    endif
 
 

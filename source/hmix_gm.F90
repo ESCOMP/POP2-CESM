@@ -1203,26 +1203,27 @@
          jnorth = 1, jsouth = 2
 
       integer (int_kind) :: &
-         i,j,n,kk,      &     ! dummy loop counters
-         kid,ktmp,      &     ! array indices
-         kk_sub, kp1,   &
-         kn, ks,        &     ! cyclic pointers for 2-level local arrays
-         bid                  ! local block address for this sub block
+         i,j,n,kk,          &! dummy loop counters
+         kid,ktmp,          &! array indices
+         kk_sub, kp1,       & 
+         kn, ks,            &! cyclic pointers for 2-level local arrays
+         bid,               &! local block address for this sub block
+         tavg_stream         ! temporary stream id
 
       real (r8) :: &
          fz, dz_bottom, factor
 
       real (r8), dimension(nx_block,ny_block) :: &
          CX, CY,                  &
-         RZ,                      & ! Dz(rho)
-         SLA,                     & ! absolute value of slope
-         WORK1, WORK2,            & ! local work space
-         WORK3, WORK4,            & ! local work space
-         KMASK, KMASKE, KMASKN,   & ! ocean mask
-         TAPER1, TAPER2, TAPER3,  & ! tapering factors
-         UIB, VIB,                & ! work arrays for isopycnal mixing velocities
-         DRDT, DRDS,              & ! expansion coefficients d(rho)/dT,S
-         U_ISOP, V_ISOP             ! horizontal components of isopycnal velocities
+         RZ,                      &! Dz(rho)
+         SLA,                     &! absolute value of slope
+         WORK1, WORK2,            &! local work space
+         WORK3, WORK4,            &! local work space
+         KMASK, KMASKE, KMASKN,   &! ocean mask
+         TAPER1, TAPER2, TAPER3,  &! tapering factors
+         UIB, VIB,                &! work arrays for isopycnal mixing velocities
+         DRDT, DRDS,              &! expansion coefficients d(rho)/dT,S
+         U_ISOP, V_ISOP            ! horizontal components of isopycnal velocities
 
       real (r8), dimension(nx_block,ny_block,nt) :: &
          FX, FY                     ! fluxes across east, north faces
@@ -2425,23 +2426,27 @@
 !
 !-----------------------------------------------------------------------
 
-      if ( ltavg_on .and. mix_pass /= 1 ) then
+      if ( mix_pass /= 1 ) then
 
-        if ( tavg_requested(tavg_KAPPA_ISOP) ) then
+
+        tavg_stream = tavg_in_which_stream(tavg_KAPPA_ISOP)
+        if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_KAPPA_ISOP)) then
           call accumulate_tavg_field                      &
                    (p5 * (KAPPA_ISOP(:,:,ktp,k,bid)    &
                        +  KAPPA_ISOP(:,:,kbt,k,bid)),  &
                           tavg_KAPPA_ISOP, bid, k)
         endif
 
-        if ( tavg_requested(tavg_KAPPA_THIC) ) then
+        tavg_stream = tavg_in_which_stream(tavg_KAPPA_THIC)
+        if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_KAPPA_THIC)) then
           call accumulate_tavg_field                      &
                    (p5 * (KAPPA_THIC(:,:,ktp,k,bid)    &
                        +  KAPPA_THIC(:,:,kbt,k,bid)),  &
                           tavg_KAPPA_THIC, bid, k)
         endif
 
-        if ( tavg_requested(tavg_HOR_DIFF) ) then
+        tavg_stream = tavg_in_which_stream(tavg_HOR_DIFF)
+        if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_HOR_DIFF)) then
           call accumulate_tavg_field                      &
                    (p5 * (HOR_DIFF(:,:,ktp,k,bid)      &
                        +  HOR_DIFF(:,:,kbt,k,bid)),    &
@@ -2450,17 +2455,20 @@
 
         if ( transition_layer_on  .and.  k == 1 ) then
 
-          if ( tavg_requested(tavg_DIA_DEPTH) ) then
+          tavg_stream = tavg_in_which_stream(tavg_DIA_DEPTH)
+          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_DIA_DEPTH)) then
             call accumulate_tavg_field (TLT%DIABATIC_DEPTH(:,:,bid),  &
                                         tavg_DIA_DEPTH, bid, 1)  
           endif
 
-          if ( tavg_requested(tavg_TLT) ) then
+          tavg_stream = tavg_in_which_stream(tavg_TLT)
+          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_TLT)) then
             call accumulate_tavg_field (TLT%THICKNESS(:,:,bid),       &
                                         tavg_TLT, bid, 1)  
           endif
 
-          if ( tavg_requested(tavg_INT_DEPTH) ) then
+          tavg_stream = tavg_in_which_stream(tavg_INT_DEPTH)
+          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_INT_DEPTH)) then
             call accumulate_tavg_field (TLT%INTERIOR_DEPTH(:,:,bid),  &
                                         tavg_INT_DEPTH, bid, 1)  
           endif
@@ -2469,20 +2477,24 @@
 
         if ( diag_gm_bolus ) then
 
-          if ( tavg_requested(tavg_UISOP) ) then
+          tavg_stream = tavg_in_which_stream(tavg_UISOP)
+          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_UISOP)) then
             call accumulate_tavg_field (U_ISOP, tavg_UISOP, bid, k) 
           endif
 
-          if ( tavg_requested(tavg_VISOP) ) then
+          tavg_stream = tavg_in_which_stream(tavg_VISOP)
+          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_VISOP)) then
             call accumulate_tavg_field (V_ISOP, tavg_VISOP, bid, k) 
           endif
 
-          if ( tavg_requested(tavg_WISOP) ) then
+          tavg_stream = tavg_in_which_stream(tavg_WISOP)
+          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_WISOP)) then
             call accumulate_tavg_field (WTOP_ISOP(:,:,bid), tavg_WISOP,&
                                         bid, k)
           endif
 
-          if ( tavg_requested(tavg_ADVT_ISOP) ) then
+          tavg_stream = tavg_in_which_stream(tavg_ADVT_ISOP)
+          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_ADVT_ISOP)) then
 
             WORK1 = p5 * HTE(:,:,bid) * U_ISOP * ( TMIX(:,:,k,1)  &
                       + eoshift(TMIX(:,:,k,1), dim=1, shift=1) )
@@ -2507,7 +2519,8 @@
 
           endif
 
-          if ( tavg_requested(tavg_ADVS_ISOP) ) then
+          tavg_stream = tavg_in_which_stream(tavg_ADVS_ISOP)
+          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_ADVS_ISOP)) then
 
             WORK1 = p5 * HTE(:,:,bid) * U_ISOP * ( TMIX(:,:,k,2)  &
                       + eoshift(TMIX(:,:,k,2), dim=1, shift=1) )
@@ -2537,8 +2550,9 @@
 
             WORK1 = p5 * V_ISOP * HTN(:,:,bid) * TAREA_R(:,:,bid) 
 
-            if ( tavg_requested(tavg_VNT_ISOP) ) then
-      
+            tavg_stream = tavg_in_which_stream(tavg_VNT_ISOP)
+            if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_VNT_ISOP)) then
+
               WORK2 = WORK1 * (    TMIX(:,:,k,1)  &
                          + eoshift(TMIX(:,:,k,1), dim=2, shift=1) )
 
@@ -2546,7 +2560,8 @@
 
             endif
 
-            if ( tavg_requested(tavg_VNS_ISOP) ) then
+            tavg_stream = tavg_in_which_stream(tavg_VNS_ISOP)
+            if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_VNS_ISOP)) then
 
               WORK2 = WORK1 * (    TMIX(:,:,k,2)  &
                          + eoshift(TMIX(:,:,k,2), dim=2, shift=1) )
@@ -2557,9 +2572,9 @@
 
           endif
 
-        endif          ! bolus velocity option on
+        endif ! bolus velocity option on
 
-      endif            ! ltavg_on and mix_pass ne 1
+      endif   ! mix_pass ne 1
 
 !-----------------------------------------------------------------------
 !EOC

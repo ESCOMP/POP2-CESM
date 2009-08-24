@@ -1,6 +1,42 @@
 
 ===============================================================================
 Originator: njn01
+Date:  24  August 2009
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090824
+Summary of Changes:   This is a *preliminary* tag which contains a *MAJOR* 
+                      revision to support multiple tavg output "streams".
+                      Extensive testing and substantial modifications will
+                      continue over the next several weeks; users should
+                      consider this an "alpha" version of the tavg streams code.
+
+svn status -u
+M           17758   source/initial.F90
+M           17758   source/step_mod.F90
+M           17758   source/budget_diagnostics.F90
+M           17758   source/advection.F90
+M           17758   source/mix_submeso.F90
+M           17758   source/passive_tracers.F90
+M           17759   source/forcing_coupled.F90
+M           17758   source/hmix_gm.F90
+M           17759   source/tavg.F90
+M           17758   source/baroclinic.F90
+M           17758   input_templates/ocn.iage.setup.csh
+M           17758   input_templates/tx0.1v2_tavg_contents
+M           17758   input_templates/ocn.ecosys.setup.csh
+M           17758   input_templates/pop2_in_build.csh
+M           17758   input_templates/gx1v6_tavg_contents
+M           17758   input_templates/gx1v5b_tavg_contents
+M           17758   input_templates/gx3v6_tavg_contents
+M           17758   input_templates/tx1v1_tavg_contents
+M           17758   input_templates/ocn.cfc.setup.csh
+M           17758   input_templates/gx1v5_tavg_contents
+M           17758   input_templates/gx3v5_tavg_contents
+M           17758   input_templates/test_sample_tavg_contents
+M           17758   drivers/cpl_mct/POP_InitMod.F90
+
+
+===============================================================================
+Originator: njn01
 Date:  12  August 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090812
 Summary of Changes:  

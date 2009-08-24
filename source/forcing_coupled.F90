@@ -146,10 +146,7 @@
  subroutine pop_init_coupled
 
 ! !DESCRIPTION:
-!  This routine sets up everything necessary for coupling with
-!  the CCSM3 flux coupler, version 6 (cpl6). Initial cpl information 
-!  is received from the coupler, but pop information is not sent
-!  from this routine
+!  This routine sets up everything necessary for coupling with CCSM4. 
 !
 ! !REVISION HISTORY:
 !  same as module

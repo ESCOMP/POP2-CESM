@@ -24,7 +24,7 @@
    use initial
    use domain, only: distrb_clinic
    use timers, only: get_timer
-   use time_management, only: get_time_flag_id
+   use time_management, only: access_time_flag
 
    implicit none
    private
@@ -179,8 +179,8 @@
 !  initialize driver-level flags and timers
 !
 !-----------------------------------------------------------------------
-   stop_now = get_time_flag_id('stop_now')
-   cpl_ts   = get_time_flag_id('coupled_ts')
+   call access_time_flag ('stop_now', stop_now)
+   call access_time_flag ('coupled_ts', cpl_ts)
 
    call get_timer(timer_total,'TOTAL',1,distrb_clinic%nprocs)
 
