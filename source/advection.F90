@@ -142,6 +142,7 @@
 
    integer (int_kind) :: &
       tavg_WVEL,         &! Vertical Velocity
+      tavg_WVEL2,        &! Vertical Velocity Squared
       tavg_UEU,          &! flux of zonal momentum across east  face
       tavg_VNU,          &! flux of zonal momentum across north face
       tavg_WTU,          &! flux of zonal momentum across top   face
@@ -714,6 +715,11 @@
    call define_tavg_field(tavg_WVEL,'WVEL',3,                          &
                           long_name='Vertical Velocity',               &
                           units='centimeter/s', grid_loc='3112',       &
+                          coordinates='TLONG TLAT z_w time')
+
+   call define_tavg_field(tavg_WVEL2,'WVEL2',3,                          &
+                          long_name='Vertical Velocity**2',       &
+                          units='centimeter^2/s^2', grid_loc='3112',       &
                           coordinates='TLONG TLAT z_w time')
 
    call define_tavg_field(tavg_UEU,'UEU',3,                            &
@@ -1783,6 +1789,19 @@
 
       if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
          call accumulate_tavg_field(WTK,tavg_WVEL,bid,k)
+      endif
+
+      if (tavg_requested(tavg_WVEL2)) then
+        tavg_stream = tavg_in_which_stream(tavg_WVEL2)
+        ltavg_on_local1 = ltavg_on(tavg_stream)
+        ltavg_requested_local1 = .true.
+      else
+        ltavg_on_local1        = .false.
+        ltavg_requested_local1 = .false.
+      endif
+
+      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
+         call accumulate_tavg_field(WTK**2,tavg_WVEL2,bid,k)
       endif
 
       do n=1,nt

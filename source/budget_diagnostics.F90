@@ -196,7 +196,7 @@
    budget_stream =  tavg_in_which_stream(tavg_id_SHF)
  
    if (ldiag_global_tracer_budgets ) then
-    tavg_flag = tavg_streams(budget_stream)%flag
+    tavg_flag = tavg_streams(budget_stream)%field_flag
     if (check_time_flag_int(tavg_flag,freq_opt=.true.) == freq_opt_never) then
        budget_error_flag = -1000
     else
@@ -516,7 +516,7 @@ tavg_id_SHF        = tavg_id('SHF')
 !-----------------------------------------------------------------------
 
 
-   if (.not. check_time_flag(tavg_streams(budget_stream)%flag)) return
+   if (.not. check_time_flag(tavg_streams(budget_stream)%field_flag)) return
 
 
    tavg_norm = c1 / (tavg_sum(budget_stream) * area_t)

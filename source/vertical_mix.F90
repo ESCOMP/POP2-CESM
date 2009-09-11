@@ -153,6 +153,9 @@
       timer_impvmixu      ! timer number for implicit momentum vmix
 
    integer (int_kind) :: &
+      tavg_VDC_T,        &! tavg id for total vertical TEMP diffusivity
+      tavg_VDC_S,        &! tavg id for total vertical SALT diffusivity
+      tavg_VVC,          &! tavg id for total vertical momentum viscosity
       tavg_VUF,          &! tavg id for vertical flux of U momentum
       tavg_VVF,          &! tavg id for vertical flux of V momentum
       tavg_PEC,          &! tavg id for pot energy release convection
@@ -307,6 +310,8 @@
    call broadcast_scalar(nconvad,               master_task)
    call broadcast_scalar(convect_diff,          master_task)
    call broadcast_scalar(convect_visc,          master_task)
+  
+   bottom_heat_flx = bottom_heat_flx * hflux_factor
 
    if (bottom_heat_flx /= c0) then
       lbottom_heat_flx = .true.
@@ -423,6 +428,23 @@
 !
 !-----------------------------------------------------------------------
 
+   if (vmix_itype == vmix_type_kpp) then
+       call define_tavg_field(tavg_VDC_T,'VDC_T',3,             &
+          long_name='total diabatic vertical TEMP diffusivity',  &
+          units='cm^2/s', grid_loc='3112',                              &
+          coordinates='TLONG TLAT z_w time')
+
+       call define_tavg_field(tavg_VDC_S,'VDC_S',3,             &
+          long_name='total diabatic vertical SALT diffusivity', &
+          units='cm^2/s', grid_loc='3112',                              &
+          coordinates='TLONG TLAT z_w time')
+
+       call define_tavg_field(tavg_VVC,'VVC',3,             &
+          long_name='total vertical momentum viscosity', &
+          units='cm^2/s', grid_loc='3112',                              &
+          coordinates='TLONG TLAT z_w time')
+   endif
+
    call define_tavg_field(tavg_VUF,'VUF',3,                      &
                           long_name='Zonal viscous stress',      &
                           units='    ', grid_loc='3222')
@@ -501,7 +523,8 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      bid                 ! local block address
+      bid,               &! local block address
+      kk                  ! vertical level index
 
 !-----------------------------------------------------------------------
 !
@@ -568,6 +591,31 @@
                                  convect_diff, convect_visc, &
                                  SMF=SMF)
          endif
+
+         if (tavg_requested(tavg_VDC_T) .and. mix_pass /= 1) then
+            do kk=1,km-1
+              ! kk index shifted because VDC is at cell bottom
+              ! while output axis is at cell top
+              call accumulate_tavg_field(VDC(:,:,kk,1,bid),tavg_VDC_T,bid,kk+1)
+            end do
+         endif
+
+         if (tavg_requested(tavg_VDC_S) .and. mix_pass /= 1) then
+            do kk=1,km-1
+              ! kk index shifted because VDC is at cell bottom
+              ! while output axis is at cell top
+              call accumulate_tavg_field(VDC(:,:,kk,2,bid),tavg_VDC_S,bid,kk+1)
+            end do
+         endif
+
+         if (tavg_requested(tavg_VVC) .and. mix_pass /= 1) then
+            do kk=1,km-1
+              ! kk index shifted because VVC is at cell bottom
+              ! while output axis is at cell top
+              call accumulate_tavg_field(VVC(:,:,kk,bid),tavg_VVC,bid,kk+1)
+            end do
+         endif
+
       endif
 
    end select

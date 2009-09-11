@@ -57,7 +57,7 @@
    use topostress, only: init_topostress
    use ice
    use output, only: init_output
-   use tavg, only: ltavg_restart, tavg_id, set_in_tavg_contents,n_tavg_streams
+   use tavg, only: ltavg_restart, tavg_id, set_in_tavg_contents,n_tavg_streams, tavg_streams
    !use hydro_sections
    !use current_meters
    !use drifters
@@ -1641,8 +1641,7 @@
 
    character (char_len)      ::  &
       message,                   &! error message string
-      string,                    &! temporary string
-      char_temp                   ! temporary string for tavg_flag ids
+      string                      ! temporary string
 
    integer (int_kind)        ::  &
       number_of_fatal_errors,    &! counter for fatal error conditions
@@ -1650,8 +1649,7 @@
       n,                         &! loop index 
       ns,                        &! streams loop index
       temp_tavg_id,              &! temporary tavg_id holder
-      coupled_flag,              &! flag for coupled_ts 
-      tavg_flag                   ! flag for tavg
+      coupled_flag                ! flag for coupled_ts 
 
    logical (log_kind)        ::  &
       lref_val,                  &! are any tracers specifying a non-zero ref_val
@@ -1721,19 +1719,17 @@
 
    if (my_task == master_task) then
      do ns=1,n_tavg_streams
-     write(char_temp,1100) 'tavg',ns ; 1100 format (a,i1)
-     tavg_flag    = get_time_flag_id(trim(char_temp))
-     if (check_time_flag_int(tavg_flag,   freq_opt=.true.) > 0 .and. &
+     if (check_time_flag_int(tavg_streams(ns)%field_flag,   freq_opt=.true.) > 0 .and. &
          check_time_flag_int(coupled_flag,freq_opt=.true.) > 0) then
 
-       if (check_time_flag_int(tavg_flag,   freq_opt=.true.) /=  &
+       if (check_time_flag_int(tavg_streams(ns)%field_flag,   freq_opt=.true.) /=  &
            check_time_flag_int(coupled_flag,freq_opt=.true.)) then
            message = 'Warning:  time-averaging and coupling frequency ' /&
            &/ 'may be incompatible; tavg must be integer multiple of coupling freq'
            call print_message(message)
            number_of_warnings = number_of_warnings + 1
        else
-         if ( mod(check_time_flag_int(tavg_flag,   freq=.true.),  &
+         if ( mod(check_time_flag_int(tavg_streams(ns)%field_flag,   freq=.true.),  &
                   check_time_flag_int(coupled_flag,freq=.true.)) .ne. 0) then
            message = 'Warning: time-averaging frequency is incompatible with ' /&
            &/ ' the coupling frequency'

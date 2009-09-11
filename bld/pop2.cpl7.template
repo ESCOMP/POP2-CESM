@@ -265,9 +265,10 @@ cat >! $POP2BLDSCRIPT << EOF2
 #         $CASEROOT
 #         as a $RUN_TYPE run using the pop2 ocean model at the $OCN_GRID_INTERNAL resolution
 #       
-#         DO NOT COPY to another case!
+#         DO NOT COPY this script to another case -- use the create_clone script instead
 #
 #         Use this script ONLY in $CASEROOT 
+#           or a in a case cloned from this one via the create_clone script.
 #
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

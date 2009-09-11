@@ -5019,7 +5019,7 @@
 !  input variables
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
+   real (r8), dimension(nx_block,ny_block), &
       intent(inout)      :: &
       WORK3,WORK4             ! grid x,y work arrays respectively
    integer (int_kind),      &
@@ -5062,10 +5062,10 @@
                      do k=KMU(i,j,iblock)+1,ksrc
                         dz_sidewall = dz_sidewall + dz(k)
                      enddo
-                     WORK3(i,j,iblock) = WORK3(i,j,iblock)*HUR(i,j,iblock) & 
-                                          *(HU(i,j,iblock)+dz_sidewall)
-                     WORK4(i,j,iblock) = WORK4(i,j,iblock)*HUR(i,j,iblock) & 
-                                          *(HU(i,j,iblock)+dz_sidewall)
+                     WORK3(i,j) = WORK3(i,j)*HUR(i,j,iblock) & 
+                                   *(HU(i,j,iblock)+dz_sidewall)
+                     WORK4(i,j) = WORK4(i,j)*HUR(i,j,iblock) & 
+                                   *(HU(i,j,iblock)+dz_sidewall)
                      if(prnt) then
                         write(stdout,10) n,ovf(n)%loc_src(m)%i_u, &
                                          ovf(n)%loc_src(m)%j_u
@@ -5089,10 +5089,10 @@
                      do k=KMU(i,j,iblock)+1,kent
                         dz_sidewall = dz_sidewall + dz(k)
                      enddo
-                     WORK3(i,j,iblock) = WORK3(i,j,iblock)*HUR(i,j,iblock) & 
-                                          *(HU(i,j,iblock)+dz_sidewall)
-                     WORK4(i,j,iblock) = WORK4(i,j,iblock)*HUR(i,j,iblock) & 
-                                          *(HU(i,j,iblock)+dz_sidewall)
+                     WORK3(i,j) = WORK3(i,j)*HUR(i,j,iblock) & 
+                                   *(HU(i,j,iblock)+dz_sidewall)
+                     WORK4(i,j) = WORK4(i,j)*HUR(i,j,iblock) & 
+                                   *(HU(i,j,iblock)+dz_sidewall)
                      if(prnt) then
                         write(stdout,20) n,ovf(n)%loc_ent(m)%i_u, &
                                          ovf(n)%loc_ent(m)%j_u
@@ -5117,10 +5117,10 @@
                      do k=KMU(i,j,iblock)+1,kprd
                         dz_sidewall = dz_sidewall + dz(k)
                      enddo
-                     WORK3(i,j,iblock) = WORK3(i,j,iblock)*HUR(i,j,iblock) & 
-                                          *(HU(i,j,iblock)+dz_sidewall)
-                     WORK4(i,j,iblock) = WORK4(i,j,iblock)*HUR(i,j,iblock) & 
-                                          *(HU(i,j,iblock)+dz_sidewall)
+                     WORK3(i,j) = WORK3(i,j)*HUR(i,j,iblock) & 
+                                   *(HU(i,j,iblock)+dz_sidewall)
+                     WORK4(i,j) = WORK4(i,j)*HUR(i,j,iblock) & 
+                                   *(HU(i,j,iblock)+dz_sidewall)
                      if(prnt) then
                         write(stdout,30) n,ovf(n)%loc_prd(m,mp)%i_u, &
                                          ovf(n)%loc_prd(m,mp)%j_u

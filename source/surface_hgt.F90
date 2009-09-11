@@ -47,7 +47,7 @@
 
    integer (int_kind) :: &
       tavg_SSH,          &! tavg id for sea surface height
-      tavg_H2,           &! tavg id for sea surface height squared
+      tavg_SSH2,         &! tavg id for sea surface height squared (formerly H2)
       tavg_H3             ! tavg id for (Dx(SSH))**2 + (Dy(SSH))**2
 
 !-----------------------------------------------------------------------
@@ -90,8 +90,8 @@
                           long_name='Sea Surface Height',              &
                           units='centimeter', grid_loc='2110',         &
                           coordinates='TLONG TLAT time')
-
-   call define_tavg_field(tavg_H2,'H2',2,                              &
+   !  formerly H2
+   call define_tavg_field(tavg_SSH2,'SSH2',2,                          &
                           long_name='SSH**2',                          &
                           units='cm^2', grid_loc='2110',               &
                           coordinates='TLONG TLAT time')
@@ -289,9 +289,9 @@
          call accumulate_tavg_field(WORK, tavg_SSH, iblock, 1)
       endif
 
-      if (tavg_requested(tavg_H2) .and. mix_pass /= 1) then
+      if (tavg_requested(tavg_SSH2) .and. mix_pass /= 1) then
          WORK = (PSURF(:,:,curtime,iblock)/grav)**2
-         call accumulate_tavg_field(WORK, tavg_H2, iblock, 1)
+         call accumulate_tavg_field(WORK, tavg_SSH2, iblock, 1)
       endif
 
       if (tavg_requested(tavg_H3) .and. mix_pass /= 1) then

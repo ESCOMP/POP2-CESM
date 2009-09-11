@@ -326,19 +326,34 @@ EOF
 #  tavg_nml  -- see error checking below
 #--------------------------------------------------------------------------
 
-set n_tavg_streams               = 2
-set tavg_freq_opt_values         = ("'nmonth'", "'nday'")
-set tavg_freq_values             = (1,1)
-set tavg_start_opt_values        = ("'nstep'", "'nstep'")
-set tavg_start_values            = (0,0)
-set tavg_fmt_in_values           = ("'nc'", "'nc'")
-set tavg_fmt_out_values          = ("'nc'", "'nc'")
-set ltavg_has_offset_date_values = (.false., .false.)
-set tavg_offset_year_values      = (1,1)
-set tavg_offset_month_values     = (1,1)
-set tavg_offset_day_values       = (2,2)
-
-set ltavg_nino_diags_requested   = .true. 
+if (${OCN_GRID_INTERNAL} =~ tx0.1* || ${OCN_GRID_INTERNAL} =~ tx1* ) then
+  set n_tavg_streams               = 2
+  set tavg_freq_opt_values         = ("'nmonth'", "'nday'")
+  set tavg_freq_values             = (1,1)
+  set tavg_start_opt_values        = ("'nstep'", "'nstep'")
+  set tavg_start_values            = (0,0)
+  set tavg_fmt_in_values           = ("'nc'", "'nc'")
+  set tavg_fmt_out_values          = ("'nc'", "'nc'")
+  set ltavg_has_offset_date_values = (.false., .false.)
+  set tavg_offset_year_values      = (1,1)
+  set tavg_offset_month_values     = (1,1)
+  set tavg_offset_day_values       = (2,2)
+  set ltavg_nino_diags_requested   = .false.
+else
+  set n_tavg_streams               = 3
+  set tavg_freq_opt_values         = ("'nmonth'","'nday'","'once'")
+  set tavg_freq_values             = (1,1,1)
+  set tavg_start_opt_values        = ("'nstep'","'nstep'","'nstep'")
+  set tavg_start_values            = (0,0,0)
+  set tavg_fmt_in_values           = ("'nc'","'nc'","'nc'")
+  set tavg_fmt_out_values          = ("'nc'","'nc'","'nc'")
+  set ltavg_has_offset_date_values = (.false.,.false.,.false.)
+  set tavg_offset_year_values      = (1,1,1)
+  set tavg_offset_month_values     = (1,1,1)
+  set tavg_offset_day_values       = (2,2,2)
+  set ltavg_one_time_header        = (.false.,.true.,.false.)
+  set ltavg_nino_diags_requested   = .true. 
+endif
 
 cat >> $POP2_NMLFILE << EOF
 &tavg_nml
@@ -357,6 +372,7 @@ cat >> $POP2_NMLFILE << EOF
    tavg_offset_years          = $tavg_offset_year_values
    tavg_offset_months         = $tavg_offset_month_values
    tavg_offset_days           = $tavg_offset_day_values
+   ltavg_one_time_header      = $ltavg_one_time_header
 /
 
 EOF
@@ -1312,15 +1328,15 @@ cat >> $POP2_NMLFILE << EOF
 The present code makes assumptions about the region boundaries, so
 DO NOT change transport_reg2_names unless you know exactly what you are doing.
 &transports_nml
-  lat_aux_grid_type    = 'southern'
-  lat_aux_begin        = -90.0
-  lat_aux_end          =  90.0
-  n_lat_aux_grid       = 180 
-  moc                  = $moc
-  n_heat_trans         = $n_heat_trans
-  n_salt_trans         = $n_salt_trans
-  transport_reg2_names = $transport_reg2_names
-  n_transport_reg      = 2
+  lat_aux_grid_type      = 'southern'
+  lat_aux_begin          = -90.0
+  lat_aux_end            =  90.0
+  n_lat_aux_grid         = 180 
+  moc_requested          = $moc
+  n_heat_trans_requested = $n_heat_trans
+  n_salt_trans_requested = $n_salt_trans
+  transport_reg2_names   = $transport_reg2_names
+  n_transport_reg        = 2
 /
 
 EOF

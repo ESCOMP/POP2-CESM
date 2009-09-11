@@ -93,12 +93,12 @@
  
  
    logical (log_kind), public ::  &
-      moc,                &! true if meridional overturning circulation 
-                           !  output is requested
-      n_heat_trans,       &! true if northward heat transport output is
-                           !  requested
-      n_salt_trans         ! true if northward salt transport output is
-                           !  requested
+      moc_requested,              &! true if meridional overturning circulation 
+                                   !  output is requested
+      n_heat_trans_requested,     &! true if northward heat transport output is
+                                   !  requested
+      n_salt_trans_requested       ! true if northward salt transport output is
+                                   !  requested
  
    character (char_len),dimension(max_regions),public ::  &
       transport_reg2_names
@@ -203,7 +203,7 @@
  
    namelist /transports_nml/ lat_aux_grid_type, lat_aux_begin,  & 
                              lat_aux_end, n_lat_aux_grid,       &
-                             moc, n_heat_trans, n_salt_trans,   &
+                             moc_requested, n_heat_trans_requested, n_salt_trans_requested,   &
                              transport_reg2_names,              &
                              n_transport_reg
 
@@ -214,15 +214,15 @@
 !
 !-----------------------------------------------------------------------
 
-   lat_aux_grid_type    =  'southern'   
-   lat_aux_begin        = -90.0_r8
-   lat_aux_end          =  90.0_r8
-   n_lat_aux_grid       =  180
-   moc                  = .false.
-   n_heat_trans         = .false.
-   n_salt_trans         = .false.
-   transport_reg2_names =  char_blank
-   n_transport_reg      = 2 
+   lat_aux_grid_type      =  'southern'   
+   lat_aux_begin          = -90.0_r8
+   lat_aux_end            =  90.0_r8
+   n_lat_aux_grid         =  180
+   moc_requested          = .false.
+   n_heat_trans_requested = .false.
+   n_salt_trans_requested = .false.
+   transport_reg2_names   =  char_blank
+   n_transport_reg        = 2 
 
 !-----------------------------------------------------------------------
 !
@@ -249,15 +249,15 @@
    endif
 
 
-   call broadcast_scalar (lat_aux_grid_type,   master_task)
-   call broadcast_scalar (lat_aux_begin,       master_task)
-   call broadcast_scalar (lat_aux_end,         master_task)
-   call broadcast_scalar (n_lat_aux_grid,      master_task)
-   call broadcast_scalar (moc,                 master_task)
-   call broadcast_scalar (n_heat_trans,        master_task)
-   call broadcast_scalar (n_salt_trans,        master_task)
-   call broadcast_scalar (n_transport_reg,     master_task)
-   call broadcast_array  (transport_reg2_names,master_task)
+   call broadcast_scalar (lat_aux_grid_type,      master_task)
+   call broadcast_scalar (lat_aux_begin,          master_task)
+   call broadcast_scalar (lat_aux_end,            master_task)
+   call broadcast_scalar (n_lat_aux_grid,         master_task)
+   call broadcast_scalar (moc_requested,          master_task)
+   call broadcast_scalar (n_heat_trans_requested, master_task)
+   call broadcast_scalar (n_salt_trans_requested, master_task)
+   call broadcast_scalar (n_transport_reg,        master_task)
+   call broadcast_array  (transport_reg2_names,   master_task)
 
    if ( nml_error /= 0 ) then
      call exit_POP (SigAbort,'(init_lat_aux_grid) reading transports_nml')
@@ -287,7 +287,7 @@
 !
 !-----------------------------------------------------------------------
  
-   if (.not. (moc .or. n_heat_trans .or. n_salt_trans) ) return
+   if (.not. (moc_requested .or. n_heat_trans_requested .or. n_salt_trans_requested) ) return
  
  
 !-----------------------------------------------------------------------
@@ -342,9 +342,9 @@
    if ( my_task == master_task ) then
      write (stdout,*)
      write (stdout,'(a)  ') 'Transport diagnostics include:'
-     if (moc)          write (stdout,'(a)') 'MOC'
-     if (n_heat_trans) write (stdout,'(a)') 'N_HEAT'
-     if (n_salt_trans) write (stdout,'(a)') 'N_SALT'
+     if (moc_requested)          write (stdout,'(a)') 'MOC'
+     if (n_heat_trans_requested) write (stdout,'(a)') 'N_HEAT'
+     if (n_salt_trans_requested) write (stdout,'(a)') 'N_SALT'
      write (stdout,*)
      call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
    endif
@@ -556,10 +556,10 @@
 !  initialize timers
 !-----------------------------------------------------------------------
  
-   if (moc)  &
+   if (moc_requested)  &
    call get_timer(timer_moc,'MOC',  &
                   nblocks_clinic, distrb_clinic%nprocs)
-   if (n_heat_trans .or. n_salt_trans)  &
+   if (n_heat_trans_requested .or. n_salt_trans_requested)  &
    call get_timer(timer_tracer_transports,'TRACER_TRANSPORTS',  &
                   nblocks_clinic, distrb_clinic%nprocs)
 
@@ -605,7 +605,7 @@
    integer (int_kind), dimension(:,:), allocatable ::  &
       WORK_G              ! global work array
 
-   if (.not. (moc .or. n_heat_trans .or. n_salt_trans) ) return
+   if (.not. (moc_requested .or. n_heat_trans_requested .or. n_salt_trans_requested) ) return
  
 
 !-----------------------------------------------------------------------
@@ -795,7 +795,7 @@
 
    deallocate ( WORK_G )
 
-   if ( moc ) then
+   if ( moc_requested ) then
 !-----------------------------------------------------------------------
 !
 !  MOC may have 3 components:
@@ -850,7 +850,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if ( n_heat_trans .or. n_salt_trans ) then
+   if ( n_heat_trans_requested .or. n_salt_trans_requested ) then
      n_transport_comp = 3
      if ( registry_match('diag_gm_bolus') )  n_transport_comp = 4
      if ( registry_match('init_submeso') )   n_transport_comp = 5
@@ -862,17 +862,17 @@
 !
 !-----------------------------------------------------------------------
  
-   if ( n_heat_trans .and. my_task == master_task ) then
+   if ( n_heat_trans_requested .and. my_task == master_task ) then
     allocate (  &
      TAVG_N_HEAT_TRANS_G(n_lat_aux_grid+1, n_transport_comp,n_transport_reg))
    endif
 
-   if ( n_salt_trans .and. my_task == master_task ) then
+   if ( n_salt_trans_requested .and. my_task == master_task ) then
     allocate (  &
      TAVG_N_SALT_TRANS_G(n_lat_aux_grid+1,n_transport_comp,n_transport_reg))
    endif
 
-   if ((n_heat_trans .or. n_salt_trans) ) then
+   if ((n_heat_trans_requested .or. n_salt_trans_requested) ) then
      allocate (trans_s (n_transport_comp,n_transport_reg) )
      if (my_task == master_task ) then
        allocate (  &
@@ -946,7 +946,7 @@
       ldiag_gm_bolus,     &     ! local logical for diag_gm_bolus
       lsubmeso                  ! local logical for submesoscale_mixing
 
-   if (.not. moc) return
+   if (.not. moc_requested) return
 
    if ( (      present(W_I) .and. .not.present(V_I))  .or.  &
         ( .not.present(W_I) .and.      present(V_I)) ) then
@@ -1313,16 +1313,16 @@
 !  determine if this subroutine needs to be executed
 !
 !-----------------------------------------------------------------------
-   if (.not. (n_heat_trans .or. n_salt_trans) ) return
+   if (.not. (n_heat_trans_requested .or. n_salt_trans_requested) ) return
  
 !-----------------------------------------------------------------------
 !
 !  error checking
 !
 !-----------------------------------------------------------------------
-   if      (tracer_index == 1  .and. n_heat_trans ) then    
+   if      (tracer_index == 1  .and. n_heat_trans_requested ) then    
 !           ok, continue
-   else if (tracer_index == 2  .and. n_salt_trans ) then    
+   else if (tracer_index == 2  .and. n_salt_trans_requested ) then    
 !           ok, continue
    else
      call document('compute_tracer_transports','return upon entry ')

@@ -1,6 +1,50 @@
 
 ===============================================================================
 Originator: njn01
+Date:  11  September 2009
+Tag: pop2/trunk_tags/ccsm_pop_2_1_20090911
+Summary of Changes:   
+ 
+   *This is a significant revision to improve the support of multiple tavg output "streams".
+    Extensive testing at the gx3v5 resolution was conducted (see test log) . This version 
+    now contains support for writing time-invariant fields, such as background diffusivities,
+    the the new frequency option, "once."
+
+   * Correction of the (re-introduced) overflows.F90 threading bug
+  
+   * Addition of gx3v7 support
+                      
+M           17956   source/overflows.F90
+M           17957   source/initial.F90
+M           17956   source/surface_hgt.F90
+M           17956   source/time_management.F90
+M           17956   source/diags_on_lat_aux_grid.F90
+M           17956   source/diagnostics.F90
+M           17956   source/forcing.F90
+M           17956   source/vmix_kpp.F90
+M           17957   source/budget_diagnostics.F90
+M           17957   source/advection.F90
+M           17956   source/vertical_mix.F90
+M           17957   source/tavg.F90
+M           17957   source/baroclinic.F90
+M           17957   input_templates/gx3v5_tavg_contents
+A               0   input_templates/gx3v7_POP_DomainSizeMod.F90
+A               0   input_templates/gx3v7_tavg_contents
+A               0   input_templates/gx3v7_history_contents
+A               0   input_templates/gx3v7_region_ids
+A               0   input_templates/gx3v7_vert_grid
+A               0   input_templates/gx3v7_inputdata
+A               0   input_templates/gx3v7_domain_size.F90
+A               0   input_templates/gx3v7_transport_contents
+M           17957   input_templates/gx1v6_tavg_contents
+A               0   input_templates/gx3v7_movie_contents
+A               0   input_templates/gx3v7_depth_accel
+M           17957   input_templates/pop2_in_build.csh
+M           17956   bld/pop2.cpl7.template
+M           17957   ChangeLog
+
+===============================================================================
+Originator: njn01
 Date:  24  August 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090824
 Summary of Changes:   This is a *preliminary* tag which contains a *MAJOR* 

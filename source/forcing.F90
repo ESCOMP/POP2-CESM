@@ -66,8 +66,11 @@
       tavg_SHF,          &! tavg_id for surface heat flux
       tavg_SHF_QSW,      &! tavg_id for short-wave solar heat flux
       tavg_SFWF,         &! tavg_id for surface freshwater flux
+      tavg_SFWF_WRST,    &! tavg_id for weak restoring freshwater flux
       tavg_TAUX,         &! tavg_id for wind stress in X direction
+      tavg_TAUX2,        &! tavg_id for wind stress**2 in X direction
       tavg_TAUY,         &! tavg_id for wind stress in Y direction
+      tavg_TAUY2,        &! tavg_id for wind stress**2 in Y direction
       tavg_FW,           &! tavg_id for freshwater flux
       tavg_TFW_T,        &! tavg_id for T flux due to freshwater flux
       tavg_TFW_S          ! tavg_id for S flux due to freshwater flux
@@ -171,15 +174,29 @@
                           units='kg/m^2/s', grid_loc='2110',                    &
                           coordinates='TLONG TLAT time')
 
+   call define_tavg_field(tavg_SFWF_WRST,'SFWF_WRST',2,                         &
+                          long_name='Virtual Salt Flux due to weak restoring', &
+                          units='kg/m^2/s', grid_loc='2110',                    &
+                          coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_TAUX,'TAUX',2,                         &
                           long_name='Windstress in grid-x direction', &
                           units='dyne/centimeter^2', grid_loc='2220', &
                           coordinates='ULONG ULAT time')
 
+   call define_tavg_field(tavg_TAUX2,'TAUX2',2,                         &
+                          long_name='Windstress**2 in grid-x direction', &
+                          units='dyne^2/centimeter^4', grid_loc='2220', &
+                          coordinates='ULONG ULAT time')
+
    call define_tavg_field(tavg_TAUY,'TAUY',2,                         &
                           long_name='Windstress in grid-y direction', &
                           units='dyne/centimeter^2', grid_loc='2220', &
+                          coordinates='ULONG ULAT time')
+
+   call define_tavg_field(tavg_TAUY2,'TAUY2',2,                         &
+                          long_name='Windstress**2 in grid-y direction', &
+                          units='dyne^2/centimeter^4', grid_loc='2220', &
                           coordinates='ULONG ULAT time')
 
    call define_tavg_field(tavg_FW,'FW',2,                        &
@@ -463,14 +480,33 @@
          call accumulate_tavg_field(WORK,tavg_SFWF,iblock,1)
       endif
 
+      if (tavg_requested(tavg_SFWF_WRST)) then
+         where (KMT(:,:,iblock) > 0) ! convert to kg(freshwater)/m^2/s
+            WORK = SFWF_COMP(:,:,iblock,sfwf_comp_wrest)/salinity_factor
+         elsewhere
+            WORK = c0
+         end where
+         call accumulate_tavg_field(WORK,tavg_SFWF_WRST,iblock,1)
+      endif
+
       if (tavg_requested(tavg_TAUX)) then
          call accumulate_tavg_field(SMF(:,:,1,iblock), &
                                     tavg_TAUX,iblock,1)
       endif
 
+      if (tavg_requested(tavg_TAUX2)) then
+         call accumulate_tavg_field(SMF(:,:,1,iblock)**2, &
+                                    tavg_TAUX2,iblock,1)
+      endif
+
       if (tavg_requested(tavg_TAUY)) then
          call accumulate_tavg_field(SMF(:,:,2,iblock), &
                                     tavg_TAUY,iblock,1)
+      endif
+
+      if (tavg_requested(tavg_TAUY2)) then
+         call accumulate_tavg_field(SMF(:,:,2,iblock)**2, &
+                                    tavg_TAUY2,iblock,1)
       endif
 
       if (tavg_requested(tavg_FW)) then

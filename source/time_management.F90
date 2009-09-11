@@ -64,7 +64,9 @@
          has_default,          &! T if default defined, F if no default
          has_offset_date,      &! T if flag has reference-date/offset value; F if not
          is_initialized,       &! T if flag has been initialized via init_time_flag; F if not
-         is_reserved            ! T if flag has been "reserved" by non-owner routine
+         is_reserved,          &! T if flag has been "reserved" by non-owner routine
+         done                   ! if freq_opt is once, then done is true after one-time event is done
+                                !    requires developer to manually set "done"
 
       integer (int_kind) ::    &
          freq_opt,             &! frequency units for switching flag on
@@ -330,7 +332,8 @@
       freq_opt_nday     = 3,        &
       freq_opt_nhour    = 4,        &
       freq_opt_nsecond  = 5,        &
-      freq_opt_nstep    = 6
+      freq_opt_nstep    = 6,        &
+      freq_opt_once     = 7
 
    integer (int_kind), parameter :: &! integer choices for start options
       start_opt_nstep   = 1,        &
@@ -2118,6 +2121,7 @@
    time_flags(flag_id)%freq            = 0
    time_flags(flag_id)%value           = .false.
    time_flags(flag_id)%old_value       = .false.
+   time_flags(flag_id)%done            = .false.
 
 !-----------------------------------------------------------------------
 !
@@ -2543,6 +2547,8 @@
              string = '  (nsecond)'
            case (freq_opt_nstep)
              string = '  (nstep)'
+           case (freq_opt_once)
+             string = '  (once)'
         end select
 
         write(stdout,*) 'time_flag id = ', n
@@ -2554,6 +2560,7 @@
         write(stdout,*) '   freq               = ', time_flags(n)%freq
         write(stdout,*) '   value              = ', time_flags(n)%value
         write(stdout,*) '   old_value          = ', time_flags(n)%old_value
+        write(stdout,*) '   done               = ', time_flags(n)%done
         write(stdout,*) '   has_offset_date    = ', time_flags(n)%has_offset_date 
         if (time_flags(n)%has_offset_date) then
           write(stdout,1100) '   Reference date: ', time_flags(n)%offset_year,'-',  &
@@ -2587,7 +2594,7 @@
 ! !IROUTINE: override_time_flag
 ! !INTERFACE:
 
- subroutine override_time_flag(flag_id, value, old_value)
+ subroutine override_time_flag(flag_id, value, old_value, done)
 
 ! !DESCRIPTION:
 !  Explicitly overrides the current value of the time flag by
@@ -2606,7 +2613,8 @@
 
    logical (log_kind), intent(in), optional :: &
       value,                                   &! value requested for flag
-      old_value
+      old_value,                               &
+      done
 
 !EOP
 !BOC
@@ -2631,6 +2639,8 @@
      time_flags(flag_id)%value = value
    else if (present(old_value)) then
      time_flags(flag_id)%old_value = old_value
+   else if (present(done)) then
+     time_flags(flag_id)%done = done
    else
      call exit_POP(sigAbort,'(override_time_flag) ERROR -- must specify value or old_value')
    endif
@@ -2717,7 +2727,7 @@
 ! !IROUTINE: check_time_flag
 ! !INTERFACE:
 
- function check_time_flag(flag_id,old_value)
+ function check_time_flag(flag_id,old_value,done)
 
 ! !DESCRIPTION:
 !  Returns the current value of time flag given by flag\_id.
@@ -2731,7 +2741,8 @@
       flag_id                ! index of flag array identifying flag
 
    logical (log_kind), intent(in), optional :: &
-      old_value                    ! check old value of time flag
+      old_value,                  &! check old value of time flag
+      done                         ! check once option -- has it been done?
 
 ! !OUTPUT PARAMETERS:
 
@@ -2747,7 +2758,8 @@
 !-----------------------------------------------------------------------
 
    logical (log_kind) :: &
-      check_old_value      ! check old value, not present value
+      check_old_value,   &! check old value, not present value
+      check_done          ! check done, not present value
 
 !-----------------------------------------------------------------------
 !
@@ -2763,8 +2775,16 @@
      check_old_value = .false.
    endif
       
+   if (present(done)) then
+     check_done = done
+   else
+     check_done = .false.
+   endif
+      
    if (check_old_value) then
       check_time_flag = time_flags(flag_id)%old_value
+   else if (check_done) then
+      check_time_flag = time_flags(flag_id)%done
    else
       check_time_flag = time_flags(flag_id)%value
    endif
@@ -3107,6 +3127,12 @@
 
    case (freq_opt_nstep)
       if (mod(nsteps_total,freq) == 0) time_to_do = .true.
+
+   case (freq_opt_once)
+   !-----------------------------------------------------------
+   ! 
+   !-----------------------------------------------------------
+      if (.not. time_flags(flag_id)%done) time_to_do = .true.
 
    case default
    end select

@@ -233,7 +233,9 @@
 
    integer (int_kind) :: &
       tavg_HMXL,         &! tavg id for average mixed layer depth
+      tavg_HMXL_2,       &! tavg id for average mixed layer depth, stream #2 (allows two frequencies)
       tavg_XMXL,         &! tavg id for maximum mixed layer depth
+      tavg_XMXL_2,       &! tavg id for maximum mixed layer depth, stream #2
       tavg_TMXL,         &! tavg id for minimum mixed layer depth
       tavg_HBLT,         &! tavg id for average boundary layer depth
       tavg_XBLT,         &! tavg id for maximum boundary layer depth
@@ -844,13 +846,25 @@
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
-   call define_tavg_field(tavg_XMXL,'XMXL',2,                       &
+   call define_tavg_field(tavg_HMXL_2,'HMXL_2',2,                     &
+                          tavg_method=tavg_method_avg,                &
+                          long_name='Mixed-Layer Depth',              &
+                          units='centimeter', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_XMXL,'XMXL',2,                         &
                           tavg_method=tavg_method_max,                &
                           long_name='Maximum Mixed-Layer Depth',      &
                           units='centimeter', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
-   call define_tavg_field(tavg_TMXL,'TMXL',2,                       &
+   call define_tavg_field(tavg_XMXL_2,'XMXL_2',2,                     &
+                          tavg_method=tavg_method_max,                &
+                          long_name='Maximum Mixed-Layer Depth',      &
+                          units='centimeter', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_TMXL,'TMXL',2,                         &
                           tavg_method=tavg_method_min,                &
                           long_name='Minimum Mixed-Layer Depth',      &
                           units='centimeter', grid_loc='2110',        &
@@ -1362,7 +1376,8 @@
       if (tavg_requested(tavg_HMXL)) then
         !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock=1,nblocks_clinic
-          call accumulate_tavg_field(HMXL(:,:,iblock), tavg_HMXL, iblock, 1)
+          call accumulate_tavg_field(HMXL(:,:,iblock), tavg_HMXL,   iblock, 1)
+          call accumulate_tavg_field(HMXL(:,:,iblock), tavg_HMXL_2, iblock, 1)
         end do
         !$OMP END PARALLEL DO
       endif
@@ -1370,7 +1385,8 @@
       if (tavg_requested(tavg_XMXL)) then
         !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock=1,nblocks_clinic
-          call accumulate_tavg_field(HMXL(:,:,iblock), tavg_XMXL, iblock, 1)
+          call accumulate_tavg_field(HMXL(:,:,iblock), tavg_XMXL,   iblock, 1)
+          call accumulate_tavg_field(HMXL(:,:,iblock), tavg_XMXL_2, iblock, 1)
         end do
         !$OMP END PARALLEL DO
       endif
