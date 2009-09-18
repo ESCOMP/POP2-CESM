@@ -481,11 +481,15 @@
       endif
 
       if (tavg_requested(tavg_SFWF_WRST)) then
-         where (KMT(:,:,iblock) > 0) ! convert to kg(freshwater)/m^2/s
-            WORK = SFWF_COMP(:,:,iblock,sfwf_comp_wrest)/salinity_factor
-         elsewhere
+         if ( sfwf_formulation == 'partially-coupled' ) then
+            where (KMT(:,:,iblock) > 0) ! convert to kg(freshwater)/m^2/s
+               WORK = SFWF_COMP(:,:,iblock,sfwf_comp_wrest)/salinity_factor
+            elsewhere
+               WORK = c0
+            end where
+         else
             WORK = c0
-         end where
+         endif
          call accumulate_tavg_field(WORK,tavg_SFWF_WRST,iblock,1)
       endif
 

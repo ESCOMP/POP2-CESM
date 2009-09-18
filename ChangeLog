@@ -1,5 +1,19 @@
 
 ===============================================================================
+Tag Creator: njn01
+Tag Date:    18  September 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090918
+Tag Testing: 4-day SMS_D.f19_g16.BTR1.bluefire
+Tag Summary:
+ 
+  This is a bugfix tag which corrects an out-of-bounds error triggered
+  in the new forcing.F90 modifcations for SFWF_WRST *when running fully coupled*.
+  
+  The 'correction' sets SFWF_WRST = 0 when running fully coupled
+
+
+M           18384   source/forcing.F90
+===============================================================================
 Originator: njn01
 Date:  11  September 2009
 Tag: pop2/trunk_tags/ccsm_pop_2_1_20090911
