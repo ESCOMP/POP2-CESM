@@ -20,6 +20,10 @@
      <nlons>100</nlons>
      <nlats>116</nlats>
   </size>
+  <size res="gx3v7">
+     <nlons>100</nlons>
+     <nlats>116</nlats>
+  </size>
   <size res="gx1v3">
      <nlons>320</nlons>
      <nlats>384</nlats>
@@ -380,63 +384,63 @@
   </decomp>
 
 <!-- -------------------------------------------------------------------------------- -->
-  <!-- gx3v[56] resolution -->
-  <decomp nproc="1" res="gx3v[56]" model="pop">
+  <!-- gx3v[567] resolution -->
+  <decomp nproc="1" res="gx3v[567]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >100</bsize_x>
     <bsize_y   >116</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="2" res="gx3v[56]" model="pop">
+  <decomp nproc="2" res="gx3v[567]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >100</bsize_x>
     <bsize_y   >58</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="4" res="gx3v[56]" model="pop">
+  <decomp nproc="4" res="gx3v[567]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >50</bsize_x>
     <bsize_y   >58</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="8" res="gx3v[56]" model="pop">
+  <decomp nproc="8" res="gx3v[567]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >25</bsize_x>
     <bsize_y   >58</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="10" res="gx3v[56]" model="pop">
+  <decomp nproc="10" res="gx3v[567]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >20</bsize_x>
     <bsize_y   >58</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="16" res="gx3v[56]" model="pop">
+  <decomp nproc="16" res="gx3v[567]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >25</bsize_x>
     <bsize_y   >29</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="20" res="gx3v[56]" model="pop">
+  <decomp nproc="20" res="gx3v[567]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >20</bsize_x>
     <bsize_y   >29</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="40" res="gx3v[56]" model="pop">
+  <decomp nproc="40" res="gx3v[567]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >10</bsize_x>
     <bsize_y   >29</bsize_y>
     <decomptype>cartesian</decomptype>
   </decomp>
-  <decomp nproc="48" res="gx3v[56]" model="pop">
+  <decomp nproc="48" res="gx3v[567]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >17</bsize_x>
     <bsize_y   >15</bsize_y>

@@ -1,18 +1,17 @@
 
 ===============================================================================
 Tag Creator: njn01
-Tag Date:    18  September 2009
-Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090918
-Tag Testing: 4-day SMS_D.f19_g16.BTR1.bluefire
+Tag Date:    22  September 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090922
+Tag Testing: ccsm4_0_beta27 post-tag testing
 Tag Summary:
  
-  This is a bugfix tag which corrects an out-of-bounds error triggered
-  in the new forcing.F90 modifcations for SFWF_WRST *when running fully coupled*.
+  This is a bugfix tag which adds gx3v7 support to the bld/pop_decomp.xml script and
+  fixes a tx0.1/tx1 definition omission in tavg_nml input in the pop2_in_build.csh script.
   
-  The 'correction' sets SFWF_WRST = 0 when running fully coupled
+M           18411   bld/pop_decomp.xml
+M           18411   input_templates/pop2_in_build.csh
 
-
-M           18384   source/forcing.F90
 ===============================================================================
 Originator: njn01
 Date:  11  September 2009

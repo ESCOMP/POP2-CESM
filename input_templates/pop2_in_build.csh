@@ -338,6 +338,7 @@ if (${OCN_GRID_INTERNAL} =~ tx0.1* || ${OCN_GRID_INTERNAL} =~ tx1* ) then
   set tavg_offset_year_values      = (1,1)
   set tavg_offset_month_values     = (1,1)
   set tavg_offset_day_values       = (2,2)
+  set ltavg_one_time_header        = (.false., .false.)
   set ltavg_nino_diags_requested   = .false.
 else
   set n_tavg_streams               = 3
