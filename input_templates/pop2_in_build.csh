@@ -12,7 +12,7 @@
 #  First, test for supported OCN_GRID resolution  
 #--------------------------------------------------------------------------
 
-if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 || ${OCN_GRID_INTERNAL} == gx1v5 || ${OCN_GRID_INTERNAL} == gx1v5a || ${OCN_GRID_INTERNAL} == gx1v5b || ${OCN_GRID_INTERNAL} == gx1v6 ) then   
+if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 || ${OCN_GRID_INTERNAL} == gx3v7 || ${OCN_GRID_INTERNAL} == gx1v5 || ${OCN_GRID_INTERNAL} == gx1v5a || ${OCN_GRID_INTERNAL} == gx1v5b || ${OCN_GRID_INTERNAL} == gx1v6 ) then   
 # supported dipole resolutions
 else if ( ${OCN_GRID_INTERNAL} == tx0.1v2 || ${OCN_GRID_INTERNAL} == tx1v1 ) then   
 # tripole resolutions
@@ -21,7 +21,7 @@ else
    echo "   =============================================================="
    echo "   FATAL ERROR detected in pop2_in_build.csh :                   "
    echo "     ${OCN_GRID_INTERNAL} is not a supported grid.               "
-   echo "     Supported grids are: gx3v5, gx1v5, gx1v5a, gx1v5b,          "
+   echo "     Supported grids are: gx3v5, gx3v7, gx1v5, gx1v5a, gx1v5b,   "
    echo "                          gx1v6 and tx0.1v2                      "
   #echo "     Experimental grid: gx3v6                                    "
   #echo "     Testing grids:   tx1v1                                      "
@@ -109,7 +109,7 @@ EOF
 #    $IYEAR0, $IMONTH0, $IDAY0, and $IHOUR0 are defined in pop2.buildnml_prestage.csh
 #--------------------------------------------------------------------------
 
-if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
+if      ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
   setenv DT_COUNT 12
 else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
   setenv DT_COUNT 23
@@ -480,7 +480,7 @@ EOF
 #  tidal_nml -- must be defined prior to vmix_kpp_nml
 #--------------------------------------------------------------------------
 
-if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 ) then
+if ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
  set ltidal_mixing = .true.
 else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
  set ltidal_mixing = .true.
@@ -662,7 +662,7 @@ EOF
 #  hmix_del2u_nml 
 #--------------------------------------------------------------------------
 
-if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
+if ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
   set lauto_hmix      = .false.
   set lvariable_hmix  = .false.
   set am_del2_value   = 3.0e9
@@ -694,7 +694,7 @@ EOF
 # hmix_del2t_nml
 #--------------------------------------------------------------------------
 
-if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
+if ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
   set lauto_hmix      = .false.
   set lvariable_hmix  = .false.
   set ah_del2_value   = 1.0e7
@@ -795,7 +795,7 @@ else
    set use_const_ah_bkg_srfbl = .true.
 endif
 
-if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
+if ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
    set diag_gm_bolus = .true.
  if ($kappa_isop_choice == 'constant' && $kappa_thic_choice == 'constant') then 
    set ah_gm_value    = 0.8e7
@@ -889,7 +889,7 @@ EOF
 #  hmix_aniso_nml
 #--------------------------------------------------------------------------
 
-if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
+if ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
  set hmix_alignment_choice =  grid
  set lvariable_hmix_aniso  =  .true.
  set lsmag_aniso           =  .false.
@@ -1145,7 +1145,7 @@ EOF
 #  forcing_sfwf_nml
 #--------------------------------------------------------------------------
 
-if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
+if ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
  set sfwf_weak_restore = 0.0115
 else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
  set sfwf_weak_restore = 0.0115
@@ -1255,7 +1255,7 @@ EOF
   set coupled_freq_opt = nhour
   @ coupled_freq = 24 / $OCN_NCPL
 
-if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
+if ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
  set qsw_distrb_opt = cosz
 else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
   if ($OCN_COUPLING  =~ *partial*) then
@@ -1308,7 +1308,7 @@ EOF
 #  transports_nml
 #--------------------------------------------------------------------------
 
-if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
+if      ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
  set transport_reg2_names = ("'Atlantic Ocean'","'Labrador Sea'","'GIN Sea'","'Arctic Ocean'","'Hudson Bay '")
  set moc = .true.
  set n_heat_trans = .true.
