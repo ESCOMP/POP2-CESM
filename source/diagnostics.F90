@@ -1377,6 +1377,13 @@
         !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock=1,nblocks_clinic
           call accumulate_tavg_field(HMXL(:,:,iblock), tavg_HMXL,   iblock, 1)
+        end do
+        !$OMP END PARALLEL DO
+      endif
+
+      if (tavg_requested(tavg_HMXL_2)) then
+        !$OMP PARALLEL DO PRIVATE(iblock)
+        do iblock=1,nblocks_clinic
           call accumulate_tavg_field(HMXL(:,:,iblock), tavg_HMXL_2, iblock, 1)
         end do
         !$OMP END PARALLEL DO
@@ -1386,6 +1393,13 @@
         !$OMP PARALLEL DO PRIVATE(iblock)
         do iblock=1,nblocks_clinic
           call accumulate_tavg_field(HMXL(:,:,iblock), tavg_XMXL,   iblock, 1)
+        end do
+        !$OMP END PARALLEL DO
+      endif
+
+      if (tavg_requested(tavg_XMXL_2)) then
+        !$OMP PARALLEL DO PRIVATE(iblock)
+        do iblock=1,nblocks_clinic
           call accumulate_tavg_field(HMXL(:,:,iblock), tavg_XMXL_2, iblock, 1)
         end do
         !$OMP END PARALLEL DO
