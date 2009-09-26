@@ -326,24 +326,13 @@ EOF
 #  tavg_nml  -- see error checking below
 #--------------------------------------------------------------------------
 
-if (${OCN_GRID_INTERNAL} =~ tx0.1* || ${OCN_GRID_INTERNAL} =~ tx1* ) then
+if ( ${OCN_GRID_INTERNAL} =~ gx* ) then
+  #------------------- shut off time-invariant stream until vertical grid issues are resolved
   set n_tavg_streams               = 2
-  set tavg_freq_opt_values         = ("'nmonth'", "'nday'")
-  set tavg_freq_values             = (1,1)
-  set tavg_start_opt_values        = ("'nstep'", "'nstep'")
-  set tavg_start_values            = (0,0)
-  set tavg_fmt_in_values           = ("'nc'", "'nc'")
-  set tavg_fmt_out_values          = ("'nc'", "'nc'")
-  set ltavg_has_offset_date_values = (.false., .false.)
-  set tavg_offset_year_values      = (1,1)
-  set tavg_offset_month_values     = (1,1)
-  set tavg_offset_day_values       = (2,2)
-  set ltavg_one_time_header        = (.false., .false.)
-  set ltavg_nino_diags_requested   = .false.
-else
-  set n_tavg_streams               = 3
   set tavg_freq_opt_values         = ("'nmonth'","'nday'","'once'")
   set tavg_freq_values             = (1,1,1)
+  set tavg_FILE_freq_opt           = ("'nmonth'", "'nmonth'","'once'")
+  set tavg_FILE_freq_values        = (1,1,1)
   set tavg_start_opt_values        = ("'nstep'","'nstep'","'nstep'")
   set tavg_start_values            = (0,0,0)
   set tavg_fmt_in_values           = ("'nc'","'nc'","'nc'")
@@ -352,8 +341,23 @@ else
   set tavg_offset_year_values      = (1,1,1)
   set tavg_offset_month_values     = (1,1,1)
   set tavg_offset_day_values       = (2,2,2)
-  set ltavg_one_time_header        = (.false.,.true.,.false.)
+  set ltavg_one_time_header        = (.false.,.false.,.false.)
   set ltavg_nino_diags_requested   = .true. 
+else if (${OCN_GRID_INTERNAL} =~ tx0.1* || ${OCN_GRID_INTERNAL} =~ tx1* ) then
+  set n_tavg_streams               = 2
+  set tavg_freq_opt_values         = ("'nmonth'", "'nday'")
+  set tavg_freq_values             = (1,1)
+  set tavg_FILE_freq_opt           = ("'nmonth'", "'nmonth'")
+  set tavg_FILE_freq_values        = (1,1)
+  set tavg_start_opt_values        = ("'nstep'", "'nstep'")
+  set tavg_start_values            = (0,0)
+  set tavg_fmt_in_values           = ("'nc'", "'nc'")
+  set tavg_fmt_out_values          = ("'nc'", "'nc'")
+  set ltavg_has_offset_date_values = (.false., .false.)
+  set tavg_offset_year_values      = (1,1)
+  set tavg_offset_month_values     = (1,1)
+  set tavg_offset_day_values       = (2,2)
+  set ltavg_nino_diags_requested   = .false.
 endif
 
 cat >> $POP2_NMLFILE << EOF
@@ -361,6 +365,8 @@ cat >> $POP2_NMLFILE << EOF
    n_tavg_streams             = $n_tavg_streams
    tavg_freq_opt              = $tavg_freq_opt_values
    tavg_freq                  = $tavg_freq_values
+   tavg_file_freq_opt         = $tavg_FILE_freq_opt
+   tavg_file_freq             = $tavg_FILE_freq_values
    tavg_start_opt             = $tavg_start_opt_values
    tavg_start                 = $tavg_start_values
    tavg_fmt_in                = $tavg_fmt_in_values
@@ -511,7 +517,7 @@ set llangmuir = .false.
 set linertial = .false.
 set bckgrnd_vdc_dpth = 1000.0e02
 
-if ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
+if ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6 ) then
  set lhoriz_varying_bckgrnd = .false.
  if ($lhoriz_varying_bckgrnd == .true.) then
    echo "   =============================================================="
@@ -534,7 +540,7 @@ if ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
    set bckgrnd_vdc_psim   = 0.0
    set bckgrnd_vdc_ban    = 0.0
  endif
-else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1* || ${OCN_GRID_INTERNAL} == gx3v7) then
  set lhoriz_varying_bckgrnd = .true.
  if ($lhoriz_varying_bckgrnd == .true.) then
    if ($ltidal_mixing == .true.) then
@@ -1308,12 +1314,12 @@ EOF
 #  transports_nml
 #--------------------------------------------------------------------------
 
-if      ( ${OCN_GRID_INTERNAL} =~ gx3* ) then
+if      ( ${OCN_GRID_INTERNAL} == gx3v5 || ${OCN_GRID_INTERNAL} == gx3v6) then
  set transport_reg2_names = ("'Atlantic Ocean'","'Labrador Sea'","'GIN Sea'","'Arctic Ocean'","'Hudson Bay '")
  set moc = .true.
  set n_heat_trans = .true.
  set n_salt_trans = .true.
-else if ( ${OCN_GRID_INTERNAL} =~ gx1* ) then
+else if ( ${OCN_GRID_INTERNAL} =~ gx1* || ${OCN_GRID_INTERNAL} == gx3v7 ) then
  set transport_reg2_names = ("'Atlantic Ocean'","'Mediterranean Sea'","'Labrador Sea'","'GIN Sea'","'Arctic Ocean'","'Hudson Bay'")
  set moc = .true.
  set n_heat_trans = .true.
@@ -1360,6 +1366,10 @@ if ( ${OCN_GRID_INTERNAL} == gx1v5a || ${OCN_GRID_INTERNAL} == gx1v5b  || ${OCN_
  # ONLY gx1v5a, gx1v5b, or gx1v6 -- not gx1v5
  set overflows_on = .true.
  set overflows_interactive = .true.
+else if ( ${OCN_GRID_INTERNAL} == gx3v7) then
+ # activate overflows in gx3v7 after further testing -- turn off for now
+ set overflows_on = .false.
+ set overflows_interactive = .false.
 else
  # for all other resolutions
  set overflows_on = .false.

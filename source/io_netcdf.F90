@@ -37,6 +37,7 @@
    public :: open_read_netcdf,         &
              open_netcdf,              &
              close_netcdf,             &
+             sync_netcdf,              &
              define_field_netcdf,      &
              read_field_netcdf,        &
              write_field_netcdf,       &
@@ -652,6 +653,40 @@
 !EOC
 
  end subroutine close_netcdf
+
+!***********************************************************************
+!BOP
+! !IROUTINE: sync_netcdf
+! !INTERFACE:
+
+ subroutine sync_netcdf(data_file)
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   type (datafile), intent (inout)  :: data_file
+
+! !DESCRIPTION:
+!  This routine uses NF90_SYNC to flush an open netcdf data file.
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  close a data file
+!
+!-----------------------------------------------------------------------
+
+   if (my_task == master_task) then
+     call check_status(NF90_SYNC(data_file%id(1)))
+   end if
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine sync_netcdf
 
 !***********************************************************************
 !BOP
@@ -1456,9 +1491,13 @@
    endif
 
    call broadcast_scalar(write_error, master_task)
-   if (write_error) &
-      call exit_POP(sigAbort, &
+   if (write_error) then
+      write(stdout,*) '(write_field_netcdf) ERROR: undefined field: ', &
+                        trim(io_field%short_name)
+      call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+      call exit_POP(sigAbort,  trim(io_field%short_name) //' ' //  &
                     'Attempt to write undefined field in netCDF write')
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1468,11 +1507,7 @@
 
    if (my_task == master_task) then
 
-      if (associated(io_field%field_r_3d) .or. &
-          associated(io_field%field_d_3d) .or. &
-          associated(io_field%field_i_3d) ) then
-             allocate(start(3), length(3) )
-      endif
+      allocate(start(io_field%nfield_dims), length(io_field%nfield_dims) )
 
 !-----------------------------------------------------------------------
 !
@@ -1517,7 +1552,7 @@
             io_field%field_dim(3)%start = k
             io_field%field_dim(3)%stop = k
 
-            do n=1,3
+            do n=1,io_field%nfield_dims
                start (n) = io_field%field_dim(n)%start
                length(n) = io_field%field_dim(n)%stop - start(n) + 1
             end do
@@ -1544,9 +1579,14 @@
                          master_task, distrb_clinic)
       if (my_task == master_task) then
 
+         do n=1,io_field%nfield_dims
+            start (n) = io_field%field_dim(n)%start
+            length(n) = io_field%field_dim(n)%stop - start(n) + 1
+         end do
          iostat = NF90_PUT_VAR (ncid=data_file%id(1),       &
                                 varid=io_field%id,          &
-                                values=global_r_2d)
+                                values=global_r_2d,         &
+                                start=start(:), count=length(:))
          if (iostat /= nf90_noerr) then
             call check_status(iostat)
             write_error = .true.
@@ -1563,9 +1603,14 @@
 
       if (my_task == master_task) then
          ! 1d vectors are not distributed to blocks; no need for gather_global
+         do n=1,io_field%nfield_dims
+            start (n) = io_field%field_dim(n)%start
+            length(n) = io_field%field_dim(n)%stop - start(n) + 1
+         end do
          iostat = NF90_PUT_VAR (ncid=data_file%id(1),       &
                                 varid=io_field%id,          &
-                                values=io_field%field_r_1d)
+                                values=io_field%field_r_1d, &
+                                start=start(:), count=length(:))
          if (iostat /= nf90_noerr) then
             call check_status(iostat)
             write_error = .true.
@@ -1597,7 +1642,7 @@
             io_field%field_dim(3)%start = k
             io_field%field_dim(3)%stop = k
 
-            do n=1,3
+            do n=1,io_field%nfield_dims
                start (n) = io_field%field_dim(n)%start
                length(n) = io_field%field_dim(n)%stop - start(n) + 1
             end do
@@ -1625,9 +1670,14 @@
                          master_task, distrb_clinic)
       if (my_task == master_task) then
   
+         do n=1,io_field%nfield_dims
+            start (n) = io_field%field_dim(n)%start
+            length(n) = io_field%field_dim(n)%stop - start(n) + 1
+         end do
          iostat = NF90_PUT_VAR (ncid=data_file%id(1),       &
                                 varid=io_field%id,          &
-                                values=global_d_2d)
+                                values=global_d_2d,         &
+                                start=start(:), count=length(:))
          if (iostat /= nf90_noerr) then
             call check_status(iostat)
             write_error = .true.
@@ -1644,9 +1694,14 @@
 
       if (my_task == master_task) then
          ! 1d vectors are not distributed to blocks; no need for gather_global
+         do n=1,io_field%nfield_dims
+            start (n) = io_field%field_dim(n)%start
+            length(n) = io_field%field_dim(n)%stop - start(n) + 1
+         end do
          iostat = NF90_PUT_VAR (ncid=data_file%id(1),       &
                                 varid=io_field%id,          &
-                                values=io_field%field_d_1d)
+                                values=io_field%field_d_1d, &
+                                start=start(:), count=length(:))
          if (iostat /= nf90_noerr) then
             call check_status(iostat)
             write_error = .true.
@@ -1720,9 +1775,14 @@
                          master_task, distrb_clinic)
       if (my_task == master_task) then
 
+         do n=1,io_field%nfield_dims
+            start (n) = io_field%field_dim(n)%start
+            length(n) = io_field%field_dim(n)%stop - start(n) + 1
+         end do
          iostat = NF90_PUT_VAR (ncid=data_file%id(1),  &
                                 varid=io_field%id,     &
-                                values=global_i_2d)
+                                values=global_i_2d,    &
+                                start=start(:), count=length(:))
          if (iostat /= nf90_noerr) then
             call check_status(iostat)
             write_error = .true.
@@ -1739,10 +1799,15 @@
    else if (associated(io_field%field_i_1d)) then
 
       if (my_task == master_task) then
+         do n=1,io_field%nfield_dims
+            start (n) = io_field%field_dim(n)%start
+            length(n) = io_field%field_dim(n)%stop - start(n) + 1
+         end do
          ! 1d vectors are not distributed to blocks; no need for gather_global
          iostat = NF90_PUT_VAR (ncid=data_file%id(1),       &
                                 varid=io_field%id,          &
-                                values=io_field%field_i_1d)
+                                values=io_field%field_i_1d, &
+                                start=start(:), count=length(:))
          if (iostat /= nf90_noerr) then
             call check_status(iostat)
             write_error = .true.

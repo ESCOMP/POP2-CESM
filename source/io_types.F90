@@ -358,9 +358,14 @@ contains
       descriptor%file_suffix = char_blank
       if (present(file_suffix)) then
          if (trim(data_format) == 'nc') then
-         descriptor%file_suffix = trim(file_suffix)/&
-                                  &/'.'/&
-                                  &/trim(data_format)
+           if (trim(file_suffix) == '') then
+             descriptor%file_suffix = trim(file_suffix)/&
+                                      &/trim(data_format)
+           else
+             descriptor%file_suffix = trim(file_suffix)/&
+                                      &/'.'/&
+                                      &/trim(data_format)
+           endif
          else
          descriptor%file_suffix = trim(file_suffix)
          endif
@@ -370,9 +375,16 @@ contains
       end if
 
       descriptor%full_name = char_blank
-      descriptor%full_name = trim(descriptor%root_name)/&
-                           &/'.'/&
-                           &/trim(descriptor%file_suffix)
+    
+      if (trim(descriptor%file_suffix) /= '') then
+        descriptor%full_name = trim(descriptor%root_name)/&
+                             &/'.'/&
+                             &/trim(descriptor%file_suffix)
+      else
+        descriptor%full_name = trim(descriptor%root_name)/&
+                             &/'.'/&
+                             &/trim(descriptor%file_suffix)
+      endif
 
    else
       call exit_POP(sigAbort, &
@@ -1749,6 +1761,7 @@ contains
        missing_value,    &
        missing_value_i,  &
        valid_range,      &
+       field_id,         &
        field_loc,        &
        field_type,       &
        i0d_array,        &
@@ -1802,7 +1815,8 @@ contains
 
    integer (i4), intent(in), optional :: &  ! for ghost cell updates
       field_loc,               &! staggering location
-      field_type                ! field type (scalar,vector,angle)
+      field_type,              &! field type (scalar,vector,angle)
+      field_id                  ! previously defined id
 
    !***
    !*** one (and only one) of these must be present
@@ -1920,8 +1934,13 @@ contains
       lactive_time_dim = .false.
    endif
 
+   ! support for multiple time slices on one file
+   if (present (field_id)) then
+     descriptor%id = field_id
+   else
+     descriptor%id = 0
+   endif
 
-   descriptor%id = 0
 
    if (present(i3d_array) .or. present(r3d_array) .or. &
                                present(d3d_array)) then

@@ -127,7 +127,8 @@
 
    integer (int_kind) ::                &
       num_avail_tavg_fields      = 0,   &! current number of defined fields
-      tavg_num_requested_fields          ! number of fields requested
+      tavg_num_requested_fields,        &! number of fields requested
+      tavg_num_contents_lines            ! number of lines in tavg_contents file
 
 !-----------------------------------------------------------------------
 !
@@ -136,7 +137,7 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind), parameter, public :: &
-      max_avail_tavg_streams = 4     ! limit on number of streams
+      max_avail_tavg_streams = 4     ! limit on number of streams; coding limitations restrict this to <= 9 
 
    type, public :: tavg_stream
       character (char_len) :: infile
@@ -152,13 +153,16 @@
       integer (int_kind)   :: tavg_offset_year
       integer (int_kind)   :: tavg_offset_month
       integer (int_kind)   :: tavg_offset_day
+      integer (int_kind)   :: tavg_num_time_slices
       logical (log_kind)   :: ltavg_on
+      logical (log_kind)   :: ltavg_file_is_open
       logical (log_kind)   :: ltavg_fmt_out_nc
       logical (log_kind)   :: ltavg_has_offset_date
       logical (log_kind)   :: ltavg_one_time_header
       logical (log_kind)   :: ltavg_first_header
       real (r8)            :: lower_time_bound
       real (r8)            :: upper_time_bound
+      type (io_field_desc), dimension(:), allocatable :: tavg_fields
    end type
 
    type (tavg_stream), dimension(:), allocatable, public :: tavg_streams
@@ -210,16 +214,25 @@
 !
 !-----------------------------------------------------------------------
 
+   !*** field frequency support
+   character (char_len), dimension(max_avail_tavg_streams) ::  &
+      tavg_freq_opt,    &! choice for frequency of tavg output
+      tavg_start_opt,   &! choice for starting averaging
+      tavg_fmt_in        ! format (nc or bin) for reading
+
    integer (i4), dimension(max_avail_tavg_streams) ::  &
       tavg_freq_iopt,   &! frequency option for writing tavg
       tavg_freq,        &! frequency of tavg output
       tavg_start_iopt,  &! start after option
       tavg_start         ! start tavg after tavg_start
 
+  !*** FILE frequency (timeseries) support
    character (char_len), dimension(max_avail_tavg_streams) ::  &
-      tavg_freq_opt,    &! choice for frequency of tavg output
-      tavg_start_opt,   &! choice for starting averaging
-      tavg_fmt_in        ! format (nc or bin) for reading
+      tavg_file_freq_opt  ! choice for frequency of tavg FILE output 
+
+   integer (i4), dimension(max_avail_tavg_streams) ::  &
+      tavg_file_freq_iopt,   &! frequency option for writing tavg FILE
+      tavg_file_freq          ! frequency of tavg output FILE creation
 
    character (char_len) ::  & 
       tavg_contents,    &! filename for choosing fields for output
@@ -227,7 +240,8 @@
       tavg_outfile,     &! root filename for tavg output
       tavg_outfile_orig  ! root filename for tavg output (original)
 
-   type (datafile) :: tavg_file_desc    ! IO file descriptor
+   type (datafile), dimension(max_avail_tavg_streams) :: &
+      tavg_file_desc    ! IO file descriptor
  
 
 !-----------------------------------------------------------------------
@@ -251,6 +265,8 @@
    logical (log_kind) ::          &
       lccsm,                      &
       ldiag_bsf,                  &
+      ldiag_gm_bolus,             &! logical for diag_gm_bolus
+      lsubmeso,                   &! logical for submesoscale_mixing
       implied_time_dim,           &
       ltavg_fmt_out_nc,           &! true if netCDF output format
       ltavg_streams_index_present  ! true if using new streams tavg_contents;
@@ -285,6 +301,52 @@
       tavg_N_HEAT,        &
       tavg_N_SALT
 
+   integer (int_kind) ::  & !indices needed for tavg diagnostics
+      tavg_id_WVEL,       &
+      tavg_id_VVEL,       &
+      tavg_id_WISOP,      &
+      tavg_id_VISOP,      &
+      tavg_id_WSUBM,      &
+      tavg_id_VSUBM,      &
+      tavg_id_TEMP,       &
+      tavg_loc_WVEL,      &
+      tavg_loc_VVEL,      &
+      tavg_loc_WISOP,     &
+      tavg_loc_VISOP,     &
+      tavg_loc_WSUBM,     &
+      tavg_loc_VSUBM,     &
+      tavg_loc_TEMP       
+
+   integer (int_kind) ::    &
+      tavg_id_ADVT,         &
+      tavg_id_ADVS ,        &
+      tavg_id_VNT,          &
+      tavg_id_VNS,          &
+      tavg_id_HDIFT,        &
+      tavg_id_HDIFS,        &
+      tavg_id_ADVT_ISOP,    &
+      tavg_id_ADVS_ISOP,    &
+      tavg_id_VNT_ISOP,     &
+      tavg_id_VNS_ISOP,     &
+      tavg_id_ADVT_SUBM,    &
+      tavg_id_ADVS_SUBM,    &
+      tavg_id_VNT_SUBM,     &
+      tavg_id_VNS_SUBM,     &
+      tavg_loc_ADVT,        &
+      tavg_loc_ADVS ,       &
+      tavg_loc_VNT,         &
+      tavg_loc_VNS,         &
+      tavg_loc_HDIFT,       &
+      tavg_loc_HDIFS,       &
+      tavg_loc_ADVT_ISOP,   &
+      tavg_loc_ADVS_ISOP,   &
+      tavg_loc_VNT_ISOP,    &
+      tavg_loc_VNS_ISOP,    &
+      tavg_loc_ADVT_SUBM,   &
+      tavg_loc_ADVS_SUBM,   &
+      tavg_loc_VNT_SUBM,    &
+      tavg_loc_VNS_SUBM    
+
    integer (int_kind), dimension(:,:), allocatable    ::  &
       KMU_G            ! k index of deepest grid cell on global U grid
 
@@ -301,11 +363,12 @@
       avail_tavg_nstd_fields (max_avail_tavg_nstd_fields),  &
       avail_tavg_labels      (max_avail_tavg_labels)
 
+
    type (io_field_desc) ::                          &
-      ccsm_coordinates (max_num_ccsm_coordinates),  &
-      ccsm_time_invar  (max_num_ccsm_time_invar,max_avail_tavg_streams),   & 
-      ccsm_scalars     (max_num_ccsm_scalars,   max_avail_tavg_streams),   &
-      time_coordinate  (1)
+      ccsm_coordinates (max_num_ccsm_coordinates,max_avail_tavg_streams),  &
+      ccsm_time_invar  (max_num_ccsm_time_invar, max_avail_tavg_streams),  & 
+      ccsm_scalars     (max_num_ccsm_scalars,    max_avail_tavg_streams),  &
+      time_coordinate  (1,                       max_avail_tavg_streams)
 
    type (io_dim) ::       &
       z_dim,              &! dimension descriptor for vert (z_t or z_w grid)
@@ -441,6 +504,8 @@
    character (char_len) ::  &
       char_temp              ! temporary for manipulating fields
 
+   character (3) :: char_ns
+
    character (64), parameter :: &
       freq_fmt = "('stream #',i3, ': tavg diagnostics every ',i6,a8)"
 
@@ -459,7 +524,8 @@
                        ltavg_nino_diags_requested, n_tavg_streams,             &
                        ltavg_streams_index_present, ltavg_has_offset_date,     &
                        tavg_offset_years, tavg_offset_months, tavg_offset_days,&
-                       ltavg_one_time_header
+                       ltavg_one_time_header,                                  &
+                       tavg_file_freq_opt, tavg_file_freq
 
 !-----------------------------------------------------------------------
 !
@@ -487,18 +553,21 @@
       call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
    endif
 
-   qflux_stream    = 1
-   tavg_freq_iopt  = freq_opt_never
-   tavg_freq_opt   = 'never'
-   tavg_freq       = 100000
-   tavg_start_iopt = start_opt_nstep
-   tavg_start_opt  = 'nstep'
-   tavg_start      = 0
-   tavg_infile     = 'unknown_tavg_infile'
-   tavg_fmt_in     = 'nc'
-   tavg_outfile    = 't'
-   tavg_fmt_out    = 'nc'
-   tavg_contents   = 'unknown_tavg_contents'
+   qflux_stream                = 1
+   tavg_freq_iopt              = freq_opt_never     ! field frequency
+   tavg_freq_opt               = 'never'                
+   tavg_freq                   = 100000
+   tavg_file_freq_iopt         = freq_opt_never     ! file  frequency
+   tavg_file_freq_opt          = 'never'
+   tavg_file_freq              = 100000
+   tavg_start_iopt             = start_opt_nstep
+   tavg_start_opt              = 'nstep'
+   tavg_start                  = 0
+   tavg_infile                 = 'unknown_tavg_infile'
+   tavg_fmt_in                 = 'nc'
+   tavg_outfile                = 't'
+   tavg_fmt_out                = 'nc'
+   tavg_contents               = 'unknown_tavg_contents'
    ltavg_one_time_header       = .false.
    ltavg_first_header          = .true.
    ltavg_streams_index_present = .true.
@@ -537,15 +606,14 @@
    endif
   
    if (n_tavg_streams > 9) then
-      ! filename creation will fail
-      call exit_POP(sigAbort,'(init_tavg) ERROR: reading tavg_nml: tavg streams must be < 9',out_unit=stdout)
+      !*** filename creation will fail; contents read will fail; do you really need more than 9 streams?
+      call exit_POP(sigAbort,'(init_tavg) ERROR: reading tavg_nml: tavg streams must be <= 9',out_unit=stdout)
    endif
  
    allocate (tavg_streams(n_tavg_streams))
    allocate (tavg_sum    (n_tavg_streams))
   
    nstreams = n_tavg_streams
-
 
    if (my_task == master_task) then
       write(stdout,blank_fmt)
@@ -561,13 +629,15 @@
 
    if (my_task == master_task) then
      do ns=1,nstreams
+      
+      !*** field frequency
       select case (tavg_freq_opt(ns))
       case ('never')
          tavg_freq_iopt(ns) = freq_opt_never
          write(stdout,'(a,i3)') 'tavg diagnostics disabled for stream ', ns
       case ('once')
          tavg_freq_iopt(ns) = freq_opt_once
-         write(stdout,'(a,i3)') 'tavg fields written once (time-invariant fields) in stream ', ns
+         write(stdout,'(a,i3,a)') 'stream #', ns, 'tavg fields written once (time-invariant fields)'
       case ('nyear')
          tavg_freq_iopt(ns) = freq_opt_nyear
          write(stdout,freq_fmt) ns, tavg_freq(ns),' years  '
@@ -609,6 +679,36 @@
          end select
       endif
 
+      !*** FILE frequency
+      select case (tavg_file_freq_opt(ns))
+      case ('never')
+         tavg_file_freq_iopt(ns) = freq_opt_never
+         write(stdout,'(a,i3)') 'tavg diagnostics disabled for stream ', ns
+      case ('once')
+         tavg_file_freq_iopt(ns) = freq_opt_once
+         write(stdout,'(a,i3,a)') 'stream #', ns, 'tavg file written once (time-invariant fields)'
+      case ('nyear')
+         tavg_file_freq_iopt(ns) = freq_opt_nyear
+         write(stdout,freq_fmt) ns, tavg_file_freq(ns),' years  '
+      case ('nmonth')
+         tavg_file_freq_iopt(ns) = freq_opt_nmonth
+         write(stdout,freq_fmt) ns, tavg_file_freq(ns),' months '
+      case ('nday')
+         tavg_file_freq_iopt(ns) = freq_opt_nday
+         write(stdout,freq_fmt) ns, tavg_file_freq(ns),' days   '
+      case ('nhour')
+         tavg_file_freq_iopt(ns) = freq_opt_nhour
+         write(stdout,freq_fmt) ns, tavg_file_freq(ns),' hours  '
+      case ('nsecond')
+         tavg_file_freq_iopt(ns) = freq_opt_nsecond
+         write(stdout,freq_fmt) ns, tavg_file_freq(ns),' seconds'
+      case ('nstep')
+         tavg_file_freq_iopt(ns) = freq_opt_nstep
+         write(stdout,freq_fmt) ns, tavg_file_freq(ns),' steps  '
+      case default
+         tavg_file_freq_iopt(ns) = -1000
+      end select
+
      enddo ! ns
 
    endif
@@ -618,11 +718,19 @@
    call broadcast_array(tavg_freq_iopt, master_task)
 
    if (ANY(tavg_freq_iopt == -1000)) then
-      call exit_POP(sigAbort,'(init_tavg) ERROR: unknown option for tavg file frequency',out_unit=stdout)
+      call exit_POP(sigAbort,'(init_tavg) ERROR: unknown option for tavg FIELD frequency', &
+         out_unit=stdout)
    endif
 
    if (ANY(tavg_start_iopt == -1000)) then
-      call exit_POP(sigAbort,'(init_tavg) ERROR: unknown option for tavg start option',out_unit=stdout)
+      call exit_POP(sigAbort,'(init_tavg) ERROR: unknown option for tavg start option', &
+         out_unit=stdout)
+   endif
+
+   call broadcast_array(tavg_file_freq_iopt, master_task)
+   if (ANY(tavg_file_freq_iopt == -1000)) then
+      call exit_POP(sigAbort,'(init_tavg) ERROR: unknown option for tavg FILE frequency', &
+         out_unit=stdout)
    endif
 
    call broadcast_scalar(tavg_infile,                 master_task)
@@ -633,6 +741,7 @@
 
    do ns=1,nstreams
       call broadcast_scalar(tavg_freq(ns),             master_task)
+      call broadcast_scalar(tavg_file_freq(ns),        master_task)
       call broadcast_scalar(tavg_start_iopt(ns),       master_task)
       call broadcast_scalar(tavg_start(ns),            master_task)
       call broadcast_scalar(tavg_fmt_in(ns),           master_task)
@@ -666,16 +775,18 @@
       tavg_streams(ns)%fmt_out                = tavg_fmt_out(ns)
       tavg_streams(ns)%freq_iopt              = tavg_freq_iopt(ns)
       tavg_streams(ns)%start_iopt             = tavg_start_iopt(ns)
+      tavg_streams(ns)%ltavg_file_is_open     = .false.
       tavg_streams(ns)%ltavg_has_offset_date  = ltavg_has_offset_date(ns)
       tavg_streams(ns)%tavg_offset_year       = tavg_offset_years(ns)
       tavg_streams(ns)%tavg_offset_month      = tavg_offset_months(ns)
       tavg_streams(ns)%tavg_offset_day        = tavg_offset_days(ns)
+      tavg_streams(ns)%tavg_num_time_slices        = 0
       tavg_streams(ns)%ltavg_one_time_header  = ltavg_one_time_header(ns)
       tavg_streams(ns)%ltavg_first_header     = .true.
 
 !-----------------------------------------------------------------------
 !
-!  initialize time flags for writing tavg files
+!  initialize time flags for writing tavg fields
 !
 !-----------------------------------------------------------------------
 
@@ -692,14 +803,28 @@
                              offset_month = tavg_offset_months(ns), & 
                              offset_day   = tavg_offset_days(ns)    ) 
       else
-        call init_time_flag(trim(char_temp),                        &
-                             tavg_streams(ns)%field_flag,           &
-                             owner        = 'init_tavg',            &
-                             default      =.false.,                 &
-                             freq_opt     = tavg_freq_iopt(ns),     &
-                             freq         = tavg_freq(ns)           )
+        call init_time_flag(trim(char_temp),                    &
+                             tavg_streams(ns)%field_flag,       &
+                             owner        = 'init_tavg',        &
+                             default      =.false.,             &
+                             freq_opt     = tavg_freq_iopt(ns), &
+                             freq         = tavg_freq(ns)       )
       endif
 
+!-----------------------------------------------------------------------
+!
+!  initialize time flags for writing tavg FILES
+!
+!-----------------------------------------------------------------------
+
+      write(char_temp,1100) 'tavg_file',ns 
+
+      call init_time_flag(trim(char_temp),                        &
+                          tavg_streams(ns)%file_flag,             &
+                          owner        = 'init_tavg',             &
+                          default      =.false.,                  &
+                          freq_opt     = tavg_file_freq_iopt(ns), &
+                          freq         = tavg_file_freq(ns)       )
 
 
      if (trim(tavg_fmt_out(ns)) == 'nc') then
@@ -745,12 +870,12 @@
 !
 !-----------------------------------------------------------------------
 
-   call tavg_count_contents(tavg_num_requested_fields,tavg_contents)
+   call tavg_count_contents(tavg_num_contents_lines,tavg_contents)
 
-   allocate (tavg_contents_request(tavg_num_requested_fields))
+   allocate (tavg_contents_request(tavg_num_contents_lines))
 
    if (my_task == master_task) then
-      write(stdout,*) '(init_tavg) total number of fields in tavg_contents file = ', tavg_num_requested_fields
+      write(stdout,*) '(init_tavg) total number of lines in tavg_contents file = ', tavg_num_contents_lines
       call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
       
       open(nu, file=tavg_contents, status='old')
@@ -769,13 +894,18 @@
    duplicate = 0
    ignored = 0
 
-   read_tavg_contents_loop: do n=1,tavg_num_requested_fields
+   read_tavg_contents_loop: do n=1,tavg_num_contents_lines
 
       if (my_task == master_task) then
          char_temp = char_blank
 
          if (ltavg_streams_index_present) then
-           read(nu,'(i3,a)',iostat=contents_error) ns,char_temp
+           read(nu,'(a3,a)',iostat=contents_error) char_ns,char_temp
+           if (char_ns(1:1) == '#' .or. char_ns(1:1) == '!' ) then
+             ns = 0
+           else
+             read(char_ns(1:1), '(i1)') ns
+           endif 
          else
            read(nu,'(a)',iostat=contents_error) char_temp
            ns = 1
@@ -807,7 +937,12 @@
         cindex = index(char_temp,' ')
         char_temp(cindex:) = ' '
 
-        if (trim(char_temp) == 'QFLUX') qflux_stream = ns
+        if (ltavg_streams_index_present) then
+          if (trim(char_temp) == 'QFLUX') qflux_stream = ns
+        else
+          if (trim(char_temp) == 'QFLUX') qflux_stream = 1
+          ns = 1
+        endif
 
         !*** reject any duplicate requests
         reject = .false.
@@ -824,8 +959,10 @@
 
           if (.not. reject) then
               tavg_contents_request(n) = trim(char_temp)
-              write(stdout,*)  ns, '  ',trim(char_temp)
-              call POP_IOUnitsFlush(POP_stdout);call POP_IOUnitsFlush(stdout)
+              if (my_task == master_task) then
+                write(stdout,*)  ns, '  ',trim(char_temp)
+                call POP_IOUnitsFlush(POP_stdout);call POP_IOUnitsFlush(stdout)
+              endif
           else
               tavg_contents_request(n) = 'duplicate'
           endif ! reject
@@ -853,9 +990,9 @@
    call release_unit(nu)
 
    !*** adjust tavg_num_requested_fields to account for rejected duplicate requests:
-   tavg_num_requested_fields = tavg_num_requested_fields - duplicate - ignored
+   tavg_num_requested_fields = tavg_num_contents_lines - duplicate - ignored
 
-   call document ('init_tavg', 'Total number of unique tavg field names ',  tavg_num_requested_fields)
+   call document ('init_tavg', 'Total number of tavg fields requested ',  tavg_num_requested_fields)
 
    !*** ensure that there are no empty streams
    do ns=1,nstreams
@@ -904,6 +1041,7 @@
 
    endif !nstreams
 
+
 !-----------------------------------------------------------------------
 !
 !  define dimensions for tavg output files
@@ -914,8 +1052,35 @@
    i_dim     = construct_io_dim('i',nx_global)
    j_dim     = construct_io_dim('j',ny_global)
    k_dim     = construct_io_dim('k',km)
-   time_dim  = construct_io_dim('time',0) ! used only to set %active=.false.
+   time_dim  = construct_io_dim('time',0,start=1,stop=1) ! used only to set %active=.false.
  
+!-----------------------------------------------------------------------
+!
+!  initialize ccsm NINO and transport diagnostics
+!
+!-----------------------------------------------------------------------
+ 
+   ldiag_bsf      = registry_match('ldiag_bsf')
+   ldiag_gm_bolus = registry_match('diag_gm_bolus')
+   lsubmeso       = registry_match('init_submeso')
+
+   !*** external diagnostics initialization routines
+   call init_lat_aux_grid         
+   call init_moc_ts_transport_arrays   
+   call init_diag_bsf(set_in_tavg_contents(tavg_BSF), errorCode)
+
+   !*** internal diagnostics initialization routines
+   call tavg_init_local_spatial_avg
+   call tavg_init_moc_diags
+   call tavg_init_transport_diags
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, '(init_tavg) ERROR in init_diag_bsf')
+      call exit_POP(sigAbort,'(init_tavg) ERROR in init_diag_bsf',out_unit=stdout)
+      return
+   endif
+
+
 !-----------------------------------------------------------------------
 !
 !  ccsm-specific initializations
@@ -923,23 +1088,6 @@
 !-----------------------------------------------------------------------
  
    if (lccsm) then
- 
-     !*** initialze barotropic stream function
-
-     call init_diag_bsf(set_in_tavg_contents(tavg_BSF), errorCode)
-
-     if (errorCode /= POP_Success) then
-        call POP_ErrorSet(errorCode, &
-           '(init_tavg) ERROR in init_diag_bsf')
-        call exit_POP(sigAbort,'(init_tavg) ERROR in init_diag_bsf',out_unit=stdout)
-        return
-     endif
-
-     ldiag_bsf     = registry_match('ldiag_bsf')
-
-     !*** initialze moc and heat/salt transport diagnostics
-     call init_lat_aux_grid
-     call init_moc_ts_transport_arrays
 
      !*** how many levels have their midpoint shallower than 150m
      zt_150m_levs = count(zt < 150.0e2_r8)
@@ -1001,14 +1149,6 @@
  
    endif ! lccsm
  
-!-----------------------------------------------------------------------
-!
-!  initialize NINO diagnostics
-!
-!-----------------------------------------------------------------------
-
-   call tavg_init_local_spatial_avg
-
 
 !-----------------------------------------------------------------------
 !
@@ -1079,6 +1219,7 @@
    endif
    endif
 
+   deallocate (tavg_contents_request)
 
 !-----------------------------------------------------------------------
 !
@@ -1216,6 +1357,9 @@
 !
 !-----------------------------------------------------------------------
                        
+   real (r8), dimension(1) ::  &
+      TIME1D  
+
    integer (int_kind) ::  &
       ndims
 
@@ -1230,7 +1374,9 @@
       nn,           &! index
       ns,           &! index
       i,j,          &! indices
-      nstd_field_id
+      nstd_field_id,&
+      field_id,     &!temporary id 
+      field_counter
 
    character (char_len) ::  &
       string,               &! dummy character string
@@ -1254,16 +1400,16 @@
    logical (log_kind) ::     &
       ltavg_write_reg,       &! time to write regular tavg file
                               !   and reset time averages
-      ltavg_write_rest        ! time to write restart tavg file
-
-   type (io_field_desc), dimension(:), allocatable ::  &
-      tavg_fields
+      ltavg_write_rest,      &! time to write restart tavg file
+      time_to_close           ! time to close file
 
    type (io_field_desc)  ::  &
       qflux_field
 
    type (block) ::        &
       this_block          ! block information for current block
+
+   save
 
    num_avail_tavg_nstd_fields = 0
 
@@ -1273,8 +1419,8 @@
 !
 !-----------------------------------------------------------------------
 
-   !*** check each stream
    do ns=1,nstreams
+
 
    ltavg_fmt_out_nc = tavg_streams(ns)%ltavg_fmt_out_nc
 
@@ -1338,6 +1484,13 @@
      time_dim%active = .false.
    endif
 
+   !** support for timeseries output -- update time_dim 
+
+   tavg_streams(ns)%tavg_num_time_slices = tavg_streams(ns)%tavg_num_time_slices + 1
+
+   time_dim%start = tavg_streams(ns)%tavg_num_time_slices
+   time_dim%stop  = tavg_streams(ns)%tavg_num_time_slices
+ 
 !-----------------------------------------------------------------------
 !
 !     compute and print global averages of tavg fields prior to normalizing
@@ -1376,7 +1529,13 @@
 !  if writing a regular tavg file in netcdf format, mask the fields
 !
 !-----------------------------------------------------------------------
-     allocate(tavg_fields(num_avail_tavg_fields))
+
+
+     if (.not. allocated(tavg_streams(ns)%tavg_fields)) then
+       allocate(tavg_streams(ns)%tavg_fields(tavg_streams(ns)%num_requested_fields))
+     endif
+
+     field_counter = 0
 
      do nfield = 1,num_avail_tavg_fields  ! check all available fields
 
@@ -1386,22 +1545,33 @@
         if (tavg_requested(nfield)) then
           if (tavg_in_this_stream(nfield,ns)) then 
 
+          field_counter = field_counter + 1
+
+          if (field_counter > tavg_streams(ns)%num_requested_fields )  &
+            call exit_POP(sigAbort,'(write_tavg) ERROR: too many fields requested',out_unit=stdout)
+
+          if (tavg_streams(ns)%ltavg_file_is_open) then
+            field_id = tavg_streams(ns)%tavg_fields(field_counter)%id
+          else
+            field_id = 0
+          endif
+
           if (avail_tavg_fields(nfield)%ndims == 2) then
 
             if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
               call tavg_mask(TAVG_BUF_2D(:,:,:,loc),avail_tavg_fields(nfield),1)
             endif
 
-            tavg_fields(nfield) = construct_io_field(                &
-                            avail_tavg_fields(nfield)%short_name,    &
-                dim1=i_dim, dim2=j_dim,time_dim=time_dim,            &
-                  long_name=avail_tavg_fields(nfield)%long_name,     &
-                      units=avail_tavg_fields(nfield)%units    ,     &
-                   grid_loc=avail_tavg_fields(nfield)%grid_loc ,     &
-                  field_loc=avail_tavg_fields(nfield)%field_loc,     &
-                 field_type=avail_tavg_fields(nfield)%field_type,    &
-                coordinates=avail_tavg_fields(nfield)%coordinates,   &
-                valid_range=avail_tavg_fields(nfield)%valid_range,   &
+            tavg_streams(ns)%tavg_fields(field_counter) = construct_io_field(&
+                            avail_tavg_fields(nfield)%short_name,           &
+                dim1=i_dim, dim2=j_dim,time_dim=time_dim,field_id=field_id, &
+                  long_name=avail_tavg_fields(nfield)%long_name,            &
+                      units=avail_tavg_fields(nfield)%units    ,            &
+                   grid_loc=avail_tavg_fields(nfield)%grid_loc ,            &
+                  field_loc=avail_tavg_fields(nfield)%field_loc,            &
+                 field_type=avail_tavg_fields(nfield)%field_type,           &
+                coordinates=avail_tavg_fields(nfield)%coordinates,          &
+                valid_range=avail_tavg_fields(nfield)%valid_range,          &
 #ifdef TAVG_R8
                  d2d_array=TAVG_BUF_2D(:,:,:,loc) ) 
 #else
@@ -1431,16 +1601,16 @@
                enddo 
             endif
 
-            tavg_fields(nfield) = construct_io_field(                  &
-                           avail_tavg_fields(nfield)%short_name,       &
-               dim1=i_dim, dim2=j_dim, dim3=z_dim, time_dim=time_dim,  &
-                 long_name=avail_tavg_fields(nfield)%long_name,        &
-                     units=avail_tavg_fields(nfield)%units    ,        &
-                  grid_loc=avail_tavg_fields(nfield)%grid_loc ,        &
-                 field_loc=avail_tavg_fields(nfield)%field_loc,        &
-                field_type=avail_tavg_fields(nfield)%field_type,       &
-               coordinates=avail_tavg_fields(nfield)%coordinates,      &
-               valid_range=avail_tavg_fields(nfield)%valid_range,      &
+            tavg_streams(ns)%tavg_fields(field_counter) = construct_io_field(&
+                           avail_tavg_fields(nfield)%short_name,                        &
+               dim1=i_dim, dim2=j_dim, dim3=z_dim, time_dim=time_dim,field_id=field_id, &
+                 long_name=avail_tavg_fields(nfield)%long_name,                         &
+                     units=avail_tavg_fields(nfield)%units    ,                         &
+                  grid_loc=avail_tavg_fields(nfield)%grid_loc ,                         &
+                 field_loc=avail_tavg_fields(nfield)%field_loc,                         &
+                field_type=avail_tavg_fields(nfield)%field_type,                        &
+               coordinates=avail_tavg_fields(nfield)%coordinates,                       &
+               valid_range=avail_tavg_fields(nfield)%valid_range,                       &
 #ifdef TAVG_R8
                  d3d_array=TAVG_BUF_3D(:,:,:,:,loc) )
 #else
@@ -1449,16 +1619,32 @@
           endif ! 2D/3D test
 
           if (lccsm .and. ltavg_write_reg) &
-             call tavg_add_attrib_io_field_ccsm (tavg_fields(nfield),nfield)
+             call tavg_add_attrib_io_field_ccsm (tavg_streams(ns)%tavg_fields(field_counter),nfield)
        endif ! tavg_in_this_stream 
        endif ! nfield and stream
     end do !nfield 
 
 !-----------------------------------------------------------------------
 !
+!  construct time
+!
+!-----------------------------------------------------------------------
+ 
+      if (tavg_streams(ns)%ltavg_file_is_open) then
+        field_id = time_coordinate(1,ns)%id
+      else
+        field_id = 0
+      endif
+
+      call tavg_construct_ccsm_time (field_id,ns)  !time_coordinate
+
+!-----------------------------------------------------------------------
+!
 !  create regular or restart tavg output filenames 
 !
 !-----------------------------------------------------------------------
+
+    if (.not. tavg_streams(ns)%ltavg_file_is_open) then
 
     tavg_outfile_orig = trim(tavg_streams(ns)%outfile_orig)
 
@@ -1503,7 +1689,7 @@
 
 
     if (ltavg_fmt_out_nc) then
-      tavg_file_desc = construct_file(tavg_fmt_out(ns),       &
+      tavg_file_desc(ns)  = construct_file(tavg_fmt_out(ns),       &
                           root_name  = trim(tavg_outfile),    &
                           file_suffix= trim(file_suffix),     &
                           title      = trim(runid),           &
@@ -1515,7 +1701,7 @@
       hist_string = char_blank
       write(hist_string,'(a23,a8,1x,a10)') & 
       'POP TAVG file created: ',date_created,time_created
-      tavg_file_desc = construct_file(tavg_fmt_out(ns),       &
+      tavg_file_desc(ns) = construct_file(tavg_fmt_out(ns),       &
                           root_name  = trim(tavg_outfile),    &
                           file_suffix= trim(file_suffix),     &
                           title      ='POP TAVG file',        &
@@ -1523,7 +1709,7 @@
                           history    = trim(hist_string),     &
                           record_length = rec_type_real,      &
                           recl_words=nx_global*ny_global)
-    endif
+    endif !ltavg_fmt_out_nc
 
 !-----------------------------------------------------------------------
 !
@@ -1531,19 +1717,19 @@
 !
 !-----------------------------------------------------------------------
 
-    call add_attrib_file(tavg_file_desc, 'tavg_sum'    , tavg_sum(ns))
-    call add_attrib_file(tavg_file_desc, 'nsteps_total', nsteps_total)
-    call add_attrib_file(tavg_file_desc, 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
-    call add_attrib_file(tavg_file_desc, 'tavg_sum_qflux'  , tavg_sum_qflux)
+    call add_attrib_file(tavg_file_desc(ns), 'tavg_sum'    , tavg_sum(ns))
+    call add_attrib_file(tavg_file_desc(ns), 'nsteps_total', nsteps_total)
+    call add_attrib_file(tavg_file_desc(ns), 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
+    call add_attrib_file(tavg_file_desc(ns), 'tavg_sum_qflux'  , tavg_sum_qflux)
 
     if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
-      call tavg_add_attrib_file_ccsm (tavg_file_desc) 
+      call tavg_add_attrib_file_ccsm (tavg_file_desc(ns)) 
     else
-      call add_attrib_file(tavg_file_desc, 'tday'      , tday)
-      call add_attrib_file(tavg_file_desc, 'iyear'     , iyear)
-      call add_attrib_file(tavg_file_desc, 'imonth'    , imonth)
-      call add_attrib_file(tavg_file_desc, 'iday'      , iday)
-      call add_attrib_file(tavg_file_desc, 'beg_date'  , beg_date)
+      call add_attrib_file(tavg_file_desc(ns), 'tday'      , tday)
+      call add_attrib_file(tavg_file_desc(ns), 'iyear'     , iyear)
+      call add_attrib_file(tavg_file_desc(ns), 'imonth'    , imonth)
+      call add_attrib_file(tavg_file_desc(ns), 'iday'      , iday)
+      call add_attrib_file(tavg_file_desc(ns), 'beg_date'  , beg_date)
     endif
 
 !-----------------------------------------------------------------------
@@ -1552,7 +1738,7 @@
 !
 !-----------------------------------------------------------------------
 
-    call data_set (tavg_file_desc, 'open')
+    call data_set (tavg_file_desc(ns), 'open')
 
 !-----------------------------------------------------------------------
 !
@@ -1562,18 +1748,40 @@
 !-----------------------------------------------------------------------
 
     if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
-      call tavg_define_time_ccsm       (tavg_file_desc)
-      call tavg_define_coord_vars_ccsm (tavg_file_desc,ns)
-      call tavg_define_time_invar_ccsm (tavg_file_desc,ns)
-      call tavg_define_scalars_ccsm    (tavg_file_desc,ns)
-      call tavg_define_labels_ccsm     (tavg_file_desc,ns)
-    endif
+   
+      call tavg_define_time_bounds       (tavg_file_desc(ns))
+      call tavg_define_labels_ccsm     (tavg_file_desc(ns),ns)
+
+      !*** construct_io_fields
+      call tavg_construct_ccsm_coordinates  (tavg_file_desc(ns),ns)  !ccsm_coordinates
+      call tavg_construct_ccsm_time_invar   (tavg_file_desc(ns),ns)  !ccsm_time_invar
+      call tavg_construct_ccsm_scalars      (tavg_file_desc(ns),ns)  !ccsm_scalars
+
+      !*** define fields 
+      call data_set (tavg_file_desc(ns), 'define', time_coordinate(1,ns))
+
+      do n=1,num_ccsm_coordinates
+       call data_set (tavg_file_desc(ns), 'define', ccsm_coordinates(n,ns))
+      enddo
+
+      do n=1,num_ccsm_time_invar(ns)
+       call data_set (tavg_file_desc(ns), 'define', ccsm_time_invar(n,ns))
+      enddo
+
+      do n=1,num_ccsm_scalars(ns)
+       call data_set (tavg_file_desc(ns), 'define', ccsm_scalars(n,ns))
+      enddo
+
+    endif  !ltavg_fmt_out_nc .and. ltavg_write_reg
+
+    field_counter = 0
 
     do nfield = 1,num_avail_tavg_fields
       !*** define only if field is requested, in buffer, and in this stream
       if (tavg_requested(nfield)) then
         if (tavg_in_this_stream(nfield,ns)) then
-            call data_set (tavg_file_desc, 'define', tavg_fields(nfield))
+          field_counter = field_counter + 1
+          call data_set (tavg_file_desc(ns), 'define', tavg_streams(ns)%tavg_fields(field_counter))
         endif
       endif
     enddo ! nfield
@@ -1591,7 +1799,7 @@
                (nn == tavg_N_HEAT .and. ltavg_n_heat_trans(ns)) .or.  &
                (nn == tavg_N_SALT .and. ltavg_n_salt_trans(ns)))      then
             call data_set_nstd_ccsm (                               &
-                tavg_file_desc, 'define', nstd_field_id,            &
+                tavg_file_desc(ns), 'define', nstd_field_id,            &
                 ndims_nstd_ccsm(nn), io_dims_nstd_ccsm(:,nn),       &
                 short_name=avail_tavg_nstd_fields(nn)%short_name,   &
                  long_name=avail_tavg_nstd_fields(nn)%long_name,    &
@@ -1613,6 +1821,15 @@
 
       endif ! ltavg_fmt_out_nc
 
+      if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
+       call timer_start(timer_write_nstd)
+       call tavg_write_vars_ccsm (tavg_file_desc(ns),num_ccsm_coordinates,   ccsm_coordinates(:,ns))
+       call tavg_write_vars_ccsm (tavg_file_desc(ns),num_ccsm_time_invar(ns),ccsm_time_invar(:,ns))
+       call tavg_write_vars_ccsm (tavg_file_desc(ns),num_ccsm_scalars(ns),   ccsm_scalars(:,ns))
+       call timer_stop(timer_write_nstd)
+      endif !ltavg_fmt_out_nc .and. ltavg_write_reg
+
+   endif !.not. tavg_streams(ns)%ltavg_file_is_open
 
 !-----------------------------------------------------------------------
 !
@@ -1623,16 +1840,30 @@
 !
 !-----------------------------------------------------------------------
 
+   time_to_close = check_time_flag(tavg_streams(ns)%file_flag)
 
    if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
 
-       call timer_start(timer_write_nstd)
-       call tavg_write_vars_ccsm (tavg_file_desc,1,time_coordinate)
-       call tavg_write_vars_ccsm (tavg_file_desc,num_ccsm_coordinates,ccsm_coordinates)
-       call tavg_write_vars_ccsm (tavg_file_desc,num_ccsm_time_invar(ns), ccsm_time_invar(:,ns))
-       call tavg_write_vars_ccsm (tavg_file_desc,num_ccsm_scalars(ns),    ccsm_scalars(:,ns))
+       call tavg_write_vars_ccsm (tavg_file_desc(ns),1,time_coordinate(1,ns))
 
-       call tavg_write_time_bounds(tavg_file_desc, ns)
+!==================> fix this (wrt time to close/destroy)
+       call tavg_write_time_bounds(tavg_file_desc(ns), ns)
+
+       if (time_to_close) then
+         call destroy_io_field(time_coordinate (1,ns))
+
+         do n=1,num_ccsm_coordinates
+          call destroy_io_field(ccsm_coordinates(n,ns))
+         enddo
+
+         do n=1,num_ccsm_time_invar(ns)
+          call destroy_io_field(ccsm_time_invar (n,ns))
+         enddo
+
+         do n=1,num_ccsm_scalars(ns)
+          call destroy_io_field(ccsm_scalars    (n,ns))
+         enddo
+       endif! time_to_close
 
 !-----------------------------------------------------------------------
 !
@@ -1640,22 +1871,26 @@
 !
 !-----------------------------------------------------------------------
 
-     if (ns == 1) call tavg_write_vars_nstd_ccsm (tavg_file_desc,ns) 
-
+!==================> can this be moved up???
+     call timer_start(timer_write_nstd)
+     call tavg_write_vars_nstd_ccsm (tavg_file_desc(ns),ns) 
      call timer_stop(timer_write_nstd)
 
-   endif
- 
+    endif !ltavg_fmt_out_nc .and. ltavg_write_reg
+
 
    !*** standard 2D and 3D fields
    call timer_start(timer_write_std)
+
+   field_counter = 0
 
    do nfield = 1,num_avail_tavg_fields
       !*** write only if field is requested, in buffer, and in this stream
       if (tavg_requested(nfield)) then
         if (tavg_in_this_stream(nfield,ns)) then
-         call data_set (tavg_file_desc, 'write', tavg_fields(nfield))
-         call destroy_io_field(tavg_fields(nfield))
+         field_counter = field_counter + 1
+         call data_set (tavg_file_desc(ns), 'write', tavg_streams(ns)%tavg_fields(field_counter))
+         if (time_to_close) call destroy_io_field(tavg_streams(ns)%tavg_fields(field_counter))
         endif ! tavg_in_this_stream
       endif ! tavg_requested
    end do ! nfield
@@ -1664,18 +1899,30 @@
 
 !-----------------------------------------------------------------------
 !
-!  after writing all fields, the file can be closed
+!  after writing all fields, determine if the file can be closed
 !
 !-----------------------------------------------------------------------
 
-   deallocate(tavg_fields)
-   call data_set (tavg_file_desc, 'close')
+   if (time_to_close) then
 
-   if (my_task == master_task) then
-     write(stdout,blank_fmt)
-     write(stdout,*) 'tavg file written: ', trim(tavg_file_desc%full_name)
-     call POP_IOUnitsFlush(POP_stdout);call POP_IOUnitsFlush(stdout)
-   endif
+     tavg_streams(ns)%tavg_num_time_slices = 0
+
+     deallocate(tavg_streams(ns)%tavg_fields)
+     call data_set (tavg_file_desc(ns), 'close')
+
+     if (my_task == master_task) then
+       write(stdout,blank_fmt)
+       write(stdout,*) 'tavg file written: ', trim(tavg_file_desc(ns)%full_name)
+       call POP_IOUnitsFlush(POP_stdout);call POP_IOUnitsFlush(stdout)
+     endif
+   else
+     call data_set (tavg_file_desc(ns), 'flush')
+     if (my_task == master_task) then
+       write(stdout,blank_fmt)
+       write(stdout,*) 'data appended to tavg file: ', trim(tavg_file_desc(ns)%full_name)
+       call POP_IOUnitsFlush(POP_stdout);call POP_IOUnitsFlush(stdout)
+     endif
+   endif ! time_to_close
 
 !-----------------------------------------------------------------------
 !
@@ -1698,11 +1945,12 @@
        endif
 
        open(nu,file=tavg_pointer_file,form='formatted', status='unknown')
-       write(nu,'(a)') trim(tavg_file_desc%full_name)
+       write(nu,'(a)') trim(tavg_file_desc(ns)%full_name)
        close(nu)
-     endif
+     endif !master_task
      call release_unit(nu)
-   endif
+   endif !luse_pointer_files
+
 
 !-----------------------------------------------------------------------
 !
@@ -1719,7 +1967,7 @@
      call tavg_reset_field_stream(ns)
    else
      call tavg_norm_field_all ('denormalize',ns)
-   endif
+   endif !ltavg_write_reg
 
 !-----------------------------------------------------------------------
 !
@@ -1727,14 +1975,17 @@
 !
 !-----------------------------------------------------------------------
 
-   call destroy_file(tavg_file_desc)
+   if (time_to_close) call destroy_file(tavg_file_desc(ns))
 
-  tavg_streams(ns)%ltavg_first_header = .false.
-  endif ! ltavg_write
+   tavg_streams(ns)%ltavg_first_header = .false.
 
-  if (tavg_streams(ns)%freq_iopt == freq_opt_once) then
-    call override_time_flag(tavg_streams(ns)%field_flag, done=.true.)
-  endif
+   if (tavg_streams(ns)%freq_iopt == freq_opt_once) then
+     call override_time_flag(tavg_streams(ns)%field_flag, done=.true.)
+   endif
+
+   tavg_streams(ns)%ltavg_file_is_open = .not. time_to_close
+ 
+  endif !ltavg_write_reg .or. ltavg_write_rest
 
   enddo ! nstreams
 
@@ -1800,7 +2051,10 @@
      ns_temp
 
    type (io_field_desc), dimension(:), allocatable :: &
-      tavg_fields          ! io field description for each field in file
+      tavg_fields_in       ! io field description for each field in file
+
+   type (datafile) ::  &
+      tavg_file_desc_in    ! IO file descriptor
 
 
 !-----------------------------------------------------------------------
@@ -1861,7 +2115,7 @@
 !
 !-----------------------------------------------------------------------
 
-   tavg_file_desc = construct_file (tavg_streams(ns)%fmt_in,       &
+   tavg_file_desc_in = construct_file (tavg_streams(ns)%fmt_in,       &
                                     full_name=trim(tavg_infile),   &
                                     record_length = rec_type_real, &
                                     recl_words=nx_global*ny_global)
@@ -1875,16 +2129,16 @@
 
    if (lccsm) then
    else
-      call add_attrib_file(tavg_file_desc, 'tday'        , tday)
-      call add_attrib_file(tavg_file_desc, 'iyear'       , iyear)
-      call add_attrib_file(tavg_file_desc, 'imonth'      , imonth)
-      call add_attrib_file(tavg_file_desc, 'iday'        , iday)
-      call add_attrib_file(tavg_file_desc, 'beg_date'    , beg_date)
+      call add_attrib_file(tavg_file_desc_in, 'tday'        , tday)
+      call add_attrib_file(tavg_file_desc_in, 'iyear'       , iyear)
+      call add_attrib_file(tavg_file_desc_in, 'imonth'      , imonth)
+      call add_attrib_file(tavg_file_desc_in, 'iday'        , iday)
+      call add_attrib_file(tavg_file_desc_in, 'beg_date'    , beg_date)
    endif
-   call add_attrib_file(tavg_file_desc, 'nsteps_total', nsteps_total)
-   call add_attrib_file(tavg_file_desc, 'tavg_sum'    , tavg_sum(ns))
-   call add_attrib_file(tavg_file_desc, 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
-   call add_attrib_file(tavg_file_desc, 'tavg_sum_qflux'  , tavg_sum_qflux)
+   call add_attrib_file(tavg_file_desc_in, 'nsteps_total', nsteps_total)
+   call add_attrib_file(tavg_file_desc_in, 'tavg_sum'    , tavg_sum(ns))
+   call add_attrib_file(tavg_file_desc_in, 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
+   call add_attrib_file(tavg_file_desc_in, 'tavg_sum_qflux'  , tavg_sum_qflux)
 
 
 !-----------------------------------------------------------------------
@@ -1895,21 +2149,21 @@
 !
 !-----------------------------------------------------------------------
 
-   call data_set (tavg_file_desc, 'open_read')
+   call data_set (tavg_file_desc_in, 'open_read')
 
    if (lccsm) then
    else
-      call extract_attrib_file(tavg_file_desc, 'beg_date', beg_date)
-      !call extract_attrib_file(tavg_file_desc, 'tday', in_tday)
-      !call extract_attrib_file(tavg_file_desc, 'iyear', in_iyear)
-      !call extract_attrib_file(tavg_file_desc, 'imonth', in_imonth)
-      !call extract_attrib_file(tavg_file_desc, 'iday', in_iday)
+      call extract_attrib_file(tavg_file_desc_in, 'beg_date', beg_date)
+      !call extract_attrib_file(tavg_file_desc_in, 'tday', in_tday)
+      !call extract_attrib_file(tavg_file_desc_in, 'iyear', in_iyear)
+      !call extract_attrib_file(tavg_file_desc_in, 'imonth', in_imonth)
+      !call extract_attrib_file(tavg_file_desc_in, 'iday', in_iday)
    endif
-   call extract_attrib_file(tavg_file_desc, 'nsteps_total', &
+   call extract_attrib_file(tavg_file_desc_in, 'nsteps_total', &
                                           in_nsteps_total)
-   call extract_attrib_file(tavg_file_desc, 'tavg_sum', tavg_sum(ns))
-   call extract_attrib_file(tavg_file_desc, 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
-   call extract_attrib_file(tavg_file_desc, 'tavg_sum_qflux', tavg_sum_qflux)
+   call extract_attrib_file(tavg_file_desc_in, 'tavg_sum', tavg_sum(ns))
+   call extract_attrib_file(tavg_file_desc_in, 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
+   call extract_attrib_file(tavg_file_desc_in, 'tavg_sum_qflux', tavg_sum_qflux)
 
    !*** report nsteps total and tavg_sum
    if (my_task == master_task) then
@@ -1941,7 +2195,7 @@
 
    !*** define dimensions
 
-   allocate(tavg_fields(num_avail_tavg_fields))
+   allocate(tavg_fields_in(num_avail_tavg_fields))
 
    do nfield = 1,num_avail_tavg_fields
       loc = avail_tavg_fields(nfield)%buf_loc
@@ -1949,7 +2203,7 @@
         if (tavg_in_this_stream(nfield,ns)) then
          if (avail_tavg_fields(nfield)%ndims == 2) then
 
-            tavg_fields(nfield) = construct_io_field(                &
+            tavg_fields_in(nfield) = construct_io_field(                &
                             avail_tavg_fields(nfield)%short_name,    &
                             dim1=i_dim, dim2=j_dim,                  &
                   long_name=avail_tavg_fields(nfield)%long_name,     &
@@ -1971,7 +2225,7 @@
                z_dim = k_dim
             endif
 
-            tavg_fields(nfield) = construct_io_field(                &
+            tavg_fields_in(nfield) = construct_io_field(                &
                             avail_tavg_fields(nfield)%short_name,    &
                             dim1=i_dim, dim2=j_dim, dim3=z_dim,      &
                   long_name=avail_tavg_fields(nfield)%long_name,     &
@@ -1987,7 +2241,7 @@
 #endif
          endif
 
-         call data_set (tavg_file_desc, 'define', tavg_fields(nfield))
+         call data_set (tavg_file_desc_in, 'define', tavg_fields_in(nfield))
         endif ! tavg_in_this_stream(nfield,ns) 
       endif
    end do
@@ -2003,21 +2257,21 @@
       loc = avail_tavg_fields(nfield)%buf_loc
       if (loc > 0) then
         if (tavg_in_this_stream(nfield,ns)) then
-         call data_set (tavg_file_desc, 'read', tavg_fields(nfield))
-         call destroy_io_field(tavg_fields(nfield))
+         call data_set (tavg_file_desc_in, 'read', tavg_fields_in(nfield))
+         call destroy_io_field(tavg_fields_in(nfield))
         endif !tavg_in_this_stream(nfield,ns)
       endif
    end do
 
-   deallocate(tavg_fields)
-   call data_set (tavg_file_desc, 'close')
+   deallocate(tavg_fields_in)
+   call data_set (tavg_file_desc_in, 'close')
 
    if (my_task == master_task) then
      write(stdout,blank_fmt)
      write(stdout,*) ' file read: ', tavg_infile
    endif
 
-   call destroy_file(tavg_file_desc)
+   call destroy_file(tavg_file_desc_in)
    call release_unit(nu)
 
 !-----------------------------------------------------------------------
@@ -3627,6 +3881,10 @@
       case (freq_opt_nstep)
         char_temp = 'ymds'
  
+      case (freq_opt_once)
+        file_suffix = ''
+        return 
+
       case default
         char_temp = 'ymds'
       end select
@@ -3980,10 +4238,10 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: tavg_define_coord_vars_ccsm
+! !IROUTINE: tavg_construct_ccsm_coordinates
 ! !INTERFACE:
 
- subroutine tavg_define_coord_vars_ccsm(tavg_file_desc,ns)
+ subroutine tavg_construct_ccsm_coordinates(tavg_file_desc,ns)
 
 ! !DESCRIPTION:
 !  This routine defines the netCDF coordinates that are used in the
@@ -4029,39 +4287,39 @@
    !*** z_t
    ii=ii+1
    ZT_R4 = zt 
-   ccsm_coordinates(ii) = construct_io_field('z_t',zt_dim,                    &
+   ccsm_coordinates(ii,ns) = construct_io_field('z_t',zt_dim,                    &
                          long_name='depth from surface to midpoint of layer', &
                          units    ='centimeters',                             &
                          r1d_array =ZT_R4)
 
-   call add_attrib_io_field(ccsm_coordinates(ii), 'positive', 'down')
-   call add_attrib_io_field(ccsm_coordinates(ii), 'valid_min', ZT_R4(1))
-   call add_attrib_io_field(ccsm_coordinates(ii), 'valid_max', ZT_R4(km))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'positive', 'down')
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZT_R4(1))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZT_R4(km))
 
    !*** z_t
    ii=ii+1
    ZT_150m_R4 = zt(1:zt_150m_levs)
-   ccsm_coordinates(ii) = construct_io_field('z_t_150m',zt_150m_dim,          &
+   ccsm_coordinates(ii,ns) = construct_io_field('z_t_150m',zt_150m_dim,          &
                          long_name='depth from surface to midpoint of layer', &
                          units    ='centimeters',                             &
                          r1d_array =ZT_150m_R4)
 
-   call add_attrib_io_field(ccsm_coordinates(ii), 'positive', 'down')
-   call add_attrib_io_field(ccsm_coordinates(ii), 'valid_min', ZT_150m_R4(1))
-   call add_attrib_io_field(ccsm_coordinates(ii), 'valid_max', ZT_150m_R4(zt_150m_levs))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'positive', 'down')
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZT_150m_R4(1))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZT_150m_R4(zt_150m_levs))
 
    !*** z_w
    ii=ii+1
    ZW_R4(1) = c0 
    ZW_R4(2:km) = zw(1:km-1)
-   ccsm_coordinates(ii) = construct_io_field('z_w',zw_dim,                    &
+   ccsm_coordinates(ii,ns) = construct_io_field('z_w',zw_dim,                    &
                          long_name='depth from surface to top of layer',      &
                          units    ='centimeters',                             &
                          r1d_array =ZW_R4)
 
-   call add_attrib_io_field(ccsm_coordinates(ii), 'positive', 'down')
-   call add_attrib_io_field(ccsm_coordinates(ii), 'valid_min', ZW_R4(1 ))
-   call add_attrib_io_field(ccsm_coordinates(ii), 'valid_max', ZW_R4(km))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'positive', 'down')
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZW_R4(1 ))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZW_R4(km))
 
 
    if (ltavg_moc_diags(ns) .or. ltavg_n_heat_trans(ns)  .or. ltavg_n_salt_trans(ns)) then
@@ -4070,16 +4328,16 @@
 
      if (n_lat_aux_grid+1 > 1000) &
         call exit_POP(sigAbort,  &
-            '(tavg_define_coord_vars_ccsm) ERROR: must increase dimension of LAT_AUX_GRID_R4',out_unit=stdout)
+            '(tavg_construct_ccsm_coordinates) ERROR: must increase dimension of LAT_AUX_GRID_R4',out_unit=stdout)
 
      LAT_AUX_GRID_R4 = 0
      LAT_AUX_GRID_R4(1:n_lat_aux_grid+1) = lat_aux_edge(1:n_lat_aux_grid+1)
-     ccsm_coordinates(ii) = construct_io_field('lat_aux_grid',lat_aux_grid_dim, &
+     ccsm_coordinates(ii,ns) = construct_io_field('lat_aux_grid',lat_aux_grid_dim, &
                            long_name='latitude grid for transport diagnostics', &
                            units    ='degrees_north',                           &
                            r1d_array =LAT_AUX_GRID_R4(1:n_lat_aux_grid+1))
-     call add_attrib_io_field(ccsm_coordinates(ii), 'valid_min', LAT_AUX_GRID_R4(1 ))
-     call add_attrib_io_field(ccsm_coordinates(ii), 'valid_max', LAT_AUX_GRID_R4(n_lat_aux_grid+1))
+     call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', LAT_AUX_GRID_R4(1 ))
+     call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', LAT_AUX_GRID_R4(n_lat_aux_grid+1))
    endif
 
    if (ltavg_moc_diags(ns)) then
@@ -4088,14 +4346,14 @@
 
      MOC_Z_R4(0) = c0 
      MOC_Z_R4(1:km) = zw(1:km)
-     ccsm_coordinates(ii) = construct_io_field('moc_z',moc_z_dim,               &
+     ccsm_coordinates(ii,ns) = construct_io_field('moc_z',moc_z_dim,               &
                            long_name='depth from surface to top of layer',      &
                            units    ='centimeters',                             &
                            r1d_array =MOC_Z_R4)
 
-     call add_attrib_io_field(ccsm_coordinates(ii), 'positive', 'down')
-     call add_attrib_io_field(ccsm_coordinates(ii), 'valid_min', MOC_Z_R4(0 ))
-     call add_attrib_io_field(ccsm_coordinates(ii), 'valid_max', MOC_Z_R4(km))
+     call add_attrib_io_field(ccsm_coordinates(ii,ns), 'positive', 'down')
+     call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', MOC_Z_R4(0 ))
+     call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', MOC_Z_R4(km))
 
    endif ! ltavg_moc_diags
 
@@ -4104,24 +4362,21 @@
    num_ccsm_coordinates = ii
  
    if (num_ccsm_coordinates > max_num_ccsm_coordinates) &
-      call exit_POP(sigAbort,'(tavg_define_coord_vars_ccsm) ERROR: reset max_num_ccsm_coordinates',out_unit=stdout)
+      call exit_POP(sigAbort,'(tavg_construct_ccsm_coordinates) ERROR: reset max_num_ccsm_coordinates',out_unit=stdout)
 
-   do n=1,num_ccsm_coordinates
-    call data_set (tavg_file_desc, 'define', ccsm_coordinates(n))
-   enddo
 
 
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine tavg_define_coord_vars_ccsm
+ end subroutine tavg_construct_ccsm_coordinates
  
 !***********************************************************************
 !BOP
-! !IROUTINE: tavg_define_time_invar_ccsm
+! !IROUTINE: tavg_construct_ccsm_time_invar
 ! !INTERFACE:
 
- subroutine tavg_define_time_invar_ccsm(tavg_file_desc,ns)
+ subroutine tavg_construct_ccsm_time_invar(tavg_file_desc,ns)
 
 ! !DESCRIPTION:
 !  This routine defines the netCDF time-invariant variables that are 
@@ -4442,23 +4697,20 @@
    num_ccsm_time_invar(ns) = ii
 
    if (num_ccsm_time_invar(ns)  > max_num_ccsm_time_invar) &
-      call exit_POP(sigAbort,'(tavg_define_time_invar_ccsm) ERROR: reset max_num_ccsm_time_invar',out_unit=stdout)
+      call exit_POP(sigAbort,'(tavg_construct_ccsm_time_invar) ERROR: reset max_num_ccsm_time_invar',out_unit=stdout)
 
-   do n=1,num_ccsm_time_invar(ns)
-    call data_set (tavg_file_desc, 'define', ccsm_time_invar(n,ns))
-   enddo
 
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine tavg_define_time_invar_ccsm
+ end subroutine tavg_construct_ccsm_time_invar
 
 !***********************************************************************
 !BOP
-! !IROUTINE: tavg_define_scalars_ccsm
+! !IROUTINE: tavg_construct_ccsm_scalars
 ! !INTERFACE:
 
- subroutine tavg_define_scalars_ccsm(tavg_file_desc,ns)
+ subroutine tavg_construct_ccsm_scalars(tavg_file_desc,ns)
 
 ! !DESCRIPTION:
 !  This routine defines the netCDF scalars that are used in the
@@ -4717,18 +4969,13 @@
    num_ccsm_scalars(ns) = ii
 
    if (num_ccsm_scalars(ns) > max_num_ccsm_scalars) &
-      call exit_POP(sigAbort,'(tavg_define_scalars_ccsm) ERROR: reset num_ccsm_scalars',out_unit=stdout)
-
-
-   do n=1,num_ccsm_scalars(ns)
-    call data_set (tavg_file_desc, 'define', ccsm_scalars(n,ns))
-   enddo
+      call exit_POP(sigAbort,'(tavg_construct_ccsm_scalars) ERROR: reset num_ccsm_scalars',out_unit=stdout)
 
 
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine tavg_define_scalars_ccsm
+ end subroutine tavg_construct_ccsm_scalars
 
 !***********************************************************************
 !BOP
@@ -4847,10 +5094,68 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: tavg_define_time_ccsm
+! !IROUTINE: tavg_construct_ccsm_time
 ! !INTERFACE:
 
- subroutine tavg_define_time_ccsm(tavg_file_desc)
+ subroutine tavg_construct_ccsm_time (field_id,ns)
+
+! !DESCRIPTION:
+!  This routine defines the netCDF time variables that are used in the
+!  ccsm netCDF output tavg files
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+   integer (int_kind), intent(in) ::  &
+      field_id,        &! time id
+      ns                ! tavg streams index
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   real (r8), dimension(1) ::  &
+      TIME1D  
+
+   character(char_len) ::  &
+      nftype              
+
+   integer (int_kind) ::  &
+      ndims
+
+   save  
+
+   !*** time
+   TIME1D(1)=tday00
+   time_coordinate(1,ns) = construct_io_field('time',time_dim,        &
+                     field_id  = field_id,                            &
+                     long_name ='time',                               &
+                     units     ='days since 0000-01-01 00:00:00',     &
+                     d1d_array = TIME1D                               )
+
+   if (field_id == 0) then
+     call add_attrib_io_field(time_coordinate(1,ns), 'bounds', 'time_bound')
+     call add_attrib_io_field(time_coordinate(1,ns), 'calendar', 'noleap')
+   endif
+
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine tavg_construct_ccsm_time
+ 
+!***********************************************************************
+!BOP
+! !IROUTINE: tavg_define_time_bounds
+! !INTERFACE:
+
+ subroutine tavg_define_time_bounds(tavg_file_desc)
 
 ! !DESCRIPTION:
 !  This routine defines the netCDF time variables that are used in the
@@ -4883,17 +5188,6 @@
 
    save  
 
-   !*** time
-   TIME1D(1)=tday00
-   time_coordinate(1) = construct_io_field('time',time_dim,               &
-                     long_name ='time',                                   &
-                     units     ='days since 0000-01-01 00:00:00',         &
-                     d1d_array = TIME1D                                   )
-
-   call add_attrib_io_field(time_coordinate(1), 'bounds', 'time_bound')
-   call add_attrib_io_field(time_coordinate(1), 'calendar', 'noleap')
-   call data_set (tavg_file_desc, 'define', time_coordinate(1))
-
 
    !*** time_bound
    !*** NB: call data_set_nstd_ccsm
@@ -4913,7 +5207,7 @@
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine tavg_define_time_ccsm
+ end subroutine tavg_define_time_bounds
  
 
 !***********************************************************************
@@ -4957,7 +5251,6 @@
 
    do n=1,nvars
       call data_set (tavg_file_desc, 'write', ccsm_vars(n))
-      call destroy_io_field(ccsm_vars(n))
    enddo
 
 !-----------------------------------------------------------------------
@@ -5483,6 +5776,169 @@
 
  end subroutine tavg_bsf_diags
 
+!***********************************************************************
+!BOP
+! !IROUTINE: tavg_init_moc_diags
+! !INTERFACE:
+
+ subroutine tavg_init_moc_diags
+
+! !DESCRIPTION:
+!
+!  Initialization routine for tavg_moc_diags, which computes meridional overturning 
+!  circulation diagnostically from  other tavg quantities. This routine mainly
+!  performs error checking: all the required tavg fields have been requested,
+!  have been activated, and are in the same stream
+!
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!  local variables:
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      moc_stream    ! stream in which WVEL is defined
+
+   
+   ltavg_moc_diags = .false.
+
+   if (.not. moc_requested) return
+
+   tavg_loc_WVEL      = 0 ; tavg_loc_VVEL      = 0
+   tavg_loc_WISOP     = 0 ; tavg_loc_VISOP     = 0
+   tavg_loc_WSUBM     = 0 ; tavg_loc_VSUBM     = 0
+ 
+   tavg_id_WVEL   = tavg_id('WVEL')
+   tavg_id_VVEL   = tavg_id('VVEL')
+
+   if (tavg_id_WVEL  == 0 .or. tavg_id_VVEL  == 0 ) then
+     call document ('tavg_moc', &
+         'Error in moc diagnostics computations: none of the following should be zero')
+     call document ('tavg_moc', 'tavg_id_WVEL', tavg_id_WVEL)
+     call document ('tavg_moc', 'tavg_id_VVEL', tavg_id_VVEL)
+     call exit_POP (SigAbort, '(tavg_moc) ERROR',out_unit=stdout)
+   endif
+ 
+   !*** may not yet be activated, so use abs
+   tavg_loc_WVEL = abs(avail_tavg_fields(tavg_id_WVEL)%buf_loc) 
+   tavg_loc_VVEL = abs(avail_tavg_fields(tavg_id_VVEL)%buf_loc)
+
+   if (tavg_loc_WVEL  == 0 .or. tavg_loc_VVEL  == 0 ) then
+     call document ('tavg_moc', &
+      'Error in moc diagnostics computations: none of the following should be zero')
+     call document ('tavg_moc', 'tavg_loc_WVEL', tavg_loc_WVEL)
+     call document ('tavg_moc', 'tavg_loc_VVEL', tavg_loc_VVEL)
+     call exit_POP (SigAbort, '(tavg_moc) ERROR',out_unit=stdout)
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  checks for gm_bolus option terms
+!
+!-----------------------------------------------------------------------
+
+   if (ldiag_gm_bolus) then
+ 
+     tavg_id_WISOP  = tavg_id('WISOP')
+     tavg_id_VISOP  = tavg_id('VISOP')
+ 
+     if (tavg_id_WISOP  == 0 .or. tavg_id_VISOP  == 0 ) then
+       call document ('tavg_moc', &
+           'Error in moc diagnostics computations: none of the following should be zero')
+       call document ('tavg_moc', 'tavg_id_WISOP',  tavg_id_WISOP)
+       call document ('tavg_moc', 'tavg_id_VISOP',  tavg_id_VISOP)
+       call exit_POP (SigAbort, '(tavg_moc) ERROR',out_unit=stdout)
+     endif
+
+     !*** may not yet be activated, so use abs
+     tavg_loc_WISOP = abs(avail_tavg_fields(tavg_id_WISOP)%buf_loc) 
+     tavg_loc_VISOP = abs(avail_tavg_fields(tavg_id_VISOP)%buf_loc)
+
+     if (tavg_loc_WISOP  == 0 .or. tavg_loc_VISOP  == 0 ) then
+       call document ('tavg_moc', &
+         'Error in moc diagnostics computations: none of the following should be zero')
+       call document ('tavg_moc', 'tavg_loc_WISOP',  tavg_loc_WISOP)
+       call document ('tavg_moc', 'tavg_loc_VISOP',  tavg_loc_VISOP)
+       call exit_POP (SigAbort, '(tavg_moc) ERROR',out_unit=stdout)
+     endif
+
+   endif ! ldiag_gm_bolus
+
+!-----------------------------------------------------------------------
+!
+!  checks for submeso option terms
+!
+!-----------------------------------------------------------------------
+
+   if (lsubmeso) then
+
+     tavg_id_WSUBM  = tavg_id('WSUBM')
+     tavg_id_VSUBM  = tavg_id('VSUBM')
+
+     if (tavg_id_WSUBM  == 0 .or. tavg_id_VSUBM  == 0 ) then
+       call document ('tavg_moc', &
+         'Error in moc diagnostics computations: none of the following should be zero')
+       call document ('tavg_moc', 'tavg_id_WSUBM',  tavg_id_WSUBM)
+       call document ('tavg_moc', 'tavg_id_VSUBM',  tavg_id_VSUBM)
+       call exit_POP (SigAbort, '(tavg_moc) ERROR',out_unit=stdout)
+     endif
+
+     !*** may not yet be activated, so use abs
+     tavg_loc_WSUBM = abs(avail_tavg_fields(tavg_id_WSUBM)%buf_loc)
+     tavg_loc_VSUBM = abs(avail_tavg_fields(tavg_id_VSUBM)%buf_loc)
+
+     if (tavg_loc_WSUBM  == 0 .or. tavg_loc_VSUBM  == 0 ) then
+       call document ('tavg_moc', &
+         'Error in moc diagnostics computations: none of the following should be zero')
+       call document ('tavg_moc', 'tavg_loc_WSUBM',  tavg_loc_WSUBM)
+       call document ('tavg_moc', 'tavg_loc_VSUBM',  tavg_loc_VSUBM)
+       call exit_POP (SigAbort, '(tavg_moc) ERROR',out_unit=stdout)
+     endif
+
+   endif ! lsubmeso
+
+!-----------------------------------------------------------------------
+!
+!  Now confirm that all required fields are in the same stream
+!
+!-----------------------------------------------------------------------
+
+   moc_stream =  tavg_in_which_stream(tavg_id_WVEL)
+
+
+   if (lsubmeso) then
+     if (tavg_in_this_stream(tavg_id_VVEL , moc_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_WISOP, moc_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VISOP, moc_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_WSUBM, moc_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VSUBM, moc_stream)          ) then
+         ltavg_moc_diags(moc_stream) = .true.
+     endif
+   else if (ldiag_gm_bolus) then
+     if (tavg_in_this_stream(tavg_id_VVEL , moc_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_WISOP, moc_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VISOP, moc_stream)          ) then
+         ltavg_moc_diags(moc_stream) = .true.
+     endif
+   else 
+     if (tavg_in_this_stream(tavg_id_VVEL , moc_stream)          ) then
+         ltavg_moc_diags(moc_stream) = .true.
+     endif
+   endif
+   
+
+ 
+!-----------------------------------------------------------------------
+!EOC
+
+  end subroutine tavg_init_moc_diags
  
 !***********************************************************************
 !BOP
@@ -5510,124 +5966,9 @@
 !EOP
 !BOC
 
-!-----------------------------------------------------------------------
-!
-!     local variables
-!
-!-----------------------------------------------------------------------
-
-   integer (int_kind) ::    &
-      tavg_id_WVEL,         &
-      tavg_id_VVEL,         &
-      tavg_id_WISOP,        &
-      tavg_id_VISOP,        &
-      tavg_loc_WVEL,        &
-      tavg_loc_VVEL,        &
-      tavg_loc_WISOP,       &
-      tavg_loc_VISOP,       &
-      tavg_id_WSUBM,        &
-      tavg_id_VSUBM,        &
-      tavg_loc_WSUBM,       &
-      tavg_loc_VSUBM 
-
-   logical (log_kind) ::  &
-      ldiag_gm_bolus,     &  ! local logical for diag_gm_bolus
-      lsubmeso               ! local logical for submesoscale_mixing
-
    if (.not. ltavg_moc_diags(ns)) return
  
-   !*** start timer
    call timer_start(timer_tavg_ccsm_diags_moc)
-
-   ldiag_gm_bolus = .false.
-   if ( registry_match('diag_gm_bolus') )  ldiag_gm_bolus = .true.
-
-   lsubmeso = .false.
-   if ( registry_match('init_submeso') )   lsubmeso = .true.
-
-   tavg_loc_WVEL      = 0 ; tavg_loc_VVEL      = 0
-   tavg_loc_WISOP     = 0 ; tavg_loc_VISOP     = 0
-   tavg_loc_WSUBM     = 0 ; tavg_loc_VSUBM     = 0
- 
-   tavg_id_WVEL   = tavg_id('WVEL')
-   tavg_id_VVEL   = tavg_id('VVEL')
-
-   !*** error checking
-   if (tavg_id_WVEL  == 0 .or. tavg_id_VVEL  == 0 ) then
-     call document ('tavg_moc_diags', &
-         'Error in moc diagnostics computations: none of the following should be zero')
-     call document ('tavg_moc_diags', 'tavg_id_WVEL', tavg_id_WVEL)
-     call document ('tavg_moc_diags', 'tavg_id_VVEL', tavg_id_VVEL)
-     call exit_POP (SigAbort, '(tavg_moc_diags) ERROR',out_unit=stdout)
-   endif
- 
-   tavg_loc_WVEL = avail_tavg_fields(tavg_id_WVEL)%buf_loc
-   tavg_loc_VVEL = avail_tavg_fields(tavg_id_VVEL)%buf_loc
-
-   !*** error checking
-   if (tavg_loc_WVEL  == 0 .or. tavg_loc_VVEL  == 0 ) then
-     call document ('tavg_moc_diags', &
-         'Error in moc diagnostics computations: none of the following should be zero')
-     call document ('tavg_moc_diags', 'tavg_loc_WVEL', tavg_loc_WVEL)
-     call document ('tavg_moc_diags', 'tavg_loc_VVEL', tavg_loc_VVEL)
-     call exit_POP (SigAbort, '(tavg_moc_diags) ERROR',out_unit=stdout)
-   endif
-
-   if (ldiag_gm_bolus) then
- 
-     tavg_id_WISOP  = tavg_id('WISOP')
-     tavg_id_VISOP  = tavg_id('VISOP')
- 
-     !*** error checking
-     if (tavg_id_WISOP  == 0 .or. tavg_id_VISOP  == 0 ) then
-       call document ('tavg_moc_diags', &
-           'Error in moc diagnostics computations: none of the following should be zero')
-       call document ('tavg_moc_diags', 'tavg_id_WISOP',  tavg_id_WISOP)
-       call document ('tavg_moc_diags', 'tavg_id_VISOP',  tavg_id_VISOP)
-       call exit_POP (SigAbort, '(tavg_moc_diags) ERROR',out_unit=stdout)
-     endif
-
-     tavg_loc_WISOP = avail_tavg_fields(tavg_id_WISOP)%buf_loc
-     tavg_loc_VISOP = avail_tavg_fields(tavg_id_VISOP)%buf_loc
-
-     !*** error checking
-     if (tavg_loc_WISOP  == 0 .or. tavg_loc_VISOP  == 0 ) then
-       call document ('tavg_moc_diags', &
-           'Error in moc diagnostics computations: none of the following should be zero')
-       call document ('tavg_moc_diags', 'tavg_loc_WISOP',  tavg_loc_WISOP)
-       call document ('tavg_moc_diags', 'tavg_loc_VISOP',  tavg_loc_VISOP)
-       call exit_POP (SigAbort, '(tavg_moc_diags) ERROR',out_unit=stdout)
-     endif
-
-   endif ! ldiag_gm_bolus
-
-   if (lsubmeso) then
-
-     tavg_id_WSUBM  = tavg_id('WSUBM')
-     tavg_id_VSUBM  = tavg_id('VSUBM')
-
-     !*** error checking
-     if (tavg_id_WSUBM  == 0 .or. tavg_id_VSUBM  == 0 ) then
-       call document ('tavg_moc_diags', &
-           'Error in moc diagnostics computations: none of the following should be zero')
-       call document ('tavg_moc_diags', 'tavg_id_WSUBM',  tavg_id_WSUBM)
-       call document ('tavg_moc_diags', 'tavg_id_VSUBM',  tavg_id_VSUBM)
-       call exit_POP (SigAbort, '(tavg_moc_diags) ERROR',out_unit=stdout)
-     endif
-
-     tavg_loc_WSUBM = avail_tavg_fields(tavg_id_WSUBM)%buf_loc
-     tavg_loc_VSUBM = avail_tavg_fields(tavg_id_VSUBM)%buf_loc
-
-     !*** error checking
-     if (tavg_loc_WSUBM  == 0 .or. tavg_loc_VSUBM  == 0 ) then
-       call document ('tavg_moc_diags', &
-           'Error in moc diagnostics computations: none of the following should be zero')
-       call document ('tavg_moc_diags', 'tavg_loc_WSUBM',  tavg_loc_WSUBM)
-       call document ('tavg_moc_diags', 'tavg_loc_VSUBM',  tavg_loc_VSUBM)
-       call exit_POP (SigAbort, '(tavg_moc_diags) ERROR',out_unit=stdout)
-     endif
-
-   endif ! lsubmeso
 
    !*** define MOC tavg variable and dimensions
    !*** note that this call fills avail_tavg_nstd_fields
@@ -5681,13 +6022,200 @@
                         TAVG_BUF_3D(:,:,:,:,tavg_loc_VVEL ))
   endif
 
-   ! stop timer
-   call timer_stop(timer_tavg_ccsm_diags_moc)
+  call timer_stop(timer_tavg_ccsm_diags_moc)
  
 !-----------------------------------------------------------------------
 !EOC
 
   end subroutine tavg_moc_diags
+
+!***********************************************************************
+!BOP
+! !IROUTINE: tavg_init_transport_diags
+! !INTERFACE:
+
+ subroutine  tavg_init_transport_diags
+
+! !DESCRIPTION:
+!
+!  Compute northward transport of heat/salt diagnostically from 
+!  other tavg quantities
+!
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+
+!-----------------------------------------------------------------------
+!
+!  local variables:
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+     trans_stream    ! stream in which ADVT is defined
+
+
+   ltavg_n_heat_trans = .false.
+   ltavg_n_salt_trans = .false.
+
+   if (.not. (n_heat_trans_requested .or. n_salt_trans_requested)) return
+
+   tavg_loc_ADVT      = 0 ; tavg_loc_ADVS      = 0
+   tavg_loc_VNT       = 0 ; tavg_loc_VNS       = 0
+   tavg_loc_HDIFT     = 0 ; tavg_loc_HDIFS     = 0
+   tavg_loc_ADVT_ISOP = 0 ; tavg_loc_ADVS_ISOP = 0
+   tavg_loc_VNT_ISOP  = 0 ; tavg_loc_VNS_ISOP  = 0
+   tavg_loc_ADVT_SUBM = 0 ; tavg_loc_ADVS_SUBM = 0
+   tavg_loc_VNT_SUBM  = 0 ; tavg_loc_VNS_SUBM  = 0
+
+   tavg_id_ADVT      = tavg_id('ADVT')
+   tavg_id_ADVS      = tavg_id('ADVS')
+   tavg_id_VNT       = tavg_id('VNT')
+   tavg_id_VNS       = tavg_id('VNS')
+   tavg_id_HDIFT     = tavg_id('HDIFT')
+   tavg_id_HDIFS     = tavg_id('HDIFS')
+
+
+   !*** may not yet be activated, so use abs
+   tavg_loc_ADVT   = abs(avail_tavg_fields(tavg_id_ADVT )%buf_loc)
+   tavg_loc_ADVS   = abs(avail_tavg_fields(tavg_id_ADVS )%buf_loc)
+   tavg_loc_VNT    = abs(avail_tavg_fields(tavg_id_VNT  )%buf_loc)
+   tavg_loc_VNS    = abs(avail_tavg_fields(tavg_id_VNS  )%buf_loc)
+   tavg_loc_HDIFT  = abs(avail_tavg_fields(tavg_id_HDIFT)%buf_loc)
+   tavg_loc_HDIFS  = abs(avail_tavg_fields(tavg_id_HDIFS)%buf_loc)
+
+
+   if (tavg_loc_ADVT  == 0 .or. tavg_loc_ADVS  == 0 .or.  &
+       tavg_loc_VNT   == 0 .or. tavg_loc_VNS   == 0 .or.  &
+       tavg_loc_HDIFT == 0 .or. tavg_loc_HDIFS == 0) then
+       call document ('tavg_transport', &
+         'Error in heat/salt transport diags: none of the following should be zero')
+       call document ('tavg_transport', 'tavg_loc_ADVT',  tavg_loc_ADVT)
+       call document ('tavg_transport', 'tavg_loc_ADVS',  tavg_loc_ADVS)
+       call document ('tavg_transport', 'tavg_loc_VNT ',  tavg_loc_VNT )
+       call document ('tavg_transport', 'tavg_loc_VNS ',  tavg_loc_VNS )
+       call document ('tavg_transport', 'tavg_loc_HDIFT', tavg_loc_HDIFT)
+       call document ('tavg_transport', 'tavg_loc_HDIFS', tavg_loc_HDIFS)
+       call exit_POP (SigAbort, '(tavg_transport) ERROR',out_unit=stdout)
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  checks for gm_bolus option terms
+!
+!-----------------------------------------------------------------------
+
+   if (ldiag_gm_bolus) then
+       tavg_id_ADVT_ISOP = tavg_id('ADVT_ISOP')
+       tavg_id_ADVS_ISOP = tavg_id('ADVS_ISOP')
+       tavg_id_VNT_ISOP  = tavg_id('VNT_ISOP')
+       tavg_id_VNS_ISOP  = tavg_id('VNS_ISOP')
+
+       !*** note: error checking for tavg_id is done in POP_checks
+       !*** may not yet be activated, so use abs
+       tavg_loc_ADVT_ISOP = abs(avail_tavg_fields(tavg_id_ADVT_ISOP)%buf_loc)
+       tavg_loc_ADVS_ISOP = abs(avail_tavg_fields(tavg_id_ADVS_ISOP)%buf_loc)
+       tavg_loc_VNT_ISOP  = abs(avail_tavg_fields(tavg_id_VNT_ISOP )%buf_loc)
+       tavg_loc_VNS_ISOP  = abs(avail_tavg_fields(tavg_id_VNS_ISOP )%buf_loc)
+
+       if (tavg_loc_ADVT_ISOP  == 0 .or. tavg_loc_ADVS_ISOP  == 0 .or.  &
+           tavg_loc_VNT_ISOP   == 0 .or. tavg_loc_VNS_ISOP   == 0 ) then
+          call document ('tavg_transport', &
+            'Error in heat/salt transport diags: none of the following should be zero')
+          call document ('tavg_transport', 'tavg_loc_ADVT_ISOP',  tavg_loc_ADVT)
+          call document ('tavg_transport', 'tavg_loc_ADVS_ISOP',  tavg_loc_ADVS)
+          call document ('tavg_transport', 'tavg_loc_VNT_ISOP ',  tavg_loc_VNT )
+          call document ('tavg_transport', 'tavg_loc_VNS_ISOP ',  tavg_loc_VNS )
+            call exit_POP (SigAbort, '(tavg_transport) ERROR',out_unit=stdout)
+       endif ! tavg_id testing
+   endif ! ldiag_gm_bolus
+
+!-----------------------------------------------------------------------
+!
+!  checks for submeso option terms
+!
+!-----------------------------------------------------------------------
+
+   if (lsubmeso) then
+       tavg_id_ADVT_SUBM = tavg_id('ADVT_SUBM')
+       tavg_id_ADVS_SUBM = tavg_id('ADVS_SUBM')
+       tavg_id_VNT_SUBM  = tavg_id('VNT_SUBM')
+       tavg_id_VNS_SUBM  = tavg_id('VNS_SUBM')
+
+       !*** may not yet be activated, so use abs
+       tavg_loc_ADVT_SUBM = abs(avail_tavg_fields(tavg_id_ADVT_SUBM)%buf_loc)
+       tavg_loc_ADVS_SUBM = abs(avail_tavg_fields(tavg_id_ADVS_SUBM)%buf_loc)
+       tavg_loc_VNT_SUBM  = abs(avail_tavg_fields(tavg_id_VNT_SUBM )%buf_loc)
+       tavg_loc_VNS_SUBM  = abs(avail_tavg_fields(tavg_id_VNS_SUBM )%buf_loc)
+
+       if (tavg_loc_ADVT_SUBM  == 0 .or. tavg_loc_ADVS_SUBM  == 0 .or.  &
+           tavg_loc_VNT_SUBM   == 0 .or. tavg_loc_VNS_SUBM   == 0 ) then
+          call document ('tavg_transport', &
+            'Error in heat/salt transport diags: none of the following should be zero')
+          call document ('tavg_transport', 'tavg_loc_ADVT_SUBM',  tavg_loc_ADVT_SUBM)
+          call document ('tavg_transport', 'tavg_loc_ADVS_SUBM',  tavg_loc_ADVS_SUBM)
+          call document ('tavg_transport', 'tavg_loc_VNT_SUBM ',  tavg_loc_VNT_SUBM )
+          call document ('tavg_transport', 'tavg_loc_VNS_SUBM ',  tavg_loc_VNS_SUBM )
+            call exit_POP (SigAbort, '(tavg_transport) ERROR',out_unit=stdout)
+       endif ! tavg_id testing
+   endif ! lsubmeso
+
+!-----------------------------------------------------------------------
+!
+!  Now confirm that all required fields are in the same stream
+!
+!-----------------------------------------------------------------------
+
+   trans_stream =  tavg_in_which_stream(tavg_id_ADVT)
+
+   if (lsubmeso) then
+     if (tavg_in_this_stream(tavg_id_ADVS,     trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VNT,      trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VNS,      trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_ADVT_ISOP,trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_ADVS_ISOP,trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VNT_ISOP, trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VNS_ISOP, trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_ADVT_SUBM,trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_ADVS_SUBM,trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VNT_SUBM, trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VNS_SUBM, trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_HDIFT,    trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_HDIFS,    trans_stream)          ) then
+         if (n_heat_trans_requested) ltavg_n_heat_trans(trans_stream) = .true.
+         if (n_salt_trans_requested) ltavg_n_salt_trans(trans_stream) = .true.
+     endif
+   else if (ldiag_gm_bolus) then
+     if (tavg_in_this_stream(tavg_id_ADVS,     trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VNT,      trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VNS,      trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_ADVT_ISOP,trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_ADVS_ISOP,trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VNT_ISOP, trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VNS_ISOP, trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_HDIFT,    trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_HDIFS,    trans_stream)          ) then
+         if (n_heat_trans_requested) ltavg_n_heat_trans(trans_stream) = .true.
+         if (n_salt_trans_requested) ltavg_n_salt_trans(trans_stream) = .true.
+     endif
+   else 
+     if (tavg_in_this_stream(tavg_id_ADVS,     trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VNT,      trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_VNS,      trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_HDIFT,    trans_stream)  .and.   &
+         tavg_in_this_stream(tavg_id_HDIFS,    trans_stream)          ) then
+         if (n_heat_trans_requested) ltavg_n_heat_trans(trans_stream) = .true.
+         if (n_salt_trans_requested) ltavg_n_salt_trans(trans_stream) = .true.
+     endif
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+  end subroutine  tavg_init_transport_diags
 
 
 !***********************************************************************
@@ -5706,7 +6234,6 @@
 ! !REVISION HISTORY:
 !  same as module
 
-
 ! !INPUT PARAMETERS:
 
    integer (int_kind), intent(in) ::  &
@@ -5718,39 +6245,9 @@
 
 !-----------------------------------------------------------------------
 !
-!     local variables
+!  local variables:
 !
 !-----------------------------------------------------------------------
-
-   integer (int_kind) ::    &
-      tavg_id_ADVT,         &
-      tavg_id_ADVS ,        &
-      tavg_id_VNT,          &
-      tavg_id_VNS,          &
-      tavg_id_HDIFT,        &
-      tavg_id_HDIFS,        &
-      tavg_id_ADVT_ISOP,    &
-      tavg_id_ADVS_ISOP,    &
-      tavg_id_VNT_ISOP,     &
-      tavg_id_VNS_ISOP,     &
-      tavg_loc_ADVT,        &
-      tavg_loc_ADVS ,       &
-      tavg_loc_VNT,         &
-      tavg_loc_VNS,         &
-      tavg_loc_HDIFT,       &
-      tavg_loc_HDIFS,       &
-      tavg_loc_ADVT_ISOP,   &
-      tavg_loc_ADVS_ISOP,   &
-      tavg_loc_VNT_ISOP,    &
-      tavg_loc_VNS_ISOP,    &
-      tavg_id_ADVT_SUBM,    &
-      tavg_id_ADVS_SUBM,    &
-      tavg_id_VNT_SUBM,     &
-      tavg_id_VNS_SUBM,     &
-      tavg_loc_ADVT_SUBM,   &
-      tavg_loc_ADVS_SUBM,   &
-      tavg_loc_VNT_SUBM,    &
-      tavg_loc_VNS_SUBM    
 
    integer (int_kind) ::    &
       indx1,                &! index
@@ -5762,92 +6259,9 @@
       indx7,                &
       n
 
-   logical (log_kind) ::  &
-      ldiag_gm_bolus,     &  ! local logical for diag_gm_bolus
-      lsubmeso               ! local logical for submesoscale_mixing
-
    if (.not. (ltavg_n_heat_trans(ns) .or. ltavg_n_salt_trans(ns))) return
 
-   !*** start timer
    call timer_start(timer_tavg_ccsm_diags_trans)
-
-   ldiag_gm_bolus = .false.
-   if ( registry_match('diag_gm_bolus') )  ldiag_gm_bolus = .true.
-
-   lsubmeso = .false.
-   if ( registry_match('init_submeso') )   lsubmeso = .true.
-
-   tavg_loc_ADVT      = 0 ; tavg_loc_ADVS      = 0
-   tavg_loc_VNT       = 0 ; tavg_loc_VNS       = 0
-   tavg_loc_HDIFT     = 0 ; tavg_loc_HDIFS     = 0
-   tavg_loc_ADVT_ISOP = 0 ; tavg_loc_ADVS_ISOP = 0
-   tavg_loc_VNT_ISOP  = 0 ; tavg_loc_VNS_ISOP  = 0
-   tavg_loc_ADVT_SUBM = 0 ; tavg_loc_ADVS_SUBM = 0
-   tavg_loc_VNT_SUBM  = 0 ; tavg_loc_VNS_SUBM  = 0
- 
-
-  !*** error checking 
-   tavg_loc_ADVT   = avail_tavg_fields(tavg_id('ADVT' ))%buf_loc
-   tavg_loc_ADVS   = avail_tavg_fields(tavg_id('ADVS' ))%buf_loc
-   tavg_loc_VNT    = avail_tavg_fields(tavg_id('VNT'  ))%buf_loc
-   tavg_loc_VNS    = avail_tavg_fields(tavg_id('VNS'  ))%buf_loc
-   tavg_loc_HDIFT  = avail_tavg_fields(tavg_id('HDIFT'))%buf_loc
-   tavg_loc_HDIFS  = avail_tavg_fields(tavg_id('HDIFS'))%buf_loc
-
-   !*** error checking
-
-   if (tavg_loc_ADVT  == 0 .or. tavg_loc_ADVS  == 0 .or.  &
-       tavg_loc_VNT   == 0 .or. tavg_loc_VNS   == 0 .or.  &
-       tavg_loc_HDIFT == 0 .or. tavg_loc_HDIFS == 0) then
-       call document ('tavg_transport_diags', &
-         'Error in heat/salt transport diags: none of the following should be zero')
-       call document ('tavg_transport_diags', 'tavg_loc_ADVT',  tavg_loc_ADVT)
-       call document ('tavg_transport_diags', 'tavg_loc_ADVS',  tavg_loc_ADVS)
-       call document ('tavg_transport_diags', 'tavg_loc_VNT ',  tavg_loc_VNT )
-       call document ('tavg_transport_diags', 'tavg_loc_VNS ',  tavg_loc_VNS )
-       call document ('tavg_transport_diags', 'tavg_loc_HDIFT', tavg_loc_HDIFT)
-       call document ('tavg_transport_diags', 'tavg_loc_HDIFS', tavg_loc_HDIFS)
-       call exit_POP (SigAbort, '(tavg_transport_diags) ERROR',out_unit=stdout)
-   endif
-
-   if (ldiag_gm_bolus) then
-       !*** note: error checking for tavg_id is done in POP_checks
-       tavg_loc_ADVT_ISOP = avail_tavg_fields(tavg_id('ADVT_ISOP'))%buf_loc
-       tavg_loc_ADVS_ISOP = avail_tavg_fields(tavg_id('ADVS_ISOP'))%buf_loc
-       tavg_loc_VNT_ISOP  = avail_tavg_fields(tavg_id('VNT_ISOP') )%buf_loc
-       tavg_loc_VNS_ISOP  = avail_tavg_fields(tavg_id('VNS_ISOP') )%buf_loc
-
-       !*** error checking 
-       if (tavg_loc_ADVT_ISOP  == 0 .or. tavg_loc_ADVS_ISOP  == 0 .or.  &
-           tavg_loc_VNT_ISOP   == 0 .or. tavg_loc_VNS_ISOP   == 0 ) then
-          call document ('tavg_transport_diags', &
-            'Error in heat/salt transport diags: none of the following should be zero')
-          call document ('tavg_transport_diags', 'tavg_loc_ADVT_ISOP',  tavg_loc_ADVT)
-          call document ('tavg_transport_diags', 'tavg_loc_ADVS_ISOP',  tavg_loc_ADVS)
-          call document ('tavg_transport_diags', 'tavg_loc_VNT_ISOP ',  tavg_loc_VNT )
-          call document ('tavg_transport_diags', 'tavg_loc_VNS_ISOP ',  tavg_loc_VNS )
-            call exit_POP (SigAbort, '(tavg_transport_diags) ERROR',out_unit=stdout)
-       endif ! tavg_id testing
-   endif ! ldiag_gm_bolus
-
-   if (lsubmeso) then
-       tavg_loc_ADVT_SUBM = avail_tavg_fields(tavg_id('ADVT_SUBM'))%buf_loc
-       tavg_loc_ADVS_SUBM = avail_tavg_fields(tavg_id('ADVS_SUBM'))%buf_loc
-       tavg_loc_VNT_SUBM  = avail_tavg_fields(tavg_id('VNT_SUBM' ))%buf_loc
-       tavg_loc_VNS_SUBM  = avail_tavg_fields(tavg_id('VNS_SUBM' ))%buf_loc
-
-       !*** error checking
-       if (tavg_loc_ADVT_SUBM  == 0 .or. tavg_loc_ADVS_SUBM  == 0 .or.  &
-           tavg_loc_VNT_SUBM   == 0 .or. tavg_loc_VNS_SUBM   == 0 ) then
-          call document ('tavg_transport_diags', &
-            'Error in heat/salt transport diags: none of the following should be zero')
-          call document ('tavg_transport_diags', 'tavg_loc_ADVT_SUBM',  tavg_loc_ADVT_SUBM)
-          call document ('tavg_transport_diags', 'tavg_loc_ADVS_SUBM',  tavg_loc_ADVS_SUBM)
-          call document ('tavg_transport_diags', 'tavg_loc_VNT_SUBM ',  tavg_loc_VNT_SUBM )
-          call document ('tavg_transport_diags', 'tavg_loc_VNS_SUBM ',  tavg_loc_VNS_SUBM )
-            call exit_POP (SigAbort, '(tavg_transport_diags) ERROR',out_unit=stdout)
-       endif ! tavg_id testing
-   endif ! lsubmeso
 
   !*** define heat transport diagnostics fields and dimensions
   !*** note that this call fills avail_tavg_nstd_fields
@@ -6170,13 +6584,10 @@
 
    integer (int_kind) ::  &
       iblock,             &! local block number
-      n_reg,              &! loop index
-      tavg_id_TEMP,       &! index for TEMP
-      tavg_loc_TEMP        ! location for TEMP in TAVG_BUF_3D
+      n_reg                ! loop index
 
    real (r8), dimension (:,:,:), allocatable ::  &
       WORK
-
 
    if (.not. ltavg_nino_diags(ns)) return
 

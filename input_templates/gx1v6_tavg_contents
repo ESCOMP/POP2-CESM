@@ -1,3 +1,5 @@
+#  An integer [1,9] in the first column identifies the field's output stream number. 
+#  To deactivate a field, replace the output stream number with  # or ! 
 1  QFLUX
 1  BSF
 1  TFW_T
@@ -81,8 +83,9 @@
 1  HLS_SUBM
 2  SST
 2  SST2
-1  VDC_T
-1  VDC_S
+#  Activate these fields after vertical grid issues have been resolved
+#  VDC_T
+#  VDC_S
 1  UVEL2
 1  VVEL2
 1  WVEL2
@@ -91,7 +94,8 @@
 1  TAUX2
 1  TAUY2
 1  SSH2
-1  VVC
-3  VDC_BCK
-3  VVC_BCK
-1  KVMIX_M
+#  Activate these fields after vertical grid issues have been resolved
+#  VVC
+#  VDC_BCK
+#  VVC_BCK
+#  KVMIX_M

@@ -1,6 +1,41 @@
 
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    25  September 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090925
+Tag Testing: see pop2 documentation page for testing lists. Will also be tested
+             in ccsm4 pre-tag testing.
+Tag Summary:
+
+   This tag contains major changes to the tavg.F90 and supporting modules. The
+   new code allows for the creation of tavg timeseries files "on-the-fly",
+   and by default, the code is set up to create timeseries files of the daily
+   tavg history fields.
+
+   Further testing of this tag may result in changes/corrections. 
+
+ 
+M           18462   source/io_types.F90
+M           18462   source/io.F90
+M           18462   source/io_netcdf.F90
+M           18462   source/tavg.F90
+M           18462   ChangeLog
+M           18462   input_templates/pop2_in_build.csh
+M           18462   input_templates/gx1v6_tavg_contents
+M           18462   input_templates/gx3v5_tavg_contents
+M           18462   input_templates/gx3v7_tavg_contents
+
+===============================================================================
+Tag Creator: njn01
+Tag Date:    24  September 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090924
+Tag Testing: ccsm4_0_beta27 post-tag testing
+Tag Summary:
+ 
+  Correct a problem in diagnostics.F90 when tavg HMXL_2 is NOT requested
+  (nonstandard usage).
+===============================================================================
+Tag Creator: njn01
 Tag Date:    23  September 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090923
 Tag Testing: ccsm4_0_beta27 post-tag testing
