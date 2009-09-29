@@ -42,7 +42,8 @@
              read_field_netcdf,        &
              write_field_netcdf,       &
              define_nstd_netcdf,       &
-             write_nstd_netcdf
+             write_nstd_netcdf,        &
+             write_time_bounds
 
 !EOP
 !BOC
@@ -2539,6 +2540,110 @@
 !EOC
 
  end subroutine define_nstd_netcdf
+
+!***********************************************************************
+ subroutine  write_time_bounds (data_file, time_bound_id, time_bound_dims, time_bound_data)
+
+! !INPUT PARAMETERS:
+   integer (i4), intent (in)                ::  time_bound_id  
+   type (io_dim), dimension(:), intent (in) :: time_bound_dims
+   real (r8), dimension(2,1),intent (in)    ::  time_bound_data
+
+! !INPUT/OUTPUT PARAMETERS:
+   type (datafile), intent (inout)  :: &
+      data_file                         ! file to which field will be written
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (i4), dimension(2) ::  &
+      start,length,count          ! dimension quantities for netCDF
+
+   integer  :: &
+      iostat,  &! netCDF status flag
+      n         ! index
+
+   integer  :: ncid, nout(5)
+
+   logical (log_kind) :: &
+      write_error         ! error flag
+
+!-----------------------------------------------------------------------
+!
+!  exit define mode if necessary
+!
+!-----------------------------------------------------------------------
+
+   write_error = .false.
+
+   if (my_task == master_task) then
+      if (data_file%ldefine) then
+         iostat = nf90_enddef(data_file%id(1))
+         data_file%ldefine = .false.
+         call check_status(iostat)
+         if (iostat /= nf90_noerr) write_error = .true.
+      endif
+   endif
+
+   call broadcast_scalar(write_error, master_task) 
+   if (write_error) then
+      write(stdout,*) '(write_field_netcdf) filename = ', &
+                        trim(data_file%full_name)
+      call exit_POP(sigAbort, &
+                    'Error exiting define mode in netCDF write')
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  make sure field has been defined
+!
+!-----------------------------------------------------------------------
+
+   if (my_task == master_task) then
+      if (time_bound_id == 0) write_error = .true.
+   endif
+
+   call broadcast_scalar(write_error, master_task)
+   if (write_error) then
+      write(stdout,*) '(write_time_bounds) ERROR: undefined field -- time_bound'
+      call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+      call exit_POP(sigAbort,  ' Attempt to write undefined time_bound in netCDF write')
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  allocate dimension start,stop quantities
+!
+!-----------------------------------------------------------------------
+   if (my_task == master_task) then
+     do n=1,2
+       start (n) = time_bound_dims(n)%start
+       length(n) = time_bound_dims(n)%stop - start(n) + 1
+      end do
+
+      iostat = NF90_PUT_VAR (data_file%id(1), time_bound_id, values=time_bound_data,start=start(:),count=length(:))
+
+      if (iostat /= nf90_noerr) then
+         call check_status(iostat)
+         write_error = .true.
+      endif
+   end if ! master_task
+
+   call broadcast_scalar(write_error, master_task)
+
+   if (write_error) then
+      call document('write_time_bounds', 'name', 'time_bounds')
+      call exit_POP(sigAbort, '(write_time_bounds) Error writing time_bounds to netCDF file')
+   endif
+
+
+ end subroutine write_time_bounds
+
 
 !***********************************************************************
 !BOP

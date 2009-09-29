@@ -1645,6 +1645,7 @@
 !-----------------------------------------------------------------------
 
     if (.not. tavg_streams(ns)%ltavg_file_is_open) then
+!   ===================================================
 
     tavg_outfile_orig = trim(tavg_streams(ns)%outfile_orig)
 
@@ -1719,7 +1720,6 @@
 
     call add_attrib_file(tavg_file_desc(ns), 'tavg_sum'    , tavg_sum(ns))
     call add_attrib_file(tavg_file_desc(ns), 'nsteps_total', nsteps_total)
-    call add_attrib_file(tavg_file_desc(ns), 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
     call add_attrib_file(tavg_file_desc(ns), 'tavg_sum_qflux'  , tavg_sum_qflux)
 
     if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
@@ -1740,16 +1740,9 @@
 
     call data_set (tavg_file_desc(ns), 'open')
 
-!-----------------------------------------------------------------------
-!
-!     writing fields to file requires two phases;
-!     in this first phase, we define all the fields to be written
-!
-!-----------------------------------------------------------------------
-
     if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
    
-      call tavg_define_time_bounds       (tavg_file_desc(ns))
+      call tavg_define_time_bounds     (tavg_file_desc(ns))
       call tavg_define_labels_ccsm     (tavg_file_desc(ns),ns)
 
       !*** construct_io_fields
@@ -1772,11 +1765,9 @@
        call data_set (tavg_file_desc(ns), 'define', ccsm_scalars(n,ns))
       enddo
 
-    endif  !ltavg_fmt_out_nc .and. ltavg_write_reg
+      field_counter = 0
 
-    field_counter = 0
-
-    do nfield = 1,num_avail_tavg_fields
+      do nfield = 1,num_avail_tavg_fields
       !*** define only if field is requested, in buffer, and in this stream
       if (tavg_requested(nfield)) then
         if (tavg_in_this_stream(nfield,ns)) then
@@ -1784,52 +1775,56 @@
           call data_set (tavg_file_desc(ns), 'define', tavg_streams(ns)%tavg_fields(field_counter))
         endif
       endif
-    enddo ! nfield
+      enddo ! nfield
 
 !-----------------------------------------------------------------------
 !
 !   define nonstandard fields
 !
 !-----------------------------------------------------------------------
-
-     if (ltavg_fmt_out_nc) then
   
-        do nn = 1, num_avail_tavg_nstd_fields
-          if ( (nn == tavg_MOC    .and. ltavg_moc_diags(ns)   ) .or.  &
-               (nn == tavg_N_HEAT .and. ltavg_n_heat_trans(ns)) .or.  &
-               (nn == tavg_N_SALT .and. ltavg_n_salt_trans(ns)))      then
-            call data_set_nstd_ccsm (                               &
-                tavg_file_desc(ns), 'define', nstd_field_id,            &
-                ndims_nstd_ccsm(nn), io_dims_nstd_ccsm(:,nn),       &
-                short_name=avail_tavg_nstd_fields(nn)%short_name,   &
-                 long_name=avail_tavg_nstd_fields(nn)%long_name,    &
-                     units=avail_tavg_nstd_fields(nn)%units,        &
-               coordinates=avail_tavg_nstd_fields(nn)%coordinates,  &
-             missing_value=avail_tavg_nstd_fields(nn)%missing_value,&
-                fill_value=avail_tavg_nstd_fields(nn)%fill_value,   &
-                    nftype=avail_tavg_nstd_fields(nn)%nftype        )
+      do nn = 1, num_avail_tavg_nstd_fields
+        if ( (nn == tavg_MOC    .and. ltavg_moc_diags(ns)   ) .or.  &
+             (nn == tavg_N_HEAT .and. ltavg_n_heat_trans(ns)) .or.  &
+             (nn == tavg_N_SALT .and. ltavg_n_salt_trans(ns)))      then
 
-            if (nn == tavg_MOC) then
-                moc_id = nstd_field_id
-            elseif (nn == tavg_N_HEAT) then
-                n_heat_id = nstd_field_id
-            elseif (nn == tavg_N_SALT) then
-                n_salt_id = nstd_field_id
-            endif
+          call data_set_nstd_ccsm (                               &
+              tavg_file_desc(ns), 'define', nstd_field_id,        &
+              ndims_nstd_ccsm(nn), io_dims_nstd_ccsm(:,nn),       &
+              short_name=avail_tavg_nstd_fields(nn)%short_name,   &
+               long_name=avail_tavg_nstd_fields(nn)%long_name,    &
+                   units=avail_tavg_nstd_fields(nn)%units,        &
+             coordinates=avail_tavg_nstd_fields(nn)%coordinates,  &
+           missing_value=avail_tavg_nstd_fields(nn)%missing_value,&
+              fill_value=avail_tavg_nstd_fields(nn)%fill_value,   &
+                  nftype=avail_tavg_nstd_fields(nn)%nftype        )
+
+          if (nn == tavg_MOC) then
+              moc_id = nstd_field_id
+          elseif (nn == tavg_N_HEAT) then
+              n_heat_id = nstd_field_id
+          elseif (nn == tavg_N_SALT) then
+              n_salt_id = nstd_field_id
+          endif
          endif ! streams check
         enddo !nn 
 
-      endif ! ltavg_fmt_out_nc
+!-----------------------------------------------------------------------
+!
+!   write nonstandard fields
+!
+!-----------------------------------------------------------------------
 
-      if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
-       call timer_start(timer_write_nstd)
-       call tavg_write_vars_ccsm (tavg_file_desc(ns),num_ccsm_coordinates,   ccsm_coordinates(:,ns))
-       call tavg_write_vars_ccsm (tavg_file_desc(ns),num_ccsm_time_invar(ns),ccsm_time_invar(:,ns))
-       call tavg_write_vars_ccsm (tavg_file_desc(ns),num_ccsm_scalars(ns),   ccsm_scalars(:,ns))
-       call timer_stop(timer_write_nstd)
+        call timer_start(timer_write_nstd)
+        call tavg_write_vars_ccsm (tavg_file_desc(ns),num_ccsm_coordinates,   ccsm_coordinates(:,ns))
+        call tavg_write_vars_ccsm (tavg_file_desc(ns),num_ccsm_time_invar(ns),ccsm_time_invar(:,ns))
+        call tavg_write_vars_ccsm (tavg_file_desc(ns),num_ccsm_scalars(ns),   ccsm_scalars(:,ns))
+        call timer_stop(timer_write_nstd)
+
       endif !ltavg_fmt_out_nc .and. ltavg_write_reg
 
    endif !.not. tavg_streams(ns)%ltavg_file_is_open
+!  ================================================
 
 !-----------------------------------------------------------------------
 !
@@ -1846,7 +1841,6 @@
 
        call tavg_write_vars_ccsm (tavg_file_desc(ns),1,time_coordinate(1,ns))
 
-!==================> fix this (wrt time to close/destroy)
        call tavg_write_time_bounds(tavg_file_desc(ns), ns)
 
        if (time_to_close) then
@@ -2137,7 +2131,6 @@
    endif
    call add_attrib_file(tavg_file_desc_in, 'nsteps_total', nsteps_total)
    call add_attrib_file(tavg_file_desc_in, 'tavg_sum'    , tavg_sum(ns))
-   call add_attrib_file(tavg_file_desc_in, 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
    call add_attrib_file(tavg_file_desc_in, 'tavg_sum_qflux'  , tavg_sum_qflux)
 
 
@@ -2162,7 +2155,6 @@
    call extract_attrib_file(tavg_file_desc_in, 'nsteps_total', &
                                           in_nsteps_total)
    call extract_attrib_file(tavg_file_desc_in, 'tavg_sum', tavg_sum(ns))
-   call extract_attrib_file(tavg_file_desc_in, 'lower_time_bound', tavg_streams(ns)%lower_time_bound)
    call extract_attrib_file(tavg_file_desc_in, 'tavg_sum_qflux', tavg_sum_qflux)
 
    !*** report nsteps total and tavg_sum
@@ -5140,7 +5132,6 @@
                      d1d_array = TIME1D                               )
 
    if (field_id == 0) then
-     call add_attrib_io_field(time_coordinate(1,ns), 'bounds', 'time_bound')
      call add_attrib_io_field(time_coordinate(1,ns), 'calendar', 'noleap')
    endif
 
@@ -5190,7 +5181,6 @@
 
 
    !*** time_bound
-   !*** NB: call data_set_nstd_ccsm
    time_bound_dims(1) = d2_dim
    time_bound_dims(2) = time_dim
    ndims = 2
@@ -5497,32 +5487,22 @@
    character (char_len) ::  &
       nftype
 
-   integer (int_kind), parameter ::  &
-      max_writes = 1
-
    integer (int_kind) ::  &
-      ndims,              &
-      num_writes
+      ndims
 
-   real (r8), dimension(2,max_writes) ::  &
+   real (r8), dimension(2,1) ::  &   ! (2nd dimension is the unlimited dimension)
       data_2d_r8
 
-   num_writes=1  ! place-holder until this model supports multiple times/file
 
-   !*** time bound 
    tavg_streams(ns)%upper_time_bound = tday00
    ndims=2
-   data_2d_r8(1,num_writes) = tavg_streams(ns)%lower_time_bound
-   data_2d_r8(2,num_writes) = tavg_streams(ns)%upper_time_bound
-   nftype = 'double'
-   implied_time_dim = .false.
- 
-   call data_set_nstd_ccsm (tavg_file_desc, 'write',  &
-                            time_bound_id,            &
-                            ndims, time_bound_dims,   &
-                            nftype,                   &
-           implied_time_dim=implied_time_dim,         &
-                data_2d_r8 = data_2d_r8)
+   data_2d_r8(1,1) = tavg_streams(ns)%lower_time_bound
+   data_2d_r8(2,1) = tavg_streams(ns)%upper_time_bound
+
+   time_bound_dims(2)%start = time_dim%start
+   time_bound_dims(2)%stop  = time_dim%stop 
+
+   call write_time_bounds (tavg_file_desc,time_bound_id,time_bound_dims, data_2d_r8 )
 
    tavg_streams(ns)%lower_time_bound = tday00 
 

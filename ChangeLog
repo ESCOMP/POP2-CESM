@@ -1,6 +1,19 @@
 
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    28  September 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090928
+Tag Testing: see pop2 documentation page for testing lists. Will also be tested
+             in ccsm4 pre-tag testing.
+Tag Summary:
+
+   This tag writes time-dependent time_bound information to tavg timeseries output files.
+
+M           18520   source/io_netcdf.F90
+M           18520   source/tavg.F90
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    25  September 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090925
 Tag Testing: see pop2 documentation page for testing lists. Will also be tested
