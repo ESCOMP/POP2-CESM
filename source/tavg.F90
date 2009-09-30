@@ -5132,6 +5132,7 @@
                      d1d_array = TIME1D                               )
 
    if (field_id == 0) then
+     call add_attrib_io_field(time_coordinate(1,ns), 'bounds', 'time_bound')
      call add_attrib_io_field(time_coordinate(1,ns), 'calendar', 'noleap')
    endif
 
