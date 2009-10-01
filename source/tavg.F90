@@ -2722,7 +2722,7 @@
    ndims = avail_tavg_fields(field_id)%ndims
 
    if ((ndims == 3) .and. &
-       (avail_tavg_fields(field_id)%grid_loc(4:4) == '3') .and. &
+       (avail_tavg_fields(field_id)%grid_loc(4:4) == '4') .and. &
        (k > zt_150m_levs)) return
 
 !-----------------------------------------------------------------------

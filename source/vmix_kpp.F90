@@ -596,14 +596,14 @@
                           long_name=trim(string),             &
                           units='centimeter^2/s',             &
                           grid_loc='3113',                    &
-                          coordinates  ='TLONG TLAT z_w time' ) 
+                          coordinates  ='TLONG TLAT z_w_bot time' ) 
 
    string = 'Vertical diabatic diffusivity due to background'
    call define_tavg_field(tavg_VDC_BCK,'VDC_BCK',3,               &
                           long_name=trim(string),             &
                           units='centimeter^2/s',             &
                           grid_loc='3113',                    &
-                          coordinates  ='TLONG TLAT z_w time' ) 
+                          coordinates  ='TLONG TLAT z_w_bot time' ) 
 
    if (ltidal_mixing) then
      string = 'Vertical viscosity due to Tidal Mixing + background'
@@ -614,21 +614,21 @@
                           long_name=trim(string),             &
                           units='centimeter^2/s',             &
                           grid_loc='3113',                    &
-                          coordinates  ='TLONG TLAT z_w time' )
+                          coordinates  ='TLONG TLAT z_w_bot time' )
 
    string = 'Vertical viscosity due to background'
    call define_tavg_field(tavg_VVC_BCK,'VVC_BCK',3,               &
                           long_name=trim(string),             &
                           units='centimeter^2/s',             &
                           grid_loc='3113',                    &
-                          coordinates  ='TLONG TLAT z_w time' )
+                          coordinates  ='TLONG TLAT z_w_bot time' )
 
    string = 'Energy Used by Vertical Mixing'
    call define_tavg_field(tavg_TPOWER,'TPOWER',3,             &
                           long_name=trim(string),             &
                           units='erg/s',                      &
                           grid_loc='3113',                    &
-                          coordinates  ='TLONG TLAT z_w time' ) 
+                          coordinates  ='TLONG TLAT z_w_bot time' ) 
 
 
 !-----------------------------------------------------------------------

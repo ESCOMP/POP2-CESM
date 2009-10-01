@@ -430,23 +430,23 @@
 
    if (vmix_itype == vmix_type_kpp) then
        call define_tavg_field(tavg_VDC_T,'VDC_T',3,             &
-          long_name='total diabatic vertical TEMP diffusivity',  &
-          units='cm^2/s', grid_loc='3113',                              &
-          coordinates='TLONG TLAT z_w time')
+          long_name='total diabatic vertical TEMP diffusivity', &
+          units='cm^2/s', grid_loc='3113',                      &
+          coordinates='TLONG TLAT z_w_bot time')
 
        call define_tavg_field(tavg_VDC_S,'VDC_S',3,             &
           long_name='total diabatic vertical SALT diffusivity', &
-          units='cm^2/s', grid_loc='3113',                              &
-          coordinates='TLONG TLAT z_w time')
+          units='cm^2/s', grid_loc='3113',                      &
+          coordinates='TLONG TLAT z_w_bot time')
 
-       call define_tavg_field(tavg_VVC,'VVC',3,             &
-          long_name='total vertical momentum viscosity', &
-          units='cm^2/s', grid_loc='3113',                              &
-          coordinates='TLONG TLAT z_w time')
+       call define_tavg_field(tavg_VVC,'VVC',3,                 &
+          long_name='total vertical momentum viscosity',        &
+          units='cm^2/s', grid_loc='3113',                      &
+          coordinates='TLONG TLAT z_w_bot time')
    endif
 
-   call define_tavg_field(tavg_VUF,'VUF',3,                      &
-                          long_name='Zonal viscous stress',      &
+   call define_tavg_field(tavg_VUF,'VUF',3,                     &
+                          long_name='Zonal viscous stress',     &
                           units='    ', grid_loc='3222')
 
    call define_tavg_field(tavg_VVF,'VVF',3,                      &
@@ -593,26 +593,26 @@
          endif
 
          if (tavg_requested(tavg_VDC_T) .and. mix_pass /= 1) then
-            do kk=1,km-1
-              ! kk index shifted because VDC is at cell bottom
-              ! while output axis is at cell top
-              call accumulate_tavg_field(VDC(:,:,kk,1,bid),tavg_VDC_T,bid,kk+1)
+            do kk=1,km
+              ! kk index is no longer shifted because z_w_bot is now an output coordinate
+              ! VDC is at cell bottom
+              call accumulate_tavg_field(VDC(:,:,kk,1,bid),tavg_VDC_T,bid,kk)
             end do
          endif
 
          if (tavg_requested(tavg_VDC_S) .and. mix_pass /= 1) then
-            do kk=1,km-1
-              ! kk index shifted because VDC is at cell bottom
-              ! while output axis is at cell top
-              call accumulate_tavg_field(VDC(:,:,kk,2,bid),tavg_VDC_S,bid,kk+1)
+            do kk=1,km
+              ! kk index is no longer shifted because z_w_bot is now an output coordinate
+              ! VDC is at cell bottom
+              call accumulate_tavg_field(VDC(:,:,kk,2,bid),tavg_VDC_S,bid,kk)
             end do
          endif
 
          if (tavg_requested(tavg_VVC) .and. mix_pass /= 1) then
-            do kk=1,km-1
-              ! kk index shifted because VVC is at cell bottom
-              ! while output axis is at cell top
-              call accumulate_tavg_field(VVC(:,:,kk,bid),tavg_VVC,bid,kk+1)
+            do kk=1,km
+              ! kk index is no longer shifted because z_w_bot is now an output coordinate
+              ! VVC is at cell bottom
+              call accumulate_tavg_field(VVC(:,:,kk,bid),tavg_VVC,bid,kk)
             end do
          endif
 
