@@ -1757,6 +1757,7 @@
        call data_set (tavg_file_desc(ns), 'define', ccsm_coordinates(n,ns))
       enddo
 
+
       do n=1,num_ccsm_time_invar(ns)
        call data_set (tavg_file_desc(ns), 'define', ccsm_time_invar(n,ns))
       enddo
@@ -1764,18 +1765,19 @@
       do n=1,num_ccsm_scalars(ns)
        call data_set (tavg_file_desc(ns), 'define', ccsm_scalars(n,ns))
       enddo
+    endif  !ltavg_fmt_out_nc .and. ltavg_write_reg
 
-      field_counter = 0
+    field_counter = 0
 
-      do nfield = 1,num_avail_tavg_fields
-      !*** define only if field is requested, in buffer, and in this stream
-      if (tavg_requested(nfield)) then
-        if (tavg_in_this_stream(nfield,ns)) then
-          field_counter = field_counter + 1
-          call data_set (tavg_file_desc(ns), 'define', tavg_streams(ns)%tavg_fields(field_counter))
-        endif
+    do nfield = 1,num_avail_tavg_fields
+    !*** define only if field is requested, in buffer, and in this stream
+    if (tavg_requested(nfield)) then
+      if (tavg_in_this_stream(nfield,ns)) then
+        field_counter = field_counter + 1
+        call data_set (tavg_file_desc(ns), 'define', tavg_streams(ns)%tavg_fields(field_counter))
       endif
-      enddo ! nfield
+    endif
+    enddo ! nfield
 
 !-----------------------------------------------------------------------
 !
@@ -1783,6 +1785,8 @@
 !
 !-----------------------------------------------------------------------
   
+    if (ltavg_fmt_out_nc) then
+
       do nn = 1, num_avail_tavg_nstd_fields
         if ( (nn == tavg_MOC    .and. ltavg_moc_diags(ns)   ) .or.  &
              (nn == tavg_N_HEAT .and. ltavg_n_heat_trans(ns)) .or.  &
@@ -1808,6 +1812,7 @@
           endif
          endif ! streams check
         enddo !nn 
+    endif !ltavg_fmt_out_nc
 
 !-----------------------------------------------------------------------
 !
@@ -1815,13 +1820,13 @@
 !
 !-----------------------------------------------------------------------
 
+    if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
         call timer_start(timer_write_nstd)
         call tavg_write_vars_ccsm (tavg_file_desc(ns),num_ccsm_coordinates,   ccsm_coordinates(:,ns))
         call tavg_write_vars_ccsm (tavg_file_desc(ns),num_ccsm_time_invar(ns),ccsm_time_invar(:,ns))
         call tavg_write_vars_ccsm (tavg_file_desc(ns),num_ccsm_scalars(ns),   ccsm_scalars(:,ns))
         call timer_stop(timer_write_nstd)
-
-      endif !ltavg_fmt_out_nc .and. ltavg_write_reg
+    endif !ltavg_fmt_out_nc .and. ltavg_write_reg
 
    endif !.not. tavg_streams(ns)%ltavg_file_is_open
 !  ================================================

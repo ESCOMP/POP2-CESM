@@ -1,6 +1,16 @@
 
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    30  September 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090930
+Tag Testing: 5-day + 5-day smoke test; 10-day + 25-day smoke test 
+             (test regular and restart history files)
+Tag Summary: Fix bug introduced in ccsm_pop_2_1_20090929 tag that affected
+             the creation of tavg restart files (*.rh.* files)
+
+M           18687   source/tavg.F90
+===============================================================================
+Tag Creator: njn01
 Tag Date:    29  September 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090929
 Tag Testing: two-month C gx1v6 side-by-side comparison with ccsm4_0_beta23 tag
