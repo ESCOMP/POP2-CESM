@@ -1693,10 +1693,10 @@
        open(ovf_diag_unit, file=overflows_diag_outfile, status='unknown')
        write(ovf_diag_unit,*)' '
        close(ovf_diag_unit)
-   endif
 
-   write(stdout,'(a,a)') &
-      'Overflow diagnostics written to file: ', trim(overflows_diag_outfile)
+       write(stdout,'(a,a)') &
+          'Overflow diagnostics written to file: ', trim(overflows_diag_outfile)
+   endif
 
 !-----------------------------------------------------------------------
 !EOC

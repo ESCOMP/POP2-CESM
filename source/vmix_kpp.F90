@@ -595,14 +595,14 @@
    call define_tavg_field(tavg_KVMIX,'KVMIX',3,               &
                           long_name=trim(string),             &
                           units='centimeter^2/s',             &
-                          grid_loc='3112',                    &
+                          grid_loc='3113',                    &
                           coordinates  ='TLONG TLAT z_w time' ) 
 
    string = 'Vertical diabatic diffusivity due to background'
    call define_tavg_field(tavg_VDC_BCK,'VDC_BCK',3,               &
                           long_name=trim(string),             &
                           units='centimeter^2/s',             &
-                          grid_loc='3112',                    &
+                          grid_loc='3113',                    &
                           coordinates  ='TLONG TLAT z_w time' ) 
 
    if (ltidal_mixing) then
@@ -613,21 +613,21 @@
    call define_tavg_field(tavg_KVMIX_M,'KVMIX_M',3,               &
                           long_name=trim(string),             &
                           units='centimeter^2/s',             &
-                          grid_loc='3112',                    &
+                          grid_loc='3113',                    &
                           coordinates  ='TLONG TLAT z_w time' )
 
    string = 'Vertical viscosity due to background'
    call define_tavg_field(tavg_VVC_BCK,'VVC_BCK',3,               &
                           long_name=trim(string),             &
                           units='centimeter^2/s',             &
-                          grid_loc='3112',                    &
+                          grid_loc='3113',                    &
                           coordinates  ='TLONG TLAT z_w time' )
 
    string = 'Energy Used by Vertical Mixing'
    call define_tavg_field(tavg_TPOWER,'TPOWER',3,             &
                           long_name=trim(string),             &
                           units='erg/s',                      &
-                          grid_loc='3112',                    &
+                          grid_loc='3113',                    &
                           coordinates  ='TLONG TLAT z_w time' ) 
 
 
@@ -1245,32 +1245,30 @@
       end do
       end do
 
-      if ( k < km ) then
-        if (tavg_requested(tavg_KVMIX)) then
-           ! k index shifted because KVMIX is at cell bottom
-           ! while output axis is at cell top
-           call accumulate_tavg_field(KVMIX,tavg_KVMIX,bid,k+1)
-        endif
- 
-        if (tavg_requested(tavg_KVMIX_M)) then
-           ! k index shifted because KVMIX_M is at cell bottom
-           ! while output axis is at cell top
-           call accumulate_tavg_field(KVMIX_M,tavg_KVMIX_M,bid,k+1)
-        endif
-
-        if (tavg_requested(tavg_VDC_BCK)) then
-           ! k index shifted because bckgrnd_vdc is at cell bottom
-           ! while output axis is at cell top
-           call accumulate_tavg_field(bckgrnd_vdc(:,:,k,bid),tavg_VDC_BCK,bid,k+1)
-        endif
-
-        if (tavg_requested(tavg_VVC_BCK)) then
-           ! k index shifted because bckgrnd_vdc is at cell bottom
-           ! while output axis is at cell top
-           call accumulate_tavg_field(bckgrnd_vvc(:,:,k,bid),tavg_VVC_BCK,bid,k+1)
-        endif
-
+      if (tavg_requested(tavg_KVMIX)) then
+         ! k index shifted because KVMIX is at cell bottom
+         ! while output axis is at cell top
+         call accumulate_tavg_field(KVMIX,tavg_KVMIX,bid,k)
       endif
+ 
+      if (tavg_requested(tavg_KVMIX_M)) then
+         ! k index shifted because KVMIX_M is at cell bottom
+         ! while output axis is at cell top
+         call accumulate_tavg_field(KVMIX_M,tavg_KVMIX_M,bid,k)
+      endif
+
+      if (tavg_requested(tavg_VDC_BCK)) then
+         ! k index shifted because bckgrnd_vdc is at cell bottom
+         ! while output axis is at cell top
+         call accumulate_tavg_field(bckgrnd_vdc(:,:,k,bid),tavg_VDC_BCK,bid,k)
+      endif
+
+      if (tavg_requested(tavg_VVC_BCK)) then
+         ! k index shifted because bckgrnd_vdc is at cell bottom
+         ! while output axis is at cell top
+         call accumulate_tavg_field(bckgrnd_vvc(:,:,k,bid),tavg_VVC_BCK,bid,k)
+      endif
+
  
       if (tavg_requested(tavg_TPOWER)) then
          WORK1(:,:) = KVMIX(:,:)*RHOMIX(:,:,k)*DBLOC(:,:,k)/ &

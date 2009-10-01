@@ -1425,7 +1425,7 @@ contains
 
    call define_tavg_field(tavg_PAR_avg,'PAR_avg',3,                    &
                           long_name='PAR Average over Model Cell',     &
-                          units='w/m^2', grid_loc='3113',              &
+                          units='w/m^2', grid_loc='3114',              &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_POC_FLUX_IN,'POC_FLUX_IN',3,            &
@@ -1505,72 +1505,72 @@ contains
 
    call define_tavg_field(tavg_graze_sp,'graze_sp',3,                  &
                           long_name='Small Phyto Grazing',             &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_graze_diat,'graze_diat',3,              &
                           long_name='Diatom Grazing',                  &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_graze_diaz,'graze_diaz',3,              &
                           long_name='Diazotroph Grazing',              &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_graze_TOT,'graze_TOT',3,                &
                           long_name='Total Grazing',                   &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_sp_loss,'sp_loss',3,                    &
                           long_name='Small Phyto Loss',                &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_diat_loss,'diat_loss',3,                &
                           long_name='Diatom Loss',                     &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_diaz_loss,'diaz_loss',3,                &
                           long_name='Diaz Loss',                       &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_zoo_loss,'zoo_loss',3,                  &
                           long_name='Zooplankton Loss',                &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_sp_agg,'sp_agg',3,                      &
                           long_name='Small Phyto Aggregate',           &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_diat_agg,'diat_agg',3,                  &
                           long_name='Diatom Aggregate',                &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_photoC_sp,'photoC_sp',3,                &
                           long_name='Small Phyto C Fixation',          &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_photoC_diat,'photoC_diat',3,            &
                           long_name='Diatom C fixation',               &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_photoC_diaz,'photoC_diaz',3,            &
                           long_name='Diaz C Fixation',                 &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_photoC_TOT,'photoC_TOT',3,              &
                           long_name='Total C Fixation',                &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
 !-----------------------------------------------------------------------
@@ -1579,42 +1579,42 @@ contains
 
    call define_tavg_field(tavg_DOC_prod,'DOC_prod',3,                  &
                           long_name='DOC Production',                  &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_DOC_remin,'DOC_remin',3,                &
                           long_name='DOC Remineralization',            &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_DON_prod,'DON_prod',3,                  &
                           long_name='DON Production',                  &
-                          units='mmols/m^3', grid_loc='3113',          &
+                          units='mmols/m^3', grid_loc='3114',          &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_DON_remin,'DON_remin',3,                &
                           long_name='DON Remineralization',            &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_DOFe_prod,'DOFe_prod',3,                &
                           long_name='DOFe Production',                 &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_DOFe_remin,'DOFe_remin',3,              &
                           long_name='DOFe Remineralization',           &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_DOP_prod,'DOP_prod',3,                  &
                           long_name='DOP Production',                  &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_DOP_remin,'DOP_remin',3,                &
                           long_name='DOP Remineralization',            &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_Fe_scavenge,'Fe_scavenge',3,            &
@@ -1629,62 +1629,62 @@ contains
 
    call define_tavg_field(tavg_sp_N_lim,'sp_N_lim',3,                  &
                           long_name='Small Phyto N Limitation',        &
-                          units='none', grid_loc='3113',               &
+                          units='none', grid_loc='3114',               &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_sp_Fe_lim,'sp_Fe_lim',3,                &
                           long_name='Small Phyto Fe Limitation',       &
-                          units='none', grid_loc='3113',               &
+                          units='none', grid_loc='3114',               &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_sp_PO4_lim,'sp_PO4_lim',3,              &
                           long_name='Small Phyto PO4 Limitation',      &
-                          units='none', grid_loc='3113',               &
+                          units='none', grid_loc='3114',               &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_sp_light_lim,'sp_light_lim',3,          &
                           long_name='Small Phyto Light Limitation',    &
-                          units='none', grid_loc='3113',               &
+                          units='none', grid_loc='3114',               &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_diat_N_lim,'diat_N_lim',3,              &
                           long_name='Diatom N Limitation',             &
-                          units='none', grid_loc='3113',               &
+                          units='none', grid_loc='3114',               &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_diat_Fe_lim,'diat_Fe_lim',3,            &
                           long_name='Diatom Fe Limitation',            &
-                          units='none', grid_loc='3113',               &
+                          units='none', grid_loc='3114',               &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_diat_PO4_lim,'diat_PO4_lim',3,          &
                           long_name='Diatom PO4 Limitation',           &
-                          units='none', grid_loc='3113',               &
+                          units='none', grid_loc='3114',               &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_diat_SiO3_lim,'diat_SiO3_lim',3,        &
                           long_name='Diatom SiO3 Limitation',          &
-                          units='none', grid_loc='3113',               &
+                          units='none', grid_loc='3114',               &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_diat_light_lim,'diat_light_lim',3,      &
                           long_name='Diatom Light Limitation',         &
-                          units='none', grid_loc='3113',               &
+                          units='none', grid_loc='3114',               &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_diaz_Fe_lim,'diaz_Fe_lim',3,            &
                           long_name='Diaz Fe Limitation',              &
-                          units='none', grid_loc='3113',               &
+                          units='none', grid_loc='3114',               &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_diaz_P_lim,'diaz_P_lim',3,              &
                           long_name='Diaz PO4 Limitation',             &
-                          units='none', grid_loc='3113',               &
+                          units='none', grid_loc='3114',               &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_diaz_light_lim,'diaz_light_lim',3,      &
                           long_name='Diaz LIGHT Limitation',           &
-                          units='none', grid_loc='3113',               &
+                          units='none', grid_loc='3114',               &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_CaCO3_form,'CaCO3_form',3,              &
@@ -1694,12 +1694,12 @@ contains
 
    call define_tavg_field(tavg_diaz_Nfix,'diaz_Nfix',3,                &
                           long_name='Diaz N Fixation',                 &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_bSi_form,'bSi_form',3,                  &
                           long_name='Diatom Si Uptake',                &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_NITRIF,'NITRIF',3,                      &
@@ -1714,17 +1714,17 @@ contains
 
    call define_tavg_field(tavg_photoFe_sp,'photoFe_sp',3,              &
                           long_name='Small Phyto Fe Uptake',           &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_photoFe_diat,'photoFe_diat',3,          &
                           long_name='Diatom Fe Uptake',                &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_photoFe_diaz,'photoFe_diaz',3,          &
                           long_name='Diaz Fe Uptake',                  &
-                          units='mmol/m^3/s', grid_loc='3113',         &
+                          units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
 !-----------------------------------------------------------------------

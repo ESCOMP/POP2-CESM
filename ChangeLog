@@ -1,6 +1,28 @@
 
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    1  October 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091001
+Tag Testing:  Debug smoke tests gx1v6 and gx3v7. Code walkthrough with Gokhan.
+              Two-month gx1v6 test and review of new output fields by Gokhan.
+            
+Tag Summary: Add support for remaining CMIP5 output fields. Add z_w_bot
+             dimension, and modify diagnostics computations so that
+             vertical dimensions are consistent between code and the tavg file
+             and internally consistent within the tavg file.
+
+M           18702   source/overflows.F90
+M           18702   source/vmix_kpp.F90
+M           18702   source/vertical_mix.F90
+M           18702   source/ecosys_mod.F90
+M           18702   source/tavg.F90
+M           18702   input_templates/pop2_in_build.csh
+M           18702   input_templates/gx1v6_tavg_contents
+M           18702   input_templates/gx1v5_tavg_contents
+M           18702   input_templates/gx3v5_tavg_contents
+M           18702   input_templates/gx3v7_tavg_contents
+===============================================================================
+Tag Creator: njn01
 Tag Date:    30  September 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20090930
 Tag Testing: 5-day + 5-day smoke test; 10-day + 25-day smoke test 

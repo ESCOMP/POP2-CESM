@@ -328,7 +328,7 @@ EOF
 
 if ( ${OCN_GRID_INTERNAL} =~ gx* ) then
   #------------------- shut off time-invariant stream until vertical grid issues are resolved
-  set n_tavg_streams               = 2
+  set n_tavg_streams               = 3
   set tavg_freq_opt_values         = ("'nmonth'","'nday'","'once'")
   set tavg_freq_values             = (1,1,1)
   set tavg_FILE_freq_opt           = ("'nmonth'", "'nmonth'","'once'")

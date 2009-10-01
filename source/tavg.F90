@@ -182,7 +182,7 @@
 
    type (io_dim) ::   &
       i_dim, j_dim,   &! dimension descriptors for horiz dims
-      k_dim,          &! dimension descriptor for vert levels (z_t or z_w grid)
+      k_dim,          &! dimension descriptor for vert levels (z_t, z_w_top, or z_w_bot grid)
       time_dim         ! dimension descriptor for (unlimited) time dim
  
 
@@ -371,10 +371,12 @@
       time_coordinate  (1,                       max_avail_tavg_streams)
 
    type (io_dim) ::       &
-      z_dim,              &! dimension descriptor for vert (z_t or z_w grid)
+      z_dim,              &! dimension descriptor for vert (z_t, z_w_top, or z_w_bot grid)
       zt_dim,             &! dimension descriptor for vert (z_t grid)
       zt_150m_dim,        &! dimension descriptor for near-surf vert (z_t grid)
-      zw_dim,             &! dimension descriptor for vert (z_w grid)
+      zw_dim,             &! dimension descriptor for vert (same as z_w_top; keep for backwards compatability)
+      zw_dim_top,         &! dimension descriptor for vert (z_w_top grid)
+      zw_dim_bot,         &! dimension descriptor for vert (z_w_bot grid)
       tr_dim,             &! dimension descriptor 
       nchar_dim,          &! dimension descriptor for character arrays
       d2_dim,             &! dimension descriptor  
@@ -1099,7 +1101,9 @@
      j_dim      = construct_io_dim('nlat',ny_global)
      zt_dim     = construct_io_dim('z_t',km)
      zt_150m_dim= construct_io_dim('z_t_150m',zt_150m_levs)
-     zw_dim     = construct_io_dim('z_w',km)
+     zw_dim     = construct_io_dim('z_w',km)  ! same as zw_dim_top
+     zw_dim_top = construct_io_dim('z_w_top',km)
+     zw_dim_bot = construct_io_dim('z_w_bot',km)
      time_dim   = construct_io_dim('time',0)    ! "0" ==> unlimited dimension
      tr_dim     = construct_io_dim('tracers',nt)
      nchar_dim  = construct_io_dim('nchar',char_len)
@@ -1585,13 +1589,15 @@
                 case('1')
                   z_dim = zt_dim
                 case('2')
-                  z_dim = zw_dim
+                  z_dim = zw_dim_top
+                case('3')
+                  z_dim = zw_dim_bot
               end select
             else
               z_dim = k_dim
             endif ! lccsm
 
-            if (avail_tavg_fields(nfield)%grid_loc(4:4) == '3') z_dim = zt_150m_dim
+            if (avail_tavg_fields(nfield)%grid_loc(4:4) == '4') z_dim = zt_150m_dim
 
             if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
               do k=1,km
@@ -4264,7 +4270,8 @@
 !-----------------------------------------------------------------------
    real (r4), dimension(km) ::  &
       ZT_R4,      &! single precision array
-      ZW_R4        ! single precision array
+      ZW_R4,      &! single precision array
+      ZW_BOT_R4    ! single precision array
 
    real (r4), dimension(0:km) ::  &
       MOC_Z_R4
@@ -4284,7 +4291,7 @@
    !*** z_t
    ii=ii+1
    ZT_R4 = zt 
-   ccsm_coordinates(ii,ns) = construct_io_field('z_t',zt_dim,                    &
+   ccsm_coordinates(ii,ns) = construct_io_field('z_t',zt_dim,                 &
                          long_name='depth from surface to midpoint of layer', &
                          units    ='centimeters',                             &
                          r1d_array =ZT_R4)
@@ -4296,7 +4303,7 @@
    !*** z_t
    ii=ii+1
    ZT_150m_R4 = zt(1:zt_150m_levs)
-   ccsm_coordinates(ii,ns) = construct_io_field('z_t_150m',zt_150m_dim,          &
+   ccsm_coordinates(ii,ns) = construct_io_field('z_t_150m',zt_150m_dim,       &
                          long_name='depth from surface to midpoint of layer', &
                          units    ='centimeters',                             &
                          r1d_array =ZT_150m_R4)
@@ -4309,7 +4316,7 @@
    ii=ii+1
    ZW_R4(1) = c0 
    ZW_R4(2:km) = zw(1:km-1)
-   ccsm_coordinates(ii,ns) = construct_io_field('z_w',zw_dim,                    &
+   ccsm_coordinates(ii,ns) = construct_io_field('z_w',zw_dim,                 &
                          long_name='depth from surface to top of layer',      &
                          units    ='centimeters',                             &
                          r1d_array =ZW_R4)
@@ -4317,6 +4324,31 @@
    call add_attrib_io_field(ccsm_coordinates(ii,ns), 'positive', 'down')
    call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZW_R4(1 ))
    call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZW_R4(km))
+
+   !*** z_w_top
+   ii=ii+1
+   ZW_R4(1) = c0  ! same as z_w
+   ZW_R4(2:km) = zw(1:km-1)
+   ccsm_coordinates(ii,ns) = construct_io_field('z_w_top',zw_dim_top,         &
+                         long_name='depth from surface to top of layer',      &
+                         units    ='centimeters',                             &
+                         r1d_array =ZW_R4)
+
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'positive', 'down')
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZW_R4(1 ))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZW_R4(km))
+
+   !*** z_w_bot
+   ii=ii+1
+   ZW_BOT_R4(1:km) = zw(1:km)
+   ccsm_coordinates(ii,ns) = construct_io_field('z_w_bot',zw_dim_bot,         &
+                         long_name='depth from surface to bottom of layer',   &
+                         units    ='centimeters',                             &
+                         r1d_array =ZW_BOT_R4)
+
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'positive', 'down')
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZW_BOT_R4(1 ))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZW_BOT_R4(km))
 
 
    if (ltavg_moc_diags(ns) .or. ltavg_n_heat_trans(ns)  .or. ltavg_n_salt_trans(ns)) then

@@ -431,17 +431,17 @@
    if (vmix_itype == vmix_type_kpp) then
        call define_tavg_field(tavg_VDC_T,'VDC_T',3,             &
           long_name='total diabatic vertical TEMP diffusivity',  &
-          units='cm^2/s', grid_loc='3112',                              &
+          units='cm^2/s', grid_loc='3113',                              &
           coordinates='TLONG TLAT z_w time')
 
        call define_tavg_field(tavg_VDC_S,'VDC_S',3,             &
           long_name='total diabatic vertical SALT diffusivity', &
-          units='cm^2/s', grid_loc='3112',                              &
+          units='cm^2/s', grid_loc='3113',                              &
           coordinates='TLONG TLAT z_w time')
 
        call define_tavg_field(tavg_VVC,'VVC',3,             &
           long_name='total vertical momentum viscosity', &
-          units='cm^2/s', grid_loc='3112',                              &
+          units='cm^2/s', grid_loc='3113',                              &
           coordinates='TLONG TLAT z_w time')
    endif
 
