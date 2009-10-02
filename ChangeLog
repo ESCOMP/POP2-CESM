@@ -1,6 +1,17 @@
 
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    2  October 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091002
+Tag Testing:  
+            
+Tag Summary:  Fix diagnostics problem (to be filled in later)
+            
+M           18710   source/tavg.F90
+
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    1  October 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091001a
 Tag Testing:  Visual inspection of gx1v6 tavg fields (*.pop.h.* files)

@@ -1062,14 +1062,28 @@
 !
 !-----------------------------------------------------------------------
  
-   ldiag_bsf      = registry_match('ldiag_bsf')
-   ldiag_gm_bolus = registry_match('diag_gm_bolus')
-   lsubmeso       = registry_match('init_submeso')
-
    !*** external diagnostics initialization routines
    call init_lat_aux_grid         
    call init_moc_ts_transport_arrays   
    call init_diag_bsf(set_in_tavg_contents(tavg_BSF), errorCode)
+
+   !*** important: the following logical variables must be set after calls to 
+   !      external diagnostics initialization routines
+   ldiag_bsf      = registry_match('ldiag_bsf')
+   ldiag_gm_bolus = registry_match('diag_gm_bolus')
+   lsubmeso       = registry_match('init_submeso')
+
+   if (my_task == master_task) then
+      write(stdout,blank_fmt)
+      write(stdout,'(a)') ' Internal tavg Diagnostics Control Variables:'
+      write(stdout,blank_fmt)
+      write(stdout,*) '   (init_tavg) ldiag_bsf      = ', ldiag_bsf
+      write(stdout,*) '   (init_tavg) ldiag_gm_bolus = ', ldiag_gm_bolus
+      write(stdout,*) '   (init_tavg) lsubmeso       = ', lsubmeso
+      write(stdout,blank_fmt)
+      write(stdout,delim_fmt)
+      call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
+   endif
 
    !*** internal diagnostics initialization routines
    call tavg_init_local_spatial_avg
@@ -5681,8 +5695,6 @@
 
    if (.not. ldiag_bsf) return
  
-   !*** start bsf timer
-   call timer_start(timer_tavg_ccsm_diags_bsf)
 
    !*** return if attempting to compute every nstep timesteps
    if (tavg_freq_iopt(ns) == freq_opt_nstep) then
@@ -5721,6 +5733,10 @@
      !*** write warning message?
      return
    endif
+
+
+   !*** start bsf timer, now that streams checking is completed
+   call timer_start(timer_tavg_ccsm_diags_bsf)
 
    tavg_loc_SU  = avail_tavg_fields(tavg_id_SU)%buf_loc
    tavg_loc_SV  = avail_tavg_fields(tavg_id_SV)%buf_loc
