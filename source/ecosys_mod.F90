@@ -1052,7 +1052,7 @@ contains
 
    select case (init_ecosys_option)
 
-   case ('restart', 'continue', 'branch', 'hybrid' )
+   case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid' )
 
       ecosys_restart_filename = char_blank
 
@@ -1095,7 +1095,7 @@ contains
          call comp_surf_avg(TRACER_MODULE(:,:,1,:,oldtime,:), &
                             TRACER_MODULE(:,:,1,:,curtime,:))
 
-   case ('file', 'startup')
+   case ('file', 'ccsm_startup')
       call document(subname, 'ecosystem vars being read from separate files')
 
       call file_read_tracer_block(init_ecosys_init_file_fmt, &

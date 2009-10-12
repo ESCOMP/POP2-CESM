@@ -804,8 +804,8 @@
       PHC_msk,MASK_G
 
    logical (log_kind) :: &
-      lccsm_branch      ,&! flag for ccsm 'branch' restart
-      lccsm_hybrid        ! flag for ccsm 'hybrid' restart
+      lccsm_branch      ,&! flag for ccsm 'ccsm_branch' restart
+      lccsm_hybrid        ! flag for ccsm 'ccsm_hybrid' restart
 
    type (block) ::       &
       this_block          ! block information for current block
@@ -937,13 +937,13 @@
        write(stdout,blank_fmt)
        write(stdout, init_ts_nml)
        write(stdout,blank_fmt)
-       if (trim(init_ts_option)    == 'startup' .and.  &
+       if (trim(init_ts_option)    == 'ccsm_startup' .and.  &
            trim(init_ts_suboption) == 'spunup') then
-                init_ts_option = 'startup_spunup'
+                init_ts_option = 'ccsm_startup_spunup'
                 luse_pointer_files = .false.
        endif
        select case (init_ts_option)
-         case ('continue', 'restart', 'branch', 'hybrid') 
+         case ('ccsm_continue', 'restart', 'ccsm_branch', 'ccsm_hybrid') 
             if (luse_pointer_files) then
                write(stdout,*) ' In this case, the init_ts_file' /&
                &/ ' name will be read from the pointer file.'   
@@ -976,7 +976,7 @@
 !
 !-----------------------------------------------------------------------
 
-   case ('continue', 'restart')
+   case ('ccsm_continue', 'restart')
       first_step   = .false.
       lccsm_branch = .false.
       lccsm_hybrid = .false.
@@ -1002,13 +1002,13 @@
 !
 !-----------------------------------------------------------------------
 
-   case ('branch')
+   case ('ccsm_branch')
       first_step   = .false.
       lccsm_branch = .true.
       lccsm_hybrid = .false.
       if (my_task == master_task .and. .not. luse_pointer_files) then
          write(stdout,'(a40,a)') &
-            'Initial T,S branching from restart file:', &
+            'Initial T,S is a ccsm branch starting from the restart file:', &
             trim(init_ts_file)
          call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
       endif
@@ -1024,13 +1024,13 @@
 
       ltavg_restart = .false.
 
-   case ('hybrid')
+   case ('ccsm_hybrid', 'branch')  ! ccsm hybrid start or LANL branch start
       first_step   = .false.
       lccsm_branch = .false.
       lccsm_hybrid = .true.
       if (my_task == master_task .and. .not. luse_pointer_files) then
          write(stdout,'(a80,a)') &
-            'Initial T,S hybrid start from restart file:', &
+            'Initial T,S ccsm_hybrid start from restart file:', &
             trim(init_ts_file)
          call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
       endif
@@ -1045,9 +1045,9 @@
 
       ltavg_restart = .false.
 
-   case ('startup_spunup')
+   case ('ccsm_startup_spunup')
       if(my_task == master_task )  then
-         write(stdout,*) ' startup_spunup option'
+         write(stdout,*) ' ccsm_startup_spunup option'
          write(stdout,*) ' init_ts_option = ', init_ts_option
       endif
       first_step   = .false.
@@ -1055,7 +1055,7 @@
       lccsm_hybrid = .true.
       if (my_task == master_task .and. .not. luse_pointer_files) then
          write(stdout,'(a80,a)') &
-            'Initial T,S startup run from spun-up restart file:', &
+            'Initial T,S ccsm_startup run from spun-up restart file:', &
             trim(init_ts_file)
          call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
       endif
@@ -1078,7 +1078,7 @@
 !
 !-----------------------------------------------------------------------
 
-   case ('startup', 'file')
+   case ('ccsm_startup', 'file')
       first_step = .true.
 
       if (my_task == master_task) then
@@ -1508,7 +1508,7 @@
          write(stdout,*) &
            'init_ts: ERROR initializing for interactive overflows'
          write(stdout,*) &
-           'initialization must be either startup or file'
+           'initialization must be either ccsm_startup or file'
          call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
          call exit_POP(sigAbort,'ERROR wrong initialization with overflows')
       endif

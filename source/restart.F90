@@ -193,7 +193,7 @@
 
    logical (POP_logical), intent(in) :: &
       lccsm_branch      ,&! flag if ccsm branch initialization
-      lccsm_hybrid        ! flag if ccsm branch initialization
+      lccsm_hybrid        ! flag if ccsm hybrid initialization
 
 ! !OUTPUT PARAMETERS:
 
@@ -372,7 +372,7 @@
 !-----------------------------------------------------------------------
 !
 !  open a file and extract scalars as file attributes
-!  do not extract if this is a branch - values are set elsewhere
+!  do not extract if this is a ccsm branch initialization - values are set elsewhere
 !
 !-----------------------------------------------------------------------
 
@@ -380,7 +380,7 @@
 
    call data_set(restart_file, 'open_read')
 
-   !*** extract scalars if not a branch
+   !*** extract scalars if not a ccsm branch initialization
 
    if (.not. lccsm_branch .and. .not. lccsm_hybrid) then
       call extract_attrib_file(restart_file, 'runid',    runid   )
@@ -835,7 +835,7 @@
       endif
 
       if( overflows_on .and. overflows_interactive &
-          .and. overflows_restart_type /= 'startup' ) then
+          .and. overflows_restart_type /= 'ccsm_startup' ) then
               ! Do not set sidewall velocities to zero when overflows
               ! on and interactive; otherwise, valid overflow velocities
               ! will be lost

@@ -51,7 +51,7 @@ else
 
 endif
 
-if (($RUN_TYPE == startup) && ($CONTINUE_RUN == FALSE)) then
+if ($runtype == startup) then
   if ($OCN_PRESTAGE == TRUE) then
    set IC_file_nml = $INPUT/$IC_file:t
   else
@@ -123,14 +123,15 @@ else if ($command == namelist) then
       exit 4
    endif
 
-   if (($RUN_TYPE == startup) && ($CONTINUE_RUN == FALSE)) then
+   if ($runtype == startup) then
       set use_nml_surf_vals = .true.
    else
       set use_nml_surf_vals = .false.
    endif
 
-   set init_ecosys_option = $RUN_TYPE
-   if ($CONTINUE_RUN == TRUE) set init_ecosys_option = continue
+   # note: $runtype is the ccsm script-level variable;
+   #       ccsm_$runtype is the pop2 model-level variable
+   set init_ecosys_option = ccsm_$runtype
 
    cat >> $pop_in_filename << EOF
 
@@ -328,7 +329,7 @@ else if ($command == prestage) then
       exit 6
    endif
 
-   if ($CONTINUE_RUN == FALSE) then
+   if ($runtype != continue) then
       \cp -f $IC_file    $IC_file_nml  || exit 6
    endif
 

@@ -354,7 +354,7 @@ contains
 
     select case (init_cfc11_option)
 
-    case ('startup', 'zero', 'startup_spunup')
+    case ('ccsm_startup', 'zero', 'ccsm_startup_spunup')
       TRACER_MODULE = c0
       if (my_task == master_task) then
           write(stdout,delim_fmt)
@@ -363,7 +363,7 @@ contains
           call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
       endif
 
-    case ('restart', 'continue', 'branch', 'hybrid' )
+    case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid' )
 
        cfc11_restart_filename = char_blank
 

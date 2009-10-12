@@ -1,6 +1,31 @@
 
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    12  October 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091012
+Tag Testing:  
+            
+Tag Summary:  Eliminate LANL/CCSM branch definition conflict and fix minor
+ problem with tripole grid settings in pop2_in_build.csh
+
+M           18792   source/overflows.F90
+M           18792   source/initial.F90
+M           18792   source/iage_mod.F90
+M           18792   source/cfc_mod.F90
+M           18792   source/cfc11_mod.F90
+M           18792   source/ecosys_mod.F90
+M           18792   source/restart.F90
+M           18792   bld/pop2.cpl7.template
+M           18792   input_templates/ocn.iage.setup.csh
+M           18792   input_templates/ocn.ecosys.setup.csh
+M           18792   input_templates/pop2_in_build.csh
+M           18792   input_templates/test_pop2_in_build.csh
+M           18792   input_templates/ocn.cfc.setup.csh
+M           18792   input_templates/ocn.cfc11.setup.csh
+
+            
+===============================================================================
+Tag Creator: njn01
 Tag Date:    2  October 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091002
 Tag Testing:  

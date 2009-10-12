@@ -58,7 +58,7 @@ setenv IDAY0    1
 setenv IHOUR0   0
 setenv OCN_CHL_TYPE diagnostic
 
-setenv runtype  'startup'
+setenv runtype  'ccsm_startup'
 
 setenv output_L  $rundir
 setenv output_r  $rundir/$CASE.pop.r

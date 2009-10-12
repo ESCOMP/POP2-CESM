@@ -83,11 +83,10 @@ else if ($command == namelist) then
 #  Climate of the 20th Century IPCC run
 #===============================================================================
 
-   set init_cfc_option = $RUN_TYPE
-   if ($CONTINUE_RUN == TRUE) set init_cfc_option = continue
+   set init_cfc_option = ccsm_$runtype
 
    if ($OCN_TRANSIENT == 1850-2000) then
-      if ($CONTINUE_RUN == FALSE) set init_cfc_option = zero
+      if ($runtype != continue) set init_cfc_option = zero
       set model_year = 1850
       set data_year  = 1850
    else

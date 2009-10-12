@@ -62,8 +62,7 @@ else if ($command == namelist) then
       exit 4
    endif
 
-   set init_iage_option = $RUN_TYPE
-   if ($CONTINUE_RUN == TRUE) set init_iage_option = continue
+   set init_iage_option = ccsm_$runtype
 
    cat >> $pop_in_filename << EOF
 

@@ -286,7 +286,6 @@ cat >! $POP2BLDSCRIPT << EOF2
 
 setenv runtype  $RUN_TYPE
 if (\$CONTINUE_RUN == 'TRUE') setenv runtype  continue
-setenv RUNTYPE \$runtype
 
 setenv OCN_PRESTAGE  $OCN_PRESTAGE 
 

@@ -117,7 +117,7 @@
       outfile_tmp                  ! temp for appending to outfile name
 
    character (POP_charLength), public  :: &
-      overflows_restart_type,    &! restart type (start, continue, hybrid, branch)
+      overflows_restart_type,    &! restart type (ccsm_startup, ccsm_continue, ccsm_hybrid, ccsm_branch)
       overflows_restfile          ! overflow restart file name
 
    integer (int_kind), parameter, public :: &
@@ -410,7 +410,7 @@
    overflows_interactive  = .false.
    overflows_infile       = 'unknown_ovf_infile'
    overflows_diag_outfile = 'unknown_ovf_outfile'
-   overflows_restart_type = 'startup'
+   overflows_restart_type = 'ccsm_startup'
    overflows_restfile     = 'unknown_ovf_restfile'
 
    if (my_task == master_task) then
@@ -462,11 +462,11 @@
    lccsm = registry_match('lccsm')
 
 !-----------------------------------------------------------------------
-!  overflows on; read overflows info file if startup; otherwise 
+!  overflows on; read overflows info file if ccsm_startup; otherwise 
 !  read restart data
 !-----------------------------------------------------------------------
 
-   if( overflows_restart_type == 'startup' ) then
+   if( overflows_restart_type == 'ccsm_startup' ) then
 
    ovf_error = 0
    call get_unit(nu)
@@ -1288,7 +1288,7 @@
      end do
    end do  ! ovf initialization loop for all processors
 
-   else if( overflows_restart_type /= 'startup' ) then
+   else if( overflows_restart_type /= 'ccsm_startup' ) then
 
      call ovf_read_restart
      call ovf_read_broadcast
@@ -1334,7 +1334,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  modify KMT for overflows if desired and startup run
+!  modify KMT for overflows if desired and ccsm_startup run
 !  make kmt changes regardless of overflows_interactive
 !
 !-----------------------------------------------------------------------
@@ -2145,7 +2145,7 @@
 !-----------------------------------------------------------------------
 !
 !  if pointer files are used, overflows pointer file must be read to get
-!  actual filenames - skip this for branch initialization
+!  actual filenames - skip this for ccsm_branch initialization
 !
 !  otherwise use input filename
 !-----------------------------------------------------------------------

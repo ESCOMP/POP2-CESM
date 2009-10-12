@@ -195,7 +195,7 @@ EOF
 #  init_ts_nml
 #--------------------------------------------------------------------------
 
-set init_ts_option = $runtype
+set init_ts_option = ccsm_$runtype
 
 if ($runtype == 'startup' && $topography_opt == 'bathymetry') then
    set init_ts_option = PHC
@@ -357,6 +357,7 @@ else if (${OCN_GRID_INTERNAL} =~ tx0.1* || ${OCN_GRID_INTERNAL} =~ tx1* ) then
   set tavg_offset_year_values      = (1,1)
   set tavg_offset_month_values     = (1,1)
   set tavg_offset_day_values       = (2,2)
+  set ltavg_one_time_header        = (.false.,.false.)
   set ltavg_nino_diags_requested   = .false.
 endif
 
@@ -1382,7 +1383,7 @@ cat >> $POP2_NMLFILE <<EOF
    overflows_interactive  = $overflows_interactive
    overflows_infile       = '$overflow_filename'
    overflows_diag_outfile = '${output_d}o'
-   overflows_restart_type = '$runtype'
+   overflows_restart_type = 'ccsm_$runtype'
    overflows_restfile     = '${output_r}o'
 /
 

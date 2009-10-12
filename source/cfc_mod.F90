@@ -369,7 +369,7 @@ contains
 
    select case (init_cfc_option)
 
-   case ('startup', 'zero', 'startup_spunup')
+   case ('ccsm_startup', 'zero', 'ccsm_startup_spunup')
       TRACER_MODULE = c0
       if (my_task == master_task) then
           write(stdout,delim_fmt)
@@ -377,7 +377,7 @@ contains
           write(stdout,delim_fmt)
       endif
 
-   case ('restart', 'continue', 'branch', 'hybrid' )
+   case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid' )
 
       cfc_restart_filename = char_blank
 
