@@ -66,6 +66,8 @@ set ocn_tracers = (\`echo \$OCN_TRACER_MODULES\`)
 
 setenv OCN_PRESTAGE $OCN_PRESTAGE
 setenv INPUT    \$EXEROOT/ocn/input
+setenv POP2_DOCDIR  \$CASEBUILD/pop2doc
+setenv POP2_BLDNML  \$POP2_DOCDIR/document_pop2_buildnml
 
 # NOTE OCN_GRID_INTERNAL is used in ocn.*.setup.csh scripts
 setenv OCN_GRID_INTERNAL $OCN_GRID_INTERNAL
@@ -192,7 +194,16 @@ EOF
 
 cd \$compile_dir
 
-gmake complib -j \$GMAKE_J MODEL=pop2 COMPLIB=\$LIBROOT/libocn.a MACFILE=\$CASEROOT/Macros.\$MACH USER_CPPDEFS="-Dcoupled -DCCSMCOUPLED -DBLCKX=\$BLCKX -DBLCKY=\$BLCKY -DMXBLCKS=\$MXBLCKS" -f \$BLDROOT/Makefile || exit 2
+gmake complib -j \$GMAKE_J MODEL=pop2 COMPLIB=\$LIBROOT/libocn.a MACFILE=\$CASEROOT/Macros.\$MACH USER_CPPDEFS="-DCCSMCOUPLED -DBLCKX=\$BLCKX -DBLCKY=\$BLCKY -DMXBLCKS=\$MXBLCKS" -f \$BLDROOT/Makefile || exit 2
+
+set f90_dir = \$source_dir/f90
+if !(-d  \$f90_dir ) mkdir -p \$f90_dir
+
+echo " "
+echo ----------------------------------------------------------------------------
+echo      "(pop2.buildexe.csh)" Note that f90 files may not exist on all machines
+echo ----------------------------------------------------------------------------
+mv -f *.f90 \$f90_dir
 
 if !(-f \$LIBROOT/libocn.a) then
   echo "ERROR: pop2 library not available"
@@ -286,6 +297,7 @@ cat >! $POP2BLDSCRIPT << EOF2
 
 setenv runtype  $RUN_TYPE
 if (\$CONTINUE_RUN == 'TRUE') setenv runtype  continue
+setenv RUNTYPE \$runtype
 
 setenv OCN_PRESTAGE  $OCN_PRESTAGE 
 
@@ -303,6 +315,7 @@ setenv INPUT_TEMPLATES \$srcdir/input_templates
 setenv POP2_DOCDIR  \$CASEBUILD/pop2doc
 setenv POP2_NMLFILE \$POP2_DOCDIR/document_pop2_in
 setenv POP2_INLIST  \$POP2_DOCDIR/document_pop2_input_files
+setenv POP2_BLDNML  \$POP2_DOCDIR/document_pop2_buildnml
 
 # NOTE OCN_GRID_INTERNAL is used in ocn.*.setup.csh scripts
 setenv OCN_GRID_INTERNAL $OCN_GRID_INTERNAL
@@ -320,9 +333,11 @@ if !( -d \$ocndir/input )  mkdir -p \$ocndir/input  || exit 2
 # 
 #--------------------------------------------------------------------
 
-echo ----------------------------------------------------------------------------------------
-echo 1.0 "(pop2.buildnml.csh)" Begin identifying and collecting all pop2 input datasets
-echo ----------------------------------------------------------------------------------------
+date > \$POP2_BLDNML
+echo " " >> \$POP2_BLDNML
+echo ---------------------------------------------------------------------------------------- >> \$POP2_BLDNML
+echo 1.0 "(pop2.buildnml.csh)" Begin identifying and collecting all pop2 input datasets >> \$POP2_BLDNML
+echo ---------------------------------------------------------------------------------------- >> \$POP2_BLDNML
 EOF2
 
 #-----------------------------------------------
@@ -622,9 +637,9 @@ cat >> $POP2BLDSCRIPT << EOF2
 #
 #--------------------------------------------------------------------
 
-echo ------------------------------------------------------------------------
-echo 2.0 "(pop2.buildnml.csh)" Begin building the pop2_in namelist file 
-echo ------------------------------------------------------------------------
+echo ------------------------------------------------------------------------ >> \$POP2_BLDNML
+echo 2.0 "(pop2.buildnml.csh)" Begin building the pop2_in namelist file  >> \$POP2_BLDNML
+echo ------------------------------------------------------------------------ >> \$POP2_BLDNML
 
   #------------------------------------------------------------------
   # 2.1  set environment variables used by pop2_in_build.csh to 
@@ -721,9 +736,9 @@ cat >> $POP2BLDSCRIPT << EOF2
   endif
 
 
-echo ---------------------------------------------------------------------------------------------
-echo   2.4 "(pop2.buildnml.csh)" Add passive-tracer info to the standard pop2_in namelist file 
-echo ---------------------------------------------------------------------------------------------
+echo --------------------------------------------------------------------------------------------- >> \$POP2_BLDNML
+echo   2.4 "(pop2.buildnml.csh)" Add passive-tracer info to the standard pop2_in namelist file  >> \$POP2_BLDNML
+echo --------------------------------------------------------------------------------------------- >> \$POP2_BLDNML
 
 if (\$#ocn_tracers == 0) then
   echo '' >> \$POP2_NMLFILE
@@ -765,10 +780,10 @@ cat >> $POP2BLDSCRIPT << EOF2
   end
 endif
 
-echo ---------------------------------------------------------------------------------------------
-echo   2.5 "(pop2.buildnml.csh)" Copy $pop2_nmlfile:t to \$exedir/pop2_in
-echo       Note: this is the step that creates \$exedir/pop2_in
-echo ---------------------------------------------------------------------------------------------
+echo --------------------------------------------------------------------------------------------- >> \$POP2_BLDNML
+echo   2.5 "(pop2.buildnml.csh)" Copy $pop2_nmlfile:t to \$exedir/pop2_in >> \$POP2_BLDNML
+echo       Note: this is the step that creates \$exedir/pop2_in >> \$POP2_BLDNML
+echo --------------------------------------------------------------------------------------------- >> \$POP2_BLDNML
 if (-f \$exedir/pop2_in) rm \$exedir/pop2_in
 cp  \$POP2_NMLFILE \$exedir/pop2_in
 
@@ -785,9 +800,9 @@ endif
 
 
 if (\$#ocn_tracers > 0) then
-  echo --------------------------------------------------------------------------------------
-  echo  2.6 "(pop2.buildnml.csh)" Add passive tracer module variables to tavg_contents 
-  echo --------------------------------------------------------------------------------------
+  echo -------------------------------------------------------------------------------------- >> \$POP2_BLDNML
+  echo  2.6 "(pop2.buildnml.csh)" Add passive tracer module variables to tavg_contents  >> \$POP2_BLDNML
+  echo -------------------------------------------------------------------------------------- >> \$POP2_BLDNML
 
   foreach module ( \$ocn_tracers )
     if (-f \${my_path}/ocn.\${module}.setup.csh) then
@@ -797,9 +812,9 @@ if (\$#ocn_tracers > 0) then
     endif
   end
 
-  echo ----------------------------------------------------------------------
-  echo  2.7 "(pop2.buildnml.csh)" Prestage passive tracer module files 
-  echo ----------------------------------------------------------------------
+  echo ---------------------------------------------------------------------- >> \$POP2_BLDNML
+  echo  2.7 "(pop2.buildnml.csh)" Prestage passive tracer module files  >> \$POP2_BLDNML
+  echo ---------------------------------------------------------------------- >> \$POP2_BLDNML
 
   foreach module ( \$ocn_tracers )
     if (-f \${my_path}/ocn.\${module}.setup.csh) then
@@ -815,10 +830,11 @@ endif
 wait
 
 
-echo ----------------------------------------------------------------
-echo 3.0 "(pop2.buildnml.csh)" Successful completion
-echo ----------------------------------------------------------------
-echo " "
+echo ---------------------------------------------------------------- >> \$POP2_BLDNML
+echo 3.0 "(pop2.buildnml.csh)" Successful completion >> \$POP2_BLDNML
+echo ---------------------------------------------------------------- >> \$POP2_BLDNML
+echo " " >> \$POP2_BLDNML
+date >> \$POP2_BLDNML
 exit 0
 
 EOF2

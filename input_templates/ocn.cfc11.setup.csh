@@ -28,9 +28,9 @@ set pcfc_file = $DIN_LOC_ROOT/$relpath/forcing/pcfc1112_atm.nc
 
 if ($command == set_nt) then
 
-   echo -----------------------------------------------------------------
-   echo ocn.cfc.setup.csh : setting nt
-   echo -----------------------------------------------------------------
+   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.cfc.setup.csh : setting nt                                    >> $POP2_BLDNML
+   echo ----------------------------------------------------------------- >> $POP2_BLDNML
 
    if ($#argv < 2) then
       echo nt_filename argument missing
@@ -50,9 +50,9 @@ if ($command == set_nt) then
 
 else if ($command == namelist) then
 
-   echo -----------------------------------------------------------------
-   echo ocn.cfc.setup.csh : setting namelist options
-   echo -----------------------------------------------------------------
+   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.cfc.setup.csh : setting namelist options                      >> $POP2_BLDNML
+   echo ----------------------------------------------------------------- >> $POP2_BLDNML
 
    if ($#argv < 2) then
       echo pop_in_filename argument missing
@@ -101,9 +101,9 @@ EOF
 
 else if ($command == tavg_contents) then
 
-   echo -----------------------------------------------------------------
-   echo ocn.cfc.setup.csh : setting tavg_contents variables
-   echo -----------------------------------------------------------------
+   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.cfc.setup.csh : setting tavg_contents variables               >> $POP2_BLDNML
+   echo ----------------------------------------------------------------- >> $POP2_BLDNML
 
    if ($#argv < 2) then
       echo tavg_contents_filename argument missing
@@ -149,9 +149,9 @@ EOF
 
 else if ($command == prestage) then
 
-   echo -----------------------------------------------------------------
-   echo ocn.cfc.setup.csh : prestaging data files
-   echo -----------------------------------------------------------------
+   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.cfc.setup.csh : prestaging data files                         >> $POP2_BLDNML
+   echo ----------------------------------------------------------------- >> $POP2_BLDNML
 
    if ($#argv < 3) then
       echo input data directories missing
@@ -167,9 +167,9 @@ else if ($command == prestage) then
 
 else if ($command == document) then
 
-   echo -----------------------------------------------------------------
-   echo ocn.cfc.setup.csh : documenting inputdata files
-   echo -----------------------------------------------------------------
+   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.cfc.setup.csh : documenting inputdata files                   >> $POP2_BLDNML
+   echo ----------------------------------------------------------------- >> $POP2_BLDNML
 
    if ($#argv < 2) then
       echo error documenting inputdata files
@@ -182,9 +182,9 @@ else if ($command == document) then
 
 else if ($command == ccsm_prestage) then
 
-  #echo -----------------------------------------------------------------
-  #echo ocn.cfc11.setup.csh : writing ccsm prestaging information
-  #echo -----------------------------------------------------------------
+  #echo ----------------------------------------------------------------- >> $POP2_BLDNML
+  #echo ocn.cfc11.setup.csh : writing ccsm prestaging information         >> $POP2_BLDNML
+  #echo ----------------------------------------------------------------- >> $POP2_BLDNML
 
    if ($#argv < 2) then
       echo error documenting input files
@@ -208,9 +208,9 @@ else if ($command == ccsm_prestage) then
 
 else
 
-   echo -----------------------------------------------------------------
-   echo ocn.cfc.setup.csh : unrecognized command $command
-   echo -----------------------------------------------------------------
+   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.cfc.setup.csh : unrecognized command $command                 >> $POP2_BLDNML
+   echo ----------------------------------------------------------------- >> $POP2_BLDNML
 
    exit 2
 

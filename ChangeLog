@@ -1,6 +1,21 @@
 
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    30  October 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091030
+Tag Testing:  
+            
+Tag Summary:  1) move *.f90 files to $EXEDIR/ocn/source/f90, should they exist
+              2) redirect pop2 buildnml messages to $CASE/Buildconf/pop2doc
+
+M           18835   bld/pop2.cpl7.template
+M           18835   input_templates/ocn.cfc.setup.csh
+M           18835   input_templates/ocn.ecosys.setup.csh
+M           18835   input_templates/ocn.cfc11.setup.csh
+M           18835   input_templates/ocn.iage.setup.csh
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    12  October 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091012
 Tag Testing:  
@@ -22,7 +37,6 @@ M           18792   input_templates/pop2_in_build.csh
 M           18792   input_templates/test_pop2_in_build.csh
 M           18792   input_templates/ocn.cfc.setup.csh
 M           18792   input_templates/ocn.cfc11.setup.csh
-
             
 ===============================================================================
 Tag Creator: njn01
