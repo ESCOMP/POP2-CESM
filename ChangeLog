@@ -1,6 +1,20 @@
 
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    1  November 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091101
+Tag Testing:  
+            
+Tag Summary:  Change H2 --> SSH2 in those tavg_contents files that had not
+              been updated to reflect the name change introduced in the
+              ccsm_pop_2_1_20090911 tag
+ 
+M           18834   input_templates/test_sample_tavg_contents
+M           18834   input_templates/tx1v1_tavg_contents
+M           18834   input_templates/tx0.1v2_tavg_contents
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    30  October 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091030
 Tag Testing:  
