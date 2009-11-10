@@ -3875,12 +3875,6 @@
      nn         ,& ! ovf tracer index
      m          ,& ! product level
      k_p           ! product k level
-
-   real (r8), parameter ::  &
-     g     = 981.          ,& ! acceleration due to gravity (cm/s2)
-     rho_0 = 1.027         ,& ! reference ocean density (g/cm3)
-     omg_e = 7.292e-5      ,& ! earth angular rotation velocity (/s)
-     pi    = 3.1415926535     ! pi
 !
    real (r8) ::  &
      lat        ,& ! inflow/source latitude for coriolis parameter (degrees)
@@ -3961,12 +3955,11 @@
     print_overflows_diag = .true.
   endif
 
-
 ! for each overflow
    do n=1,num_ovf
    ! set parameters
       lat     = ovf(n)%ovf_params%lat
-      fs      = c2*omg_e*sin(lat*pi/180.0_r8)
+      fs      = c2*omega*sin(lat*pi/180.0_r8)
       hu      = ovf(n)%ovf_params%source_thick
       hs      = hu*(c2/c3)
       xse     = ovf(n)%ovf_params%distnc_str_ssb
@@ -3988,14 +3981,14 @@
       S_e     = ovf(n)%trcr_reg%ent(2)
          call ovf_state(T_e,S_e,de,rho_e)
    ! compute inflow/source reduced gravity and source transport
-      gp_s    = g*(rho_s-rho_i)/rho_0
+      gp_s    = grav*(rho_s-rho_i)/rho_sw
    ! if no source overflow, zero out transports
       if( gp_s > c0 ) then
         Ms      = gp_s*hu*hu/(c2*fs)
         As      = hs*Ws
         Us      = Ms/As
    ! compute overflow spreading and entrainment transport
-        gp_e    = g*(rho_sed-rho_e)/rho_0
+        gp_e    = grav*(rho_sed-rho_e)/rho_sw
    ! zero entrainment transport if gp_e < 0
         if( gp_e > c0 ) then
           Ugeo    = gp_e*alpha/fs

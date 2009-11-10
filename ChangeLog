@@ -1,6 +1,16 @@
 
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    9  November 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091109
+Tag Testing:  see testing log on ccsm pop2 documentation page
+            
+Tag Summary:  Replace user-defined constants with ccsm shared constants
+              in the overflows.F90 module
+ 
+M           19130   source/overflows.F90
+===============================================================================
+Tag Creator: njn01
 Tag Date:    1  November 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091101
 Tag Testing:  
