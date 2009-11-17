@@ -25,7 +25,7 @@ endif
 #===============================================================================
 
 set relpath = ocn/pop/res_indpt
-set pcfc_file = $DIN_LOC_ROOT/$relpath/forcing/pcfc1112_atm_20070125.nc
+set pcfc_file = $DIN_LOC_ROOT/$relpath/forcing/pcfc1112_atm_20091117.nc
 
 if ($OCN_PRESTAGE == TRUE) then
   set pcfc_file_nml = $INPUT/$pcfc_file:t
