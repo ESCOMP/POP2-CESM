@@ -105,6 +105,25 @@ EOF
 
 
 #--------------------------------------------------------------------------
+#  io_pio_nml
+#--------------------------------------------------------------------------
+
+if( ${OCN_GRID_INTERNAL} == tx0.1v2) then
+   set io_pio_num_iotasks = -1
+else
+   set io_pio_num_iotasks =  1
+endif
+
+cat >> $POP2_NMLFILE << EOF
+&io_pio_nml
+  io_pio_num_iotasks =  $io_pio_num_iotasks
+  io_pio_stride      = -1 
+  io_pio_type_name   = 'netcdf'
+/
+
+EOF
+
+#--------------------------------------------------------------------------
 #  time_manager_nml
 #    $IYEAR0, $IMONTH0, $IDAY0, and $IHOUR0 are defined in pop2.buildnml_prestage.csh
 #--------------------------------------------------------------------------

@@ -27,13 +27,7 @@
    use exit_mod
 #ifdef CCSMCOUPLED
    use shr_file_mod
-#ifdef USEPIO
-   use pio_types, only : File_desc_t, IO_desc_t, Var_desc_t, iotype_direct_pbinary, iotype_pnetcdf, &
-	PIO_rearr_none   ! _EXTERNAL
-   use piolib_mod   ! _EXTERNAL
-
-   use pioglobal, only: IOdesc_r8,IOdesc_r4,IOdesc_i4
-#endif
+   use pio
 #endif
 
    implicit none
@@ -93,10 +87,10 @@
       real(r8),    dimension(:),       pointer    :: field_d_1d
       real(r8),    dimension(:,:,:),   pointer    :: field_d_2d
       real(r8),    dimension(:,:,:,:), pointer    :: field_d_3d
-#ifdef USEPIO
       type (VAR_desc_t) :: varDesc
-      type (IO_desc_t), pointer  :: ioDesc
-#endif
+      type (IO_desc_t), pointer :: ioDesc
+      logical :: set_ioDesc   
+      logical :: set_ioFrame
    end type
 
    ! Generic data file descriptor
@@ -104,7 +98,8 @@
    type, public :: datafile
       character(char_len)                        :: full_name
       character(char_len)                        :: data_format ! .bin or
-                                                                ! .nc
+                                                                ! .nc or
+                                                                ! piobin or pioncd
       character(char_len)                        :: root_name
       character(char_len)                        :: file_suffix
       integer(i4), dimension (2)                 ::  id ! LUN (binary) or
@@ -127,9 +122,7 @@
       integer(i4)                                :: current_record ! bin
       logical(log_kind)                          :: readonly
       logical(log_kind)                          :: ldefine
-#ifdef USEPIO
-      type (File_desc_t) :: File
-#endif
+      type (File_desc_t) :: File(2)
    end type
 
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -181,6 +174,7 @@
 
    character (char_len), public :: &
       pointer_filename     ! filename to use for pointer files
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -367,15 +361,15 @@ contains
                                       &/trim(data_format)
            endif
          else
-         descriptor%file_suffix = trim(file_suffix)
+            descriptor%file_suffix = trim(file_suffix)
          endif
       else
          if (trim(data_format) == 'nc') &
-         descriptor%file_suffix = trim(data_format)
+              descriptor%file_suffix = trim(data_format)
       end if
 
       descriptor%full_name = char_blank
-    
+
       if (trim(descriptor%file_suffix) /= '') then
         descriptor%full_name = trim(descriptor%root_name)/&
                              &/'.'/&
@@ -455,13 +449,6 @@ contains
          descriptor%current_record = 1
       endif
 
-#ifdef USEPIO
-!      !------------------------------
-!      ! setup the parallel binary IO
-!      !------------------------------
-!      call PIO_dupFileDesc(File,descriptor%file)
-!      call PIO_setIOType(descriptor%file,iotype_direct_pbinary,PIO_rearr_none)
-#endif
 !-----------------------------------------------------------------------
 !
 !  parameters specific to netCDF files
@@ -481,10 +468,6 @@ contains
       descriptor%record_length  = 0 ! not used for netCDF
       descriptor%current_record = 0 ! not used for netCDF
 
-#ifdef USEPIO
-!      call PIO_dupFileDesc(File,descriptor%file)
-!      call PIO_setIOType(descriptor%file,iotype_pnetcdf,PIO_rearr_none)
-#endif
    endif
 
 !-----------------------------------------------------------------------
@@ -1761,8 +1744,8 @@ contains
        missing_value,    &
        missing_value_i,  &
        valid_range,      &
-       field_id,         &
        field_loc,        &
+       field_id,         &
        field_type,       &
        i0d_array,        &
        i1d_array,        &
@@ -1937,10 +1920,21 @@ contains
    ! support for multiple time slices on one file
    if (present (field_id)) then
      descriptor%id = field_id
+     descriptor%vardesc%varid = field_id
    else
      descriptor%id = 0
+     descriptor%vardesc%varid = 0
    endif
 
+   ! If true, call pio_set_ioFRAME
+   if (lactive_time_dim) then
+      descriptor%set_ioFrame = .true.
+   else	
+      descriptor%set_ioFrame = .false.
+   end if
+
+   ! If true, call initdecomp
+   descriptor%set_ioDesc = .true.
 
    if (present(i3d_array) .or. present(r3d_array) .or. &
                                present(d3d_array)) then
@@ -2031,48 +2025,24 @@ contains
       descriptor%field_r_1d => r1d_array
    else if (present(r2d_array)) then
       descriptor%field_r_2d => r2d_array
-#ifdef USEPIO
-!      call PIO_SetVarDesc(IOdesc_r4,descriptor%varDesc)
-       descriptor%ioDesc => IOdesc_r4
-#endif
    else if (present(r3d_array)) then
       descriptor%field_r_3d => r3d_array
-#ifdef USEPIO
-!      call PIO_SetVarDesc(IOdesc_r4,descriptor%varDesc)
-      descriptor%ioDesc => IOdesc_r4
-#endif
    else if (present(d0d_array)) then
       descriptor%field_d_0d =  d0d_array
    else if (present(d1d_array)) then
       descriptor%field_d_1d => d1d_array
    else if (present(d2d_array)) then
       descriptor%field_d_2d => d2d_array
-#ifdef USEPIO
-!      call PIO_SetVarDesc(IOdesc_r8,descriptor%varDesc)
-      descriptor%ioDesc => IOdesc_r8
-#endif
    else if (present(d3d_array)) then
       descriptor%field_d_3d => d3d_array
-#ifdef USEPIO
-!      call PIO_SetVarDesc(IOdesc_r8,descriptor%varDesc)
-      descriptor%ioDesc => IOdesc_r8
-#endif
    else if (present(i0d_array)) then
       descriptor%field_i_0d =  i0d_array
    else if (present(i1d_array)) then
       descriptor%field_i_1d => i1d_array
    else if (present(i2d_array)) then
       descriptor%field_i_2d => i2d_array
-#ifdef USEPIO
-!      call PIO_SetVarDesc(IOdesc_i4,descriptor%varDesc)
-      descriptor%ioDesc => IOdesc_i4
-#endif
    else if (present(i3d_array)) then
       descriptor%field_i_3d => i3d_array
-#ifdef USEPIO
-!      call PIO_SetVarDesc(IOdesc_i4,descriptor%varDesc)
-      descriptor%ioDesc => IOdesc_i4
-#endif
    else
       call exit_POP(sigAbort, &
                     'construct_io_field: must supply data array')
@@ -2189,10 +2159,6 @@ contains
    nullify (descriptor%add_attrib_rval)
    nullify (descriptor%add_attrib_dname)
    nullify (descriptor%add_attrib_dval)
-
-#ifdef USEPIO
-   nullify(descriptor%ioDesc)
-#endif
 
 !-----------------------------------------------------------------------
 !EOC

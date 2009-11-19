@@ -6,7 +6,7 @@
 ! !MODULE: io_netcdf
 ! !DESCRIPTION:
 !  This module provides a generic input/output interface
-!  for writing arrays in netCDF format.
+!  for writing arrays in netCDF format using pio.
 !
 ! !REVISION HISTORY:
 !  SVN:$Id$
@@ -15,7 +15,7 @@
 
    use POP_KindsMod
    use POP_IOUnitsMod
-
+   use POP_ErrorMod
    use kinds_mod
    use domain_size
    use domain
@@ -26,7 +26,8 @@
    use exit_mod
    use io_types
    use io_tools
-   use netcdf
+   use io_pio
+   use pio
 
    implicit none
    private
@@ -34,27 +35,25 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: open_read_netcdf,         &
-             open_netcdf,              &
-             close_netcdf,             &
-             sync_netcdf,              &
-             define_field_netcdf,      &
-             read_field_netcdf,        &
-             write_field_netcdf,       &
-             define_nstd_netcdf,       &
-             write_nstd_netcdf,        &
+   public :: open_read_netcdf,    &
+             open_netcdf,         &
+             close_netcdf,        &
+             sync_netcdf,         &
+             define_field_netcdf, &
+             read_field_netcdf,   &
+             write_field_netcdf,  &
+             define_nstd_netcdf,  &
+             write_nstd_netcdf,   &
              write_time_bounds
 
 !EOP
 !BOC
-
 
 !-----------------------------------------------------------------------
 !
 !  module variables
 !
 !-----------------------------------------------------------------------
-
 
 !EOC
 !***********************************************************************
@@ -95,14 +94,17 @@
       work_line,     &! temporary to use for parsing file lines
       att_name        ! temporary to use for attribute names
 
+   type (File_desc_t) :: &
+	File
+
    integer (i4) ::  &
       iostat,       &! status flag
-      ncid,         &! netCDF file id
       nsize,        &! size parameter returned by inquire function
       n,            &! loop index
       itype,        &! netCDF data type
       att_ival,     &! netCDF data type
-      num_atts       ! number of global attributes
+      num_atts,     &! number of global attributes
+      xtype
 
    logical (log_kind) :: &
       att_lval           ! temp space for logical attribute
@@ -130,24 +132,12 @@
 !
 !-----------------------------------------------------------------------
 
+   File%fh=-1
+   path = trim(data_file%full_name)
+   call io_pio_init(mode='read', filename=path, File=File, &
+        clobber=.true., cdf64=luse_nf_64bit_offset)
 
-   iostat = nf90_noerr
-   data_file%id = 0
-
-   if (my_task == master_task) then
-      path = trim(data_file%full_name)
-      iostat = nf90_open(path=trim(path), mode=nf90_nowrite, ncid=ncid)
-      call check_status(iostat)
-   endif
-
-   call broadcast_scalar(iostat, master_task)
-   if (iostat /= nf90_noerr) then
-      write(stdout,*) 'filename = ', trim(data_file%full_name)
-      call exit_POP(sigAbort,'error opening netCDF file for reading')
-   endif
-
-   call broadcast_scalar(ncid, master_task)
-   data_file%id(1) = ncid
+   data_file%File(1) = File
 
 !-----------------------------------------------------------------------
 !
@@ -155,16 +145,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (my_task == master_task) then
-      iostat = nf90_Inquire(ncid, nAttributes = num_atts)
-   end if
-
-   call broadcast_scalar(iostat, master_task)
-   if (iostat /= nf90_noerr) &
-      call exit_POP(sigAbort, &
-                    'error getting number of netCDF global attributes')
-   
-   call broadcast_scalar(num_atts, master_task)
+   iostat = pio_inquire(File, nAttributes = num_atts)
 
 !-----------------------------------------------------------------------
 !
@@ -179,16 +160,7 @@
       !***
 
       att_name = char_blank
-      if (my_task == master_task) then
-         iostat = nf90_inq_attname(ncid, NF90_GLOBAL, n, att_name)
-      endif
-
-      call broadcast_scalar(iostat, master_task)
-      if (iostat /= nf90_noerr) &
-         call exit_POP(sigAbort, &
-                       'error getting netCDF global attribute name')
-   
-      call broadcast_scalar(att_name, master_task)
+      iostat = pio_inq_attname(File, PIO_GLOBAL, n, att_name)
 
       !***
       !*** check to see if name matches any of the standard file
@@ -201,16 +173,15 @@
 
          data_file%title = char_blank
 
-         if (my_task == master_task) then
-            iostat = nf90_inquire_attribute(ncid, NF90_GLOBAL, &
-                                            'title', len=nsize)
+         iostat = pio_inq_att(File, PIO_GLOBAL, name='title', &
+                               xtype=xtype, len=nsize)
 
-            if (iostat == nf90_noerr) then
-               if (nsize <= len(data_file%title)) then
-                  iostat = nf90_get_att(ncid, NF90_GLOBAL, 'title', &
-                                        data_file%title(1:nsize))
-                  call check_status(iostat)
-               else
+         if (iostat == pio_noerr) then
+            if (nsize <= len(data_file%title)) then
+               iostat = pio_get_att(File, PIO_GLOBAL, 'title', &
+                                     data_file%title(1:nsize))
+            else
+               if (my_task == master_task) then
                   call document('open_read_netcdf', 'nsize', nsize)
                   call document('open_read_netcdf', 'len(data_file%title)', &
                                 len(data_file%title))
@@ -220,26 +191,17 @@
             endif
          endif
 
-         call broadcast_scalar(iostat, master_task)
-         if (iostat /= nf90_noerr) then
-            call exit_POP(sigAbort, &
-                    'Error reading title from netCDF file')
-         endif
-
-         call broadcast_scalar(data_file%title, master_task)
-
       case('history')
 
          data_file%history = char_blank
-         if (my_task == master_task) then
-            iostat = nf90_inquire_attribute(ncid, NF90_GLOBAL, &
-                                            'history', len=nsize)
-            if (iostat == nf90_noerr) then
-               if (nsize <= len(data_file%history)) then
-                  iostat = nf90_get_att(ncid, NF90_GLOBAL, 'history', &
-                                        data_file%history(1:nsize))
-                  call check_status(iostat)
-               else
+         iostat = pio_inq_att(File, PIO_GLOBAL, name='history', &
+                               xtype=xtype, len=nsize)
+         if (iostat == pio_noerr) then
+            if (nsize <= len(data_file%history)) then
+               iostat = pio_get_att(File, PIO_GLOBAL, 'history', &
+                                     data_file%history(1:nsize))
+            else
+               if (my_task == master_task) then
                   call document('open_read_netcdf', 'nsize', nsize)
                   call document('open_read_netcdf', 'len(data_file%history)', &
                                 len(data_file%history))
@@ -249,26 +211,17 @@
             endif
          endif
 
-         call broadcast_scalar(iostat, master_task)
-         if (iostat /= nf90_noerr) then
-            call exit_POP(sigAbort, &
-                    'Error reading history from netCDF file')
-         endif
-
-         call broadcast_scalar(data_file%history, master_task)
-
       case('conventions')
 
          data_file%conventions = char_blank
-         if (my_task == master_task) then
-            iostat = nf90_inquire_attribute(ncid, NF90_GLOBAL, &
-                                            'conventions', len=nsize)
-            if (iostat == nf90_noerr) then
-               if (nsize <= len(data_file%conventions)) then
-                  iostat = nf90_get_att(ncid, NF90_GLOBAL, 'conventions', &
-                                        data_file%conventions(1:nsize))
-                  call check_status(iostat)
-               else
+         iostat = pio_inq_att(File, PIO_GLOBAL, name= 'conventions', &
+                                xtype=xtype, len=nsize)
+         if (iostat == pio_noerr) then
+            if (nsize <= len(data_file%conventions)) then
+               iostat = pio_get_att(File, PIO_GLOBAL, 'conventions', &
+                                      data_file%conventions(1:nsize))
+            else
+               if (my_task == master_task) then
                   call document('open_read_netcdf', 'nsize', nsize)
                   call document('open_read_netcdf', 'len(data_file%conventions)', &
                                 len(data_file%conventions))
@@ -278,14 +231,6 @@
             endif
          endif
 
-         call broadcast_scalar(iostat, master_task)
-         if (iostat /= nf90_noerr) then
-            call exit_POP(sigAbort, &
-                    'Error reading conventions from netCDF file')
-         endif
-
-         call broadcast_scalar(data_file%conventions, master_task)
-
       case default
 
          !***
@@ -293,32 +238,18 @@
          !*** add the attribute to the datafile
          !***
 
-         if (my_task == master_task) then
-            iostat = nf90_Inquire_Attribute(ncid, NF90_GLOBAL, &
-                                            trim(att_name),    &
-                                            xtype = itype,     &
-                                            len = nsize) 
-         endif
-
-         call broadcast_scalar(iostat, master_task)
-         if (iostat /= nf90_noerr) then
-            call exit_POP(sigAbort, &
-                    'Error reading netCDF file attribute')
-         endif
-
-         call broadcast_scalar(itype, master_task)
+         iostat = pio_inq_att(File, PIO_GLOBAL, trim(att_name), &
+                              xtype=itype, len = nsize) 
 
          select case (itype)
 
-         case (NF90_CHAR)
+         case (PIO_CHAR)
             work_line = char_blank
-            call broadcast_scalar(nsize, master_task)
-            if (my_task == master_task) then
-               if (nsize <= len(work_line)) then
-                  iostat = nf90_get_att(ncid, NF90_GLOBAL, &
-                                        trim(att_name), &
-                                        work_line(1:nsize))
-               else
+            if (nsize <= len(work_line)) then
+               iostat = pio_get_att(File, PIO_GLOBAL, trim(att_name), &
+                                     work_line(1:nsize))
+            else
+               if (my_task == master_task) then
                   call document('open_read_netcdf', 'nsize', nsize)
                   call document('open_read_netcdf', 'len(work_line)', &
                                 len(work_line))
@@ -328,28 +259,12 @@
                                   &/ trim(path)
                endif
             endif
-            call broadcast_scalar(iostat, master_task)
-            if (iostat /= nf90_noerr) then
-               call exit_POP(sigAbort, &
-                    'Error reading netCDF file attribute')
-            endif
+            call add_attrib_file(data_file, trim(att_name), trim(work_line))
 
-            call broadcast_scalar(work_line, master_task)
-            call add_attrib_file(data_file, trim(att_name), &
-                                            trim(work_line))
+         case (PIO_INT)
+            iostat = pio_get_att(File, PIO_GLOBAL, trim(att_name), &
+                                  att_ival)
 
-         case (NF90_INT)
-            if (my_task == master_task) then
-               iostat = nf90_get_att(ncid, NF90_GLOBAL, &
-                                     trim(att_name), att_ival)
-            endif
-            call broadcast_scalar(iostat, master_task)
-            if (iostat /= nf90_noerr) then
-               call exit_POP(sigAbort, &
-                    'Error reading netCDF file attribute')
-            endif
-
-            call broadcast_scalar(att_ival, master_task)
             if (att_name(1:4) == 'LOG_') then !*** attribute logical
                work_line = att_name
                work_line(1:4) = '    '
@@ -361,40 +276,19 @@
                   att_lval = .false.
                endif
                call add_attrib_file(data_file, trim(att_name), att_lval)
-
             else
                call add_attrib_file(data_file, trim(att_name), att_ival)
             endif
 
-         case (NF90_FLOAT)
-            if (my_task == master_task) then
-               iostat = nf90_get_att(ncid, NF90_GLOBAL, &
-                                     trim(att_name), att_rval)
-            endif
-            call broadcast_scalar(iostat, master_task)
-            if (iostat /= nf90_noerr) then
-               call exit_POP(sigAbort, &
-                    'Error reading netCDF file attribute')
-            endif
-
-            call broadcast_scalar(att_rval, master_task)
+         case (PIO_REAL) 
+            iostat = pio_get_att(File, PIO_GLOBAL, trim(att_name), &
+                                  att_rval)
             call add_attrib_file(data_file, trim(att_name), att_rval)
 
-
-         case (NF90_DOUBLE)
-            if (my_task == master_task) then
-               iostat = nf90_get_att(ncid, NF90_GLOBAL, &
-                                     trim(att_name), att_dval)
-            endif
-            call broadcast_scalar(iostat, master_task)
-            if (iostat /= nf90_noerr) then
-               call exit_POP(sigAbort, &
-                    'Error reading netCDF file attribute')
-            endif
-
-            call broadcast_scalar(att_dval, master_task)
+         case (PIO_DOUBLE) 
+            iostat = pio_get_att(File, PIO_GLOBAL, trim(att_name), &
+                                  att_dval)
             call add_attrib_file(data_file, trim(att_name), att_dval)
-
 
          end select
 
@@ -439,8 +333,10 @@
    character (255) :: &
       work_line        ! temp to use for character manipulation
 
+   type (File_desc_t) :: &
+	File
+
    integer (i4) ::  &
-      ncid,         &! netCDF id for file
       iostat,       &! status flag for netCDF function calls
       itmp,         &! integer temp for equivalent logical attribute
       n,            &! loop index
@@ -459,25 +355,12 @@
 !
 !-----------------------------------------------------------------------
 
-   iostat = nf90_noerr
-   data_file%id = 0
+   File%fh=-1
+   path = trim(data_file%full_name)
+   call io_pio_init(mode='write', filename=path, File=File, &
+        clobber=.true., cdf64=luse_nf_64bit_offset)
 
-   if (my_task==master_task) then
-      path = trim(data_file%full_name)
-      if (luse_nf_64bit_offset) then
-        iostat = nf90_create(path=trim(path), cmode=NF90_64BIT_OFFSET, ncid=ncid)
-      else
-        iostat = nf90_create(path=trim(path), cmode=nf90_write, ncid=ncid)
-      endif
-      call check_status(iostat)
-   endif
-
-   call broadcast_scalar(iostat, master_task)
-   if (iostat /= nf90_noerr) call exit_POP(sigAbort, &
-                                           'Error opening file')
-
-   call broadcast_scalar(ncid, master_task)
-   data_file%id(1) = ncid
+   data_file%File(1) = File
    data_file%ldefine = .true.  ! file in netCDF define mode
 
 !-----------------------------------------------------------------------
@@ -488,131 +371,81 @@
 
    attrib_error = .false.
 
-   if (my_task == master_task) then
+   !*** standard attributes
 
-      !*** standard attributes
+   iostat = pio_put_att(File, PIO_GLOBAL, 'title', &
+                         trim(data_file%title))
+   iostat = pio_put_att(File, PIO_GLOBAL, 'history', &
+                         trim(data_file%history))
+   iostat = pio_put_att(File, PIO_GLOBAL, 'conventions', &
+                         trim(data_file%conventions))
 
-      iostat = nf90_put_att(ncid, NF90_GLOBAL, 'title', &
-                            trim(data_file%title))
-      call check_status(iostat)
-      if (iostat /= nf90_noerr) then
-         write(stdout,*) 'Error writing TITLE to netCDF file'
-         attrib_error = .true.
-      endif
+   !*** additional attributes
 
-      iostat = nf90_put_att(ncid, NF90_GLOBAL, 'history', &
-                            trim(data_file%history))
-      call check_status(iostat)
-      if (iostat /= nf90_noerr) then
-         write(stdout,*) 'Error writing HISTORY to netCDF file'
-         attrib_error = .true.
-      endif
+   if (associated(data_file%add_attrib_cval)) then
+      ncvals = size(data_file%add_attrib_cval)
+   else
+      ncvals = 0
+   endif
+   if (associated(data_file%add_attrib_lval)) then
+      nlvals = size(data_file%add_attrib_lval)
+   else
+      nlvals = 0
+   endif
+   if (associated(data_file%add_attrib_ival)) then
+      nivals = size(data_file%add_attrib_ival)
+   else
+      nivals = 0
+   endif
+   if (associated(data_file%add_attrib_rval)) then
+      nrvals = size(data_file%add_attrib_rval)
+   else
+      nrvals = 0
+   endif
+   if (associated(data_file%add_attrib_dval)) then
+      ndvals = size(data_file%add_attrib_dval)
+   else
+      ndvals = 0
+   endif
 
-      iostat = nf90_put_att(ncid, NF90_GLOBAL, 'conventions', &
-                            trim(data_file%conventions))
-      call check_status(iostat)
-      if (iostat /= nf90_noerr) then
-         write(stdout,*) 'Error writing CONVENTIONS to netCDF file'
-         attrib_error = .true.
-      endif
+   do n=1,ncvals
+      work_line = data_file%add_attrib_cname(n)
+      iostat = pio_put_att(File, PIO_GLOBAL, trim(work_line), &
+                            trim(data_file%add_attrib_cval(n)))
+   end do
 
-      !*** additional attributes
-
-      if (associated(data_file%add_attrib_cval)) then
-         ncvals = size(data_file%add_attrib_cval)
+   do n=1,nlvals
+      work_line = 'LOG_'/&
+                         &/data_file%add_attrib_lname(n)
+      if (data_file%add_attrib_lval(n)) then
+         itmp = 1
       else
-         ncvals = 0
+         itmp = 0
       endif
-      if (associated(data_file%add_attrib_lval)) then
-         nlvals = size(data_file%add_attrib_lval)
-      else
-         nlvals = 0
-      endif
-      if (associated(data_file%add_attrib_ival)) then
-         nivals = size(data_file%add_attrib_ival)
-      else
-         nivals = 0
-      endif
-      if (associated(data_file%add_attrib_rval)) then
-         nrvals = size(data_file%add_attrib_rval)
-      else
-         nrvals = 0
-      endif
-      if (associated(data_file%add_attrib_dval)) then
-         ndvals = size(data_file%add_attrib_dval)
-      else
-         ndvals = 0
-      endif
+      iostat = pio_put_att(File, PIO_GLOBAL, trim(work_line), &
+                            itmp)
+   end do
 
-      do n=1,ncvals
-         work_line = data_file%add_attrib_cname(n)
+   do n=1,nivals
+      work_line = data_file%add_attrib_iname(n)
 
-         iostat = nf90_put_att(ncid, NF90_GLOBAL, trim(work_line), &
-                               trim(data_file%add_attrib_cval(n)))
-         call check_status(iostat)
-         if (iostat /= nf90_noerr) then
-            write(stdout,*) 'Error writing ',trim(work_line)
-            attrib_error = .true.
-         endif
-      end do
+      iostat = pio_put_att(File, PIO_GLOBAL, trim(work_line), &
+                            data_file%add_attrib_ival(n))
+   end do
 
-      do n=1,nlvals
-         work_line = 'LOG_'/&
-                            &/data_file%add_attrib_lname(n)
-         if (data_file%add_attrib_lval(n)) then
-            itmp = 1
-         else
-            itmp = 0
-         endif
+   do n=1,nrvals
+      work_line = data_file%add_attrib_rname(n)
 
-         iostat = nf90_put_att(ncid, NF90_GLOBAL, trim(work_line), &
-                               itmp)
-         call check_status(iostat)
-         if (iostat /= nf90_noerr) then
-            write(stdout,*) 'Error writing ',trim(work_line)
-            attrib_error = .true.
-         endif
-      end do
+      iostat = pio_put_att(File, PIO_GLOBAL, trim(work_line), &
+                            data_file%add_attrib_rval(n))
+   end do
 
-      do n=1,nivals
-         work_line = data_file%add_attrib_iname(n)
+   do n=1,ndvals
+      work_line = data_file%add_attrib_dname(n)
+      iostat = pio_put_att(File, PIO_GLOBAL, trim(work_line), &
+                            data_file%add_attrib_dval(n))
+   end do
 
-         iostat = nf90_put_att(ncid, NF90_GLOBAL, trim(work_line), &
-                               data_file%add_attrib_ival(n))
-         call check_status(iostat)
-         if (iostat /= nf90_noerr) then
-            write(stdout,*) 'Error writing ',trim(work_line)
-            attrib_error = .true.
-         endif
-      end do
-
-      do n=1,nrvals
-         work_line = data_file%add_attrib_rname(n)
-
-         iostat = nf90_put_att(ncid, NF90_GLOBAL, trim(work_line), &
-                               data_file%add_attrib_rval(n))
-         call check_status(iostat)
-         if (iostat /= nf90_noerr) then
-            write(stdout,*) 'Error writing ',trim(work_line)
-            attrib_error = .true.
-         endif
-      end do
-
-      do n=1,ndvals
-         work_line = data_file%add_attrib_dname(n)
-
-         iostat = nf90_put_att(ncid, NF90_GLOBAL, trim(work_line), &
-                               data_file%add_attrib_dval(n))
-         call check_status(iostat)
-         if (iostat /= nf90_noerr) then
-            write(stdout,*) 'Error writing ',trim(work_line)
-            attrib_error = .true.
-         endif
-      end do
-
-   endif ! master task
-
-   call broadcast_scalar(attrib_error, master_task)
    if (attrib_error) call exit_POP(sigAbort, &
                                    'Error writing file attributes')
 
@@ -646,9 +479,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (my_task == master_task) then
-      call check_status(nf90_close(data_file%id(1)))
-   end if
+   call pio_closefile(data_file%File(1))
 
 !-----------------------------------------------------------------------
 !EOC
@@ -667,7 +498,7 @@
    type (datafile), intent (inout)  :: data_file
 
 ! !DESCRIPTION:
-!  This routine uses NF90_SYNC to flush an open netcdf data file.
+!  This routine uses pio_syncfile to flush an open netcdf data file.
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -680,9 +511,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (my_task == master_task) then
-     call check_status(NF90_SYNC(data_file%id(1)))
-   end if
+   call pio_syncfile(data_file%File(1))
 
 !-----------------------------------------------------------------------
 !EOC
@@ -729,7 +558,6 @@
 
    integer (i4) :: &
       iostat,      &! status flag for netCDF calls
-      ncid,        &! file id for netcdf file
       varid,       &! variable id for field
       ndims,       &! number of dimensions
       dimid,       &! dimension id
@@ -757,17 +585,12 @@
    logical (log_kind) :: &
       define_error       ! error flag
 
+   type (File_desc_t) :: File
+   integer (i4) :: xtype
 
    define_error = .false.
-   ncid = data_file%id(1)
-
-!-----------------------------------------------------------------------
-!
-!  make sure file has been opened
-!
-!-----------------------------------------------------------------------
-
-   call check_file_open(data_file, 'define_field_netcdf')
+   File = data_file%File(1)
+   data_file%ldefine = .true.  ! file in netCDF define mode
 
 !-----------------------------------------------------------------------
 !
@@ -776,29 +599,25 @@
 !
 !-----------------------------------------------------------------------
 
+   call pio_seterrorhandling(File, PIO_BCAST_ERROR)
+
    if (data_file%readonly) then
-      if (my_task == master_task) then
-         iostat = NF90_INQ_VARID(ncid, trim(io_field%short_name), &
-                                 io_field%id)
-         call check_status(iostat)
-      endif
-      call broadcast_scalar(iostat, master_task)
-      if (iostat /= nf90_noerr) &
-         call exit_POP(sigAbort, &
-                   'Error finding field in netCDF input file')
 
-      call broadcast_scalar(io_field%id, master_task)
+      ! Note that currently a lot of pio inquire functions need a 
+      ! netcdf varid and not a pio vardesc. Currently pio_inq_varnatts 
+      ! can only be accessed through a pio vardesc.  
 
-      if (my_task == master_task) then
-         iostat = NF90_Inquire_Variable(ncid,io_field%id,nAtts=num_atts)
-         call check_status(iostat)
-      endif
-      call broadcast_scalar(iostat, master_task)
-      if (iostat /= nf90_noerr) &
-         call exit_POP(sigAbort, &
-                   'Error getting attribute count for netCDF field')
+      iostat = pio_inq_varid(File, io_field%short_name, io_field%id) 
+      if (iostat /= pio_noerr) &
+           call exit_POP(sigAbort,'Error in getting varid for netCDF field')
 
-      call broadcast_scalar(num_atts, master_task)
+      iostat = pio_inq_varid(File, io_field%short_name, io_field%varDesc) 
+      if (iostat /= pio_noerr) &
+           call exit_POP(sigAbort,'Error in getting varDesc for netCDF field')
+
+      iostat = pio_inq_varnatts(File, io_field%varDesc, nAtts=num_atts)
+      if (iostat /= pio_noerr) &
+           call exit_POP(sigAbort,'Error getting attrib count for netCDF field')
 
       !***
       !*** for each attribute, define standard attributes or add
@@ -812,17 +631,10 @@
          !***
 
          att_name = char_blank
-         if (my_task == master_task) then
-            iostat = nf90_inq_attname(ncid, io_field%id, n, att_name)
-         endif
-
-         call broadcast_scalar(iostat, master_task)
-         if (iostat /= nf90_noerr) &
-            call exit_POP(sigAbort, &
-                   'error getting netCDF field attribute name')
+         iostat = pio_inq_attname(File, io_field%id, n, att_name)
+         if (iostat /= pio_noerr) &
+            call exit_POP(sigAbort,'Error getting netCDF field attribute name')
    
-         call broadcast_scalar(att_name, master_task)
-
          !***
          !*** check to see if name matches any of the standard field
          !*** attributes
@@ -834,16 +646,14 @@
 
             io_field%long_name = char_blank
 
-            if (my_task == master_task) then
-               iostat = nf90_inquire_attribute(ncid, io_field%id, &
-                                               'long_name', len=nsize)
-
-               if (iostat == nf90_noerr) then
-                  if (nsize <= len(io_field%long_name)) then
-                     iostat = nf90_get_att(ncid, io_field%id, 'long_name', &
-                                           io_field%long_name(1:nsize))
-                     call check_status(iostat)
-                  else
+            iostat = pio_inq_att(File, varid=io_field%id, name='long_name', &
+	                          xtype=xtype, len=nsize)
+            if (iostat == pio_noerr) then
+               if (nsize <= len(io_field%long_name)) then
+                  iostat = pio_get_att(File, io_field%id, 'long_name', &
+                                        io_field%long_name(1:nsize))
+               else
+                  if (my_task == master_task) then
                      call document('define_field_netcdf', 'nsize', nsize)
                      call document('define_field_netcdf', 'len(io_field%long_name)', &
                                    len(io_field%long_name))
@@ -851,32 +661,27 @@
                                      &/ trim(io_field%short_name) /&
                                      &/ ' from ' /&
                                      &/ trim(data_file%full_name)
-                  endif
+                  end if
                endif
             endif
-
-            call broadcast_scalar(iostat, master_task)
-            if (iostat /= nf90_noerr) then
+            if (iostat /= pio_noerr) then
                call exit_POP(sigAbort, &
                    'Error reading long_name from netCDF file')
             endif
-
-            call broadcast_scalar(io_field%long_name, master_task)
 
          case('units')
 
             io_field%units = char_blank
 
-            if (my_task == master_task) then
-               iostat = nf90_inquire_attribute(ncid, io_field%id, &
-                                               'units', len=nsize)
+            iostat = pio_inq_att(File, io_field%id, 'units', &
+	                          xtype=xtype, len=nsize)
 
-               if (iostat == nf90_noerr) then
-                  if (nsize <= len(io_field%units)) then
-                     iostat = nf90_get_att(ncid, io_field%id, 'units', &
-                                           io_field%units(1:nsize))
-                     call check_status(iostat)
-                  else
+            if (iostat == pio_noerr) then
+               if (nsize <= len(io_field%units)) then
+                  iostat = pio_get_att(File, io_field%id, 'units', &
+	                                io_field%units(1:nsize))
+               else
+                  if (my_task == master_task) then
                      call document('define_field_netcdf', 'nsize', nsize)
                      call document('define_field_netcdf', 'len(io_field%units)', &
                                    len(io_field%units))
@@ -884,26 +689,27 @@
                                      &/ trim(io_field%short_name) /&
                                      &/ ' from ' /&
                                      &/ trim(data_file%full_name)
-                  endif
+                  end if
                endif
             endif
-
-            call broadcast_scalar(io_field%units, master_task)
 
          case('coordinates')
 
             io_field%coordinates = char_blank
 
-            if (my_task == master_task) then
-               iostat = nf90_inquire_attribute(ncid, io_field%id, &
-                                               'coordinates', len=nsize)
+            iostat = pio_inq_att(File, io_field%id, 'coordinates', &
+	                          xtype=xtype, len=nsize)
 
-               if (iostat == nf90_noerr) then
-                  if (nsize <= len(io_field%coordinates)) then
-                     iostat = nf90_get_att(ncid, io_field%id, 'coordinates', &
-                                           io_field%coordinates(1:nsize))
-                     call check_status(iostat)
-                  else
+            if (iostat == pio_noerr) then
+               if (nsize <= len(io_field%coordinates)) then
+                  iostat = pio_get_att(File, io_field%id, 'coordinates', &
+                                        io_field%coordinates(1:nsize))
+                  if (iostat /= pio_noerr) then
+                     call exit_POP(sigAbort, &
+                          'Error reading coordinates from netCDF file')
+            endif
+               else
+                  if (my_task == master_task) then
                      call document('define_field_netcdf', 'nsize', nsize)
                      call document('define_field_netcdf', 'len(io_field%coordinates)', &
                                    len(io_field%coordinates))
@@ -915,100 +721,62 @@
                endif
             endif
 
-            call broadcast_scalar(iostat, master_task)
-            if (iostat /= nf90_noerr) then
-               call exit_POP(sigAbort, &
-                   'Error reading coordinates from netCDF file')
-            endif
-
-            call broadcast_scalar(io_field%coordinates, master_task)
 
          case('grid_loc')
 
             io_field%grid_loc = '    '
 
-            if (my_task == master_task) then
-               iostat = nf90_inquire_attribute(ncid, io_field%id, &
-                                               'grid_loc', len=nsize)
+            iostat = pio_inq_att(File, io_field%id, 'grid_loc', &
+                                  xtype=xtype, len=nsize)
 
-               if (iostat == nf90_noerr) then
-                  if (nsize <= len(io_field%grid_loc)) then
-                     iostat = nf90_get_att(ncid, io_field%id, 'grid_loc', &
-                                           io_field%grid_loc(1:nsize))
-                     call check_status(iostat)
-                  else
-                     call document('define_field_netcdf', 'nsize', nsize)
-                     call document('define_field_netcdf', 'len(io_field%grid_loc)', &
-                                   len(io_field%grid_loc))
-                     write(stdout,*) 'string too short; not enough room to read grid_loc of ' /&
-                                     &/ trim(io_field%short_name) /&
-                                     &/ ' from ' /&
-                                     &/ trim(data_file%full_name)
-                  endif
+            if (iostat == pio_noerr) then
+               if (nsize <= len(io_field%grid_loc)) then
+                  iostat = pio_get_att(File, io_field%id, 'grid_loc', &
+                                        io_field%grid_loc(1:nsize))
+               else
+                  call document('define_field_netcdf', 'nsize', nsize)
+                  call document('define_field_netcdf', 'len(io_field%grid_loc)', &
+                                len(io_field%grid_loc))
+                  write(stdout,*) 'string too short; not enough room to read grid_loc of ' /&
+                                  &/ trim(io_field%short_name) /&
+                                  &/ ' from ' /&
+                                  &/ trim(data_file%full_name)
                endif
             endif
 
-            call broadcast_scalar(iostat, master_task)
-            if (iostat /= nf90_noerr) then
+            if (iostat /= pio_noerr) then
                call exit_POP(sigAbort, &
                    'Error reading grid_loc from netCDF file')
             endif
 
-            call broadcast_scalar(io_field%grid_loc, master_task)
-
-
          case('missing_value')
 
-            if (my_task == master_task) then
-               iostat = nf90_get_att(ncid, io_field%id, &
-                                     'missing_value',   &
-                                     io_field%missing_value)
-               call check_status(iostat)
-            endif
-
-            call broadcast_scalar(iostat, master_task)
-            if (iostat /= nf90_noerr) then
+            iostat = pio_get_att(File, io_field%id, 'missing_value', &
+                                  io_field%missing_value)
+            if (iostat /= pio_noerr) then
                call exit_POP(sigAbort, &
                    'Error reading missing_value from netCDF file')
             endif
 
-            call broadcast_scalar(io_field%missing_value, master_task)
-
          case('missing_value_i')
 
-            if (my_task == master_task) then
-               iostat = nf90_get_att(ncid, io_field%id, &
-                                     'missing_value_i',   &
-                                     io_field%missing_value_i)
-               call check_status(iostat)
-            endif
-
-            call broadcast_scalar(iostat, master_task)
-            if (iostat /= nf90_noerr) then
+            iostat = pio_get_att(File, io_field%id, &
+                                  'missing_value_i',   &
+                                  io_field%missing_value_i)
+            if (iostat /= pio_noerr) then
                call exit_POP(sigAbort, &
                    'Error reading missing_value_i from netCDF file')
             endif
 
-            call broadcast_scalar(io_field%missing_value_i, master_task)
-
-
          case('valid_range')
 
-            if (my_task == master_task) then
-               iostat = nf90_get_att(ncid, io_field%id, &
-                                     'valid_range',   &
-                                     io_field%valid_range)
-               call check_status(iostat)
-            endif
-
-            call broadcast_scalar(iostat, master_task)
-            if (iostat /= nf90_noerr) then
+            iostat = pio_get_att(File, io_field%id, &
+                                  'valid_range',   &
+                                  io_field%valid_range)
+            if (iostat /= pio_noerr) then
                call exit_POP(sigAbort, &
                    'Error reading valid_range from netCDF file')
             endif
-
-            call broadcast_array(io_field%valid_range, master_task)
-
 
          case default
 
@@ -1017,35 +785,26 @@
             !*** add the attribute to the datafile
             !***
 
-            if (my_task == master_task) then
-               iostat = nf90_Inquire_Attribute(ncid, io_field%id, &
-                                               trim(att_name),    &
-                                               xtype = itype,     &
-                                               len = nsize) 
-            endif
-   
-            call broadcast_scalar(iostat, master_task)
-            if (iostat /= nf90_noerr) then
+            iostat = pio_inq_att(File, varid=io_field%id, name=trim(att_name), &
+                                 xtype = itype, len = nsize) 
+
+            if (iostat /= pio_noerr) then
                call exit_POP(sigAbort, &
                    'Error reading netCDF file attribute')
             endif
    
-            call broadcast_scalar(itype, master_task)
-
             select case (itype)
 
-            case (NF90_CHAR)
+            case (PIO_CHAR)
                work_line = char_blank
-               call broadcast_scalar(nsize, master_task)
-               if (my_task == master_task) then
-                  if (nsize <= len(work_line)) then
-                     iostat = nf90_get_att(ncid, io_field%id, &
-                                           trim(att_name),    &
-                                           work_line(1:nsize))
-                  else
+               if (nsize <= len(work_line)) then
+                  iostat = pio_get_att(File, io_field%id, trim(att_name), &
+                                        work_line(1:nsize))
+               else
+                  if (my_task == master_task) then
                      call document('define_field_netcdf', 'nsize', nsize)
                      call document('define_field_netcdf', 'len(work_line)', &
-                                   len(work_line))
+                                len(work_line))
                      write(stdout,*) 'string too short; not enough room to read ' /&
                                      &/ trim(att_name) /&
                                      &/ ' of ' /&
@@ -1054,28 +813,22 @@
                                      &/ trim(data_file%full_name)
                   endif
                endif
-               call broadcast_scalar(iostat, master_task)
-               if (iostat /= nf90_noerr) then
+               if (iostat /= pio_noerr) then
                   call exit_POP(sigAbort, &
                                 'Error reading netCDF file attribute')
                endif
 
-               call broadcast_scalar(work_line, master_task)
                call add_attrib_io_field(io_field, trim(att_name), &
                                                   trim(work_line))
 
-            case (NF90_INT) !*** both integer and logical attributes
-               if (my_task == master_task) then
-                  iostat = nf90_get_att(ncid, io_field%id, &
-                                        trim(att_name), att_ival)
-               endif
-               call broadcast_scalar(iostat, master_task)
-               if (iostat /= nf90_noerr) then
+            case (PIO_INT) !*** both integer and logical attributes
+               iostat = pio_get_att(File, io_field%id, &
+                                     trim(att_name), att_ival)
+               if (iostat /= pio_noerr) then
                   call exit_POP(sigAbort, &
                                 'Error reading netCDF file attribute')
                endif
    
-               call broadcast_scalar(att_ival, master_task)
                if (att_name(1:4) == 'LOG_') then !*** attribute logical
                   work_line = att_name
                   work_line(1:4) = '    '
@@ -1094,33 +847,25 @@
                                                   att_ival)
                endif
 
-            case (NF90_FLOAT)
-               if (my_task == master_task) then
-                  iostat = nf90_get_att(ncid, io_field%id, &
-                                        trim(att_name), att_rval)
-               endif
-               call broadcast_scalar(iostat, master_task)
-               if (iostat /= nf90_noerr) then
+            case (PIO_REAL)
+               iostat = pio_get_att(File, io_field%id, &
+                                     trim(att_name), att_rval)
+               if (iostat /= pio_noerr) then
                   call exit_POP(sigAbort, &
                                 'Error reading netCDF file attribute')
                endif
 
-               call broadcast_scalar(att_rval, master_task)
                call add_attrib_io_field(io_field, trim(att_name), &
                                                   att_rval)
 
-            case (NF90_DOUBLE)
-               if (my_task == master_task) then
-                  iostat = nf90_get_att(ncid, io_field%id, &
-                                        trim(att_name), att_dval)
-               endif
-               call broadcast_scalar(iostat, master_task)
-               if (iostat /= nf90_noerr) then
+            case (PIO_DOUBLE)
+               iostat = pio_get_att(File, io_field%id, &
+                                     trim(att_name), att_dval)
+               if (iostat /= pio_noerr) then
                   call exit_POP(sigAbort, &
                                 'Error reading netCDF file attribute')
                endif
    
-               call broadcast_scalar(att_dval, master_task)
                call add_attrib_io_field(io_field, trim(att_name), &
                                                   att_dval)
    
@@ -1151,25 +896,24 @@
 
       ndims = io_field%nfield_dims
 
-      if (my_task == master_task) then
-         do n = 1,ndims
-            dimid = 0
+      do n = 1,ndims
+         dimid = 0
 
-            !*** check to see whether already defined
+         !*** check to see whether already defined
+         
+         iostat = pio_inq_dimid(file,                                 &
+                                name=trim(io_field%field_dim(n)%name),&
+                                dimid=dimid)
 
-            iostat = NF90_INQ_DIMID(ncid=ncid,                         &
-                                 name=trim(io_field%field_dim(n)%name),&
-                                 dimid=dimid)
-
-            if (iostat /= NF90_NOERR) then ! dimension not yet defined
-               iostat = NF90_DEF_DIM (ncid=ncid,                    &
+         if (iostat /= PIO_NOERR) then ! dimension not yet defined
+            iostat = pio_def_dim (File,                          &
                              name=trim(io_field%field_dim(n)%name), &
                              len=io_field%field_dim(n)%length,      &
                              dimid=io_field%field_dim(n)%id)
-            else
-               io_field%field_dim(n)%id = dimid
-            end if
-         end do
+         else
+            io_field%field_dim(n)%id = dimid
+         end if
+      end do
 
 !-----------------------------------------------------------------------
 !
@@ -1177,58 +921,63 @@
 !
 !-----------------------------------------------------------------------
 
-         !*** check to see whether field of this name already defined.
+      !*** check to see whether field of this name already defined.
+      
+      iostat = pio_inq_varid(File, trim(io_field%short_name), varid)
+      
+      if (iostat /= PIO_NOERR) then ! variable was not yet defined
 
-         iostat = NF90_INQ_VARID(ncid, trim(io_field%short_name), varid)
+         if (associated (io_field%field_r_1d).or. &
+             associated (io_field%field_r_2d).or. &
+             associated (io_field%field_r_3d)) then
+            iostat = pio_def_var (File,                            &
+                                  name=trim(io_field%short_name),  &
+                                  type=PIO_REAL,                 &
+                dimids=(/ (io_field%field_dim(n)%id, n=1,ndims) /),&
+                                  varDesc=io_field%varDesc)
 
-         if (iostat /= NF90_NOERR) then ! variable was not yet defined
-
-                 if (associated (io_field%field_r_1d).or. &
-                     associated (io_field%field_r_2d).or. &
-                     associated (io_field%field_r_3d)) then
-               iostat = NF90_DEF_VAR (ncid=ncid,                       &
-                                      name=trim(io_field%short_name),  &
-                                      xtype=NF90_FLOAT,                &
-                    dimids=(/ (io_field%field_dim(n)%id, n=1,ndims) /),&
-                                      varid=io_field%id)
-
-            else if (            io_field%nfield_dims == c0) then 
-               ! do not supply optional dimids for scalars
-               iostat = NF90_DEF_VAR (ncid=ncid,                      &
-                                      name=trim(io_field%short_name), &
-                                      xtype=NF90_DOUBLE,              &
-                                      varid=io_field%id)
-            else if (associated (io_field%field_d_1d).or. &
-                     associated (io_field%field_d_2d).or. &
-                     associated (io_field%field_d_3d)) then
-               iostat = NF90_DEF_VAR (ncid=ncid,                      &
-                                      name=trim(io_field%short_name), &
-                                      xtype=NF90_DOUBLE,              &
-                   dimids=(/ (io_field%field_dim(n)%id, n=1,ndims) /),&
-                                      varid=io_field%id)
-            else if (associated (io_field%field_i_1d).or. &
-                     associated (io_field%field_i_2d).or. &
-                     associated (io_field%field_i_3d)) then
-               iostat = NF90_DEF_VAR (ncid=ncid,                      &
-                                      name=trim(io_field%short_name), &
-                                      xtype=NF90_INT,                 &
-                   dimids=(/ (io_field%field_dim(n)%id, n=1,ndims) /),&
-                                      varid=io_field%id)
-            else
-               define_error = .true.
-            end if
-            call check_status(iostat)
-            if (iostat /= nf90_noerr) define_error = .true.
-	    varid = io_field%id
-         else ! Variable was previously defined, OK to use it
-            io_field%id = varid
+         else if (            io_field%nfield_dims == c0) then 
+            ! do not supply optional dimids for scalars
+            iostat = pio_def_var (File,                           &
+                                  name=trim(io_field%short_name), &
+                                  type=PIO_DOUBLE,               &
+                                  varDesc=io_field%varDesc)
+         else if (associated (io_field%field_d_1d).or. &
+                  associated (io_field%field_d_2d).or. &
+                  associated (io_field%field_d_3d)) then
+            iostat = pio_def_var (File,                           &
+                                  name=trim(io_field%short_name), &
+                                  type=PIO_DOUBLE,               &
+               dimids=(/ (io_field%field_dim(n)%id, n=1,ndims) /),&
+                                  varDesc=io_field%varDesc)
+         else if (associated (io_field%field_i_1d).or. &
+                  associated (io_field%field_i_2d).or. &
+                  associated (io_field%field_i_3d)) then
+            iostat = pio_def_var (File,                           &
+                                  name=trim(io_field%short_name), &
+                                  type=PIO_INT,                  &
+               dimids=(/ (io_field%field_dim(n)%id, n=1,ndims) /),&
+                                  varDesc=io_field%varDesc)
+         else
+            define_error = .true.
          end if
-      end if ! master task
+         if (iostat /= pio_noerr) define_error = .true.
 
-      call broadcast_scalar(define_error, master_task)
+      end if
+
+      ! Now get a valid netcdf varid for the variable and fill in 
+      ! the io_field%id setting 
+
+      iostat = pio_inq_varid(File, trim(io_field%short_name), varid)
+      io_field%id = varid
+      if (iostat /= PIO_NOERR) define_error = .true.
+
+      iostat = pio_inq_varid(File, trim(io_field%short_name), io_field%vardesc)
+      if (iostat /= pio_noerr) define_error = .true.
+
       if (define_error) then
-        write(stdout,*) '(define_field_netcdf) ', trim(io_field%short_name)
-        call exit_POP(sigAbort, 'Error defining netCDF field')
+         write(stdout,*) '(define_field_netcdf) ', trim(io_field%short_name)
+         call exit_POP(sigAbort, 'Error defining netCDF field')
       endif
 
 !-----------------------------------------------------------------------
@@ -1237,176 +986,159 @@
 !
 !-----------------------------------------------------------------------
 
-      if (my_task == master_task) then
+      !*** long_name
 
-         !*** long_name
+      if (io_field%long_name /= char_blank) then
+         iostat = pio_inq_att(File, varid=varid, name='long_name', &
+                               xtype=xtype, len=nsize)
+         if (iostat /= PIO_NOERR) then ! attrib probably not defined
+            iostat = pio_put_att(File, varid=varid, &
+                                  name='long_name',       &
+                                  value=trim(io_field%long_name))
+            if (iostat /= PIO_NOERR) define_error = .true.
+         end if
+      endif
 
-         if (io_field%long_name /= char_blank) then
-            iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=varid, &
-                                            name='long_name')
-            if (iostat /= NF90_NOERR) then ! attrib probably not defined
-               iostat = NF90_PUT_ATT(ncid=NCID, varid=varid, &
-                                     name='long_name',       &
-                                     values=trim(io_field%long_name))
-               call check_status(iostat)
-               if (iostat /= NF90_NOERR) define_error = .true.
-            end if
-         endif
+      !*** units
 
-         !*** units
+      if (io_field%units /= char_blank) then
+         iostat = pio_inq_att(File, varid=varid, name='units', &
+                               xtype=xtype, len=nsize)
+         if (iostat /= PIO_NOERR) then ! attrib probably not defined
+            iostat = pio_put_att(File, varid=varid,       &
+                                  name='units',           &
+                                  value=trim(io_field%units))
+            if (iostat /= PIO_NOERR) define_error = .true.
+         end if
+      endif
 
-         if (io_field%units /= char_blank) then
-            iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=varid, &
-                                            name='units')
-            if (iostat /= NF90_NOERR) then ! attrib probably not defined
-               iostat = NF90_PUT_ATT(ncid=NCID, varid=varid, &
-                                     name='units',           &
-                                     values=trim(io_field%units))
-               call check_status(iostat)
-               if (iostat /= NF90_NOERR) define_error = .true.
-            end if
-         endif
+      !*** coordinates
 
-         !*** coordinates
+      if (io_field%coordinates /= char_blank) then
+         iostat = pio_inq_att(File, varid=varid, name='coordinates', &
+                               xtype=xtype, len=nsize)
+         if (iostat /= PIO_NOERR) then ! attrib probably not defined
+            iostat = pio_put_att(File, varid=varid, &
+                                  name='coordinates',           &
+                                  value=trim(io_field%coordinates))
+            if (iostat /= PIO_NOERR) define_error = .true.
+         end if
+      endif
 
-         if (io_field%coordinates /= char_blank) then
-            iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=varid, &
-                                            name='coordinates')
-            if (iostat /= NF90_NOERR) then ! attrib probably not defined
-               iostat = NF90_PUT_ATT(ncid=NCID, varid=varid, &
-                                     name='coordinates',           &
-                                     values=trim(io_field%coordinates))
-               call check_status(iostat)
-               if (iostat /= NF90_NOERR) define_error = .true.
-            end if
-         endif
+      !*** grid_loc
 
-         !*** grid_loc
- 
-         if (io_field%grid_loc /= '    ') then
-            iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=varid, &
-                                            name='grid_loc')
-            if (iostat /= NF90_NOERR) then ! attrib probably not defined
-               iostat = NF90_PUT_ATT(ncid=NCID, varid=varid, &
-                                     name='grid_loc',        &
-                                     values=io_field%grid_loc)
-               call check_status(iostat)
-               if (iostat /= NF90_NOERR) define_error = .true.
-            end if
-         endif
+      if (io_field%grid_loc /= '    ') then
+         iostat = pio_inq_att(File, varid=varid, name='grid_loc', &
+                               xtype=xtype, len=nsize)
+         if (iostat /= PIO_NOERR) then ! attrib probably not defined
+            iostat = pio_put_att(File, varid=varid, &
+                                  name='grid_loc',        &
+                                  value=io_field%grid_loc)
+            if (iostat /= PIO_NOERR) define_error = .true.
+         end if
+      endif
 
 
-         !*** missing_value
+      !*** missing_value
 
-         if (io_field%missing_value /= undefined) then
-            iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=varid, &
-                                            name='missing_value')
-            if (iostat /= NF90_NOERR) then ! attrib probably not defined
-               iostat = NF90_PUT_ATT(ncid=NCID, varid=varid, &
-                                     name='missing_value',   &
-                                     values=io_field%missing_value)
-               call check_status(iostat)
-               if (iostat /= NF90_NOERR) define_error = .true.
-            end if
-         endif
+      if (io_field%missing_value /= undefined) then
+         iostat = pio_inq_att(File, varid=varid, name='missing_value', &
+                               xtype=xtype, len=nsize)
+         if (iostat /= PIO_NOERR) then ! attrib probably not defined
+            iostat = pio_put_att(File, varid=varid, &
+                                  name='missing_value',   &
+                                  value=io_field%missing_value)
+            if (iostat /= PIO_NOERR) define_error = .true.
+         end if
+      endif
 
-         !*** missing_value_i
+      !*** missing_value_i
 
-         if (io_field%missing_value_i == undefined_nf_int) then
-            iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=varid, &
-                                            name='missing_value')
-            if (iostat /= NF90_NOERR) then ! attrib probably not defined
-               iostat = NF90_PUT_ATT(ncid=NCID, varid=varid, &
-                                     name='missing_value',   &
-                                     values=io_field%missing_value_i)
-               call check_status(iostat)
-               if (iostat /= NF90_NOERR) define_error = .true.
-            end if
-         endif
+      if (io_field%missing_value_i == undefined_nf_int) then
+         iostat = pio_inq_att(File, varid=varid, name='missing_value', &
+                               xtype=xtype, len=nsize)
+         if (iostat /= PIO_NOERR) then ! attrib probably not defined
+            iostat = pio_put_att(File, varid=varid, &
+                                  name='missing_value',   &
+                                  value=io_field%missing_value_i)
+            if (iostat /= PIO_NOERR) define_error = .true.
+         end if
+      endif
 
+      !*** valid_range(1:2)
 
+      if (any(io_field%valid_range /= undefined)) then
+         iostat = pio_inq_att(File, varid=varid, name='valid_range', &
+                               xtype=xtype, len=nsize)
+         if (iostat /= PIO_NOERR) then ! attrib probably not yet defined
+            iostat = pio_put_att(File, varid=varid, &
+                                  name='valid_range',       &
+                                  value=io_field%valid_range(:))
+            if (iostat /= PIO_NOERR) define_error = .true.
+         end if
+      endif
 
-         !*** valid_range(1:2)
+      !*** additional attributes if defined
 
-         if (any(io_field%valid_range /= undefined)) then
-            iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=varid, &
-                                            name='valid_range')
-            if (iostat /= NF90_NOERR) then ! attrib probably not yet defined
-               iostat = NF90_PUT_ATT(ncid=NCID, varid=varid, &
-                                     name='valid_range',       &
-                                     values=io_field%valid_range(:))
-               call check_status(iostat)
-               if (iostat /= NF90_NOERR) define_error = .true.
-            end if
-         endif
+      ncvals = 0
+      nlvals = 0
+      nivals = 0
+      nrvals = 0
+      ndvals = 0
+      if (associated(io_field%add_attrib_cval)) &
+         ncvals = size(io_field%add_attrib_cval)
+      if (associated(io_field%add_attrib_lval)) &
+         nlvals = size(io_field%add_attrib_lval)
+      if (associated(io_field%add_attrib_ival)) &
+         nivals = size(io_field%add_attrib_ival)
+      if (associated(io_field%add_attrib_rval)) &
+         nrvals = size(io_field%add_attrib_rval)
+      if (associated(io_field%add_attrib_dval)) &
+         ndvals = size(io_field%add_attrib_dval)
 
-         !*** additional attributes if defined
+      do n=1,ncvals
+         iostat = pio_put_att(File, varid=varid,             &
+                      name=trim(io_field%add_attrib_cname(n)), &
+                      value=trim(io_field%add_attrib_cval(n)))
+         if (iostat /= PIO_NOERR) define_error = .true.
+      end do
 
-         ncvals = 0
-         nlvals = 0
-         nivals = 0
-         nrvals = 0
-         ndvals = 0
-         if (associated(io_field%add_attrib_cval)) &
-            ncvals = size(io_field%add_attrib_cval)
-         if (associated(io_field%add_attrib_lval)) &
-            nlvals = size(io_field%add_attrib_lval)
-         if (associated(io_field%add_attrib_ival)) &
-            nivals = size(io_field%add_attrib_ival)
-         if (associated(io_field%add_attrib_rval)) &
-            nrvals = size(io_field%add_attrib_rval)
-         if (associated(io_field%add_attrib_dval)) &
-            ndvals = size(io_field%add_attrib_dval)
+      do n=1,nlvals
+         work_line = 'LOG_'/&
+                            &/trim(io_field%add_attrib_lname(n))
+         iostat = pio_put_att(File, varid=varid,             &
+                      name=trim(work_line),                        &
+                      value=io_field%add_attrib_ival(n))
+         if (iostat /= PIO_NOERR) define_error = .true.
+      end do
 
-         do n=1,ncvals
-            iostat = NF90_PUT_ATT(ncid=NCID, varid=varid,             &
-                         name=trim(io_field%add_attrib_cname(n)), &
-                         values=trim(io_field%add_attrib_cval(n)))
-            call check_status(iostat)
-            if (iostat /= NF90_NOERR) define_error = .true.
-         end do
+      do n=1,nivals
+         iostat = pio_put_att(File, varid=varid,             &
+                      name=trim(io_field%add_attrib_iname(n)),     &
+                      value=io_field%add_attrib_ival(n))
+         if (iostat /= PIO_NOERR) define_error = .true.
+      end do
 
-         do n=1,nlvals
-            work_line = 'LOG_'/&
-                               &/trim(io_field%add_attrib_lname(n))
-            iostat = NF90_PUT_ATT(ncid=NCID, varid=varid,             &
-                         name=trim(work_line),                        &
-                         values=io_field%add_attrib_ival(n))
-            call check_status(iostat)
-            if (iostat /= NF90_NOERR) define_error = .true.
-         end do
+      do n=1,nrvals
+         iostat = pio_put_att(file, varid=varid,             &
+                      name=trim(io_field%add_attrib_rname(n)),     &
+                      value=io_field%add_attrib_rval(n))
+         if (iostat /= PIO_NOERR) define_error = .true.
+      end do
 
-         do n=1,nivals
-            iostat = NF90_PUT_ATT(ncid=NCID, varid=varid,             &
-                         name=trim(io_field%add_attrib_iname(n)),     &
-                         values=io_field%add_attrib_ival(n))
-            call check_status(iostat)
-            if (iostat /= NF90_NOERR) define_error = .true.
-         end do
+      do n=1,ndvals
+         iostat = pio_put_att(File, varid=varid,             &
+                      name=trim(io_field%add_attrib_dname(n)),     &
+                      value=io_field%add_attrib_dval(n))
+         if (iostat /= PIO_NOERR) define_error = .true.
+      end do
 
-         do n=1,nrvals
-            iostat = NF90_PUT_ATT(ncid=NCID, varid=varid,             &
-                         name=trim(io_field%add_attrib_rname(n)),     &
-                         values=io_field%add_attrib_rval(n))
-            call check_status(iostat)
-            if (iostat /= NF90_NOERR) define_error = .true.
-         end do
-
-         do n=1,ndvals
-            iostat = NF90_PUT_ATT(ncid=NCID, varid=varid,             &
-                         name=trim(io_field%add_attrib_dname(n)),     &
-                         values=io_field%add_attrib_dval(n))
-            call check_status(iostat)
-            if (iostat /= NF90_NOERR) define_error = .true.
-         end do
-
-      endif ! master_task
-
-      call broadcast_scalar(define_error, master_task)
       if (define_error) call exit_POP(sigAbort, &
                         'Error adding attributes to field')
 
    endif ! input/output file
+
+   call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1442,19 +1174,18 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (i4), dimension(:,:),   allocatable :: global_i_2d
-   real    (r4), dimension(:,:),   allocatable :: global_r_2d
-   real    (r8), dimension(:,:),   allocatable :: global_d_2d
-
-   integer (i4), dimension(:), allocatable :: &
-      start,length              ! dimension quantities for netCDF
-
    integer (i4) :: &
       iostat,       &! netCDF status flag
+      ndims,        &! dimension index 	
       k,n            ! loop counters
 
    logical (log_kind) :: &
       write_error         ! error flag
+
+   type (File_desc_t) :: File
+
+   integer (i4), dimension(1) ::  &
+      start,count        ! dimension quantities for netCDF
 
 !-----------------------------------------------------------------------
 !
@@ -1463,22 +1194,11 @@
 !-----------------------------------------------------------------------
 
    write_error = .false.
+   File = data_file%File(1)
 
-   if (my_task == master_task) then
-      if (data_file%ldefine) then
-         iostat = nf90_enddef(data_file%id(1))
-         data_file%ldefine = .false.
-         call check_status(iostat)
-         if (iostat /= nf90_noerr) write_error = .true.
-      endif
-   endif
-
-   call broadcast_scalar(write_error, master_task) 
-   if (write_error) then
-      write(stdout,*) '(write_field_netcdf) filename = ', &
-                        trim(data_file%full_name)
-      call exit_POP(sigAbort, &
-                    'Error exiting define mode in netCDF write')
+   if (data_file%ldefine) then
+      iostat = pio_enddef(File)
+      data_file%ldefine = .false.
    endif
 
 !-----------------------------------------------------------------------
@@ -1487,364 +1207,117 @@
 !
 !-----------------------------------------------------------------------
 
-   if (my_task == master_task) then
-      if (io_field%id == 0) write_error = .true.
-   endif
-
-   call broadcast_scalar(write_error, master_task)
-   if (write_error) then
-      write(stdout,*) '(write_field_netcdf) ERROR: undefined field: ', &
-                        trim(io_field%short_name)
-      call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
-      call exit_POP(sigAbort,  trim(io_field%short_name) //' ' //  &
-                    'Attempt to write undefined field in netCDF write')
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  allocate dimension start,stop quantities
-!
-!-----------------------------------------------------------------------
-
-   if (my_task == master_task) then
-
-      allocate(start(io_field%nfield_dims), length(io_field%nfield_dims) )
-
-!-----------------------------------------------------------------------
-!
-!     allocate global arrays - these are for 2-d slices of data which
-!     are gathered to the master task
-!
-!-----------------------------------------------------------------------
-
-      if (associated(io_field%field_r_3d) .or. &
-          associated(io_field%field_r_2d)) then
-         allocate(global_r_2d(nx_global,ny_global))
-      else if (associated(io_field%field_d_3d) .or. &
-               associated(io_field%field_d_2d)) then
-         allocate(global_d_2d(nx_global,ny_global))
-      else if (associated(io_field%field_i_3d) .or. &
-               associated(io_field%field_i_2d)) then
-         allocate(global_i_2d(nx_global,ny_global))
-      endif
-
-   endif ! master task
+   if (io_field%id == 0) then
+      call exit_POP(sigAbort,'Attempt to write undefined field in netCDF write')
+   end if
 
 !-----------------------------------------------------------------------
 !
 !  write data based on type
 !
 !-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
-!
-!  real 3d array
-!
-!-----------------------------------------------------------------------
+
+   if (trim(io_field%short_name) == 'time') then
+      ndims    = io_field%nfield_dims
+      start(1) = io_field%field_dim(ndims)%start
+      count(1) = 1	
+      iostat = pio_put_var(File, varid=io_field%id, start=start(:), count=count(:), &
+                           ival=io_field%field_d_1d) 
+      if (iostat /= pio_noerr) then
+         call document('write_field_netcdf', 'short_name', io_field%short_name)
+         call exit_POP(sigAbort,'Error writing field time to netCDF file')
+      end if
+      RETURN
+   end if
+
+   ! Set the unlimited dimension pointer for the variable
+
+   if (io_field%set_iodesc) then
+      if (associated(io_field%field_r_3d)) then
+         call io_pio_initdecomp(PIO_REAL,   ndim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
+      else if (associated(io_field%field_d_3d)) then
+         call io_pio_initdecomp(PIO_DOUBLE, ndim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
+      else if (associated(io_field%field_i_3d)) then
+         call io_pio_initdecomp(PIO_INT,    ndim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
+      else if (associated(io_field%field_r_2d)) then
+         call io_pio_initdecomp(PIO_REAL,   ndim3=0, iodesc=io_field%ioDesc)
+      else if (associated(io_field%field_d_2d)) then
+         call io_pio_initdecomp(PIO_DOUBLE, ndim3=0, iodesc=io_field%ioDesc)
+      else if (associated(io_field%field_i_2d)) then
+         call io_pio_initdecomp(PIO_INT,    ndim3=0, iodesc=io_field%ioDesc)
+      end if
+      io_field%set_iodesc = .false.
+   end if
+      
+   if (io_field%set_ioFrame) then	
+      ndims = io_field%nfield_dims
+      call pio_setframe(io_field%vardesc, int(io_field%field_dim(ndims)%start,kind=PIO_OFFSET))
+   end if
 
    if (associated(io_field%field_r_3d)) then
 
-!!!   do k = 1,size(io_field%field_r_3d,dim=3)
-      do k = 1,io_field%field_dim(3)%length
-         call gather_global(global_r_2d, io_field%field_r_3d(:,:,k,:), &
-                            master_task, distrb_clinic)
-         if (my_task == master_task) then
-
-            !*** tell netCDF to only write slice n
-            io_field%field_dim(3)%start = k
-            io_field%field_dim(3)%stop = k
-
-            do n=1,io_field%nfield_dims
-               start (n) = io_field%field_dim(n)%start
-               length(n) = io_field%field_dim(n)%stop - start(n) + 1
-            end do
-            iostat = NF90_PUT_VAR (ncid=data_file%id(1),        &
-                                   varid=io_field%id,           &
-                                   values=global_r_2d,          &
-                                   start=start(:), count=length(:))
-            if (iostat /= nf90_noerr) then
-               call check_status(iostat)
-               write_error = .true.
-            endif
-         endif ! master task
-      end do ! slice loop
-
-!-----------------------------------------------------------------------
-!
-!  real 2d array
-!
-!-----------------------------------------------------------------------
+      call pio_write_darray(File, io_field%vardesc, io_field%iodesc, &
+                            io_field%field_r_3d, iostat)
 
    else if (associated(io_field%field_r_2d)) then
 
-      call gather_global(global_r_2d, io_field%field_r_2d, &
-                         master_task, distrb_clinic)
-      if (my_task == master_task) then
-
-         do n=1,io_field%nfield_dims
-            start (n) = io_field%field_dim(n)%start
-            length(n) = io_field%field_dim(n)%stop - start(n) + 1
-         end do
-         iostat = NF90_PUT_VAR (ncid=data_file%id(1),       &
-                                varid=io_field%id,          &
-                                values=global_r_2d,         &
-                                start=start(:), count=length(:))
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            write_error = .true.
-         endif
-      endif ! master task
-
-!-----------------------------------------------------------------------
-!
-!  real 1d array
-!
-!-----------------------------------------------------------------------
+      call pio_write_darray(File, io_field%vardesc, io_field%iodesc, &
+                            io_field%field_r_2d, iostat)
 
    else if (associated(io_field%field_r_1d)) then
 
-      if (my_task == master_task) then
-         ! 1d vectors are not distributed to blocks; no need for gather_global
-         do n=1,io_field%nfield_dims
-            start (n) = io_field%field_dim(n)%start
-            length(n) = io_field%field_dim(n)%stop - start(n) + 1
-         end do
-         iostat = NF90_PUT_VAR (ncid=data_file%id(1),       &
-                                varid=io_field%id,          &
-                                values=io_field%field_r_1d, &
-                                start=start(:), count=length(:))
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            write_error = .true.
-         endif
-      endif ! master task
-
-!-----------------------------------------------------------------------
-!
-!  real 0d array
-!
-!-----------------------------------------------------------------------
-!      deferred
-
-!-----------------------------------------------------------------------
-!
-!  double 3d array
-!
-!-----------------------------------------------------------------------
+      ! 1d vectors are not distributed to blocks
+      iostat = pio_put_var(File, io_field%vardesc, io_field%field_r_1d)
 
    else if (associated(io_field%field_d_3d)) then
 
-!!!   do k = 1,size(io_field%field_d_3d,dim=3)
-      do k = 1,io_field%field_dim(3)%length
-         call gather_global(global_d_2d, io_field%field_d_3d(:,:,k,:), &
-                            master_task, distrb_clinic)
-         if (my_task == master_task) then
-
-            !*** tell netCDF to only write slice n
-            io_field%field_dim(3)%start = k
-            io_field%field_dim(3)%stop = k
-
-            do n=1,io_field%nfield_dims
-               start (n) = io_field%field_dim(n)%start
-               length(n) = io_field%field_dim(n)%stop - start(n) + 1
-            end do
-
-            iostat = NF90_PUT_VAR (ncid=data_file%id(1),        &
-                                   varid=io_field%id,           &
-                                   values=global_d_2d, &
-                                   start=start(:), count=length(:))
-            if (iostat /= nf90_noerr) then
-               call check_status(iostat)
-               write_error = .true.
-            endif
-         endif ! master task
-      end do ! slice loop
-
-!-----------------------------------------------------------------------
-!
-!  double 2d array
-!
-!-----------------------------------------------------------------------
+      call pio_write_darray(File, io_field%vardesc, io_field%iodesc, &
+                            io_field%field_d_3d, iostat)
 
    else if (associated(io_field%field_d_2d)) then
 
-      call gather_global(global_d_2d, io_field%field_d_2d, &
-                         master_task, distrb_clinic)
-      if (my_task == master_task) then
-  
-         do n=1,io_field%nfield_dims
-            start (n) = io_field%field_dim(n)%start
-            length(n) = io_field%field_dim(n)%stop - start(n) + 1
-         end do
-         iostat = NF90_PUT_VAR (ncid=data_file%id(1),       &
-                                varid=io_field%id,          &
-                                values=global_d_2d,         &
-                                start=start(:), count=length(:))
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            write_error = .true.
-         endif
-      endif ! master task
-
-!-----------------------------------------------------------------------
-!
-!  double 1d array
-!
-!-----------------------------------------------------------------------
+      call pio_write_darray(File, io_field%vardesc, io_field%iodesc, &
+                            io_field%field_d_2d, iostat)
 
    else if (associated(io_field%field_d_1d)) then
 
-      if (my_task == master_task) then
-         ! 1d vectors are not distributed to blocks; no need for gather_global
-         do n=1,io_field%nfield_dims
-            start (n) = io_field%field_dim(n)%start
-            length(n) = io_field%field_dim(n)%stop - start(n) + 1
-         end do
-         iostat = NF90_PUT_VAR (ncid=data_file%id(1),       &
-                                varid=io_field%id,          &
-                                values=io_field%field_d_1d, &
-                                start=start(:), count=length(:))
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            write_error = .true.
-         endif
-      endif ! master task
+      ! 1d vectors are not distributed to blocks; no need for gather_global
+      iostat = pio_put_var(File, io_field%vardesc, io_field%field_d_1d)
+ 
+   else if (io_field%nfield_dims == c0) then
 
-!-----------------------------------------------------------------------
-!
-!  double 0d array
-!
-!-----------------------------------------------------------------------
-
-   else if (      io_field%nfield_dims == c0) then
-
-      if (my_task == master_task) then
-         ! scalars are not distributed to blocks; no need for gather_global
-         ! for now, all scalars are r8   and are not pointers or targets 
-         iostat = NF90_PUT_VAR (ncid=data_file%id(1),       &
-                                varid=io_field%id,          &
-                                values=io_field%field_d_0d)
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            write_error = .true.
-         endif
-      endif ! master task
-
-
-!-----------------------------------------------------------------------
-!
-!  integer 3d array
-!
-!-----------------------------------------------------------------------
+      ! scalars are not distributed to blocks; no need for gather_global
+      ! for now, all scalars are r8   and are not pointers or targets 
+      iostat = pio_put_var(File, io_field%vardesc, io_field%field_d_0d)
 
    else if (associated(io_field%field_i_3d)) then
 
-!!!   do k = 1,size(io_field%field_i_3d,dim=3)
-      do k = 1,io_field%field_dim(3)%length
-         call gather_global(global_i_2d, io_field%field_i_3d(:,:,k,:), &
-                            master_task, distrb_clinic)
-         if (my_task == master_task) then
-
-            !*** tell netCDF to only write slice n
-            io_field%field_dim(3)%start = k
-            io_field%field_dim(3)%stop = k
-
-            do n=1,io_field%nfield_dims
-               start (n) = io_field%field_dim(n)%start
-               length(n) = io_field%field_dim(n)%stop - start(n) + 1
-            end do
-
-            iostat = NF90_PUT_VAR (ncid=data_file%id(1), &
-                                   varid=io_field%id,    &
-                                   values=global_i_2d,   &
-                                   start=start(:), count=length(:))
-            if (iostat /= nf90_noerr) then
-               call check_status(iostat)
-               write_error = .true.
-            endif
-         endif ! master task
-      end do ! slice loop
-
-!-----------------------------------------------------------------------
-!
-!  integer 2d array
-!
-!-----------------------------------------------------------------------
+      call pio_write_darray(File, io_field%vardesc, io_field%iodesc, &
+                            io_field%field_i_3d, iostat)
 
    else if (associated(io_field%field_i_2d)) then
 
-      call gather_global(global_i_2d, io_field%field_i_2d, &
-                         master_task, distrb_clinic)
-      if (my_task == master_task) then
-
-         do n=1,io_field%nfield_dims
-            start (n) = io_field%field_dim(n)%start
-            length(n) = io_field%field_dim(n)%stop - start(n) + 1
-         end do
-         iostat = NF90_PUT_VAR (ncid=data_file%id(1),  &
-                                varid=io_field%id,     &
-                                values=global_i_2d,    &
-                                start=start(:), count=length(:))
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            write_error = .true.
-         endif
-      endif ! master task
- 
-
-!-----------------------------------------------------------------------
-!
-!  integer 1d array
-!
-!-----------------------------------------------------------------------
+      call pio_write_darray(File, io_field%vardesc, io_field%iodesc, &
+                            io_field%field_i_2d, iostat)
 
    else if (associated(io_field%field_i_1d)) then
 
-      if (my_task == master_task) then
-         do n=1,io_field%nfield_dims
-            start (n) = io_field%field_dim(n)%start
-            length(n) = io_field%field_dim(n)%stop - start(n) + 1
-         end do
-         ! 1d vectors are not distributed to blocks; no need for gather_global
-         iostat = NF90_PUT_VAR (ncid=data_file%id(1),       &
-                                varid=io_field%id,          &
-                                values=io_field%field_i_1d, &
-                                start=start(:), count=length(:))
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            write_error = .true.
-         endif
-      endif ! master task
-
-!-----------------------------------------------------------------------
-!
-!  check for write errors
-!
-!-----------------------------------------------------------------------
+      ! 1d vectors are not distributed to blocks; no need for gather_global
+      iostat = pio_put_var(File, io_field%vardesc, io_field%field_i_1d)
 
    else
       call exit_POP(sigAbort, &
                     'No field associated for writing to netCDF')
    end if
 
-   call broadcast_scalar(write_error, master_task)
+   if (iostat /= pio_noerr) then
+      write_error = .true.
+   endif
+
    if (write_error) then
       call document('write_field_netcdf', 'short_name', io_field%short_name)
       call exit_POP(sigAbort, &
                     'Error writing field to netCDF file')
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  deallocate quantities
-!
-!-----------------------------------------------------------------------
-
-   if (my_task == master_task) then
-      if (allocated(start))       deallocate(start)
-      if (allocated(length))      deallocate(length)
-      if (allocated(global_r_2d)) deallocate(global_r_2d)
-      if (allocated(global_d_2d)) deallocate(global_d_2d)
-      if (allocated(global_i_2d)) deallocate(global_i_2d)
    endif
 
 !-----------------------------------------------------------------------
@@ -1864,6 +1337,12 @@
 !
 ! !REVISION HISTORY:
 !  same as module
+!
+! !USES
+
+   use POP_FieldMod	           
+   use POP_GridHorzMod
+   use Pop_HaloMod
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -1881,19 +1360,17 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (i4), dimension(:,:), allocatable :: global_i_2d
-   real    (r4), dimension(:,:), allocatable :: global_r_2d
-   real    (r8), dimension(:,:), allocatable :: global_d_2d
-
-   integer (i4), dimension(:), allocatable :: &
-      start,length              ! dimension quantities for netCDF
-
    integer (i4) :: &
       iostat,      &! netCDF status flag
       k,n           ! loop counters
+ 
+   type (File_desc_t) :: File
 
-   logical (log_kind) :: &
-      read_error         ! error flag
+   character(len=8) :: fieldtype, fieldloc
+
+   integer (POP_i4) ::  errorCode           ! returned error code
+
+   logical (log_kind) :: lhalo_update
 
 !-----------------------------------------------------------------------
 !
@@ -1901,16 +1378,8 @@
 !
 !-----------------------------------------------------------------------
 
-
-   read_error = .false.
-   if (my_task == master_task) then
-      if (io_field%id == 0) read_error = .true.
-   endif
-
-   call broadcast_scalar(read_error, master_task)
-   if (read_error) &
-      call exit_POP(sigAbort, &
-                    'Attempt to read undefined field in netCDF read')
+   File = data_file%File(1)
+   iostat = pio_inq_varid(File, trim(io_field%short_name), io_field%varDesc)
 
 !-----------------------------------------------------------------------
 !
@@ -1925,442 +1394,213 @@
 
 !-----------------------------------------------------------------------
 !
-!  allocate dimension start,stop quantities
-!
-!-----------------------------------------------------------------------
-
-   if (my_task == master_task) then
-      if (associated(io_field%field_r_3d) .or. &
-          associated(io_field%field_d_3d) .or. &
-          associated(io_field%field_i_3d) ) then
-             allocate(start(3), length(3) )
-      endif
-!-----------------------------------------------------------------------
-!
-!     allocate global arrays - these are for 2-d slices of data which
-!     are gathered to the master task
-!
-!-----------------------------------------------------------------------
-
-      if (associated(io_field%field_r_3d) .or. &
-          associated(io_field%field_r_2d)) then
-         allocate(global_r_2d(nx_global,ny_global))
-      else if (associated(io_field%field_d_3d) .or. &
-               associated(io_field%field_d_2d)) then
-         allocate(global_d_2d(nx_global,ny_global))
-      else if (associated(io_field%field_i_3d) .or. &
-               associated(io_field%field_i_2d)) then
-         allocate(global_i_2d(nx_global,ny_global))
-      endif
-
-   endif ! master task
-
-!-----------------------------------------------------------------------
-!
 !  read data based on type
 !
 !-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
-!
-!  real 3d array
-!
-!-----------------------------------------------------------------------
+
+   if (io_field%set_iodesc) then
+      if (associated(io_field%field_r_3d)) then
+         call io_pio_initdecomp(PIO_REAL, ndim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
+      else if (associated(io_field%field_d_3d)) then
+         call io_pio_initdecomp(PIO_DOUBLE, ndim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
+      else if (associated(io_field%field_i_3d)) then
+         call io_pio_initdecomp(PIO_INT, ndim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
+      else if (associated(io_field%field_r_2d)) then
+         call io_pio_initdecomp(PIO_REAL, ndim3=0, iodesc=io_field%ioDesc)
+      else if (associated(io_field%field_d_2d)) then
+         call io_pio_initdecomp(PIO_DOUBLE, ndim3=0, iodesc=io_field%ioDesc)
+      else if (associated(io_field%field_i_2d)) then
+         call io_pio_initdecomp(PIO_INT, ndim3=0, iodesc=io_field%ioDesc)
+      end if
+      io_field%set_iodesc = .false.
+   end if
+
+   ! Set values for halo updates if needed
+   if (io_field%field_loc == field_loc_center) then
+      fieldLoc = POP_gridHorzLocCenter
+   else if (io_field%field_loc == field_loc_NEcorner) then
+      fieldLoc = POP_gridHorzLocNECorner
+   else if (io_field%field_loc == field_loc_Nface) then
+      fieldLoc = POP_gridHorzLocNface
+   else if (io_field%field_loc == field_loc_Eface) then
+      fieldLoc = POP_gridHorzLocEface
+   end if
+
+   if (io_field%field_type == field_type_vector) then
+      fieldType = POP_fieldKindVector
+   else if (io_field%field_type == field_type_scalar) then
+      fieldType = POP_fieldKindScalar
+   else if (io_field%field_type == field_type_angle) then
+      fieldType = POP_fieldKindAngle
+   else if (io_field%field_type == field_type_noupdate) then
+      fieldType = POP_fieldKindNoUpdate
+   else
+      call exit_POP(sigAbort, 'read_field_netcdf field_type is not supported')
+   end if
+
+   ! Currently halo update is not supported for tripole grid
+   if (ltripole_grid) then
+      if (io_field%field_type == field_type_noupdate .or. &
+	  io_field%field_loc  == field_loc_noupdate) then
+         lhalo_update = .false.
+      else
+         lhalo_update = .true.
+      end if
+   else 
+      if (io_field%field_loc == field_loc_noupdate .or. &
+	  io_field%field_loc == field_loc_unknown) then
+    	 lhalo_update = .false.
+      else
+         lhalo_update = .true.
+      end if
+   end if
 
    if (associated(io_field%field_r_3d)) then
 
-!!!   do k = 1,size(io_field%field_r_3d,dim=3)
-      do k = 1,io_field%field_dim(3)%length
-         if (my_task == master_task) then
+      call pio_read_darray(File, io_field%varDesc, io_field%iodesc, &
+                           io_field%field_r_3d(:,:,:,:), iostat)
 
-            !*** tell netCDF to only read slice n
-            io_field%field_dim(3)%start = k
-            io_field%field_dim(3)%stop = k
-
-            do n=1,io_field%nfield_dims
-               start (n) = io_field%field_dim(n)%start
-               length(n) = io_field%field_dim(n)%stop - start(n) + 1
-            end do
-
-            iostat = NF90_GET_VAR (ncid=data_file%id(1), &
-                                   varid=io_field%id,    &
-                                   values=global_r_2d,   &
-                                   start=start(:), count=length(:))
-            if (iostat /= nf90_noerr) then
-               call check_status(iostat)
-               read_error = .true.
-            endif
-         endif ! master task
-
-         call broadcast_scalar(read_error, master_task)
-         if (.not. read_error) &
-            call scatter_global(io_field%field_r_3d(:,:,k,:), &
-                                global_r_2d, master_task, distrb_clinic, &
-                                io_field%field_loc, io_field%field_type)
-
-      end do ! slice loop
-
-!-----------------------------------------------------------------------
-!
-!  real 2d array
-!
-!-----------------------------------------------------------------------
+      if (lhalo_update) then
+         call POP_HaloUpdate(array=io_field%field_r_3d(:,:,:,:),       &
+                             halo=POP_haloClinic,                      &
+                             fieldLoc=FieldLoc,                        &
+                             fieldKind=FieldType, errorCode=errorCode, &
+                             fillValue=0.0_POP_r4)
+         if (errorCode /= POP_Success) then
+            call exit_POP(sigAbort, &
+               'read_field_netcdf: error updating halo for field_r_3d')
+         endif
+      end if
 
    else if (associated(io_field%field_r_2d)) then
 
-      if (my_task == master_task) then
+      call pio_read_darray(File, io_field%varDesc, io_field%iodesc, &
+                           io_field%field_r_2d, iostat)
 
-         iostat = NF90_GET_VAR (ncid=data_file%id(1),       &
-                                varid=io_field%id,          &
-                                values=global_r_2d)
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            read_error = .true.
+      if (lhalo_update) then
+         call POP_HaloUpdate(array=io_field%field_r_2d(:,:,:),         &
+                             halo=POP_haloClinic,                      &
+                             fieldLoc=FieldLoc,                        &
+                             fieldKind=FieldType, errorCode=errorCode, &
+                             fillValue=0.0_POP_r4)
+         if (errorCode /= POP_Success) then
+            call exit_POP(sigAbort, &
+               'read_field_netcdf: error updating halo for field_r_2d')
          endif
-      endif ! master task
-
-      call broadcast_scalar(read_error, master_task)
-      if (.not. read_error) then
-         call scatter_global(io_field%field_r_2d, &
-                             global_r_2d, master_task, distrb_clinic, &
-                             io_field%field_loc, io_field%field_type)
-      endif
-
-!-----------------------------------------------------------------------
-!
-!  real 1d array
-!
-!-----------------------------------------------------------------------
+      end if
 
    else if (associated(io_field%field_r_1d)) then
 
       ! 1d vectors are not distributed to blocks; therefore, no scatter_global needed
-      if (my_task == master_task) then
-
-         iostat = NF90_GET_VAR (ncid=data_file%id(1),       &
-                                varid=io_field%id,          &
-                                values=io_field%field_r_1d)
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            read_error = .true.
-         endif
-      endif ! master task
-
-      call broadcast_scalar(read_error, master_task)
-
-!-----------------------------------------------------------------------
-!
-!  real 0d array (scalar)
-!
-!-----------------------------------------------------------------------
+      iostat = pio_get_var (data_file%File(1),io_field%varDesc,&
+                            io_field%field_r_1d)
 
    else if (associated(io_field%field_r_1d)) then
 
       ! scalars are not distributed to blocks; therefore, no scatter_global needed
-      if (my_task == master_task) then
-
-         iostat = NF90_GET_VAR (ncid=data_file%id(1),       &
-                                varid=io_field%id,          &
-                                values=io_field%field_r_0d)
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            read_error = .true.
-         endif
-      endif ! master task
-
-      call broadcast_scalar(read_error, master_task)
-
-
-!-----------------------------------------------------------------------
-!
-!  double 3d array
-!
-!-----------------------------------------------------------------------
+      iostat = pio_get_var (data_file%File(1),io_field%varDesc, &
+                            io_field%field_r_0d)
 
    else if (associated(io_field%field_d_3d)) then
 
-!!!   do k = 1,size(io_field%field_d_3d,dim=3)
-      do k = 1,io_field%field_dim(3)%length
-         if (my_task == master_task) then
+      call pio_read_darray(File, io_field%varDesc, io_field%ioDesc, &
+                           io_field%field_d_3d, iostat)
 
-            !*** tell netCDF to only read slice n
-            io_field%field_dim(3)%start = k
-            io_field%field_dim(3)%stop = k
-
-            do n=1,io_field%nfield_dims
-               start (n) = io_field%field_dim(n)%start
-               length(n) = io_field%field_dim(n)%stop - start(n) + 1
-            end do
-
-            iostat = NF90_GET_VAR (ncid=data_file%id(1), &
-                                   varid=io_field%id,    &
-                                   values=global_d_2d,   &
-                                   start=start(:), count=length(:))
-            if (iostat /= nf90_noerr) then
-               call check_status(iostat)
-               read_error = .true.
-            endif
-         endif ! master task
-
-         call broadcast_scalar(read_error, master_task)
-         if (.not. read_error) &
-            call scatter_global(io_field%field_d_3d(:,:,k,:), &
-                                global_d_2d, master_task, distrb_clinic, &
-                                io_field%field_loc, io_field%field_type)
-
-      end do ! slice loop
-
-!-----------------------------------------------------------------------
-!
-!  double 2d array
-!
-!-----------------------------------------------------------------------
+      if (lhalo_update) then
+         call POP_HaloUpdate(array=io_field%field_d_3d(:,:,:,:),       &
+                             halo=POP_haloClinic,                      &
+                             fieldLoc=FieldLoc,                        &
+                             fieldKind=FieldType, errorCode=errorCode, &
+                             fillValue=0.0_POP_r8)
+         if (errorCode /= POP_Success) then
+            call exit_POP(sigAbort, &
+               'read_field_netcdf: error updating halo for field_d_3d')
+         endif
+      end if
 
    else if (associated(io_field%field_d_2d)) then
 
-      if (my_task == master_task) then
+      call pio_read_darray(File, io_field%varDesc, io_field%ioDesc, &
+                           io_field%field_d_2d, iostat)
 
-         iostat = NF90_GET_VAR (ncid=data_file%id(1), &
-                                varid=io_field%id,    &
-                                values=global_d_2d)
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            read_error = .true.
+      if (lhalo_update) then
+         call POP_HaloUpdate(array=io_field%field_d_2d(:,:,:),         &
+                             halo=POP_haloClinic,                      &
+                             fieldLoc=FieldLoc,                        &
+                             fieldKind=FieldType, errorCode=errorCode, &
+                             fillValue=0.0_POP_r8)
+         if (errorCode /= POP_Success) then
+            call exit_POP(sigAbort, &
+               'read_field_netcdf: error updating halo for field_d_2d')
          endif
-      endif ! master task
-
-      call broadcast_scalar(read_error, master_task)
-      if (.not. read_error) then
-         call scatter_global(io_field%field_d_2d, &
-                             global_d_2d, master_task, distrb_clinic, &
-                             io_field%field_loc, io_field%field_type)
-      endif
-
-!-----------------------------------------------------------------------
-!
-!  double 1d array
-!
-!-----------------------------------------------------------------------
+      end if
 
    else if (associated(io_field%field_d_1d)) then
 
       ! 1d vectors are not distributed to blocks; therefore, no scatter_global needed
-      if (my_task == master_task) then
-
-         iostat = NF90_GET_VAR (ncid=data_file%id(1),       &
-                                varid=io_field%id,          &
-                                values=io_field%field_d_1d)
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            read_error = .true.
-         endif
-      endif ! master task
-
-      call broadcast_scalar(read_error, master_task)
-
-!-----------------------------------------------------------------------
-!
-!  double 0d array (scalar)
-!
-!-----------------------------------------------------------------------
+      iostat = pio_get_var (data_file%File(1),io_field%varDesc, &
+                            io_field%field_d_1d)
 
    else if (associated(io_field%field_d_1d)) then
 
       ! scalars are not distributed to blocks; therefore, no scatter_global needed
-      if (my_task == master_task) then
-
-         iostat = NF90_GET_VAR (ncid=data_file%id(1),       &
-                                varid=io_field%id,          &
-                                values=io_field%field_d_0d)
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            read_error = .true.
-         endif
-      endif ! master task
-
-      call broadcast_scalar(read_error, master_task)
-
-!-----------------------------------------------------------------------
-!
-!  integer 3d array
-!
-!-----------------------------------------------------------------------
+      iostat = pio_get_var (data_file%File(1), io_field%varDesc, &
+                            io_field%field_d_0d)
 
    else if (associated(io_field%field_i_3d)) then
 
-!!!   do k = 1,size(io_field%field_i_3d,dim=3)
-      do k = 1,io_field%field_dim(3)%length
-         if (my_task == master_task) then
+      call pio_read_darray(File, io_field%varDesc, io_field%ioDesc, &
+                           io_field%field_i_3d, iostat)
 
-            !*** tell netCDF to only read slice n
-            io_field%field_dim(3)%start = k
-            io_field%field_dim(3)%stop = k
-
-            do n=1,io_field%nfield_dims
-               start (n) = io_field%field_dim(n)%start
-               length(n) = io_field%field_dim(n)%stop - start(n) + 1
-            end do
-
-            iostat = NF90_GET_VAR (ncid=data_file%id(1), &
-                                   varid=io_field%id,    &
-                                   values=global_i_2d,   &
-                                   start=start(:), count=length(:))
-            if (iostat /= nf90_noerr) then
-               call check_status(iostat)
-               read_error = .true.
-            endif
-         endif ! master task
-
-         call broadcast_scalar(read_error, master_task)
-         if (.not. read_error) &
-            call scatter_global(io_field%field_i_3d(:,:,k,:), &
-                                global_i_2d, master_task, distrb_clinic, &
-                                io_field%field_loc, io_field%field_type)
-
-      end do ! slice loop
-
-!-----------------------------------------------------------------------
-!
-!  integer 2d array
-!
-!-----------------------------------------------------------------------
+      if (lhalo_update) then
+         call POP_HaloUpdate(array=io_field%field_i_3d(:,:,:,:),       &
+                             halo=POP_haloClinic,                      &
+                             fieldLoc=FieldLoc,                        &
+                             fieldKind=FieldType, errorCode=errorCode, &
+                             fillValue=0_POP_i4)
+         if (errorCode /= POP_Success) then
+            call exit_POP(sigAbort, &
+               'read_field_netcdf: error updating halo for field_i_3d')
+         endif
+      end if
 
    else if (associated(io_field%field_i_2d)) then
 
-      if (my_task == master_task) then
+      call pio_read_darray(File, io_field%varDesc, io_field%ioDesc, &
+                           io_field%field_i_2d, iostat)
 
-         iostat = NF90_GET_VAR (ncid=data_file%id(1),       &
-                                varid=io_field%id,          &
-                                values=global_i_2d)
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            read_error = .true.
+      if (lhalo_update) then
+         call POP_HaloUpdate(array=io_field%field_i_2d(:,:,:),         &
+                             halo=POP_haloClinic,                      &
+                             fieldLoc=FieldLoc,                        &
+                             fieldKind=FieldType, errorCode=errorCode, &
+                             fillValue=0_POP_i4)
+         if (errorCode /= POP_Success) then
+            call exit_POP(sigAbort, &
+               'read_field_netcdf: error updating halo for field_i_2d')
          endif
-      endif ! master task
-
-      call broadcast_scalar(read_error, master_task)
-      if (.not. read_error) then
-         call scatter_global(io_field%field_i_2d, &
-                             global_i_2d, master_task, distrb_clinic, &
-                             io_field%field_loc, io_field%field_type)
-      endif
-
-!-----------------------------------------------------------------------
-!
-!  integer 1d array
-!
-!-----------------------------------------------------------------------
+      end if
 
    else if (associated(io_field%field_i_1d)) then
 
       ! 1d vectors are not distributed to blocks; therefore, no scatter_global needed
-      if (my_task == master_task) then
-
-         iostat = NF90_GET_VAR (ncid=data_file%id(1),       &
-                                varid=io_field%id,          &
-                                values=io_field%field_i_1d)
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            read_error = .true.
-         endif
-      endif ! master task
-
-      call broadcast_scalar(read_error, master_task)
-
-!-----------------------------------------------------------------------
-!
-!  integer 0d array (scalar)
-!
-!-----------------------------------------------------------------------
+      iostat = pio_get_var (data_file%File(1),io_field%varDesc, &
+                            io_field%field_i_1d)
 
    else if (associated(io_field%field_i_1d)) then
 
       ! scalars are not distributed to blocks; therefore, no scatter_global needed
-      if (my_task == master_task) then
-
-         iostat = NF90_GET_VAR (ncid=data_file%id(1),       &
-                                varid=io_field%id,          &
-                                values=io_field%field_i_0d)
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            read_error = .true.
-         endif
-      endif ! master task
-
-      call broadcast_scalar(read_error, master_task)
-
-!-----------------------------------------------------------------------
-!
-!  check for read errors
-!
-!-----------------------------------------------------------------------
-
+      iostat = pio_get_var (data_file%File(1), io_field%varDesc, &
+                            io_field%field_i_0d)
    else
       call exit_POP(sigAbort, &
                     'No field associated for reading from netCDF')
    end if
 
-   call broadcast_scalar(read_error, master_task)
-   if (read_error) &
-      call exit_POP(sigAbort,'Error reading field from netCDF file')
-
-!-----------------------------------------------------------------------
-!
-!  deallocate quantities
-!
-!-----------------------------------------------------------------------
-
-   if (my_task == master_task) then
-      if (allocated(start))       deallocate(start)
-      if (allocated(length))      deallocate(length)
-      if (allocated(global_r_2d)) deallocate(global_r_2d)
-      if (allocated(global_d_2d)) deallocate(global_d_2d)
-      if (allocated(global_i_2d)) deallocate(global_i_2d)
-   endif
-
-
 !-----------------------------------------------------------------------
 !EOC
 
  end subroutine read_field_netcdf
-
-!***********************************************************************
-!BOP
-! !IROUTINE:  check_status
-! !INTERFACE:
-
- subroutine check_status(status)
-
-! !DESCRIPTION:
-!  This exception handler subroutine can be used to check error status
-!  after a netcdf call.  It prints out a text message assigned to
-!  an error code but does not exit because this routine is typically
-!  only called from a single process.
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
-   integer (i4), intent (in) ::  &
-      status                     ! status returned by netCDF call
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!
-!  call netCDF routine to return error message
-!
-!-----------------------------------------------------------------------
-
-   if (status /= nf90_noerr) then
-      write(stdout,*) trim(nf90_strerror(status))
-      call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
-   end if
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine check_status
 
 !***********************************************************************
 !BOP
@@ -2419,15 +1659,27 @@
 
    integer (i4) ::    &
       iostat,         &! status flag for netCDF calls
-      ncid,           &! file id for netcdf file
       n,              &! loop index
-      xtype
+      dimid,          &! dimension id
+      xtype,          &
+      len	
+
+   type (File_desc_t) :: &
+      File
 
    logical (log_kind) :: &
       define_error        ! error flag
 
+   ! Note this is a local variable since it is only used to satisfy 
+   ! pio_def_var interface needs. Only pio_put_var is used for 
+   ! non-standard variablesand all output is from the master processor.
+   ! So vardesc is never directly.
+
+   type(var_desc_t) :: &  
+      vardesc	
+
    define_error = .false.
-   ncid = data_file%id(1)
+   File = data_file%File(1)
 
 !-----------------------------------------------------------------------
 !
@@ -2435,9 +1687,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call check_file_open  (data_file, 'define_nstd_netcdf')
    call check_definemode (data_file, 'define_nstd_netcdf')
-
 
 !-----------------------------------------------------------------------
 !
@@ -2445,7 +1695,21 @@
 !
 !-----------------------------------------------------------------------
 
-   call define_dimensions(data_file,ndims,io_dims)
+   call pio_seterrorhandling(File, PIO_BCAST_ERROR)
+   do n = 1,ndims
+      dimid = 0
+
+      !*** check to see whether dimension is already defined
+      iostat = PIO_INQ_DIMID(File, name=trim(io_dims(n)%name),&
+                              dimid=dimid)
+      if (iostat /= PIO_NOERR) then ! dimension not yet defined
+         iostat = PIO_DEF_DIM (File, name=trim(io_dims(n)%name), &
+                                len=io_dims(n)%length, dimid=io_dims(n)%id)
+      else
+         io_dims(n)%id = dimid
+      end if
+   end do
+   call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
 !-----------------------------------------------------------------------
 !
@@ -2456,22 +1720,42 @@
    if (present(nftype)) then
       select case (trim(nftype))
         case ('float','FLOAT')
-          xtype = NF90_FLOAT
+          xtype = PIO_REAL
         case ('double','DOUBLE')
-          xtype = NF90_DOUBLE
+          xtype = PIO_DOUBLE
         case ('integer','INTEGER')
-          xtype = NF90_INT
+          xtype = PIO_INT
         case ('char','CHAR','character', 'CHARACTER')
-          xtype = NF90_CHAR
+          xtype = PIO_CHAR
         case default
           call exit_POP(sigAbort,'unknown nftype') 
       end select
    else
-    xtype = NF90_FLOAT
+    xtype = PIO_REAL
    endif
 
-   call define_var (data_file,trim(short_name),ndims,io_dims,  &
-                    xtype,field_id)
+   !*** check to see whether field of this name already defined.
+
+   call pio_seterrorhandling(File, PIO_BCAST_ERROR)
+
+   iostat = PIO_INQ_VARID(File, trim(short_name), field_id)
+   if (iostat /= PIO_NOERR) then ! variable was not yet defined
+      ! Note currently must use vardesc to define var 
+      iostat = PIO_DEF_VAR (File,name=trim(short_name), type=xtype,&
+                             dimids=(/ (io_dims(n)%id, n=1,ndims) /),&
+                             vardesc=vardesc)
+      if (iostat /= pio_noerr) define_error = .true.
+
+      iostat = PIO_INQ_VARID(File, trim(short_name), field_id)
+      if (iostat /= pio_noerr) define_error = .true.
+   end if
+
+   if (define_error) then
+       write(stdout,*) '(define_var) Error for field = ', trim(short_name)
+       call exit_POP(sigAbort, 'Error defining nonstandard CCSM netCDF field')
+   endif
+
+   call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
 !-----------------------------------------------------------------------
 !
@@ -2479,62 +1763,56 @@
 !
 !-----------------------------------------------------------------------
 
-   if (my_task == master_task) then
+    call pio_seterrorhandling(File, PIO_BCAST_ERROR)
 
-      !*** long_name
-       iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=field_id, &
-                                       name='long_name')
-       if (iostat /= NF90_NOERR) then ! attrib probably not defined
-          iostat = NF90_PUT_ATT(ncid=NCID, varid=field_id, &
-                                name='long_name',               &
-                                values=trim(long_name))
-          call check_status(iostat)
-          if (iostat /= NF90_NOERR) define_error = .true.
+    !*** long_name
+    iostat = pio_inq_att(File, varid=field_id, name='long_name', &
+	                  xtype=xtype, len=len)  
+    if (iostat /= PIO_NOERR) then ! attrib probably not defined
+       iostat = pio_put_att(File, varid=field_id, &
+                             name='long_name',    &
+                             value=trim(long_name))
+       if (iostat /= PIO_NOERR) define_error = .true.
+    end if
+
+    !*** units
+    iostat = pio_inq_att(File, varid=field_id, name='units', &
+	                  xtype=xtype, len=len)  
+    if (iostat /= PIO_NOERR) then ! attrib probably not defined
+       iostat = pio_put_att(File, varid=field_id, &
+                             name='units',        &
+                             value=trim(units))
+       if (iostat /= PIO_NOERR) define_error = .true.
+    end if
+
+    !*** coordinates
+    if (present(coordinates)) then
+       iostat = pio_inq_att(File, varid=field_id, name='coordinates', &
+                             xtype=xtype, len=len)  
+       if (iostat /= PIO_NOERR) then ! attrib probably not defined
+          iostat = pio_put_att(File, varid=field_id,    &
+                                name='coordinates',     &
+                                value=trim(coordinates))
+          if (iostat /= PIO_NOERR) define_error = .true.
        end if
+    endif
 
-      !*** units
-       iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=field_id, &
-                                       name='units')
-       if (iostat /= NF90_NOERR) then ! attrib probably not defined
-          iostat = NF90_PUT_ATT(ncid=NCID, varid=field_id, &
-                                name='units',           &
-                                values=trim(units))
-          call check_status(iostat)
-          if (iostat /= NF90_NOERR) define_error = .true.
+    !*** missing_value
+    if (present(missing_value)) then
+       iostat = pio_inq_att(File, varid=field_id, name='missing_value', &
+                             xtype=xtype, len=len)  
+       if (iostat /= PIO_NOERR) then ! attrib probably not defined
+          iostat = pio_put_att(File, varid=field_id,        &
+                                name='missing_value',       &
+                                value=missing_value)
+          if (iostat /= PIO_NOERR) define_error = .true.
        end if
+    endif
 
-      !*** coordinates
-       if (present(coordinates)) then
-          iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=field_id, &
-                                          name='coordinates')
-          if (iostat /= NF90_NOERR) then ! attrib probably not defined
-             iostat = NF90_PUT_ATT(ncid=NCID, varid=field_id,    &
-                                   name='coordinates',           &
-                                   values=trim(coordinates))
-             call check_status(iostat)
-             if (iostat /= NF90_NOERR) define_error = .true.
-          end if
-       endif
-
-      !*** missing_value
-       if (present(missing_value)) then
-          iostat = NF90_INQUIRE_ATTRIBUTE(ncid=NCID, varid=field_id, &
-                                          name='missing_value')
-          if (iostat /= NF90_NOERR) then ! attrib probably not defined
-             iostat = NF90_PUT_ATT(ncid=NCID, varid=field_id,        &
-                                   name='missing_value',             &
-                                   values=missing_value)
-             call check_status(iostat)
-             if (iostat /= NF90_NOERR) define_error = .true.
-          end if
-       endif
-
-   endif ! master_task
-
-   call broadcast_scalar(define_error, master_task)
    if (define_error) call exit_POP(sigAbort, &
                      '(define_nstd_netcdf) Error adding attributes to field')
 
+   call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -2542,11 +1820,16 @@
  end subroutine define_nstd_netcdf
 
 !***********************************************************************
- subroutine  write_time_bounds (data_file, time_bound_id, time_bound_dims, time_bound_data)
+!BOP
+! !IROUTINE: write_time_bounds
+! !INTERFACE:
+
+ subroutine  write_time_bounds (data_file, time_bound_id, &
+	                        time_bound_dims, time_bound_data)
 
 ! !INPUT PARAMETERS:
    integer (i4), intent (in)                ::  time_bound_id  
-   type (io_dim), dimension(:), intent (in) :: time_bound_dims
+   type (io_dim), dimension(:), intent (in) ::  time_bound_dims
    real (r8), dimension(2,1),intent (in)    ::  time_bound_data
 
 ! !INPUT/OUTPUT PARAMETERS:
@@ -2573,6 +1856,8 @@
    logical (log_kind) :: &
       write_error         ! error flag
 
+   type (File_desc_t) :: File
+
 !-----------------------------------------------------------------------
 !
 !  exit define mode if necessary
@@ -2580,22 +1865,11 @@
 !-----------------------------------------------------------------------
 
    write_error = .false.
+   File = data_file%File(1)
 
-   if (my_task == master_task) then
-      if (data_file%ldefine) then
-         iostat = nf90_enddef(data_file%id(1))
-         data_file%ldefine = .false.
-         call check_status(iostat)
-         if (iostat /= nf90_noerr) write_error = .true.
-      endif
-   endif
-
-   call broadcast_scalar(write_error, master_task) 
-   if (write_error) then
-      write(stdout,*) '(write_field_netcdf) filename = ', &
-                        trim(data_file%full_name)
-      call exit_POP(sigAbort, &
-                    'Error exiting define mode in netCDF write')
+   if (data_file%ldefine) then
+      iostat = pio_enddef(File)
+      data_file%ldefine = .false.
    endif
 
 !-----------------------------------------------------------------------
@@ -2604,15 +1878,12 @@
 !
 !-----------------------------------------------------------------------
 
-   if (my_task == master_task) then
-      if (time_bound_id == 0) write_error = .true.
-   endif
+   if (time_bound_id == 0) write_error = .true.
 
-   call broadcast_scalar(write_error, master_task)
    if (write_error) then
       write(stdout,*) '(write_time_bounds) ERROR: undefined field -- time_bound'
       call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
-      call exit_POP(sigAbort,  ' Attempt to write undefined time_bound in netCDF write')
+      call exit_POP(sigAbort,' Attempt to write undefined time_bound in netCDF write')
    endif
 
 !-----------------------------------------------------------------------
@@ -2620,30 +1891,16 @@
 !  allocate dimension start,stop quantities
 !
 !-----------------------------------------------------------------------
-   if (my_task == master_task) then
-     do n=1,2
-       start (n) = time_bound_dims(n)%start
-       length(n) = time_bound_dims(n)%stop - start(n) + 1
-      end do
 
-      iostat = NF90_PUT_VAR (data_file%id(1), time_bound_id, values=time_bound_data,start=start(:),count=length(:))
-
-      if (iostat /= nf90_noerr) then
-         call check_status(iostat)
-         write_error = .true.
-      endif
-   end if ! master_task
-
-   call broadcast_scalar(write_error, master_task)
-
-   if (write_error) then
-      call document('write_time_bounds', 'name', 'time_bounds')
-      call exit_POP(sigAbort, '(write_time_bounds) Error writing time_bounds to netCDF file')
-   endif
-
+   do n=1,2
+      start (n) = time_bound_dims(n)%start
+      length(n) = time_bound_dims(n)%stop - start(n) + 1
+   end do
+   
+   iostat = pio_put_var(File, varid=time_bound_id, start=start(:), count=length(:), &
+                        ival=time_bound_data) 
 
  end subroutine write_time_bounds
-
 
 !***********************************************************************
 !BOP
@@ -2669,7 +1926,6 @@
 !
 ! !REVISION HISTORY:
 !  same as module
-
 
 ! !INPUT PARAMETERS:
 
@@ -2736,7 +1992,10 @@
       iostat,  &! netCDF status flag
       n         ! index
 
-   integer  :: ncid, nout(5)
+   type (File_desc_t) :: &
+	File
+
+   integer  :: nout(5)
 
    logical (log_kind) :: &
       write_error,       &! error flag
@@ -2762,6 +2021,8 @@
    character(char_len), allocatable, dimension (:,:)  ::  &
       outdata_2d_ch
 
+   integer :: start4(4), count4(4)
+
 !-----------------------------------------------------------------------
 !
 !  exit define mode if necessary
@@ -2771,21 +2032,9 @@
 
    write_error = .false.
 
-   if (my_task == master_task) then
-      if (data_file%ldefine) then
-         iostat = nf90_enddef(data_file%id(1))
-         data_file%ldefine = .false.
-         call check_status(iostat)
-         if (iostat /= nf90_noerr) write_error = .true.
-      endif
-   endif
-
-   call broadcast_scalar(write_error, master_task) 
-   if (write_error) then
-      write(stdout,*) '(write_nstd_netcdf) filename = ', &
-                        trim(data_file%full_name)
-      call exit_POP(sigAbort, &
-          '(write_nstd_netcdf) Error exiting define mode in netCDF write')
+   if (data_file%ldefine) then
+      iostat = pio_enddef(data_file%File(1))
+      data_file%ldefine = .false.
    endif
 
 !-----------------------------------------------------------------------
@@ -2793,149 +2042,124 @@
 !  make sure field has been defined
 !
 !-----------------------------------------------------------------------
+   if (field_id == 0) write_error = .true.
 
-   if (my_task == master_task) then
-      if (field_id == 0) write_error = .true.
-   endif
-
-   call broadcast_scalar(write_error, master_task)
    if (write_error) &
       call exit_POP(sigAbort, &
           '(write_nstd_netcdf) Attempt to write undefined field in netCDF write')
-
-!-----------------------------------------------------------------------
-!
-!  determine if the variable has the unlimited time dimension
-!  as an implicit dimension; if so, it must be made explicit
-!  in the outdata array
-!
-!-----------------------------------------------------------------------
-
-   if (.not. present(implied_time_dim)) then
-     implied_time_dim = .false.
-   endif
-
 
 !-----------------------------------------------------------------------
 !  NOTE: this version does not yet support multiple writes to the same
 !        netCDF file, but neither does basic pop2... 
 !-----------------------------------------------------------------------
 
-      supported = .true.
+   supported = .true.
+   
+   File = data_file%File(1)
 
-      if (my_task == master_task) then
+   select case (trim(nftype))
 
-         ncid = data_file%id(1)
-  
-         select case (trim(nftype))
+      case('double','DOUBLE')
+         select case (implied_time_dim)
+           case (.true.)
+              select case (ndims)
+                  case(2)
+                     nout(1) = size(indata_1d_r8,DIM=1)
+                     allocate (outdata_2d_r8(nout(1),1))
+                     outdata_2d_r8(:,1) = indata_1d_r8(:)
+                     iostat = pio_put_var (File, field_id, outdata_2d_r8 )
+                     deallocate (outdata_2d_r8)
+                  case default
+                   supported = .false. 
+              end select ! ndims
+           case (.false.)
+              select case (ndims)
+                  case(1)
+                     iostat = pio_put_var (FILE, field_id, indata_1d_r8 )
+                  case(2)
+                     iostat = pio_put_var (File, field_id, indata_2d_r8 )
+                  case default
+                   supported = .false. 
+              End select ! ndims
+           end select ! implied_time_dim
 
-           case('double','DOUBLE')
-              select case (implied_time_dim)
-                case (.true.)
-                   select case (ndims)
-                       case(2)
-                          nout(1) = size(indata_1d_r8,DIM=1)
-                          allocate (outdata_2d_r8(nout(1),1))
-                          outdata_2d_r8(:,1) = indata_1d_r8(:)
-                          iostat = NF90_PUT_VAR (ncid, field_id, outdata_2d_r8 )
-                          deallocate (outdata_2d_r8)
-                       case default
-                        supported = .false. 
-                   end select ! ndims
-                case (.false.)
-                   select case (ndims)
-                       case(1)
-                          iostat = NF90_PUT_VAR (ncid, field_id, indata_1d_r8 )
-                       case(2)
-                          iostat = NF90_PUT_VAR (ncid, field_id, indata_2d_r8 )
-                       case default
-                        supported = .false. 
-                   end select ! ndims
-              end select ! implied_time_dim
+      case('float','FLOAT') 
+         select case (implied_time_dim)
+           case (.true.)
+              select case (ndims)
+                  case(1)
+                     supported = .false. 
+                  case(2)
+                     supported = .false. 
+                  case(3)
+                     nout(1) = size(indata_2d_r4,DIM=1)
+                     nout(2) = size(indata_2d_r4,DIM=2)
+                     allocate (outdata_3d_r4(nout(1),nout(2),1))
+                     outdata_3d_r4(:,:,1) = indata_2d_r4(:,:)
+                     iostat = pio_put_var (File, field_id, outdata_3d_r4 )
+                     deallocate (outdata_2d_r4)
+                  case(4)
+                     nout(1) = size(indata_3d_r4,DIM=1)
+                     nout(2) = size(indata_3d_r4,DIM=2)
+                     nout(3) = size(indata_3d_r4,DIM=3)
+                     allocate (outdata_4d_r4(nout(1),nout(2),nout(3),1))
+                     outdata_4d_r4(:,:,:,1) = indata_3d_r4(:,:,:)
+                     iostat = pio_put_var (File, field_id, outdata_4d_r4)
+                     deallocate (outdata_4d_r4)
+                  case(5)
+                     nout(1) = size(indata_4d_r4,DIM=1)
+                     nout(2) = size(indata_4d_r4,DIM=2)
+                     nout(3) = size(indata_4d_r4,DIM=3)
+                     nout(4) = size(indata_4d_r4,DIM=4)
+                     allocate (outdata_5d_r4(nout(1),nout(2),nout(3),nout(4),1))
+                     outdata_5d_r4(:,:,:,:,1) = indata_4d_r4(:,:,:,:)
+                     iostat = pio_put_var (File, field_id, outdata_5d_r4 )
+                     deallocate (outdata_5d_r4)
+                  case default
+                   supported = .false. 
+              end select ! ndims
+           case (.false.)
+              select case (ndims)
+                  case(1)
+                     supported = .false. 
+                  case(2)
+                     iostat = pio_put_var (File, field_id, indata_2d_r4 )
+                  case(3)
+                     iostat = pio_put_var (File, field_id, indata_3d_r4 )
+                  case(4)
+                     iostat = pio_put_var (File, field_id, indata_4d_r4 )
+                  case default
+                   supported = .false. 
+              end select ! ndims
+         end select ! implied_time_dim
 
-           case('float','FLOAT') 
-              select case (implied_time_dim)
-                case (.true.)
-                   select case (ndims)
-                       case(1)
-                          supported = .false. 
-                       case(2)
-                          supported = .false. 
-                       case(3)
-                          nout(1) = size(indata_3d_r4,DIM=1)
-                          nout(2) = size(indata_3d_r4,DIM=2)
-                          allocate (outdata_3d_r4(nout(1),nout(2),1))
-                          outdata_3d_r4(:,:,1) = indata_2d_r4(:,:)
-                          iostat = NF90_PUT_VAR (ncid, field_id, outdata_3d_r4 )
-                          deallocate (outdata_3d_r4)
-                       case(4)
-                          nout(1) = size(indata_3d_r4,DIM=1)
-                          nout(2) = size(indata_3d_r4,DIM=2)
-                          nout(3) = size(indata_3d_r4,DIM=3)
-                          allocate (outdata_4d_r4(nout(1),nout(2),nout(3),1))
-                          outdata_4d_r4(:,:,:,1) = indata_3d_r4(:,:,:)
-                          iostat = NF90_PUT_VAR (ncid, field_id, outdata_4d_r4 )
-                          deallocate (outdata_4d_r4)
-                       case(5)
-                          nout(1) = size(indata_4d_r4,DIM=1)
-                          nout(2) = size(indata_4d_r4,DIM=2)
-                          nout(3) = size(indata_4d_r4,DIM=3)
-                          nout(4) = size(indata_4d_r4,DIM=4)
-                          allocate (outdata_5d_r4(nout(1),nout(2),nout(3),nout(4),1))
-                          outdata_5d_r4(:,:,:,:,1) = indata_4d_r4(:,:,:,:)
-                          iostat = NF90_PUT_VAR (ncid, field_id, outdata_5d_r4 )
-                          deallocate (outdata_5d_r4)
-                       case default
-                        supported = .false. 
-                   end select ! ndims
-                case (.false.)
-                   select case (ndims)
-                       case(1)
-                          supported = .false. 
-                       case(2)
-                          iostat = NF90_PUT_VAR (ncid, field_id, indata_2d_r4 )
-                       case(3)
-                          iostat = NF90_PUT_VAR (ncid, field_id, indata_3d_r4 )
-                       case(4)
-                          iostat = NF90_PUT_VAR (ncid, field_id, indata_4d_r4 )
-                       case default
-                        supported = .false. 
-                   end select ! ndims
-              end select ! implied_time_dim
+      case('char','character','CHAR','CHARACTER') 
+         select case (implied_time_dim)
+           case (.true.)
+              select case (ndims)
+                  case default
+                   supported = .false. 
+              end select ! ndims
+           case (.false.)
+              select case (ndims)
+                  case(2)
+                     do n=1,io_dims(2)%length
+                       start(1) = 1
+                       start(2) = n
+                       count(1)=len_trim(indata_1d_ch(n))
+                       count(2)=1
+!TODO - fix this here - or remove the if
+!                       iostat = pio_put_var (File, field_id, &
+!                                ival=trim(indata_1d_ch(n)))
+                     enddo
+                  case default
+                   supported = .false. 
+              end select ! ndims
+         end select ! implied_time_dim
 
-           case('char','character','CHAR','CHARACTER') 
-              select case (implied_time_dim)
-                case (.true.)
-                   select case (ndims)
-                       case default
-                        supported = .false. 
-                   end select ! ndims
-                case (.false.)
-                   select case (ndims)
-                       case(2)
-                          do n=1,io_dims(2)%length
-                            start(1) = 1
-                            start(2) = n
-                            count(1)=len_trim(indata_1d_ch(n))
-                            count(2)=1
-                            iostat = NF90_PUT_VAR (ncid, field_id,  &
-                                     trim(indata_1d_ch(n)),         &
-                                     start=start,count=count)
-                          enddo
-                       case default
-                        supported = .false. 
-                   end select ! ndims
-              end select ! implied_time_dim
-           case default
-         end select ! nftype
+      case default
 
-
-         if (iostat /= nf90_noerr) then
-            call check_status(iostat)
-            write_error = .true.
-         endif
-
-      endif ! master task
+    end select ! nftype
 
 !-----------------------------------------------------------------------
 !
@@ -2943,11 +2167,6 @@
 !
 !-----------------------------------------------------------------------
 
-   call broadcast_scalar(write_error, master_task)
-   if (write_error) call exit_POP(sigAbort, &
-         '(write_nstd_netcdf) Error writing field to netCDF file')
-
-   call broadcast_scalar(supported, master_task)
    if (.not. supported) call exit_POP(sigAbort, &
          '(write_nstd_netcdf) option not supported')
 
@@ -2955,228 +2174,6 @@
 !EOC
 
  end subroutine write_nstd_netcdf
-
-
-!***********************************************************************
-!BOP
-! !IROUTINE: define_dimensions
-! !INTERFACE:
-
- subroutine define_dimensions(data_file,ndims,io_dims)
-
-! !DESCRIPTION:
-!  This routine defines dimensions, if they are not already defined
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
-   type (datafile), intent (in)  :: &
-      data_file                        
-
-   integer (int_kind), intent (in) :: &
-      ndims
-
-! !INPUT/OUTPUT PARAMETERS:
-
-   type (io_dim), dimension(ndims), intent(inout) ::  &
-      io_dims
-   
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
-
-   integer  :: &
-      iostat,  &    ! netCDF status flag
-      dimid,   &
-      ncid,    &
-      n
-
-   ncid = data_file%id(1)
-
-!-----------------------------------------------------------------------
-!
-!     define the dimensions
-!
-!-----------------------------------------------------------------------
-
-   if (my_task == master_task) then
-      do n = 1,ndims
-         dimid = 0
-
-         !*** check to see whether dimension is already defined
-         iostat = NF90_INQ_DIMID(ncid=ncid, name=trim(io_dims(n)%name),&
-                                 dimid=dimid)
-         if (iostat /= NF90_NOERR) then ! dimension not yet defined
-            iostat = NF90_DEF_DIM (ncid=ncid, name=trim(io_dims(n)%name), &
-                                   len=io_dims(n)%length, dimid=io_dims(n)%id)
-         else
-            io_dims(n)%id = dimid
-         end if
-      end do
-   endif ! master_task
-
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine define_dimensions
-
-
-!***********************************************************************
-!BOP
-! !IROUTINE: define_var   
-! !INTERFACE:
-
- subroutine define_var (data_file,short_name,ndims,io_dims,  &
-                        xtype,field_id)
-
-! !DESCRIPTION:
-!  This routine defines a netCDF variable
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
-   type (datafile), intent (in)  :: &
-      data_file                        
-
-   character(*), intent (in) ::  &
-      short_name
-
-   integer (int_kind), intent (in) :: &
-      ndims,                          &
-      xtype
-
-! !INPUT/OUTPUT PARAMETERS:
-
-   type (io_dim), dimension(ndims) ::  &
-      io_dims
-
-! !OUTPUT PARAMETERS:
-
-   integer (i4), intent(out)       ::  &
-      field_id 
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
-
-   integer  ::  &
-      iostat     ! netCDF status flag
-
-   integer  ::  &
-      ncid,     &
-      dimid,    &
-      n
-
-   logical (log_kind) :: &
-      define_error         ! error flag
-!-----------------------------------------------------------------------
-!
-!        define the field
-!
-!-----------------------------------------------------------------------
-
-   define_error = .false.
-   ncid = data_file%id(1)
-
-   if (my_task == master_task) then
-      !*** check to see whether field of this name already defined.
-
-      iostat = NF90_INQ_VARID(ncid, trim(short_name), field_id)
-
-      if (iostat /= NF90_NOERR) then ! variable was not yet defined
-
-            iostat = NF90_DEF_VAR (ncid=ncid,name=trim(short_name),        &
-                                   xtype=xtype,                            &
-                                   dimids=(/ (io_dims(n)%id, n=1,ndims) /),&
-                                   varid=field_id)
-         call check_status(iostat)
-         if (iostat /= nf90_noerr) define_error = .true.
-      end if
-   end if ! master task
-
-   call broadcast_scalar(define_error, master_task)
-
-   if (define_error) then
-       write(stdout,*) '(define_var) Error for field = ', trim(short_name)
-       call exit_POP(sigAbort, 'Error defining nonstandard CCSM netCDF field')
-   endif
-
-
- end subroutine define_var   
-
-!***********************************************************************
-!BOP
-! !IROUTINE: check_file_open
-! !INTERFACE:
-
- subroutine check_file_open(data_file, name)
-
-! !DESCRIPTION:
-!  This utility routine checks if the data file has been opened
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT/OUTPUT PARAMETERS:
-
-   type (datafile), intent (in)  :: &
-      data_file                        
-
-   character(*),intent (in) :: name
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
-
-   integer  :: &
-      iostat        ! netCDF status flag
-
-   logical (log_kind) :: &
-      define_error         ! error flag
-
-   character (char_len) :: string
-
-
-!-----------------------------------------------------------------------
-!
-!  make sure file has been opened 
-!
-!-----------------------------------------------------------------------
-
-   define_error = .false.
-
-   if (data_file%id(1) <= 0) then
-      define_error = .true.
-   endif
-
-   call broadcast_scalar(define_error, master_task)
-   if (define_error) &
-     call exit_POP(sigAbort, &
-                   '('//trim(name)//') attempt to define field without opening file first')
-
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine check_file_open
 
 
 !***********************************************************************
@@ -3230,10 +2227,10 @@
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine check_definemode 
+ end subroutine check_definemode
 
 
 !***********************************************************************
- end module io_netcdf
+end module io_netcdf
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||

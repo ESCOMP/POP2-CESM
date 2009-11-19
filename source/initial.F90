@@ -38,9 +38,6 @@
    use grid, only: init_grid1, init_grid2, kmt, kmt_g, n_topo_smooth, zt,    &
        fill_points, sfc_layer_varthick, sfc_layer_type, TLON, TLAT, partial_bottom_cells
    use io
-#ifdef USEPIO
-   use pio, only: init_pio
-#endif
    use baroclinic, only: init_baroclinic
    use barotropic, only: init_barotropic
    use pressure_grad, only: init_pressure_grad
@@ -235,13 +232,6 @@
    call init_domain_blocks
    call init_grid1
    call init_domain_distribution(KMT_G)
-
-#ifdef USEPIO
-   ! -------------------------
-   ! initalize the parallel IO
-   ! -------------------------
-    call init_pio
-#endif
 
 !-----------------------------------------------------------------------
 !

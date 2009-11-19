@@ -28,11 +28,8 @@
         PIO_OpenFile, PIO_CloseFile, PIO_CreateFile, &
         PIO_write_darray, PIO_read_darray, &
         PIO_numToRead, PIO_numToWrite
-
    use pio_types, only: IO_desc_t, Var_desc_t, iotype_direct_pbinary,iosystem_desc_t          ! _EXTERNAL
-
    use pio
-   use pioglobal, only: PIO_desc
 #endif
 
    implicit none

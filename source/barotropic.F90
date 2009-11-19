@@ -145,11 +145,13 @@
    call define_tavg_field(tavg_SU,'SU',2,                                   &
             long_name='Vertically Integrated Velocity in grid-x direction', &
                           units='centimeter^2/s', grid_loc='2221',          &
+                          field_type = field_type_vector,                   &
                           coordinates='ULONG ULAT time')
 
    call define_tavg_field(tavg_SV,'SV',2,                                  &
            long_name='Vertically Integrated Velocity in grid-y direction', &
                           units='centimeter^2/s', grid_loc='2221',         &
+                          field_type = field_type_vector,                   &
                           coordinates='ULONG ULAT time')
 
 !-----------------------------------------------------------------------

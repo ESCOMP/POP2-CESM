@@ -1,5 +1,39 @@
 
 ===============================================================================
+Tag Creator: njn01 (pio developer: Mariana Vertenstein)
+Tag Date:    19  November 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091119
+Tag Testing:  extensive testing -- see testing log on ccsm pop2 documentation page
+            
+Tag Summary:  1) Replace pure netCDF implementation in io_netcdf.F90 with pio version.
+                 This implementation was developed by Mariana Vertenstein. The
+                 code in this tag is based upon the piopop11_ccsm_pop_2_1_20091030/
+                 pop2 branch code, but includes a correction to io_netcdf.F90 that
+                 is not inthe piopop11 tag.
+                 NOTE: the piopop11 tag does not contain the shared-constants version
+                       of overflows.F90, so tests done with the piopop11 tag do not
+                       directly compare with the code in this tag.
+              2) bugfix pop2.cpl7.template wrt runtype and ecosystem interaction
+ 
+M           19471   input_templates/pop2_in_build.csh
+M           19471   source/initial.F90
+A               0   source/io_pio.F90
+M           19471   source/io_types.F90
+M           19471   source/io_netcdf.F90
+M           19471   source/io_binary.F90
+M           19471   source/barotropic.F90
+M           19471   bld/pop2.cpl7.template
+
+===============================================================================
+Tag Creator: njn01
+Tag Date:    17  November 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091117
+Tag Testing:  inspection
+            
+Tag Summary:  Update the pcfc1112 file in ocn.cfc.setup.csh script 
+              (pcfc1112_atm_20091117.nc) Values were extended from year 2003.5 to year 2008.5
+ 
+===============================================================================
 Tag Creator: njn01
 Tag Date:    9  November 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091109

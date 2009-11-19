@@ -17,6 +17,7 @@ setenv POP2_DOCDIR     $CASEBUILD/pop2doc
 setenv POP2_NMLFILE    $POP2_DOCDIR/document_pop2_in
 setenv POP2_INLIST     $POP2_DOCDIR/document_pop2_input_files
 setenv INPUT           $EXEROOT/ocn/input
+setenv runtype         $RUN_TYPE
 
 if !(-d $CASEBUILD  ) mkdir $CASEBUILD
 if !(-d $POP2_DOCDIR) mkdir $POP2_DOCDIR
@@ -68,6 +69,7 @@ setenv OCN_PRESTAGE $OCN_PRESTAGE
 setenv INPUT    \$EXEROOT/ocn/input
 setenv POP2_DOCDIR  \$CASEBUILD/pop2doc
 setenv POP2_BLDNML  \$POP2_DOCDIR/document_pop2_buildnml
+setenv runtype      \$RUN_TYPE
 
 # NOTE OCN_GRID_INTERNAL is used in ocn.*.setup.csh scripts
 setenv OCN_GRID_INTERNAL $OCN_GRID_INTERNAL
@@ -194,6 +196,7 @@ EOF
 
 cd \$compile_dir
 
+# Note: if activating double-precision tavg output, use 64-bit offset option in pop2_in
 gmake complib -j \$GMAKE_J MODEL=pop2 COMPLIB=\$LIBROOT/libocn.a MACFILE=\$CASEROOT/Macros.\$MACH USER_CPPDEFS="-DCCSMCOUPLED -DBLCKX=\$BLCKX -DBLCKY=\$BLCKY -DMXBLCKS=\$MXBLCKS" -f \$BLDROOT/Makefile || exit 2
 
 set f90_dir = \$source_dir/f90
@@ -295,9 +298,8 @@ cat >! $POP2BLDSCRIPT << EOF2
 #======================================================================
 
 
-setenv runtype  $RUN_TYPE
+setenv runtype   $RUN_TYPE
 if (\$CONTINUE_RUN == 'TRUE') setenv runtype  continue
-setenv RUNTYPE \$runtype
 
 setenv OCN_PRESTAGE  $OCN_PRESTAGE 
 
