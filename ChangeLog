@@ -1,5 +1,32 @@
 
 ===============================================================================
+Tag Creator: njn01 
+Tag Date:    18  December 2009
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091218
+Tag Testing: extensive testing -- see testing log on ccsm pop2 documentation page
+Tag Summary: Redevelop the pop2.cpl7.template script so that it generates a cleaner,
+             simpler pop2.buildnml.csh script. The new pop2.buildnml.csh script contains
+             a mostly-resolved pop2_in "here document"
+             Also, remove obsolete files from input_templates
+ 
+M           19927   bld/pop2.cpl7.template                        --
+M           19927   input_templates/gx1v5_inputdata         -- change *_data to *_filename
+M           19927   input_templates/gx1v5b_inputdata        --   ditto
+M           19927   input_templates/gx1v6_inputdata         --   ditto
+M           19927   input_templates/gx3v5_inputdata         --   ditto
+M           19927   input_templates/gx3v6_inputdata         --   ditto
+M           19927   input_templates/gx3v7_inputdata         --   ditto
+M           19927   input_templates/tx1v1_inputdata         --   ditto
+M           19927   input_templates/tx0.1v2_inputdata       --   ditto
+M           19927   input_templates/ocn.iage.setup.csh      -- comment lines
+M           19927   input_templates/ocn.ecosys.setup.csh    -- comment lines
+M           19927   input_templates/ocn.cfc.setup.csh       -- comment lines
+M           19927   input_templates/pop2_in_build.csh       -- modify to work with pop2.cpl7.template
+D           19927   input_templates/input_templates.files   -- obsolete
+D           19927   input_templates/inputdata.files         -- obsolete
+D           19927   input_templates/ocn.prestage.csh        -- obsolete
+
+===============================================================================
 Tag Creator: njn01 (pio developer: Mariana Vertenstein)
 Tag Date:    19  November 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091119

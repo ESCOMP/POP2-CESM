@@ -1,13 +1,13 @@
 
     #-----------------------------------------------------------------------------
-    # 1.2.2 identify all gx3v6 datasets residing in $DIN_LOC_ROOT/ocn/pop
+    #  identify all gx3v6 datasets residing in $DIN_LOC_ROOT/ocn/pop
     #-----------------------------------------------------------------------------
-    set init_ts_data      = $DIN_LOC_ROOT/ocn/pop/gx3v6/ic/modts_PHC2_jan_20050103.ieeer8
-    set horiz_grid_data   = $DIN_LOC_ROOT/ocn/pop/gx3v6/grid/horiz_grid_20030806.ieeer8 
-    set regionmask_data   = $DIN_LOC_ROOT/ocn/pop/gx3v6/grid/region_mask_20041215.ieeei4 
-    set topography_data   = $DIN_LOC_ROOT/ocn/pop/gx3v6/grid/topography_20041215.ieeei4 
-    set shf_data          = $DIN_LOC_ROOT/ocn/pop/gx3v6/forcing/shf_20041215.ieeer8 
-    set shf_data          = $DIN_LOC_ROOT/ocn/pop/gx3v6/forcing/sfwf_20041215.ieeer8 
-    set chl_data          = $DIN_LOC_ROOT/ocn/pop/gx3v6/forcing/chl_mm_SeaWiFs97-01_20031205.ieeer8 
-    set tidal_mixing_data = $DIN_LOC_ROOT/ocn/pop/gx3v6/forcing/tidal_mixing_energy_gx3v6_20050406.ieeer8 
-    set buoyancy_data     = $DIN_LOC_ROOT/ocn/pop/gx3v6/ic/buoyancy_freq_20050502.nc 
+    set init_ts_filename      = $DIN_LOC_ROOT/ocn/pop/gx3v6/ic/modts_PHC2_jan_20050103.ieeer8
+    set horiz_grid_filename   = $DIN_LOC_ROOT/ocn/pop/gx3v6/grid/horiz_grid_20030806.ieeer8 
+    set regionmask_filename   = $DIN_LOC_ROOT/ocn/pop/gx3v6/grid/region_mask_20041215.ieeei4 
+    set topography_filename   = $DIN_LOC_ROOT/ocn/pop/gx3v6/grid/topography_20041215.ieeei4 
+    set shf_filename          = $DIN_LOC_ROOT/ocn/pop/gx3v6/forcing/shf_20041215.ieeer8 
+    set shf_filename          = $DIN_LOC_ROOT/ocn/pop/gx3v6/forcing/sfwf_20041215.ieeer8 
+    set chl_filename          = $DIN_LOC_ROOT/ocn/pop/gx3v6/forcing/chl_mm_SeaWiFs97-01_20031205.ieeer8 
+    set tidal_mixing_filename = $DIN_LOC_ROOT/ocn/pop/gx3v6/forcing/tidal_mixing_energy_gx3v6_20050406.ieeer8 
+    set buoyancy_filename     = $DIN_LOC_ROOT/ocn/pop/gx3v6/ic/buoyancy_freq_20050502.nc 

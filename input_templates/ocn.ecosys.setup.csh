@@ -75,9 +75,8 @@ set command = $1
 
 if ($command == set_nt) then
 
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
-   echo ocn.ecosys.setup.csh : setting nt                                 >> $POP2_BLDNML
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.ecosys.setup.csh : setting nt                                        >> $POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
    if ($#argv < 2) then
       echo nt_filename argument missing
@@ -97,9 +96,8 @@ if ($command == set_nt) then
 
 else if ($command == namelist) then
 
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
-   echo ocn.ecosys.setup.csh : setting namelist options                   >> $POP2_BLDNML
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.ecosys.setup.csh : setting namelist options                          >> $POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
    if ($#argv < 2) then
       echo pop_in_filename argument missing
@@ -186,9 +184,8 @@ EOF
 
 else if ($command == tavg_contents) then
 
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
-   echo ocn.ecosys.setup.csh : setting tavg_contents variables            >> $POP2_BLDNML
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.ecosys.setup.csh : setting tavg_contents variables                   >> $POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
    if ($#argv < 2) then
       echo tavg_contents_filename argument missing
@@ -320,9 +317,8 @@ else if ($command == prestage) then
 
  if ($OCN_PRESTAGE == TRUE) then
 
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
-   echo ocn.ecosys.setup.csh : prestaging data files                      >> $POP2_BLDNML
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.ecosys.setup.csh : prestaging data files                             >> $POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
    if ($#argv < 1) then
       echo input data directories missing
@@ -338,17 +334,15 @@ else if ($command == prestage) then
 
  else
 
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
-   echo ocn.ecosys.setup.csh : data files are not being prestaged         >> $POP2_BLDNML
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.ecosys.setup.csh : data files are not being prestaged                >> $POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
  endif
 
 else if ($command == document) then
 
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
-   echo ocn.ecosys.setup.csh : documenting inputdata files                >> $POP2_BLDNML
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.ecosys.setup.csh : documenting inputdata files                       >> $POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
    if ($#argv < 2) then
       echo error documenting input files
@@ -363,9 +357,8 @@ else if ($command == document) then
 
 else if ($command == ccsm_prestage) then
 
-  #echo ----------------------------------------------------------------- >> $POP2_BLDNML
-  #echo ocn.ecosys.setup.csh : writing ccsm prestaging information        >> $POP2_BLDNML
-  #echo ----------------------------------------------------------------- >> $POP2_BLDNML
+  #echo ocn.ecosys.setup.csh : writing ccsm prestaging information               >> $POP2_BLDNML
+  #echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
    if ($#argv < 2) then
       echo error documenting input files
@@ -393,9 +386,8 @@ else if ($command == ccsm_prestage) then
 
 else
 
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
-   echo ocn.ecosys.setup.csh : unrecognized command $command              >> $POP2_BLDNML
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.ecosys.setup.csh : unrecognized command $command                     >> $POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
    exit 9
 

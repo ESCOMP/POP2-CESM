@@ -24,9 +24,8 @@ set command = $1
 
 if ($command == set_nt) then
 
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
-   echo ocn.iage.setup.csh : setting nt                                   >> $POP2_BLDNML
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.iage.setup.csh : setting nt                                          >> $POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
    if ($#argv < 2) then
       echo nt_filename argument missing
@@ -46,9 +45,8 @@ if ($command == set_nt) then
 
 else if ($command == namelist) then
 
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
-   echo ocn.iage.setup.csh : setting namelist options                     >> $POP2_BLDNML
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.iage.setup.csh : setting namelist options                            >> $POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
    if ($#argv < 2) then
       echo pop_in_filename argument missing
@@ -74,9 +72,8 @@ EOF
 
 else if ($command == tavg_contents) then
 
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
-   echo ocn.iage.setup.csh : setting tavg_contents variables              >> $POP2_BLDNML
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.iage.setup.csh : setting tavg_contents variables                     >> $POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
    if ($#argv < 2) then
       echo tavg_contents_filename argument missing
@@ -107,27 +104,22 @@ else if ($command == tavg_contents) then
 
 else if ($command == prestage) then
 
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
-   echo ocn.iage.setup.csh : prestaging data files                        >> $POP2_BLDNML
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.iage.setup.csh : prestaging data files                               >> $POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
 else if ($command == document) then
 
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
-   echo ocn.iage.setup.csh : documenting inputdata files                  >> $POP2_BLDNML
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.iage.setup.csh : documenting inputdata files                         >> $POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
 else if ($command == ccsm_prestage) then
 
-  #echo ----------------------------------------------------------------- >> $POP2_BLDNML
-  #echo ocn.iage.setup.csh : writing ccsm prestaging information          >> $POP2_BLDNML
-  #echo ----------------------------------------------------------------- >> $POP2_BLDNML
+  #echo ocn.iage.setup.csh : writing ccsm prestaging information                 >> $POP2_BLDNML
 
 else
 
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
-   echo ocn.iage.setup.csh : unrecognized command argument $command       >> $POP2_BLDNML
-   echo ----------------------------------------------------------------- >> $POP2_BLDNML
+   echo ocn.iage.setup.csh : unrecognized command argument $command              >> $POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
    exit 2
 
