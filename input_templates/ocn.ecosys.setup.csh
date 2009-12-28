@@ -25,8 +25,8 @@ endif
 #  set IC and forcing files
 #===============================================================================
 
-set relpath = ocn/pop/$OCN_GRID_INTERNAL
-if ($OCN_GRID_INTERNAL == gx3v5) then
+set relpath = ocn/pop/$OCN_GRID
+if ($OCN_GRID == gx3v5) then
 
    set IC_file  = $DIN_LOC_ROOT/$relpath/ic/ecosys_jan_IC_gx3v5_20051214.nc
    set ALK_scale_factor = 1.0
@@ -35,7 +35,7 @@ if ($OCN_GRID_INTERNAL == gx3v5) then
    set DST_file = $DIN_LOC_ROOT/$relpath/forcing/dst79gnx_gx3v5_20040426.nc
    set fesed_file = $DIN_LOC_ROOT/$relpath/forcing/fesedflux_gx3v5_20070521.nc
 
-else if ($OCN_GRID_INTERNAL == gx1v5) then
+else if ($OCN_GRID == gx1v5) then
 
    set IC_file  = $DIN_LOC_ROOT/$relpath/ic/ecosys_jan_IC_gx1v5_20070529.nc
    set ALK_scale_factor = 1.025
@@ -46,7 +46,7 @@ else if ($OCN_GRID_INTERNAL == gx1v5) then
 
 else
 
-   echo $OCN_GRID_INTERNAL not supported by ecosystem module
+   echo $OCN_GRID not supported by ecosystem module
    exit 2
 
 endif

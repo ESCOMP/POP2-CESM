@@ -297,7 +297,7 @@
 #ifdef CCSMCOUPLED
 !  call MPI_BARRIER(POP_Communicator,ierr)
    ierr = 13
-   call MPI_ABORT(0,errorCode, ierr)
+   call MPI_ABORT(MPI_COMM_WORLD,errorCode, ierr)
 #else
    call MPI_BARRIER(POP_Communicator, ierr)
    call MPI_ABORT(MPI_COMM_WORLD, errorCode, ierr)
