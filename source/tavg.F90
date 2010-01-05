@@ -137,12 +137,13 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind), parameter, public :: &
-      max_avail_tavg_streams = 4     ! limit on number of streams; coding limitations restrict this to <= 9 
+      max_avail_tavg_streams = 9     ! limit on number of streams; coding limitations restrict this to <= 9 
 
    type, public :: tavg_stream
       character (char_len) :: infile
       character (char_len) :: outfile
       character (char_len) :: outfile_orig
+      character (char_len) :: stream_filestring
       character (char_len) :: fmt_in
       character (char_len) :: fmt_out
       integer (int_kind)   :: freq_iopt
@@ -156,6 +157,7 @@
       integer (int_kind)   :: tavg_num_time_slices
       logical (log_kind)   :: ltavg_on
       logical (log_kind)   :: ltavg_file_is_open
+      logical (log_kind)   :: ltavg_fmt_in_nc
       logical (log_kind)   :: ltavg_fmt_out_nc
       logical (log_kind)   :: ltavg_has_offset_date
       logical (log_kind)   :: ltavg_one_time_header
@@ -178,7 +180,8 @@
       ltavg_on      = .false.     ! tavg file output wanted
 
    character (char_len),dimension(max_avail_tavg_streams) ::    &
-      tavg_fmt_out          ! format (nc or bin) for writing
+      tavg_fmt_out,        &! format (nc or bin) for writing    
+      tavg_stream_filestrings     ! output filename string (eg, h2.nday1)
 
    type (io_dim) ::   &
       i_dim, j_dim,   &! dimension descriptors for horiz dims
@@ -438,6 +441,8 @@
       timer_tavg_ccsm_diags_moc, &
       timer_tavg_ccsm_diags_trans
 
+   character (char_len) :: exit_string
+
 !EOC
 !***********************************************************************
 
@@ -523,6 +528,7 @@
    namelist /tavg_nml/ tavg_freq_opt, tavg_freq, tavg_infile,                  &
                        tavg_outfile, tavg_contents, tavg_start_opt,            &
                        tavg_start, tavg_fmt_in, tavg_fmt_out,                  &
+                       tavg_stream_filestrings,                                &
                        ltavg_nino_diags_requested, n_tavg_streams,             &
                        ltavg_streams_index_present, ltavg_has_offset_date,     &
                        tavg_offset_years, tavg_offset_months, tavg_offset_days,&
@@ -569,6 +575,7 @@
    tavg_fmt_in                 = 'nc'
    tavg_outfile                = 't'
    tavg_fmt_out                = 'nc'
+   tavg_stream_filestrings     = char_blank
    tavg_contents               = 'unknown_tavg_contents'
    ltavg_one_time_header       = .false.
    ltavg_first_header          = .true.
@@ -599,17 +606,23 @@
 
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
-      call exit_POP(sigAbort,'(init_tavg) ERROR: reading tavg_nml',out_unit=stdout)
+      exit_string = 'FATAL ERROR: reading tavg_nml'
+      call document ('init_tavg', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
    call broadcast_scalar(n_tavg_streams, master_task)
    if (n_tavg_streams > max_avail_tavg_streams) then
-      call exit_POP(sigAbort,'(init_tavg) ERROR: reading tavg_nml: too many tavg streams',out_unit=stdout)
+      exit_string = 'FATAL ERROR: reading tavg_nml -- too many tavg streams'
+      call document ('init_tavg', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
   
    if (n_tavg_streams > 9) then
       !*** filename creation will fail; contents read will fail; do you really need more than 9 streams?
-      call exit_POP(sigAbort,'(init_tavg) ERROR: reading tavg_nml: tavg streams must be <= 9',out_unit=stdout)
+      exit_string = 'FATAL ERROR: reading tavg_nml -- tavg streams must be <= 9'
+      call document ('init_tavg', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
  
    allocate (tavg_streams(n_tavg_streams))
@@ -711,48 +724,51 @@
          tavg_file_freq_iopt(ns) = -1000
       end select
 
+      call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
      enddo ! ns
 
    endif
 
-   call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
-
    call broadcast_array(tavg_freq_iopt, master_task)
 
    if (ANY(tavg_freq_iopt == -1000)) then
-      call exit_POP(sigAbort,'(init_tavg) ERROR: unknown option for tavg FIELD frequency', &
-         out_unit=stdout)
+      exit_string = 'FATAL ERROR: unknown option for tavg FIELD frequency'
+      call document ('init_tavg', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
    if (ANY(tavg_start_iopt == -1000)) then
-      call exit_POP(sigAbort,'(init_tavg) ERROR: unknown option for tavg start option', &
-         out_unit=stdout)
+      exit_string = 'FATAL ERROR: unknown option for tavg start option'
+      call document ('init_tavg', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
    call broadcast_array(tavg_file_freq_iopt, master_task)
    if (ANY(tavg_file_freq_iopt == -1000)) then
-      call exit_POP(sigAbort,'(init_tavg) ERROR: unknown option for tavg FILE frequency', &
-         out_unit=stdout)
+      exit_string = 'FATAL ERROR: unknown option for tavg FILE frequency'
+      call document ('init_tavg', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
-   call broadcast_scalar(tavg_infile,                 master_task)
-   call broadcast_scalar(tavg_outfile,                master_task)
-   call broadcast_scalar(tavg_contents,               master_task)
-   call broadcast_scalar(ltavg_streams_index_present, master_task)
-   call broadcast_scalar(ltavg_nino_diags_requested,  master_task)
+   call broadcast_scalar(tavg_infile,                   master_task)
+   call broadcast_scalar(tavg_outfile,                  master_task)
+   call broadcast_scalar(tavg_contents,                 master_task)
+   call broadcast_scalar(ltavg_streams_index_present,   master_task)
+   call broadcast_scalar(ltavg_nino_diags_requested,    master_task)
 
    do ns=1,nstreams
-      call broadcast_scalar(tavg_freq(ns),             master_task)
-      call broadcast_scalar(tavg_file_freq(ns),        master_task)
-      call broadcast_scalar(tavg_start_iopt(ns),       master_task)
-      call broadcast_scalar(tavg_start(ns),            master_task)
-      call broadcast_scalar(tavg_fmt_in(ns),           master_task)
-      call broadcast_scalar(tavg_fmt_out(ns),          master_task)
-      call broadcast_scalar(ltavg_has_offset_date(ns), master_task) 
-      call broadcast_scalar(tavg_offset_years(ns),     master_task) 
-      call broadcast_scalar(tavg_offset_months(ns),    master_task)
-      call broadcast_scalar(tavg_offset_days(ns),      master_task)
-      call broadcast_scalar(ltavg_one_time_header(ns), master_task)
+      call broadcast_scalar(tavg_freq(ns),               master_task)
+      call broadcast_scalar(tavg_file_freq(ns),          master_task)
+      call broadcast_scalar(tavg_start_iopt(ns),         master_task)
+      call broadcast_scalar(tavg_start(ns),              master_task)
+      call broadcast_scalar(tavg_fmt_in(ns),             master_task)
+      call broadcast_scalar(tavg_fmt_out(ns),            master_task)
+      call broadcast_scalar(tavg_stream_filestrings(ns), master_task)
+      call broadcast_scalar(ltavg_has_offset_date(ns),   master_task) 
+      call broadcast_scalar(tavg_offset_years(ns),       master_task) 
+      call broadcast_scalar(tavg_offset_months(ns),      master_task)
+      call broadcast_scalar(tavg_offset_days(ns),        master_task)
+      call broadcast_scalar(ltavg_one_time_header(ns),   master_task)
     enddo ! ns
 
 !-----------------------------------------------------------------------
@@ -769,12 +785,19 @@
         tavg_streams(ns)%infile  = trim(tavg_infile)
         tavg_streams(ns)%outfile = trim(tavg_outfile)
       else
-        write(tavg_streams(ns)%infile, *)trim(tavg_infile),'.',ns
-        write(tavg_streams(ns)%outfile,'(a,i1)')trim(tavg_outfile),ns
+        char_temp = trim(tavg_stream_filestrings(ns))
+        if (char_temp .eq. ' ') then
+          write(tavg_streams(ns)%infile, *)trim(tavg_infile),'.',ns
+          write(tavg_streams(ns)%outfile,'(a,i1)')trim(tavg_outfile),ns
+        else
+          write(tavg_streams(ns)%infile, '(a,a,a)')trim(tavg_infile), '.',trim(char_temp)
+          write(tavg_streams(ns)%outfile,'(a,a,a)')trim(tavg_outfile),'.',trim(char_temp)
+        endif
       endif
       tavg_streams(ns)%outfile_orig           = tavg_streams(ns)%outfile
       tavg_streams(ns)%fmt_in                 = tavg_fmt_in (ns)
       tavg_streams(ns)%fmt_out                = tavg_fmt_out(ns)
+      tavg_streams(ns)%stream_filestring      = tavg_stream_filestrings(ns)
       tavg_streams(ns)%freq_iopt              = tavg_freq_iopt(ns)
       tavg_streams(ns)%start_iopt             = tavg_start_iopt(ns)
       tavg_streams(ns)%ltavg_file_is_open     = .false.
@@ -782,7 +805,7 @@
       tavg_streams(ns)%tavg_offset_year       = tavg_offset_years(ns)
       tavg_streams(ns)%tavg_offset_month      = tavg_offset_months(ns)
       tavg_streams(ns)%tavg_offset_day        = tavg_offset_days(ns)
-      tavg_streams(ns)%tavg_num_time_slices        = 0
+      tavg_streams(ns)%tavg_num_time_slices   = 0
       tavg_streams(ns)%ltavg_one_time_header  = ltavg_one_time_header(ns)
       tavg_streams(ns)%ltavg_first_header     = .true.
 
@@ -821,18 +844,30 @@
 
       write(char_temp,1100) 'tavg_file',ns 
 
-      call init_time_flag(trim(char_temp),                        &
-                          tavg_streams(ns)%file_flag,             &
-                          owner        = 'init_tavg',             &
-                          default      =.false.,                  &
-                          freq_opt     = tavg_file_freq_iopt(ns), &
-                          freq         = tavg_file_freq(ns)       )
+      if (ltavg_has_offset_date(ns)) then
+        call init_time_flag (trim(char_temp),                       &
+                             tavg_streams(ns)%file_flag,            &
+                             owner        = 'init_tavg',            &
+                             default      =.false.,                 &
+                             freq_opt     = tavg_freq_iopt(ns),     &
+                             freq         = tavg_freq(ns),          &
+                             offset_year  = tavg_offset_years(ns),  &
+                             offset_month = tavg_offset_months(ns), & 
+                             offset_day   = tavg_offset_days(ns)    ) 
+      else
+        call init_time_flag(trim(char_temp),                        &
+                            tavg_streams(ns)%file_flag,             &
+                            owner        = 'init_tavg',             &
+                            default      =.false.,                  &
+                            freq_opt     = tavg_file_freq_iopt(ns), &
+                            freq         = tavg_file_freq(ns)       )
+      endif
 
 
-     if (trim(tavg_fmt_out(ns)) == 'nc') then
-        tavg_streams(ns)%ltavg_fmt_out_nc = .true.
+     if (trim(tavg_fmt_in(ns)) == 'nc') then
+        tavg_streams(ns)%ltavg_fmt_in_nc = .true.
      else
-        tavg_streams(ns)%ltavg_fmt_out_nc = .false.
+        tavg_streams(ns)%ltavg_fmt_in_nc = .false.
      endif
 
      if (trim(tavg_fmt_out(ns)) == 'nc') then
@@ -920,12 +955,16 @@
 
       !*** error trapping
       if (contents_error /= 0) then
-         call exit_POP(sigAbort,'(init_tavg) ERROR reading tavg contents',out_unit=stdout)
+        exit_string = 'FATAL ERROR: reading tavg contents'
+        call document ('init_tavg', exit_string)
+        call exit_POP (sigAbort,exit_string,out_unit=stdout)
       endif
 
-      if (ns < 0 .or. ns > max_avail_tavg_streams)  &
-         call exit_POP (sigAbort,  &
-           '(init_tavg) ERROR: invalid stream number in tavg_contents file',out_unit=stdout)
+      if (ns < 0 .or. ns > max_avail_tavg_streams) then
+        exit_string = 'FATAL ERROR: invalid stream number in tavg_contents file'
+        call document ('init_tavg', exit_string)
+        call exit_POP (sigAbort,exit_string,out_unit=stdout)
+      endif
 
     
       !*** look for inactive or duplicate field requests
@@ -1000,7 +1039,9 @@
    do ns=1,nstreams
      if (tavg_streams(ns)%num_requested_fields == 0) then
        call document ('init_tavg', 'ERROR: Empty stream number', ns)
-       call exit_POP (sigAbort,'(init_tavg) ERROR: Empty stream ',out_unit=stdout)
+       exit_string = 'FATAL ERROR: Empty stream'
+       call document ('init_tavg', exit_string)
+       call exit_POP (sigAbort,exit_string,out_unit=stdout)
      endif
    enddo
 
@@ -1010,11 +1051,13 @@
      if (tavg_bufsize_2d > 0) then
       allocate(TAVG_BUF_2D(nx_block,ny_block,nblocks_clinic,tavg_bufsize_2d))
       allocate(TAVG_BUF_2D_METHOD(tavg_bufsize_2d))
+      TAVG_BUF_2D = c0
      endif
 
      if (tavg_bufsize_3d > 0) then
       allocate(TAVG_BUF_3D(nx_block,ny_block,km,nblocks_clinic,tavg_bufsize_3d))
       allocate(TAVG_BUF_3D_METHOD(tavg_bufsize_3d))
+      TAVG_BUF_3D = c0
      endif
 
      allocate(TAVG_TEMP(nx_block,ny_block,nblocks_clinic))
@@ -1089,13 +1132,6 @@
    call tavg_init_local_spatial_avg
    call tavg_init_moc_diags
    call tavg_init_transport_diags
-
-   if (errorCode /= POP_Success) then
-      call POP_ErrorSet(errorCode, '(init_tavg) ERROR in init_diag_bsf')
-      call exit_POP(sigAbort,'(init_tavg) ERROR in init_diag_bsf',out_unit=stdout)
-      return
-   endif
-
 
 !-----------------------------------------------------------------------
 !
@@ -1205,12 +1241,14 @@
 !  error checking
 !
 !-----------------------------------------------------------------------
+
    if (moc_requested) then
      if (.not. set_in_tavg_contents(tavg_id('WVEL')) .or.  &
-         .not. set_in_tavg_contents(tavg_id('VVEL')) )     &
-        call exit_POP (SigAbort,                           &
-       '(init_tavg) ERROR: for moc diagnostics, WVEL and VVEL must be requested in tavg_contents file', &
-        out_unit=stdout)
+         .not. set_in_tavg_contents(tavg_id('VVEL')) )     then
+        exit_string = 'FATAL ERROR: for moc diagnostics, WVEL and VVEL must be requested in tavg_contents file'
+        call document ('init_tavg', exit_string)
+        call exit_POP (sigAbort,exit_string,out_unit=stdout)
+     endif
    endif
 
    if ( n_heat_trans_requested .or. n_salt_trans_requested) then
@@ -1220,8 +1258,10 @@
          .not. set_in_tavg_contents(tavg_id('VNS'))    .or. &
          .not. set_in_tavg_contents(tavg_id('HDIFT'))  .or. &
          .not. set_in_tavg_contents(tavg_id('HDIFS')) ) then
-          call exit_POP (SigAbort, &
-         '(init_tavg) ERROR: for diag_gm_bolus, ADVT ADVS VNT VNS HDIFT HDIFS must all  be requested in tavg_contents file',out_unit=stdout)
+        exit_string = &
+        'FATAL ERROR: diag_gm_bolus must have ADVT ADVS VNT VNS HDIFT HDIFS in tavg_contents file'
+        call document ('init_tavg', exit_string)
+        call exit_POP (sigAbort,exit_string,out_unit=stdout)
      endif
    endif
 
@@ -1231,8 +1271,10 @@
          .not. set_in_tavg_contents(tavg_id('ADVS_ISOP'))   .or. &
          .not. set_in_tavg_contents(tavg_id('VNT_ISOP'))    .or. &
          .not. set_in_tavg_contents(tavg_id('VNS_ISOP'))  ) then
-          call exit_POP (SigAbort, &
-         '(init_tavg) ERROR: for diag_gm_bolus, ADVT_ISOP ADVS_ISOP VNT_ISOP VNS_ISOP must all  be requested in tavg_contents file',out_unit=stdout)
+        exit_string = &
+        'FATAL ERROR: diag_gm_bolus must have ADVT_ISOP ADVS_ISOP VNT_ISOP VNS_ISOP in tavg_contents file'
+        call document ('init_tavg', exit_string)
+        call exit_POP (sigAbort,exit_string,out_unit=stdout)
      endif
    endif
    endif
@@ -1468,6 +1510,8 @@
 
      if (trim(restart_type) /= 'none' .and. .not. ltavg_write_reg) then
        ltavg_write_rest = .true.
+       ! do not write to previously open file -- write to restart instead
+       tavg_streams(ns)%ltavg_file_is_open = .false.
      endif
 
      !*** do not write a restart tavg file for a one-time stream
@@ -1478,6 +1522,11 @@
 
    endif !tavg_streams(ns)%ltavg_on
 
+   if (ltavg_write_reg .and. ltavg_write_rest) then
+     exit_string = 'FATAL ERROR: cannot have both regular and restart write'
+     call document ('write_tavg', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1498,17 +1547,15 @@
 
    if (lccsm .and. ltavg_fmt_out_nc .and. ltavg_write_reg) then
      time_dim%active = .true.
+    !** support for timeseries output -- update time_dim 
+    tavg_streams(ns)%tavg_num_time_slices = tavg_streams(ns)%tavg_num_time_slices + 1
+    time_dim%start = tavg_streams(ns)%tavg_num_time_slices
+    time_dim%stop  = tavg_streams(ns)%tavg_num_time_slices
    else
      time_dim%active = .false.
    endif
 
-   !** support for timeseries output -- update time_dim 
 
-   tavg_streams(ns)%tavg_num_time_slices = tavg_streams(ns)%tavg_num_time_slices + 1
-
-   time_dim%start = tavg_streams(ns)%tavg_num_time_slices
-   time_dim%stop  = tavg_streams(ns)%tavg_num_time_slices
- 
 !-----------------------------------------------------------------------
 !
 !     compute and print global averages of tavg fields prior to normalizing
@@ -1536,10 +1583,10 @@
        call tavg_bsf_diags (ns)        ! barotropic stream function
        call tavg_moc_diags (ns)        ! MOC diagnostics
        call tavg_transport_diags (ns)  ! northward heat/salt transport diagnostics
-      endif
 
-      !*** compute NINO diagnostics
-      call tavg_local_spatial_avg (ns)
+       !*** compute NINO diagnostics
+       call tavg_local_spatial_avg (ns)
+      endif
 
 !-----------------------------------------------------------------------
 !
@@ -1565,8 +1612,11 @@
 
           field_counter = field_counter + 1
 
-          if (field_counter > tavg_streams(ns)%num_requested_fields )  &
-            call exit_POP(sigAbort,'(write_tavg) ERROR: too many fields requested',out_unit=stdout)
+          if (field_counter > tavg_streams(ns)%num_requested_fields ) then 
+            exit_string = 'FATAL ERROR: too many fields requested'
+            call document ('write_tavg', exit_string)
+            call exit_POP (sigAbort,exit_string,out_unit=stdout)
+          endif
 
           if (tavg_streams(ns)%ltavg_file_is_open) then
             field_id = tavg_streams(ns)%tavg_fields(field_counter)%id
@@ -1598,7 +1648,7 @@
 
           else if (avail_tavg_fields(nfield)%ndims == 3) then
 
-            if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
+            if (ltavg_fmt_out_nc) then
               select case (trim(avail_tavg_fields(nfield)%grid_loc(4:4)))
                 case('1')
                   z_dim = zt_dim
@@ -1606,12 +1656,12 @@
                   z_dim = zw_dim_top
                 case('3')
                   z_dim = zw_dim_bot
+                case('4')
+                  z_dim = zt_150m_dim
               end select
             else
               z_dim = k_dim
             endif ! lccsm
-
-            if (avail_tavg_fields(nfield)%grid_loc(4:4) == '4') z_dim = zt_150m_dim
 
             if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
               do k=1,km
@@ -1665,14 +1715,14 @@
 !-----------------------------------------------------------------------
 
     if (.not. tavg_streams(ns)%ltavg_file_is_open) then
-!   ===================================================
+!   ==========================================================================
 
     tavg_outfile_orig = trim(tavg_streams(ns)%outfile_orig)
 
     if (ltavg_write_reg) then
       tavg_outfile = trim(tavg_outfile_orig)
       if (lccsm) then
-        call tavg_create_suffix_ccsm(file_suffix,ns)
+          call tavg_create_suffix_ccsm(file_suffix,ns)
       else
         call tavg_create_suffix(file_suffix,ns)
       endif
@@ -1681,7 +1731,7 @@
     if (ltavg_write_rest) then
       if (lccsm) then
         call tavg_create_outfile_ccsm(tavg_outfile_orig,tavg_outfile,ns)
-        call tavg_create_suffix_ccsm(file_suffix,ns,date_string='ymds')
+           call tavg_create_suffix_ccsm(file_suffix,ns,date_string='ymds')
         string = trim(file_suffix)
       else
         string = trim(runid)
@@ -1708,9 +1758,13 @@
 !
 !-----------------------------------------------------------------------
 
+    call date_and_time(date=date_created, time=time_created)
+    hist_string = char_blank
+    write(hist_string,'(a23,a8,1x,a10)') & 
+    'POP TAVG file created: ',date_created,time_created
 
     if (ltavg_fmt_out_nc) then
-      tavg_file_desc(ns)  = construct_file(tavg_fmt_out(ns),       &
+      tavg_file_desc(ns)  = construct_file(tavg_fmt_out(ns),  &
                           root_name  = trim(tavg_outfile),    &
                           file_suffix= trim(file_suffix),     &
                           title      = trim(runid),           &
@@ -1718,11 +1772,7 @@
                           record_length = rec_type_real,      &
                           recl_words=nx_global*ny_global)
     else
-      call date_and_time(date=date_created, time=time_created)
-      hist_string = char_blank
-      write(hist_string,'(a23,a8,1x,a10)') & 
-      'POP TAVG file created: ',date_created,time_created
-      tavg_file_desc(ns) = construct_file(tavg_fmt_out(ns),       &
+      tavg_file_desc(ns) = construct_file(tavg_fmt_out(ns),   &
                           root_name  = trim(tavg_outfile),    &
                           file_suffix= trim(file_suffix),     &
                           title      ='POP TAVG file',        &
@@ -1860,7 +1910,11 @@
 !
 !-----------------------------------------------------------------------
 
-   time_to_close = check_time_flag(tavg_streams(ns)%file_flag)
+   if (ltavg_write_reg) then
+     time_to_close = check_time_flag(tavg_streams(ns)%file_flag)
+   else
+     time_to_close = .true.
+   endif
 
    if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
 
@@ -2062,7 +2116,6 @@
      file_exists
 
    character (char_len) ::  &
-     string,            &
      header_filename,   &! filename for restart contents
      char_temp,         &! for string manipulation
      tavg_pointer_file, &! filename for pointer file containing
@@ -2078,7 +2131,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  if pointer files are used, pointer file and must be read to get 
+!  if pointer files are used, pointer file must be read to get 
 !  actual filenames
 !
 !-----------------------------------------------------------------------
@@ -2100,8 +2153,10 @@
             tavg_pointer_file = trim(pointer_filename)/&
                                                       &/'.tavg'
          endif
-         write(stdout,*) 'Reading pointer file: ', &
-                         trim(tavg_pointer_file)
+
+         write(stdout,*) 'Reading pointer file: ', trim(tavg_pointer_file)
+         call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
+
          inquire(file=trim(tavg_pointer_file),exist=file_exists)
          if (file_exists) then
             open(nu, file=trim(tavg_pointer_file), form='formatted', &
@@ -2116,10 +2171,9 @@
       call broadcast_scalar(errVal, master_task)
 
       if (errVal .ne. 0) then
-        write(stdout,*) char_blank
-        write(string,*) 'FATAL ERROR: tavg_rpointer_file does not exist. pop2 model will exit'
-        write(stdout,*) string
-        call exit_POP(sigAbort,'(read_tavg) ERROR: tavg_rpointer_file does not exist ',out_unit=stdout)
+        exit_string = 'FATAL ERROR: tavg_rpointer_file does not exist. pop2 model will exit '
+        call document ('read_tavg', exit_string)
+        call exit_POP (sigAbort,exit_string,out_unit=stdout)
       endif
 
       call broadcast_scalar(tavg_infile, master_task)
@@ -2193,13 +2247,12 @@
 
    !*** check nsteps total for validity
    if (in_nsteps_total /= nsteps_total) then
-      if (my_task == master_task) then
-         write(stdout,'(i6,a29,i6,a35)') &
-         in_nsteps_total,' nsteps_total in tavg restart', &
-         nsteps_total,   ' nsteps_total in current simulation'
-         call POP_IOUnitsFlush(POP_stdout);call POP_IOUnitsFlush(stdout)
-      endif
-      call exit_POP(sigAbort,'(read_tavg) ERROR: TAVG restart file has wrong time step?',out_unit=stdout)
+      write(stdout,'(a,i6,a29,i6,a35)') 'ERROR: ', &
+        in_nsteps_total,' nsteps_total in tavg restart', &
+        nsteps_total,   ' nsteps_total in current simulation'
+      exit_string = 'FATAL ERROR: TAVG restart file has wrong time step?'
+      call document ('read_tavg', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -2236,11 +2289,20 @@
 #endif
          else if (avail_tavg_fields(nfield)%ndims == 3) then
 
-            if (avail_tavg_fields(nfield)%grid_loc(4:4) == '3') then
-               z_dim = zt_150m_dim
+            if (tavg_streams(ns)%ltavg_fmt_in_nc) then
+              select case (trim(avail_tavg_fields(nfield)%grid_loc(4:4)))
+                case('1')
+                  z_dim = zt_dim
+                case('2')
+                  z_dim = zw_dim_top
+                case('3')
+                  z_dim = zw_dim_bot
+                case('4')
+                  z_dim = zt_150m_dim
+              end select
             else
-               z_dim = k_dim
-            endif
+              z_dim = k_dim
+            endif ! lccsm
 
             tavg_fields_in(nfield) = construct_io_field(                &
                             avail_tavg_fields(nfield)%short_name,    &
@@ -2558,9 +2620,11 @@
 !-----------------------------------------------------------------------
 
    if (.not. tavg_requested(id)) then
+      exit_string = 'FATAL ERROR: invalid field request'
       call document ('tavg_global_sum_2D', 'id  ', id)
       call document ('tavg_global_sum_2D', 'tavg_requested(id) ', tavg_requested(id))
-      call exit_POP(sigAbort,'(tavg_global_sum_2D) ERROR: invalid field request',out_unit=stdout)
+      call document ('tavg_global_sum_2D', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -2570,7 +2634,9 @@
 !-----------------------------------------------------------------------
 
    if (avail_tavg_fields(id)%ndims /= 2) then
-      call exit_POP(sigAbort,'(tavg_global_sum_2D) ERROR: invalid dimension',out_unit=stdout)
+      exit_string = 'FATAL ERROR: invalid dimension'
+      call document ('tavg_global_sum_2D', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -2589,8 +2655,11 @@
 !-----------------------------------------------------------------------
 
    loc = avail_tavg_fields(id)%buf_loc
-   if (loc <= 0) &
-     call exit_POP(sigAbort, '(tavg_global_sum_2D) ERROR: invalid loc',out_unit=stdout)
+   if (loc <= 0) then
+      write(exit_string,*)  'FATAL ERROR -- invalid loc; loc = ', loc
+      call document ('tavg_global_sum_2D', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -2615,8 +2684,11 @@
       tavg_norm = c1
    endif
 
-   if (tavg_norm == c0) &
-     call exit_POP (SigAbort,'(tavg_global_sum_2D) ERROR: tavg_norm = 0',out_unit=stdout)
+   if (tavg_norm == c0) then
+     exit_string = 'FATAL ERROR: tavg_norm = 0'
+     call document ('tavg_global_sum_2D', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
 
    !$OMP PARALLEL DO PRIVATE(iblock)
    do iblock = 1,nblocks_clinic
@@ -2730,8 +2802,11 @@
 
    bufloc = avail_tavg_fields(field_id)%buf_loc
 
-   if (bufloc <= 0) &
-     call exit_POP(sigAbort, '(accumulate_tavg_field) ERROR: attempt to accumulate bad tavg field',out_unit=stdout)
+   if (bufloc <= 0) then
+     exit_string = 'FATAL ERROR: attempt to accumulate bad tavg field'
+     call document ('accumulate_tavg_field', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
 
    ndims = avail_tavg_fields(field_id)%ndims
 
@@ -2981,8 +3056,9 @@
         if (tavg_sum(ns) /= 0) then
           factor  = c1/tavg_sum(ns)
         else
-          call exit_POP(sigAbort, &
-           '(tavg_norm_field_all) ERROR: attempt to divide by zero tavg_sum',out_unit=stdout)
+          exit_string = 'FATAL ERROR: attempt to divide by zero tavg_sum'
+          call document ('tavg_norm_field_all', exit_string)
+          call exit_POP (sigAbort,exit_string,out_unit=stdout)
         endif
         if (ns == qflux_stream) then
           if (tavg_sum_qflux /= 0) then
@@ -2993,8 +3069,9 @@
             ! do nothing; these frequencies are not compatable with time-averaged qflux
             factorq = c1
           else
-            call exit_POP(sigAbort, &
-             '(tavg_norm_field_all) ERROR: attempt to divide by zero tavg_sum_qflux',out_unit=stdout)
+            exit_string = 'FATAL ERROR: attempt to divide by zero tavg_sum_qflux'
+            call document ('tavg_norm_field_all', exit_string)
+            call exit_POP (sigAbort,exit_string,out_unit=stdout)
           endif
         endif
 
@@ -3002,7 +3079,9 @@
           factor  = tavg_sum(ns)
           factorq = tavg_sum_qflux
       case default
-          call exit_POP(sigAbort,'(tavg_norm_field_all) ERROR: unknown option',out_unit=stdout)
+          exit_string = 'FATAL ERROR: unknown option'
+          call document ('tavg_norm_field_all', exit_string)
+          call exit_POP (sigAbort,exit_string,out_unit=stdout)
    end select
  
  
@@ -3155,8 +3234,11 @@
       if (num_avail_tavg_fields > max_avail_tavg_fields) error = .true.
    endif
 
-   if (error) call exit_POP(sigAbort, &
-                    '(define_tavg_field) ERROR: defined tavg fields > max allowed',out_unit=stdout)
+   if (error) then
+      exit_string = 'FATAL ERROR: defined tavg fields > max allowed'
+      call document ('define_tavg_field', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
  
    id = num_fields
 
@@ -3335,8 +3417,9 @@
 
    if (id == 0) then
       write(stdout,*) 'Requested ', trim(short_name)
-      call POP_IOUnitsFlush(POP_stdout);call POP_IOUnitsFlush(stdout)
-      call exit_POP(sigAbort,'(request_tavg_field) ERROR: requested field unknown',out_unit=stdout)
+      exit_string = 'FATAL ERROR: requested field unknown'
+      call document ('request_tavg_field', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -3409,7 +3492,10 @@
 !-----------------------------------------------------------------------
 
    if (id < 1 .or. id > num_avail_tavg_fields) then
-      call exit_POP(sigAbort,'(tavg_requested) ERROR: invalid tavg id',out_unit=stdout)
+      write(stdout,*) '(tavg_requested) id = ', id; call POP_IOUnitsFlush(stdout)
+      exit_string = 'FATAL ERROR: invalid tavg id'
+      call document ('tavg_requested', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
    if (avail_tavg_fields(id)%buf_loc > 0) then
@@ -3519,7 +3605,10 @@
    stream_number = avail_tavg_fields(id)%stream_number
 
    if (stream_number <= 0 .or. stream_number > max_avail_tavg_streams) then
-     call exit_POP(sigAbort,'(tavg_in_which_stream) ERROR: not in any stream',out_unit=stdout)
+     write(stdout,*) '(tavg_in_which_stream) stream_number = ', stream_number
+     exit_string = 'FATAL ERROR: not in any stream'
+     call document ('tavg_in_which_stream', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
    tavg_in_which_stream = stream_number
@@ -3935,12 +4024,9 @@
 ! !DESCRIPTION:
 !    Forms the output filename for tavg RESTART history files.
 !
-!    Modifies the filename tavg_output such that it conform to the CCSM4 requirements.
+!    Modifies the filename tavg_output such that it conforms to the CCSM4 requirements.
 !    CCSM4 pop2 requires tavg RESTART history files to be of the form 
 !    pathname/casename.rh.datestring
-!    CCSM3 required the tavg history-file pathname to contain the string hist, but
-!    tavg RESTART history-file pathname to contain the string rest. For backwards
-!    compatability, this routine changes the string hist to rest.
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -3959,6 +4045,17 @@
    character (char_len), intent(inout) :: &
       tavg_outfile           
 
+!-----------------------------------------------------------------------
+!   NOTE: Assumptions for filename patterns:
+!     
+!     tavg_outfile ends in:
+!        1) '.h' , if ns = 1
+!        2) '.hN', N=1,2,...,9  OR '.h.string', if ns > 1 and base model
+!        3) '.h.string' if extra-tracer modules
+!     If your filename does not adhere to these CCSM conventions, the
+!     model will abort.
+!
+!-----------------------------------------------------------------------
 !EOP
 !BOC
 
@@ -3968,56 +4065,71 @@
 !
 !-----------------------------------------------------------------------
    integer (i4) :: &
-      iii           ! local index
+      iii,jjj       ! local indices
 
    character (char_len) :: &
       tavg_outfile_temp,   &! temp tavg output filename
-      temp_string
-
+      temp_string,         &
+      string
 
 !-----------------------------------------------------------------------
 !    store original filename in tavg_outfile_temp
 !-----------------------------------------------------------------------
      tavg_outfile_temp = trim(tavg_outfile_orig)
-
+     string            = trim(tavg_outfile_orig)  ! shorter name
      iii = len_trim(tavg_outfile_temp)
 
 !-----------------------------------------------------------------------
 !    error checking
 !-----------------------------------------------------------------------
-     if (iii .lt. 1) &
-       call exit_POP (sigAbort, &
-       '(tavg_create_outfile_ccsm) ERROR: forming tavg_outfile_temp',out_unit=stdout)
+     if (iii .lt. 1) then
+       exit_string = 'FATAL ERROR: string length < 1 '
+       call document ('tavg_create_outfile_ccsm', exit_string)
+       call exit_POP (sigAbort,exit_string,out_unit=stdout)
+     endif
 
 
 !-----------------------------------------------------------------------
 !    accounting for the possibility of multiple tavg streams,
-!    replace the final character ('h') with the string 'rh'
+!    replace the character ('h') with the string 'rh'
 !-----------------------------------------------------------------------
-     if (ns > 1) then
-       temp_string = tavg_outfile_temp(iii-1:iii)
-       if (tavg_outfile_temp(iii-1:iii-1) .ne. 'h' ) then
-         call document ('tavg_create_outfile_ccsm', 'tavg_outfile_temp(iii-1:iii-1)', tavg_outfile_temp(iii-1:iii-1) )
-         call exit_POP (sigAbort, &
-             '(tavg_create_outfile_ccsm) ERROR: forming tavg_outfile_temp',out_unit=stdout)
-       endif
 
-       tavg_outfile_temp(iii-1:iii-1) = 'r'
-       tavg_outfile_temp(iii:iii+1) =  trim(temp_string)
-     else
-       tavg_outfile_temp(iii:iii+1) = 'rh'
+     if (ns == 1) then 
+         !-----------------------------------------------------
+         !   assumes string ends in '.h' --  replace with '.rh'
+         !-----------------------------------------------------
+         tavg_outfile_temp(iii:iii+1) = 'rh'
+     endif
+
+     if (ns > 1) then
+       if (string(iii-2:iii-1) == '.h') then  
+         !-------------------------------------------------------
+         !   assumes string ends in '.hN' -- replace with '.rhN'
+         !-------------------------------------------------------
+         tavg_outfile_temp(iii-1:iii) = 'rh'
+         tavg_outfile_temp(iii+1:iii+1) = string(iii:iii)
+       else
+         !------------------------------------------------------------------
+         !   assumes string ends in '.h.string' -- replace with '.rh.string'
+         !------------------------------------------------------------------
+         hist_search: do jjj=iii,3,-1
+            if (string(jjj-2:jjj) == '.h.') then
+              tavg_outfile_temp(jjj-1:jjj) = 'rh'
+              tavg_outfile_temp(jjj+1:) = string(jjj:iii)
+              exit hist_search  
+            endif
+         enddo hist_search
+         if (trim(tavg_outfile_temp) == trim(string)) then
+           exit_string = 'FATAL ERROR: string was not modified'
+           call document ('tavg_create_outfile_ccsm', exit_string)
+           call exit_POP (sigAbort,exit_string,out_unit=stdout)
+         endif
+       endif
      endif
 
 !-----------------------------------------------------------------------
-!    replace the string 'hist' in the pathname with 'rest' (only for ccsm3)
+!    Fill tavg_outfile with modified filename
 !-----------------------------------------------------------------------
-!    hist_search: do iii=1,len_trim(tavg_outfile_temp)
-!      if (tavg_outfile_temp(iii:iii+3) == 'hist') then
-!          tavg_outfile_temp(iii:iii+3) = 'rest'
-!          exit hist_search
-!      endif
-!    enddo hist_search
-
      tavg_outfile = trim(tavg_outfile_temp)
 
 !-----------------------------------------------------------------------
@@ -4233,9 +4345,9 @@
         string='time: mean'
 
      case default
-        write(string,'(a,1x,i4)') '(tavg_add_attrib_io_field_ccsm) ERROR: unknown method = ', &
-          avail_tavg_fields(nfield)%method
-        call exit_POP(sigAbort,trim(string),out_unit=stdout)
+        write(exit_string,'(a,1x,i4)') 'FATAL ERROR:  unknown method = ', avail_tavg_fields(nfield)%method
+        call document ('tavg_add_attrib_io_field_ccsm', exit_string)
+        call exit_POP (sigAbort,exit_string,out_unit=stdout)
 
    end select
 
@@ -4369,9 +4481,11 @@
      !*** lat_aux_grid
      ii=ii+1
 
-     if (n_lat_aux_grid+1 > 1000) &
-        call exit_POP(sigAbort,  &
-            '(tavg_construct_ccsm_coordinates) ERROR: must increase dimension of LAT_AUX_GRID_R4',out_unit=stdout)
+     if (n_lat_aux_grid+1 > 1000) then
+        exit_string = 'FATAL ERROR:  must increase dimension of LAT_AUX_GRID_R4'
+        call document ('tavg_construct_ccsm_coordinates', exit_string)
+        call exit_POP (sigAbort,exit_string,out_unit=stdout)
+     endif
 
      LAT_AUX_GRID_R4 = 0
      LAT_AUX_GRID_R4(1:n_lat_aux_grid+1) = lat_aux_edge(1:n_lat_aux_grid+1)
@@ -4404,8 +4518,11 @@
    ! after all coordinates are defined, define the total number of coordinates
    num_ccsm_coordinates = ii
  
-   if (num_ccsm_coordinates > max_num_ccsm_coordinates) &
-      call exit_POP(sigAbort,'(tavg_construct_ccsm_coordinates) ERROR: reset max_num_ccsm_coordinates',out_unit=stdout)
+   if (num_ccsm_coordinates > max_num_ccsm_coordinates) then
+     exit_string = 'FATAL ERROR:  reset max_num_ccsm_coordinates'
+     call document ('tavg_construct_ccsm_coordinates', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
 
 
 
@@ -4739,8 +4856,11 @@
    ! after all time-invariant arrays are defined, define the total number
    num_ccsm_time_invar(ns) = ii
 
-   if (num_ccsm_time_invar(ns)  > max_num_ccsm_time_invar) &
-      call exit_POP(sigAbort,'(tavg_construct_ccsm_time_invar) ERROR: reset max_num_ccsm_time_invar',out_unit=stdout)
+   if (num_ccsm_time_invar(ns)  > max_num_ccsm_time_invar) then
+     exit_string = 'FATAL ERROR:  reset max_num_ccsm_time_invar -- too small'
+     call document ('tavg_construct_ccsm_time_invar', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
 
 
 !-----------------------------------------------------------------------
@@ -5011,8 +5131,11 @@
    ! after all scalars are defined, define the total number of scalars
    num_ccsm_scalars(ns) = ii
 
-   if (num_ccsm_scalars(ns) > max_num_ccsm_scalars) &
-      call exit_POP(sigAbort,'(tavg_construct_ccsm_scalars) ERROR: reset num_ccsm_scalars',out_unit=stdout)
+   if (num_ccsm_scalars(ns) > max_num_ccsm_scalars) then
+     exit_string = 'FATAL ERROR:  reset num_ccsm_scalars -- too small'
+     call document ('tavg_construct_ccsm_scalars', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
 
 
 !-----------------------------------------------------------------------
@@ -5109,8 +5232,9 @@
    if (ii /= num_avail_tavg_labels) then
       write (stdout,*) 'ii = ', ii
       write (stdout,*) 'num_avail_tavg_labels = ', num_avail_tavg_labels
-      call exit_POP(sigAbort,  &
-         '(tavg_define_labels_ccsm) ERROR: mismatch in number of labels',out_unit=stdout)
+      exit_string = 'FATAL ERROR:  mismatch in number of labels'
+      call document ('tavg_define_labels_ccsm', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
    do n=1,num_avail_tavg_labels
@@ -5757,8 +5881,10 @@
    call pcg_diag_bsf_solver (WORK2,WORK1, errorCode)
 
    if (errorCode /= POP_Success) then
-      call POP_ErrorSet(errorCode, '(tavg_bsf_diags) ERROR in pcg_diag_bsf')
-      call exit_POP(sigAbort,'(tavg_bsf_diags) ERROR: pcg_diag_bsf',out_unit=stdout)
+      exit_string = 'FATAL ERROR  in pcg_diag_bsf'
+      call POP_ErrorSet(errorCode, exit_string)
+      call document ('tavg_bsf_diags', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
       return
    endif
  
@@ -5857,7 +5983,9 @@
          'Error in moc diagnostics computations: none of the following should be zero')
      call document ('tavg_moc', 'tavg_id_WVEL', tavg_id_WVEL)
      call document ('tavg_moc', 'tavg_id_VVEL', tavg_id_VVEL)
-     call exit_POP (SigAbort, '(tavg_moc) ERROR',out_unit=stdout)
+     exit_string = 'FATAL ERROR  in tavg_moc'
+     call document ('tavg_moc', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
  
    !*** may not yet be activated, so use abs
@@ -5869,7 +5997,9 @@
       'Error in moc diagnostics computations: none of the following should be zero')
      call document ('tavg_moc', 'tavg_loc_WVEL', tavg_loc_WVEL)
      call document ('tavg_moc', 'tavg_loc_VVEL', tavg_loc_VVEL)
-     call exit_POP (SigAbort, '(tavg_moc) ERROR',out_unit=stdout)
+     exit_string = 'FATAL ERROR  in tavg_moc'
+     call document ('tavg_moc', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -5888,7 +6018,9 @@
            'Error in moc diagnostics computations: none of the following should be zero')
        call document ('tavg_moc', 'tavg_id_WISOP',  tavg_id_WISOP)
        call document ('tavg_moc', 'tavg_id_VISOP',  tavg_id_VISOP)
-       call exit_POP (SigAbort, '(tavg_moc) ERROR',out_unit=stdout)
+       exit_string = 'FATAL ERROR  in tavg_moc'
+       call document ('tavg_moc', exit_string)
+       call exit_POP (sigAbort,exit_string,out_unit=stdout)
      endif
 
      !*** may not yet be activated, so use abs
@@ -5900,7 +6032,9 @@
          'Error in moc diagnostics computations: none of the following should be zero')
        call document ('tavg_moc', 'tavg_loc_WISOP',  tavg_loc_WISOP)
        call document ('tavg_moc', 'tavg_loc_VISOP',  tavg_loc_VISOP)
-       call exit_POP (SigAbort, '(tavg_moc) ERROR',out_unit=stdout)
+       exit_string = 'FATAL ERROR  in tavg_moc'
+       call document ('tavg_moc', exit_string)
+       call exit_POP (sigAbort,exit_string,out_unit=stdout)
      endif
 
    endif ! ldiag_gm_bolus
@@ -5921,7 +6055,9 @@
          'Error in moc diagnostics computations: none of the following should be zero')
        call document ('tavg_moc', 'tavg_id_WSUBM',  tavg_id_WSUBM)
        call document ('tavg_moc', 'tavg_id_VSUBM',  tavg_id_VSUBM)
-       call exit_POP (SigAbort, '(tavg_moc) ERROR',out_unit=stdout)
+       exit_string = 'FATAL ERROR  in tavg_moc'
+       call document ('tavg_moc', exit_string)
+       call exit_POP (sigAbort,exit_string,out_unit=stdout)
      endif
 
      !*** may not yet be activated, so use abs
@@ -5933,7 +6069,9 @@
          'Error in moc diagnostics computations: none of the following should be zero')
        call document ('tavg_moc', 'tavg_loc_WSUBM',  tavg_loc_WSUBM)
        call document ('tavg_moc', 'tavg_loc_VSUBM',  tavg_loc_VSUBM)
-       call exit_POP (SigAbort, '(tavg_moc) ERROR',out_unit=stdout)
+       exit_string = 'FATAL ERROR  in tavg_moc'
+       call document ('tavg_moc', exit_string)
+       call exit_POP (sigAbort,exit_string,out_unit=stdout)
      endif
 
    endif ! lsubmeso
@@ -5967,6 +6105,7 @@
      endif
    endif
    
+   call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
 
  
 !-----------------------------------------------------------------------
@@ -6134,6 +6273,9 @@
        call document ('tavg_transport', 'tavg_loc_HDIFT', tavg_loc_HDIFT)
        call document ('tavg_transport', 'tavg_loc_HDIFS', tavg_loc_HDIFS)
        call exit_POP (SigAbort, '(tavg_transport) ERROR',out_unit=stdout)
+       exit_string = 'FATAL ERROR  in tavg_transport'
+       call document ('tavg_transport', exit_string)
+       call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -6163,7 +6305,9 @@
           call document ('tavg_transport', 'tavg_loc_ADVS_ISOP',  tavg_loc_ADVS)
           call document ('tavg_transport', 'tavg_loc_VNT_ISOP ',  tavg_loc_VNT )
           call document ('tavg_transport', 'tavg_loc_VNS_ISOP ',  tavg_loc_VNS )
-            call exit_POP (SigAbort, '(tavg_transport) ERROR',out_unit=stdout)
+          exit_string = 'FATAL ERROR  in tavg_transport'
+          call document ('tavg_transport', exit_string)
+          call exit_POP (sigAbort,exit_string,out_unit=stdout)
        endif ! tavg_id testing
    endif ! ldiag_gm_bolus
 
@@ -6193,7 +6337,9 @@
           call document ('tavg_transport', 'tavg_loc_ADVS_SUBM',  tavg_loc_ADVS_SUBM)
           call document ('tavg_transport', 'tavg_loc_VNT_SUBM ',  tavg_loc_VNT_SUBM )
           call document ('tavg_transport', 'tavg_loc_VNS_SUBM ',  tavg_loc_VNS_SUBM )
-            call exit_POP (SigAbort, '(tavg_transport) ERROR',out_unit=stdout)
+          exit_string = 'FATAL ERROR  in tavg_transport'
+          call document ('tavg_transport', exit_string)
+          call exit_POP (sigAbort,exit_string,out_unit=stdout)
        endif ! tavg_id testing
    endif ! lsubmeso
 
@@ -6246,6 +6392,7 @@
      endif
    endif
 
+   call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
 !-----------------------------------------------------------------------
 !EOC
 
@@ -6570,11 +6717,13 @@
      SAVG_0D_AREA(n_reg) = global_sum(TAREA(:,:,:),distrb_clinic,  &
                               field_loc_center,SAVG_0D_MASK(:,:,:,n_reg) )
      if ( SAVG_0D_AREA(n_reg) == c0 ) then
-       call exit_POP(sigAbort,  &
-          '(tavg_init_local_spatial_avg) ERROR: SAVG_0D_AREA is zero.',out_unit=stdout)
+       exit_string = 'FATAL ERROR: SAVG_0D_AREA is zero.'
+       call document ('tavg_init_local_spatial_avg', exit_string)
+       call exit_POP (sigAbort,exit_string,out_unit=stdout)
      endif
    enddo
 
+   call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
 !-----------------------------------------------------------------------
 !EOC
 

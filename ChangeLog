@@ -1,6 +1,31 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    4  January 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100104
+Tag Testing: see testing log on ccsm pop2 documentation page
+Tag Summary: 1) bugfixes for tavg restarts/timeseries  (restarting an 
+                 open timeseries, in the middle of accumulating an average)
+             2) bugfix for tavg zt_150m_dim restart
+             3) modern ecosystem model (klindsay)
+             4) ocn.*.setup.csh script support for new options: tavg_nml and tavg_contents with streams
+             4) minor bugfix for pop2_in_build.csh, now that it is invoked from
+                within the pop2.cpl7.template script (make luse_nf_64bit_offset
+                dependent on the *runtime* setting of ${OCN_CDF64}
+M           20109   source/passive_tracers.F90
+M           20109   source/ecosys_mod.F90
+M           20109   source/ecosys_parms.F90
+M           20109   source/prognostic.F90
+M           20109   source/tavg.F90
+M           20109   bld/pop2.cpl7.template
+M           20109   ChangeLog
+M           20109   input_templates/ocn.iage.setup.csh
+M           20109   input_templates/ocn.ecosys.setup.csh
+M           20109   input_templates/pop2_in_build.csh
+M           20109   input_templates/ocn.cfc.setup.csh
+M           20109   input_templates/ocn.cfc11.setup.csh
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    18  December 2009
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20091218
 Tag Testing: extensive testing -- see testing log on ccsm pop2 documentation page

@@ -6,7 +6,8 @@
 #  recognized commands, possibly with arguments, are
 #    set_nt         nt_filename
 #    namelist       pop_in_filename
-#    tavg_contents  tavg_contents_filename
+#    set_tavg_nml
+#    tavg_contents  tavg_contents_filename my_stream
 #    prestage       res_dpt_dir res_indpt_dir
 #    document       pop2_document
 #    ccsm_prestage  ccsm_prestage_file
@@ -104,12 +105,23 @@ else if ($command == namelist) then
 /
 EOF
 
+else if ($command == set_tavg_nml) then
+
+  #-------------------------------------------------------------------------------------
+  # if there is no module-related tavg output, or all tavg output is sent to the base 
+  # model output streams, then set n_tavg_streams_tracer = 0
+  #-------------------------------------------------------------------------------------
+    set n_tavg_streams_tracer = 0
+cat >&! $module.tavg << EOF
+n_tavg_streams_tracer =  $n_tavg_streams_tracer
+EOF
+
 else if ($command == tavg_contents) then
 
    echo ocn.cfc.setup.csh : setting tavg_contents variables                      >> $POP2_BLDNML
    echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
-   if ($#argv < 2) then
+   if ($#argv < 3) then
       echo tavg_contents_filename argument missing
       exit 5
    endif
@@ -121,14 +133,30 @@ else if ($command == tavg_contents) then
       exit 5
    endif
 
+   @ my_stream = $3
+   if ($my_stream < 1) then
+      echo invalid my_stream number  ($my_stream)
+      exit 5
+   endif
+
+   #------------------------------------------------------------------------------------
+   # For now, set streams manually. You must only set as many streams as are declared
+   #  in the tavg_nml section. For example, if there are three streams:
+   #  @ s1 = $my_stream
+   #  @ s2 = $s1 + 1
+   #  @ s3 = $s2 + 1
+   #------------------------------------------------------------------------------------
+
+   @ s1 = 1   # use base-model stream 1
+
    cat >> $tavg_contents_filename << EOF
-1  CFC_IFRAC
-1  CFC_XKW
-1  CFC_ATM_PRESS
-1  STF_CFC11
-1  STF_CFC12
-1  CFC11
-1  CFC12
+$s1  CFC_IFRAC
+$s1  CFC_XKW
+$s1  CFC_ATM_PRESS
+$s1  STF_CFC11
+$s1  STF_CFC12
+$s1  CFC11
+$s1  CFC12
 EOF
 
 #===============================================================================

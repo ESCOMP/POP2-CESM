@@ -30,6 +30,7 @@
       character(char_len) :: units
       character(char_len) :: tend_units
       character(char_len) :: flux_units
+      logical :: lfull_depth_tavg
    end type
 
 ! !PUBLIC DATA MEMBERS:

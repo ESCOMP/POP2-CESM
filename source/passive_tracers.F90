@@ -190,6 +190,7 @@
       iostat             ! io status flag
 
    character (char_len) :: sname, lname, units
+   character (4) :: grid_loc
 
 !-----------------------------------------------------------------------
 !  register init_passive_tracers
@@ -280,6 +281,12 @@
    end if
 
 !-----------------------------------------------------------------------
+!  by default, all tracers are written to tavg as full depth
+!-----------------------------------------------------------------------
+
+   tracer_d(3:nt)%lfull_depth_tavg = .true.
+
+!-----------------------------------------------------------------------
 !  ECOSYS block
 !-----------------------------------------------------------------------
 
@@ -360,9 +367,11 @@
       sname = tracer_d(n)%short_name
       lname = tracer_d(n)%long_name
       units = tracer_d(n)%units
+      grid_loc = '3111'
+      if (.not. tracer_d(n)%lfull_depth_tavg) grid_loc = '3114'
       call define_tavg_field(tavg_var(n),                           &
                              sname, 3, long_name=lname,             &
-                             units=units, grid_loc='3111',          &
+                             units=units, grid_loc=grid_loc,        &
                              coordinates='TLONG TLAT z_t time')
 
       sname = trim(tracer_d(n)%short_name) /&
@@ -374,7 +383,7 @@
                                          &/ ')^2'
       call define_tavg_field(tavg_var_sqr(n),                       &
                              sname, 3, long_name=lname,             &
-                             units=units, grid_loc='3111',          &
+                             units=units, grid_loc=grid_loc,        &
                              coordinates='TLONG TLAT z_t time')
 
       sname = 'J_' /&
@@ -384,7 +393,7 @@
       units = tracer_d(n)%tend_units
       call define_tavg_field(tavg_var_J(n),                         &
                              sname, 3, long_name=lname,             &
-                             units=units, grid_loc='3111',          &
+                             units=units, grid_loc=grid_loc,        &
                              coordinates='TLONG TLAT z_t time')
 
       sname = 'Jint_' /&

@@ -1,5 +1,4 @@
 #!/bin/csh -f
-set verbose
 
 #===============================================================================
 #  ocn.cfc.setup.csh : perform setup tasks for cfc module

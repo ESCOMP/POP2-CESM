@@ -319,7 +319,9 @@
       iron_flux,                 & ! iron component of surface dust flux
       fice_file,                 & ! ice fraction, if read from file
       xkw_file,                  & ! a * wind-speed ** 2, if read from file
-      ap_file                      ! atmoshperic pressure, if read from file
+      ap_file,                   & ! atmoshperic pressure, if read from file
+      nox_flux,                  & ! surface NOx species flux, added to nitrate pool
+      nhy_flux                     ! surface NHy species flux, added to ammonium pool
 
 !-----------------------------------------------------------------------
 !  derived type for implicit handling of sinking particulate matter
@@ -362,13 +364,25 @@
       tavg_PH,           &! tavg id for surface pH
       tavg_ATM_CO2,      &! tavg id for atmospheric CO2
       tavg_IRON_FLUX,    &! tavg id for dust flux
-      tavg_DUST_FLUX      ! tavg id for dust flux
+      tavg_DUST_FLUX,    &! tavg id for dust flux
+      tavg_NOx_FLUX,     &! tavg id for nox flux
+      tavg_NHy_FLUX       ! tavg id for nhy flux
 
 !-----------------------------------------------------------------------
 !  define tavg id for nonstandard 3d fields
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
+      tavg_O2_ZMIN,      &! tavg id for vertical minimum of O2
+      tavg_O2_ZMIN_DEPTH  ! tavg id for depth of vertical minimum of O2
+
+!-----------------------------------------------------------------------
+!  define tavg id for nonstandard 3d fields
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      tavg_O2_PRODUCTION,&! tavg id for o2 production
+      tavg_O2_CONSUMPTION,&! tavg id for o2 consumption
       tavg_PO4_RESTORE,  &! tavg id for po4 restoring
       tavg_NO3_RESTORE,  &! tavg id for no3 restoring
       tavg_SiO3_RESTORE, &! tavg id for sio3 restoring
@@ -401,7 +415,11 @@
       tavg_photoC_sp,    &! tavg id for small phyto C fixation
       tavg_photoC_diat,  &! tavg id for diatom C fixation
       tavg_photoC_diaz,  &! tavg id for diaz C fixation
-      tavg_photoC_TOT     ! tavg id for total C fixation
+      tavg_photoC_TOT,   &! tavg id for total C fixation
+      tavg_photoC_sp_zint,&! tavg id for small phyto C fixation vertical integral
+      tavg_photoC_diat_zint,&! tavg id for diatom C fixation vertical integral
+      tavg_photoC_diaz_zint,&! tavg id for diaz C fixation vertical integral
+      tavg_photoC_TOT_zint ! tavg id for total C fixation vertical integral
 
 !-----------------------------------------------------------------------
 !  define tavg id for MORE nonstandard 3d fields
@@ -565,7 +583,9 @@ contains
 
    type(tracer_read) :: &
       dust_flux_input,           & ! namelist input for dust_flux
-      iron_flux_input              ! namelist input for iron_flux
+      iron_flux_input,           & ! namelist input for iron_flux
+      nox_flux_input,            & ! namelist input for nox_flux
+      nhy_flux_input               ! namelist input for nhy_flux
 
    logical (log_kind) :: &
       default,                   & ! arg to init_time_flag
@@ -588,6 +608,9 @@ contains
    logical (log_kind) :: &
       use_nml_surf_vals            ! do namelist surf values override values from restart file
 
+   logical (log_kind) :: &
+      lecovars_full_depth_tavg     ! should ecosystem vars be written full depth
+
 !-----------------------------------------------------------------------
 !  values to be used when comp_surf_avg_freq_opt==never
 !-----------------------------------------------------------------------
@@ -599,6 +622,7 @@ contains
       init_ecosys_option, init_ecosys_init_file, tracer_init_ext, &
       init_ecosys_init_file_fmt, &
       dust_flux_input, iron_flux_input, fesedflux_input, &
+      nox_flux_input, nhy_flux_input, &
       gas_flux_forcing_opt, gas_flux_forcing_file, &
       gas_flux_fice, gas_flux_ws, gas_flux_ap, &
       lrest_po4, lrest_no3, lrest_sio3, &
@@ -611,7 +635,8 @@ contains
       lnutr_variable_restore, nutr_variable_rest_file,  &
       nutr_variable_rest_file_fmt,atm_co2_opt,atm_co2_const, &
       ecosys_tadvect_ctype, &
-      liron_patch,iron_patch_flux_filename,iron_patch_month
+      liron_patch,iron_patch_flux_filename,iron_patch_month, &
+      lecovars_full_depth_tavg
 
    character (char_len) :: &
       ecosys_restart_filename  ! modified file name for restart file
@@ -658,6 +683,8 @@ contains
    call init_forcing_monthly_every_ts(fice_file)
    call init_forcing_monthly_every_ts(xkw_file)
    call init_forcing_monthly_every_ts(ap_file)
+   call init_forcing_monthly_every_ts(nox_flux)
+   call init_forcing_monthly_every_ts(nhy_flux)
 
 !-----------------------------------------------------------------------
 !  initialize ecosystem parameters
@@ -790,6 +817,18 @@ contains
    fesedflux_input%default_val  = c0
    fesedflux_input%file_fmt     = 'bin'
 
+   nox_flux_input%filename     = 'unknown'
+   nox_flux_input%file_varname = 'nox_flux'
+   nox_flux_input%scale_factor = c1
+   nox_flux_input%default_val  = c0
+   nox_flux_input%file_fmt     = 'bin'
+
+   nhy_flux_input%filename     = 'unknown'
+   nhy_flux_input%file_varname = 'nhy_flux'
+   nhy_flux_input%scale_factor = c1
+   nhy_flux_input%default_val  = c0
+   nhy_flux_input%file_fmt     = 'bin'
+
    do n = 1,ecosys_tracer_cnt
       tracer_init_ext(n)%mod_varname  = 'unknown'
       tracer_init_ext(n)%filename     = 'unknown'
@@ -820,6 +859,8 @@ contains
    atm_co2_const = 280.0_r8
 
    ecosys_tadvect_ctype = 'base_model'
+
+   lecovars_full_depth_tavg = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -953,6 +994,22 @@ contains
    call broadcast_scalar(fesedflux_input%default_val, master_task)
    call broadcast_scalar(fesedflux_input%file_fmt, master_task)
 
+   call broadcast_scalar(nox_flux_input%filename, master_task)
+   call broadcast_scalar(nox_flux_input%file_varname, master_task)
+   call broadcast_scalar(nox_flux_input%scale_factor, master_task)
+   call broadcast_scalar(nox_flux_input%default_val, master_task)
+   call broadcast_scalar(nox_flux_input%file_fmt, master_task)
+
+   nox_flux%input = nox_flux_input
+
+   call broadcast_scalar(nhy_flux_input%filename, master_task)
+   call broadcast_scalar(nhy_flux_input%file_varname, master_task)
+   call broadcast_scalar(nhy_flux_input%scale_factor, master_task)
+   call broadcast_scalar(nhy_flux_input%default_val, master_task)
+   call broadcast_scalar(nhy_flux_input%file_fmt, master_task)
+
+   nhy_flux%input = nhy_flux_input
+
    do n = 1,ecosys_tracer_cnt
       call broadcast_scalar(tracer_init_ext(n)%mod_varname, master_task)
       call broadcast_scalar(tracer_init_ext(n)%filename, master_task)
@@ -985,6 +1042,8 @@ contains
    call broadcast_scalar(ecosys_tadvect_ctype, master_task)
    tadvect_ctype = ecosys_tadvect_ctype
 
+   call broadcast_scalar(lecovars_full_depth_tavg, master_task)
+
 !-----------------------------------------------------------------------
 !  set variables immediately dependent on namelist variables
 !-----------------------------------------------------------------------
@@ -1001,9 +1060,9 @@ contains
       call exit_POP(sigAbort, 'unknown comp_surf_avg_freq_opt')
    end select
 
-   call init_time_flag('ecosys_comp_surf_avg', comp_surf_avg_flag, &
-      default=.false., freq_opt=comp_surf_avg_freq_iopt,  &
-      freq=comp_surf_avg_freq, owner='ecosys_init')
+  call init_time_flag('ecosys_comp_surf_avg', comp_surf_avg_flag, &
+     default=.false., freq_opt=comp_surf_avg_freq_iopt,  &
+     freq=comp_surf_avg_freq, owner='ecosys_init')
 
    select case (atm_co2_opt)
    case ('const')
@@ -1052,7 +1111,7 @@ contains
 
    select case (init_ecosys_option)
 
-   case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid' )
+   case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
 
       ecosys_restart_filename = char_blank
 
@@ -1104,6 +1163,23 @@ contains
                                   ind_name_table,            &
                                   tracer_init_ext,           &
                                   TRACER_MODULE)
+
+!-----------------------------------------------------------------------
+!  hardcorde alk & values in Baltic Sea, to avoid crazy pH values
+!  this will be fixed in an updated IC file
+!-----------------------------------------------------------------------
+
+      !$OMP PARALLEL DO PRIVATE(iblock,n,k,WORK)
+      do iblock=1,nblocks_clinic
+         do k=1,km
+            where (k <= KMT(:,:,iblock) .and. REGION_MASK(:,:,iblock) == -12)
+               TRACER_MODULE(:,:,k,alk_ind,oldtime,iblock) = 1600.0_r8
+               TRACER_MODULE(:,:,k,alk_ind,curtime,iblock) = 1600.0_r8
+               TRACER_MODULE(:,:,k,dic_ind,oldtime,iblock) = 1500.0_r8
+               TRACER_MODULE(:,:,k,dic_ind,curtime,iblock) = 1500.0_r8
+            end where
+         end do
+      end do
 
       if (n_topo_smooth > 0) then
          do n = 1, ecosys_tracer_cnt
@@ -1192,6 +1268,23 @@ contains
    call ecosys_init_tavg
    call ecosys_init_sflux
    call ecosys_init_interior_restore
+
+!-----------------------------------------------------------------------
+!  set lfull_depth_tavg flag for short-lived ecosystem tracers
+!-----------------------------------------------------------------------
+
+   tracer_d_module(spC_ind    )%lfull_depth_tavg = lecovars_full_depth_tavg
+   tracer_d_module(spChl_ind  )%lfull_depth_tavg = lecovars_full_depth_tavg
+   tracer_d_module(spCaCO3_ind)%lfull_depth_tavg = lecovars_full_depth_tavg
+   tracer_d_module(diatC_ind  )%lfull_depth_tavg = lecovars_full_depth_tavg
+   tracer_d_module(diatChl_ind)%lfull_depth_tavg = lecovars_full_depth_tavg
+   tracer_d_module(zooC_ind   )%lfull_depth_tavg = lecovars_full_depth_tavg
+   tracer_d_module(spFe_ind   )%lfull_depth_tavg = lecovars_full_depth_tavg
+   tracer_d_module(diatSi_ind )%lfull_depth_tavg = lecovars_full_depth_tavg
+   tracer_d_module(diatFe_ind )%lfull_depth_tavg = lecovars_full_depth_tavg
+   tracer_d_module(diazC_ind  )%lfull_depth_tavg = lecovars_full_depth_tavg
+   tracer_d_module(diazChl_ind)%lfull_depth_tavg = lecovars_full_depth_tavg
+   tracer_d_module(diazFe_ind )%lfull_depth_tavg = lecovars_full_depth_tavg
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1391,7 +1484,12 @@ contains
 !-----------------------------------------------------------------------
  
    allocate(ECO_SFLUX_TAVG(nx_block,ny_block,var_cnt,max_blocks_clinic))
+   ECO_SFLUX_TAVG = c0
  
+!-----------------------------------------------------------------------
+!  The follow surface flux related fields are not with the above because
+!  their values are directly available from STF in ecosys_tavg_forcing
+!  and do not need to be stored in ECO_SFLUX_TAVG.
 !-----------------------------------------------------------------------
 
    call define_tavg_field(tavg_IRON_FLUX,'IRON_FLUX',2,                &
@@ -1404,9 +1502,43 @@ contains
                           units='g/cm^2/s', grid_loc='2110',           &
                           coordinates='TLONG TLAT time')
 
+   call define_tavg_field(tavg_NOx_FLUX,'NOx_FLUX',2,                  &
+                          long_name='Flux of NOx from Atmosphere',     &
+                          units='nmol/cm^2/s', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_NHy_FLUX,'NHy_FLUX',2,                  &
+                          long_name='Flux of NHy from Atmosphere',     &
+                          units='nmol/cm^2/s', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+
+!-----------------------------------------------------------------------
+!  nonstandard 2D fields
+!-----------------------------------------------------------------------
+
+   call define_tavg_field(tavg_O2_ZMIN,'O2_ZMIN',2,                    &
+                          long_name='Vertical Minimum of O2',          &
+                          units='mmol/m^3', grid_loc='2111',           &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_O2_ZMIN_DEPTH,'O2_ZMIN_DEPTH',2,        &
+                          long_name='Depth of Vertical Minimum of O2', &
+                          units='cm', grid_loc='2111',                 &
+                          coordinates='TLONG TLAT time')
+
 !-----------------------------------------------------------------------
 !  nonstandard 3D fields
 !-----------------------------------------------------------------------
+
+   call define_tavg_field(tavg_O2_PRODUCTION,'O2_PRODUCTION',3,        &
+                          long_name='O2 Production',                   &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_O2_CONSUMPTION,'O2_CONSUMPTION',3,      &
+                          long_name='O2 Consumption',                  &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_PO4_RESTORE,'PO4_RESTORE',3,            &
                           long_name='PO4 Restoring',                   &
@@ -1572,6 +1704,26 @@ contains
                           long_name='Total C Fixation',                &
                           units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
+
+   call define_tavg_field(tavg_photoC_sp_zint,'photoC_sp_zint',2,      &
+                          long_name='Small Phyto C Fixation Vertical Integral',&
+                          units='mmol/m^3 cm/s', grid_loc='2111',      &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_photoC_diat_zint,'photoC_diat_zint',2,  &
+                          long_name='Diatom C fixation Vertical Integral',&
+                          units='mmol/m^3 cm/s', grid_loc='2111',      &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_photoC_diaz_zint,'photoC_diaz_zint',2,  &
+                          long_name='Diaz C Fixation Vertical Integral',&
+                          units='mmol/m^3 cm/s', grid_loc='2111',      &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_photoC_TOT_zint,'photoC_TOT_zint',2,    &
+                          long_name='Total C Fixation Vertical Integral',&
+                          units='mmol/m^3 cm/s', grid_loc='2111',      &
+                          coordinates='TLONG TLAT time')
 
 !-----------------------------------------------------------------------
 !  MORE nonstandard 3D fields
@@ -1817,10 +1969,9 @@ contains
       DOP_loc           ! local copy of model DOP
 
    real (r8), dimension(nx_block,ny_block) :: &
-      WORK              ! temporary for summed quantities to be averaged
+      WORK1,WORK2,WORK3 ! temporaries
 
    real (r8) :: &
-      z_grz_sqr,      & ! square of parm_z_grz (mmol C/m^3)^2
       C_loss_thres,   & ! bio-C threshold at which losses go to zero (mmol C/m^3)
       f_loss_thres      ! fraction of grazing loss reduction at depth
 
@@ -1852,7 +2003,7 @@ contains
       VNH4_sp,        & ! small phyto NH4 uptake rate (non-dim)
       VNtot_sp,       & ! small phyto total N uptake rate (non-dim)
       VFeC_sp,        & ! ??? small phyto C-specific iron uptake (non-dim)
-      VPO4_sp,        & ! ??? (non-dim)
+      VPO4_sp,        & ! ??? small phyto C-specific po4 uptake (non-dim)
       f_nut,          & ! nut limitation factor, modifies C fixation (non-dim)
       PCmax,          & ! max value of PCphoto at temperature TEMP (1/sec)
       PCphoto_sp,     & ! small C-specific rate of photosynth. (1/sec)
@@ -1928,11 +2079,11 @@ contains
       photoFe_diaz,   & ! iron uptake by diazotrophs (mmolFe/m^3/sec)
       photoFe_diat,   & ! iron uptake by diatoms
       photoFe_sp,     & ! iron uptake by small phyto
-      photoN_diaz,    & ! nitrogen for Nfixation added to diaz biomass
       photoSi_diat,   & ! silicon uptake by diatoms (mmol Si/m^3/sec)
       remaining_diazP,& ! used in routing P from diazotroph losses
       diaz_loss,      & ! diazotroph non-grazing mort (mmol C/m^3/sec)
       diaz_loss_doc,  & ! mortality routed to DOM pool
+      diaz_loss_poc,  & ! mortalitiy routed to POC pool
       diaz_loss_dic,  & ! mortality routed to remin
       diaz_loss_dop,  & ! P from mort routed to DOP pool
       diaz_loss_dip,  & ! P from mort routed to remin
@@ -1954,10 +2105,24 @@ contains
    real (r8), dimension(nx_block,ny_block) :: & ! max of 39 continuation lines
       DON_prod,       & ! production of dissolved organic N
       DOFe_prod,      & ! produciton of dissolved organic Fe
-      DOP_prod          ! production of dissolved organic P
+      DOP_prod,       & ! production of dissolved organic P
+      po4_V_sp,       & ! sp uptake of po4 (mmol po4/m3/s)
+      po4_V_diaz,     & ! diaz uptake of po4 (mmol po4/m3/s)
+      dop_V_sp,       & ! sp uptake of dop (mmol dop/m3/s)
+      dop_V_diaz,     & ! diaz uptake of dop (mmol dop/m3/s)
+      cks,            & ! constant used in Fe quota modification
+      cksi,           & ! constant used in Si quota modification
+      VNO3_diaz,      & ! relative NO3 uptake by diazotrophs
+      VNH4_diaz,      & ! relative NH4 uptake by diazotrophs
+      VNtot_diaz,     & ! total relative N uptake by diazotrophs
+      photoNO3_diaz,  & ! total nitrate uptake by diazotrophs
+      photoNH4_diaz,  & ! total NH4 uptake by diazotrophs
+      O2_PRODUCTION,  & ! O2 production
+      O2_CONSUMPTION    ! O2 consumption
 
    integer (int_kind) :: &
-      bid               ! local_block id
+      bid,            & ! local_block id
+      kk                ! index for looping over k levels
 
 !-----------------------------------------------------------------------
 
@@ -2100,33 +2265,34 @@ contains
    gQfe_diat = gQfe_diat_0
    gQfe_sp   = gQfe_sp_0
    gQfe_diaz = gQfe_diaz_0
+   cks       = 10._r8
+   cksi      = 10._r8
 
 !-----------------------------------------------------------------------
 !  Modify these initial ratios under low ambient iron conditions
 !-----------------------------------------------------------------------
 
-   where (Fe_loc < c2 * parm_diat_kfe)
-      gQfe_diat = max((gQfe_diat * Fe_loc /(c2 * parm_diat_kfe)), &
+   where (Fe_loc < cks * parm_diat_kfe)
+      gQfe_diat = max((gQfe_diat * Fe_loc /(cks * parm_diat_kfe)), &
                       gQfe_diat_min)
    end where
 
-   where ((Fe_loc < c2 * parm_diat_kfe) .and. (Fe_loc > c0) .and. &
-          (SiO3_loc > (c2 * parm_diat_kSiO3)))
-      gQsi = min(((gQsi*gQsi_coef*c2*parm_diat_kfe/Fe_loc) &
-                 - (gQsi_coef-c1)*gQsi_0), gQsi_max)
+   where ((Fe_loc < cksi * parm_diat_kfe) .and. (Fe_loc > c0) .and. &
+          (SiO3_loc > (cksi * parm_diat_kSiO3)))
+      gQsi = min((gQsi*cksi*parm_diat_kfe/Fe_loc), gQsi_max)
    end where
 
    where (Fe_loc == c0)
       gQsi = gQsi_max
-   endwhere
+   end where
 
-   where (Fe_loc < c2 * parm_sp_kfe)
-      gQfe_sp = max((gQfe_sp*Fe_loc/(c2 * parm_sp_kfe)), &
+   where (Fe_loc < cks * parm_sp_kfe)
+      gQfe_sp = max((gQfe_sp*Fe_loc/(cks * parm_sp_kfe)), &
                     gQfe_sp_min)
    end where
 
-   where (Fe_loc < c2 * diaz_kFe)
-      gQfe_diaz = max((gQfe_diaz*Fe_loc/(c2 * diaz_kFe)), &
+   where (Fe_loc < cks * diaz_kFe)
+      gQfe_diaz = max((gQfe_diaz*Fe_loc/(cks * diaz_kFe)), &
                       gQfe_diaz_min)
    end where
 
@@ -2134,8 +2300,8 @@ contains
 !  Modify the initial si/C ratio under low ambient Si conditions
 !-----------------------------------------------------------------------
 
-   where (SiO3_loc < (c2 * parm_diat_kSiO3))
-      gQsi = max((gQsi*SiO3_loc/(c2 * parm_diat_kSiO3)), &
+   where (SiO3_loc < (cksi * parm_diat_kSiO3))
+      gQsi = max((gQsi*SiO3_loc/(cksi * parm_diat_kSiO3)), &
                  gQsi_min)
    end where
 
@@ -2228,6 +2394,10 @@ contains
       call accumulate_tavg_field(VFeC_sp, tavg_sp_Fe_lim,bid,k)
    endif
 
+!-----------------------------------------------------------------------
+!  Partition diaz P uptake in same manner to no3/nh4 partition
+!-----------------------------------------------------------------------
+
    VPO4_sp = PO4_loc / (PO4_loc + parm_sp_kPO4)
 
    if (tavg_requested(tavg_sp_PO4_lim)) then
@@ -2248,7 +2418,7 @@ contains
 
    PCmax = PCref * f_nut * Tfunc
 
-   light_lim = (c1 - exp((-c1 * parm_alphaChl * thetaC_sp * PAR_avg) / &
+   light_lim = (c1 - exp((-c1 * parm_alphaChlsp * thetaC_sp * PAR_avg) / &
                          (PCmax + epsTinv)))
    PCphoto_sp = PCmax * light_lim
 
@@ -2274,6 +2444,7 @@ contains
       photoC_sp = c0
    end where
 
+   po4_V_sp = photoC_sp * Qp
    photoFe_sp = photoC_sp * gQfe_sp
 
    if (tavg_requested(tavg_photoFe_sp)) then
@@ -2286,9 +2457,9 @@ contains
 !  GD 98 Chl. synth. term
 !-----------------------------------------------------------------------
 
-   WORK = parm_alphaChl * thetaC_sp * PAR_avg
-   where (WORK > c0)
-      pChl = thetaN_max_sp * PCphoto_sp / WORK
+   WORK1 = parm_alphaChlsp * thetaC_sp * PAR_avg
+   where (WORK1 > c0)
+      pChl = thetaN_max_sp * PCphoto_sp / WORK1
       photoacc_sp = (pChl * VNC_sp / thetaC_sp) * spChl_loc
    elsewhere
       photoacc_sp = c0
@@ -2413,9 +2584,9 @@ contains
 !  GD 98 Chl. synth. term
 !-----------------------------------------------------------------------
 
-   WORK = parm_alphaChl * thetaC_diat * PAR_avg
-   where (WORK > c0)
-      pChl = thetaN_max_diat * PCphoto_diat / WORK
+   WORK1 = parm_alphaChl * thetaC_diat * PAR_avg
+   where (WORK1 > c0)
+      pChl = thetaN_max_diat * PCphoto_diat / WORK1
       photoacc_diat = (pChl * VNC_diat / thetaC_diat) * diatChl_loc
    elsewhere
       photoacc_diat = c0
@@ -2445,6 +2616,7 @@ contains
 !-----------------------------------------------------------------------
 
    PCmax = PCrefDiaz * f_nut * Tfunc
+   where (TEMP < diaz_temp_thres) PCmax = c0
 
    light_lim = (c1 - exp((-c1 * parm_alphaDiaz * thetaC_diaz * PAR_avg) / &
                          (PCmax + epsTinv)))
@@ -2457,13 +2629,43 @@ contains
    photoC_diaz = PCphoto_diaz * diazC_loc
 
 !-----------------------------------------------------------------------
+!  Get Fe and po4 uptake by diazotrophs based on C fixation
+!-----------------------------------------------------------------------
+
+   po4_V_diaz = photoC_diaz * Qp_diaz
+   photoFe_diaz = photoC_diaz * gQfe_diaz
+
+   if (tavg_requested(tavg_photoFe_diaz)) then
+      call accumulate_tavg_field(photoFe_diaz, tavg_photoFe_diaz,bid,k)
+   endif
+
+!-----------------------------------------------------------------------
+!  Relative uptake rates for diazotrophs nitrate is VNO3, ammonium is VNH4
+!-----------------------------------------------------------------------
+
+   VNO3_diaz = (NO3_loc / diaz_kNO3) / &
+      (c1 + (NO3_loc / diaz_kNO3) + (NH4_loc / diaz_kNH4))
+
+   VNH4_diaz = (NH4_loc / diaz_kNH4) / &
+      (c1 + (NO3_loc / diaz_kNO3) + (NH4_loc / diaz_kNH4))
+
+   VNtot_diaz = c1
+
+!------------------------------------------------------------------------
+!  Compute inoranic N uptake by diazotrophs.
+!------------------------------------------------------------------------
+
+   WORK1 = photoC_diaz * Q
+   photoNO3_diaz = VNO3_diaz / VNtot_diaz *WORK1
+   photoNH4_diaz = VNH4_diaz / VNtot_diaz *WORK1
+
+!-----------------------------------------------------------------------
 !  Get N fixation by diazotrophs based on C fixation,
 !  Diazotrophs fix more than they need then 30% is excreted
 !-----------------------------------------------------------------------
 
-   diaz_Nfix     = photoC_diaz * Q * r_Nfix_photo
-   photoN_diaz   = photoC_diaz * Q
-   diaz_Nexcrete = diaz_Nfix - photoN_diaz
+   diaz_Nfix     = (WORK1 * r_Nfix_photo) - photoNO3_diaz - photoNH4_diaz
+   diaz_Nexcrete = diaz_Nfix + photoNO3_diaz + photoNH4_diaz - WORK1
 
    Vnc_diaz = PCphoto_diaz * Q
 
@@ -2472,24 +2674,14 @@ contains
    endif
 
 !-----------------------------------------------------------------------
-!  Get Fe and po4 uptake by diazotrophs based on C fixation
-!-----------------------------------------------------------------------
-
-   photoFe_diaz = photoC_diaz * gQfe_diaz
-
-   if (tavg_requested(tavg_photoFe_diaz)) then
-      call accumulate_tavg_field(photoFe_diaz, tavg_photoFe_diaz,bid,k)
-   endif
-
-!-----------------------------------------------------------------------
 !  calculate pChl, (used in photoadapt., GD98)
 !  3.4   max value of thetaN (Chl/N ratio) (mg Chl/mmol N)
 !  GD 98 Chl. synth. term
 !-----------------------------------------------------------------------
 
-   WORK = parm_alphaDiaz * thetaC_diaz * PAR_avg
-   where (WORK > c0)
-      pChl = thetaN_max_diaz * PCphoto_diaz / WORK
+   WORK1 = parm_alphaDiaz * thetaC_diaz * PAR_avg
+   where (WORK1 > c0)
+      pChl = thetaN_max_diaz * PCphoto_diaz / WORK1
       photoacc_diaz = (pChl * Vnc_diaz / thetaC_diaz) * diazChl_loc
    elsewhere
       photoacc_diaz = c0
@@ -2524,13 +2716,12 @@ contains
 
    Pprime = max(spC_loc - C_loss_thres, c0)
 
-   sp_loss = sp_mort * Pprime
+   sp_loss = sp_mort * Pprime * Tfunc
 
    sp_agg = min((sp_agg_rate_max * dps) * Pprime, sp_mort2 * Pprime * Pprime)
 
    reduceV = Pprime * Pprime
-   z_grz_sqr = parm_z_grz * parm_z_grz
-   graze_sp = z_umax * zooC_loc * (reduceV / (reduceV + z_grz_sqr))
+   graze_sp = z_umax * zooC_loc * (reduceV / (reduceV + parm_z_grz))
 
 !-----------------------------------------------------------------------
 !  routing of graze_sp & sp_loss
@@ -2543,11 +2734,11 @@ contains
 
    graze_sp_zoo = z_ingest * graze_sp
    graze_sp_poc = graze_sp * max((caco3_poc_min * QCaCO3),  &
-                                 min((spc_poc_fac * Pprime),&
+                                 min(max(0.05_r8,(spc_poc_fac * Pprime)),&
                                      f_graze_sp_poc_lim))
 
-   graze_sp_doc = f_graze_sp_doc * graze_sp - graze_sp_poc
-   graze_sp_dic = f_graze_sp_dic * graze_sp
+   graze_sp_doc = f_graze_sp_doc * graze_sp
+   graze_sp_dic = f_graze_sp_dic * graze_sp - graze_sp_poc
 
    sp_loss_poc = QCaCO3 * sp_loss
    sp_loss_doc = (c1 - parm_labile_ratio) * (sp_loss - sp_loss_poc)
@@ -2564,7 +2755,7 @@ contains
 
    Pprime = max(diatC_loc - C_loss_thres, c0)
 
-   diat_loss = diat_mort * Pprime
+   diat_loss = diat_mort * Pprime * Tfunc
 
    diat_agg = min((diat_agg_rate_max * dps) * Pprime, diat_mort2 * Pprime * Pprime)
    diat_agg = max((diat_agg_rate_min * dps) * Pprime, diat_agg)
@@ -2575,7 +2766,7 @@ contains
 
    reduceV = Pprime * Pprime
    graze_diat = diat_umax * zooC_loc * &
-      (reduceV / (reduceV + z_grz_sqr * f_z_grz_sqr_diat))
+      (reduceV / (reduceV + 0.7_r8))
 
 !-----------------------------------------------------------------------
 !  routing of graze_diat & diat_loss
@@ -2607,15 +2798,13 @@ contains
 
    Pprime = max(diazC_loc - C_loss_diaz, c0)
 
-   diaz_loss = diaz_mort * Pprime
+   diaz_loss = diaz_mort * Pprime * Tfunc
 
    reduceV = Pprime * Pprime
-   graze_diaz = diaz_umax * zooC_loc * (reduceV / (reduceV + z_grz_sqr))
+   graze_diaz = diaz_umax * zooC_loc * (reduceV / (reduceV + parm_z_grz))
 
 !-----------------------------------------------------------------------
 !  routing of graze_diaz & diaz_loss
-!  NOTE: if z_ingest is changed, coeff.s for poc,doc and dic must change!
-!  z_ingest for diaz = 0.21 based on ONeil (1998)
 !-----------------------------------------------------------------------
 
    graze_diaz_zoo = f_graze_diaz_zoo * graze_diaz
@@ -2623,8 +2812,9 @@ contains
    graze_diaz_doc = f_graze_diaz_doc * graze_diaz
    graze_diaz_dic = f_graze_diaz_dic * graze_diaz
 
-   diaz_loss_doc = (c1 - parm_labile_ratio) * diaz_loss
-   diaz_loss_dic = parm_labile_ratio * diaz_loss
+   diaz_loss_poc = f_diaz_loss_poc * diaz_loss
+   diaz_loss_doc = (c1 - parm_labile_ratio) * (diaz_loss - diaz_loss_poc)
+   diaz_loss_dic = parm_labile_ratio * (diaz_loss - diaz_loss_poc)
 
 !-----------------------------------------------------------------------
 !  Note as diazotrophs have different Qp, we must route enough P into zoopl
@@ -2656,7 +2846,7 @@ contains
 
    Zprime = max(zooC_loc - C_loss_thres, c0)
 
-   zoo_loss = z_mort2 * Zprime * Zprime + z_mort * Zprime
+   zoo_loss = z_mort2 * Zprime**1.4_r8 + z_mort * Zprime
 
    zoo_loss_doc = (c1 - parm_labile_ratio) * (c1 - f_zoo_detr) * zoo_loss
    zoo_loss_dic = parm_labile_ratio * (c1 - f_zoo_detr) * zoo_loss
@@ -2668,7 +2858,7 @@ contains
    DOC_prod = sp_loss_doc + graze_sp_doc + zoo_loss_doc + diat_loss_doc &
               + graze_diat_doc + diaz_loss_doc + graze_diaz_doc
 
-   DON_prod = (DOC_prod * Q) + diaz_Nexcrete
+   DON_prod = DOC_prod * Q
    DOP_prod = (sp_loss_doc + graze_sp_doc + zoo_loss_doc + diat_loss_doc &
                + graze_diat_doc) * Qp + diaz_loss_dop
    DOFe_prod = (zoo_loss_doc * Qfe_zoo) &
@@ -2777,11 +2967,12 @@ contains
 !  Compute denitrification under low O2 conditions
 !-----------------------------------------------------------------------
 
-   where ((O2_loc .le. parm_o2_min) .and. (NO3_loc .gt. parm_no3_min))
-      DENITRIF = (DOC_remin + POC%remin(:,:,bid)) / denitrif_C_N
-   elsewhere
-      DENITRIF = c0
-   endwhere
+   WORK1 = ((parm_o2_min+parm_o2_min_delta) - O2_loc) / parm_o2_min_delta
+   WORK1 = min(max(WORK1,c0),c1)
+   where (NO3_loc .lt. parm_no3_min)
+      WORK1 = WORK1 * (NO3_loc / parm_no3_min)
+   end where
+   DENITRIF = WORK1 * (DOC_remin + POC%remin(:,:,bid)) / denitrif_C_N
 
    if (tavg_requested(tavg_DENITRIF)) then
       call accumulate_tavg_field(DENITRIF, tavg_DENITRIF,bid,k)
@@ -2791,12 +2982,13 @@ contains
 !  nitrate & ammonium
 !-----------------------------------------------------------------------
 
-   DTRACER_MODULE(:,:,no3_ind) = RESTORE + NITRIF - NO3_V_diat - NO3_V_sp - DENITRIF
+   DTRACER_MODULE(:,:,no3_ind) = RESTORE + NITRIF - NO3_V_diat - &
+      NO3_V_sp - DENITRIF - photoNO3_diaz
 
    DTRACER_MODULE(:,:,nh4_ind) = -NH4_V_diat - NH4_V_sp - NITRIF + &
         Q * (zoo_loss_dic + sp_loss_dic + graze_sp_dic + diat_loss_dic + &
         graze_diat_dic + POC%remin(:,:,bid) + diaz_loss_dic + &
-        graze_diaz_dic) + DON_remin
+        graze_diaz_dic) + DON_remin + diaz_Nexcrete - photoNH4_diaz
 
 !-----------------------------------------------------------------------
 !  dissolved iron
@@ -2858,8 +3050,8 @@ contains
 
    DTRACER_MODULE(:,:,po4_ind) = RESTORE + (Qp * (POC%remin(:,:,bid) + &
       zoo_loss_dic + sp_loss_dic + graze_sp_dic + diat_loss_dic + &
-      graze_diat_dic - photoC_sp - photoC_diat)) &
-      + DOP_remin + diaz_loss_dip - (photoC_diaz * Qp_diaz)
+      graze_diat_dic - photoC_diat)) &
+      + DOP_remin + diaz_loss_dip - po4_V_sp - po4_V_diaz
 
 !-----------------------------------------------------------------------
 !  small phyto Carbon
@@ -2978,19 +3170,90 @@ contains
 !  oxygen
 !-----------------------------------------------------------------------
 
-   DTRACER_MODULE(:,:,o2_ind) = (photoC_sp + photoC_diat) / &
-      parm_Red_D_C_O2 + photoC_diaz/parm_Red_D_C_O2_diaz
+!  DTRACER_MODULE(:,:,o2_ind) = (photoC_sp + photoC_diat) / &
+!     parm_Red_D_C_O2 + photoC_diaz/parm_Red_D_C_O2_diaz
 
-   where (O2_loc > parm_o2_min)
-      DTRACER_MODULE(:,:,o2_ind) = DTRACER_MODULE(:,:,o2_ind) &
-         + ((- POC%remin(:,:,bid) - DOC_remin - zoo_loss_dic - sp_loss_dic  &
-            - graze_sp_dic - diat_loss_dic - graze_diat_dic   &
-            - graze_diaz_dic - diaz_loss_dic) / parm_Red_P_C_O2)
-   endwhere
+!  WORK1 = (O2_loc - parm_o2_min) / parm_o2_min_delta
+!  WORK1 = min(max(WORK1,c0),c1)
+!  DTRACER_MODULE(:,:,o2_ind) = DTRACER_MODULE(:,:,o2_ind) + WORK1 &
+!     * ((- POC%remin(:,:,bid) - DOC_remin - zoo_loss_dic - sp_loss_dic  &
+!        - graze_sp_dic - diat_loss_dic - graze_diat_dic   &
+!        - graze_diaz_dic - diaz_loss_dic) / parm_Red_P_C_O2)
+
+   DTRACER_MODULE(:,:,o2_ind) = c0
+
+   O2_PRODUCTION = c0
+
+   where (photoC_diat > c0)
+      O2_PRODUCTION = O2_PRODUCTION + photoC_diat * &
+         ((NO3_V_diat/(NO3_V_diat+NH4_V_diat)) / parm_Red_D_C_O2 + &
+          (NH4_V_diat/(NO3_V_diat+NH4_V_diat)) / parm_Remin_D_C_O2)
+   end where
+
+   where (photoC_sp > c0)
+      O2_PRODUCTION = O2_PRODUCTION + photoC_sp * &
+         ((NO3_V_sp/(NO3_V_sp+NH4_V_sp)) / parm_Red_D_C_O2 + &
+          (NH4_V_sp/(NO3_V_sp+NH4_V_sp)) / parm_Remin_D_C_O2)
+   end where
+
+   where (photoC_diaz > c0)
+      O2_PRODUCTION = O2_PRODUCTION + photoC_diaz * &
+         ((photoNO3_diaz/(photoNO3_diaz+photoNH4_diaz+diaz_Nfix)) / parm_Red_D_C_O2 + &
+          (photoNH4_diaz/(photoNO3_diaz+photoNH4_diaz+diaz_Nfix)) / parm_Remin_D_C_O2 + &
+          (diaz_Nfix/(photoNO3_diaz+photoNH4_diaz+diaz_Nfix)) / parm_Red_D_C_O2_diaz)
+   end where
+
+   WORK1 = (O2_loc - parm_o2_min) / parm_o2_min_delta
+   WORK1 = min(max(WORK1,c0),c1)
+   O2_CONSUMPTION = WORK1 * &
+      ((POC%remin(:,:,bid) + DOC_remin + zoo_loss_dic + &
+        sp_loss_dic + graze_sp_dic + diat_loss_dic + graze_diat_dic + &
+        graze_diaz_dic + diaz_loss_dic)/ parm_Remin_D_C_O2 + (c2*NITRIF))
+
+   DTRACER_MODULE(:,:,o2_ind) = O2_PRODUCTION - O2_CONSUMPTION
 
 !-----------------------------------------------------------------------
 !  various tavg/history variables
 !-----------------------------------------------------------------------
+
+   if (k == 1) then
+      if (tavg_requested(tavg_O2_ZMIN) .or. tavg_requested(tavg_O2_ZMIN_DEPTH)) then
+         ! WORK1 = O2 at this level
+         ! WORK2 = vertical min of O2
+         ! WORK3 = depth of min
+
+         kk = 1
+         WORK1 = max(c0, p5*(TRACER_MODULE_OLD(:,:,kk,o2_ind) + &
+                             TRACER_MODULE_CUR(:,:,kk,o2_ind)))
+         WORK2 = WORK1
+         WORK3 = zt(kk)
+
+         do kk = 2,km
+            WORK1 = max(c0, p5*(TRACER_MODULE_OLD(:,:,kk,o2_ind) + &
+                                TRACER_MODULE_CUR(:,:,kk,o2_ind)))
+            where (kk <= KMT(:,:,bid) .and. (WORK1 < WORK2))
+               WORK2 = WORK1
+               WORK3 = zt(kk)
+            endwhere
+         end do
+
+         if (tavg_requested(tavg_O2_ZMIN)) then
+            call accumulate_tavg_field(WORK2, tavg_O2_ZMIN,bid,k)
+         endif
+
+         if (tavg_requested(tavg_O2_ZMIN_DEPTH)) then
+            call accumulate_tavg_field(WORK3, tavg_O2_ZMIN_DEPTH,bid,k)
+         endif
+      endif
+   endif
+
+   if (tavg_requested(tavg_O2_PRODUCTION)) then
+      call accumulate_tavg_field(O2_PRODUCTION, tavg_O2_PRODUCTION,bid,k)
+   endif
+
+   if (tavg_requested(tavg_O2_CONSUMPTION)) then
+      call accumulate_tavg_field(O2_CONSUMPTION, tavg_O2_CONSUMPTION,bid,k)
+   endif
 
    if (tavg_requested(tavg_PAR_avg)) then
       call accumulate_tavg_field(PAR_avg, tavg_PAR_avg,bid,k)
@@ -3009,8 +3272,8 @@ contains
    endif
 
    if (tavg_requested(tavg_graze_TOT)) then
-      WORK = graze_sp + graze_diat + graze_diaz
-      call accumulate_tavg_field(WORK, tavg_graze_TOT,bid,k)
+      WORK1 = graze_sp + graze_diat + graze_diaz
+      call accumulate_tavg_field(WORK1, tavg_graze_TOT,bid,k)
    endif
 
    if (tavg_requested(tavg_sp_loss)) then
@@ -3050,8 +3313,44 @@ contains
    endif
 
    if (tavg_requested(tavg_photoC_TOT)) then
-      WORK = photoC_sp + photoC_diat + photoC_diaz
-      call accumulate_tavg_field(WORK, tavg_photoC_TOT,bid,k)
+      WORK1 = photoC_sp + photoC_diat + photoC_diaz
+      call accumulate_tavg_field(WORK1, tavg_photoC_TOT,bid,k)
+   endif
+
+   if (tavg_requested(tavg_photoC_sp_zint)) then
+      if (partial_bottom_cells) then
+         WORK1 = DZT(:,:,k,bid) * photoC_sp
+      else
+         WORK1 = dz(k) * photoC_sp
+      endif
+      call accumulate_tavg_field(WORK1, tavg_photoC_sp_zint,bid,k)
+   endif
+
+   if (tavg_requested(tavg_photoC_diat_zint)) then
+      if (partial_bottom_cells) then
+         WORK1 = DZT(:,:,k,bid) * photoC_diat
+      else
+         WORK1 = dz(k) * photoC_diat
+      endif
+      call accumulate_tavg_field(WORK1, tavg_photoC_diat_zint,bid,k)
+   endif
+
+   if (tavg_requested(tavg_photoC_diaz_zint)) then
+      if (partial_bottom_cells) then
+         WORK1 = DZT(:,:,k,bid) * photoC_diaz
+      else
+         WORK1 = dz(k) * photoC_diaz
+      endif
+      call accumulate_tavg_field(WORK1, tavg_photoC_diaz_zint,bid,k)
+   endif
+
+   if (tavg_requested(tavg_photoC_TOT_zint)) then
+      if (partial_bottom_cells) then
+         WORK1 = DZT(:,:,k,bid) * (photoC_sp + photoC_diat + photoC_diaz)
+      else
+         WORK1 = dz(k) * (photoC_sp + photoC_diat + photoC_diaz)
+      endif
+      call accumulate_tavg_field(WORK1, tavg_photoC_TOT_zint,bid,k)
    endif
 
    if (tavg_requested(tavg_DOC_prod)) then
@@ -3162,28 +3461,28 @@ contains
 !  Value given here is at Tref of 30 deg. C, JKM
 !-----------------------------------------------------------------------
 
-    POC%diss      = 13000.0_r8  ! diss. length (cm), modified by TEMP
+    POC%diss      = 21000.0_r8  ! diss. length (cm), modified by TEMP
     POC%gamma     = c0          ! not used
     POC%mass      = 12.01_r8    ! molecular weight of POC
     POC%rho       = c0          ! not used
 
-    P_CaCO3%diss  = 60000.0_r8  ! diss. length (cm)
+    P_CaCO3%diss  = 80000.0_r8  ! diss. length (cm)
     P_CaCO3%gamma = 0.55_r8     ! prod frac -> hard subclass
     P_CaCO3%mass  = 100.09_r8   ! molecular weight of CaCO
-    P_CaCO3%rho   = 0.07_r8 * P_CaCO3%mass / POC%mass
+    P_CaCO3%rho   = 0.05_r8 * P_CaCO3%mass / POC%mass
                                        ! QA mass ratio for CaCO3
                                        ! This ratio is used in ecos_set_interior
 
-    P_SiO2%diss   = 2200.0_r8   ! diss. length (cm), modified by TEMP
-    P_SiO2%gamma  = 0.37_r8     ! prod frac -> hard subclass
+    P_SiO2%diss   = 21000.0_r8  ! diss. length (cm), modified by TEMP
+    P_SiO2%gamma  = 0.25_r8     ! prod frac -> hard subclass
     P_SiO2%mass   = 60.08_r8    ! molecular weight of SiO2
-    P_SiO2%rho    = 0.035_r8 * P_SiO2%mass / POC%mass
+    P_SiO2%rho    = 0.05_r8 * P_SiO2%mass / POC%mass
                                        ! QA mass ratio for SiO2
 
     dust%diss     = 60000.0_r8  ! diss. length (cm)
     dust%gamma    = 0.97_r8     ! prod frac -> hard subclass
     dust%mass     = 1.0e9_r8    ! base units are already grams
-    dust%rho      = 0.07_r8 * dust%mass / POC%mass
+    dust%rho      = 0.05_r8 * dust%mass / POC%mass
                                        ! QA mass ratio for dust
 
     P_iron%diss   = 60000.0_r8  ! diss. length (cm) - not used
@@ -3391,13 +3690,17 @@ contains
 !----------------------------------------------------------------------
 !   Tref = 30.0 reference temperature (deg. C)
 !
-!   Using q10 formulation with Q10 value of 1.12 soft POM (TfuncP) and
-!       a Q10 value of 3.5 soft bSi (TfuncS)
+!   Using q10 formulation with Q10 value of 1.1 soft POM (TfuncP) and
+!       a Q10 value of 2.5 soft bSi (TfuncS)
 !-----------------------------------------------------------------------
 
-   TfuncP = 1.12_r8**(((TEMP + T0_Kelvin) - (Tref + T0_Kelvin)) / c10)
+!
+!  NOTE: Turning off temperature effect on POM lengthscale, three instances
+!    of TfuncP below have been removed, see comment lines.
+!-------------------------------------------------------------------------
+!  TfuncP = 1.1_r8**(((TEMP + T0_Kelvin) - (Tref + T0_Kelvin)) / c10)
 
-   TfuncS = 4.0_r8**(((TEMP + T0_Kelvin) - (Tref + T0_Kelvin)) / c10)
+   TfuncS = 2.5_r8**(((TEMP + T0_Kelvin) - (Tref + T0_Kelvin)) / c10)
 
    poc_error = .false.
 
@@ -3414,17 +3717,25 @@ contains
             dzr_loc = c1 / dz_loc
 
 !-----------------------------------------------------------------------
+!  increase POC diss where O2 concentrations are low
+!-----------------------------------------------------------------------
+
+!            if (O2_loc(i,j) > c0) then
+!               poc_diss = min((POC%diss * 2.0_r8), (POC%diss / &
+!                  (O2_loc(i,j) / (O2_loc(i,j) + 5.0_r8))))
+!            else
+!               poc_diss = POC%diss * 2.0_r8
+!            endif
+
+             poc_diss = POC%diss
+
+!-----------------------------------------------------------------------
 !  decay_POC_E and decay_SiO2 set locally, modified by Tfunc
 !-----------------------------------------------------------------------
 
-            ! increase POC diss where there is denitrification
-            if (O2_loc(i,j) < parm_o2_min) then
-               poc_diss = 26000.0_r8  ! diss. length (cm)
-            else
-               poc_diss = POC%diss
-            endif
+!            decay_POC_E = exp(-dz_loc / (poc_diss / TfuncP(i,j)))
 
-            decay_POC_E = exp(-dz_loc / (poc_diss / TfuncP(i,j)))
+            decay_POC_E = exp(-dz_loc / poc_diss)
             decay_SiO2  = exp(-dz_loc / (P_SiO2%diss / TfuncS(i,j)))
 
 !-----------------------------------------------------------------------
@@ -3524,7 +3835,9 @@ contains
 
             POC%sflux_out(i,j,bid) = POC%sflux_in(i,j,bid) * decay_POC_E + &
                POC_PROD_avail *((c1 - decay_POC_E) * &
-               (poc_diss / TfuncP(i,j)))
+               poc_diss)
+
+!               (poc_diss / TfuncP(i,j)))
 
 !-----------------------------------------------------------------------
 !  Compute remineralization terms. It is assumed that there is no
@@ -3557,7 +3870,7 @@ contains
                P_iron%remin(i,j,bid) = (POC%remin(i,j,bid) * &
                   (P_iron%sflux_in(i,j,bid) + P_iron%hflux_in(i,j,bid)) / &
                   (POC%sflux_in(i,j,bid) + POC%hflux_in(i,j,bid))) + &
-                  (P_iron%sflux_in(i,j,bid) * 6.0e-6_r8)
+                  (P_iron%sflux_in(i,j,bid) * 3.0e-6_r8)
             endif
 
             P_iron%sflux_out(i,j,bid) = P_iron%sflux_in(i,j,bid) + dz_loc * &
@@ -3937,6 +4250,82 @@ contains
    endif
 
 !-----------------------------------------------------------------------
+!  load nox & noy flux fields (if required)
+!-----------------------------------------------------------------------
+
+   if (trim(nox_flux%input%filename) /= 'none' .and. &
+       trim(nox_flux%input%filename) /= 'unknown') then
+
+      luse_INTERP_WORK = .true.
+
+      allocate(nox_flux%DATA(nx_block,ny_block,max_blocks_clinic,1,12))
+      if (trim(nox_flux%input%filename) == 'unknown') &
+         nox_flux%input%filename = gas_flux_forcing_file
+
+      call read_field(nox_flux%input%file_fmt, &
+                      nox_flux%input%filename, &
+                      nox_flux%input%file_varname, &
+                      WORK_READ)
+
+      !$OMP PARALLEL DO PRIVATE(iblock, n)
+      do iblock=1,nblocks_clinic
+      do n=1,12
+         nox_flux%DATA(:,:,iblock,1,n) = WORK_READ(:,:,n,iblock)
+         where (.not. LAND_MASK(:,:,iblock)) &
+            nox_flux%DATA(:,:,iblock,1,n) = c0
+         nox_flux%DATA(:,:,iblock,1,n) = &
+            nox_flux%DATA(:,:,iblock,1,n) * nox_flux%input%scale_factor
+      end do
+      end do
+      !$OMP END PARALLEL DO
+
+      call find_forcing_times(nox_flux%data_time, &
+                              nox_flux%data_inc, nox_flux%interp_type, &
+                              nox_flux%data_next, nox_flux%data_time_min_loc, &
+                              nox_flux%data_update, nox_flux%data_type)
+
+      nox_flux%has_data = .true.
+   else
+      nox_flux%has_data = .false.
+   endif
+
+   if (trim(nhy_flux%input%filename) /= 'none' .and. &
+       trim(nhy_flux%input%filename) /= 'unknown') then
+
+      luse_INTERP_WORK = .true.
+
+      allocate(nhy_flux%DATA(nx_block,ny_block,max_blocks_clinic,1,12))
+      if (trim(nhy_flux%input%filename) == 'unknown') &
+         nhy_flux%input%filename = gas_flux_forcing_file
+
+      call read_field(nhy_flux%input%file_fmt, &
+                      nhy_flux%input%filename, &
+                      nhy_flux%input%file_varname, &
+                      WORK_READ)
+
+      !$OMP PARALLEL DO PRIVATE(iblock, n)
+      do iblock=1,nblocks_clinic
+      do n=1,12
+         nhy_flux%DATA(:,:,iblock,1,n) = WORK_READ(:,:,n,iblock)
+         where (.not. LAND_MASK(:,:,iblock)) &
+            nhy_flux%DATA(:,:,iblock,1,n) = c0
+         nhy_flux%DATA(:,:,iblock,1,n) = &
+            nhy_flux%DATA(:,:,iblock,1,n) * nhy_flux%input%scale_factor
+      end do
+      end do
+      !$OMP END PARALLEL DO
+
+      call find_forcing_times(nhy_flux%data_time, &
+                              nhy_flux%data_inc, nhy_flux%interp_type, &
+                              nhy_flux%data_next, nhy_flux%data_time_min_loc, &
+                              nhy_flux%data_update, nhy_flux%data_type)
+
+      nhy_flux%has_data = .true.
+   else
+      nhy_flux%has_data = .false.
+   endif
+
+!-----------------------------------------------------------------------
 !  allocate space for interpolate_forcing
 !-----------------------------------------------------------------------
 
@@ -4041,7 +4430,11 @@ contains
    integer (int_kind) :: &
       n,                   & ! index for looping over tracers
       k,                   & ! index for looping over levels
+      i,j,                 & ! index for looping over horiz. dims.
       iblock                 ! index for looping over blocks
+
+   real (r8) :: &
+      subsurf_fesed          ! sum of subsurface fesed values
 
 !-----------------------------------------------------------------------
 !  initialize restoring timescale (if required)
@@ -4152,6 +4545,7 @@ contains
 
 !-----------------------------------------------------------------------
 !  load fesedflux
+!  add subsurface positives to 1 level shallower, to accomodate overflow pop-ups
 !-----------------------------------------------------------------------
 
    allocate(FESEDFLUX(nx_block,ny_block,km,max_blocks_clinic))
@@ -4162,6 +4556,18 @@ contains
                    FESEDFLUX)
 
    do iblock=1,nblocks_clinic
+      do j=1,ny_block
+      do i=1,nx_block
+         if (KMT(i,j,iblock) > 0 .and. KMT(i,j,iblock) < km) then
+            subsurf_fesed = c0
+            do k=KMT(i,j,iblock)+1,km
+               subsurf_fesed = subsurf_fesed + FESEDFLUX(i,j,k,iblock)
+            enddo
+            FESEDFLUX(i,j,KMT(i,j,iblock),iblock) = FESEDFLUX(i,j,KMT(i,j,iblock),iblock) + subsurf_fesed
+         endif
+      enddo
+      enddo
+
       do k = 1, km
          where (.not. LAND_MASK(:,:,iblock) .or. k > KMT(:,:,iblock)) &
             FESEDFLUX(:,:,k,iblock) = c0
@@ -4270,7 +4676,12 @@ contains
       xkw_coeff = 8.6e-9_r8,  & ! a = 0.31 cm/hr s^2/m^2 in (s/cm)
       phlo_init = 5.0_r8,     & ! low bound for ph for no prev soln
       phhi_init = 9.0_r8,     & ! high bound for ph for no prev soln
-      del_ph = 0.25_r8          ! delta-ph for prev soln
+      del_ph = 0.50_r8          ! delta-ph for prev soln
+
+!-----------------------------------------------------------------------
+!  del_ph is high to avoid problems with IC on Siberian shelf
+!  this will be fixed in an updated IC file
+!-----------------------------------------------------------------------
 
    call timer_start(ecosys_sflux_timer)
 
@@ -4619,6 +5030,58 @@ contains
       dust_FLUX_IN = c0
    endif
 
+!-----------------------------------------------------------------------
+!  calculate nox and nhy fluxes if necessary
+!-----------------------------------------------------------------------
+
+   if (nox_flux%has_data) then
+      if (thour00 >= nox_flux%data_update) then
+         tracer_data_names = nox_flux%input%file_varname
+         tracer_bndy_loc   = field_loc_center
+         tracer_bndy_type  = field_type_scalar
+         tracer_data_label = 'NOx Flux'
+         call update_forcing_data(nox_flux%data_time,    &
+            nox_flux%data_time_min_loc,  nox_flux%interp_type,    &
+            nox_flux%data_next,          nox_flux%data_update,    &
+            nox_flux%data_type,          nox_flux%data_inc,       &
+            nox_flux%DATA(:,:,:,:,1:12), nox_flux%data_renorm,    &
+            tracer_data_label,           tracer_data_names,       &
+            tracer_bndy_loc,             tracer_bndy_type,        &
+            nox_flux%filename,           nox_flux%input%file_fmt)
+      endif
+      call interpolate_forcing(INTERP_WORK,     &
+         nox_flux%DATA(:,:,:,:,1:12), &
+         nox_flux%data_time,         nox_flux%interp_type, &
+         nox_flux%data_time_min_loc, nox_flux%interp_freq, &
+         nox_flux%interp_inc,        nox_flux%interp_next, &
+         nox_flux%interp_last,       0)
+      STF_MODULE(:,:,no3_ind,:) = INTERP_WORK(:,:,:,1)
+   endif
+
+   if (nhy_flux%has_data) then
+      if (thour00 >= nhy_flux%data_update) then
+         tracer_data_names = nhy_flux%input%file_varname
+         tracer_bndy_loc   = field_loc_center
+         tracer_bndy_type  = field_type_scalar
+         tracer_data_label = 'NHy Flux'
+         call update_forcing_data(nhy_flux%data_time,    &
+            nhy_flux%data_time_min_loc,  nhy_flux%interp_type,    &
+            nhy_flux%data_next,          nhy_flux%data_update,    &
+            nhy_flux%data_type,          nhy_flux%data_inc,       &
+            nhy_flux%DATA(:,:,:,:,1:12), nhy_flux%data_renorm,    &
+            tracer_data_label,           tracer_data_names,       &
+            tracer_bndy_loc,             tracer_bndy_type,        &
+            nhy_flux%filename,           nhy_flux%input%file_fmt)
+      endif
+      call interpolate_forcing(INTERP_WORK,     &
+         nhy_flux%DATA(:,:,:,:,1:12), &
+         nhy_flux%data_time,         nhy_flux%interp_type, &
+         nhy_flux%data_time_min_loc, nhy_flux%interp_freq, &
+         nhy_flux%interp_inc,        nhy_flux%interp_next, &
+         nhy_flux%interp_last,       0)
+      STF_MODULE(:,:,nh4_ind,:) = INTERP_WORK(:,:,:,1)
+   endif
+
    call timer_stop(ecosys_sflux_timer)
 
 !-----------------------------------------------------------------------
@@ -4858,6 +5321,14 @@ contains
       if (tavg_requested(tavg_DUST_FLUX)) then
          call accumulate_tavg_field(dust_FLUX_IN(:,:,iblock)*mpercm,  &
                                     tavg_DUST_FLUX,iblock,1)
+      endif
+      if (tavg_requested(tavg_NOx_FLUX)) then
+         call accumulate_tavg_field(STF_MODULE(:,:,no3_ind,iblock),  &
+                                    tavg_NOx_FLUX,iblock,1)
+      endif
+      if (tavg_requested(tavg_NHy_FLUX)) then
+         call accumulate_tavg_field(STF_MODULE(:,:,nh4_ind,iblock),  &
+                                    tavg_NHy_FLUX,iblock,1)
       endif
 
 !-----------------------------------------------------------------------

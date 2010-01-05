@@ -9,6 +9,9 @@
 set    srcdir       = $CODEROOT/ocn/pop2
 set    my_path      = $CASEROOT/SourceMods/src.pop2
 
+setenv MY_PATH         $my_path
+setenv SRCDIR          $srcdir
+
 setenv OCN_PRESTAGE    FALSE
 
 setenv runtype         $RUN_TYPE
@@ -603,12 +606,16 @@ if (\$#ocn_tracers > 0) then
 echo   Add passive tracer module variables to tavg_contents                   >> \$POP2_BLDNML
 echo ------------------------------------------------------------------------ >> \$POP2_BLDNML
 
+  @ ii = 1
   foreach module ( \$ocn_tracers )
+     @ stream_number = \$tracer_stream_numbers[\$ii]
+
     if (-f \${my_path}/ocn.\${module}.setup.csh) then
-      \${my_path}/ocn.\${module}.setup.csh tavg_contents \$tavg_contents_filename || exit \$status
+      \${my_path}/ocn.\${module}.setup.csh tavg_contents \$tavg_contents_filename \$stream_number || exit \$status
     else
-      \$srcdir/input_templates/ocn.\${module}.setup.csh tavg_contents \$tavg_contents_filename || exit \$status
+      \$srcdir/input_templates/ocn.\${module}.setup.csh tavg_contents \$tavg_contents_filename \$stream_number || exit \$status
     endif
+    @ ii++
   end
 
 echo  Prestage passive tracer module files                                    >> \$POP2_BLDNML

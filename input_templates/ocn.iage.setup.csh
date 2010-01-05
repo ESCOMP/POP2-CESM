@@ -6,7 +6,8 @@
 #  recognized commands, possibly with arguments, are
 #    set_nt         nt_filename
 #    namelist       pop_in_filename
-#    tavg_contents  tavg_contents_filename
+#    set_tavg_nml   
+#    tavg_contents  tavg_contents_filename my_stream
 #    prestage       res_dpt_dir res_indpt_dir
 #    document       pop2_document_files
 #    ccsm_prestage  ccsm_prestage_file
@@ -19,6 +20,12 @@ if ($#argv < 1) then
    echo ocn.iage.setup.csh : command argument missing
    exit 1
 endif
+
+#===============================================================================
+#  set module name, which is required for tavg_nml
+#  module name must match the name of this setup script
+#===============================================================================
+set module = iage
 
 set command = $1
 
@@ -70,12 +77,22 @@ else if ($command == namelist) then
 /
 EOF
 
+else if ($command == set_tavg_nml) then
+
+  #-------------------------------------------------------------------------------------
+  # if there is no module-related tavg output, set n_tavg_streams_tracer = 0
+  #-------------------------------------------------------------------------------------
+    set n_tavg_streams_tracer = 0
+cat >&! $module.tavg << EOF
+n_tavg_streams_tracer =  $n_tavg_streams_tracer
+EOF
+
 else if ($command == tavg_contents) then
 
    echo ocn.iage.setup.csh : setting tavg_contents variables                     >> $POP2_BLDNML
    echo ------------------------------------------------------------------------ >> $POP2_BLDNML
 
-   if ($#argv < 2) then
+   if ($#argv < 3) then
       echo tavg_contents_filename argument missing
       exit 5
    endif
@@ -87,20 +104,38 @@ else if ($command == tavg_contents) then
       exit 5
    endif
 
-   echo "1  IAGE "       >> $tavg_contents_filename
+   @ my_stream = $3
+   if ($my_stream < 1) then
+      echo invalid my_stream number  ($my_stream)
+      exit 5
+   endif
+
+   #------------------------------------------------------------------------------------
+   # For now, set streams manually. You must only set as many streams as are declared
+   #  in the tavg_nml section. For example, if there are three streams:
+   #  @ s1 = $my_stream
+   #  @ s2 = $s1 + 1
+   #  @ s3 = $s2 + 1
+   #------------------------------------------------------------------------------------
+
+   @ s1 = 1   # use base-model stream 1
+
+cat >> $tavg_contents_filename << EOF
+$s1  IAGE
+EOF
 
 #  disable the following until they are computed correctly
-#  echo "IAGE_SQR "   >> $tavg_contents_filename
-#  echo "UE_IAGE "    >> $tavg_contents_filename
-#  echo "VN_IAGE "    >> $tavg_contents_filename
-#  echo "WT_IAGE "    >> $tavg_contents_filename
-#  echo "ADV_IAGE "   >> $tavg_contents_filename
-#  echo "J_IAGE "     >> $tavg_contents_filename
-#  echo "Jint_IAGE "  >> $tavg_contents_filename
-#  echo "STF_IAGE "   >> $tavg_contents_filename
-#  echo "RESID_IAGE " >> $tavg_contents_filename
-#  echo "FvPER_IAGE " >> $tavg_contents_filename
-#  echo "FvICE_IAGE " >> $tavg_contents_filename
+#  IAGE_SQR 
+#  UE_IAGE
+#  VN_IAGE
+#  WT_IAGE
+#  ADV_IAGE
+#  J_IAGE
+#  Jint_IAGE
+#  STF_IAGE
+#  RESID_IAGE
+#  FvPER_IAGE
+#  FvICE_IAGE
 
 else if ($command == prestage) then
 

@@ -63,6 +63,13 @@ else
 endif
 
 cat >> $POP2BLDSCRIPT << EOF2
+
+if ( \${OCN_CDF64} == TRUE) then
+  set luse_nf_64bit_offset = .true.
+else
+  set luse_nf_64bit_offset = .false.
+endif
+
 cat >> \$POP2_IN << EOF
 &domain_nml
   nprocs_clinic            = $NPROCS_CLINIC
@@ -80,12 +87,6 @@ EOF2
 #  io_nml
 #--------------------------------------------------------------------------
 
-if ( ${OCN_CDF64} == TRUE) then
-  set luse_nf_64bit_offset = .true.
-else
-  set luse_nf_64bit_offset = .false.
-endif
-
 cat >> $POP2BLDSCRIPT << EOF2
 &io_nml
   num_iotasks          = 1 
@@ -93,7 +94,7 @@ cat >> $POP2BLDSCRIPT << EOF2
   log_filename         = '$output_L/ocn.log.\$LID'
   luse_pointer_files   = .true.
   pointer_filename     = './rpointer.ocn'
-  luse_nf_64bit_offset = $luse_nf_64bit_offset
+  luse_nf_64bit_offset = \$luse_nf_64bit_offset
 /
 
 EOF2
@@ -360,68 +361,160 @@ EOF2
 
 
 #--------------------------------------------------------------------------
-#  tavg_nml  -- see error checking below
+#  tavg_nml 
 #--------------------------------------------------------------------------
 
+#--------------------------------------------------------------------------
+#   first, define the tavg_nml settings for the base model
+#--------------------------------------------------------------------------
 if ( ${OCN_GRID} =~ gx* ) then
   #------------------- shut off time-invariant stream until vertical grid issues are resolved
   set n_tavg_streams               = 3
-  set tavg_freq_opt_values         = ("'nmonth'","'nday'","'once'")
-  set tavg_freq_values             = (1,1,1)
-  set tavg_FILE_freq_opt           = ("'nmonth'", "'nmonth'","'once'")
-  set tavg_FILE_freq_values        = (1,1,1)
-  set tavg_start_opt_values        = ("'nstep'","'nstep'","'nstep'")
-  set tavg_start_values            = (0,0,0)
-  set tavg_fmt_in_values           = ("'nc'","'nc'","'nc'")
-  set tavg_fmt_out_values          = ("'nc'","'nc'","'nc'")
-  set ltavg_has_offset_date_values = (.false.,.false.,.false.)
-  set tavg_offset_year_values      = (1,1,1)
-  set tavg_offset_month_values     = (1,1,1)
-  set tavg_offset_day_values       = (2,2,2)
-  set ltavg_one_time_header        = (.false.,.false.,.false.)
+  set ltavg_streams_index_present  = .true.
+  set tavg_freq_opt_values         = ("'nmonth'" "'nday'"   "'once'" )
+  set tavg_freq_values             = (    1         1           1    )
+  set tavg_stream_filestrings      = ("'nmonth1'" "'nday1'" "'once'" )
+  set tavg_FILE_freq_opt           = ("'nmonth'" "'nmonth'" "'once'" )
+  set tavg_FILE_freq_values        = (    1         1           1    )
+  set tavg_start_opt_values        = ("'nstep'"   "'nstep'" "'nstep'")
+  set tavg_start_values            = (    0         0           0    )
+  set tavg_fmt_in_values           = ("'nc'"      "'nc'"      "'nc'" )
+  set tavg_fmt_out_values          = ("'nc'"      "'nc'"      "'nc'" )
+  set ltavg_has_offset_date_values = (.false.    .false.      .false.)
+  set tavg_offset_year_values      = (    1         1           1    )
+  set tavg_offset_month_values     = (    1         1           1    )
+  set tavg_offset_day_values       = (    2         2           2    )
+  set ltavg_one_time_header        = (.false.    .false.      .false.)
   set ltavg_nino_diags_requested   = .true. 
 else if (${OCN_GRID} =~ tx0.1* || ${OCN_GRID} =~ tx1* ) then
   set n_tavg_streams               = 2
-  set tavg_freq_opt_values         = ("'nmonth'", "'nday'")
-  set tavg_freq_values             = (1,1)
-  set tavg_FILE_freq_opt           = ("'nmonth'", "'nmonth'")
-  set tavg_FILE_freq_values        = (1,1)
-  set tavg_start_opt_values        = ("'nstep'", "'nstep'")
-  set tavg_start_values            = (0,0)
-  set tavg_fmt_in_values           = ("'nc'", "'nc'")
-  set tavg_fmt_out_values          = ("'nc'", "'nc'")
-  set ltavg_has_offset_date_values = (.false., .false.)
-  set tavg_offset_year_values      = (1,1)
-  set tavg_offset_month_values     = (1,1)
-  set tavg_offset_day_values       = (2,2)
-  set ltavg_one_time_header        = (.false.,.false.)
+  set ltavg_streams_index_present  = .true.
+  set tavg_freq_opt_values         = ("'nmonth'"  "'nday'"  )
+  set tavg_freq_values             = (   1           1      )
+  set tavg_stream_filestrings      = ("'nmonth1'" "'nday1'" )
+  set tavg_FILE_freq_opt           = ("'nmonth'"  "'nmonth'")
+  set tavg_FILE_freq_values        = (   1           1      )
+  set tavg_start_opt_values        = ("'nstep'"   "'nstep'" )
+  set tavg_start_values            = (   0           0      )
+  set tavg_fmt_in_values           = ( "'nc'"      "'nc'"   )
+  set tavg_fmt_out_values          = ( "'nc'"      "'nc'"   )
+  set ltavg_has_offset_date_values = (.false.      .false.  )
+  set tavg_offset_year_values      = (   1           1      )
+  set tavg_offset_month_values     = (   1           1      )
+  set tavg_offset_day_values       = (   2           2      )
+  set ltavg_one_time_header        = (.false.      .false.  )
   set ltavg_nino_diags_requested   = .false.
 endif
 
+#--------------------------------------------------------------------------
+#   now, define the tavg_nml settings for all of the extra-tracer modules
+#   This requires the creation and reading of a tracer-module file 
+#--------------------------------------------------------------------------
+set ocn_tracers = (`echo $OCN_TRACER_MODULES`)
+set tracer_stream_numbers = ( )
+foreach module ($ocn_tracers)
+    if (-f ${MY_PATH}/ocn.${module}.setup.csh) then
+       set setup_path = ${MY_PATH}
+    else if (-f $SRCDIR/input_templates/ocn.${module}.setup.csh) then
+       set setup_path = $SRCDIR/input_templates
+    else
+       echo error in pop2_in_build.csh unknown tracer: $module
+       exit -3
+    endif
+
+    ${setup_path}/ocn.${module}.setup.csh set_tavg_nml || exit $status
+
+    @ ntracer_stream = `grep "^n_tavg_streams_tracer" $module.tavg | awk -F= '{print $2}' `
+
+
+  if ($ntracer_stream == 0) then
+    @ module_stream  = $n_tavg_streams
+  else
+    #------------------------------------------------------------------------------------
+    # increment number of streams and identify the starting stream for each tracer module
+    #------------------------------------------------------------------------------------
+    @ module_stream  = $n_tavg_streams + 1
+    @ n_tavg_streams = $n_tavg_streams + $ntracer_stream
+
+
+    set VARS = (tavg_freq_opt_values tavg_freq_values tavg_stream_filestrings tavg_FILE_freq_opt tavg_FILE_freq_values tavg_start_opt_values tavg_start_values tavg_fmt_in_values tavg_fmt_out_values ltavg_has_offset_date_values tavg_offset_year_values tavg_offset_month_values tavg_offset_day_values ltavg_one_time_header )
+
+    #------------------------------------------------------------------------------------
+    # parse the information in the $module.tavg file (created by the setup.csh scripts)
+    #------------------------------------------------------------------------------------
+    foreach VAR ($VARS)
+      set opts = `grep "^$VAR" $module.tavg | awk -F= '{print $2}' `
+      if ($VAR == tavg_freq_opt_values) then
+        set tavg_freq_opt_values = ($tavg_freq_opt_values  $opts)
+      else if ($VAR == tavg_freq_values) then
+        set tavg_freq_values = ($tavg_freq_values  $opts)
+      else if ($VAR == tavg_stream_filestrings) then
+        set tavg_stream_filestrings = ($tavg_stream_filestrings  $opts)
+      else if ($VAR == tavg_FILE_freq_opt) then
+        set tavg_FILE_freq_opt = ($tavg_FILE_freq_opt  $opts)
+      else if ($VAR == tavg_FILE_freq_values) then
+        set tavg_FILE_freq_values = ($tavg_FILE_freq_values  $opts)
+      else if ($VAR == tavg_start_opt_values) then
+        set tavg_start_opt_values = ($tavg_start_opt_values  $opts)
+      else if ($VAR == tavg_start_values) then
+        set tavg_start_values = ($tavg_start_values  $opts)
+      else if ($VAR == tavg_fmt_in_values) then
+        set tavg_fmt_in_values = ($tavg_fmt_in_values  $opts)
+      else if ($VAR == tavg_fmt_out_values) then
+        set tavg_fmt_out_values = ($tavg_fmt_out_values  $opts)
+      else if ($VAR == ltavg_has_offset_date_values) then
+        set ltavg_has_offset_date_values = ($ltavg_has_offset_date_values  $opts)
+      else if ($VAR == tavg_offset_year_values) then
+        set tavg_offset_year_values = ($tavg_offset_year_values  $opts)
+      else if ($VAR == tavg_offset_month_values) then
+        set tavg_offset_month_values = ($tavg_offset_month_values  $opts)
+      else if ($VAR == tavg_offset_day_values) then
+        set tavg_offset_day_values = ($tavg_offset_day_values  $opts)
+      else if ($VAR == ltavg_one_time_header) then
+        set ltavg_one_time_header = ($ltavg_one_time_header  $opts)
+      else
+        echo pop2_in_build.csh failure in $module loop 
+        echo    undefined VAR = $VAR
+        exit -999
+      endif
+    end # VAR
+   endif
+    #------------------------------------------------------------------------------------
+    # store information about stream numbers for later use by ocn.*.setup.csh scripts
+    # see section below, after the complete specification of pop2_in
+    #------------------------------------------------------------------------------------
+   set tracer_stream_numbers = ($tracer_stream_numbers $module_stream)
+   #---------
+   # clean up
+   #---------
+   #### debug #####   rm $module.tavg
+end # loop over tracer setup scripts
+
 cat >> $POP2BLDSCRIPT << EOF2
 &tavg_nml
-   n_tavg_streams             = $n_tavg_streams
-   tavg_freq_opt              = $tavg_freq_opt_values
-   tavg_freq                  = $tavg_freq_values
-   tavg_file_freq_opt         = $tavg_FILE_freq_opt
-   tavg_file_freq             = $tavg_FILE_freq_values
-   tavg_start_opt             = $tavg_start_opt_values
-   tavg_start                 = $tavg_start_values
-   tavg_fmt_in                = $tavg_fmt_in_values
-   tavg_fmt_out               = $tavg_fmt_out_values
-   tavg_contents              ='\$tavg_contents_filename'
-   ltavg_nino_diags_requested = $ltavg_nino_diags_requested
-   tavg_infile                ='${output_h}restart.end'
-   tavg_outfile               ='$output_h'
-   ltavg_has_offset_date      = $ltavg_has_offset_date_values
-   tavg_offset_years          = $tavg_offset_year_values
-   tavg_offset_months         = $tavg_offset_month_values
-   tavg_offset_days           = $tavg_offset_day_values
-   ltavg_one_time_header      = $ltavg_one_time_header
+   n_tavg_streams              = $n_tavg_streams
+   ltavg_streams_index_present = $ltavg_streams_index_present
+   tavg_freq_opt               = $tavg_freq_opt_values
+   tavg_freq                   = $tavg_freq_values
+   tavg_file_freq_opt          = $tavg_FILE_freq_opt
+   tavg_file_freq              = $tavg_FILE_freq_values
+   tavg_stream_filestrings     = $tavg_stream_filestrings
+   tavg_start_opt              = $tavg_start_opt_values
+   tavg_start                  = $tavg_start_values
+   tavg_fmt_in                 = $tavg_fmt_in_values
+   tavg_fmt_out                = $tavg_fmt_out_values
+   tavg_contents               ='\$tavg_contents_filename'
+   ltavg_nino_diags_requested  = $ltavg_nino_diags_requested
+   tavg_infile                 ='${output_h}restart.end'
+   tavg_outfile                ='$output_h'
+   ltavg_has_offset_date       = $ltavg_has_offset_date_values
+   tavg_offset_years           = $tavg_offset_year_values
+   tavg_offset_months          = $tavg_offset_month_values
+   tavg_offset_days            = $tavg_offset_day_values
+   ltavg_one_time_header       = $ltavg_one_time_header
 /
 
 EOF2
-
 
 #--------------------------------------------------------------------------
 #  history_nml
@@ -1425,6 +1518,8 @@ cat >> $POP2BLDSCRIPT << EOF2
 /
 
 EOF
+
+set tracer_stream_numbers = ( $tracer_stream_numbers )
 EOF2
 
 #--------------------------------------------------------------------------
