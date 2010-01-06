@@ -27,18 +27,6 @@ else
 endif
 
 
-#--------------------------------------------------------------------------
-#  Define directory locations
-#--------------------------------------------------------------------------
-
-set output_L = $rundir
-set output_d = $rundir/$CASE.pop.d
-
-set output_r     = ./$CASE.pop.r
-set output_h     = ./$CASE.pop.h
-set pop2_pointer = ./rpointer.ocn
-
-
 
 #--------------------------------------------------------------------------
 #  domain_nml
@@ -64,13 +52,29 @@ endif
 
 cat >> $POP2BLDSCRIPT << EOF2
 
+#--------------------------------------------------------------------------
+# define variables needed by the pop2_in file
+#--------------------------------------------------------------------------
 if ( \${OCN_CDF64} == TRUE) then
   set luse_nf_64bit_offset = .true.
 else
   set luse_nf_64bit_offset = .false.
 endif
 
+set output_L = \$rundir
+set output_d = \$rundir/\$CASE.pop.d
+
+set output_r     = ./\$CASE.pop.r
+set output_h     = ./\$CASE.pop.h
+set pop2_pointer = ./rpointer.ocn
+
+
 cat >> \$POP2_IN << EOF
+
+#==========================================================================
+#  Begin pop2_in namelist build
+#==========================================================================
+
 &domain_nml
   nprocs_clinic            = $NPROCS_CLINIC
   nprocs_tropic            = $NPROCS_TROPIC
@@ -91,7 +95,7 @@ cat >> $POP2BLDSCRIPT << EOF2
 &io_nml
   num_iotasks          = 1 
   lredirect_stdout     = .true. 
-  log_filename         = '$output_L/ocn.log.\$LID'
+  log_filename         = '\$output_L/ocn.log.\$LID'
   luse_pointer_files   = .true.
   pointer_filename     = './rpointer.ocn'
   luse_nf_64bit_offset = \$luse_nf_64bit_offset
@@ -136,10 +140,12 @@ endif
 
 cat >> $POP2BLDSCRIPT << EOF2
 
+##########################################################
 WARNING: DO NOT CHANGE iyear0, imonth0, iday0, ihour0 
+##########################################################
 
 &time_manager_nml
-  runid             = '$CASE'
+  runid             = '\$CASE'
   time_mix_opt      = 'avgfit'
   time_mix_freq     = 17
   dt_option         = 'steps_per_day'
@@ -200,7 +206,7 @@ cat >> $POP2BLDSCRIPT << EOF2
    topography_opt       = '$topography_opt'
    kmt_kmin             = 3
    topography_file      = '\$topography_filename'
-   topography_outfile   = ' ${output_h}.topography_bathymetry.ieeer8'
+   topography_outfile   = '\${output_h}.topography_bathymetry.ieeer8'
    bathymetry_file      = '\$bathymetry_filename'
    partial_bottom_cells =  $partial_bottom_cells
    bottom_cell_file     = '\$bottom_cell_filename'
@@ -259,7 +265,7 @@ EOF2
 endif
 cat >> $POP2BLDSCRIPT << EOF2
    init_ts_file_fmt    = '$init_ts_file_fmt'
-   init_ts_outfile     = '${output_h}.ts_ic'
+   init_ts_outfile     = '\${output_h}.ts_ic'
    init_ts_outfile_fmt = '$init_ts_outfile_fmt'
 /
 
@@ -281,10 +287,6 @@ else
    set ldiag_velocity       = .true.
 endif
 
-set diag_transport_outfile = ${output_d}t
-set diag_outfile           = ${output_d}d
-set diag_velocity_outfile  = ${output_d}v
-
 cat >> $POP2BLDSCRIPT << EOF2
 &diagnostics_nml
    diag_global_freq_opt   = '$diag_freq_opt'
@@ -294,11 +296,11 @@ cat >> $POP2BLDSCRIPT << EOF2
    diag_transp_freq_opt   = '$diag_freq_opt'
    diag_transp_freq       = 1
    diag_transport_file    = '\$transport_contents_filename'
-   diag_outfile           = '$diag_outfile'
-   diag_transport_outfile = '$diag_transport_outfile'
+   diag_outfile           = '\${output_d}d'
+   diag_transport_outfile = '\${output_d}t'
    cfl_all_levels         = .false.
    diag_all_levels        = .false.
-   diag_velocity_outfile  = '$diag_velocity_outfile'
+   diag_velocity_outfile  = '\${output_d}v'
    ldiag_velocity         = $ldiag_velocity
 /
 
@@ -350,7 +352,7 @@ cat >> $POP2BLDSCRIPT << EOF2
    restart_freq        = 100000
    restart_start_opt   = 'nstep'
    restart_start       =  0
-   restart_outfile     = '$output_r'
+   restart_outfile     = '\$output_r'
    restart_fmt         = 'bin'
    leven_odd_on        = .false. 
    even_odd_freq       = 100000
@@ -491,6 +493,12 @@ foreach module ($ocn_tracers)
 end # loop over tracer setup scripts
 
 cat >> $POP2BLDSCRIPT << EOF2
+
+##########################################################
+WARNING: If you change n_tavg_streams, you must also
+         carefully change tracer_stream_numbers below
+##########################################################
+
 &tavg_nml
    n_tavg_streams              = $n_tavg_streams
    ltavg_streams_index_present = $ltavg_streams_index_present
@@ -505,8 +513,8 @@ cat >> $POP2BLDSCRIPT << EOF2
    tavg_fmt_out                = $tavg_fmt_out_values
    tavg_contents               ='\$tavg_contents_filename'
    ltavg_nino_diags_requested  = $ltavg_nino_diags_requested
-   tavg_infile                 ='${output_h}restart.end'
-   tavg_outfile                ='$output_h'
+   tavg_infile                 ='\${output_h}restart.end'
+   tavg_outfile                ='\$output_h'
    ltavg_has_offset_date       = $ltavg_has_offset_date_values
    tavg_offset_years           = $tavg_offset_year_values
    tavg_offset_months          = $tavg_offset_month_values
@@ -524,7 +532,7 @@ cat >> $POP2BLDSCRIPT << EOF2
 &history_nml
    history_freq_opt  = 'never'
    history_freq      = 1
-   history_outfile   = '${output_h}s'
+   history_outfile   = '\${output_h}s'
    history_fmt       = 'nc'
    history_contents  = '\$history_contents_filename'
 /
@@ -540,7 +548,7 @@ cat >> $POP2BLDSCRIPT << EOF2
 &movie_nml
    movie_freq_opt = 'never'
    movie_freq     = 1
-   movie_outfile  = '${output_h}m'
+   movie_outfile  = '\${output_h}m'
    movie_fmt      = 'nc'
    movie_contents = '\$movie_contents_filename'
 /
@@ -1096,8 +1104,6 @@ else if ( ${OCN_GRID} == tx0.1v2 ) then
  set vconst_7  =  45.0
 endif
 
-set viscosity_outfile = ''${output_h}v''
-
 cat >> $POP2BLDSCRIPT << EOF2
 &hmix_aniso_nml
    hmix_alignment_choice     = '$hmix_alignment_choice'
@@ -1121,7 +1127,7 @@ cat >> $POP2BLDSCRIPT << EOF2
    smag_lat_gauss            = 98.0
    var_viscosity_infile      = 'ccsm-internal'
    var_viscosity_infile_fmt  = 'bin'
-   var_viscosity_outfile     = '$viscosity_outfile'
+   var_viscosity_outfile     = '\${output_h}v'
    var_viscosity_outfile_fmt = 'nc'
 /
 
@@ -1479,12 +1485,18 @@ DO NOT change transport_reg2_names unless you know exactly what you are doing.
 
 EOF2
 
+if ( ${OCN_GRID} == gx1v6 ) then
+ set lccsm_control_compatible = .true.
+else
+ set lccsm_control_compatible = .false.
+endif
 
 cat >> $POP2BLDSCRIPT << EOF2
 &context_nml
-   lcoupled  = .true.
-   lccsm     = .true.
-   b4b_flag  = .false.
+   lcoupled                 = .true.
+   lccsm                    = .true.
+   b4b_flag                 = .false.
+   lccsm_control_compatible = $lccsm_control_compatible
 /
 
 EOF2
@@ -1498,9 +1510,8 @@ if ( ${OCN_GRID} == gx1v5a || ${OCN_GRID} == gx1v5b  || ${OCN_GRID} =~ gx1v6* ) 
  set overflows_on = .true.
  set overflows_interactive = .true.
 else if ( ${OCN_GRID} == gx3v7) then
- # activate overflows in gx3v7 after further testing -- turn off for now
- set overflows_on = .false.
- set overflows_interactive = .false.
+ set overflows_on = .true.
+ set overflows_interactive = .true.
 else
  # for all other resolutions
  set overflows_on = .false.
@@ -1512,9 +1523,9 @@ cat >> $POP2BLDSCRIPT << EOF2
    overflows_on           = $overflows_on
    overflows_interactive  = $overflows_interactive
    overflows_infile       = '\$overflow_filename'
-   overflows_diag_outfile = '${output_d}o'
+   overflows_diag_outfile = '\${output_d}o'
    overflows_restart_type = 'ccsm_\$runtype'
-   overflows_restfile     = '${output_r}o'
+   overflows_restfile     = '\${output_r}o'
 /
 
 EOF
