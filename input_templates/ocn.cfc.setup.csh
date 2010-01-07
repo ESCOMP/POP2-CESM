@@ -34,6 +34,11 @@ else
   set pcfc_file_nml = $pcfc_file
 endif
 
+#===============================================================================
+#  set module name, which is required for tavg_nml
+#  module name must match the name of this setup script
+#===============================================================================
+set module = cfc
 
 #===============================================================================
 
