@@ -1,9 +1,58 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    8  January 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100108
+Tag Testing: see walkthrough log on ccsm pop2 documentation page
+Tag Summary: Add new code that supports gx3v7 overflows and corrects
+             the T,S limits in the overflows module. 
+             Add logical control flag that forces all gx1v6 cases to be 
+             backwards compatible with previous tags (bypasses corrections/
+             improvements that are allowed in the gx3v7 resolution). 
+             Replace references to gx3v7 initial, topography, and tidal-mixing 
+             files in the gx3v7_inputdata file.
+             Turn ON gx3v7 overflows
+
+M           20109   source/overflows.F90
+M           20109   source/initial.F90
+M           20109   source/vmix_kpp.F90
+M           20109   input_templates/gx3v7_inputdata
+A               0   input_templates/gx3v7_overflow
+M      *    20168   input_templates/pop2_in_build.csh
+M           20168   ChangeLog
+
+===============================================================================
+Tag Creator: njn01 
+Tag Date:    7  January 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100107
+Tag Testing: B20TRCN smoke test
+Tag Summary: Fix problem with ocn.cfc.setup.csh: add "set module = cfc' to
+             the beginning of this script, so that the pop2 build scripts
+             will work properly when cfc's are requested
+
+             vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+             This pop2 tag is used in ccsm4_0_beta39 and ccsm4_0_rel01 branch
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+===============================================================================
+Tag Creator: njn01 
+Tag Date:    6  January 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100106a
+Tag Testing: REMOVE references to lccsm_control_compatible -- these will be added
+             in a later tag
+             turn gx3v7 overflows OFF -- will be turned on in a later tag
+===============================================================================
+Tag Creator: njn01 
+Tag Date:    6  January 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100106
+Tag Testing: bluefire.pop2.auxtest
+Tag Summary: Change pop2_in_build.csh so that it does NOT resolve output-file
+             strings at the configure stage; make these runtime settings instead,
+             which allows the create_clone script to function properly.
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    4  January 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100104
-Tag Testing: see testing log on ccsm pop2 documentation page
+Tag Testing: bluefire.pop2.auxtest + case-customized tests
 Tag Summary: 1) bugfixes for tavg restarts/timeseries  (restarting an 
                  open timeseries, in the middle of accumulating an average)
              2) bugfix for tavg zt_150m_dim restart

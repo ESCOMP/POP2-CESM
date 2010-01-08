@@ -1485,11 +1485,18 @@ DO NOT change transport_reg2_names unless you know exactly what you are doing.
 
 EOF2
 
+if ( ${OCN_GRID} == gx1v6 ) then
+ set lccsm_control_compatible = .true.
+else
+ set lccsm_control_compatible = .false.
+endif
+
 cat >> $POP2BLDSCRIPT << EOF2
 &context_nml
    lcoupled                 = .true.
    lccsm                    = .true.
    b4b_flag                 = .false.
+   lccsm_control_compatible = $lccsm_control_compatible
 /
 
 EOF2
@@ -1503,8 +1510,8 @@ if ( ${OCN_GRID} == gx1v5a || ${OCN_GRID} == gx1v5b  || ${OCN_GRID} =~ gx1v6* ) 
  set overflows_on = .true.
  set overflows_interactive = .true.
 else if ( ${OCN_GRID} == gx3v7) then
- set overflows_on = .false.
- set overflows_interactive = .false.
+ set overflows_on = .true.
+ set overflows_interactive = .true.
 else
  # for all other resolutions
  set overflows_on = .false.

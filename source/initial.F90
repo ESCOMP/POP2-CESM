@@ -105,8 +105,9 @@
    logical (log_kind), public ::  &! context variables
       lcoupled,                   &! T ==> pop is coupled to another system
       lccsm,                      &! T ==> pop is being run in the ccsm context
-      b4b_flag                     ! T ==> pop is being run in the "bit-for-bit" mode
-
+      b4b_flag,                   &! T ==> pop is being run in the "bit-for-bit" mode
+      lccsm_control_compatible     ! T ==> pop is being run with code that is b4b with the ccsm4 control run
+                                   !       this is a temporary flag that will be removed in ccsm4_0_1
 
 !EOC
 !***********************************************************************
@@ -297,6 +298,11 @@
 !-----------------------------------------------------------------------
 
    call init_tidal_mixing
+
+   if ( overflows_interactive  .and.  .not.ltidal_mixing ) then
+     call exit_POP (sigAbort,'Overflow code is extensively tested '/&
+                    &/'only with tidal mixing')
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -629,7 +635,7 @@
    character (char_len) ::  &
       message                ! error message string
 
-   namelist /context_nml/ lcoupled, lccsm, b4b_flag
+   namelist /context_nml/ lcoupled, lccsm, b4b_flag, lccsm_control_compatible
 
 !-----------------------------------------------------------------------
 !
@@ -638,9 +644,10 @@
 !
 !-----------------------------------------------------------------------
 
-   lcoupled          = .false.
-   lccsm             = .false.
-   b4b_flag          = .false.
+   lcoupled                 = .false.
+   lccsm                    = .false.
+   b4b_flag                 = .false.
+   lccsm_control_compatible = .true.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -660,9 +667,10 @@
       call exit_POP(sigAbort,'ERROR reading context_nml')
    endif
 
-   call broadcast_scalar(lcoupled, master_task)
-   call broadcast_scalar(lccsm,    master_task)
-   call broadcast_scalar(b4b_flag, master_task)
+   call broadcast_scalar(lcoupled,                 master_task)
+   call broadcast_scalar(lccsm,                    master_task)
+   call broadcast_scalar(b4b_flag,                 master_task)
+   call broadcast_scalar(lccsm_control_compatible, master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -670,9 +678,10 @@
 !  modules to access this information (avoids circular dependencies)
 !
 !-----------------------------------------------------------------------
-      if (lcoupled) call register_string('lcoupled')
-      if (lccsm)    call register_string('lccsm')
-      if (b4b_flag) call register_string('b4b_flag')
+      if (lcoupled)                 call register_string('lcoupled')
+      if (lccsm)                    call register_string('lccsm')
+      if (b4b_flag)                 call register_string('b4b_flag')
+      if (lccsm_control_compatible) call register_string('lccsm_control_compatible')
 
 !-----------------------------------------------------------------------
 !

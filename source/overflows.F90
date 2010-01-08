@@ -327,8 +327,9 @@
    character (char_len) ::  &
       ccsm_diag_date
 
-   logical (log_kind) ::  &
-      lccsm = .false.
+   logical (log_kind) ::                 &
+      lccsm = .false.,                   &
+      lccsm_control_compatible = .false.
    
    character (10) ::  &
       cdate            ! character date
@@ -456,10 +457,11 @@
 !-----------------------------------------------------------------------
 !
 !  determine if this is a ccsm coupled run
-!
+!  determine if this case must be backwards compatible with CCSM control
 !-----------------------------------------------------------------------
 
-   lccsm = registry_match('lccsm')
+   lccsm                    = registry_match('lccsm')
+   lccsm_control_compatible = registry_match('lccsm_control_compatible')
 
 !-----------------------------------------------------------------------
 !  overflows on; read overflows info file if ccsm_startup; otherwise 
@@ -4201,9 +4203,13 @@
       call shr_sys_flush(stdout)
    endif
 
-   TQ = TEMPK
-! input salt in fraction; convert to ppt
-   SQ = SALTK*c1000
+   if (lccsm_control_compatible) then
+     TQ = TEMPK
+     SQ = SALTK*c1000         ! input salt in fraction; convert to ppt
+   else
+     TQ = max(-2.0_r8,TEMPK)
+     SQ = max(c0,SALTK*c1000) ! input salt in fraction; convert to ppt
+   endif
 
 !-----------------------------------------------------------------------
 !     now compute density or expansion coefficients

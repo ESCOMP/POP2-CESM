@@ -32,6 +32,7 @@
    use io_types, only: stdout
    use communicate, only: my_task, master_task
    use tidal_mixing, only: TIDAL_COEF, tidal_mix_max, ltidal_mixing
+   use registry
 
    implicit none
    private
@@ -72,12 +73,13 @@
       bckgrnd_vdc      ! background value for diffusivity
 
    logical (log_kind) :: &
-      lrich,        &! flag for computing Ri-dependent mixing
-      ldbl_diff,    &! flag for computing double-diffusive mixing
-      lshort_wave,  &! flag for computing short-wave forcing
-      lcheckekmo,   &! check Ekman, Monin-Obhukov depth limit
-      llangmuir,    &! flag for using Langmuir parameterization
-      linertial      ! flag for using inertial mixing parameterization
+      lrich,             &! flag for computing Ri-dependent mixing
+      ldbl_diff,         &! flag for computing double-diffusive mixing
+      lshort_wave,       &! flag for computing short-wave forcing
+      lcheckekmo,        &! check Ekman, Monin-Obhukov depth limit
+      llangmuir,         &! flag for using Langmuir parameterization
+      linertial,         &! flag for using inertial mixing parameterization
+      lccsm_control_compatible !flag for backwards compatibility with ccsm4 control
 
    integer (int_kind) :: & 
       num_v_smooth_Ri     ! num of times to vertically smooth Ri
@@ -199,6 +201,8 @@
       tavg_KVMIX_M,        &! tavg id for tidal+bckgrnd vertical momentum viscosity
       tavg_TPOWER
 
+   real (r8), dimension(:,:,:,:), allocatable :: &
+      TIDAL_DIFF            ! diffusivity due to tidal mixing 
 
 !EOC
 !***********************************************************************
@@ -365,6 +369,14 @@
 
 !-----------------------------------------------------------------------
 !
+!  determine if this case must be backwards compatible with ccsm4 control
+!
+!-----------------------------------------------------------------------
+
+   lccsm_control_compatible = registry_match('lccsm_control_compatible')
+
+!-----------------------------------------------------------------------
+!
 !  define some non-dimensional constants 
 !
 !-----------------------------------------------------------------------
@@ -503,7 +515,7 @@
       bckgrnd_vdc(:,:,k,:) = bckgrnd_vdc(:,:,1,:)
       bckgrnd_vvc(:,:,k,:) = bckgrnd_vvc(:,:,1,:)
      enddo
-   
+
    else
 
 !-----------------------------------------------------------------------
@@ -548,6 +560,11 @@
    KPP_SRC  = c0
    VDC      = c0
    VVC      = c0
+
+   if ( ltidal_mixing ) then
+     allocate ( TIDAL_DIFF(nx_block,ny_block,km,nblocks_clinic) ) 
+     TIDAL_DIFF = c0
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1133,6 +1150,8 @@
 !
 !-----------------------------------------------------------------------
 
+   if ( ltidal_mixing )  TIDAL_DIFF(:,:,:,bid) = c0
+
    do k = 1,km
 
 !-----------------------------------------------------------------------
@@ -1156,7 +1175,7 @@
 !
 !  consider the internal wave mixing first. rich_mix is used as the
 !  upper limit for internal wave mixing coefficient. bckgrnd_vvc
-!  was already multiplied by Prandtl. use VSHEAR as temp.
+!  was already multiplied by Prandtl.
 !
 !  NOTE: no partial_bottom_cell implementation at this time 
 !
@@ -1164,18 +1183,26 @@
 
         WORK1 = DBLOC(:,:,k)/(zgrid(k) - zgrid(k+1))
 
-        VSHEAR = c0
         where (WORK1 > c0)
-           VSHEAR = TIDAL_COEF(:,:,k,bid)/WORK1
+          TIDAL_DIFF(:,:,k,bid) = TIDAL_COEF(:,:,k,bid)/WORK1
         endwhere
+    
+        if (.not. lccsm_control_compatible) then   ! this step breaks backwards compatibility
+        where ( k > 2  .and.  ( k == KMT(:,:,bid)-1  .or.  k == KMT(:,:,bid)-2 ) )
+          TIDAL_DIFF(:,:,k,bid) = max( TIDAL_DIFF(:,:,k,  bid),  &
+                                       TIDAL_DIFF(:,:,k-1,bid) )
+        endwhere 
+        endif
 
-        WORK1 = Prandtl*min(bckgrnd_vvc(:,:,k,bid)/Prandtl+VSHEAR, tidal_mix_max)
+        WORK1 = Prandtl*min(bckgrnd_vvc(:,:,k,bid)/Prandtl  &
+                            + TIDAL_DIFF(:,:,k,bid), tidal_mix_max)
         if ( k < km ) then
           KVMIX_M(:,:) = WORK1(:,:)
         endif
 
         if ( k < km ) then
-          VDC(:,:,k,2) = min(bckgrnd_vdc(:,:,k,bid) + VSHEAR, tidal_mix_max)
+          VDC(:,:,k,2) = min(bckgrnd_vdc(:,:,k,bid) + TIDAL_DIFF(:,:,k,bid),  &
+                             tidal_mix_max)
           KVMIX(:,:) = VDC(:,:,k,2)
         endif
 
