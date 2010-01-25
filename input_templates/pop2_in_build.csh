@@ -31,7 +31,7 @@ endif
 #--------------------------------------------------------------------------
 #  domain_nml
 #     $NPROCS_CLINIC and $NPROCS_TROPIC are defined in 
-#      pop2.buildnml_prestage.csh
+#      pop2.buildnml.csh
 #--------------------------------------------------------------------------
 
 if ( ${OCN_GRID} =~ gx* ) then
@@ -55,12 +55,6 @@ cat >> $POP2BLDSCRIPT << EOF2
 #--------------------------------------------------------------------------
 # define variables needed by the pop2_in file
 #--------------------------------------------------------------------------
-if ( \${OCN_CDF64} == TRUE) then
-  set luse_nf_64bit_offset = .true.
-else
-  set luse_nf_64bit_offset = .false.
-endif
-
 set output_L = \$rundir
 set output_d = \$rundir/\$CASE.pop.d
 
@@ -76,8 +70,8 @@ cat >> \$POP2_IN << EOF
 #==========================================================================
 
 &domain_nml
-  nprocs_clinic            = $NPROCS_CLINIC
-  nprocs_tropic            = $NPROCS_TROPIC
+  nprocs_clinic            = \$NPROCS_CLINIC
+  nprocs_tropic            = \$NPROCS_TROPIC
   clinic_distribution_type = '$clinic_distribution_type'
   tropic_distribution_type = '$tropic_distribution_type'
   ew_boundary_type         = 'cyclic'
@@ -98,7 +92,7 @@ cat >> $POP2BLDSCRIPT << EOF2
   log_filename         = '\$output_L/ocn.log.\$LID'
   luse_pointer_files   = .true.
   pointer_filename     = './rpointer.ocn'
-  luse_nf_64bit_offset = \$luse_nf_64bit_offset
+  luse_nf_64bit_offset = .true.
 /
 
 EOF2

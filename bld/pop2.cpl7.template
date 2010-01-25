@@ -422,12 +422,6 @@ EOF2
 endif
 
 
-#--------------------------------------------
-#  set domain decomposition information
-#--------------------------------------------
- setenv NPROCS_CLINIC  $NTASKS_OCN
- setenv NPROCS_TROPIC  $NTASKS_OCN
-
 #-----------------------------------------------------------------------
 #  set initial model date
 #  WARNING: These values are determined at configuration time. 
@@ -444,6 +438,12 @@ endif
  setenv rundir  \$RUNDIR
  setenv INPUT   \$EXEROOT/ocn/input
 cat >> $POP2BLDSCRIPT << EOF2
+
+#--------------------------------------------
+#  set domain decomposition information
+#--------------------------------------------
+ setenv NPROCS_CLINIC  \$NTASKS_OCN
+ setenv NPROCS_TROPIC  \$NTASKS_OCN
 
 #----------------------------------------------------------------------
 # Document the origins of pop2 input_templates files
@@ -484,7 +484,7 @@ EOF2
 if ($RUN_TYPE == startup) then
 cat >> $POP2BLDSCRIPT << EOF2
    if (-e \$exedir/rpointer.ocn.restart && \$CONTINUE_RUN == 'TRUE') then
-    grep 'RESTART_FMT=' \$exedir/rpointer.ocn.restart 
+    grep 'RESTART_FMT=' \$exedir/rpointer.ocn.restart >&! /dev/null
     if (\$status == 0) then
       setenv RESTART_INPUT_TS_FMT \`grep RESTART_FMT\= \$exedir/rpointer.ocn.restart | cut -c13-15\`
     else

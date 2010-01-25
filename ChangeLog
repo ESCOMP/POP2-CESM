@@ -1,6 +1,23 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    25  January 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100125
+Tag Testing: 
+Tag Summary: Misc. changes: 
+               bugfix POP_DistributionCreateRake (maxWork definition)
+               make NPROCS_CLINIC a variable in buildnml script; do not resolve it
+               make 64-bit offset the default for all pop2 netCDF output files
+               remove all references to OCN_64BIT from scripts
+               prevent pop2 build-script message from appearing in CCSM build messages
+
+M           20627   source/POP_DistributionMod.F90
+M           20627   bld/pop2.cpl7.template
+M           20627   input_templates/pop2_in_build.csh
+
+
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    8  January 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100108
 Tag Testing: see walkthrough log on ccsm pop2 documentation page

@@ -1162,7 +1162,8 @@
 !
 !----------------------------------------------------------------------
 
-   numOcnBlocks = count(workPerBlock /= 0)
+   numOcnBlocks = count (workPerBlock /= 0)
+   maxWork      = maxval(workPerBlock)
 
    if (numOcnBlocks <= 2*numProcs) then
 
@@ -1230,7 +1231,6 @@
 
    else
 
-      maxWork = maxval(workPerBlock)
 
       call POP_DistributionProcDecomp(dist%numProcs, &
                                    numProcsX, numProcsY, errorCode)
