@@ -22,6 +22,7 @@ setenv POP2_DOCDIR     $CASEBUILD/pop2doc
 setenv POP2_IN         $POP2_DOCDIR/document_pop2_in
 setenv POP2_INLIST     $POP2_DOCDIR/document_pop2_input_files
 
+
 if !(-d $CASEBUILD  ) mkdir $CASEBUILD
 if !(-d $POP2_DOCDIR) mkdir $POP2_DOCDIR
 
@@ -169,7 +170,6 @@ EOF
 
 cd \$compile_dir
 
-# Note: if activating double-precision tavg output, use 64-bit offset option in pop2_in
 gmake complib -j \$GMAKE_J MODEL=pop2 COMPLIB=\$LIBROOT/libocn.a MACFILE=\$CASEROOT/Macros.\$MACH USER_CPPDEFS="-DCCSMCOUPLED -DBLCKX=\$BLCKX -DBLCKY=\$BLCKY -DMXBLCKS=\$MXBLCKS" -f \$BLDROOT/Makefile || exit 2
 
 set f90_dir = \$source_dir/f90
@@ -274,14 +274,19 @@ set objdir  = \$OBJROOT/ocn/obj
 set srcdir  = \$CODEROOT/ocn/pop2
 set my_path = \$CASEROOT/SourceMods/src.pop2
 
-setenv INPUT           \$EXEROOT/ocn/input
-setenv INPUTDATA       \$DIN_LOC_ROOT/ocn/pop
-setenv INPUT_TEMPLATES \$srcdir/input_templates
+setenv INPUT            \$EXEROOT/ocn/input
+setenv INPUTDATA        \$DIN_LOC_ROOT/ocn/pop
+setenv INPUT_TEMPLATES  \$srcdir/input_templates
 
-setenv POP2_DOCDIR  \$CASEBUILD/pop2doc
-setenv POP2_IN      \$POP2_DOCDIR/document_pop2_in
-setenv POP2_INLIST  \$POP2_DOCDIR/document_pop2_input_files
-setenv POP2_BLDNML  \$POP2_DOCDIR/document_pop2_buildnml
+setenv MY_PATH             $MY_PATH
+setenv SRCDIR              $SRCDIR
+
+setenv POP2_DOCDIR         \$CASEBUILD/pop2doc
+setenv POP2_BLDNML         \$POP2_DOCDIR/document_pop2_buildnml
+setenv POP2_IN             \$POP2_DOCDIR/document_pop2_in
+setenv POP2_INLIST         \$POP2_DOCDIR/document_pop2_input_files
+setenv POP2_TAVG_NML_BASE  \$POP2_DOCDIR/pop2_tavg_nml_base
+setenv POP2_TAVG_NML       \$POP2_DOCDIR/pop2_tavg_nml
 
 setenv OCN_GRID $OCN_GRID # used in ocn.*.setup.csh scripts
 
@@ -538,12 +543,12 @@ EOF2
   #  output is cat'd to the pop2.buildnml.csh script
   #--------------------------------------------------------------
 
-  if (-f ${my_path}/pop2_in_build.csh) then
+  if (-f ./pop2_in_build.csh) then
     #-----------------------------------------------------------------
     # if nonstandard version of pop2_in_build.csh exists, use it
     #-----------------------------------------------------------------
-    chmod u+x ${my_path}/pop2_in_build.csh
-    ${my_path}/pop2_in_build.csh
+    chmod u+x ./pop2_in_build.csh
+    ./pop2_in_build.csh
     if ($status != 0) exit -99
   else
     #---------------------------------------
@@ -556,6 +561,29 @@ EOF2
 
 cat >> $POP2BLDSCRIPT << EOF2
 
+#-----------------------------------------------------------------
+# complete the creation of pop2_in by defining tavg_nml via the
+# pop2_tavg_nml.csh script.   Note that tavg_nml must be created
+# each time the build script is invoked, in order to accomodate 
+# potential build-time changes in extra-tracer modules
+#-----------------------------------------------------------------
+  if (-f \$CASEROOT/Tools/Templates/pop2_tavg_nml.csh) then
+    #-----------------------------------------------------------------
+    # if nonstandard version of pop2_tavg_nml.csh exists, use it
+    #-----------------------------------------------------------------
+    chmod u+x \$CASEROOT/Tools/Templates/pop2_tavg_nml.csh
+    \$CASEROOT/Tools/Templates/pop2_tavg_nml.csh
+    if (\$status != 0) exit -99
+  else
+    #---------------------------------------
+    # if not, use the standard version
+    #---------------------------------------
+    \$srcdir/input_templates/pop2_tavg_nml.csh
+    if (\$status != 0) exit -99
+  endif
+
+
+cat \$POP2_TAVG_NML >> \$POP2_IN
 #==========================================================================
 #  End pop2_in namelist build  
 #==========================================================================
@@ -606,15 +634,21 @@ if (\$#ocn_tracers > 0) then
 echo   Add passive tracer module variables to tavg_contents                   >> \$POP2_BLDNML
 echo ------------------------------------------------------------------------ >> \$POP2_BLDNML
 
+#----------------------------------------------------------------------------
+# first, determine number of base-model tavg streams:
+#----------------------------------------------------------------------------
+@ n_tavg_streams = \`grep \"^ *n_tavg_streams\" \$POP2_TAVG_NML_BASE | awk -F= \'{print \$2}\' \`
+@ stream_number = \$n_tavg_streams + 1
   @ ii = 1
   foreach module ( \$ocn_tracers )
-     @ stream_number = \$tracer_stream_numbers[\$ii]
+     @ ntracer_stream = \`grep \"^ *n_tavg_streams_tracer\" \$POP2_DOCDIR/\$module.tavg | awk -F= \'{print \$2}\' \`
 
     if (-f \${my_path}/ocn.\${module}.setup.csh) then
       \${my_path}/ocn.\${module}.setup.csh tavg_contents \$tavg_contents_filename \$stream_number || exit \$status
     else
       \$srcdir/input_templates/ocn.\${module}.setup.csh tavg_contents \$tavg_contents_filename \$stream_number || exit \$status
     endif
+     @ stream_number = \$stream_number + \$ntracer_stream
     @ ii++
   end
 

@@ -42,13 +42,6 @@ endif
 
 
 
-if ( $POP_DECOMPTYPE == spacecurve) then
-  set clinic_distribution_type = spacecurve
-  set tropic_distribution_type = spacecurve
-else
-  set clinic_distribution_type = balanced
-  set tropic_distribution_type = cartesian
-endif
 
 cat >> $POP2BLDSCRIPT << EOF2
 
@@ -63,7 +56,15 @@ set output_h     = ./\$CASE.pop.h
 set pop2_pointer = ./rpointer.ocn
 
 
-cat >> \$POP2_IN << EOF
+if ( \$POP_DECOMPTYPE == spacecurve) then
+  set clinic_distribution_type = spacecurve
+  set tropic_distribution_type = spacecurve
+else
+  set clinic_distribution_type = balanced
+  set tropic_distribution_type = cartesian
+endif
+
+cat >> \$POP2_IN << EOF1
 
 #==========================================================================
 #  Begin pop2_in namelist build
@@ -72,8 +73,8 @@ cat >> \$POP2_IN << EOF
 &domain_nml
   nprocs_clinic            = \$NPROCS_CLINIC
   nprocs_tropic            = \$NPROCS_TROPIC
-  clinic_distribution_type = '$clinic_distribution_type'
-  tropic_distribution_type = '$tropic_distribution_type'
+  clinic_distribution_type = '\$clinic_distribution_type'
+  tropic_distribution_type = '\$tropic_distribution_type'
   ew_boundary_type         = 'cyclic'
   ns_boundary_type         = '$ns_boundary_type'
 /
@@ -263,6 +264,7 @@ cat >> $POP2BLDSCRIPT << EOF2
    init_ts_outfile_fmt = '$init_ts_outfile_fmt'
 /
 
+EOF1
 EOF2
 
 #--------------------------------------------------------------------------
@@ -270,9 +272,9 @@ EOF2
 #--------------------------------------------------------------------------
 
 if( ${OCN_GRID} == tx0.1v2) then
-   set diag_freq_opt = 'nday'
+   set diag_freq_opt = nday
 else
-   set diag_freq_opt = 'nmonth'
+   set diag_freq_opt = nmonth
 endif
 
 if( ${OCN_GRID} == tx0.1v2 || ${OCN_GRID} =~ tx1v*) then
@@ -282,12 +284,20 @@ else
 endif
 
 cat >> $POP2BLDSCRIPT << EOF2
+
+if ( \$INFO_DBUG == 2 || \$INFO_DBUG == 3 ) then
+  set diag_freq_opt = nstep
+else
+  set diag_freq_opt = $diag_freq_opt
+endif
+
+cat >> \$POP2_IN << EOF1
 &diagnostics_nml
-   diag_global_freq_opt   = '$diag_freq_opt'
+   diag_global_freq_opt   = '\$diag_freq_opt'
    diag_global_freq       = 1
-   diag_cfl_freq_opt      = '$diag_freq_opt'
+   diag_cfl_freq_opt      = '\$diag_freq_opt'
    diag_cfl_freq          = 1
-   diag_transp_freq_opt   = '$diag_freq_opt'
+   diag_transp_freq_opt   = '\$diag_freq_opt'
    diag_transp_freq       = 1
    diag_transport_file    = '\$transport_contents_filename'
    diag_outfile           = '\${output_d}d'
@@ -353,6 +363,7 @@ cat >> $POP2BLDSCRIPT << EOF2
    pressure_correction = .false.
 /
 
+EOF1
 EOF2
 
 
@@ -370,8 +381,8 @@ if ( ${OCN_GRID} =~ gx* ) then
   set tavg_freq_opt_values         = ("'nmonth'" "'nday'"   "'once'" )
   set tavg_freq_values             = (    1         1           1    )
   set tavg_stream_filestrings      = ("'nmonth1'" "'nday1'" "'once'" )
-  set tavg_FILE_freq_opt           = ("'nmonth'" "'nmonth'" "'once'" )
-  set tavg_FILE_freq_values        = (    1         1           1    )
+  set tavg_file_freq_opt           = ("'nmonth'" "'nmonth'" "'once'" )
+  set tavg_file_freq_values        = (    1         1           1    )
   set tavg_start_opt_values        = ("'nstep'"   "'nstep'" "'nstep'")
   set tavg_start_values            = (    0         0           0    )
   set tavg_fmt_in_values           = ("'nc'"      "'nc'"      "'nc'" )
@@ -388,8 +399,8 @@ else if (${OCN_GRID} =~ tx0.1* || ${OCN_GRID} =~ tx1* ) then
   set tavg_freq_opt_values         = ("'nmonth'"  "'nday'"  )
   set tavg_freq_values             = (   1           1      )
   set tavg_stream_filestrings      = ("'nmonth1'" "'nday1'" )
-  set tavg_FILE_freq_opt           = ("'nmonth'"  "'nmonth'")
-  set tavg_FILE_freq_values        = (   1           1      )
+  set tavg_file_freq_opt           = ("'nmonth'"  "'nmonth'")
+  set tavg_file_freq_values        = (   1           1      )
   set tavg_start_opt_values        = ("'nstep'"   "'nstep'" )
   set tavg_start_values            = (   0           0      )
   set tavg_fmt_in_values           = ( "'nc'"      "'nc'"   )
@@ -402,104 +413,23 @@ else if (${OCN_GRID} =~ tx0.1* || ${OCN_GRID} =~ tx1* ) then
   set ltavg_nino_diags_requested   = .false.
 endif
 
-#--------------------------------------------------------------------------
-#   now, define the tavg_nml settings for all of the extra-tracer modules
-#   This requires the creation and reading of a tracer-module file 
-#--------------------------------------------------------------------------
-set ocn_tracers = (`echo $OCN_TRACER_MODULES`)
-set tracer_stream_numbers = ( )
-foreach module ($ocn_tracers)
-    if (-f ${MY_PATH}/ocn.${module}.setup.csh) then
-       set setup_path = ${MY_PATH}
-    else if (-f $SRCDIR/input_templates/ocn.${module}.setup.csh) then
-       set setup_path = $SRCDIR/input_templates
-    else
-       echo error in pop2_in_build.csh unknown tracer: $module
-       exit -3
-    endif
-
-    ${setup_path}/ocn.${module}.setup.csh set_tavg_nml || exit $status
-
-    @ ntracer_stream = `grep "^n_tavg_streams_tracer" $module.tavg | awk -F= '{print $2}' `
-
-
-  if ($ntracer_stream == 0) then
-    @ module_stream  = $n_tavg_streams
-  else
-    #------------------------------------------------------------------------------------
-    # increment number of streams and identify the starting stream for each tracer module
-    #------------------------------------------------------------------------------------
-    @ module_stream  = $n_tavg_streams + 1
-    @ n_tavg_streams = $n_tavg_streams + $ntracer_stream
-
-
-    set VARS = (tavg_freq_opt_values tavg_freq_values tavg_stream_filestrings tavg_FILE_freq_opt tavg_FILE_freq_values tavg_start_opt_values tavg_start_values tavg_fmt_in_values tavg_fmt_out_values ltavg_has_offset_date_values tavg_offset_year_values tavg_offset_month_values tavg_offset_day_values ltavg_one_time_header )
-
-    #------------------------------------------------------------------------------------
-    # parse the information in the $module.tavg file (created by the setup.csh scripts)
-    #------------------------------------------------------------------------------------
-    foreach VAR ($VARS)
-      set opts = `grep "^$VAR" $module.tavg | awk -F= '{print $2}' `
-      if ($VAR == tavg_freq_opt_values) then
-        set tavg_freq_opt_values = ($tavg_freq_opt_values  $opts)
-      else if ($VAR == tavg_freq_values) then
-        set tavg_freq_values = ($tavg_freq_values  $opts)
-      else if ($VAR == tavg_stream_filestrings) then
-        set tavg_stream_filestrings = ($tavg_stream_filestrings  $opts)
-      else if ($VAR == tavg_FILE_freq_opt) then
-        set tavg_FILE_freq_opt = ($tavg_FILE_freq_opt  $opts)
-      else if ($VAR == tavg_FILE_freq_values) then
-        set tavg_FILE_freq_values = ($tavg_FILE_freq_values  $opts)
-      else if ($VAR == tavg_start_opt_values) then
-        set tavg_start_opt_values = ($tavg_start_opt_values  $opts)
-      else if ($VAR == tavg_start_values) then
-        set tavg_start_values = ($tavg_start_values  $opts)
-      else if ($VAR == tavg_fmt_in_values) then
-        set tavg_fmt_in_values = ($tavg_fmt_in_values  $opts)
-      else if ($VAR == tavg_fmt_out_values) then
-        set tavg_fmt_out_values = ($tavg_fmt_out_values  $opts)
-      else if ($VAR == ltavg_has_offset_date_values) then
-        set ltavg_has_offset_date_values = ($ltavg_has_offset_date_values  $opts)
-      else if ($VAR == tavg_offset_year_values) then
-        set tavg_offset_year_values = ($tavg_offset_year_values  $opts)
-      else if ($VAR == tavg_offset_month_values) then
-        set tavg_offset_month_values = ($tavg_offset_month_values  $opts)
-      else if ($VAR == tavg_offset_day_values) then
-        set tavg_offset_day_values = ($tavg_offset_day_values  $opts)
-      else if ($VAR == ltavg_one_time_header) then
-        set ltavg_one_time_header = ($ltavg_one_time_header  $opts)
-      else
-        echo pop2_in_build.csh failure in $module loop 
-        echo    undefined VAR = $VAR
-        exit -999
-      endif
-    end # VAR
-   endif
-    #------------------------------------------------------------------------------------
-    # store information about stream numbers for later use by ocn.*.setup.csh scripts
-    # see section below, after the complete specification of pop2_in
-    #------------------------------------------------------------------------------------
-   set tracer_stream_numbers = ($tracer_stream_numbers $module_stream)
-   #---------
-   # clean up
-   #---------
-   #### debug #####   rm $module.tavg
-end # loop over tracer setup scripts
-
 cat >> $POP2BLDSCRIPT << EOF2
 
-##########################################################
-WARNING: If you change n_tavg_streams, you must also
-         carefully change tracer_stream_numbers below
-##########################################################
+#############################################################################
+# The following setting are for the base model only.
+#   Change base-model   tavg_nml setting here.
+#   Change tracer-model tavg_nml settings in the ocn.*.setup.csh scripts.
+#   The final tavg_nml (base model + extra-tracer models) is constructed below.
+#############################################################################
 
+cat >&! \$POP2_TAVG_NML_BASE << EOF1
 &tavg_nml
    n_tavg_streams              = $n_tavg_streams
    ltavg_streams_index_present = $ltavg_streams_index_present
    tavg_freq_opt               = $tavg_freq_opt_values
    tavg_freq                   = $tavg_freq_values
-   tavg_file_freq_opt          = $tavg_FILE_freq_opt
-   tavg_file_freq              = $tavg_FILE_freq_values
+   tavg_file_freq_opt          = $tavg_file_freq_opt
+   tavg_file_freq              = $tavg_file_freq_values
    tavg_stream_filestrings     = $tavg_stream_filestrings
    tavg_start_opt              = $tavg_start_opt_values
    tavg_start                  = $tavg_start_values
@@ -516,6 +446,7 @@ WARNING: If you change n_tavg_streams, you must also
    ltavg_one_time_header       = $ltavg_one_time_header
 /
 
+EOF1
 EOF2
 
 #--------------------------------------------------------------------------
@@ -523,6 +454,7 @@ EOF2
 #--------------------------------------------------------------------------
 
 cat >> $POP2BLDSCRIPT << EOF2
+cat >> \$POP2_IN << EOF1
 &history_nml
    history_freq_opt  = 'never'
    history_freq      = 1
@@ -1522,9 +1454,8 @@ cat >> $POP2BLDSCRIPT << EOF2
    overflows_restfile     = '\${output_r}o'
 /
 
-EOF
+EOF1
 
-set tracer_stream_numbers = ( $tracer_stream_numbers )
 EOF2
 
 #--------------------------------------------------------------------------

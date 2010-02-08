@@ -3223,14 +3223,14 @@ contains
          ! WORK3 = depth of min
 
          kk = 1
-         WORK1 = max(c0, p5*(TRACER_MODULE_OLD(:,:,kk,o2_ind) + &
-                             TRACER_MODULE_CUR(:,:,kk,o2_ind)))
+         WORK1 = p5*(TRACER_MODULE_OLD(:,:,kk,o2_ind) + &
+                     TRACER_MODULE_CUR(:,:,kk,o2_ind))
          WORK2 = WORK1
          WORK3 = zt(kk)
 
          do kk = 2,km
-            WORK1 = max(c0, p5*(TRACER_MODULE_OLD(:,:,kk,o2_ind) + &
-                                TRACER_MODULE_CUR(:,:,kk,o2_ind)))
+            WORK1 = p5*(TRACER_MODULE_OLD(:,:,kk,o2_ind) + &
+                        TRACER_MODULE_CUR(:,:,kk,o2_ind))
             where (kk <= KMT(:,:,bid) .and. (WORK1 < WORK2))
                WORK2 = WORK1
                WORK3 = zt(kk)

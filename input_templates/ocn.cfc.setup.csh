@@ -117,7 +117,7 @@ else if ($command == set_tavg_nml) then
   # model output streams, then set n_tavg_streams_tracer = 0
   #-------------------------------------------------------------------------------------
     set n_tavg_streams_tracer = 0
-cat >&! $module.tavg << EOF
+cat >&! $POP2_DOCDIR/$module.tavg << EOF
 n_tavg_streams_tracer =  $n_tavg_streams_tracer
 EOF
 

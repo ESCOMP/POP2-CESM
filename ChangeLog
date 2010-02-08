@@ -1,6 +1,34 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    8 January 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100208
+Tag Testing: side-by-side ccsm4_0_beta42 comparison + bluefire.pop2.aux tests
+Tag Summary: Misc. changes + ecosys_mod.F90 correction: 
+            o  reorganize pop2 template, setup, and build scripts to support
+                 build-time passive-tracer changes; this includes the addition
+                 of a new support-level script, pop2_tavg_nml.csh
+            o  high-frequency printed diagnostics when INFO_DBUG >= 2
+            o Correct O2_ZMIN and O2_ZMIN_DEPTH tavg fields. Except for these fields, 
+results are b4b identical to results with previous tag.
+
+M           20712   bld/pop2.cpl7.template
+M           20627   input_templates/ocn.cfc.setup.csh
+M           20627   input_templates/ocn.ecosys.setup.csh
+A               0   input_templates/pop2_tavg_nml.csh
+M           20627   input_templates/ocn.iage.setup.csh
+M           20712   input_templates/pop2_in_build.csh
+
+Testsuite results: (using ccsm4_0_beta42 + this tag)
+PASS  ERS.T62_g16.C.bluefire 
+PASS  ERT.T62_g16.C.bluefire 
+PASS  PFS.T62_g16.C.bluefire 
+PASS  ERT.f19_g16.B1850CN.bluefire 
+PASS  ERH.f19_g16.B1850CN.bluefire 
+
+
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    25  January 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100125
 Tag Testing: 

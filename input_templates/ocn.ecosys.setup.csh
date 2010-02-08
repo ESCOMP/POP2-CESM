@@ -210,7 +210,7 @@ else if ($command == set_tavg_nml) then
   # if there is no module-related tavg output, set n_tavg_streams_tracer = 0
   #-------------------------------------------------------------------------------------
     set n_tavg_streams_tracer = 1
-cat >&! $module.tavg << EOF
+cat >&! $POP2_DOCDIR/$module.tavg << EOF
 n_tavg_streams_tracer =  $n_tavg_streams_tracer
 EOF
 
@@ -219,21 +219,21 @@ EOF
   #           number of settings must agree with the value of n_tavg_streams_tracer
   #-------------------------------------------------------------------------------------
   if ($n_tavg_streams_tracer > 0) then
-    cat >> $module.tavg << EOF
-tavg_freq_opt_values         = 'nday'
-tavg_freq_values             =  1  
-tavg_stream_filestrings      = 'ecosys.nday1'
-tavg_FILE_freq_opt           = 'nmonth' 
-tavg_FILE_freq_values        =  1
-tavg_start_opt_values        = 'nstep' 
-tavg_start_values            =  0  
-tavg_fmt_in_values           = 'nc'
-tavg_fmt_out_values          = 'nc' 
-ltavg_has_offset_date_values = .false.
-tavg_offset_year_values      =  1  
-tavg_offset_month_values     =  1  
-tavg_offset_day_values       =  2  
-ltavg_one_time_header        = .false. 
+    cat >> $POP2_DOCDIR/$module.tavg << EOF
+tavg_freq_opt             = 'nday'
+tavg_freq                 =  1  
+tavg_stream_filestrings   = 'ecosys.nday1'
+tavg_file_freq_opt        = 'nmonth' 
+tavg_file_freq            =  1
+tavg_start_opt            = 'nstep' 
+tavg_start                =  0  
+tavg_fmt_in               = 'nc'
+tavg_fmt_out              = 'nc' 
+ltavg_has_offset_date     = .false.
+tavg_offset_years         =  1  
+tavg_offset_months        =  1  
+tavg_offset_days          =  2  
+ltavg_one_time_header     = .false. 
 EOF
   endif  #n_tavg_streams_tracer
 
