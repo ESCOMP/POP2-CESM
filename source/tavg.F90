@@ -78,7 +78,10 @@
       tavg_method_qflux    = 4,         &
       tavg_method_constant = 5
 
-   real (r8),public,dimension(:),allocatable ::  &
+   integer (int_kind), parameter, public :: &
+      max_avail_tavg_streams = 9     ! limit on number of streams; coding limitations restrict this to <= 9 
+
+   real (r8),public,dimension(max_avail_tavg_streams) ::  &
       tavg_sum           ! accumulated time (in seconds)
 
    !*** ccsm
@@ -136,9 +139,6 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind), parameter, public :: &
-      max_avail_tavg_streams = 9     ! limit on number of streams; coding limitations restrict this to <= 9 
-
    type, public :: tavg_stream
       character (char_len) :: infile
       character (char_len) :: outfile
@@ -167,7 +167,7 @@
       type (io_field_desc), dimension(:), allocatable :: tavg_fields
    end type
 
-   type (tavg_stream), dimension(:), allocatable, public :: tavg_streams
+   type (tavg_stream), dimension(max_avail_tavg_streams), public :: tavg_streams
 
    integer (int_kind), public ::  &
       n_tavg_streams               ! actual number of tavg output "streams" requested
@@ -498,7 +498,9 @@
 
    logical (log_kind) ::    &
       reject,               &! true if duplicate tavg_contents entry
-      skip                   ! true if tavg_contents entry is to be skipped (stream = 0)
+      skip,                 &! true if tavg_contents entry is to be skipped (stream = 0)
+      ltavg_ignore_excess_contents_streams !ignores tavg_contents streams > n_tavg_streams
+                                           ! and allows model to continue running
 
    logical (log_kind), dimension(max_avail_tavg_streams) ::    &
       ltavg_has_offset_date  ! T if tavg time-flag has an offset date
@@ -530,6 +532,7 @@
                        tavg_start, tavg_fmt_in, tavg_fmt_out,                  &
                        tavg_stream_filestrings,                                &
                        ltavg_nino_diags_requested, n_tavg_streams,             &
+                       ltavg_ignore_excess_contents_streams,                   &
                        ltavg_streams_index_present, ltavg_has_offset_date,     &
                        tavg_offset_years, tavg_offset_months, tavg_offset_days,&
                        ltavg_one_time_header,                                  &
@@ -581,6 +584,8 @@
    ltavg_first_header          = .true.
    ltavg_streams_index_present = .true.
    ltavg_has_offset_date       = .false.
+   ltavg_ignore_excess_contents_streams = .false.
+
    if (registry_match ('init_time1')) then
       tavg_offset_years  = iyear0
       tavg_offset_months = imonth0
@@ -625,9 +630,6 @@
       call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
  
-   allocate (tavg_streams(n_tavg_streams))
-   allocate (tavg_sum    (n_tavg_streams))
-  
    nstreams = n_tavg_streams
 
    if (my_task == master_task) then
@@ -750,11 +752,12 @@
       call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
-   call broadcast_scalar(tavg_infile,                   master_task)
-   call broadcast_scalar(tavg_outfile,                  master_task)
-   call broadcast_scalar(tavg_contents,                 master_task)
-   call broadcast_scalar(ltavg_streams_index_present,   master_task)
-   call broadcast_scalar(ltavg_nino_diags_requested,    master_task)
+   call broadcast_scalar(tavg_contents,                        master_task)
+   call broadcast_scalar(tavg_infile,                          master_task)
+   call broadcast_scalar(tavg_outfile,                         master_task)
+   call broadcast_scalar(ltavg_ignore_excess_contents_streams, master_task)
+   call broadcast_scalar(ltavg_nino_diags_requested,           master_task)
+   call broadcast_scalar(ltavg_streams_index_present,          master_task)
 
    do ns=1,nstreams
       call broadcast_scalar(tavg_freq(ns),               master_task)
@@ -863,7 +866,6 @@
                             freq         = tavg_file_freq(ns)       )
       endif
 
-
      if (trim(tavg_fmt_in(ns)) == 'nc') then
         tavg_streams(ns)%ltavg_fmt_in_nc = .true.
      else
@@ -878,6 +880,24 @@
 
    enddo ! nstreams
 
+
+!-----------------------------------------------------------------------
+!
+!  if all tavg frequencies are set to 'never', return
+!  if not, confirm that the tavg_contents file exists
+!
+!-----------------------------------------------------------------------
+   if (ALL(tavg_freq_iopt == freq_opt_never)) then
+      exit_string = 'NOTE: no tavg output has been requested; return control to calling routine'
+      call document ('init_tavg', exit_string)
+      RETURN
+   else
+     if (tavg_contents(1:8) == 'unknown_') then
+      exit_string = 'FATAL ERROR: tavg option is active, but tavg_contents file = '//trim(tavg_contents)
+      call document ('init_tavg', exit_string)
+      call exit_POP (sigAbort,exit_string,out_unit=stdout)
+     endif
+   endif
 
 
 !-----------------------------------------------------------------------
@@ -948,10 +968,11 @@
            ns = 1
          endif
       endif ! master_task
-    
+
       call broadcast_scalar(ns,             master_task)
       call broadcast_scalar(char_temp,      master_task)
       call broadcast_scalar(contents_error, master_task)
+
 
       !*** error trapping
       if (contents_error /= 0) then
@@ -964,6 +985,19 @@
         exit_string = 'FATAL ERROR: invalid stream number in tavg_contents file'
         call document ('init_tavg', exit_string)
         call exit_POP (sigAbort,exit_string,out_unit=stdout)
+      endif
+
+      if (ns > n_tavg_streams) then
+        if (ltavg_ignore_excess_contents_streams) then
+           exit_string = 'WARNING: you have requested a stream number > n_tavg_streams in tavg_contents file'
+           call document ('init_tavg', exit_string)
+        else
+           write(exit_string,'(a,i2,2x,a,2x,a)') ' stream requested = ', ns, 'field requested = ', char_temp
+           call document ('init_tavg', exit_string)
+           exit_string = 'FATAL ERROR: you have requested a stream number > n_tavg_streams in tavg_contents file'
+           call document ('init_tavg', exit_string)
+           call exit_POP (sigAbort,exit_string,out_unit=stdout)
+        endif
       endif
 
     
@@ -1023,6 +1057,7 @@
           avail_tavg_fields(id_temp)%stream_number = ns
 
           tavg_streams(ns)%num_requested_fields = tavg_streams(ns)%num_requested_fields + 1
+
         endif ! reject
 
      endif  ! ignored field ("0")

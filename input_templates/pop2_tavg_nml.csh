@@ -8,21 +8,22 @@
 #----------------------------------------------------------------------------
 #  initialize
 #----------------------------------------------------------------------------
-  @ ntracer_stream = 1
-  set tavg_freq_opt_values         = ( )
-  set tavg_freq_values             = ( )
-  set tavg_stream_filestrings      = ( )
-  set tavg_file_freq_opt           = ( )
-  set tavg_file_freq_values        = ( )
-  set tavg_start_opt_values        = ( )
-  set tavg_start_values            = ( )
-  set tavg_fmt_in_values           = ( )
-  set tavg_fmt_out_values          = ( )
-  set ltavg_has_offset_date_values = ( )
-  set tavg_offset_year_values      = ( )
-  set tavg_offset_month_values     = ( )
-  set tavg_offset_day_values       = ( )
-  set ltavg_one_time_header        = ( )
+  @ ntracer_stream                         = 1
+  set ltavg_ignore_excess_contents_streams = .false.
+  set tavg_freq_opt_values                 = ( )
+  set tavg_freq_values                     = ( )
+  set tavg_stream_filestrings              = ( )
+  set tavg_file_freq_opt                   = ( )
+  set tavg_file_freq_values                = ( )
+  set tavg_start_opt_values                = ( )
+  set tavg_start_values                    = ( )
+  set tavg_fmt_in_values                   = ( )
+  set tavg_fmt_out_values                  = ( )
+  set ltavg_has_offset_date_values         = ( )
+  set tavg_offset_year_values              = ( )
+  set tavg_offset_month_values             = ( )
+  set tavg_offset_day_values               = ( )
+  set ltavg_one_time_header                = ( )
 
 #----------------------------------------------------------------------------
 # parse the base-model tavg_nml, located in $POP2_TAVG_NML_BASE, and 
@@ -34,6 +35,12 @@
 #----------------------------------------------------------------------------
 @ n_tavg_streams                = `grep "^ *n_tavg_streams"              $POP2_TAVG_NML_BASE | awk -F= '{print $2}' `
 
+set ltavg_temp  = `grep "^ *ltavg_ignore_excess_contents_streams"   $POP2_TAVG_NML_BASE | awk -F= '{print $2}' `
+
+if ($ltavg_temp == .true. || $ltavg_temp == .false.) then
+set ltavg_ignore_excess_contents_streams  = $ltavg_temp
+endif
+
 set ltavg_streams_index_present = `grep "^ *ltavg_streams_index_present" $POP2_TAVG_NML_BASE | awk -F= '{print $2}' `
 
 set ltavg_nino_diags_requested  = `grep "^ *ltavg_nino_diags_requested"  $POP2_TAVG_NML_BASE | awk -F= '{print $2}' `
@@ -41,6 +48,7 @@ set ltavg_nino_diags_requested  = `grep "^ *ltavg_nino_diags_requested"  $POP2_T
 set tavg_contents_filename      = `grep "^ *tavg_contents"  $POP2_TAVG_NML_BASE | awk -F= '{print $2}' `
 set tavg_infile                 = `grep "^ *tavg_infile"    $POP2_TAVG_NML_BASE | awk -F= '{print $2}' `
 set tavg_outfile                = `grep "^ *tavg_outfile"   $POP2_TAVG_NML_BASE | awk -F= '{print $2}' `
+
 
 
 #----------------------------------------------------------------------------
@@ -178,26 +186,27 @@ cat >&! $POP2_TAVG_NML << EOF2
 ##########################################################################
 
 &tavg_nml
-   n_tavg_streams              = $n_tavg_streams
-   ltavg_streams_index_present = $ltavg_streams_index_present
-   tavg_freq_opt               = $tavg_freq_opt_values
-   tavg_freq                   = $tavg_freq_values
-   tavg_file_freq_opt          = $tavg_file_freq_opt
-   tavg_file_freq              = $tavg_file_freq_values
-   tavg_stream_filestrings     = $tavg_stream_filestrings
-   tavg_start_opt              = $tavg_start_opt_values
-   tavg_start                  = $tavg_start_values
-   tavg_fmt_in                 = $tavg_fmt_in_values
-   tavg_fmt_out                = $tavg_fmt_out_values
-   tavg_contents               = $tavg_contents_filename
-   ltavg_nino_diags_requested  = $ltavg_nino_diags_requested
-   tavg_infile                 = $tavg_infile 
-   tavg_outfile                = $tavg_outfile 
-   ltavg_has_offset_date       = $ltavg_has_offset_date_values
-   tavg_offset_years           = $tavg_offset_year_values
-   tavg_offset_months          = $tavg_offset_month_values
-   tavg_offset_days            = $tavg_offset_day_values
-   ltavg_one_time_header       = $ltavg_one_time_header
+   n_tavg_streams                       = $n_tavg_streams
+   ltavg_ignore_excess_contents_streams = $ltavg_ignore_excess_contents_streams
+   ltavg_streams_index_present          = $ltavg_streams_index_present
+   tavg_freq_opt                        = $tavg_freq_opt_values
+   tavg_freq                            = $tavg_freq_values
+   tavg_file_freq_opt                   = $tavg_file_freq_opt
+   tavg_file_freq                       = $tavg_file_freq_values
+   tavg_stream_filestrings              = $tavg_stream_filestrings
+   tavg_start_opt                       = $tavg_start_opt_values
+   tavg_start                           = $tavg_start_values
+   tavg_fmt_in                          = $tavg_fmt_in_values
+   tavg_fmt_out                         = $tavg_fmt_out_values
+   tavg_contents                        = $tavg_contents_filename
+   ltavg_nino_diags_requested           = $ltavg_nino_diags_requested
+   tavg_infile                          = $tavg_infile 
+   tavg_outfile                         = $tavg_outfile 
+   ltavg_has_offset_date                = $ltavg_has_offset_date_values
+   tavg_offset_years                    = $tavg_offset_year_values
+   tavg_offset_months                   = $tavg_offset_month_values
+   tavg_offset_days                     = $tavg_offset_day_values
+   ltavg_one_time_header                = $ltavg_one_time_header
 /
 
 EOF2

@@ -1,7 +1,20 @@
 
 ===============================================================================
 Tag Creator: njn01 
-Tag Date:    8 January 2010
+Tag Date:    10 February 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100210
+Tag Testing: customized testing/inspection
+Tag Summary: Miscellaneous changes to tavg streams support:
+            o fix seg-fault problem identified by JD when user-specified
+              stream number does not match number of streams in tavg_contents
+            o add "stealth" tavg option to allow such mis-matches
+               and modify pop2_tavg_nml.csh to support this option (stealthily)
+M           20886   source/tavg.F90
+M           20887   input_templates/pop2_tavg_nml.csh
+
+===============================================================================
+Tag Creator: njn01 
+Tag Date:    8 February 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100208
 Tag Testing: side-by-side ccsm4_0_beta42 comparison + bluefire.pop2.aux tests
 Tag Summary: Misc. changes + ecosys_mod.F90 correction: 
