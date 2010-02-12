@@ -19,9 +19,10 @@
    use domain
 !   use constants, only: 
 !   use time_management, only: 
-   use restart, only: write_restart, init_restart
+   use restart, only: write_restart, init_restart, lrestart_write
    use history, only: write_history, init_history
    use movie, only: write_movie, init_movie
+   use overflows
    use tavg, only: write_tavg, init_tavg
    use timers, only: get_timer, timer_start, timer_stop
 
@@ -121,7 +122,10 @@
 !
 !  write tavg - the decision when to write
 !  is internal to routine except for notifying tavg that a 
-!  restart must be written
+!  restart must be written. 
+
+!  note that lrestart_write is now a module variable, which allows
+!  the overflows module to coordinate an overflows restart write
 !
 !-----------------------------------------------------------------------
 
@@ -132,6 +136,16 @@
    call write_tavg(restart_type)
 #endif
    call timer_stop (timer_tavg)
+
+!-----------------------------------------------------------------------
+!
+!  write overflow restart file (coordinate with write_restart)
+!
+!-----------------------------------------------------------------------
+
+    if ( lrestart_write .and. overflows_on .and. overflows_interactive ) then
+       call ovf_write_restart
+    endif
 
    call timer_stop(timer_out)
 !-----------------------------------------------------------------------

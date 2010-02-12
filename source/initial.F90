@@ -38,6 +38,7 @@
    use grid, only: init_grid1, init_grid2, kmt, kmt_g, n_topo_smooth, zt,    &
        fill_points, sfc_layer_varthick, sfc_layer_type, TLON, TLAT, partial_bottom_cells
    use io
+   use io_tools
    use baroclinic, only: init_baroclinic
    use barotropic, only: init_barotropic
    use pressure_grad, only: init_pressure_grad
@@ -100,7 +101,8 @@
 !-----------------------------------------------------------------------
 
    character (char_len) :: &
-      init_ts_file_fmt      ! format (bin or nc) for input file
+      init_ts_file_fmt,    &! format (bin or nc) for input file
+      exit_string           ! exit_POP message string
 
    logical (log_kind), public ::  &! context variables
       lcoupled,                   &! T ==> pop is coupled to another system
@@ -300,8 +302,9 @@
    call init_tidal_mixing
 
    if ( overflows_interactive  .and.  .not.ltidal_mixing ) then
-     call exit_POP (sigAbort,'Overflow code is extensively tested '/&
-                    &/'only with tidal mixing')
+     exit_string = 'FATAL ERROR: overflow code is validated only with tidal mixing'
+     call document ('pop_init_phase1', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -632,9 +635,6 @@
       nml_error,            &! namelist i/o error flag
       number_of_fatal_errors
 
-   character (char_len) ::  &
-      message                ! error message string
-
    namelist /context_nml/ lcoupled, lccsm, b4b_flag, lccsm_control_compatible
 
 !-----------------------------------------------------------------------
@@ -664,7 +664,9 @@
 
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
-      call exit_POP(sigAbort,'ERROR reading context_nml')
+     exit_string = 'FATAL ERROR: reading context_nml'
+     call document ('init_context', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
    call broadcast_scalar(lcoupled,                 master_task)
@@ -710,23 +712,23 @@
    number_of_fatal_errors = 0
 
    if (.not. (lcoupled .eqv. lccsm)) then
-     message = 'ERROR: presently, lcoupled and lccsm must have the same value'
-     call print_message(message)
+     exit_string = 'FATAL ERROR: presently, lcoupled and lccsm must have the same value'
+     call document ('init_context', exit_string)
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif
 
 #ifdef CCSMCOUPLED
    if (.not. lcoupled) then
-     message = 'ERROR: inconsistent options.' &
+     exit_string = 'FATAL ERROR: inconsistent options.' &
              // ' Cpp option coupled is defined, but lcoupled = .false.'
-     call print_message(message)
+     call document ('init_context', exit_string)
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif
 #else
    if (lcoupled) then
-     message = 'ERROR: inconsistent options.' &
+     exit_string = 'FATAL ERROR: inconsistent options.' &
              // ' Cpp option coupled is not defined, but lcoupled = .true.'
-     call print_message(message)
+     call document ('init_context', exit_string)
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif
 #endif
@@ -1639,7 +1641,6 @@
 !-----------------------------------------------------------------------
 
    character (char_len)      ::  &
-      message,                   &! error message string
       string                      ! temporary string
 
    integer (int_kind)        ::  &
@@ -1686,9 +1687,9 @@
    if (my_task == master_task) then
      if (sfc_layer_type == sfc_layer_varthick .and.  &
          dtuxcel /= dttxcel(1) ) then
-       message = 'Warning:  Surface tracer and momentum timesteps are unequal; ' /&     
+       exit_string = 'WARNING:  Surface tracer and momentum timesteps are unequal; ' /&     
        &/'may cause instability when using variable-thickness surface layer.'
-       call print_message (message)
+       call document ('POP_check', exit_string)
        number_of_warnings = number_of_warnings + 1
      endif
    endif
@@ -1701,9 +1702,9 @@
 
    if (my_task == master_task) then
      if (sfwf_formulation == 'bulk-NCEP' .and. lms_balance) then
-       message = 'Warning:  runoff and marginal seas balancing cannot ' /&
+       exit_string = 'WARNING:  runoff and marginal seas balancing cannot ' /&
        &/ 'be used with the bulk-NCEP option'
-       call print_message (message)
+       call document ('POP_check', exit_string)
        number_of_warnings = number_of_warnings + 1
      endif
    endif 
@@ -1723,16 +1724,16 @@
 
        if (check_time_flag_int(tavg_streams(ns)%field_flag,   freq_opt=.true.) /=  &
            check_time_flag_int(coupled_flag,freq_opt=.true.)) then
-           message = 'Warning:  time-averaging and coupling frequency ' /&
+           exit_string = 'WARNING:  time-averaging and coupling frequency ' /&
            &/ 'may be incompatible; tavg must be integer multiple of coupling freq'
-           call print_message(message)
+           call document ('POP_check', exit_string)
            number_of_warnings = number_of_warnings + 1
        else
          if ( mod(check_time_flag_int(tavg_streams(ns)%field_flag,   freq=.true.),  &
                   check_time_flag_int(coupled_flag,freq=.true.)) .ne. 0) then
-           message = 'Warning: time-averaging frequency is incompatible with ' /&
+           exit_string = 'WARNING: time-averaging frequency is incompatible with ' /&
            &/ ' the coupling frequency'
-           call print_message (message)
+           call document ('POP_check', exit_string)
            number_of_warnings = number_of_warnings + 1
          endif
        endif
@@ -1751,8 +1752,8 @@
  
    if (number_of_warnings == 0 ) then
      if (my_task == master_task) then
-       message = 'No warning messages generated'
-       call print_message (message)
+       exit_string = 'No warning messages generated'
+       call document ('POP_check', exit_string)
      endif
    endif
 
@@ -1771,9 +1772,9 @@
 !-----------------------------------------------------------------------
 
    if (check_all(ltidal_mixing .and. vmix_itype /= vmix_type_kpp)) then
-     message =   &
-     'Error:  Tidally driven mixing is only allowed when KPP mixing is enabled' 
-     call print_message(message)
+     exit_string =   &
+     'FATAL ERROR::  Tidally driven mixing is only allowed when KPP mixing is enabled' 
+     call document ('POP_check', exit_string)
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif
 
@@ -1784,9 +1785,9 @@
 !-----------------------------------------------------------------------
 
    if (check_all(ltidal_mixing .and. bckgrnd_vdc2 /= c0)) then
-     message =   &
-    'Error:  bckgrnd_vdc2 must be zero when tidal_mixing option is enabled'
-     call print_message(message)
+     exit_string =   &
+    'FATAL ERROR::  bckgrnd_vdc2 must be zero when tidal_mixing option is enabled'
+     call document ('POP_check', exit_string)
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif
 
@@ -1798,22 +1799,22 @@
 
    if (registry_match('diag_gm_bolus') .and. my_task == master_task) then
     ISOP_on = .true.
-    message = 'Error: '
+    exit_string = 'FATAL ERROR: '
 
     do n=1,7
       ISOP_test = .false. 
       string = trim(strings(n))
       ISOP_test = set_in_tavg_contents (tavg_id(trim(string),quiet=.true.))
       if (.not. ISOP_test) then
-        message =  trim(message) // ' ' // trim(string)
+        exit_string =  trim(exit_string) // ' ' // trim(string)
         ISOP_on = .false.
       endif
     enddo
     
     if (.not. ISOP_on) then
-     message =   trim(message) /&
+     exit_string =   trim(exit_string) /&
      &/' must be activated in tavg_contents file when diag_gm_bolus = .T.'
-     call print_message(message)
+     call document ('POP_check', exit_string)
      number_of_fatal_errors = number_of_fatal_errors + 1
     endif
   endif ! diag_gm_bolus
@@ -1825,9 +1826,9 @@
 !-----------------------------------------------------------------------
 
    if (check_all(luse_cpl_ifrac .and. .not. allocated(OCN_WGT))) then
-     message =   &
-     'Error:  cannot set luse_cpl_ifrac .true. without allocating OCN_WGT'
-     call print_message(message)
+     exit_string =   &
+     'FATAL ERROR::  cannot set luse_cpl_ifrac .true. without allocating OCN_WGT'
+     call document ('POP_check', exit_string)
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif
 
@@ -1841,9 +1842,9 @@
 
      if ((.not. ecosys_qsw_distrb_const) .and. &
          (qsw_distrb_iopt == qsw_distrb_iopt_const)) then
-       message = &
-       'Error: cannot set ecosys_qsw_distrb_const=.false. unless qsw_distrb_opt/=const'
-       call print_message(message)
+       exit_string = &
+       'FATAL ERROR:: cannot set ecosys_qsw_distrb_const=.false. unless qsw_distrb_opt/=const'
+       call document ('POP_check', exit_string)
        number_of_fatal_errors = number_of_fatal_errors + 1
      endif
 
@@ -1856,10 +1857,10 @@
 !-----------------------------------------------------------------------
 
    if (sfc_layer_type == sfc_layer_varthick .and. .not. lfw_as_salt_flx) then
-     message =  'Error:  untested/unsupported combination of options'
-     message =   trim(message) /&
+     exit_string =  'FATAL ERROR::  untested/unsupported combination of options'
+     exit_string =   trim(exit_string) /&
      &/' (sfc_layer_type == sfc_layer_varthick .and. .not. lfw_as_salt_flx)'
-     call print_message(message)
+     call document ('POP_check', exit_string)
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif
 
@@ -1870,10 +1871,10 @@
 !-----------------------------------------------------------------------
 
   if (linertial) then
-     message =  'Error:  inertial mixing option. '
-     message =   trim(message) /&
+     exit_string =  'FATAL ERROR::  inertial mixing option. '
+     exit_string =   trim(exit_string) /&
      &/' This option does not exactly restart and is untested. DO NOT USE!'
-     call print_message(message)
+     call document ('POP_check', exit_string)
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif
 
@@ -1884,10 +1885,10 @@
 !-----------------------------------------------------------------------
 
   if (linertial .and. (.not. registry_match('diag_gm_bolus') .or. partial_bottom_cells)) then
-     message =  'Error:  inertial mixing option inconsistency. '
-     message =   trim(message) /&
+     exit_string =  'FATAL ERROR::  inertial mixing option inconsistency. '
+     exit_string =   trim(exit_string) /&
      &/' diag_gm_bolus must be on and partial_bottom_cells must not be on'
-     call print_message(message)
+     call document ('POP_check', exit_string)
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif
 
@@ -1899,8 +1900,8 @@
 
    if ( overflows_on ) then
      if ( overflows_interactive .and. .not. registry_match('topography_opt_file') ) then
-        message = 'Error: interactive overflows without topography option = file'
-        call print_message(message)
+        exit_string = 'FATAL ERROR:: interactive overflows without topography option = file'
+        call document ('POP_check', exit_string)
         number_of_fatal_errors = number_of_fatal_errors + 1
      endif
    endif
@@ -1918,8 +1919,8 @@
          'correct the error condition(s) listed above before continuing')
    else
      if (my_task == master_task) then
-       message = 'No fatal error conditions detected'
-       call print_message (message)
+       exit_string = 'No fatal error conditions detected'
+       call document ('POP_check', exit_string)
      endif
    endif
  
@@ -1929,35 +1930,6 @@
 
  end subroutine POP_check
 
-!***********************************************************************
-!BOP
-! !IROUTINE: print_message
-! !INTERFACE:
-
- subroutine print_message (message)
-
-! !DESCRIPTION:
-!  This routine prints error and warning messages from 
-!  subroutine POP_check
-
-! !REVISION HISTORY:
-!  same as module
- 
-! !INPUT PARAMETERS:
-
-   character(*) , intent(in) ::  &
-      message
-
-!EOP
-!BOC
-
-   write(stdout,blank_fmt)
-   write(stdout,1100) message
-   call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
-
- 1100 format(5x, a)   
-
- end subroutine print_message
 
 !***********************************************************************
 !BOP

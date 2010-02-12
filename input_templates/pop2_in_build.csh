@@ -1412,7 +1412,7 @@ DO NOT change transport_reg2_names unless you know exactly what you are doing.
 EOF2
 
 if ( ${OCN_GRID} == gx1v6 ) then
- set lccsm_control_compatible = .true.
+ set lccsm_control_compatible = .false.
 else
  set lccsm_control_compatible = .false.
 endif

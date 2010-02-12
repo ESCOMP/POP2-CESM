@@ -103,7 +103,7 @@
       nml_error,                &! namelist i/o error flag
       tavg_flag                  ! flag to access tavg frequencies
 
-   character (char_len)    :: message
+   character (char_len)    :: exit_string
  
    namelist /budget_diagnostics_nml/ldiag_global_tracer_budgets  
 
@@ -146,7 +146,9 @@
 
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
-      call exit_POP(sigAbort,'ERROR reading budget_diagnostics_nml namelist')
+      exit_string = 'FATAL ERROR: reading budget_diagnostics_nml namelist'
+      call document ('init_budget_diagnostics', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
  
@@ -216,13 +218,15 @@
    endif
 
    if     ( budget_error_flag == -1000 ) then
-     message = 'ERROR: init_budget_diagnostics: you cannot select both '    /&
+     exit_string = 'FATAL ERROR: you cannot select both '    /&
           &/    'tavg_freq_opt == freq_opt_never and ldiag_global_tracer_budgets = .true. '
-     call exit_POP ( SigAbort, message)
+     call document ('init_budget_diagnostics', exit_string)
+     call exit_POP (sigAbort, exit_string, out_unit=stdout)
    elseif ( budget_error_flag == -2000 ) then
-     message = 'ERROR: init_budget_diagnostics: SHF SFWF RESID_T RESID_S '  /&
+     exit_string = 'FATAL ERROR: SHF SFWF RESID_T RESID_S '  /&
            &/    'FW TFW_T TFW_S and QFLUX must be included in the tavg_contents file.'
-     call exit_POP ( SigAbort, message)
+     call document ('init_budget_diagnostics', exit_string)
+     call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
    !*** determine if all required fields are activated in the *the same* tavg_contents file
@@ -244,11 +248,10 @@
    endif
    
    if ( budget_error_flag == -3000 ) then
-     message = 'ERROR: init_budget_diagnostics: you must select all budget diagnostics' /&
+     exit_string = 'FATAL ERROR: you must select all budget diagnostics' /&
           &/    ' fields in the same stream: SFWF,RESID_T,RESID_S,FW,TFW_T,TFW_S,QFLUX'
-     write(stdout,*) trim(message)
-     call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout) 
-     call exit_POP ( SigAbort, message)
+     call document ('init_budget_diagnostics', exit_string)
+     call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
    budget_error_flag = 0
@@ -285,11 +288,14 @@
 
    call broadcast_scalar (budget_error_flag, master_task)
 
-   if ( budget_error_flag == -1000 ) &
-     call exit_POP (SigAbort, 'ERROR: init_budget_diagnostics: no budget interval is specified.' ) 
+   if ( budget_error_flag == -1000 ) then
+     exit_string = 'FATAL ERROR: no budget interval is specified.'
+     call document ('init_budget_diagnostics', exit_string)
+     call exit_POP (sigAbort, exit_string, out_unit=stdout)
+   endif
 
 
-    call flushm (stdout)
+   call flushm (stdout)
 
 1100  format ('(init_budget_diagnostics): ',a)
 1101  format ('(init_budget_diagnostics): tracer budgets are for every ',i4,a)

@@ -1,6 +1,34 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    12 February 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100212
+Tag Testing: 1-month+1-month DEBUG exact restart for new gx3 decomp
+             1-month+1-month exact restart test for overflows
+             1-month+1-month exact restart test for  POP_DistributionMod.F90
+             2-month b4b test for exit_POP cleanup 
+             See /fis/cgd/cseg/people/njn01/test/usability/ cases             
+Tag Summary: Misc: 
+               o  64-pe gx3 decomp   
+               o  deallocate only associated arrays in POP_DistributionMod.F90 
+                    (contributed by Pat Worley)
+               o  lccsm_control_compatible = .false. for gx1v6 (break backwards
+                     compatability)
+               o  move overflows write from write_restart to output_driver 
+               o  begin exit_POP cleanup: initial.F90, time_management.F90,
+                   budget_diagnostics.F90, restart.F90
+
+M           20936   source/initial.F90
+M           20936   source/time_management.F90
+M           20936   source/budget_diagnostics.F90
+M           20936   source/POP_DistributionMod.F90
+M           20936   source/restart.F90
+M           20936   source/output.F90
+M           20936   input_templates/pop2_in_build.csh
+M           20936   bld/pop_decomp.xml
+
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    10 February 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100210
 Tag Testing: customized testing/inspection

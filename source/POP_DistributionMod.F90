@@ -244,28 +244,34 @@
 !
 !----------------------------------------------------------------------
 
-   deallocate(distribution%blockLocation, stat=istat)
+   if ( associated(distribution%blockLocation) ) then
+      deallocate(distribution%blockLocation, stat=istat)
 
-   if (istat > 0 ) then
-      call POP_ErrorSet(errorCode, &
-         'POP_DistributionDestroy: error deallocating blockLocation')
-      return
+      if (istat > 0 ) then
+         call POP_ErrorSet(errorCode, &
+            'POP_DistributionDestroy: error deallocating blockLocation')
+         return
+      endif
    endif
 
-   deallocate(distribution%blockLocalID , stat=istat)
+   if ( associated(distribution%blockLocalID) ) then
+      deallocate(distribution%blockLocalID , stat=istat)
 
-   if (istat > 0 ) then
-      call POP_ErrorSet(errorCode, &
-         'POP_DistributionDestroy: error deallocating blockLocalID')
-      return
+      if (istat > 0 ) then
+         call POP_ErrorSet(errorCode, &
+            'POP_DistributionDestroy: error deallocating blockLocalID')
+         return
+      endif
    endif
 
-   deallocate(distribution%blockGlobalID, stat=istat)
+   if ( associated(distribution%blockGlobalID) ) then
+      deallocate(distribution%blockGlobalID, stat=istat)
 
-   if (istat > 0 ) then
-      call POP_ErrorSet(errorCode, &
-         'POP_DistributionDestroy: error deallocating blockGlobalID')
-      return
+      if (istat > 0 ) then
+         call POP_ErrorSet(errorCode, &
+            'POP_DistributionDestroy: error deallocating blockGlobalID')
+         return
+      endif
    endif
 
 !-----------------------------------------------------------------------

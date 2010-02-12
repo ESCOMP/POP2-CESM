@@ -243,13 +243,6 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
-  <decomp nproc="16" res="gx1v[3456]" model="pop">
-    <maxblocks >1</maxblocks>
-    <bsize_x   >40</bsize_x>
-    <bsize_y   >192</bsize_y>
-    <decomptype>cartesian</decomptype>
-  </decomp>
-
   <decomp nproc="20" res="gx1v[3456]" model="pop">
     <maxblocks >1</maxblocks>
     <bsize_x   >64</bsize_x>

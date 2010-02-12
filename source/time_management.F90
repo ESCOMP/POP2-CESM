@@ -450,6 +450,8 @@
 
    private :: time_to_do  !access via time-flags only
 
+   character (char_len), private ::  exit_string
+
    real (r8), private ::          &
       rhour_next,        &! rhour   for next timestep
       rminute_next,      &! rminute for next timestep
@@ -590,7 +592,9 @@
 
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
-      call exit_POP(sigAbort,'ERROR reading time_manager_nml')
+      exit_string = 'FATAL ERROR: reading time_manager_nml'
+      call document ('init_time1', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
    if (my_task == master_task) then
@@ -648,13 +652,16 @@
 !-----------------------------------------------------------------------
 
    if (tmix_iopt == -1000) then
-      call exit_POP(sigAbort,'unknown option for time mixing')
+      exit_string = 'FATAL ERROR: unknown option for time mixing'
+      call document ('init_time1', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
    if (tmix_iopt == tmix_matsuno) then
-      message = ' matsuno time-mixing option is not supported in CCSM; ' /&
+      exit_string = 'FATAL ERROR:  matsuno time-mixing option is not supported in CCSM; ' /&
               &/' budget diagnostics are incorrect with matsuno and tavg may be incorrect'
-      call exit_POP(sigAbort,message)
+      call document ('init_time1', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
 
@@ -695,7 +702,9 @@
       steps_per_year = steps_per_day*days_in_norm_year
 
    case default
-      call exit_POP(sigAbort,'unknown dt_option')
+      exit_string = 'FATAL ERROR: unknown dt_option'
+      call document ('init_time1', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    end select
  
 !-----------------------------------------------------------------------
@@ -717,9 +726,11 @@
      !*** small values of time_mix_freq are not supported
 
      if (time_mix_freq <= 3) then
-       call document ('init_time1', &
-                      'unsupported time_mix_freq value: ', time_mix_freq)
-       call exit_POP (sigAbort,'time_mix_freq must be > 3')
+      exit_string = 'FATAL ERROR: time_mix_freq must be > 3'
+      call document ('init_time1', exit_string)
+      write(exit_string,'(a,1x,i3)') 'FATAL ERROR: unsupported time_mix_freq value: ', time_mix_freq
+      call document ('init_time1', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
      endif
 
      nsteps_per_day         = steps_per_day
@@ -1035,7 +1046,7 @@
             error_code = .true.
       endif
 
-      if (error_code) message_string = trim(message_string)//' -- ERROR!'
+      if (error_code) exit_string = trim(message_string)//' -- ERROR!'
        
       if (my_task == master_task) then 
         write(stdout,1102) nsteps_total, trim(stepsize_string), seconds_this_day,   &
@@ -1048,7 +1059,11 @@
       endif ! master_task
 
      !*** error abort
-     if (error_code) call exit_POP(sigAbort, 'error in timestep-size computation')
+     if (error_code) then
+      exit_string = 'FATAL ERROR: in timestep-size computation'
+      call document ('test_timestep', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
+     endif
         
     enddo ! nn
 
@@ -1214,7 +1229,9 @@
 !-----------------------------------------------------------------------
 
    if ( .not. valid_ymd_hms () ) then
-      call exit_POP(sigAbort,'invalid ymd_hms')
+      exit_string = 'FATAL ERROR: invalid ymd_hms'
+      call document ('init_time2', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -1322,9 +1339,9 @@
          write(stdout,*) 'iminute_start_run = ', iminute_start_run
          write(stdout,*) 'isecond_start_run = ', isecond_start_run
          call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
-         call exit_POP(sigAbort, &
-                       'model run must start at coupling boundary '/&
-                     &/'when using avgfit option')
+         exit_string = 'FATAL ERROR: model run must start at coupling boundary when using avgfit option'
+         call document ('init_time2', exit_string)
+         call exit_POP (sigAbort, exit_string, out_unit=stdout)
       endif
    endif
  
@@ -1455,8 +1472,9 @@
                      imonth_end_run, iday_end_run)
  
    case default
-      call exit_POP(sigAbort,'Invalid stop_option: '/&
-                                                     &/stop_option)
+      write(exit_string, '(a,a)') 'FATAL ERROR: Invalid stop_option: ', stop_option
+      call document ('init_time2', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    end select
  
 !-----------------------------------------------------------------------
@@ -1553,7 +1571,9 @@
                '  Model relies on external signal for stopping.'
          endif
       endif
-      call exit_POP(sigAbort,'invalid end date')
+      exit_string = 'FATAL ERROR: Invalid end date'
+      call document ('init_time2', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
  
 !-----------------------------------------------------------------------
@@ -1761,14 +1781,16 @@
                 tmix_iopt == tmix_avgfit       ) then
                ice_ts = .true.
             else
-               call exit_POP(sigAbort, &
-                             'Cannot use tmix_avg or tmix_avgbb '/&
-                           &/'with lcoupled and liceform')
+               exit_string = 'FATAL ERROR: Cannot use tmix_avg or tmix_avgbb with lcoupled and liceform'
+               call document ('time_manager', exit_string)
+               call exit_POP (sigAbort, exit_string, out_unit=stdout)
             endif
           
-            if (avg_ts) call exit_POP (sigAbort, &
-                                       'Cannot have coupled timestep '/&
-                                     &/'be an averaging timestep')
+            if (avg_ts) then
+               exit_string = 'FATAL ERROR: Cannot have coupled timestep and  be an averaging timestep'
+               call document ('time_manager', exit_string)
+               call exit_POP (sigAbort, exit_string, out_unit=stdout)
+            endif
          endif
 
          if ( tmix_iopt == tmix_avgfit ) then
@@ -1785,8 +1807,9 @@
                   tmix_iopt == tmix_avg          ) then
             ice_ts = .true.
          else
-            call exit_POP (sigAbort, &
-                       'tmix_avgbb option is inconsistent with ice_ts')
+            exit_string = 'FATAL ERROR: tmix_avgbb option is inconsistent with ice_ts'
+            call document ('time_manager', exit_string)
+            call exit_POP (sigAbort, exit_string, out_unit=stdout)
          endif
 
       endif ! coupled
@@ -2081,12 +2104,12 @@
 
    if (isearch > 0 ) then
     if ( .not. time_flags(isearch)%is_reserved) then  
-      call document ('init_time_flag', 'Fatal Error: Cannot initialize an existing time flag')
+      exit_string = 'FATAL ERROR: Cannot initialize an existing time_flag'
+      call document ('init_time_flag', exit_string)
       call document ('init_time_flag', 'flag_name = ', trim(flag_name))
       call document ('init_time_flag', 'owner     = ', trim(owner))
       call document ('init_time_flag', 'time_flag = ', isearch)
-      call exit_POP(sigAbort, &
-         '(init_time_flag) ERROR: Cannot initialize an existing time_flag ')
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
     endif
    endif
 
@@ -2170,8 +2193,11 @@
    endif
 
    if (init_time_flag_error) then
-        write(stdout,*) '  time_file name  = ', trim(time_flags(flag_id)%name)
-        call exit_POP(sigAbort,'ERROR (init_time_flag): missing time_flag ref values')
+      write(exit_string,'(a,a)')  '  time_file name  = ', trim(time_flags(flag_id)%name)
+      call document ('init_time_flag', exit_string)
+      exit_string = 'FATAL ERROR: missing time_flag ref values'
+      call document ('init_time_flag', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
    !*** now compute elapsed reference years, months, days since 01-01-0000
@@ -2306,7 +2332,9 @@
    if (num_time_flags + 1 <= max_time_flags) then
        num_time_flags = num_time_flags + 1
    else
-       call exit_POP(sigAbort,'ERROR: num_time_flags exceeds max_time_flags')
+      exit_string = 'FATAL ERROR: num_time_flags exceeds max_time_flags'
+      call document ('set_num_time_flags', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -2369,16 +2397,16 @@
 !-----------------------------------------------------------------------
 
    if (isearch == 0) then
-      string = 'Cannot request id of a nonexistent time_flag; model will abort'
+      exit_string = 'FATAL ERROR: Cannot request id of a nonexistent time_flag; model will abort'
       call document ('get_time_flag_id', 'flag_name = ', trim(flag_name))
       call document ('get_time_flag_id', trim(string) )
-      call exit_POP(sigAbort, trim(string))
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    else if (.not. time_flags(isearch)%is_initialized) then
-      string = 'Cannot request id of time_flag that has not been initialized; model will abort'
+      exit_string = 'FATAL ERROR: Cannot request id of time_flag that has not been initialized; model will abort'
       call document ('get_time_flag_id', 'flag_name = ', trim(flag_name))
       call document ('get_time_flag_id', 'flag_id   = ', isearch)
       call document ('get_time_flag_id', trim(string) )
-      call exit_POP(sigAbort, trim(string))
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -2642,7 +2670,9 @@
    else if (present(done)) then
      time_flags(flag_id)%done = done
    else
-     call exit_POP(sigAbort,'(override_time_flag) ERROR -- must specify value or old_value')
+      exit_string = 'FATAL ERROR: must specify value or old_value'
+      call document ('override_time_flag', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
       
 
@@ -2860,9 +2890,13 @@
 !-----------------------------------------------------------------------
 
    if (check_freq .and. check_freq_opt) then
-      call exit_POP(sigAbort,'(check_time_flag_int): ERROR: check one option at a time')
+      exit_string = 'FATAL ERROR: check one option at a time'
+      call document ('check_time_flag_int', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    else if (.not. (check_freq .or. check_freq_opt)) then
-      call exit_POP(sigAbort,'(check_time_flag_int): ERROR: must check at leaset one option')
+      exit_string = 'FATAL ERROR: must check at leaset one option'
+      call document ('check_time_flag_int', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
       
    if (check_freq) then
@@ -2999,8 +3033,9 @@
 
 
    if (flag_id < 1 .or. flag_id > num_time_flags) then
-     write(string,'(a)') trim(calling_routine) // ' ' // trim(time_flags(flag_id)%name)//': invalid flag_id'
-     call exit_POP(sigAbort,string)
+     write(exit_string,'(a,a)') 'FATAL ERROR: ',trim(calling_routine) // ' ' // trim(time_flags(flag_id)%name)//': invalid flag_id'
+     call document ('error_check_time_flag', exit_string)
+     call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -3010,8 +3045,9 @@
 !-----------------------------------------------------------------------
 
    if (.not. time_flags(flag_id)%is_initialized) then
-     write(string,'(a)') trim(calling_routine) // ' ' // trim(time_flags(flag_id)%name)//': is not initialized'
-     call exit_POP(sigAbort,string)
+     write(exit_string,'(a)') 'FATAL ERROR: ' // trim(time_flags(flag_id)%name)//': is not initialized'
+     call document ('error_check_time_flag', exit_string)
+     call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
       
 
@@ -3069,8 +3105,11 @@
 
    call error_check_time_flag(flag_id, 'time_to_do')
 
-   if (.not. registry_match('init_time2')) &
-      call exit_POP(sigAbort,'(time_to_do) has not yet called init_time2')
+   if (.not. registry_match('init_time2')) then
+     exit_string = 'FATAL ERROR: init_time2 has not yet been called'
+     call document ('time_to_do', exit_string)
+     call exit_POP (sigAbort, exit_string, out_unit=stdout)
+   endif
 
    time_to_do = .false.
  
@@ -3227,7 +3266,9 @@
       endif
 
    case default
-      call exit_POP(sigAbort,'unknown start option in time_to_start')
+     exit_string = 'FATAL ERROR: unknown start option '
+     call document ('time_to_start', exit_string)
+     call exit_POP (sigAbort, exit_string, out_unit=stdout)
    end select
 
 !-----------------------------------------------------------------------
@@ -3481,7 +3522,9 @@
 !-----------------------------------------------------------------------
 
    if (.not. valid_ymd_hms()) then
-      call exit_POP(sigAbort,'invalid ymd_hms')
+     exit_string = 'FATAL ERROR: invalid ymd_hms'
+     call document ('model_date', exit_string)
+     call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -3995,8 +4038,11 @@
 !BOC
 !-----------------------------------------------------------------------
 
-   if (.not. valid_date(date)) call exit_POP(sigAbort, &
-                                             'date2ymd:invalid date')
+   if (.not. valid_date(date)) then
+     exit_string = 'FATAL ERROR: invalid date'
+     call document ('date2ymd', exit_string)
+     call exit_POP (sigAbort, exit_string, out_unit=stdout)
+   endif
 
    year  = int(     date       /10000)
    month = int( mod(date,10000)/  100)
@@ -4183,10 +4229,9 @@
 !-----------------------------------------------------------------------
 
    if (days <= 0 .or. days > days_in_leap_year ) then
-      err_string = char_blank
-      write (err_string,'(a,i6)') & 
-          'eday2ymd: days undetermined, days = ', days
-      call exit_POP(sigAbort,trim(err_string))
+     write (exit_string,'(a,i6)')'FATAL ERROR: days undetermined, days = ', days
+     call document ('eday2ymd', exit_string)
+     call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
 !-----------------------------------------------------------------------
@@ -4357,8 +4402,11 @@
 !
 !-----------------------------------------------------------------------
 
-   if (.not. valid_date(date)) & 
-      call exit_POP(sigAbort,'date2eday: invalid date')
+   if (.not. valid_date(date)) then
+     write (exit_string,'(a,i6)')'FATAL ERROR: invalid date'
+     call document ('date2eday', exit_string)
+     call exit_POP (sigAbort, exit_string, out_unit=stdout)
+   endif
 
    call date2ymd (date, year, month, day)
    call ymd2eday (year, month, day, eday)
@@ -4548,7 +4596,9 @@
       case ('mdy')
         mdy = .true.
       case default
-      call exit_POP(sigAbort,'ERROR selecting order in subroutine time_stamp')
+        exit_string = 'FATAL ERROR: selecting order'
+        call document ('time_stamp', exit_string)
+        call exit_POP (sigAbort, exit_string, out_unit=stdout)
    end select
 
    select case (trim(option))
@@ -4596,8 +4646,11 @@
    case ('last')
 
       if (present(date_string)) then
-         if (mdy) &
-         call exit_POP(sigAbort,'ERROR time_stamp not supported with option=last & mdy order')
+         if (mdy) then
+           exit_string = 'FATAL ERROR: time_stamp not supported with option=last & mdy order'
+           call document ('time_stamp', exit_string)
+           call exit_POP (sigAbort, exit_string, out_unit=stdout)
+         endif
 
          if (date_separator /= ' ') then
             write (date_string,ymd_date_fmt1) iyear_last ,date_separator, &
@@ -4609,7 +4662,9 @@
       endif
 
       if (present(time_string)) then
-         call exit_POP(sigAbort,'ERROR time_stamp not supported with option=last')
+         exit_string = 'FATAL ERROR: time_stamp not supported with option=last'
+         call document ('time_stamp', exit_string)
+         call exit_POP (sigAbort, exit_string, out_unit=stdout)
          
 !        write (time_string,time_fmt) ihour_last, time_separator, &
 !                                     iminute   , time_separator, &
@@ -4643,7 +4698,9 @@
       endif
 
       if (present(time_string)) then
-         call exit_POP(sigAbort,'ERROR time_stamp not supported with option=last')
+         exit_string = 'FATAL ERROR: time_stamp not supported with option=last'
+         call document ('time_stamp', exit_string)
+         call exit_POP (sigAbort, exit_string, out_unit=stdout)
 !        write (time_string,time_fmt) ihour  , time_separator, &
 !                                     iminute, time_separator, &
 !                                     isecond
@@ -4752,8 +4809,10 @@
         call int_to_char (4,iyear_stamp  , ccsm_cyear)
         write (date_string,1000) ccsm_cyear
         
-        case default 
-        call exit_POP(sigAbort,'(ccsm_date_stamp)')
+     case default 
+        exit_string = 'FATAL ERROR'
+        call document ('ccsm_date_stamp', exit_string)
+        call exit_POP (sigAbort, exit_string, out_unit=stdout)
  
    end select
  
@@ -4968,8 +5027,6 @@
       valid_eday_year,   &!
       valid_feb_day       !
 
-   character (char_len) :: err_string ! string for error message
-
    character (*), parameter :: &
       err_fmt = '(a,i6)'       ! format for error string
 
@@ -5057,56 +5114,58 @@
 
    if (.not. valid_ymd_hms) then
 
-      err_string = char_blank
+      exit_string = char_blank
 
       if (.not. valid_year) &
-         write(err_string,err_fmt) &
-              'Invalid date (iyear must be > 0 ): iyear = ', iyear
+         write(exit_string,err_fmt) &
+              'FATAL ERROR: Invalid date (iyear must be > 0 ): iyear = ', iyear
  
       if (.not. valid_month) &
-         write(err_string,err_fmt) &
-              'Invalid date ( imonth must be in [1,12] ): imonth = ', &
+         write(exit_string,err_fmt) &
+              'FATAL ERROR: Invalid date ( imonth must be in [1,12] ): imonth = ', &
                                                           imonth
  
       if (.not. valid_day_b) &
-         write(err_string,err_fmt) &
-              'Invalid date (iday must be greater than 1): iday = ',iday
+         write(exit_string,err_fmt) &
+              'FATAL ERROR: Invalid date (iday must be greater than 1): iday = ',iday
  
       if (.not. valid_day_e) &
-         write(err_string,err_fmt) &
-              'Invalid date (iday must be less than days_in_month):'/&
+         write(exit_string,err_fmt) &
+              'FATAL ERROR: Invalid date (iday must be less than days_in_month):'/&
               &/' iday = ',iday 
  
       if (.not. valid_hour) &
-         write(err_string,err_fmt) &
-              'Invalid date (ihour must be in [0,23] ): ihour = ', ihour
+         write(exit_string,err_fmt) &
+              'FATAL ERROR: Invalid date (ihour must be in [0,23] ): ihour = ', ihour
  
       if (.not. valid_minute) &
-         write(err_string,err_fmt) &
-              'Invalid date (iminute must be in [0,59] ): iminute = ', &
+         write(exit_string,err_fmt) &
+              'FATAL ERROR: Invalid date (iminute must be in [0,59] ): iminute = ', &
                                                           iminute
  
       if (.not. valid_second) &
-         write(err_string,err_fmt) &
-              'Invalid date (isecond must be in [0,59] ): isecond = ', &
+         write(exit_string,err_fmt) &
+              'FATAL ERROR: Invalid date (isecond must be in [0,59] ): isecond = ', &
                                                           isecond
  
       if (.not. valid_eday_run) &
-         write(err_string,err_fmt) &
-              'Invalid date (elapsed_days_init_date must be > 0 ) ', &
+         write(exit_string,err_fmt) &
+              'FATAL ERROR: Invalid date (elapsed_days_init_date must be > 0 ) ', &
                              elapsed_days_init_date
  
       if (.not. valid_eday_year) &
-         write(err_string,err_fmt) &
-              'Invalid date (elapsed_days_this_year must be > 0) ', &
+         write(exit_string,err_fmt) &
+              'FATAL ERROR: Invalid date (elapsed_days_this_year must be > 0) ', &
                              elapsed_days_this_year
  
-      if (.not. valid_feb_day) &
-         write(err_string,*) &
-              ' Error: initial date contains leap day '/&
+      if (.not. valid_feb_day) then
+         write(exit_string,*) &
+              'FATAL ERROR: initial date contains leap day '/&
               &/' but no leap years are allowed.', iday
  
-      call exit_POP(sigAbort,trim(err_string))
+         call document ('valid_ymd_hms', exit_string)
+         call exit_POP (sigAbort, exit_string, out_unit=stdout)
+      endif
  
    endif   ! valid_ymd_hms
  

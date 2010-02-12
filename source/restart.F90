@@ -66,7 +66,8 @@
 
 ! !PUBLIC DATA MEMBERS:
    public :: restart_fmt,   &
-             read_restart_filename
+             read_restart_filename, &
+             lrestart_write
 
 !EOP
 !BOC
@@ -85,10 +86,15 @@
    character (POP_charLength) ::  &
       read_restart_filename = 'undefined' ! file name for restart file
 
+   character (POP_charLength) ::  &
+      exit_string           = 'undefined' ! error-exit string
+
    logical (POP_logical) ::   &
       pressure_correction, &! fix pressure for exact restart
       lrestart_on,         &! flag to turn restarts on/off
-      leven_odd_on          ! flag to turn even_odd restarts on/off
+      leven_odd_on,        &! flag to turn even_odd restarts on/off
+      lrestart_write        ! flag to determine whether restart is written
+
 
    integer (POP_i4) ::  &
       even_odd_freq,      &! even/odd restart files every freq steps
@@ -1022,9 +1028,6 @@
 !
 !-----------------------------------------------------------------------
 
-   logical (POP_logical) :: &
-      lrestart_write     ! flag to determine whether restart is written
-
    character (POP_charLength) :: &
       file_suffix          ! suffix to append to root filename
 
@@ -1548,15 +1551,6 @@
      call release_unit(nu)
    endif
 
-!-----------------------------------------------------------------------
-!
-!  write overflow restart file
-!
-!-----------------------------------------------------------------------
-
-    if ( overflows_on .and. overflows_interactive ) then
-       call ovf_write_restart
-    endif
 
 !-----------------------------------------------------------------------
 !
@@ -1649,7 +1643,9 @@
 
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
-      call exit_POP(sigAbort,'ERROR reading restart_nml')
+      exit_string = 'FATAL ERROR: reading restart_nml'
+      call document ('init_restart', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    endif
 
    if (my_task == master_task) then
@@ -1704,9 +1700,13 @@
    call broadcast_scalar (pressure_correction,  master_task)
 
    if (restart_freq_iopt == -1000) then
-      call exit_POP(sigAbort,'unknown restart frequency option')
+      exit_string = 'FATAL ERROR: unknown restart frequency option'
+      call document ('init_restart', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    else if (restart_start_iopt == -1000) then
-      call exit_POP(sigAbort,'unknown restart start option')
+      exit_string = 'FATAL ERROR: unknown restart start option'
+      call document ('init_restart', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
    else if (restart_freq_iopt == freq_opt_never) then
       lrestart_on = .false.
    else
