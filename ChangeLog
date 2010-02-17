@@ -1,6 +1,17 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    17 February 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100217
+Tag Testing: See testing log
+Tag Summary: pop2.cpl7.template changes to allow the creation of a correct
+               pop2.buildnml.csh script on jaguar (shell-command differences) 
+
+M           21095   bld/pop2.cpl7.template
+M           21095   ChangeLog
+
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    12 February 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100212
 Tag Testing: 1-month+1-month DEBUG exact restart for new gx3 decomp

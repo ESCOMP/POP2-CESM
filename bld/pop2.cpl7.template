@@ -1,5 +1,4 @@
 #! /bin/csh -f
-set verbose
 
 #==============================================================================
 # Purpose: Create two ccsm build scripts:
