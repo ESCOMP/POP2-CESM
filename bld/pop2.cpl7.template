@@ -1,4 +1,5 @@
 #! /bin/csh -f
+set verbose
 
 #==============================================================================
 # Purpose: Create two ccsm build scripts:
@@ -637,11 +638,11 @@ echo ------------------------------------------------------------------------ >>
 #----------------------------------------------------------------------------
 # first, determine number of base-model tavg streams:
 #----------------------------------------------------------------------------
-@ n_tavg_streams = \`grep \"^ *n_tavg_streams\" \$POP2_TAVG_NML_BASE | awk -F= \'{print \$2}\' \`
+@ n_tavg_streams = \`grep "^ *n_tavg_streams" \$POP2_TAVG_NML_BASE | awk -F= '{print \$2}' \`
 @ stream_number = \$n_tavg_streams + 1
   @ ii = 1
   foreach module ( \$ocn_tracers )
-     @ ntracer_stream = \`grep \"^ *n_tavg_streams_tracer\" \$POP2_DOCDIR/\$module.tavg | awk -F= \'{print \$2}\' \`
+     @ ntracer_stream = \`grep "^ *n_tavg_streams_tracer" \$POP2_DOCDIR/\$module.tavg | awk -F= '{print \$2}' \`
 
     if (-f \${my_path}/ocn.\${module}.setup.csh) then
       \${my_path}/ocn.\${module}.setup.csh tavg_contents \$tavg_contents_filename \$stream_number || exit \$status
