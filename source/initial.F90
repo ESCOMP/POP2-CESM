@@ -175,6 +175,17 @@
 
    call init_io
 
+#ifdef CCSMCOUPLED
+!-----------------------------------------------------------------------
+!
+!  temporary synching of old and new pop2 infrastructure for CCSM
+!
+!-----------------------------------------------------------------------
+   POP_stdout = stdout
+   POP_stderr = stderr
+   POP_stdin  = stdin
+#endif
+
 !-----------------------------------------------------------------------
 !
 !  initialize context in which pop is being run

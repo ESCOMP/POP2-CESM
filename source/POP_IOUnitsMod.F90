@@ -57,15 +57,20 @@
 
 ! !PUBLIC DATA MEMBERS:
 
+#ifdef CCSMCOUPLED
+   integer (POP_i4),            public :: &
+#else
    integer (POP_i4), parameter, public :: &
+#endif
       POP_stdin  =  5,  &! reserved unit for standard input
       POP_stdout =  6,  &! reserved unit for standard output
       POP_stderr =  6    ! reserved unit for standard error
 
    ! common formats for writing to stdout, stderr
 
-   character (9), parameter, public :: &
-      POP_delimFormat = "(72('-'))"
+   character (9), parameter, public ::   &
+      POP_delimFormat    = "(72('-'))",  &
+      POP_delimFormatNew = "(72('='))"
 
    character (5), parameter, public :: &
       POP_blankFormat = "(' ')" 
