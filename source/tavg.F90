@@ -2500,7 +2500,7 @@
 
          if (avail_tavg_fields(nfield)%ndims == 2) then
 
-            !$OMP PARALLEL DO
+            !$OMP PARALLEL DO PRIVATE(iblock)
             do iblock = 1,nblocks_clinic
                select case(field_loc)
                case(field_loc_center)
@@ -2531,7 +2531,7 @@
 
          else
       
-            !$OMP PARALLEL DO PRIVATE(k)
+            !$OMP PARALLEL DO PRIVATE(iblock,k,RMASK)
             do iblock = 1,nblocks_clinic
                WORK(:,:,iblock) = c0
 

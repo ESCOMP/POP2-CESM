@@ -7,7 +7,8 @@ MODULE co2calc
   !   CVS:$Name$
   !-----------------------------------------------------------------------------
 
-  USE blocks, ONLY : nx_block
+  USE blocks,      ONLY : nx_block
+  USE domain_size, ONLY : max_blocks_clinic
   USE kinds_mod
 
   IMPLICIT NONE
@@ -37,7 +38,7 @@ MODULE co2calc
   !   declarations for function coefficients & species concentrations
   !-----------------------------------------------------------------------------
 
-  REAL(KIND=r8), DIMENSION(nx_block) :: &
+  REAL(KIND=r8), DIMENSION(nx_block,max_blocks_clinic) :: &
        k0, k1, k2, kw, kb, ks, kf, k1p, k2p, k3p, ksi, ff, &
        bt, st, ft, dic, ta, pt, sit
 
@@ -47,7 +48,7 @@ CONTAINS
 
   !*****************************************************************************
 
-  SUBROUTINE co2calc_row(mask, t, s, dic_in, ta_in, pt_in, sit_in, &
+  SUBROUTINE co2calc_row(iblock, mask, t, s, dic_in, ta_in, pt_in, sit_in, &
        phlo, phhi, ph, xco2_in, atmpres, co2star, dco2star, pCO2surf, dpco2)
 
     !---------------------------------------------------------------------------
@@ -63,6 +64,7 @@ CONTAINS
     !   input arguments
     !---------------------------------------------------------------------------
 
+    INTEGER(KIND=int_kind), INTENT(IN) :: iblock
     LOGICAL(KIND=log_kind), DIMENSION(nx_block), INTENT(IN) :: mask
     REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: &
          t,        & ! temperature (degrees C)
@@ -134,10 +136,10 @@ CONTAINS
 
     DO i = 1,nx_block
        IF (mask(i)) THEN
-          dic(i)  = dic_in(i)  * vol_to_mass
-          ta(i)   = ta_in(i)   * vol_to_mass
-          pt(i)   = max(pt_in(i),c0)   * vol_to_mass
-          sit(i)  = max(sit_in(i),c0)  * vol_to_mass
+          dic(i,iblock)  = dic_in(i)  * vol_to_mass
+          ta(i,iblock)   = ta_in(i)   * vol_to_mass
+          pt(i,iblock)   = max(pt_in(i),c0)   * vol_to_mass
+          sit(i,iblock)  = max(sit_in(i),c0)  * vol_to_mass
           xco2(i) = xco2_in(i) * 1e-6_r8
 
           !---------------------------------------------------------------------
@@ -172,7 +174,7 @@ CONTAINS
           !                 Eq 13 with table 6 values)
           !---------------------------------------------------------------------
 
-          ff(i) = EXP(-162.8301_r8 + 218.2968_r8 / tk100 + &
+          ff(i,iblock) = EXP(-162.8301_r8 + 218.2968_r8 / tk100 + &
                90.9241_r8 * LOG(tk100) - 1.47696_r8 * tk1002 + &
                s(i) * (.025695_r8 - .025225_r8 * tk100 + &
                0.0049867_r8 * tk1002))
@@ -181,7 +183,7 @@ CONTAINS
           !   K0 from Weiss 1974
           !---------------------------------------------------------------------
 
-          k0(i) = EXP(93.4517_r8 / tk100 - 60.2409_r8 + &
+          k0(i,iblock) = EXP(93.4517_r8 / tk100 - 60.2409_r8 + &
                23.3585_r8 * LOG(tk100) + s(i) * (.023517_r8 - &
                0.023656_r8 * tk100 + 0.0047036_r8 * tk1002))
 
@@ -191,11 +193,11 @@ CONTAINS
           !   Millero p.664 (1995) using Mehrbach et al. data on seawater scale
           !---------------------------------------------------------------------
 
-          k1(i) = c10 ** ((-c1) * (3670.7_r8 * invtk - 62.008_r8 + &
+          k1(i,iblock) = c10 ** ((-c1) * (3670.7_r8 * invtk - 62.008_r8 + &
                9.7944_r8 * dlogtk - 0.0118_r8 * s(i) + &
                0.000116_r8 * s2))
 
-          k2(i) = c10 ** ((-c1) * (1394.7_r8 * invtk + 4.777_r8 - &
+          k2(i,iblock) = c10 ** ((-c1) * (1394.7_r8 * invtk + 4.777_r8 - &
                0.0184_r8 * s(i) + 0.000118_r8 * s2))
 
           !---------------------------------------------------------------------
@@ -203,7 +205,7 @@ CONTAINS
           !   Millero p.669 (1995) using data from Dickson (1990)
           !---------------------------------------------------------------------
 
-          kb(i) = EXP((-8966.90_r8 - 2890.53_r8 * sqrts - &
+          kb(i,iblock) = EXP((-8966.90_r8 - 2890.53_r8 * sqrts - &
                77.942_r8 * s(i) + 1.728_r8 * s15 - &
                0.0996_r8 * s2) * invtk + (148.0248_r8 + &
                137.1942_r8 * sqrts + 1.62142_r8 * s(i)) + &
@@ -216,7 +218,7 @@ CONTAINS
           !   DOE(1994) eq 7.2.20 with footnote using data from Millero (1974)
           !---------------------------------------------------------------------
 
-          k1p(i) = EXP(-4576.752_r8 * invtk + 115.525_r8 - &
+          k1p(i,iblock) = EXP(-4576.752_r8 * invtk + 115.525_r8 - &
                18.453_r8 * dlogtk + &
                (-106.736_r8 * invtk + 0.69171_r8) * sqrts + &
                (-0.65643_r8 * invtk - 0.01844_r8) * s(i))
@@ -226,7 +228,7 @@ CONTAINS
           !   DOE(1994) eq 7.2.23 with footnote using data from Millero (1974))
           !---------------------------------------------------------------------
 
-          k2p(i) = EXP(-8814.715_r8 * invtk + 172.0883_r8 - &
+          k2p(i,iblock) = EXP(-8814.715_r8 * invtk + 172.0883_r8 - &
                27.927_r8 * dlogtk + &
                (-160.340_r8 * invtk + 1.3566_r8) * sqrts + &
                (0.37335_r8 * invtk - 0.05778_r8) * s(i))
@@ -236,7 +238,7 @@ CONTAINS
           !   DOE(1994) eq 7.2.26 with footnote using data from Millero (1974)
           !---------------------------------------------------------------------
 
-          k3p(i) = EXP(-3070.75_r8 * invtk - 18.141_r8 + &
+          k3p(i,iblock) = EXP(-3070.75_r8 * invtk - 18.141_r8 + &
                (17.27039_r8 * invtk + 2.81197_r8) * sqrts + &
                (-44.99486_r8 * invtk - 0.09984_r8) * s(i))
 
@@ -245,7 +247,7 @@ CONTAINS
           !   Millero p.671 (1995) using data from Yao and Millero (1995)
           !---------------------------------------------------------------------
 
-          ksi(i) = EXP(-8904.2_r8 * invtk + 117.385_r8 - &
+          ksi(i,iblock) = EXP(-8904.2_r8 * invtk + 117.385_r8 - &
                19.334_r8 * dlogtk + &
                (-458.79_r8 * invtk + 3.5913_r8) * sqrtis + &
                (188.74_r8 * invtk - 1.5998_r8) * is + &
@@ -257,7 +259,7 @@ CONTAINS
           !   Millero p.670 (1995) using composite data
           !---------------------------------------------------------------------
 
-          kw(i) = EXP(-13847.26_r8 * invtk + 148.9652_r8 - &
+          kw(i,iblock) = EXP(-13847.26_r8 * invtk + 148.9652_r8 - &
                23.6521_r8 * dlogtk + (118.67_r8 * invtk - &
                5.977_r8 + 1.0495_r8 * dlogtk) * sqrts - &
                0.01615_r8 * s(i))
@@ -267,7 +269,7 @@ CONTAINS
           !   Dickson (1990, J. chem. Thermodynamics 22, 113)
           !---------------------------------------------------------------------
 
-          ks(i) = EXP(-4276.1_r8 * invtk + 141.328_r8 - &
+          ks(i,iblock) = EXP(-4276.1_r8 * invtk + 141.328_r8 - &
                23.093_r8 * dlogtk + (-13856.0_r8 * invtk + &
                324.57_r8 - 47.986_r8 * dlogtk) * sqrtis + &
                (35474.0_r8 * invtk - 771.54_r8 + &
@@ -281,10 +283,10 @@ CONTAINS
           !   Dickson and Riley (1979) -- change pH scale to total
           !---------------------------------------------------------------------
 
-          kf(i) = EXP(1590.2_r8 * invtk - 12.641_r8 + &
+          kf(i,iblock) = EXP(1590.2_r8 * invtk - 12.641_r8 + &
                1.525_r8 * sqrtis + &
                LOG(c1 - 0.001005_r8 * s(i)) +  &
-               LOG(c1 + (0.1400_r8 / 96.062_r8) * (scl) / ks(i)))
+               LOG(c1 + (0.1400_r8 / 96.062_r8) * (scl) / ks(i,iblock)))
 
           !---------------------------------------------------------------------
           !   Calculate concentrations for borate, sulfate, and fluoride
@@ -293,9 +295,9 @@ CONTAINS
           !   ft : Riley (1965)
           !---------------------------------------------------------------------
 
-          bt(i) = 0.000232_r8 * scl / 10.811_r8
-          st(i) = 0.14_r8 * scl / 96.062_r8
-          ft(i) = 0.000067_r8 * scl / 18.9984_r8
+          bt(i,iblock) = 0.000232_r8 * scl / 10.811_r8
+          st(i,iblock) = 0.14_r8 * scl / 96.062_r8
+          ft(i,iblock) = 0.000067_r8 * scl / 18.9984_r8
 
           x1(i) = c10 ** (-phhi(i))
           x2(i) = c10 ** (-phlo(i))
@@ -318,7 +320,7 @@ CONTAINS
     !   set x1 and x2 to the previous value of the pH +/- ~0.5.
     !---------------------------------------------------------------------------
 
-    CALL drtsafe_row(mask, x1, x2, xacc, htotal)
+    CALL drtsafe_row(iblock, mask, x1, x2, xacc, htotal)
 
     !---------------------------------------------------------------------------
     !   Calculate [CO2*] as defined in DOE Methods Handbook 1994 Ver.2,
@@ -329,9 +331,9 @@ CONTAINS
        IF (mask(i)) THEN
 
           htotal2 = htotal(i) ** 2
-          co2star(i) = dic(i) * htotal2 / &
-               (htotal2 + k1(i) * htotal(i) + k1(i) * k2(i))
-          co2starair = xco2(i) * ff(i) * atmpres(i)
+          co2star(i) = dic(i,iblock) * htotal2 / &
+               (htotal2 + k1(i,iblock) * htotal(i) + k1(i,iblock) * k2(i,iblock))
+          co2starair = xco2(i) * ff(i,iblock) * atmpres(i)
           dco2star(i) = co2starair - co2star(i)
           ph(i) = -LOG10(htotal(i))
 
@@ -340,7 +342,7 @@ CONTAINS
           !   Should we be using K0 or ff for the solubility here?
           !---------------------------------------------------------------------
 
-          pCO2surf(i) = co2star(i) / ff(i)
+          pCO2surf(i) = co2star(i) / ff(i,iblock)
           dpCO2(i)    = pCO2surf(i) - xco2(i) * atmpres(i)
 
           !---------------------------------------------------------------------
@@ -369,7 +371,7 @@ CONTAINS
 
   !*****************************************************************************
 
-  SUBROUTINE talk_row(mask, x, fn, df)
+  SUBROUTINE talk_row(iblock, mask, x, fn, df)
 
     !---------------------------------------------------------------------------
     !   This routine computes TA as a function of DIC, htotal and constants.
@@ -385,6 +387,7 @@ CONTAINS
     !   input arguments
     !---------------------------------------------------------------------------
 
+    INTEGER(KIND=int_kind), INTENT(IN) :: iblock
     LOGICAL(KIND=log_kind), DIMENSION(nx_block), INTENT(IN) :: mask
     REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: x
 
@@ -410,49 +413,49 @@ CONTAINS
           x1 = x(i)
           x2 = x1 * x1
           x3 = x2 * x1
-          k12 = k1(i) * k2(i)
-          k12p = k1p(i) * k2p(i)
-          k123p = k12p * k3p(i)
-          a = x3 + k1p(i) * x2 + k12p * x1 + k123p
+          k12 = k1(i,iblock) * k2(i,iblock)
+          k12p = k1p(i,iblock) * k2p(i,iblock)
+          k123p = k12p * k3p(i,iblock)
+          a = x3 + k1p(i,iblock) * x2 + k12p * x1 + k123p
           a2 = a * a
-          da = c3 * x2 + c2 * k1p(i) * x1 + k12p
-          b = x2 + k1(i) * x1 + k12
+          da = c3 * x2 + c2 * k1p(i,iblock) * x1 + k12p
+          b = x2 + k1(i,iblock) * x1 + k12
           b2 = b * b
-          db = c2 * x1 + k1(i)
-          c = c1 + st(i) / ks(i)
+          db = c2 * x1 + k1(i,iblock)
+          c = c1 + st(i,iblock) / ks(i,iblock)
 
           !---------------------------------------------------------------------
           !   fn = hco3+co3+borate+oh+hpo4+2*po4+silicate-hfree-hso4-hf-h3po4-ta
           !---------------------------------------------------------------------
 
-          fn(i) = k1(i) * x1 * dic(i) / b + &
-               c2 * dic(i) * k12 / b + &
-               bt(i) / (c1 + x1 / kb(i)) + &
-               kw(i) / x1 + &
-               pt(i) * k12p * x1 / a + &
-               c2 * pt(i) * k123p / a + &
-               sit(i) / (c1 + x1 / ksi(i)) - &
+          fn(i) = k1(i,iblock) * x1 * dic(i,iblock) / b + &
+               c2 * dic(i,iblock) * k12 / b + &
+               bt(i,iblock) / (c1 + x1 / kb(i,iblock)) + &
+               kw(i,iblock) / x1 + &
+               pt(i,iblock) * k12p * x1 / a + &
+               c2 * pt(i,iblock) * k123p / a + &
+               sit(i,iblock) / (c1 + x1 / ksi(i,iblock)) - &
                x1 / c - &
-               st(i) / (c1 + ks(i) / x1 / c) - &
-               ft(i) / (c1 + kf(i) / x1) - &
-               pt(i) * x3 / a - &
-               ta(i)
+               st(i,iblock) / (c1 + ks(i,iblock) / x1 / c) - &
+               ft(i,iblock) / (c1 + kf(i,iblock) / x1) - &
+               pt(i,iblock) * x3 / a - &
+               ta(i,iblock)
 
           !---------------------------------------------------------------------
           !   df = d(fn)/dx
           !---------------------------------------------------------------------
 
-          df(i) = ((k1(i) * dic(i) * b) - k1(i) * x1 * dic(i) * db) / b2 - &
-               c2 * dic(i) * k12 * db / b2 - &
-               bt(i) / kb(i) / (c1 + x1 / kb(i)) ** 2 - &
-               kw(i) / x2 + &
-               (pt(i) * k12p * (a - x1 * da)) / a2 - &
-               c2 * pt(i) * k123p * da / a2 - &
-               sit(i) / ksi(i) / (c1 + x1 / ksi(i)) ** 2 - &
+          df(i) = ((k1(i,iblock) * dic(i,iblock) * b) - k1(i,iblock) * x1 * dic(i,iblock) * db) / b2 - &
+               c2 * dic(i,iblock) * k12 * db / b2 - &
+               bt(i,iblock) / kb(i,iblock) / (c1 + x1 / kb(i,iblock)) ** 2 - &
+               kw(i,iblock) / x2 + &
+               (pt(i,iblock) * k12p * (a - x1 * da)) / a2 - &
+               c2 * pt(i,iblock) * k123p * da / a2 - &
+               sit(i,iblock) / ksi(i,iblock) / (c1 + x1 / ksi(i,iblock)) ** 2 - &
                c1 / c + &
-               st(i) * (c1 + ks(i) / x1 / c) ** (-2) * (ks(i) / c / x2) + &
-               ft(i) * (c1 + kf(i) / x1) ** (-2) * kf(i) / x2 - &
-               pt(i) * x2 * (c3 * a - x1 * da) / a2
+               st(i,iblock) * (c1 + ks(i,iblock) / x1 / c) ** (-2) * (ks(i,iblock) / c / x2) + &
+               ft(i,iblock) * (c1 + kf(i,iblock) / x1) ** (-2) * kf(i,iblock) / x2 - &
+               pt(i,iblock) * x2 * (c3 * a - x1 * da) / a2
 
        END IF ! if mask
     END DO ! i loop
@@ -461,7 +464,7 @@ CONTAINS
 
   !*****************************************************************************
 
-  SUBROUTINE drtsafe_row(mask_in, x1, x2, xacc, soln)
+  SUBROUTINE drtsafe_row(iblock, mask_in, x1, x2, xacc, soln)
 
     !---------------------------------------------------------------------------
     !   Vectorized version of drtsafe, which was a modified version of
@@ -481,6 +484,7 @@ CONTAINS
     !   input arguments
     !---------------------------------------------------------------------------
 
+    INTEGER(KIND=int_kind), INTENT(IN) :: iblock
     LOGICAL(KIND=log_kind), DIMENSION(nx_block), INTENT(IN) :: mask_in
     REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: x1, x2
     REAL(KIND=r8), INTENT(IN) :: xacc
@@ -507,8 +511,8 @@ CONTAINS
 
     mask = mask_in
 
-    CALL talk_row(mask, x1, flo, df)
-    CALL talk_row(mask, x2, fhi, df)
+    CALL talk_row(iblock, mask, x1, flo, df)
+    CALL talk_row(iblock, mask, x2, fhi, df)
 
     DO i = 1,nx_block
        IF (mask(i)) THEN
@@ -528,7 +532,7 @@ CONTAINS
        END IF
     END DO
 
-    CALL talk_row(mask, soln, f, df)
+    CALL talk_row(iblock, mask, soln, f, df)
 
     !---------------------------------------------------------------------------
     !   perform iterations, zeroing mask when a location has converged
@@ -558,7 +562,7 @@ CONTAINS
 
        IF (.NOT. ANY(mask)) RETURN
 
-       CALL talk_row(mask, soln, f, df)
+       CALL talk_row(iblock, mask, soln, f, df)
 
        DO i = 1,nx_block
           IF (mask(i)) THEN

@@ -620,7 +620,7 @@
 !-----------------------------------------------------------------------
 
    if (filtered_SST_SSS_needed) then
-      !$OMP PARALLEL DO PRIVATE(iblock,n,ref_val)
+      !$OMP PARALLEL DO PRIVATE(iblock)
       do iblock = 1,nblocks_clinic
          SST_FILT(:,:,iblock) = p5*(TRACER(:,:,1,1,oldtime,iblock) + &
                                     TRACER(:,:,1,1,curtime,iblock))

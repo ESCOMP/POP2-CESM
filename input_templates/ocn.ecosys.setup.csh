@@ -434,10 +434,10 @@ else if ($command == document) then
 
    set pop2_document_files   = $2
 
-  \ls -la $IC_file    >> $pop2_document_files || exit 7
-  \ls -la $DST_file   >> $pop2_document_files || exit 7
-  \ls -la $fesed_file >> $pop2_document_files || exit 7
-  \ls -la $ndep_file  >> $pop2_document_files || exit 7
+  if (-e $IC_file)    \ls -la $IC_file    >> $pop2_document_files 
+  if (-e $DST_file)   \ls -la $DST_file   >> $pop2_document_files 
+  if (-e $fesed_file) \ls -la $fesed_file >> $pop2_document_files 
+  if (-e $ndep_file)  \ls -la $ndep_file  >> $pop2_document_files 
 
 else if ($command == ccsm_prestage) then
 

@@ -403,6 +403,9 @@
 ! !INTERFACE:
 
  subroutine timer_start(timer_id, block_id)
+#ifdef CCSMCOUPLED
+ use perf_mod
+#endif
 
 ! !DESCRIPTION:
 !  This routine starts a given node timer if it has not already
@@ -434,6 +437,10 @@
 !-----------------------------------------------------------------------
 
    if (all_timers(timer_id)%in_use) then
+
+#ifdef CCSMCOUPLED
+      call t_startf(trim(all_timers(timer_id)%name))
+#endif
 
       !***
       !*** if called from within a block loop, start block timers
@@ -518,6 +525,9 @@
 ! !INTERFACE:
 
  subroutine timer_stop(timer_id, block_id)
+#ifdef CCSMCOUPLED
+ use perf_mod
+#endif
 
 ! !DESCRIPTION:
 !  This routine stops a given node timer if appropriate.  If block 
@@ -651,6 +661,10 @@
          endif
 
       endif
+
+#ifdef CCSMCOUPLED
+      call t_stopf(trim(all_timers(timer_id)%name))
+#endif
    else
       call exit_POP(sigAbort, &
                     'timer_start: attempt to start undefined timer')

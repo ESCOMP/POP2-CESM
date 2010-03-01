@@ -977,7 +977,7 @@
    if ( sfwf_formulation == 'partially-coupled' ) then
      if (sfc_layer_type == sfc_layer_varthick .and.  &
          .not. lfw_as_salt_flx) then
-       !$OMP PARALLEL DO PRIVATE(iblock,n)
+       !$OMP PARALLEL DO PRIVATE(iblock)
        do iblock=1,nblocks_clinic
           STF(:,:,2,iblock) =  SFWF_COMP(:,:,  iblock,sfwf_comp_wrest) &
                              + SFWF_COMP(:,:,  iblock,sfwf_comp_srest)
@@ -990,7 +990,7 @@
      else
        if ( lms_balance ) then
 
-         !$OMP PARALLEL DO PRIVATE(iblock,WORK1,WORK2)
+         !$OMP PARALLEL DO PRIVATE(iblock)
          do iblock=1,nblocks_clinic
            WORK1(:,:,iblock) = SFWF_COMP(:,:,iblock,sfwf_comp_flxio) /  &
                                 salinity_factor
@@ -1001,7 +1001,7 @@
          call ms_balancing (WORK2, EVAP_F,PREC_F, MELT_F, ROFF_F, IOFF_F,   &
                             SALT_F, QFLUX, 'salt', ICEOCN_F=WORK1)
 
-         !$OMP PARALLEL DO PRIVATE(iblock,WORK2)
+         !$OMP PARALLEL DO PRIVATE(iblock)
          do iblock=1,nblocks_clinic
            STF(:,:,2,iblock) =  SFWF_COMP(:,:,iblock,sfwf_comp_wrest)  &
                               + SFWF_COMP(:,:,iblock,sfwf_comp_srest)  &
@@ -1073,12 +1073,11 @@
 !
 !-----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(iblock,this_block,WORK)
+   !$OMP PARALLEL DO PRIVATE(iblock,this_block)
 
    do iblock = 1,nblocks_clinic
 
       this_block = get_block(blocks_clinic(iblock),iblock)
-
 
       if (tavg_requested(tavg_EVAP_F)) then
          call accumulate_tavg_field(EVAP_F(:,:,iblock), &
@@ -1139,8 +1138,6 @@
          call accumulate_tavg_field(IFRAC(:,:,iblock), &
                                     tavg_IFRAC,iblock,1)
       endif
-
-
 
    end do
 

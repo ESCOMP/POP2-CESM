@@ -314,7 +314,13 @@ subroutine gather_global_dbl(ARRAY_G, ARRAY, dst_task, src_dist)
     type (block) :: &
       this_block  ! block info for current block
 
-    integer (int_kind) :: signal = 1
+#ifdef _USE_FLOW_CONTROL
+    integer (int_kind) :: &
+      rcv_request    ,&! request id
+      signal           ! MPI handshaking variable
+
+    signal = 1
+#endif
 
 !-----------------------------------------------------------------------
 !
@@ -367,13 +373,22 @@ subroutine gather_global_dbl(ARRAY_G, ARRAY, dst_task, src_dist)
 
           this_block = get_block(n,n)
 
+#ifdef _USE_FLOW_CONTROL
+          call MPI_IRECV(msg_buffer, size(msg_buffer), &
+                         mpi_dbl, src_dist%proc(n)-1, &
+                         3*mpitag_gs+n, MPI_COMM_OCN, &
+                         rcv_request, ierr)
+
           call MPI_SEND(signal, 1, mpi_integer, &
                         src_dist%proc(n)-1, 3*mpitag_gs+n, &
                         MPI_COMM_OCN, ierr)
 
+          call MPI_WAIT(rcv_request, status, ierr)
+#else
           call MPI_RECV(msg_buffer, size(msg_buffer), &
                         mpi_dbl, src_dist%proc(n)-1, 3*mpitag_gs+n, &
                         MPI_COMM_OCN, status, ierr)
+#endif
 
           do j=this_block%jb,this_block%je
           do i=this_block%ib,this_block%ie
@@ -400,12 +415,18 @@ subroutine gather_global_dbl(ARRAY_G, ARRAY, dst_task, src_dist)
 
           src_block = src_dist%local_block(n)
 
+#ifdef _USE_FLOW_CONTROL
           call MPI_RECV(signal, 1, mpi_integer, &
                         dst_task, 3*mpitag_gs+n, &
                         MPI_COMM_OCN, status, ierr)
+          call MPI_RSEND(ARRAY(1,1,src_block), nx_block*ny_block, &
+                      mpi_dbl, dst_task, 3*mpitag_gs+n, &
+                      MPI_COMM_OCN, ierr)
+#else
           call MPI_SEND(ARRAY(1,1,src_block), nx_block*ny_block, &
                       mpi_dbl, dst_task, 3*mpitag_gs+n, &
                       MPI_COMM_OCN, ierr)
+#endif
         endif
       end do
 
@@ -479,6 +500,14 @@ end subroutine gather_global_dbl
    type (block) :: &
      this_block  ! block info for current block
 
+#ifdef _USE_FLOW_CONTROL
+   integer (int_kind) :: &
+     rcv_request    ,&! request id
+     signal           ! MPI handshaking variable
+
+   signal = 1
+#endif
+
 !-----------------------------------------------------------------------
 !
 !  if this task is the dst_task, copy local blocks into the global 
@@ -530,9 +559,22 @@ end subroutine gather_global_dbl
 
          this_block = get_block(n,n)
 
+#ifdef _USE_FLOW_CONTROL
+         call MPI_IRECV(msg_buffer, size(msg_buffer), &
+                        mpi_real, src_dist%proc(n)-1, &
+                        3*mpitag_gs+n, MPI_COMM_OCN,  &
+                        rcv_request, ierr)
+
+         call MPI_SEND(signal, 1, mpi_integer, &
+                       src_dist%proc(n)-1, 3*mpitag_gs+n, &
+                       MPI_COMM_OCN, ierr)
+
+         call MPI_WAIT(rcv_request, status, ierr)
+#else
          call MPI_RECV(msg_buffer, size(msg_buffer), &
                        mpi_real, src_dist%proc(n)-1, 3*mpitag_gs+n, &
                        MPI_COMM_OCN, status, ierr)
+#endif
 
          do j=this_block%jb,this_block%je
          do i=this_block%ib,this_block%ie
@@ -562,9 +604,19 @@ end subroutine gather_global_dbl
 
          nsends = nsends + 1
          src_block = src_dist%local_block(n)
+
+#ifdef _USE_FLOW_CONTROL
+         call MPI_RECV(signal, 1, mpi_integer, &
+                       dst_task, 3*mpitag_gs+n, &
+                       MPI_COMM_OCN, status, ierr)
+         call MPI_IRSEND(ARRAY(1,1,src_block), nx_block*ny_block, &
+                     mpi_real, dst_task, 3*mpitag_gs+n, &
+                     MPI_COMM_OCN, snd_request(nsends), ierr)
+#else
          call MPI_ISEND(ARRAY(1,1,src_block), nx_block*ny_block, &
                      mpi_real, dst_task, 3*mpitag_gs+n, &
                      MPI_COMM_OCN, snd_request(nsends), ierr)
+#endif
        endif
      end do
 
@@ -642,6 +694,14 @@ end subroutine gather_global_dbl
    type (block) :: &
      this_block  ! block info for current block
 
+#ifdef _USE_FLOW_CONTROL
+   integer (int_kind) :: &
+     rcv_request    ,&! request id
+     signal           ! MPI handshaking variable
+
+   signal = 1
+#endif
+
 !-----------------------------------------------------------------------
 !
 !  if this task is the dst_task, copy local blocks into the global 
@@ -693,9 +753,22 @@ end subroutine gather_global_dbl
 
          this_block = get_block(n,n)
 
+#ifdef _USE_FLOW_CONTROL
+         call MPI_IRECV(msg_buffer, size(msg_buffer), &
+                        mpi_integer, src_dist%proc(n)-1, &
+                        3*mpitag_gs+n, MPI_COMM_OCN, &
+                        rcv_request, ierr)
+
+         call MPI_SEND(signal, 1, mpi_integer, &
+                       src_dist%proc(n)-1, 3*mpitag_gs+n, &
+                       MPI_COMM_OCN, ierr)
+
+         call MPI_WAIT(rcv_request, status, ierr)
+#else
          call MPI_RECV(msg_buffer, size(msg_buffer), &
                        mpi_integer, src_dist%proc(n)-1, 3*mpitag_gs+n, &
                        MPI_COMM_OCN, status, ierr)
+#endif
 
          do j=this_block%jb,this_block%je
          do i=this_block%ib,this_block%ie
@@ -725,9 +798,19 @@ end subroutine gather_global_dbl
 
          nsends = nsends + 1
          src_block = src_dist%local_block(n)
+
+#ifdef _USE_FLOW_CONTROL
+         call MPI_RECV(signal, 1, mpi_integer, &
+                       dst_task, 3*mpitag_gs+n, &
+                       MPI_COMM_OCN, status, ierr)
+         call MPI_IRSEND(ARRAY(1,1,src_block), nx_block*ny_block, &
+                     mpi_integer, dst_task, 3*mpitag_gs+n, &
+                     MPI_COMM_OCN, snd_request(nsends), ierr)
+#else
          call MPI_ISEND(ARRAY(1,1,src_block), nx_block*ny_block, &
                      mpi_integer, dst_task, 3*mpitag_gs+n, &
                      MPI_COMM_OCN, snd_request(nsends), ierr)
+#endif
        endif
      end do
 

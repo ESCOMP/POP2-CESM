@@ -631,7 +631,7 @@
         !----------------------------------------------------------------
         ! transport excess/deficit to/from associated active-ocean region
         !----------------------------------------------------------------
-         !$OMP PARALLEL DO PRIVATE(iblock,n)
+         !$OMP PARALLEL DO PRIVATE(iblock)
          do iblock = 1,nblocks_clinic
 
          STF2(:,:,iblock) = STF2(:,:,iblock)  &

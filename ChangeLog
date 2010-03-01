@@ -1,6 +1,48 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    1 March 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100301
+Tag Testing: See testing log
+Tag Summary: 1) Merge openmp2pop04_ccsm_pop_2_1_20100125 onto pop2 trunk
+             2) Implement work-around to change in timing sequence of inputdata checking
+                (a change in ccsm4 scripts caused pop2 scripts to break)
+             3) Redirect POP_stdout to stdout (using CCSMCOUPLED if blocks in initial.F90)
+
+M           21322   source/sw_absorption.F90           import openmp2pop04_ccsm_pop_2_1_20100125 as-is
+M           21322   source/hmix_aniso.F90                   ditto
+M           21322   source/diagnostics.F90                  ditto
+M           21322   source/movie.F90                        ditto
+M           21322   source/timers.F90                       ditto, EXCEPT add CCSMCOUPLED blocks 
+M           21322   source/cfc_mod.F90                      ditto
+M           21322   source/io_netcdf.F90                    ditto
+M           21322   source/cfc11_mod.F90                    ditto, EXCEPT changed !pw to !untested
+M           21322   source/passive_tracers.F90              ditto
+M           21322   source/forcing_coupled.F90              ditto
+M           21322   source/co2calc.F90                      ditto
+M           21322   source/ms_balance.F90                   ditto
+M           21322   source/hmix_gm.F90                      ditto (This creates HUGE replicated blocks) 
+M           21322   source/baroclinic.F90                   ditto
+M           21322   source/state_mod.F90                    ditto
+M           21322   mpi/gather_scatter.F90                  ditto
+M           21322   mpi/POP_HaloMod.F90                     ditto
+M           21322   drivers/cpl_mct/ocn_comp_mct.F90        ditto
+M           21322   drivers/cpl_esmf/ocn_comp_esmf.F90      ditto
+
+M           21322   source/tavg.F90                    openmp2pop04_ccsm_pop_2_1_20100125 mods imported 
+                                                           into trunk version    
+M           21322   source/ecosys_mod.F90                   ditto 
+M           21322   ChangeLog
+M           21322   input_templates/ocn.ecosys.setup.csh compensate for possibility of missing inputdata
+M           21322   input_templates/ocn.cfc.setup.csh       ditto
+M           21322   input_templates/ocn.cfc11.setup.csh     ditto
+
+From previous, untagged commit:
+                     source/POP_IOUnitsMod.F90  (redirect POP_stdout if CCSMCOUPLED)
+            
+
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    17 February 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100217
 Tag Testing: See testing log

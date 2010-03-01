@@ -504,7 +504,7 @@
 !-----------------------------------------------------------------------
 
 
-!jw    !$OMP PARALLEL DO PRIVATE(iblock,k,kp1,km1,this_block,WTK,WORK1,factor)
+   !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,kp1,km1,WTK,WORK1,factor)
 
    do iblock = 1,nblocks_clinic
       this_block = get_block(blocks_clinic(iblock),iblock)  
@@ -812,7 +812,7 @@
 
    enddo ! first block loop
 
-!jw   !$OMP END PARALLEL DO
+   !$OMP END PARALLEL DO
 
 
 !-----------------------------------------------------------------------
@@ -857,8 +857,8 @@
 !
 !-----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(iblock,k,km1,kp1,n,this_block, &
-   !$OMP                     WUK, FX, FY, WORK1, WORK2)
+   !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,km1,kp1,n, &
+   !$OMP                     WUK,FX,FY,WORK1,WORK2)
 
    do iblock = 1,nblocks_clinic
 
@@ -1144,6 +1144,8 @@
 !
 !-----------------------------------------------------------------------
 
+   !$OMP PARALLEL DO PRIVATE(iblock,this_block,n,RHS1)
+
    do iblock = 1,nblocks_clinic
 
       this_block = get_block(blocks_clinic(iblock),iblock)  
@@ -1355,6 +1357,8 @@
 !-----------------------------------------------------------------------
 
    end do
+
+   !$OMP END PARALLEL DO
 
 !-----------------------------------------------------------------------
 !EOC

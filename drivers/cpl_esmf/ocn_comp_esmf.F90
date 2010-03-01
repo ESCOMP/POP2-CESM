@@ -1243,7 +1243,6 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
      do k = 1,nrecv
 
          n = 0
-         !$OMP PARALLEL DO PRIVATE(iblock,this_block,i,j,n)
          do iblock = 1, nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
 
@@ -1254,7 +1253,6 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
             enddo
             enddo
          enddo
-         !$OMP END PARALLEL DO
 
          gsum = global_sum_prod(WORK1 , TAREA, distrb_clinic, &
                                  field_loc_center, RCALCT)*m2percm2

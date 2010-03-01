@@ -144,6 +144,18 @@ module cfc_mod
       tavg_CFC12_surf_sat    ! tavg id for cfc12 surface saturation
 
 !-----------------------------------------------------------------------
+!  data_ind is the index into data for current timestep, i.e
+!  data_ind is largest integer less than pcfc_data_len s.t.
+!  pcfc_date(i) <= iyear + (iday_of_year-1+frac_day)/days_in_year
+!                  - model_year + data_year
+!  Note that data_ind is always strictly less than pcfc_data_len.
+!  To enable OpenMP parallelism, duplicating data_ind for each block
+!-----------------------------------------------------------------------
+
+   integer (int_kind), dimension(:), allocatable :: &
+      data_ind
+
+!-----------------------------------------------------------------------
 !  timers
 !-----------------------------------------------------------------------
 
@@ -1031,6 +1043,9 @@ contains
       tracer_bndy_loc,          &! location and field type for ghost
       tracer_bndy_type           !    cell updates
 
+   logical (log_kind), save :: &
+      first = .true.
+
 !-----------------------------------------------------------------------
 !  local parameters
 !-----------------------------------------------------------------------
@@ -1041,6 +1056,12 @@ contains
 !-----------------------------------------------------------------------
 
    call timer_start(cfc_sflux_timer)
+
+   if (first) then
+      allocate( data_ind(max_blocks_clinic) )
+      data_ind = -1
+      first = .false.
+   endif
 
    do iblock = 1, nblocks_clinic
       IFRAC_USED(:,:,iblock) = c0
@@ -1120,7 +1141,9 @@ contains
        AP_USED = INTERP_WORK(:,:,:,1)
    endif
 
-   !$OMP PARALLEL DO PRIVATE(iblock,SURF_VALS,pCFC11,pCFC12,CFC11_SCHMIDT,CFC12_SCHMIDT,CFC11_SOL_0,CFC12_SOL_0,XKW_ICE,PV,CFC_surf_sat)
+   !$OMP PARALLEL DO PRIVATE(iblock,SURF_VALS,pCFC11,pCFC12,CFC11_SCHMIDT, &
+   !$OMP                     CFC12_SCHMIDT,CFC11_SOL_0,CFC12_SOL_0,XKW_ICE,&
+   !$OMP                     PV,CFC_surf_sat)
    do iblock = 1, nblocks_clinic
 
       if (cfc_formulation == 'ocmip') then
@@ -1154,7 +1177,8 @@ contains
 
       AP_USED(:,:,iblock) = AP_USED(:,:,iblock) * (c1 / 1013.25e+3_r8)
 
-      call comp_pcfc(LAND_MASK(:,:,iblock), iblock, pCFC11, pCFC12)
+      call comp_pcfc(iblock, LAND_MASK(:,:,iblock), data_ind(iblock), &
+                     pCFC11, pCFC12)
 
       call comp_cfc_schmidt(LAND_MASK(:,:,iblock), SST(:,:,iblock), &
                             CFC11_SCHMIDT, CFC12_SCHMIDT)
@@ -1210,7 +1234,7 @@ contains
 ! !IROUTINE: comp_pcfc
 ! !INTERFACE:
 
- subroutine comp_pcfc(LAND_MASK, iblock, pCFC11, pCFC12)
+ subroutine comp_pcfc(iblock, LAND_MASK, data_ind, pCFC11, pCFC12)
 
 ! !DESCRIPTION:
 !  Compute atmospheric mole fractions of CFCs
@@ -1237,6 +1261,16 @@ contains
    integer (int_kind) :: &
       iblock          ! block index
 
+! !INPUT/OUTPUT PARAMETERS:
+
+   integer (int_kind) :: &
+      data_ind  ! data_ind is the index into data for current timestep, 
+                ! i.e data_ind is largest integer less than pcfc_data_len s.t.
+                !  pcfc_date(i) <= iyear + (iday_of_year-1+frac_day)/days_in_year
+                !                  - model_year + data_year
+                !  note that data_ind is always strictly less than pcfc_data_len
+                !  and is initialized to -1 before the first call
+
 ! !OUTPUT PARAMETERS:
 
    real (r8), dimension(nx_block,ny_block), intent(out) :: &
@@ -1248,17 +1282,6 @@ contains
 !-----------------------------------------------------------------------
 !  local variables
 !-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!  data_ind is the index into data for current timestep, i.e
-!  data_ind is largest integer less than pcfc_data_len s.t.
-!  pcfc_date(i) <= iyear + (iday_of_year-1+frac_day)/days_in_year
-!                  - model_year + data_year
-!  note that data_ind is always strictly less than pcfc_data_len
-!-----------------------------------------------------------------------
-
-   integer (int_kind), save :: data_ind
-   logical (log_kind), save :: first = .true.
 
    integer (int_kind) :: &
       i, j              ! loop indices
@@ -1293,7 +1316,6 @@ contains
       pCFC11 = c0
       pCFC12 = c0
       data_ind = 1
-      first = .false.
       return
    endif
 
@@ -1301,12 +1323,10 @@ contains
 !  On first time step, perform linear search to find data_ind.
 !-----------------------------------------------------------------------
 
-   if (first) then
+   if (data_ind == -1) then
       do data_ind = pcfc_data_len-1,1,-1
          if (mapped_date >= pcfc_date(data_ind)) exit
       end do
-
-      first = .false.
    endif
 
 !-----------------------------------------------------------------------

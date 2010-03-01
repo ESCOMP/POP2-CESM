@@ -198,15 +198,6 @@
       mwjfdp2s0t3 =  -3.03175128e-16_r8, &
       mwjfdp3s0t1 =  -1.27934137e-17_r8
 
-   !*** MWJF numerator coefficients including pressure
-
-   real (r8) ::                                                        &
-      mwjfnums0t0, mwjfnums0t1, mwjfnums0t2, mwjfnums0t3,              &
-      mwjfnums1t0, mwjfnums1t1, mwjfnums2t0,                           &
-      mwjfdens0t0, mwjfdens0t1, mwjfdens0t2, mwjfdens0t3, mwjfdens0t4, &
-      mwjfdens1t0, mwjfdens1t1, mwjfdens1t3,                           &
-      mwjfdensqt0, mwjfdensqt2
-
 !-----------------------------------------------------------------------
 !
 !  coeffs and reference values for polynomial eos
@@ -314,6 +305,15 @@
       WORK1, WORK2, WORK3, WORK4, T2
 
    real (r8) :: p, p2 ! temporary pressure scalars
+
+   !*** MWJF numerator coefficients including pressure
+
+   real (r8) ::                                                        &
+      mwjfnums0t0, mwjfnums0t1, mwjfnums0t2, mwjfnums0t3,              &
+      mwjfnums1t0, mwjfnums1t1, mwjfnums2t0,                           &
+      mwjfdens0t0, mwjfdens0t1, mwjfdens0t2, mwjfdens0t3, mwjfdens0t4, &
+      mwjfdens1t0, mwjfdens1t1, mwjfdens1t3,                           &
+      mwjfdensqt0, mwjfdensqt2
 
 !-----------------------------------------------------------------------
 !

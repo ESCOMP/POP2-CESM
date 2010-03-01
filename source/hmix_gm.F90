@@ -2184,16 +2184,59 @@
 
         if ( k < km ) then
 
+          WORK3 = c0
+
           if ( .not. cancellation_occurs ) then
 
-            WORK1 = c0
-            WORK2 = c0
-
             if ( lsubmeso ) then
+
+              WORK1 = c0
+              WORK2 = c0
+
+#ifdef _OPENMP_OPT
+!pw loop split to improve performance
+              do j=this_block%jb,this_block%je
+                do i=this_block%ib,this_block%ie
+               
+                  WORK1(i,j) = SF_SUBM_X(i  ,j  ,ieast ,kbt,k  ,bid)     &
+                             * HYX(i  ,j  ,bid) * TX(i  ,j  ,k  ,n,bid)  &
+                             + SF_SUBM_X(i  ,j  ,iwest ,kbt,k  ,bid)     &
+                             * HYX(i-1,j  ,bid) * TX(i-1,j  ,k  ,n,bid)  &
+                             + SF_SUBM_Y(i  ,j  ,jnorth,kbt,k  ,bid)     &
+                             * HXY(i  ,j  ,bid) * TY(i  ,j  ,k  ,n,bid)  &
+                             + SF_SUBM_Y(i  ,j  ,jsouth,kbt,k  ,bid)     &
+                             * HXY(i  ,j-1,bid) * TY(i  ,j-1,k  ,n,bid)
+
+                enddo
+              enddo
 
               do j=this_block%jb,this_block%je
                 do i=this_block%ib,this_block%ie
                
+                  WORK2(i,j) = factor                                    &
+                           * ( SF_SUBM_X(i  ,j  ,ieast ,ktp,kp1,bid)     &
+                             * HYX(i  ,j  ,bid) * TX(i  ,j  ,kp1,n,bid)  &
+                             + SF_SUBM_X(i  ,j  ,iwest ,ktp,kp1,bid)     &
+                             * HYX(i-1,j  ,bid) * TX(i-1,j  ,kp1,n,bid)  &
+                             + SF_SUBM_Y(i  ,j  ,jnorth,ktp,kp1,bid)     &
+                             * HXY(i  ,j  ,bid) * TY(i  ,j  ,kp1,n,bid)  &
+                             + SF_SUBM_Y(i  ,j  ,jsouth,ktp,kp1,bid)     &
+                             * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) )
+
+                enddo
+              enddo
+
+              do j=this_block%jb,this_block%je
+                do i=this_block%ib,this_block%ie
+                  WORK3(i,j) = WORK1(i,j) + WORK2(i,j)
+                enddo
+              enddo
+
+#else
+
+              do j=this_block%jb,this_block%je
+                do i=this_block%ib,this_block%ie
+
                   WORK1(i,j) = SF_SUBM_X(i  ,j  ,ieast ,kbt,k  ,bid)     &
                              * HYX(i  ,j  ,bid) * TX(i  ,j  ,k  ,n,bid)  &
                              + SF_SUBM_Y(i  ,j  ,jnorth,kbt,k  ,bid)     &
@@ -2211,12 +2254,99 @@
                              + SF_SUBM_X(i  ,j  ,iwest ,ktp,kp1,bid)     &
                              * HYX(i-1,j  ,bid) * TX(i-1,j  ,kp1,n,bid)  &
                              + SF_SUBM_Y(i  ,j  ,jsouth,ktp,kp1,bid)     &
-                             * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) ) 
+                             * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) )
 
                 enddo
               enddo
 
+#endif
+
             endif
+
+#ifdef _OPENMP_OPT
+!pw loop split to improve performance
+            do j=this_block%jb,this_block%je
+              do i=this_block%ib,this_block%ie
+
+                WORK3(i,j) = WORK3(i,j)                               &
+                    + ( dz(k) * KAPPA_ISOP(i,j,kbt,k,bid)             &
+                    * ( SLX(i,j,ieast ,kbt,k  ,bid)                   &
+                       * HYX(i  ,j  ,bid) * TX(i  ,j  ,k  ,n,bid)     &
+                      + SLY(i,j,jnorth,kbt,k  ,bid)                   &
+                       * HXY(i  ,j  ,bid) * TY(i  ,j  ,k  ,n,bid)     &
+                      + SLX(i,j,iwest ,kbt,k  ,bid)                   &
+                       * HYX(i-1,j  ,bid) * TX(i-1,j  ,k  ,n,bid)     &
+                      + SLY(i,j,jsouth,kbt,k  ,bid)                   &
+                       * HXY(i  ,j-1,bid) * TY(i  ,j-1,k  ,n,bid) ) )
+
+               enddo
+             enddo
+
+            do j=this_block%jb,this_block%je
+              do i=this_block%ib,this_block%ie
+
+                WORK3(i,j) = WORK3(i,j)                               &
+                    + ( SF_SLX(i  ,j  ,ieast ,kbt,k  ,bid)            &
+                       * HYX(i  ,j  ,bid) * TX(i  ,j  ,k  ,n,bid)     &
+                      + SF_SLY(i  ,j  ,jnorth,kbt,k  ,bid)            &
+                       * HXY(i  ,j  ,bid) * TY(i  ,j  ,k  ,n,bid)     &
+                      + SF_SLX(i  ,j  ,iwest ,kbt,k  ,bid)            &
+                       * HYX(i-1,j  ,bid) * TX(i-1,j  ,k  ,n,bid)     &
+                      + SF_SLY(i  ,j  ,jsouth,kbt,k  ,bid)            &
+                       * HXY(i  ,j-1,bid) * TY(i  ,j-1,k  ,n,bid) )   
+
+               enddo
+             enddo
+
+            do j=this_block%jb,this_block%je
+              do i=this_block%ib,this_block%ie
+
+                WORK3(i,j) = WORK3(i,j)                               &
+                    + ( dz_bottom * KAPPA_ISOP(i,j,ktp,kp1,bid)       &
+                    * ( SLX(i  ,j  ,ieast ,ktp,kp1,bid)               &
+                       * HYX(i  ,j  ,bid) * TX(i  ,j  ,kp1,n,bid)     &
+                      + SLY(i  ,j  ,jnorth,ktp,kp1,bid)               &
+                       * HXY(i  ,j  ,bid) * TY(i  ,j  ,kp1,n,bid)     &
+                      + SLX(i  ,j  ,iwest ,ktp,kp1,bid)               &
+                       * HYX(i-1,j  ,bid) * TX(i-1,j  ,kp1,n,bid)     &
+                      + SLY(i  ,j  ,jsouth,ktp,kp1,bid)               &
+                       * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) ) ) 
+
+               enddo
+             enddo
+
+            do j=this_block%jb,this_block%je
+              do i=this_block%ib,this_block%ie
+
+                 WORK3(i,j) = WORK3(i,j)                              &
+                    + ( factor                                        &
+                    * ( SF_SLX(i  ,j  ,ieast ,ktp,kp1,bid)            & 
+                       * HYX(i  ,j  ,bid) * TX(i  ,j  ,kp1,n,bid)     &
+                      + SF_SLY(i  ,j  ,jnorth,ktp,kp1,bid)            &
+                       * HXY(i  ,j  ,bid) * TY(i  ,j  ,kp1,n,bid)     &
+                      + SF_SLX(i  ,j  ,iwest ,ktp,kp1,bid)            &
+                       * HYX(i-1,j  ,bid) * TX(i-1,j  ,kp1,n,bid)     &
+                      + SF_SLY(i  ,j  ,jsouth,ktp,kp1,bid)            &
+                       * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) ) )
+
+               enddo
+             enddo
+
+            do j=this_block%jb,this_block%je
+              do i=this_block%ib,this_block%ie
+
+                fz = -KMASK(i,j) * p25 * WORK3(i,j)
+
+                GTK(i,j,n) = ( FX(i,j,n) - FX(i-1,j,n)  &
+                             + FY(i,j,n) - FY(i,j-1,n)  &
+                      + FZTOP(i,j,n,bid) - fz )*dzr(k)*TAREA_R(i,j,bid)
+
+                FZTOP(i,j,n,bid) = fz
+
+              enddo
+            enddo
+
+#else
 
             do j=this_block%jb,this_block%je
               do i=this_block%ib,this_block%ie
@@ -2249,7 +2379,7 @@
                       + SLY(i  ,j  ,jsouth,ktp,kp1,bid)               &
                        * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) ) ) &
                    + ( factor                                         &
-                    * ( SF_SLX(i  ,j  ,ieast ,ktp,kp1,bid)            & 
+                    * ( SF_SLX(i  ,j  ,ieast ,ktp,kp1,bid)            &
                        * HYX(i  ,j  ,bid) * TX(i  ,j  ,kp1,n,bid)     &
                       + SF_SLY(i  ,j  ,jnorth,ktp,kp1,bid)            &
                        * HXY(i  ,j  ,bid) * TY(i  ,j  ,kp1,n,bid)     &
@@ -2268,7 +2398,61 @@
               enddo
             enddo
 
+#endif
+
           else
+
+#ifdef _OPENMP_OPT
+!pw loop split to improve performance
+            do j=this_block%jb,this_block%je
+              do i=this_block%ib,this_block%ie
+
+               WORK3(i,j) =                                           &
+                   ( dz(k) * KAPPA_ISOP(i,j,kbt,k,bid)                &
+                   * (  SLX(i,j,ieast ,kbt,k  ,bid)                   &
+                       * HYX(i  ,j  ,bid) * TX(i  ,j  ,k  ,n,bid)     &
+                      + SLY(i,j,jnorth,kbt,k  ,bid)                   &
+                       * HXY(i  ,j  ,bid) * TY(i  ,j  ,k  ,n,bid)     &
+                      + SLX(i,j,iwest ,kbt,k  ,bid)                   &
+                       * HYX(i-1,j  ,bid) * TX(i-1,j  ,k  ,n,bid)     &
+                      + SLY(i,j,jsouth,kbt,k  ,bid)                   &
+                       * HXY(i  ,j-1,bid) * TY(i  ,j-1,k  ,n,bid) ) )
+
+              enddo
+            enddo
+
+            do j=this_block%jb,this_block%je
+              do i=this_block%ib,this_block%ie
+
+                WORK3(i,j) = WORK3(i,j)                               &
+                    + ( dz_bottom * KAPPA_ISOP(i,j,ktp,kp1,bid)       &
+                    * ( SLX(i  ,j  ,ieast ,ktp,kp1,bid)               &
+                       * HYX(i  ,j  ,bid) * TX(i  ,j  ,kp1,n,bid)     &
+                      + SLY(i  ,j  ,jnorth,ktp,kp1,bid)               &
+                       * HXY(i  ,j  ,bid) * TY(i  ,j  ,kp1,n,bid)     &
+                      + SLX(i  ,j  ,iwest ,ktp,kp1,bid)               &
+                       * HYX(i-1,j  ,bid) * TX(i-1,j  ,kp1,n,bid)     &
+                      + SLY(i  ,j  ,jsouth,ktp,kp1,bid)               &
+                       * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) ) )
+
+              enddo
+            enddo
+
+            do j=this_block%jb,this_block%je
+              do i=this_block%ib,this_block%ie
+
+                fz = -KMASK(i,j) * p5 * WORK3(i,j)
+
+                GTK(i,j,n) = ( FX(i,j,n) - FX(i-1,j,n)  &
+                             + FY(i,j,n) - FY(i,j-1,n)  &
+                      + FZTOP(i,j,n,bid) - fz )*dzr(k)*TAREA_R(i,j,bid)
+
+                FZTOP(i,j,n,bid) = fz
+
+              enddo
+            enddo
+
+#else
 
             do j=this_block%jb,this_block%je
               do i=this_block%ib,this_block%ie
@@ -2301,6 +2485,8 @@
 
               enddo
             enddo
+
+#endif
 
           endif
 

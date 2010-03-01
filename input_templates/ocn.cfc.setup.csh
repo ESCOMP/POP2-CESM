@@ -207,7 +207,7 @@ else if ($command == document) then
 
    set pop2_document   = $2
 
-  \ls -la $pcfc_file    >> $pop2_document || exit 7
+  if (-e $pcfc_file) \ls -la $pcfc_file    >> $pop2_document
 
 
 else if ($command == ccsm_prestage) then

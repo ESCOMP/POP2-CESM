@@ -2833,6 +2833,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
+   !$OMP PARALLEL DO PRIVATE(nmsg,i,n,iSrc,jSrc,srcBlock,k)
    do nmsg=1,halo%numMsgSend
 
       i=0
@@ -2849,6 +2850,10 @@ contains
       do n=i+1,bufSizeSend*nz
          bufSend(n,nmsg) = fill  ! fill remainder of buffer
       end do
+   end do
+   !$OMP END PARALLEL DO
+
+   do nmsg=1,halo%numMsgSend
 
       msgSize = nz*halo%sizeSend(nmsg)
       call MPI_ISEND(bufSend(1:msgSize,nmsg), msgSize, POP_mpiR8, &
@@ -2903,6 +2908,7 @@ contains
 
    call MPI_WAITALL(halo%numMsgRecv, rcvRequest, rcvStatus, ierr)
 
+   !$OMP PARALLEL DO PRIVATE(nmsg,i,n,iDst,jDst,dstBlock,k)
    do nmsg=1,halo%numMsgRecv
       i = 0
       do n=1,halo%sizeRecv(nmsg)
@@ -2923,6 +2929,7 @@ contains
          endif
       end do
    end do
+   !$OMP END PARALLEL DO
 
 !-----------------------------------------------------------------------
 !

@@ -599,7 +599,7 @@ contains
        call data_set(in_file,'read'  ,io_tracer)
        call destroy_io_field(io_tracer)
 
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
+!untested       !$OMP PARALLEL DO PRIVATE(iblock, n)
        do iblock=1,nblocks_clinic
        do n=1,12
           fice_file%DATA(:,:,iblock,1,n) = &
@@ -609,7 +609,7 @@ contains
           end where
        end do
        end do
-       !$OMP END PARALLEL DO
+!untested       !$OMP END PARALLEL DO
 
        call data_set(in_file,'close')
        call destroy_file(in_file)
@@ -651,7 +651,7 @@ contains
        call data_set(in_file,'read'  ,io_tracer)
        call destroy_io_field(io_tracer)
 
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
+!untested       !$OMP PARALLEL DO PRIVATE(iblock, n)
        do iblock=1,nblocks_clinic
        do n=1,12
           xkw_file%DATA(:,:,iblock,1,n) = &
@@ -661,7 +661,7 @@ contains
           end where
        end do
        end do
-       !$OMP END PARALLEL DO
+!untested       !$OMP END PARALLEL DO
 
        call data_set(in_file,'close')
        call destroy_file(in_file)
@@ -703,7 +703,7 @@ contains
        call data_set(in_file,'read'  ,io_tracer)
        call destroy_io_field(io_tracer)
 
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
+!untested       !$OMP PARALLEL DO PRIVATE(iblock, n)
        do iblock=1,nblocks_clinic
        do n=1,12
           ap_file%DATA(:,:,iblock,1,n) = &
@@ -713,7 +713,7 @@ contains
           end where
        end do
        end do
-       !$OMP END PARALLEL DO
+!untested       !$OMP END PARALLEL DO
 
        call data_set(in_file,'close')
        call destroy_file(in_file)
@@ -1048,7 +1048,7 @@ contains
 
    case ('bulk')
 
-      !$OMP PARALLEL DO PRIVATE(iblock)
+!untested      !$OMP PARALLEL DO PRIVATE(iblock)
       do iblock = 1, nblocks_clinic
 
          FICE_USED(:,:,iblock) = IFRAC(:,:,iblock)
@@ -1056,7 +1056,7 @@ contains
             (WIND_VEL(:,:,1,iblock)**2 + WIND_VEL(:,:,2,iblock)**2)
          AP_USED(:,:,iblock) = PRESS(:,:,iblock)
       enddo
-      !$OMP END PARALLEL DO
+!untested      !$OMP END PARALLEL DO
 
    end select
 
@@ -1071,7 +1071,7 @@ contains
        !   a run in which the flux coupler didnot restart on AP correctly.
        !------------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(iblock)
+!untested   !$OMP PARALLEL DO PRIVATE(iblock)
    do iblock = 1, nblocks_clinic
 
       AP_USED(:,:,iblock) = AP_USED(:,:,iblock) / 101.325e+4_r8
@@ -1080,7 +1080,7 @@ contains
                                    (AP_USED(:,:,iblock) > 1.5_r8 .or.   &
                                     AP_USED(:,:,iblock) < 0.5_r8) )
    enddo
-   !$OMP END PARALLEL DO
+!untested   !$OMP END PARALLEL DO
 
     !---------------------------------------------------------------------------
     !   make sure current model year is within range of cfc11 time series
@@ -1135,8 +1135,8 @@ contains
     !   Compute XKW_ICE. XKW is zero over land, so XKW_ICE is too.
     !---------------------------------------------------------------------------
 
-    !$OMP PARALLEL DO PRIVATE(iblock,j,XKW_ICE,SCHMIDT_USED,CFC11SAT_1atm, &
-    !$OMP                     CFC11SAT_USED,PV,FLUX)
+!untested    !$OMP PARALLEL DO PRIVATE(iblock,XKW_ICE,SCHMIDT_USED,CFC11SAT_1atm, &
+!untested    !$OMP                     CFC11SAT_USED,PV,FLUX)
 
     do iblock = 1, nblocks_clinic
 
@@ -1180,7 +1180,7 @@ contains
 
     enddo
 
-    !$OMP END PARALLEL DO
+!untested    !$OMP END PARALLEL DO
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1213,7 +1213,7 @@ contains
 
 !-----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(iblock)
+!untested   !$OMP PARALLEL DO PRIVATE(iblock)
 
    do iblock = 1,nblocks_clinic
 
@@ -1254,7 +1254,7 @@ contains
 
    end do
 
-   !$OMP END PARALLEL DO
+!untested   !$OMP END PARALLEL DO
 
 !-----------------------------------------------------------------------
 !EOC

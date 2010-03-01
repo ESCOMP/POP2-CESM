@@ -1169,7 +1169,7 @@ contains
 !  this will be fixed in an updated IC file
 !-----------------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblock,n,k,WORK)
+      !$OMP PARALLEL DO PRIVATE(iblock,k)
       do iblock=1,nblocks_clinic
          do k=1,km
             where (k <= KMT(:,:,iblock) .and. REGION_MASK(:,:,iblock) == -12)
@@ -1180,6 +1180,7 @@ contains
             end where
          end do
       end do
+      !$OMP END PARALLEL DO
 
       if (n_topo_smooth > 0) then
          do n = 1, ecosys_tracer_cnt
@@ -4920,7 +4921,7 @@ contains
                SiO3_ROW = p5*(SURF_VALS_OLD(:,j,sio3_ind,iblock) + &
                               SURF_VALS_CUR(:,j,sio3_ind,iblock))
 
-               call co2calc_row(LAND_MASK(:,j,iblock), &
+               call co2calc_row(iblock, LAND_MASK(:,j,iblock), &
                                 SST(:,j,iblock), SSS(:,j,iblock), &
                                 DIC_ROW, ALK_ROW, PO4_ROW, SiO3_ROW, &
                                 PHLO, PHHI, PH_NEW, XCO2(:,j), &
@@ -5455,7 +5456,7 @@ contains
 
    local_sums = c0
 
-   !$OMP PARALLEL DO PRIVATE(iblock,this_block,ib,ie,jb,je,TFACT,n,WORK1)
+!jw   !$OMP PARALLEL DO PRIVATE(iblock,this_block,ib,ie,jb,je,TFACT,n,WORK1)
    do iblock = 1,nblocks_clinic
       this_block = get_block(blocks_clinic(iblock),iblock)
       ib = this_block%ib
@@ -5472,7 +5473,7 @@ contains
          endif
       end do
    end do
-   !$OMP END PARALLEL DO
+!jw   !$OMP END PARALLEL DO
 
    do n = 1, ecosys_tracer_cnt
       if (vflux_flag(n)) then

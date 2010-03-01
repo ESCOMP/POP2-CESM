@@ -1989,9 +1989,9 @@
                heat_tran(nblocks_clinic,num_transports), &
                salt_tran(nblocks_clinic,num_transports))
 
-      !$OMP PARALLEL DO PRIVATE(WORK1, WORK2,MASS_M,SALT_M,HEAT_M, &
-      !$OMP                                  MASS_Z,SALT_Z,HEAT_Z, &
-      !$OMP                     iblock,this_block,i,j,k,n,ib,ie,jb,je)
+      !$OMP PARALLEL DO PRIVATE(iblock,this_block,ib,ie,jb,je,k,j,i,n, &
+      !$OMP                     WORK1,WORK2,MASS_M,SALT_M,HEAT_M, &
+      !$OMP                     MASS_Z,SALT_Z,HEAT_Z)
 
       do iblock = 1,nblocks_clinic
 

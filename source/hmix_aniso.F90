@@ -369,7 +369,6 @@
       allocate(DSMIN(nx_block,ny_block,nblocks_clinic))
    endif
 
-!jw   !$OMP PARALLEL DO PRIVATE(iblock,i,j,WORKA,WORKB)   !this one definitely causes problems
    do iblock=1,nblocks_clinic
 
       H2S(:,:,iblock) = HTE(:,:,iblock)
@@ -398,7 +397,6 @@
       endif
 
    end do ! block loop
-!jw   !$OMP END PARALLEL DO
 
 !-----------------------------------------------------------------------
 !

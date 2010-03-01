@@ -28,6 +28,7 @@
    use io_tools
    use io_pio
    use pio
+   use shr_sys_mod
 
    implicit none
    private
@@ -2064,9 +2065,13 @@
            case (.true.)
               select case (ndims)
                   case(2)
-                     nout(1) = size(indata_1d_r8,DIM=1)
-                     allocate (outdata_2d_r8(nout(1),1))
-                     outdata_2d_r8(:,1) = indata_1d_r8(:)
+                     if (my_task == master_task) then
+                       nout(1) = size(indata_1d_r8,DIM=1)
+                       allocate (outdata_2d_r8(nout(1),1))
+                       outdata_2d_r8(:,1) = indata_1d_r8(:)
+                     else
+                       allocate (outdata_2d_r8(1,1))
+                     endif
                      iostat = pio_put_var (File, field_id, outdata_2d_r8 )
                      deallocate (outdata_2d_r8)
                   case default
@@ -2092,27 +2097,39 @@
                   case(2)
                      supported = .false. 
                   case(3)
-                     nout(1) = size(indata_2d_r4,DIM=1)
-                     nout(2) = size(indata_2d_r4,DIM=2)
-                     allocate (outdata_3d_r4(nout(1),nout(2),1))
-                     outdata_3d_r4(:,:,1) = indata_2d_r4(:,:)
+                     if (my_task == master_task) then
+                       nout(1) = size(indata_2d_r4,DIM=1)
+                       nout(2) = size(indata_2d_r4,DIM=2)
+                       allocate (outdata_3d_r4(nout(1),nout(2),1))
+                       outdata_3d_r4(:,:,1) = indata_2d_r4(:,:)
+                     else
+                       allocate (outdata_3d_r4(1,1,1))
+                     endif
                      iostat = pio_put_var (File, field_id, outdata_3d_r4 )
-                     deallocate (outdata_2d_r4)
+                     deallocate (outdata_3d_r4)
                   case(4)
-                     nout(1) = size(indata_3d_r4,DIM=1)
-                     nout(2) = size(indata_3d_r4,DIM=2)
-                     nout(3) = size(indata_3d_r4,DIM=3)
-                     allocate (outdata_4d_r4(nout(1),nout(2),nout(3),1))
-                     outdata_4d_r4(:,:,:,1) = indata_3d_r4(:,:,:)
+                     if (my_task == master_task) then
+                       nout(1) = size(indata_3d_r4,DIM=1)
+                       nout(2) = size(indata_3d_r4,DIM=2)
+                       nout(3) = size(indata_3d_r4,DIM=3)
+                       allocate (outdata_4d_r4(nout(1),nout(2),nout(3),1))
+                       outdata_4d_r4(:,:,:,1) = indata_3d_r4(:,:,:)
+                     else
+                       allocate (outdata_4d_r4(1,1,1,1))
+                     endif
                      iostat = pio_put_var (File, field_id, outdata_4d_r4)
                      deallocate (outdata_4d_r4)
                   case(5)
-                     nout(1) = size(indata_4d_r4,DIM=1)
-                     nout(2) = size(indata_4d_r4,DIM=2)
-                     nout(3) = size(indata_4d_r4,DIM=3)
-                     nout(4) = size(indata_4d_r4,DIM=4)
-                     allocate (outdata_5d_r4(nout(1),nout(2),nout(3),nout(4),1))
-                     outdata_5d_r4(:,:,:,:,1) = indata_4d_r4(:,:,:,:)
+                     if (my_task == master_task) then
+                       nout(1) = size(indata_4d_r4,DIM=1)
+                       nout(2) = size(indata_4d_r4,DIM=2)
+                       nout(3) = size(indata_4d_r4,DIM=3)
+                       nout(4) = size(indata_4d_r4,DIM=4)
+                       allocate (outdata_5d_r4(nout(1),nout(2),nout(3),nout(4),1))
+                       outdata_5d_r4(:,:,:,:,1) = indata_4d_r4(:,:,:,:)
+                     else
+                       allocate (outdata_5d_r4(1,1,1,1,1))
+                     endif
                      iostat = pio_put_var (File, field_id, outdata_5d_r4 )
                      deallocate (outdata_5d_r4)
                   case default

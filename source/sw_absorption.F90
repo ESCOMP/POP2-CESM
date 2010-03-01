@@ -900,7 +900,7 @@
  
       case ('chlorophyll')
  
-        if( k.eq.1 ) TRANSKM1 = c1         ! surface z=0
+        if( k.eq.1 ) TRANSKM1(:,:,bid) = c1         ! surface z=0
         call sw_trans_chl(2*k,this_block)  ! use explicit index and
                                            ! chl to get transmission
  
@@ -929,7 +929,7 @@
           endif
         endif
   
-        TRANSKM1 = TRANS
+        TRANSKM1(:,:,bid) = TRANS(:,:,bid)
  
       end select
 
