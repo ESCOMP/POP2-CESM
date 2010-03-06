@@ -3370,10 +3370,6 @@
    do n=1,num_ovf  ! each overflow
 ! src
       do m=1,ovf(n)%num_src  ! source
-         do k=1,km
-            ovf(n)%loc_src(m)%Utlda(k) = c0
-            ovf(n)%loc_src(m)%Vtlda(k) = c0
-         enddo
          ksrc = ovf(n)%loc_src(m)%k
          this_block = get_block(blocks_clinic(iblock),iblock)
          ib = this_block%ib
@@ -3407,10 +3403,6 @@
       end do  ! source
 ! ent
       do m=1,ovf(n)%num_ent  ! entrainment
-         do k=1,km
-            ovf(n)%loc_ent(m)%Utlda(k) = c0
-            ovf(n)%loc_ent(m)%Vtlda(k) = c0
-         enddo
          kent = ovf(n)%loc_ent(m)%k
          this_block = get_block(blocks_clinic(iblock),iblock)
          ib = this_block%ib
@@ -3445,10 +3437,6 @@
 ! prd
       do m=1,ovf(n)%num_prd_sets
          do mp=1,ovf(n)%num_prd(m)  ! product points for each set
-            do k=1,km
-               ovf(n)%loc_prd(m,mp)%Utlda(k) = c0
-               ovf(n)%loc_prd(m,mp)%Vtlda(k) = c0
-            enddo
             kprd = ovf(n)%loc_prd(m,mp)%k
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -5395,7 +5383,7 @@
       end do
       end do
    end do
-!$OMP END PARALLEL DO
+ !$OMP END PARALLEL DO
 
 
 !-----------------------------------------------------------------------

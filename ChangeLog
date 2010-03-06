@@ -1,6 +1,19 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    5 March 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100305
+Tag Testing: PET_PT.T31_g37.B.bluefire: PASS + inspection of global integral tavg quantities in ocn.log. files
+             ERS_PT.T31_g37.B.bluefire: PASS
+Tag Summary: 1) Correction: overflows.F90 was not included in previous tag; it should have been
+             2) Comment out OMP directives in tavg.F90 global sum computations; these are broken
+
+M           21475   source/overflows.F90
+M           21475   source/tavg.F90
+
+===============================================================================
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    1 March 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100301
 Tag Testing: See testing log

@@ -2500,7 +2500,7 @@
 
          if (avail_tavg_fields(nfield)%ndims == 2) then
 
-            !$OMP PARALLEL DO PRIVATE(iblock)
+!njn01      !$OMP PARALLEL DO PRIVATE(iblock)
             do iblock = 1,nblocks_clinic
                select case(field_loc)
                case(field_loc_center)
@@ -2514,7 +2514,7 @@
                                     UAREA(:,:,iblock)*RCALCU(:,:,iblock)
                end select
             end do
-            !$OMP END PARALLEL DO
+!njn01      !$OMP END PARALLEL DO
 
             tavg_field_sum = global_sum(WORK, distrb_clinic, field_loc)
 
@@ -2531,7 +2531,7 @@
 
          else
       
-            !$OMP PARALLEL DO PRIVATE(iblock,k,RMASK)
+!njn01      !$OMP PARALLEL DO PRIVATE(iblock,k,RMASK)
             do iblock = 1,nblocks_clinic
                WORK(:,:,iblock) = c0
 
@@ -2563,7 +2563,7 @@
 
                end select
             end do
-            !$OMP END PARALLEL DO
+!njn01      !$OMP END PARALLEL DO
 
             tavg_field_sum = global_sum(WORK, distrb_clinic, field_loc)
 
@@ -2725,7 +2725,7 @@
      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
-   !$OMP PARALLEL DO PRIVATE(iblock)
+!njn01 !$OMP PARALLEL DO PRIVATE(iblock)
    do iblock = 1,nblocks_clinic
       select case(field_loc)
         case(field_loc_center)
@@ -2739,7 +2739,7 @@
                                UAREA(:,:,iblock)*RCALCU(:,:,iblock)
       end select
    end do
-   !$OMP END PARALLEL DO
+!njn01 !$OMP END PARALLEL DO
 
    tavg_global_sum_2D = global_sum(WORK, distrb_clinic, field_loc)
 
@@ -2928,7 +2928,7 @@
       nfield
 
 
-  !$OMP PARALLEL DO PRIVATE(iblock,nfield)
+ !$OMP PARALLEL DO PRIVATE(iblock,nfield)
   do iblock=1,nblocks_clinic
      do nfield=1,tavg_bufsize_2d
        select case (TAVG_BUF_2D_METHOD(nfield))
@@ -2959,7 +2959,7 @@
         end select
      end do
   end do
-  !$OMP END PARALLEL DO
+ !$OMP END PARALLEL DO
 
 !-----------------------------------------------------------------------
 !EOC
@@ -3120,7 +3120,7 @@
    end select
  
  
-   !$OMP PARALLEL DO PRIVATE(iblock,nfield,loc)
+  !$OMP PARALLEL DO PRIVATE(iblock,nfield,loc)
    do nfield = 1,num_avail_tavg_fields  ! check all available fields
       loc = avail_tavg_fields(nfield)%buf_loc ! locate field in buffer
 
@@ -3150,7 +3150,7 @@
       endif ! loc
    end do
 
-   !$OMP END PARALLEL DO
+  !$OMP END PARALLEL DO
  
 
 !-----------------------------------------------------------------------
@@ -5901,7 +5901,7 @@
    tavg_loc_SV  = avail_tavg_fields(tavg_id_SV)%buf_loc
    tavg_loc_BSF = avail_tavg_fields(tavg_id_BSF)%buf_loc
 
-   !$OMP PARALLEL DO PRIVATE (this_block,iblock)
+  !$OMP PARALLEL DO PRIVATE (this_block,iblock)
    do iblock=1,nblocks_clinic
      this_block = get_block(blocks_clinic(iblock),iblock)
 
@@ -5910,7 +5910,7 @@
      call zcurl (1,WORK1(:,:,iblock),WORK2(:,:,iblock),  &
                    WORK3(:,:,iblock),this_block)
    end do
-   !$OMP END PARALLEL DO
+  !$OMP END PARALLEL DO
       
    WORK2 = c0
    call pcg_diag_bsf_solver (WORK2,WORK1, errorCode)
@@ -5936,7 +5936,7 @@
      PSI_T(:,:,iblock)= TAVG_BUF_2D(:,:,iblock,tavg_loc_BSF)
    enddo
 
-   !$OMP PARALLEL DO PRIVATE (iblock, i,j,ii,jj)
+  !$OMP PARALLEL DO PRIVATE (iblock, i,j,ii,jj)
    do iblock=1,nblocks_clinic
 
       PSI_T(:,:,iblock) = TAVG_BUF_2D(:,:,iblock,tavg_loc_BSF)
@@ -5960,7 +5960,7 @@
       TAVG_BUF_2D(:,:,iblock,tavg_loc_BSF) = PSI_U(:,:,iblock)
 
    end do
-   !$OMP END PARALLEL DO
+  !$OMP END PARALLEL DO
 
  
    !*** stop bsf timer
