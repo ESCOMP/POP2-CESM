@@ -1,6 +1,54 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    19 March 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100319
+Tag Testing: 
+PASS  PET_PT.T31_g37.B.bluefire 
+PASS  ERS_PT.T31_g37.B.bluefire 
+PASS  ERI.T62_g16.C.bluefire 
+PASS  ERT.T62_g16.C.bluefire 
+PASS  PFS.T62_g16.C.bluefire 
+PASS  ERT.f19_g16.B1850CN.bluefire 
+PASS  ERH.f19_g16.B1850CN.bluefire 
+
+             
+Tag Summary: * Correction:  remove "call pio_seterrorhandling(File,PIO_RETURN_ERROR)" from
+               subroutine io_pio_init in module io_pio.F90 (MV)
+             * Increase format string length in movie.F90 so that entire string is printed 
+               in log file
+             * Correction: write out character-string data to tavg history file fields
+                "moc_components", "transport_components", and "transport_regions". These
+                character strings are blank in all pop.h* files created by tags ccsm4_0_beta35
+                when pio was introduced in pop2, to ccsm4_0_beta46, the last tag before this
+                correction will be made.
+              * Incorporate new tx0.1v2 decompositions that are supported in the "hr" tag
+              * Add a dummy line in input_templates/tx0.1v2_inputdata for the tx0.1v2
+                 *.hdr file. With this dummy line in place, the input data checking tool
+                 will detect if the *.hdr file is unavailable and will issue a fatal error.
+                 This will protect users from trying to run a tx0.1v2 case without the *.hdr
+                 file; without the *.hdr file, the model will note that the file is missing,
+                 make (iincorrect) assumptions about the ordering of data on the restart file,
+                 begin executing, and then die mysteriously.
+
+M           21684   source/io_pio.F90
+M           21684   source/movie.F90
+M           21684   source/io_netcdf.F90
+M           21684   bld/pop_decomp.xml
+M           21684   ChangeLog
+M           21684   input_templates/tx0.1v2_inputdata
+
+===============================================================================
+Tag Creator: klindsay 
+Tag Date:    11 March 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100311
+Tag Testing: unknown
+Tag Summary: 1) hmix_gm.F90: in this version, we are now using Pat Worley's OpenMP-friendly
+                 do-loop reorganization; previously, we had large if-def blocks surrounding
+                 the old, non-OpenMP friendly loops and Pat's version.
+             2) drivers/cpl_none/POP_CouplingMod.F90: remove OpenMP commands
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    5 March 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100305
 Tag Testing: PET_PT.T31_g37.B.bluefire: PASS + inspection of global integral tavg quantities in ocn.log. files

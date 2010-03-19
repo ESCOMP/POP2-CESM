@@ -221,7 +221,7 @@
       select case (movie_freq_opt)
       case ('never')
          movie_freq_iopt = freq_opt_never
-         write(stdout,'(a20)') 'movie diagnostics off'
+         write(stdout,'(a21)') 'movie diagnostics off'
       case ('nyear')
          movie_freq_iopt = freq_opt_nyear
          write(stdout,freq_fmt) movie_freq,' years  '

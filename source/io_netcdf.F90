@@ -1991,7 +1991,7 @@
 
    integer  :: &
       iostat,  &! netCDF status flag
-      n         ! index
+      n,m       ! indices
 
    type (File_desc_t) :: &
 	File
@@ -2163,12 +2163,11 @@
                      do n=1,io_dims(2)%length
                        start(1) = 1
                        start(2) = n
-                       count(1)=len_trim(indata_1d_ch(n))
-                       count(2)=1
-!TODO - fix this here - or remove the if
-!                       iostat = pio_put_var (File, field_id, &
-!                                ival=trim(indata_1d_ch(n)))
+                       count(1) = len_trim(indata_1d_ch(n))
+                       count(2) = 1
+                       iostat = pio_put_var (File, field_id, start, count, (/trim(indata_1d_ch(n))/))
                      enddo
+
                   case default
                    supported = .false. 
               end select ! ndims
