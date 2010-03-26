@@ -1,16 +1,41 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    26 March 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100326
+Tag Testing: create_test_suite
+
+  PASS  PET_PT.T31_g37.B.bluefire 
+  PASS  ERS_PT.T31_g37.B.bluefire 
+  PASS  ERI.T62_g16.C.bluefire 
+  PASS  ERT.T62_g16.C.bluefire 
+  PASS  PFS.T62_g16.C.bluefire 
+  PASS  ERT.f19_g16.B1850CN.bluefire 
+  PASS  ERH.f19_g16.B1850CN.bluefire 
+  PASS  ERI_E.T31_g37.BCN.bluefire 
+
+Tag Summary: * Add support for the new tx0.1v2 shf and sfwf forcing datasets. The
+               addition of these datasets supports the C compset, T62_tx0.1v2 case.
+             * Rework the io_netcdf.F90 pio call that writes out character data for the
+               "moc_components", "transport_components", and "transport_regions" variables.
+               The first implementation generated a compiler error on an old pgi compiler
+               and a failure in a ERI_E.bluefire test.
+             
+M           21830   source/io_netcdf.F90
+M           21830   input_templates/tx0.1v2_inputdata
+
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    19 March 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100319
 Tag Testing: 
-PASS  PET_PT.T31_g37.B.bluefire 
-PASS  ERS_PT.T31_g37.B.bluefire 
-PASS  ERI.T62_g16.C.bluefire 
-PASS  ERT.T62_g16.C.bluefire 
-PASS  PFS.T62_g16.C.bluefire 
-PASS  ERT.f19_g16.B1850CN.bluefire 
-PASS  ERH.f19_g16.B1850CN.bluefire 
+  PASS  PET_PT.T31_g37.B.bluefire 
+  PASS  ERS_PT.T31_g37.B.bluefire 
+  PASS  ERI.T62_g16.C.bluefire 
+  PASS  ERT.T62_g16.C.bluefire 
+  PASS  PFS.T62_g16.C.bluefire 
+  PASS  ERT.f19_g16.B1850CN.bluefire 
+  PASS  ERH.f19_g16.B1850CN.bluefire 
 
              
 Tag Summary: * Correction:  remove "call pio_seterrorhandling(File,PIO_RETURN_ERROR)" from

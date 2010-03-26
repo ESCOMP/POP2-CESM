@@ -2022,6 +2022,9 @@
    character(char_len), allocatable, dimension (:,:)  ::  &
       outdata_2d_ch
 
+   character(1), dimension(char_len) :: &
+      tmpString                          ! temp for manipulating output string
+
    integer :: start4(4), count4(4)
 
 !-----------------------------------------------------------------------
@@ -2165,7 +2168,11 @@
                        start(2) = n
                        count(1) = len_trim(indata_1d_ch(n))
                        count(2) = 1
-                       iostat = pio_put_var (File, field_id, start, count, (/trim(indata_1d_ch(n))/))
+                       do m = 1,count(1)
+                          tmpString(m:m) = indata_1d_ch(n)(m:m)
+                       end do
+                       iostat = pio_put_var (File, field_id, &
+                               ival=tmpString(1:count(1)), start=start, count=count)
                      enddo
 
                   case default
