@@ -2,6 +2,16 @@
 ===============================================================================
 Tag Creator: njn01 
 Tag Date:    8 April 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100408a
+Tag Testing: built tx0.1v2 B and C cases and confirmed correct dt_count settins
+             by inspection.
+Tag Summary: for tx0.1v2, set dt_count = 400 for C and G compsets; dt_count = 300 for all others
+
+M           22314   input_templates/pop2_in_build.csh
+
+===============================================================================
+Tag Creator: njn01 
+Tag Date:    8 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100408
 Tag Testing: none
 Tag Summary: * Change \$BLDROOT/Makefile to \$CASETOOLS/Makefile 

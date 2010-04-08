@@ -130,7 +130,11 @@ else if ( ${OCN_GRID} =~ gx1* ) then
 else if ( ${OCN_GRID} == tx1v1 ) then
   setenv DT_COUNT 23
 else if ( ${OCN_GRID} == tx0.1v2 ) then 
-  setenv DT_COUNT 400
+  if ($OCN_COUPLING  =~ *partial*) then
+    setenv DT_COUNT 400
+  else
+    setenv DT_COUNT 300
+  endif
 endif
 
 cat >> $POP2BLDSCRIPT << EOF2
