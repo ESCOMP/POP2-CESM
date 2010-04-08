@@ -60,7 +60,7 @@ if ( \$POP_DECOMPTYPE == spacecurve) then
   set clinic_distribution_type = spacecurve
   set tropic_distribution_type = spacecurve
 else
-  set clinic_distribution_type = balanced
+  set clinic_distribution_type = cartesian
   set tropic_distribution_type = cartesian
 endif
 
@@ -130,7 +130,7 @@ else if ( ${OCN_GRID} =~ gx1* ) then
 else if ( ${OCN_GRID} == tx1v1 ) then
   setenv DT_COUNT 23
 else if ( ${OCN_GRID} == tx0.1v2 ) then 
-  setenv DT_COUNT 300
+  setenv DT_COUNT 400
 endif
 
 cat >> $POP2BLDSCRIPT << EOF2

@@ -170,7 +170,7 @@ EOF
 
 cd \$compile_dir
 
-gmake complib -j \$GMAKE_J MODEL=pop2 COMPLIB=\$LIBROOT/libocn.a MACFILE=\$CASEROOT/Macros.\$MACH USER_CPPDEFS="-DCCSMCOUPLED -DBLCKX=\$BLCKX -DBLCKY=\$BLCKY -DMXBLCKS=\$MXBLCKS" -f \$BLDROOT/Makefile || exit 2
+gmake complib -j \$GMAKE_J MODEL=pop2 COMPLIB=\$LIBROOT/libocn.a MACFILE=\$CASEROOT/Macros.\$MACH USER_CPPDEFS="-DCCSMCOUPLED -DBLCKX=\$BLCKX -DBLCKY=\$BLCKY -DMXBLCKS=\$MXBLCKS" -f \$CASETOOLS/Makefile || exit 2
 
 set f90_dir = \$source_dir/f90
 if !(-d  \$f90_dir ) mkdir -p \$f90_dir

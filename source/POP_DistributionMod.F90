@@ -1194,7 +1194,7 @@
       end do
       end do
 
-      allocate(workTmp(POP_numBlocks), procTmp(POP_numBlocks), stat=istat)
+      allocate(workTmp(numProcs), procTmp(numProcs), stat=istat)
 
       if (istat > 0) then 
          call POP_ErrorSet(errorCode, &

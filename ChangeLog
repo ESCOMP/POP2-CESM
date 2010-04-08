@@ -1,6 +1,39 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    8 April 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100408
+Tag Testing: none
+Tag Summary: * Change \$BLDROOT/Makefile to \$CASETOOLS/Makefile 
+                (feature change request via bugz #1142)
+             * Bugfix: (reported by MV; correction supplied by Phil Jones)
+                 allocate(workTmp(POP_numBlocks), procTmp(POP_numBlocks), stat=istat)
+               changed to
+                 allocate(workTmp(numProcs), procTmp(numProcs), stat=istat)
+                                  ^^^^^^^^           ^^^^^^^^
+             * Change clinic_distribution_type = balanced --> clinic_distribution_type = cartesian
+               Recommended by Phil Jones to avoid the rake algorithm incompatability with "the
+               Gokhan fix":
+               " ...the rake has been effectively disabled.  Both
+               John's added code in the DistributeCreate routine that
+               sets all work/block to maxWork and Gokhan's added code in
+               domain.F90 that does similar things with nocn (for coarse
+               resolution), means that there are no land blocks and all
+               blocks have the same amount of work.   So the rake algorithm
+               is likely doing nothing, or worse (shifting blocks for no
+               gain). You'd be better off sticking with Cartesian.
+
+               If you'd like to remove both Gokhan's and John's kludges
+               and make the rake work again, I'm happy to help.  But right
+               now, the algorithm is doing nothing for you and may be
+               doing you harm."
+
+M           22311   bld/pop2.cpl7.template
+M           22311   input_templates/pop2_in_build.csh
+M           22311   source/POP_DistributionMod.F90
+
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    26 March 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100326
 Tag Testing: create_test_suite
