@@ -36,9 +36,9 @@
        sfc_layer_varthick, partial_bottom_cells, dz, DZT, CALCT, dzw, dzr
    use advection, only: advu, advt, comp_flux_vel_ghost
    use pressure_grad, only: lpressure_avg, gradp
-   use horizontal_mix, only: hdiffu, hdifft
+   use horizontal_mix, only: hdiffu, hdifft, iso_impvmixt_tavg
    use vertical_mix, only: vmix_coeffs, implicit_vertical_mix, vdiffu,       &
-       vdifft, impvmixt, impvmixu, impvmixt_correct, convad
+       vdifft, impvmixt, impvmixu, impvmixt_correct, convad, impvmixt_tavg
    use vmix_kpp, only: add_kpp_sources
    use diagnostics, only: ldiag_cfl, cfl_check, ldiag_global,                &
        DIAG_KE_ADV_2D, DIAG_KE_PRESS_2D, DIAG_KE_HMIX_2D, DIAG_KE_VMIX_2D,   &
@@ -1289,6 +1289,11 @@
 
       endif ! variable thickness surface layer
 
+      if (mix_pass /= 1) then
+         call impvmixt_tavg(TRACER(:,:,:,:,newtime,iblock), iblock)
+         call iso_impvmixt_tavg(TRACER(:,:,:,:,newtime,iblock), iblock)
+      endif
+
 !-----------------------------------------------------------------------
 !
 !     check for surface temperatures below freezing
@@ -1333,7 +1338,7 @@
 !-----------------------------------------------------------------------
 
       if (nt > 2) call reset_passive_tracers(  &
-         TRACER(:,:,:,:,newtime,iblock))
+         TRACER(:,:,:,:,newtime,iblock), iblock)
 
 
 !-----------------------------------------------------------------------

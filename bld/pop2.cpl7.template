@@ -336,6 +336,22 @@ echo  Begin identifying and collecting all pop2 input datasets                >>
      end
 
     #----------------------------------------------------------------------
+    # tavg_contents OCN_TAVG_HIFREQ exception 
+    #----------------------------------------------------------------------
+     foreach filename (\$input_templates_filenames)
+      if (\$filename:t == ${OCN_GRID}_tavg_contents) then
+       if (\$OCN_TAVG_HIFREQ == TRUE) then
+          if (-f \${my_path}/${OCN_GRID}_tavg_contents_high_freq) then
+            cp -fp \${my_path}/${OCN_GRID}_tavg_contents_high_freq \$ocndir/input/${OCN_GRID}_tavg_contents
+          else if (-f \$INPUT_TEMPLATES/${OCN_GRID}_tavg_contents_high_freq) then
+            cp -fp \$INPUT_TEMPLATES/${OCN_GRID}_tavg_contents_high_freq \$ocndir/input/${OCN_GRID}_tavg_contents
+          endif
+       endif # OCN_TAVG_HIFREQ
+      endif ! tavg_contents
+     end
+
+
+    #----------------------------------------------------------------------
     # After copying input_templates files to \$ocndir/input, point filenames
     # to the copies in the \$ocndir/input directory.  These filenames will
     # be used to build the pop2_in namelists
@@ -628,6 +644,18 @@ cd \$exedir
 EOF2
 
 cat >> $POP2BLDSCRIPT << EOF2
+
+echo   Add OCN_TAVG_TRACER_BUDGET terms to tavg_contents                      >> \$POP2_BLDNML
+echo ------------------------------------------------------------------------ >> \$POP2_BLDNML
+
+if (\$OCN_TAVG_TRACER_BUDGET == TRUE) then
+   if (-f \${my_path}/tavg_contents_tracer_budget_terms) then
+     cat \${my_path}/tavg_contents_tracer_budget_terms >> \$tavg_contents_filename
+   else
+     cat \$srcdir/input_templates/tavg_contents_tracer_budget_terms >> \$tavg_contents_filename
+   endif
+endif
+
 
 if (\$#ocn_tracers > 0) then
 

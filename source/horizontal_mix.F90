@@ -27,17 +27,20 @@
    use communicate, only: my_task, master_task
    use time_management, only: km, nt, mix_pass
    use broadcast, only: broadcast_scalar
-   use grid, only: KMT, dz
+   use grid, only: KMT, dz, partial_bottom_cells, DZT, dzr, dzwr
    use io_types, only: nml_in, nml_filename, stdout
    use hmix_del2, only: init_del2u, init_del2t, hdiffu_del2, hdifft_del2
    use hmix_del4, only: init_del4u, init_del4t, hdiffu_del4, hdifft_del4
    use hmix_gm, only: init_gm, hdifft_gm
    use hmix_aniso, only: init_aniso, hdiffu_aniso
    use topostress, only: ltopostress
-   use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
+   use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field, &
+      tavg_in_which_stream, ltavg_on
    use timers, only: timer_start, timer_stop, get_timer
    use exit_mod, only: sigAbort, exit_pop, flushm
    use mix_submeso, only: init_submeso
+   use prognostic
+   use vertical_mix
 
    implicit none
    private
@@ -46,7 +49,8 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 
    public :: init_horizontal_mix, &
-             hdiffu, hdifft
+             hdiffu, hdifft, &
+             iso_impvmixt_tavg
 
 !EOP
 !BOC
@@ -69,6 +73,11 @@
       hmix_tracer_itype,            &! users choice for type of mixing
       tavg_HDIFT,                   &! tavg id for horizontal diffusion
       tavg_HDIFS                     ! tavg id for horizontal diffusion
+
+   integer (POP_i4), dimension(nt) :: &
+      tavg_HDIFE_TRACER,            &! tavg id for east face diffusive flux of tracer
+      tavg_HDIFN_TRACER,            &! tavg id for north face diffusive flux of tracer
+      tavg_HDIFB_TRACER              ! tavg id for bottom face diffusive flux of tracer
 
    logical (log_kind) ::            &
       lsubmesoscale_mixing           ! if true, submesoscale mixing is on
@@ -115,7 +124,9 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (POP_i4) :: nml_error  ! error flag for namelist
+   integer (POP_i4) :: &
+      n,        &! dummy loop index
+      nml_error  ! error flag for namelist
 
    character (POP_charLength) ::  &! character choice for type of mixing
       hmix_momentum_choice, &
@@ -341,6 +352,35 @@
                           scale_factor=1000.0_rtavg,                        &
                           units='centimeter gram/gram/s', grid_loc='2110')
 
+   do n = 1,nt
+      call define_tavg_field(tavg_HDIFE_TRACER(n),                        &
+                             'HDIFE_' /&
+                                       &/ trim(tracer_d(n)%short_name),3, &
+                                long_name=trim(tracer_d(n)%short_name)   /&
+                      &/ ' Horizontal Diffusive Flux in grid-x direction',&
+                                units=trim(tracer_d(n)%tend_units),       &
+                                grid_loc='3211',                          &
+                                coordinates='ULONG TLAT z_t time' )
+
+      call define_tavg_field(tavg_HDIFN_TRACER(n),                        &
+                             'HDIFN_' /&
+                                       &/ trim(tracer_d(n)%short_name),3, &
+                                long_name=trim(tracer_d(n)%short_name)   /&
+                      &/ ' Horizontal Diffusive Flux in grid-y direction',&
+                                units=trim(tracer_d(n)%tend_units),       &
+                                grid_loc='3121',                          &
+                                coordinates='TLONG ULAT z_t time' )
+
+      call define_tavg_field(tavg_HDIFB_TRACER(n),                        &
+                             'HDIFB_' /&
+                                       &/ trim(tracer_d(n)%short_name),3, &
+                                long_name=trim(tracer_d(n)%short_name)   /&
+                       &/ ' Horizontal Diffusive Flux across Bottom Face',&
+                                units=trim(tracer_d(n)%tend_units),       &
+                                grid_loc='3113',                          &
+                                coordinates='TLONG TLAT z_w_bot time' )
+   enddo
+
 !-----------------------------------------------------------------------
 !EOC
 
@@ -465,11 +505,12 @@
 
    select case (hmix_tracer_itype)
    case (hmix_tracer_type_del2)
-      call hdifft_del2(k, HDTK, TMIX, this_block)
+      call hdifft_del2(k, HDTK, TMIX, tavg_HDIFE_TRACER, tavg_HDIFN_TRACER, this_block)
    case (hmix_tracer_type_del4)
-      call hdifft_del4(k, HDTK, TMIX, this_block)
+      call hdifft_del4(k, HDTK, TMIX, tavg_HDIFE_TRACER, tavg_HDIFN_TRACER, this_block)
    case (hmix_tracer_type_gm)
-      call hdifft_gm(k, HDTK, TMIX, UMIX, VMIX, this_block)
+      call hdifft_gm(k, HDTK, TMIX, UMIX, VMIX, tavg_HDIFE_TRACER, &
+                     tavg_HDIFN_TRACER, tavg_HDIFB_TRACER, this_block)
    end select
 
    call timer_stop(timer_hdifft, block_id=bid)
@@ -506,6 +547,56 @@
 !EOC
 
  end subroutine hdifft
+
+!***********************************************************************
+
+ subroutine iso_impvmixt_tavg(TNEW, bid)
+
+! !INPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+      TNEW         ! on input, contains tracer to update from
+                   ! on output, contains updated tracers at new time
+
+   integer (int_kind), intent(in) :: &
+      bid          ! local block address
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   real (r8), dimension(nx_block,ny_block) :: & 
+      WORK1, WORK2
+
+   integer (int_kind) ::  &
+      k,n                  ! dummy loop indices
+
+!-----------------------------------------------------------------------
+
+   if (hmix_tracer_itype /= hmix_tracer_type_gm) return
+
+   do n = 1,nt
+      if (tavg_requested(tavg_HDIFB_TRACER(n))) then
+      if (ltavg_on(tavg_in_which_stream(tavg_HDIFB_TRACER(n)))) then
+         do k=1,km-1
+            WORK1 = VDC_GM(:,:,k,bid)
+            if (partial_bottom_cells) then
+               WORK2 = merge(WORK1*(TNEW(:,:,k,n) - TNEW(:,:,k+1,n))/        &
+                             (p5*(DZT(:,:,k,bid) + DZT(:,:,k+1,bid)))        &
+                             ,c0, k < KMT(:,:,bid))*dzr(k)
+            else
+               WORK2 = merge(WORK1*(TNEW(:,:,k,n) - TNEW(:,:,k+1,n))*dzwr(k) &
+                             ,c0, k < KMT(:,:,bid))*dzr(k)
+            endif
+            call accumulate_tavg_field(WORK2,tavg_HDIFB_TRACER(n),bid,k)
+         end do
+      endif
+      endif
+   end do
+
+ end subroutine iso_impvmixt_tavg
 
 !***********************************************************************
 

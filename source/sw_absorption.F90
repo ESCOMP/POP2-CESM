@@ -216,7 +216,8 @@
       0.74178_r8,0.76190_r8,0.78155_r8 /) 
 
    integer (int_kind) :: &
-      tavg_QSW_HTP        ! tavg id for QSW_HTP (solar short-wave heat flux in top layer)
+      tavg_QSW_HTP,     & ! tavg id for QSW_HTP (solar short-wave heat flux in top layer)
+      tavg_QSW_3D         ! tavg id for 3D QSW at top of cell
 
 !-----------------------------------------------------------------------
 !     named field indices
@@ -451,6 +452,11 @@
                           long_name='Solar Short-Wave Heat Flux in top layer', &
                           units='watt/m^2', grid_loc='2110',           &
                           coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_QSW_3D,'QSW_3D',3,                      &
+                          long_name='Solar Short-Wave Heat Flux', &
+                          units='watt/m^2', grid_loc='3112',           &
+                          coordinates='TLONG TLAT z_w_top time')
 
 !-----------------------------------------------------------------------
 
@@ -897,6 +903,10 @@
                                         tavg_QSW_HTP,bid,k)
           endif
         endif
+        if (tavg_requested(tavg_QSW_3D)) then
+           call accumulate_tavg_field(WORK*sw_absorb(k-1)/hflux_factor, &
+                                      tavg_QSW_3D,bid,k)
+        endif
  
       case ('chlorophyll')
  
@@ -927,6 +937,10 @@
              call accumulate_tavg_field(WORK*(TRANSKM1(:,:,bid)-TRANS(:,:,bid))/hflux_factor, &
                                         tavg_QSW_HTP,bid,k)
           endif
+        endif
+        if (tavg_requested(tavg_QSW_3D)) then
+           call accumulate_tavg_field(WORK*TRANSKM1(:,:,bid)/hflux_factor, &
+                                      tavg_QSW_3D,bid,k)
         endif
   
         TRANSKM1(:,:,bid) = TRANS(:,:,bid)

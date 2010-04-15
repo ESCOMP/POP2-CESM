@@ -32,6 +32,8 @@
    use io
    use diagnostics
    use exit_mod
+   use tavg
+   use time_management
 
    implicit none
    private
@@ -861,7 +863,7 @@
 ! !IROUTINE: hdifft_del4
 ! !INTERFACE:
 
- subroutine hdifft_del4(k,HDTK,TMIX,this_block)
+ subroutine hdifft_del4(k,HDTK,TMIX,tavg_HDIFE_TRACER,tavg_HDIFN_TRACER,this_block)
 
 ! !DESCRIPTION:
 !  This routine computes the horizontial diffusion of tracers
@@ -891,6 +893,10 @@
    real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
       TMIX                   ! tracers at mix time level
 
+   integer (int_kind), dimension(nt), intent(in) :: &
+      tavg_HDIFE_TRACER, &! tavg id for east face diffusive flux of tracer
+      tavg_HDIFN_TRACER   ! tavg id for north face diffusive flux of tracer
+
    type (block), intent(in) :: &
       this_block             ! block info for this sub block
 
@@ -909,11 +915,12 @@
 
    integer (int_kind) :: &
       i,j,n,             &! dummy loop indices
-      bid                 ! local address of current block
+      bid                 ! local block address
 
    real (r8), dimension(nx_block,ny_block) :: &
       D2TK,              &! intermediate Del**2 result
       CC,CN,CS,CE,CW,    &! five point stencil coefficients
+      WORK,              &! temp array for tavg quantities
       HDIFFCFL            ! local hdiff cfl number for diagnostics
 
 !-----------------------------------------------------------------------
@@ -966,6 +973,8 @@
    endif
 
    CC = -(CN + CS + CE + CW)  ! central coefficient
+
+   WORK = c0
 
    do n = 1,nt
 !-----------------------------------------------------------------------
@@ -1025,6 +1034,30 @@
 
       end do
       end do
+
+      if (mix_pass /= 1) then
+         if (tavg_requested(tavg_HDIFE_TRACER(n))) then
+         if (ltavg_on(tavg_in_which_stream(tavg_HDIFE_TRACER(n)))) then
+            do j=this_block%jb,this_block%je
+            do i=this_block%ib,this_block%ie
+               WORK(i,j) = ah*CE(i,j)*(D2TK(i+1,j)-D2TK(i,j))
+            enddo
+            enddo
+            call accumulate_tavg_field(WORK,tavg_HDIFE_TRACER(n),bid,k)
+         endif
+         endif
+
+         if (tavg_requested(tavg_HDIFN_TRACER(n))) then
+         if (ltavg_on(tavg_in_which_stream(tavg_HDIFN_TRACER(n)))) then
+            do j=this_block%jb,this_block%je
+            do i=this_block%ib,this_block%ie
+               WORK(i,j) = ah*CN(i,j)*(D2TK(i,j+1)-D2TK(i,j))
+            enddo
+            enddo
+            call accumulate_tavg_field(WORK,tavg_HDIFN_TRACER(n),bid,k)
+         endif
+         endif
+      endif
 
    enddo
 

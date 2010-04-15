@@ -27,6 +27,8 @@ module iage_mod
    use io, only: data_set
    use io_types, only: stdout, nml_in, nml_filename
    use io_tools, only: document
+   use tavg, only: define_tavg_field, tavg_requested, ltavg_on, &
+       tavg_in_which_stream, accumulate_tavg_field
    use passive_tracer_tools, only: ind_name_pair, tracer_read, &
        rest_read_tracer_block, file_read_tracer_block
    implicit none
@@ -62,6 +64,13 @@ module iage_mod
 
    type(ind_name_pair), dimension(iage_tracer_cnt) :: &
       ind_name_table = (/ ind_name_pair(iage_ind, 'IAGE') /)
+
+!-----------------------------------------------------------------------
+!  tavg ids for non-standard tavg variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      tavg_IAGE_RESET_TEND       ! tavg id for surface reset tendency of IAGE
 
 !EOC
 !*****************************************************************************
@@ -292,6 +301,13 @@ contains
    enddo
 
 !-----------------------------------------------------------------------
+
+   call define_tavg_field(tavg_IAGE_RESET_TEND, 'IAGE_RESET_TEND',2,  &
+                          long_name='surface reset tendency of IAGE', &
+                          units='years/s', grid_loc='2110',           &
+                          coordinates='TLONG TLAT time')
+
+!-----------------------------------------------------------------------
 !EOC
 
  end subroutine iage_init
@@ -344,13 +360,24 @@ contains
 ! !IROUTINE: iage_reset
 ! !INTERFACE:
 
- subroutine iage_reset(TRACER_MODULE)
+ subroutine iage_reset(TRACER_MODULE, bid)
 
 ! !DESCRIPTION:
 !  reset surface value for ideal age tracer
 !
 ! !REVISION HISTORY:
 !  same as module
+
+! !USES:
+
+   use time_management, only: mix_pass, c2dtt
+   use prognostic, only: PSURF, newtime
+   use constants, only: grav
+   use grid, only: dz
+
+! !INPUT PARAMETERS:
+
+   integer(int_kind), intent(in) :: bid
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -359,8 +386,23 @@ contains
 
 !EOP
 !BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   real (r8), dimension(nx_block,ny_block) :: WORK
 
 !-----------------------------------------------------------------------
+
+   if (mix_pass /= 1) then
+      if (tavg_requested(tavg_IAGE_RESET_TEND)) then
+         if (ltavg_on(tavg_in_which_stream(tavg_IAGE_RESET_TEND))) then
+            WORK = -TRACER_MODULE(:,:,1,1) / c2dtt(1)
+            WORK = WORK * (c1 + PSURF(:,:,newtime,bid)/grav/dz(1))
+            call accumulate_tavg_field(WORK,tavg_IAGE_RESET_TEND,bid,1)
+         endif
+      endif
+   endif
 
    TRACER_MODULE(:,:,1,:) = c0
 

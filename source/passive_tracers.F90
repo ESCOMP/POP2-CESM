@@ -737,13 +737,17 @@
 ! !IROUTINE: reset_passive_tracers
 ! !INTERFACE:
 
- subroutine reset_passive_tracers(TRACER_NEW)
+ subroutine reset_passive_tracers(TRACER_NEW, bid)
 
 ! !DESCRIPTION:
 !  call subroutines for each tracer module to reset tracer values
 !
 ! !REVISION HISTORY:
 !  same as module
+
+! !INPUT PARAMETERS:
+
+   integer(int_kind), intent(in) :: bid
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -767,7 +771,7 @@
 
    if (iage_on) then
       call iage_reset(  &
-         TRACER_NEW(:,:,:,iage_ind_begin:iage_ind_end) )
+         TRACER_NEW(:,:,:,iage_ind_begin:iage_ind_end), bid)
    end if
 
 !-----------------------------------------------------------------------

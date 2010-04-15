@@ -39,6 +39,7 @@
    use vmix_rich
    use vmix_kpp
    use exit_mod
+   use prognostic
 
    implicit none
    private
@@ -50,7 +51,7 @@
              vmix_coeffs,                          &
              vdifft, vdiffu,                       &
              impvmixt, impvmixt_correct, impvmixu, &
-             convad
+             convad, impvmixt_tavg
 
 ! !PUBLIC DATA MEMBERS:
 
@@ -58,6 +59,9 @@
       VDC                 ! tracer diffusivity - public to allow
                           ! possible modification by Gent-McWilliams
                           ! horizontal mixing parameterization
+
+   real (r8), dimension(:,:,:,:), allocatable, public, target :: &
+      VDC_GM              ! Gent-McWilliams contribution to VDC
 
    integer (int_kind), parameter, public :: &
       vmix_type_const = 1,  & ! integer identifiers for desired
@@ -161,6 +165,9 @@
       tavg_PEC,          &! tavg id for pot energy release convection
       tavg_NCNV           ! tavg id for number of convective adjustments
 
+   integer (int_kind), dimension(nt) :: &
+      tavg_DIA_IMPVF_TRACER  ! tavg id for diabatic implicit vertical flux of tracer
+
 !EOC
 !***********************************************************************
 
@@ -190,6 +197,7 @@
 
    integer (int_kind) ::  &
       k,                  &! vertical level index
+      n,                  &! dummy loop index
       nu,                 &! i/o unit
       nml_error            ! namelist i/o error flag
 
@@ -461,6 +469,17 @@
      call define_tavg_field(tavg_NCNV,'NCNV',3,                        &
                         long_name='Convective adjustments per second', &
                             units='adj/s', grid_loc='3111')
+   endif
+
+   if (implicit_vertical_mix) then
+     do n = 1,nt
+       call define_tavg_field(tavg_DIA_IMPVF_TRACER(n), 'DIA_IMPVF_'     /&
+                                       &/ trim(tracer_d(n)%short_name),3, &
+          long_name=trim(tracer_d(n)%short_name)                         /&
+    &/ ' Flux Across Bottom Face from Diabatic Implicit Vertical Mixing', &
+          units=trim(tracer_d(n)%flux_units), grid_loc='3113',            &
+          coordinates='TLONG TLAT z_w_bot time')
+     enddo
    endif
 
 !-----------------------------------------------------------------------
@@ -1191,6 +1210,69 @@
 !EOC
 
  end subroutine impvmixt
+
+!***********************************************************************
+
+ subroutine impvmixt_tavg(TNEW, bid)
+
+! !INPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+      TNEW         ! on input, contains tracer to update from
+                   ! on output, contains updated tracers at new time
+
+   integer (int_kind), intent(in) ::  &
+      bid                  ! local block address
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   real (r8), dimension(nx_block,ny_block) :: & 
+      WORK1, WORK2
+
+   integer (int_kind) ::  &
+      k,n,                &! dummy loop indices
+      mt2                  ! index for selecting tracer coefficient
+
+!-----------------------------------------------------------------------
+
+   do n = 1,nt
+      mt2 = min(n,size(VDC,DIM=4))
+      if (tavg_requested(tavg_DIA_IMPVF_TRACER(n))) then
+         do k=1,km-1
+            if (allocated(VDC_GM)) then
+               WORK1 = VDC(:,:,k,mt2,bid) - VDC_GM(:,:,k,bid)
+            else
+               WORK1 = VDC(:,:,k,mt2,bid)
+            endif
+            if (partial_bottom_cells) then
+               WORK2 = merge(WORK1*(TNEW(:,:,k,n) - TNEW(:,:,k+1,n))/        &
+                             (p5*(DZT(:,:,k,bid) + DZT(:,:,k+1,bid)))        &
+                             ,c0, k < KMT(:,:,bid))
+               if (lbottom_heat_flx .and. n == 1) then
+                  WORK2 = merge( -bottom_heat_flx, WORK2,      &
+                                k == KMT(:,:,bid) .and.        &
+                                (zt(k) + p5*DZT(:,:,k,bid)) >= &
+                                bottom_heat_flx_depth)
+               endif
+            else
+               WORK2 = merge(WORK1*(TNEW(:,:,k,n) - TNEW(:,:,k+1,n))*dzwr(k) &
+                             ,c0, k < KMT(:,:,bid))
+               if (lbottom_heat_flx .and. n == 1) then
+                  WORK2 = merge( -bottom_heat_flx, WORK2,      &
+                                k == KMT(:,:,bid) .and.        &
+                                zw(k) >= bottom_heat_flx_depth)
+               endif
+            endif
+            call accumulate_tavg_field(WORK2,tavg_DIA_IMPVF_TRACER(n),bid,k)
+         end do
+      endif
+   end do
+
+ end subroutine impvmixt_tavg
 
 !***********************************************************************
 !BOP

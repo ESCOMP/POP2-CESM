@@ -1,6 +1,46 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    15 April 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100415
+Tag Testing:  *  customized testing: OCN_TAVG_TRACER_BUDGET and OCN_TAVG_HIFREQ TRUE & FALSE
+              *  comparison oob vs ccsm4_0_beta48 (2-month, er test comparing restart and tavg history files)
+                     o pop.h.0001-02.nc files are identical
+                     o pop.h.nday1.0001-02-01.nc are identical
+                     o pop.r.0001-03-01-00000 restart files (end of February) are identical
+
+            
+Tag Summary: MOAR support
+              * pop2.cpl7.template responds to new CCSM4 run-time environment variables
+                 OCN_TAVG_TRACER_BUDGET and OCN_TAVG_HIFREQ
+              * new input_templates file containing tavg tracer budget terms
+              * new gx1v6 high-frequency tavg_contents file
+              * klindsay's code mods to support new tavg_contents fields and budget diagnostics
+              * ocn.iage.setup.csh modifications to support OCN_TAVG_TRACER_BUDGET
+              * tavg.F90 bugfix -- nonstandard fields stream-support bug
+              * tavg.F90 cleanup -- move define_tavg_field from moc and transport diagnostics
+                 computation routines to initialization routines
+                   
+M           22316   source/sw_absorption.F90
+M           22316   source/initial.F90
+M           22316   source/hmix_del2.F90
+M           22316   source/hmix_del4.F90
+M           22316   source/vmix_kpp.F90
+M           22316   source/iage_mod.F90
+M           22316   source/vertical_mix.F90
+M           22316   source/passive_tracers.F90
+M           22316   source/horizontal_mix.F90
+M           22316   source/hmix_gm.F90
+M           22316   source/tavg.F90
+M           22316   source/baroclinic.F90
+M           22316   bld/pop2.cpl7.template
+M           22316   input_templates/ocn.iage.setup.csh
+A               0   input_templates/gx1v6_tavg_contents_high_freq
+A               0   input_templates/tavg_contents_tracer_budget_terms
+
+
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    8 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100408a
 Tag Testing: built tx0.1v2 B and C cases and confirmed correct dt_count settins

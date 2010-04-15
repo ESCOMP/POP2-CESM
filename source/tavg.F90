@@ -120,7 +120,7 @@
 !BOC
 
    integer (int_kind), parameter :: &
-      max_avail_tavg_fields = 600    ! limit on available fields - can
+      max_avail_tavg_fields = 1000   ! limit on available fields - can
                                      !   be pushed as high as necessary & practical
                                      !   (total of all fields in all streams)
 
@@ -1506,8 +1506,6 @@
 
    save
 
-   num_avail_tavg_nstd_fields = 0
-
 !-----------------------------------------------------------------------
 !
 !  loop over each tavg stream
@@ -1615,12 +1613,10 @@
 !-----------------------------------------------------------------------
 
       if (ltavg_write_reg) then
-       call tavg_bsf_diags (ns)        ! barotropic stream function
-       call tavg_moc_diags (ns)        ! MOC diagnostics
-       call tavg_transport_diags (ns)  ! northward heat/salt transport diagnostics
-
-       !*** compute NINO diagnostics
-       call tavg_local_spatial_avg (ns)
+       call tavg_bsf_diags (ns)         ! barotropic stream function
+       call tavg_moc_diags (ns)         ! MOC diagnostics
+       call tavg_transport_diags (ns)   ! northward heat/salt transport diagnostics
+       call tavg_local_spatial_avg (ns) ! compute NINO diagnostics
       endif
 
 !-----------------------------------------------------------------------
@@ -3640,6 +3636,7 @@
    stream_number = avail_tavg_fields(id)%stream_number
 
    if (stream_number <= 0 .or. stream_number > max_avail_tavg_streams) then
+     call document ('tavg_in_which_stream', 'id', id)
      write(stdout,*) '(tavg_in_which_stream) stream_number = ', stream_number
      exit_string = 'FATAL ERROR: not in any stream'
      call document ('tavg_in_which_stream', exit_string)
@@ -5593,7 +5590,7 @@
           indata_4d_r4=TAVG_MOC_G)
    endif
 
-   !*** tranpsort variables
+   !*** transport variables
    if (ltavg_n_heat_trans(ns) .or. ltavg_n_salt_trans(ns)) then
  
       !*** determine index of transport_components
@@ -5631,12 +5628,6 @@
        endif
 
 
-       implied_time_dim = .true.
-       call write_nstd_netcdf(                          &
-          tavg_file_desc,moc_id,1,5,io_dims_nstd_ccsm(:,1),&
-          'float',                                         &  ! <-- generalize later
-          implied_time_dim=implied_time_dim,               &
-          indata_4d_r4=TAVG_MOC_G)
    endif
 
    if (ltavg_n_heat_trans(ns)) then
@@ -5848,14 +5839,17 @@
    type (block) ::        &
       this_block          ! block information for current block
 
-!-----------------------------------------------------------------------
 
    errorCode = POP_Success
 
+!-----------------------------------------------------------------------
+!
+!  test return conditions
+!
+!-----------------------------------------------------------------------
+
    if (.not. ldiag_bsf) return
  
-
-   !*** return if attempting to compute every nstep timesteps
    if (tavg_freq_iopt(ns) == freq_opt_nstep) then
      if (nsteps_run <= 1 .and. my_task == master_task) then
         write(stdout,*)  &
@@ -5865,6 +5859,13 @@
      return
    endif
 
+!-----------------------------------------------------------------------
+!
+!  begin computations
+!
+!-----------------------------------------------------------------------
+
+   call timer_start(timer_tavg_ccsm_diags_bsf)
 
    !*** zero out location identifiers
    tavg_loc_SU = 0; tavg_loc_SV  = 0; tavg_loc_BSF = 0
@@ -5893,9 +5894,6 @@
      return
    endif
 
-
-   !*** start bsf timer, now that streams checking is completed
-   call timer_start(timer_tavg_ccsm_diags_bsf)
 
    tavg_loc_SU  = avail_tavg_fields(tavg_id_SU)%buf_loc
    tavg_loc_SV  = avail_tavg_fields(tavg_id_SV)%buf_loc
@@ -6001,10 +5999,27 @@
    integer (int_kind) :: &
       moc_stream    ! stream in which WVEL is defined
 
-   
+!-----------------------------------------------------------------------
+!
+!  set default value regardless of moc_requested status
+!   
+!-----------------------------------------------------------------------
+
    ltavg_moc_diags = .false.
 
+!-----------------------------------------------------------------------
+!
+!  is MOC diagnostic requested?
+!
+!-----------------------------------------------------------------------
+
    if (.not. moc_requested) return
+
+!-----------------------------------------------------------------------
+!
+!  begin initialization
+!
+!-----------------------------------------------------------------------
 
    tavg_loc_WVEL      = 0 ; tavg_loc_VVEL      = 0
    tavg_loc_WISOP     = 0 ; tavg_loc_VISOP     = 0
@@ -6140,6 +6155,24 @@
      endif
    endif
    
+!-----------------------------------------------------------------------
+!    define MOC tavg variable and dimensions
+!    note that this call fills num_avail_tavg_nstd_fields
+!-----------------------------------------------------------------------
+
+   if (ltavg_moc_diags(moc_stream)) then
+     call define_tavg_field(                             &
+        tavg_MOC, 'MOC', 5,                              &
+        long_name='Meridional Overturning Circulation',  &
+        units='Sverdrups',                               &
+        coordinates='lat_aux_grid moc_z moc_components transport_region time',&
+        nftype='float'   ,                               &
+        nstd_fields=avail_tavg_nstd_fields,              &
+        num_nstd_fields=num_avail_tavg_nstd_fields,      &
+        max_nstd_fields=max_avail_tavg_nstd_fields       )
+
+    endif
+
    call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
 
  
@@ -6174,24 +6207,14 @@
 !EOP
 !BOC
 
+!-----------------------------------------------------------------------
+!
+!  is MOC diagnostic requested?
+!
+!-----------------------------------------------------------------------
+
    if (.not. ltavg_moc_diags(ns)) return
  
-   call timer_start(timer_tavg_ccsm_diags_moc)
-
-   !*** define MOC tavg variable and dimensions
-   !*** note that this call fills avail_tavg_nstd_fields
-
-   call define_tavg_field(                               &
-        tavg_MOC, 'MOC', 5,                              &
-        long_name='Meridional Overturning Circulation',  &
-        units='Sverdrups',                               &
-        coordinates='lat_aux_grid moc_z moc_components transport_region time',&
-        nftype='float'   ,                               &
-        nstd_fields=avail_tavg_nstd_fields,              &
-        num_nstd_fields=num_avail_tavg_nstd_fields,      &
-        max_nstd_fields=max_avail_tavg_nstd_fields       )
- 
-   !*** return if attempting to compute every nstep timesteps
    if (tavg_freq_iopt(ns) == freq_opt_nstep) then
      if (nsteps_run <= 1 .and. my_task == master_task) then
         write(stdout,*)  &
@@ -6200,6 +6223,14 @@
      endif
      return
    endif
+
+!-----------------------------------------------------------------------
+!
+!  begin computations
+!
+!-----------------------------------------------------------------------
+
+   call timer_start(timer_tavg_ccsm_diags_moc)
 
    io_dims_nstd_ccsm(1,tavg_MOC) = lat_aux_grid_dim
    io_dims_nstd_ccsm(2,tavg_MOC) = moc_z_dim
@@ -6242,7 +6273,7 @@
 ! !IROUTINE: tavg_init_transport_diags
 ! !INTERFACE:
 
- subroutine  tavg_init_transport_diags
+ subroutine tavg_init_transport_diags
 
 ! !DESCRIPTION:
 !
@@ -6265,12 +6296,28 @@
    integer (int_kind) :: &
      trans_stream    ! stream in which ADVT is defined
 
+!-----------------------------------------------------------------------
+!
+!  set default values regardless of n_heat_trans_requested/
+!      n_salt_trans_requested status
+!-----------------------------------------------------------------------
 
    ltavg_n_heat_trans = .false.
    ltavg_n_salt_trans = .false.
 
+!-----------------------------------------------------------------------
+!
+!  are transport diagnostics requested?
+!
+!-----------------------------------------------------------------------
+
    if (.not. (n_heat_trans_requested .or. n_salt_trans_requested)) return
 
+!-----------------------------------------------------------------------
+!
+!  begin initialization
+!
+!-----------------------------------------------------------------------
    tavg_loc_ADVT      = 0 ; tavg_loc_ADVS      = 0
    tavg_loc_VNT       = 0 ; tavg_loc_VNS       = 0
    tavg_loc_HDIFT     = 0 ; tavg_loc_HDIFS     = 0
@@ -6380,7 +6427,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  Now confirm that all required fields are in the same stream
+!  now confirm that all required fields are in the same stream
 !
 !-----------------------------------------------------------------------
 
@@ -6426,12 +6473,42 @@
          if (n_salt_trans_requested) ltavg_n_salt_trans(trans_stream) = .true.
      endif
    endif
+ 
+!-----------------------------------------------------------------------
+!
+!  define heat and salt transport diagnostics fields
+!    (note: these calls increment avail_tavg_nstd_fields)
+!
+!-----------------------------------------------------------------------
+    if (ltavg_n_heat_trans(trans_stream)) then
+      call define_tavg_field     (                  &
+        tavg_N_HEAT, 'N_HEAT', 4,                   &
+        long_name='Northward Heat Transport',       &
+        units='Pwatt',                              &
+        coordinates='lat_aux_grid transport_components transport_regions time',&
+        nftype='float',                             &
+        nstd_fields=avail_tavg_nstd_fields,         &
+        num_nstd_fields=num_avail_tavg_nstd_fields, &
+        max_nstd_fields=max_avail_tavg_nstd_fields  )
+    endif
+
+    if (ltavg_n_salt_trans(trans_stream)) then
+     call define_tavg_field     (                       &
+        tavg_N_SALT, 'N_SALT', 4,                       &
+        long_name='Northward Salt Transport',           &
+        units='gram centimeter^3/kg/s',                 &
+        coordinates='lat_aux_grid transport_components transport_regions time',&
+        nftype='float',                                 &
+        nstd_fields=avail_tavg_nstd_fields,             &
+        num_nstd_fields=num_avail_tavg_nstd_fields,     &
+        max_nstd_fields=max_avail_tavg_nstd_fields  )
+    endif
 
    call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
 !-----------------------------------------------------------------------
 !EOC
 
-  end subroutine  tavg_init_transport_diags
+  end subroutine tavg_init_transport_diags
 
 
 !***********************************************************************
@@ -6475,47 +6552,14 @@
       indx7,                &
       n
 
+!-----------------------------------------------------------------------
+!
+!  are transport diagnostics requested?
+!  is frequency compatible?
+!-----------------------------------------------------------------------
+
    if (.not. (ltavg_n_heat_trans(ns) .or. ltavg_n_salt_trans(ns))) return
 
-   call timer_start(timer_tavg_ccsm_diags_trans)
-
-  !*** define heat transport diagnostics fields and dimensions
-  !*** note that this call fills avail_tavg_nstd_fields
-   call define_tavg_field     (                     &
-        tavg_N_HEAT, 'N_HEAT', 4,                   &
-        long_name='Northward Heat Transport',       &
-        units='Pwatt',                              &
-        coordinates='lat_aux_grid transport_components transport_regions time',&
-        nftype='float',                             &
-        nstd_fields=avail_tavg_nstd_fields,         &
-        num_nstd_fields=num_avail_tavg_nstd_fields, &
-        max_nstd_fields=max_avail_tavg_nstd_fields  )
-
-   io_dims_nstd_ccsm(1,tavg_N_HEAT) = lat_aux_grid_dim
-   io_dims_nstd_ccsm(2,tavg_N_HEAT) = transport_comp_dim
-   io_dims_nstd_ccsm(3,tavg_N_HEAT) = transport_reg_dim
-   io_dims_nstd_ccsm(4,tavg_N_HEAT) = time_dim
-   ndims_nstd_ccsm  (  tavg_N_HEAT) = 4
- 
-  !*** define salt transport diagnostics fields and dimensions
-  !*** note that this call fills avail_tavg_nstd_fields
-   call define_tavg_field     (                     &
-        tavg_N_SALT, 'N_SALT', 4,                   &
-        long_name='Northward Salt Transport',       &
-        units='gram centimeter^3/kg/s',             &
-        coordinates='lat_aux_grid transport_components transport_regions time',&
-        nftype='float',                             &
-        nstd_fields=avail_tavg_nstd_fields,         &
-        num_nstd_fields=num_avail_tavg_nstd_fields, &
-        max_nstd_fields=max_avail_tavg_nstd_fields  )
-
-   io_dims_nstd_ccsm(1,tavg_N_SALT) = lat_aux_grid_dim
-   io_dims_nstd_ccsm(2,tavg_N_SALT) = transport_comp_dim
-   io_dims_nstd_ccsm(3,tavg_N_SALT) = transport_reg_dim
-   io_dims_nstd_ccsm(4,tavg_N_SALT) = time_dim
-   ndims_nstd_ccsm  (  tavg_N_SALT)  = 4
-
-   !*** return if attempting to compute every nstep timesteps
    if (tavg_freq_iopt(ns) == freq_opt_nstep) then
      if (nsteps_run <= 1 .and. my_task == master_task) then
         write(stdout,*)  &
@@ -6524,6 +6568,27 @@
      endif
      return
    endif
+
+!-----------------------------------------------------------------------
+!
+!  begin computations
+!
+!-----------------------------------------------------------------------
+
+   call timer_start(timer_tavg_ccsm_diags_trans)
+
+   io_dims_nstd_ccsm(1,tavg_N_HEAT) = lat_aux_grid_dim
+   io_dims_nstd_ccsm(2,tavg_N_HEAT) = transport_comp_dim
+   io_dims_nstd_ccsm(3,tavg_N_HEAT) = transport_reg_dim
+   io_dims_nstd_ccsm(4,tavg_N_HEAT) = time_dim
+   ndims_nstd_ccsm  (  tavg_N_HEAT) = 4
+
+   io_dims_nstd_ccsm(1,tavg_N_SALT) = lat_aux_grid_dim
+   io_dims_nstd_ccsm(2,tavg_N_SALT) = transport_comp_dim
+   io_dims_nstd_ccsm(3,tavg_N_SALT) = transport_reg_dim
+   io_dims_nstd_ccsm(4,tavg_N_SALT) = time_dim
+   ndims_nstd_ccsm  (  tavg_N_SALT) = 4
+ 
 
    do n=1,2
 
@@ -6652,14 +6717,28 @@
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
      TLATD, TLOND        ! lat/lon of T points in degrees
 
-
 !-----------------------------------------------------------------------
-!    are NINO diagnostics requested?
+!
+!  set default value regardless of ltavg_nino_diags_requested status
+! 
 !-----------------------------------------------------------------------
 
    ltavg_nino_diags = .false.
 
+!-----------------------------------------------------------------------
+!
+!  are NINO diagnostics requested?
+!
+!-----------------------------------------------------------------------
+
    if (.not. ltavg_nino_diags_requested) return
+
+!-----------------------------------------------------------------------
+!
+!  begin initialization
+!
+!-----------------------------------------------------------------------
+
 
 !-----------------------------------------------------------------------
 !    check if local spatial averaging is possible, based on tavg options
@@ -6807,7 +6886,19 @@
    real (r8), dimension (:,:,:), allocatable ::  &
       WORK
 
+!-----------------------------------------------------------------------
+!
+!  are NINO diagnotics requested?
+!
+!-----------------------------------------------------------------------
+
    if (.not. ltavg_nino_diags(ns)) return
+
+!-----------------------------------------------------------------------
+!
+!  begin computations
+!
+!-----------------------------------------------------------------------
 
    allocate (WORK(nx_block,ny_block,nblocks_clinic))
    WORK = c0

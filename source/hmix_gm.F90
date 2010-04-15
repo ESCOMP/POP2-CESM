@@ -814,6 +814,8 @@
 
    allocate (BUOY_FREQ_SQ(nx_block,ny_block,km,nblocks_clinic))
 
+   allocate (VDC_GM(nx_block,ny_block,km,nblocks_clinic))
+
    allocate (compute_kappa(nblocks_clinic))
 
    HXY      = c0
@@ -834,6 +836,7 @@
    RX       = c0
    RY       = c0
    RZ_SAVE  = c0
+   VDC_GM   = c0
 
    if ( transition_layer_on ) then
      allocate (SLA_SAVE(nx_block,ny_block,2,km,nblocks_clinic))
@@ -1159,7 +1162,8 @@
 ! !IROUTINE: hdifft_gm
 ! !INTERFACE:
 
-      subroutine hdifft_gm (k, GTK, TMIX, UMIX, VMIX, this_block)
+      subroutine hdifft_gm (k, GTK, TMIX, UMIX, VMIX, tavg_HDIFE_TRACER, &
+                            tavg_HDIFN_TRACER, tavg_HDIFB_TRACER, this_block)
 
 ! !DESCRIPTION:
 !  Gent-McWilliams eddy transport parameterization
@@ -1181,6 +1185,11 @@
       real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
          UMIX, VMIX            ! U,V  at all vertical levels
                                !   at mixing time level
+
+      integer (int_kind), dimension(nt), intent(in) :: &
+         tavg_HDIFE_TRACER, &! tavg id for east face diffusive flux of tracer
+         tavg_HDIFN_TRACER, &! tavg id for north face diffusive flux of tracer
+         tavg_HDIFB_TRACER   ! tavg id for bottom face diffusive flux of tracer
 
       type (block), intent(in) :: &
          this_block            ! block info for this sub block
@@ -1994,6 +2003,7 @@
              + HXYS(:,:,bid)*SLY(:,:,jsouth,ktp,k+1,bid)**2))
 
         do n=1,size(VDC,DIM=4)
+          VDC_GM(:,:,k,bid) = WORK1
           VDC(:,:,k,n,bid) = VDC(:,:,k,n,bid) + WORK1
         end do
 
@@ -2640,6 +2650,41 @@
           endif
 
         endif ! bolus velocity option on
+
+        do n = 1,nt
+          if (tavg_requested(tavg_HDIFE_TRACER(n))) then
+          if (ltavg_on(tavg_in_which_stream(tavg_HDIFE_TRACER(n)))) then
+            do j=this_block%jb,this_block%je
+            do i=this_block%ib,this_block%ie
+              WORK1(i,j) = FX(i,j,n)*dzr(k)*TAREA_R(i,j,bid)
+            enddo
+            enddo
+            call accumulate_tavg_field(WORK1,tavg_HDIFE_TRACER(n),bid,k)
+          endif
+          endif
+
+          if (tavg_requested(tavg_HDIFN_TRACER(n))) then
+          if (ltavg_on(tavg_in_which_stream(tavg_HDIFN_TRACER(n)))) then
+            do j=this_block%jb,this_block%je
+            do i=this_block%ib,this_block%ie
+              WORK1(i,j) = FY(i,j,n)*dzr(k)*TAREA_R(i,j,bid)
+            enddo
+            enddo
+            call accumulate_tavg_field(WORK1,tavg_HDIFN_TRACER(n),bid,k)
+          endif
+          endif
+
+          if (tavg_requested(tavg_HDIFB_TRACER(n))) then
+          if (ltavg_on(tavg_in_which_stream(tavg_HDIFB_TRACER(n)))) then
+            do j=this_block%jb,this_block%je
+            do i=this_block%ib,this_block%ie
+              WORK1(i,j) = FZTOP(i,j,n,bid)*dzr(k)*TAREA_R(i,j,bid)
+            enddo
+            enddo
+            call accumulate_tavg_field(WORK1,tavg_HDIFB_TRACER(n),bid,k)
+          endif
+          endif
+        enddo
 
       endif   ! mix_pass ne 1
 

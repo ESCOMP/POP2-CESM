@@ -284,7 +284,6 @@
 !-----------------------------------------------------------------------
 !
 !  calculate topographic stress (maximum entropy) velocities
-!  initialize horizontal mixing variables
 !
 !-----------------------------------------------------------------------
 
@@ -293,14 +292,6 @@
    if (errorCode /= POP_Success) then
       call POP_ErrorSet(errorCode, &
          'init_phase1: error in init_topostress')
-      return
-   endif
-
-   call init_horizontal_mix(errorCode)
-
-   if (errorCode /= POP_Success) then
-      call POP_ErrorSet(errorCode, &
-         'init_phase1: error in init_horizontal_mix')
       return
    endif
 
@@ -317,14 +308,6 @@
      call document ('pop_init_phase1', exit_string)
      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
-
-!-----------------------------------------------------------------------
-!
-!  initialize vertical mixing variables
-!
-!-----------------------------------------------------------------------
-
-   call init_vertical_mix
 
 !-----------------------------------------------------------------------
 !
@@ -482,6 +465,23 @@
    if (errorCode /= POP_Success) then
       call POP_ErrorSet(errorCode, &
          'init_phase2: error in init_passive_tracers')
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  initialize vertical mixing variables
+!  initialize horizontal mixing variables
+!
+!-----------------------------------------------------------------------
+
+   call init_vertical_mix
+
+   call init_horizontal_mix(errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'init_phase1: error in init_horizontal_mix')
       return
    endif
 

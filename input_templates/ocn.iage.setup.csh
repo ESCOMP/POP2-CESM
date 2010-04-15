@@ -123,6 +123,21 @@ else if ($command == tavg_contents) then
 cat >> $tavg_contents_filename << EOF
 $s1  IAGE
 EOF
+   #-------------------------------------------------------------------------------------
+   # Add optional tracer budget terms
+   #-------------------------------------------------------------------------------------
+if ($OCN_TAVG_TRACER_BUDGET == TRUE) then
+cat >> $tavg_contents_filename << EOF
+$s1  IAGE_RESET_TEND
+$s1  DIA_IMPVF_IAGE
+$s1  HDIFE_IAGE
+$s1  HDIFN_IAGE
+$s1  HDIFB_IAGE
+$s1  UE_IAGE
+$s1  VN_IAGE
+$s1  WT_IAGE
+EOF
+endif
 
 #  disable the following until they are computed correctly
 #  IAGE_SQR 

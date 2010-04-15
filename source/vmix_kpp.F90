@@ -33,6 +33,8 @@
    use communicate, only: my_task, master_task
    use tidal_mixing, only: TIDAL_COEF, tidal_mix_max, ltidal_mixing
    use registry
+   use prognostic
+   use time_management
 
    implicit none
    private
@@ -201,6 +203,9 @@
       tavg_KVMIX_M,        &! tavg id for tidal+bckgrnd vertical momentum viscosity
       tavg_TPOWER
 
+   integer (int_kind), dimension(nt) :: &
+      tavg_KPP_SRC          ! tavg id for KPP_SRC for each tracer
+
    real (r8), dimension(:,:,:,:), allocatable :: &
       TIDAL_DIFF            ! diffusivity due to tidal mixing 
 
@@ -239,6 +244,7 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::  &
+      n,                  &! local dummy index for tracer
       k,                  &! local dummy index for vertical lvl
       i, j, iblock,       &! local dummy indexes
       nml_error            ! namelist i/o error flag
@@ -278,7 +284,7 @@
       fmt_int  = '(a30,2x,i5)'
 
    character (char_len) :: &
-      string
+      string, string2
 
 !-----------------------------------------------------------------------
 !
@@ -647,6 +653,17 @@
                           grid_loc='3113',                    &
                           coordinates  ='TLONG TLAT z_w_bot time' ) 
 
+   do n = 1,nt
+     string  = 'KPP_SRC_' /&
+               &/ trim(tracer_d(n)%short_name)
+     string2 = trim(tracer_d(n)%short_name) /&
+               &/ ' tendency from KPP non local mixing term'
+     call define_tavg_field(tavg_KPP_SRC(n),trim(string),3,     &
+                            long_name=trim(string2),            &
+                            units=trim(tracer_d(n)%tend_units), &
+                            grid_loc='3111',                    &
+                            coordinates  ='TLONG TLAT z_t time' ) 
+   enddo
 
 !-----------------------------------------------------------------------
 !EOC
@@ -2745,6 +2762,7 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
+      n,                 &! local dummy index for tracer
       bid                 ! local block address
 
 !-----------------------------------------------------------------------
@@ -2764,6 +2782,13 @@
    bid = this_block%local_id
 
    SRCARRAY = SRCARRAY + KPP_SRC(:,:,k,:,bid)
+
+   if (mix_pass /= 1) then
+      do n=1,nt
+         if (tavg_requested(tavg_KPP_SRC(n))) &
+            call accumulate_tavg_field(KPP_SRC(:,:,k,n,bid),tavg_KPP_SRC(n),bid,k)
+      enddo
+   endif
 
 !-----------------------------------------------------------------------
 !EOC
