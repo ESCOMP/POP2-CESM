@@ -350,7 +350,7 @@
                     long_name='Vertically Integrated Horz Diff S tendency', &
                           coordinates='TLONG TLAT time',                   &
                           scale_factor=1000.0_rtavg,                        &
-                          units='centimeter gram/gram/s', grid_loc='2110')
+                          units='centimeter gram/kilogram/s', grid_loc='2110')
 
    do n = 1,nt
       call define_tavg_field(tavg_HDIFE_TRACER(n),                        &

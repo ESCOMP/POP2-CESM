@@ -164,6 +164,27 @@ $s1  CFC11
 $s1  CFC12
 EOF
 
+if ($OCN_TAVG_TRACER_BUDGET == TRUE) then
+   cat >> $tavg_contents_filename << EOF
+$s1  KPP_SRC_CFC11
+$s1  KPP_SRC_CFC12
+$s1  DIA_IMPVF_CFC11
+$s1  DIA_IMPVF_CFC12
+$s1  HDIFE_CFC11
+$s1  HDIFE_CFC12
+$s1  HDIFN_CFC11
+$s1  HDIFN_CFC12
+$s1  HDIFB_CFC11
+$s1  HDIFB_CFC12
+$s1  UE_CFC11
+$s1  UE_CFC12
+$s1  VN_CFC11
+$s1  VN_CFC12
+$s1  WT_CFC11
+$s1  WT_CFC12
+EOF
+endif
+
 #===============================================================================
 # The following are fields computed by the CFC modules that are not placed in
 # the tavg file by default.
