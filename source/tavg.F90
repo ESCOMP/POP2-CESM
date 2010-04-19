@@ -85,7 +85,7 @@
       tavg_sum           ! accumulated time (in seconds)
 
    !*** ccsm
-   real (r8),public ::  &
+   real (r8),dimension(max_avail_tavg_streams), public ::  &
       tavg_sum_qflux
 
 
@@ -1821,7 +1821,9 @@
 
     call add_attrib_file(tavg_file_desc(ns), 'tavg_sum'    , tavg_sum(ns))
     call add_attrib_file(tavg_file_desc(ns), 'nsteps_total', nsteps_total)
-    call add_attrib_file(tavg_file_desc(ns), 'tavg_sum_qflux'  , tavg_sum_qflux)
+
+    if (ns == qflux_stream) &
+    call add_attrib_file(tavg_file_desc(ns), 'tavg_sum_qflux'  , tavg_sum_qflux(ns))
 
     if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
       call tavg_add_attrib_file_ccsm (tavg_file_desc(ns)) 
@@ -2241,7 +2243,8 @@
    endif
    call add_attrib_file(tavg_file_desc_in, 'nsteps_total', nsteps_total)
    call add_attrib_file(tavg_file_desc_in, 'tavg_sum'    , tavg_sum(ns))
-   call add_attrib_file(tavg_file_desc_in, 'tavg_sum_qflux'  , tavg_sum_qflux)
+   if (ns == qflux_stream) &
+   call add_attrib_file(tavg_file_desc_in, 'tavg_sum_qflux'  , tavg_sum_qflux(ns))
 
 
 !-----------------------------------------------------------------------
@@ -2265,7 +2268,8 @@
    call extract_attrib_file(tavg_file_desc_in, 'nsteps_total', &
                                           in_nsteps_total)
    call extract_attrib_file(tavg_file_desc_in, 'tavg_sum', tavg_sum(ns))
-   call extract_attrib_file(tavg_file_desc_in, 'tavg_sum_qflux', tavg_sum_qflux)
+   if (ns == qflux_stream) &
+   call extract_attrib_file(tavg_file_desc_in, 'tavg_sum_qflux', tavg_sum_qflux(ns))
 
    !*** report nsteps total and tavg_sum
    if (my_task == master_task) then
@@ -2477,7 +2481,7 @@
          if (avail_tavg_fields(nfield)%method == tavg_method_avg) then
             tavg_norm = tavg_sum(ns)
          else if (avail_tavg_fields(nfield)%method == tavg_method_qflux) then
-            tavg_norm = tavg_sum_qflux
+            tavg_norm = tavg_sum_qflux(ns)
          else
             tavg_norm = c1
          endif
@@ -2710,7 +2714,7 @@
    if (avail_tavg_fields(id)%method == tavg_method_avg) then
       tavg_norm = tavg_sum(nstream)
    else if (avail_tavg_fields(id)%method == tavg_method_qflux) then
-      tavg_norm = tavg_sum_qflux
+      tavg_norm = tavg_sum_qflux(nstream)
    else
       tavg_norm = c1
    endif
@@ -2775,8 +2779,17 @@
 !EOP
 !BOC
 !-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
 
-   tavg_sum_qflux = tavg_sum_qflux + const ! const = tlast_ice
+   integer (int_kind) ::  &
+      n
+
+   do n=1,nstreams
+     tavg_sum_qflux(n) = tavg_sum_qflux(n) + const ! const = tlast_ice
+   enddo
 
 !-----------------------------------------------------------------------
 !EOC
@@ -3009,7 +3022,7 @@
                TAVG_BUF_2D(:,:,:,loc) = c0
             case (tavg_method_qflux)
                TAVG_BUF_2D(:,:,:,loc) = c0
-              tavg_sum_qflux = c0
+              tavg_sum_qflux(ns) = c0
             case (tavg_method_min)
                TAVG_BUF_2D(:,:,:,loc) = bignum
             case (tavg_method_max)
@@ -3092,15 +3105,16 @@
           call exit_POP (sigAbort,exit_string,out_unit=stdout)
         endif
         if (ns == qflux_stream) then
-          if (tavg_sum_qflux /= 0) then
-            factorq = c1/tavg_sum_qflux
+          if (tavg_sum_qflux(ns) /= 0) then
+            factorq = c1/tavg_sum_qflux(ns)
           elseif (tavg_freq_iopt(ns) == freq_opt_nhour   .or.  &
                   tavg_freq_iopt(ns) == freq_opt_nsecond .or.  &
                   tavg_freq_iopt(ns) == freq_opt_nstep         ) then
             ! do nothing; these frequencies are not compatable with time-averaged qflux
             factorq = c1
           else
-            exit_string = 'FATAL ERROR: attempt to divide by zero tavg_sum_qflux'
+            call document ('tavg_norm_field_all', ' ns ', ns)
+            exit_string = 'FATAL ERROR: attempt to divide by zero tavg_sum_qflux(ns)'
             call document ('tavg_norm_field_all', exit_string)
             call exit_POP (sigAbort,exit_string,out_unit=stdout)
           endif
@@ -3108,7 +3122,7 @@
 
       case ('denormalize')
           factor  = tavg_sum(ns)
-          factorq = tavg_sum_qflux
+          factorq = tavg_sum_qflux(ns)
       case default
           exit_string = 'FATAL ERROR: unknown option'
           call document ('tavg_norm_field_all', exit_string)

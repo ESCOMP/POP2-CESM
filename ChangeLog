@@ -2,6 +2,16 @@
 ===============================================================================
 Tag Creator: njn01 
 Tag Date:    19 April 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100419a
+Tag Testing:  1-month + 1-month cfc functionality test
+Tag Summary: * correction to qflux streams bug (now QFLUX can appear in any stream)
+
+M           22460   source/budget_diagnostics.F90
+M           22460   source/tavg.F90
+                   
+===============================================================================
+Tag Creator: njn01 
+Tag Date:    19 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100419
 Tag Testing:  inspection of pop2.buildnml.csh script; inspection of high-freq output files;
               1-month + 1-month ecosys + cfc case (functionality test)

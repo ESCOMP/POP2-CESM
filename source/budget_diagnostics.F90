@@ -555,7 +555,7 @@ tavg_id_SHF        = tavg_id('SHF')
    !*** compute mean heat and virtual salt fluxes due to ice formation
 
    qflux_t_mean = c0
-   if ( tavg_sum_qflux /= c0 )  &
+   if ( tavg_sum_qflux(tavg_in_which_stream(tavg_id_QFLUX)) /= c0 )  &
         qflux_t_mean = tavg_global_sum_2D(tavg_id('QFLUX'))
 
    if ( sfc_layer_type == sfc_layer_varthick .and.  &
