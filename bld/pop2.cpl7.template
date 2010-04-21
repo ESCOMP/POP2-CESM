@@ -347,7 +347,7 @@ echo  Begin identifying and collecting all pop2 input datasets                >>
             cp -fp \$INPUT_TEMPLATES/${OCN_GRID}_tavg_contents_high_freq \$ocndir/input/${OCN_GRID}_tavg_contents
           endif
        endif # OCN_TAVG_HIFREQ
-      endif ! tavg_contents
+      endif # tavg_contents
      end
 
 
