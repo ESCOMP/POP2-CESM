@@ -9,7 +9,7 @@
 #  initialize
 #----------------------------------------------------------------------------
   @ ntracer_stream                         = 1
-  set ltavg_ignore_excess_contents_streams = .false.
+  set ltavg_ignore_extra_streams = .false.
   set tavg_freq_opt_values                 = ( )
   set tavg_freq_values                     = ( )
   set tavg_stream_filestrings              = ( )
@@ -35,10 +35,10 @@
 #----------------------------------------------------------------------------
 @ n_tavg_streams                = `grep "^ *n_tavg_streams"              $POP2_TAVG_NML_BASE | awk -F= '{print $2}' `
 
-set ltavg_temp  = `grep "^ *ltavg_ignore_excess_contents_streams"   $POP2_TAVG_NML_BASE | awk -F= '{print $2}' `
+set ltavg_temp  = `grep "^ *ltavg_ignore_extra_streams"   $POP2_TAVG_NML_BASE | awk -F= '{print $2}' `
 
 if ($ltavg_temp == .true. || $ltavg_temp == .false.) then
-set ltavg_ignore_excess_contents_streams  = $ltavg_temp
+set ltavg_ignore_extra_streams  = $ltavg_temp
 endif
 
 set ltavg_streams_index_present = `grep "^ *ltavg_streams_index_present" $POP2_TAVG_NML_BASE | awk -F= '{print $2}' `
@@ -187,7 +187,7 @@ cat >&! $POP2_TAVG_NML << EOF2
 
 &tavg_nml
    n_tavg_streams                       = $n_tavg_streams
-   ltavg_ignore_excess_contents_streams = $ltavg_ignore_excess_contents_streams
+   ltavg_ignore_extra_streams           = $ltavg_ignore_extra_streams
    ltavg_streams_index_present          = $ltavg_streams_index_present
    tavg_freq_opt                        = $tavg_freq_opt_values
    tavg_freq                            = $tavg_freq_values

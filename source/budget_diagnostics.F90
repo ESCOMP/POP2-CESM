@@ -179,6 +179,14 @@
           write (stdout,*) 'Global tracer budgets diagnostics will not be computed'
       endif
    endif
+
+!-----------------------------------------------------------------------
+!
+!     nothing more to do here
+!
+!-----------------------------------------------------------------------
+
+   if (.not. ldiag_global_tracer_budgets) return
  
    budget_error_flag = 0
 
@@ -197,24 +205,22 @@
 
    budget_stream =  tavg_in_which_stream(tavg_id_SHF)
  
-   if (ldiag_global_tracer_budgets ) then
-    tavg_flag = tavg_streams(budget_stream)%field_flag
-    if (check_time_flag_int(tavg_flag,freq_opt=.true.) == freq_opt_never) then
-       budget_error_flag = -1000
-    else
+   tavg_flag = tavg_streams(budget_stream)%field_flag
+   if (check_time_flag_int(tavg_flag,freq_opt=.true.) == freq_opt_never) then
+      budget_error_flag = -1000
+   else
      
-     !*** determine if required fields are activated in the tavg_contents file
+    !*** determine if required fields are activated in the tavg_contents file
 
-     if (.not. set_in_tavg_contents(tavg_id_SHF))     budget_error_flag = -2000
-     if (.not. set_in_tavg_contents(tavg_id_SFWF))    budget_error_flag = -2000
-     if (.not. set_in_tavg_contents(tavg_id_RESID_T)) budget_error_flag = -2000
-     if (.not. set_in_tavg_contents(tavg_id_RESID_S)) budget_error_flag = -2000
-     if (.not. set_in_tavg_contents(tavg_id_FW))      budget_error_flag = -2000
-     if (.not. set_in_tavg_contents(tavg_id_TFW_T))   budget_error_flag = -2000
-     if (.not. set_in_tavg_contents(tavg_id_TFW_S))   budget_error_flag = -2000
-     if (.not. set_in_tavg_contents(tavg_id_QFLUX))   budget_error_flag = -2000
+    if (.not. set_in_tavg_contents(tavg_id_SHF))     budget_error_flag = -2000
+    if (.not. set_in_tavg_contents(tavg_id_SFWF))    budget_error_flag = -2000
+    if (.not. set_in_tavg_contents(tavg_id_RESID_T)) budget_error_flag = -2000
+    if (.not. set_in_tavg_contents(tavg_id_RESID_S)) budget_error_flag = -2000
+    if (.not. set_in_tavg_contents(tavg_id_FW))      budget_error_flag = -2000
+    if (.not. set_in_tavg_contents(tavg_id_TFW_T))   budget_error_flag = -2000
+    if (.not. set_in_tavg_contents(tavg_id_TFW_S))   budget_error_flag = -2000
+    if (.not. set_in_tavg_contents(tavg_id_QFLUX))   budget_error_flag = -2000
 
-    endif
    endif
 
    if     ( budget_error_flag == -1000 ) then
@@ -230,21 +236,17 @@
    endif
 
    !*** determine if all required fields are activated in the *the same* tavg_contents file
-   if (ldiag_global_tracer_budgets ) then
 
-
-     if (tavg_in_this_stream(tavg_id_SFWF   ,budget_stream)  .and.   &
-         tavg_in_this_stream(tavg_id_RESID_T,budget_stream)  .and.   &
-         tavg_in_this_stream(tavg_id_RESID_S,budget_stream)  .and.   &
-         tavg_in_this_stream(tavg_id_FW     ,budget_stream)  .and.   &
-         tavg_in_this_stream(tavg_id_TFW_T  ,budget_stream)  .and.   &
-         tavg_in_this_stream(tavg_id_TFW_S  ,budget_stream)  .and.   &
-         tavg_in_this_stream(tavg_id_QFLUX  ,budget_stream) ) then
-            ! ok -- all fields are in the same stream
-     else
-         budget_error_flag = -3000
-     endif
-
+   if (tavg_in_this_stream(tavg_id_SFWF   ,budget_stream)  .and.   &
+       tavg_in_this_stream(tavg_id_RESID_T,budget_stream)  .and.   &
+       tavg_in_this_stream(tavg_id_RESID_S,budget_stream)  .and.   &
+       tavg_in_this_stream(tavg_id_FW     ,budget_stream)  .and.   &
+       tavg_in_this_stream(tavg_id_TFW_T  ,budget_stream)  .and.   &
+       tavg_in_this_stream(tavg_id_TFW_S  ,budget_stream)  .and.   &
+       tavg_in_this_stream(tavg_id_QFLUX  ,budget_stream) ) then
+          ! ok -- all fields are in the same stream
+   else
+       budget_error_flag = -3000
    endif
    
    if ( budget_error_flag == -3000 ) then
@@ -256,34 +258,32 @@
 
    budget_error_flag = 0
 
-   if (ldiag_global_tracer_budgets ) then
-     if ( my_task == master_task ) then
-       select case (check_time_flag_int(tavg_flag,freq_opt=.true.))
+   if ( my_task == master_task ) then
+     select case (check_time_flag_int(tavg_flag,freq_opt=.true.))
 
-        case ( freq_opt_never ) 
-          write(stdout,1100) 'no budget interval specified'
-          budget_error_flag = -1000
+      case ( freq_opt_never ) 
+        write(stdout,1100) 'no budget interval specified'
+        budget_error_flag = -1000
  
-        case ( freq_opt_nyear ) 
-          write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' years'
+      case ( freq_opt_nyear ) 
+        write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' years'
  
-        case ( freq_opt_nmonth ) 
-          write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' months'
+      case ( freq_opt_nmonth ) 
+        write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' months'
  
-        case ( freq_opt_nday ) 
-          write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' days'
+      case ( freq_opt_nday ) 
+        write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' days'
 
-        case ( freq_opt_nhour ) 
-          write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' hours'
+      case ( freq_opt_nhour ) 
+        write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' hours'
 
-        case ( freq_opt_nsecond )
-          write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' seconds'
+      case ( freq_opt_nsecond )
+        write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' seconds'
  
-        case ( freq_opt_nstep )
-          write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' steps'
+      case ( freq_opt_nstep )
+        write(stdout,1101) check_time_flag_int(tavg_flag,freq=.true.),' steps'
  
-       end select
-     endif
+     end select
    endif
 
    call broadcast_scalar (budget_error_flag, master_task)
@@ -349,19 +349,21 @@
    integer (int_kind) ::  &
       iblock,             &
       k,                  &
-      n
+      n,                  &
+      tavg_TEMP
 
    logical (log_kind), save ::    &
       first_global_budget = .true.  ! flag for initializing budget diagnostics
 
-tavg_id_SHF        = tavg_id('SHF')
+   tavg_id_SHF        = tavg_id('SHF')
 
    if (present(step_call)) then
    if (step_call) then
-     !############# debug -- is ltavg_on necessary? ###########################
-     if ( first_global_budget .and. ldiag_global_tracer_budgets   .and.  &
-          ltavg_on(tavg_in_which_stream(tavg_id('TEMP')))) then
+     tavg_TEMP = tavg_id('TEMP')
+     if ( first_global_budget .and. ldiag_global_tracer_budgets .and. tavg_requested(tavg_TEMP) ) then
+        if (ltavg_on(tavg_in_which_stream(tavg_TEMP))) then
           ! continue with diagnostics computation
+        endif
      else
        return
      endif
@@ -448,14 +450,13 @@ tavg_id_SHF        = tavg_id('SHF')
 
    if (present(step_call)) then
    if (step_call) then
-     !############# debug -- is ltavg_on necessary? ###########################
-     if ( first_global_budget .and. ldiag_global_tracer_budgets   .and. &
-          ltavg_on(tavg_in_which_stream(tavg_id('TEMP')))) then
-       if ( my_task == master_task ) then
-         write (stdout,1001) volume_t_initial,tracer_mean_initial(1),   &
-                             salt_to_ppt*tracer_mean_initial(2)
+     if ( first_global_budget .and. ldiag_global_tracer_budgets .and. tavg_requested(tavg_TEMP) ) then
+       if (ltavg_on(tavg_in_which_stream(tavg_TEMP))) then
+        if ( my_task == master_task ) then
+          write (stdout,1001) volume_t_initial,tracer_mean_initial(1),   &
+                              salt_to_ppt*tracer_mean_initial(2)
+        endif
        endif
-
        first_global_budget = .false.
      endif ! first_global_budget 
    endif ! step_call

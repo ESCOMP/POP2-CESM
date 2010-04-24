@@ -499,8 +499,8 @@
    logical (log_kind) ::    &
       reject,               &! true if duplicate tavg_contents entry
       skip,                 &! true if tavg_contents entry is to be skipped (stream = 0)
-      ltavg_ignore_excess_contents_streams !ignores tavg_contents streams > n_tavg_streams
-                                           ! and allows model to continue running
+      ltavg_ignore_extra_streams !ignores tavg_contents streams > n_tavg_streams
+                                 ! and allows model to continue running
 
    logical (log_kind), dimension(max_avail_tavg_streams) ::    &
       ltavg_has_offset_date  ! T if tavg time-flag has an offset date
@@ -532,7 +532,7 @@
                        tavg_start, tavg_fmt_in, tavg_fmt_out,                  &
                        tavg_stream_filestrings,                                &
                        ltavg_nino_diags_requested, n_tavg_streams,             &
-                       ltavg_ignore_excess_contents_streams,                   &
+                       ltavg_ignore_extra_streams,                             &
                        ltavg_streams_index_present, ltavg_has_offset_date,     &
                        tavg_offset_years, tavg_offset_months, tavg_offset_days,&
                        ltavg_one_time_header,                                  &
@@ -584,7 +584,7 @@
    ltavg_first_header          = .true.
    ltavg_streams_index_present = .true.
    ltavg_has_offset_date       = .false.
-   ltavg_ignore_excess_contents_streams = .false.
+   ltavg_ignore_extra_streams  = .false.
 
    if (registry_match ('init_time1')) then
       tavg_offset_years  = iyear0
@@ -696,35 +696,37 @@
          end select
       endif
 
-      !*** FILE frequency
-      select case (tavg_file_freq_opt(ns))
-      case ('never')
-         tavg_file_freq_iopt(ns) = freq_opt_never
-         write(stdout,'(a,i3)') 'tavg diagnostics disabled for stream ', ns
-      case ('once')
-         tavg_file_freq_iopt(ns) = freq_opt_once
-         write(stdout,'(a,i3,a)') 'stream #', ns, 'tavg file written once (time-invariant fields)'
-      case ('nyear')
-         tavg_file_freq_iopt(ns) = freq_opt_nyear
-         write(stdout,freq_fmt) ns, tavg_file_freq(ns),' years  '
-      case ('nmonth')
-         tavg_file_freq_iopt(ns) = freq_opt_nmonth
-         write(stdout,freq_fmt) ns, tavg_file_freq(ns),' months '
-      case ('nday')
-         tavg_file_freq_iopt(ns) = freq_opt_nday
-         write(stdout,freq_fmt) ns, tavg_file_freq(ns),' days   '
-      case ('nhour')
-         tavg_file_freq_iopt(ns) = freq_opt_nhour
-         write(stdout,freq_fmt) ns, tavg_file_freq(ns),' hours  '
-      case ('nsecond')
-         tavg_file_freq_iopt(ns) = freq_opt_nsecond
-         write(stdout,freq_fmt) ns, tavg_file_freq(ns),' seconds'
-      case ('nstep')
-         tavg_file_freq_iopt(ns) = freq_opt_nstep
-         write(stdout,freq_fmt) ns, tavg_file_freq(ns),' steps  '
-      case default
-         tavg_file_freq_iopt(ns) = -1000
-      end select
+      if (tavg_freq_iopt(ns) /= freq_opt_never) then
+        !*** FILE frequency
+        select case (tavg_file_freq_opt(ns))
+        case ('never')
+           tavg_file_freq_iopt(ns) = freq_opt_never
+           write(stdout,'(a,i3)') 'tavg diagnostics disabled for stream ', ns
+        case ('once')
+           tavg_file_freq_iopt(ns) = freq_opt_once
+           write(stdout,'(a,i3,a)') 'stream #', ns, 'tavg file written once (time-invariant fields)'
+        case ('nyear')
+           tavg_file_freq_iopt(ns) = freq_opt_nyear
+           write(stdout,freq_fmt) ns, tavg_file_freq(ns),' years  '
+        case ('nmonth')
+           tavg_file_freq_iopt(ns) = freq_opt_nmonth
+           write(stdout,freq_fmt) ns, tavg_file_freq(ns),' months '
+        case ('nday')
+           tavg_file_freq_iopt(ns) = freq_opt_nday
+           write(stdout,freq_fmt) ns, tavg_file_freq(ns),' days   '
+        case ('nhour')
+           tavg_file_freq_iopt(ns) = freq_opt_nhour
+           write(stdout,freq_fmt) ns, tavg_file_freq(ns),' hours  '
+        case ('nsecond')
+           tavg_file_freq_iopt(ns) = freq_opt_nsecond
+           write(stdout,freq_fmt) ns, tavg_file_freq(ns),' seconds'
+        case ('nstep')
+           tavg_file_freq_iopt(ns) = freq_opt_nstep
+           write(stdout,freq_fmt) ns, tavg_file_freq(ns),' steps  '
+        case default
+           tavg_file_freq_iopt(ns) = -1000
+        end select
+      endif
 
       call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
      enddo ! ns
@@ -752,12 +754,12 @@
       call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
-   call broadcast_scalar(tavg_contents,                        master_task)
-   call broadcast_scalar(tavg_infile,                          master_task)
-   call broadcast_scalar(tavg_outfile,                         master_task)
-   call broadcast_scalar(ltavg_ignore_excess_contents_streams, master_task)
-   call broadcast_scalar(ltavg_nino_diags_requested,           master_task)
-   call broadcast_scalar(ltavg_streams_index_present,          master_task)
+   call broadcast_scalar(tavg_contents,                  master_task)
+   call broadcast_scalar(tavg_infile,                    master_task)
+   call broadcast_scalar(tavg_outfile,                   master_task)
+   call broadcast_scalar(ltavg_ignore_extra_streams,     master_task)
+   call broadcast_scalar(ltavg_nino_diags_requested,     master_task)
+   call broadcast_scalar(ltavg_streams_index_present,    master_task)
 
    do ns=1,nstreams
       call broadcast_scalar(tavg_freq(ns),               master_task)
@@ -988,7 +990,7 @@
       endif
 
       if (ns > n_tavg_streams) then
-        if (ltavg_ignore_excess_contents_streams) then
+        if (ltavg_ignore_extra_streams) then
            exit_string = 'WARNING: you have requested a stream number > n_tavg_streams in tavg_contents file'
            call document ('init_tavg', exit_string)
         else

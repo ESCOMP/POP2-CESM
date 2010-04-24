@@ -1,6 +1,35 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    23 April 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100423
+Tag Testing: tx1v1 oob vs new, with and without 'never' option 
+PASS  SMS_D.f19_g16.BCN.bluefire 
+PASS  SMS_D.T31_g37.BCN.bluefire 
+PASS  ERI.f19_g16.BCN.bluefire 
+PASS  ERI.T31_g37.BCN.bluefire 
+PASS  ERS.f19_g16.B.bluefire 
+PASS  PET_PT.T62_g16.C.bluefire 
+PASS  PET_PT.f19_g16.B1850CN.bluefire 
+PASS  ERB.T62_g16.C.bluefire 
+PASS  ERT.T62_g16.C.bluefire 
+PASS  ERP.T62_g37.C.bluefire 
+PASS  SMS_D.T62_g16.C.bluefire 
+PASS  SMS.T62_g16.CECO.bluefire
+
+Tag Summary: * correction to tripole-grid tavg streams 'never' problems
+               (general correction will be provided in a future tag)
+             * improve tavg 'never' log-file reporting
+             * shorten variable name ltavg_ignore_excess_contents_streams
+                 in pop2_tavg_nml.csh and tavg.F90 (too long for "frost")
+             * remove conditionals in pop2_in_build.csh budget_diagnostics
+
+M           22470   source/budget_diagnostics.F90
+M           22470   source/tavg.F90
+M           22469   input_templates/pop2_tavg_nml.csh
+M           22469   input_templates/pop2_in_build.csh
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    21 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100421
 Tag Testing:  
@@ -11,8 +40,6 @@ M           22469   bld/pop2.cpl7.template
 
 -      endif ! tavg_contents
 +      endif # tavg_contents
-
-
                    
 ===============================================================================
 Tag Creator: njn01 
