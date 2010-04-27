@@ -5881,8 +5881,6 @@
 !
 !-----------------------------------------------------------------------
 
-   call timer_start(timer_tavg_ccsm_diags_bsf)
-
    !*** zero out location identifiers
    tavg_loc_SU = 0; tavg_loc_SV  = 0; tavg_loc_BSF = 0
 
@@ -5910,6 +5908,7 @@
      return
    endif
 
+   call timer_start(timer_tavg_ccsm_diags_bsf)
 
    tavg_loc_SU  = avail_tavg_fields(tavg_id_SU)%buf_loc
    tavg_loc_SV  = avail_tavg_fields(tavg_id_SV)%buf_loc
