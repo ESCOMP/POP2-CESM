@@ -1,6 +1,24 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    29 April 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100429
+Tag Testing: ccsm4_0_beta51, oob vs oob + new timers.F90
+
+Tag Summary: * fixes the missing OCN timing summary information problem
+              
+M           22658   source/timers.F90
+===============================================================================
+Tag Creator: klindsay 
+Tag Date:    27 April 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100427
+Tag Testing: 
+
+Tag Summary: * move timer_start call so that it follows the last return statement in 
+               subroutine tavg_bsf_diags in module tavg.F90
+             
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    23 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100423
 Tag Testing: tx1v1 oob vs new, with and without 'never' option 
