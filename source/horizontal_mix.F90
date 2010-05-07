@@ -38,7 +38,8 @@
       tavg_in_which_stream, ltavg_on
    use timers, only: timer_start, timer_stop, get_timer
    use exit_mod, only: sigAbort, exit_pop, flushm
-   use mix_submeso, only: init_submeso
+   use mix_submeso, only: init_submeso, submeso_flux, submeso_sf
+   use hmix_gm_submeso_share, only: init_meso_mixing, tracer_diffs_and_isopyc_slopes
    use prognostic
    use vertical_mix
 
@@ -91,7 +92,8 @@
 
    integer (POP_i4) :: &
       timer_hdiffu,      &! timer for horizontal momentum mixing
-      timer_hdifft        ! timer for horizontal tracer   mixing
+      timer_hdifft,      &! timer for horizontal tracer   mixing
+      timer_submeso       ! timer for all submeso code
 
 !EOC
 !***********************************************************************
@@ -238,12 +240,6 @@
                     'Unknown type for horizontal tracer mixing')
    endif
 
-   if ( lsubmesoscale_mixing  .and.  &
-        hmix_tracer_itype /= hmix_tracer_type_gm ) then
-     call exit_POP(sigAbort, &
-                   'Submesoscale mixing can be used only when GM is on')
-   endif
-
 !-----------------------------------------------------------------------
 !
 !  calculate additional coefficients based on mixing parameterization
@@ -309,9 +305,11 @@
                                   nblocks_clinic, distrb_clinic%nprocs)
 
    case(hmix_tracer_type_gm)
+      call init_meso_mixing(hmix_tracer_itype,hmix_tracer_type_gm)
       call init_gm  ! variables used by GM parameterization
       call get_timer(timer_hdifft,'HMIX_TRACER_GM', &
                                   nblocks_clinic, distrb_clinic%nprocs)
+
 
    end select
 
@@ -321,8 +319,16 @@
 !
 !-----------------------------------------------------------------------
 
-   if ( lsubmesoscale_mixing )  call init_submeso
+   if ( lsubmesoscale_mixing )  then
+        call get_timer(timer_submeso,'SUBMESO', &
+                                  nblocks_clinic, distrb_clinic%nprocs)
+   	call init_submeso
+   	if ( .not. hmix_tracer_itype == hmix_tracer_type_gm ) then
+     	 call init_meso_mixing(hmix_tracer_itype,hmix_tracer_type_gm)
+	endif
+   endif
 
+  
 !-----------------------------------------------------------------------
 !
 !  check for compatibility with topostress
@@ -348,7 +354,7 @@
 
    call define_tavg_field(tavg_HDIFS,'HDIFS',2,                             &
                     long_name='Vertically Integrated Horz Diff S tendency', &
-                          coordinates='TLONG TLAT time',                   &
+                          coordinates='TLONG TLAT time',                    &
                           scale_factor=1000.0_rtavg,                        &
                           units='centimeter gram/kilogram/s', grid_loc='2110')
 
@@ -492,6 +498,8 @@
 
    real (POP_r8), dimension(nx_block,ny_block) :: &
      WORK                 ! temporary to hold tavg field
+   real (POP_r8), dimension(nx_block,ny_block,nt) :: &
+      TDTK                ! Hdiff(T) for nth tracer at level k from submeso_flux code
 
 !-----------------------------------------------------------------------
 !
@@ -503,18 +511,43 @@
 
    call timer_start(timer_hdifft, block_id=bid)
 
+   HDTK = c0
+
    select case (hmix_tracer_itype)
    case (hmix_tracer_type_del2)
       call hdifft_del2(k, HDTK, TMIX, tavg_HDIFE_TRACER, tavg_HDIFN_TRACER, this_block)
    case (hmix_tracer_type_del4)
       call hdifft_del4(k, HDTK, TMIX, tavg_HDIFE_TRACER, tavg_HDIFN_TRACER, this_block)
    case (hmix_tracer_type_gm)
+      if (k == 1) then
+	call tracer_diffs_and_isopyc_slopes(TMIX, this_block)
+      endif
       call hdifft_gm(k, HDTK, TMIX, UMIX, VMIX, tavg_HDIFE_TRACER, &
                      tavg_HDIFN_TRACER, tavg_HDIFB_TRACER, this_block)
    end select
-
+   
    call timer_stop(timer_hdifft, block_id=bid)
-
+  
+	
+   if ( lsubmesoscale_mixing ) then
+       call timer_start(timer_submeso, block_id=this_block%local_id)
+        if (.not. hmix_tracer_itype == hmix_tracer_type_gm) then
+	 if (k == 1) then
+	  call tracer_diffs_and_isopyc_slopes(TMIX, this_block)
+	 endif
+	endif
+        if (k == 1) then
+	 call submeso_sf(TMIX, this_block)
+	endif
+        call submeso_flux(k, TDTK, TMIX, tavg_HDIFE_TRACER, &
+                     tavg_HDIFN_TRACER, tavg_HDIFB_TRACER, this_block)
+	HDTK=HDTK+TDTK
+       call timer_stop(timer_submeso, block_id=this_block%local_id)
+   endif
+   
+  
+   
+   
 !-----------------------------------------------------------------------
 !
 !  compute tavg diagnostic if requested
@@ -528,7 +561,6 @@
      elsewhere
         WORK = c0
      end where
-
      call accumulate_tavg_field(WORK,tavg_HDIFT,bid,k)
    endif
 
@@ -539,9 +571,9 @@
      elsewhere
         WORK = c0
      end where
-
      call accumulate_tavg_field(WORK,tavg_HDIFS,bid,k)
    endif
+
 
 !-----------------------------------------------------------------------
 !EOC

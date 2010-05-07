@@ -2,6 +2,19 @@
 ===============================================================================
 Tag Creator: njn01 
 Tag Date:    7 May 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100507a
+Tag Testing: ccsm4_0_beta52, with SourceMods. RMS difference timeseries gx3v7, HDIFT.      
+
+Tag Summary: * Merge submeso reorganization mods onto pop2 trunk. Not b4b, but smaller
+               differences that those caused by change in ocn pe layout (gx3v7)
+              
+A               0   source/hmix_gm_submeso_share.F90
+M           22833   source/mix_submeso.F90
+M           22833   source/horizontal_mix.F90
+M           22833   source/hmix_gm.F90
+===============================================================================
+Tag Creator: njn01 
+Tag Date:    7 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100507
 Tag Testing: ccsm4_0_beta52+, (OCN_TAVG_HIFREQ,OCN_TAVG_TRACER_BUDGET) = (TT,TF,FT,FF)
              ccsm4_0_beta52+, no extra tracers, 'file' option

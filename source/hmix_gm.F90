@@ -31,12 +31,13 @@
       use diagnostics
       use exit_mod
       use registry
+      use hmix_gm_submeso_share
 
 #ifdef CCSMCOUPLED
    use shr_sys_mod
 #endif
       use timers, only: timer_start, timer_stop, get_timer
-      use mix_submeso, only: SF_SUBM_X, SF_SUBM_Y, submeso
+
 
       implicit none
       private
@@ -63,8 +64,6 @@
          kappa_depth          ! depth dependence for KAPPA 
 
       real (r8), dimension(:,:,:), allocatable :: &
-         HXY,        &        ! dx/dy for y-z plane
-         HYX,        &        ! dy/dx for x-z plane
          HYXW, HXYS, &        ! west and south-shifted values of above
          RB,         &        ! Rossby radius
          RBR,        &        ! inverse of Rossby radius
@@ -74,17 +73,13 @@
          WTOP_ISOP, WBOT_ISOP ! vertical component of isopycnal velocities
 
       real (r8), dimension(:,:,:,:,:,:), allocatable :: &
-         SLX, SLY,      &     ! slope of isopycnal sfcs in x,y-direction
          SF_SLX, SF_SLY       ! components of the merged streamfunction
 
       real (r8), dimension(:,:,:,:,:), allocatable :: &
-         TX, TY, TZ,    &     ! tracer differences in each direction
-         SLA_SAVE,      &     ! isopycnal slopes
-         RX, RY               ! Dx(rho) and Dy(rho)
+         SLA_SAVE             ! isopycnal slopes
 
       real (r8), dimension(:,:,:,:), allocatable :: &
-         FZTOP,         &     ! vertical flux
-         RZ_SAVE              ! Dz(rho)
+         FZTOP                ! vertical flux
 
       logical (log_kind), dimension(:), allocatable :: &
          compute_kappa        ! compute spatially varying coefficients
@@ -779,63 +774,40 @@
 !
 !-----------------------------------------------------------------------
 
-   allocate (HXY (nx_block,ny_block,nblocks_clinic),    &
-             HYX (nx_block,ny_block,nblocks_clinic),    &
-             HYXW(nx_block,ny_block,nblocks_clinic),    &
+    allocate (HYXW(nx_block,ny_block,nblocks_clinic),    &
              HXYS(nx_block,ny_block,nblocks_clinic),    &
              RBR (nx_block,ny_block,nblocks_clinic),    &
              BTP (nx_block,ny_block,nblocks_clinic),    &
              BL_DEPTH(nx_block,ny_block,nblocks_clinic))
 
-   allocate (SLX   (nx_block,ny_block,2,2,km,nblocks_clinic),  &
-             SLY   (nx_block,ny_block,2,2,km,nblocks_clinic),  &
-             SF_SLX(nx_block,ny_block,2,2,km,nblocks_clinic),  &
+    allocate (SF_SLX(nx_block,ny_block,2,2,km,nblocks_clinic),  &
              SF_SLY(nx_block,ny_block,2,2,km,nblocks_clinic))
+    
+    allocate (FZTOP(nx_block,ny_block,nt,nblocks_clinic))
 
-   allocate (TX(nx_block,ny_block,km,nt,nblocks_clinic),  &
-             TY(nx_block,ny_block,km,nt,nblocks_clinic),  &
-             TZ(nx_block,ny_block,km,nt,nblocks_clinic))
+    allocate (kappa_depth(km))
 
-   allocate (RX(nx_block,ny_block,2,km,nblocks_clinic),  &
-             RY(nx_block,ny_block,2,km,nblocks_clinic))
-
-   allocate (RZ_SAVE(nx_block,ny_block,km,nblocks_clinic))
-
-   allocate (FZTOP(nx_block,ny_block,nt,nblocks_clinic))
-
-   allocate (kappa_depth(km))
-
-   allocate (KAPPA_ISOP(nx_block,ny_block,2,km,nblocks_clinic),  &
+    allocate (KAPPA_ISOP(nx_block,ny_block,2,km,nblocks_clinic),  &
              KAPPA_THIC(nx_block,ny_block,2,km,nblocks_clinic),  &
              HOR_DIFF  (nx_block,ny_block,2,km,nblocks_clinic))
 
-   allocate (KAPPA_LATERAL (nx_block,ny_block,nblocks_clinic),  &
+    allocate (KAPPA_LATERAL (nx_block,ny_block,nblocks_clinic),  &
              KAPPA_VERTICAL(nx_block,ny_block,km,nblocks_clinic))
 
-   allocate (BUOY_FREQ_SQ(nx_block,ny_block,km,nblocks_clinic))
+    allocate (BUOY_FREQ_SQ(nx_block,ny_block,km,nblocks_clinic))
 
-   allocate (VDC_GM(nx_block,ny_block,km,nblocks_clinic))
+    allocate (VDC_GM(nx_block,ny_block,km,nblocks_clinic))
 
-   allocate (compute_kappa(nblocks_clinic))
+    allocate (compute_kappa(nblocks_clinic))
 
-   HXY      = c0
-   HYX      = c0
    HYXW     = c0
    HXYS     = c0
    RBR      = c0
    BTP      = c0
    BL_DEPTH = c0
-   SLX      = c0
-   SLY      = c0
    SF_SLX   = c0
    SF_SLY   = c0
-   TX       = c0
-   TY       = c0
-   TZ       = c0
    FZTOP    = c0
-   RX       = c0
-   RY       = c0
-   RZ_SAVE  = c0
    VDC_GM   = c0
 
    if ( transition_layer_on ) then
@@ -850,7 +822,6 @@
 !  initialize various time-independent arrays
 !
 !-----------------------------------------------------------------------
-
 
    do k=1,km
      kappa_depth(k) = kappa_depth_1  &
@@ -878,13 +849,6 @@
 
      endif
 
-     !*** Hyx = dy/dx for x-z plane
-
-     HYX(:,:,iblock) = HTE(:,:,iblock) / HUS(:,:,iblock)
-
-     !*** Hxy = dx/dy for y-z plane
-
-     HXY(:,:,iblock) = HTN(:,:,iblock) / HUW(:,:,iblock)
 
      HYXW(:,:,iblock) = eoshift(HYX(:,:,iblock), dim=1, shift=-1)
      HXYS(:,:,iblock) = eoshift(HXY(:,:,iblock), dim=2, shift=-1)
@@ -1152,6 +1116,7 @@
       call get_timer(timer_nloop,'HMIX_TRACER_GM_NLOOP', &
                                   nblocks_clinic, distrb_clinic%nprocs)
 
+
 !-----------------------------------------------------------------------
 !EOC
 
@@ -1215,7 +1180,6 @@
          i,j,n,kk,          &! dummy loop counters
          kid,ktmp,          &! array indices
          kk_sub, kp1,       & 
-         kn, ks,            &! cyclic pointers for 2-level local arrays
          bid,               &! local block address for this sub block
          tavg_stream         ! temporary stream id
 
@@ -1228,20 +1192,13 @@
          SLA,                     &! absolute value of slope
          WORK1, WORK2,            &! local work space
          WORK3, WORK4,            &! local work space
-         KMASK, KMASKE, KMASKN,   &! ocean mask
+         KMASK,                   &! ocean mask
          TAPER1, TAPER2, TAPER3,  &! tapering factors
          UIB, VIB,                &! work arrays for isopycnal mixing velocities
-         DRDT, DRDS,              &! expansion coefficients d(rho)/dT,S
          U_ISOP, V_ISOP            ! horizontal components of isopycnal velocities
 
       real (r8), dimension(nx_block,ny_block,nt) :: &
          FX, FY                     ! fluxes across east, north faces
-
-      real (r8), dimension(nx_block,ny_block,2) :: &
-         TXP, TYP, TZP, TEMP
-
-      logical (log_kind) ::  &
-         lsubmeso               ! true for submesoscale mixing
 
       real (r8), dimension(2) :: &
          reference_depth
@@ -1254,22 +1211,12 @@
 
       bid = this_block%local_id
 
-      DRDT   = c0
-      DRDS   = c0
-      TXP    = c0
-      TYP    = c0
-      TZP    = c0
-      TEMP   = c0
       U_ISOP = c0
       V_ISOP = c0
       WORK1  = c0
       WORK2  = c0
       WORK3  = c0
       WORK4  = c0
-
-      lsubmeso = registry_match ('init_submeso')
-
-      if ( lsubmeso )  cancellation_occurs = .false.
 
       if ( .not. implicit_vertical_mix )  &
         call exit_POP (sigAbort, &
@@ -1302,219 +1249,6 @@
 
       if ( k == 1 ) then
 
-        kn = 1
-        ks = 2
-
-        do kk=1,km
-
-          KMASK = merge(c1, c0, kk < KMT(:,:,bid))
-
-!-----------------------------------------------------------------------
-!
-!     compute RX=Dx(rho) and RY=Dy(rho) for all vertical levels. 
-!
-!-----------------------------------------------------------------------
-
-          if ( kk == 1 ) then
-
-            do j=1,ny_block
-              do i=1,nx_block
-                if ( kk <= KMT(i,j,bid) .and. kk <= KMTE(i,j,bid) ) then
-                  KMASKE(i,j) = c1
-                else
-                  KMASKE(i,j) = c0
-                endif
-                if ( kk <= KMT(i,j,bid) .and. kk <= KMTN(i,j,bid) ) then
-                  KMASKN(i,j) = c1
-                else
-                  KMASKN(i,j) = c0
-                endif
-                TEMP(i,j,kn) = max(-c2, TMIX(i,j,kk,1))
-              enddo
-            enddo
-
-            do j=1,ny_block
-              do i=1,nx_block-1
-                TXP(i,j,kn) = KMASKE(i,j) * (TEMP(i+1,j,kn)  &
-                                            -TEMP(i,  j,kn))
-              enddo
-            enddo
-
-            do j=1,ny_block-1
-              do i=1,nx_block
-                TYP(i,j,kn) = KMASKN(i,j) * (TEMP(i,j+1,kn)  &
-                                            -TEMP(i,j,  kn))
-              enddo
-            enddo
-
-            do n=1,nt
-              do j=1,ny_block
-                do i=1,nx_block-1
-                  TX(i,j,kk,n,bid) = KMASKE(i,j)  &
-                              * (TMIX(i+1,j,kk,n) - TMIX(i,j,kk,n))
-                enddo
-              enddo
-
-              do j=1,ny_block-1
-                do i=1,nx_block
-                  TY(i,j,kk,n,bid) = KMASKN(i,j)  &
-                              * (TMIX(i,j+1,kk,n) - TMIX(i,j,kk,n))
-                enddo
-              enddo
-            enddo
-
-!     D_T(rho) & D_S(rho) at level 1
-
-            call state (kk, kk, TMIX(:,:,kk,1), TMIX(:,:,kk,2),  &
-                        this_block, DRHODT=DRDT, DRHODS=DRDS) 
-
-!     RX = Dx(rho) = DRDT*Dx(T) + DRDS*Dx(S)
-!     RY = Dy(rho) = DRDT*Dy(T) + DRDS*Dy(S)
-
-            RX(:,:,ieast ,kk,bid) = DRDT * TXP(:,:,kn)  &
-                                  + DRDS * TX(:,:,kk,2,bid) 
-            RY(:,:,jnorth,kk,bid) = DRDT * TYP(:,:,kn)  &
-                                  + DRDS * TY(:,:,kk,2,bid) 
-
-            do j=1,ny_block
-              do i=2,nx_block
-                RX(i,j,iwest,kk,bid) = DRDT(i,j) * TXP(i-1,j,kn)  &
-                                     + DRDS(i,j) * TX (i-1,j,kk,2,bid)
-              enddo
-            enddo
-
-            do j=2,ny_block
-              do i=1,nx_block
-                RY(i,j,jsouth,kk,bid) = DRDT(i,j) * TYP(i,j-1,kn)  &
-                                      + DRDS(i,j) * TY (i,j-1,kk,2,bid)
-              enddo
-            enddo
-
-          endif  ! end of kk == 1 if statement
-
-!-----------------------------------------------------------------------
-!
-!     compute RZ=Dz(rho) and
-!     SLX = RX / RZ = slope of isopycnal surfaces in x-direction
-!     SLY = RY / RZ = slope of isopycnal surfaces in y-direction
-!
-!-----------------------------------------------------------------------
-
-          if ( kk < km ) then
-
-            TEMP(:,:,ks) = max(-c2, TMIX(:,:,kk+1,1))
-
-            TZ(:,:,kk+1,1,bid) = TMIX(:,:,kk  ,1) - TMIX(:,:,kk+1,1)
-            TZ(:,:,kk+1,2,bid) = TMIX(:,:,kk  ,2) - TMIX(:,:,kk+1,2) 
-            TZP(:,:,ks) = TEMP(:,:,kn) - TEMP(:,:,ks)
-
-!     RZ = Dz(rho) = DRDT*Dz(T) + DRDS*Dz(S)
-
-            RZ = DRDT * TZP(:,:,ks) + DRDS * TZ (:,:,kk+1,2,bid) 
-            RZ = min(RZ,-eps2)
-
-            SLX(:,:,ieast ,kbt,kk,bid) = KMASK * RX(:,:,ieast ,kk,bid) / RZ
-            SLX(:,:,iwest ,kbt,kk,bid) = KMASK * RX(:,:,iwest ,kk,bid) / RZ
-            SLY(:,:,jnorth,kbt,kk,bid) = KMASK * RY(:,:,jnorth,kk,bid) / RZ
-            SLY(:,:,jsouth,kbt,kk,bid) = KMASK * RY(:,:,jsouth,kk,bid) / RZ
-
-!-----------------------------------------------------------------------
-!
-!     compute Dx(rho), Dy(rho) at level kk+1
-!
-!-----------------------------------------------------------------------
-
-            KMASKE = merge(c1, c0, kk+1 <= KMT(:,:,bid) .and.  &
-                           kk+1 <= KMTE(:,:,bid))
-            KMASKN = merge(c1, c0, kk+1 <= KMT(:,:,bid) .and.  &
-                           kk+1 <= KMTN(:,:,bid))
-
-            do j=1,ny_block
-              do i=1,nx_block-1
-                TXP(i,j,ks) = KMASKE(i,j)*(TEMP(i+1,j,ks)  &
-                                         - TEMP(i,j,ks)) 
-              enddo
-            enddo
-
-            do j=1,ny_block-1
-              do i=1,nx_block
-                TYP(i,j,ks) = KMASKN(i,j)*(TEMP(i,j+1,ks)  &
-                                         - TEMP(i,j,ks))
-              enddo
-            enddo
-
-            do n=1,nt
-              do j=1,ny_block
-                do i=1,nx_block-1
-                  TX(i,j,kk+1,n,bid) = KMASKE(i,j)  &
-                            * (TMIX(i+1,j,kk+1,n) - TMIX(i,j,kk+1,n))
-                enddo
-              enddo
-
-              do j=1,ny_block-1
-                do i=1,nx_block
-                  TY(i,j,kk+1,n,bid) = KMASKN(i,j)  &
-                            * (TMIX(i,j+1,kk+1,n) - TMIX(i,j,kk+1,n))
-                enddo
-              enddo
-            enddo
-
-!     D_T(rho) & D_S(rho) at level kk+1
-
-            call state (kk+1, kk+1, TMIX(:,:,kk+1,1),  &
-                        TMIX(:,:,kk+1,2), this_block,  &
-                        DRHODT=DRDT, DRHODS=DRDS)
-
-            RX(:,:,ieast ,kk+1,bid) = DRDT * TXP(:,:,ks)  &
-                                    + DRDS * TX(:,:,kk+1,2,bid) 
-            RY(:,:,jnorth,kk+1,bid) = DRDT * TYP(:,:,ks)  &
-                                    + DRDS * TY(:,:,kk+1,2,bid) 
-
-            do j=1,ny_block
-              do i=2,nx_block
-                RX(i,j,iwest,kk+1,bid) = DRDT(i,j) * TXP(i-1,j,ks)  &
-                                       + DRDS(i,j) * TX (i-1,j,kk+1,2,bid)
-              enddo
-            enddo
-
-            do j=2,ny_block
-              do i=1,nx_block
-                RY(i,j,jsouth,kk+1,bid) = DRDT(i,j) * TYP(i,j-1,ks)  &
-                                        + DRDS(i,j) * TY (i,j-1,kk+1,2,bid)
-              enddo
-            enddo
-
-            RZ = DRDT * TZP(:,:,ks) + DRDS * TZ(:,:,kk+1,2,bid) 
-            RZ_SAVE(:,:,kk+1,bid) = min(RZ,c0)
-            RZ = min(RZ,-eps2)
-
-!-----------------------------------------------------------------------
-!
-!     compute slope of isopycnal surfaces at level kk+1
-!
-!-----------------------------------------------------------------------
-
-            where ( kk+1 <= KMT(:,:,bid) )
-              SLX(:,:,ieast, ktp,kk+1,bid) = RX(:,:,ieast ,kk+1,bid) / RZ
-              SLX(:,:,iwest, ktp,kk+1,bid) = RX(:,:,iwest ,kk+1,bid) / RZ
-              SLY(:,:,jnorth,ktp,kk+1,bid) = RY(:,:,jnorth,kk+1,bid) / RZ
-              SLY(:,:,jsouth,ktp,kk+1,bid) = RY(:,:,jsouth,kk+1,bid) / RZ
-            end where
-
-!-----------------------------------------------------------------------
-!
-!     end of kk < km if block
-!
-!-----------------------------------------------------------------------
-
-          endif
-
-          ktmp = kn
-          kn   = ks
-          ks   = ktmp
-
-        enddo   ! end of kk-loop
-
         if ( transition_layer_on ) then
 
           if ( vmix_itype == vmix_type_kpp ) then
@@ -1541,14 +1275,16 @@
 
         endif
 
+	
+
 !-----------------------------------------------------------------------
 !
 !     compute isopycnal and thickness diffusion coefficients if
 !     they depend on the model fields
 !
 !-----------------------------------------------------------------------
-
-        if ( ( kappa_isop_type == kappa_type_vmhs           .or.    &
+        
+	if ( ( kappa_isop_type == kappa_type_vmhs           .or.    &
                kappa_thic_type == kappa_type_vmhs           .or.    &
                kappa_isop_type == kappa_type_hdgr           .or.    &
                kappa_thic_type == kappa_type_hdgr           .or.    &
@@ -1615,12 +1351,13 @@
 
         endif  ! end of ( compute_kappa ) if statement
 
+
 !-----------------------------------------------------------------------
 !
 !     reinitialize the diffusivity coefficients 
 !
 !-----------------------------------------------------------------------
-
+	
         if ( kappa_isop_type == kappa_type_const ) then
           KAPPA_ISOP(:,:,:,:,bid) = ah
         elseif ( kappa_isop_type == kappa_type_eg ) then
@@ -1662,12 +1399,13 @@
           enddo
         endif
 
+
 !-----------------------------------------------------------------------
 !
 !     control slope of isopycnal surfaces or KAPPA
 !
 !-----------------------------------------------------------------------
-
+	
         do kk=1,km
 
           kp1 = min(kk+1,km)
@@ -1903,6 +1641,7 @@
 
           end do  ! end of kk_sub loop
 
+
 !-----------------------------------------------------------------------
 !
 !     impose the boundary conditions by setting KAPPA=0
@@ -1969,12 +1708,10 @@
 
         endif
 
-        if ( lsubmeso )  &
-          call submeso (RX, RY, RZ_SAVE, TMIX, HYX, HXY, this_block)
-
       endif  ! end of k==1 if statement
 
       KMASK = merge(c1, c0, k < KMT(:,:,bid))
+      
 
 !-----------------------------------------------------------------------
 !
@@ -1988,6 +1725,7 @@
 !
 !-----------------------------------------------------------------------
 
+      
       if ( k < km ) then
 
         WORK1 = dzw(k)*KMASK*TAREA_R(:,:,bid)*                &
@@ -2053,6 +1791,7 @@
                      + HOR_DIFF  (i,j+1,kbt,k,bid)
         enddo
       enddo
+      
 
 !-----------------------------------------------------------------------
 !
@@ -2106,19 +1845,8 @@
                          - SF_SLX(i+1,j,iwest,kbt,k,bid)
           enddo
         enddo
-
-        if ( lsubmeso ) then
-          do j=1,ny_block
-            do i=1,nx_block-1
-              WORK1(i,j) = WORK1(i,j) - SF_SUBM_X(i  ,j,ieast,ktp,k,bid)
-              WORK2(i,j) = WORK2(i,j) - SF_SUBM_X(i  ,j,ieast,kbt,k,bid)
-              WORK3(i,j) = WORK3(i,j) - SF_SUBM_X(i+1,j,iwest,ktp,k,bid)
-              WORK4(i,j) = WORK4(i,j) - SF_SUBM_X(i+1,j,iwest,kbt,k,bid)
-            enddo
-          enddo
-        endif
-
-        do n = 1,nt
+	
+	do n = 1,nt
 
           if (n > 2 .and. k < km)  &
             TZ(:,:,k+1,n,bid) = TMIX(:,:,k  ,n) - TMIX(:,:,k+1,n)
@@ -2134,6 +1862,7 @@
           enddo
 
         end do
+
 
         do j=1,ny_block-1
           do i=1,nx_block
@@ -2151,17 +1880,6 @@
                          - SF_SLY(i,j+1,jsouth,kbt,k,bid)
           enddo
         enddo
-
-        if ( lsubmeso ) then
-          do j=1,ny_block-1
-            do i=1,nx_block
-              WORK1(i,j) = WORK1(i,j) - SF_SUBM_Y(i,j  ,jnorth,ktp,k,bid)
-              WORK2(i,j) = WORK2(i,j) - SF_SUBM_Y(i,j  ,jnorth,kbt,k,bid)
-              WORK3(i,j) = WORK3(i,j) - SF_SUBM_Y(i,j+1,jsouth,ktp,k,bid)
-              WORK4(i,j) = WORK4(i,j) - SF_SUBM_Y(i,j+1,jsouth,kbt,k,bid)
-            enddo
-          enddo
-        endif 
 
         do n = 1,nt
 
@@ -2193,58 +1911,12 @@
         GTK(:,:,n) = c0
 
         if ( k < km ) then
-
+          
           WORK3 = c0
 
           if ( .not. cancellation_occurs ) then
 
-            if ( lsubmeso ) then
-
-              WORK1 = c0
-              WORK2 = c0
-
-!pw loop split to improve performance
-
-              do j=this_block%jb,this_block%je
-                do i=this_block%ib,this_block%ie
-               
-                  WORK1(i,j) = SF_SUBM_X(i  ,j  ,ieast ,kbt,k  ,bid)     &
-                             * HYX(i  ,j  ,bid) * TX(i  ,j  ,k  ,n,bid)  &
-                             + SF_SUBM_X(i  ,j  ,iwest ,kbt,k  ,bid)     &
-                             * HYX(i-1,j  ,bid) * TX(i-1,j  ,k  ,n,bid)  &
-                             + SF_SUBM_Y(i  ,j  ,jnorth,kbt,k  ,bid)     &
-                             * HXY(i  ,j  ,bid) * TY(i  ,j  ,k  ,n,bid)  &
-                             + SF_SUBM_Y(i  ,j  ,jsouth,kbt,k  ,bid)     &
-                             * HXY(i  ,j-1,bid) * TY(i  ,j-1,k  ,n,bid)
-
-                enddo
-              enddo
-
-              do j=this_block%jb,this_block%je
-                do i=this_block%ib,this_block%ie
-               
-                  WORK2(i,j) = factor                                    &
-                           * ( SF_SUBM_X(i  ,j  ,ieast ,ktp,kp1,bid)     &
-                             * HYX(i  ,j  ,bid) * TX(i  ,j  ,kp1,n,bid)  &
-                             + SF_SUBM_X(i  ,j  ,iwest ,ktp,kp1,bid)     &
-                             * HYX(i-1,j  ,bid) * TX(i-1,j  ,kp1,n,bid)  &
-                             + SF_SUBM_Y(i  ,j  ,jnorth,ktp,kp1,bid)     &
-                             * HXY(i  ,j  ,bid) * TY(i  ,j  ,kp1,n,bid)  &
-                             + SF_SUBM_Y(i  ,j  ,jsouth,ktp,kp1,bid)     &
-                             * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) )
-
-                enddo
-              enddo
-
-              do j=this_block%jb,this_block%je
-                do i=this_block%ib,this_block%ie
-                  WORK3(i,j) = WORK1(i,j) + WORK2(i,j)
-                enddo
-              enddo
-
-            endif
-
-!pw loop split to improve performance
+!pw loop split to improve performance  -- 2
 
             do j=this_block%jb,this_block%je
               do i=this_block%ib,this_block%ie
@@ -2274,7 +1946,7 @@
                       + SF_SLX(i  ,j  ,iwest ,kbt,k  ,bid)            &
                        * HYX(i-1,j  ,bid) * TX(i-1,j  ,k  ,n,bid)     &
                       + SF_SLY(i  ,j  ,jsouth,kbt,k  ,bid)            &
-                       * HXY(i  ,j-1,bid) * TY(i  ,j-1,k  ,n,bid) )   
+                       * HXY(i  ,j-1,bid) * TY(i  ,j-1,k  ,n,bid) )
 
                enddo
              enddo
@@ -2291,7 +1963,7 @@
                       + SLX(i  ,j  ,iwest ,ktp,kp1,bid)               &
                        * HYX(i-1,j  ,bid) * TX(i-1,j  ,kp1,n,bid)     &
                       + SLY(i  ,j  ,jsouth,ktp,kp1,bid)               &
-                       * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) ) ) 
+                       * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) ) )
 
                enddo
              enddo
@@ -2301,7 +1973,7 @@
 
                  WORK3(i,j) = WORK3(i,j)                              &
                     + ( factor                                        &
-                    * ( SF_SLX(i  ,j  ,ieast ,ktp,kp1,bid)            & 
+                    * ( SF_SLX(i  ,j  ,ieast ,ktp,kp1,bid)            &
                        * HYX(i  ,j  ,bid) * TX(i  ,j  ,kp1,n,bid)     &
                       + SF_SLY(i  ,j  ,jnorth,ktp,kp1,bid)            &
                        * HXY(i  ,j  ,bid) * TY(i  ,j  ,kp1,n,bid)     &
@@ -2412,7 +2084,7 @@
 !     diagnostic computation of the bolus velocities 
 !
 !-----------------------------------------------------------------------
-
+      
       if ( diag_gm_bolus ) then
 
         do j=1,ny_block-1
@@ -2467,6 +2139,7 @@
 
       endif
 
+
 !-----------------------------------------------------------------------
 !
 !     update remaining bottom-face fields to top-face fields for next
@@ -2474,6 +2147,7 @@
 !
 !-----------------------------------------------------------------------
 
+      
       if ( diag_gm_bolus ) then
         UIT(:,:,bid) = UIB
         VIT(:,:,bid) = VIB
@@ -2687,6 +2361,7 @@
         enddo
 
       endif   ! mix_pass ne 1
+
 
 !-----------------------------------------------------------------------
 !EOC

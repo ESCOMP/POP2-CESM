@@ -32,7 +32,9 @@
    use tavg
    use exit_mod
    use registry
-   use communicate 
+   use communicate
+   use hmix_gm_submeso_share
+   
 #ifdef CCSMCOUPLED
    use shr_sys_mod
 #endif
@@ -44,7 +46,8 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 
    public :: init_submeso,   &
-             submeso 
+             submeso_sf,     &
+	     submeso_flux 
 
 !EOP
 !BOC
@@ -54,9 +57,14 @@
 !
 !-----------------------------------------------------------------------
 
+   integer (int_kind), parameter :: &
+      ktp = 1, kbt = 2      ! refer to the top and bottom halves of a
+                               !  grid cell, respectively
    real (r8), dimension(:,:,:,:,:,:), allocatable, public :: &
       SF_SUBM_X,  &       ! components of the submesoscale 
       SF_SUBM_Y           !  streamfunction
+   real (r8), dimension(:,:,:,:), allocatable :: &
+         FZTOP_SUBM 
 
 !-----------------------------------------------------------------------
 !
@@ -236,9 +244,12 @@
 
    allocate (TIME_SCALE(nx_block,ny_block,nblocks_clinic))
 
+   allocate (FZTOP_SUBM(nx_block,ny_block,nt,nblocks_clinic))
+
    SF_SUBM_X  = c0
    SF_SUBM_Y  = c0
    TIME_SCALE = c0
+   FZTOP_SUBM = c0
 
 !-----------------------------------------------------------------------
 !
@@ -306,10 +317,10 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: submeso 
+! !IROUTINE: submeso_sf 
 ! !INTERFACE:
 
-   subroutine submeso ( RX, RY, RZ_SAVE, TMIX, HYX, HXY, this_block )
+   subroutine submeso_sf ( TMIX, this_block )
 
 ! !DESCRIPTION:
 !  The Fox-Kemper, Ferrari, and Hallberg [2008] submesoscale parameterization
@@ -323,21 +334,9 @@
    type (block), intent(in) :: &
       this_block            ! block info for this sub block
 
-   real (r8), dimension(nx_block,ny_block,2,km,nblocks_clinic), intent(in) :: &
-      RX,       &           ! Dx(rho) 
-      RY                    ! Dy(rho) 
-
-   real (r8), dimension(nx_block,ny_block,km,nblocks_clinic), intent(in) :: &
-      RZ_SAVE               ! Dz(rho)
-
    real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
       TMIX                  ! tracers at all vertical levels
                             !   at mixing time level
-
-   real (r8), dimension(nx_block,ny_block,nblocks_clinic), intent(in) :: &
-      HXY,      &           ! dx/dy for y-z plane
-      HYX                   ! dy/dx for x-z plane
-
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -345,10 +344,6 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
-
-   integer (int_kind), parameter :: &
-      ktp = 1, kbt = 2      ! refer to the top and bottom halves of a
-                               !  grid cell, respectively
 
    integer (int_kind) :: &
       i, j, k, kk,       &  ! dummy loop counters
@@ -387,6 +382,8 @@
 !-----------------------------------------------------------------------
          
    bid = this_block%local_id
+   
+   
 
    WORK1     = c0
    WORK2     = c0
@@ -409,7 +406,8 @@
 
    ML_DEPTH = zw(1)
    if ( vmix_itype == vmix_type_kpp )  &
-     ML_DEPTH(:,:) = HMXL(:,:,bid)
+     ML_DEPTH(:,:) = HMXL(:,:,bid) 
+   
 
    CONTINUE_INTEGRAL = .true.
    where ( KMT(:,:,bid) == 0 ) 
@@ -424,7 +422,7 @@
 !-----------------------------------------------------------------------
 
    do k=1,km
-
+   
      zw_top = c0
      if ( k > 1 )  zw_top = zw(k-1)
 
@@ -507,7 +505,7 @@
          WORK3 = dzw(k-1) 
        endwhere
        where ( CONTINUE_INTEGRAL  .and.  ML_DEPTH <= zt(k)  &
-            .and.  ML_DEPTH > zt(k-1) )
+            .and.  ML_DEPTH >= zt(k-1) )
          WORK3 = ( (ML_DEPTH - zt(k-1))**2 ) * dzwr(k-1)
        endwhere
 
@@ -516,7 +514,7 @@
        endwhere
 
        where ( CONTINUE_INTEGRAL .and.  ML_DEPTH <= zt(k)  &
-               .and.  ML_DEPTH > zt(k-1) )
+               .and.  ML_DEPTH >= zt(k-1) )
          CONTINUE_INTEGRAL = .false.
        endwhere
 
@@ -770,7 +768,250 @@
 !-----------------------------------------------------------------------
 !EOC
 
-   end subroutine submeso 
+   end subroutine submeso_sf 
+
+!***********************************************************************
+
+! !IROUTINE: submeso_flux
+! !INTERFACE:
+
+   subroutine submeso_flux (k, GTK, TMIX, tavg_HDIFE_TRACER, &
+                     tavg_HDIFN_TRACER, tavg_HDIFB_TRACER, this_block)
+
+! !DESCRIPTION:
+!  Computes the fluxes due to submesoscale mixing of tracers
+!
+!INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: k  ! depth level index
+   
+   type (block), intent(in) :: &
+      this_block            ! block info for this sub block
+   
+   real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+         TMIX                  ! tracers at all vertical levels
+                               !   at mixing time level   
+
+   integer (int_kind), dimension(nt), intent(in) :: &
+      tavg_HDIFE_TRACER, &! tavg id for east face diffusive flux of tracer
+      tavg_HDIFN_TRACER, &! tavg id for north face diffusive flux of tracer
+      tavg_HDIFB_TRACER   ! tavg id for bottom face diffusive flux of tracer
+   
+! !OUTPUT PARAMETERS:
+
+      real (r8), dimension(nx_block,ny_block,nt), intent(out) :: &
+         GTK     ! submesoscale tracer flux at level k
+      
+!-----------------------------------------------------------------------
+!
+!      local variables
+!
+!-----------------------------------------------------------------------
+
+      integer (int_kind), parameter :: &
+         ieast  = 1, iwest  = 2,       &
+	 jnorth = 1, jsouth = 2
+      integer (int_kind)  :: &
+	 i,j,n,                &!dummy loop counters
+	 bid,                  &! local block address for this sub block
+	 kp1
+      
+      real (r8) :: &
+         fz, factor 
+	 
+      real (r8), dimension(nx_block,ny_block) :: &
+         CX, CY,                  &
+	 WORK1, WORK2,            &! local work space
+	 KMASK                     ! ocean mask
+	 
+      real (r8), dimension(nx_block,ny_block,nt)  :: &
+         FX, FY                    ! fluxes across east, north faces
+
+     bid = this_block%local_id
+
+     if ( k == 1) FZTOP_SUBM(:,:,:,bid) = c0        ! zero flux B.C. at the surface
+     
+      CX = merge(HYX(:,:,bid)*p25, c0, (k <= KMT (:,:,bid))   &
+                                 .and. (k <= KMTE(:,:,bid)))
+      CY = merge(HXY(:,:,bid)*p25, c0, (k <= KMT (:,:,bid))   &
+                                 .and. (k <= KMTN(:,:,bid)))
+      
+      KMASK = merge(c1, c0, k < KMT(:,:,bid))
+            
+      kp1 = k + 1
+      if ( k == km )  kp1 = k
+
+      if ( k < km ) then
+        factor    = c1
+      else
+        factor    = c0
+      endif
+      
+	do n = 1,nt
+          if (.not.registry_match('init_gm')) then
+           if (n > 2 .and. k < km)  &
+             TZ(:,:,k+1,n,bid) = TMIX(:,:,k  ,n) - TMIX(:,:,k+1,n)
+          endif
+
+          do j=1,ny_block
+            do i=1,nx_block-1
+              FX(i,j,n) = CX(i,j)                          &
+               * ( SF_SUBM_X(i  ,j,ieast,ktp,k,bid) * TZ(i,j,k,n,bid)                        &
+                 + SF_SUBM_X(i  ,j,ieast,kbt,k,bid) * TZ(i,j,kp1,n,bid)                    &
+                 + SF_SUBM_X(i+1,j,iwest,ktp,k,bid) * TZ(i+1,j,k,n,bid)                    &
+                 + SF_SUBM_X(i+1,j,iwest,kbt,k,bid) * TZ(i+1,j,kp1,n,bid) )
+            enddo
+          enddo
+
+        end do
+	
+       do n = 1,nt
+
+          do j=1,ny_block-1
+            do i=1,nx_block
+              FY(i,j,n) =  CY(i,j)                          &
+               * ( SF_SUBM_Y(i,j  ,jnorth,ktp,k,bid) * TZ(i,j,k,n,bid)                        &
+                 + SF_SUBM_Y(i,j  ,jnorth,kbt,k,bid) * TZ(i,j,kp1,n,bid)                    &
+                 + SF_SUBM_Y(i,j+1,jsouth,ktp,k,bid) * TZ(i,j+1,k,n,bid)                    &
+                 + SF_SUBM_Y(i,j+1,jsouth,kbt,k,bid) * TZ(i,j+1,kp1,n,bid) )
+            enddo
+          enddo
+
+       end do
+	
+
+	    
+      do n = 1,nt
+
+!-----------------------------------------------------------------------
+!
+!     calculate vertical submesoscale fluxes thru horizontal faces of T-cell
+!
+!-----------------------------------------------------------------------
+ 
+        GTK(:,:,n) = c0
+
+        if ( k < km ) then
+        
+	  
+	WORK1 = c0
+	WORK2 = c0
+		
+
+              do j=this_block%jb,this_block%je
+                do i=this_block%ib,this_block%ie
+               
+                  WORK1(i,j) = SF_SUBM_X(i  ,j  ,ieast ,kbt,k  ,bid)     &
+                             * HYX(i  ,j  ,bid) * TX(i  ,j  ,k  ,n,bid)  &
+                             + SF_SUBM_Y(i  ,j  ,jnorth,kbt,k  ,bid)     &
+                             * HXY(i  ,j  ,bid) * TY(i  ,j  ,k  ,n,bid)  &
+                             + SF_SUBM_X(i  ,j  ,iwest ,kbt,k  ,bid)     &
+                             * HYX(i-1,j  ,bid) * TX(i-1,j  ,k  ,n,bid)  &
+                             + SF_SUBM_Y(i  ,j  ,jsouth,kbt,k  ,bid)     &
+                             * HXY(i  ,j-1,bid) * TY(i  ,j-1,k  ,n,bid)
+                enddo
+              enddo
+
+              do j=this_block%jb,this_block%je
+                do i=this_block%ib,this_block%ie
+                  WORK2(i,j) = factor                                    &
+                           * ( SF_SUBM_X(i  ,j  ,ieast ,ktp,kp1,bid)     &
+                             * HYX(i  ,j  ,bid) * TX(i  ,j  ,kp1,n,bid)  &
+                             + SF_SUBM_Y(i  ,j  ,jnorth,ktp,kp1,bid)     &
+                             * HXY(i  ,j  ,bid) * TY(i  ,j  ,kp1,n,bid)  &
+                             + SF_SUBM_X(i  ,j  ,iwest ,ktp,kp1,bid)     &
+                             * HYX(i-1,j  ,bid) * TX(i-1,j  ,kp1,n,bid)  &
+                             + SF_SUBM_Y(i  ,j  ,jsouth,ktp,kp1,bid)     &
+                             * HXY(i  ,j-1,bid) * TY(i  ,j-1,kp1,n,bid) ) 
+                enddo
+              enddo
+
+	    
+	  do j=this_block%jb,this_block%je
+              do i=this_block%ib,this_block%ie
+
+                fz = -KMASK(i,j) * p25                                &
+                     * (WORK1(i,j) + WORK2(i,j))
+
+                GTK(i,j,n) = ( FX(i,j,n) - FX(i-1,j,n)  &
+                             + FY(i,j,n) - FY(i,j-1,n)  &
+                      + FZTOP_SUBM(i,j,n,bid) - fz )*dzr(k)*TAREA_R(i,j,bid)
+
+                FZTOP_SUBM(i,j,n,bid) = fz
+
+              enddo
+          enddo
+	
+
+	 else                 ! k = km
+
+          do j=this_block%jb,this_block%je
+            do i=this_block%ib,this_block%ie
+
+              GTK(i,j,n) = ( FX(i,j,n) - FX(i-1,j,n)  &
+                           + FY(i,j,n) - FY(i,j-1,n)  &
+                    + FZTOP_SUBM(i,j,n,bid) )*dzr(k)*TAREA_R(i,j,bid)
+
+              FZTOP_SUBM(i,j,n,bid) = c0 
+
+            enddo
+          enddo
+
+        endif
+
+!-----------------------------------------------------------------------
+!
+!     accumulate time average if necessary
+!
+!-----------------------------------------------------------------------
+
+      if ( mix_pass /= 1 ) then
+          if (tavg_requested(tavg_HDIFE_TRACER(n))) then
+          if (ltavg_on(tavg_in_which_stream(tavg_HDIFE_TRACER(n)))) then
+            do j=this_block%jb,this_block%je
+            do i=this_block%ib,this_block%ie
+              WORK1(i,j) = FX(i,j,n)*dzr(k)*TAREA_R(i,j,bid)
+            enddo
+            enddo
+            call accumulate_tavg_field(WORK1,tavg_HDIFE_TRACER(n),bid,k)
+          endif
+          endif
+
+          if (tavg_requested(tavg_HDIFN_TRACER(n))) then
+          if (ltavg_on(tavg_in_which_stream(tavg_HDIFN_TRACER(n)))) then
+            do j=this_block%jb,this_block%je
+            do i=this_block%ib,this_block%ie
+              WORK1(i,j) = FY(i,j,n)*dzr(k)*TAREA_R(i,j,bid)
+            enddo
+            enddo
+            call accumulate_tavg_field(WORK1,tavg_HDIFN_TRACER(n),bid,k)
+          endif
+          endif
+
+          if (tavg_requested(tavg_HDIFB_TRACER(n))) then
+          if (ltavg_on(tavg_in_which_stream(tavg_HDIFB_TRACER(n)))) then
+            do j=this_block%jb,this_block%je
+            do i=this_block%ib,this_block%ie
+              WORK1(i,j) = FZTOP_SUBM(i,j,n,bid)*dzr(k)*TAREA_R(i,j,bid)
+            enddo
+            enddo
+            call accumulate_tavg_field(WORK1,tavg_HDIFB_TRACER(n),bid,k)
+          endif
+          endif
+      endif   ! mix_pass ne 1
+
+	   
+!-----------------------------------------------------------------------
+!
+!     end of tracer loop
+!
+!-----------------------------------------------------------------------
+
+      enddo !ends the do n loop 
+
+!-----------------------------------------------------------------------
+
+   end subroutine submeso_flux 
 
 !***********************************************************************
 
