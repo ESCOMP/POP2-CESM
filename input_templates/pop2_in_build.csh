@@ -312,6 +312,7 @@ cat >> \$POP2_IN << EOF1
    ldiag_velocity         = $ldiag_velocity
 /
 
+EOF1
 EOF2
 
 
@@ -326,12 +327,19 @@ if (${OCN_GRID} =~ tx0.1*  || ${OCN_GRID} =~ tx1* ) then
 endif
 
 cat >> $POP2BLDSCRIPT << EOF2
+
+if ( \$OCN_TAVG_HIFREQ == FALSE ) then
+  set ldiag_global_tracer_budgets = $ldiag_global_tracer_budgets
+else
+  set ldiag_global_tracer_budgets = .false.
+endif
+
+cat >> \$POP2_IN << EOF1
 &budget_diagnostics_nml
-   ldiag_global_tracer_budgets = $ldiag_global_tracer_budgets
+   ldiag_global_tracer_budgets = \$ldiag_global_tracer_budgets
 /
 
 EOF2
-
 
 #--------------------------------------------------------------------------
 #  bsf_diagnostic_nml

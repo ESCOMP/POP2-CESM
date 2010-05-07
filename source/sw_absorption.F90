@@ -479,7 +479,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (first_call) then
+   if (first_call .and. chl_option == 'model') then
       if (.not. registry_match('set_sflux_passive_tracers')) then
          call exit_POP(sigAbort, 'set_sflux_passive_tracers not ' /&
             &/ 'called before set_chl. This is necessary for ' /&

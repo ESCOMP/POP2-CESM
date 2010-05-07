@@ -1,6 +1,19 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    7 May 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100507
+Tag Testing: ccsm4_0_beta52+, (OCN_TAVG_HIFREQ,OCN_TAVG_TRACER_BUDGET) = (TT,TF,FT,FF)
+             ccsm4_0_beta52+, no extra tracers, 'file' option
+
+Tag Summary: * minor bugfix: no extra tracers, 'file' sw_absorption option should not abort (Maltrud)
+             * restore logicals in pop2_in_build.csh to control budget_diagnostics computations
+              
+M           22779   source/sw_absorption.F90
+M           22779   input_templates/pop2_in_build.csh
+
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    30 April 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100430
 Tag Testing: none. 
