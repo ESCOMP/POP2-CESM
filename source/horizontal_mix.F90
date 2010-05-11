@@ -365,6 +365,7 @@
                                 long_name=trim(tracer_d(n)%short_name)   /&
                       &/ ' Horizontal Diffusive Flux in grid-x direction',&
                                 units=trim(tracer_d(n)%tend_units),       &
+                                scale_factor=tracer_d(n)%scale_factor,    &
                                 grid_loc='3211',                          &
                                 coordinates='ULONG TLAT z_t time' )
 
@@ -374,6 +375,7 @@
                                 long_name=trim(tracer_d(n)%short_name)   /&
                       &/ ' Horizontal Diffusive Flux in grid-y direction',&
                                 units=trim(tracer_d(n)%tend_units),       &
+                                scale_factor=tracer_d(n)%scale_factor,    &
                                 grid_loc='3121',                          &
                                 coordinates='TLONG ULAT z_t time' )
 
@@ -383,6 +385,7 @@
                                 long_name=trim(tracer_d(n)%short_name)   /&
                        &/ ' Horizontal Diffusive Flux across Bottom Face',&
                                 units=trim(tracer_d(n)%tend_units),       &
+                                scale_factor=tracer_d(n)%scale_factor,    &
                                 grid_loc='3113',                          &
                                 coordinates='TLONG TLAT z_w_bot time' )
    enddo

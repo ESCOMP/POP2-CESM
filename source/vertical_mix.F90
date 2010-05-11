@@ -478,6 +478,7 @@
           long_name=trim(tracer_d(n)%short_name)                         /&
     &/ ' Flux Across Bottom Face from Diabatic Implicit Vertical Mixing', &
           units=trim(tracer_d(n)%flux_units), grid_loc='3113',            &
+          scale_factor=tracer_d(n)%scale_factor,                          &
           coordinates='TLONG TLAT z_w_bot time')
      enddo
    endif

@@ -30,6 +30,7 @@
       character(char_len) :: units
       character(char_len) :: tend_units
       character(char_len) :: flux_units
+      real(rtavg)         :: scale_factor
       logical :: lfull_depth_tavg
    end type
 
@@ -115,11 +116,17 @@
 
       tracer_d(1)%short_name = 'TEMP'
       tracer_d(1)%long_name  = 'Potential temperature'
-      tracer_d(1)%units      = 'deg C'
+      tracer_d(1)%units      = 'degC'
+      tracer_d(1)%tend_units = 'degC/s'
+      tracer_d(1)%flux_units = 'degC cm/s'
+      tracer_d(1)%scale_factor = 1.0_rtavg 
 
       tracer_d(2)%short_name = 'SALT'
       tracer_d(2)%long_name  = 'Salinity'
       tracer_d(2)%units      = 'msu (g/g)'
+      tracer_d(2)%tend_units = 'gram/kilogram/s'
+      tracer_d(2)%flux_units = 'gram/kilogram cm/s'
+      tracer_d(2)%scale_factor = 1000.0_rtavg
 
 !-----------------------------------------------------------------------
 !EOC

@@ -279,6 +279,11 @@
    sea_ice_salinity       = SHR_CONST_ICE_REF_SAL   ! psu
 #endif
 
+#ifdef ZERO_SEA_ICE_REF_SAL
+    sea_ice_salinity       = c0
+#endif
+
+
 !-----------------------------------------------------------------------
 !
 !  convert windstress (N/m^2) to velocity flux (cm^2/s^2):

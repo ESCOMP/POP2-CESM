@@ -1,9 +1,49 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Developers : njn01 and klindsay
+Tag Date:    10 May 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100510
+Tag Testing: ccsm4_0_beta52+, special-purpose testing:
+             C,G,B compsets (checked ice_ref_salinity values); HIFREQ (oob vs .)
+             ncdump diffs, and the following pre-tag automated tests:
+             PASS  ERB.T62_g16.C.bluefire 
+             PASS  ERI.T31_g37.BCN.bluefire 
+             PASS  ERP.T62_g37.C.bluefire 
+             PASS  ERS.f19_g16.B.bluefire 
+             PASS  ERT.T62_g16.C.bluefire 
+             PASS  ERT.T62_g16.CECO.bluefire 
+             PASS  ERI.f09_g16.B1850CN.bluefire
+
+Tag Summary: * Add ZERO_SEA_ICE_REF_SAL Cpp variable to control sea_ice_ref_salinity
+               in C compsets oob (should be zero for C compsets; 4 for G,B compsets)
+             * Add automatic scale_factor and salinity-units support in define_tavg_field
+              
+M           22834   source/POP_ConstantsMod.F90
+M           22834   source/vmix_kpp.F90
+M           22834   source/advection.F90
+M           22834   source/vertical_mix.F90
+M           22834   source/POP_KindsMod.F90
+M           22834   source/passive_tracers.F90
+M           22835   source/horizontal_mix.F90
+M           22834   source/prognostic.F90
+M           22834   source/tavg.F90
+M           22834   source/constants.F90
+M           22834   bld/pop2.cpl7.template
+              
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    7 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100507a
 Tag Testing: ccsm4_0_beta52, with SourceMods. RMS difference timeseries gx3v7, HDIFT.      
+             PASS  ERB.T62_g16.C.bluefire 
+             PASS  ERI.T31_g37.BCN.bluefire 
+             PASS  ERP.T62_g37.C.bluefire 
+             PASS  ERS.f19_g16.B.bluefire 
+             PASS  ERT.T62_g16.C.bluefire 
+             PASS  ERT.T62_g16.CECO.bluefire 
+             PASS  ERI.f09_g16.B1850CN.bluefire 
+
 
 Tag Summary: * Merge submeso reorganization mods onto pop2 trunk. Not b4b, but smaller
                differences that those caused by change in ocn pe layout (gx3v7)

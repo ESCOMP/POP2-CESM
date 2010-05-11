@@ -798,6 +798,7 @@
                              long_name=trim(tracer_d(n)%short_name)   /&
                                     &/ ' Flux in grid-x direction',    &
                              units=trim(tracer_d(n)%tend_units),       &
+                             scale_factor=tracer_d(n)%scale_factor,    &
                              grid_loc='3211',                          &
                              coordinates='ULONG TLAT z_t time' )
 
@@ -807,6 +808,7 @@
                              long_name=trim(tracer_d(n)%short_name)   /&
                                     &/ ' Flux in grid-y direction',    &
                              units=trim(tracer_d(n)%tend_units),       &
+                             scale_factor=tracer_d(n)%scale_factor,    &
                              grid_loc='3121',                          &
                              coordinates='TLONG ULAT z_t time')
 
@@ -816,6 +818,7 @@
                              long_name=trim(tracer_d(n)%short_name)   /&
                                     &/ ' Flux Across Top Face',        &
                              units=trim(tracer_d(n)%tend_units),       &
+                             scale_factor=tracer_d(n)%scale_factor,    &
                              grid_loc='3112',                          &
                              coordinates='TLONG TLAT z_w time' )
 
@@ -826,6 +829,7 @@
                                      &/trim(tracer_d(n)%short_name)   /&
                                      &/' Advection Tendency',          &
                              units=trim(tracer_d(n)%flux_units),       &
+                             scale_factor=tracer_d(n)%scale_factor,    &
                              grid_loc='2110',                          &
                              coordinates='TLONG TLAT time' )
 

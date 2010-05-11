@@ -211,6 +211,11 @@
    POP_ocnRefSalinity      = SHR_CONST_OCN_REF_SAL   ! psu
 #endif
 
+#ifdef ZERO_SEA_ICE_REF_SAL
+    POP_seaIceSalinity       = 0.0_POP_r8
+#endif
+
+
 !-----------------------------------------------------------------------
 !
 !  conversion factors

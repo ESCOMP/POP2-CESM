@@ -3330,10 +3330,16 @@
 
 
    if (present(scale_factor)) then
-      tavg_field%scale_factor = scale_factor
-      if (scale_factor /= 0.0_rtavg) then
-        tavg_field%fill_value    = undefined_nf/scale_factor
-        tavg_field%missing_value = undefined_nf/scale_factor
+      if (scale_factor /= 1.0_rtavg) then
+        tavg_field%scale_factor = scale_factor
+        if (scale_factor /= 0.0_rtavg) then
+          tavg_field%fill_value    = undefined_nf/scale_factor
+          tavg_field%missing_value = undefined_nf/scale_factor
+        endif
+      else
+        tavg_field%scale_factor  = undefined_nf
+        tavg_field%fill_value    = undefined_nf
+        tavg_field%missing_value = undefined_nf
       endif
    else
       tavg_field%scale_factor  = undefined_nf

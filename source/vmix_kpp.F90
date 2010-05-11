@@ -661,6 +661,7 @@
      call define_tavg_field(tavg_KPP_SRC(n),trim(string),3,     &
                             long_name=trim(string2),            &
                             units=trim(tracer_d(n)%tend_units), &
+                            scale_factor=tracer_d(n)%scale_factor,&
                             grid_loc='3111',                    &
                             coordinates  ='TLONG TLAT z_t time' ) 
    enddo

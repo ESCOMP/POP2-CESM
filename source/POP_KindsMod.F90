@@ -44,6 +44,13 @@
       POP_r8          = selected_real_kind(13) ,&
       POP_r16         = selected_real_kind(26)
 
+   integer, parameter, public ::               &
+#ifdef TAVG_R8
+      POP_rtavg          = POP_r8 ! nonstandard r8 for debugging purposes only
+#else
+      POP_rtavg          = POP_r4 ! standard, single-precision
+#endif
+
 !EOP
 !BOC
 !EOC

@@ -287,6 +287,12 @@
    tracer_d(3:nt)%lfull_depth_tavg = .true.
 
 !-----------------------------------------------------------------------
+!  by default, all tracers have scale_factor equal to one
+!-----------------------------------------------------------------------
+
+   tracer_d(3:nt)%scale_factor = 1.0_POP_rtavg
+
+!-----------------------------------------------------------------------
 !  ECOSYS block
 !-----------------------------------------------------------------------
 
@@ -372,6 +378,7 @@
       call define_tavg_field(tavg_var(n),                           &
                              sname, 3, long_name=lname,             &
                              units=units, grid_loc=grid_loc,        &
+                             scale_factor=tracer_d(n)%scale_factor, &
                              coordinates='TLONG TLAT z_t time')
 
       sname = trim(tracer_d(n)%short_name) /&
@@ -384,6 +391,7 @@
       call define_tavg_field(tavg_var_sqr(n),                       &
                              sname, 3, long_name=lname,             &
                              units=units, grid_loc=grid_loc,        &
+                             scale_factor=tracer_d(n)%scale_factor**2,&
                              coordinates='TLONG TLAT z_t time')
 
       sname = 'J_' /&
@@ -394,6 +402,7 @@
       call define_tavg_field(tavg_var_J(n),                         &
                              sname, 3, long_name=lname,             &
                              units=units, grid_loc=grid_loc,        &
+                             scale_factor=tracer_d(n)%scale_factor, &
                              coordinates='TLONG TLAT z_t time')
 
       sname = 'Jint_' /&
@@ -404,6 +413,7 @@
       call define_tavg_field(tavg_var_Jint(n),                      &
                              sname, 2, long_name=lname,             &
                              units=units, grid_loc='2110',          &
+                             scale_factor=tracer_d(n)%scale_factor, &
                              coordinates='TLONG TLAT time')
 
       sname = 'STF_' /&
@@ -414,6 +424,7 @@
       call define_tavg_field(tavg_var_stf(n),                       &
                              sname, 2, long_name=lname,             &
                              units=units, grid_loc='2110',          &
+                             scale_factor=tracer_d(n)%scale_factor, &
                              coordinates='TLONG TLAT time')
 
       sname = 'RESID_' /&
@@ -424,6 +435,7 @@
       call define_tavg_field(tavg_var_resid(n),                     &
                              sname, 2, long_name=lname,             &
                              units=units, grid_loc='2110',          &
+                             scale_factor=tracer_d(n)%scale_factor, &
                              coordinates='TLONG TLAT time')
 
       sname = 'FvPER_' /&
@@ -434,6 +446,7 @@
       call define_tavg_field(tavg_var_fvper(n),                     &
                              sname, 2, long_name=lname,             &
                              units=units, grid_loc='2110',          &
+                             scale_factor=tracer_d(n)%scale_factor, &
                              coordinates='TLONG TLAT time')
 
       sname = 'FvICE_' /&
@@ -444,6 +457,7 @@
       call define_tavg_field(tavg_var_fvice(n),                     &
                              sname, 2, long_name=lname,             &
                              units=units, grid_loc='2110',          &
+                             scale_factor=tracer_d(n)%scale_factor, &
                              tavg_method=tavg_method_qflux,         &
                              coordinates='TLONG TLAT time')
    enddo
