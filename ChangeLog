@@ -1,6 +1,17 @@
 
 ===============================================================================
 Tag Creator: njn01 
+Developers : njn01 and gokhan
+Tag Date:    12 May 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100512
+Tag Testing: Gokhan C compset, T62_gx3v7 production runs
+
+Tag Summary: * Add 60 ocn pe decomposition support for gx3v7 resolution
+
+M           22880   bld/pop_decomp.xml
+              
+===============================================================================
+Tag Creator: njn01 
 Developers : njn01 and klindsay
 Tag Date:    10 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100510

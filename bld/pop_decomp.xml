@@ -468,6 +468,12 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
+  <decomp nproc="60" res="gx3v[567]" model="pop">
+    <maxblocks >1</maxblocks>
+    <bsize_x   >17</bsize_x>
+    <bsize_y   >12</bsize_y>
+    <decomptype>cartesian</decomptype>
+  </decomp>
 
 <!-- -------------------------------------------------------------------------------- -->
 <!-- -------------------------------------------------------------------------------- -->
