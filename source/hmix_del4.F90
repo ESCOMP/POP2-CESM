@@ -684,7 +684,6 @@
 
       do j=this_block%jb-1,this_block%je+1
       do i=this_block%ib-1,this_block%ie+1
-
          CN(i,j) = DUN(i,j,bid)*min(DZU(i,j+1,k,bid),  &
                                     DZU(i,j  ,k,bid))/DZU(i,j  ,k,bid)
          CS(i,j) = DUS(i,j,bid)*min(DZU(i,j-1,k,bid),  &
@@ -693,7 +692,11 @@
                                     DZU(i  ,j,k,bid))/DZU(i  ,j,k,bid)
          CW(i,j) = DUW(i,j,bid)*min(DZU(i-1,j,k,bid),  &
                                     DZU(i  ,j,k,bid))/DZU(i  ,j,k,bid)
+      end do
+      end do
 
+      do j=this_block%jb-1,this_block%je+1
+      do i=this_block%ib-1,this_block%ie+1
          D2UK(i,j) = (CC (i,j    )*UMIXK(i  ,j  ) +        &
                       CN (i,j    )*UMIXK(i  ,j+1) +        &
                       CS (i,j    )*UMIXK(i  ,j-1) +        &
@@ -704,6 +707,11 @@
                       DMS(i,j,bid)*VMIXK(i  ,j-1) +        &
                       DME(i,j,bid)*VMIXK(i+1,j  ) +        &
                       DMW(i,j,bid)*VMIXK(i-1,j  ))
+      end do
+      end do
+
+      do j=this_block%jb-1,this_block%je+1
+      do i=this_block%ib-1,this_block%ie+1
          D2VK(i,j) = (CC (i,j    )*VMIXK(i  ,j  ) +        &
                       CN (i,j    )*VMIXK(i  ,j+1) +        &
                       CS (i,j    )*VMIXK(i  ,j-1) +        &
@@ -732,6 +740,11 @@
                       DMS(i,j,bid)*VMIXK(i  ,j-1) +        &
                       DME(i,j,bid)*VMIXK(i+1,j  ) +        &
                       DMW(i,j,bid)*VMIXK(i-1,j  ))
+      end do
+      end do
+
+      do j=this_block%jb-1,this_block%je+1
+      do i=this_block%ib-1,this_block%ie+1
          D2VK(i,j)  =(CC (i,j    )*VMIXK(i  ,j  ) +        &
                       DUN(i,j,bid)*VMIXK(i  ,j+1) +        &
                       DUS(i,j,bid)*VMIXK(i  ,j-1) +        &
@@ -786,6 +799,11 @@
                            DMS(i,j,bid)*D2VK(i  ,j-1) +        &
                            DME(i,j,bid)*D2VK(i+1,j  ) +        &
                            DMW(i,j,bid)*D2VK(i-1,j  )))
+      end do
+      end do
+
+      do j=this_block%jb,this_block%je
+      do i=this_block%ib,this_block%ie
          HDVK(i,j)  = am*((CC (i,j    )*D2VK(i  ,j  ) +        &
                            CN (i,j    )*D2VK(i  ,j+1) +        &
                            CS (i,j    )*D2VK(i  ,j-1) +        &
@@ -813,6 +831,11 @@
                            DMS(i,j,bid)*D2VK(i  ,j-1) +        &
                            DME(i,j,bid)*D2VK(i+1,j  ) +        &
                            DMW(i,j,bid)*D2VK(i-1,j  )))
+      end do
+      end do
+
+      do j=this_block%jb,this_block%je
+      do i=this_block%ib,this_block%ie
          HDVK(i,j)  = am*((CC (i,j    )*D2VK(i  ,j  ) +        &
                            DUN(i,j,bid)*D2VK(i  ,j+1) +        &
                            DUS(i,j,bid)*D2VK(i  ,j-1) +        &

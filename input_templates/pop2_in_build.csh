@@ -104,7 +104,7 @@ EOF2
 #--------------------------------------------------------------------------
 
 if( ${OCN_GRID} == tx0.1v2) then
-   set io_pio_num_iotasks = -1
+   set io_pio_num_iotasks =  4
 else
    set io_pio_num_iotasks =  1
 endif

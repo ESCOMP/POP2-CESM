@@ -1,3 +1,23 @@
+===============================================================================
+Tag Creator: njn01 
+Tag Date:    19 May 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100519
+Tag Testing:  
+             * C compset, T62_tx1v1, oob vs oob+hmix_del4.F90, 2-month timing and correctness:
+               results: identical pop2 binary restart files at end of two months
+                        ~2x speedup in HMIX_MOMENTUM_DEL4; ~1% overall model speedup
+
+             * C compset, t62_gx1v6, oob vs oob+hmix_del4.F90, 1-month+1-month correctness:
+               results: identical pop2 binary restart files at end of two months
+                        (note: these cases do NOT use del4 option, so no change is expected)
+
+Tag Summary: * hmix_del4.F90 performance improvements (worley)
+             * default tx0.1v2 io_pio_numtasks setting increased (mvertens)
+
+Files Modified:
+ 
+M      source/hmix_del4.F90
+M      input_templates/pop2_in_build.csh
 
 ===============================================================================
 Tag Creator: njn01 
