@@ -19,6 +19,7 @@ module ocn_comp_mct
    use POP_GridHorzMod
    use POP_HaloMod
    use POP_IOUnitsMod
+   use POP_MCT_vars_mod
 
    use mct_mod
    use esmf_mod
@@ -200,6 +201,10 @@ contains
 #endif
    call seq_cdata_setptrs(cdata_o, ID=OCNID, mpicom=mpicom_o, &
         gsMap=gsMap_o, dom=dom_o, infodata=infodata)
+
+   POP_MCT_OCNID   =  OCNID
+   POP_MCT_gsMap_o => gsMap_o
+   POP_MCT_dom_o   => dom_o
 
 #if (defined _MEMTRACE)
     call MPI_comm_rank(mpicom_o,iam,ierr)

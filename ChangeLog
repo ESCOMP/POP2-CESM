@@ -1,4 +1,32 @@
 ===============================================================================
+Tag Creator: klindsay 
+Tag Date:    19 May 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100519a
+Tag Testing:  
+             * CECO compset, T62_gx1v6, exact restart & DEBUG
+             * CECO compset, T62_gx3v7, exact restart & DEBUG
+             * verify ndep fluxes match dataset when OCN_TRANSIENT == 1850-2000
+
+Tag Summary: * numerous additional ecosys tavg variables
+             * implement time-varying ndep in ecosys, using shr_strdata
+             * answer changing optimizations in co2calc.F90
+             * new DIC/ALK IC for ecosys that have more realistic filling
+               in Arctic, Gulf of Mexico, and marginal seas
+             * fix uninitialized tavg halo in mix_submeso.F90
+               doesn't change answers
+
+Files Modified:
+
+M      source/mix_submeso.F90
+M      source/passive_tracers.F90
+M      source/ecosys_mod.F90
+M      source/co2calc.F90
+M      source/baroclinic.F90
+M      input_templates/ocn.ecosys.setup.csh
+A      drivers/cpl_mct/POP_MCT_vars_mod.F90
+M      drivers/cpl_mct/ocn_comp_mct.F90
+
+===============================================================================
 Tag Creator: njn01 
 Tag Date:    19 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100519

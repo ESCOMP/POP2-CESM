@@ -25,7 +25,7 @@
    use domain, only: nblocks_clinic
    use communicate, only: my_task, master_task
    use broadcast, only: broadcast_scalar
-   use prognostic, only: TRACER, tracer_d, curtime, oldtime
+   use prognostic, only: TRACER, PSURF, tracer_d, oldtime, curtime, newtime
    use forcing_shf, only: SHF_QSW_RAW, SHF_QSW
    use io_types, only: stdout, nml_in, nml_filename, io_field_desc, &
        datafile
@@ -34,9 +34,10 @@
    use tavg, only: define_tavg_field, tavg_method_qflux, ltavg_on, &
        tavg_requested, accumulate_tavg_field, tavg_in_which_stream
    use constants, only: c0, c1, p5, delim_fmt, char_blank, &
-       salt_to_ppt, ocn_ref_salinity, ppt_to_salt, sea_ice_salinity
-   use time_management, only: mix_pass
-   use grid, only: partial_bottom_cells, DZT, dz
+       grav, salt_to_ppt, ocn_ref_salinity, ppt_to_salt, sea_ice_salinity
+   use time_management, only: mix_pass, c2dtt
+   use grid, only: partial_bottom_cells, DZT, KMT, dz, zw, &
+       sfc_layer_type, sfc_layer_varthick
    use registry, only: register_string, registry_match
    use io_tools, only: document
 
@@ -74,6 +75,7 @@
       reset_passive_tracers,                 &
       write_restart_passive_tracers,         &
       tavg_passive_tracers,                  &
+      tavg_passive_tracers_baroclinic_correct,&
       passive_tracers_tavg_sflux,            &
       passive_tracers_tavg_fvice,            &
       tracer_ref_val,                        &
@@ -88,14 +90,18 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind), dimension (3:nt) ::  &
-      tavg_var,        & ! tracer
-      tavg_var_sqr,    & ! tracer square
-      tavg_var_J,      & ! tracer source sink term
-      tavg_var_Jint,   & ! vertically integrated tracer source sink term
-      tavg_var_stf,    & ! tracer surface flux
-      tavg_var_resid,  & ! tracer residual surface flux
-      tavg_var_fvper,  & ! virtual tracer flux from precip,evap,runoff
-      tavg_var_fvice     ! virtual tracer flux from ice formation
+      tavg_var,                 & ! tracer
+      tavg_var_sqr,             & ! tracer square
+      tavg_var_surf,            & ! tracer surface value
+      tavg_var_zint_100m,       & ! 0-100m integral of tracer
+      tavg_var_J,               & ! tracer source sink term
+      tavg_var_Jint,            & ! vertically integrated tracer source sink term
+      tavg_var_Jint_100m,       & ! vertically integrated tracer source sink term, 0-100m
+      tavg_var_tend_zint_100m,  & ! vertically integrated tracer tendency, 0-100m
+      tavg_var_stf,             & ! tracer surface flux
+      tavg_var_resid,           & ! tracer residual surface flux
+      tavg_var_fvper,           & ! virtual tracer flux from precip,evap,runoff
+      tavg_var_fvice              ! virtual tracer flux from ice formation
 
 !-----------------------------------------------------------------------
 !  array containing advection type for each passive tracer
@@ -189,7 +195,7 @@
       nml_error,        &! error flag for nml read
       iostat             ! io status flag
 
-   character (char_len) :: sname, lname, units
+   character (char_len) :: sname, lname, units, coordinates
    character (4) :: grid_loc
 
 !-----------------------------------------------------------------------
@@ -373,13 +379,18 @@
       sname = tracer_d(n)%short_name
       lname = tracer_d(n)%long_name
       units = tracer_d(n)%units
-      grid_loc = '3111'
-      if (.not. tracer_d(n)%lfull_depth_tavg) grid_loc = '3114'
+      if (tracer_d(n)%lfull_depth_tavg) then
+         grid_loc = '3111'
+         coordinates = 'TLONG TLAT z_t time'
+      else
+         grid_loc = '3114'
+         coordinates = 'TLONG TLAT z_t_150m time'
+      end if
       call define_tavg_field(tavg_var(n),                           &
                              sname, 3, long_name=lname,             &
                              units=units, grid_loc=grid_loc,        &
                              scale_factor=tracer_d(n)%scale_factor, &
-                             coordinates='TLONG TLAT z_t time')
+                             coordinates=coordinates)
 
       sname = trim(tracer_d(n)%short_name) /&
                                             &/ '_SQR'
@@ -392,7 +403,30 @@
                              sname, 3, long_name=lname,             &
                              units=units, grid_loc=grid_loc,        &
                              scale_factor=tracer_d(n)%scale_factor**2,&
-                             coordinates='TLONG TLAT z_t time')
+                             coordinates=coordinates)
+
+      sname = trim(tracer_d(n)%short_name) /&
+                                            &/ '_SURF'
+      lname = trim(tracer_d(n)%long_name) /&
+                                           &/ ' Surface Value'
+      units = tracer_d(n)%units
+      call define_tavg_field(tavg_var_surf(n),                      &
+                             sname, 2, long_name=lname,             &
+                             units=units, grid_loc='2110',          &
+                             scale_factor=tracer_d(n)%scale_factor, &
+                             coordinates='TLONG TLAT time')
+
+      sname = trim(tracer_d(n)%short_name) /&
+                                            &/ '_zint_100m'
+      lname = trim(tracer_d(n)%long_name) /&
+                                           &/ ' 0-100m Vertical Integral'
+      units = trim(tracer_d(n)%units) /&
+                                       &/ ' cm'
+      call define_tavg_field(tavg_var_zint_100m(n),                 &
+                             sname, 2, long_name=lname,             &
+                             units=units, grid_loc='2110',          &
+                             scale_factor=tracer_d(n)%scale_factor, &
+                             coordinates='TLONG TLAT time')
 
       sname = 'J_' /&
                     &/ trim(tracer_d(n)%short_name)
@@ -403,7 +437,7 @@
                              sname, 3, long_name=lname,             &
                              units=units, grid_loc=grid_loc,        &
                              scale_factor=tracer_d(n)%scale_factor, &
-                             coordinates='TLONG TLAT z_t time')
+                             coordinates=coordinates)
 
       sname = 'Jint_' /&
                        &/ trim(tracer_d(n)%short_name)
@@ -411,6 +445,28 @@
                                            &/ ' Source Sink Term Vertical Integral'
       units = tracer_d(n)%flux_units
       call define_tavg_field(tavg_var_Jint(n),                      &
+                             sname, 2, long_name=lname,             &
+                             units=units, grid_loc='2110',          &
+                             scale_factor=tracer_d(n)%scale_factor, &
+                             coordinates='TLONG TLAT time')
+
+      sname = 'Jint_100m_' /&
+                            &/ trim(tracer_d(n)%short_name)
+      lname = trim(tracer_d(n)%long_name) /&
+                                           &/ ' Source Sink Term Vertical Integral, 0-100m'
+      units = tracer_d(n)%flux_units
+      call define_tavg_field(tavg_var_Jint_100m(n),                 &
+                             sname, 2, long_name=lname,             &
+                             units=units, grid_loc='2110',          &
+                             scale_factor=tracer_d(n)%scale_factor, &
+                             coordinates='TLONG TLAT time')
+
+      sname = 'tend_zint_100m_' /&
+                            &/ trim(tracer_d(n)%short_name)
+      lname = trim(tracer_d(n)%long_name) /&
+                                           &/ ' Tendency Vertical Integral, 0-100m'
+      units = tracer_d(n)%flux_units
+      call define_tavg_field(tavg_var_tend_zint_100m(n),            &
                              sname, 2, long_name=lname,             &
                              units=units, grid_loc='2110',          &
                              scale_factor=tracer_d(n)%scale_factor, &
@@ -521,8 +577,10 @@
 
    integer (int_kind) ::  &
       bid,                &! local block address for this block
-      n,                  &! tracer index
-      tavg_var_J_stream    ! stream in which var_J is defined
+      n                    ! tracer index
+
+   real (r8) :: &
+      ztop                 ! depth of top of cell
 
    real (r8), dimension(nx_block,ny_block) :: &
       WORK
@@ -538,6 +596,7 @@
    if (ecosys_on) then
       call ecosys_set_interior(k,                                  &
          TRACER(:,:,k,1,oldtime,bid), TRACER(:,:,k,1,curtime,bid), &
+         TRACER(:,:,k,2,oldtime,bid), TRACER(:,:,k,2,curtime,bid), &
          TRACER(:,:,:,ecosys_ind_begin:ecosys_ind_end,oldtime,bid),&
          TRACER(:,:,:,ecosys_ind_begin:ecosys_ind_end,curtime,bid),&
          TRACER_SOURCE(:,:,ecosys_ind_begin:ecosys_ind_end),       &
@@ -564,23 +623,42 @@
    if (mix_pass /= 1) then
       do n = 3, nt
          if (tavg_requested(tavg_var_J(n))) then
-            tavg_var_J_stream = tavg_in_which_stream(tavg_var_J(n))
-            if (ltavg_on(tavg_var_J_stream))  &
-            call accumulate_tavg_field(TRACER_SOURCE(:,:,n),tavg_var_J(n),bid,k)
+            if (ltavg_on(tavg_in_which_stream(tavg_var_J(n))))  &
+               call accumulate_tavg_field(TRACER_SOURCE(:,:,n),tavg_var_J(n),bid,k)
          endif
 
          if (tavg_requested(tavg_var_Jint(n))) then
-            tavg_var_J_stream = tavg_in_which_stream(tavg_var_Jint(n))
-            if (ltavg_on(tavg_var_J_stream)) then
-              if (partial_bottom_cells) then
-                 WORK = TRACER_SOURCE(:,:,n) * DZT(:,:,k,bid)
-              else
-                 WORK = TRACER_SOURCE(:,:,n) * dz(k)
-              endif
-              call accumulate_tavg_field(WORK,tavg_var_Jint(n),bid,k)
+            if (ltavg_on(tavg_in_which_stream(tavg_var_Jint(n)))) then
+               if (partial_bottom_cells) then
+                  WORK = merge(DZT(:,:,k,bid) * TRACER_SOURCE(:,:,n), &
+                               c0, k<=KMT(:,:,bid))
+               else
+                  WORK = merge(dz(k) * TRACER_SOURCE(:,:,n), &
+                               c0, k<=KMT(:,:,bid))
+               endif
+               call accumulate_tavg_field(WORK,tavg_var_Jint(n),bid,k)
             endif
          endif
       enddo
+
+      ztop = c0
+      if (k > 1) ztop = zw(k-1)
+      if (ztop < 100.0e2_r8) then
+         do n = 3, nt
+            if (tavg_requested(tavg_var_Jint_100m(n))) then
+               if (ltavg_on(tavg_in_which_stream(tavg_var_Jint_100m(n)))) then
+                  if (partial_bottom_cells) then
+                     WORK = merge(min(100.0e2_r8 - ztop, DZT(:,:,k,bid)) &
+                                  * TRACER_SOURCE(:,:,n), c0, k<=KMT(:,:,bid))
+                  else
+                     WORK = merge(min(100.0e2_r8 - ztop, dz(k)) &
+                                  * TRACER_SOURCE(:,:,n), c0, k<=KMT(:,:,bid))
+                  endif
+                  call accumulate_tavg_field(WORK,tavg_var_Jint_100m(n),bid,k)
+               endif
+            endif
+         enddo
+      endif
    endif
 
 !-----------------------------------------------------------------------
@@ -817,8 +895,10 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::  &
-      n,                  &! tracer index
-      tavg_var_stream      ! stream in which var is defined
+      n                    ! tracer index
+
+   real (r8) :: &
+      ztop                 ! depth of top of cell
 
    real (r8), dimension(nx_block,ny_block) :: &
       WORK
@@ -827,28 +907,131 @@
 
    if (mix_pass /= 1) then
       do n = 3, nt
-
-
          if (tavg_requested(tavg_var(n))) then
-            tavg_var_stream = tavg_in_which_stream(tavg_var(n))
-            if (ltavg_on(tavg_var_stream)) &
-            call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid),tavg_var(n),bid,k)
+            if (ltavg_on(tavg_in_which_stream(tavg_var(n)))) &
+               call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid),tavg_var(n),bid,k)
          endif
 
          if (tavg_requested(tavg_var_sqr(n))) then
-            tavg_var_stream = tavg_in_which_stream(tavg_var_sqr(n))
-            if (ltavg_on(tavg_var_stream)) then
-              WORK = TRACER(:,:,k,n,curtime,bid) ** 2
-              call accumulate_tavg_field(WORK,tavg_var_sqr(n),bid,k)
+            if (ltavg_on(tavg_in_which_stream(tavg_var_sqr(n)))) then
+               WORK = TRACER(:,:,k,n,curtime,bid) ** 2
+               call accumulate_tavg_field(WORK,tavg_var_sqr(n),bid,k)
             endif
          endif
       enddo
-   endif
 
- end subroutine tavg_passive_tracers
+      if (k == 1) then
+         do n = 3, nt
+            if (tavg_requested(tavg_var_surf(n))) then
+               if (ltavg_on(tavg_in_which_stream(tavg_var_surf(n)))) &
+                  call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid), &
+                                             tavg_var_surf(n),bid,k)
+            endif
+         enddo
+      endif
+
+      ztop = c0
+      if (k > 1) ztop = zw(k-1)
+      if (ztop < 100.0e2_r8) then
+         do n = 3, nt
+            if (tavg_requested(tavg_var_zint_100m(n))) then
+               if (ltavg_on(tavg_in_which_stream(tavg_var_zint_100m(n)))) then
+                  if (sfc_layer_type == sfc_layer_varthick .and. k == 1) then
+                     WORK = merge((dz(k)+PSURF(:,:,curtime,bid)/grav) &
+                                  * TRACER(:,:,k,n,curtime,bid), c0, k<=KMT(:,:,bid))
+                  else
+                     if (partial_bottom_cells) then
+                        WORK = merge(min(100.0e2_r8 - ztop, DZT(:,:,k,bid)) &
+                                     * TRACER(:,:,k,n,curtime,bid), c0, k<=KMT(:,:,bid))
+                     else
+                        WORK = merge(min(100.0e2_r8 - ztop, dz(k)) &
+                                     * TRACER(:,:,k,n,curtime,bid), c0, k<=KMT(:,:,bid))
+                     endif
+                  endif
+                  call accumulate_tavg_field(WORK,tavg_var_zint_100m(n),bid,k)
+               endif
+            endif
+         enddo
+      endif
+   endif
 
 !-----------------------------------------------------------------------
 !EOC
+
+ end subroutine tavg_passive_tracers
+
+!***********************************************************************
+!BOP
+! !IROUTINE: tavg_passive_tracers_baroclinic_correct
+! !INTERFACE:
+
+ subroutine tavg_passive_tracers_baroclinic_correct(bid)
+
+! !DESCRIPTION:
+!  accumulate common tavg fields for tracers
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: bid  ! vertical level index
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) ::  &
+      n,                  &! tracer index
+      k                    ! vertical level index
+
+   real (r8) :: &
+      ztop                 ! depth of top of cell
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK
+
+!-----------------------------------------------------------------------
+
+   do n = 3, nt
+      if (tavg_requested(tavg_var_tend_zint_100m(n))) then
+         if (ltavg_on(tavg_in_which_stream(tavg_var_tend_zint_100m(n)))) then
+            ztop = c0
+            do k=1,km
+               if (k > 1) ztop = zw(k-1)
+               if (ztop >= 100.0e2_r8) exit
+               if (sfc_layer_type == sfc_layer_varthick .and. k == 1) then
+                  WORK = merge( &
+                     ((dz(k)+PSURF(:,:,newtime,bid)/grav) &
+                      * TRACER(:,:,k,n,newtime,bid) - &
+                      (dz(k)+PSURF(:,:,oldtime,bid)/grav) &
+                      * TRACER(:,:,k,n,oldtime,bid)) / c2dtt(k), c0, k<=KMT(:,:,bid))
+               else
+                  if (partial_bottom_cells) then
+                     WORK = merge(min(100.0e2_r8 - ztop, DZT(:,:,k,bid)) &
+                                  * (TRACER(:,:,k,n,newtime,bid) &
+                                     - TRACER(:,:,k,n,oldtime,bid)) / c2dtt(k), &
+                                  c0, k<=KMT(:,:,bid))
+                  else
+                     WORK = merge(min(100.0e2_r8 - ztop, dz(k)) &
+                                  * (TRACER(:,:,k,n,newtime,bid) &
+                                     - TRACER(:,:,k,n,oldtime,bid)) / c2dtt(k), &
+                                  c0, k<=KMT(:,:,bid))
+                  endif
+               endif
+               call accumulate_tavg_field(WORK,tavg_var_tend_zint_100m(n),bid,k)
+            end do
+         endif
+      endif
+   enddo
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine tavg_passive_tracers_baroclinic_correct
+
 
 !***********************************************************************
 !BOP
@@ -876,7 +1059,7 @@
 !  local variables
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: iblock, n, tavg_var_stream
+   integer (int_kind) :: iblock, n
  
 
 !-----------------------------------------------------------------------
@@ -887,15 +1070,13 @@
    do iblock = 1,nblocks_clinic
       do n = 3, nt
          if (tavg_requested(tavg_var_stf(n))) then
-           tavg_var_stream = tavg_in_which_stream(tavg_var_stf(n))
-           if (ltavg_on(tavg_var_stream)) &
-              call accumulate_tavg_field(STF(:,:,n,iblock),tavg_var_stf(n),iblock,1)
+            if (ltavg_on(tavg_in_which_stream(tavg_var_stf(n)))) &
+               call accumulate_tavg_field(STF(:,:,n,iblock),tavg_var_stf(n),iblock,1)
          endif
 
          if (tavg_requested(tavg_var_fvper(n))) then
-           tavg_var_stream = tavg_in_which_stream(tavg_var_fvper(n))
-           if (ltavg_on(tavg_var_stream)) &
-              call accumulate_tavg_field(FvPER(:,:,n,iblock),tavg_var_fvper(n),iblock,1)
+            if (ltavg_on(tavg_in_which_stream(tavg_var_fvper(n)))) &
+               call accumulate_tavg_field(FvPER(:,:,n,iblock),tavg_var_fvper(n),iblock,1)
          endif
       enddo
    enddo
@@ -964,7 +1145,7 @@
    real (r8) ::        &
       ref_val   ! temporary work array
 
-   integer (int_kind) :: iblock, n, tavg_var_stream
+   integer (int_kind) :: iblock, n
 
 !-----------------------------------------------------------------------
 
@@ -973,8 +1154,7 @@
    do iblock = 1,nblocks_clinic
       do n = 3, nt
          if (tavg_requested(tavg_var_fvice(n))) then
-           tavg_var_stream = tavg_in_which_stream(tavg_var_fvice(n))
-           if (ltavg_on(tavg_var_stream) ) then
+           if (ltavg_on(tavg_in_which_stream(tavg_var_fvice(n)))) then
               ref_val = tracer_ref_val(n)
               if (ref_val /= c0)  then
                  WORK = ref_val * (c1 - sea_ice_salinity / ocn_ref_salinity) * &

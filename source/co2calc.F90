@@ -7,9 +7,16 @@ MODULE co2calc
   !   CVS:$Name$
   !-----------------------------------------------------------------------------
 
-  USE blocks,      ONLY : nx_block
+  USE constants
+  USE blocks, ONLY : nx_block, ny_block
   USE domain_size, ONLY : max_blocks_clinic
   USE kinds_mod
+  USE state_mod, ONLY : ref_pressure
+
+#ifdef CCSMCOUPLED
+   !*** ccsm
+  USE shr_vmath_mod
+#endif
 
   IMPLICIT NONE
 
@@ -18,7 +25,7 @@ MODULE co2calc
   !-----------------------------------------------------------------------------
 
   PRIVATE
-  PUBLIC :: co2calc_row
+  PUBLIC :: co2calc_row, comp_CO3terms, comp_co3_sat_vals
 
   !-----------------------------------------------------------------------------
   !   module parameters
@@ -39,7 +46,7 @@ MODULE co2calc
   !-----------------------------------------------------------------------------
 
   REAL(KIND=r8), DIMENSION(nx_block,max_blocks_clinic) :: &
-       k0, k1, k2, kw, kb, ks, kf, k1p, k2p, k3p, ksi, ff, &
+       kw, kb, ks, kf, k1p, k2p, k3p, ksi, &
        bt, st, ft, dic, ta, pt, sit
 
   !*****************************************************************************
@@ -52,13 +59,11 @@ CONTAINS
        phlo, phhi, ph, xco2_in, atmpres, co2star, dco2star, pCO2surf, dpco2)
 
     !---------------------------------------------------------------------------
-    !   SUBROUTINE CO2CALC
+    !   SUBROUTINE co2calc_row
     !
     !   PURPOSE : Calculate delta co2*, etc. from total alkalinity, total CO2,
     !             temp, salinity (s), etc.
     !---------------------------------------------------------------------------
-
-    USE constants, ONLY : c0, c1, c1p5, c10, c1000, rho_sw, T0_Kelvin
 
     !---------------------------------------------------------------------------
     !   input arguments
@@ -94,21 +99,19 @@ CONTAINS
     !---------------------------------------------------------------------------
 
     INTEGER(KIND=int_kind) :: i
+    INTEGER(KIND=int_kind) :: k
 
     REAL(KIND=r8) :: &
          mass_to_vol,  & ! (mol/kg) -> (mmol/m^3)
          vol_to_mass,  & ! (mmol/m^3) -> (mol/kg)
-         tk,           & ! temperature (K)
-         is,           & ! ionic strength
-         scl,          & ! chlorinity
          co2starair,   & ! co2star saturation
-         tk100, tk1002, invtk, dlogtk, is2, sqrtis, &
-         s2, sqrts, s15, htotal2
+         htotal2
 
     REAL(KIND=r8), DIMENSION(nx_block) :: &
          xco2,         & ! atmospheric CO2 (atm)
          htotal,       & ! free concentration of H ion
-         x1, x2          ! bounds on htotal for solver
+         k0,k1,k2,     & ! equilibrium constants for CO2 species
+         ff              ! fugacity of CO2
 
     !---------------------------------------------------------------------------
     !   check for existence of ocean points
@@ -137,190 +140,21 @@ CONTAINS
     DO i = 1,nx_block
        IF (mask(i)) THEN
           dic(i,iblock)  = dic_in(i)  * vol_to_mass
-          ta(i,iblock)   = ta_in(i)   * vol_to_mass
-          pt(i,iblock)   = max(pt_in(i),c0)   * vol_to_mass
-          sit(i,iblock)  = max(sit_in(i),c0)  * vol_to_mass
           xco2(i) = xco2_in(i) * 1e-6_r8
-
-          !---------------------------------------------------------------------
-          !   Calculate all constants needed to convert between various
-          !   measured carbon species. References for each equation are
-          !   noted in the code.  Once calculated, the constants are stored
-          !   and passed in the common block "const". The original version
-          !   of this code was based on the code by Dickson in Version 2 of
-          !   "Handbook of Methods for the Analysis of the Various Parameters
-          !   of the Carbon Dioxide System in Seawater", DOE, 1994 (SOP No. 3,
-          !   p25-26).
-          !   Derive simple terms used more than once
-          !---------------------------------------------------------------------
-
-          tk       = T0_Kelvin + t(i)
-          tk100    = tk * 1e-2_r8
-          tk1002   = tk100 * tk100
-          invtk    = c1 / tk
-          dlogtk   = LOG(tk)
-
-          is       = 19.924_r8 * s(i) / (c1000 - 1.005_r8 * s(i))
-          is2      = is * is
-          sqrtis   = SQRT(is)
-          sqrts    = SQRT(s(i))
-          s15      = s(i) ** c1p5
-          s2       = s(i) ** 2
-          scl      = s(i) / 1.80655_r8
-
-          !---------------------------------------------------------------------
-          !   f = k0(1-pH2O)*correction term for non-ideality
-          !   Weiss & Price (1980, Mar. Chem., 8, 347-359;
-          !                 Eq 13 with table 6 values)
-          !---------------------------------------------------------------------
-
-          ff(i,iblock) = EXP(-162.8301_r8 + 218.2968_r8 / tk100 + &
-               90.9241_r8 * LOG(tk100) - 1.47696_r8 * tk1002 + &
-               s(i) * (.025695_r8 - .025225_r8 * tk100 + &
-               0.0049867_r8 * tk1002))
-
-          !---------------------------------------------------------------------
-          !   K0 from Weiss 1974
-          !---------------------------------------------------------------------
-
-          k0(i,iblock) = EXP(93.4517_r8 / tk100 - 60.2409_r8 + &
-               23.3585_r8 * LOG(tk100) + s(i) * (.023517_r8 - &
-               0.023656_r8 * tk100 + 0.0047036_r8 * tk1002))
-
-          !---------------------------------------------------------------------
-          !   k1 = [H][HCO3]/[H2CO3]
-          !   k2 = [H][CO3]/[HCO3]
-          !   Millero p.664 (1995) using Mehrbach et al. data on seawater scale
-          !---------------------------------------------------------------------
-
-          k1(i,iblock) = c10 ** ((-c1) * (3670.7_r8 * invtk - 62.008_r8 + &
-               9.7944_r8 * dlogtk - 0.0118_r8 * s(i) + &
-               0.000116_r8 * s2))
-
-          k2(i,iblock) = c10 ** ((-c1) * (1394.7_r8 * invtk + 4.777_r8 - &
-               0.0184_r8 * s(i) + 0.000118_r8 * s2))
-
-          !---------------------------------------------------------------------
-          !   kb = [H][BO2]/[HBO2]
-          !   Millero p.669 (1995) using data from Dickson (1990)
-          !---------------------------------------------------------------------
-
-          kb(i,iblock) = EXP((-8966.90_r8 - 2890.53_r8 * sqrts - &
-               77.942_r8 * s(i) + 1.728_r8 * s15 - &
-               0.0996_r8 * s2) * invtk + (148.0248_r8 + &
-               137.1942_r8 * sqrts + 1.62142_r8 * s(i)) + &
-               (-24.4344_r8 - 25.085_r8 * sqrts - &
-               0.2474_r8 * s(i)) * dlogtk + &
-               0.053105_r8 * sqrts * tk)
-
-          !---------------------------------------------------------------------
-          !   k1p = [H][H2PO4]/[H3PO4]
-          !   DOE(1994) eq 7.2.20 with footnote using data from Millero (1974)
-          !---------------------------------------------------------------------
-
-          k1p(i,iblock) = EXP(-4576.752_r8 * invtk + 115.525_r8 - &
-               18.453_r8 * dlogtk + &
-               (-106.736_r8 * invtk + 0.69171_r8) * sqrts + &
-               (-0.65643_r8 * invtk - 0.01844_r8) * s(i))
-
-          !---------------------------------------------------------------------
-          !   k2p = [H][HPO4]/[H2PO4]
-          !   DOE(1994) eq 7.2.23 with footnote using data from Millero (1974))
-          !---------------------------------------------------------------------
-
-          k2p(i,iblock) = EXP(-8814.715_r8 * invtk + 172.0883_r8 - &
-               27.927_r8 * dlogtk + &
-               (-160.340_r8 * invtk + 1.3566_r8) * sqrts + &
-               (0.37335_r8 * invtk - 0.05778_r8) * s(i))
-
-          !---------------------------------------------------------------------
-          !   k3p = [H][PO4]/[HPO4]
-          !   DOE(1994) eq 7.2.26 with footnote using data from Millero (1974)
-          !---------------------------------------------------------------------
-
-          k3p(i,iblock) = EXP(-3070.75_r8 * invtk - 18.141_r8 + &
-               (17.27039_r8 * invtk + 2.81197_r8) * sqrts + &
-               (-44.99486_r8 * invtk - 0.09984_r8) * s(i))
-
-          !---------------------------------------------------------------------
-          !   ksi = [H][SiO(OH)3]/[Si(OH)4]
-          !   Millero p.671 (1995) using data from Yao and Millero (1995)
-          !---------------------------------------------------------------------
-
-          ksi(i,iblock) = EXP(-8904.2_r8 * invtk + 117.385_r8 - &
-               19.334_r8 * dlogtk + &
-               (-458.79_r8 * invtk + 3.5913_r8) * sqrtis + &
-               (188.74_r8 * invtk - 1.5998_r8) * is + &
-               (-12.1652_r8 * invtk + 0.07871_r8) * is2 + &
-               LOG(c1 - 0.001005_r8 * s(i)))
-
-          !---------------------------------------------------------------------
-          !   kw = [H][OH]
-          !   Millero p.670 (1995) using composite data
-          !---------------------------------------------------------------------
-
-          kw(i,iblock) = EXP(-13847.26_r8 * invtk + 148.9652_r8 - &
-               23.6521_r8 * dlogtk + (118.67_r8 * invtk - &
-               5.977_r8 + 1.0495_r8 * dlogtk) * sqrts - &
-               0.01615_r8 * s(i))
-
-          !---------------------------------------------------------------------
-          !   ks = [H][SO4]/[HSO4]
-          !   Dickson (1990, J. chem. Thermodynamics 22, 113)
-          !---------------------------------------------------------------------
-
-          ks(i,iblock) = EXP(-4276.1_r8 * invtk + 141.328_r8 - &
-               23.093_r8 * dlogtk + (-13856.0_r8 * invtk + &
-               324.57_r8 - 47.986_r8 * dlogtk) * sqrtis + &
-               (35474.0_r8 * invtk - 771.54_r8 + &
-               114.723_r8 * dlogtk) * is - &
-               2698.0_r8 * invtk * is ** c1p5 + &
-               1776.0_r8 * invtk * is2 + &
-               LOG(c1 - 0.001005_r8 * s(i)))
-
-          !---------------------------------------------------------------------
-          !   kf = [H][F]/[HF]
-          !   Dickson and Riley (1979) -- change pH scale to total
-          !---------------------------------------------------------------------
-
-          kf(i,iblock) = EXP(1590.2_r8 * invtk - 12.641_r8 + &
-               1.525_r8 * sqrtis + &
-               LOG(c1 - 0.001005_r8 * s(i)) +  &
-               LOG(c1 + (0.1400_r8 / 96.062_r8) * (scl) / ks(i,iblock)))
-
-          !---------------------------------------------------------------------
-          !   Calculate concentrations for borate, sulfate, and fluoride
-          !   bt : Uppstrom (1974)
-          !   st : Morris & Riley (1966)
-          !   ft : Riley (1965)
-          !---------------------------------------------------------------------
-
-          bt(i,iblock) = 0.000232_r8 * scl / 10.811_r8
-          st(i,iblock) = 0.14_r8 * scl / 96.062_r8
-          ft(i,iblock) = 0.000067_r8 * scl / 18.9984_r8
-
-          x1(i) = c10 ** (-phhi(i))
-          x2(i) = c10 ** (-phlo(i))
-
        END IF ! if mask
     END DO ! i loop
 
     !---------------------------------------------------------------------------
-    !   If DIC and TA are known then either a root finding or iterative
-    !   method must be used to calculate htotal. In this case we use
-    !   the Newton-Raphson "safe" method taken from "Numerical Recipes"
-    !   (function "rtsafe.f" with error trapping removed).
-    !
-    !   As currently set, this procedure iterates about 12 times. The
-    !   x1 and x2 values set below will accomodate ANY oceanographic
-    !   values. If an initial guess of the pH is known, then the
-    !   number of iterations can be reduced to about 5 by narrowing
-    !   the gap between x1 and x2. It is recommended that the first
-    !   few time steps be run with x1 and x2 set as below. After that,
-    !   set x1 and x2 to the previous value of the pH +/- ~0.5.
+    !   compute htotal
     !---------------------------------------------------------------------------
 
-    CALL drtsafe_row(iblock, mask, x1, x2, xacc, htotal)
+    k = 1
+    CALL comp_htotal_kvals(iblock, k, mask, t, s, dic_in, ta_in, pt_in, sit_in, &
+                           phlo, phhi, htotal, k0, k1, k2, ff, k1_k2_pH_tot=.false.)
+
+    !---------------------------------------------------------------------------
+    !   Compute co2starair
+    !---------------------------------------------------------------------------
 
     !---------------------------------------------------------------------------
     !   Calculate [CO2*] as defined in DOE Methods Handbook 1994 Ver.2,
@@ -332,8 +166,8 @@ CONTAINS
 
           htotal2 = htotal(i) ** 2
           co2star(i) = dic(i,iblock) * htotal2 / &
-               (htotal2 + k1(i,iblock) * htotal(i) + k1(i,iblock) * k2(i,iblock))
-          co2starair = xco2(i) * ff(i,iblock) * atmpres(i)
+               (htotal2 + k1(i) * htotal(i) + k1(i) * k2(i))
+          co2starair = xco2(i) * ff(i) * atmpres(i)
           dco2star(i) = co2starair - co2star(i)
           ph(i) = -LOG10(htotal(i))
 
@@ -342,7 +176,7 @@ CONTAINS
           !   Should we be using K0 or ff for the solubility here?
           !---------------------------------------------------------------------
 
-          pCO2surf(i) = co2star(i) / ff(i,iblock)
+          pCO2surf(i) = co2star(i) / ff(i)
           dpCO2(i)    = pCO2surf(i) - xco2(i) * atmpres(i)
 
           !---------------------------------------------------------------------
@@ -371,7 +205,880 @@ CONTAINS
 
   !*****************************************************************************
 
-  SUBROUTINE talk_row(iblock, mask, x, fn, df)
+  SUBROUTINE comp_CO3terms(iblock, k, mask, t, s, dic_in, ta_in, pt_in, sit_in, &
+       phlo, phhi, ph, H2CO3, HCO3, CO3)
+
+    !---------------------------------------------------------------------------
+    !   SUBROUTINE comp_CO3terms
+    !
+    !   PURPOSE : Calculate H2CO3, HCO3, CO3 from
+    !             total alkalinity, total CO2, temp, salinity (s), etc.
+    !---------------------------------------------------------------------------
+
+    !---------------------------------------------------------------------------
+    !   input arguments
+    !---------------------------------------------------------------------------
+
+    INTEGER(KIND=int_kind), INTENT(IN) :: iblock
+    INTEGER(KIND=int_kind), INTENT(IN) :: k
+    LOGICAL(KIND=log_kind), DIMENSION(nx_block, ny_block), INTENT(IN) :: mask
+    REAL(KIND=r8), DIMENSION(nx_block,ny_block), INTENT(IN) :: &
+         t,        & ! temperature (degrees C)
+         s,        & ! salinity (PSU)
+         dic_in,   & ! total inorganic carbon (nmol/cm^3)
+         ta_in,    & ! total alkalinity (neq/cm^3)
+         pt_in,    & ! inorganic phosphate (nmol/cm^3)
+         sit_in,   & ! inorganic silicate (nmol/cm^3)
+         phlo,     & ! lower limit of pH range
+         phhi        ! upper limit of pH range
+
+    !---------------------------------------------------------------------------
+    !   output arguments
+    !---------------------------------------------------------------------------
+
+    REAL(KIND=r8), DIMENSION(nx_block, ny_block), INTENT(OUT) :: &
+         pH,         & ! computed ph values, for initial guess on next time step
+         H2CO3,      & ! Carbonic Acid Concentration
+         HCO3,       & ! Bicarbonate Ion Concentration
+         CO3           ! Carbonate Ion Concentration
+
+    !---------------------------------------------------------------------------
+    !   local variable declarations
+    !---------------------------------------------------------------------------
+
+    INTEGER(KIND=int_kind) :: i, j
+
+    REAL(KIND=r8) :: &
+         mass_to_vol,  & ! (mol/kg) -> (mmol/m^3)
+         vol_to_mass,  & ! (mmol/m^3) -> (mol/kg)
+         htotal2, denom
+
+    REAL(KIND=r8), DIMENSION(nx_block) :: &
+         htotal,       & ! free concentration of H ion
+         k0,k1,k2,     & ! equilibrium constants for CO2 species
+         ff              ! fugacity of CO2
+
+    !---------------------------------------------------------------------------
+    !   check for existence of ocean points
+    !---------------------------------------------------------------------------
+
+    IF (COUNT(mask) == 0) THEN
+       ph         = c0
+       H2CO3      = c0
+       HCO3       = c0
+       CO3        = c0
+       RETURN
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   set unit conversion factors
+    !---------------------------------------------------------------------------
+
+    mass_to_vol = 1e6_r8 * rho_sw
+    vol_to_mass = c1 / mass_to_vol
+
+    DO j = 1,ny_block
+
+       !------------------------------------------------------------------------
+       !   check for existence of ocean points on this row
+       !------------------------------------------------------------------------
+
+       IF (COUNT(mask(:,j)) == 0) THEN
+          ph(:,j)          = c0
+          H2CO3(:,j)       = c0
+          HCO3(:,j)        = c0
+          CO3(:,j)         = c0
+          CYCLE
+       END IF
+
+       !------------------------------------------------------------------------
+       !   convert tracer units to per mass
+       !------------------------------------------------------------------------
+
+       DO i = 1,nx_block
+          IF (mask(i,j)) THEN
+             dic(i,iblock)  = dic_in(i,j)  * vol_to_mass
+          END IF ! if mask
+       END DO ! i loop
+
+       !------------------------------------------------------------------------
+       !   compute htotal
+       !------------------------------------------------------------------------
+
+       CALL comp_htotal_kvals(iblock, k, mask(:,j), t(:,j), s(:,j), dic_in(:,j), &
+                              ta_in(:,j), pt_in(:,j), sit_in(:,j), &
+                              phlo(:,j), phhi(:,j), htotal, k0, k1, k2, ff)
+
+       !------------------------------------------------------------------------
+       !   Calculate [CO2*] as defined in DOE Methods Handbook 1994 Ver.2,
+       !   ORNL/CDIAC-74, Dickson and Goyet, eds. (Ch 2 p 10, Eq A.49-51)
+       !------------------------------------------------------------------------
+
+       DO i = 1,nx_block
+          IF (mask(i,j)) THEN
+
+             htotal2    = htotal(i) ** 2
+             denom      = c1 / (htotal2 + k1(i) * htotal(i) + k1(i) * k2(i))
+             H2CO3(i,j) = dic(i,iblock) * htotal2 * denom
+             HCO3(i,j)  = dic(i,iblock) * k1(i) * htotal(i) * denom
+             CO3(i,j)   = dic(i,iblock) * k1(i) * k2(i) * denom
+             ph(i,j)    = -LOG10(htotal(i))
+
+             !------------------------------------------------------------------
+             !   Convert units of output arguments
+             !------------------------------------------------------------------
+
+             H2CO3(i,j)  = H2CO3(i,j) * mass_to_vol
+             HCO3(i,j)   = HCO3(i,j) * mass_to_vol
+             CO3(i,j)    = CO3(i,j) * mass_to_vol
+
+          ELSE ! if mask
+
+             ph(i,j)         = c0
+             H2CO3(i,j)      = c0
+             HCO3(i,j)       = c0
+             CO3(i,j)        = c0
+
+          END IF ! if mask
+       END DO ! i loop
+
+    END DO ! j loop
+
+  END SUBROUTINE comp_CO3terms
+
+  !*****************************************************************************
+
+  SUBROUTINE comp_co3_sat_vals(k, mask, t, s, co3_sat_calc, co3_sat_arag)
+
+    !---------------------------------------------------------------------------
+    !   SUBROUTINE comp_co3_sat_vals
+    !
+    !   PURPOSE : Calculate co3 concentration at calcite and aragonite saturation
+    !             from temp, salinity (s), press
+    !---------------------------------------------------------------------------
+
+    !---------------------------------------------------------------------------
+    !   input arguments
+    !---------------------------------------------------------------------------
+
+    INTEGER(KIND=int_kind), INTENT(IN) :: k
+    LOGICAL(KIND=log_kind), DIMENSION(nx_block, ny_block), INTENT(IN) :: mask
+    REAL(KIND=r8), DIMENSION(nx_block,ny_block), INTENT(IN) :: &
+         t,        & ! temperature (degrees C)
+         s           ! salinity (PSU)
+
+    !---------------------------------------------------------------------------
+    !   output arguments
+    !---------------------------------------------------------------------------
+
+    REAL(KIND=r8), DIMENSION(nx_block, ny_block), INTENT(OUT) :: &
+         co3_sat_calc,&! co3 concentration at calcite saturation
+         co3_sat_arag  ! co3 concentration at aragonite saturation
+
+    !---------------------------------------------------------------------------
+    !   local variable declarations
+    !---------------------------------------------------------------------------
+
+    INTEGER(KIND=int_kind) :: i, j
+
+    REAL(KIND=r8) :: &
+         mass_to_vol,  & ! (mol/kg) -> (mmol/m^3)
+         press_bar       ! pressure at level k [bars]
+
+    REAL(KIND=r8), DIMENSION(nx_block) :: &
+         tk,           & ! temperature (K)
+         log10tk,invtk,sqrts,s15,invRtk,arg,&
+         K_calc,       & ! thermodynamic constant for calcite
+         K_arag,       & ! thermodynamic constant for aragonite
+         deltaV,Kappa, & ! pressure correction terms
+         lnKfac,Kfac,  & ! pressure correction terms
+         inv_Ca          ! inverse of Calcium concentration (mol/kg)
+
+    !---------------------------------------------------------------------------
+    !   check for existence of ocean points
+    !---------------------------------------------------------------------------
+
+    IF (COUNT(mask) == 0) THEN
+       co3_sat_calc = c0
+       co3_sat_arag = c0
+       RETURN
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   set unit conversion factors
+    !---------------------------------------------------------------------------
+
+    mass_to_vol = 1e6_r8 * rho_sw
+
+    press_bar = ref_pressure(k)
+
+    DO j = 1,ny_block
+
+       !------------------------------------------------------------------------
+       !   check for existence of ocean points on this row
+       !------------------------------------------------------------------------
+
+       IF (COUNT(mask(:,j)) == 0) THEN
+          co3_sat_calc(:,j) = c0
+          co3_sat_arag(:,j) = c0
+          CYCLE
+       END IF
+
+       tk       = T0_Kelvin + t(:,j)
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_log(tk, log10tk, nx_block)
+#else
+       log10tk  = LOG(tk)
+#endif
+       log10tk  = log10tk/LOG(c10)
+       invtk    = c1 / tk
+       invRtk   = (c1 / 83.1451_r8) * invtk
+
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_sqrt(s(:,j), sqrts, nx_block)
+#else
+       sqrts    = SQRT(s(:,j))
+#endif
+       s15      = sqrts * s(:,j)
+
+       !------------------------------------------------------------------------
+       !   Compute K_calc, K_arag, apply pressure factor
+       !   Mucci, Amer. J. of Science 283:781-799, 1983 & Millero 1979
+       !------------------------------------------------------------------------
+
+       arg = -171.9065_r8 - 0.077993_r8 * tk + 2839.319_r8 * invtk + 71.595_r8 * log10tk + &
+             (-0.77712_r8 + 0.0028426_r8 * tk + 178.34_r8 * invtk) * sqrts - &
+             0.07711_r8 * s(:,j) + 0.0041249_r8 * s15
+       arg = LOG(c10) * arg
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_exp(arg, K_calc, nx_block)
+#else
+       K_calc = EXP(arg)
+#endif
+
+       IF (k > 1) THEN
+          deltaV = -48.76_r8 + 0.5304_r8 * t(:,j)
+          Kappa  = (-11.76_r8 + 0.3692_r8 * t(:,j)) * p001
+          lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+#ifdef CCSMCOUPLED
+          CALL shr_vmath_exp(lnKfac, Kfac, nx_block)
+#else
+          Kfac = EXP(lnKfac)
+#endif
+          K_calc = K_calc * Kfac
+       END IF
+
+       arg = -171.945_r8 - 0.077993_r8 * tk + 2903.293_r8 * invtk + 71.595_r8 * log10tk + &
+            (-0.068393_r8 + 0.0017276_r8 * tk + 88.135_r8 * invtk) * sqrts - &
+            0.10018_r8 * s(:,j) + 0.0059415_r8 * s15
+       arg = LOG(c10) * arg
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_exp(arg, K_arag, nx_block)
+#else
+       K_arag = EXP(arg)
+#endif
+
+       IF (k > 1) THEN
+          deltaV = deltaV + 2.8_r8
+          lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+#ifdef CCSMCOUPLED
+          CALL shr_vmath_exp(lnKfac, Kfac, nx_block)
+#else
+          Kfac = EXP(lnKfac)
+#endif
+          K_arag = K_arag * Kfac
+       END IF
+
+       WHERE ( mask(:,j) )
+
+          !------------------------------------------------------------------
+          !   Compute CO3 concentration at calcite & aragonite saturation
+          !------------------------------------------------------------------
+
+          inv_Ca = (35.0_r8 / 0.01028_r8) / s(:,j) 
+          co3_sat_calc(:,j) = K_calc * inv_Ca
+          co3_sat_arag(:,j) = K_arag * inv_Ca
+
+          !------------------------------------------------------------------
+          !   Convert units of output arguments
+          !------------------------------------------------------------------
+
+          co3_sat_calc(:,j) = co3_sat_calc(:,j) * mass_to_vol
+          co3_sat_arag(:,j) = co3_sat_arag(:,j) * mass_to_vol
+
+       ELSEWHERE
+
+          co3_sat_calc(:,j) = c0
+          co3_sat_arag(:,j) = c0
+
+       END WHERE
+
+    END DO ! j loop
+
+  END SUBROUTINE comp_co3_sat_vals
+
+  !*****************************************************************************
+
+  SUBROUTINE comp_htotal_kvals(iblock, k, mask, t, s, dic_in, ta_in, pt_in, sit_in, &
+                               phlo, phhi, htotal, k0, k1, k2, ff, k1_k2_pH_tot)
+
+    !---------------------------------------------------------------------------
+    !   SUBROUTINE comp_htotal_kvals
+    !
+    !   PURPOSE : Calculate htotal, k0, k1, k2, ff from total alkalinity, total CO2,
+    !             temp, salinity (s), etc.
+    !---------------------------------------------------------------------------
+
+    !---------------------------------------------------------------------------
+    !   input arguments
+    !---------------------------------------------------------------------------
+
+    INTEGER(KIND=int_kind), INTENT(IN) :: iblock
+    INTEGER(KIND=int_kind), INTENT(IN) :: k
+    LOGICAL(KIND=log_kind), DIMENSION(nx_block), INTENT(IN) :: mask
+    REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: &
+         t,        & ! temperature (degrees C)
+         s,        & ! salinity (PSU)
+         dic_in,   & ! total inorganic carbon (nmol/cm^3)
+         ta_in,    & ! total alkalinity (neq/cm^3)
+         pt_in,    & ! inorganic phosphate (nmol/cm^3)
+         sit_in,   & ! inorganic silicate (nmol/cm^3)
+         phlo,     & ! lower limit of pH range
+         phhi        ! upper limit of pH range
+    LOGICAL(KIND=log_kind), INTENT(IN), OPTIONAL :: k1_k2_pH_tot
+
+    !---------------------------------------------------------------------------
+    !   output arguments
+    !---------------------------------------------------------------------------
+
+    REAL(KIND=r8), DIMENSION(nx_block), INTENT(OUT) :: &
+         htotal,       & ! free concentration of H ion
+         k0,k1,k2,     & ! equilibrium constants for CO2 species
+         ff              ! fugacity of CO2
+
+    !---------------------------------------------------------------------------
+    !   local variable declarations
+    !---------------------------------------------------------------------------
+
+    INTEGER(KIND=int_kind) :: i
+
+    REAL(KIND=r8) :: &
+         mass_to_vol,  & ! (mol/kg) -> (mmol/m^3)
+         vol_to_mass     ! (mmol/m^3) -> (mol/kg)
+
+    REAL(KIND=r8), DIMENSION(nx_block) :: &
+         x1, x2          ! bounds on htotal for solver
+
+    LOGICAL(KIND=log_kind) :: k1_k2_pH_tot_loc
+
+    !---------------------------------------------------------------------------
+    !   check for existence of ocean points
+    !---------------------------------------------------------------------------
+
+    IF (COUNT(mask) == 0) THEN
+       htotal = c0
+       RETURN
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   set unit conversion factors
+    !---------------------------------------------------------------------------
+
+    mass_to_vol = 1e6_r8 * rho_sw
+    vol_to_mass = c1 / mass_to_vol
+
+    !---------------------------------------------------------------------------
+    !   which pH scale is to be used for k1 & k2 constants
+    !---------------------------------------------------------------------------
+
+    IF (PRESENT(k1_k2_pH_tot)) THEN
+       k1_k2_pH_tot_loc = k1_k2_pH_tot
+    ELSE
+       k1_k2_pH_tot_loc = .true.
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   convert tracer units to per mass
+    !---------------------------------------------------------------------------
+
+    DO i = 1,nx_block
+       IF (mask(i)) THEN
+          dic(i,iblock)  = dic_in(i)  * vol_to_mass
+          ta(i,iblock)   = ta_in(i)   * vol_to_mass
+          pt(i,iblock)   = max(pt_in(i),c0)   * vol_to_mass
+          sit(i,iblock)  = max(sit_in(i),c0)  * vol_to_mass
+
+          x1(i) = c10 ** (-phhi(i))
+          x2(i) = c10 ** (-phlo(i))
+       END IF ! if mask
+    END DO ! i loop
+
+    CALL comp_co3_coeffs(iblock, k, mask, t, s, k0, k1, k2, ff, k1_k2_pH_tot_loc)
+
+    !---------------------------------------------------------------------------
+    !   If DIC and TA are known then either a root finding or iterative
+    !   method must be used to calculate htotal. In this case we use
+    !   the Newton-Raphson "safe" method taken from "Numerical Recipes"
+    !   (function "rtsafe.f" with error trapping removed).
+    !
+    !   As currently set, this procedure iterates about 12 times. The
+    !   x1 and x2 values set below will accomodate ANY oceanographic
+    !   values. If an initial guess of the pH is known, then the
+    !   number of iterations can be reduced to about 5 by narrowing
+    !   the gap between x1 and x2. It is recommended that the first
+    !   few time steps be run with x1 and x2 set as below. After that,
+    !   set x1 and x2 to the previous value of the pH +/- ~0.5.
+    !---------------------------------------------------------------------------
+
+    CALL drtsafe_row(iblock, mask, k1, k2, x1, x2, xacc, htotal)
+
+  END SUBROUTINE comp_htotal_kvals
+
+  !*****************************************************************************
+
+  SUBROUTINE comp_co3_coeffs(iblock, k, mask, t, s, k0, k1, k2, ff, k1_k2_pH_tot)
+
+    !---------------------------------------------------------------------------
+    !   input arguments
+    !---------------------------------------------------------------------------
+
+    INTEGER(KIND=int_kind), INTENT(IN) :: iblock
+    INTEGER(KIND=int_kind), INTENT(IN) :: k
+    LOGICAL(KIND=log_kind), DIMENSION(nx_block), INTENT(IN) :: mask
+    REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: &
+         t,        & ! temperature (degrees C)
+         s           ! salinity (PSU)
+    LOGICAL(KIND=log_kind), INTENT(IN) :: k1_k2_pH_tot
+
+    !---------------------------------------------------------------------------
+    !   output arguments
+    !---------------------------------------------------------------------------
+
+    REAL(KIND=r8), DIMENSION(nx_block), INTENT(OUT) :: &
+         k0,k1,k2,     & ! equilibrium constants for CO2 species
+         ff              ! fugacity of CO2
+
+    !---------------------------------------------------------------------------
+    !   local variable declarations
+    !---------------------------------------------------------------------------
+
+    INTEGER(KIND=int_kind) :: i
+
+    REAL(KIND=r8) :: &
+         press_bar       ! pressure at level k [bars]
+
+    REAL(KIND=r8), DIMENSION(nx_block) :: &
+         tk,           & ! temperature (K)
+         is,           & ! ionic strength
+         scl,          & ! chlorinity
+         tk100, tk1002, invtk, dlogtk, is2, sqrtis, &
+         s2, sqrts, s15, invRtk, arg, &
+         deltaV,Kappa,lnKfac,Kfac, & ! pressure correction terms
+         log_1_m_1p005em3_s, &
+         log_1_p_tot_sulfate_div_ks
+
+    !---------------------------------------------------------------------------
+
+    press_bar = ref_pressure(k)
+
+    !---------------------------------------------------------------------------
+    !   Calculate all constants needed to convert between various
+    !   measured carbon species. References for each equation are
+    !   noted in the code.  Once calculated, the constants are stored
+    !   and passed in the common block "const". The original version
+    !   of this code was based on the code by Dickson in Version 2 of
+    !   "Handbook of Methods for the Analysis of the Various Parameters
+    !   of the Carbon Dioxide System in Seawater", DOE, 1994 (SOP No. 3,
+    !   p25-26).
+    !   Derive simple terms used more than once
+    !---------------------------------------------------------------------------
+
+    tk       = T0_Kelvin + t
+    tk100    = tk * 1e-2_r8
+    tk1002   = tk100 * tk100
+    invtk    = c1 / tk
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_log(tk, dlogtk, nx_block)
+#else
+    dlogtk   = LOG(tk)
+#endif
+    invRtk   = (c1 / 83.1451_r8) * invtk
+
+    is       = 19.924_r8 * s / (c1000 - 1.005_r8 * s)
+    is2      = is * is
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_sqrt(is, sqrtis, nx_block)
+    CALL shr_vmath_sqrt(s, sqrts, nx_block)
+#else
+    sqrtis   = SQRT(is)
+    sqrts    = SQRT(s)
+#endif
+    s2       = s * s
+    scl      = s / 1.80655_r8
+
+    arg = c1 - 0.001005_r8 * s
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_log(arg, log_1_m_1p005em3_s, nx_block)
+#else
+    log_1_m_1p005em3_s = LOG(arg)
+#endif
+
+    !---------------------------------------------------------------------------
+    !   f = k0(1-pH2O)*correction term for non-ideality
+    !   Weiss & Price (1980, Mar. Chem., 8, 347-359;
+    !                 Eq 13 with table 6 values)
+    !---------------------------------------------------------------------------
+
+    arg = -162.8301_r8 + 218.2968_r8 / tk100 + &
+          90.9241_r8 * (dlogtk + LOG(1e-2_r8)) - 1.47696_r8 * tk1002 + &
+          s * (.025695_r8 - .025225_r8 * tk100 + 0.0049867_r8 * tk1002)
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_exp(arg, ff, nx_block)
+#else
+    ff = EXP(arg)
+#endif
+
+    !---------------------------------------------------------------------------
+    !   K0 from Weiss 1974
+    !---------------------------------------------------------------------------
+
+    arg = 93.4517_r8 / tk100 - 60.2409_r8 + 23.3585_r8 * (dlogtk + LOG(1e-2_r8)) + &
+          s * (.023517_r8 - 0.023656_r8 * tk100 + 0.0047036_r8 * tk1002)
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_exp(arg, k0, nx_block)
+#else
+    k0 = EXP(arg)
+#endif
+
+    !---------------------------------------------------------------------------
+    !   k1 = [H][HCO3]/[H2CO3]
+    !   k2 = [H][CO3]/[HCO3]
+    !   Lueker, Dickson, Keeling (2000) using Mehrbach et al. data on total scale
+    !   Millero p.664 (1995) using Mehrbach et al. data on seawater scale
+    !   pressure correction from Millero 1995, p. 675
+    !      w/ typo corrections from CO2SYS
+    !---------------------------------------------------------------------------
+
+    IF (k1_k2_pH_tot) THEN
+       arg = 3633.86_r8 * invtk - 61.2172_r8 + &
+             9.67770_r8 * dlogtk - 0.011555_r8 * s + &
+             0.0001152_r8 * s2
+    ELSE
+       arg = 3670.7_r8 * invtk - 62.008_r8 + &
+             9.7944_r8 * dlogtk - 0.0118_r8 * s + &
+             0.000116_r8 * s2
+    END IF
+    arg = -LOG(c10) * arg
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_exp(arg, k1, nx_block)
+#else
+    k1 = EXP(arg)
+#endif
+
+    IF (k > 1) THEN
+       deltaV = -25.5_r8 + 0.1271_r8 * t
+       Kappa  = (-3.08_r8 + 0.0877_r8 * t) * p001
+       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_exp(lnKfac, Kfac, nx_block)
+#else
+       Kfac = EXP(lnKfac)
+#endif
+       k1 = k1 * Kfac
+    END IF
+
+    IF (k1_k2_pH_tot) THEN
+       arg = 471.78_r8 * invtk + 25.9290_r8 - &
+             3.16967_r8 * dlogtk - 0.01781_r8 * s + 0.0001122_r8 * s2
+    ELSE
+       arg = 1394.7_r8 * invtk + 4.777_r8 - &
+             0.0184_r8 * s + 0.000118_r8 * s2
+    END IF
+    arg = -LOG(c10) * arg
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_exp(arg, k2, nx_block)
+#else
+    k2 = EXP(arg)
+#endif
+
+    IF (k > 1) THEN
+       deltaV = -15.82_r8 - 0.0219_r8 * t
+       Kappa  = (1.13_r8 - 0.1475_r8 * t) * p001
+       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_exp(lnKfac, Kfac, nx_block)
+#else
+       Kfac = EXP(lnKfac)
+#endif
+       k2 = k2 * Kfac
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   kb = [H][BO2]/[HBO2]
+    !   Millero p.669 (1995) using data from Dickson (1990)
+    !   CO2SYS states that this in on total pH scale
+    !   pressure correction from Millero 1979, p. 1657
+    !      omitting salinity contribution
+    !---------------------------------------------------------------------------
+
+    arg = (-8966.90_r8 - 2890.53_r8 * sqrts - &
+           77.942_r8 * s + 1.728_r8 * s * sqrts - &
+           0.0996_r8 * s2) * invtk + &
+          (148.0248_r8 + 137.1942_r8 * sqrts + 1.62142_r8 * s) + &
+          (-24.4344_r8 - 25.085_r8 * sqrts - 0.2474_r8 * s) * dlogtk + &
+          0.053105_r8 * sqrts * tk
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_exp(arg, kb(:,iblock), nx_block)
+#else
+    kb(:,iblock) = EXP(arg)
+#endif
+
+    IF (k > 1) THEN
+       deltaV = -29.48_r8 + (0.1622_r8 - 0.002608_r8 * t) * t
+       Kappa  = -2.84_r8 * p001
+       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_exp(lnKfac, Kfac, nx_block)
+#else
+       Kfac = EXP(lnKfac)
+#endif
+       kb(:,iblock) = kb(:,iblock) * Kfac
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   k1p = [H][H2PO4]/[H3PO4]
+    !   DOE(1994) eq 7.2.20 with footnote using data from Millero (1974)
+    !   pressure correction from Millero 1995, p. 675
+    !      w/ typo corrections from CO2SYS
+    !---------------------------------------------------------------------------
+
+    arg = -4576.752_r8 * invtk + 115.525_r8 - &
+          18.453_r8 * dlogtk + &
+          (-106.736_r8 * invtk + 0.69171_r8) * sqrts + &
+          (-0.65643_r8 * invtk - 0.01844_r8) * s
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_exp(arg, k1p(:,iblock), nx_block)
+#else
+    k1p(:,iblock) = EXP(arg)
+#endif
+
+    IF (k > 1) THEN
+       deltaV = -14.51_r8 + (0.1211_r8 - 0.000321_r8 * t) * t
+       Kappa  = (-2.67_r8 + 0.0427_r8 * t) * p001
+       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_exp(lnKfac, Kfac, nx_block)
+#else
+       Kfac = EXP(lnKfac)
+#endif
+       k1p(:,iblock) = k1p(:,iblock) * Kfac
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   k2p = [H][HPO4]/[H2PO4]
+    !   DOE(1994) eq 7.2.23 with footnote using data from Millero (1974))
+    !   pressure correction from Millero 1995, p. 675
+    !      w/ typo corrections from CO2SYS
+    !---------------------------------------------------------------------------
+
+    arg = -8814.715_r8 * invtk + 172.0883_r8 - &
+          27.927_r8 * dlogtk + &
+          (-160.340_r8 * invtk + 1.3566_r8) * sqrts + &
+          (0.37335_r8 * invtk - 0.05778_r8) * s
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_exp(arg, k2p(:,iblock), nx_block)
+#else
+    k2p(:,iblock) = EXP(arg)
+#endif
+
+    IF (k > 1) THEN
+       deltaV = -23.12_r8 + (0.1758_r8 - 0.002647_r8 * t) * t
+       Kappa  = (-5.15_r8 + 0.09_r8 * t) * p001
+       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_exp(lnKfac, Kfac, nx_block)
+#else
+       Kfac = EXP(lnKfac)
+#endif
+       k2p(:,iblock) = k2p(:,iblock) * Kfac
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   k3p = [H][PO4]/[HPO4]
+    !   DOE(1994) eq 7.2.26 with footnote using data from Millero (1974)
+    !   pressure correction from Millero 1995, p. 675
+    !      w/ typo corrections from CO2SYS
+    !---------------------------------------------------------------------------
+
+    arg = -3070.75_r8 * invtk - 18.141_r8 + &
+          (17.27039_r8 * invtk + 2.81197_r8) * sqrts + &
+          (-44.99486_r8 * invtk - 0.09984_r8) * s
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_exp(arg, k3p(:,iblock), nx_block)
+#else
+    k3p(:,iblock) = EXP(arg)
+#endif
+
+    IF (k > 1) THEN
+       deltaV = -26.57_r8 + (0.202_r8 - 0.003042_r8 * t) * t
+       Kappa  = (-4.08_r8 + 0.0714_r8 * t) * p001
+       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_exp(lnKfac, Kfac, nx_block)
+#else
+       Kfac = EXP(lnKfac)
+#endif
+       k3p(:,iblock) = k3p(:,iblock) * Kfac
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   ksi = [H][SiO(OH)3]/[Si(OH)4]
+    !   Millero p.671 (1995) using data from Yao and Millero (1995)
+    !   pressure correction from Millero 1995, p. 675
+    !      w/ typo corrections from CO2SYS
+    !      apply boric acid values
+    !---------------------------------------------------------------------------
+
+    arg = -8904.2_r8 * invtk + 117.385_r8 - &
+          19.334_r8 * dlogtk + &
+          (-458.79_r8 * invtk + 3.5913_r8) * sqrtis + &
+          (188.74_r8 * invtk - 1.5998_r8) * is + &
+          (-12.1652_r8 * invtk + 0.07871_r8) * is2 + &
+          log_1_m_1p005em3_s
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_exp(arg, ksi(:,iblock), nx_block)
+#else
+    ksi(:,iblock) = EXP(arg)
+#endif
+
+    IF (k > 1) THEN
+       deltaV = -29.48_r8 + (0.1622_r8 - 0.002608_r8 * t) * t
+       Kappa  = -2.84_r8 * p001
+       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_exp(lnKfac, Kfac, nx_block)
+#else
+       Kfac = EXP(lnKfac)
+#endif
+       ksi(:,iblock) = ksi(:,iblock) * Kfac
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   kw = [H][OH]
+    !   Millero p.670 (1995) using composite data
+    !   following DOE Handbook, 0.015 substracted from constant to
+    !   approximately convert from SWS pH scale to total pH scale
+    !   pressure correction from Millero 1983
+    !      note that deltaV coeffs in Millero 1995 are those actually
+    !      freshwater deltaV coeffs from Millero 1983
+    !---------------------------------------------------------------------------
+
+    arg = -13847.26_r8 * invtk + 148.9652_r8 - 23.6521_r8 * dlogtk + &
+          (118.67_r8 * invtk - 5.977_r8 + 1.0495_r8 * dlogtk) * sqrts - &
+          0.01615_r8 * s
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_exp(arg, kw(:,iblock), nx_block)
+#else
+    kw = EXP(arg)
+#endif
+
+    IF (k > 1) THEN
+       deltaV = -20.02_r8 + (0.1119_r8 - 0.001409_r8 * t) * t
+       Kappa  = (-5.13_r8 + 0.0794_r8 * t) * p001
+       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_exp(lnKfac, Kfac, nx_block)
+#else
+       Kfac = EXP(lnKfac)
+#endif
+       kw(:,iblock) = kw(:,iblock) * Kfac
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   ks = [H][SO4]/[HSO4], free pH scale
+    !   Dickson (1990, J. chem. Thermodynamics 22, 113)
+    !   pressure correction from Millero 1995, p. 675
+    !      w/ typo corrections from CO2SYS
+    !---------------------------------------------------------------------------
+
+    arg = -4276.1_r8 * invtk + 141.328_r8 - 23.093_r8 * dlogtk + &
+          (-13856.0_r8 * invtk + 324.57_r8 - 47.986_r8 * dlogtk) * sqrtis + &
+          (35474.0_r8 * invtk - 771.54_r8 + 114.723_r8 * dlogtk) * is - &
+          2698.0_r8 * invtk * is * sqrtis + &
+          1776.0_r8 * invtk * is2 + &
+          log_1_m_1p005em3_s
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_exp(arg, ks(:,iblock), nx_block)
+#else
+    ks(:,iblock) = EXP(arg)
+#endif
+
+    IF (k > 1) THEN
+       deltaV = -18.03_r8 + (0.0466_r8 + 0.000316_r8 * t) * t
+       Kappa  = (-4.53_r8 + 0.09_r8 * t) * p001
+       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_exp(lnKfac, Kfac, nx_block)
+#else
+       Kfac = EXP(lnKfac)
+#endif
+       ks(:,iblock) = ks(:,iblock) * Kfac
+    END IF
+
+    !---------------------------------------------------------------------
+    !   kf = [H][F]/[HF]
+    !   Dickson and Riley (1979) -- change pH scale to total
+    !   pressure correction from Millero 1995, p. 675
+    !      w/ typo corrections from CO2SYS
+    !---------------------------------------------------------------------
+
+    arg = c1 + (0.1400_r8 / 96.062_r8) * (scl) / ks(:,iblock)
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_log(arg, log_1_p_tot_sulfate_div_ks, nx_block)
+#else
+    log_1_p_tot_sulfate_div_ks = LOG(arg)
+#endif
+    arg = 1590.2_r8 * invtk - 12.641_r8 + 1.525_r8 * sqrtis + &
+          log_1_m_1p005em3_s + log_1_p_tot_sulfate_div_ks
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_exp(arg, kf(:,iblock), nx_block)
+#else
+    kf(:,iblock) = EXP(arg)
+#endif
+
+    IF (k > 1) THEN
+       deltaV = -9.78_r8 - (0.009_r8 + 0.000942_r8 * t) * t
+       Kappa  = (-3.91_r8 + 0.054_r8 * t) * p001
+       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+#ifdef CCSMCOUPLED
+       CALL shr_vmath_exp(lnKfac, Kfac, nx_block)
+#else
+       Kfac = EXP(lnKfac)
+#endif
+       kf(:,iblock) = kf(:,iblock) * Kfac
+    END IF
+
+    !---------------------------------------------------------------------
+    !   Calculate concentrations for borate, sulfate, and fluoride
+    !   bt : Uppstrom (1974)
+    !   st : Morris & Riley (1966)
+    !   ft : Riley (1965)
+    !---------------------------------------------------------------------
+
+    bt(:,iblock) = 0.000232_r8 / 10.811_r8 * scl
+    st(:,iblock) = 0.14_r8 / 96.062_r8 * scl
+    ft(:,iblock) = 0.000067_r8 / 18.9984_r8 * scl
+
+!   DO i = 1,nx_block
+!      IF (mask(i)) THEN
+!      END IF ! if mask
+!   END DO ! i loop
+
+  END SUBROUTINE comp_co3_coeffs
+
+  !*****************************************************************************
+
+  SUBROUTINE talk_row(iblock, mask, k1, k2, x, fn, df)
 
     !---------------------------------------------------------------------------
     !   This routine computes TA as a function of DIC, htotal and constants.
@@ -381,15 +1088,13 @@ CONTAINS
     !   TA and "df" is the value for dTA/dhtotal.
     !---------------------------------------------------------------------------
 
-    USE constants, ONLY : c1, c2, c3
-
     !---------------------------------------------------------------------------
     !   input arguments
     !---------------------------------------------------------------------------
 
     INTEGER(KIND=int_kind), INTENT(IN) :: iblock
     LOGICAL(KIND=log_kind), DIMENSION(nx_block), INTENT(IN) :: mask
-    REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: x
+    REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: k1, k2, x
 
     !---------------------------------------------------------------------------
     !   output arguments
@@ -404,58 +1109,69 @@ CONTAINS
     INTEGER(KIND=int_kind) :: i
 
     REAL(KIND=r8) :: &
-         x1, x2, x3, k12, k12p, k123p, a, a2, da, b, b2, db, c
+         x1, x1_r, x2, x2_r, x3, k12, k12p, k123p, &
+         a, a_r, a2_r, da, b, b_r, b2_r, db, c, c_r, &
+         kb_p_x1_r, ksi_p_x1_r, c1_p_c_ks_x1_r_r, c1_p_kf_x1_r_r
 
     !---------------------------------------------------------------------------
 
     DO i = 1,nx_block
        IF (mask(i)) THEN
           x1 = x(i)
+          x1_r = c1 / x1
           x2 = x1 * x1
+          x2_r = x1_r * x1_r
           x3 = x2 * x1
-          k12 = k1(i,iblock) * k2(i,iblock)
+          k12 = k1(i) * k2(i)
           k12p = k1p(i,iblock) * k2p(i,iblock)
           k123p = k12p * k3p(i,iblock)
           a = x3 + k1p(i,iblock) * x2 + k12p * x1 + k123p
-          a2 = a * a
+          a_r = c1 / a
+          a2_r = a_r * a_r
           da = c3 * x2 + c2 * k1p(i,iblock) * x1 + k12p
-          b = x2 + k1(i,iblock) * x1 + k12
-          b2 = b * b
-          db = c2 * x1 + k1(i,iblock)
+          b = x2 + k1(i) * x1 + k12
+          b_r = c1 / b
+          b2_r = b_r * b_r
+          db = c2 * x1 + k1(i)
           c = c1 + st(i,iblock) / ks(i,iblock)
+          c_r = c1 / c
+          kb_p_x1_r = c1 / (kb(i,iblock) + x1)
+          ksi_p_x1_r = c1 / (ksi(i,iblock) + x1)
+          c1_p_c_ks_x1_r_r = c1 / (c1 + c * ks(i,iblock) * x1_r)
+          c1_p_kf_x1_r_r = c1 / (c1 + kf(i,iblock) * x1_r)
 
           !---------------------------------------------------------------------
           !   fn = hco3+co3+borate+oh+hpo4+2*po4+silicate-hfree-hso4-hf-h3po4-ta
           !---------------------------------------------------------------------
 
-          fn(i) = k1(i,iblock) * x1 * dic(i,iblock) / b + &
-               c2 * dic(i,iblock) * k12 / b + &
-               bt(i,iblock) / (c1 + x1 / kb(i,iblock)) + &
-               kw(i,iblock) / x1 + &
-               pt(i,iblock) * k12p * x1 / a + &
-               c2 * pt(i,iblock) * k123p / a + &
-               sit(i,iblock) / (c1 + x1 / ksi(i,iblock)) - &
-               x1 / c - &
-               st(i,iblock) / (c1 + ks(i,iblock) / x1 / c) - &
-               ft(i,iblock) / (c1 + kf(i,iblock) / x1) - &
-               pt(i,iblock) * x3 / a - &
-               ta(i,iblock)
+          fn(i) = k1(i) * dic(i,iblock) * x1 * b_r &
+               + c2 * dic(i,iblock) * k12 * b_r &
+               + bt(i,iblock) * kb(i,iblock) * kb_p_x1_r &
+               + kw(i,iblock) * x1_r &
+               + pt(i,iblock) * k12p * x1 * a_r &
+               + c2 * pt(i,iblock) * k123p * a_r &
+               + sit(i,iblock) * ksi(i,iblock) * ksi_p_x1_r &
+               - x1 * c_r &
+               - st(i,iblock) * c1_p_c_ks_x1_r_r &
+               - ft(i,iblock) * c1_p_kf_x1_r_r &
+               - pt(i,iblock) * x3 * a_r &
+               - ta(i,iblock)
 
           !---------------------------------------------------------------------
           !   df = d(fn)/dx
           !---------------------------------------------------------------------
 
-          df(i) = ((k1(i,iblock) * dic(i,iblock) * b) - k1(i,iblock) * x1 * dic(i,iblock) * db) / b2 - &
-               c2 * dic(i,iblock) * k12 * db / b2 - &
-               bt(i,iblock) / kb(i,iblock) / (c1 + x1 / kb(i,iblock)) ** 2 - &
-               kw(i,iblock) / x2 + &
-               (pt(i,iblock) * k12p * (a - x1 * da)) / a2 - &
-               c2 * pt(i,iblock) * k123p * da / a2 - &
-               sit(i,iblock) / ksi(i,iblock) / (c1 + x1 / ksi(i,iblock)) ** 2 - &
-               c1 / c + &
-               st(i,iblock) * (c1 + ks(i,iblock) / x1 / c) ** (-2) * (ks(i,iblock) / c / x2) + &
-               ft(i,iblock) * (c1 + kf(i,iblock) / x1) ** (-2) * kf(i,iblock) / x2 - &
-               pt(i,iblock) * x2 * (c3 * a - x1 * da) / a2
+          df(i) = k1(i) * dic(i,iblock) * (b - x1 * db) * b2_r &
+               - c2 * dic(i,iblock) * k12 * db * b2_r &
+               - bt(i,iblock) * kb(i,iblock) * kb_p_x1_r * kb_p_x1_r &
+               - kw(i,iblock) * x2_r &
+               + (pt(i,iblock) * k12p * (a - x1 * da)) * a2_r &
+               - c2 * pt(i,iblock) * k123p * da * a2_r &
+               - sit(i,iblock) * ksi(i,iblock) * ksi_p_x1_r * ksi_p_x1_r &
+               - c1 * c_r &
+               - st(i,iblock) * c1_p_c_ks_x1_r_r * c1_p_c_ks_x1_r_r * (c * ks(i,iblock) * x2_r) &
+               - ft(i,iblock) * c1_p_kf_x1_r_r * c1_p_kf_x1_r_r * kf(i,iblock) * x2_r &
+               - pt(i,iblock) * x2 * (c3 * a - x1 * da) * a2_r
 
        END IF ! if mask
     END DO ! i loop
@@ -464,7 +1180,7 @@ CONTAINS
 
   !*****************************************************************************
 
-  SUBROUTINE drtsafe_row(iblock, mask_in, x1, x2, xacc, soln)
+  SUBROUTINE drtsafe_row(iblock, mask_in, k1, k2, x1, x2, xacc, soln)
 
     !---------------------------------------------------------------------------
     !   Vectorized version of drtsafe, which was a modified version of
@@ -477,8 +1193,9 @@ CONTAINS
     !      In that case, bisection method is used.
     !---------------------------------------------------------------------------
 
-    USE constants, ONLY : c0, c2, p5
-    !USE shr_sys_mod, ONLY : shr_sys_abort
+#ifdef CCSMCOUPLED
+    USE shr_sys_mod, ONLY : shr_sys_abort
+#endif
 
     !---------------------------------------------------------------------------
     !   input arguments
@@ -486,7 +1203,7 @@ CONTAINS
 
     INTEGER(KIND=int_kind), INTENT(IN) :: iblock
     LOGICAL(KIND=log_kind), DIMENSION(nx_block), INTENT(IN) :: mask_in
-    REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: x1, x2
+    REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: k1, k2, x1, x2
     REAL(KIND=r8), INTENT(IN) :: xacc
 
     !---------------------------------------------------------------------------
@@ -511,8 +1228,8 @@ CONTAINS
 
     mask = mask_in
 
-    CALL talk_row(iblock, mask, x1, flo, df)
-    CALL talk_row(iblock, mask, x2, fhi, df)
+    CALL talk_row(iblock, mask, k1, k2, x1, flo, df)
+    CALL talk_row(iblock, mask, k1, k2, x2, fhi, df)
 
     DO i = 1,nx_block
        IF (mask(i)) THEN
@@ -532,7 +1249,7 @@ CONTAINS
        END IF
     END DO
 
-    CALL talk_row(iblock, mask, soln, f, df)
+    CALL talk_row(iblock, mask, k1, k2, soln, f, df)
 
     !---------------------------------------------------------------------------
     !   perform iterations, zeroing mask when a location has converged
@@ -562,7 +1279,7 @@ CONTAINS
 
        IF (.NOT. ANY(mask)) RETURN
 
-       CALL talk_row(iblock, mask, soln, f, df)
+       CALL talk_row(iblock, mask, k1, k2, soln, f, df)
 
        DO i = 1,nx_block
           IF (mask(i)) THEN
@@ -578,7 +1295,9 @@ CONTAINS
 
     END DO ! iteration loop
 
-    !CALL shr_sys_abort('lack of convergence in drtsafe_row')
+#ifdef CCSMCOUPLED
+    CALL shr_sys_abort('lack of convergence in drtsafe_row')
+#endif
 
   END SUBROUTINE drtsafe_row
 

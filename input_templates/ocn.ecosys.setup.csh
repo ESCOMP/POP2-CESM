@@ -26,32 +26,47 @@ endif
 #  set IC and forcing files
 #===============================================================================
 
-set relpath = ocn/pop/$OCN_GRID
-if ($OCN_GRID == gx3v5) then
+if (($OCN_TRANSIENT != unset) && ($OCN_TRANSIENT != 1850-2000)) then
+   echo OCN_TRANSIENT=$OCN_TRANSIENT not supported by ecosystem module
+   exit 2
+endif
 
-   set IC_file  = $DIN_LOC_ROOT/$relpath/ic/ecosys_jan_IC_gx3v5_20051214.nc
+set relpath = ocn/pop/$OCN_GRID
+if ($OCN_GRID == gx3v7) then
+
+   set IC_file  = $DIN_LOC_ROOT/$relpath/ic/ecosys_jan_IC_gx3v7_20100514.nc
    set IC_fmt   = nc
-   set ALK_scale_factor = 1.0
-   set DIC_scale_factor = 1.0
-   set O2_scale_factor  = 1.0
-   set DST_file   = $DIN_LOC_ROOT/$relpath/forcing/dst79gnx_gx3v5_20040426.nc
-   set fesed_file = $DIN_LOC_ROOT/$relpath/forcing/fesedflux_gx3v5_20070521.nc
-   set ndep_file  = $DIN_LOC_ROOT/$relpath/forcing/ndep_ocn_1850_gx3v5_c091125.nc
+   set ALK_scale_factor = 1.025
+   set DIC_scale_factor = 1.025
+   set O2_scale_factor  = 44.66
+   set DST_file   = $DIN_LOC_ROOT/$relpath/forcing/dst79gnx_gx3v7_20100305.nc
+   set fesed_file = $DIN_LOC_ROOT/$relpath/forcing/fesedflux_CCSM4gx3v7_orgc_etopo2v2_20100307.nc
+   if ($OCN_TRANSIENT == unset) then
+     set ndep_file  = $DIN_LOC_ROOT/$relpath/forcing/ndep_ocn_1850_gx3v7_c100428.nc
+   endif
+   if ($OCN_TRANSIENT == 1850-2000) then
+     set ndep_file = $DIN_LOC_ROOT/$relpath/forcing/ndep_ocn_1850-2005_gx3v7_c100430.nc
+   endif
 
 else if ($OCN_GRID == gx1v6) then
 
-   set IC_file  = $DIN_LOC_ROOT/$relpath/ic/ecosys_jan_IC_gx1v6_20090416.nc
+   set IC_file  = $DIN_LOC_ROOT/$relpath/ic/ecosys_jan_IC_gx1v6_20100514.nc
    set IC_fmt   = nc
    set ALK_scale_factor = 1.025
    set DIC_scale_factor = 1.025
    set O2_scale_factor  = 44.66
    set DST_file   = $DIN_LOC_ROOT/$relpath/forcing/dst79gnx_gx1v6_090416.nc
    set fesed_file = $DIN_LOC_ROOT/$relpath/forcing/fesedflux_CCSM4gx1v6_orgc_etopo2v2_20090802.nc
-   set ndep_file  = $DIN_LOC_ROOT/$relpath/forcing/ndep_ocn_1850_gx1v6_c090505.nc
+   if ($OCN_TRANSIENT == unset) then
+     set ndep_file  = $DIN_LOC_ROOT/$relpath/forcing/ndep_ocn_1850_gx1v6_c100428.nc
+   endif
+   if ($OCN_TRANSIENT == 1850-2000) then
+     set ndep_file = $DIN_LOC_ROOT/$relpath/forcing/ndep_ocn_1850-2005_gx1v6_c100430.nc
+   endif
 
 else
 
-   echo $OCN_GRID not supported by ecosystem module
+   echo OCN_GRID=$OCN_GRID not supported by ecosystem module
    exit 2
 
 endif
@@ -183,20 +198,34 @@ else if ($command == namelist) then
    fesedflux_input%file_varname   = 'FESEDFLUXIN'
    fesedflux_input%file_fmt        = 'nc'
    fesedflux_input%scale_factor   = 1.1574e-6 ! umolFe/m2/day -> nmolFe/cm2/s
-   nox_flux_input%filename        = '$ndep_file_nml'
-   nox_flux_input%file_fmt        = 'nc'
-   nox_flux_input%file_varname    = 'NOy_deposition'
-   nox_flux_input%scale_factor    = 7.1429e+06  ! kgN/m^2/sec -> nmolN/cm^2/sec
-   nhy_flux_input%filename        = '$ndep_file_nml'
-   nhy_flux_input%file_fmt        = 'nc'
-   nhy_flux_input%file_varname    = 'NHx_deposition'
-   nhy_flux_input%scale_factor    = 7.1429e+06  ! kgN/m^2/sec -> nmolN/cm^2/sec
-!   dustflx_daily_input%interp_type    = 'linear'
-!   dustflx_daily_input%filename       = '/fiji/home/ivan/data/Mahowald/daily/dstgnx'
-!   dustflx_daily_input%data_renorm(1) = 1.e-1    ! kg/m^2/sec -> g/cm^2/sec
-!   ironflx_daily_input%interp_type    = 'linear'
-!   ironflx_daily_input%filename       = '/fiji/home/ivan/data/Mahowald/daily/dstgnx'
-!   ironflx_daily_input%data_renorm(1) = 6.2668e4 ! kg/m^2/sec->nmol/cm^2/sec, 3.5% Fe
+EOF
+
+if ($OCN_TRANSIENT == unset) then
+   cat >> $pop_in_filename << EOF
+   ndep_data_type                         = 'monthly-calendar'
+   nox_flux_monthly_input%filename        = '$ndep_file_nml'
+   nox_flux_monthly_input%file_fmt        = 'nc'
+   nox_flux_monthly_input%file_varname    = 'NOy_deposition'
+   nox_flux_monthly_input%scale_factor    = 7.1429e+06  ! kgN/m^2/sec -> nmolN/cm^2/sec
+   nhy_flux_monthly_input%filename        = '$ndep_file_nml'
+   nhy_flux_monthly_input%file_fmt        = 'nc'
+   nhy_flux_monthly_input%file_varname    = 'NHx_deposition'
+   nhy_flux_monthly_input%scale_factor    = 7.1429e+06  ! kgN/m^2/sec -> nmolN/cm^2/sec
+EOF
+endif
+
+if ($OCN_TRANSIENT == 1850-2000) then
+   cat >> $pop_in_filename << EOF
+   ndep_data_type                         = 'shr_stream'
+   ndep_shr_stream_year_first             = 1849
+   ndep_shr_stream_year_last              = 2006
+   ndep_shr_stream_year_align             = 1849
+   ndep_shr_stream_file                   = '$ndep_file_nml'
+   ndep_shr_stream_scale_factor           = 7.1429e+06  ! kgN/m^2/sec -> nmolN/cm^2/sec
+EOF
+endif
+
+   cat >> $pop_in_filename << EOF
    lecovars_full_depth_tavg = .false.
 /
 
@@ -209,7 +238,7 @@ else if ($command == set_tavg_nml) then
   #-------------------------------------------------------------------------------------
   # if there is no module-related tavg output, set n_tavg_streams_tracer = 0
   #-------------------------------------------------------------------------------------
-    set n_tavg_streams_tracer = 1
+    set n_tavg_streams_tracer = 2
 cat >&! $POP2_DOCDIR/$module.tavg << EOF
 n_tavg_streams_tracer =  $n_tavg_streams_tracer
 EOF
@@ -220,23 +249,22 @@ EOF
   #-------------------------------------------------------------------------------------
   if ($n_tavg_streams_tracer > 0) then
     cat >> $POP2_DOCDIR/$module.tavg << EOF
-tavg_freq_opt             = 'nday'
-tavg_freq                 =  1  
-tavg_stream_filestrings   = 'ecosys.nday1'
-tavg_file_freq_opt        = 'nmonth' 
-tavg_file_freq            =  1
-tavg_start_opt            = 'nstep' 
-tavg_start                =  0  
-tavg_fmt_in               = 'nc'
-tavg_fmt_out              = 'nc' 
-ltavg_has_offset_date     = .false.
-tavg_offset_years         =  1  
-tavg_offset_months        =  1  
-tavg_offset_days          =  2  
-ltavg_one_time_header     = .false. 
+tavg_freq_opt             = 'nday'          'nyear'
+tavg_freq                 =  1              1
+tavg_stream_filestrings   = 'ecosys.nday1'  'ecosys.nyear1'
+tavg_file_freq_opt        = 'nmonth'        'nyear'
+tavg_file_freq            =  1              1
+tavg_start_opt            = 'nstep'         'nstep'
+tavg_start                =  0              0
+tavg_fmt_in               = 'nc'            'nc'
+tavg_fmt_out              = 'nc'            'nc'
+ltavg_has_offset_date     = .false.         .false.
+tavg_offset_years         =  1              1
+tavg_offset_months        =  1              1
+tavg_offset_days          =  2              2
+ltavg_one_time_header     = .false.         .false.
 EOF
   endif  #n_tavg_streams_tracer
-
 
 else if ($command == tavg_contents) then
 
@@ -271,6 +299,7 @@ else if ($command == tavg_contents) then
 
       @ s1 = 1             # use the base-model stream 1
       @ s2 = $my_stream    # use an ecosystem-defined stream
+      @ s3 = $s2 + 1       # use an ecosystem-defined stream
 
    cat >> $tavg_contents_filename << EOF
 $s1  ECOSYS_ATM_PRESS
@@ -304,9 +333,21 @@ $s1  O2_ZMIN
 $s1  O2_ZMIN_DEPTH
 $s1  O2_PRODUCTION
 $s1  O2_CONSUMPTION
+$s1  AOU
 $s1  DIC
+$s1  J_DIC
 $s1  ALK
+$s1  H2CO3
+$s1  HCO3
+$s1  CO3
+$s1  pH_3D
+$s1  co3_sat_calc
+$s1  zsatcalc
+$s1  co3_sat_arag
+$s1  zsatarag
 $s1  DOC
+$s1  DOC_prod
+$s1  DOC_remin
 $s1  spC
 $s1  spChl
 $s1  spCaCO3
@@ -328,14 +369,14 @@ $s1  graze_diaz
 $s1  sp_agg
 $s1  diat_agg
 $s1  photoC_sp
+$s1  CaCO3_form
 $s1  photoC_diat
 $s1  photoC_diaz
-$s2  photoC_sp_zint
-$s2  photoC_diat_zint
-$s2  photoC_diaz_zint
+$s1  photoC_NO3_sp
+$s1  photoC_NO3_diat
+$s1  photoC_NO3_diaz
 $s1  Fe_scavenge
 $s1  Fe_scavenge_rate
-$s1  CaCO3_form
 $s1  diaz_Nfix
 $s1  bSi_form
 $s1  NITRIF
@@ -361,7 +402,6 @@ $s1  diat_SiO3_lim
 $s1  sp_light_lim
 $s1  diat_light_lim
 $s1  diaz_light_lim
-$s1  DOC_prod
 $s1  DON_prod
 $s1  DOFe_prod
 $s1  DOP_prod
@@ -369,10 +409,84 @@ $s1  sp_loss
 $s1  diat_loss
 $s1  zoo_loss
 $s1  diaz_loss
+$s1  Jint_100m_DIC
+$s1  Jint_100m_NO3
+$s1  Jint_100m_NH4
+$s1  Jint_100m_PO4
+$s1  Jint_100m_Fe
+$s1  Jint_100m_SiO3
+$s1  Jint_100m_ALK
+$s1  Jint_100m_O2
+$s1  Jint_100m_DOC
+$s1  tend_zint_100m_DIC
+$s1  tend_zint_100m_NO3
+$s1  tend_zint_100m_NH4
+$s1  tend_zint_100m_PO4
+$s1  tend_zint_100m_Fe
+$s1  tend_zint_100m_SiO3
+$s1  tend_zint_100m_ALK
+$s1  tend_zint_100m_O2
+$s1  tend_zint_100m_DOC
+$s2  photoC_sp_zint
+$s2  CaCO3_form_zint
+$s2  photoC_diaz_zint
+$s2  photoC_diat_zint
+$s1  photoC_NO3_sp_zint
+$s1  photoC_NO3_diat_zint
+$s1  photoC_NO3_diaz_zint
+$s2  ECOSYS_IFRAC_2
+$s2  ECOSYS_XKW_2
+$s2  DpCO2_2
+$s2  FG_CO2_2
+$s2  STF_O2_2
+$s2  spC_zint_100m
+$s2  spCaCO3_zint_100m
+$s2  diazC_zint_100m
+$s2  diatC_zint_100m
+$s2  zooC_zint_100m
+$s2  spChl_SURF
+$s2  diazChl_SURF
+$s2  diatChl_SURF
+$s3  J_NO3
+$s3  J_NH4
+$s3  J_PO4
+$s3  J_Fe
+$s3  J_SiO3
+$s3  J_ALK
+$s3  UE_O2
+$s3  VN_O2
+$s3  WT_O2
+$s3  KPP_SRC_O2
+$s3  DIA_IMPVF_O2
+$s3  HDIFE_O2
+$s3  HDIFN_O2
+$s3  HDIFB_O2
+$s3  UE_DOC
+$s3  VN_DOC
+$s3  WT_DOC
+$s3  DIA_IMPVF_DOC
+$s3  HDIFE_DOC
+$s3  HDIFN_DOC
+$s3  HDIFB_DOC
+$s3  UE_DIC
+$s3  VN_DIC
+$s3  WT_DIC
+$s3  KPP_SRC_DIC
+$s3  DIA_IMPVF_DIC
+$s3  HDIFE_DIC
+$s3  HDIFN_DIC
+$s3  HDIFB_DIC
+$s3  UE_Fe
+$s3  VN_Fe
+$s3  WT_Fe
+$s3  KPP_SRC_Fe
+$s3  DIA_IMPVF_Fe
+$s3  HDIFE_Fe
+$s3  HDIFN_Fe
+$s3  HDIFB_Fe
 EOF
 
 #1  dust_FLUX_IN
-#1   DOC_remin
 #1   DON_remin
 #1   DOFe_remin
 #1   DOP_remin
@@ -434,10 +548,10 @@ else if ($command == document) then
 
    set pop2_document_files   = $2
 
-  if (-e $IC_file)    \ls -la $IC_file    >> $pop2_document_files 
-  if (-e $DST_file)   \ls -la $DST_file   >> $pop2_document_files 
-  if (-e $fesed_file) \ls -la $fesed_file >> $pop2_document_files 
-  if (-e $ndep_file)  \ls -la $ndep_file  >> $pop2_document_files 
+  if (-e $IC_file)    \ls -la $IC_file    >> $pop2_document_files
+  if (-e $DST_file)   \ls -la $DST_file   >> $pop2_document_files
+  if (-e $fesed_file) \ls -la $fesed_file >> $pop2_document_files
+  if (-e $ndep_file)  \ls -la $ndep_file  >> $pop2_document_files
 
 else if ($command == ccsm_prestage) then
 

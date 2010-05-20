@@ -879,7 +879,9 @@
 
        end do
 	
-
+      ! zero halo regions so accumulate_tavg_field calls do not trap
+      WORK1 = c0
+      WORK2 = c0
 	    
       do n = 1,nt
 
@@ -892,11 +894,6 @@
         GTK(:,:,n) = c0
 
         if ( k < km ) then
-        
-	  
-	WORK1 = c0
-	WORK2 = c0
-		
 
               do j=this_block%jb,this_block%je
                 do i=this_block%ib,this_block%ie

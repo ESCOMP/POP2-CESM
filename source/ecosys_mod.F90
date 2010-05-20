@@ -88,6 +88,10 @@
 
    use POP_KindsMod
    use POP_ErrorMod
+   use POP_CommMod
+   use POP_GridHorzMod
+   use POP_FieldMod
+   use POP_HaloMod
 
    use kinds_mod
    use constants
@@ -113,6 +117,10 @@
    use registry
    use named_field_mod
    use co2calc
+#ifdef CCSMCOUPLED
+   use POP_MCT_vars_mod
+   use shr_strdata_mod
+#endif
 
 ! !INPUT PARAMETERS:
 !-----------------------------------------------------------------------
@@ -263,16 +271,15 @@
 !  module variables related to ph computations
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), target :: &
-      PH_PREV          ! computed ph from previous time step
-
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
-      dust_FLUX_IN     ! dust flux not stored in STF since dust is not prognostic
-
    real (r8), dimension(:,:,:), allocatable, target :: &
-      IRON_PATCH_FLUX      ! localized iron patch flux
+      PH_PREV,        & ! computed ph from previous time step
+      IRON_PATCH_FLUX   ! localized iron patch flux
 
-   integer (int_kind) :: ph_prev_id
+   real (r8), dimension(:,:,:), allocatable :: &
+      dust_FLUX_IN      ! dust flux not stored in STF since dust is not prognostic
+
+   real (r8), dimension(:,:,:,:), allocatable :: &
+      PH_PREV_3D        ! computed pH_3D from previous time step
 
 !-----------------------------------------------------------------------
 !  restoring climatologies for nutrients
@@ -319,9 +326,34 @@
       iron_flux,                 & ! iron component of surface dust flux
       fice_file,                 & ! ice fraction, if read from file
       xkw_file,                  & ! a * wind-speed ** 2, if read from file
-      ap_file,                   & ! atmoshperic pressure, if read from file
-      nox_flux,                  & ! surface NOx species flux, added to nitrate pool
-      nhy_flux                     ! surface NHy species flux, added to ammonium pool
+      ap_file                      ! atmoshperic pressure, if read from file
+
+   character(char_len) :: &
+      ndep_data_type               ! type of ndep forcing
+
+   type(forcing_monthly_every_ts) :: &
+      nox_flux_monthly,          & ! surface NOx species flux, added to nitrate pool
+      nhy_flux_monthly             ! surface NHy species flux, added to ammonium pool
+
+   integer (int_kind) :: &
+      ndep_shr_stream_year_first, & ! first year in stream to use
+      ndep_shr_stream_year_last,  & ! last year in stream to use
+      ndep_shr_stream_year_align    ! align ndep_shr_stream_year_first with this model year
+
+   integer (int_kind), parameter :: &
+      ndep_shr_stream_var_cnt = 2, & ! number of variables in ndep shr_stream
+      ndep_shr_stream_no_ind  = 1, & ! index for NO forcing
+      ndep_shr_stream_nh_ind  = 2    ! index for NH forcing
+
+   character(char_len) :: &
+      ndep_shr_stream_file          ! file containing domain and input data
+
+   real (r8) :: &
+      ndep_shr_stream_scale_factor  ! unit conversion factor
+
+#ifdef CCSMCOUPLED
+   type(shr_strdata_type) :: ndep_sdat ! input data stream for ndep
+#endif
 
 !-----------------------------------------------------------------------
 !  derived type for implicit handling of sinking particulate matter
@@ -349,7 +381,9 @@
 
    integer (int_kind) :: &
       tavg_ECOSYS_IFRAC, &! tavg id for ice fraction
+      tavg_ECOSYS_IFRAC_2,&! tavg id for duplicate of ice fraction
       tavg_ECOSYS_XKW,   &! tavg id for xkw
+      tavg_ECOSYS_XKW_2, &! tavg id for duplicate of xkw
       tavg_ECOSYS_ATM_PRESS, &! tavg id for atmospheric pressure
       tavg_PV_O2,        &! tavg id for o2 piston velocity
       tavg_SCHMIDT_O2,   &! tavg id for O2 schmidt number
@@ -358,9 +392,12 @@
       tavg_DCO2STAR,     &! tavg id for dco2star
       tavg_pCO2SURF,     &! tavg id for surface pco2
       tavg_DpCO2,        &! tavg id for delta pco2
+      tavg_DpCO2_2,      &! tavg id for duplicate of delta pco2
       tavg_PV_CO2,       &! tavg id for co2 piston velocity
       tavg_SCHMIDT_CO2,  &! tavg id for co2 schmidt number
       tavg_DIC_GAS_FLUX, &! tavg id for dic flux
+      tavg_DIC_GAS_FLUX_2,&! tavg id for duplicate of dic flux
+      tavg_O2_GAS_FLUX_2,&! tavg id for duplicate of O2 flux
       tavg_PH,           &! tavg id for surface pH
       tavg_ATM_CO2,      &! tavg id for atmospheric CO2
       tavg_IRON_FLUX,    &! tavg id for dust flux
@@ -369,7 +406,7 @@
       tavg_NHy_FLUX       ! tavg id for nhy flux
 
 !-----------------------------------------------------------------------
-!  define tavg id for nonstandard 3d fields
+!  define tavg id for nonstandard 2d fields
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
@@ -383,6 +420,7 @@
    integer (int_kind) :: &
       tavg_O2_PRODUCTION,&! tavg id for o2 production
       tavg_O2_CONSUMPTION,&! tavg id for o2 consumption
+      tavg_AOU,          &! tavg id for AOU
       tavg_PO4_RESTORE,  &! tavg id for po4 restoring
       tavg_NO3_RESTORE,  &! tavg id for no3 restoring
       tavg_SiO3_RESTORE, &! tavg id for sio3 restoring
@@ -411,15 +449,31 @@
       tavg_diaz_loss,    &! tavg id for diaz loss
       tavg_zoo_loss,     &! tavg id for zooplankton loss
       tavg_sp_agg,       &! tavg id for small phyto aggregate
-      tavg_diat_agg,     &! tavg id for diatom aggregate
-      tavg_photoC_sp,    &! tavg id for small phyto C fixation
-      tavg_photoC_diat,  &! tavg id for diatom C fixation
-      tavg_photoC_diaz,  &! tavg id for diaz C fixation
-      tavg_photoC_TOT,   &! tavg id for total C fixation
-      tavg_photoC_sp_zint,&! tavg id for small phyto C fixation vertical integral
-      tavg_photoC_diat_zint,&! tavg id for diatom C fixation vertical integral
-      tavg_photoC_diaz_zint,&! tavg id for diaz C fixation vertical integral
-      tavg_photoC_TOT_zint ! tavg id for total C fixation vertical integral
+      tavg_diat_agg       ! tavg id for diatom aggregate
+
+!-----------------------------------------------------------------------
+!  define tavg id for MORE nonstandard 3d fields
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      tavg_photoC_sp,            &! tavg id for small phyto C fixation
+      tavg_CaCO3_form,           &! tavg id for CaCO3 formation
+      tavg_photoC_diat,          &! tavg id for diatom C fixation
+      tavg_photoC_diaz,          &! tavg id for diaz C fixation
+      tavg_photoC_TOT,           &! tavg id for total C fixation
+      tavg_photoC_sp_zint,       &! tavg id for small phyto C fixation vertical integral
+      tavg_CaCO3_form_zint,      &! tavg id for CaCO3 formation vertical integral
+      tavg_photoC_diat_zint,     &! tavg id for diatom C fixation vertical integral
+      tavg_photoC_diaz_zint,     &! tavg id for diaz C fixation vertical integral
+      tavg_photoC_TOT_zint,      &! tavg id for total C fixation vertical integral
+      tavg_photoC_NO3_sp,        &! tavg id for small phyto C fixation from NO3
+      tavg_photoC_NO3_sp_zint,   &! tavg id for small phyto C fixation from NO3 vertical integral
+      tavg_photoC_NO3_diat,      &! tavg id for diatom C fixation from NO3
+      tavg_photoC_NO3_diat_zint, &! tavg id for diatom C fixation from NO3 vertical integral
+      tavg_photoC_NO3_diaz,      &! tavg id for diaz C fixation from NO3
+      tavg_photoC_NO3_diaz_zint, &! tavg id for diaz C fixation from NO3 vertical integral
+      tavg_photoC_NO3_TOT,       &! tavg id for total C fixation from NO3
+      tavg_photoC_NO3_TOT_zint    ! tavg id for total C fixation from NO3 vertical integral
 
 !-----------------------------------------------------------------------
 !  define tavg id for MORE nonstandard 3d fields
@@ -448,7 +502,6 @@
       tavg_diaz_Fe_lim,    &! tavg id for diaz Fe limitation
       tavg_diaz_P_lim,     &! tavg id for diaz PO4 limitation
       tavg_diaz_light_lim, &! tavg id for diaz light limitation
-      tavg_CaCO3_form,     &! tavg id for CaCO3 formation
       tavg_diaz_Nfix,      &! tavg id for diaz N fixation
       tavg_bSi_form,       &! tavg id for diatom Si uptake
       tavg_NITRIF,         &! tavg id for nitrification
@@ -456,6 +509,16 @@
       tavg_photoFe_sp,     &! tavg id for small phyto Fe uptake
       tavg_photoFe_diat,   &! tavg id for diatom Fe uptake
       tavg_photoFe_diaz     ! tavg id for diaz Fe uptake
+
+   integer (int_kind) :: &
+      tavg_CO3,            &! tavg id for 3D carbonate ion
+      tavg_HCO3,           &! tavg id for 3D bicarbonate ion
+      tavg_H2CO3,          &! tavg id for 3D carbonic acid
+      tavg_pH_3D,          &! tavg id for 3D pH
+      tavg_co3_sat_calc,   &! tavg id for co3 concentration at calcite saturation
+      tavg_zsatcalc,       &! tavg id for calcite saturation depth
+      tavg_co3_sat_arag,   &! tavg id for co3 concentration at aragonite saturation
+      tavg_zsatarag         ! tavg id for aragonite saturation depth
 
 !-----------------------------------------------------------------------
 !  define array for holding flux-related quantities that need to be time-averaged
@@ -501,6 +564,8 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
+      ecosys_shr_strdata_advance_timer,        &
+      ecosys_comp_CO3terms_timer,              &
       ecosys_interior_timer,                   &
       ecosys_sflux_timer
 
@@ -517,6 +582,13 @@
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       PAR_out           ! photosynthetically available radiation (W/m^2)
+
+!-----------------------------------------------------------------------
+
+   real (r8), parameter :: &
+      phlo_init = 7.0_r8,     & ! low bound for ph for no prev soln
+      phhi_init = 9.0_r8,     & ! high bound for ph for no prev soln
+      del_ph = 0.20_r8          ! delta-ph for prev soln
 
 !*****************************************************************************
 
@@ -584,8 +656,8 @@ contains
    type(tracer_read) :: &
       dust_flux_input,           & ! namelist input for dust_flux
       iron_flux_input,           & ! namelist input for iron_flux
-      nox_flux_input,            & ! namelist input for nox_flux
-      nhy_flux_input               ! namelist input for nhy_flux
+      nox_flux_monthly_input,    & ! namelist input for nox_flux_monthly
+      nhy_flux_monthly_input       ! namelist input for nhy_flux_monthly
 
    logical (log_kind) :: &
       default,                   & ! arg to init_time_flag
@@ -622,7 +694,10 @@ contains
       init_ecosys_option, init_ecosys_init_file, tracer_init_ext, &
       init_ecosys_init_file_fmt, &
       dust_flux_input, iron_flux_input, fesedflux_input, &
-      nox_flux_input, nhy_flux_input, &
+      ndep_data_type, nox_flux_monthly_input, nhy_flux_monthly_input, &
+      ndep_shr_stream_year_first, ndep_shr_stream_year_last, &
+      ndep_shr_stream_year_align, ndep_shr_stream_file, &
+      ndep_shr_stream_scale_factor, &
       gas_flux_forcing_opt, gas_flux_forcing_file, &
       gas_flux_fice, gas_flux_ws, gas_flux_ap, &
       lrest_po4, lrest_no3, lrest_sio3, &
@@ -683,8 +758,8 @@ contains
    call init_forcing_monthly_every_ts(fice_file)
    call init_forcing_monthly_every_ts(xkw_file)
    call init_forcing_monthly_every_ts(ap_file)
-   call init_forcing_monthly_every_ts(nox_flux)
-   call init_forcing_monthly_every_ts(nhy_flux)
+   call init_forcing_monthly_every_ts(nox_flux_monthly)
+   call init_forcing_monthly_every_ts(nhy_flux_monthly)
 
 !-----------------------------------------------------------------------
 !  initialize ecosystem parameters
@@ -817,17 +892,25 @@ contains
    fesedflux_input%default_val  = c0
    fesedflux_input%file_fmt     = 'bin'
 
-   nox_flux_input%filename     = 'unknown'
-   nox_flux_input%file_varname = 'nox_flux'
-   nox_flux_input%scale_factor = c1
-   nox_flux_input%default_val  = c0
-   nox_flux_input%file_fmt     = 'bin'
+   ndep_data_type              = 'monthly-calendar'
 
-   nhy_flux_input%filename     = 'unknown'
-   nhy_flux_input%file_varname = 'nhy_flux'
-   nhy_flux_input%scale_factor = c1
-   nhy_flux_input%default_val  = c0
-   nhy_flux_input%file_fmt     = 'bin'
+   nox_flux_monthly_input%filename     = 'unknown'
+   nox_flux_monthly_input%file_varname = 'nox_flux'
+   nox_flux_monthly_input%scale_factor = c1
+   nox_flux_monthly_input%default_val  = c0
+   nox_flux_monthly_input%file_fmt     = 'bin'
+
+   nhy_flux_monthly_input%filename     = 'unknown'
+   nhy_flux_monthly_input%file_varname = 'nhy_flux'
+   nhy_flux_monthly_input%scale_factor = c1
+   nhy_flux_monthly_input%default_val  = c0
+   nhy_flux_monthly_input%file_fmt     = 'bin'
+
+   ndep_shr_stream_year_first = 1
+   ndep_shr_stream_year_last  = 1
+   ndep_shr_stream_year_align = 1
+   ndep_shr_stream_file       = 'unknown'
+   ndep_shr_stream_scale_factor = c1
 
    do n = 1,ecosys_tracer_cnt
       tracer_init_ext(n)%mod_varname  = 'unknown'
@@ -994,21 +1077,29 @@ contains
    call broadcast_scalar(fesedflux_input%default_val, master_task)
    call broadcast_scalar(fesedflux_input%file_fmt, master_task)
 
-   call broadcast_scalar(nox_flux_input%filename, master_task)
-   call broadcast_scalar(nox_flux_input%file_varname, master_task)
-   call broadcast_scalar(nox_flux_input%scale_factor, master_task)
-   call broadcast_scalar(nox_flux_input%default_val, master_task)
-   call broadcast_scalar(nox_flux_input%file_fmt, master_task)
+   call broadcast_scalar(ndep_data_type, master_task)
 
-   nox_flux%input = nox_flux_input
+   call broadcast_scalar(nox_flux_monthly_input%filename, master_task)
+   call broadcast_scalar(nox_flux_monthly_input%file_varname, master_task)
+   call broadcast_scalar(nox_flux_monthly_input%scale_factor, master_task)
+   call broadcast_scalar(nox_flux_monthly_input%default_val, master_task)
+   call broadcast_scalar(nox_flux_monthly_input%file_fmt, master_task)
 
-   call broadcast_scalar(nhy_flux_input%filename, master_task)
-   call broadcast_scalar(nhy_flux_input%file_varname, master_task)
-   call broadcast_scalar(nhy_flux_input%scale_factor, master_task)
-   call broadcast_scalar(nhy_flux_input%default_val, master_task)
-   call broadcast_scalar(nhy_flux_input%file_fmt, master_task)
+   nox_flux_monthly%input = nox_flux_monthly_input
 
-   nhy_flux%input = nhy_flux_input
+   call broadcast_scalar(nhy_flux_monthly_input%filename, master_task)
+   call broadcast_scalar(nhy_flux_monthly_input%file_varname, master_task)
+   call broadcast_scalar(nhy_flux_monthly_input%scale_factor, master_task)
+   call broadcast_scalar(nhy_flux_monthly_input%default_val, master_task)
+   call broadcast_scalar(nhy_flux_monthly_input%file_fmt, master_task)
+
+   nhy_flux_monthly%input = nhy_flux_monthly_input
+
+   call broadcast_scalar(ndep_shr_stream_year_first, master_task)
+   call broadcast_scalar(ndep_shr_stream_year_last, master_task)
+   call broadcast_scalar(ndep_shr_stream_year_align, master_task)
+   call broadcast_scalar(ndep_shr_stream_file, master_task)
+   call broadcast_scalar(ndep_shr_stream_scale_factor, master_task)
 
    do n = 1,ecosys_tracer_cnt
       call broadcast_scalar(tracer_init_ext(n)%mod_varname, master_task)
@@ -1094,6 +1185,15 @@ contains
    vflux_flag(alk_ind) = .true.
 
 !-----------------------------------------------------------------------
+!  allocate various ecosys allocatable module variables
+!-----------------------------------------------------------------------
+
+   allocate( PH_PREV(nx_block,ny_block,max_blocks_clinic) )
+   allocate( dust_FLUX_IN(nx_block,ny_block,max_blocks_clinic) )
+   allocate( PH_PREV_3D(nx_block,ny_block,km,max_blocks_clinic) )
+   PH_PREV_3D = c0
+
+!-----------------------------------------------------------------------
 !  allocate and initialize LAND_MASK
 !-----------------------------------------------------------------------
 
@@ -1163,24 +1263,6 @@ contains
                                   ind_name_table,            &
                                   tracer_init_ext,           &
                                   TRACER_MODULE)
-
-!-----------------------------------------------------------------------
-!  hardcorde alk & values in Baltic Sea, to avoid crazy pH values
-!  this will be fixed in an updated IC file
-!-----------------------------------------------------------------------
-
-      !$OMP PARALLEL DO PRIVATE(iblock,k)
-      do iblock=1,nblocks_clinic
-         do k=1,km
-            where (k <= KMT(:,:,iblock) .and. REGION_MASK(:,:,iblock) == -12)
-               TRACER_MODULE(:,:,k,alk_ind,oldtime,iblock) = 1600.0_r8
-               TRACER_MODULE(:,:,k,alk_ind,curtime,iblock) = 1600.0_r8
-               TRACER_MODULE(:,:,k,dic_ind,oldtime,iblock) = 1500.0_r8
-               TRACER_MODULE(:,:,k,dic_ind,curtime,iblock) = 1500.0_r8
-            end where
-         end do
-      end do
-      !$OMP END PARALLEL DO
 
       if (n_topo_smooth > 0) then
          do n = 1, ecosys_tracer_cnt
@@ -1257,10 +1339,16 @@ contains
 !  timer init
 !-----------------------------------------------------------------------
 
+   call get_timer(ecosys_comp_CO3terms_timer, 'comp_CO3terms', &
+                  nblocks_clinic, distrb_clinic%nprocs)
    call get_timer(ecosys_interior_timer, 'ECOSYS_INTERIOR', &
                   nblocks_clinic, distrb_clinic%nprocs)
    call get_timer(ecosys_sflux_timer, 'ECOSYS_SFLUX',1, &
                   distrb_clinic%nprocs)
+   if (ndep_data_type == 'shr_stream') then
+      call get_timer(ecosys_shr_strdata_advance_timer, &
+                     'ecosys_shr_strdata_advance',1, distrb_clinic%nprocs)
+   endif
 
 !-----------------------------------------------------------------------
 !  call other initialization subroutines
@@ -1398,11 +1486,21 @@ contains
                           coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
+   call define_tavg_field(tavg_ECOSYS_IFRAC_2,'ECOSYS_IFRAC_2',2,      &
+                          long_name='Ice Fraction for ecosys fluxes',  &
+                          units='fraction', grid_loc='2110',           &
+                          coordinates='TLONG TLAT time')
+
    call define_tavg_field(tavg_ECOSYS_XKW,'ECOSYS_XKW',2,              &
                           long_name='XKW for ecosys fluxes',           &
                           units='cm/s', grid_loc='2110',               &
                           coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
+
+   call define_tavg_field(tavg_ECOSYS_XKW_2,'ECOSYS_XKW_2',2,          &
+                          long_name='XKW for ecosys fluxes',           &
+                          units='cm/s', grid_loc='2110',               &
+                          coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_ECOSYS_ATM_PRESS,'ECOSYS_ATM_PRESS',2,  &
                           long_name='Atmospheric Pressure for ecosys fluxes', &
@@ -1452,6 +1550,11 @@ contains
                           coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
+   call define_tavg_field(tavg_DpCO2_2,'DpCO2_2',2,                    &
+                          long_name='D pCO2',                          &
+                          units='ppmv', grid_loc='2110',               &
+                          coordinates='TLONG TLAT time')
+
    call define_tavg_field(tavg_PV_CO2,'PV_CO2',2,                      &
                           long_name='CO2 Piston Velocity',             &
                           units='cm/s', grid_loc='2110',               &
@@ -1470,6 +1573,11 @@ contains
                           coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
+   call define_tavg_field(tavg_DIC_GAS_FLUX_2,'FG_CO2_2',2,            &
+                          long_name='DIC Surface Gas Flux',            &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+
    call define_tavg_field(tavg_PH,'PH',2,                              &
                           long_name='Surface pH',                      &
                           units='none', grid_loc='2110',               &
@@ -1479,6 +1587,12 @@ contains
    call define_tavg_field(tavg_ATM_CO2,'ATM_CO2',2,                    &
                           long_name='Atmospheric CO2',                 &
                           units='ppmv', grid_loc='2110',               &
+                          coordinates='TLONG TLAT time')
+   var_cnt = var_cnt+1
+
+   call define_tavg_field(tavg_O2_GAS_FLUX_2,'STF_O2_2',2,             &
+                          long_name='Dissolved Oxygen Surface Flux',   &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
                           coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
@@ -1539,6 +1653,11 @@ contains
    call define_tavg_field(tavg_O2_CONSUMPTION,'O2_CONSUMPTION',3,      &
                           long_name='O2 Consumption',                  &
                           units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_AOU,'AOU',3,                            &
+                          long_name='Apparent O2 Utilization ',        &
+                          units='mmol/m^3', grid_loc='3111',           &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_PO4_RESTORE,'PO4_RESTORE',3,            &
@@ -1691,8 +1810,13 @@ contains
                           units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
+   call define_tavg_field(tavg_CaCO3_form,'CaCO3_form',3,              &
+                          long_name='CaCO3 Formation',                 &
+                          units='mmol/m^3/s', grid_loc='3114',         &
+                          coordinates='TLONG TLAT z_t_150m time')
+
    call define_tavg_field(tavg_photoC_diat,'photoC_diat',3,            &
-                          long_name='Diatom C fixation',               &
+                          long_name='Diatom C Fixation',               &
                           units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
@@ -1711,8 +1835,13 @@ contains
                           units='mmol/m^3 cm/s', grid_loc='2111',      &
                           coordinates='TLONG TLAT time')
 
+   call define_tavg_field(tavg_CaCO3_form_zint,'CaCO3_form_zint',2,    &
+                          long_name='CaCO3 Formation Vertical Integral',&
+                          units='mmol/m^3 cm/s', grid_loc='2111',      &
+                          coordinates='TLONG TLAT time')
+
    call define_tavg_field(tavg_photoC_diat_zint,'photoC_diat_zint',2,  &
-                          long_name='Diatom C fixation Vertical Integral',&
+                          long_name='Diatom C Fixation Vertical Integral',&
                           units='mmol/m^3 cm/s', grid_loc='2111',      &
                           coordinates='TLONG TLAT time')
 
@@ -1726,19 +1855,59 @@ contains
                           units='mmol/m^3 cm/s', grid_loc='2111',      &
                           coordinates='TLONG TLAT time')
 
+   call define_tavg_field(tavg_photoC_NO3_sp,'photoC_NO3_sp',3,        &
+                          long_name='Small Phyto C Fixation from NO3',      &
+                          units='mmol/m^3/s', grid_loc='3114',         &
+                          coordinates='TLONG TLAT z_t_150m time')
+
+   call define_tavg_field(tavg_photoC_NO3_sp_zint,'photoC_NO3_sp_zint',2,&
+                          long_name='Small Phyto C Fixation from NO3 Vertical Integral',&
+                          units='mmol/m^3 cm/s', grid_loc='2111',      &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_photoC_NO3_diat,'photoC_NO3_diat',3,    &
+                          long_name='Diatom C Fixation from NO3',           &
+                          units='mmol/m^3/s', grid_loc='3114',         &
+                          coordinates='TLONG TLAT z_t_150m time')
+
+   call define_tavg_field(tavg_photoC_NO3_diat_zint,'photoC_NO3_diat_zint',2,&
+                          long_name='Diatom C Fixation from NO3 Vertical Integral',&
+                          units='mmol/m^3 cm/s', grid_loc='2111',      &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_photoC_NO3_diaz,'photoC_NO3_diaz',3,    &
+                          long_name='Diaz C Fixation from NO3',             &
+                          units='mmol/m^3/s', grid_loc='3114',         &
+                          coordinates='TLONG TLAT z_t_150m time')
+
+   call define_tavg_field(tavg_photoC_NO3_diaz_zint,'photoC_NO3_diaz_zint',2,&
+                          long_name='Diaz C Fixation from NO3 Vertical Integral',&
+                          units='mmol/m^3 cm/s', grid_loc='2111',      &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_photoC_NO3_TOT,'photoC_NO3_TOT',3,      &
+                          long_name='Total C Fixation from NO3',            &
+                          units='mmol/m^3/s', grid_loc='3114',         &
+                          coordinates='TLONG TLAT z_t_150m time')
+
+   call define_tavg_field(tavg_photoC_NO3_TOT_zint,'photoC_NO3_TOT_zint',2,&
+                          long_name='Total C Fixation from NO3 Vertical Integral',&
+                          units='mmol/m^3 cm/s', grid_loc='2111',      &
+                          coordinates='TLONG TLAT time')
+
 !-----------------------------------------------------------------------
 !  MORE nonstandard 3D fields
 !-----------------------------------------------------------------------
 
    call define_tavg_field(tavg_DOC_prod,'DOC_prod',3,                  &
                           long_name='DOC Production',                  &
-                          units='mmol/m^3/s', grid_loc='3114',         &
-                          coordinates='TLONG TLAT z_t_150m time')
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_DOC_remin,'DOC_remin',3,                &
                           long_name='DOC Remineralization',            &
-                          units='mmol/m^3/s', grid_loc='3114',         &
-                          coordinates='TLONG TLAT z_t_150m time')
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_DON_prod,'DON_prod',3,                  &
                           long_name='DON Production',                  &
@@ -1840,11 +2009,6 @@ contains
                           units='none', grid_loc='3114',               &
                           coordinates='TLONG TLAT z_t_150m time')
 
-   call define_tavg_field(tavg_CaCO3_form,'CaCO3_form',3,              &
-                          long_name='CaCO3 Formation',                 &
-                          units='mmol/m^3/s', grid_loc='3111',         &
-                          coordinates='TLONG TLAT z_t time')
-
    call define_tavg_field(tavg_diaz_Nfix,'diaz_Nfix',3,                &
                           long_name='Diaz N Fixation',                 &
                           units='mmol/m^3/s', grid_loc='3114',         &
@@ -1880,6 +2044,46 @@ contains
                           units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
+   call define_tavg_field(tavg_CO3,'CO3',3,                            &
+                          long_name='Carbonate Ion Concentration',     &
+                          units='mmol/m^3', grid_loc='3111',           &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_HCO3,'HCO3',3,                          &
+                          long_name='Bicarbonate Ion Concentration',   &
+                          units='mmol/m^3', grid_loc='3111',           &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_H2CO3,'H2CO3',3,                        &
+                          long_name='Carbonic Acid Concentration',     &
+                          units='mmol/m^3', grid_loc='3111',           &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_pH_3D,'pH_3D',3,                        &
+                          long_name='pH',                              &
+                          units='none', grid_loc='3111',               &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_co3_sat_calc,'co3_sat_calc',3,          &
+                          long_name='CO3 concentration at calcite saturation', &
+                          units='mmol/m^3', grid_loc='3111',           &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_zsatcalc,'zsatcalc',2,                  &
+                          long_name='Calcite Saturation Depth',        &
+                          units='cm', grid_loc='2110',                 &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_co3_sat_arag,'co3_sat_arag',3,          &
+                          long_name='CO3 concentration at aragonite saturation', &
+                          units='mmol/m^3', grid_loc='3111',           &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_zsatarag,'zsatarag',2,                  &
+                          long_name='Aragonite Saturation Depth',      &
+                          units='cm', grid_loc='2110',                 &
+                          coordinates='TLONG TLAT time')
+
 !-----------------------------------------------------------------------
 !EOC
 
@@ -1890,7 +2094,7 @@ contains
 ! !IROUTINE: ecosys_set_interior
 ! !INTERFACE:
 
- subroutine ecosys_set_interior(k, TEMP_OLD, TEMP_CUR, &
+ subroutine ecosys_set_interior(k, TEMP_OLD, TEMP_CUR, SALT_OLD, SALT_CUR, &
     TRACER_MODULE_OLD, TRACER_MODULE_CUR, DTRACER_MODULE, this_block)
 
 ! !DESCRIPTION:
@@ -1906,7 +2110,9 @@ contains
 
    real (r8), dimension(nx_block,ny_block), intent(in) :: &
       TEMP_OLD,          &! old potential temperature (C)
-      TEMP_CUR            ! current potential temperature (C)
+      TEMP_CUR,          &! current potential temperature (C)
+      SALT_OLD,          &! old salinity (msu)
+      SALT_CUR            ! current salinity (msu)
 
    real (r8), dimension(nx_block,ny_block,km,ecosys_tracer_cnt), intent(in) :: &
       TRACER_MODULE_OLD, &! old tracer values
@@ -1942,10 +2148,17 @@ contains
       P_iron            ! base units = nmol Fe
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), save :: &
-      QA_dust_def       ! incoming deficit in the QA(dust) POC flux
+      QA_dust_def,    & ! incoming deficit in the QA(dust) POC flux
+      ZSATCALC,       & ! Calcite Saturation Depth
+      ZSATARAG,       & ! Aragonite Saturation Depth
+      CO3_CALC_ANOM_km1,&! CO3 concentration above calcite saturation at k-1
+      CO3_ARAG_ANOM_km1 ! CO3 concentration above aragonite saturation at k-1
 
    real (r8), dimension(nx_block,ny_block) :: &
       TEMP,           & ! local copy of model TEMP
+      SALT,           & ! local copy of model SALT
+      DIC_loc,        & ! local copy of model DIC
+      ALK_loc,        & ! local copy of model ALK
       PO4_loc,        & ! local copy of model PO4
       NO3_loc,        & ! local copy of model NO3
       SiO3_loc,       & ! local copy of model SiO3
@@ -2121,6 +2334,13 @@ contains
       O2_PRODUCTION,  & ! O2 production
       O2_CONSUMPTION    ! O2 consumption
 
+   real (r8), dimension(nx_block,ny_block) :: &
+      CO3,            &! carbonate ion
+      HCO3,           &! bicarbonate ion
+      H2CO3,          &! carbonic acid
+      OMEGA_CALC,     &! solubility ratio for aragonite
+      OMEGA_ARAG       ! solubility ratio for calcite
+
    integer (int_kind) :: &
       bid,            & ! local_block id
       kk                ! index for looping over k levels
@@ -2149,7 +2369,12 @@ contains
 !-----------------------------------------------------------------------
 
    TEMP         = p5*(TEMP_OLD + TEMP_CUR)
+   SALT         = p5*(SALT_OLD + SALT_CUR)*salt_to_ppt
 
+   DIC_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,dic_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,dic_ind)))
+   ALK_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,alk_ind) + &
+                              TRACER_MODULE_CUR(:,:,k,alk_ind)))
    PO4_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,po4_ind) + &
                               TRACER_MODULE_CUR(:,:,k,po4_ind)))
    NO3_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,no3_ind) + &
@@ -2486,6 +2711,15 @@ contains
 
    if (tavg_requested(tavg_CaCO3_form)) then
       call accumulate_tavg_field(CaCO3_PROD, tavg_CaCO3_form,bid,k)
+   endif
+
+   if (tavg_requested(tavg_CaCO3_form_zint)) then
+      if (partial_bottom_cells) then
+         WORK1 = DZT(:,:,k,bid) * CaCO3_PROD
+      else
+         WORK1 = dz(k) * CaCO3_PROD
+      endif
+      call accumulate_tavg_field(WORK1, tavg_CaCO3_form_zint,bid,k)
    endif
 
 !-----------------------------------------------------------------------
@@ -3256,6 +3490,14 @@ contains
       call accumulate_tavg_field(O2_CONSUMPTION, tavg_O2_CONSUMPTION,bid,k)
    endif
 
+   if (tavg_requested(tavg_AOU)) then
+      WORK1 = O2SAT(TEMP, SALT, &
+                    LAND_MASK(:,:,bid) .and. (k .le. KMT(:,:,bid)))
+      WORK1 = WORK1 - p5*(TRACER_MODULE_OLD(:,:,k,o2_ind) + &
+                          TRACER_MODULE_CUR(:,:,k,o2_ind))
+      call accumulate_tavg_field(WORK1, tavg_AOU,bid,k)
+   endif
+
    if (tavg_requested(tavg_PAR_avg)) then
       call accumulate_tavg_field(PAR_avg, tavg_PAR_avg,bid,k)
    endif
@@ -3354,6 +3596,88 @@ contains
       call accumulate_tavg_field(WORK1, tavg_photoC_TOT_zint,bid,k)
    endif
 
+   if (tavg_requested(tavg_photoC_NO3_sp) .or. &
+       tavg_requested(tavg_photoC_NO3_sp_zint)) then
+      where (VNtot_sp > c0)
+         WORK1 = (VNO3_sp / VNtot_sp) * photoC_sp
+      elsewhere
+         WORK1 = c0
+      end where
+      if (tavg_requested(tavg_photoC_NO3_sp)) &
+         call accumulate_tavg_field(WORK1, tavg_photoC_NO3_sp,bid,k)
+      if (tavg_requested(tavg_photoC_NO3_sp_zint)) then
+         if (partial_bottom_cells) then
+            WORK1 = DZT(:,:,k,bid) * WORK1
+         else
+            WORK1 = dz(k) * WORK1
+         endif
+         call accumulate_tavg_field(WORK1, tavg_photoC_NO3_sp_zint,bid,k)
+      endif
+   endif
+
+   if (tavg_requested(tavg_photoC_NO3_diat) .or. &
+       tavg_requested(tavg_photoC_NO3_diat_zint)) then
+      where (VNtot_diat > c0)
+         WORK1 = (VNO3_diat / VNtot_diat) * photoC_diat
+      elsewhere
+         WORK1 = c0
+      end where
+      if (tavg_requested(tavg_photoC_NO3_diat)) &
+         call accumulate_tavg_field(WORK1, tavg_photoC_NO3_diat,bid,k)
+      if (tavg_requested(tavg_photoC_NO3_diat_zint)) then
+         if (partial_bottom_cells) then
+            WORK1 = DZT(:,:,k,bid) * WORK1
+         else
+            WORK1 = dz(k) * WORK1
+         endif
+         call accumulate_tavg_field(WORK1, tavg_photoC_NO3_diat_zint,bid,k)
+      endif
+   endif
+
+   if (tavg_requested(tavg_photoC_NO3_diaz) .or. &
+       tavg_requested(tavg_photoC_NO3_diaz_zint)) then
+      where (VNtot_diaz > c0)
+         WORK1 = (VNO3_diaz / VNtot_diaz) * photoC_diaz
+      elsewhere
+         WORK1 = c0
+      end where
+      if (tavg_requested(tavg_photoC_NO3_diaz)) &
+         call accumulate_tavg_field(WORK1, tavg_photoC_NO3_diaz,bid,k)
+      if (tavg_requested(tavg_photoC_NO3_diaz_zint)) then
+         if (partial_bottom_cells) then
+            WORK1 = DZT(:,:,k,bid) * WORK1
+         else
+            WORK1 = dz(k) * WORK1
+         endif
+         call accumulate_tavg_field(WORK1, tavg_photoC_NO3_diaz_zint,bid,k)
+      endif
+   endif
+
+   if (tavg_requested(tavg_photoC_NO3_TOT) .or. &
+       tavg_requested(tavg_photoC_NO3_TOT_zint)) then
+      where (VNtot_sp > c0)
+         WORK1 = WORK1 + (VNO3_sp / VNtot_sp) * photoC_sp
+      elsewhere
+         WORK1 = c0
+      end where
+      where (VNtot_diat > c0)
+         WORK1 = WORK1 + (VNO3_diat / VNtot_diat) * photoC_diat
+      end where
+      where (VNtot_diaz > c0)
+         WORK1 = WORK1 + (VNO3_diaz / VNtot_diaz) * photoC_diaz
+      end where
+      if (tavg_requested(tavg_photoC_NO3_TOT)) &
+         call accumulate_tavg_field(WORK1, tavg_photoC_NO3_TOT,bid,k)
+      if (tavg_requested(tavg_photoC_NO3_TOT_zint)) then
+         if (partial_bottom_cells) then
+            WORK1 = DZT(:,:,k,bid) * WORK1
+         else
+            WORK1 = dz(k) * WORK1
+         endif
+         call accumulate_tavg_field(WORK1, tavg_photoC_NO3_TOT_zint,bid,k)
+      endif
+   endif
+
    if (tavg_requested(tavg_DOC_prod)) then
       call accumulate_tavg_field(DOC_prod, tavg_DOC_prod,bid,k)
    endif
@@ -3392,6 +3716,94 @@ contains
 
    if (tavg_requested(tavg_Fe_scavenge_rate)) then
       call accumulate_tavg_field(Fe_scavenge_rate, tavg_Fe_scavenge_rate,bid,k)
+   endif
+
+   if (tavg_requested(tavg_CO3) .or. &
+       tavg_requested(tavg_HCO3) .or. &
+       tavg_requested(tavg_H2CO3) .or. &
+       tavg_requested(tavg_pH_3D) .or. &
+       tavg_requested(tavg_zsatcalc) .or. &
+       tavg_requested(tavg_zsatarag)) then
+
+      where (PH_PREV_3D(:,:,k,bid) /= c0)
+         WORK1 = PH_PREV_3D(:,:,k,bid) - del_ph
+         WORK2 = PH_PREV_3D(:,:,k,bid) + del_ph
+      elsewhere
+         WORK1 = phlo_init
+         WORK2 = phhi_init
+      end where
+
+      call timer_start(ecosys_comp_CO3terms_timer, block_id=bid)
+      call comp_CO3terms(bid, k, LAND_MASK(:,:,bid) .and. k <= KMT(:,:,bid), &
+                         TEMP, SALT, DIC_loc, ALK_loc, PO4_loc, SiO3_loc, &
+                         WORK1, WORK2, WORK3, H2CO3, HCO3, CO3)
+      call timer_stop(ecosys_comp_CO3terms_timer, block_id=bid)
+      if (tavg_requested(tavg_CO3)) then
+         call accumulate_tavg_field(CO3, tavg_CO3,bid,k)
+      endif
+      if (tavg_requested(tavg_HCO3)) then
+         call accumulate_tavg_field(HCO3, tavg_HCO3,bid,k)
+      endif
+      if (tavg_requested(tavg_H2CO3)) then
+         call accumulate_tavg_field(H2CO3, tavg_H2CO3,bid,k)
+      endif
+      if (tavg_requested(tavg_pH_3D)) then
+         call accumulate_tavg_field(WORK3, tavg_pH_3D,bid,k)
+      endif
+
+      PH_PREV_3D(:,:,k,bid) = WORK3
+   endif
+
+   if (tavg_requested(tavg_co3_sat_calc) .or. &
+       tavg_requested(tavg_zsatcalc) .or. &
+       tavg_requested(tavg_co3_sat_arag) .or. &
+       tavg_requested(tavg_zsatarag)) then
+      call comp_co3_sat_vals(k, LAND_MASK(:,:,bid) .and. k <= KMT(:,:,bid), &
+                             TEMP, SALT, WORK1, WORK2)
+      if (tavg_requested(tavg_co3_sat_calc)) then
+         call accumulate_tavg_field(WORK1, tavg_co3_sat_calc,bid,k)
+      endif
+      if (tavg_requested(tavg_zsatcalc)) then
+         if (k == 1) then
+            ! set to -1, i.e. depth not found yet,
+            ! if mask == .true. and surface supersaturated to -1
+            ZSATCALC(:,:,bid) = merge(-c1, c0, LAND_MASK(:,:,bid) .and. CO3 > WORK1)
+         else
+            where (ZSATCALC(:,:,bid) == -c1 .and. CO3 <= WORK1)
+               ZSATCALC(:,:,bid) = zt(k-1) + (zt(k)-zt(k-1)) * &
+                  CO3_CALC_ANOM_km1(:,:,bid) / (CO3_CALC_ANOM_km1(:,:,bid) - (CO3 - WORK1))
+            endwhere
+            where (ZSATCALC(:,:,bid) == -c1 .and. KMT(:,:,bid) == k)
+               ZSATCALC(:,:,bid) = zw(k)
+            endwhere
+         endif
+         CO3_CALC_ANOM_km1(:,:,bid) = CO3 - WORK1
+         if (k == km) then
+            call accumulate_tavg_field(ZSATCALC(:,:,bid), tavg_zsatcalc,bid,k)
+         endif
+      endif
+      if (tavg_requested(tavg_co3_sat_arag)) then
+         call accumulate_tavg_field(WORK2, tavg_co3_sat_arag,bid,k)
+      endif
+      if (tavg_requested(tavg_zsatarag)) then
+         if (k == 1) then
+            ! set to -1, i.e. depth not found yet,
+            ! if mask == .true. and surface supersaturated to -1
+            ZSATARAG(:,:,bid) = merge(-c1, c0, LAND_MASK(:,:,bid) .and. CO3 > WORK2)
+         else
+            where (ZSATARAG(:,:,bid) == -c1 .and. CO3 <= WORK2)
+               ZSATARAG(:,:,bid) = zt(k-1) + (zt(k)-zt(k-1)) * &
+                  CO3_ARAG_ANOM_km1(:,:,bid) / (CO3_ARAG_ANOM_km1(:,:,bid) - (CO3 - WORK2))
+            endwhere
+            where (ZSATARAG(:,:,bid) == -c1 .and. KMT(:,:,bid) == k)
+               ZSATARAG(:,:,bid) = zw(k)
+            endwhere
+         endif
+         CO3_ARAG_ANOM_km1(:,:,bid) = CO3 - WORK2
+         if (k == km) then
+            call accumulate_tavg_field(ZSATARAG(:,:,bid), tavg_zsatarag,bid,k)
+         endif
+      endif
    endif
 
    call timer_stop(ecosys_interior_timer, block_id=bid)
@@ -3588,9 +4000,9 @@ contains
 !  Modified to allow different Q10 factors for soft POM and bSI remin,
 !  water TEMP is now passed in instead of Tfunc (1/2005, JKM)
 
-#ifdef CCSMCOUPLED
 ! !USES:
 
+#ifdef CCSMCOUPLED
    use shr_sys_mod, only: shr_sys_abort
 #endif
 
@@ -4053,6 +4465,8 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
+   character(*), parameter :: subname = 'ecosys_mod:ecosys_init_sflux'
+
    logical (log_kind) :: &
       luse_INTERP_WORK     ! does INTERP_WORK need to be allocated
 
@@ -4254,77 +4668,96 @@ contains
 !  load nox & noy flux fields (if required)
 !-----------------------------------------------------------------------
 
-   if (trim(nox_flux%input%filename) /= 'none' .and. &
-       trim(nox_flux%input%filename) /= 'unknown') then
+   if (trim(ndep_data_type) /= 'none' .and. &
+       trim(ndep_data_type) /= 'monthly-calendar' .and. &
+       trim(ndep_data_type) /= 'shr_stream') then
+      call document(subname, 'ndep_data_type', ndep_data_type)
+      call exit_POP(sigAbort, 'unknown ndep_data_type')
+   endif
+
+   if (trim(ndep_data_type) == 'monthly-calendar' .and. &
+       trim(nox_flux_monthly%input%filename) /= 'none' .and. &
+       trim(nox_flux_monthly%input%filename) /= 'unknown') then
 
       luse_INTERP_WORK = .true.
 
-      allocate(nox_flux%DATA(nx_block,ny_block,max_blocks_clinic,1,12))
-      if (trim(nox_flux%input%filename) == 'unknown') &
-         nox_flux%input%filename = gas_flux_forcing_file
+      allocate(nox_flux_monthly%DATA(nx_block,ny_block,max_blocks_clinic,1,12))
+      if (trim(nox_flux_monthly%input%filename) == 'unknown') &
+         nox_flux_monthly%input%filename = gas_flux_forcing_file
 
-      call read_field(nox_flux%input%file_fmt, &
-                      nox_flux%input%filename, &
-                      nox_flux%input%file_varname, &
+      call read_field(nox_flux_monthly%input%file_fmt, &
+                      nox_flux_monthly%input%filename, &
+                      nox_flux_monthly%input%file_varname, &
                       WORK_READ)
 
       !$OMP PARALLEL DO PRIVATE(iblock, n)
       do iblock=1,nblocks_clinic
       do n=1,12
-         nox_flux%DATA(:,:,iblock,1,n) = WORK_READ(:,:,n,iblock)
+         nox_flux_monthly%DATA(:,:,iblock,1,n) = WORK_READ(:,:,n,iblock)
          where (.not. LAND_MASK(:,:,iblock)) &
-            nox_flux%DATA(:,:,iblock,1,n) = c0
-         nox_flux%DATA(:,:,iblock,1,n) = &
-            nox_flux%DATA(:,:,iblock,1,n) * nox_flux%input%scale_factor
+            nox_flux_monthly%DATA(:,:,iblock,1,n) = c0
+         nox_flux_monthly%DATA(:,:,iblock,1,n) = &
+            nox_flux_monthly%DATA(:,:,iblock,1,n) * nox_flux_monthly%input%scale_factor
       end do
       end do
       !$OMP END PARALLEL DO
 
-      call find_forcing_times(nox_flux%data_time, &
-                              nox_flux%data_inc, nox_flux%interp_type, &
-                              nox_flux%data_next, nox_flux%data_time_min_loc, &
-                              nox_flux%data_update, nox_flux%data_type)
+      call find_forcing_times(nox_flux_monthly%data_time, &
+                              nox_flux_monthly%data_inc, nox_flux_monthly%interp_type, &
+                              nox_flux_monthly%data_next, nox_flux_monthly%data_time_min_loc, &
+                              nox_flux_monthly%data_update, nox_flux_monthly%data_type)
 
-      nox_flux%has_data = .true.
+      nox_flux_monthly%has_data = .true.
    else
-      nox_flux%has_data = .false.
+      nox_flux_monthly%has_data = .false.
    endif
 
-   if (trim(nhy_flux%input%filename) /= 'none' .and. &
-       trim(nhy_flux%input%filename) /= 'unknown') then
+   if (trim(ndep_data_type) == 'monthly-calendar' .and. &
+       trim(nhy_flux_monthly%input%filename) /= 'none' .and. &
+       trim(nhy_flux_monthly%input%filename) /= 'unknown') then
 
       luse_INTERP_WORK = .true.
 
-      allocate(nhy_flux%DATA(nx_block,ny_block,max_blocks_clinic,1,12))
-      if (trim(nhy_flux%input%filename) == 'unknown') &
-         nhy_flux%input%filename = gas_flux_forcing_file
+      allocate(nhy_flux_monthly%DATA(nx_block,ny_block,max_blocks_clinic,1,12))
+      if (trim(nhy_flux_monthly%input%filename) == 'unknown') &
+         nhy_flux_monthly%input%filename = gas_flux_forcing_file
 
-      call read_field(nhy_flux%input%file_fmt, &
-                      nhy_flux%input%filename, &
-                      nhy_flux%input%file_varname, &
+      call read_field(nhy_flux_monthly%input%file_fmt, &
+                      nhy_flux_monthly%input%filename, &
+                      nhy_flux_monthly%input%file_varname, &
                       WORK_READ)
 
       !$OMP PARALLEL DO PRIVATE(iblock, n)
       do iblock=1,nblocks_clinic
       do n=1,12
-         nhy_flux%DATA(:,:,iblock,1,n) = WORK_READ(:,:,n,iblock)
+         nhy_flux_monthly%DATA(:,:,iblock,1,n) = WORK_READ(:,:,n,iblock)
          where (.not. LAND_MASK(:,:,iblock)) &
-            nhy_flux%DATA(:,:,iblock,1,n) = c0
-         nhy_flux%DATA(:,:,iblock,1,n) = &
-            nhy_flux%DATA(:,:,iblock,1,n) * nhy_flux%input%scale_factor
+            nhy_flux_monthly%DATA(:,:,iblock,1,n) = c0
+         nhy_flux_monthly%DATA(:,:,iblock,1,n) = &
+            nhy_flux_monthly%DATA(:,:,iblock,1,n) * nhy_flux_monthly%input%scale_factor
       end do
       end do
       !$OMP END PARALLEL DO
 
-      call find_forcing_times(nhy_flux%data_time, &
-                              nhy_flux%data_inc, nhy_flux%interp_type, &
-                              nhy_flux%data_next, nhy_flux%data_time_min_loc, &
-                              nhy_flux%data_update, nhy_flux%data_type)
+      call find_forcing_times(nhy_flux_monthly%data_time, &
+                              nhy_flux_monthly%data_inc, nhy_flux_monthly%interp_type, &
+                              nhy_flux_monthly%data_next, nhy_flux_monthly%data_time_min_loc, &
+                              nhy_flux_monthly%data_update, nhy_flux_monthly%data_type)
 
-      nhy_flux%has_data = .true.
+      nhy_flux_monthly%has_data = .true.
    else
-      nhy_flux%has_data = .false.
+      nhy_flux_monthly%has_data = .false.
    endif
+
+!-----------------------------------------------------------------------
+
+#ifndef CCSMCOUPLED
+   if (trim(ndep_data_type) == 'shr_stream') then
+      call document(subname, 'ndep_data_type', ndep_data_type)
+      call exit_POP(sigAbort, &
+         'shr_stream option only supported when CCSMCOUPLED is defined')
+   endif
+#endif
 
 !-----------------------------------------------------------------------
 !  allocate space for interpolate_forcing
@@ -4623,14 +5056,24 @@ contains
 
    character(*), parameter :: subname = 'ecosys_mod:ecosys_set_sflux'
 
+   logical (log_kind) :: first_call = .true.
+
+   type (block) :: &
+      this_block      ! block info for the current block
+
    integer (int_kind) :: &
-      i,j, iblock     ! loop indices
+      i,j,iblock,n, & ! loop indices
+      mcdate,sec,   & ! date vals for shr_strdata_advance
+      errorCode       ! errorCode from HaloUpdate call
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       IFRAC_USED,   & ! used ice fraction (non-dimensional)
       XKW_USED,     & ! portion of piston velocity (cm/s)
       AP_USED,      & ! used atm pressure (converted from dyne/cm**2 to atm)
       IRON_FLUX_IN    ! iron flux
+
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
+      SHR_STREAM_WORK
 
    real (r8), dimension(nx_block,ny_block) :: &
       XKW_ICE,      & ! common portion of piston vel., (1-fice)*xkw (cm/s)
@@ -4655,13 +5098,14 @@ contains
       DpCO2_ROW       ! DpCO2 from solver
 
    character (char_len) :: &
-      tracer_data_label          ! label for what is being updated
+      tracer_data_label,       & ! label for what is being updated
+      ndep_shr_stream_fldList
 
    character (char_len), dimension(1) :: &
       tracer_data_names          ! short names for input data fields
 
    integer (int_kind), dimension(1) :: &
-      tracer_bndy_loc,          &! location and field type for ghost
+      tracer_bndy_loc,         & ! location and field type for ghost
       tracer_bndy_type           !    cell updates
 
    real (r8), dimension(nx_block,ny_block) :: &
@@ -4674,14 +5118,8 @@ contains
 !-----------------------------------------------------------------------
 
    real (r8), parameter :: &
-      xkw_coeff = 8.6e-9_r8,  & ! a = 0.31 cm/hr s^2/m^2 in (s/cm)
-      phlo_init = 5.0_r8,     & ! low bound for ph for no prev soln
-      phhi_init = 9.0_r8,     & ! high bound for ph for no prev soln
-      del_ph = 0.50_r8          ! delta-ph for prev soln
+      xkw_coeff = 8.6e-9_r8     ! a = 0.31 cm/hr s^2/m^2 in (s/cm)
 
-!-----------------------------------------------------------------------
-!  del_ph is high to avoid problems with IC on Siberian shelf
-!  this will be fixed in an updated IC file
 !-----------------------------------------------------------------------
 
    call timer_start(ecosys_sflux_timer)
@@ -4875,6 +5313,7 @@ contains
             ECO_SFLUX_TAVG(:,:,4,iblock) = PV
             ECO_SFLUX_TAVG(:,:,5,iblock) = SCHMIDT_USED
             ECO_SFLUX_TAVG(:,:,6,iblock) = O2SAT_USED
+            ECO_SFLUX_TAVG(:,:,16,iblock) = STF_MODULE(:,:,o2_ind,iblock)
 
          endif  ! lflux_gas_o2
 
@@ -5035,53 +5474,181 @@ contains
 !  calculate nox and nhy fluxes if necessary
 !-----------------------------------------------------------------------
 
-   if (nox_flux%has_data) then
-      if (thour00 >= nox_flux%data_update) then
-         tracer_data_names = nox_flux%input%file_varname
+   if (nox_flux_monthly%has_data) then
+      if (thour00 >= nox_flux_monthly%data_update) then
+         tracer_data_names = nox_flux_monthly%input%file_varname
          tracer_bndy_loc   = field_loc_center
          tracer_bndy_type  = field_type_scalar
          tracer_data_label = 'NOx Flux'
-         call update_forcing_data(nox_flux%data_time,    &
-            nox_flux%data_time_min_loc,  nox_flux%interp_type,    &
-            nox_flux%data_next,          nox_flux%data_update,    &
-            nox_flux%data_type,          nox_flux%data_inc,       &
-            nox_flux%DATA(:,:,:,:,1:12), nox_flux%data_renorm,    &
-            tracer_data_label,           tracer_data_names,       &
-            tracer_bndy_loc,             tracer_bndy_type,        &
-            nox_flux%filename,           nox_flux%input%file_fmt)
+         call update_forcing_data(nox_flux_monthly%data_time,    &
+            nox_flux_monthly%data_time_min_loc,  nox_flux_monthly%interp_type, &
+            nox_flux_monthly%data_next,          nox_flux_monthly%data_update, &
+            nox_flux_monthly%data_type,          nox_flux_monthly%data_inc,    &
+            nox_flux_monthly%DATA(:,:,:,:,1:12), nox_flux_monthly%data_renorm, &
+            tracer_data_label,                   tracer_data_names,            &
+            tracer_bndy_loc,                     tracer_bndy_type,             &
+            nox_flux_monthly%filename,           nox_flux_monthly%input%file_fmt)
       endif
       call interpolate_forcing(INTERP_WORK,     &
-         nox_flux%DATA(:,:,:,:,1:12), &
-         nox_flux%data_time,         nox_flux%interp_type, &
-         nox_flux%data_time_min_loc, nox_flux%interp_freq, &
-         nox_flux%interp_inc,        nox_flux%interp_next, &
-         nox_flux%interp_last,       0)
+         nox_flux_monthly%DATA(:,:,:,:,1:12), &
+         nox_flux_monthly%data_time,         nox_flux_monthly%interp_type, &
+         nox_flux_monthly%data_time_min_loc, nox_flux_monthly%interp_freq, &
+         nox_flux_monthly%interp_inc,        nox_flux_monthly%interp_next, &
+         nox_flux_monthly%interp_last,       0)
       STF_MODULE(:,:,no3_ind,:) = INTERP_WORK(:,:,:,1)
    endif
 
-   if (nhy_flux%has_data) then
-      if (thour00 >= nhy_flux%data_update) then
-         tracer_data_names = nhy_flux%input%file_varname
+   if (nhy_flux_monthly%has_data) then
+      if (thour00 >= nhy_flux_monthly%data_update) then
+         tracer_data_names = nhy_flux_monthly%input%file_varname
          tracer_bndy_loc   = field_loc_center
          tracer_bndy_type  = field_type_scalar
          tracer_data_label = 'NHy Flux'
-         call update_forcing_data(nhy_flux%data_time,    &
-            nhy_flux%data_time_min_loc,  nhy_flux%interp_type,    &
-            nhy_flux%data_next,          nhy_flux%data_update,    &
-            nhy_flux%data_type,          nhy_flux%data_inc,       &
-            nhy_flux%DATA(:,:,:,:,1:12), nhy_flux%data_renorm,    &
-            tracer_data_label,           tracer_data_names,       &
-            tracer_bndy_loc,             tracer_bndy_type,        &
-            nhy_flux%filename,           nhy_flux%input%file_fmt)
+         call update_forcing_data(nhy_flux_monthly%data_time,    &
+            nhy_flux_monthly%data_time_min_loc,  nhy_flux_monthly%interp_type, &
+            nhy_flux_monthly%data_next,          nhy_flux_monthly%data_update, &
+            nhy_flux_monthly%data_type,          nhy_flux_monthly%data_inc,    &
+            nhy_flux_monthly%DATA(:,:,:,:,1:12), nhy_flux_monthly%data_renorm, &
+            tracer_data_label,                   tracer_data_names,            &
+            tracer_bndy_loc,                     tracer_bndy_type,             &
+            nhy_flux_monthly%filename,           nhy_flux_monthly%input%file_fmt)
       endif
       call interpolate_forcing(INTERP_WORK,     &
-         nhy_flux%DATA(:,:,:,:,1:12), &
-         nhy_flux%data_time,         nhy_flux%interp_type, &
-         nhy_flux%data_time_min_loc, nhy_flux%interp_freq, &
-         nhy_flux%interp_inc,        nhy_flux%interp_next, &
-         nhy_flux%interp_last,       0)
+         nhy_flux_monthly%DATA(:,:,:,:,1:12), &
+         nhy_flux_monthly%data_time,         nhy_flux_monthly%interp_type, &
+         nhy_flux_monthly%data_time_min_loc, nhy_flux_monthly%interp_freq, &
+         nhy_flux_monthly%interp_inc,        nhy_flux_monthly%interp_next, &
+         nhy_flux_monthly%interp_last,       0)
       STF_MODULE(:,:,nh4_ind,:) = INTERP_WORK(:,:,:,1)
    endif
+
+#ifdef CCSMCOUPLED
+   if (trim(ndep_data_type) == 'shr_stream') then
+      if (first_call) then
+
+         ndep_shr_stream_fldList = ' '
+         do n = 1, ndep_shr_stream_var_cnt
+            if (n == ndep_shr_stream_no_ind) &
+               ndep_shr_stream_fldList = trim(ndep_shr_stream_fldList) /&
+                  &/ 'NOy_deposition'
+            if (n == ndep_shr_stream_nh_ind) &
+               ndep_shr_stream_fldList = trim(ndep_shr_stream_fldList) /&
+                  &/ 'NHx_deposition'
+            if (n < ndep_shr_stream_var_cnt) &
+               ndep_shr_stream_fldList = trim(ndep_shr_stream_fldList) /&
+                  &/ ':'
+         end do
+
+         call shr_strdata_create(ndep_sdat,name='ndep data',                   &
+                                 mpicom=POP_communicator,                      &
+                                 compid=POP_MCT_OCNID,                         &
+                                 gsmap=POP_MCT_gsMap_o, ggrid=POP_MCT_dom_o,   &
+                                 nxg=nx_global, nyg=ny_global,                 &
+                                 yearFirst=ndep_shr_stream_year_first,         &
+                                 yearLast=ndep_shr_stream_year_last,           &
+                                 yearAlign=ndep_shr_stream_year_align,         &
+                                 offset=0,                                     &
+                                 domFilePath='',                               &
+                                 domFileName=ndep_shr_stream_file,             &
+                                 domTvarName='time',                           &
+                                 domXvarName='TLONG', domYvarName='TLAT',      &
+                                 domAreaName='TAREA', domMaskName='KMT',       &
+                                 FilePath='',                                  &
+                                 FileName=(/trim(ndep_shr_stream_file)/),      &
+                                 fldListFile=ndep_shr_stream_fldList,          &
+                                 fldListModel=ndep_shr_stream_fldList,         &
+                                 fillalgo='none', mapalgo='none')
+         if (my_task == master_task) then
+            call shr_strdata_print(ndep_sdat)
+         endif
+         first_call = .false.
+      endif
+
+      mcdate = iyear*10000 + imonth*100 + iday
+      sec = isecond + 60 * (iminute + 60 * ihour)
+
+      call timer_start(ecosys_shr_strdata_advance_timer)
+      call shr_strdata_advance(ndep_sdat, mcdate, sec, &
+                               POP_communicator, 'ndep')
+      call timer_stop(ecosys_shr_strdata_advance_timer)
+      call timer_print(ecosys_shr_strdata_advance_timer)
+
+      !
+      ! process NO3 flux, store results in SHR_STREAM_WORK array
+      ! instead of directly into STF_MODULE
+      ! to avoid argument copies in HaloUpdate calls
+      !
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+            SHR_STREAM_WORK(i,j,iblock) = &
+               ndep_sdat%avs(1)%rAttr(ndep_shr_stream_no_ind,n)
+         enddo
+         enddo
+      enddo
+
+      call POP_HaloUpdate(SHR_STREAM_WORK,POP_haloClinic, &
+                          POP_gridHorzLocCenter,          &
+                          POP_fieldKindScalar, errorCode, &
+                          fillValue = 0.0_POP_r8)
+      if (errorCode /= POP_Success) then
+         call exit_POP(sigAbort, subname /&
+            &/ ': error updating halo for Ndep fields')
+      endif
+
+      !$OMP PARALLEL DO PRIVATE(iblock)
+      do iblock = 1, nblocks_clinic
+         where (LAND_MASK(:,:,iblock))
+            STF_MODULE(:,:,no3_ind,iblock) = &
+               ndep_shr_stream_scale_factor * SHR_STREAM_WORK(:,:,iblock)
+         elsewhere
+            STF_MODULE(:,:,no3_ind,iblock) = c0
+         endwhere
+      enddo
+      !$OMP END PARALLEL DO
+
+      !
+      ! process NH4 flux, store results in SHR_STREAM_WORK array
+      ! instead of directly into STF_MODULE
+      ! to avoid argument copies in HaloUpdate calls
+      !
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+            SHR_STREAM_WORK(i,j,iblock) = &
+               ndep_sdat%avs(1)%rAttr(ndep_shr_stream_nh_ind,n)
+         enddo
+         enddo
+      enddo
+
+      call POP_HaloUpdate(SHR_STREAM_WORK,POP_haloClinic, &
+                          POP_gridHorzLocCenter,          &
+                          POP_fieldKindScalar, errorCode, &
+                          fillValue = 0.0_POP_r8)
+      if (errorCode /= POP_Success) then
+         call exit_POP(sigAbort, subname /&
+            &/ ': error updating halo for Ndep fields')
+      endif
+
+      !$OMP PARALLEL DO PRIVATE(iblock)
+      do iblock = 1, nblocks_clinic
+         where (LAND_MASK(:,:,iblock))
+            STF_MODULE(:,:,nh4_ind,iblock) = &
+               ndep_shr_stream_scale_factor * SHR_STREAM_WORK(:,:,iblock)
+         elsewhere
+            STF_MODULE(:,:,nh4_ind,iblock) = c0
+         endwhere
+      enddo
+      !$OMP END PARALLEL DO
+
+   endif
+#endif
 
    call timer_stop(ecosys_sflux_timer)
 
@@ -5340,9 +5907,17 @@ contains
          call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,1,iblock),  &
                                     tavg_ECOSYS_IFRAC,iblock,1)
       endif
+      if (tavg_requested(tavg_ECOSYS_IFRAC_2)) then
+         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,1,iblock),  &
+                                    tavg_ECOSYS_IFRAC_2,iblock,1)
+      endif
       if (tavg_requested(tavg_ECOSYS_XKW)) then
          call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,2,iblock),  &
                                     tavg_ECOSYS_XKW,iblock,1)
+      endif
+      if (tavg_requested(tavg_ECOSYS_XKW_2)) then
+         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,2,iblock),  &
+                                    tavg_ECOSYS_XKW_2,iblock,1)
       endif
       if (tavg_requested(tavg_ECOSYS_ATM_PRESS)) then
          call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,3,iblock),  &
@@ -5376,6 +5951,10 @@ contains
          call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,10,iblock),  &
                                     tavg_DpCO2,iblock,1)
       endif
+      if (tavg_requested(tavg_DpCO2_2)) then
+         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,10,iblock),  &
+                                    tavg_DpCO2_2,iblock,1)
+      endif
       if (tavg_requested(tavg_PV_CO2)) then
          call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,11,iblock),  &
                                     tavg_PV_CO2,iblock,1)
@@ -5388,6 +5967,10 @@ contains
          call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,13,iblock),  &
                                     tavg_DIC_GAS_FLUX,iblock,1)
       endif
+      if (tavg_requested(tavg_DIC_GAS_FLUX_2)) then
+         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,13,iblock),  &
+                                    tavg_DIC_GAS_FLUX_2,iblock,1)
+      endif
       if (tavg_requested(tavg_PH)) then
          call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,14,iblock),  &
                                     tavg_PH,iblock,1)
@@ -5395,6 +5978,10 @@ contains
       if (tavg_requested(tavg_ATM_CO2)) then
          call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,15,iblock),  &
                                     tavg_ATM_CO2,iblock,1)
+      endif
+      if (tavg_requested(tavg_O2_GAS_FLUX_2)) then
+         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,16,iblock),  &
+                                    tavg_O2_GAS_FLUX_2,iblock,1)
       endif
 
    end do
