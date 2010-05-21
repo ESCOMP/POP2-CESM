@@ -131,7 +131,7 @@ else if ( ${OCN_GRID} == tx1v1 ) then
   setenv DT_COUNT 23
 else if ( ${OCN_GRID} == tx0.1v2 ) then 
   if ($OCN_COUPLING  =~ *partial*) then
-    setenv DT_COUNT 400
+    setenv DT_COUNT 500
   else
     setenv DT_COUNT 300
   endif

@@ -1,4 +1,15 @@
 ===============================================================================
+Tag Creator: njn01 
+Tag Date:    21 May 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100521
+Tag Summary: * Reduce default C-compset tx0.1v2 DT_COUNT setting to prevent cfl blowup
+Tag Testing: * ccsm4_0_beta54 post-tag testing by Chris Fischer on jaguar:
+               "ERS.T62_t12.C passes on jaguar with dt_count=500"
+
+Files Modified:
+M           23222   input_templates/pop2_in_build.csh
+
+===============================================================================
 Tag Creator: klindsay 
 Tag Date:    19 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100519a
