@@ -284,7 +284,10 @@ end subroutine
 !-----------------------------------------------------------------------
 
    if (index_x2o_Sa_co2prog > 0) then
-      call named_field_register('ATM_CO2', ATM_CO2_nf_ind)
+      call named_field_register('ATM_CO2_PROG', ATM_CO2_PROG_nf_ind)
+   endif
+   if (index_x2o_Sa_co2diag > 0) then
+      call named_field_register('ATM_CO2_DIAG', ATM_CO2_DIAG_nf_ind)
    endif
    call register_string('pop_init_coupled')
    call flushm (stdout)
@@ -1201,13 +1204,40 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
-            'ocn_import_esmf: error updating CO2 halo')
+            'ocn_import_esmf: error updating PROG CO2 halo')
          return
       endif
 
-      call named_field_set(ATM_CO2_nf_ind, WORK1)
+      call named_field_set(ATM_CO2_PROG_nf_ind, WORK1)
    endif
- 
+
+   if (index_x2o_Sa_co2diag > 0) then
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+            WORK1(i,j,iblock) = fptr(index_x2o_Sa_co2diag,n)
+         enddo
+         enddo
+      enddo
+
+      call POP_HaloUpdate(WORK1,POP_haloClinic,          &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'ocn_import_esmf: error updating DIAG CO2 halo')
+         return
+      endif
+
+      call named_field_set(ATM_CO2_DIAG_nf_ind, WORK1)
+   endif
+
 !-----------------------------------------------------------------------
 !
 !  receive orbital parameters

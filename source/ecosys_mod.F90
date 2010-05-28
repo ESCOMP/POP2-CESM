@@ -161,7 +161,8 @@
   logical (log_kind) :: &
      lsource_sink, &
      lflux_gas_o2, &
-     lflux_gas_co2
+     lflux_gas_co2,&
+     locmip_k1_k2_bug_fix
 
   logical (log_kind), dimension(:,:,:), allocatable :: &
      LAND_MASK
@@ -235,10 +236,11 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind), parameter :: &
-      gas_flux_forcing_iopt_model = 1,   &
+      gas_flux_forcing_iopt_drv   = 1,   &
       gas_flux_forcing_iopt_file  = 2,   &
-      atm_co2_iopt_const = 1,            &
-      atm_co2_iopt_model = 2
+      atm_co2_iopt_const          = 1,   &
+      atm_co2_iopt_drv_prog       = 2,   &
+      atm_co2_iopt_drv_diag       = 3
 
    integer (int_kind) :: &
       gas_flux_forcing_iopt,             &
@@ -706,7 +708,7 @@ contains
       comp_surf_avg_freq_opt, comp_surf_avg_freq,  &
       use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
       ecosys_qsw_distrb_const, lmarginal_seas, &
-      lsource_sink, lflux_gas_o2, lflux_gas_co2, &
+      lsource_sink, lflux_gas_o2, lflux_gas_co2, locmip_k1_k2_bug_fix, &
       lnutr_variable_restore, nutr_variable_rest_file,  &
       nutr_variable_rest_file_fmt,atm_co2_opt,atm_co2_const, &
       ecosys_tadvect_ctype, &
@@ -820,7 +822,7 @@ contains
    init_ecosys_init_file = 'unknown'
    init_ecosys_init_file_fmt = 'bin'
 
-   gas_flux_forcing_opt  = 'model'
+   gas_flux_forcing_opt  = 'drv'
    gas_flux_forcing_file = 'unknown'
 
    gas_flux_fice%filename     = 'unknown'
@@ -925,6 +927,7 @@ contains
    lsource_sink          = .true.
    lflux_gas_o2          = .true.
    lflux_gas_co2         = .true.
+   locmip_k1_k2_bug_fix  = .true.
 
    comp_surf_avg_freq_opt        = 'never'
    comp_surf_avg_freq            = 1
@@ -987,8 +990,8 @@ contains
    call broadcast_scalar(init_ecosys_init_file_fmt, master_task)
 
    call broadcast_scalar(gas_flux_forcing_opt, master_task)
-   if (trim(gas_flux_forcing_opt) == 'model') then
-      gas_flux_forcing_iopt = gas_flux_forcing_iopt_model
+   if (trim(gas_flux_forcing_opt) == 'drv') then
+      gas_flux_forcing_iopt = gas_flux_forcing_iopt_drv
    else if (trim(gas_flux_forcing_opt) == 'file') then
       gas_flux_forcing_iopt = gas_flux_forcing_iopt_file
    else
@@ -1122,6 +1125,7 @@ contains
    call broadcast_scalar(lsource_sink, master_task)
    call broadcast_scalar(lflux_gas_o2, master_task)
    call broadcast_scalar(lflux_gas_co2, master_task)
+   call broadcast_scalar(locmip_k1_k2_bug_fix, master_task)
 
    call broadcast_scalar(liron_patch, master_task)
    call broadcast_scalar(iron_patch_flux_filename, master_task)
@@ -1158,8 +1162,10 @@ contains
    select case (atm_co2_opt)
    case ('const')
       atm_co2_iopt = atm_co2_iopt_const
-   case ('model')
-      atm_co2_iopt = atm_co2_iopt_model
+   case ('drv_prog')
+      atm_co2_iopt = atm_co2_iopt_drv_prog
+   case ('drv_diag')
+      atm_co2_iopt = atm_co2_iopt_drv_diag
    case default
       call document(subname, 'atm_co2_opt', atm_co2_opt)
       call exit_POP(sigAbort, 'unknown atm_co2_opt')
@@ -4816,19 +4822,30 @@ contains
 !-----------------------------------------------------------------------
 
    if ((lflux_gas_o2 .or. lflux_gas_co2) .and. &
-       (gas_flux_forcing_iopt == gas_flux_forcing_iopt_model .or. &
-        atm_co2_iopt == atm_co2_iopt_model) .and. &
+       (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv .or. &
+        atm_co2_iopt == atm_co2_iopt_drv_prog .or. &
+        atm_co2_iopt == atm_co2_iopt_drv_diag) .and. &
        .not. registry_match('lcoupled')) then
       call exit_POP(sigAbort, 'ecosys_init: ecosys module requires the ' /&
-                           &/ 'flux coupler when gas_flux_forcing_opt=model')
+                           &/ 'flux coupler when gas_flux_forcing_opt=drv')
    endif
 
 !-----------------------------------------------------------------------
 !  get named field index for atmospheric CO2, if required
 !-----------------------------------------------------------------------
 
-   if (lflux_gas_co2 .and. atm_co2_iopt == atm_co2_iopt_model) then
-      call named_field_get_index('ATM_CO2', atm_co2_nf_ind, &
+   if (lflux_gas_co2 .and. atm_co2_iopt == atm_co2_iopt_drv_prog) then
+      call named_field_get_index('ATM_CO2_PROG', atm_co2_nf_ind, &
+                                 exit_on_err=.false.)
+      if (atm_co2_nf_ind == 0) then
+         call exit_POP(sigAbort, 'ecosys_init: ecosys module requires ' /&
+                              &/ 'atmopsheric CO2 from the flux coupler ' /&
+                              &/ 'and it is not present')
+      endif
+   endif
+
+   if (lflux_gas_co2 .and. atm_co2_iopt == atm_co2_iopt_drv_diag) then
+      call named_field_get_index('ATM_CO2_DIAG', atm_co2_nf_ind, &
                                  exit_on_err=.false.)
       if (atm_co2_nf_ind == 0) then
          call exit_POP(sigAbort, 'ecosys_init: ecosys module requires ' /&
@@ -5261,7 +5278,7 @@ contains
                IFRAC_USED(:,:,iblock) = 0.9999_r8
          endif
 
-         if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_model) then
+         if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
             IFRAC_USED(:,:,iblock) = IFRAC(:,:,iblock)
             where (IFRAC_USED(:,:,iblock) < c0) IFRAC_USED(:,:,iblock) = c0
             where (IFRAC_USED(:,:,iblock) > c1) IFRAC_USED(:,:,iblock) = c1
@@ -5338,7 +5355,7 @@ contains
             select case (atm_co2_iopt)
             case (atm_co2_iopt_const)
                XCO2 = atm_co2_const
-            case (atm_co2_iopt_model)
+            case (atm_co2_iopt_drv_prog, atm_co2_iopt_drv_diag)
                call named_field_get(atm_co2_nf_ind, iblock, XCO2)
             end select
 
@@ -5360,7 +5377,7 @@ contains
                SiO3_ROW = p5*(SURF_VALS_OLD(:,j,sio3_ind,iblock) + &
                               SURF_VALS_CUR(:,j,sio3_ind,iblock))
 
-               call co2calc_row(iblock, LAND_MASK(:,j,iblock), &
+               call co2calc_row(iblock, LAND_MASK(:,j,iblock), locmip_k1_k2_bug_fix, &
                                 SST(:,j,iblock), SSS(:,j,iblock), &
                                 DIC_ROW, ALK_ROW, PO4_ROW, SiO3_ROW, &
                                 PHLO, PHHI, PH_NEW, XCO2(:,j), &

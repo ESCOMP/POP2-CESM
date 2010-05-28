@@ -15,6 +15,8 @@ module ocn_comp_mct
    use esmfshr_mod
    use ocn_comp_esmf
 
+   use POP_MCT_vars_mod
+
    implicit none
 
    public :: ocn_init_mct
@@ -91,6 +93,10 @@ end subroutine
 
    call seq_cdata_setptrs(cdata, ID=OCNID, mpicom=mpicom, &
        gsMap=gsMap, dom=dom, infodata=infodata)
+
+   POP_MCT_OCNID   =  OCNID
+   POP_MCT_gsMap_o => gsMap
+   POP_MCT_dom_o   => dom
 
    call seq_infodata_GetData(infodata,ocn_phase=phase)
 

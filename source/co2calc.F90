@@ -55,8 +55,9 @@ CONTAINS
 
   !*****************************************************************************
 
-  SUBROUTINE co2calc_row(iblock, mask, t, s, dic_in, ta_in, pt_in, sit_in, &
-       phlo, phhi, ph, xco2_in, atmpres, co2star, dco2star, pCO2surf, dpco2)
+  SUBROUTINE co2calc_row(iblock, mask, locmip_k1_k2_bug_fix, t, s, &
+       dic_in, ta_in, pt_in, sit_in, phlo, phhi, ph, xco2_in, atmpres, &
+       co2star, dco2star, pCO2surf, dpco2)
 
     !---------------------------------------------------------------------------
     !   SUBROUTINE co2calc_row
@@ -71,6 +72,7 @@ CONTAINS
 
     INTEGER(KIND=int_kind), INTENT(IN) :: iblock
     LOGICAL(KIND=log_kind), DIMENSION(nx_block), INTENT(IN) :: mask
+    LOGICAL(KIND=log_kind), INTENT(IN) :: locmip_k1_k2_bug_fix
     REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: &
          t,        & ! temperature (degrees C)
          s,        & ! salinity (PSU)
@@ -150,7 +152,8 @@ CONTAINS
 
     k = 1
     CALL comp_htotal_kvals(iblock, k, mask, t, s, dic_in, ta_in, pt_in, sit_in, &
-                           phlo, phhi, htotal, k0, k1, k2, ff, k1_k2_pH_tot=.false.)
+                           phlo, phhi, htotal, k0, k1, k2, ff, &
+                           k1_k2_pH_tot=locmip_k1_k2_bug_fix)
 
     !---------------------------------------------------------------------------
     !   Compute co2starair
@@ -753,17 +756,25 @@ CONTAINS
     !---------------------------------------------------------------------------
     !   k1 = [H][HCO3]/[H2CO3]
     !   k2 = [H][CO3]/[HCO3]
-    !   Lueker, Dickson, Keeling (2000) using Mehrbach et al. data on total scale
-    !   Millero p.664 (1995) using Mehrbach et al. data on seawater scale
+    !   if k1_k2_pH_tot == .true., then use
+    !      Lueker, Dickson, Keeling (2000) using Mehrbach et al. data on total scale
+    !   otherwise, use
+    !      Millero p.664 (1995) using Mehrbach et al. data on seawater scale
+    !      this is only present to be consistent w/ OCMIP2 code
+    !      it should not be used for new runs
+    !      the only reason to use it is to be compatible with prior
+    !      long spun up runs that had used it
     !   pressure correction from Millero 1995, p. 675
     !      w/ typo corrections from CO2SYS
     !---------------------------------------------------------------------------
 
     IF (k1_k2_pH_tot) THEN
+       ! total pH scale
        arg = 3633.86_r8 * invtk - 61.2172_r8 + &
              9.67770_r8 * dlogtk - 0.011555_r8 * s + &
              0.0001152_r8 * s2
     ELSE
+       ! seawater pH scale, see comment above
        arg = 3670.7_r8 * invtk - 62.008_r8 + &
              9.7944_r8 * dlogtk - 0.0118_r8 * s + &
              0.000116_r8 * s2
@@ -788,9 +799,11 @@ CONTAINS
     END IF
 
     IF (k1_k2_pH_tot) THEN
+       ! total pH scale
        arg = 471.78_r8 * invtk + 25.9290_r8 - &
              3.16967_r8 * dlogtk - 0.01781_r8 * s + 0.0001122_r8 * s2
     ELSE
+       ! seawater pH scale, see comment above
        arg = 1394.7_r8 * invtk + 4.777_r8 - &
              0.0184_r8 * s + 0.000118_r8 * s2
     END IF

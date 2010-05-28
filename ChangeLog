@@ -1,4 +1,31 @@
 ===============================================================================
+Tag Creator: klindsay
+Tag Date:    28 May 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100528a
+Tag Testing: * bluefire, CECO compset, T62_gx3v7, exact restart & DEBUG
+             * bluefire, B20TRCN+ecosys, f09_g16, with OCN_CO2_TYPE=diagnostic,
+               to verify correct field being used in CO2 flux computations
+
+Tag Summary: * port ccsm_pop_2_1_20100519a mods to cpl_esmf
+             * receive co2diag from drv, in addition to co2prog
+             * enable atm_co2_opt to be either 'drv_prog' or 'drv_diag',
+               replacing 'model'
+             * rename gas_flux_forcing_opt='model' to 'drv'
+             * use new env_conf variable OCN_CO2_FLUX_OCMIP_BUG_FIX to
+               set the new flag locmip_k1_k2_bug_fix
+
+Files Modified:
+
+M      source/ecosys_mod.F90
+M      source/co2calc.F90
+M      source/forcing_fields.F90
+M      input_templates/ocn.ecosys.setup.csh
+M      drivers/cpl_mct/ocn_comp_mct.F90
+M      drivers/cpl_esmf/ocn_comp_esmf.F90
+A      drivers/cpl_esmf/POP_MCT_vars_mod.F90
+M      drivers/cpl_esmf/ocn_comp_mct.F90
+
+===============================================================================
 Tag Creator: njn01 
 Tag Date:    28 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100528

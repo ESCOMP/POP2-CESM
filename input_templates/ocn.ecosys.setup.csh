@@ -142,11 +142,19 @@ else if ($command == namelist) then
    if ($OCN_CO2_TYPE == constant) then
       set atm_co2_opt = const
    else if ($OCN_CO2_TYPE == prognostic) then
-      set atm_co2_opt = model
+      set atm_co2_opt = drv_prog
+   else if ($OCN_CO2_TYPE == diagnostic) then
+      set atm_co2_opt = drv_diag
    else
       echo error specifying atm_co2_opt in ocn.ecosys.setup.csh
       echo unknown OCN_CO2_TYPE:  $OCN_CO2_TYPE
       exit 4
+   endif
+
+   if ($OCN_CO2_FLUX_OCMIP_BUG_FIX == TRUE) then
+      set locmip_k1_k2_bug_fix = .true.
+   else
+      set locmip_k1_k2_bug_fix = .false.
    endif
 
    if ($runtype == startup) then
@@ -173,10 +181,11 @@ else if ($command == namelist) then
    tracer_init_ext(3)%scale_factor = $O2_scale_factor
    lflux_gas_o2                    = .true.
    lflux_gas_co2                   = .true.
+   locmip_k1_k2_bug_fix            = $locmip_k1_k2_bug_fix
    atm_co2_opt                     = '$atm_co2_opt'
    atm_co2_const                   = $CCSM_CO2_PPMV
    ecosys_tadvect_ctype            = 'base_model'
-   gas_flux_forcing_opt            = 'model'
+   gas_flux_forcing_opt            = 'drv'
    lmarginal_seas                  = .true.
    lsource_sink                    = .true.
    comp_surf_avg_freq_opt          = 'never'

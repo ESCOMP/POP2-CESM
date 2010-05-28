@@ -42,7 +42,8 @@ module forcing_fields
 
 
    integer(kind=int_kind), public :: &
-      ATM_CO2_nf_ind = 0    ! bottom atm level prognostic co2
+      ATM_CO2_PROG_nf_ind = 0, & ! bottom atm level prognostic co2
+      ATM_CO2_DIAG_nf_ind = 0    ! bottom atm level diagnostic co2
 
 
    real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic), &
