@@ -162,6 +162,7 @@
       logical (log_kind)   :: ltavg_has_offset_date
       logical (log_kind)   :: ltavg_one_time_header
       logical (log_kind)   :: ltavg_first_header
+      logical (log_kind)   :: ltavg_qflux_method_on
       real (r8)            :: lower_time_bound
       real (r8)            :: upper_time_bound
       type (io_field_desc), dimension(:), allocatable :: tavg_fields
@@ -586,6 +587,25 @@
    ltavg_has_offset_date       = .false.
    ltavg_ignore_extra_streams  = .false.
 
+   avail_tavg_fields(:)%stream_number    = -999
+   tavg_streams(:)%infile                = 'unknown_tavg_infile'
+   tavg_streams(:)%outfile               = 't'
+   tavg_streams(:)%outfile_orig          = 't'
+   tavg_streams(:)%stream_filestring     = char_blank
+   tavg_streams(:)%fmt_in                = 'nc'
+   tavg_streams(:)%fmt_out               = 'nc'
+   tavg_streams(:)%freq_iopt             = freq_opt_never
+   tavg_streams(:)%start_iopt            = start_opt_nstep
+   tavg_streams(:)%num_requested_fields  = 0
+   tavg_streams(:)%tavg_num_time_slices  = 0
+   tavg_streams(:)%ltavg_on              = .false.
+   tavg_streams(:)%ltavg_file_is_open    = .false.
+   tavg_streams(:)%ltavg_has_offset_date = .false.
+   tavg_streams(:)%ltavg_one_time_header = .false.
+   tavg_streams(:)%ltavg_first_header    = .true.
+   tavg_streams(:)%ltavg_qflux_method_on = .false.
+
+
    if (registry_match ('init_time1')) then
       tavg_offset_years  = iyear0
       tavg_offset_months = imonth0
@@ -782,8 +802,6 @@
 !
 !-----------------------------------------------------------------------
 
-   avail_tavg_fields(:)%stream_number = -999
-   tavg_streams(:)%outfile_orig = char_blank
 
    do ns=1,nstreams
       if (ns == 1) then
@@ -800,24 +818,21 @@
         endif
       endif
       tavg_streams(ns)%outfile_orig           = tavg_streams(ns)%outfile
+      tavg_streams(ns)%stream_filestring      = tavg_stream_filestrings(ns)
       tavg_streams(ns)%fmt_in                 = tavg_fmt_in (ns)
       tavg_streams(ns)%fmt_out                = tavg_fmt_out(ns)
-      tavg_streams(ns)%stream_filestring      = tavg_stream_filestrings(ns)
       tavg_streams(ns)%freq_iopt              = tavg_freq_iopt(ns)
       tavg_streams(ns)%start_iopt             = tavg_start_iopt(ns)
-      tavg_streams(ns)%ltavg_file_is_open     = .false.
-      tavg_streams(ns)%ltavg_has_offset_date  = ltavg_has_offset_date(ns)
       tavg_streams(ns)%tavg_offset_year       = tavg_offset_years(ns)
       tavg_streams(ns)%tavg_offset_month      = tavg_offset_months(ns)
       tavg_streams(ns)%tavg_offset_day        = tavg_offset_days(ns)
-      tavg_streams(ns)%tavg_num_time_slices   = 0
+      tavg_streams(ns)%ltavg_has_offset_date  = ltavg_has_offset_date(ns)
       tavg_streams(ns)%ltavg_one_time_header  = ltavg_one_time_header(ns)
-      tavg_streams(ns)%ltavg_first_header     = .true.
 
 !-----------------------------------------------------------------------
 !
-!  initialize time flags for writing tavg fields
-!
+!  initialize time flags for writing tavg FIELDS
+!                                         
 !-----------------------------------------------------------------------
 
       write(char_temp,1100) 'tavg',ns ;  1100 format (a,i1)
@@ -844,7 +859,7 @@
 !-----------------------------------------------------------------------
 !
 !  initialize time flags for writing tavg FILES
-!
+!                                         
 !-----------------------------------------------------------------------
 
       write(char_temp,1100) 'tavg_file',ns 
@@ -919,7 +934,6 @@
 
    tavg_bufsize_2d = 0
    tavg_bufsize_3d = 0
-   tavg_streams(:)%num_requested_fields = 0
 
    call get_unit(nu)
 
@@ -1107,6 +1121,7 @@
           write(beg_date,'(i10)') nsteps_total
      enddo ! ns
 
+
      do n = 1,num_avail_tavg_fields  ! check all available fields
        loc = abs(avail_tavg_fields(n)%buf_loc)
        if (loc /= 0) then  ! field is actually requested and in buffer
@@ -1115,13 +1130,24 @@
           else if (avail_tavg_fields(n)%ndims == 3) then
              TAVG_BUF_3D_METHOD(loc) = avail_tavg_fields(n)%method
           endif
+
+          !*** determine which streams use tavg_method_qflux
+          if (avail_tavg_fields(n)%method == tavg_method_qflux) then
+             tavg_streams(avail_tavg_fields(n)%stream_number)%ltavg_qflux_method_on = .true.
+          endif
        endif
      end do
 
      !*** initialize buffers based on requested method
      call tavg_reset_field_all
 
-   endif !nstreams
+   endif !tavg_num_requested_fields
+
+  !*** document which streams are using tavg_method_qflux
+   do ns=1,nstreams
+      write(stdout,*) '(init_tavg)  tavg_streams(',ns,  &
+            ')%ltavg_qflux_method_on = ', tavg_streams(ns)%ltavg_qflux_method_on
+   enddo ! ns
 
 
 !-----------------------------------------------------------------------
@@ -1824,7 +1850,7 @@
     call add_attrib_file(tavg_file_desc(ns), 'tavg_sum'    , tavg_sum(ns))
     call add_attrib_file(tavg_file_desc(ns), 'nsteps_total', nsteps_total)
 
-    if (ns == qflux_stream) &
+    if (tavg_streams(ns)%ltavg_qflux_method_on) &
     call add_attrib_file(tavg_file_desc(ns), 'tavg_sum_qflux'  , tavg_sum_qflux(ns))
 
     if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
@@ -2245,7 +2271,7 @@
    endif
    call add_attrib_file(tavg_file_desc_in, 'nsteps_total', nsteps_total)
    call add_attrib_file(tavg_file_desc_in, 'tavg_sum'    , tavg_sum(ns))
-   if (ns == qflux_stream) &
+   if (tavg_streams(ns)%ltavg_qflux_method_on) &
    call add_attrib_file(tavg_file_desc_in, 'tavg_sum_qflux'  , tavg_sum_qflux(ns))
 
 
@@ -2270,7 +2296,7 @@
    call extract_attrib_file(tavg_file_desc_in, 'nsteps_total', &
                                           in_nsteps_total)
    call extract_attrib_file(tavg_file_desc_in, 'tavg_sum', tavg_sum(ns))
-   if (ns == qflux_stream) &
+   if (tavg_streams(ns)%ltavg_qflux_method_on) &
    call extract_attrib_file(tavg_file_desc_in, 'tavg_sum_qflux', tavg_sum_qflux(ns))
 
    !*** report nsteps total and tavg_sum
@@ -3106,7 +3132,7 @@
           call document ('tavg_norm_field_all', exit_string)
           call exit_POP (sigAbort,exit_string,out_unit=stdout)
         endif
-        if (ns == qflux_stream) then
+        if (tavg_streams(ns)%ltavg_qflux_method_on) then
           if (tavg_sum_qflux(ns) /= 0) then
             factorq = c1/tavg_sum_qflux(ns)
           elseif (tavg_freq_iopt(ns) == freq_opt_nhour   .or.  &
@@ -3146,7 +3172,7 @@
              case (tavg_method_avg)
                TAVG_BUF_2D(:,:,  :,loc) = TAVG_BUF_2D(:,:,  :,loc)*factor
              case (tavg_method_qflux)
-               if (ns == qflux_stream) then
+               if (tavg_streams(ns)%ltavg_qflux_method_on) then
                  TAVG_BUF_2D(:,:,  :,loc) = TAVG_BUF_2D(:,:,  :,loc)*factorq
                endif
            end select

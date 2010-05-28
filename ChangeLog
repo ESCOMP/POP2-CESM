@@ -1,5 +1,37 @@
 ===============================================================================
 Tag Creator: njn01 
+Tag Date:    28 May 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100528
+Tag Summary: bugfix: completely "streamify" tavg_method_qflux
+             This bugfix allows any pop2 model variable, such as FvICE_DIC and
+             FvICE_ALK, to use tavg_method_qflux in a
+             stream different from the one containing QFLUX.
+Tag Testing: * ccsm4_0_beta55+ = ccsm4_0_beta55 with ccsm_pop_2_1_20100521
+     Compare files:
+       * binary restart files at eod six   (b4b)
+       * ncl diff script on
+           o pop.h.ecosys.nday1.0001-01-02.nc files: only FvICE_ fields are different
+       * ncl diff script on other pop.h.*.nc files:
+           o pop.h.0001-01-05.nc are the same
+           o pop.h.nday1.0001-01-02.nc are the same
+     Compare FvICE_DIC and FvICE_ALK files (new vs old):
+       * visual inspection: patterns are the same, magnitudes are different
+     Compare ocn.log files:
+       * global sums are identical (streams bug was fixed in previous
+         version of tavg_global_sum_2D)
+
+     Run one month, oob & test version. Create monthly mean (ncra) of daily
+     FvICE_DIC fields and compare with oob case.  Visually inspect monthly
+     FvICE_DIC fields and ncdiffs.  Same magnitude, max rel diff ~10% in
+     regions of max FvICE_DIC magnitude.  Note setup error: "oob" case
+     used modified tavg_nml settings and created stream #1 averages every
+     four days, so the "oob monthly" field was actually an average of the
+     four-day averages through the end of 0001-01-29.
+
+Files Modified:
+M           23276   source/tavg.F90
+===============================================================================
+Tag Creator: njn01 
 Tag Date:    21 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100521
 Tag Summary: * Reduce default C-compset tx0.1v2 DT_COUNT setting to prevent cfl blowup
