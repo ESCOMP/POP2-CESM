@@ -1,4 +1,19 @@
 ===============================================================================
+Tag Creator: njn01
+Tag Date:    28 May 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100528b
+Tag Summary: Correct a problem with zt_150m variables, pio/netcdf, and threading;
+             correct a problem with the corrected code and TAVG_R8.
+             This tag tests only the TAVG_R8 correction; threading tests will 
+             continue next week.
+Tag Testing: cesm1_0_beta01 oob and with SourceMods
+               * oob vs new, single precision
+               * oob vs new, double precision
+Files Modified:
+M           23431   source/io_pio.F90
+M           23431   source/io_netcdf.F90
+
+===============================================================================
 Tag Creator: klindsay
 Tag Date:    28 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100528a
@@ -61,7 +76,8 @@ M           23276   source/tavg.F90
 Tag Creator: njn01 
 Tag Date:    21 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100521
-Tag Summary: * Reduce default C-compset tx0.1v2 DT_COUNT setting to prevent cfl blowup
+Tag Summary: Increase default C-compset tx0.1v2 DT_COUNT setting  (decrease timestep)
+             to prevent cfl blowup
 Tag Testing: * ccsm4_0_beta54 post-tag testing by Chris Fischer on jaguar:
                "ERS.T62_t12.C passes on jaguar with dt_count=500"
 

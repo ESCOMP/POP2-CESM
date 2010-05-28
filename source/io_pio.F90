@@ -68,6 +68,10 @@ module io_pio
   integer(i4), dimension(nmax) :: nsize3d_r = iunset	
   integer(i4), dimension(nmax) :: nsize3d_d = iunset	
 
+  integer(i4), dimension(nmax) :: ksize3d_i = iunset	
+  integer(i4), dimension(nmax) :: ksize3d_r = iunset	
+  integer(i4), dimension(nmax) :: ksize3d_d = iunset	
+
 !EOC
 !***********************************************************************
 
@@ -303,7 +307,7 @@ module io_pio
 
 !================================================================================
 
-   subroutine io_pio_initdecomp (basetype, ndim3, iodesc)
+   subroutine io_pio_initdecomp (basetype, ndim3, kdim3, iodesc)
 
       use blocks, only : block, nx_block, ny_block, get_block
       use domain, only : nblocks_clinic, blocks_clinic
@@ -311,6 +315,7 @@ module io_pio
 
       integer (i4)          , intent(in) :: basetype
       integer(kind=int_kind), intent(in) :: ndim3
+      integer(kind=int_kind), intent(in) :: kdim3
       type(io_desc_t)       , pointer    :: iodesc
 
       integer (kind=int_kind) :: &
@@ -338,39 +343,42 @@ module io_pio
       
       if (basetype == PIO_INT) then
          do i = 1,nmax
-            if (nsize3d_i(i) == ndim3) then
+            if (nsize3d_i(i) == ndim3 .and. ksize3d_i(i) == kdim3) then
                index = i
                set_ioDesc = .false.
                exit
-            else if (nsize3d_i(i) == iunset) then
+            else if (nsize3d_i(i) == iunset .and. ksize3d_i(i) == iunset) then
                index = i
                nsize3d_i(index) = ndim3 
+	       ksize3d_i(index) = kdim3
                set_ioDesc = .true.
                exit
             end if
          end do
       else if (basetype == PIO_REAL) then
          do i = 1,nmax
-            if (nsize3d_r(i) == ndim3) then
+            if (nsize3d_r(i) == ndim3 .and. ksize3d_r(i) == kdim3) then
                index = i
                set_ioDesc = .false.
                exit
-            else if (nsize3d_r(i) == iunset) then
+            else if (nsize3d_r(i) == iunset .and. ksize3d_r(i) == iunset) then
                index = i
                nsize3d_r(index) = ndim3 
+	       ksize3d_r(index) = kdim3
                set_ioDesc = .true.
                exit
             end if
          end do
       else if (basetype == PIO_DOUBLE) then
          do i = 1,nmax  
-            if (nsize3d_d(i) == ndim3) then
+            if (nsize3d_d(i) == ndim3 .and. ksize3d_d(i) == kdim3) then
                index = i
                set_ioDesc = .false.
                exit
-            else if (nsize3d_d(i) == iunset) then
+            else if (nsize3d_d(i) == iunset .and. ksize3d_d(i) == iunset) then
                index = i
                nsize3d_d(index) = ndim3 
+	       ksize3d_d(index) = kdim3
                set_ioDesc = .true.
                exit
             end if
@@ -378,6 +386,14 @@ module io_pio
       end if
 
       if (set_ioDesc) then
+
+	 if ((ndim3 == 0 .and. kdim3 /= 0) .or. (ndim3 /=0 .and. kdim3 == 0)) then
+            call exit_POP(sigAbort,' io_pio_initdecomp: ndim3 and kdim3 must both be zero or nonzero')
+         end if
+
+	 if (ndim3 > kdim3) then
+            call exit_POP(sigAbort,' io_pio_initdecomp: ndim3 must be less than or equal to kdim3')
+         end if
 
          if (ndim3 == 0) then
             allocate(dof3d(nx_block*ny_block*nblocks_clinic))
@@ -405,7 +421,7 @@ module io_pio
                enddo !j
             end do
          else
-            allocate(dof3d(nx_block*ny_block*nblocks_clinic*ndim3))
+            allocate(dof3d(nx_block*ny_block*nblocks_clinic*kdim3))
             n=0
             do iblk = 1, nblocks_clinic
                this_block = get_block(blocks_clinic(iblk),iblk)         
@@ -414,7 +430,7 @@ module io_pio
                jb = this_block%jb
                je = this_block%je
                
-               do k=1,ndim3
+               do k=1,kdim3
                do j=1,ny_block
                do i=1,nx_block  
                   n = n+1
@@ -423,13 +439,17 @@ module io_pio
                   else if (i < ib .or. i > ie) then
                      dof3d(n) = 0
                   else
-                     lon = this_block%i_glob(i)
-                     lat = this_block%j_glob(j)
-                     dof3d(n) = ((lat-1)*POP_nxGlobal + lon) + (k-1)*POP_nxGlobal*POP_nyGlobal 
+                     if (k > ndim3) then
+                        dof3d(n) = 0
+                     else
+                        lon = this_block%i_glob(i)
+                        lat = this_block%j_glob(j)
+                        dof3d(n) = ((lat-1)*POP_nxGlobal + lon) + (k-1)*POP_nxGlobal*POP_nyGlobal 
+                     end if
                   endif
                enddo !i
                enddo !j
-               enddo !ndim3
+               enddo !kdim3
             end do
          end if
 

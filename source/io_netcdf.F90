@@ -1235,17 +1235,20 @@
 
    if (io_field%set_iodesc) then
       if (associated(io_field%field_r_3d)) then
-         call io_pio_initdecomp(PIO_REAL,   ndim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
+         call io_pio_initdecomp(PIO_REAL,   ndim3=io_field%field_dim(3)%length, &
+              kdim3=size(io_field%field_r_3d,3), iodesc=io_field%ioDesc)
       else if (associated(io_field%field_d_3d)) then
-         call io_pio_initdecomp(PIO_DOUBLE, ndim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
+         call io_pio_initdecomp(PIO_DOUBLE, ndim3=io_field%field_dim(3)%length, &
+              kdim3=size(io_field%field_d_3d,3), iodesc=io_field%ioDesc)
       else if (associated(io_field%field_i_3d)) then
-         call io_pio_initdecomp(PIO_INT,    ndim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
+         call io_pio_initdecomp(PIO_INT,    ndim3=io_field%field_dim(3)%length, &
+              kdim3=size(io_field%field_i_3d,3), iodesc=io_field%ioDesc)
       else if (associated(io_field%field_r_2d)) then
-         call io_pio_initdecomp(PIO_REAL,   ndim3=0, iodesc=io_field%ioDesc)
+         call io_pio_initdecomp(PIO_REAL,   ndim3=0, kdim3=0, iodesc=io_field%ioDesc)
       else if (associated(io_field%field_d_2d)) then
-         call io_pio_initdecomp(PIO_DOUBLE, ndim3=0, iodesc=io_field%ioDesc)
+         call io_pio_initdecomp(PIO_DOUBLE, ndim3=0, kdim3=0, iodesc=io_field%ioDesc)
       else if (associated(io_field%field_i_2d)) then
-         call io_pio_initdecomp(PIO_INT,    ndim3=0, iodesc=io_field%ioDesc)
+         call io_pio_initdecomp(PIO_INT,    ndim3=0, kdim3=0, iodesc=io_field%ioDesc)
       end if
       io_field%set_iodesc = .false.
    end if
@@ -1401,17 +1404,20 @@
 
    if (io_field%set_iodesc) then
       if (associated(io_field%field_r_3d)) then
-         call io_pio_initdecomp(PIO_REAL, ndim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
+         call io_pio_initdecomp(PIO_REAL, ndim3=io_field%field_dim(3)%length, &
+              kdim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
       else if (associated(io_field%field_d_3d)) then
-         call io_pio_initdecomp(PIO_DOUBLE, ndim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
+         call io_pio_initdecomp(PIO_DOUBLE, ndim3=io_field%field_dim(3)%length, &
+              kdim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
       else if (associated(io_field%field_i_3d)) then
-         call io_pio_initdecomp(PIO_INT, ndim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
+         call io_pio_initdecomp(PIO_INT, ndim3=io_field%field_dim(3)%length, &
+              kdim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
       else if (associated(io_field%field_r_2d)) then
-         call io_pio_initdecomp(PIO_REAL, ndim3=0, iodesc=io_field%ioDesc)
+         call io_pio_initdecomp(PIO_REAL, ndim3=0, kdim3=0, iodesc=io_field%ioDesc)
       else if (associated(io_field%field_d_2d)) then
-         call io_pio_initdecomp(PIO_DOUBLE, ndim3=0, iodesc=io_field%ioDesc)
+         call io_pio_initdecomp(PIO_DOUBLE, ndim3=0, kdim3=0, iodesc=io_field%ioDesc)
       else if (associated(io_field%field_i_2d)) then
-         call io_pio_initdecomp(PIO_INT, ndim3=0, iodesc=io_field%ioDesc)
+         call io_pio_initdecomp(PIO_INT, ndim3=0, kdim3=0, iodesc=io_field%ioDesc)
       end if
       io_field%set_iodesc = .false.
    end if
