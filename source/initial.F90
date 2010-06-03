@@ -205,8 +205,8 @@
       write(stdout,ndelim_fmt)
       write(stdout,blank_fmt)
       write(stdout,'(a)') ' Parallel Ocean Program (POP) '
-      write(stdout,'(a)') ' Version 2.1alpha Jan 2005'
-      write(stdout,'(a)') ' Modified for CCSM '
+      write(stdout,'(a)') ' Based on Version 2.1alpha Jan 2005'
+      write(stdout,'(a)') ' Modified for CESM  2005-2010'
       write(stdout,blank_fmt)
       call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    endif

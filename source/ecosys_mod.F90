@@ -4810,9 +4810,9 @@ contains
 !-----------------------------------------------------------------------
 
    call named_field_register('SFLUX_CO2', sflux_co2_nf_ind)
-   WORK = c0
    !$OMP PARALLEL DO PRIVATE(iblock,WORK)
    do iblock=1,nblocks_clinic
+      WORK = c0
       call named_field_set(sflux_co2_nf_ind, iblock, WORK)
    end do
    !$OMP END PARALLEL DO

@@ -1,5 +1,19 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    3 June 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100603
+Tag Summary: * Fix threading bug in ecosys_mod.F90
+             * Update version information printed to log file
+Tag Testing: Limited, special-purpose testing in cesm1_0_beta01+ context.
+             Confirmed NaNs are eliminated by the correction. Verified that
+             two-threads case is identical to one-thread case in a clone to
+             KL's "foobar2" case and 4-threads vs one-thread in a gx3v7 CECO test.
+Files Modified:
+M           23431   source/initial.F90
+M           23431   source/ecosys_mod.F90
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    28 May 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100528b
 Tag Summary: Correct a problem with zt_150m variables, pio/netcdf, and threading;
