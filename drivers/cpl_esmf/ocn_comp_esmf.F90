@@ -196,7 +196,7 @@ end subroutine
                                              ! concurrently in a single parallel region
 #endif
 
-    integer                               :: mpicom_ocn, mpicom_vm, lsize
+    integer                               :: mpicom_ocn, mpicom_vm, lsize, gsize
   
     type(ESMF_DistGrid)                   :: distgrid
     type(ESMF_Array)                      :: d2x, x2d, dom
@@ -371,8 +371,10 @@ end subroutine
 
     call t_startf ('pop_esmf_init')
 
-    distgrid = ocn_DistGrid_esmf(rc=rc)
+    distgrid = ocn_DistGrid_esmf(gsize,rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, terminationflag=ESMF_ABORT)
+    call ESMF_AttributeSet(export_state, name="gsize", value=gsize, rc=rc)
+    if (rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, terminationflag=ESMF_ABORT)
 
     ! Initialize ocn domain (needs ocn initialization info)
    
@@ -831,7 +833,7 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 !IROUTINE: ocn_SetGSMap_esmf
 ! !INTERFACE:
 
- function ocn_DistGrid_esmf( rc )
+ function ocn_DistGrid_esmf(gsize, rc )
 
 ! !DESCRIPTION:
 !  This routine creates the ocean distgrid
@@ -842,6 +844,7 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 ! !INPUT/OUTPUT PARAMETERS:
 
     implicit none
+    integer, intent(out)            :: gsize
     integer, intent(out)            :: rc
     type(ESMF_DistGrid)             :: ocn_DistGrid_esmf
 
@@ -858,7 +861,7 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 
     integer (int_kind) ::   &
       i,j, n, iblock, &
-      lsize, gsize,   &
+      lsize,   &
       ier
 
     type (block) ::       &

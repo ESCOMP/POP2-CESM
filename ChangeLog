@@ -1,6 +1,26 @@
 ===============================================================================
 Tag Creator: njn01
 Tag Date:    14 June 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100614a
+Tag Summary: * bugfix: add an implementation to deal with land-grid elimination to the pop esmf interfaces. (tcraig)
+             * bugfix: correction to timestamps on forcing/ndep_ocn_1850-2005 datasets. This necessitates a new
+               version of ocn.ecosys.setup.csh, which points to the new ndep_ocn datasets.
+Tag Testing:
+            
+  * Tony Craig confirms the following tests pass with the drivers/cpl_esmf corrections:
+      o  ERS_E.T62_t12.C.jaguar
+      o  ERS_E.T62_t12.G.jaguar
+      o  ERS_E.f05_t12.B.jaguar
+  * Keith Lindsay confirmed the corrections to the forcing datasets and the ocn.ecosys.setup.csh script
+
+Files Modified:
+M           23532   input_templates/ocn.ecosys.setup.csh
+M           23532   drivers/cpl_esmf/ocn_comp_esmf.F90
+M           23532   drivers/cpl_esmf/ocn_comp_mct.F90
+
+===============================================================================
+Tag Creator: njn01
+Tag Date:    14 June 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100614
 Tag Summary: Change io_pio_num_iotasks = -1 for high-resolution cases
 Tag Testing: No local testing; value was requested by Rob Jacob for support

@@ -79,6 +79,7 @@ end subroutine
    type(mct_gsMap)             , pointer :: gsMap
    type(mct_gGrid)             , pointer :: dom
    type(seq_infodata_type), pointer      :: infodata
+   integer(IN)                           :: gsize
    integer                               :: rc, urc
    integer(IN)                           :: phase
 
@@ -129,8 +130,11 @@ end subroutine
       call ESMF_StateGet(import_state, itemName="x2d", array=x2da, rc=rc)
       if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, terminationflag=ESMF_ABORT)
 
+      call ESMF_AttributeGet(export_state, name="gsize", value=gsize, rc=rc)
+      if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, terminationflag=ESMF_ABORT)
+
       ! Initialize MCT gsMap 
-      call esmf2mct_init(d2xa, OCNID, gsMap, mpicom, rc=rc)
+      call esmf2mct_init(d2xa, OCNID, gsMap, mpicom, gsize=gsize, rc=rc)
       if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, terminationflag=ESMF_ABORT)
 
       call esmf2mct_init(doma, dom, rc=rc)

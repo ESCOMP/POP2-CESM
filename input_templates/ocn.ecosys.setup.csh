@@ -45,7 +45,7 @@ if ($OCN_GRID == gx3v7) then
      set ndep_file  = $DIN_LOC_ROOT/$relpath/forcing/ndep_ocn_1850_gx3v7_c100428.nc
    endif
    if ($OCN_TRANSIENT == 1850-2000) then
-     set ndep_file = $DIN_LOC_ROOT/$relpath/forcing/ndep_ocn_1850-2005_gx3v7_c100430.nc
+     set ndep_file = $DIN_LOC_ROOT/$relpath/forcing/ndep_ocn_1850-2005_gx3v7_c100612.nc
    endif
 
 else if ($OCN_GRID == gx1v6) then
@@ -61,7 +61,7 @@ else if ($OCN_GRID == gx1v6) then
      set ndep_file  = $DIN_LOC_ROOT/$relpath/forcing/ndep_ocn_1850_gx1v6_c100428.nc
    endif
    if ($OCN_TRANSIENT == 1850-2000) then
-     set ndep_file = $DIN_LOC_ROOT/$relpath/forcing/ndep_ocn_1850-2005_gx1v6_c100430.nc
+     set ndep_file = $DIN_LOC_ROOT/$relpath/forcing/ndep_ocn_1850-2005_gx1v6_c100612.nc
    endif
 
 else
