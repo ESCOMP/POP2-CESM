@@ -1,5 +1,17 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    14 June 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100614
+Tag Summary: Change io_pio_num_iotasks = -1 for high-resolution cases
+Tag Testing: No local testing; value was requested by Rob Jacob for support
+             on intrepid. Note that this setting is triggered by resolution,
+             not machine.
+Files Modified:
+
+M           23532   input_templates/pop2_in_build.csh
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    3 June 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100603
 Tag Summary: * Fix threading bug in ecosys_mod.F90
