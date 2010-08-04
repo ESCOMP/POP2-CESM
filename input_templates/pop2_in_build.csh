@@ -64,6 +64,12 @@ else
   set tropic_distribution_type = cartesian
 endif
 
+if (\$CALENDAR == GREGORIAN) then
+ set allow_leapyear = .true.
+else
+ set allow_leapyear = .false.
+endif
+
 cat >> \$POP2_IN << EOF1
 
 #==========================================================================
@@ -153,7 +159,7 @@ WARNING: DO NOT CHANGE iyear0, imonth0, iday0, ihour0
   laccel            = .false.
   accel_file        = '\$depth_accel_filename'
   dtuxcel           = 1.0 
-  allow_leapyear    = .false.
+  allow_leapyear    = \$allow_leapyear
   iyear0            = $IYEAR0            
   imonth0           = $IMONTH0      
   iday0             = $IDAY0       

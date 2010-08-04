@@ -1917,7 +1917,7 @@ contains
 
    call define_tavg_field(tavg_DON_prod,'DON_prod',3,                  &
                           long_name='DON Production',                  &
-                          units='mmols/m^3', grid_loc='3114',          &
+                          units='mmol/m^3/s', grid_loc='3114',          &
                           coordinates='TLONG TLAT z_t_150m time')
 
    call define_tavg_field(tavg_DON_remin,'DON_remin',3,                &
@@ -5588,7 +5588,6 @@ contains
       call shr_strdata_advance(ndep_sdat, mcdate, sec, &
                                POP_communicator, 'ndep')
       call timer_stop(ecosys_shr_strdata_advance_timer)
-      call timer_print(ecosys_shr_strdata_advance_timer)
 
       !
       ! process NO3 flux, store results in SHR_STREAM_WORK array

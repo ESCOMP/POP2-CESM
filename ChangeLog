@@ -1,5 +1,25 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    4 August 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100804
+Tag Summary: * pop allow_leapyear flag is now triggered by the cesm 
+               env_run variable CALENDAR. When GREGORIAN, allow_leapyear = .true.
+             * bugfix: tavg_DON_prod definition -- "... [units] should be mmol/m^3/s"
+             * change: "There is a single call to timer_print in ecosys_mod.F90 that
+               is called every timestep. I'd like this call removed."
+
+Tag Testing:
+            
+  * njn01 tested CALENDAR = {NO_LEAP,GREGORIAN} with new pop2_in_build.csh
+  * Keith Lindsay confirmed the corrections/changes to the ecosys_mod.F90 module
+
+Files Modified:
+M           24266   source/ecosys_mod.F90
+M           24266   ChangeLog
+M           24266   input_templates/pop2_in_build.csh
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    14 June 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100614a
 Tag Summary: * bugfix: add an implementation to deal with land-grid elimination to the pop esmf interfaces. (tcraig)
