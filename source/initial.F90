@@ -26,7 +26,7 @@
        init_domain_distribution, distrb_clinic
    use constants, only: radian, delim_fmt, blank_fmt, field_loc_center, blank_fmt, &
        c0, ppt_to_salt, mpercm, c1, field_type_scalar, init_constants,     &
-       stefan_boltzmann, latent_heat_vapor, vonkar, emissivity, &
+       stefan_boltzmann, latent_heat_vapor_mks, vonkar, emissivity, &
        latent_heat_fusion, t0_kelvin, pi, ocn_ref_salinity,     &
        sea_ice_salinity, radius, cp_sw, grav, omega,cp_air,     &
        rho_fw, sound, rho_air, rho_sw, ndelim_fmt
@@ -1600,7 +1600,7 @@
      write(stdout,1020) 'emissivity',emissivity, ' '
      write(stdout,1020) 'stefan_boltzmann', stefan_boltzmann,  &
                            'W/m^2/K^4'
-     write(stdout,1020) 'latent_heat_vapor',latent_heat_vapor,  &
+     write(stdout,1020) 'latent_heat_vapor_mks',latent_heat_vapor_mks,  &
                            'J/kg'
      write(stdout,1020) 'latent_heat_fusion',latent_heat_fusion, &
                            'erg/g'

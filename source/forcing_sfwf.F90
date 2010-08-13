@@ -1232,7 +1232,7 @@
       !***  compute evaporation from latent heat computed in shf forcing
 
       SFWF_COMP(:,:,iblock,sfwf_comp_evap) = &
-       SHF_COMP(:,:,iblock,shf_comp_qlat)/latent_heat_vapor
+       SHF_COMP(:,:,iblock,shf_comp_qlat)/latent_heat_vapor_mks
 
       !*** precipitation (kg/m^2/s)
 

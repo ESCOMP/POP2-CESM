@@ -2165,7 +2165,7 @@
    TAU = rho_air * USTARR**2
    TAU = TAU  * US / SH
    HS  = cp_air* TAU * TSTARR / USTARR
-   HL  = latent_heat_vapor * TAU * QSTARR / USTARR
+   HL  = latent_heat_vapor_mks * TAU * QSTARR / USTARR
 
 !-----------------------------------------------------------------------
 !EOC

@@ -700,7 +700,7 @@
 !-----------------------------------------------------------------------
 !
 !  combine heat flux components into STF array and convert from W/m**2
-!        (note: latent heat flux = evaporation*latent_heat_vapor)
+!        (note: latent heat flux = evaporation*latent_heat_vapor_mks)
 !        (note: snow melt heat flux = - snow_f*latent_heat_fusion_mks)
 !
 !-----------------------------------------------------------------------
@@ -712,7 +712,7 @@
 
    !$OMP PARALLEL DO PRIVATE(iblock)
    do iblock = 1, nblocks_clinic
-      STF(:,:,1,iblock) = (EVAP_F(:,:,iblock)*latent_heat_vapor             &
+      STF(:,:,1,iblock) = (EVAP_F(:,:,iblock)*latent_heat_vapor_mks         &
                            + SENH_F(:,:,iblock) + LWUP_F(:,:,iblock)        &
                            + LWDN_F(:,:,iblock) + MELTH_F(:,:,iblock)       &
                            -(SNOW_F(:,:,iblock)+IOFF_F(:,:,iblock)) * latent_heat_fusion_mks)*  &

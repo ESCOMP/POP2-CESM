@@ -74,8 +74,9 @@
       POP_emissivity         ,&!
       POP_stefanBoltzmann    ,&! W/m^2/K^4
       POP_latentHeatVapor    ,&! lat heat of vaporization (erg/g)
+      POP_latentHeatVaporMKS ,&! lat heat of vaporization (J/kg)
       POP_latentHeatFusion   ,&! lat heat of fusion (erg/g)
-      POP_latentHeatFusionMKS,&! lat heat of fusion (J/g)
+      POP_latentHeatFusionMKS,&! lat heat of fusion (J/kg)
       POP_seaIceSalinity     ,&! salinity of sea ice formed (psu)
       POP_ocnRefSalinity       ! ocean reference salinity (psu)
 
@@ -187,7 +188,7 @@
    POP_vonKarman           = 0.4_POP_r8      ! von Karman constant
    POP_emissivity          = 1.0_POP_r8      !
    POP_stefanBoltzmann     = 567.0e-10_POP_r8 !  W/m^2/K^4
-   POP_latentHeatVapor     = 2.5e6_POP_r8    ! lat heat of vaporization (erg/g)
+   POP_latentHeatVaporMKS  = 2.5e6_POP_r8    ! lat heat of vaporization (J/kg)
    POP_latentHeatFusion    = 3.34e9_POP_r8   ! lat heat of fusion (erg/g)
    POP_latentHeatFusionMKS = 3.34e5_POP_r8   ! lat heat of fusion (J/kg)
    POP_seaIceSalinity      = 4.0_POP_r8      ! (psu)
@@ -204,7 +205,7 @@
    POP_CpAir               = SHR_CONST_CPDAIR        ! J/kg/K
    POP_vonKarman           = SHR_CONST_KARMAN
    POP_stefanBoltzmann     = SHR_CONST_STEBOL        ! W/m^2/K^4
-   POP_latentHeatVapor     = SHR_CONST_LATVAP        ! J/kg
+   POP_latentHeatVaporMKS  = SHR_CONST_LATVAP        ! J/kg
    POP_latentHeatFusion    = SHR_CONST_LATICE*10000.0_POP_r8 ! erg/g
    POP_latentHeatFusionMKS = SHR_CONST_LATICE        ! J/kg 
    POP_seaIceSalinity      = SHR_CONST_ICE_REF_SAL   ! psu
@@ -358,47 +359,47 @@
       write(POP_stdout,POP_delimFormat)
       write(POP_stdout,POP_blankFormat)
 
-      outFormat = '(a28,1pe22.15)'
+      outFormat = '(a34,1pe22.15)'
 
-      write(POP_stdout,outFormat) ' Pi                       = ', &
+      write(POP_stdout,outFormat) ' Pi                             = ', &
                                   POP_pi
-      write(POP_stdout,outFormat) ' Gravity                  = ', &
+      write(POP_stdout,outFormat) ' Gravity                        = ', &
                                   POP_grav
-      write(POP_stdout,outFormat) ' Omega                    = ', &
+      write(POP_stdout,outFormat) ' Omega                          = ', &
                                   POP_omega
-      write(POP_stdout,outFormat) ' Gravity                  = ', &
+      write(POP_stdout,outFormat) ' Gravity                        = ', &
                                   POP_grav
-      write(POP_stdout,outFormat) ' Omega                    = ', &
+      write(POP_stdout,outFormat) ' Omega                          = ', &
                                   POP_omega
-      write(POP_stdout,outFormat) ' Earth radius             = ', &
+      write(POP_stdout,outFormat) ' Earth radius                   = ', &
                                   POP_radiusEarth
-      write(POP_stdout,outFormat) ' Density air              = ', &
+      write(POP_stdout,outFormat) ' Density air                    = ', &
                                   POP_rhoAir
-      write(POP_stdout,outFormat) ' Density fresh water      = ', &
+      write(POP_stdout,outFormat) ' Density fresh water            = ', &
                                   POP_rhoFW
-      write(POP_stdout,outFormat) ' Density salt  water      = ', &
+      write(POP_stdout,outFormat) ' Density salt  water            = ', &
                                   POP_rhoSW
-      write(POP_stdout,outFormat) ' Spec. heat salt water    = ', &
+      write(POP_stdout,outFormat) ' Spec. heat salt water          = ', &
                                   POP_CpSW
-      write(POP_stdout,outFormat) ' Spec. heat air           = ', &
+      write(POP_stdout,outFormat) ' Spec. heat air                 = ', &
                                   POP_CpAir
-      write(POP_stdout,outFormat) ' Sound speed              = ', &
+      write(POP_stdout,outFormat) ' Sound speed                    = ', &
                                   POP_speedSound
-      write(POP_stdout,outFormat) ' von Karman constant      = ', &
+      write(POP_stdout,outFormat) ' von Karman constant            = ', &
                                   POP_vonKarman
-      write(POP_stdout,outFormat) ' Emissivity               = ', &
+      write(POP_stdout,outFormat) ' Emissivity                     = ', &
                                   POP_emissivity
-      write(POP_stdout,outFormat) ' Stefan Boltzmann         = ', &
+      write(POP_stdout,outFormat) ' Stefan Boltzmann               = ', &
                                   POP_stefanBoltzmann
-      write(POP_stdout,outFormat) ' Latent heat vaporization = ', &
-                                  POP_latentHeatVapor
-      write(POP_stdout,outFormat) ' Latent heat fusion       = ', &
+      write(POP_stdout,outFormat) ' Latent heat vaporization (MKS) = ', &
+                                  POP_latentHeatVaporMKS
+      write(POP_stdout,outFormat) ' Latent heat fusion             = ', &
                                   POP_latentHeatFusion
-      write(POP_stdout,outFormat) ' Latent heat fusion (MKS) = ', &
+      write(POP_stdout,outFormat) ' Latent heat fusion (MKS)       = ', &
                                   POP_latentHeatFusionMKS
-      write(POP_stdout,outFormat) ' Sea ice salinity         = ', &
+      write(POP_stdout,outFormat) ' Sea ice salinity               = ', &
                                   POP_seaIceSalinity
-      write(POP_stdout,outFormat) ' Ocean ref. salinity      = ', &
+      write(POP_stdout,outFormat) ' Ocean ref. salinity            = ', &
                                   POP_ocnRefSalinity
    endif
 

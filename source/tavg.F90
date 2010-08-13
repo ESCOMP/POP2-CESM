@@ -5093,16 +5093,16 @@
                          units    ='watt/m^2/degK^4',             &
                          d0d_array =stefan_boltzmann)
 
-   !*** latent_heat_vapor
+   !*** latent_heat_vapor_mks
    ii=ii+1
-   ccsm_scalars(ii,ns) = construct_io_field('latent_heat_vapor',     &
+   ccsm_scalars(ii,ns) = construct_io_field('latent_heat_vapor',  &
                          long_name='Latent Heat of Vaporization', &
-                         units    ='erg/g',                       &
-                         d0d_array =latent_heat_vapor)
+                         units    ='J/kg',                        &
+                         d0d_array =latent_heat_vapor_mks)
 
    !*** latent_heat_fusion
    ii=ii+1
-   ccsm_scalars(ii,ns) = construct_io_field('latent_heat_fusion',    &
+   ccsm_scalars(ii,ns) = construct_io_field('latent_heat_fusion', &
                          long_name='Latent Heat of Fusion',       &
                          units    ='erg/g',                       &
                          d0d_array =latent_heat_fusion)

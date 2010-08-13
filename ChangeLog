@@ -1,5 +1,24 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    13 August 2010
+Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100813
+Tag Summary: * bugfix: correct the units for latent_heat_vapor in tavg history files
+             * rename latent_heat_vapor as latent_heat-vapor_mks
+Tag Testing:
+  * njn01: C,gx1v6, new vs old code: 
+                 o ocn restart files are b4b at end of day 5
+                 o ncdump -v latent_heat_vapor from each case; differences only in units
+Files Modified:
+M           24266   source/initial.F90
+M           24266   source/POP_ConstantsMod.F90
+M           24266   source/forcing_shf.F90
+M           24266   source/forcing_sfwf.F90
+M           24266   source/forcing_coupled.F90
+M           24266   source/tavg.F90
+M           24266   source/constants.F90
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    4 August 2010
 Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100804
 Tag Summary: * pop allow_leapyear flag is now triggered by the cesm 

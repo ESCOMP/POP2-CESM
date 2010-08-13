@@ -130,6 +130,7 @@
       emissivity            ,&!
       stefan_boltzmann      ,&! W/m^2/K^4
       latent_heat_vapor     ,&! lat heat of vaporization (erg/g)
+      latent_heat_vapor_mks ,&! lat heat of vaporization (J/kg)
       latent_heat_fusion    ,&! lat heat of fusion (erg/g)
       latent_heat_fusion_mks,&! lat heat of fusion (J/kg)
       sea_ice_salinity      ,&! salinity of sea ice formed (psu)
@@ -233,7 +234,7 @@
    vonkar    = 0.4_r8                ! von Karman constant
    emissivity         = 1.0_r8       !
    stefan_boltzmann   = 567.0e-10_r8 !  W/m^2/K^4
-   latent_heat_vapor  = 2.5e6_r8     ! lat heat of vaporization (erg/g)
+   latent_heat_vapor_mks  = 2.5e6_r8 ! lat heat of vaporization (J/kg)
    latent_heat_fusion = 3.34e9_r8    ! lat heat of fusion (erg/g)
    sea_ice_salinity   =  4.0_r8      ! (psu)
    ocn_ref_salinity   = 34.7_r8      ! (psu)
@@ -272,7 +273,7 @@
    rho_fw                 = SHR_CONST_RHOFW*p001    ! g/cm^3
    vonkar                 = SHR_CONST_KARMAN
    stefan_boltzmann       = SHR_CONST_STEBOL        ! W/m^2/K^4
-   latent_heat_vapor      = SHR_CONST_LATVAP        ! J/kg
+   latent_heat_vapor_mks  = SHR_CONST_LATVAP        ! J/kg
    latent_heat_fusion     = SHR_CONST_LATICE*c10000 ! erg/g
    latent_heat_fusion_mks = SHR_CONST_LATICE        ! J/kg 
    ocn_ref_salinity       = SHR_CONST_OCN_REF_SAL   ! psu
