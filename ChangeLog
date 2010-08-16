@@ -1,7 +1,41 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    16 August 2010
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20100816
+Tag Summary: * Add new directory, tools, to hold new post-run processing scripts
+             * Populate tools subdirectory with KL's script and README files
+             * Remove old, outdated documentation from doc/ subdirectory
+             * Correct the cesm_pop_2_1_20100813 tag name in ChangeLog
+Tag Testing:
+  * njn01: None; no changes to active code in this tag.
+Files Modified:
+A               0   tools/postrun_proc
+A               0   tools/postrun_proc/pop_hist_postprocess.csh
+A               0   tools/postrun_proc/README
+A               0   tools/README
+A               0   tools
+D           24266   doc/IOdesign.tex
+D           24266   doc/GNUmakefile
+D           24266   doc/userguide
+D           24266   doc/userguide/POPusers_chap5.tex
+D           24266   doc/userguide/POPusers_chap6.tex
+D           24266   doc/userguide/UsersGuide.ps
+D           24266   doc/userguide/POPusers_chap7.tex
+D           24266   doc/userguide/html.sty
+D           24266   doc/userguide/POPusers_main.tex
+D           24266   doc/userguide/UsersGuide.pdf
+D           24266   doc/userguide/POPusers.bib
+D           24266   doc/userguide/POPusers_chap1.tex
+D           24266   doc/userguide/POPusers_chap2.tex
+D           24266   doc/userguide/POPusers_chap3.tex
+D           24266   doc/userguide/POPusers_chap4.tex
+D           24266   doc/io.eps
+M           24379   ChangeLog
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    13 August 2010
-Tag Name:    pop2/trunk_tags/ccsm_pop_2_1_20100813
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20100813
 Tag Summary: * bugfix: correct the units for latent_heat_vapor in tavg history files
              * rename latent_heat_vapor as latent_heat-vapor_mks
 Tag Testing:
