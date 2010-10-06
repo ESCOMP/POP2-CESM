@@ -1,5 +1,61 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    6 October 2010
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101006
+Tag Summary: * Modify code that creates tavg netCDF files: add _FillValue, make coordinate 
+               variables double when the TAVG_R8 option is active, make MOC and N_* attributes
+               match their type, add _FillValue and missing_value to all time-independent variables.
+             * Modify pop_hist_postprocess.csh so as to avoid user conflicts
+             * Remove gx1v5* and gx3v6* support
+             * Add comments to ocn_comp_*.F90 to document the units of the i/o variables
+Tag Testing:
+  * njn01: None; no changes to active code in this tag.
+Files Modified:
+M           25033   source/movie.F90
+M           25033   source/io_types.F90
+M           25033   source/io_netcdf.F90
+M           25033   source/io_binary.F90
+M           25033   source/history.F90
+M           25033   source/tavg.F90
+M           25033   source/io_ccsm.F90
+M           25033   tools/postrun_proc/pop_hist_postprocess.csh
+M           25033   ChangeLog
+D           25033   input_templates/gx1v5_transport_contents
+D           25033   input_templates/gx1v5b_transport_contents
+D           25033   input_templates/gx3v6_history_contents
+D           25033   input_templates/gx3v6_region_ids
+D           25033   input_templates/gx1v5_vert_grid
+D           25033   input_templates/gx1v5_inputdata
+D           25033   input_templates/gx1v5_depth_accel
+D           25033   input_templates/gx1v5_movie_contents
+D           25033   input_templates/gx3v6_depth_accel
+D           25033   input_templates/gx1v5b_movie_contents
+D           25033   input_templates/gx1v5b_domain_size.F90
+D           25033   input_templates/gx3v6_transport_contents
+D           25033   input_templates/gx1v5_history_contents
+D           25033   input_templates/gx1v5b_POP_DomainSizeMod.F90
+D           25033   input_templates/gx1v5b_history_contents
+D           25033   input_templates/gx1v5b_tavg_contents
+D           25033   input_templates/gx3v6_tavg_contents
+D           25033   input_templates/gx3v6_movie_contents
+D           25033   input_templates/gx1v5_overflow
+D           25033   input_templates/gx1v5b_overflow
+D           25033   input_templates/gx1v5b_vert_grid
+D           25033   input_templates/gx3v6_vert_grid
+D           25033   input_templates/gx1v5b_inputdata
+D           25033   input_templates/gx3v6_inputdata
+D           25033   input_templates/gx1v5b_depth_accel
+D           25033   input_templates/gx1v5_domain_size.F90
+D           25033   input_templates/gx3v6_domain_size.F90
+D           25033   input_templates/gx1v5_POP_DomainSizeMod.F90
+D           25033   input_templates/gx1v5_tavg_contents
+D           25033   input_templates/gx1v5_region_ids
+D           25033   input_templates/gx1v5b_region_ids
+M           25033   drivers/cpl_mct/ocn_comp_mct.F90
+M           25033   drivers/cpl_esmf/ocn_comp_esmf.F90
+Status against revision:  25033
+===============================================================================
+Tag Creator: njn01
 Tag Date:    16 August 2010
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20100816
 Tag Summary: * Add new directory, tools, to hold new post-run processing scripts

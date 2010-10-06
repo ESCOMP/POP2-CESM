@@ -105,7 +105,6 @@
       character(char_len)     :: nftype         ! indicates data type 
       character(4)            :: grid_loc       ! location in grid
       real (rtavg)            :: fill_value     ! _FillValue
-      real (rtavg)            :: missing_value  ! value on land pts
       real (rtavg)            :: scale_factor   ! r4 scale factor
       real (r4), dimension(2) :: valid_range    ! min/max
       integer (i4)            :: ndims          ! num dims (2 or 3)
@@ -296,8 +295,8 @@
       num_ccsm_time_invar          = 0, &
       num_ccsm_scalars             = 0
 
-   real (r4), dimension(:), allocatable, target :: &
-      ZT_150m_R4   ! single precision array
+   real (rtavg), dimension(:), allocatable, target :: &
+      ZT_150m_R   ! single/double precision array
  
    integer (int_kind) ::  &
       tavg_BSF,           &
@@ -1206,8 +1205,8 @@
 
      !*** how many levels have their midpoint shallower than 150m
      zt_150m_levs = count(zt < 150.0e2_r8)
-     if (.not. allocated(ZT_150m_R4)) &
-       allocate(ZT_150m_R4(zt_150m_levs))
+     if (.not. allocated(ZT_150m_R)) &
+       allocate(ZT_150m_R(zt_150m_levs))
 
      !*** define dimensions for tavg output files
      i_dim      = construct_io_dim('nlon',nx_global)
@@ -1930,8 +1929,7 @@
                long_name=avail_tavg_nstd_fields(nn)%long_name,    &
                    units=avail_tavg_nstd_fields(nn)%units,        &
              coordinates=avail_tavg_nstd_fields(nn)%coordinates,  &
-           missing_value=avail_tavg_nstd_fields(nn)%missing_value,&
-              fill_value=avail_tavg_nstd_fields(nn)%fill_value,   &
+              fill_value=undefined_nf_r4,                         & ! kludge for r4 MOC,etc
                   nftype=avail_tavg_nstd_fields(nn)%nftype        )
 
           if (nn == tavg_MOC) then
@@ -3355,24 +3353,23 @@
    endif
 
 
+!  kludge for  MOC and transport diagnostics -- always r4
+   if (.not. nonstandard_fields) then
    if (present(scale_factor)) then
       if (scale_factor /= 1.0_rtavg) then
         tavg_field%scale_factor = scale_factor
         if (scale_factor /= 0.0_rtavg) then
           tavg_field%fill_value    = undefined_nf/scale_factor
-          tavg_field%missing_value = undefined_nf/scale_factor
         endif
       else
         tavg_field%scale_factor  = undefined_nf
         tavg_field%fill_value    = undefined_nf
-        tavg_field%missing_value = undefined_nf
       endif
    else
       tavg_field%scale_factor  = undefined_nf
       tavg_field%fill_value    = undefined_nf
-      tavg_field%missing_value = undefined_nf
    endif
-
+   endif
 
    if (present(valid_range)) then
       tavg_field%valid_range = valid_range
@@ -3433,8 +3430,7 @@
      call document ('define_tavg_field',  trim(tavg_field%long_name))
      call document ('define_tavg_field',  trim(tavg_field%units))
      call document ('define_tavg_field',  trim(tavg_field%grid_loc))
-     call document ('define_tavg_field', 'fill_value',   tavg_field%fill_value)
-     call document ('define_tavg_field', 'missing_value',tavg_field%missing_value)
+     call document ('define_tavg_field', '_FillValue',   tavg_field%fill_value)
      call document ('define_tavg_field', 'scale_factor', tavg_field%scale_factor)
      call document ('define_tavg_field',  trim(tavg_field%coordinates))
      call document ('define_tavg_field', 'field_type',   tavg_field%field_type)
@@ -4437,8 +4433,10 @@
      call add_attrib_io_field(tavg_field, 'scale_factor',avail_tavg_fields(nfield)%scale_factor)
    endif
 
-   call add_attrib_io_field(tavg_field,'_FillValue',avail_tavg_fields(nfield)%fill_value )
-   call add_attrib_io_field(tavg_field,'missing_value',avail_tavg_fields(nfield)%missing_value )
+!*** note: missing_value is a deprecated feature in CF1.4, and hence nco 4 versions, but
+!          is added here because other software packages may require it
+   call add_attrib_io_field(tavg_field,'_FillValue',   avail_tavg_fields(nfield)%fill_value )
+   call add_attrib_io_field(tavg_field,'missing_value',avail_tavg_fields(nfield)%fill_value )
 
 !-----------------------------------------------------------------------
 !EOC
@@ -4474,16 +4472,16 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
-   real (r4), dimension(km) ::  &
-      ZT_R4,      &! single precision array
-      ZW_R4,      &! single precision array
-      ZW_BOT_R4    ! single precision array
+   real (rtavg), dimension(km) ::  &
+      ZT_R,      &! single/double precision array
+      ZW_R,      &! single/double precision array
+      ZW_BOT_R    ! single/double precision array
 
-   real (r4), dimension(0:km) ::  &
-      MOC_Z_R4
+   real (rtavg), dimension(0:km) ::  &
+      MOC_Z_R
 
-   real (r4), dimension(1000) ::  &
-      LAT_AUX_GRID_R4
+   real (rtavg), dimension(1000) ::  &
+      LAT_AUX_GRID_R
 
    integer (int_kind) ::  &
       ii, n, ndims   
@@ -4496,65 +4494,85 @@
 
    !*** z_t
    ii=ii+1
-   ZT_R4 = zt 
+   ZT_R = zt 
    ccsm_coordinates(ii,ns) = construct_io_field('z_t',zt_dim,                 &
                          long_name='depth from surface to midpoint of layer', &
                          units    ='centimeters',                             &
-                         r1d_array =ZT_R4)
+#ifdef TAVG_R8
+                         d1d_array =ZT_R)
+#else
+                         r1d_array =ZT_R)
+#endif
 
    call add_attrib_io_field(ccsm_coordinates(ii,ns), 'positive', 'down')
-   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZT_R4(1))
-   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZT_R4(km))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZT_R(1))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZT_R(km))
 
    !*** z_t
    ii=ii+1
-   ZT_150m_R4 = zt(1:zt_150m_levs)
+   ZT_150m_R = zt(1:zt_150m_levs)
    ccsm_coordinates(ii,ns) = construct_io_field('z_t_150m',zt_150m_dim,       &
                          long_name='depth from surface to midpoint of layer', &
                          units    ='centimeters',                             &
-                         r1d_array =ZT_150m_R4)
+#ifdef TAVG_R8
+                         d1d_array =ZT_150m_R)
+#else
+                         r1d_array =ZT_150m_R)
+#endif
 
    call add_attrib_io_field(ccsm_coordinates(ii,ns), 'positive', 'down')
-   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZT_150m_R4(1))
-   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZT_150m_R4(zt_150m_levs))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZT_150m_R(1))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZT_150m_R(zt_150m_levs))
 
    !*** z_w
    ii=ii+1
-   ZW_R4(1) = c0 
-   ZW_R4(2:km) = zw(1:km-1)
+   ZW_R(1) = c0 
+   ZW_R(2:km) = zw(1:km-1)
    ccsm_coordinates(ii,ns) = construct_io_field('z_w',zw_dim,                 &
                          long_name='depth from surface to top of layer',      &
                          units    ='centimeters',                             &
-                         r1d_array =ZW_R4)
+#ifdef TAVG_R8
+                         d1d_array =ZW_R)
+#else
+                         r1d_array =ZW_R)
+#endif
 
    call add_attrib_io_field(ccsm_coordinates(ii,ns), 'positive', 'down')
-   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZW_R4(1 ))
-   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZW_R4(km))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZW_R(1 ))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZW_R(km))
 
    !*** z_w_top
    ii=ii+1
-   ZW_R4(1) = c0  ! same as z_w
-   ZW_R4(2:km) = zw(1:km-1)
+   ZW_R(1) = c0  ! same as z_w
+   ZW_R(2:km) = zw(1:km-1)
    ccsm_coordinates(ii,ns) = construct_io_field('z_w_top',zw_dim_top,         &
                          long_name='depth from surface to top of layer',      &
                          units    ='centimeters',                             &
-                         r1d_array =ZW_R4)
+#ifdef TAVG_R8
+                         d1d_array =ZW_R)
+#else
+                         r1d_array =ZW_R)
+#endif
 
    call add_attrib_io_field(ccsm_coordinates(ii,ns), 'positive', 'down')
-   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZW_R4(1 ))
-   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZW_R4(km))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZW_R(1 ))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZW_R(km))
 
    !*** z_w_bot
    ii=ii+1
-   ZW_BOT_R4(1:km) = zw(1:km)
+   ZW_BOT_R(1:km) = zw(1:km)
    ccsm_coordinates(ii,ns) = construct_io_field('z_w_bot',zw_dim_bot,         &
                          long_name='depth from surface to bottom of layer',   &
                          units    ='centimeters',                             &
-                         r1d_array =ZW_BOT_R4)
+#ifdef TAVG_R8
+                         d1d_array =ZW_BOT_R)
+#else
+                         r1d_array =ZW_BOT_R)
+#endif
 
    call add_attrib_io_field(ccsm_coordinates(ii,ns), 'positive', 'down')
-   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZW_BOT_R4(1 ))
-   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZW_BOT_R4(km))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', ZW_BOT_R(1 ))
+   call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', ZW_BOT_R(km))
 
 
    if (ltavg_moc_diags(ns) .or. ltavg_n_heat_trans(ns)  .or. ltavg_n_salt_trans(ns)) then
@@ -4562,35 +4580,43 @@
      ii=ii+1
 
      if (n_lat_aux_grid+1 > 1000) then
-        exit_string = 'FATAL ERROR:  must increase dimension of LAT_AUX_GRID_R4'
+        exit_string = 'FATAL ERROR:  must increase dimension of LAT_AUX_GRID_R'
         call document ('tavg_construct_ccsm_coordinates', exit_string)
         call exit_POP (sigAbort,exit_string,out_unit=stdout)
      endif
 
-     LAT_AUX_GRID_R4 = 0
-     LAT_AUX_GRID_R4(1:n_lat_aux_grid+1) = lat_aux_edge(1:n_lat_aux_grid+1)
+     LAT_AUX_GRID_R = 0
+     LAT_AUX_GRID_R(1:n_lat_aux_grid+1) = lat_aux_edge(1:n_lat_aux_grid+1)
      ccsm_coordinates(ii,ns) = construct_io_field('lat_aux_grid',lat_aux_grid_dim, &
                            long_name='latitude grid for transport diagnostics', &
                            units    ='degrees_north',                           &
-                           r1d_array =LAT_AUX_GRID_R4(1:n_lat_aux_grid+1))
-     call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', LAT_AUX_GRID_R4(1 ))
-     call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', LAT_AUX_GRID_R4(n_lat_aux_grid+1))
+#ifdef TAVG_R8
+                           d1d_array =LAT_AUX_GRID_R(1:n_lat_aux_grid+1))
+#else
+                           r1d_array =LAT_AUX_GRID_R(1:n_lat_aux_grid+1))
+#endif
+     call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', LAT_AUX_GRID_R(1 ))
+     call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', LAT_AUX_GRID_R(n_lat_aux_grid+1))
    endif
 
    if (ltavg_moc_diags(ns)) then
      !*** moc_z
      ii=ii+1
 
-     MOC_Z_R4(0) = c0 
-     MOC_Z_R4(1:km) = zw(1:km)
+     MOC_Z_R(0) = c0 
+     MOC_Z_R(1:km) = zw(1:km)
      ccsm_coordinates(ii,ns) = construct_io_field('moc_z',moc_z_dim,               &
                            long_name='depth from surface to top of layer',      &
                            units    ='centimeters',                             &
-                           r1d_array =MOC_Z_R4)
+#ifdef TAVG_R8
+                           d1d_array =MOC_Z_R)
+#else
+                           r1d_array =MOC_Z_R)
+#endif
 
      call add_attrib_io_field(ccsm_coordinates(ii,ns), 'positive', 'down')
-     call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', MOC_Z_R4(0 ))
-     call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', MOC_Z_R4(km))
+     call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_min', MOC_Z_R(0 ))
+     call add_attrib_io_field(ccsm_coordinates(ii,ns), 'valid_max', MOC_Z_R(km))
 
    endif ! ltavg_moc_diags
 
@@ -4643,49 +4669,53 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: ii, n
+   integer (int_kind) :: ii, num
 
-   real (r4), dimension(km)   ::  &
-      DZ_R4   
+   real (rtavg), dimension(km)   ::  &
+      DZ_R
 
-   real (r4), dimension(0:km-1) ::  &
-      DZW_R4
+   real (rtavg), dimension(0:km-1) ::  &
+      DZW_R
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
       TLON_DEG, TLAT_DEG, ULON_DEG, ULAT_DEG
 
-   real (r4)          :: missing_value
-   integer (int_kind) :: missing_value_i
-   real (r8)          :: missing_value_d
+   integer (i4)       :: fill_value_i
+   real (r8)          :: fill_value_d
 
    logical (log_kind) ::  &
       full_header
 
    save
 
-   missing_value   = undefined_nf_r4
-   missing_value_d = undefined_nf_r8
-   missing_value_i = undefined_nf_int
+   fill_value_i = undefined_nf_int
+   fill_value_d = undefined_nf_r8
 
    ii=0
 
    !*** dz
    ii=ii+1
-   DZ_R4 = dz 
-   ccsm_time_invar(ii,ns) = construct_io_field('dz',zt_dim,                    &
+   DZ_R = dz 
+   ccsm_time_invar(ii,ns) = construct_io_field('dz',zt_dim,                 &
                                 long_name='thickness of layer k',           &
                                 units    ='centimeters',                    &
-                                r1d_array =DZ_R4)
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value )
+#ifdef TAVG_R8
+                                d1d_array =DZ_R)
+#else
+                                r1d_array =DZ_R)
+#endif
 
    !*** dzw
    ii=ii+1
-   DZW_R4(0:) = dzw(0:km-1)
-   ccsm_time_invar(ii,ns) = construct_io_field('dzw',zw_dim,                   &
+   DZW_R(0:) = dzw(0:km-1)
+   ccsm_time_invar(ii,ns) = construct_io_field('dzw',zw_dim,                       &
                                 long_name='midpoint of k to midpoint of k+1',      &
                                 units    ='centimeters',                           &
-                                r1d_array =DZW_R4)
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value )
+#ifdef TAVG_R8
+                                d1d_array =DZW_R)
+#else
+                                r1d_array =DZW_R)
+#endif
 
 !-----------------------------------------------------------------------
 !
@@ -4753,7 +4783,6 @@
          long_name='k Index of Deepest Grid Cell on T Grid',  &
          coordinates = "TLONG TLAT",                          &
          i2d_array =KMT(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_i )
 
    !*** KMU
    ii=ii+1
@@ -4763,7 +4792,6 @@
          long_name='k Index of Deepest Grid Cell on U Grid',  &
          coordinates = "ULONG ULAT",                          &
          i2d_array =KMU(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_i )
 
 
    !*** REGION_MASK
@@ -4774,7 +4802,6 @@
          long_name='basin index number (signed integers)',    &
          coordinates = "TLONG TLAT",                          &
          i2d_array =REGION_MASK(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_i )
 
    !*** UAREA
    ii=ii+1
@@ -4785,7 +4812,6 @@
          units    ='centimeter^2',                            &
          coordinates = "ULONG ULAT",                          &
          d2d_array =UAREA(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_d )
 
    !*** TAREA
    ii=ii+1
@@ -4796,7 +4822,6 @@
          units    ='centimeter^2',                            &
          coordinates = "TLONG TLAT",                          &
          d2d_array =TAREA(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_d )
 
    !*** HU
    ii=ii+1
@@ -4807,7 +4832,6 @@
          units='centimeter',                                  &
          coordinates = "ULONG ULAT",                          &
          d2d_array =HU(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_d )
 
    !*** HT
    ii=ii+1
@@ -4818,7 +4842,6 @@
          units='centimeter',                                  &
          coordinates = "TLONG TLAT",                          &
          d2d_array =HT(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_d )
 
    !*** DXU
    ii=ii+1
@@ -4829,7 +4852,6 @@
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
          d2d_array =DXU(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_d )
 
    !*** DYU
    ii=ii+1
@@ -4840,7 +4862,6 @@
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
          d2d_array =DYU(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_d )
 
    !*** DXT
    ii=ii+1
@@ -4851,7 +4872,6 @@
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
          d2d_array =DXT(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_d )
 
    !*** DYT
    ii=ii+1
@@ -4862,7 +4882,6 @@
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
          d2d_array =DYT(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_d )
 
    !*** HTN
    ii=ii+1
@@ -4873,7 +4892,6 @@
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
          d2d_array =HTN(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_d )
 
    !*** HTE
    ii=ii+1
@@ -4884,7 +4902,6 @@
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
          d2d_array =HTE(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_d )
 
    !*** HUS
    ii=ii+1
@@ -4895,7 +4912,6 @@
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
          d2d_array =HUS(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_d )
 
    !*** HUW
    ii=ii+1
@@ -4906,7 +4922,6 @@
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
          d2d_array =HUW(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_d )
 
    !*** ANGLE
    ii=ii+1
@@ -4917,7 +4932,6 @@
          units='radians',                                     &
          coordinates = "ULONG ULAT",                          &
          d2d_array =ANGLE(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_d )
 
    !*** ANGLET
    ii=ii+1
@@ -4928,12 +4942,15 @@
          units='radians',                                          &
          coordinates = "TLONG TLAT",                               &
          d2d_array =ANGLET(:,:,:) )
-   call add_attrib_io_field(ccsm_time_invar(ii,ns),'missing_value',missing_value_d )
 
    endif ! full_header
 
 
-   ! after all time-invariant arrays are defined, define the total number
+!-----------------------------------------------------------------------
+!
+!   after all time-invariant arrays are defined, define the total number
+!
+!-----------------------------------------------------------------------
    num_ccsm_time_invar(ns) = ii
 
    if (num_ccsm_time_invar(ns)  > max_num_ccsm_time_invar) then
@@ -4942,6 +4959,29 @@
      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
+
+!-----------------------------------------------------------------------
+!
+!   Finally, add _FillValue and missing_value attributes to all fields
+!   NOTE: missing_value is identical to _FillValue
+!
+!-----------------------------------------------------------------------
+
+   do num = 1, num_ccsm_time_invar(ns)
+     if (trim(ccsm_time_invar(num,ns)%short_name) == 'REGION_MASK'  .or.   &
+         trim(ccsm_time_invar(num,ns)%short_name) == 'KMT'          .or.   &
+         trim(ccsm_time_invar(num,ns)%short_name) == 'KMU'                 ) then
+         call add_attrib_io_field(ccsm_time_invar(num,ns),'_FillValue'   ,fill_value_i )
+         call add_attrib_io_field(ccsm_time_invar(num,ns),'missing_value',fill_value_i )
+     elseif(trim(ccsm_time_invar(num,ns)%short_name) == 'dz'  .or.   &
+         trim(ccsm_time_invar(num,ns)%short_name) == 'dzw'                 ) then
+         call add_attrib_io_field(ccsm_time_invar(num,ns),'_FillValue'   ,undefined_nf )
+         call add_attrib_io_field(ccsm_time_invar(num,ns),'missing_value',undefined_nf )
+     else
+         call add_attrib_io_field(ccsm_time_invar(num,ns),'_FillValue'   ,fill_value_d )
+         call add_attrib_io_field(ccsm_time_invar(num,ns),'missing_value',fill_value_d )
+     endif
+   enddo
 
 !-----------------------------------------------------------------------
 !EOC
@@ -6213,7 +6253,6 @@
         long_name='Meridional Overturning Circulation',  &
         units='Sverdrups',                               &
         coordinates='lat_aux_grid moc_z moc_components transport_region time',&
-        nftype='float'   ,                               &
         nstd_fields=avail_tavg_nstd_fields,              &
         num_nstd_fields=num_avail_tavg_nstd_fields,      &
         max_nstd_fields=max_avail_tavg_nstd_fields       )

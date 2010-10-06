@@ -750,25 +750,6 @@
                    'Error reading grid_loc from netCDF file')
             endif
 
-         case('missing_value')
-
-            iostat = pio_get_att(File, io_field%id, 'missing_value', &
-                                  io_field%missing_value)
-            if (iostat /= pio_noerr) then
-               call exit_POP(sigAbort, &
-                   'Error reading missing_value from netCDF file')
-            endif
-
-         case('missing_value_i')
-
-            iostat = pio_get_att(File, io_field%id, &
-                                  'missing_value_i',   &
-                                  io_field%missing_value_i)
-            if (iostat /= pio_noerr) then
-               call exit_POP(sigAbort, &
-                   'Error reading missing_value_i from netCDF file')
-            endif
-
          case('valid_range')
 
             iostat = pio_get_att(File, io_field%id, &
@@ -1039,32 +1020,6 @@
          end if
       endif
 
-
-      !*** missing_value
-
-      if (io_field%missing_value /= undefined) then
-         iostat = pio_inq_att(File, varid=varid, name='missing_value', &
-                               xtype=xtype, len=nsize)
-         if (iostat /= PIO_NOERR) then ! attrib probably not defined
-            iostat = pio_put_att(File, varid=varid, &
-                                  name='missing_value',   &
-                                  value=io_field%missing_value)
-            if (iostat /= PIO_NOERR) define_error = .true.
-         end if
-      endif
-
-      !*** missing_value_i
-
-      if (io_field%missing_value_i == undefined_nf_int) then
-         iostat = pio_inq_att(File, varid=varid, name='missing_value', &
-                               xtype=xtype, len=nsize)
-         if (iostat /= PIO_NOERR) then ! attrib probably not defined
-            iostat = pio_put_att(File, varid=varid, &
-                                  name='missing_value',   &
-                                  value=io_field%missing_value_i)
-            if (iostat /= PIO_NOERR) define_error = .true.
-         end if
-      endif
 
       !*** valid_range(1:2)
 
@@ -1616,7 +1571,7 @@
 
  subroutine define_nstd_netcdf(data_file,ndims,io_dims,field_id,         &
                                  short_name,long_name,units,coordinates, &
-                                 fill_value,missing_value,nftype)
+                                 fill_value,nftype)
 
 ! !DESCRIPTION:
 !  This routine defines the nonstandard CCSM time-averaged diagnostic fields
@@ -1632,9 +1587,8 @@
    type (datafile), intent (in)  :: &
       data_file       ! data file in which field contained
 
-   real (rtavg), intent (in)  ::  &
-      fill_value,              &
-      missing_value
+   real (r4), intent (in)  ::  &
+      fill_value
 
    integer (int_kind), intent(in) ::  &
       ndims                ! number of dimensions for nonstandard field
@@ -1654,7 +1608,7 @@
    integer (i4), intent (inout) :: &
       field_id                      ! variable id 
 
-   optional :: coordinates,fill_value,missing_value,nftype
+   optional :: coordinates,fill_value,nftype
 
 !EOP
 !BOP
@@ -1804,17 +1758,26 @@
        end if
     endif
 
-    !*** missing_value
-    if (present(missing_value)) then
+    !*** fill_value -- and missing_value, for now
+    if (present(fill_value)) then
+       iostat = pio_inq_att(File, varid=field_id, name='_FillValue', &
+                             xtype=xtype, len=len)
+       if (iostat /= PIO_NOERR) then ! attrib probably not defined
+          iostat = pio_put_att(File, varid=field_id,        &
+                                name='_FillValue',       &
+                                value=fill_value)
+          if (iostat /= PIO_NOERR) define_error = .true.
+       end if
        iostat = pio_inq_att(File, varid=field_id, name='missing_value', &
-                             xtype=xtype, len=len)  
+                             xtype=xtype, len=len)
        if (iostat /= PIO_NOERR) then ! attrib probably not defined
           iostat = pio_put_att(File, varid=field_id,        &
                                 name='missing_value',       &
-                                value=missing_value)
+                                value=fill_value)
           if (iostat /= PIO_NOERR) define_error = .true.
        end if
     endif
+
 
    if (define_error) call exit_POP(sigAbort, &
                      '(define_nstd_netcdf) Error adding attributes to field')

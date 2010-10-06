@@ -965,7 +965,36 @@ contains
  subroutine ocn_import_mct(x2o_o, errorCode)
 
 ! !DESCRIPTION:
+!-----------------------------------------------------------------------
 !  This routine receives message from cpl7 driver
+!
+!    The following fields are always received from the coupler:
+! 
+!    o  taux   -- zonal wind stress (taux)                 (W/m2   )
+!    o  tauy   -- meridonal wind stress (tauy)             (W/m2   )
+!    o  snow   -- water flux due to snow                   (kg/m2/s)
+!    o  rain   -- water flux due to rain                   (kg/m2/s)
+!    o  evap   -- evaporation flux                         (kg/m2/s)
+!    o  meltw  -- snow melt flux                           (kg/m2/s)
+!    o  salt   -- salt                                     (kg(salt)/m2/s)
+!    o  swnet  -- net short-wave heat flux                 (W/m2   )
+!    o  sen    -- sensible heat flux                       (W/m2   )
+!    o  lwup   -- longwave radiation (up)                  (W/m2   )
+!    o  lwdn   -- longwave radiation (down)                (W/m2   )
+!    o  melth  -- heat flux from snow&ice melt             (W/m2   )
+!    o  ifrac  -- ice fraction
+!    o  roff   -- river runoff flux                        (kg/m2/s)
+!    o  ioff   -- ice runoff flux                          (kg/m2/s)
+! 
+!    The following fields are sometimes received from the coupler,
+!      depending on model options:
+! 
+!    o  pslv   -- sea-level pressure                       (Pa)
+!    o  duu10n -- 10m wind speed squared                   (m^2/s^2)
+!    o  co2prog-- bottom atm level prognostic co2
+!    o  co2diag-- bottom atm level diagnostic co2
+! 
+!-----------------------------------------------------------------------
 !
 ! !REVISION HISTORY:
 !  same as module

@@ -53,7 +53,7 @@
       character(char_len)     :: long_name      ! long descriptive name
       character(char_len)     :: units          ! units
       character(4)            :: grid_loc       ! location in grid
-      real (r4)               :: missing_value  ! value on land pts
+      real (r4)               :: fill_value     ! _FillValue
       real (r4), dimension(2) :: valid_range    ! min/max
       integer (i4)            :: ndims          ! num dims (2 or 3)
       logical (log_kind)      :: requested      ! true if requested
@@ -257,7 +257,6 @@
                     long_name=avail_hist_fields(nfield)%long_name,     &
                     units    =avail_hist_fields(nfield)%units    ,     &
                     grid_loc =avail_hist_fields(nfield)%grid_loc ,     &
-                missing_value=avail_hist_fields(nfield)%missing_value, &
                   valid_range=avail_hist_fields(nfield)%valid_range,   &
                    r2d_array =WORK2D)
 
@@ -269,11 +268,21 @@
                     long_name=avail_hist_fields(nfield)%long_name,     &
                     units    =avail_hist_fields(nfield)%units    ,     &
                     grid_loc =avail_hist_fields(nfield)%grid_loc ,     &
-                missing_value=avail_hist_fields(nfield)%missing_value, &
                   valid_range=avail_hist_fields(nfield)%valid_range,   &
                    r3d_array =WORK3D)
 
             endif
+
+!-----------------------------------------------------------------------
+!
+!    missing_value is a deprecated feature in CF1.4, and hence nco 4 versions,
+!    but it is added here because other software packages may require it
+!-----------------------------------------------------------------------
+
+           call add_attrib_io_field(hist_fields(nfield),'_FillValue',   &
+                                    avail_hist_fields(nfield)%fill_value )
+           call add_attrib_io_field(hist_fields(nfield),'missing_value',&
+                                    avail_hist_fields(nfield)%fill_value )
 
             call data_set (hist_file_desc,'define',hist_fields(nfield))
          endif
@@ -493,74 +502,63 @@
       call define_hist_field(hist_id_shgt, 'SHGT', 2,          &
                              long_name = 'Sea surface height', &
                              units     = 'cm',                 &
-                             grid_loc  = '2110',               &
-                             missing_value = undefined)
+                             grid_loc  = '2110')
+                             
 
       call define_hist_field(hist_id_suf, 'SUF', 2,                 &
                              long_name = 'Surface U velocity flux', &
                              units     = 'cm2/s2',                  &
-                             grid_loc  = '2220',                    &
-                             missing_value = undefined)
+                             grid_loc  = '2220')
 
       call define_hist_field(hist_id_svf, 'SVF', 2,                 &
                              long_name = 'Surface V velocity flux', &
                              units     = 'cm2/s2',                  &
-                             grid_loc  = '2220',                    &
-                             missing_value = undefined)
+                             grid_loc  = '2220')
 
       call define_hist_field(hist_id_shf, 'SHF', 2,           &
                              long_name = 'Surface heat flux', &
                              units     = 'W/cm2',             &
-                             grid_loc  = '2110',              &
-                             missing_value = undefined)
+                             grid_loc  = '2110')
 
       call define_hist_field(hist_id_sfwf, 'SFWF', 2,                &
                              long_name = 'Surface fresh water flux', &
                              units     = 'm/yr',                     &
-                             grid_loc  = '2110',                     &
-                             missing_value = undefined)
+                             grid_loc  = '2110')
 
       call define_hist_field(hist_id_solar, 'SOLAR', 2,             &
                              long_name = 'Surface solar heat flux', &
                              units     = 'W/cm2',                   &
-                             grid_loc  = '2110',                    &
-                             missing_value = undefined)
+                             grid_loc  = '2110')
 
       call define_hist_field(hist_id_uvel, 'UVEL', 3,   &
                              long_name = 'U velocity',  &
                              units     = 'cm/s',       &
-                             grid_loc  = '3221',        &
-                             missing_value = undefined)
+                             grid_loc  = '3221')
 
       call define_hist_field(hist_id_vvel, 'VVEL', 3,   &
                              long_name = 'V velocity',  &
                              units     = 'cm/s',       &
-                             grid_loc  = '3221',        &
-                             missing_value = undefined)
+                             grid_loc  = '3221')
 
       call define_hist_field(hist_id_temp, 'TEMP', 3,             &
                              long_name = 'Potential temperature', &
                              units     = 'deg C',                 &
-                             grid_loc  = '3111',                  &
-                             missing_value = undefined)
+                             grid_loc  = '3111')
 
       call define_hist_field(hist_id_salt, 'SALT', 3,  &
                              long_name = 'Salinity',   &
                              units     = 'g/g',        &
-                             grid_loc  = '3111',       &
-                             missing_value = undefined)
+                             grid_loc  = '3111')
 
       call define_hist_field(hist_id_ubtrop, 'UBTROP', 2,         &
                              long_name = 'barotropic U velocity', &
                              units     = 'cm/s',                  &
-                             grid_loc  = '2220',                  &
-                             missing_value = undefined)
+                             grid_loc  = '2220')
 
       call define_hist_field(hist_id_vbtrop, 'VBTROP', 2,         &
                              long_name = 'barotropic V velocity', &
                              units     = 'cm/s',                  &
-                             grid_loc  = '2220',                  &
-                             missing_value = undefined)
+                             grid_loc  = '2220')
 
 !-----------------------------------------------------------------------
 !
@@ -605,7 +603,7 @@
 ! !INTERFACE:
 
  subroutine define_hist_field(id, short_name, ndims, long_name, units, &
-                              grid_loc, missing_value, valid_range)
+                              grid_loc, valid_range)
 
 ! !DESCRIPTION:
 !  Initializes description of an available field and returns location
@@ -634,9 +632,6 @@
 
    character(4), intent(in), optional :: &
       grid_loc                 ! location in grid (in 4-digit code)
-
-   real (r4), intent(in), optional :: &
-      missing_value            ! value on land pts
 
    real (r4), dimension(2), intent(in), optional :: &
       valid_range              ! min/max
@@ -686,12 +681,8 @@
       avail_hist_fields(id)%grid_loc = '    '
    endif
 
-   if (present(missing_value)) then
-      avail_hist_fields(id)%missing_value = missing_value
-   else
-      avail_hist_fields(id)%missing_value = undefined
-   endif
-
+   avail_hist_fields(id)%fill_value = undefined_nf_r4
+ 
    if (present(valid_range)) then
       avail_hist_fields(id)%valid_range = valid_range
    else

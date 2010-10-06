@@ -53,13 +53,11 @@
       character(char_len)                         :: units
       character(char_len)                         :: coordinates
       character(4)                                :: grid_loc
-      real(r4)                                    :: missing_value
       real(r4), dimension(2)                      :: valid_range
       integer(i4)                                 :: id
       integer(i4)                                 :: nfield_dims
       integer(i4)                                 :: field_loc
       integer(i4)                                 :: field_type
-      integer(int_kind)                           :: missing_value_i
       type (io_dim), dimension(4)                 :: field_dim
       character(char_len), dimension(:), pointer  :: add_attrib_cname
       character(char_len), dimension(:), pointer  :: add_attrib_cval
@@ -1741,8 +1739,6 @@ contains
        units,            &
        coordinates,      &
        grid_loc,         &
-       missing_value,    &
-       missing_value_i,  &
        valid_range,      &
        field_loc,        &
        field_id,         &
@@ -1787,14 +1783,8 @@ contains
    character(4), intent(in), optional :: &
       grid_loc                  ! position of field in staggered grid
 
-   real (r4), intent(in), optional :: &
-      missing_value             ! value for missing points (eg land)
-
    real (r4), intent(in), dimension(2), optional :: &
       valid_range               ! valid range (min,max) for field
-
-   integer (int_kind), intent(in), optional :: &  
-      missing_value_i           ! missing value for integer arrays
 
    integer (i4), intent(in), optional :: &  ! for ghost cell updates
       field_loc,               &! staggering location
@@ -1874,16 +1864,6 @@ contains
    descriptor%grid_loc = '    '
    if (present(grid_loc)) then
       descriptor%grid_loc = grid_loc
-   endif
-
-   descriptor%missing_value = undefined
-   if (present(missing_value)) then
-      descriptor%missing_value = missing_value
-   endif
-
-   descriptor%missing_value_i = undefined
-   if (present(missing_value_i)) then
-      descriptor%missing_value_i = missing_value_i
    endif
 
    descriptor%valid_range = undefined
@@ -2103,8 +2083,6 @@ contains
    descriptor%coordinates= char_blank
    descriptor%grid_loc   = '    '
 
-   descriptor%missing_value   = undefined
-   descriptor%missing_value_i = undefined
    descriptor%valid_range     = undefined
    descriptor%id              = 0
    descriptor%nfield_dims     = 4
@@ -3065,14 +3043,6 @@ contains
    att_exists = .false.
 
    select case (trim(att_name))
-
-   case ('missing_value','MISSING_VALUE')
-      att_value = iofield%missing_value
-      att_exists = .true.
-
-   case ('missing_value_i','MISSING_VALUE_I')
-      att_value = iofield%missing_value_i
-      att_exists = .true.
 
    case ('valid_range','VALID_RANGE')
       att_exists = .true.

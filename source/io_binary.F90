@@ -737,16 +737,6 @@
                                            'char'    , attrib_separator, &
                                            io_field%grid_loc
 
-         if (io_field%missing_value /= undefined) then
-            work_line = char_blank
-            work_line( 1:13) = 'missing_value'
-            work_line(14:14) = attrib_separator
-            work_line(15:16) = 'r8'
-            work_line(17:17) = attrib_separator
-            write(work_line(18:),*) io_field%missing_value
-            write(unit,'(a)') trim(work_line)
-         endif
-
          if (any(io_field%valid_range(:) /= undefined)) then
             work_line = char_blank
             work_line( 1:11) = 'valid_range'
@@ -988,9 +978,6 @@
             case('grid_loc','GRID_LOC')
                io_field%grid_loc = char_blank
                io_field%grid_loc = trim(work_line)
-
-            case('missing_value','MISSING_VALUE')
-               read(work_line,*) io_field%missing_value
 
             case('valid_range','VALID_RANGE')
                read(work_line,*) io_field%valid_range(:)

@@ -57,7 +57,7 @@ contains
  subroutine data_set_nstd_ccsm (data_file,operation,field_id, &
                                 ndims,io_dims,nftype,         &
                                 short_name,long_name,units,   &
-                                coordinates,missing_value,    &
+                                coordinates,                  &
                                 fill_value,                   &
                                 implied_time_dim,             &
                                 data_1d_r8,                   &
@@ -107,9 +107,8 @@ contains
       data_1d_ch
 
 
-   real (rtavg), intent(in)  ::  &
-      fill_value,             &
-      missing_value
+   real (r4), intent(in)  ::  &
+      fill_value
 
    type (datafile),intent(inout) ::  &
       data_file
@@ -130,7 +129,6 @@ contains
       long_name,          &
       units,              &
       coordinates,        &
-      missing_value,      &
       fill_value,         &
       data_1d_r8,         &
       data_2d_r8,         &
@@ -183,7 +181,6 @@ contains
       call define_nstd_netcdf(data_file, ndims, io_dims, field_id,  &
                               short_name, long_name, units,         &
                               coordinates=coordinates,              &
-                              missing_value=missing_value,          &
                               fill_value=fill_value,                &
                               nftype=nftype                         )
 

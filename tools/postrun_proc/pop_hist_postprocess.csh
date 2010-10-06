@@ -18,8 +18,11 @@
 #    2) $CASEROOT/Tools/ccsm_getenv has been called.
 #    3) DOUT_L_HTAR is FALSE. (tarring is not handled at all)
 #
+# Author:
+#   Keith Lindsay August 2010 
+#
 # Revision History:
-#   Keith Lindsay August 2010
+#   Nancy Norton  31 August 2010 define and add my_pid to temp filenames to avoid possible collisions
 #-------------------------------------------------------------------------------
 
 
@@ -34,6 +37,8 @@ while ( 1 )
    endsw
    shift argv
 end
+
+set my_pid = $$
 
 if ($OCN_TAVG_HIFREQ == TRUE) then
    set missing_mon_fields = moc_components,EVAP_F,HBLT,IFRAC,IOFF_F,LWDN_F,LWUP_F,MELTH_F,MELT_F,MOC,PREC_F,QFLUX,QSW_HBL,QSW_HTP,RHO_VINT,ROFF_F,SALT_F,SENH_F,SFWF,SFWF_WRST,SHF,SHF_QSW,SNOW_F,SSH,TAUX,TAUX2,TAUY,TAUY2,UVEL,VISOP,VSUBM,VVEL,WISOP,WSUBM,WVEL,XBLT
@@ -57,7 +62,7 @@ if ($OCN_TAVG_HIFREQ == TRUE) then
       # in an intermediate file. This is done so that global metadata
       # that appears in both the daily and monthly files, as well as the
       # time variable, are not overwritten in the monthly file.
-      set file_mon_temp = $CASE.pop.h.$yyyy_mm.temp.nc
+      set file_mon_temp = $CASE.pop.h.$yyyy_mm.${my_pid}.temp.nc
 
       set field_name = `echo $missing_mon_fields | cut -f1 -d,`
       ncdump -h $file_mon | grep $field_name > /dev/null
@@ -83,7 +88,7 @@ if ($OCN_TAVG_HIFREQ == TRUE) then
          echo removing unnecessary fields from $file_day
          ncks -O -v $day_fields_to_remove -x -h $file_day $file_day
       else
-         echo first field of missing_mon_fields not detected in $file_day, skipping daily mean field removal
+         echo first field of day_fields_to_remove not detected in $file_day, skipping daily mean field removal
       endif
 
    end
