@@ -1,5 +1,19 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    25 October 2010
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101025
+Tag Summary: * Modify pop2.cpl7.template script so that it does not automatically
+               generate tavg and ovf rpointer files for branch or hybrid cases
+Tag Testing:
+  * njn01: cesm1_0_beta09, T62_gx3v7,C, old vs new
+        startup: b4b @ eom #2 (1-month+1-month)  (buildnml.csh scripts are identical for startup)
+        hybrid:  b4b @ eom #2 (1-month+1-month)
+        branch:  b4b @ eom #2 (1-month+1-month)
+
+Files Modified:
+M           25033   bld/pop2.cpl7.template
+===============================================================================
+Tag Creator: njn01
 Tag Date:    6 October 2010
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101006
 Tag Summary: * Modify code that creates tavg netCDF files: add _FillValue, make coordinate 

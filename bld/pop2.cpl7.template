@@ -406,50 +406,6 @@ else
   cat $INPUT_TEMPLATES/${OCN_GRID}_inputdata >> $POP2BLDSCRIPT
 endif
 
-
-if ($RUN_TYPE == branch || $RUN_TYPE == hybrid) then
-cat >> $POP2BLDSCRIPT << EOF2
-
-    #----------------------------------------------------------------
-    # Special treatment of initial files for \$RUN_TYPE starts
-    #----------------------------------------------------------------
-    if (\$CONTINUE_RUN == 'TRUE') then
-      #----------------------------------------------------
-      # do nothing special; continuations use pointer files
-      #----------------------------------------------------
-    else if (\$CONTINUE_RUN == 'FALSE') then
-      #-------------------------------------------------------------------
-      # this script is customized for a branch or hybrid start, so it
-      # must identify  pop2 reference-case files now
-      # note: presently, the ccsm4 scripts do not support prestaging branch/hybrid files
-      #-------------------------------------------------------------------
-      setenv INIT_TS_FILE ${RUN_REFCASE}.pop.r.$RUN_REFDATE-00000
-      setenv OVF_FILE     ${RUN_REFCASE}.pop.ro.$RUN_REFDATE-00000
-      setenv TAVG_FILE    ${RUN_REFCASE}.pop.rh.$RUN_REFDATE-00000.nc
-      cd \$exedir
-      #-----------------------------------------------
-      # generate the appropriate restart pointer files
-      #-----------------------------------------------
-
-      #-------------------------------------------------------------------
-      # NOTE: in order to support branch and hybrid runs with netCDF ocean
-      # restart file, rpointer.ocn.restart file is NOT generated here. 
-      #-------------------------------------------------------------------
-
-cat >! \$exedir/rpointer.ocn.ovf << EOF
-\$exedir/\$OVF_FILE
-EOF
-
-cat >! \$exedir/rpointer.ocn.tavg << EOF
-\$exedir/\$TAVG_FILE
-EOF
-
-    endif
-
-EOF2
-endif
-
-
 #-----------------------------------------------------------------------
 #  set initial model date
 #  WARNING: These values are determined at configuration time. 
