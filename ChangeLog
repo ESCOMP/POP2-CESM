@@ -1,5 +1,35 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    17 November 2010
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101117
+Tag Summary: * major pio rewrite, synched with new pio, drv, scripts, and component-model tags for
+               cesm1_0_beta11
+             * add UVEL1, VVEL1 tavg output field support
+             * bugfix: fix corrupted gx3*_history_contents files
+              
+Tag Testing (njn01):
+  * cesm1_0_beta10 vs cesm1_0_beta10+ (updated drv,scripts,data model,pio, and pop2 tags)
+        C gx3v7, C gx1v6, CECO gx1v6  1-month runs, oob
+        C gx3v7 4 1-month runs with netCDF restart files, followed by one month with binary restart file
+        C gx3v7 1-month run with pnetcdf
+        CECO gx1v6 with pnetcdf -- fails. Reported error.
+  * cesm1_0_beta09 (?)
+        C, gx1v6 UVEL1, VVEL1 test run -- compare against surface *VEL values
+        test run with gx3v7_history_contents and history files activated
+
+Files Modified:
+M            25283   source/io_pio.F90
+M            25283   source/io_types.F90
+M            25283   source/io_netcdf.F90
+M            25283   source/ecosys_mod.F90
+M            25283   source/baroclinic.F90
+M            25283   input_templates/pop2_in_build.csh
+M            25283   input_templates/gx3v7_history_contents
+M            25283   input_templates/gx3v5_history_contents
+
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    25 October 2010
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101025
 Tag Summary: * Modify pop2.cpl7.template script so that it does not automatically

@@ -114,6 +114,8 @@
       tavg_S1_8,         &! tavg id for salinity    in top 8 lvls
       tavg_U1_8,         &! tavg id for U           in top 8 lvls
       tavg_V1_8,         &! tavg id for V           in top 8 lvls
+      tavg_U1_1,         &! tavg id for U           in top 1 lvl
+      tavg_V1_1,         &! tavg id for V           in top 1 lvl
       tavg_RESID_T,      &! free-surface residual flux (T)
       tavg_RESID_S        ! free-surface residual flux (S)
 
@@ -223,6 +225,14 @@
    call define_tavg_field(tavg_UDP,'UDP',3,                            &
                           long_name='Pressure work',                   &
                           units='erg', grid_loc='3221')
+
+   call define_tavg_field(tavg_U1_1,'U1_1',2,                          &
+                          long_name='Zonal Velocity lvls 1-1',         &
+                          units='centimeter/s', grid_loc='2221')
+
+   call define_tavg_field(tavg_V1_1,'V1_1',2,                          &
+                          long_name='Meridional Velocity lvls 1-1',    &
+                          units='centimeter/s', grid_loc='2221')
 
    call define_tavg_field(tavg_U1_8,'U1_8',2,                          &
                           long_name='Zonal Velocity lvls 1-8',         &
@@ -587,6 +597,11 @@
                                        tavg_UVEL2,iblock,k)
          endif
 
+         if (tavg_requested(tavg_U1_1) .and. k <= 1) then
+            call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock), &
+                                       tavg_U1_1,iblock,k)
+         endif
+
          if (tavg_requested(tavg_U1_8) .and. k <= 8) then
             call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock), &
                                        tavg_U1_8,iblock,k)
@@ -600,6 +615,11 @@
          if (tavg_requested(tavg_VVEL2)) then
             call accumulate_tavg_field(VVEL(:,:,k,curtime,iblock)**2, &
                                        tavg_VVEL2,iblock,k)
+         endif
+
+         if (tavg_requested(tavg_V1_1) .and. k <= 1) then
+            call accumulate_tavg_field(VVEL(:,:,k,curtime,iblock), &
+                                       tavg_V1_1,iblock,k)
          endif
 
          if (tavg_requested(tavg_V1_8) .and. k <= 8) then

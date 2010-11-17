@@ -120,7 +120,7 @@
       integer(i4)                                :: current_record ! bin
       logical(log_kind)                          :: readonly
       logical(log_kind)                          :: ldefine
-      type (File_desc_t) :: File(2)
+      type (File_desc_t)                         :: File
    end type
 
 ! !PUBLIC MEMBER FUNCTIONS:

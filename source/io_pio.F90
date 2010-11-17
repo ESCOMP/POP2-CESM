@@ -20,6 +20,7 @@ module io_pio
   use POP_IOUnitsMod
   use io_types
   use pio
+  use seq_io_mod,       only: seq_io_getiosys, seq_io_getiotype
 
   implicit none
   private
@@ -27,7 +28,7 @@ module io_pio
 
 !PUBLIC MEMBER FUNCTIONS:
 
-  public io_pio_init
+  public ::  io_pio_init
   public ::  io_pio_initdecomp  
 
 !PUBLIC DATA MEMBERS
@@ -40,11 +41,6 @@ module io_pio
 !     local variables
 !
 !-----------------------------------------------------------------------
-
-  integer, private      :: io_pio_stride, io_pio_num_iotasks, &
-	                   io_pio_root, io_pio_type
-
-  type(iosystem_desc_t), public :: io_pio_subsystem
 
   integer (i4), parameter :: nmax = 10
 
@@ -82,6 +78,7 @@ module io_pio
 ! !IROUTINE: io_pio_init - initialize io for input or output
 ! !INTERFACE: 
    subroutine io_pio_init(mode, filename, File, clobber, cdf64)
+     use pio
 !
 ! !DESCRIPTION:
 !    Read the pio_inparm namelist and initialize the io subsystem
@@ -106,25 +103,14 @@ module io_pio
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
-      nml_error          ! namelist read error flag
-
-   character(len=16)  :: io_pio_type_name
-
+   type(iosystem_desc_t), pointer :: io_pio_subsystem
    logical :: exists
    logical :: lclobber
    logical :: lcdf64
    integer :: status
    integer :: nmode
-   logical, save :: first_call = .true.
    character(*),parameter :: subName = '(io_pio_init) '
 
-   !  Input namelist
-    
-   namelist /io_pio_nml/    &
-        io_pio_num_iotasks, &
-        io_pio_stride,      &
-        io_pio_type_name 
 
 !-----------------------------------------------------------------------
 !
@@ -132,55 +118,7 @@ module io_pio
 !
 !-----------------------------------------------------------------------
 
-   if (first_call) then
-
-      ! io_pio_root must be set to master_task since since currrently non-standard 
-      ! variables are only written from master_task
-
-      io_pio_root =  master_task 
-
-      io_pio_num_iotasks   = -1  ! set based on io_stride value when initialized < 0
-      io_pio_stride    = -1  ! set based on num_iotasks value when initialized < 0
-      io_pio_type_name = 'netcdf'
-      
-      if (my_task == master_task) then
-         
-#ifdef CCSMCOUPLED
-         call get_unit(nml_in)
-#endif
-         open (nml_in, file=nml_filename, status='old',iostat=nml_error)
-         if (nml_error /= 0) then
-            nml_error = -1
-         else
-            nml_error =  1
-         endif
-         do while (nml_error > 0)
-            read(nml_in, nml=io_pio_nml,iostat=nml_error)
-         end do
-         if (nml_error == 0) close(nml_in)
-
-         call io_pio_set_params(io_pio_type_name)
-
-         write(stdout,*) 'POP2 PIO parameter settings...'
-         write(stdout,*) '  io_pio_stride    = ',io_pio_stride
-         write(stdout,*) '  io_pio_num_iotasks   = ',io_pio_num_iotasks
-         write(stdout,*) '  io pio_type_name = ',io_pio_type_name
-      endif
-
-      call broadcast_scalar(nml_error, master_task)
-      if (nml_error /= 0) then
-         call exit_POP(sigAbort,' error reading pio_nml')
-      endif
-      call broadcast_scalar(io_pio_num_iotasks, master_task)
-      call broadcast_scalar(io_pio_root,        master_task)
-      call broadcast_scalar(io_pio_stride,      master_task)
-      call broadcast_scalar(io_pio_type,        master_task)
-      
-      call pio_init(my_task, MPI_COMM_OCN, io_pio_num_iotasks, &
-           0, io_pio_stride, PIO_REARR_BOX, io_pio_subsystem, base=io_pio_root)
-
-      first_call = .false.
-   end if
+   io_pio_subsystem => seq_io_getiosys('OCN')
 
    if (trim(mode) == 'write') then
       lclobber = .false.
@@ -189,19 +127,23 @@ module io_pio
       lcdf64 = .false.
       if (present(cdf64)) lcdf64=cdf64
 
-      if (File%fh<0) then
+      if (.not. pio_file_is_open(file)) then
          ! filename not open
-         inquire(file=trim(filename),exist=exists)
+         if (my_task == master_task) then
+            inquire(file=trim(filename),exist=exists)
+         end if
+         call broadcast_scalar(exists, master_task)
+
          if (exists) then
             if (lclobber) then
                nmode = pio_clobber
                if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
-               status = pio_createfile(io_pio_subsystem, File, io_pio_type, trim(filename), nmode)
+               status = pio_createfile(io_pio_subsystem, File, seq_io_getiotype('OCN'), trim(filename), nmode)
                if (my_task == master_task) then
                   write(stdout,*) subname,' create file ',trim(filename)
                end if
             else
-               status = pio_openfile(io_pio_subsystem, File, io_pio_type, trim(filename), pio_write)
+               status = pio_openfile(io_pio_subsystem, File, seq_io_getiotype('OCN'), trim(filename), pio_write)
                if (my_task == master_task) then
                   write(stdout,*) subname,' open file ',trim(filename)
                end if
@@ -209,7 +151,7 @@ module io_pio
          else
             nmode = pio_noclobber
             if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
-            status = pio_createfile(io_pio_subsystem, File, io_pio_type, trim(filename), nmode)
+            status = pio_createfile(io_pio_subsystem, File, seq_io_getiotype('OCN'), trim(filename), nmode)
             if (my_task == master_task) then
                write(stdout,*) subname,' create file ',trim(filename)
             end if
@@ -220,9 +162,12 @@ module io_pio
    end if
 
    if (trim(mode) == 'read') then
-      inquire(file=trim(filename),exist=exists)
+      if (my_task == master_task) then
+         inquire(file=trim(filename),exist=exists)
+      end if
+      call broadcast_scalar(exists, master_task)
       if (exists) then
-         status = pio_openfile(io_pio_subsystem, File, io_pio_type, trim(filename), pio_nowrite)
+         status = pio_openfile(io_pio_subsystem, File, seq_io_getiotype('OCN'), trim(filename), pio_nowrite)
       else
          if(my_task==master_task) then
             write(stdout,*) 'io_pio_ropen ERROR: file invalid ',trim(filename)
@@ -232,78 +177,6 @@ module io_pio
    end if
       
   end subroutine io_pio_init
-
-!===============================================================================
-!BOP
-!
-! !IROUTINE: io_pio_set_params - set pio parameters
-!
-! !INTERFACE: 
-    subroutine io_pio_set_params(io_pio_type_name)
-!
-! !DESCRIPTION:
-!    Set the pio parameters for the subsystem
-!
-! !USES:
-!
-   use shr_string_mod,only: shr_string_toUpper
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-   implicit none
-   character(len=*), intent(in) :: io_pio_type_name
-!
-!EOP
-!
-   character(len=16) :: tmpname
-   integer (kind=int_kind) :: npes
-
-   tmpname = shr_string_toupper(io_pio_type_name)
-
-   if (trim(tmpname) == 'NETCDF') then
-      io_pio_type = iotype_netcdf
-   else if (trim(tmpname) == 'PNETCDF') then
-      io_pio_type = iotype_pnetcdf
-   else
-      if (my_task == master_task) then
-         write(stdout,*)' Bad io_type argument - using iotype_netcdf'
-      end if
-      io_pio_type = iotype_netcdf
-   end if
-
-   npes = get_num_procs()
-   if      (io_pio_stride>0 .and. io_pio_num_iotasks<0) then
-      io_pio_num_iotasks = npes/io_pio_stride
-   else if (io_pio_num_iotasks>0 .and. io_pio_stride<0) then
-      io_pio_stride = npes/io_pio_num_iotasks
-   else if (io_pio_num_iotasks<0 .and. io_pio_stride<0) then
-      io_pio_stride = max(min(npes,4),npes/8)
-      io_pio_num_iotasks = npes/io_pio_stride
-   end if
-
-   if (io_pio_root<0) then
-      io_pio_root = 1
-   endif
-   io_pio_root = min(io_pio_root,npes-1)
-   
-    if(io_pio_root + (io_pio_stride)*(io_pio_num_iotasks-1) >= npes .or. &
-       io_pio_stride<=0 .or. io_pio_num_iotasks<=0 .or. io_pio_root < 0 .or. &
-       io_pio_root > npes-1) then
-       if (my_task == master_task) then
-          write(stdout,*)&
-               'io_pio_stride or io_pio_num_iotasks out of bounds, resetting to defaults ',&
-               io_pio_stride, io_pio_num_iotasks, io_pio_root
-       end if
-       io_pio_stride = max(1,npes/4)
-       io_pio_num_iotasks = npes/io_pio_stride
-       io_pio_root = min(1,npes-1)
-    end if
-    if (my_task == master_task) then
-       write(stdout,*)'Using io_type=',tmpname,' stride=',io_pio_stride,&
-            ' iotasks=',io_pio_num_iotasks,' root=',io_pio_root
-    end if
-
-   end subroutine io_pio_set_params
 
 !================================================================================
 
@@ -320,7 +193,8 @@ module io_pio
 
       integer (kind=int_kind) :: &
           iblk,ib,ie,jb,je,lon,lat,i,j,n,k,index
-
+      
+      type(iosystem_desc_t), pointer :: io_pio_subsystem
       type(block) :: this_block 
 
       integer(kind=int_kind), pointer :: dof3d(:)
@@ -453,6 +327,7 @@ module io_pio
             end do
          end if
 
+         io_pio_subsystem => seq_io_getiosys('OCN')
          if (basetype == PIO_INT) then
             if (ndim3 == 0) then
                call pio_initdecomp(io_pio_subsystem, basetype, (/POP_nxGlobal,POP_nyGlobal/), &

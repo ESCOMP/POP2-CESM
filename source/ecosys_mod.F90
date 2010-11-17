@@ -5039,6 +5039,7 @@ contains
  subroutine ecosys_set_sflux(SHF_QSW_RAW, SHF_QSW, &
                              U10_SQR,IFRAC,PRESS,SST,SSS, &
                              SURF_VALS_OLD,SURF_VALS_CUR,STF_MODULE)
+   use seq_io_mod, only : seq_io_getiotype, seq_io_getiosys
 
 ! !DESCRIPTION:
 !  Compute surface fluxes for ecosys tracer module.
@@ -5556,6 +5557,7 @@ contains
                   &/ ':'
          end do
 
+ 
          call shr_strdata_create(ndep_sdat,name='ndep data',                   &
                                  mpicom=POP_communicator,                      &
                                  compid=POP_MCT_OCNID,                         &
@@ -5574,6 +5576,8 @@ contains
                                  FileName=(/trim(ndep_shr_stream_file)/),      &
                                  fldListFile=ndep_shr_stream_fldList,          &
                                  fldListModel=ndep_shr_stream_fldList,         &
+                                 pio_subsystem=seq_io_getiosys('OCN'),         &
+                                 pio_iotype=seq_io_getiotype('OCN'),           &
                                  fillalgo='none', mapalgo='none')
          if (my_task == master_task) then
             call shr_strdata_print(ndep_sdat)
