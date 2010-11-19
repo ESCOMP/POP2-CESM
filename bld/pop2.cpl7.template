@@ -9,7 +9,6 @@
 set    srcdir       = $CODEROOT/ocn/pop2
 set    my_path      = $CASEROOT/SourceMods/src.pop2
 
-setenv MY_PATH         $my_path
 setenv SRCDIR          $srcdir
 
 setenv OCN_PRESTAGE    FALSE
@@ -274,18 +273,19 @@ if (\$CONTINUE_RUN == 'TRUE') setenv runtype  continue
 
 setenv OCN_PRESTAGE  $OCN_PRESTAGE 
 
-set exedir  = \$RUNDIR
-set ocndir  = \$EXEROOT/ocn
-set rundir  = \$RUNDIR
-set objdir  = \$OBJROOT/ocn/obj
-set srcdir  = \$CODEROOT/ocn/pop2
-set my_path = \$CASEROOT/SourceMods/src.pop2
+set exedir   = \$RUNDIR
+set ocndir   = \$EXEROOT/ocn
+set rundir   = \$RUNDIR
+set objdir   = \$OBJROOT/ocn/obj
+set srcdir   = \$CODEROOT/ocn/pop2
+set my_path  = \$CASEROOT/SourceMods/src.pop2
+setenv MY_PATH \$CASEROOT/SourceMods/src.pop2    # used in ocn.*.setup.csh
+                                                # must be unresolved env var
 
 setenv INPUT            \$EXEROOT/ocn/input
 setenv INPUTDATA        \$DIN_LOC_ROOT/ocn/pop
 setenv INPUT_TEMPLATES  \$srcdir/input_templates
 
-setenv MY_PATH             $MY_PATH
 setenv SRCDIR              $SRCDIR
 
 setenv POP2_DOCDIR         \$CASEBUILD/pop2doc
@@ -389,7 +389,7 @@ echo  Begin identifying and collecting all pop2 input datasets                >>
     set chl_filename          = 'unknown_chl'
     set horiz_grid_filename   = 'unknown_horiz_grid'
     set init_ts_filename      = 'unknown_init_ts'
-    set regionmask_filename   = 'unknown_regionmask'
+    set regionmask_filename   = 'unknown_region_mask'
     set shf_filename          = 'unknown_shf'
     set sfwf_filename         = 'unknown_sfwf'
     set tidal_mixing_filename = 'unknown_tidal_mixing'
