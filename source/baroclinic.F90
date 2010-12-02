@@ -99,6 +99,8 @@
       tavg_SST,          &! tavg id for surface temperature
       tavg_SST2,         &! tavg id for surface temperature squared
       tavg_SALT,         &! tavg id for salinity
+      tavg_SALT_MAX,     &! tavg id for maximum salinity
+      tavg_SALT_MIN,     &! tavg id for minimum salinity
       tavg_TEMP2,        &! tavg id for temperature squared
       tavg_SALT2,        &! tavg id for salinity    squared
       tavg_UVEL,         &! tavg id for U velocity
@@ -330,7 +332,21 @@
    call define_tavg_field(tavg_SALT,'SALT',3,                          &
                           long_name='Salinity',                        &
                           units='gram/kilogram', grid_loc='3111',      &
-                          scale_factor=1000.0_rtavg,                      &
+                          scale_factor=1000.0_rtavg,                   &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_SALT_MAX,'SALT_MAX',3,                  &
+                          tavg_method=tavg_method_max,                 &
+                          long_name='Maximum Salinity',                &
+                          units='gram/kilogram', grid_loc='3111',      &
+                          scale_factor=1000.0_rtavg,                   &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_SALT_MIN,'SALT_MIN',3,                  &
+                          tavg_method=tavg_method_min,                 &
+                          long_name='Minimum Salinity',                &
+                          units='gram/kilogram', grid_loc='3111',      &
+                          scale_factor=1000.0_rtavg,                   &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_TEMP2,'TEMP2',3,                        &
@@ -703,6 +719,15 @@
                                        tavg_SALT,iblock,k)
          endif
 
+         if (tavg_requested(tavg_SALT_MAX)) then
+            call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
+                                       tavg_SALT_MAX,iblock,k)
+         endif
+
+         if (tavg_requested(tavg_SALT_MIN)) then
+            call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
+                                       tavg_SALT_MIN,iblock,k)
+         endif
          if (tavg_requested(tavg_S1_8) .and. k <= 8) then
             call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
                                        tavg_S1_8,iblock,k)

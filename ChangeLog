@@ -1,5 +1,34 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    02 December 2010
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101201
+Tag Summary: * Add tavg SALT_MIN, SALT_MAX code support and SALT_MIN, SALT_MAX, 
+               TEMP_MIN, TEMP_MAX tavg_contents support.
+             * Correction: single--> double precision overflows state constants.
+               Move special-purpose overflows state subroutine to state_mod and rename.
+               Add a fatal-error check to POP_check to trap inconsistencies between
+               overflows and base-model state module settings.
+              
+Tag Testing (njn01):
+  * cesm1_0_beta11 test case: C, T62_gx3v7, one-month run with SALT_MIN, SALT_MAX,
+    TEMP_MIN, TEMP_MAX active. Test: ncdump inspection.
+  * cesm1_0_beta10 test case: C, T62_gx1v6
+      o five-day smoke test 
+      o one-month side-by-side comparison with single-precision-constants version; approved by bruceb.
+      o inconsistency-trapping test (state_range_opt  = 'ignore'): Error was trapped.
+   
+Code Review: njn01 and bruceb 2010-12-01 (overflows)
+
+Files Modified:
+M            25641   source/overflows.F90
+M            25641   source/initial.F90
+M            25642   source/baroclinic.F90
+M            25641   source/state_mod.F90
+M            25641   input_templates/gx3v7_tavg_contents
+M            25641   input_templates/gx1v6_tavg_contents
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    18 November 2010
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101118
 Tag Summary: * fix MY_PATH bug: must not be resolved in order for clone to work

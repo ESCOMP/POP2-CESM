@@ -44,6 +44,7 @@
    use prognostic
    use time_management
    use registry
+   use state_mod
 
    !*** ccsm
    use gather_scatter
@@ -72,7 +73,6 @@
              ovf_driver,                &   ! step_mod.F90
              ovf_reg_avgs,              &
              ovf_transports,            &
-             ovf_state,                 &
              ovf_loc_prd,               &
              ovf_W,                     &
              ovf_UV,                    &
@@ -327,9 +327,8 @@
    character (char_len) ::  &
       ccsm_diag_date
 
-   logical (log_kind) ::                 &
-      lccsm = .false.,                   &
-      lccsm_control_compatible = .false.
+   logical (log_kind) ::    &
+      lccsm = .false.
    
    character (10) ::  &
       cdate            ! character date
@@ -457,11 +456,9 @@
 !-----------------------------------------------------------------------
 !
 !  determine if this is a ccsm coupled run
-!  determine if this case must be backwards compatible with CCSM control
 !-----------------------------------------------------------------------
 
    lccsm                    = registry_match('lccsm')
-   lccsm_control_compatible = registry_match('lccsm_control_compatible')
 
 !-----------------------------------------------------------------------
 !  overflows on; read overflows info file if ccsm_startup; otherwise 
@@ -3962,14 +3959,14 @@
    ! set region T,S and compute densities
       T_i     = ovf(n)%trcr_reg%inf(1)
       S_i     = ovf(n)%trcr_reg%inf(2)
-         call ovf_state(T_i,S_i,ds,rho_i)
+         call state_singlept(T_i,S_i,ds,rho_i)
       T_s     = ovf(n)%trcr_reg%src(1)
       S_s     = ovf(n)%trcr_reg%src(2)
-         call ovf_state(T_s,S_s,ds,rho_s)
-         call ovf_state(T_s,S_s,de,rho_sed)
+         call state_singlept(T_s,S_s,ds,rho_s)
+         call state_singlept(T_s,S_s,de,rho_sed)
       T_e     = ovf(n)%trcr_reg%ent(1)
       S_e     = ovf(n)%trcr_reg%ent(2)
-         call ovf_state(T_e,S_e,de,rho_e)
+         call state_singlept(T_e,S_e,de,rho_e)
    ! compute inflow/source reduced gravity and source transport
       gp_s    = grav*(rho_s-rho_i)/rho_sw
    ! if no source overflow, zero out transports
@@ -4064,212 +4061,6 @@
 
 !***********************************************************************
 !EOP
-! !IROUTINE: ovf_state
-! !INTERFACE:
-
- subroutine ovf_state(TEMPK,SALTK,DEPTHM,RHOFULL)
-
-! !DESCRIPTION:
-!  Evaluate ovf state- for given T,S, and depth, compute and return density
-!-----------------------------------------------------------------------
-!     calculate density of water at level k from equation of state
-!     rho = rho(depth,pot.temperature,salinity). the density can be
-!     returned as a perturbation (RHOOUT) or as the full density
-!     (RHOFULL).
-!
-!     This routine also computes derivatives of density with respect
-!     to temperature and salinity at level k from equation of state
-!     if requested (ie the optional arguments are present)
-!
-!   * normally kk = k, but kk may = k+1 for adiabatic displacement
-!     to next lower level
-!
-!     this routine supports three forms of the EOS (see module comments
-!     at the top)
-!-----------------------------------------------------------------------
-!
-! !REVISION HISTORY:
-!  same as module
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!     input variables:
-!-----------------------------------------------------------------------
-
-   real (r8) :: &
-     TEMPK,     & ! temperature at depthm
-     SALTK        ! salinity    at depthm
-
-   real (r8) :: &
-     DEPTHM       ! depth in centimeters
-
-!-----------------------------------------------------------------------
-!     output variables:
-!-----------------------------------------------------------------------
-
-   real (r8) :: & 
-     RHOFULL      ! full water density (g/cm3) at level k after adiab disp
-
-!-----------------------------------------------------------------------
-!     local variables:
-!-----------------------------------------------------------------------
-   save
-
-   real (r8) ::       &
-     TQ,SQ,           & ! adjusted T,S
-     BULK_MOD,        & ! Bulk modulus
-     RHO0,            & ! density at the surface
-     SQR,DENOMK,      & ! work arrays
-     WORK1, WORK2,    & ! work arrays
-     WORK3, WORK4, T2
-
-! MWJF numerator coefficients including pressure
-
-   real (r8) ::                                                       &
-     mwjfnums0t0, mwjfnums0t1, mwjfnums0t2, mwjfnums0t3,              &
-     mwjfnums1t0, mwjfnums1t1, mwjfnums2t0,                           &
-     mwjfdens0t0, mwjfdens0t1, mwjfdens0t2, mwjfdens0t3, mwjfdens0t4, &
-     mwjfdens1t0, mwjfdens1t1, mwjfdens1t3,                           &
-     mwjfdensqt0, mwjfdensqt2
-
-! MWJ numerator coefficients including pressure
-
-   real (r8) ::                                      &
-     mwjnums0t0, mwjnums0t1, mwjnums0t2, mwjnums0t3, &
-     mwjnums1t0, mwjnums1t1, mwjnums2t0
-
-   real (r8) ::  p, p2 ! temporary pressure scalars
-
-!-----------------------------------------------------------------------
-!     MWJF EOS coefficients
-!-----------------------------------------------------------------------
-
-! these constants will be used to construct the numerator
-! factor unit change (kg/m^3 -> g/cm^3) into numerator terms
-
-   real (r8), parameter ::                 &
-     p001=.001,                            &
-     mwjfnp0s0t0 =   9.99843699e+2 * p001, &
-     mwjfnp0s0t1 =   7.35212840e+0 * p001, &
-     mwjfnp0s0t2 =  -5.45928211e-2 * p001, &
-     mwjfnp0s0t3 =   3.98476704e-4 * p001, &
-     mwjfnp0s1t0 =   2.96938239e+0 * p001, &
-     mwjfnp0s1t1 =  -7.23268813e-3 * p001, &
-     mwjfnp0s2t0 =   2.12382341e-3 * p001, &
-     mwjfnp1s0t0 =   1.04004591e-2 * p001, &
-     mwjfnp1s0t2 =   1.03970529e-7 * p001, &
-     mwjfnp1s1t0 =   5.18761880e-6 * p001, &
-     mwjfnp2s0t0 =  -3.24041825e-8 * p001, &
-     mwjfnp2s0t2 =  -1.23869360e-11 * p001
-
-! these constants will be used to construct the denominator
-
-   real (r8), parameter ::           &
-     mwjfdp0s0t0 =   1.0e+0,         &
-     mwjfdp0s0t1 =   7.28606739e-3,  &
-     mwjfdp0s0t2 =  -4.60835542e-5,  &
-     mwjfdp0s0t3 =   3.68390573e-7,  &
-     mwjfdp0s0t4 =   1.80809186e-10, &
-     mwjfdp0s1t0 =   2.14691708e-3,  &
-     mwjfdp0s1t1 =  -9.27062484e-6,  &
-     mwjfdp0s1t3 =  -1.78343643e-10, &
-     mwjfdp0sqt0 =   4.76534122e-6,  &
-     mwjfdp0sqt2 =   1.63410736e-9,  &
-     mwjfdp1s0t0 =   5.30848875e-6,  &
-     mwjfdp2s0t3 =  -3.03175128e-16, &
-     mwjfdp3s0t1 =  -1.27934137e-17
-
-   logical (log_kind), parameter :: prnt = .false.
-
-!-----------------------------------------------------------------------
-
-   if(prnt) then
-      write(stdout,1234) TEMPK,SALTK*c1000,DEPTHM
-      1234 format(' Density test input TEMPK,SALTK,DEPTHM = ', & 
-      2(f8.4,2x),f10.1)
-      call shr_sys_flush(stdout)
-   endif
-
-   if (lccsm_control_compatible) then
-     TQ = TEMPK
-     SQ = SALTK*c1000         ! input salt in fraction; convert to ppt
-   else
-     TQ = max(-2.0_r8,TEMPK)
-     SQ = max(c0,SALTK*c1000) ! input salt in fraction; convert to ppt
-   endif
-
-!-----------------------------------------------------------------------
-!     now compute density or expansion coefficients
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!     McDougall, Wright, Jackett, and Feistel EOS
-!     test value : rho = 1.033213387 for
-!     S = 35.0 PSU, theta = 20.0, pressz = 200.0
-!-----------------------------------------------------------------------
-
-! depth input as cm; m internal, so convert
-   p   = depthm/100.0_r8
-
-! first calculate numerator of MWJF density [P_1(S,T,p)]
-
-   mwjfnums0t0 = mwjfnp0s0t0 + p*(mwjfnp1s0t0 + p*mwjfnp2s0t0)
-   mwjfnums0t1 = mwjfnp0s0t1
-   mwjfnums0t2 = mwjfnp0s0t2 + p*(mwjfnp1s0t2 + p*mwjfnp2s0t2)
-   mwjfnums0t3 = mwjfnp0s0t3
-   SQR = sqrt(SQ)
-
-! first calculate numerator of MWJF density [P_1(S,T,p)]
-
-   mwjfnums0t0 = mwjfnp0s0t0 + p*(mwjfnp1s0t0 + p*mwjfnp2s0t0)
-   mwjfnums0t1 = mwjfnp0s0t1
-   mwjfnums0t2 = mwjfnp0s0t2 + p*(mwjfnp1s0t2 + p*mwjfnp2s0t2)
-   mwjfnums0t3 = mwjfnp0s0t3
-   mwjfnums1t0 = mwjfnp0s1t0 + p*mwjfnp1s1t0
-   mwjfnums1t1 = mwjfnp0s1t1
-   mwjfnums2t0 = mwjfnp0s2t0
-
-   WORK1 = mwjfnums0t0 + TQ * (mwjfnums0t1 + TQ * (mwjfnums0t2 + &
-      mwjfnums0t3 * TQ)) + SQ * (mwjfnums1t0 +                   &
-      mwjfnums1t1 * TQ + mwjfnums2t0 * SQ)
-
-! now calculate denominator of MWJF density [P_2(S,T,p)]
-
-   mwjfdens0t0 = mwjfdp0s0t0 + p*mwjfdp1s0t0
-   mwjfdens0t1 = mwjfdp0s0t1 + p**3 * mwjfdp3s0t1
-   mwjfdens0t2 = mwjfdp0s0t2
-   mwjfdens0t3 = mwjfdp0s0t3 + p**2 * mwjfdp2s0t3
-   mwjfdens0t4 = mwjfdp0s0t4
-   mwjfdens1t0 = mwjfdp0s1t0
-   mwjfdens1t1 = mwjfdp0s1t1
-   mwjfdens1t3 = mwjfdp0s1t3
-   mwjfdensqt0 = mwjfdp0sqt0
-   mwjfdensqt2 = mwjfdp0sqt2
-
-   WORK2 = mwjfdens0t0 + TQ * (mwjfdens0t1 + TQ * (mwjfdens0t2 +  &
-      TQ * (mwjfdens0t3 + mwjfdens0t4 * TQ))) +                   &
-      SQ * (mwjfdens1t0 + TQ * (mwjfdens1t1 + TQ*TQ*mwjfdens1t3)+ &
-      SQR * (mwjfdensqt0 + TQ*TQ*mwjfdensqt2))
-
-   DENOMK = c1/WORK2
-
-! output density in g/cm3
-   RHOFULL = WORK1*DENOMK
-
-   if(prnt) then
-      write(stdout,2345) RHOFULL
-      2345 format(' ovf_state: RHOFULL output = ',f10.5)
-      call shr_sys_flush(stdout)
-   endif
-
-!----------------------------------------------------------------------
-!EOC
-
- end subroutine ovf_state
-
-!***********************************************************************
-!EOP
 ! !IROUTINE: ovf_loc_prd
 ! !INTERFACE:
 
@@ -4341,14 +4132,14 @@
       if(ovf(n)%num_prd_sets .eq. 1) then
          m_neut = 1
          k_p = (ovf(n)%adj_prd(1)%kmin+ovf(n)%adj_prd(1)%kmax)/2
-         call ovf_state(T_p,S_p,zt(k_p),rho_p)
+         call state_singlept(T_p,S_p,zt(k_p),rho_p)
       else
 ! search from deepest to shallowest to allow product water
 ! to go to the deepest possible level
          do m=ovf(n)%num_prd_sets-1,1,-1
             k_p = (ovf(n)%adj_prd(m)%kmin+ovf(n)%adj_prd(m)%kmax)/2
             ! get product level for this set
-            call ovf_state(T_p,S_p,zt(k_p),rho_p)
+            call state_singlept(T_p,S_p,zt(k_p),rho_p)
             if(prnt .and. my_task == master_task) then
                write(stdout,5) m,(ovf(n)%rho_adj%prd(m-1)-c1)*c1000, &
                                  (ovf(n)%rho_adj%prd(m)-c1)*c1000, &

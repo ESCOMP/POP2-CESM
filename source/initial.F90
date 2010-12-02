@@ -48,7 +48,8 @@
    use horizontal_mix, only: init_horizontal_mix
    use advection, only: init_advection
    use diagnostics, only: init_diagnostics
-   use state_mod, only: init_state, state
+   use state_mod, only: init_state, state, state_itype, state_type_mwjf, state_range_iopt, &
+      state_range_enforce 
    use time_management, only: first_step, init_time1, init_time2, &
                               dttxcel, dtuxcel, check_time_flag_int,  &
                               get_time_flag_id
@@ -1784,7 +1785,7 @@
 
    if (check_all(ltidal_mixing .and. vmix_itype /= vmix_type_kpp)) then
      exit_string =   &
-     'FATAL ERROR::  Tidally driven mixing is only allowed when KPP mixing is enabled' 
+     'FATAL ERROR:  Tidally driven mixing is only allowed when KPP mixing is enabled' 
      call document ('POP_check', exit_string)
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif
@@ -1797,7 +1798,7 @@
 
    if (check_all(ltidal_mixing .and. bckgrnd_vdc2 /= c0)) then
      exit_string =   &
-    'FATAL ERROR::  bckgrnd_vdc2 must be zero when tidal_mixing option is enabled'
+    'FATAL ERROR:  bckgrnd_vdc2 must be zero when tidal_mixing option is enabled'
      call document ('POP_check', exit_string)
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif
@@ -1838,7 +1839,7 @@
 
    if (check_all(luse_cpl_ifrac .and. .not. allocated(OCN_WGT))) then
      exit_string =   &
-     'FATAL ERROR::  cannot set luse_cpl_ifrac .true. without allocating OCN_WGT'
+     'FATAL ERROR:  cannot set luse_cpl_ifrac .true. without allocating OCN_WGT'
      call document ('POP_check', exit_string)
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif
@@ -1854,7 +1855,7 @@
      if ((.not. ecosys_qsw_distrb_const) .and. &
          (qsw_distrb_iopt == qsw_distrb_iopt_const)) then
        exit_string = &
-       'FATAL ERROR:: cannot set ecosys_qsw_distrb_const=.false. unless qsw_distrb_opt/=const'
+       'FATAL ERROR: cannot set ecosys_qsw_distrb_const=.false. unless qsw_distrb_opt/=const'
        call document ('POP_check', exit_string)
        number_of_fatal_errors = number_of_fatal_errors + 1
      endif
@@ -1868,7 +1869,7 @@
 !-----------------------------------------------------------------------
 
    if (sfc_layer_type == sfc_layer_varthick .and. .not. lfw_as_salt_flx) then
-     exit_string =  'FATAL ERROR::  untested/unsupported combination of options'
+     exit_string =  'FATAL ERROR:  untested/unsupported combination of options'
      exit_string =   trim(exit_string) /&
      &/' (sfc_layer_type == sfc_layer_varthick .and. .not. lfw_as_salt_flx)'
      call document ('POP_check', exit_string)
@@ -1882,7 +1883,7 @@
 !-----------------------------------------------------------------------
 
   if (linertial) then
-     exit_string =  'FATAL ERROR::  inertial mixing option. '
+     exit_string =  'FATAL ERROR:  inertial mixing option. '
      exit_string =   trim(exit_string) /&
      &/' This option does not exactly restart and is untested. DO NOT USE!'
      call document ('POP_check', exit_string)
@@ -1896,7 +1897,7 @@
 !-----------------------------------------------------------------------
 
   if (linertial .and. (.not. registry_match('diag_gm_bolus') .or. partial_bottom_cells)) then
-     exit_string =  'FATAL ERROR::  inertial mixing option inconsistency. '
+     exit_string =  'FATAL ERROR:  inertial mixing option inconsistency. '
      exit_string =   trim(exit_string) /&
      &/' diag_gm_bolus must be on and partial_bottom_cells must not be on'
      call document ('POP_check', exit_string)
@@ -1911,7 +1912,23 @@
 
    if ( overflows_on ) then
      if ( overflows_interactive .and. .not. registry_match('topography_opt_file') ) then
-        exit_string = 'FATAL ERROR:: interactive overflows without topography option = file'
+        exit_string = 'FATAL ERROR: interactive overflows without topography option = file'
+        call document ('POP_check', exit_string)
+        number_of_fatal_errors = number_of_fatal_errors + 1
+     endif
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  overflow check: if overflow active, must set state_range_iopt  = state_range_enforce
+!     and state_itype = state_type_mwjf for consistency
+!
+!-----------------------------------------------------------------------
+
+   if ( overflows_on ) then
+     if ( .not. (state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) ) then
+        exit_string = 'FATAL ERROR: if overflows are active, must have state_range_opt = enforce '/&
+         &/' and state_choice = mwjf for consistency. You can uncomment this and procede at your own risk.'
         call document ('POP_check', exit_string)
         number_of_fatal_errors = number_of_fatal_errors + 1
      endif

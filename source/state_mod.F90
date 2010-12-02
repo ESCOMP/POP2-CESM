@@ -50,7 +50,8 @@
 
    public :: state,        &
              init_state,   &
-             ref_pressure
+             ref_pressure, &
+             state_singlept
 
 !EOP
 !BOC
@@ -71,20 +72,20 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind), parameter :: &
+   integer (int_kind), public, parameter :: &
       state_type_jmcd       = 1,    &! integer ids for state choice
       state_type_mwjf       = 2,    &
       state_type_polynomial = 3,    &
       state_type_linear     = 4
 
-   integer (int_kind) ::    &
+   integer (int_kind), public ::    &
       state_itype           ! input state type chosen
 
-   integer (int_kind) ::    &
+   integer (int_kind), public ::    &
       state_range_iopt,     &! option for checking valid T,S range
       state_range_freq       ! freq (in steps) for checking T,S range
 
-   integer (int_kind), parameter :: &
+   integer (int_kind), public, parameter :: &
       state_range_ignore  = 1, &! do not check T,S range
       state_range_check   = 2, &! check T,S range and report invalid
       state_range_enforce = 3   ! force polynomial eval within range
@@ -224,6 +225,15 @@
       rho_leos_ref = 1.025022_r8, &! ref dens (g/cm3) at ref T,S and 0 bar
       alf = 2.55e-4_r8,           &! expansion coeff -(drho/dT) (gr/cm^3/K)
       bet = 7.64e-1_r8             ! expansion coeff (drho/dS) (gr/cm^3/msu)
+
+!-----------------------------------------------------------------------
+!
+!  logical control parameters
+!
+!-----------------------------------------------------------------------
+
+   logical (log_kind) ::  &
+     lccsm_control_compatible
 
 !EOC
 !***********************************************************************
@@ -656,6 +666,169 @@
 
  end subroutine state
 
+
+
+ subroutine state_singlept(TEMPK,SALTK,DEPTHM,RHOFULL)
+
+! !DESCRIPTION:
+!  Evaluate state for a single point- for given T,S, and depth, compute and return density
+!-----------------------------------------------------------------------
+!     This routine was originally called ovf_state and was located in the
+!     overflows.F90 module.
+!
+!     calculate density of water at level k from equation of state
+!     at a single point.
+!     rho = rho(depth,pot.temperature,salinity). the density can be
+!     returned as a perturbation (RHOOUT) or as the full density
+!     (RHOFULL).
+!
+!     This routine also computes derivatives of density with respect
+!     to temperature and salinity at level k from equation of state
+!     if requested (ie the optional arguments are present)
+!
+!   * normally kk = k, but kk may = k+1 for adiabatic displacement
+!     to next lower level
+!
+!     this routine supports three forms of the EOS (see module comments
+!     at the top)
+!
+!-----------------------------------------------------------------------
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!     input variables:
+!-----------------------------------------------------------------------
+
+   real (r8) :: &
+     TEMPK,     & ! temperature at depthm
+     SALTK        ! salinity    at depthm
+
+   real (r8) :: &
+     DEPTHM       ! depth in centimeters
+
+!-----------------------------------------------------------------------
+!     output variables:
+!-----------------------------------------------------------------------
+
+   real (r8) :: & 
+     RHOFULL      ! full water density (g/cm3) at level k after adiab disp
+
+!-----------------------------------------------------------------------
+!     local variables:
+!-----------------------------------------------------------------------
+   save
+
+   real (r8) ::       &
+     TQ,SQ,           & ! adjusted T,S
+     BULK_MOD,        & ! Bulk modulus
+     RHO0,            & ! density at the surface
+     SQR,DENOMK,      & ! work arrays
+     WORK1, WORK2,    & ! work arrays
+     WORK3, WORK4, T2
+
+! MWJF numerator coefficients including pressure
+
+   real (r8) ::                                                       &
+     mwjfnums0t0, mwjfnums0t1, mwjfnums0t2, mwjfnums0t3,              &
+     mwjfnums1t0, mwjfnums1t1, mwjfnums2t0,                           &
+     mwjfdens0t0, mwjfdens0t1, mwjfdens0t2, mwjfdens0t3, mwjfdens0t4, &
+     mwjfdens1t0, mwjfdens1t1, mwjfdens1t3,                           &
+     mwjfdensqt0, mwjfdensqt2
+
+   real (r8) ::  p, p2 ! temporary pressure scalars
+
+   logical (log_kind), parameter :: prnt = .false.
+
+!-----------------------------------------------------------------------
+
+   if(prnt) then
+      write(stdout,1234) TEMPK,SALTK*c1000,DEPTHM
+      1234 format(' Density test input TEMPK,SALTK,DEPTHM = ', & 
+      2(f8.4,2x),f10.1)
+      call shr_sys_flush(stdout)
+   endif
+
+   if (lccsm_control_compatible) then
+     TQ = TEMPK
+     SQ = SALTK*c1000         ! input salt in fraction; convert to ppt
+   else
+     TQ = max(-2.0_r8,TEMPK)
+     SQ = max(c0,SALTK*c1000) ! input salt in fraction; convert to ppt
+   endif
+
+!-----------------------------------------------------------------------
+!     now compute density or expansion coefficients
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!     McDougall, Wright, Jackett, and Feistel EOS
+!     test value : rho = 1.033213387 for
+!     S = 35.0 PSU, theta = 20.0, pressz = 200.0
+!-----------------------------------------------------------------------
+
+! depth input as cm; m internal, so convert
+   p   = depthm/100.0_r8
+
+! first calculate numerator of MWJF density [P_1(S,T,p)]
+
+   mwjfnums0t0 = mwjfnp0s0t0 + p*(mwjfnp1s0t0 + p*mwjfnp2s0t0)
+   mwjfnums0t1 = mwjfnp0s0t1
+   mwjfnums0t2 = mwjfnp0s0t2 + p*(mwjfnp1s0t2 + p*mwjfnp2s0t2)
+   mwjfnums0t3 = mwjfnp0s0t3
+   SQR = sqrt(SQ)
+
+! first calculate numerator of MWJF density [P_1(S,T,p)]
+
+   mwjfnums0t0 = mwjfnp0s0t0 + p*(mwjfnp1s0t0 + p*mwjfnp2s0t0)
+   mwjfnums0t1 = mwjfnp0s0t1
+   mwjfnums0t2 = mwjfnp0s0t2 + p*(mwjfnp1s0t2 + p*mwjfnp2s0t2)
+   mwjfnums0t3 = mwjfnp0s0t3
+   mwjfnums1t0 = mwjfnp0s1t0 + p*mwjfnp1s1t0
+   mwjfnums1t1 = mwjfnp0s1t1
+   mwjfnums2t0 = mwjfnp0s2t0
+
+   WORK1 = mwjfnums0t0 + TQ * (mwjfnums0t1 + TQ * (mwjfnums0t2 + &
+      mwjfnums0t3 * TQ)) + SQ * (mwjfnums1t0 +                   &
+      mwjfnums1t1 * TQ + mwjfnums2t0 * SQ)
+
+! now calculate denominator of MWJF density [P_2(S,T,p)]
+
+   mwjfdens0t0 = mwjfdp0s0t0 + p*mwjfdp1s0t0
+   mwjfdens0t1 = mwjfdp0s0t1 + p**3 * mwjfdp3s0t1
+   mwjfdens0t2 = mwjfdp0s0t2
+   mwjfdens0t3 = mwjfdp0s0t3 + p**2 * mwjfdp2s0t3
+   mwjfdens0t4 = mwjfdp0s0t4
+   mwjfdens1t0 = mwjfdp0s1t0
+   mwjfdens1t1 = mwjfdp0s1t1
+   mwjfdens1t3 = mwjfdp0s1t3
+   mwjfdensqt0 = mwjfdp0sqt0
+   mwjfdensqt2 = mwjfdp0sqt2
+
+   WORK2 = mwjfdens0t0 + TQ * (mwjfdens0t1 + TQ * (mwjfdens0t2 +  &
+      TQ * (mwjfdens0t3 + mwjfdens0t4 * TQ))) +                   &
+      SQ * (mwjfdens1t0 + TQ * (mwjfdens1t1 + TQ*TQ*mwjfdens1t3)+ &
+      SQR * (mwjfdensqt0 + TQ*TQ*mwjfdensqt2))
+
+   DENOMK = c1/WORK2
+
+! output density in g/cm3
+   RHOFULL = WORK1*DENOMK
+
+   if(prnt) then
+      write(stdout,2345) RHOFULL
+      2345 format(' state_singlept: RHOFULL output = ',f10.5)
+      call shr_sys_flush(stdout)
+   endif
+
+!----------------------------------------------------------------------
+!EOC
+
+ end subroutine state_singlept
+
 !***********************************************************************
 !BOP
 ! !IROUTINE: ref_pressure
@@ -958,6 +1131,14 @@
       smax = 0.042_r8 
 
    end select
+
+!-----------------------------------------------------------------------
+!
+!  backwards compatability flag for certain CMIP5 runs
+!
+!-----------------------------------------------------------------------
+
+   lccsm_control_compatible = registry_match('lccsm_control_compatible')
 
 !-----------------------------------------------------------------------
 !EOC
