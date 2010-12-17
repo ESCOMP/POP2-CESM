@@ -36,6 +36,7 @@
    use broadcast
    use time_management
    use exit_mod
+   use shr_sys_mod
 
 #ifdef CCSMCOUPLED
    !*** ccsm

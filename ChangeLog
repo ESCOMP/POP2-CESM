@@ -1,5 +1,17 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    17 December 2010
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101217
+Tag Summary: * add "use shr_sys_mod" to state_mod.F90
+              
+Tag Testing:
+  * cesm1_0_beta13 pre-tag testing
+
+Files Modified:
+M            25901   source/state_mod.F90
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    02 December 2010
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101201
 Tag Summary: * Add tavg SALT_MIN, SALT_MAX code support and SALT_MIN, SALT_MAX, 
