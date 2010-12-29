@@ -57,9 +57,9 @@ contains
  subroutine data_set_nstd_ccsm (data_file,operation,field_id, &
                                 ndims,io_dims,nftype,         &
                                 short_name,long_name,units,   &
+                                time_dim,                     &
                                 coordinates,                  &
                                 fill_value,                   &
-                                implied_time_dim,             &
                                 data_1d_r8,                   &
                                 data_2d_r8,                   &
                                 data_2d_r4,                   &
@@ -119,12 +119,11 @@ contains
 
    type (io_dim), intent(inout)  ::  &
       io_dims(:)
-   
-   logical (log_kind), intent(inout) ::  &
-      implied_time_dim
+
+   type (io_dim), optional ::   &
+      time_dim         ! dimension descriptor for (unlimited) time dim
 
    optional ::            & 
-      implied_time_dim,   &
       short_name,         &
       long_name,          &
       units,              &
@@ -146,10 +145,18 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: num_writes  ! place-holder until more than one
-                                     ! time level written to a single file
-
+   integer (int_kind) :: &
+      ndims_total,       &
+      nn
+                        
    logical (log_kind) :: supported
+   logical (log_kind) :: lactive_time_dim
+
+   integer (int_kind), parameter ::  &
+      max_io_dims = 20
+
+   type (io_dim)      ::  &
+      io_dims_total(max_io_dims)
 
 !-----------------------------------------------------------------------
 !
@@ -160,6 +167,39 @@ contains
    if (data_file%data_format=='bin') then
          call exit_POP(sigAbort, &
              '(data_set_nstd_ccsm) ERROR: cannot call this routine with bin format')
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  Deal with optional time dimension
+!
+!-----------------------------------------------------------------------
+
+   if (present (time_dim)) then
+     if (time_dim%active) then
+      lactive_time_dim = .true.
+     else
+      lactive_time_dim = .false.
+     endif
+   else
+      lactive_time_dim = .false.
+   endif
+
+   if (lactive_time_dim) then
+       ndims_total = ndims + 1
+   else
+       ndims_total = ndims
+   endif
+
+   if (ndims_total >= max_io_dims)   &
+        call exit_POP(sigAbort,'(data_set_nstd_ccsm) ERROR: ndims is too large')
+
+   do nn=1,ndims
+     io_dims_total(nn) = io_dims(nn)
+   enddo
+
+   if (lactive_time_dim) then
+     io_dims_total(ndims_total) = time_dim
    endif
 
 !-----------------------------------------------------------------------
@@ -178,7 +218,8 @@ contains
 
    case ('define')
 
-      call define_nstd_netcdf(data_file, ndims, io_dims, field_id,  &
+      call define_nstd_netcdf(data_file, ndims_total, io_dims_total,&
+                              field_id,                             &
                               short_name, long_name, units,         &
                               coordinates=coordinates,              &
                               fill_value=fill_value,                &
@@ -192,12 +233,10 @@ contains
 
    case ('write')
 
-      num_writes =  1  ! for now, only support one time value per output file
-      
       call write_nstd_netcdf(                     &
-           data_file, field_id,num_writes,        &
+           data_file, field_id,                   &
            ndims, io_dims,nftype,                 &
-           implied_time_dim=implied_time_dim,     &
+           lactive_time_dim=lactive_time_dim,     &
            indata_1d_r8=data_1d_r8,               & ! pass all data arrays 
            indata_2d_r8=data_2d_r8,               & ! to write_nstd_netcdf
            indata_2d_r4=data_2d_r4,               &

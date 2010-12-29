@@ -270,7 +270,7 @@
       ldiag_bsf,                  &
       ldiag_gm_bolus,             &! logical for diag_gm_bolus
       lsubmeso,                   &! logical for submesoscale_mixing
-      implied_time_dim,           &
+      lactive_time_dim,           &
       ltavg_fmt_out_nc,           &! true if netCDF output format
       ltavg_streams_index_present  ! true if using new streams tavg_contents;
                                    ! false if using standard tavg_contents
@@ -1156,6 +1156,7 @@
 !-----------------------------------------------------------------------
 
    !*** define dimensions for tavg output files
+   !    redefined below if ccsm
    i_dim     = construct_io_dim('i',nx_global)
    j_dim     = construct_io_dim('j',ny_global)
    k_dim     = construct_io_dim('k',km)
@@ -1928,6 +1929,7 @@
               short_name=avail_tavg_nstd_fields(nn)%short_name,   &
                long_name=avail_tavg_nstd_fields(nn)%long_name,    &
                    units=avail_tavg_nstd_fields(nn)%units,        &
+                time_dim=time_dim,                                &
              coordinates=avail_tavg_nstd_fields(nn)%coordinates,  &
               fill_value=undefined_nf_r4,                         & ! kludge for r4 MOC,etc
                   nftype=avail_tavg_nstd_fields(nn)%nftype        )
@@ -5628,13 +5630,13 @@
         io_dims(:) = io_dims_labels(:,indx)
         id = avail_tavg_labels_id(indx)
         nftype = 'char'
-        implied_time_dim = .false.
+        lactive_time_dim = .false.
  
 
       call data_set_nstd_ccsm (tavg_file_desc, 'write',    &
                                id, ndims, io_dims, nftype, &
-              implied_time_dim=implied_time_dim,           &
-                   data_1d_ch = data_1d_ch                 )
+                               data_1d_ch = data_1d_ch     )
+
        endif
 
       !*** determine index of transport_regions
@@ -5660,22 +5662,20 @@
         io_dims(:) = io_dims_labels(:,indx)
         id = avail_tavg_labels_id(indx)
         nftype = 'char'
-        implied_time_dim = .false.
+        lactive_time_dim = .false.
  
-
          call data_set_nstd_ccsm (tavg_file_desc, 'write',    &
                                   id, ndims, io_dims, nftype, &
-                 implied_time_dim=implied_time_dim,           &
-                      data_1d_ch = data_1d_ch                 )
+                                  data_1d_ch = data_1d_ch     )
        endif
 
 
-       implied_time_dim = .true.
-       call write_nstd_netcdf(                          &
-          tavg_file_desc,moc_id,1,5,io_dims_nstd_ccsm(:,1),&
-          'float',                                         &  ! <-- generalize later
-          implied_time_dim=implied_time_dim,               &
-          indata_4d_r4=TAVG_MOC_G)
+       lactive_time_dim = .true.
+       call write_nstd_netcdf(tavg_file_desc,moc_id,5,  &
+           io_dims_nstd_ccsm(:,1),'float',              &  ! <-- generalize later
+           lactive_time_dim,                            &
+           indata_4d_r4=TAVG_MOC_G)
+
    endif
 
    !*** transport variables
@@ -5706,13 +5706,12 @@
         io_dims(:) = io_dims_labels(:,indx)
         id = avail_tavg_labels_id(indx)
         nftype = 'char'
-        implied_time_dim = .false.
+        lactive_time_dim = .false.
  
 
       call data_set_nstd_ccsm (tavg_file_desc, 'write',    &
                                id, ndims, io_dims, nftype, &
-              implied_time_dim=implied_time_dim,           &
-                   data_1d_ch = data_1d_ch                 )
+                               data_1d_ch = data_1d_ch     )
        endif
 
 
@@ -5720,21 +5719,21 @@
 
    if (ltavg_n_heat_trans(ns)) then
        !*** N_HEAT
-       implied_time_dim = .true.
-       call write_nstd_netcdf(                          &
-          tavg_file_desc,n_heat_id,1,4,io_dims_nstd_ccsm(:,2),& !<-- generalize later
-          'float',                                         &  ! <-- generalize later
-          implied_time_dim=implied_time_dim,               &
+       lactive_time_dim = .true.
+       call write_nstd_netcdf(                              &
+          tavg_file_desc,n_heat_id,4,io_dims_nstd_ccsm(:,2),& !<-- generalize later
+          'float',                                          &  ! <-- generalize later
+           lactive_time_dim,                                &
           indata_3d_r4=TAVG_N_HEAT_TRANS_G)
    endif
 
    if (ltavg_n_salt_trans(ns)) then
        !*** N_SALT
-       implied_time_dim = .true.
-       call write_nstd_netcdf(                          &
-          tavg_file_desc,n_salt_id,1,4,io_dims_nstd_ccsm(:,3),& !<-- generalize later
+       lactive_time_dim = .true.
+       call write_nstd_netcdf(                             &
+          tavg_file_desc,n_salt_id,4,io_dims_nstd_ccsm(:,3),& !<-- generalize later
           'float',                                         &  ! <-- generalize later
-          implied_time_dim=implied_time_dim,               &
+           lactive_time_dim,                               &
           indata_3d_r4=TAVG_N_SALT_TRANS_G)
    endif
 

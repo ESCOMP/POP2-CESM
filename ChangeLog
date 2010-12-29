@@ -1,5 +1,20 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    29 December 2010
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101229
+Tag Summary: Fix MOC, N_HEAT, N_SALT time-dimension problem
+              
+Testing:
+  * cesm1_0_beta12 with source mods. Tested C, gx3v7 and gx1v6, bluefire.
+    Reviewed monthly timeseries of daily tavg MOC, N_HEAT, and N_SALT.
+
+Files Modified:
+M            25900   source/io_netcdf.F90
+M            25900   source/tavg.F90
+M            25900   source/io_ccsm.F90
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    17 December 2010
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101217
 Tag Summary: * add "use shr_sys_mod" to state_mod.F90

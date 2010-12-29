@@ -1858,10 +1858,10 @@
 ! !IROUTINE: write_nstd_netcdf
 ! !INTERFACE:
 
- subroutine write_nstd_netcdf(data_file,field_id,num_writes, &
+ subroutine write_nstd_netcdf(data_file,field_id,            &
                               ndims, io_dims,                &
                               nftype,                        &
-                              implied_time_dim,              &
+                              lactive_time_dim,              &
                               indata_1d_r8,                  &
                               indata_2d_r8,                  &
                               indata_2d_r4,                  &
@@ -1888,7 +1888,6 @@
       field_id                   ! netCDF id for the nonstandard variables
 
    integer (int_kind), intent (in) :: &
-      num_writes,                     &
       ndims
 
    type (io_dim), dimension(:), intent (in) ::  &
@@ -1911,16 +1910,16 @@
    character (*), dimension(:),   intent (in) ::  &
       indata_1d_ch
 
+   logical (log_kind), intent(in) ::  &
+      lactive_time_dim
+
+
 ! !INPUT/OUTPUT PARAMETERS:
 
    type (datafile), target, intent (inout)  :: &
       data_file                         ! file to which field will be written
 
-   logical (log_kind), intent(inout) ::  &
-      implied_time_dim
-
    optional ::           &
-     implied_time_dim,   &
      indata_1d_r8,       &
      indata_2d_r8,       &
      indata_2d_r4,       &
@@ -1937,12 +1936,16 @@
 !
 !-----------------------------------------------------------------------
 
-   integer , dimension(2) :: &
+   integer, parameter ::  &
+      max_dims = 20
+
+   integer , dimension(max_dims) :: &
       start,count               ! dimension quantities for netCDF
 
    integer  :: &
       iostat,  &! netCDF status flag
       n,m       ! indices
+   
 
    integer  :: nout(5)
 
@@ -1973,7 +1976,7 @@
    character(1), dimension(char_len) :: &
       tmpString                          ! temp for manipulating output string
 
-   integer :: start4(4), count4(4), ioroot
+   integer :: ioroot
 
 !-----------------------------------------------------------------------
 !
@@ -2000,19 +2003,19 @@
       call exit_POP(sigAbort, &
           '(write_nstd_netcdf) Attempt to write undefined field in netCDF write')
 
-!-----------------------------------------------------------------------
-!  NOTE: this version does not yet support multiple writes to the same
-!        netCDF file, but neither does basic pop2... 
-!-----------------------------------------------------------------------
-
    supported = .true.
    
    ioroot = seq_io_getioroot('OCN')
 
+   do n=1,ndims
+     start (n) = io_dims(n)%start
+     count(n) = io_dims(n)%stop - start(n) + 1
+   end do
+
    select case (trim(nftype))
 
       case('double','DOUBLE')
-         select case (implied_time_dim)
+         select case (lactive_time_dim)
            case (.true.)
               select case (ndims)
                   case(2)
@@ -2037,10 +2040,10 @@
                   case default
                    supported = .false. 
               End select ! ndims
-           end select ! implied_time_dim
+           end select ! lactive_time_dim
 
       case('float','FLOAT') 
-         select case (implied_time_dim)
+         select case (lactive_time_dim)
            case (.true.)
               select case (ndims)
                   case(1)
@@ -2056,7 +2059,8 @@
                      else
                        allocate (outdata_3d_r4(1,1,1))
                      endif
-                     iostat = pio_put_var (data_file%File, field_id, outdata_3d_r4 )
+                     iostat = pio_put_var (data_file%File, field_id, ival=outdata_3d_r4,  &
+                                           start=start(:), count=count(:))
                      deallocate (outdata_3d_r4)
                   case(4)
                      if (my_task == ioroot) then
@@ -2068,7 +2072,8 @@
                      else
                        allocate (outdata_4d_r4(1,1,1,1))
                      endif
-                     iostat = pio_put_var (data_file%File, field_id, outdata_4d_r4)
+                     iostat = pio_put_var (data_file%File, field_id, ival=outdata_4d_r4,  &
+                                           start=start(:), count=count(:))
                      deallocate (outdata_4d_r4)
                   case(5)
                      if (my_task == ioroot) then
@@ -2081,7 +2086,8 @@
                      else
                        allocate (outdata_5d_r4(1,1,1,1,1))
                      endif
-                     iostat = pio_put_var (data_file%File, field_id, outdata_5d_r4 )
+                     iostat = pio_put_var (data_file%File, field_id, ival=outdata_5d_r4,  &
+                                           start=start(:), count=count(:))
                      deallocate (outdata_5d_r4)
                   case default
                    supported = .false. 
@@ -2099,10 +2105,10 @@
                   case default
                    supported = .false. 
               end select ! ndims
-         end select ! implied_time_dim
+         end select ! lactive_time_dim
 
       case('char','character','CHAR','CHARACTER') 
-         select case (implied_time_dim)
+         select case (lactive_time_dim)
            case (.true.)
               select case (ndims)
                   case default
@@ -2126,7 +2132,7 @@
                   case default
                    supported = .false. 
               end select ! ndims
-         end select ! implied_time_dim
+         end select ! lactive_time_dim
 
       case default
 
