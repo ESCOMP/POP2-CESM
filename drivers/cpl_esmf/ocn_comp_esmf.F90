@@ -202,6 +202,8 @@ end subroutine
     type(ESMF_Array)                      :: d2x, x2d, dom
     type(ESMF_VM)                         :: vm
 
+    character(ESMF_MAXSTR) :: convCIM, purpComp
+
 !-----------------------------------------------------------------------
 !
 !  set cdata pointers
@@ -546,6 +548,39 @@ end subroutine
       call POP_IOUnitsFlush(stdout)
 #endif
    endif
+
+    convCIM  = "CIM 1.0"
+    purpComp = "Model Component Simulation Description"
+
+    call ESMF_AttributeAdd(comp,  &
+                           convention=convCIM, purpose=purpComp, rc=rc)
+
+    call ESMF_AttributeSet(comp, "ShortName", "POP", &
+                           convention=convCIM, purpose=purpComp, rc=rc)
+    call ESMF_AttributeSet(comp, "LongName", &
+                           "Parallel Ocean Program", &
+                           convention=convCIM, purpose=purpComp, rc=rc)
+    call ESMF_AttributeSet(comp, "Description", &
+                  "The ocean component of the CESM1.0 is the Parallel " // &
+                  "Ocean Program version 2 (POP2).  This model is based " // &
+                  "on the POP version 2.1 of the Los Alamos National " // &
+                  "Laboratory; however, it includes many physical and " // &
+                  "software developments incorporated by the members " // &
+                  "of the Ocean Model Working Group (see the notable " // &
+                  "improvements page for these developments).", &
+                           convention=convCIM, purpose=purpComp, rc=rc)
+    call ESMF_AttributeSet(comp, "Release Date", "2010", &
+                           convention=convCIM, purpose=purpComp, rc=rc)
+    call ESMF_AttributeSet(comp, "ModelType", "Ocean", &
+                           convention=convCIM, purpose=purpComp, rc=rc)
+
+    call ESMF_AttributeSet(comp, "Name", "Susan Bates", &
+                           convention=convCIM, purpose=purpComp, rc=rc)
+    call ESMF_AttributeSet(comp, "EmailAddress", &
+                           "bates@ucar.edu", &
+                           convention=convCIM, purpose=purpComp, rc=rc)
+    call ESMF_AttributeSet(comp, "ResponsiblePartyRole", "contact", &
+                           convention=convCIM, purpose=purpComp, rc=rc)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1040,7 +1075,6 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 !    o  co2diag-- bottom atm level diagnostic co2
 ! 
 !-----------------------------------------------------------------------
-
 !
 ! !REVISION HISTORY:
 !  same as module

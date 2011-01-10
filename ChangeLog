@@ -1,5 +1,20 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    10 January 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110110
+Tag Summary: Apply esmf changes to support metadata capability
+             source: pop2/branch_tags/cesm1_0_esmf01_tags/esmf01_02_cesm_pop_2_1_20100813
+             author: T. Craig
+              
+Testing:
+  * external testing (T. Craig and pre-tag testing)
+
+Files Modified:
+M            25900   drivers/cpl_esmf/ocn_comp_esmf.F90
+M            25900   drivers/cpl_esmf/ocn_comp_mct.F90
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    29 December 2010
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101229
 Tag Summary: Fix MOC, N_HEAT, N_SALT time-dimension problem

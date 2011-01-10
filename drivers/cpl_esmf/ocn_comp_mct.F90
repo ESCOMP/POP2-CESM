@@ -40,12 +40,15 @@ contains
 
 !===============================================================================
 
-subroutine ocn_register(ocn_petlist)
+subroutine ocn_register(ocn_petlist, ccsmComp, localComp)
 
    implicit none
 
-   integer, pointer :: ocn_petlist(:)
-   integer          :: rc
+   integer, pointer                  :: ocn_petlist(:)
+   type(ESMF_CplComp)                :: ccsmComp
+   type(ESMF_GridComp),intent(inout) :: localComp
+
+   integer            :: rc
 
    ocn_comp = ESMF_GridCompCreate(name="ocn_comp", petList=ocn_petlist, rc=rc)
    if(rc /= 0) call shr_sys_abort('failed to create ocn comp')
@@ -55,6 +58,10 @@ subroutine ocn_register(ocn_petlist)
    if(rc /= 0) call shr_sys_abort('failed to create import ocn state')
    export_state = ESMF_StateCreate("ocn export", ESMF_STATE_EXPORT, rc=rc)
    if(rc /= 0) call shr_sys_abort('failed to create export ocn state')
+
+   call ESMF_AttributeLink(ccsmComp, ocn_comp, rc=rc)
+
+   localComp = ocn_comp
 
 end subroutine
 
