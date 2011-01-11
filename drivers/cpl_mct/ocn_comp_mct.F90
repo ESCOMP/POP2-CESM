@@ -589,6 +589,7 @@ contains
     call seq_infodata_GetData( infodata, info_debug=info_debug)
     if (info_debug >= 2) then
        ldiag_cpl = .true. 
+       call register_string ('info_debug_ge2')
     else
        ldiag_cpl = .false.
     endif

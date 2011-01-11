@@ -185,6 +185,7 @@
       imonth_last         ,&! month   [1,12]          |
       iday_last           ,&! day     [1,31]          |
       ihour_last          ,&! hour    [0,23]          |
+      isecond_last        ,&! second  [0,59]          |
       iday_of_year_last     ! day no. [1,365/6]       V
 
    integer (int_kind) ::   &
@@ -268,6 +269,7 @@
    logical (log_kind) :: &
       newday            ,&!
       newhour           ,&!
+      newsecond         ,&!
       allow_leapyear    ,&! allow leap years?
       leapyear            ! is this a leapyear?
 
@@ -1237,7 +1239,7 @@
 !-----------------------------------------------------------------------
 !
 !  Compute decimal time in days, months, years, etc
-!  NOTE:  newhour is not set initially
+!  NOTE:  newhour and newsecond are not set initially
 !
 !-----------------------------------------------------------------------
 
@@ -1627,6 +1629,7 @@
    iday_last         = iday
    iday_of_year_last = iday_of_year
    ihour_last        = ihour
+   isecond_last      = isecond
 
    eod_last          = eod
    eom_last          = eom
@@ -1748,6 +1751,7 @@
 
    call get_tday
    if (ihour /= ihour_last) newhour = .true.
+   if (isecond /= isecond_last) newsecond = .true.
 
 !-----------------------------------------------------------------------
 !
@@ -1787,7 +1791,7 @@
             endif
           
             if (avg_ts) then
-               exit_string = 'FATAL ERROR: Cannot have coupled timestep and  be an averaging timestep'
+               exit_string = 'FATAL ERROR: Cannot have coupled timestep and be an averaging timestep'
                call document ('time_manager', exit_string)
                call exit_POP (sigAbort, exit_string, out_unit=stdout)
             endif
@@ -1877,20 +1881,21 @@
 !     report ocn model time daily
 !-----------------------------------------------------------------------
 
-   if (eod) then
-    if (my_task == master_task) then
-        if (iyear <= 9999) then
-        write(stdout,1000) iyear, cmonth3, iday, seconds_this_day
-        else
-        write(stdout,1001) iyear, cmonth3, iday, seconds_this_day
-        endif
-        call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+ if (eod .or. debug_time_management .or. registry_match('info_debug_ge2')) then
+  if (my_task == master_task) then
+    if (iyear <= 9999) then
+      write(stdout,1000) iyear, cmonth3, iday, seconds_this_day
+    else
+      write(stdout,1001) iyear, cmonth3, iday, seconds_this_day
     endif
-   endif
+    call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+  endif
+ endif
 1000 format (' (time_manager)', ' ocn date ', i4.4, '-', a3, '-', &
-                                  i2.2,', ', 1pe12.6, ' sec') 
+                                  i2.2,', ', 1pe12.6, ' sec')
 1001 format (' (time_manager)', ' ocn date ', i5.5, '-', a3, '-', &
-                                  i2.2,', ', 1pe12.6, ' sec') 
+                                  i2.2,', ', 1pe12.6, ' sec')
+
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1920,6 +1925,7 @@
 
    newday             = .false.  ! not new day
    newhour            = .false.  ! not new hour
+   newsecond          = .false.  ! not new second
 
    leapfrogts         = .true.   ! a leapfrog timestep
    f_euler_ts         = .false.  ! not a forward Euler timestep
@@ -2034,6 +2040,8 @@
 
 !-----------------------------------------------------------------------
 !EOC
+
+  
 
  end subroutine set_switches
 
@@ -3159,10 +3167,26 @@
       endif
 
    case (freq_opt_nhour)
-      if (newhour .and. mod(ihour,freq) == 0) time_to_do = .true.
+   !-----------------------------------------------------------
+   ! convert to hours and test nearest integer
+   !-----------------------------------------------------------
+      if (has_offset_date) then
+        mod_test =  elapsed_days - time_flags(flag_id)%edays*24 + ihour
+      else
+        mod_test =  elapsed_days*24 + ihour
+      endif
+      if (newhour .and. mod(mod_test  ,freq) == 0)  time_to_do = .true.
 
    case (freq_opt_nsecond)
-      if (mod(isecond,freq) == 0) time_to_do = .true.
+   !-----------------------------------------------------------
+   ! convert to seconds and test nearest integer
+   !-----------------------------------------------------------
+      if (has_offset_date) then
+        mod_test =       (elapsed_days - time_flags(flag_id)%edays)*seconds_in_day + seconds_this_day
+      else
+        mod_test =       elapsed_days*seconds_in_day + seconds_this_day
+      endif
+      if (mod(mod_test ,freq) == 0)  time_to_do = .true.
 
    case (freq_opt_nstep)
       if (mod(nsteps_total,freq) == 0) time_to_do = .true.

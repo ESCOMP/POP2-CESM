@@ -683,6 +683,7 @@ subroutine ocn_run_esmf(comp, import_state, export_state, EClock, rc)
 
     if (info_debug >= 2) then
        ldiag_cpl = .true. 
+       call register_string ('info_debug_ge2')
     else
        ldiag_cpl = .false.
     endif

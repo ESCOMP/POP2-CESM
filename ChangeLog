@@ -1,5 +1,31 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    11 January 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110111
+Tag Summary: * Apply bugix for time_to_do (nsecond and nhour options)
+             * Update time_management unit testing to make it consistent with present tag
+               and to make it easier to use.
+              
+Testing:
+  * fairly extensive unit testing plus gx3v7 smoke tests
+
+Files Modified:
+M            25900   source/time_management.F90
+M            26345   drivers/cpl_esmf/ocn_comp_esmf.F90
+M            25900   drivers/cpl_mct/ocn_comp_mct.F90
+A                0   test/unit/time_management/source
+A                0   test/unit/time_management/source/POP.F90
+A                0   test/unit/time_management/source/POP_DomainSizeMod.F90
+A                0   test/unit/time_management/source/README
+A                0   test/unit/time_management/source/domain_size.F90
+M            25900   test/unit/time_management/pop2_in
+D            25900   test/unit/time_management/POP.F90
+D            25900   test/unit/time_management/POP_DomainSizeMod.F90
+D            25900   test/unit/time_management/domain_size.F90
+M            25900   test/unit/time_management/timeTest
+M            26345   ChangeLog
+===============================================================================
+Tag Creator: njn01
 Tag Date:    10 January 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110110
 Tag Summary: Apply esmf changes to support metadata capability
