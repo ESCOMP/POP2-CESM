@@ -1696,7 +1696,7 @@
    end if
 
    if (define_error) then
-       write(stdout,*) '(define_var) Error for field = ', trim(short_name)
+       write(stdout,*) '(define_nstd_netcdf) Error for field = ', trim(short_name)
        call exit_POP(sigAbort, 'Error defining nonstandard CCSM netCDF field')
    endif
 
@@ -1944,8 +1944,8 @@
 
    integer  :: &
       iostat,  &! netCDF status flag
-      n,m       ! indices
-   
+      n,m,     &! general indices
+      tb        ! time indices
 
    integer  :: nout(5)
 
@@ -2007,6 +2007,15 @@
    
    ioroot = seq_io_getioroot('OCN')
 
+!-----------------------------------------------------------------------
+!
+!  define start, count for all dimensions; do not allow out-of-bounds
+!
+!-----------------------------------------------------------------------
+   if (ndims > max_dims) &
+      call exit_POP(sigAbort, &
+          '(write_nstd_netcdf) ndims > max_dims -- increase max_dims')
+
    do n=1,ndims
      start (n) = io_dims(n)%start
      count(n) = io_dims(n)%stop - start(n) + 1
@@ -2052,10 +2061,12 @@
                      supported = .false. 
                   case(3)
                      if (my_task == ioroot) then
-                       nout(1) = size(indata_2d_r4,DIM=1)
-                       nout(2) = size(indata_2d_r4,DIM=2)
-                       allocate (outdata_3d_r4(nout(1),nout(2),1))
-                       outdata_3d_r4(:,:,1) = indata_2d_r4(:,:)
+                       do n=1,ndims-1
+                         nout(n) = size(indata_2d_r4,DIM=n)
+                       enddo
+                       tb = io_dims(ndims)%start
+                       allocate (outdata_3d_r4(nout(1),nout(2),tb:tb))
+                       outdata_3d_r4(:,:,tb) = indata_2d_r4(:,:)
                      else
                        allocate (outdata_3d_r4(1,1,1))
                      endif
@@ -2064,11 +2075,12 @@
                      deallocate (outdata_3d_r4)
                   case(4)
                      if (my_task == ioroot) then
-                       nout(1) = size(indata_3d_r4,DIM=1)
-                       nout(2) = size(indata_3d_r4,DIM=2)
-                       nout(3) = size(indata_3d_r4,DIM=3)
-                       allocate (outdata_4d_r4(nout(1),nout(2),nout(3),1))
-                       outdata_4d_r4(:,:,:,1) = indata_3d_r4(:,:,:)
+                       do n=1,ndims-1
+                         nout(n) = size(indata_3d_r4,DIM=n)
+                       enddo
+                       tb = io_dims(ndims)%start
+                       allocate (outdata_4d_r4(nout(1),nout(2),nout(3),tb:tb))
+                       outdata_4d_r4(:,:,:,tb) = indata_3d_r4(:,:,:)
                      else
                        allocate (outdata_4d_r4(1,1,1,1))
                      endif
@@ -2077,12 +2089,12 @@
                      deallocate (outdata_4d_r4)
                   case(5)
                      if (my_task == ioroot) then
-                       nout(1) = size(indata_4d_r4,DIM=1)
-                       nout(2) = size(indata_4d_r4,DIM=2)
-                       nout(3) = size(indata_4d_r4,DIM=3)
-                       nout(4) = size(indata_4d_r4,DIM=4)
-                       allocate (outdata_5d_r4(nout(1),nout(2),nout(3),nout(4),1))
-                       outdata_5d_r4(:,:,:,:,1) = indata_4d_r4(:,:,:,:)
+                       do n=1,ndims-1
+                         nout(n) = size(indata_4d_r4,DIM=n)
+                       enddo
+                       tb = io_dims(ndims)%start
+                       allocate (outdata_5d_r4(nout(1),nout(2),nout(3),nout(4),tb:tb))
+                       outdata_5d_r4(:,:,:,:,tb) = indata_4d_r4(:,:,:,:)
                      else
                        allocate (outdata_5d_r4(1,1,1,1,1))
                      endif
@@ -2144,8 +2156,12 @@
 !
 !-----------------------------------------------------------------------
 
-   if (.not. supported) call exit_POP(sigAbort, &
-         '(write_nstd_netcdf) option not supported')
+   if (.not. supported) then
+     call document('write_nstd_netcdf', 'ndims', ndims)
+     call document('write_nstd_netcdf', 'nftype', trim(nftype))
+     call document('write_nstd_netcdf', 'lactive_time_dim', lactive_time_dim)
+     call exit_POP(sigAbort, '(write_nstd_netcdf) option not supported')
+   endif
 
 !-----------------------------------------------------------------------
 !EOC

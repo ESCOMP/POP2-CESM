@@ -145,18 +145,8 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
-      ndims_total,       &
-      nn
-                        
    logical (log_kind) :: supported
    logical (log_kind) :: lactive_time_dim
-
-   integer (int_kind), parameter ::  &
-      max_io_dims = 20
-
-   type (io_dim)      ::  &
-      io_dims_total(max_io_dims)
 
 !-----------------------------------------------------------------------
 !
@@ -185,23 +175,6 @@ contains
       lactive_time_dim = .false.
    endif
 
-   if (lactive_time_dim) then
-       ndims_total = ndims + 1
-   else
-       ndims_total = ndims
-   endif
-
-   if (ndims_total >= max_io_dims)   &
-        call exit_POP(sigAbort,'(data_set_nstd_ccsm) ERROR: ndims is too large')
-
-   do nn=1,ndims
-     io_dims_total(nn) = io_dims(nn)
-   enddo
-
-   if (lactive_time_dim) then
-     io_dims_total(ndims_total) = time_dim
-   endif
-
 !-----------------------------------------------------------------------
 !
 !  select operation to perform
@@ -218,7 +191,7 @@ contains
 
    case ('define')
 
-      call define_nstd_netcdf(data_file, ndims_total, io_dims_total,&
+      call define_nstd_netcdf(data_file, ndims, io_dims,&
                               field_id,                             &
                               short_name, long_name, units,         &
                               coordinates=coordinates,              &

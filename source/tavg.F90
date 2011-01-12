@@ -5669,7 +5669,6 @@
                                   data_1d_ch = data_1d_ch     )
        endif
 
-
        lactive_time_dim = .true.
        call write_nstd_netcdf(tavg_file_desc,moc_id,5,  &
            io_dims_nstd_ccsm(:,1),'float',              &  ! <-- generalize later

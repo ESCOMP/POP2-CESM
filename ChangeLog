@@ -1,6 +1,23 @@
 ===============================================================================
 Tag Creator: njn01
 Tag Date:    11 January 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110111a
+Tag Summary: Fix MOC, N_HEAT, N_SALT time-dimension problem
+             NOTE: The wrong files were checked into the pop2 trunk
+             on 2010-12-29. This tag checks in the CORRECT files.
+              
+Testing:
+  * cesm1_0_beta12 and cesm1_0_beta13 with source mods.
+    Reviewed monthly timeseries of daily tavg MOC, N_HEAT, and N_SALT.
+
+Files Modified:
+M            26181   source/io_netcdf.F90
+M            26181   source/tavg.F90
+M            26181   source/io_ccsm.F90
+
+===============================================================================
+Tag Creator: njn01
+Tag Date:    11 January 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110111
 Tag Summary: * Apply bugix for time_to_do (nsecond and nhour options)
              * Update time_management unit testing to make it consistent with present tag
@@ -44,6 +61,8 @@ Tag Creator: njn01
 Tag Date:    29 December 2010
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101229
 Tag Summary: Fix MOC, N_HEAT, N_SALT time-dimension problem
+             NOTE: WRONG FILES!  See cesm_pop_2_1_20110111a for correct version of
+             the MOC and *_HEAT bugfix.
               
 Testing:
   * cesm1_0_beta12 with source mods. Tested C, gx3v7 and gx1v6, bluefire.
