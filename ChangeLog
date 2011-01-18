@@ -1,5 +1,22 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    18 January 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110118
+Tag Summary: Import new cpl7 mods supplied by mvertens
+             (but modify file and module names so that they
+              conform to the "pop3" convention)
+              
+Testing: mvertens
+
+Files Modified:
+M            26358   drivers/cpl_mct/ocn_comp_mct.F90
+M            26358   drivers/cpl_esmf/ocn_comp_esmf.F90
+A                0   drivers/cpl_share/POP_CplIndices.F90
+A                0   drivers/cpl_share
+M            25900   bld/pop2.cpl7.template
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    11 January 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110111a
 Tag Summary: Fix MOC, N_HEAT, N_SALT time-dimension problem

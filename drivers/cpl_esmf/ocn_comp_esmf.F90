@@ -22,7 +22,6 @@ module ocn_comp_esmf
 
    use esmf_mod
    use seq_flds_mod
-   use seq_flds_indices
    use seq_timemgr_mod
    use seq_infodata_mod,only : seq_infodata_start_type_cont, &
                                seq_infodata_start_type_brnch, seq_infodata_start_type_start
@@ -32,6 +31,7 @@ module ocn_comp_esmf
    use perf_mod
    use ocn_communicator,  only: mpi_communicator_ocn
 
+   use POP_CplIndices
    use kinds_mod,         only: int_kind, r8
    use POP_KindsMod
    use POP_ErrorMod
@@ -209,6 +209,8 @@ end subroutine
 !  set cdata pointers
 !
 !-----------------------------------------------------------------------
+
+    call POP_CplIndicesSet()
 
     rc = ESMF_SUCCESS
  
@@ -1213,7 +1215,7 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
          ATM_PRESS(i,j,iblock) = c10 * WORKB(i,j) * RCALCT(i,j,iblock)
 
          !***  converting from m**2/s**2 to cm**2/s**2
-         WORKB(i,j       ) = fptr(index_x2o_Sx_duu10n,n)
+         WORKB(i,j       ) = fptr(index_x2o_So_duu10n,n)
          U10_SQR(i,j,iblock) = cmperm * cmperm * WORKB(i,j) * RCALCT(i,j,iblock)
 
       enddo
@@ -1550,15 +1552,15 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 !
 !-----------------------------------------------------------------------
 
-   if (index_o2x_Faoo_fco2 > 0) then
+   if (index_o2x_Faoo_fco2_ocn > 0) then
       n = 0
       do iblock = 1, nblocks_clinic
          this_block = get_block(blocks_clinic(iblock),iblock)
          do j=this_block%jb,this_block%je
          do i=this_block%ib,this_block%ie
             n = n + 1
-            fptr(index_o2x_Faoo_fco2,n) = &
-               SBUFF_SUM(i,j,iblock,index_o2x_Faoo_fco2)/tlast_coupled
+            fptr(index_o2x_Faoo_fco2_ocn,n) = &
+               SBUFF_SUM(i,j,iblock,index_o2x_Faoo_fco2_ocn)/tlast_coupled
          enddo
          enddo
       enddo
@@ -1690,7 +1692,7 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 !
 !-----------------------------------------------------------------------
 
-   if (index_o2x_Faoo_fco2 > 0) then
+   if (index_o2x_Faoo_fco2_ocn > 0) then
       if (sflux_co2_nf_ind == 0) then
          call named_field_get_index('SFLUX_CO2', sflux_co2_nf_ind, &
                                     exit_on_err=.not. first)
@@ -1738,10 +1740,10 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
       SBUFF_SUM(:,:,iblock,index_o2x_So_dhdy) + delt*  &
                                    GRADPY(:,:,curtime,iblock)
 
-   if (index_o2x_Faoo_fco2 > 0 .and. sflux_co2_nf_ind > 0) then
+   if (index_o2x_Faoo_fco2_ocn > 0 .and. sflux_co2_nf_ind > 0) then
       call named_field_get(sflux_co2_nf_ind, iblock, WORK(:,:,iblock))
-      SBUFF_SUM(:,:,iblock,index_o2x_Faoo_fco2) = &
-         SBUFF_SUM(:,:,iblock,index_o2x_Faoo_fco2) + delt_last*WORK(:,:,iblock)
+      SBUFF_SUM(:,:,iblock,index_o2x_Faoo_fco2_ocn) = &
+         SBUFF_SUM(:,:,iblock,index_o2x_Faoo_fco2_ocn) + delt_last*WORK(:,:,iblock)
    endif
 
    enddo

@@ -24,7 +24,6 @@ module ocn_comp_mct
    use mct_mod
    use esmf_mod
    use seq_flds_mod
-   use seq_flds_indices
    use seq_cdata_mod
    use seq_infodata_mod
    use seq_timemgr_mod
@@ -35,6 +34,7 @@ module ocn_comp_mct
    use ocn_communicator,  only: mpi_communicator_ocn
 
    use kinds_mod,         only: int_kind, r8
+   use POP_CplIndices
    use POP_KindsMod
    use POP_ErrorMod
    use POP_InitMod,       only: POP_Initialize1, POP_Initialize2, &
@@ -226,7 +226,9 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   call seq_infodata_GetData( infodata, case_name=runid )
+    call POP_CplIndicesSet()
+
+    call seq_infodata_GetData( infodata, case_name=runid )
    
     call seq_infodata_GetData( infodata, start_type=starttype)
 
@@ -1128,7 +1130,7 @@ contains
          ATM_PRESS(i,j,iblock) = c10 * WORKB(i,j) * RCALCT(i,j,iblock)
 
          !***  converting from m**2/s**2 to cm**2/s**2
-         WORKB(i,j       ) = x2o_o%rAttr(index_x2o_Sx_duu10n,n)
+         WORKB(i,j       ) = x2o_o%rAttr(index_x2o_So_duu10n,n)
          U10_SQR(i,j,iblock) = cmperm * cmperm * WORKB(i,j) * RCALCT(i,j,iblock)
 
       enddo
@@ -1456,15 +1458,15 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   if (index_o2x_Faoo_fco2 > 0) then
+   if (index_o2x_Faoo_fco2_ocn > 0) then
       n = 0
       do iblock = 1, nblocks_clinic
          this_block = get_block(blocks_clinic(iblock),iblock)
          do j=this_block%jb,this_block%je
          do i=this_block%ib,this_block%ie
             n = n + 1
-            o2x_o%rAttr(index_o2x_Faoo_fco2,n) = &
-               SBUFF_SUM(i,j,iblock,index_o2x_Faoo_fco2)/tlast_coupled
+            o2x_o%rAttr(index_o2x_Faoo_fco2_ocn,n) = &
+               SBUFF_SUM(i,j,iblock,index_o2x_Faoo_fco2_ocn)/tlast_coupled
          enddo
          enddo
       enddo
@@ -1595,7 +1597,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   if (index_o2x_Faoo_fco2 > 0) then
+   if (index_o2x_Faoo_fco2_ocn > 0) then
       if (sflux_co2_nf_ind == 0) then
          call named_field_get_index('SFLUX_CO2', sflux_co2_nf_ind, &
                                     exit_on_err=.not. first)
@@ -1643,10 +1645,10 @@ contains
       SBUFF_SUM(:,:,iblock,index_o2x_So_dhdy) + delt*  &
                                    GRADPY(:,:,curtime,iblock)
 
-   if (index_o2x_Faoo_fco2 > 0 .and. sflux_co2_nf_ind > 0) then
+   if (index_o2x_Faoo_fco2_ocn > 0 .and. sflux_co2_nf_ind > 0) then
       call named_field_get(sflux_co2_nf_ind, iblock, WORK(:,:,iblock))
-      SBUFF_SUM(:,:,iblock,index_o2x_Faoo_fco2) = &
-         SBUFF_SUM(:,:,iblock,index_o2x_Faoo_fco2) + delt_last*WORK(:,:,iblock)
+      SBUFF_SUM(:,:,iblock,index_o2x_Faoo_fco2_ocn) = &
+         SBUFF_SUM(:,:,iblock,index_o2x_Faoo_fco2_ocn) + delt_last*WORK(:,:,iblock)
    endif
 
    enddo

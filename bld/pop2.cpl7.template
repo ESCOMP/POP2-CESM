@@ -136,6 +136,7 @@ echo -----------------------------------------------------------------
 cd \$source_dir
 cp -fp \$srcdir/source/*.F90                .
 cp -fp \$srcdir/mpi/*.F90                   .
+cp -fp \$srcdir/drivers/cpl_share/*.F90     .
 if (\$COMP_INTERFACE == 'MCT') then
   cp -fp \$srcdir/drivers/cpl_mct/*.F90     .
 else if (\$COMP_INTERFACE == 'ESMF') then
