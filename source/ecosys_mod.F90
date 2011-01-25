@@ -588,9 +588,11 @@
 !-----------------------------------------------------------------------
 
    real (r8), parameter :: &
-      phlo_init = 7.0_r8,     & ! low bound for ph for no prev soln
-      phhi_init = 9.0_r8,     & ! high bound for ph for no prev soln
-      del_ph = 0.20_r8          ! delta-ph for prev soln
+      phlo_surf_init = 7.0_r8, & ! low bound for surface ph for no prev soln
+      phhi_surf_init = 9.0_r8, & ! high bound for surface ph for no prev soln
+      phlo_3d_init = 6.0_r8,   & ! low bound for subsurface ph for no prev soln
+      phhi_3d_init = 9.0_r8,   & ! high bound for subsurface ph for no prev soln
+      del_ph = 0.20_r8           ! delta-ph for prev soln
 
 !*****************************************************************************
 
@@ -1615,7 +1617,7 @@ contains
 
    call define_tavg_field(tavg_IRON_FLUX,'IRON_FLUX',2,                &
                           long_name='Iron Flux',                       &
-                          units='nmol/cm^2/s', grid_loc='2110',        &
+                          units='mmol/m^2/s', grid_loc='2110',        &
                           coordinates='TLONG TLAT time')
 
    call define_tavg_field(tavg_DUST_FLUX,'DUST_FLUX',2,                &
@@ -3735,8 +3737,8 @@ contains
          WORK1 = PH_PREV_3D(:,:,k,bid) - del_ph
          WORK2 = PH_PREV_3D(:,:,k,bid) + del_ph
       elsewhere
-         WORK1 = phlo_init
-         WORK2 = phhi_init
+         WORK1 = phlo_3d_init
+         WORK2 = phhi_3d_init
       end where
 
       call timer_start(ecosys_comp_CO3terms_timer, block_id=bid)
@@ -5365,8 +5367,8 @@ contains
                   PHLO = PH_PREV(:,j,iblock) - del_ph
                   PHHI = PH_PREV(:,j,iblock) + del_ph
                elsewhere
-                  PHLO = phlo_init
-                  PHHI = phhi_init
+                  PHLO = phlo_surf_init
+                  PHHI = phhi_surf_init
                end where
 
                DIC_ROW = p5*(SURF_VALS_OLD(:,j,dic_ind,iblock) + &
@@ -5378,7 +5380,7 @@ contains
                SiO3_ROW = p5*(SURF_VALS_OLD(:,j,sio3_ind,iblock) + &
                               SURF_VALS_CUR(:,j,sio3_ind,iblock))
 
-               call co2calc_row(iblock, LAND_MASK(:,j,iblock), locmip_k1_k2_bug_fix, &
+               call co2calc_row(iblock, j, LAND_MASK(:,j,iblock), locmip_k1_k2_bug_fix, &
                                 SST(:,j,iblock), SSS(:,j,iblock), &
                                 DIC_ROW, ALK_ROW, PO4_ROW, SiO3_ROW, &
                                 PHLO, PHHI, PH_NEW, XCO2(:,j), &
@@ -5557,7 +5559,6 @@ contains
                   &/ ':'
          end do
 
- 
          call shr_strdata_create(ndep_sdat,name='ndep data',                   &
                                  mpicom=POP_communicator,                      &
                                  compid=POP_MCT_OCNID,                         &

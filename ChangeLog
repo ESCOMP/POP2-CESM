@@ -1,5 +1,23 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    25 January 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110125
+Tag Summary: Ecosystem-model changes by Keith Lindsay
+             * Correct units metadata for IRON_FLUX tavg variable
+             * Make pH solver more robust to large tracer changes in a single timestep, 
+               by iteratively doubling the width of the pH search interval when necessary.
+               The code will abort if 3 doublings is not sufficient.
+
+Testing: klindsay 
+             * CECO gx3v7 bluefire 2-month exact-restart
+             * b4b with 2-month CECO gx3v7 bluefire control case
+
+Files Modified:
+M            25900   source/ecosys_mod.F90
+M            25900   source/co2calc.F90
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    18 January 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110118
 Tag Summary: Import new cpl7 mods supplied by mvertens
@@ -136,7 +154,7 @@ Tag Creator: njn01
 Tag Date:    18 November 2010
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20101118
 Tag Summary: * fix MY_PATH bug: must not be resolved in order for clone to work
-             * write REGION_MASKS to tavg history files only if it is allocated
+             * fixed the initialization of the region-mask filename
               
 Tag Testing (njn01):
   * cesm1_0_beta10 test case with Tools/Templates/pop2.cpl7.csh

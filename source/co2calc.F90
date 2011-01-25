@@ -8,10 +8,13 @@ MODULE co2calc
   !-----------------------------------------------------------------------------
 
   USE constants
-  USE blocks, ONLY : nx_block, ny_block
+  USE blocks, ONLY : nx_block, ny_block, block, get_block
+  USE domain, ONLY : blocks_clinic
   USE domain_size, ONLY : max_blocks_clinic
   USE kinds_mod
   USE state_mod, ONLY : ref_pressure
+  USE io_types, ONLY : stdout
+  USE time_management, ONLY : nsteps_run
 
 #ifdef CCSMCOUPLED
    !*** ccsm
@@ -39,6 +42,7 @@ MODULE co2calc
   !-----------------------------------------------------------------------------
 
   REAL(KIND=r8), PARAMETER :: xacc = 1e-10_r8
+  INTEGER(KIND=int_kind), PARAMETER :: max_bracket_grow_it = 3
   INTEGER(KIND=int_kind), PARAMETER :: maxit = 100
 
   !-----------------------------------------------------------------------------
@@ -55,7 +59,7 @@ CONTAINS
 
   !*****************************************************************************
 
-  SUBROUTINE co2calc_row(iblock, mask, locmip_k1_k2_bug_fix, t, s, &
+  SUBROUTINE co2calc_row(iblock, j, mask, locmip_k1_k2_bug_fix, t, s, &
        dic_in, ta_in, pt_in, sit_in, phlo, phhi, ph, xco2_in, atmpres, &
        co2star, dco2star, pCO2surf, dpco2)
 
@@ -70,7 +74,7 @@ CONTAINS
     !   input arguments
     !---------------------------------------------------------------------------
 
-    INTEGER(KIND=int_kind), INTENT(IN) :: iblock
+    INTEGER(KIND=int_kind), INTENT(IN) :: iblock, j
     LOGICAL(KIND=log_kind), DIMENSION(nx_block), INTENT(IN) :: mask
     LOGICAL(KIND=log_kind), INTENT(IN) :: locmip_k1_k2_bug_fix
     REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: &
@@ -80,10 +84,16 @@ CONTAINS
          ta_in,    & ! total alkalinity (neq/cm^3)
          pt_in,    & ! inorganic phosphate (nmol/cm^3)
          sit_in,   & ! inorganic silicate (nmol/cm^3)
-         phlo,     & ! lower limit of pH range
-         phhi,     & ! upper limit of pH range
          xco2_in,  & ! atmospheric mole fraction CO2 in dry air (ppmv)
          atmpres     ! atmospheric pressure (atmosphere)
+
+    !---------------------------------------------------------------------------
+    !   input/output arguments
+    !---------------------------------------------------------------------------
+
+    REAL(KIND=r8), DIMENSION(nx_block), INTENT(INOUT) :: &
+         phlo,     & ! lower limit of pH range
+         phhi        ! upper limit of pH range
 
     !---------------------------------------------------------------------------
     !   output arguments
@@ -151,7 +161,7 @@ CONTAINS
     !---------------------------------------------------------------------------
 
     k = 1
-    CALL comp_htotal_kvals(iblock, k, mask, t, s, dic_in, ta_in, pt_in, sit_in, &
+    CALL comp_htotal_kvals(iblock, j, k, mask, t, s, dic_in, ta_in, pt_in, sit_in, &
                            phlo, phhi, htotal, k0, k1, k2, ff, &
                            k1_k2_pH_tot=locmip_k1_k2_bug_fix)
 
@@ -231,7 +241,13 @@ CONTAINS
          dic_in,   & ! total inorganic carbon (nmol/cm^3)
          ta_in,    & ! total alkalinity (neq/cm^3)
          pt_in,    & ! inorganic phosphate (nmol/cm^3)
-         sit_in,   & ! inorganic silicate (nmol/cm^3)
+         sit_in      ! inorganic silicate (nmol/cm^3)
+
+    !---------------------------------------------------------------------------
+    !   input/output arguments
+    !---------------------------------------------------------------------------
+
+    REAL(KIND=r8), DIMENSION(nx_block,ny_block), INTENT(INOUT) :: &
          phlo,     & ! lower limit of pH range
          phhi        ! upper limit of pH range
 
@@ -308,7 +324,7 @@ CONTAINS
        !   compute htotal
        !------------------------------------------------------------------------
 
-       CALL comp_htotal_kvals(iblock, k, mask(:,j), t(:,j), s(:,j), dic_in(:,j), &
+       CALL comp_htotal_kvals(iblock, j, k, mask(:,j), t(:,j), s(:,j), dic_in(:,j), &
                               ta_in(:,j), pt_in(:,j), sit_in(:,j), &
                               phlo(:,j), phhi(:,j), htotal, k0, k1, k2, ff)
 
@@ -522,7 +538,7 @@ CONTAINS
 
   !*****************************************************************************
 
-  SUBROUTINE comp_htotal_kvals(iblock, k, mask, t, s, dic_in, ta_in, pt_in, sit_in, &
+  SUBROUTINE comp_htotal_kvals(iblock, j, k, mask, t, s, dic_in, ta_in, pt_in, sit_in, &
                                phlo, phhi, htotal, k0, k1, k2, ff, k1_k2_pH_tot)
 
     !---------------------------------------------------------------------------
@@ -536,7 +552,7 @@ CONTAINS
     !   input arguments
     !---------------------------------------------------------------------------
 
-    INTEGER(KIND=int_kind), INTENT(IN) :: iblock
+    INTEGER(KIND=int_kind), INTENT(IN) :: iblock, j
     INTEGER(KIND=int_kind), INTENT(IN) :: k
     LOGICAL(KIND=log_kind), DIMENSION(nx_block), INTENT(IN) :: mask
     REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: &
@@ -545,10 +561,17 @@ CONTAINS
          dic_in,   & ! total inorganic carbon (nmol/cm^3)
          ta_in,    & ! total alkalinity (neq/cm^3)
          pt_in,    & ! inorganic phosphate (nmol/cm^3)
-         sit_in,   & ! inorganic silicate (nmol/cm^3)
+         sit_in      ! inorganic silicate (nmol/cm^3)
+
+    LOGICAL(KIND=log_kind), INTENT(IN), OPTIONAL :: k1_k2_pH_tot
+
+    !---------------------------------------------------------------------------
+    !   input/output arguments
+    !---------------------------------------------------------------------------
+
+    REAL(KIND=r8), DIMENSION(nx_block), INTENT(INOUT) :: &
          phlo,     & ! lower limit of pH range
          phhi        ! upper limit of pH range
-    LOGICAL(KIND=log_kind), INTENT(IN), OPTIONAL :: k1_k2_pH_tot
 
     !---------------------------------------------------------------------------
     !   output arguments
@@ -633,7 +656,7 @@ CONTAINS
     !   set x1 and x2 to the previous value of the pH +/- ~0.5.
     !---------------------------------------------------------------------------
 
-    CALL drtsafe_row(iblock, mask, k1, k2, x1, x2, xacc, htotal)
+    CALL drtsafe_row(iblock, j, k, mask, k1, k2, x1, x2, xacc, htotal)
 
   END SUBROUTINE comp_htotal_kvals
 
@@ -1193,7 +1216,7 @@ CONTAINS
 
   !*****************************************************************************
 
-  SUBROUTINE drtsafe_row(iblock, mask_in, k1, k2, x1, x2, xacc, soln)
+  SUBROUTINE drtsafe_row(iblock, j, k, mask_in, k1, k2, x1, x2, xacc, soln)
 
     !---------------------------------------------------------------------------
     !   Vectorized version of drtsafe, which was a modified version of
@@ -1214,10 +1237,16 @@ CONTAINS
     !   input arguments
     !---------------------------------------------------------------------------
 
-    INTEGER(KIND=int_kind), INTENT(IN) :: iblock
+    INTEGER(KIND=int_kind), INTENT(IN) :: iblock, j, k
     LOGICAL(KIND=log_kind), DIMENSION(nx_block), INTENT(IN) :: mask_in
-    REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: k1, k2, x1, x2
+    REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: k1, k2
     REAL(KIND=r8), INTENT(IN) :: xacc
+
+    !---------------------------------------------------------------------------
+    !   input/output arguments
+    !---------------------------------------------------------------------------
+
+    REAL(KIND=r8), DIMENSION(nx_block), INTENT(INOUT) :: x1, x2
 
     !---------------------------------------------------------------------------
     !   output arguments
@@ -1234,6 +1263,7 @@ CONTAINS
     INTEGER(KIND=int_kind) ::  i, it
     REAL(KIND=r8) :: temp
     REAL(KIND=r8), DIMENSION(nx_block) :: xlo, xhi, flo, fhi, f, df, dxold, dx
+    TYPE (block) :: this_block
 
     !---------------------------------------------------------------------------
     !   bracket root at each location and set up first iteration
@@ -1241,8 +1271,47 @@ CONTAINS
 
     mask = mask_in
 
-    CALL talk_row(iblock, mask, k1, k2, x1, flo, df)
-    CALL talk_row(iblock, mask, k1, k2, x2, fhi, df)
+    it = 0
+
+    DO
+       CALL talk_row(iblock, mask, k1, k2, x1, flo, df)
+       CALL talk_row(iblock, mask, k1, k2, x2, fhi, df)
+
+       WHERE ( mask )
+          mask = (flo > c0 .AND. fhi > c0) .OR. &
+                 (flo < c0 .AND. fhi < c0)
+       END WHERE
+
+       IF (.NOT. ANY(mask)) EXIT
+
+       it = it + 1
+
+       DO i = 1,nx_block
+          IF (mask(i)) THEN
+             this_block = get_block(blocks_clinic(iblock), iblock)
+             WRITE(stdout,*) '(co2calc.F90:drtsafe_row) ', &
+                'i_glob = ', this_block%i_glob(i), &
+                ', j_glob = ', this_block%j_glob(j), ', k = ', k, &
+                ', nsteps_run = ', nsteps_run, ', it = ', it
+             WRITE(stdout,*) '(co2calc.F90:drtsafe_row) ', &
+                '   x1,f = ', x1(i), flo(i)
+             WRITE(stdout,*) '(co2calc.F90:drtsafe_row) ', &
+                '   x2,f = ', x2(i), fhi(i)
+          END IF
+       END DO
+
+       IF (it > max_bracket_grow_it) THEN
+          CALL shr_sys_abort('bounding bracket for pH solution not found')
+       END IF
+
+       WHERE ( mask )
+          dx = sqrt(x2 / x1)
+          x2 = x2 * dx
+          x1 = x1 / dx
+       END WHERE
+    END DO
+
+    mask = mask_in
 
     DO i = 1,nx_block
        IF (mask(i)) THEN
