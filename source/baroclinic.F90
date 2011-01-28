@@ -50,7 +50,7 @@
    use time_management, only: mix_pass, leapfrogts, impcor, c2dtu, beta,     &
        gamma, c2dtt
    use io_types, only: nml_in, nml_filename, stdout
-   use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field, &
+   use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now, &
        tavg_method_max, tavg_method_min
    use forcing_fields, only: STF, SMF, lsmft_avail, SMFT, TFW
    use forcing_shf, only: SHF_QSW
@@ -332,7 +332,7 @@
    call define_tavg_field(tavg_SALT,'SALT',3,                          &
                           long_name='Salinity',                        &
                           units='gram/kilogram', grid_loc='3111',      &
-                          scale_factor=1000.0_rtavg,                   &
+                          scale_factor=1000.0_rtavg,                      &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_SALT_MAX,'SALT_MAX',3,                  &
@@ -597,169 +597,111 @@
 
 !-----------------------------------------------------------------------
 !
-!        accumulate some tavg diagnostics if requested
+!        accumulate some tavg diagnostics if requested; testing internal to
+!          accumulate_tavg_field
 !
 !-----------------------------------------------------------------------
 
          if (mix_pass /= 1) then
 
-         if (tavg_requested(tavg_UVEL)) then
-            call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock), &
-                                       tavg_UVEL,iblock,k)
-         endif
+         call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock),tavg_UVEL,iblock,k)
 
-         if (tavg_requested(tavg_UVEL2)) then
-            call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock)**2, &
-                                       tavg_UVEL2,iblock,k)
-         endif
+         call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock)**2,tavg_UVEL2,iblock,k)
 
-         if (tavg_requested(tavg_U1_1) .and. k <= 1) then
+         if (k <= 1)  &
             call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock), &
                                        tavg_U1_1,iblock,k)
-         endif
+         if (k <= 8)  &
+         call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock),tavg_U1_8,iblock,k)
 
-         if (tavg_requested(tavg_U1_8) .and. k <= 8) then
-            call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock), &
-                                       tavg_U1_8,iblock,k)
-         endif
+         call accumulate_tavg_field(VVEL(:,:,k,curtime,iblock),tavg_VVEL,iblock,k)
 
-         if (tavg_requested(tavg_VVEL)) then
-            call accumulate_tavg_field(VVEL(:,:,k,curtime,iblock), &
-                                       tavg_VVEL,iblock,k)
-         endif
+         call accumulate_tavg_field(VVEL(:,:,k,curtime,iblock)**2,tavg_VVEL2,iblock,k)
 
-         if (tavg_requested(tavg_VVEL2)) then
-            call accumulate_tavg_field(VVEL(:,:,k,curtime,iblock)**2, &
-                                       tavg_VVEL2,iblock,k)
-         endif
+         if (k <= 1)  &
+         call accumulate_tavg_field(VVEL(:,:,k,curtime,iblock),tavg_V1_1,iblock,k)
 
-         if (tavg_requested(tavg_V1_1) .and. k <= 1) then
-            call accumulate_tavg_field(VVEL(:,:,k,curtime,iblock), &
-                                       tavg_V1_1,iblock,k)
-         endif
+         if (k <= 8)  &
+         call accumulate_tavg_field(VVEL(:,:,k,curtime,iblock),tavg_V1_8,iblock,k)
 
-         if (tavg_requested(tavg_V1_8) .and. k <= 8) then
-            call accumulate_tavg_field(VVEL(:,:,k,curtime,iblock), &
-                                       tavg_V1_8,iblock,k)
-         endif
+         call accumulate_tavg_field(p5*(UVEL(:,:,k,curtime,iblock)**2 + &
+                                        VVEL(:,:,k,curtime,iblock)**2),tavg_KE,iblock,k)
 
-         if (tavg_requested(tavg_KE)) then
-            call accumulate_tavg_field(p5*(UVEL(:,:,k,curtime,iblock)**2 + &
-                                           VVEL(:,:,k,curtime,iblock)**2), &
-                                       tavg_KE,iblock,k)
-         endif
+         call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock)* &
+                                    VVEL(:,:,k,curtime,iblock), tavg_UV,iblock,k)
 
-         if (tavg_requested(tavg_UV)) then
-            call accumulate_tavg_field(UVEL(:,:,k,curtime,iblock)* &
-                                       VVEL(:,:,k,curtime,iblock), &
-                                       tavg_UV,iblock,k)
-         endif
+         call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
+                                    tavg_TEMP,iblock,k)
 
-         if (tavg_requested(tavg_TEMP)) then
-            call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
-                                       tavg_TEMP,iblock,k)
-         endif
+         call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
+                                    tavg_TEMP_MAX,iblock,k)
 
-         if (tavg_requested(tavg_TEMP_MAX)) then
-            call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
-                                       tavg_TEMP_MAX,iblock,k)
-         endif
+         call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
+                                    tavg_TEMP_MIN,iblock,k)
 
-         if (tavg_requested(tavg_TEMP_MIN)) then
-            call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
-                                       tavg_TEMP_MIN,iblock,k)
-         endif
+         call accumulate_tavg_field(max(TRACER(:,:,k,1,curtime,iblock) - &
+                                        TRACER(:,:,k,1,oldtime,iblock), c0), &
+                                    tavg_dTEMP_POS_3D,iblock,k)
 
-         if (tavg_requested(tavg_dTEMP_POS_3D)) then
-            call accumulate_tavg_field(max(TRACER(:,:,k,1,curtime,iblock) - &
-                                           TRACER(:,:,k,1,oldtime,iblock), c0), &
-                                       tavg_dTEMP_POS_3D,iblock,k)
-         endif
+         call accumulate_tavg_field(max(TRACER(:,:,k,1,curtime,iblock) - &
+                                        TRACER(:,:,k,1,oldtime,iblock), c0), &
+                                        tavg_dTEMP_POS_2D,iblock,1)
 
-         if (tavg_requested(tavg_dTEMP_POS_2D)) then
-            call accumulate_tavg_field(max(TRACER(:,:,k,1,curtime,iblock) - &
-                                           TRACER(:,:,k,1,oldtime,iblock), c0), &
-                                       tavg_dTEMP_POS_2D,iblock,1)
-         endif
+         call accumulate_tavg_field(min(TRACER(:,:,k,1,curtime,iblock) - &
+                                        TRACER(:,:,k,1,oldtime,iblock), c0), &
+                                    tavg_dTEMP_NEG_3D,iblock,k)
 
-         if (tavg_requested(tavg_dTEMP_NEG_3D)) then
-            call accumulate_tavg_field(min(TRACER(:,:,k,1,curtime,iblock) - &
-                                           TRACER(:,:,k,1,oldtime,iblock), c0), &
-                                       tavg_dTEMP_NEG_3D,iblock,k)
-         endif
+         call accumulate_tavg_field(min(TRACER(:,:,k,1,curtime,iblock) - &
+                                        TRACER(:,:,k,1,oldtime,iblock), c0), &
+                                        tavg_dTEMP_NEG_2D,iblock,1)
 
-         if (tavg_requested(tavg_dTEMP_NEG_2D)) then
-            call accumulate_tavg_field(min(TRACER(:,:,k,1,curtime,iblock) - &
-                                           TRACER(:,:,k,1,oldtime,iblock), c0), &
-                                       tavg_dTEMP_NEG_2D,iblock,1)
-         endif
+         if (k <= 8)  &
+         call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
+                                    tavg_T1_8,iblock,k)
 
-         if (tavg_requested(tavg_T1_8) .and. k <= 8) then
-            call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock), &
-                                       tavg_T1_8,iblock,k)
-         endif
+         call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock)**2, &
+                                    tavg_TEMP2,iblock,k)
 
-         if (tavg_requested(tavg_TEMP2)) then
-            call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock)**2, &
-                                       tavg_TEMP2,iblock,k)
-         endif
-
-         if (tavg_requested(tavg_SST) .and. k == 1) then
+         if (k == 1)  then
             call accumulate_tavg_field(TRACER(:,:,1,1,curtime,iblock), &
                                        tavg_SST,iblock,1)
-         endif
 
-         if (tavg_requested(tavg_SST2) .and. k == 1) then
             call accumulate_tavg_field(TRACER(:,:,1,1,curtime,iblock)**2, &
                                        tavg_SST2,iblock,1)
          endif
 
-         if (tavg_requested(tavg_SALT)) then
-            call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
-                                       tavg_SALT,iblock,k)
-         endif
+         call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
+                                    tavg_SALT,iblock,k)
 
-         if (tavg_requested(tavg_SALT_MAX)) then
-            call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
-                                       tavg_SALT_MAX,iblock,k)
-         endif
+         call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
+                                    tavg_SALT_MAX,iblock,k)
 
-         if (tavg_requested(tavg_SALT_MIN)) then
-            call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
-                                       tavg_SALT_MIN,iblock,k)
-         endif
-         if (tavg_requested(tavg_S1_8) .and. k <= 8) then
-            call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
-                                       tavg_S1_8,iblock,k)
-         endif
+         call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
+                                    tavg_SALT_MIN,iblock,k)
 
-         if (tavg_requested(tavg_SALT2)) then
-            call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock)**2, &
-                                       tavg_SALT2,iblock,k)
-         endif
+         if (k <= 8)  &
+         call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock), &
+                                    tavg_S1_8,iblock,k)
 
-         if (tavg_requested(tavg_ST)) then
-            call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock)* &
-                                       TRACER(:,:,k,2,curtime,iblock), &
-                                       tavg_ST,iblock,k)
-         endif
+         call accumulate_tavg_field(TRACER(:,:,k,2,curtime,iblock)**2, &
+                                    tavg_SALT2,iblock,k)
 
-         if (tavg_requested(tavg_RHO)) then
-            call accumulate_tavg_field(RHO(:,:,k,curtime,iblock), &
-                                       tavg_RHO,iblock,k)
-         endif
+         call accumulate_tavg_field(TRACER(:,:,k,1,curtime,iblock)* &
+                                    TRACER(:,:,k,2,curtime,iblock), &
+                                    tavg_ST,iblock,k)
 
-         if (tavg_requested(tavg_RHO_VINT)) then
-            if (partial_bottom_cells) then 
-               WORK1 = RHO(:,:,k,curtime,iblock) * DZT(:,:,k,iblock)
-            else
-               WORK1 = RHO(:,:,k,curtime,iblock) * dz(k)
-            endif
-            call accumulate_tavg_field(WORK1,tavg_RHO_VINT,iblock,k)
+         call accumulate_tavg_field(RHO(:,:,k,curtime,iblock), &
+                                    tavg_RHO,iblock,k)
+
+         if (partial_bottom_cells) then 
+            WORK1 = RHO(:,:,k,curtime,iblock) * DZT(:,:,k,iblock)
+         else
+            WORK1 = RHO(:,:,k,curtime,iblock) * dz(k)
          endif
+         call accumulate_tavg_field(WORK1,tavg_RHO_VINT,iblock,k)
 
         if ( sfc_layer_type /= sfc_layer_varthick .and. k == 1) then
-          if (tavg_requested(tavg_RESID_T)) then
+          if (accumulate_tavg_now(tavg_RESID_T)) then
               WORK1 = c0
               factor = c1/hflux_factor  ! converts to W/m^2
               where (CALCT(:,:,iblock))  &
@@ -767,7 +709,7 @@
               call accumulate_tavg_field(WORK1,tavg_RESID_T,iblock,k)
           endif
 
-          if (tavg_requested(tavg_RESID_S)) then
+          if (accumulate_tavg_now(tavg_RESID_S)) then
               WORK1 = c0
               factor = c1/salinity_factor  ! converts to kg(freshwater)/m^2/s
               where (CALCT(:,:,iblock)) &
@@ -1577,9 +1519,7 @@
                        VCUR(:,:,k)*WORKY)
    endif
 
-   if (tavg_requested(tavg_UDP) .and. mix_pass /= 1) then
-      call accumulate_tavg_field(WORKX,tavg_UDP,bid,k)
-   endif
+   call accumulate_tavg_field(WORKX,tavg_UDP,bid,k)
 
    if (ldiag_global) then
       DIAG_KE_PRESS_2D(:,:,bid) = DIAG_KE_PRESS_2D(:,:,bid) + WORKX

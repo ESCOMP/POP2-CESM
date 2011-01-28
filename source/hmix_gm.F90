@@ -1180,8 +1180,7 @@
          i,j,n,kk,          &! dummy loop counters
          kid,ktmp,          &! array indices
          kk_sub, kp1,       & 
-         bid,               &! local block address for this sub block
-         tavg_stream         ! temporary stream id
+         bid                 ! local block address for this sub block
 
       real (r8) :: &
          fz, dz_bottom, factor
@@ -2173,79 +2172,48 @@
 
 !-----------------------------------------------------------------------
 !
-!     accumulate time average if necessary
+!     accumulate time average if necessary; testing is internal to
+!       accumulate_tavg_field
 !
 !-----------------------------------------------------------------------
 
       if ( mix_pass /= 1 ) then
 
-
-        tavg_stream = tavg_in_which_stream(tavg_KAPPA_ISOP)
-        if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_KAPPA_ISOP)) then
           call accumulate_tavg_field                      &
                    (p5 * (KAPPA_ISOP(:,:,ktp,k,bid)    &
                        +  KAPPA_ISOP(:,:,kbt,k,bid)),  &
                           tavg_KAPPA_ISOP, bid, k)
-        endif
 
-        tavg_stream = tavg_in_which_stream(tavg_KAPPA_THIC)
-        if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_KAPPA_THIC)) then
           call accumulate_tavg_field                      &
                    (p5 * (KAPPA_THIC(:,:,ktp,k,bid)    &
                        +  KAPPA_THIC(:,:,kbt,k,bid)),  &
                           tavg_KAPPA_THIC, bid, k)
-        endif
 
-        tavg_stream = tavg_in_which_stream(tavg_HOR_DIFF)
-        if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_HOR_DIFF)) then
           call accumulate_tavg_field                      &
                    (p5 * (HOR_DIFF(:,:,ktp,k,bid)      &
                        +  HOR_DIFF(:,:,kbt,k,bid)),    &
                           tavg_HOR_DIFF, bid, k)
-        endif
 
         if ( transition_layer_on  .and.  k == 1 ) then
 
-          tavg_stream = tavg_in_which_stream(tavg_DIA_DEPTH)
-          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_DIA_DEPTH)) then
             call accumulate_tavg_field (TLT%DIABATIC_DEPTH(:,:,bid),  &
                                         tavg_DIA_DEPTH, bid, 1)  
-          endif
 
-          tavg_stream = tavg_in_which_stream(tavg_TLT)
-          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_TLT)) then
             call accumulate_tavg_field (TLT%THICKNESS(:,:,bid),       &
                                         tavg_TLT, bid, 1)  
-          endif
 
-          tavg_stream = tavg_in_which_stream(tavg_INT_DEPTH)
-          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_INT_DEPTH)) then
             call accumulate_tavg_field (TLT%INTERIOR_DEPTH(:,:,bid),  &
                                         tavg_INT_DEPTH, bid, 1)  
-          endif
 
         endif
 
         if ( diag_gm_bolus ) then
 
-          tavg_stream = tavg_in_which_stream(tavg_UISOP)
-          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_UISOP)) then
             call accumulate_tavg_field (U_ISOP, tavg_UISOP, bid, k) 
-          endif
-
-          tavg_stream = tavg_in_which_stream(tavg_VISOP)
-          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_VISOP)) then
             call accumulate_tavg_field (V_ISOP, tavg_VISOP, bid, k) 
-          endif
+            call accumulate_tavg_field (WTOP_ISOP(:,:,bid), tavg_WISOP,bid, k)
 
-          tavg_stream = tavg_in_which_stream(tavg_WISOP)
-          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_WISOP)) then
-            call accumulate_tavg_field (WTOP_ISOP(:,:,bid), tavg_WISOP,&
-                                        bid, k)
-          endif
-
-          tavg_stream = tavg_in_which_stream(tavg_ADVT_ISOP)
-          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_ADVT_ISOP)) then
+          if (accumulate_tavg_now(tavg_ADVT_ISOP)) then
 
             WORK1 = p5 * HTE(:,:,bid) * U_ISOP * ( TMIX(:,:,k,1)  &
                       + eoshift(TMIX(:,:,k,1), dim=1, shift=1) )
@@ -2270,8 +2238,7 @@
 
           endif
 
-          tavg_stream = tavg_in_which_stream(tavg_ADVS_ISOP)
-          if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_ADVS_ISOP)) then
+           if (accumulate_tavg_now(tavg_ADVS_ISOP)) then
 
             WORK1 = p5 * HTE(:,:,bid) * U_ISOP * ( TMIX(:,:,k,2)  &
                       + eoshift(TMIX(:,:,k,2), dim=1, shift=1) )
@@ -2296,29 +2263,21 @@
 
           endif
 
-          if ( tavg_requested(tavg_VNT_ISOP)  .or.  &
-               tavg_requested(tavg_VNS_ISOP) ) then
+          if ( accumulate_tavg_now(tavg_VNT_ISOP)  .or.  &
+               accumulate_tavg_now(tavg_VNS_ISOP) ) then
 
             WORK1 = p5 * V_ISOP * HTN(:,:,bid) * TAREA_R(:,:,bid) 
 
-            tavg_stream = tavg_in_which_stream(tavg_VNT_ISOP)
-            if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_VNT_ISOP)) then
-
+            if (accumulate_tavg_now(tavg_VNT_ISOP)) then
               WORK2 = WORK1 * (    TMIX(:,:,k,1)  &
                          + eoshift(TMIX(:,:,k,1), dim=2, shift=1) )
-
               call accumulate_tavg_field (WORK2, tavg_VNT_ISOP, bid, k) 
-
             endif
 
-            tavg_stream = tavg_in_which_stream(tavg_VNS_ISOP)
-            if (ltavg_on(tavg_stream) .and. tavg_requested(tavg_VNS_ISOP)) then
-
+            if (accumulate_tavg_now(tavg_VNS_ISOP)) then
               WORK2 = WORK1 * (    TMIX(:,:,k,2)  &
                          + eoshift(TMIX(:,:,k,2), dim=2, shift=1) )
-
               call accumulate_tavg_field (WORK2, tavg_VNS_ISOP, bid, k)
-  
             endif
 
           endif
@@ -2326,8 +2285,7 @@
         endif ! bolus velocity option on
 
         do n = 1,nt
-          if (tavg_requested(tavg_HDIFE_TRACER(n))) then
-          if (ltavg_on(tavg_in_which_stream(tavg_HDIFE_TRACER(n)))) then
+          if (accumulate_tavg_now(tavg_HDIFE_TRACER(n))) then
             do j=this_block%jb,this_block%je
             do i=this_block%ib,this_block%ie
               WORK1(i,j) = FX(i,j,n)*dzr(k)*TAREA_R(i,j,bid)
@@ -2335,10 +2293,8 @@
             enddo
             call accumulate_tavg_field(WORK1,tavg_HDIFE_TRACER(n),bid,k)
           endif
-          endif
 
-          if (tavg_requested(tavg_HDIFN_TRACER(n))) then
-          if (ltavg_on(tavg_in_which_stream(tavg_HDIFN_TRACER(n)))) then
+          if (accumulate_tavg_now(tavg_HDIFN_TRACER(n))) then
             do j=this_block%jb,this_block%je
             do i=this_block%ib,this_block%ie
               WORK1(i,j) = FY(i,j,n)*dzr(k)*TAREA_R(i,j,bid)
@@ -2346,17 +2302,14 @@
             enddo
             call accumulate_tavg_field(WORK1,tavg_HDIFN_TRACER(n),bid,k)
           endif
-          endif
 
-          if (tavg_requested(tavg_HDIFB_TRACER(n))) then
-          if (ltavg_on(tavg_in_which_stream(tavg_HDIFB_TRACER(n)))) then
+          if (accumulate_tavg_now(tavg_HDIFB_TRACER(n))) then
             do j=this_block%jb,this_block%je
             do i=this_block%ib,this_block%ie
               WORK1(i,j) = FZTOP(i,j,n,bid)*dzr(k)*TAREA_R(i,j,bid)
             enddo
             enddo
             call accumulate_tavg_field(WORK1,tavg_HDIFB_TRACER(n),bid,k)
-          endif
           endif
         enddo
 

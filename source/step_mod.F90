@@ -703,7 +703,6 @@
      !$OMP PARALLEL DO PRIVATE(iblock)
      do iblock = 1,nblocks_clinic
         call ice_flx_to_coupler(TRACER(:,:,:,:,curtime,iblock),iblock)
-        if (tavg_requested(tavg_id('QFLUX')) ) &
         call accumulate_tavg_field(QFLUX(:,:,iblock), tavg_id('QFLUX'),  &
                                    iblock,1,const=tlast_ice)
                                    

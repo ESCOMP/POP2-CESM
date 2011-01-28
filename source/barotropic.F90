@@ -40,7 +40,7 @@
    use global_reductions, only: global_sum
    use forcing_fields, only: ATM_PRESS, FW
    use forcing_ap, only: ap_data_type
-   use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
+   use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now
 
    use overflows
 
@@ -651,17 +651,13 @@
 !
 !-----------------------------------------------------------------------
 
-      if (tavg_requested(tavg_SU)) then
-         call accumulate_tavg_field(HU(:,:,iblock)*             &
-                                    UBTROP(:,:,curtime,iblock), &
-                                    tavg_SU, iblock, 1)
-      endif
+      call accumulate_tavg_field(HU(:,:,iblock)*             &
+                                 UBTROP(:,:,curtime,iblock), &
+                                 tavg_SU, iblock, 1)
 
-      if (tavg_requested(tavg_SV)) then
-         call accumulate_tavg_field(HU(:,:,iblock)*             &
-                                    VBTROP(:,:,curtime,iblock), &
-                                    tavg_SV, iblock, 1)
-      endif
+      call accumulate_tavg_field(HU(:,:,iblock)*             &
+                                 VBTROP(:,:,curtime,iblock), &
+                                 tavg_SV, iblock, 1)
 
    end do ! block loop
 

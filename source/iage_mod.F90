@@ -27,8 +27,7 @@ module iage_mod
    use io, only: data_set
    use io_types, only: stdout, nml_in, nml_filename
    use io_tools, only: document
-   use tavg, only: define_tavg_field, tavg_requested, ltavg_on, &
-       tavg_in_which_stream, accumulate_tavg_field
+   use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now
    use passive_tracer_tools, only: ind_name_pair, tracer_read, &
        rest_read_tracer_block, file_read_tracer_block
    implicit none
@@ -395,12 +394,10 @@ contains
 !-----------------------------------------------------------------------
 
    if (mix_pass /= 1) then
-      if (tavg_requested(tavg_IAGE_RESET_TEND)) then
-         if (ltavg_on(tavg_in_which_stream(tavg_IAGE_RESET_TEND))) then
+      if (accumulate_tavg_now(tavg_IAGE_RESET_TEND)) then
             WORK = -TRACER_MODULE(:,:,1,1) / c2dtt(1)
             WORK = WORK * (c1 + PSURF(:,:,newtime,bid)/grav/dz(1))
             call accumulate_tavg_field(WORK,tavg_IAGE_RESET_TEND,bid,1)
-         endif
       endif
    endif
 

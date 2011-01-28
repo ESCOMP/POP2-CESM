@@ -25,7 +25,7 @@
    use grid, only: sfc_layer_type, sfc_layer_varthick, sfc_layer_rigid,      &
        sfc_layer_oldfree, CALCU, tgrid_to_ugrid
    use time_management, only: mix_pass, dtp
-   use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
+   use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now
    use movie, only: define_movie_field, movie_requested, update_movie_field
 
    implicit none
@@ -284,17 +284,17 @@
 !
 !-----------------------------------------------------------------------
 
-      if (tavg_requested(tavg_SSH) .and. mix_pass /= 1) then
+      if (accumulate_tavg_now(tavg_SSH) ) then
          WORK = PSURF(:,:,curtime,iblock)/grav
          call accumulate_tavg_field(WORK, tavg_SSH, iblock, 1)
       endif
 
-      if (tavg_requested(tavg_SSH2) .and. mix_pass /= 1) then
+      if (accumulate_tavg_now(tavg_SSH2) ) then
          WORK = (PSURF(:,:,curtime,iblock)/grav)**2
          call accumulate_tavg_field(WORK, tavg_SSH2, iblock, 1)
       endif
 
-      if (tavg_requested(tavg_H3) .and. mix_pass /= 1) then
+      if (accumulate_tavg_now(tavg_H3) ) then
          WORK = ((GRADPX(:,:,curtime,iblock)/grav)**2 +  &
                  (GRADPY(:,:,curtime,iblock)/grav)**2)
         call accumulate_tavg_field(WORK, tavg_H3, iblock, 1)

@@ -348,8 +348,7 @@
    integer (int_kind) :: &
       i, j, k, kk,       &  ! dummy loop counters
       kp1,               &
-      bid,               &  ! local block address for this sub block
-      tavg_stream           ! temporary stream id
+      bid                   ! local block address for this sub block
 
    real (r8), dimension(nx_block,ny_block) :: &
       ML_DEPTH,          &  ! mixed layer depth
@@ -645,34 +644,21 @@
 
 !-----------------------------------------------------------------------
 !
-!  accumulate time average if necessary
+!  accumulate time average if necessary; checking is internal to routine
 !
 !-----------------------------------------------------------------------
 
      if ( mix_pass /= 1 ) then
 
-       tavg_stream = tavg_in_which_stream(tavg_HLS_SUBM)
-       if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_HLS_SUBM)  .and.  k == 1 ) then
+       if ( k == 1 ) then
          call accumulate_tavg_field (HLS, tavg_HLS_SUBM, bid, 1)  
        endif
 
-       tavg_stream = tavg_in_which_stream(tavg_USUBM)
-       if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_USUBM) ) then
-         call accumulate_tavg_field (U_SUBM, tavg_USUBM, bid, k)
-       endif
+       call accumulate_tavg_field (U_SUBM, tavg_USUBM, bid, k)
+       call accumulate_tavg_field (V_SUBM, tavg_VSUBM, bid, k)
+       call accumulate_tavg_field (WTOP_SUBM, tavg_WSUBM, bid, k) 
 
-       tavg_stream = tavg_in_which_stream(tavg_VSUBM)
-       if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_VSUBM) ) then
-         call accumulate_tavg_field (V_SUBM, tavg_VSUBM, bid, k)
-       endif
-
-       tavg_stream = tavg_in_which_stream(tavg_WSUBM)
-       if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_WSUBM) ) then
-         call accumulate_tavg_field (WTOP_SUBM, tavg_WSUBM, bid, k) 
-       endif
-
-       tavg_stream = tavg_in_which_stream(tavg_ADVT_SUBM)
-       if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_ADVT_SUBM) ) then
+       if (accumulate_tavg_now(tavg_ADVT_SUBM) ) then
 
          WORK1 = p5 * HTE(:,:,bid) * U_SUBM * ( TMIX(:,:,k,1)  &
                    + eoshift(TMIX(:,:,k,1), dim=1, shift=1) )
@@ -697,8 +683,7 @@
 
        endif
 
-       tavg_stream = tavg_in_which_stream(tavg_ADVS_SUBM)
-       if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_ADVS_SUBM) ) then
+       if (accumulate_tavg_now(tavg_ADVS_SUBM) ) then
 
          WORK1 = p5 * HTE(:,:,bid) * U_SUBM * ( TMIX(:,:,k,2)  &
                    + eoshift(TMIX(:,:,k,2), dim=1, shift=1) )
@@ -723,13 +708,12 @@
 
        endif
 
-       if ( tavg_requested(tavg_VNT_SUBM)  .or.  &
-            tavg_requested(tavg_VNS_SUBM) ) then
+       if ( accumulate_tavg_now(tavg_VNT_SUBM)  .or.  &
+            accumulate_tavg_now(tavg_VNS_SUBM) ) then
 
          WORK1 = p5 * V_SUBM * HTN(:,:,bid) * TAREA_R(:,:,bid)
 
-         tavg_stream = tavg_in_which_stream(tavg_VNT_SUBM)
-         if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_VNT_SUBM) ) then
+         if (accumulate_tavg_now(tavg_VNT_SUBM) ) then
 
            WORK2 = WORK1 * (    TMIX(:,:,k,1)  &
                       + eoshift(TMIX(:,:,k,1), dim=2, shift=1) )
@@ -738,8 +722,7 @@
 
          endif
 
-         tavg_stream = tavg_in_which_stream(tavg_VNS_SUBM)
-         if ( ltavg_on(tavg_stream) .and. tavg_requested(tavg_VNS_SUBM) ) then
+         if (accumulate_tavg_now(tavg_VNS_SUBM) ) then
 
            WORK2 = WORK1 * (    TMIX(:,:,k,2)  &
                       + eoshift(TMIX(:,:,k,2), dim=2, shift=1) )
@@ -963,8 +946,7 @@
 !-----------------------------------------------------------------------
 
       if ( mix_pass /= 1 ) then
-          if (tavg_requested(tavg_HDIFE_TRACER(n))) then
-          if (ltavg_on(tavg_in_which_stream(tavg_HDIFE_TRACER(n)))) then
+          if (accumulate_tavg_now(tavg_HDIFE_TRACER(n))) then
             do j=this_block%jb,this_block%je
             do i=this_block%ib,this_block%ie
               WORK1(i,j) = FX(i,j,n)*dzr(k)*TAREA_R(i,j,bid)
@@ -972,10 +954,8 @@
             enddo
             call accumulate_tavg_field(WORK1,tavg_HDIFE_TRACER(n),bid,k)
           endif
-          endif
 
-          if (tavg_requested(tavg_HDIFN_TRACER(n))) then
-          if (ltavg_on(tavg_in_which_stream(tavg_HDIFN_TRACER(n)))) then
+          if (accumulate_tavg_now(tavg_HDIFN_TRACER(n))) then
             do j=this_block%jb,this_block%je
             do i=this_block%ib,this_block%ie
               WORK1(i,j) = FY(i,j,n)*dzr(k)*TAREA_R(i,j,bid)
@@ -983,17 +963,14 @@
             enddo
             call accumulate_tavg_field(WORK1,tavg_HDIFN_TRACER(n),bid,k)
           endif
-          endif
 
-          if (tavg_requested(tavg_HDIFB_TRACER(n))) then
-          if (ltavg_on(tavg_in_which_stream(tavg_HDIFB_TRACER(n)))) then
+          if (accumulate_tavg_now(tavg_HDIFB_TRACER(n))) then
             do j=this_block%jb,this_block%je
             do i=this_block%ib,this_block%ie
               WORK1(i,j) = FZTOP_SUBM(i,j,n,bid)*dzr(k)*TAREA_R(i,j,bid)
             enddo
             enddo
             call accumulate_tavg_field(WORK1,tavg_HDIFB_TRACER(n),bid,k)
-          endif
           endif
       endif   ! mix_pass ne 1
 

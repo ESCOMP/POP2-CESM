@@ -1,5 +1,50 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    28 January 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110128
+Tag Summary: tavg module improvements 
+             * Move all accumulation testing into subroutine accumulate_tavg_field
+             * Create new subroutine, accumulate_tavg_now
+             * Remove references to tavg_requested from all other modules;
+               replace with accumulate_tavg_now in special instances where
+               the test would potentially eliminate expensive computations
+             * Make tavg_requested private, so that new developments cannot
+               access it from outside modules
+               
+Testing: njn01 cesm1_0_beta14 context, side-by-side baseline vs test case,
+               then difference all tavg *.nc files
+               (Test record available from NCAR POP2 website)
+             o CECO,T62_gx1v6, bluefire
+             o C,   T62_gx3v7, bluefire
+             o C,   T62_gx3v7, bluefire, HIFREQ
+             o B,   f19_g16,   bluefire
+
+Files Modified:
+M            25900   source/sw_absorption.F90
+M            25900   source/surface_hgt.F90
+M            25900   source/diagnostics.F90
+M            25900   source/step_mod.F90
+M            25900   source/hmix_del2.F90
+M            25900   source/hmix_del4.F90
+M            25900   source/forcing.F90
+M            25900   source/vmix_kpp.F90
+M            25900   source/budget_diagnostics.F90
+M            25900   source/iage_mod.F90
+M            25900   source/advection.F90
+M            25900   source/vertical_mix.F90
+M            25900   source/mix_submeso.F90
+M            25900   source/cfc_mod.F90
+M            25900   source/cfc11_mod.F90
+M            25900   source/passive_tracers.F90
+M            25900   source/forcing_coupled.F90
+M            26514   source/ecosys_mod.F90
+M            25900   source/horizontal_mix.F90
+M            25900   source/hmix_gm.F90
+M            26374   source/tavg.F90
+M            25900   source/barotropic.F90
+M            25901   source/baroclinic.F90
+===============================================================================
+Tag Creator: njn01
 Tag Date:    25 January 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110125
 Tag Summary: Ecosystem-model changes by Keith Lindsay
@@ -7,6 +52,11 @@ Tag Summary: Ecosystem-model changes by Keith Lindsay
              * Make pH solver more robust to large tracer changes in a single timestep, 
                by iteratively doubling the width of the pH search interval when necessary.
                The code will abort if 3 doublings is not sufficient.
+=====
+NOTE:        Solutions are bit-for-bit with the previous tag (except when the pH search
+=====        interval is increased), but the carbonate *diagnostics* fields (CO3, HCO3, H2CO3)
+             are slightly different because the phlo_3d_init value is different from the 
+             previous tag)
 
 Testing: klindsay 
              * CECO gx3v7 bluefire 2-month exact-restart

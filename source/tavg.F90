@@ -52,7 +52,7 @@
              define_tavg_field,      &
              tavg_increment_sum_qflux,&
              accumulate_tavg_field,  &
-             tavg_requested,         &
+             accumulate_tavg_now,    &
              set_in_tavg_contents,   &
              tavg_in_this_stream,    &
              tavg_in_which_stream,   &
@@ -2867,6 +2867,15 @@
       ndims               ! rank of field (2=2d,3=3d)
 
 !-----------------------------------------------------------------------
+! 
+!  test: mix_pass, ltavg_on, and tavg_requested.                
+!                                                              
+!-----------------------------------------------------------------------
+                                                                
+   if (.not. accumulate_tavg_now(field_id)) return             
+                                                              
+
+!-----------------------------------------------------------------------
 !
 !  get buffer location and field info from avail_tavg_field array
 !
@@ -2938,6 +2947,67 @@
 !EOC
 
  end subroutine accumulate_tavg_field
+
+!***********************************************************************
+!BOP
+! !IROUTINE: accumulate_tavg_now
+! !INTERFACE:
+
+ function accumulate_tavg_now(field_id)
+
+! !DESCRIPTION:
+!  This function determines whether an available (defined) tavg field
+!  can be accumulated at this time.
+!
+!  If the following are true:
+!    1) mix_pass .ne. 1
+!    2) the field is requested
+!    3) tavg is on for the stream which contains the field
+!  then accumulate_tavg_now is true 
+!
+! !REVISION HISTORY:
+!  Nancy J. Norton 7 April 2010
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      field_id            
+                         
+
+! !OUTPUT PARAMETERS:
+
+   logical (log_kind) :: &
+      accumulate_tavg_now 
+                         
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      tavg_stream_num            
+
+
+   accumulate_tavg_now   = .false.
+
+   if (mix_pass /= 1) then
+         
+     if (tavg_requested(field_id)) then
+       tavg_stream_num  = tavg_in_which_stream(field_id)
+       accumulate_tavg_now = ltavg_on(tavg_stream_num)
+     endif
+
+   endif
+
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function accumulate_tavg_now
 
 !***********************************************************************
 !BOP

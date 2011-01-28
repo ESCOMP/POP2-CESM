@@ -1079,66 +1079,18 @@
 
       this_block = get_block(blocks_clinic(iblock),iblock)
 
-      if (tavg_requested(tavg_EVAP_F)) then
-         call accumulate_tavg_field(EVAP_F(:,:,iblock), &
-                                    tavg_EVAP_F,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_PREC_F)) then
-         call accumulate_tavg_field(PREC_F(:,:,iblock), &
-                                    tavg_PREC_F,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_SNOW_F)) then
-         call accumulate_tavg_field(SNOW_F(:,:,iblock), &
-                                    tavg_SNOW_F,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_MELT_F)) then
-         call accumulate_tavg_field(MELT_F(:,:,iblock), &
-                                    tavg_MELT_F,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_ROFF_F)) then
-         call accumulate_tavg_field(ROFF_F(:,:,iblock), &
-                                    tavg_ROFF_F,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_IOFF_F)) then
-         call accumulate_tavg_field(IOFF_F(:,:,iblock), &
-                                    tavg_IOFF_F,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_SALT_F)) then
-         call accumulate_tavg_field(SALT_F(:,:,iblock), &
-                                    tavg_SALT_F,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_SENH_F)) then
-         call accumulate_tavg_field(SENH_F(:,:,iblock), &
-                                    tavg_SENH_F,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_LWUP_F)) then
-         call accumulate_tavg_field(LWUP_F(:,:,iblock), &
-                                    tavg_LWUP_F,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_LWDN_F)) then
-         call accumulate_tavg_field(LWDN_F(:,:,iblock), &
-                                    tavg_LWDN_F,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_MELTH_F)) then
-         call accumulate_tavg_field(MELTH_F(:,:,iblock), &
-                                    tavg_MELTH_F,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_IFRAC)) then
-         call accumulate_tavg_field(IFRAC(:,:,iblock), &
-                                    tavg_IFRAC,iblock,1)
-      endif
-
+         call accumulate_tavg_field(EVAP_F(:,:,iblock), tavg_EVAP_F,iblock,1)
+         call accumulate_tavg_field(PREC_F(:,:,iblock), tavg_PREC_F,iblock,1)
+         call accumulate_tavg_field(SNOW_F(:,:,iblock), tavg_SNOW_F,iblock,1)
+         call accumulate_tavg_field(MELT_F(:,:,iblock), tavg_MELT_F,iblock,1)
+         call accumulate_tavg_field(ROFF_F(:,:,iblock), tavg_ROFF_F,iblock,1)
+         call accumulate_tavg_field(IOFF_F(:,:,iblock), tavg_IOFF_F,iblock,1)
+         call accumulate_tavg_field(SALT_F(:,:,iblock), tavg_SALT_F,iblock,1)
+         call accumulate_tavg_field(SENH_F(:,:,iblock), tavg_SENH_F,iblock,1)
+         call accumulate_tavg_field(LWUP_F(:,:,iblock), tavg_LWUP_F,iblock,1)
+         call accumulate_tavg_field(LWDN_F(:,:,iblock), tavg_LWDN_F,iblock,1)
+         call accumulate_tavg_field(MELTH_F(:,:,iblock),tavg_MELTH_F,iblock,1)
+         call accumulate_tavg_field(IFRAC(:,:,iblock),  tavg_IFRAC,iblock,1)
    end do
 
    !$OMP END PARALLEL DO

@@ -41,8 +41,7 @@
    use diagnostics, only: cfl_advect
    use state_mod, only: state
    use operators, only: zcurl
-   use tavg, only: tavg_requested, ltavg_on, define_tavg_field,             &
-       accumulate_tavg_field, tavg_in_which_stream
+   use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now
    use io_types, only: nml_in, nml_filename, stdout
    use time_management, only: max_blocks_clinic, km, nt, mix_pass, c2dtt
    use timers, only: timer_start, timer_stop, get_timer
@@ -1150,17 +1149,7 @@
       i,j,n,             &! loop indices
       ibeg,iend,         &! beginning and ending index of
       jbeg,jend,         &!  physical domain
-      bid,               &! local block index
-      ns1,               &! dummy stream id number
-      ns2                 ! dummy stream id number
-
-   integer (int_kind) :: &
-      tavg_UEU_stream,   &! stream in which UEU is defined
-      tavg_UEV_stream,   &! stream in which UEV is defined
-      tavg_VNU_stream,   &! stream in which VNU is defined
-      tavg_VNV_stream,   &! stream in which VNV is defined
-      tavg_WTU_stream,   &! stream in which WTU is defined
-      tavg_WTV_stream     ! stream in which WTV is defined
+      bid                 ! local block index
 
    real (r8) ::          &
       cc                  ! scalar central weight
@@ -1170,12 +1159,6 @@
       FVN,FUE,         &! stencil coeffs used by tavg
       WORK,            &! local temp space
       WUKB              ! vert velocity at bottom of level k U box
-
-   logical (log_kind) ::  &
-      ltavg_requested_local1,  &! temporary logical
-      ltavg_requested_local2,  &! temporary logical
-      ltavg_on_local1,         &! temporary logical
-      ltavg_on_local2           ! temporary logical
 
 !-----------------------------------------------------------------------
 !
@@ -1446,141 +1429,68 @@
    end do
    end do
 
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------------
 !
-!  accumulate time average if necessary
+!  accumulate time average if necessary. testing is internal to accumulate_tavg_field
 !
-!-----------------------------------------------------------------------
+!------------------------------------------------------------------------------------
 
    if (mix_pass /= 1) then
 
-
-   if (tavg_requested(tavg_UEU)) then
-     tavg_UEU_stream = tavg_in_which_stream(tavg_UEU)
-     ltavg_on_local1 = ltavg_on(tavg_UEU_stream)
-     ltavg_requested_local1 = .true.
-   else
-     ltavg_on_local1        = .false.
-     ltavg_requested_local1 = .false.
-   endif
-
-   if (tavg_requested(tavg_UEV)) then
-     tavg_UEV_stream = tavg_in_which_stream(tavg_UEV)
-     ltavg_on_local2 = ltavg_on(tavg_UEV_stream)
-     ltavg_requested_local2 = .true.
-   else
-     ltavg_on_local2        = .false.
-     ltavg_requested_local2 = .false.
-   endif
-
-   if ( (ltavg_on_local1 .and. ltavg_requested_local1 ) .or.  &
-        (ltavg_on_local2 .and. ltavg_requested_local2 )     ) then
       if (partial_bottom_cells) then
          FUE =  UUE*p5*UAREA_R(:,:,bid)/DZU(:,:,k,bid)
       else
          FUE =  UUE*p5*UAREA_R(:,:,bid)
       endif
-   endif ! ltavg_on
 
-   if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
       do j=jbeg,jend
       do i=ibeg,iend
          WORK(i,j) = FUE(i,j)*(UUU(i,j,k) + UUU(i+1,j,k))
       end do
       end do
       call accumulate_tavg_field(WORK,tavg_UEU,bid,k)
-   endif ! ltavg_on
 
-   if ( ltavg_on_local2 .and. ltavg_requested_local2 ) then
       do j=jbeg,jend
       do i=ibeg,iend
          WORK(i,j) = FUE(i,j)*(VVV(i  ,j,k) + VVV(i+1,j,k))
       end do
       end do
       call accumulate_tavg_field(WORK,tavg_UEV,bid,k)
-   endif ! ltavg_on
 
-   if (tavg_requested(tavg_VNU)) then
-     tavg_VNU_stream = tavg_in_which_stream(tavg_VNU)
-     ltavg_on_local1 = ltavg_on(tavg_VNU_stream)
-     ltavg_requested_local1 = .true.
-   else
-     ltavg_on_local1        = .false.
-     ltavg_requested_local1 = .false.
-   endif
-
-   if (tavg_requested(tavg_VNV)) then
-     tavg_VNV_stream = tavg_in_which_stream(tavg_VNV)
-     ltavg_on_local2 = ltavg_on(tavg_VNV_stream)
-     ltavg_requested_local2 = .true.
-   else
-     ltavg_on_local2        = .false.
-     ltavg_requested_local2 = .false.
-   endif
-
-   if ( (ltavg_on_local1 .and. ltavg_requested_local1 ) .or.  &
-        (ltavg_on_local2 .and. ltavg_requested_local2 )     ) then
       if (partial_bottom_cells) then
          FVN =  VUN*p5*UAREA_R(:,:,bid)/DZU(:,:,k,bid)
       else
          FVN =  VUN*p5*UAREA_R(:,:,bid)
       endif
-   endif ! ltavg_on
 
-   if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
       do j=jbeg,jend
       do i=ibeg,iend
          WORK(i,j) = FVN(i,j)*(UUU(i,j  ,k) + UUU(i,j+1,k))
       end do
       end do
       call accumulate_tavg_field(WORK,tavg_VNU,bid,k)
-   endif ! ltavg_on
 
-   if ( ltavg_on_local2 .and. ltavg_requested_local2 ) then
       do j=jbeg,jend
       do i=ibeg,iend
          WORK(i,j) = FVN(i,j)*(VVV(i,j  ,k) + VVV(i,j+1,k))
       end do
       end do
       call accumulate_tavg_field(WORK,tavg_VNV,bid,k)
-   endif ! ltavg_on
 
-   if (tavg_requested(tavg_WTU)) then
-     tavg_WTU_stream = tavg_in_which_stream(tavg_WTU)
-     ltavg_on_local1 = ltavg_on(tavg_WTU_stream)
-     ltavg_requested_local1 = .true.
-   else
-     ltavg_on_local1        = .false.
-     ltavg_requested_local1 = .false.
-   endif
-
-   if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
       if (k == 1) then
          WORK = dzr(k)*WUK*UUU(:,:,k)
       else
          WORK = dz2r(k)*WUK*(UUU(:,:,k) + UUU(:,:,k-1))
       endif
       call accumulate_tavg_field(WORK,tavg_WTU,bid,k)
-   endif ! ltavg_on
 
-   if (tavg_requested(tavg_WTV)) then
-     tavg_WTV_stream = tavg_in_which_stream(tavg_WTV)
-     ltavg_on_local1 = ltavg_on(tavg_WTV_stream)
-     ltavg_requested_local1 = .true.
-   else
-     ltavg_on_local1        = .false.
-     ltavg_requested_local1 = .false.
-   endif
-
-
-   if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
       if (k == 1) then
          WORK = dzr(k)*WUK*VVV(:,:,k)
       else
          WORK = dz2r(k)*WUK*(VVV(:,:,k) + VVV(:,:,k-1))
       endif
       call accumulate_tavg_field(WORK,tavg_WTV,bid,k)
-   endif ! ltavg_on
+
    endif ! mix_pass
 
 !-----------------------------------------------------------------------
@@ -1650,17 +1560,10 @@
    logical (log_kind), dimension(nt) :: &
      tr_mask              ! which tracers are using a particular advection scheme
 
-   logical (log_kind) ::  &
-     ltavg_requested_local1,  &! temporary logical
-     ltavg_requested_local2,  &! temporary logical
-     ltavg_on_local1,         &! temporary logical
-     ltavg_on_local2           ! temporary logical
-
    integer (int_kind) :: &
      i,j,n,              &! dummy loop indices
      ib, ie, jb, je,     &! domain limits
-     bid,                &! local block address
-     tavg_stream          ! dummy stream id
+     bid                  ! local block address
 
    real (r8), dimension(nx_block,ny_block) :: & 
      UTE,UTW,VTN,VTS,  &! tracer flux velocities across E,W,N,S faces
@@ -1768,7 +1671,8 @@
 
 !-----------------------------------------------------------------------
 !
-!  compute diagnostics if necessary
+!  compute diagnostics if necessary. Note: testing is done internally
+!     is accumulate_tavg_field
 !
 !-----------------------------------------------------------------------
 
@@ -1782,153 +1686,50 @@
          FUE =  p5*UTE*TAREA_R(:,:,bid)
       endif
 
-      if (tavg_requested(tavg_WVEL)) then
-        tavg_stream = tavg_in_which_stream(tavg_WVEL)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
-
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         call accumulate_tavg_field(WTK,tavg_WVEL,bid,k)
-      endif
-
-      if (tavg_requested(tavg_WVEL2)) then
-        tavg_stream = tavg_in_which_stream(tavg_WVEL2)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
-
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         call accumulate_tavg_field(WTK**2,tavg_WVEL2,bid,k)
-      endif
+      call accumulate_tavg_field(WTK,tavg_WVEL,bid,k)
+      call accumulate_tavg_field(WTK**2,tavg_WVEL2,bid,k)
 
       do n=1,nt
          if (tadvect_itype(n) == tadvect_centered) then
 
-            if (tavg_requested(tavg_UE_TRACER(n))) then
-              tavg_stream = tavg_in_which_stream(tavg_UE_TRACER(n))
-              ltavg_on_local1 = ltavg_on(tavg_stream)
-              ltavg_requested_local1 = .true.
-            else
-              ltavg_on_local1        = .false.
-              ltavg_requested_local1 = .false.
-            endif
+            WORK = FUE*(        TRCR(:,:,k,n) + eoshift(TRCR(:,:,k,n),dim=1,shift=1))
+            call accumulate_tavg_field(WORK,tavg_UE_TRACER(n),bid,k)
 
-            if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-               WORK = FUE*(        TRCR(:,:,k,n) + &
-                           eoshift(TRCR(:,:,k,n),dim=1,shift=1))
-               call accumulate_tavg_field(WORK,tavg_UE_TRACER(n),bid,k)
-            endif
+            WORK = FVN*(        TRCR(:,:,k,n) +  eoshift(TRCR(:,:,k,n),dim=2,shift=1))
+            call accumulate_tavg_field(WORK,tavg_VN_TRACER(n),bid,k)
 
-            if (tavg_requested(tavg_VN_TRACER(n))) then
-              tavg_stream = tavg_in_which_stream(tavg_VN_TRACER(n))
-              ltavg_on_local1 = ltavg_on(tavg_stream)
-              ltavg_requested_local1 = .true.
-            else
-              ltavg_on_local1        = .false.
-              ltavg_requested_local1 = .false.
-            endif
-
-            if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-               WORK = FVN*(        TRCR(:,:,k,n) + &
-                           eoshift(TRCR(:,:,k,n),dim=2,shift=1))
-               call accumulate_tavg_field(WORK,tavg_VN_TRACER(n),bid,k)
-            endif
-
-            if (tavg_requested(tavg_WT_TRACER(n))) then
-              tavg_stream = tavg_in_which_stream(tavg_WT_TRACER(n))
-              ltavg_on_local1 = ltavg_on(tavg_stream)
-              ltavg_requested_local1 = .true.
-            else
-              ltavg_on_local1        = .false.
-              ltavg_requested_local1 = .false.
-            endif
-
-            if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-               if (k == 1) then
-                  if (sfc_layer_type /= sfc_layer_varthick) then
-                     WORK = dzr(k)*WTK*TRCR(:,:,k,n)
-                  else
-                     WORK = c0
-                  endif
+            if (k == 1) then
+               if (sfc_layer_type /= sfc_layer_varthick) then
+                  WORK = dzr(k)*WTK*TRCR(:,:,k,n)
                else
-                  WORK = dz2r(k)*WTK*(TRCR(:,:,k  ,n)  &
-                                               + TRCR(:,:,k-1,n))
+                  WORK = c0
                endif
-               call accumulate_tavg_field(WORK,tavg_WT_TRACER(n),bid,k)
+            else
+               WORK = dz2r(k)*WTK*(TRCR(:,:,k  ,n) + TRCR(:,:,k-1,n))
             endif
+            call accumulate_tavg_field(WORK,tavg_WT_TRACER(n),bid,k)
 
          else
 
-            if (tavg_requested(tavg_UE_TRACER(n))) then
-              tavg_stream = tavg_in_which_stream(tavg_UE_TRACER(n))
-              ltavg_on_local1 = ltavg_on(tavg_stream)
-              ltavg_requested_local1 = .true.
-            else
-              ltavg_on_local1        = .false.
-              ltavg_requested_local1 = .false.
-            endif
+            WORK = c2*FUE*TRACER_E(:,:,n)
+            call accumulate_tavg_field(WORK,tavg_UE_TRACER(n),bid,k)
 
-            if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-               WORK = c2*FUE*TRACER_E(:,:,n)
-               call accumulate_tavg_field(WORK,tavg_UE_TRACER(n),bid,k)
-            endif
+            WORK = c2*FVN*TRACER_N(:,:,n)
+            call accumulate_tavg_field(WORK,tavg_VN_TRACER(n),bid,k)
 
-            if (tavg_requested(tavg_VN_TRACER(n))) then
-              tavg_stream = tavg_in_which_stream(tavg_VN_TRACER(n))
-              ltavg_on_local1 = ltavg_on(tavg_stream)
-              ltavg_requested_local1 = .true.
-            else
-              ltavg_on_local1        = .false.
-              ltavg_requested_local1 = .false.
-            endif
-
-            if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-               WORK = c2*FVN*TRACER_N(:,:,n)
-               call accumulate_tavg_field(WORK,tavg_VN_TRACER(n),bid,k)
-            endif
-
-            if (tavg_requested(tavg_WT_TRACER(n))) then
-              tavg_stream = tavg_in_which_stream(tavg_WT_TRACER(n))
-              ltavg_on_local1 = ltavg_on(tavg_stream)
-              ltavg_requested_local1 = .true.
-            else
-              ltavg_on_local1        = .false.
-              ltavg_requested_local1 = .false.
-            endif
-
-            if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-               call accumulate_tavg_field(FLUX_T(:,:,n),tavg_WT_TRACER(n),bid,k)
-            endif
+            call accumulate_tavg_field(FLUX_T(:,:,n),tavg_WT_TRACER(n),bid,k)
 
          endif
 
-         if (tavg_requested(tavg_ADV_TRACER(n))) then
-           tavg_stream = tavg_in_which_stream(tavg_ADV_TRACER(n))
-           ltavg_on_local1 = ltavg_on(tavg_stream)
-           ltavg_requested_local1 = .true.
-         else
-           ltavg_on_local1        = .false.
-           ltavg_requested_local1 = .false.
-         endif
-
-         if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-            WORK = c0
-            do j=jb,je
-            do i=ib,ie
-               if (k <= KMT(i,j,bid)) then
-                  WORK(i,j) = -dz(k)*LTK(i,j,n)
-               endif
-            end do
-            end do
-            call accumulate_tavg_field(WORK,tavg_ADV_TRACER(n),bid,k)
-         endif
+         WORK = c0
+         do j=jb,je
+         do i=ib,ie
+            if (k <= KMT(i,j,bid)) then
+               WORK(i,j) = -dz(k)*LTK(i,j,n)
+            endif
+         end do
+         end do
+         call accumulate_tavg_field(WORK,tavg_ADV_TRACER(n),bid,k)
 
       enddo
 
@@ -1937,283 +1738,116 @@
       !*** tavg fields
       !***
 
-      if (tavg_requested(tavg_PD) .or.  &
-          tavg_requested(tavg_RHOU) .or.  &
-          tavg_requested(tavg_RHOV) .or.  &
-          tavg_requested(tavg_URHO) .or.  &
-          tavg_requested(tavg_VRHO) .or.  &
-          tavg_requested(tavg_WRHO)) then
+   if (accumulate_tavg_now(tavg_PD)   .or.  &
+       accumulate_tavg_now(tavg_RHOU) .or.  &
+       accumulate_tavg_now(tavg_RHOV) .or.  &
+       accumulate_tavg_now(tavg_URHO) .or.  &
+       accumulate_tavg_now(tavg_VRHO) .or.  &
+       accumulate_tavg_now(tavg_WRHO)) then
 
-         call state(k,1,TRCR(:,:,k,1),                         &
-                        TRCR(:,:,k,2), this_block, &
-                        RHOFULL=RHOK1)
+       call state(k,1,TRCR(:,:,k,1), TRCR(:,:,k,2), this_block, RHOFULL=RHOK1)
 
-         if (k == 1) then
-            RHOK1M = RHOK1
-         else
-            call state(k-1,1,TRCR(:,:,k,1),                         &
-                             TRCR(:,:,k,2), this_block, &
-                             RHOFULL=RHOK1M)
-         endif
-      endif
+       if (k == 1) then
+          RHOK1M = RHOK1
+       else
+          call state(k-1,1,TRCR(:,:,k,1), TRCR(:,:,k,2), this_block, RHOFULL=RHOK1M)
+       endif
 
-      if (tavg_requested(tavg_PD)) then
-        tavg_stream = tavg_in_which_stream(tavg_PD)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
+       call accumulate_tavg_field(RHOK1,tavg_PD,bid,k)
 
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         call accumulate_tavg_field(RHOK1,tavg_PD,bid,k)
-      endif
+       WORK = FUE*(RHOK1 + eoshift(RHOK1,dim=1,shift=1))
+       call accumulate_tavg_field(WORK,tavg_URHO,bid,k)
 
-      if (tavg_requested(tavg_URHO)) then
-        tavg_stream = tavg_in_which_stream(tavg_URHO)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
+       WORK = FVN*(RHOK1 + eoshift(RHOK1,dim=2,shift=1))
+       call accumulate_tavg_field(WORK,tavg_VRHO,bid,k)
+ 
+       WORK = dz2r(k)*WTK*(RHOK1 + RHOK1M)
+       call accumulate_tavg_field(WORK,tavg_WRHO,bid,k)
 
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         WORK = FUE*(RHOK1 + eoshift(RHOK1,dim=1,shift=1))
-         call accumulate_tavg_field(WORK,tavg_URHO,bid,k)
-      endif
+       call ugrid_to_tgrid(WORK1,UUU(:,:,k),bid)
+       WORK = RHOK1*WORK1
+       call accumulate_tavg_field(WORK,tavg_RHOU,bid,k)
 
-      if (tavg_requested(tavg_VRHO)) then
-        tavg_stream = tavg_in_which_stream(tavg_VRHO)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
-
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         WORK = FVN*(RHOK1 + eoshift(RHOK1,dim=2,shift=1))
-         call accumulate_tavg_field(WORK,tavg_VRHO,bid,k)
-      endif
-
-      if (tavg_requested(tavg_WRHO)) then
-        tavg_stream = tavg_in_which_stream(tavg_WRHO)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
-
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         WORK = dz2r(k)*WTK*(RHOK1 + RHOK1M)
-         call accumulate_tavg_field(WORK,tavg_WRHO,bid,k)
-      endif
-
-      if (tavg_requested(tavg_RHOU)) then
-        tavg_stream = tavg_in_which_stream(tavg_RHOU)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
-
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         call ugrid_to_tgrid(WORK1,UUU(:,:,k),bid)
-         WORK = RHOK1*WORK1
-         call accumulate_tavg_field(WORK,tavg_RHOU,bid,k)
-      endif
-
-      if (tavg_requested(tavg_RHOV)) then
-        tavg_stream = tavg_in_which_stream(tavg_RHOV)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
-
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         call ugrid_to_tgrid(WORK1,VVV(:,:,k),bid)
-         WORK = RHOK1*WORK1
-         call accumulate_tavg_field(WORK,tavg_RHOV,bid,k)
-      endif
+       call ugrid_to_tgrid(WORK1,VVV(:,:,k),bid)
+       WORK = RHOK1*WORK1
+       call accumulate_tavg_field(WORK,tavg_RHOV,bid,k)
+   endif! accumulate_tavg_now
 
       !***
       !*** vertical density gradient and potential vorticity
       !***
 
-      if (tavg_requested(tavg_Q)    .or.  &
-          tavg_requested(tavg_PV)   .or.  &
-          tavg_requested(tavg_PVWM) .or.  &
-          tavg_requested(tavg_PVWP) .or.  &
-          tavg_requested(tavg_UPV)  .or.  &
-          tavg_requested(tavg_VPV)  .or.  &
-          tavg_requested(tavg_UQ)   .or.  &
-          tavg_requested(tavg_VQ) ) then
+   if (accumulate_tavg_now(tavg_Q)    .or.  &
+       accumulate_tavg_now(tavg_PV)   .or.  &
+       accumulate_tavg_now(tavg_PVWM) .or.  &
+       accumulate_tavg_now(tavg_PVWP) .or.  &
+       accumulate_tavg_now(tavg_UPV)  .or.  &
+       accumulate_tavg_now(tavg_VPV)  .or.  &
+       accumulate_tavg_now(tavg_UQ)   .or.  &
+       accumulate_tavg_now(tavg_VQ) ) then
 
-         call state(k,k,TRCR(:,:,k,1)  &
-                       ,TRCR(:,:,k,2), this_block, &
-                        RHOOUT=WORK)
+       call state(k,k,TRCR(:,:,k,1),TRCR(:,:,k,2), this_block,RHOOUT=WORK)
 
-         if (k == 1 ) then
-            WORK3 = WORK
-         else
-            call state(k-1,k,TRCR(:,:,k-1,1)  &
-                            ,TRCR(:,:,k-1,2), this_block, &
-                             RHOOUT=WORK3)
-            WORK3 = p5*(WORK3 + WORK)
-         endif
+       if (k == 1 ) then
+          WORK3 = WORK
+       else
+          call state(k-1,k,TRCR(:,:,k-1,1),TRCR(:,:,k-1,2), this_block,RHOOUT=WORK3)
+          WORK3 = p5*(WORK3 + WORK)
+       endif
 
-         if (k == km) then
-            WORK4 = WORK
-         else
-            call state(k+1,k,TRCR(:,:,k+1,1)  &
-                            ,TRCR(:,:,k+1,2), this_block, &
-                             RHOOUT=WORK4)
+       if (k == km) then
+          WORK4 = WORK
+       else
+          call state(k+1,k,TRCR(:,:,k+1,1),TRCR(:,:,k+1,2),this_block,RHOOUT=WORK4)
 
-            do j=jb,je
-            do i=ib,ie
-               if (k /= KMT(i,j,bid)) then
-                  WORK4(i,j) = p5*(WORK4(i,j) + WORK(i,j))
-               else 
-                  WORK4(i,j) = WORK(i,j)
-               endif
-            end do
-            end do
-         endif
+          do j=jb,je
+          do i=ib,ie
+             if (k /= KMT(i,j,bid)) then
+                WORK4(i,j) = p5*(WORK4(i,j) + WORK(i,j))
+             else 
+                WORK4(i,j) = WORK(i,j)
+             endif
+          end do
+          end do
+       endif
 
-         call zero_ghost_cells(this_block,WORK1)
+       call zero_ghost_cells(this_block,WORK1)
 
-         do j=jb,je
-         do i=ib,ie
-            if (k <= KMT(i,j,bid)) then
-               WORK1(i,j) = (WORK3(i,j) - WORK4(i,j))*dzr(k) ! drho/dz
-            else
-               WORK1(i,j) = c0
-            endif
-         end do
-         end do
+       do j=jb,je
+       do i=ib,ie
+          if (k <= KMT(i,j,bid)) then
+             WORK1(i,j) = (WORK3(i,j) - WORK4(i,j))*dzr(k) ! drho/dz
+          else
+             WORK1(i,j) = c0
+          endif
+       end do
+       end do
 
-         call zcurl(k,WORK3,UUU(:,:,k),VVV(:,:,k),this_block)
-         WORK2 = WORK1*(WORK3*TAREA_R(:,:,bid) + &
-                        FCORT(:,:,bid)) ! PV = pot vorticity
-      endif
+       call zcurl(k,WORK3,UUU(:,:,k),VVV(:,:,k),this_block)
+       WORK2 = WORK1*(WORK3*TAREA_R(:,:,bid) + FCORT(:,:,bid)) ! PV = pot vorticity
 
-      if (tavg_requested(tavg_Q)) then
-        tavg_stream = tavg_in_which_stream(tavg_Q)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
-
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         call accumulate_tavg_field(WORK1,tavg_Q,bid,k)
-      endif
-
-      if (tavg_requested(tavg_PV)) then
-        tavg_stream = tavg_in_which_stream(tavg_PV)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
-
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         call accumulate_tavg_field(WORK2,tavg_PV,bid,k)
-      endif
+       call accumulate_tavg_field(WORK1,tavg_Q,bid,k)
+       call accumulate_tavg_field(WORK2,tavg_PV,bid,k)
 
       !***
       !*** advection of potential vorticity, Q
       !***
 
-      if (tavg_requested(tavg_PVWM)) then
-        tavg_stream = tavg_in_which_stream(tavg_PVWM)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
+       call accumulate_tavg_field(WORK2*WTK,tavg_PVWM,bid,k)
+       call accumulate_tavg_field(WORK2*WTKB,tavg_PVWP,bid,k)
 
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         call accumulate_tavg_field(WORK2*WTK,tavg_PVWM,bid,k)
-      endif
+       WORK = FUE*(WORK2 + eoshift(WORK2,dim=1,shift=1))
+       call accumulate_tavg_field(WORK,tavg_UPV,bid,k)
 
-      if (tavg_requested(tavg_PVWP)) then
-        tavg_stream = tavg_in_which_stream(tavg_PVWP)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
+       WORK = FVN*(WORK2 + eoshift(WORK2,dim=2,shift=1))
+       call accumulate_tavg_field(WORK,tavg_VPV,bid,k)
 
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         call accumulate_tavg_field(WORK2*WTKB,tavg_PVWP,bid,k)
-      endif
+       WORK = FUE*(WORK1 + eoshift(WORK1,dim=1,shift=1))
+       call accumulate_tavg_field(WORK,tavg_UQ,bid,k)
 
-      if (tavg_requested(tavg_UPV)) then
-        tavg_stream = tavg_in_which_stream(tavg_UPV)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
-
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         WORK = FUE*(WORK2 + eoshift(WORK2,dim=1,shift=1))
-         call accumulate_tavg_field(WORK,tavg_UPV,bid,k)
-      endif
-
-      if (tavg_requested(tavg_VPV)) then
-        tavg_stream = tavg_in_which_stream(tavg_VPV)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
-
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         WORK = FVN*(WORK2 + eoshift(WORK2,dim=2,shift=1))
-         call accumulate_tavg_field(WORK,tavg_VPV,bid,k)
-      endif
-
-      if (tavg_requested(tavg_UQ)) then
-        tavg_stream = tavg_in_which_stream(tavg_UQ)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
-
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         WORK = FUE*(WORK1 + eoshift(WORK1,dim=1,shift=1))
-         call accumulate_tavg_field(WORK,tavg_UQ,bid,k)
-      endif
-
-      if (tavg_requested(tavg_VQ)) then
-        tavg_stream = tavg_in_which_stream(tavg_VQ)
-        ltavg_on_local1 = ltavg_on(tavg_stream)
-        ltavg_requested_local1 = .true.
-      else
-        ltavg_on_local1        = .false.
-        ltavg_requested_local1 = .false.
-      endif
-
-      if ( ltavg_on_local1 .and. ltavg_requested_local1 ) then
-         WORK = FVN*(WORK1 + eoshift(WORK1,dim=2,shift=1))
-         call accumulate_tavg_field(WORK,tavg_VQ,bid,k)
-      endif
+       WORK = FVN*(WORK1 + eoshift(WORK1,dim=2,shift=1))
+       call accumulate_tavg_field(WORK,tavg_VQ,bid,k)
+   endif! accumulate_tavg_now
 
    endif ! mix_pass
 

@@ -34,7 +34,7 @@
    use hmix_gm, only: init_gm, hdifft_gm
    use hmix_aniso, only: init_aniso, hdiffu_aniso
    use topostress, only: ltopostress
-   use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field, &
+   use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now, &
       tavg_in_which_stream, ltavg_on
    use timers, only: timer_start, timer_stop, get_timer
    use exit_mod, only: sigAbort, exit_pop, flushm
@@ -557,7 +557,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (tavg_requested(tavg_HDIFT) .and. mix_pass /= 1) then
+   if (accumulate_tavg_now(tavg_HDIFT)) then
 
      where (k <= KMT(:,:,bid))
         WORK = dz(k)*HDTK(:,:,1)
@@ -567,7 +567,7 @@
      call accumulate_tavg_field(WORK,tavg_HDIFT,bid,k)
    endif
 
-   if (tavg_requested(tavg_HDIFS) .and. mix_pass /= 1) then
+   if (accumulate_tavg_now(tavg_HDIFS)) then
 
      where (k <= KMT(:,:,bid))
         WORK = dz(k)*HDTK(:,:,2)
@@ -613,8 +613,7 @@
    if (hmix_tracer_itype /= hmix_tracer_type_gm) return
 
    do n = 1,nt
-      if (tavg_requested(tavg_HDIFB_TRACER(n))) then
-      if (ltavg_on(tavg_in_which_stream(tavg_HDIFB_TRACER(n)))) then
+      if (accumulate_tavg_now(tavg_HDIFB_TRACER(n))) then
          do k=1,km-1
             WORK1 = VDC_GM(:,:,k,bid)
             if (partial_bottom_cells) then
@@ -627,7 +626,6 @@
             endif
             call accumulate_tavg_field(WORK2,tavg_HDIFB_TRACER(n),bid,k)
          end do
-      endif
       endif
    end do
 

@@ -31,8 +31,8 @@
        datafile
    use exit_mod, only: sigAbort, exit_pop
    use timers, only: timer_start, timer_stop
-   use tavg, only: define_tavg_field, tavg_method_qflux, ltavg_on, &
-       tavg_requested, accumulate_tavg_field, tavg_in_which_stream
+   use tavg, only: define_tavg_field, tavg_method_qflux,  &
+       accumulate_tavg_field, accumulate_tavg_now
    use constants, only: c0, c1, p5, delim_fmt, char_blank, &
        grav, salt_to_ppt, ocn_ref_salinity, ppt_to_salt, sea_ice_salinity
    use time_management, only: mix_pass, c2dtt
@@ -622,13 +622,9 @@
 
    if (mix_pass /= 1) then
       do n = 3, nt
-         if (tavg_requested(tavg_var_J(n))) then
-            if (ltavg_on(tavg_in_which_stream(tavg_var_J(n))))  &
-               call accumulate_tavg_field(TRACER_SOURCE(:,:,n),tavg_var_J(n),bid,k)
-         endif
+         call accumulate_tavg_field(TRACER_SOURCE(:,:,n),tavg_var_J(n),bid,k)
 
-         if (tavg_requested(tavg_var_Jint(n))) then
-            if (ltavg_on(tavg_in_which_stream(tavg_var_Jint(n)))) then
+         if (accumulate_tavg_now(tavg_var_Jint(n))) then
                if (partial_bottom_cells) then
                   WORK = merge(DZT(:,:,k,bid) * TRACER_SOURCE(:,:,n), &
                                c0, k<=KMT(:,:,bid))
@@ -637,7 +633,6 @@
                                c0, k<=KMT(:,:,bid))
                endif
                call accumulate_tavg_field(WORK,tavg_var_Jint(n),bid,k)
-            endif
          endif
       enddo
 
@@ -645,8 +640,7 @@
       if (k > 1) ztop = zw(k-1)
       if (ztop < 100.0e2_r8) then
          do n = 3, nt
-            if (tavg_requested(tavg_var_Jint_100m(n))) then
-               if (ltavg_on(tavg_in_which_stream(tavg_var_Jint_100m(n)))) then
+            if (accumulate_tavg_now(tavg_var_Jint_100m(n))) then
                   if (partial_bottom_cells) then
                      WORK = merge(min(100.0e2_r8 - ztop, DZT(:,:,k,bid)) &
                                   * TRACER_SOURCE(:,:,n), c0, k<=KMT(:,:,bid))
@@ -655,7 +649,6 @@
                                   * TRACER_SOURCE(:,:,n), c0, k<=KMT(:,:,bid))
                   endif
                   call accumulate_tavg_field(WORK,tavg_var_Jint_100m(n),bid,k)
-               endif
             endif
          enddo
       endif
@@ -907,26 +900,18 @@
 
    if (mix_pass /= 1) then
       do n = 3, nt
-         if (tavg_requested(tavg_var(n))) then
-            if (ltavg_on(tavg_in_which_stream(tavg_var(n)))) &
-               call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid),tavg_var(n),bid,k)
-         endif
+         call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid),tavg_var(n),bid,k)
 
-         if (tavg_requested(tavg_var_sqr(n))) then
-            if (ltavg_on(tavg_in_which_stream(tavg_var_sqr(n)))) then
-               WORK = TRACER(:,:,k,n,curtime,bid) ** 2
-               call accumulate_tavg_field(WORK,tavg_var_sqr(n),bid,k)
-            endif
+         if (accumulate_tavg_now(tavg_var_sqr(n))) then
+            WORK = TRACER(:,:,k,n,curtime,bid) ** 2
+            call accumulate_tavg_field(WORK,tavg_var_sqr(n),bid,k)
          endif
       enddo
 
       if (k == 1) then
          do n = 3, nt
-            if (tavg_requested(tavg_var_surf(n))) then
-               if (ltavg_on(tavg_in_which_stream(tavg_var_surf(n)))) &
-                  call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid), &
-                                             tavg_var_surf(n),bid,k)
-            endif
+            call accumulate_tavg_field(TRACER(:,:,k,n,curtime,bid), &
+                                       tavg_var_surf(n),bid,k)
          enddo
       endif
 
@@ -934,8 +919,7 @@
       if (k > 1) ztop = zw(k-1)
       if (ztop < 100.0e2_r8) then
          do n = 3, nt
-            if (tavg_requested(tavg_var_zint_100m(n))) then
-               if (ltavg_on(tavg_in_which_stream(tavg_var_zint_100m(n)))) then
+            if (accumulate_tavg_now(tavg_var_zint_100m(n))) then
                   if (sfc_layer_type == sfc_layer_varthick .and. k == 1) then
                      WORK = merge((dz(k)+PSURF(:,:,curtime,bid)/grav) &
                                   * TRACER(:,:,k,n,curtime,bid), c0, k<=KMT(:,:,bid))
@@ -949,7 +933,6 @@
                      endif
                   endif
                   call accumulate_tavg_field(WORK,tavg_var_zint_100m(n),bid,k)
-               endif
             endif
          enddo
       endif
@@ -996,8 +979,7 @@
 !-----------------------------------------------------------------------
 
    do n = 3, nt
-      if (tavg_requested(tavg_var_tend_zint_100m(n))) then
-         if (ltavg_on(tavg_in_which_stream(tavg_var_tend_zint_100m(n)))) then
+      if (accumulate_tavg_now(tavg_var_tend_zint_100m(n))) then
             ztop = c0
             do k=1,km
                if (k > 1) ztop = zw(k-1)
@@ -1023,7 +1005,6 @@
                endif
                call accumulate_tavg_field(WORK,tavg_var_tend_zint_100m(n),bid,k)
             end do
-         endif
       endif
    enddo
 
@@ -1069,15 +1050,8 @@
    !$OMP PARALLEL DO PRIVATE(iblock,n)
    do iblock = 1,nblocks_clinic
       do n = 3, nt
-         if (tavg_requested(tavg_var_stf(n))) then
-            if (ltavg_on(tavg_in_which_stream(tavg_var_stf(n)))) &
-               call accumulate_tavg_field(STF(:,:,n,iblock),tavg_var_stf(n),iblock,1)
-         endif
-
-         if (tavg_requested(tavg_var_fvper(n))) then
-            if (ltavg_on(tavg_in_which_stream(tavg_var_fvper(n)))) &
-               call accumulate_tavg_field(FvPER(:,:,n,iblock),tavg_var_fvper(n),iblock,1)
-         endif
+         call accumulate_tavg_field(STF(:,:,n,iblock),tavg_var_stf(n),iblock,1)
+         call accumulate_tavg_field(FvPER(:,:,n,iblock),tavg_var_fvper(n),iblock,1)
       enddo
    enddo
    !$OMP END PARALLEL DO
@@ -1153,15 +1127,13 @@
    !$OMP PARALLEL DO PRIVATE(iblock,n,ref_val,WORK)
    do iblock = 1,nblocks_clinic
       do n = 3, nt
-         if (tavg_requested(tavg_var_fvice(n))) then
-           if (ltavg_on(tavg_in_which_stream(tavg_var_fvice(n)))) then
+         if (accumulate_tavg_now(tavg_var_fvice(n))) then
               ref_val = tracer_ref_val(n)
               if (ref_val /= c0)  then
                  WORK = ref_val * (c1 - sea_ice_salinity / ocn_ref_salinity) * &
                     cp_over_lhfusion * max(c0, QICE(:,:,iblock))
                  call accumulate_tavg_field(WORK,tavg_var_fvice(n),iblock,1,c1)
               endif
-           endif
          endif
       enddo
    enddo

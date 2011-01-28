@@ -440,7 +440,7 @@
 
       this_block = get_block(blocks_clinic(iblock),iblock)
 
-      if (tavg_requested(tavg_SHF)) then
+      if (accumulate_tavg_now(tavg_SHF)) then
          where (KMT(:,:,iblock) > 0)
             WORK = (STF(:,:,1,iblock)+SHF_QSW(:,:,iblock))/ &
                    hflux_factor ! W/m^2
@@ -451,7 +451,7 @@
          call accumulate_tavg_field(WORK,tavg_SHF,iblock,1)
       endif
 
-      if (tavg_requested(tavg_SHF_QSW)) then
+      if (accumulate_tavg_now(tavg_SHF_QSW)) then
          where (KMT(:,:,iblock) > 0)
             WORK = SHF_QSW(:,:,iblock)/hflux_factor ! W/m^2
          elsewhere
@@ -461,7 +461,7 @@
          call accumulate_tavg_field(WORK,tavg_SHF_QSW,iblock,1)
       endif
 
-      if (tavg_requested(tavg_SFWF)) then
+      if (accumulate_tavg_now(tavg_SFWF)) then
          if (sfc_layer_type == sfc_layer_varthick .and. &
              .not. lfw_as_salt_flx) then
             where (KMT(:,:,iblock) > 0)
@@ -480,7 +480,7 @@
          call accumulate_tavg_field(WORK,tavg_SFWF,iblock,1)
       endif
 
-      if (tavg_requested(tavg_SFWF_WRST)) then
+      if (accumulate_tavg_now(tavg_SFWF_WRST)) then
          if ( sfwf_formulation == 'partially-coupled' ) then
             where (KMT(:,:,iblock) > 0) ! convert to kg(freshwater)/m^2/s
                WORK = SFWF_COMP(:,:,iblock,sfwf_comp_wrest)/salinity_factor
@@ -493,41 +493,13 @@
          call accumulate_tavg_field(WORK,tavg_SFWF_WRST,iblock,1)
       endif
 
-      if (tavg_requested(tavg_TAUX)) then
-         call accumulate_tavg_field(SMF(:,:,1,iblock), &
-                                    tavg_TAUX,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_TAUX2)) then
-         call accumulate_tavg_field(SMF(:,:,1,iblock)**2, &
-                                    tavg_TAUX2,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_TAUY)) then
-         call accumulate_tavg_field(SMF(:,:,2,iblock), &
-                                    tavg_TAUY,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_TAUY2)) then
-         call accumulate_tavg_field(SMF(:,:,2,iblock)**2, &
-                                    tavg_TAUY2,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_FW)) then
-         call accumulate_tavg_field(FW(:,:,iblock), &
-                                    tavg_FW,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_TFW_T)) then
-         call accumulate_tavg_field(TFW(:,:,1,iblock)/hflux_factor, &
-                                    tavg_TFW_T,iblock,1)
-      endif
-
-      if (tavg_requested(tavg_TFW_S)) then
-         call accumulate_tavg_field(TFW(:,:,2,iblock)*rho_sw*c10, &
-                                    tavg_TFW_T,iblock,1)
-      endif
-
+      call accumulate_tavg_field(SMF(:,:,1,iblock), tavg_TAUX,iblock,1)
+      call accumulate_tavg_field(SMF(:,:,1,iblock)**2, tavg_TAUX2,iblock,1)
+      call accumulate_tavg_field(SMF(:,:,2,iblock), tavg_TAUY,iblock,1)
+      call accumulate_tavg_field(SMF(:,:,2,iblock)**2, tavg_TAUY2,iblock,1)
+      call accumulate_tavg_field(FW (:,:,iblock), tavg_FW,iblock,1)
+      call accumulate_tavg_field(TFW(:,:,1,iblock)/hflux_factor, tavg_TFW_T,iblock,1)
+      call accumulate_tavg_field(TFW(:,:,2,iblock)*rho_sw*c10, tavg_TFW_T,iblock,1)
 
 
    end do

@@ -360,10 +360,8 @@
    if (present(step_call)) then
    if (step_call) then
      tavg_TEMP = tavg_id('TEMP')
-     if ( first_global_budget .and. ldiag_global_tracer_budgets .and. tavg_requested(tavg_TEMP) ) then
-        if (ltavg_on(tavg_in_which_stream(tavg_TEMP))) then
-          ! continue with diagnostics computation
-        endif
+     if ( first_global_budget .and. ldiag_global_tracer_budgets .and. accumulate_tavg_now(tavg_TEMP) ) then
+       ! continue with diagnostics computation
      else
        return
      endif
@@ -450,13 +448,11 @@
 
    if (present(step_call)) then
    if (step_call) then
-     if ( first_global_budget .and. ldiag_global_tracer_budgets .and. tavg_requested(tavg_TEMP) ) then
-       if (ltavg_on(tavg_in_which_stream(tavg_TEMP))) then
+     if ( first_global_budget .and. ldiag_global_tracer_budgets .and. accumulate_tavg_now(tavg_TEMP) ) then
         if ( my_task == master_task ) then
           write (stdout,1001) volume_t_initial,tracer_mean_initial(1),   &
                               salt_to_ppt*tracer_mean_initial(2)
         endif
-       endif
        first_global_budget = .false.
      endif ! first_global_budget 
    endif ! step_call

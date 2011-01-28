@@ -28,7 +28,7 @@
    use state_mod
    use exit_mod
    use sw_absorption
-   use tavg, only: define_tavg_field, tavg_requested, accumulate_tavg_field
+   use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now
    use io_types, only: stdout
    use communicate, only: my_task, master_task
    use tidal_mixing, only: TIDAL_COEF, tidal_mix_max, ltidal_mixing
@@ -1290,32 +1290,23 @@
       end do
       end do
 
-      if (tavg_requested(tavg_KVMIX)) then
-         ! k index shifted because KVMIX is at cell bottom
-         ! while output axis is at cell top
-         call accumulate_tavg_field(KVMIX,tavg_KVMIX,bid,k)
-      endif
+      ! k index shifted because KVMIX is at cell bottom
+      ! while output axis is at cell top
+      call accumulate_tavg_field(KVMIX,tavg_KVMIX,bid,k)
  
-      if (tavg_requested(tavg_KVMIX_M)) then
-         ! k index shifted because KVMIX_M is at cell bottom
-         ! while output axis is at cell top
-         call accumulate_tavg_field(KVMIX_M,tavg_KVMIX_M,bid,k)
-      endif
+      ! k index shifted because KVMIX_M is at cell bottom
+      ! while output axis is at cell top
+      call accumulate_tavg_field(KVMIX_M,tavg_KVMIX_M,bid,k)
 
-      if (tavg_requested(tavg_VDC_BCK)) then
-         ! k index shifted because bckgrnd_vdc is at cell bottom
-         ! while output axis is at cell top
-         call accumulate_tavg_field(bckgrnd_vdc(:,:,k,bid),tavg_VDC_BCK,bid,k)
-      endif
+      ! k index shifted because bckgrnd_vdc is at cell bottom
+      ! while output axis is at cell top
+      call accumulate_tavg_field(bckgrnd_vdc(:,:,k,bid),tavg_VDC_BCK,bid,k)
 
-      if (tavg_requested(tavg_VVC_BCK)) then
-         ! k index shifted because bckgrnd_vdc is at cell bottom
-         ! while output axis is at cell top
-         call accumulate_tavg_field(bckgrnd_vvc(:,:,k,bid),tavg_VVC_BCK,bid,k)
-      endif
-
+      ! k index shifted because bckgrnd_vdc is at cell bottom
+      ! while output axis is at cell top
+      call accumulate_tavg_field(bckgrnd_vvc(:,:,k,bid),tavg_VVC_BCK,bid,k)
  
-      if (tavg_requested(tavg_TPOWER)) then
+      if (accumulate_tavg_now(tavg_TPOWER)) then
          WORK1(:,:) = KVMIX(:,:)*RHOMIX(:,:,k)*DBLOC(:,:,k)/ &
             (zgrid(k) - zgrid(k+1))
          call accumulate_tavg_field(WORK1,tavg_TPOWER,bid,k)
@@ -1896,7 +1887,7 @@
 
         BFSFC   = BO + BOSOL
 !       QSW_HBL = SHF_QSW
-        if (tavg_requested(tavg_QSW_HBL)) then
+        if (accumulate_tavg_now(tavg_QSW_HBL)) then
            WORK = SHF_QSW/hflux_factor
            call accumulate_tavg_field(WORK,tavg_QSW_HBL,bid,1)
         endif
@@ -1911,7 +1902,7 @@
          enddo
          enddo
 
-         if (tavg_requested(tavg_QSW_HBL)) then
+         if (accumulate_tavg_now(tavg_QSW_HBL)) then
            !QSW_HBL(i,j) = SHF_QSW(i,j)*(c1-absorb_frac)  ! boundary layer sw
             WORK = SHF_QSW*(c1-absorb_frac)/hflux_factor
             call accumulate_tavg_field(WORK,tavg_QSW_HBL,bid,1)
@@ -1923,7 +1914,7 @@
          call sw_trans_chl(0,this_block)
          BFSFC   = BO + BOSOL*(c1-TRANS(:,:,bid))
 
-         if (tavg_requested(tavg_QSW_HBL)) then
+         if (accumulate_tavg_now(tavg_QSW_HBL)) then
            !QSW_HBL = SHF_QSW   *(c1-TRANS(:,:,bid)) ! boundary layer sw heating
             WORK = SHF_QSW*(c1-TRANS(:,:,bid))/hflux_factor
             call accumulate_tavg_field(WORK,tavg_QSW_HBL,bid,1)
@@ -2784,12 +2775,9 @@
 
    SRCARRAY = SRCARRAY + KPP_SRC(:,:,k,:,bid)
 
-   if (mix_pass /= 1) then
-      do n=1,nt
-         if (tavg_requested(tavg_KPP_SRC(n))) &
-            call accumulate_tavg_field(KPP_SRC(:,:,k,n,bid),tavg_KPP_SRC(n),bid,k)
-      enddo
-   endif
+   do n=1,nt
+      call accumulate_tavg_field(KPP_SRC(:,:,k,n,bid),tavg_KPP_SRC(n),bid,k)
+   enddo
 
 !-----------------------------------------------------------------------
 !EOC

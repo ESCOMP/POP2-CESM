@@ -2613,9 +2613,7 @@ contains
 
    VNtot_sp = VNO3_sp + VNH4_sp
 
-   if (tavg_requested(tavg_sp_N_lim)) then
-      call accumulate_tavg_field(VNtot_sp, tavg_sp_N_lim,bid,k)
-   endif
+   call accumulate_tavg_field(VNtot_sp, tavg_sp_N_lim,bid,k)
 
 !-----------------------------------------------------------------------
 !  get relative Fe uptake by phytoplankton
@@ -2624,9 +2622,7 @@ contains
 
    VFeC_sp = Fe_loc / (Fe_loc + parm_sp_kFe)
 
-   if (tavg_requested(tavg_sp_Fe_lim)) then
-      call accumulate_tavg_field(VFeC_sp, tavg_sp_Fe_lim,bid,k)
-   endif
+   call accumulate_tavg_field(VFeC_sp, tavg_sp_Fe_lim,bid,k)
 
 !-----------------------------------------------------------------------
 !  Partition diaz P uptake in same manner to no3/nh4 partition
@@ -2634,9 +2630,7 @@ contains
 
    VPO4_sp = PO4_loc / (PO4_loc + parm_sp_kPO4)
 
-   if (tavg_requested(tavg_sp_PO4_lim)) then
-      call accumulate_tavg_field(VPO4_sp, tavg_sp_PO4_lim,bid,k)
-   endif
+   call accumulate_tavg_field(VPO4_sp, tavg_sp_PO4_lim,bid,k)
 
 !-----------------------------------------------------------------------
 !  Small Phytoplankton C-fixation - given light and relative uptake rates
@@ -2656,9 +2650,7 @@ contains
                          (PCmax + epsTinv)))
    PCphoto_sp = PCmax * light_lim
 
-   if (tavg_requested(tavg_sp_light_lim)) then
-      call accumulate_tavg_field(light_lim, tavg_sp_light_lim,bid,k)
-   endif
+   call accumulate_tavg_field(light_lim, tavg_sp_light_lim,bid,k)
 
    photoC_sp = PCphoto_sp * spC_loc
 
@@ -2681,9 +2673,7 @@ contains
    po4_V_sp = photoC_sp * Qp
    photoFe_sp = photoC_sp * gQfe_sp
 
-   if (tavg_requested(tavg_photoFe_sp)) then
-      call accumulate_tavg_field(photoFe_sp, tavg_photoFe_sp,bid,k)
-   endif
+   call accumulate_tavg_field(photoFe_sp, tavg_photoFe_sp,bid,k)
 
 !-----------------------------------------------------------------------
 !  calculate pChl, (used in photoadapt., GD98)
@@ -2717,11 +2707,9 @@ contains
       CaCO3_PROD = min((CaCO3_PROD*spC_loc/CaCO3_sp_thres), &
                        (f_photosp_CaCO3*photoC_sp))
 
-   if (tavg_requested(tavg_CaCO3_form)) then
-      call accumulate_tavg_field(CaCO3_PROD, tavg_CaCO3_form,bid,k)
-   endif
+   call accumulate_tavg_field(CaCO3_PROD, tavg_CaCO3_form,bid,k)
 
-   if (tavg_requested(tavg_CaCO3_form_zint)) then
+   if (accumulate_tavg_now(tavg_CaCO3_form_zint)) then
       if (partial_bottom_cells) then
          WORK1 = DZT(:,:,k,bid) * CaCO3_PROD
       else
@@ -2742,9 +2730,7 @@ contains
 
    VNtot_diat = VNO3_diat + VNH4_diat
 
-   if (tavg_requested(tavg_diat_N_lim)) then
-      call accumulate_tavg_field(VNtot_diat, tavg_diat_N_lim,bid,k)
-   endif
+   call accumulate_tavg_field(VNtot_diat, tavg_diat_N_lim,bid,k)
 
 !-----------------------------------------------------------------------
 !  get relative Fe uptake by diatoms
@@ -2754,21 +2740,15 @@ contains
 
    VFeC_diat = Fe_loc / (Fe_loc + parm_diat_kFe)
 
-   if (tavg_requested(tavg_diat_Fe_lim)) then
-      call accumulate_tavg_field(VFeC_diat, tavg_diat_Fe_lim,bid,k)
-   endif
+   call accumulate_tavg_field(VFeC_diat, tavg_diat_Fe_lim,bid,k)
 
    VPO4_diat = PO4_loc / (PO4_loc + parm_diat_kPO4)
 
-   if (tavg_requested(tavg_diat_PO4_lim)) then
-      call accumulate_tavg_field(VPO4_diat, tavg_diat_PO4_lim,bid,k)
-   endif
+   call accumulate_tavg_field(VPO4_diat, tavg_diat_PO4_lim,bid,k)
 
    VSiO3_diat = SiO3_loc / (SiO3_loc + parm_diat_kSiO3)
 
-   if (tavg_requested(tavg_diat_SiO3_lim)) then
-      call accumulate_tavg_field(VSiO3_diat, tavg_diat_SiO3_lim,bid,k)
-   endif
+   call accumulate_tavg_field(VSiO3_diat, tavg_diat_SiO3_lim,bid,k)
 
 !-----------------------------------------------------------------------
 !  Diatom carbon fixation and photoadapt.
@@ -2789,9 +2769,7 @@ contains
                          (PCmax + epsTinv)))
    PCphoto_diat = PCmax * light_lim
 
-   if (tavg_requested(tavg_diat_light_lim)) then
-      call accumulate_tavg_field(light_lim, tavg_diat_light_lim,bid,k)
-   endif
+   call accumulate_tavg_field(light_lim, tavg_diat_light_lim,bid,k)
 
    photoC_diat = PCphoto_diat * diatC_loc
 
@@ -2813,13 +2791,9 @@ contains
    photoFe_diat = photoC_diat * gQfe_diat
    photoSi_diat = photoC_diat * gQsi
 
-   if (tavg_requested(tavg_photoFe_diat)) then
-      call accumulate_tavg_field(photoFe_diat, tavg_photoFe_diat,bid,k)
-   endif
+   call accumulate_tavg_field(photoFe_diat, tavg_photoFe_diat,bid,k)
 
-   if (tavg_requested(tavg_bSi_form)) then
-      call accumulate_tavg_field(photoSi_diat, tavg_bSi_form,bid,k)
-   endif
+   call accumulate_tavg_field(photoSi_diat, tavg_bSi_form,bid,k)
 
 !-----------------------------------------------------------------------
 !  calculate pChl, (used in photoadapt., GD98)
@@ -2842,15 +2816,11 @@ contains
 
    Vfec_diaz = Fe_loc/(Fe_loc + diaz_kFe)
 
-   if (tavg_requested(tavg_diaz_Fe_lim)) then
-      call accumulate_tavg_field(Vfec_diaz, tavg_diaz_Fe_lim,bid,k)
-   endif
+   call accumulate_tavg_field(Vfec_diaz, tavg_diaz_Fe_lim,bid,k)
 
    Vpo4_diaz = PO4_loc / (PO4_loc + diaz_kPO4)
 
-   if (tavg_requested(tavg_diaz_P_lim)) then
-      call accumulate_tavg_field(Vpo4_diaz, tavg_diaz_P_lim,bid,k)
-   endif
+   call accumulate_tavg_field(Vpo4_diaz, tavg_diaz_P_lim,bid,k)
 
    f_nut = min(Vpo4_diaz, Vfec_diaz)
 
@@ -2865,9 +2835,7 @@ contains
                          (PCmax + epsTinv)))
    PCphoto_diaz = PCmax * light_lim
 
-   if (tavg_requested(tavg_diaz_light_lim)) then
-      call accumulate_tavg_field(light_lim, tavg_diaz_light_lim,bid,k)
-   endif
+   call accumulate_tavg_field(light_lim, tavg_diaz_light_lim,bid,k)
 
    photoC_diaz = PCphoto_diaz * diazC_loc
 
@@ -2878,9 +2846,7 @@ contains
    po4_V_diaz = photoC_diaz * Qp_diaz
    photoFe_diaz = photoC_diaz * gQfe_diaz
 
-   if (tavg_requested(tavg_photoFe_diaz)) then
-      call accumulate_tavg_field(photoFe_diaz, tavg_photoFe_diaz,bid,k)
-   endif
+   call accumulate_tavg_field(photoFe_diaz, tavg_photoFe_diaz,bid,k)
 
 !-----------------------------------------------------------------------
 !  Relative uptake rates for diazotrophs nitrate is VNO3, ammonium is VNH4
@@ -2912,9 +2878,7 @@ contains
 
    Vnc_diaz = PCphoto_diaz * Q
 
-   if (tavg_requested(tavg_diaz_Nfix)) then
-      call accumulate_tavg_field(diaz_Nfix, tavg_diaz_Nfix,bid,k)
-   endif
+   call accumulate_tavg_field(diaz_Nfix, tavg_diaz_Nfix,bid,k)
 
 !-----------------------------------------------------------------------
 !  calculate pChl, (used in photoadapt., GD98)
@@ -3189,9 +3153,7 @@ contains
       RESTORE = c0
    endif
 
-   if (tavg_requested(tavg_NO3_RESTORE)) then
-      call accumulate_tavg_field(RESTORE, tavg_NO3_RESTORE,bid,k)
-   endif
+   call accumulate_tavg_field(RESTORE, tavg_NO3_RESTORE,bid,k)
 
    where (PAR_out(:,:,bid) < parm_nitrif_par_lim)
       NITRIF = parm_kappa_nitrif * NH4_loc
@@ -3202,9 +3164,7 @@ contains
       NITRIF = c0
    end where
 
-   if (tavg_requested(tavg_NITRIF)) then
-      call accumulate_tavg_field(NITRIF, tavg_NITRIF,bid,k)
-   endif
+   call accumulate_tavg_field(NITRIF, tavg_NITRIF,bid,k)
 
 !-----------------------------------------------------------------------
 !  Compute denitrification under low O2 conditions
@@ -3217,9 +3177,7 @@ contains
    end where
    DENITRIF = WORK1 * (DOC_remin + POC%remin(:,:,bid)) / denitrif_C_N
 
-   if (tavg_requested(tavg_DENITRIF)) then
-      call accumulate_tavg_field(DENITRIF, tavg_DENITRIF,bid,k)
-   endif
+   call accumulate_tavg_field(DENITRIF, tavg_DENITRIF,bid,k)
 
 !-----------------------------------------------------------------------
 !  nitrate & ammonium
@@ -3263,9 +3221,7 @@ contains
       RESTORE = c0
    endif
 
-   if (tavg_requested(tavg_SiO3_RESTORE)) then
-      call accumulate_tavg_field(RESTORE, tavg_SiO3_RESTORE,bid,k)
-   endif
+   call accumulate_tavg_field(RESTORE, tavg_SiO3_RESTORE,bid,k)
 
    DTRACER_MODULE(:,:,sio3_ind) = RESTORE + P_SiO2%remin(:,:,bid) + &
       Qsi * (f_graze_si_remin * graze_diat +f_diat_loss_dc * diat_loss) &
@@ -3287,9 +3243,7 @@ contains
       RESTORE = c0
    endif
 
-   if (tavg_requested(tavg_PO4_RESTORE)) then
-      call accumulate_tavg_field(RESTORE, tavg_PO4_RESTORE,bid,k)
-   endif
+   call accumulate_tavg_field(RESTORE, tavg_PO4_RESTORE,bid,k)
 
    DTRACER_MODULE(:,:,po4_ind) = RESTORE + (Qp * (POC%remin(:,:,bid) + &
       zoo_loss_dic + sp_loss_dic + graze_sp_dic + diat_loss_dic + &
@@ -3460,7 +3414,7 @@ contains
 !-----------------------------------------------------------------------
 
    if (k == 1) then
-      if (tavg_requested(tavg_O2_ZMIN) .or. tavg_requested(tavg_O2_ZMIN_DEPTH)) then
+      if (accumulate_tavg_now(tavg_O2_ZMIN) .or. accumulate_tavg_now(tavg_O2_ZMIN_DEPTH)) then
          ! WORK1 = O2 at this level
          ! WORK2 = vertical min of O2
          ! WORK3 = depth of min
@@ -3480,25 +3434,17 @@ contains
             endwhere
          end do
 
-         if (tavg_requested(tavg_O2_ZMIN)) then
-            call accumulate_tavg_field(WORK2, tavg_O2_ZMIN,bid,k)
-         endif
+         call accumulate_tavg_field(WORK2, tavg_O2_ZMIN,bid,k)
 
-         if (tavg_requested(tavg_O2_ZMIN_DEPTH)) then
-            call accumulate_tavg_field(WORK3, tavg_O2_ZMIN_DEPTH,bid,k)
-         endif
+         call accumulate_tavg_field(WORK3, tavg_O2_ZMIN_DEPTH,bid,k)
       endif
    endif
 
-   if (tavg_requested(tavg_O2_PRODUCTION)) then
-      call accumulate_tavg_field(O2_PRODUCTION, tavg_O2_PRODUCTION,bid,k)
-   endif
+   call accumulate_tavg_field(O2_PRODUCTION, tavg_O2_PRODUCTION,bid,k)
 
-   if (tavg_requested(tavg_O2_CONSUMPTION)) then
-      call accumulate_tavg_field(O2_CONSUMPTION, tavg_O2_CONSUMPTION,bid,k)
-   endif
+   call accumulate_tavg_field(O2_CONSUMPTION, tavg_O2_CONSUMPTION,bid,k)
 
-   if (tavg_requested(tavg_AOU)) then
+   if (accumulate_tavg_now(tavg_AOU)) then
       WORK1 = O2SAT(TEMP, SALT, &
                     LAND_MASK(:,:,bid) .and. (k .le. KMT(:,:,bid)))
       WORK1 = WORK1 - p5*(TRACER_MODULE_OLD(:,:,k,o2_ind) + &
@@ -3506,69 +3452,43 @@ contains
       call accumulate_tavg_field(WORK1, tavg_AOU,bid,k)
    endif
 
-   if (tavg_requested(tavg_PAR_avg)) then
-      call accumulate_tavg_field(PAR_avg, tavg_PAR_avg,bid,k)
-   endif
+   call accumulate_tavg_field(PAR_avg, tavg_PAR_avg,bid,k)
 
-   if (tavg_requested(tavg_graze_sp)) then
-      call accumulate_tavg_field(graze_sp, tavg_graze_sp,bid,k)
-   endif
+   call accumulate_tavg_field(graze_sp, tavg_graze_sp,bid,k)
 
-   if (tavg_requested(tavg_graze_diat)) then
-      call accumulate_tavg_field(graze_diat, tavg_graze_diat,bid,k)
-   endif
+   call accumulate_tavg_field(graze_diat, tavg_graze_diat,bid,k)
 
-   if (tavg_requested(tavg_graze_diaz)) then
-      call accumulate_tavg_field(graze_diaz, tavg_graze_diaz,bid,k)
-   endif
+   call accumulate_tavg_field(graze_diaz, tavg_graze_diaz,bid,k)
 
-   if (tavg_requested(tavg_graze_TOT)) then
+   if (accumulate_tavg_now(tavg_graze_TOT)) then
       WORK1 = graze_sp + graze_diat + graze_diaz
       call accumulate_tavg_field(WORK1, tavg_graze_TOT,bid,k)
    endif
 
-   if (tavg_requested(tavg_sp_loss)) then
-      call accumulate_tavg_field(sp_loss, tavg_sp_loss,bid,k)
-   endif
+   call accumulate_tavg_field(sp_loss, tavg_sp_loss,bid,k)
 
-   if (tavg_requested(tavg_diat_loss)) then
-      call accumulate_tavg_field(diat_loss, tavg_diat_loss,bid,k)
-   endif
+   call accumulate_tavg_field(diat_loss, tavg_diat_loss,bid,k)
 
-   if (tavg_requested(tavg_diaz_loss)) then
-      call accumulate_tavg_field(diaz_loss, tavg_diaz_loss,bid,k)
-   endif
+   call accumulate_tavg_field(diaz_loss, tavg_diaz_loss,bid,k)
 
-   if (tavg_requested(tavg_zoo_loss)) then
-      call accumulate_tavg_field(zoo_loss, tavg_zoo_loss,bid,k)
-   endif
+   call accumulate_tavg_field(zoo_loss, tavg_zoo_loss,bid,k)
 
-   if (tavg_requested(tavg_sp_agg)) then
-      call accumulate_tavg_field(sp_agg, tavg_sp_agg,bid,k)
-   endif
+   call accumulate_tavg_field(sp_agg, tavg_sp_agg,bid,k)
 
-   if (tavg_requested(tavg_diat_agg)) then
-      call accumulate_tavg_field(diat_agg, tavg_diat_agg,bid,k)
-   endif
+   call accumulate_tavg_field(diat_agg, tavg_diat_agg,bid,k)
 
-   if (tavg_requested(tavg_photoC_sp)) then
-      call accumulate_tavg_field(photoC_sp, tavg_photoC_sp,bid,k)
-   endif
+   call accumulate_tavg_field(photoC_sp, tavg_photoC_sp,bid,k)
 
-   if (tavg_requested(tavg_photoC_diat)) then
-      call accumulate_tavg_field(photoC_diat, tavg_photoC_diat,bid,k)
-   endif
+   call accumulate_tavg_field(photoC_diat, tavg_photoC_diat,bid,k)
 
-   if (tavg_requested(tavg_photoC_diaz)) then
-      call accumulate_tavg_field(photoC_diaz, tavg_photoC_diaz,bid,k)
-   endif
+   call accumulate_tavg_field(photoC_diaz, tavg_photoC_diaz,bid,k)
 
-   if (tavg_requested(tavg_photoC_TOT)) then
+   if (accumulate_tavg_now(tavg_photoC_TOT)) then
       WORK1 = photoC_sp + photoC_diat + photoC_diaz
       call accumulate_tavg_field(WORK1, tavg_photoC_TOT,bid,k)
    endif
 
-   if (tavg_requested(tavg_photoC_sp_zint)) then
+   if (accumulate_tavg_now(tavg_photoC_sp_zint)) then
       if (partial_bottom_cells) then
          WORK1 = DZT(:,:,k,bid) * photoC_sp
       else
@@ -3577,7 +3497,7 @@ contains
       call accumulate_tavg_field(WORK1, tavg_photoC_sp_zint,bid,k)
    endif
 
-   if (tavg_requested(tavg_photoC_diat_zint)) then
+   if (accumulate_tavg_now(tavg_photoC_diat_zint)) then
       if (partial_bottom_cells) then
          WORK1 = DZT(:,:,k,bid) * photoC_diat
       else
@@ -3586,7 +3506,7 @@ contains
       call accumulate_tavg_field(WORK1, tavg_photoC_diat_zint,bid,k)
    endif
 
-   if (tavg_requested(tavg_photoC_diaz_zint)) then
+   if (accumulate_tavg_now(tavg_photoC_diaz_zint)) then
       if (partial_bottom_cells) then
          WORK1 = DZT(:,:,k,bid) * photoC_diaz
       else
@@ -3595,7 +3515,7 @@ contains
       call accumulate_tavg_field(WORK1, tavg_photoC_diaz_zint,bid,k)
    endif
 
-   if (tavg_requested(tavg_photoC_TOT_zint)) then
+   if (accumulate_tavg_now(tavg_photoC_TOT_zint)) then
       if (partial_bottom_cells) then
          WORK1 = DZT(:,:,k,bid) * (photoC_sp + photoC_diat + photoC_diaz)
       else
@@ -3604,16 +3524,17 @@ contains
       call accumulate_tavg_field(WORK1, tavg_photoC_TOT_zint,bid,k)
    endif
 
-   if (tavg_requested(tavg_photoC_NO3_sp) .or. &
-       tavg_requested(tavg_photoC_NO3_sp_zint)) then
+   if (accumulate_tavg_now(tavg_photoC_NO3_sp) .or. &
+       accumulate_tavg_now(tavg_photoC_NO3_sp_zint)) then
       where (VNtot_sp > c0)
          WORK1 = (VNO3_sp / VNtot_sp) * photoC_sp
       elsewhere
          WORK1 = c0
       end where
-      if (tavg_requested(tavg_photoC_NO3_sp)) &
-         call accumulate_tavg_field(WORK1, tavg_photoC_NO3_sp,bid,k)
-      if (tavg_requested(tavg_photoC_NO3_sp_zint)) then
+
+      call accumulate_tavg_field(WORK1, tavg_photoC_NO3_sp,bid,k)
+
+      if (accumulate_tavg_now(tavg_photoC_NO3_sp_zint)) then
          if (partial_bottom_cells) then
             WORK1 = DZT(:,:,k,bid) * WORK1
          else
@@ -3623,16 +3544,17 @@ contains
       endif
    endif
 
-   if (tavg_requested(tavg_photoC_NO3_diat) .or. &
-       tavg_requested(tavg_photoC_NO3_diat_zint)) then
+   if (accumulate_tavg_now(tavg_photoC_NO3_diat) .or. &
+       accumulate_tavg_now(tavg_photoC_NO3_diat_zint)) then
       where (VNtot_diat > c0)
          WORK1 = (VNO3_diat / VNtot_diat) * photoC_diat
       elsewhere
          WORK1 = c0
       end where
-      if (tavg_requested(tavg_photoC_NO3_diat)) &
-         call accumulate_tavg_field(WORK1, tavg_photoC_NO3_diat,bid,k)
-      if (tavg_requested(tavg_photoC_NO3_diat_zint)) then
+
+      call accumulate_tavg_field(WORK1, tavg_photoC_NO3_diat,bid,k)
+
+      if (accumulate_tavg_now(tavg_photoC_NO3_diat_zint)) then
          if (partial_bottom_cells) then
             WORK1 = DZT(:,:,k,bid) * WORK1
          else
@@ -3642,16 +3564,17 @@ contains
       endif
    endif
 
-   if (tavg_requested(tavg_photoC_NO3_diaz) .or. &
-       tavg_requested(tavg_photoC_NO3_diaz_zint)) then
+   if (accumulate_tavg_now(tavg_photoC_NO3_diaz) .or. &
+       accumulate_tavg_now(tavg_photoC_NO3_diaz_zint)) then
       where (VNtot_diaz > c0)
          WORK1 = (VNO3_diaz / VNtot_diaz) * photoC_diaz
       elsewhere
          WORK1 = c0
       end where
-      if (tavg_requested(tavg_photoC_NO3_diaz)) &
-         call accumulate_tavg_field(WORK1, tavg_photoC_NO3_diaz,bid,k)
-      if (tavg_requested(tavg_photoC_NO3_diaz_zint)) then
+
+      call accumulate_tavg_field(WORK1, tavg_photoC_NO3_diaz,bid,k)
+
+      if (accumulate_tavg_now(tavg_photoC_NO3_diaz_zint)) then
          if (partial_bottom_cells) then
             WORK1 = DZT(:,:,k,bid) * WORK1
          else
@@ -3661,8 +3584,8 @@ contains
       endif
    endif
 
-   if (tavg_requested(tavg_photoC_NO3_TOT) .or. &
-       tavg_requested(tavg_photoC_NO3_TOT_zint)) then
+   if (accumulate_tavg_now(tavg_photoC_NO3_TOT) .or. &
+       accumulate_tavg_now(tavg_photoC_NO3_TOT_zint)) then
       where (VNtot_sp > c0)
          WORK1 = WORK1 + (VNO3_sp / VNtot_sp) * photoC_sp
       elsewhere
@@ -3674,9 +3597,10 @@ contains
       where (VNtot_diaz > c0)
          WORK1 = WORK1 + (VNO3_diaz / VNtot_diaz) * photoC_diaz
       end where
-      if (tavg_requested(tavg_photoC_NO3_TOT)) &
-         call accumulate_tavg_field(WORK1, tavg_photoC_NO3_TOT,bid,k)
-      if (tavg_requested(tavg_photoC_NO3_TOT_zint)) then
+
+      call accumulate_tavg_field(WORK1, tavg_photoC_NO3_TOT,bid,k)
+
+      if (accumulate_tavg_now(tavg_photoC_NO3_TOT_zint)) then
          if (partial_bottom_cells) then
             WORK1 = DZT(:,:,k,bid) * WORK1
          else
@@ -3686,52 +3610,32 @@ contains
       endif
    endif
 
-   if (tavg_requested(tavg_DOC_prod)) then
-      call accumulate_tavg_field(DOC_prod, tavg_DOC_prod,bid,k)
-   endif
+   call accumulate_tavg_field(DOC_prod, tavg_DOC_prod,bid,k)
 
-   if (tavg_requested(tavg_DOC_remin)) then
-      call accumulate_tavg_field(DOC_remin, tavg_DOC_remin,bid,k)
-   endif
+   call accumulate_tavg_field(DOC_remin, tavg_DOC_remin,bid,k)
 
-   if (tavg_requested(tavg_DON_prod)) then
-      call accumulate_tavg_field(DON_prod, tavg_DON_prod,bid,k)
-   endif
+   call accumulate_tavg_field(DON_prod, tavg_DON_prod,bid,k)
 
-   if (tavg_requested(tavg_DON_remin)) then
-      call accumulate_tavg_field(DON_remin, tavg_DON_remin,bid,k)
-   endif
+   call accumulate_tavg_field(DON_remin, tavg_DON_remin,bid,k)
 
-   if (tavg_requested(tavg_DOP_prod)) then
-      call accumulate_tavg_field(DOP_prod, tavg_DOP_prod,bid,k)
-   endif
+   call accumulate_tavg_field(DOP_prod, tavg_DOP_prod,bid,k)
 
-   if (tavg_requested(tavg_DOP_remin)) then
-      call accumulate_tavg_field(DOP_remin, tavg_DOP_remin,bid,k)
-   endif
+   call accumulate_tavg_field(DOP_remin, tavg_DOP_remin,bid,k)
 
-   if (tavg_requested(tavg_DOFe_prod)) then
-      call accumulate_tavg_field(DOFe_prod, tavg_DOFe_prod,bid,k)
-   endif
+   call accumulate_tavg_field(DOFe_prod, tavg_DOFe_prod,bid,k)
 
-   if (tavg_requested(tavg_DOFe_remin)) then
-      call accumulate_tavg_field(DOFe_remin, tavg_DOFe_remin,bid,k)
-   endif
+   call accumulate_tavg_field(DOFe_remin, tavg_DOFe_remin,bid,k)
 
-   if (tavg_requested(tavg_Fe_scavenge)) then
-      call accumulate_tavg_field(Fe_scavenge, tavg_Fe_scavenge,bid,k)
-   endif
+   call accumulate_tavg_field(Fe_scavenge, tavg_Fe_scavenge,bid,k)
 
-   if (tavg_requested(tavg_Fe_scavenge_rate)) then
-      call accumulate_tavg_field(Fe_scavenge_rate, tavg_Fe_scavenge_rate,bid,k)
-   endif
+   call accumulate_tavg_field(Fe_scavenge_rate, tavg_Fe_scavenge_rate,bid,k)
 
-   if (tavg_requested(tavg_CO3) .or. &
-       tavg_requested(tavg_HCO3) .or. &
-       tavg_requested(tavg_H2CO3) .or. &
-       tavg_requested(tavg_pH_3D) .or. &
-       tavg_requested(tavg_zsatcalc) .or. &
-       tavg_requested(tavg_zsatarag)) then
+   if (accumulate_tavg_now(tavg_CO3) .or. &
+       accumulate_tavg_now(tavg_HCO3) .or. &
+       accumulate_tavg_now(tavg_H2CO3) .or. &
+       accumulate_tavg_now(tavg_pH_3D) .or. &
+       accumulate_tavg_now(tavg_zsatcalc) .or. &
+       accumulate_tavg_now(tavg_zsatarag)) then
 
       where (PH_PREV_3D(:,:,k,bid) /= c0)
          WORK1 = PH_PREV_3D(:,:,k,bid) - del_ph
@@ -3746,32 +3650,22 @@ contains
                          TEMP, SALT, DIC_loc, ALK_loc, PO4_loc, SiO3_loc, &
                          WORK1, WORK2, WORK3, H2CO3, HCO3, CO3)
       call timer_stop(ecosys_comp_CO3terms_timer, block_id=bid)
-      if (tavg_requested(tavg_CO3)) then
-         call accumulate_tavg_field(CO3, tavg_CO3,bid,k)
-      endif
-      if (tavg_requested(tavg_HCO3)) then
-         call accumulate_tavg_field(HCO3, tavg_HCO3,bid,k)
-      endif
-      if (tavg_requested(tavg_H2CO3)) then
-         call accumulate_tavg_field(H2CO3, tavg_H2CO3,bid,k)
-      endif
-      if (tavg_requested(tavg_pH_3D)) then
-         call accumulate_tavg_field(WORK3, tavg_pH_3D,bid,k)
-      endif
+      call accumulate_tavg_field(CO3, tavg_CO3,bid,k)
+      call accumulate_tavg_field(HCO3, tavg_HCO3,bid,k)
+      call accumulate_tavg_field(H2CO3, tavg_H2CO3,bid,k)
+      call accumulate_tavg_field(WORK3, tavg_pH_3D,bid,k)
 
       PH_PREV_3D(:,:,k,bid) = WORK3
    endif
 
-   if (tavg_requested(tavg_co3_sat_calc) .or. &
-       tavg_requested(tavg_zsatcalc) .or. &
-       tavg_requested(tavg_co3_sat_arag) .or. &
-       tavg_requested(tavg_zsatarag)) then
+   if (accumulate_tavg_now(tavg_co3_sat_calc) .or. &
+       accumulate_tavg_now(tavg_zsatcalc) .or. &
+       accumulate_tavg_now(tavg_co3_sat_arag) .or. &
+       accumulate_tavg_now(tavg_zsatarag)) then
       call comp_co3_sat_vals(k, LAND_MASK(:,:,bid) .and. k <= KMT(:,:,bid), &
                              TEMP, SALT, WORK1, WORK2)
-      if (tavg_requested(tavg_co3_sat_calc)) then
-         call accumulate_tavg_field(WORK1, tavg_co3_sat_calc,bid,k)
-      endif
-      if (tavg_requested(tavg_zsatcalc)) then
+      call accumulate_tavg_field(WORK1, tavg_co3_sat_calc,bid,k)
+      if (accumulate_tavg_now(tavg_zsatcalc)) then
          if (k == 1) then
             ! set to -1, i.e. depth not found yet,
             ! if mask == .true. and surface supersaturated to -1
@@ -3790,10 +3684,8 @@ contains
             call accumulate_tavg_field(ZSATCALC(:,:,bid), tavg_zsatcalc,bid,k)
          endif
       endif
-      if (tavg_requested(tavg_co3_sat_arag)) then
-         call accumulate_tavg_field(WORK2, tavg_co3_sat_arag,bid,k)
-      endif
-      if (tavg_requested(tavg_zsatarag)) then
+      call accumulate_tavg_field(WORK2, tavg_co3_sat_arag,bid,k)
+      if (accumulate_tavg_now(tavg_zsatarag)) then
          if (k == 1) then
             ! set to -1, i.e. depth not found yet,
             ! if mask == .true. and surface supersaturated to -1
@@ -4388,66 +4280,48 @@ contains
 !  Set tavg variables.
 !-----------------------------------------------------------------------
 
-   if (tavg_requested(tavg_POC_FLUX_IN)) then
+   if (accumulate_tavg_now(tavg_POC_FLUX_IN)) then
       WORK = POC%sflux_in(:,:,bid) + POC%hflux_in(:,:,bid)
       call accumulate_tavg_field(WORK, tavg_POC_FLUX_IN,bid,k)
    endif
 
-   if (tavg_requested(tavg_POC_PROD)) then
-      call accumulate_tavg_field(POC%prod(:,:,bid), tavg_POC_PROD,bid,k)
-   endif
+   call accumulate_tavg_field(POC%prod(:,:,bid), tavg_POC_PROD,bid,k)
 
-   if (tavg_requested(tavg_POC_REMIN)) then
-      call accumulate_tavg_field(POC%remin(:,:,bid), tavg_POC_REMIN,bid,k)
-   endif
+   call accumulate_tavg_field(POC%remin(:,:,bid), tavg_POC_REMIN,bid,k)
 
-   if (tavg_requested(tavg_CaCO3_FLUX_IN)) then
+   if (accumulate_tavg_now(tavg_CaCO3_FLUX_IN)) then
       WORK = P_CaCO3%sflux_in(:,:,bid) + P_CaCO3%hflux_in(:,:,bid)
       call accumulate_tavg_field(WORK, tavg_CaCO3_FLUX_IN,bid,k)
    endif
 
-   if (tavg_requested(tavg_CaCO3_PROD)) then
-      call accumulate_tavg_field(P_CaCO3%prod(:,:,bid), tavg_CaCO3_PROD,bid,k)
-   endif
+   call accumulate_tavg_field(P_CaCO3%prod(:,:,bid), tavg_CaCO3_PROD,bid,k)
 
-   if (tavg_requested(tavg_CaCO3_REMIN)) then
-      call accumulate_tavg_field(P_CaCO3%remin(:,:,bid), tavg_CaCO3_REMIN,bid,k)
-   endif
+   call accumulate_tavg_field(P_CaCO3%remin(:,:,bid), tavg_CaCO3_REMIN,bid,k)
 
-   if (tavg_requested(tavg_SiO2_FLUX_IN)) then
+   if (accumulate_tavg_now(tavg_SiO2_FLUX_IN)) then
       WORK = P_SiO2%sflux_in(:,:,bid) + P_SiO2%hflux_in(:,:,bid)
       call accumulate_tavg_field(WORK, tavg_SiO2_FLUX_IN,bid,k)
    endif
 
-   if (tavg_requested(tavg_SiO2_PROD)) then
-      call accumulate_tavg_field(P_SiO2%prod(:,:,bid), tavg_SiO2_PROD,bid,k)
-   endif
+   call accumulate_tavg_field(P_SiO2%prod(:,:,bid), tavg_SiO2_PROD,bid,k)
 
-   if (tavg_requested(tavg_SiO2_REMIN)) then
-      call accumulate_tavg_field(P_SiO2%remin(:,:,bid), tavg_SiO2_REMIN,bid,k)
-   endif
+   call accumulate_tavg_field(P_SiO2%remin(:,:,bid), tavg_SiO2_REMIN,bid,k)
 
-   if (tavg_requested(tavg_dust_FLUX_IN)) then
+   if (accumulate_tavg_now(tavg_dust_FLUX_IN)) then
       WORK = dust%sflux_in(:,:,bid) + dust%hflux_in(:,:,bid)
       call accumulate_tavg_field(WORK, tavg_dust_FLUX_IN,bid,k)
    endif
 
-   if (tavg_requested(tavg_dust_REMIN)) then
-      call accumulate_tavg_field(dust%remin(:,:,bid), tavg_dust_REMIN,bid,k)
-   endif
+   call accumulate_tavg_field(dust%remin(:,:,bid), tavg_dust_REMIN,bid,k)
 
-   if (tavg_requested(tavg_P_iron_FLUX_IN)) then
+   if (accumulate_tavg_now(tavg_P_iron_FLUX_IN)) then
       WORK = P_iron%sflux_in(:,:,bid) + P_iron%hflux_in(:,:,bid)
       call accumulate_tavg_field(WORK, tavg_P_iron_FLUX_IN,bid,k)
    endif
 
-   if (tavg_requested(tavg_P_iron_PROD)) then
-      call accumulate_tavg_field(P_iron%prod(:,:,bid), tavg_P_iron_PROD,bid,k)
-   endif
+   call accumulate_tavg_field(P_iron%prod(:,:,bid), tavg_P_iron_PROD,bid,k)
 
-   if (tavg_requested(tavg_P_iron_REMIN)) then
-      call accumulate_tavg_field(P_iron%remin(:,:,bid), tavg_P_iron_REMIN,bid,k)
-   endif
+   call accumulate_tavg_field(P_iron%remin(:,:,bid), tavg_P_iron_REMIN,bid,k)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -5903,107 +5777,59 @@ contains
 
    do iblock = 1,nblocks_clinic
 
-      if (tavg_requested(tavg_IRON_FLUX)) then
-         call accumulate_tavg_field(STF_MODULE(:,:,fe_ind,iblock)*mpercm, &
-                                    tavg_IRON_FLUX,iblock,1)
-      endif
-      if (tavg_requested(tavg_DUST_FLUX)) then
-         call accumulate_tavg_field(dust_FLUX_IN(:,:,iblock)*mpercm,  &
+      call accumulate_tavg_field(STF_MODULE(:,:,fe_ind,iblock)*mpercm, &
+                                 tavg_IRON_FLUX,iblock,1)
+      call accumulate_tavg_field(dust_FLUX_IN(:,:,iblock)*mpercm,  &
                                     tavg_DUST_FLUX,iblock,1)
-      endif
-      if (tavg_requested(tavg_NOx_FLUX)) then
-         call accumulate_tavg_field(STF_MODULE(:,:,no3_ind,iblock),  &
-                                    tavg_NOx_FLUX,iblock,1)
-      endif
-      if (tavg_requested(tavg_NHy_FLUX)) then
-         call accumulate_tavg_field(STF_MODULE(:,:,nh4_ind,iblock),  &
-                                    tavg_NHy_FLUX,iblock,1)
-      endif
+      call accumulate_tavg_field(STF_MODULE(:,:,no3_ind,iblock),  &
+                                 tavg_NOx_FLUX,iblock,1)
+      call accumulate_tavg_field(STF_MODULE(:,:,nh4_ind,iblock),  &
+                                 tavg_NHy_FLUX,iblock,1)
 
 !-----------------------------------------------------------------------
 !  now do components of flux calculations saved in hack array
 !-----------------------------------------------------------------------
 
-      if (tavg_requested(tavg_ECOSYS_IFRAC)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,1,iblock),  &
-                                    tavg_ECOSYS_IFRAC,iblock,1)
-      endif
-      if (tavg_requested(tavg_ECOSYS_IFRAC_2)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,1,iblock),  &
-                                    tavg_ECOSYS_IFRAC_2,iblock,1)
-      endif
-      if (tavg_requested(tavg_ECOSYS_XKW)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,2,iblock),  &
-                                    tavg_ECOSYS_XKW,iblock,1)
-      endif
-      if (tavg_requested(tavg_ECOSYS_XKW_2)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,2,iblock),  &
-                                    tavg_ECOSYS_XKW_2,iblock,1)
-      endif
-      if (tavg_requested(tavg_ECOSYS_ATM_PRESS)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,3,iblock),  &
-                                    tavg_ECOSYS_ATM_PRESS,iblock,1)
-      endif
-      if (tavg_requested(tavg_PV_O2)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,4,iblock),  &
-                                    tavg_PV_O2,iblock,1)
-      endif
-      if (tavg_requested(tavg_SCHMIDT_O2)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,5,iblock),  &
-                                    tavg_SCHMIDT_O2,iblock,1)
-      endif
-      if (tavg_requested(tavg_O2SAT)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,6,iblock),  &
-                                    tavg_O2SAT,iblock,1)
-      endif
-      if (tavg_requested(tavg_CO2STAR)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,7,iblock),  &
-                                    tavg_CO2STAR,iblock,1)
-      endif
-      if (tavg_requested(tavg_DCO2STAR)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,8,iblock),  &
-                                    tavg_DCO2STAR,iblock,1)
-      endif
-      if (tavg_requested(tavg_pCO2SURF)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,9,iblock),  &
-                                    tavg_pCO2SURF,iblock,1)
-      endif
-      if (tavg_requested(tavg_DpCO2)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,10,iblock),  &
-                                    tavg_DpCO2,iblock,1)
-      endif
-      if (tavg_requested(tavg_DpCO2_2)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,10,iblock),  &
-                                    tavg_DpCO2_2,iblock,1)
-      endif
-      if (tavg_requested(tavg_PV_CO2)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,11,iblock),  &
-                                    tavg_PV_CO2,iblock,1)
-      endif
-      if (tavg_requested(tavg_SCHMIDT_CO2)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,12,iblock),  &
-                                    tavg_SCHMIDT_CO2,iblock,1)
-      endif
-      if (tavg_requested(tavg_DIC_GAS_FLUX)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,13,iblock),  &
-                                    tavg_DIC_GAS_FLUX,iblock,1)
-      endif
-      if (tavg_requested(tavg_DIC_GAS_FLUX_2)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,13,iblock),  &
-                                    tavg_DIC_GAS_FLUX_2,iblock,1)
-      endif
-      if (tavg_requested(tavg_PH)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,14,iblock),  &
-                                    tavg_PH,iblock,1)
-      endif
-      if (tavg_requested(tavg_ATM_CO2)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,15,iblock),  &
-                                    tavg_ATM_CO2,iblock,1)
-      endif
-      if (tavg_requested(tavg_O2_GAS_FLUX_2)) then
-         call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,16,iblock),  &
-                                    tavg_O2_GAS_FLUX_2,iblock,1)
-      endif
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,1,iblock),  &
+                                 tavg_ECOSYS_IFRAC,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,1,iblock),  &
+                                 tavg_ECOSYS_IFRAC_2,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,2,iblock),  &
+                                 tavg_ECOSYS_XKW,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,2,iblock),  &
+                                 tavg_ECOSYS_XKW_2,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,3,iblock),  &
+                                 tavg_ECOSYS_ATM_PRESS,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,4,iblock),  &
+                                 tavg_PV_O2,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,5,iblock),  &
+                                 tavg_SCHMIDT_O2,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,6,iblock),  &
+                                 tavg_O2SAT,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,7,iblock),  &
+                                 tavg_CO2STAR,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,8,iblock),  &
+                                 tavg_DCO2STAR,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,9,iblock),  &
+                                 tavg_pCO2SURF,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,10,iblock),  &
+                                 tavg_DpCO2,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,10,iblock),  &
+                                 tavg_DpCO2_2,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,11,iblock),  &
+                                 tavg_PV_CO2,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,12,iblock),  &
+                                 tavg_SCHMIDT_CO2,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,13,iblock),  &
+                                 tavg_DIC_GAS_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,13,iblock),  &
+                                 tavg_DIC_GAS_FLUX_2,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,14,iblock),  &
+                                 tavg_PH,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,15,iblock),  &
+                                 tavg_ATM_CO2,iblock,1)
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,16,iblock),  &
+                                 tavg_O2_GAS_FLUX_2,iblock,1)
 
    end do
 
