@@ -23,29 +23,29 @@ module POP_CplIndices
   ! drv -> ocn
 
   integer :: index_x2o_Si_ifrac        ! fractional ice wrt ocean
-  integer :: index_x2o_So_duu10n
-  integer :: index_x2o_Sa_pslv
-  integer :: index_x2o_Sa_co2prog
-  integer :: index_x2o_Sa_co2diag
-  integer :: index_x2o_Foxx_taux  
-  integer :: index_x2o_Foxx_tauy  
-  integer :: index_x2o_Foxx_swnet 
-  integer :: index_x2o_Foxx_sen   
-  integer :: index_x2o_Foxx_lat   
-  integer :: index_x2o_Foxx_lwdn  
-  integer :: index_x2o_Foxx_lwup
-  integer :: index_x2o_Foxx_melth 
-  integer :: index_x2o_Foxx_salt
-  integer :: index_x2o_Foxx_prec
-  integer :: index_x2o_Foxx_snow
-  integer :: index_x2o_Foxx_rain
-  integer :: index_x2o_Foxx_evap
-  integer :: index_x2o_Foxx_meltw 
-  integer :: index_x2o_Forr_roff
-  integer :: index_x2o_Forr_ioff
-  integer :: index_x2o_Foxx_bcphidry   ! flux: Black Carbon hydrophilic dry deposition
-  integer :: index_x2o_Foxx_bcphodry   ! flux: Black Carbon hydrophobic dry deposition
-  integer :: index_x2o_Foxx_bcphiwet   ! flux: Black Carbon hydrophilic wet deposition
+  integer :: index_x2o_So_duu10n       ! 10m wind speed squared           (m^2/s^2)
+  integer :: index_x2o_Sa_pslv         ! sea-level pressure               (Pa)
+  integer :: index_x2o_Sa_co2prog      ! bottom atm level prognostic CO2
+  integer :: index_x2o_Sa_co2diag      ! bottom atm level diagnostic CO2
+  integer :: index_x2o_Foxx_taux       ! zonal wind stress (taux)         (W/m2   )
+  integer :: index_x2o_Foxx_tauy       ! meridonal wind stress (tauy)     (W/m2   )
+  integer :: index_x2o_Foxx_swnet      ! net short-wave heat flux         (W/m2   )
+  integer :: index_x2o_Foxx_sen        ! sensible heat flux               (W/m2   )
+  integer :: index_x2o_Foxx_lat        
+  integer :: index_x2o_Foxx_lwdn       ! longwave radiation (down)        (W/m2   )
+  integer :: index_x2o_Foxx_lwup       ! longwave radiation (up)          (W/m2   )
+  integer :: index_x2o_Foxx_melth      ! heat flux from snow & ice melt   (W/m2   )
+  integer :: index_x2o_Foxx_salt       ! salt                             (kg(salt)/m2/s)
+  integer :: index_x2o_Foxx_prec         
+  integer :: index_x2o_Foxx_snow       ! water flux due to snow           (kg/m2/s)
+  integer :: index_x2o_Foxx_rain       ! water flux due to rain           (kg/m2/s)
+  integer :: index_x2o_Foxx_evap       ! evaporation flux                 (kg/m2/s)
+  integer :: index_x2o_Foxx_meltw      ! snow melt flux                   (kg/m2/s)
+  integer :: index_x2o_Forr_roff       ! river runoff flux                (kg/m2/s)
+  integer :: index_x2o_Forr_ioff       ! ice runoff flux                  (kg/m2/s)
+  integer :: index_x2o_Foxx_bcphidry   ! flux: Black   Carbon hydrophilic dry deposition
+  integer :: index_x2o_Foxx_bcphodry   ! flux: Black   Carbon hydrophobic dry deposition
+  integer :: index_x2o_Foxx_bcphiwet   ! flux: Black   Carbon hydrophilic wet deposition
   integer :: index_x2o_Foxx_ocphidry   ! flux: Organic Carbon hydrophilic dry deposition
   integer :: index_x2o_Foxx_ocphodry   ! flux: Organic Carbon hydrophobic dry deposition
   integer :: index_x2o_Foxx_ocphiwet   ! flux: Organic Carbon hydrophilic dry deposition

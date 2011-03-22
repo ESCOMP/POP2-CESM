@@ -1,5 +1,19 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    22 March 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110322
+Tag Summary: 
+             * Add comments next to indices in POP_CplIndices.F90
+             * Comment out OMP directives in tavg.F90 (improper exit within
+                a threaded region)  
+             * Add high-resolution grid detection to pop2.cpl7.template script,
+               to avoid relying on cesm1 script settings (which have been known
+               to set HIRES incorrectly)
+Testing: 
+
+Files Modified:
+===============================================================================
+Tag Creator: njn01
 Tag Date:    28 January 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110128
 Tag Summary: tavg module improvements 

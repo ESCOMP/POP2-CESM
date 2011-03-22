@@ -6089,7 +6089,7 @@
      PSI_T(:,:,iblock)= TAVG_BUF_2D(:,:,iblock,tavg_loc_BSF)
    enddo
 
-  !$OMP PARALLEL DO PRIVATE (iblock, i,j,ii,jj)
+! !$OMP PARALLEL DO PRIVATE (iblock, i,j,ii,jj)  ! cannot exit inside a threaded loop
    do iblock=1,nblocks_clinic
 
       PSI_T(:,:,iblock) = TAVG_BUF_2D(:,:,iblock,tavg_loc_BSF)
@@ -6113,7 +6113,7 @@
       TAVG_BUF_2D(:,:,iblock,tavg_loc_BSF) = PSI_U(:,:,iblock)
 
    end do
-  !$OMP END PARALLEL DO
+! !$OMP END PARALLEL DO
 
  
    !*** stop bsf timer
