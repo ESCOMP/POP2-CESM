@@ -1,5 +1,20 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    23 March 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110323
+Tag Summary: Bring in Pat Worley's space_curve modifications
+             NOTE: njn01 changed Pat's original filename (POP_spacecurve_mod)
+             and the corresponding names inside the POP_SpaceCurveMod module
+Testing:  * correctness: Pat Worley
+          * 2-day T62_t12 smoke test (njn01)
+
+Files Modified:
+D            26624   source/spacecurve_mod.F90
+M            26624   source/POP_DistributionMod.F90
+A                0   source/POP_SpaceCurveMod.F90
+M            26624   source/distribution.F90
+===============================================================================
+Tag Creator: njn01
 Tag Date:    22 March 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110322
 Tag Summary: 
@@ -9,7 +24,11 @@ Tag Summary:
              * Add high-resolution grid detection to pop2.cpl7.template script,
                to avoid relying on cesm1 script settings (which have been known
                to set HIRES incorrectly)
-Testing: 
+Testing: njn01:
+           * T62_tx0.1v2, HIRES = false, with new pop2.cpl7.template: compiles with -D_HIRES; runs
+           * T62_gx3v7, with new pop2.cpl7.template: compiles withOUT -D_HIRES; runs
+           * should be b4b, but not tested against oob
+           
 
 Files Modified:
 ===============================================================================

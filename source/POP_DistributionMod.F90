@@ -22,7 +22,7 @@
    use POP_CommMod
    use POP_BlocksMod
    
-   use spacecurve_mod
+   use POP_SpaceCurveMod
 
    implicit none
    private

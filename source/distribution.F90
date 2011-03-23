@@ -17,7 +17,7 @@
    use kinds_mod
    use communicate
    use blocks
-   use spacecurve_mod
+   use POP_SpaceCurveMod
    use exit_mod
 
    implicit none

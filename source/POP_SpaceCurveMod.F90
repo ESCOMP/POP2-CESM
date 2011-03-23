@@ -1,7 +1,7 @@
 !BOP
-! !MODULE: spacecurve_mod
+! !MODULE: POP_SpaceCurveMod
 
-module spacecurve_mod
+module POP_SpaceCurveMod
 
 ! !DESCRIPTION:
 !  This module contains routines necessary to 
@@ -1010,12 +1010,16 @@ contains
    !-------------------------------
    !  Find the log2 of input value
    !-------------------------------
-   log2 = 1
-   tmp =n
-   do while (tmp/2 .ne. 1) 
-      tmp=tmp/2
-      log2=log2+1
-   enddo 
+   if (n .le. 1) then
+      log2 = 0
+   else
+      log2 = 1
+      tmp =n
+      do while (tmp/2 .ne. 1) 
+         tmp=tmp/2
+         log2=log2+1
+      enddo 
+   endif
 
 !EOP
 !-----------------------------------------------------------------------
@@ -1174,7 +1178,7 @@ contains
       found = .false.
 
       val1 = FirstFactor(fac1)
-      print *,'Matchfactor: found value: ',val
+!pw      print *,'Matchfactor: found value: ',val
       found = FindandMark(fac2,val1,.true.)
       tmp = FindandMark(fac1,val1,found)
       if (found) then 
@@ -1694,6 +1698,6 @@ contains
 
   end subroutine GenSpaceCurve 
 
-end module spacecurve_mod
+end module POP_SpaceCurveMod
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
