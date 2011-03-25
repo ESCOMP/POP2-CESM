@@ -1558,7 +1558,7 @@
 
  subroutine define_nstd_netcdf(data_file,ndims,io_dims,field_id,         &
                                  short_name,long_name,units,coordinates, &
-                                 fill_value,nftype)
+                                 fill_value,method_string,nftype)
 
 ! !DESCRIPTION:
 !  This routine defines the nonstandard CCSM time-averaged diagnostic fields
@@ -1585,7 +1585,8 @@
       long_name,                   &
       units,                       &
       coordinates,                 &
-      nftype
+      nftype,                      &
+      method_string
     
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -1595,7 +1596,7 @@
    integer (i4), intent (inout) :: &
       field_id                      ! variable id 
 
-   optional :: coordinates,fill_value,nftype
+   optional :: coordinates,fill_value,nftype,method_string
 
 !EOP
 !BOP
@@ -1734,6 +1735,18 @@
           iostat = pio_put_att(data_file%File, varid=field_id,    &
                                 name='coordinates',     &
                                 value=trim(coordinates))
+          if (iostat /= PIO_NOERR) define_error = .true.
+       end if
+    endif
+
+    !*** cell_methods
+    if (present(method_string)) then
+       iostat = pio_inq_att(data_file%File, field_id, 'cell_methods', &
+                             xtype, len)  
+       if (iostat /= PIO_NOERR) then ! attrib probably not defined
+          iostat = pio_put_att(data_file%File, varid=field_id,    &
+                                name='cell_methods',     &
+                                value=trim(method_string))
           if (iostat /= PIO_NOERR) define_error = .true.
        end if
     endif

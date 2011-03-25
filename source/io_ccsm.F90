@@ -60,6 +60,7 @@ contains
                                 time_dim,                     &
                                 coordinates,                  &
                                 fill_value,                   &
+                                method_string,                &
                                 data_1d_r8,                   &
                                 data_2d_r8,                   &
                                 data_2d_r4,                   &
@@ -87,7 +88,8 @@ contains
       long_name,                  &
       units,                      &
       coordinates,                &
-      nftype
+      nftype,                     &
+      method_string
 
    real (r4), dimension (:,:,:,:), intent(in) ::  &
       data_4d_r4
@@ -129,6 +131,7 @@ contains
       units,              &
       coordinates,        &
       fill_value,         &
+      method_string,      &
       data_1d_r8,         &
       data_2d_r8,         &
       data_2d_r4,         &
@@ -191,11 +194,13 @@ contains
 
    case ('define')
 
+      !*** note: should test for presence of optional variables
       call define_nstd_netcdf(data_file, ndims, io_dims,&
                               field_id,                             &
                               short_name, long_name, units,         &
                               coordinates=coordinates,              &
                               fill_value=fill_value,                &
+                              method_string=method_string,          &
                               nftype=nftype                         )
 
 !-----------------------------------------------------------------------

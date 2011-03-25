@@ -1499,7 +1499,8 @@
       i,j,          &! indices
       nstd_field_id,&
       field_id,     &!temporary id 
-      field_counter
+      field_counter,&
+      method_integer
 
    character (char_len) ::  &
       string,               &! dummy character string
@@ -1509,7 +1510,8 @@
       tavg_pointer_file,    &! filename for pointer file containing
                              !   location/name of last restart file
       tavg_fmt_in,          &! format (nc or bin) for reading
-      ns_temp
+      ns_temp,              &
+      method_string          ! cell_methods string
 
    character (char_len),save ::  &
       cf_conventions ='CF-1.0; http://www.cgd.ucar.edu/cms/eaton/netcdf/CF-current.htm'
@@ -1922,7 +1924,18 @@
         if ( (nn == tavg_MOC    .and. ltavg_moc_diags(ns)   ) .or.  &
              (nn == tavg_N_HEAT .and. ltavg_n_heat_trans(ns)) .or.  &
              (nn == tavg_N_SALT .and. ltavg_n_salt_trans(ns)))      then
-
+          
+          !*** get info on cell_methods
+          if (nn == tavg_MOC) then
+             method_integer = TAVG_BUF_3D_METHOD(tavg_loc_WVEL)
+             call tavg_get_cell_method_string (method_integer,method_string)
+          else if (nn == tavg_N_HEAT) then
+             method_integer = TAVG_BUF_3D_METHOD(tavg_loc_ADVT)
+             call tavg_get_cell_method_string (method_integer,method_string)
+          else if (nn == tavg_N_SALT) then
+             method_integer = TAVG_BUF_3D_METHOD(tavg_loc_ADVS)
+             call tavg_get_cell_method_string (method_integer,method_string)
+          endif
           call data_set_nstd_ccsm (                               &
               tavg_file_desc(ns), 'define', nstd_field_id,        &
               ndims_nstd_ccsm(nn), io_dims_nstd_ccsm(:,nn),       &
@@ -1932,6 +1945,7 @@
                 time_dim=time_dim,                                &
              coordinates=avail_tavg_nstd_fields(nn)%coordinates,  &
               fill_value=undefined_nf_r4,                         & ! kludge for r4 MOC,etc
+              method_string=trim(method_string),                  &
                   nftype=avail_tavg_nstd_fields(nn)%nftype        )
 
           if (nn == tavg_MOC) then
@@ -4467,39 +4481,21 @@
  
 !EOP
 !BOC
+
 !-----------------------------------------------------------------------
 !
 !  local variables
 !
 !-----------------------------------------------------------------------
- 
- character (char_len) ::   &
-    string
 
-   string = char_blank
+ integer (i4)         ::  &
+    method_integer
+ character (char_len) ::  &
+    method_string
 
-   select case (avail_tavg_fields(nfield)%method)
-
-     case(tavg_method_avg)
-        string='time: mean'
-
-     case(tavg_method_min)
-        string='time: minimum'
-
-     case(tavg_method_max)
-        string='time: maximum'
-
-     case(tavg_method_qflux)
-        string='time: mean'
-
-     case default
-        write(exit_string,'(a,1x,i4)') 'FATAL ERROR:  unknown method = ', avail_tavg_fields(nfield)%method
-        call document ('tavg_add_attrib_io_field_ccsm', exit_string)
-        call exit_POP (sigAbort,exit_string,out_unit=stdout)
-
-   end select
-
-   call add_attrib_io_field(tavg_field, 'cell_methods', trim(string))
+   method_integer = avail_tavg_fields(nfield)%method
+   call tavg_get_cell_method_string (method_integer,method_string)
+   call add_attrib_io_field(tavg_field, 'cell_methods', trim(method_string))
 
    if (avail_tavg_fields(nfield)%scale_factor /= undefined_nf) then
      call add_attrib_io_field(tavg_field, 'scale_factor',avail_tavg_fields(nfield)%scale_factor)
@@ -4514,6 +4510,57 @@
 !EOC
 
  end subroutine tavg_add_attrib_io_field_ccsm 
+
+!***********************************************************************
+!BOP
+! !IROUTINE: tavg_get_cell_method_string
+! !INTERFACE:
+
+ subroutine tavg_get_cell_method_string (method_integer,method_string)
+ 
+! !DESCRIPTION:
+!  This routine determines the string associated with the cell_method
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+ integer (i4), intent(in) ::  &
+    method_integer
+
+! !OUTPUT PARAMETERS:
+ character (char_len), intent(out) ::  &
+    method_string
+
+!EOP
+!BOC
+
+   method_string = char_blank
+
+   select case (method_integer)
+
+     case(tavg_method_avg)
+        method_string='time: mean'
+
+     case(tavg_method_min)
+        method_string='time: minimum'
+
+     case(tavg_method_max)
+        method_string='time: maximum'
+
+     case(tavg_method_qflux)
+        method_string='time: mean'
+
+     case default
+        write(exit_string,'(a,1x,i4)') 'FATAL ERROR:  unknown method = ', method_integer
+        call document ('tavg_add_attrib_io_field_ccsm', exit_string)
+        call exit_POP (sigAbort,exit_string,out_unit=stdout)
+
+   end select
+
+!EOC
+
+ end subroutine tavg_get_cell_method_string 
 
 !***********************************************************************
 !BOP

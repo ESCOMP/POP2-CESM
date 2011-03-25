@@ -1,5 +1,23 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    25 March 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110325
+Tag Summary: Bugfix for Bug #1287 - missing metadata for meridional transport tavg variables
+             Modify code so that the cell_methods attribute is added to MOC, N_HEAT,
+             and N_SALT in the tavg history files.
+Testing:  njn01. Set up three sets of side-by-side 1-month test runs  (T62_gx3v7, C)
+          on bluefire. Tested the following settings:
+             o OCN_TAVG_TRACER_BUDGET=FALSE, OCN_TAVG_HIFREQ=FALSE 
+             o OCN_TAVG_TRACER_BUDGET=TRUE , OCN_TAVG_HIFREQ=TRUE 
+             o OCN_TAVG_TRACER_BUDGET=FALSE, OCN_TAVG_HIFREQ=TRUE
+          by differencing monthly and nday streams (ncl diff_files.ncl) and 
+          by differencing these files' cdl files.
+Files Modified:
+M            26624   source/io_netcdf.F90
+M            27383   source/tavg.F90
+M            26624   source/io_ccsm.F90
+===============================================================================
+Tag Creator: njn01
 Tag Date:    23 March 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110323
 Tag Summary: Bring in Pat Worley's space_curve modifications
