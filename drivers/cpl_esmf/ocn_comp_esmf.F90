@@ -128,13 +128,13 @@ subroutine ocn_register_esmf(comp, rc)
     ! Register the callback routines.
 
     call ESMF_GridCompSetEntryPoint(comp, ESMF_SETINIT, &
-      ocn_init_esmf, ESMF_SINGLEPHASE, rc)
+      ocn_init_esmf, phase=ESMF_SINGLEPHASE, rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, terminationflag=ESMF_ABORT)
     call ESMF_GridCompSetEntryPoint(comp, ESMF_SETRUN, &
-      ocn_run_esmf, ESMF_SINGLEPHASE, rc)
+      ocn_run_esmf, phase=ESMF_SINGLEPHASE, rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, terminationflag=ESMF_ABORT)
     call ESMF_GridCompSetEntryPoint(comp, ESMF_SETFINAL, &
-      ocn_final_esmf, ESMF_SINGLEPHASE, rc)
+      ocn_final_esmf, phase=ESMF_SINGLEPHASE, rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, terminationflag=ESMF_ABORT)
 
 end subroutine
