@@ -205,14 +205,14 @@
                endif
             endif
          endif
-      case('conventions')
+      case('conventions','Conventions','CONVENTIONS')
 
          data_file%conventions = char_blank
-         iostat = pio_inq_att(data_file%File, PIO_GLOBAL,  'conventions', &
+         iostat = pio_inq_att(data_file%File, PIO_GLOBAL,  'Conventions', &
                                 xtype, nsize)
          if (iostat == pio_noerr) then
             if (nsize <= len(data_file%conventions)) then
-               iostat = pio_get_att(data_file%File, PIO_GLOBAL, 'conventions', &
+               iostat = pio_get_att(data_file%File, PIO_GLOBAL, 'Conventions', &
                                       data_file%conventions(1:nsize))
             else
                if (my_task == master_task) then
@@ -370,7 +370,7 @@
    iostat = pio_put_att(data_file%File, PIO_GLOBAL, 'history', &
                          trim(data_file%history))
 
-   iostat = pio_put_att(data_file%File, PIO_GLOBAL, 'conventions', &
+   iostat = pio_put_att(data_file%File, PIO_GLOBAL, 'Conventions', &
                          trim(data_file%conventions))
 
    !*** additional attributes

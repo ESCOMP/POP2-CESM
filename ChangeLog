@@ -1,5 +1,18 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    7 April 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110407
+Tag Summary: Bugfix for CF-compliance
+             There is no bug report, but email from Jim Edwards states:
+             The attribute should be "Conventions"�  with both cap "C" at the beginning and "s" at the end.  
+            
+Testing:  njn01. T62_gx3v7, C with new io_netcdf.F90 on bluefire.
+          3-day run, then 3-day restart with monthly history files, followed by 3-day restart with daily history files
+          ncdump'd resulting pop*.nc files and confirmed "Conventions" replaces "conventions"          
+Files Modified:
+M            27495   source/io_netcdf.F90
+===============================================================================
+Tag Creator: njn01
 Tag Date:    25 March 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110325
 Tag Summary: Bugfix for Bug #1287 - missing metadata for meridional transport tavg variables
