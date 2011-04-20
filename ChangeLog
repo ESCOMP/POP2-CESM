@@ -1,14 +1,28 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    20 April 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110420
+Tag Summary: update esm code
+Testing: Tony Craig
+Merge command:
+     svn merge $SVN/pop2/trunk_tags/cesm_pop_2_1_20110128
+               $SVN/pop2/branch_tags/cpl7esmf_tags/cpl7esmf_cesm1_beta16_02
+Files Modified:
+ M           26624   drivers/cpl_mct
+M            26624   drivers/cpl_esmf/ocn_comp_esmf.F90
+M            26624   drivers/cpl_esmf/ocn_comp_mct.F90
+ M           26624   drivers/cpl_none
+===============================================================================
+Tag Creator: njn01
 Tag Date:    7 April 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110407
 Tag Summary: Bugfix for CF-compliance
              There is no bug report, but email from Jim Edwards states:
-             The attribute should be "Conventions"�  with both cap "C" at the beginning and "s" at the end.  
-            
+             The attribute should be "Conventions"?  with both cap "C" at the beginning and "s" at the end. 
+
 Testing:  njn01. T62_gx3v7, C with new io_netcdf.F90 on bluefire.
           3-day run, then 3-day restart with monthly history files, followed by 3-day restart with daily history files
-          ncdump'd resulting pop*.nc files and confirmed "Conventions" replaces "conventions"          
+          ncdump'd resulting pop*.nc files and confirmed "Conventions" replaces "conventions"
 Files Modified:
 M            27495   source/io_netcdf.F90
 ===============================================================================

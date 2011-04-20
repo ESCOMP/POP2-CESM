@@ -51,15 +51,16 @@ subroutine ocn_register(ocn_petlist, ccsmComp, localComp)
    integer            :: rc
 
    ocn_comp = ESMF_GridCompCreate(name="ocn_comp", petList=ocn_petlist, rc=rc)
-   if(rc /= 0) call shr_sys_abort('failed to create ocn comp')
+   if(rc /= ESMF_SUCCESS) call shr_sys_abort('failed to create ocn comp')
    call ESMF_GridCompSetServices(ocn_comp, ocn_register_esmf, rc=rc)
-   if(rc /= 0) call shr_sys_abort('failed to register ocn comp')
-   import_state = ESMF_StateCreate("ocn import", ESMF_STATE_IMPORT, rc=rc)
-   if(rc /= 0) call shr_sys_abort('failed to create import ocn state')
-   export_state = ESMF_StateCreate("ocn export", ESMF_STATE_EXPORT, rc=rc)
-   if(rc /= 0) call shr_sys_abort('failed to create export ocn state')
+   if(rc /= ESMF_SUCCESS) call shr_sys_abort('failed to register ocn comp')
+   import_state = ESMF_StateCreate(name="ocn import", statetype=ESMF_STATE_IMPORT, rc=rc)
+   if(rc /= ESMF_SUCCESS) call shr_sys_abort('failed to create import ocn state')
+   export_state = ESMF_StateCreate(name="ocn export", statetype=ESMF_STATE_EXPORT, rc=rc)
+   if(rc /= ESMF_SUCCESS) call shr_sys_abort('failed to create export ocn state')
 
    call ESMF_AttributeLink(ccsmComp, ocn_comp, rc=rc)
+   if(rc /= ESMF_SUCCESS) call shr_sys_abort('failed to link attribute')
 
    localComp = ocn_comp
 
