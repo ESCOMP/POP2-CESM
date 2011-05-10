@@ -2140,6 +2140,8 @@
 
       call document ('diag_transport', 'file written: '//trim(diag_transport_outfile))
 
+      deallocate(mass_tran, heat_tran, salt_tran)
+
    endif ! ldiag_transport
 
 !-----------------------------------------------------------------------

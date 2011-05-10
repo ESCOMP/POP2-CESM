@@ -1,5 +1,17 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    10 May 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110510
+Tag Summary: fix small memory leak: add deallocate(mass_tran, heat_tran, salt_tran) to
+             subroutine diag_transport in module diagnostics.F90
+Testing: njn01
+              cesm1_0_beta19, oob vs bugfix, C, T62_gx3v7, 1 month with INFO_DBUG = 2
+              (diagnostics every step)
+              Output log files and POP2 restart files are b4b at end of one month
+Files Modified:
+M            27996   source/diagnostics.F90
+===============================================================================
+Tag Creator: njn01
 Tag Date:    20 April 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110420
 Tag Summary: update esm code
