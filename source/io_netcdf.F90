@@ -205,14 +205,15 @@
                endif
             endif
          endif
+
       case('conventions','Conventions','CONVENTIONS')
 
          data_file%conventions = char_blank
-         iostat = pio_inq_att(data_file%File, PIO_GLOBAL,  'Conventions', &
+         iostat = pio_inq_att(data_file%File, PIO_GLOBAL,  trim(att_name), &
                                 xtype, nsize)
          if (iostat == pio_noerr) then
             if (nsize <= len(data_file%conventions)) then
-               iostat = pio_get_att(data_file%File, PIO_GLOBAL, 'Conventions', &
+               iostat = pio_get_att(data_file%File, PIO_GLOBAL, trim(att_name), &
                                       data_file%conventions(1:nsize))
             else
                if (my_task == master_task) then

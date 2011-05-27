@@ -1,5 +1,30 @@
 ===============================================================================
 Tag Creator: njn01
+Tag Date:    27 May 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110527
+Tag Summary: fix io_netcdf.F90 module bug, so that it allows netCDF restart-file backwards
+             compatability (support both 'Conventions' and 'conventions')
+Testing: njn01
+              cesm1_0_beta20, oob vs bugfix, C, T62_gx3v7, netCDF restart files.
+              Restart cesm1_0_beta20 case with cesm1_0_beta14-generated netCDF restart
+              file. Bugfix version recognizes 'conventions' attribute; oob does not.
+Files Modified:
+M            27996   source/io_netcdf.F90
+
+       case('conventions','Conventions','CONVENTIONS')
+ 
+          data_file%conventions = char_blank
+-         iostat = pio_inq_att(data_file%File, PIO_GLOBAL,  'Conventions', &
++         iostat = pio_inq_att(data_file%File, PIO_GLOBAL,  trim(att_name), &
+                                 xtype, nsize)
+          if (iostat == pio_noerr) then
+             if (nsize <= len(data_file%conventions)) then
+-               iostat = pio_get_att(data_file%File, PIO_GLOBAL, 'Conventions', &
++               iostat = pio_get_att(data_file%File, PIO_GLOBAL, trim(att_name), &
+                                       data_file%conventions(1:nsize))
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    10 May 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110510
 Tag Summary: fix small memory leak: add deallocate(mass_tran, heat_tran, salt_tran) to
