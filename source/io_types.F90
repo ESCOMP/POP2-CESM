@@ -160,7 +160,7 @@
       rec_type_real = -2,     &! record length to use for binary files
       rec_type_dbl  = -3       !
 
-   character (7), parameter, public :: &
+   character (12), public :: &
       nml_filename = 'pop2_in'  ! namelist input file name
 
    integer (i4), public :: &
@@ -3313,11 +3313,16 @@ contains
    lredirect_stdout = .false.
    log_filename = 'pop.out'
    luse_pointer_files = .false.
+#ifdef CCSMCOUPLED
+   pointer_filename = 'rpointer.ocn' // trim(inst_suffix)
+#else
    pointer_filename = 'pop2_pointer'
+#endif
    num_iotasks = 1         ! set default num io tasks
 
    if (my_task == master_task) then
 #ifdef CCSMCOUPLED
+      nml_filename = 'pop2_in' // trim(inst_suffix)
       call get_unit(nml_in)
 #endif
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -3361,7 +3366,8 @@ contains
 #else
    if (my_task == master_task) then
       stdout = shr_file_getUnit()
-      call shr_file_setIO('ocn_modelio.nml',stdout)
+      char_tmp = 'ocn_modelio.nml' // trim(inst_suffix)
+      call shr_file_setIO(char_tmp,stdout)
    end if
 #endif
 

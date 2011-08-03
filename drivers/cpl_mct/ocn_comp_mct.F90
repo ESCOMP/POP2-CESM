@@ -27,8 +27,9 @@ module ocn_comp_mct
    use seq_cdata_mod
    use seq_infodata_mod
    use seq_timemgr_mod
+   use seq_comm_mct,      only : seq_comm_suffix, seq_comm_inst, seq_comm_name
    use shr_file_mod 
-   use shr_cal_mod, only : shr_cal_date2ymd
+   use shr_cal_mod,       only : shr_cal_date2ymd
    use shr_sys_mod
    use perf_mod
    use ocn_communicator,  only: mpi_communicator_ocn
@@ -215,10 +216,10 @@ contains
 #endif
 
 
-   ! The following communicator module variable will be utilize in init_communicate that
-   ! is called by initial - this is done to make the code backwards compatible
+    ! The following communicator module variable will be utilize in init_communicate that
+    ! is called by initial - this is done to make the code backwards compatible
 
-   mpi_communicator_ocn = mpicom_o
+    mpi_communicator_ocn = mpicom_o
 
 !-----------------------------------------------------------------------
 !
@@ -243,7 +244,7 @@ contains
        call exit_POP(sigAbort,' ocn_comp_mct ERROR: unknown starttype')
     end if
 
-   !TODO: check for consistency of pop runid and runtype with seq_infodata
+    !TODO: check for consistency of pop runid and runtype with seq_infodata
    
 !-----------------------------------------------------------------------
 !
@@ -254,6 +255,10 @@ contains
 !  compatiblity with cpl6 concurrent system
 !
 !-----------------------------------------------------------------------
+
+   inst_name   = seq_comm_name(OCNID)
+   inst_index  = seq_comm_inst(OCNID)
+   inst_suffix = seq_comm_suffix(OCNID)
 
    call t_startf ('pop_init')
    call POP_Initialize1(errorCode)

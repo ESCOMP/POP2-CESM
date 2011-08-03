@@ -46,7 +46,7 @@
 !
 !-----------------------------------------------------------------------
 
-   character (POP_charLength), parameter :: &
+   character (POP_charLength) :: &
       configFileDefault = 'pop2_in'
 
    interface POP_ConfigRead
@@ -115,6 +115,8 @@ contains
 !  errors
 !
 !-----------------------------------------------------------------------
+
+   configFileDefault = 'pop2_in' // trim(inst_suffix)
 
    if (POP_myTask == POP_masterTask) then
       if (present(configFileName)) then

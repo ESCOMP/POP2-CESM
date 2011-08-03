@@ -48,14 +48,6 @@ cat >> $POP2BLDSCRIPT << EOF2
 #--------------------------------------------------------------------------
 # define variables needed by the pop2_in file
 #--------------------------------------------------------------------------
-set output_L = \$rundir
-set output_d = \$rundir/\$CASE.pop.d
-
-set output_r     = ./\$CASE.pop.r
-set output_h     = ./\$CASE.pop.h
-set pop2_pointer = ./rpointer.ocn
-
-
 if ( \$POP_DECOMPTYPE == spacecurve) then
   set clinic_distribution_type = spacecurve
   set tropic_distribution_type = spacecurve
@@ -96,9 +88,8 @@ cat >> $POP2BLDSCRIPT << EOF2
 &io_nml
   num_iotasks          = 1 
   lredirect_stdout     = .true. 
-  log_filename         = '\$output_L/ocn.log.\$LID'
+  log_filename         = '\$log_filename'
   luse_pointer_files   = .true.
-  pointer_filename     = './rpointer.ocn'
   luse_nf_64bit_offset = .true.
 /
 

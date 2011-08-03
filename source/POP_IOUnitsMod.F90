@@ -75,6 +75,13 @@
    character (5), parameter, public :: &
       POP_blankFormat = "(' ')" 
 
+#ifdef CCSMCOUPLED
+      ! instance control
+      integer (POP_i4)  , public :: inst_index
+      character(len=16) , public :: inst_name
+      character(len=16) , public :: inst_suffix
+#endif
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------

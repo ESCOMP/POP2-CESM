@@ -11,7 +11,6 @@ module ocn_comp_mct
    use esmf_mod
    use seq_cdata_mod
    use seq_infodata_mod
-
    use esmfshr_mod
    use ocn_comp_esmf
 
@@ -111,7 +110,7 @@ end subroutine
 
    ! Copy infodata to state
 
-   call esmfshr_infodata_infodata2state(infodata,export_state,rc=rc)
+   call esmfshr_infodata_infodata2state(infodata,export_state,id=OCNID,rc=rc)
    if (rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, terminationflag=ESMF_ABORT)
 
    if (phase > 1) then
@@ -183,11 +182,12 @@ subroutine ocn_run_mct( EClock, cdata, x2d, d2x)
    type(seq_infodata_type), pointer :: infodata
    type(ESMF_Array)                 :: d2xa,x2da
    integer                          :: rc, urc
+   integer                          :: OCNID
    !----------------------------------------------------------------------------
 
-   call seq_cdata_setptrs(cdata, infodata=infodata)
+   call seq_cdata_setptrs(cdata, id=OCNID, infodata=infodata)
 
-   call esmfshr_infodata_infodata2state(infodata, export_state, rc=rc)
+   call esmfshr_infodata_infodata2state(infodata, export_state, id=OCNID, rc=rc)
    if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, terminationflag=ESMF_ABORT)
 
    ! copy values to x2d

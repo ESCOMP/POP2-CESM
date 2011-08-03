@@ -2019,7 +2019,7 @@
 
    supported = .true.
    
-   ioroot = seq_io_getioroot('OCN')
+   ioroot = seq_io_getioroot(inst_name)
 
 !-----------------------------------------------------------------------
 !

@@ -25,6 +25,8 @@ module ocn_comp_esmf
    use seq_timemgr_mod
    use seq_infodata_mod,only : seq_infodata_start_type_cont, &
                                seq_infodata_start_type_brnch, seq_infodata_start_type_start
+   use seq_comm_mct,    only : seq_comm_suffix, seq_comm_inst, seq_comm_name
+
    use shr_file_mod 
    use shr_cal_mod, only : shr_cal_date2ymd
    use shr_sys_mod
@@ -201,6 +203,7 @@ end subroutine
     type(ESMF_DistGrid)                   :: distgrid
     type(ESMF_Array)                      :: d2x, x2d, dom
     type(ESMF_VM)                         :: vm
+    integer                               :: OCNID       ! cesm ID value
 
     character(ESMF_MAXSTR) :: convCIM, purpComp
 
@@ -214,6 +217,7 @@ end subroutine
 
     rc = ESMF_SUCCESS
  
+   
    ! duplicate the mpi communicator from the current VM 
    call ESMF_VMGetCurrent(vm, rc=rc)
    if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, terminationflag=ESMF_ABORT)
@@ -224,6 +228,10 @@ end subroutine
 
    errorCode = POP_Success
    print * , 'after mpicom setup'
+
+   ! Initialize pop id
+   call ESMF_AttributeGet(export_state, name="ID", value=OCNID, rc=rc)
+   if (rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, terminationflag=ESMF_ABORT)
 
 #ifdef _OPENMP
    nThreads = omp_get_max_threads()
@@ -276,6 +284,10 @@ end subroutine
 !  compatiblity with cpl6 concurrent system
 !
 !-----------------------------------------------------------------------
+
+   inst_name   = seq_comm_name(OCNID)
+   inst_index  = seq_comm_inst(OCNID)
+   inst_suffix = seq_comm_suffix(OCNID)
 
    print * , 'begin pop init1'
    call t_startf ('pop_init')

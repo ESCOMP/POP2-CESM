@@ -4916,6 +4916,7 @@ contains
                              U10_SQR,IFRAC,PRESS,SST,SSS, &
                              SURF_VALS_OLD,SURF_VALS_CUR,STF_MODULE)
    use seq_io_mod, only : seq_io_getiotype, seq_io_getiosys
+   use POP_IOUnitsMod, only: inst_name
 
 ! !DESCRIPTION:
 !  Compute surface fluxes for ecosys tracer module.
@@ -5451,8 +5452,8 @@ contains
                                  FileName=(/trim(ndep_shr_stream_file)/),      &
                                  fldListFile=ndep_shr_stream_fldList,          &
                                  fldListModel=ndep_shr_stream_fldList,         &
-                                 pio_subsystem=seq_io_getiosys('OCN'),         &
-                                 pio_iotype=seq_io_getiotype('OCN'),           &
+                                 pio_subsystem=seq_io_getiosys(inst_name),     &
+                                 pio_iotype=seq_io_getiotype(inst_name),       &
                                  fillalgo='none', mapalgo='none')
          if (my_task == master_task) then
             call shr_strdata_print(ndep_sdat)

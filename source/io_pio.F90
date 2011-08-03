@@ -109,6 +109,7 @@ module io_pio
    logical :: lcdf64
    integer :: status
    integer :: nmode
+   integer :: pio_iotype
    character(*),parameter :: subName = '(io_pio_init) '
 
 
@@ -118,7 +119,8 @@ module io_pio
 !
 !-----------------------------------------------------------------------
 
-   io_pio_subsystem => seq_io_getiosys('OCN')
+   io_pio_subsystem => seq_io_getiosys(inst_name)
+   pio_iotype =  seq_io_getiotype(inst_name)
 
    if (trim(mode) == 'write') then
       lclobber = .false.
@@ -138,12 +140,12 @@ module io_pio
             if (lclobber) then
                nmode = pio_clobber
                if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
-               status = pio_createfile(io_pio_subsystem, File, seq_io_getiotype('OCN'), trim(filename), nmode)
+               status = pio_createfile(io_pio_subsystem, File, pio_iotype, trim(filename), nmode)
                if (my_task == master_task) then
                   write(stdout,*) subname,' create file ',trim(filename)
                end if
             else
-               status = pio_openfile(io_pio_subsystem, File, seq_io_getiotype('OCN'), trim(filename), pio_write)
+               status = pio_openfile(io_pio_subsystem, File, pio_iotype, trim(filename), pio_write)
                if (my_task == master_task) then
                   write(stdout,*) subname,' open file ',trim(filename)
                end if
@@ -151,7 +153,7 @@ module io_pio
          else
             nmode = pio_noclobber
             if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
-            status = pio_createfile(io_pio_subsystem, File, seq_io_getiotype('OCN'), trim(filename), nmode)
+            status = pio_createfile(io_pio_subsystem, File, pio_iotype, trim(filename), nmode)
             if (my_task == master_task) then
                write(stdout,*) subname,' create file ',trim(filename)
             end if
@@ -167,7 +169,7 @@ module io_pio
       end if
       call broadcast_scalar(exists, master_task)
       if (exists) then
-         status = pio_openfile(io_pio_subsystem, File, seq_io_getiotype('OCN'), trim(filename), pio_nowrite)
+         status = pio_openfile(io_pio_subsystem, File, pio_iotype, trim(filename), pio_nowrite)
       else
          if(my_task==master_task) then
             write(stdout,*) 'io_pio_ropen ERROR: file invalid ',trim(filename)
@@ -327,7 +329,7 @@ module io_pio
             end do
          end if
 
-         io_pio_subsystem => seq_io_getiosys('OCN')
+         io_pio_subsystem => seq_io_getiosys(inst_name)
          if (basetype == PIO_INT) then
             if (ndim3 == 0) then
                call pio_initdecomp(io_pio_subsystem, basetype, (/POP_nxGlobal,POP_nyGlobal/), &

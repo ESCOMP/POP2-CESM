@@ -21,7 +21,6 @@ setenv POP2_DOCDIR     $CASEBUILD/pop2doc
 setenv POP2_IN         $POP2_DOCDIR/document_pop2_in
 setenv POP2_INLIST     $POP2_DOCDIR/document_pop2_input_files
 
-
 if !(-d $CASEBUILD  ) mkdir $CASEBUILD
 if !(-d $POP2_DOCDIR) mkdir $POP2_DOCDIR
 
@@ -45,8 +44,8 @@ set objdir  = \$OBJROOT/ocn/obj
 set ocndir  = \$RUNDIR
 set srcdir  = \$CODEROOT/ocn/pop2
 set my_path = \$CASEROOT/SourceMods/src.pop2
+@ ntask = \$NTASKS_OCN / \$NINST_OCN
 
-set ntask   = \$NTASKS_OCN
 set ocn_tracers = (\`echo \$OCN_TRACER_MODULES\`)
 
 setenv OCN_PRESTAGE $OCN_PRESTAGE
@@ -429,8 +428,9 @@ cat >> $POP2BLDSCRIPT << EOF2
 #--------------------------------------------
 #  set domain decomposition information
 #--------------------------------------------
- setenv NPROCS_CLINIC  \$NTASKS_OCN
- setenv NPROCS_TROPIC  \$NTASKS_OCN
+ @ ntasks = \$NTASKS_OCN / \$NINST_OCN
+ setenv NPROCS_CLINIC  \$ntasks
+ setenv NPROCS_TROPIC  \$ntasks
 
 #----------------------------------------------------------------------
 # Document the origins of pop2 input_templates files
@@ -503,6 +503,29 @@ endif
 
 cat >> $POP2BLDSCRIPT << EOF2
 
+setenv ocn_inst_counter 1
+#####################################################################
+# START MULTIPLE INSTANCES OF POP
+#####################################################################
+while (\$ocn_inst_counter <= \$NINST_OCN)
+
+if (\$NINST_OCN == 1) then    
+   setenv POP2_IN       $POP2_DOCDIR/document_pop2_in
+   setenv output_r      ./\$CASE.pop.r
+   setenv output_h      ./\$CASE.pop.h
+   setenv output_d      \$rundir/\$CASE.pop.d
+   setenv log_filename  \$rundir/ocn.log.\$LID
+else      
+   set ocn_inst_string = \${ocn_inst_counter}
+   if (\$ocn_inst_counter <= 999) set ocn_inst_string = 0\${ocn_inst_string}
+   if (\$ocn_inst_counter <=  99) set ocn_inst_string = 0\${ocn_inst_string}
+   if (\$ocn_inst_counter <=   9) set ocn_inst_string = 0\${ocn_inst_string}
+   setenv POP2_IN       $POP2_DOCDIR/document_pop2_in_\${ocn_inst_counter}
+   setenv output_r      ./\$CASE.pop_\${ocn_inst_string}.r
+   setenv output_h      ./\$CASE.pop_\${ocn_inst_string}.h
+   setenv output_d      \$rundir/\$CASE.pop_\${ocn_inst_string}.d
+   setenv log_filename  \$rundir/ocn_\${ocn_inst_string}.log.\$LID
+endif
 
 echo " " >&! \$POP2_IN 
 echo ------------------------------------------------------------------------ >> \$POP2_BLDNML
@@ -566,6 +589,8 @@ cat >> $POP2BLDSCRIPT << EOF2
 
 
 cat \$POP2_TAVG_NML >> \$POP2_IN
+
+
 #==========================================================================
 #  End pop2_in namelist build  
 #==========================================================================
@@ -600,11 +625,23 @@ else if (\$#ocn_tracers > 0) then
   end
 endif
 
-echo   Copy \$POP2_IN to \$exedir/pop2_in                                     >> \$POP2_BLDNML
-echo ------------------------------------------------------------------------ >> \$POP2_BLDNML
+if (\$NINST_OCN == 1) then    
+   echo   Copy \$POP2_IN to \$exedir/pop2_in                                     >> \$POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> \$POP2_BLDNML
+   if (-f \$exedir/pop2_in) rm \$exedir/pop2_in
+   cp  \$POP2_IN \$exedir/pop2_in
+else
+   echo   Copy \$POP2_IN to \$exedir/pop2_in_\${ocn_inst_string}                 >> \$POP2_BLDNML
+   echo ------------------------------------------------------------------------ >> \$POP2_BLDNML
+   if (-f \$exedir/pop2_in_\${ocn_inst_string}) rm \$exedir/pop2_in_\${ocn_inst_string}
+   cp  \$POP2_IN \$exedir/pop2_in_\${ocn_inst_string}
+endif
 
-if (-f \$exedir/pop2_in) rm \$exedir/pop2_in
-cp  \$POP2_IN \$exedir/pop2_in
+#####################################################################
+# FINISH MULTIPLE INSTANCES OF POP
+#####################################################################
+@ ocn_inst_counter = \$ocn_inst_counter + 1
+end
 
 cd \$exedir
 EOF2
