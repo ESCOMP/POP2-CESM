@@ -1,6 +1,6 @@
 Tag Creator: jedwards
-Tag Date:    27 October 2011
-Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111027
+Tag Date:    01 November 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111101
 Tag Summary: Bug fix for in overflows for gfortran, additional decomp for tx0.1
 Testing: jedwards
 
