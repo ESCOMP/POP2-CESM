@@ -1,6 +1,15 @@
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 !BOP
 ! !MODULE: gather_scatter
+!
+! Workaround for performance issue on Cray/Gemini
+!
+#ifdef _NO_MPI_RSEND
+#define MPI_RSEND MPI_SEND
+#define mpi_rsend mpi_send
+#define MPI_IRSEND MPI_ISEND
+#define mpi_irsend mpi_isend
+#endif
 
  module gather_scatter
 

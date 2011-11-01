@@ -219,6 +219,17 @@
      <decomptype>spacecurve</decomptype>
   </decomp>
 
+
+  <decomp nproc="19460" res="tx0.1v2" model="pop" nthrd="1">
+    <maxblocks >1</maxblocks> 
+    <bsize_x>15</bsize_x> 
+    <bsize_y>20</bsize_y>    
+    <decomptype>spacecurve</decomptype>
+  </decomp>
+
+
+
+
 <!-- -------------------------------------------------------------------------------- -->
   <!-- gx1v[3456] resolution -->
   <decomp nproc="1" res="gx1v[3456]" model="pop">

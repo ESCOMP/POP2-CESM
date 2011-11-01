@@ -1,3 +1,27 @@
+Tag Creator: jedwards
+Tag Date:    27 October 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111027
+Tag Summary: Bug fix for in overflows for gfortran, additional decomp for tx0.1
+Testing: jedwards
+
+
+	
+Files Modified:
+	M            source/overflows.F90
+        M            bld/pop_decomp.xml
+        M            mpi/gather_scatter.F90 (workaround for cray/gemini performance issue)
+
+PASS  ERS.T62_g16.CIAF.bluefire 
+PASS  ERS.T62_g16.CIAF.bluefire.compare_hist.cesm1_1_alpha05a 
+PASS  ERS.T62_g16.CIAF.bluefire.compare.cesm1_1_alpha05a 
+PASS  ERT_PT.T62_g16.GIAF.bluefire 
+PASS  ERT_PT.T62_g16.GIAF.bluefire.compare_hist.cesm1_1_alpha05a 
+PASS  ERT_PT.T62_g16.GIAF.bluefire.compare.cesm1_1_alpha05a 
+	
+	
+===============================================================================
+
+
 Tag Creator: mvertens
 Tag Date:    03 August 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110803

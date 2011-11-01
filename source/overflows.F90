@@ -2211,18 +2211,16 @@
       read(mu,108) ovf(n)%ovf_params%bottom_drag
       108 format(2x,1PE27.18)
 ! kmt changes, if any
+! GFORTRAN Compiler complains about constants in read format
       read(mu,1090) ovf(n)%num_kmt
-      1090 format(2x,i10,20x,'! number of kmt changes')
+1090  format(2x,i10)
       do m=1,ovf(n)%num_kmt
-         read(mu,1091) ovf(n)%loc_kmt(m)%i
-         1091 format(2x,i10,20x,'! i grid box index for kmt change')
-         read(mu,1092) ovf(n)%loc_kmt(m)%j
-         1092 format(2x,i10,20x,'! j grid box index for kmt change')
-         read(mu,1093) ovf(n)%loc_kmt(m)%korg
-         1093 format(2x,i10,20x,'! korg  original grid box k index')
-         read(mu,1094) ovf(n)%loc_kmt(m)%knew
-         1094 format(2x,i10,20x,'! knew  new      grid box k index')
+         read(mu,1090) ovf(n)%loc_kmt(m)%i
+         read(mu,1090) ovf(n)%loc_kmt(m)%j
+         read(mu,1090) ovf(n)%loc_kmt(m)%korg
+         read(mu,1090) ovf(n)%loc_kmt(m)%knew
       end do
+
 ! regional boundaries
 !   inflow
       read(mu,110) ovf(n)%reg_inf%imin
