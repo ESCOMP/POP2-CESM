@@ -649,7 +649,7 @@
    string = 'Energy Used by Vertical Mixing'
    call define_tavg_field(tavg_TPOWER,'TPOWER',3,             &
                           long_name=trim(string),             &
-                          units='erg/s',                      &
+                          units='erg/s/cm^3',                 &
                           grid_loc='3113',                    &
                           coordinates  ='TLONG TLAT z_w_bot time' ) 
 

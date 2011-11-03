@@ -1,3 +1,15 @@
+===============================================================================
+Tag Creator: njn01
+Tag Date:    03 November 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111103
+Tag Summary: Bug fix: TPOWER history-file units were incorrect.
+             were: erg/s  should be: erg/s/cm^3
+Testing: none
+	
+Files Modified:
+M            31647   source/vmix_kpp.F90
+
+===============================================================================
 Tag Creator: jedwards
 Tag Date:    01 November 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111101
@@ -20,8 +32,6 @@ PASS  ERT_PT.T62_g16.GIAF.bluefire.compare.cesm1_1_alpha05a
 	
 	
 ===============================================================================
-
-
 Tag Creator: mvertens
 Tag Date:    03 August 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20110803
