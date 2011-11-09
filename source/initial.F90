@@ -18,6 +18,7 @@
    use POP_ErrorMod
    use POP_IOUnitsMod
    use POP_SolversMod
+   use POP_ReductionsMod
 
    use kinds_mod, only: i4, i8, r8, int_kind, log_kind, char_len
    use blocks, only: block, nx_block, ny_block, get_block
@@ -229,6 +230,7 @@
 !-----------------------------------------------------------------------
 
    call init_global_reductions
+   call POP_initReductions
 
 !-----------------------------------------------------------------------
 !

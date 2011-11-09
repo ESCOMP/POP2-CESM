@@ -346,7 +346,7 @@ cat >> $POP2BLDSCRIPT << EOF2
    restart_start_opt   = 'nstep'
    restart_start       =  0
    restart_outfile     = '\$output_r'
-   restart_fmt         = 'bin'
+   restart_fmt         = 'nc'
    leven_odd_on        = .false. 
    even_odd_freq       = 100000
    pressure_correction = .false.

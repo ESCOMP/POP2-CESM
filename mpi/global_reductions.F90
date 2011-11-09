@@ -421,6 +421,7 @@
        global_block_sum     ! sum of all blocks
 
    real (r8) ::          &
+      block_sum,         &! sum of local block
       local_sum           ! sum of all local blocks
 
    integer (int_kind) :: &
@@ -431,7 +432,6 @@
 
    type (block) :: &
       this_block          ! holds local block information
-
 
    if (.not. b4b) then
 
@@ -449,6 +449,7 @@
       !*** must remove redundant points from sum
       do n=1,nblocks_tot
          if (dist%proc(n) == my_task+1) then
+            block_sum = c0
             bid = dist%local_block(n)
             this_block = get_block(n,bid)
             ib = this_block%ib
@@ -461,12 +462,12 @@
                if (present(MASK)) then
                   do i=ib,ie
                      if (this_block%i_glob(i) <= nx_global/2) &
-                     local_sum = local_sum + X(i,je,bid)*MASK(i,je,bid)
+                     block_sum = block_sum + X(i,je,bid)*MASK(i,je,bid)
                   end do
                else ! no mask
                   do i=ib,ie
                      if (this_block%i_glob(i) <= nx_global/2) &
-                     local_sum = local_sum + X(i,je,bid)
+                     block_sum = block_sum + X(i,je,bid)
                   end do
                endif
                je = je - 1
@@ -474,36 +475,39 @@
             if (present(MASK)) then
                do j=jb,je
                do i=ib,ie
-                  local_sum = local_sum + X(i,j,bid)*MASK(i,j,bid)
+                  block_sum = block_sum + X(i,j,bid)*MASK(i,j,bid)
                end do
                end do
             else ! no mask
                do j=jb,je
                do i=ib,ie
-                  local_sum = local_sum + X(i,j,bid)
+                  block_sum = block_sum + X(i,j,bid)
                end do
                end do
             endif
+            local_sum = local_sum + block_sum
          endif
       end do !block loop
    else ! regular global sum
       do n=1,nblocks_tot
          if (dist%proc(n) == my_task+1) then
+            block_sum = c0
             bid = dist%local_block(n)
             call get_block_parameter(n,ib=ib,ie=ie,jb=jb,je=je)
             if (present(MASK)) then
                do j=jb,je
                do i=ib,ie
-                  local_sum = local_sum + X(i,j,bid)*MASK(i,j,bid)
+                  block_sum = block_sum + X(i,j,bid)*MASK(i,j,bid)
                end do
                end do
             else ! no mask
                do j=jb,je
                do i=ib,ie
-                  local_sum = local_sum + X(i,j,bid)
+                  block_sum = block_sum + X(i,j,bid)
                end do
                end do
             endif
+            local_sum = local_sum + block_sum
          endif
       end do !block loop
    endif

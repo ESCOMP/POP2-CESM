@@ -1,5 +1,62 @@
 ===============================================================================
 Tag Creator: njn01
+Developers:  1) njn01 2) klindsay
+Tag Date:    09 November 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111109
+Tag Summary: 1) Change restart file fmt from 'bin' to 'nc' because list-directed
+                  i/o is not b4b on some platforms
+             2) Modify global sum routines so that automated 1x2 threading test is b4b, and
+                instrument the POP_ReductionsMod module s.t. it responds to the "b4b"
+                option in the same way as the global_sum routines in global_reductions.
+                This second part allows for (non-automated) comparisons of certain
+                threading vs non-threading test cases, such as 1x4, 4x1, 2x2; it is not
+                totally general.
+_________________________________________________________________________________________
+
+From Keith Lindsay:
+all mods are b4b if NTHRDS_OCN=1
+
+global_reductions.F90:
+    ensure (1 task, 2 threads) is b4b with (2 tasks, 1 thread),
+    if both built with BUILD_THREADED=TRUE
+
+POP_ReductionsMod.F90, initial.F90:
+    ensure (m1 tasks, n1 threads) is b4b with (m2 tasks, n2 threads),
+    if m1*n1 = m2*n2, i.e. same number of blocks, BUILD_THREADED=TRUE,
+    and b4b_flag=.true. in context_nml
+    This has an unquantified performance hit for large block counts.
+_________________________________________________________________________________________
+            
+Testing: 1) Diane Feddema (2011-11-08): 
+            when restart format is 'nc' tests on lynx are b4b; when it is 'bin', they are not.
+         2) Keith Lindsay (2011-11-08):
+bluefire, CECO, T62_gx3v7:
+25 day runs, comparing binary ocean restart files at end of run
+
+    (2 tasks, 1 thread) prev = (2 tasks, 1 thread) new
+                             = (1 task, 2 threads) new
+
+    (4 tasks, 1 thread) prev = (4 tasks, 1 thread) new
+
+with b4b_flag set
+    (4 tasks, 1 thread) new  = (2 tasks, 2 threads) new
+                             = (1 task, 4 threads) new
+
+bluefire, B1850BPRP, T31_gx3v7:
+5 day runs, comparing binary ocean restart files at end of run
+
+    (2 tasks, 1 thread) new = (1 task, 2 threads) new
+_________________________________________________________________________________________
+Files Modified:
+1) pop2_in_build.csh
+2) global_reductions.F90, POP_ReductionsMod.F90, initial.F90
+M            31647   source/initial.F90
+M            31647   mpi/POP_ReductionsMod.F90
+M            31647   mpi/global_reductions.F90
+M            31647   input_templates/pop2_in_build.csh
+
+===============================================================================
+Tag Creator: njn01
 Tag Date:    03 November 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111103
 Tag Summary: Bug fix: TPOWER history-file units were incorrect.

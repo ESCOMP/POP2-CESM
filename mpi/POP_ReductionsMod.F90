@@ -19,6 +19,7 @@
    use POP_BlocksMod
    use POP_DistributionMod
    use POP_GridHorzMod
+   use registry
 
    implicit none
    private
@@ -34,7 +35,8 @@
              POP_GlobalMaxval,   &
              POP_GlobalMinval,   &
              POP_GlobalMaxloc,   &
-             POP_GlobalMinloc
+             POP_GlobalMinloc,   &
+             POP_initReductions
 
 !EOP
 !BOC
@@ -103,10 +105,35 @@
 !
 !-----------------------------------------------------------------------
 
+    logical (POP_Logical) :: b4b
+
 !EOC
 !***********************************************************************
 
  contains
+
+!***********************************************************************
+!BOP
+! !IROUTINE: POP_initReductions
+! !INTERFACE:
+
+ subroutine POP_initReductions
+
+! !DESCRIPTION:
+!  Initializes flags for global reductions.
+!
+! !REVISION HISTORY:
+!  same as module
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+
+   b4b = registry_match('b4b_flag')
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine POP_initReductions
 
 !***********************************************************************
 !BOP
@@ -171,6 +198,9 @@
    real (POP_r8) :: &
       blockSum,     &! sum of local block domain
       localSum       ! sum of all local block domains
+   real (POP_r8), dimension(:), allocatable :: &
+      blockSum_array_loc, &! sum of local blocks
+      blockSum_array_glo   ! sum of all blocks
 #endif
 
    integer (POP_i4) :: &
@@ -192,6 +222,11 @@
    localSum  = 0.0_POP_r16
 #else
    localSum  = 0.0_POP_r8
+   if (b4b) then
+      allocate(blockSum_array_loc(POP_numBlocks), &
+               blockSum_array_glo(POP_numBlocks))
+      blockSum_array_loc = 0.0_POP_r8
+   endif
 #endif
    globalSum = 0.0_POP_r8
 
@@ -298,6 +333,12 @@
 
       localSum = localSum + blockSum
 
+#ifndef REPRODUCIBLE
+      if (b4b) then
+         blockSum_array_loc(thisBlock%blockID) = blockSum
+      endif
+#endif
+
    end do
 
 !-----------------------------------------------------------------------
@@ -313,9 +354,21 @@
       globalSum = globalSumTmp
    endif
 #else
-   if (POP_myTask < numProcs) then
-      call MPI_ALLREDUCE(localSum, globalSum, 1, &
-                         POP_mpiR8, MPI_SUM, communicator, ierr)
+   if (.not. b4b) then
+      if (POP_myTask < numProcs) then
+         call MPI_ALLREDUCE(localSum, globalSum, 1, &
+                            POP_mpiR8, MPI_SUM, communicator, ierr)
+      endif
+   else
+      if (POP_myTask < numProcs) then
+         call MPI_ALLREDUCE(blockSum_array_loc, blockSum_array_glo, POP_numBlocks, &
+                            POP_mpiR8, MPI_SUM, communicator, ierr)
+         globalSum = 0.0_POP_r8
+         do iblock=1,POP_numBlocks
+            globalSum = globalSum + blockSum_array_glo(iblock)
+         end do
+      endif
+      deallocate(blockSum_array_loc, blockSum_array_glo)
    endif
 #endif
 
@@ -795,6 +848,9 @@
    real (POP_r8), dimension(size(array,dim=3)) :: &
       blockSum,     &! sum of local block domain
       localSum       ! sum of all local block domains
+   real (POP_r8), dimension(:,:), allocatable :: &
+      blockSum_array_loc, &! sum of local blocks
+      blockSum_array_glo   ! sum of all blocks
 #endif
 
    integer (POP_i4) :: &
@@ -817,6 +873,11 @@
    localSum  = 0.0_POP_r16
 #else
    localSum  = 0.0_POP_r8
+   if (b4b) then
+      allocate(blockSum_array_loc(size(array,dim=3),POP_numBlocks), &
+               blockSum_array_glo(size(array,dim=3),POP_numBlocks))
+      blockSum_array_loc = 0.0_POP_r8
+   endif
 #endif
    globalSum = 0.0_POP_r8
 
@@ -937,6 +998,12 @@
 
       localSum(:) = localSum(:) + blockSum(:)
 
+#ifndef REPRODUCIBLE
+      if (b4b) then
+         blockSum_array_loc(:,thisBlock%blockID) = blockSum(:)
+      endif
+#endif
+
    end do
 
 !-----------------------------------------------------------------------
@@ -952,9 +1019,21 @@
       globalSum = globalSumTmp 
    endif
 #else
-   if (POP_myTask < numProcs) then
-      call MPI_ALLREDUCE(localSum, globalSum, numFields, &
-                         POP_mpiR8, MPI_SUM, communicator, ierr)
+   if (.not. b4b) then
+      if (POP_myTask < numProcs) then
+         call MPI_ALLREDUCE(localSum, globalSum, numFields, &
+                            POP_mpiR8, MPI_SUM, communicator, ierr)
+      endif
+   else
+      if (POP_myTask < numProcs) then
+         call MPI_ALLREDUCE(blockSum_array_loc, blockSum_array_glo, numFields*POP_numBlocks, &
+                            POP_mpiR8, MPI_SUM, communicator, ierr)
+         globalSum = 0.0_POP_r8
+         do iblock=1,POP_numBlocks
+            globalSum(:) = globalSum(:) + blockSum_array_glo(:,iblock)
+         end do
+      endif
+      deallocate(blockSum_array_loc, blockSum_array_glo)
    endif
 #endif
 
