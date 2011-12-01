@@ -1,5 +1,31 @@
 ===============================================================================
 Tag Creator: njn01
+Developers:  1) njn01,klindsay
+Tag Date:    01 December 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111201
+Tag Summary: Replace dimensioned arrays with assumed-shape arrays in ecosys_mod.F90,
+             in order to work around a subtle compiler issue (detected by an intel compiler)
+             which occurs when the ecosys_mod and any other passive-tracer module with
+             more than two (or three, in our default setup) tracers is compiled and
+             'ecosys' is not active.
+Testing: 
+          Test (njn01):
+             T62_gx3v7, bluefire, 2-month ER, manual setup with binary restart file compare
+                 at end of Feb
+             case1 = C, oob
+             case2 = C, with new ecosys_mod.F90
+             case3 = CECO, oob
+             case4 = CECO, with new ecosys_mod.F90
+          Results:
+             case1 b4b with case2; case3 b4b with case4
+          Test (jedwards): Intel compiler
+          Results: no complaints
+             
+Files Modified:
+M            31647   source/ecosys_mod.F90
+
+===============================================================================
+Tag Creator: njn01
 Developers:  1) njn01 2) klindsay
 Tag Date:    09 November 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111109

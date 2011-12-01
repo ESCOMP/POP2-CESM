@@ -623,15 +623,18 @@ contains
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   type (tracer_field), dimension(ecosys_tracer_cnt), intent(inout) :: &
+  !type (tracer_field), dimension(ecosys_tracer_cnt), intent(inout) :: &
+   type (tracer_field), dimension(:)                , intent(inout) :: &
       tracer_d_module   ! descriptors for each tracer
 
-   real (r8), dimension(nx_block,ny_block,km,ecosys_tracer_cnt,3,max_blocks_clinic), &
+  !real (r8), dimension(nx_block,ny_block,km,ecosys_tracer_cnt,3,max_blocks_clinic), &
+   real (r8), dimension(:,:,:,:,:,:), &
       intent(inout) :: TRACER_MODULE
 
 ! !OUTPUT PARAMETERS:
 
-   character (char_len), dimension(ecosys_tracer_cnt), intent(out) :: &
+  !character (char_len), dimension(ecosys_tracer_cnt), intent(out) :: &
+   character (char_len), dimension(:), intent(out) :: &
       tadvect_ctype     ! advection method for ecosys tracers
 
    integer (POP_i4), intent(out) :: &
@@ -2122,7 +2125,8 @@ contains
       SALT_OLD,          &! old salinity (msu)
       SALT_CUR            ! current salinity (msu)
 
-   real (r8), dimension(nx_block,ny_block,km,ecosys_tracer_cnt), intent(in) :: &
+  !real (r8), dimension(nx_block,ny_block,km,ecosys_tracer_cnt), intent(in) :: &
+   real (r8), dimension(:,:,:,:), intent(in) :: &
       TRACER_MODULE_OLD, &! old tracer values
       TRACER_MODULE_CUR   ! current tracer values
 
@@ -2131,7 +2135,8 @@ contains
 
 ! !OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt), intent(out) :: &
+  !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt), intent(out) :: &
+   real (r8), dimension(:,:,:), intent(out) :: &
       DTRACER_MODULE      ! computed source/sink terms
 
 !EOP
@@ -4935,12 +4940,14 @@ contains
       SST,          &! sea surface temperature (C)
       SSS            ! sea surface salinity (psu)
 
-   real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
+  !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
+   real (r8), dimension(:,:,:,:), &
       intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR ! module tracers
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
+  !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
+   real (r8), dimension(:,:,:,:), &
       intent(inout) :: STF_MODULE
 
 !EOP
@@ -5757,7 +5764,8 @@ contains
 
 ! !INPUT PARAMETERS:
 
-  real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
+ !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
+  real (r8), dimension(:,:,:,:), &
      intent(in) :: STF_MODULE
 
 !EOP
@@ -5859,7 +5867,8 @@ contains
 
 ! !INPUT PARAMETERS:
 
-  real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
+ !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
+  real (r8), dimension(:,:,:,:), &
       intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR
 
 !EOP
