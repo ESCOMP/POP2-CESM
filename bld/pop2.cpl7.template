@@ -525,6 +525,20 @@ else
    setenv output_h      ./\$CASE.pop_\${ocn_inst_string}.h
    setenv output_d      \$rundir/\$CASE.pop_\${ocn_inst_string}.d
    setenv log_filename  \$rundir/ocn_\${ocn_inst_string}.log.\$LID
+
+   # pop rpointer name for multi-instance case
+   if (! -e \$rundir/rpointer.ocn_\${ocn_inst_string}.ovf && -e \$rundir/rpointer.ocn.ovf) then
+      cp \$rundir/rpointer.ocn.ovf \$rundir/rpointer.ocn_\${ocn_inst_string}.ovf
+   endif
+   if (! -e \$rundir/rpointer.ocn_\${ocn_inst_string}.restart && -e \$rundir/rpointer.ocn.restart) then
+      cp \$rundir/rpointer.ocn.restart \$rundir/rpointer.ocn_\${ocn_inst_string}.restart
+   endif
+   if (! -e \$rundir/rpointer.ocn_\${ocn_inst_string}.tavg && -e \$rundir/rpointer.ocn.tavg) then
+      cp \$rundir/rpointer.ocn.tavg \$rundir/rpointer.ocn_\${ocn_inst_string}.tavg
+   endif
+   if (! -e \$rundir/rpointer.ocn_\${ocn_inst_string} && -e \$rundir/rpointer.ocn) then
+      cp \$rundir/rpointer.ocn \$rundir/rpointer.ocn_\${ocn_inst_string}
+   endif
 endif
 
 echo " " >&! \$POP2_IN 

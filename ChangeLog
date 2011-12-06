@@ -1,4 +1,26 @@
 ===============================================================================
+Tag Creator: tcraig
+Developers:  1) tcraig
+Tag Date:    06 December 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111206
+Tag Summary: Modified pop2.cpl7.template to address missing rpointer
+	     file for multi-instance cases when starting from a 
+	     restart set from an earlier non-multi-instance case.
+	     this just requires duplicating the rpointer files to
+	     the appropriate multi-instance names.
+Testing: 
+          Test (tcraig):
+             bluefire: cesm prealpha and prebeta suites
+	     lynx_pgi: cesm prealpha suite
+	     bluefire: various NCK and ERS_N2 test cases
+          Results:
+             fixes problesm in NCK and ERS_N2 test cases, all results
+	     bfb for other tests.
+             
+Files Modified:
+M       bld/pop2.cpl7.template
+
+===============================================================================
 Tag Creator: njn01
 Developers:  1) njn01,klindsay
 Tag Date:    01 December 2011
