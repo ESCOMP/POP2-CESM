@@ -1200,13 +1200,13 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
       do j=this_block%jb,this_block%je
       do i=this_block%ib,this_block%ie
          n = n + 1
-         SNOW_F(i,j,iblock) = fptr(index_x2o_Foxx_snow,n)
-         WORKB (i,j       ) = fptr(index_x2o_Foxx_rain,n)
+         SNOW_F(i,j,iblock) = fptr(index_x2o_Faxa_snow,n)
+         WORKB (i,j       ) = fptr(index_x2o_Faxa_rain,n)
          EVAP_F(i,j,iblock) = fptr(index_x2o_Foxx_evap,n)
-         MELT_F(i,j,iblock) = fptr(index_x2o_Foxx_meltw,n)
+         MELT_F(i,j,iblock) = fptr(index_x2o_Fioi_meltw,n)
          ROFF_F(i,j,iblock) = fptr(index_x2o_Forr_roff,n)
          IOFF_F(i,j,iblock) = fptr(index_x2o_Forr_ioff,n)
-         SALT_F(i,j,iblock) = fptr(index_x2o_Foxx_salt,n)
+         SALT_F(i,j,iblock) = fptr(index_x2o_Fioi_salt,n)
 
          PREC_F(i,j,iblock) = WORKB(i,j) + SNOW_F(i,j,iblock)    ! rain + snow
 
@@ -1216,8 +1216,8 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 
          SENH_F(i,j,iblock)  = fptr(index_x2o_Foxx_sen,n)
          LWUP_F(i,j,iblock)  = fptr(index_x2o_Foxx_lwup,n)
-         LWDN_F(i,j,iblock)  = fptr(index_x2o_Foxx_lwdn,n)
-         MELTH_F(i,j,iblock) = fptr(index_x2o_Foxx_melth,n)
+         LWDN_F(i,j,iblock)  = fptr(index_x2o_Faxa_lwdn,n)
+         MELTH_F(i,j,iblock) = fptr(index_x2o_Fioi_melth,n)
 
          WORKB(i,j       ) = fptr(index_x2o_Si_ifrac,n)
          IFRAC(i,j,iblock) = WORKB(i,j) * RCALCT(i,j,iblock)

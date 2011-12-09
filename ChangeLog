@@ -1,4 +1,31 @@
 ===============================================================================
+Tag Creator: mvertens
+Developers:  1) mvertens
+Tag Date:    09 December 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111209
+Tag Summary: Modified files to change the field names to be consistent with
+	     drvseq4_0_11
+
+Foxx_snow  -> Faxa_snow
+Foxx_rain  -> Faxa_rain
+Foxx_lwdn  -> Faxa_lwdn 	
+Foxx_melth -> Fioi_melth 
+Foxx_meltw -> Fioi_meltw 
+Foxx_salt  -> Fioi_salt
+	
+Testing: 
+Ran all bluefire and lynx prebeta tests and showed that the history files
+were identical with and without the upcoming beta08 changes. The only exception
+was debug tests on bluefire that were roundoff level different in pop. The same
+debug tests when run without debugging were bfb the same.
+
+Files Modified:
+M       drivers/cpl_share/POP_CplIndices.F90
+M       drivers/cpl_mct/ocn_comp_mct.F90
+M       drivers/cpl_esmf/ocn_comp_esmf.F90
+
+	
+===============================================================================
 Tag Creator: tcraig
 Developers:  1) tcraig
 Tag Date:    06 December 2011
