@@ -1,4 +1,25 @@
 ===============================================================================
+Tag Creator: tcraig
+Developers:  1) tcraig
+Tag Date:    10 December 2011
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111210
+Tag Summary: Modified pop2.cpl7.template to restart file format
+             setting associated with the rpointer files for
+             multi-instance mode.
+Testing: 
+          Test (tcraig):
+             tested with alpha07c (w/ pop 20111206) + mod, could
+               not test with 20111209 due to dependencies on other
+               model changes NOT in alpha07c.
+             bluefire: ERS_N2.f19_g16.B20TRC5CN
+             bluefire: bluefire.prealpha
+          Results:
+             fixes ERS_N2 test cases, all results bfb for other tests.
+             
+Files Modified:
+M       bld/pop2.cpl7.template
+
+===============================================================================
 Tag Creator: mvertens
 Developers:  1) mvertens
 Tag Date:    09 December 2011

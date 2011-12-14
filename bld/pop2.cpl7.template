@@ -462,45 +462,6 @@ cat >> $POP2BLDSCRIPT << EOF2
 #-----------------------------------------
 EOF2
 
-#-------------------------------------------------------------
-#  Determine restart-file format from rpointer file information
-#  Ignore pointer file info on the initial segment of a startup 
-#    run.
-#-------------------------------------------------------------
-
-if ($RUN_TYPE == startup) then
-cat >> $POP2BLDSCRIPT << EOF2
-   if (-e \$exedir/rpointer.ocn.restart && \$CONTINUE_RUN == 'TRUE') then
-    grep 'RESTART_FMT=' \$exedir/rpointer.ocn.restart >&! /dev/null
-    if (\$status == 0) then
-      setenv RESTART_INPUT_TS_FMT \`grep RESTART_FMT\= \$exedir/rpointer.ocn.restart | cut -c13-15\`
-    else
-      setenv RESTART_INPUT_TS_FMT 'bin'
-    endif
-  else
-    setenv RESTART_INPUT_TS_FMT 'bin'
-  endif
-EOF2
-endif
-
-
-if ($RUN_TYPE == branch || $RUN_TYPE == hybrid) then
-cat >> $POP2BLDSCRIPT << EOF2
-if (-e \$exedir/rpointer.ocn.restart) then
-    grep 'RESTART_FMT=' \$exedir/rpointer.ocn.restart 
-    if (\$status == 0) then
-      setenv RESTART_INPUT_TS_FMT \`grep RESTART_FMT\= \$exedir/rpointer.ocn.restart | cut -c13-15\`
-    else
-      setenv RESTART_INPUT_TS_FMT 'bin'
-    endif
-  else
-    setenv RESTART_INPUT_TS_FMT 'bin'
-  endif
-EOF2
-endif
-
-
-
 cat >> $POP2BLDSCRIPT << EOF2
 
 setenv ocn_inst_counter 1
@@ -510,6 +471,7 @@ setenv ocn_inst_counter 1
 while (\$ocn_inst_counter <= \$NINST_OCN)
 
 if (\$NINST_OCN == 1) then    
+   set ocn_inst_string = ''
    setenv POP2_IN       $POP2_DOCDIR/document_pop2_in
    setenv output_r      ./\$CASE.pop.r
    setenv output_h      ./\$CASE.pop.h
@@ -520,24 +482,25 @@ else
    if (\$ocn_inst_counter <= 999) set ocn_inst_string = 0\${ocn_inst_string}
    if (\$ocn_inst_counter <=  99) set ocn_inst_string = 0\${ocn_inst_string}
    if (\$ocn_inst_counter <=   9) set ocn_inst_string = 0\${ocn_inst_string}
+   set ocn_inst_string = _\${ocn_inst_string}
    setenv POP2_IN       $POP2_DOCDIR/document_pop2_in_\${ocn_inst_counter}
-   setenv output_r      ./\$CASE.pop_\${ocn_inst_string}.r
-   setenv output_h      ./\$CASE.pop_\${ocn_inst_string}.h
-   setenv output_d      \$rundir/\$CASE.pop_\${ocn_inst_string}.d
-   setenv log_filename  \$rundir/ocn_\${ocn_inst_string}.log.\$LID
+   setenv output_r      ./\$CASE.pop\${ocn_inst_string}.r
+   setenv output_h      ./\$CASE.pop\${ocn_inst_string}.h
+   setenv output_d      \$rundir/\$CASE.pop\${ocn_inst_string}.d
+   setenv log_filename  \$rundir/ocn\${ocn_inst_string}.log.\$LID
 
    # pop rpointer name for multi-instance case
-   if (! -e \$rundir/rpointer.ocn_\${ocn_inst_string}.ovf && -e \$rundir/rpointer.ocn.ovf) then
-      cp \$rundir/rpointer.ocn.ovf \$rundir/rpointer.ocn_\${ocn_inst_string}.ovf
+   if (! -e \$rundir/rpointer.ocn\${ocn_inst_string}.ovf && -e \$rundir/rpointer.ocn.ovf) then
+      cp \$rundir/rpointer.ocn.ovf \$rundir/rpointer.ocn\${ocn_inst_string}.ovf
    endif
-   if (! -e \$rundir/rpointer.ocn_\${ocn_inst_string}.restart && -e \$rundir/rpointer.ocn.restart) then
-      cp \$rundir/rpointer.ocn.restart \$rundir/rpointer.ocn_\${ocn_inst_string}.restart
+   if (! -e \$rundir/rpointer.ocn\${ocn_inst_string}.restart && -e \$rundir/rpointer.ocn.restart) then
+      cp \$rundir/rpointer.ocn.restart \$rundir/rpointer.ocn\${ocn_inst_string}.restart
    endif
-   if (! -e \$rundir/rpointer.ocn_\${ocn_inst_string}.tavg && -e \$rundir/rpointer.ocn.tavg) then
-      cp \$rundir/rpointer.ocn.tavg \$rundir/rpointer.ocn_\${ocn_inst_string}.tavg
+   if (! -e \$rundir/rpointer.ocn\${ocn_inst_string}.tavg && -e \$rundir/rpointer.ocn.tavg) then
+      cp \$rundir/rpointer.ocn.tavg \$rundir/rpointer.ocn\${ocn_inst_string}.tavg
    endif
-   if (! -e \$rundir/rpointer.ocn_\${ocn_inst_string} && -e \$rundir/rpointer.ocn) then
-      cp \$rundir/rpointer.ocn \$rundir/rpointer.ocn_\${ocn_inst_string}
+   if (! -e \$rundir/rpointer.ocn\${ocn_inst_string} && -e \$rundir/rpointer.ocn) then
+      cp \$rundir/rpointer.ocn \$rundir/rpointer.ocn\${ocn_inst_string}
    endif
 endif
 
@@ -556,6 +519,43 @@ echo  Define the pop2_in namelist file                                        >>
 #==========================================================================
 
 EOF2
+
+#-------------------------------------------------------------
+#  Determine restart-file format from rpointer file information
+#  Ignore pointer file info on the initial segment of a startup 
+#    run.
+#-------------------------------------------------------------
+
+if ($RUN_TYPE == startup) then
+cat >> $POP2BLDSCRIPT << EOF2
+  if (-e \$exedir/rpointer.ocn\${ocn_inst_string}.restart && \$CONTINUE_RUN == 'TRUE') then
+    grep 'RESTART_FMT=' \$exedir/rpointer.ocn\${ocn_inst_string}.restart >&! /dev/null
+    if (\$status == 0) then
+      setenv RESTART_INPUT_TS_FMT \`grep RESTART_FMT\= \$exedir/rpointer.ocn\${ocn_inst_string}.restart | cut -c13-15\`
+    else
+      setenv RESTART_INPUT_TS_FMT 'bin'
+    endif
+  else
+    setenv RESTART_INPUT_TS_FMT 'bin'
+  endif
+EOF2
+endif
+
+
+if ($RUN_TYPE == branch || $RUN_TYPE == hybrid) then
+cat >> $POP2BLDSCRIPT << EOF2
+  if (-e \$exedir/rpointer.ocn\${ocn_inst_string}.restart) then
+    grep 'RESTART_FMT=' \$exedir/rpointer.ocn\${ocn_inst_string}.restart 
+    if (\$status == 0) then
+      setenv RESTART_INPUT_TS_FMT \`grep RESTART_FMT\= \$exedir/rpointer.ocn\${ocn_inst_string}.restart | cut -c13-15\`
+    else
+      setenv RESTART_INPUT_TS_FMT 'bin'
+    endif
+  else
+    setenv RESTART_INPUT_TS_FMT 'bin'
+  endif
+EOF2
+endif
 
   #--------------------------------------------------------------
   #  execute the script that generates the pop2_in namelist file
@@ -639,17 +639,10 @@ else if (\$#ocn_tracers > 0) then
   end
 endif
 
-if (\$NINST_OCN == 1) then    
-   echo   Copy \$POP2_IN to \$exedir/pop2_in                                     >> \$POP2_BLDNML
+   echo   Copy \$POP2_IN to \$exedir/pop2_in\${ocn_inst_string}                 >> \$POP2_BLDNML
    echo ------------------------------------------------------------------------ >> \$POP2_BLDNML
-   if (-f \$exedir/pop2_in) rm \$exedir/pop2_in
-   cp  \$POP2_IN \$exedir/pop2_in
-else
-   echo   Copy \$POP2_IN to \$exedir/pop2_in_\${ocn_inst_string}                 >> \$POP2_BLDNML
-   echo ------------------------------------------------------------------------ >> \$POP2_BLDNML
-   if (-f \$exedir/pop2_in_\${ocn_inst_string}) rm \$exedir/pop2_in_\${ocn_inst_string}
-   cp  \$POP2_IN \$exedir/pop2_in_\${ocn_inst_string}
-endif
+   if (-f \$exedir/pop2_in\${ocn_inst_string}) rm \$exedir/pop2_in\${ocn_inst_string}
+   cp  \$POP2_IN \$exedir/pop2_in\${ocn_inst_string}
 
 #####################################################################
 # FINISH MULTIPLE INSTANCES OF POP
