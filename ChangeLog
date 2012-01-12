@@ -1,4 +1,37 @@
 ===============================================================================
+Tag Creator: njn01
+Developers:  njn01
+Tag Date:    12 January 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120112
+Tag Summary: Corrected a bug in the pop2.cpl7.template that was introduced
+             with multiple instantiation support.  This bug caused cloned
+             cases to incorrectly point to the original case directory when
+             creating pop2_in during the execution of pop2.buildnml.csh,
+             rather than to its own case directory.
+           
+svn diff:
+ if (\$NINST_OCN == 1) then    
+    set ocn_inst_string = ''
+-   setenv POP2_IN       $POP2_DOCDIR/document_pop2_in
++   setenv POP2_IN      \$POP2_DOCDIR/document_pop2_in
+    setenv output_r      ./\$CASE.pop.r
+    setenv output_h      ./\$CASE.pop.h
+    setenv output_d      \$rundir/\$CASE.pop.d
+@@ -483,7 +483,7 @@
+    if (\$ocn_inst_counter <=  99) set ocn_inst_string = 0\${ocn_inst_string}
+    if (\$ocn_inst_counter <=   9) set ocn_inst_string = 0\${ocn_inst_string}
+    set ocn_inst_string = _\${ocn_inst_string}
+-   setenv POP2_IN       $POP2_DOCDIR/document_pop2_in_\${ocn_inst_counter}
++   setenv POP2_IN      \$POP2_DOCDIR/document_pop2_in_\${ocn_inst_counter}
+    setenv output_r      ./\$CASE.pop\${ocn_inst_string}.r
+    setenv output_h      ./\$CASE.pop\${ocn_inst_string}.h
+    setenv output_d      \$rundir/\$CASE.pop\${ocn_inst_string}.d
+
+Testing: 
+          None at this point. Will hand off testing to someone else?
+Files Modified:
+M            32802   bld/pop2.cpl7.template
+===============================================================================
 Tag Creator: tcraig
 Developers:  1) tcraig
 Tag Date:    10 December 2011
