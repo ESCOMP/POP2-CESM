@@ -22,7 +22,7 @@ module ocn_comp_mct
    use POP_MCT_vars_mod
 
    use mct_mod
-   use esmf_mod
+   use esmf
    use seq_flds_mod
    use seq_cdata_mod
    use seq_infodata_mod
