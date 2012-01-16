@@ -716,14 +716,21 @@ contains
 ! !IROUTINE: ocn_final_mct
 !
 ! !INTERFACE:
-  subroutine ocn_final_mct( )
+  subroutine ocn_final_mct( EClock, cdata_o, x2o_o, o2x_o)
 !
 ! !DESCRIPTION:
 ! Finalize POP
 !
 ! !USES:
     use POP_FinalMod
+! !ARGUMENTS:
+    type(ESMF_Clock)            , intent(in)    :: EClock
+    type(seq_cdata)             , intent(inout) :: cdata_o
+    type(mct_aVect)             , intent(inout) :: x2o_o
+    type(mct_aVect)             , intent(inout) :: o2x_o
 !
+! !REVISION HISTORY:
+! Author: Fei Liu
 !EOP
 !BOC
 !-----------------------------------------------------------------------
