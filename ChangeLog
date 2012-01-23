@@ -1,4 +1,22 @@
 ===============================================================================
+Tag Creator: tcraig
+Developers:  tcraig,pw
+Tag Date:    23 January 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120123
+Tag Summary: update esmf calls to esmf 520r standard.
+	add support for multi-instance runs with esmf coupling interfaces.
+	fix timer issue when writing output during run (pw).
+
+Testing: 
+	tested in a beta09a sandbox on bluefire (prealpha and prebeta) and 
+	lynx (prealpha)
+
+Files Modified:
+M       source/timers.F90
+M       drivers/cpl_mct/ocn_comp_mct.F90
+M       drivers/cpl_esmf/ocn_comp_esmf.F90
+M       drivers/cpl_esmf/ocn_comp_mct.F90
+===============================================================================
 Tag Creator: njn01
 Developers:  njn01
 Tag Date:    12 January 2012

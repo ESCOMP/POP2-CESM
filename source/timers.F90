@@ -710,15 +710,19 @@
    integer (int_kind) :: &
       n,icount           ! dummy loop index and counter
 
-   logical (log_kind) :: &
-      lrestart_timer     ! flag to restart timer if timer is running
-                         ! when this routine is called
-
    real (r8) :: &
       local_time,       &! temp space for holding local timer results
       min_time,         &! minimum accumulated time
       max_time,         &! maximum accumulated time
       mean_time          ! mean    accumulated time
+
+#ifdef CCSMCOUPLED
+   real (r8) :: &
+      cycles1, cycles2   ! temps to hold cycle info before correction
+#else
+   integer (int_kind) :: &
+      cycles1, cycles2   ! temps to hold cycle info before correction
+#endif
 
    character (60), parameter :: &
       timer_format = "('Timer number',i3,' Time =',f11.2,' seconds',3x,a)"
@@ -732,26 +736,42 @@
 !-----------------------------------------------------------------------
 !
 !  if timer has been defined, check to see whether it is currently
-!  running.  If it is, stop the timer and print the info.
+!  running.  If it is, update to current running time and print the info
+!  (without stopping the timer). 
 !
 !-----------------------------------------------------------------------
 
    if (all_timers(timer_id)%in_use) then
-      if (all_timers(timer_id)%node_started) then
-        call timer_stop(timer_id)
-        lrestart_timer = .true.
-      else
-        lrestart_timer = .false.
-      endif
 
       !*** Find max node time and print that time as default timer
       !*** result
 
       if (my_task < all_timers(timer_id)%num_nodes) then
-         local_time = all_timers(timer_id)%node_accum_time
+
+         if (all_timers(timer_id)%node_started) then
+#ifdef CCSMCOUPLED
+            cycles2 = mpi_wtime()
+#else
+            call system_clock(count=cycles2)
+#endif
+            cycles1 = all_timers(timer_id)%node_cycles1
+            if (cycles2 >= cycles1) then
+               local_time = all_timers(timer_id)%node_accum_time + &
+                            clock_rate*(cycles2 - cycles1)
+            else
+               local_time = all_timers(timer_id)%node_accum_time + &
+                            clock_rate*(cycles_max + cycles2 - cycles1)
+            endif
+         else
+            local_time = all_timers(timer_id)%node_accum_time
+         endif
+
       else
+
          local_time = c0
+
       endif
+
       max_time = global_maxval(local_time)
       
       if (my_task == master_task) then
@@ -815,7 +835,6 @@
       endif
       endif
 
-      if (lrestart_timer) call timer_start(timer_id)
    else
       call exit_POP(sigAbort, &
                     'timer_print: attempt to print undefined timer')
