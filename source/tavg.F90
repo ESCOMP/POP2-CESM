@@ -1930,10 +1930,10 @@
              method_integer = TAVG_BUF_3D_METHOD(tavg_loc_WVEL)
              call tavg_get_cell_method_string (method_integer,method_string)
           else if (nn == tavg_N_HEAT) then
-             method_integer = TAVG_BUF_3D_METHOD(tavg_loc_ADVT)
+             method_integer = TAVG_BUF_2D_METHOD(tavg_loc_ADVT)
              call tavg_get_cell_method_string (method_integer,method_string)
           else if (nn == tavg_N_SALT) then
-             method_integer = TAVG_BUF_3D_METHOD(tavg_loc_ADVS)
+             method_integer = TAVG_BUF_2D_METHOD(tavg_loc_ADVS)
              call tavg_get_cell_method_string (method_integer,method_string)
           endif
           call data_set_nstd_ccsm (                               &
@@ -4494,6 +4494,7 @@
     method_string
 
    method_integer = avail_tavg_fields(nfield)%method
+
    call tavg_get_cell_method_string (method_integer,method_string)
    call add_attrib_io_field(tavg_field, 'cell_methods', trim(method_string))
 

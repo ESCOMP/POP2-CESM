@@ -1,4 +1,22 @@
 ===============================================================================
+Tag Creator: njn01
+Developers:  njn01
+Tag Date:    25 January 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120125
+Tag Summary: Bugfix for N_HEAT, N_SALT tavg computation
+             This is a bugfix for a minor error in the tavg.F90 module
+             in the determination of the averaging method for N_HEAT and
+             N_SALT.  In the out-of-the-box configuration, this bug was
+             confirmed to have zero effect on the solutions. In modified
+             configurations (eliminated some fields from tavg_contents),
+             the bug caused the model to exit abnormally.
+
+Testing:     With and without the bugfix, bluefire, cesm1_1_beta08. Diff'd
+             N_HEAT, N_SALT daily averages (single precision) -- zero diffs.
+	
+Files Modified:
+M            34058   source/tavg.F90
+===============================================================================
 Tag Creator: tcraig
 Developers:  tcraig,pw
 Tag Date:    23 January 2012
