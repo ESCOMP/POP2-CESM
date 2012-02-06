@@ -602,8 +602,11 @@ $nl->set_variable_value('vmix_rich_nml', 'rich_mix', '50.0');
 # namelist group: tidal_nml              #
 ##########################################
 
+# If no default value is found, add_default will throw
+# an exception unless the 'nofail' option is set true.
+
 add_default($nl, 'ltidal_mixing');
-add_default($nl, 'tidal_energy_file');
+add_default($nl, 'tidal_energy_file', 'nofail'=>1 );
 add_default($nl, 'local_mixing_fraction');
 add_default($nl, 'mixing_efficiency');
 add_default($nl, 'vertical_decay_scale');
@@ -624,10 +627,6 @@ $nl->set_variable_value('vmix_kpp_nml', 'rich_mix', '50.0');
 # namelist_defaults_pop2.xml and value of ltidal-mixing is 
 # obtained from default value already set
 
-my $ltidal_mixing = $nl->get_value('ltidal_mixing');
-add_default($nl, 'lhoriz_varying_bckgrnd');
-my $lhoriz_varying_bckgrnd= $nl->get_value('ltidal_mixing');
-
 add_default($nl, 'llangmuir');
 add_default($nl, 'linertial');
 add_default($nl, 'Prandtl');
@@ -637,6 +636,13 @@ add_default($nl, 'ldbl_diff');
 add_default($nl, 'lshort_wave');
 add_default($nl, 'lcheckekmo');
 add_default($nl, 'num_v_smooth_Ri');
+add_default($nl, 'lhoriz_varying_bckgrnd');
+
+my $ltidal_mixing = $nl->get_value('ltidal_mixing');
+$ltidal_mixing =~ s/\.\./\./g;
+
+my $lhoriz_varying_bckgrnd = $nl->get_value('lhoriz_varying_bckgrnd');
+$lhoriz_varying_bckgrnd =~ s/\.\./\./g;
 
 add_default($nl, 'bckgrnd_vdc1',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
 add_default($nl, 'bckgrnd_vdc2',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
@@ -767,14 +773,17 @@ if ($ocn_grid eq "tx0.1v2") {
 add_default($nl, 'kappa_isop_choice');
 add_default($nl, 'kappa_thic_choice');
 
-my $kappa_isop_choice = "";
-my $kappa_thic_choice = "";
-if ($nl->get_value('kappa_isop_choice') =~ /bfre/) {$kappa_isop_choice='bfre';}
-if ($nl->get_value('kappa_thic_choice') =~ /bfre/) {$kappa_thic_choice='bfre';}
-if ($nl->get_value('kappa_isop_choice') =~ /constant/) {$kappa_isop_choice='constant';}
-if ($nl->get_value('kappa_thic_choice') =~ /constant/) {$kappa_thic_choice='constant';}
-if ($nl->get_value('kappa_isop_choice') =~ /edgr/) {$kappa_isop_choice='edgr';}
-if ($nl->get_value('kappa_thic_choice') =~ /edgr/) {$kappa_thic_choice='edgr';}
+my $kappa_isop_choice = $nl->get_value('kappa_isop_choice'); 
+my $kappa_thic_choice = $nl->get_value('kappa_thic_choice');
+
+# All namelist values are stored in exactly the format
+# that is required in a valid namelist.  So if that value 
+# is a string, then the quotes are stored as part of the value. 
+# So must remove the quites before passing this to add_default 
+# as a keywork=>value pair 
+
+$kappa_isop_choice =~ s/[\'\"]//g;
+$kappa_thic_choice =~ s/[\'\"]//g;
 
 my $ah_gm_value;
 if (($kappa_isop_choice =~ /edgr/) && ($kappa_thic_choice =~ /edgr/)) {
@@ -827,7 +836,8 @@ if (-f "${my_path}/buoyancy_freq") {
 }
 
 
-add_default($nl, 'ah_bolus'    , 'kappa_isop_choice'=>"$kappa_isop_choice", 
+add_default($nl, 'ah_bolus'    , 
+'kappa_isop_choice'=>"$kappa_isop_choice", 
 	    'kappa_thic_choice'=>"$kappa_thic_choice");
 add_default($nl, 'ah_bkg_srfbl', 'kappa_isop_choice'=>"$kappa_isop_choice", 
 	    'kappa_thic_choice'=>"$kappa_thic_choice");
