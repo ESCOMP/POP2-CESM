@@ -364,7 +364,8 @@
       return
    endif
 
-   call POP_ConfigRead(configUnit, 'solvers', 'solverChoice',    &
+!  call POP_ConfigRead(configUnit, 'solvers', 'solverChoice',    &
+   call POP_ConfigRead(configUnit, 'solvers', 'solverchoice',    &
                        solverChoice, solverChoicePCG, errorCode, &
                        outStringBefore = 'Solver choice: ')
 
@@ -374,7 +375,8 @@
       return
    endif
 
-   call POP_ConfigRead(configUnit, 'solvers', 'convergenceCriterion', &
+!  call POP_ConfigRead(configUnit, 'solvers', 'convergenceCriterion', &
+   call POP_ConfigRead(configUnit, 'solvers', 'convergencecriterion', &
                    convergenceCriterion, 1.e-12_POP_r8, errorCode,    &
                    outStringBefore = 'Solver converged for err < ')
 
@@ -384,7 +386,8 @@
       return
    endif
 
-   call POP_ConfigRead(configUnit, 'solvers', 'maxIterations',    &
+!  call POP_ConfigRead(configUnit, 'solvers', 'maxIterations',    &
+   call POP_ConfigRead(configUnit, 'solvers', 'maxiterations',    &
                        maxIterations, 1000, errorCode, &
                        outStringBefore = 'Solver maximum iterations: ')
 
@@ -394,7 +397,8 @@
       return
    endif
 
-   call POP_ConfigRead(configUnit, 'solvers', 'convergenceCheckFreq', &
+!  call POP_ConfigRead(configUnit, 'solvers', 'convergenceCheckFreq', &
+   call POP_ConfigRead(configUnit, 'solvers', 'convergencecheckfreq', &
                        convergenceCheckFreq, 10, errorCode,           &
                        outStringBefore = 'Check convergence every ',  &
                        outStringAfter  = ' iterations')
@@ -405,7 +409,8 @@
       return
    endif
 
-   call POP_ConfigRead(configUnit, 'solvers', 'preconditionerChoice', &
+!  call POP_ConfigRead(configUnit, 'solvers', 'preconditionerChoice', &
+   call POP_ConfigRead(configUnit, 'solvers', 'preconditionerchoice', &
                        preconditionerChoice, precondChoiceDiag,       &
                        errorCode,                                     &
                        outStringBefore = 'Preconditioner choice: ')
@@ -417,7 +422,8 @@
    endif
 
    if (trim(preconditionerChoice) == precondChoiceFile) then
-      call POP_ConfigRead(configUnit, 'solvers', 'preconditionerFile', &
+!     call POP_ConfigRead(configUnit, 'solvers', 'preconditionerFile', &
+      call POP_ConfigRead(configUnit, 'solvers', 'preconditionerfile', &
                  preconditionerFile, 'UnknownPrecondFile', errorCode,  &
                  outStringBefore = 'Reading preconditioner from file: ')
 

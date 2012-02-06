@@ -1,0 +1,3846 @@
+<?xml version="1.0"?>
+
+<?xml-stylesheet type="text/xsl" href="http://www.cgd.ucar.edu/~cam/namelist/namelist_definition_CICE.xsl"?>
+
+<namelist_definition>
+
+<!-- Each namelist variable is defined in an <entry> element.  The
+     content of the element is the documentation of how the variable is
+     used.  Other aspects of the variable's definition are expressed as
+     attributes of the <entry> element.  Note that it is an XML requirement
+     that the attribute values are enclosed in quotes.  The attributes are:
+
+     id
+          The variable's name.  *** N.B. *** The name must be lower case.
+          The module convert all namelist variable names to lower case
+          since Fortran is case insensitive.
+
+     type
+          An abbreviation of the fortran declaration for the variable.
+	  Valid declarations are:
+
+          char*n  
+	  integer
+	  logical
+	  real
+
+	  Any of these types may be followed by a comma separated list of
+	  integers enclosed in parenthesis to indicate an array.
+
+	  The current namelist validation code only distinquishes between
+	  string and non-string types.
+
+     input_pathname
+          Only include this attribute to indicate that the variable
+          contains the pathname of an input dataset that resides in the
+          CESM inputdata directory tree.  
+
+	  The recognized values are "abs" to indicate that an absolute
+          pathname is required, or "rel:var_name" to indicate that the
+          pathname is relative and that the namelist variable "var_name"
+          contains the absolute root directory.
+
+     category
+          A category assigned for organizing the documentation.
+
+     group
+          The namelist group that the variable is declared in.
+
+     valid_values
+          This is an optional attribute that is mainly useful for variables
+          that have only a small number of allowed values.
+                                                                        -->
+
+<!----------------------------->
+<!---group domain_nml      ---->
+<!----------------------------->
+
+<entry 
+id="nprocs_clinic" 
+type="integer" 
+category="pop2" 
+group="domain_nml" 
+valid_values="" >
+Default: ''
+</entry>
+
+<entry 
+id="nprocs_tropic" 
+type="integer" 
+category="pop2" 
+group="domain_nml" 
+valid_values="" >
+Default: ''
+</entry>
+
+<entry 
+id="clinic_distribution_type" 
+type="char*64" 
+category="pop2" 
+group="domain_nml" 
+valid_values="cartesian,spacecurve" >
+Default: 'cartesian'
+</entry>
+
+<entry 
+id="tropic_distribution_type" 
+type="char*64" 
+category="pop2" 
+group="domain_nml" 
+valid_values="cartesian,spacecurve" >
+Default: 'cartesian'
+</entry>
+
+<entry 
+id="ew_boundary_type" 
+type="char*64" 
+category="pop2" 
+group="domain_nml" 
+valid_values="" >
+Default: 'cyclic'
+</entry>
+
+<entry 
+id="ns_boundary_type" 
+type="char*64" 
+category="pop2" 
+group="domain_nml" 
+valid_values="" >
+Default: 'closed'
+</entry>
+
+
+<!----------------------------->
+<!---group io_nml          ---->
+<!----------------------------->
+
+<entry 
+id="num_iotasks" 
+type="integer" 
+category="pop2" 
+group="io_nml" 
+valid_values="" >
+Default: '1'
+</entry>
+
+<entry 
+id="lredirect_stdout" 
+type="logical" 
+category="pop2" 
+group="io_nml" 
+valid_values="" >
+Default: '.true.'
+</entry>
+
+<entry 
+id="log_filename" 
+type="char*128" 
+category="pop2" 
+group="io_nml" 
+valid_values="" >
+Default: ''
+</entry>
+
+<entry 
+id="luse_pointer_files" 
+type="logical" 
+category="pop2" 
+group="io_nml" 
+valid_values="" >
+Default: '.true.'
+</entry>
+
+<entry 
+id="luse_nf_64bit_offset" 
+type="logical" 
+category="pop2" 
+group="io_nml" 
+valid_values="" >
+Default: '.true.'
+</entry>
+
+
+<!----------------------------->
+<!---group time_manager_nml (done) ---->
+<!----------------------------->
+
+<entry 
+id="runid"
+type="char*64"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: casename
+</entry>
+
+<entry 
+id="time_mix_opt"
+type="char*256"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default:avgfit 
+</entry>
+
+<entry 
+id="time_mix_freq"
+type="integer" 
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: 17
+</entry>
+
+<entry 
+id="dt_option"
+type="char*256" 
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: 'steps_per_day'
+</entry>
+
+<entry 
+id="dt_count"
+type="integer" 
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: 23
+</entry>
+
+<entry 
+id="impcor"
+type="logical"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="laccel"
+type="logical"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="accel_file"
+type="char*256"
+category="pop2"
+group="time_manager_nml"
+valid_values="">
+Default: 
+</entry>
+
+<entry 
+id="dtuxcel"
+type="real"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: 1.0
+</entry>
+
+<entry 
+id="allow_leapyear"
+type="logical"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="iyear0"            
+type="integer"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: 1
+</entry>
+
+<entry 
+id="imonth0"      
+type="integer"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: 1
+</entry>
+
+<entry 
+id="iday0"       
+type="integer"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: 2
+</entry>
+
+<entry 
+id="ihour0"
+type="integer"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: 0
+</entry>
+
+<entry 
+id="iminute0"         
+type="integer"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: 0
+</entry>
+
+<entry 
+id="isecond0"        
+type="integer"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: 0
+</entry>
+
+<entry 
+id="date_separator"
+type="char*1"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: "-"
+</entry>
+
+<entry 
+id="stop_option"
+type="char*256"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: 'nyear'
+</entry>
+
+<entry 
+id="stop_count"
+type="integer"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: 1000
+</entry>
+
+<entry 
+id="fit_freq"
+type="integer"
+category="pop2"
+group="time_manager_nml"
+valid_values="" >
+Default: 1
+</entry>
+
+<!----------------------------->
+<!---group grid_nml        ---->
+<!----------------------------->
+
+<entry 
+id="horiz_grid_opt"
+type="char*256"
+category="pop2"
+group="grid_nml"
+valid_values="" >
+Default: 'file'
+</entry>
+
+<entry 
+id="horiz_grid_file"
+type="char*256"
+category="pop2"
+group="grid_nml"
+input_pathname="abs"
+valid_values="" >
+Default: 'grid dependent'
+</entry>
+
+<entry 
+id="vert_grid_opt"
+type="char*256"
+category="pop2"
+group="grid_nml"
+valid_values="" >
+Default: 'file'
+</entry>
+
+<entry 
+id="vert_grid_file"
+type="char*256"
+category="pop2"
+group="grid_nml"
+valid_values="" >
+Default: 'grid dependent'
+</entry>
+
+<entry 
+id="topography_opt"
+type="char*256"
+category="pop2"
+group="grid_nml"
+valid_values="" >
+Default: 'file'
+</entry>
+
+<entry 
+id="kmt_kmin"
+type="integer"
+category="pop2"
+group="grid_nml"
+valid_values="" >
+Default: 3
+</entry>
+
+<entry 
+id="topography_file"
+type="char*256"
+category="pop2"
+group="grid_nml"
+input_pathname="abs"
+valid_values="" >
+Default: 'unknown_topography'
+</entry>
+
+<entry 
+id="topography_outfile"
+type="char*256"
+category="pop2"
+group="grid_nml"
+valid_values="" >
+Default: 'grid dependent'
+</entry>
+
+<entry 
+id="bathymetry_file"
+type="char*256"
+category="pop2"
+group="grid_nml"
+valid_values="" >
+Default: 'unknown_bathymetry'
+</entry>
+
+<entry 
+id="partial_bottom_cells"
+type="logical"
+category="pop2"
+group="grid_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="bottom_cell_file"
+type="char*256"
+category="pop2"
+group="grid_nml"
+valid_values="" >
+Default: 'unknown_bottom_cell'
+</entry>
+
+<entry 
+id="n_topo_smooth"
+type="integer"
+category="pop2"
+group="grid_nml"
+valid_values="" >
+Default: 0
+</entry>
+
+<entry 
+id="flat_bottom"
+type="logical"
+category="pop2"
+group="grid_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="lremove_points"
+type="logical"
+category="pop2"
+group="grid_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="region_mask_file"
+type="char*256"
+category="pop2"
+group="grid_nml"
+input_pathname="abs"
+valid_values="" >
+Default: 'ocn/pop/gx1v6/grid/region_mask_20090205.ieeei4'
+</entry>
+
+<entry 
+id="region_info_file"
+type="char*256"
+category="pop2"
+group="grid_nml"
+valid_values="" >
+Default: '/ptmp/mvertens/btempb10/ocn/input/gx1v6_region_ids'
+</entry>
+
+<entry 
+id="sfc_layer_opt"
+type="char*256"
+category="pop2"
+group="grid_nml"
+valid_values="" >
+Default: 'varthick'
+</entry>
+
+<!----------------------------->
+<!---group init_ts_option  ---->
+<!----------------------------->
+
+<entry 
+id="init_ts_option"
+type="char*256"
+category="pop2"
+group="init_ts_nml"
+valid_values="" >
+Default: 'ccsm_startup'
+</entry>
+
+<entry 
+id="init_ts_suboption"
+type="char*256"
+category="pop2"
+group="init_ts_nml"
+valid_values="" >
+Default: 'null'
+</entry>
+
+<entry 
+id="init_ts_file"
+type="char*256"
+category="pop2"
+group="init_ts_nml"
+input_pathname="abs"
+valid_values="" >
+Default: 'ocn/pop/gx1v6/ic/ts_PHC2_jan_ic_gx1v6_20090205.ieeer8'
+</entry>
+
+<entry 
+id="init_ts_file_fmt"
+type="char*256"
+category="pop2"
+group="init_ts_nml"
+valid_values="" >
+Default: 'bin'
+</entry>
+
+<entry 
+id="init_ts_outfile"
+type="char*256"
+category="pop2"
+group="init_ts_nml"
+valid_values="" >
+Default: './btempb10.pop.h.ts_ic'
+</entry>
+
+<entry 
+id="init_ts_outfile_fmt"
+type="char*256"
+category="pop2"
+group="init_ts_nml"
+valid_values="" >
+Default: 'nc'
+</entry>
+
+<!----------------------------->
+<!---diagnostics_nml       ---->
+<!----------------------------->
+
+<entry 
+id="diag_global_freq_opt"
+type="char*256"
+category="pop2"
+group="diagnostics_nml"
+valid_values="" >
+Default: 'nmonth'
+</entry>
+
+<entry 
+id="diag_global_freq"
+type="integer"
+category="pop2"
+group="diagnostics_nml"
+valid_values="" >
+Default: 1
+</entry>
+
+<entry 
+id="diag_cfl_freq_opt"
+type="char*256"
+category="pop2"
+group="diagnostics_nml"
+valid_values="" >
+Default: 'nmonth'
+</entry>
+
+<entry 
+id="diag_cfl_freq"
+type="integer"
+category="pop2"
+group="diagnostics_nml"
+valid_values="" >
+Default: 1
+</entry>
+
+<entry 
+id="diag_transp_freq_opt"
+type="char*256"
+category="pop2"
+group="diagnostics_nml"
+valid_values="" >
+Default: 'nmonth'
+</entry>
+
+<entry 
+id="diag_transp_freq"
+type="integer"
+category="pop2"
+group="diagnostics_nml"
+valid_values="" >
+Default: 1
+</entry>
+
+<entry 
+id="diag_transport_file"
+type="char*256"
+category="pop2"
+group="diagnostics_nml"
+valid_values="" >
+Default: '/ptmp/mvertens/btempb10/ocn/input/gx1v6_transport_contents'
+</entry>
+
+<entry 
+id="diag_outfile"
+type="char*256"
+category="pop2"
+group="diagnostics_nml"
+valid_values="" >
+Default: '/ptmp/mvertens/btempb10/run/btempb10.pop.dd'
+</entry>
+
+<entry 
+id="diag_transport_outfile"
+type="char*256"
+category="pop2"
+group="diagnostics_nml"
+valid_values="" >
+Default: '/ptmp/mvertens/btempb10/run/btempb10.pop.dt'
+</entry>
+
+<entry 
+id="cfl_all_levels"
+type="logical"
+category="pop2"
+group="diagnostics_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="diag_all_levels"
+type="logical"
+category="pop2"
+group="diagnostics_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="diag_velocity_outfile"
+type="char*256"
+category="pop2"
+group="diagnostics_nml"
+valid_values="" >
+Default: '/ptmp/mvertens/btempb10/run/btempb10.pop.dv'
+</entry>
+
+<entry 
+id="ldiag_velocity"
+type="logical"
+category="pop2"
+group="diagnostics_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<!----------------------------->
+<!---budget_diagnostics_nml---->
+<!----------------------------->
+
+<entry 
+id="ldiag_global_tracer_budgets"
+type="logical"
+category="pop2"
+group="budget_diagnostics_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<!----------------------------->
+<!---bsf_diagnostic_nml    ---->
+<!----------------------------->
+
+<entry 
+id="ldiag_bsf"
+type="logical"
+category="pop2"
+group="bsf_diagnostic_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<!----------------------------->
+<!---restart_nml           ---->
+<!----------------------------->
+
+<entry 
+id="restart_freq_opt"
+type="char*256"
+category="pop2"
+group="restart_nml"
+valid_values="" >
+Default: 'nyear' 
+</entry>
+
+<entry 
+id="restart_freq"
+type="integer"
+category="pop2"
+group="restart_nml"
+valid_values="" >
+Default: 100000
+</entry>
+
+<entry 
+id="restart_start_opt"
+type="char*256"
+category="pop2"
+group="restart_nml"
+valid_values="" >
+Default: 'nstep'
+</entry>
+
+<entry 
+id="restart_start"
+type="integer"
+category="pop2"
+group="restart_nml"
+valid_values="" >
+Default:  0
+</entry>
+
+<entry 
+id="restart_outfile"
+type="char*256"
+category="pop2"
+group="restart_nml"
+valid_values="" >
+Default: './btempb10.pop.r'
+</entry>
+
+<entry 
+id="restart_fmt"
+type="char*256"
+category="pop2"
+group="restart_nml"
+valid_values="" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="leven_odd_on"
+type="logical"
+category="pop2"
+group="restart_nml"
+valid_values="" >
+Default: .false. 
+</entry>
+
+<entry 
+id="even_odd_freq"
+type="integer"
+category="pop2"
+group="restart_nml"
+valid_values="" >
+Default: 100000
+</entry>
+
+<entry 
+id="pressure_correction"
+type="logical"
+category="pop2"
+group="restart_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<!----------------------------->
+<!---group history_nml     ---->
+<!----------------------------->
+
+<entry 
+id="history_freq_opt"
+type="char*256"
+category="pop2"
+group="history_nml"
+valid_values="" >
+Default: 'never'
+</entry>
+
+<entry 
+id="history_freq"
+type="integer"
+category="pop2"
+group="history_nml"
+valid_values="" >
+Default: 1
+</entry>
+
+<entry 
+id="history_outfile"
+type="char*256"
+category="pop2"
+group="history_nml"
+valid_values="" >
+Default: './btempb10.pop.hs'
+</entry>
+
+<entry 
+id="history_fmt"
+type="char*256"
+category="pop2"
+group="history_nml"
+valid_values="" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="history_contents"
+type="char*256"
+category="pop2"
+group="history_nml"
+valid_values="" >
+Default: '/ptmp/mvertens/btempb10/ocn/input/gx1v6_history_contents'
+</entry>
+
+"movie_nml"
+
+<entry 
+id="movie_freq_opt"
+type="char*256"
+category="pop2"
+group="movie_nml"
+valid_values="" >
+Default: 'never'
+</entry>
+
+<entry 
+id="movie_freq"
+type="integer"
+category="pop2"
+group="movie_nml"
+valid_values="" >
+Default: 1
+</entry>
+
+<entry 
+id="movie_outfile"
+type="char*256"
+category="pop2"
+group="movie_nml"
+valid_values="" >
+Default: './btempb10.pop.hm'
+</entry>
+
+<entry 
+id="movie_fmt"
+type="char*256"
+category="pop2"
+group="movie_nml"
+valid_values="" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="movie_contents"
+type="char*256"
+category="pop2"
+group="movie_nml"
+valid_values="" >
+Default: '/ptmp/mvertens/btempb10/ocn/input/gx1v6_movie_contents'
+</entry>
+
+<!----------------------------->
+<!---group solvers         ---->
+<!----------------------------->
+
+<entry 
+id="solverChoice"
+type="char*256"
+category="pop2"
+group="solvers"
+valid_values="" >
+Default: 'ChronGear'
+</entry>
+
+<entry 
+id="convergenceCriterion"
+type="real"
+category="pop2"
+group="solvers"
+valid_values="" >
+Default: 1.0e-13 
+</entry>
+
+<entry 
+id="maxIterations"
+type="integer"
+category="pop2"
+group="solvers"
+valid_values="" >
+Default: 1000
+</entry>
+
+<entry 
+id="convergenceCheckFreq"
+type="integer"
+category="pop2"
+group="solvers"
+valid_values="" >
+Default: 10
+</entry>
+
+<entry 
+id="preconditionerChoice"
+type="char*256"
+category="pop2"
+group="solvers"
+valid_values="" >
+Default: 'diagonal'
+</entry>
+
+<entry 
+id="preconditionerFile"
+type="char*256"
+category="pop2"
+group="solvers"
+valid_values="" >
+Default: 'unknownPrecondFile'
+</entry>
+
+
+<!----------------------------->
+<!---group vertical_mix_nml---->
+<!----------------------------->
+
+<entry 
+id="vmix_choice"
+type="char*256"
+category="pop2"
+group="vertical_mix_nml"
+valid_values="" >
+Default: 'kpp'
+</entry>
+
+<entry 
+id="aidif"
+type="real"
+category="pop2"
+group="vertical_mix_nml"
+valid_values="" >
+Default: 1.0
+</entry>
+
+<entry 
+id="implicit_vertical_mix"
+type="logical"
+category="pop2"
+group="vertical_mix_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="convection_type"
+type="char*256"
+category="pop2"
+group="vertical_mix_nml"
+valid_values="" >
+Default: 'diffusion'
+</entry>
+
+<entry 
+id="nconvad"
+type="integer"
+category="pop2"
+group="vertical_mix_nml"
+valid_values="" >
+Default: 2
+</entry>
+
+<entry 
+id="convect_diff"
+type="real"
+category="pop2"
+group="vertical_mix_nml"
+valid_values="" >
+Default: 10000.0
+</entry>
+
+<entry 
+id="convect_visc"
+type="real"
+category="pop2"
+group="vertical_mix_nml"
+valid_values="" >
+Default: 10000.0
+</entry>
+
+<entry 
+id="bottom_drag"
+type="real"
+category="pop2"
+group="vertical_mix_nml"
+valid_values="" >
+Default: 1.0e-3
+</entry>
+
+<entry 
+id="bottom_heat_flx"
+type="real"
+category="pop2"
+group="vertical_mix_nml"
+valid_values="" >
+Default: 0.0
+</entry>
+
+<entry 
+id="bottom_heat_flx_depth"
+type="real"
+category="pop2"
+group="vertical_mix_nml"
+valid_values="" >
+Default: 1000.0e2
+</entry>
+
+
+<!----------------------------->
+<!---group vmix_const_nml  ---->
+<!----------------------------->
+
+<entry 
+id="const_vvc"
+type="real"
+category="pop2"
+group="vmix_const_nml"
+valid_values="" >
+Default: 0.25
+</entry>
+
+<entry 
+id="const_vdc"
+type="real"
+category="pop2"
+group="vmix_const_nml"
+valid_values="" >
+Default: 0.25
+</entry>
+
+<!----------------------------->
+<!---group vmix_rich_nml  ---->
+<!----------------------------->
+
+<entry 
+id="bckgrnd_vvc"
+type="real"
+category="pop2"
+group="vmix_rich_nml"
+valid_values="" >
+Default: 1.0
+</entry>
+
+<entry 
+id="bckgrnd_vdc"
+type="real"
+category="pop2"
+group="vmix_rich_nml"
+valid_values="" >
+Default: 0.1
+</entry>
+
+<entry 
+id="rich_mix"
+type="real"
+category="pop2"
+group="vmix_rich_nml"
+valid_values="" >
+Default: 50.0
+</entry>
+
+<!----------------------------->
+<!---group tidal_nml       ---->
+<!----------------------------->
+
+<entry 
+id="ltidal_mixing"
+type="logical"
+category="pop2"
+group="tidal_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="local_mixing_fraction"
+type="real"
+category="pop2"
+group="tidal_nml"
+valid_values="" >
+Default: 0.33
+</entry>
+
+<entry 
+id="mixing_efficiency"
+type="real"
+category="pop2"
+group="tidal_nml"
+valid_values="" >
+Default: 0.2
+</entry>
+
+<entry 
+id="vertical_decay_scale"
+type="real"
+category="pop2"
+group="tidal_nml"
+valid_values="" >
+Default: 500.0e02
+</entry>
+
+<entry 
+id="tidal_mix_max"
+type="real"
+category="pop2"
+group="tidal_nml"
+valid_values="" >
+Default: 100.0
+</entry>
+
+<entry 
+id="tidal_energy_file"
+type="char*256"
+category="pop2"
+group="tidal_nml"
+input_pathname="abs"
+valid_values="" >
+Default: 'ocn/pop/gx1v6/forcing/tidal_energy_gx1v6_20090205.ieeer8'
+</entry>
+
+<entry 
+id="tidal_energy_file_fmt"
+type="char*256"
+category="pop2"
+group="tidal_nml"
+valid_values="" >
+Default: 'bin'
+</entry>
+
+<!----------------------------->
+<!---group vmix_kpp_nml    ---->
+<!----------------------------->
+
+<entry 
+id="bckgrnd_vdc1"
+type="real"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: 0.16
+</entry>
+
+<entry 
+id="bckgrnd_vdc2"
+type="real"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: 0.0
+</entry>
+
+<entry 
+id="bckgrnd_vdc_eq"
+type="real"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: 0.01
+</entry>
+
+<entry 
+id="bckgrnd_vdc_psim"
+type="real"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: 0.13
+</entry>
+
+<entry 
+id="bckgrnd_vdc_ban"
+type="real"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: 1.0
+</entry>
+
+<entry 
+id="bckgrnd_vdc_dpth"
+type="real"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: 1000.0e02
+</entry>
+
+<entry 
+id="bckgrnd_vdc_linv"
+type="real"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: 4.5e-05
+</entry>
+
+<entry 
+id="Prandtl"
+type="real"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: 10.0
+</entry>
+
+<entry 
+id="rich_mix"
+type="real"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: 50.0
+</entry>
+
+<entry 
+id="lrich"
+type="logical"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="ldbl_diff"
+type="logical"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="lshort_wave"
+type="logical"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="lcheckekmo"
+type="logical"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="num_v_smooth_Ri"
+type="integer"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: 1
+</entry>
+
+<entry 
+id="lhoriz_varying_bckgrnd"
+type="logical"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="llangmuir"
+type="logical"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="linertial"
+type="logical"
+category="pop2"
+group="vmix_kpp_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<!----------------------------->
+<!---group advect_nml      ---->
+<!----------------------------->
+
+<entry 
+id="tadvect_ctype"
+type="char*256"
+category="pop2"
+group="advect_nml"
+valid_values="" >
+Default: 'upwind3'
+</entry>
+
+<!----------------------------->
+<!---group hmix_nml        ---->
+<!----------------------------->
+
+<entry 
+id="hmix_momentum_choice"
+type="char*256"
+category="pop2"
+group="hmix_nml"
+valid_values="" >
+Default: 'anis'
+</entry>
+
+<entry 
+id="hmix_tracer_choice"
+type="char*256"
+category="pop2"
+group="hmix_nml"
+valid_values="" >
+Default: 'gent'
+</entry>
+
+<entry 
+id="lsubmesoscale_mixing"
+type="logical"
+category="pop2"
+group="hmix_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<!----------------------------->
+<!---group hmix_del2u_nml  ---->
+<!----------------------------->
+
+<entry 
+id="lauto_hmix"
+type="logical"
+category="pop2"
+group="hmix_del2u_nml"
+valid_values="" >
+Default: .false. 
+</entry>
+
+<entry 
+id="lvariable_hmix"
+type="logical"
+category="pop2"
+group="hmix_del2u_nml"
+valid_values="" >
+Default: .false. 
+</entry>
+
+<entry 
+id="am"
+type="hmix_del2u_nml"
+category="pop2"
+group="hmix_del2u_nml"
+valid_values="" >
+Default: 0.5e8
+</entry>
+
+<!----------------------------->
+<!---group hmix_del2t_nml  ---->
+<!----------------------------->
+
+<entry 
+id="lauto_hmix"
+type="logical"
+category="pop2"
+group="hmix_del2t_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="lvariable_hmix"
+type="logical"
+category="pop2"
+group="hmix_del2t_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="ah"
+type="logical"
+category="pop2"
+group="hmix_del2t_nml"
+valid_values="" >
+Default: 0.6e7
+</entry>
+
+<!----------------------------->
+<!---group hmix_del4u_nml  ---->
+<!----------------------------->
+
+<entry 
+id="lauto_hmix"
+type="logical"
+category="pop2"
+group="hmix_del4u_nml"
+valid_values="" >
+Default: .false. 
+</entry>
+
+<entry 
+id="lvariable_hmix"
+type="logical"
+category="pop2"
+group="hmix_del4u_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="am"
+type="real"
+category="pop2"
+group="hmix_del4u_nml"
+valid_values="" >
+Default: -0.6e20
+</entry>
+
+<!----------------------------->
+<!---group hmix_del4t_nml  ---->
+<!----------------------------->
+
+<entry 
+id="lauto_hmix"
+type="logical"
+category="pop2"
+group="hmix_del4t_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="lvariable_hmix"
+type="logical"
+category="pop2"
+group="hmix_del4t_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="ah"
+type="real"
+category="pop2"
+group="hmix_del4t_nml"
+valid_values="" >
+Default: -0.2e20
+</entry>
+
+<!----------------------------->
+<!---group hmix_gm_nml     ---->
+<!----------------------------->
+
+<entry 
+id="kappa_isop_choice"
+type="char*256"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 'bfre'
+</entry>
+
+<entry 
+id="kappa_thic_choice"
+type="char*256"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 'bfre'
+</entry>
+
+<entry 
+id="kappa_freq_choice"
+type="char*256"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 'once_a_day'
+</entry>
+
+<entry 
+id="slope_control_choice"
+type="char*256"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 'notanh'
+</entry>
+
+<entry 
+id="kappa_depth_1"
+type="real"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 1.0
+</entry>
+
+<entry 
+id="kappa_depth_2"
+type="real"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 0.0
+</entry>
+
+<entry 
+id="kappa_depth_scale"
+type="real"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 150000.0
+</entry>
+
+<entry 
+id="ah"
+type="real"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 3.0e7
+</entry>
+
+<entry 
+id="ah_bolus"
+type="real"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 3.0e7
+</entry>
+
+<entry 
+id="use_const_ah_bkg_srfbl"
+type="logical"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="ah_bkg_srfbl"
+type="real"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 3.0e7
+</entry>
+
+<entry 
+id="ah_bkg_bottom"
+type="real"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 0.0
+</entry>
+
+<entry 
+id="slm_r"
+type="real"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 0.3
+</entry>
+
+<entry 
+id="slm_b"
+type="real"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 0.3
+</entry>
+
+<entry 
+id="diag_gm_bolus"
+type="logical"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="transition_layer_on"
+type="logical"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="read_n2_data"
+type="logical"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="buoyancy_freq_filename"
+type="char*256"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: '/ptmp/mvertens/btempb10/ocn/input/buoyancy_freq'
+</entry>
+
+<entry 
+id="buoyancy_freq_fmt"
+type="char*256"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 'nc'
+</entry>
+
+<entry 
+id="const_eg"
+type="real"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 1.2
+</entry>
+
+<entry 
+id="gamma_eg"
+type="real"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 500.0
+</entry>
+
+<entry 
+id="kappa_min_eg"
+type="real"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 0.35e7
+</entry>
+
+<entry 
+id="kappa_max_eg"
+type="real"
+category="pop2"
+group="hmix_gm_nml"
+valid_values="" >
+Default: 2.0e7
+</entry>
+
+<!----------------------------->
+<!---group mix_submeso_nml ---->
+<!----------------------------->
+
+<entry 
+id="efficiency_factor"
+type="real"
+category="pop2"
+group="mix_submeso_nml"
+valid_values="" >
+Default: 0.07
+</entry>
+
+<entry 
+id="time_scale_constant"
+type="real"
+category="pop2"
+group="mix_submeso_nml"
+valid_values="" >
+Default: 8.64e4
+</entry>
+
+<entry 
+id="luse_const_horiz_len_scale"
+type="logical"
+category="pop2"
+group="mix_submeso_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="hor_length_scale"
+type="real"
+category="pop2"
+group="mix_submeso_nml"
+valid_values="" >
+Default: 5.0e5
+</entry>
+
+<!----------------------------->
+<!---group hmix_aniso_nml  ---->
+<!----------------------------->
+
+<entry 
+id="hmix_alignment_choice"
+type="char*256"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 'east'
+</entry>
+
+<entry 
+id="lvariable_hmix_aniso"
+type="logical"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="lsmag_aniso"
+type="logical"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="visc_para"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 50.0e7
+</entry>
+
+<entry 
+id="visc_perp"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 50.0e7
+</entry>
+
+<entry 
+id="c_para"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 8.0
+</entry>
+
+<entry 
+id="c_perp"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 8.0
+</entry>
+
+<entry 
+id="u_para"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 5.0
+</entry>
+
+<entry 
+id="u_perp"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 5.0
+</entry>
+
+<entry 
+id="vconst_1"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 0.6e7
+</entry>
+
+<entry 
+id="vconst_2"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 0.5
+</entry>
+
+<entry 
+id="vconst_3"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 0.16
+</entry>
+
+<entry 
+id="vconst_4"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 2.e-8
+</entry>
+
+<entry 
+id="vconst_5"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 3
+</entry>
+
+<entry 
+id="vconst_6"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 0.6e7
+</entry>
+
+<entry 
+id="vconst_7"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 45.0
+</entry>
+
+<entry 
+id="smag_lat"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 20.0
+</entry>
+
+<entry 
+id="smag_lat_fact"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 0.98
+</entry>
+
+<entry 
+id="smag_lat_gauss"
+type="real"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 98.0
+</entry>
+
+<entry 
+id="var_viscosity_infile"
+type="char*256"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 'ccsm-internal'
+</entry>
+
+<entry 
+id="var_viscosity_infile_fmt"
+type="char*256"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 'bin'
+</entry>
+
+<entry 
+id="var_viscosity_outfile"
+type="char*256"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: './btempb10.pop.hv'
+</entry>
+
+<entry 
+id="var_viscosity_outfile_fmt"
+type="char*256"
+category="pop2"
+group="hmix_aniso_nml"
+valid_values="" >
+Default: 'nc'
+</entry>
+
+<!----------------------------->
+<!---group state_nml  ---->
+<!----------------------------->
+
+<entry 
+id="state_choice"
+type="char*256"
+category="pop2"
+group="state_nml"
+valid_values="" >
+Default: 'mwjf'
+</entry>
+
+<entry 
+id="state_file"
+type="char*256"
+category="pop2"
+group="state_nml"
+valid_values="" >
+Default: 'internal'
+</entry>
+
+<entry 
+id="state_range_opt"
+type="char*256"
+category="pop2"
+group="state_nml"
+valid_values="" >
+Default: 'enforce'
+</entry>
+
+<entry 
+id="state_range_freq"
+type="integer"
+category="pop2"
+group="state_nml"
+valid_values="" >
+Default: 100000
+</entry>
+
+<!----------------------------->
+<!---group baroclinic_nml  ---->
+<!----------------------------->
+
+<entry 
+id="reset_to_freezing"
+type="logical"
+category="pop2"
+group="baroclinic_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<!----------------------------->
+<!---group ice_nml         ---->
+<!----------------------------->
+
+<entry 
+id="ice_freq_opt"
+type="char*256"
+category="pop2"
+group="ice_nml"
+valid_values="" >
+Default: 'coupled'
+</entry>
+
+<entry 
+id="ice_freq"
+type="integer"
+category="pop2"
+group="ice_nml"
+valid_values="" >
+Default:  100000
+</entry>
+
+<entry 
+id="kmxice"
+type="integer"
+category="pop2"
+group="ice_nml"
+valid_values="" >
+Default: 1
+</entry>
+
+<entry 
+id="lactive_ice"
+type="logical"
+category="pop2"
+group="ice_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<!----------------------------->
+<!---group pressure_grad_nml--->
+<!----------------------------->
+
+<entry 
+id="lpressure_avg"
+type="logical"
+category="pop2"
+group="pressure_grad_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="lbouss_correct"
+type="logical"
+category="pop2"
+group="pressure_grad_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<!----------------------------->
+<!---group topo_stress_nml ---->
+<!----------------------------->
+
+<entry 
+id="ltopostress"
+type="logical"
+category="pop2"
+group="topostress_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="nsmooth_topo"
+type="integer"
+category="pop2"
+group="topostress_nml"
+valid_values="" >
+Default: 0
+</entry>
+
+<!----------------------------->
+<!---group forcing_ws_nml  ---->
+<!----------------------------->
+
+<entry 
+id="ws_data_type"
+type="char*256"
+category="pop2"
+group="forcing_ws_nml"
+valid_values="" >
+Default: 'none'
+</entry>
+
+<entry 
+id="ws_data_inc"
+type="real"
+category="pop2"
+group="forcing_ws_nml"
+valid_values="" >
+Default: 24.
+</entry>
+
+<entry 
+id="ws_interp_freq"
+type="char*256"
+category="pop2"
+group="forcing_ws_nml"
+valid_values="" >
+Default: 'every-timestep'
+</entry>
+
+<entry 
+id="ws_interp_type"
+type="char*256"
+category="pop2"
+group="forcing_ws_nml"
+valid_values="" >
+Default: 'linear'
+</entry>
+
+<entry 
+id="ws_interp_inc"
+type="real"
+category="pop2"
+group="forcing_ws_nml"
+valid_values="" >
+Default: 72.
+</entry>
+
+<entry 
+id="ws_filename"
+type="char*256"
+category="pop2"
+group="forcing_ws_nml"
+valid_values="" >
+Default: 'unknown-ws'
+</entry>
+
+<entry 
+id="ws_file_fmt"
+type="char*256"
+category="pop2"
+group="forcing_ws_nml"
+valid_values="" >
+Default: 'bin'
+</entry>
+
+<entry 
+id="ws_data_renorm(1)"
+type="real"
+category="pop2"
+group="forcing_ws_nml"
+valid_values="" >
+Default: 10.
+</entry>
+
+<!----------------------------->
+<!---group forcing_shf_nml ---->
+<!----------------------------->
+
+<entry 
+id="shf_formulation"
+type="char*256"
+category="pop2"
+group="forcing_shf_nml"
+valid_values="" >
+Default: 'restoring'
+</entry>
+
+<entry 
+id="shf_data_type"
+type="char*256"
+category="pop2"
+group="forcing_shf_nml"
+valid_values="" >
+Default: 'none'
+</entry>
+
+<entry 
+id="shf_data_inc"
+type="real"
+category="pop2"
+group="forcing_shf_nml"
+valid_values="" >
+Default: 24.
+</entry>
+
+<entry 
+id="shf_interp_freq"
+type="char*256"
+category="pop2"
+group="forcing_shf_nml"
+valid_values="" >
+Default: 'every-timestep'
+</entry>
+
+<entry 
+id="shf_interp_type"
+type="char*256"
+category="pop2"
+group="forcing_shf_nml"
+valid_values="" >
+Default: 'linear'
+</entry>
+
+<entry 
+id="shf_interp_inc"
+type="real"
+category="pop2"
+group="forcing_shf_nml"
+valid_values="" >
+Default: 72.
+</entry>
+
+<entry 
+id="shf_restore_tau"
+type="real"
+category="pop2"
+group="forcing_shf_nml"
+valid_values="" >
+Default: 30.
+</entry>
+
+<entry 
+id="shf_filename"
+type="char*256"
+category="pop2"
+group="forcing_shf_nml"
+input_pathname="abs"
+valid_values="" >
+Default: 'ocn/pop/gx1v6/forcing/shf_mm_all_85-88_20010308.ieeer8'
+</entry>
+
+<entry 
+id="shf_file_fmt"
+type="char*256"
+category="pop2"
+group="forcing_shf_nml"
+valid_values="" >
+Default: 'bin'
+</entry>
+
+<entry 
+id="shf_data_renorm(3)"
+type="real"
+category="pop2"
+group="forcing_shf_nml"
+valid_values="" >
+Default: 0.94
+</entry>
+
+<entry 
+id="shf_weak_restore"
+type="real"
+category="pop2"
+group="forcing_shf_nml"
+valid_values="" >
+Default: 0.
+</entry>
+
+<entry 
+id="shf_strong_restore"
+type="real"
+category="pop2"
+group="forcing_shf_nml"
+valid_values="" >
+Default: 0.0
+</entry>
+
+<entry 
+id="luse_cpl_ifrac"
+type="logical"
+category="pop2"
+group="forcing_shf_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="shf_strong_restore_ms"
+type="real"
+category="pop2"
+group="forcing_shf_nml"
+valid_values="" >
+Default: 92.64
+</entry>
+
+
+<!----------------------------->
+<!---group forcing_sfwf_nml --->
+<!----------------------------->
+
+<entry 
+id="sfwf_formulation"
+type="char*256"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: 'restoring'
+</entry>
+
+<entry 
+id="sfwf_data_type"
+type="char*256"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: 'none'
+</entry>
+
+<entry 
+id="sfwf_data_inc"
+type="real"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: 24.
+</entry>
+
+<entry 
+id="sfwf_interp_freq"
+type="char*256"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: 'every-timestep'
+</entry>
+
+<entry 
+id="sfwf_interp_type"
+type="char*256"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: 'linear'
+</entry>
+
+<entry 
+id="sfwf_interp_inc"
+type="real"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: 72.
+</entry>
+
+<entry 
+id="sfwf_restore_tau"
+type="real"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: 30.
+</entry>
+
+<entry 
+id="sfwf_filename"
+type="char*256"
+category="pop2"
+group="forcing_sfwf_nml"
+input_pathname="abs"
+valid_values="" >
+Default: 'ocn/pop/gx1v6/forcing/sfwf_mm_PHC2_salx_flxio_20090205.ieeer8'
+</entry>
+
+<entry 
+id="sfwf_file_fmt"
+type="char*256"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: 'bin'
+</entry>
+
+<entry 
+id="sfwf_data_renorm(1)"
+type="real"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: 0.001
+</entry>
+
+<entry 
+id="sfwf_weak_restore"
+type="real"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: 0.0115
+</entry>
+
+<entry 
+id="sfwf_strong_restore"
+type="real"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: 0.0
+</entry>
+
+<entry 
+id="sfwf_strong_restore_ms"
+type="real"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: 0.6648
+</entry>
+
+<entry 
+id="ladjust_precip"
+type="logical"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="lms_balance"
+type="logical"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="lfw_as_salt_flx"
+type="logical"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="lsend_precip_fact"
+type="logical"
+category="pop2"
+group="forcing_sfwf_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<!------------------------------------->
+<!---group forcing_pt_interior_nml ---->
+<!------------------------------------->
+
+<entry 
+id="pt_interior_data_type"
+type="char*256"
+category="pop2"
+group="forcing_pt_interior_nml"
+valid_values="" >
+Default: 'none'
+</entry>
+
+<entry 
+id="pt_interior_data_inc"
+type="real"
+category="pop2"
+group="forcing_pt_interior_nml"
+valid_values="" >
+Default: 24.
+</entry>
+
+<entry 
+id="pt_interior_interp_freq"
+type="char*256"
+category="pop2"
+group="forcing_pt_interior_nml"
+valid_values="" >
+Default: 'every-timestep'
+</entry>
+
+<entry 
+id="pt_interior_interp_type"
+type="char*256"
+category="pop2"
+group="forcing_pt_interior_nml"
+valid_values="" >
+Default: 'linear'
+</entry>
+
+<entry 
+id="pt_interior_interp_inc"
+type="real"
+category="pop2"
+group="forcing_pt_interior_nml"
+valid_values="" >
+Default: 72.
+</entry>
+
+<entry 
+id="pt_interior_restore_tau"
+type="real"
+category="pop2"
+group="forcing_pt_interior_nml"
+valid_values="" >
+Default: 365.
+</entry>
+
+<entry 
+id="pt_interior_filename"
+type="char*256"
+category="pop2"
+group="forcing_pt_interior_nml"
+valid_values="" >
+Default: 'unknown-pt_interior'
+</entry>
+
+<entry 
+id="pt_interior_file_fmt"
+type="char*256"
+category="pop2"
+group="forcing_pt_interior_nml"
+valid_values="" >
+Default: 'bin'
+</entry>
+
+<entry 
+id="pt_interior_restore_max_level"
+type="integer"
+category="pop2"
+group="forcing_pt_interior_nml"
+valid_values="" >
+Default: 0 
+</entry>
+
+<entry 
+id="pt_interior_formulation"
+type="char*256"
+category="pop2"
+group="forcing_pt_interior_nml"
+valid_values="" >
+Default: 'restoring'
+</entry>
+
+<entry 
+id="pt_interior_data_renorm(1)"
+type="real"
+category="pop2"
+group="forcing_pt_interior_nml"
+valid_values="" >
+Default: 1.
+</entry>
+
+<entry 
+id="pt_interior_variable_restore"
+type="logical"
+category="pop2"
+group="forcing_pt_interior_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="pt_interior_restore_filename"
+type="char*256"
+category="pop2"
+group="forcing_pt_interior_nml"
+valid_values="" >
+Default: 'unknown-pt_interior_restore'
+</entry>
+
+<entry 
+id="pt_interior_restore_file_fmt"
+type="char*256"
+category="pop2"
+group="forcing_pt_interior_nml"
+valid_values="" >
+Default: 'bin'
+</entry>
+
+<!------------------------------------->
+<!---group forcing_s_interior_nml  ---->
+<!------------------------------------->
+
+<entry 
+id="s_interior_data_type"
+type="char*256"
+category="pop2"
+group="forcing_s_interior_nml"
+valid_values="" >
+Default: 'none'
+</entry>
+
+<entry 
+id="s_interior_data_inc"
+type="real"
+category="pop2"
+group="forcing_s_interior_nml"
+valid_values="" >
+Default: 24.
+</entry>
+
+<entry 
+id="s_interior_interp_freq"
+type="char*256"
+category="pop2"
+group="forcing_s_interior_nml"
+valid_values="" >
+Default: 'every-timestep'
+</entry>
+
+<entry 
+id="s_interior_interp_type"
+type="char*256"
+category="pop2"
+group="forcing_s_interior_nml"
+valid_values="" >
+Default: 'linear'
+</entry>
+
+<entry 
+id="s_interior_interp_inc"
+type="real"
+category="pop2"
+group="forcing_s_interior_nml"
+valid_values="" >
+Default: 72.
+</entry>
+
+<entry 
+id="s_interior_restore_tau"
+type="real"
+category="pop2"
+group="forcing_s_interior_nml"
+valid_values="" >
+Default: 365.
+</entry>
+
+<entry 
+id="s_interior_filename"
+type="char*256"
+category="pop2"
+group="forcing_s_interior_nml"
+valid_values="" >
+Default: 'unknown-s_interior'
+</entry>
+
+<entry 
+id="s_interior_file_fmt"
+type="char*256"
+category="pop2"
+group="forcing_s_interior_nml"
+valid_values="" >
+Default: 'bin'
+</entry>
+
+<entry 
+id="s_interior_restore_max_level"
+type="integer"
+category="pop2"
+group="forcing_s_interior_nml"
+valid_values="" >
+Default: 0 
+</entry>
+
+<entry 
+id="s_interior_formulation"
+type="char*256"
+category="pop2"
+group="forcing_s_interior_nml"
+valid_values="" >
+Default: 'restoring'
+</entry>
+
+<entry 
+id="s_interior_data_renorm(1)"
+type="real"
+category="pop2"
+group="forcing_s_interior_nml"
+valid_values="" >
+Default: 1.
+</entry>
+
+<entry 
+id="s_interior_variable_restore"
+type="logical"
+category="pop2"
+group="forcing_s_interior_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="s_interior_restore_filename"
+type="char*256"
+category="pop2"
+group="forcing_s_interior_nml"
+valid_values="" >
+Default: 'unknown-s_interior_restore'
+</entry>
+
+<entry 
+id="s_interior_restore_file_fmt"
+type="char*256"
+category="pop2"
+group="forcing_s_interior_nml"
+valid_values="" >
+Default: 'bin'
+</entry>
+
+<!------------------------------------->
+<!---group forcing_ap_nml          ---->
+<!------------------------------------->
+
+<entry 
+id="ap_data_type"
+type="char*256"
+category="pop2"
+group="forcing_ap_nml"
+valid_values="" >
+Default: 'none'
+</entry>
+
+<entry 
+id="ap_data_inc"
+type="real"
+category="pop2"
+group="forcing_ap_nml"
+valid_values="" >
+Default: 1.e20
+</entry>
+
+<entry 
+id="ap_interp_freq"
+type="char*256"
+category="pop2"
+group="forcing_ap_nml"
+valid_values="" >
+Default: 'never'
+</entry>
+
+<entry 
+id="ap_interp_type"
+type="char*256"
+category="pop2"
+group="forcing_ap_nml"
+valid_values="" >
+Default: 'nearest'
+</entry>
+
+<entry 
+id="ap_interp_inc"
+type="real"
+category="pop2"
+group="forcing_ap_nml"
+valid_values="" >
+Default: 1.e20
+</entry>
+
+<entry 
+id="ap_filename"
+type="char*256"
+category="pop2"
+group="forcing_ap_nml"
+valid_values="" >
+Default: 'unknown-ap'
+</entry>
+
+<entry 
+id="ap_file_fmt"
+type="char*256"
+category="pop2"
+group="forcing_ap_nml"
+valid_values="" >
+Default: 'bin'
+</entry>
+
+<entry 
+id="ap_data_renorm"
+type="real"
+category="pop2"
+group="forcing_ap_nml"
+valid_values="" >
+Default: 1.
+</entry>
+
+<!------------------------------------->
+<!---group coupled_nml             ---->
+<!------------------------------------->
+
+<entry 
+id="coupled_freq_opt"
+type="char*256"
+category="pop2"
+group="coupled_nml"
+valid_values="" >
+Default: 'nhour'
+</entry>
+
+<entry 
+id="coupled_freq"
+type="integer"
+category="pop2"
+group="coupled_nml"
+valid_values="" >
+Default:  24
+</entry>
+
+<entry 
+id="qsw_distrb_opt"
+type="char*256"
+category="pop2"
+group="coupled_nml"
+valid_values="" >
+Default: 'cosz'
+</entry>
+
+<!------------------------------------->
+<!---group sw_absorption_nml       ---->
+<!------------------------------------->
+
+<entry 
+id="sw_absorption_type"
+type="char*256"
+category="pop2"
+group="sw_absorption_nml"
+valid_values="" >
+Default: 'chlorophyll'
+</entry>
+
+<entry 
+id="chl_option"
+type="char*256"
+category="pop2"
+group="sw_absorption_nml"
+valid_values="" >
+Default: 'file'
+</entry>
+
+<entry 
+id="chl_filename"
+type="char*256"
+category="pop2"
+group="sw_absorption_nml"
+input_pathname="abs"
+valid_values="" >
+Default: 'ocn/pop/gx1v6/forcing/chl_filled_20061230.ieeer8'
+</entry>
+
+<entry 
+id="chl_file_fmt"
+type="char*256"
+category="pop2"
+group="sw_absorption_nml"
+valid_values="" >
+Default: 'bin'
+</entry>
+
+<entry 
+id="jerlov_water_type"
+type="integer"
+category="pop2"
+group="sw_absorption_nml"
+valid_values="" >
+Default: 3
+</entry>
+
+<!------------------------------------->
+<!---group transports_nml          ---->
+<!------------------------------------->
+
+<entry 
+id="lat_aux_grid_type"
+type="char*256"
+category="pop2"
+group="transports_nml"
+valid_values="" >
+Default: 'southern'
+</entry>
+
+<entry 
+id="lat_aux_begin"
+type="real"
+category="pop2"
+group="transports_nml"
+valid_values="" >
+Default: -90.0
+</entry>
+
+<entry 
+id="lat_aux_end"
+type="real"
+category="pop2"
+group="transports_nml"
+valid_values="" >
+Default:  90.0
+</entry>
+
+<entry 
+id="n_lat_aux_grid"
+type="integer"
+category="pop2"
+group="transports_nml"
+valid_values="" >
+Default: 180 
+</entry>
+
+<entry 
+id="moc_requested"
+type="logical"
+category="pop2"
+group="transports_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="n_heat_trans_requested"
+type="logical"
+category="pop2"
+group="transports_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="n_salt_trans_requested"
+type="logical"
+category="pop2"
+group="transports_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="transport_reg2_names"
+type="char*256"
+category="pop2"
+group="transports_nml"
+valid_values="" >
+Default: 'Atlantic Ocean','Mediterranean Sea','Labrador Sea','GIN Sea','Arctic Ocean','Hudson Bay'
+</entry>
+
+<entry 
+id="n_transport_reg"
+type="integer"
+category="pop2"
+group="transports_nml"
+valid_values="" >
+Default: 2
+</entry>
+
+<!------------------------------------->
+<!---group context_nml             ---->
+<!------------------------------------->
+
+<entry 
+id="lcoupled"
+type="logical"
+category="pop2"
+group="context_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="lccsm"
+type="logical"
+category="pop2"
+group="context_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="b4b_flag"
+type="logical"
+category="pop2"
+group="context_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="lccsm_control_compatible"
+type="logical"
+category="pop2"
+group="context_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+
+<!------------------------------------->
+<!---group overflows_nml           ---->
+<!------------------------------------->
+
+<entry 
+id="overflows_on"
+type="logical"
+category="pop2"
+group="overflows_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="overflows_interactive"
+type="logical"
+category="pop2"
+group="overflows_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="overflows_infile"
+type="char*256"
+category="pop2"
+group="overflows_nml"
+valid_values="" >
+Default: '/ptmp/mvertens/btempb10/ocn/input/gx1v6_overflow'
+</entry>
+
+<entry 
+id="overflows_diag_outfile"
+type="char*256"
+category="pop2"
+group="overflows_nml"
+valid_values="" >
+Default: '/ptmp/mvertens/btempb10/run/btempb10.pop.do'
+</entry>
+
+<entry 
+id="overflows_restart_type"
+type="char*256"
+category="pop2"
+group="overflows_nml"
+valid_values="" >
+Default: 'ccsm_startup'
+</entry>
+
+<entry 
+id="overflows_restfile"
+type="char*256"
+category="pop2"
+group="overflows_nml"
+valid_values="" >
+Default: './btempb10.pop.ro'
+</entry>
+
+<!------------------------------------->
+<!---group tavg_nml                ---->
+<!------------------------------------->
+
+<entry 
+id="n_tavg_streams"
+type="integer"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: 3
+</entry>
+
+<entry 
+id="ltavg_ignore_extra_streams"
+type="logical"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="ltavg_streams_index_present"
+type="logical"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="tavg_freq_opt"
+type="char*256(3)"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: 'nmonth' 'nday' 'once'
+</entry>
+
+<entry 
+id="tavg_freq"
+type="integer(3)"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: 1 1 1
+</entry>
+
+<entry 
+id="tavg_file_freq_opt"
+type="char*256(3)"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: 'nmonth' 'nmonth' 'once'
+</entry>
+
+<entry 
+id="tavg_file_freq"
+type="integer(3)"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: 1 1 1
+</entry>
+
+<entry 
+id="tavg_stream_filestrings"
+type="char*256(3)"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: 'nmonth1' 'nday1' 'once'
+</entry>
+
+<entry 
+id="tavg_start_opt"
+type="char*256(3)"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: 'nstep' 'nstep' 'nstep'
+</entry>
+
+<entry 
+id="tavg_start"
+type="integer(3)"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: 0 0 0
+</entry>
+
+<entry 
+id="tavg_fmt_in"
+type="char*256(3)"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: 'nc' 'nc' 'nc'
+</entry>
+
+<entry 
+id="tavg_fmt_out"
+type="char*256(3)"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: 'nc' 'nc' 'nc'
+</entry>
+
+<entry 
+id="tavg_contents"
+type="char*256"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: '/ptmp/mvertens/btempb10/ocn/input/gx1v6_tavg_contents'
+</entry>
+
+<entry 
+id="ltavg_nino_diags_requested"
+type="logical"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: .true.
+</entry>
+
+<entry 
+id="tavg_infile"
+type="char*256"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: './btempb10.pop.hrestart.end' 
+</entry>
+
+<entry 
+id="tavg_outfile"
+type="char*256"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: './btempb10.pop.h' 
+</entry>
+
+<entry 
+id="ltavg_has_offset_date"
+type="logical(3)"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: .false. .false. .false.
+</entry>
+
+<entry 
+id="tavg_offset_years"
+type="integer(3)"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: 1 1 1
+</entry>
+
+<entry 
+id="tavg_offset_months"
+type="integer(3)"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: 1 1 1
+</entry>
+
+<entry 
+id="tavg_offset_days"
+type="integer(3)"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: 2 2 2
+</entry>
+
+<entry 
+id="ltavg_one_time_header"
+type="logical(3)"
+category="pop2"
+group="tavg_nml"
+valid_values="" >
+Default: .false. .false. .false.
+</entry>
+
+<!------------------------------------->
+<!---group passive_tracers_on_nml  ---->
+<!------------------------------------->
+
+<entry 
+id="iage_on"
+type="logical" 
+category="pop2"
+group="passive_tracers_on_nml"
+valid_values="" >
+Default: ''
+</entry>
+
+<entry 
+id="cfc_on"
+type="logical" 
+category="pop2"
+group="passive_tracers_on_nml"
+valid_values="" >
+Default: ''
+</entry>
+
+<entry 
+id="ecosys_on"
+type="logical" 
+category="pop2"
+group="passive_tracers_on_nml"
+valid_values="" >
+Default: ''
+</entry>
+
+<!------------------------------------->
+<!---group iage_nml                ---->
+<!------------------------------------->
+
+<entry 
+id="init_iage_option"
+type="char*256"
+category="pop2"
+group="iage_nml"
+valid_values="" >
+Default: 'ccsm_$runtype'
+</entry>
+
+<entry 
+id="init_iage_init_file"
+type="char*256" 
+category="pop2"
+group="iage_nml"
+valid_values="" >
+Default: 'same_as_TS'
+</entry>
+
+<!------------------------------------->
+<!---group cfc_nml                 ---->
+<!------------------------------------->
+
+<entry 
+id="init_cfc_option"
+type="char*256"
+category="pop2"
+group="cfc_nml"
+valid_values="" >
+Default: 'ccsm_$runtype'
+</entry>
+
+<entry 
+id="init_cfc_init_file"
+type="char*256" 
+category="pop2"
+group="cfc_nml"
+valid_values="" >
+Default: 'same_as_TS'
+</entry>
+
+<entry 
+id="model_year"
+type="integer" 
+category="pop2"
+group="cfc_nml"
+valid_values="" >
+Default: '1'
+</entry>
+
+<entry 
+id="data_year"
+type="integer" 
+category="pop2"
+group="cfc_nml"
+valid_values="" >
+Default: '1981'
+</entry>
+
+<entry 
+id="pcfc_file"
+type="char*256" 
+category="pop2"
+group="cfc_nml"
+input_pathname="abs"
+valid_values="" >
+Default: 'ocn/pop/res_indpt/forcing/pcfc1112_atm_20091117.nc'
+</entry>
+
+<entry 
+id="cfc_formulation"
+type="char*256" 
+category="pop2"
+group="cfc_nml"
+valid_values="" >
+Default: 'model'
+</entry>
+
+<!------------------------------------->
+<!---group ecosys_nml              ---->
+<!------------------------------------->
+
+<entry 
+id="init_ecosys_option"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="init_ecosys_init_file"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="init_ecosys_init_file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext(1)%mod_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext(1)%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext(2)%mod_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext(2)%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext(3)%mod_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext(3)%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="lflux_gas_o2"
+type="logical" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="lflux_gas_co2"
+type="logical" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="locmip_k1_k2_bug_fix"
+type="logical" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="atm_co2_opt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="atm_co2_const"
+type="real" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="ecosys_tadvect_ctype"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_forcing_opt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="lmarginal_seas"
+type="logical"
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="lsource_sink"
+type="logical"
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="comp_surf_avg_freq_opt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="comp_surf_avg_freq"
+type="integer" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="use_nml_surf_vals"
+type="logical" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="surf_avg_dic_const"
+type="real"
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="surf_avg_alk_const"
+type="real"
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="ecosys_qsw_distrb_const"
+type="logical" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="iron_dust_flx_data_type"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="dust_flux_input%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="dust_flux_input%file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="dust_flux_input%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="dust_flux_input%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="iron_flux_input%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="iron_flux_input%file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="iron_flux_input%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="iron_flux_input%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="fesedflux_input%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="fesedflux_input%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="fesedflux_input%file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="fesedflux_input%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="ndep_data_type"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="ndep_data_type"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="ndep_shr_stream_year_first"
+type="integer" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="ndep_shr_stream_year_last"
+type="integer" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="ndep_shr_stream_year_align"
+type="integer" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="ndep_shr_stream_scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="ndep_shr_stream_file"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default: 
+</entry>
+
+<entry 
+id="lecovars_full_depth_tavg"
+type="logical" 
+category="pop2"
+group="ecosys_nml"
+valid_values="" >
+Default:  
+</entry>
+
+</namelist_definition>
