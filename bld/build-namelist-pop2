@@ -41,14 +41,12 @@ OPTIONS
      -silent [-s]          Turns on silent mode - only fatal messages issued.
      -test                 Enable checking that input datasets exist on local filesystem.
      -verbose              Turn on verbose echoing of informational messages.
-     -version [or -v]      Echo the SVN tag name used to check out this POP2 distribution.
-
 
 NOTE: The precedence for setting the values of namelist variables is (highest to lowest):
-      1. namelist values set by specific command-line options, i.e., -bathymetry 
+      1. namelist values set by specific command-line options, i.e. (none right now)
       2. values set on the command-line using the -namelist option,
       3. values read from the file specified by -infile,
-      4. values from the namelist defaults file - or values specifically set in build-namelist. 
+      4. values from the namelist defaults file - or values specifically set in build-namelist 
 EOF
 }
 
@@ -85,14 +83,10 @@ GetOptions(
     "s|silent"                  => \$opts{'silent'},
     "test"                      => \$opts{'test'},
     "v|verbose"                 => \$opts{'verbose'},
-    "version"                   => \$opts{'version'},
 )  or usage();
 
 # Give usage message.
 usage() if $opts{'help'};
-
-# Echo version info.
-version($cfgdir) if $opts{'version'};    
 
 # Check for unparsed arguments
 if (@ARGV) {
@@ -190,11 +184,11 @@ if ($ENV{'CONTINUE_RUN'} eq 'TRUE') {
 }
 my $run_startdate = "$ENV{'RUN_STARTDATE'}";
 my $iyear0  = `echo $run_startdate | cut -c1-4  | sed -e 's/^0*//'`;
-$iyear0 = chomp($iyear0);
+$iyear0 =~ s/\n/ /g; # remove imbedded newline   
 my $imonth0 = `echo $run_startdate | cut -c6-7  | sed -e 's/^0*//'`;
-$imonth0 = chomp($imonth0);
+$imonth0 =~ s/\n/ /g; # remove imbedded newline   
 my $iday0   = `echo $run_startdate | cut -c9-10 | sed -e 's/^0*//'`;
-$iday0 = chomp($iday0);
+$iday0 =~ s/\n/ /g; # remove imbedded newline   
 my $ihour0  = 0;
 if ( $ENV{'RUN_TYPE'} eq "startup" || $ENV{'RUN_TYPE'} eq "hybrid" ) {
     if ($ocn_ncpl > 1) {
@@ -406,14 +400,17 @@ add_default($nl, 'fit_freq', 'val'=>"$ocn_ncpl");
 # namelist group: grid_nml #
 ####################################
 
-# TODO - make topography_opt an input namelist variable
-# Note: topography_opt = bathymetry is a nonstandard option that requires
-# the user to provide nonstandard files in the users' 
-# <CASE>/SourceMods/src.pop2 directory 
+# Note: topography_opt = bathymetry is a nonstandard option that 
+# requires the user to provide nonstandard files in the users' 
+# $CASEROOT/SourceMods/src.pop2 directory 
+# Currently this is hard-wired to 'file'
 
-my $topography_opt = 'file';
-add_default($nl, 'topography_opt', 'val'=>"$topography_opt");
-add_default($nl, 'lremove_points', 'topograpahy_opt'=>"$topography_opt"); 
+my $topography_opt = 'file';               # hard-wired for now
+my $bathymetry_file= 'unknown_bathymetry'; #hard-wired for now
+
+add_default($nl, 'topography_opt' , 'val'=>"$topography_opt");
+add_default($nl, 'bathymetry_file', 'val'=>"$bathymetry_file");
+add_default($nl, 'lremove_points' , 'topograpahy_opt'=>"$topography_opt"); 
 
 if (-f "${my_path}/${ocn_grid}_vert_grid") {
     add_default($nl, 'vert_grid_file', 
@@ -435,14 +432,12 @@ add_default($nl, 'vert_grid_opt' );
 add_default($nl, 'topography_file');   
 add_default($nl, 'topography_outfile', 'val'=>"${output_h}.topography_bathymetry.ieeer8");
 add_default($nl, 'kmt_kmin');
-add_default($nl, 'bathymetry_file');
 add_default($nl, 'partial_bottom_cells');
 add_default($nl, 'bottom_cell_file');    
 add_default($nl, 'n_topo_smooth');
 add_default($nl, 'flat_bottom');
 add_default($nl, 'region_mask_file');
 add_default($nl, 'sfc_layer_opt');
-
 
 ####################################
 # namelist group: init_ts_nml      #
@@ -602,11 +597,8 @@ $nl->set_variable_value('vmix_rich_nml', 'rich_mix', '50.0');
 # namelist group: tidal_nml              #
 ##########################################
 
-# If no default value is found, add_default will throw
-# an exception unless the 'nofail' option is set true.
-
 add_default($nl, 'ltidal_mixing');
-add_default($nl, 'tidal_energy_file', 'nofail'=>1 );
+add_default($nl, 'tidal_energy_file', 'nofail'=>1);
 add_default($nl, 'local_mixing_fraction');
 add_default($nl, 'mixing_efficiency');
 add_default($nl, 'vertical_decay_scale');
@@ -627,6 +619,17 @@ $nl->set_variable_value('vmix_kpp_nml', 'rich_mix', '50.0');
 # namelist_defaults_pop2.xml and value of ltidal-mixing is 
 # obtained from default value already set
 
+add_default($nl, 'lhoriz_varying_bckgrnd');
+
+# all namelist values are stored in exactly the format
+# that is required in a valid namelist.  So if that value is a 
+# logical, then the quotes are stored as part of the value.
+
+my $lhoriz_varying_bckgrnd= $nl->get_value('lhoriz_varying_bckgrnd');
+my $ltidal_mixing = $nl->get_value('ltidal_mixing');
+$lhoriz_varying_bckgrnd =~ s/\.\./\./g; 
+$ltidal_mixing          =~ s/\.\./\./g; 
+
 add_default($nl, 'llangmuir');
 add_default($nl, 'linertial');
 add_default($nl, 'Prandtl');
@@ -636,13 +639,6 @@ add_default($nl, 'ldbl_diff');
 add_default($nl, 'lshort_wave');
 add_default($nl, 'lcheckekmo');
 add_default($nl, 'num_v_smooth_Ri');
-add_default($nl, 'lhoriz_varying_bckgrnd');
-
-my $ltidal_mixing = $nl->get_value('ltidal_mixing');
-$ltidal_mixing =~ s/\.\./\./g;
-
-my $lhoriz_varying_bckgrnd = $nl->get_value('lhoriz_varying_bckgrnd');
-$lhoriz_varying_bckgrnd =~ s/\.\./\./g;
 
 add_default($nl, 'bckgrnd_vdc1',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
 add_default($nl, 'bckgrnd_vdc2',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
@@ -773,15 +769,12 @@ if ($ocn_grid eq "tx0.1v2") {
 add_default($nl, 'kappa_isop_choice');
 add_default($nl, 'kappa_thic_choice');
 
-my $kappa_isop_choice = $nl->get_value('kappa_isop_choice'); 
-my $kappa_thic_choice = $nl->get_value('kappa_thic_choice');
-
 # All namelist values are stored in exactly the format
 # that is required in a valid namelist.  So if that value 
 # is a string, then the quotes are stored as part of the value. 
-# So must remove the quites before passing this to add_default 
-# as a keywork=>value pair 
 
+my $kappa_isop_choice = $nl->get_value('kappa_isop_choice');
+my $kappa_thic_choice = $nl->get_value('kappa_thic_choice');
 $kappa_isop_choice =~ s/[\'\"]//g;
 $kappa_thic_choice =~ s/[\'\"]//g;
 
@@ -836,8 +829,7 @@ if (-f "${my_path}/buoyancy_freq") {
 }
 
 
-add_default($nl, 'ah_bolus'    , 
-'kappa_isop_choice'=>"$kappa_isop_choice", 
+add_default($nl, 'ah_bolus'    , 'kappa_isop_choice'=>"$kappa_isop_choice", 
 	    'kappa_thic_choice'=>"$kappa_thic_choice");
 add_default($nl, 'ah_bkg_srfbl', 'kappa_isop_choice'=>"$kappa_isop_choice", 
 	    'kappa_thic_choice'=>"$kappa_thic_choice");
@@ -1111,7 +1103,7 @@ add_default($nl,'overflows_on');
 add_default($nl,'overflows_interactive');
 add_default($nl,'overflows_diag_outfile', 'val'=>"$exeroot/run/${output_d}o");
 add_default($nl,'overflows_restart_type', 'val'=>"ccsm_$runtype");
-add_default($nl,'overflows_restfile', 'val'=>"${output_r}o");
+add_default($nl,'overflows_restfile'    , 'val'=>"${output_r}o");
 
 ##########################################
 # namelist group: passive_tracers_on_nml #
@@ -1853,6 +1845,7 @@ if ($ocn_tracer_modules =~ /cfc/) {
 }    
 if ($ocn_tracer_modules =~ /ecosys/) {
     push @groups, qw(ecosys_nml);
+    push @groups, qw(ecosys_parms_nml);
 }    
 
 # Write out all groups to pop2_in
@@ -2201,23 +2194,4 @@ sub quote_string {
 
 #-------------------------------------------------------------------------------
 
-sub version {
-# The version is found in CICE ChangeLog file.
-# $cfgdir is set by the configure script to the name of its directory.
-
-    my ($cfgdir) = @_;
-
-    my $logfile = "$cfgdir/../doc/ChangeLog";
-
-    my $fh = IO::File->new($logfile, '<') or die "** $ProgName - can't open ChangeLog file: $logfile\n";
-
-    while (my $line = <$fh>) {
-
-	if ($line =~ /^Tag name:\s*(\w+)/ ) {
-	    print "$1\n";
-	    exit;
-	}
-    }
-
-}
 

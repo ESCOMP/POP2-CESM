@@ -1,29 +1,48 @@
 ==================================
 Summary
 ==================================
-build-namelist-pop2 uses a config_cache.xml file that currently
-contains only ocean grid information. build-namelist-pop2 reads this
-file to obtain information it needs to provide default values that are
-consistent with the POP2 library.  For example, the grid resolution is
-obtained from the cache file and used to determine appropriate
-defaults for namelist input that is resolution dependent.
 
-==================================
-Precedence
-==================================
+SYNOPSIS
+     build-namelist [options]
+
+OPTIONS
+     -infile "filepath"    Specify a file containing namelists to read values from.
+     -namelist "namelist"  Specify namelist settings directly on the commandline by supplying 
+                           a string containing FORTRAN namelist syntax, e.g.,
+                              -namelist "&pop2_nml dt=1800 /"
+     -help [or -h]         Print usage to STDOUT.
+     -silent [-s]          Turns on silent mode - only fatal messages issued.
+     -test                 Enable checking that input datasets exist on local filesystem.
+     -verbose              Turn on verbose echoing of informational messages.
 
 The precedence for setting the values of namelist variables is (highest to lowest): 
-1. namelist values set by specific command-line options
-2. values set on the command-line using the -namelist option,
-3. values read from the file specified by -infile,
-4. values from the namelist defaults file - or values specifically set in build-namelist. 
+1. namelist values set by specific command-line options, i.e. (none right now)
+2. values set on the command-line using the -namelist option  
+3. values read from the file specified by -infile 
+4. values from the namelist defaults file - or values specifically set in build-namelist 
 
-build-namelist-pop2 depends on two pop2 specific files (see below)
-that reside in $CASEROOT/Tools/Templates and that determine the set of
-all possible pop2 namelist variables along with their default values.
+
+In pop2.buildnml.csh, build-namelist-pop2 is called as follows
+
+  build-namelist-pop2 -infile $CASEROOT/user_nl_pop2 \
+     -namelist "&popexp  log_filename='$log_filename/' " || exit -1
+
+build-namelist-pop2 reads the file (created by pop2.cpl7.template)
+  $CASEROOT/BuildConf/pop2conf/config_cache.xml file 
+that currently contains only ocean grid information.
+The grid resolution in config_cache.xml is used to determine appropriate
+defaults for namelist input that is resolution dependent (see below).
+
+build-namelist-pop2 depends on 2 pop2 specific files 
+   $CODEROOT/ocn/pop2/bld/namelist_files/namelist_defaults.xml
+   $CODEROOT/ocn/pop2/bld/namelist_files/namelist_definition.xml
+
+Copies of thse files are also placed in $CASEROOT/Tools/Templates, in
+order for the user to be able to introduce new namelist variables if that
+is desired (see below)
 
 ===========================================================
-Model specific required file (1) - namelist_definition_pop2.xml
+namelist_definition_pop2.xml
 ===========================================================
 
 The namelist definition file contains entries for all 
@@ -99,17 +118,17 @@ In build-namelist_pop2 the namelist definition file appears as follows
 $nl_definition_file = ${caseroot}/Tools/Templates/namelist_definition_pop2.xml";
 
 ===========================================================
-Model specific required file (2) - namelist_defaults_pop2.xml
+namelist_defaults_pop2.xml
 ===========================================================
 
-# The namelist-defaults file provides default values for variables
-# contained in the input namelist efinition file.  For pop2, config_cache.xml
-# currently provides the grid attribute value that is  relevent for the
-# POP2 executable for which the namelist is being produced.
-# This attribute is used, ALONG WITH OPTIONAL user specified attributes 
-# in build-namelist-pop2, to find the best match when looking for default values.
-#
-# The namelist defaults file contains default values for all required namelist variables.
+The namelist-defaults file provides default values for variables
+contained in the input namelist efinition file.  For pop2, config_cache.xml
+currently provides the grid attribute value that is  relevent for the
+POP2 executable for which the namelist is being produced.
+This attribute is used, ALONG WITH OPTIONAL user specified attributes 
+in build-namelist-pop2, to find the best match when looking for default values.
+
+The namelist defaults file contains default values for all required namelist variables.
 
 Note - in build-namelist_pop2 the namelist definition file appears as follows
 $nl_defaults_file = "${caseroot}/Tools/Templates/namelist_defaults_pop2.xml";
@@ -141,78 +160,82 @@ $CASEROOT/Tools/Templates/build-namelist-pop2 \
 ==================================
 2) Generic required files
 ==================================
-eThe root directory for the perl5 required utilities 
+The root directory for the perl5 required utilities 
 $per5lib = ${scriptsroot}/ccsm_utils/Tools/perl5lib")
 
 The XML::Lite module is required to parse the XML files.
 $perl5lib_dir/XML/Lite.pm
 
-# The Build::Config module provides utilities to access the configuration information
-# in the config_cache.xml file (see below)
+The Build::Config module provides utilities to access the configuration information
+in the config_cache.xml file (see below)
 $perl5lib_dir/Build/Config.pm
 
-# The Build::NamelistDefinition module provides utilities to validate that the output
-# namelists are consistent with the namelist definition file
+The Build::NamelistDefinition module provides utilities to validate that the output
+namelists are consistent with the namelist definition file
 "$perl5lib_dir/Build/NamelistDefinition.pm
 
-# The Build::NamelistDefaults module provides a utility to obtain default values of namelist
-# variables based on finding a best fit with the attributes specified in the defaults file.
+The Build::NamelistDefaults module provides a utility to obtain default values of namelist
+variables based on finding a best fit with the attributes specified in the defaults file.
 "$perl5lib_dir/Build/NamelistDefaults.pm"
 
-# The Build::Namelist module provides utilities to parse input namelists, to query and modify
-# namelists, and to write output namelists.
+The Build::Namelist module provides utilities to parse input namelists, to query and modify
+namelists, and to write output namelists.
 "$perl5lib_dir/Build/Namelist.pm" 
 
 ===================================
-Details of build-namelist-pop2
+build-namelist-pop2 details
 ===================================
 
-1) main perl objects 
+1) Overview of four main perl objects 
 
 build-namelist-pop2 has four perl objects that it uses
 
-$cfg - a configuration object
+---- $cfg - a configuration object ----
 obtained from the POP2 config_cache.xml file, which is created by
 pop2.cpl7.template and resides in $CASEROOT/Builddconf/pop2conf. 
 Currently this specifies only the grid resolution.
 
 my $cfg = Build::Config->new('config_cache.xml');
-$definition -  a namelist definition object.  
+
+---- $definition - a namelist definition object ----  
 This object provides a method for verifying that the
 output namelist variables are in the definition file, 
 and are output in the correct namelist groups.
+
 my $definition = Build::NamelistDefinition->new($nl_definition_file);
 
-$defaults - a namelist defaults object.  
+---- $defaults - a namelist defaults object ----   
 This object provides default values for variables
-contained in the input defaults file.  The configuration object 
-provides attribute values that are relevent for the POP2 library for 
-which the namelist is being produced.
+contained in the namelist_definition_pop2.xml file.  
+
 my $defaults = Build::NamelistDefaults->new($nl_defaults_file, $cfg);
 
-$nl - an empty namelist object.  
-Add values to it in order of precedence.
+---- $nl - an empty namelist object ----  
+This object contains the model namelist values (where the values are
+determined by the order of precedence outlined above)
+
 my $nl = Build::Namelist->new();
 
-2) Creation of main namelist object
+2) Creation of $nl
 
-Additions to the namelist object, $nl, are made vai calls to build-namelist-pop2 method, 
-add_defaults, which add a value for the specified variable to the specified namelist object.
-This method checks the definition file and adds the variable to the correct
-namelist group. Several 
+Additions to the namelist object, $nl, are made vai calls to
+add_defaults, which add a value for the specified variable 
+to the specified namelist object.  This method
+checks the definition file and adds the variable to the correct
+namelist group. 
 
-The value can be provided by using the optional argument key 'val' in the
-calling list.  Otherwise a default value is obtained from the namelist
-defaults object.  If no default value is found this method throws an exception
-unless the 'nofail' option is set true.
+The value can be provided by using the optional argument key 'val' in
+the calling list.  Otherwise a default value is obtained from the
+namelist defaults object.  If no default value is found this method
+throws an exception unless the 'nofail' option is set true.
 
-Additional optional keyword=>value pairs may be specified.  
-If the keyword 'val' is not present, then any other keyword=>value pairs 
-that are specified will be used to match attributes in the defaults file.
+Additional optional keyword=>value pairs may be specified.  If the
+keyword 'val' is not present, then any other keyword=>value pairs that
+are specified will be used to match attributes in the defaults file.
 
-The variables already in the object have the higher precedence, so if the 
-specified variable is already defined in the object then don't overwrite it, 
-just return.
+The variables already in the object have the higher precedence, so if
+the specified variable is already defined in the object then don't
+overwrite it, just return.
 
 Example 1: Set the default value for namelist variable $var, using only
            the ocn_grid value in the config_cache.xml file
@@ -244,6 +267,29 @@ Example 3: Set the default value for namelist variable $var, using the
            <bckgrnd_vdc1 ocn_grid="gx3v7" lhoriz_varying_bckgrnd=".false." ltidal_mixing=".false.">0.524</bckgrnd_vdc1>  
            <bckgrnd_vdc2 ocn_grid="gx3v7" lhoriz_varying_bckgrnd=".false." ltidal_mixing=".false.">0.313</bckgrnd_vdc2>  
 
+Example 4: Add a default for variable $var if an appropriate value is found.  
+           Otherwise DO NOT add the variable
+
+           add_default($nl, $var, 'nofail'=>1)
+
+           For pop2, this would be the case if datasets are available for only a subset of grids - e.g.tidal_energy_files only
+           exists for gx3v7 and gx1v6 grids 
+
+             <tidal_energy_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/tidal_energy_gx3v7_20100107.ieeer8</tidal_energy_file>
+             <tidal_energy_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/tidal_energy_gx1v6_20090205.ieeer8</tidal_energy_file>
+
+	   in build-namelist-pop2 if the following was invoked
+
+              add_default($nl, 'tidal_energy_file')
+
+           then build-namelist-pop2 would fail for any grids other than gx3v7 and gx1v6.
+	   However, if the following call is made in build-namelist-pop2
+ 
+              add_default($nl, 'tidal_energy_file', 'nofail'=>1)
+ 
+           then the namelist entry tidal_energy_file simply does not appear for any grids other
+           than gx3v7 and gx1v6
+ 
 3) Writing out the user namelist
 
 

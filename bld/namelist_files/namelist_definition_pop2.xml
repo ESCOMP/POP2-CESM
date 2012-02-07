@@ -3596,6 +3596,7 @@ id="dust_flux_input%filename"
 type="char*256" 
 category="pop2"
 group="ecosys_nml"
+input_pathname="abs"
 valid_values="" >
 Default: 
 </entry>
@@ -3632,6 +3633,7 @@ id="iron_flux_input%filename"
 type="char*256" 
 category="pop2"
 group="ecosys_nml"
+input_pathname="abs"
 valid_values="" >
 Default: 
 </entry>
@@ -3668,6 +3670,7 @@ id="fesedflux_input%filename"
 type="char*256" 
 category="pop2"
 group="ecosys_nml"
+input_pathname="abs"
 valid_values="" >
 Default: 
 </entry>
@@ -3713,6 +3716,7 @@ id="nox_flux_monthly_input%filename"
 type="char*256" 
 category="pop2"
 group="ecosys_nml"
+input_pathname="abs"
 valid_values="" >
 Default: 
 </entry>
@@ -3740,6 +3744,7 @@ id="nhy_flux_monthly_input%filename"
 type="char*256" 
 category="pop2"
 group="ecosys_nml"
+input_pathname="abs"
 valid_values="" >
 Default: 
 </entry>
@@ -3830,6 +3835,7 @@ id="ndep_shr_stream_file"
 type="char*256" 
 category="pop2"
 group="ecosys_nml"
+input_pathname="abs"
 valid_values="" >
 Default: 
 </entry>
