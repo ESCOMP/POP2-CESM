@@ -2,6 +2,8 @@
 Summary
 ==================================
 
+build-namelist-pop2 is invoked upon every build - AND upon every call to pop2.buildnml.csh
+
 SYNOPSIS
      build-namelist [options]
 
@@ -157,36 +159,11 @@ $CASEROOT/Tools/Templates/build-namelist-pop2 \
   -infile $CASEROOT/user_nl_pop2 \
   -namelist "&popexp  log_filename='$log_filename/' " || exit -1
 
-==================================
-2) Generic required files
-==================================
-The root directory for the perl5 required utilities 
-$per5lib = ${scriptsroot}/ccsm_utils/Tools/perl5lib")
-
-The XML::Lite module is required to parse the XML files.
-$perl5lib_dir/XML/Lite.pm
-
-The Build::Config module provides utilities to access the configuration information
-in the config_cache.xml file (see below)
-$perl5lib_dir/Build/Config.pm
-
-The Build::NamelistDefinition module provides utilities to validate that the output
-namelists are consistent with the namelist definition file
-"$perl5lib_dir/Build/NamelistDefinition.pm
-
-The Build::NamelistDefaults module provides a utility to obtain default values of namelist
-variables based on finding a best fit with the attributes specified in the defaults file.
-"$perl5lib_dir/Build/NamelistDefaults.pm"
-
-The Build::Namelist module provides utilities to parse input namelists, to query and modify
-namelists, and to write output namelists.
-"$perl5lib_dir/Build/Namelist.pm" 
-
 ===================================
 build-namelist-pop2 details
 ===================================
 
-1) Overview of four main perl objects 
+1) --- Overview of four main perl objects ---
 
 build-namelist-pop2 has four perl objects that it uses
 
@@ -216,7 +193,33 @@ determined by the order of precedence outlined above)
 
 my $nl = Build::Namelist->new();
 
-2) Creation of $nl
+2) --- Required $SCRIPTSROOT/ccsm_utils/Tools/perl5lib perl files  ---
+
+The root directory for the perl5 required utilities 
+$per5lib = ${scriptsroot}/ccsm_utils/Tools/perl5lib")
+
+The XML::Lite module is required to parse the XML files.
+$perl5lib_dir/XML/Lite.pm
+
+The Build::Config module provides utilities to access the configuration information
+in the config_cache.xml file (see below)
+$perl5lib_dir/Build/Config.pm
+
+The Build::NamelistDefinition module provides utilities to validate that the output
+namelists are consistent with the namelist definition file
+"$perl5lib_dir/Build/NamelistDefinition.pm
+
+The Build::NamelistDefaults module provides a utility to obtain default values of namelist
+variables based on finding a best fit with the attributes specified in the defaults file.
+"$perl5lib_dir/Build/NamelistDefaults.pm"
+
+The Build::Namelist module provides utilities to parse input namelists, to query and modify
+namelists, and to write output namelists.
+"$perl5lib_dir/Build/Namelist.pm" 
+
+
+
+3) --- Creation of $nl ---
 
 Additions to the namelist object, $nl, are made vai calls to
 add_defaults, which add a value for the specified variable 
@@ -317,8 +320,8 @@ POP2 Use Cases
 
    Note the following
    - the  namelist name, pop2_inparm, is ignored as a valid namelist name (or group)
-   - all namelist changes, even if they are in different namelists, will
-     be added to pop2_inparm 
+   - ALL user modified namelist variables, even if they are in different namelists, 
+     need to be added to pop2_inparm (as shown above)
 
 2) Changing the default values of a namelist for all cases.
    
@@ -336,6 +339,12 @@ POP2 Use Cases
 
      bckgrnd_vdc_dpth = 2000.0e02 
 
+2b) Changing the default values of streams associated with an existing
+passive tracer
+
+stream variables can be changed by simply adding new variables to user_nl_pop2
+
+
 3) Adding a new pop2 namelist variables for a given case 
    (with associated source code mods in $CASEROOT/SourceMods/src.pop2) 
 
@@ -349,6 +358,13 @@ POP2 Use Cases
 
 4) Changing the contents of $res_tavg_contents
 
+- build-namelist-pop2 creates the ${ocn_grid}_tavg_contents file
+in $EXEROOT/ocn/input/${ocn_grid}_tavg_contents file
+to change the contents of this file 
+- create a tavg contents file for every tracer in pop2conf
+unless there is already a file in SourceMods/src.pop2 - at which
+point copy it into pop2conf (need to implement this)
+
 
 
 5) Adding a new passive tracer
@@ -357,3 +373,7 @@ POP2 Use Cases
 
 
 
+
+6) TODOs
+- mention new cpp variable NT
+- summarize logic of all cpp variables 

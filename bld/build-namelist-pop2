@@ -619,16 +619,12 @@ $nl->set_variable_value('vmix_kpp_nml', 'rich_mix', '50.0');
 # namelist_defaults_pop2.xml and value of ltidal-mixing is 
 # obtained from default value already set
 
-add_default($nl, 'lhoriz_varying_bckgrnd');
-
-# all namelist values are stored in exactly the format
-# that is required in a valid namelist.  So if that value is a 
-# logical, then the quotes are stored as part of the value.
-
-my $lhoriz_varying_bckgrnd= $nl->get_value('lhoriz_varying_bckgrnd');
 my $ltidal_mixing = $nl->get_value('ltidal_mixing');
-$lhoriz_varying_bckgrnd =~ s/\.\./\./g; 
-$ltidal_mixing          =~ s/\.\./\./g; 
+$ltidal_mixing =~ s/ //g;
+
+add_default($nl, 'lhoriz_varying_bckgrnd');
+my $lhoriz_varying_bckgrnd= $nl->get_value('lhoriz_varying_bckgrnd');
+$lhoriz_varying_bckgrnd =~ s/ //g;
 
 add_default($nl, 'llangmuir');
 add_default($nl, 'linertial');
@@ -1387,7 +1383,7 @@ add_default($nl, 'tavg_start_opt',              'val'=>"@tavg_start_opt_values")
 add_default($nl, 'tavg_start',                  'val'=>"@tavg_start_values");
 add_default($nl, 'tavg_fmt_in',                 'val'=>"@tavg_fmt_in_values");
 add_default($nl, 'tavg_fmt_out',                'val'=>"@tavg_fmt_out_values");
-add_default($nl, 'tavg_contents',               'val'=>"$exeroot/ocn/input/${ocn_grid}_tavg_contents");
+add_default($nl, 'tavg_contents',               'val'=>"$exeroot/ocn/input/pop2_${ocn_grid}_tavg_contents");
 add_default($nl, 'ltavg_nino_diags_requested',  'val'=>"$ltavg_nino_diags_requested");
 add_default($nl, 'tavg_infile',                 'val'=>"${output_h}restart.end");
 add_default($nl, 'tavg_outfile',                'val'=>"$output_h");
@@ -1398,9 +1394,84 @@ add_default($nl, 'tavg_offset_days',            'val'=>"@tavg_offset_day_values"
 add_default($nl, 'ltavg_one_time_header',       'val'=>"@ltavg_one_time_header");
 add_default($nl, 'ltavg_ignore_extra_streams',  'val'=>".false.");
 
-#-----------------------------------------------------
-# Determine cpp variables and write out cppdefs file
-#-----------------------------------------------------
+#-----------------------------------------------------------------------------------------------
+# *** Write output namelist file (pop2_in) and input dataset list (pop2.input_data_list) ***
+#-----------------------------------------------------------------------------------------------
+# Set namelist groups to be written out
+
+my @groups = qw(domain_nml 
+                io_nml 
+                time_manager_nml 
+		grid_nml
+		init_ts_nml
+		diagnostics_nml
+		budget_diagnostics_nml
+		bsf_diagnostic_nml
+		restart_nml
+		tavg_nml
+		history_nml
+		movie_nml
+		solvers
+		vertical_mix_nml
+		vmix_const_nml
+		vmix_rich_nml
+		tidal_nml
+                vmix_kpp_nml
+                advect_nml
+                hmix_nml
+		hmix_del2u_nml
+		hmix_del2t_nml
+		hmix_del4u_nml
+		hmix_del4t_nml
+                hmix_gm_nml
+                mix_submeso_nml
+                hmix_aniso_nml
+		state_nml
+		baroclinic_nml
+		ice_nml
+		pressure_grad_nml
+		topostress_nml
+		forcing_ws_nml
+		forcing_shf_nml
+		forcing_sfwf_nml
+		forcing_pt_interior_nml
+		forcing_s_interior_nml
+		forcing_ap_nml
+		coupled_nml
+		sw_absorption_nml
+		transports_nml
+		context_nml
+		overflows_nml
+		passive_tracers_on_nml);
+
+if ($ocn_tracer_modules =~ /iage/) {
+    push @groups, qw(iage_nml);
+}    
+if ($ocn_tracer_modules =~ /cfc/) {
+    push @groups, qw(cfc_nml);
+}    
+if ($ocn_tracer_modules =~ /ecosys/) {
+    push @groups, qw(ecosys_nml);
+    push @groups, qw(ecosys_parms_nml);
+}    
+
+# Write out all groups to pop2_in
+my $outfile = "./pop2_in";
+$nl->write($outfile, 'groups'=>\@groups);
+if ($print>=2) { print "Writing pop2 ocean component namelist to $outfile $eol"; }
+
+# Test that input files exist locally.
+if ($opts{'test'}) {
+    print "Checking whether input datasets exist locally...$eol";
+    check_input_files($nl);
+}
+
+# Write  input dataset list.
+check_input_files($nl, $inputdata_rootdir, "../pop2.input_data_list");
+
+#-------------------------------------------------------------
+# **** Determine cpp variables and write out cppdefs file ****
+#-------------------------------------------------------------
 
 my $NT = 2;
 if ($ocn_tracer_modules =~ /iage/) {
@@ -1428,42 +1499,50 @@ $cppdefs
 EOF
 $fh_out->close;
 
-#-------------------------------
-# Define output tavg contents
-#-------------------------------
+#-----------------------------------------------------------
+# **** Define output tavg contents ****
+#-----------------------------------------------------------
 
-my $file = "${ocn_grid}_tavg_contents";
+# ------------------------------
+# ---- base tavg contents ------
+# ------------------------------
 
-# starting point tavg contents 
+my $base_tavg_file = "$caseroot/Buildconf/pop2conf/base_${ocn_grid}_tavg_contents";
 
 my $input_templates = "${coderoot}/ocn/pop2/input_templates";
 if ($ocn_tavg_hifreq eq "TRUE") {
     # High-frequency tavg contents
     if (-f "${my_path}/${ocn_grid}_tavg_contents_high_freq") {
-	my $sysmod = "cp -fp ${my_path}/${ocn_grid}_tavg_contents_high_freq  $file";
+	my $sysmod = "cp -fp ${my_path}/${ocn_grid}_tavg_contents_high_freq  $base_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     } elsif (-f "${input_templates}/${ocn_grid}_tavg_contents_high_freq") {
-	my $sysmod = "cp -fp ${input_templates}/${ocn_grid}_tavg_contents_high_freq  $file";
+	my $sysmod = "cp -fp ${input_templates}/${ocn_grid}_tavg_contents_high_freq  $base_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     }
 } else {
     # Default tavg contents
     if (-f "${my_path}/${ocn_grid}_tavg_contents") {
-	my $sysmod = "cp -fp ${my_path}/${ocn_grid}_tavg_contents  $file";
+	my $sysmod = "cp -fp ${my_path}/${ocn_grid}_tavg_contents  $base_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     } elsif (-f "${input_templates}/${ocn_grid}_tavg_contents") {
-	my $sysmod = "cp -fp ${input_templates}/${ocn_grid}_tavg_contents $file";
+	my $sysmod = "cp -fp ${input_templates}/${ocn_grid}_tavg_contents $base_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     } 
 }
 
+# --------------------------------
+# ---- budget tavg contents ------
+# --------------------------------
+
+my $budget_tavg_file = "$caseroot/Buildconf/pop2conf/budget_tavg_contents";
+
 if ($ocn_tavg_tracer_budget eq "TRUE") {
     # tracer budget tavg contents 
     if (-f "${my_path}/tavg_contents_tracer_budget_terms"){
-	my $sysmod = "cat ${my_path}/tavg_contents_tracer_budget_terms >> $file";
+	my $sysmod = "cp -fp ${my_path}/tavg_contents_tracer_budget_terms $budget_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     } else {
-	my $sysmod = "cat ${coderoot}/ocn/pop2/input_templates/tavg_contents_tracer_budget_terms >> $file";
+	my $sysmod = "cp -fp ${coderoot}/ocn/pop2/input_templates/tavg_contents_tracer_budget_terms $budget_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     }
 }
@@ -1475,17 +1554,26 @@ my $iage_streams   = 0;
 my $cfc_streams    = 0; 
 my $ecosys_streams = 2;
 my $fh_out = new IO::File;
-my $file = "${ocn_grid}_tavg_contents";
 
 # ---------------------------------------
 # ----- iage tracer tavg contents -------
 # ---------------------------------------
 
-if ($ocn_tracer_modules =~ /iage/) {
-$fh_out->open(">>$file") or die "** can't open filepath file: $file\n";
-$stream_number = $stream_number_base;
-my $s1 = 1;
+my $iage_tavg_file = "$caseroot/Buildconf/pop2conf/iage_tavg_contents";
 
+if ($ocn_tracer_modules =~ /iage/) {
+
+    if (-f "${my_path}/iage_tavg_contents"){
+
+	my $sysmod = "cp -fp ${my_path}/tavg_contents_tracer_budget_terms $budget_tavg_file";
+	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+
+    } else {
+
+	$fh_out->open(">$iage_tavg_file") or die "** can't open filepath file: $iage_tavg_file\n";
+	$stream_number = $stream_number_base;
+	my $s1 = 1;
+    
 print $fh_out  <<"EOF";
 $s1  IAGE
 EOF
@@ -1514,17 +1602,28 @@ EOF
 #  FvPER_IAGE
 #  FvICE_IAGE
 
-$fh_out->close;
+	$fh_out->close;
+    }
 }
 
 # ---------------------------------------
 # ------cfc tracer tavg contents--------- 
 # ---------------------------------------
 
+my $cfc_tavg_file = "$caseroot/Buildconf/pop2conf/cfc_tavg_contents";
+
 if ($ocn_tracer_modules =~ /cfc/) {
-$fh_out->open(">>$file") or die "** can't open filepath file: $file\n";
-$stream_number = $stream_number_base + $iage_streams;
-my $s1 = 1;   # use base-model stream 1
+
+    if (-f "${my_path}/cfc_tavg_contents"){
+
+	my $sysmod = "cp -fp ${my_path}/tavg_contents_tracer_budget_terms $budget_tavg_file";
+	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+
+    } else {
+
+	$fh_out->open(">$cfc_tavg_file") or die "** can't open filepath file: $cfc_tavg_file\n";
+	$stream_number = $stream_number_base + $iage_streams;
+	my $s1 = 1;   # use base-model stream 1
 
 print $fh_out  <<"EOF";
 $s1  CFC_IFRAC
@@ -1565,20 +1664,31 @@ EOF
 #1  CFC11_surf_sat
 #1  CFC12_PV
 #1  CFC12_surf_sat
-
-$fh_out->close;
+	
+	$fh_out->close;
+    }
 }
 
 # ---------------------------------------
 # ---- ecosys tracer tavg contents ------
 # ---------------------------------------
 
+my $ecosys_tavg_file = "$caseroot/Buildconf/pop2conf/ecosys_tavg_contents";
+
 if ($ocn_tracer_modules =~ /ecosys/) {
-$fh_out->open(">>$file") or die "** can't open filepath file: $file\n";
-$stream_number = $stream_number_base + $iage_streams + $cfc_streams;
-my $s1 = 1;                  # use the base-model stream 1
-my $s2 = $stream_number + 1; # use an ecosystem-defined stream
-my $s3 = $s2 + 1;            # use an ecosystem-defined stream
+
+    if (-f "${my_path}/cfc_tavg_contents"){
+
+	my $sysmod = "cp -fp ${my_path}/tavg_contents_tracer_budget_terms $budget_tavg_file";
+	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+
+    } else {
+
+	$fh_out->open(">$ecosys_tavg_file") or die "** can't open filepath file: $ecosys_tavg_file\n";
+	$stream_number = $stream_number_base + $iage_streams + $cfc_streams;
+	my $s1 = 1;                  # use the base-model stream 1
+	my $s2 = $stream_number + 1; # use an ecosystem-defined stream
+	my $s3 = $s2 + 1;            # use an ecosystem-defined stream
 
 print $fh_out  <<"EOF";
 $s1  ECOSYS_ATM_PRESS
@@ -1786,84 +1896,39 @@ EOF
 #1  Jint_diatC
 #1  Jint_diatChl
 #1  Jint_zooC
+    $fh_out->close;
 
-$fh_out->close;
+    }
 }
 
-#-----------------------------------------------------------------------------------------------
-# *** Write output namelist file (pop2_in) and input dataset list (pop2.input_data_list) ***
-#-----------------------------------------------------------------------------------------------
-# Set namelist groups to be written out
+# -----------------------------------------------
+# ---- pop2 (unified) tracer tavg contents ------
+# -----------------------------------------------
 
-my @groups = qw(domain_nml 
-                io_nml 
-                time_manager_nml 
-		grid_nml
-		init_ts_nml
-		diagnostics_nml
-		budget_diagnostics_nml
-		bsf_diagnostic_nml
-		restart_nml
-		tavg_nml
-		history_nml
-		movie_nml
-		solvers
-		vertical_mix_nml
-		vmix_const_nml
-		vmix_rich_nml
-		tidal_nml
-                vmix_kpp_nml
-                advect_nml
-                hmix_nml
-		hmix_del2u_nml
-		hmix_del2t_nml
-		hmix_del4u_nml
-		hmix_del4t_nml
-                hmix_gm_nml
-                mix_submeso_nml
-                hmix_aniso_nml
-		state_nml
-		baroclinic_nml
-		ice_nml
-		pressure_grad_nml
-		topostress_nml
-		forcing_ws_nml
-		forcing_shf_nml
-		forcing_sfwf_nml
-		forcing_pt_interior_nml
-		forcing_s_interior_nml
-		forcing_ap_nml
-		coupled_nml
-		sw_absorption_nml
-		transports_nml
-		context_nml
-		overflows_nml
-		passive_tracers_on_nml);
+my $pop2_tavg_file  = "$caseroot/Buildconf/pop2conf/pop2_${ocn_grid}_tavg_contents";
+
+my $sysmod = "cp -fp $base_tavg_file $pop2_tavg_file";
+system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+
+if ($ocn_tavg_tracer_budget eq "TRUE") {
+    my $sysmod = "cat $budget_tavg_file >> $pop2_tavg_file";
+    system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+}
 
 if ($ocn_tracer_modules =~ /iage/) {
-    push @groups, qw(iage_nml);
-}    
-if ($ocn_tracer_modules =~ /cfc/) {
-    push @groups, qw(cfc_nml);
-}    
-if ($ocn_tracer_modules =~ /ecosys/) {
-    push @groups, qw(ecosys_nml);
-    push @groups, qw(ecosys_parms_nml);
-}    
-
-# Write out all groups to pop2_in
-my $outfile = "./pop2_in";
-$nl->write($outfile, 'groups'=>\@groups);
-if ($print>=2) { print "Writing pop2 ocean component namelist to $outfile $eol"; }
-
-# Test that input files exist locally.
-if ($opts{'test'}) {
-    print "Checking whether input datasets exist locally...$eol";
-    check_input_files($nl);
+    my $sysmod = "cat $iage_tavg_file >> $pop2_tavg_file";
+    system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 }
 
-# Write  input dataset list.
-check_input_files($nl, $inputdata_rootdir, "../pop2.input_data_list");
+if ($ocn_tracer_modules =~ /cfc/) {
+    my $sysmod = "cat $cfc_tavg_file >> $pop2_tavg_file";
+    system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+}
+
+if ($ocn_tracer_modules =~ /ecosys/) {
+    my $sysmod = "cat $ecosys_tavg_file >> $pop2_tavg_file";
+    system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+}
 
 #-----------------------------------------------------------------------------------------------
 # END OF MAIN SCRIPT
