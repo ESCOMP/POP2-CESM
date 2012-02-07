@@ -445,6 +445,7 @@ id="bottom_cell_file"
 type="char*256"
 category="pop2"
 group="grid_nml"
+input_pathname="abs"
 valid_values="" >
 Default: 'unknown_bottom_cell'
 </entry>

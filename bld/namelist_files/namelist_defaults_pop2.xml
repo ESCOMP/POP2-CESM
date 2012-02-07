@@ -16,7 +16,7 @@
 
 <ns_boundary_type>closed</ns_boundary_type>
 <ns_boundary_type ocn_grid="tx1v1"  >tripole</ns_boundary_type>
-<ns_boundary_type ocn_grid="tx01.v2">tripole</ns_boundary_type>
+<ns_boundary_type ocn_grid="tx0.1v2">tripole</ns_boundary_type>
 
 <num_iotasks         >  1    </num_iotasks         > 
 <lredirect_stdout    > .true.</lredirect_stdout    > 
@@ -87,7 +87,7 @@
 
 <partial_bottom_cells>.false.</partial_bottom_cells>
 <partial_bottom_cells ocn_grid="tx0.1v2">.true.</partial_bottom_cells>
-<bottom_cell_file>unknown_bottom_cell</bottom_cell_file>
+
 <bottom_cell_file ocn_grid="tx0.1v2">ocn/pop/tx0.1v2/grid/dzbc_pbc_s2.0_200709.ieeer8</bottom_cell_file>
 
 <n_topo_smooth>0</n_topo_smooth>
@@ -467,7 +467,7 @@
 <vconst_2    ocn_grid="tx0.1v2">  0.5   </vconst_2>
 <vconst_3    ocn_grid="tx0.1v2">  0.16  </vconst_3>
 <vconst_4    ocn_grid="tx0.1v2">  2.e-8 </vconst_4>
-<vconst_5    ocn_grid="tx0.1v2">  3>    </vconst_5>
+<vconst_5    ocn_grid="tx0.1v2">  3     </vconst_5>
 <vconst_6    ocn_grid="tx0.1v2">  0.6e7 </vconst_6>
 <vconst_7    ocn_grid="tx0.1v2">  45.0  </vconst_7>
 

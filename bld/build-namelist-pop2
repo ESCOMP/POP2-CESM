@@ -433,7 +433,7 @@ add_default($nl, 'topography_file');
 add_default($nl, 'topography_outfile', 'val'=>"${output_h}.topography_bathymetry.ieeer8");
 add_default($nl, 'kmt_kmin');
 add_default($nl, 'partial_bottom_cells');
-add_default($nl, 'bottom_cell_file');    
+add_default($nl, 'bottom_cell_file', 'nofail'=>1);    
 add_default($nl, 'n_topo_smooth');
 add_default($nl, 'flat_bottom');
 add_default($nl, 'region_mask_file');
@@ -1092,13 +1092,16 @@ add_default($nl,'lccsm_control_compatible');
 # namelist group: overflows_nml          #
 ##########################################
 
-if (-f "${my_path}/${ocn_grid}_overflows") {
-    add_default($nl,'overflows_infile', 
-		'val'=>"${my_path}/${ocn_grid}_overflow");
-} else {
-    add_default($nl,'overflows_infile', 
-		'val'=>"$coderoot/ocn/pop2/input_templates/${ocn_grid}_overflow");
+if ($ocn_grid =~ /^gx*/) {
+    if (-f "${my_path}/${ocn_grid}_overflows") {
+	add_default($nl,'overflows_infile', 
+		    'val'=>"${my_path}/${ocn_grid}_overflow");
+    } else {
+	add_default($nl,'overflows_infile', 
+		    'val'=>"$coderoot/ocn/pop2/input_templates/${ocn_grid}_overflow");
+    }
 }
+
 add_default($nl,'overflows_on');
 add_default($nl,'overflows_interactive');
 add_default($nl,'overflows_diag_outfile', 'val'=>"$exeroot/run/${output_d}o");
