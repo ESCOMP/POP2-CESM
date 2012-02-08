@@ -3091,7 +3091,7 @@ Default: .true.
 
 <entry 
 id="tavg_freq_opt"
-type="char*256(3)"
+type="char*256(9)"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
@@ -3100,7 +3100,7 @@ Default: 'nmonth' 'nday' 'once'
 
 <entry 
 id="tavg_freq"
-type="integer(3)"
+type="integer(9)"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
@@ -3109,7 +3109,7 @@ Default: 1 1 1
 
 <entry 
 id="tavg_file_freq_opt"
-type="char*256(3)"
+type="char*256(9)"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
@@ -3118,7 +3118,7 @@ Default: 'nmonth' 'nmonth' 'once'
 
 <entry 
 id="tavg_file_freq"
-type="integer(3)"
+type="integer(9)"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
@@ -3127,7 +3127,7 @@ Default: 1 1 1
 
 <entry 
 id="tavg_stream_filestrings"
-type="char*256(3)"
+type="char*256(9)"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
@@ -3136,7 +3136,7 @@ Default: 'nmonth1' 'nday1' 'once'
 
 <entry 
 id="tavg_start_opt"
-type="char*256(3)"
+type="char*256(9)"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
@@ -3145,7 +3145,7 @@ Default: 'nstep' 'nstep' 'nstep'
 
 <entry 
 id="tavg_start"
-type="integer(3)"
+type="integer(9)"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
@@ -3154,7 +3154,7 @@ Default: 0 0 0
 
 <entry 
 id="tavg_fmt_in"
-type="char*256(3)"
+type="char*256(9)"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
@@ -3163,7 +3163,7 @@ Default: 'nc' 'nc' 'nc'
 
 <entry 
 id="tavg_fmt_out"
-type="char*256(3)"
+type="char*256(9)"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
@@ -3208,7 +3208,7 @@ Default: './btempb10.pop.h'
 
 <entry 
 id="ltavg_has_offset_date"
-type="logical(3)"
+type="logical(9)"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
@@ -3217,7 +3217,7 @@ Default: .false. .false. .false.
 
 <entry 
 id="tavg_offset_years"
-type="integer(3)"
+type="integer(9)"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
@@ -3226,7 +3226,7 @@ Default: 1 1 1
 
 <entry 
 id="tavg_offset_months"
-type="integer(3)"
+type="integer(9)"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
@@ -3235,7 +3235,7 @@ Default: 1 1 1
 
 <entry 
 id="tavg_offset_days"
-type="integer(3)"
+type="integer(9)"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
@@ -3244,7 +3244,7 @@ Default: 2 2 2
 
 <entry 
 id="ltavg_one_time_header"
-type="logical(3)"
+type="logical(9)"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
