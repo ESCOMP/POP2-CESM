@@ -336,9 +336,9 @@ if (defined $opts{'infile'}) {
 # Determine grid from configuration object
 #-----------------------------------------------------------------------------------------------
 my $ocn_grid = $cfg->get('ocn_grid');
-print "pop2 build-namelist debug: ocn_tracer_mode is $ocn_tracer_modules \n";
-print "pop2 build-namelist debug: ocn_grid is $ocn_grid \n";
 
+print "  POP2 build-namelist: ocn_tracer_mode is $ocn_tracer_modules \n";
+print "  POP2 build-namelist: ocn_grid is $ocn_grid \n";
 
 #-----------------------------------------------------------------------------------------------
 # Determine namelist 
@@ -662,101 +662,67 @@ add_default($nl, 'lsubmesoscale_mixing');
 # namelist group: hmix_del2u_nml         #
 ##########################################
 
-if ($ocn_grid eq "gx3v7") {
-    $nl->set_variable_value('hmix_del2u_nml', 'lauto_hmix'    , ".false.");
-    $nl->set_variable_value('hmix_del2u_nml', 'lvariable_hmix', ".false.");
-    $nl->set_variable_value('hmix_del2u_nml', 'am' , '3.0e9');
-}
-if ($ocn_grid eq "gx1v6") {
-    $nl->set_variable_value('hmix_del2u_nml', 'lauto_hmix'    , ".false.");
-    $nl->set_variable_value('hmix_del2u_nml', 'lvariable_hmix', ".false.");
-    $nl->set_variable_value('hmix_del2u_nml', 'am' , '0.5e8');
-}
-if ($ocn_grid eq "tx1v1") {
-    $nl->set_variable_value('hmix_del2u_nml', 'lauto_hmix'    , ".true.");
-    $nl->set_variable_value('hmix_del2u_nml', 'lvariable_hmix', ".false.");
-    $nl->set_variable_value('hmix_del2u_nml', 'am' , '0.5e8');
-}
-if ($ocn_grid eq "tx0.1v2") {
-    $nl->set_variable_value('hmix_del2u_nml', 'lauto_hmix'    , ".true.");
-    $nl->set_variable_value('hmix_del2u_nml', 'lvariable_hmix', ".false.");
-    $nl->set_variable_value('hmix_del2u_nml', 'am' , '1.e8');
-}
+my $derived;
+
+add_default($nl, 'lauto_hmix%hmix_del2u_nml'); 
+$derived = $nl->get_value('lauto_hmix%hmix_del2u_nml'); 
+$nl->set_variable_value('hmix_del2u_nml', 'lauto_hmix', "$derived");
+
+add_default($nl, 'lvariable_hmix%hmix_del2u_nml'); 
+$derived = $nl->get_value('lvariable_hmix%hmix_del2u_nml'); 
+$nl->set_variable_value('hmix_del2u_nml', 'lvariable_hmix', "$derived");
+
+add_default($nl, 'am%hmix_del2u_nml'); 
+$derived = $nl->get_value('am%hmix_del2u_nml'); 
+$nl->set_variable_value('hmix_del2u_nml', 'am', "$derived");
 
 ##########################################
 # namelist group: hmix_del2t_nml         #
 ##########################################
 
-if ($ocn_grid eq "gx3v7") {
-    $nl->set_variable_value('hmix_del2t_nml', 'lauto_hmix'    , ".false.");
-    $nl->set_variable_value('hmix_del2t_nml', 'lvariable_hmix', ".false.");
-    $nl->set_variable_value('hmix_del2t_nml', 'ah' , '1.0e7');
-}
-if ($ocn_grid eq "gx1v6") {
-    $nl->set_variable_value('hmix_del2t_nml', 'lauto_hmix'    , ".false.");
-    $nl->set_variable_value('hmix_del2t_nml', 'lvariable_hmix', ".false.");
-    $nl->set_variable_value('hmix_del2t_nml', 'ah' , '0.6e7');
-}
-if ($ocn_grid eq "tx1v1") {
-    $nl->set_variable_value('hmix_del2t_nml', 'lauto_hmix'    , ".false.");
-    $nl->set_variable_value('hmix_del2t_nml', 'lvariable_hmix', ".true.");
-    $nl->set_variable_value('hmix_del2t_nml', 'ah' , '0.6e7');
-}
-if ($ocn_grid eq "tx0.1v2") {
-    $nl->set_variable_value('hmix_del2t_nml', 'lauto_hmix'    , ".false.");
-    $nl->set_variable_value('hmix_del2t_nml', 'lvariable_hmix', ".true.");
-    $nl->set_variable_value('hmix_del2t_nml', 'ah' , '1.e8');
-}
+add_default($nl, 'lauto_hmix%hmix_del2t_nml'); 
+$derived = $nl->get_value('lauto_hmix%hmix_del2t_nml');
+$nl->set_variable_value('hmix_del2t_nml', 'lauto_hmix', "$derived");
+
+add_default($nl, 'lvariable_hmix%hmix_del2t_nml'); 
+$derived = $nl->get_value('lvariable_hmix%hmix_del2t_nml'); 
+$nl->set_variable_value('hmix_del2t_nml', 'lvariable_hmix', "$derived");
+
+add_default($nl, 'ah%hmix_del2t_nml'); 
+$derived = $nl->get_value('ah%hmix_del2t_nml'); 
+$nl->set_variable_value('hmix_del2t_nml', 'ah', "$derived");
 
 ##########################################
 # namelist group: hmix_del4u_nml         #
 ##########################################
 
-if ($ocn_grid eq "gx3v7") {
-    $nl->set_variable_value('hmix_del4u_nml', 'lauto_hmix'    , ".false.");
-    $nl->set_variable_value('hmix_del4u_nml', 'lvariable_hmix', ".false.");
-    $nl->set_variable_value('hmix_del4u_nml', 'am' , '-0.6e20');
-}
-if ($ocn_grid eq "gx1v6") {
-    $nl->set_variable_value('hmix_del4u_nml', 'lauto_hmix'    , ".false.");
-    $nl->set_variable_value('hmix_del4u_nml', 'lvariable_hmix', ".false.");
-    $nl->set_variable_value('hmix_del4u_nml', 'am' , '-0.6e20');
-}
-if ($ocn_grid eq "tx1v1") {
-    $nl->set_variable_value('hmix_del4u_nml', 'lauto_hmix'    , ".false.");
-    $nl->set_variable_value('hmix_del4u_nml', 'lvariable_hmix', ".false.");
-    $nl->set_variable_value('hmix_del4u_nml', 'am' , '-0.6e20');
-}
-if ($ocn_grid eq "tx0.1v2") {
-    $nl->set_variable_value('hmix_del4u_nml', 'lauto_hmix'    , ".false.");
-    $nl->set_variable_value('hmix_del4u_nml', 'lvariable_hmix', ".true.");
-    $nl->set_variable_value('hmix_del4u_nml', 'am' , '-27.0e17');
-}
+add_default($nl, 'lauto_hmix%hmix_del4u_nml'); 
+$derived = $nl->get_value('lauto_hmix%hmix_del4u_nml'); 
+$nl->set_variable_value('hmix_del4u_nml', 'lauto_hmix', "$derived");
+
+add_default($nl, 'lvariable_hmix%hmix_del4u_nml'); 
+$derived = $nl->get_value('lvariable_hmix%hmix_del4u_nml'); 
+$nl->set_variable_value('hmix_del4u_nml', 'lvariable_hmix', "$derived");
+
+add_default($nl, 'am%hmix_del4u_nml'); 
+$derived = $nl->get_value('am%hmix_del4u_nml'); 
+$nl->set_variable_value('hmix_del4u_nml', 'am', "$derived");
 
 ##########################################
 # namelist group: hmix_del4t_nml         #
 ##########################################
 
-if ($ocn_grid eq "gx3v7") {
-    $nl->set_variable_value('hmix_del4t_nml', 'lauto_hmix'    , ".false.");
-    $nl->set_variable_value('hmix_del4t_nml', 'lvariable_hmix', ".false.");
-    $nl->set_variable_value('hmix_del4t_nml', 'ah' , '-0.2e20');
-}
-if ($ocn_grid eq "gx1v6") {
-    $nl->set_variable_value('hmix_del4t_nml', 'lauto_hmix'    , ".false.");
-    $nl->set_variable_value('hmix_del4t_nml', 'lvariable_hmix', ".false.");
-    $nl->set_variable_value('hmix_del4t_nml', 'ah' , '-0.2e20');
-}
-if ($ocn_grid eq "tx1v1") {
-    $nl->set_variable_value('hmix_del4t_nml', 'lauto_hmix'    , ".false.");
-    $nl->set_variable_value('hmix_del4t_nml', 'lvariable_hmix', ".false.");
-    $nl->set_variable_value('hmix_del4t_nml', 'ah' , '-0.2e20');
-}
-if ($ocn_grid eq "tx0.1v2") {
-    $nl->set_variable_value('hmix_del4t_nml', 'lauto_hmix'    , ".false.");
-    $nl->set_variable_value('hmix_del4t_nml', 'lvariable_hmix', ".true.");
-    $nl->set_variable_value('hmix_del4t_nml', 'ah' , '-3.0e17');
-}
+add_default($nl, 'lauto_hmix%hmix_del4t_nml'); 
+$derived = $nl->get_value('lauto_hmix%hmix_del4t_nml'); 
+$nl->set_variable_value('hmix_del4t_nml', 'lauto_hmix', "$derived");
+
+add_default($nl, 'lvariable_hmix%hmix_del4t_nml'); 
+$derived = $nl->get_value('lvariable_hmix%hmix_del4t_nml'); 
+$nl->set_variable_value('hmix_del4t_nml', 'lvariable_hmix', "$derived");
+
+add_default($nl, 'ah%hmix_del4t_nml'); 
+$derived = $nl->get_value('ah%hmix_del4t_nml'); 
+$nl->set_variable_value('hmix_del4t_nml', 'ah', "$derived");
 
 ##########################################
 # namelist group: hmix_gm_nml            #
@@ -774,47 +740,26 @@ my $kappa_thic_choice = $nl->get_value('kappa_thic_choice');
 $kappa_isop_choice =~ s/[\'\"]//g;
 $kappa_thic_choice =~ s/[\'\"]//g;
 
-my $ah_gm_value;
-if (($kappa_isop_choice =~ /edgr/) && ($kappa_thic_choice =~ /edgr/)) {
-    $ah_gm_value  = '1.0'; # in this instance, this is irrelevant
-}
-if ( $ocn_grid =~ /gx3v7/ ) {
-    if (($kappa_isop_choice =~ /constant/) && ($kappa_thic_choice =~ /constant/)) { 
-	$ah_gm_value    = '0.8e7';
-    } 
-    if (($kappa_isop_choice =~ /bfre/) && ($kappa_thic_choice =~ /bfre/)) { 
-	$ah_gm_value    = '4.0e7';
-    }
-} 
-if ( $ocn_grid =~ /gx1v6/ ) {
-    if (($kappa_isop_choice =~ /constant/) && ($kappa_thic_choice =~ /constant/)) { 
-	$ah_gm_value    = '0.6e7';
-    } 
-    if (($kappa_isop_choice =~ /bfre/) && ($kappa_thic_choice =~ /bfre/)) { 
-	$ah_gm_value    = '3.0e7';
-    }
-} 
-if ( $ocn_grid =~ /tx1v1/ ) {
-    if (($kappa_isop_choice =~ /constant/) && ($kappa_thic_choice =~ /constant/)) { 
-	$ah_gm_value    = '0.6e7';
-    } 
-    if (($kappa_isop_choice =~ /bfre/) && ($kappa_thic_choice =~ /bfre/)) { 
-	$ah_gm_value    = '3.0e7';
-    }
-} 
-if ( $ocn_grid =~ /tx0.1v2/ ) {
-    if (($kappa_isop_choice =~ /constant/) && ($kappa_thic_choice =~ /constant/)) { 
-	$ah_gm_value    = '0.6e7';
-    } 
-    if (($kappa_isop_choice =~ /bfre/) && ($kappa_thic_choice =~ /bfre/)) {
-	$ah_gm_value    = '3.0e7';
-    }
-}
+# note that ah_gm_value is explicitly put below since ah is 
+# contained in several namelist variables
 
-# note that ah_gm_value is explicitly put here since ah is contained in several namelist variables
+add_default($nl, 'ah_bolus'    , 
+	    'kappa_isop_choice'=>"$kappa_isop_choice", 
+	    'kappa_thic_choice'=>"$kappa_thic_choice");
+add_default($nl, 'ah_bkg_srfbl', 
+	    'kappa_isop_choice'=>"$kappa_isop_choice", 
+	    'kappa_thic_choice'=>"$kappa_thic_choice");
+add_default($nl, 'use_const_ah_bkg_srfbl', 
+	    'kappa_isop_choice'=>"$kappa_isop_choice", 
+	    'kappa_thic_choice'=>"$kappa_thic_choice");
+add_default($nl, 'ah%hmix_gm_nml', 
+	    'kappa_isop_choice'=>"$kappa_isop_choice", 
+	    'kappa_thic_choice'=>"$kappa_thic_choice");
+my $ah_gm_value = $nl->get_value('ah%hmix_gm_nml');
 $nl->set_variable_value('hmix_gm_nml', 'ah', "$ah_gm_value");
 
-# note that ocn_grid dependence for ah_bolus, ah_bkg_srfbl is obtained from config_cache.xml
+# note that ocn_grid dependence for ah_bolus, ah_bkg_srfbl 
+# is obtained from config_cache.xml
 
 if (-f "${my_path}/buoyancy_freq") {
     add_default($nl, 'buoyancy_freq_filename', 
@@ -824,13 +769,6 @@ if (-f "${my_path}/buoyancy_freq") {
 		'val'=>"$coderoot/ocn/pop2/input_templates/buoyancy_freq");
 }
 
-
-add_default($nl, 'ah_bolus'    , 'kappa_isop_choice'=>"$kappa_isop_choice", 
-	    'kappa_thic_choice'=>"$kappa_thic_choice");
-add_default($nl, 'ah_bkg_srfbl', 'kappa_isop_choice'=>"$kappa_isop_choice", 
-	    'kappa_thic_choice'=>"$kappa_thic_choice");
-add_default($nl, 'use_const_ah_bkg_srfbl', 'kappa_isop_choice'=>"$kappa_isop_choice", 
-	    'kappa_thic_choice'=>"$kappa_thic_choice");
 add_default($nl, 'diag_gm_bolus');
 add_default($nl, 'kappa_freq_choice');
 add_default($nl, 'slope_control_choice');

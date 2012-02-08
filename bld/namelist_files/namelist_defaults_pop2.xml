@@ -764,5 +764,81 @@
 <ndep_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850-2005_gx3v7_c100612.nc</ndep_shr_stream_file> 
 <ndep_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_gx1v6_c100612.nc</ndep_shr_stream_file> 
 
+<!----------------------------------->
+<!--derived - thare are temporary --->
+<!--names for variables with the  --->
+<!--same name in multiple groups  --->
+<!----------------------------------->
+
+<lauto_hmix%hmix_del2u_nml ocn_grid="gx3v7"  >.false.</lauto_hmix%hmix_del2u_nml> 
+<lauto_hmix%hmix_del2u_nml ocn_grid="gx1v6"  >.false.</lauto_hmix%hmix_del2u_nml> 
+<lauto_hmix%hmix_del2u_nml ocn_grid="tx1v1"  >.true.</lauto_hmix%hmix_del2u_nml> 
+<lauto_hmix%hmix_del2u_nml ocn_grid="tx0.1v2">.true.</lauto_hmix%hmix_del2u_nml> 
+						     			   
+<lauto_hmix%hmix_del2t_nml ocn_grid="gx3v7"  >.false.</lauto_hmix%hmix_del2t_nml> 
+<lauto_hmix%hmix_del2t_nml ocn_grid="gx1v6"  >.false.</lauto_hmix%hmix_del2t_nml> 
+<lauto_hmix%hmix_del2t_nml ocn_grid="tx1v1"  >.false.</lauto_hmix%hmix_del2t_nml> 
+<lauto_hmix%hmix_del2t_nml ocn_grid="tx0.1v2">.false.</lauto_hmix%hmix_del2t_nml> 
+						     			   
+<lauto_hmix%hmix_del4u_nml ocn_grid="gx3v7"  >.false.</lauto_hmix%hmix_del4u_nml> 
+<lauto_hmix%hmix_del4u_nml ocn_grid="gx1v6"  >.false.</lauto_hmix%hmix_del4u_nml> 
+<lauto_hmix%hmix_del4u_nml ocn_grid="tx1v1"  >.false.</lauto_hmix%hmix_del4u_nml> 
+<lauto_hmix%hmix_del4u_nml ocn_grid="tx0.1v2">.false.</lauto_hmix%hmix_del4u_nml> 
+						     			   
+<lauto_hmix%hmix_del4t_nml ocn_grid="gx3v7"  >.false.</lauto_hmix%hmix_del4t_nml> 
+<lauto_hmix%hmix_del4t_nml ocn_grid="gx1v6"  >.false.</lauto_hmix%hmix_del4t_nml> 
+<lauto_hmix%hmix_del4t_nml ocn_grid="tx1v1"  >.false.</lauto_hmix%hmix_del4t_nml> 
+<lauto_hmix%hmix_del4t_nml ocn_grid="tx0.1v2">.false.</lauto_hmix%hmix_del4t_nml> 
+
+<lvariable_hmix%hmix_del2u_nml ocn_grid="gx3v7"  >.false.</lvariable_hmix%hmix_del2u_nml> 
+<lvariable_hmix%hmix_del2u_nml ocn_grid="gx1v6"  >.false.</lvariable_hmix%hmix_del2u_nml> 
+<lvariable_hmix%hmix_del2u_nml ocn_grid="tx1v1"  >.false.</lvariable_hmix%hmix_del2u_nml> 
+<lvariable_hmix%hmix_del2u_nml ocn_grid="tx0.1v2">.false.</lvariable_hmix%hmix_del2u_nml> 
+						     			   
+<lvariable_hmix%hmix_del2t_nml ocn_grid="gx3v7"  >.false.</lvariable_hmix%hmix_del2t_nml> 
+<lvariable_hmix%hmix_del2t_nml ocn_grid="gx1v6"  >.false.</lvariable_hmix%hmix_del2t_nml> 
+<lvariable_hmix%hmix_del2t_nml ocn_grid="tx1v1"  >.true.</lvariable_hmix%hmix_del2t_nml> 
+<lvariable_hmix%hmix_del2t_nml ocn_grid="tx0.1v2">.true.</lvariable_hmix%hmix_del2t_nml> 
+						     			   
+<lvariable_hmix%hmix_del4u_nml ocn_grid="gx3v7"  >.false.</lvariable_hmix%hmix_del4u_nml> 
+<lvariable_hmix%hmix_del4u_nml ocn_grid="gx1v6"  >.false.</lvariable_hmix%hmix_del4u_nml> 
+<lvariable_hmix%hmix_del4u_nml ocn_grid="tx1v1"  >.false.</lvariable_hmix%hmix_del4u_nml> 
+<lvariable_hmix%hmix_del4u_nml ocn_grid="tx0.1v2">.true.</lvariable_hmix%hmix_del4u_nml> 
+						     			   
+<lvariable_hmix%hmix_del4t_nml ocn_grid="gx3v7"  >.false.</lvariable_hmix%hmix_del4t_nml> 
+<lvariable_hmix%hmix_del4t_nml ocn_grid="gx1v6"  >.false.</lvariable_hmix%hmix_del4t_nml> 
+<lvariable_hmix%hmix_del4t_nml ocn_grid="tx1v1"  >.false.</lvariable_hmix%hmix_del4t_nml> 
+<lvariable_hmix%hmix_del4t_nml ocn_grid="tx0.1v2">.true.</lvariable_hmix%hmix_del4t_nml> 
+
+<am%hmix_del2u_nml ocn_grid="gx3v7"  >3.0e9</am%hmix_del2u_nml>
+<am%hmix_del2u_nml ocn_grid="gx1v6"  >0.5e8</am%hmix_del2u_nml>
+<am%hmix_del2u_nml ocn_grid="tx1v1"  >0.5e8</am%hmix_del2u_nml>
+<am%hmix_del2u_nml ocn_grid="tx0.1v2">1.e8</am%hmix_del2u_nml>
+
+<ah%hmix_del2t_nml ocn_grid="gx3v7"  >1.0e7</ah%hmix_del2t_nml>
+<ah%hmix_del2t_nml ocn_grid="gx1v6"  >0.6e7</ah%hmix_del2t_nml>
+<ah%hmix_del2t_nml ocn_grid="tx1v1"  >0.6e7</ah%hmix_del2t_nml>
+<ah%hmix_del2t_nml ocn_grid="tx0.1v2">1.e8</ah%hmix_del2t_nml>
+
+<am%hmix_del4u_nml ocn_grid="gx3v7"  >-0.6e20</am%hmix_del4u_nml>
+<am%hmix_del4u_nml ocn_grid="gx1v6"  >-0.6e20</am%hmix_del4u_nml>
+<am%hmix_del4u_nml ocn_grid="tx1v1"  >-0.6e20</am%hmix_del4u_nml>
+<am%hmix_del4u_nml ocn_grid="tx0.1v2">-27.0e17</am%hmix_del4u_nml>
+
+<ah%hmix_del4t_nml ocn_grid="gx3v7"  >-0.2e20</ah%hmix_del4t_nml>
+<ah%hmix_del4t_nml ocn_grid="gx1v6"  >-0.2e20</ah%hmix_del4t_nml>
+<ah%hmix_del4t_nml ocn_grid="tx1v1"  >-0.2e20</ah%hmix_del4t_nml>
+<ah%hmix_del4t_nml ocn_grid="tx0.1v2">-3.0e17</ah%hmix_del4t_nml>
+
+<ah%hmix_gm_nml                    kappa_isop_choice="edgr"     kappa_thic_choice="edgr"    >1.0</ah%hmix_gm_nml>  
+<ah%hmix_gm_nml ocn_grid="gx3v7"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.8e7</ah%hmix_gm_nml>  
+<ah%hmix_gm_nml ocn_grid="gx3v7"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >4.0e7</ah%hmix_gm_nml>  
+<ah%hmix_gm_nml ocn_grid="gx1v6"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah%hmix_gm_nml>  
+<ah%hmix_gm_nml ocn_grid="gx1v6"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah%hmix_gm_nml>  
+<ah%hmix_gm_nml ocn_grid="tx1v1"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah%hmix_gm_nml>  
+<ah%hmix_gm_nml ocn_grid="tx1v1"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah%hmix_gm_nml>  
+<ah%hmix_gm_nml ocn_grid="tx0.1v2" kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah%hmix_gm_nml>  
+<ah%hmix_gm_nml ocn_grid="tx0.1v2" kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah%hmix_gm_nml>  
+
 </namelist_defaults>
 

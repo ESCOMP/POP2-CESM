@@ -1392,7 +1392,7 @@ Default: .false.
 
 <entry 
 id="am"
-type="hmix_del2u_nml"
+type="real"
 category="pop2"
 group="hmix_del2u_nml"
 valid_values="" >
@@ -1423,7 +1423,7 @@ Default: .false.
 
 <entry 
 id="ah"
-type="logical"
+type="real"
 category="pop2"
 group="hmix_del2t_nml"
 valid_values="" >
@@ -3848,6 +3848,116 @@ category="pop2"
 group="ecosys_nml"
 valid_values="" >
 Default:  
+</entry>
+
+
+<!------------------------------------->
+<!---unused drived                 ---->
+<!------------------------------------->
+
+<entry 
+id="lauto_hmix%hmix_del2u_nml"
+type="logical"
+category="pop2"
+group="derived"
+valid_values="" >
+</entry>
+
+<entry 
+id="lauto_hmix%hmix_del2t_nml"
+type="logical"
+category="pop2"
+group="derived"
+valid_values="" >
+</entry>
+
+<entry 
+id="lauto_hmix%hmix_del4u_nml"
+type="logical"
+category="pop2"
+group="derived"
+valid_values="" >
+</entry>
+
+<entry 
+id="lauto_hmix%hmix_del4t_nml"
+type="logical"
+category="pop2"
+group="derived"
+valid_values="" >
+Default: .false.
+</entry>
+
+<entry 
+id="lvariable_hmix%hmix_del2u_nml"
+type="logical"
+category="pop2"
+group="derived"
+valid_values="" >
+</entry>
+
+<entry 
+id="lvariable_hmix%hmix_del2t_nml"
+type="logical"
+category="pop2"
+group="derived"
+valid_values="" >
+</entry>
+
+<entry 
+id="lvariable_hmix%hmix_del4u_nml"
+type="logical"
+category="pop2"
+group="derived"
+valid_values="" >
+</entry>
+
+<entry 
+id="lvariable_hmix%hmix_del4t_nml"
+type="logical"
+category="pop2"
+group="derived"
+valid_values="" >
+</entry>
+
+<entry 
+id="am%hmix_del2u_nml"
+type="real"
+category="pop2"
+group="derived"
+valid_values="" >
+</entry>
+
+<entry 
+id="am%hmix_del4u_nml"
+type="real"
+category="pop2"
+group="derived"
+valid_values="" >
+</entry>
+
+<entry 
+id="ah%hmix_del2t_nml"
+type="real"
+category="pop2"
+group="derived"
+valid_values="" >
+</entry>
+
+<entry 
+id="ah%hmix_del4t_nml"
+type="real"
+category="pop2"
+group="derived"
+valid_values="" >
+</entry>
+
+<entry 
+id="ah%hmix_gm_nml"
+type="real"
+category="pop2"
+group="derived"
+valid_values="" >
 </entry>
 
 </namelist_definition>
