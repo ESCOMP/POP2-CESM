@@ -1039,7 +1039,7 @@ if ($ocn_grid =~ /^gx*/) {
 add_default($nl,'overflows_on');
 add_default($nl,'overflows_interactive');
 add_default($nl,'overflows_diag_outfile', 'val'=>"$exeroot/run/${output_d}o");
-add_default($nl,'overflows_restart_type', 'val'=>"ccsm_$runtype");
+add_default($nl,'overflows_restart_type', 'val'=>"ccsm_${runtype}");
 add_default($nl,'overflows_restfile'    , 'val'=>"${output_r}o");
 
 ##########################################
@@ -1114,18 +1114,6 @@ if ($ocn_tracer_modules =~ /ecosys/) {
 	die;
     }
 
-    my $IC_file_nml;
-    if ($runtype eq "startup") {
-	if ($ocn_grid eq "gx3v7") {
-	    $IC_file_nml  = "ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20100514.nc";
-	}
-	if ($ocn_grid eq "gx1v6") {
-	    $IC_file_nml  = "ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20100514.nc";
-	}
-    }  else {
-	$IC_file_nml = "same_as_TS";
-    }
-
     my $atm_co2_opt;
     if ($ocn_co2_type eq "constant") {
 	$atm_co2_opt = "const";
@@ -1146,71 +1134,67 @@ if ($ocn_tracer_modules =~ /ecosys/) {
 	$locmip_k1_k2_bug_fix = ".false.";
     }
 
-    my $use_nml_surf_vals;
+    add_default($nl, 'init_ecosys_option', 'val'=>"ccsm_${runtype}");
     if ($runtype eq "startup") {
-	$use_nml_surf_vals = ".true.";
+	add_default($nl, 'init_ecosys_init_file');
     } else {
-	$use_nml_surf_vals = ".false.";
-    }
-
-    add_default($nl, 'init_ecosys_option'              , 'val'=>"ccsm_${runtype}");
-    add_default($nl, 'init_ecosys_init_file'           , 'val'=>"$IC_file_nml");
+	add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS");
+    }	
     add_default($nl, 'init_ecosys_init_file_fmt');
-    add_default($nl, 'tracer_init_ext(1)%mod_varname'  , 'val'=>'ALK');
+    add_default($nl, 'tracer_init_ext(1)%mod_varname');
     add_default($nl, 'tracer_init_ext(1)%scale_factor');
-    add_default($nl, 'tracer_init_ext(2)%mod_varname'  , 'val'=>'DIC');
+    add_default($nl, 'tracer_init_ext(2)%mod_varname');
     add_default($nl, 'tracer_init_ext(2)%scale_factor');
-    add_default($nl, 'tracer_init_ext(3)%mod_varname'  , 'val'=>'O2');
+    add_default($nl, 'tracer_init_ext(3)%mod_varname');
     add_default($nl, 'tracer_init_ext(3)%scale_factor');
-    add_default($nl, 'lflux_gas_o2'                    , 'val'=>'.true.');
-    add_default($nl, 'lflux_gas_co2'                   , 'val'=>'.true.');
-    add_default($nl, 'locmip_k1_k2_bug_fix'            , 'val'=>"$locmip_k1_k2_bug_fix");
-    add_default($nl, 'atm_co2_opt'                     , 'val'=>"$atm_co2_opt");
-    add_default($nl, 'atm_co2_const'                   , 'val'=>"$ccsm_co2_ppmv");
-    add_default($nl, 'ecosys_tadvect_ctype'            , 'val'=>'base_model');
-    add_default($nl, 'gas_flux_forcing_opt'            , 'val'=>'drv');
-    add_default($nl, 'lmarginal_seas'                  , 'val'=>'.true.');
-    add_default($nl, 'lsource_sink'                    , 'val'=>'.true.');
-    add_default($nl, 'comp_surf_avg_freq_opt'          , 'val'=>'never');
-    add_default($nl, 'comp_surf_avg_freq'              , 'val'=>'1');
-    add_default($nl, 'use_nml_surf_vals'               , 'val'=>"$use_nml_surf_vals");
-    add_default($nl, 'surf_avg_dic_const'              , 'val'=>'1944.0');
-    add_default($nl, 'surf_avg_alk_const'              , 'val'=>'2225.0');
-    add_default($nl, 'ecosys_qsw_distrb_const'         , 'val'=>'.false.');
-   #add_default($nl, 'iron_dust_flx_data_type'         , 'val'=>'monthly');
+    add_default($nl, 'lflux_gas_o2');
+    add_default($nl, 'lflux_gas_co2');
+    add_default($nl, 'locmip_k1_k2_bug_fix', 'val'=>"$locmip_k1_k2_bug_fix");
+    add_default($nl, 'atm_co2_opt', 'val'=>"$atm_co2_opt");
+    add_default($nl, 'atm_co2_const', 'val'=>"$ccsm_co2_ppmv");
+    add_default($nl, 'ecosys_tadvect_ctype');
+    add_default($nl, 'gas_flux_forcing_opt');
+    add_default($nl, 'lmarginal_seas');
+    add_default($nl, 'lsource_sink');
+    add_default($nl, 'comp_surf_avg_freq_opt');
+    add_default($nl, 'comp_surf_avg_freq');
+    add_default($nl, 'use_nml_surf_vals', 'runtype'=>"$runtype");
+    add_default($nl, 'surf_avg_dic_const');
+    add_default($nl, 'surf_avg_alk_const');
+    add_default($nl, 'ecosys_qsw_distrb_const');
+   #add_default($nl, 'iron_dust_flx_data_type');
     add_default($nl, 'dust_flux_input%filename');
-    add_default($nl, 'dust_flux_input%file_fmt'        , 'val'=>'nc');
-    add_default($nl, 'dust_flux_input%file_varname'    , 'val'=>'DSTSF');
-    add_default($nl, 'dust_flux_input%scale_factor'    , 'val'=>'1.0e-1');    # kg/m^2/sec -> g/cm^2/sec
+    add_default($nl, 'dust_flux_input%file_fmt');
+    add_default($nl, 'dust_flux_input%file_varname');
+    add_default($nl, 'dust_flux_input%scale_factor');  # kg/m^2/sec -> g/cm^2/sec
     add_default($nl, 'iron_flux_input%filename');
-    add_default($nl, 'iron_flux_input%file_fmt'        , 'val'=>'nc');
-    add_default($nl, 'iron_flux_input%file_varname'    , 'val'=>'DSTSF');
-    add_default($nl, 'iron_flux_input%scale_factor'    , 'val'=>'6.2668e4');  # kg/m^2/sec -> nmol/cm^2/sec, 3.5% iron by weight
+    add_default($nl, 'iron_flux_input%file_fmt');
+    add_default($nl, 'iron_flux_input%file_varname');
+    add_default($nl, 'iron_flux_input%scale_factor');  # kg/m^2/sec -> nmol/cm^2/sec, 3.5% iron by weight
     add_default($nl, 'fesedflux_input%filename');
-    add_default($nl, 'fesedflux_input%file_varname'    , 'val'=>'FESEDFLUXIN');
-    add_default($nl, 'fesedflux_input%file_fmt'        , 'val'=>'nc');
-    add_default($nl, 'fesedflux_input%scale_factor'    , 'val'=>'1.1574e-6'); # umolFe/m2/day -> nmolFe/cm2/s
+    add_default($nl, 'fesedflux_input%file_varname');
+    add_default($nl, 'fesedflux_input%file_fmt');
+    add_default($nl, 'fesedflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
     if ($ocn_transient eq "unset") {
-	add_default($nl, 'ndep_data_type'                     , 'val'=>'monthly-calendar');
+	add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$ocn_transient");
 	add_default($nl, 'nox_flux_monthly_input%filename');
-	add_default($nl, 'nox_flux_monthly_input%file_fmt'    , 'val'=>'nc');
-	add_default($nl, 'nox_flux_monthly_input%file_varname', 'val'=>'NOy_deposition');
+	add_default($nl, 'nox_flux_monthly_input%file_fmt');
+	add_default($nl, 'nox_flux_monthly_input%file_varname');
 	add_default($nl, 'nhy_flux_monthly_input%filename');
-	add_default($nl, 'nox_flux_monthly_input%scale_factor', 'val'=>'7.1429e+06');  # kgN/m^2/sec -> nmolN/cm^2/sec
-	add_default($nl, 'nhy_flux_monthly_input%file_fmt'    , 'val'=>'nc');
-	add_default($nl, 'nhy_flux_monthly_input%file_varname', 'val'=>'NHx_deposition');
-	add_default($nl, 'nhy_flux_monthly_input%scale_factor', 'val'=>'7.1429e+06'); # kgN/m^2/sec -> nmolN/cm^2/sec
+	add_default($nl, 'nox_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
+	add_default($nl, 'nhy_flux_monthly_input%file_fmt');
+	add_default($nl, 'nhy_flux_monthly_input%file_varname');
+	add_default($nl, 'nhy_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
     }
     if ($ocn_transient eq "1850-2000") {
-	add_default($nl, 'ndep_data_type',              'val'=>'shr_stream');
-	add_default($nl, 'ndep_shr_stream_year_first',  'val'=>'1849');
-	add_default($nl, 'ndep_shr_stream_year_last',   'val'=>'2006');
-	add_default($nl, 'ndep_shr_stream_year_align',  'val'=>'1849');
-	add_default($nl, 'ndep_shr_stream_scale_factor','val'=>'7.1429e+06');  # kgN/m^2/sec -> nmolN/cm^2/sec
+	add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$ocn_transient");
+	add_default($nl, 'ndep_shr_stream_year_first');
+	add_default($nl, 'ndep_shr_stream_year_last');
+	add_default($nl, 'ndep_shr_stream_year_align');
+	add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
 	add_default($nl, 'ndep_shr_stream_file');
     }
-    add_default($nl, 'lecovars_full_depth_tavg', 'val'=>'.false.');
-
+    add_default($nl, 'lecovars_full_depth_tavg');
 }
 
 ##########################################
