@@ -163,20 +163,17 @@ my $ocn_tavg_tracer_budget = "$ENV{'OCN_TAVG_TRACER_BUDGET'}";
 my $ocn_tavg_hifreq        = "$ENV{'OCN_TAVG_HIFREQ'}";
 my $ntasks_ocn             = "$ENV{'NTASKS_OCN'}";
 my $ninst_ocn              = "$ENV{'NINST_OCN'}";
-my $BLCKX                  = "$ENV{'POP_BLCKX'}";   # cpp-ifdef
-my $BLCKY                  = "$ENV{'POP_BLCKY'}";   # cpp-ifdef
-my $MXBLCKS                = "$ENV{'POP_MXBLCKS'}"; # cpp-ifdef
 my $decomptype             = "$ENV{'POP_DECOMPTYPE'}";
 my $info_dbug              = "$ENV{'INFO_DBUG'}";
 my $restart_input_ts_fmt   = "$ENV{'RESTART_INPUT_TS_FMT'}";
 my $ocn_co2_flux_ocmip_bug_fix = "$ENV{'OCN_CO2_FLUX_OCMIP_BUG_FIX'}";
 
-my $output_r   = "./$case.pop.r";
-my $output_h   = "./$case.pop.h";
-my $output_d   =   "$case.pop.d";
-my $NTASKS     = $ntasks_ocn / $ninst_ocn; # cpp-ifdef
+my $output_r  = "./$case.pop.r";
+my $output_h  = "./$case.pop.h";
+my $output_d  =   "$case.pop.d";
+my $NTASKS    = $ntasks_ocn / $ninst_ocn; 
 
-my $my_path    = "${caseroot}/SourceMods/src.pop2";
+my $my_path   = "${caseroot}/SourceMods/src.pop2";
 
 my $runtype = $ENV{'RUN_TYPE'};
 if ($ENV{'CONTINUE_RUN'} eq 'TRUE') {
@@ -1390,36 +1387,6 @@ if ($opts{'test'}) {
 
 # Write  input dataset list.
 check_input_files($nl, $inputdata_rootdir, "../pop2.input_data_list");
-
-#-------------------------------------------------------------
-# **** Determine cpp variables and write out cppdefs file ****
-#-------------------------------------------------------------
-
-my $NT = 2;
-if ($ocn_tracer_modules =~ /iage/) {
-    $NT = $NT + 1;
-}
-if ($ocn_tracer_modules =~ /cfc/) {
-    $NT = $NT + 2;
-}
-if ($ocn_tracer_modules =~ /ecosys/) {
-    $NT = $NT + 24;
-}
-my $cppdefs = "-DCCSMCOUPLED -DBLCKX=$BLCKX -DBLCKY=$BLCKY -DMXBLCKS=$MXBLCKS -DNT=${NT}";
-if ($ocn_ice_forcing eq 'inactive' ) {
-    $cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL";
-}
-if ($ocn_grid =~ /tx0.1*/ ) {
-    $cppdefs = "$cppdefs -D_HIRES";
-}
-
-my $fh_out = new IO::File;
-$fh_out->open(">$caseroot/Buildconf/pop2conf/POP2_cppdefs.new") or 
-    die "** can't open filepath file: $caseroot/Buildconf/pop2conf/POP2_cppdefs.new\n";
-print $fh_out  <<"EOF";
-$cppdefs
-EOF
-$fh_out->close;
 
 #-----------------------------------------------------------
 # **** Define output tavg contents ****

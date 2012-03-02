@@ -67,7 +67,7 @@ while (\$ocn_inst_counter <= \$NINST_OCN)
     # pop rpointer name for multi-instance case
     foreach suffix ( ovf restart tavg ) 
        if (! -e \$RUNDIR/rpointer.ocn\${ocn_inst_string}.suffix && -e \$RUNDIR/rpointer.ocn.suffix ) then
-          cp \$RUNDIR/rpointer.ocn.$suffix \$RUNDIR/rpointer.ocn\${ocn_inst_string}.$suffix
+          cp \$RUNDIR/rpointer.ocn.\$suffix \$RUNDIR/rpointer.ocn\${ocn_inst_string}.\$suffix
        endif
     end 
     if (! -e \$RUNDIR/rpointer.ocn\${ocn_inst_string} && -e \$RUNDIR/rpointer.ocn) then
@@ -147,6 +147,26 @@ cd \${OBJROOT}/ocn/obj
 \cat >! Filepath <<EOF
 \$OBJROOT/ocn/source
 EOF
+
+@ NT = 2
+foreach module ( `echo \$OCN_TRACER_MODULES` )  
+   if (\$module =~ "iage"   ) @ NT = \$NT +  1
+   if (\$module =~ "cfc"    ) @ NT = \$NT +  2   
+   if (\$module =~ "ecosys" ) @ NT = \$NT + 24   
+end
+set cppdefs = "-DCCSMCOUPLED -DBLCKX=\$POP_BLCKX -DBLCKY=\$POP_BLCKY -DMXBLCKS=\$POP_MXBLCKS -DNT=\${NT}"
+if (\$OCN_ICE_FORCING == 'inactive' ) then
+    set cppdefs = "\$cppdefs -DZERO_SEA_ICE_REF_SAL"
+endif
+if (\$OCN_GRID =~ "tx0.1*" )  then
+    set cppdefs = "\$cppdefs -D_HIRES";
+endif
+cat >! \$CASEBUILD/pop2conf/POP2_cppdefs.new <<EOF
+\$cppdefs
+EOF
+
+echo " debug: i am here "
+ls -l \$CASEBUILD/pop2conf/POP2_cppdefs.new 
 
 #  recompile if 2d decomp or NT is changed
 if (-f \$CASEBUILD/pop2conf/POP2_cppdefs) then
