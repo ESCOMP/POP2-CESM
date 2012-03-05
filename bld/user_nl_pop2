@@ -1,0 +1,28 @@
+!----------------------------------------------------------------------------------
+! Users should add all user specific namelist changes after these comments 
+! in the form of 
+!   namelist_var = new_namelist_value 
+! 1. WARNING: DO NOT CHANGE iyear0, imonth0, iday0, ihour0 
+! 2. WARMING: The present code makes assumptions about the region boundaries -- 
+!    do not change transport_reg2_names unless you know exactly what you are doing
+! 3. NOTE: a handful of pop2 namelist variabes have the same names in multiple pop2 
+!    namelists - these are the following
+!      ah             (hmix_del4t_nml, hmix_del2t_nml, hmix_gm_nml)  
+!      am             (hmix_del4u_nml, hmix_del2u_nml)  
+!      lauto_hmix     (hmix_del4t_nml, hmix_del2t_nml, 
+!                      hmix_del4u_nml, hmix_del2u_nml)
+!      lvariable_hmix (hmix_del4t_nml, hmix_del2t_nml, 
+!                      hmix_del4u_nml, hmix_del2u_nml)
+!    If any of the above are to be modified here namelist_var shoud be as follows    
+!      ah => ah%hmix_del4t_nml, ah%hmix_del2t_nml, ah%hmix_gm_nml  
+!      am => am%hmix_del4u_nml, am%hmix_del2u_nml  
+!      lauto_mix => lauto_hmix%del4t_nml, lauto_hmix%del2t_nml, 
+!                   lauto_hmix%del4u_nml, lauto_hmix%del2u_nml
+!      lvariable_hmix => lvariable_hmix%del4t_nml, lvariable_hmix%del2t_nml, 
+!                        lvariable_hmix%del4u_nml, lvariable_hmix%del2u_nml
+!    Example - if you change the default value of ah to 0.7e7 in the
+!    namelist hmix_del2t - you would add the following line below
+!      ah%hmix_del2t_nml = 0.7e7
+! 4. To preview the namelists, invoke $CASEROOT preview-namelists and look at 
+!    $CASEROOT/CaseDocs/pop2_in
+!----------------------------------------------------------------------------------

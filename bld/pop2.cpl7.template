@@ -2,9 +2,6 @@
 
 if !(-d $CASEBUILD)  mkdir $CASEBUILD
 if !(-d $CASEBUILD/pop2conf) mkdir    $CASEBUILD/pop2conf || exit 1
-if !(-d $OBJROOT/ocn/obj   ) mkdir -p $OBJROOT/ocn/obj    || exit 2
-if !(-d $OBJROOT/ocn/source) mkdir -p $OBJROOT/ocn/source || exit 3 
-if !(-d $EXEROOT/ocn/input)  mkdir -p $EXEROOT/ocn/input  || exit 4
 
 #==============================================================================
 # Purpose: Create two ccsm build scripts:
@@ -24,61 +21,99 @@ cat >! $CASEBUILD/pop2conf/config_cache.xml <<EOF1
 </config_definition>
 EOF1
 
+# copy necessary files to $CASEROOT/Tools/Templates/
+cp $CODEROOT/ocn/pop2/bld/build-namelist-pop2 $CASEROOT/Tools/Templates/. 
+cp $CODEROOT/ocn/pop2/bld/namelist_files/namelist_definition_pop2.xml $CASEROOT/Tools/Templates/.
+cp $CODEROOT/ocn/pop2/bld/namelist_files/namelist_defaults_pop2.xml $CASEROOT/Tools/Templates/.
+if ($NINST_OCN > 1) then
+   set inst_counter = 1
+   set inst_string = ""
+   while ($inst_counter <= $NINST_OCN)
+      set inst_string = $inst_counter
+      if ($inst_counter <= 999) setenv inst_string = "0$inst_string"
+      if ($inst_counter <=  99) setenv inst_string = "0$inst_string"
+      if ($inst_counter <=   9) setenv inst_string = "0$inst_string"
+      cp $CODEROOT/ocn/pop2/bld/user_nl_pop2 $CASEROOT/user_nl_pop2${inst_string}
+      @ inst_counter = $inst_counter + 1
+   end 
+else
+   cp $CODEROOT/ocn/pop2/bld/user_nl_pop2 $CASEROOT/user_nl_pop2
+endif
+
+# create pop2.buildnml.csh
 cat >! $CASEBUILD/pop2.buildnml.csh << EOF1
 #! /bin/csh -f
 
-#======================================================================
-# Purpose: create the pop2 namelist input file, pop2_in
-#======================================================================
+if !(-d \$OBJROOT/ocn/obj   ) mkdir -p \$OBJROOT/ocn/obj    || exit 2
+if !(-d \$OBJROOT/ocn/source) mkdir -p \$OBJROOT/ocn/source || exit 3 
+if !(-d \$OBJROOT/ocn/input ) mkdir -p \$OBJROOT/ocn/input  || exit 4
 
 cd \$CASEBUILD/pop2conf || exit -1
 
 set default_ocn_in_filename = "pop2_in"
-setenv ocn_inst_counter 1
-while (\$ocn_inst_counter <= \$NINST_OCN)
+set inst_counter = 1
+while (\$inst_counter <= \$NINST_OCN)
 
-    set ocn_in_filename = \$default_ocn_in_filename
-    if (\$NINST_OCN > 1) then
-        set ocn_inst_string = \$ocn_inst_counter
-        if (\$ocn_inst_counter <= 999) setenv ocn_inst_string = "0\$ocn_inst_string"
-        if (\$ocn_inst_counter <=  99) setenv ocn_inst_string = "0\$ocn_inst_string"
-        if (\$ocn_inst_counter <=   9) setenv ocn_inst_string = "0\$ocn_inst_string"
-        set ocn_in_filename = \${default_ocn_in_filename}_\${ocn_inst_string}
-        set log_filename = \${RUNDIR}/ocn_\${inst_string}.log.\$LID
-    else
-        set ocn_inst_string = ""
-        set log_filename = \${RUNDIR}/ocn.log.\$LID
-    endif
+if (\$NINST_OCN > 1) then
+    set inst_string = \$inst_counter
+    if (\$inst_counter <= 999) setenv inst_string = "0\$inst_string"
+    if (\$inst_counter <=  99) setenv inst_string = "0\$inst_string"
+    if (\$inst_counter <=   9) setenv inst_string = "0\$inst_string"
+    set inst_string = _\${inst_string}
+else
+    set inst_string = ""
+endif
+set ocn_in_filename = \${default_ocn_in_filename}\${inst_string}
+set log_filename = \${RUNDIR}/ocn\${inst_string}.log.\$LID
 
-    # following env variable is not in any xml files - but is needed by pop's build-namelist
-    setenv RESTART_INPUT_TS_FMT 'bin'
-    if (-e \$RUNDIR/rpointer.ocn\${ocn_inst_string}.restart && \$CONTINUE_RUN == 'TRUE') then
-      grep 'RESTART_FMT=' \$RUNDIR/rpointer.ocn\${ocn_inst_string}.restart >&! /dev/null
-      if (\$status == 0) then
-        setenv RESTART_INPUT_TS_FMT \`grep RESTART_FMT\= \$RUNDIR/rpointer.ocn\${ocn_inst_string}.restart | cut -c13-15\`
-      endif
-    endif
+# following env variable is not in any xml files - but is needed by pop's build-namelist
+setenv RESTART_INPUT_TS_FMT 'bin'
+if (-e \$RUNDIR/rpointer.ocn\${inst_string}.restart && \$CONTINUE_RUN == 'TRUE') then
+  grep 'RESTART_FMT=' \$RUNDIR/rpointer.ocn\${inst_string}.restart >&! /dev/null
+  if (\$status == 0) then
+    setenv RESTART_INPUT_TS_FMT \`grep RESTART_FMT\= \$RUNDIR/rpointer.ocn\${inst_string}.restart | cut -c13-15\`
+  endif
+endif
 
-    # --- invoke build-namelist with above settings ---
-    \$CASEROOT/Tools/Templates/build-namelist-pop2 \
-     -infile \$CASEROOT/user_nl_pop2 \
-     -namelist "&popexp  log_filename='\$log_filename\' " || exit -1
+cp \$CODEROOT/ocn/pop2/bld/user_nl_pop2 \$CASEROOT/user_nl_pop2\${inst_string} 
 
-    # pop rpointer name for multi-instance case
-    foreach suffix ( ovf restart tavg ) 
-       if (! -e \$RUNDIR/rpointer.ocn\${ocn_inst_string}.suffix && -e \$RUNDIR/rpointer.ocn.suffix ) then
-          cp \$RUNDIR/rpointer.ocn.\$suffix \$RUNDIR/rpointer.ocn\${ocn_inst_string}.\$suffix
-       endif
-    end 
-    if (! -e \$RUNDIR/rpointer.ocn\${ocn_inst_string} && -e \$RUNDIR/rpointer.ocn) then
-       cp \$RUNDIR/rpointer.ocn \$RUNDIR/rpointer.ocn\${ocn_inst_string}
-    endif
+cat >! \$CASEBUILD/pop2conf/cesm_namelist << EOF2
+&pop2_inparm
+ log_filename='\$log_filename'
+EOF2
+if (-e \$CASEROOT/user_nl_pop2\${inst_string}) then
+  \$UTILROOT/Tools/user_nl_add -user_nl_file \$CASEROOT/user_nl_pop2\${inst_string} >> \$CASEBUILD/pop2conf/cesm_namelist 
+endif
+cat >> \$CASEBUILD/pop2conf/cesm_namelist << EOF2
+/
+EOF2
 
-    if (-f \$RUNDIR/pop2_in\${ocn_inst_string}) rm \$RUNDIR/pop2_in\${ocn_inst_string}
-    cp -fp \$CASEBUILD/pop2conf/pop2_in  \${RUNDIR}/pop2_in\${ocn_inst_string}
-    cp -fp \$CASEBUILD/pop2conf/pop2_${OCN_GRID}_tavg_contents  \$EXEROOT/ocn/input/pop2_${OCN_GRID}_tavg_contents
+\$CASEROOT/Tools/Templates/build-namelist-pop2 -infile \$CASEBUILD/pop2conf/cesm_namelist || exit -1
 
-    @ ocn_inst_counter = \$ocn_inst_counter + 1
+if (\$?DOCDIR) then # only set in preview_namelists utility		    
+  cp \$CASEBUILD/pop2conf/pop2_in \$CASEROOT/CaseDocs/\$ocn_in_filename\${inst_string} || exit -1
+endif
+if (-d \${RUNDIR}) then
+  cp \$CASEBUILD/pop2conf/pop2_in \${RUNDIR}/\$ocn_in_filename\${inst_string} || exit -2
+endif
+
+# pop rpointer name for multi-instance case
+foreach suffix ( ovf restart tavg ) 
+   if (! -e \$RUNDIR/rpointer.ocn\${inst_string}.suffix && -e \$RUNDIR/rpointer.ocn.suffix ) then
+      cp \$RUNDIR/rpointer.ocn.\$suffix \$RUNDIR/rpointer.ocn\${inst_string}.\$suffix
+   endif
+end 
+if (! -e \$RUNDIR/rpointer.ocn\${inst_string} && -e \$RUNDIR/rpointer.ocn) then
+   cp \$RUNDIR/rpointer.ocn \$RUNDIR/rpointer.ocn\${inst_string}
+endif
+
+if (-f \$RUNDIR/pop2_in\${inst_string}) rm \$RUNDIR/pop2_in\${inst_string}
+cp -fp \$CASEBUILD/pop2conf/pop2_in  \${RUNDIR}/pop2_in\${inst_string}
+cp -fp \$CASEBUILD/pop2conf/pop2_${OCN_GRID}_tavg_contents  \$EXEROOT/ocn/input/pop2_${OCN_GRID}_tavg_contents
+
+
+@ inst_counter = \$inst_counter + 1
+
 end
 
 wait

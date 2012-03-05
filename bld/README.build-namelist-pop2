@@ -3,23 +3,23 @@ Synopsis
 ==================================
 
 SYNOPSIS
-     build-namelist [options]
+     build-namelist-pop2 [options]
 
 OPTIONS
      -infile "filepath"    Specify a file containing namelists to read values from.
      -namelist "namelist"  Specify namelist settings directly on the commandline by supplying 
                            a string containing FORTRAN namelist syntax, e.g.,
-                              -namelist "&pop2_nml dt=1800 /"
+                              -namelist "&pop2_nml dt=27 /"
      -help [or -h]         Print usage to STDOUT.
      -silent [-s]          Turns on silent mode - only fatal messages issued.
      -test                 Enable checking that input datasets exist on local filesystem.
      -verbose              Turn on verbose echoing of informational messages.
 
 The precedence for setting the values of namelist variables is (highest to lowest): 
-1. namelist values set by specific command-line options, i.e. (none right now)
-2. values set on the command-line using the -namelist option  
-3. values read from the file specified by -infile 
-4. values from the namelist defaults file - or values specifically set in build-namelist 
+  1. namelist values set by specific command-line options, i.e. (none right now)
+  2. values set on the command-line using the -namelist option  (none right now)
+  3. values read from the file specified by -infile 
+  4. values from the namelist defaults file or values specifically set in build-namelist-pop2 
 
 ======================================
 More details of build-namelist-pop2
@@ -34,7 +34,7 @@ build-namelist-pop2
       build-namelist-pop2 -infile $CASEROOT/user_nl_pop2 \
          -namelist "&popexp  log_filename='$log_filename/' " || exit -1
 
-  - depends on 2 pop2 specific files 
+  - depends on two pop2 specific files 
     $CODEROOT/ocn/pop2/bld/namelist_files/namelist_defaults.xml
     $CODEROOT/ocn/pop2/bld/namelist_files/namelist_definition.xml
     (see below for details of both of these files)
@@ -45,7 +45,7 @@ build-namelist-pop2
     config_cache.xml is used to determine appropriate defaults for
     namelist input that is resolution dependent (see below).
 
-  - exists in in $CASEROOT/Tools/Templates, in order for the user 
+  - exists in $CASEROOT/Tools/Templates, in order for the user 
     to be able to introduce new namelist variables if that
     is desired (see below)
 
@@ -66,7 +66,7 @@ ALL user specific modifications will occur as entries in $CASEROOT/user_nl_pop2
     lauto_hmix     (hmix_del4t_nml, hmix_del2t_nml, hmix_del4u_nml, hmix_del2u_nml)
     lvariable_hmix (hmix_del4t_nml, hmix_del2t_nml, hmix_del4u_nml, hmix_del2u_nml)
 
-    The CESM scripts perl modules assume that each namelist variable has a unique
+    The CESM scripts' perl modules assume that each namelist variable has a unique
     name. To work around this condition for pop2, the following "derived" namelists
     were introduced
 
@@ -78,7 +78,7 @@ ALL user specific modifications will occur as entries in $CASEROOT/user_nl_pop2
        lvariable_hmix%del4u_nml, lvariable_hmix%del2u_nml
 
     If the user wants to change the default value of ah and lvariable_hmix in the
-    namelist hmix_del2t, they need to add the following lines to user_nm_pop2
+    namelist hmix_del2t, they need to add the following lines to user_nl_pop2
 
     &pop2_inparm
       .....
@@ -102,7 +102,7 @@ namelist_definition_pop2.xml
 ===========================================================
 
 The namelist definition file contains entries for all 
-namelist variables that can be output by build-namelist.
+namelist variables that can be output by build-namelist-pop2.
 
 Each namelist variable is defined in an <entry> element.  The
 content of the element is the documentation of how the variable is
@@ -112,7 +112,7 @@ that the attribute values are enclosed in quotes.  The attributes are:
 
 id
      The variable's name.  *** N.B. *** The name must be lower case.
-     The module convert all namelist variable names to lower case
+     The module converts all namelist variable names to lower case
      since Fortran is case insensitive.
 
 group
@@ -130,7 +130,7 @@ type
      Any of these types may be followed by a comma separated list of
      integers enclosed in parenthesis to indicate an array.
  
-     The current namelist validation code only distinquishes between
+     The current namelist validation code only distinguishes between
      string and non-string types.
 
     All namelist values are stored in exactly the format
@@ -143,7 +143,7 @@ input_pathname
      contains the pathname of an input dataset that resides in the
      CESM inputdata directory tree.  
 
-	  The recognized values are "abs" to indicate that an absolute
+     The recognized values are "abs" to indicate that an absolute
      pathname is required, or "rel:var_name" to indicate that the
      pathname is relative and that the namelist variable "var_name"
      contains the absolute root directory.
@@ -170,8 +170,11 @@ The following is an example entry from build-namelist-pop2
 Any text that appears after the first > and before the </entry> string is used
 for documentation purposes only and is ignored by build-namelist-pop2.
 
-In build-namelist_pop2 the namelist definition file appears as follows
+In build-namelist-pop2 the namelist definition file appears as follows
 $nl_definition_file = ${caseroot}/Tools/Templates/namelist_definition_pop2.xml";
+
+(Note that in buile-namelist-pop2, the perl variable, $caseroot, is
+obtained form the environment variable $CASEROOT).
 
 ===========================================================
 namelist_defaults_pop2.xml
@@ -184,7 +187,7 @@ which the namelist is being produced.  This attribute is used, ALONG
 WITH OPTIONAL user specified attributes in build-namelist-pop2, to
 find the best match when looking for default values.
 
-In build-namelist_pop2 the namelist definition file appears as follows
+In build-namelist_pop2 the namelist defaults file appears as follows
 $nl_defaults_file = "${caseroot}/Tools/Templates/namelist_defaults_pop2.xml";
 
 The selection of the the appropriate namelist value will be the one that has the 
@@ -387,25 +390,40 @@ How do I chage the default values of a namelist for all cases?
 --------------------------------------------------------------------------------
 How do I change the default values of streams associated with an existing passive tracer?
 
-   stream variables can be changed by simply adding new variables to user_nl_pop2
-   give an example....	
+   stream variables can be changed by simply editing the contents of  user_nl_pop2
+   As an example - to change the default values of tavg_file_freq and tavg_file_freq_opt 
+   from
+      tavg_file_freq = 1 1 1
+      tavg_file_freq_opt = 'nmonth' 'nmonth' 'once'
+   to daily values for the first two streams (rather than monthly values), edit
+   user_nl_pop2 and set
+      tavg_file_freq_opt = 'nday' 'nday' 'once'
 
 --------------------------------------------------------------------------------
-How do I add a new pop2 namelist variable to the pop2 code base?
+How do I add a new pop2 namelist variable for just my case?
+
+    As an example, call the new variable, pop2varnew, and its value, pop2valnew
 
   - Add a new variable definition block in 
     $CODEROOT/Tools/Templates/namelist_definition_pop2.xml
 
-    As an example, call the new variable, pop2varnew, and its value, pop2valnew
-
-  - Then add a new call for the variable in $CODEROOT/Tools/Templates/build-namelist_pop2
+  - Then add a new call for the variable in 
+    $CODEROOT/Tools/Templates/build-namelist_pop2
     For the above example, this would be 
-
       add_default($nl, 'pop2varnew', 'val'=>'pop2varnew');
    
 --------------------------------------------------------------------------------
-How do I add a new pop2 namelist variable for just my case?
+How do I add a new pop2 namelist variable to the pop2 code base?
 
+    As an example, call the new variable, pop2varnew, and its value, pop2valnew
+
+  - Add a new variable definition block in 
+    $CODEROOT/ocn/pop2/bld/namelist_definition_pop2.xml
+
+  - Then add a new call for the variable in 
+    $CODEROOT/ocn/pop2/bld/build-namelist_pop2
+    For the above example, this would be 
+      add_default($nl, 'pop2varnew', 'val'=>'pop2varnew');
 
 --------------------------------------------------------------------------------
 How do I introduce a new namelist that has dependencies on other namelist variables?
@@ -425,23 +443,32 @@ How do I introduce a new namelist that has dependencies on other namelist variab
     add_default($nl, 'v2', 'v1'=>"$v1");	
     
 --------------------------------------------------------------------------------
-How do I change the contents of $res_tavg_contents
+How do I change the contents of pop2_$ocngrid_tavg_contents for my experiment
 
-- build-namelist-pop2 creates the ${ocn_grid}_tavg_contents file
-in $EXEROOT/ocn/input/${ocn_grid}_tavg_contents file
-to change the contents of this file 
-- create a tavg contents file for every tracer in pop2conf
-unless there is already a file in SourceMods/src.pop2 - at which
-point copy it into pop2conf (need to implement this)
+   - build-namelist-pop2 creates the pop2_${ocn_grid}_tavg_contents file
+     $CASEROOT/Buildconf/pop2conf/pop2_${ocn_grid}_tavg_contents
+        and copies it to 
+     $EXEROOT/ocn/input/pop2_${ocn_grid}_tavg_contents 
 
-
+   - to change the contents of this file place your new version for the
+     tavg contents file in $CASEROOT/SourceMods/src.pop2 - this version
+     will then be copied to 
+     $EXEROOT/ocn/input/pop2_${ocn_grid}_tavg_contents 
 
 --------------------------------------------------------------------------------
-How do I add a new passive tracer?
+What happens with files that used to be placed in $CASEROOT/SourceMods/src.pop2 
 
-8) 
+   As an example: 
 
-9) TODOs
-o
-- mention new cpp variable NT
-- summarize logic of all cpp variables 
+   - previously, new versions of transport_contents_file could be placed 
+     $CASEROOT/SourceMods/src.pop2 and would be copied to $EXEROOT/ocn/input
+   - now, new versions of transport_contents_file can be placed in 
+     $CASEROOT/SourceMods/src.pop2 and the will appear directly in the namelist
+     with the new path - they will no longer be copied to $EXEROOT/ocn/input
+   - the only file that is still in $EXEROOT/ocn/input is
+     pop2_$ocngrid_tavg_contents
+
+--------------------------------------------------------------------------------
+New NT cpp variable
+
+   - summarize logic of all cpp variables 
