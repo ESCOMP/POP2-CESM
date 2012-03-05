@@ -67,8 +67,17 @@ set ocn_in_filename = \${default_ocn_in_filename}\${inst_string}
 set log_filename = \${RUNDIR}/ocn\${inst_string}.log.\$LID
 
 # following env variable is not in any xml files - but is needed by pop's build-namelist
-setenv RESTART_INPUT_TS_FMT 'bin'
-if (-e \$RUNDIR/rpointer.ocn\${inst_string}.restart && \$CONTINUE_RUN == 'TRUE') then
+if (\$RUN_TYPE == startup) then
+  setenv RESTART_INPUT_TS_FMT 'bin'
+  if (-e \$RUNDIR/rpointer.ocn\${inst_string}.restart && \$CONTINUE_RUN == 'TRUE') then
+    grep 'RESTART_FMT=' \$RUNDIR/rpointer.ocn\${inst_string}.restart >&! /dev/null
+    if (\$status == 0) then
+      setenv RESTART_INPUT_TS_FMT \`grep RESTART_FMT\= \$RUNDIR/rpointer.ocn\${inst_string}.restart | cut -c13-15\`
+    endif
+  endif 
+endif
+if (\$RUN_TYPE == branch || \$RUN_TYPE == hybrid) then
+  setenv RESTART_INPUT_TS_FMT 'bin'
   grep 'RESTART_FMT=' \$RUNDIR/rpointer.ocn\${inst_string}.restart >&! /dev/null
   if (\$status == 0) then
     setenv RESTART_INPUT_TS_FMT \`grep RESTART_FMT\= \$RUNDIR/rpointer.ocn\${inst_string}.restart | cut -c13-15\`
