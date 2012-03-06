@@ -3,7 +3,7 @@ Synopsis
 ==================================
 
 SYNOPSIS
-     build-namelist-pop2 [options]
+     build-namelist [options]
 
 OPTIONS
      -infile "filepath"    Specify a file containing namelists to read values from.
@@ -19,19 +19,19 @@ The precedence for setting the values of namelist variables is (highest to lowes
   1. namelist values set by specific command-line options, i.e. (none right now)
   2. values set on the command-line using the -namelist option  (none right now)
   3. values read from the file specified by -infile 
-  4. values from the namelist defaults file or values specifically set in build-namelist-pop2 
+  4. values from the namelist defaults file or values specifically set in build-namelist 
 
 ======================================
-More details of build-namelist-pop2
+More details of build-namelist
 ======================================
 
-build-namelist-pop2 
+build-namelist 
 
   - is called as follows from $CASEROOT/pop2.buildnml.csh
     (pop2.buildnml.csh now now serves only as simply a wrapper to
-    build-namelist-pop2)
+    build-namelist)
 
-      build-namelist-pop2 -infile $CASEROOT/user_nl_pop2 \
+      build-namelist -infile $CASEROOT/user_nl_pop2 \
          -namelist "&popexp  log_filename='$log_filename/' " || exit -1
 
   - depends on two pop2 specific files 
@@ -102,7 +102,7 @@ namelist_definition_pop2.xml
 ===========================================================
 
 The namelist definition file contains entries for all 
-namelist variables that can be output by build-namelist-pop2.
+namelist variables that can be output by build-namelist.
 
 Each namelist variable is defined in an <entry> element.  The
 content of the element is the documentation of how the variable is
@@ -156,7 +156,7 @@ valid_values
      This is an optional attribute that is mainly useful for variables
      that have only a small number of allowed values.
 
-The following is an example entry from build-namelist-pop2
+The following is an example entry from build-namelist
 
    <entry 
       id="nprocs_clinic" 
@@ -168,12 +168,12 @@ The following is an example entry from build-namelist-pop2
    </entry>
 
 Any text that appears after the first > and before the </entry> string is used
-for documentation purposes only and is ignored by build-namelist-pop2.
+for documentation purposes only and is ignored by build-namelist.
 
-In build-namelist-pop2 the namelist definition file appears as follows
+In build-namelist the namelist definition file appears as follows
 $nl_definition_file = ${caseroot}/Tools/Templates/namelist_definition_pop2.xml";
 
-(Note that in buile-namelist-pop2, the perl variable, $caseroot, is
+(Note that in buile-namelist, the perl variable, $caseroot, is
 obtained form the environment variable $CASEROOT).
 
 ===========================================================
@@ -184,7 +184,7 @@ Provides default values for variables contained in the input namelist
 definition file.  For pop2, config_cache.xml currently provides the
 grid attribute value that is relevent for the POP2 executable for
 which the namelist is being produced.  This attribute is used, ALONG
-WITH OPTIONAL user specified attributes in build-namelist-pop2, to
+WITH OPTIONAL user specified attributes in build-namelist, to
 find the best match when looking for default values.
 
 In build-namelist_pop2 the namelist defaults file appears as follows
@@ -204,12 +204,12 @@ As an example, for the entry below -
   ldiag_global_tracer_budgets=.false., if ocn_grid is tx0.1v2
 
 ===================================
-build-namelist-pop2 details
+build-namelist details
 ===================================
 
 1) --- Overview of four main perl objects ---
 
-build-namelist-pop2 has four perl objects that it uses
+build-namelist has four perl objects that it uses
 
 ---- $cfg - a configuration object ----
 obtained from the POP2 config_cache.xml file, which is created by
@@ -323,12 +323,12 @@ Example 4: Add a default for variable $var if an appropriate value is found.
              <tidal_energy_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/tidal_energy_gx3v7_20100107.ieeer8</tidal_energy_file>
              <tidal_energy_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/tidal_energy_gx1v6_20090205.ieeer8</tidal_energy_file>
 
-	   in build-namelist-pop2 if the following was invoked
+	   in build-namelist if the following was invoked
 
               add_default($nl, 'tidal_energy_file')
 
-           then build-namelist-pop2 would fail for any grids other than gx3v7 and gx1v6.
-	   However, if the following call is made in build-namelist-pop2
+           then build-namelist would fail for any grids other than gx3v7 and gx1v6.
+	   However, if the following call is made in build-namelist
  
               add_default($nl, 'tidal_energy_file', 'nofail'=>1)
  
@@ -402,16 +402,14 @@ How do I change the default values of streams associated with an existing passiv
 --------------------------------------------------------------------------------
 How do I add a new pop2 namelist variable for just my case?
 
-    As an example, call the new variable, pop2varnew, and its value, pop2valnew
+    Build-namelist allows a modified namelist definition file to
+    be placed in the $CASEROOT/SourceMods/src.pop2 directory.  
+    When modifying the namelist to go along with source mods 
+    For specific customizations it is sufficient that the definition file 
+    be updated so that build-namelist doesn't reject unrecognized variables, 
+    and to set appropriate values for the new namelist variable(s) in the 
+    $CASEROOT/user_nl_pop2 file.
 
-  - Add a new variable definition block in 
-    $CODEROOT/Tools/Templates/namelist_definition_pop2.xml
-
-  - Then add a new call for the variable in 
-    $CODEROOT/Tools/Templates/build-namelist_pop2
-    For the above example, this would be 
-      add_default($nl, 'pop2varnew', 'val'=>'pop2varnew');
-   
 --------------------------------------------------------------------------------
 How do I add a new pop2 namelist variable to the pop2 code base?
 
@@ -445,7 +443,7 @@ How do I introduce a new namelist that has dependencies on other namelist variab
 --------------------------------------------------------------------------------
 How do I change the contents of pop2_$ocngrid_tavg_contents for my experiment
 
-   - build-namelist-pop2 creates the pop2_${ocn_grid}_tavg_contents file
+   - build-namelist creates the pop2_${ocn_grid}_tavg_contents file
      $CASEROOT/Buildconf/pop2conf/pop2_${ocn_grid}_tavg_contents
         and copies it to 
      $EXEROOT/ocn/input/pop2_${ocn_grid}_tavg_contents 

@@ -13,7 +13,7 @@ if !(-d $CASEBUILD/pop2conf) mkdir    $CASEBUILD/pop2conf || exit 1
 ###  I.  Construct pop2.buildnml.csh                             ###
 ###==============================================================###
 
-# build config_cache.xml file (needed by build-namelist-pop2)
+# build config_cache.xml file (needed by build-namelist)
 cat >! $CASEBUILD/pop2conf/config_cache.xml <<EOF1
 <?xml version="1.0"?>
 <config_definition>
@@ -21,10 +21,7 @@ cat >! $CASEBUILD/pop2conf/config_cache.xml <<EOF1
 </config_definition>
 EOF1
 
-# copy necessary files to $CASEROOT/Tools/Templates/
-cp $CODEROOT/ocn/pop2/bld/build-namelist-pop2 $CASEROOT/Tools/Templates/. 
-cp $CODEROOT/ocn/pop2/bld/namelist_files/namelist_definition_pop2.xml $CASEROOT/Tools/Templates/.
-cp $CODEROOT/ocn/pop2/bld/namelist_files/namelist_defaults_pop2.xml $CASEROOT/Tools/Templates/.
+# create user_nl_pop2 files
 if ($NINST_OCN > 1) then
    set inst_counter = 1
    set inst_string = ""
@@ -84,20 +81,16 @@ if (\$RUN_TYPE == branch || \$RUN_TYPE == hybrid) then
   endif
 endif
 
-cp \$CODEROOT/ocn/pop2/bld/user_nl_pop2 \$CASEROOT/user_nl_pop2\${inst_string} 
-
 cat >! \$CASEBUILD/pop2conf/cesm_namelist << EOF2
 &pop2_inparm
  log_filename='\$log_filename'
 EOF2
-if (-e \$CASEROOT/user_nl_pop2\${inst_string}) then
-  \$UTILROOT/Tools/user_nl_add -user_nl_file \$CASEROOT/user_nl_pop2\${inst_string} >> \$CASEBUILD/pop2conf/cesm_namelist 
-endif
+\$UTILROOT/Tools/user_nl_add -user_nl_file \$CASEROOT/user_nl_pop2\${inst_string} >> \$CASEBUILD/pop2conf/cesm_namelist 
 cat >> \$CASEBUILD/pop2conf/cesm_namelist << EOF2
 /
 EOF2
 
-\$CASEROOT/Tools/Templates/build-namelist-pop2 -infile \$CASEBUILD/pop2conf/cesm_namelist || exit -1
+\$CODEROOT/ocn/pop2/bld/build-namelist -infile \$CASEBUILD/pop2conf/cesm_namelist || exit -1
 
 if (\$?DOCDIR) then # only set in preview_namelists utility		    
   cp \$CASEBUILD/pop2conf/pop2_in \$CASEROOT/CaseDocs/\$ocn_in_filename\${inst_string} || exit -1
@@ -209,7 +202,6 @@ cat >! \$CASEBUILD/pop2conf/POP2_cppdefs.new <<EOF
 \$cppdefs
 EOF
 
-echo " debug: i am here "
 ls -l \$CASEBUILD/pop2conf/POP2_cppdefs.new 
 
 #  recompile if 2d decomp or NT is changed

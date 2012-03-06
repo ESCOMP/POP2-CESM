@@ -1,17 +1,17 @@
 #!/usr/bin/env perl
 #-----------------------------------------------------------------------------------------------
 #
-# build-namelist-pop2
+# build-namelist
 #
-# This script builds the namelists for the POP2 configuration of CCSM4.
+# This script builds the namelists for the POP2 configuration of CESM1.
 #
-# build-namelist-pop2 uses a config_cache.xml file that current contains the ocean grid information.
-# build-namelist-pop2 reads this file to obtain information it needs to provide
+# build-namelist uses a config_cache.xml file that current contains the ocean grid information.
+# build-namelist reads this file to obtain information it needs to provide
 # default values that are consistent with the POP2 library.  For example, the grid resolution
 # is obtained from the cache file and used to determine appropriate defaults for namelist input
 # that is resolution dependent.
 #
-# The simplest use of build-namelist-pop2 is to execute it from the build directory where configure
+# The simplest use of build-namelist is to execute it from the build directory where configure
 # was run.  By default it will use the config_cache.xml file that was written by configure to
 # determine the build time properties of the executable, and will write the files that contain 
 # the output namelists in that same directory.  
@@ -232,15 +232,25 @@ EOF
 EOF
 
 # The namelist definition file contains entries for all namelist variables that
-# can be output by build-namelist.
-my $nl_definition_file = "${caseroot}/Tools/Templates/namelist_definition_pop2.xml";
-(-f "$nl_definition_file")  or  die <<"EOF";
-** $ProgName - Cannot find namelist definition file \"$nl_definition_file\" **
+# can be output by build-namelist.  The version of the file that is associate with a
+# fixed POP2 tag is $cfgdir/namelist_files/namelist_definition.xml.  To aid developers
+# who make use of the SourceMods/src.pop2 directory - we allow the definition file 
+# to come from that directory
+my $nl_definition_file;
+if (-f "${caseroot}/SourceMods/src.pop2/namelist_definition_pop2.xml") {
+    $nl_definition_file = "${caseroot}/SourceMods/src.pop2/namelist_definition_pop2.xml";
+}
+if (! defined $nl_definition_file) {
+    # default location of namelist definition file
+    $nl_definition_file = "$cfgdir/namelist_files/namelist_definition_pop2.xml";
+    (-f "$nl_definition_file")  or  die <<"EOF";
+    ** $ProgName - ERROR: Cannot find namelist definition file \"$nl_definition_file\" **
 EOF
+}
 if ($print>=2) { print "Using namelist definition file $nl_definition_file$eol"; }
 
 # The namelist defaults file contains default values for all required namelist variables.
-my $nl_defaults_file = "${caseroot}/Tools/Templates/namelist_defaults_pop2.xml";
+my $nl_defaults_file = "$cfgdir/namelist_files/namelist_defaults_pop2.xml";
 (-f "$nl_defaults_file")  or  die <<"EOF";
 ** $ProgName - Cannot find namelist defaults file \"$nl_defaults_file\" **
 EOF
