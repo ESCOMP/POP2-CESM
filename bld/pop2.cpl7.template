@@ -130,6 +130,10 @@ EOF1
 cat >! $CASEBUILD/pop2.buildexe.csh << EOF1
 #! /bin/csh -f
 
+if !(-d \$OBJROOT/ocn/obj   ) mkdir -p \$OBJROOT/ocn/obj    || exit 2
+if !(-d \$OBJROOT/ocn/source) mkdir -p \$OBJROOT/ocn/source || exit 3 
+if !(-d \$OBJROOT/ocn/input ) mkdir -p \$OBJROOT/ocn/input  || exit 4
+
 echo -----------------------------------------------------------------
 echo Create the internal directory structure
 echo -----------------------------------------------------------------
