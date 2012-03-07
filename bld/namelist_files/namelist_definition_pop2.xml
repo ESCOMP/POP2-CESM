@@ -493,7 +493,7 @@ type="char*256"
 category="pop2"
 group="grid_nml"
 valid_values="" >
-Default: '/ptmp/mvertens/btempb10/ocn/input/gx1v6_region_ids'
+Default: ' '
 </entry>
 
 <entry 
@@ -552,7 +552,7 @@ type="char*256"
 category="pop2"
 group="init_ts_nml"
 valid_values="" >
-Default: './btempb10.pop.h.ts_ic'
+Default: ' '
 </entry>
 
 <entry 
@@ -628,7 +628,7 @@ type="char*256"
 category="pop2"
 group="diagnostics_nml"
 valid_values="" >
-Default: '/ptmp/mvertens/btempb10/ocn/input/gx1v6_transport_contents'
+Default: ' '
 </entry>
 
 <entry 
@@ -637,7 +637,7 @@ type="char*256"
 category="pop2"
 group="diagnostics_nml"
 valid_values="" >
-Default: '/ptmp/mvertens/btempb10/run/btempb10.pop.dd'
+Default: ' '
 </entry>
 
 <entry 
@@ -646,7 +646,7 @@ type="char*256"
 category="pop2"
 group="diagnostics_nml"
 valid_values="" >
-Default: '/ptmp/mvertens/btempb10/run/btempb10.pop.dt'
+Default: ' '
 </entry>
 
 <entry 
@@ -673,7 +673,7 @@ type="char*256"
 category="pop2"
 group="diagnostics_nml"
 valid_values="" >
-Default: '/ptmp/mvertens/btempb10/run/btempb10.pop.dv'
+Default: ' '
 </entry>
 
 <entry 
@@ -757,7 +757,7 @@ type="char*256"
 category="pop2"
 group="restart_nml"
 valid_values="" >
-Default: './btempb10.pop.r'
+Default: ' '
 </entry>
 
 <entry 
@@ -824,7 +824,7 @@ type="char*256"
 category="pop2"
 group="history_nml"
 valid_values="" >
-Default: './btempb10.pop.hs'
+Default: ' '
 </entry>
 
 <entry 
@@ -842,7 +842,7 @@ type="char*256"
 category="pop2"
 group="history_nml"
 valid_values="" >
-Default: '/ptmp/mvertens/btempb10/ocn/input/gx1v6_history_contents'
+Default: ' '
 </entry>
 
 "movie_nml"
@@ -871,7 +871,7 @@ type="char*256"
 category="pop2"
 group="movie_nml"
 valid_values="" >
-Default: './btempb10.pop.hm'
+Default: ' '
 </entry>
 
 <entry 
@@ -889,7 +889,7 @@ type="char*256"
 category="pop2"
 group="movie_nml"
 valid_values="" >
-Default: '/ptmp/mvertens/btempb10/ocn/input/gx1v6_movie_contents'
+Default: ' '
 </entry>
 
 <!----------------------------->
@@ -1655,7 +1655,7 @@ type="char*256"
 category="pop2"
 group="hmix_gm_nml"
 valid_values="" >
-Default: '/ptmp/mvertens/btempb10/ocn/input/buoyancy_freq'
+Default: ' '
 </entry>
 
 <entry 
@@ -1942,7 +1942,7 @@ type="char*256"
 category="pop2"
 group="hmix_aniso_nml"
 valid_values="" >
-Default: './btempb10.pop.hv'
+Default: ' '
 </entry>
 
 <entry 
@@ -3028,7 +3028,7 @@ type="char*256"
 category="pop2"
 group="overflows_nml"
 valid_values="" >
-Default: '/ptmp/mvertens/btempb10/ocn/input/gx1v6_overflow'
+Default: ' '
 </entry>
 
 <entry 
@@ -3037,7 +3037,7 @@ type="char*256"
 category="pop2"
 group="overflows_nml"
 valid_values="" >
-Default: '/ptmp/mvertens/btempb10/run/btempb10.pop.do'
+Default: ' '
 </entry>
 
 <entry 
@@ -3055,7 +3055,7 @@ type="char*256"
 category="pop2"
 group="overflows_nml"
 valid_values="" >
-Default: './btempb10.pop.ro'
+Default: ' '
 </entry>
 
 <!------------------------------------->
@@ -3176,7 +3176,7 @@ type="char*256"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
-Default: '/ptmp/mvertens/btempb10/ocn/input/gx1v6_tavg_contents'
+Default: ' '
 </entry>
 
 <entry 
@@ -3194,7 +3194,7 @@ type="char*256"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
-Default: './btempb10.pop.hrestart.end' 
+Default: ' ' 
 </entry>
 
 <entry 
@@ -3203,7 +3203,7 @@ type="char*256"
 category="pop2"
 group="tavg_nml"
 valid_values="" >
-Default: './btempb10.pop.h' 
+Default: ' ' 
 </entry>
 
 <entry 

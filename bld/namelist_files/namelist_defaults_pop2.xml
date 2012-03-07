@@ -816,10 +816,10 @@
 <lecovars_full_depth_tavg>.false.</lecovars_full_depth_tavg>    
 
 <tracer_init_ext(1)%scale_factor ocn_grid="gx3v7">1.025</tracer_init_ext(1)%scale_factor>
-<tracer_init_ext(1)%scale_factor ocn_grid=gx1v6>1.025</tracer_init_ext(1)%scale_factor> 
+<tracer_init_ext(1)%scale_factor ocn_grid="gx1v6">1.025</tracer_init_ext(1)%scale_factor> 
  
 <tracer_init_ext(2)%scale_factor ocn_grid="gx3v7">1.025</tracer_init_ext(2)%scale_factor>
-<tracer_init_ext(2)%scale_factor ocn_grid="gx1v6"b>1.025</tracer_init_ext(2)%scale_factor> 
+<tracer_init_ext(2)%scale_factor ocn_grid="gx1v6">1.025</tracer_init_ext(2)%scale_factor> 
 
 <tracer_init_ext(3)%scale_factor ocn_grid="gx3v7">44.66</tracer_init_ext(3)%scale_factor>
 <tracer_init_ext(3)%scale_factor ocn_grid="gx1v6">44.66</tracer_init_ext(3)%scale_factor> 
