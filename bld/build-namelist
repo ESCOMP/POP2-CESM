@@ -1076,7 +1076,7 @@ if ($ocn_tracer_modules =~ /ecosys/) {
 
 if ($ocn_tracer_modules =~ /iage/) {
     add_default($nl, 'init_iage_option',    'val'=>"ccsm_${runtype}");
-    add_default($nl, 'init_iage_init_file', 'val'=>'same_as_TS');
+    add_default($nl, 'init_iage_init_file', 'val'=>'same_as_TS', 'noprepend'=>1);
 }
 
 ##########################################
@@ -1102,7 +1102,7 @@ if ($ocn_transient eq "1850-2000") {
 
 if ($ocn_tracer_modules =~ /cfc/) {
     add_default($nl, 'init_cfc_option',   'val'=>"$init_cfc_option");
-    add_default($nl, 'init_cfc_init_file','val'=>'same_as_TS');
+    add_default($nl, 'init_cfc_init_file','val'=>'same_as_TS', 'noprepend'=>1);
     add_default($nl, 'model_year'        ,'val'=>"$model_year");
     add_default($nl, 'data_year'         ,'val'=>"$data_year");
     add_default($nl, 'pcfc_file'         ,'val'=>"$pcfc_file");
@@ -1145,7 +1145,7 @@ if ($ocn_tracer_modules =~ /ecosys/) {
     if ($runtype eq "startup") {
 	add_default($nl, 'init_ecosys_init_file');
     } else {
-	add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS");
+	add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
     }	
     add_default($nl, 'init_ecosys_init_file_fmt');
     add_default($nl, 'tracer_init_ext(1)%mod_varname');
@@ -1919,8 +1919,11 @@ sub add_default {
     # The default values for input pathnames are relative.  If the namelist
     # variable is defined to be an absolute pathname, then prepend
     # the CCSM inputdata root directory.
+    # TODO: unless ignore_abs is passed as argument 
     if ($is_input_pathname eq 'abs') {
-	$val = set_abs_filepath($val, $inputdata_rootdir);
+	unless ($opts{'noprepend'}){
+	    $val = set_abs_filepath($val, $inputdata_rootdir);
+	}
     }
 
     # query the definition to find out if the variable takes a string value.

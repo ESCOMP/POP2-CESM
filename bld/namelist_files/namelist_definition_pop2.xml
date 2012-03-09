@@ -75,7 +75,7 @@ Default: ''
 
 <entry 
 id="clinic_distribution_type" 
-type="char*64" 
+type="char*256" 
 category="pop2" 
 group="domain_nml" 
 valid_values="cartesian,spacecurve" >
@@ -84,7 +84,7 @@ Default: 'cartesian'
 
 <entry 
 id="tropic_distribution_type" 
-type="char*64" 
+type="char*256" 
 category="pop2" 
 group="domain_nml" 
 valid_values="cartesian,spacecurve" >
@@ -93,7 +93,7 @@ Default: 'cartesian'
 
 <entry 
 id="ew_boundary_type" 
-type="char*64" 
+type="char*256" 
 category="pop2" 
 group="domain_nml" 
 valid_values="" >
@@ -102,7 +102,7 @@ Default: 'cyclic'
 
 <entry 
 id="ns_boundary_type" 
-type="char*64" 
+type="char*256" 
 category="pop2" 
 group="domain_nml" 
 valid_values="" >
@@ -161,7 +161,7 @@ Default: '.true.'
 
 
 <!----------------------------->
-<!---group time_manager_nml (done) ---->
+<!---group time_manager_nml---->
 <!----------------------------->
 
 <entry 
@@ -206,7 +206,7 @@ type="integer"
 category="pop2"
 group="time_manager_nml"
 valid_values="" >
-Default: 23
+Default: 
 </entry>
 
 <entry 
@@ -364,7 +364,7 @@ category="pop2"
 group="grid_nml"
 input_pathname="abs"
 valid_values="" >
-Default: 'grid dependent'
+Default: 'unknown_horiz_grid'
 </entry>
 
 <entry 
@@ -484,7 +484,7 @@ category="pop2"
 group="grid_nml"
 input_pathname="abs"
 valid_values="" >
-Default: 'ocn/pop/gx1v6/grid/region_mask_20090205.ieeei4'
+Default: 'unknown_region_mask'
 </entry>
 
 <entry 
@@ -534,7 +534,7 @@ category="pop2"
 group="init_ts_nml"
 input_pathname="abs"
 valid_values="" >
-Default: 'ocn/pop/gx1v6/ic/ts_PHC2_jan_ic_gx1v6_20090205.ieeer8'
+Default: 'unknown_init_ts'
 </entry>
 
 <entry 
@@ -1155,7 +1155,7 @@ category="pop2"
 group="tidal_nml"
 input_pathname="abs"
 valid_values="" >
-Default: 'ocn/pop/gx1v6/forcing/tidal_energy_gx1v6_20090205.ieeer8'
+Default: 'unknown_tidal_mixing'
 </entry>
 
 <entry 
@@ -2241,7 +2241,7 @@ category="pop2"
 group="forcing_shf_nml"
 input_pathname="abs"
 valid_values="" >
-Default: 'ocn/pop/gx1v6/forcing/shf_mm_all_85-88_20010308.ieeer8'
+Default: 'unknown_shf'
 </entry>
 
 <entry 
@@ -2373,7 +2373,7 @@ category="pop2"
 group="forcing_sfwf_nml"
 input_pathname="abs"
 valid_values="" >
-Default: 'ocn/pop/gx1v6/forcing/sfwf_mm_PHC2_salx_flxio_20090205.ieeer8'
+Default: 'unknown_sfwf'
 </entry>
 
 <entry 
@@ -2853,7 +2853,7 @@ category="pop2"
 group="sw_absorption_nml"
 input_pathname="abs"
 valid_values="" >
-Default: 'ocn/pop/gx1v6/forcing/chl_filled_20061230.ieeer8'
+Default: 'unknown_chl'
 </entry>
 
 <entry 
@@ -3300,6 +3300,7 @@ id="init_iage_init_file"
 type="char*256" 
 category="pop2"
 group="iage_nml"
+input_pathname="abs"
 valid_values="" >
 Default: 'same_as_TS'
 </entry>
@@ -3322,6 +3323,7 @@ id="init_cfc_init_file"
 type="char*256" 
 category="pop2"
 group="cfc_nml"
+input_pathname="abs"
 valid_values="" >
 Default: 'same_as_TS'
 </entry>
@@ -3351,7 +3353,7 @@ category="pop2"
 group="cfc_nml"
 input_pathname="abs"
 valid_values="" >
-Default: 'ocn/pop/res_indpt/forcing/pcfc1112_atm_20091117.nc'
+Default: ' '
 </entry>
 
 <entry 
@@ -3381,6 +3383,7 @@ id="init_ecosys_init_file"
 type="char*256" 
 category="pop2"
 group="ecosys_nml"
+input_pathname="abs"
 valid_values="" >
 Default: 
 </entry>
@@ -3391,7 +3394,7 @@ type="char*256"
 category="pop2"
 group="ecosys_nml"
 valid_values="" >
-Default: 
+Default: 'same_as_TS'
 </entry>
 
 <entry 

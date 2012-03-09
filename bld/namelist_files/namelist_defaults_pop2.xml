@@ -735,8 +735,8 @@
 <!--ecosys_nml -->
 <!---------------------------->
 
-<init_ecosys_init_file grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20100514.nc</init_ecosys_init_file>
-<init_ecosys_init_file grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20100514.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20100514.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20100514.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>
 
