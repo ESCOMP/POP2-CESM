@@ -101,7 +101,7 @@
        ew_boundary_type,         &! type of domain bndy in each logical
        ns_boundary_type           !    direction (ew is i, ns is j)
 
-    integer (int_kind) :: &! decomposition info
+    integer (int_kind), public :: &! decomposition info
        nprocs_clinic     ,&! num of processors in baroclinic dist
        nprocs_tropic       ! num of processors in barotropic dist
 

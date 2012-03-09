@@ -177,6 +177,10 @@
 
    call time_manager(registry_match('lcoupled'), liceform)
 
+   call passive_tracers_send_time
+
+
+
 !-----------------------------------------------------------------------
 !
 !  compute and initialize some time-average diagnostics

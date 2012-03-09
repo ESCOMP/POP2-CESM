@@ -1,6 +1,39 @@
 ===============================================================================
 Tag Creator: njn01
 Developers:  njn01
+Tag Date:    8 March 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120308
+Tag Summary: Add MOBY "hooks" to the pop2 base model
+             This tag brings in modified pop2/source files that contain MOBY
+             modifications, plus a "stub" version of moby_mod.F90. 
+
+             This is the first of two steps towards bringing support for MOBY
+             onto the pop2 trunk (without bringing the actual MOBY darwin code in).
+             The second step will be to add a revised version of pop2.cpl7.template,
+             moby.cpl7.template, and ocn.moby.setup.csh scripts that are compatible
+             with the new namelist-build scripts, which will be done by Mariana
+             Vertenstein.
+
+Testing:     In a cesm1_1_beta09 sandbox, created & ran C, T62_gx1v6 case; compared
+             with cesm1_1_beta09 oob.  New code compiles & runs; ocean restart
+             files are b4b.
+	
+Files Modified:
+M            35316   source/passive_tracer_tools.F90
+M            35316   source/step_mod.F90
+M            35316   source/forcing.F90
+A                0   source/moby_mod.F90
+M            35316   source/passive_tracers.F90
+M            35316   source/exit_mod.F90
+M            35316   source/tavg.F90
+M            35316   source/baroclinic.F90
+M            35316   source/domain.F90
+A                0   source/moby_parms.F90
+M            35316   drivers/cpl_mct/POP_FinalMod.F90
+
+===============================================================================
+Tag Creator: njn01
+Developers:  njn01
 Tag Date:    25 January 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120125
 Tag Summary: Bugfix for N_HEAT, N_SALT tavg computation

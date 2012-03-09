@@ -87,7 +87,8 @@
       init_forcing_monthly_every_ts,         &
       file_read_tracer_block,                &
       rest_read_tracer_block,                &
-      read_field
+      read_field,                            &
+      name_to_ind
 
 !EOP
 !BOC
@@ -136,7 +137,7 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: name2ind
+! !IROUTINE: name_to_ind
 ! !INTERFACE:
 
  function name_to_ind(name, ind_name_table)
@@ -149,7 +150,7 @@
 
 ! !INPUT PARAMETERS:
 
-   character(char_len), intent(in) :: name
+   character(*), intent(in) :: name
 
    type(ind_name_pair), dimension(:), intent(in) :: ind_name_table
 
