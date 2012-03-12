@@ -1,6 +1,27 @@
 ===============================================================================
 Tag Creator: njn01
 Developers:  njn01
+Tag Date:    12 March 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120312
+Tag Summary: * correction to tavg.F90 (the cesm_pop_2_1_20120125 tavg bugfix
+                    was overwritten in the cesm_pop_2_1_20120308 tag)
+             * bring MOBY branch bld/*decomp* and drivers/cpl_mct/ocn_comp_mct.F90 files onto pop2 trunk
+
+Testing:     * In a cesm1_1_beta09 base-model sandbox, created & ran C, T62_gx1v6 cases using
+               cesm_pop_2_1_20120125 and this tag. Compiled and ran 6-day smoke tests and
+               differenced the ocean restart and history files: b4b.
+             * Ditto for CECO, except run for one month, then difference restart & history files: monthly
+                  restart, base-model history, ecosys nday history files are all b4b.
+	
+Files Modified:
+M            35393   source/tavg.F90   <--- re-introduce bugfix from cesm_pop_2_1_20120125
+M            35393   bld/pop_decomp.xml                 <-- add MOBY hooks
+M            35393   bld/generate_pop_decomp.pl         <-- add MOBY hooks
+M            35393   drivers/cpl_mct/ocn_comp_mct.F90   <-- added save statement and zeroed out work array
+
+===============================================================================
+Tag Creator: njn01
+Developers:  njn01
 Tag Date:    8 March 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120308
 Tag Summary: Add MOBY "hooks" to the pop2 base model

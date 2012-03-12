@@ -123,7 +123,7 @@ EOF
 # try to read from the xml file
   my $dcmp = Decomp::Config->new( \%opts );
   my %decomp = ( maxblocks=>0, bsize_x=>0, bsize_y=>0, decomptype=>"",
-                 nlats=>0, nlons=>0 );
+                 nlats=>0, nlons=>0, nx_blocks=>0, ny_blocks=>0 );
   my $matches = $dcmp->ReadXML( $opts{'file'}, \%decomp );
 
 # if no xml entry, try to generate something
@@ -138,8 +138,9 @@ EOF
      printf "%d %s",-1, "ERROR:($ProgName) No Decomp Created \n";
   } else {
      if (      $opts{'output'} eq "all"       ) {
-       printf "%d %d %d %d %d %s", $decomp{'nlons'}, $decomp{'nlats'}, 
-          $decomp{'bsize_x'}, $decomp{'bsize_y'}, $decomp{'maxblocks'}, $decomp{'decomptype'};
+       printf "%d %d %d %d %d %s %d %d", $decomp{'nlons'}, $decomp{'nlats'}, 
+          $decomp{'bsize_x'}, $decomp{'bsize_y'}, $decomp{'maxblocks'}, $decomp{'decomptype'},
+          $decomp{'nx_blocks'}, $decomp{'ny_blocks'};
       } elsif ( $opts{'output'} eq "maxblocks" ) {
         print $decomp{'maxblocks'};
       } elsif ( $opts{'output'} eq "bsize_x"   ) {
@@ -148,6 +149,10 @@ EOF
         print $decomp{'bsize_y'};
       } elsif ( $opts{'output'} eq "decomptype") {
         print $decomp{'decomptype'};
+      } elsif ( $opts{'output'} eq "nx_blocks") {
+        print $decomp{'nx_blocks'};
+      } elsif ( $opts{'output'} eq "ny_blocks") {
+        print $decomp{'ny_blocks'};
       } else {
         print "ERROR:($ProgName) bad argument to output option $opts{'output'}\n";
         usage();
