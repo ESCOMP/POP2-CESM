@@ -1464,7 +1464,7 @@ if ($ocn_tracer_modules =~ /iage/) {
 
     if (-f "${my_path}/iage_tavg_contents"){
 
-	my $sysmod = "cp -fp ${my_path}/tavg_contents_tracer_budget_terms $budget_tavg_file";
+	my $sysmod = "cp -fp ${my_path}/iage_tavg_contents $iage_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 
     } else {
@@ -1515,7 +1515,7 @@ if ($ocn_tracer_modules =~ /cfc/) {
 
     if (-f "${my_path}/cfc_tavg_contents"){
 
-	my $sysmod = "cp -fp ${my_path}/tavg_contents_tracer_budget_terms $budget_tavg_file";
+	my $sysmod = "cp -fp ${my_path}/cfc_tavg_contents $cfc_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 
     } else {
@@ -1576,9 +1576,9 @@ my $ecosys_tavg_file = "$caseroot/Buildconf/pop2conf/ecosys_tavg_contents";
 
 if ($ocn_tracer_modules =~ /ecosys/) {
 
-    if (-f "${my_path}/cfc_tavg_contents"){
+    if (-f "${my_path}/ecosys_tavg_contents"){
 
-	my $sysmod = "cp -fp ${my_path}/tavg_contents_tracer_budget_terms $budget_tavg_file";
+	my $sysmod = "cp -fp ${my_path}/ecosys_tavg_contents $ecosys_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 
     } else {
