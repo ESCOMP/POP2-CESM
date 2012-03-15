@@ -2,10 +2,19 @@
 ! Users should add all user specific namelist changes after these comments 
 ! in the form of 
 !   namelist_var = new_namelist_value 
-! 1. WARNING: DO NOT CHANGE iyear0, imonth0, iday0, ihour0 
-! 2. WARMING: The present code makes assumptions about the region boundaries -- 
+! *** EXCEPT FOR ***
+! 1. DO NOT CHANGE iyear0, imonth0, iday0, ihour0 
+! 2. DO NOT CHANGE any tavg_nml namelist variables below - copy any of the files
+!      $CODEROOT/ocn/pop2/input_templates/ocn.base.tavg.csh  
+!      $CODEROOT/ocn/pop2/input_templates/ocn.ecosys.tavg.csh  
+!      $CODEROOT/ocn/pop2/input_templates/ocn.iage.tavg.csh  
+!      $CODEROOT/ocn/pop2/input_templates/ocn.cfc.tavg.csh  
+!    into $CASEROOT/SourceMods/src.pop2 and edit them there. Invoke preview-namelist
+!    to see the changes in CaseDocs/pop2_in
+! Also
+! 3. WARNING: The present code makes assumptions about the region boundaries -- 
 !    do not change transport_reg2_names unless you know exactly what you are doing
-! 3. NOTE: a handful of pop2 namelist variabes have the same names in multiple pop2 
+! 4. NOTE: a handful of pop2 namelist variabes have the same names in multiple pop2 
 !    namelists - these are the following
 !      ah             (hmix_del4t_nml, hmix_del2t_nml, hmix_gm_nml)  
 !      am             (hmix_del4u_nml, hmix_del2u_nml)  

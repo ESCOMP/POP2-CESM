@@ -3,25 +3,11 @@
 if !(-d $CASEBUILD)  mkdir $CASEBUILD
 if !(-d $CASEBUILD/pop2conf) mkdir    $CASEBUILD/pop2conf || exit 1
 
-#==============================================================================
-# Purpose: Create two ccsm build scripts:
-#  (a) pop2.buildnml.csh -- build the pop2_in file
-#  (b) pop2.buildexe.csh -- build a model executable
-#==============================================================================
-
 ###==============================================================###
 ###  I.  Construct pop2.buildnml.csh                             ###
 ###==============================================================###
 
-# build config_cache.xml file (needed by build-namelist)
-cat >! $CASEBUILD/pop2conf/config_cache.xml <<EOF1
-<?xml version="1.0"?>
-<config_definition>
-<entry id="ocn_grid" value="$OCN_GRID">
-</config_definition>
-EOF1
-
-# create user_nl_pop2 files
+# create user_nl_pop files
 if ($NINST_OCN > 1) then
    set inst_counter = 1
    set inst_string = ""
@@ -30,11 +16,11 @@ if ($NINST_OCN > 1) then
       if ($inst_counter <= 999) setenv inst_string  "0$inst_string"
       if ($inst_counter <=  99) setenv inst_string  "0$inst_string"
       if ($inst_counter <=   9) setenv inst_string  "0$inst_string"
-      cp $CODEROOT/ocn/pop2/bld/user_nl_pop2 $CASEROOT/user_nl_pop2${inst_string}
+      cp $CODEROOT/ocn/pop2/bld/user_nl_pop $CASEROOT/user_nl_pop${inst_string}
       @ inst_counter = $inst_counter + 1
    end 
 else
-   cp $CODEROOT/ocn/pop2/bld/user_nl_pop2 $CASEROOT/user_nl_pop2
+   cp $CODEROOT/ocn/pop2/bld/user_nl_pop $CASEROOT/user_nl_pop
 endif
 
 # create pop2.buildnml.csh
@@ -85,7 +71,7 @@ cat >! \$CASEBUILD/pop2conf/cesm_namelist << EOF2
 &pop2_inparm
  log_filename='\$log_filename'
 EOF2
-\$UTILROOT/Tools/user_nl_add -user_nl_file \$CASEROOT/user_nl_pop2\${inst_string} >> \$CASEBUILD/pop2conf/cesm_namelist 
+\$UTILROOT/Tools/user_nl_add -user_nl_file \$CASEROOT/user_nl_pop\${inst_string} >> \$CASEBUILD/pop2conf/cesm_namelist 
 cat >> \$CASEBUILD/pop2conf/cesm_namelist << EOF2
 /
 EOF2
