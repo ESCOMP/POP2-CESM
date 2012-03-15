@@ -54,7 +54,7 @@
 <stop_option>nyear</stop_option>
 <stop_count>1000</stop_count>
 
-<fit_freq>48</fit_freq> 
+<fit_freq>1</fit_freq> 
 
 <!---------------------------->
 <!-- grid_nml -->
