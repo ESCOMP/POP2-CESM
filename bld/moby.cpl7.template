@@ -1,0 +1,327 @@
+#!/bin/csh -f
+
+#==============================================================================
+# Purpose: Create two ccsm build scripts:
+#  (a) moby.buildexe.csh -- build  darwin/quota/etc model executable
+#  (b) moby.buildnml.csh -- gather darwin/quota/etc input files and build the moby_in file
+#==============================================================================
+
+#==============================================================================
+#  The following assumes that this script is being executed from a version
+#  of CESM with a moby-based version of models/ocn/pop2
+# (svn checkout $SVN/pop2/branches/moby models/ocn/pop2)
+#==============================================================================
+
+set    my_path      = $CASEROOT/SourceMods/src.pop2/src.moby
+mkdir -p $my_path
+
+setenv MOBYBLDSCRIPT  $CASEBUILD/moby.buildnml.csh
+
+if !(-d $CASEBUILD  ) mkdir $CASEBUILD
+
+###==============================================================###
+###  I. Construct moby.buildexe.csh for darwin/quota/etc         ###
+###==============================================================###
+
+cat >! $CASEBUILD/moby.buildexe.csh << EOF1
+#!/bin/csh -f
+
+#--------------------------------------------------------------------
+# define directories
+#--------------------------------------------------------------------
+
+setenv OCN_MOBY \$OCN_MOBY
+
+set exedir  = \$RUNDIR
+set objdir  = \$OBJROOT/ocn/moby/obj
+set ocndir  = \$RUNDIR
+set srcdir  = \$OCN_MOBY 
+set my_path = \$CASEROOT/SourceMods/src.pop2/src.moby
+
+mkdir -p \$objdir
+cd \$objdir
+
+echo -------------------------------------------------------------------------
+echo Begin the process of building the moby executable
+echo -------------------------------------------------------------------------
+echo " "
+
+setenv MXBLCKS \$POP_MXBLCKS
+echo -------------------------------------------------------------------------
+echo Enforce the no-threading constraint
+echo -------------------------------------------------------------------------
+echo " "
+if      ( \${MXBLCKS} != 1 ) then
+  echo "fatal moby error: MXBLCKS must equal one"
+  echo "moby info message:  MXBLCKS = \$MXBLCKS"
+  exit -32
+endif
+
+setenv POP_BLCKX \$POP_BLCKX
+setenv POP_BLCKY \$POP_BLCKY
+
+if      ( \${OCN_GRID} =~ gx3* ) then
+   setenv POP_KM 60
+else if ( \${OCN_GRID} =~ gx1* ) then
+   setenv POP_KM 60
+else 
+  echo OCN_GRID = \$OCN_GRID
+  echo "moby error: valid only for gx1 and gx3 grids"
+  exit -33
+endif
+
+setenv POP_NPROCX \$POP_NX_BLOCKS
+setenv POP_NPROCY \$POP_NY_BLOCKS
+
+
+echo -----------------------------------------------------------------
+echo Create the internal directory structure
+echo -----------------------------------------------------------------
+
+set compile_dir = \$objdir
+set source_dir  = \$OBJROOT/ocn/moby/source
+
+if !(-d \$source_dir  ) mkdir -p \$source_dir
+if !(-d \$compile_dir ) mkdir -p \$compile_dir
+
+echo -----------------------------------------------------------------
+echo  Copy the necessary files into \$source_dir 
+echo -----------------------------------------------------------------
+cd \$source_dir
+echo -----------------------------------------------------------------
+echo  Copy selected MITgcm ptracers files
+echo -----------------------------------------------------------------
+cp -fp \$srcdir/MITgcm/*.h                  .
+set ptracers_list = (ptracers_readparms  ptracers_diagnostics_init ptracers_init_fixed   ptracers_set_iolabel )
+foreach file (\$ptracers_list)
+  cp -fp \$srcdir/MITgcm/\${file}.F          .
+end
+
+echo -----------------------------------------------------------------
+echo  Copy selected MITgcm gchem files
+echo -----------------------------------------------------------------
+set gchem_list = (gchem_diagnostics_init gchem_init_fixed gchem_init_vari gchem_readparms)
+foreach file (\$gchem_list)
+  cp -fp \$srcdir/MITgcm/\${file}.F          .
+end
+
+echo -----------------------------------------------------------------
+echo  Copy selected MITgcm base-model files
+echo -----------------------------------------------------------------
+set MITgcm_list = (different_multiple load_grid_spacing barrier eeboot eeboot_minimal fool_the_compiler ini_grid ini_masks_etc ini_vertical_grid ini_parms open_copy_data_file packages_boot port_rand print set_defaults timeave_reset utils write_utils lef_zero )
+foreach file (\$MITgcm_list)
+ cp -fp \$srcdir/MITgcm/\${file}.F          .
+end
+
+echo -----------------------------------------------------------------
+echo  Copy all darwin/quota/etc base-model files
+echo -----------------------------------------------------------------
+cp -fp \$srcdir/\$OCN_TRACER_MODULES_OPT/source/*.[FHh]        .
+
+echo -----------------------------------------------------------------
+echo  Copy all darwin/quota-CESM interface files 
+echo -----------------------------------------------------------------
+cp -fp \$srcdir/\$OCN_TRACER_MODULES_OPT/interf/*.[FHh]        .
+
+echo -----------------------------------------------------------------
+echo  Copy any nonstandard files from \$my_path
+echo -----------------------------------------------------------------
+if (-d \$my_path ) cp -fp \$my_path/*.[FHh]  .
+
+echo -----------------------------------------------------------------
+echo  Compile moby library
+echo -----------------------------------------------------------------
+cd \$compile_dir
+cat >! Filepath <<EOF
+ \$source_dir
+EOF
+
+echo -----------------------------------------------------------------
+echo NOTE: ALLOW_DARWIN and ALLOW_GCHEM are set in PACKAGES_CONFIG.h.
+echo       GCHEM  options are set in  GCHEM_OPTIONS.h
+echo       DARWIN options are set in  DARWIN_OPTIONS.h
+echo -----------------------------------------------------------------
+
+set mobydefs = "-DCESMMOBY -DPOP_NPROCX=\$POP_NPROCX -DPOP_NPROCY=\$POP_NPROCY -DPOP_MXBLCKS=\$MXBLCKS -DPOP_BLCKX=\$POP_BLCKX -DPOP_BLCKY=\$POP_BLCKY -DPOP_KM=\$POP_KM"
+
+gmake complib -j \$GMAKE_J MODEL=moby COMPLIB=\$LIBROOT/libmoby.a MACFILE=\$CASEROOT/Macros.\$MACH USER_CPPDEFS="\$mobydefs" -f \$CASETOOLS/Makefile || exit 2
+
+set f_dir = \$source_dir/f_files
+if !(-d  \$f_dir ) mkdir -p \$f_dir
+
+echo " "
+echo ----------------------------------------------------------------------------
+echo  Note that f files may not exist on all machines
+echo ----------------------------------------------------------------------------
+mv -f *.f \$f_dir
+
+if !(-f \$LIBROOT/libmoby.a) then
+  echo "ERROR: moby library not available"
+  exit -1
+endif
+
+echo " "
+echo -------------------------------------------------------------------------
+echo  Successful completion of the moby executable building process
+echo -------------------------------------------------------------------------
+EOF1
+chmod u+x $CASEBUILD/moby.buildexe.csh
+
+
+###==============================================================###
+###  II.  Construct moby.buildnml.csh                           ###
+###==============================================================###
+
+cat >! $MOBYBLDSCRIPT << EOF2
+#!/bin/csh -f
+
+#======================================================================
+# Purpose:
+#  1) define moby namelist input files
+#  2) prestage small input files
+#======================================================================
+
+#vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# NOTICE: 
+#   This script was custom-generated on `date` for 
+#   $CASEROOT
+#   as a $RUN_TYPE run with the moby ocean library at the $OCN_GRID resolution
+#   DO NOT COPY this script to another case; use the create_clone script
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+setenv runtype   \$RUN_TYPE
+if (\$CONTINUE_RUN == 'TRUE') setenv runtype  continue
+
+set exedir   = \$RUNDIR
+set ocndir   = \$EXEROOT/ocn
+set my_path  = \$CASEROOT/SourceMods/src.pop2/src.moby
+
+setenv OCN_MOBY        \$OCN_MOBY
+setenv POPDIR          \$CODEROOT/ocn/pop2
+setenv INPUT_TEMPLATES \$POPDIR/input_templates
+setenv INPUTDATA        \$DIN_LOC_ROOT/ocn/moby
+
+setenv MOBY_DOCDIR         \$CASEBUILD/pop2doc
+setenv MOBY_BLDNML         \$MOBY_DOCDIR/document_moby_buildnml
+setenv MOBY_INLIST         \$MOBY_DOCDIR/document_moby_input_files
+
+setenv OCN_GRID $OCN_GRID 
+
+if !( -d \$ocndir/rest  )  mkdir -p \$ocndir/rest   || exit 2
+if !( -d \$ocndir/hist  )  mkdir -p \$ocndir/hist   || exit 2
+if !( -d \$ocndir/input )  mkdir -p \$ocndir/input  || exit 2
+if !( -d \$MOBY_DOCDIR )  mkdir -p \$MOBY_DOCDIR  || exit 2
+
+date      > \$MOBY_BLDNML
+echo " " >> \$MOBY_BLDNML
+
+echo #-------------------------------------------------------------------------- >> \$MOBY_BLDNML
+echo # define variables needed by the moby_in file                              >> \$MOBY_BLDNML
+echo #-------------------------------------------------------------------------- >> \$MOBY_BLDNML
+
+echo ------------------------------------------------------------------------ >> \$MOBY_BLDNML
+echo  Begin identifying and collecting all moby input datasets               >> \$MOBY_BLDNML
+
+  #------------------------------------------------------------------------
+  #  1) define and prestage small ascii input files
+  #     ===========================================
+  #
+  #------------------------------------------------------------------------
+
+    #----------------------------------------------------------------------------------------------
+    # define all standard input files; set unavailable filenames to 'unknown_\$file
+    #----------------------------------------------------------------------------------------------
+
+EOF2
+
+#----------------------------------------------------------------
+# define inputdata filenames here
+#----------------------------------------------------------------
+
+
+#---------------------------------
+#  set directory information here
+#---------------------------------
+
+cat >> $MOBYBLDSCRIPT << EOF2
+
+#--------------------------------------------
+#  set domain decomposition information
+#--------------------------------------------
+ setenv NTASKS_MOBY  \$NTASKS_OCN
+
+#----------------------------------------------------------------------
+# Document the origins of moby input files here
+#----------------------------------------------------------------------
+ 
+EOF2
+
+#----------------------------------------------------------------------
+# NOTE: this script is based on pop2.cpl7.template... lots of stuff deleted here
+#----------------------------------------------------------------------
+
+cat >> $MOBYBLDSCRIPT << EOF2
+
+
+echo ------------------------------------------------------------------------ >> \$MOBY_BLDNML
+echo  Define the moby_in namelist file                                       >> \$MOBY_BLDNML
+echo ------------------------------------------------------------------------ >> \$MOBY_BLDNML
+
+#==========================================================================
+#  3) create the moby namelist input file, moby_in
+#     ==============================================
+#  
+#     The following settings have been customized for this case  based upon
+#     resolution, compset, and interactions among the default options.  A user
+#     can change any of the following settings prior to run-time, but be aware of
+#     option interdependencies when doing so. 
+#==========================================================================
+
+
+foreach file (data data.ptracers data.gchem data.\$OCN_TRACER_MODULES_OPT data.misc data.pkg )
+  if (-e \$my_path/\${OCN_GRID}_\$file) then
+    set datapath = \$my_path
+  else if (-e \$OCN_MOBY/\$OCN_TRACER_MODULES_OPT/input/\${OCN_GRID}_\$file) then
+    set datapath = \$OCN_MOBY/\$OCN_TRACER_MODULES_OPT/input
+  else
+    exit -3
+  endif
+  cat \$datapath/\${OCN_GRID}_\$file | grep -v \#  >> \$exedir/moby_in_temp
+end
+
+#==========================================================================
+#  Now use sed on moby_in to replace filename strings
+#  sed commands are of the form  s#OldString#NewString#
+#
+#  Do not actually read file -- send dz info through interface instead.
+#  Use the string using_POP_grid_through_interface_layer to fool MITgcm code
+#==========================================================================
+
+set sedfile = \$exedir/moby.commands.sed
+cat >! \$sedfile << EOF
+s#POPVERTGRID#using_POP_grid_through_interface_layer#
+s#INPUTDATA#\$INPUTDATA#
+s#OCN_GRID#\$OCN_GRID#
+EOF
+
+sed -f \$sedfile \$exedir/moby_in_temp >! \$exedir/moby_in || exit 3
+rm  -f \$sedfile \$exedir/moby_in_temp
+
+#==========================================================================
+#  End moby_in namelist build  
+#==========================================================================
+
+cd \$exedir
+EOF2
+
+cat >> $MOBYBLDSCRIPT << EOF2
+
+echo  Successful completion                                                   >> \$MOBY_BLDNML
+echo ------------------------------------------------------------------------ >> \$MOBY_BLDNML
+echo " " >> \$MOBY_BLDNML
+date >> \$MOBY_BLDNML
+exit 0
+
+EOF2
+chmod u+x $MOBYBLDSCRIPT

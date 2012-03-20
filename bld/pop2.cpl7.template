@@ -1,4 +1,4 @@
-#! /bin/csh -f
+#!/bin/csh -f
 
 #==============================================================================
 # Purpose: Create two ccsm build scripts:
@@ -9,7 +9,7 @@
 set    srcdir       = $CODEROOT/ocn/pop2
 set    my_path      = $CASEROOT/SourceMods/src.pop2
 
-setenv SRCDIR          $srcdir
+setenv SRCDIR         $CODEROOT/ocn/pop2
 
 setenv OCN_PRESTAGE    FALSE
 
@@ -20,6 +20,16 @@ setenv POP2BLDSCRIPT   $CASEBUILD/pop2.buildnml.csh
 setenv POP2_DOCDIR     $CASEBUILD/pop2doc
 setenv POP2_IN         $POP2_DOCDIR/document_pop2_in
 setenv POP2_INLIST     $POP2_DOCDIR/document_pop2_input_files
+
+#==============================================================================
+# Support for auxilliary ocean component models, such as darwin, quota, etc, TBD.
+#==============================================================================
+foreach comp (`echo $OCN_TRACER_MODULES`)
+  if ($comp == moby) then
+    setenv OCN_MOBY       $CODEROOT/ocn/pop2/aux/moby
+    setenv USE_OCN_DARWIN TRUE
+  endif
+end
 
 if !(-d $CASEBUILD  ) mkdir $CASEBUILD
 if !(-d $POP2_DOCDIR) mkdir $POP2_DOCDIR
@@ -32,10 +42,10 @@ set grid_suffix = ''   #support for developmental ocean grids
 ###==============================================================###
 
 cat >! $CASEBUILD/pop2.buildexe.csh << EOF1
-#! /bin/csh -f
+#!/bin/csh -f
 
 #--------------------------------------------------------------------
-# check basic task and thread settings
+# define directories
 #--------------------------------------------------------------------
 
 set exedir  = \$RUNDIR
@@ -55,6 +65,27 @@ setenv POP2_BLDNML  \$POP2_DOCDIR/document_pop2_buildnml
 setenv runtype      \$RUN_TYPE
 
 setenv OCN_GRID $OCN_GRID # used in ocn.*.setup.csh scripts
+
+#==============================================================================
+# Support for auxilliary ocean component models, such as darwin, quota, etc, TBD.
+#==============================================================================
+set aux_ocn_comps = ( )
+foreach comp (\`echo \$OCN_TRACER_MODULES\`)
+  if (\$comp == moby) then
+    set aux_ocn_comps =  (\$aux_ocn_comps 'moby')
+    setenv USE_OCN_MOBY   TRUE
+    setenv USE_OCN_DARWIN TRUE
+    setenv OCN_MOBY       \$CODEROOT/ocn/pop2/aux/moby
+    set srcdir2 =         \$OCN_MOBY/pop2
+    if !(-e \$CASEBUILD/moby.buildexe.csh) then
+       cp \$SRCDIR/bld/moby.cpl7.template \$CASEROOT/Tools/Templates
+       \$CASEROOT/Tools/Templates/moby.cpl7.template
+    endif
+  else
+    setenv USE_OCN_MOBY   FALSE
+    setenv USE_OCN_DARWIN FALSE
+  endif
+end
 
 cd \$objdir
 
@@ -85,9 +116,11 @@ echo -----------------------------------------------------------------
 echo 2 > \$source_dir/NT
 foreach module ( \$ocn_tracers )
   if (-f \${my_path}/ocn.\${module}.setup.csh) then
-     \${my_path}/ocn.\${module}.setup.csh set_nt \$source_dir/NT || exit \$status
+     set nt_path = \$my_path
+     \${my_path}/ocn.\${module}.setup.csh set_nt \$source_dir/NT \$nt_path || exit \$status
   else if (-f \$srcdir/input_templates/ocn.\${module}.setup.csh ) then
-     \$srcdir/input_templates/ocn.\${module}.setup.csh set_nt \$source_dir/NT || exit \$status
+     set nt_path = \$srcdir/input_templates
+     \$srcdir/input_templates/ocn.\${module}.setup.csh set_nt \$source_dir/NT \$nt_path || exit \$status
   else
      echo error in pop.buildexe.csh unknown tracer: \$module
      exit -3
@@ -134,6 +167,14 @@ echo  Copy the necessary files into \$source_dir
 echo -----------------------------------------------------------------
 cd \$source_dir
 cp -fp \$srcdir/source/*.F90                .
+
+#==============================================================================
+# Support for auxilliary ocean component models, such as darwin, quota, etc, TBD.
+#==============================================================================
+if (\$#aux_ocn_comps > 0) then
+cp -fp \$srcdir2/source/*.F90               .
+endif
+
 cp -fp \$srcdir/mpi/*.F90                   .
 cp -fp \$srcdir/drivers/cpl_share/*.F90     .
 if (\$COMP_INTERFACE == 'MCT') then
@@ -159,6 +200,15 @@ if (\$recompile == 'TRUE') then
 endif  
 echo $OCN_GRID \$ntask \${BLCKX} \${BLCKY} \${MXBLCKS} >! \$objdir/ocnres.old
 
+
+echo -------------------------------------------------------------------------
+echo  Build all auxilliary ocean-component models before building pop2
+echo -------------------------------------------------------------------------
+foreach aux_ocn_comp (\$aux_ocn_comps)
+  \$CASEROOT/Buildconf/\$aux_ocn_comp.buildexe.csh || exit -2
+end
+
+
 echo -----------------------------------------------------------------
 echo  Compile pop2 library
 echo -----------------------------------------------------------------
@@ -169,7 +219,12 @@ EOF
 
 cd \$compile_dir
 
-set pop2defs = "-DCCSMCOUPLED -DBLCKX=\$BLCKX -DBLCKY=\$BLCKY -DMXBLCKS=\$MXBLCKS"
+set pop2defs = "-DCCSMCOUPLED  -DBLCKX=\$BLCKX -DBLCKY=\$BLCKY -DMXBLCKS=\$MXBLCKS"
+
+if (\$USE_OCN_MOBY == TRUE ) then
+set pop2defs = "\$pop2defs -DCESMMOBY"
+endif
+
 if (\$OCN_ICE_FORCING == 'inactive' ) then
 set pop2defs = "\$pop2defs -DZERO_SEA_ICE_REF_SAL"
 endif
@@ -252,7 +307,7 @@ end
 
 set rundir  = $RUNDIR
 cat >! $POP2BLDSCRIPT << EOF2
-#! /bin/csh -f
+#!/bin/csh -f
 
 #======================================================================
 # Purpose:
@@ -270,6 +325,7 @@ cat >! $POP2BLDSCRIPT << EOF2
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
+setenv rundir   \$RUNDIR
 setenv runtype   $RUN_TYPE
 if (\$CONTINUE_RUN == 'TRUE') setenv runtype  continue
 
@@ -277,12 +333,10 @@ setenv OCN_PRESTAGE  $OCN_PRESTAGE
 
 set exedir   = \$RUNDIR
 set ocndir   = \$EXEROOT/ocn
-set rundir   = \$RUNDIR
 set objdir   = \$OBJROOT/ocn/obj
 set srcdir   = \$CODEROOT/ocn/pop2
 set my_path  = \$CASEROOT/SourceMods/src.pop2
-setenv MY_PATH \$CASEROOT/SourceMods/src.pop2    # used in ocn.*.setup.csh
-                                                # must be unresolved env var
+setenv MY_PATH \$CASEROOT/SourceMods/src.pop2    # used in ocn.*.setup.csh   must be unresolved env var
 
 setenv INPUT            \$EXEROOT/ocn/input
 setenv INPUTDATA        \$DIN_LOC_ROOT/ocn/pop
@@ -304,6 +358,21 @@ set ocn_tracers = (\`echo \$OCN_TRACER_MODULES\`)
 if !( -d \$ocndir/rest  )  mkdir -p \$ocndir/rest   || exit 2
 if !( -d \$ocndir/hist  )  mkdir -p \$ocndir/hist   || exit 2
 if !( -d \$ocndir/input )  mkdir -p \$ocndir/input  || exit 2
+
+#=====================================================================================
+# Define any auxilliary ocean component models, such as darwin, quota, or others, TBD.
+#=====================================================================================
+set aux_ocn_comps = ( )
+foreach comp (\`echo \$OCN_TRACER_MODULES\`)
+  if (\$comp == moby) then
+    set aux_ocn_comps = (\$aux_ocn_comps 'moby')
+    setenv OCN_MOBY \$CODEROOT/ocn/pop2/aux/moby
+    if !(-e \$CASEBUILD/moby.buildnml.csh) then
+     cp \$SRCDIR/bld/moby.cpl7.template \$CASEROOT/Tools/Templates
+     \$CASEROOT/Tools/Templates/moby.cpl7.template
+    endif
+  endif
+end
 
 date      > \$POP2_BLDNML
 echo " " >> \$POP2_BLDNML
@@ -438,7 +507,7 @@ cat >> $POP2BLDSCRIPT << EOF2
  
  echo " " >&! \$POP2_INLIST
  echo "  ----------------------------------------------------------------------- " >> \$POP2_INLIST
- echo "   Origin of  \$CASE pop2 input_template datasets used in this run        " >> \$POP2_INLIST
+ echo "   Origin of  \$CASEROOT pop2 input_template datasets used in this run        " >> \$POP2_INLIST
  echo "   \`date\`                                                               " >> \$POP2_INLIST
  echo "  ----------------------------------------------------------------------- " >> \$POP2_INLIST
  echo " " >> \$POP2_INLIST
@@ -650,6 +719,7 @@ endif
 @ ocn_inst_counter = \$ocn_inst_counter + 1
 end
 
+
 cd \$exedir
 EOF2
 
@@ -706,13 +776,20 @@ endif
 
 wait
 
+echo #==========================================================================  >> \$POP2_BLDNML
+echo #  If there are aux components, begin their namelist builds here             >> \$POP2_BLDNML
+echo #==========================================================================  >> \$POP2_BLDNML
+foreach aux_ocn_comp (\$aux_ocn_comps)
+\$CASEROOT/Buildconf/\${aux_ocn_comp}.buildnml.csh || exit -3  >> \$POP2_BLDNML
+end
 
-echo  Successful completion                                                   >> \$POP2_BLDNML
-echo ------------------------------------------------------------------------ >> \$POP2_BLDNML
+echo  Successful completion                                                       >> \$POP2_BLDNML
+echo ------------------------------------------------------------------------     >> \$POP2_BLDNML
 echo " " >> \$POP2_BLDNML
-date >> \$POP2_BLDNML
+date     >> \$POP2_BLDNML
 exit 0
 
 EOF2
 
 chmod u+x $POP2BLDSCRIPT
+
