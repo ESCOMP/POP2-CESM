@@ -13,14 +13,15 @@ if ($NINST_OCN > 1) then
    set inst_string = ""
    while ($inst_counter <= $NINST_OCN)
       set inst_string = $inst_counter
-      if ($inst_counter <= 999) setenv inst_string  "0$inst_string"
-      if ($inst_counter <=  99) setenv inst_string  "0$inst_string"
-      if ($inst_counter <=   9) setenv inst_string  "0$inst_string"
-      cp $CODEROOT/ocn/pop2/bld/user_nl_pop $CASEROOT/user_nl_pop${inst_string}
+      if ($inst_counter <= 999) set inst_string = "0$inst_string"
+      if ($inst_counter <=  99) set inst_string = "0$inst_string"
+      if ($inst_counter <=   9) set inst_string = "0$inst_string"
+      set inst_string = _${inst_string}
+      cp $CODEROOT/ocn/pop2/bld/user_nl_pop2 $CASEROOT/user_nl_pop2${inst_string}
       @ inst_counter = $inst_counter + 1
    end 
 else
-   cp $CODEROOT/ocn/pop2/bld/user_nl_pop $CASEROOT/user_nl_pop
+   cp $CODEROOT/ocn/pop2/bld/user_nl_pop2 $CASEROOT/user_nl_pop2
 endif
 
 # create pop2.buildnml.csh
@@ -39,9 +40,9 @@ while (\$inst_counter <= \$NINST_OCN)
 
 if (\$NINST_OCN > 1) then
     set inst_string = \$inst_counter
-    if (\$inst_counter <= 999) setenv inst_string = "0\$inst_string"
-    if (\$inst_counter <=  99) setenv inst_string = "0\$inst_string"
-    if (\$inst_counter <=   9) setenv inst_string = "0\$inst_string"
+    if (\$inst_counter <= 999) set inst_string = "0\$inst_string"
+    if (\$inst_counter <=  99) set inst_string = "0\$inst_string"
+    if (\$inst_counter <=   9) set inst_string = "0\$inst_string"
     set inst_string = _\${inst_string}
 else
     set inst_string = ""
@@ -71,7 +72,7 @@ cat >! \$CASEBUILD/pop2conf/cesm_namelist << EOF2
 &pop2_inparm
  log_filename='\$log_filename'
 EOF2
-\$UTILROOT/Tools/user_nl_add -user_nl_file \$CASEROOT/user_nl_pop\${inst_string} >> \$CASEBUILD/pop2conf/cesm_namelist 
+\$UTILROOT/Tools/user_nl_add -user_nl_file \$CASEROOT/user_nl_pop2\${inst_string} >> \$CASEBUILD/pop2conf/cesm_namelist 
 cat >> \$CASEBUILD/pop2conf/cesm_namelist << EOF2
 /
 EOF2
@@ -79,10 +80,10 @@ EOF2
 \$CODEROOT/ocn/pop2/bld/build-namelist -infile \$CASEBUILD/pop2conf/cesm_namelist || exit -1
 
 if (\$?DOCDIR) then # only set in preview_namelists utility		    
-  cp \$CASEBUILD/pop2conf/pop2_in \$CASEROOT/CaseDocs/\$ocn_in_filename\${inst_string} || exit -1
+  cp \$CASEBUILD/pop2conf/pop2_in \$CASEROOT/CaseDocs/\$ocn_in_filename || exit -1
 endif
 if (-d \${RUNDIR}) then
-  cp \$CASEBUILD/pop2conf/pop2_in \${RUNDIR}/\$ocn_in_filename\${inst_string} || exit -2
+  cp \$CASEBUILD/pop2conf/pop2_in \${RUNDIR}/\$ocn_in_filename || exit -2
 endif
 
 # pop rpointer name for multi-instance case
@@ -188,26 +189,25 @@ endif
 if (\$OCN_GRID =~ "tx0.1*" )  then
     set cppdefs = "\$cppdefs -D_HIRES";
 endif
-cat >! \$CASEBUILD/pop2conf/POP2_cppdefs.new <<EOF
+
+cat >! \$OBJROOT/ocn/obj/POP2_cppdefs.new <<EOF
 \$cppdefs
 EOF
 
-ls -l \$CASEBUILD/pop2conf/POP2_cppdefs.new 
-
 #  recompile if 2d decomp or NT is changed
-if (-f \$CASEBUILD/pop2conf/POP2_cppdefs) then
-    set recompile = FALSE
-    diff \$CASEBUILD/pop2conf/POP2_cppdefs.new \$CASEBUILD/pop2conf/POP2_cppdefs || set recompile = TRUE
+set recompile = FALSE
+if (-e \$OBJROOT/ocn/obj/POP2_cppdefs) then
+    diff \$OBJROOT/ocn/obj/POP2_cppdefs.new \$OBJROOT/ocn/obj/POP2_cppdefs || set recompile = TRUE
     echo "recompile is \$recompile"
     if (\$recompile == 'TRUE') then
-	touch \`grep -l BLCKX   \$OBJROOT/ocn/source/*\`  # force recompile
-	touch \`grep -l BLCKY   \$OBJROOT/ocn/source/*\`  # force recompile
-	touch \`grep -l MXBLCKS \$OBJROOT/ocn/source/*\`  # force recompile
-	touch \`grep -l NT      \$OBJROOT/ocn/source/*\`  # force recompile
+	touch \`grep -wl BLCKX   \$OBJROOT/ocn/source/*\`  # force recompile
+	touch \`grep -wl BLCKY   \$OBJROOT/ocn/source/*\`  # force recompile
+	touch \`grep -wl MXBLCKS \$OBJROOT/ocn/source/*\`  # force recompile
+	touch \`grep -wl NT      \$OBJROOT/ocn/source/*\`  # force recompile
     endif  
 endif
-cp -fp \$CASEBUILD/pop2conf/POP2_cppdefs.new \$CASEBUILD/pop2conf/POP2_cppdefs
-set pop2defs = "\`cat \$CASEBUILD/pop2conf/POP2_cppdefs\`"
+cp -f \$OBJROOT/ocn/obj/POP2_cppdefs.new \$OBJROOT/ocn/obj/POP2_cppdefs
+set pop2defs = "\`cat \$OBJROOT/ocn/obj/POP2_cppdefs\`"
 
 gmake complib -j \$GMAKE_J MODEL=pop2 COMPLIB=\$LIBROOT/libocn.a USER_CPPDEFS="\$pop2defs" -f \$CASETOOLS/Makefile || exit 2
 

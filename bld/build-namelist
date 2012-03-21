@@ -214,7 +214,7 @@ print $fh  <<"EOF";
 </config_definition>
 EOF
 $fh->close;
-if ($print>=1) { print "Wrote file $config_cache $eol"; }
+if ($print>=2) { print "Wrote file $config_cache $eol"; }
 (-f "config_cache.xml")  or  die <<"EOF";
 ** $ProgName - Cannot find configuration cache file: config_cache.xml\" **
 EOF
