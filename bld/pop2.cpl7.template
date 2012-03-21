@@ -44,11 +44,34 @@ if (\$NINST_OCN > 1) then
     if (\$inst_counter <=  99) set inst_string = "0\$inst_string"
     if (\$inst_counter <=   9) set inst_string = "0\$inst_string"
     set inst_string = _\${inst_string}
+    setenv output_r  ./\$CASE.pop\${inst_string}.r
+    setenv output_h  ./\$CASE.pop\${inst_string}.h
+    setenv output_d  ./\$CASE.pop\${inst_string}.d
 else
     set inst_string = ""
+    setenv output_r  ./\$CASE.pop.r
+    setenv output_h  ./\$CASE.pop.h
+    setenv output_d  ./\$CASE.pop.d
 endif
+
 set ocn_in_filename = \${default_ocn_in_filename}\${inst_string}
 set log_filename = \${RUNDIR}/ocn\${inst_string}.log.\$LID
+
+if (\$NINST_OCN > 1) then
+   # pop rpointer name for multi-instance case
+   if (! -e \$RUNDIR/rpointer.ocn\${inst_string}.ovf && -e \$RUNDIR/rpointer.ocn.ovf) then
+      cp \$RUNDIR/rpointer.ocn.ovf \$RUNDIR/rpointer.ocn\${inst_string}.ovf
+   endif
+   if (! -e \$RUNDIR/rpointer.ocn\${inst_string}.restart && -e \$RUNDIR/rpointer.ocn.restart) then
+      cp \$RUNDIR/rpointer.ocn.restart \$RUNDIR/rpointer.ocn\${inst_string}.restart
+   endif
+   if (! -e \$RUNDIR/rpointer.ocn\${inst_string}.tavg && -e \$RUNDIR/rpointer.ocn.tavg) then
+      cp \$RUNDIR/rpointer.ocn.tavg \$RUNDIR/rpointer.ocn\${inst_string}.tavg
+   endif
+   if (! -e \$RUNDIR/rpointer.ocn\${inst_string} && -e \$RUNDIR/rpointer.ocn) then
+      cp \$RUNDIR/rpointer.ocn \$RUNDIR/rpointer.ocn\${inst_string}
+   endif
+endif
 
 # following env variable is not in any xml files - but is needed by pop's build-namelist
 if (\$RUN_TYPE == startup) then

@@ -135,14 +135,11 @@ my @env_vars = qw(CASE
 		  POP_DECOMPTYPE
 		  RUN_STARTDATE
 		  RESTART_INPUT_TS_FMT
-		  INFO_DBUG);
+		  INFO_DBUG
+		  output_r
+		  output_h
+		  output_d);
 		  
-#		  NOFFSET_IAGE    # stream number offset for iage tracer (1)
-#		  NOFFSET_CFC     # stream number offset for cfcs tracer (1)
-#		  NOFFSET_ECOSYS  # stream number offset for ecosys tracers streams (2)
-#		  NOFFSET_CUSTOM  # stream number offset for custom streams 
-#		  NSTREAMS_CUSTOM # number of custom streams
-
 foreach my $env_var (@env_vars) {
     if ( defined $ENV{"$env_var"} ) {
 	# do nothing
@@ -176,9 +173,10 @@ my $info_dbug              = "$ENV{'INFO_DBUG'}";
 my $restart_input_ts_fmt   = "$ENV{'RESTART_INPUT_TS_FMT'}";
 my $ocn_co2_flux_ocmip_bug_fix = "$ENV{'OCN_CO2_FLUX_OCMIP_BUG_FIX'}";
 
-my $output_r  = "./$case.pop.r";
-my $output_h  = "./$case.pop.h";
-my $output_d  =   "$case.pop.d";
+my $output_r  = "$ENV{'output_r'}";
+my $output_h  = "$ENV{'output_h'}";
+my $output_d  = "$ENV{'output_d'}";
+
 my $NTASKS    = $ntasks_ocn / $ninst_ocn; 
 
 my $my_path   = "${caseroot}/SourceMods/src.pop2";
