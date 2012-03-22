@@ -1226,7 +1226,6 @@ if ($OCN_GRID =~ /^gx*/) { push @copy_files_to_input,"${OCN_GRID}_overflow"; }
 
 foreach my $file (@copy_files_to_input ) {
     if (-f "${my_path}/$file") {
-	print " i am here \n";
 	my $sysmod = "cp -fp ${my_path}/$file $EXEROOT/ocn/input/$file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     } else {
