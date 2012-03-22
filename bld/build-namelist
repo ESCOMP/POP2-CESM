@@ -138,7 +138,8 @@ my @env_vars = qw(CASE
 		  INFO_DBUG
 		  output_r
 		  output_h
-		  output_d);
+		  output_d
+		  OCN_CO2_FLUX_OCMIP_BUG_FIX); 
 		  
 foreach my $env_var (@env_vars) {
     if ( defined $ENV{"$env_var"} ) {
@@ -148,67 +149,69 @@ foreach my $env_var (@env_vars) {
     }	
 }
 
-my $case                   = "$ENV{'CASE'}";
-my $calendar               = "$ENV{'CALENDAR'}";
-my $exeroot                = "$ENV{'EXEROOT'}";
-my $coderoot               = "$ENV{'CODEROOT'}";
-my $scriptsroot            = "$ENV{'SCRIPTSROOT'}";
-my $caseroot               = "$ENV{'CASEROOT'}";
-my $inputdata_rootdir      = "$ENV{'DIN_LOC_ROOT_CSMDATA'}";
-my $ccsm_co2_ppmv          = "$ENV{'CCSM_CO2_PPMV'}";
-my $ocn_grid               = "$ENV{'OCN_GRID'}";
-my $ocn_ncpl               = "$ENV{'OCN_NCPL'}";
-my $ocn_coupling           = "$ENV{'OCN_COUPLING'}";
-my $ocn_ice_forcing        = "$ENV{'OCN_ICE_FORCING'}";
-my $ocn_chl_type           = "$ENV{'OCN_CHL_TYPE'}";
-my $ocn_co2_type           = "$ENV{'OCN_CO2_TYPE'}";
-my $ocn_transient          = "$ENV{'OCN_TRANSIENT'}";
-my $ocn_tracer_modules     = "$ENV{'OCN_TRACER_MODULES'}";
-my $ocn_tavg_tracer_budget = "$ENV{'OCN_TAVG_TRACER_BUDGET'}";
-my $ocn_tavg_hifreq        = "$ENV{'OCN_TAVG_HIFREQ'}";
-my $ntasks_ocn             = "$ENV{'NTASKS_OCN'}";
-my $ninst_ocn              = "$ENV{'NINST_OCN'}";
-my $decomptype             = "$ENV{'POP_DECOMPTYPE'}";
-my $info_dbug              = "$ENV{'INFO_DBUG'}";
-my $restart_input_ts_fmt   = "$ENV{'RESTART_INPUT_TS_FMT'}";
-my $ocn_co2_flux_ocmip_bug_fix = "$ENV{'OCN_CO2_FLUX_OCMIP_BUG_FIX'}";
+my $OCN_CO2_FLUX_OCMIP_BUG_FIX = "$ENV{'OCN_CO2_FLUX_OCMIP_BUG_FIX'}";
 
-my $output_r  = "$ENV{'output_r'}";
-my $output_h  = "$ENV{'output_h'}";
-my $output_d  = "$ENV{'output_d'}";
+my $CASE                   = "$ENV{'CASE'}";
+my $CALENDAR               = "$ENV{'CALENDAR'}";
+my $EXEROOT                = "$ENV{'EXEROOT'}";
+my $CODEROOT               = "$ENV{'CODEROOT'}";
+my $SCRIPTSROOT            = "$ENV{'SCRIPTSROOT'}";
+my $CASEROOT               = "$ENV{'CASEROOT'}";
+my $DIN_LOC_ROOT           = "$ENV{'DIN_LOC_ROOT_CSMDATA'}";
+my $CCSM_CO2_PPMV          = "$ENV{'CCSM_CO2_PPMV'}";
+my $OCN_GRID               = "$ENV{'OCN_GRID'}";
+my $OCN_NCPL               = "$ENV{'OCN_NCPL'}";
+my $OCN_COUPLING           = "$ENV{'OCN_COUPLING'}";
+my $OCN_ICE_FORCING        = "$ENV{'OCN_ICE_FORCING'}";
+my $OCN_CHL_TYPE           = "$ENV{'OCN_CHL_TYPE'}";
+my $OCN_CO2_TYPE           = "$ENV{'OCN_CO2_TYPE'}";
+my $OCN_TRANSIENT          = "$ENV{'OCN_TRANSIENT'}";
+my $OCN_TRACER_MODULES     = "$ENV{'OCN_TRACER_MODULES'}";
+my $OCN_TAVG_TRACER_BUDGET = "$ENV{'OCN_TAVG_TRACER_BUDGET'}";
+my $OCN_TAVG_HIFREQ        = "$ENV{'OCN_TAVG_HIFREQ'}";
+my $NTASKS_OCN             = "$ENV{'NTASKS_OCN'}";
+my $NINST_OCN              = "$ENV{'NINST_OCN'}";
+my $POP_DECOMPTYPE         = "$ENV{'POP_DECOMPTYPE'}";
+my $INFO_DBUG              = "$ENV{'INFO_DBUG'}";
+my $RESTART_INPUT_TS_FMT   = "$ENV{'RESTART_INPUT_TS_FMT'}";
+my $RUN_TYPE               = "$ENV{'RUN_TYPE'}";
+my $RUN_STARTDATE          = "$ENV{'RUN_STARTDATE'}";
+my $output_r               = "$ENV{'output_r'}";
+my $output_h               = "$ENV{'output_h'}";
+my $output_d               = "$ENV{'output_d'}";
 
-my $NTASKS    = $ntasks_ocn / $ninst_ocn; 
+my $ntasks = $NTASKS_OCN / $NINST_OCN; 
+print "debug: $ntasks, $NTASKS_OCN, $NINST_OCN \n";
+my $my_path = "${CASEROOT}/SourceMods/src.pop2";
 
-my $my_path   = "${caseroot}/SourceMods/src.pop2";
+if ($ENV{'CONTINUE_RUN'} eq 'TRUE') {$RUN_TYPE = "continue";}
 
-my $runtype = $ENV{'RUN_TYPE'};
-if ($ENV{'CONTINUE_RUN'} eq 'TRUE') {
-    $runtype = "continue";
-}
-my $run_startdate = "$ENV{'RUN_STARTDATE'}";
-my $iyear0  = `echo $run_startdate | cut -c1-4  | sed -e 's/^0*//'`;
+my $iyear0  = `echo $RUN_STARTDATE | cut -c1-4  | sed -e 's/^0*//'`;
 $iyear0 =~ s/\n/ /g; # remove imbedded newline   
-my $imonth0 = `echo $run_startdate | cut -c6-7  | sed -e 's/^0*//'`;
+
+my $imonth0 = `echo $RUN_STARTDATE | cut -c6-7  | sed -e 's/^0*//'`;
 $imonth0 =~ s/\n/ /g; # remove imbedded newline   
-my $iday0   = `echo $run_startdate | cut -c9-10 | sed -e 's/^0*//'`;
+
+my $iday0   = `echo $RUN_STARTDATE | cut -c9-10 | sed -e 's/^0*//'`;
 $iday0 =~ s/\n/ /g; # remove imbedded newline   
+
 my $ihour0  = 0;
 if ( $ENV{'RUN_TYPE'} eq "startup" || $ENV{'RUN_TYPE'} eq "hybrid" ) {
-    if ($ocn_ncpl > 1) {
-	$ihour0 = $ihour0 + (24 / $ocn_ncpl);
+    if ($OCN_NCPL > 1) {
+	$ihour0 = $ihour0 + (24 / $OCN_NCPL);
     } else {
 	$iday0 = $iday0 + 1;
     }
 }
 
 # build config_cache.xml file (needed below)
-my $config_cache = "${caseroot}/Buildconf/pop2conf/config_cache.xml";
+my $config_cache = "${CASEROOT}/Buildconf/pop2conf/config_cache.xml";
 my  $fh = new IO::File;
 $fh->open(">$config_cache") or die "** can't open file: $config_cache\n";
 print $fh  <<"EOF";
 <?xml version="1.0"?>
 <config_definition>
-<entry id="ocn_grid" value="$ocn_grid">
+<entry id="ocn_grid" value="$OCN_GRID">
 </config_definition>
 EOF
 $fh->close;
@@ -217,15 +220,15 @@ if ($print>=2) { print "Wrote file $config_cache $eol"; }
 ** $ProgName - Cannot find configuration cache file: config_cache.xml\" **
 EOF
 
-print "  POP2 build-namelist: ocn_grid is $ocn_grid \n";
-print "  POP2 build-namelist: ocn_tracer_mode is $ocn_tracer_modules \n";
+print "  POP2 build-namelist: ocn_grid is $OCN_GRID \n";
+print "  POP2 build-namelist: ocn_tracer_mode is $OCN_TRACER_MODULES \n";
 
 #-----------------------------------------------------------------------------------------------
 # Make sure we can find required perl modules, definition, and defaults files.
 # Look for them under the directory that contains the configure script.
 
 # The root directory for the perl5 required utilities 
-my $perl5lib_dir = "${scriptsroot}/ccsm_utils/Tools/perl5lib";
+my $perl5lib_dir = "${SCRIPTSROOT}/ccsm_utils/Tools/perl5lib";
 
 # The XML::Lite module is required to parse the XML files.
 (-f "$perl5lib_dir/XML/Lite.pm")  or  die <<"EOF";
@@ -262,8 +265,8 @@ EOF
 # who make use of the SourceMods/src.pop2 directory - we allow the definition file 
 # to come from that directory
 my $nl_definition_file;
-if (-f "${caseroot}/SourceMods/src.pop2/namelist_definition_pop2.xml") {
-    $nl_definition_file = "${caseroot}/SourceMods/src.pop2/namelist_definition_pop2.xml";
+if (-f "${CASEROOT}/SourceMods/src.pop2/namelist_definition_pop2.xml") {
+    $nl_definition_file = "${CASEROOT}/SourceMods/src.pop2/namelist_definition_pop2.xml";
 }
 if (! defined $nl_definition_file) {
     # default location of namelist definition file
@@ -283,10 +286,10 @@ if ($print>=2) { print "Using namelist defaults file $nl_defaults_file$eol"; }
 
 # Check that the CESM inputdata root directory exists
 # This must be a local or nfs mounted directory.
-(-d $inputdata_rootdir)  or  die <<"EOF";
-** $ProgName - CCSM inputdata root is not a directory: \"$inputdata_rootdir\" **
+(-d $DIN_LOC_ROOT)  or  die <<"EOF";
+** $ProgName - CCSM inputdata root is not a directory: \"$DIN_LOC_ROOT\" **
 EOF
-if ($print>=2) { print "CESM inputdata root directory: $inputdata_rootdir$eol"; }
+if ($print>=2) { print "CESM inputdata root directory: $DIN_LOC_ROOT$eol"; }
 
 #-----------------------------------------------------------------------------------------------
 # Add $perl5lib_dir to the list of paths that Perl searches for modules
@@ -372,10 +375,10 @@ if (defined $opts{'infile'}) {
 # namelist group: domain_nml     #
 ##################################
 
-add_default($nl, 'nprocs_clinic', 'val'=>"$NTASKS");
-add_default($nl, 'nprocs_tropic', 'val'=>"$NTASKS");
-add_default($nl, 'clinic_distribution_type', 'val'=>"$decomptype");
-add_default($nl, 'tropic_distribution_type', 'val'=>"$decomptype");
+add_default($nl, 'nprocs_clinic', 'val'=>"$ntasks");
+add_default($nl, 'nprocs_tropic', 'val'=>"$ntasks");
+add_default($nl, 'clinic_distribution_type', 'val'=>"$POP_DECOMPTYPE");
+add_default($nl, 'tropic_distribution_type', 'val'=>"$POP_DECOMPTYPE");
 add_default($nl, 'ew_boundary_type');
 add_default($nl, 'ns_boundary_type');
 
@@ -393,14 +396,8 @@ add_default($nl, 'luse_nf_64bit_offset');
 # namelist group: time_manager_nml #
 ####################################
 
-if (-f "${my_path}/${ocn_grid}_depth_accel") {
-    add_default($nl, 'accel_file', 
-		'val'=>"${my_path}/${ocn_grid}_depth_accel");
-} else {
-    add_default($nl, 'accel_file', 
-		'val'=>"$coderoot/ocn/pop2/input_templates/${ocn_grid}_depth_accel");
-}
-add_default($nl, 'runid', 'val'=>"$case");
+add_default($nl, 'accel_file', 'val'=>"${EXEROOT}/ocn/input/${OCN_GRID}_depth_accel");
+add_default($nl, 'runid', 'val'=>"$CASE");
 add_default($nl, 'time_mix_opt');
 add_default($nl, 'time_mix_freq');
 add_default($nl, 'dt_option');
@@ -408,7 +405,7 @@ add_default($nl, 'dt_count');
 add_default($nl, 'impcor');
 add_default($nl, 'laccel');
 add_default($nl, 'dtuxcel');
-add_default($nl, 'allow_leapyear', 'calendar'=>"$calendar");
+add_default($nl, 'allow_leapyear', 'calendar'=>"$CALENDAR");
 add_default($nl, 'iyear0', 'val'=>$iyear0);
 add_default($nl, 'imonth0','val'=>$imonth0);
 add_default($nl, 'iday0'  ,'val'=>$iday0);
@@ -418,7 +415,7 @@ add_default($nl, 'isecond0');
 add_default($nl, 'date_separator');
 add_default($nl, 'stop_option');
 add_default($nl, 'stop_count');
-add_default($nl, 'fit_freq', 'val'=>"$ocn_ncpl");
+add_default($nl, 'fit_freq', 'val'=>"$OCN_NCPL");
 
 ####################################
 # namelist group: grid_nml #
@@ -432,24 +429,11 @@ add_default($nl, 'fit_freq', 'val'=>"$ocn_ncpl");
 my $topography_opt = 'file';               # hard-wired for now
 my $bathymetry_file= 'unknown_bathymetry'; #hard-wired for now
 
-add_default($nl, 'topography_opt' , 'val'=>"$topography_opt");
-add_default($nl, 'bathymetry_file', 'val'=>"$bathymetry_file");
-add_default($nl, 'lremove_points' , 'topograpahy_opt'=>"$topography_opt"); 
-
-if (-f "${my_path}/${ocn_grid}_vert_grid") {
-    add_default($nl, 'vert_grid_file', 
-		'val'=>"${my_path}/${ocn_grid}_vert_grid");
-} else {
-    add_default($nl, 'vert_grid_file', 
-		'val'=>"$coderoot/ocn/pop2/input_templates/${ocn_grid}_vert_grid");
-}
-if (-f "${my_path}/${ocn_grid}_region_ids") {
-    add_default($nl, 'region_info_file', 
-		'val'=>"${my_path}/${ocn_grid}_region_ids");
-} else {
-    add_default($nl, 'region_info_file', 
-		'val'=>"$coderoot/ocn/pop2/input_templates/${ocn_grid}_region_ids");
-}
+add_default($nl, 'vert_grid_file'  , 'val'=>"${EXEROOT}/ocn/input/${OCN_GRID}_vert_grid");
+add_default($nl, 'region_info_file', 'val'=>"${EXEROOT}/ocn/input/${OCN_GRID}_region_ids");
+add_default($nl, 'topography_opt'  , 'val'=>"$topography_opt");
+add_default($nl, 'bathymetry_file' , 'val'=>"$bathymetry_file");
+add_default($nl, 'lremove_points'  , 'topograpahy_opt'=>"$topography_opt"); 
 add_default($nl, 'horiz_grid_opt');
 add_default($nl, 'horiz_grid_file');
 add_default($nl, 'vert_grid_opt' );
@@ -467,14 +451,14 @@ add_default($nl, 'sfc_layer_opt');
 # namelist group: init_ts_nml      #
 ####################################
 
-if ($runtype eq 'startup' && $topography_opt eq 'bathymetry') {
+if ($RUN_TYPE eq 'startup' && $topography_opt eq 'bathymetry') {
     add_default($nl, 'init_ts_option'  , 'val'=>'PHC');
     add_default($nl, 'init_ts_file'    , 'val'=>'ts_PHC2_jan_ic_resindpt'); #TODO?
     add_default($nl, 'init_ts_file_fmt', 'val'=>'nc');
 } else {
-    add_default($nl, 'init_ts_option'  , 'val'=>"ccsm_${runtype}");
+    add_default($nl, 'init_ts_option'  , 'val'=>"ccsm_${RUN_TYPE}");
     add_default($nl, 'init_ts_file');   
-    add_default($nl, 'init_ts_file_fmt', 'val'=>"$restart_input_ts_fmt");
+    add_default($nl, 'init_ts_file_fmt', 'val'=>"$RESTART_INPUT_TS_FMT");
 }    
 add_default($nl, 'init_ts_outfile'     , 'val'=>"${output_h}.ts_ic");
 add_default($nl, 'init_ts_outfile_fmt');
@@ -484,14 +468,8 @@ add_default($nl, 'init_ts_suboption');
 # namelist group: diagnostics_nml        #
 ##########################################
 
-if (-f "${my_path}/${ocn_grid}_transport_contents") {
-    add_default($nl, 'diag_transport_file', 
-		'val'=>"${my_path}/${ocn_grid}_transport_contents");
-} else {
-    add_default($nl, 'diag_transport_file', 
-		'val'=>"$coderoot/ocn/pop2/input_templates/${ocn_grid}_transport_contents");
-}
-if ($info_dbug > 1) {
+add_default($nl, 'diag_transport_file', 'val'=>"${EXEROOT}/ocn/input/${OCN_GRID}_transport_contents");
+if ($INFO_DBUG > 1) {
     add_default($nl, 'diag_global_freq_opt', 'val'=>'nstep');
     add_default($nl, 'diag_cfl_freq_opt'   , 'val'=>'nstep');
     add_default($nl, 'diag_transp_freq_opt', 'val'=>'nstep');
@@ -503,9 +481,9 @@ if ($info_dbug > 1) {
 add_default($nl, 'diag_global_freq');
 add_default($nl, 'diag_cfl_freq');
 add_default($nl, 'diag_transp_freq');
-add_default($nl, 'diag_outfile',          'val'=>"$exeroot/run/${output_d}d");
-add_default($nl, 'diag_transport_outfile','val'=>"$exeroot/run/${output_d}t");
-add_default($nl, 'diag_velocity_outfile', 'val'=>"$exeroot/run/${output_d}v");
+add_default($nl, 'diag_outfile',          'val'=>"$EXEROOT/run/${output_d}d");
+add_default($nl, 'diag_transport_outfile','val'=>"$EXEROOT/run/${output_d}t");
+add_default($nl, 'diag_velocity_outfile', 'val'=>"$EXEROOT/run/${output_d}v");
 add_default($nl, 'cfl_all_levels');
 add_default($nl, 'diag_all_levels');
 add_default($nl, 'ldiag_velocity');
@@ -514,7 +492,7 @@ add_default($nl, 'ldiag_velocity');
 # namelist group: budget_diagnostics_nml #
 ##########################################
 
-if ($ocn_tavg_hifreq eq "TRUE" ) {
+if ($OCN_TAVG_HIFREQ eq "TRUE" ) {
     add_default($nl, 'ldiag_global_tracer_budgets', 'val'=>'.false.');
 } else {
     add_default($nl, 'ldiag_global_tracer_budgets');
@@ -544,13 +522,7 @@ add_default($nl, 'pressure_correction');
 # namelist group: history_nml            #
 ##########################################
     
-if (-f "${my_path}/${ocn_grid}_history_contents") {
-    add_default($nl, 'history_contents',
-		'val'=>"${my_path}/${ocn_grid}_history_contents");
-} else {
-    add_default($nl, 'history_contents',
-	    'val'=>"$coderoot/ocn/pop2/input_templates/${ocn_grid}_history_contents");
-}
+add_default($nl, 'history_contents', 'val'=>"${EXEROOT}/ocn/input/${OCN_GRID}_history_contents");
 add_default($nl, 'history_freq_opt');
 add_default($nl, 'history_freq');
 add_default($nl, 'history_outfile', 'val'=>"${output_h}s");
@@ -560,13 +532,7 @@ add_default($nl, 'history_fmt');
 # namelist group: movie_nml              #
 ##########################################
     
-if (-f "${my_path}/${ocn_grid}_movie_contents") {
-    add_default($nl, 'movie_contents',
-		'val'=>"${my_path}/${ocn_grid}_movie_contents");
-} else {
-    add_default($nl, 'movie_contents',
-		'val'=>"$coderoot/ocn/pop2/input_templates/${ocn_grid}_movie_contents");
-}
+add_default($nl, 'movie_contents', 'val'=>"${EXEROOT}/ocn/input/${OCN_GRID}_movie_contents");
 add_default($nl, 'movie_freq_opt');
 add_default($nl, 'movie_freq');
 add_default($nl, 'movie_outfile', 'val'=>"${output_h}m");
@@ -785,14 +751,7 @@ $nl->set_variable_value('hmix_gm_nml', 'ah', "$ah_gm_value");
 # note that ocn_grid dependence for ah_bolus, ah_bkg_srfbl 
 # is obtained from config_cache.xml
 
-if (-f "${my_path}/buoyancy_freq") {
-    add_default($nl, 'buoyancy_freq_filename', 
-		'val'=>"${my_path}/buoyancy_freq");
-} else {
-    add_default($nl, 'buoyancy_freq_filename', 
-		'val'=>"$coderoot/ocn/pop2/input_templates/buoyancy_freq");
-}
-
+add_default($nl, 'buoyancy_freq_filename', 'val'=>"${EXEROOT}/ocn/input/buoyancy_freq");
 add_default($nl, 'diag_gm_bolus');
 add_default($nl, 'kappa_freq_choice');
 add_default($nl, 'slope_control_choice');
@@ -867,7 +826,7 @@ add_default($nl, 'reset_to_freezing');
 ##########################################
 
 my $lactive_ice;
-if ($ocn_ice_forcing =~ /inactive/) {
+if ($OCN_ICE_FORCING =~ /inactive/) {
     $lactive_ice = ".false.";
 } else {
     $lactive_ice = ".true.";
@@ -908,9 +867,9 @@ add_default($nl,'ws_file_fmt');
 # namelist group: forcing_shf_nml        #
 ##########################################
 
-add_default($nl,'shf_formulation','ocn_coupling'=>"$ocn_coupling");
-add_default($nl,'shf_data_type'  ,'ocn_coupling'=>"$ocn_coupling");
-add_default($nl,'luse_cpl_ifrac' ,'ocn_coupling'=>"$ocn_coupling");
+add_default($nl,'shf_formulation','ocn_coupling'=>"$OCN_COUPLING");
+add_default($nl,'shf_data_type'  ,'ocn_coupling'=>"$OCN_COUPLING");
+add_default($nl,'luse_cpl_ifrac' ,'ocn_coupling'=>"$OCN_COUPLING");
 add_default($nl,'shf_data_inc');
 add_default($nl,'shf_interp_freq');
 add_default($nl,'shf_interp_type');
@@ -927,11 +886,11 @@ add_default($nl,'shf_strong_restore_ms');
 # namelist_group: forcing_sfwf_nml       #
 ##########################################
 
-add_default($nl,'sfwf_formulation' , 'ocn_coupling'=>"$ocn_coupling");
-add_default($nl,'sfwf_data_type'   , 'ocn_coupling'=>"$ocn_coupling");
-add_default($nl,'ladjust_precip'   , 'ocn_coupling'=>"$ocn_coupling");
-add_default($nl,'lms_balance'      , 'ocn_coupling'=>"$ocn_coupling");
-add_default($nl,'lsend_precip_fact', 'ocn_coupling'=>"$ocn_coupling");
+add_default($nl,'sfwf_formulation' , 'ocn_coupling'=>"$OCN_COUPLING");
+add_default($nl,'sfwf_data_type'   , 'ocn_coupling'=>"$OCN_COUPLING");
+add_default($nl,'ladjust_precip'   , 'ocn_coupling'=>"$OCN_COUPLING");
+add_default($nl,'lms_balance'      , 'ocn_coupling'=>"$OCN_COUPLING");
+add_default($nl,'lsend_precip_fact', 'ocn_coupling'=>"$OCN_COUPLING");
 add_default($nl,'sfwf_data_inc');
 add_default($nl,'sfwf_interp_freq');
 add_default($nl,'sfwf_interp_type');
@@ -1001,9 +960,9 @@ add_default($nl,'ap_data_renorm');
 # namelist group: coupled_nml            #
 ##########################################
 
-my $coupled_freq = 24./$ocn_ncpl;
+my $coupled_freq = 24./$OCN_NCPL;
 add_default($nl,'coupled_freq','val'=>"$coupled_freq");
-add_default($nl,'qsw_distrb_opt', 'ocn_coupling'=>"$ocn_coupling");
+add_default($nl,'qsw_distrb_opt', 'ocn_coupling'=>"$OCN_COUPLING");
 add_default($nl,'coupled_freq_opt');
 
 ##########################################
@@ -1011,7 +970,7 @@ add_default($nl,'coupled_freq_opt');
 ##########################################
 
 add_default($nl,'sw_absorption_type');
-add_default($nl,'chl_option', 'ocn_chl_type'=>"$ocn_chl_type");
+add_default($nl,'chl_option', 'ocn_chl_type'=>"$OCN_CHL_TYPE");
 add_default($nl,'chl_filename');
 add_default($nl,'chl_file_fmt');
 add_default($nl,'jerlov_water_type');
@@ -1050,37 +1009,32 @@ add_default($nl,'lccsm_control_compatible');
 # namelist group: overflows_nml          #
 ##########################################
 
-if ($ocn_grid =~ /^gx*/) {
-    if (-f "${my_path}/${ocn_grid}_overflow") {
-	add_default($nl,'overflows_infile', 
-		    'val'=>"${my_path}/${ocn_grid}_overflow");
-    } else {
-	add_default($nl,'overflows_infile', 
-		    'val'=>"$coderoot/ocn/pop2/input_templates/${ocn_grid}_overflow");
-    }
+if ($OCN_GRID =~ /^gx*/) {
+    add_default($nl,'overflows_infile',  'val'=>"${EXEROOT}/ocn/input/${OCN_GRID}_overflow");
 }
 
 add_default($nl,'overflows_on');
 add_default($nl,'overflows_interactive');
-add_default($nl,'overflows_diag_outfile', 'val'=>"$exeroot/run/${output_d}o");
-add_default($nl,'overflows_restart_type', 'val'=>"ccsm_${runtype}");
+add_default($nl,'overflows_diag_outfile', 'val'=>"$EXEROOT/run/${output_d}o");
+add_default($nl,'overflows_restart_type', 'val'=>"ccsm_${RUN_TYPE}");
 add_default($nl,'overflows_restfile'    , 'val'=>"${output_r}o");
+
 
 ##########################################
 # namelist group: passive_tracers_on_nml #
 ##########################################
 
-if ($ocn_tracer_modules =~ /iage/) {
+if ($OCN_TRACER_MODULES =~ /iage/) {
     add_default($nl, 'iage_on', 'val'=>".true.");
 } else {
     add_default($nl, 'iage_on', 'val'=>".false.");
 }
-if ($ocn_tracer_modules =~ /cfc/) {
+if ($OCN_TRACER_MODULES =~ /cfc/) {
     add_default($nl, 'cfc_on', 'val'=>".true.");
 } else {
     add_default($nl, 'cfc_on', 'val'=>".false.");
 }
-if ($ocn_tracer_modules =~ /ecosys/) {
+if ($OCN_TRACER_MODULES =~ /ecosys/) {
     add_default($nl, 'ecosys_on', 'val'=>".true.");
 } else {
     add_default($nl, 'ecosys_on', 'val'=>".false.");
@@ -1091,8 +1045,8 @@ if ($ocn_tracer_modules =~ /ecosys/) {
 # namelist group: iage_nml               #
 ##########################################
 
-if ($ocn_tracer_modules =~ /iage/) {
-    add_default($nl, 'init_iage_option',    'val'=>"ccsm_${runtype}");
+if ($OCN_TRACER_MODULES =~ /iage/) {
+    add_default($nl, 'init_iage_option',    'val'=>"ccsm_${RUN_TYPE}");
     add_default($nl, 'init_iage_init_file', 'val'=>'same_as_TS', 'noprepend'=>1);
 }
 
@@ -1102,14 +1056,14 @@ if ($ocn_tracer_modules =~ /iage/) {
 
 my $pcfc_file = "ocn/pop/res_indpt/forcing/pcfc1112_atm_20091117.nc";
 my $init_cfc_option;
-my $model_year;
-my $data_year;
-if (($ocn_transient eq "1850-2000") && ($runtype ne "continue")) {
+if (($OCN_TRANSIENT eq "1850-2000") && ($RUN_TYPE ne "continue")) {
     $init_cfc_option = "zero";
 } else {
-    $init_cfc_option = "ccsm_${runtype}";
+    $init_cfc_option = "ccsm_${RUN_TYPE}";
 }
-if ($ocn_transient eq "1850-2000") {
+my $model_year;
+my $data_year;
+if ($OCN_TRANSIENT eq "1850-2000") {
     $model_year = 1850;
     $data_year  = 1850;
 } else {
@@ -1117,7 +1071,7 @@ if ($ocn_transient eq "1850-2000") {
     $data_year  = 1981;
 }
 
-if ($ocn_tracer_modules =~ /cfc/) {
+if ($OCN_TRACER_MODULES =~ /cfc/) {
     add_default($nl, 'init_cfc_option',   'val'=>"$init_cfc_option");
     add_default($nl, 'init_cfc_init_file','val'=>'same_as_TS', 'noprepend'=>1);
     add_default($nl, 'model_year'        ,'val'=>"$model_year");
@@ -1131,35 +1085,35 @@ if ($ocn_tracer_modules =~ /cfc/) {
 # namelist group: ecosys_nml             #
 ##########################################
 
-if ($ocn_tracer_modules =~ /ecosys/) {
+if ($OCN_TRACER_MODULES =~ /ecosys/) {
 
-    if (($ocn_transient ne "unset") && ($ocn_transient ne "1850-2000")) { 
-	print " OCN_TRANSIENT=$ocn_transient not supported by ecosystem module \n";
+    if (($OCN_TRANSIENT ne "unset") && ($OCN_TRANSIENT ne "1850-2000")) { 
+	print " OCN_TRANSIENT=$OCN_TRANSIENT not supported by ecosystem module \n";
 	die;
     }
 
     my $atm_co2_opt;
-    if ($ocn_co2_type eq "constant") {
+    if ($OCN_CO2_TYPE eq "constant") {
 	$atm_co2_opt = "const";
-    } elsif ($ocn_co2_type eq "prognostic") {
+    } elsif ($OCN_CO2_TYPE eq "prognostic") {
 	$atm_co2_opt = "drv_prog";
-    } elsif ($ocn_co2_type eq "diagnostic") {
+    } elsif ($OCN_CO2_TYPE eq "diagnostic") {
 	$atm_co2_opt = "drv_diag";
     } else {
 	print "error specifying atm_co2_opt \n";
-	print "unknown OCN_CO2_TYPE:  $ocn_co2_type \n";
+	print "unknown OCN_CO2_TYPE:  $OCN_CO2_TYPE \n";
 	die;
     }
 
     my $locmip_k1_k2_bug_fix;
-    if ($ocn_co2_flux_ocmip_bug_fix eq "TRUE") {
+    if ($OCN_CO2_FLUX_OCMIP_BUG_FIX eq "TRUE") {
 	$locmip_k1_k2_bug_fix = ".true.";
     } else {
 	$locmip_k1_k2_bug_fix = ".false.";
     }
 
-    add_default($nl, 'init_ecosys_option', 'val'=>"ccsm_${runtype}");
-    if ($runtype eq "startup") {
+    add_default($nl, 'init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
+    if ($RUN_TYPE eq "startup") {
 	add_default($nl, 'init_ecosys_init_file');
     } else {
 	add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
@@ -1175,14 +1129,14 @@ if ($ocn_tracer_modules =~ /ecosys/) {
     add_default($nl, 'lflux_gas_co2');
     add_default($nl, 'locmip_k1_k2_bug_fix', 'val'=>"$locmip_k1_k2_bug_fix");
     add_default($nl, 'atm_co2_opt', 'val'=>"$atm_co2_opt");
-    add_default($nl, 'atm_co2_const', 'val'=>"$ccsm_co2_ppmv");
+    add_default($nl, 'atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
     add_default($nl, 'ecosys_tadvect_ctype');
     add_default($nl, 'gas_flux_forcing_opt');
     add_default($nl, 'lmarginal_seas');
     add_default($nl, 'lsource_sink');
     add_default($nl, 'comp_surf_avg_freq_opt');
     add_default($nl, 'comp_surf_avg_freq');
-    add_default($nl, 'use_nml_surf_vals', 'runtype'=>"$runtype");
+    add_default($nl, 'use_nml_surf_vals', 'runtype'=>"$RUN_TYPE");
     add_default($nl, 'surf_avg_dic_const');
     add_default($nl, 'surf_avg_alk_const');
     add_default($nl, 'ecosys_qsw_distrb_const');
@@ -1199,8 +1153,8 @@ if ($ocn_tracer_modules =~ /ecosys/) {
     add_default($nl, 'fesedflux_input%file_varname');
     add_default($nl, 'fesedflux_input%file_fmt');
     add_default($nl, 'fesedflux_input%scale_factor');  # umolFe/m2/day -> nmolFe/cm2/s
-    if ($ocn_transient eq "unset") {
-	add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$ocn_transient");
+    if ($OCN_TRANSIENT eq "unset") {
+	add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
 	add_default($nl, 'nox_flux_monthly_input%filename');
 	add_default($nl, 'nox_flux_monthly_input%file_fmt');
 	add_default($nl, 'nox_flux_monthly_input%file_varname');
@@ -1210,8 +1164,8 @@ if ($ocn_tracer_modules =~ /ecosys/) {
 	add_default($nl, 'nhy_flux_monthly_input%file_varname');
 	add_default($nl, 'nhy_flux_monthly_input%scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
     }
-    if ($ocn_transient eq "1850-2000") {
-	add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$ocn_transient");
+    if ($OCN_TRANSIENT eq "1850-2000") {
+	add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
 	add_default($nl, 'ndep_shr_stream_year_first');
 	add_default($nl, 'ndep_shr_stream_year_last');
 	add_default($nl, 'ndep_shr_stream_year_align');
@@ -1220,6 +1174,8 @@ if ($ocn_tracer_modules =~ /ecosys/) {
     }
     add_default($nl, 'lecovars_full_depth_tavg');
 }
+
+
 
 ##########################################
 # namelist group: tavg_nml               #
@@ -1247,12 +1203,35 @@ my %tavg_nml = (tavg_freq_opt           => [],
 		ltavg_one_time_header   => [],
 		);
 
-if ($ocn_grid =~ /^gx*/) {
+if ($OCN_GRID =~ /^gx*/) {
     $ltavg_streams_index_present  = ".true.";
     $ltavg_nino_diags_requested   = ".true."; 
-} elsif ($ocn_grid =~ /^tx*/) {
+} elsif ($OCN_GRID =~ /^tx*/) {
     $ltavg_streams_index_present  = ".true.";
     $ltavg_nino_diags_requested   = ".false.";
+}
+
+##########################################
+# copy files to $EXEROOT/ocn/input       #
+##########################################
+
+my @copy_files_to_input = ();
+push @copy_files_to_input,"${OCN_GRID}_vert_grid";
+push @copy_files_to_input,"${OCN_GRID}_region_ids";
+push @copy_files_to_input,"${OCN_GRID}_history_contents";
+push @copy_files_to_input,"${OCN_GRID}_movie_contents";
+push @copy_files_to_input,"${OCN_GRID}_transport_contents";
+push @copy_files_to_input,"${OCN_GRID}_depth_accel";
+if ($OCN_GRID =~ /^gx*/) { push @copy_files_to_input,"${OCN_GRID}_overflow"; }
+
+foreach my $file (@copy_files_to_input ) {
+    if (-f "${my_path}/$file") {
+	my $sysmod = "cp -fp ${my_path}/$file $EXEROOT/ocn/input/$file";
+	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+    } else {
+	my $sysmod = "cp -fp ${CODEROOT}/ocn/pop2/input_templates/$file ${EXEROOT}/ocn/input/$file";
+	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+    }
 }
 
 ##########################################
@@ -1261,8 +1240,7 @@ if ($ocn_grid =~ /^gx*/) {
 
 # Create tavg contents file
 
-my $input_templates = "${coderoot}/ocn/pop2/input_templates";
-my $pop2_tavg_file  = "${caseroot}/Buildconf/pop2conf/pop2_${ocn_grid}_tavg_contents";
+my $pop2_tavg_file  = "${CASEROOT}/Buildconf/pop2conf/pop2_${OCN_GRID}_tavg_contents";
 my $sysmod;
 my $file;
 
@@ -1270,19 +1248,19 @@ my $file;
 # 1. base tavg contents
 #-------------------------
 
-# 1.a. create $caseroot/Buildconf/pop2conf/base.tavg.nml file 
+# 1.a. create $CASEROOT/Buildconf/pop2conf/base.tavg.nml file 
 $sysmod;
 $file = "ocn.base.tavg.csh";
 if (-f "${my_path}/$file"){
     $sysmod = "${my_path}/${file}";
 } else {
-    $sysmod = "${coderoot}/ocn/pop2/input_templates/${file}";
+    $sysmod = "${CODEROOT}/ocn/pop2/input_templates/${file}";
 }
 system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 
 # 1.b. read in pop2conf/base.tavg.nml file and fill in %tavg_nml entries
 my $fh_in = new IO::File;
-$fh_in->open("<$caseroot/Buildconf/pop2conf/base.tavg.nml") or die "** can't open filepath file: $\n";
+$fh_in->open("<$CASEROOT/Buildconf/pop2conf/base.tavg.nml") or die "** can't open filepath file: $\n";
 my $line;
 my $numcols;
 while ($line = <$fh_in> )  {
@@ -1302,21 +1280,21 @@ while ($line = <$fh_in> )  {
 $fh_in->close();
 
 # 1.d create base tavg contents file - in pop2conf/
-#     either from $my_path (first) or from $input_templates
-my $base_tavg_file  = "${caseroot}/Buildconf/pop2conf/pop2_${ocn_grid}_tavg_contents";
-if ($ocn_tavg_hifreq eq "TRUE") {
+#     either from $my_path (first) or from 
+my $base_tavg_file  = "${CASEROOT}/Buildconf/pop2conf/pop2_${OCN_GRID}_tavg_contents";
+if ($OCN_TAVG_HIFREQ eq "TRUE") {
     # High-frequency tavg contents
-    $file = "${ocn_grid}_tavg_contents_high_freq";
+    $file = "${OCN_GRID}_tavg_contents_high_freq";
 } else {
     # Default resolution dependent tavg contents
-    $file = "${ocn_grid}_tavg_contents";
+    $file = "${OCN_GRID}_tavg_contents";
 }
 if (-f "$my_path/$file") {
     $sysmod = "cp -fp ${my_path}/$file $base_tavg_file";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 } else {
-    if (-f "${input_templates}/$file") {
-	$sysmod = "cp -fp ${input_templates}/$file $base_tavg_file";
+    if (-f "${CODEROOT}/ocn/pop2/input_templates/$file") {
+	$sysmod = "cp -fp ${CODEROOT}/ocn/pop2/input_templates/$file $base_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     }
 }
@@ -1324,15 +1302,15 @@ if (-f "$my_path/$file") {
 #-------------------------
 # 2. budget tavg contents
 #-------------------------
-my $budget_tavg_file = "${caseroot}/Buildconf/pop2conf/budget_tavg_contents";
+my $budget_tavg_file = "${CASEROOT}/Buildconf/pop2conf/budget_tavg_contents";
 $file = "tavg_contents_tracer_budget_terms";
-if ($ocn_tavg_tracer_budget eq "TRUE") {
+if ($OCN_TAVG_TRACER_BUDGET eq "TRUE") {
     # tracer budget tavg contents 
     if (-f "${my_path}/$file") {
 	$sysmod = "cp -fp ${my_path}/$file $budget_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     } else {
-	$sysmod = "cp -fp ${coderoot}/ocn/pop2/input_templates/$file $budget_tavg_file";
+	$sysmod = "cp -fp ${CODEROOT}/ocn/pop2/input_templates/$file $budget_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     }
     $sysmod = "cat $budget_tavg_file >> $pop2_tavg_file";
@@ -1342,22 +1320,23 @@ if ($ocn_tavg_tracer_budget eq "TRUE") {
 #-------------------------
 # 3. tracer tavg contents 
 #-------------------------
-my @modules = split( ' ', $ocn_tracer_modules);
+my @modules = split( ' ', $OCN_TRACER_MODULES);
 for my $module (@modules) {
     my $file = "ocn.${module}.tavg.csh";
+    my $my_stream = $numcols+1;
+    print "module is $module, my_stream is $my_stream \n";
     if (-f "${my_path}/$file"){
-	print "numcols is $numcols \n";
-	$sysmod = "${my_path}/${file} $numcols";
+	$sysmod = "${my_path}/${file} $my_stream";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     } else {
-	$sysmod = "${coderoot}/ocn/pop2/input_templates/${file} $numcols";
+	$sysmod = "${CODEROOT}/ocn/pop2/input_templates/${file} $my_stream";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     }
     
     # Create new tracer stream namelists - if appropriate
-    if (-f "$caseroot/Buildconf/pop2conf/${module}.tavg.nml") {
+    if (-f "$CASEROOT/Buildconf/pop2conf/${module}.tavg.nml") {
 	my $fh_in = new IO::File;
-	$fh_in->open("<$caseroot/Buildconf/pop2conf/$module.tavg.nml") or die "** can't open filepath file: $\n";
+	$fh_in->open("<${CASEROOT}/Buildconf/pop2conf/$module.tavg.nml") or die "** can't open filepath file: $\n";
 	my $line;
 	while ($line = <$fh_in> )  {
 	    chomp($line);
@@ -1375,7 +1354,7 @@ for my $module (@modules) {
 	}
 	$fh_in->close();
     }
-    $sysmod = "cat ${caseroot}/Buildconf/pop2conf/${module}_tavg_contents >> $pop2_tavg_file";
+    $sysmod = "cat ${CASEROOT}/Buildconf/pop2conf/${module}_tavg_contents >> $pop2_tavg_file";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 }
 
@@ -1396,7 +1375,7 @@ add_default($nl, 'tavg_offset_months',          'val'=>"@{$tavg_nml{'tavg_offset
 add_default($nl, 'tavg_offset_days',            'val'=>"@{$tavg_nml{'tavg_offset_days'}}");
 add_default($nl, 'ltavg_one_time_header',       'val'=>"@{$tavg_nml{'ltavg_one_time_header'}}");
 add_default($nl, 'ltavg_nino_diags_requested',  'val'=>"$ltavg_nino_diags_requested");
-add_default($nl, 'tavg_contents',               'val'=>"$exeroot/ocn/input/pop2_${ocn_grid}_tavg_contents");
+add_default($nl, 'tavg_contents',               'val'=>"$EXEROOT/ocn/input/pop2_${OCN_GRID}_tavg_contents");
 add_default($nl, 'tavg_infile',                 'val'=>"${output_h}restart.end");
 add_default($nl, 'tavg_outfile',                'val'=>"$output_h");
 add_default($nl, 'ltavg_ignore_extra_streams',  'val'=>".false.");
@@ -1451,18 +1430,17 @@ my @groups = qw(domain_nml
 		overflows_nml
 		passive_tracers_on_nml);
 
-if ($ocn_tracer_modules =~ /iage/) {
+if ($OCN_TRACER_MODULES =~ /iage/) {
     push @groups, qw(iage_nml);
 }    
-if ($ocn_tracer_modules =~ /cfc/) {
+if ($OCN_TRACER_MODULES =~ /cfc/) {
     push @groups, qw(cfc_nml);
 }    
-if ($ocn_tracer_modules =~ /ecosys/) {
-    push @groups, qw(ecosys_nml);
-    push @groups, qw(ecosys_parms_nml);
+if ($OCN_TRACER_MODULES =~ /ecosys/) {
+    push @groups, qw(ecosys_nml ecosys_parms_nml);
 }    
 
-# Write out all groups to pop2_in
+# Write out all groups  to pop2_in
 my $outfile = "./pop2_in";
 $nl->write($outfile, 'groups'=>\@groups);
 if ($print>=2) { print "Writing pop2 ocean component namelist to $outfile $eol"; }
@@ -1474,7 +1452,7 @@ if ($opts{'test'}) {
 }
 
 # Write  input dataset list.
-check_input_files($nl, $inputdata_rootdir, "../pop2.input_data_list");
+check_input_files($nl, $DIN_LOC_ROOT, "../pop2.input_data_list");
 
 #-----------------------------------------------------------------------------------------------
 # END OF MAIN SCRIPT
@@ -1512,7 +1490,7 @@ sub add_default {
 #
 # ***** N.B. ***** This routine assumes the following variables are in package main::
 #  $definition        -- the namelist definition object
-#  $inputdata_rootdir -- CCSM inputdata root directory
+#  $DIN_LOC_ROOT -- CCSM inputdata root directory
 
     my $nl = shift;     # namelist object
     my $var = shift;    # name of namelist variable
@@ -1569,7 +1547,7 @@ sub add_default {
     # TODO: unless ignore_abs is passed as argument 
     if ($is_input_pathname eq 'abs') {
 	unless ($opts{'noprepend'}){
-	    $val = set_abs_filepath($val, $inputdata_rootdir);
+	    $val = set_abs_filepath($val, $DIN_LOC_ROOT);
 	}
     }
 
@@ -1595,9 +1573,9 @@ sub get_default_value {
 #
 # ***** N.B. ***** This routine assumes the following variables are in package main::
 #  $defaults          -- the namelist defaults object
-#  $uc_defaults       -- the use case defaults object
+#  $uc_defaults       -- the use CASE defaults object
 
-    my $var_name    = lc(shift);   # name of namelist variable (case insensitive interface)
+    my $var_name    = lc(shift);   # name of namelist variable (CASE insensitive interface)
     my $usr_att_ref = shift;       # reference to hash containing user supplied attributes
 
     # Check in the namelist defaults
