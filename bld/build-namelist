@@ -181,8 +181,6 @@ my $output_h               = "$ENV{'output_h'}";
 my $output_d               = "$ENV{'output_d'}";
 
 my $ntasks = $NTASKS_OCN / $NINST_OCN; 
-print "debug: $ntasks, $NTASKS_OCN, $NINST_OCN \n";
-my $my_path = "${CASEROOT}/SourceMods/src.pop2";
 
 if ($ENV{'CONTINUE_RUN'} eq 'TRUE') {$RUN_TYPE = "continue";}
 
@@ -1215,6 +1213,8 @@ if ($OCN_GRID =~ /^gx*/) {
 # copy files to $EXEROOT/ocn/input       #
 ##########################################
 
+my $my_path = "${CASEROOT}/SourceMods/src.pop2";
+
 my @copy_files_to_input = ();
 push @copy_files_to_input,"${OCN_GRID}_vert_grid";
 push @copy_files_to_input,"${OCN_GRID}_region_ids";
@@ -1226,6 +1226,7 @@ if ($OCN_GRID =~ /^gx*/) { push @copy_files_to_input,"${OCN_GRID}_overflow"; }
 
 foreach my $file (@copy_files_to_input ) {
     if (-f "${my_path}/$file") {
+	print " i am here \n";
 	my $sysmod = "cp -fp ${my_path}/$file $EXEROOT/ocn/input/$file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     } else {
@@ -1324,7 +1325,6 @@ my @modules = split( ' ', $OCN_TRACER_MODULES);
 for my $module (@modules) {
     my $file = "ocn.${module}.tavg.csh";
     my $my_stream = $numcols+1;
-    print "module is $module, my_stream is $my_stream \n";
     if (-f "${my_path}/$file"){
 	$sysmod = "${my_path}/${file} $my_stream";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
