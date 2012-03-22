@@ -1263,12 +1263,21 @@ if ($ocn_grid =~ /^gx*/) {
 
 my $input_templates = "${coderoot}/ocn/pop2/input_templates";
 my $pop2_tavg_file  = "${caseroot}/Buildconf/pop2conf/pop2_${ocn_grid}_tavg_contents";
+my $sysmod;
+my $file;
 
 #-------------------------
 # 1. base tavg contents
 #-------------------------
-# 1.a. create pop2conf/base.tavg.nml file 
-my $sysmod = "$coderoot/ocn/pop2/input_templates/ocn.base.tavg.csh";
+
+# 1.a. create $caseroot/Buildconf/pop2conf/base.tavg.nml file 
+$sysmod;
+$file = "ocn.base.tavg.csh";
+if (-f "${my_path}/$file"){
+    $sysmod = "${my_path}/${file}";
+} else {
+    $sysmod = "${coderoot}/ocn/pop2/input_templates/${file}";
+}
 system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 
 # 1.b. read in pop2conf/base.tavg.nml file and fill in %tavg_nml entries
@@ -1292,36 +1301,41 @@ while ($line = <$fh_in> )  {
 }
 $fh_in->close();
 
-# 1.d create base tavg contents file
+# 1.d create base tavg contents file - in pop2conf/
+#     either from $my_path (first) or from $input_templates
 my $base_tavg_file  = "${caseroot}/Buildconf/pop2conf/pop2_${ocn_grid}_tavg_contents";
 if ($ocn_tavg_hifreq eq "TRUE") {
     # High-frequency tavg contents
-    if (-f "${input_templates}/${ocn_grid}_tavg_contents_high_freq") {
-	my $sysmod = "cp -fp ${input_templates}/${ocn_grid}_tavg_contents_high_freq $base_tavg_file";
+    $file = "${ocn_grid}_tavg_contents_high_freq";
+} else {
+    # Default resolution dependent tavg contents
+    $file = "${ocn_grid}_tavg_contents";
+}
+if (-f "$my_path/$file") {
+    $sysmod = "cp -fp ${my_path}/$file $base_tavg_file";
+    system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+} else {
+    if (-f "${input_templates}/$file") {
+	$sysmod = "cp -fp ${input_templates}/$file $base_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     }
-} else {
-    # Default tavg contents
-    if (-f "${input_templates}/${ocn_grid}_tavg_contents") {
-	my $sysmod = "cp -fp ${input_templates}/${ocn_grid}_tavg_contents $base_tavg_file";
-	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
-    } 
 }
 
 #-------------------------
 # 2. budget tavg contents
 #-------------------------
 my $budget_tavg_file = "${caseroot}/Buildconf/pop2conf/budget_tavg_contents";
+$file = "tavg_contents_tracer_budget_terms";
 if ($ocn_tavg_tracer_budget eq "TRUE") {
     # tracer budget tavg contents 
-    if (-f "${my_path}/tavg_contents_tracer_budget_terms") {
-	my $sysmod = "cp -fp ${my_path}/tavg_contents_tracer_budget_terms $budget_tavg_file";
+    if (-f "${my_path}/$file") {
+	$sysmod = "cp -fp ${my_path}/$file $budget_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     } else {
-	my $sysmod = "cp -fp ${coderoot}/ocn/pop2/input_templates/tavg_contents_tracer_budget_terms $budget_tavg_file";
+	$sysmod = "cp -fp ${coderoot}/ocn/pop2/input_templates/$file $budget_tavg_file";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     }
-    my $sysmod = "cat $budget_tavg_file >> $pop2_tavg_file";
+    $sysmod = "cat $budget_tavg_file >> $pop2_tavg_file";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 }
 
@@ -1333,10 +1347,10 @@ for my $module (@modules) {
     my $file = "ocn.${module}.tavg.csh";
     if (-f "${my_path}/$file"){
 	print "numcols is $numcols \n";
-	my $sysmod = "${my_path}/${file} $numcols";
+	$sysmod = "${my_path}/${file} $numcols";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     } else {
-	my $sysmod = "${coderoot}/ocn/pop2/input_templates/${file} $numcols";
+	$sysmod = "${coderoot}/ocn/pop2/input_templates/${file} $numcols";
 	system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     }
     
@@ -1361,7 +1375,7 @@ for my $module (@modules) {
 	}
 	$fh_in->close();
     }
-    my $sysmod = "cat ${caseroot}/Buildconf/pop2conf/${module}_tavg_contents >> $pop2_tavg_file";
+    $sysmod = "cat ${caseroot}/Buildconf/pop2conf/${module}_tavg_contents >> $pop2_tavg_file";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 }
 

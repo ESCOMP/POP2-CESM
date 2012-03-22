@@ -200,7 +200,7 @@ cd \${OBJROOT}/ocn/obj
 EOF
 
 @ NT = 2
-foreach module ( `echo \$OCN_TRACER_MODULES` )  
+foreach module ( \`echo \$OCN_TRACER_MODULES\` )  
    if (\$module =~ "iage"   ) @ NT = \$NT +  1
    if (\$module =~ "cfc"    ) @ NT = \$NT +  2   
    if (\$module =~ "ecosys" ) @ NT = \$NT + 24   
