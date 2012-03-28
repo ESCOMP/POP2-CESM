@@ -1147,10 +1147,12 @@
    endif !tavg_num_requested_fields
 
   !*** document which streams are using tavg_method_qflux
+   if (my_task == master_task) then
    do ns=1,nstreams
       write(stdout,*) '(init_tavg)  tavg_streams(',ns,  &
             ')%ltavg_qflux_method_on = ', tavg_streams(ns)%ltavg_qflux_method_on
    enddo ! ns
+   endif
 
 
 !-----------------------------------------------------------------------

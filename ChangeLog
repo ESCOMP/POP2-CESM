@@ -1,6 +1,22 @@
 ===============================================================================
 Tag Creator: njn01
 Developers:  njn01
+Tag Date:    27 March 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120327
+Tag Summary: * change name in ocn.moby.setup.csh script (MOBY_CO2_FLUX --> FG_CO2)
+             * configure streams in manner equivalent to what is done in ecosys_mod,
+                 where possible
+             * only write tavg qflux stream info from master_task
+               
+Testing:     * Ran customized tests from the cesm1_1_beta09.20120327-114702 sandbox
+	
+Files Modified:
+M            35814   source/tavg.F90
+M            35814   input_templates/ocn.moby.setup.csh
+
+===============================================================================
+Tag Creator: njn01
+Developers:  njn01
 Tag Date:    20 March 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120320
 Tag Summary: * Bring the last of the moby infrastructure onto the pop2 trunk. Active moby developments
