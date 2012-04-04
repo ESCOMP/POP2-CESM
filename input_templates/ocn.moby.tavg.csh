@@ -3,7 +3,7 @@
 cat >! $CASEROOT/Buildconf/pop2conf/moby.tavg.nml << EOF
 tavg_freq_opt             = 'nday'          'nyear'
 tavg_freq                 =  1              1
-tavg_stream_filestrings   = '$my_model.nday1'  '$my_model.nyear1'
+tavg_stream_filestrings   = 'darwin.nday1'  'darwin.nyear1'
 tavg_file_freq_opt        = 'nmonth'        'nyear'
 tavg_file_freq            =  1              1
 tavg_start_opt            = 'nstep'         'nstep'

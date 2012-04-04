@@ -6,11 +6,8 @@
 # (svn checkout $SVN/pop2/branches/moby models/ocn/pop2)
 #==============================================================================
 
-set my_path = $CASEROOT/SourceMods/src.pop2/src.moby
-mkdir -p $my_path
+mkdir -p $CASEROOT/SourceMods/src.pop2/src.moby
 if !(-d $CASEBUILD  ) mkdir $CASEBUILD
-
-setenv OCN_MOBY  $CODEROOT/ocn/pop2/aux/moby
 
 ###==============================================================###
 ###  I.  Construct moby.buildnml.csh                             ###
@@ -18,6 +15,8 @@ setenv OCN_MOBY  $CODEROOT/ocn/pop2/aux/moby
 
 cat >! $CASEBUILD/moby.buildnml.csh << EOF2
 #!/bin/csh -f
+
+setenv OCN_MOBY  \$CODEROOT/ocn/pop2/aux/moby
 
 set my_path  = \$CASEROOT/SourceMods/src.pop2/src.moby
 foreach file (data data.ptracers data.gchem data.\$OCN_TRACER_MODULES_OPT data.misc data.pkg )
@@ -38,10 +37,10 @@ s#INPUTDATA#\$INPUTDATA#
 s#OCN_GRID#\$OCN_GRID#
 EOF
 
-sed -f \$exedir/moby.commands.sed \$exedir/moby_in_temp >! \$exedir/moby_in || exit 3
-rm  -f \$exedir/moby.commands.sed \$exedir/moby_in_temp
+sed -f \$RUNDIR/moby.commands.sed \$RUNDIR/moby_in_temp >! \$RUNDIR/moby_in || exit 3
+rm  -f \$RUNDIR/moby.commands.sed \$RUNDIR/moby_in_temp
 
-cd \$exedir
+cd \$RUNDIR
 
 EOF2
 chmod u+x $CASEBUILD/moby.buildnml.csh

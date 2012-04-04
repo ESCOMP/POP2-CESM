@@ -107,6 +107,8 @@ EOF
   $opts{'ProgName'} = $ProgName;
   $opts{'ProgDir'}  = $cfgdir;
   $opts{'cmdline'}  = $cmdline;
+  $opts{'platform'} = "unused";
+  $opts{'model'}    = "unused";
 
 # redefine nproc to be total procs, nproc*thrds
   $opts{'nproc'} = $opts{'nproc'} * $opts{'thrds'};

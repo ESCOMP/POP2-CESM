@@ -27,13 +27,6 @@ else
    endif
 endif
 
-foreach comp (`echo $OCN_TRACER_MODULES`)
-  if ($comp == moby) then
-    setenv OCN_MOBY  $CODEROOT/ocn/pop2/aux/moby
-    setenv USE_OCN_DARWIN  TRUE
-  endif
-end
-
 # create pop2.buildnml.csh
 cat >! $CASEBUILD/pop2.buildnml.csh << EOF1
 #! /bin/csh -f
@@ -139,7 +132,7 @@ end
 
 #========================================================================== 
 # Support for auxilliary ocean component models, such as darwin, quota, etc, TBD.
-# Create $CASEROOT/Buildconf/moby.buildnml.csh and $CASEROOT/Buildconf/moby.buildexe.csh
+# Create \$CASEROOT/Buildconf/moby.buildnml.csh and \$CASEROOT/Buildconf/moby.buildexe.csh
 #========================================================================== 
 
 setenv USE_OCN_MOBY   FALSE
