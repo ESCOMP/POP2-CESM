@@ -183,9 +183,13 @@ echo -----------------------------------------------------------------
 
 cd \$OBJROOT/ocn/source
 
-if (\$#aux_ocn_comps > 0) then
-  cp -fp \$CODEROOT/ocn/pop2/aux/moby/pop2/*.F90 .
-endif
+set aux_ocn_comps = ( )
+foreach comp (\`echo \$OCN_TRACER_MODULES\`)
+  if (\$comp == moby) then
+    set aux_ocn_comps =  (\$aux_ocn_comps 'moby')
+    cp -fp \$CODEROOT/ocn/pop2/aux/moby/pop2/*.F90 .
+  endif
+end
 cp -fp \$CODEROOT/ocn/pop2/source/*.F90  .
 cp -fp \$CODEROOT/ocn/pop2/mpi/*.F90  .
 cp -fp \$CODEROOT/ocn/pop2/drivers/cpl_share/*.F90  .
