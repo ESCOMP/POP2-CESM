@@ -41,6 +41,7 @@
    use registry, only: register_string, registry_match
    use io_tools, only: document
 
+
    use ecosys_mod, only:           &
        ecosys_tracer_cnt,          &
        ecosys_init,                &
@@ -62,6 +63,18 @@
        iage_set_interior,          &
        iage_reset
 
+   use moby_mod, only:             &
+       moby_init,                  &
+       moby_reset,                 &
+       moby_set_sflux,             &
+       moby_tavg_forcing,          &
+       moby_set_interior,          &
+       moby_set_interior_3D,       &
+       moby_tracer_cnt,            &
+       moby_tracer_ref_val,        &
+       moby_write_restart,         &
+       POP_mobySendTime
+
    implicit none
    private
    save
@@ -71,6 +84,7 @@
    public ::                                 &
       init_passive_tracers,                  &
       set_interior_passive_tracers,          &
+      set_interior_passive_tracers_3D,       &
       set_sflux_passive_tracers,             &
       reset_passive_tracers,                 &
       write_restart_passive_tracers,         &
@@ -78,9 +92,10 @@
       tavg_passive_tracers_baroclinic_correct,&
       passive_tracers_tavg_sflux,            &
       passive_tracers_tavg_fvice,            &
+      passive_tracers_send_time,             &
       tracer_ref_val,                        &
       tadvect_ctype_passive_tracers,         &
-      ecosys_on
+      ecosys_on, moby_on
 
 !EOP
 !BOC
@@ -124,10 +139,10 @@
 !-----------------------------------------------------------------------
 
    logical (kind=log_kind) ::  &
-      ecosys_on, cfc_on, iage_on
+      ecosys_on, cfc_on, iage_on, moby_on
 
    namelist /passive_tracers_on_nml/  &
-      ecosys_on, cfc_on, iage_on
+      ecosys_on, cfc_on, iage_on, moby_on
 
 !-----------------------------------------------------------------------
 !     index bounds of passive tracer module variables in TRACER
@@ -136,7 +151,9 @@
    integer (kind=int_kind) ::                       &
       ecosys_ind_begin,     ecosys_ind_end,         &
       iage_ind_begin,       iage_ind_end,           &
-      cfc_ind_begin,        cfc_ind_end
+      cfc_ind_begin,        cfc_ind_end,            &
+      moby_ind_begin,       moby_ind_end
+
 
 !-----------------------------------------------------------------------
 !  filtered SST and SSS, if needed
@@ -209,6 +226,7 @@
    ecosys_on    = .false.
    cfc_on       = .false.
    iage_on      = .false.
+   moby_on      = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old', iostat=nml_error)
@@ -243,6 +261,7 @@
    call broadcast_scalar(ecosys_on, master_task)
    call broadcast_scalar(cfc_on,    master_task)
    call broadcast_scalar(iage_on,   master_task)
+   call broadcast_scalar(moby_on,   master_task)
 
 !-----------------------------------------------------------------------
 !  check for modules that require the flux coupler
@@ -277,6 +296,11 @@
    if (iage_on) then
       call set_tracer_indices('IAGE', iage_tracer_cnt, cumulative_nt,  &
                               iage_ind_begin, iage_ind_end)
+   end if
+
+   if (moby_on) then
+      call set_tracer_indices('MOBY', moby_tracer_cnt, cumulative_nt,  &
+                              moby_ind_begin, moby_ind_end)
    end if
 
    if (cumulative_nt /= nt) then
@@ -348,6 +372,25 @@
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
             'init_passive_tracers: error in iage_init')
+         return
+      endif
+
+   end if
+
+!-----------------------------------------------------------------------
+!  MOBY block
+!-----------------------------------------------------------------------
+
+   if (moby_on) then
+      call moby_init(init_ts_file_fmt, read_restart_filename, &
+                     tracer_d(moby_ind_begin:moby_ind_end), &
+                     TRACER(:,:,:,moby_ind_begin:moby_ind_end,:,:), &
+                     tadvect_ctype_passive_tracers(moby_ind_begin:moby_ind_end), &
+                     moby_ind_begin, errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_passive_tracers: error in moby_init')
          return
       endif
 
@@ -617,6 +660,15 @@
    end if
 
 !-----------------------------------------------------------------------
+!  MOBY block
+!-----------------------------------------------------------------------
+
+   if (moby_on) then
+      call moby_set_interior (k, TRACER_SOURCE(:,:,moby_ind_begin:moby_ind_end), &
+           this_block)
+   endif
+
+!-----------------------------------------------------------------------
 !  accumulate time average if necessary
 !-----------------------------------------------------------------------
 
@@ -661,6 +713,70 @@
 
 !***********************************************************************
 !BOP
+! !IROUTINE: set_interior_passive_tracers_3D
+! !INTERFACE:
+
+ subroutine set_interior_passive_tracers_3D (TRACER_OLD, TRACER_CUR)
+
+! !DESCRIPTION:
+!  call subroutines for each tracer module that computes 3D source-sink terms
+!  accumulate commnon tavg fields related to source-sink terms
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+   real (r8), dimension(nx_block,ny_block,km,nt,max_blocks_clinic), intent(in) :: &
+      TRACER_OLD, TRACER_CUR
+
+! !INPUT/OUTPUT PARAMETERS:
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+
+
+!-----------------------------------------------------------------------
+!  ECOSYS does not compute and store 3D source-sink terms
+!-----------------------------------------------------------------------
+
+
+!-----------------------------------------------------------------------
+!  CFC does not compute and store 3D source-sink terms
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  Ideal Age (IAGE) bdoes not compute and store 3D source-sink terms
+!-----------------------------------------------------------------------
+
+
+!-----------------------------------------------------------------------
+!  MOBY block
+!-----------------------------------------------------------------------
+
+  if (moby_on) then
+     call moby_set_interior_3D (                               &
+         TRACER(:,:,:,1,oldtime,:), TRACER(:,:,:,1,curtime,:), &
+         TRACER(:,:,:,2,oldtime,:), TRACER(:,:,:,2,curtime,:), &
+         TRACER(:,:,:,moby_ind_begin:moby_ind_end,oldtime,:) , &
+         TRACER(:,:,:,moby_ind_begin:moby_ind_end,curtime,:)   )
+  endif
+
+!-----------------------------------------------------------------------
+!  accumulate time average if necessary
+!-----------------------------------------------------------------------
+
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine set_interior_passive_tracers_3D
+
+!***********************************************************************
+!BOP
 ! !IROUTINE: set_sflux_passive_tracers
 ! !INTERFACE:
 
@@ -693,6 +809,7 @@
    logical (kind=log_kind) :: first_call = .true.
    real (r8)          :: ref_val
    integer (int_kind) :: iblock, n
+
 
 !-----------------------------------------------------------------------
 
@@ -744,6 +861,19 @@
 !-----------------------------------------------------------------------
 !  IAGE does not have surface fluxes
 !-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  MOBY block
+!-----------------------------------------------------------------------
+
+   if (moby_on) then
+      call moby_set_sflux(                                     &
+         SHF_QSW_RAW, SHF_QSW,                                 &
+         U10_SQR, ICE_FRAC, PRESS,                             &
+         TRACER(:,:,1,moby_ind_begin:moby_ind_end,oldtime,:),  &
+         TRACER(:,:,1,moby_ind_begin:moby_ind_end,curtime,:),  &
+         STF(:,:,moby_ind_begin:moby_ind_end,:))
+   end if
 
 !-----------------------------------------------------------------------
 !  add virtual fluxes for tracers that specify a non-zero ref_val
@@ -813,6 +943,14 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
+!  MOBY block
+!-----------------------------------------------------------------------
+
+   if (moby_on) then
+      call moby_write_restart(restart_file, action)
+   end if
+
+!-----------------------------------------------------------------------
 !EOC
 
  end subroutine write_restart_passive_tracers
@@ -860,6 +998,15 @@
    end if
 
 !-----------------------------------------------------------------------
+!  MOBY block
+!-----------------------------------------------------------------------
+
+   if (moby_on) then
+      call moby_reset(  &
+         TRACER_NEW(:,:,:,moby_ind_begin:moby_ind_end), bid)
+   end if
+
+!-----------------------------------------------------------------------
 !EOC
 
  end subroutine reset_passive_tracers
@@ -897,6 +1044,7 @@
       WORK
 
 !-----------------------------------------------------------------------
+
 
    if (mix_pass /= 1) then
       do n = 3, nt
@@ -1082,6 +1230,14 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
+!  MOBY block
+!-----------------------------------------------------------------------
+
+   if (moby_on) then
+     call moby_tavg_forcing(STF(:,:,moby_ind_begin:moby_ind_end,:))
+   endif
+
+!-----------------------------------------------------------------------
 !EOC
 
  end subroutine passive_tracers_tavg_sflux
@@ -1264,10 +1420,49 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
+!  MOBY block
+!-----------------------------------------------------------------------
+
+   if (moby_on) then
+      if (ind >= moby_ind_begin .and. ind <= moby_ind_end) then
+         tracer_ref_val = moby_tracer_ref_val(ind-moby_ind_begin+1)
+      endif
+   endif
+
+!-----------------------------------------------------------------------
 !EOC
 
  end function tracer_ref_val
 
+!***********************************************************************
+!BOP
+! !IROUTINE: passive_tracers_send_time
+! !INTERFACE:
+
+ subroutine passive_tracers_send_time
+
+! !DESCRIPTION:
+!  sends POP time information to the MOBY moby model
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+! !INPUT/OUTPUT PARAMETERS:
+
+
+!EOP
+!BOC
+
+   if (moby_on) then
+     call POP_mobySendTime
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+end subroutine passive_tracers_send_time
 !***********************************************************************
 
  end module passive_tracers

@@ -1,0 +1,164 @@
+#!/bin/csh -f
+
+#==============================================================================
+#  The following assumes that this script is being executed from a version
+#  of CESM with a moby-based version of models/ocn/pop2
+# (svn checkout $SVN/pop2/branches/moby models/ocn/pop2)
+#==============================================================================
+
+set my_path = $CASEROOT/SourceMods/src.pop2/src.moby
+mkdir -p $my_path
+if !(-d $CASEBUILD  ) mkdir $CASEBUILD
+
+setenv OCN_MOBY  $CODEROOT/ocn/pop2/aux/moby
+
+###==============================================================###
+###  I.  Construct moby.buildnml.csh                             ###
+###==============================================================###
+
+cat >! $CASEBUILD/moby.buildnml.csh << EOF2
+#!/bin/csh -f
+
+set my_path  = \$CASEROOT/SourceMods/src.pop2/src.moby
+foreach file (data data.ptracers data.gchem data.\$OCN_TRACER_MODULES_OPT data.misc data.pkg )
+  if (-e \$my_path/\${OCN_GRID}_\$file) then
+    set datapath = \$my_path
+  else if (-e \$OCN_MOBY/\$OCN_TRACER_MODULES_OPT/input/\${OCN_GRID}_\$file) then
+    set datapath = \$OCN_MOBY/\$OCN_TRACER_MODULES_OPT/input
+  else
+    exit -3
+  endif
+  cat \$datapath/\${OCN_GRID}_\$file | grep -v \#  >> \$RUNDIR/moby_in_temp
+end
+
+setenv INPUTDATA  \$DIN_LOC_ROOT/ocn/moby
+cat >! \$RUNDIR/moby.commands.sed << EOF
+s#POPVERTGRID#using_POP_grid_through_interface_layer#
+s#INPUTDATA#\$INPUTDATA#
+s#OCN_GRID#\$OCN_GRID#
+EOF
+
+sed -f \$exedir/moby.commands.sed \$exedir/moby_in_temp >! \$exedir/moby_in || exit 3
+rm  -f \$exedir/moby.commands.sed \$exedir/moby_in_temp
+
+cd \$exedir
+
+EOF2
+chmod u+x $CASEBUILD/moby.buildnml.csh
+
+###==============================================================###
+###  II. Construct moby.buildexe.csh for darwin/quota/etc        ###
+###==============================================================###
+
+cat >! $CASEBUILD/moby.buildexe.csh << EOF1
+#!/bin/csh -f
+
+mkdir -p \$OBJROOT/ocn/moby/obj
+if !(-d \$OBJROOT/ocn/moby/source ) mkdir -p \$OBJROOT/ocn/moby/source
+if !(-d \$OBJROOT/ocn/moby/obj    ) mkdir -p \$OBJROOT/ocn/moby/obj
+
+echo -------------------------------------------------------------------------
+echo Enforce the no-threading constraint
+echo -------------------------------------------------------------------------
+echo " "
+setenv MXBLCKS \$POP_MXBLCKS
+if      ( \${MXBLCKS} != 1 ) then
+  echo "fatal moby error: MXBLCKS must equal one"
+  echo "moby info message:  MXBLCKS = \$MXBLCKS"
+  exit -32
+endif
+if      ( \${OCN_GRID} =~ gx3* ) then
+   setenv POP_KM 60
+else if ( \${OCN_GRID} =~ gx1* ) then
+   setenv POP_KM 60
+else 
+  echo OCN_GRID = \$OCN_GRID
+  echo "moby error: valid only for gx1 and gx3 grids"
+  exit -33
+endif
+
+setenv POP_BLCKX  \$POP_BLCKX
+setenv POP_BLCKY  \$POP_BLCKY
+setenv POP_NPROCX \$POP_NX_BLOCKS
+setenv POP_NPROCY \$POP_NY_BLOCKS
+
+echo -----------------------------------------------------------------
+echo  Copy selected MITgcm ptracers files
+echo -----------------------------------------------------------------
+cd \$OBJROOT/ocn/moby/source
+cp -fp \$OCN_MOBY/MITgcm/*.h .
+
+set ptracers_list = (ptracers_readparms ptracers_diagnostics_init \
+                     ptracers_init_fixed ptracers_set_iolabel )
+foreach file (\$ptracers_list)
+  cp -fp \$OCN_MOBY/MITgcm/\${file}.F .
+end
+
+echo -----------------------------------------------------------------
+echo  Copy selected MITgcm gchem files
+echo -----------------------------------------------------------------
+set gchem_list = (gchem_diagnostics_init gchem_init_fixed \
+                  gchem_init_vari gchem_readparms)
+foreach file (\$gchem_list)
+  cp -fp \$OCN_MOBY/MITgcm/\${file}.F .
+end
+
+echo -----------------------------------------------------------------
+echo  Copy selected MITgcm base-model files
+echo -----------------------------------------------------------------
+set MITgcm_list = (different_multiple load_grid_spacing barrier \
+                   eeboot eeboot_minimal fool_the_compiler \
+                   ini_grid ini_masks_etc ini_vertical_grid ini_parms \
+                   open_copy_data_file packages_boot port_rand print \
+                   set_defaults timeave_reset utils write_utils lef_zero )
+foreach file (\$MITgcm_list)
+  cp -fp \$OCN_MOBY/MITgcm/\${file}.F .
+end
+
+echo -----------------------------------------------------------------
+echo  Copy all darwin/quota/etc base-model files
+echo -----------------------------------------------------------------
+cp -fp \$OCN_MOBY/\$OCN_TRACER_MODULES_OPT/source/*.[FHh] .
+
+echo -----------------------------------------------------------------
+echo  Copy all darwin/quota-CESM interface files 
+echo -----------------------------------------------------------------
+cp -fp \$OCN_MOBY/\$OCN_TRACER_MODULES_OPT/interf/*.[FHh]  .
+
+echo -----------------------------------------------------------------
+echo  Copy any nonstandard files from \$my_path
+echo -----------------------------------------------------------------
+set my_path = \$CASEROOT/SourceMods/src.pop2/src.moby
+if (-d \$my_path ) cp -fp \$my_path/*.[FHh]  .
+
+echo -----------------------------------------------------------------
+echo  Compile moby library
+echo -----------------------------------------------------------------
+cd \$OBJROOT/ocn/moby/obj
+cat >! Filepath <<EOF
+ \$OBJROOT/ocn/moby/source
+EOF
+
+echo -----------------------------------------------------------------
+echo NOTE: ALLOW_DARWIN and ALLOW_GCHEM are set in PACKAGES_CONFIG.h.
+echo       GCHEM  options are set in  GCHEM_OPTIONS.h
+echo       DARWIN options are set in  DARWIN_OPTIONS.h
+echo -----------------------------------------------------------------
+
+set mobydefs = "-DCESMMOBY -DPOP_NPROCX=\$POP_NPROCX -DPOP_NPROCY=\$POP_NPROCY -DPOP_MXBLCKS=\$MXBLCKS -DPOP_BLCKX=\$POP_BLCKX -DPOP_BLCKY=\$POP_BLCKY -DPOP_KM=\$POP_KM"
+
+gmake complib -j \$GMAKE_J MODEL=moby COMPLIB=\$LIBROOT/libmoby.a MACFILE=\$CASEROOT/Macros.\$MACH USER_CPPDEFS="\$mobydefs" -f \$CASETOOLS/Makefile || exit 2
+
+set f_dir = \$source_dir/f_files
+if !(-d  \$f_dir ) mkdir -p \$f_dir
+
+mv -f *.f \$f_dir
+
+if !(-f \$LIBROOT/libmoby.a) then
+  echo "ERROR: moby library not available"
+  exit -1
+endif
+
+EOF1
+chmod u+x $CASEBUILD/moby.buildexe.csh
+

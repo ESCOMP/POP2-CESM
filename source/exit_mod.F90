@@ -20,7 +20,6 @@
    use constants
    use POP_IOUnitsMod
 
-
    implicit none
    private
    save
@@ -111,10 +110,11 @@
       write (local_unit,*) exit_message
       write (local_unit,blank_fmt)
       write (local_unit,delim_fmt)
-      call POP_IOUnitsFlush(local_unit)
 #ifndef CCSMCOUPLED
    endif
 #endif
+   call POP_IOUnitsFlush(local_unit)
+   call POP_IOUnitsFlush(6)
 
 !-----------------------------------------------------------------------
 !

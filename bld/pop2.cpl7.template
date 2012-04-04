@@ -27,6 +27,13 @@ else
    endif
 endif
 
+foreach comp (`echo $OCN_TRACER_MODULES`)
+  if ($comp == moby) then
+    setenv OCN_MOBY  $CODEROOT/ocn/pop2/aux/moby
+    setenv USE_OCN_DARWIN  TRUE
+  endif
+end
+
 # create pop2.buildnml.csh
 cat >! $CASEBUILD/pop2.buildnml.csh << EOF1
 #! /bin/csh -f
@@ -98,6 +105,7 @@ endif
 cat >! \$CASEBUILD/pop2conf/cesm_namelist << EOF2
 &pop2_inparm
  log_filename='\$log_filename'
+ moby_log_filename='\${RUNDIR}/moby\${inst_string}.log.\$LID'
 EOF2
 \$UTILROOT/Tools/user_nl_add -user_nl_file \$CASEROOT/user_nl_pop2\${inst_string} >> \$CASEBUILD/pop2conf/cesm_namelist 
 cat >> \$CASEBUILD/pop2conf/cesm_namelist << EOF2
@@ -129,10 +137,39 @@ cp -fp \$CASEBUILD/pop2conf/pop2_${OCN_GRID}_tavg_contents  \$EXEROOT/ocn/input/
 
 end
 
+#========================================================================== 
+# Support for auxilliary ocean component models, such as darwin, quota, etc, TBD.
+# Create $CASEROOT/Buildconf/moby.buildnml.csh and $CASEROOT/Buildconf/moby.buildexe.csh
+#========================================================================== 
+
+setenv USE_OCN_MOBY   FALSE
+setenv USE_OCN_DARWIN FALSE
+set aux_ocn_comps = ( )
+foreach comp (\`echo \$OCN_TRACER_MODULES\`)
+  if (\$comp == moby) then
+     set aux_ocn_comps =  (\$aux_ocn_comps 'moby')
+     setenv USE_OCN_MOBY    TRUE
+     setenv USE_OCN_DARWIN  TRUE
+     if !(-e \$CASEBUILD/moby.buildexe.csh) then
+        cp \$CODEROOT/ocn/pop2/bld/moby.cpl7.template \$CASEROOT/Tools/Templates
+        \$CASEROOT/Tools/Templates/moby.cpl7.template
+     endif
+  endif
+end
+
+#========================================================================== 
+#  If there are aux components, begin their namelist builds here            
+#========================================================================== 
+
+foreach aux_ocn_comp (\$aux_ocn_comps)
+  \$CASEROOT/Buildconf/\${aux_ocn_comp}.buildnml.csh || exit -3  
+end
+
 wait
 exit 0
 
 EOF1
+
 
 ###==============================================================###
 ###  Construct pop2.buildexe.csh                                 ###
@@ -153,9 +190,12 @@ echo -----------------------------------------------------------------
 
 cd \$OBJROOT/ocn/source
 
-cp -fp \$CODEROOT/ocn/pop2/source/*.F90 .
-cp -fp \$CODEROOT/ocn/pop2/mpi/*.F90 .
-cp -fp \$CODEROOT/ocn/pop2/drivers/cpl_share/*.F90 .
+if (\$#aux_ocn_comps > 0) then
+  cp -fp \$CODEROOT/ocn/pop2/aux/moby/pop2/*.F90 .
+endif
+cp -fp \$CODEROOT/ocn/pop2/source/*.F90  .
+cp -fp \$CODEROOT/ocn/pop2/mpi/*.F90  .
+cp -fp \$CODEROOT/ocn/pop2/drivers/cpl_share/*.F90  .
 if (\$COMP_INTERFACE == 'MCT') then
   cp -fp \$CODEROOT/ocn/pop2/drivers/cpl_mct/*.F90 .
 else if (\$COMP_INTERFACE == 'ESMF') then
@@ -185,6 +225,14 @@ else
    exit -2    
 endif
 
+echo -------------------------------------------------------------------------
+echo  Build all auxilliary ocean-component models before building pop2
+echo -------------------------------------------------------------------------
+
+foreach aux_ocn_comp (\$aux_ocn_comps)
+  \$CASEROOT/Buildconf/\$aux_ocn_comp.buildexe.csh || exit -2
+end
+
 echo -----------------------------------------------------------------
 echo  Compile pop2 library
 echo -----------------------------------------------------------------
@@ -200,6 +248,7 @@ foreach module ( \`echo \$OCN_TRACER_MODULES\` )
    if (\$module =~ "iage"   ) @ NT = \$NT +  1
    if (\$module =~ "cfc"    ) @ NT = \$NT +  2   
    if (\$module =~ "ecosys" ) @ NT = \$NT + 24   
+   if (\$module == moby) setenv USE_OCN_MOBY TRUE
 end
 set cppdefs = "-DCCSMCOUPLED -DBLCKX=\$POP_BLCKX -DBLCKY=\$POP_BLCKY -DMXBLCKS=\$POP_MXBLCKS -DNT=\${NT}"
 if (\$OCN_ICE_FORCING == 'inactive' ) then
@@ -207,6 +256,12 @@ if (\$OCN_ICE_FORCING == 'inactive' ) then
 endif
 if (\$OCN_GRID =~ "tx0.1*" )  then
     set cppdefs = "\$cppdefs -D_HIRES";
+endif
+if (\$USE_OCN_MOBY == TRUE ) then
+  set cppdefs = "\$cppdefs -DCESMMOBY"
+endif
+if (\$OCN_ICE_FORCING == 'inactive' ) then
+  set cpp2defs = "\$cppdefs -DZERO_SEA_ICE_REF_SAL"
 endif
 
 cat >! \$OBJROOT/ocn/obj/POP2_cppdefs.new <<EOF

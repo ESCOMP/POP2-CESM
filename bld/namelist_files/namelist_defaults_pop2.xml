@@ -842,6 +842,43 @@
 <ndep_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850-2005_gx3v7_c100612.nc</ndep_shr_stream_file> 
 <ndep_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_gx1v6_c100612.nc</ndep_shr_stream_file> 
 
+<!---------------------------->
+<!--moby_nml -->
+<!---------------------------->
+
+<ldarwin>.true.</ldarwin>
+
+<moby_tadvect_ctype>base_model</moby_tadvect_ctype>
+
+<lmarginal_seas%moby_nml>.true.</lmarginal_seas%moby_nml>
+
+<comp_surf_avg_freq_opt%moby_nml>never</comp_surf_avg_freq_opt%moby_nml>
+<comp_surf_avg_freq%moby_nml>1</comp_surf_avg_freq%moby_nml>
+
+<moby_qsw_distrb_const%moby_nml>.false.</moby_qsw_distrb_const%moby_nml>     
+
+<use_nml_surf_vals%moby_nml>.false.</use_nml_surf_vals%moby_nml>
+<use_nml_surf_vals%moby_nml runtype="startup">.true.</use_nml_surf_vals%moby_nml>
+
+<surf_avg_dic_const%moby_nml>1944.0</surf_avg_dic_const%moby_nml>          
+<surf_avg_alk_const%moby_nml>2225.0</surf_avg_alk_const%moby_nml>          
+
+<iron_flux_input%file_fmt%moby_nml>nc</iron_flux_input%file_fmt%moby_nml>
+<iron_flux_input%file_varname%moby_nml>DSTSF</iron_flux_input%file_varname%moby_nml>
+<iron_flux_input%scale_factor%moby_nml>0.62668</iron_flux_input%scale_factor%moby_nml> <!--# kg/m^2/sec->mol/m^2/sec, 3.5% iron by weight-->
+<iron_flux_input%filename%moby_nml ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/dst79gnx_gx3v7_20100305.nc</iron_flux_input%filename%moby_nml> 
+<iron_flux_input%filename%moby_nml ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/dst79gnx_gx1v6_090416.nc</iron_flux_input%filename%moby_nml> 
+
+<tracer_init_ext(1)%mod_varname%moby_nml>ALK</tracer_init_ext(1)%mod_varname%moby_nml>
+<tracer_init_ext(1)%scale_factor%moby_nml ocn_grid="gx3v7">1.025</tracer_init_ext(1)%scale_factor%moby_nml>
+<tracer_init_ext(1)%scale_factor%moby_nml ocn_grid="gx1v6">1.025</tracer_init_ext(1)%scale_factor%moby_nml> 
+
+<tracer_init_ext(2)%mod_varname%moby_nml>DIC</tracer_init_ext(2)%mod_varname%moby_nml>
+<tracer_init_ext(2)%scale_factor%moby_nml ocn_grid="gx3v7">1.025</tracer_init_ext(2)%scale_factor%moby_nml>
+<tracer_init_ext(2)%scale_factor%moby_nml ocn_grid="gx1v6">1.025</tracer_init_ext(2)%scale_factor%moby_nml> 
+
+<lecovars_full_depth_tavg%moby_nml>.false.</lecovars_full_depth_tavg%moby_nml>    
+
 <!----------------------------------->
 <!--derived - thare are temporary --->
 <!--names for variables with the  --->

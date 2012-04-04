@@ -60,7 +60,8 @@
    use forcing_s_interior, only: set_s_interior
    use passive_tracers, only: set_interior_passive_tracers,  &
        reset_passive_tracers, tavg_passive_tracers, &
-       tavg_passive_tracers_baroclinic_correct
+       tavg_passive_tracers_baroclinic_correct, &
+       set_interior_passive_tracers_3D
    use exit_mod, only: sigAbort, exit_pop, flushm
    use overflows
 
@@ -523,6 +524,15 @@
          'baroclinic_driver: error in comp_flux_vel_ghost')
       return
    endif
+
+!-----------------------------------------------------------------------
+!
+!  prior to tracer update, compute 3D passive_tracer terms
+!
+!-----------------------------------------------------------------------
+
+   call set_interior_passive_tracers_3D(                            &
+           TRACER (:,:,:,:,oldtime,:), TRACER (:,:,:,:,curtime,:)  )
 
 !-----------------------------------------------------------------------
 !

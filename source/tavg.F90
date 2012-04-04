@@ -119,7 +119,11 @@
 !BOC
 
    integer (int_kind), parameter :: &
+#ifdef CESMMOBY
+      max_avail_tavg_fields = 2000   ! limit on available fields - can
+#else
       max_avail_tavg_fields = 1000   ! limit on available fields - can
+#endif
                                      !   be pushed as high as necessary & practical
                                      !   (total of all fields in all streams)
 
@@ -1143,10 +1147,12 @@
    endif !tavg_num_requested_fields
 
   !*** document which streams are using tavg_method_qflux
+   if (my_task == master_task) then
    do ns=1,nstreams
       write(stdout,*) '(init_tavg)  tavg_streams(',ns,  &
             ')%ltavg_qflux_method_on = ', tavg_streams(ns)%ltavg_qflux_method_on
    enddo ! ns
+   endif
 
 
 !-----------------------------------------------------------------------
@@ -1930,10 +1936,10 @@
              method_integer = TAVG_BUF_3D_METHOD(tavg_loc_WVEL)
              call tavg_get_cell_method_string (method_integer,method_string)
           else if (nn == tavg_N_HEAT) then
-             method_integer = TAVG_BUF_3D_METHOD(tavg_loc_ADVT)
+             method_integer = TAVG_BUF_2D_METHOD(tavg_loc_ADVT)
              call tavg_get_cell_method_string (method_integer,method_string)
           else if (nn == tavg_N_SALT) then
-             method_integer = TAVG_BUF_3D_METHOD(tavg_loc_ADVS)
+             method_integer = TAVG_BUF_2D_METHOD(tavg_loc_ADVS)
              call tavg_get_cell_method_string (method_integer,method_string)
           endif
           call data_set_nstd_ccsm (                               &

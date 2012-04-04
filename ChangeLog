@@ -1,4 +1,95 @@
 ===============================================================================
+Tag Creator: njn01
+Developers:  njn01
+Tag Date:    20 March 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120320
+Tag Summary: * Bring the last of the moby infrastructure onto the pop2 trunk. Active moby developments
+               are NOT on the pop2 trunk.
+
+Testing:     * In a cesm1_1_beta09 base-model sandbox, modified only the pop2.cpl7.template script and
+               ran the bluefire.pop2.auxtest test suite.
+             * Separately, in the cesm1_1_beta09+++ sandbox, tested C, CDARWIN, C-then-activate-moby,
+               and CDARWIN-the-deactivate-moby tests. See moby ChangeLog for info.
+	
+Files Modified:
+A                0   bld/moby_activate.csh
+A                0   bld/moby.cpl7.template
+A                0   bld/moby_deactivate.csh
+M            35426   bld/pop2.cpl7.template
+A                0   input_templates/ocn.moby.setup.csh
+===============================================================================
+Tag Creator: njn01
+Developers:  njn01
+Tag Date:    12 March 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120312
+Tag Summary: * correction to tavg.F90 (the cesm_pop_2_1_20120125 tavg bugfix
+                    was overwritten in the cesm_pop_2_1_20120308 tag)
+             * bring MOBY branch bld/*decomp* and drivers/cpl_mct/ocn_comp_mct.F90 files onto pop2 trunk
+
+Testing:     * In a cesm1_1_beta09 base-model sandbox, created & ran C, T62_gx1v6 cases using
+               cesm_pop_2_1_20120125 and this tag. Compiled and ran 6-day smoke tests and
+               differenced the ocean restart and history files: b4b.
+             * Ditto for CECO, except run for one month, then difference restart & history files: monthly
+                  restart, base-model history, ecosys nday history files are all b4b.
+	
+Files Modified:
+M            35393   source/tavg.F90   <--- re-introduce bugfix from cesm_pop_2_1_20120125
+M            35393   bld/pop_decomp.xml                 <-- add MOBY hooks
+M            35393   bld/generate_pop_decomp.pl         <-- add MOBY hooks
+M            35393   drivers/cpl_mct/ocn_comp_mct.F90   <-- added save statement and zeroed out work array
+
+===============================================================================
+Tag Creator: njn01
+Developers:  njn01
+Tag Date:    8 March 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120308
+Tag Summary: Add MOBY "hooks" to the pop2 base model
+             This tag brings in modified pop2/source files that contain MOBY
+             modifications, plus a "stub" version of moby_mod.F90. 
+
+             This is the first of two steps towards bringing support for MOBY
+             onto the pop2 trunk (without bringing the actual MOBY darwin code in).
+             The second step will be to add a revised version of pop2.cpl7.template,
+             moby.cpl7.template, and ocn.moby.setup.csh scripts that are compatible
+             with the new namelist-build scripts, which will be done by Mariana
+             Vertenstein.
+
+Testing:     In a cesm1_1_beta09 sandbox, created & ran C, T62_gx1v6 case; compared
+             with cesm1_1_beta09 oob.  New code compiles & runs; ocean restart
+             files are b4b.
+	
+Files Modified:
+M            35316   source/passive_tracer_tools.F90
+M            35316   source/step_mod.F90
+M            35316   source/forcing.F90
+A                0   source/moby_mod.F90
+M            35316   source/passive_tracers.F90
+M            35316   source/exit_mod.F90
+M            35316   source/tavg.F90
+M            35316   source/baroclinic.F90
+M            35316   source/domain.F90
+A                0   source/moby_parms.F90
+M            35316   drivers/cpl_mct/POP_FinalMod.F90
+
+===============================================================================
+Tag Creator: njn01
+Developers:  njn01
+Tag Date:    25 January 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120125
+Tag Summary: Bugfix for N_HEAT, N_SALT tavg computation
+             This is a bugfix for a minor error in the tavg.F90 module
+             in the determination of the averaging method for N_HEAT and
+             N_SALT.  In the out-of-the-box configuration, this bug was
+             confirmed to have zero effect on the solutions. In modified
+             configurations (eliminated some fields from tavg_contents),
+             the bug caused the model to exit abnormally.
+
+Testing:     With and without the bugfix, bluefire, cesm1_1_beta08. Diff'd
+             N_HEAT, N_SALT daily averages (single precision) -- zero diffs.
+	
+Files Modified:
+M            34058   source/tavg.F90
+===============================================================================
 Tag Creator: tcraig
 Developers:  tcraig,pw
 Tag Date:    23 January 2012

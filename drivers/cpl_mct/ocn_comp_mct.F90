@@ -1579,6 +1579,8 @@ contains
    logical (log_kind) :: &
       first = .true.      ! only true for first call
 
+   save first
+
 !-----------------------------------------------------------------------
 !
 !  zero buffer if this is the first time after a coupling interval
@@ -1586,6 +1588,7 @@ contains
 !-----------------------------------------------------------------------
 
    if (tlast_coupled == c0) SBUFF_SUM = c0
+   WORK = c0
 
 !-----------------------------------------------------------------------
 !

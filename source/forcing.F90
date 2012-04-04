@@ -73,7 +73,8 @@
       tavg_TAUY2,        &! tavg_id for wind stress**2 in Y direction
       tavg_FW,           &! tavg_id for freshwater flux
       tavg_TFW_T,        &! tavg_id for T flux due to freshwater flux
-      tavg_TFW_S          ! tavg_id for S flux due to freshwater flux
+      tavg_TFW_S,        &! tavg_id for S flux due to freshwater flux
+      tavg_U10_SQR        ! tavg_id for U10_SQR 10m wind speed squared from cpl
 
 !-----------------------------------------------------------------------
 !
@@ -214,6 +215,11 @@
                           units='kg/m^2/s', grid_loc='2110',         &
                           coordinates='TLONG TLAT time')
 
+   call define_tavg_field(tavg_U10_SQR,'U10_SQR',2,                  &
+                          long_name='10m wind speed squared',      &
+                          units='cm^2/^s', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+
 !-----------------------------------------------------------------------
 !
 !  define movie diagnostic fields
@@ -264,6 +270,7 @@
 !
 ! !REVISION HISTORY:
 !  same as module
+
 
 !EOP
 !BOC
@@ -378,7 +385,6 @@
 
 
    call set_ap(ATM_PRESS)
-
 
    if (nt > 2)  &
       call set_sflux_passive_tracers(U10_SQR,IFRAC,ATM_PRESS,STF)
@@ -500,6 +506,7 @@
       call accumulate_tavg_field(FW (:,:,iblock), tavg_FW,iblock,1)
       call accumulate_tavg_field(TFW(:,:,1,iblock)/hflux_factor, tavg_TFW_T,iblock,1)
       call accumulate_tavg_field(TFW(:,:,2,iblock)*rho_sw*c10, tavg_TFW_T,iblock,1)
+      call accumulate_tavg_field(U10_SQR(:,:,iblock), tavg_U10_SQR,iblock,1)
 
 
    end do
