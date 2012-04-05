@@ -130,34 +130,6 @@ cp -fp \$CASEBUILD/pop2conf/pop2_${OCN_GRID}_tavg_contents  \$EXEROOT/ocn/input/
 
 end
 
-#========================================================================== 
-# Support for auxilliary ocean component models, such as darwin, quota, etc, TBD.
-# Create \$CASEROOT/Buildconf/moby.buildnml.csh and \$CASEROOT/Buildconf/moby.buildexe.csh
-#========================================================================== 
-
-setenv USE_OCN_MOBY   FALSE
-setenv USE_OCN_DARWIN FALSE
-set aux_ocn_comps = ( )
-foreach comp (\`echo \$OCN_TRACER_MODULES\`)
-  if (\$comp == moby) then
-     set aux_ocn_comps =  (\$aux_ocn_comps 'moby')
-     setenv USE_OCN_MOBY    TRUE
-     setenv USE_OCN_DARWIN  TRUE
-     if !(-e \$CASEBUILD/moby.buildexe.csh) then
-        cp \$CODEROOT/ocn/pop2/bld/moby.cpl7.template \$CASEROOT/Tools/Templates
-        \$CASEROOT/Tools/Templates/moby.cpl7.template
-     endif
-  endif
-end
-
-#========================================================================== 
-#  If there are aux components, begin their namelist builds here            
-#========================================================================== 
-
-foreach aux_ocn_comp (\$aux_ocn_comps)
-  \$CASEROOT/Buildconf/\${aux_ocn_comp}.buildnml.csh || exit -3  
-end
-
 wait
 exit 0
 
@@ -183,10 +155,8 @@ echo -----------------------------------------------------------------
 
 cd \$OBJROOT/ocn/source
 
-set aux_ocn_comps = ( )
 foreach comp (\`echo \$OCN_TRACER_MODULES\`)
   if (\$comp == moby) then
-    set aux_ocn_comps =  (\$aux_ocn_comps 'moby')
     cp -fp \$CODEROOT/ocn/pop2/aux/moby/pop2/*.F90 .
   endif
 end
@@ -223,15 +193,102 @@ else
 endif
 
 echo -------------------------------------------------------------------------
-echo  Build all auxilliary ocean-component models before building pop2
+echo  Build all auxilliary ocean-component models before building pop2 library
+echo  For now - building moby component if appropriate
 echo -------------------------------------------------------------------------
 
-foreach aux_ocn_comp (\$aux_ocn_comps)
-  \$CASEROOT/Buildconf/\$aux_ocn_comp.buildexe.csh || exit -2
+foreach comp (\`echo \$OCN_TRACER_MODULES\`)
+if (\$comp == moby) then
+
+   if !(-d \$OBJROOT/ocn/moby/source ) mkdir -p \$OBJROOT/ocn/moby/source
+   if !(-d \$OBJROOT/ocn/moby/obj    ) mkdir -p \$OBJROOT/ocn/moby/obj
+
+   echo -----------------------------------------------------------------
+   echo  Copy selected MITgcm ptracers, chem and base-model files,
+   echo  all darwin/quota/etc base-model, CESM interface files and 
+   echo  any nonstandard files 
+   echo -----------------------------------------------------------------
+
+   cd \$OBJROOT/ocn/moby/source
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/*.h .
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/ptracers_readparms.F . 
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/ptracers_diagnostics_init.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/ptracers_init_fixed.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/ptracers_set_iolabel.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/gchem_diagnostics_init.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/gchem_init_fixed.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/gchem_init_vari.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/gchem_readparms.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/different_multiple.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/load_grid_spacing barrier.F . 
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/eeboot.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/eeboot_minimal.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/fool_the_compiler.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/ini_grid.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/ini_masks_etc.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/ini_vertical_grid.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/ini_parms.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/open_copy_data_file.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/packages_boot.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/port_rand print.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/set_defaults.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/timeave_reset.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/utils.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/write_utils.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/lef_zero.F .  
+  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/\$OCN_TRACER_MODULES_OPT/source/*.[FHh] .
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/\$OCN_TRACER_MODULES_OPT/interf/*.[FHh]  .
+
+   set my_path = \$CASEROOT/SourceMods/src.pop2/src.moby
+   if (-d \$my_path ) cp -fp \$my_path/*.[FHh]  .
+
+   echo -----------------------------------------------------------------
+   echo Compile moby library
+   echo NOTE: ALLOW_DARWIN and ALLOW_GCHEM are set in PACKAGES_CONFIG.h.
+   echo       GCHEM  options are set in  GCHEM_OPTIONS.h
+   echo       DARWIN options are set in  DARWIN_OPTIONS.h
+   echo -----------------------------------------------------------------
+
+   cd \$OBJROOT/ocn/moby/obj
+   cat >! Filepath <<EOF
+\$OBJROOT/ocn/moby/source
+EOF
+
+   # Enforce the no-threading constraint
+   if ( \$POP_MXBLCKS != 1 ) then
+      echo "fatal moby error: POP_MXBLCKS must equal one"
+      echo "moby info message:  POP_MXBLCKS = \$POP_MXBLCKS"
+      exit -32
+   endif
+   if      ( \${OCN_GRID} =~ gx3* ) then
+      setenv POP_KM 60
+   else if ( \${OCN_GRID} =~ gx1* ) then
+      setenv POP_KM 60
+   else 
+     echo OCN_GRID = \$OCN_GRID
+     echo "moby error: valid only for gx1 and gx3 grids"
+     exit -33
+   endif
+
+   set mobydefs = "-DCESMMOBY -DPOP_NPROCX=\$POP_NX_BLOCKS -DPOP_NPROCY=\$POP_NY_BLOCKS -DPOP_MXBLCKS=\$POP_MXBLCKS -DPOP_BLCKX=\$POP_BLCKX -DPOP_BLCKY=\$POP_BLCKY -DPOP_KM=\$POP_KM"
+
+   gmake complib -j \$GMAKE_J MODEL=moby COMPLIB=\$LIBROOT/libmoby.a USER_CPPDEFS="\$mobydefs" -f \$CASETOOLS/Makefile || exit 2
+
+   set f_dir = \$OBJROOT/ocn/moby/source/f_files
+   if !(-d  \$f_dir ) mkdir -p \$f_dir
+   mv -f *.f \$f_dir
+
+   if !(-f \$LIBROOT/libmoby.a) then
+     echo "ERROR: moby library not available"
+     exit -1
+   endif
+
+endif
 end
 
 echo -----------------------------------------------------------------
-echo  Compile pop2 library
+echo  Build pop2 library
 echo -----------------------------------------------------------------
 
 cd \${OBJROOT}/ocn/obj 
@@ -245,7 +302,7 @@ foreach module ( \`echo \$OCN_TRACER_MODULES\` )
    if (\$module =~ "iage"   ) @ NT = \$NT +  1
    if (\$module =~ "cfc"    ) @ NT = \$NT +  2   
    if (\$module =~ "ecosys" ) @ NT = \$NT + 24   
-   if (\$module == moby) setenv USE_OCN_MOBY TRUE
+   if (\$module == moby     ) setenv USE_OCN_MOBY TRUE
 end
 set cppdefs = "-DCCSMCOUPLED -DBLCKX=\$POP_BLCKX -DBLCKY=\$POP_BLCKY -DMXBLCKS=\$POP_MXBLCKS -DNT=\${NT}"
 if (\$OCN_ICE_FORCING == 'inactive' ) then

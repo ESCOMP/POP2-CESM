@@ -128,6 +128,7 @@ my @env_vars = qw(CASE
 		  OCN_TAVG_TRACER_BUDGET
 		  OCN_TAVG_HIFREQ
 		  OCN_TRACER_MODULES
+		  OCN_TRACER_MODULES_OPT 
 		  NTASKS_OCN 
 		  NINST_OCN
 		  POP_BLCKX
@@ -169,6 +170,7 @@ my $OCN_CHL_TYPE           = "$ENV{'OCN_CHL_TYPE'}";
 my $OCN_CO2_TYPE           = "$ENV{'OCN_CO2_TYPE'}";
 my $OCN_TRANSIENT          = "$ENV{'OCN_TRANSIENT'}";
 my $OCN_TRACER_MODULES     = "$ENV{'OCN_TRACER_MODULES'}";
+my $OCN_TRACER_MODULES_OPT = "$ENV{'OCN_TRACER_MODULES_OPT'}";
 my $OCN_TAVG_TRACER_BUDGET = "$ENV{'OCN_TAVG_TRACER_BUDGET'}";
 my $OCN_TAVG_HIFREQ        = "$ENV{'OCN_TAVG_HIFREQ'}";
 my $NTASKS_OCN             = "$ENV{'NTASKS_OCN'}";
@@ -1266,6 +1268,42 @@ if ($OCN_TRACER_MODULES =~ /moby/) {
     add_default($nl, 'tracer_init_ext(1)%scale_factor%moby_nml');
     $temp = $nl->get_value('tracer_init_ext(1)%scale_factor%moby_nml');
     $nl->set_variable_value('moby_nml', 'tracer_init_ext(2)%scale_factor', "$temp");
+
+    # Build moby namelist- $EXEROOT/run/moby_in
+
+    my $fh_in  = new IO::File;
+    my $fh_out = new IO::File;
+    $fh_out->open(">$EXEROOT/run/moby_in") or die "** can't open file: $EXEROOT/run/moby_in\n";
+    foreach my $file ( "${OCN_GRID}_data", 
+		       "${OCN_GRID}_data.ptracers",
+		       "${OCN_GRID}_data.gchem" ,
+		       "${OCN_GRID}_data.$OCN_TRACER_MODULES_OPT" ,
+		       "${OCN_GRID}_data.misc", 
+		       "${OCN_GRID}_data.pkg" ) 
+    {
+	my $datafile;
+	if (-e "$CASEROOT/SourceMods/src.pop2/src.moby/$file") {
+	    $datafile = "${CASEROOT}/SourceMods/src.pop2/src.moby/$file";
+	} elsif ( -e "$CODEROOT/ocn/pop2/aux/moby/${OCN_TRACER_MODULES_OPT}/input/$file") {
+	    $datafile = "$CODEROOT/ocn/pop2/aux/moby/${OCN_TRACER_MODULES_OPT}/input/$file";
+	} else {
+	    die "MOBY error for input file $file \n";
+	}
+	$fh_in->open("<$datafile") or die "** can't open file: $datafile\n";
+	while (my $line = <$fh_in>) {
+	    if ($line =~ m/\#/) {
+		# do nothing
+	    } else {
+		$line =~ s/POPVERTGRID/using_POP_grid_through_interface_layer/g;
+		my $path = "${DIN_LOC_ROOT}/ocn/moby";
+		$line =~ s/INPUTDATA/$path/g;
+		$line =~ s/OCN_GRID/$OCN_GRID/g;
+		print $fh_out "$line";
+	    }
+	}
+	$fh_in->close;
+    }
+    $fh_out->close;
 }
 
 ##########################################
