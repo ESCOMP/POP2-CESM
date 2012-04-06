@@ -297,26 +297,32 @@ cd \${OBJROOT}/ocn/obj
 \$OBJROOT/ocn/source
 EOF
 
+setenv USE_OCN_MOBY FALSE
 @ NT = 2
 foreach module ( \`echo \$OCN_TRACER_MODULES\` )  
    if (\$module =~ "iage"   ) @ NT = \$NT +  1
    if (\$module =~ "cfc"    ) @ NT = \$NT +  2   
    if (\$module =~ "ecosys" ) @ NT = \$NT + 24   
-   if (\$module == moby     ) setenv USE_OCN_MOBY TRUE
+   if (\$module == moby     ) then
+      setenv USE_OCN_MOBY TRUE
+      if (-e \$my_path/\${OCN_GRID}_data.ptracers) then
+        set dir = \$my_path
+      else if (-e \$CODEROOT/ocn/pop2/aux/moby/darwin/input/\${OCN_GRID}_data.ptracers) then
+        set dir = \$CODEROOT/ocn/pop2/aux/moby/darwin/input
+      else
+        exit 31
+      endif
+      set nt_moby = \`grep PTRACERS_numInUse \$dir/\${OCN_GRID}_data.ptracers | cut -f 2 -d = | cut -f 1 -d","\`
+      if (\$status != 0) exit 32
+      @ NT = \$NT + \$nt_moby
+    endif
 end
-set cppdefs = "-DCCSMCOUPLED -DBLCKX=\$POP_BLCKX -DBLCKY=\$POP_BLCKY -DMXBLCKS=\$POP_MXBLCKS -DNT=\${NT}"
-if (\$OCN_ICE_FORCING == 'inactive' ) then
-    set cppdefs = "\$cppdefs -DZERO_SEA_ICE_REF_SAL"
-endif
-if (\$OCN_GRID =~ "tx0.1*" )  then
-    set cppdefs = "\$cppdefs -D_HIRES";
-endif
-if (\$USE_OCN_MOBY == TRUE ) then
-  set cppdefs = "\$cppdefs -DCESMMOBY"
-endif
-if (\$OCN_ICE_FORCING == 'inactive' ) then
-  set cpp2defs = "\$cppdefs -DZERO_SEA_ICE_REF_SAL"
-endif
+
+set cppdefs = "-DCCSMCOUPLED -DBLCKX=\$POP_BLCKX -DBLCKY=\$POP_BLCKY -DMXBLCKS=\$POP_MXBLCKS -DNT=\$NT"
+if (\$OCN_ICE_FORCING == 'inactive' ) set cppdefs = "\$cppdefs -DZERO_SEA_ICE_REF_SAL"
+if (\$OCN_GRID =~ "tx0.1*"          ) set cppdefs = "\$cppdefs -D_HIRES";
+if (\$USE_OCN_MOBY == TRUE          ) set cppdefs = "\$cppdefs -DCESMMOBY"
+if (\$OCN_ICE_FORCING == 'inactive' ) set cppdefs = "\$cppdefs -DZERO_SEA_ICE_REF_SAL"
 
 cat >! \$OBJROOT/ocn/obj/POP2_cppdefs.new <<EOF
 \$cppdefs
