@@ -3282,6 +3282,15 @@ valid_values="" >
 Default: ''
 </entry>
 
+<entry 
+id="moby_on"
+type="logical" 
+category="pop2"
+group="passive_tracers_on_nml"
+valid_values="" >
+Default: ''
+</entry>
+
 <!------------------------------------->
 <!---group iage_nml                ---->
 <!------------------------------------->
@@ -4184,6 +4193,15 @@ category="pop2"
 group="derived"
 valid_values="" >
 Default: .true.
+</entry>
+
+<entry 
+id="moby_qsw_distrb_const%moby_nml"
+type="logical" 
+category="pop2"
+group="moby_nml"
+valid_values="" >
+Default: .false.
 </entry>
 
 <entry 

@@ -220,7 +220,8 @@ if (\$comp == moby) then
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/gchem_init_vari.F .  
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/gchem_readparms.F .  
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/different_multiple.F .  
-   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/load_grid_spacing barrier.F . 
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/load_grid_spacing.F .
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/barrier.F . 
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/eeboot.F .  
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/eeboot_minimal.F .  
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/fool_the_compiler.F .  
@@ -230,16 +231,16 @@ if (\$comp == moby) then
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/ini_parms.F .  
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/open_copy_data_file.F .  
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/packages_boot.F .  
-   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/port_rand print.F .  
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/port_rand.F .
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/print.F .  
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/set_defaults.F .  
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/timeave_reset.F .  
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/utils.F .  
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/write_utils.F .  
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/lef_zero.F .  
-  
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/\$OCN_TRACER_MODULES_OPT/source/*.[FHh] .
-   cp -fp \$CODEROOT/ocn/pop2/aux/moby/\$OCN_TRACER_MODULES_OPT/interf/*.[FHh]  .
-
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/\$OCN_TRACER_MODULES_OPT/interf/*.[FHh] .
+   cp -fp \$CODEROOT/ocn/pop2/aux/moby/pop2/source/moby_mod.F90 .
    set my_path = \$CASEROOT/SourceMods/src.pop2/src.moby
    if (-d \$my_path ) cp -fp \$my_path/*.[FHh]  .
 

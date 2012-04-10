@@ -1041,6 +1041,11 @@ if ($OCN_TRACER_MODULES =~ /ecosys/) {
 } else {
     add_default($nl, 'ecosys_on', 'val'=>".false.");
 }
+if ($OCN_TRACER_MODULES =~ /moby/) {
+    add_default($nl, 'moby_on', 'val'=>".true.");
+} else {
+    add_default($nl, 'moby_on', 'val'=>".false.");
+}
 
 
 ##########################################
@@ -1221,8 +1226,8 @@ if ($OCN_TRACER_MODULES =~ /moby/) {
     $temp = $nl->get_value('comp_surf_avg_freq%moby_nml');
     $nl->set_variable_value('moby_nml', 'comp_surf_avg_freq', "$temp");
 
-    add_default($nl, 'comp_surf_avg_freq%moby_nml');
-    $temp = $nl->get_value('comp_surf_avg_freq%moby_nml');
+    add_default($nl, 'moby_qsw_distrb_const%moby_nml');
+    $temp = $nl->get_value('moby_qsw_distrb_const%moby_nml');
     $nl->set_variable_value('moby_nml', 'moby_qsw_distrb_const', "$temp");
 
     add_default($nl, 'use_nml_surf_vals%moby_nml', 'runtype'=>"ccsm_${RUN_TYPE}");
