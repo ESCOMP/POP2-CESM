@@ -1230,8 +1230,8 @@ if ($OCN_TRACER_MODULES =~ /moby/) {
     $temp = $nl->get_value('moby_qsw_distrb_const%moby_nml');
     $nl->set_variable_value('moby_nml', 'moby_qsw_distrb_const', "$temp");
 
-    add_default($nl, 'use_nml_surf_vals%moby_nml', 'runtype'=>"ccsm_${RUN_TYPE}");
-    $temp = $nl->get_value('use_nml_surf_vals%moby_nml', 'runtype'=>"ccsm_${RUN_TYPE}");
+    add_default($nl, 'use_nml_surf_vals%moby_nml', 'runtype'=>"${RUN_TYPE}");
+    $temp = $nl->get_value('use_nml_surf_vals%moby_nml');
     $nl->set_variable_value('moby_nml', 'use_nml_surf_vals', "$temp");
 
     add_default($nl, 'surf_avg_dic_const%moby_nml');

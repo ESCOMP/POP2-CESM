@@ -4199,7 +4199,7 @@ Default: .true.
 id="moby_qsw_distrb_const%moby_nml"
 type="logical" 
 category="pop2"
-group="moby_nml"
+group="derived"
 valid_values="" >
 Default: .false.
 </entry>
