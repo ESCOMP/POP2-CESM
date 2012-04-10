@@ -240,7 +240,6 @@ if (\$comp == moby) then
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/MITgcm/lef_zero.F .  
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/\$OCN_TRACER_MODULES_OPT/source/*.[FHh] .
    cp -fp \$CODEROOT/ocn/pop2/aux/moby/\$OCN_TRACER_MODULES_OPT/interf/*.[FHh] .
-   cp -fp \$CODEROOT/ocn/pop2/aux/moby/pop2/source/moby_mod.F90 .
    set my_path = \$CASEROOT/SourceMods/src.pop2/src.moby
    if (-d \$my_path ) cp -fp \$my_path/*.[FHh]  .
 
