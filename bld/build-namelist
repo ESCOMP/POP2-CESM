@@ -1376,7 +1376,7 @@ foreach my $file (@copy_files_to_input ) {
 
 # Create tavg contents file
 
-my $pop2_tavg_file  = "${CASEROOT}/Buildconf/pop2conf/pop2_${OCN_GRID}_tavg_contents";
+my $pop2_tavg_file  = "${CASEROOT}/Buildconf/pop2conf/${OCN_GRID}_tavg_contents";
 my $sysmod;
 my $file;
 
@@ -1417,7 +1417,7 @@ $fh_in->close();
 
 # 1.d create base tavg contents file - in pop2conf/
 #     either from $my_path (first) or from 
-my $base_tavg_file  = "${CASEROOT}/Buildconf/pop2conf/pop2_${OCN_GRID}_tavg_contents";
+my $base_tavg_file  = "${CASEROOT}/Buildconf/pop2conf/${OCN_GRID}_tavg_contents";
 if ($OCN_TAVG_HIFREQ eq "TRUE") {
     # High-frequency tavg contents
     $file = "${OCN_GRID}_tavg_contents_high_freq";
@@ -1510,7 +1510,7 @@ add_default($nl, 'tavg_offset_months',          'val'=>"@{$tavg_nml{'tavg_offset
 add_default($nl, 'tavg_offset_days',            'val'=>"@{$tavg_nml{'tavg_offset_days'}}");
 add_default($nl, 'ltavg_one_time_header',       'val'=>"@{$tavg_nml{'ltavg_one_time_header'}}");
 add_default($nl, 'ltavg_nino_diags_requested',  'val'=>"$ltavg_nino_diags_requested");
-add_default($nl, 'tavg_contents',               'val'=>"$EXEROOT/ocn/input/pop2_${OCN_GRID}_tavg_contents");
+add_default($nl, 'tavg_contents',               'val'=>"$EXEROOT/ocn/input/${OCN_GRID}_tavg_contents");
 add_default($nl, 'tavg_infile',                 'val'=>"${output_h}restart.end");
 add_default($nl, 'tavg_outfile',                'val'=>"$output_h");
 add_default($nl, 'ltavg_ignore_extra_streams',  'val'=>".false.");

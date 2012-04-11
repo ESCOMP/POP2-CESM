@@ -123,7 +123,7 @@ endif
 
 if (-f \$RUNDIR/pop2_in\${inst_string}) rm \$RUNDIR/pop2_in\${inst_string}
 cp -fp \$CASEBUILD/pop2conf/pop2_in  \${RUNDIR}/pop2_in\${inst_string}
-cp -fp \$CASEBUILD/pop2conf/pop2_${OCN_GRID}_tavg_contents  \$EXEROOT/ocn/input/pop2_${OCN_GRID}_tavg_contents
+cp -fp \$CASEBUILD/pop2conf/${OCN_GRID}_tavg_contents  \$EXEROOT/ocn/input/${OCN_GRID}_tavg_contents
 
 
 @ inst_counter = \$inst_counter + 1
