@@ -155,11 +155,6 @@ echo -----------------------------------------------------------------
 
 cd \$OBJROOT/ocn/source
 
-foreach comp (\`echo \$OCN_TRACER_MODULES\`)
-  if (\$comp == moby) then
-    cp -fp \$CODEROOT/ocn/pop2/aux/moby/pop2/*.F90 .
-  endif
-end
 cp -fp \$CODEROOT/ocn/pop2/source/*.F90  .
 cp -fp \$CODEROOT/ocn/pop2/mpi/*.F90  .
 cp -fp \$CODEROOT/ocn/pop2/drivers/cpl_share/*.F90  .
@@ -191,6 +186,12 @@ else
    echo "missing ${OCN_GRID}_POP_DomainSizeMod.F90 file"
    exit -2    
 endif
+
+foreach comp (\`echo \$OCN_TRACER_MODULES\`)
+  if (\$comp == moby) then
+    cp -fp \$CODEROOT/ocn/pop2/aux/moby/pop2/source/*.F90 .
+  endif
+end
 
 echo -------------------------------------------------------------------------
 echo  Build all auxilliary ocean-component models before building pop2 library
