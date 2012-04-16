@@ -58,12 +58,11 @@ echo -------------------------------------------------------------------------
 foreach comp (`echo $OCN_TRACER_MODULES`)
   if ($comp == moby) then
      cd $CASEBUILD 
-     echo " i am here "
      if (-f moby.buildexe.csh) then
-       moby.buildexe.csh 
+       ./moby.buildexe.csh 
      else 
        cp $CODEROOT/ocn/pop2/aux/moby/scripts/moby.buildexe.csh .
-       moby.buildexe.csh 
+       ./moby.buildexe.csh 
      endif
   endif
 end
