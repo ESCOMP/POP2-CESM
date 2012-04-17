@@ -44,28 +44,40 @@ else
    exit -2    
 endif
 
-foreach comp (`echo $OCN_TRACER_MODULES`)
-  if ($comp == moby) then
-    cp -fp $CODEROOT/ocn/pop2/aux/moby/pop2/source/*.F90 .
-  endif
-end
-
 echo -------------------------------------------------------------------------
-echo  Build all auxilliary ocean-component models before building pop2 library
-echo  For now - building moby component if appropriate
+echo  Checking for any auxilliary ocean-component models before building pop2
+echo  For now - only looking for moby component
 echo -------------------------------------------------------------------------
 
+setenv USE_OCN_MOBY FALSE
 foreach comp (`echo $OCN_TRACER_MODULES`)
-  if ($comp == moby) then
-     cd $CASEBUILD 
-     if (-f moby.buildexe.csh) then
-       ./moby.buildexe.csh 
-     else 
-       cp $CODEROOT/ocn/pop2/aux/moby/scripts/moby.buildexe.csh .
-       ./moby.buildexe.csh 
-     endif
-  endif
+	if ($comp == moby) then
+    setenv USE_OCN_MOBY TRUE
+	endif
 end
+
+if ($USE_OCN_MOBY == TRUE ) then
+
+	echo -------------------------------------------------------------------------
+	echo  Building moby
+	echo -------------------------------------------------------------------------
+
+	cd $CASEBUILD
+	if (-f moby.buildexe.csh) then
+		./moby.buildexe.csh
+		if ( $status != 0 ) then
+			echo ERROR: moby.buildexe.csh failed
+			exit 18
+		endif
+	else 
+		cp $CODEROOT/ocn/pop2/aux/moby/scripts/moby.buildexe.csh .
+		./moby.buildexe.csh
+		if ( $status != 0 ) then
+			echo ERROR: moby.buildexe.csh failed
+			exit 18
+		endif
+	endif
+endif
 
 echo -----------------------------------------------------------------
 echo  Build pop2 library
@@ -77,14 +89,12 @@ cat >! Filepath <<EOF
 $OBJROOT/ocn/source
 EOF
 
-setenv USE_OCN_MOBY FALSE
 @ NT = 2
 foreach module ( `echo $OCN_TRACER_MODULES` )  
    if ($module =~ "iage"   ) @ NT = $NT +  1
    if ($module =~ "cfc"    ) @ NT = $NT +  2   
    if ($module =~ "ecosys" ) @ NT = $NT + 24   
    if ($module == moby     ) then
-      setenv USE_OCN_MOBY TRUE
       if (-e $my_path/${OCN_GRID}_data.ptracers) then
         set dir = $my_path
       else if (-e $CODEROOT/ocn/pop2/aux/moby/darwin/input/${OCN_GRID}_data.ptracers) then
