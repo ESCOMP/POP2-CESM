@@ -52,7 +52,7 @@ if ($RUN_TYPE == startup) then
   if (-e $RUNDIR/rpointer.ocn${inst_string}.restart && $CONTINUE_RUN == 'TRUE') then
     grep 'RESTART_FMT=' $RUNDIR/rpointer.ocn${inst_string}.restart >&! /dev/null
     if ($status == 0) then
-      setenv RESTART_INPUT_TS_FMT \`grep RESTART_FMT\= $RUNDIR/rpointer.ocn${inst_string}.restart | cut -c13-15\`
+      setenv RESTART_INPUT_TS_FMT `grep RESTART_FMT= $RUNDIR/rpointer.ocn${inst_string}.restart | cut -c13-15`
     endif
   endif 
 endif
@@ -60,7 +60,7 @@ if ($RUN_TYPE == branch || $RUN_TYPE == hybrid) then
   setenv RESTART_INPUT_TS_FMT 'bin'
   grep 'RESTART_FMT=' $RUNDIR/rpointer.ocn${inst_string}.restart >&! /dev/null
   if ($status == 0) then
-    setenv RESTART_INPUT_TS_FMT \`grep RESTART_FMT\= $RUNDIR/rpointer.ocn${inst_string}.restart | cut -c13-15\`
+    setenv RESTART_INPUT_TS_FMT `grep RESTART_FMT= $RUNDIR/rpointer.ocn${inst_string}.restart | cut -c13-15`
   endif
 endif
 
