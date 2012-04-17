@@ -51,32 +51,32 @@ echo -------------------------------------------------------------------------
 
 setenv USE_OCN_MOBY FALSE
 foreach comp (`echo $OCN_TRACER_MODULES`)
-	if ($comp == moby) then
+  if ($comp == moby) then
     setenv USE_OCN_MOBY TRUE
-	endif
+  endif
 end
 
 if ($USE_OCN_MOBY == TRUE ) then
 
-	echo -------------------------------------------------------------------------
-	echo  Building moby
-	echo -------------------------------------------------------------------------
+  echo -------------------------------------------------------------------------
+  echo  Building moby
+  echo -------------------------------------------------------------------------
 
-	cd $CASEBUILD
-	if (-f moby.buildexe.csh) then
-		./moby.buildexe.csh
-		if ( $status != 0 ) then
-			echo ERROR: moby.buildexe.csh failed
-			exit 18
-		endif
-	else 
-		cp $CODEROOT/ocn/pop2/aux/moby/scripts/moby.buildexe.csh .
-		./moby.buildexe.csh
-		if ( $status != 0 ) then
-			echo ERROR: moby.buildexe.csh failed
-			exit 18
-		endif
-	endif
+  cd $CASEBUILD
+  if (-f moby.buildexe.csh) then
+    ./moby.buildexe.csh
+    if ( $status != 0 ) then
+      echo ERROR: moby.buildexe.csh failed
+      exit 18
+    endif
+  else 
+    cp $CODEROOT/ocn/pop2/aux/moby/scripts/moby.buildexe.csh .
+    ./moby.buildexe.csh
+    if ( $status != 0 ) then
+      echo ERROR: moby.buildexe.csh failed
+      exit 18
+    endif
+  endif
 endif
 
 echo -----------------------------------------------------------------
@@ -124,10 +124,10 @@ if (-e $OBJROOT/ocn/obj/POP2_cppdefs) then
     diff $OBJROOT/ocn/obj/POP2_cppdefs.new $OBJROOT/ocn/obj/POP2_cppdefs || set recompile = TRUE
     echo "recompile is $recompile"
     if ($recompile == 'TRUE') then
-	touch `grep -wl BLCKX   $OBJROOT/ocn/source/*`  # force recompile
-	touch `grep -wl BLCKY   $OBJROOT/ocn/source/*`  # force recompile
-	touch `grep -wl MXBLCKS $OBJROOT/ocn/source/*`  # force recompile
-	touch `grep -wl NT      $OBJROOT/ocn/source/*`  # force recompile
+      touch `grep -wl BLCKX   $OBJROOT/ocn/source/*`  # force recompile
+      touch `grep -wl BLCKY   $OBJROOT/ocn/source/*`  # force recompile
+      touch `grep -wl MXBLCKS $OBJROOT/ocn/source/*`  # force recompile
+      touch `grep -wl NT      $OBJROOT/ocn/source/*`  # force recompile
     endif  
 endif
 cp -f $OBJROOT/ocn/obj/POP2_cppdefs.new $OBJROOT/ocn/obj/POP2_cppdefs
