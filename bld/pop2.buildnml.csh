@@ -69,7 +69,9 @@ cat >! $CASEBUILD/pop2conf/cesm_namelist << EOF2
  log_filename='$log_filename'
  moby_log_filename='${RUNDIR}/moby${inst_string}.log.$LID'
 EOF2
-$UTILROOT/Tools/user_nl_add -user_nl_file $CASEROOT/user_nl_pop2${inst_string} >> $CASEBUILD/pop2conf/cesm_namelist 
+if (-e $CASEROOT/user_nl_pop2${inst_string}) then
+  $UTILROOT/Tools/user_nl_add -user_nl_file $CASEROOT/user_nl_pop2${inst_string} >> $CASEBUILD/pop2conf/cesm_namelist
+endif
 cat >> $CASEBUILD/pop2conf/cesm_namelist << EOF2
 /
 EOF2
