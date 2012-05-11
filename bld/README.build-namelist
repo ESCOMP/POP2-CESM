@@ -9,12 +9,10 @@ OPTIONS
      -infile "filepath"    Specify a file containing namelists to read 
                            values from.
      -namelist "namelist"  Specify namelist settings directly on the 
-                           commandline by supplying 
+                           command line by supplying 
                            a string containing FORTRAN namelist syntax, 
                            e.g.  -namelist "&pop2_nml dt=27 /"
      -help [or -h]         Print usage to STDOUT.
-     -silent [-s]          Turns on silent mode - only fatal messages
-                           issued.
      -test                 Enable checking that input datasets exist on 
                            local filesystem.
      -verbose              Turn on verbose echoing of informational 
@@ -27,6 +25,12 @@ lowest):
   3. values read from the file specified by -infile 
   4. values from the namelist defaults file or values specifically set in
      build-namelist 
+
+By default, only fatal messages will be output to screen and build-namelist
+will not check to see if input datasets exist on the local filesystem.
+Further, build-namelist looks for environment variables that are set by
+other CESM scripts (such as create_newcase or create_clone), so running
+build-namelist from the command line will result in an error.
 
 
 ============================================================================
@@ -44,8 +48,8 @@ build-namelist
 
     (pop2.buildnml.csh is now just a wrapper to build-namelist)
 
-  - allows the user to edit existing namlist variables or introduce new
-    ones variables if that is desired
+  - allows the user to edit existing namelist variables or introduce new
+    ones if that is desired
     (see "user_nl_pop2" and "POP2 Use Cases" sections below for details)
 
   - depends on two files in $CODEROOT/ocn/pop2/bld/namelist_files
@@ -59,7 +63,7 @@ build-namelist
   - reads the file $CASEBUILD/pop2conf/config_cache.xml (created by 
     pop2.cpl7.template); currently this file only contains ocean grid 
     information.  The grid resolution is used to determine appropriate 
-    defaults for namelist input that is resolution dependent
+    defaults for resolution-dependent namelist inputs
     (see "build-namelist details" section below for details)
 
   - is invoked upon every build -AND- upon every call to pop2.buildnml.csh
@@ -72,17 +76,17 @@ user_nl_pop2
 ALL USER-SPECIFIED MODIFICATIONS TO THE POP2 NAMELIST SHOULD OCCUR AS
 ENTRIES IN $CASEROOT/user_nl_pop2. Simply append each variable entry
 to user_nl_pop2 prior to running build-namelist. For example, to set the
-value of dt_count to 46 and bckgrnd_vdc to 0.3, include the following in
+value of dt_count to 14 and bckgrnd_vdc to 0.3, include the following in
 user_nl_pop2:
 
-  dt_count = 46
+  dt_count = 14
   bckgrnd_vdc = 0.3
 
 After running build-namelist, the following will appear in pop2_in
 
   &time_manager_nml
     ...
-    dt_count = 46
+    dt_count = 14
     ...
   /
   ...
@@ -91,19 +95,20 @@ After running build-namelist, the following will appear in pop2_in
     ...
   /
 
-It is important to note that build-namelist knows what namelist each
-variable belongs to; you do not need to include that in user_nl_pop2.
+It is important to note that, for the most part, build-namelist knows what
+namelist each variable belongs to; except for the variables mentioned below
+in the Notes subsection, you do not need to include that in user_nl_pop2.
 (see "POP2 Use Cases" at the end of this guide for more examples)
 
 
 Notes:
 
-  - As seen in the "Summary of build-namelist" above, the only input to 
-    build-namelist is a file named cesm_namelist. There is a tool called by
-    pop2.buildnml.csh which, among other things, will make sure that all
+  - As seen in the "Summary of build-namelist" section above, the only input
+    to build-namelist is a file named cesm_namelist. There is a tool called
+    from pop2.buildnml.csh which, among other things, makes sure that all
     entries in $CASEROOT/user_nl_pop2 are put in cesm_namelist
 
-  - Some variables names can show up in multiple namelists. For example:
+  - Some variable names can show up in multiple namelists. For example:
 
     1. ah appears in hmix_del4t_nml, hmix_del2t_nml, and hmix_gm_nml
     2. am appears in hmix_del4u_nml and hmix_del2u_nml
@@ -186,8 +191,8 @@ Notes:
           lvariable_hmix      = .true.
        /
 
-  - a new utility in $CASEROOT, preview-namelist, will enable you to
-    preview the pop2_in namelist in $CASEROOT/CaseDocs at any time
+  - a new utility, $CASEROOT/preview-namelist, will enable you to preview
+    the pop2_in namelist in $CASEROOT/CaseDocs at any time
 
    
 ============================================================================
@@ -200,8 +205,8 @@ variables that can be output by build-namelist.
 
 As mentioned in the "POP2 Use Cases" section below, a modified copy of this
 file (with the same name) may be placed in the directory
-$CASEROOT/SourceMods/src.pop2/. Otherwise the namelist definition file
-appears in build-namelist as follows:
+$CASEROOT/SourceMods/src.pop2/. Otherwise the file appears in build-namelist
+as follows:
 
   $nl_definition_file = \
       "$cfgdir/namelist_files/namelist_definition_pop2.xml";
@@ -226,7 +231,7 @@ enclosed in quotes.  The attributes are:
        real
 
      Any of these types may be followed by a comma separated list of
-     integers enclosed in parenthesis to indicate an array. The current
+     integers enclosed in parentheses to indicate an array. The current
      namelist validation code only distinguishes between string and 
      non-string types.
 
@@ -282,7 +287,7 @@ attribute, along with optional user-specified attributes, is used in
 build-namelist to find the best match when looking for default values of
 variables.
 
-In build-namelist the namelist defaults file appears as follows
+In build-namelist the file appears as follows:
 
   $nl_defaults_file = "$cfgdir/namelist_files/namelist_defaults_pop2.xml";
 
@@ -312,16 +317,16 @@ build-namelist has four perl objects that it uses
 
   1. $cfg
      A configuration object obtained from the POP2 config_cache.xml file,
-     which is created by pop2.cpl7.template and can be found in 
-     $CASEROOT/Builddconf/pop2conf. Currently this only specifies the grid
-     resolution.
+     which is created by pop2.cpl7.template and can be found in the 
+     directory $CASEROOT/Builddconf/pop2conf/. Currently this only specifies
+     the grid resolution.
 
        my $cfg = Build::Config->new('config_cache.xml');
 
   2. $definition
      A namelist definition object which provides a method for verifying that
-     the output namelist variables are in the definition file and are output
-     in the correct namelist groups.
+     the output namelist variables are in namelist_definition_pop2.xml and
+     are output in the correct namelist groups.
 
        my $definition = Build::NamelistDefinition->new($nl_definition_file);
 
@@ -333,7 +338,7 @@ build-namelist has four perl objects that it uses
 
      Note that both $nl_defaults_file and $cfg are passed - this is why the
      ocn_grid attribute does not need to be passed to add_defaults()
-     (see "Examples" subsection below)
+     (see the "Creation of $nl" and "Examples" subsections below)
 
   4. $nl
      An empty namelist object which contains the model namelist values
@@ -342,11 +347,11 @@ build-namelist has four perl objects that it uses
 
        my $nl = Build::Namelist->new();
 
---- Required $SCRIPTSROOT/ccsm_utils/Tools/perl5lib perl files  ---
+--- Required $SCRIPTSROOT/ccsm_utils/Tools/perl5lib/ perl files  ---
 
 The root directory for the perl5 required utilities is
 
-  my $perl5lib_dir = ${SCRIPTSROOT}/ccsm_utils/Tools/perl5lib";
+  my $perl5lib_dir = "${SCRIPTSROOT}/ccsm_utils/Tools/perl5lib";
 
 This directory contains all the required perl files:
 
@@ -397,7 +402,7 @@ exception unless the 'nofail' option is set to 1 (true).
 
 --- Examples ---
 
-  1. Use the default value for namelist variable ew_boundary_type
+  1. Use the default value for namelist variable ew_boundary_type.
 
      build-namelist:
 
@@ -466,7 +471,8 @@ exception unless the 'nofail' option is set to 1 (true).
      /
 
   3. Set the value for the namelist variable clinic_distribution_type to
-     $POP_DECOMPTYPE
+     the value of the environment variable $POP_DECOMPTYPE (environment
+     variables are not used in namelist_defaults_pop2.xml).
 
      build-namelist:
 
@@ -515,7 +521,7 @@ exception unless the 'nofail' option is set to 1 (true).
 
       build-namelist:
 
-        add_default($nl, $var, 'nofail'=>1)
+        add_default($nl, $var, 'noprepend'=>1)
 
    5. These two options are used together in instances where a dataset is
       only available for a subset of grids. For example, bottom_cell_file is
@@ -567,11 +573,11 @@ A: For each namelist variable, just add a line of the form
      namelist_var = namelist_val
    
    to $CASEROOT/user_nl_pop2. As shown in the "user_nl_pop2" section above,
-   one example is to set dt_count to 46 and bckgrnd_vdc to 0.3. The file 
+   one example is to set dt_count to 14 and bckgrnd_vdc to 0.3. The file 
    $CASEROOT/user_nl_pop2 would then look as follows
 
      ...
-     dt_count = 46
+     dt_count = 14
      bckgrnd_vdc = 0.3
 
    Note that all pop2 namelist variables can be changed in this manner,
@@ -580,10 +586,23 @@ A: For each namelist variable, just add a line of the form
 
 ----------------------------------------------------------------------------
 
+Q: I have modified $CASEROOT/user_nl_pop2, but I want to see the namelist
+   to make sure everything looks okay before building. How do I do this?
+
+A: The utility $CASEROOT/preview-namelist will generate copies of all the
+   namelists (including pop2_in) in $CASEROOT/CaseDocs. You can run this
+   utility at any time.
+
+----------------------------------------------------------------------------
+
 Q: Rather than making the same changes to user_nl_pop2 over and over, can
    I change the default values used by build-namelist?
 
-A: Yes, you can modify the namelist_defaults_pop2.xml file in
+A: We do not recommend changing the default values directly in the code, so
+   the official answer is that you should keep a copy of user_nl_pop2 with
+   your preferred defaults and use that for each case. However, if you are
+   adamant about changing the defaults in your own sandbox, it is possible.
+   To do so, you can modify the namelist_defaults_pop2.xml file in
    $CODEROOT/ocn/pop2/bld/namelist_files to change the default values. For
    example:
 
@@ -603,9 +622,9 @@ A: Yes, you can modify the namelist_defaults_pop2.xml file in
           ...
         /
 
-   2. If you want to change bckgrnd_vdc_dpth for 100000 to 200000 for runs
-      using the gx1v6 grid, without affecting the value for any other grid,
-      you would change
+   2. If you want to change bckgrnd_vdc_dpth for 1000.0e02 to 2000.0e02 for
+      runs using the gx1v6 grid, without affecting the value for any other
+      grid, you would change
    
         <bckgrnd_vdc_dpth ocn_grid="gx1v6">1000.0e02</bckgrnd_vdc_dpth>
 
@@ -621,7 +640,10 @@ A: Yes, you can modify the namelist_defaults_pop2.xml file in
           ...
         /
 
-      for any _g16 compsets while not changing the value for other grids.
+      for any _g16 resolutions while not changing the value for other grids.
+      Again, keep in mind that this is a dangerous practice, especially if
+      you share your sandbox with others and they expect the usual default
+      values to be set.
 
 ----------------------------------------------------------------------------
 
@@ -631,16 +653,16 @@ Q: How do I change the default values of streams associated with an existing
 A: Stream variables can be changed by simply editing the contents of
    user_nl_pop2.
 
-   For example - for gx3v7 and gx1v6, the default values of tavg_file_freq
-   and tavg_file_freq_opt are
+   For example - for gx3v7 and gx1v6, the default values of tavg_freq and
+   tavg_freq_opt are
 
-      tavg_file_freq = 1 1 1
-      tavg_file_freq_opt = 'nmonth' 'nmonth' 'once'
+      tavg_freq = 1 1 1
+      tavg_freq_opt = 'nmonth' 'nday' 'once'
 
-   To switch from monthly values to daily values for the first two streams,
-   add the following to $CASEROOT/user_nl_pop2
+   To switch from monthly values to daily values for the first stream, add
+   the following to $CASEROOT/user_nl_pop2
 
-      tavg_file_freq_opt = 'nday' 'nday' 'once'
+      tavg_freq_opt = 'nday' 'nday' 'once'
 
    Note that these default values are set by ocn.base.tavg.csh in 
    $CODEROOT/ocn/pop2/input_templates; to change the default values, edit 
@@ -684,9 +706,11 @@ A: Place a modified copy of namelist_definition_pop2.xml (that includes your
 
 Q: How do I add a new pop2 namelist variable to the pop2 code base?
 
-A: Follow the instructions above, but rather than editing a copy in
-   SourceMods/src.pop2, edit namelist_definition_pop2.xml directly in
-   $CODEROOT/ocn/pop2/bld/namelist_files. You may also want to update
+A: Again, we do not recommend editing files in $CODEROOT and instead ask
+   that you follow the instructions above to use SourceMods/src.pop2/.
+   However, if you must change the code in your sandbox, you would add new
+   namelist variables by editting namelist_definition_pop2.xml directly in
+   $CODEROOT/ocn/pop2/bld/namelist_files/. You may also want to update
    namelist_defaults_pop2.xml and build-namelist so your new value can be
    set automatically. Continuing the example above, we would add
 
@@ -696,8 +720,8 @@ A: Follow the instructions above, but rather than editing a copy in
 
      add_default($nl, 'gatekeeper_id');
 
-   to build-namelist. Again, note that this will build a namelist with the
-   new variable, but you will need to update the source code to read it!
+   to build-namelist. As above, note that this will build a namelist with
+   the new variable, but you will need to update the source code to read it.
 
 ----------------------------------------------------------------------------
 
@@ -724,7 +748,7 @@ A: You can pass values through the add_default() function. As above, suppose
           my $problem = $nl->get_value('problem');
           add_default($nl, 'gatekeeper_id', 'problem'=>"$problem");
 
-        Note that strings can not have spaces in the XML; to remove spaces
+        Note that strings cannot have spaces in the XML; to remove spaces
         from a Perl variable use the following prior to sending it through
         add_default as a dependency
       
@@ -735,11 +759,9 @@ A: You can pass values through the add_default() function. As above, suppose
 Q: How do I change the contents of ${ocn_grid}_tavg_contents for my
    experiment?
 
-A: build-namelist creates the ${ocn_grid}_tavg_contents file in
-   $CASEBUILD/pop2conf/ and copies it to $EXEROOT/ocn/input/. To change the
-   contents of this file place the new ${ocn_grid}_tavg_contents file in 
-   $CASEROOT/SourceMods/src.pop2 - this version will then be copied to
-   $EXEROOT/ocn/input/pop2_${ocn_grid}_tavg_contents and used.
+A: Simply place your modified version of the ${ocn_grid}_tavg_contents file
+   in $CASEROOT/SourceMods/src.pop2/ - this version will then be used by
+   CESM.
 
 ----------------------------------------------------------------------------
 
@@ -748,9 +770,9 @@ Q: What happens with files that used to be placed in the directory
 
 A: There is no change to this functionality. For example, you can still
    place a modified copy of ${ocn_grid}_transport_contents in the directory
-   $CASEROOT/SourceMods/src.pop2/ and it will be copied to the directory
-   $EXEROOT/ocn/input/. The namelist variable diag_transport_file is still
-   set to '$EXEROOT/ocn/input/' so the changes will be seen by the model.
+   $CASEROOT/SourceMods/src.pop2/ and it will used by CESM (the namelist
+   variable diag_transport_file will be point to a copy of the modified
+   file).
 
 ----------------------------------------------------------------------------
 

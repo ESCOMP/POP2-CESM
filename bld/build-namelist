@@ -38,7 +38,6 @@ OPTIONS
                            a string containing FORTRAN namelist syntax, e.g.,
                               -namelist "&pop2_nml dt=1800 /"
      -help [or -h]         Print usage to STDOUT.
-     -silent [-s]          Turns on silent mode - only fatal messages issued.
      -test                 Enable checking that input datasets exist on local filesystem.
      -verbose              Turn on verbose echoing of informational messages.
 
@@ -72,15 +71,14 @@ if ($ProgDir) {
 # Process command-line options.
 
 my %opts = ( help           => 0,
-             silent         => 0,
              test           => 0,
+             verbose        => 0,
            );
 
 GetOptions(
     "h|help"                    => \$opts{'help'},
     "infile=s"                  => \$opts{'infile'},
     "namelist=s"                => \$opts{'namelist'},
-    "s|silent"                  => \$opts{'silent'},
     "test"                      => \$opts{'test'},
     "v|verbose"                 => \$opts{'verbose'},
 )  or usage();
@@ -96,10 +94,9 @@ if (@ARGV) {
 
 # Define print levels:
 # 0 - only issue fatal error messages
-# 1 - only informs what files are created (default)
+# 1 - only informs what files are created (currently not used)
 # 2 - verbose
-my $print = 1;
-if ($opts{'silent'})  { $print = 0; }
+my $print = 0;
 if ($opts{'verbose'}) { $print = 2; }
 my $eol = "\n";
 
