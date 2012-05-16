@@ -113,9 +113,9 @@
 !-----------------------------------------------------------------------
 
   logical (log_kind) :: &
-     lsource_sink, &
-     lflux_gas_o2, &
-     lflux_gas_co2
+     moby_lsource_sink, &
+     moby_lflux_gas_o2, &
+     moby_lflux_gas_co2
 
   logical (log_kind), dimension(:,:,:), allocatable :: &
      LAND
@@ -163,9 +163,6 @@
       rest_z1                ! deep end of transition regime
 
    type(tracer_read) :: &
-      po4_rest,            & ! restoring data for PO4
-      no3_rest,            & ! restoring data for NO3
-      sio3_rest,           & ! restoring data for SiO3
       gas_flux_fice,       & ! ice fraction for gas fluxes
       gas_flux_ws,         & ! wind speed for gas fluxes
       gas_flux_ap,         & ! atmospheric pressure for gas fluxes
@@ -184,9 +181,9 @@
 !-----------------------------------------------------------------------
 
    logical (log_kind) :: &
-      lrest_po4,  & ! restoring on po4 
-      lrest_no3,  & ! restoring on no3 
-      lrest_sio3    ! restoring on sio3 
+      moby_lrest_po4,  & ! restoring on po4 
+      moby_lrest_no3,  & ! restoring on no3 
+      moby_lrest_sio3    ! restoring on sio3 
 
    real (r8), dimension(km) :: &
       moby_nutr_rest_time_inv ! inverse restoring time scale for nutrients (1/secs)
@@ -197,7 +194,7 @@
       FESEDFLUX
 
    character(char_len) :: &
-      nutr_rest_file               ! file containing nutrient fields
+      moby_nutr_rest_file               ! file containing nutrient fields
 
    real (r8), dimension(:,:,:), allocatable, target :: &
       NUTR_RESTORE_RTAU            ! inverse restoring timescale for variable
@@ -211,29 +208,29 @@
       INTERP_WORK                  ! temp array for interpolate_forcing output
 
    type(forcing_monthly_every_ts) :: &
-      iron_flux,                 & ! iron component of surface dust flux
-      fice_file,                 & ! ice fraction, if read from file
-      xkw_file,                  & ! a * wind-speed ** 2, if read from file
-      ap_file                      ! atmoshperic pressure, if read from file
+      moby_iron_flux,                 & ! iron component of surface dust flux
+      moby_fice_file,                 & ! ice fraction, if read from file
+      moby_xkw_file,                  & ! a * wind-speed ** 2, if read from file
+      moby_ap_file                      ! atmoshperic pressure, if read from file
 
    character(char_len) :: &
       ndep_data_type               ! type of ndep forcing
 
    integer (int_kind) :: &
-      ndep_shr_stream_year_first, & ! first year in stream to use
-      ndep_shr_stream_year_last,  & ! last year in stream to use
-      ndep_shr_stream_year_align    ! align ndep_shr_stream_year_first with this model year
+      moby_ndep_shr_stream_year_first, & ! first year in stream to use
+      moby_ndep_shr_stream_year_last,  & ! last year in stream to use
+      moby_ndep_shr_stream_year_align    ! align moby_ndep_shr_stream_year_first with this model year
 
    integer (int_kind), parameter :: &
-      ndep_shr_stream_var_cnt = 2, & ! number of variables in ndep shr_stream
-      ndep_shr_stream_no_ind  = 1, & ! index for NO forcing
-      ndep_shr_stream_nh_ind  = 2    ! index for NH forcing
+      moby_ndep_shr_stream_var_cnt = 2, & ! number of variables in ndep shr_stream
+      moby_ndep_shr_stream_no_ind  = 1, & ! index for NO forcing
+      moby_ndep_shr_stream_nh_ind  = 2    ! index for NH forcing
 
    character(char_len) :: &
-      ndep_shr_stream_file          ! file containing domain and input data
+      moby_ndep_shr_stream_file          ! file containing domain and input data
 
    real (r8) :: &
-      ndep_shr_stream_scale_factor  ! unit conversion factor
+      moby_ndep_shr_stream_scale_factor  ! unit conversion factor
 
 #ifdef CCSMCOUPLED
    type(shr_strdata_type) :: ndep_sdat ! input data stream for ndep
@@ -285,15 +282,12 @@
 !  define tavg id for MORE nonstandard 3d fields
 !-----------------------------------------------------------------------
 
-!  integer (int_kind) :: &
 
 !-----------------------------------------------------------------------
 !  define tavg id for MORE nonstandard 3d fields
 !-----------------------------------------------------------------------
 
-!  integer (int_kind) :: &
 
-!  integer (int_kind) :: &
 
 !-----------------------------------------------------------------------
 !  define array for holding flux-related quantities that need to be time-averaged
@@ -478,11 +472,11 @@ contains
 
 !***********************************************************************
 !BOP
-! !IROUTINE: extract_surf_avg
+! !IROUTINE: moby_extract_surf_avg
 ! !INTERFACE:
 
- subroutine extract_surf_avg(init_moby_init_file_fmt, &
-                             moby_restart_filename)
+ subroutine moby_extract_surf_avg(init_moby_init_file_fmt, &
+                                  moby_restart_filename)
 
 ! !DESCRIPTION:
 !  Extract average surface values from restart file.
@@ -503,7 +497,7 @@ contains
 !-----------------------------------------------------------------------
 
 
- end subroutine extract_surf_avg
+ end subroutine moby_extract_surf_avg
 
 !***********************************************************************
 !BOP
@@ -773,10 +767,10 @@ contains
 
 !*****************************************************************************
 !BOP
-! !IROUTINE: comp_surf_avg
+! !IROUTINE: moby_comp_surf_avg
 ! !INTERFACE:
 
- subroutine comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR)
+ subroutine moby_comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR)
 
 ! !DESCRIPTION:
 !  compute average surface tracer values
@@ -800,7 +794,7 @@ contains
 !-----------------------------------------------------------------------
 
 
- end subroutine comp_surf_avg
+ end subroutine moby_comp_surf_avg
 
 !*****************************************************************************
 !BOP

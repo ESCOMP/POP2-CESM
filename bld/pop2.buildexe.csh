@@ -70,7 +70,7 @@ if ($USE_OCN_MOBY == TRUE ) then
       exit 18
     endif
   else 
-    cp $CODEROOT/ocn/pop2/aux/moby/scripts/moby.buildexe.csh .
+    cp $CODEROOT/ocn/pop2/aux/moby/pop2/bld/moby.buildexe.csh .
     ./moby.buildexe.csh
     if ( $status != 0 ) then
       echo ERROR: moby.buildexe.csh failed

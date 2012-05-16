@@ -1,11 +1,34 @@
 ===============================================================================
 Tag Creator: mlevy
-Developers:  mlevy,mvertens
-Tag Date:    11 May 2012
+Developers:  mlevy,njn01 (for moby side of things)
+Tag Date:    16 May 2012
 Tag Name:    pop2/branch_tags/bldnml_tags/bldnml_32_cesm_pop_2_1_20120320
+Tag Summary: Rename moby_nml namelist variables to remove conflict with names
+             of ecosys_nml namelist variables; this allows users to edit values
+             in ecosys_nml by simply putting var_name=value in user_nl_pop2
+             rather than var_name%ecosys_nml=value. Note that moby now uses
+             variables named moby_var_name. Also updated README.build-namelist
+             based on suggestions from many people.
+             Also note: Nancy updated the moby branch - use 20120514a or later
+             to ensure moby source code looks for updated variable names.
+Testing:     Used short CECO and CDARWIN runs to ensure that every variable is
+             still being added to the namelist; compared output to ensure bfb.
+Files Modified:
+M            37086   source/moby_mod.F90
+M            37086   bld/README.build-namelist
+M            37086   bld/build-namelist
+M            37086   bld/pop2.buildexe.csh
+M            37086   bld/namelist_files/namelist_defaults_pop2.xml
+M            37086   bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy,mvertens
+Tag Dates:   March, April, May 2012
+Tag Names:   pop2/branch_tags/bldnml_tags/bldnml_??_cesm_pop_2_1_2012????
+             (applies to tags 01 - 31)
 Tag Summary: Move from old build system to build-namelist for consistency
              with the rest of CESM. This ChangeLog catches up on changes
-             from 32 tags, it was not all done at once. Note that the Files
+             from 31 tags, it was not all done at once. Note that the Files
              Modified list is just an svn diff --summarize between the current
              directory and r34425, when the bldnml branch was created. This
              includes a couple of merges with the trunk, so not every file
@@ -2821,4 +2844,3 @@ Summary of Changes: This tag is based upon /pop2/branch_tags/hrpop_tags/hrpop61_
 
 
 ===============================================================================
-

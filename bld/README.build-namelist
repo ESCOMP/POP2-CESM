@@ -117,15 +117,6 @@ Notes:
     4. lvariable_hmix appears in hmix_del4t_nml, hmix_del2t_nml, 
        hmix_del4u_nml, and hmix_del2u_nml
 
-    Additionally, many variables in ecosys_nml also may appear in moby_nml.
-    These variables are comp_surf_avg_freq, comp_surf_avg_freq_opt,
-    iron_flux_input%file_fmt, iron_flux_input%file_varname,
-    iron_flux_input%filename, iron_flux_input%scale_factor,
-    lecovars_full_depth_tavg, lflux_gas_co2, lmarginal_seas,
-    surf_avg_alk_const, surf_avg_dic_const, tracer_init_ext(1)%mod_varname,
-    tracer_init_ext(1)%scale_factor, tracer_init_ext(2)%mod_varname,
-    tracer_init_ext(2)%scale_factor, and use_nml_surf_vals.
-
     The CESM scripts' perl modules assume that each namelist variable has a
     unique name. To work around this condition for pop2, the following
     "derived" namelist variables were introduced
@@ -135,46 +126,14 @@ Notes:
       ah%hmix_gm_nml  
       am%hmix_del4u_nml
       am%hmix_del2u_nml  
-      comp_surf_avg_freq%ecosys_nml
-      comp_surf_avg_freq%moby_nml
-      comp_surf_avg_freq_opt%ecosys_nml
-      comp_surf_avg_freq_opt%moby_nml
-      iron_flux_input%file_fmt%ecosys_nml
-      iron_flux_input%file_fmt%moby_nml
-      iron_flux_input%file_varname%ecosys_nml
-      iron_flux_input%file_varname%moby_nml
-      iron_flux_input%filename%ecosys_nml
-      iron_flux_input%filename%moby_nml
-      iron_flux_input%scale_factor%ecosys_nml
-      iron_flux_input%scale_factor%moby_nml
       lauto_hmix%del4t_nml
       lauto_hmix%del2t_nml
       lauto_hmix%del4u_nml
       lauto_hmix%del2u_nml
-      lecovars_full_depth_tavg%ecosys_nml
-      lecovars_full_depth_tavg%moby_nml
-      lflux_gas_co2%ecosys_nml
-      lflux_gas_co2%moby_nml
-      lmarginal_seas%ecosys_nml
-      lmarginal_seas%moby_nml
       lvariable_hmix%del4t_nml
       lvariable_hmix%del2t_nml
       lvariable_hmix%del4u_nml
       lvariable_hmix%del2u_nml
-      surf_avg_alk_const%ecosys_nml
-      surf_avg_alk_const%moby_nml
-      surf_avg_dic_const%ecosys_nml
-      surf_avg_dic_const%moby_nml
-      tracer_init_ext(1)%mod_varname%ecosys_nml
-      tracer_init_ext(1)%mod_varname%moby_nml
-      tracer_init_ext(1)%scale_factor%ecosys_nml
-      tracer_init_ext(1)%scale_factor%moby_nml
-      tracer_init_ext(2)%mod_varname%ecosys_nml
-      tracer_init_ext(2)%mod_varname%moby_nml
-      tracer_init_ext(2)%scale_factor%ecosys_nml
-      tracer_init_ext(2)%scale_factor%moby_nml
-      use_nml_surf_vals%ecosys_nml
-      use_nml_surf_vals%moby_nml
 
     If the user wants to change the values of ah and lvariable_hmix in the
     namelist hmix_del2t to 0.7e7 and .true., respectively, he/she needs to

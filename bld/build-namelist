@@ -1137,58 +1137,32 @@ if ($OCN_TRACER_MODULES =~ /ecosys/) {
       add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
     }
     add_default($nl, 'init_ecosys_init_file_fmt');
-    add_default($nl, 'tracer_init_ext(1)%mod_varname%ecosys_nml');
-    $temp = $nl->get_value('tracer_init_ext(1)%mod_varname%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'tracer_init_ext(1)%mod_varname', "$temp");
-
-    add_default($nl, 'tracer_init_ext(1)%scale_factor%ecosys_nml');
-    $temp = $nl->get_value('tracer_init_ext(1)%scale_factor%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'tracer_init_ext(1)%scale_factor', "$temp");
-
-    add_default($nl, 'tracer_init_ext(2)%mod_varname%ecosys_nml');
-    $temp = $nl->get_value('tracer_init_ext(2)%mod_varname%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'tracer_init_ext(2)%mod_varname', "$temp");
-
-    add_default($nl, 'tracer_init_ext(2)%scale_factor%ecosys_nml');
-    $temp = $nl->get_value('tracer_init_ext(2)%scale_factor%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'tracer_init_ext(2)%scale_factor', "$temp");
+    add_default($nl, 'tracer_init_ext(1)%mod_varname');
+    add_default($nl, 'tracer_init_ext(1)%scale_factor');
+    add_default($nl, 'tracer_init_ext(2)%mod_varname');
+    add_default($nl, 'tracer_init_ext(2)%scale_factor');
 
     add_default($nl, 'tracer_init_ext(3)%mod_varname');
     add_default($nl, 'tracer_init_ext(3)%scale_factor');
     add_default($nl, 'lflux_gas_o2');
-    add_default($nl, 'lflux_gas_co2%ecosys_nml');
-    $temp = $nl->get_value('lflux_gas_co2%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'lflux_gas_co2', "$temp");
+    add_default($nl, 'lflux_gas_co2');
 
     add_default($nl, 'locmip_k1_k2_bug_fix', 'val'=>"$locmip_k1_k2_bug_fix");
     add_default($nl, 'atm_co2_opt', 'val'=>"$atm_co2_opt");
     add_default($nl, 'atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
     add_default($nl, 'ecosys_tadvect_ctype');
     add_default($nl, 'gas_flux_forcing_opt');
-    add_default($nl, 'lmarginal_seas%ecosys_nml');
-    $temp = $nl->get_value('lmarginal_seas%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'lmarginal_seas', "$temp");
+    add_default($nl, 'lmarginal_seas');
 
     add_default($nl, 'lsource_sink');
-    add_default($nl, 'comp_surf_avg_freq_opt%ecosys_nml');
-    $temp = $nl->get_value('comp_surf_avg_freq_opt%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'comp_surf_avg_freq_opt', "$temp");
+    add_default($nl, 'comp_surf_avg_freq_opt');
+    add_default($nl, 'comp_surf_avg_freq');
 
-    add_default($nl, 'comp_surf_avg_freq%ecosys_nml');
-    $temp = $nl->get_value('comp_surf_avg_freq%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'comp_surf_avg_freq', "$temp");
+    add_default($nl, 'use_nml_surf_vals', 'runtype'=>"$RUN_TYPE");
 
-    add_default($nl, 'use_nml_surf_vals%ecosys_nml', 'runtype'=>"$RUN_TYPE");
-    $temp = $nl->get_value('use_nml_surf_vals%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'use_nml_surf_vals', "$temp");
+    add_default($nl, 'surf_avg_dic_const');
 
-    add_default($nl, 'surf_avg_dic_const%ecosys_nml');
-    $temp = $nl->get_value('surf_avg_dic_const%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'surf_avg_dic_const', "$temp");
-
-    add_default($nl, 'surf_avg_alk_const%ecosys_nml');
-    $temp = $nl->get_value('surf_avg_alk_const%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'surf_avg_alk_const', "$temp");
+    add_default($nl, 'surf_avg_alk_const');
 
     add_default($nl, 'ecosys_qsw_distrb_const');
    #add_default($nl, 'iron_dust_flx_data_type');
@@ -1196,22 +1170,10 @@ if ($OCN_TRACER_MODULES =~ /ecosys/) {
     add_default($nl, 'dust_flux_input%file_fmt');
     add_default($nl, 'dust_flux_input%file_varname');
     add_default($nl, 'dust_flux_input%scale_factor');  # kg/m^2/sec -> g/cm^2/sec
-    add_default($nl, 'iron_flux_input%filename%ecosys_nml');
-    $temp = $nl->get_value('iron_flux_input%filename%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'iron_flux_input%filename', "$temp");
-
-    add_default($nl, 'iron_flux_input%file_fmt%ecosys_nml');
-    $temp = $nl->get_value('iron_flux_input%file_fmt%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'iron_flux_input%file_fmt', "$temp");
-
-    add_default($nl, 'iron_flux_input%file_varname%ecosys_nml');
-    $temp = $nl->get_value('iron_flux_input%file_varname%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'iron_flux_input%file_varname', "$temp");
-
-    add_default($nl, 'iron_flux_input%scale_factor%ecosys_nml');  # kg/m^2/sec -> nmol/cm^2/sec, 3.5% iron by weight
-    $temp = $nl->get_value('iron_flux_input%scale_factor%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'iron_flux_input%scale_factor', "$temp");
-
+    add_default($nl, 'iron_flux_input%filename');
+    add_default($nl, 'iron_flux_input%file_fmt');
+    add_default($nl, 'iron_flux_input%file_varname');
+    add_default($nl, 'iron_flux_input%scale_factor');  # kg/m^2/sec -> nmol/cm^2/sec, 3.5% iron by weight
     add_default($nl, 'fesedflux_input%filename');
     add_default($nl, 'fesedflux_input%file_varname');
     add_default($nl, 'fesedflux_input%file_fmt');
@@ -1235,29 +1197,19 @@ if ($OCN_TRACER_MODULES =~ /ecosys/) {
       add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
       add_default($nl, 'ndep_shr_stream_file');
     }
-    add_default($nl, 'lecovars_full_depth_tavg%ecosys_nml');
-    $temp = $nl->get_value('lecovars_full_depth_tavg%ecosys_nml');
-    $nl->set_variable_value('ecosys_nml', 'lecovars_full_depth_tavg', "$temp");
-
+    add_default($nl, 'lecovars_full_depth_tavg');
 }
 
 ##########################################
 # namelist group: moby_nml             #
 ##########################################
 
-my $lflux_gas_co2;
-if ($CCSM_BGC eq "CO2C") {
-    $lflux_gas_co2 = ".true.";
-} else {
-    $lflux_gas_co2 = ".false.";
-}
-
 if ($OCN_TRACER_MODULES =~ /moby/) {
     
     my $temp;
 
     add_default($nl, 'moby_log_filename'); 
-    add_default($nl, 'moby_tadvect_ctype');
+    add_default($nl, "lmoby");
     add_default($nl, "ldarwin");
     add_default($nl, 'init_moby_option', 'val'=>"ccsm_${RUN_TYPE}");
     if ($RUN_TYPE eq "startup") {
@@ -1267,71 +1219,40 @@ if ($OCN_TRACER_MODULES =~ /moby/) {
     }
     add_default($nl, 'init_moby_init_file_fmt', 'val'=>'nc');
 
-    $nl->set_variable_value('moby_nml', 'lflux_gas_co2', "$lflux_gas_co2");
+    add_default($nl, 'moby_comp_surf_avg_freq');
+    add_default($nl, 'moby_comp_surf_avg_freq_opt');
 
-    add_default($nl, 'lecovars_full_depth_tavg%moby_nml');
-    $temp = $nl->get_value('lecovars_full_depth_tavg%moby_nml');
-    $nl->set_variable_value('moby_nml', 'lecovars_full_depth_tavg', "$temp");
+    add_default($nl, 'moby_iron_flux_input%filename');
+    add_default($nl, 'moby_iron_flux_input%file_fmt');
+    add_default($nl, 'moby_iron_flux_input%file_varname');
+    add_default($nl, 'moby_iron_flux_input%scale_factor');
+    
+    add_default($nl, 'moby_lecovars_full_depth_tavg');
+    my $lflux_gas_co2;
+    if ($CCSM_BGC eq "CO2C") {
+      $lflux_gas_co2 = ".true.";
+    } else {
+      $lflux_gas_co2 = ".false.";
+    }
+    add_default($nl, 'moby_lflux_gas_co2','val'=>"$lflux_gas_co2");
 
-    add_default($nl, 'lmarginal_seas%moby_nml');
-    $temp = $nl->get_value('lmarginal_seas%moby_nml');
-    $nl->set_variable_value('moby_nml', 'lmarginal_seas', "$temp");
+    add_default($nl, 'moby_lmarginal_seas');
+    add_default($nl, 'moby_lrest_no3');
+    add_default($nl, 'moby_lrest_po4');
+    add_default($nl, 'moby_lrest_sio3');
+    add_default($nl, 'moby_nutr_rest_file');
 
-    add_default($nl,'comp_surf_avg_freq_opt%moby_nml');
-    $temp = $nl->get_value('comp_surf_avg_freq_opt%moby_nml');
-    $nl->set_variable_value('moby_nml', 'comp_surf_avg_freq_opt', "$temp");
+    add_default($nl, 'moby_qsw_distrb_const');
+    add_default($nl, 'moby_surf_avg_alk_const');
+    add_default($nl, 'moby_surf_avg_dic_const');
+    add_default($nl, 'moby_tadvect_ctype');
 
-    add_default($nl, 'comp_surf_avg_freq%moby_nml');
-    $temp = $nl->get_value('comp_surf_avg_freq%moby_nml');
-    $nl->set_variable_value('moby_nml', 'comp_surf_avg_freq', "$temp");
+    add_default($nl, 'moby_tracer_init_ext(1)%mod_varname');
+    add_default($nl, 'moby_tracer_init_ext(1)%scale_factor');
+    add_default($nl, 'moby_tracer_init_ext(2)%mod_varname');
+    add_default($nl, 'moby_tracer_init_ext(2)%scale_factor');
 
-    add_default($nl, 'moby_qsw_distrb_const%moby_nml');
-    $temp = $nl->get_value('moby_qsw_distrb_const%moby_nml');
-    $nl->set_variable_value('moby_nml', 'moby_qsw_distrb_const', "$temp");
-
-    add_default($nl, 'use_nml_surf_vals%moby_nml', 'runtype'=>"${RUN_TYPE}");
-    $temp = $nl->get_value('use_nml_surf_vals%moby_nml');
-    $nl->set_variable_value('moby_nml', 'use_nml_surf_vals', "$temp");
-
-    add_default($nl, 'surf_avg_dic_const%moby_nml');
-    $temp = $nl->get_value('surf_avg_dic_const%moby_nml');
-    $nl->set_variable_value('moby_nml', 'surf_avg_dic_const', "$temp");
-
-    add_default($nl, 'surf_avg_alk_const%moby_nml');
-    $temp = $nl->get_value('surf_avg_alk_const%moby_nml');
-    $nl->set_variable_value('moby_nml', 'surf_avg_alk_const', "$temp");
-
-    add_default($nl, 'iron_flux_input%filename%moby_nml');
-    $temp = $nl->get_value('iron_flux_input%filename%moby_nml');
-    $nl->set_variable_value('moby_nml', 'iron_flux_input%filename', "$temp");
-
-    add_default($nl, 'iron_flux_input%file_fmt%moby_nml');
-    $temp = $nl->get_value('iron_flux_input%file_fmt%moby_nml');
-    $nl->set_variable_value('moby_nml', 'iron_flux_input%file_fmt', "$temp");
-
-    add_default($nl, 'iron_flux_input%file_varname%moby_nml');
-    $temp = $nl->get_value('iron_flux_input%file_varname%moby_nml');
-    $nl->set_variable_value('moby_nml', 'iron_flux_input%file_varname', "$temp");
-
-    add_default($nl, 'iron_flux_input%scale_factor%moby_nml');
-    $temp = $nl->get_value('iron_flux_input%scale_factor%moby_nml');
-    $nl->set_variable_value('moby_nml', 'iron_flux_input%scale_factor', "$temp");   
-
-    add_default($nl, 'tracer_init_ext(1)%mod_varname%moby_nml');
-    $temp = $nl->get_value('tracer_init_ext(1)%mod_varname%moby_nml');
-    $nl->set_variable_value('moby_nml', 'tracer_init_ext(1)%mod_varname', "$temp");
-
-    add_default($nl, 'tracer_init_ext(1)%scale_factor%moby_nml');
-    $temp = $nl->get_value('tracer_init_ext(1)%scale_factor%moby_nml');
-    $nl->set_variable_value('moby_nml', 'tracer_init_ext(1)%scale_factor', "$temp");
-
-    add_default($nl, 'tracer_init_ext(2)%mod_varname%moby_nml');
-    $temp = $nl->get_value('tracer_init_ext(2)%mod_varname%moby_nml');
-    $nl->set_variable_value('moby_nml', 'tracer_init_ext(2)%mod_varname', "$temp");
-
-    add_default($nl, 'tracer_init_ext(1)%scale_factor%moby_nml');
-    $temp = $nl->get_value('tracer_init_ext(1)%scale_factor%moby_nml');
-    $nl->set_variable_value('moby_nml', 'tracer_init_ext(2)%scale_factor', "$temp");
+    add_default($nl, 'moby_use_nml_surf_vals', 'runtype'=>"${RUN_TYPE}");
 
     # Build moby namelist- $EXEROOT/run/moby_in
 

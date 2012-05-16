@@ -3060,34 +3060,34 @@ Default: 'nc'
 </entry>
 
 <entry 
-id="tracer_init_ext(1)%mod_varname%ecosys_nml"
+id="tracer_init_ext(1)%mod_varname"
 type="char*256" 
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="tracer_init_ext(1)%scale_factor%ecosys_nml"
+id="tracer_init_ext(1)%scale_factor"
 type="real" 
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="tracer_init_ext(2)%mod_varname%ecosys_nml"
+id="tracer_init_ext(2)%mod_varname"
 type="char*256" 
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="tracer_init_ext(2)%scale_factor%ecosys_nml"
+id="tracer_init_ext(2)%scale_factor"
 type="real" 
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default: 
 </entry>
 
@@ -3116,10 +3116,10 @@ Default:
 </entry>
 
 <entry 
-id="lflux_gas_co2%ecosys_nml"
+id="lflux_gas_co2"
 type="logical" 
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default: 
 </entry>
 
@@ -3164,10 +3164,10 @@ Default:
 </entry>
 
 <entry 
-id="lmarginal_seas%ecosys_nml"
+id="lmarginal_seas"
 type="logical"
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default: 
 </entry>
 
@@ -3180,42 +3180,42 @@ Default:
 </entry>
 
 <entry 
-id="comp_surf_avg_freq_opt%ecosys_nml"
+id="comp_surf_avg_freq_opt"
 type="char*256" 
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="comp_surf_avg_freq%ecosys_nml"
+id="comp_surf_avg_freq"
 type="integer" 
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="use_nml_surf_vals%ecosys_nml"
+id="use_nml_surf_vals"
 type="logical" 
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="surf_avg_dic_const%ecosys_nml"
+id="surf_avg_dic_const"
 type="real"
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="surf_avg_alk_const%ecosys_nml"
+id="surf_avg_alk_const"
 type="real"
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default: 
 </entry>
 
@@ -3269,35 +3269,35 @@ Default:
 </entry>
 
 <entry 
-id="iron_flux_input%filename%ecosys_nml"
+id="iron_flux_input%filename"
 type="char*256" 
 category="pop2"
-group="derived"
+group="ecosys_nml"
 input_pathname="abs" >
 Default: 
 </entry>
 
 <entry 
-id="iron_flux_input%file_fmt%ecosys_nml"
+id="iron_flux_input%file_fmt"
 type="char*256" 
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="iron_flux_input%file_varname%ecosys_nml"
+id="iron_flux_input%file_varname"
 type="char*256" 
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="iron_flux_input%scale_factor%ecosys_nml"
+id="iron_flux_input%scale_factor"
 type="real" 
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default: 
 </entry>
 
@@ -3458,33 +3458,17 @@ Default:
 </entry>
 
 <entry 
-id="lecovars_full_depth_tavg%ecosys_nml"
+id="lecovars_full_depth_tavg"
 type="logical" 
 category="pop2"
-group="derived" >
+group="ecosys_nml" >
 Default:  
 </entry>
 
 
 <!------------------------------------->
-<!---moby                          ---->
+<!----moby                         ---->
 <!------------------------------------->
-
-<entry 
-id="ldarwin"
-type="logical" 
-category="pop2"
-group="moby_nml" >
-Default: .true.
-</entry>
-
-<entry 
-id="moby_qsw_distrb_const"
-type="logical" 
-category="pop2"
-group="moby_nml" >
-Default: .false.
-</entry>
 
 <entry 
 id="moby_log_filename" 
@@ -3495,11 +3479,19 @@ Default: ''
 </entry>
 
 <entry 
-id="moby_tadvect_ctype"
-type="char*256" 
+id="lmoby"
+type="logical" 
 category="pop2"
 group="moby_nml" >
-Default: 
+Default: .true.
+</entry>
+
+<entry 
+id="ldarwin"
+type="logical" 
+category="pop2"
+group="moby_nml" >
+Default: .true.
 </entry>
 
 <entry 
@@ -3527,8 +3519,185 @@ group="moby_nml" >
 Default: 'nc'
 </entry>
 
+<entry 
+id="moby_comp_surf_avg_freq"
+type="integer"
+category="pop2"
+group="moby_nml" >
+Default: 1
+</entry>
+
+<entry 
+id="moby_comp_surf_avg_freq_opt"
+type="char*256"
+category="pop2"
+group="moby_nml" >
+Default: 'never'
+</entry>
+
+<entry 
+id="moby_iron_flux_input%filename"
+type="char*256" 
+category="pop2"
+group="moby_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="moby_iron_flux_input%file_fmt"
+type="char*256" 
+category="pop2"
+group="moby_nml" >
+Default: 
+</entry>
+
+<entry 
+id="moby_iron_flux_input%file_varname"
+type="char*256" 
+category="pop2"
+group="moby_nml" >
+Default: 
+</entry>
+
+<entry 
+id="moby_iron_flux_input%scale_factor"
+type="real" 
+category="pop2"
+group="moby_nml" >
+Default: 
+</entry>
+
+<entry 
+id="moby_lecovars_full_depth_tavg"
+type="logical" 
+category="pop2"
+group="moby_nml" >
+Default: .false.
+</entry>
+
+<entry 
+id="moby_lflux_gas_co2"
+type="logical" 
+category="pop2"
+group="moby_nml" >
+Default: .false.
+</entry>
+
+<entry 
+id="moby_lmarginal_seas"
+type="logical" 
+category="pop2"
+group="moby_nml" >
+Default: .true.
+</entry>
+
+<entry 
+id="moby_lrest_no3"
+type="logical" 
+category="pop2"
+group="moby_nml" >
+Default: .false.
+</entry>
+
+<entry 
+id="moby_lrest_po4"
+type="logical" 
+category="pop2"
+group="moby_nml" >
+Default: .false.
+</entry>
+
+<entry 
+id="moby_lrest_sio3"
+type="logical" 
+category="pop2"
+group="moby_nml" >
+Default: .false.
+</entry>
+
+<entry 
+id="moby_nutr_rest_file"
+type="char*256" 
+category="pop2"
+group="moby_nml" >
+Default: 'unknown'
+</entry>
+
+<entry 
+id="moby_qsw_distrb_const"
+type="logical" 
+category="pop2"
+group="moby_nml" >
+Default: .false.
+</entry>
+
+<entry 
+id="moby_surf_avg_alk_const"
+type="real"
+category="pop2"
+group="moby_nml" >
+Default: 
+</entry>
+
+<entry 
+id="moby_surf_avg_dic_const"
+type="real"
+category="pop2"
+group="moby_nml" >
+Default: 
+</entry>
+
+<entry 
+id="moby_tadvect_ctype"
+type="char*256" 
+category="pop2"
+group="moby_nml" >
+Default: 
+</entry>
+
+<entry 
+id="moby_tracer_init_ext(1)%mod_varname"
+type="char*256" 
+category="pop2"
+group="moby_nml" >
+Default: 
+</entry>
+
+<entry 
+id="moby_tracer_init_ext(1)%scale_factor"
+type="real" 
+category="pop2"
+group="moby_nml" >
+Default: 
+</entry>
+
+<entry 
+id="moby_tracer_init_ext(2)%mod_varname"
+type="char*256" 
+category="pop2"
+group="moby_nml" >
+Default: 
+</entry>
+
+<entry 
+id="moby_tracer_init_ext(2)%scale_factor"
+type="real" 
+category="pop2"
+group="moby_nml" >
+Default: 
+</entry>
+
+<entry 
+id="moby_use_nml_surf_vals"
+type="logical" 
+category="pop2"
+group="moby_nml" >
+Default: 
+</entry>
+
 <!------------------------------------->
-<!---unused drived                 ---->
+<!----unused derived               ---->
 <!------------------------------------->
 
 <entry 
@@ -3621,143 +3790,6 @@ id="ah%hmix_gm_nml"
 type="real"
 category="pop2"
 group="derived" >
-</entry>
-
-<entry 
-id="lmarginal_seas%moby_nml"
-type="logical" 
-category="pop2"
-group="derived" >
-Default: .true.
-</entry>
-
-<entry 
-id="moby_qsw_distrb_const%moby_nml"
-type="logical" 
-category="pop2"
-group="derived" >
-Default: .false.
-</entry>
-
-<entry 
-id="surf_avg_dic_const%moby_nml"
-type="real"
-category="pop2"
-group="derived" >
-Default: 
-</entry>
-
-<entry 
-id="surf_avg_alk_const%moby_nml"
-type="real"
-category="pop2"
-group="derived" >
-Default: 
-</entry>
-
-<entry 
-id="lflux_gas_co2%moby_nml"
-type="logical" 
-category="pop2"
-group="derived" >
-Default: 
-</entry>
-
-<entry 
-id="use_nml_surf_vals%moby_nml"
-type="logical" 
-category="pop2"
-group="derived" >
-Default: 
-</entry>
-
-<entry 
-id="comp_surf_avg_freq_opt%moby_nml"
-type="char*256"
-category="pop2"
-group="derived" >
-Default: 'never'
-</entry>
-
-<entry 
-id="comp_surf_avg_freq%moby_nml"
-type="integer"
-category="pop2"
-group="derived" >
-Default: 1
-</entry>
-
-<entry 
-id="iron_flux_input%filename%moby_nml"
-type="char*256" 
-category="pop2"
-group="derived"
-input_pathname="abs" >
-Default: 
-</entry>
-
-<entry 
-id="iron_flux_input%file_fmt%moby_nml"
-type="char*256" 
-category="pop2"
-group="derived" >
-Default: 
-</entry>
-
-<entry 
-id="iron_flux_input%file_varname%moby_nml"
-type="char*256" 
-category="pop2"
-group="derived" >
-Default: 
-</entry>
-
-<entry 
-id="iron_flux_input%scale_factor%moby_nml"
-type="real" 
-category="pop2"
-group="derived" >
-Default: 
-</entry>
-
-<entry 
-id="tracer_init_ext(1)%mod_varname%moby_nml"
-type="char*256" 
-category="pop2"
-group="derived" >
-Default: 
-</entry>
-
-<entry 
-id="tracer_init_ext(1)%scale_factor%moby_nml"
-type="real" 
-category="pop2"
-group="derived" >
-Default: 
-</entry>
-
-<entry 
-id="tracer_init_ext(2)%mod_varname%moby_nml"
-type="char*256" 
-category="pop2"
-group="derived" >
-Default: 
-</entry>
-
-<entry 
-id="tracer_init_ext(2)%scale_factor%moby_nml"
-type="real" 
-category="pop2"
-group="derived" >
-Default: 
-</entry>
-
-<entry 
-id="lecovars_full_depth_tavg%moby_nml"
-type="logical" 
-category="pop2"
-group="derived" >
-Default: .false.
 </entry>
 
 </namelist_definition>
