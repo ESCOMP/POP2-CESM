@@ -1,7 +1,5 @@
 #! /bin/csh -f
 
-if !(-d $CASEBUILD)  mkdir $CASEBUILD
-
 if ($NINST_OCN > 1) then
    set inst_counter = 1
    set inst_string = ""
@@ -23,7 +21,5 @@ else
 endif
 
 
-cp $CODEROOT/ocn/pop2/bld/pop2.buildnml.csh $CASEROOT/Buildconf/.
-cp $CODEROOT/ocn/pop2/bld/pop2.buildexe.csh $CASEROOT/Buildconf/.
 
 
