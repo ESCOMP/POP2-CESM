@@ -27,7 +27,7 @@
       nx_global =  320 ,&! extent of horizontal axis in i direction
       ny_global =  384 ,&! extent of horizontal axis in j direction
       km = 60          ,&! number of vertical levels
-      nt =  2            ! total number of tracers
+      nt = NT            ! total number of tracers
 
    integer (int_kind), parameter, public :: &
       block_size_x = BLCKX, &! size of block in 1st horizontal dimension

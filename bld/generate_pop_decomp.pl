@@ -1,22 +1,20 @@
 #!/usr/bin/env perl
 #=======================================================================
 #
-#  This is a script to return the decomposition information for
-#  either CICE or POP.
+#  This is a script to return the decomposition information for POP
 #
 # Usage:
 #
-# generate_cice_pop_decomp [options]
+# generate_pop_decomp [options]
 #
 # To get help on options and usage:
 #
-# generate_cice_pop_decomp -help
+# generate_pop_decomp -help
 #
 #=======================================================================
 
 use Cwd;
 use strict;
-#use diagnostics;
 use Getopt::Long;
 use English;
 
@@ -47,7 +45,6 @@ EOF
 require Decomp::Config;
 
 my $model    = "pop";
-my $platform = "XT";
 my $res      = "gx1v6";
 my $output   = "all";
 
@@ -57,15 +54,13 @@ SYNOPSIS
      $ProgName [options]
 OPTIONS
      -res <resolution>    (or -r)   Horizontal resolution (gx1v6 etc.). (default $res))
-     -model <model>       (or -m)   Model type (pop or cice).	        (default $model)
-     -platform <platform> (or -p)   Platform type (XT etc.).		(defualt $platform)
      -nproc <number>      (or -n)   Number of processors to use.	(required)
      -thrds <number>      (or -t)   Number of threads per processor	(default 1)
      -output <type>	  (or -o)   Either output: all, maxblocks, bsize-x, bsize-y, or decomptype
 			  (default: $output)
 EXAMPLES
 
-   $ProgName -res gx1v6 -model cice -platform XT -nproc 80 -output maxblocks
+   $ProgName -res gx1v6 -nproc 80 -output maxblocks
 
    will return a single value -- the optimum max number of blocks to use.
 
@@ -76,8 +71,6 @@ EOF
 
   my %opts = (
                 res      => $res,
-                model    => $model,
-                platform => $platform,
                 nproc    => undef,
                 thrds    => 1,
                 output   => $output,
@@ -89,8 +82,6 @@ EOF
   my $cmdline = @ARGV;
   GetOptions( 
               "r|res=s"      => \$opts{'res'},
-              "m|model=s"    => \$opts{'model'},
-              "p|platform=s" => \$opts{'platform'},
               "n|nproc=i"    => \$opts{'nproc'},
               "t|thrds=i"    => \$opts{'thrds'},
               "o|output=s"   => \$opts{'output'},
@@ -116,6 +107,8 @@ EOF
   $opts{'ProgName'} = $ProgName;
   $opts{'ProgDir'}  = $cfgdir;
   $opts{'cmdline'}  = $cmdline;
+  $opts{'platform'} = "unused";
+  $opts{'model'}    = "unused";
 
 # redefine nproc to be total procs, nproc*thrds
   $opts{'nproc'} = $opts{'nproc'} * $opts{'thrds'};

@@ -1,4 +1,63 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, mvertens, njn01
+Tag Date:    30 May 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120530
+Tag Summary: Merge bldnml branch onto trunk. This is the culmination of the
+             effort to get every CESM component using the build-namelist script.
+             Nancy helped ensure that the moby support she was adding to the
+             trunk was not lost in this update.
+
+Testing:     Documented in branch_tags/bldnml_tags/, but basically ensured that
+             namelists generated with this system were identical to old ones and
+             that output remained bit-for-bit.
+
+M            37544   source/POP_SolversMod.F90
+M            37544   source/moby_mod.F90
+A  +             -   bld/pop2.buildnml.csh
+D            37544   bld/moby.cpl7.template
+M            37544   bld/pop_decomp.xml
+A  +             -   bld/README.build-namelist
+A  +             -   bld/user_nl_pop2
+M            37544   bld/generate_pop_decomp.pl
+A  +             -   bld/build-namelist
+A  +             -   bld/pop2.buildexe.csh
+M            37544   bld/pop2.cpl7.template
+A  +             -   bld/namelist_files
+A  +             -   bld/namelist_files/namelist_defaults_pop2.xml
+A  +             -   bld/namelist_files/namelist_definition_pop2.xml
+M            37544   input_templates/test_domain_size.F90
+D            37544   input_templates/ocn.iage.setup.csh
+M            37544   input_templates/tx0.1v2_domain_size.F90
+M            37544   input_templates/tx0.1v2_POP_DomainSizeMod.F90
+D            37544   input_templates/pop2_tavg_nml.csh
+D            37544   input_templates/gx3v5_inputdata
+D            37544   input_templates/gx3v7_inputdata
+D            37544   input_templates/ocn.ecosys.setup.csh
+D            37544   input_templates/pop2_in_build.csh
+M            37544   input_templates/gx1v6_POP_DomainSizeMod.F90
+M            37544   input_templates/tx1v1_POP_DomainSizeMod.F90
+D            37544   input_templates/tx0.1v2_inputdata
+D            37544   input_templates/ocn.moby.setup.csh
+A  +             -   input_templates/ocn.iage.tavg.csh
+A  +             -   input_templates/ocn.base.tavg.csh
+D            37544   input_templates/gx1v6_inputdata
+D            37544   input_templates/ocn.cfc.setup.csh
+A  +             -   input_templates/ocn.cfc.tavg.csh
+D            37544   input_templates/ocn.cfc11.setup.csh
+M            37544   input_templates/gx1v6_domain_size.F90
+M            37544   input_templates/gx3v5_domain_size.F90
+D            37544   input_templates/tx1v1_inputdata
+M            37544   input_templates/gx3v7_domain_size.F90
+A  +             -   input_templates/ocn.ecosys.tavg.csh
+A  +             -   input_templates/ocn.moby.tavg.csh
+M            37544   input_templates/tx1v1_domain_size.F90
+M            37544   input_templates/gx3v5_POP_DomainSizeMod.F90
+M            37544   input_templates/gx3v7_POP_DomainSizeMod.F90
+ M           37544   drivers/cpl_mct
+ M           37544   drivers/cpl_none
+
+===============================================================================
 Tag Creator: njn01
 Developers:  njn01
 Tag Date:    27 March 2012
@@ -9,7 +68,7 @@ Tag Summary: * change name in ocn.moby.setup.csh script (MOBY_CO2_FLUX --> FG_CO
              * only write tavg qflux stream info from master_task
                
 Testing:     * Ran customized tests from the cesm1_1_beta09.20120327-114702 sandbox
-	
+
 Files Modified:
 M            35814   source/tavg.F90
 M            35814   input_templates/ocn.moby.setup.csh
@@ -26,7 +85,7 @@ Testing:     * In a cesm1_1_beta09 base-model sandbox, modified only the pop2.cp
                ran the bluefire.pop2.auxtest test suite.
              * Separately, in the cesm1_1_beta09+++ sandbox, tested C, CDARWIN, C-then-activate-moby,
                and CDARWIN-the-deactivate-moby tests. See moby ChangeLog for info.
-	
+
 Files Modified:
 A                0   bld/moby_activate.csh
 A                0   bld/moby.cpl7.template
@@ -47,7 +106,7 @@ Testing:     * In a cesm1_1_beta09 base-model sandbox, created & ran C, T62_gx1v
                differenced the ocean restart and history files: b4b.
              * Ditto for CECO, except run for one month, then difference restart & history files: monthly
                   restart, base-model history, ecosys nday history files are all b4b.
-	
+
 Files Modified:
 M            35393   source/tavg.F90   <--- re-introduce bugfix from cesm_pop_2_1_20120125
 M            35393   bld/pop_decomp.xml                 <-- add MOBY hooks
@@ -73,7 +132,7 @@ Tag Summary: Add MOBY "hooks" to the pop2 base model
 Testing:     In a cesm1_1_beta09 sandbox, created & ran C, T62_gx1v6 case; compared
              with cesm1_1_beta09 oob.  New code compiles & runs; ocean restart
              files are b4b.
-	
+
 Files Modified:
 M            35316   source/passive_tracer_tools.F90
 M            35316   source/step_mod.F90
@@ -102,7 +161,7 @@ Tag Summary: Bugfix for N_HEAT, N_SALT tavg computation
 
 Testing:     With and without the bugfix, bluefire, cesm1_1_beta08. Diff'd
              N_HEAT, N_SALT daily averages (single precision) -- zero diffs.
-	
+
 Files Modified:
 M            34058   source/tavg.F90
 ===============================================================================
@@ -111,12 +170,12 @@ Developers:  tcraig,pw
 Tag Date:    23 January 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120123
 Tag Summary: update esmf calls to esmf 520r standard.
-	add support for multi-instance runs with esmf coupling interfaces.
-	fix timer issue when writing output during run (pw).
+             add support for multi-instance runs with esmf coupling interfaces.
+             fix timer issue when writing output during run (pw).
 
 Testing: 
-	tested in a beta09a sandbox on bluefire (prealpha and prebeta) and 
-	lynx (prealpha)
+             tested in a beta09a sandbox on bluefire (prealpha and prebeta) and 
+             lynx (prealpha)
 
 Files Modified:
 M       source/timers.F90
@@ -183,15 +242,15 @@ Developers:  1) mvertens
 Tag Date:    09 December 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111209
 Tag Summary: Modified files to change the field names to be consistent with
-	     drvseq4_0_11
+             drvseq4_0_11
 
 Foxx_snow  -> Faxa_snow
 Foxx_rain  -> Faxa_rain
-Foxx_lwdn  -> Faxa_lwdn 	
+Foxx_lwdn  -> Faxa_lwdn 
 Foxx_melth -> Fioi_melth 
 Foxx_meltw -> Fioi_meltw 
 Foxx_salt  -> Fioi_salt
-	
+
 Testing: 
 Ran all bluefire and lynx prebeta tests and showed that the history files
 were identical with and without the upcoming beta08 changes. The only exception
@@ -203,25 +262,25 @@ M       drivers/cpl_share/POP_CplIndices.F90
 M       drivers/cpl_mct/ocn_comp_mct.F90
 M       drivers/cpl_esmf/ocn_comp_esmf.F90
 
-	
+
 ===============================================================================
 Tag Creator: tcraig
 Developers:  1) tcraig
 Tag Date:    06 December 2011
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111206
 Tag Summary: Modified pop2.cpl7.template to address missing rpointer
-	     file for multi-instance cases when starting from a 
-	     restart set from an earlier non-multi-instance case.
-	     this just requires duplicating the rpointer files to
-	     the appropriate multi-instance names.
+             file for multi-instance cases when starting from a 
+             restart set from an earlier non-multi-instance case.
+             this just requires duplicating the rpointer files to
+             the appropriate multi-instance names.
 Testing: 
           Test (tcraig):
              bluefire: cesm prealpha and prebeta suites
-	     lynx_pgi: cesm prealpha suite
-	     bluefire: various NCK and ERS_N2 test cases
+             lynx_pgi: cesm prealpha suite
+             bluefire: various NCK and ERS_N2 test cases
           Results:
              fixes problesm in NCK and ERS_N2 test cases, all results
-	     bfb for other tests.
+             bfb for other tests.
              
 Files Modified:
 M       bld/pop2.cpl7.template
@@ -316,7 +375,7 @@ Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20111103
 Tag Summary: Bug fix: TPOWER history-file units were incorrect.
              were: erg/s  should be: erg/s/cm^3
 Testing: none
-	
+
 Files Modified:
 M            31647   source/vmix_kpp.F90
 
@@ -328,9 +387,9 @@ Tag Summary: Bug fix for in overflows for gfortran, additional decomp for tx0.1
 Testing: jedwards
 
 
-	
+
 Files Modified:
-	M            source/overflows.F90
+        M            source/overflows.F90
         M            bld/pop_decomp.xml
         M            mpi/gather_scatter.F90 (workaround for cray/gemini performance issue)
 
@@ -340,8 +399,8 @@ PASS  ERS.T62_g16.CIAF.bluefire.compare.cesm1_1_alpha05a
 PASS  ERT_PT.T62_g16.GIAF.bluefire 
 PASS  ERT_PT.T62_g16.GIAF.bluefire.compare_hist.cesm1_1_alpha05a 
 PASS  ERT_PT.T62_g16.GIAF.bluefire.compare.cesm1_1_alpha05a 
-	
-	
+
+
 ===============================================================================
 Tag Creator: mvertens
 Tag Date:    03 August 2011
@@ -369,7 +428,7 @@ PASS  SMS_D.T62_s11.G.bluefire.compare_hist.cesm1_1_alpha01a
 PASS  SMS_D.T62_s11.G.bluefire.compare.cesm1_1_alpha01a 
 PASS  CME.T62_g37.G.bluefire 
 PASS  CME.T31_g37.B1850CN.bluefire 
-	
+
 Files Modified:
 M            29392   source/io_pio.F90
 M            29392   source/POP_ConfigMod.F90
@@ -2763,4 +2822,3 @@ Summary of Changes: This tag is based upon /pop2/branch_tags/hrpop_tags/hrpop61_
 
 
 ===============================================================================
-

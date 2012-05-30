@@ -29,7 +29,7 @@
       POP_nxGlobal = 100 ,&! extent of horizontal axis in i direction
       POP_nyGlobal = 116 ,&! extent of horizontal axis in j direction
       POP_km = 25          ,&! number of vertical levels
-      POP_nt =  2            ! total number of tracers
+      POP_nt = NT            ! total number of tracers
 
    integer (POP_i4), parameter, public :: &
       POP_blockSizeX = BLCKX, &! size of block in first  horizontal dimension
