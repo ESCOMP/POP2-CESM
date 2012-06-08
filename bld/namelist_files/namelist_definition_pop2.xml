@@ -51,9 +51,9 @@
           that have only a small number of allowed values.
                                                                         -->
 
-<!----------------------------->
-<!---group domain_nml      ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group domain_nml      - -->
+<!-- ----------------------- -->
 
 <entry 
 id="nprocs_clinic" 
@@ -106,9 +106,9 @@ Default: 'closed'
 </entry>
 
 
-<!----------------------------->
-<!---group io_nml          ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group io_nml          - -->
+<!-- ----------------------- -->
 
 <entry 
 id="num_iotasks" 
@@ -151,9 +151,9 @@ Default: '.true.'
 </entry>
 
 
-<!----------------------------->
-<!---group time_manager_nml---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group time_manager_nml- -->
+<!-- ----------------------- -->
 
 <entry 
 id="runid"
@@ -316,9 +316,9 @@ group="time_manager_nml" >
 Default: 1
 </entry>
 
-<!----------------------------->
-<!---group grid_nml        ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group grid_nml        - -->
+<!-- ----------------------- -->
 
 <entry 
 id="horiz_grid_opt"
@@ -460,9 +460,9 @@ group="grid_nml" >
 Default: 'varthick'
 </entry>
 
-<!----------------------------->
-<!---group init_ts_option  ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group init_ts_option  - -->
+<!-- ----------------------- -->
 
 <entry 
 id="init_ts_option"
@@ -513,9 +513,9 @@ group="init_ts_nml" >
 Default: 'nc'
 </entry>
 
-<!----------------------------->
-<!---diagnostics_nml       ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- diagnostics_nml       - -->
+<!-- ----------------------- -->
 
 <entry 
 id="diag_global_freq_opt"
@@ -621,9 +621,9 @@ group="diagnostics_nml" >
 Default: .true.
 </entry>
 
-<!----------------------------->
-<!---budget_diagnostics_nml---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- budget_diagnostics_nml- -->
+<!-- ----------------------- -->
 
 <entry 
 id="ldiag_global_tracer_budgets"
@@ -633,9 +633,9 @@ group="budget_diagnostics_nml" >
 Default: .true.
 </entry>
 
-<!----------------------------->
-<!---bsf_diagnostic_nml    ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- bsf_diagnostic_nml    - -->
+<!-- ----------------------- -->
 
 <entry 
 id="ldiag_bsf"
@@ -645,9 +645,9 @@ group="bsf_diagnostic_nml" >
 Default: .true.
 </entry>
 
-<!----------------------------->
-<!---restart_nml           ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- restart_nml           - -->
+<!-- ----------------------- -->
 
 <entry 
 id="restart_freq_opt"
@@ -721,9 +721,9 @@ group="restart_nml" >
 Default: .false.
 </entry>
 
-<!----------------------------->
-<!---group history_nml     ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group history_nml     - -->
+<!-- ----------------------- -->
 
 <entry 
 id="history_freq_opt"
@@ -807,9 +807,9 @@ group="movie_nml" >
 Default: ' '
 </entry>
 
-<!----------------------------->
-<!---group solvers         ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group solvers         - -->
+<!-- ----------------------- -->
 
 <entry 
 id="solverChoice"
@@ -860,9 +860,9 @@ Default: 'unknownPrecondFile'
 </entry>
 
 
-<!----------------------------->
-<!---group vertical_mix_nml---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group vertical_mix_nml- -->
+<!-- ----------------------- -->
 
 <entry 
 id="vmix_choice"
@@ -945,9 +945,9 @@ Default: 1000.0e2
 </entry>
 
 
-<!----------------------------->
-<!---group vmix_const_nml  ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group vmix_const_nml  - -->
+<!-- ----------------------- -->
 
 <entry 
 id="const_vvc"
@@ -965,9 +965,9 @@ group="vmix_const_nml" >
 Default: 0.25
 </entry>
 
-<!----------------------------->
-<!---group vmix_rich_nml  ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group vmix_rich_nml  - -->
+<!-- ----------------------- -->
 
 <entry 
 id="bckgrnd_vvc"
@@ -993,9 +993,9 @@ group="vmix_rich_nml" >
 Default: 50.0
 </entry>
 
-<!----------------------------->
-<!---group tidal_nml       ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group tidal_nml       - -->
+<!-- ----------------------- -->
 
 <entry 
 id="ltidal_mixing"
@@ -1054,9 +1054,9 @@ group="tidal_nml" >
 Default: 'bin'
 </entry>
 
-<!----------------------------->
-<!---group vmix_kpp_nml    ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group vmix_kpp_nml    - -->
+<!-- ----------------------- -->
 
 <entry 
 id="bckgrnd_vdc1"
@@ -1194,9 +1194,9 @@ group="vmix_kpp_nml" >
 Default: .false.
 </entry>
 
-<!----------------------------->
-<!---group advect_nml      ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group advect_nml      - -->
+<!-- ----------------------- -->
 
 <entry 
 id="tadvect_ctype"
@@ -1206,9 +1206,9 @@ group="advect_nml" >
 Default: 'upwind3'
 </entry>
 
-<!----------------------------->
-<!---group hmix_nml        ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group hmix_nml        - -->
+<!-- ----------------------- -->
 
 <entry 
 id="hmix_momentum_choice"
@@ -1234,9 +1234,9 @@ group="hmix_nml" >
 Default: .true.
 </entry>
 
-<!----------------------------->
-<!---group hmix_del2u_nml  ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group hmix_del2u_nml  - -->
+<!-- ----------------------- -->
 
 <entry 
 id="lauto_hmix"
@@ -1262,9 +1262,9 @@ group="hmix_del2u_nml" >
 Default: 0.5e8
 </entry>
 
-<!----------------------------->
-<!---group hmix_del2t_nml  ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group hmix_del2t_nml  - -->
+<!-- ----------------------- -->
 
 <entry 
 id="lauto_hmix"
@@ -1290,9 +1290,9 @@ group="hmix_del2t_nml" >
 Default: 0.6e7
 </entry>
 
-<!----------------------------->
-<!---group hmix_del4u_nml  ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group hmix_del4u_nml  - -->
+<!-- ----------------------- -->
 
 <entry 
 id="lauto_hmix"
@@ -1318,9 +1318,9 @@ group="hmix_del4u_nml" >
 Default: -0.6e20
 </entry>
 
-<!----------------------------->
-<!---group hmix_del4t_nml  ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group hmix_del4t_nml  - -->
+<!-- ----------------------- -->
 
 <entry 
 id="lauto_hmix"
@@ -1346,9 +1346,9 @@ group="hmix_del4t_nml" >
 Default: -0.2e20
 </entry>
 
-<!----------------------------->
-<!---group hmix_gm_nml     ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group hmix_gm_nml     - -->
+<!-- ----------------------- -->
 
 <entry 
 id="kappa_isop_choice"
@@ -1534,9 +1534,9 @@ group="hmix_gm_nml" >
 Default: 2.0e7
 </entry>
 
-<!----------------------------->
-<!---group mix_submeso_nml ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group mix_submeso_nml - -->
+<!-- ----------------------- -->
 
 <entry 
 id="efficiency_factor"
@@ -1570,9 +1570,9 @@ group="mix_submeso_nml" >
 Default: 5.0e5
 </entry>
 
-<!----------------------------->
-<!---group hmix_aniso_nml  ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group hmix_aniso_nml  - -->
+<!-- ----------------------- -->
 
 <entry 
 id="hmix_alignment_choice"
@@ -1758,9 +1758,9 @@ group="hmix_aniso_nml" >
 Default: 'nc'
 </entry>
 
-<!----------------------------->
-<!---group state_nml  ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group state_nml  - -->
+<!-- ----------------------- -->
 
 <entry 
 id="state_choice"
@@ -1794,9 +1794,9 @@ group="state_nml" >
 Default: 100000
 </entry>
 
-<!----------------------------->
-<!---group baroclinic_nml  ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group baroclinic_nml  - -->
+<!-- ----------------------- -->
 
 <entry 
 id="reset_to_freezing"
@@ -1806,9 +1806,9 @@ group="baroclinic_nml" >
 Default: .false.
 </entry>
 
-<!----------------------------->
-<!---group ice_nml         ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group ice_nml         - -->
+<!-- ----------------------- -->
 
 <entry 
 id="ice_freq_opt"
@@ -1842,9 +1842,9 @@ group="ice_nml" >
 Default: .true.
 </entry>
 
-<!----------------------------->
-<!---group pressure_grad_nml--->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group pressure_grad_nml -->
+<!-- ----------------------- -->
 
 <entry 
 id="lpressure_avg"
@@ -1862,9 +1862,9 @@ group="pressure_grad_nml" >
 Default: .false.
 </entry>
 
-<!----------------------------->
-<!---group topo_stress_nml ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group topo_stress_nml - -->
+<!-- ----------------------- -->
 
 <entry 
 id="ltopostress"
@@ -1882,9 +1882,9 @@ group="topostress_nml" >
 Default: 0
 </entry>
 
-<!----------------------------->
-<!---group forcing_ws_nml  ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group forcing_ws_nml  - -->
+<!-- ----------------------- -->
 
 <entry 
 id="ws_data_type"
@@ -1943,16 +1943,16 @@ Default: 'bin'
 </entry>
 
 <entry 
-id="ws_data_renorm(1)"
-type="real"
+id="ws_data_renorm"
+type="real(1)"
 category="pop2"
 group="forcing_ws_nml" >
 Default: 10.
 </entry>
 
-<!----------------------------->
-<!---group forcing_shf_nml ---->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group forcing_shf_nml - -->
+<!-- ----------------------- -->
 
 <entry 
 id="shf_formulation"
@@ -2028,8 +2028,8 @@ Default: 'bin'
 </entry>
 
 <entry 
-id="shf_data_renorm(3)"
-type="real"
+id="shf_data_renorm"
+type="real(3)"
 category="pop2"
 group="forcing_shf_nml" >
 Default: 0.94
@@ -2068,9 +2068,9 @@ Default: 92.64
 </entry>
 
 
-<!----------------------------->
-<!---group forcing_sfwf_nml --->
-<!----------------------------->
+<!-- ----------------------- -->
+<!-- group forcing_sfwf_nml  -->
+<!-- ----------------------- -->
 
 <entry 
 id="sfwf_formulation"
@@ -2146,8 +2146,8 @@ Default: 'bin'
 </entry>
 
 <entry 
-id="sfwf_data_renorm(1)"
-type="real"
+id="sfwf_data_renorm"
+type="real(1)"
 category="pop2"
 group="forcing_sfwf_nml" >
 Default: 0.001
@@ -2209,9 +2209,9 @@ group="forcing_sfwf_nml" >
 Default: .false.
 </entry>
 
-<!------------------------------------->
-<!---group forcing_pt_interior_nml ---->
-<!------------------------------------->
+<!-- ------------------------------- -->
+<!-- group forcing_pt_interior_nml - -->
+<!-- ------------------------------- -->
 
 <entry 
 id="pt_interior_data_type"
@@ -2294,8 +2294,8 @@ Default: 'restoring'
 </entry>
 
 <entry 
-id="pt_interior_data_renorm(1)"
-type="real"
+id="pt_interior_data_renorm"
+type="real(1)"
 category="pop2"
 group="forcing_pt_interior_nml" >
 Default: 1.
@@ -2325,9 +2325,9 @@ group="forcing_pt_interior_nml" >
 Default: 'bin'
 </entry>
 
-<!------------------------------------->
-<!---group forcing_s_interior_nml  ---->
-<!------------------------------------->
+<!-- ------------------------------- -->
+<!-- group forcing_s_interior_nml  - -->
+<!-- ------------------------------- -->
 
 <entry 
 id="s_interior_data_type"
@@ -2410,8 +2410,8 @@ Default: 'restoring'
 </entry>
 
 <entry 
-id="s_interior_data_renorm(1)"
-type="real"
+id="s_interior_data_renorm"
+type="real(1)"
 category="pop2"
 group="forcing_s_interior_nml" >
 Default: 1.
@@ -2441,9 +2441,9 @@ group="forcing_s_interior_nml" >
 Default: 'bin'
 </entry>
 
-<!------------------------------------->
-<!---group forcing_ap_nml          ---->
-<!------------------------------------->
+<!-- ------------------------------- -->
+<!-- group forcing_ap_nml          - -->
+<!-- ------------------------------- -->
 
 <entry 
 id="ap_data_type"
@@ -2509,9 +2509,9 @@ group="forcing_ap_nml" >
 Default: 1.
 </entry>
 
-<!------------------------------------->
-<!---group coupled_nml             ---->
-<!------------------------------------->
+<!-- ------------------------------- -->
+<!-- group coupled_nml             - -->
+<!-- ------------------------------- -->
 
 <entry 
 id="coupled_freq_opt"
@@ -2537,9 +2537,9 @@ group="coupled_nml" >
 Default: 'cosz'
 </entry>
 
-<!------------------------------------->
-<!---group sw_absorption_nml       ---->
-<!------------------------------------->
+<!-- ------------------------------- -->
+<!-- group sw_absorption_nml       - -->
+<!-- ------------------------------- -->
 
 <entry 
 id="sw_absorption_type"
@@ -2582,9 +2582,9 @@ group="sw_absorption_nml" >
 Default: 3
 </entry>
 
-<!------------------------------------->
-<!---group transports_nml          ---->
-<!------------------------------------->
+<!-- ------------------------------- -->
+<!-- group transports_nml          - -->
+<!-- ------------------------------- -->
 
 <entry 
 id="lat_aux_grid_type"
@@ -2658,9 +2658,9 @@ group="transports_nml" >
 Default: 2
 </entry>
 
-<!------------------------------------->
-<!---group context_nml             ---->
-<!------------------------------------->
+<!-- ------------------------------- -->
+<!-- group context_nml             - -->
+<!-- ------------------------------- -->
 
 <entry 
 id="lcoupled"
@@ -2695,9 +2695,9 @@ Default: .false.
 </entry>
 
 
-<!------------------------------------->
-<!---group overflows_nml           ---->
-<!------------------------------------->
+<!-- ------------------------------- -->
+<!-- group overflows_nml           - -->
+<!-- ------------------------------- -->
 
 <entry 
 id="overflows_on"
@@ -2747,9 +2747,9 @@ group="overflows_nml" >
 Default: ' '
 </entry>
 
-<!------------------------------------->
-<!---group tavg_nml                ---->
-<!------------------------------------->
+<!-- ------------------------------- -->
+<!-- group tavg_nml                - -->
+<!-- ------------------------------- -->
 
 <entry 
 id="n_tavg_streams"
@@ -2919,9 +2919,9 @@ group="tavg_nml" >
 Default: .false. .false. .false.
 </entry>
 
-<!------------------------------------->
-<!---group passive_tracers_on_nml  ---->
-<!------------------------------------->
+<!-- ------------------------------- -->
+<!-- group passive_tracers_on_nml  - -->
+<!-- ------------------------------- -->
 
 <entry 
 id="iage_on"
@@ -2955,9 +2955,9 @@ group="passive_tracers_on_nml" >
 Default: ''
 </entry>
 
-<!------------------------------------->
-<!---group iage_nml                ---->
-<!------------------------------------->
+<!-- ------------------------------- -->
+<!-- group iage_nml                - -->
+<!-- ------------------------------- -->
 
 <entry 
 id="init_iage_option"
@@ -2976,9 +2976,9 @@ input_pathname="abs" >
 Default: 'same_as_TS'
 </entry>
 
-<!------------------------------------->
-<!---group cfc_nml                 ---->
-<!------------------------------------->
+<!-- ------------------------------- -->
+<!-- group cfc_nml                 - -->
+<!-- ------------------------------- -->
 
 <entry 
 id="init_cfc_option"
@@ -3030,9 +3030,9 @@ group="cfc_nml" >
 Default: 'model'
 </entry>
 
-<!------------------------------------->
-<!---group ecosys_nml              ---->
-<!------------------------------------->
+<!--                  -->
+<!-- group ecosys_nml -->
+<!--                  -->
 
 <entry 
 id="init_ecosys_option"
@@ -3052,6 +3052,54 @@ Default:
 </entry>
 
 <entry 
+id="tracer_init_ext%mod_varname"
+type="dtype(24)%char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%filename"
+type="dtype(24)%char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%file_varname"
+type="dtype(24)%char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%file_fmt"
+type="dtype(24)%char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%scale_factor"
+type="dtype(24)%real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%default_val"
+type="dtype(24)%real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
 id="init_ecosys_init_file_fmt"
 type="char*256" 
 category="pop2"
@@ -3060,7 +3108,23 @@ Default: 'nc'
 </entry>
 
 <entry 
-id="tracer_init_ext(1)%mod_varname"
+id="dust_flux_input%mod_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+<entry 
+id="dust_flux_input%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="dust_flux_input%file_fmt"
 type="char*256" 
 category="pop2"
 group="ecosys_nml" >
@@ -3068,7 +3132,15 @@ Default:
 </entry>
 
 <entry 
-id="tracer_init_ext(1)%scale_factor"
+id="dust_flux_input%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="dust_flux_input%scale_factor"
 type="real" 
 category="pop2"
 group="ecosys_nml" >
@@ -3076,15 +3148,7 @@ Default:
 </entry>
 
 <entry 
-id="tracer_init_ext(2)%mod_varname"
-type="char*256" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="tracer_init_ext(2)%scale_factor"
+id="dust_flux_input%default_val"
 type="real" 
 category="pop2"
 group="ecosys_nml" >
@@ -3092,7 +3156,23 @@ Default:
 </entry>
 
 <entry 
-id="tracer_init_ext(3)%mod_varname"
+id="iron_flux_input%mod_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+<entry 
+id="iron_flux_input%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="iron_flux_input%file_fmt"
 type="char*256" 
 category="pop2"
 group="ecosys_nml" >
@@ -3100,7 +3180,15 @@ Default:
 </entry>
 
 <entry 
-id="tracer_init_ext(3)%scale_factor"
+id="iron_flux_input%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="iron_flux_input%scale_factor"
 type="real" 
 category="pop2"
 group="ecosys_nml" >
@@ -3108,39 +3196,7 @@ Default:
 </entry>
 
 <entry 
-id="lflux_gas_o2"
-type="logical" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="lflux_gas_co2"
-type="logical" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="locmip_k1_k2_bug_fix"
-type="logical" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="atm_co2_opt"
-type="char*256" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="atm_co2_const"
+id="iron_flux_input%default_val"
 type="real" 
 category="pop2"
 group="ecosys_nml" >
@@ -3148,8 +3204,196 @@ Default:
 </entry>
 
 <entry 
-id="ecosys_tadvect_ctype"
+id="fesedflux_input%mod_varname"
 type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="fesedflux_input%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="fesedflux_input%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="fesedflux_input%file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="fesedflux_input%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="fesedflux_input%default_val"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ndep_data_type"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%mod_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="nox_flux_monthly_input%default_val"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%mod_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="nhy_flux_monthly_input%default_val"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ndep_shr_stream_year_first"
+type="integer" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ndep_shr_stream_year_last"
+type="integer" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ndep_shr_stream_year_align"
+type="integer" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ndep_shr_stream_file"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="ndep_shr_stream_scale_factor"
+type="real" 
 category="pop2"
 group="ecosys_nml" >
 Default: 
@@ -3164,16 +3408,367 @@ Default:
 </entry>
 
 <entry 
-id="lmarginal_seas"
-type="logical"
+id="gas_flux_forcing_file"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+path="abs" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_fice%mod_varname"
+type="char*256" 
 category="pop2"
 group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="lsource_sink"
-type="logical"
+id="gas_flux_fice%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_fice%file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_fice%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_fice%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_fice%default_val"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ws%mod_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ws%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ws%file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ws%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ws%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ws%default_val"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ap%mod_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ap%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ap%file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ap%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ap%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="gas_flux_ap%default_val"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="lrest_po4"
+type="logical" 
+category="pop2"
+group="ecosys_nml" >
+Default: .false.
+</entry>
+
+<entry 
+id="lrest_no3"
+type="logical" 
+category="pop2"
+group="ecosys_nml" >
+Default: .false.
+</entry>
+
+<entry 
+id="lrest_sio3"
+type="logical" 
+category="pop2"
+group="ecosys_nml" >
+Default: .false.
+</entry>
+
+<entry 
+id="rest_time_inv_surf"
+type="real"
+category="pop2"
+group="ecosys_nml" >
+Default:
+</entry>
+
+<entry 
+id="rest_time_inv_deep"
+type="real"
+category="pop2"
+group="ecosys_nml" >
+Default:
+</entry>
+
+<entry 
+id="rest_time_inv_z0"
+type="real"
+category="pop2"
+group="ecosys_nml" >
+Default:
+</entry>
+
+<entry 
+id="rest_time_inv_z1"
+type="real"
+category="pop2"
+group="ecosys_nml" >
+Default:
+</entry>
+
+<entry 
+id="nutr_rest_file"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 'unknown'
+</entry>
+
+<entry 
+id="po4_rest%mod_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="po4_rest%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="po4_rest%file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="po4_rest%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="po4_rest%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="po4_rest%default_val"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="no3_rest%mod_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="no3_rest%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="no3_rest%file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="no3_rest%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="no3_rest%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="no3_rest%default_val"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="sio3_rest%mod_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="sio3_rest%filename"
+type="char*256" 
+category="pop2"
+group="ecosys_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="sio3_rest%file_fmt"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="sio3_rest%file_varname"
+type="char*256" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="sio3_rest%scale_factor"
+type="real" 
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="sio3_rest%default_val"
+type="real" 
 category="pop2"
 group="ecosys_nml" >
 Default: 
@@ -3228,81 +3823,55 @@ Default:
 </entry>
 
 <entry 
-id="iron_dust_flx_data_type"
-type="char*256" 
+id="lmarginal_seas"
+type="logical"
 category="pop2"
 group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="dust_flux_input%filename"
-type="char*256" 
-category="pop2"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: 
-</entry>
-
-<entry 
-id="dust_flux_input%file_fmt"
-type="char*256" 
+id="lsource_sink"
+type="logical"
 category="pop2"
 group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="dust_flux_input%file_varname"
-type="char*256" 
+id="lflux_gas_o2"
+type="logical" 
 category="pop2"
 group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="dust_flux_input%scale_factor"
-type="real" 
+id="lflux_gas_co2"
+type="logical" 
 category="pop2"
 group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="iron_flux_input%filename"
-type="char*256" 
-category="pop2"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: 
-</entry>
-
-<entry 
-id="iron_flux_input%file_fmt"
-type="char*256" 
+id="locmip_k1_k2_bug_fix"
+type="logical" 
 category="pop2"
 group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="iron_flux_input%file_varname"
-type="char*256" 
+id="lnutr_variable_restore"
+type="logical" 
 category="pop2"
 group="ecosys_nml" >
 Default: 
 </entry>
 
 <entry 
-id="iron_flux_input%scale_factor"
-type="real" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="fesedflux_input%filename"
+id="nutr_variable_rest_file"
 type="char*256" 
 category="pop2"
 group="ecosys_nml"
@@ -3311,7 +3880,7 @@ Default:
 </entry>
 
 <entry 
-id="fesedflux_input%file_varname"
+id="nutr_variable_rest_file_fmt"
 type="char*256" 
 category="pop2"
 group="ecosys_nml" >
@@ -3319,7 +3888,7 @@ Default:
 </entry>
 
 <entry 
-id="fesedflux_input%file_fmt"
+id="atm_co2_opt"
 type="char*256" 
 category="pop2"
 group="ecosys_nml" >
@@ -3327,7 +3896,7 @@ Default:
 </entry>
 
 <entry 
-id="fesedflux_input%scale_factor"
+id="atm_co2_const"
 type="real" 
 category="pop2"
 group="ecosys_nml" >
@@ -3335,7 +3904,7 @@ Default:
 </entry>
 
 <entry 
-id="ndep_data_type"
+id="ecosys_tadvect_ctype"
 type="char*256" 
 category="pop2"
 group="ecosys_nml" >
@@ -3343,7 +3912,15 @@ Default:
 </entry>
 
 <entry 
-id="nox_flux_monthly_input%filename"
+id="liron_patch"
+type="logical"
+category="pop2"
+group="ecosys_nml" >
+Default: 
+</entry>
+
+<entry 
+id="iron_patch_flux_filename"
 type="char*256" 
 category="pop2"
 group="ecosys_nml"
@@ -3352,108 +3929,10 @@ Default:
 </entry>
 
 <entry 
-id="nox_flux_monthly_input%file_fmt"
+id="iron_patch_month"
 type="char*256" 
 category="pop2"
 group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="nox_flux_monthly_input%file_varname"
-type="char*256" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="nhy_flux_monthly_input%filename"
-type="char*256" 
-category="pop2"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: 
-</entry>
-
-<entry 
-id="nox_flux_monthly_input%scale_factor"
-type="real" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="nhy_flux_monthly_input%file_fmt"
-type="char*256" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="nhy_flux_monthly_input%file_varname"
-type="char*256" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="nhy_flux_monthly_input%scale_factor"
-type="real" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ndep_data_type"
-type="char*256" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ndep_shr_stream_year_first"
-type="integer" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ndep_shr_stream_year_last"
-type="integer" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ndep_shr_stream_year_align"
-type="integer" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ndep_shr_stream_scale_factor"
-type="real" 
-category="pop2"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ndep_shr_stream_file"
-type="char*256" 
-category="pop2"
-group="ecosys_nml"
-input_pathname="abs" >
 Default: 
 </entry>
 
@@ -3466,9 +3945,9 @@ Default:
 </entry>
 
 
-<!------------------------------------->
-<!----moby                         ---->
-<!------------------------------------->
+<!-- ------------------------------- -->
+<!-- -moby                         - -->
+<!-- ------------------------------- -->
 
 <entry 
 id="moby_log_filename" 
@@ -3657,32 +4136,48 @@ Default:
 </entry>
 
 <entry 
-id="moby_tracer_init_ext(1)%mod_varname"
-type="char*256" 
+id="moby_tracer_init_ext%mod_varname"
+type="dtype(47)%char*256" 
 category="pop2"
 group="moby_nml" >
 Default: 
 </entry>
 
 <entry 
-id="moby_tracer_init_ext(1)%scale_factor"
-type="real" 
+id="moby_tracer_init_ext%filename"
+type="dtype(47)%char*256" 
 category="pop2"
 group="moby_nml" >
 Default: 
 </entry>
 
 <entry 
-id="moby_tracer_init_ext(2)%mod_varname"
-type="char*256" 
+id="moby_tracer_init_ext%file_varname"
+type="dtype(47)%char*256" 
 category="pop2"
 group="moby_nml" >
 Default: 
 </entry>
 
 <entry 
-id="moby_tracer_init_ext(2)%scale_factor"
-type="real" 
+id="moby_tracer_init_ext%file_fmt"
+type="dtype(47)%char*256" 
+category="pop2"
+group="moby_nml" >
+Default: 
+</entry>
+
+<entry 
+id="moby_tracer_init_ext%scale_factor"
+type="dtype(47)%real" 
+category="pop2"
+group="moby_nml" >
+Default: 
+</entry>
+
+<entry 
+id="moby_tracer_init_ext%default_val"
+type="dtype(47)%real" 
 category="pop2"
 group="moby_nml" >
 Default: 
@@ -3696,9 +4191,9 @@ group="moby_nml" >
 Default: 
 </entry>
 
-<!------------------------------------->
-<!----unused derived               ---->
-<!------------------------------------->
+<!-- ------------------------------- -->
+<!-- -unused derived               - -->
+<!-- ------------------------------- -->
 
 <entry 
 id="lauto_hmix%hmix_del2u_nml"

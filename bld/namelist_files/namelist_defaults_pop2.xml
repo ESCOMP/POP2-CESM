@@ -732,7 +732,23 @@
 <overflows_interactive ocn_grid="tx0.1v2">.false.</overflows_interactive>
 
 <!---------------------------->
-<!--ecosys_nml -->
+<!--        cfc_nml         -->
+<!---------------------------->
+
+<cfc_formulation>model</cfc_formulation>
+
+<data_year>1981</data_year>
+<data_year ocn_transient="1850-2000">1850</data_year>
+
+<init_cfc_init_file>same_as_TS</init_cfc_init_file>
+
+<model_year>1</model_year>
+<model_year ocn_transient="1850-2000">1850</model_year>
+
+<pcfc_file>ocn/pop/res_indpt/forcing/pcfc1112_atm_20091117.nc</pcfc_file>
+
+<!---------------------------->
+<!--       ecosys_nml       -->
 <!---------------------------->
 
 <init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20100514.nc</init_ecosys_init_file>

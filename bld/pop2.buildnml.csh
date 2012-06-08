@@ -2,7 +2,6 @@
 
 if !(-d $OBJROOT/ocn/obj   ) mkdir -p $OBJROOT/ocn/obj    || exit 2
 if !(-d $OBJROOT/ocn/source) mkdir -p $OBJROOT/ocn/source || exit 3 
-if !(-d $OBJROOT/ocn/input ) mkdir -p $OBJROOT/ocn/input  || exit 4
 
 if !(-d $CASEBUILD/pop2conf) mkdir $CASEBUILD/pop2conf || exit 1
 cd $CASEBUILD/pop2conf || exit -1
@@ -17,18 +16,11 @@ if ($NINST_OCN > 1) then
     if ($inst_counter <=  99) set inst_string = "0$inst_string"
     if ($inst_counter <=   9) set inst_string = "0$inst_string"
     set inst_string = _${inst_string}
-    setenv output_r  ./$CASE.pop${inst_string}.r
-    setenv output_h  ./$CASE.pop${inst_string}.h
-    setenv output_d  ./$CASE.pop${inst_string}.d
 else
     set inst_string = ""
-    setenv output_r  ./$CASE.pop.r
-    setenv output_h  ./$CASE.pop.h
-    setenv output_d  ./$CASE.pop.d
 endif
 
 set ocn_in_filename = ${default_ocn_in_filename}${inst_string}
-set log_filename = ${RUNDIR}/ocn${inst_string}.log.$LID
 
 if ($NINST_OCN > 1) then
    # pop rpointer name for multi-instance case
@@ -64,19 +56,23 @@ if ($RUN_TYPE == branch || $RUN_TYPE == hybrid) then
   endif
 endif
 
-cat >! $CASEBUILD/pop2conf/cesm_namelist << EOF2
-&pop2_inparm
- log_filename='$log_filename'
- moby_log_filename='${RUNDIR}/moby${inst_string}.log.$LID'
-EOF2
 if (-e $CASEROOT/user_nl_pop2${inst_string}) then
-  $UTILROOT/Tools/user_nl_add -user_nl_file $CASEROOT/user_nl_pop2${inst_string} >> $CASEBUILD/pop2conf/cesm_namelist
+  $UTILROOT/Tools/user_nlcreate -user_nl_file $CASEROOT/user_nl_pop2${inst_string} \
+	-namelist_name pop2_inparm >! $CASEBUILD/pop2conf/cesm_namelist 
 endif
-cat >> $CASEBUILD/pop2conf/cesm_namelist << EOF2
-/
-EOF2
 
-$CODEROOT/ocn/pop2/bld/build-namelist -infile $CASEBUILD/pop2conf/cesm_namelist || exit -1
+# Check to see if "-preview" flag should be passed
+set PREVIEW_LINE = ""
+if ( $?PREVIEW_NML ) then
+  set PREVIEW_LINE = "-preview"
+endif
+$CODEROOT/ocn/pop2/bld/build-namelist \
+    -infile $CASEBUILD/pop2conf/cesm_namelist \
+    -caseroot $CASEROOT \
+    -casebuild $CASEBUILD \
+    -scriptsroot $SCRIPTSROOT \
+    -inst_string "$inst_string" $PREVIEW_LINE \
+    -ocn_grid "$OCN_GRID" || exit -1  
 
 if (-d ${RUNDIR}) then
   cp $CASEBUILD/pop2conf/pop2_in ${RUNDIR}/$ocn_in_filename || exit -2
@@ -93,16 +89,14 @@ if (! -e $RUNDIR/rpointer.ocn${inst_string} && -e $RUNDIR/rpointer.ocn) then
 endif
 
 if (-f $RUNDIR/pop2_in${inst_string}) rm $RUNDIR/pop2_in${inst_string}
-cp -fp $CASEBUILD/pop2conf/pop2_in  ${RUNDIR}/pop2_in${inst_string}
-cp -fp $CASEBUILD/pop2conf/${OCN_GRID}_tavg_contents  $EXEROOT/ocn/input/${OCN_GRID}_tavg_contents
+cp -fp $CASEBUILD/pop2conf/pop2_in                    ${RUNDIR}/pop2_in${inst_string}
+cp -fp $CASEBUILD/pop2conf/${OCN_GRID}_tavg_contents  ${RUNDIR}/${OCN_GRID}_tavg_contents
 
 
 @ inst_counter = $inst_counter + 1
 
 end
 
-wait
-exit 0
 
 
 
