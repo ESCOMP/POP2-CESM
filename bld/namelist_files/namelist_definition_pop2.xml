@@ -1890,8 +1890,13 @@ Default: 0
 id="ws_data_type"
 type="char*256"
 category="pop2"
-group="forcing_ws_nml" >
-Default: 'none'
+group="forcing_ws_nml"
+valid_values="none,analytic,annual,monthly,monthly-calendar,monthly-equal,n-hour" >
+Type or periodicity of wind stress forcing.
+
+Valid Values: 'none', 'analytic', 'annual', 'monthly', 'monthly-calendar', 'monthly-equal', 'n-hour'
+LANL Default: 'analytic'
+CESM Default: 'none'
 </entry>
 
 <entry 
@@ -1899,23 +1904,36 @@ id="ws_data_inc"
 type="real"
 category="pop2"
 group="forcing_ws_nml" >
-Default: 24.
+Increment (in hours) between forcing times if ws_data_type='nhour'.
+
+LANL Default: 1e20
+CESM Default: 24.
 </entry>
 
 <entry 
 id="ws_interp_freq"
 type="char*256"
 category="pop2"
-group="forcing_ws_nml" >
-Default: 'every-timestep'
+group="forcing_ws_nml"
+valid_values="never,n-hour,every-timestep" >
+How often to temporally interpolate wind stress data to current time; value in namelist is ignored and value set to 'never' if ws_data_type is 'analytic', 'none', or 'annual'.
+
+Valid Values: 'never', 'n-hour', 'every-timestep'
+LANL Default: 'never'
+CESM Default: 'every-timestep'
 </entry>
 
 <entry 
 id="ws_interp_type"
 type="char*256"
 category="pop2"
-group="forcing_ws_nml" >
-Default: 'linear'
+group="forcing_ws_nml"
+valid_values="nearest,linear,4point" >
+Type of temporal interpolation for wind stress data.
+
+Valid Values: 'nearest', 'linear', '4point'
+LANL Default: 'nearest'
+CESM Default: 'linear'
 </entry>
 
 <entry 
@@ -1923,7 +1941,9 @@ id="ws_interp_inc"
 type="real"
 category="pop2"
 group="forcing_ws_nml" >
-Default: 72.
+Increment (in hours) between interpolation times if ws_interp_freq = 'n-hour'.
+LANL Default: 1e20
+CESM Default: 72.
 </entry>
 
 <entry 
@@ -1931,6 +1951,8 @@ id="ws_filename"
 type="char*256"
 category="pop2"
 group="forcing_ws_nml" >
+Name of file containing wind stress, or root of filenames if ws_data_type='n-hour'
+
 Default: 'unknown-ws'
 </entry>
 
@@ -1938,7 +1960,11 @@ Default: 'unknown-ws'
 id="ws_file_fmt"
 type="char*256"
 category="pop2"
-group="forcing_ws_nml" >
+group="forcing_ws_nml"
+valid_values="bin,nc">
+Wind-stress file format (binary of netCDF)
+
+Valid Values: 'bin', 'nc'
 Default: 'bin'
 </entry>
 
@@ -1947,7 +1973,10 @@ id="ws_data_renorm"
 type="real(1)"
 category="pop2"
 group="forcing_ws_nml" >
-Default: 10.
+Renormalization constants for the components in the wind stress forcing file.
+
+LANL Default: ws_data_renorm(1:20) = 20*1.
+CESM Default: ws_data_renorm(1) = 10.
 </entry>
 
 <!-- ----------------------- -->
@@ -1958,16 +1987,26 @@ Default: 10.
 id="shf_formulation"
 type="char*256"
 category="pop2"
-group="forcing_shf_nml" >
-Default: 'restoring'
+group="forcing_shf_nml"
+valid_values="restoring,Barnier-restoring,bulk-NCEP,partially-coupled" >
+Surface heat flux formation.
+
+Valid Values: 'restoring', 'Barnier-restoring', 'bulk-NCEP', 'partially-coupled'
+LANL Default: 'restoring'
+CESM Default: 'partially-coupled' or 'restoring' depending on configuration
 </entry>
 
 <entry 
 id="shf_data_type"
 type="char*256"
 category="pop2"
-group="forcing_shf_nml" >
-Default: 'none'
+group="forcing_shf_nml"
+valid_values="none,analytic,annual,monthly,monthly-equal,monthly-calendar,n-hour" >
+Type or periodicity of surface heat flux forcing.
+
+Valid Values='none', 'analytic', 'annual', 'monthly', 'monthly-equal', 'monthly-calendar', 'n-hour'
+LANL Default: 'analytic'
+CESM Default: 'monthly' if formulation is 'partially-coupled', 'none' otherwise
 </entry>
 
 <entry 
@@ -1975,23 +2014,35 @@ id="shf_data_inc"
 type="real"
 category="pop2"
 group="forcing_shf_nml" >
-Default: 24.
+Increment (in hours) between forcing times if shf_data_type='n-hour'.
+
+LANL Default: 1e20
+CESM Default: 24.
 </entry>
 
 <entry 
 id="shf_interp_freq"
 type="char*256"
 category="pop2"
-group="forcing_shf_nml" >
-Default: 'every-timestep'
+group="forcing_shf_nml"
+valid_values="never,n-hour,every-timestep" >
+How often to temporally interpolate surface heat flux data to current time.
+
+Valid Values: 'never', 'n-hour', 'every-timestep'
+LANL Default: 'never'
+CESM Default: 'every-timestep'
 </entry>
 
 <entry 
 id="shf_interp_type"
 type="char*256"
 category="pop2"
-group="forcing_shf_nml" >
-Default: 'linear'
+group="forcing_shf_nml"
+valid_values="nearest,linear,4point" >
+Type of temporal interpolation for surface heat flux data.
+
+LANL Default: 'nearest'
+CESM Default: 'linear'
 </entry>
 
 <entry 
@@ -1999,7 +2050,10 @@ id="shf_interp_inc"
 type="real"
 category="pop2"
 group="forcing_shf_nml" >
-Default: 72.
+Increment (in hours) between interpolation times if shf_interp_freq = 'n-hour'.
+
+LANL Default: 1e20
+CESM Default: 72.
 </entry>
 
 <entry 
@@ -2007,7 +2061,10 @@ id="shf_restore_tau"
 type="real"
 category="pop2"
 group="forcing_shf_nml" >
-Default: 30.
+Restoring timescale (days) if shf_formulation='restoring'.
+
+LANL Default: 1e20
+CESM Default: 30.
 </entry>
 
 <entry 
@@ -2016,23 +2073,33 @@ type="char*256"
 category="pop2"
 group="forcing_shf_nml"
 input_pathname="abs" >
-Default: 'unknown_shf'
+Name of file containing surface heat flux data, or root of filenames if shf_data_type='n-hour'.
+
+LANL Default: 'unknown-shf'
+CESM Default: '$shf_filename', auto-filled by CESM scripts
 </entry>
 
 <entry 
 id="shf_file_fmt"
 type="char*256"
 category="pop2"
-group="forcing_shf_nml" >
+group="forcing_shf_nml"
+valid_values="bin,nc">
+shf_filename format (binary or netCDF)
+
+Valid Values: 'bin', 'nc'
 Default: 'bin'
 </entry>
 
 <entry 
 id="shf_data_renorm"
-type="real(3)"
+type="real(20)"
 category="pop2"
 group="forcing_shf_nml" >
-Default: 0.94
+Renormalization constants for the components in the surface heat flux forcing file.
+
+LANL Default: 20*1.
+CESM Default: (0.94, 19*1.)
 </entry>
 
 <entry 
@@ -2040,6 +2107,8 @@ id="shf_weak_restore"
 type="real"
 category="pop2"
 group="forcing_shf_nml" >
+Restoring flux for weak restoring in bulk-NCEP
+
 Default: 0.
 </entry>
 
@@ -2048,7 +2117,10 @@ id="shf_strong_restore"
 type="real"
 category="pop2"
 group="forcing_shf_nml" >
-Default: 0.0
+Restoring flux for strong restoring in bulk-NCEP
+
+LANL Default: 92.64
+CESM Default: 0.0
 </entry>
 
 <entry 
@@ -2056,7 +2128,9 @@ id="luse_cpl_ifrac"
 type="logical"
 category="pop2"
 group="forcing_shf_nml" >
-Default: .false.
+Flag to control use of fractional ice coverage
+
+Default: .true. if shf_formulation='partially-coupled', .false. otherwise
 </entry>
 
 <entry 
@@ -2064,6 +2138,8 @@ id="shf_strong_restore_ms"
 type="real"
 category="pop2"
 group="forcing_shf_nml" >
+Restoring flux for strong restoring over marginal seas in bulk-NCEP
+
 Default: 92.64
 </entry>
 
@@ -4196,28 +4272,28 @@ Default:
 <!-- ------------------------------- -->
 
 <entry 
-id="lauto_hmix%hmix_del2u_nml"
+id="lauto_hmix&hmix_del2u_nml"
 type="logical"
 category="pop2"
 group="derived" >
 </entry>
 
 <entry 
-id="lauto_hmix%hmix_del2t_nml"
+id="lauto_hmix&hmix_del2t_nml"
 type="logical"
 category="pop2"
 group="derived" >
 </entry>
 
 <entry 
-id="lauto_hmix%hmix_del4u_nml"
+id="lauto_hmix&hmix_del4u_nml"
 type="logical"
 category="pop2"
 group="derived" >
 </entry>
 
 <entry 
-id="lauto_hmix%hmix_del4t_nml"
+id="lauto_hmix&hmix_del4t_nml"
 type="logical"
 category="pop2"
 group="derived" >
@@ -4225,63 +4301,77 @@ Default: .false.
 </entry>
 
 <entry 
-id="lvariable_hmix%hmix_del2u_nml"
+id="lvariable_hmix&hmix_del2u_nml"
 type="logical"
 category="pop2"
 group="derived" >
 </entry>
 
 <entry 
-id="lvariable_hmix%hmix_del2t_nml"
+id="lvariable_hmix&hmix_del2t_nml"
 type="logical"
 category="pop2"
 group="derived" >
 </entry>
 
 <entry 
-id="lvariable_hmix%hmix_del4u_nml"
+id="lvariable_hmix&hmix_del4u_nml"
 type="logical"
 category="pop2"
 group="derived" >
 </entry>
 
 <entry 
-id="lvariable_hmix%hmix_del4t_nml"
+id="lvariable_hmix&hmix_del4t_nml"
 type="logical"
 category="pop2"
 group="derived" >
 </entry>
 
 <entry 
-id="am%hmix_del2u_nml"
+id="am&hmix_del2u_nml"
 type="real"
 category="pop2"
 group="derived" >
 </entry>
 
 <entry 
-id="am%hmix_del4u_nml"
+id="am&hmix_del4u_nml"
 type="real"
 category="pop2"
 group="derived" >
 </entry>
 
 <entry 
-id="ah%hmix_del2t_nml"
+id="ah&hmix_del2t_nml"
 type="real"
 category="pop2"
 group="derived" >
 </entry>
 
 <entry 
-id="ah%hmix_del4t_nml"
+id="ah&hmix_del4t_nml"
 type="real"
 category="pop2"
 group="derived" >
 </entry>
 
 <entry 
-id="ah%hmix_gm_nml"
+id="ah&hmix_gm_nml"
+type="real"
+category="pop2"
+group="derived" >
+</entry>
+
+<entry 
+id="rich_mix&vmix_rich_nml"
+type="real"
+category="pop2"
+group="derived" >
+</entry>
+
+<entry 
+id="rich_mix&vmix_kpp_nml"
 type="real"
 category="pop2"
 group="derived" >

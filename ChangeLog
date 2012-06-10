@@ -1,5 +1,28 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    10 June 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120610
+Tag Summary: Big change -- namelist variables that appear in multiple namelists
+             are now set use var_name&var_nml instead of var_name%var_nml in
+             user_nl_pop. Also added a check to ensure that these variables are
+             entered correctly in user_nl_pop (before var_name = val would not
+             error out, but also won't change anything in pop2_in) and made the
+             "-preview" flag in build-namelist functional -- it will print out
+             "var_name = value in &var_nml" for every entry in user_nl_pop2.
+             Lastly, updated the documentation in both README.build-namelist
+             and the comments of user_nl_pop2, and started adding documentation
+             to the namelist_definitions file (for Brian Eaton's XML -> HTML
+             converter.)
+
+Files Modified:
+M            37926   bld/README.build-namelist
+M            37926   bld/user_nl_pop2
+M            37926   bld/build-namelist
+M            37926   bld/namelist_files/namelist_defaults_pop2.xml
+M            37926   bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy, mvertens
 Tag Date:    08 June 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120608

@@ -270,6 +270,14 @@ if (defined $opts{'infile'}) {
       die "$ProgName - ERROR: Invalid namelist variable in '-infile' $opts{'infile'}.\n $@";
     }
 
+    # Make sure variables in multiple namelists are declared correctly
+    check_usernl_derived($nl_infile_valid);
+
+    # If preview is desired, output everything in $nl_infile_valid
+    if ($preview == 1) {
+      print " - The following values have been set in user_nl_pop2:\n";
+      print_nl_to_screen($nl_infile_valid);
+    }
     # Merge input values into namelist.  Previously specified values have higher precedence
     # and are not overwritten.
     $nl->merge_nl($nl_infile_valid);
@@ -582,7 +590,11 @@ add_default($nl, 'bckgrnd_vdc');
 # rich_mix is in two namelist groups - vmix_rich_nml and vmix_kpp_nml
 # so need to use set_variable_value instead of add_default
 
-$nl->set_variable_value('vmix_rich_nml', 'rich_mix', '50.0');
+my $derived;
+
+add_default($nl, 'rich_mix&vmix_rich_nml');
+$derived = $nl->get_value('rich_mix&vmix_rich_nml');
+$nl->set_variable_value('vmix_rich_nml', 'rich_mix', "$derived");
 
 ##########################################
 # namelist group: tidal_nml              #
@@ -609,7 +621,9 @@ add_default($nl, 'tidal_energy_file_fmt');
 # vmix_rich_nml and vmix_kpp_nml - so
 # need to use set_variable_value instead of
 # add_default
-$nl->set_variable_value('vmix_kpp_nml', 'rich_mix', '50.0');
+add_default($nl, 'rich_mix&vmix_kpp_nml');
+$derived = $nl->get_value('rich_mix&vmix_kpp_nml');
+$nl->set_variable_value('vmix_kpp_nml', 'rich_mix', "$derived");
 
 # grid dependent value of lhoriz_varying_background set in 
 # namelist_defaults_pop2.xml and value of ltidal-mixing is 
@@ -658,66 +672,64 @@ add_default($nl, 'lsubmesoscale_mixing');
 # namelist group: hmix_del2u_nml         #
 ##########################################
 
-my $derived;
-
-add_default($nl, 'lauto_hmix%hmix_del2u_nml'); 
-$derived = $nl->get_value('lauto_hmix%hmix_del2u_nml'); 
+add_default($nl, 'lauto_hmix&hmix_del2u_nml'); 
+$derived = $nl->get_value('lauto_hmix&hmix_del2u_nml'); 
 $nl->set_variable_value('hmix_del2u_nml', 'lauto_hmix', "$derived");
 
-add_default($nl, 'lvariable_hmix%hmix_del2u_nml'); 
-$derived = $nl->get_value('lvariable_hmix%hmix_del2u_nml'); 
+add_default($nl, 'lvariable_hmix&hmix_del2u_nml'); 
+$derived = $nl->get_value('lvariable_hmix&hmix_del2u_nml'); 
 $nl->set_variable_value('hmix_del2u_nml', 'lvariable_hmix', "$derived");
 
-add_default($nl, 'am%hmix_del2u_nml'); 
-$derived = $nl->get_value('am%hmix_del2u_nml'); 
+add_default($nl, 'am&hmix_del2u_nml'); 
+$derived = $nl->get_value('am&hmix_del2u_nml'); 
 $nl->set_variable_value('hmix_del2u_nml', 'am', "$derived");
 
 ##########################################
 # namelist group: hmix_del2t_nml         #
 ##########################################
 
-add_default($nl, 'lauto_hmix%hmix_del2t_nml'); 
-$derived = $nl->get_value('lauto_hmix%hmix_del2t_nml');
+add_default($nl, 'lauto_hmix&hmix_del2t_nml'); 
+$derived = $nl->get_value('lauto_hmix&hmix_del2t_nml');
 $nl->set_variable_value('hmix_del2t_nml', 'lauto_hmix', "$derived");
 
-add_default($nl, 'lvariable_hmix%hmix_del2t_nml'); 
-$derived = $nl->get_value('lvariable_hmix%hmix_del2t_nml'); 
+add_default($nl, 'lvariable_hmix&hmix_del2t_nml'); 
+$derived = $nl->get_value('lvariable_hmix&hmix_del2t_nml'); 
 $nl->set_variable_value('hmix_del2t_nml', 'lvariable_hmix', "$derived");
 
-add_default($nl, 'ah%hmix_del2t_nml'); 
-$derived = $nl->get_value('ah%hmix_del2t_nml'); 
+add_default($nl, 'ah&hmix_del2t_nml'); 
+$derived = $nl->get_value('ah&hmix_del2t_nml'); 
 $nl->set_variable_value('hmix_del2t_nml', 'ah', "$derived");
 
 ##########################################
 # namelist group: hmix_del4u_nml         #
 ##########################################
 
-add_default($nl, 'lauto_hmix%hmix_del4u_nml'); 
-$derived = $nl->get_value('lauto_hmix%hmix_del4u_nml'); 
+add_default($nl, 'lauto_hmix&hmix_del4u_nml'); 
+$derived = $nl->get_value('lauto_hmix&hmix_del4u_nml'); 
 $nl->set_variable_value('hmix_del4u_nml', 'lauto_hmix', "$derived");
 
-add_default($nl, 'lvariable_hmix%hmix_del4u_nml'); 
-$derived = $nl->get_value('lvariable_hmix%hmix_del4u_nml'); 
+add_default($nl, 'lvariable_hmix&hmix_del4u_nml'); 
+$derived = $nl->get_value('lvariable_hmix&hmix_del4u_nml'); 
 $nl->set_variable_value('hmix_del4u_nml', 'lvariable_hmix', "$derived");
 
-add_default($nl, 'am%hmix_del4u_nml'); 
-$derived = $nl->get_value('am%hmix_del4u_nml'); 
+add_default($nl, 'am&hmix_del4u_nml'); 
+$derived = $nl->get_value('am&hmix_del4u_nml'); 
 $nl->set_variable_value('hmix_del4u_nml', 'am', "$derived");
 
 ##########################################
 # namelist group: hmix_del4t_nml         #
 ##########################################
 
-add_default($nl, 'lauto_hmix%hmix_del4t_nml'); 
-$derived = $nl->get_value('lauto_hmix%hmix_del4t_nml'); 
+add_default($nl, 'lauto_hmix&hmix_del4t_nml'); 
+$derived = $nl->get_value('lauto_hmix&hmix_del4t_nml'); 
 $nl->set_variable_value('hmix_del4t_nml', 'lauto_hmix', "$derived");
 
-add_default($nl, 'lvariable_hmix%hmix_del4t_nml'); 
-$derived = $nl->get_value('lvariable_hmix%hmix_del4t_nml'); 
+add_default($nl, 'lvariable_hmix&hmix_del4t_nml'); 
+$derived = $nl->get_value('lvariable_hmix&hmix_del4t_nml'); 
 $nl->set_variable_value('hmix_del4t_nml', 'lvariable_hmix', "$derived");
 
-add_default($nl, 'ah%hmix_del4t_nml'); 
-$derived = $nl->get_value('ah%hmix_del4t_nml'); 
+add_default($nl, 'ah&hmix_del4t_nml'); 
+$derived = $nl->get_value('ah&hmix_del4t_nml'); 
 $nl->set_variable_value('hmix_del4t_nml', 'ah', "$derived");
 
 ##########################################
@@ -748,11 +760,11 @@ add_default($nl, 'ah_bkg_srfbl',
 add_default($nl, 'use_const_ah_bkg_srfbl',
                  'kappa_isop_choice'=>"$kappa_isop_choice",
                  'kappa_thic_choice'=>"$kappa_thic_choice");
-add_default($nl, 'ah%hmix_gm_nml',
+add_default($nl, 'ah&hmix_gm_nml',
                  'kappa_isop_choice'=>"$kappa_isop_choice",
                  'kappa_thic_choice'=>"$kappa_thic_choice");
-my $ah_gm_value = $nl->get_value('ah%hmix_gm_nml');
-$nl->set_variable_value('hmix_gm_nml', 'ah', "$ah_gm_value");
+$derived = $nl->get_value('ah&hmix_gm_nml');
+$nl->set_variable_value('hmix_gm_nml', 'ah', "$derived");
 
 # note that ocn_grid dependence for ah_bolus, ah_bkg_srfbl 
 # is obtained from config_cache.xml
@@ -1608,7 +1620,7 @@ sub add_default {
 
     # check whether the variable has a value in the namelist object -- if so then return
     $val = $nl->get_variable_value($group, $var);
-    if (defined $val) {return;}
+    if (defined $val) { return; }
 
     # Look for a specified value in the options hash
     if (defined $opts{'val'}) {
@@ -1894,5 +1906,59 @@ sub expand_env_xml {
     }
     return $value; 
 }	 
+
+#-------------------------------------------------------------------------------
+
+sub check_usernl_derived {
+
+  my $namelist = $_[0];
+  # Names of variables that must also include namelist
+  my @derived_vars = ("lauto_hmix","lvariable_hmix","am","ah","rich_mix");
+
+  # Loop through every group in the namelist
+  my @groups = $namelist->get_group_names;
+  foreach (@groups) {
+    my $group = $_;
+    if ($group ne "derived") {
+      # Loop through every variable in group
+      my @vars = $namelist->get_variable_names($group);
+      foreach (@vars) {
+        my $var = $_;
+        # Check if variable is one of the derived_vars
+        if (grep {$_ eq $var} @derived_vars) {
+          die "** Can not set $var in user_nl_pop2 without specifying the proper ",
+              "namelist as well. For example, use ", $var,"\&",$group, " = ",
+              $namelist->get_variable_value($group, $var), " instead.\n";
+        }
+      }
+    }
+  }
+}
+
+#-------------------------------------------------------------------------------
+
+sub print_nl_to_screen {
+
+  my $namelist = $_[0];
+  # Loop through every group in the namelist
+  my @groups = $namelist->get_group_names;
+  foreach (@groups) {
+    my $group = $_;
+    # Loop through every variable in group
+    my @vars = $namelist->get_variable_names($group);
+    foreach (@vars) {
+      my $var = $_;
+      my $val = $namelist->get_variable_value($group, $var);
+      # For derived type, $var contains variable name and group name
+      if ($group eq "derived") {
+        my @broken = split(/&/,$var);
+        print "   * ", $broken[0], " = ", $val, " in \&", $broken[1], "\n";
+      }
+      else {
+        print "   * ", $var, " = ", $val, " in \&", $group, "\n";
+      }
+    }
+  }
+}
 
 
