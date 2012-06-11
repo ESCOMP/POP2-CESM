@@ -43,7 +43,10 @@ OPTIONS
      -caseroot             CASEROOT directory variable
      -casebuild            CASEBUILD directory variable          
      -scriptsroot          SCRIPTSROOT directory variable
-     -ocn_grid             OCN_GRID variable 
+     -ocn_grid             OCN_GRID variable
+     -cfg_grid             Directory containing POP2 configuration scripts.
+                           If not defined, location is set as \$ProgDir or \$cwd
+                           (Needed to run build-namelist from SourceMods dir)
      -inst_string          inst_string variable
 
 
@@ -80,12 +83,13 @@ my %opts = ( help        => 0,
              test        => 0,
              verbose     => 0,
              preview     => 0,
-	     caseroot    => undef,
-	     casebuild   => undef,
-	     scriptsroot => undef,
-	     inst_string => undef,
-	     ocn_grid    => undef, 
-	     );
+             caseroot    => undef,
+             casebuild   => undef,
+             scriptsroot => undef,
+             inst_string => undef,
+             ocn_grid    => undef,
+             cfg_dir     => $cfgdir,
+           );
 
 GetOptions(
     "h|help"        => \$opts{'help'},
@@ -97,6 +101,7 @@ GetOptions(
     "scriptsroot=s" => \$opts{'scriptsroot'},
     "inst_string=s" => \$opts{'inst_string'},	   
     "ocn_grid=s"    => \$opts{'ocn_grid'},
+    "cfg_dir=s"     => \$opts{'cfg_dir'},
     "preview"       => \$opts{'preview'},
 )  or usage();
 
@@ -121,11 +126,12 @@ my $eol = "\n";
 
 if ($print>=2) { print "Setting POP2 configuration script directory to $cfgdir$eol"; }
 
-my $CASEROOT    = $opts{'caseroot'}; 
-my $CASEBUILD   = $opts{'casebuild'}; 
-my $SCRIPTSROOT = $opts{'scriptsroot'};       
-my $inst_string = $opts{'inst_string'}; 
+my $CASEROOT    = $opts{'caseroot'};
+my $CASEBUILD   = $opts{'casebuild'};
+my $SCRIPTSROOT = $opts{'scriptsroot'};
+my $inst_string = $opts{'inst_string'};
 my $OCN_GRID    = $opts{'ocn_grid'};
+$cfgdir         = $opts{'cfg_dir'};
 
 # Validate some of the commandline option values.
 validate_options("commandline", \%opts);
@@ -201,10 +207,16 @@ EOF
 if ($print>=2) { print "Using namelist definition file $nl_definition_file$eol"; }
 
 # The namelist defaults file contains default values for all required namelist variables.
-my $nl_defaults_file = "$cfgdir/namelist_files/namelist_defaults_pop2.xml";
-(-f "$nl_defaults_file")  or  die <<"EOF";
-** $ProgName - Cannot find namelist defaults file \"$nl_defaults_file\" **
+my $nl_defaults_file;
+if (-f "${CASEROOT}/SourceMods/src.pop2/namelist_defaults_pop2.xml") {
+    $nl_defaults_file = "${CASEROOT}/SourceMods/src.pop2/namelist_defaults_pop2.xml";
+}
+if (! defined $nl_defaults_file) {
+    $nl_defaults_file = "$cfgdir/namelist_files/namelist_defaults_pop2.xml";
+    (-f "$nl_defaults_file")  or  die <<"EOF";
+    ** $ProgName - Cannot find namelist defaults file \"$nl_defaults_file\" **
 EOF
+}
 if ($print>=2) { print "Using namelist defaults file $nl_defaults_file$eol"; }
 
 #-----------------------------------------------------------------------------------------------
@@ -273,13 +285,14 @@ if (defined $opts{'infile'}) {
     # Make sure variables in multiple namelists are declared correctly
     check_usernl_derived($nl_infile_valid);
 
-    # If preview is desired, output everything in $nl_infile_valid
-    if ($preview == 1) {
+    # If preview is desired and something has been changed in $nl_infile_valid,
+    # output everything in $nl_infile_valid
+    if (($preview == 1) && ($nl_infile_valid->get_group_names)) {
       print " - The following values have been set in user_nl_pop2:\n";
       print_nl_to_screen($nl_infile_valid);
     }
-    # Merge input values into namelist.  Previously specified values have higher precedence
-    # and are not overwritten.
+    # Merge input values into namelist.  Previously specified values have higher
+    # precedence and are not overwritten.
     $nl->merge_nl($nl_infile_valid);
 }
 

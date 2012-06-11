@@ -1,6 +1,19 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    11 June 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120611
+Tag Summary: Allow build-namelist and namelist_defaults_pop2.xml to be modified
+             in SourceMods/src.pop2/. Required adding optional cfg_dir flag to
+             build-namelist and passing it from pop2.buildnml.csh if a copy
+             of build-namelist is found in the SourceMods/ directory.
+
+Files Modified:
+M            37975   bld/pop2.buildnml.csh
+M            37975   bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    10 June 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120610
 Tag Summary: Big change -- namelist variables that appear in multiple namelists

@@ -62,16 +62,27 @@ if (-e $CASEROOT/user_nl_pop2${inst_string}) then
 endif
 
 # Check to see if "-preview" flag should be passed
-set PREVIEW_LINE = ""
 if ( $?PREVIEW_NML ) then
-  set PREVIEW_LINE = "-preview"
+  set PREVIEW_FLAG = "-preview"
+else
+  set PREVIEW_LINE = ""
 endif
-$CODEROOT/ocn/pop2/bld/build-namelist \
+
+# Check to see if build-namelist exists in SourceMods
+if (-e $CASEROOT/SourceMods/src.pop2/build-namelist) then
+  set BLD_NML_DIR = $CASEROOT/SourceMods/src.pop2
+  set CFG_FLAG = "-cfg_dir $CODEROOT/ocn/pop2/bld"
+else
+  set BLD_NML_DIR = $CODEROOT/ocn/pop2/bld
+  set CFG_FLAG = ""
+endif
+
+$BLD_NML_DIR/build-namelist $CFG_FLAG $PREVIEW_FLAG \
     -infile $CASEBUILD/pop2conf/cesm_namelist \
     -caseroot $CASEROOT \
     -casebuild $CASEBUILD \
     -scriptsroot $SCRIPTSROOT \
-    -inst_string "$inst_string" $PREVIEW_LINE \
+    -inst_string "$inst_string" \
     -ocn_grid "$OCN_GRID" || exit -1  
 
 if (-d ${RUNDIR}) then
