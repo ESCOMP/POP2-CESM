@@ -885,7 +885,7 @@ add_default($nl,'nsmooth_topo');
 # namelist group: forcing_ws_nml         #
 ##########################################
 
-add_default($nl,'ws_data_renorm(1)');
+add_default($nl,'ws_data_renorm');
 add_default($nl,'ws_data_type');
 add_default($nl,'ws_data_inc');
 add_default($nl,'ws_interp_freq');
@@ -929,7 +929,7 @@ add_default($nl,'sfwf_interp_inc');
 add_default($nl,'sfwf_restore_tau');
 add_default($nl,'sfwf_filename');
 add_default($nl,'sfwf_file_fmt');
-add_default($nl,'sfwf_data_renorm(1)');
+add_default($nl,'sfwf_data_renorm');
 add_default($nl,'sfwf_strong_restore');
 add_default($nl,'sfwf_strong_restore_ms');
 add_default($nl,'sfwf_weak_restore');
@@ -949,7 +949,7 @@ add_default($nl,'pt_interior_filename');
 add_default($nl,'pt_interior_file_fmt');
 add_default($nl,'pt_interior_restore_max_level');
 add_default($nl,'pt_interior_formulation');
-add_default($nl,'pt_interior_data_renorm(1)');
+add_default($nl,'pt_interior_data_renorm');
 add_default($nl,'pt_interior_variable_restore');
 add_default($nl,'pt_interior_restore_filename');
 add_default($nl,'pt_interior_restore_file_fmt');
@@ -969,7 +969,7 @@ add_default($nl,'s_interior_filename');
 add_default($nl,'s_interior_file_fmt');
 add_default($nl,'s_interior_restore_max_level');
 add_default($nl,'s_interior_formulation');
-add_default($nl,'s_interior_data_renorm(1)');
+add_default($nl,'s_interior_data_renorm');
 add_default($nl,'s_interior_variable_restore');
 add_default($nl,'s_interior_restore_filename');
 add_default($nl,'s_interior_restore_file_fmt');
@@ -1463,7 +1463,7 @@ for my $module (@modules) {
   }
 
   # Create new tracer stream namelists - if appropriate
-  if (-f "$CASEBUILD}/pop2conf/${module}.tavg.nml") {
+  if (-f "${CASEBUILD}/pop2conf/${module}.tavg.nml") {
     my $fh_in = new IO::File;
     $fh_in->open("<${CASEBUILD}/pop2conf/$module.tavg.nml") or die "** can't open filepath file: $\n";
     my $line;

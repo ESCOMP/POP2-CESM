@@ -51,9 +51,9 @@
           that have only a small number of allowed values.
                                                                         -->
 
-<!-- ----------------------- -->
-<!-- group domain_nml      - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: domain_nml               - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="nprocs_clinic" 
@@ -106,9 +106,9 @@ Default: 'closed'
 </entry>
 
 
-<!-- ----------------------- -->
-<!-- group io_nml          - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: io_nml                   - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="num_iotasks" 
@@ -151,9 +151,9 @@ Default: '.true.'
 </entry>
 
 
-<!-- ----------------------- -->
-<!-- group time_manager_nml- -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: time_manager_nml         - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="runid"
@@ -216,7 +216,7 @@ id="accel_file"
 type="char*256"
 category="pop2"
 group="time_manager_nml"
-valid_values="">
+valid_values="" >
 Default: 
 </entry>
 
@@ -316,9 +316,9 @@ group="time_manager_nml" >
 Default: 1
 </entry>
 
-<!-- ----------------------- -->
-<!-- group grid_nml        - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: grid_nml                 - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="horiz_grid_opt"
@@ -460,9 +460,9 @@ group="grid_nml" >
 Default: 'varthick'
 </entry>
 
-<!-- ----------------------- -->
-<!-- group init_ts_option  - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: init_ts_option           - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="init_ts_option"
@@ -513,9 +513,9 @@ group="init_ts_nml" >
 Default: 'nc'
 </entry>
 
-<!-- ----------------------- -->
-<!-- diagnostics_nml       - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: diagnostics_nml          - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="diag_global_freq_opt"
@@ -621,9 +621,9 @@ group="diagnostics_nml" >
 Default: .true.
 </entry>
 
-<!-- ----------------------- -->
-<!-- budget_diagnostics_nml- -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: budget_diagnostics_nml   - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="ldiag_global_tracer_budgets"
@@ -633,9 +633,9 @@ group="budget_diagnostics_nml" >
 Default: .true.
 </entry>
 
-<!-- ----------------------- -->
-<!-- bsf_diagnostic_nml    - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: bsf_diagnostic_nml       - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="ldiag_bsf"
@@ -645,9 +645,9 @@ group="bsf_diagnostic_nml" >
 Default: .true.
 </entry>
 
-<!-- ----------------------- -->
-<!-- restart_nml           - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: restart_nml              - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="restart_freq_opt"
@@ -721,9 +721,9 @@ group="restart_nml" >
 Default: .false.
 </entry>
 
-<!-- ----------------------- -->
-<!-- group history_nml     - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: history_nml              - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="history_freq_opt"
@@ -807,9 +807,9 @@ group="movie_nml" >
 Default: ' '
 </entry>
 
-<!-- ----------------------- -->
-<!-- group solvers         - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: solvers                  - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="solverChoice"
@@ -860,9 +860,9 @@ Default: 'unknownPrecondFile'
 </entry>
 
 
-<!-- ----------------------- -->
-<!-- group vertical_mix_nml- -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: vertical_mix_nml         - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="vmix_choice"
@@ -945,9 +945,9 @@ Default: 1000.0e2
 </entry>
 
 
-<!-- ----------------------- -->
-<!-- group vmix_const_nml  - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: vmix_const_nml           - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="const_vvc"
@@ -965,9 +965,9 @@ group="vmix_const_nml" >
 Default: 0.25
 </entry>
 
-<!-- ----------------------- -->
-<!-- group vmix_rich_nml  - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: vmix_rich_nml            - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="bckgrnd_vvc"
@@ -993,9 +993,9 @@ group="vmix_rich_nml" >
 Default: 50.0
 </entry>
 
-<!-- ----------------------- -->
-<!-- group tidal_nml       - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: tidal_nml                - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="ltidal_mixing"
@@ -1054,9 +1054,9 @@ group="tidal_nml" >
 Default: 'bin'
 </entry>
 
-<!-- ----------------------- -->
-<!-- group vmix_kpp_nml    - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: vmix_kpp_nml             - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="bckgrnd_vdc1"
@@ -1194,9 +1194,9 @@ group="vmix_kpp_nml" >
 Default: .false.
 </entry>
 
-<!-- ----------------------- -->
-<!-- group advect_nml      - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: advect_nml               - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="tadvect_ctype"
@@ -1206,9 +1206,9 @@ group="advect_nml" >
 Default: 'upwind3'
 </entry>
 
-<!-- ----------------------- -->
-<!-- group hmix_nml        - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: hmix_nml                 - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="hmix_momentum_choice"
@@ -1234,9 +1234,9 @@ group="hmix_nml" >
 Default: .true.
 </entry>
 
-<!-- ----------------------- -->
-<!-- group hmix_del2u_nml  - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: hmix_del2u_nml           - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="lauto_hmix"
@@ -1262,9 +1262,9 @@ group="hmix_del2u_nml" >
 Default: 0.5e8
 </entry>
 
-<!-- ----------------------- -->
-<!-- group hmix_del2t_nml  - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: hmix_del2t_nml           - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="lauto_hmix"
@@ -1290,9 +1290,9 @@ group="hmix_del2t_nml" >
 Default: 0.6e7
 </entry>
 
-<!-- ----------------------- -->
-<!-- group hmix_del4u_nml  - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: hmix_del4u_nml           - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="lauto_hmix"
@@ -1318,9 +1318,9 @@ group="hmix_del4u_nml" >
 Default: -0.6e20
 </entry>
 
-<!-- ----------------------- -->
-<!-- group hmix_del4t_nml  - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: hmix_del4t_nml           - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="lauto_hmix"
@@ -1346,9 +1346,9 @@ group="hmix_del4t_nml" >
 Default: -0.2e20
 </entry>
 
-<!-- ----------------------- -->
-<!-- group hmix_gm_nml     - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: hmix_gm_nml              - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="kappa_isop_choice"
@@ -1534,9 +1534,9 @@ group="hmix_gm_nml" >
 Default: 2.0e7
 </entry>
 
-<!-- ----------------------- -->
-<!-- group mix_submeso_nml - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: mix_submeso_nml          - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="efficiency_factor"
@@ -1570,9 +1570,9 @@ group="mix_submeso_nml" >
 Default: 5.0e5
 </entry>
 
-<!-- ----------------------- -->
-<!-- group hmix_aniso_nml  - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: hmix_aniso_nml           - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="hmix_alignment_choice"
@@ -1758,9 +1758,9 @@ group="hmix_aniso_nml" >
 Default: 'nc'
 </entry>
 
-<!-- ----------------------- -->
-<!-- group state_nml  - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: state_nml                - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="state_choice"
@@ -1794,9 +1794,9 @@ group="state_nml" >
 Default: 100000
 </entry>
 
-<!-- ----------------------- -->
-<!-- group baroclinic_nml  - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: baroclinic_nml           - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="reset_to_freezing"
@@ -1806,9 +1806,9 @@ group="baroclinic_nml" >
 Default: .false.
 </entry>
 
-<!-- ----------------------- -->
-<!-- group ice_nml         - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: ice_nml                  - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="ice_freq_opt"
@@ -1842,9 +1842,9 @@ group="ice_nml" >
 Default: .true.
 </entry>
 
-<!-- ----------------------- -->
-<!-- group pressure_grad_nml -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: pressure_grad_nml        - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="lpressure_avg"
@@ -1862,9 +1862,9 @@ group="pressure_grad_nml" >
 Default: .false.
 </entry>
 
-<!-- ----------------------- -->
-<!-- group topo_stress_nml - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: topo_stress_nml          - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="ltopostress"
@@ -1882,9 +1882,9 @@ group="topostress_nml" >
 Default: 0
 </entry>
 
-<!-- ----------------------- -->
-<!-- group forcing_ws_nml  - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: forcing_ws_nml           - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="ws_data_type"
@@ -1961,8 +1961,8 @@ id="ws_file_fmt"
 type="char*256"
 category="pop2"
 group="forcing_ws_nml"
-valid_values="bin,nc">
-Wind-stress file format (binary of netCDF)
+valid_values="bin,nc" >
+ws_filename format (binary of netCDF)
 
 Valid Values: 'bin', 'nc'
 Default: 'bin'
@@ -1970,18 +1970,18 @@ Default: 'bin'
 
 <entry 
 id="ws_data_renorm"
-type="real(1)"
+type="real(20)"
 category="pop2"
 group="forcing_ws_nml" >
 Renormalization constants for the components in the wind stress forcing file.
 
-LANL Default: ws_data_renorm(1:20) = 20*1.
-CESM Default: ws_data_renorm(1) = 10.
+LANL Default: 20*1.
+CESM Default: 10., 19*1.
 </entry>
 
-<!-- ----------------------- -->
-<!-- group forcing_shf_nml - -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: forcing_shf_nml          - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="shf_formulation"
@@ -2084,7 +2084,7 @@ id="shf_file_fmt"
 type="char*256"
 category="pop2"
 group="forcing_shf_nml"
-valid_values="bin,nc">
+valid_values="bin,nc" >
 shf_filename format (binary or netCDF)
 
 Valid Values: 'bin', 'nc'
@@ -2128,40 +2128,52 @@ id="luse_cpl_ifrac"
 type="logical"
 category="pop2"
 group="forcing_shf_nml" >
-Flag to control use of fractional ice coverage
+Flag to control use of fractional ice coverage.
 
-Default: .true. if shf_formulation='partially-coupled', .false. otherwise
+LANL Default: N/A, CESM only
+CESM Default: .true. if shf_formulation='partially-coupled', .false. otherwise
 </entry>
 
-<entry 
+<entry
 id="shf_strong_restore_ms"
 type="real"
 category="pop2"
 group="forcing_shf_nml" >
 Restoring flux for strong restoring over marginal seas in bulk-NCEP
 
-Default: 92.64
+LANL Default: N/A, CESM only
+CESM Default: 92.64
 </entry>
 
 
-<!-- ----------------------- -->
-<!-- group forcing_sfwf_nml  -->
-<!-- ----------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: forcing_sfwf_nml         - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="sfwf_formulation"
 type="char*256"
 category="pop2"
-group="forcing_sfwf_nml" >
-Default: 'restoring'
+group="forcing_sfwf_nml"
+valid_values="restoring,bulk-NCEP,partially-coupled" >
+Surface fresh water flux formulation.
+
+Valid Values: 'restoring', 'bulk-NCEP', 'partially-coupled'
+LANL Default: 'restoring'
+CESM Default: 'restoring' or 'partially-coupled', depending on configuration
 </entry>
 
 <entry 
 id="sfwf_data_type"
 type="char*256"
 category="pop2"
-group="forcing_sfwf_nml" >
-Default: 'none'
+group="forcing_sfwf_nml"
+valid_values="none,analytic,annual,monthly,monthly-equal,monthly-calendar,n-hour" >
+Type or periodicity of surface fresh water flux forcing.
+
+Valid Values: 'none', 'analytic', 'annual', 'monthly', 'monthly-equal', 'monthly-calendar', 'n-hour'
+LANL Default: 'analytic'
+CESM Default: 'none' or 'monthly'
 </entry>
 
 <entry 
@@ -2169,23 +2181,36 @@ id="sfwf_data_inc"
 type="real"
 category="pop2"
 group="forcing_sfwf_nml" >
-Default: 24.
+Increment (hours) between forcing times if sfwf_data_type='n-hour'.
+
+LANL Default: 1e20
+CESM Default: 24.
 </entry>
 
 <entry 
 id="sfwf_interp_freq"
 type="char*256"
 category="pop2"
-group="forcing_sfwf_nml" >
-Default: 'every-timestep'
+group="forcing_sfwf_nml"
+valid_values="never,n-hour,every-timestep" >
+How often to temporally interpolate surface fresh water flux data to current time.
+
+Valid Values: 'never', 'n-hour', 'every-timestep'
+LANL Default: 'never'
+CESM Default: 'every-timestep'
 </entry>
 
 <entry 
 id="sfwf_interp_type"
 type="char*256"
 category="pop2"
-group="forcing_sfwf_nml" >
-Default: 'linear'
+group="forcing_sfwf_nml"
+valid_values="nearest,linear,4point" >
+Type of temporal interpolation for surface fresh water flux data.
+
+Valid Values: 'nearest', 'linear', '4point'
+LANL Default: 'nearest'
+CESM Default: 'linear'
 </entry>
 
 <entry 
@@ -2193,7 +2218,10 @@ id="sfwf_interp_inc"
 type="real"
 category="pop2"
 group="forcing_sfwf_nml" >
-Default: 72.
+Increment (hours) between interpolation times if sfwf_interp_freq='n-hour'.
+
+LANL Default: 1e20
+CESM Default: 72.
 </entry>
 
 <entry 
@@ -2201,7 +2229,10 @@ id="sfwf_restore_tau"
 type="real"
 category="pop2"
 group="forcing_sfwf_nml" >
-Default: 30.
+Restoring timescale (days) if sfwf_formulation='restoring'.
+
+LANL Default: 1e20
+CESM Default: 30.
 </entry>
 
 <entry 
@@ -2210,23 +2241,33 @@ type="char*256"
 category="pop2"
 group="forcing_sfwf_nml"
 input_pathname="abs" >
-Default: 'unknown_sfwf'
+Name of file containing surface fresh water flux data, or root of filenames if sfwf_data_type='n-hour'.
+
+LANL Default: 'unknown_sfwf'
+CESM Default: '$sfwf_filename', auto-filled by CESM scripts
 </entry>
 
 <entry 
 id="sfwf_file_fmt"
 type="char*256"
 category="pop2"
-group="forcing_sfwf_nml" >
+group="forcing_sfwf_nml"
+valid_values="bin,nc" >
+sfwf_filename format (binary or netCDF).
+
+Valid Values: 'bin', 'nc'
 Default: 'bin'
 </entry>
 
 <entry 
 id="sfwf_data_renorm"
-type="real(1)"
+type="real(20)"
 category="pop2"
 group="forcing_sfwf_nml" >
-Default: 0.001
+Renormalization constants for components in sfwf forcing file.
+
+LANL Default: 20*1.
+CESM Default: 0.001, 19*1.
 </entry>
 
 <entry 
@@ -2234,7 +2275,10 @@ id="sfwf_weak_restore"
 type="real"
 category="pop2"
 group="forcing_sfwf_nml" >
-Default: 0.0115
+Restoring flux for weak restoring in 'bulk-NCEP' and 'partially-coupled' formulation.
+
+LANL Default: 0.092
+CESM Default: 0.0115
 </entry>
 
 <entry 
@@ -2242,7 +2286,10 @@ id="sfwf_strong_restore"
 type="real"
 category="pop2"
 group="forcing_sfwf_nml" >
-Default: 0.0
+Restoring flux for strong restoring in 'bulk-NCEP' and 'partially-coupled' formulation.
+
+LANL Default: 0.6648
+CESM Default: 0.0
 </entry>
 
 <entry 
@@ -2250,7 +2297,10 @@ id="sfwf_strong_restore_ms"
 type="real"
 category="pop2"
 group="forcing_sfwf_nml" >
-Default: 0.6648
+Restoring flux for strong restoring over marginal seas in CESM 'bulk-NCEP' and 'partially-coupled' formulations.
+
+LANL Default: N/A, CESM only
+CESM Default: 0.6648
 </entry>
 
 <entry 
@@ -2258,7 +2308,10 @@ id="ladjust_precip"
 type="logical"
 category="pop2"
 group="forcing_sfwf_nml" >
-Default: .false.
+Adjust precipitation to balance water budget.
+
+LANL Default: .false.
+CESM Default: .true. if sfwf_formulation='partially-coupled', .false. otherwise
 </entry>
 
 <entry 
@@ -2266,7 +2319,10 @@ id="lms_balance"
 type="logical"
 category="pop2"
 group="forcing_sfwf_nml" >
-Default: .true.
+Balance E, P, M, R, and S in marginal seas.
+
+LANL Default: N/A, CESM only
+CESM Default: .true. if sfwf_formulation='partially-coupled', .false. otherwise
 </entry>
 
 <entry 
@@ -2274,7 +2330,10 @@ id="lfw_as_salt_flx"
 type="logical"
 category="pop2"
 group="forcing_sfwf_nml" >
-Default: .true.
+Treat fresh water flux as virtual salt flux when using varthick sfc layer.
+
+LANL Default: .false.
+CESM Default: .true.
 </entry>
 
 <entry 
@@ -2282,18 +2341,25 @@ id="lsend_precip_fact"
 type="logical"
 category="pop2"
 group="forcing_sfwf_nml" >
-Default: .false.
+Flag for sending precip_fact to CESM coupler for use in fresh-water balance.
+
+LANL Default: N/A, CESM only
+CESM Default: .true. if sfwf_formulation='partially-coupled', .false. otherwise
 </entry>
 
-<!-- ------------------------------- -->
-<!-- group forcing_pt_interior_nml - -->
-<!-- ------------------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: forcing_pt_interior_nml  - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="pt_interior_data_type"
 type="char*256"
 category="pop2"
-group="forcing_pt_interior_nml" >
+group="forcing_pt_interior_nml"
+valid_values="none,annual,monthly,monthly-equal,monthly-calendar,n-hour" >
+Type or periodicity of interior potential temperature forcing.
+
+Valid Values: 'none', 'annual', 'monthly', 'monthly-equal', 'monthly-calendar', 'n-hour'
 Default: 'none'
 </entry>
 
@@ -2302,23 +2368,36 @@ id="pt_interior_data_inc"
 type="real"
 category="pop2"
 group="forcing_pt_interior_nml" >
-Default: 24.
+Increment (hours) between forcing times if pt_interior_data_type='n-hour'.
+
+LANL Default: 1e20
+CESM Default: 24
 </entry>
 
 <entry 
 id="pt_interior_interp_freq"
 type="char*256"
 category="pop2"
-group="forcing_pt_interior_nml" >
-Default: 'every-timestep'
+group="forcing_pt_interior_nml"
+valid_values="never,n-hour,every-timestep" >
+How often to temporally interpolate interior potential temperature data to current time.
+
+Valid Values: 'never', 'n-hour', 'every-timestep'
+LANL Default: 'never'
+CESM Default: 'every-timestep'
 </entry>
 
 <entry 
 id="pt_interior_interp_type"
 type="char*256"
 category="pop2"
-group="forcing_pt_interior_nml" >
-Default: 'linear'
+group="forcing_pt_interior_nml"
+valid_values="nearest,linear,4point" >
+Type of temporal interpolation for interior potential temperature data.
+
+Valid Values: 'nearest', 'linear', '4point'
+LANL Default: 'nearest'
+CESM Default: 'linear'
 </entry>
 
 <entry 
@@ -2326,7 +2405,10 @@ id="pt_interior_interp_inc"
 type="real"
 category="pop2"
 group="forcing_pt_interior_nml" >
-Default: 72.
+Increment (hours) between interpolation times if interp_freq='n-hour'
+
+LANL Default: 1e20
+CESM Default: 72
 </entry>
 
 <entry 
@@ -2334,7 +2416,10 @@ id="pt_interior_restore_tau"
 type="real"
 category="pop2"
 group="forcing_pt_interior_nml" >
-Default: 365.
+Restoring timescale (days) if pt_interior_formulation='restoring'.
+
+LANL Default: 1e20
+CESM Default: 365
 </entry>
 
 <entry 
@@ -2342,6 +2427,8 @@ id="pt_interior_filename"
 type="char*256"
 category="pop2"
 group="forcing_pt_interior_nml" >
+File containing interior potential temperature data, or root of filenames if pt_interior_data_type='n--hour'.
+
 Default: 'unknown-pt_interior'
 </entry>
 
@@ -2349,7 +2436,11 @@ Default: 'unknown-pt_interior'
 id="pt_interior_file_fmt"
 type="char*256"
 category="pop2"
-group="forcing_pt_interior_nml" >
+group="forcing_pt_interior_nml"
+valid_values="bin,nc" >
+pt_interior_filename format (binary or netCDF).
+
+Valid Values: 'bin', 'nc'
 Default: 'bin'
 </entry>
 
@@ -2358,6 +2449,8 @@ id="pt_interior_restore_max_level"
 type="integer"
 category="pop2"
 group="forcing_pt_interior_nml" >
+Maximum level for interior potential temperature restoring.
+
 Default: 0 
 </entry>
 
@@ -2366,15 +2459,19 @@ id="pt_interior_formulation"
 type="char*256"
 category="pop2"
 group="forcing_pt_interior_nml" >
+Interior potential temperature formulation.
+
 Default: 'restoring'
 </entry>
 
 <entry 
 id="pt_interior_data_renorm"
-type="real(1)"
+type="real(20)"
 category="pop2"
 group="forcing_pt_interior_nml" >
-Default: 1.
+Renormalization constants for components in interior potential temperature forcing file.
+
+Default: 20*1.
 </entry>
 
 <entry 
@@ -2382,6 +2479,8 @@ id="pt_interior_variable_restore"
 type="logical"
 category="pop2"
 group="forcing_pt_interior_nml" >
+Enable variable interior potential temperature restoring.
+
 Default: .false.
 </entry>
 
@@ -2390,6 +2489,8 @@ id="pt_interior_restore_filename"
 type="char*256"
 category="pop2"
 group="forcing_pt_interior_nml" >
+Name of file containing variable interior potential temperature restoring data.
+
 Default: 'unknown-pt_interior_restore'
 </entry>
 
@@ -2397,19 +2498,27 @@ Default: 'unknown-pt_interior_restore'
 id="pt_interior_restore_file_fmt"
 type="char*256"
 category="pop2"
-group="forcing_pt_interior_nml" >
+group="forcing_pt_interior_nml"
+valid_values="bin,nc" >
+pt_interior_restore_filename format (binary or netCDF).
+
+Valid Values: 'bin', 'nc'
 Default: 'bin'
 </entry>
 
-<!-- ------------------------------- -->
-<!-- group forcing_s_interior_nml  - -->
-<!-- ------------------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: forcing_s_interior_nml   - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="s_interior_data_type"
 type="char*256"
 category="pop2"
-group="forcing_s_interior_nml" >
+group="forcing_s_interior_nml"
+valid_values="none,annual,monthly,monthly-equal,monthly-calendar,n-hour" >
+Type or periodicity of interior salinity forcing.
+
+Valid Values: 'none', 'annual' ,'monthly', 'monthly-equal', 'monthly-calendar', 'n-hour'
 Default: 'none'
 </entry>
 
@@ -2418,23 +2527,36 @@ id="s_interior_data_inc"
 type="real"
 category="pop2"
 group="forcing_s_interior_nml" >
-Default: 24.
+Increment (hours) between forcing times if s_interior_data_type='n-hour'.
+
+LANL Default: 1e20
+CESM Default: 24
 </entry>
 
 <entry 
 id="s_interior_interp_freq"
 type="char*256"
 category="pop2"
-group="forcing_s_interior_nml" >
-Default: 'every-timestep'
+group="forcing_s_interior_nml"
+valid_values="never,n-hour,every-timestep" >
+How often to temporally interpolate interior salinity data to current time.
+
+Valid Values: 'never', 'n-hour', 'every-timestep'
+LANL Default: 'never'
+CESM Default: 'every-timestep'
 </entry>
 
 <entry 
 id="s_interior_interp_type"
 type="char*256"
 category="pop2"
-group="forcing_s_interior_nml" >
-Default: 'linear'
+group="forcing_s_interior_nml"
+valid_values="nearest,linear,4point" >
+Type of temporal interpolation for interior salinity data.
+
+Valid Values: 'nearest', 'linear', '4point'
+LANL Default: 'nearest'
+CESM Default: 'linear'
 </entry>
 
 <entry 
@@ -2442,7 +2564,10 @@ id="s_interior_interp_inc"
 type="real"
 category="pop2"
 group="forcing_s_interior_nml" >
-Default: 72.
+Increment (hours) between interpolation times if s_interior_interp_freq='n-hour'.
+
+LANL Default: 1e20
+CESM Default: 72
 </entry>
 
 <entry 
@@ -2450,7 +2575,10 @@ id="s_interior_restore_tau"
 type="real"
 category="pop2"
 group="forcing_s_interior_nml" >
-Default: 365.
+Restoring timescale (days) if s_interior_formulation='restoring'.
+
+LANL Default: 1e20
+CESM Default: 365
 </entry>
 
 <entry 
@@ -2458,6 +2586,8 @@ id="s_interior_filename"
 type="char*256"
 category="pop2"
 group="forcing_s_interior_nml" >
+Name of file containing interior salinity data, or root of filenames if s_interior_data_type='n-hour'.
+
 Default: 'unknown-s_interior'
 </entry>
 
@@ -2465,7 +2595,11 @@ Default: 'unknown-s_interior'
 id="s_interior_file_fmt"
 type="char*256"
 category="pop2"
-group="forcing_s_interior_nml" >
+group="forcing_s_interior_nml"
+valid_values="bin,nc" >
+s_interior_filename format (binary or netCDF)
+
+Valid Values: 'bin', 'nc'
 Default: 'bin'
 </entry>
 
@@ -2474,6 +2608,8 @@ id="s_interior_restore_max_level"
 type="integer"
 category="pop2"
 group="forcing_s_interior_nml" >
+Maximum level for interior salinity restoring.
+
 Default: 0 
 </entry>
 
@@ -2482,15 +2618,19 @@ id="s_interior_formulation"
 type="char*256"
 category="pop2"
 group="forcing_s_interior_nml" >
+Interior salinity formulation.
+
 Default: 'restoring'
 </entry>
 
 <entry 
 id="s_interior_data_renorm"
-type="real(1)"
+type="real(20)"
 category="pop2"
 group="forcing_s_interior_nml" >
-Default: 1.
+Renormalization constants for components in interior salinity forcing file.
+
+Default: 20*1.
 </entry>
 
 <entry 
@@ -2498,6 +2638,8 @@ id="s_interior_variable_restore"
 type="logical"
 category="pop2"
 group="forcing_s_interior_nml" >
+Enable variable interior salinity restoring.
+
 Default: .false.
 </entry>
 
@@ -2506,6 +2648,8 @@ id="s_interior_restore_filename"
 type="char*256"
 category="pop2"
 group="forcing_s_interior_nml" >
+Name of file containing variable interior salinity restoring data.
+
 Default: 'unknown-s_interior_restore'
 </entry>
 
@@ -2513,19 +2657,27 @@ Default: 'unknown-s_interior_restore'
 id="s_interior_restore_file_fmt"
 type="char*256"
 category="pop2"
-group="forcing_s_interior_nml" >
+group="forcing_s_interior_nml"
+valid_values="bin,nc" >
+s_interior_restore_filename format (binary or netCDF).
+
+Valid Values: 'bin', 'nc'
 Default: 'bin'
 </entry>
 
-<!-- ------------------------------- -->
-<!-- group forcing_ap_nml          - -->
-<!-- ------------------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: forcing_ap_nml           - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="ap_data_type"
 type="char*256"
 category="pop2"
-group="forcing_ap_nml" >
+group="forcing_ap_nml"
+valid_values="none,analytic,annual,monthly,monthly-equal,monthly-calendar,n-hour" >
+Type or periodicity of atmospheric forcing.
+
+Valid Values: 'none', 'analytic', 'annual', 'monthly', 'monthly-equal', 'monthly-calendar', 'n-hour'
 Default: 'none'
 </entry>
 
@@ -2534,6 +2686,8 @@ id="ap_data_inc"
 type="real"
 category="pop2"
 group="forcing_ap_nml" >
+Increment (in hours) between forcing times if ap_data_type='n-hour'.
+
 Default: 1.e20
 </entry>
 
@@ -2541,7 +2695,11 @@ Default: 1.e20
 id="ap_interp_freq"
 type="char*256"
 category="pop2"
-group="forcing_ap_nml" >
+group="forcing_ap_nml"
+valid_values="never,n-hour,every-timestep" >
+How often to temporally interpolate atmospheric forcing data to current time.
+
+Valid Values: 'never','n-hour','every-timestep'
 Default: 'never'
 </entry>
 
@@ -2549,7 +2707,11 @@ Default: 'never'
 id="ap_interp_type"
 type="char*256"
 category="pop2"
-group="forcing_ap_nml" >
+group="forcing_ap_nml"
+valid_values="nearest,linear,4point" >
+Type of temporal interpolation for atmospheric pressure forcing data.
+
+Valid Values: 'nearest', 'linear', '4point'
 Default: 'nearest'
 </entry>
 
@@ -2558,7 +2720,9 @@ id="ap_interp_inc"
 type="real"
 category="pop2"
 group="forcing_ap_nml" >
-Default: 1.e20
+Increment (in hours) between interpolation times if ap_interp_freq = 'n-hour'.
+
+Default: 1e20
 </entry>
 
 <entry 
@@ -2566,6 +2730,8 @@ id="ap_filename"
 type="char*256"
 category="pop2"
 group="forcing_ap_nml" >
+Name of file containing atmospheric pressure forcing, or root of filenames if ap_data_type='n-hour'.
+
 Default: 'unknown-ap'
 </entry>
 
@@ -2573,21 +2739,27 @@ Default: 'unknown-ap'
 id="ap_file_fmt"
 type="char*256"
 category="pop2"
-group="forcing_ap_nml" >
+group="forcing_ap_nml"
+valid_values="bin,nc" >
+ap_filename format (binary or netCDF)
+
+Valid Values: 'bin', 'nc'
 Default: 'bin'
 </entry>
 
 <entry 
 id="ap_data_renorm"
-type="real"
+type="real(20)"
 category="pop2"
 group="forcing_ap_nml" >
-Default: 1.
+Renormalization constants for the components in the atmospheric pressure forcing file.
+
+Default: 20*1.
 </entry>
 
-<!-- ------------------------------- -->
-<!-- group coupled_nml             - -->
-<!-- ------------------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: coupled_nml              - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="coupled_freq_opt"
@@ -2613,9 +2785,9 @@ group="coupled_nml" >
 Default: 'cosz'
 </entry>
 
-<!-- ------------------------------- -->
-<!-- group sw_absorption_nml       - -->
-<!-- ------------------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: sw_absorption_nml        - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="sw_absorption_type"
@@ -2658,9 +2830,9 @@ group="sw_absorption_nml" >
 Default: 3
 </entry>
 
-<!-- ------------------------------- -->
-<!-- group transports_nml          - -->
-<!-- ------------------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: transports_nml           - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="lat_aux_grid_type"
@@ -2734,9 +2906,9 @@ group="transports_nml" >
 Default: 2
 </entry>
 
-<!-- ------------------------------- -->
-<!-- group context_nml             - -->
-<!-- ------------------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: context_nml              - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="lcoupled"
@@ -2771,9 +2943,9 @@ Default: .false.
 </entry>
 
 
-<!-- ------------------------------- -->
-<!-- group overflows_nml           - -->
-<!-- ------------------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: overflows_nml            - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="overflows_on"
@@ -2823,9 +2995,9 @@ group="overflows_nml" >
 Default: ' '
 </entry>
 
-<!-- ------------------------------- -->
-<!-- group tavg_nml                - -->
-<!-- ------------------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: tavg_nml                 - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="n_tavg_streams"
@@ -2995,9 +3167,9 @@ group="tavg_nml" >
 Default: .false. .false. .false.
 </entry>
 
-<!-- ------------------------------- -->
-<!-- group passive_tracers_on_nml  - -->
-<!-- ------------------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: passive_tracers_on_nml   - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="iage_on"
@@ -3031,9 +3203,9 @@ group="passive_tracers_on_nml" >
 Default: ''
 </entry>
 
-<!-- ------------------------------- -->
-<!-- group iage_nml                - -->
-<!-- ------------------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: iage_nml                 - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="init_iage_option"
@@ -3052,9 +3224,9 @@ input_pathname="abs" >
 Default: 'same_as_TS'
 </entry>
 
-<!-- ------------------------------- -->
-<!-- group cfc_nml                 - -->
-<!-- ------------------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: cfc_nml                  - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="init_cfc_option"
@@ -3106,9 +3278,9 @@ group="cfc_nml" >
 Default: 'model'
 </entry>
 
-<!--                  -->
-<!-- group ecosys_nml -->
-<!--                  -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: ecosys_nml               - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="init_ecosys_option"
@@ -4021,9 +4193,9 @@ Default:
 </entry>
 
 
-<!-- ------------------------------- -->
-<!-- -moby                         - -->
-<!-- ------------------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: moby_nml                 - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="moby_log_filename" 
@@ -4267,9 +4439,9 @@ group="moby_nml" >
 Default: 
 </entry>
 
-<!-- ------------------------------- -->
-<!-- -unused derived               - -->
-<!-- ------------------------------- -->
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: derived                  - -->
+<!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
 id="lauto_hmix&hmix_del2u_nml"

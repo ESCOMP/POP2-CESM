@@ -519,7 +519,7 @@
 <!-- forcing_ws_nml -->
 <!---------------------------->
 
-<ws_data_renorm(1)>10.</ws_data_renorm(1)> 
+<ws_data_renorm>10., 19*1.</ws_data_renorm> 
 <ws_data_type>'none'</ws_data_type>
 <ws_data_inc>24.</ws_data_inc>
 <ws_interp_freq>'every-timestep'</ws_interp_freq>
@@ -586,7 +586,7 @@
 <sfwf_strong_restore>0.0</sfwf_strong_restore>
 <sfwf_strong_restore_ms>0.6648</sfwf_strong_restore_ms>
 <lfw_as_salt_flx>.true.</lfw_as_salt_flx>
-<sfwf_data_renorm(1)>0.001</sfwf_data_renorm(1)>
+<sfwf_data_renorm>0.001, 19*1.</sfwf_data_renorm>
 
 <sfwf_filename ocn_grid="gx3v7"  >ocn/pop/gx3v7/forcing/sfwf_mm_PHC2_salx_flxio_20090831.ieeer8</sfwf_filename>
 <sfwf_filename ocn_grid="gx1v6"  >ocn/pop/gx1v6/forcing/sfwf_mm_PHC2_salx_flxio_20090205.ieeer8</sfwf_filename>
@@ -602,7 +602,7 @@
 <!-- forcing_pt_interior_nml-->
 <!---------------------------->
 
-<pt_interior_data_renorm(1)>1.</pt_interior_data_renorm(1)>
+<pt_interior_data_renorm>20*1.</pt_interior_data_renorm>
 <pt_interior_data_type>'none'</pt_interior_data_type>
 <pt_interior_data_inc>24.</pt_interior_data_inc>
 <pt_interior_interp_freq>'every-timestep'</pt_interior_interp_freq>
@@ -621,7 +621,7 @@
 <!--forcing_s_interior_nml -->
 <!---------------------------->
 
-<s_interior_data_renorm(1)>1.</s_interior_data_renorm(1)> 
+<s_interior_data_renorm>20*1.</s_interior_data_renorm>
 <s_interior_data_type>none</s_interior_data_type>
 <s_interior_data_inc>24.</s_interior_data_inc>
 <s_interior_interp_freq>every-timestep</s_interior_interp_freq>
@@ -637,7 +637,7 @@
 <s_interior_restore_file_fmt>'bin'</s_interior_restore_file_fmt>
 
 <!---------------------------->
-<!--Forcing_ap_interior_nml -->
+<!--forcing_ap_interior_nml -->
 <!---------------------------->
 
 <ap_data_type>none</ap_data_type>
@@ -647,7 +647,7 @@
 <ap_interp_inc>1.e20</ap_interp_inc>
 <ap_filename>unknown-ap</ap_filename>
 <ap_file_fmt>bin</ap_file_fmt>
-<ap_data_renorm>1.</ap_data_renorm>
+<ap_data_renorm>20*1.</ap_data_renorm>
 
 <!---------------------------->
 <!--sw_absorption_nml -->

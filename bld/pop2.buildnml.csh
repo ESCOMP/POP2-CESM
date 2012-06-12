@@ -65,7 +65,7 @@ endif
 if ( $?PREVIEW_NML ) then
   set PREVIEW_FLAG = "-preview"
 else
-  set PREVIEW_LINE = ""
+  set PREVIEW_FLAG = ""
 endif
 
 # Check to see if build-namelist exists in SourceMods
