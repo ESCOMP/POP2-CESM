@@ -202,8 +202,7 @@ enclosed in quotes.  The attributes are:
     stored as part of the value. 
 
   3. category
-     A category assigned for organizing the documentation. Currently all 
-     category values are set to "pop2".
+     A category assigned for organizing the documentation.
 
   4. group
      The name of the namelist (or group) that the variable is declared in.
@@ -226,14 +225,15 @@ The following is an example entry for the nprocs_clinic variable:
    <entry 
       id="nprocs_clinic" 
       type="integer" 
-      category="pop2" 
-      group="domain_nml" > 
-      Default: ''
+      category="decomp" 
+      group="domain_nml" >
+      Number of processors in the baroclinic distribution.
+
+      Default: Set by CESM scripts
    </entry>
 
 Any text that appears after the first > (after valid_values) and before the
-</entry> string is used for documentation purposes only. In the example 
-above, "Default: ''" is ignored by build-namelist.
+</entry> string is used for documentation purposes only.
 
 
 ============================================================================
@@ -376,11 +376,15 @@ exception unless the 'nofail' option is set to 1 (true).
 
      namelist_definitions_pop2.xml:
 
-       <entry 
-       id="ew_boundary_type" 
-       type="char*256" 
-       category="pop2" 
-       group="domain_nml" > 
+       <entry
+       id="ew_boundary_type"
+       type="char*256"
+       category="decomp"
+       group="domain_nml"
+       valid_values="cyclic,closed" >
+       Type of boundary in the logical east-west direction for global domain.
+
+       Valid Values: 'cyclic', 'closed'
        Default: 'cyclic'
        </entry>
 
@@ -408,11 +412,15 @@ exception unless the 'nofail' option is set to 1 (true).
 
      namelist_definitions_pop2.xml:
 
-       <entry 
-       id="ns_boundary_type" 
-       type="char*256" 
-       category="pop2" 
-       group="domain_nml" >
+       <entry
+       id="ns_boundary_type"
+       type="char*256"
+       category="decomp"
+       group="domain_nml"
+       valid_values="cyclic,closed,tripole" >
+       Type of boundary in the logical north-south direction for global domain.
+
+       Valid Values: 'cyclic', 'closed', 'tripole'
        Default: 'closed'
        </entry>
 
@@ -451,9 +459,12 @@ exception unless the 'nofail' option is set to 1 (true).
        <entry 
        id="clinic_distribution_type" 
        type="char*256" 
-       category="pop2" 
+       category="decomp" 
        group="domain_nml" 
-       valid_values="cartesian,spacecurve" >
+       valid_values="cartesian,balanced,spacecurve" >
+       Method to use to distribute blocks in baroclinic distribution.
+
+       Valid Values: 'cartesian', 'balanced', 'spacecurve'
        Default: 'cartesian'
        </entry>
 
@@ -511,9 +522,11 @@ exception unless the 'nofail' option is set to 1 (true).
         <entry
         id="bottom_cell_file"
         type="char*256"
-        category="pop2"
+        category="grid"
         group="grid_nml"
         input_pathname="abs" >
+        Input file for thickness of partial bottom cells.
+
         Default: 'unknown_bottom_cell'
         </entry>
 
