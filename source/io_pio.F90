@@ -20,7 +20,7 @@ module io_pio
   use POP_IOUnitsMod
   use io_types
   use pio
-  use seq_io_mod,       only: seq_io_getiosys, seq_io_getiotype
+  use shr_pio_mod,       only: shr_pio_getiosys, shr_pio_getiotype
 
   implicit none
   private
@@ -119,8 +119,8 @@ module io_pio
 !
 !-----------------------------------------------------------------------
 
-   io_pio_subsystem => seq_io_getiosys(inst_name)
-   pio_iotype =  seq_io_getiotype(inst_name)
+   io_pio_subsystem => shr_pio_getiosys(inst_name)
+   pio_iotype =  shr_pio_getiotype(inst_name)
 
    if (trim(mode) == 'write') then
       lclobber = .false.
@@ -329,7 +329,7 @@ module io_pio
             end do
          end if
 
-         io_pio_subsystem => seq_io_getiosys(inst_name)
+         io_pio_subsystem => shr_pio_getiosys(inst_name)
          if (basetype == PIO_INT) then
             if (ndim3 == 0) then
                call pio_initdecomp(io_pio_subsystem, basetype, (/POP_nxGlobal,POP_nyGlobal/), &

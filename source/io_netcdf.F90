@@ -1892,7 +1892,7 @@
 ! !REVISION HISTORY:
 !  same as module
 !  USES
-   use seq_io_mod, only : seq_io_getioroot
+   use shr_pio_mod, only : shr_pio_getioroot
 ! !INPUT PARAMETERS:
    
    character (*), intent (in) ::  &
@@ -2019,7 +2019,7 @@
 
    supported = .true.
    
-   ioroot = seq_io_getioroot(inst_name)
+   ioroot = shr_pio_getioroot(inst_name)
 
 !-----------------------------------------------------------------------
 !

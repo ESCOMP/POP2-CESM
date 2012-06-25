@@ -701,7 +701,7 @@ contains
  subroutine moby_set_sflux(SHF_QSW_RAW, SHF_QSW,                 &
                            U10_SQR,IFRAC,PRESS,                  &
                            SURF_VALS_OLD,SURF_VALS_CUR,STF_MODULE)
-   use seq_io_mod, only : seq_io_getiotype, seq_io_getiosys
+   use shr_pio_mod, only : shr_pio_getiotype, shr_pio_getiosys
 
 ! !DESCRIPTION:
 !  Compute surface fluxes for moby tracer module.
