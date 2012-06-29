@@ -505,7 +505,7 @@
       call accumulate_tavg_field(SMF(:,:,2,iblock)**2, tavg_TAUY2,iblock,1)
       call accumulate_tavg_field(FW (:,:,iblock), tavg_FW,iblock,1)
       call accumulate_tavg_field(TFW(:,:,1,iblock)/hflux_factor, tavg_TFW_T,iblock,1)
-      call accumulate_tavg_field(TFW(:,:,2,iblock)*rho_sw*c10, tavg_TFW_T,iblock,1)
+      call accumulate_tavg_field(TFW(:,:,2,iblock)*rho_sw*c10, tavg_TFW_S,iblock,1)
       call accumulate_tavg_field(U10_SQR(:,:,iblock), tavg_U10_SQR,iblock,1)
 
 
