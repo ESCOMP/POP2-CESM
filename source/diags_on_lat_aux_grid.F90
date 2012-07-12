@@ -372,8 +372,8 @@
  
    allocate ( TLATD_G(nx_global,ny_global) )
 
-   WORK = TLAT * radian
-   call gather_global (TLATD_G, WORK, master_task,distrb_clinic)
+   
+   call gather_global (TLATD_G, TLATD, master_task,distrb_clinic)
 
    if ( lat_aux_grid == lat_aux_grid_sh  .or.  &
         lat_aux_grid == lat_aux_grid_full ) then

@@ -1249,8 +1249,8 @@ contains
 
 ! !USES:
 
-   use grid, only : TLAT
-   use constants, only : c10, radian
+   use grid, only : TLATD
+   use constants, only : c10
    use time_management, only : iyear, iday_of_year, frac_day, days_in_year
 
 ! !INPUT PARAMETERS:
@@ -1292,8 +1292,7 @@ contains
       pcfc11_nh_curr, & ! pcfc11_nh for current time step (pmol/mol)
       pcfc11_sh_curr, & ! pcfc11_sh for current time step (pmol/mol)
       pcfc12_nh_curr, & ! pcfc12_nh for current time step (pmol/mol)
-      pcfc12_sh_curr, & ! pcfc12_sh for current time step (pmol/mol)
-      tlatd             ! latitude in degrees
+      pcfc12_sh_curr    ! pcfc12_sh for current time step (pmol/mol)
 
 !-----------------------------------------------------------------------
 !  Generate mapped_date and check to see if it is too large.
@@ -1364,17 +1363,16 @@ contains
    do j = 1, ny_block
       do i = 1, nx_block
          if (LAND_MASK(i,j)) then
-            tlatd = TLAT(i,j,iblock) * radian
-            if (tlatd < -c10) then
+            if (TLATD(i,j,iblock) < -c10) then
                pCFC11(i,j) = pcfc11_sh_curr
                pCFC12(i,j) = pcfc12_sh_curr
-            else if (tlatd > c10) then
+            else if (TLATD(i,j,iblock) > c10) then
                pCFC11(i,j) = pcfc11_nh_curr
                pCFC12(i,j) = pcfc12_nh_curr
             else
-               pCFC11(i,j) = pcfc11_sh_curr + (tlatd+c10) &
+               pCFC11(i,j) = pcfc11_sh_curr + (TLATD(i,j,iblock)+c10) &
                   * 0.05_r8 * (pcfc11_nh_curr - pcfc11_sh_curr)
-               pCFC12(i,j) = pcfc12_sh_curr + (tlatd+c10) &
+               pCFC12(i,j) = pcfc12_sh_curr + (TLATD(i,j,iblock)+c10) &
                   * 0.05_r8 * (pcfc12_nh_curr - pcfc12_sh_curr)
             endif
          endif

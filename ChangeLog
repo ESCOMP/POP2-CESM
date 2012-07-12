@@ -1,5 +1,20 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  njn01, bruceb, markus
+Tag Date:    ?? July 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_201207??
+Tag Summary: * Primary purpose: added near-inertial wave (NIW)  mixing code. Modified
+               scripts to support the NIW option.
+             * Additional development: added definition to grid.F90 to define TLAT &
+               TLONG in degrees (TLATD, TLOND), then replaced code in several modules
+               to reference the new variables.
+Testing:     Many special-purpose tests (njn01; see NJN test log for details)
+            
+Note:        Default setting is lniw_mixing = .false. for now
+
+Files Modified:
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    29 June 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120629

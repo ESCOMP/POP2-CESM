@@ -1148,10 +1148,10 @@
 
   !*** document which streams are using tavg_method_qflux
    if (my_task == master_task) then
-   do ns=1,nstreams
-      write(stdout,*) '(init_tavg)  tavg_streams(',ns,  &
-            ')%ltavg_qflux_method_on = ', tavg_streams(ns)%ltavg_qflux_method_on
-   enddo ! ns
+      do ns=1,nstreams
+         write(stdout,*) '(init_tavg)  tavg_streams(',ns,  &
+               ')%ltavg_qflux_method_on = ', tavg_streams(ns)%ltavg_qflux_method_on
+      enddo ! ns
    endif
 
 
@@ -4803,7 +4803,7 @@
       DZW_R
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
-      TLON_DEG, TLAT_DEG, ULON_DEG, ULAT_DEG
+      ULON_DEG, ULAT_DEG
 
    integer (i4)       :: fill_value_i
    real (r8)          :: fill_value_d
@@ -4880,25 +4880,23 @@
          units    ='degrees_north',                   &
          d2d_array =ULAT_DEG(:,:,:) )
 
-   !*** TLONG
+   !*** TLONG (degrees)
    ii=ii+1
 
-    TLON_DEG = TLON*radian
     ccsm_time_invar(ii,ns) = construct_io_field(  &
         'TLONG', dim1=i_dim, dim2=j_dim,              &
          long_name='array of t-grid longitudes',      &
          units    ='degrees_east',                    &
-         d2d_array =TLON_DEG(:,:,:) )
+         d2d_array =TLOND(:,:,:) )
 
-   !*** TLAT
+   !*** TLAT (degrees)
    ii=ii+1
 
-    TLAT_DEG = TLAT*radian
     ccsm_time_invar(ii,ns) = construct_io_field(  &
         'TLAT', dim1=i_dim, dim2=j_dim,               &
          long_name='array of t-grid latitudes',       &
          units    ='degrees_north',                   &
-         d2d_array =TLAT_DEG(:,:,:) )
+         d2d_array =TLATD(:,:,:) )
 
    !*** KMT
    ii=ii+1
@@ -6921,8 +6919,8 @@
       max_days             ! maximum number of days per month in a year
 
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
-     TLATD, TLOND        ! lat/lon of T points in degrees
+
+
 
 !-----------------------------------------------------------------------
 !
@@ -7017,8 +7015,8 @@
    SAVG_0D_MASK = c0
 
    !*** determine masks for each region
-   TLATD = TLAT*radian
-   TLOND = TLON*radian
+
+
 
    do iblock = 1,nblocks_clinic
       this_block = get_block(blocks_clinic(iblock),iblock) 

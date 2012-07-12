@@ -495,7 +495,7 @@
 ! !IROUTINE: vmix_coeffs
 ! !INTERFACE:
 
- subroutine vmix_coeffs(k, TMIX, UMIX, VMIX, RHOMIX,             &
+ subroutine vmix_coeffs(k, TMIX, UMIX, VMIX, UCUR, VCUR, RHOMIX, &
                            STF, SHF_QSW,                         &
                            this_block,                           &
                            SMF, SMFT)
@@ -519,6 +519,9 @@
    real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
       UMIX, VMIX,           &! U,V     at mix time level
       RHOMIX                 ! density at mix time level
+
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      UCUR, VCUR             ! U,V     at cur time level
 
    real (r8), dimension(nx_block,ny_block,nt), intent(in) :: &
       STF                    ! surface forcing for all tracers
@@ -597,7 +600,7 @@
          if (present(SMFT)) then
             call vmix_coeffs_kpp(VDC(:,:,:,:,bid),           &
                                  VVC(:,:,:,  bid),           &
-                                 TMIX,UMIX,VMIX,RHOMIX,      &
+                                 TMIX,UMIX,VMIX,UCUR,VCUR,RHOMIX, &
                                  STF,SHF_QSW,                &
                                  this_block,                 &
                                  convect_diff, convect_visc, &
@@ -605,7 +608,7 @@
          else
             call vmix_coeffs_kpp(VDC(:,:,:,:,bid),           &
                                  VVC(:,:,:,  bid),           &
-                                 TMIX,UMIX,VMIX,RHOMIX,      &
+                                 TMIX,UMIX,VMIX,UCUR,VCUR,RHOMIX, &
                                  STF,SHF_QSW,                &
                                  this_block,                 &
                                  convect_diff, convect_visc, &

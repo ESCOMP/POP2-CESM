@@ -732,6 +732,33 @@
 <overflows_interactive ocn_grid="tx0.1v2">.false.</overflows_interactive>
 
 <!---------------------------->
+<!--niw_nml                 -->
+<!---------------------------->
+
+<lniw_mixing ocn_grid="gx3v7"  >.false.</lniw_mixing>
+<lniw_mixing ocn_grid="gx1v6"  >.false.</lniw_mixing>
+<lniw_mixing ocn_grid="tx1v1"  >.false.</lniw_mixing>
+<lniw_mixing ocn_grid="tx0.1v2">.false.</lniw_mixing>
+
+<niw_local_mixing_fraction>0.5</niw_local_mixing_fraction>
+
+<niw_mixing_efficiency>0.2</niw_mixing_efficiency>
+
+<niw_obs2model_ratio>2.0</niw_obs2model_ratio>
+
+<niw_boundary_layer_absorption> 0.7</niw_boundary_layer_absorption>
+
+<niw_vert_decay_scale>2000.0e02</niw_vert_decay_scale>
+
+<niw_mix_max>100.0</niw_mix_max>
+
+<niw_energy_type>'blke'</niw_energy_type>
+
+<niw_energy_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/niw_gx1v6_20100915.ieeer8</niw_energy_file>
+
+<niw_energy_file_fmt>'bin'</niw_energy_file_fmt>
+
+<!---------------------------->
 <!--        cfc_nml         -->
 <!---------------------------->
 

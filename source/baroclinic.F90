@@ -564,6 +564,8 @@
             call vmix_coeffs(k,TRACER (:,:,:,:,mixtime,iblock), &
                                UVEL   (:,:,:  ,mixtime,iblock), &
                                VVEL   (:,:,:  ,mixtime,iblock), &
+                               UVEL   (:,:,:  ,curtime,iblock), &
+                               VVEL   (:,:,:  ,curtime,iblock), &
                                RHO    (:,:,:  ,mixtime,iblock), &
                                STF    (:,:,:          ,iblock), &
                                SHF_QSW(:,:            ,iblock), &
@@ -572,6 +574,8 @@
             call vmix_coeffs(k,TRACER (:,:,:,:,mixtime,iblock), &
                                UVEL   (:,:,:  ,mixtime,iblock), &
                                VVEL   (:,:,:  ,mixtime,iblock), &
+                               UVEL   (:,:,:  ,curtime,iblock), &
+                               VVEL   (:,:,:  ,curtime,iblock), &
                                RHO    (:,:,:  ,mixtime,iblock), &
                                STF    (:,:,:          ,iblock), &
                                SHF_QSW(:,:            ,iblock), &

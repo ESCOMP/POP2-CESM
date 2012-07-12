@@ -53,7 +53,7 @@
       state_range_enforce 
    use time_management, only: first_step, init_time1, init_time2, &
                               dttxcel, dtuxcel, check_time_flag_int,  &
-                              get_time_flag_id
+                              get_time_flag_id, freq_opt_nhour
    use topostress, only: init_topostress
    use ice
    use output, only: init_output
@@ -72,11 +72,12 @@
    use restart, only: read_restart, restart_fmt, read_restart_filename
    use ms_balance, only: init_ms_balance
    use forcing_coupled, only: pop_init_coupled, pop_init_partially_coupled, &
-       qsw_distrb_iopt, qsw_distrb_iopt_const
+       qsw_distrb_iopt, qsw_distrb_iopt_const, ncouple_per_day, coupled_freq_iopt
    use global_reductions, only: init_global_reductions, global_sum
    use timers, only: init_timers
    use registry
    use qflux_mod, only: init_qflux
+   use niw_mixing
    use tidal_mixing
    use step_mod, only: init_step
    use gather_scatter
@@ -297,6 +298,14 @@
          'init_phase1: error in init_topostress')
       return
    endif
+
+!-----------------------------------------------------------------------
+!
+!  initialize niw driven mixing
+!
+!-----------------------------------------------------------------------
+   
+   call init_niw_mixing
 
 !-----------------------------------------------------------------------
 !
@@ -1666,6 +1675,7 @@
       coupled_flag                ! flag for coupled_ts 
 
    logical (log_kind)        ::  &
+      test_condition,            &! logical test condition
       lref_val,                  &! are any tracers specifying a non-zero ref_val
       ISOP_test,                 &! temporary logical associated with ISOP
       ISOP_on                     ! are any ISOP tavg fields selected?
@@ -1934,6 +1944,38 @@
         call document ('POP_check', exit_string)
         number_of_fatal_errors = number_of_fatal_errors + 1
      endif
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  near-inertial wave mixing without KPP mixing
+!
+!-----------------------------------------------------------------------
+
+   if (check_all(lniw_mixing .and. vmix_itype /= vmix_type_kpp)) then
+     exit_string =   &
+     'FATAL ERROR:  Near-inertial wave mixing is only allowed when KPP mixing is enabled' 
+     call document ('POP_check', exit_string)
+     number_of_fatal_errors = number_of_fatal_errors + 1
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  near-inertial wave mixing and not 2-hour coupling
+!
+!-----------------------------------------------------------------------
+
+   test_condition = (coupled_freq_iopt == freq_opt_nhour .and. ncouple_per_day == 12)
+   if (check_all(lniw_mixing .and. .not. test_condition)  ) then
+     call document ('POP_check', 'coupled_freq_iopt                   ', coupled_freq_iopt )
+     call document ('POP_check', 'freq_opt_nhour                      ', freq_opt_nhour )
+     call document ('POP_check', 'ncouple_per_day                     ', ncouple_per_day )
+     call document ('POP_check', '(coupled_freq_iopt == freq_opt_nhour .and. ncouple_per_day == 2) ',  &
+                        (coupled_freq_iopt == freq_opt_nhour .and. ncouple_per_day == 2) )
+     exit_string =   &
+     'FATAL ERROR:  Near-inertial wave mixing is only allowed when coupling every two hours' 
+     call document ('POP_check', exit_string)
+     number_of_fatal_errors = number_of_fatal_errors + 1
    endif
 
 !-----------------------------------------------------------------------

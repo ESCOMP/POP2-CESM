@@ -337,13 +337,13 @@ contains
             call document ('ocn_init_mct', 'start_day ', start_day)
          endif
       end if
-#ifndef _HIRES 
-      if (seconds_this_day /= start_tod) then
-         call document ('ocn_init_mct', 'sec0     ', seconds_this_day)
-         call document ('ocn_init_mct', 'start_tod ', start_tod)
-         call exit_POP(sigAbort,' sec0 does not start_tod')
-      end if
-#endif
+!#ifndef _HIRES 
+!      if (seconds_this_day /= start_tod) then
+!         call document ('ocn_init_mct', 'sec0     ', seconds_this_day)
+!         call document ('ocn_init_mct', 'start_tod ', start_tod)
+!         call exit_POP(sigAbort,' sec0 does not start_tod')
+!      end if
+!#endif
    end if
 
 !-----------------------------------------------------------------------
@@ -919,7 +919,7 @@ contains
        do j=this_block%jb,this_block%je
        do i=this_block%ib,this_block%ie
           n=n+1
-          data(n) = TLON(i,j,iblock)*radian
+          data(n) = TLOND(i,j,iblock)
        enddo
        enddo
     enddo
@@ -931,7 +931,7 @@ contains
        do j=this_block%jb,this_block%je
        do i=this_block%ib,this_block%ie
           n=n+1
-          data(n) = TLAT(i,j,iblock)*radian 
+          data(n) = TLATD(i,j,iblock)
        enddo
        enddo
     enddo

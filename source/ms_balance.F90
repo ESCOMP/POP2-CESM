@@ -149,11 +149,11 @@
              AREAT_G (nx_global,ny_global), &
              MASK_G  (nx_global,ny_global)  )
 
-   WORK = TLON*radian              ! TLON in degrees
-   call gather_global(TLON_G, WORK, master_task,distrb_clinic)
+
+   call gather_global(TLON_G, TLOND, master_task,distrb_clinic) !global TLON in degrees
    
-   WORK = TLAT*radian               ! TLAT  in degrees
-   call gather_global(TLAT_G, WORK, master_task,distrb_clinic)
+
+   call gather_global(TLAT_G, TLATD, master_task,distrb_clinic) !global TLAT in degrees
    
    WORK = DXT*DYT
    call gather_global(AREAT_G , WORK,  master_task,distrb_clinic)

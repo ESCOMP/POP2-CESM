@@ -3458,6 +3458,115 @@ group="overflows_nml" >
 Default: ' '
 </entry>
 
+
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: niw_nml                  - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry
+id="lniw_mixing"
+type="logical"
+category="vmix"
+group="niw_nml" >
+Flag for using near inertial wave mixing.
+
+Default: .false.
+</entry>
+
+<entry
+id="niw_local_mixing_fraction"
+type="real"
+category="vmix"
+group="niw_nml" >
+Fraction of near inertial wave energy available for mixing local to the generation region.
+
+Default: 0.5
+</entry>
+
+<entry
+id="niw_mixing_efficiency"
+type="real"
+category="vmix"
+group="niw_nml" >
+Mixing efficiency (portion producing mixing rather than thermal heating).
+
+Default: 0.2
+</entry>
+
+<entry
+id="niw_obs2model_ratio"
+type="real"
+category="vmix"
+group="niw_nml" >
+Ratio between observed and modeled near inertial wave strength.
+
+Default: 2.0
+</entry>
+
+<entry
+id="niw_boundary_layer_absorption"
+type="real"
+category="vmix"
+group="niw_nml" >
+Fraction of near inertial wave energy absorbed in the boundary layer.
+
+Default: 0.7
+</entry>
+
+<entry
+id="niw_vert_decay_scale"
+type="real"
+category="vmix"
+group="niw_nml" >
+Vertical decay scale for turbulence (cm).
+
+Default: 500.0e02
+</entry>
+
+<entry
+id="niw_mix_max"
+type="real"
+category="vmix"
+group="niw_nml" >
+Maximum diffusivity for near inertial waves (cm^2/s).
+
+Default: 100.0
+</entry>
+
+<entry
+id="niw_energy_type"
+type="char*256"
+category="vmix"
+group="niw_nml" >
+Type (internal or external) for near inertial wave energy source.
+
+Default: 'blke'
+</entry>
+
+<entry
+id="niw_energy_file"
+type="char*256"
+category="vmix"
+group="niw_nml"
+input_pathname="abs" >
+Input file for reading near inertial wave energy flux.
+
+Default: Resolution-dependent
+</entry>
+
+<entry
+id="niw_energy_file_fmt"
+type="char*256"
+category="vmix"
+group="niw_nml"
+valid_values="bin,nc" >
+niw_energy_file_fmt (binary or netCDF).
+
+Valid Values: 'bin', 'nc'
+Default: 'bin'
+</entry>
+
+
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: tavg_nml                 - -->
 <!-- - - - - - - - - - - - - - - - - - -->
