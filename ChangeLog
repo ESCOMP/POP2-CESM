@@ -1,8 +1,8 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  njn01, bruceb, markus
-Tag Date:    ?? July 2012
-Tag Name:    pop2/trunk_tags/cesm_pop_2_1_201207??
+Tag Date:    12 July 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120712
 Tag Summary: * Primary purpose: added near-inertial wave (NIW)  mixing code. Modified
                scripts to support the NIW option.
              * Additional development: added definition to grid.F90 to define TLAT &
@@ -13,6 +13,21 @@ Testing:     Many special-purpose tests (njn01; see NJN test log for details)
 Note:        Default setting is lniw_mixing = .false. for now
 
 Files Modified:
+M            38645   source/initial.F90
+M            38645   source/diags_on_lat_aux_grid.F90
+M            38645   source/grid.F90
+M            38645   source/vmix_kpp.F90
+A                0   source/niw_mixing.F90
+M            38645   source/vertical_mix.F90
+M            38645   source/cfc_mod.F90
+M            38645   source/ms_balance.F90
+M            38645   source/tavg.F90
+M            38645   source/baroclinic.F90
+M            38645   bld/build-namelist
+M            38645   bld/namelist_files/namelist_defaults_pop2.xml
+M            38645   bld/namelist_files/namelist_definition_pop2.xml
+A                0   input_templates/gx1v6_niw_tavg_contents
+M            38645   drivers/cpl_mct/ocn_comp_mct.F90
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
