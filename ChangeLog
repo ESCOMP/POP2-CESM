@@ -1,8 +1,8 @@
 ===============================================================================
 Tag Creator: mlevy
-Developers:  njn01, bruceb, markus
-Tag Date:    12 July 2012
-Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120712
+Developers:  mlevy
+Tag Date:    18 July 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120718
 Tag Summary: * Primary purpose: more updates to new build system (mostly adding
                documentation to namelist_definitions_pop2.xml, but also moving
                some values calculated directly in build-namelist to the defaults
