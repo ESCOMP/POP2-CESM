@@ -119,11 +119,7 @@
 !BOC
 
    integer (int_kind), parameter :: &
-#ifdef CESMMOBY
       max_avail_tavg_fields = 2000   ! limit on available fields - can
-#else
-      max_avail_tavg_fields = 1000   ! limit on available fields - can
-#endif
                                      !   be pushed as high as necessary & practical
                                      !   (total of all fields in all streams)
 

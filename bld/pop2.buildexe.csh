@@ -111,7 +111,6 @@ end
 set cppdefs = "-DCCSMCOUPLED -DBLCKX=$POP_BLCKX -DBLCKY=$POP_BLCKY -DMXBLCKS=$POP_MXBLCKS -DNT=$NT"
 if ($OCN_ICE_FORCING == 'inactive' ) set cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL"
 if ($OCN_GRID =~ "tx0.1*"          ) set cppdefs = "$cppdefs -D_HIRES";
-if ($USE_OCN_MOBY == TRUE          ) set cppdefs = "$cppdefs -DCESMMOBY"
 if ($OCN_ICE_FORCING == 'inactive' ) set cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL"
 
 cat >! $OBJROOT/ocn/obj/POP2_cppdefs.new <<EOF

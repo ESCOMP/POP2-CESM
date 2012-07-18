@@ -3,6 +3,28 @@ Tag Creator: mlevy
 Developers:  njn01, bruceb, markus
 Tag Date:    12 July 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120712
+Tag Summary: * Primary purpose: more updates to new build system (mostly adding
+               documentation to namelist_definitions_pop2.xml, but also moving
+               some values calculated directly in build-namelist to the defaults
+               file).
+             * Additional development: Increased max_avail_tavg_fields to 2000
+               in tavg.F90 to remove -DCESMMOBY from build system; fixed a typo
+               in a comment in passive_tracers.F90
+Testing:     Compared namelist / output from a simple C-compset output, also
+             checked default namelists built in CECO and B20TRBPRP compsets.
+
+Files Modified:
+M            38795   source/passive_tracers.F90
+M            38795   source/tavg.F90
+M            38795   bld/build-namelist
+M            38795   bld/pop2.buildexe.csh
+M            38795   bld/namelist_files/namelist_defaults_pop2.xml
+M            38795   bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  njn01, bruceb, markus
+Tag Date:    12 July 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120712
 Tag Summary: * Primary purpose: added near-inertial wave (NIW)  mixing code. Modified
                scripts to support the NIW option.
              * Additional development: added definition to grid.F90 to define TLAT &

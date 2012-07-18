@@ -851,13 +851,7 @@ add_default($nl, 'reset_to_freezing');
 # namelist group: ice_nml                #
 ##########################################
 
-my $lactive_ice;
-if ($OCN_ICE_FORCING =~ /inactive/) {
-    $lactive_ice = ".false.";
-} else {
-    $lactive_ice = ".true.";
-}
-add_default($nl,'lactive_ice', 'val'=>"$lactive_ice");
+add_default($nl,'lactive_ice', 'ocn_ice_forcing'=>"$OCN_ICE_FORCING");
 add_default($nl,'ice_freq_opt');
 add_default($nl,'ice_freq');
 add_default($nl,'kmxice');
@@ -986,8 +980,7 @@ add_default($nl,'ap_data_renorm');
 # namelist group: coupled_nml            #
 ##########################################
 
-my $coupled_freq = 24./$OCN_NCPL;
-add_default($nl,'coupled_freq','val'=>"$coupled_freq");
+add_default($nl,'coupled_freq','ocn_ncpl'=>"$OCN_NCPL");
 add_default($nl,'qsw_distrb_opt', 'ocn_coupling'=>"$OCN_COUPLING");
 add_default($nl,'coupled_freq_opt');
 
@@ -1104,14 +1097,13 @@ if ($OCN_TRACER_MODULES =~ /iage/) {
 # namelist group: cfc_nml                #
 ##########################################
 
-my $init_cfc_option;
-if (($OCN_TRANSIENT eq "1850-2000") && ($RUN_TYPE ne "continue")) {
-    $init_cfc_option = "zero";
-} else {
-    $init_cfc_option = "ccsm_${RUN_TYPE}";
-}
-
 if ($OCN_TRACER_MODULES =~ /cfc/) {
+    my $init_cfc_option;
+    if (($OCN_TRANSIENT eq "1850-2000") && ($RUN_TYPE ne "continue")) {
+      $init_cfc_option = "zero";
+    } else {
+      $init_cfc_option = "ccsm_${RUN_TYPE}";
+    }
     add_default($nl, 'init_cfc_option', 'val'=>"$init_cfc_option");
 
     add_default($nl, 'model_year', 'ocn_transient'=>"$OCN_TRANSIENT");
