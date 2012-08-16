@@ -1759,8 +1759,43 @@ sub check_input_files {
     # Is the variable an input dataset?
     my $input_pathname_type = $definition->is_input_pathname($var);
 
-    # If it is, check whether it exists locally and print status
+    # If it is, check to see if variable contains non-file
+    # For example, init_iage_init_file = "same_as_TS"
+    my $is_a_file = 1;
     if ($input_pathname_type) {
+
+      # Get pathname of input dataset
+      my $pathname = $nl->get_variable_value($group, $var);
+      # Need to strip the quotes
+      $pathname =~ s/['"]//g;
+
+      # bottom_cell_file could be 'unknown_bottom_cell'
+      if (($var eq 'bottom_cell_file') and 
+          ($pathname eq 'unknown_bottom_cell')) {
+        $is_a_file = 0;
+      }
+
+      # tidal_energy_file could be 'unknown_tidal_mixing'
+      if (($var eq 'tidal_energy_file') and 
+          ($pathname eq 'unknown_tidal_mixing')) {
+        $is_a_file = 0;
+      }
+
+      # niw_energy_file could be 'unknown_niw_energy'
+      if (($var eq 'niw_energy_file') and 
+          ($pathname eq 'unknown_niw_energy')) {
+        $is_a_file = 0;
+      }
+
+      # init_iage_file could be 'same_as_TS'
+      if (($var eq 'init_iage_init_file') and 
+          ($pathname eq 'same_as_TS')) {
+        $is_a_file = 0;
+      }
+    }
+
+    # If it is, check whether it exists locally and print status
+    if ($input_pathname_type and $is_a_file) {
 
       # Get pathname of input dataset
       my $pathname = $nl->get_variable_value($group, $var);

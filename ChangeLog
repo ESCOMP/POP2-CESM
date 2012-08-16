@@ -1,6 +1,24 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    16 August 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120816
+Tag Summary: Updated build-namelist to suppress "file status unknown" warnings
+             in prestage when variables named *_file have non-file values. The
+             change effects how the following four namelist values are treated:
+               * init_iage_file = 'same_as_TS'
+               * bottom_cell_file = 'unknown_bottom_cell'
+               * tidal_energy_file = 'unknown_tidal_mixing'
+               * niw_energy_file = 'unknown_niw_energy'
+             I think those are the only four that could cause this kind of error
+             but if more crop up it's a simple update to fix.
+Testing:     Still successfully built, errors in prestage are gone.
+
+Files Modified:
+M            39490   bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    18 July 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120718
 Tag Summary: * Primary purpose: more updates to new build system (mostly adding
