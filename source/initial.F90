@@ -1897,7 +1897,7 @@
   if (linertial) then
      exit_string =  'FATAL ERROR:  inertial mixing option. '
      exit_string =   trim(exit_string) /&
-     &/' This option does not exactly restart and is untested. DO NOT USE!'
+     &/' This option is untested. DO NOT USE!'
      call document ('POP_check', exit_string)
      number_of_fatal_errors = number_of_fatal_errors + 1
    endif

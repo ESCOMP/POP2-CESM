@@ -1,5 +1,22 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mvertens, mlevy
+Tag Date:    24 August 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120824
+Tag Summary: 1) the scripts/ directory has changed; the biggest effect to POP
+                is moving some set up from Buildconf/configure to the
+                pop2.buildnml.csh script. Also changes $OBJROOT to $EXEROOT in
+                a few places. Note: to set up a new case, run "./setup" from
+                $CASEROOT rather than "./configure -case"
+             2) Nancy and Gokhan asked me to update error message associated
+                with using linertial = .true.
+Testing:     Built C compset using new scripts.
+
+Files Modified:
+M            39666   source/initial.F90
+M            39666   bld/pop2.buildnml.csh
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    16 August 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120816

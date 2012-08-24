@@ -1,7 +1,26 @@
 #! /bin/csh -f
 
-if !(-d $OBJROOT/ocn/obj   ) mkdir -p $OBJROOT/ocn/obj    || exit 2
-if !(-d $OBJROOT/ocn/source) mkdir -p $OBJROOT/ocn/source || exit 3 
+if !(-d $EXEROOT/ocn/obj   ) mkdir -p $EXEROOT/ocn/obj    || exit 2
+if !(-d $EXEROOT/ocn/source) mkdir -p $EXEROOT/ocn/source || exit 3 
+
+if ($POP_AUTO_DECOMP == 'true') then
+   @ ntasks = $NTASKS_OCN / $NINST_OCN
+   cd $CASEBUILD
+   set config = `env UTILROOT=$UTILROOT ./generate_pop_decomp.pl -res $OCN_GRID -nproc $ntasks -thrds $NTHRDS_OCN -output all`
+   cd $CASEROOT 
+   if ($config[1] >= 0) then
+      ./xmlchange -file env_build.xml -id POP_BLCKX      -val $config[3]
+      ./xmlchange -file env_build.xml -id POP_BLCKY      -val $config[4]
+      ./xmlchange -file env_build.xml -id POP_MXBLCKS    -val $config[5]
+      ./xmlchange -file env_build.xml -id POP_DECOMPTYPE -val $config[6]
+      ./xmlchange -file env_build.xml -id POP_NX_BLOCKS  -val $config[7]
+      ./xmlchange -file env_build.xml -id POP_NY_BLOCKS  -val $config[8]
+      source $CASEROOT/Tools/ccsm_getenv # need to do this since env_build.xml just changed
+   else
+      echo "ERROR configure: pop decomp not set for $OCN_GRID on $ntasks x $NTHRDS_OCN procs"
+      exit -1
+   endif
+endif
 
 if !(-d $CASEBUILD/pop2conf) mkdir $CASEBUILD/pop2conf || exit 1
 cd $CASEBUILD/pop2conf || exit -1
