@@ -1,3 +1,28 @@
+SVN $Id$
+SVN $URL$
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    28 August 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120828
+Tag Summary: Updated how build-namelist reads user_nl_pop2. You can now
+             specify a namelist with entries like
+
+                 var_name&namelist_name_nml = value
+
+             whether var_name appears in multiple namelists or not. I also
+             updated the namelist definition file to remove definitions for
+             variables that appear in multiple namelists -- the derived types
+             should be the only entries. I still need to update the definitions
+             for tracer module variables appearing in multiple namelists and
+             edit scripts/doc/nldef2html_pop2 to produce correct documentation
+
+Testing:     Built C testcase with new build-namelist, compared pop2_in to
+             old version
+
+Files Modified:
+M            39779   bld/build-namelist
+M            39779   bld/namelist_files/namelist_definition_pop2.xml
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mvertens, mlevy

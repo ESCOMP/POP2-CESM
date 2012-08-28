@@ -1271,10 +1271,10 @@ Default: 0.1
 </entry>
 
 <entry 
-id="rich_mix"
+id="rich_mix&vmix_rich_nml"
 type="real"
 category="vmix"
-group="vmix_rich_nml" >
+group="derived" >
 Coefficient for Richardson number term.
 
 Default: 50.0
@@ -1442,10 +1442,10 @@ Default: 10.0
 </entry>
 
 <entry 
-id="rich_mix"
+id="rich_mix&vmix_kpp_nml"
 type="real"
 category="kpp"
-group="vmix_kpp_nml" >
+group="derived" >
 Coefficient for Richardson number term.
 
 Default: 50.0
@@ -1591,10 +1591,10 @@ Default: .true.
 <!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
-id="lauto_hmix"
+id="lauto_hmix&hmix_del2u_nml"
 type="logical"
 category="hmix"
-group="hmix_del2u_nml" >
+group="derived" >
 Flag to internally compute mixing coefficient.
 
 Default: .false.
@@ -1602,10 +1602,10 @@ Note: You must specify both the variable name and namelist name if you change th
 </entry>
 
 <entry 
-id="lvariable_hmix"
+id="lvariable_hmix&hmix_del2u_nml"
 type="logical"
 category="hmix"
-group="hmix_del2u_nml" >
+group="derived" >
 Flag to enable spatially-varying mixing.
 
 Default: .false. 
@@ -1613,10 +1613,10 @@ Note: You must specify both the variable name and namelist name if you change th
 </entry>
 
 <entry 
-id="am"
+id="am&hmix_del2u_nml"
 type="real"
 category="hmix"
-group="hmix_del2u_nml" >
+group="derived" >
 Horizontal momentum mixing coefficient.
 
 Default: 0.5e8
@@ -1628,10 +1628,10 @@ Note: You must specify both the variable name and namelist name if you change th
 <!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
-id="lauto_hmix"
+id="lauto_hmix&hmix_del2t_nml"
 type="logical"
 category="hmix"
-group="hmix_del2t_nml" >
+group="derived" >
 Flag to internally compute mixing coefficient.
 
 Default: .false.
@@ -1639,10 +1639,10 @@ Note: You must specify both the variable name and namelist name if you change th
 </entry>
 
 <entry 
-id="lvariable_hmix"
+id="lvariable_hmix&hmix_del2t_nml"
 type="logical"
 category="hmix"
-group="hmix_del2t_nml" >
+group="derived" >
 Flag to enable spatially-varying mixing.
 
 Default: .false.
@@ -1650,10 +1650,10 @@ Note: You must specify both the variable name and namelist name if you change th
 </entry>
 
 <entry 
-id="ah"
+id="ah&hmix_del2t_nml"
 type="real"
 category="hmix"
-group="hmix_del2t_nml" >
+group="derived" >
 Horizontal tracer mixing coefficient.
 
 Default: 0.6e7
@@ -1665,10 +1665,10 @@ Note: You must specify both the variable name and namelist name if you change th
 <!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
-id="lauto_hmix"
+id="lauto_hmix&hmix_del4u_nml"
 type="logical"
 category="hmix"
-group="hmix_del4u_nml" >
+group="derived" >
 Flag to internally compute mixing coefficient.
 
 Default: .false. 
@@ -1676,10 +1676,10 @@ Note: You must specify both the variable name and namelist name if you change th
 </entry>
 
 <entry 
-id="lvariable_hmix"
+id="lvariable_hmix&hmix_del4u_nml"
 type="logical"
 category="hmix"
-group="hmix_del4u_nml" >
+group="derived" >
 Flag to enable spatially-varying mixing.
 
 Default: .false.
@@ -1687,10 +1687,10 @@ Note: You must specify both the variable name and namelist name if you change th
 </entry>
 
 <entry 
-id="am"
+id="am&hmix_del4u_nml"
 type="real"
 category="hmix"
-group="hmix_del4u_nml" >
+group="derived" >
 Horizontal momentum mixing coefficient.
 
 Default: -0.6e20
@@ -1702,10 +1702,10 @@ Note: You must specify both the variable name and namelist name if you change th
 <!-- - - - - - - - - - - - - - - - - - -->
 
 <entry 
-id="lauto_hmix"
+id="lauto_hmix&hmix_del4t_nml"
 type="logical"
 category="hmix"
-group="hmix_del4t_nml" >
+group="derived" >
 Flag to internally compute mixing coefficient.
 
 Default: .false.
@@ -1713,10 +1713,10 @@ Note: You must specify both the variable name and namelist name if you change th
 </entry>
 
 <entry 
-id="lvariable_hmix"
+id="lvariable_hmix&hmix_del4t_nml"
 type="logical"
 category="hmix"
-group="hmix_del4t_nml" >
+group="derived" >
 Flag to enable spatially-varying mixing.
 
 Default: .false.
@@ -1724,10 +1724,10 @@ Note: You must specify both the variable name and namelist name if you change th
 </entry>
 
 <entry 
-id="ah"
+id="ah&hmix_del4t_nml"
 type="real"
 category="hmix"
-group="hmix_del4t_nml" >
+group="derived" >
 Horizontal tracer mixing coefficient.
 
 Default: -0.2e20
@@ -1817,10 +1817,10 @@ Default: 150000.0
 </entry>
 
 <entry 
-id="ah"
+id="ah&hmix_gm_nml"
 type="real"
 category="hmix"
-group="hmix_gm_nml" >
+group="derived" >
 Isopycnal diffusivity.
 
 Default: 3.0e7
@@ -5405,116 +5405,6 @@ type="logical"
 category="pop2"
 group="moby_nml" >
 Default: 
-</entry>
-
-<!-- - - - - - - - - - - - - - - - - - -->
-<!-- Group: derived                  - -->
-<!-- - - - - - - - - - - - - - - - - - -->
-
-<entry 
-id="lauto_hmix&hmix_del2u_nml"
-type="logical"
-category="pop2"
-group="derived" >
-</entry>
-
-<entry 
-id="lauto_hmix&hmix_del2t_nml"
-type="logical"
-category="pop2"
-group="derived" >
-</entry>
-
-<entry 
-id="lauto_hmix&hmix_del4u_nml"
-type="logical"
-category="pop2"
-group="derived" >
-</entry>
-
-<entry 
-id="lauto_hmix&hmix_del4t_nml"
-type="logical"
-category="pop2"
-group="derived" >
-Default: .false.
-</entry>
-
-<entry 
-id="lvariable_hmix&hmix_del2u_nml"
-type="logical"
-category="pop2"
-group="derived" >
-</entry>
-
-<entry 
-id="lvariable_hmix&hmix_del2t_nml"
-type="logical"
-category="pop2"
-group="derived" >
-</entry>
-
-<entry 
-id="lvariable_hmix&hmix_del4u_nml"
-type="logical"
-category="pop2"
-group="derived" >
-</entry>
-
-<entry 
-id="lvariable_hmix&hmix_del4t_nml"
-type="logical"
-category="pop2"
-group="derived" >
-</entry>
-
-<entry 
-id="am&hmix_del2u_nml"
-type="real"
-category="pop2"
-group="derived" >
-</entry>
-
-<entry 
-id="am&hmix_del4u_nml"
-type="real"
-category="pop2"
-group="derived" >
-</entry>
-
-<entry 
-id="ah&hmix_del2t_nml"
-type="real"
-category="pop2"
-group="derived" >
-</entry>
-
-<entry 
-id="ah&hmix_del4t_nml"
-type="real"
-category="pop2"
-group="derived" >
-</entry>
-
-<entry 
-id="ah&hmix_gm_nml"
-type="real"
-category="pop2"
-group="derived" >
-</entry>
-
-<entry 
-id="rich_mix&vmix_rich_nml"
-type="real"
-category="pop2"
-group="derived" >
-</entry>
-
-<entry 
-id="rich_mix&vmix_kpp_nml"
-type="real"
-category="pop2"
-group="derived" >
 </entry>
 
 </namelist_definition>

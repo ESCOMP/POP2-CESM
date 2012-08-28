@@ -26,6 +26,7 @@ use Cwd;
 use English;
 use Getopt::Long;
 use IO::File;
+
 #-----------------------------------------------------------------------------------------------
 
 sub usage {
@@ -274,16 +275,54 @@ if (defined $opts{'namelist'}) {
 if (defined $opts{'infile'}) {
     # Parse namelist input from a file
     my $nl_infile = Build::Namelist->new($opts{'infile'});
+    my $nl_infile_valid = Build::Namelist->new();
 
-    # Validate input namelist -- trap exceptions
-    my $nl_infile_valid;
-    eval { $nl_infile_valid = $definition->validate($nl_infile); };
-    if ($@) {
-      die "$ProgName - ERROR: Invalid namelist variable in '-infile' $opts{'infile'}.\n $@";
+    # Validate namelist variables (going to do this one variable at a time)
+    for my $group ($nl_infile->get_group_names()) {
+      for my $var ($nl_infile->get_variable_names($group)) {
+        my $var_local; # Name of variable to write to infile
+        my $nl_check_var = Build::Namelist->new();
+        my $nl_check_valid;
+        my $val = $nl_infile->get_variable_value($group, $var);
+        my @broken = split(/&/,$var);
+        my $check_grp = 0; # If 1, make sure group found in definitions file
+                           # matches that specified in user_nl_pop2
+
+        # if variable has ampersand, truncate it unless it is type derived
+        if ($broken[1]) {
+          my $nl_check_amp = Build::Namelist->new();
+          $nl_check_amp->set_variable_value($group, $var, $val);
+          eval { $definition->validate($nl_check_amp) };
+          if (not $@) {
+            # & is required in variable name
+            $var_local = $var;
+          } else {
+            # & should not be in variable name
+            $var_local = $broken[0];
+            $check_grp = 1;
+          }
+        } else {
+          $var_local = $var;
+        }
+
+        # Make sure variable is defined in namelist_definition_pop2.xml
+        $nl_check_var->set_variable_value($group, $var_local,$val);
+        eval { $nl_check_valid = $definition->validate($nl_check_var); };
+        (not $@) or die <<"EOF";
+** ERROR: either $var_local is not a valid POP2 namelist variable or $var_local = $val is not a valid value; please fix user_nl_pop2. Note that $var_local may appear in multiple namelists, in which case you need to specify the correct namelist in user_nl_pop2 using the format $var_local\&namelist_nml = $val, where \&namelist_nml is the pop2_in namelist containing $var_local.**
+EOF
+
+        # If group was specified in user_nl_pop2, make sure it matches
+        # the group in the definitions file.
+        my @group_valid = $nl_check_valid->get_group_names();
+        ((not $check_grp) or ($broken[1] eq $group_valid[0])) or die <<"EOF";
+** ERROR: $broken[0] is in $group_valid[0], not $broken[1]! Please fix this in user_nl_pop2. **
+EOF
+
+        # Add variable to validated namelist
+        $nl_infile_valid->set_variable_value($group_valid[0], $var_local, $val);
+      }
     }
-
-    # Make sure variables in multiple namelists are declared correctly
-    check_usernl_derived($nl_infile_valid);
 
     # If preview is desired and something has been changed in $nl_infile_valid,
     # output everything in $nl_infile_valid
@@ -647,7 +686,6 @@ $lhoriz_varying_bckgrnd =~ s/ //g;
 add_default($nl, 'llangmuir');
 add_default($nl, 'linertial');
 add_default($nl, 'Prandtl');
-add_default($nl, 'rich_mix');
 add_default($nl, 'lrich');
 add_default($nl, 'ldbl_diff');
 add_default($nl, 'lshort_wave');
@@ -1982,45 +2020,13 @@ sub expand_env_xml {
 
 #-------------------------------------------------------------------------------
 
-sub check_usernl_derived {
-
-  my $namelist = $_[0];
-  # Names of variables that must also include namelist
-  my @derived_vars = ("lauto_hmix","lvariable_hmix","am","ah","rich_mix");
-
-  # Loop through every group in the namelist
-  my @groups = $namelist->get_group_names;
-  foreach (@groups) {
-    my $group = $_;
-    if ($group ne "derived") {
-      # Loop through every variable in group
-      my @vars = $namelist->get_variable_names($group);
-      foreach (@vars) {
-        my $var = $_;
-        # Check if variable is one of the derived_vars
-        if (grep {$_ eq $var} @derived_vars) {
-          die "** Can not set $var in user_nl_pop2 without specifying the proper ",
-              "namelist as well. For example, use ", $var,"\&",$group, " = ",
-              $namelist->get_variable_value($group, $var), " instead.\n";
-        }
-      }
-    }
-  }
-}
-
-#-------------------------------------------------------------------------------
-
 sub print_nl_to_screen {
 
   my $namelist = $_[0];
   # Loop through every group in the namelist
-  my @groups = $namelist->get_group_names;
-  foreach (@groups) {
-    my $group = $_;
+  for my $group ($namelist->get_group_names()) {
     # Loop through every variable in group
-    my @vars = $namelist->get_variable_names($group);
-    foreach (@vars) {
-      my $var = $_;
+    for my $var ($namelist->get_variable_names($group)) {
       my $val = $namelist->get_variable_value($group, $var);
       # For derived type, $var contains variable name and group name
       if ($group eq "derived") {
