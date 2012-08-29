@@ -797,9 +797,9 @@
 
 <init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>
 
-<tracer_init_ext(1)%mod_varname>ALK</tracer_init_ext(1)%mod_varname>
-<tracer_init_ext(2)%mod_varname>DIC</tracer_init_ext(2)%mod_varname>
-<tracer_init_ext(3)%mod_varname>O2</tracer_init_ext(3)%mod_varname>
+<tracer_init_ext(1)%mod_varname&ecosys_nml>ALK</tracer_init_ext(1)%mod_varname&ecosys_nml>
+<tracer_init_ext(2)%mod_varname&ecosys_nml>DIC</tracer_init_ext(2)%mod_varname&ecosys_nml>
+<tracer_init_ext(3)%mod_varname&ecosys_nml>O2</tracer_init_ext(3)%mod_varname&ecosys_nml>
 
 <lflux_gas_o2 >.true.</lflux_gas_o2>
 <lflux_gas_co2>.true.</lflux_gas_co2>
@@ -872,14 +872,14 @@
 
 <lecovars_full_depth_tavg>.false.</lecovars_full_depth_tavg>    
 
-<tracer_init_ext(1)%scale_factor ocn_grid="gx3v7">1.025</tracer_init_ext(1)%scale_factor>
-<tracer_init_ext(1)%scale_factor ocn_grid="gx1v6">1.025</tracer_init_ext(1)%scale_factor> 
+<tracer_init_ext(1)%scale_factor&ecosys_nml ocn_grid="gx3v7">1.025</tracer_init_ext(1)%scale_factor&ecosys_nml>
+<tracer_init_ext(1)%scale_factor&ecosys_nml ocn_grid="gx1v6">1.025</tracer_init_ext(1)%scale_factor&ecosys_nml> 
  
-<tracer_init_ext(2)%scale_factor ocn_grid="gx3v7">1.025</tracer_init_ext(2)%scale_factor>
-<tracer_init_ext(2)%scale_factor ocn_grid="gx1v6">1.025</tracer_init_ext(2)%scale_factor> 
+<tracer_init_ext(2)%scale_factor&ecosys_nml ocn_grid="gx3v7">1.025</tracer_init_ext(2)%scale_factor&ecosys_nml>
+<tracer_init_ext(2)%scale_factor&ecosys_nml ocn_grid="gx1v6">1.025</tracer_init_ext(2)%scale_factor&ecosys_nml> 
 
-<tracer_init_ext(3)%scale_factor ocn_grid="gx3v7">44.66</tracer_init_ext(3)%scale_factor>
-<tracer_init_ext(3)%scale_factor ocn_grid="gx1v6">44.66</tracer_init_ext(3)%scale_factor> 
+<tracer_init_ext(3)%scale_factor&ecosys_nml ocn_grid="gx3v7">44.66</tracer_init_ext(3)%scale_factor&ecosys_nml>
+<tracer_init_ext(3)%scale_factor&ecosys_nml ocn_grid="gx1v6">44.66</tracer_init_ext(3)%scale_factor&ecosys_nml> 
 
 <dust_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/dst79gnx_gx3v7_20100305.nc</dust_flux_input%filename> 
 <dust_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/dst79gnx_gx1v6_090416.nc</dust_flux_input%filename> 

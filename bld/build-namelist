@@ -635,15 +635,7 @@ add_default($nl, 'const_vdc');
 
 add_default($nl, 'bckgrnd_vvc');
 add_default($nl, 'bckgrnd_vdc');
-
-# rich_mix is in two namelist groups - vmix_rich_nml and vmix_kpp_nml
-# so need to use set_variable_value instead of add_default
-
-my $derived;
-
 add_default($nl, 'rich_mix&vmix_rich_nml');
-$derived = $nl->get_value('rich_mix&vmix_rich_nml');
-$nl->set_variable_value('vmix_rich_nml', 'rich_mix', "$derived");
 
 ##########################################
 # namelist group: tidal_nml              #
@@ -664,13 +656,7 @@ add_default($nl, 'tidal_energy_file_fmt');
 # namelist group: vmix_kpp_nml           #
 ##########################################
 
-# note that rich_mix is in two namelist groups
-# vmix_rich_nml and vmix_kpp_nml - so
-# need to use set_variable_value instead of
-# add_default
 add_default($nl, 'rich_mix&vmix_kpp_nml');
-$derived = $nl->get_value('rich_mix&vmix_kpp_nml');
-$nl->set_variable_value('vmix_kpp_nml', 'rich_mix', "$derived");
 
 # grid dependent value of lhoriz_varying_background set in 
 # namelist_defaults_pop2.xml and value of ltidal-mixing is 
@@ -719,64 +705,40 @@ add_default($nl, 'lsubmesoscale_mixing');
 ##########################################
 
 add_default($nl, 'lauto_hmix&hmix_del2u_nml'); 
-$derived = $nl->get_value('lauto_hmix&hmix_del2u_nml'); 
-$nl->set_variable_value('hmix_del2u_nml', 'lauto_hmix', "$derived");
 
 add_default($nl, 'lvariable_hmix&hmix_del2u_nml'); 
-$derived = $nl->get_value('lvariable_hmix&hmix_del2u_nml'); 
-$nl->set_variable_value('hmix_del2u_nml', 'lvariable_hmix', "$derived");
 
 add_default($nl, 'am&hmix_del2u_nml'); 
-$derived = $nl->get_value('am&hmix_del2u_nml'); 
-$nl->set_variable_value('hmix_del2u_nml', 'am', "$derived");
 
 ##########################################
 # namelist group: hmix_del2t_nml         #
 ##########################################
 
 add_default($nl, 'lauto_hmix&hmix_del2t_nml'); 
-$derived = $nl->get_value('lauto_hmix&hmix_del2t_nml');
-$nl->set_variable_value('hmix_del2t_nml', 'lauto_hmix', "$derived");
 
 add_default($nl, 'lvariable_hmix&hmix_del2t_nml'); 
-$derived = $nl->get_value('lvariable_hmix&hmix_del2t_nml'); 
-$nl->set_variable_value('hmix_del2t_nml', 'lvariable_hmix', "$derived");
 
 add_default($nl, 'ah&hmix_del2t_nml'); 
-$derived = $nl->get_value('ah&hmix_del2t_nml'); 
-$nl->set_variable_value('hmix_del2t_nml', 'ah', "$derived");
 
 ##########################################
 # namelist group: hmix_del4u_nml         #
 ##########################################
 
 add_default($nl, 'lauto_hmix&hmix_del4u_nml'); 
-$derived = $nl->get_value('lauto_hmix&hmix_del4u_nml'); 
-$nl->set_variable_value('hmix_del4u_nml', 'lauto_hmix', "$derived");
 
 add_default($nl, 'lvariable_hmix&hmix_del4u_nml'); 
-$derived = $nl->get_value('lvariable_hmix&hmix_del4u_nml'); 
-$nl->set_variable_value('hmix_del4u_nml', 'lvariable_hmix', "$derived");
 
 add_default($nl, 'am&hmix_del4u_nml'); 
-$derived = $nl->get_value('am&hmix_del4u_nml'); 
-$nl->set_variable_value('hmix_del4u_nml', 'am', "$derived");
 
 ##########################################
 # namelist group: hmix_del4t_nml         #
 ##########################################
 
 add_default($nl, 'lauto_hmix&hmix_del4t_nml'); 
-$derived = $nl->get_value('lauto_hmix&hmix_del4t_nml'); 
-$nl->set_variable_value('hmix_del4t_nml', 'lauto_hmix', "$derived");
 
 add_default($nl, 'lvariable_hmix&hmix_del4t_nml'); 
-$derived = $nl->get_value('lvariable_hmix&hmix_del4t_nml'); 
-$nl->set_variable_value('hmix_del4t_nml', 'lvariable_hmix', "$derived");
 
 add_default($nl, 'ah&hmix_del4t_nml'); 
-$derived = $nl->get_value('ah&hmix_del4t_nml'); 
-$nl->set_variable_value('hmix_del4t_nml', 'ah', "$derived");
 
 ##########################################
 # namelist group: hmix_gm_nml            #
@@ -809,8 +771,6 @@ add_default($nl, 'use_const_ah_bkg_srfbl',
 add_default($nl, 'ah&hmix_gm_nml',
                  'kappa_isop_choice'=>"$kappa_isop_choice",
                  'kappa_thic_choice'=>"$kappa_thic_choice");
-$derived = $nl->get_value('ah&hmix_gm_nml');
-$nl->set_variable_value('hmix_gm_nml', 'ah', "$derived");
 
 # note that ocn_grid dependence for ah_bolus, ah_bkg_srfbl 
 # is obtained from config_cache.xml
@@ -1193,13 +1153,13 @@ if ($OCN_TRACER_MODULES =~ /ecosys/) {
       add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
     }
     add_default($nl, 'init_ecosys_init_file_fmt');
-    add_default($nl, 'tracer_init_ext(1)%mod_varname');
-    add_default($nl, 'tracer_init_ext(1)%scale_factor');
-    add_default($nl, 'tracer_init_ext(2)%mod_varname');
-    add_default($nl, 'tracer_init_ext(2)%scale_factor');
+    add_default($nl, 'tracer_init_ext(1)%mod_varname&ecosys_nml');
+    add_default($nl, 'tracer_init_ext(1)%scale_factor&ecosys_nml');
+    add_default($nl, 'tracer_init_ext(2)%mod_varname&ecosys_nml');
+    add_default($nl, 'tracer_init_ext(2)%scale_factor&ecosys_nml');
 
-    add_default($nl, 'tracer_init_ext(3)%mod_varname');
-    add_default($nl, 'tracer_init_ext(3)%scale_factor');
+    add_default($nl, 'tracer_init_ext(3)%mod_varname&ecosys_nml');
+    add_default($nl, 'tracer_init_ext(3)%scale_factor&ecosys_nml');
     add_default($nl, 'lflux_gas_o2');
     add_default($nl, 'lflux_gas_co2');
 
@@ -1633,6 +1593,13 @@ if ($OCN_TRACER_MODULES =~ /ecosys/) {
 }    
 if ($OCN_TRACER_MODULES =~ /moby/) {
     push @groups, qw(moby_nml moby_parms_nml );
+}
+
+# Check for variables in the "derived" group, add them to appropriate group
+for my $var ($nl->get_variable_names('derived')) {
+  my @broken = split(/&/,$var);
+  my $val = $nl->get_variable_value('derived', $var);
+  $nl->set_variable_value($broken[1], $broken[0], $val);
 }
 
 # Write out all groups  to pop2_in

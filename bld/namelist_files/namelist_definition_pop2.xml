@@ -3955,51 +3955,51 @@ Default: 'same_as_TS'
 </entry>
 
 <entry 
-id="tracer_init_ext%mod_varname"
+id="tracer_init_ext%mod_varname&iage_nml"
 type="dtype(1)%char*256" 
 category="passive_tracers"
-group="iage_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="tracer_init_ext%filename"
+id="tracer_init_ext%filename&iage_nml"
 type="dtype(1)%char*256" 
 category="passive_tracers"
-group="iage_nml"
+group="derived"
 input_pathname="abs" >
 Default: 
 </entry>
 
 <entry 
-id="tracer_init_ext%file_varname"
+id="tracer_init_ext%file_varname&iage_nml"
 type="dtype(1)%char*256" 
 category="passive_tracers"
-group="iage_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="tracer_init_ext%file_fmt"
+id="tracer_init_ext%file_fmt&iage_nml"
 type="dtype(1)%char*256" 
 category="passive_tracers"
-group="iage_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="tracer_init_ext%scale_factor"
+id="tracer_init_ext%scale_factor&iage_nml"
 type="dtype(1)%real" 
 category="passive_tracers"
-group="iage_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="tracer_init_ext%default_val"
+id="tracer_init_ext%default_val&iage_nml"
 type="dtype(1)%real" 
 category="passive_tracers"
-group="iage_nml" >
+group="derived" >
 Default: 
 </entry>
 
@@ -4055,6 +4055,55 @@ Default: 'bin'
 </entry>
 
 <entry 
+id="tracer_init_ext%mod_varname&cfc_nml"
+type="dtype(1)%char*256" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%filename&cfc_nml"
+type="dtype(2)%char*256" 
+category="passive_tracers"
+group="derived"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%file_varname&cfc_nml"
+type="dtype(1)%char*256" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%file_fmt&cfc_nml"
+type="dtype(1)%char*256" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%scale_factor&cfc_nml"
+type="dtype(1)%real" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
+id="tracer_init_ext%default_val&cfc_nml"
+type="dtype(1)%real" 
+category="passive_tracers"
+group="derived" >
+Default: 
+</entry>
+
+<entry 
 id="pcfc_file"
 type="char*256" 
 category="passive_tracers"
@@ -4098,149 +4147,149 @@ Default: 'model'
 </entry>
 
 <entry 
-id="gas_flux_fice%mod_varname"
+id="gas_flux_fice%mod_varname&cfc_nml"
 type="char*256" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_fice%filename"
+id="gas_flux_fice%filename&cfc_nml"
 type="char*256" 
 category="passive_tracers"
-group="cfc_nml"
+group="derived"
 input_pathname="abs" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_fice%file_fmt"
+id="gas_flux_fice%file_fmt&cfc_nml"
 type="char*256" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_fice%file_varname"
+id="gas_flux_fice%file_varname&cfc_nml"
 type="char*256" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_fice%scale_factor"
+id="gas_flux_fice%scale_factor&cfc_nml"
 type="real" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_fice%default_val"
+id="gas_flux_fice%default_val&cfc_nml"
 type="real" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ws%mod_varname"
+id="gas_flux_ws%mod_varname&cfc_nml"
 type="char*256" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ws%filename"
+id="gas_flux_ws%filename&cfc_nml"
 type="char*256" 
 category="passive_tracers"
-group="cfc_nml"
+group="derived"
 input_pathname="abs" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ws%file_fmt"
+id="gas_flux_ws%file_fmt&cfc_nml"
 type="char*256" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ws%file_varname"
+id="gas_flux_ws%file_varname&cfc_nml"
 type="char*256" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ws%scale_factor"
+id="gas_flux_ws%scale_factor&cfc_nml"
 type="real" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ws%default_val"
+id="gas_flux_ws%default_val&cfc_nml"
 type="real" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ap%mod_varname"
+id="gas_flux_ap%mod_varname&cfc_nml"
 type="char*256" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ap%filename"
+id="gas_flux_ap%filename&cfc_nml"
 type="char*256" 
 category="passive_tracers"
-group="cfc_nml"
+group="derived"
 input_pathname="abs" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ap%file_fmt"
+id="gas_flux_ap%file_fmt&cfc_nml"
 type="char*256" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ap%file_varname"
+id="gas_flux_ap%file_varname&cfc_nml"
 type="char*256" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ap%scale_factor"
+id="gas_flux_ap%scale_factor&cfc_nml"
 type="real" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ap%default_val"
+id="gas_flux_ap%default_val&cfc_nml"
 type="real" 
 category="passive_tracers"
-group="cfc_nml" >
+group="derived" >
 Default: 
 </entry>
 
@@ -4266,51 +4315,51 @@ Default:
 </entry>
 
 <entry 
-id="tracer_init_ext%mod_varname"
+id="tracer_init_ext%mod_varname&ecosys_nml"
 type="dtype(24)%char*256" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="tracer_init_ext%filename"
+id="tracer_init_ext%filename&ecosys_nml"
 type="dtype(24)%char*256" 
 category="ecosys"
-group="ecosys_nml"
+group="derived"
 input_pathname="abs" >
 Default: 
 </entry>
 
 <entry 
-id="tracer_init_ext%file_varname"
+id="tracer_init_ext%file_varname&ecosys_nml"
 type="dtype(24)%char*256" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="tracer_init_ext%file_fmt"
+id="tracer_init_ext%file_fmt&ecosys_nml"
 type="dtype(24)%char*256" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="tracer_init_ext%scale_factor"
+id="tracer_init_ext%scale_factor&ecosys_nml"
 type="dtype(24)%real" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="tracer_init_ext%default_val"
+id="tracer_init_ext%default_val&ecosys_nml"
 type="dtype(24)%real" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
@@ -4632,149 +4681,149 @@ Default:
 </entry>
 
 <entry 
-id="gas_flux_fice%mod_varname"
+id="gas_flux_fice%mod_varname&ecosys_nml"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_fice%filename"
+id="gas_flux_fice%filename&ecosys_nml"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml"
+group="derived"
 input_pathname="abs" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_fice%file_fmt"
+id="gas_flux_fice%file_fmt&ecosys_nml"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_fice%file_varname"
+id="gas_flux_fice%file_varname&ecosys_nml"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_fice%scale_factor"
+id="gas_flux_fice%scale_factor&ecosys_nml"
 type="real" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_fice%default_val"
+id="gas_flux_fice%default_val&ecosys_nml"
 type="real" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ws%mod_varname"
+id="gas_flux_ws%mod_varname&ecosys_nml"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ws%filename"
+id="gas_flux_ws%filename&ecosys_nml"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml"
+group="derived"
 input_pathname="abs" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ws%file_fmt"
+id="gas_flux_ws%file_fmt&ecosys_nml"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ws%file_varname"
+id="gas_flux_ws%file_varname&ecosys_nml"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ws%scale_factor"
+id="gas_flux_ws%scale_factor&ecosys_nml"
 type="real" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ws%default_val"
+id="gas_flux_ws%default_val&ecosys_nml"
 type="real" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ap%mod_varname"
+id="gas_flux_ap%mod_varname&ecosys_nml"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ap%filename"
+id="gas_flux_ap%filename&ecosys_nml"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml"
+group="derived"
 input_pathname="abs" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ap%file_fmt"
+id="gas_flux_ap%file_fmt&ecosys_nml"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ap%file_varname"
+id="gas_flux_ap%file_varname&ecosys_nml"
 type="char*256" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ap%scale_factor"
+id="gas_flux_ap%scale_factor&ecosys_nml"
 type="real" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 
 <entry 
-id="gas_flux_ap%default_val"
+id="gas_flux_ap%default_val&ecosys_nml"
 type="real" 
 category="ecosys"
-group="ecosys_nml" >
+group="derived" >
 Default: 
 </entry>
 

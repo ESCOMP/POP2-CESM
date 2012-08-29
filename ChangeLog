@@ -3,6 +3,45 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    29 August 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120829
+Tag Summary: More updates to build-namelist -- 4 more variables (all are F90
+             derived types) that exist in multiple namelists were moved updated
+             in the namelist_definition and namelist_defaults file to ensure
+             they can be edited in user_nl_pop2.
+
+                 tracer_init_ext (iage_nml, cfc_nml, ecosys_nml)
+                 gas_flux_fice (cfc_nml, ecosys_nml)
+                 gas_flux_ws (cfc_nml, ecosys_nml)
+                 gas_flux_ap (cfc_nml, ecosys_nml)
+
+             This also lead to changes in how build-namelist handles variables
+             in the "derived" group. Most changes were of the behind-the-scenes
+             variety, but one big difference is that the add_default() routine
+             can handle derived types on its own. Specifically,
+
+                 add_default($nl, 'rich_mix&vmix_rich_nml');
+                 $derived = $nl->get_value('rich_mix&vmix_rich_nml');
+                 $nl->set_value('vmix_rich_nml', 'rich_mix', "$derived");
+
+             has been replaced with the much simpler
+
+                 add_default($nl, 'rich_mix&vmix_rich_nml');
+
+             Additionally, I noticed a typo in the comments of user_nl_pop2.
+
+Testing:     Built C, CECO, and B20TRBDRD testcases with new build-namelist,
+             compared pop2_in to old version. Also used user_nl_pop2 to add
+             changed variables (tr
+
+Files Modified:
+M            39824   bld/user_nl_pop2
+M            39824   bld/build-namelist
+M            39824   bld/namelist_files/namelist_defaults_pop2.xml
+M            39824   bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    28 August 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120828
 Tag Summary: Updated how build-namelist reads user_nl_pop2. You can now
