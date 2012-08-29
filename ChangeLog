@@ -32,7 +32,7 @@ Tag Summary: More updates to build-namelist -- 4 more variables (all are F90
 
 Testing:     Built C, CECO, and B20TRBDRD testcases with new build-namelist,
              compared pop2_in to old version. Also used user_nl_pop2 to add
-             changed variables (tr
+             changed variables (see above)
 
 Files Modified:
 M            39824   bld/user_nl_pop2
