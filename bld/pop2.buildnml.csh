@@ -46,6 +46,9 @@ if ($NINST_OCN > 1) then
    if (! -e $RUNDIR/rpointer.ocn${inst_string}.ovf && -e $RUNDIR/rpointer.ocn.ovf) then
       cp $RUNDIR/rpointer.ocn.ovf $RUNDIR/rpointer.ocn${inst_string}.ovf
    endif
+   if (! -e $RUNDIR/rpointer.ocn${inst_string}.init && -e $RUNDIR/rpointer.ocn.init) then
+      cp $RUNDIR/rpointer.ocn.init $RUNDIR/rpointer.ocn${inst_string}.init
+   endif
    if (! -e $RUNDIR/rpointer.ocn${inst_string}.restart && -e $RUNDIR/rpointer.ocn.restart) then
       cp $RUNDIR/rpointer.ocn.restart $RUNDIR/rpointer.ocn${inst_string}.restart
    endif
@@ -57,21 +60,30 @@ if ($NINST_OCN > 1) then
    endif
 endif
 
-# following env variable is not in any xml files - but is needed by pop's build-namelist
-if ($RUN_TYPE == startup) then
-  setenv RESTART_INPUT_TS_FMT 'bin'
-  if (-e $RUNDIR/rpointer.ocn${inst_string}.restart && $CONTINUE_RUN == 'TRUE') then
-    grep 'RESTART_FMT=' $RUNDIR/rpointer.ocn${inst_string}.restart >&! /dev/null
-    if ($status == 0) then
-      setenv RESTART_INPUT_TS_FMT `grep RESTART_FMT= $RUNDIR/rpointer.ocn${inst_string}.restart | cut -c13-15`
-    endif
-  endif 
+# env variable declaring type of restart file (nc vs bin) is not in any xml files
+# but is needed by pop's build-namelist; it comes from rpointer.ocn.restart, which
+# is in $RUNDIR for continued runs, but is in $refdir for hybrid / branch runs
+# that are not continuations
+setenv RESTART_INPUT_TS_FMT 'bin'
+if ($RUN_TYPE == startup && $CONTINUE_RUN == 'FALSE') then
+  set check_pointer_file = 'FALSE'
+else
+  set check_pointer_file = 'TRUE'
 endif
-if ($RUN_TYPE == branch || $RUN_TYPE == hybrid) then
-  setenv RESTART_INPUT_TS_FMT 'bin'
-  grep 'RESTART_FMT=' $RUNDIR/rpointer.ocn${inst_string}.restart >&! /dev/null
+
+if ($RUN_TYPE != startup && $CONTINUE_RUN == 'FALSE') then
+  set pointer_file = "$RUNDIR/rpointer.ocn${inst_string}.init"
+  # Note: when you first setup / build a hybrid or branch run,
+  #       rpointer.ocn.init won't exist and the default value
+  #       for RESTART_INPUT_TS_FMT ('bin') will be used
+else
+  set pointer_file = "$RUNDIR/rpointer.ocn${inst_string}.restart"
+endif
+
+if ($check_pointer_file == 'TRUE') then
+  grep 'RESTART_FMT=' $pointer_file >&! /dev/null
   if ($status == 0) then
-    setenv RESTART_INPUT_TS_FMT `grep RESTART_FMT= $RUNDIR/rpointer.ocn${inst_string}.restart | cut -c13-15`
+    setenv RESTART_INPUT_TS_FMT `grep RESTART_FMT= $pointer_file | cut -c13-15`
   endif
 endif
 

@@ -3,6 +3,22 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    19 September 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120919
+Tag Summary: Bugfix - re-running a hybrid or branch run (not continuing the
+             run, but starting over) used to have a problem determining the
+             file format for the initial conditions, this tag fixes that.
+
+Testing:     Ran a hybrid run for 5 days, re-ran it (used to error out but now
+             works), set CONTINUE_RUN to TRUE, ran for 5 days, and then set
+             CONTINUE_RUN back to FALSE and re-ran it one more time. Also built
+             a regular C case (startup, not hybrid).
+
+Files Modified:
+M            40384   bld/pop2.buildnml.csh
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    29 August 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120829
 Tag Summary: More updates to build-namelist -- 4 more variables (all are F90
