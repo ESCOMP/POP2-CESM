@@ -178,6 +178,10 @@ module io_pio
       endif
    end if
       
+   if (my_task==master_task) then
+      call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
+   end if
+
   end subroutine io_pio_init
 
 !================================================================================

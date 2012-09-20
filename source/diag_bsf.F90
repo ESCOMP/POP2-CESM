@@ -790,6 +790,7 @@
  
           if ( my_task == master_task ) then
             write (stdout,*) ' iter = ', m, ' rms_resid = ', rms_residual 
+            call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
           endif
 
           if (rms_residual < err) then

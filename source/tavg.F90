@@ -7142,6 +7142,7 @@
        write (stdout,*) trim(SAVG_0D_NAME(n_reg)),': ',  &
                         SAVG_0D(n_reg)
      enddo
+     call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
 
    endif
  
