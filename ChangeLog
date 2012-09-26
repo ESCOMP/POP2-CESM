@@ -3,14 +3,19 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
-Tag Date:    20 September 2012
-Tag Name:    -- as yet untagged --
-Tag Summary: Added a handful of POP_IOUnitsFlush calls to aid in debugging.
-             Committing because I think they'll be useful in the future but I
-             want to add less useful debugging output and then revert to this
-             point.
+Tag Date:    26 September 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120926
+Tag Summary: Main task - updating diags_on_lat_aux_grid to handle outputting
+             tavg streams when OCN_PIO_ROOT is not master_task. Additionally,
+             added a handful of POP_IOUnitsFlush calls to aid in debugging.
+
+Testing:     Keith Lindsay pointed out that running a G1850ECO compset on
+             bluefire with OCN_PIO_ROOT = -99 failed. So I ran the same compset
+             with OCN_PIO_ROOT = 0, saved the history files, and then ensured
+             that using OCN_PIO_ROOT = -99 returns bit-for-bit results.
 
 Files Modified:
+M            40429   source/diags_on_lat_aux_grid.F90
 M            40410   source/io_pio.F90
 M            40410   source/diag_bsf.F90
 M            40410   source/tavg.F90

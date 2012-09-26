@@ -32,6 +32,7 @@
    use constants
    use registry
    use timers
+   use shr_pio_mod, only : shr_pio_getioroot
 
    implicit none
    private
@@ -70,23 +71,23 @@
       TLATD_G              ! latitude of T points in degrees (global array)
 
    real (r4), dimension(:,:,:,:), public, allocatable ::  &
-      TAVG_MOC_G             ! meridional overturning circulation (master_task only)
+      TAVG_MOC_G             ! meridional overturning circulation (ioroot only)
 
    real (r4), dimension(:,:,:), public, allocatable ::  &
       TR_TRANS_G,            &! tracer transports; used to compute both heat & salt
-      TAVG_N_HEAT_TRANS_G,   &! northward heat transport (master_task only)
-      TAVG_N_SALT_TRANS_G     ! northward salt transport (master_task only)
+      TAVG_N_HEAT_TRANS_G,   &! northward heat transport (ioroot only)
+      TAVG_N_SALT_TRANS_G     ! northward salt transport (ioroot only)
 
    real (r8),dimension(:,:), allocatable ::  &
       trans_s               ! southern boundary transports 
 
    integer (int_kind), dimension(:,:,:), allocatable ::  &
       REGION_MASK_LAT_AUX   ! latitude-longitude region mask 
-                            !  for these diagnostics (master_task only)
+                            !  for these diagnostics (ioroot only)
 
    logical (log_kind), dimension(:,:,:), allocatable ::  &
       MASK_LAT_DEPTH        ! latitude-depth mask for these diagnostics 
-                            !  (master_task only)
+                            !  (ioroot only)
 
    type (regions), dimension(max_regions),public ::  &
       transport_region_info
@@ -154,9 +155,10 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::   &
+      ioroot,              &! Task number of PIO root process
       nml_error,           &! namelist i/o error flag
       grid_error,          &! auxilary grid choice error
-      j, jj,               &! loop indices
+      j, jj, n,            &! loop indices
       lat_aux_grid,        &! index for the chosen grid type
       i_copy,              &! TLATD_G(i_copy,*) and ULATD_G(i_copy,*) 
                             !  (global arrays) are used to create 
@@ -257,7 +259,9 @@
    call broadcast_scalar (n_heat_trans_requested, master_task)
    call broadcast_scalar (n_salt_trans_requested, master_task)
    call broadcast_scalar (n_transport_reg,        master_task)
-   call broadcast_array  (transport_reg2_names,   master_task)
+   do n=1,max_regions
+     call broadcast_scalar(transport_reg2_names(n), master_task)
+   end do
 
    if ( nml_error /= 0 ) then
      call exit_POP (SigAbort,'(init_lat_aux_grid) reading transports_nml')
@@ -363,6 +367,7 @@
        call exit_POP (SigAbort,'(init_lat_aux_grid): '// trim(string))
    endif
  
+   ioroot = shr_pio_getioroot(inst_name)
  
 !-----------------------------------------------------------------------
 !
@@ -373,7 +378,7 @@
    allocate ( TLATD_G(nx_global,ny_global) )
 
    
-   call gather_global (TLATD_G, TLATD, master_task,distrb_clinic)
+   call gather_global (TLATD_G, TLATD, ioroot,distrb_clinic)
 
    if ( lat_aux_grid == lat_aux_grid_sh  .or.  &
         lat_aux_grid == lat_aux_grid_full ) then
@@ -381,26 +386,26 @@
      allocate ( ULATD_G(nx_global,ny_global) )
 
      WORK = ULAT * radian
-     call gather_global (ULATD_G, WORK, master_task,distrb_clinic)
+     call gather_global (ULATD_G, WORK, ioroot,distrb_clinic)
 
      i_copy = 1
 
-     if ( my_task == master_task ) then
+     if ( my_task == ioroot ) then
        dlat          = c2 * (ULATD_G(i_copy,1)-TLATD_G(i_copy,1)) 
        southern_edge = ULATD_G(i_copy,1) - dlat
      endif
 
-     call broadcast_scalar (dlat,          master_task)
-     call broadcast_scalar (southern_edge, master_task)
+     call broadcast_scalar (dlat,          ioroot)
+     call broadcast_scalar (southern_edge, ioroot)
 
    endif
 
    if ( lat_aux_grid == lat_aux_grid_sh ) then
 
-     if ( my_task == master_task )  &
+     if ( my_task == ioroot )  &
        j_dim_sh = count( TLATD_G(i_copy,:) < c0 )
 
-     call broadcast_scalar (j_dim_sh, master_task) 
+     call broadcast_scalar (j_dim_sh, ioroot) 
 
      if ( j_dim_sh == 0 ) then
        call exit_POP (SigAbort,  &
@@ -408,7 +413,7 @@
      endif
 
      grid_error = 0
-     if ( my_task == master_task ) then
+     if ( my_task == ioroot ) then
        do j=1,j_dim_sh
          if(any(abs(TLATD_G(:,j)-TLATD_G(i_copy,j)) > eps_grid))then
            grid_error = -1000
@@ -416,7 +421,7 @@
        enddo
      endif
 
-     call broadcast_scalar (grid_error, master_task)
+     call broadcast_scalar (grid_error, ioroot)
            
      if ( grid_error /= 0 ) then 
        string = 'SH is not a regular at-lon grid. '  /&
@@ -451,13 +456,13 @@
      n_lat_aux_grid = ny_global
 
      grid_error = 0
-     if ( my_task == master_task ) then
+     if ( my_task == ioroot ) then
        do j=1,n_lat_aux_grid
          if ( any(TLATD_G(:,j) /= TLATD_G(i_copy,j) ) ) grid_error = -1000
        enddo
      endif
 
-     call broadcast_scalar (grid_error, master_task)
+     call broadcast_scalar (grid_error, ioroot)
 
      if ( grid_error /= 0 ) then 
        string = 'The model grid is not a regular lat-lon grid. ' /&
@@ -486,7 +491,7 @@
    allocate ( lat_aux_edge  (n_lat_aux_grid+1),  &
               lat_aux_center(n_lat_aux_grid  ) )
 
-   if ( my_task == master_task ) then
+   if ( my_task == ioroot ) then
 
      select case (lat_aux_grid)
  
@@ -546,8 +551,8 @@
 
    endif
 
-   call broadcast_array (lat_aux_edge,   master_task)
-   call broadcast_array (lat_aux_center, master_task)
+   call broadcast_array (lat_aux_edge,   ioroot)
+   call broadcast_array (lat_aux_center, ioroot)
           
    if ( lat_aux_grid == lat_aux_grid_sh  .or.   &
         lat_aux_grid == lat_aux_grid_full ) deallocate ( ULATD_G )
@@ -596,6 +601,7 @@
      eps_grid = 1.0e-7   ! epsilon difference allowed in regular grid
  
    integer (int_kind) ::   &
+      ioroot,            &! Task number of PIO root process
       nml_error,         &! namelist i/o error flag
       i, j, k, n, m,     &! loop indices
       j_southern,        &! loop indices
@@ -640,7 +646,7 @@
 !
 !-----------------------------------------------------------------------
  
-         
+   ioroot = shr_pio_getioroot(inst_name)
    nreg2_transport = 0
    transport_region_info(:)%name   = char_blank
    transport_region_info(:)%number = 9999
@@ -695,10 +701,10 @@
  
    lat_aux_region_start = 0
    call gather_global (REGION_MASK_LAT_AUX(:,:,1),REGION_MASK,  &
-                       master_task,distrb_clinic)
+                       ioroot,distrb_clinic)
 
 
-   if ( my_task == master_task ) then
+   if ( my_task == ioroot ) then
 
 
      if (n_transport_reg > 1) then
@@ -742,11 +748,11 @@
      lat_aux_region_start(2) = j_southern - 1 
             
    endif  ! n_transport_reg
-   endif  ! master_task
+   endif  ! ioroot
 
    if (n_transport_reg > 1) then
-     call broadcast_scalar (grid_error,           master_task)
-     call broadcast_array  (lat_aux_region_start, master_task)
+     call broadcast_scalar (grid_error,           ioroot)
+     call broadcast_array  (lat_aux_region_start, ioroot)
 
      if ( grid_error /= 0 ) then
        call exit_POP (SigAbort,'(init_moc_ts_transport_arrays) SH is' /&
@@ -764,9 +770,9 @@
 
    allocate ( WORK_G(nx_global,ny_global) ) 
 
-   call gather_global (WORK_G, KMT, master_task,distrb_clinic)
+   call gather_global (WORK_G, KMT, ioroot,distrb_clinic)
 
-   if ( my_task == master_task ) then
+   if ( my_task == ioroot ) then
 
      allocate ( MASK_LAT_DEPTH(n_lat_aux_grid,km,n_transport_reg) )
 
@@ -814,11 +820,11 @@
 
 !-----------------------------------------------------------------------
 !
-!  allocate TAVG_MOC_G on master_task only
+!  allocate TAVG_MOC_G on ioroot only
 !
 !-----------------------------------------------------------------------
  
-     if ( my_task == master_task ) then
+     if ( my_task == ioroot ) then
        allocate (TAVG_MOC_G(n_lat_aux_grid+1,km+1,n_moc_comp,n_transport_reg))
      endif
 
@@ -858,23 +864,24 @@
 
 !-----------------------------------------------------------------------
 !
-!  allocate TAVG_N_HEAT_TRANS_G, TAVG_N_SALT_TRANS_G, and TR_TRANS_G, on master_task only
+!  allocate TAVG_N_HEAT_TRANS_G, TAVG_N_SALT_TRANS_G, and TR_TRANS_G, on
+!  ioroot only
 !
 !-----------------------------------------------------------------------
  
-   if ( n_heat_trans_requested .and. my_task == master_task ) then
+   if ( n_heat_trans_requested .and. my_task == ioroot ) then
     allocate (  &
      TAVG_N_HEAT_TRANS_G(n_lat_aux_grid+1, n_transport_comp,n_transport_reg))
    endif
 
-   if ( n_salt_trans_requested .and. my_task == master_task ) then
+   if ( n_salt_trans_requested .and. my_task == ioroot ) then
     allocate (  &
      TAVG_N_SALT_TRANS_G(n_lat_aux_grid+1,n_transport_comp,n_transport_reg))
    endif
 
    if ((n_heat_trans_requested .or. n_salt_trans_requested) ) then
      allocate (trans_s (n_transport_comp,n_transport_reg) )
-     if (my_task == master_task ) then
+     if (my_task == ioroot ) then
        allocate (  &
          TR_TRANS_G (n_lat_aux_grid+1,n_transport_comp,n_transport_reg))
      endif
@@ -931,6 +938,7 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::  &
+      ioroot,             &     ! Task number of PIO root process
       i, j, k, m, n, iblock     ! loop indices
 
    real (r8), dimension(km,n_moc_comp,n_transport_reg) ::  &
@@ -962,6 +970,8 @@
                 // ' transport computations, but one is missing.')
    endif
 
+   ioroot = shr_pio_getioroot(inst_name)
+
    ldiag_gm_bolus = .false.
    if ( present(W_I) )  ldiag_gm_bolus = .true.
  
@@ -985,7 +995,7 @@
      enddo
     !$OMP END PARALLEL DO
 
-     call gather_global (WORK1_G(:,:,k), WORK1, master_task,distrb_clinic)
+     call gather_global (WORK1_G(:,:,k), WORK1, ioroot,distrb_clinic)
 
      if ( ldiag_gm_bolus ) then
        !$OMP PARALLEL DO PRIVATE(iblock)
@@ -993,7 +1003,7 @@
           WORK1(:,:,iblock) = merge(W_I(:,:,k,iblock)*TAREA(:,:,iblock), c0, k <= KMT(:,:,iblock))
         enddo
        !$OMP END PARALLEL DO
-       call gather_global (WORK2_G(:,:,k), WORK1, master_task,distrb_clinic)
+       call gather_global (WORK2_G(:,:,k), WORK1, ioroot,distrb_clinic)
      endif
 
      if ( lsubmeso ) then
@@ -1002,12 +1012,12 @@
           WORK1(:,:,iblock) = merge(W_SM(:,:,k,iblock)*TAREA(:,:,iblock), c0, k <= KMT(:,:,iblock))
         enddo
        !$OMP END PARALLEL DO
-       call gather_global (WORK3_G(:,:,k), WORK1, master_task,distrb_clinic)
+       call gather_global (WORK3_G(:,:,k), WORK1, ioroot,distrb_clinic)
      endif
 
    enddo
 
-   if ( my_task == master_task )  then
+   if ( my_task == ioroot )  then
     TAVG_MOC_G = c0
 
 
@@ -1038,7 +1048,7 @@
         enddo ! i
        enddo ! j
      enddo ! n
-   endif ! master_task
+   endif ! ioroot
 
 !-----------------------------------------------------------------------
 !
@@ -1061,7 +1071,7 @@
        WORK1(:,:,iblock) = WORK1(:,:,iblock) + WORK2(:,:,iblock) 
      enddo ! iblock
     !$OMP END PARALLEL DO
-     call gather_global (WORK1_G(:,:,k), WORK1, master_task,distrb_clinic)
+     call gather_global (WORK1_G(:,:,k), WORK1, ioroot,distrb_clinic)
    enddo
 
    if ( ldiag_gm_bolus ) then
@@ -1071,7 +1081,7 @@
           WORK1(:,:,iblock) = V_I(:,:,k,iblock) * HTN(:,:,iblock) 
         enddo ! iblock
        !$OMP END PARALLEL DO
-       call gather_global (WORK2_G(:,:,k), WORK1, master_task,distrb_clinic)
+       call gather_global (WORK2_G(:,:,k), WORK1, ioroot,distrb_clinic)
      enddo
    endif
 
@@ -1082,11 +1092,11 @@
           WORK1(:,:,iblock) = V_SM(:,:,k,iblock) * HTN(:,:,iblock)
         enddo ! iblock
        !$OMP END PARALLEL DO
-       call gather_global (WORK3_G(:,:,k), WORK1, master_task,distrb_clinic)
+       call gather_global (WORK3_G(:,:,k), WORK1, ioroot,distrb_clinic)
      enddo
    endif
        
-   if ( my_task == master_task ) then
+   if ( my_task == ioroot ) then
      do m=2,n_transport_reg
        j = lat_aux_region_start(m)
        do i=1,nx_global
@@ -1230,7 +1240,7 @@
 !     &      TAVG_MOC_G(n_lat_aux_grid+1,km+1,:,m) = undefined_nf 
 !        enddo
 !
-   endif ! master_task
+   endif ! ioroot
 
  
    deallocate ( WORK1, WORK2, WORK1_G )
@@ -1294,6 +1304,7 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::      &
+      ioroot,                 &! Task number of PIO root process
       i, j, k, m, n, iblock    ! loop indices
 
    real (r8) :: conversion
@@ -1343,6 +1354,8 @@
          // ' the related transport computations, but one is missing.')
    endif
 
+   ioroot = shr_pio_getioroot(inst_name)
+
    ldiag_gm_bolus = .false.
    if ( present(ADV_I) )  ldiag_gm_bolus = .true.
  
@@ -1365,12 +1378,12 @@
    do iblock = 1,nblocks_clinic
      WORK1(:,:,iblock) = - ADV(:,:,iblock) * TAREA(:,:,iblock)
    enddo
-   call gather_global (WORK1_G, WORK1, master_task,distrb_clinic)
+   call gather_global (WORK1_G, WORK1, ioroot,distrb_clinic)
 
    do iblock = 1,nblocks_clinic
      WORK1(:,:,iblock) = - HDIF(:,:,iblock) * TAREA(:,:,iblock)
    enddo
-   call gather_global (WORK2_G, WORK1, master_task,distrb_clinic)
+   call gather_global (WORK2_G, WORK1, ioroot,distrb_clinic)
 
    if ( ldiag_gm_bolus ) then
      allocate ( WORK3_G(nx_global,ny_global) )
@@ -1378,7 +1391,7 @@
      do iblock = 1,nblocks_clinic
        WORK1(:,:,iblock) = - ADV_I(:,:,iblock) * TAREA(:,:,iblock)
      enddo
-     call gather_global (WORK3_G, WORK1, master_task,distrb_clinic)
+     call gather_global (WORK3_G, WORK1, ioroot,distrb_clinic)
    endif
 
    if ( lsubmeso ) then
@@ -1387,10 +1400,10 @@
      do iblock = 1,nblocks_clinic
        WORK1(:,:,iblock) = - ADV_SM(:,:,iblock) * TAREA(:,:,iblock)
      enddo
-     call gather_global (WORK4_G, WORK1, master_task,distrb_clinic)
+     call gather_global (WORK4_G, WORK1, ioroot,distrb_clinic)
    endif
      
-   if ( my_task == master_task ) then
+   if ( my_task == ioroot ) then
 
      TR_TRANS_G = c0
 
@@ -1438,7 +1451,7 @@
         WORK1(:,:,iblock) = FN(:,:,k,iblock) * TAREA(:,:,iblock) * dz(k) 
      enddo
     !$OMP END PARALLEL DO
-     call gather_global (WORK1_G, WORK1, master_task,distrb_clinic)
+     call gather_global (WORK1_G, WORK1, ioroot,distrb_clinic)
 
      if ( ldiag_gm_bolus ) then
     !$OMP PARALLEL DO PRIVATE(iblock)
@@ -1446,7 +1459,7 @@
        WORK1(:,:,iblock) = FN_I(:,:,k,iblock) * TAREA(:,:,iblock) * dz(k)
      enddo
     !$OMP END PARALLEL DO
-       call gather_global (WORK3_G, WORK1, master_task,distrb_clinic)
+       call gather_global (WORK3_G, WORK1, ioroot,distrb_clinic)
      endif
 
      if ( lsubmeso ) then
@@ -1455,10 +1468,10 @@
        WORK1(:,:,iblock) = FN_SM(:,:,k,iblock) * TAREA(:,:,iblock) * dz(k)
      enddo
     !$OMP END PARALLEL DO
-       call gather_global (WORK4_G, WORK1, master_task,distrb_clinic)
+       call gather_global (WORK4_G, WORK1, ioroot,distrb_clinic)
      endif
 
-     if ( my_task == master_task ) then
+     if ( my_task == ioroot ) then
 
        do m=2,n_transport_reg
          j = lat_aux_region_start(m)
@@ -1477,7 +1490,7 @@
 
    enddo
 
-   if ( my_task == master_task ) then
+   if ( my_task == ioroot ) then
  
 !-----------------------------------------------------------------------
 !
