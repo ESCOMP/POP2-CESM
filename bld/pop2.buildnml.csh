@@ -48,6 +48,7 @@ if ($NINST_OCN > 1) then
    endif
    if (! -e $RUNDIR/rpointer.ocn${inst_string}.init && -e $RUNDIR/rpointer.ocn.init) then
       cp $RUNDIR/rpointer.ocn.init $RUNDIR/rpointer.ocn${inst_string}.init
+endif
    endif
    if (! -e $RUNDIR/rpointer.ocn${inst_string}.restart && -e $RUNDIR/rpointer.ocn.restart) then
       cp $RUNDIR/rpointer.ocn.restart $RUNDIR/rpointer.ocn${inst_string}.restart
@@ -71,11 +72,19 @@ else
   set check_pointer_file = 'TRUE'
 endif
 
-if ($RUN_TYPE != startup && $CONTINUE_RUN == 'FALSE') then
-  set pointer_file = "$RUNDIR/rpointer.ocn${inst_string}.init"
-  # Note: when you first setup / build a hybrid or branch run,
-  #       rpointer.ocn.init won't exist and the default value
-  #       for RESTART_INPUT_TS_FMT ('bin') will be used
+if (($GET_REFCASE == 'TRUE') && ($RUN_TYPE != 'startup') && ($CONTINUE_RUN == 'FALSE')) then
+  # During prestage step, rpointer files are copied from refdir
+  set refdir = "ccsm4_init/$RUN_REFCASE/$RUN_REFDATE"
+  # note: as of now, running multiple instances out of a single-instance reference
+  #       case will cause problems if you try to repeat the run. A fix for this
+  #       requires the prestage step to know that multi-instance is running and
+  #       that reference directory only has single instance rpointer files, as well
+  #       as an additional check for $DIN_LOC_ROOT/$refdir/rpointer.ocn.restart
+  #       below.
+  set pointer_file = "$DIN_LOC_ROOT/$refdir/rpointer.ocn${inst_string}.restart"
+  if (! -e $pointer_file) then
+    set pointer_file = "$RUNDIR/rpointer.ocn${inst_string}.restart"
+  endif
 else
   set pointer_file = "$RUNDIR/rpointer.ocn${inst_string}.restart"
 endif
@@ -83,6 +92,7 @@ endif
 if ($check_pointer_file == 'TRUE') then
   grep 'RESTART_FMT=' $pointer_file >&! /dev/null
   if ($status == 0) then
+    echo "Getting init_ts_file_fmt from $pointer_file"
     setenv RESTART_INPUT_TS_FMT `grep RESTART_FMT= $pointer_file | cut -c13-15`
   endif
 endif

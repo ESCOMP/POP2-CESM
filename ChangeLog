@@ -3,6 +3,34 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    27 September 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120927
+Tag Summary: Tag from Sept 19 caused problems with ER* tests. It's complicated,
+             but the first problem was copying rpointer.ocn.init with the rest
+             of the rpointer files when cloning a case. Then it turned out that
+             the lack of an rpointer.ocn.init file should lead to reading the
+             init_ts_file_fmt from rpointer.ocn.restart rather than defaulting
+             to bin... and around this time Tony Craig pointed out that right
+             now users are told that they need ALL rpointer files from a ref
+             run, so it's confusing to say "except rpointer.ocn.init". Long
+             story short, we decided that the best solution was to remove
+             rpointer.ocn.init and just get init_ts_file_fmt from wherever
+             the reference data is. Eventually we will prestage before running
+             pop2.buildnml.csh and none of this will matter because we will
+             have the correct rpointer.ocn.restart file in $RUNDIR. Until then,
+             this seems like a better solution than the one implemented on the
+             19th.
+
+Testing:     Ran ERI_PT.B1850CN test that had been falling with the Sep 19 tag,
+             it now passes. Also repeated the test from the 19th to ensure the
+             bug fixed then did not creep back in.
+
+Files Modified:
+M            40575   bld/pop2.buildnml.csh
+M            40575   bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    26 September 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120926
 Tag Summary: Main task - updating diags_on_lat_aux_grid to handle outputting

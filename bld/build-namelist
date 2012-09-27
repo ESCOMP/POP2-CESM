@@ -1797,6 +1797,12 @@ sub check_input_files {
           ($pathname eq 'same_as_TS')) {
         $is_a_file = 0;
       }
+
+      # init_ecosys_init_file could be 'same_as_TS'
+      if (($var eq 'init_ecosys_init_file') and 
+          ($pathname eq 'same_as_TS')) {
+        $is_a_file = 0;
+      }
     }
 
     # If it is, check whether it exists locally and print status
