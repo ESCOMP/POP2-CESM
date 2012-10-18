@@ -675,17 +675,6 @@
 <!--coupled_nml -->
 <!---------------------------->
 
-<coupled_freq_opt>nhour</coupled_freq_opt>
-
-<coupled_freq ocn_ncpl="1">24</coupled_freq>
-<coupled_freq ocn_ncpl="2">12</coupled_freq>
-<coupled_freq ocn_ncpl="3">8</coupled_freq>
-<coupled_freq ocn_ncpl="4">6</coupled_freq>
-<coupled_freq ocn_ncpl="6">4</coupled_freq>
-<coupled_freq ocn_ncpl="8">3</coupled_freq>
-<coupled_freq ocn_ncpl="12">2</coupled_freq>
-<coupled_freq ocn_ncpl="24">1</coupled_freq>
-
 <qsw_distrb_opt ocn_grid="gx1v6" ocn_coupling="partial">cosz</qsw_distrb_opt>
 <qsw_distrb_opt ocn_grid="gx1v6" ocn_coupling="full"   >cosz</qsw_distrb_opt>
 <qsw_distrb_opt ocn_grid="gx3v7"  >cosz</qsw_distrb_opt>   

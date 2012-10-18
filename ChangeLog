@@ -3,6 +3,22 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    18 October 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20121018
+Tag Summary: build-namelist didn't know how to handle coupling every 30 minutes
+             (by default, couple_freq_opt was always 'nhour' and couple_freq was
+             1,2,3,4,6,8,12, or 24... setting OCN_NCPL=48 in env_run was not
+             supported). Now build-namelist behaves similarly to the driver
+             build-namelist in order to determine how frequently pop will need
+             to communicate with the coupler.
+
+Files Modified:
+M            41138   bld/build-namelist
+M            41138   bld/namelist_files/namelist_defaults_pop2.xml
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    27 September 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20120927
 Tag Summary: Tag from Sept 19 caused problems with ER* tests. It's complicated,

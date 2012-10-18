@@ -361,6 +361,7 @@ my $CASE                   = "$xmlvars{'CASE'}";
 my $CALENDAR               = "$xmlvars{'CALENDAR'}";
 my $CCSM_CO2_PPMV          = "$xmlvars{'CCSM_CO2_PPMV'}";
 my $CCSM_BGC               = "$xmlvars{'CCSM_BGC'}";
+my $NCPL_BASE_PERIOD       = "$xmlvars{'NCPL_BASE_PERIOD'}";
 my $OCN_NCPL               = "$xmlvars{'OCN_NCPL'}";
 my $OCN_COUPLING           = "$xmlvars{'OCN_COUPLING'}";
 my $OCN_ICE_FORCING        = "$xmlvars{'OCN_ICE_FORCING'}";
@@ -978,9 +979,65 @@ add_default($nl,'ap_data_renorm');
 # namelist group: coupled_nml            #
 ##########################################
 
-add_default($nl,'coupled_freq','ocn_ncpl'=>"$OCN_NCPL");
+# coupled_freq and coupled_freq_opts depend on 
+# environment variables NCPL_BASE_PERIOD and OCN_NCPL
+# Note that env_run.xml couples OCN_NCPL times per NCPL_BASE_PERIOD
+# while POP couples every coupled_freq [in units of coupled_freq_opts]
+# Example: OCN_NCPL = 4, NCPL_BASE_PERIOD = day => couple 4 times a day
+#          coupled_freq = 4, coupled_freq_opts = nday => couple every 4 days
+# Result: need to convert
+my $coupled_freq;
+my $coupled_freq_opt = 'nsecond';
+my $sec_per_base_period;
+if ($NCPL_BASE_PERIOD eq 'hour') {
+  $sec_per_base_period = 3600;
+} elsif ($NCPL_BASE_PERIOD eq 'day') {
+  $sec_per_base_period = 3600 * 24;
+} elsif ($NCPL_BASE_PERIOD eq 'year') {
+  if ($CALENDAR eq 'NO_LEAP') {
+    $sec_per_base_period = 3600 * 24 * 365 * 10;
+  } else {
+    die "$ProgName: ERROR invalid CALENDAR for NCPL_BASE_PERIOD $NCPL_BASE_PERIOD";
+  }
+} elsif ($NCPL_BASE_PERIOD eq 'decade') {
+  if ($CALENDAR eq 'NO_LEAP') {
+    $sec_per_base_period = 3600 * 24 * 365 * 10;
+  } else {
+    die "$ProgName: ERROR invalid CALENDAR for NCPL_BASE_PERIOD $NCPL_BASE_PERIOD";
+  }
+} else {
+  die "$ProgName: ERROR invalid NCPL_BASE_PERIOD $NCPL_BASE_PERIOD";
+}
+
+if ($sec_per_base_period < 0) {
+  die "$ProgName: ERROR integer overflow $sec_per_base_period should be positive";
+}
+
+if ($sec_per_base_period % $OCN_NCPL == 0) {
+  $coupled_freq = $sec_per_base_period/$OCN_NCPL;
+#  print "POP will communicate with coupler every $coupled_freq seconds\n";
+} else {
+  die "$ProgName: Coupling $OCN_NCPL times per $NCPL_BASE_PERIOD is not an integer number of seconds per coupling period";
+}
+if ($coupled_freq % 3600 == 0) {
+  $coupled_freq = $coupled_freq / 3600;
+  $coupled_freq_opt = 'nhour';
+#  print $sec_per_base_period/$OCN_NCPL," seconds = $coupled_freq hour(s)\n";
+  if ($coupled_freq % 24 == 0) {
+    $coupled_freq = $coupled_freq / 24;
+    $coupled_freq_opt = 'nday';
+#    print $sec_per_base_period/$OCN_NCPL," seconds = $coupled_freq day(s)\n";
+    if ($coupled_freq % 365 == 0) {
+      $coupled_freq = $coupled_freq / 365;
+      $coupled_freq_opt = 'nyear';
+#      print $sec_per_base_period/$OCN_NCPL," seconds = $coupled_freq year(s)\n";
+    }
+  }
+}
+
+add_default($nl,'coupled_freq',val=>"$coupled_freq");
+add_default($nl,'coupled_freq_opt', val=>"$coupled_freq_opt");
 add_default($nl,'qsw_distrb_opt', 'ocn_coupling'=>"$OCN_COUPLING");
-add_default($nl,'coupled_freq_opt');
 
 ##########################################
 # namelist group: sw_absorption_nml      #
