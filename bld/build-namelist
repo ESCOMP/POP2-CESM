@@ -400,20 +400,101 @@ if ($CONTINUE_RUN eq 'TRUE') {$RUN_TYPE = "continue";}
 
 my $iyear0  = `echo $RUN_STARTDATE | cut -c1-4  | sed -e 's/^0*//'`;
 $iyear0 =~ s/\n/ /g; # remove imbedded newline   
+$iyear0 = $iyear0+0;
 
 my $imonth0 = `echo $RUN_STARTDATE | cut -c6-7  | sed -e 's/^0*//'`;
 $imonth0 =~ s/\n/ /g; # remove imbedded newline   
+$imonth0 = $imonth0+0;
 
 my $iday0   = `echo $RUN_STARTDATE | cut -c9-10 | sed -e 's/^0*//'`;
 $iday0 =~ s/\n/ /g; # remove imbedded newline   
+$iday0 = $iday0+0;
 
 my $ihour0  = 0;
-if ($OCN_NCPL > 1) {
-  $ihour0 = $ihour0 + (24 / $OCN_NCPL);
+my $iminute0 = 0;
+my $isecond0 = 0;
+
+# coupled_freq and coupled_freq_opts depend on 
+# environment variables NCPL_BASE_PERIOD and OCN_NCPL
+# Note that env_run.xml couples OCN_NCPL times per NCPL_BASE_PERIOD
+# while POP couples every coupled_freq [in units of coupled_freq_opts]
+# Example: OCN_NCPL = 4, NCPL_BASE_PERIOD = day => couple 4 times a day
+#          coupled_freq = 4, coupled_freq_opts = nday => couple every 4 days
+#
+# Also need to know coupled_freq and coupled_freq_opts to set start time
+# in time_manager_nml
+my $coupled_freq;
+my $coupled_freq_opt = 'nsecond';
+my $sec_per_base_period;
+if ($NCPL_BASE_PERIOD eq 'hour') {
+  $sec_per_base_period = 3600;
+} elsif ($NCPL_BASE_PERIOD eq 'day') {
+  $sec_per_base_period = 3600 * 24;
+} elsif ($NCPL_BASE_PERIOD eq 'year') {
+  if ($CALENDAR eq 'NO_LEAP') {
+    $sec_per_base_period = 3600 * 24 * 365;
+  } else {
+    die "$ProgName: ERROR invalid CALENDAR for NCPL_BASE_PERIOD $NCPL_BASE_PERIOD";
+  }
+} elsif ($NCPL_BASE_PERIOD eq 'decade') {
+  if ($CALENDAR eq 'NO_LEAP') {
+    $sec_per_base_period = 3600 * 24 * 365 * 10;
+  } else {
+    die "$ProgName: ERROR invalid CALENDAR for NCPL_BASE_PERIOD $NCPL_BASE_PERIOD";
+  }
 } else {
-  $iday0 = $iday0 + 1;
+  die "$ProgName: ERROR invalid NCPL_BASE_PERIOD $NCPL_BASE_PERIOD";
 }
 
+if ($sec_per_base_period < 0) {
+  die "$ProgName: ERROR integer overflow $sec_per_base_period should be positive";
+}
+
+if ($sec_per_base_period % $OCN_NCPL == 0) {
+  $coupled_freq = $sec_per_base_period/$OCN_NCPL;
+} else {
+  die "$ProgName: Coupling $OCN_NCPL times per $NCPL_BASE_PERIOD is not an integer number of seconds per coupling period";
+}
+if ($coupled_freq % 3600 == 0) {
+  $coupled_freq = $coupled_freq / 3600;
+  $coupled_freq_opt = 'nhour';
+#  print $sec_per_base_period/$OCN_NCPL," seconds = $coupled_freq hour(s)\n";
+  if ($coupled_freq % 24 == 0) {
+    $coupled_freq = $coupled_freq / 24;
+    $coupled_freq_opt = 'nday';
+#    print $sec_per_base_period/$OCN_NCPL," seconds = $coupled_freq day(s)\n";
+    if ($coupled_freq % 365 == 0) {
+      $coupled_freq = $coupled_freq / 365;
+      $coupled_freq_opt = 'nyear';
+#      print $sec_per_base_period/$OCN_NCPL," seconds = $coupled_freq year(s)\n";
+    }
+  }
+}
+
+# tmp starts with units of seconds, will cycle through minutes, hours, and days
+# and increase isecond0, iminute0, ihour0, and iday0 as necessary. Note that at
+# this point I don't know how to toggle months, so errors might occur with
+# abnormally large coupling frequency.
+my $tmp = $sec_per_base_period/$OCN_NCPL;
+my $remainder;
+# increase seconds
+$remainder = $tmp%60;
+$isecond0 += $remainder;
+# increase minutes
+$tmp = ($tmp - $remainder)/60;
+$remainder = $tmp%60;
+$iminute0 += $remainder;
+# increase hours
+$tmp = ($tmp - $remainder)/60;
+$remainder = $tmp%24;
+$ihour0 += $remainder;
+# increase days
+$tmp = ($tmp - $remainder)/24;
+if ($tmp > 0) {
+  $iday0 += $tmp;
+  # check to see if need to roll into new month / year
+  while (not valid_date(\$iday0, \$imonth0, \$iyear0, $CALENDAR)) {}
+}
 
 print "POP2 build-namelist: ocn_grid is $OCN_GRID \n";
 print "POP2 build-namelist: ocn_tracer_modules are $OCN_TRACER_MODULES \n";
@@ -462,12 +543,12 @@ add_default($nl, 'impcor');
 add_default($nl, 'laccel');
 add_default($nl, 'dtuxcel');
 add_default($nl, 'allow_leapyear', 'calendar'=>"$CALENDAR");
-add_default($nl, 'iyear0', 'val'=>$iyear0);
-add_default($nl, 'imonth0','val'=>$imonth0);
-add_default($nl, 'iday0'  ,'val'=>$iday0);
-add_default($nl, 'ihour0' ,'val'=>$ihour0);
-add_default($nl, 'iminute0');
-add_default($nl, 'isecond0');
+add_default($nl, 'iyear0'  ,'val'=>$iyear0);
+add_default($nl, 'imonth0' ,'val'=>$imonth0);
+add_default($nl, 'iday0'   ,'val'=>$iday0);
+add_default($nl, 'ihour0'  ,'val'=>$ihour0);
+add_default($nl, 'iminute0','val'=>$iminute0);
+add_default($nl, 'isecond0','val'=>$isecond0);
 add_default($nl, 'date_separator');
 add_default($nl, 'stop_option');
 add_default($nl, 'stop_count');
@@ -979,62 +1060,7 @@ add_default($nl,'ap_data_renorm');
 # namelist group: coupled_nml            #
 ##########################################
 
-# coupled_freq and coupled_freq_opts depend on 
-# environment variables NCPL_BASE_PERIOD and OCN_NCPL
-# Note that env_run.xml couples OCN_NCPL times per NCPL_BASE_PERIOD
-# while POP couples every coupled_freq [in units of coupled_freq_opts]
-# Example: OCN_NCPL = 4, NCPL_BASE_PERIOD = day => couple 4 times a day
-#          coupled_freq = 4, coupled_freq_opts = nday => couple every 4 days
-# Result: need to convert
-my $coupled_freq;
-my $coupled_freq_opt = 'nsecond';
-my $sec_per_base_period;
-if ($NCPL_BASE_PERIOD eq 'hour') {
-  $sec_per_base_period = 3600;
-} elsif ($NCPL_BASE_PERIOD eq 'day') {
-  $sec_per_base_period = 3600 * 24;
-} elsif ($NCPL_BASE_PERIOD eq 'year') {
-  if ($CALENDAR eq 'NO_LEAP') {
-    $sec_per_base_period = 3600 * 24 * 365 * 10;
-  } else {
-    die "$ProgName: ERROR invalid CALENDAR for NCPL_BASE_PERIOD $NCPL_BASE_PERIOD";
-  }
-} elsif ($NCPL_BASE_PERIOD eq 'decade') {
-  if ($CALENDAR eq 'NO_LEAP') {
-    $sec_per_base_period = 3600 * 24 * 365 * 10;
-  } else {
-    die "$ProgName: ERROR invalid CALENDAR for NCPL_BASE_PERIOD $NCPL_BASE_PERIOD";
-  }
-} else {
-  die "$ProgName: ERROR invalid NCPL_BASE_PERIOD $NCPL_BASE_PERIOD";
-}
-
-if ($sec_per_base_period < 0) {
-  die "$ProgName: ERROR integer overflow $sec_per_base_period should be positive";
-}
-
-if ($sec_per_base_period % $OCN_NCPL == 0) {
-  $coupled_freq = $sec_per_base_period/$OCN_NCPL;
-#  print "POP will communicate with coupler every $coupled_freq seconds\n";
-} else {
-  die "$ProgName: Coupling $OCN_NCPL times per $NCPL_BASE_PERIOD is not an integer number of seconds per coupling period";
-}
-if ($coupled_freq % 3600 == 0) {
-  $coupled_freq = $coupled_freq / 3600;
-  $coupled_freq_opt = 'nhour';
-#  print $sec_per_base_period/$OCN_NCPL," seconds = $coupled_freq hour(s)\n";
-  if ($coupled_freq % 24 == 0) {
-    $coupled_freq = $coupled_freq / 24;
-    $coupled_freq_opt = 'nday';
-#    print $sec_per_base_period/$OCN_NCPL," seconds = $coupled_freq day(s)\n";
-    if ($coupled_freq % 365 == 0) {
-      $coupled_freq = $coupled_freq / 365;
-      $coupled_freq_opt = 'nyear';
-#      print $sec_per_base_period/$OCN_NCPL," seconds = $coupled_freq year(s)\n";
-    }
-  }
-}
-
+# $coupled_freq and $coupled_freq_opts are computed after reading XML vars
 add_default($nl,'coupled_freq',val=>"$coupled_freq");
 add_default($nl,'coupled_freq_opt', val=>"$coupled_freq_opt");
 add_default($nl,'qsw_distrb_opt', 'ocn_coupling'=>"$OCN_COUPLING");
@@ -2068,6 +2094,70 @@ sub print_nl_to_screen {
       }
     }
   }
+}
+
+#-------------------------------------------------------------------------------
+
+sub valid_date {
+# return 1 if given date ($$month/$$day/$$year) exists in calendar $cal
+# otherwise subtract number of days in $$month from $$day, and increment
+# $$month by 1 (also incrementing $$year if going from Dec to Jan) and 
+# then return 0.
+
+  use Switch;
+
+  my $day = shift;
+  my $month = shift;
+  my $year = shift;
+  my $cal = shift;
+
+  my $maxday = -1;
+  switch ($$month) {
+    case 1 { $maxday = 31; }
+    case 2 {
+      if (($cal eq 'NO_LEAP') || (not leap($$year))) {
+        $maxday = 28;
+      } else {
+        $maxday = 29;
+      }
+    }
+    case 3 { $maxday = 31; }
+    case 4 { $maxday = 30; }
+    case 5 { $maxday = 31; }
+    case 6 { $maxday = 30; }
+    case 7 { $maxday = 31; }
+    case 8 { $maxday = 31; }
+    case 9 { $maxday = 30; }
+    case 10 { $maxday = 31; }
+    case 11 { $maxday = 30; }
+    case 12 { $maxday = 31; }
+  }
+  if ($maxday == -1) {
+    die "ERROR: can not figure out what month $$month is";
+  }
+  if ($$day > $maxday) {
+    $$month++;
+    if ($$month == 13) {
+      $$year++;
+      $$month = 1;
+    }
+    $$day = $$day - $maxday;
+    return 0;
+  }
+  return 1;
+}
+
+#-------------------------------------------------------------------------------
+
+sub leap() {
+# return 1 if given year is a leap year, 0 otherwise
+
+  my $year = shift;
+
+  if (($year%4 == 0) && (($year%400 == 0) || ($year%100 != 0))) {
+    return 1;
+  }
+  return 0;
 }
 
 

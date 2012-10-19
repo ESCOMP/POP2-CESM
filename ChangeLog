@@ -3,6 +3,21 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    19 October 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20121019
+Tag Summary: Coupling every 30 minutes caused problems in how build-namelist set
+             up time_manager_nml (ihour0 = 0.5 is bad when ihour is an integer).
+             This update moves the logic for computing coupled_freq up to when
+             we read in XML variables and then computes iyear0, imonth0, iday0,
+             ihour0, iminute0, and isecond0 properly.
+
+Files Modified:
+M            41161   bld/build-namelist
+M            41161   bld/namelist_files/namelist_defaults_pop2.xml
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    18 October 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20121018
 Tag Summary: build-namelist didn't know how to handle coupling every 30 minutes

@@ -46,9 +46,6 @@
 <allow_leapyear calendar="GREGORIAN">.true.</allow_leapyear> 
 <allow_leapyear>.false.</allow_leapyear>
 
-<isecond0>0</isecond0>
-<iminute0>0</iminute0>
-
 <date_separator>'-'</date_separator>
 
 <stop_option>nyear</stop_option>
