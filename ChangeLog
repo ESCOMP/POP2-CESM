@@ -3,6 +3,21 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    23 October 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20121023
+Tag Summary: Adding to error output when ice runoff is negative -- printing the
+             min value to see if the negative runoff is near round-off level or
+             if it is a significant negative value.
+
+Testing:     Built a C compset to ensure code compiles, still need to trigger the
+             error and make sure formatting is legible.
+
+Files Modified:
+M            41224   drivers/cpl_mct/ocn_comp_mct.F90
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    19 October 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20121019
 Tag Summary: Coupling every 30 minutes caused problems in how build-namelist set
