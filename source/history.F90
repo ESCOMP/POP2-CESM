@@ -196,7 +196,11 @@
 !
 !-----------------------------------------------------------------------
 
-      call date_and_time(date=date_created, time=time_created)
+      if (my_task.eq.master_task) then
+        call date_and_time(date=date_created, time=time_created)
+      end if
+      call broadcast_scalar(date_created, master_task)
+      call broadcast_scalar(time_created, master_task)
       hist_string = char_blank
       write(hist_string,'(a23,a8,1x,a10)') & 
          'POP HIST file created: ',date_created,time_created

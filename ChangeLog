@@ -3,6 +3,23 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    13 November 2012
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20121113
+Tag Summary: Rather than call date_and_time() on every process, call it on
+             master_task and broadcast it to rest (this is needed to avoid
+             issues in parallel output since date_and_time() provides the
+             timestamp used in netcdf attribute so it needs to be the same
+             on all tasks)
+
+Testing:     Built a C compset to ensure code compiles and runs
+
+Files Modified:
+M            41884   source/movie.F90
+M            41884   source/history.F90
+M            41884   source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    23 October 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20121023
 Tag Summary: Adding to error output when ice runoff is negative -- printing the
