@@ -80,10 +80,10 @@ id="clinic_distribution_type"
 type="char*256" 
 category="decomp" 
 group="domain_nml" 
-valid_values="cartesian,balanced,spacecurve" >
+valid_values="cartesian,balanced,spacecurve,blockone" >
 Method to use to distribute blocks in baroclinic distribution.
 
-Valid Values: 'cartesian', 'balanced', 'spacecurve'
+Valid Values: 'cartesian', 'balanced', 'spacecurve', 'blockone'
 Default: 'cartesian'
 </entry>
 
@@ -92,10 +92,10 @@ id="tropic_distribution_type"
 type="char*256" 
 category="decomp" 
 group="domain_nml" 
-valid_values="cartesian,balanced,spacecurve" >
+valid_values="cartesian,balanced,spacecurve,blockone" >
 Method to use to distribute blocks in barotropic distribution.
 
-Valid Values: 'cartesian', 'balanced', 'spacecurve'
+Valid Values: 'cartesian', 'balanced', 'spacecurve', 'blockone'
 Default: 'cartesian'
 </entry>
 

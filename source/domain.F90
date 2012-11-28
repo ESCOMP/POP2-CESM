@@ -198,6 +198,8 @@
       clinicDistributionMethod = POP_distribMethodRake
    case ('spacecurve','Spacecurve','SPACECURVE')
       clinicDistributionMethod = POP_distribMethodSpacecurve
+   case ('blockone','Blockone','BLOCKONE')
+      clinicDistributionMethod = POP_distribMethodBlockone
    case default
       call POP_ErrorSet(errorCode, &
          'POP_DomainInit: unknown clinic distribution type')
@@ -211,6 +213,8 @@
       tropicDistributionMethod = POP_distribMethodRake
    case ('spacecurve','Spacecurve','SPACECURVE')
       tropicDistributionMethod = POP_distribMethodSpacecurve
+   case ('blockone','Blockone','BLOCKONE')
+      tropicDistributionMethod = POP_distribMethodBlockone
    case default
       call POP_ErrorSet(errorCode, &
          'POP_DomainInit: unknown tropic distribution type')

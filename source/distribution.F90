@@ -19,6 +19,7 @@
    use blocks
    use POP_SpaceCurveMod
    use exit_mod
+   use io_types, only: stdout
 
    implicit none
    private
@@ -136,6 +137,10 @@
    case('spacecurve')
 
       create_distribution = create_distrb_spacecurve(nprocs, &
+						   workPerBlock)
+   case('blockone')
+
+      create_distribution = create_distrb_blockone(nprocs, &
 						   workPerBlock)
    case default
 
@@ -337,6 +342,130 @@
 !EOC
 
  end function create_distrb_cart
+!***********************************************************************
+!BOP
+! !IROUTINE: create_distrb_blockone
+! !INTERFACE:
+
+ function create_distrb_blockone(nprocs, work_per_block)
+
+! !DESCRIPTION:
+!  This function creates a distribution of blocks across processors
+!  using a simple blocked distribution.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      nprocs     ! number of processors in this distribution
+
+   integer (int_kind), dimension(:), intent(in) :: &
+      work_per_block        ! amount of work per block
+
+! !OUTPUT PARAMETERS:
+
+   type (distrb) :: &
+      create_distrb_blockone  ! resulting structure describing blocked
+                              !  distribution of blocks
+
+!EOP
+!BOC
+!----------------------------------------------------------------------
+!
+!  local variables
+!
+!----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      i, j                  ,&! dummy loop indices
+      iblock, jblock, nblck ,&!
+      pe                    ,&! task number
+      pecnt                   ! count blocks per pe
+   real(r8)           :: &
+      totwork               ,&! total work to do
+      pework                ,&! work assigned to current pe
+      petargetwork            ! target work for pe
+
+   type (distrb) :: dist  ! temp hold distribution
+
+!----------------------------------------------------------------------
+!
+!  create communicator for this distribution
+!
+!----------------------------------------------------------------------
+
+   call create_communicator(dist%communicator, nprocs)
+
+!----------------------------------------------------------------------
+!
+!  try to find best processor arrangement
+!
+!----------------------------------------------------------------------
+
+   dist%nprocs = nprocs
+
+!----------------------------------------------------------------------
+!
+!  allocate space for decomposition
+!
+!----------------------------------------------------------------------
+
+   allocate (dist%proc       (nblocks_tot), &
+             dist%local_block(nblocks_tot))
+
+!----------------------------------------------------------------------
+!
+!  distribute blocks linearly across processors in each direction
+!
+!----------------------------------------------------------------------
+
+   totwork = 0.0_r8
+   do nblck = 1,nblocks_tot
+      totwork = totwork + float(work_per_block(nblck))
+   enddo
+
+   pe = 1
+   pecnt = 0
+   pework = 0.0_r8
+   petargetwork = totwork/float(nprocs-pe+1)
+   do nblck = 1,nblocks_tot
+
+! tcraig reminder of block ordering
+!      nblck = (jblock - 1)*nblocks_x + iblock
+
+      if (pecnt > 0 .and. pe < nprocs) then
+         if (abs(pework-petargetwork) < abs(pework+work_per_block(nblck)-petargetwork)) then
+            write(stdout,*) 'debug: cre_dist_rr ',pe,pecnt,pework,petargetwork
+            pe = min(pe + 1,nprocs)
+            pecnt = 0
+            pework = 0.0
+            petargetwork = totwork/float(nprocs-pe+1)
+         endif
+      endif
+      pecnt = pecnt + 1
+      pework = pework + float(work_per_block(nblck))
+      totwork = totwork - float(work_per_block(nblck))
+
+      if (work_per_block(nblck) /= 0) then
+         dist%proc(nblck) = pe
+         dist%local_block(nblck) = pecnt
+      else
+         dist%proc(nblck) = 0
+         dist%local_block(nblck) = 0
+      endif
+   end do
+   write(stdout,*) 'debug: cre_dist_rr ',pe,pecnt,pework,petargetwork
+
+!----------------------------------------------------------------------
+
+   create_distrb_blockone = dist  ! return the result
+
+!----------------------------------------------------------------------
+!EOC
+
+ end function create_distrb_blockone
 !**********************************************************************
 !BOP
 ! !IROUTINE: create_distrb_spacecurve

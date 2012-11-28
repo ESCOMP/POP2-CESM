@@ -61,7 +61,8 @@
       POP_distribMethodNone      = 0, &
       POP_distribMethodCartesian = 1, &
       POP_distribMethodRake      = 2, &
-      POP_distribMethodSpacecurve= 3
+      POP_distribMethodSpacecurve= 3, &
+      POP_distribMethodBlockone  = 4
 
 !EOP
 !BOC
@@ -176,6 +177,17 @@
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
                'POP_DistributionCreate: error in Spacecurve create')
+         return
+      endif
+
+   case(POP_distribMethodBlockone)
+
+      newDistrb = POP_DistributionCreateBlockone(numProcs, &
+                                             workPerBlock, errorCode)
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+               'POP_DistributionCreate: error in Blockone create')
          return
       endif
 
@@ -806,6 +818,168 @@
 !EOC
 
  end function POP_DistributionCreateCartesian
+
+!***********************************************************************
+!BOP
+! !IROUTINE: POP_DistributionCreateBlockone
+! !INTERFACE:
+
+ function POP_DistributionCreateBlockone(numProcs, workPerBlock, &
+                                          errorCode) result(newDistrb)
+
+! !DESCRIPTION:
+!  This function creates a distribution of blocks across processors
+!  using a simple blocked decomposition.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (POP_i4), intent(in) :: &
+      numProcs            ! number of processors in this distribution
+
+   integer (POP_i4), dimension(:), intent(in) :: &
+      workPerBlock        ! amount of work per block
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode           ! returned error code
+
+   type (POP_distrb) :: &
+      newDistrb           ! resulting structure describing blocked
+                          !  distribution of blocks
+
+!EOP
+!BOC
+!----------------------------------------------------------------------
+!
+!  local variables
+!
+!----------------------------------------------------------------------
+
+   integer (POP_i4) :: &
+      i, j,                  &! dummy loop indices
+      istat,                 &! status flag for allocation
+      iblock, jblock, nblck, &!
+      pe,                    &! processor position in blockone decomp
+      pecnt,                 &! count blocks per pe
+      globalID,              &! global block ID
+      localID                 ! block location on this processor
+   real (POP_r8) :: &
+      totwork, pework, petargetwork  ! work trackers
+
+!----------------------------------------------------------------------
+!
+!  create communicator for this distribution
+!
+!----------------------------------------------------------------------
+
+   errorCode = POP_Success
+
+   call POP_CommCreateCommunicator(newDistrb%communicator, numProcs)
+
+!----------------------------------------------------------------------
+!
+!  set numProcs
+!
+!----------------------------------------------------------------------
+
+   newDistrb%numProcs = numProcs
+
+!----------------------------------------------------------------------
+!
+!  allocate space for decomposition
+!
+!----------------------------------------------------------------------
+
+   allocate (newDistrb%blockLocation(POP_numBlocks), &
+             newDistrb%blockLocalID (POP_numBlocks), stat=istat)
+
+   if (istat > 0) then
+      call POP_ErrorSet(errorCode, &
+         'POP_DistributionCreateBlockone: error allocating blockLoc')
+      return
+   endif
+
+!----------------------------------------------------------------------
+!
+!  distribute blocks linearly across processors in each direction
+!
+!----------------------------------------------------------------------
+
+   totwork = 0.0_r8
+   do nblck = 1,POP_numBlocks
+      totwork = totwork + float(workperblock(nblck))
+   enddo
+
+   pe = 1
+   pecnt = 0
+   pework = 0.0_r8
+   petargetwork = totwork/float(numProcs-pe+1)
+   do nblck = 1,POP_numBlocks
+
+! tcraig reminder of block ordering
+!      nblck = (jblock - 1)*nblocks_x + iblock
+
+      if (pecnt > 0 .and. pe < numProcs) then
+         if (abs(pework-petargetwork) < abs(pework+workperblock(nblck)-petargetwork)) then
+            pe = min(pe + 1,numProcs)
+            pecnt = 0
+            pework = 0.0
+            petargetwork = totwork/float(numProcs-pe+1)
+         endif
+      endif
+      pecnt = pecnt + 1
+      pework = pework + float(workperblock(nblck))
+      totwork = totwork - float(workperblock(nblck))
+
+      if (workperblock(nblck) /= 0) then
+         newDistrb%blockLocation(nblck) = pe
+         newDistrb%blockLocalID(nblck) = pecnt
+      else
+         newDistrb%blockLocation(nblck) = 0
+         newDistrb%blockLocalID(nblck) = 0
+      endif
+
+      ! if this is the local processor, set number of local blocks
+      if (POP_myTask == pe - 1) then
+         newDistrb%numLocalBlocks = pecnt
+      endif
+
+   end do
+
+!----------------------------------------------------------------------
+!
+!  now store the local info
+!
+!----------------------------------------------------------------------
+
+   if (newDistrb%numLocalBlocks > 0) then
+      allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
+                stat=istat)
+
+      if (istat > 0) then
+         call POP_ErrorSet(errorCode, &
+         'POP_DistributionCreateBlockone: error allocating blockLoc')
+         return
+      endif
+
+      localID =  0
+      do nblck = 1,POP_numBlocks
+         if (newDistrb%blockLocation(nblck) == POP_myTask + 1) then
+            localID = localID + 1
+            newDistrb%blockGlobalID (localID) = nblck
+         endif
+      enddo
+
+   endif
+
+!----------------------------------------------------------------------
+!EOC
+
+ end function POP_DistributionCreateBlockone
 
 !**********************************************************************
 !BOP
