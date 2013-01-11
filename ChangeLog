@@ -3,6 +3,35 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    11 January 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130111
+Tag Summary: Brought in Tony's blockone decomposition. If you do not use a
+             decomposition supported in bld/pop_decomp.xml, build-namelist
+						 will compute a decomposition rather than erroring out.
+
+Testing:     Showed that this is bit-for-bit out-of-the-box with a C compset
+             and both the ne30_g16 and ne120_t12 resolutions (using NTASKS_OCN
+						 set by create_newcase). Also showed that non-default task counts
+						 that were previously unsupported do not change the answer more
+						 than other supported decompositions. For ne120_t12, that involved
+						 running with NTASK_OCN = 1024 (default), 960 (supported in
+						 pop_decomp.xml), as well as both 1025 and 1230 (both required
+						 intervention by blockone).
+
+Files Modified:
+M            43193   source/POP_DistributionMod.F90
+M            43193   source/distribution.F90
+M            43193   source/domain.F90
+M            43193   bld/README.build-namelist
+M            43193   bld/generate_pop_decomp.pl
+M            43193   bld/namelist_files/namelist_defaults_pop2.xml
+M            43193   bld/namelist_files/namelist_definition_pop2.xml
+ M           43193   drivers/cpl_mct
+ M           43193   drivers/cpl_none
+ M           43193   .
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    14 November 2012
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20121114
 Tag Summary: Bug introduced in tavg.F90 that prevents building... arguments

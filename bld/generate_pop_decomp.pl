@@ -17,6 +17,7 @@ use Cwd;
 use strict;
 use Getopt::Long;
 use English;
+use POSIX;
 
 #-----------------------------------------------------------------------------------------------
 
@@ -159,6 +160,7 @@ sub CalcDecompInfo {
 # Calculate decomposition information
 # Tries to first find an even cartesian decomposition (set = 1)
 # If can't find an even decomp, tries a space filling curve (set = 2)
+# If it can't find spacecurve, find a blockone decomp
 #
   my $nlats    = shift;
   my $nlons    = shift;
@@ -168,18 +170,22 @@ sub CalcDecompInfo {
   my $nprocs = $opts{'nproc'};
   my $model  = $opts{'model'};
 
-  my ($maxblocks,$bsize_x,$bsize_y,$decomptype);
+#  my ($maxblocks,$bsize_x,$bsize_y,$decomptype);
   my %decomp;
   my $found = 0;
   my $done = 0;
-  my $nprocsx = 0;
-  my $nprocsy = 0;
   my $nx = 0;
   my $ny = 0;
+  my $nxblocks = 0;
+  my $nyblocks = 0;
   my $nn = 0;
   my $tmp = 0;
   my $nscore = 0.0 ;
   my $bscore = $nlons * $nlats * $nprocs ;
+  my $bsizex = 0;
+  my $bsizey = 0;
+  my $dtype;
+  my $mblocks = 0;
 
 # find an even 2d decomposition that has the most square blocks
 # for a given total number of processors, nproc, such that
@@ -195,43 +201,117 @@ sub CalcDecompInfo {
 # found indicates a decomp has been found, but need to continue
 # to search to find the best decomp.
 
-  $nn = 0;
-  do {
-     $nn = $nn + 1;
-     $ny = $nn;
-     $nx = int($nprocs/$ny);
-     if ($ny * $nx == $nprocs &&
-         $nlats % $ny == 0 &&
-         $nlons % $nx == 0) {
-
-        $tmp = ($nlons/$nx * $ny/$nlats) - 1.0 ;
-        $nscore = $tmp * $tmp;
-        if ($nscore < $bscore) {
-          $bscore = $nscore;
-          $nprocsx = $nx;
-          $nprocsy = $ny;
-          $found = 1;
-       }
-     }
-
-#     print "debug $nn $nx $ny $nprocsx $nprocsy $nscore $bscore $found \n";
-
-  } until ($nn == $nprocs);
-
-# space filling curves
   if ($found == 0) {
-#    what do we do here?     
-#    $found = 2
+     $nn = 0;
+     do {
+        $nn = $nn + 1;
+        $ny = $nn;
+        $nx = int($nprocs/$ny);
+        if ($ny * $nx == $nprocs &&
+            $nlats % $ny == 0 &&
+            $nlons % $nx == 0) {
+
+           $tmp = ($nlons/$nx * $ny/$nlats) - 1.0 ;
+           $nscore = $tmp * $tmp;
+           if ($nscore < $bscore) {
+             $found = 1;
+             $bscore = $nscore;
+             $mblocks = 1;
+             $dtype = "cartesian";
+             $bsizex = int( $nlons / $nx );
+             $bsizey = int( $nlats / $ny );
+             $nxblocks = $nx;
+             $nyblocks = $ny;
+	   }
+
+        }
+#        print "debug $nn $nx $ny $bsizex $bsizey $nscore $bscore $found \n";
+     } until ($nn == $nprocs);
   }
 
+# spacecurve or blockone decomp
+  if ($found == 0) {
+     my $nscore = 0.0 ;
+     my $scok = 0;
+     my $fac;
+     my $nbx;
+     my $nby;
+     my $bscore = $nlons * $nlats * $nprocs * 1000;
+     my $blksize = ($nlons * $nlats) / ($nprocs);
+     $nn = floor(sqrt($blksize)) + 1;
+     my $nxnyfact = $nn * 4;
+
+     if ($nlats == 1) {
+         $nxnyfact = $blksize;
+     }
+
+     $nx = 0;
+     do {
+         $nx = $nx + 1;
+         if ($nlons % $nx == 0) {
+             $ny = 0;
+             do {
+                 $ny = $ny + 1;
+                 if ($nlats % $ny == 0) {
+                     $scok = 0;
+                     # make sure nbx and nby are factorably by only 2, 3, 5 for spacecurve
+                     $nbx = $nlons / $nx;
+                     $nby = $nlats / $ny;
+                     $fac = 5;
+                     #print "tcxf1 $nbx $nby\n";
+                     do {
+                         if ($nbx % $fac == 0) {
+                             $nbx = $nbx / $fac;
+                         } else {
+                             $fac = $fac - 1;
+                         }
+                     } until ($fac == 1);
+                     $fac = 5;
+                     do {
+                         if ($nby % $fac == 0) {
+                             $nby = $nby / $fac;
+                         } else {
+                             $fac = $fac - 1;
+                         }
+                     } until ($fac == 1);
+                     #print "tcxf2 $nbx $nby\n";
+                     if ($nbx == 1 && $nby == 1) {
+                         $scok = 1;
+                     }
+
+                     # tcraig, somewhat arbitrary scoring system, best is min score
+                     # min aspect ratio, match blksize, scok good, about 1 block per pe
+                     my $nblocks = ($nlats * $nlons)/($nx * $ny * $nprocs);
+                     $nscore = 0.25 * ($nx/$ny + $ny/$nx + ($nx*$ny)/$blksize + $blksize/($nx*$ny)) + 0.5 * (1.0 - $scok) + 0.5 * (1.0/($nblocks) + $nblocks);
+                     #print "tcxf3 $nlons $nlats $nprocs $blksize $scok $nblocks $nx $ny $nscore \n";
+                     if ($nscore < $bscore) {
+                         $found  = 1;
+                         $mblocks = floor(($nlats * $nlons + $nx * $ny * $nprocs - 1)/($nx * $ny * $nprocs));
+                         $bscore = $nscore;
+                         $bsizex = $nx;
+                         $bsizey = $ny;
+                         if ($scok == 1) {
+			     $dtype = "spacecurve";
+                         } else {
+                             $dtype = "blockone";
+			 }
+                         #print "tcxf4 $bsizex $bsizey $dtype $mblocks \n";
+                     }
+                 }
+             } until ($ny > $nxnyfact);
+         }
+     } until ($nx >= $nxnyfact);
+  }
 
   if ($found == 1) {
     $decomp{'nlats'}      = $nlats;
     $decomp{'nlons'}      = $nlons;
-    $decomp{'maxblocks'}  = 1;
-    $decomp{'decomptype'} = "cartesian";
-    $decomp{'bsize_x'}    = int( $nlons / $nprocsx );
-    $decomp{'bsize_y'}    = int( $nlats / $nprocsy );
+    $decomp{'maxblocks'}  = $mblocks;
+    $decomp{'decomptype'} = $dtype;
+    $decomp{'bsize_x'}    = $bsizex;
+    $decomp{'bsize_y'}    = $bsizey;
+    $decomp{'nx_blocks'}  = $nxblocks;
+    $decomp{'ny_blocks'}  = $nyblocks;
   }
 
   return(%decomp);

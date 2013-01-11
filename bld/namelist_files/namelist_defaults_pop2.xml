@@ -8,9 +8,11 @@
 
 <clinic_distribution_type decomptype="cartesian" >cartesian</clinic_distribution_type>
 <clinic_distribution_type decomptype="spacecurve">spacecurve</clinic_distribution_type>
+<clinic_distribution_type decomptype="blockone"  >blockone</clinic_distribution_type>
 
-<tropic_distribution_type decomptype="cartesian"> cartesian</tropic_distribution_type>
+<tropic_distribution_type decomptype="cartesian" >cartesian</tropic_distribution_type>
 <tropic_distribution_type decomptype="spacecurve">spacecurve</tropic_distribution_type>
+<tropic_distribution_type decomptype="blockone"  >blockone</tropic_distribution_type>
 
 <ew_boundary_type>cyclic</ew_boundary_type>
 
