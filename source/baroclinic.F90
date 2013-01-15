@@ -707,11 +707,33 @@
          call accumulate_tavg_field(RHO(:,:,k,curtime,iblock), &
                                     tavg_RHO,iblock,k)
 
-         if (partial_bottom_cells) then 
-            WORK1 = RHO(:,:,k,curtime,iblock) * DZT(:,:,k,iblock)
+!         if (partial_bottom_cells) then 
+!            WORK1 = RHO(:,:,k,curtime,iblock) * DZT(:,:,k,iblock)
+!         else
+!            WORK1 = RHO(:,:,k,curtime,iblock) * dz(k)
+!         endif
+         if (sfc_layer_type == sfc_layer_varthick .and. &
+                   k == 1) then
+           where (k <= KMT(:,:,iblock))
+             WORK1 = RHO(:,:,k,curtime,iblock) * ( dz(k) + PSURF(:,:,curtime,iblock)/grav )
+           elsewhere
+             WORK1 = c0
+           endwhere
          else
-            WORK1 = RHO(:,:,k,curtime,iblock) * dz(k)
-         endif
+           if (partial_bottom_cells) then
+             where (k <= KMT(:,:,iblock))
+               WORK1 = RHO(:,:,k,curtime,iblock) * DZT(:,:,k,iblock)
+             elsewhere
+               WORK1 = c0
+             endwhere
+           else
+             where (k <= KMT(:,:,iblock))
+               WORK1 = RHO(:,:,k,curtime,iblock) * dz(k)
+             elsewhere
+               WORK1 = c0
+             endwhere
+           endif
+         endif 
          call accumulate_tavg_field(WORK1,tavg_RHO_VINT,iblock,k)
 
         if ( sfc_layer_type /= sfc_layer_varthick .and. k == 1) then
