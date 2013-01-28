@@ -1179,11 +1179,38 @@ if ($OCN_TRACER_MODULES =~ /iage/) {
 ##########################################
 
 if ($OCN_TRACER_MODULES =~ /cfc/) {
+
+#===============================================================================
+#  values of init_cfc_option for OCN_TRANSIENT == 1850-2000 are from following table
+#  runtype is set by Buildconf/pop2.buildnml.csh
+#
+#  CONTINUE_RUN   RUN_STARTDATE   RUN_TYPE        runtype     init_cfc_option
+#  TRUE           any             any             continue    ccsm_continue
+#  FALSE          <= 1930         any             $RUN_TYPE   zero
+#  FALSE          > 1930          hybrid,branch   $RUN_TYPE   ccsm_$RUN_TYPE
+#  FALSE          > 1930          startup         $RUN_TYPE   abort
+#===============================================================================
+
     my $init_cfc_option;
-    if (($OCN_TRANSIENT eq "1850-2000") && ($RUN_TYPE ne "continue")) {
-      $init_cfc_option = "zero";
-    } else {
-      $init_cfc_option = "ccsm_${RUN_TYPE}";
+    $init_cfc_option = "ccsm_${RUN_TYPE}";
+    if ($OCN_TRANSIENT eq "1850-2000") {
+      if ($RUN_TYPE ne "continue") {
+        my @START_ARRAY = split('-',$RUN_STARTDATE);
+        my $START_YEAR = @START_ARRAY[0];
+        if ($START_YEAR le 1930) {
+          $init_cfc_option = "zero";
+        } else {
+          if ($RUN_TYPE eq "startup") {
+            # Check to see if init_cfc_option was set in user_nl_pop2
+            $init_cfc_option = $nl->get_variable_value("cfc_nml", "init_cfc_option");
+            if ($init_cfc_option eq "") {
+              # If not, error out with message saying value must be specified 
+              print "ERROR: CFCs cannot be automatically initializd post 1930 in a startup run! Set init_cfc_option in user_nl_pop2 before building pop2_in.\n";
+              die;
+            }
+          }
+        }
+      }
     }
     add_default($nl, 'init_cfc_option', 'val'=>"$init_cfc_option");
 

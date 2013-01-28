@@ -2,6 +2,22 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy, klindsay
+Tag Date:    28 January 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130128
+Tag Summary: Keith Lindsay found a bug in the cfc namelist script dating back
+             to at least CCSM 4.0. Basically, cfcs were being set to zero for
+             hybrid and branch runs in transient cases for all start dates,
+             while they should have non-zero values after 1930.
+
+Testing:     Keith provided me with a working version of ocn.cfc.setup.csh for
+             1.0.5, I ported the changes to build-namelist and ensured the
+             namelists I generated in 1.1.1 matched his 1.0.5 namelists.
+
+Files Modified:
+M            43549   bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    18 January 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130118
