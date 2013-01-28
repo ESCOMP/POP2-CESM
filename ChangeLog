@@ -2,6 +2,15 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    28 January 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130128a
+Tag Summary: Typo in comment regarding cfc namelist options
+
+Files Modified:
+M            43549   bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy, klindsay
 Tag Date:    28 January 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130128

@@ -1182,7 +1182,7 @@ if ($OCN_TRACER_MODULES =~ /cfc/) {
 
 #===============================================================================
 #  values of init_cfc_option for OCN_TRANSIENT == 1850-2000 are from following table
-#  runtype is set by Buildconf/pop2.buildnml.csh
+#  runtype is set in $CASEROOT/env_run.xml
 #
 #  CONTINUE_RUN   RUN_STARTDATE   RUN_TYPE        runtype     init_cfc_option
 #  TRUE           any             any             continue    ccsm_continue
