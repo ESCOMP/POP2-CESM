@@ -909,6 +909,7 @@
 !
 !----------------------------------------------------------------------
 
+   newDistrb%numLocalBlocks = 0
    totwork = 0.0_r8
    do nblck = 1,POP_numBlocks
       totwork = totwork + float(workperblock(nblck))

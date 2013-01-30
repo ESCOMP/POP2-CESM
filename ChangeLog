@@ -3,6 +3,15 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    30 January 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130130
+Tag Summary: Another bug-fix for Tony's new decomposition work
+
+Files Modified:
+M            43608   source/POP_DistributionMod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    28 January 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130128a
 Tag Summary: Typo in comment regarding cfc namelist options
