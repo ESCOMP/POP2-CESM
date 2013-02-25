@@ -18,7 +18,8 @@
 
    use kinds_mod
    use exit_mod
-   use domain_size
+   use domain_size, only: nx_global, ny_global, block_size_x, block_size_y
+   use communicate, only: my_task
 
    implicit none
    private
@@ -42,7 +43,8 @@
    public :: create_blocks       ,&
              destroy_blocks      ,&
              get_block           ,&
-             get_block_parameter
+             get_block_parameter ,&
+             get_block_ids_from_coords
 
 ! !DEFINED PARAMETERS:
 
@@ -93,8 +95,7 @@ contains
 !  fills the data structures with all the necessary block information.
 !
 ! !REVISION HISTORY: 
-!  same as module
-!
+!  same as module!
 ! !INPUT PARAMETERS:
 
    integer (int_kind), intent(in) :: &
@@ -399,6 +400,118 @@ end subroutine create_blocks
 !----------------------------------------------------------------------
 
  end subroutine destroy_blocks
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: get_block_ids_from_coords
+! !INTERFACE:
+
+ subroutine get_block_ids_from_coords(num_blocks, block_ids, &
+      g_imin, g_jmin, g_imax, g_jmax)
+
+! !DESCRIPTION:
+!  This function returns the global block id(s) of the block(s) 
+!  that contain the given global coords (if min and max are given,
+!  then we find all ids within the box defined by (g_imin, g_jmin) and
+!   (g_imax, g_jmax
+!
+!
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      g_imin, g_jmin !global coordinates in i and j
+
+   integer (int_kind), intent(in), optional :: &
+      g_imax, g_jmax !global coordinates in i and j
+
+
+! !OUTPUT PARAMETERS:
+
+   integer (int_kind), intent(out) :: &
+      num_blocks    ! number of block ids returned
+   
+   integer (int_kind), intent(out), dimension(:), pointer :: &
+        block_ids
+
+
+! ! local variables 
+
+   integer (int_kind) :: imin_pos, &
+        jmin_pos, imax_pos, jmax_pos, id, ni, nj, i, j,count
+   real (r4) :: tmp_r
+
+   !make sure these are valid coords, i.e. in the global domain
+
+   if ( (nx_global < g_imin)  .or. &
+        (ny_global < g_jmin)) then
+      call exit_POP(sigAbort, &
+           'get_block_from_coords: invalid coords - too large')
+   end if
+
+   if (present(g_imax)) then
+      if (present(g_jmax)) then
+         if ( (nx_global < g_imax)  .or. &
+              (ny_global < g_jmax)) then
+            call exit_POP(sigAbort, &
+                 'get_block_ids_from_coords: invalid coords - too large')
+         end if
+      else
+         call exit_POP(sigAbort, &
+              'get_block_ids_fromPcoords:  must supply BOTH g_imax AND g_jmax.')
+      end if
+   end if
+
+
+   !lets's find out what the block position containing the min coords are is
+
+   imin_pos = ceiling(real(g_imin, r4)/real(block_size_x, r4))
+   jmin_pos = ceiling(real(g_jmin, r4)/real(block_size_y, r4))
+   
+
+   !now, which global block id is this min?
+   id = (jmin_pos-1)*nblocks_x + imin_pos
+
+   ! set return 
+
+   if (.not. present(g_imax)) then
+      !just one to return
+      num_blocks = 1
+      allocate(block_ids(num_blocks))
+      block_ids(1) = id
+   else
+      !need to figure out all the block ids in the described box
+
+      !get the block position for the max coords
+      imax_pos = ceiling(real(g_imax, r4)/real(block_size_x, r4))
+      jmax_pos = ceiling(real(g_jmax, r4)/real(block_size_y, r4))
+
+      !how many blocks?
+      ni = imax_pos - imin_pos + 1
+      nj = jmax_pos - jmin_pos + 1
+
+      num_blocks = ni*nj
+
+      allocate(block_ids(num_blocks))
+      count = 0
+
+      do j = jmin_pos, jmax_pos
+         do i = imin_pos, imax_pos            
+            id = (j-1)*nblocks_x + i
+            count =  count + 1
+            block_ids(count) = id
+         end do
+      end do
+
+   end if
+
+!   print *, 'IAM (in blocs.F90): ', my_task, 'num blocks: ', num_blocks, &
+!        'blocks= ', block_ids(1:num_blocks)
+
+
+
+ end subroutine get_block_ids_from_coords
+
 
 !***********************************************************************
 

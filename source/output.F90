@@ -23,6 +23,7 @@
    use history, only: write_history, init_history
    use movie, only: write_movie, init_movie
    use overflows
+   use overflow_type
    use tavg, only: write_tavg, init_tavg
    use timers, only: get_timer, timer_start, timer_stop
 

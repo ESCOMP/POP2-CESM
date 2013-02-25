@@ -64,6 +64,7 @@
        set_interior_passive_tracers_3D
    use exit_mod, only: sigAbort, exit_pop, flushm
    use overflows
+   use overflow_type
 
    implicit none
    private

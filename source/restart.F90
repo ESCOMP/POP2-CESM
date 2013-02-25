@@ -53,6 +53,7 @@
    use registry
    use passive_tracers, only: write_restart_passive_tracers
    use overflows
+   use overflow_type
 
    implicit none
    private

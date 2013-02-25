@@ -50,6 +50,7 @@
    use passive_tracers, only: tadvect_ctype_passive_tracers
    use registry
    use overflows
+   use overflow_type
 
    implicit none
    private

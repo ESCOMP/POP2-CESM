@@ -51,7 +51,7 @@
 #endif
 
    integer (int_kind), parameter :: &
-      max_timers    = 50       ! max number of timers
+      max_timers    = 60       ! max number of timers
 
    type timer_data
       character (char_len) :: &

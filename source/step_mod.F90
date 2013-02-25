@@ -43,6 +43,7 @@
    use io_types
    use budget_diagnostics
    use overflows
+   use overflow_type
 
    implicit none
    private

@@ -43,6 +43,7 @@
    use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now
 
    use overflows
+   use overflow_type
 
    implicit none
    private

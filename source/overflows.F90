@@ -1,6 +1,10 @@
+
+
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  MODULE overflows
+
+!testing out some changes here
 
 !BOP
 ! !MODULE: overflows
@@ -41,10 +45,14 @@
    use grid
    use io_types
    use kinds_mod
+   use overflow_type
+   use ovf_utils
    use prognostic
    use time_management
    use registry
    use state_mod
+
+   use timers, only: timer_start, timer_stop, get_timer
 
    !*** ccsm
    use gather_scatter
@@ -53,6 +61,8 @@
    implicit none
    private
    save
+
+  include 'mpif.h'
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
@@ -107,209 +117,6 @@
 !     define overflow types and parameters
 !-----------------------------------------------------------------------
 
-   logical (log_kind),   public  :: &
-      overflows_on,     &         ! true=on, false=off
-      overflows_interactive       ! true=interactive ovf
-
-   character (POP_charLength)  :: &
-      overflows_infile,           &! overflow info file
-      overflows_diag_outfile,     &! current filename for overflow output diagnostics file
-      outfile_tmp                  ! temp for appending to outfile name
-
-   character (POP_charLength), public  :: &
-      overflows_restart_type,    &! restart type (ccsm_startup, ccsm_continue, ccsm_hybrid, ccsm_branch)
-      overflows_restfile          ! overflow restart file name
-
-   integer (int_kind), parameter, public :: &
-      max_ovf      =    10,&  ! max no. ocean overflows
-      max_kmt      =   200,&  ! max no. overflow kmt changes
-      max_src      =    50,&  ! max no. overflow src locations
-      max_ent      =    50,&  ! max no. overflow ent locations
-      max_prd_sets =    20,&  ! max no. overflow prd sets
-      max_prd      =    50    ! max no. overflow prd locs each set
-
-   integer (int_kind), public :: &
-      num_ovf                        ! no. of overflows from ovf info file
-
-   type, public :: ovf_params        ! parameters for each overflow
-      real      (r8)    :: & 
-        lat               ,&  ! latitude (degrees)
-        width             ,&  ! strait width (cm)
-        source_thick      ,&  ! source water thickness (cm)
-        distnc_str_ssb    ,&  ! distance strait to ssb (cm)
-        bottom_slope      ,&  ! bottom slope beyond ssb 
-        bottom_drag           ! bottom drag coefficient
-   end type ovf_params
-
-   type, public :: ovf_kmtbox        ! overflow grid-box for kmt changes
-      integer   (int_kind)  :: &
-        i                 ,&  ! x index
-        j                 ,&  ! y index
-        korg              ,&  ! original kmt value
-        knew                  ! new kmt value
-   end type ovf_kmtbox
-
-   type, public :: ovf_region        ! overflow regional boundaries
-      integer   (int_kind)  :: & 
-        imin              ,&  ! x index min
-        imax              ,&  ! x index max
-        jmin              ,&  ! y index min
-        jmax              ,&  ! y index ma
-        kmin              ,&  ! z index min
-        kmax                  ! z index max
-   end type ovf_region
-
-   type, public :: ovf_mask_reg      ! overflow regional mask
-      real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
-        inf               ,&  ! inflow region mask
-        src               ,&  ! source region mask
-        ent                   ! entrainment region mask
-   end type ovf_mask_reg
-
-   type, public :: ovf_mask_adj      ! overflow adjacent mask
-      real (r8) :: src(nx_block,ny_block,max_blocks_clinic), &           ! src adj mask
-                   ent(nx_block,ny_block,max_blocks_clinic)              ! ent adj mask
-      real (r8) :: prd(nx_block,ny_block,max_blocks_clinic,max_prd_sets) ! prd adj mask(s)
-   end type ovf_mask_adj
-
-   type, public :: ovf_mask_reg_wght ! overflow regional mask weight
-      real (r8) :: &
-        inf               ,&  ! inflow region mask weight
-        src               ,&  ! source region mask weight
-        ent                   ! entrainment region mask weight
-   end type ovf_mask_reg_wght
-
-   type, public :: ovf_mask_adj_wght ! overflow adjacent mask weight
-      real (r8) :: &
-        src               ,&  ! source adj mask weight
-        ent               ,&  ! entrainment adj mask weight
-        prd(max_prd_sets)     ! product adj mask weight(s)
-   end type ovf_mask_adj_wght
-
-   type, public :: ovf_trcr_reg      ! overflow regional tracers
-      real (r8), dimension(nt) :: &
-        inf               ,&  ! inflow region tracers
-        src               ,&  ! source region tracers
-        ent               ,&  ! entrainment region tracers
-        prd                   ! product region tracers
-   end type ovf_trcr_reg
-
-   type, public :: ovf_trcr_adj      ! overflow adjacent tracers
-      real (r8), dimension(nt) :: &
-        src               ,&  ! source adj tracers
-        ent               ,&  ! entrainment adj tracers
-        prd                   ! product adj tracers
-   end type ovf_trcr_adj
-
-   type, public :: ovf_rho_reg       ! overflow regional density
-      real (r8) :: &
-        inf               ,&  ! inflow region density
-        src               ,&  ! source region density
-        ent                   ! entrainment region density
-   end type ovf_rho_reg
-
-   type, public :: ovf_rho_adj       ! overflow adj density
-      real (r8) :: &
-        prd(max_prd_sets)     ! product region density(s)
-   end type ovf_rho_adj
-
-   type, public :: ovf_gridbox    ! overflow grid-box info
-      integer   (int_kind)  :: &
-        i                 ,&  ! x index for t grid
-        j                 ,&  ! y index for t grid
-        k                 ,&  ! z index for t grid
-        orient            ,&  ! sidewall orientation of t grid box
-        i_adv             ,&  ! x index for t grid advection
-        j_adv             ,&  ! y index for t grid advection
-        i_u               ,&  ! x index for u grid
-        j_u               ,&  ! y index for u grid
-        task_u                ! task number for (i_u,j_u)
-      real (r8) :: &
-        Utlda(km)         ,&  ! UVEL "tilda" at (n+1) column speed on u grid
-        Vtlda(km)         ,&  ! VVEL "tilda" at (n+1) column speed on u grid
-        Uovf_nm1          ,&  ! U at (n-1) speed on u grid
-        Uovf_n            ,&  ! U at (n)   speed on u grid
-        Uovf              ,&  ! U at (n+1) speed on u grid
-        Wovf                  ! W at (n+1) vert speed on t grid
-   end type ovf_gridbox
-
-!-------------------------------------------------------------------------------
-!     type overflow that follows contains all diagnostic and prognostic
-!     data for each overflow; complete list for all overflows is contained 
-!     in the array ovf. each overflow is specified by regions, grid locations,
-!     and adjacent locations. inf (inflow) and src (source) regions are
-!     geographically specified volumes from which density differences
-!     determine source transport Ms. this transport is assumed to flow into
-!     sidewall locations (possibly modified from original topography by any
-!     kmt changes) given by src locations, transporting mean tracers from
-!     adjacent grid boxes to the sidewall specified by adjacent boundaries.
-!     this transport moves unimpeded to the ent (entrainment) locations, where
-!     an entrainment region density along with source density (adjusted for
-!     depth changes) determines mixing. entrainment tracers from means along
-!     adjacent entrainment grid boxes are mixed with source tracers resulting 
-!     in a total transport Mp and mixed product tracers. this product is then 
-!     injected from a product sidewall for which the product density is neutral 
-!     with the adjacent mean density. each product set is a group of points, 
-!     and the collection of sets represents a product path of increasing depth.
-!
-!     the reader is to be commended for taking in this tedious explanation.
-!     it is unfortunately necessary to explain the complexity of the overflow
-!     parameterization.
-!-------------------------------------------------------------------------------
-
-   type, public :: overflow          ! individual overflow info  
-  ! logicals and name
-      logical   (log_kind)          :: interactive           ! T=ovf active with ocn
-      character (32)                :: name                  ! name of ovf
-  ! parameters
-      type      (ovf_params)        :: ovf_params            ! ovf specific params
-  ! kmt mods
-      integer   (int_kind)          :: num_kmt               ! no. of kmt changes
-      type      (ovf_kmtbox)        :: loc_kmt(max_kmt)      ! kmt locs
-  ! source locations
-      integer   (int_kind)          :: num_src               ! no. of src locs
-      type      (ovf_gridbox)       :: loc_src(max_src)      ! src locs
-  ! entrainment locations
-      integer   (int_kind)          :: num_ent               ! no. of ent locs
-      type      (ovf_gridbox)       :: loc_ent(max_ent)      ! ent locs
-  ! product sets (various injection locations) and point for each
-      integer   (int_kind)          :: num_prd_sets          ! no. prd sets of pnts
-      integer   (int_kind)          :: num_prd(max_prd_sets) ! no. prd locs each set
-      type      (ovf_gridbox)       :: loc_prd(max_prd_sets,max_prd) ! prd locs
-  ! region locations, masks, tracer and density means for inf, src and ent
-      type      (ovf_region)        :: reg_inf               ! inf reg boundaries
-      type      (ovf_region)        :: reg_src               ! src reg boundaries
-      type      (ovf_region)        :: reg_ent               ! ent reg boundaries
-      type      (ovf_mask_reg)      :: mask_reg              ! regional inf, src, ent masks
-      type      (ovf_mask_reg_wght) :: wght_reg              ! regional mask weights
-      type      (ovf_trcr_reg)      :: trcr_reg              ! regional tracers
-      type      (ovf_rho_reg)       :: rho_reg               ! regional densities
-  ! adjacent locations, masks, tracer and density means for src, ent and prd
-      type      (ovf_region)        :: adj_src               ! src adj boundaries
-      type      (ovf_region)        :: adj_ent               ! ent adj boundaries
-      type      (ovf_region)        :: adj_prd(max_prd_sets) ! prd adj boundaries
-      type      (ovf_mask_adj)      :: mask_adj              ! adj mask
-      type      (ovf_mask_adj_wght) :: wght_adj              ! adj mask weights
-      type      (ovf_trcr_adj)      :: trcr_adj              ! adjacent tracers
-      type      (ovf_rho_adj)       :: rho_adj               ! regional densities
-  ! overflow transports and state
-      real      (r8)                :: Ms                    ! src mass flux (Sv)
-      real      (r8)                :: Ms_n                  ! src mass flux (Sv) at n
-      real      (r8)                :: Ms_nm1                ! src mass flux (Sv) at n-1
-      real      (r8)                :: Me                    ! ent mass flux (Sv)
-      real      (r8)                :: Me_n                  ! ent mass flux (Sv) at n
-      real      (r8)                :: Me_nm1                ! ent mass flux (Sv) at n-1
-      real      (r8)                :: phi                   ! ent parameter (Me/Mp)
-      real      (r8)                :: Mp                    ! prd mass flux (Sv)
-      real      (r8)                :: Mp_n                  ! prd mass flux (Sv) at n
-      real      (r8)                :: Mp_nm1                ! prd mass flux (Sv) at n-1
-      real      (r8)                :: Tp                    ! prd temperature (C)
-      real      (r8)                :: Sp                    ! prd salinity (ppt)
-      integer   (int_kind)          :: prd_set_n             ! prd set index previous time step
-      integer   (int_kind)          :: prd_set               ! prd set index
-   end type overflow
-
-   type (overflow), dimension(max_ovf), public :: ovf ! contains all overflow info
 
    integer (POP_i4) ::     &
       errorCode
@@ -332,6 +139,19 @@
    
    character (10) ::  &
       cdate            ! character date
+
+!-----------------------------------------------------------------------
+!
+!  ovf timers
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+        timer_ovf         ! timer for ovf
+
+
+
+
 
 !***********************************************************************
 
@@ -453,6 +273,12 @@
 
    if( .not. overflows_on ) return
 
+
+
+! don't initialize the groups yet
+  ovf_groups%init = .false.
+
+
 !-----------------------------------------------------------------------
 !
 !  determine if this is a ccsm coupled run
@@ -495,7 +321,7 @@
          ovf_error = 1
          num_req   = num_ovf
          goto 10
-      endif
+      end if
 
       do n=1,num_ovf
         ovf(n)%interactive = overflows_interactive
@@ -1294,6 +1120,11 @@
 
    endif
 
+
+
+
+
+
 !-----------------------------------------------------------------------
 !EOC
 
@@ -1330,6 +1161,11 @@
    endif
    
    if (.not. overflows_on ) return
+
+
+! don't initialize the groups yet
+  ovf_groups%init = .false.
+
 
 !-----------------------------------------------------------------------
 !
@@ -1445,6 +1281,7 @@
 
 ! !DESCRIPTION:
 !  This routine sets overflow masks for regional and adjacent averaging
+!   Need to do this on all procs
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -1471,6 +1308,7 @@
 !
 !----------------------------------------------------------------------
 
+!must go through ALL the overflows
    do n=1,num_ovf
       do iblock = 1,nblocks_clinic
          this_block = get_block(blocks_clinic(iblock),iblock)
@@ -1646,6 +1484,11 @@
 
    if (.not. overflows_on ) return
 
+
+! don't initialize the groups yet
+!  ovf_groups%init = .false.
+
+
 !-----------------------------------------------------------------------
 !  set up output file and unit for overflow diagnostics
 !-----------------------------------------------------------------------
@@ -1730,6 +1573,18 @@
    real (r8) ::  &
      phi           ! entrainment parameter from actual ratio Me/Mp
 
+   integer (int_kind) ovf_id
+
+
+
+!----------------------
+!initialize ovf timer (not calling in block loops)
+!------------------------
+
+   call get_timer(timer_ovf,'OVF TIMER', 1, &
+        distrb_clinic%nprocs)
+
+
 !-----------------------------------------------------------------------
 !
 !  compute regional averages.
@@ -1739,11 +1594,14 @@
    if( overflows_on .and. overflows_interactive ) then
       call ovf_reg_avgs(oldtime)
 ! evaluate regional product values based on src,ent averages just computed
-      do n=1,num_ovf
-        phi = ovf(n)%phi
+! src
+
+  do n=1,ovf_groups%numMyGroups
+     ovf_id = ovf_groups%groupIds(n)
+        phi = ovf(ovf_id)%phi
         do nn=1,nt
-           ovf(n)%trcr_reg%prd(nn) = ovf(n)%trcr_reg%src(nn) * (c1 - phi) &
-                                   + ovf(n)%trcr_reg%ent(nn) * phi
+           ovf(ovf_id)%trcr_reg%prd(nn) = ovf(ovf_id)%trcr_reg%src(nn) * (c1 - phi) &
+                                   + ovf(ovf_id)%trcr_reg%ent(nn) * phi
         end do
       enddo
    endif
@@ -1759,6 +1617,7 @@
 ! !INTERFACE:
 
  subroutine ovf_write_restart
+
 
 ! !DESCRIPTION:
 !  This routine writes the overflow restart file using 
@@ -1780,7 +1639,18 @@
       n,                    &! ovf loop index
       m,                    &! sub-ovf loop index
       nn,                   &! tracer loop index 
-      mp                     ! sub-ovf sub-loop index
+      mp,                   &! sub-ovf sub-loop index
+      num_posts,            &
+      ierr, count, loc, ovf_id, i
+
+   logical (log_kind), dimension(:), allocatable :: post_array
+   integer(i4), dimension(:), allocatable :: myRequests(:)
+   integer (i4), dimension(:,:), allocatable:: myStati(:,:)
+
+   integer (int_kind), parameter :: len = 14 !length of buffer for a post
+
+   real (r8), dimension(:), allocatable:: myRecvBuff(:), mySendBuff(:)
+
 
    character (char_len)  ::     &
       write_restart_filename,   &! modified file name for restart file
@@ -1790,6 +1660,8 @@
 
    character (10)        :: &! for input year,month,day
       cdate
+
+   logical (log_kind) :: post
 
    logical (log_kind), parameter :: prnt = .false.
 
@@ -1833,238 +1705,344 @@
 
    if (my_task == master_task) then
 
-    open(mu, file=write_restart_filename, status='unknown',iostat=ovf_error)
 
-    write(stdout,987) mu,write_restart_filename
-    987 format(' ovf_write_restart  unit (mu) = ',i5,' file name = ',a64)
+      !for any ovf groups that the master_task is not in, 
+      !must post recv for the info
+      allocate(post_array(num_ovf))
+      num_posts = num_ovf - ovf_groups%numMyGroups
+      if (num_posts > 0) then
+         allocate(myRecvBuff(len*num_posts))
+      end if
 
-    write(stdout,99) cdate
-    99 format(' ovf write restart   cdate yyyymmdd = ',a10)
-    call shr_sys_flush(stdout)
+      call ovf_print_init(len, num_posts, myRecvBuff, post_array)
 
-    write(mu,100) cdate,num_ovf
-    100 format(30x,'  ! Overflow Restart File for yyyymmdd =',a10/ &
-               2x,i10,20x,'! number of overflows')  
-    do n=1,num_ovf
-      write(mu,101) ovf(n)%name
-      101 format(2x,a26,'    ! name of overflow')
+      open(mu, file=write_restart_filename, status='unknown',iostat=ovf_error)
 
-! ovf parameters
-      write(mu,102) ovf(n)%ovf_params%lat
-      102 format(2x,1PE27.18,'   ! latitude in degrees')
-      write(mu,103) ovf(n)%ovf_params%width
-      103 format(2x,1PE27.18,'   ! channel width in meters')
-      write(mu,105) ovf(n)%ovf_params%source_thick
-      105 format(2x,1PE27.18,'   ! source thickness in meters')
-      write(mu,106) ovf(n)%ovf_params%distnc_str_ssb
-      106 format(2x,1PE27.18,'   ! strait to shelf-slope break in meters')
-      write(mu,107) ovf(n)%ovf_params%bottom_slope
-      107 format(2x,1PE27.18,'   ! bottom slope dy/dx ')
-      write(mu,108) ovf(n)%ovf_params%bottom_drag
-      108 format(2x,1PE27.18,'   ! bottom drag coefficient')
+      write(stdout,987) mu,write_restart_filename
+987   format(' ovf_write_restart  unit (mu) = ',i5,' file name = ',a64)
+      
+      write(stdout,99) cdate
+99    format(' ovf write restart   cdate yyyymmdd = ',a10)
+      call shr_sys_flush(stdout)
+      
+      write(mu,100) cdate,num_ovf
+100   format(30x,'  ! Overflow Restart File for yyyymmdd =',a10/ &
+           2x,i10,20x,'! number of overflows')  
 
-! kmt changes, if any
-      write(mu,1090) ovf(n)%num_kmt
-      1090 format(2x,i10,20x,'! number of kmt changes')
-      do m=1,ovf(n)%num_kmt
-         write(mu,1091) ovf(n)%loc_kmt(m)%i
-         1091 format(2x,i10,20x,'! i grid box index for kmt change')
-         write(mu,1092) ovf(n)%loc_kmt(m)%j
-         1092 format(2x,i10,20x,'! j grid box index for kmt change')
-         write(mu,1093) ovf(n)%loc_kmt(m)%korg
-         1093 format(2x,i10,20x,'! korg  original grid box k index')
-         write(mu,1094) ovf(n)%loc_kmt(m)%knew
-         1094 format(2x,i10,20x,'! knew  new      grid box k index')
-      end do
 
-! regional boundaries
-!   inflow
-      write(mu,110) ovf(n)%reg_inf%imin
-      110 format(2x,i10,20x,'! inflow region imin')
-      write(mu,111) ovf(n)%reg_inf%imax
-      111 format(2x,i10,20x,'! inflow region imax')
-      write(mu,112) ovf(n)%reg_inf%jmin
-      112 format(2x,i10,20x,'! inflow region jmin')
-      write(mu,113) ovf(n)%reg_inf%jmax
-      113 format(2x,i10,20x,'! inflow region jmax')
-      write(mu,114) ovf(n)%reg_inf%kmin
-      114 format(2x,i10,20x,'! inflow region kmin')
-      write(mu,115) ovf(n)%reg_inf%kmax
-      115 format(2x,i10,20x,'! inflow region kmax')
-!   source
-      write(mu,116) ovf(n)%reg_src%imin
-      116 format(2x,i10,20x,'! source region imin')
-      write(mu,117) ovf(n)%reg_src%imax
-      117 format(2x,i10,20x,'! source region imax')
-      write(mu,118) ovf(n)%reg_src%jmin
-      118 format(2x,i10,20x,'! source region jmin')
-      write(mu,119) ovf(n)%reg_src%jmax
-      119 format(2x,i10,20x,'! source region jmax')
-      write(mu,120) ovf(n)%reg_src%kmin
-      120 format(2x,i10,20x,'! source region kmin')
-      write(mu,121) ovf(n)%reg_src%kmax
-      121 format(2x,i10,20x,'! source region kmax')
-!   entrainment
-      write(mu,122) ovf(n)%reg_ent%imin
-      122 format(2x,i10,20x,'! entrainment region imin')
-      write(mu,123) ovf(n)%reg_ent%imax
-      123 format(2x,i10,20x,'! entrainment region imax')
-      write(mu,124) ovf(n)%reg_ent%jmin
-      124 format(2x,i10,20x,'! entrainment region jmin')
-      write(mu,125) ovf(n)%reg_ent%jmax
-      125 format(2x,i10,20x,'! entrainment region jmax')
-      write(mu,126) ovf(n)%reg_ent%kmin
-      126 format(2x,i10,20x,'! entrainment region kmin')
-      write(mu,127) ovf(n)%reg_ent%kmax
-      127 format(2x,i10,20x,'! entrainment region kmax')
-! src locs and orientation
-      write(mu,128) ovf(n)%num_src
-      128 format(2x,i10,20x,'! number of source grid boxes')
-      do m=1,ovf(n)%num_src
-         write(mu,129) ovf(n)%loc_src(m)%i
-         129 format(2x,i10,20x,'! source box i')
-         write(mu,130) ovf(n)%loc_src(m)%j
-         130 format(2x,i10,20x,'! source box j')
-         write(mu,131) ovf(n)%loc_src(m)%i_adv
-         131 format(2x,i10,20x,'! source box i_adv')
-         write(mu,132) ovf(n)%loc_src(m)%j_adv
-         132 format(2x,i10,20x,'! source box j_adv')
-         write(mu,133) ovf(n)%loc_src(m)%i_u
-         133 format(2x,i10,20x,'! source box i_u')
-         write(mu,134) ovf(n)%loc_src(m)%j_u
-         134 format(2x,i10,20x,'! source box j_u')
-         write(mu,135) ovf(n)%loc_src(m)%k
-         135 format(2x,i10,20x,'! source box k')
-         write(mu,136) ovf(n)%loc_src(m)%orient
-         136 format(2x,i10,20x,'! source box orient')
-      end do
-! ent locs and orientation
-      write(mu,137) ovf(n)%num_ent
-      137 format(2x,i10,20x,'! number of entrainment grid boxes')
-      do m=1,ovf(n)%num_ent
-         write(mu,138) ovf(n)%loc_ent(m)%i
-         138 format(2x,i10,20x,'! entrainment box i')
-         write(mu,139) ovf(n)%loc_ent(m)%j
-         139 format(2x,i10,20x,'! entrainment box j')
-         write(mu,140) ovf(n)%loc_ent(m)%i_adv
-         140 format(2x,i10,20x,'! entrainment box i_adv')
-         write(mu,141) ovf(n)%loc_ent(m)%j_adv
-         141 format(2x,i10,20x,'! entrainment box j_adv')
-         write(mu,142) ovf(n)%loc_ent(m)%i_u
-         142 format(2x,i10,20x,'! entrainment box i_u')
-         write(mu,143) ovf(n)%loc_ent(m)%j_u
-         143 format(2x,i10,20x,'! entrainment box j_u')
-         write(mu,144) ovf(n)%loc_ent(m)%k
-         144 format(2x,i10,20x,'! entrainment box k')
-         write(mu,145) ovf(n)%loc_ent(m)%orient
-         145 format(2x,i10,20x,'! entrainment box orient')
-      end do
-! prd locs and orientation
-      write(mu,146) ovf(n)%num_prd_sets
-      146 format(2x,i10,20x,'! number of product sets')
-      do m=1,ovf(n)%num_prd_sets
-         write(mu,147) ovf(n)%num_prd(m)
-         147 format(2x,i10,20x, &
-                    '! number of product grid boxes for this set')
-         do mp=1,ovf(n)%num_prd(m)
-            write(mu,148) ovf(n)%loc_prd(m,mp)%i
-            148 format(2x,i10,20x,'! product box i')
-            write(mu,149) ovf(n)%loc_prd(m,mp)%j
-            149 format(2x,i10,20x,'! product box j')
-            write(mu,150) ovf(n)%loc_prd(m,mp)%i_adv
-            150 format(2x,i10,20x,'! product box i_adv')
-            write(mu,151) ovf(n)%loc_prd(m,mp)%j_adv
-            151 format(2x,i10,20x,'! product box j_adv')
-            write(mu,152) ovf(n)%loc_prd(m,mp)%i_u
-            152 format(2x,i10,20x,'! product box i_u')
-            write(mu,153) ovf(n)%loc_prd(m,mp)%j_u
-            153 format(2x,i10,20x,'! product box j_u')
-            write(mu,154) ovf(n)%loc_prd(m,mp)%k
-            154 format(2x,i10,20x,'! product box k')
-            write(mu,155) ovf(n)%loc_prd(m,mp)%orient
-            155 format(2x,i10,20x,'! product box orient')
+      !MAIN ovf loop
+      count = 0
+      do n=1,num_ovf
+
+         write(mu,101) ovf(n)%name
+101      format(2x,a26,'    ! name of overflow')
+         
+         ! ovf parameters
+         write(mu,102) ovf(n)%ovf_params%lat
+102      format(2x,1PE27.18,'   ! latitude in degrees')
+         write(mu,103) ovf(n)%ovf_params%width
+103      format(2x,1PE27.18,'   ! channel width in meters')
+         write(mu,105) ovf(n)%ovf_params%source_thick
+105      format(2x,1PE27.18,'   ! source thickness in meters')
+         write(mu,106) ovf(n)%ovf_params%distnc_str_ssb
+106      format(2x,1PE27.18,'   ! strait to shelf-slope break in meters')
+         write(mu,107) ovf(n)%ovf_params%bottom_slope
+107      format(2x,1PE27.18,'   ! bottom slope dy/dx ')
+         write(mu,108) ovf(n)%ovf_params%bottom_drag
+108      format(2x,1PE27.18,'   ! bottom drag coefficient')
+         
+         ! kmt changes, if any
+         write(mu,1090) ovf(n)%num_kmt
+1090     format(2x,i10,20x,'! number of kmt changes')
+         do m=1,ovf(n)%num_kmt
+            write(mu,1091) ovf(n)%loc_kmt(m)%i
+1091        format(2x,i10,20x,'! i grid box index for kmt change')
+            write(mu,1092) ovf(n)%loc_kmt(m)%j
+1092        format(2x,i10,20x,'! j grid box index for kmt change')
+            write(mu,1093) ovf(n)%loc_kmt(m)%korg
+1093        format(2x,i10,20x,'! korg  original grid box k index')
+            write(mu,1094) ovf(n)%loc_kmt(m)%knew
+1094        format(2x,i10,20x,'! knew  new      grid box k index')
          end do
-      end do
+         
+         ! regional boundaries
+         !   inflow
+         write(mu,110) ovf(n)%reg_inf%imin
+110      format(2x,i10,20x,'! inflow region imin')
+         write(mu,111) ovf(n)%reg_inf%imax
+111      format(2x,i10,20x,'! inflow region imax')
+         write(mu,112) ovf(n)%reg_inf%jmin
+112      format(2x,i10,20x,'! inflow region jmin')
+         write(mu,113) ovf(n)%reg_inf%jmax
+113      format(2x,i10,20x,'! inflow region jmax')
+         write(mu,114) ovf(n)%reg_inf%kmin
+114      format(2x,i10,20x,'! inflow region kmin')
+         write(mu,115) ovf(n)%reg_inf%kmax
+115      format(2x,i10,20x,'! inflow region kmax')
+         !   source
+         write(mu,116) ovf(n)%reg_src%imin
+116      format(2x,i10,20x,'! source region imin')
+         write(mu,117) ovf(n)%reg_src%imax
+117      format(2x,i10,20x,'! source region imax')
+         write(mu,118) ovf(n)%reg_src%jmin
+118      format(2x,i10,20x,'! source region jmin')
+         write(mu,119) ovf(n)%reg_src%jmax
+119      format(2x,i10,20x,'! source region jmax')
+         write(mu,120) ovf(n)%reg_src%kmin
+120      format(2x,i10,20x,'! source region kmin')
+         write(mu,121) ovf(n)%reg_src%kmax
+121      format(2x,i10,20x,'! source region kmax')
+         !   entrainment
+         write(mu,122) ovf(n)%reg_ent%imin
+122      format(2x,i10,20x,'! entrainment region imin')
+         write(mu,123) ovf(n)%reg_ent%imax
+123      format(2x,i10,20x,'! entrainment region imax')
+         write(mu,124) ovf(n)%reg_ent%jmin
+124      format(2x,i10,20x,'! entrainment region jmin')
+         write(mu,125) ovf(n)%reg_ent%jmax
+125      format(2x,i10,20x,'! entrainment region jmax')
+         write(mu,126) ovf(n)%reg_ent%kmin
+126      format(2x,i10,20x,'! entrainment region kmin')
+         write(mu,127) ovf(n)%reg_ent%kmax
+127      format(2x,i10,20x,'! entrainment region kmax')
+         ! src locs and orientation
+         write(mu,128) ovf(n)%num_src
+128      format(2x,i10,20x,'! number of source grid boxes')
+         do m=1,ovf(n)%num_src
+            write(mu,129) ovf(n)%loc_src(m)%i
+129         format(2x,i10,20x,'! source box i')
+            write(mu,130) ovf(n)%loc_src(m)%j
+130         format(2x,i10,20x,'! source box j')
+            write(mu,131) ovf(n)%loc_src(m)%i_adv
+131         format(2x,i10,20x,'! source box i_adv')
+            write(mu,132) ovf(n)%loc_src(m)%j_adv
+132         format(2x,i10,20x,'! source box j_adv')
+            write(mu,133) ovf(n)%loc_src(m)%i_u
+133         format(2x,i10,20x,'! source box i_u')
+            write(mu,134) ovf(n)%loc_src(m)%j_u
+134         format(2x,i10,20x,'! source box j_u')
+            write(mu,135) ovf(n)%loc_src(m)%k
+135         format(2x,i10,20x,'! source box k')
+            write(mu,136) ovf(n)%loc_src(m)%orient
+136         format(2x,i10,20x,'! source box orient')
+         end do
+         ! ent locs and orientation
+         write(mu,137) ovf(n)%num_ent
+137      format(2x,i10,20x,'! number of entrainment grid boxes')
+         do m=1,ovf(n)%num_ent
+            write(mu,138) ovf(n)%loc_ent(m)%i
+138         format(2x,i10,20x,'! entrainment box i')
+            write(mu,139) ovf(n)%loc_ent(m)%j
+139         format(2x,i10,20x,'! entrainment box j')
+            write(mu,140) ovf(n)%loc_ent(m)%i_adv
+140         format(2x,i10,20x,'! entrainment box i_adv')
+            write(mu,141) ovf(n)%loc_ent(m)%j_adv
+141         format(2x,i10,20x,'! entrainment box j_adv')
+            write(mu,142) ovf(n)%loc_ent(m)%i_u
+142         format(2x,i10,20x,'! entrainment box i_u')
+            write(mu,143) ovf(n)%loc_ent(m)%j_u
+143         format(2x,i10,20x,'! entrainment box j_u')
+            write(mu,144) ovf(n)%loc_ent(m)%k
+144         format(2x,i10,20x,'! entrainment box k')
+            write(mu,145) ovf(n)%loc_ent(m)%orient
+145         format(2x,i10,20x,'! entrainment box orient')
+         end do
+         ! prd locs and orientation
+         write(mu,146) ovf(n)%num_prd_sets
+146      format(2x,i10,20x,'! number of product sets')
+         do m=1,ovf(n)%num_prd_sets
+            write(mu,147) ovf(n)%num_prd(m)
+147         format(2x,i10,20x, &
+                 '! number of product grid boxes for this set')
+            do mp=1,ovf(n)%num_prd(m)
+               write(mu,148) ovf(n)%loc_prd(m,mp)%i
+148            format(2x,i10,20x,'! product box i')
+               write(mu,149) ovf(n)%loc_prd(m,mp)%j
+149            format(2x,i10,20x,'! product box j')
+               write(mu,150) ovf(n)%loc_prd(m,mp)%i_adv
+150            format(2x,i10,20x,'! product box i_adv')
+               write(mu,151) ovf(n)%loc_prd(m,mp)%j_adv
+151            format(2x,i10,20x,'! product box j_adv')
+               write(mu,152) ovf(n)%loc_prd(m,mp)%i_u
+152            format(2x,i10,20x,'! product box i_u')
+               write(mu,153) ovf(n)%loc_prd(m,mp)%j_u
+153            format(2x,i10,20x,'! product box j_u')
+               write(mu,154) ovf(n)%loc_prd(m,mp)%k
+154            format(2x,i10,20x,'! product box k')
+               write(mu,155) ovf(n)%loc_prd(m,mp)%orient
+155            format(2x,i10,20x,'! product box orient')
+          end do
+       end do
 ! adjacent boundaries
-! src
-      write(mu,156) ovf(n)%adj_src%imin 
-      156 format(2x,i10,20x,'! source adjacent imin')
-      write(mu,157) ovf(n)%adj_src%imax 
-      157 format(2x,i10,20x,'! source adjacent imax')
-      write(mu,158) ovf(n)%adj_src%jmin 
-      158 format(2x,i10,20x,'! source adjacent jmin')
-      write(mu,159) ovf(n)%adj_src%jmax 
-      159 format(2x,i10,20x,'! source adjacent jmax')
-      write(mu,160) ovf(n)%adj_src%kmin 
-      160 format(2x,i10,20x,'! source adjacent kmin')
-      write(mu,161) ovf(n)%adj_src%kmax 
-      161 format(2x,i10,20x,'! source adjacent kmax')
-!ent
-      write(mu,162) ovf(n)%adj_ent%imin 
-      162 format(2x,i10,20x,'! entrainment adjacent imin')
-      write(mu,163) ovf(n)%adj_ent%imax 
-      163 format(2x,i10,20x,'! entrainment adjacent imax')
-      write(mu,164) ovf(n)%adj_ent%jmin 
-      164 format(2x,i10,20x,'! entrainment adjacent jmin')
-      write(mu,165) ovf(n)%adj_ent%jmax 
-      165 format(2x,i10,20x,'! entrainment adjacent jmax')
-      write(mu,166) ovf(n)%adj_ent%kmin 
-      166 format(2x,i10,20x,'! entrainment adjacent kmin')
-      write(mu,167) ovf(n)%adj_ent%kmax 
-      167 format(2x,i10,20x,'! entrainment adjacent kmax')
-!prd
-      do m=1,ovf(n)%num_prd_sets
-         write(mu,168) ovf(n)%adj_prd(m)%imin 
-         168 format(2x,i10,20x,'! product adjacent imin')
-         write(mu,169) ovf(n)%adj_prd(m)%imax 
-         169 format(2x,i10,20x,'! product adjacent imax')
-         write(mu,170) ovf(n)%adj_prd(m)%jmin 
-         170 format(2x,i10,20x,'! product adjacent jmin')
-         write(mu,171) ovf(n)%adj_prd(m)%jmax 
-         171 format(2x,i10,20x,'! product adjacent jmax')
-         write(mu,172) ovf(n)%adj_prd(m)%kmin 
-         172 format(2x,i10,20x,'! product adjacent kmin')
-         write(mu,173) ovf(n)%adj_prd(m)%kmax 
-         173 format(2x,i10,20x,'! product adjacent kmax')
-      end do
-! transports
-      write(mu,174) ovf(n)%Ms
-      174 format(2x,1PE27.18,'   ! source volume n+1 transport cm3/sec')
-      write(mu,175) ovf(n)%Ms_n
-      175 format(2x,1PE27.18,'   ! source volume n   transport cm3/sec')
-      write(mu,176) ovf(n)%Ms_nm1
-      176 format(2x,1PE27.18,'   ! source volume n-1 transport cm3/sec')
-      write(mu,177) ovf(n)%Me
-      177 format(2x,1PE27.18,'   ! entrainment volume n+1 transport cm3/sec')
-      write(mu,178) ovf(n)%Me_n
-      178 format(2x,1PE27.18,'   ! entrainment volume n   transport cm3/sec')
-      write(mu,179) ovf(n)%Me_nm1
-      179 format(2x,1PE27.18,'   ! entrainment volume n-1 transport cm3/sec')
-      write(mu,180) ovf(n)%phi
-      180 format(2x,1PE27.18,'   ! phi parameter')
-      write(mu,181) ovf(n)%Mp
-      181 format(2x,1PE27.18,'   ! product volume n+1 transport cm3/sec')
-      write(mu,182) ovf(n)%Mp_n
-      182 format(2x,1PE27.18,'   ! product volume n   transport cm3/sec')
-      write(mu,183) ovf(n)%Mp_nm1
-      183 format(2x,1PE27.18,'   ! product volume n-1 transport cm3/sec')
-      write(mu,184) ovf(n)%Tp
-      184 format(2x,1PE27.18,'   ! product temperature C')
-      write(mu,185) ovf(n)%Sp
-      185 format(2x,1PE27.18,'   ! product salinity')
-      write(mu,186) ovf(n)%prd_set_n
-      write(mu,186) ovf(n)%prd_set
-      186 format(2x,i10,20x,'! product set index (first is previous time step)')
+       ! src
+       write(mu,156) ovf(n)%adj_src%imin 
+156    format(2x,i10,20x,'! source adjacent imin')
+       write(mu,157) ovf(n)%adj_src%imax 
+157    format(2x,i10,20x,'! source adjacent imax')
+       write(mu,158) ovf(n)%adj_src%jmin 
+158    format(2x,i10,20x,'! source adjacent jmin')
+       write(mu,159) ovf(n)%adj_src%jmax 
+159    format(2x,i10,20x,'! source adjacent jmax')
+       write(mu,160) ovf(n)%adj_src%kmin 
+160    format(2x,i10,20x,'! source adjacent kmin')
+       write(mu,161) ovf(n)%adj_src%kmax 
+161    format(2x,i10,20x,'! source adjacent kmax')
+       !ent
+       write(mu,162) ovf(n)%adj_ent%imin 
+162    format(2x,i10,20x,'! entrainment adjacent imin')
+       write(mu,163) ovf(n)%adj_ent%imax 
+163    format(2x,i10,20x,'! entrainment adjacent imax')
+       write(mu,164) ovf(n)%adj_ent%jmin 
+164    format(2x,i10,20x,'! entrainment adjacent jmin')
+       write(mu,165) ovf(n)%adj_ent%jmax 
+165    format(2x,i10,20x,'! entrainment adjacent jmax')
+       write(mu,166) ovf(n)%adj_ent%kmin 
+166    format(2x,i10,20x,'! entrainment adjacent kmin')
+       write(mu,167) ovf(n)%adj_ent%kmax 
+167    format(2x,i10,20x,'! entrainment adjacent kmax')
+       !prd
+       do m=1,ovf(n)%num_prd_sets
+          write(mu,168) ovf(n)%adj_prd(m)%imin 
+168       format(2x,i10,20x,'! product adjacent imin')
+          write(mu,169) ovf(n)%adj_prd(m)%imax 
+169       format(2x,i10,20x,'! product adjacent imax')
+          write(mu,170) ovf(n)%adj_prd(m)%jmin 
+170       format(2x,i10,20x,'! product adjacent jmin')
+          write(mu,171) ovf(n)%adj_prd(m)%jmax 
+171       format(2x,i10,20x,'! product adjacent jmax')
+          write(mu,172) ovf(n)%adj_prd(m)%kmin 
+172       format(2x,i10,20x,'! product adjacent kmin')
+          write(mu,173) ovf(n)%adj_prd(m)%kmax 
+173       format(2x,i10,20x,'! product adjacent kmax')
+       end do
+       
+       
+       ! transports
+       !! this information *could* be on other procs that are not the master_task
 
-   end do  ! ovf loop 
+       if (post_array(n)) then !we posted a recv for this
+          count = count+1
+          call ovf_print_get(count)
+          loc = (count-1)*len+1
+          !now unpack
+          ovf(n)%Ms = myRecvBuff(loc)
+          ovf(n)%Ms_n = myRecvBuff(loc+1)
+          ovf(n)%Ms_nm1 = myRecvBuff(loc+2)
+          ovf(n)%Me = myRecvBuff(loc+3)
+          ovf(n)%Me_n = myRecvBuff(loc+4)
+          ovf(n)%Me_nm1 = myRecvBuff(loc+5)
+          ovf(n)%phi = myRecvBuff(loc+6)
+          ovf(n)%Mp = myRecvBuff(loc+7)
+          ovf(n)%Mp_n = myRecvBuff(loc+8)
+          ovf(n)%Mp_nm1 = myRecvBuff(loc+9)
+          ovf(n)%Tp = myRecvBuff(loc+10)
+          ovf(n)%Sp = myRecvBuff(loc+11)
+          ovf(n)%prd_set_n = int(myRecvBuff(loc+12), int_kind)
+          ovf(n)%prd_set = int(myRecvBuff(loc+13), int_kind)
 
-   close(mu)
-   endif     ! my_task == master_task
+!          print *, 'CHECK prd_set IAM = ', my_task, 'ovf_id=', n, &
+!               'prd_set_n, prd_set', &
+!               ovf(n)%prd_set_n, " , ", ovf(n)%prd_set
 
-   call release_unit(mu)
 
-!-----------------------------------------------------------------------
-!
+       end if
+
+       write(mu,174) ovf(n)%Ms
+174    format(2x,1PE27.18,'   ! source volume n+1 transport cm3/sec')
+       write(mu,175) ovf(n)%Ms_n
+175    format(2x,1PE27.18,'   ! source volume n   transport cm3/sec')
+       write(mu,176) ovf(n)%Ms_nm1
+176    format(2x,1PE27.18,'   ! source volume n-1 transport cm3/sec')
+       write(mu,177) ovf(n)%Me
+177    format(2x,1PE27.18,'   ! entrainment volume n+1 transport cm3/sec')
+       write(mu,178) ovf(n)%Me_n
+178    format(2x,1PE27.18,'   ! entrainment volume n   transport cm3/sec')
+       write(mu,179) ovf(n)%Me_nm1
+179    format(2x,1PE27.18,'   ! entrainment volume n-1 transport cm3/sec')
+       write(mu,180) ovf(n)%phi
+180    format(2x,1PE27.18,'   ! phi parameter')
+       write(mu,181) ovf(n)%Mp
+181    format(2x,1PE27.18,'   ! product volume n+1 transport cm3/sec')
+       write(mu,182) ovf(n)%Mp_n
+182    format(2x,1PE27.18,'   ! product volume n   transport cm3/sec')
+       write(mu,183) ovf(n)%Mp_nm1
+183    format(2x,1PE27.18,'   ! product volume n-1 transport cm3/sec')
+       write(mu,184) ovf(n)%Tp
+184    format(2x,1PE27.18,'   ! product temperature C')
+       write(mu,185) ovf(n)%Sp
+185    format(2x,1PE27.18,'   ! product salinity')
+       write(mu,186) ovf(n)%prd_set_n
+       write(mu,186) ovf(n)%prd_set
+186    format(2x,i10,20x,'! product set index (first is previous time step)')
+       
+    end do  ! ovf loop 
+    
+    close(mu)
+
+    ! clean up
+    deallocate(post_array)
+    if (num_posts > 0) then
+       deallocate(myRecvBuff)
+    endif
+    call ovf_print_finalize(num_posts)
+
+ else    ! my_task \= master_task
+    count = 0
+    do n=1, ovf_groups%numMyGroups
+       if (ovf_groups%amMaster(n)) then
+          count = count + 1
+       end if
+    end do
+
+    call ovf_print_init(len, count)
+
+    if (count > 0) then
+       allocate(mySendBuff(count*len))
+    end if
+    
+    num_posts = 0
+    do n=1, ovf_groups%numMyGroups
+       if (ovf_groups%amMaster(n)) then
+          ovf_id = ovf_groups%groupIds(n)
+          !send transport info to the master task with isend
+          num_posts = num_posts + 1
+          !pack send buffer
+          loc = (num_posts-1)*len + 1
+          mySendBuff(loc) = ovf(ovf_id)%Ms
+          mySendBuff(loc+1) = ovf(ovf_id)%Ms_n
+          mySendBuff(loc+2) = ovf(ovf_id)%Ms_nm1
+          mySendBuff(loc+3) = ovf(ovf_id)%Me
+          mySendBuff(loc+4) = ovf(ovf_id)%Me_n
+          mySendBuff(loc+5) = ovf(ovf_id)%Me_nm1
+          mySendBuff(loc+6) = ovf(ovf_id)%phi
+          mySendBuff(loc+7) = ovf(ovf_id)%Mp
+          mySendBuff(loc+8) = ovf(ovf_id)%Mp_n
+          mySendBuff(loc+9) = ovf(ovf_id)%Mp_nm1
+          mySendBuff(loc+10) = ovf(ovf_id)%Tp
+          mySendBuff(loc+11) = ovf(ovf_id)%Sp
+          mySendBuff(loc+12) = real(ovf(ovf_id)%prd_set_n, r8)
+          mySendBuff(loc+13) = real(ovf(ovf_id)%prd_set, r8)
+
+!          print *, 'CHECK prd_set IAM = ', my_task, 'ovf_id=', ovf_id, &
+!               'prd_set_n, prd_set', &
+!               ovf(ovf_id)%prd_set_n, " , ", ovf(ovf_id)%prd_set
+
+          call ovf_print_send(len, mySendBuff(loc:loc+len-1), num_posts, ovf_id)
+       end if
+    end do ! n loop
+    
+    !now clean up
+    call ovf_print_finalize(num_posts)
+    if (num_posts > 0) then
+       deallocate(mySendBuff)
+    endif
+
+ endif
+
+call release_unit(mu)
+ 
+ !-----------------------------------------------------------------------
+ !
 !  if pointer files are used, write filename to pointer file
 !
 !-----------------------------------------------------------------------
@@ -2653,6 +2631,9 @@
 
    logical (log_kind), parameter :: prnt = .false.
 
+   integer (int_kind)  :: ovf_id
+
+
 ! turn off print   3 Nov 2008
 !   if( prnt .and. my_task == master_task ) then
 !      write(stdout,*) 'ovf_advt called '
@@ -2665,51 +2646,59 @@
 !  overflow loop
 !-----------------------------------------------------------------------
 
-   do n=1,num_ovf  ! each overflow
+   !must have the groups initilaized
+   if (.not. ovf_groups%init) then
+      call ovf_init_groups()
+   end if
+
+
+! for each of MY overflows
+   do n=1,ovf_groups%numMyGroups
+      ovf_id = ovf_groups%groupIds(n)
 ! src
-      do m=1,ovf(n)%num_src  ! source
-         ksrc = ovf(n)%loc_src(m)%k
+      do m=1,ovf(ovf_id)%num_src  ! source
+         ksrc = ovf(ovf_id)%loc_src(m)%k
          if( k == ksrc ) then
             do j=1,ny_block
-               if( ovf(n)%loc_src(m)%j_adv .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_src(m)%j_adv .eq. this_block%j_glob(j) ) then
                   do i=1,nx_block
-                     if( ovf(n)%loc_src(m)%i_adv .eq. this_block%i_glob(i) ) then
+                     if( ovf(ovf_id)%loc_src(m)%i_adv .eq. this_block%i_glob(i) ) then
                         if( prnt ) then
-                           write(stdout,5) nsteps_total,n,ovf(n)%loc_src(m)%i_adv, &
-                           ovf(n)%loc_src(m)%j_adv,ovf(n)%loc_src(m)%k, &
-                           ovf(n)%loc_src(m)%orient,ntr, &
+                           write(stdout,5) nsteps_total,n,ovf(ovf_id)%loc_src(m)%i_adv, &
+                           ovf(ovf_id)%loc_src(m)%j_adv,ovf(ovf_id)%loc_src(m)%k, &
+                           ovf(ovf_id)%loc_src(m)%orient,ntr, &
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1)
                            5  format(' In    ovf_advt src   ',i5,1x,6(i3,1x),4(1pe15.8,1x))
                         endif  ! print
                         if( i > 1 ) then
-                           if( ovf(n)%loc_src(m)%orient .eq. 1 ) then
-                              TRACER_E(i-1,j) = ovf(n)%trcr_reg%src(ntr)
+                           if( ovf(ovf_id)%loc_src(m)%orient .eq. 1 ) then
+                              TRACER_E(i-1,j) = ovf(ovf_id)%trcr_reg%src(ntr)
                            endif
                         endif
                         if( j > 1 ) then
-                           if( ovf(n)%loc_src(m)%orient .eq. 2 ) then
-                              TRACER_N(i,j-1) = ovf(n)%trcr_reg%src(ntr)
+                           if( ovf(ovf_id)%loc_src(m)%orient .eq. 2 ) then
+                              TRACER_N(i,j-1) = ovf(ovf_id)%trcr_reg%src(ntr)
                            endif
                         endif
-                        if( ovf(n)%loc_src(m)%orient .eq. 3 ) then
-                           TRACER_E(i,j)   = ovf(n)%trcr_reg%src(ntr)
+                        if( ovf(ovf_id)%loc_src(m)%orient .eq. 3 ) then
+                           TRACER_E(i,j)   = ovf(ovf_id)%trcr_reg%src(ntr)
                         endif
-                        if( ovf(n)%loc_src(m)%orient .eq. 4 ) then
-                           TRACER_N(i,j)   = ovf(n)%trcr_reg%src(ntr)
+                        if( ovf(ovf_id)%loc_src(m)%orient .eq. 4 ) then
+                           TRACER_N(i,j)   = ovf(ovf_id)%trcr_reg%src(ntr)
                         endif
                         if( prnt ) then
-                           write(stdout,10) nsteps_total,n,ovf(n)%loc_src(m)%i_adv, &
-                           ovf(n)%loc_src(m)%j_adv,ovf(n)%loc_src(m)%k, &
-                           ovf(n)%loc_src(m)%orient,ntr, &
+                           write(stdout,10) nsteps_total,n,ovf(ovf_id)%loc_src(m)%i_adv, &
+                           ovf(ovf_id)%loc_src(m)%j_adv,ovf(ovf_id)%loc_src(m)%k, &
+                           ovf(ovf_id)%loc_src(m)%orient,ntr, &
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1), &
-                                            nsteps_total,n,ovf(n)%loc_src(m)%i_adv, &
-                           ovf(n)%loc_src(m)%j_adv,ovf(n)%loc_src(m)%k, &
-                           ovf(n)%loc_src(m)%orient,ntr, &
+                                            nsteps_total,n,ovf(ovf_id)%loc_src(m)%i_adv, &
+                           ovf(ovf_id)%loc_src(m)%j_adv,ovf(ovf_id)%loc_src(m)%k, &
+                           ovf(ovf_id)%loc_src(m)%orient,ntr, &
            CE(i,j)*dz(ksrc)*TAREA(i,j,iblock),CW(i,j)*dz(ksrc)*TAREA(i,j,iblock), &
            CN(i,j)*dz(ksrc)*TAREA(i,j,iblock),CS(i,j)*dz(ksrc)*TAREA(i,j,iblock), &
-                                            nsteps_total,n,ovf(n)%loc_src(m)%i_adv, &
-                           ovf(n)%loc_src(m)%j_adv,ovf(n)%loc_src(m)%k, &
-                           ovf(n)%loc_src(m)%orient,ntr, &
+                                            nsteps_total,n,ovf(ovf_id)%loc_src(m)%i_adv, &
+                           ovf(ovf_id)%loc_src(m)%j_adv,ovf(ovf_id)%loc_src(m)%k, &
+                           ovf(ovf_id)%loc_src(m)%orient,ntr, &
            CE(i,j)*dz(ksrc)*TAREA(i,j,iblock)*TRACER_E(i,j), &
            CW(i,j)*dz(ksrc)*TAREA(i,j,iblock)*TRACER_E(i-1,j)
                            10 format(' Out   ovf_advt src   ',i5,1x,6(i3,1x),4(1pe15.8,1x)/ &
@@ -2723,49 +2712,49 @@
          endif  ! k
       end do  ! source
 ! ent
-      do m=1,ovf(n)%num_ent  ! entrainment
-         kent = ovf(n)%loc_ent(m)%k
+      do m=1,ovf(ovf_id)%num_ent  ! entrainment
+         kent = ovf(ovf_id)%loc_ent(m)%k
          if( k == kent ) then
             do j=1,ny_block
-               if( ovf(n)%loc_ent(m)%j_adv .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_ent(m)%j_adv .eq. this_block%j_glob(j) ) then
                   do i=1,nx_block
-                     if( ovf(n)%loc_ent(m)%i_adv .eq. this_block%i_glob(i) ) then
+                     if( ovf(ovf_id)%loc_ent(m)%i_adv .eq. this_block%i_glob(i) ) then
                         if( prnt ) then
-                           write(stdout,15) nsteps_total,n,ovf(n)%loc_ent(m)%i_adv, &
-                           ovf(n)%loc_ent(m)%j_adv,ovf(n)%loc_ent(m)%k, &
-                           ovf(n)%loc_ent(m)%orient,ntr, &
+                           write(stdout,15) nsteps_total,n,ovf(ovf_id)%loc_ent(m)%i_adv, &
+                           ovf(ovf_id)%loc_ent(m)%j_adv,ovf(ovf_id)%loc_ent(m)%k, &
+                           ovf(ovf_id)%loc_ent(m)%orient,ntr, &
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1)
                            15 format(' In    ovf_advt ent   ',i5,1x,6(i3,1x),4(1pe15.8,1x))
                         endif  ! print
                         if( i > 1 ) then
-                           if( ovf(n)%loc_ent(m)%orient .eq. 1 ) then
-                              TRACER_E(i-1,j) = ovf(n)%trcr_reg%ent(ntr)
+                           if( ovf(ovf_id)%loc_ent(m)%orient .eq. 1 ) then
+                              TRACER_E(i-1,j) = ovf(ovf_id)%trcr_reg%ent(ntr)
                            endif
                         endif
                         if( j > 1 ) then
-                           if( ovf(n)%loc_ent(m)%orient .eq. 2 ) then
-                              TRACER_N(i,j-1) = ovf(n)%trcr_reg%ent(ntr)
+                           if( ovf(ovf_id)%loc_ent(m)%orient .eq. 2 ) then
+                              TRACER_N(i,j-1) = ovf(ovf_id)%trcr_reg%ent(ntr)
                            endif
                         endif
-                        if( ovf(n)%loc_ent(m)%orient .eq. 3 ) then
-                           TRACER_E(i,j)   = ovf(n)%trcr_reg%ent(ntr)
+                        if( ovf(ovf_id)%loc_ent(m)%orient .eq. 3 ) then
+                           TRACER_E(i,j)   = ovf(ovf_id)%trcr_reg%ent(ntr)
                         endif
-                        if( ovf(n)%loc_ent(m)%orient .eq. 4 ) then
-                           TRACER_N(i,j)   = ovf(n)%trcr_reg%ent(ntr)
+                        if( ovf(ovf_id)%loc_ent(m)%orient .eq. 4 ) then
+                           TRACER_N(i,j)   = ovf(ovf_id)%trcr_reg%ent(ntr)
                         endif
                         if( prnt ) then
-                           write(stdout,20) nsteps_total,n,ovf(n)%loc_ent(m)%i_adv, &
-                           ovf(n)%loc_ent(m)%j_adv,ovf(n)%loc_ent(m)%k, &
-                           ovf(n)%loc_ent(m)%orient,ntr, &
+                           write(stdout,20) nsteps_total,n,ovf(ovf_id)%loc_ent(m)%i_adv, &
+                           ovf(ovf_id)%loc_ent(m)%j_adv,ovf(ovf_id)%loc_ent(m)%k, &
+                           ovf(ovf_id)%loc_ent(m)%orient,ntr, &
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1), &
-                                            nsteps_total,n,ovf(n)%loc_ent(m)%i_adv, &
-                           ovf(n)%loc_ent(m)%j_adv,ovf(n)%loc_ent(m)%k, &
-                           ovf(n)%loc_ent(m)%orient,ntr, &
+                                            nsteps_total,n,ovf(ovf_id)%loc_ent(m)%i_adv, &
+                           ovf(ovf_id)%loc_ent(m)%j_adv,ovf(ovf_id)%loc_ent(m)%k, &
+                           ovf(ovf_id)%loc_ent(m)%orient,ntr, &
            CE(i,j)*dz(kent)*TAREA(i,j,iblock),CW(i,j)*dz(kent)*TAREA(i,j,iblock), &
            CN(i,j)*dz(kent)*TAREA(i,j,iblock),CS(i,j)*dz(kent)*TAREA(i,j,iblock), &
-                                            nsteps_total,n,ovf(n)%loc_ent(m)%i_adv, &
-                           ovf(n)%loc_ent(m)%j_adv,ovf(n)%loc_ent(m)%k, &
-                           ovf(n)%loc_ent(m)%orient,ntr, &
+                                            nsteps_total,n,ovf(ovf_id)%loc_ent(m)%i_adv, &
+                           ovf(ovf_id)%loc_ent(m)%j_adv,ovf(ovf_id)%loc_ent(m)%k, &
+                           ovf(ovf_id)%loc_ent(m)%orient,ntr, &
            CE(i,j)*dz(kent)*TAREA(i,j,iblock)*TRACER_E(i,j), &
            CW(i,j)*dz(kent)*TAREA(i,j,iblock)*TRACER_E(i-1,j)
                            20 format(' Out   ovf_advt ent   ',i5,1x,6(i3,1x),4(1pe15.8,1x)/ &
@@ -2779,50 +2768,50 @@
          endif  ! k
       end do  ! entrainment
 ! prd
-      m = ovf(n)%prd_set  ! product set for insertion
-      do mp=1,ovf(n)%num_prd(m)  ! product points for insertion
-         kprd = ovf(n)%loc_prd(m,mp)%k
+      m = ovf(ovf_id)%prd_set  ! product set for insertion
+      do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for insertion
+         kprd = ovf(ovf_id)%loc_prd(m,mp)%k
          if( k == kprd ) then
             do j=1,ny_block
-               if( ovf(n)%loc_prd(m,mp)%j_adv .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_prd(m,mp)%j_adv .eq. this_block%j_glob(j) ) then
                   do i=1,nx_block
-                     if( ovf(n)%loc_prd(m,mp)%i_adv .eq. this_block%i_glob(i) ) then
+                     if( ovf(ovf_id)%loc_prd(m,mp)%i_adv .eq. this_block%i_glob(i) ) then
                         if( prnt ) then
-                           write(stdout,25) nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
-                           ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
-                           ovf(n)%loc_prd(m,mp)%orient,ntr, &
+                           write(stdout,25) nsteps_total,n,ovf(ovf_id)%loc_prd(m,mp)%i_adv, &
+                           ovf(ovf_id)%loc_prd(m,mp)%j_adv,ovf(ovf_id)%loc_prd(m,mp)%k, &
+                           ovf(ovf_id)%loc_prd(m,mp)%orient,ntr, &
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1)
                            25 format(' In    ovf_advt prd   ',i5,1x,6(i3,1x),4(1pe15.8,1x))
                         endif  ! print
                         if( i > 1 ) then
-                           if( ovf(n)%loc_prd(m,mp)%orient .eq. 1 ) then
-                              TRACER_E(i-1,j)   = ovf(n)%trcr_reg%prd(ntr)
+                           if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 1 ) then
+                              TRACER_E(i-1,j)   = ovf(ovf_id)%trcr_reg%prd(ntr)
                            endif
                         endif
                         if( j > 1 ) then
-                           if( ovf(n)%loc_prd(m,mp)%orient .eq. 2 ) then
-                              TRACER_N(i,j-1)   = ovf(n)%trcr_reg%prd(ntr)
+                           if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 2 ) then
+                              TRACER_N(i,j-1)   = ovf(ovf_id)%trcr_reg%prd(ntr)
                            endif
                         endif
-                        if( ovf(n)%loc_prd(m,mp)%orient .eq. 3 ) then
-                           TRACER_E(i,j)     = ovf(n)%trcr_reg%prd(ntr)
+                        if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 3 ) then
+                           TRACER_E(i,j)     = ovf(ovf_id)%trcr_reg%prd(ntr)
                         endif
-                        if( ovf(n)%loc_prd(m,mp)%orient .eq. 4 ) then
-                           TRACER_N(i,j)     = ovf(n)%trcr_reg%prd(ntr)
+                        if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 4 ) then
+                           TRACER_N(i,j)     = ovf(ovf_id)%trcr_reg%prd(ntr)
                         endif
                         if( prnt ) then
-                           write(stdout,35) nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
-                           ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
-                           ovf(n)%loc_prd(m,mp)%orient,ntr, &
+                           write(stdout,35) nsteps_total,n,ovf(ovf_id)%loc_prd(m,mp)%i_adv, &
+                           ovf(ovf_id)%loc_prd(m,mp)%j_adv,ovf(ovf_id)%loc_prd(m,mp)%k, &
+                           ovf(ovf_id)%loc_prd(m,mp)%orient,ntr, &
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1), &
-                                            nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
-                           ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
-                           ovf(n)%loc_prd(m,mp)%orient,ntr, &
+                                            nsteps_total,n,ovf(ovf_id)%loc_prd(m,mp)%i_adv, &
+                           ovf(ovf_id)%loc_prd(m,mp)%j_adv,ovf(ovf_id)%loc_prd(m,mp)%k, &
+                           ovf(ovf_id)%loc_prd(m,mp)%orient,ntr, &
            CE(i,j)*dz(kprd)*TAREA(i,j,iblock),CW(i,j)*dz(kprd)*TAREA(i,j,iblock), &
            CN(i,j)*dz(kprd)*TAREA(i,j,iblock),CS(i,j)*dz(kprd)*TAREA(i,j,iblock), &
-                                            nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
-                           ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
-                           ovf(n)%loc_prd(m,mp)%orient,ntr, &
+                                            nsteps_total,n,ovf(ovf_id)%loc_prd(m,mp)%i_adv, &
+                           ovf(ovf_id)%loc_prd(m,mp)%j_adv,ovf(ovf_id)%loc_prd(m,mp)%k, &
+                           ovf(ovf_id)%loc_prd(m,mp)%orient,ntr, &
            CE(i,j)*dz(kprd)*TAREA(i,j,iblock)*TRACER_E(i,j), &
            CW(i,j)*dz(kprd)*TAREA(i,j,iblock)*TRACER_E(i-1,j)
                            35 format(' Out   ovf_advt prd   ',i5,1x,6(i3,1x),4(1pe15.8,1x)/ &
@@ -2836,53 +2825,53 @@
          endif  ! k
       end do  ! product points for insertion set
 ! If prd set just moved and time averaging done previous time step
-      if( ovf(n)%prd_set .ne. ovf(n)%prd_set_n ) then
-       m = ovf(n)%prd_set_n  ! product set for insertion
-       do mp=1,ovf(n)%num_prd(m)  ! product points for insertion
-         kprd = ovf(n)%loc_prd(m,mp)%k
+      if( ovf(ovf_id)%prd_set .ne. ovf(ovf_id)%prd_set_n ) then
+       m = ovf(ovf_id)%prd_set_n  ! product set for insertion
+       do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for insertion
+         kprd = ovf(ovf_id)%loc_prd(m,mp)%k
          if( k == kprd ) then
             do j=1,ny_block
-               if( ovf(n)%loc_prd(m,mp)%j_adv .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_prd(m,mp)%j_adv .eq. this_block%j_glob(j) ) then
                   do i=1,nx_block
-                     if( ovf(n)%loc_prd(m,mp)%i_adv .eq. this_block%i_glob(i) ) then
+                     if( ovf(ovf_id)%loc_prd(m,mp)%i_adv .eq. this_block%i_glob(i) ) then
                         if( prnt ) then
-                           write(stdout,26) nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
-                           ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
-                           ovf(n)%loc_prd(m,mp)%orient,ntr, &
+                           write(stdout,26) nsteps_total,n,ovf(ovf_id)%loc_prd(m,mp)%i_adv, &
+                           ovf(ovf_id)%loc_prd(m,mp)%j_adv,ovf(ovf_id)%loc_prd(m,mp)%k, &
+                           ovf(ovf_id)%loc_prd(m,mp)%orient,ntr, &
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1)
                            26 format(' In_n  ovf_advt prd   ',i5,1x,6(i3,1x),4(1pe15.8,1x))
                         endif  ! print
                         if( avg_ts_last ) then
                            if( i > 1 ) then
-                              if( ovf(n)%loc_prd(m,mp)%orient .eq. 1 ) then
-                                 TRACER_E(i-1,j)   = ovf(n)%trcr_reg%prd(ntr)
+                              if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 1 ) then
+                                 TRACER_E(i-1,j)   = ovf(ovf_id)%trcr_reg%prd(ntr)
                               endif
                            endif
                            if( j > 1 ) then
-                              if( ovf(n)%loc_prd(m,mp)%orient .eq. 2 ) then
-                                 TRACER_N(i,j-1)   = ovf(n)%trcr_reg%prd(ntr)
+                              if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 2 ) then
+                                 TRACER_N(i,j-1)   = ovf(ovf_id)%trcr_reg%prd(ntr)
                               endif
                            endif
-                           if( ovf(n)%loc_prd(m,mp)%orient .eq. 3 ) then
-                              TRACER_E(i,j)     = ovf(n)%trcr_reg%prd(ntr)
+                           if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 3 ) then
+                              TRACER_E(i,j)     = ovf(ovf_id)%trcr_reg%prd(ntr)
                            endif
-                           if( ovf(n)%loc_prd(m,mp)%orient .eq. 4 ) then
-                              TRACER_N(i,j)     = ovf(n)%trcr_reg%prd(ntr)
+                           if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 4 ) then
+                              TRACER_N(i,j)     = ovf(ovf_id)%trcr_reg%prd(ntr)
                            endif
                         endif
                         if( prnt ) then
-                           write(stdout,36) nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
-                           ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
-                           ovf(n)%loc_prd(m,mp)%orient,ntr, &
+                           write(stdout,36) nsteps_total,n,ovf(ovf_id)%loc_prd(m,mp)%i_adv, &
+                           ovf(ovf_id)%loc_prd(m,mp)%j_adv,ovf(ovf_id)%loc_prd(m,mp)%k, &
+                           ovf(ovf_id)%loc_prd(m,mp)%orient,ntr, &
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1), &
-                                            nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
-                           ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
-                           ovf(n)%loc_prd(m,mp)%orient,ntr, &
+                                            nsteps_total,n,ovf(ovf_id)%loc_prd(m,mp)%i_adv, &
+                           ovf(ovf_id)%loc_prd(m,mp)%j_adv,ovf(ovf_id)%loc_prd(m,mp)%k, &
+                           ovf(ovf_id)%loc_prd(m,mp)%orient,ntr, &
            CE(i,j)*dz(kprd)*TAREA(i,j,iblock),CW(i,j)*dz(kprd)*TAREA(i,j,iblock), &
            CN(i,j)*dz(kprd)*TAREA(i,j,iblock),CS(i,j)*dz(kprd)*TAREA(i,j,iblock), &
-                                            nsteps_total,n,ovf(n)%loc_prd(m,mp)%i_adv, &
-                           ovf(n)%loc_prd(m,mp)%j_adv,ovf(n)%loc_prd(m,mp)%k, &
-                           ovf(n)%loc_prd(m,mp)%orient,ntr, &
+                                            nsteps_total,n,ovf(ovf_id)%loc_prd(m,mp)%i_adv, &
+                           ovf(ovf_id)%loc_prd(m,mp)%j_adv,ovf(ovf_id)%loc_prd(m,mp)%k, &
+                           ovf(ovf_id)%loc_prd(m,mp)%orient,ntr, &
            CE(i,j)*dz(kprd)*TAREA(i,j,iblock)*TRACER_E(i,j), &
            CW(i,j)*dz(kprd)*TAREA(i,j,iblock)*TRACER_E(i-1,j)
                            36 format(' Out_n ovf_advt prd   ',i5,1x,6(i3,1x),4(1pe15.8,1x)/ &
@@ -2940,6 +2929,9 @@
       iblock                ! local block address for this block
    logical (log_kind), parameter :: prnt = .false.
 
+   integer (int_kind)  ::ovf_id
+
+
    if( prnt .and. my_task == master_task ) then
       write(stdout,*) 'ovf_wtkb_check called '
       call shr_sys_flush(stdout)
@@ -2951,22 +2943,31 @@
 !  overflow loop
 !-----------------------------------------------------------------------
 
-   do n=1,num_ovf  ! each overflow
+ !must have the groups initilaized
+   if (.not. ovf_groups%init) then
+      call ovf_init_groups()
+   end if  
+
+
+! for each of MY overflows
+   do n=1,ovf_groups%numMyGroups
+      ovf_id = ovf_groups%groupIds(n)
+
 ! ovf ij
 ! src
-      do m=1,ovf(n)%num_src  ! source
+      do m=1,ovf(ovf_id)%num_src  ! source
          ib = this_block%ib
          ie = this_block%ie
          jb = this_block%jb
          je = this_block%je
          do j=jb,je
-            if( ovf(n)%loc_src(m)%j .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_src(m)%j .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                  if( ovf(n)%loc_src(m)%i .eq. this_block%i_glob(i) ) then
+                  if( ovf(ovf_id)%loc_src(m)%i .eq. this_block%i_glob(i) ) then
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
-                           write(stdout,10) n,nsteps_total,ovf(n)%loc_src(m)%i, &
-  ovf(n)%loc_src(m)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+                           write(stdout,10) n,nsteps_total,ovf(ovf_id)%loc_src(m)%i, &
+  ovf(ovf_id)%loc_src(m)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
   10 format(' ovf_wtkb_ch n=',i3, &
   ' src t,i,j,k         wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -2977,19 +2978,19 @@
          end do  ! j
       end do  ! source
 ! ent
-      do m=1,ovf(n)%num_ent  ! entrainment
+      do m=1,ovf(ovf_id)%num_ent  ! entrainment
          ib = this_block%ib
          ie = this_block%ie
          jb = this_block%jb
          je = this_block%je
          do j=jb,je
-            if( ovf(n)%loc_ent(m)%j .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_ent(m)%j .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                  if( ovf(n)%loc_ent(m)%i .eq. this_block%i_glob(i) ) then
+                  if( ovf(ovf_id)%loc_ent(m)%i .eq. this_block%i_glob(i) ) then
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
-                           write(stdout,20) n,nsteps_total,ovf(n)%loc_ent(m)%i, &
-  ovf(n)%loc_ent(m)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+                           write(stdout,20) n,nsteps_total,ovf(ovf_id)%loc_ent(m)%i, &
+  ovf(ovf_id)%loc_ent(m)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
   20 format(' ovf_wtkb_ch n=',i3, &
   ' ent t,i,j,k         wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -3000,20 +3001,20 @@
          end do  ! j
       end do  ! entrainment
 ! prd
-      m = ovf(n)%prd_set  ! product set for insertion
-      do mp=1,ovf(n)%num_prd(m)  ! product points for insertion
+      m = ovf(ovf_id)%prd_set  ! product set for insertion
+      do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for insertion
          ib = this_block%ib
          ie = this_block%ie
          jb = this_block%jb
          je = this_block%je
          do j=jb,je
-            if( ovf(n)%loc_prd(m,mp)%j .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_prd(m,mp)%j .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                  if( ovf(n)%loc_prd(m,mp)%i .eq. this_block%i_glob(i) ) then
+                  if( ovf(ovf_id)%loc_prd(m,mp)%i .eq. this_block%i_glob(i) ) then
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
-                           write(stdout,30) n,nsteps_total,ovf(n)%loc_prd(m,mp)%i, & 
-  ovf(n)%loc_prd(m,mp)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+                           write(stdout,30) n,nsteps_total,ovf(ovf_id)%loc_prd(m,mp)%i, & 
+  ovf(ovf_id)%loc_prd(m,mp)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
   30 format(' ovf_wtkb_ch n=',i3, & 
   ' prd t,i,j,k         wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -3024,20 +3025,20 @@
          end do  ! j
       end do  ! product points for insertion set
 ! prd
-      do m=1,ovf(n)%num_prd_sets
-       do mp=1,ovf(n)%num_prd(m)  ! product points for insertion
+      do m=1,ovf(ovf_id)%num_prd_sets
+       do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for insertion
          ib = this_block%ib
          ie = this_block%ie
          jb = this_block%jb
          je = this_block%je
          do j=jb,je
-            if( ovf(n)%loc_prd(m,mp)%j .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_prd(m,mp)%j .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                  if( ovf(n)%loc_prd(m,mp)%i .eq. this_block%i_glob(i) ) then
+                  if( ovf(ovf_id)%loc_prd(m,mp)%i .eq. this_block%i_glob(i) ) then
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
-                           write(stdout,31) n,nsteps_total,ovf(n)%loc_prd(m,mp)%i, & 
-  ovf(n)%loc_prd(m,mp)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+                           write(stdout,31) n,nsteps_total,ovf(ovf_id)%loc_prd(m,mp)%i, & 
+  ovf(ovf_id)%loc_prd(m,mp)%j,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
   31 format(' ovf_wtkb_ch n=',i3, & 
   ' all prd t,i,j,k         wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -3050,19 +3051,19 @@
       end do  ! product sets
 ! ovf i_adv j_adv
 ! src
-      do m=1,ovf(n)%num_src  ! source
+      do m=1,ovf(ovf_id)%num_src  ! source
          ib = this_block%ib
          ie = this_block%ie
          jb = this_block%jb
          je = this_block%je
          do j=jb,je
-            if( ovf(n)%loc_src(m)%j_adv .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_src(m)%j_adv .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                  if( ovf(n)%loc_src(m)%i_adv .eq. this_block%i_glob(i) ) then
+                  if( ovf(ovf_id)%loc_src(m)%i_adv .eq. this_block%i_glob(i) ) then
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
-                           write(stdout,40) n,nsteps_total,ovf(n)%loc_src(m)%i_adv, &
-  ovf(n)%loc_src(m)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+                           write(stdout,40) n,nsteps_total,ovf(ovf_id)%loc_src(m)%i_adv, &
+  ovf(ovf_id)%loc_src(m)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
   40 format(' ovf_wtkb_ch n=',i3, &
   ' src t,i_adv,j_adv,k wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -3073,19 +3074,19 @@
          end do  ! j
       end do  ! source
 ! ent
-      do m=1,ovf(n)%num_ent  ! entrainment
+      do m=1,ovf(ovf_id)%num_ent  ! entrainment
          ib = this_block%ib
          ie = this_block%ie
          jb = this_block%jb
          je = this_block%je
          do j=jb,je
-            if( ovf(n)%loc_ent(m)%j_adv .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_ent(m)%j_adv .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                  if( ovf(n)%loc_ent(m)%i_adv .eq. this_block%i_glob(i) ) then
+                  if( ovf(ovf_id)%loc_ent(m)%i_adv .eq. this_block%i_glob(i) ) then
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
-                           write(stdout,50) n,nsteps_total,ovf(n)%loc_ent(m)%i_adv, &
-  ovf(n)%loc_ent(m)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+                           write(stdout,50) n,nsteps_total,ovf(ovf_id)%loc_ent(m)%i_adv, &
+  ovf(ovf_id)%loc_ent(m)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
   50 format(' ovf_wtkb_ch n=',i3, &
   ' ent t,i_adv,j_adv,k wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -3096,20 +3097,20 @@
          end do  ! j
       end do  ! entrainment
 ! prd
-      m = ovf(n)%prd_set  ! product set for insertion
-      do mp=1,ovf(n)%num_prd(m)  ! product points for insertion
+      m = ovf(ovf_id)%prd_set  ! product set for insertion
+      do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for insertion
          ib = this_block%ib
          ie = this_block%ie
          jb = this_block%jb
          je = this_block%je
          do j=jb,je
-            if( ovf(n)%loc_prd(m,mp)%j_adv .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_prd(m,mp)%j_adv .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                  if( ovf(n)%loc_prd(m,mp)%i_adv .eq. this_block%i_glob(i) ) then
+                  if( ovf(ovf_id)%loc_prd(m,mp)%i_adv .eq. this_block%i_glob(i) ) then
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
-                           write(stdout,60) n,nsteps_total,ovf(n)%loc_prd(m,mp)%i_adv, & 
-  ovf(n)%loc_prd(m,mp)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+                           write(stdout,60) n,nsteps_total,ovf(ovf_id)%loc_prd(m,mp)%i_adv, & 
+  ovf(ovf_id)%loc_prd(m,mp)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
   60 format(' ovf_wtkb_ch n=',i3, & 
   ' prd t,i_adv,j_adv,k wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -3120,20 +3121,20 @@
          end do  ! j
       end do  ! product points for insertion set
 ! prd
-      do m=1,ovf(n)%num_prd_sets
-       do mp=1,ovf(n)%num_prd(m)  ! product points for insertion if moved
+      do m=1,ovf(ovf_id)%num_prd_sets
+       do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for insertion if moved
          ib = this_block%ib
          ie = this_block%ie
          jb = this_block%jb
          je = this_block%je
          do j=jb,je
-            if( ovf(n)%loc_prd(m,mp)%j_adv .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_prd(m,mp)%j_adv .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                  if( ovf(n)%loc_prd(m,mp)%i_adv .eq. this_block%i_glob(i) ) then
+                  if( ovf(ovf_id)%loc_prd(m,mp)%i_adv .eq. this_block%i_glob(i) ) then
                      if( k == KMT(i,j,iblock) ) then
                         if( prnt ) then
-                           write(stdout,61) n,nsteps_total,ovf(n)%loc_prd(m,mp)%i_adv, & 
-  ovf(n)%loc_prd(m,mp)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
+                           write(stdout,61) n,nsteps_total,ovf(ovf_id)%loc_prd(m,mp)%i_adv, & 
+  ovf(ovf_id)%loc_prd(m,mp)%j_adv,k,WTKB(i,j,iblock),TAREA(i,j,iblock)*WTKB(i,j,iblock)
   61 format(' ovf_wtkb_ch n=',i3, & 
   ' all prd t,i_adv,j_adv,k wtkb wtkb*tarea=',4(i4,1x),2(1pe12.5,2x))
                         endif  ! print
@@ -3178,6 +3179,8 @@
       this_block            ! block information for this block
    logical (log_kind), parameter :: prnt = .false.
 
+   integer (int_kind) :: ovf_id
+
    if( prnt .and. my_task == master_task ) then
       write(stdout,*) 'ovf_UV_check called '
       call shr_sys_flush(stdout)
@@ -3189,10 +3192,19 @@
 !-----------------------------------------------------------------------
 !  overflow loop
 !-----------------------------------------------------------------------
-     do n=1,num_ovf  ! each overflow
+
+ !must have the groups initilaized
+   if (.not. ovf_groups%init) then
+      call ovf_init_groups()
+   end if  
+
+
+! for each of MY overflows
+   do n=1,ovf_groups%numMyGroups
+      ovf_id = ovf_groups%groupIds(n)
 ! src
-       do m=1,ovf(n)%num_src  ! source
-         ksrc = ovf(n)%loc_src(m)%k
+       do m=1,ovf(ovf_id)%num_src  ! source
+         ksrc = ovf(ovf_id)%loc_src(m)%k
          do iblock = 1,nblocks_clinic
            this_block = get_block(blocks_clinic(iblock),iblock)
            ib = this_block%ib
@@ -3200,11 +3212,11 @@
            jb = this_block%jb
            je = this_block%je
            do j=jb,je
-             if( ovf(n)%loc_src(m)%j_u .eq. this_block%j_glob(j) ) then
+             if( ovf(ovf_id)%loc_src(m)%j_u .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                 if( ovf(n)%loc_src(m)%i_u .eq. this_block%i_glob(i) ) then
-                   write(stdout,15) n,ovf(n)%loc_src(m)%i_u, &
-                   ovf(n)%loc_src(m)%j_u
+                 if( ovf(ovf_id)%loc_src(m)%i_u .eq. this_block%i_glob(i) ) then
+                   write(stdout,15) n,ovf(ovf_id)%loc_src(m)%i_u, &
+                   ovf(ovf_id)%loc_src(m)%j_u
                    15 format(' ovf_UV_check n=',i2,' src i_u j_u = ',2(i3,1x))
 !                   do k=1,ksrc
                      k=ksrc
@@ -3222,8 +3234,8 @@
          enddo   ! block
        end do  ! source
 ! ent
-       do m=1,ovf(n)%num_ent  ! entrainment
-         kent = ovf(n)%loc_ent(m)%k
+       do m=1,ovf(ovf_id)%num_ent  ! entrainment
+         kent = ovf(ovf_id)%loc_ent(m)%k
          do iblock = 1,nblocks_clinic
            this_block = get_block(blocks_clinic(iblock),iblock)
            ib = this_block%ib
@@ -3231,11 +3243,11 @@
            jb = this_block%jb
            je = this_block%je
            do j=jb,je
-             if( ovf(n)%loc_ent(m)%j_u .eq. this_block%j_glob(j) ) then
+             if( ovf(ovf_id)%loc_ent(m)%j_u .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                 if( ovf(n)%loc_ent(m)%i_u .eq. this_block%i_glob(i) ) then
-                   write(stdout,25) n,ovf(n)%loc_ent(m)%i_u, &
-                   ovf(n)%loc_ent(m)%j_u
+                 if( ovf(ovf_id)%loc_ent(m)%i_u .eq. this_block%i_glob(i) ) then
+                   write(stdout,25) n,ovf(ovf_id)%loc_ent(m)%i_u, &
+                   ovf(ovf_id)%loc_ent(m)%j_u
                    25 format(' ovf_UV_check n=',i2,' ent i_u j_u = ',2(i3,1x))
 !                   do k=1,kent
                      k=kent
@@ -3253,9 +3265,9 @@
          enddo   ! block
        end do  ! entrainment
 ! prd
-      do m=1,ovf(n)%num_prd_sets
-       do mp=1,ovf(n)%num_prd(m)
-         kprd = ovf(n)%loc_prd(m,mp)%k 
+      do m=1,ovf(ovf_id)%num_prd_sets
+       do mp=1,ovf(ovf_id)%num_prd(m)
+         kprd = ovf(ovf_id)%loc_prd(m,mp)%k 
          do iblock = 1,nblocks_clinic
            this_block = get_block(blocks_clinic(iblock),iblock)
            ib = this_block%ib
@@ -3263,16 +3275,16 @@
            jb = this_block%jb
            je = this_block%je
            do j=jb,je
-             if( ovf(n)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
+             if( ovf(ovf_id)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                 if( ovf(n)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
-                   write(stdout,35) n,ovf(n)%loc_prd(m,mp)%i_u, &
-                   ovf(n)%loc_prd(m,mp)%j_u
+                 if( ovf(ovf_id)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
+                   write(stdout,35) n,ovf(ovf_id)%loc_prd(m,mp)%i_u, &
+                   ovf(ovf_id)%loc_prd(m,mp)%j_u
                    35 format(' ovf_UV_check n=',i2,' prd i_u j_u = ',2(i3,1x))
 !                   do k=1,kprd
                      k=kprd
                      write(stdout,30) nsteps_total,n, &
-                        ovf(n)%loc_prd(m,mp)%i_u,ovf(n)%loc_prd(m,mp)%j_u, &
+                        ovf(ovf_id)%loc_prd(m,mp)%i_u,ovf(ovf_id)%loc_prd(m,mp)%j_u, &
                         k,UVEL(i,j,k,oldtime,iblock), &
                         UVEL(i,j,k,curtime,iblock),UVEL(i,j,k,newtime,iblock)
                      30 format(' prd t,n,i,j,k old cur new UVEL= ',5(i4,1x),1x,3(f9.5,1x))
@@ -3353,6 +3365,8 @@
       this_block               ! block information for current block
    logical (log_kind), parameter :: prnt = .false.
 
+   integer (int_kind)  :: ovf_id
+
    if( prnt .and. my_task == master_task ) then
       write(stdout,*) 'ovf_Utlda called '
       call shr_sys_flush(stdout)
@@ -3361,33 +3375,40 @@
 !-----------------------------------------------------------------------
 !  overflow loop
 !-----------------------------------------------------------------------
+!must have the groups initilaized
+   if (.not. ovf_groups%init) then
+      call ovf_init_groups()
+   end if  
 
-   do n=1,num_ovf  ! each overflow
+
+! for each of MY overflows
+   do n=1,ovf_groups%numMyGroups
+      ovf_id = ovf_groups%groupIds(n)
 ! src
-      do m=1,ovf(n)%num_src  ! source
-         ksrc = ovf(n)%loc_src(m)%k
+      do m=1,ovf(ovf_id)%num_src  ! source
+         ksrc = ovf(ovf_id)%loc_src(m)%k
          this_block = get_block(blocks_clinic(iblock),iblock)
          ib = this_block%ib
          ie = this_block%ie
          jb = this_block%jb
          je = this_block%je
          do j=jb,je
-            if( ovf(n)%loc_src(m)%j_u .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_src(m)%j_u .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                  if( ovf(n)%loc_src(m)%i_u .eq. this_block%i_glob(i) ) then
+                  if( ovf(ovf_id)%loc_src(m)%i_u .eq. this_block%i_glob(i) ) then
                      do k=1,ksrc-1
-                        ovf(n)%loc_src(m)%Utlda(k) = UVEL(i,j,k,newtime,iblock)
-                        ovf(n)%loc_src(m)%Vtlda(k) = VVEL(i,j,k,newtime,iblock)
+                        ovf(ovf_id)%loc_src(m)%Utlda(k) = UVEL(i,j,k,newtime,iblock)
+                        ovf(ovf_id)%loc_src(m)%Vtlda(k) = VVEL(i,j,k,newtime,iblock)
                      enddo
                      if(prnt) then
-                        write(stdout,10) n,ovf(n)%loc_src(m)%i_u, &
-                                         ovf(n)%loc_src(m)%j_u, &
-                                         ovf(n)%loc_src(m)%orient,ksrc
+                        write(stdout,10) n,ovf(ovf_id)%loc_src(m)%i_u, &
+                                         ovf(ovf_id)%loc_src(m)%j_u, &
+                                         ovf(ovf_id)%loc_src(m)%orient,ksrc
                         10 format(' ovf_Utlda n=',i3, &
                         ' src i_u j_u orient k=',4(i4,1x))
                         do k=1,ksrc-1
-                           write(stdout,15) k,ovf(n)%loc_src(m)%Utlda(k), &
-                                              ovf(n)%loc_src(m)%Vtlda(k)
+                           write(stdout,15) k,ovf(ovf_id)%loc_src(m)%Utlda(k), &
+                                              ovf(ovf_id)%loc_src(m)%Vtlda(k)
                            15 format('   k=',i3,1x,'Utlda Vtlda= ',2(f9.5,2x))
                         enddo
                      endif
@@ -3397,30 +3418,30 @@
          end do  ! j
       end do  ! source
 ! ent
-      do m=1,ovf(n)%num_ent  ! entrainment
-         kent = ovf(n)%loc_ent(m)%k
+      do m=1,ovf(ovf_id)%num_ent  ! entrainment
+         kent = ovf(ovf_id)%loc_ent(m)%k
          this_block = get_block(blocks_clinic(iblock),iblock)
          ib = this_block%ib
          ie = this_block%ie
          jb = this_block%jb
          je = this_block%je
          do j=jb,je
-            if( ovf(n)%loc_ent(m)%j_u .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_ent(m)%j_u .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                  if( ovf(n)%loc_ent(m)%i_u .eq. this_block%i_glob(i) ) then
+                  if( ovf(ovf_id)%loc_ent(m)%i_u .eq. this_block%i_glob(i) ) then
                      do k=1,kent-1
-                        ovf(n)%loc_ent(m)%Utlda(k) = UVEL(i,j,k,newtime,iblock)
-                        ovf(n)%loc_ent(m)%Vtlda(k) = VVEL(i,j,k,newtime,iblock)
+                        ovf(ovf_id)%loc_ent(m)%Utlda(k) = UVEL(i,j,k,newtime,iblock)
+                        ovf(ovf_id)%loc_ent(m)%Vtlda(k) = VVEL(i,j,k,newtime,iblock)
                      enddo
                      if(prnt) then
-                        write(stdout,20) n,ovf(n)%loc_ent(m)%i_u, &
-                                         ovf(n)%loc_ent(m)%j_u, &
-                                         ovf(n)%loc_ent(m)%orient,kent
+                        write(stdout,20) n,ovf(ovf_id)%loc_ent(m)%i_u, &
+                                         ovf(ovf_id)%loc_ent(m)%j_u, &
+                                         ovf(ovf_id)%loc_ent(m)%orient,kent
                         20 format(' ovf_Utlda n=',i3, &
                         ' ent i_u j_u orient k=',4(i4,1x))
                         do k=1,kent-1
-                           write(stdout,25) k,ovf(n)%loc_ent(m)%Utlda(k), &
-                                              ovf(n)%loc_ent(m)%Vtlda(k)
+                           write(stdout,25) k,ovf(ovf_id)%loc_ent(m)%Utlda(k), &
+                                              ovf(ovf_id)%loc_ent(m)%Vtlda(k)
                            25 format('   k=',i3,1x,'Utlda Vtlda= ',2(f9.5,2x))
                         enddo
                      endif
@@ -3430,31 +3451,31 @@
          end do  ! j
       end do  ! entrainment
 ! prd
-      do m=1,ovf(n)%num_prd_sets
-         do mp=1,ovf(n)%num_prd(m)  ! product points for each set
-            kprd = ovf(n)%loc_prd(m,mp)%k
+      do m=1,ovf(ovf_id)%num_prd_sets
+         do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
+            kprd = ovf(ovf_id)%loc_prd(m,mp)%k
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
             ie = this_block%ie
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
+                     if( ovf(ovf_id)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
                         do k=1,kprd-1
-                           ovf(n)%loc_prd(m,mp)%Utlda(k) = UVEL(i,j,k,newtime,iblock)
-                           ovf(n)%loc_prd(m,mp)%Vtlda(k) = VVEL(i,j,k,newtime,iblock)
+                           ovf(ovf_id)%loc_prd(m,mp)%Utlda(k) = UVEL(i,j,k,newtime,iblock)
+                           ovf(ovf_id)%loc_prd(m,mp)%Vtlda(k) = VVEL(i,j,k,newtime,iblock)
                         enddo
                         if(prnt) then
-                           write(stdout,30) n,ovf(n)%loc_prd(m,mp)%i_u, &
-                                            ovf(n)%loc_prd(m,mp)%j_u, &
-                                            ovf(n)%loc_prd(m,mp)%orient,kprd
+                           write(stdout,30) n,ovf(ovf_id)%loc_prd(m,mp)%i_u, &
+                                            ovf(ovf_id)%loc_prd(m,mp)%j_u, &
+                                            ovf(ovf_id)%loc_prd(m,mp)%orient,kprd
                            30 format(' ovf_Utlda n=',i3, &
                            ' prd i_u j_u orient k=',4(i4,1x))
                            do k=1,kprd-1
-                              write(stdout,35) k,ovf(n)%loc_prd(m,mp)%Utlda(k), &
-                                                 ovf(n)%loc_prd(m,mp)%Vtlda(k)
+                              write(stdout,35) k,ovf(ovf_id)%loc_prd(m,mp)%Utlda(k), &
+                                                 ovf(ovf_id)%loc_prd(m,mp)%Vtlda(k)
                               35 format('   k=',i3,1x,'Utlda Vtlda= ',2(f9.5,2x))
                            enddo
                         endif
@@ -3496,6 +3517,9 @@
       write(stdout,*) ' ovf_driver entered '
       call shr_sys_flush(stdout)
    endif
+
+
+   call timer_start(timer_ovf)
 
 !----------------------------------------------------------------------
 !
@@ -3540,6 +3564,10 @@
 !----------------------------------------------------------------------
 !EOC
 
+
+      call timer_stop(timer_ovf)
+
+
  end subroutine ovf_driver
 
 !***********************************************************************
@@ -3547,10 +3575,15 @@
 ! !IROUTINE: ovf_reg_avgs
 ! !INTERFACE:
 
- subroutine ovf_reg_avgs(time_level)
+
+
+subroutine ovf_reg_avgs(time_level)
 
 ! !DESCRIPTION:
 !  Evaluate the ovf regional averages
+
+! note: this is called initially outside of the ovf_driver
+
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -3569,7 +3602,8 @@
 !----------------------------------------------------------------------
 
    integer (int_kind)      :: &
-      iblock,k,n,nn,m           ! dummy loop indices
+      iblock,k,n,nn,m             ! dummy loop indices
+     
 
    type (block)            :: &
       this_block                ! block information for current block
@@ -3580,6 +3614,13 @@
               vsum_adj_wght     ! vertical sum adjacent weight
 
    logical (log_kind), parameter :: prnt = .false.
+   
+   logical (log_kind) :: post
+   logical (log_kind), dimension(:), allocatable :: post_array
+   integer (int_kind) ::  num_posts, ierr, count, loc, ovf_id, i
+   integer (int_kind), parameter :: len = 15 !length of buffer for a post
+   real (r8), dimension(:), allocatable:: myRecvBuff(:), mySendBuff(:)
+
 
 !EOP
 !BOC
@@ -3589,245 +3630,138 @@
       call shr_sys_flush(stdout)
    endif
 
-! inflow region
-   do n=1,num_ovf
-      if( ovf(n)%wght_reg%inf .eq. c0 ) then
-         do iblock = 1,nblocks_clinic
-            WRK(:,:,iblock) = DXT(:,:,iblock)*DYT(:,:,iblock)  &
-               *ovf(n)%mask_reg%inf(:,:,iblock)
-         end do
-         ovf(n)%wght_reg%inf = &
-            global_sum(WRK,distrb_clinic,field_loc_center)
-      endif
-      do nn = 1,nt
-         ovf(n)%trcr_reg%inf(nn) = c0
-      end do
-      vsum_reg_wght  = c0
-      ovf(n)%rho_reg%inf = c0
-      do k = ovf(n)%reg_inf%kmin, ovf(n)%reg_inf%kmax
-         vsum_reg_wght = vsum_reg_wght + ovf(n)%wght_reg%inf*dz(k)
-         do iblock = 1,nblocks_clinic
-            WRK(:,:,iblock) = RHO(:,:,k,time_level,iblock) &
-               *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)   &
-               *ovf(n)%mask_reg%inf(:,:,iblock)
-         end do
-         ovf(n)%rho_reg%inf = ovf(n)%rho_reg%inf + &
-            global_sum(WRK,distrb_clinic,field_loc_center)
-         do nn = 1,nt
-            do iblock = 1,nblocks_clinic
-               WRK(:,:,iblock) = TRACER(:,:,k,nn,time_level,iblock) &
-                  *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)         &
-                  *ovf(n)%mask_reg%inf(:,:,iblock)
-            end do
-            ovf(n)%trcr_reg%inf(nn) = ovf(n)%trcr_reg%inf(nn) + &
-                 global_sum(WRK,distrb_clinic,field_loc_center)
-         end do
-      end do
-      do nn = 1,nt
-         ovf(n)%trcr_reg%inf(nn) = ovf(n)%trcr_reg%inf(nn) / vsum_reg_wght
-      end do
-      ovf(n)%rho_reg%inf = ovf(n)%rho_reg%inf / vsum_reg_wght
-   end do
+   !must have the groups initialized
+   if (.not. ovf_groups%init) then
+      call ovf_init_groups()
+   end if  
 
-! source region
-   do n=1,num_ovf
-      if( ovf(n)%wght_reg%src .eq. c0 ) then
-         do iblock = 1,nblocks_clinic
-            WRK(:,:,iblock) = DXT(:,:,iblock)*DYT(:,:,iblock)  &
-               *ovf(n)%mask_reg%src(:,:,iblock)
-         end do
-         ovf(n)%wght_reg%src = &
-            global_sum(WRK,distrb_clinic,field_loc_center)
-      endif
-      do nn = 1,nt
-         ovf(n)%trcr_reg%src(nn) = c0
-      end do
-      vsum_reg_wght  = c0
-      ovf(n)%rho_reg%src = c0
-      do k = ovf(n)%reg_src%kmin, ovf(n)%reg_src%kmax
-         vsum_reg_wght = vsum_reg_wght + ovf(n)%wght_reg%src*dz(k)
-         do iblock = 1,nblocks_clinic
-            WRK(:,:,iblock) = RHO(:,:,k,time_level,iblock) &
-               *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)   &
-               *ovf(n)%mask_reg%src(:,:,iblock)
-         end do
-         ovf(n)%rho_reg%src = ovf(n)%rho_reg%src + &
-            global_sum(WRK,distrb_clinic,field_loc_center)
-         do nn = 1,nt
-            do iblock = 1,nblocks_clinic
-               WRK(:,:,iblock) = TRACER(:,:,k,nn,time_level,iblock) &
-                  *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)         &
-                  *ovf(n)%mask_reg%src(:,:,iblock)
-            end do
-            ovf(n)%trcr_reg%src(nn) = ovf(n)%trcr_reg%src(nn) + &
-                 global_sum(WRK,distrb_clinic,field_loc_center)
-         end do
-      end do
-      do nn = 1,nt
-         ovf(n)%trcr_reg%src(nn) = ovf(n)%trcr_reg%src(nn) / vsum_reg_wght
-      end do
-      ovf(n)%rho_reg%src = ovf(n)%rho_reg%src / vsum_reg_wght
-   end do
 
-! source adjacent
-   do n=1,num_ovf
-      if( ovf(n)%wght_adj%src .eq. c0 ) then
-         do iblock = 1,nblocks_clinic
-            WRK(:,:,iblock) = DXT(:,:,iblock)*DYT(:,:,iblock)  &
-               *ovf(n)%mask_adj%src(:,:,iblock)
-         end do
-         ovf(n)%wght_adj%src = &
-            global_sum(WRK,distrb_clinic,field_loc_center)
-      endif
-      do nn = 1,nt
-         ovf(n)%trcr_adj%src(nn) = c0
-      end do
-      vsum_adj_wght  = c0
-      do k = ovf(n)%adj_src%kmin, ovf(n)%adj_src%kmax
-         vsum_adj_wght = vsum_adj_wght + ovf(n)%wght_adj%src*dz(k)
-         do nn = 1,nt
-            do iblock = 1,nblocks_clinic
-               WRK(:,:,iblock) = TRACER(:,:,k,nn,time_level,iblock) &
-                  *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)         &
-                  *ovf(n)%mask_adj%src(:,:,iblock)
-            end do
-            ovf(n)%trcr_adj%src(nn) = ovf(n)%trcr_adj%src(nn) + &
-                 global_sum(WRK,distrb_clinic,field_loc_center)
-         end do
-      end do
-      do nn = 1,nt
-         ovf(n)%trcr_adj%src(nn) = ovf(n)%trcr_adj%src(nn) / vsum_adj_wght
-      end do
-   end do
+   !compute the averages
+   call ovf_utils_avgs(time_level)
 
-! entrainment region
-   do n=1,num_ovf
-      if( ovf(n)%wght_reg%ent .eq. c0 ) then
-         do iblock = 1,nblocks_clinic
-            WRK(:,:,iblock) = DXT(:,:,iblock)*DYT(:,:,iblock)  &
-               *ovf(n)%mask_reg%ent(:,:,iblock)
-         end do
-         ovf(n)%wght_reg%ent = &
-            global_sum(WRK,distrb_clinic,field_loc_center)
-      endif
-      do nn = 1,nt
-         ovf(n)%trcr_reg%ent(nn) = c0
-      end do
-      vsum_reg_wght  = c0
-      ovf(n)%rho_reg%ent = c0
-      do k = ovf(n)%reg_ent%kmin, ovf(n)%reg_ent%kmax
-         vsum_reg_wght = vsum_reg_wght + ovf(n)%wght_reg%ent*dz(k)
-         do iblock = 1,nblocks_clinic
-            WRK(:,:,iblock) = RHO(:,:,k,time_level,iblock) &
-               *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)   &
-               *ovf(n)%mask_reg%ent(:,:,iblock)
-         end do
-         ovf(n)%rho_reg%ent = ovf(n)%rho_reg%ent + &
-            global_sum(WRK,distrb_clinic,field_loc_center)
-         do nn = 1,nt
-            do iblock = 1,nblocks_clinic
-               WRK(:,:,iblock) = TRACER(:,:,k,nn,time_level,iblock) &
-                  *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)         &
-                  *ovf(n)%mask_reg%ent(:,:,iblock)
-            end do
-            ovf(n)%trcr_reg%ent(nn) = ovf(n)%trcr_reg%ent(nn) + &
-                 global_sum(WRK,distrb_clinic,field_loc_center)
-         end do
-      end do
-      do nn = 1,nt
-         ovf(n)%trcr_reg%ent(nn) = ovf(n)%trcr_reg%ent(nn) / vsum_reg_wght
-      end do
-      ovf(n)%rho_reg%ent = ovf(n)%rho_reg%ent / vsum_reg_wght
-   end do
+   if (prnt) then 
 
-! entrainment adjacent
-   do n=1,num_ovf
-      if( ovf(n)%wght_adj%ent .eq. c0 ) then
-         do iblock = 1,nblocks_clinic
-            WRK(:,:,iblock) = DXT(:,:,iblock)*DYT(:,:,iblock)  &
-               *ovf(n)%mask_adj%ent(:,:,iblock)
-         end do
-         ovf(n)%wght_adj%ent = &
-            global_sum(WRK,distrb_clinic,field_loc_center)
-      endif
-      do nn = 1,nt
-         ovf(n)%trcr_adj%ent(nn) = c0
-      end do
-      vsum_adj_wght  = c0
-      do k = ovf(n)%adj_ent%kmin, ovf(n)%adj_ent%kmax
-         vsum_adj_wght = vsum_adj_wght + ovf(n)%wght_adj%ent*dz(k)
-         do nn = 1,nt
-            do iblock = 1,nblocks_clinic
-               WRK(:,:,iblock) = TRACER(:,:,k,nn,time_level,iblock) &
-                  *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)         &
-                  *ovf(n)%mask_adj%ent(:,:,iblock)
-            end do
-            ovf(n)%trcr_adj%ent(nn) = ovf(n)%trcr_adj%ent(nn) + &
-                 global_sum(WRK,distrb_clinic,field_loc_center)
-         end do
-      end do
-      do nn = 1,nt
-         ovf(n)%trcr_adj%ent(nn) = ovf(n)%trcr_adj%ent(nn) / vsum_adj_wght
-      end do
-   end do
-
-! product adjacent
-   do n=1,num_ovf
-      do m=1,ovf(n)%num_prd_sets
-         if( ovf(n)%wght_adj%prd(m) .eq. c0 ) then
-            do iblock = 1,nblocks_clinic
-               WRK(:,:,iblock) = DXT(:,:,iblock)*DYT(:,:,iblock)  &
-                  *ovf(n)%mask_adj%prd(:,:,iblock,m)
-            end do
-            ovf(n)%wght_adj%prd(m) = &
-               global_sum(WRK,distrb_clinic,field_loc_center)
+      if( my_task == master_task ) then
+         !for any ovf groups that the master_task is not in, 
+         !must post recv for the info
+         allocate(post_array(num_ovf))
+         num_posts = num_ovf - ovf_groups%numMyGroups
+         if (num_posts > 0) then
+            allocate(myRecvBuff(len*num_posts))
          endif
-      end do
-      do m=1,ovf(n)%num_prd_sets
-         vsum_adj_wght         = c0
-         ovf(n)%rho_adj%prd(m) = c0
-         do k = ovf(n)%adj_prd(m)%kmin, ovf(n)%adj_prd(m)%kmax
-            vsum_adj_wght = vsum_adj_wght + ovf(n)%wght_adj%prd(m)*dz(k)
-            do iblock = 1,nblocks_clinic
-               WRK(:,:,iblock) = RHO(:,:,k,time_level,iblock) &
-                  *DXT(:,:,iblock)*DYT(:,:,iblock)*dz(k)   &
-                  *ovf(n)%mask_adj%prd(:,:,iblock,m)
-            end do
-            ovf(n)%rho_adj%prd(m) = ovf(n)%rho_adj%prd(m) + &
-               global_sum(WRK,distrb_clinic,field_loc_center)
-         end do
-         ovf(n)%rho_adj%prd(m) = ovf(n)%rho_adj%prd(m) / vsum_adj_wght
-      end do
-   end do
 
-   if( prnt .and. my_task == master_task ) then
-      do n=1,num_ovf
-         write(stdout,10) n,ovf(n)%trcr_reg%inf(1),                   &
-            (ovf(n)%trcr_reg%inf(2))*c1000,(ovf(n)%rho_reg%inf-c1)*c1000, & 
-             ovf(n)%trcr_reg%src(1),                                  &
-            (ovf(n)%trcr_reg%src(2))*c1000,(ovf(n)%rho_reg%src-c1)*c1000, & 
-             ovf(n)%trcr_reg%ent(1),                                  &
-            (ovf(n)%trcr_reg%ent(2))*c1000,(ovf(n)%rho_reg%ent-c1)*c1000
-         10 format(1x,'ovf reg',i3,1x,3(f6.3,1x),3(f6.3,1x),3(f6.3,1x))
-         if( n.eq.1 ) then
-           write(stdout,11) n,ovf(n)%trcr_adj%src(1),                   &
-            (ovf(n)%trcr_adj%src(2))*c1000,                           & 
-             ovf(n)%trcr_adj%ent(1),                                  &
-            (ovf(n)%trcr_adj%ent(2))*c1000,                           &
-            (ovf(n)%rho_adj%prd(1)-c1)*c1000
-           11 format(1x,'ovf adj',i3,1x,2(f6.3,1x),1x,2(f6.3,1x),f6.3)
-         else
-           write(stdout,12) n,ovf(n)%trcr_adj%src(1),                   &
-            (ovf(n)%trcr_adj%src(2))*c1000,                           & 
-             ovf(n)%trcr_adj%ent(1),                                  &
-            (ovf(n)%trcr_adj%ent(2))*c1000,                           &
-            (ovf(n)%rho_adj%prd(1)-c1)*c1000,                         &
-            (ovf(n)%rho_adj%prd(2)-c1)*c1000                         
-           12 format(1x,'ovf adj',i3,1x,2(f6.3,1x),1x,2(f6.3,1x),     &
-                     f6.3,1x,f6.3)
+         call ovf_print_init(len, num_posts, myRecvBuff, post_array)
+         
+         count = 0
+         do n=1,num_ovf
+            if (post_array(n)) then !we posted a recv for this
+               count = count+1
+               call ovf_print_get(count)
+               loc = (count-1)*len+1
+               !unpack
+               ovf(n)%trcr_reg%inf(1) = myRecvBuff(loc)
+               ovf(n)%trcr_reg%inf(2) = myRecvBuff(loc+1)
+               ovf(n)%rho_reg%inf = myRecvBuff(loc+2)
+               ovf(n)%trcr_reg%src(1) = myRecvBuff(loc+3)
+               ovf(n)%trcr_reg%src(2) = myRecvBuff(loc+4)
+               ovf(n)%rho_reg%src = myRecvBuff(loc+5)
+               ovf(n)%trcr_reg%ent(1) = myRecvBuff(loc+6)
+               ovf(n)%trcr_reg%ent(2) = myRecvBuff(loc+7)
+               ovf(n)%rho_reg%ent = myRecvBuff(loc+8)
+
+               ovf(n)%trcr_adj%src(1) = myRecvBuff(loc+9)
+               ovf(n)%trcr_adj%src(2) = myRecvBuff(loc+10)
+               ovf(n)%trcr_adj%ent(1) = myRecvBuff(loc+11)
+               ovf(n)%trcr_adj%ent(2) = myRecvBuff(loc+12)
+               ovf(n)%rho_adj%prd(1) = myRecvBuff(loc+13)
+               ovf(n)%rho_adj%prd(2) = myRecvBuff(loc+14)
+            endif
+
+            write(stdout,10) n,ovf(n)%trcr_reg%inf(1),                   &
+                 (ovf(n)%trcr_reg%inf(2))*c1000,(ovf(n)%rho_reg%inf-c1)*c1000, & 
+                 ovf(n)%trcr_reg%src(1),                                  &
+                 (ovf(n)%trcr_reg%src(2))*c1000,(ovf(n)%rho_reg%src-c1)*c1000, & 
+                 ovf(n)%trcr_reg%ent(1),                                  &
+                 (ovf(n)%trcr_reg%ent(2))*c1000,(ovf(n)%rho_reg%ent-c1)*c1000
+10          format(1x,'ovf reg',i3,1x,3(f6.3,1x),3(f6.3,1x),3(f6.3,1x))
+            if( n.eq.1 ) then
+               write(stdout,11) n,ovf(n)%trcr_adj%src(1),                   &
+                    (ovf(n)%trcr_adj%src(2))*c1000,                           & 
+                    ovf(n)%trcr_adj%ent(1),                                  &
+                    (ovf(n)%trcr_adj%ent(2))*c1000,                           &
+                    (ovf(n)%rho_adj%prd(1)-c1)*c1000
+11             format(1x,'ovf adj',i3,1x,2(f6.3,1x),1x,2(f6.3,1x),f6.3)
+            else
+               write(stdout,12) n,ovf(n)%trcr_adj%src(1),                   &
+                    (ovf(n)%trcr_adj%src(2))*c1000,                           & 
+                    ovf(n)%trcr_adj%ent(1),                                  &
+                    (ovf(n)%trcr_adj%ent(2))*c1000,                           &
+                    (ovf(n)%rho_adj%prd(1)-c1)*c1000,                         &
+                    (ovf(n)%rho_adj%prd(2)-c1)*c1000                         
+12             format(1x,'ovf adj',i3,1x,2(f6.3,1x),1x,2(f6.3,1x),     &
+                    f6.3,1x,f6.3)
+            endif
+         end do
+         
+         !clean up master
+         deallocate(post_array)
+         if (num_posts > 0) then
+            deallocate(myRecvBuff)
          endif
-      end do
-   endif
+         call ovf_print_finalize(num_posts)
+ 
+      else !not master - send info to master if I am group master
+         num_posts = 0
+         do n=1, ovf_groups%numMyGroups
+            if (ovf_groups%amMaster(n)) then
+               num_posts = num_posts + 1
+            end if
+         end do
+         
+         call ovf_print_init(len, num_posts)
+
+         if (num_posts > 0) then
+            allocate(mySendBuff(num_posts * len))
+         end if
+
+         num_posts = 0
+         do n=1, ovf_groups%numMyGroups
+            if (ovf_groups%amMaster(n)) then
+               ovf_id = ovf_groups%groupIds(n)
+               !send transport info to the master task with isend
+               num_posts = num_posts + 1
+               loc = (num_posts-1)*len+1
+               !pack send buffer
+                mySendBuff(loc) = ovf(ovf_id)%trcr_reg%inf(1)
+                mySendBuff(loc+1) = ovf(ovf_id)%trcr_reg%inf(2)
+                mySendBuff(loc+2) = ovf(ovf_id)%rho_reg%inf
+                mySendBuff(loc+3) = ovf(ovf_id)%trcr_reg%src(1)
+                mySendBuff(loc+4) = ovf(ovf_id)%trcr_reg%src(2)
+                mySendBuff(loc+5) = ovf(ovf_id)%rho_reg%src
+                mySendBuff(loc+6) = ovf(ovf_id)%trcr_reg%ent(1)
+                mySendBuff(loc+7) = ovf(ovf_id)%trcr_reg%ent(2)
+                mySendBuff(loc+8) = ovf(ovf_id)%rho_reg%ent
+
+                mySendBuff(loc+9) = ovf(ovf_id)%trcr_adj%src(1)
+                mySendBuff(loc+10) = ovf(ovf_id)%trcr_adj%src(2)
+                mySendBuff(loc+11) = ovf(ovf_id)%trcr_adj%ent(1)
+                mySendBuff(loc+12) = ovf(ovf_id)%trcr_adj%ent(2)
+                mySendBuff(loc+13) = ovf(ovf_id)%rho_adj%prd(1)
+                mySendBuff(loc+14) = ovf(ovf_id)%rho_adj%prd(2)
+         
+                call ovf_print_send(len, mySendBuff(loc:loc+len-1), num_posts, ovf_id)
+
+             endif
+          end do  !n loop
+
+          !now clean up
+          call ovf_print_finalize(num_posts)
+          if (num_posts > 0) then
+             deallocate(mySendBuff)
+          endif
+
+       endif !end not master
+   endif ! prnt loop
 
 !----------------------------------------------------------------------
 !EOC
@@ -3914,15 +3848,23 @@
      phi        ,& ! entrainment parameter from actual ratio Me/Mp
      Mp            ! product mass flux (Sv)
 
-   logical (log_kind) :: &
-     print_overflows_diag 
-  
    character (POP_charLength) ::  &
      string
 
    integer (POP_i4) ::  &
      ier
-!
+
+   integer (int_kind)  :: ovf_id
+
+
+   integer (int_kind) ::  num_posts, ierr, count, loc, r_n, r_m, indx
+   integer (int_kind), parameter :: len = 16 !length of buffer for a post
+   real (r8), dimension(:), allocatable:: myRecvBuff(:), mySendBuff(:)
+
+
+   logical (log_kind) :: post, found
+   logical (log_kind), dimension(:), allocatable :: post_array
+
 !EOP
 !BOC
 !
@@ -3934,113 +3876,319 @@
 !  append overflows diagnostics to end of overflows diagnostics output file
 !
 !-----------------------------------------------------------------------
-  print_overflows_diag = .false.
+  
   if (my_task == master_task .and. eod) then
-    open(ovf_diag_unit, file=overflows_diag_outfile, status='old', position='append')
-    print_overflows_diag = .true.
+     open(ovf_diag_unit, file=overflows_diag_outfile, status='old', position='append')
   endif
+ 
+  !must have the groups initialized
+  if (.not. ovf_groups%init) then
+     call ovf_init_groups()
+  end if
 
-! for each overflow
-   do n=1,num_ovf
-   ! set parameters
-      lat     = ovf(n)%ovf_params%lat
-      fs      = c2*omega*sin(lat*pi/180.0_r8)
-      hu      = ovf(n)%ovf_params%source_thick
-      hs      = hu*(c2/c3)
-      xse     = ovf(n)%ovf_params%distnc_str_ssb
-      alpha   = ovf(n)%ovf_params%bottom_slope
-      cd      = ovf(n)%ovf_params%bottom_drag
-      di      = p5*(zt(ovf(n)%reg_inf%kmin)+zt(ovf(n)%reg_inf%kmax))
-      ds      = zt(ovf(n)%loc_src(1)%k)
-      de      = zt(ovf(n)%loc_ent(1)%k)
-      Ws      = ovf(n)%ovf_params%width
-   ! set region T,S and compute densities
-      T_i     = ovf(n)%trcr_reg%inf(1)
-      S_i     = ovf(n)%trcr_reg%inf(2)
-         call state_singlept(T_i,S_i,ds,rho_i)
-      T_s     = ovf(n)%trcr_reg%src(1)
-      S_s     = ovf(n)%trcr_reg%src(2)
-         call state_singlept(T_s,S_s,ds,rho_s)
-         call state_singlept(T_s,S_s,de,rho_sed)
-      T_e     = ovf(n)%trcr_reg%ent(1)
-      S_e     = ovf(n)%trcr_reg%ent(2)
-         call state_singlept(T_e,S_e,de,rho_e)
-   ! compute inflow/source reduced gravity and source transport
-      gp_s    = grav*(rho_s-rho_i)/rho_sw
-   ! if no source overflow, zero out transports
-      if( gp_s > c0 ) then
-        Ms      = gp_s*hu*hu/(c2*fs)
-        As      = hs*Ws
-        Us      = Ms/As
-   ! compute overflow spreading and entrainment transport
-        gp_e    = grav*(rho_sed-rho_e)/rho_sw
-   ! zero entrainment transport if gp_e < 0
-        if( gp_e > c0 ) then
-          Ugeo    = gp_e*alpha/fs
-          Uavg    = p5*(Us+Ugeo)
-          a       = fs*Ws/c2
-          b       = fs*Ws*hs/c2 + c2*cd*Uavg*xse - Ms*fs/(c2*Ugeo)
-          c       = -fs*Ms*hs/(c2*Ugeo)
-          hgeo    = (-b + sqrt(b*b-c4*a*c))/(c2*a)
-          Fgeo    = Ugeo/sqrt(gp_e*hgeo)
-          phi     = c1-Fgeo**(-c2/c3)
-          Me      = Ms*phi/(c1-phi)
-          ! zero entrainment transport if phi < c0
-          if( phi > c0 ) then
-            Mp  = Ms + Me
-          else
-            Me     = c0
-            Mp     = Ms
-          endif
+  ! set up
+  if( my_task == master_task ) then
+     allocate(post_array(num_ovf))
+  end if
+
+  if (eod) then !end of day :)
+     if (my_task == master_task) then
+        num_posts = num_ovf - ovf_groups%numMyGroups
+        if (num_posts > 0) then
+           allocate(myRecvBuff(len*num_posts))
+        end if
+        call ovf_print_init(len, num_posts, myRecvBuff, post_array)
+     else
+        num_posts = 0
+        do n=1, ovf_groups%numMyGroups
+           if (ovf_groups%amMaster(n)) then
+              num_posts = num_posts + 1
+           end if
+        end do
+        call ovf_print_init(len, num_posts)
+        if (num_posts > 0) then
+           allocate(mySendBuff(num_posts * len))
+        end if
+     end if
+  else ! no printing - just see which are my groups
+     if( my_task == master_task ) then
+        post_array = .true.
+        do n=1, ovf_groups%numMyGroups
+           ovf_id = ovf_groups%groupIds(n)
+           post_array(ovf_id) = .false.
+        end do
+     end if
+  end if
+ 
+  !do master seperate for easier printing
+  if( my_task == master_task ) then
+     count = 0
+      do n=1,num_ovf
+         ovf_id =  n;
+         post = post_array(n) ! post is true if master is not in group 
+         if ( .not. post) then! master is part of this ovf
+
+            ! set parameters
+            lat     = ovf(ovf_id)%ovf_params%lat
+            fs      = c2*omega*sin(lat*pi/180.0_r8)
+            hu      = ovf(ovf_id)%ovf_params%source_thick
+            hs      = hu*(c2/c3)
+            xse     = ovf(ovf_id)%ovf_params%distnc_str_ssb
+            alpha   = ovf(ovf_id)%ovf_params%bottom_slope
+            cd      = ovf(ovf_id)%ovf_params%bottom_drag
+            di      = p5*(zt(ovf(ovf_id)%reg_inf%kmin)+zt(ovf(ovf_id)%reg_inf%kmax))
+            ds      = zt(ovf(ovf_id)%loc_src(1)%k)
+            de      = zt(ovf(ovf_id)%loc_ent(1)%k)
+            Ws      = ovf(ovf_id)%ovf_params%width
+            ! set region T,S and compute densities
+            T_i     = ovf(ovf_id)%trcr_reg%inf(1)
+            S_i     = ovf(ovf_id)%trcr_reg%inf(2)
+            call state_singlept(T_i,S_i,ds,rho_i)
+            T_s     = ovf(ovf_id)%trcr_reg%src(1)
+            S_s     = ovf(ovf_id)%trcr_reg%src(2)
+            call state_singlept(T_s,S_s,ds,rho_s)
+            call state_singlept(T_s,S_s,de,rho_sed)
+            T_e     = ovf(ovf_id)%trcr_reg%ent(1)
+            S_e     = ovf(ovf_id)%trcr_reg%ent(2)
+            call state_singlept(T_e,S_e,de,rho_e)
+            ! compute inflow/source reduced gravity and source transport
+            gp_s    = grav*(rho_s-rho_i)/rho_sw
+            ! if no source overflow, zero out transports
+            if( gp_s > c0 ) then
+               Ms      = gp_s*hu*hu/(c2*fs)
+               As      = hs*Ws
+               Us      = Ms/As
+               ! compute overflow spreading and entrainment transport
+               gp_e    = grav*(rho_sed-rho_e)/rho_sw
+               ! zero entrainment transport if gp_e < 0
+               if( gp_e > c0 ) then
+                  Ugeo    = gp_e*alpha/fs
+                  Uavg    = p5*(Us+Ugeo)
+                  a       = fs*Ws/c2
+                  b       = fs*Ws*hs/c2 + c2*cd*Uavg*xse - Ms*fs/(c2*Ugeo)
+                  c       = -fs*Ms*hs/(c2*Ugeo)
+                  hgeo    = (-b + sqrt(b*b-c4*a*c))/(c2*a)
+                  Fgeo    = Ugeo/sqrt(gp_e*hgeo)
+                  phi     = c1-Fgeo**(-c2/c3)
+                  Me      = Ms*phi/(c1-phi)
+                  ! zero entrainment transport if phi < c0
+                  if( phi > c0 ) then
+                     Mp  = Ms + Me
+                  else
+                     Me     = c0
+                     Mp     = Ms
+                  endif
+               else
+                  Me     = c0
+                  Mp     = Ms
+               endif
+            else
+               Ms     = c0
+               Me     = c0
+               Mp     = c0
+            endif
+            ! time shift transports and set output in ovf array
+            ovf(ovf_id)%Ms_nm1 = ovf(ovf_id)%Ms_n
+            ovf(ovf_id)%Ms_n   = ovf(ovf_id)%Ms
+            ovf(ovf_id)%Me_nm1 = ovf(ovf_id)%Me_n
+            ovf(ovf_id)%Me_n   = ovf(ovf_id)%Me
+            ovf(ovf_id)%Mp_nm1 = ovf(ovf_id)%Mp_n
+            ovf(ovf_id)%Mp_n   = ovf(ovf_id)%Mp
+            ovf(ovf_id)%Ms     = Ms
+            ovf(ovf_id)%Me     = Me
+            ovf(ovf_id)%Mp     = Mp
+            ! recompute phi based on actual transports
+            phi = ovf(ovf_id)%Me / (ovf(ovf_id)%Mp + c1)
+            ! if time averaging time step, include last time step 
+            if( avg_ts ) then
+               phi = (ovf(ovf_id)%Me_n + ovf(ovf_id)%Me) / (ovf(ovf_id)%Mp_n + ovf(ovf_id)%Mp + c1)
+            endif
+            ovf(ovf_id)%phi = phi
+            ! compute product T,S 
+            T_p        = T_s*(c1-phi) + T_e*phi
+            S_p        = S_s*(c1-phi) + S_e*phi
+            ovf(ovf_id)%Tp  = T_p
+            ovf(ovf_id)%Sp  = S_p
+            do nn=1,nt
+               ovf(ovf_id)%trcr_adj%prd(nn) = ovf(ovf_id)%trcr_adj%src(nn) * (c1 - phi) &
+                    + ovf(ovf_id)%trcr_adj%ent(nn) * phi
+               ovf(ovf_id)%trcr_reg%prd(nn) = ovf(ovf_id)%trcr_reg%src(nn) * (c1 - phi) &
+                    + ovf(ovf_id)%trcr_reg%ent(nn) * phi
+            end do
+            ! product set for insertion
+            m = ovf(ovf_id)%prd_set
+            
+            if (eod) then
+               k_p = (ovf(ovf_id)%adj_prd(m)%kmin+ovf(ovf_id)%adj_prd(m)%kmax)/2
+               write(ovf_diag_unit,1234) tday,n,phi,1.e-12*Ms,1.e-12*Me,1.e-12*Mp,m,zt(k_p)/100.
+1234           format(' ovf_tr: ',f7.1,1x,i2,25x,f7.4,2x,3(f7.4,1x),1x,i2,1x,f8.1)
+               write(ovf_diag_unit,1235) tday, n,T_i,S_i*c1000,T_s,S_s*c1000,T_e,S_e*c1000,T_p,S_p*c1000
+1235           format(' ovf_TS: ',f7.1,1x,i2,1x,8(f7.4,1x))         
+               call shr_sys_flush(ovf_diag_unit)
+            endif ! eod - so print
+
+         else !not in this ovf group - but if check if we can print 
+            if (eod) then
+               count = count+1
+               call ovf_print_get(count)
+               loc = (n-1)*len+1
+               !unpack
+               r_n = int(myRecvBuff(loc+1))
+               r_m = int(myRecvBuff(loc+6))
+               
+               write(ovf_diag_unit,1234) myRecvBuff(loc),r_n, myRecvBuff(loc+2), &
+                    myRecvBuff(loc+3),myRecvBuff(loc+4),myRecvBuff(loc+5), &
+                    r_m, myRecvBuff(loc+7)
+1236           format(' ovf_tr: ',f7.1,1x,i2,25x,f7.4,2x,3(f7.4,1x),1x,i2,1x,f8.1)
+               write(ovf_diag_unit,1235) myRecvBuff(loc), r_n, myRecvBuff(loc+8), &
+                    myRecvBuff(loc+9),myRecvBuff(loc+10), myRecvBuff(loc+11), &
+                    myRecvBuff(loc+12), myRecvBuff(loc+13), myRecvBuff(loc+14), &
+                    myRecvBuff(loc+15)
+1237           format(' ovf_TS: ',f7.1,1x,i2,1x,8(f7.4,1x))         
+               call shr_sys_flush(ovf_diag_unit)
+            end if ! eod - so print
+         end if
+      end do ! ovf loop
+      deallocate(post_array)
+      if (eod) then
+         if (num_posts > 0) then
+            deallocate(myRecvBuff)
+         endif
+         call ovf_print_finalize(num_posts)
+      end if
+  else ! not master
+     count = 0
+     do n=1,ovf_groups%numMyGroups
+        ovf_id = ovf_groups%groupIds(n)
+        
+        ! set parameters
+        lat     = ovf(ovf_id)%ovf_params%lat
+        fs      = c2*omega*sin(lat*pi/180.0_r8)
+        hu      = ovf(ovf_id)%ovf_params%source_thick
+        hs      = hu*(c2/c3)
+        xse     = ovf(ovf_id)%ovf_params%distnc_str_ssb
+        alpha   = ovf(ovf_id)%ovf_params%bottom_slope
+        cd      = ovf(ovf_id)%ovf_params%bottom_drag
+        di      = p5*(zt(ovf(ovf_id)%reg_inf%kmin)+zt(ovf(ovf_id)%reg_inf%kmax))
+        ds      = zt(ovf(ovf_id)%loc_src(1)%k)
+        de      = zt(ovf(ovf_id)%loc_ent(1)%k)
+        Ws      = ovf(ovf_id)%ovf_params%width
+        ! set region T,S and compute densities
+        T_i     = ovf(ovf_id)%trcr_reg%inf(1)
+        S_i     = ovf(ovf_id)%trcr_reg%inf(2)
+        call state_singlept(T_i,S_i,ds,rho_i)
+        T_s     = ovf(ovf_id)%trcr_reg%src(1)
+        S_s     = ovf(ovf_id)%trcr_reg%src(2)
+        call state_singlept(T_s,S_s,ds,rho_s)
+        call state_singlept(T_s,S_s,de,rho_sed)
+        T_e     = ovf(ovf_id)%trcr_reg%ent(1)
+        S_e     = ovf(ovf_id)%trcr_reg%ent(2)
+        call state_singlept(T_e,S_e,de,rho_e)
+        ! compute inflow/source reduced gravity and source transport
+        gp_s    = grav*(rho_s-rho_i)/rho_sw
+        ! if no source overflow, zero out transports
+        if( gp_s > c0 ) then
+           Ms      = gp_s*hu*hu/(c2*fs)
+           As      = hs*Ws
+           Us      = Ms/As
+           ! compute overflow spreading and entrainment transport
+           gp_e    = grav*(rho_sed-rho_e)/rho_sw
+           ! zero entrainment transport if gp_e < 0
+           if( gp_e > c0 ) then
+              Ugeo    = gp_e*alpha/fs
+              Uavg    = p5*(Us+Ugeo)
+              a       = fs*Ws/c2
+              b       = fs*Ws*hs/c2 + c2*cd*Uavg*xse - Ms*fs/(c2*Ugeo)
+              c       = -fs*Ms*hs/(c2*Ugeo)
+              hgeo    = (-b + sqrt(b*b-c4*a*c))/(c2*a)
+              Fgeo    = Ugeo/sqrt(gp_e*hgeo)
+              phi     = c1-Fgeo**(-c2/c3)
+              Me      = Ms*phi/(c1-phi)
+              ! zero entrainment transport if phi < c0
+              if( phi > c0 ) then
+                 Mp  = Ms + Me
+              else
+                 Me     = c0
+                 Mp     = Ms
+              endif
+           else
+              Me     = c0
+              Mp     = Ms
+           endif
         else
-          Me     = c0
-          Mp     = Ms
+           Ms     = c0
+           Me     = c0
+           Mp     = c0
         endif
-      else
-        Ms     = c0
-        Me     = c0
-        Mp     = c0
-      endif
-   ! time shift transports and set output in ovf array
-      ovf(n)%Ms_nm1 = ovf(n)%Ms_n
-      ovf(n)%Ms_n   = ovf(n)%Ms
-      ovf(n)%Me_nm1 = ovf(n)%Me_n
-      ovf(n)%Me_n   = ovf(n)%Me
-      ovf(n)%Mp_nm1 = ovf(n)%Mp_n
-      ovf(n)%Mp_n   = ovf(n)%Mp
-      ovf(n)%Ms     = Ms
-      ovf(n)%Me     = Me
-      ovf(n)%Mp     = Mp
-   ! recompute phi based on actual transports
-      phi = ovf(n)%Me / (ovf(n)%Mp + c1)
-   ! if time averaging time step, include last time step 
-      if( avg_ts ) then
-        phi = (ovf(n)%Me_n + ovf(n)%Me) / (ovf(n)%Mp_n + ovf(n)%Mp + c1)
-      endif
-      ovf(n)%phi = phi
-   ! compute product T,S 
-      T_p        = T_s*(c1-phi) + T_e*phi
-      S_p        = S_s*(c1-phi) + S_e*phi
-      ovf(n)%Tp  = T_p
-      ovf(n)%Sp  = S_p
-      do nn=1,nt
-         ovf(n)%trcr_adj%prd(nn) = ovf(n)%trcr_adj%src(nn) * (c1 - phi) &
-                                 + ovf(n)%trcr_adj%ent(nn) * phi
-         ovf(n)%trcr_reg%prd(nn) = ovf(n)%trcr_reg%src(nn) * (c1 - phi) &
-                                 + ovf(n)%trcr_reg%ent(nn) * phi
-      end do
-   ! product set for insertion
-      m = ovf(n)%prd_set
-       if (print_overflows_diag .and. my_task == master_task) then         
-         k_p = (ovf(n)%adj_prd(m)%kmin+ovf(n)%adj_prd(m)%kmax)/2
-         write(ovf_diag_unit,1234) tday,n,phi,1.e-12*Ms,1.e-12*Me,1.e-12*Mp,m,zt(k_p)/100.
-         1234 format(' ovf_tr: ',f7.1,1x,i2,25x,f7.4,2x,3(f7.4,1x),1x,i2,1x,f8.1)
-         write(ovf_diag_unit,1235) tday, n,T_i,S_i*c1000,T_s,S_s*c1000,T_e,S_e*c1000,T_p,S_p*c1000
-         1235 format(' ovf_TS: ',f7.1,1x,i2,1x,8(f7.4,1x))         
-         call shr_sys_flush(ovf_diag_unit)
-       endif ! print_overflows_diag
+        ! time shift transports and set output in ovf array
+        ovf(ovf_id)%Ms_nm1 = ovf(ovf_id)%Ms_n
+        ovf(ovf_id)%Ms_n   = ovf(ovf_id)%Ms
+        ovf(ovf_id)%Me_nm1 = ovf(ovf_id)%Me_n
+        ovf(ovf_id)%Me_n   = ovf(ovf_id)%Me
+        ovf(ovf_id)%Mp_nm1 = ovf(ovf_id)%Mp_n
+        ovf(ovf_id)%Mp_n   = ovf(ovf_id)%Mp
+        ovf(ovf_id)%Ms     = Ms
+        ovf(ovf_id)%Me     = Me
+        ovf(ovf_id)%Mp     = Mp
+        ! recompute phi based on actual transports
+        phi = ovf(ovf_id)%Me / (ovf(ovf_id)%Mp + c1)
+        ! if time averaging time step, include last time step 
+        if( avg_ts ) then
+           phi = (ovf(ovf_id)%Me_n + ovf(ovf_id)%Me) / (ovf(ovf_id)%Mp_n + ovf(ovf_id)%Mp + c1)
+        endif
+        ovf(ovf_id)%phi = phi
+        ! compute product T,S 
+        T_p        = T_s*(c1-phi) + T_e*phi
+        S_p        = S_s*(c1-phi) + S_e*phi
+        ovf(ovf_id)%Tp  = T_p
+        ovf(ovf_id)%Sp  = S_p
+        do nn=1,nt
+           ovf(ovf_id)%trcr_adj%prd(nn) = ovf(ovf_id)%trcr_adj%src(nn) * (c1 - phi) &
+                + ovf(ovf_id)%trcr_adj%ent(nn) * phi
+           ovf(ovf_id)%trcr_reg%prd(nn) = ovf(ovf_id)%trcr_reg%src(nn) * (c1 - phi) &
+                + ovf(ovf_id)%trcr_reg%ent(nn) * phi
+        end do
+        ! product set for insertion
+        m = ovf(ovf_id)%prd_set
+        !if iam the group master, need to send the info to be printed
+        if (eod .and. ovf_groups%amMaster(n))then
 
-   end do   ! n loop over all overflows
+           count = count +1
+           loc = (count-1)*len+1
+           
+           k_p = (ovf(ovf_id)%adj_prd(m)%kmin+ovf(ovf_id)%adj_prd(m)%kmax)/2
+           mySendBuff(loc) = tday
+           mySendBuff(loc+1) = real(n,r8)
+           mySendBuff(loc+2)  = phi
+           mySendBuff(loc+3)  = 1.e-12*Ms
+           mySendBuff(loc+4)  = 1.e-12*Me
+           mySendBuff(loc+5)  = 1.e-12*Mp
+           mySendBuff(loc+6)  = real(m,r8)
+           mySendBuff(loc+7)  = zt(k_p)/100.
+           
+           mySendBuff(loc+8)  = T_i
+           mySendBuff(loc+9)  = S_i*c1000
+           mySendBuff(loc+10)  = T_s
+           mySendBuff(loc+11)  = S_s*c1000
+           mySendBuff(loc+12)  = T_e
+           mySendBuff(loc+13)  = S_e*c1000
+           mySendBuff(loc+14)  = T_p
+           mySendBuff(loc+15)  = S_p*c1000
+           
+
+           call ovf_print_send(len, mySendBuff(loc:loc+len-1), &
+                count, ovf_id)
+        endif ! printing
+     end do   ! n loop over overflows
+     if (eod) then
+        call ovf_print_finalize(num_posts)
+        if (num_posts > 0) then
+           deallocate(mySendBuff)
+        end if
+     end if
+  end if !not master_task
+
+
 
 !-----------------------------------------------------------------------
 !
@@ -4048,7 +4196,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (print_overflows_diag .and. my_task == master_task) then
+   if (eod .and. my_task == master_task) then
       close(ovf_diag_unit)
    endif ! print_overflows_diag
 
@@ -4112,122 +4260,367 @@
       this_block            ! block information for current block
    logical (log_kind), parameter :: prnt = .false.
 
+   integer (int_kind)  :: ovf_id
+
+
+   integer (int_kind) ::  num_posts, ierr, count, loc, &
+        loc_start, num_len, tot_len
+   integer (int_kind), parameter :: len = 8 !length of buffer for a post
+   real (r8), dimension(:), allocatable:: myRecvBuff(:), mySendBuff(:)
+   real (r8) :: rb2, rb3, rb4, rb5, rb6, rb7, rb8
+   integer (i4):: ib1, ib4, ib5, indx
+
+
+   logical (log_kind) :: post, found
+   logical (log_kind), dimension(:), allocatable :: post_array
+
    if(prnt .and. my_task == master_task) then
       write(stdout,*) 'ovf_loc_prd called '
       call shr_sys_flush(stdout)
    endif
 
 !-----------------------------------------------------------------------
-!  overflow loop
+!  overflow loop - loop through MY overflows
 !-----------------------------------------------------------------------
+   
 
-   do n=1,num_ovf
-      ! find new product location
-      T_p = ovf(n)%Tp
-      S_p = ovf(n)%Sp
-      m_neut_org = ovf(n)%prd_set
-      m_neut     = 0
-      if(ovf(n)%num_prd_sets .eq. 1) then
-         m_neut = 1
-         k_p = (ovf(n)%adj_prd(1)%kmin+ovf(n)%adj_prd(1)%kmax)/2
-         call state_singlept(T_p,S_p,zt(k_p),rho_p)
-      else
-! search from deepest to shallowest to allow product water
-! to go to the deepest possible level
-         do m=ovf(n)%num_prd_sets-1,1,-1
-            k_p = (ovf(n)%adj_prd(m)%kmin+ovf(n)%adj_prd(m)%kmax)/2
-            ! get product level for this set
-            call state_singlept(T_p,S_p,zt(k_p),rho_p)
-            if(prnt .and. my_task == master_task) then
-               write(stdout,5) m,(ovf(n)%rho_adj%prd(m-1)-c1)*c1000, &
-                                 (ovf(n)%rho_adj%prd(m)-c1)*c1000, &
-                               k_p,T_p,S_p,zt(k_p),(rho_p-c1)*c1000
-               5 format(' neutral lev search- m rho_adj_m-1 rho_adj_m ', &
-                        'k_p T_p S_p zt(k_p) rho_p =',/ &
-                        2x,i2,2x,2(f12.8,2x),4x,i2,4(f12.8,2x))
-            endif
-            if(rho_p .gt. ovf(n)%rho_adj%prd(m)) then
-               m_neut = m+1
-               goto 999
-            else
-               m_neut = m
-            endif
-         enddo
-         999 continue
-      endif
-      ! error check
-      if( m_neut .eq. 0 ) then
-         write(stdout,10) T_p,S_p,rho_p
-         10 format(' ovf_loc_prd: no prd lev found for T,S,rho=', &
-                   3(f10.5,2x))
-         call shr_sys_flush(stdout)
-         call exit_POP(sigAbort,'ERROR no product level found')
-      endif
-      ovf(n)%prd_set_n = m_neut_org
-      ovf(n)%prd_set   = m_neut
-      if(prnt .and. my_task == master_task) then
-         write(stdout,20) n,T_p,S_p*c1000,(rho_p-c1)*c1000,m_neut
-         20 format(' For ovf = ',i3,' prd T,S,rho = ',3(f12.8,2x),' prd set =',i5)
-      endif
-      if( m_neut_org .ne. 0 .and. m_neut_org .ne. m_neut ) then
-! product point has moved
-         if ( overflows_on .and. my_task == master_task) then
-            write(stdout,*) 'ovf_loc_prd: nsteps_total=',nsteps_total, &
-                            ' ovf=',n,' swap ovf UV old/new ', &
-                            'prd set old/new=',m_neut_org,m_neut
-            call shr_sys_flush(stdout)
+
+ !must have the groups initialized
+   if (.not. ovf_groups%init) then
+      call ovf_init_groups()
+   end if
+
+   if( my_task == master_task ) then
+      allocate(post_array(num_ovf))
+   end if
+
+   !set up for printing
+   if (prnt) then 
+      count = 0
+      do n=1, num_ovf
+         count = MAX(count, ovf(n)%num_prd_sets)
+      end do
+      tot_len = len*count + 1 !one spot to tell how long it is
+      if( my_task == master_task ) then
+         !for any ovf groups that the master_task is not in, 
+         !must post recv for the info
+         num_posts = num_ovf - ovf_groups%numMyGroups
+         if (num_posts > 0) then
+            allocate(myRecvBuff(tot_len*num_posts))
          endif
-         ! compute Uovf_n, Uovf_nm1 velocities for product sidewall
-         m = ovf(n)%prd_set  ! product set for insertion
-         do mp=1,ovf(n)%num_prd(m)  ! product points for each set
-            kprd = ovf(n)%loc_prd(m,mp)%k
-            ufrc = c1/real(ovf(n)%num_prd(m)-1)
-            do iblock = 1,nblocks_clinic
-               this_block = get_block(blocks_clinic(iblock),iblock)
-               ib = this_block%ib
-               ie = this_block%ie
-               jb = this_block%jb
-               je = this_block%je
-               do j=jb,je
-                  if( ovf(n)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
-                     do i=ib,ie
-                        if( ovf(n)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
-                           if( ovf(n)%loc_prd(m,mp)%orient .eq. 1 ) then   
-                              Uovf_nm1 = ovf(n)%Mp_nm1*ufrc/(dz(kprd)*DYU(i,j,iblock))
-                              Uovf_n   = ovf(n)%Mp_n  *ufrc/(dz(kprd)*DYU(i,j,iblock))
-                           endif  
-                           if( ovf(n)%loc_prd(m,mp)%orient .eq. 2 ) then  
-                              Uovf_nm1 = ovf(n)%Mp_nm1*ufrc/(dz(kprd)*DXU(i,j,iblock))
-                              Uovf_n   = ovf(n)%Mp_n  *ufrc/(dz(kprd)*DXU(i,j,iblock))
-                           endif  
-                           if( ovf(n)%loc_prd(m,mp)%orient .eq. 3 ) then  
-                              Uovf_nm1 = ovf(n)%Mp_nm1*ufrc/(dz(kprd)*DYU(i,j,iblock))
-                              Uovf_n   = ovf(n)%Mp_n  *ufrc/(dz(kprd)*DYU(i,j,iblock))
-                           endif  
-                           if( ovf(n)%loc_prd(m,mp)%orient .eq. 4 ) then  
-                              Uovf_nm1 = ovf(n)%Mp_nm1*ufrc/(dz(kprd)*DXU(i,j,iblock))
-                              Uovf_n   = ovf(n)%Mp_n  *ufrc/(dz(kprd)*DXU(i,j,iblock))
-                           endif  
-                           ovf(n)%loc_prd(m,mp)%Uovf_nm1 = Uovf_nm1
-                           ovf(n)%loc_prd(m,mp)%Uovf_n   = Uovf_n
-      if(prnt) then
-         write(stdout,30) ovf(n)%loc_prd(m,mp)%i,ovf(n)%loc_prd(m,mp)%j, &
-                          ovf(n)%loc_prd(m,mp)%k,ovf(n)%Mp_nm1,ufrc,dz(kprd),Uovf_nm1
-      30 format(' loc_prd ijk=',3(i4,1x),'Mp_nm1 uf dz=',3(1pe10.3,1x), &
-                'Uovf_nm1=',1pe10.3)
-      endif
-                        endif
-                     end do  ! i
+         call ovf_print_init(tot_len, num_posts, myRecvBuff, post_array)
+      else !not master
+         num_posts = 0
+         do n=1, ovf_groups%numMyGroups
+            if (ovf_groups%amMaster(n)) then
+               num_posts = num_posts + 1
+            end if
+         end do
+         call ovf_print_init(tot_len, num_posts)
+         if (num_posts > 0) then
+            allocate(mySendBuff(num_posts * tot_len))
+         end if
+      end if
+   else ! not printing
+      if( my_task == master_task ) then
+         post_array = .true.
+         do n=1, ovf_groups%numMyGroups
+            ovf_id = ovf_groups%groupIds(n)
+            post_array(ovf_id) = .false.
+         end do
+      end if
+   end if
+
+
+   !seperate the master and slave loops to make printing easier - 
+   ! this ends up in some code duplication in the two sections...
+   if( my_task == master_task ) then
+      count = 0
+      do n=1,num_ovf !master goes through all because of possible printing
+         ovf_id =  n;
+         post = post_array(n) ! post is true if master is not in group 
+         if ( .not. post) then! master is part of this ovf
+            ! find new product location
+            T_p = ovf(ovf_id)%Tp
+            S_p = ovf(ovf_id)%Sp
+            m_neut_org = ovf(ovf_id)%prd_set
+            m_neut     = 0
+            if(ovf(ovf_id)%num_prd_sets .eq. 1) then
+               m_neut = 1
+               k_p = (ovf(ovf_id)%adj_prd(1)%kmin + ovf(ovf_id)%adj_prd(1)%kmax)/2
+               call state_singlept(T_p,S_p,zt(k_p),rho_p)
+            else
+               ! search from deepest to shallowest to allow product water
+               ! to go to the deepest possible level
+               do m=ovf(ovf_id)%num_prd_sets-1,1,-1
+                  k_p = (ovf(ovf_id)%adj_prd(m)%kmin + ovf(ovf_id)%adj_prd(m)%kmax)/2
+                  ! get product level for this set
+                  
+                  !this calculates rho_p based on temp, salinity, and depth
+                  call state_singlept(T_p,S_p,zt(k_p),rho_p)
+
+                  if (prnt) then
+                     if (m == 1) then
+                        write(stdout,5) m, 0.0, &
+                             (ovf(ovf_id)%rho_adj%prd(m)-c1)*c1000, &
+                             k_p,T_p,S_p,zt(k_p),(rho_p-c1)*c1000
+                        else
+                           write(stdout,5) m,(ovf(ovf_id)%rho_adj%prd(m-1)-c1)*c1000, &
+                                (ovf(ovf_id)%rho_adj%prd(m)-c1)*c1000, &
+                                k_p,T_p,S_p,zt(k_p),(rho_p-c1)*c1000
+                        end if
+5                    format(' neutral lev search- m rho_adj_m-1 rho_adj_m ', &
+                          'k_p T_p S_p zt(k_p) rho_p =',/ &
+                          2x,i2,2x,2(f12.8,2x),4x,i2,4(f12.8,2x))
+                  end if
+                  if(rho_p .gt. ovf(ovf_id)%rho_adj%prd(m)) then
+                     m_neut = m+1
+                     goto 999 !exit loop
+                  else
+                     m_neut = m
                   endif
-               end do  ! j
-            end do  ! iblock
-         end do  ! product points for each set
-         if( overflows_interactive ) then
-! zero out original product sidewall U
-            m = m_neut_org
-            do mp=1,ovf(n)%num_prd(m)  ! product points for each set
-               ! prd  set original Uold sidewalls to zero
-               kprd = ovf(n)%loc_prd(m,mp)%k
+               enddo
+999            continue
+            endif
+            ! error check
+            if( m_neut .eq. 0 ) then
+               write(stdout,10) T_p,S_p,rho_p
+10             format(' ovf_loc_prd: no prd lev found for T,S,rho=', &
+                    3(f10.5,2x))
+               call shr_sys_flush(stdout)
+               call exit_POP(sigAbort,'ERROR no product level found')
+            endif
+            ovf(ovf_id)%prd_set_n = m_neut_org
+            ovf(ovf_id)%prd_set   = m_neut
+            if (prnt) then
+               write(stdout,20) n,T_p,S_p*c1000,(rho_p-c1)*c1000,m_neut
+20             format(' For ovf = ',i3,' prd T,S,rho = ',3(f12.8,2x),' prd set =',i5)
+            end if
+            if( m_neut_org .ne. 0 .and. m_neut_org .ne. m_neut ) then
+               ! product point has moved
+               if ( overflows_on) then
+                  write(stdout,*) 'ovf_loc_prd: nsteps_total=',nsteps_total, &
+                       ' ovf=',ovf_id,' swap ovf UV old/new ', &
+                       'prd set old/new=',m_neut_org,m_neut
+                  call shr_sys_flush(stdout)
+               endif
+               ! compute Uovf_n, Uovf_nm1 velocities for product sidewall
+               m = ovf(ovf_id)%prd_set  ! product set for insertion
+               do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
+                  kprd = ovf(ovf_id)%loc_prd(m,mp)%k
+                  ufrc = c1/real(ovf(ovf_id)%num_prd(m)-1)
+                  do iblock = 1,nblocks_clinic
+                     this_block = get_block(blocks_clinic(iblock),iblock)
+                     ib = this_block%ib
+                     ie = this_block%ie
+                     jb = this_block%jb
+                     je = this_block%je
+                     do j=jb,je
+                        if( ovf(ovf_id)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
+                           do i=ib,ie
+                              if( ovf(ovf_id)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
+                                 if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 1 ) then   
+                                    Uovf_nm1 = ovf(ovf_id)%Mp_nm1*ufrc/(dz(kprd)*DYU(i,j,iblock))
+                                    Uovf_n   = ovf(ovf_id)%Mp_n  *ufrc/(dz(kprd)*DYU(i,j,iblock))
+                                 endif
+                                 if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 2 ) then  
+                                    Uovf_nm1 = ovf(ovf_id)%Mp_nm1*ufrc/(dz(kprd)*DXU(i,j,iblock))
+                                    Uovf_n   = ovf(ovf_id)%Mp_n  *ufrc/(dz(kprd)*DXU(i,j,iblock))
+                                 endif
+                                 if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 3 ) then  
+                                    Uovf_nm1 = ovf(ovf_id)%Mp_nm1*ufrc/(dz(kprd)*DYU(i,j,iblock))
+                                    Uovf_n   = ovf(ovf_id)%Mp_n  *ufrc/(dz(kprd)*DYU(i,j,iblock))
+                                 endif
+                                 if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 4 ) then  
+                                    Uovf_nm1 = ovf(ovf_id)%Mp_nm1*ufrc/(dz(kprd)*DXU(i,j,iblock))
+                                    Uovf_n   = ovf(ovf_id)%Mp_n  *ufrc/(dz(kprd)*DXU(i,j,iblock))
+                                 endif
+                                 ovf(ovf_id)%loc_prd(m,mp)%Uovf_nm1 = Uovf_nm1
+                                 ovf(ovf_id)%loc_prd(m,mp)%Uovf_n   = Uovf_n
+                                 if(prnt) then
+                                    write(stdout,30) ovf(ovf_id)%loc_prd(m,mp)%i,ovf(ovf_id)%loc_prd(m,mp)%j, &
+                                         ovf(ovf_id)%loc_prd(m,mp)%k,ovf(ovf_id)%Mp_nm1,ufrc,dz(kprd),Uovf_nm1
+30                                  format(' loc_prd ijk=',3(i4,1x),'Mp_nm1 uf dz=',3(1pe10.3,1x), &
+                                         'Uovf_nm1=',1pe10.3)
+                                 endif
+                              endif
+                           end do  ! i
+                        endif
+                     end do  ! j
+                  end do  ! iblock
+               end do  ! product points for each set
+               if( overflows_interactive ) then
+                  ! zero out original product sidewall U
+                  m = m_neut_org
+                  do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
+                     ! prd  set original Uold sidewalls to zero
+                     kprd = ovf(ovf_id)%loc_prd(m,mp)%k
+                     do iblock = 1,nblocks_clinic
+                        this_block = get_block(blocks_clinic(iblock),iblock)
+                        ib = this_block%ib
+                        ie = this_block%ie
+                        jb = this_block%jb
+                        je = this_block%je
+                        do j=jb,je
+                           if( ovf(ovf_id)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
+                              do i=ib,ie
+                                 if( ovf(ovf_id)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
+                                    UVEL(i,j,kprd,newtime,iblock) = c0
+                                    VVEL(i,j,kprd,newtime,iblock) = c0
+                                 endif
+                              end do  ! i
+                           endif
+                        end do  ! j
+                     end do  ! iblock
+                  end do  ! product points for each set
+               endif   ! interactive overflows
+            endif   ! product point has moved
+
+         else !master not in this ovf - but may need to print (?)
+            if (prnt) then
+               count = count+1
+               call ovf_print_get(count)
+               loc = (count-1)*tot_len+1
+               num_len = myRecvBuff(count*tot_len)
+               !unpack and print
+               do i = 1, num_len - 1
+                  ib1 = int(myRecvBuff(loc)) 
+                  rb2 = myRecvBuff(loc+1)
+                  rb3 = myRecvBuff(loc+2)
+                  ib4 = int(myRecvBuff(loc+3))
+                  rb5 = myRecvBuff(loc+4)
+                  rb6 = myRecvBuff(loc+5)
+                  rb7 = myRecvBuff(loc+6)
+                  rb8 = myRecvBuff(loc+7)
+                  write(stdout,50) ib1, rb2, rb3, ib4, rb5, rb6, rb7, rb8
+50                format(' neutral lev search- m rho_adj_m-1 rho_adj_m ', &
+                       'k_p T_p S_p zt(k_p) rho_p =',/ &
+                       2x,i2,2x,2(f12.8,2x),4x,i2,4(f12.8,2x))
+                  loc = loc + len !advance for next one
+               end do ! i
+               ib1 = int(myRecvBuff(loc)) 
+               rb2 = myRecvBuff(loc+1)
+               rb3 = myRecvBuff(loc+2)
+               rb4 = myRecvBuff(loc+3)
+               ib5 = int( myRecvBuff(loc+4))
+               write(stdout,200) ib1, rb2, rb3, rb4, ib5
+200            format(' For ovf = ',i3,' prd T,S,rho = ',3(f12.8,2x),' prd set =',i5)
+            end if !print
+         end if !end of master not in ovf 
+      end do !ovf loop
+      !clean up
+      deallocate(post_array)
+      if (prnt) then
+         if (num_posts > 0) then
+            deallocate(myRecvBuff)
+         endif
+         call ovf_print_finalize(num_posts)
+      end if
+
+   else ! not master loop
+      num_posts = 0
+      do n=1, ovf_groups%numMyGroups
+         loc_start = -1
+         num_len= 0
+         ovf_id = ovf_groups%groupIds(n)
+         ! find new product location
+         T_p = ovf(ovf_id)%Tp
+         S_p = ovf(ovf_id)%Sp
+         m_neut_org = ovf(ovf_id)%prd_set
+         m_neut     = 0
+         if(ovf(ovf_id)%num_prd_sets .eq. 1) then
+            m_neut = 1
+            k_p = (ovf(ovf_id)%adj_prd(1)%kmin + ovf(ovf_id)%adj_prd(1)%kmax)/2
+            call state_singlept(T_p,S_p,zt(k_p),rho_p)
+         else
+            ! search from deepest to shallowest to allow product water
+            ! to go to the deepest possible level
+            do m=ovf(ovf_id)%num_prd_sets-1,1,-1
+               k_p = (ovf(ovf_id)%adj_prd(m)%kmin + ovf(ovf_id)%adj_prd(m)%kmax)/2
+               ! get product level for this set
+               
+               !this calculates rho_p based on temp, salinity, and depth
+               call state_singlept(T_p,S_p,zt(k_p),rho_p)
+               
+               if (prnt .and. ovf_groups%amMaster(n)) then
+                  
+                  num_len = num_len + 1
+                  loc = (num_posts)*tot_len + (num_len - 1)*len + 1
+                  
+                  if ( loc_start < 0) then !first time for this ovf
+                     loc_start = loc
+                  endif
+                  mySendBuff(loc) = real(m, r8)  !int
+                  if (m==1) then
+                     mySendBuff(loc+1) =0.0 !can't do m-1
+                  else
+                     mySendBuff(loc+1) = (ovf(ovf_id)%rho_adj%prd(m-1)-c1)*c1000
+                  end if
+                  mySendBuff(loc+2) = (ovf(ovf_id)%rho_adj%prd(m)-c1)*c1000
+                  mySendBuff(loc+3) = real(k_p,r8) !int
+                  mySendBuff(loc+4) = T_p
+                  mySendBuff(loc+5) = S_p
+                  mySendBuff(loc+6) = zt(k_p)
+                  mySendBuff(loc+7) = (rho_p-c1)*c1000
+                  
+               endif ! print master
+  
+               if(rho_p .gt. ovf(ovf_id)%rho_adj%prd(m)) then
+                  m_neut = m+1
+                  goto 998 !exit loop
+               else
+                  m_neut = m
+               endif
+            enddo
+998         continue
+         endif !num prod sets
+         !error check
+         if( m_neut .eq. 0 ) then
+            write(stdout,101) T_p,S_p,rho_p
+101         format(' ovf_loc_prd: no prd lev found for T,S,rho=', &
+                 3(f10.5,2x))
+            call shr_sys_flush(stdout)
+            call exit_POP(sigAbort,'ERROR no product level found')
+         endif
+         ovf(ovf_id)%prd_set_n = m_neut_org
+         ovf(ovf_id)%prd_set   = m_neut
+         if (prnt .and. ovf_groups%amMaster(n)) then
+            num_len = num_len+1
+            loc = (num_posts)*tot_len + (num_len - 1)*len + 1
+            
+            if (loc_start  == -1) then !first time for this ovf
+               loc_start = loc;
+            endif
+            !pack pack buffer and send here
+            mySendBuff(loc) = real(ovf_id, r8) !int
+            mySendBuff(loc+1) =T_p
+            mySendBuff(loc+2) =S_p*c1000
+            mySendBuff(loc+3) = (rho_p-c1)*c1000
+            mySendBuff(loc+4) = real(m_neut, r8) !int
+            
+            num_posts = num_posts + 1 !increment here because we do this one once each ovf
+            
+            !indicate num items sent to master in last location
+            mySendBuff(tot_len*num_posts) = real(num_len, r8)
+            
+            call ovf_print_send(tot_len, mySendBuff(loc_start:loc_start+tot_len-1), &
+                 num_posts, ovf_id)
+            
+         end if ! print master
+         
+         if( m_neut_org .ne. 0 .and. m_neut_org .ne. m_neut ) then
+            ! product point has moved
+            if ( overflows_on .and. ovf_groups%amMaster(n)) then
+               write(stdout,*) 'ovf_loc_prd: nsteps_total=',nsteps_total, &
+                    ' ovf=',ovf_id,' swap ovf UV old/new ', &
+                    'prd set old/new=',m_neut_org,m_neut
+               call shr_sys_flush(stdout)
+            endif
+            ! compute Uovf_n, Uovf_nm1 velocities for product sidewall
+            m = ovf(ovf_id)%prd_set  ! product set for insertion
+            do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
+               kprd = ovf(ovf_id)%loc_prd(m,mp)%k
+               ufrc = c1/real(ovf(ovf_id)%num_prd(m)-1)
                do iblock = 1,nblocks_clinic
                   this_block = get_block(blocks_clinic(iblock),iblock)
                   ib = this_block%ib
@@ -4235,20 +4628,76 @@
                   jb = this_block%jb
                   je = this_block%je
                   do j=jb,je
-                     if( ovf(n)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
+                     if( ovf(ovf_id)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
                         do i=ib,ie
-                           if( ovf(n)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
-                              UVEL(i,j,kprd,newtime,iblock) = c0
-                              VVEL(i,j,kprd,newtime,iblock) = c0
+                           if( ovf(ovf_id)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
+                              if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 1 ) then   
+                                 Uovf_nm1 = ovf(ovf_id)%Mp_nm1*ufrc/(dz(kprd)*DYU(i,j,iblock))
+                                 Uovf_n   = ovf(ovf_id)%Mp_n  *ufrc/(dz(kprd)*DYU(i,j,iblock))
+                              endif
+                              if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 2 ) then  
+                                 Uovf_nm1 = ovf(ovf_id)%Mp_nm1*ufrc/(dz(kprd)*DXU(i,j,iblock))
+                                 Uovf_n   = ovf(ovf_id)%Mp_n  *ufrc/(dz(kprd)*DXU(i,j,iblock))
+                              endif
+                              if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 3 ) then  
+                                 Uovf_nm1 = ovf(ovf_id)%Mp_nm1*ufrc/(dz(kprd)*DYU(i,j,iblock))
+                                 Uovf_n   = ovf(ovf_id)%Mp_n  *ufrc/(dz(kprd)*DYU(i,j,iblock))
+                              endif
+                              if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 4 ) then  
+                                 Uovf_nm1 = ovf(ovf_id)%Mp_nm1*ufrc/(dz(kprd)*DXU(i,j,iblock))
+                                 Uovf_n   = ovf(ovf_id)%Mp_n  *ufrc/(dz(kprd)*DXU(i,j,iblock))
+                              endif
+                              ovf(ovf_id)%loc_prd(m,mp)%Uovf_nm1 = Uovf_nm1
+                              ovf(ovf_id)%loc_prd(m,mp)%Uovf_n   = Uovf_n
+                              if(prnt) then
+                                 write(stdout,31) ovf(ovf_id)%loc_prd(m,mp)%i,ovf(ovf_id)%loc_prd(m,mp)%j, &
+                                      ovf(ovf_id)%loc_prd(m,mp)%k,ovf(ovf_id)%Mp_nm1,ufrc,dz(kprd),Uovf_nm1
+31                               format(' loc_prd ijk=',3(i4,1x),'Mp_nm1 uf dz=',3(1pe10.3,1x), &
+                                      'Uovf_nm1=',1pe10.3)
+                              endif
                            endif
                         end do  ! i
                      endif
                   end do  ! j
                end do  ! iblock
             end do  ! product points for each set
-         endif   ! interactive overflows
-      endif   ! product point has moved
-   end do  ! overflows
+            if( overflows_interactive ) then
+               ! zero out original product sidewall U
+               m = m_neut_org
+               do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
+                  ! prd  set original Uold sidewalls to zero
+                  kprd = ovf(ovf_id)%loc_prd(m,mp)%k
+                  do iblock = 1,nblocks_clinic
+                     this_block = get_block(blocks_clinic(iblock),iblock)
+                     ib = this_block%ib
+                     ie = this_block%ie
+                     jb = this_block%jb
+                     je = this_block%je
+                     do j=jb,je
+                        if( ovf(ovf_id)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
+                           do i=ib,ie
+                              if( ovf(ovf_id)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
+                                 UVEL(i,j,kprd,newtime,iblock) = c0
+                                 VVEL(i,j,kprd,newtime,iblock) = c0
+                              endif
+                           end do  ! i
+                        endif
+                     end do  ! j
+                  end do  ! iblock
+               end do  ! product points for each set
+            endif   ! interactive overflows
+         endif   ! product point has moved
+      end do  ! overflows
+
+      if (prnt) then
+         call ovf_print_finalize(num_posts)
+         if (num_posts > 0) then
+            deallocate(mySendBuff)
+         end if
+      end if
+
+   end if ! end of not master part
+
 
 !----------------------------------------------------------------------
 !EOC
@@ -4295,6 +4744,8 @@
       ufrc                  ! fraction of ovf velocity for each box
    logical (log_kind), parameter :: prnt = .false.
 
+   integer (int_kind)  :: ovf_id 
+
    if( prnt .and. my_task == master_task ) then
       write(stdout,*) 'ovf_W called '
       call shr_sys_flush(stdout)
@@ -4303,12 +4754,17 @@
 !-----------------------------------------------------------------------
 !  overflow loop
 !-----------------------------------------------------------------------
+ !must have the groups initilaized
+   if (.not. ovf_groups%init) then
+      call ovf_init_groups()
+   end if  
 
-   do n=1,num_ovf  ! each overflow
+   do n=1, ovf_groups%numMyGroups  ! each overflow
+      ovf_id = ovf_groups%groupIds(n)
 ! src
-      do m=1,ovf(n)%num_src  ! source
-         ufrc = c1/real(ovf(n)%num_src-1)
-         if(m==1 .or. m==ovf(n)%num_src) ufrc = ufrc/c2
+      do m=1,ovf(ovf_id)%num_src  ! source
+         ufrc = c1/real(ovf(ovf_id)%num_src-1)
+         if(m==1 .or. m==ovf(ovf_id)%num_src) ufrc = ufrc/c2
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -4316,16 +4772,16 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_src(m)%j .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_src(m)%j .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_src(m)%i .eq. this_block%i_glob(i) ) then
-                        ovf(n)%loc_src(m)%Wovf = -abs(ovf(n)%Ms*ufrc &
+                     if( ovf(ovf_id)%loc_src(m)%i .eq. this_block%i_glob(i) ) then
+                        ovf(ovf_id)%loc_src(m)%Wovf = -abs(ovf(ovf_id)%Ms*ufrc &
                                                       /TAREA(i,j,iblock))
                         if(prnt) then
-                           write(stdout,10) n,ovf(n)%loc_src(m)%i, &
-                           ovf(n)%loc_src(m)%j,ovf(n)%loc_src(m)%k, &
-                           ovf(n)%Ms,ufrc,TAREA(i,j,iblock), &
-                           ovf(n)%loc_src(m)%Wovf
+                           write(stdout,10) n,ovf(ovf_id)%loc_src(m)%i, &
+                           ovf(ovf_id)%loc_src(m)%j,ovf(ovf_id)%loc_src(m)%k, &
+                           ovf(ovf_id)%Ms,ufrc,TAREA(i,j,iblock), &
+                           ovf(ovf_id)%loc_src(m)%Wovf
                            10 format(' ovf_W n=',i3,' src ijk=',3(i4,1x), &
                            'Ms uf Ta Wovf=',4(1pe10.3,1x)) 
                         endif
@@ -4336,9 +4792,9 @@
          end do  ! iblock
       end do  ! source
 ! ent
-      do m=1,ovf(n)%num_ent  ! entrainment
-         ufrc = c1/real(ovf(n)%num_ent-1)
-         if(m==1 .or. m==ovf(n)%num_ent) ufrc = ufrc/c2
+      do m=1,ovf(ovf_id)%num_ent  ! entrainment
+         ufrc = c1/real(ovf(ovf_id)%num_ent-1)
+         if(m==1 .or. m==ovf(ovf_id)%num_ent) ufrc = ufrc/c2
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -4346,16 +4802,16 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_ent(m)%j .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_ent(m)%j .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_ent(m)%i .eq. this_block%i_glob(i) ) then
-                        ovf(n)%loc_ent(m)%Wovf = -abs(ovf(n)%Me*ufrc &
+                     if( ovf(ovf_id)%loc_ent(m)%i .eq. this_block%i_glob(i) ) then
+                        ovf(ovf_id)%loc_ent(m)%Wovf = -abs(ovf(ovf_id)%Me*ufrc &
                                                       /TAREA(i,j,iblock))
                         if(prnt) then
-                           write(stdout,20) n,ovf(n)%loc_ent(m)%i, &
-                           ovf(n)%loc_ent(m)%j,ovf(n)%loc_ent(m)%k, &
-                           ovf(n)%Me,ufrc,TAREA(i,j,iblock), &
-                           ovf(n)%loc_ent(m)%Wovf
+                           write(stdout,20) n,ovf(ovf_id)%loc_ent(m)%i, &
+                           ovf(ovf_id)%loc_ent(m)%j,ovf(ovf_id)%loc_ent(m)%k, &
+                           ovf(ovf_id)%Me,ufrc,TAREA(i,j,iblock), &
+                           ovf(ovf_id)%loc_ent(m)%Wovf
                            20 format(' ovf_W n=',i3,' ent ijk=',3(i4,1x), &
                            'Me uf Ta Wovf=',4(1pe10.3,1x)) 
                         endif
@@ -4367,15 +4823,15 @@
       end do  ! entrainment
 ! prd
 ! set Wovf terms to zero at product points, incase product has moved
-      do m=1,ovf(n)%num_prd_sets
-        do mp=1,ovf(n)%num_prd(m)
-          ovf(n)%loc_prd(m,mp)%Wovf = c0
+      do m=1,ovf(ovf_id)%num_prd_sets
+        do mp=1,ovf(ovf_id)%num_prd(m)
+          ovf(ovf_id)%loc_prd(m,mp)%Wovf = c0
         end do
       end do
-      m = ovf(n)%prd_set  ! product set for insertion
-      do mp=1,ovf(n)%num_prd(m)  ! product points for each set
-         ufrc = c1/real(ovf(n)%num_prd(m)-1)
-         if(mp==1 .or. mp==ovf(n)%num_prd(m)) ufrc = ufrc/c2
+      m = ovf(ovf_id)%prd_set  ! product set for insertion
+      do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
+         ufrc = c1/real(ovf(ovf_id)%num_prd(m)-1)
+         if(mp==1 .or. mp==ovf(ovf_id)%num_prd(m)) ufrc = ufrc/c2
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -4383,16 +4839,16 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_prd(m,mp)%j .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_prd(m,mp)%j .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_prd(m,mp)%i .eq. this_block%i_glob(i) ) then
-                        ovf(n)%loc_prd(m,mp)%Wovf = abs(ovf(n)%Mp*ufrc &
+                     if( ovf(ovf_id)%loc_prd(m,mp)%i .eq. this_block%i_glob(i) ) then
+                        ovf(ovf_id)%loc_prd(m,mp)%Wovf = abs(ovf(ovf_id)%Mp*ufrc &
                                                         /TAREA(i,j,iblock))
                         if(prnt) then
-                           write(stdout,30) n,ovf(n)%loc_prd(m,mp)%i, &
-                           ovf(n)%loc_prd(m,mp)%j,ovf(n)%loc_prd(m,mp)%k, &
-                           ovf(n)%Mp,ufrc,TAREA(i,j,iblock), &
-                           ovf(n)%loc_prd(m,mp)%Wovf
+                           write(stdout,30) n,ovf(ovf_id)%loc_prd(m,mp)%i, &
+                           ovf(ovf_id)%loc_prd(m,mp)%j,ovf(ovf_id)%loc_prd(m,mp)%k, &
+                           ovf(ovf_id)%Mp,ufrc,TAREA(i,j,iblock), &
+                           ovf(ovf_id)%loc_prd(m,mp)%Wovf
                            30 format(' ovf_W n=',i3,' prd ijk=',3(i4,1x), &
                            'Mp uf Ta Wovf=',4(1pe10.3,1x)) 
                         endif
@@ -4450,6 +4906,8 @@
       Uovf                 ! Uovf at one corner
    logical (log_kind), parameter :: prnt = .false.
 
+   integer (int_kind)    :: ovf_id
+
    if( prnt .and. my_task == master_task ) then
       write(stdout,*) 'ovf_UV called '
       call shr_sys_flush(stdout)
@@ -4458,12 +4916,17 @@
 !-----------------------------------------------------------------------
 !  overflow loop
 !-----------------------------------------------------------------------
+ !must have the groups initilaized
+   if (.not. ovf_groups%init) then
+      call ovf_init_groups()
+   end if  
 
-   do n=1,num_ovf  ! each overflow
+   do n=1, ovf_groups%numMyGroups  ! each overflow
+      ovf_id = ovf_groups%groupIds(n)
 ! src
-      do m=1,ovf(n)%num_src  ! source
-         ksrc = ovf(n)%loc_src(m)%k
-         ufrc = c1/real(ovf(n)%num_src-1)
+      do m=1,ovf(ovf_id)%num_src  ! source
+         ksrc = ovf(ovf_id)%loc_src(m)%k
+         ufrc = c1/real(ovf(ovf_id)%num_src-1)
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -4471,37 +4934,37 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_src(m)%j_u .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_src(m)%j_u .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_src(m)%i_u .eq. this_block%i_glob(i) ) then
-                        if( ovf(n)%loc_src(m)%orient .eq. 1 ) then
-                           Uovf = ovf(n)%Ms*ufrc/(dz(ksrc)*DYU(i,j,iblock))
+                     if( ovf(ovf_id)%loc_src(m)%i_u .eq. this_block%i_glob(i) ) then
+                        if( ovf(ovf_id)%loc_src(m)%orient .eq. 1 ) then
+                           Uovf = ovf(ovf_id)%Ms*ufrc/(dz(ksrc)*DYU(i,j,iblock))
                            if( overflows_interactive ) then
                               UVEL(i,j,ksrc,newtime,iblock) = -Uovf
                            endif
                         endif
-                        if( ovf(n)%loc_src(m)%orient .eq. 2 ) then
-                           Uovf = ovf(n)%Ms*ufrc/(dz(ksrc)*DXU(i,j,iblock))
+                        if( ovf(ovf_id)%loc_src(m)%orient .eq. 2 ) then
+                           Uovf = ovf(ovf_id)%Ms*ufrc/(dz(ksrc)*DXU(i,j,iblock))
                            if( overflows_interactive ) then
                               VVEL(i,j,ksrc,newtime,iblock) = -Uovf
                            endif
                         endif
-                        if( ovf(n)%loc_src(m)%orient .eq. 3 ) then
-                           Uovf = ovf(n)%Ms*ufrc/(dz(ksrc)*DYU(i,j,iblock))
+                        if( ovf(ovf_id)%loc_src(m)%orient .eq. 3 ) then
+                           Uovf = ovf(ovf_id)%Ms*ufrc/(dz(ksrc)*DYU(i,j,iblock))
                            if( overflows_interactive ) then
                               UVEL(i,j,ksrc,newtime,iblock) = +Uovf
                            endif
                         endif
-                        if( ovf(n)%loc_src(m)%orient .eq. 4 ) then
-                           Uovf = ovf(n)%Ms*ufrc/(dz(ksrc)*DXU(i,j,iblock))
+                        if( ovf(ovf_id)%loc_src(m)%orient .eq. 4 ) then
+                           Uovf = ovf(ovf_id)%Ms*ufrc/(dz(ksrc)*DXU(i,j,iblock))
                            if( overflows_interactive ) then
                               VVEL(i,j,ksrc,newtime,iblock) = +Uovf
                            endif
                         endif
-                        ovf(n)%loc_src(m)%Uovf = Uovf
+                        ovf(ovf_id)%loc_src(m)%Uovf = Uovf
                         if( prnt ) then
-                           write(stdout,10) n,ovf(n)%loc_src(m)%i_u, &
-                           ovf(n)%loc_src(m)%j_u,ovf(n)%loc_src(m)%k,Uovf
+                           write(stdout,10) n,ovf(ovf_id)%loc_src(m)%i_u, &
+                           ovf(ovf_id)%loc_src(m)%j_u,ovf(ovf_id)%loc_src(m)%k,Uovf
                            10 format(' ovf_UV n=',i3,' src i_u j_u k Uovf=', &
                            3(i3,1x),f9.5,2x)
                         endif  ! print
@@ -4512,9 +4975,9 @@
          end do  ! iblock
       end do  ! source
 ! ent
-      do m=1,ovf(n)%num_ent  ! entrainment
-         kent = ovf(n)%loc_ent(m)%k
-         ufrc = c1/real(ovf(n)%num_ent-1)
+      do m=1,ovf(ovf_id)%num_ent  ! entrainment
+         kent = ovf(ovf_id)%loc_ent(m)%k
+         ufrc = c1/real(ovf(ovf_id)%num_ent-1)
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -4522,37 +4985,37 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_ent(m)%j_u .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_ent(m)%j_u .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_ent(m)%i_u .eq. this_block%i_glob(i) ) then
-                        if( ovf(n)%loc_ent(m)%orient .eq. 1 ) then
-                           Uovf = ovf(n)%Me*ufrc/(dz(kent)*DYU(i,j,iblock))
+                     if( ovf(ovf_id)%loc_ent(m)%i_u .eq. this_block%i_glob(i) ) then
+                        if( ovf(ovf_id)%loc_ent(m)%orient .eq. 1 ) then
+                           Uovf = ovf(ovf_id)%Me*ufrc/(dz(kent)*DYU(i,j,iblock))
                            if( overflows_interactive ) then
                               UVEL(i,j,kent,newtime,iblock) = -Uovf
                            endif
                         endif
-                        if( ovf(n)%loc_ent(m)%orient .eq. 2 ) then
-                           Uovf = ovf(n)%Me*ufrc/(dz(kent)*DXU(i,j,iblock))
+                        if( ovf(ovf_id)%loc_ent(m)%orient .eq. 2 ) then
+                           Uovf = ovf(ovf_id)%Me*ufrc/(dz(kent)*DXU(i,j,iblock))
                            if( overflows_interactive ) then
                               VVEL(i,j,kent,newtime,iblock) = -Uovf
                            endif
                         endif
-                        if( ovf(n)%loc_ent(m)%orient .eq. 3 ) then
-                           Uovf = ovf(n)%Me*ufrc/(dz(kent)*DYU(i,j,iblock))
+                        if( ovf(ovf_id)%loc_ent(m)%orient .eq. 3 ) then
+                           Uovf = ovf(ovf_id)%Me*ufrc/(dz(kent)*DYU(i,j,iblock))
                            if( overflows_interactive ) then
                               UVEL(i,j,kent,newtime,iblock) = +Uovf
                            endif
                         endif
-                        if( ovf(n)%loc_ent(m)%orient .eq. 4 ) then
-                           Uovf = ovf(n)%Me*ufrc/(dz(kent)*DXU(i,j,iblock))
+                        if( ovf(ovf_id)%loc_ent(m)%orient .eq. 4 ) then
+                           Uovf = ovf(ovf_id)%Me*ufrc/(dz(kent)*DXU(i,j,iblock))
                            if( overflows_interactive ) then
                               VVEL(i,j,kent,newtime,iblock) = +Uovf
                            endif
                         endif
-                        ovf(n)%loc_ent(m)%Uovf = Uovf
+                        ovf(ovf_id)%loc_ent(m)%Uovf = Uovf
                         if( prnt ) then
-                           write(stdout,20) n,ovf(n)%loc_ent(m)%i_u, &
-                           ovf(n)%loc_ent(m)%j_u,ovf(n)%loc_ent(m)%k,Uovf
+                           write(stdout,20) n,ovf(ovf_id)%loc_ent(m)%i_u, &
+                           ovf(ovf_id)%loc_ent(m)%j_u,ovf(ovf_id)%loc_ent(m)%k,Uovf
                            20 format(' ovf_UV n=',i3,' ent i_u j_u k Uovf=', &
                            3(i3,1x),f9.5,2x)
                         endif  ! print
@@ -4563,10 +5026,10 @@
          end do  ! iblock
       end do  ! entrainment
 ! prd
-      m = ovf(n)%prd_set  ! product set for insertion
-      do mp=1,ovf(n)%num_prd(m)  ! product points for each set
-         kprd = ovf(n)%loc_prd(m,mp)%k
-         ufrc = c1/real(ovf(n)%num_prd(m)-1)
+      m = ovf(ovf_id)%prd_set  ! product set for insertion
+      do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
+         kprd = ovf(ovf_id)%loc_prd(m,mp)%k
+         ufrc = c1/real(ovf(ovf_id)%num_prd(m)-1)
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -4574,37 +5037,37 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
-                        if( ovf(n)%loc_prd(m,mp)%orient .eq. 1 ) then
-                           Uovf = ovf(n)%Mp*ufrc/(dz(kprd)*DYU(i,j,iblock))
+                     if( ovf(ovf_id)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
+                        if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 1 ) then
+                           Uovf = ovf(ovf_id)%Mp*ufrc/(dz(kprd)*DYU(i,j,iblock))
                            if( overflows_interactive ) then
                               UVEL(i,j,kprd,newtime,iblock) = +Uovf
                            endif
                         endif
-                        if( ovf(n)%loc_prd(m,mp)%orient .eq. 2 ) then
-                           Uovf = ovf(n)%Mp*ufrc/(dz(kprd)*DXU(i,j,iblock))
+                        if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 2 ) then
+                           Uovf = ovf(ovf_id)%Mp*ufrc/(dz(kprd)*DXU(i,j,iblock))
                            if( overflows_interactive ) then
                               VVEL(i,j,kprd,newtime,iblock) = +Uovf
                            endif
                         endif
-                        if( ovf(n)%loc_prd(m,mp)%orient .eq. 3 ) then
-                           Uovf = ovf(n)%Mp*ufrc/(dz(kprd)*DYU(i,j,iblock))
+                        if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 3 ) then
+                           Uovf = ovf(ovf_id)%Mp*ufrc/(dz(kprd)*DYU(i,j,iblock))
                            if( overflows_interactive ) then
                               UVEL(i,j,kprd,newtime,iblock) = -Uovf
                            endif
                         endif
-                        if( ovf(n)%loc_prd(m,mp)%orient .eq. 4 ) then
-                           Uovf = ovf(n)%Mp*ufrc/(dz(kprd)*DXU(i,j,iblock))
+                        if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 4 ) then
+                           Uovf = ovf(ovf_id)%Mp*ufrc/(dz(kprd)*DXU(i,j,iblock))
                            if( overflows_interactive ) then
                               VVEL(i,j,kprd,newtime,iblock) = -Uovf
                            endif
                         endif
-                        ovf(n)%loc_prd(m,mp)%Uovf = Uovf
+                        ovf(ovf_id)%loc_prd(m,mp)%Uovf = Uovf
                         if( prnt ) then
-                           write(stdout,30) n,ovf(n)%loc_prd(m,mp)%i_u, & 
-                           ovf(n)%loc_prd(m,mp)%j_u,ovf(n)%loc_prd(m,mp)%k,Uovf
+                           write(stdout,30) n,ovf(ovf_id)%loc_prd(m,mp)%i_u, & 
+                           ovf(ovf_id)%loc_prd(m,mp)%j_u,ovf(ovf_id)%loc_prd(m,mp)%k,Uovf
                            30 format(' ovf_UV n=',i3,' prd i_u j_u k Uovf=', &
                            3(i3,1x),f9.5,2x)
                         endif  ! print
@@ -4659,6 +5122,9 @@
       dz_sidewall             ! sidewall U-grid depth from top to ovf level
    logical (log_kind), parameter :: prnt = .false.
 
+   integer (int_kind)   :: ovf_id
+
+
    if( prnt .and. my_task == master_task ) then
       write(stdout,*) 'ovf_rhs_brtrpc_momentum called '
       call shr_sys_flush(stdout)
@@ -4668,10 +5134,16 @@
 !  overflow loop
 !-----------------------------------------------------------------------
 
-   do n=1,num_ovf  ! each overflow
+ !must have the groups initilaized
+   if (.not. ovf_groups%init) then
+      call ovf_init_groups()
+   end if  
+
+   do n=1, ovf_groups%numMyGroups ! each of my overflows
+      ovf_id = ovf_groups%groupIds(n)
 ! src
-      do m=1,ovf(n)%num_src  ! source
-         ksrc = ovf(n)%loc_src(m)%k
+      do m=1,ovf(ovf_id)%num_src  ! source
+         ksrc = ovf(ovf_id)%loc_src(m)%k
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -4679,9 +5151,9 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_src(m)%j_u .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_src(m)%j_u .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_src(m)%i_u .eq. this_block%i_glob(i) ) then
+                     if( ovf(ovf_id)%loc_src(m)%i_u .eq. this_block%i_glob(i) ) then
                         dz_sidewall = c0
                         do k=KMU(i,j,iblock)+1,ksrc
                            dz_sidewall = dz_sidewall + dz(k)
@@ -4691,7 +5163,7 @@
                         ZY(i,j,iblock) = (ZY(i,j,iblock)* HU(i,j,iblock)) & 
                            / (HU(i,j,iblock)+dz_sidewall)
                         if(prnt) then
-                           write(stdout,10) n,ovf(n)%loc_src(m)%i_u,ovf(n)%loc_src(m)%j_u
+                           write(stdout,10) n,ovf(ovf_id)%loc_src(m)%i_u,ovf(ovf_id)%loc_src(m)%j_u
                            10 format(' ovf_rhs_brtrpc_momentum n=',i3, &
                            ' src ZX,ZY adj at i_u j_u=',2(i3,1x))
                         endif
@@ -4702,8 +5174,8 @@
          end do  ! iblock
       end do  ! source
 ! ent
-      do m=1,ovf(n)%num_ent  ! entrainment
-         kent = ovf(n)%loc_ent(m)%k
+      do m=1,ovf(ovf_id)%num_ent  ! entrainment
+         kent = ovf(ovf_id)%loc_ent(m)%k
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -4711,9 +5183,9 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_ent(m)%j_u .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_ent(m)%j_u .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_ent(m)%i_u .eq. this_block%i_glob(i) ) then
+                     if( ovf(ovf_id)%loc_ent(m)%i_u .eq. this_block%i_glob(i) ) then
                         dz_sidewall = c0
                         do k=KMU(i,j,iblock)+1,kent
                            dz_sidewall = dz_sidewall + dz(k)
@@ -4723,7 +5195,7 @@
                         ZY(i,j,iblock) = (ZY(i,j,iblock)* HU(i,j,iblock)) & 
                            / (HU(i,j,iblock)+dz_sidewall)
                         if(prnt) then
-                           write(stdout,20) n,ovf(n)%loc_ent(m)%i_u,ovf(n)%loc_ent(m)%j_u
+                           write(stdout,20) n,ovf(ovf_id)%loc_ent(m)%i_u,ovf(ovf_id)%loc_ent(m)%j_u
                            20 format(' ovf_rhs_brtrpc_momentum n=',i3, &
                            ' ent ZX,ZY adj at i_u j_u=',2(i3,1x))
                         endif
@@ -4734,9 +5206,9 @@
          end do  ! iblock
       end do  ! entrainment
 ! prd
-      do m=1,ovf(n)%num_prd_sets
-       do mp=1,ovf(n)%num_prd(m)  ! product points for each set
-         kprd = ovf(n)%loc_prd(m,mp)%k
+      do m=1,ovf(ovf_id)%num_prd_sets
+       do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
+         kprd = ovf(ovf_id)%loc_prd(m,mp)%k
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -4744,9 +5216,9 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
+                     if( ovf(ovf_id)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
                         dz_sidewall = c0
                         do k=KMU(i,j,iblock)+1,kprd
                            dz_sidewall = dz_sidewall + dz(k)
@@ -4756,8 +5228,8 @@
                         ZY(i,j,iblock) = (ZY(i,j,iblock)* HU(i,j,iblock)) &
                            / (HU(i,j,iblock)+dz_sidewall)
                         if(prnt) then
-                           write(stdout,30) n,ovf(n)%loc_prd(m,mp)%i_u, &
-                                              ovf(n)%loc_prd(m,mp)%j_u
+                           write(stdout,30) n,ovf(ovf_id)%loc_prd(m,mp)%i_u, &
+                                              ovf(ovf_id)%loc_prd(m,mp)%j_u
                            30 format(' ovf_rhs_brtrpc_momentum n=',i3, &
                            ' prd ZX,ZY adj at i_u j_u=',2(i3,1x))
                         endif
@@ -4816,6 +5288,8 @@
 
    logical (log_kind), parameter :: prnt = .false.
 
+   integer (int_kind) :: ovf_id
+
    if( prnt .and. my_task == master_task ) then
       write(stdout,*) 'ovf_brtrpc_renorm called '
       call shr_sys_flush(stdout)
@@ -4825,15 +5299,22 @@
 !  overflow loop
 !-----------------------------------------------------------------------
 
-   do n=1,num_ovf  ! each overflow
+
+ !must have the groups initilaized
+   if (.not. ovf_groups%init) then
+      call ovf_init_groups()
+   end if  
+
+   do n=1, ovf_groups%numMyGroups  ! each overflow
+      ovf_id = ovf_groups%groupIds(n)
 ! src
-      do m=1,ovf(n)%num_src  ! source
-         ksrc = ovf(n)%loc_src(m)%k
+      do m=1,ovf(ovf_id)%num_src  ! source
+         ksrc = ovf(ovf_id)%loc_src(m)%k
          this_block = get_block(blocks_clinic(iblock),iblock)
          do j=1,ny_block
-            if( ovf(n)%loc_src(m)%j_u .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_src(m)%j_u .eq. this_block%j_glob(j) ) then
                do i=1,nx_block
-                  if( ovf(n)%loc_src(m)%i_u .eq. this_block%i_glob(i) ) then
+                  if( ovf(ovf_id)%loc_src(m)%i_u .eq. this_block%i_glob(i) ) then
                      dz_sidewall = c0
                      do k=KMU(i,j,iblock)+1,ksrc
                         dz_sidewall = dz_sidewall + dz(k)
@@ -4843,8 +5324,8 @@
                      WORK4(i,j) = WORK4(i,j)*HUR(i,j,iblock) & 
                                    *(HU(i,j,iblock)+dz_sidewall)
                      if(prnt) then
-                        write(stdout,10) n,ovf(n)%loc_src(m)%i_u, &
-                                         ovf(n)%loc_src(m)%j_u
+                        write(stdout,10) n,ovf(ovf_id)%loc_src(m)%i_u, &
+                                         ovf(ovf_id)%loc_src(m)%j_u
                         10 format(' ovf_brtrpc_renorm n=',i3, &
                         ' src WORK3/WORK4 adj at i_u j_u=',2(i3,1x))
                      endif
@@ -4854,13 +5335,13 @@
          end do  ! j
       end do  ! source
 ! ent
-      do m=1,ovf(n)%num_ent  ! entrainment
-         kent = ovf(n)%loc_ent(m)%k
+      do m=1,ovf(ovf_id)%num_ent  ! entrainment
+         kent = ovf(ovf_id)%loc_ent(m)%k
          this_block = get_block(blocks_clinic(iblock),iblock)
          do j=1,ny_block
-            if( ovf(n)%loc_ent(m)%j_u .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_ent(m)%j_u .eq. this_block%j_glob(j) ) then
                do i=1,nx_block
-                  if( ovf(n)%loc_ent(m)%i_u .eq. this_block%i_glob(i) ) then
+                  if( ovf(ovf_id)%loc_ent(m)%i_u .eq. this_block%i_glob(i) ) then
                      dz_sidewall = c0
                      do k=KMU(i,j,iblock)+1,kent
                         dz_sidewall = dz_sidewall + dz(k)
@@ -4870,8 +5351,8 @@
                      WORK4(i,j) = WORK4(i,j)*HUR(i,j,iblock) & 
                                    *(HU(i,j,iblock)+dz_sidewall)
                      if(prnt) then
-                        write(stdout,20) n,ovf(n)%loc_ent(m)%i_u, &
-                                         ovf(n)%loc_ent(m)%j_u
+                        write(stdout,20) n,ovf(ovf_id)%loc_ent(m)%i_u, &
+                                         ovf(ovf_id)%loc_ent(m)%j_u
                         20 format(' ovf_brtrpc_renorm n=',i3, &
                         ' ent WORK3/WORK4 adj at i_u j_u=',2(i3,1x))
                      endif
@@ -4881,14 +5362,14 @@
          end do  ! j
       end do  ! entrainment
 ! prd
-      do m=1,ovf(n)%num_prd_sets
-       do mp=1,ovf(n)%num_prd(m)  ! product points for each set
-         kprd = ovf(n)%loc_prd(m,mp)%k
+      do m=1,ovf(ovf_id)%num_prd_sets
+       do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
+         kprd = ovf(ovf_id)%loc_prd(m,mp)%k
          this_block = get_block(blocks_clinic(iblock),iblock)
          do j=1,ny_block
-            if( ovf(n)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
                do i=1,nx_block
-                  if( ovf(n)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
+                  if( ovf(ovf_id)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
                      dz_sidewall = c0
                      do k=KMU(i,j,iblock)+1,kprd
                         dz_sidewall = dz_sidewall + dz(k)
@@ -4898,8 +5379,8 @@
                      WORK4(i,j) = WORK4(i,j)*HUR(i,j,iblock) & 
                                    *(HU(i,j,iblock)+dz_sidewall)
                      if(prnt) then
-                        write(stdout,30) n,ovf(n)%loc_prd(m,mp)%i_u, &
-                                         ovf(n)%loc_prd(m,mp)%j_u
+                        write(stdout,30) n,ovf(ovf_id)%loc_prd(m,mp)%i_u, &
+                                         ovf(ovf_id)%loc_prd(m,mp)%j_u
                         30 format(' ovf_brtrpc_renorm n=',i3, &
                         ' prd WORK3/WORK4 adj at i_u j_u=',2(i3,1x))
                      endif
@@ -4953,6 +5434,8 @@
       this_block             ! block information for current block
    logical (log_kind), parameter :: prnt = .false.
 
+   integer (int_kind) :: ovf_id
+
    if( prnt .and. my_task == master_task ) then
       write(stdout,*) 'ovf_rhs_brtrpc_continuity called '
       call shr_sys_flush(stdout)
@@ -4961,24 +5444,29 @@
 !-----------------------------------------------------------------------
 !  overflow loop
 !-----------------------------------------------------------------------
-
-   do n=1,num_ovf  ! each overflow
+ !must have the groups initilaized
+   if (.not. ovf_groups%init) then
+      call ovf_init_groups()
+   end if  
+! for each of MY overflows
+   do n=1,ovf_groups%numMyGroups
+      ovf_id = ovf_groups%groupIds(n)
 ! src
-      do m=1,ovf(n)%num_src  ! source
+      do m=1,ovf(ovf_id)%num_src  ! source
          this_block = get_block(blocks_clinic(iblock),iblock)
          ib = this_block%ib
          ie = this_block%ie
          jb = this_block%jb
          je = this_block%je
          do j=jb,je
-            if( ovf(n)%loc_src(m)%j .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_src(m)%j .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                  if( ovf(n)%loc_src(m)%i .eq. this_block%i_glob(i) ) then
-                     RHS(i,j,iblock) = RHS(i,j,iblock) - (ovf(n)%loc_src(m)%Wovf & 
+                  if( ovf(ovf_id)%loc_src(m)%i .eq. this_block%i_glob(i) ) then
+                     RHS(i,j,iblock) = RHS(i,j,iblock) - (ovf(ovf_id)%loc_src(m)%Wovf & 
                                        * TAREA(i,j,iblock)/(beta*c2dtp))
                      if(prnt) then
-                        write(stdout,10) n,ovf(n)%loc_src(m)%i,ovf(n)%loc_src(m)%j, &
-                                         ovf(n)%loc_src(m)%Wovf,TAREA(i,j,iblock)
+                        write(stdout,10) n,ovf(ovf_id)%loc_src(m)%i,ovf(ovf_id)%loc_src(m)%j, &
+                                         ovf(ovf_id)%loc_src(m)%Wovf,TAREA(i,j,iblock)
                         10 format(' n=',i3,' src RHS adjusted at ij=',2(i3,1x), &
                                   ' Wovf=',f9.6,' TAREA=',1pe11.4)
                      endif
@@ -4988,21 +5476,21 @@
          end do  ! j
       end do  ! source
 ! ent
-      do m=1,ovf(n)%num_ent  ! entrainment
+      do m=1,ovf(ovf_id)%num_ent  ! entrainment
          this_block = get_block(blocks_clinic(iblock),iblock)
          ib = this_block%ib
          ie = this_block%ie
          jb = this_block%jb
          je = this_block%je
          do j=jb,je
-            if( ovf(n)%loc_ent(m)%j .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_ent(m)%j .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                  if( ovf(n)%loc_ent(m)%i .eq. this_block%i_glob(i) ) then
-                     RHS(i,j,iblock) = RHS(i,j,iblock) - (ovf(n)%loc_ent(m)%Wovf & 
+                  if( ovf(ovf_id)%loc_ent(m)%i .eq. this_block%i_glob(i) ) then
+                     RHS(i,j,iblock) = RHS(i,j,iblock) - (ovf(ovf_id)%loc_ent(m)%Wovf & 
                                        * TAREA(i,j,iblock)/(beta*c2dtp))
                      if(prnt) then
-                        write(stdout,20) n,ovf(n)%loc_ent(m)%i,ovf(n)%loc_ent(m)%j, &
-                                         ovf(n)%loc_ent(m)%Wovf,TAREA(i,j,iblock)
+                        write(stdout,20) n,ovf(ovf_id)%loc_ent(m)%i,ovf(ovf_id)%loc_ent(m)%j, &
+                                         ovf(ovf_id)%loc_ent(m)%Wovf,TAREA(i,j,iblock)
                         20 format(' n=',i3,' ent RHS adjusted at ij=',2(i3,1x), &
                                   ' Wovf=',f9.6,' TAREA=',1pe11.4)
                      endif
@@ -5012,22 +5500,22 @@
          end do  ! j
       end do  ! entrainment
 ! prd
-      m = ovf(n)%prd_set
-      do mp=1,ovf(n)%num_prd(m)  ! product points for each set
+      m = ovf(ovf_id)%prd_set
+      do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
          this_block = get_block(blocks_clinic(iblock),iblock)
          ib = this_block%ib
          ie = this_block%ie
          jb = this_block%jb
          je = this_block%je
          do j=jb,je
-            if( ovf(n)%loc_prd(m,mp)%j .eq. this_block%j_glob(j) ) then
+            if( ovf(ovf_id)%loc_prd(m,mp)%j .eq. this_block%j_glob(j) ) then
                do i=ib,ie
-                  if( ovf(n)%loc_prd(m,mp)%i .eq. this_block%i_glob(i) ) then
-                     RHS(i,j,iblock) = RHS(i,j,iblock) - (ovf(n)%loc_prd(m,mp)%Wovf & 
+                  if( ovf(ovf_id)%loc_prd(m,mp)%i .eq. this_block%i_glob(i) ) then
+                     RHS(i,j,iblock) = RHS(i,j,iblock) - (ovf(ovf_id)%loc_prd(m,mp)%Wovf & 
                                        * TAREA(i,j,iblock)/(beta*c2dtp))
                      if(prnt) then
-                        write(stdout,30) n,ovf(n)%loc_prd(m,mp)%i,ovf(n)%loc_prd(m,mp)%j, &
-                                         ovf(n)%loc_prd(m,mp)%Wovf,TAREA(i,j,iblock)
+                        write(stdout,30) n,ovf(ovf_id)%loc_prd(m,mp)%i,ovf(ovf_id)%loc_prd(m,mp)%j, &
+                                         ovf(ovf_id)%loc_prd(m,mp)%Wovf,TAREA(i,j,iblock)
                         30 format(' n=',i3,' prd RHS adjusted at ij=',2(i3,1x), &
                                   ' Wovf=',f9.6,' TAREA=',1pe11.4)
                      endif
@@ -5289,6 +5777,9 @@
       this_block               ! block information for current block
    logical (log_kind), parameter :: prnt = .false.
 
+   integer (int_kind)  :: ovf_id
+
+
    if( prnt .and. my_task == master_task ) then
       write(stdout,*) 'ovf_HU called '
       call shr_sys_flush(stdout)
@@ -5297,11 +5788,16 @@
 !-----------------------------------------------------------------------
 !  overflow loop
 !-----------------------------------------------------------------------
+ !must have the groups initilaized
+   if (.not. ovf_groups%init) then
+      call ovf_init_groups()
+   end if  
 
-   do n=1,num_ovf  ! each overflow
+   do n=1, ovf_groups%numMyGroups  ! each overflow
+      ovf_id = ovf_groups%groupIds(n)
 ! src
-      do m=1,ovf(n)%num_src  ! source
-         ksrc = ovf(n)%loc_src(m)%k
+      do m=1,ovf(ovf_id)%num_src  ! source
+         ksrc = ovf(ovf_id)%loc_src(m)%k
          do iblock=1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -5309,9 +5805,9 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_src(m)%j_u .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_src(m)%j_u .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_src(m)%i_u .eq. this_block%i_glob(i) ) then
+                     if( ovf(ovf_id)%loc_src(m)%i_u .eq. this_block%i_glob(i) ) then
                         dz_sidewall = c0
                         do k=KMU(i,j,iblock)+1,ksrc
                            dz_sidewall = dz_sidewall + dz(k)
@@ -5319,7 +5815,7 @@
                         HUM(i,j,iblock) = HU(i,j,iblock) + dz_sidewall
                         if(prnt) then
                            write(stdout,10) n, &
-                           ovf(n)%loc_src(m)%i_u,ovf(n)%loc_src(m)%j_u
+                           ovf(ovf_id)%loc_src(m)%i_u,ovf(ovf_id)%loc_src(m)%j_u
                            10 format(' n=',i3,' src HU adjusted at i_u j_u =',2(i3,1x))
                         endif
                      endif
@@ -5329,8 +5825,8 @@
          end do  ! iblocks
       end do  ! source
 ! ent
-      do m=1,ovf(n)%num_ent  ! entrainment
-         kent = ovf(n)%loc_ent(m)%k
+      do m=1,ovf(ovf_id)%num_ent  ! entrainment
+         kent = ovf(ovf_id)%loc_ent(m)%k
          do iblock=1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -5338,9 +5834,9 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_ent(m)%j_u .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_ent(m)%j_u .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_ent(m)%i_u .eq. this_block%i_glob(i) ) then
+                     if( ovf(ovf_id)%loc_ent(m)%i_u .eq. this_block%i_glob(i) ) then
                         dz_sidewall = c0
                         do k=KMU(i,j,iblock)+1,kent
                            dz_sidewall = dz_sidewall + dz(k)
@@ -5348,7 +5844,7 @@
                         HUM(i,j,iblock) = HU(i,j,iblock) + dz_sidewall
                         if(prnt) then
                            write(stdout,20) n, &
-                           ovf(n)%loc_ent(m)%i_u,ovf(n)%loc_ent(m)%j_u
+                           ovf(ovf_id)%loc_ent(m)%i_u,ovf(ovf_id)%loc_ent(m)%j_u
                            20 format(' n=',i3,' ent HU adjusted at i_u j_u =',2(i3,1x))
                         endif
                      endif
@@ -5358,9 +5854,9 @@
          end do  ! iblocks
       end do  ! entrainment
 ! prd
-      do m=1,ovf(n)%num_prd_sets
-       do mp=1,ovf(n)%num_prd(m)  ! product points for each set
-         kprd = ovf(n)%loc_prd(m,mp)%k
+      do m=1,ovf(ovf_id)%num_prd_sets
+       do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
+         kprd = ovf(ovf_id)%loc_prd(m,mp)%k
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -5368,17 +5864,17 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
                  do i=ib,ie
-                     if( ovf(n)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
+                     if( ovf(ovf_id)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
                         dz_sidewall = c0
                         do k=KMU(i,j,iblock)+1,kprd
                            dz_sidewall = dz_sidewall + dz(k)
                         enddo
                         HUM(i,j,iblock) = HU(i,j,iblock) + dz_sidewall
                         if(prnt) then
-                           write(stdout,30) n,ovf(n)%loc_prd(m,mp)%i_u, &
-                                            ovf(n)%loc_prd(m,mp)%j_u
+                           write(stdout,30) n,ovf(ovf_id)%loc_prd(m,mp)%i_u, &
+                                            ovf(ovf_id)%loc_prd(m,mp)%j_u
                            30 format(' n=',i3,' prd HU adjusted at i_u j_u =',2(i3,1x))
                         endif
                      endif
@@ -5429,6 +5925,8 @@
    type (block)          :: &
       this_block              ! block information for current block
    logical (log_kind), parameter :: prnt = .false.
+   
+   integer (int_kind)     :: ovf_id
 
    if( prnt .and. my_task == master_task ) then
       write(stdout,*) 'ovf_UV_solution called '
@@ -5438,11 +5936,16 @@
 !-----------------------------------------------------------------------
 !  overflow loop
 !-----------------------------------------------------------------------
+ !must have the groups initilaized
+   if (.not. ovf_groups%init) then
+      call ovf_init_groups()
+   end if  
 
-   do n=1,num_ovf  ! each overflow
+   do n=1, ovf_groups%numMyGroups  ! each overflow
+      ovf_id = ovf_groups%groupIds(n)
 ! src
-      do m=1,ovf(n)%num_src  ! source
-         ksrc = ovf(n)%loc_src(m)%k
+      do m=1,ovf(ovf_id)%num_src  ! source
+         ksrc = ovf(ovf_id)%loc_src(m)%k
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -5450,26 +5953,27 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_src(m)%j_u .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_src(m)%j_u .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_src(m)%i_u .eq. this_block%i_glob(i) ) then
+                     if( ovf(ovf_id)%loc_src(m)%i_u .eq. this_block%i_glob(i) ) then
                         if(prnt) then
-                           write(stdout,10) n,ovf(n)%loc_src(m)%i_u, &
-                                            ovf(n)%loc_src(m)%j_u 
+                           write(stdout,10) n,ovf(ovf_id)%loc_src(m)%i_u, &
+                                            ovf(ovf_id)%loc_src(m)%j_u 
                            10 format(' n=',i3,' src iu ju column evaluated=',2(i3,1x))
                         endif
 ! U
                         do k=1,km
-                          utlda(k)  = ovf(n)%loc_src(m)%Utlda(k)
+                          utlda(k)  = ovf(ovf_id)%loc_src(m)%Utlda(k)
                         enddo
                         Uovf     = UVEL(i,j,ksrc,newtime,iblock)
                         ubar     = UBTROP(i,j,newtime,iblock)
+
                         Uovf_nm1 = UVEL(i,j,ksrc,oldtime,iblock)
                         call ovf_U_column(i,j,ksrc,iblock, &
                                  Uovf,ubar,utlda,Uovf_nm1)
 ! V 
                         do k=1,km
-                          utlda(k)  = ovf(n)%loc_src(m)%Vtlda(k)
+                          utlda(k)  = ovf(ovf_id)%loc_src(m)%Vtlda(k)
                         enddo
                         Uovf     = VVEL(i,j,ksrc,newtime,iblock)
                         ubar     = VBTROP(i,j,newtime,iblock)
@@ -5483,8 +5987,8 @@
          end do  ! iblock
       end do  ! source
 ! ent
-      do m=1,ovf(n)%num_ent  ! entrainment
-         kent = ovf(n)%loc_ent(m)%k
+      do m=1,ovf(ovf_id)%num_ent  ! entrainment
+         kent = ovf(ovf_id)%loc_ent(m)%k
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -5492,17 +5996,17 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_ent(m)%j_u .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_ent(m)%j_u .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_ent(m)%i_u .eq. this_block%i_glob(i) ) then
+                     if( ovf(ovf_id)%loc_ent(m)%i_u .eq. this_block%i_glob(i) ) then
                         if(prnt) then
-                           write(stdout,20) n,ovf(n)%loc_ent(m)%i_u, &
-                                            ovf(n)%loc_ent(m)%j_u 
+                           write(stdout,20) n,ovf(ovf_id)%loc_ent(m)%i_u, &
+                                            ovf(ovf_id)%loc_ent(m)%j_u 
                            20 format(' n=',i3,' ent iu ju column evaluated=',2(i3,1x))
                         endif
 ! U
                         do k=1,km
-                          utlda(k)  = ovf(n)%loc_ent(m)%Utlda(k)
+                          utlda(k)  = ovf(ovf_id)%loc_ent(m)%Utlda(k)
                         enddo
                         Uovf     = UVEL(i,j,kent,newtime,iblock)
                         ubar     = UBTROP(i,j,newtime,iblock)
@@ -5511,7 +6015,7 @@
                                  Uovf,ubar,utlda,Uovf_nm1)
 ! V 
                         do k=1,km
-                          utlda(k)  = ovf(n)%loc_ent(m)%Vtlda(k)
+                          utlda(k)  = ovf(ovf_id)%loc_ent(m)%Vtlda(k)
                         enddo
                         Uovf     = VVEL(i,j,kent,newtime,iblock)
                         ubar     = VBTROP(i,j,newtime,iblock)
@@ -5525,9 +6029,9 @@
          end do  ! iblock
       end do  ! entrainment
 ! prd
-      do m=1,ovf(n)%num_prd_sets
-       do mp=1,ovf(n)%num_prd(m)  ! product points for each set
-         kprd = ovf(n)%loc_prd(m,mp)%k
+      do m=1,ovf(ovf_id)%num_prd_sets
+       do mp=1,ovf(ovf_id)%num_prd(m)  ! product points for each set
+         kprd = ovf(ovf_id)%loc_prd(m,mp)%k
          do iblock = 1,nblocks_clinic
             this_block = get_block(blocks_clinic(iblock),iblock)
             ib = this_block%ib
@@ -5535,17 +6039,17 @@
             jb = this_block%jb
             je = this_block%je
             do j=jb,je
-               if( ovf(n)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
+               if( ovf(ovf_id)%loc_prd(m,mp)%j_u .eq. this_block%j_glob(j) ) then
                   do i=ib,ie
-                     if( ovf(n)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
+                     if( ovf(ovf_id)%loc_prd(m,mp)%i_u .eq. this_block%i_glob(i) ) then
                         if(prnt) then
-                           write(stdout,30) n,ovf(n)%loc_prd(m,mp)%i_u, &
-                                            ovf(n)%loc_prd(m,mp)%j_u 
+                           write(stdout,30) n,ovf(ovf_id)%loc_prd(m,mp)%i_u, &
+                                            ovf(ovf_id)%loc_prd(m,mp)%j_u 
                            30 format(' n=',i3,' prd iu ju column evaluated=',2(i3,1x))
                         endif
 ! U
                         do k=1,km
-                          utlda(k)  = ovf(n)%loc_prd(m,mp)%Utlda(k)
+                          utlda(k)  = ovf(ovf_id)%loc_prd(m,mp)%Utlda(k)
                         enddo
                         Uovf     = UVEL(i,j,kprd,newtime,iblock)
                         ubar     = UBTROP(i,j,newtime,iblock)
@@ -5554,7 +6058,7 @@
                                  Uovf,ubar,utlda,Uovf_nm1)
 ! V 
                         do k=1,km
-                          utlda(k)  = ovf(n)%loc_prd(m,mp)%Vtlda(k)
+                          utlda(k)  = ovf(ovf_id)%loc_prd(m,mp)%Vtlda(k)
                         enddo
                         Uovf     = VVEL(i,j,kprd,newtime,iblock)
                         ubar     = VBTROP(i,j,newtime,iblock)
