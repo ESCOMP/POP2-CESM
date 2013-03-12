@@ -387,7 +387,7 @@ my $output_d = "./${CASE}.pop.d";
 if ($inst_string) {
     $output_r = "./${CASE}.pop${inst_string}.r";
     $output_h = "./${CASE}.pop${inst_string}.h";
-    $output_d - "./${CASE}.pop${inst_string}.d";
+    $output_d = "./${CASE}.pop${inst_string}.d";
 } 
 
 # Environment variables set in pop2.buildnml.csh that are not xml variables

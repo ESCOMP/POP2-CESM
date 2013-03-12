@@ -2,6 +2,18 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    12 March 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130312a
+Tag Summary: Fix in build-namelist to properly name diag output in multi-
+             instance runs, addition of ecosys_parms namelist to namelist
+             definitions.
+
+Files Modified:
+M            44699   bld/build-namelist
+M            44699   bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
+Tag Creator: mlevy
 Developers:  njn01
 Tag Date:    12 March 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130312

@@ -5210,6 +5210,219 @@ Default:
 
 
 <!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: ecosys_parms_nml         - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry 
+id="parm_Fe_bioavail"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_o2_min"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_Ro2_min_delta"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_no3_min"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_kappa_nitrif"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_nitrif_par_lim"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_z_umax_0"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_diat_umax_0"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_z_mort_0"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_z_mort2_0"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_sd_remin_0"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_sp_kNO3"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_diat_kNO3"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_sp_kNH4"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_diat_kNH4"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_sp_kFe"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_diat_kFe"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_diat_kSiO3"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_sp_kPO4"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_diat_kPO4"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_z_grz"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_alphaChl"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_alphaChlsp"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_labile_ratio"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_alphaDiaz"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+<entry 
+id="parm_diaz_umax_0"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default:  
+</entry>
+
+
+<!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: moby_nml                 - -->
 <!-- - - - - - - - - - - - - - - - - - -->
 
