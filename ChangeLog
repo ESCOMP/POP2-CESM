@@ -2,7 +2,17 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
-Developers:  mlevy
+Developers:  njn01
+Tag Date:    12 March 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130312
+Tag Summary: Bring in Nancy's fixes for near-inertial wave work.
+
+Files Modified:
+M            44679   source/initial.F90
+M            44679   source/vmix_kpp.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  abaker
 Tag Date:    25 February 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130225
 Tag Summary: Bring in Allison Baker's overflow code.

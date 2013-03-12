@@ -1895,7 +1895,7 @@
 !
 !-----------------------------------------------------------------------
 
-  if (linertial) then
+  if (.not. lniw_mixing .and. linertial) then
      exit_string =  'FATAL ERROR:  inertial mixing option. '
      exit_string =   trim(exit_string) /&
      &/' This option is untested. DO NOT USE!'

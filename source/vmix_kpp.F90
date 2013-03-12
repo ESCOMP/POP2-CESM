@@ -510,6 +510,16 @@
            bckgrnd_vdc(i,j,k,iblock) = bckgrnd_vdc_ban
       endif
 
+      !----------------
+      ! Arctic
+      !----------------
+
+      if (lniw_mixing) then   ! for now, only used in niw mixing
+      if (TLATD(i,j,iblock)  .ge. 70.0_r8) then
+       bckgrnd_vdc(i,j,k,iblock) = bckgrnd_vdc_eq
+      endif
+      endif
+
       bckgrnd_vvc(i,j,k,iblock) = Prandtl*bckgrnd_vdc(i,j,k,iblock)
 
      end do ! i
@@ -1625,6 +1635,9 @@
    real (r8) :: &
       factor              ! temporary scalar factor
 
+   real (r8) :: &
+      ni_obs_factor = 0.8_r8 ! scaling factor for obs vs model
+
 !-----------------------------------------------------------------------
 !
 !  compute friction velocity USTAR.  compute on U-grid and average
@@ -1776,7 +1789,7 @@
 ! Model resolves half NI energy, so the unresolved part, nivel is added again 
 ! x4 because for 16 hours 1/f a time step of 1 hours gets only a quarter of max. increase
 
-   if ( lniw_mixing ) then
+   if ( lniw_mixing .and. linertial ) then
 
      do j=1,ny_block
        do i=1,nx_block
@@ -1785,9 +1798,9 @@
 
          if( TLATD(i,j,bid) > 5.0_r8 ) then
  
-          perio = abs(12.0_r8 * 3600.0_r8 / sin(TLAT(i,j,bid)))
-          niuel(i,j) = - perio/pi2 * ((VCUR(i,j,1) - VVV(i,j,1))/dtt)
-          nivel(i,j) =   perio/pi2 * ((UCUR(i,j,1) - UUU(i,j,1))/dtt)
+          factor = ni_obs_factor*abs(12.0_r8*3600.0_r8/sin(TLAT(i,j,bid)))/pi2/dtt
+          niuel(i,j) = - factor * (VCUR(i,j,1) - VVV(i,j,1))     
+          nivel(i,j) =   factor * (UCUR(i,j,1) - UUU(i,j,1))     
     
            if( TLATD(i,j,bid) < 10.0_r8 ) then
             niuel(i,j) = niuel(i,j) * NIW_COS_FACTOR(i,j,bid)
@@ -1799,9 +1812,9 @@
 
          if( TLATD(i,j,bid) < -5.0_r8 ) then
 
-          perio = abs(12.0_r8 * 3600.0_r8 / sin(TLAT(i,j,bid)))
-          niuel(i,j) =   perio/pi2 * ((VCUR(i,j,1) - VVV(i,j,1))/dtt)
-          nivel(i,j) = - perio/pi2 * ((UCUR(i,j,1) - UUU(i,j,1))/dtt)
+          factor = ni_obs_factor*abs(12.0_r8*3600.0_r8/sin(TLAT(i,j,bid)))/pi2/dtt
+          niuel(i,j) =   factor * (VCUR(i,j,1) - VVV(i,j,1))     
+          nivel(i,j) = - factor * (UCUR(i,j,1) - UUU(i,j,1))     
 
            if( TLATD(i,j,bid) > -10.0_r8 ) then
             niuel(i,j) = niuel(i,j) * NIW_COS_FACTOR(i,j,bid)
@@ -1813,7 +1826,7 @@
        enddo
      enddo
 
-   endif  ! if ( lniw_mixing ) then
+   endif  ! if ( lniw_mixing .and. linertial ) then
 
    do kl = 2,km
  
@@ -3297,8 +3310,10 @@
 !  energy into that fraction which generates near-inertial waves.
 !-----------------------------------------------------------------------
 
-       factor = 1.4e-5_r8 * dtt
-       En(:,:) = abs(factor*(KE_cur(:,:)-KE_mix(:,:))/dtt)
+       En(:,:) = 0.05_r8 * (KE_cur(:,:)-KE_mix(:,:))/dtt
+       where( En < c0 )
+         En(:,:) = -c1 * En(:,:)
+       endwhere
 
 
 !-----------------------------------------------------------------------
@@ -3315,7 +3330,7 @@
 
             if( TLATD(i,j,bid) > -10.0_r8 .and. TLATD(i,j,bid) < 10.0_r8 ) then
               En(i,j) = En(i,j) * NIW_COS_FACTOR(i,j,bid)
-                               
+
             endif
 
          enddo
