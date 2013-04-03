@@ -176,9 +176,6 @@ contains
     integer (int_kind) :: &
        nThreads
 
-    real (r8) ::  &
-       precadj
-
     integer (int_kind) :: iam,ierr 
     character(len=32)  :: starttype          ! infodata start type
 
@@ -412,8 +409,7 @@ contains
 !-----------------------------------------------------------------------
 
    if ( lsend_precip_fact )  then
-      precadj = precip_fact * 1.0e6_r8  
-      call seq_infodata_PutData( infodata, precip_fact=precadj)
+      call seq_infodata_PutData( infodata, precip_fact=precip_fact)
    end if
    call pop_sum_buffer
 
@@ -543,9 +539,6 @@ contains
     type(seq_infodata_type), pointer :: &
        infodata   ! Input init object
 
-    real (r8) ::  &
-         precadj
-
     logical :: &
          lcoupled,   &  ! temporary
          rstwr,      &  ! true => write restart at end of day
@@ -665,8 +658,7 @@ contains
     enddo advance
 
     if ( lsend_precip_fact ) then
-       precadj = precip_fact * 1.0e6_r8  
-       call seq_infodata_PutData( infodata, precip_fact=precadj )
+       call seq_infodata_PutData( infodata, precip_fact=precip_fact )
     end if
     
 !--------------------------------------------------------------------

@@ -188,9 +188,6 @@ end subroutine
     integer (int_kind) :: &
        nThreads
 
-    real (r8) ::  &
-       precadj
-
     character(len=32)  :: starttype          ! infodata start type
 
 #ifdef _OPENMP
@@ -465,8 +462,7 @@ end subroutine
 
    print * , 'begin esmf export'
    if ( lsend_precip_fact )  then
-      precadj = precip_fact * 1.0e6_r8  
-      call ESMF_AttributeSet(export_state, name="precip_fact", value=precadj, rc=rc)
+      call ESMF_AttributeSet(export_state, name="precip_fact", value=precip_fact, rc=rc)
       if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
    end if
    call pop_sum_buffer
@@ -644,9 +640,6 @@ subroutine ocn_run_esmf(comp, import_state, export_state, EClock, rc)
     character(len=*), parameter  :: &
          SubName = "ocn_run_esmf"
 
-    real (r8) ::  &
-         precadj
-
     logical :: &
          rstwr           ! true => write restart at end of day
 
@@ -775,8 +768,7 @@ subroutine ocn_run_esmf(comp, import_state, export_state, EClock, rc)
     enddo advance
 
     if ( lsend_precip_fact ) then
-       precadj = precip_fact * 1.0e6_r8  
-       call ESMF_AttributeSet(export_state, name="precip_fact", value=precadj, rc=rc)
+       call ESMF_AttributeSet(export_state, name="precip_fact", value=precip_fact, rc=rc)
        if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
     end if
     
