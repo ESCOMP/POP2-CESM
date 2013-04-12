@@ -208,9 +208,9 @@
 !
 !-----------------------------------------------------------------------
 
-!   call init_restart
-!   call init_history
-!   call init_movie
+!   call final_restart
+!   call final_history
+!   call final_movie
    call final_tavg
 
 !-----------------------------------------------------------------------
