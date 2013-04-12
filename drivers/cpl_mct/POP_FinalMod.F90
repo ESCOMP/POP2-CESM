@@ -22,6 +22,7 @@
    use POP_ErrorMod
    use POP_IOUnitsMod, only: POP_stdout
    use communicate
+   use output, only: final_output
    use io_types
    use timers, only: timer_print_all
    use moby_mod, only: lmoby, POP_mobyFinal
@@ -85,6 +86,14 @@
 !-----------------------------------------------------------------------
 
    call POP_ErrorPrint(errorCode, printTask=master_task)
+
+!-----------------------------------------------------------------------
+!
+!  close any open files
+!
+!-----------------------------------------------------------------------
+
+   call final_output
 
 !-----------------------------------------------------------------------
 !

@@ -24,7 +24,7 @@
    use movie, only: write_movie, init_movie
    use overflows
    use overflow_type
-   use tavg, only: write_tavg, init_tavg
+   use tavg, only: write_tavg, init_tavg, final_tavg
    use timers, only: get_timer, timer_start, timer_stop
 
    implicit none
@@ -34,7 +34,8 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 
    public :: output_driver, &
-             init_output
+             init_output,   &
+             final_output
 
 
 !EOP
@@ -185,6 +186,37 @@
 !EOC
 
  end subroutine init_output
+
+!***********************************************************************
+!BOP
+! !IROUTINE: final_output
+! !INTERFACE:
+
+ subroutine final_output
+
+! !DESCRIPTION:
+!  Closes any files that are still open for output
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  call individual final routines (at this time, only final_tavg exists)
+!
+!-----------------------------------------------------------------------
+
+!   call init_restart
+!   call init_history
+!   call init_movie
+   call final_tavg
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine final_output
 
 
 !***********************************************************************

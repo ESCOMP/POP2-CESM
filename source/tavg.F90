@@ -58,7 +58,8 @@
              tavg_in_which_stream,   &
              write_tavg,             &
              read_tavg,              &
-             tavg_set_flag
+             tavg_set_flag,          &
+             final_tavg
  
    !*** ccsm
    public :: tavg_id,                &
@@ -7160,6 +7161,70 @@
 !EOC
 
   end subroutine tavg_local_spatial_avg
+ 
+!***********************************************************************
+!EOP
+! !IROUTINE: final_tavg
+! !INTERFACE:
+
+ subroutine final_tavg
+
+! !DESCRIPTION:
+!  This routine closes all tavg files that are still open
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!EOC
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+ integer (int_kind) :: n, nfield, ns   ! loop indices
+
+   do ns=1,nstreams
+      if (tavg_streams(ns)%ltavg_file_is_open) then
+        if (my_task.eq.master_task) then
+          write(stdout,*), "Note that ", trim(tavg_file_desc(ns)%full_name), &
+                           " is still open... closing file."
+        end if
+        ! Lots of variable clean up (necessary?)
+        call destroy_io_field(time_coordinate(1,ns))
+        do n=1,num_ccsm_coordinates
+           call destroy_io_field(ccsm_coordinates(n,ns))
+        end do
+        do n=1,num_ccsm_time_invar(ns)
+           call destroy_io_field(ccsm_time_invar(n,ns))
+        end do
+        do n=1,num_ccsm_scalars(ns)
+           call destroy_io_field(ccsm_scalars(n,ns))
+        end do
+        n=0
+        do nfield = 1, num_avail_tavg_fields
+           if (tavg_in_this_stream(nfield, ns)) then
+              n = n+1
+              call destroy_io_field(tavg_streams(ns)%tavg_fields(n))
+           end if
+        end do
+
+        tavg_streams(ns)%tavg_num_time_slices = 0
+        deallocate(tavg_streams(ns)%tavg_fields)
+
+        ! Close the file 
+        call data_set(tavg_file_desc(ns), 'close')
+
+        ! More variable clean up
+        call destroy_file(tavg_file_desc(ns))
+      end if
+   end do
+
+  end subroutine final_tavg
  
  end module tavg
 

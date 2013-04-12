@@ -1346,6 +1346,7 @@
 !-----------------------------------------------------------------------
 
    if (io_field%set_iodesc) then
+      call pio_setframe(io_field%vardesc, int(1,kind=PIO_OFFSET))
       if (associated(io_field%field_r_3d)) then
          call io_pio_initdecomp(PIO_REAL, ndim3=io_field%field_dim(3)%length, &
               kdim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)

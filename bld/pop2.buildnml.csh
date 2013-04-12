@@ -46,10 +46,6 @@ if ($NINST_OCN > 1) then
    if (! -e $RUNDIR/rpointer.ocn${inst_string}.ovf && -e $RUNDIR/rpointer.ocn.ovf) then
       cp $RUNDIR/rpointer.ocn.ovf $RUNDIR/rpointer.ocn${inst_string}.ovf
    endif
-   if (! -e $RUNDIR/rpointer.ocn${inst_string}.init && -e $RUNDIR/rpointer.ocn.init) then
-      cp $RUNDIR/rpointer.ocn.init $RUNDIR/rpointer.ocn${inst_string}.init
-endif
-   endif
    if (! -e $RUNDIR/rpointer.ocn${inst_string}.restart && -e $RUNDIR/rpointer.ocn.restart) then
       cp $RUNDIR/rpointer.ocn.restart $RUNDIR/rpointer.ocn${inst_string}.restart
    endif
