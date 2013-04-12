@@ -7186,7 +7186,7 @@
 !
 !-----------------------------------------------------------------------
 
- integer (int_kind) :: n, nfield, ns   ! loop indices
+   integer (int_kind) :: n, nfield, ns   ! loop indices
 
    do ns=1,nstreams
       if (tavg_streams(ns)%ltavg_file_is_open) then
