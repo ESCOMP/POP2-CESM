@@ -7163,7 +7163,7 @@
   end subroutine tavg_local_spatial_avg
  
 !***********************************************************************
-!EOP
+!BOP
 ! !IROUTINE: final_tavg
 ! !INTERFACE:
 
@@ -7177,8 +7177,6 @@
 
 !EOP
 !BOC
-!-----------------------------------------------------------------------
-!EOC
 
 !-----------------------------------------------------------------------
 !
@@ -7186,13 +7184,13 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: n, nfield, ns   ! loop indices
+    integer (int_kind) :: n, nfield, ns   ! loop indices
 
-   do ns=1,nstreams
+    do ns=1,nstreams
       if (tavg_streams(ns)%ltavg_file_is_open) then
         if (my_task.eq.master_task) then
-          write(stdout,*), "Note that ", trim(tavg_file_desc(ns)%full_name), &
-                           " is still open... closing file."
+          write(stdout,*), "tavg file ", trim(tavg_file_desc(ns)%full_name), &
+                           " is still open... closing."
         end if
         ! Lots of variable clean up (necessary?)
         call destroy_io_field(time_coordinate(1,ns))
@@ -7222,7 +7220,10 @@
         ! More variable clean up
         call destroy_file(tavg_file_desc(ns))
       end if
-   end do
+    end do
+
+!-----------------------------------------------------------------------
+!EOC
 
   end subroutine final_tavg
  

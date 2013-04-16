@@ -202,15 +202,15 @@
 
 !EOP
 !BOC
+
 !-----------------------------------------------------------------------
 !
-!  call individual final routines (at this time, only final_tavg exists)
+!  Make sure tavg files are closed (note that history, movie, and restart
+!  files are always closed after writing... tavg files are the only ones
+!  that can be left open for multiple time steps)
 !
 !-----------------------------------------------------------------------
 
-!   call final_restart
-!   call final_history
-!   call final_movie
    call final_tavg
 
 !-----------------------------------------------------------------------
