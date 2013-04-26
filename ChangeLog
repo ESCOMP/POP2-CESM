@@ -2,6 +2,31 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    25 April 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130425a
+Tag Summary: The best description is probably just to say this is version 2.0
+             of ecosys_mod. There is no backwards compatibility, for ecosys
+             version 1.0, use CESM 1.1.1 or CESM 1.0.5.
+
+Tests:       Ran CECO compsets with T62_g16, f09_g16_rx1, and T31_g37_rx1
+             resolutions. Also ran C compsets on T62_g16 and T31_g37_rx1 to
+             check that non-ecosys modes were still bit-for-bit with the trunk
+             (cesm1_2_alpha07b).Built and ran using pgi compiler to check
+             multiple compilers.
+
+Files Modified:
+M            46396   source/ecosys_mod.F90
+M            46396   source/co2calc.F90
+M            46396   source/ecosys_parms.F90
+M            46396   source/tavg.F90
+M            46396   bld/build-namelist
+M            46396   bld/pop2.buildexe.csh
+M            46396   bld/namelist_files/namelist_defaults_pop2.xml
+M            46396   bld/namelist_files/namelist_definition_pop2.xml
+M            46396   input_templates/ocn.ecosys.tavg.csh
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    25 April 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130425

@@ -44,6 +44,7 @@ $s1  SCHMIDT_CO2
 $s1  IRON_FLUX
 $s1  NOx_FLUX
 $s1  NHy_FLUX
+$s1  STF_ALK
 $s1  PH
 $s1  O2SAT
 $s1  STF_O2
@@ -82,36 +83,37 @@ $s1  zsatarag
 $s1  DOC
 $s1  DOC_prod
 $s1  DOC_remin
-$s1  spC
-$s1  spChl
-$s1  spCaCO3
-$s1  diatC
-$s1  diatChl
 $s1  zooC
-$s1  spFe
-$s1  diatSi
-$s1  diatFe
-$s1  diazC
-$s1  diazChl
-$s1  diazFe
 $s1  DON
+$s1  DON_remin
 $s1  DOFe
+$s1  DOFe_remin
 $s1  DOP
-$s1  graze_sp
-$s1  graze_diat
-$s1  graze_diaz
-$s1  sp_agg
-$s1  diat_agg
-$s1  photoC_sp
+$s1  DOP_remin
+$s1  DONr
+$s1  DOPr
+$s1  DIN_RIV_FLUX
+$s1  DIP_RIV_FLUX
+$s1  DON_RIV_FLUX
+$s1  DONr_RIV_FLUX
+$s1  DOP_RIV_FLUX
+$s1  DOPr_RIV_FLUX
+$s1  DOC_RIV_FLUX
+$s1  DSI_RIV_FLUX
+$s1  DFE_RIV_FLUX
+$s1  DIC_RIV_FLUX
+$s1  ALK_RIV_FLUX
+$s1  calcToSed
+$s1  pocToSed
+$s1  ponToSed
+$s1  popToSed
+$s1  pfeToSed
+$s1  dustToSed
+$s1  SedDenitrif
+$s1  bsiToSed
 $s1  CaCO3_form
-$s1  photoC_diat
-$s1  photoC_diaz
-$s1  photoC_NO3_sp
-$s1  photoC_NO3_diat
-$s1  photoC_NO3_diaz
 $s1  Fe_scavenge
 $s1  Fe_scavenge_rate
-$s1  diaz_Nfix
 $s1  bSi_form
 $s1  NITRIF
 $s1  DENITRIF
@@ -123,26 +125,12 @@ $s1  POC_FLUX_IN
 $s1  CaCO3_FLUX_IN
 $s1  SiO2_FLUX_IN
 $s1  P_iron_FLUX_IN
+$s1  dust_FLUX_IN
 $s1  PAR_avg
-$s1  sp_Fe_lim
-$s1  diat_Fe_lim
-$s1  diaz_Fe_lim
-$s1  sp_N_lim
-$s1  diat_N_lim
-$s1  sp_PO4_lim
-$s1  diat_PO4_lim
-$s1  diaz_P_lim
-$s1  diat_SiO3_lim
-$s1  sp_light_lim
-$s1  diat_light_lim
-$s1  diaz_light_lim
 $s1  DON_prod
 $s1  DOFe_prod
 $s1  DOP_prod
-$s1  sp_loss
-$s1  diat_loss
 $s1  zoo_loss
-$s1  diaz_loss
 $s1  Jint_100m_DIC
 $s1  Jint_100m_NO3
 $s1  Jint_100m_NH4
@@ -161,26 +149,13 @@ $s1  tend_zint_100m_SiO3
 $s1  tend_zint_100m_ALK
 $s1  tend_zint_100m_O2
 $s1  tend_zint_100m_DOC
-$s2  photoC_sp_zint
 $s2  CaCO3_form_zint
-$s2  photoC_diaz_zint
-$s2  photoC_diat_zint
-$s1  photoC_NO3_sp_zint
-$s1  photoC_NO3_diat_zint
-$s1  photoC_NO3_diaz_zint
 $s2  ECOSYS_IFRAC_2
 $s2  ECOSYS_XKW_2
 $s2  DpCO2_2
 $s2  FG_CO2_2
 $s2  STF_O2_2
-$s2  spC_zint_100m
-$s2  spCaCO3_zint_100m
-$s2  diazC_zint_100m
-$s2  diatC_zint_100m
 $s2  zooC_zint_100m
-$s2  spChl_SURF
-$s2  diazChl_SURF
-$s2  diatChl_SURF
 $s3  J_NO3
 $s3  J_NH4
 $s3  J_PO4
@@ -220,13 +195,99 @@ $s3  HDIFN_Fe
 $s3  HDIFB_Fe
 EOF
 
-#1  dust_FLUX_IN
-#1   DON_remin
-#1   DOFe_remin
-#1   DOP_remin
-#1   photoFe_diaz
-#1   photoFe_diat
-#1   photoFe_sp
+# generic autotroph fields
+# skip N_lim for diaz
+foreach autotroph ( sp diat diaz )
+   cat >> $CASEROOT/Buildconf/pop2conf/ecosys_tavg_contents << EOF
+$s1  ${autotroph}Chl
+$s1  ${autotroph}C
+$s1  ${autotroph}Fe
+$s1  graze_${autotroph}
+$s1  ${autotroph}_agg
+$s1  photoC_${autotroph}
+$s1  photoC_NO3_${autotroph}
+$s1  photoNO3_${autotroph}
+$s1  photoNH4_${autotroph}
+$s1  photoFe_${autotroph}
+$s1  DOP_${autotroph}_uptake
+$s1  PO4_${autotroph}_uptake
+$s1  ${autotroph}_Fe_lim
+$s1  ${autotroph}_P_lim
+$s1  ${autotroph}_light_lim
+$s1  ${autotroph}_loss
+$s2  photoC_${autotroph}_zint
+$s1  photoC_NO3_${autotroph}_zint
+$s2  ${autotroph}C_zint_100m
+$s2  ${autotroph}Chl_SURF
+EOF
+   if !($autotroph == diaz) then
+      cat >> $CASEROOT/Buildconf/pop2conf/ecosys_tavg_contents << EOF
+$s1  ${autotroph}_N_lim
+EOF
+   endif
+end
+
+# Nfix terms from N fixers 
+foreach autotroph ( diaz )
+   cat >> $CASEROOT/Buildconf/pop2conf/ecosys_tavg_contents << EOF
+$s1  ${autotroph}_Nfix
+EOF
+end
+
+# CaCO3 terms from calcifiers 
+foreach autotroph ( sp )
+   cat >> $CASEROOT/Buildconf/pop2conf/ecosys_tavg_contents << EOF
+$s1  ${autotroph}CaCO3
+$s2  ${autotroph}CaCO3_zint_100m
+EOF
+end
+
+# Si terms from silicifiers
+foreach autotroph ( diat )
+   cat >> $CASEROOT/Buildconf/pop2conf/ecosys_tavg_contents << EOF
+$s1  ${autotroph}Si
+$s1  ${autotroph}_SiO3_lim
+EOF
+end
+
+setenv OCN_TAVG_DIC_ALT_CO2 FALSE
+
+if ($OCN_TAVG_DIC_ALT_CO2 == TRUE) then
+cat >> $CASEROOT/Buildconf/pop2conf/ecosys_tavg_contents << EOF
+$s1  PH_ALT_CO2
+$s1  DCO2STAR_ALT_CO2
+$s1  DpCO2_ALT_CO2
+$s1  FG_ALT_CO2
+$s1  ATM_ALT_CO2
+$s1  DIC_ALT_CO2
+!  CO3_ALT_CO2
+!  pH_3D_ALT_CO2
+$s1  tend_zint_100m_DIC_ALT_CO2
+$s3  UE_DIC_ALT_CO2
+$s3  VN_DIC_ALT_CO2
+$s3  WT_DIC_ALT_CO2
+$s3  KPP_SRC_DIC_ALT_CO2
+$s3  DIA_IMPVF_DIC_ALT_CO2
+$s3  HDIFE_DIC_ALT_CO2
+$s3  HDIFN_DIC_ALT_CO2
+$s3  HDIFB_DIC_ALT_CO2
+EOF
+endif
+
+# include these budget check fields when doing development
+if ( 1 ) then
+cat >> $CASEROOT/Buildconf/pop2conf/ecosys_tavg_contents << EOF
+$s1  Jint_Ctot
+$s1  Jint_100m_Ctot
+$s1  Jint_Ntot
+$s1  Jint_100m_Ntot
+$s1  Jint_Ptot
+$s1  Jint_100m_Ptot
+$s1  Jint_Sitot
+$s1  Jint_100m_Sitot
+EOF
+endif
+
 #1  Jint_PO4
 #1  Jint_NO3
 #1  Jint_SiO3
@@ -242,4 +303,3 @@ EOF
 #1  Jint_diatC
 #1  Jint_diatChl
 #1  Jint_zooC
-

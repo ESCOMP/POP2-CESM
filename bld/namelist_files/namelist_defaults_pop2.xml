@@ -780,14 +780,15 @@
 <!--       ecosys_nml       -->
 <!---------------------------->
 
-<init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_20100514.nc</init_ecosys_init_file>
-<init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_20100514.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx3v7">ocn/pop/gx3v7/ic/ecosys_jan_IC_gx3v7_Nov2012_corrO2.nc</init_ecosys_init_file>
+<init_ecosys_init_file ocn_grid="gx1v6">ocn/pop/gx1v6/ic/ecosys_jan_IC_gx1v6_corrO2_Feb2013.nc</init_ecosys_init_file>
 
 <init_ecosys_init_file_fmt>nc</init_ecosys_init_file_fmt>
 
 <tracer_init_ext(1)%mod_varname&ecosys_nml>ALK</tracer_init_ext(1)%mod_varname&ecosys_nml>
 <tracer_init_ext(2)%mod_varname&ecosys_nml>DIC</tracer_init_ext(2)%mod_varname&ecosys_nml>
-<tracer_init_ext(3)%mod_varname&ecosys_nml>O2</tracer_init_ext(3)%mod_varname&ecosys_nml>
+<tracer_init_ext(3)%mod_varname&ecosys_nml>DIC_ALT_CO2</tracer_init_ext(3)%mod_varname&ecosys_nml>
+<tracer_init_ext(4)%mod_varname&ecosys_nml>O2</tracer_init_ext(4)%mod_varname&ecosys_nml>
 
 <lflux_gas_o2 >.true.</lflux_gas_o2>
 <lflux_gas_co2>.true.</lflux_gas_co2>
@@ -825,13 +826,70 @@
 
 <iron_flux_input%file_varname>DSTSF</iron_flux_input%file_varname>
 
-<iron_flux_input%scale_factor>6.2668e4</iron_flux_input%scale_factor>
+<!-- 6.2668e4 = kg/m^2/sec -> nmol/cm^2/sec, 3.5%Fe Wt. Dust file -->
+<!-- 1.79e6 = kgFe/m^2/sec -> nmol/cm^2/sec, var. solFe file -->
+<iron_flux_input%scale_factor ocn_grid="gx3v7">1.79e6</iron_flux_input%scale_factor>
+<iron_flux_input%scale_factor ocn_grid="gx1v6">1.79e6</iron_flux_input%scale_factor>
 
 <fesedflux_input%file_varname>FESEDFLUXIN</fesedflux_input%file_varname>
 
 <fesedflux_input%file_fmt>nc</fesedflux_input%file_fmt>
 
 <fesedflux_input%scale_factor>1.1574e-6</fesedflux_input%scale_factor>
+
+<din_riv_flux_input%file_varname>din_riv_flux</din_riv_flux_input%file_varname>
+
+<din_riv_flux_input%file_fmt>nc</din_riv_flux_input%file_fmt>
+
+<din_riv_flux_input%scale_factor>1.0</din_riv_flux_input%scale_factor>
+
+<dip_riv_flux_input%file_varname>dip_riv_flux</dip_riv_flux_input%file_varname>
+
+<dip_riv_flux_input%file_fmt>nc</dip_riv_flux_input%file_fmt>
+
+<dip_riv_flux_input%scale_factor>1.0</dip_riv_flux_input%scale_factor>
+
+<don_riv_flux_input%file_varname>don_riv_flux</don_riv_flux_input%file_varname>
+
+<don_riv_flux_input%file_fmt>nc</don_riv_flux_input%file_fmt>
+
+<don_riv_flux_input%scale_factor>1.0</don_riv_flux_input%scale_factor>
+
+<dop_riv_flux_input%file_varname>dop_riv_flux</dop_riv_flux_input%file_varname>
+
+<dop_riv_flux_input%file_fmt>nc</dop_riv_flux_input%file_fmt>
+
+<dop_riv_flux_input%scale_factor>1.0</dop_riv_flux_input%scale_factor>
+
+<dsi_riv_flux_input%file_varname>dsi_riv_flux</dsi_riv_flux_input%file_varname>
+
+<dsi_riv_flux_input%file_fmt>nc</dsi_riv_flux_input%file_fmt>
+
+<dsi_riv_flux_input%scale_factor>1.0</dsi_riv_flux_input%scale_factor>
+
+<dfe_riv_flux_input%file_varname>dfe_riv_flux</dfe_riv_flux_input%file_varname>
+
+<dfe_riv_flux_input%file_fmt>nc</dfe_riv_flux_input%file_fmt>
+
+<dfe_riv_flux_input%scale_factor>1.0</dfe_riv_flux_input%scale_factor>
+
+<dic_riv_flux_input%file_varname>dic_riv_flux</dic_riv_flux_input%file_varname>
+
+<dic_riv_flux_input%file_fmt>nc</dic_riv_flux_input%file_fmt>
+
+<dic_riv_flux_input%scale_factor>1.0</dic_riv_flux_input%scale_factor>
+
+<alk_riv_flux_input%file_varname>alk_riv_flux</alk_riv_flux_input%file_varname>
+
+<alk_riv_flux_input%file_fmt>nc</alk_riv_flux_input%file_fmt>
+
+<alk_riv_flux_input%scale_factor>1.0</alk_riv_flux_input%scale_factor>
+
+<doc_riv_flux_input%file_varname>doc_riv_flux</doc_riv_flux_input%file_varname>
+
+<doc_riv_flux_input%file_fmt>nc</doc_riv_flux_input%file_fmt>
+
+<doc_riv_flux_input%scale_factor>1.0</doc_riv_flux_input%scale_factor>
 
 <ndep_data_type>monthly-calendar</ndep_data_type>
 
@@ -865,18 +923,41 @@
  
 <tracer_init_ext(2)%scale_factor&ecosys_nml ocn_grid="gx3v7">1.025</tracer_init_ext(2)%scale_factor&ecosys_nml>
 <tracer_init_ext(2)%scale_factor&ecosys_nml ocn_grid="gx1v6">1.025</tracer_init_ext(2)%scale_factor&ecosys_nml> 
+ 
+<tracer_init_ext(3)%scale_factor&ecosys_nml ocn_grid="gx3v7">1.025</tracer_init_ext(3)%scale_factor&ecosys_nml>
+<tracer_init_ext(3)%scale_factor&ecosys_nml ocn_grid="gx1v6">1.025</tracer_init_ext(3)%scale_factor&ecosys_nml> 
 
-<tracer_init_ext(3)%scale_factor&ecosys_nml ocn_grid="gx3v7">44.66</tracer_init_ext(3)%scale_factor&ecosys_nml>
-<tracer_init_ext(3)%scale_factor&ecosys_nml ocn_grid="gx1v6">44.66</tracer_init_ext(3)%scale_factor&ecosys_nml> 
+<tracer_init_ext(4)%scale_factor&ecosys_nml ocn_grid="gx3v7">1.0</tracer_init_ext(4)%scale_factor&ecosys_nml>
+<tracer_init_ext(4)%scale_factor&ecosys_nml ocn_grid="gx1v6">1.0</tracer_init_ext(4)%scale_factor&ecosys_nml> 
 
 <dust_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/dst79gnx_gx3v7_20100305.nc</dust_flux_input%filename> 
 <dust_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/dst79gnx_gx1v6_090416.nc</dust_flux_input%filename> 
 
-<iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/dst79gnx_gx3v7_20100305.nc</iron_flux_input%filename> 
-<iron_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/dst79gnx_gx1v6_090416.nc</iron_flux_input%filename> 
+<iron_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/solFe_scenario4_current_gx3v7.nc</iron_flux_input%filename> 
+<iron_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/solFe_scenario4_current_gx1v6.nc</iron_flux_input%filename> 
 
-<fesedflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/fesedflux_CCSM4gx3v7_orgc_etopo2v2_20100307.nc</fesedflux_input%filename> 
-<fesedflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/fesedflux_CCSM4gx1v6_orgc_etopo2v2_20090802.nc</fesedflux_input%filename>
+<fesedflux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/fesedflux_CCSM4gx3v7_orgc_etopo2v2_Dec2012.nc</fesedflux_input%filename> 
+<fesedflux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/fesedflux_gx1v6_etopo2v2_Dec2012.nc</fesedflux_input%filename>
+
+<din_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</din_riv_flux_input%filename> 
+<dip_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dip_riv_flux_input%filename> 
+<don_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</don_riv_flux_input%filename> 
+<dop_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dop_riv_flux_input%filename> 
+<dsi_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dsi_riv_flux_input%filename> 
+<dfe_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dfe_riv_flux_input%filename> 
+<dic_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</dic_riv_flux_input%filename> 
+<alk_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</alk_riv_flux_input%filename> 
+<doc_riv_flux_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/river_nutrients_GNEWS2000_gx3v7.nc</doc_riv_flux_input%filename> 
+
+<din_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</din_riv_flux_input%filename> 
+<dip_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dip_riv_flux_input%filename> 
+<don_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</don_riv_flux_input%filename> 
+<dop_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dop_riv_flux_input%filename> 
+<dsi_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dsi_riv_flux_input%filename> 
+<dfe_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dfe_riv_flux_input%filename> 
+<dic_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</dic_riv_flux_input%filename> 
+<alk_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</alk_riv_flux_input%filename> 
+<doc_riv_flux_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/river_nutrients_GNEWS2000_gx1v6.nc</doc_riv_flux_input%filename> 
 
 <nox_flux_monthly_input%filename ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850_gx3v7_c100428.nc</nox_flux_monthly_input%filename> 
 <nox_flux_monthly_input%filename ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850_gx1v6_c100428.nc</nox_flux_monthly_input%filename>  
@@ -886,6 +967,68 @@
 
 <ndep_shr_stream_file ocn_grid="gx3v7">ocn/pop/gx3v7/forcing/ndep_ocn_1850-2005_gx3v7_c100612.nc</ndep_shr_stream_file> 
 <ndep_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_gx1v6_c100612.nc</ndep_shr_stream_file> 
+
+<!---------------------------->
+<!--    ecosys_parms_nml    -->
+<!---------------------------->
+
+<parm_Fe_bioavail>    1.0        </parm_Fe_bioavail>
+<parm_o2_min>         4.0        </parm_o2_min>
+<parm_o2_min_delta>   2.0        </parm_o2_min_delta>
+<parm_kappa_nitrif>   6.9444e-07 </parm_kappa_nitrif>
+<parm_nitrif_par_lim> 1.0        </parm_nitrif_par_lim>
+<parm_z_mort_0>       1.1574e-06 </parm_z_mort_0>
+<parm_z_mort2_0>      4.6296e-06 </parm_z_mort2_0>
+<parm_labile_ratio>   0.85       </parm_labile_ratio>
+
+<parm_POMbury ocn_grid="gx3v7">5.0</parm_POMbury>
+<parm_POMbury                 >1.4</parm_POMbury>
+
+<parm_BSIbury ocn_grid="gx3v7">0.58</parm_BSIbury>
+<parm_BSIbury                 >0.44</parm_BSIbury>
+
+<parm_fe_scavenge_rate0 ocn_grid="gx3v7">1.6</parm_fe_scavenge_rate0>
+<parm_fe_scavenge_rate0                 >1.3</parm_fe_scavenge_rate0>
+
+<parm_f_prod_sp_CaCO3 ocn_grid="gx3v7">0.53</parm_f_prod_sp_CaCO3>
+<parm_f_prod_sp_CaCO3                 >0.55</parm_f_prod_sp_CaCO3>
+
+<parm_POC_diss  > 88.0e2</parm_POC_diss>
+<parm_SiO2_diss >250.0e2</parm_SiO2_diss>
+<parm_CaCO3_diss>150.0e2</parm_CaCO3_diss>
+
+<parm_scalelen_z                    >130.0e2, 290.0e2, 670.0e2, 1700.0e2</parm_scalelen_z>
+<parm_scalelen_vals ocn_grid="gx3v7">    1.0,     3.0,     5.0,      9.0</parm_scalelen_vals>
+<parm_scalelen_vals                 >    1.0,     3.0,     5.0,      9.0</parm_scalelen_vals>
+
+<autotrophs(1)%sname>sp</autotrophs(1)%sname>
+<autotrophs(1)%kFe  >0.04e-3 </autotrophs(1)%kFe>
+<autotrophs(1)%kPO4 >0.01    </autotrophs(1)%kPO4>
+<autotrophs(1)%kDOP >0.26    </autotrophs(1)%kDOP>
+<autotrophs(1)%kNO3 >0.1     </autotrophs(1)%kNO3>
+<autotrophs(1)%kNH4 >0.01    </autotrophs(1)%kNH4>
+<autotrophs(1)%kSiO3>0.0     </autotrophs(1)%kSiO3>
+<autotrophs(1)%z_umax_0 ocn_grid="gx3v7">3.7847e-05</autotrophs(1)%z_umax_0>
+<autotrophs(1)%z_umax_0                 >3.8194e-05</autotrophs(1)%z_umax_0>
+
+<autotrophs(2)%sname>diat</autotrophs(2)%sname>
+<autotrophs(2)%kFe  >0.06e-3 </autotrophs(2)%kFe>
+<autotrophs(2)%kPO4 >0.05    </autotrophs(2)%kPO4>
+<autotrophs(2)%kDOP >0.9     </autotrophs(2)%kDOP>
+<autotrophs(2)%kNO3 >0.5     </autotrophs(2)%kNO3>
+<autotrophs(2)%kNH4 >0.05    </autotrophs(2)%kNH4>
+<autotrophs(2)%kSiO3>0.8     </autotrophs(2)%kSiO3>
+<autotrophs(2)%z_umax_0 ocn_grid="gx3v7">3.6227e-05</autotrophs(2)%z_umax_0>
+<autotrophs(2)%z_umax_0                 >3.5648e-05</autotrophs(2)%z_umax_0>
+
+<autotrophs(3)%sname>diaz</autotrophs(3)%sname>
+<autotrophs(3)%kFe  >0.04e-3 </autotrophs(3)%kFe>
+<autotrophs(3)%kPO4 >0.02    </autotrophs(3)%kPO4>
+<autotrophs(3)%kDOP >0.09    </autotrophs(3)%kDOP>
+<autotrophs(3)%kNO3 >1.0     </autotrophs(3)%kNO3>
+<autotrophs(3)%kNH4 >0.15    </autotrophs(3)%kNH4>
+<autotrophs(3)%kSiO3>0.0     </autotrophs(3)%kSiO3>
+<autotrophs(3)%z_umax_0>6.9444e-06</autotrophs(3)%z_umax_0>
 
 <!---------------------------->
 <!--moby_nml -->
