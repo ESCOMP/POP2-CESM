@@ -774,7 +774,7 @@
 <model_year>1</model_year>
 <model_year ocn_transient="1850-2000">1850</model_year>
 
-<pcfc_file>ocn/pop/res_indpt/forcing/pcfc1112_atm_20091117.nc</pcfc_file>
+<pcfc_file>ocn/pop/res_indpt/forcing/pcfc1112_atm_20130410.nc</pcfc_file>
 
 <!---------------------------->
 <!--       ecosys_nml       -->

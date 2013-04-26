@@ -2,6 +2,15 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlong
+Tag Date:    25 April 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130425b
+Tag Summary: New CFC dataset (not bit-for-bit with previous dataset)
+
+Files Modified:
+M            46408   bld/namelist_files/namelist_defaults_pop2.xml
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay
 Tag Date:    25 April 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130425a
