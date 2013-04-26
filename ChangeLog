@@ -2,6 +2,18 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy, njn01, tcraig
+Tag Date:    26 April 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130426
+Tag Summary: A couple of small changes to avoid "invalid tavg id" error in
+             vertical_mix.F90 and an error relating to passing a variable
+             that hasn't been allocated in diagnostics.F90.
+
+Files Modified:
+M       source/diagnostics.F90
+M       source/vertical_mix.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlong
 Tag Date:    25 April 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130425b

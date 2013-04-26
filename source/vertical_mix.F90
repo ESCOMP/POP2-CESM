@@ -471,17 +471,15 @@
                             units='adj/s', grid_loc='3111')
    endif
 
-   if (implicit_vertical_mix) then
-     do n = 1,nt
-       call define_tavg_field(tavg_DIA_IMPVF_TRACER(n), 'DIA_IMPVF_'     /&
-                                       &/ trim(tracer_d(n)%short_name),3, &
-          long_name=trim(tracer_d(n)%short_name)                         /&
-    &/ ' Flux Across Bottom Face from Diabatic Implicit Vertical Mixing', &
-          units=trim(tracer_d(n)%flux_units), grid_loc='3113',            &
-          scale_factor=tracer_d(n)%scale_factor,                          &
-          coordinates='TLONG TLAT z_w_bot time')
-     enddo
-   endif
+   do n = 1,nt
+     call define_tavg_field(tavg_DIA_IMPVF_TRACER(n), 'DIA_IMPVF_'     /&
+                                     &/ trim(tracer_d(n)%short_name),3, &
+        long_name=trim(tracer_d(n)%short_name)                         /&
+  &/ ' Flux Across Bottom Face from Diabatic Implicit Vertical Mixing', &
+        units=trim(tracer_d(n)%flux_units), grid_loc='3113',            &
+        scale_factor=tracer_d(n)%scale_factor,                          &
+        coordinates='TLONG TLAT z_w_bot time')
+   enddo
 
 !-----------------------------------------------------------------------
 !EOC

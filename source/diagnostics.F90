@@ -1373,53 +1373,57 @@
    endif ! ldiag_global
 
 !-----------------------------------------------------------------------
-        !$OMP PARALLEL DO PRIVATE(iblock)
-        do iblock=1,nblocks_clinic
-          call accumulate_tavg_field(HMXL(:,:,iblock), tavg_HMXL,   iblock, 1)
-        end do
-        !$OMP END PARALLEL DO
+        if (allocated(HMXL)) then
+          !$OMP PARALLEL DO PRIVATE(iblock)
+          do iblock=1,nblocks_clinic
+            call accumulate_tavg_field(HMXL(:,:,iblock), tavg_HMXL,   iblock, 1)
+          end do
+          !$OMP END PARALLEL DO
 
-        !$OMP PARALLEL DO PRIVATE(iblock)
-        do iblock=1,nblocks_clinic
-          call accumulate_tavg_field(HMXL(:,:,iblock), tavg_HMXL_2, iblock, 1)
-        end do
-        !$OMP END PARALLEL DO
+          !$OMP PARALLEL DO PRIVATE(iblock)
+          do iblock=1,nblocks_clinic
+            call accumulate_tavg_field(HMXL(:,:,iblock), tavg_HMXL_2, iblock, 1)
+          end do
+          !$OMP END PARALLEL DO
 
-        !$OMP PARALLEL DO PRIVATE(iblock)
-        do iblock=1,nblocks_clinic
-          call accumulate_tavg_field(HMXL(:,:,iblock), tavg_XMXL,   iblock, 1)
-        end do
-        !$OMP END PARALLEL DO
+          !$OMP PARALLEL DO PRIVATE(iblock)
+          do iblock=1,nblocks_clinic
+            call accumulate_tavg_field(HMXL(:,:,iblock), tavg_XMXL,   iblock, 1)
+          end do
+          !$OMP END PARALLEL DO
 
-        !$OMP PARALLEL DO PRIVATE(iblock)
-        do iblock=1,nblocks_clinic
-          call accumulate_tavg_field(HMXL(:,:,iblock), tavg_XMXL_2, iblock, 1)
-        end do
-        !$OMP END PARALLEL DO
+          !$OMP PARALLEL DO PRIVATE(iblock)
+          do iblock=1,nblocks_clinic
+            call accumulate_tavg_field(HMXL(:,:,iblock), tavg_XMXL_2, iblock, 1)
+          end do
+          !$OMP END PARALLEL DO
 
-        !$OMP PARALLEL DO PRIVATE(iblock)
-        do iblock=1,nblocks_clinic
-          call accumulate_tavg_field(HMXL(:,:,iblock), tavg_TMXL, iblock, 1)
-        end do
-        !$OMP END PARALLEL DO
+          !$OMP PARALLEL DO PRIVATE(iblock)
+          do iblock=1,nblocks_clinic
+            call accumulate_tavg_field(HMXL(:,:,iblock), tavg_TMXL, iblock, 1)
+          end do
+          !$OMP END PARALLEL DO
+        end if
 
-        !$OMP PARALLEL DO PRIVATE(iblock)
-        do iblock=1,nblocks_clinic
-          call accumulate_tavg_field(KPP_HBLT(:,:,iblock), tavg_HBLT, iblock, 1)
-        end do
-        !$OMP END PARALLEL DO
+        if (allocated(KPP_HBLT)) then
+          !$OMP PARALLEL DO PRIVATE(iblock)
+          do iblock=1,nblocks_clinic
+            call accumulate_tavg_field(KPP_HBLT(:,:,iblock), tavg_HBLT, iblock, 1)
+          end do
+          !$OMP END PARALLEL DO
 
-        !$OMP PARALLEL DO PRIVATE(iblock)
-        do iblock=1,nblocks_clinic
-          call accumulate_tavg_field(KPP_HBLT(:,:,iblock), tavg_XBLT, iblock, 1)
-        end do
-        !$OMP END PARALLEL DO
+          !$OMP PARALLEL DO PRIVATE(iblock)
+          do iblock=1,nblocks_clinic
+            call accumulate_tavg_field(KPP_HBLT(:,:,iblock), tavg_XBLT, iblock, 1)
+          end do
+          !$OMP END PARALLEL DO
 
-        !$OMP PARALLEL DO PRIVATE(iblock)
-        do iblock=1,nblocks_clinic
-          call accumulate_tavg_field(KPP_HBLT(:,:,iblock), tavg_TBLT, iblock, 1)
-        end do
-        !$OMP END PARALLEL DO
+          !$OMP PARALLEL DO PRIVATE(iblock)
+          do iblock=1,nblocks_clinic
+            call accumulate_tavg_field(KPP_HBLT(:,:,iblock), tavg_TBLT, iblock, 1)
+          end do
+          !$OMP END PARALLEL DO
+        end if
 
 !-----------------------------------------------------------------------
 !
