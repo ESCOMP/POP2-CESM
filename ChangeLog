@@ -3,6 +3,15 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    25 April 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130425
+Tag Summary: Bugfix from a poorly constructed write statement
+
+Files Modified:
+M            46394   source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    16 April 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130416
 Tag Summary: A little cleanup following the addition of final_output

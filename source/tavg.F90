@@ -7189,8 +7189,8 @@
     do ns=1,nstreams
       if (tavg_streams(ns)%ltavg_file_is_open) then
         if (my_task.eq.master_task) then
-          write(stdout,*), "tavg file ", trim(tavg_file_desc(ns)%full_name), &
-                           " is still open... closing."
+          write(stdout,*) "tavg file ", trim(tavg_file_desc(ns)%full_name), &
+                          " is still open... closing."
         end if
         ! Lots of variable clean up (necessary?)
         call destroy_io_field(time_coordinate(1,ns))
