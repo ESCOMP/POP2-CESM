@@ -291,7 +291,7 @@ CONTAINS
     parm_POMbury           = 1.4_r8         ! x1 default
     parm_BSIbury           = 0.45_r8        ! x1 default
     parm_fe_scavenge_rate0 = 1.3_r8         ! x1 default
-    parm_f_prod_sp_CaCO3   = 0.55_r8        ! x1 default
+    parm_f_prod_sp_CaCO3   = 0.055_r8       ! x1 default
     parm_POC_diss          = 88.0e2_r8
     parm_SiO2_diss         = 250.0e2_r8
     parm_CaCO3_diss        = 150.0e2_r8

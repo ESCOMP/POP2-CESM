@@ -2,6 +2,16 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    01 May 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130501
+Tag Summary: Updating a namelist variable default value.
+
+Files Modified:
+M            46612   source/ecosys_parms.F90
+M            46612   bld/namelist_files/namelist_defaults_pop2.xml
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy, njn01, tcraig
 Tag Date:    26 April 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130426
