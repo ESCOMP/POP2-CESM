@@ -4447,6 +4447,7 @@ contains
    TfuncS = 1.5_r8**(((TEMP + T0_Kelvin) - (Tref + T0_Kelvin)) / c10)
 
    poc_error = .false.
+   dz_loc = dz(k)
 
    do j = 1,ny_block
       do i = 1,nx_block
@@ -4455,8 +4456,6 @@ contains
 
             if (partial_bottom_cells) then
                dz_loc = DZT(i,j,k,bid)
-            else
-               dz_loc = dz(k)
             endif
             dzr_loc = c1 / dz_loc
 
