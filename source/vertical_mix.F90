@@ -1118,7 +1118,6 @@
       do k=2,km
 
        if (partial_bottom_cells) then
-!CDIR COLLAPSE
         do j=jb,je
         do i=ib,ie
            C(i,j) = A(i,j)
@@ -1126,39 +1125,54 @@
                     (p5*(DZT(i,j,k  ,bid) + &
                          DZT(i,j,k+1,bid)))
            hfac_t(k) = DZT(i,j,k,bid)/c2dtt(k)
+
+           ! Note: this code is duplicated below for the case where
+           !       partial_bottom_cells is .false.
+           if (k > KMT(i,j,bid)) then
+              F(i,j,k) = c0
+           else
+              if (k == KMT(i,j,bid)) then
+                 D(i,j) = hfac_t(k)+B(i,j)
+              else
+                 D(i,j) = hfac_t(k)+A(i,j)+B(i,j)
+              endif
+
+              E(i,j,k) = A(i,j)/D(i,j)
+              B(i,j) = (hfac_t(k) + B(i,j))*E(i,j,k)
+   
+              F(i,j,k) = (hfac_t(k)*TNEW(i,j,k,n) + &
+                          C(i,j)*F(i,j,k-1))/D(i,j)
+           endif
+
         end do
         end do
-       else
-!CDIR COLLAPSE
+       else ! no partial_bottom_cells
         do j=jb,je
         do i=ib,ie
            C(i,j) = A(i,j)
            A(i,j) = afac_t(k)*VDC(i,j,k,mt2,bid)
+
+           ! Note: this code is duplicated above for the case where
+           !       partial_bottom_cells is .true.
+           if (k > KMT(i,j,bid)) then
+              F(i,j,k) = c0
+           else
+              if (k == KMT(i,j,bid)) then
+                 D(i,j) = hfac_t(k)+B(i,j)
+              else
+                 D(i,j) = hfac_t(k)+A(i,j)+B(i,j)
+              endif
+
+              E(i,j,k) = A(i,j)/D(i,j)
+              B(i,j) = (hfac_t(k) + B(i,j))*E(i,j,k)
+   
+              F(i,j,k) = (hfac_t(k)*TNEW(i,j,k,n) + &
+                          C(i,j)*F(i,j,k-1))/D(i,j)
+           endif
+
         end do
         end do
        endif ! partial_bottom_cells
-
-!CDIR COLLAPSE
-       do j=jb,je
-       do i=ib,ie
-            if (k > KMT(i,j,bid)) then
-               F(i,j,k) = c0
-            else
-               if (k == KMT(i,j,bid)) then
-                  D(i,j) = hfac_t(k)+B(i,j)
-               else
-                  D(i,j) = hfac_t(k)+A(i,j)+B(i,j)
-               endif
-
-               E(i,j,k) = A(i,j)/D(i,j)
-               B(i,j) = (hfac_t(k) + B(i,j))*E(i,j,k)
-   
-               F(i,j,k) = (hfac_t(k)*TNEW(i,j,k,n) + &
-                           C(i,j)*F(i,j,k-1))/D(i,j)
-            endif
-
-       end do ! i
-       end do ! j
       end do  ! k
 
 
@@ -1394,45 +1408,58 @@
       do k=2,km
 
         if (partial_bottom_cells) then
-!CDIR COLLAPSE
           do j=jb,je
           do i=ib,ie
              C(i,j) = A(i,j)
              A(i,j) = aidif*VDC(i,j,k,mt2,bid)/ &
                       (p5*(DZT(i,j,k  ,bid) + DZT(i,j,k+1,bid)))
              hfac_t(k) = DZT(i,j,k,bid)/c2dtt(k)
+
+             ! Note: this code is duplicated below for the case where
+             !       partial_bottom_cells is .false.
+             if (k > KMT(i,j,bid)) then
+                F(i,j,k) = c0
+             else
+                if (k == KMT(i,j,bid)) then
+                   D(i,j) = hfac_t(k)+B(i,j)
+                else
+                   D(i,j) = hfac_t(k)+A(i,j)+B(i,j)
+                endif
+
+                E(i,j,k) = A(i,j)/D(i,j)
+                B(i,j) = (hfac_t(k) + B(i,j))*E(i,j,k)
+
+                F(i,j,k) = C(i,j)*F(i,j,k-1)/D(i,j)
+             endif
+
           end do
           end do
-        else
-!CDIR COLLAPSE
+        else ! no partial_bottom_cells
           do j=jb,je
           do i=ib,ie
              C(i,j) = A(i,j)
              A(i,j) = afac_t(k)*VDC(i,j,k,mt2,bid)
+
+             ! Note: this code is duplicated above for the case where
+             !       partial_bottom_cells is .true.
+             if (k > KMT(i,j,bid)) then
+                F(i,j,k) = c0
+             else
+                if (k == KMT(i,j,bid)) then
+                   D(i,j) = hfac_t(k)+B(i,j)
+                else
+                   D(i,j) = hfac_t(k)+A(i,j)+B(i,j)
+                endif
+
+                E(i,j,k) = A(i,j)/D(i,j)
+                B(i,j) = (hfac_t(k) + B(i,j))*E(i,j,k)
+
+                F(i,j,k) = C(i,j)*F(i,j,k-1)/D(i,j)
+             endif
+
           end do
           end do
         endif ! partial_bottom_cells
-
-!CDIR COLLAPSE
-          do j=jb,je
-          do i=ib,ie
-            if (k > KMT(i,j,bid)) then
-               F(i,j,k) = c0
-            else
-               if (k == KMT(i,j,bid)) then
-                  D(i,j) = hfac_t(k)+B(i,j)
-               else
-                  D(i,j) = hfac_t(k)+A(i,j)+B(i,j)
-               endif
-
-               E(i,j,k) = A(i,j)/D(i,j)
-               B(i,j) = (hfac_t(k) + B(i,j))*E(i,j,k)
-
-               F(i,j,k) = C(i,j)*F(i,j,k-1)/D(i,j)
-            endif
-
-         end do
-         end do
       end do ! k
 
       !*** back substitution
@@ -1588,47 +1615,68 @@
            hfac_u(k) = DZU(i,j,k,bid)/c2dtu
            A(i,j) = aidif*VVC(i,j,k,bid)/(p5*(DZU(i,j,k,bid) + &
                                               DZU(i,j,k+1,bid)))
+
+           ! Note: this code is duplicated below for the case where
+           !       partial_bottom_cells is .false.
+           if (k < KMU(i,j,bid)) then
+
+              D(i,j)    = hfac_u(k) + A(i,j) + B(i,j)
+              E(i,j,k)  = A(i,j)/D(i,j)
+              B(i,j)    = (hfac_u(k) + B(i,j))*E(i,j,k)
+              F1(i,j,k) = (hfac_u(k)*UNEW(i,j,k) + &
+                           C(i,j)*F1(i,j,k-1))/D(i,j)
+              F2(i,j,k) = (hfac_u(k)*VNEW(i,j,k) + &
+                           C(i,j)*F2(i,j,k-1))/D(i,j)
+
+           else if (k == KMU(i,j,bid)) then
+
+              D(i,j)    = hfac_u(k) + B(i,j)
+              E(i,j,k)  = A(i,j)/D(i,j)
+              B(i,j)    = (hfac_u(k) + B(i,j))*E(i,j,k)
+              F1(i,j,k) = (hfac_u(k)*UNEW(i,j,k) + &
+                           C(i,j)*F1(i,j,k-1))/D(i,j)
+              F2(i,j,k) = (hfac_u(k)*VNEW(i,j,k) + &
+                           C(i,j)*F2(i,j,k-1))/D(i,j)
+           else
+              F1(i,j,k) = c0
+              F2(i,j,k) = c0
+         endif
         end do
         end do
-      else
-!CDIR COLLAPSE
+      else ! no partial_bottom_cell
         do j=jb,je
         do i=ib,ie
            C(i,j) = A(i,j)
            A(i,j) = afac_u(k)*VVC(i,j,k,bid)
+
+           ! Note: this code is duplicated above for the case where
+           !       partial_bottom_cells is .true.
+           if (k < KMU(i,j,bid)) then
+
+              D(i,j)    = hfac_u(k) + A(i,j) + B(i,j)
+              E(i,j,k)  = A(i,j)/D(i,j)
+              B(i,j)    = (hfac_u(k) + B(i,j))*E(i,j,k)
+              F1(i,j,k) = (hfac_u(k)*UNEW(i,j,k) + &
+                           C(i,j)*F1(i,j,k-1))/D(i,j)
+              F2(i,j,k) = (hfac_u(k)*VNEW(i,j,k) + &
+                           C(i,j)*F2(i,j,k-1))/D(i,j)
+
+           else if (k == KMU(i,j,bid)) then
+
+              D(i,j)    = hfac_u(k) + B(i,j)
+              E(i,j,k)  = A(i,j)/D(i,j)
+              B(i,j)    = (hfac_u(k) + B(i,j))*E(i,j,k)
+              F1(i,j,k) = (hfac_u(k)*UNEW(i,j,k) + &
+                           C(i,j)*F1(i,j,k-1))/D(i,j)
+              F2(i,j,k) = (hfac_u(k)*VNEW(i,j,k) + &
+                           C(i,j)*F2(i,j,k-1))/D(i,j)
+           else
+              F1(i,j,k) = c0
+              F2(i,j,k) = c0
+         endif
         end do
         end do
       endif ! partial_bottom_cells
-
-!CDIR COLLAPSE
-      do j=jb,je
-      do i=ib,ie
-         if (k < KMU(i,j,bid)) then
-
-            D(i,j)    = hfac_u(k) + A(i,j) + B(i,j)
-            E(i,j,k)  = A(i,j)/D(i,j)
-            B(i,j)    = (hfac_u(k) + B(i,j))*E(i,j,k)
-            F1(i,j,k) = (hfac_u(k)*UNEW(i,j,k) + &
-                         C(i,j)*F1(i,j,k-1))/D(i,j)
-            F2(i,j,k) = (hfac_u(k)*VNEW(i,j,k) + &
-                         C(i,j)*F2(i,j,k-1))/D(i,j)
-
-         else if (k == KMU(i,j,bid)) then
-
-            D(i,j)    = hfac_u(k) + B(i,j)
-            E(i,j,k)  = A(i,j)/D(i,j)
-            B(i,j)    = (hfac_u(k) + B(i,j))*E(i,j,k)
-            F1(i,j,k) = (hfac_u(k)*UNEW(i,j,k) + &
-                         C(i,j)*F1(i,j,k-1))/D(i,j)
-            F2(i,j,k) = (hfac_u(k)*VNEW(i,j,k) + &
-                         C(i,j)*F2(i,j,k-1))/D(i,j)
-         else
-            F1(i,j,k) = c0
-            F2(i,j,k) = c0
-         endif
-
-      end do
-      end do
    end do ! k
 
    do k=km-1,1,-1
