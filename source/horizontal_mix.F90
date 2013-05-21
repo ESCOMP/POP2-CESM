@@ -558,25 +558,24 @@
 !-----------------------------------------------------------------------
 
    if (accumulate_tavg_now(tavg_HDIFT)) then
-
-     where (k <= KMT(:,:,bid))
-        WORK = dz(k)*HDTK(:,:,1)
-     elsewhere
-        WORK = c0
-     end where
+     WORK = c0
+     if (partial_bottom_cells) then
+        where (k <= KMT(:,:,bid)) WORK = DZT(:,:,k,bid)*HDTK(:,:,1)
+     else
+        where (k <= KMT(:,:,bid)) WORK = dz(k)*HDTK(:,:,1)
+     endif
      call accumulate_tavg_field(WORK,tavg_HDIFT,bid,k)
    endif
 
    if (accumulate_tavg_now(tavg_HDIFS)) then
-
-     where (k <= KMT(:,:,bid))
-        WORK = dz(k)*HDTK(:,:,2)
-     elsewhere
-        WORK = c0
-     end where
+     WORK = c0
+     if (partial_bottom_cells) then
+        where (k <= KMT(:,:,bid)) WORK = DZT(:,:,k,bid)*HDTK(:,:,2)
+     else
+        where (k <= KMT(:,:,bid)) WORK = dz(k)*HDTK(:,:,2)
+     endif
      call accumulate_tavg_field(WORK,tavg_HDIFS,bid,k)
    endif
-
 
 !-----------------------------------------------------------------------
 !EOC

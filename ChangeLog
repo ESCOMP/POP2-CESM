@@ -3,6 +3,17 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  klindsay
+Tag Date:    21 May 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130521
+Tag Summary: Another partial_bottom_cell bugfix: diagnostic output was computed
+             incorrectly with partial bottom cells turned on.
+
+Files Modified:
+M            47358   source/advection.F90
+M            47358   source/horizontal_mix.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay
 Tag Date:    17 May 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130517
 Tag Summary: Bugfix: split loops led to bad values of hfac_[tu] with partial
