@@ -25,7 +25,9 @@ MODULE ecosys_parms
   USE constants, ONLY : c1
   USE kinds_mod
   USE io_tools, ONLY : document
-
+  USE blocks, ONLY: nx_block, ny_block
+  USE domain_size, ONLY: max_blocks_clinic
+ 
   IMPLICIT NONE
 
   !-----------------------------------------------------------------------------
@@ -41,9 +43,9 @@ MODULE ecosys_parms
   !-----------------------------------------------------------------------------
 
   REAL(KIND=r8), PARAMETER :: &
-       spd = 86400.0_r8,        & ! number of seconds in a day
-       dps = c1 / spd,          & ! number of days in a second
-       yps = c1 / (365.0_r8*spd)  ! number of years in a second
+       spd = 86400.0_r8,    & ! number of seconds in a day
+       dps = c1 / spd,            & ! number of days in a second
+       yps = c1 / (365.0_r8*spd)! number of years in a second
 
   !-----------------------------------------------------------------------------
   !   functional group
@@ -60,6 +62,7 @@ MODULE ecosys_parms
      REAL(KIND=r8) :: &
         Chl_ind, C_ind, Fe_ind,             & ! tracer indices for Chl, C, Fe content
         Si_ind, CaCO3_ind,                  & ! tracer indices for Si, CaCO3 content
+!        C13_ind, C14_ind,                   & ! tracer indices for 13C, 14C
         kFe, kPO4, kDOP, kNO3, kNH4, kSiO3, & ! nutrient uptake half-sat constants
         Qp,                                 & ! P/C ratio
         gQfe_0, gQfe_min,                   & ! initial and minimum fe/C ratio
@@ -71,7 +74,7 @@ MODULE ecosys_parms
         mort, mort2,                        & ! linear and quadratic mortality rates (1/sec), (1/sec/((mmol C/m3))
         agg_rate_max, agg_rate_min,         & ! max and min agg. rate (1/d)
         z_umax_0,                           & ! max zoo growth rate at tref (1/sec)
-        z_grz,                              & ! grazing coef. (mmol C/m^3)
+        z_grz,                              & ! grazing coef. (mmol C/m^3)^2
         graze_zoo, graze_poc, graze_doc,    & ! routing of grazed term, remainder goes to dic
         loss_poc,                           & ! routing of loss term
         f_zoo_detr                            ! fraction of zoo losses to detrital 
@@ -84,6 +87,28 @@ MODULE ecosys_parms
      diaz_ind        = 3     ! diazotrophs
 
   TYPE(autotroph_type), DIMENSION(autotroph_cnt) :: autotrophs
+
+
+!-----------------------------------------------------------------------------
+!  derived type for implicit handling of sinking particulate matter
+!-----------------------------------------------------------------------------
+
+  TYPE, PUBLIC :: sinking_particle
+      REAL(KIND=r8)  :: &
+         diss,        & ! dissolution length for soft subclass
+         gamma,       & ! fraction of production -> hard subclass
+         mass,        & ! mass of 1e9 base units in g
+         rho            ! QA mass ratio of POC to this particle class
+
+      REAL(KIND=r8) , DIMENSION(nx_block,ny_block,max_blocks_clinic) :: &
+         sflux_in,    & ! incoming flux of soft subclass (base units/cm^2/sec)
+         hflux_in,    & ! incoming flux of hard subclass (base units/cm^2/sec)
+         prod,        & ! production term (base units/cm^3/sec)
+         sflux_out,   & ! outgoing flux of soft subclass (base units/cm^2/sec)
+         hflux_out,   & ! outgoing flux of hard subclass (base units/cm^2/sec)
+         sed_loss,    & ! loss to sediments (base units/cm^s/sec)
+         remin          ! remineralization term (base units/cm^3/sec)
+    END TYPE
 
   !-----------------------------------------------------------------------------
   !   Redfield Ratios, dissolved & particulate

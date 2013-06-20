@@ -1,5 +1,22 @@
-SVN $Id$
-SVN $URL$
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
+Tag Date:    20 June 2013
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20130620a_cesm_pop_2_1_20130521/ 
+Tag Summary: Added ecosys_driver and ecosys_fields to pop2 and modified
+passive_tracers accordingly. Additional tracers that make use of the ecosystem
+model should be linked in by using the ecosys_driver. Data from the ecosys
+model that needs to be shared with these new tracer modules should be shared
+using pointers (see example in ecosys_fields), making as little changes to
+ecosys_mod.F90 as possible.
+Files Modified:
+M            48136   source/passive_tracers.F90
+M            48136   source/ecosys_mod.F90
+M            48136   source/ecosys_parms.F90
+A                0   source/ecosys_driver.F90
+A                0   source/ecosys_fields.F90
+Status against revision:  48136
 ===============================================================================
 Tag Creator: mlevy
 Developers:  klindsay
