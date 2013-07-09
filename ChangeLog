@@ -2,6 +2,17 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy, klindsay
+Tag Date:    9 July 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130709
+Tag Summary: Update to cfc fix implemented on Jan 28, 2013... that fix did not
+             handle branch runs correctly (based iinit_cfc_option on STARTDATE
+             rather than REFDATE)
+
+Files Modified:
+M            48822   bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay
 Tag Date:    21 May 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130521

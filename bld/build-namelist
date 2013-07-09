@@ -378,6 +378,7 @@ my $POP_DECOMPTYPE         = "$xmlvars{'POP_DECOMPTYPE'}";
 my $INFO_DBUG              = "$xmlvars{'INFO_DBUG'}";
 my $RUN_TYPE               = "$xmlvars{'RUN_TYPE'}";
 my $RUN_STARTDATE          = "$xmlvars{'RUN_STARTDATE'}";
+my $RUN_REFDATE            = "$xmlvars{'RUN_REFDATE'}";
 my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
 my $OCN_CO2_FLUX_OCMIP_BUG_FIX = "$xmlvars{'OCN_CO2_FLUX_OCMIP_BUG_FIX'}";
 
@@ -1195,8 +1196,13 @@ if ($OCN_TRACER_MODULES =~ /cfc/) {
     $init_cfc_option = "ccsm_${RUN_TYPE}";
     if ($OCN_TRANSIENT eq "1850-2000") {
       if ($RUN_TYPE ne "continue") {
-        my @START_ARRAY = split('-',$RUN_STARTDATE);
+        my $RUN_DAY_ONE = $RUN_STARTDATE;
+        if ($RUN_TYPE eq "branch") {
+          $RUN_DAY_ONE = $RUN_REFDATE;
+        }
+        my @START_ARRAY = split('-',$RUN_DAY_ONE);
         my $START_YEAR = @START_ARRAY[0];
+        print "Setting initial CFCs based on starting the run in $START_YEAR\n";
         if ($START_YEAR le 1930) {
           $init_cfc_option = "zero";
         } else {
