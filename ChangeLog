@@ -2,6 +2,15 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  jedwards
+Tag Date:    18 July 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130718b
+Tag Summary: Change in how build-namelist expands environment variables
+
+Files Modified:
+M            49248   bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    18 July 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130718a
