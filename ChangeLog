@@ -4,6 +4,16 @@ SVN $URL$
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    18 July 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130718a
+Tag Summary: Change to build-namelist to handle $OCN_TRACER_MODULE as an array
+             rather than one big string.
+
+Files Modified:
+M            49243   bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    18 July 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130718
 Tag Summary: Fix to allow changes to domain_size.F90 and POP_DomainSizeMod.F90
              in SourceMods/src.pop2
