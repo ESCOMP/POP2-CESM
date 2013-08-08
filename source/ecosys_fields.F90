@@ -4,7 +4,7 @@ module ecosys_fields
 
 !-----------------------------------------------------------------------------
 !   This module contains definitions of variables that are used in both 
-!   ecocys_mod.F90 and ecosys_Ciso_mod.F90. They are shared using threading 
+!   ecocys_mod.F90 and ecosys_ciso_mod.F90. They are shared using threading 
 !   with pointers, and need to be pointed to in the code.
 !-----------------------------------------------------------------------------
   USE blocks, ONLY: nx_block, ny_block
@@ -35,16 +35,17 @@ module ecosys_fields
       f_zoo_detr_fields,     & ! frac of zoo losses into large detrital pool (non-dim)
       DIC_loc_fields,        & ! local copy of model DIC
       DOC_loc_fields,        & ! local copy of model DOC
-!      spCaCO3_loc_fields,    & ! local copy of model spCaCO3
+      O2_loc_fields,         & ! local copy of model O2 
+      NO3_loc_fields,        & ! local copy of model NO3
       zooC_loc_fields,       & ! local copy of model zooC
-!      DOM_remin_fields,      & ! fraction of DOM remineralized at current TEMP
       DECAY_CaCO3_fields,    & ! scaling factor for dissolution of CaCO3
       DECAY_Hard_fields,     & ! scaling factor for dissolution of Hard Ballast
+      decay_POC_E_fields,    & ! scaling factor for dissolution of excess POC
       zoo_loss_fields,       & ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
       zoo_loss_doc_fields,   & ! zoo_loss routed to doc (mmol C/m^3/sec)
       zoo_loss_dic_fields,   & ! zoo_loss routed to dic (mmol C/m^3/sec)
-      POC_PROD_avail_fields, & ! POC production available for excess POC flux
-      PCphoto_fields           ! C-specific rate of photosynth. (1/sec)
+      poc_diss_fields,       & ! diss. length used (cm)
+      POC_PROD_avail_fields    ! POC production available for excess POC flux
    
     real (r8), dimension(nx_block,ny_block,autotroph_cnt,max_blocks_clinic), target, public :: &
       CaCO3_PROD_fields,        & ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)
@@ -64,7 +65,8 @@ module ecosys_fields
       auto_loss_doc_fields,     & ! auto_loss routed to doc (mmol C/m^3/sec)
       auto_loss_dic_fields,     & ! auto_loss routed to dic (mmol C/m^3/sec)
       auto_agg_fields,          & ! autotroph aggregation (mmol C/m^3/sec)
-      photoC_fields              ! C-fixation (mmol C/m^3/sec)
- 
+      photoC_fields,            & ! C-fixation (mmol C/m^3/sec)
+      PCphoto_fields              ! C-specific rate of photosynth. (1/sec)
+
  
  end module ecosys_fields

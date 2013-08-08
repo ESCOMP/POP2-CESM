@@ -1163,6 +1163,16 @@ if ($OCN_TRACER_MODULES =~ /moby/) {
 } else {
     add_default($nl, 'moby_on', 'val'=>".false.");
 }
+if ($OCN_TRACER_MODULES =~ /abio_dic_dic14/) {
+    add_default($nl, 'abio_dic_dic14_on', 'val'=>".true.");
+} else {
+    add_default($nl, 'abio_dic_dic14_on', 'val'=>".false.");
+}
+if ($OCN_TRACER_MODULES =~ /ciso/) {
+    add_default($nl, 'ciso_on', 'val'=>".true.");
+} else {
+    add_default($nl, 'ciso_on', 'val'=>".false.");
+}
 
 
 ##########################################
@@ -1222,7 +1232,141 @@ if ($OCN_TRACER_MODULES =~ /cfc/) {
     add_default($nl, 'init_cfc_init_file', 'noprepend'=>1);
 }
 
+##########################################
+# namelist group: abio_dic_dic14_nml               #
+##########################################
 
+if ($OCN_TRACER_MODULES =~ /abio_dic_dic14/) {
+
+    my $abio_locmip_k1_k2_bug_fix;
+    if ($OCN_CO2_FLUX_OCMIP_BUG_FIX eq "TRUE") {
+      $abio_locmip_k1_k2_bug_fix = ".true.";
+    } else {
+      $abio_locmip_k1_k2_bug_fix = ".false.";
+    }
+	
+    add_default($nl, 'init_abio_dic_dic14_option', 'val'=>"ccsm_${RUN_TYPE}");
+	
+    if ($RUN_TYPE eq "startup") {
+     add_default($nl, 'init_abio_dic_dic14_init_file');
+    } else {
+     add_default($nl, 'init_abio_dic_dic14_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+    }
+  
+    add_default($nl, 'init_abio_dic_dic14_init_file_fmt');
+    add_default($nl, 'abio_tracer_init_ext(1)%mod_varname');
+    add_default($nl, 'abio_tracer_init_ext(1)%file_varname');
+    add_default($nl, 'abio_tracer_init_ext(1)%scale_factor');
+    add_default($nl, 'abio_tracer_init_ext(2)%mod_varname');
+    add_default($nl, 'abio_tracer_init_ext(2)%file_varname');
+    add_default($nl, 'abio_tracer_init_ext(2)%scale_factor');
+    add_default($nl, 'abio_surf_avg_dic_const');
+    add_default($nl, 'abio_surf_avg_dic14_const');
+    add_default($nl, 'abio_use_nml_surf_vals', 'runtype'=>"$RUN_TYPE");
+    add_default($nl, 'abio_locmip_k1_k2_bug_fix', 'val'=>"$abio_locmip_k1_k2_bug_fix");
+    add_default($nl, 'abio_comp_surf_avg_freq_opt');
+    add_default($nl, 'abio_comp_surf_avg_freq');
+    add_default($nl, 'abio_atm_d14c_filename(1)');
+    add_default($nl, 'abio_atm_d14c_filename(2)');
+    add_default($nl, 'abio_atm_d14c_filename(3)');
+    add_default($nl, 'abio_atm_co2_filename');
+    add_default($nl, 'abio_atm_co2_d14c_opt');
+    add_default($nl, 'abio_atm_co2_const');
+    add_default($nl, 'abio_atm_d14c_const');
+ }
+
+##########################################
+# namelist group: ecosys_ciso_nml        #
+##########################################
+
+if ($OCN_TRACER_MODULES =~ /ciso/) {
+
+	my $temp;
+
+    if (($OCN_TRANSIENT ne "unset") && ($OCN_TRANSIENT ne "1850-2000")) {
+      print " OCN_TRANSIENT=$OCN_TRANSIENT not supported by ciso module \n";
+      die;
+    }
+
+  
+    my $ciso_locmip_k1_k2_bug_fix;
+    if ($OCN_CO2_FLUX_OCMIP_BUG_FIX eq "TRUE") {
+      $ciso_locmip_k1_k2_bug_fix = ".true.";
+    } else {
+      $ciso_locmip_k1_k2_bug_fix = ".false.";
+    }
+
+    add_default($nl, 'ciso_init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
+    if ($RUN_TYPE eq "startup") {
+      add_default($nl, 'ciso_init_ecosys_init_file');
+    } else {
+      add_default($nl, 'ciso_init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+    }
+    add_default($nl, 'ciso_init_ecosys_init_file_fmt');
+    add_default($nl, 'ciso_tracer_init_ext(1)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(1)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(1)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(2)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(2)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(2)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(3)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(3)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(3)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(4)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(4)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(4)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(5)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(5)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(5)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(6)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(6)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(6)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(7)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(7)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(7)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(8)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(8)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(8)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(9)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(9)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(9)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(10)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(10)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(10)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(11)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(11)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(11)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(12)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(12)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(12)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(13)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(13)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(13)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(14)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(14)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(14)%scale_factor');
+    add_default($nl, 'ciso_locmip_k1_k2_bug_fix', 'val'=>"$ciso_locmip_k1_k2_bug_fix");
+    add_default($nl, 'ciso_atm_d13c_opt', 'val'=>"const");
+    add_default($nl, 'ciso_atm_d13c_const');
+    add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
+    add_default($nl, 'ciso_atm_d14c_const');
+    add_default($nl, 'ciso_tadvect_ctype');
+    add_default($nl, 'ciso_lmarginal_seas');
+    add_default($nl, 'ciso_lsource_sink');
+    add_default($nl, 'ciso_comp_surf_avg_freq_opt');
+    add_default($nl, 'ciso_comp_surf_avg_freq');
+    add_default($nl, 'ciso_use_nml_surf_vals', 'runtype'=>"$RUN_TYPE");
+    add_default($nl, 'ciso_surf_avg_di13c_const');
+    add_default($nl, 'ciso_surf_avg_di14c_const');
+    add_default($nl, 'ciso_atm_d13c_filename');
+    add_default($nl, 'ciso_atm_d14c_filename(1)');
+    add_default($nl, 'ciso_atm_d14c_filename(2)');
+    add_default($nl, 'ciso_atm_d14c_filename(3)');
+    add_default($nl, 'ciso_fract_factors');
+    add_default($nl, 'ciso_no_frac');
+    add_default($nl, 'ciso_lecovars_full_depth_tavg');
+}
+ 
 ##########################################
 # namelist group: ecosys_nml             #
 ##########################################
@@ -1771,6 +1915,12 @@ if ($OCN_TRACER_MODULES =~ /ecosys/) {
 if ($OCN_TRACER_MODULES =~ /moby/) {
     push @groups, qw(moby_nml moby_parms_nml );
 }
+if ($OCN_TRACER_MODULES =~ /abio_dic_dic14/) {
+    push @groups, qw(abio_dic_dic14_nml);
+}
+if ($OCN_TRACER_MODULES =~ /ciso/) {
+    push @groups, qw(ecosys_ciso_nml);
+}
 
 # Check for variables in the "derived" group, add them to appropriate group
 for my $var ($nl->get_variable_names('derived')) {
@@ -1980,6 +2130,17 @@ sub check_input_files {
           ($pathname eq 'same_as_TS')) {
         $is_a_file = 0;
       }
+       # init_abio_dic_dic14_init_file could be 'same_as_TS'
+      if (($var eq 'init_abio_dic_dic14_init_file') and 
+          ($pathname eq 'same_as_TS')) {
+        $is_a_file = 0;
+      }
+      # ciso_init_ecosys_init_file could be 'same_as_TS'
+      if (($var eq 'ciso_init_ecosys_init_file') and 
+          ($pathname eq 'same_as_TS')) {
+        $is_a_file = 0;
+      }
+
     }
 
     # If it is, check whether it exists locally and print status

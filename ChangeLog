@@ -3,6 +3,32 @@ Tag Creator: ajahn
 Developers:  ajahn
 Tag Date:    20 June 2013
 Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20130808_cesm_pop_2_1_20130521/
+Tag Summary: Added Carbon isotope code (biotic 13C and 14C) and abiotic 14C
+code to the cesm1.2. Here it is assumed that ecosys_mod carries the total
+carbon (12C+13C+14C). The ciso code accounts for the new sedimentary burial of
+carbon (and hence 13C and 14C), but does not yet account for the river input of
+carbon isotopes. 
+A                0   source/abio_dic_dic14_mod.F90
+M            49985   source/passive_tracers.F90
+M            49985   source/ecosys_mod.F90
+M            49985   source/ecosys_parms.F90
+M            49985   source/ecosys_driver.F90
+A                0   source/ecosys_ciso_mod.F90
+M            49985   source/ecosys_fields.F90
+M            49985   bld/user_nl_pop2
+M            49985   bld/build-namelist
+M            49985   bld/pop2.buildexe.csh
+M            49985   bld/namelist_files/namelist_defaults_pop2.xml
+M            49985   bld/namelist_files/namelist_definition_pop2.xml
+A                0   input_templates/ocn.ciso.tavg.csh
+A                0   input_templates/ocn.abio_dic_dic14.tavg.csh
+Status against revision:  49985
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
+Tag Date:    20 June 2013
+Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20130620a_cesm_pop_2_1_20130521/ 
 Tag Summary: Added ecosys_driver and ecosys_fields to pop2 and modified
 passive_tracers accordingly. Additional tracers that make use of the ecosystem

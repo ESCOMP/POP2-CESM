@@ -62,7 +62,8 @@ MODULE ecosys_parms
      REAL(KIND=r8) :: &
         Chl_ind, C_ind, Fe_ind,             & ! tracer indices for Chl, C, Fe content
         Si_ind, CaCO3_ind,                  & ! tracer indices for Si, CaCO3 content
-!        C13_ind, C14_ind,                   & ! tracer indices for 13C, 14C
+        C13_ind, C14_ind,                   & ! tracer indices for 13C, 14C
+        Ca13CO3_ind, Ca14CO3_ind,           & ! tracer indices for 13CaCO3, 14CaCO3
         kFe, kPO4, kDOP, kNO3, kNH4, kSiO3, & ! nutrient uptake half-sat constants
         Qp,                                 & ! P/C ratio
         gQfe_0, gQfe_min,                   & ! initial and minimum fe/C ratio

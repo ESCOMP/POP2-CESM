@@ -87,14 +87,14 @@
        moby_write_restart,         &
        POP_mobySendTime
 
-!   use abio_dic_dic14_mod, only:      &
-!       abio_dic_dic14_tracer_cnt,     &
-!       abio_dic_dic14_init,           &
-!       abio_dic_dic14_tracer_ref_val, &
-!       abio_dic_dic14_set_sflux,      &
-!       abio_dic_dic14_tavg_forcing,   &
-!       abio_dic_dic14_set_interior,   &
-!       abio_dic_dic14_write_restart
+   use abio_dic_dic14_mod, only:      &
+       abio_dic_dic14_tracer_cnt,     &
+       abio_dic_dic14_init,           &
+       abio_dic_dic14_tracer_ref_val, &
+       abio_dic_dic14_set_sflux,      &
+       abio_dic_dic14_tavg_forcing,   &
+       abio_dic_dic14_set_interior,   &
+       abio_dic_dic14_write_restart
 
    implicit none
    private
@@ -116,7 +116,7 @@
       passive_tracers_send_time,              &
       tracer_ref_val,                         &
       tadvect_ctype_passive_tracers,          &
-      ecosys_on, Ciso_on, moby_on
+      ecosys_on, ciso_on, moby_on
 
 !EOP
 !BOC
@@ -161,11 +161,11 @@
 
    logical (kind=log_kind) ::  &
       ecosys_on, cfc_on, wiso_on, iage_on, moby_on, &
-      abio_dic_dic14_on, Ciso_on
+      abio_dic_dic14_on, ciso_on
 
    namelist /passive_tracers_on_nml/  &
       ecosys_on, cfc_on, wiso_on, iage_on, moby_on, &
-      abio_dic_dic14_on, Ciso_on
+      abio_dic_dic14_on, ciso_on
 
 
 !-----------------------------------------------------------------------
@@ -249,7 +249,7 @@
    call register_string('init_passive_tracers')
 
    ecosys_on         = .false.
-   Ciso_on           = .false.
+   ciso_on           = .false.
    cfc_on            = .false.
    iage_on           = .false.
    wiso_on           = .false.
@@ -288,7 +288,7 @@
 
  
    call broadcast_scalar(ecosys_on,         master_task)
-   call broadcast_scalar(Ciso_on,           master_task)
+   call broadcast_scalar(ciso_on,           master_task)
    call broadcast_scalar(cfc_on,            master_task)
    call broadcast_scalar(wiso_on,           master_task)
    call broadcast_scalar(iage_on,           master_task)
@@ -296,11 +296,11 @@
    call broadcast_scalar(abio_dic_dic14_on, master_task)
 
 !-----------------------------------------------------------------------
-!  check if ecosys_on = true if Ciso_on = true, otherwise abort
+!  check if ecosys_on = true if ciso_on = true, otherwise abort
 !-----------------------------------------------------------------------
 
-   if (Ciso_on .and. .not. ecosys_on) then
-      call exit_POP(sigAbort,'ecosys_Ciso (Ciso_on) module requires the ecosys module (ecosys_on)')
+   if (ciso_on .and. .not. ecosys_on) then
+      call exit_POP(sigAbort,'ecosys_ciso (ciso_on) module requires the ecosys module (ecosys_on)')
    end if
 
 !-----------------------------------------------------------------------
@@ -331,7 +331,7 @@
 !  count in all ecosys modules --> done in ecosys_driver
 !-----------------------------------------------------------------------
    if (ecosys_on) then
-      call ecosys_driver_tracer_cnt_init(ecosys_on,Ciso_on,ecosys_driver_tracer_cnt)
+      call ecosys_driver_tracer_cnt_init(ecosys_on,ciso_on,ecosys_driver_tracer_cnt)
    end if
    
    
@@ -367,8 +367,8 @@
    end if
 
    if (abio_dic_dic14_on) then
-!      call set_tracer_indices('ABIO', abio_dic_dic14_tracer_cnt, cumulative_nt,  &
-!                              abio_dic_dic14_ind_begin, abio_dic_dic14_ind_end)
+      call set_tracer_indices('ABIO', abio_dic_dic14_tracer_cnt, cumulative_nt,  &
+                              abio_dic_dic14_ind_begin, abio_dic_dic14_ind_end)
    end if
 
    if (cumulative_nt /= nt) then
@@ -395,7 +395,7 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      call ecosys_driver_init(ecosys_on,Ciso_on,init_ts_file_fmt, read_restart_filename, &
+      call ecosys_driver_init(ecosys_on,ciso_on,init_ts_file_fmt, read_restart_filename, &
                        tracer_d(ecosys_driver_ind_begin:ecosys_driver_ind_end), &
                        TRACER(:,:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,:,:), &
                        tadvect_ctype_passive_tracers(ecosys_driver_ind_begin:ecosys_driver_ind_end), &
@@ -487,16 +487,16 @@
 !-----------------------------------------------------------------------
 
    if (abio_dic_dic14_on) then
-!      call abio_dic_dic14_init(init_ts_file_fmt, read_restart_filename, &
-!                    tracer_d(abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end), &
-!                    TRACER(:,:,:,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end,:,:), &
-!                    errorCode)
+      call abio_dic_dic14_init(init_ts_file_fmt, read_restart_filename, &
+                    tracer_d(abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end), &
+                    TRACER(:,:,:,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end,:,:), &
+                    errorCode)
 
-!      if (errorCode /= POP_Success) then
-!         call POP_ErrorSet(errorCode, &
-!            'init_passive_tracers: error in abio_dic_dic14_init')
-!         return
-!      endif
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_passive_tracers: error in abio_dic_dic14_init')
+         return
+      endif
 
    end if
 
@@ -742,7 +742,7 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      call ecosys_driver_set_interior(k,ecosys_on,Ciso_on,         &
+      call ecosys_driver_set_interior(k,ecosys_on,ciso_on,         &
          TRACER(:,:,k,1,oldtime,bid), TRACER(:,:,k,1,curtime,bid), &
          TRACER(:,:,k,2,oldtime,bid), TRACER(:,:,k,2,curtime,bid), &
          TRACER(:,:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,oldtime,bid),&
@@ -782,11 +782,11 @@
 !-----------------------------------------------------------------------
 
    if (abio_dic_dic14_on) then
-!      call abio_dic_dic14_set_interior(k,                                  &
-!         TRACER(:,:,:,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end,oldtime,bid),&
-!         TRACER(:,:,:,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end,curtime,bid),&
-!         TRACER_SOURCE(:,:,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end),       &
-!         this_block)
+      call abio_dic_dic14_set_interior(k,                                  &
+         TRACER(:,:,:,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end,oldtime,bid),&
+         TRACER(:,:,:,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end,curtime,bid),&
+         TRACER_SOURCE(:,:,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end),       &
+         this_block)
     end if
 
 !-----------------------------------------------------------------------
@@ -966,7 +966,7 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      call ecosys_driver_set_sflux(ecosys_on,Ciso_on,    &
+      call ecosys_driver_set_sflux(ecosys_on,ciso_on,    &
          SHF_QSW_RAW, SHF_QSW,                                     &
          U10_SQR, ICE_FRAC, PRESS,                                 &
          SST_FILT, SSS_FILT,                                       &
@@ -1020,11 +1020,11 @@
 !-----------------------------------------------------------------------
 
    if (abio_dic_dic14_on) then
-!      call abio_dic_dic14_set_sflux(U10_SQR, ICE_FRAC, PRESS,                 &
-!         SST_FILT, SSS_FILT,                                       &
-!         TRACER(:,:,1,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end,oldtime,:),        &
-!         TRACER(:,:,1,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end,curtime,:),        &
-!         STF(:,:,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end,:))
+      call abio_dic_dic14_set_sflux(U10_SQR, ICE_FRAC, PRESS,                 &
+         SST_FILT, SSS_FILT,                                       &
+         TRACER(:,:,1,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end,oldtime,:),        &
+         TRACER(:,:,1,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end,curtime,:),        &
+         STF(:,:,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end,:))
    end if
 
 
@@ -1084,7 +1084,7 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      call ecosys_driver_write_restart(ecosys_on,Ciso_on,restart_file, action)
+      call ecosys_driver_write_restart(ecosys_on,ciso_on,restart_file, action)
    end if
 
 !-----------------------------------------------------------------------
@@ -1115,7 +1115,7 @@
 !  ABIO DIC & DIC14  block
 !-----------------------------------------------------------------------
  if (abio_dic_dic14_on) then
-!      call abio_dic_dic14_write_restart(restart_file, action)
+      call abio_dic_dic14_write_restart(restart_file, action)
    end if
 
 !-----------------------------------------------------------------------
@@ -1389,7 +1389,7 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-     call ecosys_driver_tavg_forcing(ecosys_on,Ciso_on, &
+     call ecosys_driver_tavg_forcing(ecosys_on,ciso_on, &
          STF(:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,:))
    end if
 
@@ -1426,7 +1426,7 @@
 !-----------------------------------------------------------------------
 
    if (abio_dic_dic14_on) then
-!      call abio_dic_dic14_tavg_forcing
+      call abio_dic_dic14_tavg_forcing
    end if
 
 !-----------------------------------------------------------------------
@@ -1600,7 +1600,7 @@
    if (ecosys_on) then
       if (ind >= ecosys_driver_ind_begin .and. ind <= ecosys_driver_ind_end) then
          tracer_ref_val = &
-            ecosys_driver_tracer_ref_val(ecosys_on, Ciso_on,ind-ecosys_driver_ind_begin+1)
+            ecosys_driver_tracer_ref_val(ecosys_on, ciso_on,ind-ecosys_driver_ind_begin+1)
       endif
    endif
 
@@ -1637,9 +1637,9 @@
 !-----------------------------------------------------------------------
 
    if (abio_dic_dic14_on) then
-!      if (ind >= abio_dic_dic14_ind_begin .and. ind <= abio_dic_dic14_ind_end) then
-!         tracer_ref_val = abio_dic_dic14_tracer_ref_val(ind-abio_dic_dic14_ind_begin+1)
-!      endif
+      if (ind >= abio_dic_dic14_ind_begin .and. ind <= abio_dic_dic14_ind_end) then
+         tracer_ref_val = abio_dic_dic14_tracer_ref_val(ind-abio_dic_dic14_ind_begin+1)
+      endif
    endif
 
 

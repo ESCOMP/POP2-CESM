@@ -1,0 +1,5112 @@
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+ module ecosys_ciso_mod
+
+!BOP
+! !MODULE: ecosys_ciso_mod
+!
+! !DESCRIPTION:
+!
+!  Carbon 13 module
+!  13C code is based on code form G. Xavier, ETH, 2010, which
+!  was written for pop1 (CCSM3)
+!  This code needs the ecosystem model to run, as it uses several 
+!  variables computed there. Data is shared using ecosys_fields_mod.F90
+!  This module adds 7 carbon pools for 13C
+!  
+!  Alexandra Jahn, NCAR, Nov 2012
+!
+! !REVISION HISTORY:
+
+!  SVN:$Id:  $
+
+!-----------------------------------------------------------------------
+!  variables/subroutines/function used from other modules
+!  The following are used extensively in this ecosys, so are used at
+!  the module level. The use statements for variables that are only needed
+!  locally are located at the module subprogram level.
+!-----------------------------------------------------------------------
+
+! !USES:
+
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_CommMod
+   use POP_GridHorzMod
+   use POP_FieldMod
+   use POP_HaloMod
+
+   use kinds_mod
+   use constants
+   use communicate
+   use broadcast
+   use global_reductions
+   use blocks
+   use domain_size
+   use domain
+   use exit_mod
+   use prognostic
+   use grid
+   use io
+   use io_types
+   use io_tools
+   use tavg
+   use timers
+   use passive_tracer_tools
+   use named_field_mod
+   use forcing_tools
+   use time_management
+   use ecosys_parms
+   use registry
+   use named_field_mod
+   use ecosys_fields
+#ifdef CCSMCOUPLED
+   use POP_MCT_vars_mod
+   use shr_strdata_mod
+#endif
+
+! !INPUT PARAMETERS:
+!-----------------------------------------------------------------------
+!  include ecosystem parameters
+!  all variables from this modules have a parm_ prefix
+!-----------------------------------------------------------------------
+
+   implicit none
+   save
+   private
+
+
+!-----------------------------------------------------------------------
+!  public/private declarations
+!-----------------------------------------------------------------------
+
+   public :: &
+      ecosys_ciso_tracer_cnt,            &
+      ecosys_ciso_init,                  &
+      ecosys_ciso_tracer_ref_val,        &
+      ecosys_ciso_set_sflux,             &
+      ecosys_ciso_tavg_forcing,          &
+      ecosys_ciso_set_interior,          &
+      ecosys_ciso_write_restart
+
+!-----------------------------------------------------------------------
+!  module variables required by forcing_passive_tracer
+!-----------------------------------------------------------------------
+
+   integer (int_kind), parameter :: &
+      ecosys_ciso_tracer_cnt = 14
+
+!-----------------------------------------------------------------------
+!  flags controlling which portion of code are executed
+!  usefull for debugging
+!-----------------------------------------------------------------------
+
+  logical (log_kind) :: &
+     ciso_lsource_sink, &
+     ciso_locmip_k1_k2_bug_fix
+     
+  logical (log_kind), dimension(:,:,:), allocatable :: &
+     LAND_MASK
+     
+!-----------------------------------------------------------------------
+!  non-autotroph relative tracer indices
+!  autotroph relative tracer indices are in autotroph derived type and 
+!  are determined at run time
+!-----------------------------------------------------------------------
+
+   integer (int_kind), parameter :: &
+      di13c_ind          =  1,  & ! dissolved inorganic carbon 13
+      do13c_ind          =  2,  & ! dissolved organic carbon 13
+      zoo13C_ind         =  3,  & ! zooplankton carbon 13
+      di14c_ind          =  4,  & ! dissolved inorganic carbon 14
+      do14c_ind          =  5,  & ! dissolved organic carbon 14
+      zoo14C_ind         =  6     ! zooplankton carbon 14
+
+
+ !  integer (int_kind), parameter :: &
+ !     di13c_ind          =   1,  & ! dissolved inorganic carbon 13
+ !     do13c_ind          =   2,  & ! dissolved organic carbon 13
+ !     zoo13C_ind         =   3,  & ! zooplankton carbon 13
+ !     di14c_ind          =   4,  & ! dissolved inorganic carbon 14
+ !     do14c_ind          =   5,  & ! dissolved organic carbon 14
+ !     zoo14C_ind         =   6,  & ! zooplankton carbon 14
+ !     sp13C_ind          =   7,  & ! small phytoplankton carbon 13
+ !     sp14C_ind          =   8,  & ! small phytoplankton carbon 14
+ !     spCa13CO3_ind      =   9,  & ! small phytoplankton calcium carbonate 13 
+ !     spCa14CO3_ind      =  10,  & ! small phytoplankton calcium carbonate 14 
+ !     diat13C_ind        =  11,  & ! diatom carbon 13
+ !     diat14C_ind        =  12,  & ! diatom carbon 14
+ !     diaz13C_ind        =  13,  & ! diazotroph carbon 13
+ !     diaz14C_ind        =  14,  & ! diazotroph carbon 14
+
+
+!-----------------------------------------------------------------------
+!  derived type & parameter for tracer index lookup
+!-----------------------------------------------------------------------
+
+   type(ind_name_pair), dimension(ecosys_ciso_tracer_cnt) :: &
+      ciso_ind_name_table
+
+!-----------------------------------------------------------------------
+!  define tavg id for 2d fields related to surface fluxes
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      tavg_CISO_DI13C_GAS_FLUX,    & ! tavg id for di13c flux
+      tavg_CISO_DI13C_AS_GAS_FLUX, & ! tavg id for air-sea di13c flux
+      tavg_CISO_DI13C_SA_GAS_FLUX, & ! tavg id for sea-air di13c flux
+      tavg_CISO_DIC_GAS_FLUX,      & ! tavg id for dic flux
+      tavg_CISO_DIC_AS_GAS_FLUX,   & ! tavg id for air-sea dic flux
+      tavg_CISO_DIC_SA_GAS_FLUX,   & ! tavg id for sea-air dic flux
+      tavg_CISO_d13C_GAS_FLUX,     & ! tavg if for surface ocean delta 13C 
+      tavg_CISO_R13C_DIC_surf,     & ! tavg id for 13C/12C ratio in total DIC   
+      tavg_CISO_R13C_atm,          & ! tavg id for atmospheric ratio of 13C/12C   
+      tavg_CISO_D13C_atm,          & ! tavg id for atmospheric delta13C in permil
+      tavg_CISO_DI14C_GAS_FLUX,    & ! tavg id for di14c flux
+      tavg_CISO_DI14C_AS_GAS_FLUX, & ! tavg id for air-sea di14c flux
+      tavg_CISO_DI14C_SA_GAS_FLUX, & ! tavg id for sea-air di14c flux
+      tavg_CISO_d14C_GAS_FLUX,     & ! tavg if for surface ocean delta 14C 
+      tavg_CISO_R14C_DIC_surf,     & ! tavg id for 14C/12C ratio in total DIC   
+      tavg_CISO_R14C_atm,          & ! tavg id for atmospheric ratio of 14C/12C   
+      tavg_CISO_D14C_atm             ! tavg id for atmospheric delta14C in permil
+
+! for debugging       
+  integer (int_kind) ::   &
+!       tavg_CISO_DEBUG, &
+!      tavg_CISO_DIC_SURF, &
+!      tavg_CISO_PV_SURF,  &
+!      tavg_CISO_DCO2STAR, &
+!      tavg_CISO_CO3_SURF, &
+!      tavg_CISO_FRAC_CO3_SURF, &
+      tavg_CISO_FRAC_CO3, &
+!      tavg_CISO_CO2STAR,  &
+      tavg_CISO_CaCO3_REMIN,  &
+      tavg_CISO_CaCO3_PROD,   &
+      tavg_CISO_CaCO3_FLUX_IN,&
+      tavg_CISO_POC_REMIN,    &
+      tavg_CISO_POC_PROD,     &
+      tavg_CISO_POC_FLUX_IN
+
+!-----------------------------------------------------------------------
+!  define tavg id for nonstandard 3d fields
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      tavg_CISO_PO13C_FLUX_IN,  &! tavg id for po13c flux into cell
+      tavg_CISO_PO13C_PROD,     &! tavg id for po13c production
+      tavg_CISO_PO13C_REMIN,    &! tavg id for po13c remineralization
+      tavg_CISO_Ca13CO3_FLUX_IN,&! tavg id for ca13co3 flux into cell
+      tavg_CISO_Ca13CO3_PROD,   &! tavg id for ca13co3 production
+      tavg_CISO_Ca13CO3_REMIN,  &! tavg id for ca13co3 remineralization
+      tavg_CISO_PO14C_FLUX_IN,  &! tavg id for po14c flux into cell
+      tavg_CISO_PO14C_PROD,     &! tavg id for po14c production
+      tavg_CISO_PO14C_REMIN,    &! tavg id for po14c remineralization
+      tavg_CISO_Ca14CO3_FLUX_IN,&! tavg id for ca14co3 flux into cell
+      tavg_CISO_Ca14CO3_PROD,   &! tavg id for ca14co3 production
+      tavg_CISO_Ca14CO3_REMIN    ! tavg id for ca14co3 remineralization
+!
+!-----------------------------------------------------------------------
+!  define tavg id for MORE nonstandard 3d fields
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      tavg_CISO_photo13C_TOT,           &! tavg id for total 13C fixation
+      tavg_CISO_photo13C_TOT_zint,      &! tavg id for total 13C fixation vertical integral
+      tavg_CISO_photo14C_TOT,           &! tavg id for total 14C fixation
+      tavg_CISO_photo14C_TOT_zint        ! tavg id for total 14C fixation vertical integral
+
+!-----------------------------------------------------------------------
+!  define tavg id for MORE nonstandard 3d fields 
+!-----------------------------------------------------------------------
+   integer (int_kind) :: &
+      tavg_CISO_eps_aq_g,               & 
+      tavg_CISO_eps_dic_g,              & 
+      tavg_CISO_eps_aq_g_surf,          &
+      tavg_CISO_eps_dic_g_surf
+  
+   integer (int_kind), dimension(autotroph_cnt) :: &
+      tavg_CISO_eps_autotroph,                 &
+      tavg_CISO_mui_to_co2star
+ 
+!-----------------------------------------------------------------------
+!  define tavg id for MORE nonstandard 3d fields
+!-----------------------------------------------------------------------
+
+   integer (int_kind), dimension(autotroph_cnt) :: &
+      tavg_CISO_Ca13CO3_form,       &! tavg id for Ca13CO3 formation
+      tavg_CISO_Ca14CO3_form,       &! tavg id for Ca14CO3 formation
+      tavg_CISO_Ca13CO3_form_zint,  &! tavg id for Ca13CO3 formation vertical integral 0-100 m
+      tavg_CISO_Ca14CO3_form_zint,  &! tavg id for Ca14CO3 formation vertical integral 0-100 m
+      tavg_CISO_photo13C,           &! tavg id for 13C fixation
+      tavg_CISO_photo13C_zint,      &! tavg id for 13C fixation vertical integral
+      tavg_CISO_photo14C,           &! tavg id for 14C fixation
+      tavg_CISO_photo14C_zint,      &! tavg id for 14C fixation vertical integral
+      tavg_CISO_d13C,               &! tavg if for d13C of autotroph carbon
+      tavg_CISO_d14C,               &! tavg if for d14C of autotroph carbon
+      tavg_CISO_autotrophCaCO3_d14C,&! tavg if for d14C of autotrophCaCO3
+      tavg_CISO_autotrophCaCO3_d13C  ! tavg if for d13C of autotrophCaCO3
+
+
+   integer (int_kind) :: &
+      tavg_CISO_DO13C_prod,         &! tavg id for do13c production
+      tavg_CISO_DO13C_remin,        &! tavg id for do13c remineralization
+      tavg_CISO_Jint_13Ctot,        &! tavg id for vertically integrated source sink term, 13Ctot
+      tavg_CISO_Jint_100m_13Ctot,   &! tavg id for vertically integrated source sink term, 0-100m, 13Ctot
+      tavg_CISO_DO14C_prod,         &! tavg id for do14c production
+      tavg_CISO_DO14C_remin,        &! tavg id for do14c remineralization
+      tavg_CISO_Jint_14Ctot,        &! tavg id for vertically integrated source sink term, 14Ctot
+      tavg_CISO_Jint_100m_14Ctot,   &! tavg id for vertically integrated source sink term, 0-100m, 14Ctot
+      tavg_CISO_zooC_d14C,          &! tavg if for d14C of zooC
+      tavg_CISO_DOC_d14C,           &! tavg if for d14C of DOC
+      tavg_CISO_DIC_d14C,           &! tavg if for d14C of DIC
+      tavg_CISO_zooC_d13C,          &! tavg if for d13C of zooC
+      tavg_CISO_DOC_d13C,           &! tavg if for d13C of DOC
+      tavg_CISO_DIC_d13C             ! tavg if for d13C of DIC
+
+integer (int_kind) :: &
+      tavg_calcToSed_13C,      &! tavg id for calcite flux sedimentary burial
+      tavg_pocToSed_13C,       &! tavg id for poc burial flux to sediments
+      tavg_calcToSed_14C,      &! tavg id for calcite flux sedimentary burial
+      tavg_pocToSed_14C         ! tavg id for poc burial flux to sediments
+   
+
+
+
+!debugging
+!   integer (int_kind), dimension(autotroph_cnt) :: &
+!      tavg_CISO_photoC,      &
+!      tavg_CISO_R13C_photoC, &
+!      tavg_CISO_r13CT_photoC
+
+
+!-----------------------------------------------------------------------
+!  define array for holding flux-related quantities that need to be time-averaged
+!  this is necessary since the forcing routines are called before tavg flags
+!-----------------------------------------------------------------------
+
+   real (r8), dimension(:,:,:,:), allocatable :: &
+      ECO_CISO_SFLUX_TAVG
+
+!-----------------------------------------------------------------------
+!  ciso_data_ind_d13c is the index for the D13C data for the 
+!  current timestep
+!  Note that ciso_data_ind_d13c is always less than ciso_atm_d13c_data_nbval.
+!  To enable OpenMP parallelism, duplicating data_ind for each block
+!-----------------------------------------------------------------------
+
+   integer (int_kind), dimension(:), allocatable :: &
+     ciso_data_ind_d13c, &      ! data index for D13C data
+     ciso_data_ind_d14c         ! data index for D14C data
+
+!-----------------------------------------------------------------------
+!  average surface tracer value related variables
+!  used as reference value for virtual flux computations
+!-----------------------------------------------------------------------
+
+   logical (log_kind), dimension(ecosys_ciso_tracer_cnt) :: &
+      ciso_vflux_flag                ! which tracers get virtual fluxes applied
+
+   integer (int_kind) :: &
+      ciso_comp_surf_avg_flag        ! time flag id for computing average
+                                ! surface tracer values
+
+   real (r8), dimension(ecosys_ciso_tracer_cnt) :: &
+      ciso_surf_avg                  ! average surface tracer values
+
+
+!-----------------------------------------------------------------------
+!  timers
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      ecosys_ciso_interior_timer,                   &
+      ecosys_ciso_sflux_timer
+
+!-----------------------------------------------------------------------
+!  forcing related variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) ::          &
+      ciso_atm_d13c_data_nbval,   &  ! number of values in the ciso_atm_d13c_filename
+      ciso_atm_d14c_data_nbval_max   ! maximum number of values in the three ciso_atm_d14c_filename's
+
+ 
+   real (r8), dimension(:) , allocatable :: &
+      ciso_atm_d13c_data,    &    !  atmospheric D13C values in datafile 
+      ciso_atm_d13c_data_yr       !  date of atmospheric D13C values in datafile	
+      
+   real (r8), dimension(:,:) , allocatable :: &
+      ciso_atm_d14c_data,    &    !  atmospheric D14C values in datafile (sh, eq, nh, in permil)
+      ciso_atm_d14c_data_yr       !  date of atmospheric D14C values in datafile	(sh, eq, nh)
+
+   real (r8) :: &
+      ciso_atm_d13c_const, &      !  atmospheric D13C constant [permil]
+      ciso_atm_d14c_const         !  atmospheric D14C constant [permil]
+
+   character(char_len) ::    &
+      ciso_atm_d13c_opt,     &    ! option for CO2 and D13C varying or constant forcing
+      ciso_atm_d13c_filename,&    ! filenames for varying atm D13C 
+      ciso_atm_d14c_opt           ! option for CO2 and D13C varying or constant forcing
+  
+   character (char_len), dimension(3) :: &
+      ciso_atm_d14c_filename      ! filenames for varying atm D14C (one each for NH, SH, EQ) 
+   
+              
+    
+!-----------------------------------------------------------------------
+!  fractionation related variable
+!-----------------------------------------------------------------------
+   character(char_len) ::    &
+      ciso_fract_factors          ! option for which biological fractionation calculation to use
+    
+   logical (log_kind) ::    &
+      ciso_no_frac          ! option for which biological fractionation calculation to use
+     
+!-----------------------------------------------------------------------
+!  scalar constants for 14C decay calculation
+!-----------------------------------------------------------------------
+
+   real (r8), parameter :: c14_halflife_years = 5730.0_r8 !C14 half file
+   real (r8) :: c14_lambda_inv_sec           ! Decay variable in seconds
+
+!---------------------------------------------------------------------
+!     13C parameters, maybe move to ecosys_param?
+!---------------------------------------------------------------------
+
+
+      real(r8), parameter :: &
+       R13C_std = 1123.72e-5_r8, &   ! 13C/12C PDB standard ratio (Craig, 1957)
+       R14C_std = 11.76e-13_r8       ! 14C/12C NOSAMS standard ratio 
+       
+!debugging, DIC=DIC14=DI13C
+!      real(r8), parameter :: &
+!       R13C_std = c1, &   ! 13C/12C PDB standard ratio (Craig, 1957)
+!       R14C_std = c1       ! 14C/12C NOSAMS standard ratio   
+
+
+!*****************************************************************************
+
+contains
+
+!*****************************************************************************
+!BOP
+! !IROUTINE: ecosys_ciso_init
+! !INTERFACE:
+
+ subroutine ecosys_ciso_init(init_ts_file_fmt, read_restart_filename, &
+                        tracer_d_module, TRACER_MODULE, tadvect_ctype, &
+                        errorCode)
+
+! !DESCRIPTION:
+!  Initialize ecosys_ciso tracer module. This involves setting metadata, reading
+!  the module namelist, setting initial conditions, setting up forcing,
+!  and defining additional tavg variables.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent(in) :: &
+      init_ts_file_fmt,    & ! format (bin or nc) for input file
+      read_restart_filename  ! file name for restart file
+
+! !INPUT/OUTPUT PARAMETERS:
+
+  !type (tracer_field), dimension(ecosys_ciso_tracer_cnt), intent(inout) :: &
+   type (tracer_field), dimension(:), intent(inout) :: &
+      tracer_d_module   ! descriptors for each tracer
+
+  !real (r8), dimension(nx_block,ny_block,km,ecosys_ciso_tracer_cnt,3,max_blocks_clinic), &
+   real (r8), dimension(:,:,:,:,:,:), &
+      intent(inout) :: TRACER_MODULE
+
+! !OUTPUT PARAMETERS:
+
+  !character (char_len), dimension(ecosys_ciso_tracer_cnt), intent(out) :: &
+   character (char_len), dimension(:), intent(out) :: &
+      tadvect_ctype     ! advection method for ecosys tracers
+
+   integer (POP_i4), intent(out) :: &
+      errorCode
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   character(*), parameter :: subname = 'ciso_mod:ecosys_ciso_init'
+
+   character(char_len) :: &
+      ciso_init_ecosys_option,        & ! option for initialization of bgc
+      ciso_init_ecosys_init_file,     & ! filename for option 'file'
+      ciso_init_ecosys_init_file_fmt, & ! file format for option 'file'
+      ciso_comp_surf_avg_freq_opt,    &
+      ciso_tadvect_ctype              ! advection method for ecosys tracers
+
+   type(tracer_read), dimension(ecosys_ciso_tracer_cnt) :: &
+      ciso_tracer_init_ext              ! namelist variable for initializing tracers
+
+ 
+   logical (log_kind) :: &
+      default,                   & ! arg to init_time_flag
+      ciso_lmarginal_seas          ! Is ecosystem active in marginal seas ?
+
+   integer (int_kind) :: &
+      non_autotroph_ecosys_ciso_tracer_cnt, & ! number of non-autotroph ecosystem tracers
+      auto_ind,                        & ! autotroph functional group index
+      n,                               & ! index for looping over tracers
+      k,                               & ! index for looping over depth levels
+      l,                               & ! index for looping over time levels
+      ind,                             & ! tracer index for tracer name from namelist
+      iblock,                          & ! index for looping over blocks
+      nml_error                          ! namelist i/o error flag
+
+   integer (int_kind) :: &
+      freq_opt, freq,              & ! args for init_time_flag
+      ciso_comp_surf_avg_freq_iopt,& ! choice for freq of comp_surf_avg
+      ciso_comp_surf_avg_freq        ! choice for freq of comp_surf_avg
+
+   logical (log_kind) :: &
+      ciso_use_nml_surf_vals         ! do namelist surf values override values from restart file
+
+   logical (log_kind) :: &
+      ciso_lecovars_full_depth_tavg  ! should ecosystem vars be written full depth
+
+!-----------------------------------------------------------------------
+!  values to be used when comp_surf_avg_freq_opt==never
+!-----------------------------------------------------------------------
+
+   real (r8) :: &
+      ciso_surf_avg_di13c_const, &
+      ciso_surf_avg_di14c_const
+!-----------------------------------------------------------------------
+! ecosys_ciso_nml namelist
+!-----------------------------------------------------------------------
+      
+   namelist /ecosys_ciso_nml/ &
+      ciso_init_ecosys_option, ciso_init_ecosys_init_file, &
+      ciso_init_ecosys_init_file_fmt, ciso_tracer_init_ext, &
+      ciso_comp_surf_avg_freq_opt, ciso_comp_surf_avg_freq,  &
+      ciso_use_nml_surf_vals, ciso_surf_avg_di13c_const, &
+      ciso_lmarginal_seas, ciso_surf_avg_di14c_const, &
+      ciso_lsource_sink, ciso_locmip_k1_k2_bug_fix, &
+      ciso_tadvect_ctype, ciso_lecovars_full_depth_tavg, &
+      ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename, &
+      ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename, &
+      ciso_fract_factors, ciso_no_frac
+ 
+
+   character (char_len) :: &
+      ecosys_ciso_restart_filename  ! modified file name for restart file
+
+   real (r8), dimension (nx_block,ny_block) :: WORK
+
+!-----------------------------------------------------------------------
+!  initialize name table 
+!-----------------------------------------------------------------------
+
+   errorCode = POP_Success
+
+!-----------------------------------------------------------------------
+!  initialize non-autotroph tracer_d values
+!  accumulate non_autotroph_ecosys_ciso_tracer_cnt
+!-----------------------------------------------------------------------
+   non_autotroph_ecosys_ciso_tracer_cnt = 0
+   
+   
+   tracer_d_module(di13c_ind)%short_name='DI13C'
+   tracer_d_module(di13c_ind)%long_name='Dissolved Inorganic Carbon-13'
+   non_autotroph_ecosys_ciso_tracer_cnt = non_autotroph_ecosys_ciso_tracer_cnt + 1
+   
+   tracer_d_module(do13c_ind)%short_name='DO13C'
+   tracer_d_module(do13c_ind)%long_name='Dissolved Organic Carbon-13'
+   non_autotroph_ecosys_ciso_tracer_cnt = non_autotroph_ecosys_ciso_tracer_cnt + 1
+   
+   tracer_d_module(zoo13C_ind)%short_name='zoo13C'
+   tracer_d_module(zoo13C_ind)%long_name='Zooplankton Carbon-13'
+   non_autotroph_ecosys_ciso_tracer_cnt = non_autotroph_ecosys_ciso_tracer_cnt + 1
+
+   tracer_d_module(di14c_ind)%short_name='DI14C'
+   tracer_d_module(di14c_ind)%long_name='Dissolved Inorganic Carbon-14'
+   non_autotroph_ecosys_ciso_tracer_cnt = non_autotroph_ecosys_ciso_tracer_cnt + 1
+
+   tracer_d_module(do14c_ind)%short_name='DO14C'
+   tracer_d_module(do14c_ind)%long_name='Dissolved Organic Carbon-14'
+   non_autotroph_ecosys_ciso_tracer_cnt = non_autotroph_ecosys_ciso_tracer_cnt + 1
+
+   tracer_d_module(zoo14C_ind)%short_name='zoo14C'
+   tracer_d_module(zoo14C_ind)%long_name='Zooplankton Carbon-14'
+   non_autotroph_ecosys_ciso_tracer_cnt = non_autotroph_ecosys_ciso_tracer_cnt + 1
+
+   do n = 1, non_autotroph_ecosys_ciso_tracer_cnt
+         tracer_d_module(n)%units      = 'mmol/m^3'
+         tracer_d_module(n)%tend_units = 'mmol/m^3/s'
+         tracer_d_module(n)%flux_units = 'mmol/m^3 cm/s'
+   end do
+   
+!-----------------------------------------------------------------------
+!  confirm that ecosys_ciso_tracer_cnt is consistent with autotroph declarations
+!-----------------------------------------------------------------------
+
+   n = non_autotroph_ecosys_ciso_tracer_cnt
+   do auto_ind = 1, autotroph_cnt
+      n = n + 2 ! C13, C14 tracers
+      if (autotrophs(auto_ind)%imp_calcifier .or. &
+          autotrophs(auto_ind)%exp_calcifier) n = n + 2 ! Ca13CO3 & Ca14CO3 tracers
+   end do
+
+   if (ecosys_ciso_tracer_cnt /= n) then
+      call document(subname, 'actual ecosys_ciso_tracer_cnt', ecosys_ciso_tracer_cnt)
+      call document(subname, 'computed ecosys_ciso_tracer_cnt', n)
+      call exit_POP(sigAbort, 'inconsistency between actual ecosys_ciso_tracer_cnt and computed ecosys_ciso_tracer_cnt')
+   endif
+
+!-----------------------------------------------------------------------
+!  initialize autotroph tracer_d values and tracer indices
+!-----------------------------------------------------------------------
+
+   n = non_autotroph_ecosys_ciso_tracer_cnt + 1
+
+   do auto_ind = 1, autotroph_cnt
+      tracer_d_module(n)%short_name = trim(autotrophs(auto_ind)%sname) // '13C'
+      tracer_d_module(n)%long_name  = trim(autotrophs(auto_ind)%lname) // ' Carbon-13'
+      tracer_d_module(n)%units      = 'mmol/m^3'
+      tracer_d_module(n)%tend_units = 'mmol/m^3/s'
+      tracer_d_module(n)%flux_units = 'mmol/m^3 cm/s'
+      autotrophs(auto_ind)%C13_ind = n
+      n = n + 1
+
+
+      tracer_d_module(n)%short_name = trim(autotrophs(auto_ind)%sname) // '14C'
+      tracer_d_module(n)%long_name  = trim(autotrophs(auto_ind)%lname) // ' Carbon-14'
+      tracer_d_module(n)%units      = 'mmol/m^3'
+      tracer_d_module(n)%tend_units = 'mmol/m^3/s'
+      tracer_d_module(n)%flux_units = 'mmol/m^3 cm/s'
+      autotrophs(auto_ind)%C14_ind = n
+      n = n + 1
+
+    
+    
+      if (autotrophs(auto_ind)%imp_calcifier .or. &
+          autotrophs(auto_ind)%exp_calcifier) then
+         tracer_d_module(n)%short_name = trim(autotrophs(auto_ind)%sname) // 'Ca13CO3'
+         tracer_d_module(n)%long_name  = trim(autotrophs(auto_ind)%lname) // ' Ca13CO3'
+         tracer_d_module(n)%units      = 'mmol/m^3'
+         tracer_d_module(n)%tend_units = 'mmol/m^3/s'
+         tracer_d_module(n)%flux_units = 'mmol/m^3 cm/s'
+         autotrophs(auto_ind)%Ca13CO3_ind = n
+         n = n + 1
+         tracer_d_module(n)%short_name = trim(autotrophs(auto_ind)%sname) // 'Ca14CO3'
+         tracer_d_module(n)%long_name  = trim(autotrophs(auto_ind)%lname) // ' Ca14CO3'
+         tracer_d_module(n)%units      = 'mmol/m^3'
+         tracer_d_module(n)%tend_units = 'mmol/m^3/s'
+         tracer_d_module(n)%flux_units = 'mmol/m^3 cm/s'
+         autotrophs(auto_ind)%Ca14CO3_ind = n
+         n = n + 1
+      else
+         autotrophs(auto_ind)%Ca13CO3_ind = 0
+         autotrophs(auto_ind)%Ca14CO3_ind = 0
+      endif
+   end do
+
+   if (my_task == master_task) THEN
+      write (stdout,*) '----- autotroph tracer indices -----'
+      do auto_ind = 1, autotroph_cnt
+         write (stdout,*) 'C13_ind(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%C13_ind
+         write (stdout,*) 'C14_ind(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%C14_ind
+         write (stdout,*) 'Ca13CO3_ind(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Ca13CO3_ind
+         write (stdout,*) 'Ca14CO3_ind(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Ca14CO3_ind
+         write (stdout,*) 'autotroph_cnt =',autotroph_cnt
+      end do
+      write (stdout,*) '------------------------------------'
+   endif
+
+
+!-----------------------------------------------------------------------
+!  initialize ind_name_table
+!-----------------------------------------------------------------------
+
+   do n = 1, ecosys_ciso_tracer_cnt
+      ciso_ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
+!      if (my_task == master_task) THEN
+!      write (stdout,*) 'tracer_d_module(n)%short_name = ',tracer_d_module(n)%short_name
+!      write (stdout,*) 'ciso_ind_name_table(n) = ',ciso_ind_name_table(n)
+!      endif
+   end do
+   
+ 
+!-----------------------------------------------------------------------
+!  default namelist settings
+!-----------------------------------------------------------------------
+
+   ciso_init_ecosys_option = 'unknown'
+   ciso_init_ecosys_init_file = 'unknown'
+   ciso_init_ecosys_init_file_fmt = 'bin'
+!Scale factor is used to scale down the normal C pools by a factor of 100
+!For DI13C, it also includes the scale factor for DIC (1.025)
+   do n = 1,ecosys_ciso_tracer_cnt
+      ciso_tracer_init_ext(n)%mod_varname  = 'unknown'
+      ciso_tracer_init_ext(n)%filename     = 'unknown'
+      ciso_tracer_init_ext(n)%file_varname = 'unknown'
+      ciso_tracer_init_ext(n)%scale_factor = 1.0
+      ciso_tracer_init_ext(n)%file_fmt     = 'bin'
+   end do
+
+   ciso_lmarginal_seas        = .true.
+   ciso_lsource_sink          = .true.
+   ciso_locmip_k1_k2_bug_fix  = .true.
+
+   ciso_comp_surf_avg_freq_opt        = 'never'
+   ciso_comp_surf_avg_freq            = 1
+   ciso_use_nml_surf_vals             = .false.
+   ciso_surf_avg_di13c_const          = 1944.0_r8 !calculated from DI13C=(DIC_d13C +1)*R_std/DIC, simplified to DI13C=R-std/DIC 
+   !with DIC=surf_avg_dic_const=1944, R-std=1123.72e-5
+   ciso_surf_avg_di14c_const          = 1944.0_r8 !calculated from DI13C=(DIC_d14C +1)*R_std/DIC, simplified to DI13C=R-std/DIC 
+   !with DIC=surf_avg_dic_const=1944, R-std=1.176e-12
+   
+   ciso_atm_d13c_opt                 = 'const'
+   ciso_atm_d13c_const               = -6.379_r8   
+   ciso_atm_d13c_filename            = 'unknown'
+ 
+   ciso_atm_d14c_opt                 = 'const'
+   ciso_atm_d14c_const               = 0.0_r8   
+   ciso_atm_d14c_filename(1)         = 'unknown'
+   ciso_atm_d14c_filename(2)         = 'unknown'
+   ciso_atm_d14c_filename(3)         = 'unknown'
+    
+   ciso_fract_factors                = 'Rau'
+   ciso_no_frac                      = .false.
+   
+   ciso_tadvect_ctype = 'base_model'
+
+   ciso_lecovars_full_depth_tavg = .false.
+
+   if (my_task == master_task) then
+      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
+      if (nml_error /= 0) then
+         nml_error = -1
+      else
+         nml_error =  1
+      endif
+      do while (nml_error > 0)
+         read(nml_in, nml=ecosys_ciso_nml,iostat=nml_error)
+      end do
+      if (nml_error == 0) close(nml_in)
+   endif
+
+   call broadcast_scalar(nml_error, master_task)
+   if (nml_error /= 0) then
+      call document(subname, 'ecosys_ciso_nml not found')
+      call exit_POP(sigAbort, 'ERROR : stopping in '/&
+                           &/ subname)
+   endif
+
+   if (my_task == master_task) then
+      write(stdout,blank_fmt)
+      write(stdout,ndelim_fmt)
+      write(stdout,blank_fmt)
+      write(stdout,*) ' ecosys_ciso:'
+      write(stdout,blank_fmt)
+      write(stdout,*) ' ecosys_ciso_nml namelist settings:'
+      write(stdout,blank_fmt)
+      write(stdout,ecosys_ciso_nml)
+      write(stdout,blank_fmt)
+      write(stdout,delim_fmt)
+   endif
+
+!-----------------------------------------------------------------------
+!  broadcast all namelist variables
+!-----------------------------------------------------------------------
+
+   call broadcast_scalar(ciso_init_ecosys_option, master_task)
+   call broadcast_scalar(ciso_init_ecosys_init_file, master_task)
+   call broadcast_scalar(ciso_init_ecosys_init_file_fmt, master_task)
+   
+   call broadcast_scalar(ciso_atm_d13c_opt, master_task)
+   call broadcast_scalar(ciso_atm_d13c_const, master_task)
+   call broadcast_scalar(ciso_atm_d13c_filename, master_task)
+ 
+   call broadcast_scalar(ciso_atm_d14c_opt, master_task)
+   call broadcast_scalar(ciso_atm_d14c_const, master_task)
+   call broadcast_scalar(ciso_atm_d14c_filename(1), master_task)
+   call broadcast_scalar(ciso_atm_d14c_filename(2), master_task)
+   call broadcast_scalar(ciso_atm_d14c_filename(3), master_task)   
+
+   do n = 1,ecosys_ciso_tracer_cnt
+      call broadcast_scalar(ciso_tracer_init_ext(n)%mod_varname, master_task)
+      call broadcast_scalar(ciso_tracer_init_ext(n)%filename, master_task)
+      call broadcast_scalar(ciso_tracer_init_ext(n)%file_varname, master_task)
+      call broadcast_scalar(ciso_tracer_init_ext(n)%scale_factor, master_task)
+      call broadcast_scalar(ciso_tracer_init_ext(n)%file_fmt, master_task)
+   end do
+
+   call broadcast_scalar(ciso_comp_surf_avg_freq_opt, master_task)
+   call broadcast_scalar(ciso_comp_surf_avg_freq, master_task)
+   call broadcast_scalar(ciso_use_nml_surf_vals, master_task)
+   call broadcast_scalar(ciso_surf_avg_di13c_const, master_task)
+   call broadcast_scalar(ciso_surf_avg_di14c_const, master_task)
+
+
+   call broadcast_scalar(ciso_lmarginal_seas, master_task)
+   call broadcast_scalar(ciso_lsource_sink, master_task)
+   call broadcast_scalar(ciso_locmip_k1_k2_bug_fix, master_task)
+
+   call broadcast_scalar(ciso_tadvect_ctype, master_task)
+    tadvect_ctype = ciso_tadvect_ctype
+
+   call broadcast_scalar(ciso_lecovars_full_depth_tavg, master_task)
+
+   call broadcast_scalar(ciso_fract_factors, master_task)
+!-----------------------------------------------------------------------
+!  set variables immediately dependent on namelist variables
+!-----------------------------------------------------------------------
+
+   select case (ciso_comp_surf_avg_freq_opt)
+   case ('never')
+      ciso_comp_surf_avg_freq_iopt = freq_opt_never
+   case ('nyear')
+      ciso_comp_surf_avg_freq_iopt = freq_opt_nyear
+   case ('nmonth')
+      ciso_comp_surf_avg_freq_iopt = freq_opt_nmonth
+   case default
+      call document(subname, 'ciso_comp_surf_avg_freq_opt', ciso_comp_surf_avg_freq_opt)
+      call exit_POP(sigAbort, 'unknown ciso_comp_surf_avg_freq_opt')
+   end select
+
+   call init_time_flag('ciso_ecosys_comp_surf_avg', ciso_comp_surf_avg_flag, &
+     default=.false., freq_opt=ciso_comp_surf_avg_freq_iopt,  &
+     freq=ciso_comp_surf_avg_freq, owner='ciso_ecosys_init')
+
+
+!-----------------------------------------------------------------------
+!  namelist consistency checking
+!-----------------------------------------------------------------------
+
+   if (ciso_use_nml_surf_vals .and. ciso_comp_surf_avg_freq_iopt /= freq_opt_never) then
+      call document(subname, 'ciso_use_nml_surf_vals', ciso_use_nml_surf_vals)
+      call document(subname, 'ciso_comp_surf_avg_freq_opt', ciso_comp_surf_avg_freq_opt)
+      call exit_POP(sigAbort, 'ciso_use_nml_surf_vals can only be .true. if ' /&
+                           &/ ' ciso_comp_surf_avg_freq_opt is never')
+   endif
+
+!-----------------------------------------------------------------------
+!  initialize virtual flux flag array
+!-----------------------------------------------------------------------
+
+   ciso_vflux_flag = .false.
+   ciso_vflux_flag(di13c_ind) = .true.
+   ciso_vflux_flag(di14c_ind) = .true.
+   
+!  if (my_task == master_task) then
+!	    write(stdout,*)'ciso_vflux_flag  =  ', ciso_vflux_flag 
+!   endif
+!-----------------------------------------------------------------------
+!  allocate and initialize LAND_MASK
+!-----------------------------------------------------------------------
+
+   allocate( LAND_MASK(nx_block,ny_block,nblocks_clinic) )
+
+   if (ciso_lmarginal_seas) then
+      LAND_MASK = REGION_MASK /= c0
+   else
+      LAND_MASK = REGION_MASK > c0
+   endif
+
+!-----------------------------------------------------------------------
+!  initialize tracers
+!-----------------------------------------------------------------------
+!      if (my_task == master_task) THEN
+!      write (stdout,*) 'In initialize tracers:'
+!      write (stdout,*) 'tracer_d_module(n)%short_name = ',tracer_d_module(n)%short_name
+!      write (stdout,*) 'ciso_ind_name_table = ',ciso_ind_name_table
+!      write (stdout,*) 'ciso_tracer_init_ext = ',ciso_tracer_init_ext
+!      endif
+      
+   select case (ciso_init_ecosys_option)
+
+   case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
+
+      ecosys_ciso_restart_filename = char_blank
+
+      if (ciso_init_ecosys_init_file == 'same_as_TS') then
+         if (read_restart_filename == 'undefined') then
+            call document(subname, 'no restart file to read ciso vars from')
+            call exit_POP(sigAbort, 'stopping in ' /&
+                                 &/ subname)
+         endif
+         ecosys_ciso_restart_filename = read_restart_filename
+         ciso_init_ecosys_init_file_fmt = init_ts_file_fmt
+
+      else  ! do not read from TS restart file
+
+         ecosys_ciso_restart_filename = trim(ciso_init_ecosys_init_file)
+
+      endif
+
+      call rest_read_tracer_block(ciso_init_ecosys_init_file_fmt, &
+                                  ecosys_ciso_restart_filename,   &
+                                  tracer_d_module,           &
+                                  TRACER_MODULE)
+
+  
+      if (ciso_use_nml_surf_vals) then
+         ciso_surf_avg = c0
+         ciso_surf_avg(di13c_ind) = ciso_surf_avg_di13c_const
+         ciso_surf_avg(di14c_ind) = ciso_surf_avg_di14c_const
+      else
+         call extract_ciso_surf_avg(ciso_init_ecosys_init_file_fmt, &
+                               ecosys_ciso_restart_filename)
+      endif
+
+      call eval_time_flag(ciso_comp_surf_avg_flag) ! evaluates time_flag(ciso_comp_surf_avg_flag)%value via time_to_do
+
+      if (check_time_flag(ciso_comp_surf_avg_flag)) &
+         call ciso_comp_surf_avg(TRACER_MODULE(:,:,1,:,oldtime,:), &
+                            TRACER_MODULE(:,:,1,:,curtime,:))
+                            
+                            
+
+   case ('file', 'ccsm_startup')
+      call document(subname, 'ciso vars being read from separate files')
+
+      call file_read_tracer_block(ciso_init_ecosys_init_file_fmt, &
+                                  ciso_init_ecosys_init_file,     &
+                                  tracer_d_module,           &
+                                  ciso_ind_name_table,            &
+                                  ciso_tracer_init_ext,           &
+                                  TRACER_MODULE)
+
+      if (n_topo_smooth > 0) then
+         do n = 1, ecosys_ciso_tracer_cnt
+            do k=1,km
+               call fill_points(k,TRACER_MODULE(:,:,k,n,oldtime,:), &
+                                errorCode)
+
+               if (errorCode /= POP_Success) then
+                  call POP_ErrorSet(errorCode, &
+                     'ecosys_init: error in fill points for tracers(oldtime)')
+                  return
+               endif
+
+               call fill_points(k,TRACER_MODULE(:,:,k,n,curtime,:), &
+                                errorCode)
+
+               if (errorCode /= POP_Success) then
+                  call POP_ErrorSet(errorCode, &
+                     'ecosys_init: error in fill points for tracers(newtime)')
+                  return
+               endif
+
+            enddo
+         enddo
+      endif
+
+  
+      if (ciso_use_nml_surf_vals) then
+         ciso_surf_avg = c0
+         ciso_surf_avg(di13c_ind) = ciso_surf_avg_di13c_const
+         ciso_surf_avg(di14c_ind) = ciso_surf_avg_di14c_const
+      else
+         call ciso_comp_surf_avg(TRACER_MODULE(:,:,1,:,oldtime,:), &
+                            TRACER_MODULE(:,:,1,:,curtime,:))
+      endif
+      
+
+   case default
+      call document(subname, 'ciso_init_ecosys_option', ciso_init_ecosys_option)
+      call exit_POP(sigAbort, 'unknown ciso_init_ecosys_option')
+
+   end select
+
+!-----------------------------------------------------------------------
+!  apply land mask to tracers
+!-----------------------------------------------------------------------
+
+   !$OMP PARALLEL DO PRIVATE(iblock,n,k)
+   do iblock=1,nblocks_clinic
+      do n = 1,ecosys_ciso_tracer_cnt
+         do k = 1,km
+            where (.not. LAND_MASK(:,:,iblock) .or. k > KMT(:,:,iblock))
+               TRACER_MODULE(:,:,k,n,curtime,iblock) = c0
+               TRACER_MODULE(:,:,k,n,oldtime,iblock) = c0
+            endwhere
+         end do
+      end do
+   enddo
+   !$OMP END PARALLEL DO
+
+
+!-----------------------------------------------------------------------
+!  timer init
+!-----------------------------------------------------------------------
+
+   call get_timer(ecosys_ciso_interior_timer, 'ECOSYS_CISO_INTERIOR', &
+                  nblocks_clinic, distrb_clinic%nprocs)
+   call get_timer(ecosys_ciso_sflux_timer, 'ECOSYS_CISO_SFLUX',1, &
+                  distrb_clinic%nprocs)
+
+!-----------------------------------------------------------------------
+!  Define decay variable for DI14C, using earlier defined half-life of 14C
+!-----------------------------------------------------------------------
+
+   c14_lambda_inv_sec = log(c2) / (c14_halflife_years * seconds_in_year) 
+       
+!debugging, no decay
+!       c14_lambda_inv_sec=c0
+
+
+!  
+!-----------------------------------------------------------------------
+!  call other initialization subroutines
+!-----------------------------------------------------------------------
+
+   call ecosys_ciso_init_tavg
+   call ecosys_ciso_init_sflux
+
+!-----------------------------------------------------------------------
+!  set lfull_depth_tavg flag for short-lived ecosystem tracers
+!-----------------------------------------------------------------------
+
+   tracer_d_module(zoo13C_ind   )%lfull_depth_tavg = ciso_lecovars_full_depth_tavg
+   tracer_d_module(zoo14C_ind   )%lfull_depth_tavg = ciso_lecovars_full_depth_tavg
+
+   do auto_ind = 1, autotroph_cnt
+      n = autotrophs(auto_ind)%C13_ind
+      tracer_d_module(n)%lfull_depth_tavg = ciso_lecovars_full_depth_tavg
+
+      n = autotrophs(auto_ind)%C14_ind
+      tracer_d_module(n)%lfull_depth_tavg = ciso_lecovars_full_depth_tavg
+
+      n = autotrophs(auto_ind)%Ca13CO3_ind
+      if (n > 0) then
+         tracer_d_module(n)%lfull_depth_tavg = ciso_lecovars_full_depth_tavg
+      endif
+       n = autotrophs(auto_ind)%Ca14CO3_ind
+      if (n > 0) then
+         tracer_d_module(n)%lfull_depth_tavg = ciso_lecovars_full_depth_tavg
+      endif
+   end do
+
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ecosys_ciso_init
+
+!***********************************************************************
+!BOP
+! !IROUTINE: ecosys_ciso_init_tavg
+! !INTERFACE:
+
+ subroutine ecosys_ciso_init_tavg
+
+! !DESCRIPTION:
+!  call define_tavg_field for nonstandard tavg fields
+!
+! !REVISION HISTORY:
+!  same as module
+!
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   character(*), parameter :: &
+      subname = 'ecosys_ciso_mod:ecosys_ciso_init_tavg'
+
+   integer (int_kind) :: &
+      auto_ind,       & ! autotroph functional group index
+      buf_len           ! how many surface flux fields are stored in ECO_SFLUX_TAVG
+
+   character(char_len) :: &
+      sname             ! short-name of tavg variable
+
+
+!-----------------------------------------------------------------------
+!  2D fields related to surface fluxes
+!-----------------------------------------------------------------------
+
+    buf_len = 0
+
+!13C 
+   call define_tavg_field(tavg_CISO_DI13C_GAS_FLUX,'CISO_FG_13CO2',2,            &
+                          long_name='DI13C Surface Gas Flux',            &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+    buf_len = buf_len+1
+ 
+   call define_tavg_field(tavg_CISO_DI13C_AS_GAS_FLUX,'CISO_FG_as_13CO2',2,            &
+                          long_name='DI13C Surface Air-Sea Gas Flux',            &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+    buf_len = buf_len+1
+ 
+ 
+   call define_tavg_field(tavg_CISO_DI13C_SA_GAS_FLUX,'CISO_FG_sa_13CO2',2,            &
+                          long_name='DI13C Surface Sea-Air Gas Flux',            &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+    buf_len = buf_len+1
+ 
+ 
+   call define_tavg_field(tavg_CISO_d13C_GAS_FLUX,'CISO_FG_d13C',2,                 &
+                          long_name='D13C Surface GAS FLUX',&
+                          units='permil', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+   buf_len = buf_len+1
+ 
+ 
+   call define_tavg_field(tavg_CISO_D13C_atm,'CISO_D13C_atm',2,                 &
+                          long_name='Atmospheric Delta 13C in permil',&
+                          units='permil', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+    buf_len = buf_len+1          
+
+    
+   call define_tavg_field(tavg_CISO_R13C_DIC_surf,'CISO_R13C_DIC_surf',2,                 &
+                          long_name='13C/12C ratio in total DIC',&
+                          units='permil', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+   buf_len = buf_len+1
+
+ 
+  call define_tavg_field(tavg_CISO_R13C_atm,'CISO_R13C_atm',2,                 &
+                          long_name='13C/12C ratio in atmosphere',&
+                          units='permil', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+   buf_len = buf_len+1
+   
+! Fractionation (both for 14C and 13C)
+
+   call define_tavg_field(tavg_CISO_eps_aq_g_surf,'CISO_eps_aq_g_surf',2,              &
+                          long_name='Surface equilibrium fractionation (CO2_gaseous <-> CO2_aq)', &
+                          units='permil', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+
+   buf_len = buf_len+1
+
+
+   call define_tavg_field(tavg_CISO_eps_dic_g_surf,'CISO_eps_dic_g_surf',2,              &
+                          long_name='Surface equilibrium fractionation between total DIC and gaseous CO2', &
+                          units='permil', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+
+   buf_len = buf_len+1
+
+
+!14C
+   call define_tavg_field(tavg_CISO_DI14C_GAS_FLUX,'CISO_FG_14CO2',2,            &
+                          long_name='DI14C Surface Gas Flux',            &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+    buf_len = buf_len+1
+ 
+   call define_tavg_field(tavg_CISO_DI14C_AS_GAS_FLUX,'CISO_FG_as_14CO2',2,            &
+                          long_name='DI14C Surface Air-Sea Gas Flux',            &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+    buf_len = buf_len+1
+ 
+ 
+   call define_tavg_field(tavg_CISO_DI14C_SA_GAS_FLUX,'CISO_FG_sa_14CO2',2,            &
+                          long_name='DI14C Surface Sea-Air Gas Flux',            &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+    buf_len = buf_len+1
+
+
+   call define_tavg_field(tavg_CISO_d14C_GAS_FLUX,'CISO_FG_d14C',2,                 &
+                          long_name='D14C Surface GAS FLUX',&
+                          units='permil', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+   buf_len = buf_len+1
+
+   call define_tavg_field(tavg_CISO_D14C_atm,'CISO_D14C_atm',2,                 &
+                          long_name='Atmospheric Delta 14C in permil',&
+                          units='permil', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+    buf_len = buf_len+1          
+  
+  
+    call define_tavg_field(tavg_CISO_R14C_DIC_surf,'CISO_R14C_DIC_surf',2,                 &
+                          long_name='14C/12C ratio in total DIC',&
+                          units='permil', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+    buf_len = buf_len+1
+
+   call define_tavg_field(tavg_CISO_R14C_atm,'CISO_R14C_atm',2,                 &
+                          long_name='14C/12C ratio in atmosphere',&
+                          units='permil', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+   buf_len = buf_len+1
+
+!Normal C for comparison/debugging agaisnt ecosys 
+
+   call define_tavg_field(tavg_CISO_DIC_GAS_FLUX,'CISO_FG_CO2',2,            &
+                          long_name='DIC Surface Gas Flux',            &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+    buf_len = buf_len+1
+ 
+   call define_tavg_field(tavg_CISO_DIC_AS_GAS_FLUX,'CISO_FG_as_CO2',2,            &
+                          long_name='DIC Surface Air-Sea Gas Flux',            &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+    buf_len = buf_len+1
+ 
+ 
+   call define_tavg_field(tavg_CISO_DIC_SA_GAS_FLUX,'CISO_FG_sa_CO2',2,            &
+                          long_name='DIC Surface Sea-Air Gas Flux',            &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+   buf_len = buf_len+1
+
+! for debugging
+!  call define_tavg_field(tavg_CISO_DIC_SURF,'CISO_DIC_SURF',2,                  &
+!                          long_name='ciso DIC SURF',                      &
+!                          units='mmol/m^3/s', grid_loc='2110',      &
+!                          coordinates='TLONG TLAT time')
+
+!  buf_len = buf_len+1
+
+!  call define_tavg_field(tavg_CISO_PV_SURF,'CISO_PV_SURF',2,                  &
+!                          long_name='ciso PV',                      &
+!                          units='mmol/m^3/s', grid_loc='2110',      &
+!                          coordinates='TLONG TLAT time')
+
+!  buf_len = buf_len+1
+!  call define_tavg_field(tavg_CISO_DCO2STAR,'CISO_DCO2STAR',2,      &
+!                          long_name='ciso DCO2STAR',                &
+!                          units='mmol/m^3/s', grid_loc='2110',      &
+!                          coordinates='TLONG TLAT time')
+!
+! buf_len = buf_len+1
+! call define_tavg_field(tavg_CISO_CO2STAR,'CISO_CO2STAR',2,        &
+!                          long_name='ciso CO2STAR',                &
+!                          units='mmol/m^3/s', grid_loc='2110',     &
+!                          coordinates='TLONG TLAT time')
+
+! buf_len = buf_len+1
+!  call define_tavg_field(tavg_CISO_CO3_SURF,'CISO_CO3_SURF',2,        &
+!                          long_name='ciso CO3_SURF',                &
+!                          units='mmol/m^3/s', grid_loc='2110',     &
+!                          coordinates='TLONG TLAT time')
+!
+! buf_len = buf_len+1
+! call define_tavg_field(tavg_CISO_DEBUG,'CISO_DEBUG',2,        &
+!                          long_name='ciso Debug output',                &
+!                          units='mmol/m^3/s', grid_loc='2110',     &
+!                          coordinates='TLONG TLAT time')
+!
+! buf_len = buf_len+1
+! 
+! 
+!  call define_tavg_field(tavg_CISO_FRAC_CO3_SURF,'CISO_FRAC_CO3_SURF',2,        &
+!                          long_name='ciso Fractional CO3 at the surface',                &
+!                          units='mmol/m^3/s', grid_loc='2110',     &
+!                          coordinates='TLONG TLAT time')
+!
+! buf_len = buf_len+1
+
+!-----------------------------------------------------------------------
+!  allocate array for holding flux-related quantities that need to be time-averaged
+!  this is necessary since the forcing routines are called before tavg flags
+!-----------------------------------------------------------------------
+
+   allocate(ECO_CISO_SFLUX_TAVG(nx_block,ny_block,buf_len,max_blocks_clinic))
+   ECO_CISO_SFLUX_TAVG = c0
+ 
+!   if (my_task == master_task) then
+!	    write(stdout,*)'max_blocks_clinic =  ', max_blocks_clinic
+!   endif
+!-----------------------------------------------------------------------
+!  nonstandard 3D fields
+!-----------------------------------------------------------------------
+   call define_tavg_field(tavg_CISO_PO13C_FLUX_IN,'CISO_PO13C_FLUX_IN',3,            &
+                          long_name='PO13C Flux into Cell',              &
+                          units='mmol/m^3 cm/s', grid_loc='3111',      &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_PO13C_PROD,'CISO_PO13C_PROD',3,                  &
+                          long_name='PO13C Production',                  &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_PO13C_REMIN,'CISO_PO13C_REMIN',3,                &
+                          long_name='PO13C Remineralization',            &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_DO13C_prod,'CISO_DO13C_prod',3,                  &
+                          long_name='DO13C Production',                  &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_DO13C_remin,'CISO_DO13C_remin',3,                &
+                          long_name='DO13C Remineralization',            &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_Ca13CO3_FLUX_IN,'CISO_Ca13CO3_FLUX_IN',3,        &
+                          long_name='Ca13CO3 flux into cell',            &
+                          units='mmol/m^3 cm/s', grid_loc='3111',      &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_Ca13CO3_PROD,'CISO_Ca13CO3_PROD',3,              &
+                          long_name='Ca13CO3 Production',                &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_Ca13CO3_REMIN,'CISO_Ca13CO3_REMIN',3,            &
+                          long_name='Ca13CO3 Remineralization',          &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_photo13C_TOT,'CISO_photo13C_TOT',3,              &
+                          long_name='Total 13C Fixation',                &
+                          units='mmol/m^3/s', grid_loc='3114',         &
+                          coordinates='TLONG TLAT z_t_150m time')
+                          
+   call define_tavg_field(tavg_CISO_DIC_d13C,'CISO_DIC_d13C',3,   &
+                          long_name='d13C of DIC',                &
+                          units='permil', grid_loc='3111',        &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_DOC_d13C,'CISO_DOC_d13C',3,   &
+                          long_name='d13C of DOC',                &
+                          units='permil', grid_loc='3111',        &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_zooC_d13C,'CISO_zooC_d13C',3,   &
+                          long_name='d13C of zooC',                &
+                          units='permil', grid_loc='3111',        &
+                          coordinates='TLONG TLAT z_t time')
+
+ 
+                       
+                          
+                          
+
+!14C
+
+   call define_tavg_field(tavg_CISO_PO14C_FLUX_IN,'CISO_PO14C_FLUX_IN',3,            &
+                          long_name='PO14C Flux into Cell',              &
+                          units='mmol/m^3 cm/s', grid_loc='3111',      &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_PO14C_PROD,'CISO_PO14C_PROD',3,                  &
+                          long_name='PO14C Production',                  &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_PO14C_REMIN,'CISO_PO14C_REMIN',3,                &
+                          long_name='PO14C Remineralization',            &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_DO14C_prod,'CISO_DO14C_prod',3,                  &
+                          long_name='DO14C Production',                  &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_DO14C_remin,'CISO_DO14C_remin',3,                &
+                          long_name='DO14C Remineralization',            &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_Ca14CO3_FLUX_IN,'CISO_Ca14CO3_FLUX_IN',3,        &
+                          long_name='Ca14CO3 flux into cell',            &
+                          units='mmol/m^3 cm/s', grid_loc='3111',      &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_Ca14CO3_PROD,'CISO_Ca14CO3_PROD',3,              &
+                          long_name='Ca14CO3 Production',                &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_Ca14CO3_REMIN,'CISO_Ca14CO3_REMIN',3,            &
+                          long_name='Ca14CO3 Remineralization',          &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+  
+ 
+   call define_tavg_field(tavg_CISO_photo14C_TOT,'CISO_photo14C_TOT',3,              &
+                          long_name='Total 14C Fixation',                &
+                          units='mmol/m^3/s', grid_loc='3114',         &
+                          coordinates='TLONG TLAT z_t_150m time')
+
+
+   call define_tavg_field(tavg_CISO_DIC_d14C,'CISO_DIC_d14C',3,   &
+                          long_name='d14C of DIC',                &
+                          units='permil', grid_loc='3111',        &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_DOC_d14C,'CISO_DOC_d14C',3,   &
+                          long_name='d14C of DOC',                &
+                          units='permil', grid_loc='3111',        &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_zooC_d14C,'CISO_zooC_d14C',3,   &
+                          long_name='d14C of zooC',                &
+                          units='permil', grid_loc='3111',        &
+                          coordinates='TLONG TLAT z_t time')
+
+
+
+
+
+
+!debugging
+
+   call define_tavg_field(tavg_CISO_CaCO3_FLUX_IN,'CISO_CaCO3_FLUX_IN',3,        &
+                          long_name='CaCO3 flux into cell',            &
+                          units='mmol/m^3 cm/s', grid_loc='3111',      &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_CaCO3_PROD,'CISO_CaCO3_PROD',3,              &
+                          long_name='CaCO3 Production',                &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_CaCO3_REMIN,'CISO_CaCO3_REMIN',3,            &
+                          long_name='CaCO3 Remineralization',          &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+
+   call define_tavg_field(tavg_CISO_POC_FLUX_IN,'CISO_POC_FLUX_IN',3,        &
+                          long_name='POC flux into cell',            &
+                          units='mmol/m^3 cm/s', grid_loc='3111',      &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_POC_PROD,'CISO_POC_PROD',3,              &
+                          long_name='POC Production',                &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_POC_REMIN,'CISO_POC_REMIN',3,            &
+                          long_name='POC Remineralization',          &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_FRAC_CO3,'CISO_FRAC_CO3',3,            &
+                          long_name='FRAC_CO3 3D',          &
+                          units='mmol/m^3/s', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+
+
+!-----------------------------------------------------------------------
+!  Nonstandard 2D fields
+!-----------------------------------------------------------------------
+
+  
+   call define_tavg_field(tavg_CISO_photo13C_TOT_zint,'CISO_photo13C_TOT_zint',2,    &
+                          long_name='Total 13C Fixation Vertical Integral',&
+                          units='mmol/m^3 cm/s', grid_loc='2111',      &
+                          coordinates='TLONG TLAT time')
+
+   
+   call define_tavg_field(tavg_CISO_Jint_13Ctot,'CISO_Jint_13Ctot',2,                &
+                          long_name='13Ctot Source Sink Term Vertical Integral', &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_CISO_Jint_100m_13Ctot,'CISO_Jint_100m_13Ctot',2,      &
+                          long_name='13Ctot Source Sink Term Vertical Integral, 0-100m', &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+
+! 14C
+ 
+   call define_tavg_field(tavg_CISO_photo14C_TOT_zint,'CISO_photo14C_TOT_zint',2,    &
+                          long_name='Total 14C Fixation Vertical Integral',&
+                          units='mmol/m^3 cm/s', grid_loc='2111',      &
+                          coordinates='TLONG TLAT time')
+
+   
+   call define_tavg_field(tavg_CISO_Jint_14Ctot,'CISO_Jint_14Ctot',2,                &
+                          long_name='14Ctot Source Sink Term Vertical Integral', &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+
+   call define_tavg_field(tavg_CISO_Jint_100m_14Ctot,'CISO_Jint_100m_14Ctot',2,      &
+                          long_name='14Ctot Source Sink Term Vertical Integral, 0-100m', &
+                          units='mmol/m^3 cm/s', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
+
+
+!-----------------------------------------------------------------------
+!  Nonstandard autotroph 2D and 3D fields for each autotroph
+!-----------------------------------------------------------------------
+
+ 
+   do auto_ind = 1, autotroph_cnt
+   
+   
+      if (autotrophs(auto_ind)%Ca13CO3_ind > 0) then
+         sname = 'CISO_' // trim(autotrophs(auto_ind)%sname) // '_Ca13CO3_form'
+         call define_tavg_field(tavg_CISO_Ca13CO3_form(auto_ind), sname, 3, &
+                                long_name=trim(autotrophs(auto_ind)%lname) // ' Ca13CO3 Formation', &
+                                units='mmol/m^3/s', grid_loc='3114', &
+                                coordinates='TLONG TLAT z_t_150m time')
+
+         sname = trim(sname) // '_zint'
+         call define_tavg_field(tavg_CISO_Ca13CO3_form_zint(auto_ind), sname, 2, &
+                                long_name=trim(autotrophs(auto_ind)%lname) // ' Ca13CO3 Formation Vertical Integral', &
+                                units='mmol/m^3 cm/s', grid_loc='2110', &
+                                coordinates='TLONG TLAT time')
+      endif
+      
+      if (autotrophs(auto_ind)%Ca14CO3_ind > 0) then
+         sname = 'CISO_' // trim(autotrophs(auto_ind)%sname) // '_Ca14CO3_form'
+         call define_tavg_field(tavg_CISO_Ca14CO3_form(auto_ind), sname, 3, &
+                                long_name=trim(autotrophs(auto_ind)%lname) // ' Ca14CO3 Formation', &
+                                units='mmol/m^3/s', grid_loc='3114', &
+                                coordinates='TLONG TLAT z_t_150m time')
+
+         sname = trim(sname) // '_zint'
+         call define_tavg_field(tavg_CISO_Ca14CO3_form_zint(auto_ind), sname, 2, &
+                                long_name=trim(autotrophs(auto_ind)%lname) // ' Ca14CO3 Formation Vertical Integral', &
+                                units='mmol/m^3 cm/s', grid_loc='2110', &
+                                coordinates='TLONG TLAT time')
+      endif
+      
+      
+      call define_tavg_field(tavg_CISO_autotrophCaCO3_d13C(auto_ind), &
+                            'CISO_autotrophCaCO3_d13C_' // trim(autotrophs(auto_ind)%sname), 3, &
+                            long_name=trim(autotrophs(auto_ind)%lname) // ' d13C of CaCO3', &
+                            units='mmol/m^3/s', grid_loc='3111', &
+                            coordinates='TLONG TLAT z_t time')
+                         
+      call define_tavg_field(tavg_CISO_autotrophCaCO3_d14C(auto_ind), &
+                            'CISO_autotrophCaCO3_d14C_' // trim(autotrophs(auto_ind)%sname), 3, &
+                            long_name=trim(autotrophs(auto_ind)%lname) // ' d14C of CaCO3', &
+                            units='mmol/m^3/s', grid_loc='3111', &
+                            coordinates='TLONG TLAT z_t time')
+                          
+      call define_tavg_field(tavg_CISO_photo13C(auto_ind), &
+                             'CISO_photo13C_' // trim(autotrophs(auto_ind)%sname), 3, &
+                             long_name=trim(autotrophs(auto_ind)%lname) // ' 13C Fixation', &
+                             units='mmol/m^3/s', grid_loc='3111', &
+                             coordinates='TLONG TLAT z_t_150m time')
+
+      call define_tavg_field(tavg_CISO_photo13C_zint(auto_ind), &
+                             'CISO_photo13C_' // trim(autotrophs(auto_ind)%sname) // '_zint', 2, &
+                             long_name=trim(autotrophs(auto_ind)%lname) // ' 13C Fixation Vertical Integral', &
+                             units='mmol/m^3 cm/s', grid_loc='2111', &
+                             coordinates='TLONG TLAT time')
+                             
+      call define_tavg_field(tavg_CISO_eps_autotroph(auto_ind), &
+                             'CISO_eps_autotroph_' // trim(autotrophs(auto_ind)%sname), 3, &
+                             long_name=trim(autotrophs(auto_ind)%lname) // ' discrimination factor (eps)', &
+                             units='permil', grid_loc='3111', &
+                             coordinates='TLONG TLAT z_t time')
+
+      call define_tavg_field(tavg_CISO_mui_to_co2star(auto_ind), &
+                             'CISO_mui_to_co2star_' // trim(autotrophs(auto_ind)%sname), 3, &
+                             long_name=trim(autotrophs(auto_ind)%lname) // ' instanteous growth rate over [CO2*]', &
+                             units='m^3/mmol C/s', grid_loc='3111', &
+                             coordinates='TLONG TLAT z_t time')
+
+
+      call define_tavg_field(tavg_CISO_photo14C(auto_ind), &
+                             'CISO_photo14C_' // trim(autotrophs(auto_ind)%sname), 3, &
+                             long_name=trim(autotrophs(auto_ind)%lname) // ' 14C Fixation', &
+                             units='mmol/m^3/s', grid_loc='3111', &
+                             coordinates='TLONG TLAT z_t_150m time')
+                             
+      call define_tavg_field(tavg_CISO_d14C(auto_ind), &
+                             'CISO_d14C_' // trim(autotrophs(auto_ind)%sname), 3, &
+                             long_name=trim(autotrophs(auto_ind)%lname) // ' d14C', &
+                             units='permil', grid_loc='3111', &
+                             coordinates='TLONG TLAT z_t time')
+                             
+       call define_tavg_field(tavg_CISO_d13C(auto_ind), &
+                             'CISO_d13C_' // trim(autotrophs(auto_ind)%sname), 3, &
+                             long_name=trim(autotrophs(auto_ind)%lname) // ' d13C', &
+                             units='permil', grid_loc='3111', &
+                             coordinates='TLONG TLAT z_t time')
+                       
+                
+
+      call define_tavg_field(tavg_CISO_photo14C_zint(auto_ind), &
+                             'CISO_photo14C_' // trim(autotrophs(auto_ind)%sname) // '_zint', 2, &
+                             long_name=trim(autotrophs(auto_ind)%lname) // ' 14C Fixation Vertical Integral', &
+                             units='mmol/m^3 cm/s', grid_loc='2111', &
+                             coordinates='TLONG TLAT time')
+                             
+
+   end do
+       
+! debugging       
+!   do auto_ind = 1, autotroph_cnt
+!      call define_tavg_field(tavg_CISO_photoC(auto_ind), &
+!                             'CISO_photoC_' // trim(autotrophs(auto_ind)%sname), 3, &
+!                             long_name=trim(autotrophs(auto_ind)%lname) // ' C Fixation', &
+!                             units='mmol/m^3/s', grid_loc='3111', &
+!                             coordinates='TLONG TLAT z_t time')
+!
+!      call define_tavg_field(tavg_CISO_R13C_photoC(auto_ind), &
+!                             'CISO_R13C_photoC_' // trim(autotrophs(auto_ind)%sname), 3, &
+!                             long_name=trim(autotrophs(auto_ind)%lname) // ' R13C_photoC', &
+!                             units='mmol/m^3 cm/s', grid_loc='3111', &
+!                             coordinates='TLONG TLAT z_t time')
+!                             
+!      call define_tavg_field(tavg_CISO_r13CT_photoC(auto_ind), &
+!                             'CISO_r13CT_photoC_' // trim(autotrophs(auto_ind)%sname), 3, &
+!                             long_name=trim(autotrophs(auto_ind)%lname) // ' r13CT_photoC', &
+!                             units='permil', grid_loc='3111', &
+!                             coordinates='TLONG TLAT z_t time')
+!
+!   end do
+   
+  
+!-----------------------------------------------------------------------
+!  More nonstandard 3D fields
+!-----------------------------------------------------------------------
+   call define_tavg_field(tavg_CISO_eps_aq_g,'CISO_eps_aq_g',3,              &
+                          long_name='Equilibrium fractionation (CO2_gaseous <-> CO2_aq)',  &
+                          units='permil', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+   call define_tavg_field(tavg_CISO_eps_dic_g,'CISO_eps_dic_g',3,              &
+                          long_name='Equilibrium fractionation between total DIC and gaseous CO2',&
+                          units='permil', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+
+ 
+ 
+!-----------------------------------------------------------------------
+!  Vars to sum up burial in sediments 
+!-----------------------------------------------------------------------
+
+   call define_tavg_field(tavg_calcToSed_13C,'calcToSed_13C',2,                &
+                          long_name='Ca13CO3 Flux to Sediments',         &
+                          units='nmolC/cm^2/s', grid_loc='2110',       &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_pocToSed_13C,'pocToSed_13C',2,                  &
+                          long_name='PO13C Flux to Sediments',           &
+                          units='nmolC/cm^2/s', grid_loc='2110',       &
+                          coordinates='TLONG TLAT time')
+       
+   call define_tavg_field(tavg_calcToSed_14C,'calcToSed_14C',2,                &
+                          long_name='Ca14CO3 Flux to Sediments',         &
+                          units='nmolC/cm^2/s', grid_loc='2110',       &
+                          coordinates='TLONG TLAT time')
+   call define_tavg_field(tavg_pocToSed_14C,'pocToSed_14C',2,                  &
+                          long_name='PO14C Flux to Sediments',           &
+                          units='nmolC/cm^2/s', grid_loc='2110',       &
+                          coordinates='TLONG TLAT time')
+       
+    
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ecosys_ciso_init_tavg
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: ecosys_ciso_init_sflux
+! !INTERFACE:
+
+ subroutine ecosys_ciso_init_sflux
+
+! !USES:
+   use named_field_mod, only: named_field_get_index
+   use registry, only: registry_match
+
+ 
+! !DESCRIPTION:
+!  Initialize surface flux computations for the ecosys_ciso tracer module.
+!  Includes reading CO2 and D13C data from file if option ocmip2 is used
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+!   character(*), parameter :: sub_name = 'ecosys_ciso_mod:ecosys_ciso_init_sflux'
+	 
+!-------------------------------------------------------------------------
+!     Set D13C data source
+!-------------------------------------------------------------------------
+
+   select case (ciso_atm_d13c_opt)
+
+   case ('const')
+	 if (my_task == master_task) then
+      write(stdout,blank_fmt)
+      write(stdout,ndelim_fmt)
+      write(stdout,blank_fmt)
+      write(stdout,*)'ciso: Using constant D13C values of ',ciso_atm_d13c_const
+      write(stdout,blank_fmt)
+      write(stdout,ndelim_fmt)
+      write(stdout,blank_fmt)
+	 endif
+
+!-----------------------------------------------------------------------
+!     READ in D13C data from OCMIP2 files 
+!-----------------------------------------------------------------------
+	
+   case('ocmip2')
+   
+
+   call ciso_read_atm_D13C_data
+   
+  case default
+	  call exit_POP(sigAbort, 'unknown ciso_atm_d13c_opt in ecosys_ciso_init_sflux')
+	  
+  end select	  
+!-------------------------------------------------------------------------
+!     Set D14C data source
+!-------------------------------------------------------------------------
+
+  select case (ciso_atm_d14c_opt)
+
+   case ('const')
+	 if (my_task == master_task) then
+      write(stdout,blank_fmt)
+      write(stdout,ndelim_fmt)
+      write(stdout,blank_fmt)
+      write(stdout,*)'ciso: Using constant D14C values of ',ciso_atm_d14c_const
+      write(stdout,blank_fmt)
+      write(stdout,ndelim_fmt)
+      write(stdout,blank_fmt)
+	 endif
+
+!-----------------------------------------------------------------------
+!     READ in D13C data from OCMIP2 files 
+!-----------------------------------------------------------------------
+	
+   case('ocmip2')
+   
+
+   call ciso_read_atm_D14C_data
+   
+  case default
+	  call exit_POP(sigAbort, 'unknown ciso_atm_d14c_opt in ecosys_ciso_init_sflux')
+	  
+  end select	  
+
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ecosys_ciso_init_sflux
+
+
+!*****************************************************************************
+!BOP
+! !IROUTINE: ecosys_ciso_set_sflux
+!
+! !INTERFACE:
+
+ subroutine ecosys_ciso_set_sflux(SST,SURF_VALS_OLD,SURF_VALS_CUR,STF_MODULE)
+                             
+   
+! !INPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) :: &
+      SST           ! sea surface temperature (C)
+      
+
+  !real (r8), dimension(nx_block,ny_block,ecosys_ciso_tracer_cnt,max_blocks_clinic), &
+   real (r8), dimension(:,:,:,:), intent(in) :: &
+           SURF_VALS_OLD, SURF_VALS_CUR ! module tracers
+
+! !INPUT/OUTPUT PARAMETERS:
+
+  !real (r8), dimension(nx_block,ny_block,ecosys_ciso_tracer_cnt,max_blocks_clinic), &
+   real (r8), dimension(:,:,:,:), intent(inout) :: STF_MODULE
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+  character(*), parameter :: subname = 'ecosys_ciso_mod:ecosys_ciso_set_sflux'
+
+   logical (log_kind), save :: &
+      first = .true.      ! Logical for first iteration test
+	
+   type (block) :: &
+      this_block      ! block info for the current block
+
+   integer (int_kind) :: &
+      i,j,iblock,n, & ! loop indices
+      auto_ind,     & ! autotroph functional group index
+      mcdate,sec,   & ! date vals for shr_strdata_advance
+      errorCode       ! errorCode from HaloUpdate call
+
+   real (r8), dimension(nx_block) :: &
+      DI13C_ROW,    & ! row of DI13C values for solver
+      DI14C_ROW,    & ! row of DI13C values for solver
+      DIC_ROW,      & ! row of DIC values for solver 
+      DCO2STAR_ROW, & ! DCO2STAR from solver 
+      CO2STAR_ROW,  & ! CO2STAR from solver
+      PV_ROW 
+
+
+   real (r8), dimension(nx_block,ny_block) :: &
+     D13C,          &   ! atm 13co2 value
+     R13C_DIC_surf, &   ! 13C/12C ratio in DIC
+     R13C_atm,      &   ! 13C/12C ratio in atmospheric CO2
+     r13CT_atm,     &   ! 13C/(12C+13C) ratio in atmospheric CO2
+     FLUX13,        &   ! gas flux of 13CO2 (nmol/cm^2/s)
+     FLUX13_as,     &   ! air-to-sea gas flux of 13CO2 (nmol/cm^2/s)
+     FLUX13_sa,     &   ! sea-to-air gas flux of 13CO2 (nmol/cm^2/s)
+     D14C,          &   ! atm 14co2 value
+     R14C_DIC_surf, &   ! 14C/12C ratio in total DIC
+     R14C_atm,      &   ! 14C/12C ratio in atmospheric CO2
+     r14CT_atm,     &   ! 14C/(12C+14C) ratio in atmospheric CO2
+     FLUX14,        &   ! gas flux of 14CO2 (nmol/cm^2/s)
+     FLUX14_as,     &   ! air-to-sea gas flux of 14CO2 (nmol/cm^2/s)
+     FLUX14_sa,     &   ! sea-to-air gas flux of 14CO2 (nmol/cm^2/s)
+     FLUX,          &   ! gas flux of CO2 (nmol/cm^2/s)
+     FLUX_as,       &   ! air-to-sea gas flux of CO2 (nmol/cm^2/s)
+     FLUX_sa            ! sea-to-air gas flux of CO2 (nmol/cm^2/s)
+     
+     
+ 
+   real (r8), dimension(nx_block,ny_block) :: &
+     eps_aq_g_surf,       & ! equilibrium fractionation (CO2_gaseous <-> CO2_aq)
+     alpha_aq_g_surf,     & ! alpha_xxx_g_surf => eps = ( alpa -1 ) * 1000
+     eps_dic_g_surf,      & ! equilibrium fractionation between total DIC and gaseous CO2
+     alpha_dic_g_surf,    & ! alpha_xxx_g_surf => eps = ( alpa -1 ) * 1000
+     eps_hco3_g_surf,     & ! equilibrium fractionation between bicarbonate and gaseous CO2 
+     eps_co3_g_surf,      & ! equilibrium fractionation between carbonate and gaseous CO2
+     frac_co3,            & ! carbonate fraction fCO3 = [CO3--]/DIC
+     alpha_aq_g_surf_14c, & ! for 14C, with fractionation being twice as large for 14C than for 13C
+     alpha_dic_g_surf_14c   ! for 14C, with fractionation being twice as large for 14C than for 13C
+ 
+  
+!-----------------------------------------------------------------------
+!  Pointer variables (defined in ecosys_fields)
+!-----------------------------------------------------------------------
+     real(r8), dimension(:,:), pointer :: DIC_SURF      ! surface values of DIC for solver
+     real(r8), dimension(:,:), pointer :: CO2STAR_SURF  ! CO2STAR from solver
+     real(r8), dimension(:,:), pointer :: DCO2STAR_SURF ! DCO2STAR from solver
+     real(r8), dimension(:,:), pointer :: PV_SURF       ! piston velocity (cm/s)
+     real(r8), dimension(:,:), pointer :: CO3_SURF      ! surface carbonate ion
+     
+     
+!-----------------------------------------------------------------------
+!     local parameters for 13C
+!     Zhang et al, 1995, Geochim. et Cosmochim. Acta, 59 (1), 107-114
+!-----------------------------------------------------------------------
+     real(r8) :: &
+      alpha_k, &             ! eps = ( alpa -1 ) * 1000
+      alpha_k_14c            ! for 14C, with fractionation being twice as large for 14C than for 13C
+
+     
+       
+       real(r8), parameter :: &
+        eps_k     = -0.81_r8  ! kinetic fraction during gas 
+                             ! transfert (per mil) (air-sea CO2
+                             ! exchange) at 21C, Zhang et al 1995,
+                             ! eps_k = -0.95 at 5C
+!debugging, DIC=DIC14=DI13C
+!       real(r8), parameter :: &
+!        eps_k     = c0       ! debugging, no fractionation
+
+     
+ 
+!-----------------------------------------------------------------------
+!  Nullify pointers
+!-----------------------------------------------------------------------
+  
+   nullify(DIC_SURF)
+   nullify(CO2STAR_SURF)
+   nullify(DCO2STAR_SURF)
+   nullify(PV_SURF)
+   nullify(CO3_SURF)
+  
+!-----------------------------------------------------------------------
+
+  call timer_start(ecosys_ciso_sflux_timer)
+
+
+   if (check_time_flag(ciso_comp_surf_avg_flag))  &
+      call ciso_comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR)
+      
+   
+   if (first) then
+	    allocate( ciso_data_ind_d13c(max_blocks_clinic) )
+      allocate( ciso_data_ind_d14c(max_blocks_clinic) )
+      ciso_data_ind_d13c = -1
+	    ciso_data_ind_d14c = -1
+      first = .false.
+   endif
+   
+!-----------------------------------------------------------------------
+!  fluxes initially set to 0
+!-----------------------------------------------------------------------
+
+   !$OMP PARALLEL DO PRIVATE(iblock)
+   do iblock = 1, nblocks_clinic
+  	  STF_MODULE(:,:,:,iblock) = c0
+      
+   end do
+  !$OMP END PARALLEL DO
+
+!-----------------------------------------------------------------------
+   !$OMP PARALLEL DO PRIVATE(iblock, j, D13C, R13C_atm, r13CT_atm,  &
+   !$OMP                     DI13C_ROW, R13C_DIC_surf, FLUX13, FLUX13_as, &
+   !$OMP                     FLUX13_sa, D14C, R14C_atm, r14CT_atm, DI14C_ROW, &
+   !$OMP                     R14C_DIC_surf, FLUX14, FLUX14_as, FLUX14_sa, &
+   !$OMP                     DIC_ROW, CO2STAR_ROW, DCO2STAR_ROW, FLUX, &
+   !$OMP                     FLUX_as, FLUX_sa, PV_ROW, &
+   !$OMP                     DIC_SURF, CO2STAR_SURF, DCO2STAR_SURF, &
+   !$OMP                     PV_SURF, CO3_SURF, eps_aq_g_surf, &
+   !$OMP                     eps_dic_g_surf, frac_co3, alpha_k, &
+   !$OMP                     alpha_aq_g_surf, alpha_dic_g_surf, &
+   !$OMP                     alpha_k_14c, alpha_aq_g_surf_14c, &
+   !$OMP                     alpha_dic_g_surf_14c)
+!-----------------------------------------------------------------------
+
+
+   do iblock = 1, nblocks_clinic   
+
+!---------------------------------------------------------------
+! Need the following variables from ecosys_mod --> use pointers 
+! to point to the right part of the global array in ecosys_fields
+!---------------------------------------------------------------
+
+     DIC_SURF => DIC_SURF_fields(:,:,iblock)                            ! computed in ecosys_set_sflux
+     CO2STAR_SURF => CO2STAR_SURF_fields(:,:,iblock)                    ! computed in ecosys_set_sflux
+     DCO2STAR_SURF => DCO2STAR_SURF_fields(:,:,iblock)                  ! computed in ecosys_set_sflux
+     PV_SURF => PV_SURF_fields(:,:,iblock)                              ! computed in ecosys_set_sflux
+     CO3_SURF => CO3_SURF_fields(:,:,iblock)                            ! computed in ecosys_set_interior
+   
+
+!-----------------------------------------------------------------------      
+!  Set D13C (constant or from files read in _init) and put on grid
+!-----------------------------------------------------------------------
+      select case (ciso_atm_d13c_opt)
+
+      case ('const')
+
+          call ciso_comp_const_glo_D13C(iblock, LAND_MASK(:,:,iblock),D13C)
+
+   
+      case('ocmip2')
+	      call ciso_comp_varying_glo_D13C(iblock, LAND_MASK(:,:,iblock),ciso_data_ind_d13c(iblock),D13C)
+
+
+      case default
+	      call exit_POP(sigAbort, 'unknown ciso_atm_d13c_opt in ecosys_ciso_set_sflux')
+      end select	
+        
+      select case (ciso_atm_d14c_opt)
+
+      case ('const')
+
+          call ciso_comp_const_glo_D14C(iblock, LAND_MASK(:,:,iblock),D14C)
+
+   
+      case('ocmip2')
+	      call ciso_comp_varying_glo_D14C(iblock, LAND_MASK(:,:,iblock),ciso_data_ind_d14c(iblock),D14C)
+
+
+      case default
+	      call exit_POP(sigAbort, 'unknown ciso_atm_d14c_opt in ecosys_ciso_set_sflux')
+      end select	  
+
+!-----------------------------------------------------------------------
+!     initialize R13C_atm and r13CT_atm and R14C_atm and r14CT_atm
+!-----------------------------------------------------------------------
+
+        R13C_atm = R13C_std * ( c1 + D13C / c1000 )
+
+        r13CT_atm = R13C_atm / ( c1 + R13C_atm )
+
+
+        R14C_atm = R14C_std * ( c1 + D14C / c1000 )
+
+        r14CT_atm = R14C_atm / ( c1 + R14C_atm )
+
+!-----------------------------------------------------------------------
+!     compute 13C02 flux, based on CO2 flux calculated in ecosystem model
+!     Zhang et al, 1995, Geochim. et Cosmochim. Acta, 59 (1), 107-114
+!-----------------------------------------------------------------------
+
+        do j = 1,ny_block
+!-----------------------------------------------------------------------
+!     compute R13C_DIC in surface ocean
+!-----------------------------------------------------------------------                            
+            DI13C_ROW = p5*(SURF_VALS_OLD(:,j,di13c_ind,iblock) + &
+                             SURF_VALS_CUR(:,j,di13c_ind,iblock))
+            DI14C_ROW = p5*(SURF_VALS_OLD(:,j,di14c_ind,iblock) + &
+                             SURF_VALS_CUR(:,j,di14c_ind,iblock))
+                                 
+            DIC_ROW   = DIC_SURF(:,j)
+            
+  
+            where ( DIC_ROW /= DI13C_ROW )
+                  R13C_DIC_surf(:,j) = DI13C_ROW /(DIC_ROW - DI13C_ROW )
+            elsewhere
+                  R13C_DIC_surf(:,j) = c0     
+            endwhere
+            
+            where ( DIC_ROW /= DI14C_ROW )
+                  R14C_DIC_surf(:,j) = DI14C_ROW / (DIC_ROW - DI14C_ROW )
+            elsewhere
+                  R14C_DIC_surf(:,j) = c0     
+            endwhere
+
+
+!-----------------------------------------------------------------------
+!     individal discrimination factor of each species with respect to
+!     gaseous CO2, temperature dependent, based on Zhang et al. 95      
+!-----------------------------------------------------------------------
+            eps_aq_g_surf(:,j)   = 0.0049_r8 * SST(:,j,iblock) - 1.31_r8
+!!           eps_hco3_g_surf(:,j) = -0.141_r8  * SST(:,j,iblock) + 10.78_r8
+!!           eps_co3_g_surf(:,j)  = -0.052_r8  * SST(:,j,iblock) + 7.22_r8
+
+!debugging:
+!                eps_aq_g_surf = c0 ! debugging, no fractionation
+
+
+!-----------------------------------------------------------------------
+!     compute the equilibrium discrimination factor between DIC and
+!     gaseous CO2
+!-----------------------------------------------------------------------
+!     solution 1 : from individual species. 
+!     Not used as Zhang et al. 95 
+!     conclused that eps_dic_g_surf can not be calculated from the sum of
+!     the three individual species
+!----------------------------------------------------------------------
+
+!            eps_dic_g_surf(:,j) = eps_aq_g_surf(:,j) + eps_hco3_g_surf(:,j) &
+!                                + eps_co3_g_surf(:,j)
+
+!-----------------------------------------------------------------------
+!     solution 2: function of T and carbonate fraction (frac_co3)
+!     Useing this one, which is based on the emirical relationship from 
+!     the measured e_dic_g_surf of Zhang et al. 1995   
+!-----------------------------------------------------------------------
+    
+    where (.not. LAND_MASK(:,j,iblock))
+            frac_co3(:,j) = c0
+    elsewhere
+            frac_co3(:,j) = CO3_SURF(:,j) / DIC_ROW   
+    end where
+    
+            eps_dic_g_surf(:,j)  = 0.014_r8 * SST(:,j,iblock) * frac_co3(:,j) - &
+                                   0.105_r8 * SST(:,j,iblock) + 10.53_r8
+
+! debuggging:             
+!         eps_dic_g_surf(:,j) = c0 ! debugging, no fractionation
+
+
+!-----------------------------------------------------------------------
+!     compute alpha coefficients from eps :  eps = ( alpha -1 ) * 1000
+!-----------------------------------------------------------------------
+
+            alpha_k               = c1 + eps_k               / c1000
+            alpha_aq_g_surf(:,j)  = c1 + eps_aq_g_surf(:,j)  / c1000
+            alpha_dic_g_surf(:,j) = c1 + eps_dic_g_surf(:,j) / c1000
+
+! Fractionation is twice as large for 14C than for 13C, so eps needs to be multiplied by 2 for 14C
+            alpha_k_14c               = c1 + eps_k* 2.0_r8              / c1000
+            alpha_aq_g_surf_14c(:,j)  = c1 + eps_aq_g_surf(:,j)*2  / c1000
+            alpha_dic_g_surf_14c(:,j) = c1 + eps_dic_g_surf(:,j)*2 / c1000
+
+
+!-----------------------------------------------------------------------
+!     compute 13C flux and C flux
+!-----------------------------------------------------------------------
+            CO2STAR_ROW = CO2STAR_SURF(:,j)
+            DCO2STAR_ROW = DCO2STAR_SURF(:,j)
+            PV_ROW = PV_SURF(:,j)
+
+            FLUX13(:,j) = PV_ROW * alpha_k * alpha_aq_g_surf(:,j) * &
+                (( CO2STAR_ROW + DCO2STAR_ROW ) * R13C_atm(:,j) - & 
+                CO2STAR_ROW * R13C_DIC_surf(:,j) / alpha_dic_g_surf(:,j) )
+            
+            FLUX14(:,j) = PV_ROW * alpha_k_14c * alpha_aq_g_surf_14c(:,j) * &
+                (( CO2STAR_ROW + DCO2STAR_ROW ) * R14C_atm(:,j) - & 
+                CO2STAR_ROW * R14C_DIC_surf(:,j) / alpha_dic_g_surf_14C(:,j) )
+                
+            FLUX(:,j)    = PV_ROW * DCO2STAR_ROW
+
+!debugging
+!            FLUX14(:,j)    = PV_ROW * DCO2STAR_ROW
+!            FLUX14(:,j)    = PV_ROW * c1 * c1 * (( CO2STAR_ROW + DCO2STAR_ROW ) *c1 - & 
+!                CO2STAR_ROW * c1 / c1 )
+
+
+
+!-----------------------------------------------------------------------
+!     compute fluxes in and out 
+!-----------------------------------------------------------------------
+
+            FLUX_as(:,j) = PV_ROW * ( DCO2STAR_ROW + CO2STAR_ROW )
+            FLUX_sa(:,j) = PV_ROW * CO2STAR_ROW
+
+            FLUX13_as(:,j) = PV_ROW * alpha_k * alpha_aq_g_surf(:,j) * &
+              (( CO2STAR_ROW + DCO2STAR_ROW ) * R13C_atm(:,j))
+              
+            FLUX13_sa(:,j) = PV_ROW * alpha_k * alpha_aq_g_surf(:,j) * &
+              ( CO2STAR_ROW * R13C_DIC_surf(:,j) / alpha_dic_g_surf(:,j) )
+
+            FLUX14_as(:,j) = PV_ROW * alpha_k_14c * alpha_aq_g_surf_14c(:,j) * &
+              (( CO2STAR_ROW + DCO2STAR_ROW ) * R14C_atm(:,j))
+              
+            FLUX14_sa(:,j) = PV_ROW * alpha_k_14c * alpha_aq_g_surf_14c(:,j) * &
+              ( CO2STAR_ROW * R14C_DIC_surf(:,j) / alpha_dic_g_surf_14c(:,j) )
+
+           
+!-----------------------------------------------------------------------
+!     end of 13C computation for gass exchange
+!-----------------------------------------------------------------------
+
+                 
+       end do !j loop
+
+!-----------------------------------------------------------------------
+!     Adding 13C FLux to total DI13C
+!-----------------------------------------------------------------------
+
+         STF_MODULE(:,:,di13c_ind,iblock) = STF_MODULE(:,:,di13c_ind,iblock) + FLUX13
+         STF_MODULE(:,:,di14c_ind,iblock) = STF_MODULE(:,:,di14c_ind,iblock) + FLUX14
+
+  
+!-----------------------------------------------------------------------
+!    Tavg variables 
+!-----------------------------------------------------------------------
+
+
+         ECO_CISO_SFLUX_TAVG(:,:,1,iblock) = FLUX13
+         ECO_CISO_SFLUX_TAVG(:,:,2,iblock) = FLUX13_as
+         ECO_CISO_SFLUX_TAVG(:,:,3,iblock) = FLUX13_sa
+         ECO_CISO_SFLUX_TAVG(:,:,4,iblock) = FLUX
+         ECO_CISO_SFLUX_TAVG(:,:,5,iblock) = FLUX_as
+         ECO_CISO_SFLUX_TAVG(:,:,6,iblock) = FLUX_sa
+            
+         where ( FLUX /= FLUX13 ) 
+            ECO_CISO_SFLUX_TAVG(:,:,7,iblock) = (( FLUX13 / ( FLUX  - FLUX13) ) &
+                            / R13C_std - c1 ) * c1000
+         elsewhere
+            ECO_CISO_SFLUX_TAVG(:,:,7,iblock) = c0
+         endwhere
+
+         ECO_CISO_SFLUX_TAVG(:,:,8,iblock) = R13C_DIC_surf
+         ECO_CISO_SFLUX_TAVG(:,:,9,iblock) = R13C_atm
+         ECO_CISO_SFLUX_TAVG(:,:,10,iblock) = D13C
+         ECO_CISO_SFLUX_TAVG(:,:,11,iblock) = eps_aq_g_surf
+         ECO_CISO_SFLUX_TAVG(:,:,12,iblock) = eps_dic_g_surf
+         ECO_CISO_SFLUX_TAVG(:,:,13,iblock) = FLUX14
+         ECO_CISO_SFLUX_TAVG(:,:,14,iblock) = FLUX14_as
+         ECO_CISO_SFLUX_TAVG(:,:,15,iblock) = FLUX14_sa
+         ECO_CISO_SFLUX_TAVG(:,:,16,iblock) = R14C_DIC_surf
+         ECO_CISO_SFLUX_TAVG(:,:,17,iblock) = R14C_atm
+         ECO_CISO_SFLUX_TAVG(:,:,18,iblock) = D14C
+         
+         where ( FLUX /= FLUX14 ) 
+            ECO_CISO_SFLUX_TAVG(:,:,19,iblock) = (( FLUX14 / FLUX - FLUX14) & 
+                            / R14C_std - c1 ) * c1000
+         elsewhere
+            ECO_CISO_SFLUX_TAVG(:,:,19,iblock) = c0
+         endwhere
+
+         
+   enddo ! end of i-lopp
+!-----------------------------------------------------------------------
+   !$OMP END PARALLEL DO
+!-----------------------------------------------------------------------
+
+  
+
+
+  call timer_stop(ecosys_ciso_sflux_timer)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ecosys_ciso_set_sflux
+
+    
+
+!***********************************************************************
+!BOP
+! !IROUTINE: ecosys_ciso_set_interior
+! !INTERFACE:
+
+ subroutine ecosys_ciso_set_interior(k, TEMP_OLD, TEMP_CUR, &
+    TRACER_MODULE_OLD, TRACER_MODULE_CUR, DTRACER_MODULE, this_block)
+
+! !DESCRIPTION:
+!  Compute time derivatives for 13C and 14C state variables. 
+!
+! !REVISION HISTORY:
+!  13C code is based on code from X. Giraud, ETH Zürich, 2008, for pop1
+!  Adapted to pop2 and new ecosystem model code and added biotic 14C 
+!  by A. Jahn, NCAR, 2012-2013
+!  
+!
+
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      k                   ! vertical level index
+
+   real (r8), dimension(nx_block,ny_block), intent(in) :: &
+      TEMP_OLD,          &! old potential temperature (C)
+      TEMP_CUR            ! current potential temperature (C)
+ 
+  !real (r8), dimension(nx_block,ny_block,km,ecosys_ciso_tracer_cnt), intent(in) :: &
+   real (r8), dimension(:,:,:,:), intent(in) :: &
+      TRACER_MODULE_OLD, &! old tracer values
+      TRACER_MODULE_CUR   ! current tracer values
+
+   type (block), intent(in) :: &
+      this_block          ! block info for the current block
+
+! !OUTPUT PARAMETERS:
+
+  !real (r8), dimension(nx_block,ny_block,ecosys_ciso_tracer_cnt), intent(out) :: &
+   real (r8), dimension(:,:,:), intent(out) :: &
+      DTRACER_MODULE      ! computed source/sink terms
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables 
+!-----------------------------------------------------------------------
+
+   character(*), parameter :: &
+      subname = 'ecosys_ciso_mod:ecosys_ciso_set_interior'
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      TEMP              ! local copy of model TEMP
+      
+   logical (log_kind), dimension(nx_block,ny_block) :: ZERO_MASK
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK1,WORK2,    & ! temporaries
+      WORK3,WORK4
+      
+   real (r8) :: &
+      ztop              ! depth of top of cell
+   integer (int_kind) :: &
+      bid,            & ! local_block id
+      n,m,o,p,        & ! tracer index
+      auto_ind,       & ! autotroph functional group index
+      kk                ! index for looping over k levels
+
+
+!-------------------------------------------------------------
+! 13C Variables added  
+!-------------------------------------------------------------
+  type(sinking_particle), save :: &
+      PO13C,          & ! base units = nmol 13C        
+      P_Ca13CO3,      & ! base units = nmol CaCO3 13C  
+      PO14C,          & ! base units = nmol 14C        
+      P_Ca14CO3         ! base units = nmol CaCO3 14C  
+
+  real (r8), dimension(nx_block,ny_block) :: &
+      DO13C_loc,           & ! local copy of model DO13C     
+      DI13C_loc,           & ! local copy of model DI13C     
+      zoo13C_loc,          & ! local copy of model zoo13C    
+      DO14C_loc,           & ! local copy of model DO14C     
+      DI14C_loc,           & ! local copy of model DI14C     
+      zoo14C_loc             ! local copy of model zoo14C    
+  
+  real (r8), dimension(nx_block,ny_block,autotroph_cnt) :: &
+      autotroph13C_loc,    &  ! local copy of model autotroph 13C 
+      autotroph14C_loc,    & ! local copy of model autotroph 14C 
+      autotrophCa13CO3_loc,& ! local copy of model autotrophCa13CO3 
+      autotrophCa14CO3_loc,& ! local copy of model autotrophCa14CO3 
+      r13CT_autotrophCaCO3,& ! 13C/(13C+12C) in small phytoplankton carbonate
+      r14CT_autotrophCaCO3,& ! 14C/(14C+12C) in small phytoplankton carbonate
+      R13C_autotrophCaCO3, & ! 13C/12C in total small phytoplankton carbonate
+      R14C_autotrophCaCO3         ! 14C/12C in total small phytoplankton carbonate
+
+  real (r8), dimension(nx_block,ny_block) :: &
+      r13CT_DOC,         & ! 13C/(13C+12C) in total DOC
+      r13CT_DIC,         & ! 13C/(13C+12C) in total DIC
+      r13CT_zooC,         & ! 13C/(13C+12C) in zooplankton
+      r13CT_CaCO3_PROD,  & ! 13C/(13C+12C) in CaCO3 production of small phyto
+      r13CT_CO2STAR,     & ! 13C/(13C+12C) in CO2* water
+      R13C_CaCO3_PROD,   & ! 13C/12C in CaCO3 production of small phyto
+      R13C_CO2STAR,      & ! 13C/12C in CO2* water
+      R13C_DIC,          & ! 13C/12C in total DIC
+      R13C_DOC,          & ! 13C/12C in total DOC
+      R13C_zooC,         & ! 13C/12C in total zooplankton 
+      r14CT_DOC,         & ! 14C/(14C+12C) in total DOC
+      r14CT_DIC,         & ! 14C/(14C+12C) in total DIC
+      r14CT_zooC,        & ! 14C/(14C+12C) in zooplankton
+      r14CT_CaCO3_PROD,  & ! 14C/(14C+12C) in CaCO3 production of small phyto
+      r14CT_CO2STAR,     & ! 14C/(14C+12C) in CO2* water
+      R14C_CaCO3_PROD,   & ! 14C/12C in CaCO3 production of small phyto
+      R14C_CO2STAR,      & ! 14C/12C in CO2* water
+      R14C_DIC,          & ! 14C/12C in total DIC
+      R14C_DOC,          & ! 14C/12C in total DOC
+      R14C_zooC            ! 14C/12C in total zooplankton 
+      
+      
+    
+   real (r8), dimension(nx_block,ny_block,autotroph_cnt) :: &   
+      Ca13CO3_PROD,       & ! prod. of 13C CaCO3 by small phyto (mmol CaCO3/m^3/sec)
+      Ca14CO3_PROD,       & ! prod. of 13C CaCO3 by small phyto (mmol CaCO3/m^3/sec)
+      eps_autotroph,      & ! Permil fractionation (or discrimination factor) for Carbon autotroph types sp, diat, diaz
+      mui_to_co2star,     & ! Carbon autotroph instanteous growth rate over [CO2*] (m^3 /mmol C /s)
+      R13C_photoC,        & ! 13C/12C in Carbon autotroph C-fixation (mmol C/m^3/sec) 
+      r13CT_photoC,       & ! 13C/(13C+12C) in Carbon autotroph (sp, diat, diaz) C-fixation (mmol C/m^3/sec)
+      r13CT_autotroph,    & ! 13C/(13C+12C) in Carbon autotrophs
+      R13C_autotroph,     & ! 13C/12C in total small phytoplankton
+      photo13C,           & ! Carbon autotroph 13C-fixation (mmol C/m^3/sec)
+      R14C_photoC,        & ! 14C/12C in Carbon autotroph C-fixation (mmol C/m^3/sec) 
+      r14CT_photoC,       & ! 14C/(14C+12C) in Carbon autotroph (sp, diat, diaz) C-fixation (mmol C/m^3/sec)
+      r14CT_autotroph,    & ! 14C/(14C+12C) in Carbon autotrophs
+      R14C_autotroph,     & ! 14C/12C in total small phytoplankton
+      photo14C,           & ! Carbon autotroph 14C-fixation (mmol C/m^3/sec)
+      autotrophCaCO3_d13C,& ! d13C of autotrophCaCO3
+      autotrophCaCO3_d14C,& ! d14C of autotrophCaCO3
+      autotroph_d13C,     & ! d13C of autotroph C
+      autotroph_d14C        ! d14C of autotroph C
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      mui_to_co2star_loc,& ! Carbon autotroph instanteous growth rate over [CO2*] (m^3 /mol C /s) 
+      frac_co3,          & ! carbonate fraction fCO3 = [CO3--]/DIC
+      CO2STAR_int,       & ! [CO2*] water (mmol/m^3) in interior domain (not only surface)
+      DO13C_prod,        & ! production of 13C DOC (mmol C/m^3/sec)
+      DO13C_remin,       & ! remineralization of 13C DOC (mmol C/m^3/sec)
+      eps_aq_g,          & ! equilibrium fractionation (CO2_gaseous <-> CO2_aq)
+      eps_dic_g,         & ! equilibrium fractionation between total DIC and gaseous CO2
+      alpha_aq_g,        & ! eps = ( alpa -1 ) * 1000
+      alpha_dic_g,       & ! eps = ( alpa -1 ) * 1000
+      delta_C13_Corg,    & ! deltaC13 of Net Primary Production
+      delta_C13_CO2STAR, & ! deltaC13 of CO2*
+      DO14C_prod,        & ! production of 13C DOC (mmol C/m^3/sec)
+      DO14C_remin,       & ! remineralization of 13C DOC (mmol C/m^3/sec)
+      alpha_aq_g_14c,    & ! alpha for 14C, with fractionation twice as large as for 13C
+      alpha_dic_g_14c,   & ! alpha for 14C, with fractionation twice as large as for 13C
+      delta_C14_Corg,    & ! deltaC14 of Net Primary Production
+      delta_C14_CO2STAR, & ! deltaC14 of CO2*
+      DIC_d13C,          & ! d13C of DIC
+      DOC_d13C,          & ! d13C of DOC
+      zooC_d13C,         & ! d13C of zooC
+      DIC_d14C,          & ! d14C of DIC
+      DOC_d14C,          & ! d14C of DOC
+      zooC_d14C            ! d14C of zooC
+      
+ 
+ 
+   real (r8), dimension(autotroph_cnt) :: &
+      cell_active_C_uptake,  & ! ratio of active carbon uptake to carbon fixation
+      cell_active_C,         & ! ratio of active carbon uptake to carbon fixation
+      cell_surf,             & ! surface areas of cells ( m2 )
+      cell_carb_cont,        & ! cell carbon content ( mol C cell-1 )
+      cell_radius,           & ! cell radius ( um )
+      cell_permea,           & ! cell wall permeability to CO2(aq) (m/s)
+      cell_eps_fix             ! fractionation effect of carbon fixation
+
+
+              
+       real(r8), parameter :: &
+        eps_carb = -2.0_r8          ! eps_carb = d13C(CaCO3) - d13C(DIC)  Ziveri et al., 2003
+! debugging
+!       real(r8), parameter :: &
+!        eps_carb = 0.0_r8           ! debugging: test case no fractionation
+
+
+!---------------------------------------------------------------
+! Define pointer variables, used to share values with other modules
+! Target variables are defined in ecosys_fields
+! Below pointers are used to point to the right part of the 
+! global array in ecosys_fields
+!---------------------------------------------------------------
+  
+    real (r8), dimension(:,:), pointer :: f_zoo_detr   ! frac of zoo losses into large detrital pool (non-dim)
+    real (r8), dimension(:,:), pointer :: DIC_loc      ! local copy of model DIC
+    real (r8), dimension(:,:), pointer :: DOC_loc      ! local copy of model DOC
+    real (r8), dimension(:,:), pointer :: O2_loc       ! local copy of model O2
+    real (r8), dimension(:,:), pointer :: NO3_loc      ! local copy of model NO3
+    real (r8), dimension(:,:), pointer :: zooC_loc     ! local copy of model zooC
+    real (r8), dimension(:,:), pointer :: CO3          ! carbonate ion
+    real (r8), dimension(:,:), pointer :: HCO3         ! bicarbonate ion
+    real (r8), dimension(:,:), pointer :: H2CO3        ! carbonic acid
+    real (r8), dimension(:,:), pointer :: zoo_loss     ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
+    real (r8), dimension(:,:), pointer :: zoo_loss_doc ! zoo_loss routed to doc (mmol C/m^3/sec)
+    real (r8), dimension(:,:), pointer :: zoo_loss_dic ! zoo_loss routed to dic (mmol C/m^3/sec)
+
+    real (r8), dimension(:,:,:), pointer :: QCaCO3               ! small phyto CaCO3/C ratio (mmol CaCO3/mmol C)
+    real (r8), dimension(:,:,:), pointer :: autotrophCaCO3_loc  ! local copy of model autotroph CaCO3
+    real (r8), dimension(:,:,:), pointer :: autotrophChl_loc    ! local copy of model autotroph Chl
+    real (r8), dimension(:,:,:), pointer :: autotrophC_loc      ! local copy of model autotroph C
+    real (r8), dimension(:,:,:), pointer :: autotrophFe_loc     ! local copy of model autotroph Fe
+    real (r8), dimension(:,:,:), pointer :: autotrophSi_loc     ! local copy of model autotroph Si
+    real (r8), dimension(:,:,:), pointer :: auto_graze          ! autotroph grazing rate (mmol C/m^3/sec)
+    real (r8), dimension(:,:,:), pointer :: auto_graze_zoo      ! auto_graze routed to zoo (mmol C/m^3/sec)
+    real (r8), dimension(:,:,:), pointer :: auto_graze_poc      ! auto_graze routed to poc (mmol C/m^3/sec)
+    real (r8), dimension(:,:,:), pointer :: auto_graze_doc      ! auto_graze routed to doc (mmol C/m^3/sec)
+    real (r8), dimension(:,:,:), pointer :: auto_graze_dic      ! auto_graze routed to dic (mmol C/m^3/sec)
+    real (r8), dimension(:,:,:), pointer :: auto_loss           ! autotroph non-grazing mort (mmol C/m^3/sec)
+    real (r8), dimension(:,:,:), pointer :: auto_loss_poc       ! auto_loss routed to poc (mmol C/m^3/sec)
+    real (r8), dimension(:,:,:), pointer :: auto_loss_doc       ! auto_loss routed to doc (mmol C/m^3/sec)
+    real (r8), dimension(:,:,:), pointer :: auto_loss_dic       ! auto_loss routed to dic (mmol C/m^3/sec)
+    real (r8), dimension(:,:,:), pointer :: auto_agg            ! autotroph aggregation (mmol C/m^3/sec)
+    real (r8), dimension(:,:,:), pointer :: photoC              ! C-fixation (mmol C/m^3/sec)
+    real (r8), dimension(:,:,:), pointer :: CaCO3_PROD          ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)
+    real (r8), dimension(:,:,:), pointer :: PCphoto      ! C-specific rate of photosynth. (1/sec)
+
+!-------------------------------------------------------------
+! Nullify pointers
+!-------------------------------------------------------------
+    nullify(f_zoo_detr)
+    nullify(DIC_loc)
+    nullify(DOC_loc)
+    nullify(O2_loc)
+    nullify(NO3_loc)
+    nullify(zooC_loc)
+    nullify(CO3)
+    nullify(HCO3)
+    nullify(H2CO3)
+    nullify(zoo_loss)
+    nullify(zoo_loss_doc)
+    nullify(zoo_loss_dic)
+ 
+    nullify(QCaCO3) 
+    nullify(autotrophCaCO3_loc)
+    nullify(autotrophChl_loc)
+    nullify(autotrophC_loc)
+    nullify(autotrophFe_loc)
+    nullify(autotrophSi_loc)
+    nullify(auto_graze)
+    nullify(auto_graze_zoo)
+    nullify(auto_graze_poc)
+    nullify(auto_graze_doc)
+    nullify(auto_graze_dic)
+    nullify(auto_loss)
+    nullify(auto_loss_poc)
+    nullify(auto_loss_doc)
+    nullify(auto_loss_dic)
+    nullify(auto_agg)
+    nullify(photoC)
+    nullify(CaCO3_PROD)
+    nullify(PCphoto)
+
+
+  !----------------------------------------------------------------------------------------
+  ! Small phytoplankton based on E. huxleyi ( Keller and morel, 1999; Popp et al., 1998 )
+  ! Popp et al express cell carbon content in ( pg C cell-1 ), here we convert in (mol C cell-1)
+  ! convert pgC to molC : ! Mc = 12 g / mol ! Mc = 12 e12 pg / mol
+  !----------------------------------------------------------------------------------------
+       cell_active_C_uptake(sp_ind) = 2.2_r8      ! ratio of active carbon uptake to carbon fixation
+       cell_surf(sp_ind)            = 87.6e-12_r8 ! surface areas of cells ( m2 )
+       cell_carb_cont(sp_ind)       = 69.2e-14_r8 ! cell carbon content ( mol C cell-1 )
+       cell_radius(sp_ind)          = 2.6_r8      ! cell radius ( um )
+       cell_permea(sp_ind)          = 1.8e-5_r8   ! cell wall permeability to CO2(aq) (m/s)
+       cell_eps_fix(sp_ind)         = 25.3_r8         ! fractionation effect of carbon fixation
+
+  !----------------------------------------------------------------------------------------
+  ! Diatom based on P. tricornumtum ( Keller and morel, 1999; Popp et al., 1998 )
+  !----------------------------------------------------------------------------------------
+       cell_active_C_uptake(diat_ind) = 2.3_r8       ! ratio of active carbon uptake to carbon fixation
+       cell_surf(diat_ind)            = 100.6e-12_r8 ! surface areas of cells ( m2 )
+       cell_carb_cont(diat_ind)       = 63.3e-14_r8  ! cell carbon content ( mol C cell-1 )
+       cell_radius(diat_ind)          = 14.2_r8      ! cell radius ( um )
+       cell_permea(diat_ind)          = 3.3e-5_r8    ! cell wall permeability to CO2(aq) (m/s)
+       cell_eps_fix(diat_ind)         = 26.6_r8      ! fractionation effect of carbon fixation
+
+  !----------------------------------------------------------------------------------------
+  ! Diazotroph based on Synechococcus sp. ( Keller and morel, 1999; Popp et al., 1998 )
+  !----------------------------------------------------------------------------------------
+!       cell_active_C_uptake(diaz_ind) = 7.5_r8        ! ratio of active carbon uptake to carbon fixation
+!       cell_surf(diaz_ind)            = 5.8e-12_r8    ! surface areas of cells ( m2 )
+!       cell_carb_cont(diaz_ind)       = 3e-14_r8      ! cell carbon content ( mol C cell-1 )
+!       cell_radius(diaz_ind)          = 0.68_r8       ! cell radius ( um )
+!       cell_permea(diaz_ind)          = 3.0e-8_r8     ! cell wall permeability to CO2(aq) (m/s)
+!       cell_eps_fix(diaz_ind)         = 30.0_r8       ! fractionation effect of carbon fixation
+
+  !----------------------------------------------------------------------------------------
+  ! Diazotroph based on  Standard Phyto of Rau et al., (1996) 
+  !----------------------------------------------------------------------------------------
+       cell_active_C_uptake(diaz_ind) = 0.0_r8        ! ratio of active carbon uptake to carbon fixation
+       cell_surf(diaz_ind)            = -99.9_r8      ! surface areas of cells ( m2 ) - not used -
+       cell_carb_cont(diaz_ind)       = -99.9_r8      ! cell carbon content ( mol C cell-1 ) - not used -
+       cell_radius(diaz_ind)          = 10.0_r8       ! cell radius ( um )
+       cell_permea(diaz_ind)          = 10.0e-5_r8    ! cell wall permeability to CO2(aq) (m/s)
+       cell_eps_fix(diaz_ind)         = 25.0_r8       ! fractionation effect of carbon fixation
+       
+       
+!debugging:     
+!          cell_eps_fix(diaz_ind) = c0    !debugging, no fractination
+!          cell_eps_fix(diaz_ind) = c0    !debugging, no fractination
+!          cell_eps_fix(sp_ind)   = c0    !debugging, no fractination
+
+!-----------------------------------------------------------------------
+! End of 13C Variable additions ! 
+!-------------------------------------------------------------
+
+
+   bid = this_block%local_id
+!-------------------------------------------------------------
+! Assign locally used variables to pointer variables 
+! => use pointers to point to the right part of the global array 
+! in ecosys_fields
+!---------------------------------------------------------------
+ 
+  
+    f_zoo_detr => f_zoo_detr_fields(:,:,bid)
+    DIC_loc => DIC_loc_fields(:,:,bid)
+    DOC_loc => DOC_loc_fields(:,:,bid)
+    O2_loc  => O2_loc_fields(:,:,bid)
+    NO3_loc  => NO3_loc_fields(:,:,bid)
+    zooC_loc => zooC_loc_fields(:,:,bid)
+    CO3 => CO3_fields(:,:,bid)
+    HCO3 => HCO3_fields(:,:,bid)
+    H2CO3 => H2CO3_fields(:,:,bid)
+    zoo_loss => zoo_loss_fields(:,:,bid)
+    zoo_loss_doc => zoo_loss_doc_fields(:,:,bid)
+    zoo_loss_dic => zoo_loss_dic_fields(:,:,bid)
+ 
+    QCaCO3 => QCaCO3_fields(:,:,:,bid)
+    autotrophCaCO3_loc => autotrophCaCO3_loc_fields(:,:,:,bid)
+    autotrophChl_loc => autotrophChl_loc_fields(:,:,:,bid)
+    autotrophC_loc => autotrophC_loc_fields(:,:,:,bid)
+    autotrophFe_loc => autotrophFe_loc_fields(:,:,:,bid)
+    autotrophSi_loc => autotrophSi_loc_fields(:,:,:,bid)
+    auto_graze => auto_graze_fields(:,:,:,bid)
+    auto_graze_zoo => auto_graze_zoo_fields(:,:,:,bid)
+    auto_graze_poc => auto_graze_poc_fields(:,:,:,bid) 
+    auto_graze_doc => auto_graze_doc_fields(:,:,:,bid)
+    auto_graze_dic => auto_graze_dic_fields(:,:,:,bid)
+    auto_loss => auto_loss_fields(:,:,:,bid)
+    auto_loss_poc => auto_loss_poc_fields(:,:,:,bid)
+    auto_loss_doc => auto_loss_doc_fields(:,:,:,bid)
+    auto_loss_dic => auto_loss_dic_fields(:,:,:,bid)
+    auto_agg => auto_agg_fields(:,:,:,bid)
+    photoC => photoC_fields(:,:,:,bid)
+    CaCO3_PROD => CaCO3_PROD_fields(:,:,:,bid)
+    PCphoto => PCphoto_fields(:,:,:,bid)
+
+
+!-----------------------------------------------------------------------
+   
+
+   call timer_start(ecosys_ciso_interior_timer, block_id=bid)
+
+   DTRACER_MODULE = c0
+
+!-----------------------------------------------------------------------
+!  exit immediately if computations are not to be performed
+!-----------------------------------------------------------------------
+
+   if (.not. ciso_lsource_sink) then
+      call timer_stop(ecosys_ciso_interior_timer, block_id=bid)
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!  create local copies of model tracers
+!  treat negative values as zero
+!  apply mask to local copies
+!-----------------------------------------------------------------------
+
+   TEMP         = p5*(TEMP_OLD + TEMP_CUR)
+
+   DI13C_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,di13c_ind) + &     
+                                TRACER_MODULE_CUR(:,:,k,di13c_ind)))    
+                                                                                                 
+   DO13C_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,do13c_ind) + &      
+                              TRACER_MODULE_CUR(:,:,k,do13c_ind)))       
+                                                              
+   zoo13C_loc     = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,zoo13C_ind) + &    
+                              TRACER_MODULE_CUR(:,:,k,zoo13C_ind)))   
+   
+   DI14C_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,di14c_ind) + &     
+                                TRACER_MODULE_CUR(:,:,k,di14c_ind))) 
+                                
+   DO14C_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,do14c_ind) + &      
+                              TRACER_MODULE_CUR(:,:,k,do14c_ind)))       
+                                                                     
+   zoo14C_loc     = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,zoo14C_ind) + &    
+                              TRACER_MODULE_CUR(:,:,k,zoo14C_ind)))        
+
+   where (.not. LAND_MASK(:,:,bid) .or. k > KMT(:,:,bid))
+      DI13C_loc    = c0 !Why is DIC_loc not zeroed over land in ecosys_mod?
+      DO13C_loc    = c0
+      zoo13C_loc   = c0
+      DI14C_loc    = c0
+      DO14C_loc    = c0
+      zoo14C_loc   = c0
+   endwhere
+
+   do auto_ind = 1, autotroph_cnt
+  
+      n = autotrophs(auto_ind)%C13_ind
+      m = autotrophs(auto_ind)%C14_ind
+
+      autotroph13C_loc(:,:,auto_ind) = max(c0, &
+         p5*(TRACER_MODULE_OLD(:,:,k,n) + TRACER_MODULE_CUR(:,:,k,n)))
+
+      autotroph14C_loc(:,:,auto_ind) = max(c0, &
+         p5*(TRACER_MODULE_OLD(:,:,k,m) + TRACER_MODULE_CUR(:,:,k,m)))
+         
+      
+      o = autotrophs(auto_ind)%Ca13CO3_ind
+      p = autotrophs(auto_ind)%Ca14CO3_ind
+      if (o > 0) then
+         autotrophCa13CO3_loc(:,:,auto_ind) = max(c0, &
+            p5*(TRACER_MODULE_OLD(:,:,k,o) + TRACER_MODULE_CUR(:,:,k,o)))
+      endif
+      if (p > 0) then
+         autotrophCa14CO3_loc(:,:,auto_ind) = max(c0, &
+            p5*(TRACER_MODULE_OLD(:,:,k,p) + TRACER_MODULE_CUR(:,:,k,p)))
+      endif
+      
+      where (.not. LAND_MASK(:,:,bid) .or. k > KMT(:,:,bid))
+         autotroph13C_loc(:,:,auto_ind)     = c0
+         autotroph14C_loc(:,:,auto_ind)     = c0
+         autotrophCa13CO3_loc(:,:,auto_ind) = c0
+         autotrophCa14CO3_loc(:,:,auto_ind) = c0
+      endwhere
+   
+   end do
+
+!-----------------------------------------------------------------------
+!  If any ecosys phyto box is zero, set others to zeros 
+!  (ZERO_MASK in ecosys_mod is equal to ZERO_MASK here)
+!-----------------------------------------------------------------------
+
+   do auto_ind = 1, autotroph_cnt
+   
+      ZERO_MASK = autotrophChl_loc(:,:,auto_ind) == c0 .or. &
+                  autotrophC_loc(:,:,auto_ind)   == c0 .or. &
+                  autotrophFe_loc(:,:,auto_ind)  == c0
+      ! Zero_mask=true for any zero in Chl, C, Fw, its false only if all are false  
+      ! Add si to zero mask... if it is present (ind > 0)
+      if (autotrophs(auto_ind)%Si_ind > 0) &
+         ZERO_MASK = ZERO_MASK .or. autotrophSi_loc(:,:,auto_ind) == c0
+      
+      where (ZERO_MASK)
+         autotroph13C_loc(:,:,auto_ind) = c0
+         autotroph14C_loc(:,:,auto_ind) = c0
+      endwhere
+      if (autotrophs(auto_ind)%Ca13CO3_ind > 0) &
+         where (ZERO_MASK) autotrophCa13CO3_loc(:,:,auto_ind) = c0
+      if (autotrophs(auto_ind)%Ca14CO3_ind > 0) &
+         where (ZERO_MASK) autotrophCa14CO3_loc(:,:,auto_ind) = c0
+    
+   end do
+
+!-----------------------------------------------------------------------
+!     set local 13C/(13C+12C) and 13C/12C ratios
+!     If any Carbon box are zero, set corresponding 13C to zeros.
+
+!     Asumme ecosystem carries total carbon (C=C12+C13+C14). Since 14C 
+!     is very small, only account for 13C, i.e. C= 12C + 13C
+!-----------------------------------------------------------------------
+
+     where (DOC_loc /= c0)
+        r13CT_DOC = DO13C_loc / DOC_loc 
+        r14CT_DOC = DO14C_loc / DOC_loc
+      elsewhere
+        r13CT_DOC = c0
+        r14CT_DOC = c0
+      endwhere      
+
+      where (r13CT_DOC /= c1)
+        R13C_DOC = r13CT_DOC / ( c1 - r13CT_DOC )
+      elsewhere
+        R13C_DOC = c0
+      endwhere
+
+     where (r14CT_DOC /= c1)
+        R14C_DOC = r14CT_DOC / ( c1 - r14CT_DOC )
+      elsewhere
+        R14C_DOC = c0
+      endwhere
+
+
+      where (DIC_loc /= c0)
+        r13CT_DIC = DI13C_loc / DIC_loc
+        r14CT_DIC = DI14C_loc / DIC_loc
+      elsewhere
+        r13CT_DIC = c0
+        r14CT_DIC = c0
+      endwhere      
+
+      where (r13CT_DIC /= c1)
+        R13C_DIC = r13CT_DIC / ( c1 - r13CT_DIC )
+      elsewhere
+        R13C_DIC = c0
+      endwhere
+
+      where (r14CT_DIC /= c1)
+        R14C_DIC = r14CT_DIC / ( c1 - r14CT_DIC )
+      elsewhere
+        R14C_DIC = c0
+      endwhere
+
+      where (zooC_loc /= c0)
+        r13CT_zooC = zoo13C_loc / zooC_loc
+        r14CT_zooC = zoo14C_loc / zooC_loc
+      elsewhere
+        r13CT_zooC = c0
+        r14CT_zooC = c0
+      endwhere
+
+      where (r13CT_zooC /= c1)
+        R13C_zooC = r13CT_zooC / ( c1 - r13CT_zooC )
+      elsewhere
+        R13C_zooC = c0
+      endwhere
+
+      where (r14CT_zooC /= c1)
+        R14C_zooC = r14CT_zooC / ( c1 - r14CT_zooC )
+      elsewhere
+        R14C_zooC = c0
+      endwhere
+     
+      do auto_ind = 1, autotroph_cnt
+
+         where (autotrophC_loc(:,:,auto_ind) /= c0)
+            r13CT_autotroph(:,:,auto_ind)  = autotroph13C_loc(:,:,auto_ind) / & 
+                                             autotrophC_loc(:,:,auto_ind)
+            r14CT_autotroph(:,:,auto_ind)  = autotroph14C_loc(:,:,auto_ind) / & 
+                                             autotrophC_loc(:,:,auto_ind)
+         elsewhere
+            r13CT_autotroph(:,:,auto_ind)  = c0
+            r14CT_autotroph(:,:,auto_ind)  = c0
+         endwhere
+
+         where (r13CT_autotroph(:,:,auto_ind) /= c1)
+            R13C_autotroph(:,:,auto_ind) = r13CT_autotroph(:,:,auto_ind) / &
+                                           ( c1 - r13CT_autotroph(:,:,auto_ind) )
+         elsewhere
+            R13C_autotroph(:,:,auto_ind) = c0
+         endwhere
+
+         where (r14CT_autotroph(:,:,auto_ind) /= c1)
+            R14C_autotroph(:,:,auto_ind) = r14CT_autotroph(:,:,auto_ind) / &
+                                           ( c1 - r14CT_autotroph(:,:,auto_ind) )
+         elsewhere
+            R14C_autotroph(:,:,auto_ind) = c0
+         endwhere
+         
+          
+        where (autotrophCaCO3_loc(:,:,auto_ind) /= c0)
+          r13CT_autotrophCaCO3(:,:,auto_ind) = autotrophCa13CO3_loc(:,:,auto_ind) / &
+                                               autotrophCaCO3_loc(:,:,auto_ind)
+          r14CT_autotrophCaCO3(:,:,auto_ind) = autotrophCa14CO3_loc(:,:,auto_ind) / &
+                                               autotrophCaCO3_loc(:,:,auto_ind)
+        elsewhere
+          r13CT_autotrophCaCO3(:,:,auto_ind) = c0
+          r14CT_autotrophCaCO3(:,:,auto_ind) = c0
+        endwhere
+
+        where (r13CT_autotrophCaCO3(:,:,auto_ind) /= c1)
+          R13C_autotrophCaCO3(:,:,auto_ind) = r13CT_autotrophCaCO3(:,:,auto_ind) / &
+                                             ( c1 - r13CT_autotrophCaCO3(:,:,auto_ind) )
+        elsewhere
+          R13C_autotrophCaCO3(:,:,auto_ind) = c0
+        endwhere
+      
+        where (r14CT_autotrophCaCO3(:,:,auto_ind) /= c1)
+          R14C_autotrophCaCO3(:,:,auto_ind) = r14CT_autotrophCaCO3(:,:,auto_ind) / &
+                                              ( c1 - r14CT_autotrophCaCO3(:,:,auto_ind) )
+        elsewhere
+          R14C_autotrophCaCO3(:,:,auto_ind) = c0
+        endwhere
+
+
+      end do
+!-----------------------------------------------------------------------
+!  Initialize Particulate terms for k=1
+!-----------------------------------------------------------------------
+
+! Assuming particlate terms calculation is the same for 14C as for 13C
+! Correct?
+
+   if (k == 1) then
+      call ciso_init_particulate_terms(PO13C, P_Ca13CO3, this_block) 
+      call ciso_init_particulate_terms(PO14C, P_Ca14CO3, this_block)    
+   endif         
+!-----------------------------------------------------------------------
+
+    where (.not. LAND_MASK(:,:,bid) .or. k > KMT(:,:,bid))
+            frac_co3 = c0
+    elsewhere
+            frac_co3 = CO3 / DIC_loc 
+    end where
+   
+ 
+!-----------------------------------------------------------------------
+!   discrimination factors of carbone chemistry based on      
+!   Zhang et al, 1995, Geochim. et Cosmochim. Acta, 59 (1), 107-114
+!
+!   eps = permil fractionation and alpha is the fractionation factor
+!   with eps =(alpha - 1) *1000
+!
+!   Fractionation is twice as large for 14C compared to 13C
+!-----------------------------------------------------------------------
+
+    eps_aq_g   = 0.0049_r8 * TEMP - 1.31_r8
+    eps_dic_g  = 0.014_r8 * TEMP * frac_co3 - 0.105_r8 * TEMP + 10.53_r8
+
+!debugging: setting eps_ to zero, which means alpha is equal to 1
+!    eps_aq_g  = c0
+!    eps_dic_g = c0
+
+
+    alpha_aq_g  = c1 + eps_aq_g  / c1000
+    alpha_dic_g = c1 + eps_dic_g / c1000
+    
+    alpha_aq_g_14c  = c1 + eps_aq_g* 2.0_r8  / c1000 !fractionation is twice as large for 14C compared to 13C
+    alpha_dic_g_14c = c1 + eps_dic_g* 2.0_r8 / c1000
+      
+!-----------------------------------------------------------------------
+!   13C/12C ratios of CO2* (CO2STAR)
+!-----------------------------------------------------------------------
+
+    R13C_CO2STAR = R13C_DIC * alpha_aq_g / alpha_dic_g
+
+!-----------------------------------------------------------------------
+!   delta_13C of CO2* (CO2STAR)
+!-----------------------------------------------------------------------
+
+    delta_C13_CO2STAR = ( R13C_CO2STAR / R13C_std - c1 ) * c1000
+
+!-----------------------------------------------------------------------
+!   13C/(12C+13C) ratios of CO2* (CO2STAR)
+!-----------------------------------------------------------------------
+
+    r13CT_CO2STAR = R13C_CO2STAR / ( c1 + R13C_CO2STAR )
+
+!-----------------------------------------------------------------------
+!   14C/12C ratios of CO2* (CO2STAR)
+!-----------------------------------------------------------------------
+
+    R14C_CO2STAR = R14C_DIC * alpha_aq_g_14c / alpha_dic_g_14c
+
+!-----------------------------------------------------------------------
+!   delta_14C of CO2* (CO2STAR)
+!-----------------------------------------------------------------------
+
+    delta_C14_CO2STAR = ( R14C_CO2STAR / R14C_std - c1 ) * c1000
+
+!-----------------------------------------------------------------------
+!   14C/(12C+14C) ratios of CO2* (CO2STAR)
+!-----------------------------------------------------------------------
+
+    r14CT_CO2STAR = R14C_CO2STAR / ( c1 + R14C_CO2STAR )
+
+!-----------------------------------------------------------------------
+!   [CO2STAR]  = [CO2*] = [CO2(aq)] + [H2CO3] 
+!   (this is eq 1.1.1 in Zeebe and Wolf-Gladrow, CO2 in seawater: 
+!   equilibrium, kinetics, isotopes, Elseview Oceanography Series 65)
+!
+!   DIC= [CO3] + [HCO3] + [CO2*] (eq 1.1.7)
+! 
+!   => CO2STAR_int = DIC_loc - HCO3 - CO3 ! 
+!-----------------------------------------------------------------------
+ 
+    CO2STAR_int = DIC_loc - HCO3 - CO3 
+
+!------------------------------------------------------------------------
+! Loop over autotrophe types sp, diat, diaz and calculate fractionation
+! for each type
+!------------------------------------------------------------------------
+   
+   do auto_ind = 1, autotroph_cnt
+   
+!------------------------------------------------------------------------
+!   mu(i) / [CO2*]  of small phytoplankton ( m^3 / mmol C /s )
+!-----------------------------------------------------------------------
+      
+      
+      where ( CO2STAR_int /= c0 )
+         mui_to_co2star(:,:,auto_ind) =  PCphoto(:,:,auto_ind) / CO2STAR_int 
+      elsewhere
+         mui_to_co2star(:,:,auto_ind) = c0
+      endwhere
+  
+
+!-----------------------------------------------------------------------
+!   fractionation factors for 13C fixation in authotrophe types (sp, diaz, diat)
+!  
+!   There are different options in ETH code 
+!  (three for fractionation against CO2* and three for fractionation 
+!   against d13C of DIC. Here we include only the onces for fractionatio against CO2*
+!-----------------------------------------------------------------------
+      select case (ciso_fract_factors)
+  
+!-----------------------------------------------------------------------
+!   Rau et al., 1989 ( see Gruber et al., 1998 )
+!   with restriction between -19 and -31 permil (see Rau et al., 1989)
+!-----------------------------------------------------------------------
+      case ('Rau')
+        delta_C13_Corg = -0.8_r8 * CO2STAR_int - 12.6_r8
+
+        delta_C13_Corg = min( delta_C13_Corg , -18.0_r8 ) 
+        delta_C13_Corg = max( delta_C13_Corg , -32.0_r8 )
+
+        R13C_photoC(:,:,auto_ind) = R13C_std * ( c1 + delta_C13_Corg / c1000 )
+! Assuming eps_autotroph=delta_C13_Corg and that eps_autotroph for 14C is twice that for 13C
+! Correct???
+        R14C_photoC(:,:,auto_ind) = R14C_std * ( c1 + delta_C13_Corg* 2.0_r8 / c1000 )
+
+
+        where ( R13C_photoC(:,:,auto_ind) /= -c1 ) 
+          r13CT_photoC(:,:,auto_ind) = R13C_photoC(:,:,auto_ind) / ( c1 + R13C_photoC(:,:,auto_ind) )
+          r14CT_photoC(:,:,auto_ind) = R14C_photoC(:,:,auto_ind) / ( c1 + R14C_photoC(:,:,auto_ind) )
+        elsewhere
+          r13CT_photoC(:,:,auto_ind) = c0
+          r14CT_photoC(:,:,auto_ind) = c0
+        endwhere
+
+!!       eps_autotroph = delta_C13_Corg - delta_C13_CO2STAR
+        eps_autotroph(:,:,auto_ind) = delta_C13_Corg 
+!-----------------------------------------------------------------------
+!   Laws et al, 1995
+!   with restriction between 10 and 26 for size effect (Tagliabue and Bopp, 2008)      
+!   convert mui_to_co2star from m3/mmol/s to kg/mumol/d
+!-----------------------------------------------------------------------
+      case ('Laws')
+        eps_autotroph(:,:,auto_ind) = (( mui_to_co2star(:,:,auto_ind) * &
+                               seconds_in_day  ) - 0.371_r8 ) / (-0.015_r8)
+
+!----------------------------------------------------------------
+! uncomment the following two lines to restrict eps_sp  between 10 and 26 
+!----------------------------------------------------------------
+
+!       eps_autotroph(:,:,auto_ind) = min( eps_autotroph(:,:,auto_ind), 26.0_r8 )
+!       eps_autotroph(:,:,auto_ind) = max( eps_autotroph(:,:,auto_ind), 10.0_r8 )
+
+        r13CT_photoC(:,:,auto_ind) = c1000 * r13CT_CO2STAR / & 
+                         ( c1000 + eps_autotroph(:,:,auto_ind) * &
+                         ( c1 - r13CT_CO2STAR ))
+
+!Assumin we can just double the fractionation for 13C for 14C, the following should work
+! Correct for Laws/biological ractionation?
+
+         r14CT_photoC(:,:,auto_ind) = c1000 * r14CT_CO2STAR / & 
+                         ( c1000 + eps_autotroph(:,:,auto_ind) * 2.0_r8 * &
+                         ( c1 - r14CT_CO2STAR ))
+
+
+!-----------------------------------------------------------------------
+!   Keller and morel, 1999 - this is the default
+!-----------------------------------------------------------------------
+     case ('KellerMorel')
+ ! Don't know how to adapt for 14C, don't use for that  
+!-----------------------------------------------------------------
+! convert mui_to_co2start from m3/mmol/s to m3/mol/s
+!-----------------------------------------------------------------
+
+        mui_to_co2star_loc = mui_to_co2star(:,:,auto_ind) * c1000 
+ 
+ 
+        call fract_keller_morel( LAND_MASK(:,:,bid),        &
+                 mui_to_co2star_loc, &
+                 cell_active_C_uptake(auto_ind),   &
+                 cell_surf(auto_ind),              &
+                 cell_carb_cont(auto_ind),         &
+                 cell_radius(auto_ind),            &
+                 cell_permea(auto_ind),            &
+                 cell_eps_fix(auto_ind),           &
+                 eps_autotroph(:,:,auto_ind) )
+
+        R13C_photoC(:,:,auto_ind) = R13C_CO2STAR - R13C_std *    &
+                                    eps_autotroph(:,:,auto_ind) / c1000
+
+        r13CT_photoC(:,:,auto_ind) = R13C_photoC(:,:,auto_ind) / &
+                                     ( c1 + R13C_photoC(:,:,auto_ind) )
+
+! Assuming we can just double the fractionation factor for 13C for 14C, the below should work
+! Correct?
+
+    R14C_photoC(:,:,auto_ind) = R14C_CO2STAR - R14C_std *    &
+                                    eps_autotroph(:,:,auto_ind)* 2.0_r8 / c1000
+
+    r14CT_photoC(:,:,auto_ind) = R14C_photoC(:,:,auto_ind) / &
+                                     ( c1 + R14C_photoC(:,:,auto_ind) )
+
+!-----------------------------------------------------------------------
+!     No fractionation
+!-----------------------------------------------------------------------
+    case ('no_fractionation') 
+      eps_autotroph(:,:,auto_ind)= c0
+      r13CT_photoC(:,:,auto_ind) = c1
+      r14CT_photoC(:,:,auto_ind) = c1
+!-----------------------------------------------------------------------
+
+
+    end select
+
+!-----------------------------------------------------------------------
+!     small phytoplankton, Diatom, and Diaztroph 13C and 14C fixation      
+!-----------------------------------------------------------------------
+
+      photo13C(:,:,auto_ind) = photoC(:,:,auto_ind) * r13CT_photoC(:,:,auto_ind)
+
+
+      photo14C(:,:,auto_ind) = photoC(:,:,auto_ind) * r14CT_photoC(:,:,auto_ind)
+      
+  
+  
+
+!-----------------------------------------------------------------------
+!     C13 & C14 CaCO3 production 
+!-----------------------------------------------------------------------
+     if (autotrophs(auto_ind)%imp_calcifier) then
+       
+        R13C_CaCO3_PROD = R13C_DIC + R13C_std * eps_carb / c1000 ! Where does this equation come from?
+
+        r13CT_CaCO3_PROD = R13C_CaCO3_PROD / ( c1 + R13C_CaCO3_PROD )
+
+ 
+        R14C_CaCO3_PROD = R14C_DIC + R14C_std * eps_carb * 2.0_r8 / c1000 !Can we just double eps_carb for 14C? 
+        r14CT_CaCO3_PROD = R14C_CaCO3_PROD / ( c1 + R14C_CaCO3_PROD )
+
+
+        Ca13CO3_PROD(:,:,auto_ind) = CaCO3_PROD(:,:,auto_ind) * r13CT_CaCO3_PROD 
+
+        Ca14CO3_PROD(:,:,auto_ind) = CaCO3_PROD(:,:,auto_ind) * r14CT_CaCO3_PROD 
+      
+        call accumulate_tavg_field(Ca13CO3_PROD(:,:,auto_ind), tavg_CISO_Ca13CO3_form(auto_ind),bid,k)
+        call accumulate_tavg_field(Ca14CO3_PROD(:,:,auto_ind), tavg_CISO_Ca14CO3_form(auto_ind),bid,k)
+
+        if (accumulate_tavg_now(tavg_CISO_Ca13CO3_form_zint(auto_ind))) then
+            if (partial_bottom_cells) then
+               WORK1 = DZT(:,:,k,bid) * Ca13CO3_PROD(:,:,auto_ind)
+            else
+               WORK1 = dz(k) * Ca13CO3_PROD(:,:,auto_ind)
+            endif
+            call accumulate_tavg_field(WORK1, tavg_CISO_Ca13CO3_form_zint(auto_ind),bid,k)
+        endif
+        if (accumulate_tavg_now(tavg_CISO_Ca14CO3_form_zint(auto_ind))) then
+            if (partial_bottom_cells) then
+               WORK1 = DZT(:,:,k,bid) * Ca14CO3_PROD(:,:,auto_ind)
+            else
+               WORK1 = dz(k) * Ca14CO3_PROD(:,:,auto_ind)
+            endif
+            call accumulate_tavg_field(WORK1, tavg_CISO_Ca14CO3_form_zint(auto_ind),bid,k)
+        endif
+     endif
+     
+      
+end do ! end loop over autotroph types
+ 
+!-----------------------------------------------------------------------
+!  compute terms for DO13C and DO14C
+!-----------------------------------------------------------------------
+   
+   DO13C_prod = zoo_loss_doc *r13CT_zooC +  &
+                sum( (auto_loss_doc + auto_graze_doc) * r13CT_autotroph, dim=3)
+           
+   DO13C_remin = DO13C_loc * DOC_reminR
+
+   
+   DO14C_prod = zoo_loss_doc *r14CT_zooC +  &
+                sum( (auto_loss_doc + auto_graze_doc) * r14CT_autotroph, dim=3)
+           
+   DO14C_remin = DO14C_loc * DOC_reminR
+
+
+
+!-----------------------------------------------------------------------
+!  large detritus 13C and 14C
+!-----------------------------------------------------------------------
+
+   PO13C%prod(:,:,bid) = f_zoo_detr * zoo_loss * r13CT_zooC + &
+                    sum( ( (auto_graze_poc + auto_agg + auto_loss_poc) * r13CT_autotroph), dim=3)
+
+
+   PO14C%prod(:,:,bid) = f_zoo_detr * zoo_loss * r14CT_zooC + &
+                    sum( ( (auto_graze_poc + auto_agg + auto_loss_poc) * r14CT_autotroph), dim=3)
+
+
+!-----------------------------------------------------------------------
+!  large detrital Ca13CO3 and Ca14CCO3
+!-----------------------------------------------------------------------
+
+   do auto_ind = 1, autotroph_cnt
+      if (autotrophs(auto_ind)%CaCO3_ind > 0) then
+         P_Ca13CO3%prod(:,:,bid) = ((c1 - f_graze_CaCO3_REMIN) * auto_graze(:,:,auto_ind) + &
+                                  auto_loss(:,:,auto_ind) + auto_agg(:,:,auto_ind)) * &
+                                  QCaCO3(:,:,auto_ind) * r13CT_autotrophCaCO3(:,:,auto_ind)
+         P_Ca14CO3%prod(:,:,bid) = ((c1 - f_graze_CaCO3_REMIN) * auto_graze(:,:,auto_ind) + &
+                                  auto_loss(:,:,auto_ind) + auto_agg(:,:,auto_ind)) * &
+                                  QCaCO3(:,:,auto_ind) * r14CT_autotrophCaCO3(:,:,auto_ind)   
+      endif
+   end do
+
+
+!-----------------------------------------------------------------------
+! Compute particulate terms and write to tavg
+!-----------------------------------------------------------------------
+
+  
+   call ciso_compute_particulate_terms(k, POC, P_CaCO3, PO13C, P_Ca13CO3, &
+                                  TEMP, O2_loc, NO3_loc, this_block)
+                                  
+ 
+    call ciso_compute_particulate_terms(k, POC, P_CaCO3, PO14C, P_Ca14CO3, &
+                                  TEMP, O2_loc, NO3_loc, this_block)
+                                  
+                               
+                                     
+                                  
+    call ciso_tavg_particulate_terms(k, POC, P_CaCO3, PO13C, P_Ca13CO3, &
+                                  PO14C, P_Ca14CO3, this_block)
+
+!-----------------------------------------------------------------------
+! Update DTRACER_MODULE for the 7 carbon pools for each Carbon isotope
+!-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
+!  autotroph Carbon (3 carbon pools)
+!  autotroph Ca13CO3 and Ca14CO3 
+!-----------------------------------------------------------------------
+
+   do auto_ind = 1, autotroph_cnt
+      WORK1 = auto_graze(:,:,auto_ind) + auto_loss(:,:,auto_ind) + auto_agg(:,:,auto_ind)
+
+      n = autotrophs(auto_ind)%C13_ind 
+      m = autotrophs(auto_ind)%C14_ind 
+      
+      DTRACER_MODULE(:,:,n) = photo13C(:,:,auto_ind) - WORK1 * r13CT_autotroph(:,:,auto_ind)
+      DTRACER_MODULE(:,:,m) = photo14C(:,:,auto_ind) - WORK1 * r14CT_autotroph(:,:,auto_ind) - &
+                              c14_lambda_inv_sec * autotroph14C_loc(:,:,auto_ind)
+                              
+      n = autotrophs(auto_ind)%Ca13CO3_ind
+      if (n > 0) then
+         DTRACER_MODULE(:,:,n) = Ca13CO3_PROD(:,:,auto_ind) - QCaCO3(:,:,auto_ind) &
+                                 * WORK1 * r13CT_autotrophCaCO3(:,:,auto_ind)
+      endif   
+      n = autotrophs(auto_ind)%Ca14CO3_ind
+      if (n > 0) then
+         DTRACER_MODULE(:,:,n) = Ca14CO3_PROD(:,:,auto_ind) - QCaCO3(:,:,auto_ind) &
+                                 * WORK1 * r14CT_autotrophCaCO3(:,:,auto_ind)      &
+                                 - c14_lambda_inv_sec * autotrophCa14CO3_loc(:,:,auto_ind)
+      endif                       
+   end do
+   
+
+
+!-----------------------------------------------------------------------
+!  zoo 13 and 14 Carbon 
+!-----------------------------------------------------------------------
+
+   DTRACER_MODULE(:,:,zoo13C_ind) = sum(auto_graze_zoo * r13CT_autotroph, dim=3) - &
+                                    zoo_loss *r13CT_zooC
+
+   DTRACER_MODULE(:,:,zoo14C_ind) = sum(auto_graze_zoo * r14CT_autotroph, dim=3) - &
+                                    zoo_loss *r14CT_zooC -                &
+                                    c14_lambda_inv_sec * zoo14C_loc
+
+!-----------------------------------------------------------------------
+!  dissolved organic Matter 13C and 14C
+!-----------------------------------------------------------------------
+
+   DTRACER_MODULE(:,:,do13c_ind) = DO13C_prod - DO13C_remin
+
+   DTRACER_MODULE(:,:,do14c_ind) = DO14C_prod - DO14C_remin  -        &
+                                   c14_lambda_inv_sec * DO14C_loc
+
+
+!-----------------------------------------------------------------------
+!   dissolved inorganic Carbon 13 and 14
+!-----------------------------------------------------------------------
+
+   DTRACER_MODULE(:,:,di13c_ind) =        &
+       sum( (auto_loss_dic+ auto_graze_dic) * r13CT_autotroph, dim=3)   &
+       - sum(photo13C, dim=3)                                           &
+       + DO13C_remin + PO13C%remin(:,:,bid)                             &
+       + zoo_loss_dic * r13CT_zooC                                      &
+       + P_Ca13CO3%remin(:,:,bid) 
+      
+
+   DTRACER_MODULE(:,:,di14c_ind) =                                     &
+      sum( (auto_loss_dic+ auto_graze_dic) * r14CT_autotroph, dim=3)   &
+      - sum(photo14C, dim=3)                                           &
+      + DO14C_remin + PO14C%remin(:,:,bid)                             &
+      + zoo_loss_dic * r14CT_zooC                                      &
+      + P_Ca14CO3%remin(:,:,bid)                                       &
+      - c14_lambda_inv_sec * DI14C_loc
+      
+!   do auto_ind = 1, autotroph_cnt
+!     if (autotrophs(auto_ind)%Ca14CO3_ind > 0) then
+!       DTRACER_MODULE(:,:,di14c_ind) = DTRACER_MODULE(:,:,di14c_ind)       &    
+!             + f_graze_CaCO3_REMIN * auto_graze(:,:,sp_ind)                &
+!             * QCaCO3(:,:,auto_ind) * r14CT_autotrophCaCO3(:,:,auto_ind)   &
+!             - Ca14CO3_PROD(:,:,auto_ind)                                     
+!     elseif (autotrophs(auto_ind)%Ca13CO3_ind > 0) then
+!       DTRACER_MODULE(:,:,di13c_ind) = DTRACER_MODULE(:,:,di13c_ind)       &    
+!             + f_graze_CaCO3_REMIN * auto_graze(:,:,sp_ind)                &
+!             * QCaCO3(:,:,auto_ind) * r13CT_autotrophCaCO3(:,:,auto_ind)   &
+!             - Ca13CO3_PROD(:,:,auto_ind)    
+!     endif
+!   end do
+    
+
+!-----------------------------------------------------------------------
+!   Calculate oceanic D14C and D13C of carbon pools
+!-----------------------------------------------------------------------
+ 
+    DIC_d13C =  ( R13C_DIC / R13C_std - c1 ) * c1000
+    DIC_d14C =  ( R14C_DIC / R14C_std - c1 ) * c1000
+     
+    DOC_d13C =  ( R13C_DOC / R13C_std - c1 ) * c1000
+    DOC_d14C =  ( R14C_DOC / R14C_std - c1 ) * c1000
+    
+    zooC_d13C =  ( R13C_zooC / R13C_std - c1 ) * c1000
+    zooC_d14C =  ( R14C_zooC / R14C_std - c1 ) * c1000
+    
+    autotrophCaCO3_d13C(:,:,auto_ind) =  ( R13C_autotrophCaCO3(:,:,auto_ind) / R13C_std - c1 ) * c1000
+    autotrophCaCO3_d14C(:,:,auto_ind) =  ( R14C_autotrophCaCO3(:,:,auto_ind) / R14C_std - c1 ) * c1000
+    
+    autotroph_d13C(:,:,auto_ind) =  ( R13C_autotroph(:,:,auto_ind) / R13C_std - c1 ) * c1000
+    autotroph_d14C(:,:,auto_ind) =  ( R14C_autotroph(:,:,auto_ind) / R14C_std - c1 ) * c1000
+     
+   
+  
+
+!-----------------------------------------------------------------------
+!  various tavg/history variables
+!-----------------------------------------------------------------------
+
+!debugging  
+!
+!    do auto_ind = 1, autotroph_cnt
+!      call accumulate_tavg_field(photoC(:,:,auto_ind), tavg_CISO_photoC(auto_ind),bid,k)
+!      call accumulate_tavg_field(R13C_photoC(:,:,auto_ind), tavg_CISO_R13C_photoC(auto_ind),bid,k)
+!      call accumulate_tavg_field(r13CT_photoC(:,:,auto_ind), tavg_CISO_r13CT_photoC(auto_ind),bid,k)
+!    end do
+ !end debugging
+     
+    do auto_ind = 1, autotroph_cnt
+      call accumulate_tavg_field(autotroph_d13C(:,:,auto_ind), tavg_CISO_d13C(auto_ind),bid,k)
+      call accumulate_tavg_field(autotroph_d14C(:,:,auto_ind), tavg_CISO_d14C(auto_ind),bid,k)
+      call accumulate_tavg_field(autotrophCaCO3_d14C(:,:,auto_ind), tavg_CISO_autotrophCaCO3_d14C(auto_ind),bid,k)
+      call accumulate_tavg_field(autotrophCaCO3_d13C(:,:,auto_ind), tavg_CISO_autotrophCaCO3_d13C(auto_ind),bid,k)
+    end do 
+     
+    call accumulate_tavg_field(DIC_d13C, tavg_CISO_DIC_d13C,bid,k)
+    call accumulate_tavg_field(DOC_d13C, tavg_CISO_DOC_d13C,bid,k)
+    call accumulate_tavg_field(zooC_d13C, tavg_CISO_zooC_d13C,bid,k)
+ 
+    call accumulate_tavg_field(DIC_d14C, tavg_CISO_DIC_d14C,bid,k)
+    call accumulate_tavg_field(DOC_d14C, tavg_CISO_DOC_d14C,bid,k)
+    call accumulate_tavg_field(zooC_d14C, tavg_CISO_zooC_d14C,bid,k)
+  
+
+    call accumulate_tavg_field(frac_co3, tavg_CISO_FRAC_CO3,bid,k)
+     
+  
+
+   if (accumulate_tavg_now(tavg_CISO_photo13C_TOT)) then
+      WORK1 = sum(photo13C, dim=3)
+      call accumulate_tavg_field(WORK1, tavg_CISO_photo13C_TOT,bid,k)
+   endif
+
+   if (accumulate_tavg_now(tavg_CISO_photo14C_TOT)) then
+      WORK1 = sum(photo14C, dim=3)
+      call accumulate_tavg_field(WORK1, tavg_CISO_photo14C_TOT,bid,k)
+   endif
+
+   if (accumulate_tavg_now(tavg_CISO_photo13C_TOT_zint)) then
+      if (partial_bottom_cells) then
+         WORK1 = DZT(:,:,k,bid) * sum(photo13C, dim=3)
+      else
+         WORK1 = dz(k) * sum(photo13C, dim=3)
+      endif
+      call accumulate_tavg_field(WORK1, tavg_CISO_photo13C_TOT_zint,bid,k)
+   endif
+   
+    if (accumulate_tavg_now(tavg_CISO_photo14C_TOT_zint)) then
+      if (partial_bottom_cells) then
+         WORK1 = DZT(:,:,k,bid) * sum(photo14C, dim=3)
+      else
+         WORK1 = dz(k) * sum(photo14C, dim=3)
+      endif
+      call accumulate_tavg_field(WORK1, tavg_CISO_photo14C_TOT_zint,bid,k)
+   endif
+
+   do auto_ind = 1, autotroph_cnt
+      call accumulate_tavg_field(photo13C(:,:,auto_ind), tavg_CISO_photo13C(auto_ind),bid,k)
+      call accumulate_tavg_field(eps_autotroph(:,:,auto_ind), tavg_CISO_eps_autotroph(auto_ind),bid,k)
+      call accumulate_tavg_field(mui_to_co2star(:,:,auto_ind), tavg_CISO_mui_to_co2star(auto_ind),bid,k)
+      call accumulate_tavg_field(photo14C(:,:,auto_ind), tavg_CISO_photo14C(auto_ind),bid,k)
+   end do
+
+
+
+
+   do auto_ind = 1, autotroph_cnt
+      if (accumulate_tavg_now(tavg_CISO_photo13C_zint(auto_ind))) then
+         if (partial_bottom_cells) then
+            WORK1 = DZT(:,:,k,bid) * photo13C(:,:,auto_ind)
+         else
+            WORK1 = dz(k) * photo13C(:,:,auto_ind)
+         endif
+         call accumulate_tavg_field(WORK1, tavg_CISO_photo13C_zint(auto_ind),bid,k)
+      endif
+   end do
+   
+   do auto_ind = 1, autotroph_cnt
+      if (accumulate_tavg_now(tavg_CISO_photo14C_zint(auto_ind))) then
+         if (partial_bottom_cells) then
+            WORK1 = DZT(:,:,k,bid) * photo14C(:,:,auto_ind)
+         else
+            WORK1 = dz(k) * photo14C(:,:,auto_ind)
+         endif
+         call accumulate_tavg_field(WORK1, tavg_CISO_photo14C_zint(auto_ind),bid,k)
+      endif
+   end do
+
+   
+   call accumulate_tavg_field(DO13C_prod, tavg_CISO_DO13C_prod,bid,k)
+
+   call accumulate_tavg_field(DO14C_prod, tavg_CISO_DO14C_prod,bid,k)
+
+   call accumulate_tavg_field(DO13C_remin, tavg_CISO_DO13C_remin,bid,k)
+   
+   call accumulate_tavg_field(DO14C_remin, tavg_CISO_DO14C_remin,bid,k)
+  
+   call accumulate_tavg_field(eps_aq_g, tavg_CISO_eps_aq_g,bid,k)
+   
+   call accumulate_tavg_field(eps_dic_g, tavg_CISO_eps_dic_g,bid,k)
+
+   ztop = c0
+   if (k > 1) ztop = zw(k-1)
+
+   if (accumulate_tavg_now(tavg_CISO_Jint_13Ctot) .or. &
+       (accumulate_tavg_now(tavg_CISO_Jint_100m_13Ctot) .and. (ztop < 100.0e2_r8))) then
+      WORK1 = DTRACER_MODULE(:,:,di13c_ind) + DTRACER_MODULE(:,:,do13c_ind) &
+              + DTRACER_MODULE(:,:,zoo13C_ind)  &
+              + sum(DTRACER_MODULE(:,:,autotrophs(:)%C13_ind), dim=3)
+      do auto_ind = 1, autotroph_cnt
+         n = autotrophs(auto_ind)%Ca13CO3_ind
+         if (n > 0) then
+            WORK1 = WORK1 + DTRACER_MODULE(:,:,n)
+         endif
+      end do
+      if (accumulate_tavg_now(tavg_CISO_Jint_13Ctot)) then
+         if (partial_bottom_cells) then
+            WORK2 = merge(DZT(:,:,k,bid) * WORK1, c0, k<=KMT(:,:,bid))
+         else
+            WORK2 = merge(dz(k) * WORK1, c0, k<=KMT(:,:,bid))
+         endif
+         ! add back loss to sediments
+         WORK2 = WORK2 + merge(PO13C%sed_loss(:,:,bid) + P_Ca13CO3%sed_loss(:,:,bid), &
+                               c0, k<=KMT(:,:,bid))
+         call accumulate_tavg_field(WORK2,tavg_CISO_Jint_13Ctot,bid,k)
+      endif
+      if (accumulate_tavg_now(tavg_CISO_Jint_100m_13Ctot) .and. (ztop < 100.0e2_r8)) then
+         if (partial_bottom_cells) then
+            WORK2 = merge(min(100.0e2_r8 - ztop, DZT(:,:,k,bid)) * WORK1, c0, k<=KMT(:,:,bid))
+            ! add back loss to sediments
+            WORK2 = WORK2 + merge(PO13C%sed_loss(:,:,bid) + P_Ca13CO3%sed_loss(:,:,bid), &
+                                  c0, ztop + DZT(:,:,k,bid) <= 100.0e2_r8 .and. k<=KMT(:,:,bid))
+         else
+            WORK2 = merge(min(100.0e2_r8 - ztop, dz(k)) * WORK1, c0, k<=KMT(:,:,bid))
+            ! add back loss to sediments
+            WORK2 = WORK2 + merge(PO13C%sed_loss(:,:,bid) + P_Ca13CO3%sed_loss(:,:,bid), &
+                                  c0, ztop + dz(k) <= 100.0e2_r8 .and. k<=KMT(:,:,bid))
+         endif
+         call accumulate_tavg_field(WORK2,tavg_CISO_Jint_100m_13Ctot,bid,k)
+      endif
+   endif
+      
+   if (accumulate_tavg_now(tavg_CISO_Jint_14Ctot) .or. &
+       (accumulate_tavg_now(tavg_CISO_Jint_100m_14Ctot) .and. (ztop < 100.0e2_r8))) then
+      WORK1 = DTRACER_MODULE(:,:,di14c_ind) + DTRACER_MODULE(:,:,do14c_ind) &
+              + DTRACER_MODULE(:,:,zoo14C_ind)  &
+              + sum(DTRACER_MODULE(:,:,autotrophs(:)%C14_ind), dim=3)
+      do auto_ind = 1, autotroph_cnt
+         n = autotrophs(auto_ind)%Ca14CO3_ind
+         if (n > 0) then
+            WORK1 = WORK1 + DTRACER_MODULE(:,:,n)
+         endif
+      end do
+      if (accumulate_tavg_now(tavg_CISO_Jint_14Ctot)) then
+         if (partial_bottom_cells) then
+            WORK2 = merge(DZT(:,:,k,bid) * WORK1, c0, k<=KMT(:,:,bid))
+         else
+            WORK2 = merge(dz(k) * WORK1, c0, k<=KMT(:,:,bid))
+         endif
+         ! add back loss to sediments
+         WORK2 = WORK2 + merge(PO14C%sed_loss(:,:,bid) + P_Ca14CO3%sed_loss(:,:,bid), &
+                               c0, k<=KMT(:,:,bid))
+         call accumulate_tavg_field(WORK2,tavg_CISO_Jint_14Ctot,bid,k)
+      endif
+      if (accumulate_tavg_now(tavg_CISO_Jint_100m_14Ctot) .and. (ztop < 100.0e2_r8)) then
+         if (partial_bottom_cells) then
+            WORK2 = merge(min(100.0e2_r8 - ztop, DZT(:,:,k,bid)) * WORK1, c0, k<=KMT(:,:,bid))
+            ! add back loss to sediments
+            WORK2 = WORK2 + merge(PO14C%sed_loss(:,:,bid) + P_Ca14CO3%sed_loss(:,:,bid), &
+                                  c0, ztop + DZT(:,:,k,bid) <= 100.0e2_r8 .and. k<=KMT(:,:,bid))
+         else
+            WORK2 = merge(min(100.0e2_r8 - ztop, dz(k)) * WORK1, c0, k<=KMT(:,:,bid))
+            ! add back loss to sediments
+            WORK2 = WORK2 + merge(PO14C%sed_loss(:,:,bid) + P_Ca14CO3%sed_loss(:,:,bid), &
+                                  c0, ztop + dz(k) <= 100.0e2_r8 .and. k<=KMT(:,:,bid))
+         endif
+         call accumulate_tavg_field(WORK2,tavg_CISO_Jint_100m_14Ctot,bid,k)
+      endif
+   endif
+   
+!-----------------------------------------------------------------------
+ call timer_stop(ecosys_ciso_interior_timer, block_id=bid)
+
+  
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ecosys_ciso_set_interior
+!-----------------------------------------------------------------------
+
+
+!----------------------------------------------------------------------- 
+!BOP
+! !IROUTINE: fract_keller_morel
+! !INTERFACE:
+
+                 
+ subroutine fract_keller_morel( mask, mui_to_co2star, &
+                  cell_active_C_uptake,               &
+                  cell_surf,                          &
+                  cell_carb_cont,                     &
+                  cell_radius,                        &
+                  cell_permea,                        &
+                  cell_eps_fix,                       &
+!                  eps_14c_p,                          & 
+                  eps_p)
+
+!---------------------------------------------------------------------------
+! DESCRIPTION: Calculate the carbon isotopic fractionation of phytoplankton
+!              photosynthesis : eps_p
+! 
+! COMPUTATION : based on Keller and Morel, 1999
+!
+!   eps_p = d13C(co2(aq)) - d13C(phyto)
+!
+!   eps_p = eps_diff + (cell_active_C_uptake/(cell_active_C_uptake + 1/var)) * delta_d13C
+!         + ( (1 + (cell_active_C_uptake-1)*var )/(1+cell_active_C_uptake*var) )
+!         * ( cell_eps_fix - eps_diff )
+!
+!   delta_d13C = d13C(CO2) - d13C(source)
+!              = 9 per mil
+!
+!   var = mui_to_co2star * cell_carb_cont / ( cell_permea * cell_surf )
+!
+!   mui_to_co2star = mu_i / [CO2*]
+!
+!  --------
+!
+!   Developed by X. Giraud, ETH Zürich, 21.07.2008
+!   Converted to Fortran 90, adapted to changes since POP1, and included in 
+!   POP2 ciso code by A. Jahn, NCAR, in 10/2012
+!---------------------------------------------------------------------------
+! !USES:
+                                    
+!    use domain, only : nx_block, ny_block
+!    use kinds_mod
+!    use constants, only : c0, c1
+
+! !INPUT PARAMETERS:
+
+    logical (log_kind), dimension (nx_block,ny_block), intent(in) :: mask
+
+    real (r8), dimension (nx_block,ny_block), intent(in) :: &
+      mui_to_co2star    ! mui_to_co2star = mu_i / [CO2*] (m3 / mol C / s)
+
+    real (r8), intent(in) :: &
+      cell_active_C_uptake,  & ! ratio of active carbon uptake to carbon fixation
+      cell_eps_fix,          & ! fractionation effect of carbon fixation
+      cell_surf,             & ! surface areas of cells ( m2 )
+      cell_carb_cont,        & ! cell carbon content ( mol C )
+      cell_radius,           & ! cell radius ( um )
+      cell_permea              ! cell wall permeability to CO2(aq) ( m /s )
+
+! !OUTPUT PARAMETERS:
+
+    real (r8), dimension (nx_block,ny_block), intent(out) :: &
+      eps_p!,             & ! = d13C(co2(aq)) - d13C(phyto)
+!      eps_c14_p            ! = d13C(co2(aq)) - d13C(phyto)
+!-----------------------------------------------------------------------
+!  local variables and parameters
+!-----------------------------------------------------------------------
+
+    real (r8), dimension (nx_block,ny_block) :: &
+      var, theta, eps_up
+
+    real (r8) :: &
+      pi, Vol, Qc, Surf, radius_m
+
+
+   real (r8) :: &
+      eps_diff   = 0.7_r8, &  ! fractionation by diffusion, O'Leary, 1984
+      delta_d13C = -9.0_r8    ! = d13C(CO2) - d13C(source), difference between the 
+                              ! isotopic compositions of the external CO2 and the 
+                              ! organic matter pools (Goericke et al. 1994). 
+                              ! For active HCO3- uptake, the substrate for 
+                              ! the carbon uptake mechanism has an isotopic 
+                              ! composition which is around 9 permil higher 
+                              ! than the external CO2, so D13CO2 -D13C_source 
+                              ! is -9 permil ((Mook et al. 197)
+! degugging! 
+!  real (r8) :: &
+!       eps_diff   = c0, &  ! debugging, no fractionation test case
+!       delta_d13C = c0     ! debugging, no fractionation test case
+!
+!   cell_eps_fix =c0    !debugging, no fractination
+
+!---------------------------------------------------------------------------
+!   check for existence of ocean points
+!---------------------------------------------------------------------------
+
+    if (count(mask) == 0) then
+       eps_p = c0
+       return
+    endif
+
+!---------------------------------------------------------------------
+!   local variables
+!---------------------------------------------------------------------
+
+    pi  = 4.0_r8 * atan( 1.0_r8 )
+
+!---------------------------------------------------------------------
+!  cell surface in m^2  
+!---------------------------------------------------------------------
+
+    radius_m = cell_radius * 1e-6_r8 ! convert radius from um to m
+
+    if ( cell_surf > c0 ) then
+      Surf = cell_surf
+    else
+      Surf = 4.0_r8 * pi * (radius_m ** 2)
+    endif
+
+!---------------------------------------------------------------------
+!     cellular carbon content ( mol C )
+!     volume in um^3
+!---------------------------------------------------------------------
+
+    if ( cell_carb_cont > c0 ) then
+      Qc = cell_carb_cont 
+    else
+      Vol = 4.0_r8 * pi * (cell_radius ** 3) / 3.0_r8
+      Qc = 3.154e-14_r8 * (Vol ** (0.758_r8 ))
+    endif
+
+!---------------------------------------------------------------------
+!     final expression of eps_p
+!---------------------------------------------------------------------
+
+    where ( mui_to_co2star /= c0 )
+     
+          var = mui_to_co2star * Qc / ( cell_permea * Surf )
+
+          theta = c1 + ( cell_active_C_uptake - c1 ) * var
+          theta = theta / ( c1 + cell_active_C_uptake * var )
+
+          eps_up = eps_diff + ( cell_active_C_uptake /  &
+                 ( cell_active_C_uptake + c1 / var ) ) * delta_d13C
+
+          eps_p = eps_up + theta * ( cell_eps_fix - eps_diff )
+          
+          
+!          eps_14c_up = eps_diff* 2.0_r8 + ( cell_active_C_uptake /  &
+!                 ( cell_active_C_uptake + c1 / var ) ) * delta_d13C* 2.0_r8
+
+!          eps_14c_p = eps_14c_up + theta * ( cell_eps_fix* 2.0_r8 - eps_diff* 2.0_r8 )
+ 
+    elsewhere
+    
+    eps_p = cell_eps_fix
+    
+!    eps_14c_p = cell_eps_fix* 2.0_r8
+    
+    endwhere      
+
+    where (.not.mask)
+
+    eps_p = c0
+    
+ !   eps_c14_p = c0
+ 
+    endwhere 
+!-----------------------------------------------------------------------
+!EOC
+ end subroutine fract_keller_morel
+!-----------------------------------------------------------------------
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: ciso_init_particulate_terms
+! !INTERFACE:
+
+ subroutine ciso_init_particulate_terms(POC_ciso, P_CaCO3_ciso, this_block)
+
+! !DESCRIPTION:
+!  Set incoming fluxes (put into outgoing flux for first level usage).
+!  Set dissolution length, production fraction and mass terms.
+!
+!  The first 2 arguments are intent(inout) in
+!  order to preserve contents on other blocks.
+
+! !INPUT/OUTPUT PARAMETERS:
+
+
+    type(sinking_particle), intent(inout) :: &
+      POC_ciso,        & ! base units = nmol C_ciso
+      P_CaCO3_ciso       ! base units = nmol C_ciso
+
+  
+! !INPUT PARAMETERS:
+
+ 
+   type (block), intent(in) :: &
+      this_block      ! block info for the current block
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      bid                 ! local_block id
+!-----------------------------------------------------------------------
+            
+    POC_ciso%diss      = c0       ! not used
+    POC_ciso%gamma     = c0       ! not used 
+    POC_ciso%mass      = c0       ! not used
+    POC_ciso%rho       = c0       ! not used
+
+    P_CaCO3_ciso%diss  = c0       ! not used
+    P_CaCO3_ciso%gamma = c0       ! not used 
+    P_CaCO3_ciso%mass  = c0       ! not used
+    P_CaCO3_ciso%rho   = c0       ! not used
+    
+
+!-----------------------------------------------------------------------
+!  Set incoming fluxes
+!-----------------------------------------------------------------------
+
+    bid = this_block%local_id
+    
+    P_CaCO3_ciso%sflux_out(:,:,bid) = c0
+    P_CaCO3_ciso%hflux_out(:,:,bid) = c0
+
+   
+     
+!-----------------------------------------------------------------------
+!  Hard POC is QA flux and soft POC is excess POC.
+!-----------------------------------------------------------------------
+
+    POC_ciso%sflux_out(:,:,bid) = c0  ! = POC%sflux_out(k==1)
+    POC_ciso%hflux_out(:,:,bid) = c0  ! = POC%hflux_out(k==1)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ciso_init_particulate_terms
+
+!***********************************************************************
+!BOP
+! !IROUTINE: ciso_compute_particulate_terms
+! !INTERFACE:
+ subroutine ciso_compute_particulate_terms(k, POC, P_CaCO3, POC_ciso, P_CaCO3_ciso, &
+              TEMP, O2_loc, NO3_loc, this_block)
+
+       
+
+! !DESCRIPTION:
+!  Compute outgoing fluxes and remineralization terms for Carbon isotopes. 
+!  Assumes that production terms have been set and that fluxes and remineralization 
+!  for Carbon 12 has already been computed. 
+!
+!  Incoming fluxes are assumed to be the outgoing fluxes from the previous level.
+!  For other comments, see compute_particulate_terms in ecosys_mod
+!  
+!
+!  Alex Jahn, Nov 2012
+! !USES:
+
+#ifdef CCSMCOUPLED
+   use shr_sys_mod, only: shr_sys_abort
+#endif
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: k ! vertical model level
+
+   real (r8), dimension(nx_block,ny_block), intent(in) :: &
+      TEMP,         & ! temperature for scaling functions
+      O2_loc,       & ! dissolved oxygen used to modify POC%diss, Sed fluxes
+      NO3_loc         ! dissolved nitrate used to modify sed fluxes           
+       
+   type (block), intent(in) :: &
+      this_block      ! block info for the current block
+
+  
+
+   type(sinking_particle), intent(in) :: &
+      POC,          & ! base units = nmol C
+      P_CaCO3         ! base units = nmol CaCO3
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   type(sinking_particle), intent(inout) :: &
+      POC_ciso,       &  ! base units = nmol particulate organic Carbon isotope 
+      P_CaCO3_ciso       ! base units = nmol CaCO3 Carbon isotope 
+      
+ 
+
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   character(*), parameter :: &
+      subname = 'ecosys_ciso_mod:ciso_compute_particulate_terms'
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      TfuncS                ! temperature scaling from soft POM remin
+
+   real (r8) :: &
+      dz_loc,              & ! dz at a particular i,j location
+      dzr_loc                ! dzr at a particular i,j location
+
+   integer (int_kind) ::   &
+      i, j,                & ! loop indices
+      bid                    ! local_block id
+
+   logical (log_kind) ::   &
+      poc_error              ! POC error flag
+
+   real (r8) :: &
+      flux, flux_alt,       & ! temp variables used to update sinking flux
+      POC_ciso_PROD_avail,  & ! 13C POC production available for excess POC flux  
+      rcisoT_POC_hflux_out, & ! ciso/(12C+ciso) of outgoing flux of hard POC
+      rcisoT_POC_in,        & ! ciso/(12C+ciso) of total POC ingoing component
+      rcisoT_CaCO3_in         ! ciso/(12C+ciso) of total CaCO3 ingoing component
+
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
+      SED_DENITRIF, & ! sedimentary denitrification (umolN/cm^2/s)
+      OTHER_REMIN     ! sedimentary remin not due to oxic or denitrification
+
+!-----------------------------------------------------------------------
+!  Pointer variables (targets are defined in ecosys_fields)
+!-----------------------------------------------------------------------
+   real (r8), dimension(:,:),pointer :: DECAY_CaCO3           ! scaling factor for dissolution of CaCO3
+   real (r8), dimension(:,:),pointer :: DECAY_Hard            ! scaling factor for dissolution of Hard Ballast
+   real (r8), dimension(:,:),pointer :: decay_POC_E           ! scaling factor for dissolution of excess POC
+   real (r8), dimension(:,:),pointer :: POC_PROD_avail        ! scaling factor for dissolution of Hard Ballast
+   real (r8), dimension(:,:),pointer :: poc_diss              ! diss. length used (cm) 
+
+!-------------------------------------------------------------
+! Nullify pointers
+!-------------------------------------------------------------
+
+   nullify(DECAY_CaCO3)
+   nullify(DECAY_Hard)
+   nullify(decay_POC_E)
+   nullify(POC_PROD_avail)
+   nullify(poc_diss)
+
+!-----------------------------------------------------------------------
+!  this_block index as integer
+!-----------------------------------------------------------------------
+      
+
+   bid = this_block%local_id
+!---------------------------------------------------------------
+! Need the following variables from ecosys_mod --> use pointers 
+! to point to the right part of the global array in ecosys_fields
+!---------------------------------------------------------------
+
+   DECAY_CaCO3 => DECAY_CaCO3_fields(:,:,bid)
+     
+   DECAY_Hard => DECAY_Hard_fields(:,:,bid)
+          
+   decay_POC_E => decay_POC_E_fields(:,:,bid) 
+    
+   POC_PROD_avail => POC_PROD_avail_fields(:,:,bid)
+    
+   poc_diss => poc_diss_fields(:,:,bid)
+!-----------------------------------------------------------------------
+!  incoming fluxes are outgoing fluxes from previous level
+!-----------------------------------------------------------------------
+
+   POC_ciso%sflux_in(:,:,bid) = POC_ciso%sflux_out(:,:,bid)
+   POC_ciso%hflux_in(:,:,bid) = POC_ciso%hflux_out(:,:,bid)
+
+   P_CaCO3_ciso%sflux_in(:,:,bid) = P_CaCO3_ciso%sflux_out(:,:,bid)
+   P_CaCO3_ciso%hflux_in(:,:,bid) = P_CaCO3_ciso%hflux_out(:,:,bid)
+   
+   
+!-----------------------------------------------------------------------
+!  initialize loss to sediments = 0 and local copy of percent sed
+!-----------------------------------------------------------------------
+
+   POC_ciso%sed_loss(:,:,bid) = c0
+   P_CaCO3_ciso%sed_loss(:,:,bid) = c0
+   POC_ciso%sed_loss(:,:,bid) = c0
+   P_CaCO3_ciso%sed_loss(:,:,bid) = c0
+  
+
+!-----------------------------------------------------------------------
+!     if any incoming Carbon flux is zero, set 13C flux to zero
+!-----------------------------------------------------------------------
+
+   where (POC%sflux_in(:,:,bid) == c0) 
+       POC_ciso%sflux_in(:,:,bid) = c0
+   endwhere
+      
+   where (POC%hflux_in(:,:,bid) == c0) 
+       POC_ciso%hflux_in(:,:,bid) = c0
+   endwhere
+      
+   where (POC%prod(:,:,bid) == c0) 
+       POC_ciso%prod(:,:,bid) = c0
+   endwhere
+
+   where (P_CaCO3%sflux_in(:,:,bid) == c0)
+       P_CaCO3_ciso%sflux_in(:,:,bid) = c0
+   endwhere
+
+   where (P_CaCO3%hflux_in(:,:,bid) == c0)
+       P_CaCO3_ciso%hflux_in(:,:,bid) = c0
+   endwhere
+ 
+   where (P_CaCO3%prod(:,:,bid) == c0)
+       P_CaCO3_ciso%prod(:,:,bid) = c0
+   endwhere
+   
+   where (P_CaCO3%sed_loss(:,:,bid) == c0)
+       P_CaCO3_ciso%sed_loss(:,:,bid) = c0
+   endwhere
+   
+   where (POC%sed_loss(:,:,bid) == c0)
+       POC_ciso%sed_loss(:,:,bid) = c0
+   endwhere
+
+
+!----------------------------------------------------------------------
+!   Tref = 30.0 reference temperature (deg. C)
+!-------------------------------------------------------------------------
+
+   TfuncS = 1.5_r8**(((TEMP + T0_Kelvin) - (Tref + T0_Kelvin)) / c10)
+
+   poc_error = .false.
+   dz_loc = dz(k)
+   
+   do j = 1,ny_block
+      do i = 1,nx_block
+
+        if (LAND_MASK(i,j,bid) .and. k <= KMT(i,j,bid)) then
+        
+            if (partial_bottom_cells) then
+               dz_loc = DZT(i,j,k,bid)
+            endif
+            dzr_loc = c1 / dz_loc
+   
+
+!-----------------------------------------------------------------------
+!  P_CaCO3_ciso sflux and hflux out
+!-----------------------------------------------------------------------
+
+            P_CaCO3_ciso%sflux_out(i,j,bid) = P_CaCO3_ciso%sflux_in(i,j,bid) * DECAY_CaCO3(i,j) + &
+                P_CaCO3_ciso%prod(i,j,bid) * ((c1 - P_CaCO3%gamma) * (c1 - DECAY_CaCO3(i,j))  &
+                * P_CaCO3%diss)
+
+            P_CaCO3_ciso%hflux_out(i,j,bid) = P_CaCO3_ciso%hflux_in(i,j,bid) * DECAY_Hard(i,j) + &
+                 P_CaCO3_ciso%prod(i,j,bid) * (P_CaCO3%gamma * dz_loc)
+
+
+
+!-----------------------------------------------------------------
+!   Compute how much 13C POC_PROD is available for deficit
+!   reduction and excess POC flux
+!-----------------------------------------------------------------
+
+            if (POC%prod(i,j,bid) > c0 ) then
+                POC_ciso_PROD_avail = POC_PROD_avail(i,j) * POC_ciso%prod(i,j,bid) / POC%prod(i,j,bid)
+            else
+                POC_ciso_PROD_avail = c0
+            endif
+
+!   if (my_task == master_task) then
+!      write(stdout,*)'POC_PROD_avail'
+! 	    write(stdout,*)'POC_PROD_avail =  ',POC_PROD_avail(i,j)
+!      write(stdout,*)'poc_diss'
+! 	    write(stdout,*)'poc_diss =  ',poc_diss(i,j)
+!      write(stdout,*)'POC%prod(i,j,bid)'
+! 	    write(stdout,*)'POC%prod(i,j,bid) =  ',POC%prod(i,j,bid)
+!   end if
+
+!-----------------------------------------------------------------
+!   Compute outgoing 13C POC fluxes of soft POC
+!-----------------------------------------------------------------
+
+            POC_ciso%sflux_out(i,j,bid) = POC_ciso%sflux_in(i,j,bid) *decay_POC_E(i,j) + &
+                POC_ciso_PROD_avail *((c1 - decay_POC_E(i,j)) * (poc_diss(i,j)) )
+
+!-----------------------------------------------------------------
+!   Compute outgoing 13C POC fluxes of hard POC
+!-----------------------------------------------------------------
+
+            rcisoT_POC_hflux_out = POC%prod(i,j,bid) + &
+                ( POC%sflux_in(i,j,bid) - POC%sflux_out(i,j,bid) + &
+                POC%hflux_in(i,j,bid) ) * dzr_loc
+
+            if (rcisoT_POC_hflux_out  > c0) then
+                rcisoT_POC_hflux_out = ( POC_ciso%prod(i,j,bid) + ( POC_ciso%sflux_in(i,j,bid) - &
+                POC_ciso%sflux_out(i,j,bid) + POC_ciso%hflux_in(i,j,bid) ) * dzr_loc )          &
+                / rcisoT_POC_hflux_out
+            else
+                rcisoT_POC_hflux_out = c0
+            endif
+
+            POC_ciso%hflux_out(i,j,bid) = POC%hflux_out(i,j,bid) * rcisoT_POC_hflux_out
+            POC_ciso%hflux_out(i,j,bid) = max(POC_ciso%hflux_out(i,j,bid), c0)
+
+!-----------------------------------------------------------------------
+!  Compute remineralization terms. It is assumed that there is no
+!  sub-surface dust production.
+!-----------------------------------------------------------------------
+
+            P_CaCO3_ciso%remin(i,j,bid) = P_CaCO3_ciso%prod(i,j,bid) + &
+               ((P_CaCO3_ciso%sflux_in(i,j,bid) - P_CaCO3_ciso%sflux_out(i,j,bid)) + &
+               (P_CaCO3_ciso%hflux_in(i,j,bid) - P_CaCO3_ciso%hflux_out(i,j,bid))) *  dzr_loc
+
+            POC_ciso%remin(i,j,bid) = POC_ciso%prod(i,j,bid) + ((POC_ciso%sflux_in(i,j,bid) - &
+                POC_ciso%sflux_out(i,j,bid)) + (POC_ciso%hflux_in(i,j,bid) -         &
+                POC_ciso%hflux_out(i,j,bid))) * dzr_loc
+
+
+!-----------------------------------------------------------------
+!   Option to force the 13C/12C ratio of outgoing P_CaCO3 fluxes
+!   to equal the rate of total incoming flux 
+!-----------------------------------------------------------------
+!
+!             rcisoT_CaCO3_in = P_CaCO3%prod(i,j,bid) + &
+!                 ( P_CaCO3%sflux_in(i,j,bid) + P_CaCO3%hflux_in(i,j,bid) ) *  dzr_loc
+!                    
+!             if ( rcisoT_CaCO3_in > c0 ) then
+!                 rcisoT_CaCO3_in = ( P_CaCO3_ciso%prod(i,j,bid) + &
+!                   ( P_CaCO3_ciso%sflux_in(i,j,bid) + P_CaCO3_ciso%hflux_in(i,j,bid) ) * dzr_loc &
+!                    / rcisoT_CaCO3_in
+!                 else 
+!                     rcisoT_CaCO3_in = c0
+!                 endif
+!
+!              P_CaCO3_ciso%sflux_out(i,j,bid) = P_CaCO3%sflux_out(i,j,bid) * rcisoT_CaCO3_in
+!              P_CaCO3_ciso%hflux_out(i,j,bid) = P_CaCO3%hflux_out(i,j,bid) * rcisoT_CaCO3_in
+!              P_CaCO3_ciso%remin(i,j,bid) = P_CaCO3%remin(i,j,bid) * rcisoT_CaCO3_in
+!
+!
+!-----------------------------------------------------------------
+!   Option to force the 13C/12C ratio of outgoing POC fluxes 
+!   to equal the rate of total incoming flux 
+!-----------------------------------------------------------------
+!
+!              rcisoT_POC_in = POC%prod(i,j,bid) + ( POC%sflux_in(i,j,bid) + POC%hflux_in(i,j,bid) ) &
+!                            * dzr_loc
+!              if ( rcisoT_POC_in > c0 ) then
+!                 rcisoT_POC_in = ( POC_ciso%prod(i,j,bid) + ( POC_ciso%sflux_in(i,j,bid) + &
+!                    POC_ciso%hflux_in(i,j,bid) ) * dzr_loc ) / rcisoT_POC_in
+!              else
+!                 rcisoT_POC_in = c0
+!              endif
+!
+!              POC_ciso%sflux_out(i,j,bid) = POC%sflux_out(i,j,bid) *rcisoT_POC_in
+!              POC_ciso%hflux_out(i,j,bid) = POC%hflux_out(i,j,bid) *rcisoT_POC_in
+!              POC_ciso%remin(i,j,bid) = POC%remin(i,j,bid) * rcisoT_POC_in
+!
+!-----------------------------------------------------------------
+
+        else
+            P_CaCO3_ciso%sflux_out(i,j,bid) = c0
+            P_CaCO3_ciso%hflux_out(i,j,bid) = c0
+            P_CaCO3_ciso%remin(i,j,bid) = c0
+                 
+            POC_ciso%sflux_out(i,j,bid) = c0
+            POC_ciso%hflux_out(i,j,bid) = c0
+            POC_ciso%remin(i,j,bid) = c0
+        endif
+
+
+!-----------------------------------------------------------------------
+!  Bottom Sediments Cell?
+!  If so compute sedimentary burial and denitrification N losses.
+!  Using empirical relations from Bohlen et al., 2012 (doi:10.1029/2011GB004198) for Sed Denitrification
+!  OTHER_REMIN estimates organic matter remineralized in the sediments
+!      by the processes other than oxic remin and denitrification (SO4 and CO2,
+!      etc..)
+!      based on Soetaert et al., 1996, varies between 10% and 50%
+!      0.4_r8 is a coefficient with units mmolC/cm2/yr sinking flux,
+!      OTHER_REMIN is 50% above this high flux value,
+!      In special case where bottom O2 has been depleted to < 1.0 uM,
+!               all sedimentary remin is due to DENITRIFICATION + OTHER_REMIN
+!  POC burial from Dunne et al. 2007 (doi:10.1029/2006GB002907), maximum of 80% burial efficiency imposed
+!  Bsi preservation in sediments = 0.3*sinkBsi - 0.06 mmol/m2/day
+!     Ragueneau et al. 2000 (doi:10.1016/S0921-8181(00)00052-7)
+!  Calcite is preserved in sediments above the lysocline, dissolves below.
+!       Here a constant depth is used for lysocline.
+!-----------------------------------------------------------------------
+
+         if (LAND_MASK(i,j,bid) .and. (k == KMT(i,j,bid))) then
+
+            flux = POC_ciso%sflux_out(i,j,bid)+POC_ciso%hflux_out(i,j,bid)
+
+            if (flux > c0) then
+               flux_alt = flux*mpercm*spd ! convert to mmol/m^2/day
+
+               POC_ciso%sed_loss(i,j,bid) = flux * min(0.8_r8, parm_POMbury &
+                  * (0.013_r8 + 0.53_r8 * flux_alt*flux_alt / (7.0_r8 + flux_alt)**2))
+
+               SED_DENITRIF(i,j,bid) = dzr_loc * flux &
+                  * (0.06_r8 + 0.19_r8 * 0.99_r8**(O2_loc(i,j)-NO3_loc(i,j)))
+
+               flux_alt = flux*1.0e-6_r8*spd*365.0_r8 ! convert to mmol/cm^2/year
+               OTHER_REMIN(i,j,bid) = dzr_loc &
+                  * min(min(0.1_r8 + flux_alt,0.5_r8) * (flux - POC_ciso%sed_loss(i,j,bid)), &
+                        (flux - POC_ciso%sed_loss(i,j,bid) - (SED_DENITRIF(i,j,bid)*dz_loc*denitrif_C_N)))
+
+!----------------------------------------------------------------------------------
+!              if bottom water O2 is depleted, assume all remin is denitrif + other               
+!----------------------------------------------------------------------------------
+
+               if (O2_loc(i,j) < c1) then
+	                   OTHER_REMIN(i,j,bid) = dzr_loc * &
+                     (flux - POC_ciso%sed_loss(i,j,bid) - (SED_DENITRIF(i,j,bid)*dz_loc*denitrif_C_N))
+	             endif
+
+            endif
+
+            if (zw(k) < 3300.0e2_r8) then
+               flux = P_CaCO3_ciso%sflux_out(i,j,bid) + P_CaCO3_ciso%hflux_out(i,j,bid)
+               P_CaCO3_ciso%sed_loss(i,j,bid) = flux
+            endif
+
+!----------------------------------------------------------------------------------
+!  Update sinking fluxes and remin fluxes, accounting for sediments.
+!  flux used to hold sinking fluxes before update.
+!----------------------------------------------------------------------------------
+
+            flux = P_CaCO3_ciso%sflux_out(i,j,bid) + P_CaCO3_ciso%hflux_out(i,j,bid)
+            if (flux > c0) then
+               P_CaCO3_ciso%remin(i,j,bid) = P_CaCO3_ciso%remin(i,j,bid) &
+                  + ((flux - P_CaCO3_ciso%sed_loss(i,j,bid)) * dzr_loc)
+            endif
+
+            flux = POC_ciso%sflux_out(i,j,bid) + POC_ciso%hflux_out(i,j,bid)
+            if (flux > c0) then
+               POC_ciso%remin(i,j,bid) = POC_ciso%remin(i,j,bid) &
+                  + ((flux - POC_ciso%sed_loss(i,j,bid)) * dzr_loc)
+            endif
+
+
+        
+!-----------------------------------------------------------------------
+!   Set all outgoing fluxes to 0.0
+!-----------------------------------------------------------------------
+
+            if (k == KMT(i,j,bid)) then
+               P_CaCO3_ciso%sflux_out(i,j,bid) = c0
+               P_CaCO3_ciso%hflux_out(i,j,bid) = c0
+
+               POC_ciso%sflux_out(i,j,bid) = c0
+               POC_ciso%hflux_out(i,j,bid) = c0
+
+            endif
+            
+       endif
+      end do
+   end do
+
+#ifdef CCSMCOUPLED
+    if (poc_error) then
+       call shr_sys_abort(subname /&
+                       &/ ': mass ratio of ballast ' /&
+                       &/ 'production exceeds POC production')
+    endif
+#endif
+
+
+!   if (my_task == master_task) then
+!      write(stdout,*)'Check if variables have correct values'
+! 	    write(stdout,*)'ciso_init_partic:POC%diss=21000.0_r8 =  ',POC%diss
+!      write(stdout,*)'ciso_init_partic:P_CaCO3%gamma=0.55_r8 = ',P_CaCO3%gamma
+!   end if
+
+!-----------------------------------------------------------------------
+!EOC
+
+end subroutine ciso_compute_particulate_terms
+
+!***********************************************************************
+!BOP
+! !IROUTINE: ciso_tavg_particulate_terms
+! !INTERFACE:
+ subroutine ciso_tavg_particulate_terms(k, POC, P_CaCO3, PO13C, P_Ca13CO3, &
+               PO14C, P_Ca14CO3, this_block)
+
+! !DESCRIPTION:
+!  Writes tavg for particulate terms calculated in ciso_compute_particulate_terms
+!  
+!
+!  Alex Jahn, Nov 2012
+! !USES:
+
+#ifdef CCSMCOUPLED
+   use shr_sys_mod, only: shr_sys_abort
+#endif
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: k ! vertical model level
+
+ 
+   type (block), intent(in) :: &
+      this_block      ! block info for the current block
+
+
+   type(sinking_particle), intent(in) :: &
+      POC,          &  ! base units = nmol C
+      P_CaCO3,      &  ! base units = nmol CaCO3
+      PO13C,        &  ! base units = nmol 13C 
+      P_Ca13CO3,    &  ! base units = nmol 13C CaCO3
+      PO14C,        &  ! base units = nmol 14C 
+      P_Ca14CO3        ! base units = nmol 14C CaCO3
+
+      
+ 
+
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+  
+   character(*), parameter :: &
+      subname = 'ecosys_ciso_mod:ciso_tavg_particulate_terms'
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK                  ! temporary for summed quantities to be averaged
+
+     integer (int_kind) :: &
+      bid                   ! local_block id
+
+!-----------------------------------------------------------------------
+!  this_block index as integer
+!-----------------------------------------------------------------------
+      
+
+   bid = this_block%local_id
+
+!-----------------------------------------------------------------------
+!  Set tavg variables. 
+!-----------------------------------------------------------------------
+
+   if (accumulate_tavg_now(tavg_CISO_PO13C_FLUX_IN)) then
+      WORK = PO13C%sflux_in(:,:,bid) + PO13C%hflux_in(:,:,bid)
+      call accumulate_tavg_field(WORK, tavg_CISO_PO13C_FLUX_IN,bid,k)
+   endif
+
+   call accumulate_tavg_field(PO13C%prod(:,:,bid), tavg_CISO_PO13C_PROD,bid,k)
+
+   call accumulate_tavg_field(PO13C%remin(:,:,bid), tavg_CISO_PO13C_REMIN,bid,k)
+
+   if (accumulate_tavg_now(tavg_CISO_Ca13CO3_FLUX_IN)) then
+      WORK = P_Ca13CO3%sflux_in(:,:,bid) + P_Ca13CO3%hflux_in(:,:,bid)
+      call accumulate_tavg_field(WORK, tavg_CISO_Ca13CO3_FLUX_IN,bid,k)
+   endif
+
+   call accumulate_tavg_field(P_Ca13CO3%prod(:,:,bid), tavg_CISO_Ca13CO3_PROD,bid,k)
+
+   call accumulate_tavg_field(P_Ca13CO3%remin(:,:,bid), tavg_CISO_Ca13CO3_REMIN,bid,k)
+
+
+!14C
+
+   if (accumulate_tavg_now(tavg_CISO_PO14C_FLUX_IN)) then
+      WORK = PO14C%sflux_in(:,:,bid) + PO14C%hflux_in(:,:,bid)
+      call accumulate_tavg_field(WORK, tavg_CISO_PO14C_FLUX_IN,bid,k)
+   endif
+
+   call accumulate_tavg_field(PO14C%prod(:,:,bid), tavg_CISO_PO14C_PROD,bid,k)
+
+   call accumulate_tavg_field(PO14C%remin(:,:,bid), tavg_CISO_PO14C_REMIN,bid,k)
+
+   if (accumulate_tavg_now(tavg_CISO_Ca14CO3_FLUX_IN)) then
+      WORK = P_Ca14CO3%sflux_in(:,:,bid) + P_Ca14CO3%hflux_in(:,:,bid)
+      call accumulate_tavg_field(WORK, tavg_CISO_Ca14CO3_FLUX_IN,bid,k)
+   endif
+
+   call accumulate_tavg_field(P_Ca14CO3%prod(:,:,bid), tavg_CISO_Ca14CO3_PROD,bid,k)
+
+   call accumulate_tavg_field(P_Ca14CO3%remin(:,:,bid), tavg_CISO_Ca14CO3_REMIN,bid,k)
+
+! ***********************************************************************
+! - Accumulte losses of BGC tracers to sediments
+! ***********************************************************************
+  
+
+      call accumulate_tavg_field(P_Ca13CO3%sed_loss(:,:,bid), tavg_calcToSed_13C,bid,k)
+
+      call accumulate_tavg_field(PO13C%sed_loss(:,:,bid), tavg_pocToSed_13C,bid,k)
+
+      
+      call accumulate_tavg_field(P_Ca14CO3%sed_loss(:,:,bid), tavg_calcToSed_14C,bid,k)
+
+      call accumulate_tavg_field(PO14C%sed_loss(:,:,bid), tavg_pocToSed_14C,bid,k)
+
+    
+      
+! ***********************************************************************
+! debugging, should be the same as ECOSYS tavgs
+! ***********************************************************************
+
+   if (accumulate_tavg_now(tavg_CISO_POC_FLUX_IN)) then
+      WORK = POC%sflux_in(:,:,bid) + POC%hflux_in(:,:,bid)
+      call accumulate_tavg_field(WORK, tavg_CISO_POC_FLUX_IN,bid,k)
+   endif
+
+   call accumulate_tavg_field(POC%prod(:,:,bid), tavg_CISO_POC_PROD,bid,k)
+
+   call accumulate_tavg_field(POC%remin(:,:,bid), tavg_CISO_POC_REMIN,bid,k)
+
+   if (accumulate_tavg_now(tavg_CISO_CaCO3_FLUX_IN)) then
+      WORK = P_CaCO3%sflux_in(:,:,bid) + P_CaCO3%hflux_in(:,:,bid)
+      call accumulate_tavg_field(WORK, tavg_CISO_CaCO3_FLUX_IN,bid,k)
+   endif
+
+   call accumulate_tavg_field(P_CaCO3%prod(:,:,bid), tavg_CISO_CaCO3_PROD,bid,k)
+
+   call accumulate_tavg_field(P_CaCO3%remin(:,:,bid), tavg_CISO_CaCO3_REMIN,bid,k)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ciso_tavg_particulate_terms
+
+!***********************************************************************
+! !IROUTINE: ciso_read_atm_D13C_data
+! !INTERFACE:
+
+ subroutine ciso_read_atm_D13C_data
+
+! !DESCRIPTION:
+!  Read atmospheric D13C [permil] data from file
+!
+!  Have the master_task do the following :
+!     1) get length of data
+!     2) allocate memory for data
+!     3) read in data, checking for consistent lengths
+!  Then, outside master_task conditional
+!     1) broadcast length of data
+!     2) have non-mastertasks allocate memory for data
+!     3) broadcast data
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !USES: 
+!
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+  character(*), parameter :: sub_name = 'ecosys_ciso_mod:ciso_read_atm_D13C_data'
+
+  integer (int_kind) ::    &
+    nml_error,              &  ! namelist i/o error flag
+    irec,                   &  ! counter for looping 
+    skiplines,              &  ! number of comment lines at beginning of ascii file
+    il                         ! looping index
+	 
+  character (char_len) ::  &
+    sglchr                     ! variable to read characters from file into
+
+
+!-----------------------------------------------------------------------
+!     READ in D13C data from OCMIP2 file
+!-----------------------------------------------------------------------
+   if (my_task == master_task) then
+     write(stdout,blank_fmt)
+      write(stdout,ndelim_fmt)
+      write(stdout,blank_fmt)
+	    write(stdout,*)'ciso: Using varying D13C values from file ',ciso_atm_d13c_filename
+      write(stdout,blank_fmt)
+      write(stdout,ndelim_fmt)
+      write(stdout,blank_fmt)
+	    open (nml_in, file=ciso_atm_d13c_filename, status='old',iostat=nml_error)
+	    read(nml_in, FMT=*) sglchr,skiplines,ciso_atm_d13c_data_nbval
+	    allocate(ciso_atm_d13c_data_yr(ciso_atm_d13c_data_nbval))
+	    allocate(ciso_atm_d13c_data(ciso_atm_d13c_data_nbval))
+      do irec=1,skiplines
+        read(nml_in,FMT=*) sglchr
+      enddo
+      do irec=1,ciso_atm_d13c_data_nbval
+        read(nml_in,FMT=*) ciso_atm_d13c_data_yr(irec), ciso_atm_d13c_data(irec)
+      enddo
+	    close(nml_in)
+  
+	
+      if (nml_error /= 0) then
+        call document(sub_name, 'Atmospheric D13C data file for ciso not found')
+        call exit_POP(sigAbort, 'stopping in ' /&
+                                  &/ sub_name)
+      endif
+    endif
+ 
+	
+!---------------------------------------------------------------------	
+!     Need to accocate and broadcast the variables to other tasks beside master-task
+!---------------------------------------------------------------------	
+
+   call broadcast_scalar(ciso_atm_d13c_data_nbval,master_task)
+	 	 
+   if (my_task /= master_task) then
+    allocate(ciso_atm_d13c_data_yr(ciso_atm_d13c_data_nbval))
+    allocate(ciso_atm_d13c_data(ciso_atm_d13c_data_nbval))
+   endif
+   
+
+   call broadcast_array(ciso_atm_d13c_data, master_task)
+   call broadcast_array(ciso_atm_d13c_data_yr, master_task)
+
+ 
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ciso_read_atm_D13C_data
+
+!***********************************************************************
+! !IROUTINE: ciso_read_atm_D14C_data
+! !INTERFACE:
+
+ subroutine ciso_read_atm_D14C_data
+
+! !DESCRIPTION:
+!  Read atmospheric D14C data from file
+!
+!  Have the master_task do the following :
+!     1) get length of data
+!     2) allocate memory for data
+!     3) read in data, checking for consistent lengths
+!  Then, outside master_task conditional
+!     1) broadcast length of data
+!     2) have non-mastertasks allocate memory for data
+!     3) broadcast data
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !USES: 
+!
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+   character(*), parameter :: sub_name = 'ecosys_ciso_mod:ciso_read_atm_D14C_data'
+
+   integer (int_kind) ::    &
+      nml_error,              &  ! namelist i/o error flag
+      irec,                   &  ! counter for looping 
+      skiplines,              &  ! number of comment lines at beginning of ascii file
+      il                         ! looping index
+ 
+   character (char_len) ::  &
+      sglchr                     ! variable to read characters from file into
+ 
+   integer (int_kind), dimension(3) :: &
+      ciso_atm_d14c_data_nbval   !  number of values in ciso_atm_d14c_filename (for three files)
+
+
+!-----------------------------------------------------------------------
+!     READ in C14 data from OCMIP2 files - three files, for SH, EQ, NH
+!-----------------------------------------------------------------------
+   if (my_task == master_task) then
+     write(stdout,*)'ciso DI14C calculation: Using varying D14C values from ocmip2 file ',ciso_atm_d14c_filename(:)
+     do il=1,3
+        open (nml_in, file=ciso_atm_d14c_filename(il), status='old',iostat=nml_error)
+        read(nml_in, FMT=*) sglchr,skiplines,ciso_atm_d14c_data_nbval(il)
+        close(nml_in)
+     enddo
+
+     ciso_atm_d14c_data_nbval_max = max(ciso_atm_d14c_data_nbval(1),ciso_atm_d14c_data_nbval(2),ciso_atm_d14c_data_nbval(3))
+     allocate(ciso_atm_d14c_data_yr(ciso_atm_d14c_data_nbval_max,3))
+     allocate(ciso_atm_d14c_data(ciso_atm_d14c_data_nbval_max,3))
+    
+     do il=1,3
+        open (nml_in, file=ciso_atm_d14c_filename(il), status='old',iostat=nml_error)
+        read(nml_in, FMT=*) sglchr,skiplines,ciso_atm_d14c_data_nbval(il)
+        do irec=1,skiplines
+          read(nml_in,FMT=*) sglchr
+        enddo
+        do irec=1,ciso_atm_d14c_data_nbval(il)
+          read(nml_in,FMT=*) ciso_atm_d14c_data_yr(irec,il), ciso_atm_d14c_data(irec,il)
+        enddo
+        close(nml_in)
+     enddo
+  
+     if (nml_error /= 0) then
+        call document(sub_name, 'Atmospheric D14C data files for ciso D14C not found')
+        call exit_POP(sigAbort, 'stopping in ' /&
+                                &/ sub_name)
+     endif
+
+   endif  
+ 
+ 
+!---------------------------------------------------------------------	
+!     Need to accocate and broadcast the variables to other tasks beside master-task
+!---------------------------------------------------------------------	
+   
+   call broadcast_scalar(ciso_atm_d14c_data_nbval_max, master_task)
+ 
+   if (my_task /= master_task) then
+      allocate(ciso_atm_d14c_data(ciso_atm_d14c_data_nbval_max,3))
+      allocate(ciso_atm_d14c_data_yr(ciso_atm_d14c_data_nbval_max,3))
+   endif
+   
+
+   call broadcast_array(ciso_atm_d14c_data, master_task)
+   call broadcast_array(ciso_atm_d14c_data_yr, master_task)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ciso_read_atm_D14C_data
+
+
+!***********************************************************************
+! !IROUTINE: ciso_comp_const_glo_D13C
+! !INTERFACE:
+
+ subroutine ciso_comp_const_glo_D13C(iblock, LAND_MASK, D13C)
+
+! !DESCRIPTION:
+!  Set atmospheric mole fractions of constant D13C on global grid
+
+! !REVISION HISTORY:
+!  same as module
+
+! !USES:
+
+! !INPUT PARAMETERS:
+
+   logical (log_kind), dimension(nx_block,ny_block), intent(in) :: &
+      LAND_MASK       ! land mask for this block
+
+   integer (int_kind) :: &
+      iblock          ! block index
+
+
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block), intent(out) :: &
+      D13C           ! atmospheric D13C (permil)
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      i, j            ! loop indices
+
+!--------------------------------------------------------------------------------------
+!     Make global values -
+!--------------------------------------------------------------------------------------
+
+   do j = 1, ny_block
+      do i = 1, nx_block
+        if (LAND_MASK(i,j)) then
+            D13C(i,j) = ciso_atm_d13c_const
+        else
+            D13C(i,j) = c0
+        endif
+      end do
+   end do
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ciso_comp_const_glo_D13C
+
+!***********************************************************************
+! !IROUTINE: ciso_comp_const_glo_D14C
+! !INTERFACE:
+
+ subroutine ciso_comp_const_glo_D14C(iblock, LAND_MASK, D14C)
+
+! !DESCRIPTION:
+!  Set atmospheric mole fractions of constant D14C on global grid
+
+! !REVISION HISTORY:
+!  same as module
+
+! !USES:
+
+! !INPUT PARAMETERS:
+
+   logical (log_kind), dimension(nx_block,ny_block), intent(in) :: &
+      LAND_MASK       ! land mask for this block
+
+   integer (int_kind) :: &
+      iblock          ! block index
+
+
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block), intent(out) :: &
+      D14C           ! atmospheric D14C (permil)
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      i, j            ! loop indices
+
+!--------------------------------------------------------------------------------------
+!     Make global values -
+!--------------------------------------------------------------------------------------
+
+   do j = 1, ny_block
+      do i = 1, nx_block
+        if (LAND_MASK(i,j)) then
+            D14C(i,j) = ciso_atm_d14c_const
+        else
+            D14C(i,j) = c0
+        endif
+      end do
+   end do
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ciso_comp_const_glo_D14C 
+!***********************************************************************
+! !IROUTINE: ciso_comp_varying_glo_D13C
+! !INTERFACE:
+
+ subroutine ciso_comp_varying_glo_D13C(iblock, LAND_MASK, ciso_data_ind_d13c, D13C)
+
+! !DESCRIPTION:
+!  Compute atmospheric mole fractions of d13c when temporarily 
+!  varying data is read from files
+!  1. Linearly interpolate data values to current model time step
+!  2. Spatial patern of D13Cis the same everywhere (90 S - 90 N)
+!
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !USES:
+
+! !INPUT PARAMETERS:
+
+   logical (log_kind), dimension(nx_block,ny_block), intent(in) :: &
+      LAND_MASK        ! land mask for this block
+
+   integer (int_kind) :: &
+      iblock           ! block index
+
+   integer (int_kind) :: &
+      ciso_data_ind_d13c  ! ciso_data_ind_d13cis the index for the data for current timestep, 
+                          ! note that ciso_data_ind_d13c is always strictly less than the length 
+                          ! of the data and is initialized to -1 before the first call
+
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block), intent(out) :: &
+      D13C             ! atmospheric D13C (permil)
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      i, j              ! loop indices
+
+   real (r8) :: &
+      model_date,     & ! date of current model timestep mapped to data timeline
+      weight,         & ! weighting for temporal interpolation
+      d13c_curr          ! current D13c value (interpolated from data to model date)
+  
+ 
+!-----------------------------------------------------------------------
+!  Generate model_date and check to see if it is too large.
+!-----------------------------------------------------------------------
+   
+   model_date = iyear + (iday_of_year-1+frac_day)/days_in_year 
+  
+   if (model_date >= ciso_atm_d13c_data_yr(ciso_atm_d13c_data_nbval)) then
+      call exit_POP(sigAbort, 'ciso: Model date maps to date after end of D13C data in file.')
+   endif
+	  
+!--------------------------------------------------------------------------------------------------------------
+!  Set atmospheric D13C to first value in record for years before record begins
+!--------------------------------------------------------------------------------------------------------------
+
+   if (model_date < ciso_atm_d13c_data_yr(1)) then
+      D13C = ciso_atm_d13c_data(1)
+      ciso_data_ind_d13c = 1
+	    if(my_task == master_task) then
+        write(stdout,blank_fmt)
+        write(stdout,ndelim_fmt)
+        write(stdout,blank_fmt)
+        write(stdout,*)'ciso: Mapped date less than start of D13C data --> using first value in D13C data file'
+        write(stdout,blank_fmt)
+        write(stdout,ndelim_fmt)
+        write(stdout,blank_fmt)
+      endif
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!  On first time step, perform linear search to find data_ind_d13c
+!-----------------------------------------------------------------------
+
+   if (ciso_data_ind_d13c == -1) then
+      do ciso_data_ind_d13c = ciso_atm_d13c_data_nbval-1,1,-1
+         if (model_date >= ciso_atm_d13c_data_yr(ciso_data_ind_d13c)) exit
+      end do
+   endif
+
+!-----------------------------------------------------------------------
+!  See if ciso_data_ind_d13c needs to be updated,
+!  but do not set it to atm_d13c_data_nbval.
+!-----------------------------------------------------------------------
+
+  if (ciso_data_ind_d13c < ciso_atm_d13c_data_nbval-1) then
+      if (model_date >= ciso_atm_d13c_data_yr(ciso_data_ind_d13c+1)) ciso_data_ind_d13c = ciso_data_ind_d13c + 1
+  endif
+
+ 
+!-----------------------------------------------------------------------
+!  Generate hemisphere values for current time step.
+!-----------------------------------------------------------------------
+
+   weight = (model_date - ciso_atm_d13c_data_yr(ciso_data_ind_d13c)) &
+            / (ciso_atm_d13c_data_yr(ciso_data_ind_d13c+1) - ciso_atm_d13c_data_yr(ciso_data_ind_d13c))
+
+   d13c_curr = weight * ciso_atm_d13c_data(ciso_data_ind_d13c+1) + (c1-weight) * ciso_atm_d13c_data(ciso_data_ind_d13c)
+	   
+!--------------------------------------------------------------------------------------
+!     Make global values -
+!--------------------------------------------------------------------------------------
+
+   do j = 1, ny_block
+      do i = 1, nx_block
+         if (LAND_MASK(i,j)) then
+           D13C(i,j) = d13c_curr
+	       else
+		       D13C(i,j) = c0
+         endif
+      end do
+   end do
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ciso_comp_varying_glo_D13C
+
+!***********************************************************************
+! !IROUTINE: ciso_comp_varying_glo_D14C
+! !INTERFACE:
+
+ subroutine ciso_comp_varying_glo_D14C(iblock, LAND_MASK, ciso_data_ind_d14c, D14C)
+
+! !DESCRIPTION:
+!  Compute atmospheric mole fractions of CO2 when temporarily 
+!  varying data is read from files
+!  1. Linearly interpolate hemispheric values to current time step
+!  2. Make global field of D14C, determined by:
+!   -Northern Hemisphere value is used for 20N - 90 N
+!   -Southern Hemisphere value is used for 20 S - 90 S
+!   -Equator value is used for 20 S- 20 N
+!
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !USES:
+
+!   use constants, only : radian
+!   use grid, only : TLAT
+
+! !INPUT PARAMETERS:
+
+   logical (log_kind), dimension(nx_block,ny_block), intent(in) :: &
+      LAND_MASK       ! land mask for this block
+
+   integer (int_kind) :: &
+      iblock          ! block index
+
+   integer (int_kind) :: &
+      ciso_data_ind_d14c   ! data_ind_d14c is the index into data for current timestep, 
+                      !  note that data_ind is always strictly less than the length of D14C data
+                      !  and is initialized to -1 before the first call
+
+
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block), intent(out) :: &
+      D14C            ! atmospheric delta C14 in permil on global grid
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      i, j, il        ! loop indices
+
+   real (r8) :: &
+	   model_date,      & ! date of current model timestep mapped to data timeline
+	   weight,          & ! weighting for temporal interpolation
+	   d14c_curr_sh,    & ! current atmospheric D14C value for SH (interpolated from data to model date)
+     d14c_curr_nh,    & ! current atmospheric D14C value for NH (interpolated from data to model date)
+	   d14c_curr_eq       ! current atmospheric D14C value for EQ (interpolated from data to model date)
+ 
+!-----------------------------------------------------------------------
+!  Generate model_date and check to see if it is too large.
+!-----------------------------------------------------------------------
+ 
+   model_date = iyear + (iday_of_year-1+frac_day)/days_in_year 
+   do il=1,3
+   if (model_date >= ciso_atm_d14c_data_yr(ciso_atm_d14c_data_nbval_max,il)) then
+      call exit_POP(sigAbort, 'ciso: model date maps to date after end of D14C data in files.')
+   endif
+   enddo
+  
+!--------------------------------------------------------------------------------------------------------------
+!  Set atmospheric D14C concentrations to zero before D14C record begins
+!--------------------------------------------------------------------------------------------------------------
+
+   if (model_date < ciso_atm_d14c_data_yr(1,1)) then
+      D14C = c0
+      ciso_data_ind_d14c = 1
+      if(my_task == master_task) then
+         write(stdout,*)'ciso: Model date less than start of D14C data --> D14C=0'
+      endif
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!  On first time step, perform linear search to find data_ind_d14c.
+!-----------------------------------------------------------------------
+
+   if (ciso_data_ind_d14c == -1) then
+      do ciso_data_ind_d14c = ciso_atm_d14c_data_nbval_max-1,1,-1
+         if (model_date >= ciso_atm_d14c_data_yr(ciso_data_ind_d14c,1)) exit
+      end do
+   endif
+
+!-----------------------------------------------------------------------
+!  See if data_ind_d14c need to be updated,
+!  but do not set it to atm_co2_data_nbval.
+!-----------------------------------------------------------------------
+
+  if (ciso_data_ind_d14c < ciso_atm_d14c_data_nbval_max-1) then
+      if (model_date >= ciso_atm_d14c_data_yr(ciso_data_ind_d14c+1,1))  then
+         ciso_data_ind_d14c = ciso_data_ind_d14c + 1
+      endif
+  endif
+!
+!-----------------------------------------------------------------------
+!  Generate hemisphere values for current time step.
+!-----------------------------------------------------------------------
+
+   weight = (model_date - ciso_atm_d14c_data_yr(ciso_data_ind_d14c,1)) &
+            / (ciso_atm_d14c_data_yr(ciso_data_ind_d14c+1,1) - ciso_atm_d14c_data_yr(ciso_data_ind_d14c,1))
+
+   d14c_curr_sh = weight * ciso_atm_d14c_data(ciso_data_ind_d14c+1,1) + &
+                  (c1-weight) * ciso_atm_d14c_data(ciso_data_ind_d14c,1)
+   d14c_curr_eq = weight * ciso_atm_d14c_data(ciso_data_ind_d14c+1,2) + &
+                 (c1-weight) * ciso_atm_d14c_data(ciso_data_ind_d14c,2)
+   d14c_curr_nh = weight * ciso_atm_d14c_data(ciso_data_ind_d14c+1,3) + &
+                  (c1-weight) * ciso_atm_d14c_data(ciso_data_ind_d14c,3)
+
+   
+!-----------------------------------------------------------------------
+!  Merge hemisphere values for D14C
+!      -Northern Hemisphere value is used for >20N - 90 N
+!      -Southern Hemisphere value is used for >20 S - 90 S
+!      -Equatorial value is used for 20 S to 20 N
+!-----------------------------------------------------------------------
+
+   do j = 1, ny_block
+      do i = 1, nx_block
+        if (LAND_MASK(i,j)) then
+            if (TLATD(i,j,iblock) < -20.0_r8) then
+               D14C(i,j) = d14c_curr_sh
+            else if (TLATD(i,j,iblock) > 20.0_r8) then
+               D14C(i,j) = d14c_curr_nh
+            else
+               D14C(i,j) = d14c_curr_eq
+            endif
+        else
+            D14C(i,j) = c0
+        endif
+      end do
+   end do
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ciso_comp_varying_glo_D14C
+
+
+!*****************************************************************************
+!BOP
+! !IROUTINE: ecosys_ciso_tavg_forcing
+! !INTERFACE:
+
+ subroutine ecosys_ciso_tavg_forcing(STF_MODULE)
+
+! !DESCRIPTION:
+!  Accumulate non-standard forcing related tavg variables.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+ !real (r8), dimension(nx_block,ny_block,ecosys_ciso_tracer_cnt,max_blocks_clinic), &
+  real (r8), dimension(:,:,:,:), &
+     intent(in) :: STF_MODULE
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      iblock              ! block loop index
+
+!-----------------------------------------------------------------------
+!  Do components of flux calculations saved in hack array
+!-----------------------------------------------------------------------
+
+   !$OMP PARALLEL DO PRIVATE(iblock)
+
+   do iblock = 1,nblocks_clinic
+
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:, 1,iblock), tavg_CISO_DI13C_GAS_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:, 2,iblock), tavg_CISO_DI13C_AS_GAS_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:, 3,iblock), tavg_CISO_DI13C_SA_GAS_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:, 4,iblock), tavg_CISO_DIC_GAS_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:, 5,iblock), tavg_CISO_DIC_AS_GAS_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:, 6,iblock), tavg_CISO_DIC_SA_GAS_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:, 7,iblock), tavg_CISO_d13C_GAS_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:, 8,iblock), tavg_CISO_R13C_DIC_surf,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:, 9,iblock), tavg_CISO_R13C_atm,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,10,iblock), tavg_CISO_D13C_atm,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,11,iblock), tavg_CISO_eps_aq_g_surf,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,12,iblock), tavg_CISO_eps_dic_g_surf,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,13,iblock), tavg_CISO_DI14C_GAS_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,14,iblock), tavg_CISO_DI14C_AS_GAS_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,15,iblock), tavg_CISO_DI14C_SA_GAS_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,16,iblock), tavg_CISO_R14C_DIC_surf,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,17,iblock), tavg_CISO_R14C_atm,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,18,iblock), tavg_CISO_D14C_atm,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,19,iblock), tavg_CISO_d14C_GAS_FLUX,iblock,1)
+   end do
+
+   !$OMP END PARALLEL DO
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ecosys_ciso_tavg_forcing
+ 
+ !*****************************************************************************
+!BOP
+! !IROUTINE: ecosys_ciso_tracer_ref_val
+! !INTERFACE:
+
+ function ecosys_ciso_tracer_ref_val(ind)
+
+! !DESCRIPTION:
+!  return reference value for tracers using virtual fluxes
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: ind
+
+! !OUTPUT PARAMETERS:
+
+   real (r8) :: ecosys_ciso_tracer_ref_val
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+
+   if (ciso_vflux_flag(ind)) then
+      ecosys_ciso_tracer_ref_val = ciso_surf_avg(ind)
+   else
+      ecosys_ciso_tracer_ref_val = c0
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function ecosys_ciso_tracer_ref_val
+
+
+!*****************************************************************************
+!BOP
+! !IROUTINE: ciso_comp_surf_avg
+! !INTERFACE:
+
+ subroutine ciso_comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR)
+
+! !DESCRIPTION:
+!  compute average surface tracer values
+!
+!  avg = sum(SURF_VAL*TAREA) / sum(TAREA)
+!  with the sum taken over ocean points only
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+ !real (r8), dimension(nx_block,ny_block,ecosys_ciso_tracer_cnt,max_blocks_clinic), &
+  real (r8), dimension(:,:,:,:), &
+      intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      n,       & ! tracer index
+      iblock,  & ! block index
+      dcount,  & ! diag counter
+      ib,ie,jb,je
+
+   real (r8), dimension(max_blocks_clinic,ecosys_ciso_tracer_cnt) :: &
+      local_sums ! array for holding block sums of each diagnostic
+
+   real (r8) :: &
+      sum_tmp ! temp for local sum
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK1, &! local work space
+      TFACT   ! factor for normalizing sums
+
+   type (block) :: &
+      this_block ! block information for current block
+
+!-----------------------------------------------------------------------
+
+   local_sums = c0
+
+!jw   !$OMP PARALLEL DO PRIVATE(iblock,this_block,ib,ie,jb,je,TFACT,n,WORK1)
+   do iblock = 1,nblocks_clinic
+      this_block = get_block(blocks_clinic(iblock),iblock)
+      ib = this_block%ib
+      ie = this_block%ie
+      jb = this_block%jb
+      je = this_block%je
+      TFACT = TAREA(:,:,iblock)*RCALCT(:,:,iblock)
+
+      do n = 1, ecosys_ciso_tracer_cnt
+         if (ciso_vflux_flag(n)) then
+            WORK1 = p5*(SURF_VALS_OLD(:,:,n,iblock) + &
+                        SURF_VALS_CUR(:,:,n,iblock))*TFACT
+            local_sums(iblock,n) = sum(WORK1(ib:ie,jb:je))
+         endif
+      end do
+   end do
+!jw   !$OMP END PARALLEL DO
+
+   do n = 1, ecosys_ciso_tracer_cnt
+      if (ciso_vflux_flag(n)) then
+         sum_tmp = sum(local_sums(:,n))
+         ciso_surf_avg(n) = global_sum(sum_tmp,distrb_clinic)/area_t
+      endif
+   end do
+
+   if(my_task == master_task) then
+      write(stdout,*)' Calculating surface tracer averages'
+      do n = 1, ecosys_ciso_tracer_cnt
+         if (ciso_vflux_flag(n)) then
+            write(stdout,*) n, ciso_surf_avg(n)
+         endif
+      end do
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ciso_comp_surf_avg
+!***********************************************************************
+!BOP
+! !IROUTINE: extract_ciso_surf_avg
+! !INTERFACE:
+
+ subroutine extract_ciso_surf_avg(ciso_init_ecosys_init_file_fmt, &
+                             ecosys_ciso_restart_filename)
+
+! !DESCRIPTION:
+!  Extract average surface values from restart file.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent(in) :: &
+      ciso_init_ecosys_init_file_fmt, & ! file format (bin or nc)
+      ecosys_ciso_restart_filename      ! file name for restart file
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   type (datafile) ::&
+      restart_file    ! io file descriptor
+
+   integer (int_kind) :: &
+      n               ! tracer index
+
+   character (char_len) :: &
+      short_name      ! tracer name temporaries
+
+!-----------------------------------------------------------------------
+
+   ciso_surf_avg = c0
+
+   restart_file = construct_file(ciso_init_ecosys_init_file_fmt, &
+                                 full_name=trim(ecosys_ciso_restart_filename), &
+                                 record_length=rec_type_dbl, &
+                                 recl_words=nx_global*ny_global)
+
+   do n = 1, ecosys_ciso_tracer_cnt
+      if (ciso_vflux_flag(n)) then
+         short_name = 'surf_avg_' /&
+                   &/ ciso_ind_name_table(n)%name
+         call add_attrib_file(restart_file, trim(short_name), ciso_surf_avg(n))
+      endif
+   end do
+
+   call data_set(restart_file, 'open_read')
+
+   do n = 1, ecosys_ciso_tracer_cnt
+      if (ciso_vflux_flag(n)) then
+         short_name = 'surf_avg_' /&
+                   &/ ciso_ind_name_table(n)%name
+         call extract_attrib_file(restart_file, trim(short_name), ciso_surf_avg(n))
+      endif
+   end do
+
+   call data_set (restart_file, 'close')
+
+   call destroy_file (restart_file)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine extract_ciso_surf_avg
+!*****************************************************************************
+!BOP
+! !IROUTINE: ecosys_ciso_write_restart
+! !INTERFACE:
+
+ subroutine ecosys_ciso_write_restart(restart_file, action)
+
+! !DESCRIPTION:
+!  write auxiliary fields & scalars to restart files
+!
+! !REVISION HISTORY:
+!  same as module
+!  use constants, only: char_blank, field_loc_center, field_type_scalar
+ 
+! !INPUT PARAMETERS:
+
+   character(*), intent(in) :: action
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   type (datafile), intent (inout)  :: restart_file
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   character (char_len) :: &
+      short_name   ! tracer name temporaries
+
+   type (io_dim) :: &
+      i_dim, j_dim ! dimension descriptors
+
+   integer (int_kind) :: n
+
+   type (io_field_desc), save :: ABIO_PH_SURF
+
+!-----------------------------------------------------------------------
+
+   if (trim(action) == 'add_attrib_file') then
+      short_name = char_blank
+      do n=1,ecosys_ciso_tracer_cnt
+         if (ciso_vflux_flag(n)) then
+            short_name = 'surf_avg_' /&
+                      &/ ciso_ind_name_table(n)%name
+            call add_attrib_file(restart_file,trim(short_name),ciso_surf_avg(n))
+         endif
+      end do
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ecosys_ciso_write_restart
+
+
+
+
+!***********************************************************************
+
+ end module ecosys_ciso_mod
+
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+

@@ -9,10 +9,10 @@
 !  This module provides support for the ecosystem module and dependend tracer modules
 !  The base model calls subroutines in passive_tracers, which then call
 !  this module if ecosys_on is true. Ecosys_driver then calls subroutines 
-!  in individual ecosystem modules (so far ecosys_mod and ecosys_Ciso_mod)
+!  in individual ecosystem modules (so far ecosys_mod and ecosys_ciso_mod)
 !  
 !  Written by: Alexandra Jahn, NCAR, Nov/Dec 2012
-!  Calls to Ciso are commented out in this version because Ciso code is 
+!  Calls to ciso are commented out in this version because ciso code is 
 !  not linked yet in cesm1.2        
 
 
@@ -47,14 +47,14 @@
        ecosys_set_interior,        &
        ecosys_write_restart
 
-!   use ecosys_Ciso_mod, only:       &
-!       ecosys_Ciso_tracer_cnt,      &
-!       ecosys_Ciso_init,            &
-!       ecosys_Ciso_tracer_ref_val,  &
-!       ecosys_Ciso_set_sflux,       &
-!       ecosys_Ciso_tavg_forcing,    &
-!       ecosys_Ciso_set_interior,    &
-!       ecosys_Ciso_write_restart
+   use ecosys_ciso_mod, only:       &
+       ecosys_ciso_tracer_cnt,      &
+       ecosys_ciso_init,            &
+       ecosys_ciso_tracer_ref_val,  &
+       ecosys_ciso_set_sflux,       &
+       ecosys_ciso_tavg_forcing,    &
+       ecosys_ciso_set_interior,    &
+       ecosys_ciso_write_restart
 
 
    implicit none
@@ -91,7 +91,7 @@
    integer (kind=int_kind) :: &
       ecosys_driver_ind_begin,  ecosys_driver_ind_end,  &
       ecosys_ind_begin,         ecosys_ind_end,         &
-      ecosys_Ciso_ind_begin,    ecosys_Ciso_ind_end
+      ecosys_ciso_ind_begin,    ecosys_ciso_ind_end
  
 
 !EOC
@@ -107,7 +107,7 @@
 ! !IROUTINE: ecosys_driver_tracer_cnt_init
 ! !INTERFACE:
 
- subroutine ecosys_driver_tracer_cnt_init(ecosys_on,Ciso_on,ecosys_driver_tracer_cnt)
+ subroutine ecosys_driver_tracer_cnt_init(ecosys_on,ciso_on,ecosys_driver_tracer_cnt)
                         
                       
 ! !DESCRIPTION:
@@ -121,7 +121,7 @@
 
    logical (kind=log_kind), intent(in)  ::  &
      ecosys_on, &            ! ecosys_mod on
-     Ciso_on                 ! ecosys_Ciso on
+     ciso_on                 ! ecosys_ciso on
    
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -143,13 +143,13 @@
 
 
 !-----------------------------------------------------------------------
-!  Find ecosys_driver_tracer_cnt, depending on whether Ciso is also on
+!  Find ecosys_driver_tracer_cnt, depending on whether ciso is also on
 !-----------------------------------------------------------------------
    
-   if (.not. Ciso_on) then
+   if (.not. ciso_on) then
        ecosys_driver_tracer_cnt = ecosys_tracer_cnt
-!   else 
-!       ecosys_driver_tracer_cnt = ecosys_tracer_cnt + ecosys_Ciso_tracer_cnt
+   else 
+       ecosys_driver_tracer_cnt = ecosys_tracer_cnt + ecosys_ciso_tracer_cnt
    end if
 
 
@@ -165,7 +165,7 @@
 ! !IROUTINE: ecosys_driver_init
 ! !INTERFACE:
 
- subroutine ecosys_driver_init(ecosys_on,Ciso_on,init_ts_file_fmt, &
+ subroutine ecosys_driver_init(ecosys_on,ciso_on,init_ts_file_fmt, &
                         read_restart_filename, &
                         tracer_d_module, TRACER_MODULE, tadvect_ctype, &
                         errorCode)
@@ -173,8 +173,8 @@
                       
 ! !DESCRIPTION:
 !  Initialize ecosys_driver passive tracers. This involves:
-!  1) setting ecosys and ecosys_Ciso module index bounds
-!  2) calling ecosys and ecosys_Ciso module init subroutine
+!  1) setting ecosys and ecosys_ciso module index bounds
+!  2) calling ecosys and ecosys_ciso module init subroutine
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -188,7 +188,7 @@
 
    logical (kind=log_kind), intent(in)  ::  &
      ecosys_on, &            ! ecosys_mod on
-     Ciso_on                 ! ecosys_Ciso on
+     ciso_on                 ! ecosys_ciso on
    
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -241,10 +241,10 @@
    end if
    
    
-!   if (Ciso_on) then
-!      call ecosys_set_tracer_indices('CISO', ecosys_Ciso_tracer_cnt, cumulative_nt,  &
-!                              ecosys_Ciso_ind_begin, ecosys_Ciso_ind_end)
-!   end if
+   if (ciso_on) then
+      call ecosys_set_tracer_indices('CISO', ecosys_ciso_tracer_cnt, cumulative_nt,  &
+                              ecosys_ciso_ind_begin, ecosys_ciso_ind_end)
+   end if
    
    
    if (cumulative_nt /= ecosys_driver_tracer_cnt) then
@@ -278,18 +278,18 @@
 !-----------------------------------------------------------------------
 !  ECOSYS CISO block
 !-----------------------------------------------------------------------
-   if (Ciso_on) then
-!      call ecosys_Ciso_init(init_ts_file_fmt, read_restart_filename, &
-!                       tracer_d_module(ecosys_Ciso_ind_begin:ecosys_Ciso_ind_end), &
-!                       TRACER_MODULE(:,:,:,ecosys_Ciso_ind_begin:ecosys_Ciso_ind_end,:,:), &
-!                       tadvect_ctype(ecosys_Ciso_ind_begin:ecosys_Ciso_ind_end), &
-!                       errorCode)
+   if (ciso_on) then
+      call ecosys_ciso_init(init_ts_file_fmt, read_restart_filename, &
+                       tracer_d_module(ecosys_ciso_ind_begin:ecosys_ciso_ind_end), &
+                       TRACER_MODULE(:,:,:,ecosys_ciso_ind_begin:ecosys_ciso_ind_end,:,:), &
+                       tadvect_ctype(ecosys_ciso_ind_begin:ecosys_ciso_ind_end), &
+                       errorCode)
 
-!      if (errorCode /= POP_Success) then
-!         call POP_ErrorSet(errorCode, &
-!            'init_ecosys_driver: error in ecosys_Ciso_init')
-!         return
-!      endif
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'init_ecosys_driver: error in ecosys_ciso_init')
+         return
+      endif
 
    end if
    
@@ -304,7 +304,7 @@
 ! !IROUTINE: ecosys_driver_set_interior
 ! !INTERFACE:
 
- subroutine ecosys_driver_set_interior(k, ecosys_on, Ciso_on, TEMP_OLD, &
+ subroutine ecosys_driver_set_interior(k, ecosys_on, ciso_on, TEMP_OLD, &
     TEMP_CUR, SALT_OLD, SALT_CUR, &
     TRACER_MODULE_OLD, TRACER_MODULE_CUR, DTRACER_MODULE, this_block)
 
@@ -322,7 +322,7 @@
 
    logical (kind=log_kind), intent(in)  ::  &
      ecosys_on, &            ! ecosys_mod on
-     Ciso_on                 ! ecosys_Ciso on
+     ciso_on                 ! ecosys_ciso on
    
 
    real (r8), dimension(nx_block,ny_block), intent(in) :: &
@@ -363,13 +363,13 @@
 !  ECOSYS_CISO block
 !-----------------------------------------------------------------------
 
-   if (Ciso_on) then
-!      call ecosys_Ciso_set_interior(k,                                  &
-!         TEMP_OLD, TEMP_CUR, &
-!         TRACER_MODULE_OLD(:,:,:,ecosys_Ciso_ind_begin:ecosys_Ciso_ind_end),&
-!         TRACER_MODULE_CUR(:,:,:,ecosys_Ciso_ind_begin:ecosys_Ciso_ind_end),&
-!         DTRACER_MODULE(:,:,ecosys_Ciso_ind_begin:ecosys_Ciso_ind_end),    &
-!         this_block)
+   if (ciso_on) then
+      call ecosys_ciso_set_interior(k,                                  &
+         TEMP_OLD, TEMP_CUR, &
+         TRACER_MODULE_OLD(:,:,:,ecosys_ciso_ind_begin:ecosys_ciso_ind_end),&
+         TRACER_MODULE_CUR(:,:,:,ecosys_ciso_ind_begin:ecosys_ciso_ind_end),&
+         DTRACER_MODULE(:,:,ecosys_ciso_ind_begin:ecosys_ciso_ind_end),    &
+         this_block)
    end if
 
 !-----------------------------------------------------------------------
@@ -382,7 +382,7 @@
 ! !IROUTINE: ecosys_driver_set_sflux
 ! !INTERFACE:
 
- subroutine ecosys_driver_set_sflux(ecosys_on, Ciso_on,SHF_QSW_RAW, SHF_QSW, &
+ subroutine ecosys_driver_set_sflux(ecosys_on, ciso_on,SHF_QSW_RAW, SHF_QSW, &
                              U10_SQR,IFRAC,PRESS,SST,SSS, &
                              SURFACE_VALS_OLD,SURFACE_VALS_CUR,STF_MODULE)
 
@@ -396,7 +396,7 @@
 
   logical (kind=log_kind), intent(in)  ::  &
      ecosys_on, &            ! ecosys_mod on
-     Ciso_on                 ! ecosys_Ciso on
+     ciso_on                 ! ecosys_ciso on
    
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) :: &
@@ -438,12 +438,12 @@
 !  ECOSYSC_CISO block
 !-----------------------------------------------------------------------
 
-   if (Ciso_on) then
-!      call ecosys_Ciso_set_sflux(                                         &
-!         SST, &
-!         SURFACE_VALS_OLD(:,:,ecosys_Ciso_ind_begin:ecosys_Ciso_ind_end,:), &
-!         SURFACE_VALS_CUR(:,:,ecosys_Ciso_ind_begin:ecosys_Ciso_ind_end,:), &
-!         STF_MODULE(:,:,ecosys_Ciso_ind_begin:ecosys_Ciso_ind_end,:))
+   if (ciso_on) then
+      call ecosys_ciso_set_sflux(                                         &
+         SST, &
+         SURFACE_VALS_OLD(:,:,ecosys_ciso_ind_begin:ecosys_ciso_ind_end,:), &
+         SURFACE_VALS_CUR(:,:,ecosys_ciso_ind_begin:ecosys_ciso_ind_end,:), &
+         STF_MODULE(:,:,ecosys_ciso_ind_begin:ecosys_ciso_ind_end,:))
    end if
 
 
@@ -457,7 +457,7 @@
 ! !IROUTINE: ecosys_driver_write_restart
 ! !INTERFACE:
 
- subroutine ecosys_driver_write_restart(ecosys_on, Ciso_on,restart_file, action)
+ subroutine ecosys_driver_write_restart(ecosys_on, ciso_on,restart_file, action)
 
 ! !DESCRIPTION:
 !  call restart routines for each tracer module that
@@ -469,7 +469,7 @@
 ! !INPUT PARAMETERS:
    logical (kind=log_kind), intent(in)  ::  &
      ecosys_on, &            ! ecosys_mod on
-     Ciso_on                 ! ecosys_Ciso on
+     ciso_on                 ! ecosys_ciso on
  
    character(*), intent(in) :: action
 
@@ -491,8 +491,8 @@
 !-----------------------------------------------------------------------
 !  ECOSYS_CISO block does not write additional restart at this point
 !-----------------------------------------------------------------------
-   if (Ciso_on) then
-!      call ecosys_Ciso_write_restart(restart_file, action)
+   if (ciso_on) then
+      call ecosys_ciso_write_restart(restart_file, action)
    end if
 
 !-----------------------------------------------------------------------
@@ -506,7 +506,7 @@
 ! !IROUTINE: ecosys_driver_tavg_forcing
 ! !INTERFACE:
 
- subroutine ecosys_driver_tavg_forcing(ecosys_on, Ciso_on,STF_MODULE)
+ subroutine ecosys_driver_tavg_forcing(ecosys_on, ciso_on,STF_MODULE)
 
 ! !DESCRIPTION:
 !  accumulate common tavg fields for tracer surface fluxes
@@ -519,7 +519,7 @@
 ! !INPUT PARAMETERS:
  logical (kind=log_kind), intent(in)  ::  &
      ecosys_on, &            ! ecosys_mod on
-     Ciso_on                 ! ecosys_Ciso on
+     ciso_on                 ! ecosys_ciso on
  
   real (r8), dimension(:,:,:,:), &
      intent(in) :: STF_MODULE
@@ -543,9 +543,9 @@
 !  ECOSYS_CISO block
 !-----------------------------------------------------------------------
 
-   if (Ciso_on) then
-!      call ecosys_Ciso_tavg_forcing( &
-!         STF_MODULE(:,:,ecosys_Ciso_ind_begin:ecosys_Ciso_ind_end,:))
+   if (ciso_on) then
+      call ecosys_ciso_tavg_forcing( &
+         STF_MODULE(:,:,ecosys_ciso_ind_begin:ecosys_ciso_ind_end,:))
    end if
 
 
@@ -561,7 +561,7 @@
  !IROUTINE: ecosys_driver_tracer_ref_val
 ! !INTERFACE:
 !
- function ecosys_driver_tracer_ref_val(ecosys_on, Ciso_on,ind)
+ function ecosys_driver_tracer_ref_val(ecosys_on, ciso_on,ind)
 !
 ! !DESCRIPTION:
 !  return reference value for tracer with global tracer index ind
@@ -573,7 +573,7 @@
  !INPUT PARAMETERS:
    logical (kind=log_kind), intent(in)  ::  &
      ecosys_on, &            ! ecosys_mod on
-     Ciso_on                 ! ecosys_Ciso on
+     ciso_on                 ! ecosys_ciso on
  
    integer(int_kind), intent(in) :: ind
 
@@ -605,10 +605,10 @@
 !  ECOSYS_CISO block
 !-----------------------------------------------------------------------
 
-   if (Ciso_on) then
-!      if (ind >= ecosys_Ciso_ind_begin .and. ind <= ecosys_Ciso_ind_end) then
-!         ecosys_driver_tracer_ref_val = ecosys_Ciso_tracer_ref_val(ind-ecosys_Ciso_ind_begin+1)
-!      endif
+   if (ciso_on) then
+      if (ind >= ecosys_ciso_ind_begin .and. ind <= ecosys_ciso_ind_end) then
+         ecosys_driver_tracer_ref_val = ecosys_ciso_tracer_ref_val(ind-ecosys_ciso_ind_begin+1)
+      endif
    endif
 
 
