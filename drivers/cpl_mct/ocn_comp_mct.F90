@@ -134,7 +134,7 @@ contains
 !
 ! !INPUT/OUTPUT PARAMETERS:
 
-    type(ESMF_Clock)            , intent(in)    :: EClock
+    type(ESMF_Clock)            , intent(inout) :: EClock
     type(seq_cdata)             , intent(inout) :: cdata_o
     type(mct_aVect)             , intent(inout) :: x2o_o, o2x_o
     character(len=*), optional  , intent(in)    :: NLFilename ! Namelist filename
@@ -504,7 +504,7 @@ contains
 ! Run POP for a coupling interval
 !
 ! !INPUT/OUTPUT PARAMETERS:
-    type(ESMF_Clock)            , intent(in)    :: EClock
+    type(ESMF_Clock)            , intent(inout) :: EClock
     type(seq_cdata)             , intent(inout) :: cdata_o
     type(mct_aVect)             , intent(inout) :: x2o_o
     type(mct_aVect)             , intent(inout) :: o2x_o
@@ -716,7 +716,7 @@ contains
 ! !USES:
     use POP_FinalMod
 ! !ARGUMENTS:
-    type(ESMF_Clock)            , intent(in)    :: EClock
+    type(ESMF_Clock)            , intent(inout) :: EClock
     type(seq_cdata)             , intent(inout) :: cdata_o
     type(mct_aVect)             , intent(inout) :: x2o_o
     type(mct_aVect)             , intent(inout) :: o2x_o
@@ -990,8 +990,8 @@ contains
 !    o  lwdn   -- longwave radiation (down)                (W/m2   )
 !    o  melth  -- heat flux from snow&ice melt             (W/m2   )
 !    o  ifrac  -- ice fraction
-!    o  roff   -- river runoff flux                        (kg/m2/s)
-!    o  ioff   -- ice runoff flux                          (kg/m2/s)
+!    o  rofl   -- river runoff flux                        (kg/m2/s)
+!    o  rofi   -- ice runoff flux                          (kg/m2/s)
 ! 
 !    The following fields are sometimes received from the coupler,
 !      depending on model options:
@@ -1112,8 +1112,8 @@ contains
          WORKB (i,j       ) = x2o_o%rAttr(index_x2o_Faxa_rain,n)
          EVAP_F(i,j,iblock) = x2o_o%rAttr(index_x2o_Foxx_evap,n)
          MELT_F(i,j,iblock) = x2o_o%rAttr(index_x2o_Fioi_meltw,n)
-         ROFF_F(i,j,iblock) = x2o_o%rAttr(index_x2o_Forr_roff,n)
-         IOFF_F(i,j,iblock) = x2o_o%rAttr(index_x2o_Forr_ioff,n)
+         ROFF_F(i,j,iblock) = x2o_o%rAttr(index_x2o_Foxx_rofl,n)
+         IOFF_F(i,j,iblock) = x2o_o%rAttr(index_x2o_Foxx_rofi,n)
          SALT_F(i,j,iblock) = x2o_o%rAttr(index_x2o_Fioi_salt,n)
 
          PREC_F(i,j,iblock) = WORKB(i,j) + SNOW_F(i,j,iblock)    ! rain + snow
