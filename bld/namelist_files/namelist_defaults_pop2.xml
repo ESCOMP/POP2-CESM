@@ -908,9 +908,9 @@
 
 <ciso_use_nml_surf_vals runtype="startup">.true.</ciso_use_nml_surf_vals>
 
-<ciso_surf_avg_di13c_const>22.74</ciso_surf_avg_di13c_const>  
+<ciso_surf_avg_di13c_const>21.8451</ciso_surf_avg_di13c_const>  
         
-<ciso_surf_avg_di14c_const>2.1422e-09</ciso_surf_avg_di14c_const>          
+<ciso_surf_avg_di14c_const>2.2861e-9</ciso_surf_avg_di14c_const>          
 
 <ciso_atm_d13c_filename>/glade/u/home/ajahn/ForcingFiles/c13_HG09.dat</ciso_atm_d13c_filename>
 

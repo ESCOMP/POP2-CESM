@@ -4483,13 +4483,6 @@ group="ecosys_ciso_nml" >
 Default: 
 </entry>
 
-<entry 
-id="ciso_tracer_init_ext%default_val"
-type="dtype(27)%real" 
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
 
 <entry 
 id="ciso_init_ecosys_init_file_fmt"
