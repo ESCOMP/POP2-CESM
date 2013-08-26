@@ -2,6 +2,68 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  jedwards
+Tag Date:    18 July 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130718b
+Tag Summary: Change in how build-namelist expands environment variables
+
+Files Modified:
+M            49248   bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    18 July 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130718a
+Tag Summary: Change to build-namelist to handle $OCN_TRACER_MODULE as an array
+             rather than one big string.
+
+Files Modified:
+M            49243   bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    18 July 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130718
+Tag Summary: Fix to allow changes to domain_size.F90 and POP_DomainSizeMod.F90
+             in SourceMods/src.pop2
+
+Files Modified:
+M            49241   bld/pop2.buildexe.csh
+===============================================================================
+Tag Creator: mlevy
+Developers:  santos
+Tag Date:    9 July 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130709a
+Tag Summary: Three small changes to allow POP to build with intel's "-check
+             bounds" flag (checking for out of bounds memory access)
+
+Files Modified:
+M            48833   source/vmix_kpp.F90
+M            48833   source/hmix_gm.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, klindsay
+Tag Date:    9 July 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130709
+Tag Summary: Update to cfc fix implemented on Jan 28, 2013... that fix did not
+             handle branch runs correctly (based iinit_cfc_option on STARTDATE
+             rather than REFDATE)
+
+Files Modified:
+M            48822   bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    21 May 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130521
+Tag Summary: Another partial_bottom_cell bugfix: diagnostic output was computed
+             incorrectly with partial bottom cells turned on.
+
+Files Modified:
+M            47358   source/advection.F90
+M            47358   source/horizontal_mix.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay
 Tag Date:    17 May 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130517

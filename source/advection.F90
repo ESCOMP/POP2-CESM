@@ -1723,13 +1723,23 @@
          endif
 
          WORK = c0
-         do j=jb,je
-         do i=ib,ie
-            if (k <= KMT(i,j,bid)) then
-               WORK(i,j) = -dz(k)*LTK(i,j,n)
-            endif
-         end do
-         end do
+         if (partial_bottom_cells) then
+            do j=jb,je
+            do i=ib,ie
+               if (k <= KMT(i,j,bid)) then
+                  WORK(i,j) = -DZT(i,j,k,bid)*LTK(i,j,n)
+               endif
+            end do
+            end do
+         else
+            do j=jb,je
+            do i=ib,ie
+               if (k <= KMT(i,j,bid)) then
+                  WORK(i,j) = -dz(k)*LTK(i,j,n)
+               endif
+            end do
+            end do
+         endif
          call accumulate_tavg_field(WORK,tavg_ADV_TRACER(n),bid,k)
 
       enddo

@@ -559,6 +559,7 @@ end subroutine
 #endif
    endif
 
+#ifdef USE_ESMF_METADATA
     convCIM  = "CIM"
     purpComp = "Model Component Simulation Description"
 
@@ -591,6 +592,7 @@ end subroutine
 !                           convention=convCIM, purpose=purpComp, rc=rc)
 !    call ESMF_AttributeSet(comp, "ResponsiblePartyRole", "contact", &
 !                           convention=convCIM, purpose=purpComp, rc=rc)
+#endif
 
 !-----------------------------------------------------------------------
 !EOC

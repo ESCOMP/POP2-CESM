@@ -1300,9 +1300,13 @@
         where (WORK1 > c0)
           TIDAL_DIFF(:,:,k,bid) = TIDAL_COEF(:,:,k,bid)/WORK1
         endwhere
-    
-        if (.not. lccsm_control_compatible) then   ! this step breaks backwards compatibility
-        where ( k > 2  .and.  ( k == KMT(:,:,bid)-1  .or.  k == KMT(:,:,bid)-2 ) )
+
+        ! Notes:
+        ! (1) this step breaks backwards compatibility
+        ! (2) check for k>2 was added to if statement to avoid
+        !     out of bounds access
+        if ((.not. lccsm_control_compatible).and.(k.gt.2)) then
+        where ( k == KMT(:,:,bid)-1  .or.  k == KMT(:,:,bid)-2 )
           TIDAL_DIFF(:,:,k,bid) = max( TIDAL_DIFF(:,:,k,  bid),  &
                                        TIDAL_DIFF(:,:,k-1,bid) )
         endwhere 
