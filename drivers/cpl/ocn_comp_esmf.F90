@@ -736,8 +736,9 @@ subroutine ocn_run_esmf(comp, import_state, export_state, EClock, rc)
 
     advance: do 
 
-       ! obtain import state from driver
        if (check_time_flag(cpl_ts) .or. nsteps_run == 0) then
+
+          ! Obtain input from driver from import state
           call ESMF_StateGet(import_state, itemName="x2d", array=x2d, rc=rc)
           if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
@@ -746,16 +747,17 @@ subroutine ocn_run_esmf(comp, import_state, export_state, EClock, rc)
 
           call POP_import(fptr, ldiag_cpl, rc)
 
-          call ESMF_AttributeGet(import_state, name="orb_eccen", value=orb_eccen, rc=rc)
+          ! Get orbital values from export state
+          call ESMF_AttributeGet(export_state, name="orb_eccen", value=orb_eccen, rc=rc)
           if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
           
-          call ESMF_AttributeGet(import_state, name="orb_mvelpp", value=orb_mvelpp, rc=rc)
+          call ESMF_AttributeGet(export_state, name="orb_mvelpp", value=orb_mvelpp, rc=rc)
           if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
           
-          call ESMF_AttributeGet(import_state, name="orb_lambm0", value=orb_lambm0, rc=rc)
+          call ESMF_AttributeGet(export_state, name="orb_lambm0", value=orb_lambm0, rc=rc)
           if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
           
-          call ESMF_AttributeGet(import_state, name="orb_obliqr", value=orb_obliqr, rc=rc)
+          call ESMF_AttributeGet(export_state, name="orb_obliqr", value=orb_obliqr, rc=rc)
           if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
           errorCode = rc
