@@ -22,6 +22,8 @@ module ocn_comp_esmf
    use POP_IOUnitsMod
 
    use esmf
+   use esmfshr_mod
+
    use seq_flds_mod
    use seq_timemgr_mod
    use seq_infodata_mod,only : seq_infodata_start_type_cont, &
@@ -35,8 +37,8 @@ module ocn_comp_esmf
    use ocn_communicator,  only: mpi_communicator_ocn
 
    use kinds_mod,         only: int_kind, r8
-   use POP_import_export, only: POP_import, POP_export, POP_sum_buffer
-   use POP_import_export, only: SBUFF_SUM, tlast_coupled
+   use ocn_import_export, only: ocn_import, ocn_export, POP_sum_buffer
+   use ocn_import_export, only: SBUFF_SUM, tlast_coupled
    use POP_CplIndices
    use POP_KindsMod
    use POP_ErrorMod
@@ -69,7 +71,6 @@ module ocn_comp_esmf
    use step_mod,          only: step
    use time_management
    use registry
-   use esmfshr_mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
   implicit none
@@ -474,12 +475,12 @@ contains
    call ESMF_ArrayGet(d2x, localDe=0, farrayPtr=fptr, rc=rc)
    if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
-   call POP_export(fptr, ldiag_cpl, rc)
+   call ocn_export(fptr, ldiag_cpl, rc)
 
    errorCode = rc
    if (errorCode /= POP_Success) then
       call POP_ErrorPrint(errorCode)
-      call exit_POP(sigAbort, 'ERROR in POP_export')
+      call exit_POP(sigAbort, 'ERROR in ocn_export')
    endif
 
    call t_stopf ('pop_esmf_init')
@@ -732,7 +733,7 @@ subroutine ocn_run_esmf(comp, import_state, export_state, EClock, rc)
 !-----------------------------------------------------------------------
 
     ! Note that all ocean time flags are evaluated each timestep in time_manager
-    ! tlast_coupled is set to zero at the end of POP_export
+    ! tlast_coupled is set to zero at the end of ocn_export
 
     advance: do 
 
@@ -745,7 +746,7 @@ subroutine ocn_run_esmf(comp, import_state, export_state, EClock, rc)
           call ESMF_ArrayGet(x2d, localDe=0, farrayPtr=fptr, rc=rc)
           if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
-          call POP_import(fptr, ldiag_cpl, rc)
+          call ocn_import(fptr, ldiag_cpl, rc)
 
           ! Get orbital values from export state
           call ESMF_AttributeGet(export_state, name="orb_eccen", value=orb_eccen, rc=rc)
@@ -794,12 +795,12 @@ subroutine ocn_run_esmf(comp, import_state, export_state, EClock, rc)
           call ESMF_ArrayGet(d2x, localDe=0, farrayPtr=fptr, rc=rc)
           if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
-          call POP_export(fptr, ldiag_cpl, rc)
+          call ocn_export(fptr, ldiag_cpl, rc)
 
           errorCode = rc
           if (errorCode /= POP_Success) then
              call POP_ErrorPrint(errorCode)
-             call exit_POP(sigAbort, 'ERROR in POP_export')
+             call exit_POP(sigAbort, 'ERROR in ocn_export')
           endif
 
           exit advance

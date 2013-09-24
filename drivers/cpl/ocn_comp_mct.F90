@@ -35,8 +35,8 @@ module ocn_comp_mct
    use ocn_communicator,  only: mpi_communicator_ocn
 
    use kinds_mod,         only: int_kind, r8
-   use POP_import_export, only: POP_import, POP_export, POP_sum_buffer
-   use POP_import_export, only: SBUFF_SUM, tlast_coupled
+   use ocn_import_export, only: ocn_import, ocn_export, pop_sum_buffer
+   use ocn_import_export, only: SBUFF_SUM, tlast_coupled
    use POP_CplIndices
    use POP_KindsMod
    use POP_ErrorMod
@@ -407,11 +407,11 @@ contains
 
    call pop_sum_buffer
 
-   call POP_export(o2x_o%rattr, ldiag_cpl, errorCode)  
+   call ocn_export(o2x_o%rattr, ldiag_cpl, errorCode)  
 
    if (errorCode /= POP_Success) then
       call POP_ErrorPrint(errorCode)
-      call exit_POP(sigAbort, 'ERROR in POP_export')
+      call exit_POP(sigAbort, 'ERROR in ocn_export')
    endif
 
    call t_stopf ('pop_mct_init')
@@ -606,14 +606,14 @@ contains
 !-----------------------------------------------------------------------
 
     ! Note that all ocean time flags are evaluated each timestep in time_manager
-    ! tlast_coupled is set to zero at the end of POP_export
+    ! tlast_coupled is set to zero at the end of ocn_export
 
     advance: do 
 
        ! obtain import state from driver
        if (check_time_flag(cpl_ts) .or. nsteps_run == 0) then
 
-          call POP_import(x2o_o%rattr, ldiag_cpl, errorCode)   
+          call ocn_import(x2o_o%rattr, ldiag_cpl, errorCode)   
 
           if (errorCode /= POP_Success) then
              call POP_ErrorPrint(errorCode)
@@ -650,10 +650,10 @@ contains
 
        if (check_time_flag(cpl_ts)) then
 
-          call POP_export(o2x_o%rattr, ldiag_cpl, errorCode)
+          call ocn_export(o2x_o%rattr, ldiag_cpl, errorCode)
           if (errorCode /= POP_Success) then
              call POP_ErrorPrint(errorCode)
-             call exit_POP(sigAbort, 'ERROR in POP_export')
+             call exit_POP(sigAbort, 'ERROR in ocn_export')
           endif
 
           exit advance

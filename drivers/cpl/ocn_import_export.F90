@@ -54,10 +54,10 @@ contains
 
 !***********************************************************************
 !BOP
-! !IROUTINE: POP_import
+! !IROUTINE: ocn_import
 ! !INTERFACE:
 
-  subroutine POP_import(x2o, ldiag_cpl, errorCode)
+  subroutine ocn_import(x2o, ldiag_cpl, errorCode)
 
 ! !DESCRIPTION:
 !-----------------------------------------------------------------------
@@ -254,7 +254,7 @@ contains
 
    if (errorCode /= POP_Success) then
       call POP_ErrorSet(errorCode, &
-         'POP_import: error in update_ghost_cells_coupler_fluxes')
+         'ocn_import: error in update_ghost_cells_coupler_fluxes')
       return
    endif
 
@@ -363,14 +363,14 @@ contains
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine POP_import
+ end subroutine ocn_import
 
 !***********************************************************************
 !BOP
 ! !IROUTINE: ocn_export_mct
 ! !INTERFACE:
 
- subroutine POP_export(o2x, ldiag_cpl, errorCode)   
+ subroutine ocn_export(o2x, ldiag_cpl, errorCode)   
 
 ! !DESCRIPTION:
 !  This routine calls the routines necessary to send pop fields to
@@ -612,7 +612,7 @@ contains
 !-----------------------------------------------------------------------
 !EOC
 
-  end subroutine POP_export
+  end subroutine ocn_export
 
 !***********************************************************************
 
@@ -754,4 +754,4 @@ contains
  
 !***********************************************************************
 
-end module POP_import_export
+end module ocn_import_export
