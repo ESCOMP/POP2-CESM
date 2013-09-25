@@ -14,15 +14,7 @@ cd $OBJROOT/ocn/source
 
 cp -fp $CODEROOT/ocn/pop2/source/*.F90  .
 cp -fp $CODEROOT/ocn/pop2/mpi/*.F90  .
-cp -fp $CODEROOT/ocn/pop2/drivers/cpl_share/*.F90  .
-if ($COMP_INTERFACE == 'MCT') then
-  cp -fp $CODEROOT/ocn/pop2/drivers/cpl_mct/*.F90 .
-else if ($COMP_INTERFACE == 'ESMF') then
-  cp -fp $CODEROOT/ocn/pop2/drivers/cpl_esmf/*.F90 .
-else
-  echo "ERROR: must specifiy valid $COMP_INTERFACE value"
-  exit -1
-endif
+cp -fp $CODEROOT/ocn/pop2/drivers/cpl/*.F90 .
 
 # Two files require special attention because they get renamed when copied
 # from either SourceMods/src.pop2 or input_templates/:
