@@ -1,6 +1,42 @@
 SVN $Id$
 SVN $URL$
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mvertens
+Tag Date:    25 Sept 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130925
+Tag Summary: Merge comptype branch, which updates the driver to reduce code
+             reuse between the ESMF and MCT versions of the driver.
+
+Files Modified:
+ M      .
+M       bld/pop2.buildexe.csh
+D       drivers/cpl_share
+D       drivers/cpl_share/POP_CplIndices.F90
+D       drivers/cpl_mct
+D       drivers/cpl_mct/POP_FinalMod.F90
+D       drivers/cpl_mct/POP_MCT_vars_mod.F90
+D       drivers/cpl_mct/ocn_communicator.F90
+D       drivers/cpl_mct/ocn_comp_mct.F90
+D       drivers/cpl_mct/POP_InitMod.F90
+D       drivers/cpl_esmf
+D       drivers/cpl_esmf/POP_FinalMod.F90
+D       drivers/cpl_esmf/ocn_comp_esmf.F90
+D       drivers/cpl_esmf/POP_MCT_vars_mod.F90
+D       drivers/cpl_esmf/ocn_communicator.F90
+D       drivers/cpl_esmf/ocn_comp_mct.F90
+D       drivers/cpl_esmf/POP_InitMod.F90
+ M      drivers/cpl_none
+A  +    drivers/cpl
+A  +    drivers/cpl/POP_FinalMod.F90
+A  +    drivers/cpl/ocn_comp_esmf.F90
+A  +    drivers/cpl/ocn_import_export.F90
+A  +    drivers/cpl/POP_CplIndices.F90
+A  +    drivers/cpl/POP_MCT_vars_mod.F90
+A  +    drivers/cpl/ocn_communicator.F90
+A  +    drivers/cpl/ocn_comp_mct.F90
+A  +    drivers/cpl/POP_InitMod.F90
+===============================================================================
 Tag Creator: tcraig
 Developers:  tcraig
 Tag Date:    05 Sept 2013
