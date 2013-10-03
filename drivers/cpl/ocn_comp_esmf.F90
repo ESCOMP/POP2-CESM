@@ -20,9 +20,18 @@ module ocn_comp_esmf
    use POP_GridHorzMod
    use POP_HaloMod
    use POP_IOUnitsMod
+   use POP_MCT_vars_mod
+   use POP_CplIndices
+   use POP_KindsMod
+   use POP_ErrorMod
+   use POP_InitMod,       only: POP_Initialize1, POP_Initialize2
+   use POP_InitMod,       only: timer_total, cpl_ts 
 
    use esmf
-   use esmfshr_mod
+   use esmfshr_util_mod, only : esmfshr_util_StateArrayDestroy
+   use esmfshr_util_mod, only : esmfshr_util_ArrayGetIndex
+   use esmfshr_util_mod, only : esmfshr_util_ArrayGetSize
+   use esmf2mct_mod    , only : esmf2mct_init
 
    use seq_flds_mod
    use seq_timemgr_mod
@@ -34,16 +43,11 @@ module ocn_comp_esmf
    use shr_cal_mod, only : shr_cal_date2ymd
    use shr_sys_mod
    use perf_mod
-   use ocn_communicator,  only: mpi_communicator_ocn
 
    use kinds_mod,         only: int_kind, r8
+   use ocn_communicator,  only: mpi_communicator_ocn
    use ocn_import_export, only: ocn_import, ocn_export, POP_sum_buffer
    use ocn_import_export, only: SBUFF_SUM, tlast_coupled
-   use POP_CplIndices
-   use POP_KindsMod
-   use POP_ErrorMod
-   use POP_InitMod,       only: POP_Initialize1, POP_Initialize2, &
-                                timer_total, cpl_ts 
    use communicate,       only: my_task, master_task
    use constants
    use blocks
@@ -52,18 +56,13 @@ module ocn_comp_esmf
    use forcing_shf,       only: SHF_QSW
    use forcing_sfwf,      only: lsend_precip_fact, precip_fact
    use forcing_fields
-   use forcing_coupled,   only: ncouple_per_day,  &
-                                update_ghost_cells_coupler_fluxes, &
-                                rotate_wind_stress, pop_set_coupled_forcing, &
-                                pop_init_coupled,  &
-                                orb_eccen, orb_obliqr, orb_lambm0, orb_mvelpp
-   use ice,               only: tfreez, tmelt, liceform,QFLUX, QICE, AQICE, &
-                                tlast_ice
+   use forcing_coupled,   only: ncouple_per_day, pop_set_coupled_forcing, pop_init_coupled
+   use forcing_coupled,   only: orb_eccen, orb_obliqr, orb_lambm0, orb_mvelpp
    use grid,              only: TLAT, TLON, KMT
    use global_reductions, only: global_sum_prod
    use io_tools,          only: document
-   use named_field_mod,   only: named_field_register, named_field_get_index, &
-                                named_field_set, named_field_get
+   use named_field_mod,   only: named_field_register, named_field_get_index
+   use named_field_mod,   only: named_field_set, named_field_get
    use prognostic
    use timers,            only: get_timer, timer_start, timer_stop
    use diagnostics,       only: check_KE
@@ -109,6 +108,12 @@ module ocn_comp_esmf
 
    integer (int_kind)  ::   &
       nsend, nrecv
+
+   ! Following is needed for call to shr_str_data in ecosys_mod
+   ! These variables are pointed to in POP_MCT_vars_mod
+   type(mct_gsMap), target  :: gsmap_o
+   type(mct_gGrid), target  :: dom_o
+   integer                  :: OCNID      
 
 !=======================================================================
 
@@ -191,20 +196,17 @@ contains
 
 #ifdef _OPENMP
     integer, external :: omp_get_max_threads  ! max number of threads that can execute
-                                             ! concurrently in a single parallel region
+                                              ! concurrently in a single parallel region
 #endif
 
-    integer                               :: mpicom_ocn, mpicom_vm, lsize, gsize
-  
-    type(ESMF_DistGrid)                   :: distgrid
-    type(ESMF_Array)                      :: d2x, x2d, dom
-    type(ESMF_VM)                         :: vm
-    integer                               :: OCNID       ! cesm ID value
-
+    integer                :: mpicom_ocn, mpicom_vm, lsize, gsize
+    type(ESMF_ArraySpec)   :: arrayspec
+    type(ESMF_DistGrid)    :: distgrid
+    type(ESMF_Array)       :: o2x, x2o, dom
+    type(ESMF_VM)          :: vm
     character(ESMF_MAXSTR) :: convCIM, purpComp
-
-    real(R8), pointer ::  &
-      fptr (:,:)          ! data pointer into ESMF array
+    integer                :: nfields
+    real(R8), pointer      :: fptr (:,:)          ! data pointer into ESMF array
 
 !-----------------------------------------------------------------------
 !
@@ -369,13 +371,6 @@ contains
             call document ('ocn_init_esmf', 'start_day ', start_day)
          endif
       end if
-#ifndef _HIRES 
-      if (seconds_this_day /= start_tod) then
-         call document ('ocn_init_esmf', 'sec0     ', seconds_this_day)
-         call document ('ocn_init_esmf', 'start_tod ', start_tod)
-         call exit_POP(sigAbort,' sec0 does not start_tod')
-      end if
-#endif
    end if
 
 !-----------------------------------------------------------------------
@@ -386,42 +381,87 @@ contains
 
     call t_startf ('pop_esmf_init')
 
-    distgrid = ocn_DistGrid_esmf(gsize,rc=rc)
+    !-----------------------------------------
+    !  Set arrayspec for dom, o2x and x2o
+    !-----------------------------------------
+    
+    call ESMF_ArraySpecSet(arrayspec, rank=2, typekind=ESMF_TYPEKIND_R8, rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
+
+    distgrid = ocn_distgrid_esmf(gsize)
 
     call ESMF_AttributeSet(export_state, name="gsize", value=gsize, rc=rc)
     if (rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
-    ! Initialize ocn domain (needs ocn initialization info)
-   
-    dom = mct2esmf_init(distgrid, attname=seq_flds_dom_fields, name="domain", rc=rc)
+    !-----------------------------------------
+    ! Create dom 
+    !-----------------------------------------
+
+    nfields = shr_string_listGetNum(trim(seq_flds_dom_fields))
+
+    dom = ESMF_ArrayCreate(distgrid=distgrid, arrayspec=arrayspec, distgridToArrayMap=(/2/), &
+         undistLBound=(/1/), undistUBound=(/nfields/), name="domain", rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
-    call ocn_domain_esmf(dom, rc=rc)
+    call ESMF_AttributeSet(dom, name="mct_names", value=trim(seq_flds_dom_fields), rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
-   
-    ! Inialize input/output arrays
 
-    d2x = mct2esmf_init(distgrid, attname=seq_flds_o2x_fields, name="d2x", rc=rc)
+    ! Set values of dom (needs ocn initialization info)
+
+    call ocn_domain_esmf(dom)
+   
+    !----------------------------------------- 
+    !  Create o2x 
+    !-----------------------------------------
+
+    ! 1d undistributed index of fields, 2d is packed data
+
+    nfields = shr_string_listGetNum(trim(seq_flds_o2x_fields))
+
+    o2x = ESMF_ArrayCreate(distgrid=distgrid, arrayspec=arrayspec, distgridToArrayMap=(/2/), &
+         undistLBound=(/1/), undistUBound=(/nfields/), name="d2x", rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
- 
-    x2d = mct2esmf_init(distgrid, attname=seq_flds_x2o_fields, name="x2d", rc=rc)
+
+    call ESMF_AttributeSet(o2x, name="mct_names", value=trim(seq_flds_o2x_fields), rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
- 
+
+    !----------------------------------------- 
+    !  Create x2o 
+    !-----------------------------------------
+
+    nfields = shr_string_listGetNum(trim(seq_flds_x2o_fields))
+
+    x2o = ESMF_ArrayCreate(distgrid=distgrid, arrayspec=arrayspec, distgridToArrayMap=(/2/), &
+         undistLBound=(/1/), undistUBound=(/nfields/), name="x2d", rc=rc)
+    if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
+
+    call ESMF_AttributeSet(x2o, name="mct_names", value=trim(seq_flds_x2o_fields), rc=rc)
+    if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
+
+    !----------------------------------------- 
+    ! Add esmf arrays to import and export state 
+    !-----------------------------------------
+
     call ESMF_StateAdd(export_state, (/dom/), rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
-    call ESMF_StateAdd(export_state, (/d2x/), rc=rc)
+    call ESMF_StateAdd(export_state, (/o2x/), rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
  
-    call ESMF_StateAdd(import_state, (/x2d/), rc=rc)
+    call ESMF_StateAdd(import_state, (/x2o/), rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
    
-    call esmfshr_util_ArrayGetSize(d2x, lsize1=lsize, rc=rc)
+    call esmf2mct_init(distgrid, OCNID, gsmap_o, mpicom_ocn, gsize=gsize, rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
-    nsend = lsize
 
-    call esmfshr_util_ArrayGetSize(x2d, lsize1=lsize, rc=rc)
+    call esmf2mct_init(dom, dom_o, rc=rc)
+    if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
+
+    POP_MCT_gsMap_o => gsMap_o
+    POP_MCT_dom_o   => dom_o
+    POP_MCT_OCNID   =  OCNID
+
+    call esmfshr_util_ArrayGetSize(o2x, lsize1=nsend, rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
     allocate (SBUFF_SUM(nx_block,ny_block,max_blocks_clinic, nsend))
@@ -472,9 +512,10 @@ contains
 
    call pop_sum_buffer()
 
-   call ESMF_ArrayGet(d2x, localDe=0, farrayPtr=fptr, rc=rc)
+   call ESMF_ArrayGet(o2x, localDe=0, farrayPtr=fptr, rc=rc)
    if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
+   fptr(:,:) = 0._r8
    call ocn_export(fptr, ldiag_cpl, rc)
 
    errorCode = rc
@@ -664,7 +705,7 @@ subroutine ocn_run_esmf(comp, import_state, export_state, EClock, rc)
 
     integer(int_kind) :: info_debug
 
-    type(ESMF_Array) :: d2x, x2d
+    type(ESMF_Array) :: o2x, x2o
 
     real(R8), pointer ::  &
          fptr (:,:)          ! data pointer into ESMF array
@@ -685,7 +726,6 @@ subroutine ocn_run_esmf(comp, import_state, export_state, EClock, rc)
 !-----------------------------------------------------------------------
 
    call timer_start(timer_total)
-
 
 !-----------------------------------------------------------------------
 !
@@ -740,10 +780,10 @@ subroutine ocn_run_esmf(comp, import_state, export_state, EClock, rc)
        if (check_time_flag(cpl_ts) .or. nsteps_run == 0) then
 
           ! Obtain input from driver from import state
-          call ESMF_StateGet(import_state, itemName="x2d", array=x2d, rc=rc)
+          call ESMF_StateGet(import_state, itemName="x2d", array=x2o, rc=rc)
           if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
-          call ESMF_ArrayGet(x2d, localDe=0, farrayPtr=fptr, rc=rc)
+          call ESMF_ArrayGet(x2o, localDe=0, farrayPtr=fptr, rc=rc)
           if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
           call ocn_import(fptr, ldiag_cpl, rc)
@@ -789,10 +829,10 @@ subroutine ocn_run_esmf(comp, import_state, export_state, EClock, rc)
 
        if (check_time_flag(cpl_ts)) then
 
-          call ESMF_StateGet(export_state, itemName="d2x", array=d2x, rc=rc)
+          call ESMF_StateGet(export_state, itemName="d2x", array=o2x, rc=rc)
           if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
-          call ESMF_ArrayGet(d2x, localDe=0, farrayPtr=fptr, rc=rc)
+          call ESMF_ArrayGet(o2x, localDe=0, farrayPtr=fptr, rc=rc)
           if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
           call ocn_export(fptr, ldiag_cpl, rc)
@@ -916,7 +956,7 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 !IROUTINE: ocn_SetGSMap_esmf
 ! !INTERFACE:
 
- function ocn_DistGrid_esmf(gsize, rc )
+  type(ESMF_DistGrid) function ocn_DistGrid_esmf(gsize)
 
 ! !DESCRIPTION:
 !  This routine creates the ocean distgrid
@@ -928,8 +968,6 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 
     implicit none
     integer, intent(out)            :: gsize
-    integer, intent(out)            :: rc
-    type(ESMF_DistGrid)             :: ocn_DistGrid_esmf
 
 !EOP
 !BOC
@@ -945,17 +983,11 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
     integer (int_kind) ::   &
       i,j, n, iblock, &
       lsize,   &
+      rc,      &
       ier
 
     type (block) ::       &
       this_block          ! block information for current block
-
-!-----------------------------------------------------------------------
-!  Build the POP grid numbering for distgrid
-!  NOTE:  Numbering scheme is: West to East and South to North starting
-!  at the south pole.  Should be the same as what's used in SCRIP
-!-----------------------------------------------------------------------
-    rc = ESMF_SUCCESS
 
     n = 0
     do iblock = 1, nblocks_clinic
@@ -967,11 +999,11 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
        enddo
     enddo
     lsize = n
-
-! not correct for padding, use "n" above
-!    lsize = block_size_x*block_size_y*nblocks_clinic
-    gsize = nx_global*ny_global
     allocate(gindex(lsize),stat=ier)
+
+    ! not correct for padding, use "n" above
+    !    lsize = block_size_x*block_size_y*nblocks_clinic
+    gsize = nx_global*ny_global
 
     n = 0
     do iblock = 1, nblocks_clinic
@@ -984,8 +1016,8 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
        enddo
     enddo
 
-    ocn_DistGrid_esmf = mct2esmf_init(gindex, rc=rc)
-    if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
+    ocn_distgrid_esmf = ESMF_DistGridCreate(arbSeqIndexList=gindex, rc=rc)
+    if (rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
     deallocate(gindex)
 
@@ -999,7 +1031,7 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 ! !IROUTINE: ocn_domain_esmf
 ! !INTERFACE:
 
- subroutine ocn_domain_esmf( dom, rc )
+ subroutine ocn_domain_esmf( dom )
 
 ! !DESCRIPTION:
 !  This routine creates the ocean domain
@@ -1011,7 +1043,6 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 
     implicit none
     type(ESMF_Array), intent(inout)     :: dom
-    integer, intent(out)                :: rc
 
 !EOP
 !BOC
@@ -1020,6 +1051,8 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
 !  local variables
 !
 !-----------------------------------------------------------------------
+
+    integer (int_kind) :: rc
 
     integer (int_kind) ::   &
       i,j, n, iblock
@@ -1037,7 +1070,6 @@ subroutine ocn_final_esmf(comp, import_state, export_state, Eclock, rc)
       frac                ! temporary var to compute frac/mask from KMT
 
 !-----------------------------------------------------------------------
-    rc = ESMF_SUCCESS
 
     call ESMF_ArrayGet(dom, localDe=0, farrayPtr=fptr, rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)

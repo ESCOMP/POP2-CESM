@@ -3,6 +3,17 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mvertens
+Tag Date:    3 Oct 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20131003
+Tag Summary: Removal of mct2esmf calls and bug fixes for the BPRP and BDRD
+             compsets.
+
+Files Modified:
+M       drivers/cpl/ocn_comp_esmf.F90
+M       drivers/cpl/ocn_comp_mct.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mvertens
 Tag Date:    25 Sept 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20130925
 Tag Summary: Merge comptype branch, which updates the driver to reduce code
