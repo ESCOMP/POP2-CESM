@@ -1,7 +1,19 @@
 ===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
-Tag Date:    20 June 2013
+Tag Date:    24 Oct 2013
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20131024_cesm_pop_2_1_20130521/
+Tag Summary: Fixed two bugs: 1) In biological fractionation (Rau) r14CT was
+set for R13C /=-1, but needs to be separate where function for when R14C /=-1.
+2) DTRACER_MODULE for di13c and di14c did not account for CaCa13 contributions
+(accidentally commented out fro testing)
+M            54523   ecosys_ciso_mod.F90
+Status against revision:  54523
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
+Tag Date:    8 August 2013
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20130808_cesm_pop_2_1_20130521/
 Tag Summary: Added Carbon isotope code (biotic 13C and 14C) and abiotic 14C

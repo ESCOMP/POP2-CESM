@@ -2863,9 +2863,14 @@ contains
 
         where ( R13C_photoC(:,:,auto_ind) /= -c1 ) 
           r13CT_photoC(:,:,auto_ind) = R13C_photoC(:,:,auto_ind) / ( c1 + R13C_photoC(:,:,auto_ind) )
-          r14CT_photoC(:,:,auto_ind) = R14C_photoC(:,:,auto_ind) / ( c1 + R14C_photoC(:,:,auto_ind) )
         elsewhere
           r13CT_photoC(:,:,auto_ind) = c0
+        endwhere
+
+
+        where ( R14C_photoC(:,:,auto_ind) /= -c1 ) 
+          r14CT_photoC(:,:,auto_ind) = R14C_photoC(:,:,auto_ind) / ( c1 + R14C_photoC(:,:,auto_ind) )
+        elsewhere
           r14CT_photoC(:,:,auto_ind) = c0
         endwhere
 
@@ -3139,19 +3144,19 @@ end do ! end loop over autotroph types
       + P_Ca14CO3%remin(:,:,bid)                                       &
       - c14_lambda_inv_sec * DI14C_loc
       
-!   do auto_ind = 1, autotroph_cnt
-!     if (autotrophs(auto_ind)%Ca14CO3_ind > 0) then
-!       DTRACER_MODULE(:,:,di14c_ind) = DTRACER_MODULE(:,:,di14c_ind)       &    
-!             + f_graze_CaCO3_REMIN * auto_graze(:,:,sp_ind)                &
-!             * QCaCO3(:,:,auto_ind) * r14CT_autotrophCaCO3(:,:,auto_ind)   &
-!             - Ca14CO3_PROD(:,:,auto_ind)                                     
-!     elseif (autotrophs(auto_ind)%Ca13CO3_ind > 0) then
-!       DTRACER_MODULE(:,:,di13c_ind) = DTRACER_MODULE(:,:,di13c_ind)       &    
-!             + f_graze_CaCO3_REMIN * auto_graze(:,:,sp_ind)                &
-!             * QCaCO3(:,:,auto_ind) * r13CT_autotrophCaCO3(:,:,auto_ind)   &
-!             - Ca13CO3_PROD(:,:,auto_ind)    
-!     endif
-!   end do
+   do auto_ind = 1, autotroph_cnt
+     if (autotrophs(auto_ind)%Ca14CO3_ind > 0) then
+       DTRACER_MODULE(:,:,di14c_ind) = DTRACER_MODULE(:,:,di14c_ind)       &    
+             + f_graze_CaCO3_REMIN * auto_graze(:,:,sp_ind)                &
+             * QCaCO3(:,:,auto_ind) * r14CT_autotrophCaCO3(:,:,auto_ind)   &
+             - Ca14CO3_PROD(:,:,auto_ind)                                     
+     elseif (autotrophs(auto_ind)%Ca13CO3_ind > 0) then
+       DTRACER_MODULE(:,:,di13c_ind) = DTRACER_MODULE(:,:,di13c_ind)       &    
+             + f_graze_CaCO3_REMIN * auto_graze(:,:,sp_ind)                &
+             * QCaCO3(:,:,auto_ind) * r13CT_autotrophCaCO3(:,:,auto_ind)   &
+             - Ca13CO3_PROD(:,:,auto_ind)    
+     endif
+   end do
     
 
 !-----------------------------------------------------------------------
