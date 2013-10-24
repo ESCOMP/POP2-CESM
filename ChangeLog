@@ -3,11 +3,23 @@ Tag Creator: ajahn
 Developers:  ajahn
 Tag Date:    24 Oct 2013
 Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20131024a_cesm_pop_2_1_20130521/
+Tag Summary: Updated the namelist defaults with the corrected scale factors
+for 14C and 13C, now that we assume ecosystem carries total carbon.
+Files Modified:
+M            50137   bld/namelist_files/namelist_defaults_pop2.xml
+Status against revision:  54535
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
+Tag Date:    24 Oct 2013
+Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20131024_cesm_pop_2_1_20130521/
 Tag Summary: Fixed two bugs: 1) In biological fractionation (Rau) r14CT was
 set for R13C /=-1, but needs to be separate where function for when R14C /=-1.
 2) DTRACER_MODULE for di13c and di14c did not account for CaCa13 contributions
-(accidentally commented out fro testing)
+(accidentally commented out from testing)
+Files Modified:
 M            54523   ecosys_ciso_mod.F90
 Status against revision:  54523
 ===============================================================================
@@ -21,6 +33,7 @@ code to the cesm1.2. Here it is assumed that ecosys_mod carries the total
 carbon (12C+13C+14C). The ciso code accounts for the new sedimentary burial of
 carbon (and hence 13C and 14C), but does not yet account for the river input of
 carbon isotopes. 
+Files Modified:
 A                0   source/abio_dic_dic14_mod.F90
 M            49985   source/passive_tracers.F90
 M            49985   source/ecosys_mod.F90
