@@ -2,6 +2,24 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    25 Oct 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20131025
+Tag Summary: Bugfixes in ecosys params. In bugz, see
+             1802 -- global Si balance
+             1803 -- scale length inconsistency
+
+             Also fixed some inconsistencies between default values set in POP
+             in ecosys_parms.F90 and the default values build-namelist puts in
+             pop2_in (the values in source have been modified to match the
+             namelist defaults)
+
+Files Modified:
+M       source/ecosys_mod.F90
+M       source/ecosys_parms.F90
+M       bld/namelist_files/namelist_defaults_pop2.xml
+===============================================================================
+Tag Creator: mlevy
 Developers:  mvertens
 Tag Date:    3 Oct 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20131003
