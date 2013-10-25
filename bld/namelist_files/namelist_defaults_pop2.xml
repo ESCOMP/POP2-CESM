@@ -830,59 +830,59 @@
 
 <ciso_tracer_init_ext(1)%mod_varname>DI13C</ciso_tracer_init_ext(1)%mod_varname>
 <ciso_tracer_init_ext(1)%file_varname>DIC</ciso_tracer_init_ext(1)%file_varname>
-<ciso_tracer_init_ext(1)%scale_factor>1.13901367e-2</ciso_tracer_init_ext(1)%scale_factor>
+<ciso_tracer_init_ext(1)%scale_factor>1.025</ciso_tracer_init_ext(1)%scale_factor>
 
 <ciso_tracer_init_ext(2)%mod_varname>DO13C</ciso_tracer_init_ext(2)%mod_varname>
 <ciso_tracer_init_ext(2)%file_varname>DOC</ciso_tracer_init_ext(2)%file_varname>
-<ciso_tracer_init_ext(2)%scale_factor>1.1112e-2</ciso_tracer_init_ext(2)%scale_factor>
+<ciso_tracer_init_ext(2)%scale_factor>1.0</ciso_tracer_init_ext(2)%scale_factor>
 
 <ciso_tracer_init_ext(3)%mod_varname>zoo13C</ciso_tracer_init_ext(3)%mod_varname>
 <ciso_tracer_init_ext(3)%file_varname>zooC</ciso_tracer_init_ext(3)%file_varname>
-<ciso_tracer_init_ext(3)%scale_factor>1.1112e-2</ciso_tracer_init_ext(3)%scale_factor>
+<ciso_tracer_init_ext(3)%scale_factor>1.0</ciso_tracer_init_ext(3)%scale_factor>
 
 <ciso_tracer_init_ext(4)%mod_varname>DI14C</ciso_tracer_init_ext(4)%mod_varname>
 <ciso_tracer_init_ext(4)%file_varname>DIC</ciso_tracer_init_ext(4)%file_varname>
-<ciso_tracer_init_ext(4)%scale_factor>1.08486e-12</ciso_tracer_init_ext(4)%scale_factor>
+<ciso_tracer_init_ext(4)%scale_factor>0.9225</ciso_tracer_init_ext(4)%scale_factor>
 
 <ciso_tracer_init_ext(5)%mod_varname>DO14C</ciso_tracer_init_ext(5)%mod_varname>
 <ciso_tracer_init_ext(5)%file_varname>DOC</ciso_tracer_init_ext(5)%file_varname>
-<ciso_tracer_init_ext(5)%scale_factor>11.76e-13</ciso_tracer_init_ext(5)%scale_factor>
+<ciso_tracer_init_ext(5)%scale_factor>1.0</ciso_tracer_init_ext(5)%scale_factor>
 
 <ciso_tracer_init_ext(6)%mod_varname>zoo14C</ciso_tracer_init_ext(6)%mod_varname>
 <ciso_tracer_init_ext(6)%file_varname>zooC</ciso_tracer_init_ext(6)%file_varname>
-<ciso_tracer_init_ext(6)%scale_factor>11.76e-13</ciso_tracer_init_ext(6)%scale_factor>
+<ciso_tracer_init_ext(6)%scale_factor>1.0</ciso_tracer_init_ext(6)%scale_factor>
 
 <ciso_tracer_init_ext(7)%mod_varname>sp13C</ciso_tracer_init_ext(7)%mod_varname>
 <ciso_tracer_init_ext(7)%file_varname>spC</ciso_tracer_init_ext(7)%file_varname>
-<ciso_tracer_init_ext(7)%scale_factor>1.1112e-2</ciso_tracer_init_ext(7)%scale_factor>
+<ciso_tracer_init_ext(7)%scale_factor>1.0</ciso_tracer_init_ext(7)%scale_factor>
 
 <ciso_tracer_init_ext(8)%mod_varname>sp14C</ciso_tracer_init_ext(8)%mod_varname>
 <ciso_tracer_init_ext(8)%file_varname>spC</ciso_tracer_init_ext(8)%file_varname>
-<ciso_tracer_init_ext(8)%scale_factor>11.76e-13</ciso_tracer_init_ext(8)%scale_factor>
+<ciso_tracer_init_ext(8)%scale_factor>1.0</ciso_tracer_init_ext(8)%scale_factor>
 
 <ciso_tracer_init_ext(9)%mod_varname>spCa13CO3</ciso_tracer_init_ext(9)%mod_varname>
 <ciso_tracer_init_ext(9)%file_varname>spCaCO3</ciso_tracer_init_ext(9)%file_varname>
-<ciso_tracer_init_ext(9)%scale_factor>1.1112e-2</ciso_tracer_init_ext(9)%scale_factor>
+<ciso_tracer_init_ext(9)%scale_factor>1.0</ciso_tracer_init_ext(9)%scale_factor>
 
 <ciso_tracer_init_ext(10)%mod_varname>spCa14CO3</ciso_tracer_init_ext(10)%mod_varname>
 <ciso_tracer_init_ext(10)%file_varname>spCaCO3</ciso_tracer_init_ext(10)%file_varname>
-<ciso_tracer_init_ext(10)%scale_factor>11.76e-13</ciso_tracer_init_ext(10)%scale_factor>
+<ciso_tracer_init_ext(10)%scale_factor>1.0</ciso_tracer_init_ext(10)%scale_factor>
 
 <ciso_tracer_init_ext(11)%mod_varname>diat13C</ciso_tracer_init_ext(11)%mod_varname>
 <ciso_tracer_init_ext(11)%file_varname>diatC</ciso_tracer_init_ext(11)%file_varname>
-<ciso_tracer_init_ext(11)%scale_factor>1.1112e-2</ciso_tracer_init_ext(11)%scale_factor>
+<ciso_tracer_init_ext(11)%scale_factor>1.0</ciso_tracer_init_ext(11)%scale_factor>
 
 <ciso_tracer_init_ext(12)%mod_varname>diat14C</ciso_tracer_init_ext(12)%mod_varname>
 <ciso_tracer_init_ext(12)%file_varname>diatC</ciso_tracer_init_ext(12)%file_varname>
-<ciso_tracer_init_ext(12)%scale_factor>11.76e-13</ciso_tracer_init_ext(12)%scale_factor>
+<ciso_tracer_init_ext(12)%scale_factor>1.0</ciso_tracer_init_ext(12)%scale_factor>
 
 <ciso_tracer_init_ext(13)%mod_varname>diaz13C</ciso_tracer_init_ext(13)%mod_varname>
 <ciso_tracer_init_ext(13)%file_varname>diazC</ciso_tracer_init_ext(13)%file_varname>
-<ciso_tracer_init_ext(13)%scale_factor>1.1112e-2</ciso_tracer_init_ext(13)%scale_factor>
+<ciso_tracer_init_ext(13)%scale_factor>1.0</ciso_tracer_init_ext(13)%scale_factor>
 
 <ciso_tracer_init_ext(14)%mod_varname>diaz14C</ciso_tracer_init_ext(14)%mod_varname>
 <ciso_tracer_init_ext(14)%file_varname>diazC</ciso_tracer_init_ext(14)%file_varname>
-<ciso_tracer_init_ext(14)%scale_factor>11.76e-13</ciso_tracer_init_ext(14)%scale_factor>
+<ciso_tracer_init_ext(14)%scale_factor>1.0</ciso_tracer_init_ext(14)%scale_factor>
 
 <ciso_lecovars_full_depth_tavg>.false.</ciso_lecovars_full_depth_tavg>    
 
@@ -908,9 +908,9 @@
 
 <ciso_use_nml_surf_vals runtype="startup">.true.</ciso_use_nml_surf_vals>
 
-<ciso_surf_avg_di13c_const>21.8451</ciso_surf_avg_di13c_const>  
+<ciso_surf_avg_di13c_const>1944</ciso_surf_avg_di13c_const>  
         
-<ciso_surf_avg_di14c_const>2.2861e-9</ciso_surf_avg_di14c_const>          
+<ciso_surf_avg_di14c_const>1944</ciso_surf_avg_di14c_const>          
 
 <ciso_atm_d13c_filename>/glade/u/home/ajahn/ForcingFiles/c13_HG09.dat</ciso_atm_d13c_filename>
 

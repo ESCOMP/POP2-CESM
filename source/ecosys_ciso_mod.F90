@@ -122,8 +122,7 @@
       do14c_ind          =  5,  & ! dissolved organic carbon 14
       zoo14C_ind         =  6     ! zooplankton carbon 14
 
-
- !  integer (int_kind), parameter :: &
+ ! Index of all ciso tracers (including autotrophs), for reference
  !     di13c_ind          =   1,  & ! dissolved inorganic carbon 13
  !     do13c_ind          =   2,  & ! dissolved organic carbon 13
  !     zoo13C_ind         =   3,  & ! zooplankton carbon 13
@@ -276,7 +275,6 @@ integer (int_kind) :: &
 !   integer (int_kind), dimension(autotroph_cnt) :: &
 !      tavg_CISO_photoC,      &
 !      tavg_CISO_R13C_photoC, &
-!      tavg_CISO_r13CT_photoC
 
 
 !-----------------------------------------------------------------------
@@ -373,15 +371,11 @@ integer (int_kind) :: &
 !     13C parameters, maybe move to ecosys_param?
 !---------------------------------------------------------------------
 
-
+! Using scaled isotopic carbon pools, so Rstd =1
       real(r8), parameter :: &
-       R13C_std = 1123.72e-5_r8, &   ! 13C/12C PDB standard ratio (Craig, 1957)
-       R14C_std = 11.76e-13_r8       ! 14C/12C NOSAMS standard ratio 
+       R13C_std = 1.0_r8,& !1123.72e-5_r8, &   ! 13C/12C PDB standard ratio (Craig, 1957)
+       R14C_std = 1.0_r8 !11.76e-13_r8       ! 14C/12C NOSAMS standard ratio 
        
-!debugging, DIC=DIC14=DI13C
-!      real(r8), parameter :: &
-!       R13C_std = c1, &   ! 13C/12C PDB standard ratio (Craig, 1957)
-!       R14C_std = c1       ! 14C/12C NOSAMS standard ratio   
 
 
 !*****************************************************************************
@@ -644,8 +638,6 @@ contains
    ciso_init_ecosys_option = 'unknown'
    ciso_init_ecosys_init_file = 'unknown'
    ciso_init_ecosys_init_file_fmt = 'bin'
-!Scale factor is used to scale down the normal C pools by a factor of 100
-!For DI13C, it also includes the scale factor for DIC (1.025)
    do n = 1,ecosys_ciso_tracer_cnt
       ciso_tracer_init_ext(n)%mod_varname  = 'unknown'
       ciso_tracer_init_ext(n)%filename     = 'unknown'
@@ -661,10 +653,8 @@ contains
    ciso_comp_surf_avg_freq_opt        = 'never'
    ciso_comp_surf_avg_freq            = 1
    ciso_use_nml_surf_vals             = .false.
-   ciso_surf_avg_di13c_const          = 1944.0_r8 !calculated from DI13C=(DIC_d13C +1)*R_std/DIC, simplified to DI13C=R-std/DIC 
-   !with DIC=surf_avg_dic_const=1944, R-std=1123.72e-5
-   ciso_surf_avg_di14c_const          = 1944.0_r8 !calculated from DI13C=(DIC_d14C +1)*R_std/DIC, simplified to DI13C=R-std/DIC 
-   !with DIC=surf_avg_dic_const=1944, R-std=1.176e-12
+   ciso_surf_avg_di13c_const          = 1944.0_r8 
+   ciso_surf_avg_di14c_const          = 1944.0_r8 
    
    ciso_atm_d13c_opt                 = 'const'
    ciso_atm_d13c_const               = -6.379_r8   
@@ -953,9 +943,6 @@ contains
 
    c14_lambda_inv_sec = log(c2) / (c14_halflife_years * seconds_in_year) 
        
-!debugging, no decay
-!       c14_lambda_inv_sec=c0
-
 
 !  
 !-----------------------------------------------------------------------
@@ -1557,11 +1544,6 @@ contains
 !                             units='mmol/m^3 cm/s', grid_loc='3111', &
 !                             coordinates='TLONG TLAT z_t time')
 !                             
-!      call define_tavg_field(tavg_CISO_r13CT_photoC(auto_ind), &
-!                             'CISO_r13CT_photoC_' // trim(autotrophs(auto_ind)%sname), 3, &
-!                             long_name=trim(autotrophs(auto_ind)%lname) // ' r13CT_photoC', &
-!                             units='permil', grid_loc='3111', &
-!                             coordinates='TLONG TLAT z_t time')
 !
 !   end do
    
@@ -1760,14 +1742,12 @@ contains
      D13C,          &   ! atm 13co2 value
      R13C_DIC_surf, &   ! 13C/12C ratio in DIC
      R13C_atm,      &   ! 13C/12C ratio in atmospheric CO2
-     r13CT_atm,     &   ! 13C/(12C+13C) ratio in atmospheric CO2
      FLUX13,        &   ! gas flux of 13CO2 (nmol/cm^2/s)
      FLUX13_as,     &   ! air-to-sea gas flux of 13CO2 (nmol/cm^2/s)
      FLUX13_sa,     &   ! sea-to-air gas flux of 13CO2 (nmol/cm^2/s)
      D14C,          &   ! atm 14co2 value
      R14C_DIC_surf, &   ! 14C/12C ratio in total DIC
      R14C_atm,      &   ! 14C/12C ratio in atmospheric CO2
-     r14CT_atm,     &   ! 14C/(12C+14C) ratio in atmospheric CO2
      FLUX14,        &   ! gas flux of 14CO2 (nmol/cm^2/s)
      FLUX14_as,     &   ! air-to-sea gas flux of 14CO2 (nmol/cm^2/s)
      FLUX14_sa,     &   ! sea-to-air gas flux of 14CO2 (nmol/cm^2/s)
@@ -1814,9 +1794,6 @@ contains
                              ! transfert (per mil) (air-sea CO2
                              ! exchange) at 21C, Zhang et al 1995,
                              ! eps_k = -0.95 at 5C
-!debugging, DIC=DIC14=DI13C
-!       real(r8), parameter :: &
-!        eps_k     = c0       ! debugging, no fractionation
 
      
  
@@ -1859,9 +1836,9 @@ contains
   !$OMP END PARALLEL DO
 
 !-----------------------------------------------------------------------
-   !$OMP PARALLEL DO PRIVATE(iblock, j, D13C, R13C_atm, r13CT_atm,  &
+   !$OMP PARALLEL DO PRIVATE(iblock, j, D13C, R13C_atm,   &
    !$OMP                     DI13C_ROW, R13C_DIC_surf, FLUX13, FLUX13_as, &
-   !$OMP                     FLUX13_sa, D14C, R14C_atm, r14CT_atm, DI14C_ROW, &
+   !$OMP                     FLUX13_sa, D14C, R14C_atm, DI14C_ROW, &
    !$OMP                     R14C_DIC_surf, FLUX14, FLUX14_as, FLUX14_sa, &
    !$OMP                     DIC_ROW, CO2STAR_ROW, DCO2STAR_ROW, FLUX, &
    !$OMP                     FLUX_as, FLUX_sa, PV_ROW, &
@@ -1922,17 +1899,14 @@ contains
       end select	  
 
 !-----------------------------------------------------------------------
-!     initialize R13C_atm and r13CT_atm and R14C_atm and r14CT_atm
+!     initialize R13C_atm  and R14C_atm 
 !-----------------------------------------------------------------------
 
         R13C_atm = R13C_std * ( c1 + D13C / c1000 )
 
-        r13CT_atm = R13C_atm / ( c1 + R13C_atm )
-
 
         R14C_atm = R14C_std * ( c1 + D14C / c1000 )
 
-        r14CT_atm = R14C_atm / ( c1 + R14C_atm )
 
 !-----------------------------------------------------------------------
 !     compute 13C02 flux, based on CO2 flux calculated in ecosystem model
@@ -1941,7 +1915,7 @@ contains
 
         do j = 1,ny_block
 !-----------------------------------------------------------------------
-!     compute R13C_DIC in surface ocean
+!     compute R13C_DIC in surface ocean (assuming that DIC_ROW is 12C)
 !-----------------------------------------------------------------------                            
             DI13C_ROW = p5*(SURF_VALS_OLD(:,j,di13c_ind,iblock) + &
                              SURF_VALS_CUR(:,j,di13c_ind,iblock))
@@ -1952,13 +1926,13 @@ contains
             
   
             where ( DIC_ROW /= DI13C_ROW )
-                  R13C_DIC_surf(:,j) = DI13C_ROW /(DIC_ROW - DI13C_ROW )
+                  R13C_DIC_surf(:,j) = DI13C_ROW /DIC_ROW 
             elsewhere
                   R13C_DIC_surf(:,j) = c0     
             endwhere
             
             where ( DIC_ROW /= DI14C_ROW )
-                  R14C_DIC_surf(:,j) = DI14C_ROW / (DIC_ROW - DI14C_ROW )
+                  R14C_DIC_surf(:,j) = DI14C_ROW / DIC_ROW 
             elsewhere
                   R14C_DIC_surf(:,j) = c0     
             endwhere
@@ -1971,9 +1945,6 @@ contains
             eps_aq_g_surf(:,j)   = 0.0049_r8 * SST(:,j,iblock) - 1.31_r8
 !!           eps_hco3_g_surf(:,j) = -0.141_r8  * SST(:,j,iblock) + 10.78_r8
 !!           eps_co3_g_surf(:,j)  = -0.052_r8  * SST(:,j,iblock) + 7.22_r8
-
-!debugging:
-!                eps_aq_g_surf = c0 ! debugging, no fractionation
 
 
 !-----------------------------------------------------------------------
@@ -2004,8 +1975,6 @@ contains
             eps_dic_g_surf(:,j)  = 0.014_r8 * SST(:,j,iblock) * frac_co3(:,j) - &
                                    0.105_r8 * SST(:,j,iblock) + 10.53_r8
 
-! debuggging:             
-!         eps_dic_g_surf(:,j) = c0 ! debugging, no fractionation
 
 
 !-----------------------------------------------------------------------
@@ -2039,10 +2008,6 @@ contains
                 
             FLUX(:,j)    = PV_ROW * DCO2STAR_ROW
 
-!debugging
-!            FLUX14(:,j)    = PV_ROW * DCO2STAR_ROW
-!            FLUX14(:,j)    = PV_ROW * c1 * c1 * (( CO2STAR_ROW + DCO2STAR_ROW ) *c1 - & 
-!                CO2STAR_ROW * c1 / c1 )
 
 
 
@@ -2228,27 +2193,15 @@ contains
       autotroph14C_loc,    & ! local copy of model autotroph 14C 
       autotrophCa13CO3_loc,& ! local copy of model autotrophCa13CO3 
       autotrophCa14CO3_loc,& ! local copy of model autotrophCa14CO3 
-      r13CT_autotrophCaCO3,& ! 13C/(13C+12C) in small phytoplankton carbonate
-      r14CT_autotrophCaCO3,& ! 14C/(14C+12C) in small phytoplankton carbonate
       R13C_autotrophCaCO3, & ! 13C/12C in total small phytoplankton carbonate
       R14C_autotrophCaCO3         ! 14C/12C in total small phytoplankton carbonate
 
   real (r8), dimension(nx_block,ny_block) :: &
-      r13CT_DOC,         & ! 13C/(13C+12C) in total DOC
-      r13CT_DIC,         & ! 13C/(13C+12C) in total DIC
-      r13CT_zooC,         & ! 13C/(13C+12C) in zooplankton
-      r13CT_CaCO3_PROD,  & ! 13C/(13C+12C) in CaCO3 production of small phyto
-      r13CT_CO2STAR,     & ! 13C/(13C+12C) in CO2* water
       R13C_CaCO3_PROD,   & ! 13C/12C in CaCO3 production of small phyto
       R13C_CO2STAR,      & ! 13C/12C in CO2* water
       R13C_DIC,          & ! 13C/12C in total DIC
       R13C_DOC,          & ! 13C/12C in total DOC
       R13C_zooC,         & ! 13C/12C in total zooplankton 
-      r14CT_DOC,         & ! 14C/(14C+12C) in total DOC
-      r14CT_DIC,         & ! 14C/(14C+12C) in total DIC
-      r14CT_zooC,        & ! 14C/(14C+12C) in zooplankton
-      r14CT_CaCO3_PROD,  & ! 14C/(14C+12C) in CaCO3 production of small phyto
-      r14CT_CO2STAR,     & ! 14C/(14C+12C) in CO2* water
       R14C_CaCO3_PROD,   & ! 14C/12C in CaCO3 production of small phyto
       R14C_CO2STAR,      & ! 14C/12C in CO2* water
       R14C_DIC,          & ! 14C/12C in total DIC
@@ -2263,13 +2216,9 @@ contains
       eps_autotroph,      & ! Permil fractionation (or discrimination factor) for Carbon autotroph types sp, diat, diaz
       mui_to_co2star,     & ! Carbon autotroph instanteous growth rate over [CO2*] (m^3 /mmol C /s)
       R13C_photoC,        & ! 13C/12C in Carbon autotroph C-fixation (mmol C/m^3/sec) 
-      r13CT_photoC,       & ! 13C/(13C+12C) in Carbon autotroph (sp, diat, diaz) C-fixation (mmol C/m^3/sec)
-      r13CT_autotroph,    & ! 13C/(13C+12C) in Carbon autotrophs
       R13C_autotroph,     & ! 13C/12C in total small phytoplankton
       photo13C,           & ! Carbon autotroph 13C-fixation (mmol C/m^3/sec)
       R14C_photoC,        & ! 14C/12C in Carbon autotroph C-fixation (mmol C/m^3/sec) 
-      r14CT_photoC,       & ! 14C/(14C+12C) in Carbon autotroph (sp, diat, diaz) C-fixation (mmol C/m^3/sec)
-      r14CT_autotroph,    & ! 14C/(14C+12C) in Carbon autotrophs
       R14C_autotroph,     & ! 14C/12C in total small phytoplankton
       photo14C,           & ! Carbon autotroph 14C-fixation (mmol C/m^3/sec)
       autotrophCaCO3_d13C,& ! d13C of autotrophCaCO3
@@ -2317,9 +2266,6 @@ contains
               
        real(r8), parameter :: &
         eps_carb = -2.0_r8          ! eps_carb = d13C(CaCO3) - d13C(DIC)  Ziveri et al., 2003
-! debugging
-!       real(r8), parameter :: &
-!        eps_carb = 0.0_r8           ! debugging: test case no fractionation
 
 
 !---------------------------------------------------------------
@@ -2612,116 +2558,56 @@ contains
 !-----------------------------------------------------------------------
 
      where (DOC_loc /= c0)
-        r13CT_DOC = DO13C_loc / DOC_loc 
-        r14CT_DOC = DO14C_loc / DOC_loc
-      elsewhere
-        r13CT_DOC = c0
-        r14CT_DOC = c0
-      endwhere      
-
-      where (r13CT_DOC /= c1)
-        R13C_DOC = r13CT_DOC / ( c1 - r13CT_DOC )
-      elsewhere
+        R13C_DOC = DO13C_loc / DOC_loc 
+        R14C_DOC = DO14C_loc / DOC_loc
+     elsewhere
         R13C_DOC = c0
-      endwhere
-
-     where (r14CT_DOC /= c1)
-        R14C_DOC = r14CT_DOC / ( c1 - r14CT_DOC )
-      elsewhere
         R14C_DOC = c0
-      endwhere
-
+     endwhere
+   
+    
 
       where (DIC_loc /= c0)
-        r13CT_DIC = DI13C_loc / DIC_loc
-        r14CT_DIC = DI14C_loc / DIC_loc
-      elsewhere
-        r13CT_DIC = c0
-        r14CT_DIC = c0
-      endwhere      
-
-      where (r13CT_DIC /= c1)
-        R13C_DIC = r13CT_DIC / ( c1 - r13CT_DIC )
+        R13C_DIC = DI13C_loc / DIC_loc
+        R14C_DIC = DI14C_loc / DIC_loc
       elsewhere
         R13C_DIC = c0
-      endwhere
-
-      where (r14CT_DIC /= c1)
-        R14C_DIC = r14CT_DIC / ( c1 - r14CT_DIC )
-      elsewhere
         R14C_DIC = c0
-      endwhere
+      endwhere      
 
+    
       where (zooC_loc /= c0)
-        r13CT_zooC = zoo13C_loc / zooC_loc
-        r14CT_zooC = zoo14C_loc / zooC_loc
-      elsewhere
-        r13CT_zooC = c0
-        r14CT_zooC = c0
-      endwhere
-
-      where (r13CT_zooC /= c1)
-        R13C_zooC = r13CT_zooC / ( c1 - r13CT_zooC )
+        R13C_zooC = zoo13C_loc / zooC_loc
+        R14C_zooC = zoo14C_loc / zooC_loc
       elsewhere
         R13C_zooC = c0
-      endwhere
-
-      where (r14CT_zooC /= c1)
-        R14C_zooC = r14CT_zooC / ( c1 - r14CT_zooC )
-      elsewhere
         R14C_zooC = c0
       endwhere
-     
+
+          
       do auto_ind = 1, autotroph_cnt
 
          where (autotrophC_loc(:,:,auto_ind) /= c0)
-            r13CT_autotroph(:,:,auto_ind)  = autotroph13C_loc(:,:,auto_ind) / & 
+            R13C_autotroph(:,:,auto_ind)  = autotroph13C_loc(:,:,auto_ind) / & 
                                              autotrophC_loc(:,:,auto_ind)
-            r14CT_autotroph(:,:,auto_ind)  = autotroph14C_loc(:,:,auto_ind) / & 
+            R14C_autotroph(:,:,auto_ind)  = autotroph14C_loc(:,:,auto_ind) / & 
                                              autotrophC_loc(:,:,auto_ind)
          elsewhere
-            r13CT_autotroph(:,:,auto_ind)  = c0
-            r14CT_autotroph(:,:,auto_ind)  = c0
+            R13C_autotroph(:,:,auto_ind)  = c0
+            R14C_autotroph(:,:,auto_ind)  = c0
          endwhere
 
-         where (r13CT_autotroph(:,:,auto_ind) /= c1)
-            R13C_autotroph(:,:,auto_ind) = r13CT_autotroph(:,:,auto_ind) / &
-                                           ( c1 - r13CT_autotroph(:,:,auto_ind) )
-         elsewhere
-            R13C_autotroph(:,:,auto_ind) = c0
-         endwhere
-
-         where (r14CT_autotroph(:,:,auto_ind) /= c1)
-            R14C_autotroph(:,:,auto_ind) = r14CT_autotroph(:,:,auto_ind) / &
-                                           ( c1 - r14CT_autotroph(:,:,auto_ind) )
-         elsewhere
-            R14C_autotroph(:,:,auto_ind) = c0
-         endwhere
-         
+                 
           
-        where (autotrophCaCO3_loc(:,:,auto_ind) /= c0)
-          r13CT_autotrophCaCO3(:,:,auto_ind) = autotrophCa13CO3_loc(:,:,auto_ind) / &
+         where (autotrophCaCO3_loc(:,:,auto_ind) /= c0)
+            R13C_autotrophCaCO3(:,:,auto_ind) = autotrophCa13CO3_loc(:,:,auto_ind) / &
                                                autotrophCaCO3_loc(:,:,auto_ind)
-          r14CT_autotrophCaCO3(:,:,auto_ind) = autotrophCa14CO3_loc(:,:,auto_ind) / &
+            R14C_autotrophCaCO3(:,:,auto_ind) = autotrophCa14CO3_loc(:,:,auto_ind) / &
                                                autotrophCaCO3_loc(:,:,auto_ind)
-        elsewhere
-          r13CT_autotrophCaCO3(:,:,auto_ind) = c0
-          r14CT_autotrophCaCO3(:,:,auto_ind) = c0
-        endwhere
-
-        where (r13CT_autotrophCaCO3(:,:,auto_ind) /= c1)
-          R13C_autotrophCaCO3(:,:,auto_ind) = r13CT_autotrophCaCO3(:,:,auto_ind) / &
-                                             ( c1 - r13CT_autotrophCaCO3(:,:,auto_ind) )
-        elsewhere
-          R13C_autotrophCaCO3(:,:,auto_ind) = c0
-        endwhere
-      
-        where (r14CT_autotrophCaCO3(:,:,auto_ind) /= c1)
-          R14C_autotrophCaCO3(:,:,auto_ind) = r14CT_autotrophCaCO3(:,:,auto_ind) / &
-                                              ( c1 - r14CT_autotrophCaCO3(:,:,auto_ind) )
-        elsewhere
-          R14C_autotrophCaCO3(:,:,auto_ind) = c0
-        endwhere
+         elsewhere
+            R13C_autotrophCaCO3(:,:,auto_ind) = c0
+            R14C_autotrophCaCO3(:,:,auto_ind) = c0
+         endwhere
 
 
       end do
@@ -2729,8 +2615,6 @@ contains
 !  Initialize Particulate terms for k=1
 !-----------------------------------------------------------------------
 
-! Assuming particlate terms calculation is the same for 14C as for 13C
-! Correct?
 
    if (k == 1) then
       call ciso_init_particulate_terms(PO13C, P_Ca13CO3, this_block) 
@@ -2758,16 +2642,14 @@ contains
     eps_aq_g   = 0.0049_r8 * TEMP - 1.31_r8
     eps_dic_g  = 0.014_r8 * TEMP * frac_co3 - 0.105_r8 * TEMP + 10.53_r8
 
-!debugging: setting eps_ to zero, which means alpha is equal to 1
-!    eps_aq_g  = c0
-!    eps_dic_g = c0
 
 
     alpha_aq_g  = c1 + eps_aq_g  / c1000
     alpha_dic_g = c1 + eps_dic_g / c1000
     
-    alpha_aq_g_14c  = c1 + eps_aq_g* 2.0_r8  / c1000 !fractionation is twice as large for 14C compared to 13C
-    alpha_dic_g_14c = c1 + eps_dic_g* 2.0_r8 / c1000
+    !fractionation is twice as large for 14C compared to 13C
+    alpha_aq_g_14c  = c1 + eps_aq_g * 2.0_r8  / c1000 
+    alpha_dic_g_14c = c1 + eps_dic_g * 2.0_r8 / c1000
       
 !-----------------------------------------------------------------------
 !   13C/12C ratios of CO2* (CO2STAR)
@@ -2782,12 +2664,6 @@ contains
     delta_C13_CO2STAR = ( R13C_CO2STAR / R13C_std - c1 ) * c1000
 
 !-----------------------------------------------------------------------
-!   13C/(12C+13C) ratios of CO2* (CO2STAR)
-!-----------------------------------------------------------------------
-
-    r13CT_CO2STAR = R13C_CO2STAR / ( c1 + R13C_CO2STAR )
-
-!-----------------------------------------------------------------------
 !   14C/12C ratios of CO2* (CO2STAR)
 !-----------------------------------------------------------------------
 
@@ -2798,12 +2674,6 @@ contains
 !-----------------------------------------------------------------------
 
     delta_C14_CO2STAR = ( R14C_CO2STAR / R14C_std - c1 ) * c1000
-
-!-----------------------------------------------------------------------
-!   14C/(12C+14C) ratios of CO2* (CO2STAR)
-!-----------------------------------------------------------------------
-
-    r14CT_CO2STAR = R14C_CO2STAR / ( c1 + R14C_CO2STAR )
 
 !-----------------------------------------------------------------------
 !   [CO2STAR]  = [CO2*] = [CO2(aq)] + [H2CO3] 
@@ -2837,11 +2707,8 @@ contains
   
 
 !-----------------------------------------------------------------------
-!   fractionation factors for 13C fixation in authotrophe types (sp, diaz, diat)
-!  
-!   There are different options in ETH code 
-!  (three for fractionation against CO2* and three for fractionation 
-!   against d13C of DIC. Here we include only the onces for fractionatio against CO2*
+!   fractionation factors for 13C fixation  against CO2* in 
+!   authotrophe types (sp, diaz, diat)
 !-----------------------------------------------------------------------
       select case (ciso_fract_factors)
   
@@ -2855,27 +2722,11 @@ contains
         delta_C13_Corg = min( delta_C13_Corg , -18.0_r8 ) 
         delta_C13_Corg = max( delta_C13_Corg , -32.0_r8 )
 
-        R13C_photoC(:,:,auto_ind) = R13C_std * ( c1 + delta_C13_Corg / c1000 )
-! Assuming eps_autotroph=delta_C13_Corg and that eps_autotroph for 14C is twice that for 13C
-! Correct???
-        R14C_photoC(:,:,auto_ind) = R14C_std * ( c1 + delta_C13_Corg* 2.0_r8 / c1000 )
+
+        eps_autotroph(:,:,auto_ind) = c1000 * (delta_C13_CO2STAR - delta_C13_Corg)/&
+                                      (c1000 + delta_C13_Corg)
 
 
-        where ( R13C_photoC(:,:,auto_ind) /= -c1 ) 
-          r13CT_photoC(:,:,auto_ind) = R13C_photoC(:,:,auto_ind) / ( c1 + R13C_photoC(:,:,auto_ind) )
-        elsewhere
-          r13CT_photoC(:,:,auto_ind) = c0
-        endwhere
-
-
-        where ( R14C_photoC(:,:,auto_ind) /= -c1 ) 
-          r14CT_photoC(:,:,auto_ind) = R14C_photoC(:,:,auto_ind) / ( c1 + R14C_photoC(:,:,auto_ind) )
-        elsewhere
-          r14CT_photoC(:,:,auto_ind) = c0
-        endwhere
-
-!!       eps_autotroph = delta_C13_Corg - delta_C13_CO2STAR
-        eps_autotroph(:,:,auto_ind) = delta_C13_Corg 
 !-----------------------------------------------------------------------
 !   Laws et al, 1995
 !   with restriction between 10 and 26 for size effect (Tagliabue and Bopp, 2008)      
@@ -2892,23 +2743,11 @@ contains
 !       eps_autotroph(:,:,auto_ind) = min( eps_autotroph(:,:,auto_ind), 26.0_r8 )
 !       eps_autotroph(:,:,auto_ind) = max( eps_autotroph(:,:,auto_ind), 10.0_r8 )
 
-        r13CT_photoC(:,:,auto_ind) = c1000 * r13CT_CO2STAR / & 
-                         ( c1000 + eps_autotroph(:,:,auto_ind) * &
-                         ( c1 - r13CT_CO2STAR ))
-
-!Assumin we can just double the fractionation for 13C for 14C, the following should work
-! Correct for Laws/biological ractionation?
-
-         r14CT_photoC(:,:,auto_ind) = c1000 * r14CT_CO2STAR / & 
-                         ( c1000 + eps_autotroph(:,:,auto_ind) * 2.0_r8 * &
-                         ( c1 - r14CT_CO2STAR ))
-
 
 !-----------------------------------------------------------------------
-!   Keller and morel, 1999 - this is the default
+!   Keller and morel, 1999 
 !-----------------------------------------------------------------------
      case ('KellerMorel')
- ! Don't know how to adapt for 14C, don't use for that  
 !-----------------------------------------------------------------
 ! convert mui_to_co2start from m3/mmol/s to m3/mol/s
 !-----------------------------------------------------------------
@@ -2925,42 +2764,33 @@ contains
                  cell_permea(auto_ind),            &
                  cell_eps_fix(auto_ind),           &
                  eps_autotroph(:,:,auto_ind) )
-
-        R13C_photoC(:,:,auto_ind) = R13C_CO2STAR - R13C_std *    &
-                                    eps_autotroph(:,:,auto_ind) / c1000
-
-        r13CT_photoC(:,:,auto_ind) = R13C_photoC(:,:,auto_ind) / &
-                                     ( c1 + R13C_photoC(:,:,auto_ind) )
-
-! Assuming we can just double the fractionation factor for 13C for 14C, the below should work
-! Correct?
-
-    R14C_photoC(:,:,auto_ind) = R14C_CO2STAR - R14C_std *    &
-                                    eps_autotroph(:,:,auto_ind)* 2.0_r8 / c1000
-
-    r14CT_photoC(:,:,auto_ind) = R14C_photoC(:,:,auto_ind) / &
-                                     ( c1 + R14C_photoC(:,:,auto_ind) )
-
+                 
 !-----------------------------------------------------------------------
-!     No fractionation
+!   Popp et al (1989)
 !-----------------------------------------------------------------------
-    case ('no_fractionation') 
-      eps_autotroph(:,:,auto_ind)= c0
-      r13CT_photoC(:,:,auto_ind) = c1
-      r14CT_photoC(:,:,auto_ind) = c1
+     case ('Popp')
+     eps_autotroph(:,:,auto_ind) = (-17.0_r8 * log10( CO2STAR_int ) + 3.4_r8)
+
+     
 !-----------------------------------------------------------------------
-
-
     end select
+!-----------------------------------------------------------------------
+   
+      R13C_photoC(:,:,auto_ind) = R13C_CO2STAR *c1000 / &
+                                    (eps_autotroph(:,:,auto_ind) + c1000)
+
+
+      R14C_photoC(:,:,auto_ind) = R14C_CO2STAR *c1000 / &
+                                    (2.0_r8* eps_autotroph(:,:,auto_ind) + c1000) 
 
 !-----------------------------------------------------------------------
 !     small phytoplankton, Diatom, and Diaztroph 13C and 14C fixation      
 !-----------------------------------------------------------------------
 
-      photo13C(:,:,auto_ind) = photoC(:,:,auto_ind) * r13CT_photoC(:,:,auto_ind)
+      photo13C(:,:,auto_ind) = photoC(:,:,auto_ind) * R13C_photoC(:,:,auto_ind)
 
 
-      photo14C(:,:,auto_ind) = photoC(:,:,auto_ind) * r14CT_photoC(:,:,auto_ind)
+      photo14C(:,:,auto_ind) = photoC(:,:,auto_ind) * R14C_photoC(:,:,auto_ind)
       
   
   
@@ -2972,16 +2802,13 @@ contains
        
         R13C_CaCO3_PROD = R13C_DIC + R13C_std * eps_carb / c1000 ! Where does this equation come from?
 
-        r13CT_CaCO3_PROD = R13C_CaCO3_PROD / ( c1 + R13C_CaCO3_PROD )
-
  
-        R14C_CaCO3_PROD = R14C_DIC + R14C_std * eps_carb * 2.0_r8 / c1000 !Can we just double eps_carb for 14C? 
-        r14CT_CaCO3_PROD = R14C_CaCO3_PROD / ( c1 + R14C_CaCO3_PROD )
+        R14C_CaCO3_PROD = R14C_DIC + R14C_std * eps_carb * 2.0_r8 / c1000 
+       
 
+        Ca13CO3_PROD(:,:,auto_ind) = CaCO3_PROD(:,:,auto_ind) * R13C_CaCO3_PROD 
 
-        Ca13CO3_PROD(:,:,auto_ind) = CaCO3_PROD(:,:,auto_ind) * r13CT_CaCO3_PROD 
-
-        Ca14CO3_PROD(:,:,auto_ind) = CaCO3_PROD(:,:,auto_ind) * r14CT_CaCO3_PROD 
+        Ca14CO3_PROD(:,:,auto_ind) = CaCO3_PROD(:,:,auto_ind) * R14C_CaCO3_PROD 
       
         call accumulate_tavg_field(Ca13CO3_PROD(:,:,auto_ind), tavg_CISO_Ca13CO3_form(auto_ind),bid,k)
         call accumulate_tavg_field(Ca14CO3_PROD(:,:,auto_ind), tavg_CISO_Ca14CO3_form(auto_ind),bid,k)
@@ -3011,14 +2838,14 @@ end do ! end loop over autotroph types
 !  compute terms for DO13C and DO14C
 !-----------------------------------------------------------------------
    
-   DO13C_prod = zoo_loss_doc *r13CT_zooC +  &
-                sum( (auto_loss_doc + auto_graze_doc) * r13CT_autotroph, dim=3)
+   DO13C_prod = zoo_loss_doc *R13C_zooC +  &
+                sum( (auto_loss_doc + auto_graze_doc) * R13C_autotroph, dim=3)
            
    DO13C_remin = DO13C_loc * DOC_reminR
 
    
-   DO14C_prod = zoo_loss_doc *r14CT_zooC +  &
-                sum( (auto_loss_doc + auto_graze_doc) * r14CT_autotroph, dim=3)
+   DO14C_prod = zoo_loss_doc *R14C_zooC +  &
+                sum( (auto_loss_doc + auto_graze_doc) * R14C_autotroph, dim=3)
            
    DO14C_remin = DO14C_loc * DOC_reminR
 
@@ -3028,12 +2855,12 @@ end do ! end loop over autotroph types
 !  large detritus 13C and 14C
 !-----------------------------------------------------------------------
 
-   PO13C%prod(:,:,bid) = f_zoo_detr * zoo_loss * r13CT_zooC + &
-                    sum( ( (auto_graze_poc + auto_agg + auto_loss_poc) * r13CT_autotroph), dim=3)
+   PO13C%prod(:,:,bid) = f_zoo_detr * zoo_loss * R13C_zooC + &
+                    sum( ( (auto_graze_poc + auto_agg + auto_loss_poc) * R13C_autotroph), dim=3)
 
 
-   PO14C%prod(:,:,bid) = f_zoo_detr * zoo_loss * r14CT_zooC + &
-                    sum( ( (auto_graze_poc + auto_agg + auto_loss_poc) * r14CT_autotroph), dim=3)
+   PO14C%prod(:,:,bid) = f_zoo_detr * zoo_loss * R14C_zooC + &
+                    sum( ( (auto_graze_poc + auto_agg + auto_loss_poc) * R14C_autotroph), dim=3)
 
 
 !-----------------------------------------------------------------------
@@ -3042,12 +2869,14 @@ end do ! end loop over autotroph types
 
    do auto_ind = 1, autotroph_cnt
       if (autotrophs(auto_ind)%CaCO3_ind > 0) then
-         P_Ca13CO3%prod(:,:,bid) = ((c1 - f_graze_CaCO3_REMIN) * auto_graze(:,:,auto_ind) + &
-                                  auto_loss(:,:,auto_ind) + auto_agg(:,:,auto_ind)) * &
-                                  QCaCO3(:,:,auto_ind) * r13CT_autotrophCaCO3(:,:,auto_ind)
-         P_Ca14CO3%prod(:,:,bid) = ((c1 - f_graze_CaCO3_REMIN) * auto_graze(:,:,auto_ind) + &
-                                  auto_loss(:,:,auto_ind) + auto_agg(:,:,auto_ind)) * &
-                                  QCaCO3(:,:,auto_ind) * r14CT_autotrophCaCO3(:,:,auto_ind)   
+         P_Ca13CO3%prod(:,:,bid) = P_CaCO3%prod(:,:,bid) * R13C_autotrophCaCO3(:,:,auto_ind)
+                                  
+! with P_CaCO3%prod(:,:,bid) =  ((c1 - f_graze_CaCO3_REMIN) * auto_graze(:,:,auto_ind) + &
+!                                  auto_loss(:,:,auto_ind) + auto_agg(:,:,auto_ind)) * &
+!                                  QCaCO3(:,:,auto_ind) 
+! calculated in ecosys
+                                  
+         P_Ca14CO3%prod(:,:,bid) = P_CaCO3%prod(:,:,bid) * R14C_autotrophCaCO3(:,:,auto_ind)   
       endif
    end do
 
@@ -3084,19 +2913,19 @@ end do ! end loop over autotroph types
       n = autotrophs(auto_ind)%C13_ind 
       m = autotrophs(auto_ind)%C14_ind 
       
-      DTRACER_MODULE(:,:,n) = photo13C(:,:,auto_ind) - WORK1 * r13CT_autotroph(:,:,auto_ind)
-      DTRACER_MODULE(:,:,m) = photo14C(:,:,auto_ind) - WORK1 * r14CT_autotroph(:,:,auto_ind) - &
+      DTRACER_MODULE(:,:,n) = photo13C(:,:,auto_ind) - WORK1 * R13C_autotroph(:,:,auto_ind)
+      DTRACER_MODULE(:,:,m) = photo14C(:,:,auto_ind) - WORK1 * R14C_autotroph(:,:,auto_ind) - &
                               c14_lambda_inv_sec * autotroph14C_loc(:,:,auto_ind)
                               
       n = autotrophs(auto_ind)%Ca13CO3_ind
       if (n > 0) then
          DTRACER_MODULE(:,:,n) = Ca13CO3_PROD(:,:,auto_ind) - QCaCO3(:,:,auto_ind) &
-                                 * WORK1 * r13CT_autotrophCaCO3(:,:,auto_ind)
+                                 * WORK1 * R13C_autotrophCaCO3(:,:,auto_ind)
       endif   
       n = autotrophs(auto_ind)%Ca14CO3_ind
       if (n > 0) then
          DTRACER_MODULE(:,:,n) = Ca14CO3_PROD(:,:,auto_ind) - QCaCO3(:,:,auto_ind) &
-                                 * WORK1 * r14CT_autotrophCaCO3(:,:,auto_ind)      &
+                                 * WORK1 * R14C_autotrophCaCO3(:,:,auto_ind)      &
                                  - c14_lambda_inv_sec * autotrophCa14CO3_loc(:,:,auto_ind)
       endif                       
    end do
@@ -3107,11 +2936,11 @@ end do ! end loop over autotroph types
 !  zoo 13 and 14 Carbon 
 !-----------------------------------------------------------------------
 
-   DTRACER_MODULE(:,:,zoo13C_ind) = sum(auto_graze_zoo * r13CT_autotroph, dim=3) - &
-                                    zoo_loss *r13CT_zooC
+   DTRACER_MODULE(:,:,zoo13C_ind) = sum(auto_graze_zoo * R13C_autotroph, dim=3) - &
+                                    zoo_loss *R13C_zooC
 
-   DTRACER_MODULE(:,:,zoo14C_ind) = sum(auto_graze_zoo * r14CT_autotroph, dim=3) - &
-                                    zoo_loss *r14CT_zooC -                &
+   DTRACER_MODULE(:,:,zoo14C_ind) = sum(auto_graze_zoo * R14C_autotroph, dim=3) - &
+                                    zoo_loss *R14C_zooC -                &
                                     c14_lambda_inv_sec * zoo14C_loc
 
 !-----------------------------------------------------------------------
@@ -3129,18 +2958,18 @@ end do ! end loop over autotroph types
 !-----------------------------------------------------------------------
 
    DTRACER_MODULE(:,:,di13c_ind) =        &
-       sum( (auto_loss_dic+ auto_graze_dic) * r13CT_autotroph, dim=3)   &
-       - sum(photo13C, dim=3)                                           &
-       + DO13C_remin + PO13C%remin(:,:,bid)                             &
-       + zoo_loss_dic * r13CT_zooC                                      &
+       sum( (auto_loss_dic+ auto_graze_dic) * R13C_autotroph, dim=3)   &
+       - sum(photo13C, dim=3)                                          &
+       + DO13C_remin + PO13C%remin(:,:,bid)                            &
+       + zoo_loss_dic * R13C_zooC                                      &
        + P_Ca13CO3%remin(:,:,bid) 
       
 
    DTRACER_MODULE(:,:,di14c_ind) =                                     &
-      sum( (auto_loss_dic+ auto_graze_dic) * r14CT_autotroph, dim=3)   &
+      sum( (auto_loss_dic+ auto_graze_dic) * R14C_autotroph, dim=3)    &
       - sum(photo14C, dim=3)                                           &
       + DO14C_remin + PO14C%remin(:,:,bid)                             &
-      + zoo_loss_dic * r14CT_zooC                                      &
+      + zoo_loss_dic * R14C_zooC                                       &
       + P_Ca14CO3%remin(:,:,bid)                                       &
       - c14_lambda_inv_sec * DI14C_loc
       
@@ -3148,12 +2977,12 @@ end do ! end loop over autotroph types
      if (autotrophs(auto_ind)%Ca14CO3_ind > 0) then
        DTRACER_MODULE(:,:,di14c_ind) = DTRACER_MODULE(:,:,di14c_ind)       &    
              + f_graze_CaCO3_REMIN * auto_graze(:,:,sp_ind)                &
-             * QCaCO3(:,:,auto_ind) * r14CT_autotrophCaCO3(:,:,auto_ind)   &
+             * QCaCO3(:,:,auto_ind) * R14C_autotrophCaCO3(:,:,auto_ind)   &
              - Ca14CO3_PROD(:,:,auto_ind)                                     
      elseif (autotrophs(auto_ind)%Ca13CO3_ind > 0) then
        DTRACER_MODULE(:,:,di13c_ind) = DTRACER_MODULE(:,:,di13c_ind)       &    
              + f_graze_CaCO3_REMIN * auto_graze(:,:,sp_ind)                &
-             * QCaCO3(:,:,auto_ind) * r13CT_autotrophCaCO3(:,:,auto_ind)   &
+             * QCaCO3(:,:,auto_ind) * R13C_autotrophCaCO3(:,:,auto_ind)   &
              - Ca13CO3_PROD(:,:,auto_ind)    
      endif
    end do
@@ -3172,12 +3001,13 @@ end do ! end loop over autotroph types
     zooC_d13C =  ( R13C_zooC / R13C_std - c1 ) * c1000
     zooC_d14C =  ( R14C_zooC / R14C_std - c1 ) * c1000
     
-    autotrophCaCO3_d13C(:,:,auto_ind) =  ( R13C_autotrophCaCO3(:,:,auto_ind) / R13C_std - c1 ) * c1000
-    autotrophCaCO3_d14C(:,:,auto_ind) =  ( R14C_autotrophCaCO3(:,:,auto_ind) / R14C_std - c1 ) * c1000
+    do auto_ind = 1, autotroph_cnt
+       autotrophCaCO3_d13C(:,:,auto_ind) =  ( R13C_autotrophCaCO3(:,:,auto_ind) / R13C_std - c1 ) * c1000
+       autotrophCaCO3_d14C(:,:,auto_ind) =  ( R14C_autotrophCaCO3(:,:,auto_ind) / R14C_std - c1 ) * c1000
     
-    autotroph_d13C(:,:,auto_ind) =  ( R13C_autotroph(:,:,auto_ind) / R13C_std - c1 ) * c1000
-    autotroph_d14C(:,:,auto_ind) =  ( R14C_autotroph(:,:,auto_ind) / R14C_std - c1 ) * c1000
-     
+       autotroph_d13C(:,:,auto_ind) =  ( R13C_autotroph(:,:,auto_ind) / R13C_std - c1 ) * c1000
+       autotroph_d14C(:,:,auto_ind) =  ( R14C_autotroph(:,:,auto_ind) / R14C_std - c1 ) * c1000
+    end do 
    
   
 
@@ -3190,7 +3020,6 @@ end do ! end loop over autotroph types
 !    do auto_ind = 1, autotroph_cnt
 !      call accumulate_tavg_field(photoC(:,:,auto_ind), tavg_CISO_photoC(auto_ind),bid,k)
 !      call accumulate_tavg_field(R13C_photoC(:,:,auto_ind), tavg_CISO_R13C_photoC(auto_ind),bid,k)
-!      call accumulate_tavg_field(r13CT_photoC(:,:,auto_ind), tavg_CISO_r13CT_photoC(auto_ind),bid,k)
 !    end do
  !end debugging
      
@@ -3704,9 +3533,9 @@ end do ! end loop over autotroph types
    real (r8) :: &
       flux, flux_alt,       & ! temp variables used to update sinking flux
       POC_ciso_PROD_avail,  & ! 13C POC production available for excess POC flux  
-      rcisoT_POC_hflux_out, & ! ciso/(12C+ciso) of outgoing flux of hard POC
-      rcisoT_POC_in,        & ! ciso/(12C+ciso) of total POC ingoing component
-      rcisoT_CaCO3_in         ! ciso/(12C+ciso) of total CaCO3 ingoing component
+      RcisoT_POC_hflux_out, & ! ciso/12C of outgoing flux of hard POC
+      RcisoT_POC_in,        & ! ciso/12C of total POC ingoing component
+      rcisoT_CaCO3_in         ! ciso/12C of total CaCO3 ingoing component
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       SED_DENITRIF, & ! sedimentary denitrification (umolN/cm^2/s)
@@ -3873,19 +3702,19 @@ end do ! end loop over autotroph types
 !   Compute outgoing 13C POC fluxes of hard POC
 !-----------------------------------------------------------------
 
-            rcisoT_POC_hflux_out = POC%prod(i,j,bid) + &
+            RcisoT_POC_hflux_out = POC%prod(i,j,bid) + &
                 ( POC%sflux_in(i,j,bid) - POC%sflux_out(i,j,bid) + &
                 POC%hflux_in(i,j,bid) ) * dzr_loc
 
-            if (rcisoT_POC_hflux_out  > c0) then
-                rcisoT_POC_hflux_out = ( POC_ciso%prod(i,j,bid) + ( POC_ciso%sflux_in(i,j,bid) - &
+            if (RcisoT_POC_hflux_out  > c0) then
+                RcisoT_POC_hflux_out = ( POC_ciso%prod(i,j,bid) + ( POC_ciso%sflux_in(i,j,bid) - &
                 POC_ciso%sflux_out(i,j,bid) + POC_ciso%hflux_in(i,j,bid) ) * dzr_loc )          &
-                / rcisoT_POC_hflux_out
+                / RcisoT_POC_hflux_out
             else
-                rcisoT_POC_hflux_out = c0
+                RcisoT_POC_hflux_out = c0
             endif
 
-            POC_ciso%hflux_out(i,j,bid) = POC%hflux_out(i,j,bid) * rcisoT_POC_hflux_out
+            POC_ciso%hflux_out(i,j,bid) = POC%hflux_out(i,j,bid) * RcisoT_POC_hflux_out
             POC_ciso%hflux_out(i,j,bid) = max(POC_ciso%hflux_out(i,j,bid), c0)
 
 !-----------------------------------------------------------------------
@@ -3928,18 +3757,18 @@ end do ! end loop over autotroph types
 !   to equal the rate of total incoming flux 
 !-----------------------------------------------------------------
 !
-!              rcisoT_POC_in = POC%prod(i,j,bid) + ( POC%sflux_in(i,j,bid) + POC%hflux_in(i,j,bid) ) &
+!              RcisoT_POC_in = POC%prod(i,j,bid) + ( POC%sflux_in(i,j,bid) + POC%hflux_in(i,j,bid) ) &
 !                            * dzr_loc
-!              if ( rcisoT_POC_in > c0 ) then
-!                 rcisoT_POC_in = ( POC_ciso%prod(i,j,bid) + ( POC_ciso%sflux_in(i,j,bid) + &
-!                    POC_ciso%hflux_in(i,j,bid) ) * dzr_loc ) / rcisoT_POC_in
+!              if ( RcisoT_POC_in > c0 ) then
+!                 RcisoT_POC_in = ( POC_ciso%prod(i,j,bid) + ( POC_ciso%sflux_in(i,j,bid) + &
+!                    POC_ciso%hflux_in(i,j,bid) ) * dzr_loc ) / RcisoT_POC_in
 !              else
-!                 rcisoT_POC_in = c0
+!                 RcisoT_POC_in = c0
 !              endif
 !
-!              POC_ciso%sflux_out(i,j,bid) = POC%sflux_out(i,j,bid) *rcisoT_POC_in
-!              POC_ciso%hflux_out(i,j,bid) = POC%hflux_out(i,j,bid) *rcisoT_POC_in
-!              POC_ciso%remin(i,j,bid) = POC%remin(i,j,bid) * rcisoT_POC_in
+!              POC_ciso%sflux_out(i,j,bid) = POC%sflux_out(i,j,bid) *RcisoT_POC_in
+!              POC_ciso%hflux_out(i,j,bid) = POC%hflux_out(i,j,bid) *RcisoT_POC_in
+!              POC_ciso%remin(i,j,bid) = POC%remin(i,j,bid) * RcisoT_POC_in
 !
 !-----------------------------------------------------------------
 
