@@ -25,6 +25,16 @@ endif
 if !(-d $CASEBUILD/pop2conf) mkdir $CASEBUILD/pop2conf || exit 1
 cd $CASEBUILD/pop2conf || exit -1
 
+if (($GET_REFCASE == 'TRUE') && ($RUN_TYPE != 'startup') && ($CONTINUE_RUN == 'FALSE')) then
+  # During prestage step, rpointer files are copied from refdir
+  # Get rid of old rpointer files if they exist and copy them 
+  # independently of the prestage.  This is needed for rerunability
+  # of cases from REFCASE data for first run
+  rm -f $RUNDIR/rpointer.ocn* >&! /dev/null
+  set refdir = "ccsm4_init/$RUN_REFCASE/$RUN_REFDATE"
+  cp -f $DIN_LOC_ROOT/$refdir/rpointer.ocn* $RUNDIR/
+endif
+
 set default_ocn_in_filename = "pop2_in"
 set inst_counter = 1
 while ($inst_counter <= $NINST_OCN)
@@ -71,12 +81,6 @@ endif
 if (($GET_REFCASE == 'TRUE') && ($RUN_TYPE != 'startup') && ($CONTINUE_RUN == 'FALSE')) then
   # During prestage step, rpointer files are copied from refdir
   set refdir = "ccsm4_init/$RUN_REFCASE/$RUN_REFDATE"
-  # note: as of now, running multiple instances out of a single-instance reference
-  #       case will cause problems if you try to repeat the run. A fix for this
-  #       requires the prestage step to know that multi-instance is running and
-  #       that reference directory only has single instance rpointer files, as well
-  #       as an additional check for $DIN_LOC_ROOT/$refdir/rpointer.ocn.restart
-  #       below.
   set pointer_file = "$DIN_LOC_ROOT/$refdir/rpointer.ocn${inst_string}.restart"
   if (! -e $pointer_file) then
     set pointer_file = "$RUNDIR/rpointer.ocn${inst_string}.restart"
@@ -143,7 +147,7 @@ cp -fp $CASEBUILD/pop2conf/${OCN_GRID}_tavg_contents  ${RUNDIR}/${OCN_GRID}_tavg
 
 @ inst_counter = $inst_counter + 1
 
-end
+end  # inst_counter
 
 
 
