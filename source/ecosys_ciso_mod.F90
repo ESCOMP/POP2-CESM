@@ -642,7 +642,8 @@ contains
       ciso_tracer_init_ext(n)%mod_varname  = 'unknown'
       ciso_tracer_init_ext(n)%filename     = 'unknown'
       ciso_tracer_init_ext(n)%file_varname = 'unknown'
-      ciso_tracer_init_ext(n)%scale_factor = 1.0
+      ciso_tracer_init_ext(n)%scale_factor = c1
+      ciso_tracer_init_ext(n)%default_val  = c0
       ciso_tracer_init_ext(n)%file_fmt     = 'bin'
    end do
 
@@ -729,6 +730,7 @@ contains
       call broadcast_scalar(ciso_tracer_init_ext(n)%filename, master_task)
       call broadcast_scalar(ciso_tracer_init_ext(n)%file_varname, master_task)
       call broadcast_scalar(ciso_tracer_init_ext(n)%scale_factor, master_task)
+      call broadcast_scalar(ciso_tracer_init_ext(n)%default_val, master_task)
       call broadcast_scalar(ciso_tracer_init_ext(n)%file_fmt, master_task)
    end do
 
@@ -1925,13 +1927,13 @@ contains
             DIC_ROW   = DIC_SURF(:,j)
             
   
-            where ( DIC_ROW /= DI13C_ROW )
+            where ( DIC_ROW /= c0 )
                   R13C_DIC_surf(:,j) = DI13C_ROW /DIC_ROW 
             elsewhere
                   R13C_DIC_surf(:,j) = c0     
             endwhere
             
-            where ( DIC_ROW /= DI14C_ROW )
+            where ( DIC_ROW /= c0 )
                   R14C_DIC_surf(:,j) = DI14C_ROW / DIC_ROW 
             elsewhere
                   R14C_DIC_surf(:,j) = c0     
@@ -2058,8 +2060,8 @@ contains
          ECO_CISO_SFLUX_TAVG(:,:,5,iblock) = FLUX_as
          ECO_CISO_SFLUX_TAVG(:,:,6,iblock) = FLUX_sa
             
-         where ( FLUX /= FLUX13 ) 
-            ECO_CISO_SFLUX_TAVG(:,:,7,iblock) = (( FLUX13 / ( FLUX  - FLUX13) ) &
+         where ( FLUX /= c0 ) 
+            ECO_CISO_SFLUX_TAVG(:,:,7,iblock) = ( FLUX13 / FLUX  &
                             / R13C_std - c1 ) * c1000
          elsewhere
             ECO_CISO_SFLUX_TAVG(:,:,7,iblock) = c0
@@ -2077,8 +2079,8 @@ contains
          ECO_CISO_SFLUX_TAVG(:,:,17,iblock) = R14C_atm
          ECO_CISO_SFLUX_TAVG(:,:,18,iblock) = D14C
          
-         where ( FLUX /= FLUX14 ) 
-            ECO_CISO_SFLUX_TAVG(:,:,19,iblock) = (( FLUX14 / FLUX - FLUX14) & 
+         where ( FLUX /= c0 ) 
+            ECO_CISO_SFLUX_TAVG(:,:,19,iblock) = ( FLUX14 / FLUX & 
                             / R14C_std - c1 ) * c1000
          elsewhere
             ECO_CISO_SFLUX_TAVG(:,:,19,iblock) = c0
@@ -2555,9 +2557,10 @@ contains
 
 !     Asumme ecosystem carries total carbon (C=C12+C13+C14). Since 14C 
 !     is very small, only account for 13C, i.e. C= 12C + 13C
+!     Should it be /= or > c0?
 !-----------------------------------------------------------------------
 
-     where (DOC_loc /= c0)
+     where (DOC_loc > c0)
         R13C_DOC = DO13C_loc / DOC_loc 
         R14C_DOC = DO14C_loc / DOC_loc
      elsewhere
@@ -2567,7 +2570,7 @@ contains
    
     
 
-      where (DIC_loc /= c0)
+      where (DIC_loc > c0)
         R13C_DIC = DI13C_loc / DIC_loc
         R14C_DIC = DI14C_loc / DIC_loc
       elsewhere
@@ -2576,7 +2579,7 @@ contains
       endwhere      
 
     
-      where (zooC_loc /= c0)
+      where (zooC_loc > c0)
         R13C_zooC = zoo13C_loc / zooC_loc
         R14C_zooC = zoo14C_loc / zooC_loc
       elsewhere
@@ -2587,7 +2590,7 @@ contains
           
       do auto_ind = 1, autotroph_cnt
 
-         where (autotrophC_loc(:,:,auto_ind) /= c0)
+         where (autotrophC_loc(:,:,auto_ind) > c0)
             R13C_autotroph(:,:,auto_ind)  = autotroph13C_loc(:,:,auto_ind) / & 
                                              autotrophC_loc(:,:,auto_ind)
             R14C_autotroph(:,:,auto_ind)  = autotroph14C_loc(:,:,auto_ind) / & 
@@ -2599,7 +2602,7 @@ contains
 
                  
           
-         where (autotrophCaCO3_loc(:,:,auto_ind) /= c0)
+         where (autotrophCaCO3_loc(:,:,auto_ind) > c0)
             R13C_autotrophCaCO3(:,:,auto_ind) = autotrophCa13CO3_loc(:,:,auto_ind) / &
                                                autotrophCaCO3_loc(:,:,auto_ind)
             R14C_autotrophCaCO3(:,:,auto_ind) = autotrophCa14CO3_loc(:,:,auto_ind) / &

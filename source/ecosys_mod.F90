@@ -6364,6 +6364,12 @@ contains
                ECO_SFLUX_TAVG(:,j,buf_ind_pCO2SURF,iblock) = pCO2SURF_ROW
                ECO_SFLUX_TAVG(:,j,buf_ind_DpCO2,iblock)    = DpCO2_ROW
 
+! Save surface fields of DIC_ROW, CO2STAR, and DCO2STAR for use in ecosys_ciso
+               DIC_SURF(:,j)      = DIC_ROW
+               CO2STAR_SURF(:,j)  = CO2STAR_ROW
+               DCO2STAR_SURF(:,j) = DCO2STAR_ROW
+
+
                where (PH_PREV_ALT_CO2(:,j,iblock) /= c0)
                   PHLO = PH_PREV_ALT_CO2(:,j,iblock) - del_ph
                   PHHI = PH_PREV_ALT_CO2(:,j,iblock) + del_ph
@@ -6391,11 +6397,6 @@ contains
                ECO_SFLUX_TAVG(:,j,buf_ind_DCO2STAR_ALT_CO2,iblock) = DCO2STAR_ROW
                ECO_SFLUX_TAVG(:,j,buf_ind_pCO2SURF_ALT_CO2,iblock) = pCO2SURF_ROW
                ECO_SFLUX_TAVG(:,j,buf_ind_DpCO2_ALT_CO2,iblock) = DpCO2_ROW
-
-! Save surface fields of DIC_ROW, CO2STAR, and DCO2STAR for use in ecosys_ciso
-               DIC_SURF(:,j)      = DIC_ROW
-               CO2STAR_SURF(:,j)  = CO2STAR_ROW
-               DCO2STAR_SURF(:,j) = DCO2STAR_ROW  
 
             end do
 

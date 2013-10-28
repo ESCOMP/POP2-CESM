@@ -1,6 +1,25 @@
 ===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
+Tag Date:    28 Oct 2013
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20131028_cesm_pop_2_1_20130521/
+Tag Summary: Fixed several small errors in ecosys_ciso:
+- added default value to ciso_tracer_init_ext, to avoid it being a random
+- corrected "where" check for assumption that ecosys carries 12C (not total
+C), in calculation of R13C_DIC_surf and ECO_CISO_SFLUX_TAVG(:,:,7,i) 
+Fixed an error in ecosys_mod in the placement where DIC_ROW and others are
+written to fields passed to ecosys_ciso (before new DIC_ALT tracer co2_calc
+call, was after it before, writting the ALTCO2 values to these variables used
+in ecosys_ciso, which has no effect for pre-industrial, but would for
+present-day)
+Files Modified:
+M            54523   source/ecosys_mod.F90
+M            54580   source/ecosys_ciso_mod.F90
+Status against revision:  54636
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
 Tag Date:    25 Oct 2013
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20131025_cesm_pop_2_1_20130521/
