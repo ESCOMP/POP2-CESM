@@ -1,6 +1,15 @@
 SVN $Id$
 SVN $URL$
 ===============================================================================
+Tag Creator: tcraig
+Developers:  tcraig
+Tag Date:    01 Nov 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20131101
+Tag Summary: Fix rpointer permissions on 20131028 modification
+
+Files Modified:
+M       bld/pop2.buildnml.csh
+===============================================================================
 Tag Creator: mlevy
 Developers:  tcraig
 Tag Date:    28 Oct 2013

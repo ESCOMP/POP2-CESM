@@ -33,6 +33,7 @@ if (($GET_REFCASE == 'TRUE') && ($RUN_TYPE != 'startup') && ($CONTINUE_RUN == 'F
   rm -f $RUNDIR/rpointer.ocn* >&! /dev/null
   set refdir = "ccsm4_init/$RUN_REFCASE/$RUN_REFDATE"
   cp -f $DIN_LOC_ROOT/$refdir/rpointer.ocn* $RUNDIR/
+  chmod u+w $RUNDIR/rpointer.ocn* >&! /dev/null
 endif
 
 set default_ocn_in_filename = "pop2_in"
