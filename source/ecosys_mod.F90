@@ -2699,24 +2699,24 @@ contains
    real (r8), dimension(nx_block,ny_block) :: &
       TEMP,           & ! local copy of model TEMP
       SALT,           & ! local copy of model SALT
-!      DIC_loc,        & ! local copy of model DIC -- Now defined in ecosys_fields
+!      DIC_loc,        & ! local copy of model DIC -- Now pointers to fields defined in ecosys_fields
       DIC_ALT_CO2_loc,& ! local copy of model DIC_ALT_CO2
       ALK_loc,        & ! local copy of model ALK
       PO4_loc,        & ! local copy of model PO4
-!      NO3_loc,        & ! local copy of model NO3 -- Now defined in ecosys_fields
+!      NO3_loc,        & ! local copy of model NO3 -- Now pointers to fields defined in ecosys_fields
       SiO3_loc,       & ! local copy of model SiO3
       NH4_loc,        & ! local copy of model NH4
       Fe_loc,         & ! local copy of model Fe
-!      O2_loc,         & ! local copy of model O2 -- Now defined in ecosys_fields
-!      DOC_loc,        & ! local copy of model DOC -- Now defined in ecosys_fields
-!      zooC_loc,       & ! local copy of model zooC -- Now defined in ecosys_fields
+!      O2_loc,         & ! local copy of model O2 -- Now pointers to fields defined in ecosys_fields
+!      DOC_loc,        & ! local copy of model DOC -- Now pointers to fields defined in ecosys_fields
+!      zooC_loc,       & ! local copy of model zooC -- Now pointers to fields defined in ecosys_fields
       DON_loc,        & ! local copy of model DON
       DOFe_loc,       & ! local copy of model DOFe
       DOP_loc,        & ! local copy of model DOP
       DOPr_loc,       & ! local copy of model DOPr
       DONr_loc          ! local copy of model DONr
 
-!   real (r8), dimension(nx_block,ny_block,autotroph_cnt) :: & -- Now defined in ecosys_fields
+!   real (r8), dimension(nx_block,ny_block,autotroph_cnt) :: & -- Now pointers to fields defined in ecosys_fields
 !      autotrophChl_loc, & ! local copy of model autotroph Chl
 !      autotrophC_loc,   & ! local copy of model autotroph C
 !      autotrophFe_loc,  & ! local copy of model autotroph Fe
@@ -2754,17 +2754,17 @@ contains
       f_nut,          & ! nut limitation factor, modifies C fixation (non-dim)
       PCmax,          & ! max value of PCphoto at temperature TEMP (1/sec)
       light_lim,      & ! light limitation factor
-!      PCphoto,        & ! C-specific rate of photosynth. (1/sec) -- Now defined in ecosys_fields, with size (nx_block,ny_block,autotroph_cnt,max_blocks_clinic)
+!      PCphoto,        & ! C-specific rate of photosynth. (1/sec) -- Now pointer to fields defined in ecosys_fields
       pChl              ! Chl synth. regulation term (mg Chl/mmol N)
 
    real (r8), dimension(nx_block,ny_block) :: & ! max of 39 continuation lines
-!      f_zoo_detr,     & ! frac of zoo losses into large detrital pool (non-dim) -- Now defined in ecosys_fields
+!      f_zoo_detr,     & ! frac of zoo losses into large detrital pool (non-dim) -- Now pointer to fields defined in ecosys_fields
       Fe_scavenge_rate,&! annual scavenging rate of iron as % of ambient
       Fe_scavenge,    & ! loss of dissolved iron, scavenging (mmol Fe/m^3/sec)
       Zprime!,         & ! used to limit zoo mort at low biomass (mmol C/m^3)
-!      zoo_loss,       & ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec) -- Now defined in ecosys_fields
-!      zoo_loss_doc,   & ! zoo_loss routed to doc (mmol C/m^3/sec) -- Now defined in ecosys_fields
-!      zoo_loss_dic      ! zoo_loss routed to dic (mmol C/m^3/sec) -- Now defined in ecosys_fields
+!      zoo_loss,       & ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec) -- Now pointer to fields defined in ecosys_fields
+!      zoo_loss_doc,   & ! zoo_loss routed to doc (mmol C/m^3/sec) -- Now pointer to fields defined in ecosys_fields
+!      zoo_loss_dic      ! zoo_loss routed to dic (mmol C/m^3/sec) -- Now pointer to fields defined in ecosys_fields
 
    real (r8), dimension(nx_block,ny_block) :: &
       VNC,            & ! C-specific N uptake rate (mmol N/mmol C/sec)
@@ -2776,7 +2776,7 @@ contains
 
    real (r8), dimension(nx_block,ny_block,autotroph_cnt) :: &
       thetaC,         & ! local Chl/C ratio (mg Chl/mmol C)
-!      QCaCO3,         & ! CaCO3/C ratio (mmol CaCO3/mmol C) -- Now defined in ecosys_fields
+!      QCaCO3,         & ! CaCO3/C ratio (mmol CaCO3/mmol C) -- Now pointer to fields defined in ecosys_fields
       VNO3,           & ! NO3 uptake rate (non-dim)
       VNH4,           & ! NH4 uptake rate (non-dim)
       VNtot,          & ! total N uptake rate (non-dim)
@@ -2789,7 +2789,7 @@ contains
       Qsi,            & ! initial Si/C ratio (mmol Si/mmol C)
       gQsi,           & ! diatom Si/C ratio for growth (new biomass)
       Pprime,         & ! used to limit autotroph mort at low biomass (mmol C/m^3)
-!      auto_graze,     & ! autotroph grazing rate (mmol C/m^3/sec) -- Now defined in ecosys_fields
+!      auto_graze,     & ! autotroph grazing rate (mmol C/m^3/sec) -- Now pointer to fields defined in ecosys_fields
 !      auto_graze_zoo, & ! auto_graze routed to zoo (mmol C/m^3/sec)
 !      auto_graze_poc, & ! auto_graze routed to poc (mmol C/m^3/sec)
 !      auto_graze_doc, & ! auto_graze routed to doc (mmol C/m^3/sec)
@@ -2802,7 +2802,7 @@ contains
 !      photoC,         & ! C-fixation (mmol C/m^3/sec)
       photoFe,        & ! iron uptake
       photoSi,        & ! silicon uptake (mmol Si/m^3/sec)
-!      CaCO3_PROD,     & ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec) -- Now defined in ecosys_fields
+!      CaCO3_PROD,     & ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec) -- Now pointer to fields defined in ecosys_fields
       photoacc,       & ! Chl synth. term in photoadapt. (GD98) (mg Chl/m^3/sec)
       Nfix,           & ! total Nitrogen fixation (mmol N/m^3/sec)
       Nexcrete          ! fixed N excretion
@@ -2826,9 +2826,9 @@ contains
       DOPr_remin        ! portion of refractory DOP remineralized
 
    real (r8), dimension(nx_block,ny_block) :: &
-!      CO3,            &! carbonate ion -- Now defined in ecosys_fields
-!      HCO3,           &! bicarbonate ion -- Now defined in ecosys_fields
-!      H2CO3,          &! carbonic acid -- Now defined in ecosys_fields
+!      CO3,            &! carbonate ion -- Now pointer to fields defined in ecosys_fields
+!      HCO3,           &! bicarbonate ion -- Now pointer to fields defined in ecosys_fields
+!      H2CO3,          &! carbonic acid -- Now pointer to fields defined in ecosys_fieldss
       CO3_ALT_CO2,    &! carbonate ion, alternative CO2
       HCO3_ALT_CO2,   &! bicarbonate ion, alternative CO2
       H2CO3_ALT_CO2,  &! carbonic acid, alternative CO2
@@ -3473,9 +3473,9 @@ contains
          if (accumulate_tavg_now(tavg_CaCO3_form_zint(auto_ind)) .or. &
              accumulate_tavg_now(tavg_tot_CaCO3_form_zint)) then
             if (partial_bottom_cells) then
-               WORK1 = DZT(:,:,k,bid) * CaCO3_PROD(:,:,auto_ind)
+               WORK1 = merge(DZT(:,:,k,bid) * CaCO3_PROD(:,:,auto_ind), c0,k<=KMT(:,:,bid))
             else
-               WORK1 = dz(k) * CaCO3_PROD(:,:,auto_ind)
+               WORK1 = merge(dz(k) * CaCO3_PROD(:,:,auto_ind), c0,k<=KMT(:,:,bid))
             endif
             call accumulate_tavg_field(WORK1, tavg_CaCO3_form_zint(auto_ind),bid,k)
             call accumulate_tavg_field(WORK1, tavg_tot_CaCO3_form_zint,bid,k)
@@ -4032,9 +4032,9 @@ contains
    do auto_ind = 1, autotroph_cnt
       if (accumulate_tavg_now(tavg_photoC_zint(auto_ind))) then
          if (partial_bottom_cells) then
-            WORK1 = DZT(:,:,k,bid) * photoC(:,:,auto_ind)
+            WORK1 = merge(DZT(:,:,k,bid) * photoC(:,:,auto_ind), c0,k<=KMT(:,:,bid))
          else
-            WORK1 = dz(k) * photoC(:,:,auto_ind)
+            WORK1 = merge(dz(k) * photoC(:,:,auto_ind), c0,k<=KMT(:,:,bid))
          endif
          call accumulate_tavg_field(WORK1, tavg_photoC_zint(auto_ind),bid,k)
       endif
@@ -4042,9 +4042,9 @@ contains
 
    if (accumulate_tavg_now(tavg_photoC_TOT_zint)) then
       if (partial_bottom_cells) then
-         WORK1 = DZT(:,:,k,bid) * sum(photoC, dim=3)
+         WORK1 = merge(DZT(:,:,k,bid) * sum(photoC, dim=3), c0,k<=KMT(:,:,bid))
       else
-         WORK1 = dz(k) * sum(photoC, dim=3)
+         WORK1 = merge(dz(k) * sum(photoC, dim=3), c0,k<=KMT(:,:,bid))
       endif
       call accumulate_tavg_field(WORK1, tavg_photoC_TOT_zint,bid,k)
    endif
@@ -4062,9 +4062,9 @@ contains
 
          if (accumulate_tavg_now(tavg_photoC_NO3_zint(auto_ind))) then
             if (partial_bottom_cells) then
-               WORK1 = DZT(:,:,k,bid) * WORK1
+               WORK1 = merge(DZT(:,:,k,bid) * WORK1, c0,k<=KMT(:,:,bid))
             else
-               WORK1 = dz(k) * WORK1
+               WORK1 = merge(dz(k) * WORK1, c0,k<=KMT(:,:,bid))
             endif
             call accumulate_tavg_field(WORK1, tavg_photoC_NO3_zint(auto_ind),bid,k)
          endif
@@ -4084,9 +4084,9 @@ contains
 
       if (accumulate_tavg_now(tavg_photoC_NO3_TOT_zint)) then
          if (partial_bottom_cells) then
-            WORK1 = DZT(:,:,k,bid) * WORK1
+            WORK1 = merge(DZT(:,:,k,bid) * WORK1, c0,k<=KMT(:,:,bid))
          else
-            WORK1 = dz(k) * WORK1
+            WORK1 = merge(dz(k) * WORK1, c0,k<=KMT(:,:,bid))
          endif
          call accumulate_tavg_field(WORK1, tavg_photoC_NO3_TOT_zint,bid,k)
       endif

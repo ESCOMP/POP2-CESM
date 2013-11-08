@@ -4343,6 +4343,14 @@ Default:
 </entry>
 
 <entry 
+id="abio_tracer_init_ext%default_val"
+type="dtype(2)%real" 
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default: 
+</entry>
+
+<entry 
 id="abio_surf_avg_dic_const"
 type="real"
 category="passive_tracers"
@@ -4483,6 +4491,13 @@ group="ecosys_ciso_nml" >
 Default: 
 </entry>
 
+<entry 
+id="ciso_tracer_init_ext%default_val"
+type="dtype(14)%real" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 
+</entry>
 
 <entry 
 id="ciso_init_ecosys_init_file_fmt"
@@ -4626,13 +4641,6 @@ group="ecosys_ciso_nml" >
 Default:  
 </entry>
 
-<entry 
-id="ciso_no_frac"
-type="logical" 
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default:  
-</entry>
 
 <entry 
 id="ciso_lecovars_full_depth_tavg"

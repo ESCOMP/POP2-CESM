@@ -1,3 +1,41 @@
+Tag Creator: ajahn 
+Developers:  ajahn
+Tag Date:    7 Nov 2013
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20131107_cesm_pop_2_1_20130521/
+Tag Summary: Fixed several bugs and cleaned up code. d13C is still too large,
+error tracing continues
+Answer changing fixes:
+a. In calculation of DTRACER_MODULE(:,:,di14c_ind) (and for d13c),
+replaced "elseif" with separate if loop, as otherwise second part
+never gets done. This changes answer for d13c, but did not solve problem. 
+b. Added "merge(DZT(:,:,k,bid) * sum(photo13C, dim=3),
+c0,k<=KMT(:,:,bid))" in calculation of vertical integrals. This solves the
+output issue for tavg_CISO_photo13C_TOT_zint and others. NO impact on results,
+but on output. This is done for other vertical integrals, but was missing
+here. Also added it in ecosys_mod for these variables.
+c. Added "where (eps_autotroph(:,:,auto_ind) /= -c1000 )" query
+in calculation of R13C_photoC, as running with DEBUG=TRUE gave an error due to division by zero
+over land. Did not impact results, but fixes the DEBUG abort.
+Cleaned up code:
+a. In calculation of DTRACER_MODULE(:,:,di14c_ind), replaced sp_ind with
+auto_ind in calculation of DTRACER_MODULE(:,:,di14c_ind) from CaCO3. Since
+right now there is only spCaCo3 and no diat or diaz CaCO3, this had no impact
+on code right now.
+b. Added "if (autotrophs(auto_ind)%CaCO3_ind > 0) then" query in
+calculation of autotrophCaCO13C, for consitency with rest of code. Has no
+impact on results.
+c. Added a else loop to set autotrophCaCO3_loc to zero when there is no
+calcifier (rather than leaving it undefined). No impact on code.
+d. Set DIC_loc to zero over land (wasn't done in ecosystem as it
+wasn't needed, but should be done as we use it in different ways). 
+e. Removed "no_frac" option from code (wasn't used)
+Files Modified:
+M            54637   source/ecosys_mod.F90
+M            54637   source/ecosys_ciso_mod.F90
+M            54580   bld/namelist_files/namelist_defaults_pop2.xml
+M            50137   bld/namelist_files/namelist_definition_pop2.xml
+Status against revision:  55071
 ===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn

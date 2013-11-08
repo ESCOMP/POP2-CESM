@@ -357,9 +357,6 @@ integer (int_kind) :: &
    character(char_len) ::    &
       ciso_fract_factors          ! option for which biological fractionation calculation to use
     
-   logical (log_kind) ::    &
-      ciso_no_frac          ! option for which biological fractionation calculation to use
-     
 !-----------------------------------------------------------------------
 !  scalar constants for 14C decay calculation
 !-----------------------------------------------------------------------
@@ -489,7 +486,7 @@ contains
       ciso_tadvect_ctype, ciso_lecovars_full_depth_tavg, &
       ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename, &
       ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename, &
-      ciso_fract_factors, ciso_no_frac
+      ciso_fract_factors
  
 
    character (char_len) :: &
@@ -668,7 +665,7 @@ contains
    ciso_atm_d14c_filename(3)         = 'unknown'
     
    ciso_fract_factors                = 'Rau'
-   ciso_no_frac                      = .false.
+  
    
    ciso_tadvect_ctype = 'base_model'
 
@@ -2067,8 +2064,8 @@ contains
             ECO_CISO_SFLUX_TAVG(:,:,7,iblock) = c0
          endwhere
 
-         ECO_CISO_SFLUX_TAVG(:,:,8,iblock) = R13C_DIC_surf
-         ECO_CISO_SFLUX_TAVG(:,:,9,iblock) = R13C_atm
+         ECO_CISO_SFLUX_TAVG(:,:,8,iblock)  = R13C_DIC_surf
+         ECO_CISO_SFLUX_TAVG(:,:,9,iblock)  = R13C_atm
          ECO_CISO_SFLUX_TAVG(:,:,10,iblock) = D13C
          ECO_CISO_SFLUX_TAVG(:,:,11,iblock) = eps_aq_g_surf
          ECO_CISO_SFLUX_TAVG(:,:,12,iblock) = eps_dic_g_surf
@@ -2168,7 +2165,7 @@ contains
       ztop              ! depth of top of cell
    integer (int_kind) :: &
       bid,            & ! local_block id
-      n,m,o,p,        & ! tracer index
+      n,m,            & ! tracer index
       auto_ind,       & ! autotroph functional group index
       kk                ! index for looping over k levels
 
@@ -2485,7 +2482,8 @@ contains
                               TRACER_MODULE_CUR(:,:,k,zoo14C_ind)))        
 
    where (.not. LAND_MASK(:,:,bid) .or. k > KMT(:,:,bid))
-      DI13C_loc    = c0 !Why is DIC_loc not zeroed over land in ecosys_mod?
+      DIC_loc      = c0
+      DI13C_loc    = c0 
       DO13C_loc    = c0
       zoo13C_loc   = c0
       DI14C_loc    = c0
@@ -2505,15 +2503,20 @@ contains
          p5*(TRACER_MODULE_OLD(:,:,k,m) + TRACER_MODULE_CUR(:,:,k,m)))
          
       
-      o = autotrophs(auto_ind)%Ca13CO3_ind
-      p = autotrophs(auto_ind)%Ca14CO3_ind
-      if (o > 0) then
+      n = autotrophs(auto_ind)%Ca13CO3_ind
+      m = autotrophs(auto_ind)%Ca14CO3_ind
+      if (n > 0) then
          autotrophCa13CO3_loc(:,:,auto_ind) = max(c0, &
-            p5*(TRACER_MODULE_OLD(:,:,k,o) + TRACER_MODULE_CUR(:,:,k,o)))
+            p5*(TRACER_MODULE_OLD(:,:,k,n) + TRACER_MODULE_CUR(:,:,k,n)))
+      else
+         autotrophCa13CO3_loc(:,:,auto_ind) = c0
       endif
-      if (p > 0) then
+
+      if (m > 0) then
          autotrophCa14CO3_loc(:,:,auto_ind) = max(c0, &
-            p5*(TRACER_MODULE_OLD(:,:,k,p) + TRACER_MODULE_CUR(:,:,k,p)))
+            p5*(TRACER_MODULE_OLD(:,:,k,m) + TRACER_MODULE_CUR(:,:,k,m)))
+      else
+         autotrophCa14CO3_loc(:,:,auto_ind) = c0
       endif
       
       where (.not. LAND_MASK(:,:,bid) .or. k > KMT(:,:,bid))
@@ -2554,10 +2557,8 @@ contains
 !-----------------------------------------------------------------------
 !     set local 13C/(13C+12C) and 13C/12C ratios
 !     If any Carbon box are zero, set corresponding 13C to zeros.
-
-!     Asumme ecosystem carries total carbon (C=C12+C13+C14). Since 14C 
-!     is very small, only account for 13C, i.e. C= 12C + 13C
-!     Should it be /= or > c0?
+!
+!     Asumme ecosystem carries 12C (C=C12+C13+C14).
 !-----------------------------------------------------------------------
 
      where (DOC_loc > c0)
@@ -2623,6 +2624,8 @@ contains
       call ciso_init_particulate_terms(PO13C, P_Ca13CO3, this_block) 
       call ciso_init_particulate_terms(PO14C, P_Ca14CO3, this_block)    
    endif         
+!-----------------------------------------------------------------------
+! Calculate fraction of CO3
 !-----------------------------------------------------------------------
 
     where (.not. LAND_MASK(:,:,bid) .or. k > KMT(:,:,bid))
@@ -2779,15 +2782,20 @@ contains
     end select
 !-----------------------------------------------------------------------
    
-      R13C_photoC(:,:,auto_ind) = R13C_CO2STAR *c1000 / &
+    where (eps_autotroph(:,:,auto_ind) /= -c1000 )
+       R13C_photoC(:,:,auto_ind) = R13C_CO2STAR *c1000 / &
                                     (eps_autotroph(:,:,auto_ind) + c1000)
-
-
-      R14C_photoC(:,:,auto_ind) = R14C_CO2STAR *c1000 / &
+       R14C_photoC(:,:,auto_ind) = R14C_CO2STAR *c1000 / &
                                     (2.0_r8* eps_autotroph(:,:,auto_ind) + c1000) 
+    elsewhere
+       R13C_photoC(:,:,auto_ind) = c1
+       R14C_photoC(:,:,auto_ind) = c1
+    endwhere
+
 
 !-----------------------------------------------------------------------
-!     small phytoplankton, Diatom, and Diaztroph 13C and 14C fixation      
+!     Use R13/14C_photoC to determine small phytoplankton, Diatom, and 
+!     Diaztroph 13C and 14C fixation      
 !-----------------------------------------------------------------------
 
       photo13C(:,:,auto_ind) = photoC(:,:,auto_ind) * R13C_photoC(:,:,auto_ind)
@@ -2818,17 +2826,17 @@ contains
 
         if (accumulate_tavg_now(tavg_CISO_Ca13CO3_form_zint(auto_ind))) then
             if (partial_bottom_cells) then
-               WORK1 = DZT(:,:,k,bid) * Ca13CO3_PROD(:,:,auto_ind)
+               WORK1 = merge(DZT(:,:,k,bid) * Ca13CO3_PROD(:,:,auto_ind), c0,k<=KMT(:,:,bid))
             else
-               WORK1 = dz(k) * Ca13CO3_PROD(:,:,auto_ind)
+               WORK1 = merge(dz(k) * Ca13CO3_PROD(:,:,auto_ind), c0,k<=KMT(:,:,bid))
             endif
             call accumulate_tavg_field(WORK1, tavg_CISO_Ca13CO3_form_zint(auto_ind),bid,k)
         endif
         if (accumulate_tavg_now(tavg_CISO_Ca14CO3_form_zint(auto_ind))) then
             if (partial_bottom_cells) then
-               WORK1 = DZT(:,:,k,bid) * Ca14CO3_PROD(:,:,auto_ind)
+               WORK1 = merge(DZT(:,:,k,bid) * Ca14CO3_PROD(:,:,auto_ind), c0,k<=KMT(:,:,bid))
             else
-               WORK1 = dz(k) * Ca14CO3_PROD(:,:,auto_ind)
+               WORK1 = merge(dz(k) * Ca14CO3_PROD(:,:,auto_ind), c0,k<=KMT(:,:,bid))
             endif
             call accumulate_tavg_field(WORK1, tavg_CISO_Ca14CO3_form_zint(auto_ind),bid,k)
         endif
@@ -2879,7 +2887,7 @@ end do ! end loop over autotroph types
 !                                  QCaCO3(:,:,auto_ind) 
 ! calculated in ecosys
                                   
-         P_Ca14CO3%prod(:,:,bid) = P_CaCO3%prod(:,:,bid) * R14C_autotrophCaCO3(:,:,auto_ind)   
+         P_Ca14CO3%prod(:,:,bid) = P_CaCO3%prod(:,:,bid) * R14C_autotrophCaCO3(:,:,auto_ind)  
       endif
    end do
 
@@ -2979,12 +2987,14 @@ end do ! end loop over autotroph types
    do auto_ind = 1, autotroph_cnt
      if (autotrophs(auto_ind)%Ca14CO3_ind > 0) then
        DTRACER_MODULE(:,:,di14c_ind) = DTRACER_MODULE(:,:,di14c_ind)       &    
-             + f_graze_CaCO3_REMIN * auto_graze(:,:,sp_ind)                &
+             + f_graze_CaCO3_REMIN * auto_graze(:,:,auto_ind)                &
              * QCaCO3(:,:,auto_ind) * R14C_autotrophCaCO3(:,:,auto_ind)   &
-             - Ca14CO3_PROD(:,:,auto_ind)                                     
-     elseif (autotrophs(auto_ind)%Ca13CO3_ind > 0) then
+             - Ca14CO3_PROD(:,:,auto_ind) 
+     endif  
+                             
+     if (autotrophs(auto_ind)%Ca13CO3_ind > 0) then
        DTRACER_MODULE(:,:,di13c_ind) = DTRACER_MODULE(:,:,di13c_ind)       &    
-             + f_graze_CaCO3_REMIN * auto_graze(:,:,sp_ind)                &
+             + f_graze_CaCO3_REMIN * auto_graze(:,:,auto_ind)                &
              * QCaCO3(:,:,auto_ind) * R13C_autotrophCaCO3(:,:,auto_ind)   &
              - Ca13CO3_PROD(:,:,auto_ind)    
      endif
@@ -3005,9 +3015,14 @@ end do ! end loop over autotroph types
     zooC_d14C =  ( R14C_zooC / R14C_std - c1 ) * c1000
     
     do auto_ind = 1, autotroph_cnt
+    if (autotrophs(auto_ind)%CaCO3_ind > 0) then
        autotrophCaCO3_d13C(:,:,auto_ind) =  ( R13C_autotrophCaCO3(:,:,auto_ind) / R13C_std - c1 ) * c1000
        autotrophCaCO3_d14C(:,:,auto_ind) =  ( R14C_autotrophCaCO3(:,:,auto_ind) / R14C_std - c1 ) * c1000
-    
+    else 
+       autotrophCaCO3_d13C(:,:,auto_ind) =  c0
+       autotrophCaCO3_d14C(:,:,auto_ind) =  c0
+    endif
+
        autotroph_d13C(:,:,auto_ind) =  ( R13C_autotroph(:,:,auto_ind) / R13C_std - c1 ) * c1000
        autotroph_d14C(:,:,auto_ind) =  ( R14C_autotroph(:,:,auto_ind) / R14C_std - c1 ) * c1000
     end do 
@@ -3058,18 +3073,18 @@ end do ! end loop over autotroph types
 
    if (accumulate_tavg_now(tavg_CISO_photo13C_TOT_zint)) then
       if (partial_bottom_cells) then
-         WORK1 = DZT(:,:,k,bid) * sum(photo13C, dim=3)
+         WORK1 = merge(DZT(:,:,k,bid) * sum(photo13C, dim=3), c0,k<=KMT(:,:,bid))
       else
-         WORK1 = dz(k) * sum(photo13C, dim=3)
+         WORK1 = merge(dz(k) * sum(photo13C, dim=3), c0,k<=KMT(:,:,bid))
       endif
       call accumulate_tavg_field(WORK1, tavg_CISO_photo13C_TOT_zint,bid,k)
    endif
    
     if (accumulate_tavg_now(tavg_CISO_photo14C_TOT_zint)) then
       if (partial_bottom_cells) then
-         WORK1 = DZT(:,:,k,bid) * sum(photo14C, dim=3)
+         WORK1 = merge(DZT(:,:,k,bid) * sum(photo14C, dim=3), c0,k<=KMT(:,:,bid))
       else
-         WORK1 = dz(k) * sum(photo14C, dim=3)
+         WORK1 = merge(dz(k) * sum(photo14C, dim=3), c0,k<=KMT(:,:,bid))
       endif
       call accumulate_tavg_field(WORK1, tavg_CISO_photo14C_TOT_zint,bid,k)
    endif
@@ -3087,9 +3102,9 @@ end do ! end loop over autotroph types
    do auto_ind = 1, autotroph_cnt
       if (accumulate_tavg_now(tavg_CISO_photo13C_zint(auto_ind))) then
          if (partial_bottom_cells) then
-            WORK1 = DZT(:,:,k,bid) * photo13C(:,:,auto_ind)
+            WORK1 = merge(DZT(:,:,k,bid) * photo13C(:,:,auto_ind), c0,k<=KMT(:,:,bid))
          else
-            WORK1 = dz(k) * photo13C(:,:,auto_ind)
+            WORK1 = merge(dz(k) * photo13C(:,:,auto_ind), c0,k<=KMT(:,:,bid))
          endif
          call accumulate_tavg_field(WORK1, tavg_CISO_photo13C_zint(auto_ind),bid,k)
       endif
@@ -3098,9 +3113,9 @@ end do ! end loop over autotroph types
    do auto_ind = 1, autotroph_cnt
       if (accumulate_tavg_now(tavg_CISO_photo14C_zint(auto_ind))) then
          if (partial_bottom_cells) then
-            WORK1 = DZT(:,:,k,bid) * photo14C(:,:,auto_ind)
+            WORK1 = merge(DZT(:,:,k,bid) * photo14C(:,:,auto_ind), c0,k<=KMT(:,:,bid))
          else
-            WORK1 = dz(k) * photo14C(:,:,auto_ind)
+            WORK1 = merge(dz(k) * photo14C(:,:,auto_ind), c0,k<=KMT(:,:,bid))
          endif
          call accumulate_tavg_field(WORK1, tavg_CISO_photo14C_zint(auto_ind),bid,k)
       endif
