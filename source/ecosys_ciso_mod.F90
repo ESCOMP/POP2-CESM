@@ -86,8 +86,7 @@
       ecosys_ciso_tracer_ref_val,        &
       ecosys_ciso_set_sflux,             &
       ecosys_ciso_tavg_forcing,          &
-      ecosys_ciso_set_interior,          &
-      ecosys_ciso_write_restart
+      ecosys_ciso_set_interior
 
 !-----------------------------------------------------------------------
 !  module variables required by forcing_passive_tracer
@@ -357,6 +356,9 @@ integer (int_kind) :: &
    character(char_len) ::    &
       ciso_fract_factors          ! option for which biological fractionation calculation to use
     
+      logical (log_kind) ::    &
+      ciso_no_frac          ! option to turn off all fractionation for testing
+ 
 !-----------------------------------------------------------------------
 !  scalar constants for 14C decay calculation
 !-----------------------------------------------------------------------
@@ -486,7 +488,7 @@ contains
       ciso_tadvect_ctype, ciso_lecovars_full_depth_tavg, &
       ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename, &
       ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename, &
-      ciso_fract_factors
+      ciso_fract_factors, ciso_no_frac
  
 
    character (char_len) :: &
@@ -665,7 +667,7 @@ contains
    ciso_atm_d14c_filename(3)         = 'unknown'
     
    ciso_fract_factors                = 'Rau'
-  
+   ciso_no_frac                      = .false.
    
    ciso_tadvect_ctype = 'base_model'
 
@@ -1794,6 +1796,10 @@ contains
                              ! exchange) at 21C, Zhang et al 1995,
                              ! eps_k = -0.95 at 5C
 
+!debugging:
+!       real(r8), parameter :: &
+!        eps_k     = c0      ! no_fracttionation case 
+                             ! 
      
  
 !-----------------------------------------------------------------------
@@ -1975,6 +1981,9 @@ contains
                                    0.105_r8 * SST(:,j,iblock) + 10.53_r8
 
 
+!debugging
+!    eps_dic_g_surf(:,j) = c0
+!    eps_aq_g_surf(:,j)   = c0
 
 !-----------------------------------------------------------------------
 !     compute alpha coefficients from eps :  eps = ( alpha -1 ) * 1000
@@ -2266,6 +2275,9 @@ contains
        real(r8), parameter :: &
         eps_carb = -2.0_r8          ! eps_carb = d13C(CaCO3) - d13C(DIC)  Ziveri et al., 2003
 
+!debugging
+!       real(r8), parameter :: &
+!        eps_carb = c0          ! no_fractionation case
 
 !---------------------------------------------------------------
 ! Define pointer variables, used to share values with other modules
@@ -2286,6 +2298,7 @@ contains
     real (r8), dimension(:,:), pointer :: zoo_loss     ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
     real (r8), dimension(:,:), pointer :: zoo_loss_doc ! zoo_loss routed to doc (mmol C/m^3/sec)
     real (r8), dimension(:,:), pointer :: zoo_loss_dic ! zoo_loss routed to dic (mmol C/m^3/sec)
+    real (r8), dimension(:,:), pointer :: DOC_remin    ! remineralization of 13C DOC (mmol C/m^3/sec)
 
     real (r8), dimension(:,:,:), pointer :: QCaCO3               ! small phyto CaCO3/C ratio (mmol CaCO3/mmol C)
     real (r8), dimension(:,:,:), pointer :: autotrophCaCO3_loc  ! local copy of model autotroph CaCO3
@@ -2322,7 +2335,8 @@ contains
     nullify(zoo_loss)
     nullify(zoo_loss_doc)
     nullify(zoo_loss_dic)
- 
+    nullify(DOC_remin)
+
     nullify(QCaCO3) 
     nullify(autotrophCaCO3_loc)
     nullify(autotrophChl_loc)
@@ -2417,7 +2431,8 @@ contains
     zoo_loss => zoo_loss_fields(:,:,bid)
     zoo_loss_doc => zoo_loss_doc_fields(:,:,bid)
     zoo_loss_dic => zoo_loss_dic_fields(:,:,bid)
- 
+    DOC_remin => DOC_remin_fields(:,:,bid)
+
     QCaCO3 => QCaCO3_fields(:,:,:,bid)
     autotrophCaCO3_loc => autotrophCaCO3_loc_fields(:,:,:,bid)
     autotrophChl_loc => autotrophChl_loc_fields(:,:,:,bid)
@@ -2461,7 +2476,7 @@ contains
 !  apply mask to local copies
 !-----------------------------------------------------------------------
 
-   TEMP         = p5*(TEMP_OLD + TEMP_CUR)
+   TEMP           = p5*(TEMP_OLD + TEMP_CUR)
 
    DI13C_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,di13c_ind) + &     
                                 TRACER_MODULE_CUR(:,:,k,di13c_ind)))    
@@ -2648,7 +2663,9 @@ contains
     eps_aq_g   = 0.0049_r8 * TEMP - 1.31_r8
     eps_dic_g  = 0.014_r8 * TEMP * frac_co3 - 0.105_r8 * TEMP + 10.53_r8
 
-
+!debugging
+! eps_aq_g   = c0
+! eps_dic_g  = c0
 
     alpha_aq_g  = c1 + eps_aq_g  / c1000
     alpha_dic_g = c1 + eps_dic_g / c1000
@@ -2781,6 +2798,8 @@ contains
 !-----------------------------------------------------------------------
     end select
 !-----------------------------------------------------------------------
+!debugging
+! eps_autotroph(:,:,auto_ind) = c0
    
     where (eps_autotroph(:,:,auto_ind) /= -c1000 )
        R13C_photoC(:,:,auto_ind) = R13C_CO2STAR *c1000 / &
@@ -2852,13 +2871,13 @@ end do ! end loop over autotroph types
    DO13C_prod = zoo_loss_doc *R13C_zooC +  &
                 sum( (auto_loss_doc + auto_graze_doc) * R13C_autotroph, dim=3)
            
-   DO13C_remin = DO13C_loc * DOC_reminR
+   DO13C_remin = DOC_remin * R13C_DOC 
 
    
    DO14C_prod = zoo_loss_doc *R14C_zooC +  &
                 sum( (auto_loss_doc + auto_graze_doc) * R14C_autotroph, dim=3)
            
-   DO14C_remin = DO14C_loc * DOC_reminR
+   DO14C_remin = DOC_remin * R14C_DOC 
 
 
 
@@ -2898,11 +2917,11 @@ end do ! end loop over autotroph types
 
   
    call ciso_compute_particulate_terms(k, POC, P_CaCO3, PO13C, P_Ca13CO3, &
-                                  TEMP, O2_loc, NO3_loc, this_block)
+                                  O2_loc, NO3_loc, this_block)
                                   
  
     call ciso_compute_particulate_terms(k, POC, P_CaCO3, PO14C, P_Ca14CO3, &
-                                  TEMP, O2_loc, NO3_loc, this_block)
+                                  O2_loc, NO3_loc, this_block)
                                   
                                
                                      
@@ -3465,8 +3484,8 @@ end do ! end loop over autotroph types
 !  Hard POC is QA flux and soft POC is excess POC.
 !-----------------------------------------------------------------------
 
-    POC_ciso%sflux_out(:,:,bid) = c0  ! = POC%sflux_out(k==1)
-    POC_ciso%hflux_out(:,:,bid) = c0  ! = POC%hflux_out(k==1)
+    POC_ciso%sflux_out(:,:,bid) = c0  
+    POC_ciso%hflux_out(:,:,bid) = c0  
 
 !-----------------------------------------------------------------------
 !EOC
@@ -3478,7 +3497,7 @@ end do ! end loop over autotroph types
 ! !IROUTINE: ciso_compute_particulate_terms
 ! !INTERFACE:
  subroutine ciso_compute_particulate_terms(k, POC, P_CaCO3, POC_ciso, P_CaCO3_ciso, &
-              TEMP, O2_loc, NO3_loc, this_block)
+              O2_loc, NO3_loc, this_block)
 
        
 
@@ -3503,7 +3522,6 @@ end do ! end loop over autotroph types
    integer (int_kind), intent(in) :: k ! vertical model level
 
    real (r8), dimension(nx_block,ny_block), intent(in) :: &
-      TEMP,         & ! temperature for scaling functions
       O2_loc,       & ! dissolved oxygen used to modify POC%diss, Sed fluxes
       NO3_loc         ! dissolved nitrate used to modify sed fluxes           
        
@@ -3534,9 +3552,6 @@ end do ! end loop over autotroph types
    character(*), parameter :: &
       subname = 'ecosys_ciso_mod:ciso_compute_particulate_terms'
 
-   real (r8), dimension(nx_block,ny_block) :: &
-      TfuncS                ! temperature scaling from soft POM remin
-
    real (r8) :: &
       dz_loc,              & ! dz at a particular i,j location
       dzr_loc                ! dzr at a particular i,j location
@@ -3551,9 +3566,9 @@ end do ! end loop over autotroph types
    real (r8) :: &
       flux, flux_alt,       & ! temp variables used to update sinking flux
       POC_ciso_PROD_avail,  & ! 13C POC production available for excess POC flux  
-      RcisoT_POC_hflux_out, & ! ciso/12C of outgoing flux of hard POC
-      RcisoT_POC_in,        & ! ciso/12C of total POC ingoing component
-      rcisoT_CaCO3_in         ! ciso/12C of total CaCO3 ingoing component
+      Rciso_POC_hflux_out, & ! ciso/12C of outgoing flux of hard POC
+      Rciso_POC_in,        & ! ciso/12C of total POC ingoing component
+      Rciso_CaCO3_in         ! ciso/12C of total CaCO3 ingoing component
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       SED_DENITRIF, & ! sedimentary denitrification (umolN/cm^2/s)
@@ -3567,6 +3582,13 @@ end do ! end loop over autotroph types
    real (r8), dimension(:,:),pointer :: decay_POC_E           ! scaling factor for dissolution of excess POC
    real (r8), dimension(:,:),pointer :: POC_PROD_avail        ! scaling factor for dissolution of Hard Ballast
    real (r8), dimension(:,:),pointer :: poc_diss              ! diss. length used (cm) 
+   real (r8), dimension(:,:),pointer :: P_CaCO3_sflux_out
+   real (r8), dimension(:,:),pointer :: P_CaCO3_hflux_out
+   real (r8), dimension(:,:),pointer :: POC_sflux_out
+   real (r8), dimension(:,:),pointer :: POC_hflux_out
+   real (r8), dimension(:,:),pointer :: POC_remin
+   real (r8), dimension(:,:),pointer :: P_CaCO3_remin  
+
 
 !-------------------------------------------------------------
 ! Nullify pointers
@@ -3577,11 +3599,16 @@ end do ! end loop over autotroph types
    nullify(decay_POC_E)
    nullify(POC_PROD_avail)
    nullify(poc_diss)
-
+   nullify(P_CaCO3_sflux_out)
+   nullify(P_CaCO3_hflux_out)
+   nullify(POC_sflux_out)
+   nullify(POC_hflux_out)
+   nullify(POC_remin)
+   nullify(P_CaCO3_remin)
+  
 !-----------------------------------------------------------------------
 !  this_block index as integer
 !-----------------------------------------------------------------------
-      
 
    bid = this_block%local_id
 !---------------------------------------------------------------
@@ -3589,15 +3616,18 @@ end do ! end loop over autotroph types
 ! to point to the right part of the global array in ecosys_fields
 !---------------------------------------------------------------
 
-   DECAY_CaCO3 => DECAY_CaCO3_fields(:,:,bid)
-     
-   DECAY_Hard => DECAY_Hard_fields(:,:,bid)
-          
-   decay_POC_E => decay_POC_E_fields(:,:,bid) 
-    
-   POC_PROD_avail => POC_PROD_avail_fields(:,:,bid)
-    
-   poc_diss => poc_diss_fields(:,:,bid)
+   DECAY_CaCO3      => DECAY_CaCO3_fields(:,:,bid)
+   DECAY_Hard       => DECAY_Hard_fields(:,:,bid)
+   decay_POC_E      => decay_POC_E_fields(:,:,bid) 
+   POC_PROD_avail   => POC_PROD_avail_fields(:,:,bid)
+   poc_diss         => poc_diss_fields(:,:,bid)
+   P_CaCO3_sflux_out=> P_CaCO3_sflux_out_fields(:,:,bid)
+   P_CaCO3_hflux_out=> P_CaCO3_hflux_out_fields(:,:,bid)
+   POC_sflux_out    => POC_sflux_out_fields(:,:,bid)
+   POC_hflux_out    => POC_hflux_out_fields(:,:,bid)
+   POC_remin        => POC_remin_fields(:,:,bid)
+   P_CaCO3_remin    => P_CaCO3_remin_fields(:,:,bid)
+
 !-----------------------------------------------------------------------
 !  incoming fluxes are outgoing fluxes from previous level
 !-----------------------------------------------------------------------
@@ -3608,16 +3638,14 @@ end do ! end loop over autotroph types
    P_CaCO3_ciso%sflux_in(:,:,bid) = P_CaCO3_ciso%sflux_out(:,:,bid)
    P_CaCO3_ciso%hflux_in(:,:,bid) = P_CaCO3_ciso%hflux_out(:,:,bid)
    
-   
 !-----------------------------------------------------------------------
 !  initialize loss to sediments = 0 and local copy of percent sed
 !-----------------------------------------------------------------------
 
-   POC_ciso%sed_loss(:,:,bid) = c0
+   POC_ciso%sed_loss(:,:,bid)     = c0
    P_CaCO3_ciso%sed_loss(:,:,bid) = c0
-   POC_ciso%sed_loss(:,:,bid) = c0
-   P_CaCO3_ciso%sed_loss(:,:,bid) = c0
-  
+   SED_DENITRIF(:,:,bid)          = c0
+   OTHER_REMIN(:,:,bid)           = c0
 
 !-----------------------------------------------------------------------
 !     if any incoming Carbon flux is zero, set 13C flux to zero
@@ -3631,9 +3659,6 @@ end do ! end loop over autotroph types
        POC_ciso%hflux_in(:,:,bid) = c0
    endwhere
       
-   where (POC%prod(:,:,bid) == c0) 
-       POC_ciso%prod(:,:,bid) = c0
-   endwhere
 
    where (P_CaCO3%sflux_in(:,:,bid) == c0)
        P_CaCO3_ciso%sflux_in(:,:,bid) = c0
@@ -3643,26 +3668,7 @@ end do ! end loop over autotroph types
        P_CaCO3_ciso%hflux_in(:,:,bid) = c0
    endwhere
  
-   where (P_CaCO3%prod(:,:,bid) == c0)
-       P_CaCO3_ciso%prod(:,:,bid) = c0
-   endwhere
-   
-   where (P_CaCO3%sed_loss(:,:,bid) == c0)
-       P_CaCO3_ciso%sed_loss(:,:,bid) = c0
-   endwhere
-   
-   where (POC%sed_loss(:,:,bid) == c0)
-       POC_ciso%sed_loss(:,:,bid) = c0
-   endwhere
 
-
-!----------------------------------------------------------------------
-!   Tref = 30.0 reference temperature (deg. C)
-!-------------------------------------------------------------------------
-
-   TfuncS = 1.5_r8**(((TEMP + T0_Kelvin) - (Tref + T0_Kelvin)) / c10)
-
-   poc_error = .false.
    dz_loc = dz(k)
    
    do j = 1,ny_block
@@ -3675,7 +3681,6 @@ end do ! end loop over autotroph types
             endif
             dzr_loc = c1 / dz_loc
    
-
 !-----------------------------------------------------------------------
 !  P_CaCO3_ciso sflux and hflux out
 !-----------------------------------------------------------------------
@@ -3686,8 +3691,6 @@ end do ! end loop over autotroph types
 
             P_CaCO3_ciso%hflux_out(i,j,bid) = P_CaCO3_ciso%hflux_in(i,j,bid) * DECAY_Hard(i,j) + &
                  P_CaCO3_ciso%prod(i,j,bid) * (P_CaCO3%gamma * dz_loc)
-
-
 
 !-----------------------------------------------------------------
 !   Compute how much 13C POC_PROD is available for deficit
@@ -3700,15 +3703,6 @@ end do ! end loop over autotroph types
                 POC_ciso_PROD_avail = c0
             endif
 
-!   if (my_task == master_task) then
-!      write(stdout,*)'POC_PROD_avail'
-! 	    write(stdout,*)'POC_PROD_avail =  ',POC_PROD_avail(i,j)
-!      write(stdout,*)'poc_diss'
-! 	    write(stdout,*)'poc_diss =  ',poc_diss(i,j)
-!      write(stdout,*)'POC%prod(i,j,bid)'
-! 	    write(stdout,*)'POC%prod(i,j,bid) =  ',POC%prod(i,j,bid)
-!   end if
-
 !-----------------------------------------------------------------
 !   Compute outgoing 13C POC fluxes of soft POC
 !-----------------------------------------------------------------
@@ -3719,21 +3713,26 @@ end do ! end loop over autotroph types
 !-----------------------------------------------------------------
 !   Compute outgoing 13C POC fluxes of hard POC
 !-----------------------------------------------------------------
-
-            RcisoT_POC_hflux_out = POC%prod(i,j,bid) + &
-                ( POC%sflux_in(i,j,bid) - POC%sflux_out(i,j,bid) + &
-                POC%hflux_in(i,j,bid) ) * dzr_loc
-
-            if (RcisoT_POC_hflux_out  > c0) then
-                RcisoT_POC_hflux_out = ( POC_ciso%prod(i,j,bid) + ( POC_ciso%sflux_in(i,j,bid) - &
-                POC_ciso%sflux_out(i,j,bid) + POC_ciso%hflux_in(i,j,bid) ) * dzr_loc )          &
-                / RcisoT_POC_hflux_out
+            if (POC_ciso%hflux_in(i,j,bid) == c0 .and. POC_ciso%prod(i,j,bid) == c0) then
+                POC_ciso%hflux_out(i,j,bid) = c0
             else
-                RcisoT_POC_hflux_out = c0
-            endif
+            
+                Rciso_POC_hflux_out = POC%prod(i,j,bid) + &
+                                      ( POC%sflux_in(i,j,bid) - POC_sflux_out(i,j) + &
+                                       POC%hflux_in(i,j,bid) ) * dzr_loc
 
-            POC_ciso%hflux_out(i,j,bid) = POC%hflux_out(i,j,bid) * RcisoT_POC_hflux_out
-            POC_ciso%hflux_out(i,j,bid) = max(POC_ciso%hflux_out(i,j,bid), c0)
+                if (Rciso_POC_hflux_out  /= c0) then
+                    Rciso_POC_hflux_out = ( POC_ciso%prod(i,j,bid) + ( POC_ciso%sflux_in(i,j,bid) - &
+                    POC_ciso%sflux_out(i,j,bid) + POC_ciso%hflux_in(i,j,bid) ) * dzr_loc )          &
+                    / Rciso_POC_hflux_out
+                else
+                    Rciso_POC_hflux_out = c0
+                endif
+  
+                POC_ciso%hflux_out(i,j,bid) = POC_hflux_out(i,j) * Rciso_POC_hflux_out
+                POC_ciso%hflux_out(i,j,bid) = max(POC_ciso%hflux_out(i,j,bid), c0)
+                
+            endif
 
 !-----------------------------------------------------------------------
 !  Compute remineralization terms. It is assumed that there is no
@@ -3744,60 +3743,57 @@ end do ! end loop over autotroph types
                ((P_CaCO3_ciso%sflux_in(i,j,bid) - P_CaCO3_ciso%sflux_out(i,j,bid)) + &
                (P_CaCO3_ciso%hflux_in(i,j,bid) - P_CaCO3_ciso%hflux_out(i,j,bid))) *  dzr_loc
 
-            POC_ciso%remin(i,j,bid) = POC_ciso%prod(i,j,bid) + ((POC_ciso%sflux_in(i,j,bid) - &
-                POC_ciso%sflux_out(i,j,bid)) + (POC_ciso%hflux_in(i,j,bid) -         &
-                POC_ciso%hflux_out(i,j,bid))) * dzr_loc
-
+            POC_ciso%remin(i,j,bid) = POC_ciso%prod(i,j,bid)  &
+                + ((POC_ciso%sflux_in(i,j,bid) - POC_ciso%sflux_out(i,j,bid)) &
+                + (POC_ciso%hflux_in(i,j,bid) - POC_ciso%hflux_out(i,j,bid))) &
+                * dzr_loc
 
 !-----------------------------------------------------------------
 !   Option to force the 13C/12C ratio of outgoing P_CaCO3 fluxes
 !   to equal the rate of total incoming flux 
 !-----------------------------------------------------------------
 !
-!             rcisoT_CaCO3_in = P_CaCO3%prod(i,j,bid) + &
+!             Rciso_CaCO3_in = P_CaCO3%prod(i,j,bid) + &
 !                 ( P_CaCO3%sflux_in(i,j,bid) + P_CaCO3%hflux_in(i,j,bid) ) *  dzr_loc
 !                    
-!             if ( rcisoT_CaCO3_in > c0 ) then
-!                 rcisoT_CaCO3_in = ( P_CaCO3_ciso%prod(i,j,bid) + &
-!                   ( P_CaCO3_ciso%sflux_in(i,j,bid) + P_CaCO3_ciso%hflux_in(i,j,bid) ) * dzr_loc &
-!                    / rcisoT_CaCO3_in
-!                 else 
-!                     rcisoT_CaCO3_in = c0
-!                 endif
+!             if ( Rciso_CaCO3_in > c0 ) then
+!                 Rciso_CaCO3_in = ( P_CaCO3_ciso%prod(i,j,bid) + &
+!                   ( P_CaCO3_ciso%sflux_in(i,j,bid) + P_CaCO3_ciso%hflux_in(i,j,bid) ) * dzr_loc) &
+!                    / Rciso_CaCO3_in
+!             else 
+!                     Rciso_CaCO3_in = c0
+!             endif
 !
-!              P_CaCO3_ciso%sflux_out(i,j,bid) = P_CaCO3%sflux_out(i,j,bid) * rcisoT_CaCO3_in
-!              P_CaCO3_ciso%hflux_out(i,j,bid) = P_CaCO3%hflux_out(i,j,bid) * rcisoT_CaCO3_in
-!              P_CaCO3_ciso%remin(i,j,bid) = P_CaCO3%remin(i,j,bid) * rcisoT_CaCO3_in
-!
+!              P_CaCO3_ciso%sflux_out(i,j,bid) = P_CaCO3_sflux_out(i,j) * Rciso_CaCO3_in
+!              P_CaCO3_ciso%hflux_out(i,j,bid) = P_CaCO3_hflux_out(i,j) * Rciso_CaCO3_in
+!              P_CaCO3_ciso%remin(i,j,bid) = P_CaCO3_remin(i,j) * Rciso_CaCO3_in
 !
 !-----------------------------------------------------------------
 !   Option to force the 13C/12C ratio of outgoing POC fluxes 
 !   to equal the rate of total incoming flux 
 !-----------------------------------------------------------------
-!
-!              RcisoT_POC_in = POC%prod(i,j,bid) + ( POC%sflux_in(i,j,bid) + POC%hflux_in(i,j,bid) ) &
+!              Rciso_POC_in = POC%prod(i,j,bid) + ( POC%sflux_in(i,j,bid) + POC%hflux_in(i,j,bid) ) &
 !                            * dzr_loc
-!              if ( RcisoT_POC_in > c0 ) then
-!                 RcisoT_POC_in = ( POC_ciso%prod(i,j,bid) + ( POC_ciso%sflux_in(i,j,bid) + &
-!                    POC_ciso%hflux_in(i,j,bid) ) * dzr_loc ) / RcisoT_POC_in
+!              if ( Rciso_POC_in > c0 ) then
+!                 Rciso_POC_in = ( POC_ciso%prod(i,j,bid) + ( POC_ciso%sflux_in(i,j,bid) + &
+!                    POC_ciso%hflux_in(i,j,bid) ) * dzr_loc ) / Rciso_POC_in
 !              else
-!                 RcisoT_POC_in = c0
+!                 Rciso_POC_in = c0
 !              endif
-!
-!              POC_ciso%sflux_out(i,j,bid) = POC%sflux_out(i,j,bid) *RcisoT_POC_in
-!              POC_ciso%hflux_out(i,j,bid) = POC%hflux_out(i,j,bid) *RcisoT_POC_in
-!              POC_ciso%remin(i,j,bid) = POC%remin(i,j,bid) * RcisoT_POC_in
-!
+
+!              POC_ciso%sflux_out(i,j,bid) = POC_sflux_out(i,j) *Rciso_POC_in
+!              POC_ciso%hflux_out(i,j,bid) = POC_hflux_out(i,j) *Rciso_POC_in
+!              POC_ciso%remin(i,j,bid) = POC_remin(i,j) * Rciso_POC_in
 !-----------------------------------------------------------------
 
         else
             P_CaCO3_ciso%sflux_out(i,j,bid) = c0
             P_CaCO3_ciso%hflux_out(i,j,bid) = c0
-            P_CaCO3_ciso%remin(i,j,bid) = c0
+            P_CaCO3_ciso%remin(i,j,bid)     = c0
                  
             POC_ciso%sflux_out(i,j,bid) = c0
             POC_ciso%hflux_out(i,j,bid) = c0
-            POC_ciso%remin(i,j,bid) = c0
+            POC_ciso%remin(i,j,bid)     = c0
         endif
 
 
@@ -3871,8 +3867,6 @@ end do ! end loop over autotroph types
                   + ((flux - POC_ciso%sed_loss(i,j,bid)) * dzr_loc)
             endif
 
-
-        
 !-----------------------------------------------------------------------
 !   Set all outgoing fluxes to 0.0
 !-----------------------------------------------------------------------
@@ -3890,20 +3884,9 @@ end do ! end loop over autotroph types
       end do
    end do
 
-#ifdef CCSMCOUPLED
-    if (poc_error) then
-       call shr_sys_abort(subname /&
-                       &/ ': mass ratio of ballast ' /&
-                       &/ 'production exceeds POC production')
-    endif
-#endif
 
 
-!   if (my_task == master_task) then
-!      write(stdout,*)'Check if variables have correct values'
-! 	    write(stdout,*)'ciso_init_partic:POC%diss=21000.0_r8 =  ',POC%diss
-!      write(stdout,*)'ciso_init_partic:P_CaCO3%gamma=0.55_r8 = ',P_CaCO3%gamma
-!   end if
+
 
 !-----------------------------------------------------------------------
 !EOC
@@ -4896,62 +4879,6 @@ end subroutine ciso_compute_particulate_terms
 !EOC
 
  end subroutine extract_ciso_surf_avg
-!*****************************************************************************
-!BOP
-! !IROUTINE: ecosys_ciso_write_restart
-! !INTERFACE:
-
- subroutine ecosys_ciso_write_restart(restart_file, action)
-
-! !DESCRIPTION:
-!  write auxiliary fields & scalars to restart files
-!
-! !REVISION HISTORY:
-!  same as module
-!  use constants, only: char_blank, field_loc_center, field_type_scalar
- 
-! !INPUT PARAMETERS:
-
-   character(*), intent(in) :: action
-
-! !INPUT/OUTPUT PARAMETERS:
-
-   type (datafile), intent (inout)  :: restart_file
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   character (char_len) :: &
-      short_name   ! tracer name temporaries
-
-   type (io_dim) :: &
-      i_dim, j_dim ! dimension descriptors
-
-   integer (int_kind) :: n
-
-   type (io_field_desc), save :: ABIO_PH_SURF
-
-!-----------------------------------------------------------------------
-
-   if (trim(action) == 'add_attrib_file') then
-      short_name = char_blank
-      do n=1,ecosys_ciso_tracer_cnt
-         if (ciso_vflux_flag(n)) then
-            short_name = 'surf_avg_' /&
-                      &/ ciso_ind_name_table(n)%name
-            call add_attrib_file(restart_file,trim(short_name),ciso_surf_avg(n))
-         endif
-      end do
-   endif
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine ecosys_ciso_write_restart
-
 
 
 

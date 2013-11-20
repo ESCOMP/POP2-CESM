@@ -24,28 +24,35 @@ module ecosys_fields
 
 
   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), target, public :: &
-      DIC_SURF_fields,       & ! surface values of DIC for solver
-      CO2STAR_SURF_fields,   & ! CO2STAR from solver
-      DCO2STAR_SURF_fields,  &! DCO2STAR from solver
-      PV_SURF_fields,        & ! piston velocity (cm/s)
-      CO3_fields,            & ! carbonate ion
-      CO3_SURF_fields,       & ! Surface carbonate ion
-      HCO3_fields,           & ! bicarbonate ion
-      H2CO3_fields,          & ! carbonic acid
-      f_zoo_detr_fields,     & ! frac of zoo losses into large detrital pool (non-dim)
-      DIC_loc_fields,        & ! local copy of model DIC
-      DOC_loc_fields,        & ! local copy of model DOC
-      O2_loc_fields,         & ! local copy of model O2 
-      NO3_loc_fields,        & ! local copy of model NO3
-      zooC_loc_fields,       & ! local copy of model zooC
-      DECAY_CaCO3_fields,    & ! scaling factor for dissolution of CaCO3
-      DECAY_Hard_fields,     & ! scaling factor for dissolution of Hard Ballast
-      decay_POC_E_fields,    & ! scaling factor for dissolution of excess POC
-      zoo_loss_fields,       & ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
-      zoo_loss_doc_fields,   & ! zoo_loss routed to doc (mmol C/m^3/sec)
-      zoo_loss_dic_fields,   & ! zoo_loss routed to dic (mmol C/m^3/sec)
-      poc_diss_fields,       & ! diss. length used (cm)
-      POC_PROD_avail_fields    ! POC production available for excess POC flux
+      DIC_SURF_fields,         & ! surface values of DIC for solver
+      CO2STAR_SURF_fields,     & ! CO2STAR from solver
+      DCO2STAR_SURF_fields,    & ! DCO2STAR from solver
+      PV_SURF_fields,          & ! piston velocity (cm/s)
+      CO3_fields,              & ! carbonate ion
+      CO3_SURF_fields,         & ! Surface carbonate ion
+      HCO3_fields,             & ! bicarbonate ion
+      H2CO3_fields,            & ! carbonic acid
+      f_zoo_detr_fields,       & ! frac of zoo losses into large detrital pool (non-dim)
+      DIC_loc_fields,          & ! local copy of model DIC
+      DOC_loc_fields,          & ! local copy of model DOC
+      O2_loc_fields,           & ! local copy of model O2 
+      NO3_loc_fields,          & ! local copy of model NO3
+      zooC_loc_fields,         & ! local copy of model zooC
+      DECAY_CaCO3_fields,      & ! scaling factor for dissolution of CaCO3
+      DECAY_Hard_fields,       & ! scaling factor for dissolution of Hard Ballast
+      decay_POC_E_fields,      & ! scaling factor for dissolution of excess POC
+      zoo_loss_fields,         & ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
+      zoo_loss_doc_fields,     & ! zoo_loss routed to doc (mmol C/m^3/sec)
+      zoo_loss_dic_fields,     & ! zoo_loss routed to dic (mmol C/m^3/sec)
+      poc_diss_fields,         & ! diss. length used (cm)
+      POC_PROD_avail_fields,   & ! POC production available for excess POC flux
+      DOC_remin_fields,        & ! remineralization of 13C DOC (mmol C/m^3/sec)
+      P_CaCO3_sflux_out_fields,& ! P_CaCO3 sflux_out from ecosys before getting set to zero for k=KMT
+      P_CaCO3_hflux_out_fields,& ! P_CaCO3_hflux_out from ecosys before getting set to zero for k=KMT
+      POC_sflux_out_fields,    & ! POC_sflux_out from ecosys before getting set to zero for k=KMT
+      POC_hflux_out_fields,    & ! POC_hflux_out from ecosys before getting set to zero for k=KMT
+      P_CaCO3_remin_fields,    & ! P_CaCO3 remin from ecosys before it gets modified for k=KMT
+      POC_remin_fields           ! POC remin from ecosys before it gets modified for k=KMT
    
     real (r8), dimension(nx_block,ny_block,autotroph_cnt,max_blocks_clinic), target, public :: &
       CaCO3_PROD_fields,        & ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)

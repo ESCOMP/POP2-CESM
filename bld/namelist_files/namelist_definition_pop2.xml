@@ -4641,6 +4641,14 @@ group="ecosys_ciso_nml" >
 Default:  
 </entry>
 
+<entry 
+id="ciso_no_frac"
+type="logical" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default:  
+</entry>
+
 
 <entry 
 id="ciso_lecovars_full_depth_tavg"

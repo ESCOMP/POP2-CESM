@@ -1,3 +1,33 @@
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
+Tag Date:    20 Nov 2013
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20131120_cesm_pop_2_1_20130521/
+Tag Summary: Fixed two bugs in ecosys_Ciso, now ecosys_Ciso 13C is the same as
+ecosys C when fractionation is turned off. The main bug was that DOC_remin
+gets modified in cesm1.2 after it is computed, so it needs to be shared with
+Ciso rather than be recomputed in Ciso. Other bugs:
+- in the new bottom remineralization, the following are set to zero or are
+modified in the new bottom cell sedimentation code, but we need them to compute
+remineralisation of the carbon isotopes before bottom cell remineralisation/sedimentation.
+Need to pass their values to Ciso as pointers:
+P_CaCO3%sflux_out,P_CaCO3%hflux_out,POC%sflux_out,POC%hflux_out,P_CaCO3%remin,POC%remin
+- also removed write_restart subroutine from Ciso, as Ciso does not write
+extra restarts. This caused the changes to ecosys_driver
+- added back in the namelist no_fract in Ciso, to make it easier in the future to test that
+code reproduces ecosys carbon when fractonation is set to zero.
+Note: need to make sure POC_ciso%sflux_out is computer before
+POC_ciso%hflux_out in Ciso, otherwise this leads to errors (in ecosys, the
+order is reversed)
+M            55072   source/ecosys_mod.F90
+M            54523   source/ecosys_driver.F90
+M            55072   source/ecosys_ciso_mod.F90
+M            54523   source/ecosys_fields.F90
+M            55072   bld/namelist_files/namelist_defaults_pop2.xml
+M            55072   bld/namelist_files/namelist_definition_pop2.xml
+Status against revision:  55469
+===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
 Tag Date:    7 Nov 2013

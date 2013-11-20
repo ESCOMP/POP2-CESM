@@ -2737,7 +2737,7 @@ contains
       KPARdz,         & ! PAR adsorption coefficient (non-dim)
       PAR_avg,        & ! average PAR over mixed layer depth (W/m^2)
       DOC_prod,       & ! production of DOC (mmol C/m^3/sec)
-      DOC_remin,      & ! remineralization of DOC (mmol C/m^3/sec)
+!      DOC_remin,      & ! remineralization of DOC (mmol C/m^3/sec) -- Now pointer to fields defined in ecosys_fields
       DON_remin,      & ! portion of DON remineralized
       DOFe_remin,     & ! portion of DOFe remineralized
       DOP_remin,      & ! portion of DOP remineralized
@@ -2868,7 +2868,8 @@ contains
     real (r8), dimension(:,:),pointer :: zoo_loss     ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
     real (r8), dimension(:,:),pointer :: zoo_loss_doc ! zoo_loss routed to doc (mmol C/m^3/sec)
     real (r8), dimension(:,:),pointer :: zoo_loss_dic ! zoo_loss routed to dic (mmol C/m^3/sec)
-  
+    real (r8), dimension(:,:),pointer :: DOC_remin    ! remineralization of 13C DOC (mmol C/m^3/sec)
+
     real (r8), dimension(:,:,:), pointer :: QCaCO3             ! small phyto CaCO3/C ratio (mmol CaCO3/mmol C)
     real (r8), dimension(:,:,:), pointer :: autotrophCaCO3_loc ! local copy of model autotroph CaCO3
     real (r8), dimension(:,:,:), pointer :: autotrophChl_loc   ! local copy of model autotroph Chl
@@ -2906,6 +2907,7 @@ contains
     nullify(zoo_loss)
     nullify(zoo_loss_doc)
     nullify(zoo_loss_dic)
+    nullify(DOC_remin)
 
     nullify(autotrophCaCO3_loc)
     nullify(autotrophChl_loc)
@@ -2956,6 +2958,7 @@ contains
     zoo_loss => zoo_loss_fields(:,:,bid)
     zoo_loss_doc => zoo_loss_doc_fields(:,:,bid)
     zoo_loss_dic => zoo_loss_dic_fields(:,:,bid)
+    DOC_remin => DOC_remin_fields(:,:,bid)
 
     autotrophCaCO3_loc => autotrophCaCO3_loc_fields(:,:,:,bid)
     autotrophChl_loc => autotrophChl_loc_fields(:,:,:,bid)
@@ -4526,15 +4529,17 @@ contains
 !  Pointer variables (defined in ecosys_fields)
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(:,:),pointer :: DECAY_CaCO3   ! scaling factor for dissolution of CaCO3
-   
-   real (r8), dimension(:,:),pointer :: DECAY_Hard    ! scaling factor for dissolution of Hard Ballast
- 
-   real (r8), dimension(:,:),pointer :: POC_PROD_avail_ciso   ! scaling factor for dissolution of Hard Ballast
-    
+   real (r8), dimension(:,:),pointer :: DECAY_CaCO3   ! scaling factor for dissolution of CaCO3   
+   real (r8), dimension(:,:),pointer :: DECAY_Hard    ! scaling factor for dissolution of Hard Ballast 
+   real (r8), dimension(:,:),pointer :: POC_PROD_avail_ciso   ! scaling factor for dissolution of Hard Ballast    
    real (r8), dimension(:,:),pointer :: decay_POC_E_ciso   ! scaling factor for dissolution of Hard Ballast
-
    real (r8), dimension(:,:),pointer :: poc_diss_ciso   ! diss. length used (cm) 
+   real (r8), dimension(:,:),pointer :: P_CaCO3_sflux_out_ciso   
+   real (r8), dimension(:,:),pointer :: P_CaCO3_hflux_out_ciso   
+   real (r8), dimension(:,:),pointer :: POC_sflux_out_ciso   
+   real (r8), dimension(:,:),pointer :: POC_hflux_out_ciso
+   real (r8), dimension(:,:),pointer :: POC_remin_ciso
+   real (r8), dimension(:,:),pointer :: P_CaCO3_remin_ciso   
 
 !-------------------------------------------------------------
 
@@ -4549,8 +4554,12 @@ contains
    nullify(POC_PROD_avail_ciso)
    nullify(decay_POC_E_ciso)
    nullify(poc_diss_ciso)
-
-
+   nullify(P_CaCO3_sflux_out_ciso)
+   nullify(P_CaCO3_hflux_out_ciso)
+   nullify(POC_sflux_out_ciso)
+   nullify(POC_hflux_out_ciso)
+   nullify(POC_remin_ciso)
+   nullify(P_CaCO3_remin_ciso)
 !-------------------------------------------------------------------
 ! The following variables need to be shared with ecosys_ciso, and 
 ! are now defined in ecosys_fields as targets
@@ -4563,6 +4572,12 @@ contains
    POC_PROD_avail_ciso => POC_PROD_avail_fields(:,:,bid)
    decay_POC_E_ciso => decay_POC_E_fields(:,:,bid) 
    poc_diss_ciso => poc_diss_fields(:,:,bid)
+   P_CaCO3_sflux_out_ciso => P_CaCO3_sflux_out_fields(:,:,bid)
+   P_CaCO3_hflux_out_ciso => P_CaCO3_hflux_out_fields(:,:,bid)
+   POC_sflux_out_ciso => POC_sflux_out_fields(:,:,bid)
+   POC_hflux_out_ciso => POC_hflux_out_fields(:,:,bid)
+   POC_remin_ciso => POC_remin_fields(:,:,bid)
+   P_CaCO3_remin_ciso => P_CaCO3_remin_fields(:,:,bid)
 !-----------------------------------------------------------------------
 !  incoming fluxes are outgoing fluxes from previous level
 !-----------------------------------------------------------------------
@@ -4739,7 +4754,7 @@ contains
             QA_dust_def(i,j,bid) = new_QA_dust_def
 
 ! Save fields for use by ecosys_ciso
-            POC_PROD_avail_ciso(i,j) = POC_PROD_avail
+            POC_PROD_avail_ciso(i,j)   = POC_PROD_avail
             decay_POC_E_ciso(i,j)      = decay_POC_E
             poc_diss_ciso(i,j)         = poc_diss
 
@@ -4849,6 +4864,13 @@ contains
             P_iron%remin(i,j,bid) = c0
          endif
 
+! Save some fields for use by ecosys_ciso before setting outgoing fluxes to 0.0 in bottom cell below
+            P_CaCO3_sflux_out_ciso(i,j) = P_CaCO3%sflux_out(i,j,bid)
+            P_CaCO3_hflux_out_ciso(i,j) = P_CaCO3%hflux_out(i,j,bid)
+            POC_sflux_out_ciso(i,j)     = POC%sflux_out(i,j,bid)
+            POC_hflux_out_ciso(i,j)     = POC%hflux_out(i,j,bid)
+            POC_remin_ciso(i,j)         = POC%remin(i,j,bid)
+            P_CaCO3_remin_ciso(i,j)     = P_CaCO3%remin(i,j,bid) 
 !-----------------------------------------------------------------------
 !  Bottom Sediments Cell?
 !  If so compute sedimentary burial and denitrification N losses.
