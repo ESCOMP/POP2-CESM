@@ -248,6 +248,7 @@
 <ldbl_diff>.true.</ldbl_diff>
 <lshort_wave>.true.</lshort_wave>
 <lcheckekmo>.false.</lcheckekmo>
+<larctic_bckgrnd_vdc>.false.</larctic_bckgrnd_vdc>
 <num_v_smooth_Ri>1</num_v_smooth_Ri>
 <bckgrnd_vdc_linv>4.5e-05</bckgrnd_vdc_linv>
 <lhoriz_varying_bckgrnd ocn_grid="gx1v6"  >.true.</lhoriz_varying_bckgrnd>

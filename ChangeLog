@@ -1,6 +1,20 @@
 SVN $Id$
 SVN $URL$
 ===============================================================================
+Tag Creator: mlevy
+Developers:  njn01
+Tag Date:    21 Nov 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20131121
+Tag Summary: Splitting the option to use reduced Arctic diffusivity out of the
+             near-interial wave mixing (use the larctic_bckgrnd_vdc namelist
+             variable, default is .false.)
+
+Files Modified:
+M       source/vmix_kpp.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop2.xml
+M       bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
 Tag Creator: tcraig
 Developers:  tcraig
 Tag Date:    01 Nov 2013

@@ -1503,6 +1503,17 @@ Default: .false.
 </entry>
 
 <entry 
+id="larctic_bckgrnd_vdc"
+type="logical"
+category="kpp"
+group="vmix_kpp_nml" >
+Flag to decrease Arctic background diffusivity; typically only used as an option 
+with niw_mixing in research mode.
+
+Default: .false.
+</entry>
+
+<entry 
 id="lhoriz_varying_bckgrnd"
 type="logical"
 category="kpp"

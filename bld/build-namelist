@@ -752,6 +752,7 @@ add_default($nl, 'lrich');
 add_default($nl, 'ldbl_diff');
 add_default($nl, 'lshort_wave');
 add_default($nl, 'lcheckekmo');
+add_default($nl, 'larctic_bckgrnd_vdc');
 add_default($nl, 'num_v_smooth_Ri');
 
 add_default($nl, 'bckgrnd_vdc1',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
