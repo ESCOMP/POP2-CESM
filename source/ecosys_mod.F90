@@ -394,7 +394,7 @@
       tavg_DIC_GAS_FLUX_ALT_CO2,  buf_ind_DIC_GAS_FLUX_ALT_CO2,  &! dic flux alternative CO2
       tavg_PH_ALT_CO2,            buf_ind_PH_ALT_CO2,            &! surface pH alternative CO2
       tavg_ATM_ALT_CO2,           buf_ind_ATM_ALT_CO2,           &! atmospheric alternative CO2
-      tavg_IRON_FLUX,                                            &! iron flux
+      tavg_IRON_FLUX,             buf_ind_IRON_FLUX,             &! iron flux
       tavg_DUST_FLUX,                                            &! dust flux
       tavg_NOx_FLUX,              buf_ind_NOx_FLUX,              &! nox flux
       tavg_NHy_FLUX,                                             &! nhy flux
@@ -1992,9 +1992,11 @@ contains
    buf_ind_ATM_ALT_CO2 = buf_len
 
    call define_tavg_field(tavg_IRON_FLUX,'IRON_FLUX',2,                &
-                          long_name='Iron Flux',                       &
-                          units='mmol/m^2/s', grid_loc='2110',        &
+                          long_name='Atmospheric Iron Flux',           &
+                          units='mmol/m^2/s', grid_loc='2110',         &
                           coordinates='TLONG TLAT time')
+   buf_len = buf_len+1
+   buf_ind_IRON_FLUX = buf_len
 
    call define_tavg_field(tavg_DUST_FLUX,'DUST_FLUX',2,                &
                           long_name='Dust Flux',                       &
@@ -6078,10 +6080,9 @@ contains
                O2SAT_USED = AP_USED(:,:,iblock) * O2SAT_1atm
                FLUX = PV * (O2SAT_USED - p5*(SURF_VALS_OLD(:,:,o2_ind,iblock) + &
                                              SURF_VALS_CUR(:,:,o2_ind,iblock)))
-               STF_MODULE(:,:,o2_ind,iblock) = FLUX
+               STF_MODULE(:,:,o2_ind,iblock) = STF_MODULE(:,:,o2_ind,iblock) + FLUX
             elsewhere
                O2SAT_USED = c0
-               STF_MODULE(:,:,o2_ind,iblock) = c0
             end where
 
             ECO_SFLUX_TAVG(:,:,buf_ind_PV_O2,iblock) = PV
@@ -6249,7 +6250,8 @@ contains
 
    IRON_FLUX_IN = IRON_FLUX_IN * parm_Fe_bioavail
 
-   STF_MODULE(:,:,fe_ind,:) = IRON_FLUX_IN
+   STF_MODULE(:,:,fe_ind,:) = STF_MODULE(:,:,fe_ind,:) + IRON_FLUX_IN
+   ECO_SFLUX_TAVG(:,:,buf_ind_IRON_FLUX,:) = IRON_FLUX_IN
 
    if (dust_flux%has_data) then
       if (thour00 >= dust_flux%data_update) then
@@ -6310,7 +6312,7 @@ contains
          nox_flux_monthly%data_time_min_loc, nox_flux_monthly%interp_freq, &
          nox_flux_monthly%interp_inc,        nox_flux_monthly%interp_next, &
          nox_flux_monthly%interp_last,       0)
-      STF_MODULE(:,:,no3_ind,:) = INTERP_WORK(:,:,:,1)
+      STF_MODULE(:,:,no3_ind,:) = STF_MODULE(:,:,no3_ind,:) + INTERP_WORK(:,:,:,1)
       ECO_SFLUX_TAVG(:,:,buf_ind_NOx_FLUX,:) = INTERP_WORK(:,:,:,1)
    endif
 
@@ -6335,7 +6337,7 @@ contains
          nhy_flux_monthly%data_time_min_loc, nhy_flux_monthly%interp_freq, &
          nhy_flux_monthly%interp_inc,        nhy_flux_monthly%interp_next, &
          nhy_flux_monthly%interp_last,       0)
-      STF_MODULE(:,:,nh4_ind,:) = INTERP_WORK(:,:,:,1)
+      STF_MODULE(:,:,nh4_ind,:) = STF_MODULE(:,:,nh4_ind,:) + INTERP_WORK(:,:,:,1)
    endif
 
 #ifdef CCSMCOUPLED
@@ -6419,12 +6421,11 @@ contains
       !$OMP PARALLEL DO PRIVATE(iblock)
       do iblock = 1, nblocks_clinic
          where (LAND_MASK(:,:,iblock))
-            STF_MODULE(:,:,no3_ind,iblock) = &
-               ndep_shr_stream_scale_factor * SHR_STREAM_WORK(:,:,iblock)
-         elsewhere
-            STF_MODULE(:,:,no3_ind,iblock) = c0
+            STF_MODULE(:,:,no3_ind,iblock) = STF_MODULE(:,:,no3_ind,iblock) &
+               + ndep_shr_stream_scale_factor * SHR_STREAM_WORK(:,:,iblock)
          endwhere
-         ECO_SFLUX_TAVG(:,:,buf_ind_NOx_FLUX,iblock) = STF_MODULE(:,:,no3_ind,iblock)
+         ECO_SFLUX_TAVG(:,:,buf_ind_NOx_FLUX,iblock) = &
+            ndep_shr_stream_scale_factor * SHR_STREAM_WORK(:,:,iblock)
       enddo
       !$OMP END PARALLEL DO
 
@@ -6457,10 +6458,8 @@ contains
       !$OMP PARALLEL DO PRIVATE(iblock)
       do iblock = 1, nblocks_clinic
          where (LAND_MASK(:,:,iblock))
-            STF_MODULE(:,:,nh4_ind,iblock) = &
-               ndep_shr_stream_scale_factor * SHR_STREAM_WORK(:,:,iblock)
-         elsewhere
-            STF_MODULE(:,:,nh4_ind,iblock) = c0
+            STF_MODULE(:,:,nh4_ind,iblock) = STF_MODULE(:,:,nh4_ind,iblock) &
+               + ndep_shr_stream_scale_factor * SHR_STREAM_WORK(:,:,iblock)
          endwhere
       enddo
       !$OMP END PARALLEL DO
@@ -6518,7 +6517,7 @@ contains
          dip_riv_flux%data_time_min_loc, dip_riv_flux%interp_freq, &
          dip_riv_flux%interp_inc,        dip_riv_flux%interp_next, &
          dip_riv_flux%interp_last,       0)
-      STF_MODULE(:,:,po4_ind,:) = INTERP_WORK(:,:,:,1)
+      STF_MODULE(:,:,po4_ind,:) = STF_MODULE(:,:,po4_ind,:) + INTERP_WORK(:,:,:,1)
    endif
 
    if (don_riv_flux%has_data) then
@@ -6542,8 +6541,8 @@ contains
          don_riv_flux%data_time_min_loc, don_riv_flux%interp_freq, &
          don_riv_flux%interp_inc,        don_riv_flux%interp_next, &
          don_riv_flux%interp_last,       0)
-      STF_MODULE(:,:,don_ind,:) = (INTERP_WORK(:,:,:,1) * 0.9_r8)
-      STF_MODULE(:,:,donr_ind,:) = (INTERP_WORK(:,:,:,1) * 0.1_r8)
+      STF_MODULE(:,:,don_ind,:) = STF_MODULE(:,:,don_ind,:) + (INTERP_WORK(:,:,:,1) * 0.9_r8)
+      STF_MODULE(:,:,donr_ind,:) = STF_MODULE(:,:,donr_ind,:) + (INTERP_WORK(:,:,:,1) * 0.1_r8)
    endif
 
    if (dop_riv_flux%has_data) then
@@ -6567,8 +6566,8 @@ contains
          dop_riv_flux%data_time_min_loc, dop_riv_flux%interp_freq, &
          dop_riv_flux%interp_inc,        dop_riv_flux%interp_next, &
          dop_riv_flux%interp_last,       0)
-      STF_MODULE(:,:,dop_ind,:) = (INTERP_WORK(:,:,:,1) * 0.975_r8)
-      STF_MODULE(:,:,dopr_ind,:) = (INTERP_WORK(:,:,:,1) * 0.025_r8)
+      STF_MODULE(:,:,dop_ind,:) = STF_MODULE(:,:,dop_ind,:) + (INTERP_WORK(:,:,:,1) * 0.975_r8)
+      STF_MODULE(:,:,dopr_ind,:) = STF_MODULE(:,:,dopr_ind,:) + (INTERP_WORK(:,:,:,1) * 0.025_r8)
    endif
 
    if (dsi_riv_flux%has_data) then
@@ -6592,7 +6591,7 @@ contains
          dsi_riv_flux%data_time_min_loc, dsi_riv_flux%interp_freq, &
          dsi_riv_flux%interp_inc,        dsi_riv_flux%interp_next, &
          dsi_riv_flux%interp_last,       0)
-      STF_MODULE(:,:,sio3_ind,:) = INTERP_WORK(:,:,:,1)
+      STF_MODULE(:,:,sio3_ind,:) = STF_MODULE(:,:,sio3_ind,:) + INTERP_WORK(:,:,:,1)
    endif
 
    if (dfe_riv_flux%has_data) then
@@ -6616,7 +6615,7 @@ contains
          dfe_riv_flux%data_time_min_loc, dfe_riv_flux%interp_freq, &
          dfe_riv_flux%interp_inc,        dfe_riv_flux%interp_next, &
          dfe_riv_flux%interp_last,       0)
-      STF_MODULE(:,:,fe_ind,:) = INTERP_WORK(:,:,:,1)
+      STF_MODULE(:,:,fe_ind,:) = STF_MODULE(:,:,fe_ind,:) + INTERP_WORK(:,:,:,1)
       ECO_SFLUX_TAVG(:,:,buf_ind_DFE_RIV_FLUX,:) = INTERP_WORK(:,:,:,1)
    endif
 
@@ -6667,7 +6666,7 @@ contains
          alk_riv_flux%data_time_min_loc, alk_riv_flux%interp_freq, &
          alk_riv_flux%interp_inc,        alk_riv_flux%interp_next, &
          alk_riv_flux%interp_last,       0)
-      STF_MODULE(:,:,alk_ind,:) = INTERP_WORK(:,:,:,1)
+      STF_MODULE(:,:,alk_ind,:) = STF_MODULE(:,:,alk_ind,:) + INTERP_WORK(:,:,:,1)
       ECO_SFLUX_TAVG(:,:,buf_ind_ALK_RIV_FLUX,:) = INTERP_WORK(:,:,:,1)
    endif
 
@@ -6692,7 +6691,7 @@ contains
          doc_riv_flux%data_time_min_loc, doc_riv_flux%interp_freq, &
          doc_riv_flux%interp_inc,        doc_riv_flux%interp_next, &
          doc_riv_flux%interp_last,       0)
-      STF_MODULE(:,:,doc_ind,:) = INTERP_WORK(:,:,:,1)
+      STF_MODULE(:,:,doc_ind,:) = STF_MODULE(:,:,doc_ind,:) + INTERP_WORK(:,:,:,1)
    endif
 
 !-----------------------------------------------------------------------
@@ -6993,7 +6992,7 @@ contains
                                  tavg_PH_ALT_CO2,iblock,1)
       call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,buf_ind_ATM_ALT_CO2,iblock), &
                                  tavg_ATM_ALT_CO2,iblock,1)
-      call accumulate_tavg_field(STF_MODULE(:,:,fe_ind,iblock)*mpercm, &
+      call accumulate_tavg_field(ECO_SFLUX_TAVG(:,:,buf_ind_IRON_FLUX,iblock)*mpercm, &
                                  tavg_IRON_FLUX,iblock,1)
       call accumulate_tavg_field(dust_FLUX_IN(:,:,iblock)*mpercm, &
                                  tavg_DUST_FLUX,iblock,1)
