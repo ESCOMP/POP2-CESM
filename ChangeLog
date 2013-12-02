@@ -4,6 +4,7 @@ Developers:  ajahn
 Tag Date:    2 Dec 2013
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20131202_cesm_pop_2_1_20130521/
+
 Tag Summary: Updated ecosystem model to cesm_pop_2_1_20131121a version and
 updated ecosys_parms and namelist_defaults_pop2.xml to fix the iron flux bug
 and other bugs in the cesm1.2 ecosystem model.
