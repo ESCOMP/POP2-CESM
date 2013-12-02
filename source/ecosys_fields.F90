@@ -38,13 +38,14 @@ module ecosys_fields
       O2_loc_fields,           & ! local copy of model O2 
       NO3_loc_fields,          & ! local copy of model NO3
       zooC_loc_fields,         & ! local copy of model zooC
-      DECAY_CaCO3_fields,      & ! scaling factor for dissolution of CaCO3
+      decay_CaCO3_fields,      & ! scaling factor for dissolution of CaCO3
       DECAY_Hard_fields,       & ! scaling factor for dissolution of Hard Ballast
       decay_POC_E_fields,      & ! scaling factor for dissolution of excess POC
       zoo_loss_fields,         & ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
       zoo_loss_doc_fields,     & ! zoo_loss routed to doc (mmol C/m^3/sec)
       zoo_loss_dic_fields,     & ! zoo_loss routed to dic (mmol C/m^3/sec)
       poc_diss_fields,         & ! diss. length used (cm)
+      caco3_diss_fields,       & ! caco3 diss. length used (cm)
       POC_PROD_avail_fields,   & ! POC production available for excess POC flux
       DOC_remin_fields,        & ! remineralization of 13C DOC (mmol C/m^3/sec)
       P_CaCO3_sflux_out_fields,& ! P_CaCO3 sflux_out from ecosys before getting set to zero for k=KMT

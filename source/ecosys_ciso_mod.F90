@@ -3577,11 +3577,12 @@ end do ! end loop over autotroph types
 !-----------------------------------------------------------------------
 !  Pointer variables (targets are defined in ecosys_fields)
 !-----------------------------------------------------------------------
-   real (r8), dimension(:,:),pointer :: DECAY_CaCO3           ! scaling factor for dissolution of CaCO3
+   real (r8), dimension(:,:),pointer :: decay_CaCO3           ! scaling factor for dissolution of CaCO3
    real (r8), dimension(:,:),pointer :: DECAY_Hard            ! scaling factor for dissolution of Hard Ballast
    real (r8), dimension(:,:),pointer :: decay_POC_E           ! scaling factor for dissolution of excess POC
    real (r8), dimension(:,:),pointer :: POC_PROD_avail        ! scaling factor for dissolution of Hard Ballast
    real (r8), dimension(:,:),pointer :: poc_diss              ! diss. length used (cm) 
+   real (r8), dimension(:,:),pointer :: caco3_diss            ! CaCO3 diss. length used (cm) 
    real (r8), dimension(:,:),pointer :: P_CaCO3_sflux_out
    real (r8), dimension(:,:),pointer :: P_CaCO3_hflux_out
    real (r8), dimension(:,:),pointer :: POC_sflux_out
@@ -3594,11 +3595,12 @@ end do ! end loop over autotroph types
 ! Nullify pointers
 !-------------------------------------------------------------
 
-   nullify(DECAY_CaCO3)
+   nullify(decay_CaCO3)
    nullify(DECAY_Hard)
    nullify(decay_POC_E)
    nullify(POC_PROD_avail)
    nullify(poc_diss)
+   nullify(caco3_diss)
    nullify(P_CaCO3_sflux_out)
    nullify(P_CaCO3_hflux_out)
    nullify(POC_sflux_out)
@@ -3616,11 +3618,12 @@ end do ! end loop over autotroph types
 ! to point to the right part of the global array in ecosys_fields
 !---------------------------------------------------------------
 
-   DECAY_CaCO3      => DECAY_CaCO3_fields(:,:,bid)
+   decay_CaCO3      => decay_CaCO3_fields(:,:,bid)
    DECAY_Hard       => DECAY_Hard_fields(:,:,bid)
    decay_POC_E      => decay_POC_E_fields(:,:,bid) 
    POC_PROD_avail   => POC_PROD_avail_fields(:,:,bid)
    poc_diss         => poc_diss_fields(:,:,bid)
+   caco3_diss       => caco3_diss_fields(:,:,bid)
    P_CaCO3_sflux_out=> P_CaCO3_sflux_out_fields(:,:,bid)
    P_CaCO3_hflux_out=> P_CaCO3_hflux_out_fields(:,:,bid)
    POC_sflux_out    => POC_sflux_out_fields(:,:,bid)
@@ -3685,9 +3688,9 @@ end do ! end loop over autotroph types
 !  P_CaCO3_ciso sflux and hflux out
 !-----------------------------------------------------------------------
 
-            P_CaCO3_ciso%sflux_out(i,j,bid) = P_CaCO3_ciso%sflux_in(i,j,bid) * DECAY_CaCO3(i,j) + &
-                P_CaCO3_ciso%prod(i,j,bid) * ((c1 - P_CaCO3%gamma) * (c1 - DECAY_CaCO3(i,j))  &
-                * P_CaCO3%diss)
+            P_CaCO3_ciso%sflux_out(i,j,bid) = P_CaCO3_ciso%sflux_in(i,j,bid) * decay_CaCO3(i,j) + &
+                P_CaCO3_ciso%prod(i,j,bid) * ((c1 - P_CaCO3%gamma) * (c1 - decay_CaCO3(i,j))  &
+                * caco3_diss(i,j))
 
             P_CaCO3_ciso%hflux_out(i,j,bid) = P_CaCO3_ciso%hflux_in(i,j,bid) * DECAY_Hard(i,j) + &
                  P_CaCO3_ciso%prod(i,j,bid) * (P_CaCO3%gamma * dz_loc)

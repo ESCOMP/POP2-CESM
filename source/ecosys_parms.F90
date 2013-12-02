@@ -43,9 +43,9 @@ MODULE ecosys_parms
   !-----------------------------------------------------------------------------
 
   REAL(KIND=r8), PARAMETER :: &
-       spd = 86400.0_r8,    & ! number of seconds in a day
-       dps = c1 / spd,            & ! number of days in a second
-       yps = c1 / (365.0_r8*spd)! number of years in a second
+       spd = 86400.0_r8,        & ! number of seconds in a day
+       dps = c1 / spd,          & ! number of days in a second
+       yps = c1 / (365.0_r8*spd)  ! number of years in a second
 
   !-----------------------------------------------------------------------------
   !   functional group
@@ -162,7 +162,7 @@ MODULE ecosys_parms
   REAL(KIND=r8), PARAMETER :: &
        fe_scavenge_thres1 = 0.8e-3_r8,  & !upper thres. for Fe scavenging
        dust_fescav_scale  = 1.0e9,      & !dust scavenging scale factor
-       fe_max_scale2      = 600.0_r8      !unitless scaling coeff.
+       fe_max_scale2      = 1200.0_r8     !unitless scaling coeff.
 
   !---------------------------------------------------------------------
   !     Compute iron remineralization and flux out.
@@ -315,15 +315,15 @@ CONTAINS
     parm_z_mort2_0         = 0.4_r8 * dps
     parm_labile_ratio      = 0.85_r8
     parm_POMbury           = 1.4_r8         ! x1 default
-    parm_BSIbury           = 0.45_r8        ! x1 default
-    parm_fe_scavenge_rate0 = 1.3_r8         ! x1 default
+    parm_BSIbury           = 0.65_r8        ! x1 default
+    parm_fe_scavenge_rate0 = 3.0_r8         ! x1 default
     parm_f_prod_sp_CaCO3   = 0.055_r8       ! x1 default
     parm_POC_diss          = 88.0e2_r8
     parm_SiO2_diss         = 250.0e2_r8
     parm_CaCO3_diss        = 150.0e2_r8
 
     parm_scalelen_z    = (/ 130.0e2_r8, 290.0e2_r8, 670.0e2_r8, 1700.0e2_r8 /) ! x1 default
-    parm_scalelen_vals = (/     1.0_r8,     2.9_r8,     4.8_r8,      8.0_r8 /) ! x1 default
+    parm_scalelen_vals = (/     1.0_r8,     3.0_r8,     5.0_r8,      9.0_r8 /) ! x1 default
 
     auto_ind = sp_ind
     autotrophs(auto_ind)%sname         = 'sp'
