@@ -136,7 +136,7 @@ MODULE ecosys_parms
   REAL(KIND=r8), PARAMETER :: &
        fe_scavenge_thres1 = 0.8e-3_r8,  & !upper thres. for Fe scavenging
        dust_fescav_scale  = 1.0e9,      & !dust scavenging scale factor
-       fe_max_scale2      = 600.0_r8      !unitless scaling coeff.
+       fe_max_scale2      = 1200.0_r8     !unitless scaling coeff.
 
   !---------------------------------------------------------------------
   !     Compute iron remineralization and flux out.
@@ -290,7 +290,7 @@ CONTAINS
     parm_labile_ratio      = 0.85_r8
     parm_POMbury           = 1.4_r8         ! x1 default
     parm_BSIbury           = 0.65_r8        ! x1 default
-    parm_fe_scavenge_rate0 = 1.3_r8         ! x1 default
+    parm_fe_scavenge_rate0 = 3.0_r8         ! x1 default
     parm_f_prod_sp_CaCO3   = 0.055_r8       ! x1 default
     parm_POC_diss          = 88.0e2_r8
     parm_SiO2_diss         = 250.0e2_r8

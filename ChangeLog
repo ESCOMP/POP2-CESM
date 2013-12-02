@@ -2,6 +2,16 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    2 Dec 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20131202
+Tag Summary: Update default values for ecosys
+
+Files Modified:
+M       source/ecosys_parms.F90
+M       bld/namelist_files/namelist_defaults_pop2.xml
+===============================================================================
+Tag Creator: mlevy
 Developers:  santos
 Tag Date:    26 Nov 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20131126
