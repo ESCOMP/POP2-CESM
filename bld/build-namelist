@@ -1976,6 +1976,9 @@ sub check_input_files {
       if ($input_pathname_type eq 'abs') {
         if ($inputdata_rootdir) {
           print OUTFILE "$var = $pathname\n";
+          if ($pathname =~ /GC007v3.pop.r.0001-01-16-00000$/) {
+            print OUTFILE "hdr_$var = $pathname.hdr\n";
+          }
         } else {
           if (-e $pathname) {  # use -e rather than -f since the absolute pathname
             # might be a directory

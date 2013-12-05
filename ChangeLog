@@ -2,6 +2,18 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    5 Dec 2013
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20131205
+Tag Summary: Fix a bug in the creation of pop2.input_data_list -- there is one
+             binary file in the inputdata repository that requires a .hdr file
+             and now the hdr file is pulled from the repository (when needed)
+             by the check_input_data_script
+
+Files Modified:
+M       bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay
 Tag Date:    2 Dec 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20131202
