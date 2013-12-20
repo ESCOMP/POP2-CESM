@@ -442,7 +442,7 @@ contains
     !---------------------------------------------------------------------------
 
     allocate( LAND_MASK(nx_block,ny_block,max_blocks_clinic) )
-    LAND_MASK = merge(.true., .false., KMT > 0)
+    LAND_MASK = (KMT.gt.0)
 
     call get_timer(cfc11_sflux_timer, 'CFC11_SFLUX',1, &
                                           distrb_clinic%nprocs)
