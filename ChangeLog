@@ -1,6 +1,24 @@
 ===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
+Tag Date:    20 Dec 2013
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20131220_cesm_pop_2_1_20130521/
+
+Tag Summary: Added write_restart to ecosys_ciso (accidentally deleted this in
+an earlier revision, needed to save surface values of DI13C and DI14C) and
+added river input of isotopic DIC and DOC in ecosys_ciso.
+Files Modified:
+M            55757   source/ecosys_mod.F90
+M            55470   source/ecosys_driver.F90
+M            55757   source/ecosys_ciso_mod.F90
+M            55757   source/ecosys_fields.F90
+M            55760   ChangeLog
+M            50136   input_templates/ocn.ciso.tavg.csh
+Status against revision:  56185
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
 Tag Date:    2 Dec 2013
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20131202_cesm_pop_2_1_20130521/

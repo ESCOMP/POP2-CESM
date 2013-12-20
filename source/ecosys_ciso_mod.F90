@@ -86,8 +86,8 @@
       ecosys_ciso_tracer_ref_val,        &
       ecosys_ciso_set_sflux,             &
       ecosys_ciso_tavg_forcing,          &
-      ecosys_ciso_set_interior
-
+      ecosys_ciso_set_interior,          & 
+      ecosys_ciso_write_restart
 !-----------------------------------------------------------------------
 !  module variables required by forcing_passive_tracer
 !-----------------------------------------------------------------------
@@ -166,7 +166,15 @@
       tavg_CISO_d14C_GAS_FLUX,     & ! tavg if for surface ocean delta 14C 
       tavg_CISO_R14C_DIC_surf,     & ! tavg id for 14C/12C ratio in total DIC   
       tavg_CISO_R14C_atm,          & ! tavg id for atmospheric ratio of 14C/12C   
-      tavg_CISO_D14C_atm             ! tavg id for atmospheric delta14C in permil
+      tavg_CISO_D14C_atm,          & ! tavg id for atmospheric delta14C in permil
+      tavg_CISO_DI13C_RIV_FLUX,    & ! tavg if for river input of DI13C
+      tavg_CISO_DO13C_RIV_FLUX,    & ! tavg if for river input of DO13C
+      buf_ind_DO13C_RIV_FLUX,      & ! buffer index
+      buf_ind_DI13C_RIV_FLUX,      & ! buffer index
+      tavg_CISO_DI14C_RIV_FLUX,    & ! tavg if for river input of DI14C
+      tavg_CISO_DO14C_RIV_FLUX,    & ! tavg if for river input of DO14C
+      buf_ind_DO14C_RIV_FLUX,      & ! buffer index
+      buf_ind_DI14C_RIV_FLUX         ! buffer index
 
 ! for debugging       
   integer (int_kind) ::   &
@@ -183,7 +191,11 @@
       tavg_CISO_CaCO3_FLUX_IN,&
       tavg_CISO_POC_REMIN,    &
       tavg_CISO_POC_PROD,     &
-      tavg_CISO_POC_FLUX_IN
+      tavg_CISO_POC_FLUX_IN,  &
+      tavg_CISO_DIC_RIV_FLUX, &
+      tavg_CISO_DOC_RIV_FLUX, &
+      buf_ind_DOC_RIV_FLUX,   &
+      buf_ind_DIC_RIV_FLUX
 
 !-----------------------------------------------------------------------
 !  define tavg id for nonstandard 3d fields
@@ -1008,7 +1020,7 @@ contains
 
    integer (int_kind) :: &
       auto_ind,       & ! autotroph functional group index
-      buf_len           ! how many surface flux fields are stored in ECO_SFLUX_TAVG
+      buf_len           ! how many surface flux fields are stored in ECO_CISO_SFLUX_TAVG
 
    character(char_len) :: &
       sname             ! short-name of tavg variable
@@ -1153,7 +1165,50 @@ contains
                           coordinates='TLONG TLAT time')
    buf_len = buf_len+1
 
+ call define_tavg_field(tavg_CISO_DI13C_RIV_FLUX,'CISO_DI13C_RIV_FLUX',2,          &
+                          long_name='Flux of DI13C from rivers',         &
+                          units='nmol/cm^2/s', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+   buf_len = buf_len+1
+   buf_ind_DI13C_RIV_FLUX = buf_len
+
+ call define_tavg_field(tavg_CISO_DO13C_RIV_FLUX,'CISO_DO13C_RIV_FLUX',2,          &
+                          long_name='Flux of DO13C from rivers',         &
+                          units='nmol/cm^2/s', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+   buf_len = buf_len+1
+   buf_ind_DO13C_RIV_FLUX = buf_len
+
+ call define_tavg_field(tavg_CISO_DI14C_RIV_FLUX,'CISO_DI14C_RIV_FLUX',2,          &
+                          long_name='Flux of DI14C from rivers',         &
+                          units='nmol/cm^2/s', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+   buf_len = buf_len+1
+   buf_ind_DI14C_RIV_FLUX = buf_len
+
+ call define_tavg_field(tavg_CISO_DO14C_RIV_FLUX,'CISO_DO14C_RIV_FLUX',2,          &
+                          long_name='Flux of DO14C from rivers',         &
+                          units='nmol/cm^2/s', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+   buf_len = buf_len+1
+   buf_ind_DO14C_RIV_FLUX = buf_len
+
 ! for debugging
+ call define_tavg_field(tavg_CISO_DIC_RIV_FLUX,'CISO_DIC_RIV_FLUX',2,          &
+                          long_name='Flux of DIC from rivers',         &
+                          units='nmol/cm^2/s', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+   buf_len = buf_len+1
+   buf_ind_DIC_RIV_FLUX = buf_len
+
+ call define_tavg_field(tavg_CISO_DOC_RIV_FLUX,'CISO_DOC_RIV_FLUX',2,          &
+                          long_name='Flux of DOC from rivers',         &
+                          units='nmol/cm^2/s', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
+   buf_len = buf_len+1
+   buf_ind_DOC_RIV_FLUX = buf_len
+
+
 !  call define_tavg_field(tavg_CISO_DIC_SURF,'CISO_DIC_SURF',2,                  &
 !                          long_name='ciso DIC SURF',                      &
 !                          units='mmol/m^3/s', grid_loc='2110',      &
@@ -1770,6 +1825,12 @@ contains
      alpha_dic_g_surf_14c   ! for 14C, with fractionation being twice as large for 14C than for 13C
  
   
+  real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
+     di13c_riv_flux,   & ! River input of DI13C
+     do13c_riv_flux,   & ! River input of DO13C
+     di14c_riv_flux,   & ! River input of DI14C
+     do14c_riv_flux    ! River input of DO14C
+     
 !-----------------------------------------------------------------------
 !  Pointer variables (defined in ecosys_fields)
 !-----------------------------------------------------------------------
@@ -1779,6 +1840,9 @@ contains
      real(r8), dimension(:,:), pointer :: PV_SURF       ! piston velocity (cm/s)
      real(r8), dimension(:,:), pointer :: CO3_SURF      ! surface carbonate ion
      
+     real (r8), dimension(:,:,:),pointer :: dic_riv_flux ! DIC river input from ecosystem (from file)
+     real (r8), dimension(:,:,:),pointer :: doc_riv_flux ! DOC river input from ecosystem (from file)
+
      
 !-----------------------------------------------------------------------
 !     local parameters for 13C
@@ -1811,7 +1875,13 @@ contains
    nullify(DCO2STAR_SURF)
    nullify(PV_SURF)
    nullify(CO3_SURF)
-  
+   nullify(doc_riv_flux)
+   nullify(dic_riv_flux)
+   
+   
+   dic_riv_flux => dic_riv_flux_fields(:,:,:)
+   doc_riv_flux => doc_riv_flux_fields(:,:,:)
+
 !-----------------------------------------------------------------------
 
   call timer_start(ecosys_ciso_sflux_timer)
@@ -2095,11 +2165,44 @@ contains
          
    enddo ! end of i-lopp
 !-----------------------------------------------------------------------
-   !$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 !-----------------------------------------------------------------------
 
-  
+!-------------------------------------------------------------------------
+! River input of isotopic DIC and DOC
+!
+! Using constant delta values of 
+! D13C=-10 permil for DIC (Mook 1986, Raymond et al 2004)
+! D13C=-27.6 permil for DOC (Raymond et al 2004)
+! D14C=-50 permil for DOC (Raymond et al 2004), Gruber et al
+! D14C= atmos D14C -50 permil for DIC ??????
+!-------------------------------------------------------------------------
+! Make average DI14C
 
+
+  di13c_riv_flux = dic_riv_flux * (-10.0_r8/c1000 +c1) * R13C_std
+  di14c_riv_flux = dic_riv_flux * ((ciso_atm_d14c_const - 50.0_r8)/c1000 +c1) * R14C_std
+  
+  do13c_riv_flux = doc_riv_flux * (-27.6_r8/c1000 +c1) * R13C_std
+  do14c_riv_flux = doc_riv_flux * (-50.0_r8/c1000 +c1) * R14C_std
+
+  STF_MODULE(:,:,di13c_ind,:) = STF_MODULE(:,:,di13c_ind,:) + di13c_riv_flux
+  STF_MODULE(:,:,do13c_ind,:) = STF_MODULE(:,:,do13c_ind,:) + do13c_riv_flux
+
+  STF_MODULE(:,:,di14c_ind,:) = STF_MODULE(:,:,di14c_ind,:) + di14c_riv_flux
+  STF_MODULE(:,:,do14c_ind,:) = STF_MODULE(:,:,do14c_ind,:) + do14c_riv_flux
+
+! write to tavg  
+  ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DI13C_RIV_FLUX,:) = di13c_riv_flux
+  ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DO13C_RIV_FLUX,:) = do13c_riv_flux 
+
+  ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DI14C_RIV_FLUX,:) = di14c_riv_flux
+  ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DO14C_RIV_FLUX,:) =do14c_riv_flux
+    
+ !debugging (same as from ecosys)
+  ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DIC_RIV_FLUX,:) = dic_riv_flux
+  
+  ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DOC_RIV_FLUX,:) =doc_riv_flux
 
   call timer_stop(ecosys_ciso_sflux_timer)
 
@@ -4676,6 +4779,12 @@ end subroutine ciso_compute_particulate_terms
       call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,17,iblock), tavg_CISO_R14C_atm,iblock,1)
       call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,18,iblock), tavg_CISO_D14C_atm,iblock,1)
       call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,19,iblock), tavg_CISO_d14C_GAS_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DIC_RIV_FLUX,iblock),tavg_CISO_DIC_RIV_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DOC_RIV_FLUX,iblock),tavg_CISO_DOC_RIV_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DI13C_RIV_FLUX,iblock),tavg_CISO_DI13C_RIV_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DO13C_RIV_FLUX,iblock),tavg_CISO_DO13C_RIV_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DI14C_RIV_FLUX,iblock),tavg_CISO_DI14C_RIV_FLUX,iblock,1)
+      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DO14C_RIV_FLUX,iblock),tavg_CISO_DO14C_RIV_FLUX,iblock,1)
    end do
 
    !$OMP END PARALLEL DO
@@ -4883,8 +4992,61 @@ end subroutine ciso_compute_particulate_terms
 
  end subroutine extract_ciso_surf_avg
 
+!*****************************************************************************
+!BOP
+! !IROUTINE: ecosys_ciso_write_restart
+! !INTERFACE:
 
+ subroutine ecosys_ciso_write_restart(restart_file, action)
 
+! !DESCRIPTION:
+!  write auxiliary fields & scalars to restart files
+!
+! !REVISION HISTORY:
+!  same as module
+!  use constants, only: char_blank, field_loc_center, field_type_scalar
+ 
+! !INPUT PARAMETERS:
+
+   character(*), intent(in) :: action
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   type (datafile), intent (inout)  :: restart_file
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   character (char_len) :: &
+      short_name   ! tracer name temporaries
+
+   type (io_dim) :: &
+      i_dim, j_dim ! dimension descriptors
+
+   integer (int_kind) :: n
+
+   type (io_field_desc), save :: ABIO_PH_SURF
+
+!-----------------------------------------------------------------------
+
+   if (trim(action) == 'add_attrib_file') then
+      short_name = char_blank
+      do n=1,ecosys_ciso_tracer_cnt
+         if (ciso_vflux_flag(n)) then
+            short_name = 'surf_avg_' /&
+                      &/ ciso_ind_name_table(n)%name
+            call add_attrib_file(restart_file,trim(short_name),ciso_surf_avg(n))
+         endif
+      end do
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine ecosys_ciso_write_restart
 !***********************************************************************
 
  end module ecosys_ciso_mod

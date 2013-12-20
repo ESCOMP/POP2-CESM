@@ -17,6 +17,12 @@ endif
 @ s1 = 1             # use the base-model stream 1
 
 cat >! $CASEROOT/Buildconf/pop2conf/ciso_tavg_contents << EOF
+$s1  CISO_DO13C_RIV_FLUX
+$s1  CISO_DI13C_RIV_FLUX
+$s1  CISO_DO14C_RIV_FLUX
+$s1  CISO_DI14C_RIV_FLUX
+$s1  CISO_DOC_RIV_FLUX
+$s1  CISO_DIC_RIV_FLUX
 $s1  CISO_zooC_d14C      
 $s1  CISO_DOC_d14C         
 $s1  CISO_DIC_d14C        

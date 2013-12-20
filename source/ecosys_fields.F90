@@ -53,8 +53,10 @@ module ecosys_fields
       POC_sflux_out_fields,    & ! POC_sflux_out from ecosys before getting set to zero for k=KMT
       POC_hflux_out_fields,    & ! POC_hflux_out from ecosys before getting set to zero for k=KMT
       P_CaCO3_remin_fields,    & ! P_CaCO3 remin from ecosys before it gets modified for k=KMT
-      POC_remin_fields           ! POC remin from ecosys before it gets modified for k=KMT
-   
+      POC_remin_fields,        & ! POC remin from ecosys before it gets modified for k=KMT
+      dic_riv_flux_fields,     & ! River input of DIC in ecosystem (from file)
+      doc_riv_flux_fields        ! River input of DOC in ecosystem (from file)
+      
     real (r8), dimension(nx_block,ny_block,autotroph_cnt,max_blocks_clinic), target, public :: &
       CaCO3_PROD_fields,        & ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)
       QCaCO3_fields,            & ! small phyto CaCO3/C ratio (mmol CaCO3/mmol C)

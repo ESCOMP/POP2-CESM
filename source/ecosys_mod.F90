@@ -6116,8 +6116,10 @@ contains
    real (r8), dimension(:,:),pointer :: CO2STAR_SURF  ! CO2STAR from solver
    real (r8), dimension(:,:),pointer :: DCO2STAR_SURF ! DCO2STAR from solver
    real (r8), dimension(:,:),pointer :: PV_SURF       ! piston velocity (cm/s)
-
    
+   real (r8), dimension(:,:,:),pointer :: dic_riv_flux_ciso ! DIC river input for ciso
+   real (r8), dimension(:,:,:),pointer :: doc_riv_flux_ciso ! DOC river input for ciso
+
 !-----------------------------------------------------------------------
 !  Nullify pointers
 !-----------------------------------------------------------------------
@@ -6126,7 +6128,11 @@ contains
    nullify(CO2STAR_SURF)
    nullify(DCO2STAR_SURF)
    nullify(PV_SURF)
+   nullify(doc_riv_flux_ciso)
+   nullify(dic_riv_flux_ciso)
    
+   dic_riv_flux_ciso => dic_riv_flux_fields(:,:,:)
+   doc_riv_flux_ciso => doc_riv_flux_fields(:,:,:)
 !-----------------------------------------------------------------------
 
    call timer_start(ecosys_sflux_timer)
@@ -6897,6 +6903,7 @@ contains
       STF_MODULE(:,:,dic_ind,:) = STF_MODULE(:,:,dic_ind,:) + INTERP_WORK(:,:,:,1)
       STF_MODULE(:,:,dic_alt_co2_ind,:) = STF_MODULE(:,:,dic_alt_co2_ind,:) + INTERP_WORK(:,:,:,1)
       ECO_SFLUX_TAVG(:,:,buf_ind_DIC_RIV_FLUX,:) = INTERP_WORK(:,:,:,1)
+      dic_riv_flux_ciso=INTERP_WORK(:,:,:,1)
    endif
 
    if (alk_riv_flux%has_data) then
@@ -6946,7 +6953,9 @@ contains
          doc_riv_flux%interp_inc,        doc_riv_flux%interp_next, &
          doc_riv_flux%interp_last,       0)
       STF_MODULE(:,:,doc_ind,:) = STF_MODULE(:,:,doc_ind,:) + INTERP_WORK(:,:,:,1)
+      doc_riv_flux_ciso=INTERP_WORK(:,:,:,1)
    endif
+
 
 !-----------------------------------------------------------------------
 !  Apply NO & NH fluxes to alkalinity

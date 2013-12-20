@@ -53,8 +53,8 @@
        ecosys_ciso_tracer_ref_val,  &
        ecosys_ciso_set_sflux,       &
        ecosys_ciso_tavg_forcing,    &
-       ecosys_ciso_set_interior
-
+       ecosys_ciso_set_interior,    &
+       ecosys_ciso_write_restart
 
    implicit none
    private
@@ -488,11 +488,11 @@
    end if
 
 !-----------------------------------------------------------------------
-!  ECOSYS_CISO block does not write additional restart at this point
+!  ECOSYS_CISO block 
 !-----------------------------------------------------------------------
-!   if (ciso_on) then
-!      call ecosys_ciso_write_restart(restart_file, action)
-!   end if
+   if (ciso_on) then
+      call ecosys_ciso_write_restart(restart_file, action)
+   end if
 
 !-----------------------------------------------------------------------
 !EOC
