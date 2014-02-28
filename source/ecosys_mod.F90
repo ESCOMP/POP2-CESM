@@ -4630,7 +4630,7 @@ contains
                   (P_iron%sflux_in(i,j,bid) + P_iron%hflux_in(i,j,bid)) / &
                   (POC%sflux_in(i,j,bid) + POC%hflux_in(i,j,bid)))
             endif
-            P_iron%remin(i,j,bid) = POC%remin(i,j,bid) +                   &
+            P_iron%remin(i,j,bid) = P_iron%remin(i,j,bid) +                &
                                     (P_iron%sflux_in(i,j,bid) * 1.5e-5_r8)
 
             P_iron%sflux_out(i,j,bid) = P_iron%sflux_in(i,j,bid) + dz_loc * &

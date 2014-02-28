@@ -3,6 +3,16 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  klindsay
+Tag Date:    28 Feb 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140228
+Tag Summary: Despite fix in 20140227a tag, P_iron remin is still not always
+             computed correctly (there was a bug in my bug fix)
+
+Files Modified:
+M       source/ecosys_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay
 Tag Date:    27 Feb 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140227e
 Tag Summary: New ecosys module wasn't broadcasting everything after reading
