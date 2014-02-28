@@ -2571,7 +2571,7 @@ contains
                           coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_pfeToSed,'pfeToSed',2,                  &
                           long_name='pFe Flux to Sediments',           &
-                          units='g/cm^2/s', grid_loc='2110',           &
+                          units='nmolFe/cm^2/s', grid_loc='2110',      &
                           coordinates='TLONG TLAT time')
 
 !-----------------------------------------------------------------------
@@ -4406,6 +4406,7 @@ contains
 !  initialize loss to sediments = 0 and local copy of percent sed
 !-----------------------------------------------------------------------
 
+   P_iron%sed_loss(:,:,bid) = c0
    POC%sed_loss(:,:,bid) = c0
    P_CaCO3%sed_loss(:,:,bid) = c0
    P_SiO2%sed_loss(:,:,bid) = c0

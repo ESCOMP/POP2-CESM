@@ -2,6 +2,16 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    27 Feb 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140227
+Tag Summary: Ecosys diagnostics didn't initialize P_iron%sed_loss to zero and
+             had incorrect units for pfeToSed variable.
+
+Files Modified:
+M       source/ecosys_mod.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  santos
 Tag Date:    20 Dec 2013
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20131220
