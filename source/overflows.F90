@@ -4156,7 +4156,7 @@ subroutine ovf_reg_avgs(time_level)
            
            k_p = (ovf(ovf_id)%adj_prd(m)%kmin+ovf(ovf_id)%adj_prd(m)%kmax)/2
            mySendBuff(loc) = tday
-           mySendBuff(loc+1) = real(n,r8)
+           mySendBuff(loc+1) = real(ovf_id,r8)
            mySendBuff(loc+2)  = phi
            mySendBuff(loc+3)  = 1.e-12*Ms
            mySendBuff(loc+4)  = 1.e-12*Me
