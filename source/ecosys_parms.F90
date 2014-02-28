@@ -445,6 +445,8 @@ CONTAINS
     CALL broadcast_array(parm_scalelen_vals, master_task)
 
     DO auto_ind = 1, autotroph_cnt
+       CALL broadcast_scalar(autotrophs(auto_ind)%sname, master_task)
+       CALL broadcast_scalar(autotrophs(auto_ind)%lname, master_task)
        CALL broadcast_scalar(autotrophs(auto_ind)%Nfixer, master_task)
        CALL broadcast_scalar(autotrophs(auto_ind)%imp_calcifier, master_task)
        CALL broadcast_scalar(autotrophs(auto_ind)%exp_calcifier, master_task)
@@ -502,6 +504,7 @@ CONTAINS
        WRITE (stdout,*) 'parm_scalelen_z        = ', parm_scalelen_z
        WRITE (stdout,*) 'parm_scalelen_vals     = ', parm_scalelen_vals
        DO auto_ind = 1, autotroph_cnt
+          WRITE (stdout,*) 'lname(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%lname
           WRITE (stdout,*) 'Nfixer(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Nfixer
           WRITE (stdout,*) 'imp_calcifier(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%imp_calcifier
           WRITE (stdout,*) 'exp_calcifier(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%exp_calcifier
