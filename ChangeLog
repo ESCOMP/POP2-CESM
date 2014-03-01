@@ -2,6 +2,16 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  gokhan, ytseng
+Tag Date:    1 Mar 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140301
+Tag Summary: Units attribute of potential vorticity was incorrect in history
+             files
+
+Files Modified:
+M       source/advection.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay
 Tag Date:    28 Feb 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140228
