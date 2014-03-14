@@ -41,11 +41,7 @@ set inst_counter = 1
 while ($inst_counter <= $NINST_OCN)
 
 if ($NINST_OCN > 1) then
-    set inst_string = $inst_counter
-    if ($inst_counter <= 999) set inst_string = "0$inst_string"
-    if ($inst_counter <=  99) set inst_string = "0$inst_string"
-    if ($inst_counter <=   9) set inst_string = "0$inst_string"
-    set inst_string = _${inst_string}
+    set inst_string = `printf _%04d $inst_counter`
 else
     set inst_string = ""
 endif
@@ -53,19 +49,14 @@ endif
 set ocn_in_filename = ${default_ocn_in_filename}${inst_string}
 
 if ($NINST_OCN > 1) then
-   # pop rpointer name for multi-instance case
-   if (! -e $RUNDIR/rpointer.ocn${inst_string}.ovf && -e $RUNDIR/rpointer.ocn.ovf) then
-      cp $RUNDIR/rpointer.ocn.ovf $RUNDIR/rpointer.ocn${inst_string}.ovf
-   endif
-   if (! -e $RUNDIR/rpointer.ocn${inst_string}.restart && -e $RUNDIR/rpointer.ocn.restart) then
-      cp $RUNDIR/rpointer.ocn.restart $RUNDIR/rpointer.ocn${inst_string}.restart
-   endif
-   if (! -e $RUNDIR/rpointer.ocn${inst_string}.tavg && -e $RUNDIR/rpointer.ocn.tavg) then
-      cp $RUNDIR/rpointer.ocn.tavg $RUNDIR/rpointer.ocn${inst_string}.tavg
-   endif
-   if (! -e $RUNDIR/rpointer.ocn${inst_string} && -e $RUNDIR/rpointer.ocn) then
-      cp $RUNDIR/rpointer.ocn $RUNDIR/rpointer.ocn${inst_string}
-   endif
+   # If multi-instance case does not have restart file, use single-case restart
+   # for each instance
+   foreach suffix ( ovf restart tavg )
+      echo "Looking to see if rpointer.ocn.${suffix} exists and rpointer.ocn${inst_string}.${suffix} does not..."
+      if (! -e $RUNDIR/rpointer.ocn${inst_string}.${suffix} && -e $RUNDIR/rpointer.ocn.${suffix}) then
+         cp -v $RUNDIR/rpointer.ocn.${suffix} $RUNDIR/rpointer.ocn${inst_string}.${suffix}
+      endif
+   end # foreach
 endif
 
 # env variable declaring type of restart file (nc vs bin) is not in any xml files
@@ -129,16 +120,6 @@ $BLD_NML_DIR/build-namelist $CFG_FLAG $PREVIEW_FLAG \
 
 if (-d ${RUNDIR}) then
   cp $CASEBUILD/pop2conf/pop2_in ${RUNDIR}/$ocn_in_filename || exit -2
-endif
-
-# pop rpointer name for multi-instance case
-foreach suffix ( ovf restart tavg ) 
-   if (! -e $RUNDIR/rpointer.ocn${inst_string}.suffix && -e $RUNDIR/rpointer.ocn.suffix ) then
-      cp $RUNDIR/rpointer.ocn.$suffix $RUNDIR/rpointer.ocn${inst_string}.$suffix
-   endif
-end 
-if (! -e $RUNDIR/rpointer.ocn${inst_string} && -e $RUNDIR/rpointer.ocn) then
-   cp $RUNDIR/rpointer.ocn $RUNDIR/rpointer.ocn${inst_string}
 endif
 
 if (-f $RUNDIR/pop2_in${inst_string}) rm $RUNDIR/pop2_in${inst_string}

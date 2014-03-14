@@ -2,6 +2,18 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy, thoar
+Tag Date:    14 Mar 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140314
+Tag Summary: There was some un-necessary code for handling rpointer files in
+             multi-instance cases. This tag also cleans up how the variable
+             inst_string is determined (single print statement instead of
+             several if statements to prepend 0s)
+
+Files Modified:
+M       bld/pop2.buildnml.csh
+===============================================================================
+Tag Creator: mlevy
 Developers:  gokhan, ytseng
 Tag Date:    1 Mar 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140301
