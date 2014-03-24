@@ -1,6 +1,23 @@
 ===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
+Tag Date:    24 March 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140324_cesm_pop_2_1_20130521/
+Tag Summary: merged with
+https://svn-ccsm-models.cgd.ucar.edu/pop2/branches/cesm1_2_x_rel/
+Files Modified:
+A                0   ecosys_fields.F90
+A                0   abio_dic_dic14_mod.F90
+A                0   ecosys_driver.F90
+A                0   ecosys_ciso_mod.F90
+M           58474   drivers/cpl_mct
+M           58474   drivers/cpl_none
+M           58474   .
+Status against revision:  58474
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
 Tag Date:    20 Dec 2013
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20131220_cesm_pop_2_1_20130521/
