@@ -1,6 +1,35 @@
 ===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
+Tag Date:    25 March 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140325_cesm_pop_2_1_20130521/
+
+Tag Summary: 
+1) Modified co2calc_row to also provide CO3, so it can be used by
+ecosys_ciso.
+2) Added writting and reading of PH_PREV_3D in ecosys_mod, to make the
+formally only diagnostic variables CO3, HCO3, H2CO3, pH_3D, zsatarag be
+iexactly the same after a restart. This is needed to make _ciso restart
+exactly, as it uses the CO3, HCO3, and H2CO3 values from ecosys_mod. 
+3) Modified river input of di14c to make it dependent of global
+averaged D14C in the atmosphere, by averaging the D14C (works independent of
+what choice is for source of D14C, etc const or ocmip2; before it only worked
+for const, using the constant value). 
+4) Also cleaned up code, removing ciso
+references from ecosys_mod (replaced by _ptr or reference to "other modules").
+Files Modified:
+M            58474   source/abio_dic_dic14_mod.F90
+M            58474   source/ecosys_mod.F90
+M            58474   source/co2calc.F90
+M            58474   source/ecosys_ciso_mod.F90
+M            58474   source/ecosys_fields.F90
+M            58479   ChangeLog
+M            58474   input_templates/ocn.ciso.tavg.csh
+Status against revision:  58480
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
 Tag Date:    24 March 2014
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140324_cesm_pop_2_1_20130521/

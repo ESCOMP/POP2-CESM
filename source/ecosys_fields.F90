@@ -3,9 +3,13 @@ module ecosys_fields
 ! !MODULE: ecosys_fields
 
 !-----------------------------------------------------------------------------
-!   This module contains definitions of variables that are used in both 
-!   ecocys_mod.F90 and ecosys_ciso_mod.F90. They are shared using threading 
-!   with pointers, and need to be pointed to in the code.
+!   This module contains definitions of variables that are used in 
+!   ecocys_mod.F90 and other modules that make use of the ecosys_mod. 
+!   They are shared using threading with pointers, and need to be pointed to 
+!   in the code. 
+!   Note: So far the values of all of these fields are set in ecosys_mod 
+!   and are NOT modified in the other modules
+!   A. Jahn, NCAR
 !-----------------------------------------------------------------------------
   USE blocks, ONLY: nx_block, ny_block
   USE domain_size, ONLY: max_blocks_clinic

@@ -250,7 +250,7 @@
    real (r8), dimension(:,:,:), allocatable :: &
       dust_FLUX_IN      ! dust flux not stored in STF since dust is not prognostic
 
-   real (r8), dimension(:,:,:,:), allocatable :: &
+   real (r8), dimension(:,:,:,:), allocatable, target :: &
       PH_PREV_3D,      & ! computed pH_3D from previous time step
       PH_PREV_ALT_CO2_3D ! computed pH_3D from previous time step, alternative CO2
 
@@ -341,7 +341,7 @@
 
 !-----------------------------------------------------------------------
 !  derived type for implicit handling of sinking particulate matter
-!  now defined in ecosys_params.F90, for sharing with ciso_mod
+!  now defined in ecosys_params.F90, for sharing with other modules
 !-----------------------------------------------------------------------
 !
 !   type sinking_particle
@@ -1500,8 +1500,8 @@ contains
    allocate( dust_FLUX_IN(nx_block,ny_block,max_blocks_clinic) )
    allocate( PH_PREV_3D(nx_block,ny_block,km,max_blocks_clinic) )
    allocate( PH_PREV_ALT_CO2_3D(nx_block,ny_block,km,max_blocks_clinic) )
-   PH_PREV_3D = c0
-   PH_PREV_ALT_CO2_3D = c0
+!   PH_PREV_3D = c0
+!   PH_PREV_ALT_CO2_3D = c0
 
 !-----------------------------------------------------------------------
 !  allocate and initialize LAND_MASK
@@ -1552,6 +1552,14 @@ contains
       call read_field(init_ecosys_init_file_fmt, &
                       ecosys_restart_filename,   &
                       'PH_SURF_ALT_CO2', PH_PREV_ALT_CO2)
+                      
+      call read_field(init_ecosys_init_file_fmt, &
+                      ecosys_restart_filename,   &
+                      'PH_3D', PH_PREV_3D)   
+                      
+      call read_field(init_ecosys_init_file_fmt, &
+                      ecosys_restart_filename,   &
+                      'PH_3D_ALT_CO2', PH_PREV_ALT_CO2_3D)                                             
 
       if (use_nml_surf_vals) then
          surf_avg = c0
@@ -1606,6 +1614,8 @@ contains
 
       PH_PREV = c0
       PH_PREV_ALT_CO2 = c0
+      PH_PREV_3D = c0
+      PH_PREV_ALT_CO2_3D = c0
 
       if (use_nml_surf_vals) then
          surf_avg = c0
@@ -2856,7 +2866,6 @@ contains
 ! Below pointers are used to point to the right part of the 
 ! global array in ecosys_fields
 !---------------------------------------------------------------
-    real (r8), dimension(:,:),pointer :: CO3_SURF     ! Surface values of carbonate ion
     real (r8), dimension(:,:),pointer :: f_zoo_detr   ! frac of zoo losses into large detrital pool (non-dim)
     real (r8), dimension(:,:),pointer :: DIC_loc      ! local copy of model DIC
     real (r8), dimension(:,:),pointer :: DOC_loc      ! local copy of model DOC
@@ -2895,7 +2904,6 @@ contains
 !-------------------------------------------------------------
 ! Nullify pointers
 !-------------------------------------------------------------
-    nullify(CO3_SURF)
     nullify(f_zoo_detr)
     nullify(DIC_loc)
     nullify(DOC_loc)
@@ -2941,11 +2949,6 @@ contains
 ! in ecosys_fields
 !---------------------------------------------------------------
 
- 
-    if (k == 1) then
-      CO3_SURF => CO3_SURF_fields(:,:,bid)
-    endif
- 
     
     f_zoo_detr => f_zoo_detr_fields(:,:,bid)
     DIC_loc => DIC_loc_fields(:,:,bid)
@@ -3231,6 +3234,7 @@ contains
          call comp_CO3terms(bid, j, k, LAND_MASK(:,j,bid) .and. k <= KMT(:,j,bid), .true., &
                             TEMP(:,j), SALT(:,j), DIC_loc(:,j), ALK_loc(:,j), PO4_loc(:,j), SiO3_loc(:,j), &
                             WORK1(:,j), WORK2(:,j), WORK3(:,j), H2CO3(:,j), HCO3(:,j), CO3(:,j))
+                                               
          if (lalt_co2_terms) then
             where (PH_PREV_ALT_CO2_3D(:,j,k,bid) /= c0)
                WORK1(:,j) = PH_PREV_ALT_CO2_3D(:,j,k,bid) - del_ph
@@ -3255,11 +3259,6 @@ contains
       call accumulate_tavg_field(WORK4, tavg_pH_3D_ALT_CO2,bid,k)
 
       PH_PREV_3D(:,:,k,bid) = WORK3
-      
-! Write CO3 at the surface to CO3_SURF, to be accessed by ecosys_ciso
-      if (k == 1) then
-        CO3_SURF = CO3
-      endif
 
       if (lalt_co2_terms) then
          PH_PREV_ALT_CO2_3D(:,:,k,bid) = WORK4
@@ -4528,18 +4527,18 @@ contains
 !  Pointer variables (defined in ecosys_fields)
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(:,:),pointer :: decay_CaCO3_ciso   ! scaling factor for dissolution of CaCO3   
+   real (r8), dimension(:,:),pointer :: decay_CaCO3_ptr   ! scaling factor for dissolution of CaCO3   
    real (r8), dimension(:,:),pointer :: DECAY_Hard         ! scaling factor for dissolution of Hard Ballast 
-   real (r8), dimension(:,:),pointer :: POC_PROD_avail_ciso! scaling factor for dissolution of Hard Ballast    
-   real (r8), dimension(:,:),pointer :: decay_POC_E_ciso   ! scaling factor for dissolution of Hard Ballast
-   real (r8), dimension(:,:),pointer :: poc_diss_ciso      ! POC diss. length used (cm) 
-   real (r8), dimension(:,:),pointer :: caco3_diss_ciso    ! CaCO3 diss. length used (cm) 
-   real (r8), dimension(:,:),pointer :: P_CaCO3_sflux_out_ciso   
-   real (r8), dimension(:,:),pointer :: P_CaCO3_hflux_out_ciso   
-   real (r8), dimension(:,:),pointer :: POC_sflux_out_ciso   
-   real (r8), dimension(:,:),pointer :: POC_hflux_out_ciso
-   real (r8), dimension(:,:),pointer :: POC_remin_ciso
-   real (r8), dimension(:,:),pointer :: P_CaCO3_remin_ciso   
+   real (r8), dimension(:,:),pointer :: POC_PROD_avail_ptr! scaling factor for dissolution of Hard Ballast    
+   real (r8), dimension(:,:),pointer :: decay_POC_E_ptr   ! scaling factor for dissolution of Hard Ballast
+   real (r8), dimension(:,:),pointer :: poc_diss_ptr      ! POC diss. length used (cm) 
+   real (r8), dimension(:,:),pointer :: caco3_diss_ptr    ! CaCO3 diss. length used (cm) 
+   real (r8), dimension(:,:),pointer :: P_CaCO3_sflux_out_ptr   
+   real (r8), dimension(:,:),pointer :: P_CaCO3_hflux_out_ptr   
+   real (r8), dimension(:,:),pointer :: POC_sflux_out_ptr   
+   real (r8), dimension(:,:),pointer :: POC_hflux_out_ptr
+   real (r8), dimension(:,:),pointer :: POC_remin_ptr
+   real (r8), dimension(:,:),pointer :: P_CaCO3_remin_ptr   
 
 !-------------------------------------------------------------
 
@@ -4549,37 +4548,37 @@ contains
 ! Nullify pointers
 !-------------------------------------------------------------
 
-   nullify(decay_CaCO3_ciso)
+   nullify(decay_CaCO3_ptr)
    nullify(DECAY_Hard)
-   nullify(POC_PROD_avail_ciso)
-   nullify(decay_POC_E_ciso)
-   nullify(poc_diss_ciso)
-   nullify(caco3_diss_ciso)
-   nullify(P_CaCO3_sflux_out_ciso)
-   nullify(P_CaCO3_hflux_out_ciso)
-   nullify(POC_sflux_out_ciso)
-   nullify(POC_hflux_out_ciso)
-   nullify(POC_remin_ciso)
-   nullify(P_CaCO3_remin_ciso)
+   nullify(POC_PROD_avail_ptr)
+   nullify(decay_POC_E_ptr)
+   nullify(poc_diss_ptr)
+   nullify(caco3_diss_ptr)
+   nullify(P_CaCO3_sflux_out_ptr)
+   nullify(P_CaCO3_hflux_out_ptr)
+   nullify(POC_sflux_out_ptr)
+   nullify(POC_hflux_out_ptr)
+   nullify(POC_remin_ptr)
+   nullify(P_CaCO3_remin_ptr)
 !-------------------------------------------------------------------
-! The following variables need to be shared with ecosys_ciso, and 
+! The following variables need to be shared with ecosys_ptr, and 
 ! are now defined in ecosys_fields as targets
 ! -> here we use pointers to point to the right part of the global 
 ! array in ecosys_fields
 !-------------------------------------------------------------------
 
-   decay_CaCO3_ciso       => decay_CaCO3_fields(:,:,bid)
+   decay_CaCO3_ptr       => decay_CaCO3_fields(:,:,bid)
    DECAY_Hard             => DECAY_Hard_fields(:,:,bid)
-   POC_PROD_avail_ciso    => POC_PROD_avail_fields(:,:,bid)
-   decay_POC_E_ciso       => decay_POC_E_fields(:,:,bid) 
-   poc_diss_ciso          => poc_diss_fields(:,:,bid)
-   caco3_diss_ciso        => caco3_diss_fields(:,:,bid)
-   P_CaCO3_sflux_out_ciso => P_CaCO3_sflux_out_fields(:,:,bid)
-   P_CaCO3_hflux_out_ciso => P_CaCO3_hflux_out_fields(:,:,bid)
-   POC_sflux_out_ciso     => POC_sflux_out_fields(:,:,bid)
-   POC_hflux_out_ciso     => POC_hflux_out_fields(:,:,bid)
-   POC_remin_ciso         => POC_remin_fields(:,:,bid)
-   P_CaCO3_remin_ciso     => P_CaCO3_remin_fields(:,:,bid)
+   POC_PROD_avail_ptr    => POC_PROD_avail_fields(:,:,bid)
+   decay_POC_E_ptr       => decay_POC_E_fields(:,:,bid) 
+   poc_diss_ptr          => poc_diss_fields(:,:,bid)
+   caco3_diss_ptr        => caco3_diss_fields(:,:,bid)
+   P_CaCO3_sflux_out_ptr => P_CaCO3_sflux_out_fields(:,:,bid)
+   P_CaCO3_hflux_out_ptr => P_CaCO3_hflux_out_fields(:,:,bid)
+   POC_sflux_out_ptr     => POC_sflux_out_fields(:,:,bid)
+   POC_hflux_out_ptr     => POC_hflux_out_fields(:,:,bid)
+   POC_remin_ptr         => POC_remin_fields(:,:,bid)
+   P_CaCO3_remin_ptr     => P_CaCO3_remin_fields(:,:,bid)
 !-----------------------------------------------------------------------
 !  incoming fluxes are outgoing fluxes from previous level
 !-----------------------------------------------------------------------
@@ -4769,13 +4768,13 @@ contains
 
             QA_dust_def(i,j,bid) = new_QA_dust_def
 
-! Save fields for use by ecosys_ciso
-            POC_PROD_avail_ciso(i,j)   = POC_PROD_avail
-            decay_POC_E_ciso(i,j)      = decay_POC_E
-            decay_POC_E_ciso(i,j)      = decay_POC_E
-            decay_CaCO3_ciso(i,j)      = decay_CaCO3
-            poc_diss_ciso(i,j)         = poc_diss
-            caco3_diss_ciso(i,j)       = caco3_diss
+! Save fields for use by other modules
+            POC_PROD_avail_ptr(i,j)   = POC_PROD_avail
+            decay_POC_E_ptr(i,j)      = decay_POC_E
+            decay_POC_E_ptr(i,j)      = decay_POC_E
+            decay_CaCO3_ptr(i,j)      = decay_CaCO3
+            poc_diss_ptr(i,j)         = poc_diss
+            caco3_diss_ptr(i,j)       = caco3_diss
             
 !-----------------------------------------------------------------------
 !  Compute outgoing POC fluxes. QA POC flux is computing using
@@ -4883,13 +4882,13 @@ contains
             P_iron%remin(i,j,bid) = c0
          endif
 
-! Save some fields for use by ecosys_ciso before setting outgoing fluxes to 0.0 in bottom cell below
-            P_CaCO3_sflux_out_ciso(i,j) = P_CaCO3%sflux_out(i,j,bid)
-            P_CaCO3_hflux_out_ciso(i,j) = P_CaCO3%hflux_out(i,j,bid)
-            POC_sflux_out_ciso(i,j)     = POC%sflux_out(i,j,bid)
-            POC_hflux_out_ciso(i,j)     = POC%hflux_out(i,j,bid)
-            POC_remin_ciso(i,j)         = POC%remin(i,j,bid)
-            P_CaCO3_remin_ciso(i,j)     = P_CaCO3%remin(i,j,bid) 
+! Save some fields for use by other modules before setting outgoing fluxes to 0.0 in bottom cell below
+            P_CaCO3_sflux_out_ptr(i,j) = P_CaCO3%sflux_out(i,j,bid)
+            P_CaCO3_hflux_out_ptr(i,j) = P_CaCO3%hflux_out(i,j,bid)
+            POC_sflux_out_ptr(i,j)     = POC%sflux_out(i,j,bid)
+            POC_hflux_out_ptr(i,j)     = POC%hflux_out(i,j,bid)
+            POC_remin_ptr(i,j)         = POC%remin(i,j,bid)
+            P_CaCO3_remin_ptr(i,j)     = P_CaCO3%remin(i,j,bid) 
 !-----------------------------------------------------------------------
 !  Bottom Sediments Cell?
 !  If so compute sedimentary burial and denitrification N losses.
@@ -6070,7 +6069,8 @@ contains
       XCO2,         & ! atmospheric co2 conc. (dry-air, 1 atm)
       XCO2_ALT_CO2, & ! atmospheric alternative CO2 (dry-air, 1 atm)
       FLUX,         & ! tracer flux (nmol/cm^2/s)
-      FLUX_ALT_CO2    ! tracer flux alternative CO2 (nmol/cm^2/s)
+      FLUX_ALT_CO2, & ! tracer flux alternative CO2 (nmol/cm^2/s)
+      CO3_ALT_SURF    ! CO3 at the surface for alternative CO2
 
    real (r8), dimension(nx_block) :: &
       PHLO,         & ! lower bound for ph in solver
@@ -6116,9 +6116,10 @@ contains
    real (r8), dimension(:,:),pointer :: CO2STAR_SURF  ! CO2STAR from solver
    real (r8), dimension(:,:),pointer :: DCO2STAR_SURF ! DCO2STAR from solver
    real (r8), dimension(:,:),pointer :: PV_SURF       ! piston velocity (cm/s)
-   
-   real (r8), dimension(:,:,:),pointer :: dic_riv_flux_ciso ! DIC river input for ciso
-   real (r8), dimension(:,:,:),pointer :: doc_riv_flux_ciso ! DOC river input for ciso
+   real (r8), dimension(:,:),pointer :: CO3_SURF     ! Surface values of carbonate ion
+  
+   real (r8), dimension(:,:,:),pointer :: dic_riv_flux_ptr ! pointer for DIC river input 
+   real (r8), dimension(:,:,:),pointer :: doc_riv_flux_ptr ! pointer for DOC river input 
 
 !-----------------------------------------------------------------------
 !  Nullify pointers
@@ -6128,11 +6129,12 @@ contains
    nullify(CO2STAR_SURF)
    nullify(DCO2STAR_SURF)
    nullify(PV_SURF)
-   nullify(doc_riv_flux_ciso)
-   nullify(dic_riv_flux_ciso)
+   nullify(CO3_SURF)
+   nullify(doc_riv_flux_ptr)
+   nullify(dic_riv_flux_ptr)
    
-   dic_riv_flux_ciso => dic_riv_flux_fields(:,:,:)
-   doc_riv_flux_ciso => doc_riv_flux_fields(:,:,:)
+   dic_riv_flux_ptr => dic_riv_flux_fields(:,:,:)
+   doc_riv_flux_ptr => doc_riv_flux_fields(:,:,:)
 !-----------------------------------------------------------------------
 
    call timer_start(ecosys_sflux_timer)
@@ -6261,15 +6263,16 @@ contains
       !$OMP                     PHLO,PHHI,DIC_ROW,ALK_ROW, &
       !$OMP                     PO4_ROW,SiO3_ROW,PH_NEW,CO2STAR_ROW, &
       !$OMP                     DCO2STAR_ROW,pCO2SURF_ROW,DpCO2_ROW, &
-      !$OMP                     DIC_SURF,CO2STAR_SURF,DCO2STAR_SURF, PV_SURF)
+      !$OMP                     DIC_SURF,CO2STAR_SURF,DCO2STAR_SURF, &
+      !$OMP                     PV_SURF,CO3_SURF,CO3_ALT_SURF)
 
       do iblock = 1, nblocks_clinic
 !-------------------------------------------------------------------
-!  The following _SURF variables need to be shared with ecosys_ciso, and 
+!  The following _SURF variables need to be shared with other modules, and 
 !  are now defined in ecosys_fields as targets. 
 !  The _SURF are indexed copies of the variables used as private variables 
 !  in this parallel block, so we can save the variables to the global field 
-!  We use pointers to point to the right part of the global array in
+!  We use pointers to point to the correct part of the global array in
 !  ecosys_fields
 !-------------------------------------------------------------------
  
@@ -6277,6 +6280,8 @@ contains
      CO2STAR_SURF => CO2STAR_SURF_fields(:,:,iblock)
      DCO2STAR_SURF => DCO2STAR_SURF_fields(:,:,iblock)
      PV_SURF => PV_SURF_fields(:,:,iblock)
+     CO3_SURF => CO3_SURF_fields(:,:,iblock)
+ 
 
 !-----------------------------------------------------------------------
 !  Apply OCMIP ice fraction mask when input is from a file.
@@ -6356,7 +6361,7 @@ contains
             elsewhere
                PV = c0
             end where
-! Save surface fields of PV for use in ecosys_ciso
+! Save surface fields of PV for use in other modules
             PV_SURF   = PV
 
 !-----------------------------------------------------------------------
@@ -6399,7 +6404,7 @@ contains
                                 DIC_ROW, ALK_ROW, PO4_ROW, SiO3_ROW, &
                                 PHLO, PHHI, PH_NEW, XCO2(:,j), &
                                 AP_USED(:,j,iblock), CO2STAR_ROW, &
-                                DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW)
+                                DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW,CO3_SURF)
 
                PH_PREV(:,j,iblock) = PH_NEW
 
@@ -6410,7 +6415,7 @@ contains
                ECO_SFLUX_TAVG(:,j,buf_ind_pCO2SURF,iblock) = pCO2SURF_ROW
                ECO_SFLUX_TAVG(:,j,buf_ind_DpCO2,iblock)    = DpCO2_ROW
 
-! Save surface fields of DIC_ROW, CO2STAR, and DCO2STAR for use in ecosys_ciso
+! Save surface fields of DIC_ROW, CO2STAR, and DCO2STAR for use in other modules
                DIC_SURF(:,j)      = DIC_ROW
                CO2STAR_SURF(:,j)  = CO2STAR_ROW
                DCO2STAR_SURF(:,j) = DCO2STAR_ROW
@@ -6433,7 +6438,8 @@ contains
                                 DIC_ROW, ALK_ROW, PO4_ROW, SiO3_ROW, &
                                 PHLO, PHHI, PH_NEW, XCO2_ALT_CO2(:,j), &
                                 AP_USED(:,j,iblock), CO2STAR_ROW, &
-                                DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW)
+                                DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW,&
+                                CO3_ALT_SURF)
 
                PH_PREV_ALT_CO2(:,j,iblock) = PH_NEW
 
@@ -6903,7 +6909,7 @@ contains
       STF_MODULE(:,:,dic_ind,:) = STF_MODULE(:,:,dic_ind,:) + INTERP_WORK(:,:,:,1)
       STF_MODULE(:,:,dic_alt_co2_ind,:) = STF_MODULE(:,:,dic_alt_co2_ind,:) + INTERP_WORK(:,:,:,1)
       ECO_SFLUX_TAVG(:,:,buf_ind_DIC_RIV_FLUX,:) = INTERP_WORK(:,:,:,1)
-      dic_riv_flux_ciso=INTERP_WORK(:,:,:,1)
+      dic_riv_flux_ptr=INTERP_WORK(:,:,:,1)
    endif
 
    if (alk_riv_flux%has_data) then
@@ -6953,7 +6959,7 @@ contains
          doc_riv_flux%interp_inc,        doc_riv_flux%interp_next, &
          doc_riv_flux%interp_last,       0)
       STF_MODULE(:,:,doc_ind,:) = STF_MODULE(:,:,doc_ind,:) + INTERP_WORK(:,:,:,1)
-      doc_riv_flux_ciso=INTERP_WORK(:,:,:,1)
+      doc_riv_flux_ptr=INTERP_WORK(:,:,:,1)
    endif
 
 
@@ -7417,11 +7423,13 @@ contains
       short_name  ! tracer name temporaries
 
    type (io_dim) :: &
-      i_dim, j_dim ! dimension descriptors
+      i_dim, j_dim, & ! dimension descriptors
+      k_dim           ! dimension descriptor for vertical levels
 
    integer (int_kind) :: n
 
-   type (io_field_desc), save :: PH_SURF, PH_SURF_ALT_CO2
+   type (io_field_desc), save :: PH_SURF, PH_SURF_ALT_CO2, &
+                                 PH_3D_ALT_CO2,  PH_3D
 
 !-----------------------------------------------------------------------
 
@@ -7439,7 +7447,8 @@ contains
    if (trim(action) == 'define') then
       i_dim = construct_io_dim('i', nx_global)
       j_dim = construct_io_dim('j', ny_global)
-
+      k_dim = construct_io_dim('k', km)
+      
       PH_SURF = construct_io_field('PH_SURF', i_dim, j_dim,     &
                    long_name='surface pH at current time',      &
                    units='pH', grid_loc='2110',            &
@@ -7455,11 +7464,30 @@ contains
                    field_type = field_type_scalar,              &
                    d2d_array = PH_PREV_ALT_CO2)
       call data_set (restart_file, 'define', PH_SURF_ALT_CO2)
+      
+      PH_3D_ALT_CO2 = construct_io_field('PH_3D_ALT_CO2', i_dim, j_dim, k_dim, &
+                   long_name='3D pH, alternate CO2, at current time', &
+                   units='pH', grid_loc='3111',            &
+                   field_loc = field_loc_center,                &
+                   field_type = field_type_scalar,              &
+                   d3d_array = PH_PREV_ALT_CO2_3D)
+      call data_set (restart_file, 'define', PH_3D_ALT_CO2)
+      
+      PH_3D = construct_io_field('PH_3D', i_dim, j_dim, k_dim, &
+                   long_name='3D pH at current time', &
+                   units='pH', grid_loc='3111',            &
+                   field_loc = field_loc_center,                &
+                   field_type = field_type_scalar,              &
+                   d3d_array = PH_PREV_3D)
+      call data_set (restart_file, 'define', PH_3D)
+      
    endif
 
    if (trim(action) == 'write') then
       call data_set (restart_file, 'write', PH_SURF)
       call data_set (restart_file, 'write', PH_SURF_ALT_CO2)
+      call data_set (restart_file, 'write', PH_3D)
+      call data_set (restart_file, 'write', PH_3D_ALT_CO2)
    endif
 
 !-----------------------------------------------------------------------

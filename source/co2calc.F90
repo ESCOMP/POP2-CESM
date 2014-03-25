@@ -65,7 +65,7 @@ CONTAINS
 
   SUBROUTINE co2calc_row(iblock, j, mask, locmip_k1_k2_bug_fix, lcomp_co3_coeffs, &
        temp, salt, dic_in, ta_in, pt_in, sit_in, phlo, phhi, ph, xco2_in, atmpres, &
-       co2star, dco2star, pCO2surf, dpco2)
+       co2star, dco2star, pCO2surf, dpco2,CO3)
 
     !---------------------------------------------------------------------------
     !   SUBROUTINE co2calc_row
@@ -109,7 +109,8 @@ CONTAINS
          co2star,  & ! CO2*water (nmol/cm^3)
          dco2star, & ! delta CO2 (nmol/cm^3)
          pco2surf, & ! oceanic pCO2 (ppmv)
-         dpco2       ! Delta pCO2, i.e, pCO2ocn - pCO2atm (ppmv)
+         dpco2,    & ! Delta pCO2, i.e, pCO2ocn - pCO2atm (ppmv)
+         CO3         ! Carbonate Ion Concentration
 
     !---------------------------------------------------------------------------
     !   local variable declarations
@@ -122,7 +123,7 @@ CONTAINS
          mass_to_vol,  & ! (mol/kg) -> (mmol/m^3)
          vol_to_mass,  & ! (mmol/m^3) -> (mol/kg)
          co2starair,   & ! co2star saturation
-         htotal2
+         htotal2, denom
 
     REAL(KIND=r8), DIMENSION(nx_block) :: &
          xco2,         & ! atmospheric CO2 (atm)
@@ -140,6 +141,7 @@ CONTAINS
        dco2star    = c0
        pCO2surf    = c0
        dpCO2       = c0
+       CO3         = c0
        RETURN
     END IF
 
@@ -188,12 +190,14 @@ CONTAINS
     DO i = 1,nx_block
        IF (mask(i)) THEN
 
-          htotal2 = htotal(i) ** 2
-          co2star(i) = dic(i,iblock) * htotal2 / &
+          htotal2     = htotal(i) ** 2
+          denom       = c1 / (htotal2 + k1(i) * htotal(i) + k1(i) * k2(i))
+          CO3(i)      = dic(i,iblock) * k1(i) * k2(i) * denom
+          co2star(i)  = dic(i,iblock) * htotal2 / &
                (htotal2 + k1(i) * htotal(i) + k1(i) * k2(i))
-          co2starair = xco2(i) * ff(i) * atmpres(i)
+          co2starair  = xco2(i) * ff(i) * atmpres(i)
           dco2star(i) = co2starair - co2star(i)
-          ph(i) = -LOG10(htotal(i))
+          ph(i)       = -LOG10(htotal(i))
 
           !---------------------------------------------------------------------
           !   Add two output arguments for storing pCO2surf
@@ -207,7 +211,8 @@ CONTAINS
           !   Convert units of output arguments
           !   Note: pCO2surf and dpCO2 are calculated in atm above.
           !---------------------------------------------------------------------
-
+ 
+          CO3(i)      = CO3(i) * mass_to_vol
           co2star(i)  = co2star(i) * mass_to_vol
           dco2star(i) = dco2star(i) * mass_to_vol
 
@@ -221,6 +226,7 @@ CONTAINS
           dco2star(i) = c0
           pCO2surf(i) = c0
           dpCO2(i)    = c0
+          CO3(i)      = c0
 
        END IF ! if mask
     END DO ! i loop

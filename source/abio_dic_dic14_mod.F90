@@ -56,13 +56,13 @@ module abio_dic_dic14_mod
 ! !PUBLIC MEMBER FUNCTIONS:
 
    public :: &
-       abio_dic_dic14_tracer_cnt,     &
-       abio_dic_dic14_init,           &
-       abio_dic_dic14_tracer_ref_val, &
-       abio_dic_dic14_set_sflux,      &
-       abio_dic_dic14_tavg_forcing,   &
-       abio_dic_dic14_set_interior,   &
-       abio_dic_dic14_write_restart
+      abio_dic_dic14_tracer_cnt,     &
+      abio_dic_dic14_init,           &
+      abio_dic_dic14_tracer_ref_val, &
+      abio_dic_dic14_set_sflux,      &
+      abio_dic_dic14_tavg_forcing,   &
+      abio_dic_dic14_set_interior,   &
+      abio_dic_dic14_write_restart
 
 
 !EOP
@@ -73,7 +73,7 @@ module abio_dic_dic14_mod
 !-----------------------------------------------------------------------
 
    integer (int_kind), parameter :: &
-       abio_dic_dic14_tracer_cnt = 2
+      abio_dic_dic14_tracer_cnt = 2
 
 !-----------------------------------------------------------------------
 !  relative tracer indices
@@ -228,7 +228,7 @@ module abio_dic_dic14_mod
  real (r8), parameter :: &
       abio_phlo_surf_init = 7.0_r8, &      ! low bound for surface ph for no prev soln
       abio_phhi_surf_init = 9.0_r8, &      ! high bound for surface ph for no prev soln
-      abio_del_ph = 0.20_r8                ! delta-ph for prev soln
+      abio_del_ph         = 0.20_r8        ! delta-ph for prev soln
 
 
 !EOC
@@ -309,7 +309,7 @@ contains
       abio_comp_surf_avg_freq_iopt,&        ! choice for freq of comp_surf_avg
       abio_comp_surf_avg_freq               ! choice for freq of comp_surf_avg
 
-  real (r8) :: &
+   real (r8) :: &
       abio_surf_avg_dic_const,   &          ! Constant surface DIC
       abio_surf_avg_dic14_const             ! Constant surface DIC14
   
@@ -317,12 +317,12 @@ contains
       abio_use_nml_surf_vals                ! do namelist surf values override values
                                             ! from restart file?
 
-  namelist /abio_dic_dic14_nml/ &
-    init_abio_dic_dic14_option, init_abio_dic_dic14_init_file, abio_tracer_init_ext, &
-    init_abio_dic_dic14_init_file_fmt, abio_surf_avg_dic_const, abio_use_nml_surf_vals, &
-    abio_comp_surf_avg_freq_opt, abio_comp_surf_avg_freq, abio_surf_avg_dic14_const, &
-    abio_atm_co2_d14c_opt, abio_atm_co2_filename, abio_atm_co2_const, abio_atm_d14c_const, &
-    abio_atm_d14c_filename, abio_locmip_k1_k2_bug_fix
+   namelist /abio_dic_dic14_nml/ &
+      init_abio_dic_dic14_option, init_abio_dic_dic14_init_file, abio_tracer_init_ext, &
+      init_abio_dic_dic14_init_file_fmt, abio_surf_avg_dic_const, abio_use_nml_surf_vals, &
+      abio_comp_surf_avg_freq_opt, abio_comp_surf_avg_freq, abio_surf_avg_dic14_const, &
+      abio_atm_co2_d14c_opt, abio_atm_co2_filename, abio_atm_co2_const, abio_atm_d14c_const, &
+      abio_atm_d14c_filename, abio_locmip_k1_k2_bug_fix
  
  
 !-----------------------------------------------------------------------
@@ -357,27 +357,27 @@ contains
    end do
 
 
-    abio_use_nml_surf_vals            = .false.
-    abio_locmip_k1_k2_bug_fix         = .true. 
+   abio_use_nml_surf_vals            = .false.
+   abio_locmip_k1_k2_bug_fix         = .true. 
 
-    abio_surf_avg_dic_const           = 1944._r8
-    abio_surf_avg_dic14_const         = 1944._r8
-    abio_comp_surf_avg_freq_opt       = 'never'
-    abio_comp_surf_avg_freq           = 1
+   abio_surf_avg_dic_const           = 1944._r8
+   abio_surf_avg_dic14_const         = 1944._r8
+   abio_comp_surf_avg_freq_opt       = 'never'
+   abio_comp_surf_avg_freq           = 1
 
-    abio_atm_co2_d14c_opt             = 'const'
-    abio_atm_co2_const                = 280.0_r8 
-    abio_atm_co2_filename             = 'unknown'
-    abio_atm_d14c_const               = c0   
-    abio_atm_d14c_filename(1)         = 'unknown'
-    abio_atm_d14c_filename(2)         = 'unknown'
-    abio_atm_d14c_filename(3)         = 'unknown'
+   abio_atm_co2_d14c_opt             = 'const'
+   abio_atm_co2_const                = 280.0_r8 
+   abio_atm_co2_filename             = 'unknown'
+   abio_atm_d14c_const               = c0   
+   abio_atm_d14c_filename(1)         = 'unknown'
+   abio_atm_d14c_filename(2)         = 'unknown'
+   abio_atm_d14c_filename(3)         = 'unknown'
 
 !-----------------------------------------------------------------------
 !  read namelist settings from namelist
 !-----------------------------------------------------------------------
 
- if (my_task == master_task) then
+   if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
       if (nml_error /= 0) then
          nml_error = -1
@@ -397,6 +397,18 @@ contains
                            &/ sub_name)
    endif
 
+   if (my_task == master_task) then
+      write(stdout,blank_fmt)
+      write(stdout,ndelim_fmt)
+      write(stdout,blank_fmt)
+      write(stdout,*) ' abio_dic_dic14:'
+      write(stdout,blank_fmt)
+      write(stdout,*) ' abio_dic_dic14_nml namelist settings:'
+      write(stdout,blank_fmt)
+      write(stdout,abio_dic_dic14_nml)
+      write(stdout,blank_fmt)
+      write(stdout,delim_fmt)
+   endif
 
 !-----------------------------------------------------------------------
 !  broadcast all namelist variables
@@ -602,14 +614,11 @@ contains
    call get_timer(abio_dic_dic14_sflux_timer,&
                   'ABIO_DIC_SFLUX', 1, distrb_clinic%nprocs)
 
-   
-
 !-----------------------------------------------------------------------
 !  Define decay variable for DIC14, using the earlier defined half life of c14
 !-----------------------------------------------------------------------
    
    c14_lambda_inv_sec = log(c2) / (c14_halflife_years * seconds_in_year) !following OCCMIP2
-   
    
 !-----------------------------------------------------------------------
 !  call other initialization subroutines
@@ -617,9 +626,7 @@ contains
  
    call abio_dic_dic14_init_tavg
    
-    
    call abio_dic_dic14_init_sflux
-   
    
 !-----------------------------------------------------------------------
 !EOC
@@ -653,22 +660,22 @@ contains
     
    var_cnt = 0
 
-   call define_tavg_field(tavg_ABIO_CO2_IFRAC,'ABIO_CO2_IFRAC',2,           &
+   call define_tavg_field(tavg_ABIO_CO2_IFRAC,'ABIO_CO2_IFRAC',2,         &
                           long_name='Ice Fraction for Abiotic CO2 fluxes',&
                           units='fraction', grid_loc='2110')
    var_cnt = var_cnt+1
 
-   call define_tavg_field(tavg_ABIO_CO2_XKW,'ABIO_CO2_XKW',2,               &
+   call define_tavg_field(tavg_ABIO_CO2_XKW,'ABIO_CO2_XKW',2,             &
                           long_name='XKW for Abiotic CO2 fluxes',         &
                           units='cm/s', grid_loc='2110')
    var_cnt = var_cnt+1
 
-   call define_tavg_field(tavg_ABIO_CO2_ATM_PRESS,'ABIO_CO2_ATM_PRESS',2,   &
+   call define_tavg_field(tavg_ABIO_CO2_ATM_PRESS,'ABIO_CO2_ATM_PRESS',2,         &
                           long_name='Atmospheric Pressure for Abiotic CO2 fluxes',&
                           units='atmospheres', grid_loc='2110')
    var_cnt = var_cnt+1
 
-   call define_tavg_field(tavg_ABIO_pCO2,'ABIO_pCO2',2,                 &
+   call define_tavg_field(tavg_ABIO_pCO2,'ABIO_pCO2',2,                        &
                           long_name='Abiotic CO2 atmospheric partial pressure',&
                           units='ppm', grid_loc='2110')
    var_cnt = var_cnt+1
@@ -696,38 +703,38 @@ contains
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_ABIO_DCO2STAR,'ABIO_DCO2STAR',2, &
-                          long_name='ABIO_DCO2STAR',           &
+                          long_name='ABIO_DCO2STAR',            &
                           units='nmol/cm^3', grid_loc='2110')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_ABIO_pCO2SURF,'ABIO_pCO2SURF',2, &
-                          long_name='ABIO_pCO2SURF',           &
+                          long_name='ABIO_pCO2SURF',            &
                           units='ppmv', grid_loc='2110')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_ABIO_DpCO2,'ABIO_DpCO2',2, &
-                          long_name='ABIO_DpCO2',           &
+                          long_name='ABIO_DpCO2',         &
                           units='ppmv', grid_loc='2110')
    var_cnt = var_cnt+1
    
    call define_tavg_field(tavg_ABIO_PH,'ABIO_PH_SURF',2, &
-                          long_name='Abiotic Surface PH',           &
+                          long_name='Abiotic Surface PH',&
                           units='none', grid_loc='2110')
    var_cnt = var_cnt+1
 
-   call define_tavg_field(tavg_ABIO_ALK,'ABIO_ALK_SURF',2, &
-                          long_name='Abiotic Surface Alkalinity',           &
+   call define_tavg_field(tavg_ABIO_ALK,'ABIO_ALK_SURF',2,       &
+                          long_name='Abiotic Surface Alkalinity',&
                           units='neq/cm3', grid_loc='2110')
    var_cnt = var_cnt+1
 
             
-   call define_tavg_field(tavg_FG_ABIO_DIC,'FG_ABIO_DIC',2, &
-                          long_name='Surface gas flux of abiotic DIC',           &
+   call define_tavg_field(tavg_FG_ABIO_DIC,'FG_ABIO_DIC',2,           &
+                          long_name='Surface gas flux of abiotic DIC',&
                           units='nmol/cm^2/s', grid_loc='2110')
    var_cnt = var_cnt+1
 
-   call define_tavg_field(tavg_FG_ABIO_DIC14,'FG_ABIO_DIC14',2, &
-                          long_name='Surface gas flux of abiotic DIC14',           &
+   call define_tavg_field(tavg_FG_ABIO_DIC14,'FG_ABIO_DIC14',2,         &
+                          long_name='Surface gas flux of abiotic DIC14',&
                           units='nmol/cm^2/s', grid_loc='2110')
    var_cnt = var_cnt+1
 
@@ -735,14 +742,17 @@ contains
 !-----------------------------------------------------------------------
 ! Allocate variable to save surface variables to in surf_flux, 
 ! so tavg can be called later for them (in tavg_forcing)
+!-----------------------------------------------------------------------
 
    allocate(ABIO_DIC_SFLUX_TAVG(nx_block,ny_block,var_cnt,max_blocks_clinic))
    ABIO_DIC_SFLUX_TAVG = c0
+   
 !-----------------------------------------------------------------------
 ! Additional interior tavg variables
+!-----------------------------------------------------------------------
 
-  call define_tavg_field(tavg_ABIO_D14Cocn,'ABIO_D14Cocn',3, &
-                          long_name='Abiotic oceanic Delta C14 in permil',           &
+  call define_tavg_field(tavg_ABIO_D14Cocn,'ABIO_D14Cocn',3,              &
+                          long_name='Abiotic oceanic Delta C14 in permil',&
                           units='permil', grid_loc='2110')
 
 !-----------------------------------------------------------------------
@@ -785,41 +795,41 @@ contains
    select case (abio_atm_co2_d14c_opt)
 
    case ('const')
-        if (my_task == master_task) then
-          write(stdout,*)'Abiotic DIC/DIC14 calculation: Using constant CO2 and D14C values of ',abio_atm_co2_const,' & ',abio_atm_d14c_const
-        endif
+      if (my_task == master_task) then
+         write(stdout,*)'Abiotic DIC/DIC14 calculation: Using constant CO2 and D14C values of ',abio_atm_co2_const,' & ',abio_atm_d14c_const
+      endif
 
    case ('coupler')
-        if (my_task == master_task) then
+      if (my_task == master_task) then
          write(stdout,*)'Abiotic DIC calculation: Using CO2 values from coupler'
-        endif
+      endif
 
 !-----------------------------------------------------------------------
 !     Verify running coupled if gas fluxes use coupler forcing
 !-----------------------------------------------------------------------
-        if (.not. registry_match('lcoupled')) then   
-          call exit_POP(sigAbort, 'abio_dic_dic14_init: abio_dic_dic14 module requires the ' /&
+      if (.not. registry_match('lcoupled')) then   
+         call exit_POP(sigAbort, 'abio_dic_dic14_init: abio_dic_dic14 module requires the ' /&
                            &/ 'flux coupler when abio_atm_co2_d14c_opt=coupler')
-        endif
+      endif
 !-----------------------------------------------------------------------
 !    Get co2 index from coupler for reading of CO2 data later 
 !    (each timesstep) and abort if it isn't there
 !-----------------------------------------------------------------------
 
-        call named_field_get_index('ATM_CO2_DIAG', atm_co2_nf_ind, &  
+      call named_field_get_index('ATM_CO2_DIAG', atm_co2_nf_ind, &  
                                  exit_on_err=.false.)
 
-        if (atm_co2_nf_ind == 0) then
-           call exit_POP(sigAbort, 'abio_dic_dic14_init: abio_dic_dic14 module requires ' /&
+      if (atm_co2_nf_ind == 0) then
+         call exit_POP(sigAbort, 'abio_dic_dic14_init: abio_dic_dic14 module requires ' /&
                               &/ 'atmopsheric CO2 from the flux coupler ' /&
                               &/ 'and it is not present')
-        endif
+      endif
 
 !-----------------------------------------------------------------------
 !     READ in D14C data from OCMIP2 files 
 !-----------------------------------------------------------------------
 
-        call read_atm_D14C_data
+      call read_atm_D14C_data
 
 
    case('ocmip2')
@@ -827,17 +837,17 @@ contains
 !     READ in CO2 data from OCMIP2 file
 !-----------------------------------------------------------------------
 
-        call read_atm_CO2_data
+      call read_atm_CO2_data
    
 !-----------------------------------------------------------------------
 !     READ in D14C data from OCMIP2 files 
 !-----------------------------------------------------------------------
 
-        call read_atm_D14C_data
+      call read_atm_D14C_data
    
 
   case default
-        call exit_POP(sigAbort, 'unknown abio_atm_co2_d14c_opt in abio_dic_dic14_init_sflux')
+      call exit_POP(sigAbort, 'unknown abio_atm_co2_d14c_opt in abio_dic_dic14_init_sflux')
   
   end select 
 
@@ -902,22 +912,23 @@ contains
       AP_USED              ! used atm pressure (converted from dyne/cm**2 to atm)
  
    real (r8), dimension(nx_block,ny_block) :: &
-      SURF_VALS_DIC,     & ! filtered DIC surface tracer values
-      SURF_VALS_DIC14,   & ! filtered DIC14 surface tracer values
-      pCO2,              & ! atmospheric CO2 mole fraction (pmol/mol)
-      D14C,              & ! atmospheric Delta C14 in permil
-      CO2_SCHMIDT,       & ! CO2 Schmidt number
-      CO2_SOL_0,         & ! solubility of CO2 at 1 atm (mol/l/atm)
-      XKW_ICE,           & ! common portion of piston vel., (1-fice)*xkw (cm/s)
-      PV,                & ! piston velocity (cm/s)
-      SiO2,              & ! Silicate (constant), in mol/m3 =mmol/cm3
-      PO4,               & ! Phosphate (constant), in mol/m3 =mmol/cm3
-      DIC_surf,          & ! DIC surface aqueous CO2 concentration [mol/m3], computed from the surface DIC, T, S, and Alk
-      DIC14_surf,        & ! DIC14 surface ocean 14CO2 concentration [mol/m3] =mmol/cm3
-      R14C_ocn,          & ! Rocn=DIC14/DIC
-      R14C_atm,          & ! Ratm = 1+ D14C/1000	
-      GAS_FLUX_ABIO_DIC, & ! Surface gas flux of DIC
-      GAS_FLUX_ABIO_DIC14  ! Surface flux of DIC14  
+      SURF_VALS_DIC,      & ! filtered DIC surface tracer values
+      SURF_VALS_DIC14,    & ! filtered DIC14 surface tracer values
+      pCO2,               & ! atmospheric CO2 mole fraction (pmol/mol)
+      D14C,               & ! atmospheric Delta C14 in permil
+      CO2_SCHMIDT,        & ! CO2 Schmidt number
+      CO2_SOL_0,          & ! solubility of CO2 at 1 atm (mol/l/atm)
+      XKW_ICE,            & ! common portion of piston vel., (1-fice)*xkw (cm/s)
+      PV,                 & ! piston velocity (cm/s)
+      SiO2,               & ! Silicate (constant), in mol/m3 =mmol/cm3
+      PO4,                & ! Phosphate (constant), in mol/m3 =mmol/cm3
+      DIC_surf,           & ! DIC surface aqueous CO2 concentration [mol/m3], computed from the surface DIC, T, S, and Alk
+      DIC14_surf,         & ! DIC14 surface ocean 14CO2 concentration [mol/m3] =mmol/cm3
+      R14C_ocn,           & ! Rocn=DIC14/DIC
+      R14C_atm,           & ! Ratm = 1+ D14C/1000	
+      GAS_FLUX_ABIO_DIC,  & ! Surface gas flux of DIC
+      GAS_FLUX_ABIO_DIC14,& ! Surface flux of DIC14
+      CO3_SURF              ! CO3 at the surface
 
       real (r8), dimension(nx_block) :: &
       PHLO,             & ! lower bound for ph in solver
@@ -980,19 +991,19 @@ contains
  !$OMP                     R14C_ocn,R14C_atm,PHLO,PHHI,ABIO_DIC_ROW,&
  !$OMP                     ALK_ROW,PH_NEW,CO2STAR_ROW, DCO2STAR_ROW,&
  !$OMP                     pCO2SURF_ROW,DpCO2_ROW,GAS_FLUX_ABIO_DIC,&
- !$OMP                     GAS_FLUX_ABIO_DIC14)
+ !$OMP                     GAS_FLUX_ABIO_DIC14,CO3_SURF)
 
    do iblock = 1, nblocks_clinic   
       where (LAND_MASK(:,:,iblock))
-          IFRAC_USED(:,:,iblock) = IFRAC(:,:,iblock)
-          XKW_USED(:,:,iblock) = xkw_coeff * U10_SQR(:,:,iblock)
-          AP_USED(:,:,iblock) = PRESS(:,:,iblock)
+         IFRAC_USED(:,:,iblock) = IFRAC(:,:,iblock)
+         XKW_USED(:,:,iblock) = xkw_coeff * U10_SQR(:,:,iblock)
+         AP_USED(:,:,iblock) = PRESS(:,:,iblock)
       endwhere
  
       where (LAND_MASK(:,:,iblock) .and. IFRAC_USED(:,:,iblock) < c0) &
-            IFRAC_USED(:,:,iblock) = c0
+         IFRAC_USED(:,:,iblock) = c0
       where (LAND_MASK(:,:,iblock) .and. IFRAC_USED(:,:,iblock) > c1) &
-            IFRAC_USED(:,:,iblock) = c1
+         IFRAC_USED(:,:,iblock) = c1
 
 !-----------------------------------------------------------------------
 !  assume PRESS is in cgs units (dyne/cm**2) since that is what is
@@ -1020,9 +1031,9 @@ contains
 !-----------------------------------------------------------------------
 
       where (LAND_MASK(:,:,iblock))
-          PV = XKW_ICE * SQRT(660.0_r8 / CO2_SCHMIDT)
+         PV = XKW_ICE * SQRT(660.0_r8 / CO2_SCHMIDT)
       elsewhere
-          PV = c0
+         PV = c0
       end where
   
 !-----------------------------------------------------------------------      
@@ -1038,21 +1049,22 @@ contains
 
       case ('const')
 
-        call comp_const_glo_CO2_D14C(iblock, LAND_MASK(:,:,iblock),pCO2, D14C)
+         call comp_const_glo_CO2_D14C(iblock, LAND_MASK(:,:,iblock),pCO2, D14C)
 
       case ('coupler')
 
-        call named_field_get(atm_co2_nf_ind,iblock, pCO2)
-        call comp_varying_glo_D14C(iblock, LAND_MASK(:,:,iblock),data_ind_d14c(iblock),D14C)
+         call named_field_get(atm_co2_nf_ind,iblock, pCO2)
+         call comp_varying_glo_D14C(iblock, LAND_MASK(:,:,iblock),data_ind_d14c(iblock),D14C)
 
    
       case('ocmip2')
-        call comp_varying_glo_CO2(iblock, LAND_MASK(:,:,iblock),data_ind_co2(iblock),pCO2)
-        call comp_varying_glo_D14C(iblock, LAND_MASK(:,:,iblock),data_ind_d14c(iblock),D14C)
+         call comp_varying_glo_CO2(iblock, LAND_MASK(:,:,iblock),data_ind_co2(iblock),pCO2)
+         call comp_varying_glo_D14C(iblock, LAND_MASK(:,:,iblock),data_ind_d14c(iblock),D14C)
 
 
       case default
-        call exit_POP(sigAbort, 'unknown abio_atm_co2_d14c_opt in abio_dic_dic14_set_sflux')
+         call exit_POP(sigAbort, 'unknown abio_atm_co2_d14c_opt in abio_dic_dic14_set_sflux')
+         
       end select  
   
 !-----------------------------------------------------------------------      
@@ -1069,9 +1081,9 @@ contains
 !-----------------------------------------------------------------------
 
       where(SURF_VALS_DIC/=c0)
-          R14C_ocn = SURF_VALS_DIC14/SURF_VALS_DIC
+         R14C_ocn = SURF_VALS_DIC14/SURF_VALS_DIC
       elsewhere
-          R14C_ocn = c0
+         R14C_ocn = c0
       endwhere
   
       R14C_atm = c1 + D14C / c1000
@@ -1086,16 +1098,16 @@ contains
 !--------------------------------------------------------------------------------------------------------
 
       do j = 1,ny_block
-            where (ABIO_PH_PREV(:,j,iblock) /= c0)
-                 PHLO = ABIO_PH_PREV(:,j,iblock) - abio_del_ph
-                 PHHI = ABIO_PH_PREV(:,j,iblock) + abio_del_ph
-            elsewhere
-                 PHLO = abio_phlo_surf_init
-                 PHHI = abio_phhi_surf_init
-            end where
+         where (ABIO_PH_PREV(:,j,iblock) /= c0)
+            PHLO = ABIO_PH_PREV(:,j,iblock) - abio_del_ph
+            PHHI = ABIO_PH_PREV(:,j,iblock) + abio_del_ph
+         elsewhere
+            PHLO = abio_phlo_surf_init
+            PHHI = abio_phhi_surf_init
+         end where
 
-            ABIO_DIC_ROW = p5*(SURF_VALS_OLD(:,j,abio_dic_ind,iblock) + &
-                           SURF_VALS_CUR(:,j,abio_dic_ind,iblock))
+         ABIO_DIC_ROW = p5*(SURF_VALS_OLD(:,j,abio_dic_ind,iblock) + &
+                        SURF_VALS_CUR(:,j,abio_dic_ind,iblock))
               
 
 !--------------------------------------------------------------------------------------------------------
@@ -1106,48 +1118,48 @@ contains
 !  does not depend on salinity
 !--------------------------------------------------------------------------------------------------------
      
-            where ( (REGION_MASK(:,j,iblock) /= -12) .AND. (REGION_MASK(:,j,iblock) /= -13) )
-                 ALK_ROW=ALK_bar_global * rho_sw * SSS(:,j,iblock) / ocn_ref_salinity        ! units= nano eq/cm3
-            elsewhere ( (REGION_MASK(:,j,iblock) == -12) .AND. (SSS(:,j,iblock) <=7.3) )  ! Baltic Sea, fresh part
-                 ALK_ROW=119._r8 + 196._r8 * SSS(:,j,iblock)                               ! units= nano eq/cm3 
-            elsewhere ( (REGION_MASK(:,j,iblock) == -12) .AND. (SSS(:,j,iblock) >7.3) )   ! Baltic Sea, saltier part
-                 ALK_ROW=1237._r8 + 43._r8 * SSS(:,j,iblock)                             ! units= nano eq/cm3 
-            elsewhere (REGION_MASK(:,j,iblock) == -13)                                    ! Black Sea
-                 ALK_ROW= 3300 * rho_sw                                                    ! units= nano eq/cm3
-            end where
+         where ( (REGION_MASK(:,j,iblock) /= -12) .AND. (REGION_MASK(:,j,iblock) /= -13) )
+            ALK_ROW=ALK_bar_global * rho_sw * SSS(:,j,iblock) / ocn_ref_salinity        ! units= nano eq/cm3
+         elsewhere ( (REGION_MASK(:,j,iblock) == -12) .AND. (SSS(:,j,iblock) <=7.3) )   ! Baltic Sea, fresh part
+            ALK_ROW=119._r8 + 196._r8 * SSS(:,j,iblock)                                 ! units= nano eq/cm3 
+         elsewhere ( (REGION_MASK(:,j,iblock) == -12) .AND. (SSS(:,j,iblock) >7.3) )    ! Baltic Sea, saltier part
+            ALK_ROW=1237._r8 + 43._r8 * SSS(:,j,iblock)                                 ! units= nano eq/cm3 
+         elsewhere (REGION_MASK(:,j,iblock) == -13)                                     ! Black Sea
+            ALK_ROW= 3300 * rho_sw                                                      ! units= nano eq/cm3
+         end where
   
 !-----------------------------------------------------------------------
 !  Call co2calc_row which calculated PH, CO2* etc
 !-----------------------------------------------------------------------
 
-            call co2calc_row(iblock, j, LAND_MASK(:,j,iblock), abio_locmip_k1_k2_bug_fix, &
+         call co2calc_row(iblock, j, LAND_MASK(:,j,iblock), abio_locmip_k1_k2_bug_fix, &
                           .true., SST(:,j,iblock), SSS(:,j,iblock), &
                           ABIO_DIC_ROW, ALK_ROW, PO4(:,j), SiO2(:,j), &
                           PHLO, PHHI, PH_NEW, pCO2(:,j), &
                           AP_USED(:,j,iblock), CO2STAR_ROW, &
-                          DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW)
+                          DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW,CO3_SURF)
 
-            ABIO_PH_PREV(:,j,iblock) = PH_NEW
+         ABIO_PH_PREV(:,j,iblock) = PH_NEW
                  
 !-----------------------------------------------------------------------
 ! Calculate the surface gas flux for DIC and DIC14
 !-----------------------------------------------------------------------
-           GAS_FLUX_ABIO_DIC(:,j)   = PV(:,j) * DCO2STAR_ROW
+         GAS_FLUX_ABIO_DIC(:,j)   = PV(:,j) * DCO2STAR_ROW
 
-           GAS_FLUX_ABIO_DIC14(:,j) = PV(:,j) * ((DCO2STAR_ROW + CO2STAR_ROW) * &
+         GAS_FLUX_ABIO_DIC14(:,j) = PV(:,j) * ((DCO2STAR_ROW + CO2STAR_ROW) * &
                                      R14C_atm(:,j) - CO2STAR_ROW * R14C_ocn(:,j))
 
  !-----------------------------------------------------------------------
  ! Assign calculated values to TAVG fields
  !-----------------------------------------------------------------------        
-           ABIO_DIC_SFLUX_TAVG(:,j,10,iblock)  = CO2STAR_ROW
-           ABIO_DIC_SFLUX_TAVG(:,j,11,iblock)  = DCO2STAR_ROW
-           ABIO_DIC_SFLUX_TAVG(:,j,12,iblock)  = pCO2SURF_ROW
-           ABIO_DIC_SFLUX_TAVG(:,j,13,iblock)  = DpCO2_ROW
-           ABIO_DIC_SFLUX_TAVG(:,j,14,iblock)  = ALK_ROW
+         ABIO_DIC_SFLUX_TAVG(:,j,10,iblock)  = CO2STAR_ROW
+         ABIO_DIC_SFLUX_TAVG(:,j,11,iblock)  = DCO2STAR_ROW
+         ABIO_DIC_SFLUX_TAVG(:,j,12,iblock)  = pCO2SURF_ROW
+         ABIO_DIC_SFLUX_TAVG(:,j,13,iblock)  = DpCO2_ROW
+         ABIO_DIC_SFLUX_TAVG(:,j,14,iblock)  = ALK_ROW
 
 
-       end do !j = 1,ny_block
+      end do !j = 1,ny_block
 !-----------------------------------------------------------------------
 ! Update tracer fields with the surface fluxes just calculated
 !-----------------------------------------------------------------------
@@ -1191,7 +1203,7 @@ contains
 !$OMP END PARALLEL DO
 
 
-   call timer_stop(abio_dic_dic14_sflux_timer)
+ call timer_stop(abio_dic_dic14_sflux_timer)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1264,16 +1276,16 @@ contains
                            TRACER_MODULE_CUR(:,:,k,abio_dic_ind)))
    
    where (.not. LAND_MASK(:,:,bid))
-     DIC14_loc = c0
-     DIC_loc   = c0
+      DIC14_loc = c0
+      DIC_loc   = c0
    end where
    
    DTRACER_MODULE(:,:,abio_dic14_ind) = -c14_lambda_inv_sec * DIC14_loc
    
    where (DIC_loc == 0)
-       ABIO_D14Cocn = c0
+      ABIO_D14Cocn = c0
    elsewhere
-       ABIO_D14Cocn =  (DIC14_loc / DIC_loc -1) *1000
+      ABIO_D14Cocn =  (DIC14_loc / DIC_loc -1) *1000
    end where
       
    call accumulate_tavg_field(ABIO_D14Cocn,tavg_ABIO_D14Cocn,bid,k)
@@ -1313,21 +1325,21 @@ contains
 
     
    do iblock = 1, nblocks_clinic
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,1,iblock),tavg_ABIO_CO2_IFRAC,iblock,1)
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,2,iblock),tavg_ABIO_CO2_XKW,iblock,1)
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,3,iblock),tavg_ABIO_CO2_ATM_PRESS,iblock,1)
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,4,iblock),tavg_ABIO_pCO2,iblock,1)
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,5,iblock),tavg_ABIO_CO2_PV,iblock,1)
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,6,iblock),tavg_ABIO_CO2_SCHMIDT,iblock,1)
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,7,iblock),tavg_ABIO_PH,iblock,1)
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,8,iblock),tavg_FG_ABIO_DIC,iblock,1)
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,9,iblock),tavg_FG_ABIO_DIC14,iblock,1) 
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,10,iblock),tavg_ABIO_CO2STAR,iblock,1)
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,11,iblock),tavg_ABIO_DCO2STAR,iblock,1)
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,12,iblock),tavg_ABIO_pCO2SURF,iblock,1)
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,13,iblock),tavg_ABIO_DpCO2,iblock,1)
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,14,iblock),tavg_ABIO_ALK,iblock,1)
-     call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,15,iblock),tavg_ABIO_D14Catm,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,1,iblock),tavg_ABIO_CO2_IFRAC,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,2,iblock),tavg_ABIO_CO2_XKW,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,3,iblock),tavg_ABIO_CO2_ATM_PRESS,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,4,iblock),tavg_ABIO_pCO2,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,5,iblock),tavg_ABIO_CO2_PV,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,6,iblock),tavg_ABIO_CO2_SCHMIDT,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,7,iblock),tavg_ABIO_PH,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,8,iblock),tavg_FG_ABIO_DIC,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,9,iblock),tavg_FG_ABIO_DIC14,iblock,1) 
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,10,iblock),tavg_ABIO_CO2STAR,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,11,iblock),tavg_ABIO_DCO2STAR,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,12,iblock),tavg_ABIO_pCO2SURF,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,13,iblock),tavg_ABIO_DpCO2,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,14,iblock),tavg_ABIO_ALK,iblock,1)
+      call accumulate_tavg_field(ABIO_DIC_SFLUX_TAVG(:,:,15,iblock),tavg_ABIO_D14Catm,iblock,1)
    end do
 
   
@@ -1379,7 +1391,7 @@ end subroutine abio_dic_dic14_tavg_forcing
 !-----------------------------------------------------------------------
  
 
-  real (r8), parameter :: &
+   real (r8), parameter :: &
       a = 2073.1_r8, &
       b = 125.62_r8, &
       c = 3.6276_r8, &
@@ -1426,16 +1438,16 @@ end subroutine abio_dic_dic14_tavg_forcing
 !-----------------------------------------------------------------------
 !  local variables
 !-----------------------------------------------------------------------
-  character(*), parameter :: sub_name = 'abio_dic_dci14_mod:read_atm_CO2_data'
+   character(*), parameter :: sub_name = 'abio_dic_dci14_mod:read_atm_CO2_data'
 
-  integer (int_kind) ::    &
-    nml_error,             &  ! namelist i/o error flag
-    irec,                  &  ! counter for looping 
-    skiplines,             &  ! number of comment lines at beginning of ascii file
-    il                         ! looping index
+   integer (int_kind) ::    &
+      nml_error,            &  ! namelist i/o error flag
+      irec,                 &  ! counter for looping 
+      skiplines,            &  ! number of comment lines at beginning of ascii file
+      il                       ! looping index
 
-  character (char_len) ::  &
-    sglchr                     ! variable to read characters from file into
+   character (char_len) ::  &
+      sglchr                   ! variable to read characters from file into
 
 
 !-----------------------------------------------------------------------
@@ -1448,20 +1460,20 @@ end subroutine abio_dic_dic14_tavg_forcing
       allocate(atm_co2_data_yr(atm_co2_data_nbval))
       allocate(atm_co2_data_ppm(atm_co2_data_nbval))
       do irec=1,skiplines
-        read(nml_in,FMT=*) sglchr
+         read(nml_in,FMT=*) sglchr
       enddo
       do irec=1,atm_co2_data_nbval
-        read(nml_in,FMT=*) atm_co2_data_yr(irec), atm_co2_data_ppm(irec)
+         read(nml_in,FMT=*) atm_co2_data_yr(irec), atm_co2_data_ppm(irec)
       enddo
       close(nml_in)
   
 
       if (nml_error /= 0) then
-        call document(sub_name, 'Atmospheric CO2 data file for abiotic DIC not found')
-        call exit_POP(sigAbort, 'stopping in ' /&
+         call document(sub_name, 'Atmospheric CO2 data file for abiotic DIC not found')
+         call exit_POP(sigAbort, 'stopping in ' /&
                                   &/ sub_name)
       endif
-    endif
+   endif
  
 
 !---------------------------------------------------------------------	
@@ -1471,8 +1483,8 @@ end subroutine abio_dic_dic14_tavg_forcing
    call broadcast_scalar(atm_co2_data_nbval,master_task)
  
    if (my_task /= master_task) then
-     allocate(atm_co2_data_yr(atm_co2_data_nbval))
-     allocate(atm_co2_data_ppm(atm_co2_data_nbval))
+      allocate(atm_co2_data_yr(atm_co2_data_nbval))
+      allocate(atm_co2_data_ppm(atm_co2_data_nbval))
    endif
    
 
@@ -1534,34 +1546,34 @@ end subroutine abio_dic_dic14_tavg_forcing
 !     READ in C14 data from OCMIP2 files - three files, for SH, EQ, NH
 !-----------------------------------------------------------------------
    if (my_task == master_task) then
-     write(stdout,*)'Abiotic DIC14 calculation: Using varying C14 values from ocmip2 file ',abio_atm_d14c_filename(:)
-     do il=1,3
-        open (nml_in, file=abio_atm_d14c_filename(il), status='old',iostat=nml_error)
-        read(nml_in, FMT=*) skiplines,atm_d14c_data_nbval(il)
-        close(nml_in)
-     enddo
+      write(stdout,*)'Abiotic DIC14 calculation: Using varying C14 values from ocmip2 file ',abio_atm_d14c_filename(:)
+      do il=1,3
+         open (nml_in, file=abio_atm_d14c_filename(il), status='old',iostat=nml_error)
+         read(nml_in, FMT=*) skiplines,atm_d14c_data_nbval(il)
+         close(nml_in)
+      enddo
 
-     atm_d14c_data_nbval_max = max(atm_d14c_data_nbval(1),atm_d14c_data_nbval(2),atm_d14c_data_nbval(3))
-     allocate(atm_d14c_data_yr(atm_d14c_data_nbval_max,3))
-     allocate(atm_d14c_data(atm_d14c_data_nbval_max,3))
+      atm_d14c_data_nbval_max = max(atm_d14c_data_nbval(1),atm_d14c_data_nbval(2),atm_d14c_data_nbval(3))
+      allocate(atm_d14c_data_yr(atm_d14c_data_nbval_max,3))
+      allocate(atm_d14c_data(atm_d14c_data_nbval_max,3))
     
-     do il=1,3
-        open (nml_in, file=abio_atm_d14c_filename(il), status='old',iostat=nml_error)
-        read(nml_in, FMT=*) skiplines,atm_d14c_data_nbval(il)
-        do irec=1,skiplines
-          read(nml_in,FMT=*) sglchr
-        enddo
-        do irec=1,atm_d14c_data_nbval(il)
-          read(nml_in,FMT=*) atm_d14c_data_yr(irec,il), atm_d14c_data(irec,il)
-        enddo
-        close(nml_in)
-     enddo
+      do il=1,3
+         open (nml_in, file=abio_atm_d14c_filename(il), status='old',iostat=nml_error)
+         read(nml_in, FMT=*) skiplines,atm_d14c_data_nbval(il)
+         do irec=1,skiplines
+            read(nml_in,FMT=*) sglchr
+         enddo
+         do irec=1,atm_d14c_data_nbval(il)
+            read(nml_in,FMT=*) atm_d14c_data_yr(irec,il), atm_d14c_data(irec,il)
+         enddo
+         close(nml_in)
+      enddo
   
-     if (nml_error /= 0) then
-        call document(sub_name, 'Atmospheric D14C data files for abiotic DIC not found')
-        call exit_POP(sigAbort, 'stopping in ' /&
+      if (nml_error /= 0) then
+         call document(sub_name, 'Atmospheric D14C data files for abiotic DIC not found')
+         call exit_POP(sigAbort, 'stopping in ' /&
                                 &/ sub_name)
-     endif
+      endif
 
    endif  
  
@@ -1643,13 +1655,13 @@ end subroutine abio_dic_dic14_tavg_forcing
 
    do j = 1, ny_block
       do i = 1, nx_block
-        if (LAND_MASK(i,j)) then
-              SiO2(i,j) = sio2_const
-              PO4(i,j)  = po4_const
-        else
-              SiO2(i,j) = c0
-              PO4(i,j)  = c0
-        endif
+         if (LAND_MASK(i,j)) then
+            SiO2(i,j) = sio2_const
+            PO4(i,j)  = po4_const
+         else
+            SiO2(i,j) = c0
+            PO4(i,j)  = c0
+         endif
       end do
    end do
 !-----------------------------------------------------------------------
@@ -1701,13 +1713,13 @@ end subroutine abio_dic_dic14_tavg_forcing
 
    do j = 1, ny_block
       do i = 1, nx_block
-        if (LAND_MASK(i,j)) then
+         if (LAND_MASK(i,j)) then
             pCO2(i,j) = abio_atm_co2_const
             D14C(i,j) = abio_atm_d14c_const
-        else
+         else
             pCO2(i,j) = c0
             D14C(i,j) = c0
-        endif
+         endif
       end do
    end do
 !-----------------------------------------------------------------------
@@ -1958,7 +1970,7 @@ end subroutine abio_dic_dic14_tavg_forcing
 
    do j = 1, ny_block
       do i = 1, nx_block
-        if (LAND_MASK(i,j)) then
+         if (LAND_MASK(i,j)) then
             if (TLATD(i,j,iblock) < -20.0_r8) then
                D14C(i,j) = d14c_curr_sh
             else if (TLATD(i,j,iblock) > 20.0_r8) then
@@ -1966,9 +1978,9 @@ end subroutine abio_dic_dic14_tavg_forcing
             else
                D14C(i,j) = d14c_curr_eq
             endif
-        else
+         else
             D14C(i,j) = c0
-        endif
+         endif
       end do
    end do
 !-----------------------------------------------------------------------
@@ -2195,11 +2207,11 @@ end subroutine abio_dic_dic14_tavg_forcing
       i_dim = construct_io_dim('i', nx_global)
       j_dim = construct_io_dim('j', ny_global)
 
-      ABIO_PH_SURF = construct_io_field('ABIO_PH_SURF', i_dim, j_dim,     &
-                   long_name='Abiotic surface pH at current time',      &
-                   units    ='pH', grid_loc ='2110',            &
-                   field_loc = field_loc_center,                &
-                   field_type = field_type_scalar,              &
+      ABIO_PH_SURF = construct_io_field('ABIO_PH_SURF', i_dim, j_dim,&
+                   long_name='Abiotic surface pH at current time',   &
+                   units    ='pH', grid_loc ='2110',                 &
+                   field_loc = field_loc_center,                     &
+                   field_type = field_type_scalar,                   &
                    d2d_array = ABIO_PH_PREV)
       call data_set (restart_file, 'define', ABIO_PH_SURF)
    endif
