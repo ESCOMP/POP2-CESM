@@ -22,8 +22,6 @@ $s1  CISO_DO13C_RIV_FLUX
 $s1  CISO_DI13C_RIV_FLUX
 $s1  CISO_DO14C_RIV_FLUX
 $s1  CISO_DI14C_RIV_FLUX
-$s1  CISO_DOC_RIV_FLUX
-$s1  CISO_DIC_RIV_FLUX
 $s1  CISO_zooC_d14C      
 $s1  CISO_DOC_d14C         
 $s1  CISO_DIC_d14C        
@@ -52,9 +50,6 @@ $s1  CISO_Jint_100m_14Ctot
 $s1  CISO_FG_13CO2
 $s1  CISO_FG_as_13CO2
 $s1  CISO_FG_sa_13CO2
-$s1  CISO_FG_CO2
-$s1  CISO_FG_as_CO2
-$s1  CISO_FG_sa_CO2
 $s1  CISO_FG_d13C
 $s1  CISO_D13C_atm
 $s1  CISO_R13C_DIC_surf
@@ -73,7 +68,6 @@ $s1  CISO_Ca13CO3_PROD
 $s1  CISO_Ca13CO3_REMIN
 $s1  CISO_photo13C_TOT
 $s1  CISO_photo13C_TOT_zint
-$s1  CISO_FRAC_CO3
 $s1  CISO_Jint_13Ctot
 $s1  CISO_Jint_100m_13Ctot
 $s1  calcToSed_13C
@@ -100,12 +94,6 @@ $s1  Jint_100m_DI13C
 $s1  Jint_100m_DO13C
 $s1  tend_zint_100m_DI13C
 $s1  tend_zint_100m_DO13C
-$s1  CISO_POC_PROD
-$s1  CISO_POC_REMIN
-$s1  CISO_POC_FLUX_IN
-$s1  CISO_CaCO3_REMIN
-$s1  CISO_CaCO3_PROD
-$s1  CISO_CaCO3_FLUX_IN
 EOF
 
 # generic autotroph fields

@@ -1,6 +1,31 @@
 ===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
+Tag Date:    28 March 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140328_cesm_pop_2_1_20130521/
+Tag Summary: 
+- Bug fix related to code changes for CO3_SURF (added CO3_ROW)
+- cleaned up ciso code (removed output of ecosys variables and other debugging
+code)
+- modified ciso so that it does not depend on diat_ind,sp_ind,diaz_ind (for
+Keller and Morel)
+- Bug fix related to calculation of global D14C (needed to include variables
+in OPM private statement) - now gives exact restrats for ocmip2 and const D14C
+- Code now passes exact restart test
+
+Files Modified:
+M            58508   source/abio_dic_dic14_mod.F90
+M            58508   source/ecosys_mod.F90
+M            58508   source/ecosys_driver.F90
+M            58508   source/ecosys_ciso_mod.F90
+M            58508   ChangeLog
+M            58508   input_templates/ocn.ciso.tavg.csh
+Status against revision:  58595
+
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
 Tag Date:    25 March 2014
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140325_cesm_pop_2_1_20130521/

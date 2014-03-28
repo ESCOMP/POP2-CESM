@@ -153,9 +153,6 @@
       tavg_CISO_DI13C_GAS_FLUX,    & ! tavg id for di13c flux
       tavg_CISO_DI13C_AS_GAS_FLUX, & ! tavg id for air-sea di13c flux
       tavg_CISO_DI13C_SA_GAS_FLUX, & ! tavg id for sea-air di13c flux
-      tavg_CISO_DIC_GAS_FLUX,      & ! tavg id for dic flux
-      tavg_CISO_DIC_AS_GAS_FLUX,   & ! tavg id for air-sea dic flux
-      tavg_CISO_DIC_SA_GAS_FLUX,   & ! tavg id for sea-air dic flux
       tavg_CISO_d13C_GAS_FLUX,     & ! tavg if for surface ocean delta 13C 
       tavg_CISO_R13C_DIC_surf,     & ! tavg id for 13C/12C ratio in total DIC   
       tavg_CISO_R13C_atm,          & ! tavg id for atmospheric ratio of 13C/12C   
@@ -193,73 +190,45 @@
       buf_ind_CISO_R14C_atm
 
       
-      
-
 ! for debugging       
    integer (int_kind) ::       &
-      tavg_CISO_FRAC_CO3,      &
-      tavg_CISO_CaCO3_REMIN,   &
-      tavg_CISO_CaCO3_PROD,    &
-      tavg_CISO_CaCO3_FLUX_IN, &
-      tavg_CISO_POC_REMIN,     &
-      tavg_CISO_POC_PROD,      &
-      tavg_CISO_POC_FLUX_IN,   &
-      tavg_CISO_DIC_RIV_FLUX,  &
-      tavg_CISO_DOC_RIV_FLUX,  &
-      tavg_CISO_GLOBAL_D14C,   &
-      buf_ind_DOC_RIV_FLUX,    &
-      buf_ind_DIC_RIV_FLUX,    &
-      buf_ind_CISO_FG_CO2,     &
-      buf_ind_CISO_FG_as_CO2,  &
-      buf_ind_CISO_FG_sa_CO,   &
-      buf_ind_CISO_GLOBAL_D14C,&
-      buf_ind_CISO_FG_sa_CO2
+      tavg_CISO_GLOBAL_D14C,   & ! tavg id for the global averaged atmos. D14C
+      buf_ind_CISO_GLOBAL_D14C   ! buffer index for the global averaged atmos. D14C
    
-   
-   
-   
-
-
 !-----------------------------------------------------------------------
 !  define tavg id for nonstandard 3d fields
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      tavg_CISO_PO13C_FLUX_IN,  &! tavg id for po13c flux into cell
-      tavg_CISO_PO13C_PROD,     &! tavg id for po13c production
-      tavg_CISO_PO13C_REMIN,    &! tavg id for po13c remineralization
-      tavg_CISO_Ca13CO3_FLUX_IN,&! tavg id for ca13co3 flux into cell
-      tavg_CISO_Ca13CO3_PROD,   &! tavg id for ca13co3 production
-      tavg_CISO_Ca13CO3_REMIN,  &! tavg id for ca13co3 remineralization
-      tavg_CISO_PO14C_FLUX_IN,  &! tavg id for po14c flux into cell
-      tavg_CISO_PO14C_PROD,     &! tavg id for po14c production
-      tavg_CISO_PO14C_REMIN,    &! tavg id for po14c remineralization
-      tavg_CISO_Ca14CO3_FLUX_IN,&! tavg id for ca14co3 flux into cell
-      tavg_CISO_Ca14CO3_PROD,   &! tavg id for ca14co3 production
-      tavg_CISO_Ca14CO3_REMIN    ! tavg id for ca14co3 remineralization
-!
-!-----------------------------------------------------------------------
-!  define tavg id for MORE nonstandard 3d fields
-!-----------------------------------------------------------------------
-
-   integer (int_kind) :: &
-      tavg_CISO_photo13C_TOT,           &! tavg id for total 13C fixation
-      tavg_CISO_photo13C_TOT_zint,      &! tavg id for total 13C fixation vertical integral
-      tavg_CISO_photo14C_TOT,           &! tavg id for total 14C fixation
-      tavg_CISO_photo14C_TOT_zint        ! tavg id for total 14C fixation vertical integral
+      tavg_CISO_PO13C_FLUX_IN,    &! tavg id for po13c flux into cell
+      tavg_CISO_PO13C_PROD,       &! tavg id for po13c production
+      tavg_CISO_PO13C_REMIN,      &! tavg id for po13c remineralization
+      tavg_CISO_Ca13CO3_FLUX_IN,  &! tavg id for ca13co3 flux into cell
+      tavg_CISO_Ca13CO3_PROD,     &! tavg id for ca13co3 production
+      tavg_CISO_Ca13CO3_REMIN,    &! tavg id for ca13co3 remineralization
+      tavg_CISO_PO14C_FLUX_IN,    &! tavg id for po14c flux into cell
+      tavg_CISO_PO14C_PROD,       &! tavg id for po14c production
+      tavg_CISO_PO14C_REMIN,      &! tavg id for po14c remineralization
+      tavg_CISO_Ca14CO3_FLUX_IN,  &! tavg id for ca14co3 flux into cell
+      tavg_CISO_Ca14CO3_PROD,     &! tavg id for ca14co3 production
+      tavg_CISO_Ca14CO3_REMIN,    &! tavg id for ca14co3 remineralization
+      tavg_CISO_photo13C_TOT,     &! tavg id for total 13C fixation
+      tavg_CISO_photo13C_TOT_zint,&! tavg id for total 13C fixation vertical integral
+      tavg_CISO_photo14C_TOT,     &! tavg id for total 14C fixation
+      tavg_CISO_photo14C_TOT_zint  ! tavg id for total 14C fixation vertical integral
 
 !-----------------------------------------------------------------------
 !  define tavg id for MORE nonstandard 3d fields 
 !-----------------------------------------------------------------------
    integer (int_kind) :: &
-      tavg_CISO_eps_aq_g,               & 
-      tavg_CISO_eps_dic_g,              & 
-      tavg_CISO_eps_aq_g_surf,          &
-      tavg_CISO_eps_dic_g_surf
+      tavg_CISO_eps_aq_g,        & ! tavg id for eps_aq_g
+      tavg_CISO_eps_dic_g,       & ! tavg id for eps_dic_g
+      tavg_CISO_eps_aq_g_surf,   & ! tavg id for eps_aq_g_surf
+      tavg_CISO_eps_dic_g_surf     ! tavg id for eps_dic_g_surf
   
    integer (int_kind), dimension(autotroph_cnt) :: &
-      tavg_CISO_eps_autotroph,                 &
-      tavg_CISO_mui_to_co2star
+      tavg_CISO_eps_autotroph,   & ! tavg id for epsilon for each autotroph
+      tavg_CISO_mui_to_co2star     ! tavg id for mui_to_co2star for each autotroph
  
 !-----------------------------------------------------------------------
 !  define tavg id for MORE nonstandard 3d fields
@@ -303,14 +272,6 @@
       tavg_pocToSed_14C         ! tavg id for poc burial flux to sediments
    
 
-
-
-!debugging
-!   integer (int_kind), dimension(autotroph_cnt) :: &
-!      tavg_CISO_photoC,      &
-!      tavg_CISO_R13C_photoC, &
-
-
 !-----------------------------------------------------------------------
 !  define array for holding flux-related quantities that need to be time-averaged
 !  this is necessary since the forcing routines are called before tavg flags
@@ -344,7 +305,6 @@
 
    real (r8), dimension(ecosys_ciso_tracer_cnt) :: &
       ciso_surf_avg                  ! average surface tracer values
-
 
 !-----------------------------------------------------------------------
 !  timers
@@ -383,8 +343,6 @@
    character (char_len), dimension(3) :: &
       ciso_atm_d14c_filename      ! filenames for varying atm D14C (one each for NH, SH, EQ) 
    
-              
-    
 !-----------------------------------------------------------------------
 !  fractionation related variable
 !-----------------------------------------------------------------------
@@ -410,7 +368,6 @@
       R13C_std = 1.0_r8,    & ! actual 13C/12C PDB standard ratio (Craig, 1957) = 1123.72e-5_r8
       R14C_std = 1.0_r8       ! actual 14C/12C NOSAMS standard ratio = 11.76e-13_r8         
        
-
 
 !*****************************************************************************
 
@@ -657,10 +614,6 @@ contains
 
    do n = 1, ecosys_ciso_tracer_cnt
       ciso_ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
-!      if (my_task == master_task) THEN
-!      write (stdout,*) 'tracer_d_module(n)%short_name = ',tracer_d_module(n)%short_name
-!      write (stdout,*) 'ciso_ind_name_table(n) = ',ciso_ind_name_table(n)
-!      endif
    end do
    
  
@@ -824,9 +777,6 @@ contains
    ciso_vflux_flag(di13c_ind) = .true.
    ciso_vflux_flag(di14c_ind) = .true.
    
-!  if (my_task == master_task) then
-!	    write(stdout,*)'ciso_vflux_flag  =  ', ciso_vflux_flag 
-!   endif
 !-----------------------------------------------------------------------
 !  allocate and initialize LAND_MASK
 !-----------------------------------------------------------------------
@@ -842,12 +792,6 @@ contains
 !-----------------------------------------------------------------------
 !  initialize tracers
 !-----------------------------------------------------------------------
-!      if (my_task == master_task) THEN
-!      write (stdout,*) 'In initialize tracers:'
-!      write (stdout,*) 'tracer_d_module(n)%short_name = ',tracer_d_module(n)%short_name
-!      write (stdout,*) 'ciso_ind_name_table = ',ciso_ind_name_table
-!      write (stdout,*) 'ciso_tracer_init_ext = ',ciso_tracer_init_ext
-!      endif
       
    select case (ciso_init_ecosys_option)
 
@@ -1199,42 +1143,7 @@ contains
 
 
 ! for debugging
-
-   call define_tavg_field(tavg_CISO_DIC_GAS_FLUX,'CISO_FG_CO2',2,            &
-                          long_name='DIC Surface Gas Flux',            &
-                          units='mmol/m^3 cm/s', grid_loc='2110',      &
-                          coordinates='TLONG TLAT time')
-   buf_len = buf_len+1
-   buf_ind_CISO_FG_CO2 = buf_len
  
-   call define_tavg_field(tavg_CISO_DIC_AS_GAS_FLUX,'CISO_FG_as_CO2',2,            &
-                          long_name='DIC Surface Air-Sea Gas Flux',            &
-                          units='mmol/m^3 cm/s', grid_loc='2110',      &
-                          coordinates='TLONG TLAT time')
-   buf_len = buf_len+1
-   buf_ind_CISO_FG_as_CO2 = buf_len
- 
-   call define_tavg_field(tavg_CISO_DIC_SA_GAS_FLUX,'CISO_FG_sa_CO2',2,            &
-                          long_name='DIC Surface Sea-Air Gas Flux',            &
-                          units='mmol/m^3 cm/s', grid_loc='2110',      &
-                          coordinates='TLONG TLAT time')
-   buf_len = buf_len+1
-   buf_ind_CISO_FG_sa_CO2 = buf_len
-
-   call define_tavg_field(tavg_CISO_DIC_RIV_FLUX,'CISO_DIC_RIV_FLUX',2,          &
-                          long_name='Flux of DIC from rivers',         &
-                          units='nmol/cm^2/s', grid_loc='2110',        &
-                          coordinates='TLONG TLAT time')
-   buf_len = buf_len+1
-   buf_ind_DIC_RIV_FLUX = buf_len
-
-   call define_tavg_field(tavg_CISO_DOC_RIV_FLUX,'CISO_DOC_RIV_FLUX',2,          &
-                          long_name='Flux of DOC from rivers',         &
-                          units='nmol/cm^2/s', grid_loc='2110',        &
-                          coordinates='TLONG TLAT time')
-   buf_len = buf_len+1
-   buf_ind_DOC_RIV_FLUX = buf_len
-
    call define_tavg_field(tavg_CISO_GLOBAL_D14C,'CISO_GLOBAL_D14C',2,            &
                           long_name='GLOBAL_D14C',            &
                           units='permil', grid_loc='2110',      &
@@ -1250,9 +1159,6 @@ contains
    allocate(ECO_CISO_SFLUX_TAVG(nx_block,ny_block,buf_len,max_blocks_clinic))
    ECO_CISO_SFLUX_TAVG = c0
  
-!   if (my_task == master_task) then
-!	    write(stdout,*)'max_blocks_clinic =  ', max_blocks_clinic
-!   endif
 !-----------------------------------------------------------------------
 !  nonstandard 3D fields
 !-----------------------------------------------------------------------
@@ -1315,10 +1221,6 @@ contains
                           long_name='d13C of zooC',                &
                           units='permil', grid_loc='3111',        &
                           coordinates='TLONG TLAT z_t time')
-
- 
-                       
-                          
                           
 
 !14C
@@ -1383,49 +1285,6 @@ contains
    call define_tavg_field(tavg_CISO_zooC_d14C,'CISO_zooC_d14C',3,   &
                           long_name='d14C of zooC',                &
                           units='permil', grid_loc='3111',        &
-                          coordinates='TLONG TLAT z_t time')
-
-
-
-
-
-
-!debugging
-
-   call define_tavg_field(tavg_CISO_CaCO3_FLUX_IN,'CISO_CaCO3_FLUX_IN',3,        &
-                          long_name='CaCO3 flux into cell',            &
-                          units='mmol/m^3 cm/s', grid_loc='3111',      &
-                          coordinates='TLONG TLAT z_t time')
-
-   call define_tavg_field(tavg_CISO_CaCO3_PROD,'CISO_CaCO3_PROD',3,              &
-                          long_name='CaCO3 Production',                &
-                          units='mmol/m^3/s', grid_loc='3111',         &
-                          coordinates='TLONG TLAT z_t time')
-
-   call define_tavg_field(tavg_CISO_CaCO3_REMIN,'CISO_CaCO3_REMIN',3,            &
-                          long_name='CaCO3 Remineralization',          &
-                          units='mmol/m^3/s', grid_loc='3111',         &
-                          coordinates='TLONG TLAT z_t time')
-
-
-   call define_tavg_field(tavg_CISO_POC_FLUX_IN,'CISO_POC_FLUX_IN',3,        &
-                          long_name='POC flux into cell',            &
-                          units='mmol/m^3 cm/s', grid_loc='3111',      &
-                          coordinates='TLONG TLAT z_t time')
-
-   call define_tavg_field(tavg_CISO_POC_PROD,'CISO_POC_PROD',3,              &
-                          long_name='POC Production',                &
-                          units='mmol/m^3/s', grid_loc='3111',         &
-                          coordinates='TLONG TLAT z_t time')
-
-   call define_tavg_field(tavg_CISO_POC_REMIN,'CISO_POC_REMIN',3,            &
-                          long_name='POC Remineralization',          &
-                          units='mmol/m^3/s', grid_loc='3111',         &
-                          coordinates='TLONG TLAT z_t time')
-
-   call define_tavg_field(tavg_CISO_FRAC_CO3,'CISO_FRAC_CO3',3,            &
-                          long_name='FRAC_CO3 3D',          &
-                          units='mmol/m^3/s', grid_loc='3111',         &
                           coordinates='TLONG TLAT z_t time')
 
 
@@ -1572,24 +1431,7 @@ contains
                              
 
    end do
-       
-! debugging       
-!   do auto_ind = 1, autotroph_cnt
-!      call define_tavg_field(tavg_CISO_photoC(auto_ind), &
-!                             'CISO_photoC_' // trim(autotrophs(auto_ind)%sname), 3, &
-!                             long_name=trim(autotrophs(auto_ind)%lname) // ' C Fixation', &
-!                             units='mmol/m^3/s', grid_loc='3111', &
-!                             coordinates='TLONG TLAT z_t time')
-!
-!      call define_tavg_field(tavg_CISO_R13C_photoC(auto_ind), &
-!                             'CISO_R13C_photoC_' // trim(autotrophs(auto_ind)%sname), 3, &
-!                             long_name=trim(autotrophs(auto_ind)%lname) // ' R13C_photoC', &
-!                             units='mmol/m^3 cm/s', grid_loc='3111', &
-!                             coordinates='TLONG TLAT z_t time')
-!                             
-!
-!   end do
-   
+          
   
 !-----------------------------------------------------------------------
 !  More nonstandard 3D fields
@@ -1794,8 +1636,7 @@ contains
       FLUX_as,       &   ! air-to-sea gas flux of CO2 (nmol/cm^2/s)
       FLUX_sa            ! sea-to-air gas flux of CO2 (nmol/cm^2/s)
      
-     
- 
+
    real (r8), dimension(nx_block,ny_block) :: &
       eps_aq_g_surf,       & ! equilibrium fractionation (CO2_gaseous <-> CO2_aq)
       alpha_aq_g_surf,     & ! alpha_xxx_g_surf => eps = ( alpa -1 ) * 1000
@@ -1814,7 +1655,7 @@ contains
       di14c_riv_flux,   & ! River input of DI14C
       do14c_riv_flux      ! River input of DO14C
      
-! For making global average of D14C     
+! For making global average of atmospheric D14C     
    real (r8), dimension(nx_block,ny_block) :: &
       WORK1, &! local work space
       TFACT   ! factor for normalizing sums
@@ -1861,7 +1702,6 @@ contains
                              ! transfert (per mil) (air-sea CO2
                              ! exchange) at 21C, Zhang et al 1995,
                              ! eps_k = -0.95 at 5C
-
 !debugging:
 !       real(r8), parameter :: &
 !        eps_k     = c0      ! no_fractionation case 
@@ -1907,8 +1747,6 @@ contains
    WORK1            = c0
    D14C_local_sums  = c0
    TAREA_local_sums = c0 
-   D14C_sum_tmp     = c0
-   TAREA_sum_tmp    = c0
     
    !$OMP PARALLEL DO PRIVATE(iblock)
    do iblock = 1, nblocks_clinic
@@ -1929,7 +1767,8 @@ contains
    !$OMP                     eps_dic_g_surf, frac_co3, alpha_k, &
    !$OMP                     alpha_aq_g_surf, alpha_dic_g_surf, &
    !$OMP                     alpha_k_14c, alpha_aq_g_surf_14c, &
-   !$OMP                     alpha_dic_g_surf_14c,TFACT,WORK1)
+   !$OMP                     alpha_dic_g_surf_14c,TFACT,WORK1,&
+   !$OMP                     D14C_local_sums,TAREA_local_sums)
 !-----------------------------------------------------------------------
 
 
@@ -2173,11 +2012,6 @@ contains
          ECO_CISO_SFLUX_TAVG(:,:,buf_ind_CISO_FG_d14C,iblock) = c0
       endwhere
 
-      !debugging      
-      ECO_CISO_SFLUX_TAVG(:,:,buf_ind_CISO_FG_CO2,iblock) = FLUX
-      ECO_CISO_SFLUX_TAVG(:,:,buf_ind_CISO_FG_as_CO2,iblock) = FLUX_as
-      ECO_CISO_SFLUX_TAVG(:,:,buf_ind_CISO_FG_sa_CO2,iblock) = FLUX_sa
-   
    enddo ! end of i-lopp
 !-----------------------------------------------------------------------
 !$OMP END PARALLEL DO
@@ -2209,15 +2043,9 @@ contains
    D14C_glo_avg  = global_sum(D14C_sum_tmp,distrb_clinic) / &
                    global_sum(TAREA_sum_tmp,distrb_clinic)
    
-   if(my_task == master_task) then
-      write(stdout,*)'Global averaged D14C'
-      write(stdout,*) D14C_glo_avg
-   endif
-
       
    di13c_riv_flux = dic_riv_flux * (-10.0_r8/c1000 +c1) * R13C_std
    di14c_riv_flux = dic_riv_flux * ((D14C_glo_avg - 50.0_r8)/c1000 +c1) * R14C_std
-!   di14c_riv_flux = dic_riv_flux * ((650.0_r8 - 50.0_r8)/c1000 +c1) * R14C_std
   
    do13c_riv_flux = doc_riv_flux * (-27.6_r8/c1000 +c1) * R13C_std
    do14c_riv_flux = doc_riv_flux * (-50.0_r8/c1000 +c1) * R14C_std
@@ -2235,12 +2063,6 @@ contains
    ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DI14C_RIV_FLUX,:) = di14c_riv_flux
    ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DO14C_RIV_FLUX,:) = do14c_riv_flux
     
- !debugging (should be the same as from ecosys)
-   ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DIC_RIV_FLUX,:) = dic_riv_flux
-  
-   ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DOC_RIV_FLUX,:) = doc_riv_flux
-
-
    ECO_CISO_SFLUX_TAVG(:,:,buf_ind_CISO_GLOBAL_D14C,:) = D14C_glo_avg
 
  call timer_stop(ecosys_ciso_sflux_timer)
@@ -2496,55 +2318,6 @@ contains
    nullify(CaCO3_PROD)
    nullify(PCphoto)
 
-
-  !----------------------------------------------------------------------------------------
-  ! Small phytoplankton based on E. huxleyi ( Keller and morel, 1999; Popp et al., 1998 )
-  ! Popp et al express cell carbon content in ( pg C cell-1 ), here we convert in (mol C cell-1)
-  ! convert pgC to molC : ! Mc = 12 g / mol ! Mc = 12 e12 pg / mol
-  !----------------------------------------------------------------------------------------
-   cell_active_C_uptake(sp_ind) = 2.2_r8      ! ratio of active carbon uptake to carbon fixation
-   cell_surf(sp_ind)            = 87.6e-12_r8 ! surface areas of cells ( m2 )
-   cell_carb_cont(sp_ind)       = 69.2e-14_r8 ! cell carbon content ( mol C cell-1 )
-   cell_radius(sp_ind)          = 2.6_r8      ! cell radius ( um )
-   cell_permea(sp_ind)          = 1.8e-5_r8   ! cell wall permeability to CO2(aq) (m/s)
-   cell_eps_fix(sp_ind)         = 25.3_r8         ! fractionation effect of carbon fixation
-
-  !----------------------------------------------------------------------------------------
-  ! Diatom based on P. tricornumtum ( Keller and morel, 1999; Popp et al., 1998 )
-  !----------------------------------------------------------------------------------------
-   cell_active_C_uptake(diat_ind) = 2.3_r8       ! ratio of active carbon uptake to carbon fixation
-   cell_surf(diat_ind)            = 100.6e-12_r8 ! surface areas of cells ( m2 )
-   cell_carb_cont(diat_ind)       = 63.3e-14_r8  ! cell carbon content ( mol C cell-1 )
-   cell_radius(diat_ind)          = 14.2_r8      ! cell radius ( um )
-   cell_permea(diat_ind)          = 3.3e-5_r8    ! cell wall permeability to CO2(aq) (m/s)
-   cell_eps_fix(diat_ind)         = 26.6_r8      ! fractionation effect of carbon fixation
-
-  !----------------------------------------------------------------------------------------
-  ! Diazotroph based on Synechococcus sp. ( Keller and morel, 1999; Popp et al., 1998 )
-  !----------------------------------------------------------------------------------------
-!   cell_active_C_uptake(diaz_ind) = 7.5_r8        ! ratio of active carbon uptake to carbon fixation
-!   cell_surf(diaz_ind)            = 5.8e-12_r8    ! surface areas of cells ( m2 )
-!   cell_carb_cont(diaz_ind)       = 3e-14_r8      ! cell carbon content ( mol C cell-1 )
-!   cell_radius(diaz_ind)          = 0.68_r8       ! cell radius ( um )
-!   cell_permea(diaz_ind)          = 3.0e-8_r8     ! cell wall permeability to CO2(aq) (m/s)
-!   cell_eps_fix(diaz_ind)         = 30.0_r8       ! fractionation effect of carbon fixation
-
-  !----------------------------------------------------------------------------------------
-  ! Diazotroph based on  Standard Phyto of Rau et al., (1996) 
-  !----------------------------------------------------------------------------------------
-   cell_active_C_uptake(diaz_ind) = 0.0_r8        ! ratio of active carbon uptake to carbon fixation
-   cell_surf(diaz_ind)            = -99.9_r8      ! surface areas of cells ( m2 ) - not used -
-   cell_carb_cont(diaz_ind)       = -99.9_r8      ! cell carbon content ( mol C cell-1 ) - not used -
-   cell_radius(diaz_ind)          = 10.0_r8       ! cell radius ( um )
-   cell_permea(diaz_ind)          = 10.0e-5_r8    ! cell wall permeability to CO2(aq) (m/s)
-   cell_eps_fix(diaz_ind)         = 25.0_r8       ! fractionation effect of carbon fixation
-       
-       
-!debugging:     
-!   cell_eps_fix(diaz_ind) = c0    !debugging, no fractination
-!   cell_eps_fix(diaz_ind) = c0    !debugging, no fractination
-!   cell_eps_fix(sp_ind)   = c0    !debugging, no fractination
-
 !-----------------------------------------------------------------------
 ! End of 13C Variable additions ! 
 !-------------------------------------------------------------
@@ -2608,6 +2381,76 @@ contains
       return
    endif
 
+!----------------------------------------------------------------------------------------
+! For Keller and Morel, set cell attributes based on autotroph type (from observations)
+!----------------------------------------------------------------------------------------
+   select case (ciso_fract_factors)
+      case ('KellerMorel')
+         do auto_ind = 1, autotroph_cnt
+            if (autotrophs(auto_ind)%kSiO3 > c0) then
+               !----------------------------------------------------------------------------------------
+               ! Diatom based on P. tricornumtum ( Keller and morel, 1999; Popp et al., 1998 )
+               !----------------------------------------------------------------------------------------
+               cell_active_C_uptake(auto_ind) = 2.3_r8       ! ratio of active carbon uptake to carbon fixation
+               cell_surf(auto_ind)            = 100.6e-12_r8 ! surface areas of cells ( m2 )
+               cell_carb_cont(auto_ind)       = 63.3e-14_r8  ! cell carbon content ( mol C cell-1 )
+               cell_radius(auto_ind)          = 14.2_r8      ! cell radius ( um )
+               cell_permea(auto_ind)          = 3.3e-5_r8    ! cell wall permeability to CO2(aq) (m/s)
+               cell_eps_fix(auto_ind)         = 26.6_r8      ! fractionation effect of carbon fixation
+            
+            else if (autotrophs(auto_ind)%Nfixer) then
+               !----------------------------------------------------------------------------------------
+               ! Diazotroph based on  Standard Phyto of Rau et al., (1996) 
+               !----------------------------------------------------------------------------------------
+               cell_active_C_uptake(auto_ind) = 0.0_r8        ! ratio of active carbon uptake to carbon fixation
+               cell_surf(auto_ind)            = -99.9_r8      ! surface areas of cells ( m2 ) - not used -
+               cell_carb_cont(auto_ind)       = -99.9_r8      ! cell carbon content ( mol C cell-1 ) - not used -
+               cell_radius(auto_ind)          = 10.0_r8       ! cell radius ( um )
+               cell_permea(auto_ind)          = 10.0e-5_r8    ! cell wall permeability to CO2(aq) (m/s)
+               cell_eps_fix(auto_ind)         = 25.0_r8       ! fractionation effect of carbon fixation
+       
+               !----------------------------------------------------------------------------------------
+               ! Diazotroph based on Synechococcus sp. ( Keller and morel, 1999; Popp et al., 1998 )
+               !----------------------------------------------------------------------------------------
+               !   cell_active_C_uptake(diaz_ind) = 7.5_r8        ! ratio of active carbon uptake to carbon fixation
+               !   cell_surf(diaz_ind)            = 5.8e-12_r8    ! surface areas of cells ( m2 )
+               !   cell_carb_cont(diaz_ind)       = 3e-14_r8      ! cell carbon content ( mol C cell-1 )
+               !   cell_radius(diaz_ind)          = 0.68_r8       ! cell radius ( um )
+               !   cell_permea(diaz_ind)          = 3.0e-8_r8     ! cell wall permeability to CO2(aq) (m/s)
+               !   cell_eps_fix(diaz_ind)         = 30.0_r8       ! fractionation effect of carbon fixation
+            
+            !else if (autotrophs(auto_ind)%exp_calcifier) then
+               !----------------------------------------------------------------------------------------
+               ! Calcifier based on P. glacialis ( Keller and morel, 1999; Popp et al., 1998 )
+               ! Popp et al express cell carbon content in ( pg C cell-1 ), here we convert in (mol C cell-1)
+               ! convert pgC to molC : ! Mc = 12 g / mol ! Mc = 12 e12 pg / mol
+               !----------------------------------------------------------------------------------------
+               !   cell_active_C_uptake(diaz_ind) = 0.0_r9       ! ratio of active carbon uptake to carbon fixation
+               !   cell_surf(diaz_ind)            = 3886.0_r8    ! surface areas of cells ( m2 )
+               !   cell_carb_cont(diaz_ind)       = 1.68e-10_r8  ! cell carbon content ( mol C cell-1 )
+               !   cell_radius(diaz_ind)          =        ! cell radius ( um )
+               !   cell_permea(diaz_ind)          = 1.1e-5_r8     ! cell wall permeability to CO2(aq) (m/s)
+               !   cell_eps_fix(diaz_ind)         = 23.0_r8       ! fractionation effect of carbon fixation
+            
+            else if (autotrophs(auto_ind)%Nfixer .and. autotrophs(auto_ind)%kSiO3 > c0) then
+               call exit_POP(sigAbort, 'ciso: Currently Keller and Morel fractionation does not work for Diatoms-Diazotrophs')
+            
+            else
+               !----------------------------------------------------------------------------------------
+               ! Small phytoplankton based on E. huxleyi ( Keller and morel, 1999; Popp et al., 1998 )
+               ! Popp et al express cell carbon content in ( pg C cell-1 ), here we convert in (mol C cell-1)
+               ! convert pgC to molC : ! Mc = 12 g / mol ! Mc = 12 e12 pg / mol
+               !----------------------------------------------------------------------------------------
+               cell_active_C_uptake(auto_ind) = 2.2_r8      ! ratio of active carbon uptake to carbon fixation
+               cell_surf(auto_ind)            = 87.6e-12_r8 ! surface areas of cells ( m2 )
+               cell_carb_cont(auto_ind)       = 69.2e-14_r8 ! cell carbon content ( mol C cell-1 )
+               cell_radius(auto_ind)          = 2.6_r8      ! cell radius ( um )
+               cell_permea(auto_ind)          = 1.8e-5_r8   ! cell wall permeability to CO2(aq) (m/s)
+               cell_eps_fix(auto_ind)         = 25.3_r8         ! fractionation effect of carbon fixation
+      
+         endif
+      end do
+   end select       
 !-----------------------------------------------------------------------
 !  create local copies of model tracers
 !  treat negative values as zero
@@ -2861,7 +2704,7 @@ contains
 !  authotrophe types (sp, diaz, diat)
 !-----------------------------------------------------------------------
       select case (ciso_fract_factors)
-  
+    
 !-----------------------------------------------------------------------
 !   Rau et al., 1989 ( see Gruber et al., 1998 )
 !   with restriction between -19 and -31 permil (see Rau et al., 1989)
@@ -2887,9 +2730,9 @@ contains
                                        seconds_in_day  ) - 0.371_r8 )    &
                                        / (-0.015_r8)
 
-!----------------------------------------------------------------
+!--------------------------------------------------------------------------
 ! uncomment the following two lines to restrict eps_sp  between 10 and 26 
-!----------------------------------------------------------------
+!--------------------------------------------------------------------------
 
 !         eps_autotroph(:,:,auto_ind) = min( eps_autotroph(:,:,auto_ind), 26.0_r8 )
 !         eps_autotroph(:,:,auto_ind) = max( eps_autotroph(:,:,auto_ind), 10.0_r8 )
@@ -3170,14 +3013,6 @@ contains
 !-----------------------------------------------------------------------
 !  various tavg/history variables
 !-----------------------------------------------------------------------
-
-!debugging  
-!
-!    do auto_ind = 1, autotroph_cnt
-!      call accumulate_tavg_field(photoC(:,:,auto_ind), tavg_CISO_photoC(auto_ind),bid,k)
-!      call accumulate_tavg_field(R13C_photoC(:,:,auto_ind), tavg_CISO_R13C_photoC(auto_ind),bid,k)
-!    end do
- !end debugging
      
    do auto_ind = 1, autotroph_cnt
       call accumulate_tavg_field(autotroph_d13C(:,:,auto_ind), tavg_CISO_d13C(auto_ind),bid,k)
@@ -3193,10 +3028,6 @@ contains
    call accumulate_tavg_field(DIC_d14C, tavg_CISO_DIC_d14C,bid,k)
    call accumulate_tavg_field(DOC_d14C, tavg_CISO_DOC_d14C,bid,k)
    call accumulate_tavg_field(zooC_d14C, tavg_CISO_zooC_d14C,bid,k)
-  
-
-   call accumulate_tavg_field(frac_co3, tavg_CISO_FRAC_CO3,bid,k)
-     
   
 
    if (accumulate_tavg_now(tavg_CISO_photo13C_TOT)) then
@@ -3373,7 +3204,6 @@ contains
                   cell_radius,                        &
                   cell_permea,                        &
                   cell_eps_fix,                       &
-!                  eps_14c_p,                          & 
                   eps_p)
 
 !---------------------------------------------------------------------------
@@ -3425,8 +3255,7 @@ contains
 ! !OUTPUT PARAMETERS:
 
     real (r8), dimension (nx_block,ny_block), intent(out) :: &
-      eps_p!,             & ! = d13C(co2(aq)) - d13C(phyto)
-!      eps_c14_p            ! = d13C(co2(aq)) - d13C(phyto)
+      eps_p                 ! = d13C(co2(aq)) - d13C(phyto)
 !-----------------------------------------------------------------------
 !  local variables and parameters
 !-----------------------------------------------------------------------
@@ -3511,25 +3340,17 @@ contains
           eps_p = eps_up + theta * ( cell_eps_fix - eps_diff )
           
           
-!          eps_14c_up = eps_diff* 2.0_r8 + ( cell_active_C_uptake /  &
-!                 ( cell_active_C_uptake + c1 / var ) ) * delta_d13C* 2.0_r8
-
-!          eps_14c_p = eps_14c_up + theta * ( cell_eps_fix* 2.0_r8 - eps_diff* 2.0_r8 )
  
     elsewhere
     
     eps_p = cell_eps_fix
-    
-!    eps_14c_p = cell_eps_fix* 2.0_r8
-    
+        
     endwhere      
 
     where (.not.mask)
 
     eps_p = c0
-    
- !   eps_c14_p = c0
- 
+     
     endwhere 
 !-----------------------------------------------------------------------
 !EOC
@@ -4132,30 +3953,6 @@ end subroutine ciso_compute_particulate_terms
    call accumulate_tavg_field(P_Ca14CO3%sed_loss(:,:,bid), tavg_calcToSed_14C,bid,k)
 
    call accumulate_tavg_field(PO14C%sed_loss(:,:,bid), tavg_pocToSed_14C,bid,k)
-
-    
-      
-! ***********************************************************************
-! debugging, should be the same as ECOSYS tavgs
-! ***********************************************************************
-
-   if (accumulate_tavg_now(tavg_CISO_POC_FLUX_IN)) then
-      WORK = POC%sflux_in(:,:,bid) + POC%hflux_in(:,:,bid)
-      call accumulate_tavg_field(WORK, tavg_CISO_POC_FLUX_IN,bid,k)
-   endif
-
-   call accumulate_tavg_field(POC%prod(:,:,bid), tavg_CISO_POC_PROD,bid,k)
-
-   call accumulate_tavg_field(POC%remin(:,:,bid), tavg_CISO_POC_REMIN,bid,k)
-
-   if (accumulate_tavg_now(tavg_CISO_CaCO3_FLUX_IN)) then
-      WORK = P_CaCO3%sflux_in(:,:,bid) + P_CaCO3%hflux_in(:,:,bid)
-      call accumulate_tavg_field(WORK, tavg_CISO_CaCO3_FLUX_IN,bid,k)
-   endif
-
-   call accumulate_tavg_field(P_CaCO3%prod(:,:,bid), tavg_CISO_CaCO3_PROD,bid,k)
-
-   call accumulate_tavg_field(P_CaCO3%remin(:,:,bid), tavg_CISO_CaCO3_REMIN,bid,k)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -4789,16 +4586,11 @@ end subroutine ciso_compute_particulate_terms
       call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_CISO_R14C_atm,iblock), tavg_CISO_R14C_atm,iblock,1)
       call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_CISO_D14C_atm,iblock), tavg_CISO_D14C_atm,iblock,1)
       call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_CISO_FG_d14C,iblock), tavg_CISO_d14C_GAS_FLUX,iblock,1)
-      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DIC_RIV_FLUX,iblock),tavg_CISO_DIC_RIV_FLUX,iblock,1)
-      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DOC_RIV_FLUX,iblock),tavg_CISO_DOC_RIV_FLUX,iblock,1)
       call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DI13C_RIV_FLUX,iblock),tavg_CISO_DI13C_RIV_FLUX,iblock,1)
       call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DO13C_RIV_FLUX,iblock),tavg_CISO_DO13C_RIV_FLUX,iblock,1)
       call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DI14C_RIV_FLUX,iblock),tavg_CISO_DI14C_RIV_FLUX,iblock,1)
       call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_DO14C_RIV_FLUX,iblock),tavg_CISO_DO14C_RIV_FLUX,iblock,1)
  !debugging     
-      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_CISO_FG_CO2,iblock), tavg_CISO_DIC_GAS_FLUX,iblock,1)
-      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_CISO_FG_as_CO2,iblock), tavg_CISO_DIC_AS_GAS_FLUX,iblock,1)
-      call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_CISO_FG_sa_CO2,iblock), tavg_CISO_DIC_SA_GAS_FLUX,iblock,1)
       call accumulate_tavg_field(ECO_CISO_SFLUX_TAVG(:,:,buf_ind_CISO_GLOBAL_D14C,iblock), tavg_CISO_GLOBAL_D14C,iblock,1)      
    end do
 

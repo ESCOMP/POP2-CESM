@@ -12,8 +12,6 @@
 !  in individual ecosystem modules (so far ecosys_mod and ecosys_ciso_mod)
 !  
 !  Written by: Alexandra Jahn, NCAR, Nov/Dec 2012
-!  Calls to ciso are commented out in this version because ciso code is 
-!  not linked yet in cesm1.2        
 
 
 ! !REVISION HISTORY:

@@ -927,8 +927,8 @@ contains
       R14C_ocn,           & ! Rocn=DIC14/DIC
       R14C_atm,           & ! Ratm = 1+ D14C/1000	
       GAS_FLUX_ABIO_DIC,  & ! Surface gas flux of DIC
-      GAS_FLUX_ABIO_DIC14,& ! Surface flux of DIC14
-      CO3_SURF              ! CO3 at the surface
+      GAS_FLUX_ABIO_DIC14   ! Surface flux of DIC14
+     
 
       real (r8), dimension(nx_block) :: &
       PHLO,             & ! lower bound for ph in solver
@@ -939,7 +939,8 @@ contains
       pCO2SURF_ROW,     & ! pCO2SURF from solver
       DpCO2_ROW,        & ! DpCO2 from solver
       PH_NEW,           & ! new PH
-      ALK_ROW             ! Alkalinty in nano eq/cm3
+      ALK_ROW,          & ! Alkalinty in nano eq/cm3
+      CO3_ROW             ! CO3 at the surface
 
    
    logical (log_kind), save :: &
@@ -991,7 +992,7 @@ contains
  !$OMP                     R14C_ocn,R14C_atm,PHLO,PHHI,ABIO_DIC_ROW,&
  !$OMP                     ALK_ROW,PH_NEW,CO2STAR_ROW, DCO2STAR_ROW,&
  !$OMP                     pCO2SURF_ROW,DpCO2_ROW,GAS_FLUX_ABIO_DIC,&
- !$OMP                     GAS_FLUX_ABIO_DIC14,CO3_SURF)
+ !$OMP                     GAS_FLUX_ABIO_DIC14,CO3_ROW)
 
    do iblock = 1, nblocks_clinic   
       where (LAND_MASK(:,:,iblock))
@@ -1137,7 +1138,7 @@ contains
                           ABIO_DIC_ROW, ALK_ROW, PO4(:,j), SiO2(:,j), &
                           PHLO, PHHI, PH_NEW, pCO2(:,j), &
                           AP_USED(:,j,iblock), CO2STAR_ROW, &
-                          DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW,CO3_SURF)
+                          DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW,CO3_ROW)
 
          ABIO_PH_PREV(:,j,iblock) = PH_NEW
                  

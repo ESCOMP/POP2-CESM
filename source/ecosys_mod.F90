@@ -6069,8 +6069,8 @@ contains
       XCO2,         & ! atmospheric co2 conc. (dry-air, 1 atm)
       XCO2_ALT_CO2, & ! atmospheric alternative CO2 (dry-air, 1 atm)
       FLUX,         & ! tracer flux (nmol/cm^2/s)
-      FLUX_ALT_CO2, & ! tracer flux alternative CO2 (nmol/cm^2/s)
-      CO3_ALT_SURF    ! CO3 at the surface for alternative CO2
+      FLUX_ALT_CO2    ! tracer flux alternative CO2 (nmol/cm^2/s)
+     
 
    real (r8), dimension(nx_block) :: &
       PHLO,         & ! lower bound for ph in solver
@@ -6083,7 +6083,8 @@ contains
       CO2STAR_ROW,  & ! CO2STAR from solver
       DCO2STAR_ROW, & ! DCO2STAR from solver
       pCO2SURF_ROW, & ! pCO2SURF from solver
-      DpCO2_ROW       ! DpCO2 from solver
+      DpCO2_ROW,    & ! DpCO2 from solver
+      CO3_ROW
 
    character (char_len) :: &
       tracer_data_label,       & ! label for what is being updated
@@ -6264,7 +6265,7 @@ contains
       !$OMP                     PO4_ROW,SiO3_ROW,PH_NEW,CO2STAR_ROW, &
       !$OMP                     DCO2STAR_ROW,pCO2SURF_ROW,DpCO2_ROW, &
       !$OMP                     DIC_SURF,CO2STAR_SURF,DCO2STAR_SURF, &
-      !$OMP                     PV_SURF,CO3_SURF,CO3_ALT_SURF)
+      !$OMP                     PV_SURF,CO3_SURF,CO3_ROW)
 
       do iblock = 1, nblocks_clinic
 !-------------------------------------------------------------------
@@ -6404,7 +6405,8 @@ contains
                                 DIC_ROW, ALK_ROW, PO4_ROW, SiO3_ROW, &
                                 PHLO, PHHI, PH_NEW, XCO2(:,j), &
                                 AP_USED(:,j,iblock), CO2STAR_ROW, &
-                                DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW,CO3_SURF)
+                                DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW,&
+                                CO3_ROW)
 
                PH_PREV(:,j,iblock) = PH_NEW
 
@@ -6419,7 +6421,7 @@ contains
                DIC_SURF(:,j)      = DIC_ROW
                CO2STAR_SURF(:,j)  = CO2STAR_ROW
                DCO2STAR_SURF(:,j) = DCO2STAR_ROW
-
+               CO3_SURF(:,j)      = CO3_ROW
 
                where (PH_PREV_ALT_CO2(:,j,iblock) /= c0)
                   PHLO = PH_PREV_ALT_CO2(:,j,iblock) - del_ph
@@ -6439,7 +6441,7 @@ contains
                                 PHLO, PHHI, PH_NEW, XCO2_ALT_CO2(:,j), &
                                 AP_USED(:,j,iblock), CO2STAR_ROW, &
                                 DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW,&
-                                CO3_ALT_SURF)
+                                CO3_ROW)
 
                PH_PREV_ALT_CO2(:,j,iblock) = PH_NEW
 
