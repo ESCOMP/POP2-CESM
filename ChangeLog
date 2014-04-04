@@ -1,6 +1,18 @@
 ===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
+Tag Date:    04 April 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140404_cesm_pop_2_1_20130521/
+Tag Summary: 
+-Fixed error in Poop biological fractionation 
+Files Modified:
+M            58596   source/ecosys_ciso_mod.F90
+M            58596   ChangeLog
+Status against revision:  58831
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
 Tag Date:    28 March 2014
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140328_cesm_pop_2_1_20130521/
