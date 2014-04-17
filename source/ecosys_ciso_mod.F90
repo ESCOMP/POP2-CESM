@@ -101,8 +101,7 @@
 !-----------------------------------------------------------------------
 
    logical (log_kind) :: &
-      ciso_lsource_sink, &
-      ciso_locmip_k1_k2_bug_fix
+      ciso_lsource_sink
      
    logical (log_kind), dimension(:,:,:), allocatable :: &
       LAND_MASK
@@ -349,9 +348,6 @@
    character(char_len) ::    &
       ciso_fract_factors          ! option for which biological fractionation calculation to use
     
-   logical (log_kind) ::    &
-      ciso_no_frac          ! option to turn off all fractionation for testing
- 
 !-----------------------------------------------------------------------
 !  scalar constants for 14C decay calculation
 !-----------------------------------------------------------------------
@@ -476,11 +472,11 @@ contains
       ciso_comp_surf_avg_freq_opt, ciso_comp_surf_avg_freq,  &
       ciso_use_nml_surf_vals, ciso_surf_avg_di13c_const, &
       ciso_lmarginal_seas, ciso_surf_avg_di14c_const, &
-      ciso_lsource_sink, ciso_locmip_k1_k2_bug_fix, &
+      ciso_lsource_sink, &
       ciso_tadvect_ctype, ciso_lecovars_full_depth_tavg, &
       ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename, &
       ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename, &
-      ciso_fract_factors, ciso_no_frac
+      ciso_fract_factors
  
 
    character (char_len) :: &
@@ -635,7 +631,6 @@ contains
 
    ciso_lmarginal_seas                     = .true.
    ciso_lsource_sink                       = .true.
-   ciso_locmip_k1_k2_bug_fix               = .true.
 
    ciso_comp_surf_avg_freq_opt             = 'never'
    ciso_comp_surf_avg_freq                 = 1
@@ -654,7 +649,6 @@ contains
    ciso_atm_d14c_filename(3)               = 'unknown'
     
    ciso_fract_factors                      = 'Rau'
-   ciso_no_frac                            = .false.
    
    ciso_tadvect_ctype                      = 'base_model'
 
@@ -729,7 +723,6 @@ contains
 
    call broadcast_scalar(ciso_lmarginal_seas, master_task)
    call broadcast_scalar(ciso_lsource_sink, master_task)
-   call broadcast_scalar(ciso_locmip_k1_k2_bug_fix, master_task)
 
    call broadcast_scalar(ciso_tadvect_ctype, master_task)
     tadvect_ctype = ciso_tadvect_ctype
@@ -2764,7 +2757,8 @@ contains
 !   Still needs testing
 !-----------------------------------------------------------------------
       case ('Popp')
-         eps_autotroph(:,:,auto_ind) = (-17.0_r8 * log10( CO2STAR_int * 0.001_r8 ) + 3.4_r8)
+         eps_autotroph(:,:,auto_ind) = (-17.0_r8 * log10( CO2STAR_int * 0.001_r8 ) &
+                                        + 3.4_r8)
 
      
 !-----------------------------------------------------------------------

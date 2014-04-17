@@ -15,9 +15,9 @@
 ! !USES:
 
    use kinds_mod
-   use constants, only: c0, c1, char_blank, blank_fmt
-   use domain_size, only: nx_global, ny_global
-   use domain, only: nblocks_clinic
+   use constants, only: c0, c1, p5, char_blank, blank_fmt
+   use domain_size, only: nx_global, ny_global, max_blocks_clinic
+   use domain, only: nblocks_clinic,distrb_clinic, blocks_clinic
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
    use constants, only: char_blank, field_loc_center, field_type_scalar
@@ -26,8 +26,12 @@
    use io, only: data_set
    use io_types, only: datafile, io_dim, io_field_desc, rec_type_dbl, &
        construct_file, construct_io_dim, construct_io_field, &
-       destroy_file, destroy_io_field, stdout
+       destroy_file, destroy_io_field, stdout,add_attrib_file,&
+       extract_attrib_file
    use prognostic, only: curtime, oldtime
+   use grid, only: TAREA, RCALCT, area_t
+   use global_reductions, only: global_sum
+   use blocks
 
    implicit none
    private
@@ -88,7 +92,9 @@
       file_read_tracer_block,                &
       rest_read_tracer_block,                &
       read_field,                            &
-      name_to_ind
+      name_to_ind,                           &
+      extract_surf_avg,                      &
+      comp_surf_avg
 
 !EOP
 !BOC
@@ -608,6 +614,196 @@
  end subroutine read_field_3D
 
 !***********************************************************************
+!BOP
+! !IROUTINE: extract_surf_avg
+! !INTERFACE:
+
+ subroutine extract_surf_avg(init_file_fmt,restart_filename,&
+                             tracer_cnt,vflux_flag,ind_name_table,&
+                             surf_avg)
+
+! !DESCRIPTION:
+!  Extract average surface values from restart file.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent(in) :: &
+      init_file_fmt, & ! file format (bin or nc)
+      restart_filename ! file name for restart file
+
+   integer (int_kind),intent(in) :: &
+      tracer_cnt
+
+   logical (log_kind), dimension(tracer_cnt),intent(in) :: &
+      vflux_flag                ! which tracers get virtual fluxes applied
+
+   type(ind_name_pair), dimension(tracer_cnt),intent(in) :: &
+      ind_name_table
+
+! !Output PARAMETERS:
+
+   real (r8), dimension(tracer_cnt),intent(out) :: &
+      surf_avg         ! average surface tracer values
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   type (datafile) ::&
+      restart_file    ! io file descriptor
+
+   integer (int_kind) :: &
+      n               ! tracer index
+
+   character (char_len) :: &
+      short_name      ! tracer name temporaries
+
+
+!-----------------------------------------------------------------------
+
+   surf_avg = c0
+
+   restart_file = construct_file(init_file_fmt, &
+                                 full_name=trim(restart_filename), &
+                                 record_length=rec_type_dbl, &
+                                 recl_words=nx_global*ny_global)
+
+   do n = 1, tracer_cnt
+      if (vflux_flag(n)) then
+         short_name = 'surf_avg_' /&
+                   &/ ind_name_table(n)%name
+         call add_attrib_file(restart_file, trim(short_name), surf_avg(n))
+      endif
+   end do
+
+   call data_set(restart_file, 'open_read')
+
+   do n = 1, tracer_cnt
+      if (vflux_flag(n)) then
+         short_name = 'surf_avg_' /&
+                   &/ ind_name_table(n)%name
+         call extract_attrib_file(restart_file, trim(short_name), surf_avg(n))
+      endif
+   end do
+
+   call data_set (restart_file, 'close')
+
+   call destroy_file (restart_file)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine extract_surf_avg
+!*****************************************************************************
+!BOP
+! !IROUTINE: comp_surf_avg
+! !INTERFACE:
+
+ subroutine comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR,tracer_cnt,&
+                         vflux_flag,surf_avg)
+
+! !DESCRIPTION:
+!  compute average surface tracer values
+!
+!  avg = sum(SURF_VAL*TAREA) / sum(TAREA)
+!  with the sum taken over ocean points only
+!
+! !REVISION HISTORY:
+!  same as module
+ 
+
+! !INPUT PARAMETERS:
+!real (r8), dimension(nx_block,ny_block,tracer_cnt,max_blocks_clinic), &
+   real (r8), dimension(:,:,:,:), &
+      intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR
+
+   integer (int_kind),intent(in) :: &
+      tracer_cnt
+      
+   logical (log_kind), dimension(tracer_cnt),intent(in) :: &
+      vflux_flag                ! which tracers get virtual fluxes applied
+   
+! !Output PARAMETERS:
+
+   real (r8), dimension(tracer_cnt),intent(out) :: &
+      surf_avg         ! average surface tracer values
+   
+      
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      n,       & ! tracer index
+      iblock,  & ! block index
+      dcount,  & ! diag counter
+      ib,ie,jb,je
+
+   real (r8), dimension(max_blocks_clinic,tracer_cnt) :: &
+      local_sums ! array for holding block sums of each diagnostic
+
+   real (r8) :: &
+      sum_tmp    ! temp for local sum
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK1, &   ! local work space
+      TFACT      ! factor for normalizing sums
+
+   type (block) :: &
+      this_block ! block information for current block
+
+!-----------------------------------------------------------------------
+
+   local_sums = c0
+
+!jw   !$OMP PARALLEL DO PRIVATE(iblock,this_block,ib,ie,jb,je,TFACT,n,WORK1)
+   do iblock = 1,nblocks_clinic
+      this_block = get_block(blocks_clinic(iblock),iblock)
+      ib = this_block%ib
+      ie = this_block%ie
+      jb = this_block%jb
+      je = this_block%je
+      TFACT = TAREA(:,:,iblock)*RCALCT(:,:,iblock)
+
+      do n = 1, tracer_cnt
+         if (vflux_flag(n)) then
+            WORK1 = p5*(SURF_VALS_OLD(:,:,n,iblock) + &
+                        SURF_VALS_CUR(:,:,n,iblock))*TFACT
+            local_sums(iblock,n) = sum(WORK1(ib:ie,jb:je))
+         endif
+      end do
+   end do
+!jw   !$OMP END PARALLEL DO
+
+   do n = 1, tracer_cnt
+      if (vflux_flag(n)) then
+         sum_tmp = sum(local_sums(:,n))
+         surf_avg(n) = global_sum(sum_tmp,distrb_clinic)/area_t
+      endif
+   end do
+
+   if(my_task == master_task) then
+      write(stdout,*)' Calculating surface tracer averages'
+      do n = 1, tracer_cnt
+         if (vflux_flag(n)) then
+            write(stdout,*) n, surf_avg(n)
+         endif
+      end do
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine comp_surf_avg
+!*****************************************************************************
+ 
 
  end module passive_tracer_tools
 

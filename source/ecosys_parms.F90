@@ -247,6 +247,13 @@ MODULE ecosys_parms
        Q_10 = 1.5_r8     ! factor for temperature dependence (non-dim)
 
   !---------------------------------------------------------------------
+  !     Gas exchange/piston velocity parameter
+  !---------------------------------------------------------------------
+
+  real (r8), parameter :: &
+       xkw_coeff = 8.6e-9_r8 ! in s/cm, from a = 0.31 cm/hr s^2/m^2 in Wannikhof 1992
+
+  !---------------------------------------------------------------------
   !  DOM parameters for refractory components and DOP uptake
   !---------------------------------------------------------------------
 

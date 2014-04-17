@@ -1,3 +1,24 @@
+
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
+Tag Date:    17 April 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140417_cesm_pop_2_1_20130521/
+Tag Summary: 
+- removed code duplication from abio_, ecosys, and ecosys_ciso code.
+a) moved compute_surf_avg, extract_surf_avg to passive_tracer_tools.F90
+b)moved SCHMIDT_CO2 to new tracer_share.F90
+- removed some unnecessary code from abio_dic_dic14.F90 (no longer setting
+atmospheric CO2, D13C, D14C to zero over land)
+Files Modified:
+M            58508   source/passive_tracer_tools.F90
+A                0   source/tracer_share.F90
+M            58596   source/abio_dic_dic14_mod.F90
+M            58596   source/ecosys_mod.F90
+M            58508   source/ecosys_parms.F90
+M            58832   source/ecosys_ciso_mod.F90
+Status against revision:  59254
 ===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn

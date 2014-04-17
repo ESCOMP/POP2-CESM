@@ -118,6 +118,7 @@
    use named_field_mod
    use co2calc
    use ecosys_fields
+   use tracer_share
 #ifdef CCSMCOUPLED
    use POP_MCT_vars_mod
    use shr_strdata_mod
@@ -145,7 +146,8 @@
       ecosys_tavg_forcing,          &
       ecosys_set_interior,          &
       ecosys_write_restart,         &
-      ecosys_qsw_distrb_const
+      ecosys_qsw_distrb_const!,      &
+!      SCHMIDT_CO2
 
 !-----------------------------------------------------------------------
 !  module variables required by forcing_passive_tracer
@@ -1568,14 +1570,19 @@ contains
          surf_avg(alk_ind) = surf_avg_alk_const
       else
          call extract_surf_avg(init_ecosys_init_file_fmt, &
-                               ecosys_restart_filename)
+                               ecosys_restart_filename,   &
+                               ecosys_tracer_cnt,         &
+                               vflux_flag,ind_name_table,  &
+                               surf_avg)
       endif
 
       call eval_time_flag(comp_surf_avg_flag) ! evaluates time_flag(comp_surf_avg_flag)%value via time_to_do
 
       if (check_time_flag(comp_surf_avg_flag)) &
          call comp_surf_avg(TRACER_MODULE(:,:,1,:,oldtime,:), &
-                            TRACER_MODULE(:,:,1,:,curtime,:))
+                            TRACER_MODULE(:,:,1,:,curtime,:), &
+                            ecosys_tracer_cnt,vflux_flag,     &
+                            surf_avg)
 
    case ('file', 'ccsm_startup')
       call document(subname, 'ecosystem vars being read from separate files')
@@ -1624,7 +1631,9 @@ contains
          surf_avg(alk_ind) = surf_avg_alk_const
       else
          call comp_surf_avg(TRACER_MODULE(:,:,1,:,oldtime,:), &
-                            TRACER_MODULE(:,:,1,:,curtime,:))
+                            TRACER_MODULE(:,:,1,:,curtime,:), &
+                            ecosys_tracer_cnt,vflux_flag,     &
+                            surf_avg)
       endif
 
    case default
@@ -1716,77 +1725,6 @@ contains
 !EOC
 
  end subroutine ecosys_init
-
-!***********************************************************************
-!BOP
-! !IROUTINE: extract_surf_avg
-! !INTERFACE:
-
- subroutine extract_surf_avg(init_ecosys_init_file_fmt, &
-                             ecosys_restart_filename)
-
-! !DESCRIPTION:
-!  Extract average surface values from restart file.
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
-   character (*), intent(in) :: &
-      init_ecosys_init_file_fmt, & ! file format (bin or nc)
-      ecosys_restart_filename      ! file name for restart file
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   type (datafile) ::&
-      restart_file    ! io file descriptor
-
-   integer (int_kind) :: &
-      n               ! tracer index
-
-   character (char_len) :: &
-      short_name      ! tracer name temporaries
-
-!-----------------------------------------------------------------------
-
-   surf_avg = c0
-
-   restart_file = construct_file(init_ecosys_init_file_fmt, &
-                                 full_name=trim(ecosys_restart_filename), &
-                                 record_length=rec_type_dbl, &
-                                 recl_words=nx_global*ny_global)
-
-   do n = 1, ecosys_tracer_cnt
-      if (vflux_flag(n)) then
-         short_name = 'surf_avg_' /&
-                   &/ ind_name_table(n)%name
-         call add_attrib_file(restart_file, trim(short_name), surf_avg(n))
-      endif
-   end do
-
-   call data_set(restart_file, 'open_read')
-
-   do n = 1, ecosys_tracer_cnt
-      if (vflux_flag(n)) then
-         short_name = 'surf_avg_' /&
-                   &/ ind_name_table(n)%name
-         call extract_attrib_file(restart_file, trim(short_name), surf_avg(n))
-      endif
-   end do
-
-   call data_set (restart_file, 'close')
-
-   call destroy_file (restart_file)
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine extract_surf_avg
 
 !***********************************************************************
 !BOP
@@ -6103,13 +6041,6 @@ contains
    real (r8) :: scalar_temp
 
 !-----------------------------------------------------------------------
-!  local parameters
-!-----------------------------------------------------------------------
-
-   real (r8), parameter :: &
-      xkw_coeff = 8.6e-9_r8     ! a = 0.31 cm/hr s^2/m^2 in (s/cm)
-
-!-----------------------------------------------------------------------
 !  Pointer variables (defined in ecosys_fields)
 !-----------------------------------------------------------------------
 
@@ -6143,7 +6074,8 @@ contains
 !-----------------------------------------------------------------------
 
    if (check_time_flag(comp_surf_avg_flag))  &
-      call comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR)
+      call comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR,&
+                         ecosys_tracer_cnt,vflux_flag,surf_avg)
 
 !-----------------------------------------------------------------------
 !  fluxes initially set to 0
@@ -7121,57 +7053,6 @@ contains
 
 !*****************************************************************************
 !BOP
-! !IROUTINE: SCHMIDT_CO2
-! !INTERFACE:
-
- function SCHMIDT_CO2(SST, LAND_MASK)
-
-! !DESCRIPTION:
-!  Compute Schmidt number of CO2 in seawater as function of SST
-!  where LAND_MASK is true. Give zero where LAND_MASK is false.
-!
-!  ref : Wanninkhof, J. Geophys. Res, Vol. 97, No. C5,
-!  pp. 7373-7382, May 15, 1992
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
-   real (r8), dimension(nx_block,ny_block), intent(in) :: SST
-
-   logical (log_kind), dimension(nx_block,ny_block), intent(in) :: &
-      LAND_MASK
-
-! !OUTPUT PARAMETERS:
-
-   real (r8), dimension(nx_block,ny_block) :: SCHMIDT_CO2
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   real (r8), parameter :: &
-      a = 2073.1_r8, &
-      b = 125.62_r8, &
-      c = 3.6276_r8, &
-      d = 0.043219_r8
-
-   where (LAND_MASK)
-      SCHMIDT_CO2 = a + SST * (-b + SST * (c + SST * (-d)))
-   elsewhere
-      SCHMIDT_CO2 = c0
-   end where
-
-!-----------------------------------------------------------------------
-!EOC
-
- end function SCHMIDT_CO2
-
-!*****************************************************************************
-!BOP
 ! !IROUTINE: ecosys_tavg_forcing
 ! !INTERFACE:
 
@@ -7302,97 +7183,6 @@ contains
 !EOC
 
  end subroutine ecosys_tavg_forcing
-
-!*****************************************************************************
-!BOP
-! !IROUTINE: comp_surf_avg
-! !INTERFACE:
-
- subroutine comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR)
-
-! !DESCRIPTION:
-!  compute average surface tracer values
-!
-!  avg = sum(SURF_VAL*TAREA) / sum(TAREA)
-!  with the sum taken over ocean points only
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
- !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
-  real (r8), dimension(:,:,:,:), &
-      intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   integer (int_kind) :: &
-      n,       & ! tracer index
-      iblock,  & ! block index
-      dcount,  & ! diag counter
-      ib,ie,jb,je
-
-   real (r8), dimension(max_blocks_clinic,ecosys_tracer_cnt) :: &
-      local_sums ! array for holding block sums of each diagnostic
-
-   real (r8) :: &
-      sum_tmp ! temp for local sum
-
-   real (r8), dimension(nx_block,ny_block) :: &
-      WORK1, &! local work space
-      TFACT   ! factor for normalizing sums
-
-   type (block) :: &
-      this_block ! block information for current block
-
-!-----------------------------------------------------------------------
-
-   local_sums = c0
-
-!jw   !$OMP PARALLEL DO PRIVATE(iblock,this_block,ib,ie,jb,je,TFACT,n,WORK1)
-   do iblock = 1,nblocks_clinic
-      this_block = get_block(blocks_clinic(iblock),iblock)
-      ib = this_block%ib
-      ie = this_block%ie
-      jb = this_block%jb
-      je = this_block%je
-      TFACT = TAREA(:,:,iblock)*RCALCT(:,:,iblock)
-
-      do n = 1, ecosys_tracer_cnt
-         if (vflux_flag(n)) then
-            WORK1 = p5*(SURF_VALS_OLD(:,:,n,iblock) + &
-                        SURF_VALS_CUR(:,:,n,iblock))*TFACT
-            local_sums(iblock,n) = sum(WORK1(ib:ie,jb:je))
-         endif
-      end do
-   end do
-!jw   !$OMP END PARALLEL DO
-
-   do n = 1, ecosys_tracer_cnt
-      if (vflux_flag(n)) then
-         sum_tmp = sum(local_sums(:,n))
-         surf_avg(n) = global_sum(sum_tmp,distrb_clinic)/area_t
-      endif
-   end do
-
-   if(my_task == master_task) then
-      write(stdout,*)' Calculating surface tracer averages'
-      do n = 1, ecosys_tracer_cnt
-         if (vflux_flag(n)) then
-            write(stdout,*) n, surf_avg(n)
-         endif
-      end do
-   endif
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine comp_surf_avg
 
 !*****************************************************************************
 !BOP
