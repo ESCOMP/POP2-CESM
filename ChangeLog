@@ -2,6 +2,16 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    20 Apr 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140420
+Tag Summary: Cleaned up whitespace in pop2.buildnml.csh (proper indentation to
+             make script easier to read)
+
+Files Modified:
+M       bld/pop2.buildnml.csh
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy, thoar
 Tag Date:    14 Mar 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140314
