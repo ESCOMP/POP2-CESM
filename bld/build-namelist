@@ -1238,12 +1238,6 @@ if ($OCN_TRACER_MODULES =~ /cfc/) {
 
 if ($OCN_TRACER_MODULES =~ /abio_dic_dic14/) {
 
-    my $abio_locmip_k1_k2_bug_fix;
-    if ($OCN_CO2_FLUX_OCMIP_BUG_FIX eq "TRUE") {
-      $abio_locmip_k1_k2_bug_fix = ".true.";
-    } else {
-      $abio_locmip_k1_k2_bug_fix = ".false.";
-    }
 	
     add_default($nl, 'init_abio_dic_dic14_option', 'val'=>"ccsm_${RUN_TYPE}");
 	
@@ -1263,7 +1257,6 @@ if ($OCN_TRACER_MODULES =~ /abio_dic_dic14/) {
     add_default($nl, 'abio_surf_avg_dic_const');
     add_default($nl, 'abio_surf_avg_dic14_const');
     add_default($nl, 'abio_use_nml_surf_vals', 'runtype'=>"$RUN_TYPE");
-    add_default($nl, 'abio_locmip_k1_k2_bug_fix', 'val'=>"$abio_locmip_k1_k2_bug_fix");
     add_default($nl, 'abio_comp_surf_avg_freq_opt');
     add_default($nl, 'abio_comp_surf_avg_freq');
     add_default($nl, 'abio_atm_d14c_filename(1)');
@@ -1286,14 +1279,6 @@ if ($OCN_TRACER_MODULES =~ /ciso/) {
     if (($OCN_TRANSIENT ne "unset") && ($OCN_TRANSIENT ne "1850-2000")) {
       print " OCN_TRANSIENT=$OCN_TRANSIENT not supported by ciso module \n";
       die;
-    }
-
-  
-    my $ciso_locmip_k1_k2_bug_fix;
-    if ($OCN_CO2_FLUX_OCMIP_BUG_FIX eq "TRUE") {
-      $ciso_locmip_k1_k2_bug_fix = ".true.";
-    } else {
-      $ciso_locmip_k1_k2_bug_fix = ".false.";
     }
 
     add_default($nl, 'ciso_init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
@@ -1345,7 +1330,6 @@ if ($OCN_TRACER_MODULES =~ /ciso/) {
     add_default($nl, 'ciso_tracer_init_ext(14)%mod_varname');
     add_default($nl, 'ciso_tracer_init_ext(14)%file_varname');
     add_default($nl, 'ciso_tracer_init_ext(14)%scale_factor');
-    add_default($nl, 'ciso_locmip_k1_k2_bug_fix', 'val'=>"$ciso_locmip_k1_k2_bug_fix");
     add_default($nl, 'ciso_atm_d13c_opt', 'val'=>"const");
     add_default($nl, 'ciso_atm_d13c_const');
     add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
@@ -1363,7 +1347,6 @@ if ($OCN_TRACER_MODULES =~ /ciso/) {
     add_default($nl, 'ciso_atm_d14c_filename(2)');
     add_default($nl, 'ciso_atm_d14c_filename(3)');
     add_default($nl, 'ciso_fract_factors');
-    add_default($nl, 'ciso_no_frac');
     add_default($nl, 'ciso_lecovars_full_depth_tavg');
 }
  

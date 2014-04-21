@@ -34,18 +34,15 @@ module abio_dic_dic14_mod
    use domain, only: nblocks_clinic, distrb_clinic, blocks_clinic
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
-   use constants, only: c0, c1, c1000, p5, c2,rho_sw
+   use constants, only: c0, c1, c1000, p5, c2
    use io_types
    use io_tools, only: document
    use tavg, only: define_tavg_field, accumulate_tavg_field
-   use passive_tracer_tools
+   use passive_tracer_tools, only: ind_name_pair, tracer_read, read_field
    use broadcast, only: broadcast_array, broadcast_scalar
    use netcdf
    use co2calc
    use time_management
-   use ecosys_parms
-!   use ecosys_mod, only: SCHMIDT_CO2
-   use tracer_share
 
    implicit none
    save
@@ -130,6 +127,9 @@ module abio_dic_dic14_mod
 
    character (char_len), dimension(3) :: &
       abio_atm_d14c_filename      ! filenames for varying atm D14C (one each for NH, SH, EQ) 
+
+   logical (log_kind) :: &
+      abio_locmip_k1_k2_bug_fix   ! Bugfix flag, needed for co2calc_row
 
 !-------------------------------------------------------------------------
 !  named field indices
@@ -322,7 +322,7 @@ contains
       init_abio_dic_dic14_init_file_fmt, abio_surf_avg_dic_const, abio_use_nml_surf_vals, &
       abio_comp_surf_avg_freq_opt, abio_comp_surf_avg_freq, abio_surf_avg_dic14_const, &
       abio_atm_co2_d14c_opt, abio_atm_co2_filename, abio_atm_co2_const, abio_atm_d14c_const, &
-      abio_atm_d14c_filename
+      abio_atm_d14c_filename, abio_locmip_k1_k2_bug_fix
  
  
 !-----------------------------------------------------------------------
@@ -358,6 +358,8 @@ contains
 
 
    abio_use_nml_surf_vals            = .false.
+   abio_locmip_k1_k2_bug_fix         = .true. 
+
    abio_surf_avg_dic_const           = 1944._r8
    abio_surf_avg_dic14_const         = 1944._r8
    abio_comp_surf_avg_freq_opt       = 'never'
@@ -433,6 +435,7 @@ contains
    end do
 
    call broadcast_scalar(abio_use_nml_surf_vals, master_task)
+   call broadcast_scalar(abio_locmip_k1_k2_bug_fix, master_task)
    call broadcast_scalar(abio_surf_avg_dic_const, master_task)
    call broadcast_scalar(abio_surf_avg_dic14_const, master_task)
    call broadcast_scalar(abio_comp_surf_avg_freq_opt, master_task)
@@ -526,18 +529,14 @@ contains
          surf_avg(abio_dic14_ind) = abio_surf_avg_dic14_const
       else
          call extract_surf_avg(init_abio_dic_dic14_init_file_fmt, &
-                               abio_dic_dic14_restart_filename,   &
-                               abio_dic_dic14_tracer_cnt,&
-                               vflux_flag,ind_name_table,surf_avg)
+                               abio_dic_dic14_restart_filename)
       endif
   
       call eval_time_flag(comp_surf_avg_flag) ! evaluates time_flag(comp_surf_avg_flag)%value via time_to_do
 
       if (check_time_flag(comp_surf_avg_flag)) &
          call comp_surf_avg(TRACER_MODULE(:,:,1,:,oldtime,:), &
-                            TRACER_MODULE(:,:,1,:,curtime,:), &
-                            abio_dic_dic14_tracer_cnt,        &
-                            vflux_flag,surf_avg)
+                            TRACER_MODULE(:,:,1,:,curtime,:))
 
 
    case ('file', 'ccsm_startup', 'zero', 'ccsm_startup_spunup')
@@ -581,9 +580,7 @@ contains
          surf_avg(abio_dic14_ind) = abio_surf_avg_dic14_const
       else
          call comp_surf_avg(TRACER_MODULE(:,:,1,:,oldtime,:), &
-                            TRACER_MODULE(:,:,1,:,curtime,:), &
-                            abio_dic_dic14_tracer_cnt,        &
-                            vflux_flag,surf_avg)
+                            TRACER_MODULE(:,:,1,:,curtime,:))
       endif
   
    case default
@@ -919,7 +916,7 @@ contains
       SURF_VALS_DIC14,    & ! filtered DIC14 surface tracer values
       pCO2,               & ! atmospheric CO2 mole fraction (pmol/mol)
       D14C,               & ! atmospheric Delta C14 in permil
-      CO2_SCHMIDT_USED,        & ! CO2 Schmidt number
+      CO2_SCHMIDT,        & ! CO2 Schmidt number
       CO2_SOL_0,          & ! solubility of CO2 at 1 atm (mol/l/atm)
       XKW_ICE,            & ! common portion of piston vel., (1-fice)*xkw (cm/s)
       PV,                 & ! piston velocity (cm/s)
@@ -954,15 +951,17 @@ contains
 !  local parameters
 !-----------------------------------------------------------------------
    real (r8), parameter :: &
+      xkw_coeff        = 8.6e-9_r8, & ! xkw_coeff = 0.31 cm/hr s^2/m^2 in (s/cm)
       ALK_bar_global   = 2310._r8     ! Alkbar, in microeq/kg, based on OCMIP2
   
+  
+
 !-----------------------------------------------------------------------
 
    call timer_start(abio_dic_dic14_sflux_timer)
    
    if (check_time_flag(comp_surf_avg_flag))  &
-      call comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR,abio_dic_dic14_tracer_cnt, &
-                            vflux_flag,surf_avg)
+      call comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR)
 
    if (first) then
       allocate( data_ind_co2(max_blocks_clinic) )
@@ -988,7 +987,7 @@ contains
 !-----------------------------------------------------------------------
 !  Calculate and initialize IFRAC, XKW and AP (pressure)
 !-----------------------------------------------------------------------
- !$OMP PARALLEL DO PRIVATE(iblock,j,XKW_ICE,CO2_SCHMIDT_USED,PV,SiO2, PO4,&
+ !$OMP PARALLEL DO PRIVATE(iblock,j,XKW_ICE,CO2_SCHMIDT,PV,SiO2, PO4,&
  !$OMP                     pCO2, D14C,SURF_VALS_DIC,SURF_VALS_DIC14,&
  !$OMP                     R14C_ocn,R14C_atm,PHLO,PHHI,ABIO_DIC_ROW,&
  !$OMP                     ALK_ROW,PH_NEW,CO2STAR_ROW, DCO2STAR_ROW,&
@@ -1026,44 +1025,42 @@ contains
 !-----------------------------------------------------------------------
 ! Compute CO2 Schmidt number
 !-----------------------------------------------------------------------
-                            
-      CO2_SCHMIDT_USED = SCHMIDT_CO2(SST(:,:,iblock), LAND_MASK(:,:,iblock))                      
+      call comp_co2_schmidt(LAND_MASK(:,:,iblock), SST(:,:,iblock), &
+                            CO2_SCHMIDT)
 !-----------------------------------------------------------------------      
 !  compute piston velocity PV 
 !-----------------------------------------------------------------------
 
       where (LAND_MASK(:,:,iblock))
-         PV = XKW_ICE * SQRT(660.0_r8 / CO2_SCHMIDT_USED)
+         PV = XKW_ICE * SQRT(660.0_r8 / CO2_SCHMIDT)
       elsewhere
          PV = c0
       end where
   
 !-----------------------------------------------------------------------      
-! Assign constant SiO2, PO4 data to variables
+! Put constant SiO2, PO4 data on model grid
 !-----------------------------------------------------------------------
 
-   SiO2  = 7.5_r8 * rho_sw      ! Silicate (constant), in mmol/m3 = nmol/cm3 (original value is 7.5 micromol/kg)
-   PO4   = 0.5_r8 * rho_sw      ! Phosphate (constant), in mmol/m3 = nmol/cm3 (orignal value is 0.5 micromol/kg)
-  
- 
+      call comp_glo_SiO2_PO4(iblock, LAND_MASK(:,:,iblock),SiO2, PO4)
+
 !-----------------------------------------------------------------------      
-! Assign CO2 and D14C data to variables
+! Put CO2 and D14C data (contant, from files read in _init, from coupler) on grid
 !-----------------------------------------------------------------------
       select case (abio_atm_co2_d14c_opt)
 
       case ('const')
-            pCO2 = abio_atm_co2_const
-            D14C = abio_atm_d14c_const
+
+         call comp_const_glo_CO2_D14C(iblock, LAND_MASK(:,:,iblock),pCO2, D14C)
 
       case ('coupler')
 
          call named_field_get(atm_co2_nf_ind,iblock, pCO2)
-         call comp_varying_D14C(iblock, data_ind_d14c(iblock),D14C)
+         call comp_varying_glo_D14C(iblock, LAND_MASK(:,:,iblock),data_ind_d14c(iblock),D14C)
 
    
       case('ocmip2')
-         call comp_varying_CO2(iblock, data_ind_co2(iblock),pCO2)
-         call comp_varying_D14C(iblock, data_ind_d14c(iblock),D14C)
+         call comp_varying_glo_CO2(iblock, LAND_MASK(:,:,iblock),data_ind_co2(iblock),pCO2)
+         call comp_varying_glo_D14C(iblock, LAND_MASK(:,:,iblock),data_ind_d14c(iblock),D14C)
 
 
       case default
@@ -1136,7 +1133,7 @@ contains
 !  Call co2calc_row which calculated PH, CO2* etc
 !-----------------------------------------------------------------------
 
-         call co2calc_row(iblock, j, LAND_MASK(:,j,iblock), .true., &
+         call co2calc_row(iblock, j, LAND_MASK(:,j,iblock), abio_locmip_k1_k2_bug_fix, &
                           .true., SST(:,j,iblock), SSS(:,j,iblock), &
                           ABIO_DIC_ROW, ALK_ROW, PO4(:,j), SiO2(:,j), &
                           PHLO, PHHI, PH_NEW, pCO2(:,j), &
@@ -1185,7 +1182,7 @@ contains
          ABIO_DIC_SFLUX_TAVG(:,:,3,iblock) = AP_USED(:,:,iblock)
          ABIO_DIC_SFLUX_TAVG(:,:,4,iblock) = pCO2
          ABIO_DIC_SFLUX_TAVG(:,:,5,iblock) = PV
-         ABIO_DIC_SFLUX_TAVG(:,:,6,iblock) = CO2_SCHMIDT_USED
+         ABIO_DIC_SFLUX_TAVG(:,:,6,iblock) = CO2_SCHMIDT
          ABIO_DIC_SFLUX_TAVG(:,:,7,iblock) = ABIO_PH_PREV(:,:,iblock)
          ABIO_DIC_SFLUX_TAVG(:,:,8,iblock) = GAS_FLUX_ABIO_DIC
          ABIO_DIC_SFLUX_TAVG(:,:,9,iblock) = GAS_FLUX_ABIO_DIC14
@@ -1357,6 +1354,63 @@ contains
 end subroutine abio_dic_dic14_tavg_forcing
 
 
+!***********************************************************************
+!BOP
+! !IROUTINE: comp_co2_schmidt
+! !INTERFACE:
+
+ subroutine comp_co2_schmidt(LAND_MASK, SST, CO2_SCHMIDT)
+
+! !DESCRIPTION:
+!  Compute Schmidt number of CO2 in seawater as function of SST
+!  where LAND_MASK is true. Give zero where LAND_MASK is false.
+!
+!  ref : Wanninkhof, J. Geophys. Res, Vol. 97, No. C5,
+!  pp. 7373-7382, May 15, 1992
+!
+! !REVISION HISTORY:
+!  same as module
+
+
+! !INPUT PARAMETERS:
+
+   logical (log_kind), dimension(nx_block,ny_block), intent(in) :: &
+      LAND_MASK       ! land mask for this block
+
+   real (r8), dimension(nx_block,ny_block), intent(in) :: &
+      SST             ! sea surface temperature (C)
+
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block), intent(out) :: &
+      CO2_SCHMIDT     ! Schmidt number of CO2 (non-dimensional)
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+ 
+
+   real (r8), parameter :: &
+      a = 2073.1_r8, &
+      b = 125.62_r8, &
+      c = 3.6276_r8, &
+      d = 0.043219_r8
+
+   where (LAND_MASK)
+      CO2_SCHMIDT = a + SST * (-b + SST * (c + SST * (-d)))
+   elsewhere
+      CO2_SCHMIDT = c0
+   end where
+
+
+  
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine comp_co2_schmidt
+ 
 !***********************************************************************
 ! !IROUTINE: read_atm_CO2_data
 ! !INTERFACE:
@@ -1545,12 +1599,140 @@ end subroutine abio_dic_dic14_tavg_forcing
 
  end subroutine read_atm_D14C_data
 
-
 !***********************************************************************
-! !IROUTINE: comp_varying_CO2
+!BOP
+! !IROUTINE: comp_glo_SiO2_PO4
 ! !INTERFACE:
 
- subroutine comp_varying_CO2(iblock, data_ind_co2, pCO2)
+ subroutine comp_glo_SiO2_PO4(iblock, LAND_MASK, SiO2, PO4)
+
+! !DESCRIPTION:
+!  Set atmospheric mole fractions of SiO2, PO4 on global grid
+
+! !REVISION HISTORY:
+!  same as module
+
+! !USES:
+
+   use constants, only : rho_sw
+
+! !INPUT PARAMETERS:
+
+   logical (log_kind), dimension(nx_block,ny_block), intent(in) :: &
+      LAND_MASK       ! land mask for this block
+
+   integer (int_kind) :: &
+      iblock          ! block index
+
+
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block), intent(out) :: &
+      SiO2,       &   ! Surface Ocean Silicate in mol/m3
+      PO4             ! Surface ocean Phosphate in mol/m3
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      i, j           ! loop indices
+
+   real (r8) :: &
+      sio2_const, &  ! Silicate (constant), in mmol/m3 
+      po4_const      ! Phosphate (constant), in mmol/m3 
+!-----------------------------------------------------------------------
+!  set the global constants
+!-----------------------------------------------------------------------
+
+   sio2_const  = 7.5_r8 * rho_sw      ! Silicate (constant), in mmol/m3 = nmol/cm3 (original value is 7.5 micromol/kg)
+   po4_const   = 0.5_r8 * rho_sw      ! Phosphate (constant), in mmol/m3 = nmol/cm3 (orignal value is 0.5 micromol/kg)
+   
+!--------------------------------------------------------------------------------------
+!     Make global values -
+!--------------------------------------------------------------------------------------
+
+   do j = 1, ny_block
+      do i = 1, nx_block
+         if (LAND_MASK(i,j)) then
+            SiO2(i,j) = sio2_const
+            PO4(i,j)  = po4_const
+         else
+            SiO2(i,j) = c0
+            PO4(i,j)  = c0
+         endif
+      end do
+   end do
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine comp_glo_SiO2_PO4
+ 
+!***********************************************************************
+! !IROUTINE: comp_const_glo_CO2_D14C
+! !INTERFACE:
+
+ subroutine comp_const_glo_CO2_D14C(iblock, LAND_MASK, pCO2, D14C)
+
+! !DESCRIPTION:
+!  Set atmospheric mole fractions of constant CO2, DC14 on global grid
+
+! !REVISION HISTORY:
+!  same as module
+
+! !USES:
+
+! !INPUT PARAMETERS:
+
+   logical (log_kind), dimension(nx_block,ny_block), intent(in) :: &
+      LAND_MASK       ! land mask for this block
+
+   integer (int_kind) :: &
+      iblock          ! block index
+
+
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block), intent(out) :: &
+      pCO2,       &   ! atmospheric CO2 mole fraction (pmol/mol)
+      D14C            ! atmospheric delta C14 in permil 
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      i, j            ! loop indices
+
+!--------------------------------------------------------------------------------------
+!     Make global values -
+!--------------------------------------------------------------------------------------
+
+   do j = 1, ny_block
+      do i = 1, nx_block
+         if (LAND_MASK(i,j)) then
+            pCO2(i,j) = abio_atm_co2_const
+            D14C(i,j) = abio_atm_d14c_const
+         else
+            pCO2(i,j) = c0
+            D14C(i,j) = c0
+         endif
+      end do
+   end do
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine comp_const_glo_CO2_D14C
+
+!***********************************************************************
+! !IROUTINE: comp_varying_glo_CO2
+! !INTERFACE:
+
+ subroutine comp_varying_glo_CO2(iblock, LAND_MASK, data_ind_co2, pCO2)
 
 ! !DESCRIPTION:
 !  Compute atmospheric mole fractions of CO2 when temporarily 
@@ -1565,6 +1747,9 @@ end subroutine abio_dic_dic14_tavg_forcing
 ! !USES:
 
 ! !INPUT PARAMETERS:
+
+   logical (log_kind), dimension(nx_block,ny_block), intent(in) :: &
+      LAND_MASK        ! land mask for this block
 
    integer (int_kind) :: &
       iblock           ! block index
@@ -1590,7 +1775,8 @@ end subroutine abio_dic_dic14_tavg_forcing
 
    real (r8) :: &
       model_date,     & ! date of current model timestep mapped to data timeline
-      weight            ! weighting for temporal interpolation
+      weight,         & ! weighting for temporal interpolation
+      co2_curr          ! current CO2 value (interpolated from data to model date)
   
  
 !-----------------------------------------------------------------------
@@ -1643,18 +1829,31 @@ end subroutine abio_dic_dic14_tavg_forcing
    weight = (model_date - atm_co2_data_yr(data_ind_co2)) &
             / (atm_co2_data_yr(data_ind_co2+1) - atm_co2_data_yr(data_ind_co2))
 
-   pCO2 = weight * atm_co2_data_ppm(data_ind_co2+1) + (c1-weight) * atm_co2_data_ppm(data_ind_co2)
+   co2_curr = weight * atm_co2_data_ppm(data_ind_co2+1) + (c1-weight) * atm_co2_data_ppm(data_ind_co2)
    
+!--------------------------------------------------------------------------------------
+!     Make global values -
+!--------------------------------------------------------------------------------------
+
+   do j = 1, ny_block
+      do i = 1, nx_block
+         if (LAND_MASK(i,j)) then
+            pCO2(i,j) = co2_curr
+         else
+            pCO2(i,j) = c0
+         endif
+      end do
+   end do
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine comp_varying_CO2
+ end subroutine comp_varying_glo_CO2
 
 !***********************************************************************
-! !IROUTINE: comp_varying_D14C
+! !IROUTINE: comp_varying_glo_D14C
 ! !INTERFACE:
 
- subroutine comp_varying_D14C(iblock, data_ind_d14c, D14C)
+ subroutine comp_varying_glo_D14C(iblock, LAND_MASK, data_ind_d14c, D14C)
 
 ! !DESCRIPTION:
 !  Compute atmospheric mole fractions of CO2 when temporarily 
@@ -1674,6 +1873,9 @@ end subroutine abio_dic_dic14_tavg_forcing
    use grid, only : TLATD
 
 ! !INPUT PARAMETERS:
+
+   logical (log_kind), dimension(nx_block,ny_block), intent(in) :: &
+      LAND_MASK       ! land mask for this block
 
    integer (int_kind) :: &
       iblock          ! block index
@@ -1769,21 +1971,188 @@ end subroutine abio_dic_dic14_tavg_forcing
 
    do j = 1, ny_block
       do i = 1, nx_block
-         if (TLATD(i,j,iblock) < -20.0_r8) then
-            D14C(i,j) = d14c_curr_sh
-         else if (TLATD(i,j,iblock) > 20.0_r8) then
-            D14C(i,j) = d14c_curr_nh
+         if (LAND_MASK(i,j)) then
+            if (TLATD(i,j,iblock) < -20.0_r8) then
+               D14C(i,j) = d14c_curr_sh
+            else if (TLATD(i,j,iblock) > 20.0_r8) then
+               D14C(i,j) = d14c_curr_nh
+            else
+               D14C(i,j) = d14c_curr_eq
+            endif
          else
-            D14C(i,j) = d14c_curr_eq
-          endif
+            D14C(i,j) = c0
+         endif
       end do
    end do
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine comp_varying_D14C
+ end subroutine comp_varying_glo_D14C
 
 
+ !***********************************************************************
+!BOP
+! !IROUTINE: extract_surf_avg
+! !INTERFACE:
+
+ subroutine extract_surf_avg(init_abio_dic_dic14_init_file_fmt, &
+                             abio_dic_dic14_restart_filename)
+
+! !DESCRIPTION:
+!  Extract average surface values from restart file.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent(in) :: &
+      init_abio_dic_dic14_init_file_fmt, & ! file format (bin or nc)
+      abio_dic_dic14_restart_filename      ! file name for restart file
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   type (datafile) ::&
+      restart_file    ! io file descriptor
+
+   integer (int_kind) :: &
+      n               ! tracer index
+
+   character (char_len) :: &
+      short_name      ! tracer name temporaries
+
+!-----------------------------------------------------------------------
+
+   surf_avg = c0
+
+   restart_file = construct_file(init_abio_dic_dic14_init_file_fmt, &
+                                 full_name=trim(abio_dic_dic14_restart_filename), &
+                                 record_length=rec_type_dbl, &
+                                 recl_words=nx_global*ny_global)
+
+   do n = 1, abio_dic_dic14_tracer_cnt
+      if (vflux_flag(n)) then
+         short_name = 'surf_avg_' /&
+                   &/ ind_name_table(n)%name
+         call add_attrib_file(restart_file, trim(short_name), surf_avg(n))
+      endif
+   end do
+
+   call data_set(restart_file, 'open_read')
+
+   do n = 1, abio_dic_dic14_tracer_cnt
+      if (vflux_flag(n)) then
+         short_name = 'surf_avg_' /&
+                   &/ ind_name_table(n)%name
+         call extract_attrib_file(restart_file, trim(short_name), surf_avg(n))
+      endif
+   end do
+
+   call data_set (restart_file, 'close')
+
+   call destroy_file (restart_file)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine extract_surf_avg
+!*****************************************************************************
+!BOP
+! !IROUTINE: comp_surf_avg
+! !INTERFACE:
+
+ subroutine comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR)
+
+! !DESCRIPTION:
+!  compute average surface tracer values
+!
+!  avg = sum(SURF_VAL*TAREA) / sum(TAREA)
+!  with the sum taken over ocean points only
+!
+! !REVISION HISTORY:
+!  same as module
+   use grid, only: TAREA, RCALCT, area_t
+   use global_reductions, only: global_sum
+
+
+! !INPUT PARAMETERS:
+
+  real (r8), dimension(nx_block,ny_block,abio_dic_dic14_tracer_cnt,max_blocks_clinic), &
+      intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      n,       & ! tracer index
+      iblock,  & ! block index
+      dcount,  & ! diag counter
+      ib,ie,jb,je
+
+   real (r8), dimension(max_blocks_clinic,abio_dic_dic14_tracer_cnt) :: &
+      local_sums ! array for holding block sums of each diagnostic
+
+   real (r8) :: &
+      sum_tmp    ! temp for local sum
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK1, &   ! local work space
+      TFACT      ! factor for normalizing sums
+
+   type (block) :: &
+      this_block ! block information for current block
+
+!-----------------------------------------------------------------------
+
+   local_sums = c0
+
+!jw   !$OMP PARALLEL DO PRIVATE(iblock,this_block,ib,ie,jb,je,TFACT,n,WORK1)
+   do iblock = 1,nblocks_clinic
+      this_block = get_block(blocks_clinic(iblock),iblock)
+      ib = this_block%ib
+      ie = this_block%ie
+      jb = this_block%jb
+      je = this_block%je
+      TFACT = TAREA(:,:,iblock)*RCALCT(:,:,iblock)
+
+      do n = 1, abio_dic_dic14_tracer_cnt
+         if (vflux_flag(n)) then
+            WORK1 = p5*(SURF_VALS_OLD(:,:,n,iblock) + &
+                        SURF_VALS_CUR(:,:,n,iblock))*TFACT
+            local_sums(iblock,n) = sum(WORK1(ib:ie,jb:je))
+         endif
+      end do
+   end do
+!jw   !$OMP END PARALLEL DO
+
+   do n = 1, abio_dic_dic14_tracer_cnt
+      if (vflux_flag(n)) then
+         sum_tmp = sum(local_sums(:,n))
+         surf_avg(n) = global_sum(sum_tmp,distrb_clinic)/area_t
+      endif
+   end do
+
+   if(my_task == master_task) then
+      write(stdout,*)' Calculating surface tracer averages'
+      do n = 1, abio_dic_dic14_tracer_cnt
+         if (vflux_flag(n)) then
+            write(stdout,*) n, surf_avg(n)
+         endif
+      end do
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine comp_surf_avg
+ 
 !*****************************************************************************
 !BOP
 ! !IROUTINE: abio_dic_dic14_write_restart

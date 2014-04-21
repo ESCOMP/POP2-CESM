@@ -16,11 +16,11 @@
 
    use kinds_mod
    use constants, only: c0, c1, p5, char_blank, blank_fmt
-   use domain_size, only: nx_global, ny_global, max_blocks_clinic
+   use domain_size, only: nx_global, ny_global, max_blocks_clinic,nt
    use domain, only: nblocks_clinic,distrb_clinic, blocks_clinic
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
-   use constants, only: char_blank, field_loc_center, field_type_scalar
+   use constants, only: char_blank, field_loc_center, field_type_scalar,delim_fmt
    use prognostic, only: tracer_field
    use io_tools, only: document
    use io, only: data_set
@@ -94,7 +94,8 @@
       read_field,                            &
       name_to_ind,                           &
       extract_surf_avg,                      &
-      comp_surf_avg
+      comp_surf_avg,                         &
+      set_tracer_indices
 
 !EOP
 !BOC
@@ -723,7 +724,7 @@
       intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR
 
    integer (int_kind),intent(in) :: &
-      tracer_cnt
+      tracer_cnt                ! number of tracers
       
    logical (log_kind), dimension(tracer_cnt),intent(in) :: &
       vflux_flag                ! which tracers get virtual fluxes applied
@@ -803,6 +804,76 @@
 
  end subroutine comp_surf_avg
 !*****************************************************************************
+!BOP
+! !IROUTINE: set_tracer_indices
+! !INTERFACE:
+
+ subroutine set_tracer_indices(module_string, module_nt,  &
+        cumulative_nt, ind_begin, ind_end)
+
+! !DESCRIPTION:
+!  set the index bounds of a single passive tracer module
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent(in) :: &
+      module_string
+
+   integer (kind=int_kind), intent(in) ::  &
+      module_nt
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   integer (kind=int_kind), intent(inout) ::  &
+      cumulative_nt
+
+   integer (kind=int_kind), intent(out) ::  &
+      ind_begin, &
+      ind_end
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   character(*), parameter :: subname = 'passive_tracer_tools:set_tracer_indices'
+
+   character (char_len) ::  &
+      error_string
+
+!-----------------------------------------------------------------------
+
+   ind_begin = cumulative_nt + 1
+   ind_end = ind_begin + module_nt - 1
+   cumulative_nt = ind_end
+
+   if (my_task == master_task) then
+      write(stdout,delim_fmt)
+      write(stdout,*) module_string /&
+         &/ ' ind_begin = ', ind_begin
+      write(stdout,*) module_string /&
+         &/ ' ind_end   = ', ind_end
+      write(stdout,delim_fmt)
+   end if
+
+   if (cumulative_nt > nt) then
+      call document(subname, 'nt', nt)
+      call document(subname, 'cumulative_nt', cumulative_nt)
+      error_string = 'nt too small for module ' /&
+         &/ module_string
+      call exit_POP(sigAbort, error_string)
+   end if
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine set_tracer_indices
+!***********************************************************************
+
  
 
  end module passive_tracer_tools

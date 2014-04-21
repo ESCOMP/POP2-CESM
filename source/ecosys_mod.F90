@@ -117,8 +117,7 @@
    use registry
    use named_field_mod
    use co2calc
-   use ecosys_fields
-   use tracer_share
+   use ecosys_share
 #ifdef CCSMCOUPLED
    use POP_MCT_vars_mod
    use shr_strdata_mod
@@ -146,8 +145,7 @@
       ecosys_tavg_forcing,          &
       ecosys_set_interior,          &
       ecosys_write_restart,         &
-      ecosys_qsw_distrb_const!,      &
-!      SCHMIDT_CO2
+      ecosys_qsw_distrb_const
 
 !-----------------------------------------------------------------------
 !  module variables required by forcing_passive_tracer
@@ -340,28 +338,6 @@
       dic_riv_flux,              & ! river dic flux, added to dic pool
       alk_riv_flux,              & ! river alk flux, added to alk pool
       doc_riv_flux                 ! river doc flux, added to semi-labile DOC
-
-!-----------------------------------------------------------------------
-!  derived type for implicit handling of sinking particulate matter
-!  now defined in ecosys_params.F90, for sharing with other modules
-!-----------------------------------------------------------------------
-!
-!   type sinking_particle
-!      real (r8) :: &
-!         diss,        & ! dissolution length for soft subclass
-!         gamma,       & ! fraction of production -> hard subclass
-!         mass,        & ! mass of 1e9 base units in g
-!         rho            ! QA mass ratio of POC to this particle class
-!
-!      real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
-!         sflux_in,    & ! incoming flux of soft subclass (base units/cm^2/sec)
-!         hflux_in,    & ! incoming flux of hard subclass (base units/cm^2/sec)
-!         prod,        & ! production term (base units/cm^3/sec)
-!         sflux_out,   & ! outgoing flux of soft subclass (base units/cm^2/sec)
-!         hflux_out,   & ! outgoing flux of hard subclass (base units/cm^2/sec)
-!         sed_loss,    & ! loss to sediments (base units/cm^s/sec)
-!         remin          ! remineralization term (base units/cm^3/sec)
-!   end type sinking_particle
 
 !-----------------------------------------------------------------------
 !  tavg ids and buffer indices (into ECO_SFLUX_TAVG) for 2d fields related to surface fluxes
@@ -647,17 +623,14 @@ contains
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-  !type (tracer_field), dimension(ecosys_tracer_cnt), intent(inout) :: &
    type (tracer_field), dimension(:), intent(inout) :: &
       tracer_d_module   ! descriptors for each tracer
 
-  !real (r8), dimension(nx_block,ny_block,km,ecosys_tracer_cnt,3,max_blocks_clinic), &
    real (r8), dimension(:,:,:,:,:,:), &
       intent(inout) :: TRACER_MODULE
 
 ! !OUTPUT PARAMETERS:
 
-  !character (char_len), dimension(ecosys_tracer_cnt), intent(out) :: &
    character (char_len), dimension(:), intent(out) :: &
       tadvect_ctype     ! advection method for ecosys tracers
 
@@ -1569,11 +1542,10 @@ contains
          surf_avg(dic_alt_co2_ind) = surf_avg_dic_const
          surf_avg(alk_ind) = surf_avg_alk_const
       else
-         call extract_surf_avg(init_ecosys_init_file_fmt, &
-                               ecosys_restart_filename,   &
-                               ecosys_tracer_cnt,         &
-                               vflux_flag,ind_name_table,  &
-                               surf_avg)
+         call extract_surf_avg(init_ecosys_init_file_fmt,     &
+                               ecosys_restart_filename,       &
+                               ecosys_tracer_cnt, vflux_flag, &
+                               ind_name_table,surf_avg)
       endif
 
       call eval_time_flag(comp_surf_avg_flag) ! evaluates time_flag(comp_surf_avg_flag)%value via time_to_do
@@ -1581,8 +1553,7 @@ contains
       if (check_time_flag(comp_surf_avg_flag)) &
          call comp_surf_avg(TRACER_MODULE(:,:,1,:,oldtime,:), &
                             TRACER_MODULE(:,:,1,:,curtime,:), &
-                            ecosys_tracer_cnt,vflux_flag,     &
-                            surf_avg)
+                            ecosys_tracer_cnt,vflux_flag,surf_avg)
 
    case ('file', 'ccsm_startup')
       call document(subname, 'ecosystem vars being read from separate files')
@@ -1632,8 +1603,7 @@ contains
       else
          call comp_surf_avg(TRACER_MODULE(:,:,1,:,oldtime,:), &
                             TRACER_MODULE(:,:,1,:,curtime,:), &
-                            ecosys_tracer_cnt,vflux_flag,     &
-                            surf_avg)
+                            ecosys_tracer_cnt,vflux_flag,surf_avg)
       endif
 
    case default
@@ -2598,7 +2568,6 @@ contains
       SALT_OLD,          &! old salinity (msu)
       SALT_CUR            ! current salinity (msu)
 
-  !real (r8), dimension(nx_block,ny_block,km,ecosys_tracer_cnt), intent(in) :: &
    real (r8), dimension(:,:,:,:), intent(in) :: &
       TRACER_MODULE_OLD, &! old tracer values
       TRACER_MODULE_CUR   ! current tracer values
@@ -2608,7 +2577,6 @@ contains
 
 ! !OUTPUT PARAMETERS:
 
-  !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt), intent(out) :: &
    real (r8), dimension(:,:,:), intent(out) :: &
       DTRACER_MODULE      ! computed source/sink terms
 
@@ -2626,15 +2594,13 @@ contains
       epsTinv   = 3.17e-8, & ! small inverse time scale (1/year) (1/sec)
       epsnondim = 1.00e-6    ! small non-dimensional number (non-dim)
 
-! Now defined in ecosys_fields
-!   type(sinking_particle), save :: &
-!      POC,            & ! base units = nmol C
-!      P_CaCO3           ! base units = nmol CaCO3
-
    type(sinking_particle), save :: &
       P_SiO2,         & ! base units = nmol SiO2
       dust,           & ! base units = g
       P_iron            ! base units = nmol Fe
+!     POC               ! base units = nmol C -> Defined in ecosys_share
+!     P_CaCO3           ! base units = nmol CaCO3 -> Defined in ecosys_share
+      
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), save :: &
       QA_dust_def,    & ! incoming deficit in the QA(dust) POC flux
@@ -2648,29 +2614,18 @@ contains
    real (r8), dimension(nx_block,ny_block) :: &
       TEMP,           & ! local copy of model TEMP
       SALT,           & ! local copy of model SALT
-!      DIC_loc,        & ! local copy of model DIC -- Now pointers to fields defined in ecosys_fields
       DIC_ALT_CO2_loc,& ! local copy of model DIC_ALT_CO2
       ALK_loc,        & ! local copy of model ALK
       PO4_loc,        & ! local copy of model PO4
-!      NO3_loc,        & ! local copy of model NO3 -- Now pointers to fields defined in ecosys_fields
       SiO3_loc,       & ! local copy of model SiO3
       NH4_loc,        & ! local copy of model NH4
       Fe_loc,         & ! local copy of model Fe
-!      O2_loc,         & ! local copy of model O2 -- Now pointers to fields defined in ecosys_fields
-!      DOC_loc,        & ! local copy of model DOC -- Now pointers to fields defined in ecosys_fields
-!      zooC_loc,       & ! local copy of model zooC -- Now pointers to fields defined in ecosys_fields
       DON_loc,        & ! local copy of model DON
       DOFe_loc,       & ! local copy of model DOFe
       DOP_loc,        & ! local copy of model DOP
       DOPr_loc,       & ! local copy of model DOPr
       DONr_loc          ! local copy of model DONr
 
-!   real (r8), dimension(nx_block,ny_block,autotroph_cnt) :: & -- Now pointers to fields defined in ecosys_fields
-!      autotrophChl_loc, & ! local copy of model autotroph Chl
-!      autotrophC_loc,   & ! local copy of model autotroph C
-!      autotrophFe_loc,  & ! local copy of model autotroph Fe
-!      autotrophSi_loc,  & ! local copy of model autotroph Si
-!      autotrophCaCO3_loc  ! local copy of model autotroph CaCO3
 
    logical (log_kind), dimension(nx_block,ny_block) :: ZERO_MASK
 
@@ -2686,7 +2641,6 @@ contains
       KPARdz,         & ! PAR adsorption coefficient (non-dim)
       PAR_avg,        & ! average PAR over mixed layer depth (W/m^2)
       DOC_prod,       & ! production of DOC (mmol C/m^3/sec)
-!      DOC_remin,      & ! remineralization of DOC (mmol C/m^3/sec) -- Now pointer to fields defined in ecosys_fields
       DON_remin,      & ! portion of DON remineralized
       DOFe_remin,     & ! portion of DOFe remineralized
       DOP_remin,      & ! portion of DOP remineralized
@@ -2703,17 +2657,12 @@ contains
       f_nut,          & ! nut limitation factor, modifies C fixation (non-dim)
       PCmax,          & ! max value of PCphoto at temperature TEMP (1/sec)
       light_lim,      & ! light limitation factor
-!      PCphoto,        & ! C-specific rate of photosynth. (1/sec) -- Now pointer to fields defined in ecosys_fields
       pChl              ! Chl synth. regulation term (mg Chl/mmol N)
 
    real (r8), dimension(nx_block,ny_block) :: & ! max of 39 continuation lines
-!      f_zoo_detr,     & ! frac of zoo losses into large detrital pool (non-dim) -- Now pointer to fields defined in ecosys_fields
       Fe_scavenge_rate,&! annual scavenging rate of iron as % of ambient
       Fe_scavenge,    & ! loss of dissolved iron, scavenging (mmol Fe/m^3/sec)
-      Zprime!,         & ! used to limit zoo mort at low biomass (mmol C/m^3)
-!      zoo_loss,       & ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec) -- Now pointer to fields defined in ecosys_fields
-!      zoo_loss_doc,   & ! zoo_loss routed to doc (mmol C/m^3/sec) -- Now pointer to fields defined in ecosys_fields
-!      zoo_loss_dic      ! zoo_loss routed to dic (mmol C/m^3/sec) -- Now pointer to fields defined in ecosys_fields
+      Zprime            ! used to limit zoo mort at low biomass (mmol C/m^3)
 
    real (r8), dimension(nx_block,ny_block) :: &
       VNC,            & ! C-specific N uptake rate (mmol N/mmol C/sec)
@@ -2725,7 +2674,6 @@ contains
 
    real (r8), dimension(nx_block,ny_block,autotroph_cnt) :: &
       thetaC,         & ! local Chl/C ratio (mg Chl/mmol C)
-!      QCaCO3,         & ! CaCO3/C ratio (mmol CaCO3/mmol C) -- Now pointer to fields defined in ecosys_fields
       VNO3,           & ! NO3 uptake rate (non-dim)
       VNH4,           & ! NH4 uptake rate (non-dim)
       VNtot,          & ! total N uptake rate (non-dim)
@@ -2738,20 +2686,8 @@ contains
       Qsi,            & ! initial Si/C ratio (mmol Si/mmol C)
       gQsi,           & ! diatom Si/C ratio for growth (new biomass)
       Pprime,         & ! used to limit autotroph mort at low biomass (mmol C/m^3)
-!      auto_graze,     & ! autotroph grazing rate (mmol C/m^3/sec) -- Now pointer to fields defined in ecosys_fields
-!      auto_graze_zoo, & ! auto_graze routed to zoo (mmol C/m^3/sec)
-!      auto_graze_poc, & ! auto_graze routed to poc (mmol C/m^3/sec)
-!      auto_graze_doc, & ! auto_graze routed to doc (mmol C/m^3/sec)
-!      auto_graze_dic, & ! auto_graze routed to dic (mmol C/m^3/sec)
-!      auto_loss,      & ! autotroph non-grazing mort (mmol C/m^3/sec)
-!      auto_loss_poc,  & ! auto_loss routed to poc (mmol C/m^3/sec)
-!      auto_loss_doc,  & ! auto_loss routed to doc (mmol C/m^3/sec)
-!      auto_loss_dic,  & ! auto_loss routed to dic (mmol C/m^3/sec)
-!      auto_agg,       & ! autotroph aggregation (mmol C/m^3/sec)
-!      photoC,         & ! C-fixation (mmol C/m^3/sec)
       photoFe,        & ! iron uptake
       photoSi,        & ! silicon uptake (mmol Si/m^3/sec)
-!      CaCO3_PROD,     & ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec) -- Now pointer to fields defined in ecosys_fields
       photoacc,       & ! Chl synth. term in photoadapt. (GD98) (mg Chl/m^3/sec)
       Nfix,           & ! total Nitrogen fixation (mmol N/m^3/sec)
       Nexcrete          ! fixed N excretion
@@ -2775,9 +2711,6 @@ contains
       DOPr_remin        ! portion of refractory DOP remineralized
 
    real (r8), dimension(nx_block,ny_block) :: &
-!      CO3,            &! carbonate ion -- Now pointer to fields defined in ecosys_fields
-!      HCO3,           &! bicarbonate ion -- Now pointer to fields defined in ecosys_fields
-!      H2CO3,          &! carbonic acid -- Now pointer to fields defined in ecosys_fieldss
       CO3_ALT_CO2,    &! carbonate ion, alternative CO2
       HCO3_ALT_CO2,   &! bicarbonate ion, alternative CO2
       H2CO3_ALT_CO2,  &! carbonic acid, alternative CO2
@@ -2795,14 +2728,11 @@ contains
    logical (log_kind) :: &
       lalt_co2_terms    ! are any alt_co2 terms being time averaged
 
-
-
-!-----------------------------------------------------------------------
 !---------------------------------------------------------------
 ! Define pointer variables, used to share values with other modules
-! Target variables are defined in ecosys_fields
+! Target variables are defined in ecosys_share
 ! Below pointers are used to point to the right part of the 
-! global array in ecosys_fields
+! global array in ecosys_share
 !---------------------------------------------------------------
     real (r8), dimension(:,:),pointer :: f_zoo_detr   ! frac of zoo losses into large detrital pool (non-dim)
     real (r8), dimension(:,:),pointer :: DIC_loc      ! local copy of model DIC
@@ -2880,13 +2810,25 @@ contains
    
    bid = this_block%local_id
 
- 
+!-------------------------------------------------------------
+
+   call timer_start(ecosys_interior_timer, block_id=bid)
+
+   DTRACER_MODULE = c0
+
+!-----------------------------------------------------------------------
+!  exit immediately if computations are not to be performed
+!-----------------------------------------------------------------------
+
+   if (.not. lsource_sink) then
+      call timer_stop(ecosys_interior_timer, block_id=bid)
+      return
+   endif 
 !-------------------------------------------------------------
 ! Assign locally used variables to pointer variables 
 ! => use pointers to point to the right part of the global array 
-! in ecosys_fields
+! in ecosys_share
 !---------------------------------------------------------------
-
     
     f_zoo_detr => f_zoo_detr_fields(:,:,bid)
     DIC_loc => DIC_loc_fields(:,:,bid)
@@ -2921,21 +2863,6 @@ contains
     CaCO3_PROD => CaCO3_PROD_fields(:,:,:,bid)
     QCaCO3 => QCaCO3_fields(:,:,:,bid)
     PCphoto => PCphoto_fields(:,:,:,bid)
-
-!-------------------------------------------------------------
-
-   call timer_start(ecosys_interior_timer, block_id=bid)
-
-   DTRACER_MODULE = c0
-
-!-----------------------------------------------------------------------
-!  exit immediately if computations are not to be performed
-!-----------------------------------------------------------------------
-
-   if (.not. lsource_sink) then
-      call timer_stop(ecosys_interior_timer, block_id=bid)
-      return
-   endif
 
 !-----------------------------------------------------------------------
 !  create local copies of model tracers
@@ -4440,7 +4367,6 @@ contains
    real (r8), dimension(nx_block,ny_block) :: &
       WORK,               & ! temporary for summed quantities to be averaged
       TfuncS,             & ! temperature scaling from soft POM remin
-!      DECAY_Hard,         & ! scaling factor for dissolution of Hard Ballast
       DECAY_HardDust        ! scaling factor for dissolution of Hard dust
 
    real (r8) :: &
@@ -4462,7 +4388,7 @@ contains
       poc_error             ! POC error flag
 
 !-----------------------------------------------------------------------
-!  Pointer variables (defined in ecosys_fields)
+!  Pointer variables (defined in ecosys_share)
 !-----------------------------------------------------------------------
 
    real (r8), dimension(:,:),pointer :: decay_CaCO3_ptr   ! scaling factor for dissolution of CaCO3   
@@ -4500,7 +4426,7 @@ contains
    nullify(P_CaCO3_remin_ptr)
 !-------------------------------------------------------------------
 ! The following variables need to be shared with ecosys_ptr, and 
-! are now defined in ecosys_fields as targets
+! are now defined in ecosys_share as targets
 ! -> here we use pointers to point to the right part of the global 
 ! array in ecosys_fields
 !-------------------------------------------------------------------
@@ -5960,13 +5886,11 @@ contains
       SST,          &! sea surface temperature (C)
       SSS            ! sea surface salinity (psu)
 
-  !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
    real (r8), dimension(:,:,:,:), &
       intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR ! module tracers
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-  !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
    real (r8), dimension(:,:,:,:), &
       intent(inout) :: STF_MODULE
 
@@ -6040,6 +5964,7 @@ contains
 
    real (r8) :: scalar_temp
 
+  
 !-----------------------------------------------------------------------
 !  Pointer variables (defined in ecosys_fields)
 !-----------------------------------------------------------------------
@@ -7066,7 +6991,6 @@ contains
 
 ! !INPUT PARAMETERS:
 
- !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
   real (r8), dimension(:,:,:,:), &
      intent(in) :: STF_MODULE
 

@@ -1,4 +1,31 @@
-
+Tag Creator: ajahn 
+Developers:  ajahn
+Tag Date:    21 April 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140421_cesm_pop_2_1_20130521/
+Tag Summary: 
+- fixed error in computation of global D14C (temporary variables should not be
+in OMP private declaration), introduced in revision from 25 March 2014, which
+lead to all 14C fields being fill values
+- continued code revision after code review
+a) renamed ecosys_fields to ecosys_share, and moved type definitions from
+ecosys_params as well as CO2_SCHMIDT from ecosys_mod to ecosys_share
+b) removed commented out variables and definitions and debugging comments in
+ecosys and ecosys_ciso
+c) removed locmip_k1_k2_bug_fix from ecosys_ciso and abio_dic_dic14
+Files Modified:
+M            59255   source/passive_tracer_tools.F90
+D            59255   source/tracer_share.F90
+M            59255   source/abio_dic_dic14_mod.F90
+A                0   source/ecosys_share.F90
+M            59255   source/ecosys_mod.F90
+M            59255   source/ecosys_parms.F90
+M            59255   source/ecosys_ciso_mod.F90
+D            58508   source/ecosys_fields.F90
+M            58508   bld/build-namelist
+M            58508   bld/namelist_files/namelist_defaults_pop2.xml
+M            58508   bld/namelist_files/namelist_definition_pop2.xml
+Status against revision:  59406
 ===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
