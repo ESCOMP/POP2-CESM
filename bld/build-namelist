@@ -1334,8 +1334,6 @@ if ($OCN_TRACER_MODULES =~ /ciso/) {
     add_default($nl, 'ciso_atm_d13c_const');
     add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
     add_default($nl, 'ciso_atm_d14c_const');
-    add_default($nl, 'ciso_tadvect_ctype');
-    add_default($nl, 'ciso_lmarginal_seas');
     add_default($nl, 'ciso_lsource_sink');
     add_default($nl, 'ciso_comp_surf_avg_freq_opt');
     add_default($nl, 'ciso_comp_surf_avg_freq');
@@ -1349,7 +1347,6 @@ if ($OCN_TRACER_MODULES =~ /ciso/) {
     add_default($nl, 'ciso_fract_factors');
     add_default($nl, 'ciso_lecovars_full_depth_tavg');
 }
- 
 ##########################################
 # namelist group: ecosys_nml             #
 ##########################################
@@ -1407,9 +1404,7 @@ if ($OCN_TRACER_MODULES =~ /ecosys/) {
     add_default($nl, 'atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
     add_default($nl, 'atm_alt_co2_opt', 'val'=>"const");
     add_default($nl, 'atm_alt_co2_const', 'val'=>"$CCSM_CO2_PPMV");
-    add_default($nl, 'ecosys_tadvect_ctype');
     add_default($nl, 'gas_flux_forcing_opt');
-    add_default($nl, 'lmarginal_seas');
 
     add_default($nl, 'lsource_sink');
     add_default($nl, 'comp_surf_avg_freq_opt');
@@ -1520,6 +1515,16 @@ if ($OCN_TRACER_MODULES =~ /ecosys/) {
     add_default($nl, 'autotrophs(3)%z_umax_0');
 }
 
+##########################################
+# namelist group: ecosys_driver_nml      #
+##########################################
+
+if ($OCN_TRACER_MODULES =~ /ecosys/) {
+
+    add_default($nl, 'lmarginal_seas');
+    add_default($nl, 'ecosys_tadvect_ctype');
+    }
+ 
 ##########################################
 # namelist group: moby_nml             #
 ##########################################
@@ -1893,7 +1898,7 @@ if ($OCN_TRACER_MODULES =~ /cfc/) {
     push @groups, qw(cfc_nml);
 }    
 if ($OCN_TRACER_MODULES =~ /ecosys/) {
-    push @groups, qw(ecosys_nml ecosys_parms_nml);
+    push @groups, qw(ecosys_nml ecosys_parms_nml ecosys_driver_nml);
 }    
 if ($OCN_TRACER_MODULES =~ /moby/) {
     push @groups, qw(moby_nml moby_parms_nml );

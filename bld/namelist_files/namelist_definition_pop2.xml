@@ -4534,23 +4534,6 @@ group="ecosys_ciso_nml" >
 Default: 
 </entry>
 
-
-<entry 
-id="ciso_tadvect_ctype"
-type="char*256" 
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
-<entry 
-id="ciso_lmarginal_seas"
-type="logical"
-category="ecosys"
-group="ecosys_ciso_nml" >
-Default: 
-</entry>
-
 <entry 
 id="ciso_lsource_sink"
 type="logical"
@@ -5711,14 +5694,6 @@ Default:
 </entry>
 
 <entry 
-id="lmarginal_seas"
-type="logical"
-category="ecosys"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
 id="lsource_sink"
 type="logical"
 category="ecosys"
@@ -5817,13 +5792,6 @@ group="ecosys_nml" >
 Default: 
 </entry>
 
-<entry 
-id="ecosys_tadvect_ctype"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 
-</entry>
 
 <entry 
 id="liron_patch"
@@ -6061,6 +6029,27 @@ category="ecosys"
 group="ecosys_parms_nml" >
 Default:  
 </entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: ecosys_driver_nml        - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry 
+id="lmarginal_seas"
+type="logical"
+category="ecosys"
+group="ecosys_driver_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ecosys_tadvect_ctype"
+type="char*256" 
+category="ecosys"
+group="ecosys_driver_nml" >
+Default: 
+</entry>
+
 
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: moby_nml                 - -->

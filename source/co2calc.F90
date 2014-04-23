@@ -211,7 +211,7 @@ CONTAINS
           !   Convert units of output arguments
           !   Note: pCO2surf and dpCO2 are calculated in atm above.
           !---------------------------------------------------------------------
- 
+
           CO3(i)      = CO3(i) * mass_to_vol
           co2star(i)  = co2star(i) * mass_to_vol
           dco2star(i) = dco2star(i) * mass_to_vol
@@ -1344,7 +1344,7 @@ CONTAINS
           !   Compute CO3 concentration at calcite & aragonite saturation
           !------------------------------------------------------------------
 
-          inv_Ca = (35.0_r8 / 0.01028_r8) / salt_lim 
+          inv_Ca = (35.0_r8 / 0.01028_r8) / salt_lim
           co3_sat_calc(:,j) = K_calc * inv_Ca
           co3_sat_arag(:,j) = K_arag * inv_Ca
 

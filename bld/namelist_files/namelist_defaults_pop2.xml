@@ -894,10 +894,6 @@
 
 <ciso_atm_d14c_const>0.0</ciso_atm_d14c_const>
 
-<ciso_tadvect_ctype>base_model</ciso_tadvect_ctype>
-
-<ciso_lmarginal_seas>.true.</ciso_lmarginal_seas>
-
 <ciso_lsource_sink>.true.</ciso_lsource_sink>
 
 <ciso_comp_surf_avg_freq_opt>never</ciso_comp_surf_avg_freq_opt>
@@ -938,11 +934,7 @@
 <lflux_gas_o2 >.true.</lflux_gas_o2>
 <lflux_gas_co2>.true.</lflux_gas_co2>
 
-<ecosys_tadvect_ctype>base_model</ecosys_tadvect_ctype>
-
 <gas_flux_forcing_opt>drv</gas_flux_forcing_opt>
-
-<lmarginal_seas>.true.</lmarginal_seas>
 
 <lsource_sink>.true.</lsource_sink>
 
@@ -1174,6 +1166,12 @@
 <autotrophs(3)%kNH4 >0.15    </autotrophs(3)%kNH4>
 <autotrophs(3)%kSiO3>0.0     </autotrophs(3)%kSiO3>
 <autotrophs(3)%z_umax_0>6.9444e-06</autotrophs(3)%z_umax_0>
+
+<!---------------------------->
+<!--ecosys_driver_nml -->
+<!---------------------------->
+<lmarginal_seas>.true.</lmarginal_seas>
+<ecosys_tadvect_ctype>base_model</ecosys_tadvect_ctype>
 
 <!---------------------------->
 <!--moby_nml -->

@@ -10,10 +10,6 @@
 !  The base model calls subroutines in this module which then call
 !     subroutines in individual passive tracer modules.
 
-!  Comment by A. Jahn: This is our modified version for cesm1.2, which 
-!  includes the Carbon and water isotopes. Calls to abio 14C and wiso 
-!  are commented out so that it works without the code of these modules
-
 ! !REVISION HISTORY:
 !  SVN:$Id$
 
@@ -44,6 +40,8 @@
        sfc_layer_type, sfc_layer_varthick
    use registry, only: register_string, registry_match
    use io_tools, only: document
+   use passive_tracer_tools, only: set_tracer_indices
+
 
    use ecosys_driver, only:               &
        ecosys_driver_tracer_cnt_init,     &
@@ -60,14 +58,6 @@
        cfc_init,                   &
        cfc_set_sflux,              &
        cfc_tavg_forcing
-
-!   use wiso_mod, only:              &
-!       wiso_tracer_cnt,             &
-!       wiso_init,                   &
-!       wiso_set_sflux,              &
-!       wiso_tavg_forcing,           &
-!       wiso_write_restart,          &
-!       wiso_tracer_ref_val
 
    use iage_mod, only:             &
        iage_tracer_cnt,            &
@@ -160,23 +150,22 @@
 !-----------------------------------------------------------------------
 
    logical (kind=log_kind) ::  &
-      ecosys_on, cfc_on, wiso_on, iage_on, moby_on, &
+      ecosys_on, cfc_on, iage_on, moby_on, &
       abio_dic_dic14_on, ciso_on
 
    namelist /passive_tracers_on_nml/  &
-      ecosys_on, cfc_on, wiso_on, iage_on, moby_on, &
+      ecosys_on, cfc_on, iage_on, moby_on, &
       abio_dic_dic14_on, ciso_on
 
 
 !-----------------------------------------------------------------------
 !     index bounds of passive tracer module variables in TRACER
 !-----------------------------------------------------------------------
-   
+
    integer (kind=int_kind) ::                           &
       ecosys_driver_ind_begin,  ecosys_driver_ind_end,  &
       iage_ind_begin,           iage_ind_end,           &
       cfc_ind_begin,            cfc_ind_end,            &
-      wiso_ind_begin,            wiso_ind_end,          &
       moby_ind_begin,            moby_ind_end,          &
       abio_dic_dic14_ind_begin,  abio_dic_dic14_ind_end
 
@@ -252,7 +241,6 @@
    ciso_on           = .false.
    cfc_on            = .false.
    iage_on           = .false.
-   wiso_on           = .false.
    moby_on           = .false.
    abio_dic_dic14_on = .false.
 
@@ -274,7 +262,6 @@
    if (nml_error /= 0) then
       call exit_POP(sigAbort,'ERROR reading passive_tracers_on namelist')
    endif
-                                                                                
 
    if (my_task == master_task) then
       write(stdout,*) ' '
@@ -286,11 +273,10 @@
       call POP_IOUnitsFlush(POP_stdout)
    endif
 
- 
+
    call broadcast_scalar(ecosys_on,         master_task)
    call broadcast_scalar(ciso_on,           master_task)
    call broadcast_scalar(cfc_on,            master_task)
-   call broadcast_scalar(wiso_on,           master_task)
    call broadcast_scalar(iage_on,           master_task)
    call broadcast_scalar(moby_on,           master_task)
    call broadcast_scalar(abio_dic_dic14_on, master_task)
@@ -311,11 +297,6 @@
       call exit_POP(sigAbort,'cfc module requires the flux coupler')
    end if
 
-   if (wiso_on .and. .not. registry_match('lcoupled')) then
-      call exit_POP(sigAbort,'wiso module requires the flux coupler')
-   end if
-
-
    if (abio_dic_dic14_on .and. .not. registry_match('lcoupled')) then
       call exit_POP(sigAbort,'Abiotic DIC_DIC14 module requires the flux coupler')
    end if
@@ -327,14 +308,14 @@
    tadvect_ctype_passive_tracers(3:nt) = 'base_model'
 
 !-----------------------------------------------------------------------
-!  determine ecosys_driver tracer count, which is the sum of the tracer 
+!  determine ecosys_driver tracer count, which is the sum of the tracer
 !  count in all ecosys modules --> done in ecosys_driver
 !-----------------------------------------------------------------------
    if (ecosys_on) then
-      call ecosys_driver_tracer_cnt_init(ecosys_on,ciso_on,ecosys_driver_tracer_cnt)
+      call ecosys_driver_tracer_cnt_init(ciso_on,ecosys_driver_tracer_cnt)
    end if
-   
-   
+
+
 !-----------------------------------------------------------------------
 !  set up indices for passive tracer modules that are on
 !-----------------------------------------------------------------------
@@ -349,11 +330,6 @@
    if (cfc_on) then
       call set_tracer_indices('CFC', cfc_tracer_cnt, cumulative_nt,  &
                               cfc_ind_begin, cfc_ind_end)
-   end if
-
-   if (wiso_on) then
-!      call set_tracer_indices('WISO', wiso_tracer_cnt, cumulative_nt,  &
-!                              wiso_ind_begin, wiso_ind_end)
    end if
 
    if (iage_on) then
@@ -395,7 +371,7 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      call ecosys_driver_init(ecosys_on,ciso_on,init_ts_file_fmt, read_restart_filename, &
+      call ecosys_driver_init(ciso_on,init_ts_file_fmt, read_restart_filename, &
                        tracer_d(ecosys_driver_ind_begin:ecosys_driver_ind_end), &
                        TRACER(:,:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,:,:), &
                        tadvect_ctype_passive_tracers(ecosys_driver_ind_begin:ecosys_driver_ind_end), &
@@ -445,23 +421,6 @@
 
    end if
 
-!-----------------------------------------------------------------------
-!  WISO block
-!-----------------------------------------------------------------------
-
-   if (wiso_on) then
-!      call wiso_init(init_ts_file_fmt, read_restart_filename, &
-!                    tracer_d(wiso_ind_begin:wiso_ind_end), &
-!                    TRACER(:,:,:,wiso_ind_begin:wiso_ind_end,:,:), &
-!                    errorCode)
-
-!      if (errorCode /= POP_Success) then
-!         call POP_ErrorSet(errorCode, &
-!            'init_passive_tracers: error in wiso_init')
-!         return
-!      endif
-
-   end if
 
 !-----------------------------------------------------------------------
 !  MOBY block
@@ -676,7 +635,7 @@
 !  allocate space for filtered SST and SSS, if needed
 !-----------------------------------------------------------------------
 
-   filtered_SST_SSS_needed = ecosys_on .or. cfc_on .or. wiso_on .or. &
+   filtered_SST_SSS_needed = ecosys_on .or. cfc_on .or. &
                              abio_dic_dic14_on
 
    if (filtered_SST_SSS_needed) then
@@ -742,7 +701,7 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      call ecosys_driver_set_interior(k,ecosys_on,ciso_on,         &
+      call ecosys_driver_set_interior(k,ciso_on,         &
          TRACER(:,:,k,1,oldtime,bid), TRACER(:,:,k,1,curtime,bid), &
          TRACER(:,:,k,2,oldtime,bid), TRACER(:,:,k,2,curtime,bid), &
          TRACER(:,:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,oldtime,bid),&
@@ -753,10 +712,6 @@
 
 !-----------------------------------------------------------------------
 !  CFC does not have source-sink terms
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!  WISO does not have source-sink terms
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
@@ -854,29 +809,18 @@
 
 !EOP
 !BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-
 
 !-----------------------------------------------------------------------
-!  ECOSYS does not compute and store 3D source-sink terms
+!  ECOSYS DRIVER modules do not compute and store 3D source-sink terms
 !-----------------------------------------------------------------------
-
 
 !-----------------------------------------------------------------------
 !  CFC does not compute and store 3D source-sink terms
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-!  WISO does not compute and store 3D source-sink terms
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
 !  Ideal Age (IAGE) does not compute and store 3D source-sink terms
 !-----------------------------------------------------------------------
-
 
 !-----------------------------------------------------------------------
 !  MOBY block
@@ -966,7 +910,7 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      call ecosys_driver_set_sflux(ecosys_on,ciso_on,    &
+      call ecosys_driver_set_sflux(ciso_on,    &
          SHF_QSW_RAW, SHF_QSW,                                     &
          U10_SQR, ICE_FRAC, PRESS,                                 &
          SST_FILT, SSS_FILT,                                       &
@@ -988,17 +932,6 @@
    end if
 
 !-----------------------------------------------------------------------
-!  WISO block
-!-----------------------------------------------------------------------
-
-   if (wiso_on) then
- !     call wiso_set_sflux(SST_FILT,                                &
- !        TRACER(:,:,1,wiso_ind_begin:wiso_ind_end,oldtime,:),      &
- !        TRACER(:,:,1,wiso_ind_begin:wiso_ind_end,curtime,:),      &
- !        STF(:,:,wiso_ind_begin:wiso_ind_end,:))
-   end if
-
-!-----------------------------------------------------------------------
 !  IAGE does not have surface fluxes
 !-----------------------------------------------------------------------
 
@@ -1016,7 +949,7 @@
    end if
 
 !-----------------------------------------------------------------------
-!  ABIO DIC & DIC14 block 
+!  ABIO DIC & DIC14 block
 !-----------------------------------------------------------------------
 
    if (abio_dic_dic14_on) then
@@ -1084,20 +1017,12 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      call ecosys_driver_write_restart(ecosys_on,ciso_on,restart_file, action)
+      call ecosys_driver_write_restart(ciso_on,restart_file, action)
    end if
 
 !-----------------------------------------------------------------------
 !  CFC does not write additional restart fields
 !-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!  WISO block
-!-----------------------------------------------------------------------
-
-   if (wiso_on) then
-!      call wiso_write_restart(restart_file, action)
-   end if
 
 !-----------------------------------------------------------------------
 !  IAGE does not write additional restart fields
@@ -1154,10 +1079,6 @@
 
 !-----------------------------------------------------------------------
 !  CFC does not reset values
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!  WISO does not reset values
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
@@ -1365,7 +1286,7 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: iblock, n
- 
+
 
 !-----------------------------------------------------------------------
 !  accumulate surface flux and FvPER flux for all tracers
@@ -1389,7 +1310,7 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-     call ecosys_driver_tavg_forcing(ecosys_on,ciso_on, &
+     call ecosys_driver_tavg_forcing(ciso_on, &
          STF(:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,:))
    end if
 
@@ -1399,14 +1320,6 @@
 
    if (cfc_on) then
       call cfc_tavg_forcing
-   end if
-
-!-----------------------------------------------------------------------
-!  WISO block
-!-----------------------------------------------------------------------
-
-   if (wiso_on) then
-!      call wiso_tavg_forcing
    end if
 
 !-----------------------------------------------------------------------
@@ -1422,7 +1335,7 @@
    endif
 
 !-----------------------------------------------------------------------
-!  ABIO DIC & DIC14 block 
+!  ABIO DIC & DIC14 block
 !-----------------------------------------------------------------------
 
    if (abio_dic_dic14_on) then
@@ -1494,76 +1407,6 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: set_tracer_indices
-! !INTERFACE:
-
- subroutine set_tracer_indices(module_string, module_nt,  &
-        cumulative_nt, ind_begin, ind_end)
-
-! !DESCRIPTION:
-!  set the index bounds of a single passive tracer module
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
-   character (*), intent(in) :: &
-      module_string
-
-   integer (kind=int_kind), intent(in) ::  &
-      module_nt
-
-! !INPUT/OUTPUT PARAMETERS:
-
-   integer (kind=int_kind), intent(inout) ::  &
-      cumulative_nt
-
-   integer (kind=int_kind), intent(out) ::  &
-      ind_begin, &
-      ind_end
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   character(*), parameter :: subname = 'passive_tracers:set_tracer_indices'
-
-   character (char_len) ::  &
-      error_string
-
-!-----------------------------------------------------------------------
-
-   ind_begin = cumulative_nt + 1
-   ind_end = ind_begin + module_nt - 1
-   cumulative_nt = ind_end
-
-   if (my_task == master_task) then
-      write(stdout,delim_fmt)
-      write(stdout,*) module_string /&
-         &/ ' ind_begin = ', ind_begin
-      write(stdout,*) module_string /&
-         &/ ' ind_end   = ', ind_end
-      write(stdout,delim_fmt)
-   end if
-
-   if (cumulative_nt > nt) then
-      call document(subname, 'nt', nt)
-      call document(subname, 'cumulative_nt', cumulative_nt)
-      error_string = 'nt too small for module ' /&
-         &/ module_string
-      call exit_POP(sigAbort, error_string)
-   end if
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine set_tracer_indices
-
-!***********************************************************************
-!BOP
 ! !IROUTINE: tracer_ref_val
 ! !INTERFACE:
 
@@ -1600,7 +1443,7 @@
    if (ecosys_on) then
       if (ind >= ecosys_driver_ind_begin .and. ind <= ecosys_driver_ind_end) then
          tracer_ref_val = &
-            ecosys_driver_tracer_ref_val(ecosys_on, ciso_on,ind-ecosys_driver_ind_begin+1)
+            ecosys_driver_tracer_ref_val(ciso_on,ind-ecosys_driver_ind_begin+1)
       endif
    endif
 
@@ -1610,18 +1453,9 @@
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-!  WISO block
-!-----------------------------------------------------------------------
-
-   if (wiso_on) then
-!      if (ind >= wiso_ind_begin .and. ind <= wiso_ind_end) then
-!         tracer_ref_val = wiso_tracer_ref_val(ind-wiso_ind_begin+1)
-!      endif
-   endif
-
-!-----------------------------------------------------------------------
 !  IAGE does not use virtual fluxes
 !-----------------------------------------------------------------------
+
 !-----------------------------------------------------------------------
 !  MOBY block
 !-----------------------------------------------------------------------

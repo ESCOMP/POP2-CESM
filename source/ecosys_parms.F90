@@ -28,7 +28,7 @@ MODULE ecosys_parms
   USE blocks, ONLY: nx_block, ny_block
   USE domain_size, ONLY: max_blocks_clinic
   USE ecosys_share
-  
+
   IMPLICIT NONE
 
   !-----------------------------------------------------------------------------
@@ -106,14 +106,14 @@ MODULE ecosys_parms
   !     Compute iron remineralization and flux out.
   !     dust remin gDust = 0.035 gFe      mol Fe     1e9 nmolFe
   !                        --------- *  ---------- * ----------
-  !			    gDust       55.847 gFe     molFe
+  !                          gDust       55.847 gFe     molFe
   !
-  !     dust_to_Fe          conversion - dust to iron (nmol Fe/g Dust) 
+  !     dust_to_Fe          conversion - dust to iron (nmol Fe/g Dust)
   !---------------------------------------------------------------------
 
   REAL(KIND=r8), PARAMETER :: &
        dust_to_Fe=0.035_r8/55.847_r8*1.0e9_r8
- 
+
   !----------------------------------------------------------------------------
   !     Partitioning of phytoplankton growth, grazing and losses
   !
@@ -121,16 +121,16 @@ MODULE ecosys_parms
   !----------------------------------------------------------------------------
 
   REAL(KIND=r8), PARAMETER :: &
-      caco3_poc_min    = 0.4_r8,  & !minimum proportionality between 
-                                          !   QCaCO3 and grazing losses to POC 
+      caco3_poc_min    = 0.4_r8,  & !minimum proportionality between
+                                          !   QCaCO3 and grazing losses to POC
                                           !   (mmol C/mmol CaCO3)
       spc_poc_fac      = 0.11_r8, & !small phyto grazing factor (1/mmolC)
-      f_graze_sp_poc_lim = 0.3_r8, & 
-      f_photosp_CaCO3  = 0.4_r8,  & !proportionality between small phyto 
+      f_graze_sp_poc_lim = 0.3_r8, &
+      f_photosp_CaCO3  = 0.4_r8,  & !proportionality between small phyto
                                           !    production and CaCO3 production
-      f_graze_CaCO3_remin = 0.33_r8, & !fraction of spCaCO3 grazing 
+      f_graze_CaCO3_remin = 0.33_r8, & !fraction of spCaCO3 grazing
                                              !          which is remin
-      f_graze_si_remin    = 0.35_r8      !fraction of diatom Si grazing 
+      f_graze_si_remin    = 0.35_r8      !fraction of diatom Si grazing
                                              !          which is remin
 
   !----------------------------------------------------------------------------
@@ -199,7 +199,7 @@ MODULE ecosys_parms
        DOC_reminR  = (c1/250.0_r8) * dps,          & ! rate for semi-labile DOC 1/250days
        DON_reminR  = (c1/160.0_r8) * dps,          & ! rate for semi-labile DON 1/160days
        DOFe_reminR = (c1/160.0_r8) * dps,          & ! rate for semi-labile DOFe 1/160days
-       DOP_reminR  = (c1/160.0_r8) * dps,          & ! rate for semi-labile DOP 1/160days  
+       DOP_reminR  = (c1/160.0_r8) * dps,          & ! rate for semi-labile DOP 1/160days
        DONr_reminR = (c1/(365.0_r8*2.5_r8)) * dps, & ! timescale for refrac DON 1/2.5yrs
        DOPr_reminR = (c1/(365.0_r8*2.5_r8)) * dps, & ! timescale for refrac DOP 1/2.5yrs
        DONrefract = 0.08_r8,                       & ! fraction of DON to refractory pool
@@ -297,7 +297,7 @@ CONTAINS
     autotrophs(auto_ind)%agg_rate_max  = 0.9_r8
     autotrophs(auto_ind)%agg_rate_min  = 0.01_r8
     autotrophs(auto_ind)%z_umax_0      = 3.3_r8 * dps ! x1 default
-    autotrophs(auto_ind)%z_grz         = 1.05_r8              
+    autotrophs(auto_ind)%z_grz         = 1.05_r8
     autotrophs(auto_ind)%graze_zoo     = 0.3_r8
     autotrophs(auto_ind)%graze_poc     = 0.0_r8
     autotrophs(auto_ind)%graze_doc     = 0.15_r8
@@ -331,7 +331,7 @@ CONTAINS
     autotrophs(auto_ind)%agg_rate_max  = 0.9_r8
     autotrophs(auto_ind)%agg_rate_min  = 0.02_r8
     autotrophs(auto_ind)%z_umax_0      = 3.08_r8 * dps ! x1 default
-    autotrophs(auto_ind)%z_grz         = 1.0_r8              
+    autotrophs(auto_ind)%z_grz         = 1.0_r8
     autotrophs(auto_ind)%graze_zoo     = 0.3_r8
     autotrophs(auto_ind)%graze_poc     = 0.42_r8
     autotrophs(auto_ind)%graze_doc     = 0.15_r8
@@ -365,7 +365,7 @@ CONTAINS
     autotrophs(auto_ind)%agg_rate_max  = 0.0_r8
     autotrophs(auto_ind)%agg_rate_min  = 0.0_r8
     autotrophs(auto_ind)%z_umax_0      = 0.6_r8 * dps
-    autotrophs(auto_ind)%z_grz         = 1.2_r8              
+    autotrophs(auto_ind)%z_grz         = 1.2_r8
     autotrophs(auto_ind)%graze_zoo     = 0.3_r8
     autotrophs(auto_ind)%graze_poc     = 0.05_r8
     autotrophs(auto_ind)%graze_doc     = 0.15_r8

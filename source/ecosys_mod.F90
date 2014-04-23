@@ -652,8 +652,7 @@ contains
       comp_surf_avg_freq_opt,    & ! choice for freq of comp_surf_avg
       gas_flux_forcing_opt,      & ! option for forcing gas fluxes
       atm_co2_opt,               & ! option for atmospheric co2 concentration
-      atm_alt_co2_opt,           & ! option for atmospheric alternative CO2
-      ecosys_tadvect_ctype         ! advection method for ecosys tracers
+      atm_alt_co2_opt              ! option for atmospheric alternative CO2
 
    type(tracer_read), dimension(ecosys_tracer_cnt) :: &
       tracer_init_ext              ! namelist variable for initializing tracers
@@ -675,8 +674,7 @@ contains
 
    logical (log_kind) :: &
       default,                   & ! arg to init_time_flag
-      lnml_found,                & ! Was ecosys_nml found ?
-      lmarginal_seas               ! Is ecosystem active in marginal seas ?
+      lnml_found                   ! Was ecosys_nml found ?
 
    integer (int_kind) :: &
       non_autotroph_ecosys_tracer_cnt, & ! number of non-autotroph ecosystem tracers
@@ -724,12 +722,11 @@ contains
       nutr_rest_file, po4_rest, no3_rest, sio3_rest, &
       comp_surf_avg_freq_opt, comp_surf_avg_freq,  &
       use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
-      ecosys_qsw_distrb_const, lmarginal_seas, &
+      ecosys_qsw_distrb_const, &
       lsource_sink, lflux_gas_o2, lflux_gas_co2, locmip_k1_k2_bug_fix, &
       lnutr_variable_restore, nutr_variable_rest_file,  &
       nutr_variable_rest_file_fmt,atm_co2_opt,atm_co2_const, &
       atm_alt_co2_opt, atm_alt_co2_const, &
-      ecosys_tadvect_ctype, &
       liron_patch,iron_patch_flux_filename,iron_patch_month, &
       lecovars_full_depth_tavg
 
@@ -1112,7 +1109,6 @@ contains
       tracer_init_ext(n)%file_fmt     = 'bin'
    end do
 
-   lmarginal_seas        = .true.
    lsource_sink          = .true.
    lflux_gas_o2          = .true.
    lflux_gas_co2         = .true.
@@ -1136,9 +1132,9 @@ contains
    atm_alt_co2_opt   = 'const'
    atm_alt_co2_const = 280.0_r8
 
-   ecosys_tadvect_ctype = 'base_model'
-
    lecovars_full_depth_tavg = .false.
+
+   tadvect_ctype = ecosys_tadvect_ctype
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -1385,7 +1381,6 @@ contains
 
    call broadcast_scalar(ecosys_qsw_distrb_const, master_task)
 
-   call broadcast_scalar(lmarginal_seas, master_task)
    call broadcast_scalar(lsource_sink, master_task)
    call broadcast_scalar(lflux_gas_o2, master_task)
    call broadcast_scalar(lflux_gas_co2, master_task)
@@ -1400,9 +1395,6 @@ contains
 
    call broadcast_scalar(atm_alt_co2_opt, master_task)
    call broadcast_scalar(atm_alt_co2_const, master_task)
-
-   call broadcast_scalar(ecosys_tadvect_ctype, master_task)
-   tadvect_ctype = ecosys_tadvect_ctype
 
    call broadcast_scalar(lecovars_full_depth_tavg, master_task)
 
@@ -1527,14 +1519,14 @@ contains
       call read_field(init_ecosys_init_file_fmt, &
                       ecosys_restart_filename,   &
                       'PH_SURF_ALT_CO2', PH_PREV_ALT_CO2)
-                      
+
       call read_field(init_ecosys_init_file_fmt, &
                       ecosys_restart_filename,   &
-                      'PH_3D', PH_PREV_3D)   
-                      
+                      'PH_3D', PH_PREV_3D)
+
       call read_field(init_ecosys_init_file_fmt, &
                       ecosys_restart_filename,   &
-                      'PH_3D_ALT_CO2', PH_PREV_ALT_CO2_3D)                                             
+                      'PH_3D_ALT_CO2', PH_PREV_ALT_CO2_3D)
 
       if (use_nml_surf_vals) then
          surf_avg = c0
@@ -2600,16 +2592,16 @@ contains
       P_iron            ! base units = nmol Fe
 !     POC               ! base units = nmol C -> Defined in ecosys_share
 !     P_CaCO3           ! base units = nmol CaCO3 -> Defined in ecosys_share
-      
+
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), save :: &
-      QA_dust_def,    & ! incoming deficit in the QA(dust) POC flux
-      SED_DENITRIF,   & ! sedimentary denitrification (nmol N/cm^3/sec)
-      OTHER_REMIN,    & ! organic C remin not due oxic or denitrif (nmolC/cm^3/sec)
-      ZSATCALC,       & ! Calcite Saturation Depth
-      ZSATARAG,       & ! Aragonite Saturation Depth
-      CO3_CALC_ANOM_km1,&! CO3 concentration above calcite saturation at k-1
-      CO3_ARAG_ANOM_km1 ! CO3 concentration above aragonite saturation at k-1
+      QA_dust_def,      & ! incoming deficit in the QA(dust) POC flux
+      SED_DENITRIF,     & ! sedimentary denitrification (nmol N/cm^3/sec)
+      OTHER_REMIN,      & ! organic C remin not due oxic or denitrif (nmolC/cm^3/sec)
+      ZSATCALC,         & ! Calcite Saturation Depth
+      ZSATARAG,         & ! Aragonite Saturation Depth
+      CO3_CALC_ANOM_km1,& ! CO3 concentration above calcite saturation at k-1
+      CO3_ARAG_ANOM_km1   ! CO3 concentration above aragonite saturation at k-1
 
    real (r8), dimension(nx_block,ny_block) :: &
       TEMP,           & ! local copy of model TEMP
@@ -2731,7 +2723,7 @@ contains
 !---------------------------------------------------------------
 ! Define pointer variables, used to share values with other modules
 ! Target variables are defined in ecosys_share
-! Below pointers are used to point to the right part of the 
+! Below pointers are used to point to the right part of the
 ! global array in ecosys_share
 !---------------------------------------------------------------
     real (r8), dimension(:,:),pointer :: f_zoo_detr   ! frac of zoo losses into large detrital pool (non-dim)
@@ -2768,46 +2760,8 @@ contains
     real (r8), dimension(:,:,:), pointer :: CaCO3_PROD         ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)
     real (r8), dimension(:,:,:), pointer :: PCphoto            ! C-specific rate of photosynth. (1/sec)
 
-
 !-------------------------------------------------------------
-! Nullify pointers
-!-------------------------------------------------------------
-    nullify(f_zoo_detr)
-    nullify(DIC_loc)
-    nullify(DOC_loc)
-    nullify(O2_loc)
-    nullify(NO3_loc)
-    nullify(zooC_loc)
-    nullify(CO3)
-    nullify(HCO3)
-    nullify(H2CO3)
-    nullify(zoo_loss)
-    nullify(zoo_loss_doc)
-    nullify(zoo_loss_dic)
-    nullify(DOC_remin)
 
-    nullify(autotrophCaCO3_loc)
-    nullify(autotrophChl_loc)
-    nullify(autotrophC_loc)
-    nullify(autotrophFe_loc)
-    nullify(autotrophSi_loc)
-    nullify(auto_graze)
-    nullify(auto_graze_zoo)
-    nullify(auto_graze_poc)
-    nullify(auto_graze_doc)
-    nullify(auto_graze_dic)
-    nullify(auto_loss)
-    nullify(auto_loss_poc)
-    nullify(auto_loss_doc)
-    nullify(auto_loss_dic)
-    nullify(auto_agg)
-    nullify(photoC)
-    nullify(CaCO3_PROD)
-    nullify(QCaCO3)
-    nullify(PCphoto)
-
-!-------------------------------------------------------------
-   
    bid = this_block%local_id
 
 !-------------------------------------------------------------
@@ -2823,13 +2777,14 @@ contains
    if (.not. lsource_sink) then
       call timer_stop(ecosys_interior_timer, block_id=bid)
       return
-   endif 
+   endif
+
 !-------------------------------------------------------------
-! Assign locally used variables to pointer variables 
-! => use pointers to point to the right part of the global array 
+! Assign locally used variables to pointer variables
+! => use pointers to point to the right part of the global array
 ! in ecosys_share
 !---------------------------------------------------------------
-    
+
     f_zoo_detr => f_zoo_detr_fields(:,:,bid)
     DIC_loc => DIC_loc_fields(:,:,bid)
     DOC_loc => DOC_loc_fields(:,:,bid)
@@ -2851,7 +2806,7 @@ contains
     autotrophSi_loc => autotrophSi_loc_fields(:,:,:,bid)
     auto_graze => auto_graze_fields(:,:,:,bid)
     auto_graze_zoo => auto_graze_zoo_fields(:,:,:,bid)
-    auto_graze_poc => auto_graze_poc_fields(:,:,:,bid) 
+    auto_graze_poc => auto_graze_poc_fields(:,:,:,bid)
     auto_graze_doc => auto_graze_doc_fields(:,:,:,bid)
     auto_graze_dic => auto_graze_dic_fields(:,:,:,bid)
     auto_loss => auto_loss_fields(:,:,:,bid)
@@ -3099,7 +3054,7 @@ contains
          call comp_CO3terms(bid, j, k, LAND_MASK(:,j,bid) .and. k <= KMT(:,j,bid), .true., &
                             TEMP(:,j), SALT(:,j), DIC_loc(:,j), ALK_loc(:,j), PO4_loc(:,j), SiO3_loc(:,j), &
                             WORK1(:,j), WORK2(:,j), WORK3(:,j), H2CO3(:,j), HCO3(:,j), CO3(:,j))
-                                               
+
          if (lalt_co2_terms) then
             where (PH_PREV_ALT_CO2_3D(:,j,k,bid) /= c0)
                WORK1(:,j) = PH_PREV_ALT_CO2_3D(:,j,k,bid) - del_ph
@@ -4391,63 +4346,27 @@ contains
 !  Pointer variables (defined in ecosys_share)
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(:,:),pointer :: decay_CaCO3_ptr   ! scaling factor for dissolution of CaCO3   
-   real (r8), dimension(:,:),pointer :: DECAY_Hard         ! scaling factor for dissolution of Hard Ballast 
-   real (r8), dimension(:,:),pointer :: POC_PROD_avail_ptr! scaling factor for dissolution of Hard Ballast    
-   real (r8), dimension(:,:),pointer :: decay_POC_E_ptr   ! scaling factor for dissolution of Hard Ballast
-   real (r8), dimension(:,:),pointer :: poc_diss_ptr      ! POC diss. length used (cm) 
-   real (r8), dimension(:,:),pointer :: caco3_diss_ptr    ! CaCO3 diss. length used (cm) 
-   real (r8), dimension(:,:),pointer :: P_CaCO3_sflux_out_ptr   
-   real (r8), dimension(:,:),pointer :: P_CaCO3_hflux_out_ptr   
-   real (r8), dimension(:,:),pointer :: POC_sflux_out_ptr   
-   real (r8), dimension(:,:),pointer :: POC_hflux_out_ptr
-   real (r8), dimension(:,:),pointer :: POC_remin_ptr
-   real (r8), dimension(:,:),pointer :: P_CaCO3_remin_ptr   
+   real (r8), dimension(:,:),pointer :: DECAY_Hard         ! scaling factor for dissolution of Hard Ballast
 
 !-------------------------------------------------------------
 
   bid = this_block%local_id
 
-!-------------------------------------------------------------
-! Nullify pointers
-!-------------------------------------------------------------
-
-   nullify(decay_CaCO3_ptr)
-   nullify(DECAY_Hard)
-   nullify(POC_PROD_avail_ptr)
-   nullify(decay_POC_E_ptr)
-   nullify(poc_diss_ptr)
-   nullify(caco3_diss_ptr)
-   nullify(P_CaCO3_sflux_out_ptr)
-   nullify(P_CaCO3_hflux_out_ptr)
-   nullify(POC_sflux_out_ptr)
-   nullify(POC_hflux_out_ptr)
-   nullify(POC_remin_ptr)
-   nullify(P_CaCO3_remin_ptr)
 !-------------------------------------------------------------------
-! The following variables need to be shared with ecosys_ptr, and 
+! The following variables need to be shared with other modules, and
 ! are now defined in ecosys_share as targets
-! -> here we use pointers to point to the right part of the global 
-! array in ecosys_fields
+! -> here we use pointers to point to the right part of the global
+! array in ecosys_share
+! -> where possible we point directly to the _fields defined
+!    in ecosys_share
 !-------------------------------------------------------------------
 
-   decay_CaCO3_ptr       => decay_CaCO3_fields(:,:,bid)
-   DECAY_Hard             => DECAY_Hard_fields(:,:,bid)
-   POC_PROD_avail_ptr    => POC_PROD_avail_fields(:,:,bid)
-   decay_POC_E_ptr       => decay_POC_E_fields(:,:,bid) 
-   poc_diss_ptr          => poc_diss_fields(:,:,bid)
-   caco3_diss_ptr        => caco3_diss_fields(:,:,bid)
-   P_CaCO3_sflux_out_ptr => P_CaCO3_sflux_out_fields(:,:,bid)
-   P_CaCO3_hflux_out_ptr => P_CaCO3_hflux_out_fields(:,:,bid)
-   POC_sflux_out_ptr     => POC_sflux_out_fields(:,:,bid)
-   POC_hflux_out_ptr     => POC_hflux_out_fields(:,:,bid)
-   POC_remin_ptr         => POC_remin_fields(:,:,bid)
-   P_CaCO3_remin_ptr     => P_CaCO3_remin_fields(:,:,bid)
+   DECAY_Hard  => DECAY_Hard_fields(:,:,bid)
+
 !-----------------------------------------------------------------------
 !  incoming fluxes are outgoing fluxes from previous level
 !-----------------------------------------------------------------------
 
- 
    P_CaCO3%sflux_in(:,:,bid) = P_CaCO3%sflux_out(:,:,bid)
    P_CaCO3%hflux_in(:,:,bid) = P_CaCO3%hflux_out(:,:,bid)
 
@@ -4632,14 +4551,13 @@ contains
 
             QA_dust_def(i,j,bid) = new_QA_dust_def
 
-! Save fields for use by other modules
-            POC_PROD_avail_ptr(i,j)   = POC_PROD_avail
-            decay_POC_E_ptr(i,j)      = decay_POC_E
-            decay_POC_E_ptr(i,j)      = decay_POC_E
-            decay_CaCO3_ptr(i,j)      = decay_CaCO3
-            poc_diss_ptr(i,j)         = poc_diss
-            caco3_diss_ptr(i,j)       = caco3_diss
-            
+! Save certain fields for use by other modules
+            POC_PROD_avail_fields(i,j,bid) = POC_PROD_avail
+            decay_POC_E_fields(i,j,bid)    = decay_POC_E
+            decay_CaCO3_fields(i,j,bid)    = decay_CaCO3
+            poc_diss_fields(i,j,bid)       = poc_diss
+            caco3_diss_fields(i,j,bid)     = caco3_diss
+
 !-----------------------------------------------------------------------
 !  Compute outgoing POC fluxes. QA POC flux is computing using
 !  ballast fluxes and new_QA_dust_def. If no QA POC flux came in
@@ -4747,12 +4665,13 @@ contains
          endif
 
 ! Save some fields for use by other modules before setting outgoing fluxes to 0.0 in bottom cell below
-            P_CaCO3_sflux_out_ptr(i,j) = P_CaCO3%sflux_out(i,j,bid)
-            P_CaCO3_hflux_out_ptr(i,j) = P_CaCO3%hflux_out(i,j,bid)
-            POC_sflux_out_ptr(i,j)     = POC%sflux_out(i,j,bid)
-            POC_hflux_out_ptr(i,j)     = POC%hflux_out(i,j,bid)
-            POC_remin_ptr(i,j)         = POC%remin(i,j,bid)
-            P_CaCO3_remin_ptr(i,j)     = P_CaCO3%remin(i,j,bid) 
+            P_CaCO3_sflux_out_fields(i,j,bid) = P_CaCO3%sflux_out(i,j,bid)
+            P_CaCO3_hflux_out_fields(i,j,bid) = P_CaCO3%hflux_out(i,j,bid)
+            POC_sflux_out_fields(i,j,bid)     = POC%sflux_out(i,j,bid)
+            POC_hflux_out_fields(i,j,bid)     = POC%hflux_out(i,j,bid)
+            POC_remin_fields(i,j,bid)         = POC%remin(i,j,bid)
+            P_CaCO3_remin_fields(i,j,bid)     = P_CaCO3%remin(i,j,bid)
+
 !-----------------------------------------------------------------------
 !  Bottom Sediments Cell?
 !  If so compute sedimentary burial and denitrification N losses.
@@ -4791,13 +4710,13 @@ contains
                         (flux - POC%sed_loss(i,j,bid) - (SED_DENITRIF(i,j,bid)*dz_loc*denitrif_C_N)))
 
 !----------------------------------------------------------------------------------
-!              if bottom water O2 is depleted, assume all remin is denitrif + other               
+!              if bottom water O2 is depleted, assume all remin is denitrif + other
 !----------------------------------------------------------------------------------
 
                if (O2_loc(i,j) < c1) then
-	          OTHER_REMIN(i,j,bid) = dzr_loc * &
+                  OTHER_REMIN(i,j,bid) = dzr_loc * &
                      (flux - POC%sed_loss(i,j,bid) - (SED_DENITRIF(i,j,bid)*dz_loc*denitrif_C_N))
-	       endif
+            endif
 
             endif
 
@@ -4840,7 +4759,7 @@ contains
             endif
 
 !-----------------------------------------------------------------------
-!   Remove all Piron and dust that hits bottom, sedimentary Fe source 
+!   Remove all Piron and dust that hits bottom, sedimentary Fe source
 !        accounted for by FESEDFLUX elsewhere.
 !-----------------------------------------------------------------------
 
@@ -5932,7 +5851,7 @@ contains
       XCO2_ALT_CO2, & ! atmospheric alternative CO2 (dry-air, 1 atm)
       FLUX,         & ! tracer flux (nmol/cm^2/s)
       FLUX_ALT_CO2    ! tracer flux alternative CO2 (nmol/cm^2/s)
-     
+
 
    real (r8), dimension(nx_block) :: &
       PHLO,         & ! lower bound for ph in solver
@@ -5964,34 +5883,7 @@ contains
 
    real (r8) :: scalar_temp
 
-  
-!-----------------------------------------------------------------------
-!  Pointer variables (defined in ecosys_fields)
-!-----------------------------------------------------------------------
 
-   real (r8), dimension(:,:),pointer :: DIC_SURF      ! surface values of DIC for solver
-   real (r8), dimension(:,:),pointer :: CO2STAR_SURF  ! CO2STAR from solver
-   real (r8), dimension(:,:),pointer :: DCO2STAR_SURF ! DCO2STAR from solver
-   real (r8), dimension(:,:),pointer :: PV_SURF       ! piston velocity (cm/s)
-   real (r8), dimension(:,:),pointer :: CO3_SURF     ! Surface values of carbonate ion
-  
-   real (r8), dimension(:,:,:),pointer :: dic_riv_flux_ptr ! pointer for DIC river input 
-   real (r8), dimension(:,:,:),pointer :: doc_riv_flux_ptr ! pointer for DOC river input 
-
-!-----------------------------------------------------------------------
-!  Nullify pointers
-!-----------------------------------------------------------------------
-  
-   nullify(DIC_SURF)
-   nullify(CO2STAR_SURF)
-   nullify(DCO2STAR_SURF)
-   nullify(PV_SURF)
-   nullify(CO3_SURF)
-   nullify(doc_riv_flux_ptr)
-   nullify(dic_riv_flux_ptr)
-   
-   dic_riv_flux_ptr => dic_riv_flux_fields(:,:,:)
-   doc_riv_flux_ptr => doc_riv_flux_fields(:,:,:)
 !-----------------------------------------------------------------------
 
    call timer_start(ecosys_sflux_timer)
@@ -6121,25 +6013,11 @@ contains
       !$OMP                     PHLO,PHHI,DIC_ROW,ALK_ROW, &
       !$OMP                     PO4_ROW,SiO3_ROW,PH_NEW,CO2STAR_ROW, &
       !$OMP                     DCO2STAR_ROW,pCO2SURF_ROW,DpCO2_ROW, &
-      !$OMP                     DIC_SURF,CO2STAR_SURF,DCO2STAR_SURF, &
-      !$OMP                     PV_SURF,CO3_SURF,CO3_ROW)
+      !$OMP                     CO3_ROW)
 
       do iblock = 1, nblocks_clinic
-!-------------------------------------------------------------------
-!  The following _SURF variables need to be shared with other modules, and 
-!  are now defined in ecosys_fields as targets. 
-!  The _SURF are indexed copies of the variables used as private variables 
-!  in this parallel block, so we can save the variables to the global field 
-!  We use pointers to point to the correct part of the global array in
-!  ecosys_fields
-!-------------------------------------------------------------------
- 
-     DIC_SURF => DIC_SURF_fields(:,:,iblock)
-     CO2STAR_SURF => CO2STAR_SURF_fields(:,:,iblock)
-     DCO2STAR_SURF => DCO2STAR_SURF_fields(:,:,iblock)
-     PV_SURF => PV_SURF_fields(:,:,iblock)
-     CO3_SURF => CO3_SURF_fields(:,:,iblock)
- 
+
+
 
 !-----------------------------------------------------------------------
 !  Apply OCMIP ice fraction mask when input is from a file.
@@ -6219,8 +6097,9 @@ contains
             elsewhere
                PV = c0
             end where
-! Save surface fields of PV for use in other modules
-            PV_SURF   = PV
+
+! Save surface field of PV for use in other modules
+            PV_SURF_fields(:,:,iblock) = PV
 
 !-----------------------------------------------------------------------
 !  Set XCO2
@@ -6274,11 +6153,14 @@ contains
                ECO_SFLUX_TAVG(:,j,buf_ind_pCO2SURF,iblock) = pCO2SURF_ROW
                ECO_SFLUX_TAVG(:,j,buf_ind_DpCO2,iblock)    = DpCO2_ROW
 
-! Save surface fields of DIC_ROW, CO2STAR, and DCO2STAR for use in other modules
-               DIC_SURF(:,j)      = DIC_ROW
-               CO2STAR_SURF(:,j)  = CO2STAR_ROW
-               DCO2STAR_SURF(:,j) = DCO2STAR_ROW
-               CO3_SURF(:,j)      = CO3_ROW
+!-------------------------------------------------------------------
+!  The following variables need to be shared with other modules, and
+!  are now defined in ecosys_share as targets.
+!-------------------------------------------------------------------
+               DIC_SURF_fields(:,j,iblock)      = DIC_ROW
+               CO2STAR_SURF_fields(:,j,iblock)  = CO2STAR_ROW
+               DCO2STAR_SURF_fields(:,j,iblock) = DCO2STAR_ROW
+               CO3_SURF_fields(:,j,iblock)      = CO3_ROW
 
                where (PH_PREV_ALT_CO2(:,j,iblock) /= c0)
                   PHLO = PH_PREV_ALT_CO2(:,j,iblock) - del_ph
@@ -6768,7 +6650,7 @@ contains
       STF_MODULE(:,:,dic_ind,:) = STF_MODULE(:,:,dic_ind,:) + INTERP_WORK(:,:,:,1)
       STF_MODULE(:,:,dic_alt_co2_ind,:) = STF_MODULE(:,:,dic_alt_co2_ind,:) + INTERP_WORK(:,:,:,1)
       ECO_SFLUX_TAVG(:,:,buf_ind_DIC_RIV_FLUX,:) = INTERP_WORK(:,:,:,1)
-      dic_riv_flux_ptr=INTERP_WORK(:,:,:,1)
+      dic_riv_flux_fields=INTERP_WORK(:,:,:,1)
    endif
 
    if (alk_riv_flux%has_data) then
@@ -6818,7 +6700,7 @@ contains
          doc_riv_flux%interp_inc,        doc_riv_flux%interp_next, &
          doc_riv_flux%interp_last,       0)
       STF_MODULE(:,:,doc_ind,:) = STF_MODULE(:,:,doc_ind,:) + INTERP_WORK(:,:,:,1)
-      doc_riv_flux_ptr=INTERP_WORK(:,:,:,1)
+      doc_riv_flux_fields=INTERP_WORK(:,:,:,1)
    endif
 
 
@@ -7164,7 +7046,7 @@ contains
       i_dim = construct_io_dim('i', nx_global)
       j_dim = construct_io_dim('j', ny_global)
       k_dim = construct_io_dim('k', km)
-      
+
       PH_SURF = construct_io_field('PH_SURF', i_dim, j_dim,     &
                    long_name='surface pH at current time',      &
                    units='pH', grid_loc='2110',            &
@@ -7180,7 +7062,7 @@ contains
                    field_type = field_type_scalar,              &
                    d2d_array = PH_PREV_ALT_CO2)
       call data_set (restart_file, 'define', PH_SURF_ALT_CO2)
-      
+
       PH_3D_ALT_CO2 = construct_io_field('PH_3D_ALT_CO2', i_dim, j_dim, k_dim, &
                    long_name='3D pH, alternate CO2, at current time', &
                    units='pH', grid_loc='3111',            &
@@ -7188,7 +7070,7 @@ contains
                    field_type = field_type_scalar,              &
                    d3d_array = PH_PREV_ALT_CO2_3D)
       call data_set (restart_file, 'define', PH_3D_ALT_CO2)
-      
+
       PH_3D = construct_io_field('PH_3D', i_dim, j_dim, k_dim, &
                    long_name='3D pH at current time', &
                    units='pH', grid_loc='3111',            &
@@ -7196,7 +7078,7 @@ contains
                    field_type = field_type_scalar,              &
                    d3d_array = PH_PREV_3D)
       call data_set (restart_file, 'define', PH_3D)
-      
+
    endif
 
    if (trim(action) == 'write') then

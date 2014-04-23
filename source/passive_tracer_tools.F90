@@ -716,7 +716,7 @@
 !
 ! !REVISION HISTORY:
 !  same as module
- 
+
 
 ! !INPUT PARAMETERS:
 !real (r8), dimension(nx_block,ny_block,tracer_cnt,max_blocks_clinic), &
@@ -725,16 +725,16 @@
 
    integer (int_kind),intent(in) :: &
       tracer_cnt                ! number of tracers
-      
+
    logical (log_kind), dimension(tracer_cnt),intent(in) :: &
       vflux_flag                ! which tracers get virtual fluxes applied
-   
+
 ! !Output PARAMETERS:
 
    real (r8), dimension(tracer_cnt),intent(out) :: &
       surf_avg         ! average surface tracer values
-   
-      
+
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -874,7 +874,7 @@
  end subroutine set_tracer_indices
 !***********************************************************************
 
- 
+
 
  end module passive_tracer_tools
 

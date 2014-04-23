@@ -3,13 +3,13 @@ module ecosys_share
 ! !MODULE: ecosys_share
 
 !-----------------------------------------------------------------------------
-!   This module contains definitions of variables, derived types, and 
-!   functions/subroutines that are used in ecocys_mod.F90 as well as by 
-!   other modules that make use of the ecosys_mod. 
+!   This module contains definitions of variables, derived types, and
+!   functions/subroutines that are used in ecocys_mod.F90 as well as by
+!   other modules that make use of the ecosys_mod.
 !
-!   The variables are shared using threading with pointers, and need to be 
-!   pointed to in the code. 
-!   Note: So far the values of all of these fields are set in ecosys_mod 
+!   The variables are shared using threading with pointers, and need to be
+!   pointed to in the code.
+!   Note: So far the values of all of these fields are set in ecosys_mod
 !   and are NOT modified in the other modules
 !   A. Jahn, NCAR
 !-----------------------------------------------------------------------------
@@ -19,9 +19,17 @@ module ecosys_share
   USE constants, only: c0
 
   implicit none
-  
+
   public
   save
+
+!-----------------------------------------------------------------------------
+
+  logical (log_kind) :: &
+     lmarginal_seas               ! Is ecosystem active in marginal seas ?
+
+  character(char_len) :: &
+     ecosys_tadvect_ctype         ! advection method for ecosys tracers
 
 !-----------------------------------------------------------------------------
 !   derived type for functional group
@@ -54,7 +62,7 @@ module ecosys_share
         z_grz,                              & ! grazing coef. (mmol C/m^3)^2
         graze_zoo, graze_poc, graze_doc,    & ! routing of grazed term, remainder goes to dic
         loss_poc,                           & ! routing of loss term
-        f_zoo_detr                            ! fraction of zoo losses to detrital 
+        f_zoo_detr                            ! fraction of zoo losses to detrital
   END TYPE
 
   INTEGER (KIND=int_kind), PARAMETER :: &
@@ -89,9 +97,9 @@ module ecosys_share
 !*****************************************************************************
 ! Variable definitions
 !*****************************************************************************
-   
-  
-   type(sinking_particle) :: & 
+
+
+   type(sinking_particle) :: &
       POC,            & ! base units = nmol C
       P_CaCO3           ! base units = nmol CaCO3
 
@@ -108,7 +116,7 @@ module ecosys_share
       f_zoo_detr_fields,       & ! frac of zoo losses into large detrital pool (non-dim)
       DIC_loc_fields,          & ! local copy of model DIC
       DOC_loc_fields,          & ! local copy of model DOC
-      O2_loc_fields,           & ! local copy of model O2 
+      O2_loc_fields,           & ! local copy of model O2
       NO3_loc_fields,          & ! local copy of model NO3
       zooC_loc_fields,         & ! local copy of model zooC
       decay_CaCO3_fields,      & ! scaling factor for dissolution of CaCO3
@@ -129,7 +137,7 @@ module ecosys_share
       POC_remin_fields,        & ! POC remin from ecosys before it gets modified for k=KMT
       dic_riv_flux_fields,     & ! River input of DIC in ecosystem (from file)
       doc_riv_flux_fields        ! River input of DOC in ecosystem (from file)
-      
+
     real (r8), dimension(nx_block,ny_block,autotroph_cnt,max_blocks_clinic), target, public :: &
       CaCO3_PROD_fields,        & ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)
       QCaCO3_fields,            & ! small phyto CaCO3/C ratio (mmol CaCO3/mmol C)
@@ -158,7 +166,7 @@ module ecosys_share
 !*****************************************************************************
 ! Functions and subroutines used by more than one ecosystem-related module
 !*****************************************************************************
- 
+
 !*****************************************************************************
 !BOP
 ! !IROUTINE: SCHMIDT_CO2
@@ -211,6 +219,6 @@ module ecosys_share
  end function SCHMIDT_CO2
 
 !*****************************************************************************
- 
+
 
  end module ecosys_share

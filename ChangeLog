@@ -1,3 +1,41 @@
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
+Tag Date:    23 April 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140423_cesm_pop_2_1_20130521/
+Tag Summary: 
+- removed all "nullify" statements after consultation with Mike Levy
+- updated abio_dic_dic14 to use the compute_surf_avg, extract_surf_avg in
+passive_tracer_tools.F90 and CO2_SCHMIDT in ecosys_share.
+- updated ecosys_driver to no longer use any ecosys_on statements and passive_tracers to not
+call ecosys_driver with ecosys_on as argument as it is always on when
+ecosys_driver is executed
+- removed all _ptr and _SURF pointers in ecosys_mod and used the fields from
+ecosys_share directly to save the required variables for use by ciso.
+- created a ecosys_driver namelist with lmarginal_seas and
+ecosys_tadvect_ctype in it, to insure that all ecosystem modules run with the
+same settings for these namelist variables. 
+- removed all unnecessary black spaces at the end of line in all modified .F90
+files
+- abio and cfc_mod now also use xkw_coeff from ecosys_params, rather than
+defining it locally, to ensure they all use the same value. 
+Files Modified:
+M            59407   source/passive_tracer_tools.F90
+M            59407   source/abio_dic_dic14_mod.F90
+M            59407   source/ecosys_share.F90
+M            58508   source/cfc_mod.F90
+M            58508   source/passive_tracers.F90
+M            59407   source/ecosys_mod.F90
+M            58508   source/co2calc.F90
+M            59407   source/ecosys_parms.F90
+M            58596   source/ecosys_driver.F90
+M            59407   source/ecosys_ciso_mod.F90
+M            59407   bld/namelist_files/namelist_defaults_pop2.xml
+M            59407   bld/namelist_files/namelist_definition_pop2.xml
+M            59407   bld/build-namelist
+M            59407   ChangeLog
+===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
 Tag Date:    21 April 2014

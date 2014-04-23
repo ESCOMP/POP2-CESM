@@ -39,6 +39,7 @@ module cfc_mod
        ind_name_pair, tracer_read, read_field
    use broadcast
    use netcdf
+   use ecosys_parms, only: xkw_coeff
 
    implicit none
    save
@@ -1047,13 +1048,6 @@ contains
       first = .true.
 
 !-----------------------------------------------------------------------
-!  local parameters
-!-----------------------------------------------------------------------
-
-   real (r8), parameter :: &
-      xkw_coeff = 8.6e-9_r8      ! xkw_coeff = 0.31 cm/hr s^2/m^2 in (s/cm)
-
-!-----------------------------------------------------------------------
 
    call timer_start(cfc_sflux_timer)
 
@@ -1249,8 +1243,8 @@ contains
 
 ! !USES:
 
-   use grid, only : TLATD
-   use constants, only : c10
+   use grid, only : TLAT
+   use constants, only : c10, radian
    use time_management, only : iyear, iday_of_year, frac_day, days_in_year
 
 ! !INPUT PARAMETERS:
@@ -1264,7 +1258,7 @@ contains
 ! !INPUT/OUTPUT PARAMETERS:
 
    integer (int_kind) :: &
-      data_ind  ! data_ind is the index into data for current timestep, 
+      data_ind  ! data_ind is the index into data for current timestep,
                 ! i.e data_ind is largest integer less than pcfc_data_len s.t.
                 !  pcfc_date(i) <= iyear + (iday_of_year-1+frac_day)/days_in_year
                 !                  - model_year + data_year
@@ -1292,7 +1286,8 @@ contains
       pcfc11_nh_curr, & ! pcfc11_nh for current time step (pmol/mol)
       pcfc11_sh_curr, & ! pcfc11_sh for current time step (pmol/mol)
       pcfc12_nh_curr, & ! pcfc12_nh for current time step (pmol/mol)
-      pcfc12_sh_curr    ! pcfc12_sh for current time step (pmol/mol)
+      pcfc12_sh_curr, & ! pcfc12_sh for current time step (pmol/mol)
+      tlatd             ! latitude in degrees
 
 !-----------------------------------------------------------------------
 !  Generate mapped_date and check to see if it is too large.
@@ -1363,16 +1358,17 @@ contains
    do j = 1, ny_block
       do i = 1, nx_block
          if (LAND_MASK(i,j)) then
-            if (TLATD(i,j,iblock) < -c10) then
+            tlatd = TLAT(i,j,iblock) * radian
+            if (tlatd < -c10) then
                pCFC11(i,j) = pcfc11_sh_curr
                pCFC12(i,j) = pcfc12_sh_curr
-            else if (TLATD(i,j,iblock) > c10) then
+            else if (tlatd > c10) then
                pCFC11(i,j) = pcfc11_nh_curr
                pCFC12(i,j) = pcfc12_nh_curr
             else
-               pCFC11(i,j) = pcfc11_sh_curr + (TLATD(i,j,iblock)+c10) &
+               pCFC11(i,j) = pcfc11_sh_curr + (tlatd+c10) &
                   * 0.05_r8 * (pcfc11_nh_curr - pcfc11_sh_curr)
-               pCFC12(i,j) = pcfc12_sh_curr + (TLATD(i,j,iblock)+c10) &
+               pCFC12(i,j) = pcfc12_sh_curr + (tlatd+c10) &
                   * 0.05_r8 * (pcfc12_nh_curr - pcfc12_sh_curr)
             endif
          endif
