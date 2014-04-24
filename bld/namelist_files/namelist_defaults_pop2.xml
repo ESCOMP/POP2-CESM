@@ -1168,8 +1168,9 @@
 <autotrophs(3)%z_umax_0>6.9444e-06</autotrophs(3)%z_umax_0>
 
 <!---------------------------->
-<!--ecosys_driver_nml -->
+<!--   ecosys_driver_nml    -->
 <!---------------------------->
+
 <lmarginal_seas>.true.</lmarginal_seas>
 <ecosys_tadvect_ctype>base_model</ecosys_tadvect_ctype>
 

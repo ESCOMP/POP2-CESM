@@ -1,6 +1,21 @@
 ===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
+Tag Date:    24 April 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140424_cesm_pop_2_1_20130521/
+Tag Summary: Fixed a bug with the new ecosys_driver namelist. It now passes
+extact restart tests and does not change the ocean simulation.
+Files Modified:
+M            59469   source/abio_dic_dic14_mod.F90
+M            59469   source/ecosys_mod.F90
+M            59469   source/ecosys_driver.F90
+M            59469   source/ecosys_ciso_mod.F90
+M            59469   bld/namelist_files/namelist_defaults_pop2.xml
+Status against revision:  59518
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
 Tag Date:    23 April 2014
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140423_cesm_pop_2_1_20130521/

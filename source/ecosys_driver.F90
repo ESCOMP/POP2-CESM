@@ -298,10 +298,11 @@
 !  ECOSYS block
 !-----------------------------------------------------------------------
 
+   tadvect_ctype(ecosys_ind_begin:ecosys_ind_end) = ecosys_tadvect_ctype
    call ecosys_init(init_ts_file_fmt, read_restart_filename,                  &
                     tracer_d_module(ecosys_ind_begin:ecosys_ind_end),         &
                     TRACER_MODULE(:,:,:,ecosys_ind_begin:ecosys_ind_end,:,:), &
-                    tadvect_ctype(ecosys_ind_begin:ecosys_ind_end),           &
+                    lmarginal_seas,                                           &
                     errorCode)
 
    if (errorCode /= POP_Success) then
@@ -314,10 +315,11 @@
 !  ECOSYS CISO block
 !-----------------------------------------------------------------------
    if (ciso_on) then
+      tadvect_ctype(ecosys_ciso_ind_begin:ecosys_ciso_ind_end) = ecosys_tadvect_ctype
       call ecosys_ciso_init(init_ts_file_fmt, read_restart_filename,                       &
                        tracer_d_module(ecosys_ciso_ind_begin:ecosys_ciso_ind_end),         &
                        TRACER_MODULE(:,:,:,ecosys_ciso_ind_begin:ecosys_ciso_ind_end,:,:), &
-                       tadvect_ctype(ecosys_ciso_ind_begin:ecosys_ciso_ind_end),           &
+                       lmarginal_seas,                               &
                        errorCode)
 
       if (errorCode /= POP_Success) then

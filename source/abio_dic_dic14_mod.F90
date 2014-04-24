@@ -117,7 +117,7 @@ module abio_dic_dic14_mod
 
    real (r8), dimension(:,:) , allocatable :: &
       atm_d14c_data,         &    !  atmospheric Delta C14 values in datafile (sh, eq, nh, in permil)
-      atm_d14c_data_yr            !  date of atmospheric DC14 values in datafile	(sh, eq, nh)
+      atm_d14c_data_yr            !  date of atmospheric DC14 values in datafile (sh, eq, nh)
 
    real (r8) :: &
       abio_atm_co2_const,    &    !  atmospheric CO2 constant [ppm]
@@ -436,7 +436,7 @@ contains
    call broadcast_scalar(abio_surf_avg_dic14_const, master_task)
    call broadcast_scalar(abio_comp_surf_avg_freq_opt, master_task)
    call broadcast_scalar(abio_comp_surf_avg_freq, master_task)
- 
+
 
 !-----------------------------------------------------------------------
 !  set variables immediately dependent on namelist variables
@@ -923,7 +923,7 @@ contains
       DIC_surf,           & ! DIC surface aqueous CO2 concentration [mol/m3], computed from the surface DIC, T, S, and Alk
       DIC14_surf,         & ! DIC14 surface ocean 14CO2 concentration [mol/m3] =mmol/cm3
       R14C_ocn,           & ! Rocn=DIC14/DIC
-      R14C_atm,           & ! Ratm = 1+ D14C/1000	
+      R14C_atm,           & ! Ratm = 1+ D14C/1000
       GAS_FLUX_ABIO_DIC,  & ! Surface gas flux of DIC
       GAS_FLUX_ABIO_DIC14   ! Surface flux of DIC14
 
@@ -1414,9 +1414,9 @@ end subroutine abio_dic_dic14_tavg_forcing
       endif
    endif
 
-!---------------------------------------------------------------------	
+!---------------------------------------------------------------------
 !     Need to accocate and broadcast the variables to other tasks beside master-task
-!---------------------------------------------------------------------	
+!---------------------------------------------------------------------
 
    call broadcast_scalar(atm_co2_data_nbval,master_task)
 
@@ -1514,9 +1514,9 @@ end subroutine abio_dic_dic14_tavg_forcing
    endif
 
 
-!---------------------------------------------------------------------	
+!---------------------------------------------------------------------
 !     Need to accocate and broadcast the variables to other tasks beside master-task
-!---------------------------------------------------------------------	
+!---------------------------------------------------------------------
 
    call broadcast_scalar(atm_d14c_data_nbval_max, master_task)
 

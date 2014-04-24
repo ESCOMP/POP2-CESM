@@ -604,8 +604,8 @@ contains
 ! !INTERFACE:
 
  subroutine ecosys_init(init_ts_file_fmt, read_restart_filename, &
-                        tracer_d_module, TRACER_MODULE, tadvect_ctype, &
-                        errorCode)
+                        tracer_d_module, TRACER_MODULE, &
+                        lmarginal_seas, errorCode)
 
 ! !DESCRIPTION:
 !  Initialize ecosys tracer module. This involves setting metadata, reading
@@ -618,8 +618,11 @@ contains
 ! !INPUT PARAMETERS:
 
    character (*), intent(in) :: &
-      init_ts_file_fmt,    & ! format (bin or nc) for input file
-      read_restart_filename  ! file name for restart file
+      init_ts_file_fmt,     & ! format (bin or nc) for input file
+      read_restart_filename   ! file name for restart file
+
+   logical (kind=log_kind), intent(in) :: &
+     lmarginal_seas               ! Is ecosystem active in marginal seas ?
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -630,9 +633,6 @@ contains
       intent(inout) :: TRACER_MODULE
 
 ! !OUTPUT PARAMETERS:
-
-   character (char_len), dimension(:), intent(out) :: &
-      tadvect_ctype     ! advection method for ecosys tracers
 
    integer (POP_i4), intent(out) :: &
       errorCode
@@ -1134,8 +1134,6 @@ contains
 
    lecovars_full_depth_tavg = .false.
 
-   tadvect_ctype = ecosys_tadvect_ctype
-
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
       if (nml_error /= 0) then
@@ -1467,8 +1465,6 @@ contains
    allocate( dust_FLUX_IN(nx_block,ny_block,max_blocks_clinic) )
    allocate( PH_PREV_3D(nx_block,ny_block,km,max_blocks_clinic) )
    allocate( PH_PREV_ALT_CO2_3D(nx_block,ny_block,km,max_blocks_clinic) )
-!   PH_PREV_3D = c0
-!   PH_PREV_ALT_CO2_3D = c0
 
 !-----------------------------------------------------------------------
 !  allocate and initialize LAND_MASK

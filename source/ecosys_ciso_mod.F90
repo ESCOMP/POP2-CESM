@@ -338,7 +338,7 @@ contains
 ! !INTERFACE:
 
  subroutine ecosys_ciso_init(init_ts_file_fmt, read_restart_filename, &
-                        tracer_d_module, TRACER_MODULE, tadvect_ctype, &
+                        tracer_d_module, TRACER_MODULE, lmarginal_seas, &
                         errorCode)
 
 ! !DESCRIPTION:
@@ -355,6 +355,9 @@ contains
       init_ts_file_fmt,    & ! format (bin or nc) for input file
       read_restart_filename  ! file name for restart file
 
+   logical (kind=log_kind), intent(in) :: &
+      lmarginal_seas               ! Is ecosystem active in marginal seas ?
+
 ! !INPUT/OUTPUT PARAMETERS:
 
    type (tracer_field), dimension(:), intent(inout) :: &
@@ -364,9 +367,6 @@ contains
       intent(inout) :: TRACER_MODULE
 
 ! !OUTPUT PARAMETERS:
-
-   character (char_len), dimension(:), intent(out) :: &
-      tadvect_ctype     ! advection method for ecosys tracers
 
    integer (POP_i4), intent(out) :: &
       errorCode
@@ -383,13 +383,14 @@ contains
       ciso_init_ecosys_option,        & ! option for initialization of bgc
       ciso_init_ecosys_init_file,     & ! filename for option 'file'
       ciso_init_ecosys_init_file_fmt, & ! file format for option 'file'
-      ciso_comp_surf_avg_freq_opt       ! surface averaging frequency option
+      ciso_comp_surf_avg_freq_opt
 
    type(tracer_read), dimension(ecosys_ciso_tracer_cnt) :: &
       ciso_tracer_init_ext              ! namelist variable for initializing tracers
 
+
    logical (log_kind) :: &
-      default                           ! arg to init_time_flag
+      default                      ! arg to init_time_flag
 
    integer (int_kind) :: &
       non_autotroph_ecosys_ciso_tracer_cnt, & ! number of non-autotroph ecosystem tracers
@@ -428,7 +429,8 @@ contains
       ciso_init_ecosys_init_file_fmt, ciso_tracer_init_ext, &
       ciso_comp_surf_avg_freq_opt, ciso_comp_surf_avg_freq,  &
       ciso_use_nml_surf_vals, ciso_surf_avg_di13c_const, &
-      ciso_surf_avg_di14c_const, ciso_lsource_sink, &
+      ciso_surf_avg_di14c_const, &
+      ciso_lsource_sink, &
       ciso_lecovars_full_depth_tavg, &
       ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename, &
       ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename, &
@@ -671,8 +673,6 @@ contains
 
 
    call broadcast_scalar(ciso_lsource_sink, master_task)
-
-    tadvect_ctype = ecosys_tadvect_ctype
 
    call broadcast_scalar(ciso_lecovars_full_depth_tavg, master_task)
 
@@ -1804,10 +1804,6 @@ contains
          eps_dic_g_surf(:,j)  = 0.014_r8 * SST(:,j,iblock) * frac_co3(:,j) - &
                                 0.105_r8 * SST(:,j,iblock) + 10.53_r8
 
-!debugging
-!         eps_dic_g_surf(:,j) = c0
-!         eps_aq_g_surf(:,j)   = c0
-
 !-----------------------------------------------------------------------
 !     compute alpha coefficients from eps :  eps = ( alpha -1 ) * 1000
 !     => alpha = 1 + eps / 1000
@@ -2603,7 +2599,6 @@ contains
 
 !-----------------------------------------------------------------------
 !   Popp et al (1989)
-!   Still needs testing
 !-----------------------------------------------------------------------
       case ('Popp')
          eps_autotroph(:,:,auto_ind) = (-17.0_r8 * log10( CO2STAR_int * 0.001_r8 ) &
@@ -2613,8 +2608,6 @@ contains
 !-----------------------------------------------------------------------
       end select
 !-----------------------------------------------------------------------
-!debugging
-! eps_autotroph(:,:,auto_ind) = c0
 
       where (eps_autotroph(:,:,auto_ind) /= -c1000 )
          R13C_photoC(:,:,auto_ind) = R13C_CO2STAR *c1000 / &
@@ -3117,12 +3110,6 @@ contains
                               ! composition which is around 9 permil higher
                               ! than the external CO2, so D13CO2 -D13C_source
                               ! is -9 permil ((Mook et al. 197)
-! degugging!
-!  real (r8) :: &
-!       eps_diff   = c0, &  ! debugging, no fractionation test case
-!       delta_d13C = c0     ! debugging, no fractionation test case
-!
-!   cell_eps_fix =c0    !debugging, no fractination
 
 !---------------------------------------------------------------------------
 !   check for existence of ocean points
