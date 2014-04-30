@@ -1215,7 +1215,8 @@ if (any(\@OCN_TRACER_MODULES, "ecosys")) {
 
 	my $temp;
 
-    if (($OCN_TRANSIENT ne "unset") && ($OCN_TRANSIENT ne "1850-2000")) {
+    if (($OCN_TRANSIENT ne "unset") &&  ($OCN_TRANSIENT ne "1850-2000") &&
+        ($OCN_TRANSIENT ne "rcp4.5") && ($OCN_TRANSIENT ne "rcp8.5")) {
       print " OCN_TRANSIENT=$OCN_TRANSIENT not supported by ecosystem module \n";
       die;
     }
@@ -1321,6 +1322,14 @@ if (any(\@OCN_TRACER_MODULES, "ecosys")) {
       add_default($nl, 'ndep_shr_stream_year_align');
       add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
       add_default($nl, 'ndep_shr_stream_file');
+    }
+    if (($OCN_TRANSIENT eq "rcp4.5") || ($OCN_TRANSIENT eq "rcp8.5")) {
+      add_default($nl, 'ndep_data_type', 'ocn_transient'=>"$OCN_TRANSIENT");
+      add_default($nl, 'ndep_shr_stream_year_first', 'ocn_transient'=>"$OCN_TRANSIENT");
+      add_default($nl, 'ndep_shr_stream_year_last', 'ocn_transient'=>"$OCN_TRANSIENT");
+      add_default($nl, 'ndep_shr_stream_year_align', 'ocn_transient'=>"$OCN_TRANSIENT");
+      add_default($nl, 'ndep_shr_stream_file', 'ocn_transient'=>"$OCN_TRANSIENT");
+      add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
     }
     add_default($nl, 'lecovars_full_depth_tavg');
 }

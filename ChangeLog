@@ -2,6 +2,18 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  klindsay, mlevy
+Tag Date:    29 Apr 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140429
+Tag Summary: Add support for RCP4.5 and RCP8.5 ocean transients and set
+             namelist defaults for BRCP45BDRD, BRCP85BDRD, and BRCP85BPRP
+             compsets
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop2.xml
+===============================================================================
+Tag Creator: mlevy
 Developers:  njn01, mlevy
 Tag Date:    20 Apr 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140420a
