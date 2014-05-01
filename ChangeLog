@@ -2,6 +2,17 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    1 May 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140501
+Tag Summary: Add default values to ecosys and ecosys_parms namelist variables
+             (for documentation). Note that this still needs variable
+             descriptions.
+
+Files Modified:
+M       bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay, mlevy
 Tag Date:    29 Apr 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140429
