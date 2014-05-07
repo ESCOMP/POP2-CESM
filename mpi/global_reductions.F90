@@ -1206,7 +1206,7 @@
       this_block          ! holds local block information
 
 
-   if (b4b) then
+   if (.not. b4b) then
 
 !-----------------------------------------------------------------------
 !
@@ -1422,7 +1422,7 @@
       this_block          ! holds local block information
 
 
-   if (b4b) then
+   if (.not. b4b) then
 
 !-----------------------------------------------------------------------
 !
@@ -1639,7 +1639,7 @@
       this_block          ! holds local block information
 
 
-   if (b4b) then
+   if (.not. b4b) then
 
 !-----------------------------------------------------------------------
 !
