@@ -5914,7 +5914,7 @@ contains
 
    scalar_temp = f_qsw_par / hflux_factor
 
-   !$OMP PARALLEL DO PRIVATE(iblock,WORK1)
+   !$OMP PARALLEL DO PRIVATE(iblock,WORK1,auto_ind,n)
    do iblock = 1, nblocks_clinic
       STF_MODULE(:,:,:,iblock) = c0
 
