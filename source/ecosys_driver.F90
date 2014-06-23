@@ -143,7 +143,7 @@
     ecosys_driver_tracer_cnt = ecosys_tracer_cnt
 
    if (ciso_on) then
-       ecosys_driver_tracer_cnt = ecosys_tracer_cnt + ecosys_ciso_tracer_cnt
+       ecosys_driver_tracer_cnt = ecosys_driver_tracer_cnt + ecosys_ciso_tracer_cnt
    end if
 
 

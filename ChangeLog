@@ -1,6 +1,21 @@
 ===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
+Tag Date:    23 June 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140623_cesm_pop_2_1_20130521/
+Tag Summary: Removed changes in cfc_mod.F90 which read in xkw_coeff  from
+ecosys_params, as cfc_mod.F90 is not a ecosystem module. Also modified
+ecosys_driver in tracer_sount calculation to make it easier to add more
+modules without making a mistake.  
+Files Modified:
+M       source/cfc_mod.F90
+M       source/ecosys_driver.F90
+M            61312   ChangeLog
+Status against revision:  61312
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
 Tag Date:    24 April 2014
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140424_cesm_pop_2_1_20130521/
