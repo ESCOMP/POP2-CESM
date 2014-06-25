@@ -2479,7 +2479,7 @@ contains
                           coordinates='TLONG TLAT time')
    call define_tavg_field(tavg_pfeToSed,'pfeToSed',2,                  &
                           long_name='pFe Flux to Sediments',           &
-                          units='g/cm^2/s', grid_loc='2110',           &
+                          units='nmolFe/cm^2/s', grid_loc='2110',      &
                           coordinates='TLONG TLAT time')
 
 !-----------------------------------------------------------------------
@@ -4382,6 +4382,7 @@ contains
 !  initialize loss to sediments = 0 and local copy of percent sed
 !-----------------------------------------------------------------------
 
+   P_iron%sed_loss(:,:,bid) = c0
    POC%sed_loss(:,:,bid) = c0
    P_CaCO3%sed_loss(:,:,bid) = c0
    P_SiO2%sed_loss(:,:,bid) = c0
@@ -4610,9 +4611,10 @@ contains
             else
                P_iron%remin(i,j,bid) = (POC%remin(i,j,bid) * &
                   (P_iron%sflux_in(i,j,bid) + P_iron%hflux_in(i,j,bid)) / &
-                  (POC%sflux_in(i,j,bid) + POC%hflux_in(i,j,bid))) + &
-                  (P_iron%sflux_in(i,j,bid) * 1.5e-5_r8)
+                  (POC%sflux_in(i,j,bid) + POC%hflux_in(i,j,bid)))
             endif
+            P_iron%remin(i,j,bid) = P_iron%remin(i,j,bid) +                &
+                                    (P_iron%sflux_in(i,j,bid) * 1.5e-5_r8)
 
             P_iron%sflux_out(i,j,bid) = P_iron%sflux_in(i,j,bid) + dz_loc * &
                ((c1 - P_iron%gamma) * P_iron%prod(i,j,bid) - P_iron%remin(i,j,bid))
@@ -5898,7 +5900,7 @@ contains
 
    scalar_temp = f_qsw_par / hflux_factor
 
-   !$OMP PARALLEL DO PRIVATE(iblock,WORK1)
+   !$OMP PARALLEL DO PRIVATE(iblock,WORK1,auto_ind,n)
    do iblock = 1, nblocks_clinic
       STF_MODULE(:,:,:,iblock) = c0
 

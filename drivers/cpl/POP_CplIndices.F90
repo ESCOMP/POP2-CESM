@@ -55,8 +55,8 @@ module POP_CplIndices
   integer :: index_x2o_Faxa_dstdry2    ! flux: Size 2 dust -- dry deposition
   integer :: index_x2o_Faxa_dstdry3    ! flux: Size 3 dust -- dry deposition
   integer :: index_x2o_Faxa_dstdry4    ! flux: Size 4 dust -- dry deposition
-  integer :: index_x2o_Forr_roff       ! river runoff flux                (kg/m2/s)
-  integer :: index_x2o_Forr_ioff       ! ice runoff flux                  (kg/m2/s)
+  integer :: index_x2o_Foxx_rofl       ! river runoff flux                (kg/m2/s)
+  integer :: index_x2o_Foxx_rofi       ! ice runoff flux                  (kg/m2/s)
 
 contains
 
@@ -98,8 +98,8 @@ contains
     index_x2o_Faxa_snow     = mct_avect_indexra(x2o,'Faxa_snow')   
     index_x2o_Faxa_rain     = mct_avect_indexra(x2o,'Faxa_rain')   
     index_x2o_Foxx_evap     = mct_avect_indexra(x2o,'Foxx_evap')
-    index_x2o_Forr_roff     = mct_avect_indexra(x2o,'Forr_roff')
-    index_x2o_Forr_ioff     = mct_avect_indexra(x2o,'Forr_ioff')
+    index_x2o_Foxx_rofl     = mct_avect_indexra(x2o,'Foxx_rofl')
+    index_x2o_Foxx_rofi     = mct_avect_indexra(x2o,'Foxx_rofi')
     index_x2o_Faxa_bcphidry = mct_avect_indexra(x2o,'Faxa_bcphidry')
     index_x2o_Faxa_bcphodry = mct_avect_indexra(x2o,'Faxa_bcphodry')
     index_x2o_Faxa_bcphiwet = mct_avect_indexra(x2o,'Faxa_bcphiwet')

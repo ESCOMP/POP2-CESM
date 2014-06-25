@@ -377,7 +377,11 @@
            .not. lfw_as_salt_flx .and. liceform ) then
         FW = FW + FW_FREEZE
 
-        call tfreez(TFRZ,TRACER(:,:,1,2,curtime,:))
+         !$OMP PARALLEL DO PRIVATE(iblock)
+         do iblock = 1, nblocks_clinic
+            call tfreez(TFRZ(:,:,iblock), TRACER(:,:,1,2,curtime,iblock))
+         enddo
+         !$OMP END PARALLEL DO
 
         TFW(:,:,1,:) = TFW(:,:,1,:) + FW_FREEZE(:,:,:)*TFRZ(:,:,:)
         TFW(:,:,2,:) = TFW(:,:,2,:) + FW_FREEZE(:,:,:)*salice

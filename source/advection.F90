@@ -837,7 +837,7 @@
 
    call define_tavg_field(tavg_PV,'PV',3,                              &
                           long_name='Potential Vorticity',             &
-                          units='1/s', grid_loc='3111',                &
+                          units='1/s/cm', grid_loc='3111',             &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_Q,'Q',3,                                &

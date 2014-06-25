@@ -2588,7 +2588,7 @@
 
                case(field_loc_center)
                   do k=1,km
-                     RMASK = merge(c1, c0, k <= KMT(:,:,iblock)) 
+                     RMASK(:,:) = merge(c1, c0, k <= KMT(:,:,iblock)) 
                      WORK(:,:,iblock) = WORK(:,:,iblock) + dz(k)* &
                                         TAVG_BUF_3D(:,:,k,iblock,ifield)* &
                                         TAREA(:,:,iblock)*RMASK
@@ -2596,7 +2596,7 @@
 
                case(field_loc_NEcorner)
                   do k=1,km
-                     RMASK = merge(c1, c0, k <= KMU(:,:,iblock)) 
+                     RMASK(:,:) = merge(c1, c0, k <= KMU(:,:,iblock)) 
                      WORK(:,:,iblock) = WORK(:,:,iblock) + dz(k)* &
                                         TAVG_BUF_3D(:,:,k,iblock,ifield)* &
                                         UAREA(:,:,iblock)*RMASK
@@ -2604,7 +2604,7 @@
 
                case default ! make U cell the default for all other cases
                   do k=1,km
-                     RMASK = merge(c1, c0, k <= KMU(:,:,iblock)) 
+                     RMASK(:,:) = merge(c1, c0, k <= KMU(:,:,iblock)) 
                      WORK(:,:,iblock) = WORK(:,:,iblock) + dz(k)* &
                                         TAVG_BUF_3D(:,:,k,iblock,ifield)* &
                                         UAREA(:,:,iblock)*RMASK
