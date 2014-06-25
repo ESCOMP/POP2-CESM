@@ -56,14 +56,14 @@ MODULE ecosys_parms
         imp_calcifier,                      & ! flag set to true if this autotroph implicitly handles calcification
         exp_calcifier                         ! flag set to true if this autotroph explicitly handles calcification
      INTEGER (KIND=int_kind) :: &
-        grazee_ind                            ! which grazee category does autotroph belong to
+          grazee_ind                            , &! which grazee category does autotroph belong to
+          Chl_ind, C_ind, Fe_ind,             & ! tracer indices for Chl, C, Fe content
+          Si_ind, CaCO3_ind                ! tracer indices for Si, CaCO3 content
      REAL(KIND=r8) :: &
-        Chl_ind, C_ind, Fe_ind,             & ! tracer indices for Chl, C, Fe content
-        Si_ind, CaCO3_ind,                  & ! tracer indices for Si, CaCO3 content
-        kFe, kPO4, kDOP, kNO3, kNH4, kSiO3, & ! nutrient uptake half-sat constants
-        Qp,                                 & ! P/C ratio
-        gQfe_0, gQfe_min,                   & ! initial and minimum fe/C ratio
-        alphaPI,                            & ! init slope of P_I curve (GD98) (mmol C m^2/(mg Chl W sec))
+          kFe, kPO4, kDOP, kNO3, kNH4, kSiO3, & ! nutrient uptake half-sat constants
+          Qp,                                 & ! P/C ratio
+          gQfe_0, gQfe_min,                   & ! initial and minimum fe/C ratio
+          alphaPI,                            & ! init slope of P_I curve (GD98) (mmol C m^2/(mg Chl W sec))
         PCref,                              & ! max C-spec. grth rate at tref (1/sec)
         thetaN_max,                         & ! max thetaN (Chl/N) (mg Chl/mmol N)
         loss_thres, loss_thres2,            & ! conc. where losses go to zero
