@@ -3,6 +3,7 @@
 if !(-d $OBJROOT/ocn/obj   ) mkdir -p $OBJROOT/ocn/obj    || exit 2
 if !(-d $OBJROOT/ocn/source) mkdir -p $OBJROOT/ocn/source || exit 3 
 if !(-d $OBJROOT/ocn/input ) mkdir -p $OBJROOT/ocn/input  || exit 4
+if !(-d $OBJROOT/ocn/cvmix ) mkdir -p $OBJROOT/ocn/cvmix  || exit 5
 
 set my_path = $CASEROOT/SourceMods/src.pop2
 
@@ -174,6 +175,10 @@ endif
 cp -f $OBJROOT/ocn/obj/POP2_cppdefs.new $OBJROOT/ocn/obj/POP2_cppdefs
 set pop2defs = "`cat $OBJROOT/ocn/obj/POP2_cppdefs`"
 
+cd ${OBJROOT}/ocn/cvmix
+gmake -j $GMAKE_J -f $CASETOOLS/Makefile $LIBROOT/libcvmix.a || exit 2
+cd ${OBJROOT}/ocn/obj 
+#set pop2defs = "$pop2defs -I${OBJROOT}/ocn/cvmix"
 gmake complib -j $GMAKE_J MODEL=pop2 COMPLIB=$LIBROOT/libocn.a USER_CPPDEFS="$pop2defs" -f $CASETOOLS/Makefile || exit 2
 
 echo " "

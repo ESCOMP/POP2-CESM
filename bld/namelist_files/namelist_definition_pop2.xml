@@ -1543,6 +1543,16 @@ Flag for using inertial mixing parameterization.
 Default: .false.
 </entry>
 
+<entry 
+id="lcvmix"
+type="logical"
+category="kpp"
+group="vmix_kpp_nml" >
+Flag for using CVMix for mixing instead of POP routines
+
+Default: .false.
+</entry>
+
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: advect_nml               - -->
 <!-- - - - - - - - - - - - - - - - - - -->

@@ -38,6 +38,8 @@
    use vmix_const
    use vmix_rich
    use vmix_kpp
+   use cvmix_kinds_and_types
+   use cvmix_put_get
    use exit_mod
    use prognostic
 
@@ -168,6 +170,15 @@
    integer (int_kind), dimension(nt) :: &
       tavg_DIA_IMPVF_TRACER  ! tavg id for diabatic implicit vertical flux of tracer
 
+!-----------------------------------------------------------------------
+!
+!  Variables used by CVMix
+!
+!-----------------------------------------------------------------------
+
+    type(cvmix_data_type), allocatable, dimension(:) :: CVmix_vars
+    type(cvmix_global_params_type)                   :: CVmix_params
+
 !EOC
 !***********************************************************************
 
@@ -197,6 +208,7 @@
 
    integer (int_kind) ::  &
       k,                  &! vertical level index
+      ncol,               &! number of columns
       n,                  &! dummy loop index
       nu,                 &! i/o unit
       nml_error            ! namelist i/o error flag
@@ -362,6 +374,17 @@
 
 !-----------------------------------------------------------------------
 !
+!  Set up CVMix variables
+!
+!-----------------------------------------------------------------------
+
+   call cvmix_put(CVmix_params, 'max_nlev', km)
+   call cvmix_put(CVmix_params, 'prandtl', 10._r8)
+   ncol = nx_block*ny_block*nblocks_clinic
+   allocate(CVmix_vars(ncol))
+
+!-----------------------------------------------------------------------
+!
 !  allocate VDC, VVC arrays and define options for chosen 
 !  parameterization
 !
@@ -398,7 +421,7 @@
    case(vmix_type_kpp)
       allocate (VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic), &
                 VVC(nx_block,ny_block,km,      nblocks_clinic))
-      call init_vmix_kpp(VDC,VVC)
+      call init_vmix_kpp(CVmix_vars, VDC,VVC)
       call get_timer(timer_vmix_coeffs,'VMIX_COEFFICIENTS_KPP', &
                                   nblocks_clinic, distrb_clinic%nprocs)
 
@@ -596,7 +619,8 @@
                     'vmix_coeffs: must supply either SMF,SMFT')
 
          if (present(SMFT)) then
-            call vmix_coeffs_kpp(VDC(:,:,:,:,bid),           &
+            call vmix_coeffs_kpp(CVmix_vars,                 &
+                                 VDC(:,:,:,:,bid),           &
                                  VVC(:,:,:,  bid),           &
                                  TMIX,UMIX,VMIX,UCUR,VCUR,RHOMIX, &
                                  STF,SHF_QSW,                &
@@ -604,7 +628,8 @@
                                  convect_diff, convect_visc, &
                                  SMFT=SMFT)
          else
-            call vmix_coeffs_kpp(VDC(:,:,:,:,bid),           &
+            call vmix_coeffs_kpp(CVmix_vars,                 &
+                                 VDC(:,:,:,:,bid),           &
                                  VVC(:,:,:,  bid),           &
                                  TMIX,UMIX,VMIX,UCUR,VCUR,RHOMIX, &
                                  STF,SHF_QSW,                &
