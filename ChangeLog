@@ -3,6 +3,18 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    03 July 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140703
+Tag Summary: Changed indexing of CVmix_vars, now calls to CVMix can be made
+             with multiple threads per MPI task.
+
+Files Modified:
+M       source/vmix_kpp.F90
+M       source/vertical_mix.F90
+M       bld/pop2.buildexe.csh
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    02 July 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140702
 Tag Summary: Add lcvmix option (currently just calls cvmix_coeffs_kpp; no

@@ -239,7 +239,7 @@
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   type(cvmix_data_type), dimension(:), intent(inout) :: CVmix_vars
+   type(cvmix_data_type), dimension(:,:), intent(inout) :: CVmix_vars
 
    real (r8), dimension(:,:,:,:), intent(inout) :: &
       VVC        ! viscosity for momentum diffusion
@@ -621,22 +621,21 @@
      do bid=1,nblocks_clinic
        do jny=1,ny_block
          do inx=1,nx_block
-           ic = (bid-1)*nx_block*ny_block + (jny-1)*nx_block + inx
-           ! nlev = max(KMT(inx, jny, bid), KMU(inx, jny, bid))
+           ic = (jny-1)*nx_block + inx
            nlev = KMT(inx, jny, bid)
-           call cvmix_put(CVmix_vars(ic), 'nlev', nlev)
+           call cvmix_put(CVmix_vars(ic,bid), 'nlev', nlev)
            if (nlev.gt.0) then
-             call cvmix_put(CVmix_vars(ic), 'Mdiff', 0._r8)
-             call cvmix_put(CVmix_vars(ic), 'Tdiff', 0._r8)
-             call cvmix_put(CVmix_vars(ic), 'Sdiff', 0._r8)
+             call cvmix_put(CVmix_vars(ic,bid), 'Mdiff', 0._r8)
+             call cvmix_put(CVmix_vars(ic,bid), 'Tdiff', 0._r8)
+             call cvmix_put(CVmix_vars(ic,bid), 'Sdiff', 0._r8)
 
              allocate(tmp_array(nlev+1))
              tmp_array = 0._r8
-             call cvmix_put(CVmix_vars(ic), 'Ri_bulk', tmp_array(1:nlev))
-             call cvmix_put(CVmix_vars(ic), 'zw', tmp_array)
-             call cvmix_put(CVmix_vars(ic), 'zt', -zt(1:nlev)*1e-2_r8)
-             call cvmix_put(CVmix_vars(ic), 'ocn_depth', zw(nlev)*1e-2_r8)
-             CVmix_vars(ic)%zw_iface(2:nlev+1) = -zw(1:nlev)*1e-2_r8
+             call cvmix_put(CVmix_vars(ic,bid), 'Ri_bulk', tmp_array(1:nlev))
+             call cvmix_put(CVmix_vars(ic,bid), 'zw', tmp_array)
+             call cvmix_put(CVmix_vars(ic,bid), 'zt', -zt(1:nlev)*1e-2_r8)
+             call cvmix_put(CVmix_vars(ic,bid), 'ocn_depth', zw(nlev)*1e-2_r8)
+             CVmix_vars(ic,bid)%zw_iface(2:nlev+1) = -zw(1:nlev)*1e-2_r8
              deallocate(tmp_array)
            end if
          end do
@@ -2378,7 +2377,7 @@
 
      do i=1,nx_block
        do j=1,ny_block
-         ic = (bid-1)*nx_block*ny_block + (j-1)*nx_block + i
+         ic = (j-1)*nx_block + i
          if (KMT(i,j,bid).gt.0) then
            nlev = CVmix_vars(ic)%nlev
 

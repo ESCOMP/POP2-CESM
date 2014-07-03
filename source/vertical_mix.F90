@@ -176,8 +176,8 @@
 !
 !-----------------------------------------------------------------------
 
-    type(cvmix_data_type), allocatable, dimension(:) :: CVmix_vars
-    type(cvmix_global_params_type)                   :: CVmix_params
+    type(cvmix_data_type), allocatable, dimension(:,:) :: CVmix_vars
+    type(cvmix_global_params_type)                     :: CVmix_params
 
 !EOC
 !***********************************************************************
@@ -380,8 +380,8 @@
 
    call cvmix_put(CVmix_params, 'max_nlev', km)
    call cvmix_put(CVmix_params, 'prandtl', 10._r8)
-   ncol = nx_block*ny_block*nblocks_clinic
-   allocate(CVmix_vars(ncol))
+   ncol = nx_block*ny_block
+   allocate(CVmix_vars(ncol,nblocks_clinic))
 
 !-----------------------------------------------------------------------
 !
@@ -619,7 +619,7 @@
                     'vmix_coeffs: must supply either SMF,SMFT')
 
          if (present(SMFT)) then
-            call vmix_coeffs_kpp(CVmix_vars,                 &
+            call vmix_coeffs_kpp(CVmix_vars(:,bid),          &
                                  VDC(:,:,:,:,bid),           &
                                  VVC(:,:,:,  bid),           &
                                  TMIX,UMIX,VMIX,UCUR,VCUR,RHOMIX, &
@@ -628,7 +628,7 @@
                                  convect_diff, convect_visc, &
                                  SMFT=SMFT)
          else
-            call vmix_coeffs_kpp(CVmix_vars,                 &
+            call vmix_coeffs_kpp(CVmix_vars(:,bid),          &
                                  VDC(:,:,:,:,bid),           &
                                  VVC(:,:,:,  bid),           &
                                  TMIX,UMIX,VMIX,UCUR,VCUR,RHOMIX, &

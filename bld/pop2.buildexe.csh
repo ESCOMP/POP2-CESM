@@ -178,7 +178,6 @@ set pop2defs = "`cat $OBJROOT/ocn/obj/POP2_cppdefs`"
 cd ${OBJROOT}/ocn/cvmix
 gmake -j $GMAKE_J -f $CASETOOLS/Makefile $LIBROOT/libcvmix.a || exit 2
 cd ${OBJROOT}/ocn/obj 
-#set pop2defs = "$pop2defs -I${OBJROOT}/ocn/cvmix"
 gmake complib -j $GMAKE_J MODEL=pop2 COMPLIB=$LIBROOT/libocn.a USER_CPPDEFS="$pop2defs" -f $CASETOOLS/Makefile || exit 2
 
 echo " "
