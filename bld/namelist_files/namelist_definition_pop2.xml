@@ -4423,10 +4423,10 @@ id="abio_atm_co2_d14c_opt"
 type="char*256"
 category="passive_tracers"
 group="abio_dic_dic14_nml" 
-valid_values="ocmip2,const,coupler" >
+valid_values="file,const,coupler" >
 Source of atmos CO2 and D14C.
 
-Valid Values: 'ocmip2', 'const', 'coupler'
+Valid Values: 'file', 'const', 'coupler'
 Default: '
 </entry>
 
@@ -4516,7 +4516,7 @@ id="ciso_atm_d13c_opt"
 type="char*256" 
 category="ecosys"
 group="ecosys_ciso_nml"
-valid_values="const,ocmip2,coupled" >
+valid_values="const,file,coupled" >
 Default: 
 </entry>
 
@@ -4533,7 +4533,7 @@ id="ciso_atm_d14c_opt"
 type="char*256" 
 category="ecosys"
 group="ecosys_ciso_nml"
-valid_values="const,ocmip2,coupled" >
+valid_values="const,file,coupled" >
 Default: 
 </entry>
 

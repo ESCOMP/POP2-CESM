@@ -14,7 +14,9 @@
 !  variables computed there. Data is shared using ecosys_share_mod.F90
 !  This module adds 7 carbon pools for 13C and another 7 for 14C
 !
-!  Alexandra Jahn, NCAR, Started Nov 2012, last edited March 2014
+!  Developer: Alexandra Jahn, NCAR, Started Nov 2012, last edited July 2014
+!  A first version of the 13C code for POP1, which was used to develop 
+!  the code for the current model version, was written by Xavier Giraud 
 !
 ! !REVISION HISTORY:
 
@@ -1434,7 +1436,7 @@ contains
 
 ! !DESCRIPTION:
 !  Initialize surface flux computations for the ecosys_ciso tracer module.
-!  Includes reading CO2 and D13C data from file if option ocmip2 is used
+!  Includes reading CO2 and D13C data from file if option file is used
 ! !REVISION HISTORY:
 !  same as module
 
@@ -1459,10 +1461,10 @@ contains
    endif
 
 !-----------------------------------------------------------------------
-!     READ in D13C data from OCMIP2 file
+!     READ in D13C data from file
 !-----------------------------------------------------------------------
 
-   case('ocmip2')
+   case('file')
    call ciso_read_atm_D13C_data
 
    case default
@@ -1487,10 +1489,10 @@ contains
    endif
 
 !-----------------------------------------------------------------------
-!     READ in D13C data from OCMIP2 files
+!     READ in D13C data from files
 !-----------------------------------------------------------------------
 
-   case('ocmip2')
+   case('file')
    call ciso_read_atm_D14C_data
 
    case default
@@ -1691,7 +1693,7 @@ contains
       case ('const')
       D13C = ciso_atm_d13c_const
 
-      case ('ocmip2')
+      case ('file')
       call ciso_comp_varying_D13C(iblock, ciso_data_ind_d13c(iblock),D13C)
 
       case default
@@ -1704,7 +1706,7 @@ contains
       case ('const')
       D14C = ciso_atm_d14c_const
 
-      case ('ocmip2')
+      case ('file')
       call ciso_comp_varying_D14C(iblock, ciso_data_ind_d14c(iblock),D14C)
 
       case default
@@ -3805,7 +3807,7 @@ end subroutine ciso_compute_particulate_terms
 
 
 !-----------------------------------------------------------------------
-!     READ in D13C data from OCMIP2 file
+!     READ in D13C data from file
 !-----------------------------------------------------------------------
    if (my_task == master_task) then
       write(stdout,blank_fmt)
@@ -3900,10 +3902,10 @@ end subroutine ciso_compute_particulate_terms
 
 
 !-----------------------------------------------------------------------
-!     READ in C14 data from OCMIP2 files - three files, for SH, EQ, NH
+!     READ in C14 data from files - three files, for SH, EQ, NH
 !-----------------------------------------------------------------------
    if (my_task == master_task) then
-      write(stdout,*)'ciso DI14C calculation: Using varying D14C values from ocmip2 file ',ciso_atm_d14c_filename(:)
+      write(stdout,*)'ciso DI14C calculation: Using varying D14C values from file ',ciso_atm_d14c_filename(:)
       do il=1,3
          open (nml_in, file=ciso_atm_d14c_filename(il), status='old',iostat=nml_error)
          read(nml_in, FMT=*) sglchr,skiplines,ciso_atm_d14c_data_nbval(il)

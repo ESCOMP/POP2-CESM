@@ -1,6 +1,22 @@
 ===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
+Tag Date:    3 July 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140703_cesm_pop_2_1_20140625
+Summary: Replaced "ocmip2" with "file" as option for reading in CO2, D14C, and
+D13C data from file (as it can be any data, does not need to be OCMIP2 data)
+NOTE: Still only works if compiling with pgi, not with intel, so use -compiler pgi
+when running create_case
+Files Modified:
+M            61466   source/abio_dic_dic14_mod.F90
+M            61466   source/ecosys_ciso_mod.F90
+M            61467   bld/namelist_files/namelist_definition_pop2.xml
+M            61467   ChangeLog
+Status against revision:  61671
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
 Tag Date:    25 June 2014
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140625_cesm_pop_2_1_20140625

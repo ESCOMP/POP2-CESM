@@ -8,7 +8,7 @@ module abio_dic_dic14_mod
 !  Module for Abiotic DIC & DIC14, essentially following OCMIP2 protocols
 !  but using ice fracetion and winds from the model/data atmos instead of from files
 !
-!  There is an option to read CO2 and D14C from files (OCMIP2), use the atmospheric CO2
+!  There is an option to read CO2 and D14C from files, use the atmospheric CO2
 !  from the coupler and the D14C from the file, or to use constant CO2 and D14C values
 !
 !  The units of concentration for these tracers are
@@ -777,7 +777,7 @@ contains
 
 ! !DESCRIPTION:
 !  Initialize surface flux computations for the abio_dic_dic14 tracer module.
-!  Includes reading CO2 and D14C data from file if option ocmip2 is used
+!  Includes reading CO2 and D14C data from file if option file is used
 ! !REVISION HISTORY:
 !  same as module
 
@@ -786,7 +786,7 @@ contains
 !-----------------------------------------------------------------------
 
 !-------------------------------------------------------------------------
-!     READ in CO2 and D14C data from OCMIP2 files for option ocmip2 or get
+!     READ in CO2 and D14C data from files for option file or get
 !     CO2 from coupler for option coupler and D14C from file
 !-------------------------------------------------------------------------
 
@@ -824,21 +824,21 @@ contains
       endif
 
 !-----------------------------------------------------------------------
-!     READ in D14C data from OCMIP2 files
+!     READ in D14C data from files
 !-----------------------------------------------------------------------
 
       call read_atm_D14C_data
 
 
-   case('ocmip2')
+   case('file')
 !-----------------------------------------------------------------------
-!     READ in CO2 data from OCMIP2 file
+!     READ in CO2 data from file
 !-----------------------------------------------------------------------
 
       call read_atm_CO2_data
 
 !-----------------------------------------------------------------------
-!     READ in D14C data from OCMIP2 files
+!     READ in D14C data from files
 !-----------------------------------------------------------------------
 
       call read_atm_D14C_data
@@ -1055,7 +1055,7 @@ contains
          call comp_varying_D14C(iblock, data_ind_d14c(iblock),D14C)
 
 
-      case('ocmip2')
+      case('file')
          call comp_varying_CO2(iblock, data_ind_co2(iblock),pCO2)
          call comp_varying_D14C(iblock, data_ind_d14c(iblock),D14C)
 
@@ -1390,10 +1390,10 @@ end subroutine abio_dic_dic14_tavg_forcing
 
 
 !-----------------------------------------------------------------------
-!     READ in CO2 data from OCMIP2 file
+!     READ in CO2 data from file
 !-----------------------------------------------------------------------
    if (my_task == master_task) then
-      write(stdout,*)'Abiotic DIC calculation: Using varying CO2 values from ocmip2 file ',abio_atm_co2_filename
+      write(stdout,*)'Abiotic DIC calculation: Using varying CO2 values from file ',abio_atm_co2_filename
       open (nml_in, file=abio_atm_co2_filename, status='old',iostat=nml_error)
       read(nml_in, FMT=*) sglchr,skiplines,atm_co2_data_nbval
       allocate(atm_co2_data_yr(atm_co2_data_nbval))
@@ -1479,10 +1479,10 @@ end subroutine abio_dic_dic14_tavg_forcing
 
 
 !-----------------------------------------------------------------------
-!     READ in C14 data from OCMIP2 files - three files, for SH, EQ, NH
+!     READ in C14 data from files - three files, for SH, EQ, NH
 !-----------------------------------------------------------------------
    if (my_task == master_task) then
-      write(stdout,*)'Abiotic DIC14 calculation: Using varying C14 values from ocmip2 file ',abio_atm_d14c_filename(:)
+      write(stdout,*)'Abiotic DIC14 calculation: Using varying C14 values from file ',abio_atm_d14c_filename(:)
       do il=1,3
          open (nml_in, file=abio_atm_d14c_filename(il), status='old',iostat=nml_error)
          read(nml_in, FMT=*) skiplines,atm_d14c_data_nbval(il)
