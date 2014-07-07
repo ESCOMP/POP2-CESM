@@ -2346,6 +2346,16 @@ Flag to prevent very cold water.
 Default: .false.
 </entry>
 
+<entry 
+id="lPOP1d"
+type="logical"
+category="baroclinic"
+group="baroclinic_nml" >
+Flag to run POP in 1D mode (recommend only using with T62_g37 resolution)
+
+Default: .false.
+</entry>
+
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: ice_nml                  - -->
 <!-- - - - - - - - - - - - - - - - - - -->

@@ -78,6 +78,11 @@
 
 ! !PUBLIC DATA MEMBERS:
 
+   logical (log_kind), public :: &
+      lPOP1d                      ! flag to run POP in 1D mode (experimental)
+
+! !PRIVATE DATA MEMBERS:
+
    logical (log_kind) :: &
       reset_to_freezing   ! flag to prevent very cold water
 
@@ -166,7 +171,7 @@
       nml_error          ! namelist i/o error flag
    integer (int_kind) :: k
 
-   namelist /baroclinic_nml/ reset_to_freezing
+   namelist /baroclinic_nml/ reset_to_freezing, lPOP1d
 
 !-----------------------------------------------------------------------
 !
@@ -175,6 +180,7 @@
 !-----------------------------------------------------------------------
 
    reset_to_freezing = .true.
+   lPOP1d            = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -216,9 +222,14 @@
          write(stdout,'(a41)') &
                           'Surface temperature reset to freezing off'
       endif
+      if (lPOP1d) then
+         write(stdout,'(a25)') &
+                          'NOTE: running in 1D mode!'
+      endif
    endif
 
    call broadcast_scalar(reset_to_freezing, master_task)
+   call broadcast_scalar(lPOP1d,            master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -882,12 +893,13 @@
 !
 !-----------------------------------------------------------------------
 
-   !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,km1,kp1,n, &
-   !$OMP                     WUK,FX,FY,WORK1,WORK2)
+   if (.not.lPOP1d) then
+     !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,km1,kp1,n, &
+     !$OMP                     WUK,FX,FY,WORK1,WORK2)
 
-   do iblock = 1,nblocks_clinic
+     do iblock = 1,nblocks_clinic
 
-      this_block = get_block(blocks_clinic(iblock),iblock)  
+        this_block = get_block(blocks_clinic(iblock),iblock)  
 
 !-----------------------------------------------------------------------
 !
@@ -895,15 +907,15 @@
 !
 !-----------------------------------------------------------------------
 
-      ZX(:,:,iblock) = c0
-      ZY(:,:,iblock) = c0
+        ZX(:,:,iblock) = c0
+        ZY(:,:,iblock) = c0
 
-      do k = 1,km
+        do k = 1,km
 
-         kp1 = k+1
-         km1 = k-1
-         if (k == 1) km1 = 1
-         if (k == km) kp1 = km
+           kp1 = k+1
+           km1 = k-1
+           if (k == 1) km1 = 1
+           if (k == km) kp1 = km
 
 !-----------------------------------------------------------------------
 !
@@ -912,11 +924,11 @@
 !
 !-----------------------------------------------------------------------
 
-         if (lpressure_avg .and. leapfrogts) then
-            call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
-                           TRACER(:,:,k,2,newtime,iblock), &
-                           this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
-         endif
+           if (lpressure_avg .and. leapfrogts) then
+              call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
+                             TRACER(:,:,k,2,newtime,iblock), &
+                             this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
+           endif
 
 !-----------------------------------------------------------------------
 !
@@ -924,19 +936,19 @@
 !
 !-----------------------------------------------------------------------
 
-         call clinic(k, FX, FY, WUK,                &
-                        UVEL(:,:,:,curtime,iblock), &
-                        VVEL(:,:,:,curtime,iblock), &
-                        UVEL(:,:,:,oldtime,iblock), &
-                        VVEL(:,:,:,oldtime,iblock), &
-                        UVEL(:,:,k,mixtime,iblock), &
-                        VVEL(:,:,k,mixtime,iblock), &
-                        RHO (:,:,k,oldtime,iblock), &
-                        RHO (:,:,k,curtime,iblock), &
-                        RHO (:,:,k,newtime,iblock), &
-                        SMF (:,:,:,iblock),         &
-                        DHU (:,:,iblock),           &
-                        this_block)
+           call clinic(k, FX, FY, WUK,                &
+                          UVEL(:,:,:,curtime,iblock), &
+                          VVEL(:,:,:,curtime,iblock), &
+                          UVEL(:,:,:,oldtime,iblock), &
+                          VVEL(:,:,:,oldtime,iblock), &
+                          UVEL(:,:,k,mixtime,iblock), &
+                          VVEL(:,:,k,mixtime,iblock), &
+                          RHO (:,:,k,oldtime,iblock), &
+                          RHO (:,:,k,curtime,iblock), &
+                          RHO (:,:,k,newtime,iblock), &
+                          SMF (:,:,:,iblock),         &
+                          DHU (:,:,iblock),           &
+                          this_block)
 
 !-----------------------------------------------------------------------
 !
@@ -944,21 +956,21 @@
 !
 !-----------------------------------------------------------------------
 
-         if (impcor) then   ! implicit treatment
+           if (impcor) then   ! implicit treatment
 
-            WORK1 = c2dtu*beta*FCOR(:,:,iblock)
-            WORK2 = c2dtu/(c1 + WORK1**2)
-            UVEL(:,:,k,newtime,iblock) = (FX + WORK1*FY)*WORK2 
-            VVEL(:,:,k,newtime,iblock) = (FY - WORK1*FX)*WORK2 
+              WORK1 = c2dtu*beta*FCOR(:,:,iblock)
+              WORK2 = c2dtu/(c1 + WORK1**2)
+              UVEL(:,:,k,newtime,iblock) = (FX + WORK1*FY)*WORK2 
+              VVEL(:,:,k,newtime,iblock) = (FY - WORK1*FX)*WORK2 
 
 
 
-         else               ! explicit treatment
+           else               ! explicit treatment
 
-            UVEL(:,:,k,newtime,iblock) = c2dtu*FX
-            VVEL(:,:,k,newtime,iblock) = c2dtu*FY
+              UVEL(:,:,k,newtime,iblock) = c2dtu*FX
+              VVEL(:,:,k,newtime,iblock) = c2dtu*FY
 
-         endif
+           endif
 
 !-----------------------------------------------------------------------
 !
@@ -966,15 +978,15 @@
 !
 !-----------------------------------------------------------------------
 
-         if (partial_bottom_cells) then
-            ZX(:,:,iblock) = ZX(:,:,iblock) + FX*DZU(:,:,k,iblock)
-            ZY(:,:,iblock) = ZY(:,:,iblock) + FY*DZU(:,:,k,iblock)
-         else
-            ZX(:,:,iblock) = ZX(:,:,iblock) + FX*dz(k)
-            ZY(:,:,iblock) = ZY(:,:,iblock) + FY*dz(k)
-         endif
+           if (partial_bottom_cells) then
+              ZX(:,:,iblock) = ZX(:,:,iblock) + FX*DZU(:,:,k,iblock)
+              ZY(:,:,iblock) = ZY(:,:,iblock) + FY*DZU(:,:,k,iblock)
+           else
+              ZX(:,:,iblock) = ZX(:,:,iblock) + FX*dz(k)
+              ZY(:,:,iblock) = ZY(:,:,iblock) + FY*dz(k)
+           endif
 
-      enddo ! vertical (k) loop
+        enddo ! vertical (k) loop
 
 !-----------------------------------------------------------------------
 !
@@ -983,8 +995,8 @@
 !
 !-----------------------------------------------------------------------
 
-      ZX(:,:,iblock) = ZX(:,:,iblock)*HUR(:,:,iblock)
-      ZY(:,:,iblock) = ZY(:,:,iblock)*HUR(:,:,iblock)
+        ZX(:,:,iblock) = ZX(:,:,iblock)*HUR(:,:,iblock)
+        ZY(:,:,iblock) = ZY(:,:,iblock)*HUR(:,:,iblock)
 
 !-----------------------------------------------------------------------
 !
@@ -993,10 +1005,10 @@
 !
 !-----------------------------------------------------------------------
 
-      if (implicit_vertical_mix)                   &
-         call impvmixu(UVEL(:,:,:,newtime,iblock), &
-                       VVEL(:,:,:,newtime,iblock), & 
-                       this_block)
+        if (implicit_vertical_mix)                   &
+           call impvmixu(UVEL(:,:,:,newtime,iblock), &
+                         VVEL(:,:,:,newtime,iblock), & 
+                         this_block)
 
 !-----------------------------------------------------------------------
 !
@@ -1004,14 +1016,14 @@
 !
 !-----------------------------------------------------------------------
 
-      UVEL(:,:,:,newtime,iblock) = UVEL(:,:,:,oldtime,iblock) + &
-                                   UVEL(:,:,:,newtime,iblock)  ! holds c2dtu*Fx
-      VVEL(:,:,:,newtime,iblock) = VVEL(:,:,:,oldtime,iblock) + &
-                                   VVEL(:,:,:,newtime,iblock)  ! holds c2dtu*Fy
+        UVEL(:,:,:,newtime,iblock) = UVEL(:,:,:,oldtime,iblock) + &
+                                     UVEL(:,:,:,newtime,iblock)  ! holds c2dtu*Fx
+        VVEL(:,:,:,newtime,iblock) = VVEL(:,:,:,oldtime,iblock) + &
+                                     VVEL(:,:,:,newtime,iblock)  ! holds c2dtu*Fy
 
-      if ( overflows_on .and. overflows_interactive ) then
-         call ovf_Utlda(iblock)
-      endif
+        if ( overflows_on .and. overflows_interactive ) then
+           call ovf_Utlda(iblock)
+        endif
 
 !-----------------------------------------------------------------------
 !
@@ -1019,23 +1031,23 @@
 !
 !-----------------------------------------------------------------------
 
-      WORK1 = c0  ! initialize sums
-      WORK2 = c0
+        WORK1 = c0  ! initialize sums
+        WORK2 = c0
 
-      if (partial_bottom_cells) then
-         do k = 1,km
-            WORK1 = WORK1 + UVEL(:,:,k,newtime,iblock)*DZU(:,:,k,iblock)
-            WORK2 = WORK2 + VVEL(:,:,k,newtime,iblock)*DZU(:,:,k,iblock)
-         enddo
-      else
-         do k = 1,km
-            WORK1 = WORK1 + UVEL(:,:,k,newtime,iblock)*dz(k)
-            WORK2 = WORK2 + VVEL(:,:,k,newtime,iblock)*dz(k)
-         enddo
-      endif
+        if (partial_bottom_cells) then
+           do k = 1,km
+              WORK1 = WORK1 + UVEL(:,:,k,newtime,iblock)*DZU(:,:,k,iblock)
+              WORK2 = WORK2 + VVEL(:,:,k,newtime,iblock)*DZU(:,:,k,iblock)
+           enddo
+        else
+           do k = 1,km
+              WORK1 = WORK1 + UVEL(:,:,k,newtime,iblock)*dz(k)
+              WORK2 = WORK2 + VVEL(:,:,k,newtime,iblock)*dz(k)
+           enddo
+        endif
 
-      WORK1 = WORK1*HUR(:,:,iblock)  ! normalize by dividing by depth
-      WORK2 = WORK2*HUR(:,:,iblock)
+        WORK1 = WORK1*HUR(:,:,iblock)  ! normalize by dividing by depth
+        WORK2 = WORK2*HUR(:,:,iblock)
 
 !-----------------------------------------------------------------------
 !
@@ -1044,17 +1056,17 @@
 !
 !-----------------------------------------------------------------------
 
-      do k = 1,km
-         where (k <= KMU(:,:,iblock))
-            UVEL(:,:,k,newtime,iblock) = &
-            UVEL(:,:,k,newtime,iblock) - WORK1
-            VVEL(:,:,k,newtime,iblock) = &
-            VVEL(:,:,k,newtime,iblock) - WORK2
-         elsewhere 
-            UVEL(:,:,k,newtime,iblock) = c0
-            VVEL(:,:,k,newtime,iblock) = c0
-         endwhere
-      enddo
+        do k = 1,km
+           where (k <= KMU(:,:,iblock))
+              UVEL(:,:,k,newtime,iblock) = &
+              UVEL(:,:,k,newtime,iblock) - WORK1
+              VVEL(:,:,k,newtime,iblock) = &
+              VVEL(:,:,k,newtime,iblock) - WORK2
+           elsewhere 
+              UVEL(:,:,k,newtime,iblock) = c0
+              VVEL(:,:,k,newtime,iblock) = c0
+           endwhere
+        enddo
 
 !-----------------------------------------------------------------------
 !
@@ -1072,9 +1084,10 @@
 !
 !-----------------------------------------------------------------------
 
-   enddo ! second block loop
+     enddo ! second block loop
+     !$OMP END PARALLEL DO
 
-   !$OMP END PARALLEL DO
+   end if ! not 1D POP
 
 #if drifter_particles
 !-----------------------------------------------------------------------
@@ -1495,10 +1508,15 @@
  
    if (k == 1) WUK = DHU_BLOCK  ! free surface
 
-   call advu(k, WORKX, WORKY, WUK, UCUR, VCUR, this_block)
+   if (.not.lPOP1d) then
+     call advu(k, WORKX, WORKY, WUK, UCUR, VCUR, this_block)
 
-   FX =  -WORKX   ! advu returns WORKX = +L(U) 
-   FY =  -WORKY   ! advu returns WORKY = +L(V) 
+     FX =  -WORKX   ! advu returns WORKX = +L(U) 
+     FY =  -WORKY   ! advu returns WORKY = +L(V)
+   else
+     FX = c0
+     FY = c0
+   end if
 
    if (ldiag_global) then
       if (partial_bottom_cells) then
@@ -1518,24 +1536,25 @@
 !
 !-----------------------------------------------------------------------
 
-   if (impcor .and. leapfrogts) then          ! implicit, leapfrog
+   if (.not.lPOP1d) then
+     if (impcor .and. leapfrogts) then          ! implicit, leapfrog
 
-      FX = FX + FCOR(:,:,bid)*(      gamma* VCUR(:,:,k) + &
-                               (c1 - gamma)*VOLD(:,:,k))
-      FY = FY - FCOR(:,:,bid)*(      gamma* UCUR(:,:,k) + & 
-                               (c1 - gamma)*UOLD(:,:,k))
+        FX = FX + FCOR(:,:,bid)*(      gamma* VCUR(:,:,k) + &
+                                 (c1 - gamma)*VOLD(:,:,k))
+        FY = FY - FCOR(:,:,bid)*(      gamma* UCUR(:,:,k) + & 
+                                 (c1 - gamma)*UOLD(:,:,k))
 
-   elseif(.not.impcor .and. leapfrogts) then  ! explicit, leapfrog
+     elseif(.not.impcor .and. leapfrogts) then  ! explicit, leapfrog
 
-      FX = FX + FCOR(:,:,bid)*VCUR(:,:,k)
-      FY = FY - FCOR(:,:,bid)*UCUR(:,:,k)
+        FX = FX + FCOR(:,:,bid)*VCUR(:,:,k)
+        FY = FY - FCOR(:,:,bid)*UCUR(:,:,k)
 
-   else                                  ! matsuno or foward euler
+     else                                  ! matsuno or foward euler
 
-      FX = FX + FCOR(:,:,bid)*VOLD(:,:,k)
-      FY = FY - FCOR(:,:,bid)*UOLD(:,:,k)
+        FX = FX + FCOR(:,:,bid)*VOLD(:,:,k)
+        FY = FY - FCOR(:,:,bid)*UOLD(:,:,k)
 
-   endif
+     endif
 
 !-----------------------------------------------------------------------
 !
@@ -1543,10 +1562,12 @@
 !
 !-----------------------------------------------------------------------
 
-   call gradp(k,WORKX, WORKY, RHOKOLD, RHOKCUR, RHOKNEW, this_block)
+     call gradp(k,WORKX, WORKY, RHOKOLD, RHOKCUR, RHOKNEW, this_block)
 
-   FX = FX - WORKX   ! gradp returns WORKX as +Gradx(p)
-   FY = FY - WORKY   ! gradp returns WORKY as +Grady(p)
+     FX = FX - WORKX   ! gradp returns WORKX as +Gradx(p)
+     FY = FY - WORKY   ! gradp returns WORKY as +Grady(p)
+
+   end if ! Not 1D POP
 
    if (partial_bottom_cells) then
       WORKX =  -DZU(:,:,k,bid)*(UCUR(:,:,k)*WORKX + &
@@ -1568,10 +1589,12 @@
 !
 !-----------------------------------------------------------------------
 
-   call hdiffu(k, WORKX, WORKY, UMIXK, VMIXK, this_block)
+   if (.not.lPOP1d) then
+     call hdiffu(k, WORKX, WORKY, UMIXK, VMIXK, this_block)
 
-   FX = FX + WORKX
-   FY = FY + WORKY
+     FX = FX + WORKX
+     FY = FY + WORKY
+   end if
 
    if (ldiag_global) then
       if (partial_bottom_cells) then
@@ -1720,10 +1743,10 @@
 !-----------------------------------------------------------------------
 
 
-   call hdifft(k, WORKN, TMIX, UMIX, VMIX, this_block)
-
-
-   FT = FT + WORKN
+   if (.not.lPOP1d) then
+     call hdifft(k, WORKN, TMIX, UMIX, VMIX, this_block)
+     FT = FT + WORKN
+   end if
 
    if (ldiag_global) then
 
@@ -1790,9 +1813,10 @@
 
    endif
 
-   call advt(k,WORKN,WTK,TMIX,TCUR,UCUR,VCUR,this_block)
-
-   FT = FT - WORKN   ! advt returns WORKN = +L(T) 
+   if (.not.lPOP1d) then
+     call advt(k,WORKN,WTK,TMIX,TCUR,UCUR,VCUR,this_block)
+     FT = FT - WORKN   ! advt returns WORKN = +L(T) 
+   end if
 
    if (ldiag_global) then
      if (partial_bottom_cells) then

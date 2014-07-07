@@ -3,6 +3,22 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    07 July 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140707
+Tag Summary: Add ability to run POP in 1D mode (still needs T62_g37 resolution
+             but each column is identical / no horizontal fluxes)
+
+             Default is obviously not to run in 1D, but option lPOP1d=.true.
+             in user_nl_pop2 will set everything up (hopefully a C1D compset
+             is coming soon)
+
+Files Modified:
+M       source/step_mod.F90
+M       source/baroclinic.F90
+M       bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    03 July 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140703
 Tag Summary: Changed indexing of CVmix_vars, now calls to CVMix can be made
