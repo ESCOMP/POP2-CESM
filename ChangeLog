@@ -3,6 +3,26 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    14 July 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140714
+Tag Summary: Added C1D / C_ONED compset in scripts that basically just sets a
+             variable in env_run.xml; build-namelist builds off of this
+             variable and sets 20-ish namelist variables for 1D case.
+
+             I also updated externals to the latest CVMix tag (v0.51-beta) and
+             added the POP_TAVG_R8 flag to env_build so pop2.buildexe.csh can
+             add the -DTAVG_R8 macro based on that variable (avoids requiring
+             a sourcemod to get double precision tavg output)
+
+Files Modified:
+ M      .
+M       bld/build-namelist
+M       bld/pop2.buildexe.csh
+M       bld/namelist_files/namelist_defaults_pop2.xml
+M       SVN_EXTERNAL_DIRECTORIES
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    07 July 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140707
 Tag Summary: Add ability to run POP in 1D mode (still needs T62_g37 resolution

@@ -40,6 +40,7 @@
 <dt_count ocn_grid="tx0.1v2" ocn_coupling="partial">500</dt_count>
 
 <impcor>.true.</impcor>
+<impcor ocn_oned="TRUE">.false.</impcor>
 
 <laccel>.false.</laccel>
 
@@ -60,6 +61,7 @@
 <!---------------------------->
 
 <sfc_layer_opt>'varthick'</sfc_layer_opt>
+<sfc_layer_opt ocn_oned="TRUE">'rigid'</sfc_layer_opt>
 
 <horiz_grid_opt>file</horiz_grid_opt>
 <vert_grid_opt >file</vert_grid_opt>
@@ -92,6 +94,7 @@
 <n_topo_smooth>0</n_topo_smooth>
 
 <flat_bottom>.false.</flat_bottom>
+<flat_bottom ocn_oned="TRUE">.true.</flat_bottom>
 
 <!---------------------------->
 <!-- init_ts_nml -->
@@ -224,6 +227,7 @@
 <!---------------------------->
 
 <ltidal_mixing>.true.</ltidal_mixing>
+<ltidal_mixing ocn_oned="TRUE"   >.false.</ltidal_mixing>
 <ltidal_mixing ocn_grid="tx1v1"  >.false.</ltidal_mixing>
 <ltidal_mixing ocn_grid="tx0.1v2">.false.</ltidal_mixing>
 
@@ -241,6 +245,8 @@
 <!-- vmix_kpp_nml -->
 <!---------------------------->
 
+<lcvmix>.false.</lcvmix>
+<lcvmix ocn_oned="TRUE">.true.</lcvmix>
 <linertial>.false.</linertial>
 <llangmuir>.false.</llangmuir>
 <Prandtl>10.0</Prandtl>
@@ -251,8 +257,10 @@
 <larctic_bckgrnd_vdc>.false.</larctic_bckgrnd_vdc>
 <num_v_smooth_Ri>1</num_v_smooth_Ri>
 <bckgrnd_vdc_linv>4.5e-05</bckgrnd_vdc_linv>
-<lhoriz_varying_bckgrnd ocn_grid="gx1v6"  >.true.</lhoriz_varying_bckgrnd>
 <lhoriz_varying_bckgrnd ocn_grid="gx3v7"  >.true.</lhoriz_varying_bckgrnd>
+<lhoriz_varying_bckgrnd ocn_grid="gx3v7"  ocn_oned="TRUE">.false.</lhoriz_varying_bckgrnd>
+<lhoriz_varying_bckgrnd ocn_grid="gx1v6"  >.true.</lhoriz_varying_bckgrnd>
+<lhoriz_varying_bckgrnd ocn_grid="gx1v6"  ocn_oned="TRUE">.false.</lhoriz_varying_bckgrnd>
 <lhoriz_varying_bckgrnd ocn_grid="tx1v1"  >.false.</lhoriz_varying_bckgrnd>
 <lhoriz_varying_bckgrnd ocn_grid="tx0.1v2">.false.</lhoriz_varying_bckgrnd>
 
@@ -260,6 +268,9 @@
 <bckgrnd_vdc_dpth ocn_grid="gx3v7"  >1000.0e02</bckgrnd_vdc_dpth>
 <bckgrnd_vdc_dpth ocn_grid="tx1v1"  >2500.0e02</bckgrnd_vdc_dpth>
 <bckgrnd_vdc_dpth ocn_grid="tx0.1v2">2500.0e02</bckgrnd_vdc_dpth>
+
+<bckgrnd_vdc1 ocn_oned="TRUE" lhoriz_varying_bckgrnd=".false."  ltidal_mixing=".false.">0.3</bckgrnd_vdc1>
+<bckgrnd_vdc2 ocn_oned="TRUE" lhoriz_varying_bckgrnd=".false."  ltidal_mixing=".false.">0.0</bckgrnd_vdc2>
 
 <bckgrnd_vdc1 ocn_grid="gx3v7" lhoriz_varying_bckgrnd=".true."  ltidal_mixing=".true." >0.16</bckgrnd_vdc1>  
 <bckgrnd_vdc2 ocn_grid="gx3v7" lhoriz_varying_bckgrnd=".true."  ltidal_mixing=".true." >0.0</bckgrnd_vdc2>  
@@ -493,6 +504,9 @@
 
 <reset_to_freezing>.false.</reset_to_freezing>
 
+<lPOP1d>.false.</lPOP1d>
+<lPOP1d ocn_oned="TRUE">.true.</lPOP1d>
+
 <!---------------------------->
 <!-- ice_nml -->
 <!---------------------------->
@@ -554,9 +568,12 @@
 <shf_interp_inc>72.</shf_interp_inc>
 <shf_restore_tau>30.</shf_restore_tau>
 <shf_file_fmt>'bin'</shf_file_fmt>
-<shf_weak_restore>0.</shf_weak_restore>
+<shf_weak_restore>0.0</shf_weak_restore>
+<shf_weak_restore ocn_oned="TRUE">0.0</shf_weak_restore>
 <shf_strong_restore>0.0</shf_strong_restore>
+<shf_strong_restore ocn_oned="TRUE">0.0</shf_strong_restore>
 <shf_strong_restore_ms>92.64</shf_strong_restore_ms>
+<shf_strong_restore_ms ocn_oned="TRUE">0.0</shf_strong_restore_ms>
 
 <shf_filename ocn_grid="gx3v7"  >ocn/pop/gx3v7/forcing/shf_20090831.ieeer8</shf_filename>
 <shf_filename ocn_grid="gx1v6"  >ocn/pop/gx1v6/forcing/shf_mm_all_85-88_20010308.ieeer8</shf_filename>
@@ -574,12 +591,15 @@
 <sfwf_data_type ocn_coupling="partial">monthly</sfwf_data_type>
 
 <ladjust_precip>.false.</ladjust_precip>  
+<ladjust_precip ocn_oned="TRUE">.false.</ladjust_precip>  
 <ladjust_precip ocn_coupling="partial">.true.</ladjust_precip>
 
 <lms_balance>.true.</lms_balance>  
+<lms_balance ocn_oned="TRUE">.false.</lms_balance>  
 <lms_balance ocn_coupling="partial">.false.</lms_balance>
 
 <lsend_precip_fact>.false.</lsend_precip_fact>  
+<lsend_precip_fact ocn_oned="TRUE">.false.</lsend_precip_fact>  
 <lsend_precip_fact ocn_coupling="partial">.true.</lsend_precip_fact>
 
 <sfwf_data_inc>24.</sfwf_data_inc>
@@ -589,7 +609,9 @@
 <sfwf_restore_tau>30.</sfwf_restore_tau>
 <sfwf_file_fmt>'bin'</sfwf_file_fmt>
 <sfwf_strong_restore>0.0</sfwf_strong_restore>
+<sfwf_strong_restore ocn_oned="TRUE">0.0</sfwf_strong_restore>
 <sfwf_strong_restore_ms>0.6648</sfwf_strong_restore_ms>
+<sfwf_strong_restore_ms ocn_oned="TRUE">0.0</sfwf_strong_restore_ms>
 <lfw_as_salt_flx>.true.</lfw_as_salt_flx>
 <sfwf_data_renorm>0.001, 19*1.</sfwf_data_renorm>
 
@@ -599,7 +621,9 @@
 <sfwf_filename ocn_grid="tx0.1v2">ocn/pop/tx0.1v2/forcing/sfwf_mm_PHC2_salx_flxio_20100323.ieeer8</sfwf_filename>
 
 <sfwf_weak_restore ocn_grid="gx3v7"  >0.0115</sfwf_weak_restore>
+<sfwf_weak_restore ocn_grid="gx3v7"  ocn_oned="TRUE">0.0</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="gx1v6"  >0.0115</sfwf_weak_restore>
+<sfwf_weak_restore ocn_grid="gx1v6"  ocn_oned="TRUE">0.0</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="tx1v1"  >0.0115</sfwf_weak_restore>
 <sfwf_weak_restore ocn_grid="tx0.1v2">0.0115</sfwf_weak_restore>
 
@@ -659,6 +683,7 @@
 <!---------------------------->
 
 <sw_absorption_type>chlorophyll</sw_absorption_type>
+<sw_absorption_type ocn_oned="TRUE">jerlov</sw_absorption_type>
 <chl_file_fmt>bin</chl_file_fmt>
 <jerlov_water_type>3</jerlov_water_type>
 
@@ -724,15 +749,19 @@
 <!--overflows_nml -->
 <!---------------------------->
 
-<overflows_on ocn_grid="gx3v7"  >.true.</overflows_on>
-<overflows_on ocn_grid="gx1v6"  >.true.</overflows_on>
-<overflows_on ocn_grid="tx1v1"  >.false.</overflows_on>
-<overflows_on ocn_grid="tx0.1v2">.false.</overflows_on>
+<overflows_on ocn_grid="gx3v7"                 >.true.</overflows_on>
+<overflows_on ocn_grid="gx1v6"                 >.true.</overflows_on>
+<overflows_on ocn_grid="tx1v1"                 >.false.</overflows_on>
+<overflows_on ocn_grid="tx0.1v2"               >.false.</overflows_on>
+<overflows_on ocn_grid="gx3v7"  ocn_oned="TRUE">.false.</overflows_on>
+<overflows_on ocn_grid="gx1v6"  ocn_oned="TRUE">.false.</overflows_on>
 
-<overflows_interactive ocn_grid="gx3v7"  >.true.</overflows_interactive>
-<overflows_interactive ocn_grid="gx1v6"  >.true.</overflows_interactive>
-<overflows_interactive ocn_grid="tx1v1"  >.false.</overflows_interactive>
-<overflows_interactive ocn_grid="tx0.1v2">.false.</overflows_interactive>
+<overflows_interactive ocn_grid="gx3v7"                 >.true.</overflows_interactive>
+<overflows_interactive ocn_grid="gx1v6"                 >.true.</overflows_interactive>
+<overflows_interactive ocn_grid="tx1v1"                 >.false.</overflows_interactive>
+<overflows_interactive ocn_grid="tx0.1v2"               >.false.</overflows_interactive>
+<overflows_interactive ocn_grid="gx3v7"  ocn_oned="TRUE">.false.</overflows_interactive>
+<overflows_interactive ocn_grid="gx1v6"  ocn_oned="TRUE">.false.</overflows_interactive>
 
 <!---------------------------->
 <!--niw_nml                 -->
