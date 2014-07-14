@@ -10,12 +10,8 @@ if ($POP_AUTO_DECOMP == 'true') then
                                  -nproc $ntasks -thrds $NTHRDS_OCN -output all`
   cd $CASEROOT 
   if ($config[1] >= 0) then
-    ./xmlchange -file env_build.xml -id POP_BLCKX      -val $config[3]
-    ./xmlchange -file env_build.xml -id POP_BLCKY      -val $config[4]
-    ./xmlchange -file env_build.xml -id POP_MXBLCKS    -val $config[5]
-    ./xmlchange -file env_build.xml -id POP_DECOMPTYPE -val $config[6]
-    ./xmlchange -file env_build.xml -id POP_NX_BLOCKS  -val $config[7]
-    ./xmlchange -file env_build.xml -id POP_NY_BLOCKS  -val $config[8]
+    # Make this all one command, because xmlchange init is slow.
+    ./xmlchange POP_BLCKX=$config[3],POP_BLCKY=$config[4],POP_MXBLCKS=$config[5],POP_DECOMPTYPE=$config[6],POP_NX_BLOCKS=$config[7],POP_NY_BLOCKS=$config[8] || exit -1
     # need to do this since env_build.xml just changed
     source $CASEROOT/Tools/ccsm_getenv
   else

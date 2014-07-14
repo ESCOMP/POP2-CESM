@@ -1,6 +1,15 @@
 SVN $Id$
 SVN $URL$
 ===============================================================================
+Tag Creator: santos
+Developers:  santos
+Tag Date:    14 July 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140714a
+Tag Summary: Combine xmlchange commands to make namelist build a bit faster.
+
+Files Modified:
+M       bld/pop2.buildexe.csh
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    14 July 2014
