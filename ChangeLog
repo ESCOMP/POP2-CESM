@@ -1,6 +1,17 @@
 ===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
+Tag Date:    15 July 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150714_cesm_pop_2_1_20140625
+Summary: Added (:,:,:) in line 614 of abio_dic_dic14_mod.F90, which fixes the
+problem of not being able to compile with intel.
+Files Modified:
+M            61673   source/abio_dic_dic14_mod.F90
+Status against revision:  61883
+===============================================================================
+Tag Creator: ajahn 
+Developers:  ajahn
 Tag Date:    3 July 2014
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20140703_cesm_pop_2_1_20140625

@@ -611,7 +611,7 @@ contains
 !-----------------------------------------------------------------------
 
    allocate( LAND_MASK(nx_block,ny_block,max_blocks_clinic) )
-   LAND_MASK = merge(.true., .false., KMT > 0)
+   LAND_MASK(:,:,:) = merge(.true., .false., KMT > 0)
 
    call get_timer(abio_dic_dic14_sflux_timer,&
                   'ABIO_DIC_SFLUX', 1, distrb_clinic%nprocs)
