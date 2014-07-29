@@ -3,6 +3,16 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    29 July 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140729
+Tag Summary: Bug in CVMix Makefile caused problems with PGI; updated CVMix tag
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    28 July 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140728
 Tag Summary: OCN_ONED variable was renamed OCN_ONEDIM in env_run.xml
