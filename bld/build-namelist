@@ -365,7 +365,7 @@ my @OCN_TRACER_MODULES     = split(" ", "$xmlvars{'OCN_TRACER_MODULES'}");
 my $OCN_TRACER_MODULES_OPT = "$xmlvars{'OCN_TRACER_MODULES_OPT'}";
 my $OCN_TAVG_TRACER_BUDGET = "$xmlvars{'OCN_TAVG_TRACER_BUDGET'}";
 my $OCN_TAVG_HIFREQ        = "$xmlvars{'OCN_TAVG_HIFREQ'}";
-my $OCN_ONED               = "$xmlvars{'OCN_ONED'}";
+my $OCN_ONEDIM               = "$xmlvars{'OCN_ONEDIM'}";
 my $NTASKS_OCN             = "$xmlvars{'NTASKS_OCN'}";
 my $NINST_OCN              = "$xmlvars{'NINST_OCN'}";
 my $POP_DECOMPTYPE         = "$xmlvars{'POP_DECOMPTYPE'}";
@@ -534,7 +534,7 @@ add_default($nl, 'time_mix_opt');
 add_default($nl, 'time_mix_freq');
 add_default($nl, 'dt_option');
 add_default($nl, 'dt_count','ocn_coupling'=>"$OCN_COUPLING");
-add_default($nl, 'impcor', 'ocn_oned'=>"$OCN_ONED");
+add_default($nl, 'impcor', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl, 'laccel');
 add_default($nl, 'dtuxcel');
 add_default($nl, 'allow_leapyear', 'calendar'=>"$CALENDAR");
@@ -578,15 +578,15 @@ if (not $nl->get_value('bottom_cell_file')) {
 	add_default($nl, 'bottom_cell_file', 'val'=>'unknown_bottom_cell','noprepend'=>1);
 }
 add_default($nl, 'n_topo_smooth');
-add_default($nl, 'flat_bottom', 'ocn_oned'=>"$OCN_ONED");
+add_default($nl, 'flat_bottom', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl, 'region_mask_file');
-add_default($nl, 'sfc_layer_opt', 'ocn_oned'=>"$OCN_ONED");
+add_default($nl, 'sfc_layer_opt', 'ocn_onedim'=>"$OCN_ONEDIM");
 
 ####################################
 # namelist group: init_ts_nml      #
 ####################################
 
-if ($OCN_ONED eq 'TRUE') {
+if ($OCN_ONEDIM eq 'TRUE') {
   add_default($nl, 'init_ts_option', 'val'=>'internal');
 } else {
 
@@ -723,7 +723,7 @@ add_default($nl, 'rich_mix&vmix_rich_nml');
 # namelist group: tidal_nml              #
 ##########################################
 
-add_default($nl, 'ltidal_mixing', 'ocn_oned'=>"$OCN_ONED");
+add_default($nl, 'ltidal_mixing', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl, 'tidal_energy_file', 'nofail'=>1);
 if (not $nl->get_value('tidal_energy_file')) {
 	add_default($nl, 'tidal_energy_file', 'val'=>'unknown_tidal_mixing','noprepend'=>1);
@@ -738,7 +738,7 @@ add_default($nl, 'tidal_energy_file_fmt');
 # namelist group: vmix_kpp_nml           #
 ##########################################
 
-add_default($nl, 'lcvmix', 'ocn_oned'=>"$OCN_ONED");
+add_default($nl, 'lcvmix', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl, 'rich_mix&vmix_kpp_nml');
 
 # grid dependent value of lhoriz_varying_background set in 
@@ -748,7 +748,7 @@ add_default($nl, 'rich_mix&vmix_kpp_nml');
 my $ltidal_mixing = $nl->get_value('ltidal_mixing');
 $ltidal_mixing =~ s/ //g;
 
-add_default($nl, 'lhoriz_varying_bckgrnd', 'ocn_oned'=>"$OCN_ONED");
+add_default($nl, 'lhoriz_varying_bckgrnd', 'ocn_onedim'=>"$OCN_ONEDIM");
 my $lhoriz_varying_bckgrnd= $nl->get_value('lhoriz_varying_bckgrnd');
 $lhoriz_varying_bckgrnd =~ s/ //g;
 
@@ -762,8 +762,8 @@ add_default($nl, 'lcheckekmo');
 add_default($nl, 'larctic_bckgrnd_vdc');
 add_default($nl, 'num_v_smooth_Ri');
 
-add_default($nl, 'bckgrnd_vdc1',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing", 'ocn_oned'=>"$OCN_ONED");
-add_default($nl, 'bckgrnd_vdc2',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing", 'ocn_oned'=>"$OCN_ONED");
+add_default($nl, 'bckgrnd_vdc1',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing", 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl, 'bckgrnd_vdc2',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing", 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl, 'bckgrnd_vdc_dpth', 'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
 add_default($nl, 'bckgrnd_vdc_eq',   'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
 add_default($nl, 'bckgrnd_vdc_psim', 'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
@@ -928,7 +928,7 @@ add_default($nl, 'state_range_freq');
 ##########################################
 
 add_default($nl, 'reset_to_freezing');
-add_default($nl, 'lPOP1d', 'ocn_oned'=>"$OCN_ONED");
+add_default($nl, 'lPOP1d', 'ocn_onedim'=>"$OCN_ONEDIM");
 
 ##########################################
 # namelist group: ice_nml                #
@@ -981,9 +981,9 @@ add_default($nl,'shf_restore_tau');
 add_default($nl,'shf_filename');
 add_default($nl,'shf_file_fmt');
 add_default($nl,'shf_data_renorm(3)');
-add_default($nl,'shf_weak_restore', 'ocn_oned'=>"$OCN_ONED");
-add_default($nl,'shf_strong_restore', 'ocn_oned'=>"$OCN_ONED");
-add_default($nl,'shf_strong_restore_ms', 'ocn_oned'=>"$OCN_ONED");
+add_default($nl,'shf_weak_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'shf_strong_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'shf_strong_restore_ms', 'ocn_onedim'=>"$OCN_ONEDIM");
 
 ##########################################
 # namelist_group: forcing_sfwf_nml       #
@@ -991,9 +991,9 @@ add_default($nl,'shf_strong_restore_ms', 'ocn_oned'=>"$OCN_ONED");
 
 add_default($nl,'sfwf_formulation' , 'ocn_coupling'=>"$OCN_COUPLING");
 add_default($nl,'sfwf_data_type'   , 'ocn_coupling'=>"$OCN_COUPLING");
-add_default($nl,'ladjust_precip'   , 'ocn_coupling'=>"$OCN_COUPLING", 'ocn_oned'=>"$OCN_ONED");
-add_default($nl,'lms_balance'      , 'ocn_coupling'=>"$OCN_COUPLING", 'ocn_oned'=>"$OCN_ONED");
-add_default($nl,'lsend_precip_fact', 'ocn_coupling'=>"$OCN_COUPLING", 'ocn_oned'=>"$OCN_ONED");
+add_default($nl,'ladjust_precip'   , 'ocn_coupling'=>"$OCN_COUPLING", 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'lms_balance'      , 'ocn_coupling'=>"$OCN_COUPLING", 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'lsend_precip_fact', 'ocn_coupling'=>"$OCN_COUPLING", 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'sfwf_data_inc');
 add_default($nl,'sfwf_interp_freq');
 add_default($nl,'sfwf_interp_type');
@@ -1002,9 +1002,9 @@ add_default($nl,'sfwf_restore_tau');
 add_default($nl,'sfwf_filename');
 add_default($nl,'sfwf_file_fmt');
 add_default($nl,'sfwf_data_renorm');
-add_default($nl,'sfwf_strong_restore', 'ocn_oned'=>"$OCN_ONED");
-add_default($nl,'sfwf_strong_restore_ms', 'ocn_oned'=>"$OCN_ONED");
-add_default($nl,'sfwf_weak_restore', 'ocn_oned'=>"$OCN_ONED");
+add_default($nl,'sfwf_strong_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'sfwf_strong_restore_ms', 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'sfwf_weak_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'lfw_as_salt_flx');
 
 ##########################################
@@ -1072,7 +1072,7 @@ add_default($nl,'qsw_distrb_opt', 'ocn_coupling'=>"$OCN_COUPLING");
 # namelist group: sw_absorption_nml      #
 ##########################################
 
-add_default($nl,'sw_absorption_type', 'ocn_oned'=>"$OCN_ONED");
+add_default($nl,'sw_absorption_type', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'chl_option', 'ocn_chl_type'=>"$OCN_CHL_TYPE");
 add_default($nl,'chl_filename');
 add_default($nl,'chl_file_fmt');
@@ -1118,8 +1118,8 @@ if ($OCN_GRID =~ /^gx*/) {
 	add_default($nl, 'overflows_infile', 'val'=>'unknown_overflow','noprepend'=>1);
 }
 
-add_default($nl,'overflows_on', 'ocn_oned'=>"$OCN_ONED");
-add_default($nl,'overflows_interactive', 'ocn_oned'=>"$OCN_ONED");
+add_default($nl,'overflows_on', 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'overflows_interactive', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'overflows_diag_outfile', 'val'=>"${RUNDIR}/${output_d}o");
 add_default($nl,'overflows_restart_type', 'val'=>"ccsm_${RUN_TYPE}");
 add_default($nl,'overflows_restfile'    , 'val'=>"${output_r}o");
