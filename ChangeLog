@@ -2,6 +2,18 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    5 Aug 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140805
+Tag Summary: Add 300 and 360 proc layouts for gx1v6 (used for fully coupled
+             runs with BGC); these decomps are two or three times faster than
+             auto-decomp, which means ocean is no longer the bottleneck in the
+             coupled runs.
+
+Files Modified:
+M       bld/pop_decomp.xml
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    29 July 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140729
