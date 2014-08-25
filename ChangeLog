@@ -2,6 +2,20 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    25 Aug 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140825
+Tag Summary: Change field name for variables read in when using monthly
+             forcing ("TEMPERATURE01" instead of "TEMPERATURE 1" and so on).
+             Also update some error messages in io_netcdf to clarify what
+             variable is not found.
+
+Files Modified:
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+M       source/io_netcdf.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay
 Tag Date:    5 Aug 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140805

@@ -356,7 +356,7 @@
       k_dim = construct_io_dim('k', km)
 
       do n = 1, 12
-         write(s_interior_data_names(n),'(a9,i2)') 'SALINITY ',n
+         write(s_interior_data_names(n),'(a8,i2.2)') 'SALINITY',n
          s_interior_bndy_loc (n) = field_loc_center
          s_interior_bndy_type(n) = field_type_scalar
 
