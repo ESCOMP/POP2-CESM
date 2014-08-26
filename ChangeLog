@@ -3,6 +3,16 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    26 Aug 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140826
+Tag Summary: A bug in forcing tools doesn't handle linear interpolation
+             correctly for 2D variables.
+
+Files Modified:
+M       source/forcing_tools.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    25 Aug 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140825
 Tag Summary: Change field name for variables read in when using monthly

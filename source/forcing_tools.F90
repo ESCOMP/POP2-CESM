@@ -705,10 +705,10 @@
 
          !$OMP PARALLEL DO PRIVATE(iblock, n)
          do iblock=1,nblocks_clinic
-         do n=1,size(FIELD,dim=4)
+         do n=1,size(FIELD,dim=3)
             INTERP(:,:,iblock,n) = &
-                   weight *FIELD(:,:,iblock,n,forcing_time_min_loc) + &
-             (c1 - weight)*FIELD(:,:,iblock,n,second)
+                   weight *FIELD(:,:,n,iblock,forcing_time_min_loc) + &
+             (c1 - weight)*FIELD(:,:,n,iblock,second)
          end do
          end do
          !$OMP END PARALLEL DO
