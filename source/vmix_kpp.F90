@@ -1048,11 +1048,12 @@
       end do
 
       !*** now average visc to U grid 
-      
-      call tgrid_to_ugrid(WORK2,VISC(:,:,k),bid)
-
-      VVC(:,:,k) = merge(WORK2, c0, (k < KMU(:,:,bid)))
-
+      if (lPOP1d.or.lKPP1d) then
+        VVC(:,:,k) = merge(VISC(:,:,k), c0, (k < KMU(:,:,bid)))
+      else
+        call tgrid_to_ugrid(WORK2,VISC(:,:,k),bid)
+        VVC(:,:,k) = merge(WORK2, c0, (k < KMU(:,:,bid)))
+      end if
 
    enddo
 
@@ -1280,7 +1281,11 @@
             FRI = FRI/(p5*(DZU(:,:,k  ,bid) + DZU(:,:,k+1,bid)))**2
          endif
 
-         call ugrid_to_tgrid(VSHEAR,FRI,bid)
+         if (lPOP1d.or.lKPP1d) then
+           VSHEAR = FRI
+         else
+           call ugrid_to_tgrid(VSHEAR,FRI,bid)
+         end if
 
       else
 
@@ -2202,7 +2207,9 @@
 !
 !-----------------------------------------------------------------------
 
-   call smooth_hblt (.true., .false., bid, HBLT=HBLT, KBL=KBL)
+   if (.not.(lPOP1d.or.lKPP1d)) then
+     call smooth_hblt (.true., .false., bid, HBLT=HBLT, KBL=KBL)
+   end if
 
 !-----------------------------------------------------------------------
 !

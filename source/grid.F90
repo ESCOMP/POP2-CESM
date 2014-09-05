@@ -71,7 +71,10 @@
       sfc_layer_oldfree  = 3    ! old free surface form
 
    logical (POP_logical), public ::    &
-      partial_bottom_cells   ! flag for partial bottom cells
+      partial_bottom_cells,    &! flag for partial bottom cells
+      lconst_Coriolis,         &! flag to run with spatially-constant Coriolis
+      lPOP1d,                  &! flag to run POP in 1D mode (experimental)
+      lKPP1d                    ! flag for using 1D forcing for KPP (experimental)
 
    real (POP_r8), dimension(:,:), allocatable, public :: &
       BATH_G           ! Observed ocean bathymetry mapped to global T grid
@@ -282,10 +285,11 @@
 
    namelist /grid_nml/horiz_grid_opt, vert_grid_opt, topography_opt,   &
                       horiz_grid_file, vert_grid_file, topography_file,&
-		      topography_outfile,bathymetry_file,             &
+                      topography_outfile,bathymetry_file,              &
                       n_topo_smooth, flat_bottom, lremove_points,      &
                       region_mask_file, region_info_file,sfc_layer_opt,&
-                      partial_bottom_cells, bottom_cell_file, kmt_kmin
+                      partial_bottom_cells, bottom_cell_file, kmt_kmin,&
+                      lconst_Coriolis, lPOP1d, lKPP1d
 
    integer (POP_i4) :: &
       nml_error           ! namelist i/o error flag
@@ -313,6 +317,9 @@
    partial_bottom_cells = .false.
    bottom_cell_file     = 'unknown_bottom_cell_file'
    kmt_kmin             = 3
+   lconst_Coriolis      = .false.
+   lPOP1d               = .false.
+   lKPP1d               = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -341,6 +348,20 @@
       write(stdout,*) ' grid_nml namelist settings:'
       write(stdout,blank_fmt)
       write(stdout, grid_nml)
+      if (lconst_Coriolis) &
+        write(stdout,*) 'NOTE: running with constant Coriolis parameter!'
+      if (lPOP1d) &
+        write(stdout,*) 'NOTE: running in 1D mode!'
+      if (lKPP1d) &
+        write(stdout,*) 'NOTE: running with 1D KPP!'
+      if (lconst_Coriolis.and.(.not.lPOP1d)) then
+      call exit_POP(sigAbort,'ERROR: can not run with constant Coriolis ' /&
+                           &/'unless running in 1D mode!')
+      end if
+      if (lKPP1d.and.(.not.lPOP1d)) then
+      call exit_POP(sigAbort,'ERROR: can not run with 1D KPP without ' /&
+                           &/'running in 1D mode!')
+      end if
    endif
 
    call broadcast_scalar(horiz_grid_opt,       master_task)
@@ -353,6 +374,9 @@
    call broadcast_scalar(region_mask_file,     master_task)
    call broadcast_scalar(region_info_file,     master_task)
    call broadcast_scalar(partial_bottom_cells, master_task)
+   call broadcast_scalar(lconst_Coriolis,      master_task)
+   call broadcast_scalar(lPOP1d,               master_task)
+   call broadcast_scalar(lKPP1d,               master_task)
 
    if (partial_bottom_cells) then
       call broadcast_scalar(bottom_cell_file, master_task)
@@ -1050,12 +1074,25 @@
 
 !-----------------------------------------------------------------------
 !
-!  compute coriolis parameter 2*omega*sin(true_latitude)
+!  compute coriolis parameter:
+!  if (.not.lconst_coriolis)
+!    2*omega*sin(true_latitude)
+!  else
+!    1e-4
+!
+!  Notes: if lKPP1d = .true., lconst_coriolis must also be true.
+!         if lconst_Coriolis = .false., lPOP1d must also be false.
 !
 !-----------------------------------------------------------------------
 
-   FCOR  = c2*omega*sin(ULAT)    ! at u-points
-   FCORT = c2*omega*sin(TLAT)    ! at t-points
+   if (lconst_Coriolis) then
+     FCOR  = 1.0e-4_r8
+     FCORT = 1.0e-4_r8
+   else
+     FCOR  = c2*omega*sin(ULAT)    ! at u-points
+     FCORT = c2*omega*sin(TLAT)    ! at t-points
+   end if
+
 
 !-----------------------------------------------------------------------
 !EOC
