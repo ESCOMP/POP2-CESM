@@ -1,4 +1,18 @@
 ===============================================================================
+Tag Creator: klindsay 
+Developers:  klindsay
+Tag Date:    10 September 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150714_cesm_pop_2_1_20140910
+Summary: Correct merge with cesm_pop_2_1_20140625. The previous merge,
+geotrace_ecosys_20140625_cesm_pop_2_1_20140625, appears to have been done with
+cesm_pop_2_1_20140514.
+M            63384   source/ecosys_share.F90
+M            63384   source/ecosys_mod.F90
+M            63384   mpi/gather_scatter.F90
+M            63384   ChangeLog
+Status against revision:  63384
+===============================================================================
 Tag Creator: ajahn 
 Developers:  ajahn
 Tag Date:    15 July 2014
