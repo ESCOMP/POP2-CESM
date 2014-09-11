@@ -594,6 +594,38 @@ Minimum allowed non-zero KMT value.
 Default: 3
 </entry>
 
+<entry 
+id="lconst_Coriolis"
+type="logical"
+category="grid"
+group="grid_nml" >
+Flag to run POP with a spatially-constant Coriolis parameter; can not be run
+without lPOP1d = .true.
+
+Default: .false.
+</entry>
+
+<entry 
+id="lPOP1d"
+type="logical"
+category="grid"
+group="grid_nml" >
+Flag to run POP in 1D mode (recommend only using with T62_g37 resolution)
+
+Default: .false.
+</entry>
+
+<entry 
+id="lKPP1d"
+type="logical"
+category="grid"
+group="grid_nml" >
+Flag to run KPP in 1D mode (recommend only using with T62_g37 resolution);
+can not be run without lPOP1d = .true.
+
+Default: .false.
+</entry>
+
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: init_ts_option           - -->
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -1539,6 +1571,16 @@ type="logical"
 category="kpp"
 group="vmix_kpp_nml" >
 Flag for using inertial mixing parameterization.
+
+Default: .false.
+</entry>
+
+<entry 
+id="lcvmix"
+type="logical"
+category="kpp"
+group="vmix_kpp_nml" >
+Flag for using CVMix for mixing instead of POP routines
 
 Default: .false.
 </entry>

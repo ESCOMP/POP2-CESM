@@ -602,15 +602,18 @@
 
       iostat = pio_inq_varid(data_file%File, io_field%short_name, io_field%id) 
       if (iostat /= pio_noerr) &
-           call exit_POP(sigAbort,'Error in getting varid for netCDF field')
+           call exit_POP(sigAbort,'Error in getting varid for netCDF field ' /&
+                                  &/ trim(io_field%short_name))
 
       iostat = pio_inq_varid(data_file%File, io_field%short_name, io_field%varDesc) 
       if (iostat /= pio_noerr) &
-           call exit_POP(sigAbort,'Error in getting varDesc for netCDF field')
+           call exit_POP(sigAbort,'Error in getting varDesc for netCDF field ' /&
+                                  &/ trim(io_field%short_name))
 
       iostat = pio_inq_varnatts(data_file%File, io_field%varDesc, nAtts=num_atts)
       if (iostat /= pio_noerr) &
-           call exit_POP(sigAbort,'Error getting attrib count for netCDF field')
+           call exit_POP(sigAbort,'Error getting attrib count for netCDF field ' /&
+                                  &/ trim(io_field%short_name))
 
       !***
       !*** for each attribute, define standard attributes or add

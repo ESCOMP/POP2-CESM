@@ -356,7 +356,7 @@
       k_dim = construct_io_dim('k',km)
 
       do n=1,12
-         write(pt_interior_data_names(n),'(a11,i2)') 'TEMPERATURE',n
+         write(pt_interior_data_names(n),'(a11,i2.2)') 'TEMPERATURE',n
          pt_interior_bndy_loc (n) = field_loc_center
          pt_interior_bndy_type(n) = field_type_scalar
 

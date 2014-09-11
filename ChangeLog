@@ -1,6 +1,37 @@
 ===============================================================================
 Tag Creator: klindsay 
 Developers:  klindsay
+Tag Date:    11 September 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150911_cesm_pop_2_1_20140905
+Summary: Merged with the most recent pop-trunk tag (cesm_pop_2_1_20140905). 
+X                    source/cvmix
+M            63400   source/forcing_pt_interior.F90
+M            63400   source/step_mod.F90
+M            63400   source/forcing_s_interior.F90
+M            63400   source/grid.F90
+M            63400   source/vmix_kpp.F90
+M            63400   source/vertical_mix.F90
+M            63400   source/io_netcdf.F90
+M            63400   source/baroclinic.F90
+M            63400   bld/pop2.buildnml.csh
+M            63400   bld/pop_decomp.xml
+M            63400   bld/build-namelist
+M            63400   bld/pop2.buildexe.csh
+M            63400   bld/namelist_files/namelist_defaults_pop2.xml
+M            63400   bld/namelist_files/namelist_definition_pop2.xml
+A  +             -   SVN_EXTERNAL_DIRECTORIES
+M            63400   ChangeLog
+ M           63400   drivers/cpl_none
+ M           63400   drivers/cpl
+ M           63400   .
+Status against revision:  63403
+
+Performing status on external item at 'source/cvmix'
+Status against revision:    352
+===============================================================================
+Tag Creator: klindsay 
+Developers:  klindsay
 Tag Date:    10 September 2014
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150910_cesm_pop_2_1_20140625

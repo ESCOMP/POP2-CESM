@@ -3,6 +3,7 @@
 if !(-d $OBJROOT/ocn/obj   ) mkdir -p $OBJROOT/ocn/obj    || exit 2
 if !(-d $OBJROOT/ocn/source) mkdir -p $OBJROOT/ocn/source || exit 3 
 if !(-d $OBJROOT/ocn/input ) mkdir -p $OBJROOT/ocn/input  || exit 4
+if !(-d $OBJROOT/ocn/cvmix ) mkdir -p $OBJROOT/ocn/cvmix  || exit 5
 
 set my_path = $CASEROOT/SourceMods/src.pop2
 
@@ -156,6 +157,7 @@ set cppdefs = "-DCCSMCOUPLED -DBLCKX=$POP_BLCKX -DBLCKY=$POP_BLCKY -DMXBLCKS=$PO
 if ($OCN_ICE_FORCING == 'inactive' ) set cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL"
 if ($OCN_GRID =~ "tx0.1*"          ) set cppdefs = "$cppdefs -D_HIRES";
 if ($OCN_ICE_FORCING == 'inactive' ) set cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL"
+if ($POP_TAVG_R8 == 'TRUE'         ) set cppdefs = "$cppdefs -DTAVG_R8"
 
 cat >! $OBJROOT/ocn/obj/POP2_cppdefs.new <<EOF
 $cppdefs
@@ -176,6 +178,9 @@ endif
 cp -f $OBJROOT/ocn/obj/POP2_cppdefs.new $OBJROOT/ocn/obj/POP2_cppdefs
 set pop2defs = "`cat $OBJROOT/ocn/obj/POP2_cppdefs`"
 
+cd ${OBJROOT}/ocn/cvmix
+gmake -j $GMAKE_J -f $CASETOOLS/Makefile $LIBROOT/libcvmix.a || exit 2
+cd ${OBJROOT}/ocn/obj 
 gmake complib -j $GMAKE_J MODEL=pop2 COMPLIB=$LIBROOT/libocn.a USER_CPPDEFS="$pop2defs" -f $CASETOOLS/Makefile || exit 2
 
 echo " "

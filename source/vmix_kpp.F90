@@ -36,6 +36,10 @@
    use registry
    use prognostic
    use time_management
+   use cvmix_kinds_and_types
+   use cvmix_put_get
+   use cvmix_kpp
+   use cvmix_math
 
    implicit none
    private
@@ -82,6 +86,7 @@
       lcheckekmo,        &! check Ekman, Monin-Obhukov depth limit
       llangmuir,         &! flag for using Langmuir parameterization
       linertial,         &! flag for using inertial mixing parameterization
+      lcvmix,            &! flag for using CVMix KPP routine instead of POP
       lccsm_control_compatible !flag for backwards compatibility with ccsm4 control
 
    integer (int_kind) :: & 
@@ -224,7 +229,7 @@
 ! !IROUTINE: init_vmix_kpp
 ! !INTERFACE:
 
- subroutine init_vmix_kpp(VDC, VVC)
+ subroutine init_vmix_kpp(CVmix_vars, VDC, VVC)
 
 ! !DESCRIPTION:
 !  Initializes constants and reads options for the KPP parameterization.
@@ -233,6 +238,8 @@
 !  same as module
 
 ! !INPUT/OUTPUT PARAMETERS:
+
+   type(cvmix_data_type), dimension(:,:), intent(inout) :: CVmix_vars
 
    real (r8), dimension(:,:,:,:), intent(inout) :: &
       VVC        ! viscosity for momentum diffusion
@@ -253,6 +260,10 @@
       k,                  &! local dummy index for vertical lvl
       i, j, iblock,       &! local dummy indexes
       nml_error            ! namelist i/o error flag
+
+   integer (int_kind) :: bid, jny, inx, ic, nlev
+
+   real (r8), dimension(:), allocatable :: tmp_array
 
    real (r8) ::           &
       bckgrnd_vdc1,       &! background diffusivity (Ledwell)  
@@ -277,7 +288,7 @@
                           lshort_wave, lcheckekmo,              &
                           larctic_bckgrnd_vdc,                  &
                           lhoriz_varying_bckgrnd, llangmuir,    &
-                          linertial
+                          linertial, lcvmix
 
    character (16), parameter :: &
       fmt_real = '(a30,2x,1pe12.5)'
@@ -314,6 +325,7 @@
    lhoriz_varying_bckgrnd = .false.
    llangmuir              = .false.
    linertial              = .false.
+   lcvmix                 = .false.
    num_v_smooth_Ri        = 1
 
    if (my_task == master_task) then
@@ -360,6 +372,7 @@
       write(stdout,fmt_log ) '  lhoriz_varying_bckgrnd    =', lhoriz_varying_bckgrnd
       write(stdout,fmt_log ) '  langmuir parameterization =', llangmuir
       write(stdout,fmt_log ) '  inertial mixing param.    =', linertial
+      write(stdout,fmt_log ) '  use CVMix KPP routines    =', lcvmix
    endif
 
    call broadcast_scalar(bckgrnd_vdc1,          master_task)
@@ -380,6 +393,7 @@
    call broadcast_scalar(lhoriz_varying_bckgrnd,master_task)
    call broadcast_scalar(llangmuir,             master_task)
    call broadcast_scalar(linertial,             master_task)
+   call broadcast_scalar(lcvmix,                master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -588,6 +602,49 @@
 
 !-----------------------------------------------------------------------
 !
+!  Set up CVMix variables
+!
+!-----------------------------------------------------------------------
+
+   if ( lcvmix ) then
+     call cvmix_init_kpp(lEkman=lcheckekmo,                                     &
+                         lMonOb=lcheckekmo,                                     &
+                         lnoDGat1=.false.,                                      &
+                         surf_layer_ext = epssfc,                               &
+                         interp_type2="POP",                                    &
+                         MatchTechnique="MatchBoth")
+     call cvmix_put_kpp("a_m", a_m)
+     call cvmix_put_kpp("a_s", a_s)
+     call cvmix_put_kpp("c_m", c_m)
+     call cvmix_put_kpp("c_s", c_s)
+
+     do bid=1,nblocks_clinic
+       do jny=1,ny_block
+         do inx=1,nx_block
+           ic = (jny-1)*nx_block + inx
+           nlev = KMT(inx, jny, bid)
+           call cvmix_put(CVmix_vars(ic,bid), 'nlev', nlev)
+           if (nlev.gt.0) then
+             call cvmix_put(CVmix_vars(ic,bid), 'Mdiff', 0._r8)
+             call cvmix_put(CVmix_vars(ic,bid), 'Tdiff', 0._r8)
+             call cvmix_put(CVmix_vars(ic,bid), 'Sdiff', 0._r8)
+
+             allocate(tmp_array(nlev+1))
+             tmp_array = 0._r8
+             call cvmix_put(CVmix_vars(ic,bid), 'Ri_bulk', tmp_array(1:nlev))
+             call cvmix_put(CVmix_vars(ic,bid), 'zw', tmp_array)
+             call cvmix_put(CVmix_vars(ic,bid), 'zt', -zt(1:nlev)*1e-2_r8)
+             call cvmix_put(CVmix_vars(ic,bid), 'ocn_depth', zw(nlev)*1e-2_r8)
+             CVmix_vars(ic,bid)%zw_iface(2:nlev+1) = -zw(1:nlev)*1e-2_r8
+             deallocate(tmp_array)
+           end if
+         end do
+       end do
+     end do
+   end if
+
+!-----------------------------------------------------------------------
+!
 !  allocate and initialize the eddy-induced speed array
 !
 !-----------------------------------------------------------------------
@@ -703,9 +760,9 @@
 ! !IROUTINE: vmix_coeffs_kpp
 ! !INTERFACE:
 
- subroutine vmix_coeffs_kpp(VDC, VVC, TRCR, UUU, VVV, UCUR, VCUR, RHOMIX, STF, SHF_QSW, &
-                            this_block, convect_diff, convect_visc, &
-                            SMF, SMFT)
+ subroutine vmix_coeffs_kpp(CVmix_vars, VDC, VVC, TRCR, UUU, VVV, UCUR, VCUR, &
+                            RHOMIX, STF, SHF_QSW, this_block, convect_diff,   &
+                            convect_visc, SMF, SMFT)
 
 ! !DESCRIPTION:
 !  This is the main driver routine which calculates the vertical
@@ -788,6 +845,8 @@
 
 ! !INPUT/OUTPUT PARAMETERS:
 
+   type(cvmix_data_type), dimension(:), intent(inout) :: CVmix_vars
+
    real (r8), dimension(nx_block,ny_block,km), intent(inout) ::      &
       VVC        ! viscosity for momentum diffusion
 
@@ -830,6 +889,9 @@
       DBSFC,      &! buoyancy difference between level and surface
       GHAT         ! non-local mixing coefficient
 
+   real (r8), dimension(nx_block,ny_block,km,2) :: &
+      GHAT2         ! non-local mixing coefficient (CVMix)
+
    real (r8), dimension(nx_block,ny_block,0:km+1) :: &
       VISC        ! local temp for viscosity
 
@@ -866,13 +928,13 @@
 !-----------------------------------------------------------------------
 
      if (present(SMFT)) then
-        call bldepth (DBLOC, DBSFC, TRCR, UUU, VVV, UCUR, VCUR, STF, SHF_QSW,   &
-                      KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, KBL, & 
-                      this_block, SMFT=SMFT)
+        call bldepth (CVmix_vars, DBLOC, DBSFC, TRCR, UUU, VVV, UCUR, VCUR,   &
+                      STF, SHF_QSW, KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE,  &
+                      KBL, this_block, SMFT=SMFT)
      else
-        call bldepth (DBLOC, DBSFC, TRCR, UUU, VVV, UCUR, VCUR, STF, SHF_QSW,   &
-                      KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, KBL, & 
-                      this_block, SMF=SMF)
+        call bldepth (CVmix_vars, DBLOC, DBSFC, TRCR, UUU, VVV, UCUR, VCUR,   &
+                      STF, SHF_QSW, KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE,  &
+                      KBL, this_block, SMF=SMF)
      endif
 
 
@@ -907,13 +969,13 @@
 
    if (.not. lniw_mixing) then
      if (present(SMFT)) then
-        call bldepth (DBLOC, DBSFC, TRCR, UUU, VVV, UCUR, VCUR, STF, SHF_QSW,   &
-                      KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, KBL, & 
-                      this_block, SMFT=SMFT)
+        call bldepth (CVmix_vars, DBLOC, DBSFC, TRCR, UUU, VVV, UCUR, VCUR,   &
+                      STF, SHF_QSW, KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE,  &
+                      KBL, this_block, SMFT=SMFT)
      else
-        call bldepth (DBLOC, DBSFC, TRCR, UUU, VVV, UCUR, VCUR, STF, SHF_QSW,   &
-                      KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, KBL, & 
-                      this_block, SMF=SMF)
+        call bldepth (CVmix_vars, DBLOC, DBSFC, TRCR, UUU, VVV, UCUR, VCUR,   &
+                      STF, SHF_QSW, KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE,  &
+                      KBL, this_block, SMF=SMF)
      endif
    endif ! .not. lniw_mixing
 
@@ -923,8 +985,8 @@
 !
 !-----------------------------------------------------------------------
 
-   call blmix(VISC, VDC, KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, &
-              KBL, GHAT, this_block) 
+   call blmix(CVmix_vars, VISC, VDC, KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, &
+              KBL, GHAT, GHAT2, this_block)
 
 !-----------------------------------------------------------------------
 !
@@ -986,11 +1048,12 @@
       end do
 
       !*** now average visc to U grid 
-      
-      call tgrid_to_ugrid(WORK2,VISC(:,:,k),bid)
-
-      VVC(:,:,k) = merge(WORK2, c0, (k < KMU(:,:,bid)))
-
+      if (lPOP1d.or.lKPP1d) then
+        VVC(:,:,k) = merge(VISC(:,:,k), c0, (k < KMU(:,:,bid)))
+      else
+        call tgrid_to_ugrid(WORK2,VISC(:,:,k),bid)
+        VVC(:,:,k) = merge(WORK2, c0, (k < KMU(:,:,bid)))
+      end if
 
    enddo
 
@@ -1006,21 +1069,37 @@
 
    do n=1,nt
       mt2=min(n,2)
-      KPP_SRC(:,:,1,n,bid) = STF(:,:,n)/dz(1)           &
-                             *(-VDC(:,:,1,mt2)*GHAT(:,:,1))
-      if (partial_bottom_cells) then
-         do k=2,km
-            KPP_SRC(:,:,k,n,bid) = STF(:,:,n)/DZT(:,:,k,bid)         &
-                                 *( VDC(:,:,k-1,mt2)*GHAT(:,:,k-1)   &
-                                   -VDC(:,:,k  ,mt2)*GHAT(:,:,k  ))
-         enddo
-      else
-         do k=2,km
-            KPP_SRC(:,:,k,n,bid) = STF(:,:,n)/dz(k)                  &
-                                 *( VDC(:,:,k-1,mt2)*GHAT(:,:,k-1)   &
-                                   -VDC(:,:,k  ,mt2)*GHAT(:,:,k  ))
-         enddo
-      endif
+      if (lcvmix) then
+        KPP_SRC(:,:,1,n,bid) = STF(:,:,n)/dz(1)           &
+                               *(-GHAT2(:,:,1,mt2))
+        if (partial_bottom_cells) then
+           do k=2,km
+              KPP_SRC(:,:,k,n,bid) = STF(:,:,n)/DZT(:,:,k,bid)         &
+                                   *( GHAT2(:,:,k-1,mt2) - GHAT2(:,:,k,mt2))
+           enddo
+        else
+           do k=2,km
+              KPP_SRC(:,:,k,n,bid) = STF(:,:,n)/dz(k)                  &
+                                   *( GHAT2(:,:,k-1,mt2) - GHAT2(:,:,k,mt2))
+           enddo
+        endif
+      else ! no CVMix
+        KPP_SRC(:,:,1,n,bid) = STF(:,:,n)/dz(1)           &
+                               *(-VDC(:,:,1,mt2)*GHAT(:,:,1))
+        if (partial_bottom_cells) then
+           do k=2,km
+              KPP_SRC(:,:,k,n,bid) = STF(:,:,n)/DZT(:,:,k,bid)         &
+                                   *( VDC(:,:,k-1,mt2)*GHAT(:,:,k-1)   &
+                                     -VDC(:,:,k  ,mt2)*GHAT(:,:,k  ))
+           enddo
+        else
+           do k=2,km
+              KPP_SRC(:,:,k,n,bid) = STF(:,:,n)/dz(k)                  &
+                                   *( VDC(:,:,k-1,mt2)*GHAT(:,:,k-1)   &
+                                     -VDC(:,:,k  ,mt2)*GHAT(:,:,k  ))
+           enddo
+        endif
+      end if
    enddo
 
 !-----------------------------------------------------------------------
@@ -1202,7 +1281,11 @@
             FRI = FRI/(p5*(DZU(:,:,k  ,bid) + DZU(:,:,k+1,bid)))**2
          endif
 
-         call ugrid_to_tgrid(VSHEAR,FRI,bid)
+         if (lPOP1d.or.lKPP1d) then
+           VSHEAR = FRI
+         else
+           call ugrid_to_tgrid(VSHEAR,FRI,bid)
+         end if
 
       else
 
@@ -1521,9 +1604,9 @@
 ! !IROUTINE: bldepth
 ! !INTERFACE:
 
- subroutine bldepth (DBLOC, DBSFC, TRCR, UUU, VVV, UCUR, VCUR, STF, SHF_QSW,  &
-                     HBLT, USTAR, BFSFC, STABLE, KBL,             &
-                     this_block, SMF, SMFT)
+ subroutine bldepth (CVmix_vars, DBLOC, DBSFC, TRCR, UUU, VVV, UCUR, VCUR,     &
+                     STF, SHF_QSW, HBLT, USTAR, BFSFC, STABLE, KBL, this_block,&
+                     SMF, SMFT)
 
 ! !DESCRIPTION:
 !  This routine computes the ocean boundary layer depth defined as
@@ -1546,6 +1629,8 @@
 
 
 ! !INPUT PARAMETERS:
+
+   type(cvmix_data_type), dimension(:), intent(inout) :: CVmix_vars
 
    real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
       TRCR                ! tracers at current time
@@ -2122,7 +2207,9 @@
 !
 !-----------------------------------------------------------------------
 
-   call smooth_hblt (.true., .false., bid, HBLT=HBLT, KBL=KBL)
+   if (.not.(lPOP1d.or.lKPP1d)) then
+     call smooth_hblt (.true., .false., bid, HBLT=HBLT, KBL=KBL)
+   end if
 
 !-----------------------------------------------------------------------
 !
@@ -2190,8 +2277,8 @@
 ! !IROUTINE: blmix
 ! !INTERFACE:
 
- subroutine blmix(VISC, VDC, HBLT, USTAR, BFSFC, STABLE, &
-                  KBL, GHAT, this_block) 
+ subroutine blmix(CVmix_vars, VISC, VDC, HBLT, USTAR, BFSFC, STABLE, &
+                  KBL, GHAT, GHAT2, this_block) 
 
 ! !DESCRIPTION:
 !  This routine computes mixing coefficients within boundary layer 
@@ -2207,6 +2294,8 @@
 !  same as module
 
 ! !INPUT/OUTPUT PARAMETERS:
+
+   type(cvmix_data_type), dimension(:), intent(inout) :: CVmix_vars
 
    real (r8), dimension(nx_block,ny_block,0:km+1), intent(inout) :: & 
       VISC               ! interior mixing coeff on input
@@ -2233,6 +2322,8 @@
 
    real (r8), dimension(nx_block,ny_block,km),intent(out) :: &
       GHAT                ! non-local mixing coefficient
+   real (r8), dimension(nx_block,ny_block,km,2),intent(inout) :: &
+      GHAT2                ! non-local mixing coefficient (CVMix)
 
 !EOP
 !BOC
@@ -2245,7 +2336,8 @@
    integer (int_kind) :: &
       k,kp1,             &! dummy k level index
       i,j,               &! horizontal indices
-      bid                 ! local block index
+      bid,               &! local block index
+      ic, nlev
 
    integer (int_kind), dimension(nx_block,ny_block) :: &
       KN                  ! klvl closest to HBLT
@@ -2279,7 +2371,47 @@
 
    SIGMA = epssfc
 
-   call wscale(SIGMA, HBLT, USTAR, BFSFC, 3, WM, WS)
+   if (lcvmix) then
+     GHAT = 0.0_r8
+     GHAT2 = 0.0_r8
+     do i=1,nx_block
+       do j=1,ny_block
+         k = KBL(i,j)
+         CASEA(i,j)  = p5 + SIGN(p5, -zgrid(k)-p5*hwide(k)-HBLT(i,j))
+         KN(i,j) = NINT(CASEA(i,j))*(k-1) + (1-NINT(CASEA(i,j)))*k
+       end do
+     end do
+
+     do i=1,nx_block
+       do j=1,ny_block
+         ic = (j-1)*nx_block + i
+         if (KMT(i,j,bid).gt.0) then
+           nlev = CVmix_vars(ic)%nlev
+
+           ! Pack into CVMix data type (convert from cgs to mks)
+           CVmix_vars(ic)%Mdiff_iface(2:nlev+1) = VISC(i,j,1:nlev)*1e-4_r8
+           CVmix_vars(ic)%Tdiff_iface(2:nlev+1) =  VDC(i,j,1:nlev,1)*1e-4_r8
+           CVmix_vars(ic)%Sdiff_iface(2:nlev+1) =  VDC(i,j,1:nlev,2)*1e-4_r8
+           CVmix_vars(ic)%BoundaryLayerDepth    = HBLT(i,j)*1e-2_r8
+           CVmix_vars(ic)%kOBL_depth = real(KBL(i,j),r8)+p5*(p5-CASEA(i,j))
+           CVmix_vars(ic)%SurfaceFriction = USTAR(i,j)*1e-2_r8
+           CVmix_vars(ic)%SurfaceBuoyancyForcing = BFSFC(i,j)*1e-4_r8
+
+           call cvmix_coeffs_kpp(CVmix_vars(ic))
+
+           ! Unpack CVMix data type (convert from mks to cgs)
+           VISC( i,j,1:nlev)   = CVmix_vars(ic)%Mdiff_iface(2:nlev+1)*1e4_r8
+           VDC(  i,j,1:nlev,1) = CVmix_vars(ic)%Tdiff_iface(2:nlev+1)*1e4_r8
+           VDC(  i,j,1:nlev,2) = CVmix_vars(ic)%Sdiff_iface(2:nlev+1)*1e4_r8
+           GHAT2(i,j,1:nlev,1) = CVmix_vars(ic)%kpp_Tnonlocal_iface(2:nlev+1)
+           GHAT2(i,j,1:nlev,2) = CVmix_vars(ic)%kpp_Snonlocal_iface(2:nlev+1)
+         end if
+       end do
+     end do
+
+   else ! No cvmix
+
+     call wscale(SIGMA, HBLT, USTAR, BFSFC, 3, WM, WS)
 
 !-----------------------------------------------------------------------
 !
@@ -2288,30 +2420,30 @@
 !
 !-----------------------------------------------------------------------
 
-   if (partial_bottom_cells) then
-      !DIR$ COLLAPSE
-      do j=1,ny_block
-      do i=1,nx_block
-         k = KBL(i,j)
-         if (k == 1) then
-            CASEA(i,j)  = p5 + SIGN(p5, -zgrid(0)-HBLT(i,j))
-         else
-            CASEA(i,j)  = p5 + SIGN(p5, &
-                           -zgrid(k-1)+p5*DZT(i,j,k-1,bid)-HBLT(i,j))
-         endif
-      enddo
-      enddo
-   else
-      !DIR$ COLLAPSE
-      do j=1,ny_block
-      do i=1,nx_block
-         k = KBL(i,j)
-         CASEA(i,j)  = p5 + SIGN(p5, -zgrid(k)-p5*hwide(k)-HBLT(i,j))
-      enddo
-      enddo
-   endif
+     if (partial_bottom_cells) then
+        !DIR$ COLLAPSE
+        do j=1,ny_block
+        do i=1,nx_block
+           k = KBL(i,j)
+           if (k == 1) then
+              CASEA(i,j)  = p5 + SIGN(p5, -zgrid(0)-HBLT(i,j))
+           else
+              CASEA(i,j)  = p5 + SIGN(p5, &
+                             -zgrid(k-1)+p5*DZT(i,j,k-1,bid)-HBLT(i,j))
+           endif
+        enddo
+        enddo
+     else
+        !DIR$ COLLAPSE
+        do j=1,ny_block
+        do i=1,nx_block
+           k = KBL(i,j)
+           CASEA(i,j)  = p5 + SIGN(p5, -zgrid(k)-p5*hwide(k)-HBLT(i,j))
+        enddo
+        enddo
+     endif
 
-   KN = NINT(CASEA)*(KBL-1) + (1-NINT(CASEA))*KBL
+     KN = NINT(CASEA)*(KBL-1) + (1-NINT(CASEA))*KBL
 
 !-----------------------------------------------------------------------
 !
@@ -2321,126 +2453,126 @@
 !
 !-----------------------------------------------------------------------
 
-   F1 = STABLE*c5*BFSFC/(USTAR**4+eps)
+     F1 = STABLE*c5*BFSFC/(USTAR**4+eps)
 
-   do k=1,km
+     do k=1,km
 
-      if (partial_bottom_cells) then
+        if (partial_bottom_cells) then
 
-         if (k == 1) then
-            WORK1 = c0
-         else            
-            WORK1 = DZT(:,:,k-1,bid)
-         end if
-         if (k == km) then
-            WORK2 = eps
-         else
-            WORK2 = DZT(:,:,k+1,bid)
-         end if
+           if (k == 1) then
+              WORK1 = c0
+           else            
+              WORK1 = DZT(:,:,k-1,bid)
+           end if
+           if (k == km) then
+              WORK2 = eps
+           else
+              WORK2 = DZT(:,:,k+1,bid)
+           end if
 
-         !DIR$ COLLAPSE
-         do j=1,ny_block
-         do i=1,nx_block
-            if (k == KN(i,j)) then
+           !DIR$ COLLAPSE
+           do j=1,ny_block
+           do i=1,nx_block
+              if (k == KN(i,j)) then
 
-            DELHAT(i,j) = - zgrid(k-1) + DZT(i,j,k,bid) + &
-                            p5*WORK1(i,j) - HBLT(i,j)  
-            R     (i,j) = c1 - DELHAT(i,j) /DZT(i,j,k,bid)
+              DELHAT(i,j) = - zgrid(k-1) + DZT(i,j,k,bid) + &
+                              p5*WORK1(i,j) - HBLT(i,j)  
+              R     (i,j) = c1 - DELHAT(i,j) /DZT(i,j,k,bid)
 
-            DVDZUP(i,j) = (VISC(i,j,k-1) - VISC(i,j,k  ))/DZT(i,j,k,bid)
-            DVDZDN(i,j) = (VISC(i,j,k  ) - VISC(i,j,k+1))/WORK2(i,j)
-            VISCP (i,j) = p5*( (c1-R(i,j))* &
-                               (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
-                                   R(i,j) * &
-                               (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
+              DVDZUP(i,j) = (VISC(i,j,k-1) - VISC(i,j,k  ))/DZT(i,j,k,bid)
+              DVDZDN(i,j) = (VISC(i,j,k  ) - VISC(i,j,k+1))/WORK2(i,j)
+              VISCP (i,j) = p5*( (c1-R(i,j))* &
+                                 (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
+                                     R(i,j) * &
+                                 (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
 
-            DVDZUP(i,j) = (VDC(i,j,k-1,2) - VDC(i,j,k  ,2))/DZT(i,j,k,bid)
-            DVDZDN(i,j) = (VDC(i,j,k  ,2) - VDC(i,j,k+1,2))/WORK2(i,j)
-            DIFSP (i,j) = p5*( (c1-R(i,j))* &
-                               (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
-                                   R(i,j) * &
-                               (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
+              DVDZUP(i,j) = (VDC(i,j,k-1,2) - VDC(i,j,k  ,2))/DZT(i,j,k,bid)
+              DVDZDN(i,j) = (VDC(i,j,k  ,2) - VDC(i,j,k+1,2))/WORK2(i,j)
+              DIFSP (i,j) = p5*( (c1-R(i,j))* &
+                                 (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
+                                     R(i,j) * &
+                                 (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
 
-            DVDZUP(i,j) = (VDC(i,j,k-1,1) - VDC(i,j,k  ,1))/DZT(i,j,k,bid)
-            DVDZDN(i,j) = (VDC(i,j,k  ,1) - VDC(i,j,k+1,1))/WORK2(i,j)
-            DIFTP (i,j) = p5*( (c1-R(i,j))* &
-                               (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
-                                   R(i,j) * &
-                               (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
+              DVDZUP(i,j) = (VDC(i,j,k-1,1) - VDC(i,j,k  ,1))/DZT(i,j,k,bid)
+              DVDZDN(i,j) = (VDC(i,j,k  ,1) - VDC(i,j,k+1,1))/WORK2(i,j)
+              DIFTP (i,j) = p5*( (c1-R(i,j))* &
+                                 (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
+                                     R(i,j) * &
+                                 (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
 
-            VISCH(i,j) = VISC(i,j,k)  + VISCP(i,j)*DELHAT(i,j)
-            DIFSH(i,j) = VDC(i,j,k,2) + DIFSP(i,j)*DELHAT(i,j)
-            DIFTH(i,j) = VDC(i,j,k,1) + DIFTP(i,j)*DELHAT(i,j)
+              VISCH(i,j) = VISC(i,j,k)  + VISCP(i,j)*DELHAT(i,j)
+              DIFSH(i,j) = VDC(i,j,k,2) + DIFSP(i,j)*DELHAT(i,j)
+              DIFTH(i,j) = VDC(i,j,k,1) + DIFTP(i,j)*DELHAT(i,j)
 
-            GAT1(i,j,1) = VISCH(i,j) / HBLT(i,j) /(WM(i,j)+eps)
-            DAT1(i,j,1) = -VISCP(i,j)/(WM(i,j)+eps) + F1(i,j)*VISCH(i,j)
+              GAT1(i,j,1) = VISCH(i,j) / HBLT(i,j) /(WM(i,j)+eps)
+              DAT1(i,j,1) = -VISCP(i,j)/(WM(i,j)+eps) + F1(i,j)*VISCH(i,j)
 
-            GAT1(i,j,2) = DIFSH(i,j) / HBLT(i,j) /(WS(i,j)+eps)
-            DAT1(i,j,2) = -DIFSP(i,j)/(WS(i,j)+eps) + F1(i,j)*DIFSH(i,j)
+              GAT1(i,j,2) = DIFSH(i,j) / HBLT(i,j) /(WS(i,j)+eps)
+              DAT1(i,j,2) = -DIFSP(i,j)/(WS(i,j)+eps) + F1(i,j)*DIFSH(i,j)
 
-            GAT1(i,j,3) = DIFTH(i,j) / HBLT(i,j) /(WS(i,j)+eps)
-            DAT1(i,j,3) = -DIFTP(i,j)/(WS(i,j)+eps) + F1(i,j)*DIFTH(i,j)
+              GAT1(i,j,3) = DIFTH(i,j) / HBLT(i,j) /(WS(i,j)+eps)
+              DAT1(i,j,3) = -DIFTP(i,j)/(WS(i,j)+eps) + F1(i,j)*DIFTH(i,j)
 
-            endif
-         end do
-         end do
+              endif
+           end do
+           end do
 
-      else
+        else
 
-         !DIR$ COLLAPSE
-         do j=1,ny_block
-         do i=1,nx_block
-            if (k == KN(i,j)) then
+           !DIR$ COLLAPSE
+           do j=1,ny_block
+           do i=1,nx_block
+              if (k == KN(i,j)) then
 
-            DELHAT(i,j) = p5*hwide(k) - zgrid(k) - HBLT(i,j)        
-            R     (i,j) = c1 - DELHAT(i,j) / hwide(k)
+              DELHAT(i,j) = p5*hwide(k) - zgrid(k) - HBLT(i,j)        
+              R     (i,j) = c1 - DELHAT(i,j) / hwide(k)
 
-            DVDZUP(i,j) = (VISC(i,j,k-1) - VISC(i,j,k  ))/hwide(k)
-            DVDZDN(i,j) = (VISC(i,j,k  ) - VISC(i,j,k+1))/hwide(k+1)
-            VISCP (i,j) = p5*( (c1-R(i,j))* &
-                               (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
-                                   R(i,j) * &
-                               (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
+              DVDZUP(i,j) = (VISC(i,j,k-1) - VISC(i,j,k  ))/hwide(k)
+              DVDZDN(i,j) = (VISC(i,j,k  ) - VISC(i,j,k+1))/hwide(k+1)
+              VISCP (i,j) = p5*( (c1-R(i,j))* &
+                                 (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
+                                     R(i,j) * &
+                                 (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
 
-            DVDZUP(i,j) = (VDC(i,j,k-1,2) - VDC(i,j,k  ,2))/hwide(k)
-            DVDZDN(i,j) = (VDC(i,j,k  ,2) - VDC(i,j,k+1,2))/hwide(k+1)
-            DIFSP (i,j) = p5*( (c1-R(i,j))* &
-                               (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
-                                   R(i,j) * &
-                               (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
+              DVDZUP(i,j) = (VDC(i,j,k-1,2) - VDC(i,j,k  ,2))/hwide(k)
+              DVDZDN(i,j) = (VDC(i,j,k  ,2) - VDC(i,j,k+1,2))/hwide(k+1)
+              DIFSP (i,j) = p5*( (c1-R(i,j))* &
+                                 (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
+                                     R(i,j) * &
+                                 (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
 
-            DVDZUP(i,j) = (VDC(i,j,k-1,1) - VDC(i,j,k  ,1))/hwide(k)
-            DVDZDN(i,j) = (VDC(i,j,k  ,1) - VDC(i,j,k+1,1))/hwide(k+1)
-            DIFTP (i,j) = p5*( (c1-R(i,j))* &
-                               (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
-                                   R(i,j) * &
-                               (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
+              DVDZUP(i,j) = (VDC(i,j,k-1,1) - VDC(i,j,k  ,1))/hwide(k)
+              DVDZDN(i,j) = (VDC(i,j,k  ,1) - VDC(i,j,k+1,1))/hwide(k+1)
+              DIFTP (i,j) = p5*( (c1-R(i,j))* &
+                                 (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
+                                     R(i,j) * &
+                                 (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
    
-            VISCH(i,j) = VISC(i,j,k)  + VISCP(i,j)*DELHAT(i,j)
-            DIFSH(i,j) = VDC(i,j,k,2) + DIFSP(i,j)*DELHAT(i,j)
-            DIFTH(i,j) = VDC(i,j,k,1) + DIFTP(i,j)*DELHAT(i,j)
+              VISCH(i,j) = VISC(i,j,k)  + VISCP(i,j)*DELHAT(i,j)
+              DIFSH(i,j) = VDC(i,j,k,2) + DIFSP(i,j)*DELHAT(i,j)
+              DIFTH(i,j) = VDC(i,j,k,1) + DIFTP(i,j)*DELHAT(i,j)
 
-            GAT1(i,j,1) = VISCH(i,j) / HBLT(i,j) /(WM(i,j)+eps)
-            DAT1(i,j,1) = -VISCP(i,j)/(WM(i,j)+eps) + &
-                           F1(i,j)*VISCH(i,j)
+              GAT1(i,j,1) = VISCH(i,j) / HBLT(i,j) /(WM(i,j)+eps)
+              DAT1(i,j,1) = -VISCP(i,j)/(WM(i,j)+eps) + &
+                             F1(i,j)*VISCH(i,j)
 
-            GAT1(i,j,2) = DIFSH(i,j) / HBLT(i,j) /(WS(i,j)+eps)
-            DAT1(i,j,2) = -DIFSP(i,j)/(WS(i,j)+eps) + &
-                           F1(i,j)*DIFSH(i,j)
+              GAT1(i,j,2) = DIFSH(i,j) / HBLT(i,j) /(WS(i,j)+eps)
+              DAT1(i,j,2) = -DIFSP(i,j)/(WS(i,j)+eps) + &
+                             F1(i,j)*DIFSH(i,j)
 
-            GAT1(i,j,3) = DIFTH(i,j) / HBLT(i,j) /(WS(i,j)+eps)
-            DAT1(i,j,3) = -DIFTP(i,j)/(WS(i,j)+eps) + &
-                           F1(i,j)*DIFTH(i,j)
+              GAT1(i,j,3) = DIFTH(i,j) / HBLT(i,j) /(WS(i,j)+eps)
+              DAT1(i,j,3) = -DIFTP(i,j)/(WS(i,j)+eps) + &
+                             F1(i,j)*DIFTH(i,j)
 
-            endif
-         end do
-         end do
+              endif
+           end do
+           end do
 
-      endif                   ! pbc
+        endif                   ! pbc
 
-   enddo
+     enddo
 
-   DAT1 = min(DAT1,c0)
+     DAT1 = min(DAT1,c0)
 
 !-----------------------------------------------------------------------
 !
@@ -2450,43 +2582,43 @@
 !
 !-----------------------------------------------------------------------
 
-   do k = 1,km       
+     do k = 1,km       
 
-      if (partial_bottom_cells) then
-         if (k > 1) then
-            SIGMA = (-zgrid(k-1) + p5*DZT(:,:,k-1,bid) +  &
-                     DZT(:,:,k,bid)) / HBLT 
-         else
-            SIGMA = (-zgrid(k) + p5*hwide(k)) / HBLT     
-         end if
-      else
-         SIGMA = (-zgrid(k) + p5*hwide(k)) / HBLT     
-      endif
-      F1 = min(SIGMA,epssfc)
+        if (partial_bottom_cells) then
+           if (k > 1) then
+              SIGMA = (-zgrid(k-1) + p5*DZT(:,:,k-1,bid) +  &
+                       DZT(:,:,k,bid)) / HBLT 
+           else
+              SIGMA = (-zgrid(k) + p5*hwide(k)) / HBLT     
+           end if
+        else
+           SIGMA = (-zgrid(k) + p5*hwide(k)) / HBLT     
+        endif
+        F1 = min(SIGMA,epssfc)
 
-      call wscale(F1, HBLT, USTAR, BFSFC, 3, WM, WS)
+        call wscale(F1, HBLT, USTAR, BFSFC, 3, WM, WS)
 
-      !DIR$ COLLAPSE
-      do j=1,ny_block
-      do i=1,nx_block
-         BLMC(i,j,k,1) = HBLT(i,j)*WM(i,j)*SIGMA(i,j)*       &
-                         (c1 + SIGMA(i,j)*((SIGMA(i,j)-c2) + &
-                         (c3-c2*SIGMA(i,j))*GAT1(i,j,1) +    &
-                         (SIGMA(i,j)-c1)*DAT1(i,j,1))) 
-         BLMC(i,j,k,2) = HBLT(i,j)*WS(i,j)*SIGMA(i,j)*       &
-                         (c1 + SIGMA(i,j)*((SIGMA(i,j)-c2) + &
-                         (c3-c2*SIGMA(i,j))*GAT1(i,j,2) +    &
-                         (SIGMA(i,j)-c1)*DAT1(i,j,2)))
-         BLMC(i,j,k,3) = HBLT(i,j)*WS(i,j)*SIGMA(i,j)*       &
-                         (c1 + SIGMA(i,j)*((SIGMA(i,j)-c2) + &    
-                         (c3-c2*SIGMA(i,j))*GAT1(i,j,3) +    &
-                         (SIGMA(i,j)-c1)*DAT1(i,j,3)))
+        !DIR$ COLLAPSE
+        do j=1,ny_block
+        do i=1,nx_block
+           BLMC(i,j,k,1) = HBLT(i,j)*WM(i,j)*SIGMA(i,j)*       &
+                           (c1 + SIGMA(i,j)*((SIGMA(i,j)-c2) + &
+                           (c3-c2*SIGMA(i,j))*GAT1(i,j,1) +    &
+                           (SIGMA(i,j)-c1)*DAT1(i,j,1))) 
+           BLMC(i,j,k,2) = HBLT(i,j)*WS(i,j)*SIGMA(i,j)*       &
+                           (c1 + SIGMA(i,j)*((SIGMA(i,j)-c2) + &
+                           (c3-c2*SIGMA(i,j))*GAT1(i,j,2) +    &
+                           (SIGMA(i,j)-c1)*DAT1(i,j,2)))
+           BLMC(i,j,k,3) = HBLT(i,j)*WS(i,j)*SIGMA(i,j)*       &
+                           (c1 + SIGMA(i,j)*((SIGMA(i,j)-c2) + &    
+                           (c3-c2*SIGMA(i,j))*GAT1(i,j,3) +    &
+                           (SIGMA(i,j)-c1)*DAT1(i,j,3)))
 
-         GHAT(i,j,k) = (c1-STABLE(i,j))* cg/(WS(i,j)*HBLT(i,j) +eps)
-      end do
-      end do
+           GHAT(i,j,k) = (c1-STABLE(i,j))* cg/(WS(i,j)*HBLT(i,j) +eps)
+        end do
+        end do
 
-   end do
+     end do
 
 !-----------------------------------------------------------------------
 !
@@ -2494,34 +2626,34 @@
 !
 !-----------------------------------------------------------------------
 
-   !DIR$ COLLAPSE
-   do j=1,ny_block
-   do i=1,nx_block
-      k = KBL(i,j) - 1
-      SIGMA(i,j) = -zgrid(k)/HBLT(i,j)          
-   enddo
-   enddo
+     !DIR$ COLLAPSE
+     do j=1,ny_block
+     do i=1,nx_block
+        k = KBL(i,j) - 1
+        SIGMA(i,j) = -zgrid(k)/HBLT(i,j)          
+     enddo
+     enddo
 
-   F1 = min(SIGMA,epssfc)        
-   call wscale(F1, HBLT, USTAR, BFSFC, 3, WM, WS)
+     F1 = min(SIGMA,epssfc)        
+     call wscale(F1, HBLT, USTAR, BFSFC, 3, WM, WS)
 
-   !DIR$ COLLAPSE
-   do j=1,ny_block
-   do i=1,nx_block
-      DKM1(i,j,1) = HBLT(i,j)*WM(i,j)*SIGMA(i,j)*     &
-                    (c1+SIGMA(i,j)*((SIGMA(i,j)-c2) + &
-                    (c3-c2*SIGMA(i,j))*GAT1(i,j,1) +  &
-                    (SIGMA(i,j)-c1)*DAT1(i,j,1)))
-      DKM1(i,j,2) = HBLT(i,j)*WS(i,j)*SIGMA(i,j)*     &
-                    (c1+SIGMA(i,j)*((SIGMA(i,j)-c2) + &
-                    (c3-c2*SIGMA(i,j))*GAT1(i,j,2) +  &
-                    (SIGMA(i,j)-c1)*DAT1(i,j,2)))
-      DKM1(i,j,3) = HBLT(i,j)*WS(i,j)*SIGMA(i,j)*     &
-                    (c1+SIGMA(i,j)*((SIGMA(i,j)-c2) + &       
-                    (c3-c2*SIGMA(i,j))*GAT1(i,j,3) +  &
-                    (SIGMA(i,j)-c1)*DAT1(i,j,3)))
-   end do
-   end do
+     !DIR$ COLLAPSE
+     do j=1,ny_block
+     do i=1,nx_block
+        DKM1(i,j,1) = HBLT(i,j)*WM(i,j)*SIGMA(i,j)*     &
+                      (c1+SIGMA(i,j)*((SIGMA(i,j)-c2) + &
+                      (c3-c2*SIGMA(i,j))*GAT1(i,j,1) +  &
+                      (SIGMA(i,j)-c1)*DAT1(i,j,1)))
+        DKM1(i,j,2) = HBLT(i,j)*WS(i,j)*SIGMA(i,j)*     &
+                      (c1+SIGMA(i,j)*((SIGMA(i,j)-c2) + &
+                      (c3-c2*SIGMA(i,j))*GAT1(i,j,2) +  &
+                      (SIGMA(i,j)-c1)*DAT1(i,j,2)))
+        DKM1(i,j,3) = HBLT(i,j)*WS(i,j)*SIGMA(i,j)*     &
+                      (c1+SIGMA(i,j)*((SIGMA(i,j)-c2) + &       
+                      (c3-c2*SIGMA(i,j))*GAT1(i,j,3) +  &
+                      (SIGMA(i,j)-c1)*DAT1(i,j,3)))
+     end do
+     end do
 
 !-----------------------------------------------------------------------
 !
@@ -2529,53 +2661,53 @@
 !
 !-----------------------------------------------------------------------
 
-   !DIR$ NOVECTOR
-   do k=1,km-1
+     !DIR$ NOVECTOR
+     do k=1,km-1
 
-      if (partial_bottom_cells) then
-         if (k == 1) then 
-            WORK1 = -p5*DZT(:,:,k,bid)
-         else
-            WORK1 = zgrid(k-1) - p5*(DZT(:,:,k-1,bid) + &
-                                     DZT(:,:,k  ,bid))
-         end if
-         where (k == (KBL - 1)) &
-            DELHAT = (HBLT + WORK1)/(p5*(DZT(:,:,k  ,bid) + &
-                                         DZT(:,:,k+1,bid)))
-      else
-         where (k == (KBL - 1)) &
-            DELHAT = (HBLT + zgrid(k))/(zgrid(k)-zgrid(k+1))
-      endif
+        if (partial_bottom_cells) then
+           if (k == 1) then 
+              WORK1 = -p5*DZT(:,:,k,bid)
+           else
+              WORK1 = zgrid(k-1) - p5*(DZT(:,:,k-1,bid) + &
+                                       DZT(:,:,k  ,bid))
+           end if
+           where (k == (KBL - 1)) &
+              DELHAT = (HBLT + WORK1)/(p5*(DZT(:,:,k  ,bid) + &
+                                           DZT(:,:,k+1,bid)))
+        else
+           where (k == (KBL - 1)) &
+              DELHAT = (HBLT + zgrid(k))/(zgrid(k)-zgrid(k+1))
+        endif
 
-      !DIR$ COLLAPSE
-      do j=1,ny_block
-      do i=1,nx_block
-         if (k == (KBL(i,j) - 1)) then
+        !DIR$ COLLAPSE
+        do j=1,ny_block
+        do i=1,nx_block
+           if (k == (KBL(i,j) - 1)) then
 
-            BLMC(i,j,k,1) = (c1-DELHAT(i,j))*VISC(i,j,k) +             &
-                        DELHAT(i,j) *(                                 &
-                        (c1-DELHAT(i,j))**2 *DKM1(i,j,1) +             &
-                            DELHAT(i,j)**2  *(CASEA(i,j)*VISC(i,j,k) + &
-                        (c1-CASEA(i,j))*BLMC(i,j,k,1)))
+              BLMC(i,j,k,1) = (c1-DELHAT(i,j))*VISC(i,j,k) +             &
+                          DELHAT(i,j) *(                                 &
+                          (c1-DELHAT(i,j))**2 *DKM1(i,j,1) +             &
+                              DELHAT(i,j)**2  *(CASEA(i,j)*VISC(i,j,k) + &
+                          (c1-CASEA(i,j))*BLMC(i,j,k,1)))
 
-            BLMC(i,j,k,2) = (c1-DELHAT(i,j))*VDC(i,j,k,2) +            &
-                        DELHAT(i,j)*(                                  &
-                        (c1-DELHAT(i,j))**2 *DKM1(i,j,2) +             &
-                            DELHAT(i,j)**2 *(CASEA(i,j)*VDC(i,j,k,2) + &
-                        (c1-CASEA(i,j))*BLMC(i,j,k,2)))
+              BLMC(i,j,k,2) = (c1-DELHAT(i,j))*VDC(i,j,k,2) +            &
+                          DELHAT(i,j)*(                                  &
+                          (c1-DELHAT(i,j))**2 *DKM1(i,j,2) +             &
+                              DELHAT(i,j)**2 *(CASEA(i,j)*VDC(i,j,k,2) + &
+                          (c1-CASEA(i,j))*BLMC(i,j,k,2)))
 
-            BLMC(i,j,k,3) = (c1-DELHAT(i,j))*VDC(i,j,k,1) +            &
-                        DELHAT(i,j) *(                                 &
-                        (c1-DELHAT(i,j))**2 *DKM1(i,j,3) +             &
-                            DELHAT(i,j)**2 *(CASEA(i,j)*VDC(i,j,k,1) + &
-                        (c1-CASEA(i,j))*BLMC(i,j,k,3)))
+              BLMC(i,j,k,3) = (c1-DELHAT(i,j))*VDC(i,j,k,1) +            &
+                          DELHAT(i,j) *(                                 &
+                          (c1-DELHAT(i,j))**2 *DKM1(i,j,3) +             &
+                              DELHAT(i,j)**2 *(CASEA(i,j)*VDC(i,j,k,1) + &
+                          (c1-CASEA(i,j))*BLMC(i,j,k,3)))
 
-            GHAT(i,j,k) = (c1-CASEA(i,j)) * GHAT(i,j,k)
+              GHAT(i,j,k) = (c1-CASEA(i,j)) * GHAT(i,j,k)
 
-         endif
-      end do
-      end do
-   end do
+           endif
+        end do
+        end do
+     end do
 
 !-----------------------------------------------------------------------
 !
@@ -2583,22 +2715,23 @@
 !
 !-----------------------------------------------------------------------
 
-   !DIR$ NOVECTOR
-   do k=1,km
-      !DIR$ NODEP
-      do j=1,ny_block
-      !DIR$ NODEP
-      do i=1,nx_block
-         if (k < KBL(i,j)) then 
-            VISC(i,j,k)  = BLMC(i,j,k,1)
-            VDC(i,j,k,2) = BLMC(i,j,k,2)
-            VDC(i,j,k,1) = BLMC(i,j,k,3)
-         else
-            GHAT(i,j,k) = c0
-         endif
-      end do
-      end do
-   enddo
+     !DIR$ NOVECTOR
+     do k=1,km
+        !DIR$ NODEP
+        do j=1,ny_block
+        !DIR$ NODEP
+        do i=1,nx_block
+           if (k < KBL(i,j)) then 
+              VISC(i,j,k)  = BLMC(i,j,k,1)
+              VDC(i,j,k,2) = BLMC(i,j,k,2)
+              VDC(i,j,k,1) = BLMC(i,j,k,3)
+           else
+              GHAT(i,j,k) = c0
+           endif
+        end do
+        end do
+     enddo
+   end if
 
 !-----------------------------------------------------------------------
 !EOC

@@ -36,6 +36,7 @@
    use tavg
    use forcing_fields
    use forcing
+   use forcing_shf
    use ice
    use passive_tracers
    use registry
@@ -168,6 +169,26 @@
 !-----------------------------------------------------------------------
 
    call set_surface_forcing
+
+   if (lKPP1d) then
+
+     !$OMP PARALLEL DO PRIVATE(iblock)
+     do iblock = 1,nblocks_clinic
+     
+       STF(:,:,1,iblock) = -100_r8 * RCALCT(:,:,iblock) * hflux_factor
+       STF(:,:,2,iblock) = c0 * RCALCT(:,:,iblock) * salinity_factor
+     
+       SHF_QSW(:,:,iblock) = c0 * RCALCT(:,:,iblock) * hflux_factor
+
+       SMF(:,:,1,iblock) = 0.1_r8 * RCALCT(:,:,iblock)* momentum_factor
+       SMF(:,:,2,iblock) = c0 * RCALCT(:,:,iblock)* momentum_factor
+
+       SMFT(:,:,:,iblock) = SMF(:,:,:,iblock)
+
+     end do
+     !$OMP END PARALLEL DO
+
+   end if
 
 !-----------------------------------------------------------------------
 !
@@ -336,16 +357,21 @@
 !-----------------------------------------------------------------------
 
       if(profile_barrier) call POP_Barrier
-      call timer_start(timer_barotropic)
-      call barotropic_driver(ZX,ZY,errorCode)
-      if(profile_barrier) call POP_Barrier
-      call timer_stop(timer_barotropic)
 
-      if (errorCode /= POP_Success) then
-         call POP_ErrorSet(errorCode, &
-            'Step: error in barotropic')
-         return
-      endif
+      if (.not.lPOP1d) then
+
+        call timer_start(timer_barotropic)
+        call barotropic_driver(ZX,ZY,errorCode)
+        if(profile_barrier) call POP_Barrier
+        call timer_stop(timer_barotropic)
+
+        if (errorCode /= POP_Success) then
+           call POP_ErrorSet(errorCode, &
+              'Step: error in barotropic')
+           return
+        endif
+
+      end if
 
 !-----------------------------------------------------------------------
 !
@@ -472,6 +498,11 @@
 
       !$OMP PARALLEL DO PRIVATE(iblock,k,i,j)
       do iblock = 1,nblocks_clinic
+
+         if (lPOP1d) then
+           UBTROP(:,:,newtime,iblock) = c0     
+           VBTROP(:,:,newtime,iblock) = c0     
+         endif
 
 !CDIR NOVECTOR
          do k=1,km

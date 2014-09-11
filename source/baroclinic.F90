@@ -32,7 +32,7 @@
        RHO, newtime, oldtime, curtime, PSURF, nt
    use broadcast, only: broadcast_scalar
    use communicate, only: my_task, master_task
-   use grid, only: FCOR, DZU, HUR, KMU, KMT, sfc_layer_type,                 &
+   use grid, only: FCOR, DZU, HUR, KMU, KMT, sfc_layer_type, lPOP1d,         &
        sfc_layer_varthick, partial_bottom_cells, dz, DZT, CALCT, dzw, dzr
    use advection, only: advu, advt, comp_flux_vel_ghost
    use pressure_grad, only: lpressure_avg, gradp
@@ -76,7 +76,7 @@
              baroclinic_driver,        &
              baroclinic_correct_adjust
 
-! !PUBLIC DATA MEMBERS:
+! !PRIVATE DATA MEMBERS:
 
    logical (log_kind) :: &
       reset_to_freezing   ! flag to prevent very cold water
@@ -518,12 +518,16 @@
 
    errorCode = POP_Success
 
-   call comp_flux_vel_ghost(DH, errorCode)
+   if (.not.lPOP1d) then
 
-   if (errorCode /= POP_Success) then
-      call POP_ErrorSet(errorCode, &
-         'baroclinic_driver: error in comp_flux_vel_ghost')
-      return
+     call comp_flux_vel_ghost(DH, errorCode)
+
+     if (errorCode /= POP_Success) then
+        call POP_ErrorSet(errorCode, &
+           'baroclinic_driver: error in comp_flux_vel_ghost')
+        return
+     endif
+
    endif
 
 !-----------------------------------------------------------------------
@@ -966,13 +970,17 @@
 !
 !-----------------------------------------------------------------------
 
-         if (partial_bottom_cells) then
-            ZX(:,:,iblock) = ZX(:,:,iblock) + FX*DZU(:,:,k,iblock)
-            ZY(:,:,iblock) = ZY(:,:,iblock) + FY*DZU(:,:,k,iblock)
-         else
-            ZX(:,:,iblock) = ZX(:,:,iblock) + FX*dz(k)
-            ZY(:,:,iblock) = ZY(:,:,iblock) + FY*dz(k)
-         endif
+         if (.not.lPOP1d) then
+
+           if (partial_bottom_cells) then
+              ZX(:,:,iblock) = ZX(:,:,iblock) + FX*DZU(:,:,k,iblock)
+              ZY(:,:,iblock) = ZY(:,:,iblock) + FY*DZU(:,:,k,iblock)
+           else
+              ZX(:,:,iblock) = ZX(:,:,iblock) + FX*dz(k)
+              ZY(:,:,iblock) = ZY(:,:,iblock) + FY*dz(k)
+           endif
+
+        endif
 
       enddo ! vertical (k) loop
 
@@ -1019,23 +1027,25 @@
 !
 !-----------------------------------------------------------------------
 
-      WORK1 = c0  ! initialize sums
-      WORK2 = c0
+      if (.not.lPOP1d) then
 
-      if (partial_bottom_cells) then
-         do k = 1,km
-            WORK1 = WORK1 + UVEL(:,:,k,newtime,iblock)*DZU(:,:,k,iblock)
-            WORK2 = WORK2 + VVEL(:,:,k,newtime,iblock)*DZU(:,:,k,iblock)
-         enddo
-      else
-         do k = 1,km
-            WORK1 = WORK1 + UVEL(:,:,k,newtime,iblock)*dz(k)
-            WORK2 = WORK2 + VVEL(:,:,k,newtime,iblock)*dz(k)
-         enddo
-      endif
+        WORK1 = c0  ! initialize sums
+        WORK2 = c0
 
-      WORK1 = WORK1*HUR(:,:,iblock)  ! normalize by dividing by depth
-      WORK2 = WORK2*HUR(:,:,iblock)
+        if (partial_bottom_cells) then
+           do k = 1,km
+              WORK1 = WORK1 + UVEL(:,:,k,newtime,iblock)*DZU(:,:,k,iblock)
+              WORK2 = WORK2 + VVEL(:,:,k,newtime,iblock)*DZU(:,:,k,iblock)
+           enddo
+        else
+           do k = 1,km
+              WORK1 = WORK1 + UVEL(:,:,k,newtime,iblock)*dz(k)
+              WORK2 = WORK2 + VVEL(:,:,k,newtime,iblock)*dz(k)
+           enddo
+        endif
+
+        WORK1 = WORK1*HUR(:,:,iblock)  ! normalize by dividing by depth
+        WORK2 = WORK2*HUR(:,:,iblock)
 
 !-----------------------------------------------------------------------
 !
@@ -1044,17 +1054,28 @@
 !
 !-----------------------------------------------------------------------
 
-      do k = 1,km
-         where (k <= KMU(:,:,iblock))
-            UVEL(:,:,k,newtime,iblock) = &
-            UVEL(:,:,k,newtime,iblock) - WORK1
-            VVEL(:,:,k,newtime,iblock) = &
-            VVEL(:,:,k,newtime,iblock) - WORK2
-         elsewhere 
+        do k = 1,km
+           where (k <= KMU(:,:,iblock))
+              UVEL(:,:,k,newtime,iblock) = &
+              UVEL(:,:,k,newtime,iblock) - WORK1
+              VVEL(:,:,k,newtime,iblock) = &
+              VVEL(:,:,k,newtime,iblock) - WORK2
+           elsewhere 
+              UVEL(:,:,k,newtime,iblock) = c0
+              VVEL(:,:,k,newtime,iblock) = c0
+           endwhere
+        enddo
+
+      else
+
+        do k = 1,km
+          where (k > KMU(:,:,iblock))
             UVEL(:,:,k,newtime,iblock) = c0
             VVEL(:,:,k,newtime,iblock) = c0
-         endwhere
-      enddo
+          endwhere
+        enddo
+
+      endif
 
 !-----------------------------------------------------------------------
 !
@@ -1073,7 +1094,6 @@
 !-----------------------------------------------------------------------
 
    enddo ! second block loop
-
    !$OMP END PARALLEL DO
 
 #if drifter_particles
@@ -1495,10 +1515,22 @@
  
    if (k == 1) WUK = DHU_BLOCK  ! free surface
 
-   call advu(k, WORKX, WORKY, WUK, UCUR, VCUR, this_block)
+   if (.not.lPOP1d) then
 
-   FX =  -WORKX   ! advu returns WORKX = +L(U) 
-   FY =  -WORKY   ! advu returns WORKY = +L(V) 
+     call advu(k, WORKX, WORKY, WUK, UCUR, VCUR, this_block)
+
+     FX =  -WORKX   ! advu returns WORKX = +L(U) 
+     FY =  -WORKY   ! advu returns WORKY = +L(V)
+
+   else
+
+     FX = c0
+     FY = c0
+
+     WORKX = c0
+     WORKY = c0
+
+   end if
 
    if (ldiag_global) then
       if (partial_bottom_cells) then
@@ -1543,10 +1575,19 @@
 !
 !-----------------------------------------------------------------------
 
-   call gradp(k,WORKX, WORKY, RHOKOLD, RHOKCUR, RHOKNEW, this_block)
+   if (.not.lPOP1d) then
 
-   FX = FX - WORKX   ! gradp returns WORKX as +Gradx(p)
-   FY = FY - WORKY   ! gradp returns WORKY as +Grady(p)
+     call gradp(k,WORKX, WORKY, RHOKOLD, RHOKCUR, RHOKNEW, this_block)
+
+     FX = FX - WORKX   ! gradp returns WORKX as +Gradx(p)
+     FY = FY - WORKY   ! gradp returns WORKY as +Grady(p)
+
+   else
+
+     WORKX = c0
+     WORKY = c0
+
+   end if ! not 1D POP
 
    if (partial_bottom_cells) then
       WORKX =  -DZU(:,:,k,bid)*(UCUR(:,:,k)*WORKX + &
@@ -1568,10 +1609,19 @@
 !
 !-----------------------------------------------------------------------
 
-   call hdiffu(k, WORKX, WORKY, UMIXK, VMIXK, this_block)
+   if (.not.lPOP1d) then
 
-   FX = FX + WORKX
-   FY = FY + WORKY
+     call hdiffu(k, WORKX, WORKY, UMIXK, VMIXK, this_block)
+
+     FX = FX + WORKX
+     FY = FY + WORKY
+
+   else
+
+     WORKX = c0
+     WORKY = c0
+
+   end if
 
    if (ldiag_global) then
       if (partial_bottom_cells) then
@@ -1595,7 +1645,6 @@
 
    FX = FX + WORKX
    FY = FY + WORKY
-
 
    if (ldiag_global) then
       if (partial_bottom_cells) then
@@ -1719,11 +1768,16 @@
 !
 !-----------------------------------------------------------------------
 
+   if (.not.lPOP1d) then
 
-   call hdifft(k, WORKN, TMIX, UMIX, VMIX, this_block)
+     call hdifft(k, WORKN, TMIX, UMIX, VMIX, this_block)
+     FT = FT + WORKN
 
+   else
 
-   FT = FT + WORKN
+     WORKN = c0
+
+   end if
 
    if (ldiag_global) then
 
@@ -1790,9 +1844,16 @@
 
    endif
 
-   call advt(k,WORKN,WTK,TMIX,TCUR,UCUR,VCUR,this_block)
+   if (.not.lPOP1d) then
 
-   FT = FT - WORKN   ! advt returns WORKN = +L(T) 
+     call advt(k,WORKN,WTK,TMIX,TCUR,UCUR,VCUR,this_block)
+     FT = FT - WORKN   ! advt returns WORKN = +L(T) 
+
+   else
+
+     WORKN = c0
+
+   end if
 
    if (ldiag_global) then
      if (partial_bottom_cells) then
