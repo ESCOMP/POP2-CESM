@@ -22,6 +22,7 @@
    use gather_scatter
    use exit_mod
    use io_types
+   use io_tools
 
 #ifdef USEPIO
    use piolib_mod, only:  &                             ! _EXTERNAL
@@ -41,6 +42,7 @@
    public :: open_read_binary,    &
              open_binary,         &
              close_binary,        &
+             field_exists_binary, &
              define_field_binary, &
              read_field_binary,   &
              write_field_binary
@@ -610,6 +612,85 @@
 !EOC
 
  end subroutine close_binary
+
+!***********************************************************************
+!BOP
+! !IROUTINE: field_exists_binary
+! !INTERFACE:
+
+ subroutine field_exists_binary(data_file, fieldname, field_exists)
+
+! !DESCRIPTION:
+!  This routine attempts to determine if a field exists in a binary file.
+!  If there is not a header file, the subroutine aborts.
+!  If there is a header file, it is searched for the field.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent (in) :: fieldname
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   type (datafile), target, intent (inout)  :: &
+      data_file       ! data file in which field contained
+
+! !OUTPUT PARAMETERS:
+
+   logical (log_kind), intent (out) :: field_exists
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   character (80) :: &
+      work_line,     &! workspace for manipulating input string
+      comp_line       ! comparison string
+
+   integer (i4) ::  &
+      hdr_error,     &! io error status for header file
+      cindx1,        &! character string index
+      unit            ! unit for header file
+
+!-----------------------------------------------------------------------
+
+   unit = data_file%id(2)
+
+   if (unit <= 0) then
+      call document('field_exists_binary', 'full_name', trim(data_file%full_name))
+      call document('field_exists_binary', 'fieldname', trim(fieldname))
+      call exit_POP(sigAbort,'field_exists_binary undefined for files without a header file')
+   end if
+
+   if (my_task == master_task) then
+      hdr_error = 0
+      rewind (unit)
+      cindx1 = len_trim(fieldname) + 1
+      comp_line(1:1) = '&'
+      comp_line(2:cindx1) = trim(fieldname)
+
+      srch_loop: do while (hdr_error == 0) ! look for field in file
+         read(unit,'(a80)',iostat=hdr_error) work_line
+         work_line = adjustl(work_line)
+         if (work_line(1:cindx1) == comp_line(1:cindx1)) &
+            exit srch_loop
+      end do srch_loop
+   endif ! master_task
+
+   call broadcast_scalar(hdr_error, master_task)
+
+   field_exists = (hdr_error == 0)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine field_exists_binary
 
 !***********************************************************************
 !BOP

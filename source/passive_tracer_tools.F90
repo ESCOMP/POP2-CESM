@@ -89,6 +89,7 @@
 
    public ::                                 &
       init_forcing_monthly_every_ts,         &
+      field_exists_in_file,                  &
       file_read_tracer_block,                &
       rest_read_tracer_block,                &
       read_field,                            &
@@ -188,6 +189,62 @@
 !EOC
 
  end function name_to_ind
+
+!***********************************************************************
+!BOP
+! !IROUTINE: field_exists_in_file
+! !INTERFACE:
+
+ function field_exists_in_file(fmt, filename, fieldname)
+
+! !DESCRIPTION:
+!  This routine determines if a field exists in a file.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent(in) ::  &
+      fmt,                 & ! format (bin or nc)
+      filename,            & ! file to read from
+      fieldname              ! field to be read
+
+! !OUTPUT PARAMETERS:
+
+   logical (log_kind) :: field_exists_in_file
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+
+   character(*), parameter :: &
+      subname = 'passive_tracer_tools:field_exists_in_file'
+
+   type (datafile) :: &
+      in_file         ! data file type for init ts file
+
+!-----------------------------------------------------------------------
+
+   in_file = construct_file(fmt, full_name=trim(filename), &
+                            record_length=rec_type_dbl, &
+                            recl_words=nx_global*ny_global)
+
+   call data_set(in_file, 'open_read')
+
+   call data_set (in_file, 'field_exists', &
+                  fieldname=fieldname, field_exists=field_exists_in_file)
+
+   call data_set (in_file, 'close')
+
+   call destroy_file (in_file)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end function field_exists_in_file
 
 !***********************************************************************
 !BOP

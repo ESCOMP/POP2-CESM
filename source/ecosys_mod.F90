@@ -1508,21 +1508,57 @@ contains
                                   tracer_d_module,           &
                                   TRACER_MODULE)
 
-      call read_field(init_ecosys_init_file_fmt, &
-                      ecosys_restart_filename,   &
-                      'PH_SURF', PH_PREV)
+      if (field_exists_in_file(init_ecosys_init_file_fmt, &
+                               ecosys_restart_filename, &
+                               'PH_SURF')) then
+         call read_field(init_ecosys_init_file_fmt, &
+                         ecosys_restart_filename,   &
+                         'PH_SURF', PH_PREV)
+      else
+         call document(subname, 'PH_SURF does not exist in ' /&
+                       &/ trim(ecosys_restart_filename) /&
+                       &/ ', setting PH_PREV to 0')
+         PH_PREV = c0
+      endif
 
-      call read_field(init_ecosys_init_file_fmt, &
-                      ecosys_restart_filename,   &
-                      'PH_SURF_ALT_CO2', PH_PREV_ALT_CO2)
+      if (field_exists_in_file(init_ecosys_init_file_fmt, &
+                               ecosys_restart_filename, &
+                               'PH_SURF_ALT_CO2')) then
+         call read_field(init_ecosys_init_file_fmt, &
+                         ecosys_restart_filename,   &
+                         'PH_SURF_ALT_CO2', PH_PREV_ALT_CO2)
+      else
+         call document(subname, 'PH_SURF_ALT_CO2 does not exist in ' /&
+                       &/ trim(ecosys_restart_filename) /&
+                       &/ ', setting PH_PREV_ALT_CO2 to 0')
+         PH_PREV_ALT_CO2 = c0
+      endif
 
-      call read_field(init_ecosys_init_file_fmt, &
-                      ecosys_restart_filename,   &
-                      'PH_3D', PH_PREV_3D)
+      if (field_exists_in_file(init_ecosys_init_file_fmt, &
+                               ecosys_restart_filename, &
+                               'PH_3D')) then
+         call read_field(init_ecosys_init_file_fmt, &
+                         ecosys_restart_filename,   &
+                         'PH_3D', PH_PREV_3D)
+      else
+         call document(subname, 'PH_3D does not exist in ' /&
+                       &/ trim(ecosys_restart_filename) /&
+                       &/ ', setting PH_PREV_3D to 0')
+         PH_PREV_3D  = c0
+      endif
 
-      call read_field(init_ecosys_init_file_fmt, &
-                      ecosys_restart_filename,   &
-                      'PH_3D_ALT_CO2', PH_PREV_ALT_CO2_3D)
+      if (field_exists_in_file(init_ecosys_init_file_fmt, &
+                               ecosys_restart_filename, &
+                               'PH_3D_ALT_CO2')) then
+         call read_field(init_ecosys_init_file_fmt, &
+                         ecosys_restart_filename,   &
+                         'PH_3D_ALT_CO2', PH_PREV_ALT_CO2_3D)
+      else
+         call document(subname, 'PH_3D_ALT_CO2 does not exist in ' /&
+                       &/ trim(ecosys_restart_filename) /&
+                       &/ ', setting PH_PREV_ALT_CO2_3D to 0')
+         PH_PREV_ALT_CO2_3D = c0
+      endif
 
       if (use_nml_surf_vals) then
          surf_avg = c0

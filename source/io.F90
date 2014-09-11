@@ -46,7 +46,7 @@ contains
 ! !IROUTINE: data_set
 ! !INTERFACE:
 
- subroutine data_set (data_file, operation, io_field)
+ subroutine data_set (data_file, operation, io_field, fieldname, field_exists)
 
 ! !DESCRIPTION:
 !  This routine is the main interface for array and file io functions,
@@ -58,11 +58,16 @@ contains
 ! !INPUT PARAMETERS:
 
    character (*), intent (in)   :: operation
+   character (*), intent (in), optional :: fieldname
 
 ! !INPUT/OUTPUT PARAMETERS:
 
    type (datafile), intent (inout)  :: data_file
    type (io_field_desc), intent (inout), optional :: io_field
+
+! !OUTPUT PARAMETERS:
+
+   logical (log_kind), intent (out), optional :: field_exists
 
 !EOP
 !BOC
@@ -137,6 +142,29 @@ contains
       else if (data_file%data_format=='nc') then
          call sync_netcdf(data_file)
       endif
+
+!-----------------------------------------------------------------------
+!
+!  determine if a field exists
+!
+!-----------------------------------------------------------------------
+
+   case ('field_exists')
+
+      if (.not.present(fieldname)) then
+         call exit_POP(sigAbort,'data_file field_exists: missing fieldname arg')
+      end if
+
+      if (.not.present(field_exists)) then
+         call exit_POP(sigAbort,'data_file field_exists: missing field_exists arg')
+      end if
+
+      if (data_file%data_format=='bin') then
+         call field_exists_binary(data_file,fieldname,field_exists)
+      else if (data_file%data_format=='nc') then
+         call field_exists_netcdf(data_file,fieldname,field_exists)
+      endif
+
 !-----------------------------------------------------------------------
 !
 !  define an io field

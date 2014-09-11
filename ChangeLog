@@ -3,6 +3,28 @@ Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    11 September 2014
 Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150911a_cesm_pop_2_1_20140905
+Summary: Enable ecosys to read restart files w/o PH_3D.
+PH_PREV_3D is set to zero if PH_3D is not present.
+Similarly for PH_3D_ALT_CO2 & PH_PREV_ALT_CO2_3D.
+This was accomplished by introducing functionality into io.F90, io_binary.F90,
+io_netcdf.F90 to query if a variable exists in a file.
+M            63400   source/passive_tracer_tools.F90
+M            63400   source/io.F90
+X                    source/cvmix
+M            63404   source/io_netcdf.F90
+M            63400   source/ecosys_mod.F90
+M            63400   source/io_binary.F90
+M            63404   ChangeLog
+Status against revision:  63431
+
+Performing status on external item at 'source/cvmix'
+Status against revision:    352
+===============================================================================
+Tag Creator: klindsay 
+Developers:  klindsay
+Tag Date:    11 September 2014
+Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150911_cesm_pop_2_1_20140905
 Summary: Merged with the most recent pop-trunk tag (cesm_pop_2_1_20140905). 
 X                    source/cvmix
