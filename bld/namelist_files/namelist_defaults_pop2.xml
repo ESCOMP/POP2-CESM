@@ -944,7 +944,7 @@
 <ciso_atm_d14c_filename(2)>/glade/u/home/ajahn/ForcingFiles/c14equ_HG09.dat</ciso_atm_d14c_filename(2)>
 <ciso_atm_d14c_filename(3)>/glade/u/home/ajahn/ForcingFiles/c14nth_HG09.dat</ciso_atm_d14c_filename(3)>
 
-<ciso_fract_factors>Rau</ciso_fract_factors>
+<ciso_fract_factors>Laws</ciso_fract_factors>
 
 
 <!---------------------------->

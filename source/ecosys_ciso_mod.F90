@@ -358,7 +358,7 @@ contains
       read_restart_filename  ! file name for restart file
 
    logical (kind=log_kind), intent(in) :: &
-      lmarginal_seas               ! Is ecosystem active in marginal seas ?
+      lmarginal_seas               
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -1916,13 +1916,13 @@ contains
 ! River input of BGC tracers in ecosys_mod is currently constant and from file
 ! So the isotopic carbon input is also done very simplified with one value
 ! globally, even though data shows it should vary from river to river.
-! Until RTM carries BGC tracers this is the best we can do.
 !
 ! Using constant delta values of
 ! D13C=-10 permil for DIC (Mook 1986, Raymond et al 2004)
 ! D13C=-27.6 permil for DOC (Raymond et al 2004)
 ! D14C=-50 permil for DOC (Raymond et al 2004), Gruber et al
-! D14C= atmos_D14C - 50 permil for DIC ?????? (based on a few data points and discussion with N. Gruber)
+! D14C= atmos_D14C - 50 permil for DIC (based on very few data points and 
+!       discussion with N. Gruber)
 !-------------------------------------------------------------------------
 
 !-----------------------------------------------------------------------------
@@ -2246,24 +2246,23 @@ contains
                !----------------------------------------------------------------------------------------
                ! Diazotroph based on  Standard Phyto of Rau et al., (1996)
                !----------------------------------------------------------------------------------------
-               cell_active_C_uptake(auto_ind) = 0.0_r8        ! ratio of active carbon uptake to carbon fixation
-               cell_surf(auto_ind)            = -99.9_r8      ! surface areas of cells ( m2 ) - not used -
-               cell_carb_cont(auto_ind)       = -99.9_r8      ! cell carbon content ( mol C cell-1 ) - not used -
-               cell_radius(auto_ind)          = 10.0_r8       ! cell radius ( um )
-               cell_permea(auto_ind)          = 10.0e-5_r8    ! cell wall permeability to CO2(aq) (m/s)
-               cell_eps_fix(auto_ind)         = 25.0_r8       ! fractionation effect of carbon fixation
-
+               !cell_active_C_uptake(auto_ind) = 0.0_r8        ! ratio of active carbon uptake to carbon fixation
+               !cell_surf(auto_ind)            = -99.9_r8      ! surface areas of cells ( m2 ) - not used -
+               !cell_carb_cont(auto_ind)       = -99.9_r8      ! cell carbon content ( mol C cell-1 ) - not used -
+               !cell_radius(auto_ind)          = 10.0_r8       ! cell radius ( um )
+               !cell_permea(auto_ind)          = 10.0e-5_r8    ! cell wall permeability to CO2(aq) (m/s)
+               !cell_eps_fix(auto_ind)         = 25.0_r8       ! fractionation effect of carbon fixation
                !----------------------------------------------------------------------------------------
                ! Diazotroph based on Synechococcus sp. ( Keller and morel, 1999; Popp et al., 1998 )
                !----------------------------------------------------------------------------------------
-               !   cell_active_C_uptake(auto_ind) = 7.5_r8        ! ratio of active carbon uptake to carbon fixation
-               !   cell_surf(auto_ind)            = 5.8e-12_r8    ! surface areas of cells ( m2 )
-               !   cell_carb_cont(auto_ind)       = 3e-14_r8      ! cell carbon content ( mol C cell-1 )
-               !   cell_radius(auto_ind)          = 0.68_r8       ! cell radius ( um )
-               !   cell_permea(auto_ind)          = 3.0e-8_r8     ! cell wall permeability to CO2(aq) (m/s)
-               !   cell_eps_fix(auto_ind)         = 30.0_r8       ! fractionation effect of carbon fixation
-            !Currently not set up to separate exp_calcifiers, needs cell_radius value from data
+               cell_active_C_uptake(auto_ind) = 7.5_r8        ! ratio of active carbon uptake to carbon fixation
+               cell_surf(auto_ind)            = 5.8e-12_r8    ! surface areas of cells ( m2 )
+               cell_carb_cont(auto_ind)       = 3e-14_r8      ! cell carbon content ( mol C cell-1 )
+               cell_radius(auto_ind)          = 0.68_r8       ! cell radius ( um )
+               cell_permea(auto_ind)          = 3.0e-8_r8     ! cell wall permeability to CO2(aq) (m/s)
+               cell_eps_fix(auto_ind)         = 30.0_r8       ! fractionation effect of carbon fixation
             !else if (autotrophs(auto_ind)%exp_calcifier) then
+            !Currently not set up to separate exp_calcifiers, needs cell_radius value from data
                !----------------------------------------------------------------------------------------
                ! Calcifier based on P. glacialis ( Keller and morel, 1999; Popp et al., 1998 )
                ! Popp et al express cell carbon content in ( pg C cell-1 ), here we convert in (mol C cell-1)
@@ -2600,14 +2599,6 @@ contains
                  eps_autotroph(:,:,auto_ind) )
 
 !-----------------------------------------------------------------------
-!   Popp et al (1989)
-!-----------------------------------------------------------------------
-      case ('Popp')
-         eps_autotroph(:,:,auto_ind) = (-17.0_r8 * log10( CO2STAR_int * 0.001_r8 ) &
-                                        + 3.4_r8)
-
-
-!-----------------------------------------------------------------------
       end select
 !-----------------------------------------------------------------------
 
@@ -2637,7 +2628,7 @@ contains
 !-----------------------------------------------------------------------
       if (autotrophs(auto_ind)%imp_calcifier) then
 
-         R13C_CaCO3_PROD = R13C_DIC + R13C_std * eps_carb / c1000 ! Where does this equation come from?
+         R13C_CaCO3_PROD = R13C_DIC + R13C_std * eps_carb / c1000 
 
          R14C_CaCO3_PROD = R14C_DIC + R14C_std * eps_carb * 2.0_r8 / c1000
 

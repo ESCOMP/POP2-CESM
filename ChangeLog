@@ -1,6 +1,26 @@
 ===============================================================================
 Tag Creator: klindsay 
 Developers:  klindsay
+Tag Date:    14 September 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150914_cesm_pop_2_1_20140905
+Summary: new ciso fractionation details
+More details:
+Changed the cell parameters for Keller and Morel biological fractionations for diazotrophs.
+Removed Popp et al biological fractionation.
+Changed default ciso_fract_factors to "Laws".
+Files Modified:
+X                    source/cvmix
+M            63498   source/ecosys_ciso_mod.F90
+M            63498   bld/namelist_files/namelist_defaults_pop2.xml
+M            63498   ChangeLog
+Status against revision:  63498
+
+Performing status on external item at 'source/cvmix'
+Status against revision:    352
+===============================================================================
+Tag Creator: klindsay 
+Developers:  klindsay
 Tag Date:    11 September 2014
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150911a_cesm_pop_2_1_20140905
@@ -9,6 +29,7 @@ PH_PREV_3D is set to zero if PH_3D is not present.
 Similarly for PH_3D_ALT_CO2 & PH_PREV_ALT_CO2_3D.
 This was accomplished by introducing functionality into io.F90, io_binary.F90,
 io_netcdf.F90 to query if a variable exists in a file.
+Files Modified:
 M            63400   source/passive_tracer_tools.F90
 M            63400   source/io.F90
 X                    source/cvmix
@@ -27,6 +48,7 @@ Tag Date:    11 September 2014
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150911_cesm_pop_2_1_20140905
 Summary: Merged with the most recent pop-trunk tag (cesm_pop_2_1_20140905). 
+Files Modified:
 X                    source/cvmix
 M            63400   source/forcing_pt_interior.F90
 M            63400   source/step_mod.F90
@@ -60,6 +82,7 @@ pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150910_cesm_pop_2_1_2014
 Summary: Correct merge with cesm_pop_2_1_20140625. The previous merge,
 geotrace_ecosys_20140625_cesm_pop_2_1_20140625, appears to have been done with
 cesm_pop_2_1_20140514.
+Files Modified:
 M            63384   source/ecosys_share.F90
 M            63384   source/ecosys_mod.F90
 M            63384   mpi/gather_scatter.F90
