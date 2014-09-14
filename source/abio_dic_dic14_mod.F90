@@ -1395,7 +1395,7 @@ end subroutine abio_dic_dic14_tavg_forcing
    if (my_task == master_task) then
       write(stdout,*)'Abiotic DIC calculation: Using varying CO2 values from file ',abio_atm_co2_filename
       open (nml_in, file=abio_atm_co2_filename, status='old',iostat=nml_error)
-      read(nml_in, FMT=*) sglchr,skiplines,atm_co2_data_nbval
+      read(nml_in, FMT=*) skiplines,atm_co2_data_nbval
       allocate(atm_co2_data_yr(atm_co2_data_nbval))
       allocate(atm_co2_data_ppm(atm_co2_data_nbval))
       do irec=1,skiplines

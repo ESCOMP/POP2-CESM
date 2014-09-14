@@ -3,6 +3,28 @@ Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    14 September 2014
 Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150914a_cesm_pop_2_1_20140905
+Summary: update datafiles and their handling
+More details:
+move datafiles to inputdata, appending datestamps to filenames
+unify treatment of datafile header lines, no more leading '#'
+correct scale_factor on ICs
+Files Modified:
+M            63498   source/abio_dic_dic14_mod.F90
+X                    source/cvmix
+M            63499   source/ecosys_ciso_mod.F90
+M            63499   bld/namelist_files/namelist_defaults_pop2.xml
+M            63498   bld/namelist_files/namelist_definition_pop2.xml
+M            63499   ChangeLog
+Status against revision:  63500
+
+Performing status on external item at 'source/cvmix'
+Status against revision:    352
+===============================================================================
+Tag Creator: klindsay 
+Developers:  klindsay
+Tag Date:    14 September 2014
+Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150914_cesm_pop_2_1_20140905
 Summary: new ciso fractionation details
 More details:

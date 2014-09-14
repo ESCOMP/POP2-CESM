@@ -3809,7 +3809,7 @@ end subroutine ciso_compute_particulate_terms
       write(stdout,ndelim_fmt)
       write(stdout,blank_fmt)
       open (nml_in, file=ciso_atm_d13c_filename, status='old',iostat=nml_error)
-      read(nml_in, FMT=*) sglchr,skiplines,ciso_atm_d13c_data_nbval
+      read(nml_in, FMT=*) skiplines,ciso_atm_d13c_data_nbval
       allocate(ciso_atm_d13c_data_yr(ciso_atm_d13c_data_nbval))
       allocate(ciso_atm_d13c_data(ciso_atm_d13c_data_nbval))
       do irec=1,skiplines
@@ -3899,7 +3899,7 @@ end subroutine ciso_compute_particulate_terms
       write(stdout,*)'ciso DI14C calculation: Using varying D14C values from file ',ciso_atm_d14c_filename(:)
       do il=1,3
          open (nml_in, file=ciso_atm_d14c_filename(il), status='old',iostat=nml_error)
-         read(nml_in, FMT=*) sglchr,skiplines,ciso_atm_d14c_data_nbval(il)
+         read(nml_in, FMT=*) skiplines,ciso_atm_d14c_data_nbval(il)
          close(nml_in)
       enddo
 
@@ -3909,7 +3909,7 @@ end subroutine ciso_compute_particulate_terms
 
       do il=1,3
          open (nml_in, file=ciso_atm_d14c_filename(il), status='old',iostat=nml_error)
-         read(nml_in, FMT=*) sglchr,skiplines,ciso_atm_d14c_data_nbval(il)
+         read(nml_in, FMT=*) skiplines,ciso_atm_d14c_data_nbval(il)
          do irec=1,skiplines
             read(nml_in,FMT=*) sglchr
          enddo

@@ -4447,7 +4447,8 @@ Default: '1'
 id="abio_atm_d14c_filename"
 type="char*256(3)" 
 category="passive_tracers"
-group="abio_dic_dic14_nml" >
+group="abio_dic_dic14_nml"
+input_pathname="abs" >
 Default: 
 </entry>
 
@@ -4456,7 +4457,8 @@ Default:
 id="abio_atm_co2_filename"
 type="char*256"
 category="passive_tracers"
-group="abio_dic_dic14_nml" >
+group="abio_dic_dic14_nml"
+input_pathname="abs" >
 Default: 
 </entry>
 
@@ -4640,7 +4642,8 @@ Default:
 id="ciso_atm_d13c_filename"
 type="char*256" 
 category="ecosys"
-group="ecosys_ciso_nml" >
+group="ecosys_ciso_nml"
+input_pathname="abs" >
 Default:  
 </entry>
 
@@ -4648,7 +4651,8 @@ Default:
 id="ciso_atm_d14c_filename"
 type="char*256(3)" 
 category="ecosys"
-group="ecosys_ciso_nml" >
+group="ecosys_ciso_nml"
+input_pathname="abs" >
 Default:  
 </entry>
 
