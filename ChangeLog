@@ -3,6 +3,21 @@ Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    15 September 2014
 Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150915b_cesm_pop_2_1_20140905
+Summary: change abio_atm_co2_const default to CCSM_CO2_PPMV
+Files Modified:
+X                    source/cvmix
+M            63536   bld/namelist_files/namelist_defaults_pop2.xml
+M            63536   bld/build-namelist
+Status against revision:  63537
+
+Performing status on external item at 'source/cvmix'
+Status against revision:    352
+===============================================================================
+Tag Creator: klindsay 
+Developers:  klindsay
+Tag Date:    15 September 2014
+Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150915a_cesm_pop_2_1_20140905
 Summary: introduce data year offsets in abio_dic_dic14_mod.F90 and ecosys_ciso_mod.F90
 Files Modified:
