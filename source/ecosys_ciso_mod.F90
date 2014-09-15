@@ -285,6 +285,8 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::          &
+      ciso_atm_model_year,        &  ! arbitrary model year
+      ciso_atm_data_year,         &  ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
       ciso_atm_d13c_data_nbval,   &  ! number of values in the ciso_atm_d13c_filename
       ciso_atm_d14c_data_nbval_max   ! maximum number of values in the three ciso_atm_d14c_filename's
 
@@ -436,8 +438,7 @@ contains
       ciso_lecovars_full_depth_tavg, &
       ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename, &
       ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename, &
-      ciso_fract_factors
-
+      ciso_fract_factors, ciso_atm_model_year, ciso_atm_data_year
 
    character (char_len) :: &
       ecosys_ciso_restart_filename  ! modified file name for restart file
@@ -607,6 +608,9 @@ contains
 
    ciso_lecovars_full_depth_tavg           = .false.
 
+   ciso_atm_model_year                     = 1
+   ciso_atm_data_year                      = 1
+
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
       if (nml_error /= 0) then
@@ -679,6 +683,9 @@ contains
    call broadcast_scalar(ciso_lecovars_full_depth_tavg, master_task)
 
    call broadcast_scalar(ciso_fract_factors, master_task)
+
+   call broadcast_scalar(ciso_atm_model_year, master_task)
+   call broadcast_scalar(ciso_atm_data_year, master_task)
 
 !-----------------------------------------------------------------------
 !  set variables immediately dependent on namelist variables
@@ -3993,17 +4000,19 @@ end subroutine ciso_compute_particulate_terms
       i, j              ! loop indices
 
    real (r8) :: &
-      model_date,     & ! date of current model timestep mapped to data timeline
+      model_date,     & ! date of current model timestep
+      mapped_date,    & ! model_date mapped to data timeline
       weight            ! weighting for temporal interpolation
 
 
 !-----------------------------------------------------------------------
-!  Generate model_date and check to see if it is too large.
+!  Generate mapped_date and check to see if it is too large.
 !-----------------------------------------------------------------------
 
    model_date = iyear + (iday_of_year-1+frac_day)/days_in_year
+   mapped_date = model_date - ciso_atm_model_year + ciso_atm_data_year
 
-   if (model_date >= ciso_atm_d13c_data_yr(ciso_atm_d13c_data_nbval)) then
+   if (mapped_date >= ciso_atm_d13c_data_yr(ciso_atm_d13c_data_nbval)) then
       call exit_POP(sigAbort, 'ciso: Model date maps to date after end of D13C data in file.')
    endif
 
@@ -4011,7 +4020,7 @@ end subroutine ciso_compute_particulate_terms
 !  Set atmospheric D13C to first value in record for years before record begins
 !--------------------------------------------------------------------------------------------------------------
 
-   if (model_date < ciso_atm_d13c_data_yr(1)) then
+   if (mapped_date < ciso_atm_d13c_data_yr(1)) then
       D13C = ciso_atm_d13c_data(1)
       ciso_data_ind_d13c = 1
          if(my_task == master_task) then
@@ -4032,7 +4041,7 @@ end subroutine ciso_compute_particulate_terms
 
    if (ciso_data_ind_d13c == -1) then
       do ciso_data_ind_d13c = ciso_atm_d13c_data_nbval-1,1,-1
-         if (model_date >= ciso_atm_d13c_data_yr(ciso_data_ind_d13c)) exit
+         if (mapped_date >= ciso_atm_d13c_data_yr(ciso_data_ind_d13c)) exit
       end do
    endif
 
@@ -4042,7 +4051,7 @@ end subroutine ciso_compute_particulate_terms
 !-----------------------------------------------------------------------
 
    if (ciso_data_ind_d13c < ciso_atm_d13c_data_nbval-1) then
-      if (model_date >= ciso_atm_d13c_data_yr(ciso_data_ind_d13c+1)) ciso_data_ind_d13c = ciso_data_ind_d13c + 1
+      if (mapped_date >= ciso_atm_d13c_data_yr(ciso_data_ind_d13c+1)) ciso_data_ind_d13c = ciso_data_ind_d13c + 1
    endif
 
 
@@ -4050,7 +4059,7 @@ end subroutine ciso_compute_particulate_terms
 !  Generate hemisphere values for current time step.
 !-----------------------------------------------------------------------
 
-   weight = (model_date - ciso_atm_d13c_data_yr(ciso_data_ind_d13c)) &
+   weight = (mapped_date - ciso_atm_d13c_data_yr(ciso_data_ind_d13c)) &
             / (ciso_atm_d13c_data_yr(ciso_data_ind_d13c+1) - ciso_atm_d13c_data_yr(ciso_data_ind_d13c))
 
    D13C = weight * ciso_atm_d13c_data(ciso_data_ind_d13c+1) + (c1-weight) * ciso_atm_d13c_data(ciso_data_ind_d13c)
@@ -4110,19 +4119,21 @@ end subroutine ciso_compute_particulate_terms
       i, j, il        ! loop indices
 
    real (r8) :: &
-      model_date,      & ! date of current model timestep mapped to data timeline
+      model_date,      & ! date of current model timestep
+      mapped_date,     & ! model_date mapped to data timeline
       weight,          & ! weighting for temporal interpolation
       d14c_curr_sh,    & ! current atmospheric D14C value for SH (interpolated from data to model date)
       d14c_curr_nh,    & ! current atmospheric D14C value for NH (interpolated from data to model date)
       d14c_curr_eq       ! current atmospheric D14C value for EQ (interpolated from data to model date)
 
 !-----------------------------------------------------------------------
-!  Generate model_date and check to see if it is too large.
+!  Generate mapped_date and check to see if it is too large.
 !-----------------------------------------------------------------------
 
    model_date = iyear + (iday_of_year-1+frac_day)/days_in_year
+   mapped_date = model_date - ciso_atm_model_year + ciso_atm_data_year
    do il=1,3
-   if (model_date >= ciso_atm_d14c_data_yr(ciso_atm_d14c_data_nbval_max,il)) then
+   if (mapped_date >= ciso_atm_d14c_data_yr(ciso_atm_d14c_data_nbval_max,il)) then
       call exit_POP(sigAbort, 'ciso: model date maps to date after end of D14C data in files.')
    endif
    enddo
@@ -4131,7 +4142,7 @@ end subroutine ciso_compute_particulate_terms
 !  Set atmospheric D14C concentrations to zero before D14C record begins
 !--------------------------------------------------------------------------------------------------------------
 
-   if (model_date < ciso_atm_d14c_data_yr(1,1)) then
+   if (mapped_date < ciso_atm_d14c_data_yr(1,1)) then
       D14C = c0
       ciso_data_ind_d14c = 1
       if(my_task == master_task) then
@@ -4146,7 +4157,7 @@ end subroutine ciso_compute_particulate_terms
 
    if (ciso_data_ind_d14c == -1) then
       do ciso_data_ind_d14c = ciso_atm_d14c_data_nbval_max-1,1,-1
-         if (model_date >= ciso_atm_d14c_data_yr(ciso_data_ind_d14c,1)) exit
+         if (mapped_date >= ciso_atm_d14c_data_yr(ciso_data_ind_d14c,1)) exit
       end do
    endif
 
@@ -4156,7 +4167,7 @@ end subroutine ciso_compute_particulate_terms
 !-----------------------------------------------------------------------
 
    if (ciso_data_ind_d14c < ciso_atm_d14c_data_nbval_max-1) then
-      if (model_date >= ciso_atm_d14c_data_yr(ciso_data_ind_d14c+1,1))  then
+      if (mapped_date >= ciso_atm_d14c_data_yr(ciso_data_ind_d14c+1,1))  then
          ciso_data_ind_d14c = ciso_data_ind_d14c + 1
       endif
    endif
@@ -4165,7 +4176,7 @@ end subroutine ciso_compute_particulate_terms
 !  Generate hemisphere values for current time step.
 !-----------------------------------------------------------------------
 
-   weight = (model_date - ciso_atm_d14c_data_yr(ciso_data_ind_d14c,1)) &
+   weight = (mapped_date - ciso_atm_d14c_data_yr(ciso_data_ind_d14c,1)) &
             / (ciso_atm_d14c_data_yr(ciso_data_ind_d14c+1,1) - ciso_atm_d14c_data_yr(ciso_data_ind_d14c,1))
 
    d14c_curr_sh = weight * ciso_atm_d14c_data(ciso_data_ind_d14c+1,1) + &

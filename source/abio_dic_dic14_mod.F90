@@ -107,6 +107,8 @@ module abio_dic_dic14_mod
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::     &
+      abio_dic_dic14_model_year,& !  arbitrary model year
+      abio_dic_dic14_data_year, & !  year in data that corresponds to abio_dic_dic14_model_year
       atm_co2_data_nbval,    &    !  number of values in abio_atm_co2_filename
       atm_d14c_data_nbval_max     !  maximum number of values in the three abio_atm_d14c_filename
 
@@ -321,7 +323,7 @@ contains
       init_abio_dic_dic14_init_file_fmt, abio_surf_avg_dic_const, abio_use_nml_surf_vals, &
       abio_comp_surf_avg_freq_opt, abio_comp_surf_avg_freq, abio_surf_avg_dic14_const, &
       abio_atm_co2_d14c_opt, abio_atm_co2_filename, abio_atm_co2_const, abio_atm_d14c_const, &
-      abio_atm_d14c_filename
+      abio_atm_d14c_filename, abio_dic_dic14_model_year, abio_dic_dic14_data_year
 
 
 !-----------------------------------------------------------------------
@@ -369,6 +371,9 @@ contains
    abio_atm_d14c_filename(1)         = 'unknown'
    abio_atm_d14c_filename(2)         = 'unknown'
    abio_atm_d14c_filename(3)         = 'unknown'
+
+   abio_dic_dic14_model_year         = 1
+   abio_dic_dic14_data_year          = 1
 
 !-----------------------------------------------------------------------
 !  read namelist settings from namelist
@@ -436,6 +441,9 @@ contains
    call broadcast_scalar(abio_surf_avg_dic14_const, master_task)
    call broadcast_scalar(abio_comp_surf_avg_freq_opt, master_task)
    call broadcast_scalar(abio_comp_surf_avg_freq, master_task)
+
+   call broadcast_scalar(abio_dic_dic14_model_year, master_task)
+   call broadcast_scalar(abio_dic_dic14_data_year, master_task)
 
 
 !-----------------------------------------------------------------------
@@ -1578,16 +1586,18 @@ end subroutine abio_dic_dic14_tavg_forcing
       i, j              ! loop indices
 
    real (r8) :: &
-      model_date,     & ! date of current model timestep mapped to data timeline
+      model_date,     & ! date of current model timestep
+      mapped_date,    & ! model_date mapped to data timeline
       weight            ! weighting for temporal interpolation
 
 !-----------------------------------------------------------------------
-!  Generate model_date and check to see if it is too large.
+!  Generate mapped_date and check to see if it is too large.
 !-----------------------------------------------------------------------
 
    model_date = iyear + (iday_of_year-1+frac_day)/days_in_year
+   mapped_date = model_date - abio_dic_dic14_model_year + abio_dic_dic14_data_year
 
-   if (model_date >= atm_co2_data_yr(atm_co2_data_nbval)) then
+   if (mapped_date >= atm_co2_data_yr(atm_co2_data_nbval)) then
       call exit_POP(sigAbort, 'model date maps to date after end of CO2 data in file')
    endif
 
@@ -1595,7 +1605,7 @@ end subroutine abio_dic_dic14_tavg_forcing
 !  Set atmospheric CO2 to first value in record for years before record begins
 !--------------------------------------------------------------------------------------------------------------
 
-   if (model_date < atm_co2_data_yr(1)) then
+   if (mapped_date < atm_co2_data_yr(1)) then
       pCO2 = atm_co2_data_ppm(1)
       data_ind_co2 = 1
       if(my_task == master_task) then
@@ -1610,7 +1620,7 @@ end subroutine abio_dic_dic14_tavg_forcing
 
    if (data_ind_co2 == -1) then
       do data_ind_co2 = atm_co2_data_nbval-1,1,-1
-         if (model_date >= atm_co2_data_yr(data_ind_co2)) exit
+         if (mapped_date >= atm_co2_data_yr(data_ind_co2)) exit
       end do
    endif
 
@@ -1620,7 +1630,7 @@ end subroutine abio_dic_dic14_tavg_forcing
 !-----------------------------------------------------------------------
 
   if (data_ind_co2 < atm_co2_data_nbval-1) then
-      if (model_date >= atm_co2_data_yr(data_ind_co2+1)) data_ind_co2 = data_ind_co2 + 1
+      if (mapped_date >= atm_co2_data_yr(data_ind_co2+1)) data_ind_co2 = data_ind_co2 + 1
   endif
 
 
@@ -1628,7 +1638,7 @@ end subroutine abio_dic_dic14_tavg_forcing
 !  Generate hemisphere values for current time step.
 !-----------------------------------------------------------------------
 
-   weight = (model_date - atm_co2_data_yr(data_ind_co2)) &
+   weight = (mapped_date - atm_co2_data_yr(data_ind_co2)) &
             / (atm_co2_data_yr(data_ind_co2+1) - atm_co2_data_yr(data_ind_co2))
 
    pCO2 = weight * atm_co2_data_ppm(data_ind_co2+1) + (c1-weight) * atm_co2_data_ppm(data_ind_co2)
@@ -1687,19 +1697,21 @@ end subroutine abio_dic_dic14_tavg_forcing
       i, j, il        ! loop indices
 
    real (r8) :: &
-      model_date,   & ! date of current model timestep mapped to data timeline
+      model_date,   & ! date of current model timestep
+      mapped_date,  & ! model_date mapped to data timeline
       weight,       & ! weighting for temporal interpolation
       d14c_curr_sh, & ! current atmospheric D14C value for SH (interpolated from data to model date)
       d14c_curr_nh, & ! current atmospheric D14C value for NH (interpolated from data to model date)
       d14c_curr_eq    ! current atmospheric D14C value for EQ (interpolated from data to model date)
 
 !-----------------------------------------------------------------------
-!  Generate model_date and check to see if it is too large.
+!  Generate mapped_date and check to see if it is too large.
 !-----------------------------------------------------------------------
 
    model_date = iyear + (iday_of_year-1+frac_day)/days_in_year
+   mapped_date = model_date - abio_dic_dic14_model_year + abio_dic_dic14_data_year
    do il=1,3
-   if (model_date >= atm_d14c_data_yr(atm_d14c_data_nbval_max,il)) then
+   if (mapped_date >= atm_d14c_data_yr(atm_d14c_data_nbval_max,il)) then
       call exit_POP(sigAbort, 'model date maps to date after end of D14C data in files.')
    endif
    enddo
@@ -1708,7 +1720,7 @@ end subroutine abio_dic_dic14_tavg_forcing
 !  Set atmospheric D14C concentrations to zero before D14C record begins
 !--------------------------------------------------------------------------------------------------------------
 
-   if (model_date < atm_d14c_data_yr(1,1)) then
+   if (mapped_date < atm_d14c_data_yr(1,1)) then
       D14C = c0
       data_ind_d14c = 1
       if(my_task == master_task) then
@@ -1723,7 +1735,7 @@ end subroutine abio_dic_dic14_tavg_forcing
 
    if (data_ind_d14c == -1) then
       do data_ind_d14c = atm_d14c_data_nbval_max-1,1,-1
-         if (model_date >= atm_d14c_data_yr(data_ind_d14c,1)) exit
+         if (mapped_date >= atm_d14c_data_yr(data_ind_d14c,1)) exit
       end do
    endif
 
@@ -1733,14 +1745,14 @@ end subroutine abio_dic_dic14_tavg_forcing
 !-----------------------------------------------------------------------
 
   if (data_ind_d14c < atm_d14c_data_nbval_max-1) then
-      if (model_date >= atm_d14c_data_yr(data_ind_d14c+1,1)) data_ind_d14c = data_ind_d14c + 1
+      if (mapped_date >= atm_d14c_data_yr(data_ind_d14c+1,1)) data_ind_d14c = data_ind_d14c + 1
   endif
 !
 !-----------------------------------------------------------------------
 !  Generate hemisphere values for current time step.
 !-----------------------------------------------------------------------
 
-   weight = (model_date - atm_d14c_data_yr(data_ind_d14c,1)) &
+   weight = (mapped_date - atm_d14c_data_yr(data_ind_d14c,1)) &
             / (atm_d14c_data_yr(data_ind_d14c+1,1) - atm_d14c_data_yr(data_ind_d14c,1))
 
    d14c_curr_sh = weight * atm_d14c_data(data_ind_d14c+1,1) + (c1-weight) * atm_d14c_data(data_ind_d14c,1)

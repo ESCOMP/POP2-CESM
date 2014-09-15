@@ -4490,6 +4490,26 @@ group="abio_dic_dic14_nml" >
 Default: 
 </entry>
 
+<entry 
+id="abio_dic_dic14_model_year"
+type="integer" 
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Arbitrary model year.
+
+Default: 1
+</entry>
+
+<entry 
+id="abio_dic_dic14_data_year"
+type="integer" 
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Year in data that corresponds to abio_dic_dic14_model_year.
+
+Default: 1
+</entry>
+
 
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -4671,6 +4691,26 @@ type="logical"
 category="ecosys"
 group="ecosys_ciso_nml" >
 Default:  
+</entry>
+
+<entry 
+id="ciso_atm_model_year"
+type="integer" 
+category="passive_tracers"
+group="ecosys_ciso_nml" >
+Arbitrary model year.
+
+Default: 1
+</entry>
+
+<entry 
+id="ciso_atm_data_year"
+type="integer" 
+category="passive_tracers"
+group="ecosys_ciso_nml" >
+Year in atm data that corresponds to ciso_atm_model_year.
+
+Default: 1
 </entry>
 
 

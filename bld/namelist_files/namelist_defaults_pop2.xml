@@ -849,6 +849,9 @@
 
 <abio_atm_co2_const>277.62</abio_atm_co2_const>
 
+<abio_dic_dic14_model_year>1</abio_dic_dic14_model_year>
+<abio_dic_dic14_data_year>1</abio_dic_dic14_data_year>
+
 <!---------------------------->
 <!--       ecosys_ciso_nml  -->
 <!---------------------------->
@@ -945,6 +948,9 @@
 <ciso_atm_d14c_filename(3)>ocn/pop/res_indpt/forcing/c14nth_HG09_20140912.dat</ciso_atm_d14c_filename(3)>
 
 <ciso_fract_factors>Laws</ciso_fract_factors>
+
+<ciso_atm_model_year>1</ciso_atm_model_year>
+<ciso_atm_data_year>1</ciso_atm_data_year>
 
 
 <!---------------------------->
