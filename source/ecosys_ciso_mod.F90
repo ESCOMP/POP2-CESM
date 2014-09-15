@@ -1670,7 +1670,7 @@ contains
   !$OMP END PARALLEL DO
 
 !-----------------------------------------------------------------------
-   !$OMP PARALLEL DO PRIVATE(iblock, j, D13C, R13C_atm,   &
+   !$OMP PARALLEL DO PRIVATE(iblock, j, this_block, ib, ie, jb, je, D13C, R13C_atm,   &
    !$OMP                     DI13C_ROW, R13C_DIC_surf, FLUX13, FLUX13_as, &
    !$OMP                     FLUX13_sa, D14C, R14C_atm, DI14C_ROW, &
    !$OMP                     R14C_DIC_surf, FLUX14, FLUX14_as, FLUX14_sa, &
