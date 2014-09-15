@@ -3994,8 +3994,7 @@ end subroutine ciso_compute_particulate_terms
 
    real (r8) :: &
       model_date,     & ! date of current model timestep mapped to data timeline
-      weight,         & ! weighting for temporal interpolation
-      d13c_curr          ! current D13c value (interpolated from data to model date)
+      weight            ! weighting for temporal interpolation
 
 
 !-----------------------------------------------------------------------
@@ -4054,7 +4053,7 @@ end subroutine ciso_compute_particulate_terms
    weight = (model_date - ciso_atm_d13c_data_yr(ciso_data_ind_d13c)) &
             / (ciso_atm_d13c_data_yr(ciso_data_ind_d13c+1) - ciso_atm_d13c_data_yr(ciso_data_ind_d13c))
 
-   d13c_curr = weight * ciso_atm_d13c_data(ciso_data_ind_d13c+1) + (c1-weight) * ciso_atm_d13c_data(ciso_data_ind_d13c)
+   D13C = weight * ciso_atm_d13c_data(ciso_data_ind_d13c+1) + (c1-weight) * ciso_atm_d13c_data(ciso_data_ind_d13c)
 
 !-----------------------------------------------------------------------
 !EOC

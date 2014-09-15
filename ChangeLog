@@ -3,6 +3,21 @@ Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    14 September 2014
 Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150914b_cesm_pop_2_1_20140905
+Summary: fix bug of D13C not being set in ciso_comp_varying_D13C
+Files Modified:
+X                    source/cvmix
+M            63502   source/ecosys_ciso_mod.F90
+M            63502   ChangeLog
+Status against revision:  63502
+
+Performing status on external item at 'source/cvmix'
+Status against revision:    352
+===============================================================================
+Tag Creator: klindsay 
+Developers:  klindsay
+Tag Date:    14 September 2014
+Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150914a_cesm_pop_2_1_20140905
 Summary: update datafiles and their handling
 More details:
