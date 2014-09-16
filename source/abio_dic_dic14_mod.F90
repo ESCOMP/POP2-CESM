@@ -672,80 +672,95 @@ contains
 
    call define_tavg_field(tavg_ABIO_CO2_IFRAC,'ABIO_CO2_IFRAC',2,         &
                           long_name='Ice Fraction for Abiotic CO2 fluxes',&
-                          units='fraction', grid_loc='2110')
+                          units='fraction', grid_loc='2110',              &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_ABIO_CO2_XKW,'ABIO_CO2_XKW',2,             &
                           long_name='XKW for Abiotic CO2 fluxes',         &
-                          units='cm/s', grid_loc='2110')
+                          units='cm/s', grid_loc='2110',                  &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_ABIO_CO2_ATM_PRESS,'ABIO_CO2_ATM_PRESS',2,         &
                           long_name='Atmospheric Pressure for Abiotic CO2 fluxes',&
-                          units='atmospheres', grid_loc='2110')
+                          units='atmospheres', grid_loc='2110',                   &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_ABIO_pCO2,'ABIO_pCO2',2,                        &
                           long_name='Abiotic CO2 atmospheric partial pressure',&
-                          units='ppm', grid_loc='2110')
+                          units='ppm', grid_loc='2110',                        &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_ABIO_D14Catm,'ABIO_D14Catm',2,                 &
                           long_name='Abiotic atmospheric Delta C14 in permil',&
-                          units='permil', grid_loc='2110')
+                          units='permil', grid_loc='2110',                    &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
 
    call define_tavg_field(tavg_ABIO_CO2_SCHMIDT,'ABIO_CO2_SCHMIDT',2,   &
                           long_name='Abiotic CO2 Schmidt Number',       &
-                          units='none', grid_loc='2110')
+                          units='none', grid_loc='2110',                &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_ABIO_CO2_PV,'ABIO_CO2_PV',2,             &
                           long_name='Abiotic CO2 piston velocity',      &
-                          units='cm/s', grid_loc='2110')
+                          units='cm/s', grid_loc='2110',                &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
 
    call define_tavg_field(tavg_ABIO_CO2STAR,'ABIO_CO2STAR',2, &
                           long_name='ABIO_CO2STAR',           &
-                          units='nmol/cm^3', grid_loc='2110')
+                          units='nmol/cm^3', grid_loc='2110', &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_ABIO_DCO2STAR,'ABIO_DCO2STAR',2, &
                           long_name='ABIO_DCO2STAR',            &
-                          units='nmol/cm^3', grid_loc='2110')
+                          units='nmol/cm^3', grid_loc='2110',   &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_ABIO_pCO2SURF,'ABIO_pCO2SURF',2, &
                           long_name='ABIO_pCO2SURF',            &
-                          units='ppmv', grid_loc='2110')
+                          units='ppmv', grid_loc='2110',        &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_ABIO_DpCO2,'ABIO_DpCO2',2, &
                           long_name='ABIO_DpCO2',         &
-                          units='ppmv', grid_loc='2110')
+                          units='ppmv', grid_loc='2110',  &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_ABIO_PH,'ABIO_PH_SURF',2, &
                           long_name='Abiotic Surface PH',&
-                          units='none', grid_loc='2110')
+                          units='none', grid_loc='2110', &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_ABIO_ALK,'ABIO_ALK_SURF',2,       &
                           long_name='Abiotic Surface Alkalinity',&
-                          units='neq/cm3', grid_loc='2110')
+                          units='neq/cm3', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
 
    call define_tavg_field(tavg_FG_ABIO_DIC,'FG_ABIO_DIC',2,           &
                           long_name='Surface gas flux of abiotic DIC',&
-                          units='nmol/cm^2/s', grid_loc='2110')
+                          units='nmol/cm^2/s', grid_loc='2110',       &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_FG_ABIO_DIC14,'FG_ABIO_DIC14',2,         &
                           long_name='Surface gas flux of abiotic DIC14',&
-                          units='nmol/cm^2/s', grid_loc='2110')
+                          units='nmol/cm^2/s', grid_loc='2110',         &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
 
@@ -763,7 +778,8 @@ contains
 
   call define_tavg_field(tavg_ABIO_D14Cocn,'ABIO_D14Cocn',3,              &
                           long_name='Abiotic oceanic Delta C14 in permil',&
-                          units='permil', grid_loc='2110')
+                          units='permil', grid_loc='3111',                &
+                          coordinates='TLONG TLAT z_t time')
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1423,7 +1439,7 @@ end subroutine abio_dic_dic14_tavg_forcing
    endif
 
 !---------------------------------------------------------------------
-!     Need to accocate and broadcast the variables to other tasks beside master-task
+!     Need to allocate and broadcast the variables to other tasks beside master-task
 !---------------------------------------------------------------------
 
    call broadcast_scalar(atm_co2_data_nbval,master_task)
@@ -1523,7 +1539,7 @@ end subroutine abio_dic_dic14_tavg_forcing
 
 
 !---------------------------------------------------------------------
-!     Need to accocate and broadcast the variables to other tasks beside master-task
+!     Need to allocate and broadcast the variables to other tasks beside master-task
 !---------------------------------------------------------------------
 
    call broadcast_scalar(atm_d14c_data_nbval_max, master_task)

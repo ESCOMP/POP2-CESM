@@ -147,6 +147,9 @@
       ecosys_write_restart,         &
       ecosys_qsw_distrb_const
 
+!EOP
+!BOC
+
 !-----------------------------------------------------------------------
 !  module variables required by forcing_passive_tracer
 !-----------------------------------------------------------------------
@@ -594,6 +597,7 @@
       phhi_3d_init = 9.0_r8,   & ! high bound for subsurface ph for no prev soln
       del_ph = 0.20_r8           ! delta-ph for prev soln
 
+!EOC
 !*****************************************************************************
 
 contains

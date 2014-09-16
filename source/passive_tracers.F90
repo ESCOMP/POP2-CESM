@@ -106,7 +106,7 @@
       passive_tracers_send_time,              &
       tracer_ref_val,                         &
       tadvect_ctype_passive_tracers,          &
-      ecosys_on, ciso_on, moby_on
+      ecosys_on
 
 !EOP
 !BOC
@@ -312,7 +312,7 @@
 !  count in all ecosys modules --> done in ecosys_driver
 !-----------------------------------------------------------------------
    if (ecosys_on) then
-      call ecosys_driver_tracer_cnt_init(ciso_on,ecosys_driver_tracer_cnt)
+      call ecosys_driver_tracer_cnt_init(ciso_on)
    end if
 
 

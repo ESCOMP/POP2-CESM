@@ -105,7 +105,7 @@
 ! !IROUTINE: ecosys_driver_tracer_cnt_init
 ! !INTERFACE:
 
- subroutine ecosys_driver_tracer_cnt_init(ciso_on,ecosys_driver_tracer_cnt)
+ subroutine ecosys_driver_tracer_cnt_init(ciso_on)
 
 ! !DESCRIPTION:
 !  Zero-level initialization of ecosys_driver,
@@ -118,18 +118,6 @@
 
    logical (kind=log_kind), intent(in)  ::  &
      ciso_on                 ! ecosys_ciso on
-
-! !INPUT/OUTPUT PARAMETERS:
-
-
-! !OUTPUT PARAMETERS:
-
- integer (int_kind), intent(out) :: &
-      ecosys_driver_tracer_cnt
-
-
-!EOP
-!BOC
 
 !EOP
 !BOC
@@ -198,9 +186,6 @@
 
    integer (POP_i4), intent(out) :: &
       errorCode
-
-!EOP
-!BOC
 
 !EOP
 !BOC

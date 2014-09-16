@@ -90,6 +90,10 @@
       ecosys_ciso_tavg_forcing,          &
       ecosys_ciso_set_interior,          &
       ecosys_ciso_write_restart
+
+!EOP
+!BOC
+
 !-----------------------------------------------------------------------
 !  module variables required by forcing_passive_tracer
 !-----------------------------------------------------------------------
@@ -332,6 +336,7 @@
       R13C_std = 1.0_r8,    & ! actual 13C/12C PDB standard ratio (Craig, 1957) = 1123.72e-5_r8
       R14C_std = 1.0_r8       ! actual 14C/12C NOSAMS standard ratio = 11.76e-13_r8
 
+!EOC
 !*****************************************************************************
 
 contains
@@ -1250,7 +1255,7 @@ contains
 
    call define_tavg_field(tavg_CISO_photo13C_TOT_zint,'CISO_photo13C_TOT_zint',2,&
                           long_name='Total 13C Fixation Vertical Integral',      &
-                          units='mmol/m^3 cm/s', grid_loc='2111',                &
+                          units='mmol/m^3 cm/s', grid_loc='2110',                &
                           coordinates='TLONG TLAT time')
 
 
@@ -1268,7 +1273,7 @@ contains
 
    call define_tavg_field(tavg_CISO_photo14C_TOT_zint,'CISO_photo14C_TOT_zint',2,&
                           long_name='Total 14C Fixation Vertical Integral',      &
-                          units='mmol/m^3 cm/s', grid_loc='2111',                &
+                          units='mmol/m^3 cm/s', grid_loc='2110',                &
                           coordinates='TLONG TLAT time')
 
 
@@ -1335,13 +1340,13 @@ contains
       call define_tavg_field(tavg_CISO_photo13C(auto_ind), &
                              'CISO_photo13C_' // trim(autotrophs(auto_ind)%sname), 3, &
                              long_name=trim(autotrophs(auto_ind)%lname) // ' 13C Fixation', &
-                             units='mmol/m^3/s', grid_loc='3111', &
+                             units='mmol/m^3/s', grid_loc='3114', &
                              coordinates='TLONG TLAT z_t_150m time')
 
       call define_tavg_field(tavg_CISO_photo13C_zint(auto_ind), &
                              'CISO_photo13C_' // trim(autotrophs(auto_ind)%sname) // '_zint', 2, &
                              long_name=trim(autotrophs(auto_ind)%lname) // ' 13C Fixation Vertical Integral', &
-                             units='mmol/m^3 cm/s', grid_loc='2111', &
+                             units='mmol/m^3 cm/s', grid_loc='2110', &
                              coordinates='TLONG TLAT time')
 
       call define_tavg_field(tavg_CISO_eps_autotroph(auto_ind), &
@@ -1360,7 +1365,7 @@ contains
       call define_tavg_field(tavg_CISO_photo14C(auto_ind), &
                              'CISO_photo14C_' // trim(autotrophs(auto_ind)%sname), 3, &
                              long_name=trim(autotrophs(auto_ind)%lname) // ' 14C Fixation', &
-                             units='mmol/m^3/s', grid_loc='3111', &
+                             units='mmol/m^3/s', grid_loc='3114', &
                              coordinates='TLONG TLAT z_t_150m time')
 
       call define_tavg_field(tavg_CISO_d14C(auto_ind), &
@@ -1378,7 +1383,7 @@ contains
       call define_tavg_field(tavg_CISO_photo14C_zint(auto_ind), &
                              'CISO_photo14C_' // trim(autotrophs(auto_ind)%sname) // '_zint', 2, &
                              long_name=trim(autotrophs(auto_ind)%lname) // ' 14C Fixation Vertical Integral', &
-                             units='mmol/m^3 cm/s', grid_loc='2111', &
+                             units='mmol/m^3 cm/s', grid_loc='2110', &
                              coordinates='TLONG TLAT time')
 
 
@@ -1496,7 +1501,7 @@ contains
    endif
 
 !-----------------------------------------------------------------------
-!     READ in D13C data from files
+!     READ in D14C data from files
 !-----------------------------------------------------------------------
 
    case('file')
@@ -3089,6 +3094,9 @@ contains
 
     real (r8), dimension (nx_block,ny_block), intent(out) :: &
       eps_p                 ! = d13C(co2(aq)) - d13C(phyto)
+
+!EOP
+!BOC
 !-----------------------------------------------------------------------
 !  local variables and parameters
 !-----------------------------------------------------------------------
@@ -3765,6 +3773,7 @@ end subroutine ciso_compute_particulate_terms
  end subroutine ciso_tavg_particulate_terms
 
 !***********************************************************************
+!BOP
 ! !IROUTINE: ciso_read_atm_D13C_data
 ! !INTERFACE:
 
@@ -3836,7 +3845,7 @@ end subroutine ciso_compute_particulate_terms
    endif
 
 !---------------------------------------------------------------------
-!     Need to accocate and broadcast the variables to other tasks beside master-task
+!     Need to allocate and broadcast the variables to other tasks beside master-task
 !---------------------------------------------------------------------
 
    call broadcast_scalar(ciso_atm_d13c_data_nbval,master_task)
@@ -3857,6 +3866,7 @@ end subroutine ciso_compute_particulate_terms
  end subroutine ciso_read_atm_D13C_data
 
 !***********************************************************************
+!BOP
 ! !IROUTINE: ciso_read_atm_D14C_data
 ! !INTERFACE:
 
@@ -3936,7 +3946,7 @@ end subroutine ciso_compute_particulate_terms
 
 
 !---------------------------------------------------------------------
-!     Need to accocate and broadcast the variables to other tasks beside master-task
+!     Need to allocate and broadcast the variables to other tasks beside master-task
 !---------------------------------------------------------------------
 
    call broadcast_scalar(ciso_atm_d14c_data_nbval_max, master_task)
@@ -3958,6 +3968,7 @@ end subroutine ciso_compute_particulate_terms
 
 
 !***********************************************************************
+!BOP
 ! !IROUTINE: ciso_comp_varying_D13C
 ! !INTERFACE:
 
@@ -4070,6 +4081,7 @@ end subroutine ciso_compute_particulate_terms
  end subroutine ciso_comp_varying_D13C
 
 !***********************************************************************
+!BOP
 ! !IROUTINE: ciso_comp_varying_D14C
 ! !INTERFACE:
 

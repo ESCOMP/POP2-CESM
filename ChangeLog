@@ -3,6 +3,32 @@ Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    15 September 2014
 Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150915c_cesm_pop_2_1_20140905
+Summary: misc code cleanup, see ChangeLog for details
+Details:
+1) fix ProTex comments (in cfc_mod.F90 too)
+2) remove ecosys_driver_tracer_cnt argument from ecosys_driver_tracer_cnt_init
+3) remove public attribute from ciso_on, moby_on
+4) fix grid_loc and coordinates metadata (in cfc_mod.F90 too)
+5) fix typos in comments
+Files Modified:
+M            63536   source/abio_dic_dic14_mod.F90
+X                    source/cvmix
+M            63524   source/cfc_mod.F90
+M            63524   source/passive_tracers.F90
+M            63524   source/ecosys_mod.F90
+M            63524   source/ecosys_driver.F90
+M            63536   source/ecosys_ciso_mod.F90
+M            63538   ChangeLog
+Status against revision:  63539
+
+Performing status on external item at 'source/cvmix'
+Status against revision:    352
+===============================================================================
+Tag Creator: klindsay 
+Developers:  klindsay
+Tag Date:    15 September 2014
+Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150915b_cesm_pop_2_1_20140905
 Summary: change abio_atm_co2_const default to CCSM_CO2_PPMV
 Files Modified:
