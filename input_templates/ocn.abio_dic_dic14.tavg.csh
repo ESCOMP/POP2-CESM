@@ -25,11 +25,6 @@ $s1  FvICE_ABIO_DIC14
 $s1  FvPER_ABIO_DIC14
 $s1  FG_ABIO_DIC14
 $s1  FG_ABIO_DIC
-$s1  ABIO_CO2_IFRAC
-$s1  ABIO_CO2_XKW
-$s1  ABIO_CO2_ATM_PRESS
-$s1  ABIO_CO2_SCHMIDT
-$s1  ABIO_CO2_PV
 $s1  ABIO_pCO2SURF
 $s1  ABIO_DCO2STAR
 $s1  ABIO_CO2STAR
@@ -38,16 +33,10 @@ $s1  ABIO_pCO2
 $s1  ABIO_D14Catm
 $s1  ABIO_ALK_SURF
 $s1  ABIO_PH_SURF
-$s1  ABIO_DIC_SURF
-$s1  ABIO_DIC14_SURF
 $s1  STF_ABIO_DIC
 $s1  STF_ABIO_DIC14
-$s1  J_ABIO_DIC
 $s1  J_ABIO_DIC14
-$s1  Jint_ABIO_DIC
 $s1  Jint_ABIO_DIC14
-$s1  RESID_ABIO_DIC 
-$s1  RESID_ABIO_DIC14 
 EOF
 
 if ($OCN_TAVG_TRACER_BUDGET == TRUE) then
@@ -74,6 +63,6 @@ endif
 #===============================================================================
 # The following are fields computed by the CFC modules that are not placed in
 # the tavg file by default.
-# $s1 $s1  Jint_100m_DIC
-# $s1 $s1  Jint_100m_DIC14
+# $s1  Jint_100m_DIC
+# $s1  Jint_100m_DIC14
 #===============================================================================

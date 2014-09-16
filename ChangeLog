@@ -3,6 +3,22 @@ Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    15 September 2014
 Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150915d_cesm_pop_2_1_20140905
+Summary: prune unnecessary tavg variables
+Files Modified:
+X                    source/cvmix
+M            63540   ChangeLog
+M            63524   input_templates/ocn.ciso.tavg.csh
+M            63524   input_templates/ocn.abio_dic_dic14.tavg.csh
+Status against revision:  63541
+
+Performing status on external item at 'source/cvmix'
+Status against revision:    352
+===============================================================================
+Tag Creator: klindsay 
+Developers:  klindsay
+Tag Date:    15 September 2014
+Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150915c_cesm_pop_2_1_20140905
 Summary: misc code cleanup, see ChangeLog for details
 Details:
