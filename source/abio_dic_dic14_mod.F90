@@ -110,7 +110,7 @@ module abio_dic_dic14_mod
       abio_dic_dic14_model_year,& !  arbitrary model year
       abio_dic_dic14_data_year, & !  year in data that corresponds to abio_dic_dic14_model_year
       atm_co2_data_nbval,    &    !  number of values in abio_atm_co2_filename
-      atm_d14c_data_nbval_max     !  maximum number of values in the three abio_atm_d14c_filename
+      atm_d14c_data_nbval         !  number of values in abio_atm_d14c_filename
 
 
    real (r8), dimension(:), allocatable :: &
@@ -185,8 +185,8 @@ module abio_dic_dic14_mod
 !-----------------------------------------------------------------------
 !  data_ind_co2/data_ind_d14c is the index for the CO2/D14C data for the
 !  current timestep
-!  Note that data_ind_co2/data_ind_d14c is always less than co2_data_len
-!  /d14c_data_len.
+!  Note that data_ind_co2/data_ind_d14c is always less than atm_co2_data_nbval
+!  /atm_d14c_data_nbval.
 !  To enable OpenMP parallelism, duplicating data_ind for each block
 !-----------------------------------------------------------------------
 
@@ -1404,7 +1404,7 @@ end subroutine abio_dic_dic14_tavg_forcing
    character(*), parameter :: sub_name = 'abio_dic_dci14_mod:read_atm_CO2_data'
 
    integer (int_kind) ::    &
-      nml_error,            &  ! namelist i/o error flag
+      stat,                 &  ! i/o status code
       irec,                 &  ! counter for looping
       skiplines,            &  ! number of comment lines at beginning of ascii file
       il                       ! looping index
@@ -1417,29 +1417,42 @@ end subroutine abio_dic_dic14_tavg_forcing
 !     READ in CO2 data from file
 !-----------------------------------------------------------------------
    if (my_task == master_task) then
-      write(stdout,*)'Abiotic DIC calculation: Using varying CO2 values from file ',abio_atm_co2_filename
-      open (nml_in, file=abio_atm_co2_filename, status='old',iostat=nml_error)
-      read(nml_in, FMT=*) skiplines,atm_co2_data_nbval
+      write(stdout,*)'Abiotic DIC calculation: Using varying CO2 values from file ',trim(abio_atm_co2_filename)
+      open (nml_in, file=abio_atm_co2_filename, status='old',iostat=stat)
+      if (stat /= 0) then
+         write(stdout,fmt=*) 'open failed'
+         go to 99
+      endif
+      read(nml_in,FMT=*,iostat=stat) skiplines,atm_co2_data_nbval
+      if (stat /= 0) then
+         write(stdout,fmt=*) '1st line read failed'
+         go to 99
+      endif
       allocate(atm_co2_data_yr(atm_co2_data_nbval))
       allocate(atm_co2_data_ppm(atm_co2_data_nbval))
       do irec=1,skiplines
-         read(nml_in,FMT=*) sglchr
+         read(nml_in,FMT=*,iostat=stat) sglchr
+         if (stat /= 0) then
+            write(stdout,fmt=*) 'skipline read failed'
+            go to 99
+         endif
       enddo
       do irec=1,atm_co2_data_nbval
-         read(nml_in,FMT=*) atm_co2_data_yr(irec), atm_co2_data_ppm(irec)
+         read(nml_in,FMT=*,iostat=stat) atm_co2_data_yr(irec), atm_co2_data_ppm(irec)
+         if (stat /= 0) then
+            write(stdout,fmt=*) 'data read failed'
+            go to 99
+         endif
       enddo
       close(nml_in)
-
-
-      if (nml_error /= 0) then
-         call document(sub_name, 'Atmospheric CO2 data file for abiotic DIC not found')
-         call exit_POP(sigAbort, 'stopping in ' /&
-                                  &/ sub_name)
-      endif
    endif
 
+99 call broadcast_scalar(stat, master_task)
+   if (stat /= 0) call exit_POP(sigAbort, 'stopping in ' /&
+                                                          &/ sub_name)
+
 !---------------------------------------------------------------------
-!     Need to allocate and broadcast the variables to other tasks beside master-task
+! Need to allocate and broadcast the variables to other tasks beside master_task
 !---------------------------------------------------------------------
 
    call broadcast_scalar(atm_co2_data_nbval,master_task)
@@ -1448,7 +1461,6 @@ end subroutine abio_dic_dic14_tavg_forcing
       allocate(atm_co2_data_yr(atm_co2_data_nbval))
       allocate(atm_co2_data_ppm(atm_co2_data_nbval))
    endif
-
 
    call broadcast_array(atm_co2_data_ppm, master_task)
    call broadcast_array(atm_co2_data_yr, master_task)
@@ -1490,7 +1502,7 @@ end subroutine abio_dic_dic14_tavg_forcing
    character(*), parameter :: sub_name = 'abio_dic_dci14_mod:read_atm_D14C_data'
 
    integer (int_kind) ::      &
-      nml_error,              &  ! namelist i/o error flag
+      stat,                   &  ! i/o status code
       irec,                   &  ! counter for looping
       skiplines,              &  ! number of comment lines at beginning of ascii file
       il                         ! looping index
@@ -1498,57 +1510,94 @@ end subroutine abio_dic_dic14_tavg_forcing
    character (char_len) ::  &
       sglchr                     ! variable to read characters from file into
 
-   integer (int_kind), dimension(3) :: &
-      atm_d14c_data_nbval        !  number of values in abio_atm_d14c_filename (for three files)
+   integer (int_kind) :: &
+      atm_d14c_data_nbval_tmp
 
+   logical (log_kind) :: &
+      nbval_mismatch
+
+!-----------------------------------------------------------------------
+!     ensure that three datafiles have same number of entries
+!-----------------------------------------------------------------------
+
+   if (my_task == master_task) then
+      write(stdout,*)'Abiotic DIC14 calculation: Using varying C14 values from files'
+      do il=1,3
+         write(stdout,*) trim(abio_atm_d14c_filename(il))
+      enddo
+      nbval_mismatch = .false.
+      do il=1,3
+         open (nml_in,file=abio_atm_d14c_filename(il),status='old',iostat=stat)
+         if (stat /= 0) then
+            write(stdout,*) 'open failed for ', trim(abio_atm_d14c_filename(il))
+            go to 99
+         endif
+         read(nml_in,FMT=*,iostat=stat) skiplines,atm_d14c_data_nbval_tmp
+         if (stat /= 0) then
+            write(stdout,*) '1st line read failed for ', trim(abio_atm_d14c_filename(il))
+            go to 99
+         endif
+         close(nml_in)
+         if (il == 1) then
+            atm_d14c_data_nbval = atm_d14c_data_nbval_tmp
+         else
+            if (atm_d14c_data_nbval /= atm_d14c_data_nbval_tmp) nbval_mismatch = .true.
+         endif
+      enddo
+   endif
+
+   call broadcast_scalar(nbval_mismatch, master_task)
+   if (nbval_mismatch) then
+      call document(sub_name, 'D14C data files must all have the same number of values')
+      call exit_POP(sigAbort, 'stopping in ' /&
+                             &/ sub_name)
+   endif
+
+   call broadcast_scalar(atm_d14c_data_nbval, master_task)
+   allocate(atm_d14c_data_yr(atm_d14c_data_nbval,3))
+   allocate(atm_d14c_data(atm_d14c_data_nbval,3))
 
 !-----------------------------------------------------------------------
 !     READ in C14 data from files - three files, for SH, EQ, NH
 !-----------------------------------------------------------------------
+
    if (my_task == master_task) then
-      write(stdout,*)'Abiotic DIC14 calculation: Using varying C14 values from file ',abio_atm_d14c_filename(:)
       do il=1,3
-         open (nml_in, file=abio_atm_d14c_filename(il), status='old',iostat=nml_error)
-         read(nml_in, FMT=*) skiplines,atm_d14c_data_nbval(il)
-         close(nml_in)
-      enddo
-
-      atm_d14c_data_nbval_max = max(atm_d14c_data_nbval(1),atm_d14c_data_nbval(2),atm_d14c_data_nbval(3))
-      allocate(atm_d14c_data_yr(atm_d14c_data_nbval_max,3))
-      allocate(atm_d14c_data(atm_d14c_data_nbval_max,3))
-
-      do il=1,3
-         open (nml_in, file=abio_atm_d14c_filename(il), status='old',iostat=nml_error)
-         read(nml_in, FMT=*) skiplines,atm_d14c_data_nbval(il)
+         open (nml_in,file=abio_atm_d14c_filename(il),status='old',iostat=stat)
+         if (stat /= 0) then
+            write(stdout,*) 'open failed for ', trim(abio_atm_d14c_filename(il))
+            go to 99
+         endif
+         read(nml_in,FMT=*,iostat=stat) skiplines,atm_d14c_data_nbval_tmp
+         if (stat /= 0) then
+            write(stdout,*) '1st line read failed for ', trim(abio_atm_d14c_filename(il))
+            go to 99
+         endif
          do irec=1,skiplines
-            read(nml_in,FMT=*) sglchr
+            read(nml_in,FMT=*,iostat=stat) sglchr
+            if (stat /= 0) then
+               write(stdout,fmt=*) 'skipline read failed for ', trim(abio_atm_d14c_filename(il))
+               go to 99
+            endif
          enddo
-         do irec=1,atm_d14c_data_nbval(il)
-            read(nml_in,FMT=*) atm_d14c_data_yr(irec,il), atm_d14c_data(irec,il)
+         do irec=1,atm_d14c_data_nbval
+            read(nml_in,FMT=*,iostat=stat) atm_d14c_data_yr(irec,il), atm_d14c_data(irec,il)
+            if (stat /= 0) then
+               write(stdout,fmt=*) 'data read failed for ', trim(abio_atm_d14c_filename(il))
+               go to 99
+            endif
          enddo
          close(nml_in)
       enddo
-
-      if (nml_error /= 0) then
-         call document(sub_name, 'Atmospheric D14C data files for abiotic DIC not found')
-         call exit_POP(sigAbort, 'stopping in ' /&
-                                &/ sub_name)
-      endif
-
    endif
 
+99 call broadcast_scalar(stat, master_task)
+   if (stat /= 0) call exit_POP(sigAbort, 'stopping in ' /&
+                                                          &/ sub_name)
 
 !---------------------------------------------------------------------
-!     Need to allocate and broadcast the variables to other tasks beside master-task
+! Broadcast the variables to other tasks beside master_task
 !---------------------------------------------------------------------
-
-   call broadcast_scalar(atm_d14c_data_nbval_max, master_task)
-
-   if (my_task /= master_task) then
-      allocate(atm_d14c_data(atm_d14c_data_nbval_max,3))
-      allocate(atm_d14c_data_yr(atm_d14c_data_nbval_max,3))
-   endif
-
 
    call broadcast_array(atm_d14c_data, master_task)
    call broadcast_array(atm_d14c_data_yr, master_task)
@@ -1727,7 +1776,7 @@ end subroutine abio_dic_dic14_tavg_forcing
    model_date = iyear + (iday_of_year-1+frac_day)/days_in_year
    mapped_date = model_date - abio_dic_dic14_model_year + abio_dic_dic14_data_year
    do il=1,3
-   if (mapped_date >= atm_d14c_data_yr(atm_d14c_data_nbval_max,il)) then
+   if (mapped_date >= atm_d14c_data_yr(atm_d14c_data_nbval,il)) then
       call exit_POP(sigAbort, 'model date maps to date after end of D14C data in files.')
    endif
    enddo
@@ -1750,7 +1799,7 @@ end subroutine abio_dic_dic14_tavg_forcing
 !-----------------------------------------------------------------------
 
    if (data_ind_d14c == -1) then
-      do data_ind_d14c = atm_d14c_data_nbval_max-1,1,-1
+      do data_ind_d14c = atm_d14c_data_nbval-1,1,-1
          if (mapped_date >= atm_d14c_data_yr(data_ind_d14c,1)) exit
       end do
    endif
@@ -1760,7 +1809,7 @@ end subroutine abio_dic_dic14_tavg_forcing
 !  but do not set it to atm_co2_data_nbval.
 !-----------------------------------------------------------------------
 
-  if (data_ind_d14c < atm_d14c_data_nbval_max-1) then
+  if (data_ind_d14c < atm_d14c_data_nbval-1) then
       if (mapped_date >= atm_d14c_data_yr(data_ind_d14c+1,1)) data_ind_d14c = data_ind_d14c + 1
   endif
 !

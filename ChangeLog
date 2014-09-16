@@ -1,6 +1,22 @@
 ===============================================================================
 Tag Creator: klindsay 
 Developers:  klindsay
+Tag Date:    16 September 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150916_cesm_pop_2_1_20140905
+Summary: improve error handling when reading datafiles
+Files Modified:
+M            63540   source/abio_dic_dic14_mod.F90
+X                    source/cvmix
+M            63540   source/ecosys_ciso_mod.F90
+M            63542   ChangeLog
+Status against revision:  63581
+
+Performing status on external item at 'source/cvmix'
+Status against revision:    352
+===============================================================================
+Tag Creator: klindsay 
+Developers:  klindsay
 Tag Date:    15 September 2014
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150915d_cesm_pop_2_1_20140905

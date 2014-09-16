@@ -291,8 +291,8 @@
    integer (int_kind) ::          &
       ciso_atm_model_year,        &  ! arbitrary model year
       ciso_atm_data_year,         &  ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
-      ciso_atm_d13c_data_nbval,   &  ! number of values in the ciso_atm_d13c_filename
-      ciso_atm_d14c_data_nbval_max   ! maximum number of values in the three ciso_atm_d14c_filename's
+      ciso_atm_d13c_data_nbval,   &  ! number of values in ciso_atm_d13c_filename
+      ciso_atm_d14c_data_nbval       ! number of values in ciso_atm_d14c_filename
 
    real (r8), dimension(:) , allocatable :: &
       ciso_atm_d13c_data,    &    !  atmospheric D13C values in datafile
@@ -3804,7 +3804,7 @@ end subroutine ciso_compute_particulate_terms
    character(*), parameter :: sub_name = 'ecosys_ciso_mod:ciso_read_atm_D13C_data'
 
    integer (int_kind) ::    &
-      nml_error,            &  ! namelist i/o error flag
+      stat,                 &  ! i/o status code
       irec,                 &  ! counter for looping
       skiplines,            &  ! number of comment lines at beginning of ascii file
       il                       ! looping index
@@ -3820,29 +3820,42 @@ end subroutine ciso_compute_particulate_terms
       write(stdout,blank_fmt)
       write(stdout,ndelim_fmt)
       write(stdout,blank_fmt)
-      write(stdout,*)'ciso: Using varying D13C values from file ',ciso_atm_d13c_filename
+      write(stdout,*)'ciso: Using varying D13C values from file ',trim(ciso_atm_d13c_filename)
       write(stdout,blank_fmt)
       write(stdout,ndelim_fmt)
       write(stdout,blank_fmt)
-      open (nml_in, file=ciso_atm_d13c_filename, status='old',iostat=nml_error)
-      read(nml_in, FMT=*) skiplines,ciso_atm_d13c_data_nbval
+      open (nml_in, file=ciso_atm_d13c_filename, status='old',iostat=stat)
+      if (stat /= 0) then
+         write(stdout,fmt=*) 'open failed'
+         go to 99
+      endif
+      read(nml_in,FMT=*,iostat=stat) skiplines,ciso_atm_d13c_data_nbval
+      if (stat /= 0) then
+         write(stdout,fmt=*) '1st line read failed'
+         go to 99
+      endif
       allocate(ciso_atm_d13c_data_yr(ciso_atm_d13c_data_nbval))
       allocate(ciso_atm_d13c_data(ciso_atm_d13c_data_nbval))
       do irec=1,skiplines
-         read(nml_in,FMT=*) sglchr
+         read(nml_in,FMT=*,iostat=stat) sglchr
+         if (stat /= 0) then
+            write(stdout,fmt=*) 'skipline read failed'
+            go to 99
+         endif
       enddo
       do irec=1,ciso_atm_d13c_data_nbval
-         read(nml_in,FMT=*) ciso_atm_d13c_data_yr(irec), ciso_atm_d13c_data(irec)
+         read(nml_in,FMT=*,iostat=stat) ciso_atm_d13c_data_yr(irec), ciso_atm_d13c_data(irec)
+         if (stat /= 0) then
+            write(stdout,fmt=*) 'data read failed'
+            go to 99
+         endif
       enddo
       close(nml_in)
-
-
-      if (nml_error /= 0) then
-         call document(sub_name, 'Atmospheric D13C data file for ciso not found')
-         call exit_POP(sigAbort, 'stopping in ' /&
-                                  &/ sub_name)
-      endif
    endif
+
+99 call broadcast_scalar(stat, master_task)
+   if (stat /= 0) call exit_POP(sigAbort, 'stopping in ' /&
+                                                          &/ sub_name)
 
 !---------------------------------------------------------------------
 !     Need to allocate and broadcast the variables to other tasks beside master-task
@@ -3894,10 +3907,10 @@ end subroutine ciso_compute_particulate_terms
 !-----------------------------------------------------------------------
 !  local variables
 !-----------------------------------------------------------------------
-   character(*), parameter :: sub_name = 'ecosys_ciso_mod:ciso_read_atm_D14C_data'
+   character(*), parameter :: sub_name = 'ciso_read_atm_D14C_data:ciso_read_atm_D14C_data'
 
-   integer (int_kind) ::    &
-      nml_error,              &  ! namelist i/o error flag
+   integer (int_kind) ::      &
+      stat,                   &  ! i/o status code
       irec,                   &  ! counter for looping
       skiplines,              &  ! number of comment lines at beginning of ascii file
       il                         ! looping index
@@ -3905,57 +3918,94 @@ end subroutine ciso_compute_particulate_terms
    character (char_len) ::  &
       sglchr                     ! variable to read characters from file into
 
-   integer (int_kind), dimension(3) :: &
-      ciso_atm_d14c_data_nbval   !  number of values in ciso_atm_d14c_filename (for three files)
+   integer (int_kind) :: &
+      ciso_atm_d14c_data_nbval_tmp
 
+   logical (log_kind) :: &
+      nbval_mismatch
+
+!-----------------------------------------------------------------------
+!     ensure that three datafiles have same number of entries
+!-----------------------------------------------------------------------
+
+   if (my_task == master_task) then
+      write(stdout,*)'ciso DIC14 calculation: Using varying C14 values from files'
+      do il=1,3
+         write(stdout,*) trim(ciso_atm_d14c_filename(il))
+      enddo
+      nbval_mismatch = .false.
+      do il=1,3
+         open (nml_in,file=ciso_atm_d14c_filename(il),status='old',iostat=stat)
+         if (stat /= 0) then
+            write(stdout,*) 'open failed for ', trim(ciso_atm_d14c_filename(il))
+            go to 99
+         endif
+         read(nml_in,FMT=*,iostat=stat) skiplines,ciso_atm_d14c_data_nbval_tmp
+         if (stat /= 0) then
+            write(stdout,*) '1st line read failed for ', trim(ciso_atm_d14c_filename(il))
+            go to 99
+         endif
+         close(nml_in)
+         if (il == 1) then
+            ciso_atm_d14c_data_nbval = ciso_atm_d14c_data_nbval_tmp
+         else
+            if (ciso_atm_d14c_data_nbval /= ciso_atm_d14c_data_nbval_tmp) nbval_mismatch = .true.
+         endif
+      enddo
+   endif
+
+   call broadcast_scalar(nbval_mismatch, master_task)
+   if (nbval_mismatch) then
+      call document(sub_name, 'D14C data files must all have the same number of values')
+      call exit_POP(sigAbort, 'stopping in ' /&
+                             &/ sub_name)
+   endif
+
+   call broadcast_scalar(ciso_atm_d14c_data_nbval, master_task)
+   allocate(ciso_atm_d14c_data_yr(ciso_atm_d14c_data_nbval,3))
+   allocate(ciso_atm_d14c_data(ciso_atm_d14c_data_nbval,3))
 
 !-----------------------------------------------------------------------
 !     READ in C14 data from files - three files, for SH, EQ, NH
 !-----------------------------------------------------------------------
+
    if (my_task == master_task) then
-      write(stdout,*)'ciso DI14C calculation: Using varying D14C values from file ',ciso_atm_d14c_filename(:)
       do il=1,3
-         open (nml_in, file=ciso_atm_d14c_filename(il), status='old',iostat=nml_error)
-         read(nml_in, FMT=*) skiplines,ciso_atm_d14c_data_nbval(il)
-         close(nml_in)
-      enddo
-
-      ciso_atm_d14c_data_nbval_max = max(ciso_atm_d14c_data_nbval(1),ciso_atm_d14c_data_nbval(2),ciso_atm_d14c_data_nbval(3))
-      allocate(ciso_atm_d14c_data_yr(ciso_atm_d14c_data_nbval_max,3))
-      allocate(ciso_atm_d14c_data(ciso_atm_d14c_data_nbval_max,3))
-
-      do il=1,3
-         open (nml_in, file=ciso_atm_d14c_filename(il), status='old',iostat=nml_error)
-         read(nml_in, FMT=*) skiplines,ciso_atm_d14c_data_nbval(il)
+         open (nml_in,file=ciso_atm_d14c_filename(il),status='old',iostat=stat)
+         if (stat /= 0) then
+            write(stdout,*) 'open failed for ', trim(ciso_atm_d14c_filename(il))
+            go to 99
+         endif
+         read(nml_in,FMT=*,iostat=stat) skiplines,ciso_atm_d14c_data_nbval_tmp
+         if (stat /= 0) then
+            write(stdout,*) '1st line read failed for ', trim(ciso_atm_d14c_filename(il))
+            go to 99
+         endif
          do irec=1,skiplines
-            read(nml_in,FMT=*) sglchr
+            read(nml_in,FMT=*,iostat=stat) sglchr
+            if (stat /= 0) then
+               write(stdout,fmt=*) 'skipline read failed for ', trim(ciso_atm_d14c_filename(il))
+               go to 99
+            endif
          enddo
-         do irec=1,ciso_atm_d14c_data_nbval(il)
-            read(nml_in,FMT=*) ciso_atm_d14c_data_yr(irec,il), ciso_atm_d14c_data(irec,il)
+         do irec=1,ciso_atm_d14c_data_nbval
+            read(nml_in,FMT=*,iostat=stat) ciso_atm_d14c_data_yr(irec,il), ciso_atm_d14c_data(irec,il)
+            if (stat /= 0) then
+               write(stdout,fmt=*) 'data read failed for ', trim(ciso_atm_d14c_filename(il))
+               go to 99
+            endif
          enddo
          close(nml_in)
       enddo
-
-      if (nml_error /= 0) then
-         call document(sub_name, 'Atmospheric D14C data files for ciso D14C not found')
-         call exit_POP(sigAbort, 'stopping in ' /&
-                                &/ sub_name)
-      endif
-
    endif
 
+99 call broadcast_scalar(stat, master_task)
+   if (stat /= 0) call exit_POP(sigAbort, 'stopping in ' /&
+                                                          &/ sub_name)
 
 !---------------------------------------------------------------------
-!     Need to allocate and broadcast the variables to other tasks beside master-task
+! Broadcast the variables to other tasks beside master_task
 !---------------------------------------------------------------------
-
-   call broadcast_scalar(ciso_atm_d14c_data_nbval_max, master_task)
-
-   if (my_task /= master_task) then
-      allocate(ciso_atm_d14c_data(ciso_atm_d14c_data_nbval_max,3))
-      allocate(ciso_atm_d14c_data_yr(ciso_atm_d14c_data_nbval_max,3))
-   endif
-
 
    call broadcast_array(ciso_atm_d14c_data, master_task)
    call broadcast_array(ciso_atm_d14c_data_yr, master_task)
@@ -4145,7 +4195,7 @@ end subroutine ciso_compute_particulate_terms
    model_date = iyear + (iday_of_year-1+frac_day)/days_in_year
    mapped_date = model_date - ciso_atm_model_year + ciso_atm_data_year
    do il=1,3
-   if (mapped_date >= ciso_atm_d14c_data_yr(ciso_atm_d14c_data_nbval_max,il)) then
+   if (mapped_date >= ciso_atm_d14c_data_yr(ciso_atm_d14c_data_nbval,il)) then
       call exit_POP(sigAbort, 'ciso: model date maps to date after end of D14C data in files.')
    endif
    enddo
@@ -4168,7 +4218,7 @@ end subroutine ciso_compute_particulate_terms
 !-----------------------------------------------------------------------
 
    if (ciso_data_ind_d14c == -1) then
-      do ciso_data_ind_d14c = ciso_atm_d14c_data_nbval_max-1,1,-1
+      do ciso_data_ind_d14c = ciso_atm_d14c_data_nbval-1,1,-1
          if (mapped_date >= ciso_atm_d14c_data_yr(ciso_data_ind_d14c,1)) exit
       end do
    endif
@@ -4178,7 +4228,7 @@ end subroutine ciso_compute_particulate_terms
 !  but do not set it to atm_co2_data_nbval.
 !-----------------------------------------------------------------------
 
-   if (ciso_data_ind_d14c < ciso_atm_d14c_data_nbval_max-1) then
+   if (ciso_data_ind_d14c < ciso_atm_d14c_data_nbval-1) then
       if (mapped_date >= ciso_atm_d14c_data_yr(ciso_data_ind_d14c+1,1))  then
          ciso_data_ind_d14c = ciso_data_ind_d14c + 1
       endif
