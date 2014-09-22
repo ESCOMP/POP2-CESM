@@ -2577,7 +2577,7 @@ contains
 ! !INTERFACE:
 
  subroutine ecosys_set_interior(k, TEMP_OLD, TEMP_CUR, SALT_OLD, SALT_CUR, &
-    TRACER_MODULE_OLD, TRACER_MODULE_CUR, DTRACER_MODULE, this_block)
+    TRACER_MODULE_OLD, TRACER_MODULE_CUR, DTRACER_MODULE, lexport_shared_vars, this_block)
 
 ! !DESCRIPTION:
 !  Compute time derivatives for ecosystem state variables
@@ -2599,6 +2599,9 @@ contains
    real (r8), dimension(:,:,:,:), intent(in) :: &
       TRACER_MODULE_OLD, &! old tracer values
       TRACER_MODULE_CUR   ! current tracer values
+
+   logical (log_kind), intent(in) :: &
+      lexport_shared_vars ! flag to save shared_vars or not
 
    type (block), intent(in) :: &
       this_block          ! block info for the current block
@@ -2623,12 +2626,11 @@ contains
       epsnondim = 1.00e-6    ! small non-dimensional number (non-dim)
 
    type(sinking_particle), save :: &
+!     POC               ! base units = nmol C -> Defined in ecosys_share
+!     P_CaCO3           ! base units = nmol CaCO3 -> Defined in ecosys_share
       P_SiO2,         & ! base units = nmol SiO2
       dust,           & ! base units = g
       P_iron            ! base units = nmol Fe
-!     POC               ! base units = nmol C -> Defined in ecosys_share
-!     P_CaCO3           ! base units = nmol CaCO3 -> Defined in ecosys_share
-
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), save :: &
       QA_dust_def,      & ! incoming deficit in the QA(dust) POC flux
@@ -2642,18 +2644,29 @@ contains
    real (r8), dimension(nx_block,ny_block) :: &
       TEMP,           & ! local copy of model TEMP
       SALT,           & ! local copy of model SALT
+      DIC_loc,        & ! local copy of model DIC
       DIC_ALT_CO2_loc,& ! local copy of model DIC_ALT_CO2
       ALK_loc,        & ! local copy of model ALK
       PO4_loc,        & ! local copy of model PO4
+      NO3_loc,        & ! local copy of model NO3
       SiO3_loc,       & ! local copy of model SiO3
       NH4_loc,        & ! local copy of model NH4
       Fe_loc,         & ! local copy of model Fe
+      O2_loc,         & ! local copy of model O2
+      DOC_loc,        & ! local copy of model DOC
+      zooC_loc,       & ! local copy of model zooC
       DON_loc,        & ! local copy of model DON
       DOFe_loc,       & ! local copy of model DOFe
       DOP_loc,        & ! local copy of model DOP
       DOPr_loc,       & ! local copy of model DOPr
       DONr_loc          ! local copy of model DONr
 
+   real (r8), dimension(nx_block,ny_block,autotroph_cnt) :: &
+      autotrophChl_loc, & ! local copy of model autotroph Chl
+      autotrophC_loc,   & ! local copy of model autotroph C
+      autotrophFe_loc,  & ! local copy of model autotroph Fe
+      autotrophSi_loc,  & ! local copy of model autotroph Si
+      autotrophCaCO3_loc  ! local copy of model autotroph CaCO3
 
    logical (log_kind), dimension(nx_block,ny_block) :: ZERO_MASK
 
@@ -2669,6 +2682,7 @@ contains
       KPARdz,         & ! PAR adsorption coefficient (non-dim)
       PAR_avg,        & ! average PAR over mixed layer depth (W/m^2)
       DOC_prod,       & ! production of DOC (mmol C/m^3/sec)
+      DOC_remin,      & ! remineralization of DOC (mmol C/m^3/sec)
       DON_remin,      & ! portion of DON remineralized
       DOFe_remin,     & ! portion of DOFe remineralized
       DOP_remin,      & ! portion of DOP remineralized
@@ -2688,9 +2702,13 @@ contains
       pChl              ! Chl synth. regulation term (mg Chl/mmol N)
 
    real (r8), dimension(nx_block,ny_block) :: & ! max of 39 continuation lines
+      f_zoo_detr,     & ! frac of zoo losses into large detrital pool (non-dim)
       Fe_scavenge_rate,&! annual scavenging rate of iron as % of ambient
       Fe_scavenge,    & ! loss of dissolved iron, scavenging (mmol Fe/m^3/sec)
-      Zprime            ! used to limit zoo mort at low biomass (mmol C/m^3)
+      Zprime,         & ! used to limit zoo mort at low biomass (mmol C/m^3)
+      zoo_loss,       & ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
+      zoo_loss_doc,   & ! zoo_loss routed to doc (mmol C/m^3/sec)
+      zoo_loss_dic      ! zoo_loss routed to dic (mmol C/m^3/sec)
 
    real (r8), dimension(nx_block,ny_block) :: &
       VNC,            & ! C-specific N uptake rate (mmol N/mmol C/sec)
@@ -2701,7 +2719,9 @@ contains
       VSiO3             ! C-specific SiO3 uptake (non-dim)
 
    real (r8), dimension(nx_block,ny_block,autotroph_cnt) :: &
+      PCphoto,        & ! C-specific rate of photosynth. (1/sec)
       thetaC,         & ! local Chl/C ratio (mg Chl/mmol C)
+      QCaCO3,         & ! CaCO3/C ratio (mmol CaCO3/mmol C)
       VNO3,           & ! NO3 uptake rate (non-dim)
       VNH4,           & ! NH4 uptake rate (non-dim)
       VNtot,          & ! total N uptake rate (non-dim)
@@ -2714,8 +2734,20 @@ contains
       Qsi,            & ! initial Si/C ratio (mmol Si/mmol C)
       gQsi,           & ! diatom Si/C ratio for growth (new biomass)
       Pprime,         & ! used to limit autotroph mort at low biomass (mmol C/m^3)
+      auto_graze,     & ! autotroph grazing rate (mmol C/m^3/sec)
+      auto_graze_zoo, & ! auto_graze routed to zoo (mmol C/m^3/sec)
+      auto_graze_poc, & ! auto_graze routed to poc (mmol C/m^3/sec)
+      auto_graze_doc, & ! auto_graze routed to doc (mmol C/m^3/sec)
+      auto_graze_dic, & ! auto_graze routed to dic (mmol C/m^3/sec)
+      auto_loss,      & ! autotroph non-grazing mort (mmol C/m^3/sec)
+      auto_loss_poc,  & ! auto_loss routed to poc (mmol C/m^3/sec)
+      auto_loss_doc,  & ! auto_loss routed to doc (mmol C/m^3/sec)
+      auto_loss_dic,  & ! auto_loss routed to dic (mmol C/m^3/sec)
+      auto_agg,       & ! autotroph aggregation (mmol C/m^3/sec)
+      photoC,         & ! C-fixation (mmol C/m^3/sec)
       photoFe,        & ! iron uptake
       photoSi,        & ! silicon uptake (mmol Si/m^3/sec)
+      CaCO3_PROD,     & ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)
       photoacc,       & ! Chl synth. term in photoadapt. (GD98) (mg Chl/m^3/sec)
       Nfix,           & ! total Nitrogen fixation (mmol N/m^3/sec)
       Nexcrete          ! fixed N excretion
@@ -2739,6 +2771,9 @@ contains
       DOPr_remin        ! portion of refractory DOP remineralized
 
    real (r8), dimension(nx_block,ny_block) :: &
+      CO3,            &! carbonate ion
+      HCO3,           &! bicarbonate ion
+      H2CO3,          &! carbonic acid
       CO3_ALT_CO2,    &! carbonate ion, alternative CO2
       HCO3_ALT_CO2,   &! bicarbonate ion, alternative CO2
       H2CO3_ALT_CO2,  &! carbonic acid, alternative CO2
@@ -2756,51 +2791,9 @@ contains
    logical (log_kind) :: &
       lalt_co2_terms    ! are any alt_co2 terms being time averaged
 
-!---------------------------------------------------------------
-! Define pointer variables, used to share values with other modules
-! Target variables are defined in ecosys_share
-! Below pointers are used to point to the right part of the
-! global array in ecosys_share
-!---------------------------------------------------------------
-    real (r8), dimension(:,:),pointer :: f_zoo_detr   ! frac of zoo losses into large detrital pool (non-dim)
-    real (r8), dimension(:,:),pointer :: DIC_loc      ! local copy of model DIC
-    real (r8), dimension(:,:),pointer :: DOC_loc      ! local copy of model DOC
-    real (r8), dimension(:,:),pointer :: O2_loc       ! local copy of model O2
-    real (r8), dimension(:,:),pointer :: NO3_loc      ! local copy of model NO3
-    real (r8), dimension(:,:),pointer :: zooC_loc     ! local copy of model zooC
-    real (r8), dimension(:,:),pointer :: CO3          ! carbonate ion
-    real (r8), dimension(:,:),pointer :: HCO3         ! bicarbonate ion
-    real (r8), dimension(:,:),pointer :: H2CO3        ! carbonic acid
-    real (r8), dimension(:,:),pointer :: zoo_loss     ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
-    real (r8), dimension(:,:),pointer :: zoo_loss_doc ! zoo_loss routed to doc (mmol C/m^3/sec)
-    real (r8), dimension(:,:),pointer :: zoo_loss_dic ! zoo_loss routed to dic (mmol C/m^3/sec)
-    real (r8), dimension(:,:),pointer :: DOC_remin    ! remineralization of 13C DOC (mmol C/m^3/sec)
-
-    real (r8), dimension(:,:,:), pointer :: QCaCO3             ! small phyto CaCO3/C ratio (mmol CaCO3/mmol C)
-    real (r8), dimension(:,:,:), pointer :: autotrophCaCO3_loc ! local copy of model autotroph CaCO3
-    real (r8), dimension(:,:,:), pointer :: autotrophChl_loc   ! local copy of model autotroph Chl
-    real (r8), dimension(:,:,:), pointer :: autotrophC_loc     ! local copy of model autotroph C
-    real (r8), dimension(:,:,:), pointer :: autotrophFe_loc    ! local copy of model autotroph Fe
-    real (r8), dimension(:,:,:), pointer :: autotrophSi_loc    ! local copy of model autotroph Si
-    real (r8), dimension(:,:,:), pointer :: auto_graze         ! autotroph grazing rate (mmol C/m^3/sec)
-    real (r8), dimension(:,:,:), pointer :: auto_graze_zoo     ! auto_graze routed to zoo (mmol C/m^3/sec)
-    real (r8), dimension(:,:,:), pointer :: auto_graze_poc     ! auto_graze routed to poc (mmol C/m^3/sec)
-    real (r8), dimension(:,:,:), pointer :: auto_graze_doc     ! auto_graze routed to doc (mmol C/m^3/sec)
-    real (r8), dimension(:,:,:), pointer :: auto_graze_dic     ! auto_graze routed to dic (mmol C/m^3/sec)
-    real (r8), dimension(:,:,:), pointer :: auto_loss          ! autotroph non-grazing mort (mmol C/m^3/sec)
-    real (r8), dimension(:,:,:), pointer :: auto_loss_poc      ! auto_loss routed to poc (mmol C/m^3/sec)
-    real (r8), dimension(:,:,:), pointer :: auto_loss_doc      ! auto_loss routed to doc (mmol C/m^3/sec)
-    real (r8), dimension(:,:,:), pointer :: auto_loss_dic      ! auto_loss routed to dic (mmol C/m^3/sec)
-    real (r8), dimension(:,:,:), pointer :: auto_agg           ! autotroph aggregation (mmol C/m^3/sec)
-    real (r8), dimension(:,:,:), pointer :: photoC             ! C-fixation (mmol C/m^3/sec)
-    real (r8), dimension(:,:,:), pointer :: CaCO3_PROD         ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)
-    real (r8), dimension(:,:,:), pointer :: PCphoto            ! C-specific rate of photosynth. (1/sec)
-
-!-------------------------------------------------------------
+!-----------------------------------------------------------------------
 
    bid = this_block%local_id
-
-!-------------------------------------------------------------
 
    call timer_start(ecosys_interior_timer, block_id=bid)
 
@@ -2814,46 +2807,6 @@ contains
       call timer_stop(ecosys_interior_timer, block_id=bid)
       return
    endif
-
-!-------------------------------------------------------------
-! Assign locally used variables to pointer variables
-! => use pointers to point to the right part of the global array
-! in ecosys_share
-!---------------------------------------------------------------
-
-    f_zoo_detr => f_zoo_detr_fields(:,:,bid)
-    DIC_loc => DIC_loc_fields(:,:,bid)
-    DOC_loc => DOC_loc_fields(:,:,bid)
-    O2_loc  => O2_loc_fields(:,:,bid)
-    NO3_loc => NO3_loc_fields(:,:,bid)
-    zooC_loc => zooC_loc_fields(:,:,bid)
-    CO3 => CO3_fields(:,:,bid)
-    HCO3 => HCO3_fields(:,:,bid)
-    H2CO3 => H2CO3_fields(:,:,bid)
-    zoo_loss => zoo_loss_fields(:,:,bid)
-    zoo_loss_doc => zoo_loss_doc_fields(:,:,bid)
-    zoo_loss_dic => zoo_loss_dic_fields(:,:,bid)
-    DOC_remin => DOC_remin_fields(:,:,bid)
-
-    autotrophCaCO3_loc => autotrophCaCO3_loc_fields(:,:,:,bid)
-    autotrophChl_loc => autotrophChl_loc_fields(:,:,:,bid)
-    autotrophC_loc => autotrophC_loc_fields(:,:,:,bid)
-    autotrophFe_loc => autotrophFe_loc_fields(:,:,:,bid)
-    autotrophSi_loc => autotrophSi_loc_fields(:,:,:,bid)
-    auto_graze => auto_graze_fields(:,:,:,bid)
-    auto_graze_zoo => auto_graze_zoo_fields(:,:,:,bid)
-    auto_graze_poc => auto_graze_poc_fields(:,:,:,bid)
-    auto_graze_doc => auto_graze_doc_fields(:,:,:,bid)
-    auto_graze_dic => auto_graze_dic_fields(:,:,:,bid)
-    auto_loss => auto_loss_fields(:,:,:,bid)
-    auto_loss_poc => auto_loss_poc_fields(:,:,:,bid)
-    auto_loss_doc => auto_loss_doc_fields(:,:,:,bid)
-    auto_loss_dic => auto_loss_dic_fields(:,:,:,bid)
-    auto_agg => auto_agg_fields(:,:,:,bid)
-    photoC => photoC_fields(:,:,:,bid)
-    CaCO3_PROD => CaCO3_PROD_fields(:,:,:,bid)
-    QCaCO3 => QCaCO3_fields(:,:,:,bid)
-    PCphoto => PCphoto_fields(:,:,:,bid)
 
 !-----------------------------------------------------------------------
 !  create local copies of model tracers
@@ -3568,7 +3521,8 @@ contains
 
    call compute_particulate_terms(k, POC, P_CaCO3, P_SiO2, dust, P_iron, &
                                   QA_dust_def, TEMP, O2_loc, NO3_loc, &
-                                  SED_DENITRIF, OTHER_REMIN, this_block)
+                                  SED_DENITRIF, OTHER_REMIN, lexport_shared_vars, &
+                                  this_block)
 
 !-----------------------------------------------------------------------
 !  nitrate & ammonium
@@ -4120,6 +4074,48 @@ contains
       endif
    endif
 
+   if (lexport_shared_vars) then
+      DIC_loc_fields(:,:,bid) = DIC_loc
+      DOC_loc_fields(:,:,bid) = DOC_loc
+      O2_loc_fields(:,:,bid) = O2_loc
+      NO3_loc_fields(:,:,bid) = NO3_loc
+      zooC_loc_fields(:,:,bid) = zooC_loc
+
+      f_zoo_detr_fields(:,:,bid) = f_zoo_detr
+      CO3_fields(:,:,bid) = CO3
+      HCO3_fields(:,:,bid) = HCO3
+      H2CO3_fields(:,:,bid) = H2CO3
+      zoo_loss_fields(:,:,bid) = zoo_loss
+      zoo_loss_doc_fields(:,:,bid) = zoo_loss_doc
+      zoo_loss_dic_fields(:,:,bid) = zoo_loss_dic
+      DOC_remin_fields(:,:,bid) = DOC_remin
+
+      autotrophChl_loc_fields(:,:,:,bid) = autotrophChl_loc
+      autotrophC_loc_fields(:,:,:,bid) = autotrophC_loc
+      autotrophFe_loc_fields(:,:,:,bid) = autotrophFe_loc
+      do auto_ind = 1, autotroph_cnt
+         if (autotrophs(auto_ind)%Si_ind > 0) &
+            autotrophSi_loc_fields(:,:,auto_ind,bid) = autotrophSi_loc(:,:,auto_ind)
+         if (autotrophs(auto_ind)%CaCO3_ind > 0) &
+            autotrophCaCO3_loc_fields(:,:,auto_ind,bid) = autotrophCaCO3_loc(:,:,auto_ind)
+      end do
+
+      QCaCO3_fields(:,:,:,bid) = QCaCO3
+      auto_graze_fields(:,:,:,bid) = auto_graze
+      auto_graze_zoo_fields(:,:,:,bid) = auto_graze_zoo
+      auto_graze_poc_fields(:,:,:,bid) = auto_graze_poc
+      auto_graze_doc_fields(:,:,:,bid) = auto_graze_doc
+      auto_graze_dic_fields(:,:,:,bid) = auto_graze_dic
+      auto_loss_fields(:,:,:,bid) = auto_loss
+      auto_loss_poc_fields(:,:,:,bid) = auto_loss_poc
+      auto_loss_doc_fields(:,:,:,bid) = auto_loss_doc
+      auto_loss_dic_fields(:,:,:,bid) = auto_loss_dic
+      auto_agg_fields(:,:,:,bid) = auto_agg
+      photoC_fields(:,:,:,bid) = photoC
+      CaCO3_PROD_fields(:,:,:,bid) = CaCO3_PROD
+      PCphoto_fields(:,:,:,bid) = PCphoto
+   endif
+
    call timer_stop(ecosys_interior_timer, block_id=bid)
 
 !-----------------------------------------------------------------------
@@ -4261,7 +4257,8 @@ contains
 ! !INTERFACE:
 
  subroutine compute_particulate_terms(k, POC, P_CaCO3, P_SiO2, dust, P_iron, &
-       QA_dust_def, TEMP, O2_loc, NO3_loc, SED_DENITRIF, OTHER_REMIN, this_block)
+       QA_dust_def, TEMP, O2_loc, NO3_loc, SED_DENITRIF, OTHER_REMIN, &
+       lexport_shared_vars, this_block)
 
 ! !DESCRIPTION:
 !  Compute outgoing fluxes and remineralization terms. Assumes that
@@ -4325,6 +4322,9 @@ contains
       O2_loc,       & ! dissolved oxygen used to modify POC%diss, Sed fluxes
       NO3_loc         ! dissolved nitrate used to modify sed fluxes
 
+   logical (log_kind), intent(in) :: &
+      lexport_shared_vars ! flag to save shared_vars or not
+
    type (block), intent(in) :: &
       this_block      ! block info for the current block
 
@@ -4359,6 +4359,7 @@ contains
    real (r8), dimension(nx_block,ny_block) :: &
       WORK,               & ! temporary for summed quantities to be averaged
       TfuncS,             & ! temperature scaling from soft POM remin
+      DECAY_Hard,         & ! scaling factor for dissolution of Hard Ballast
       DECAY_HardDust        ! scaling factor for dissolution of Hard dust
 
    real (r8) :: &
@@ -4380,29 +4381,10 @@ contains
       poc_error             ! POC error flag
 
 !-----------------------------------------------------------------------
-!  Pointer variables (defined in ecosys_share)
-!-----------------------------------------------------------------------
-
-   real (r8), dimension(:,:),pointer :: DECAY_Hard         ! scaling factor for dissolution of Hard Ballast
-
-!-------------------------------------------------------------
-
-  bid = this_block%local_id
-
-!-------------------------------------------------------------------
-! The following variables need to be shared with other modules, and
-! are now defined in ecosys_share as targets
-! -> here we use pointers to point to the right part of the global
-! array in ecosys_share
-! -> where possible we point directly to the _fields defined
-!    in ecosys_share
-!-------------------------------------------------------------------
-
-   DECAY_Hard  => DECAY_Hard_fields(:,:,bid)
-
-!-----------------------------------------------------------------------
 !  incoming fluxes are outgoing fluxes from previous level
 !-----------------------------------------------------------------------
+
+  bid = this_block%local_id
 
    P_CaCO3%sflux_in(:,:,bid) = P_CaCO3%sflux_out(:,:,bid)
    P_CaCO3%hflux_in(:,:,bid) = P_CaCO3%hflux_out(:,:,bid)
@@ -4590,11 +4572,13 @@ contains
             QA_dust_def(i,j,bid) = new_QA_dust_def
 
 ! Save certain fields for use by other modules
-            POC_PROD_avail_fields(i,j,bid) = POC_PROD_avail
-            decay_POC_E_fields(i,j,bid)    = decay_POC_E
-            decay_CaCO3_fields(i,j,bid)    = decay_CaCO3
-            poc_diss_fields(i,j,bid)       = poc_diss
-            caco3_diss_fields(i,j,bid)     = caco3_diss
+            if (lexport_shared_vars) then
+               POC_PROD_avail_fields(i,j,bid) = POC_PROD_avail
+               decay_POC_E_fields(i,j,bid)    = decay_POC_E
+               decay_CaCO3_fields(i,j,bid)    = decay_CaCO3
+               poc_diss_fields(i,j,bid)       = poc_diss
+               caco3_diss_fields(i,j,bid)     = caco3_diss
+            endif
 
 !-----------------------------------------------------------------------
 !  Compute outgoing POC fluxes. QA POC flux is computing using
@@ -4704,12 +4688,14 @@ contains
          endif
 
 ! Save some fields for use by other modules before setting outgoing fluxes to 0.0 in bottom cell below
+         if (lexport_shared_vars) then
             P_CaCO3_sflux_out_fields(i,j,bid) = P_CaCO3%sflux_out(i,j,bid)
             P_CaCO3_hflux_out_fields(i,j,bid) = P_CaCO3%hflux_out(i,j,bid)
             POC_sflux_out_fields(i,j,bid)     = POC%sflux_out(i,j,bid)
             POC_hflux_out_fields(i,j,bid)     = POC%hflux_out(i,j,bid)
             POC_remin_fields(i,j,bid)         = POC%remin(i,j,bid)
             P_CaCO3_remin_fields(i,j,bid)     = P_CaCO3%remin(i,j,bid)
+         endif
 
 !-----------------------------------------------------------------------
 !  Bottom Sediments Cell?
@@ -4894,27 +4880,31 @@ contains
 ! - Accumulte losses of BGC tracers to sediments
 ! ***********************************************************************
 
-      call accumulate_tavg_field(P_CaCO3%sed_loss(:,:,bid), tavg_calcToSed,bid,k)
+   call accumulate_tavg_field(P_CaCO3%sed_loss(:,:,bid), tavg_calcToSed,bid,k)
 
-      call accumulate_tavg_field(P_SiO2%sed_loss(:,:,bid), tavg_bsiToSed,bid,k)
+   call accumulate_tavg_field(P_SiO2%sed_loss(:,:,bid), tavg_bsiToSed,bid,k)
 
-      call accumulate_tavg_field(POC%sed_loss(:,:,bid), tavg_pocToSed,bid,k)
+   call accumulate_tavg_field(POC%sed_loss(:,:,bid), tavg_pocToSed,bid,k)
 
-      WORK = SED_DENITRIF(:,:,bid) * dz_loc
-      call accumulate_tavg_field(WORK, tavg_SedDenitrif,bid,k)
+   WORK = SED_DENITRIF(:,:,bid) * dz_loc
+   call accumulate_tavg_field(WORK, tavg_SedDenitrif,bid,k)
 
-      WORK = OTHER_REMIN(:,:,bid) * dz_loc
-      call accumulate_tavg_field(WORK, tavg_OtherRemin,bid,k)
+   WORK = OTHER_REMIN(:,:,bid) * dz_loc
+   call accumulate_tavg_field(WORK, tavg_OtherRemin,bid,k)
 
-      WORK = (POC%sed_loss(:,:,bid) * Q)
-      call accumulate_tavg_field(WORK, tavg_ponToSed,bid,k)
+   WORK = (POC%sed_loss(:,:,bid) * Q)
+   call accumulate_tavg_field(WORK, tavg_ponToSed,bid,k)
 
-      WORK = (POC%sed_loss(:,:,bid) * Qp_zoo_pom)
-      call accumulate_tavg_field(WORK, tavg_popToSed,bid,k)
+   WORK = (POC%sed_loss(:,:,bid) * Qp_zoo_pom)
+   call accumulate_tavg_field(WORK, tavg_popToSed,bid,k)
 
-      call accumulate_tavg_field(dust%sed_loss(:,:,bid), tavg_dustToSed,bid,k)
+   call accumulate_tavg_field(dust%sed_loss(:,:,bid), tavg_dustToSed,bid,k)
 
-      call accumulate_tavg_field(P_iron%sed_loss(:,:,bid), tavg_pfeToSed,bid,k)
+   call accumulate_tavg_field(P_iron%sed_loss(:,:,bid), tavg_pfeToSed,bid,k)
+
+   if (lexport_shared_vars) then
+      DECAY_Hard_fields(:,:,bid) = DECAY_Hard
+   end if
 
 !-----------------------------------------------------------------------
 !EOC
@@ -5823,7 +5813,8 @@ contains
 
  subroutine ecosys_set_sflux(SHF_QSW_RAW, SHF_QSW, &
                              U10_SQR,IFRAC,PRESS,SST,SSS, &
-                             SURF_VALS_OLD,SURF_VALS_CUR,STF_MODULE)
+                             SURF_VALS_OLD,SURF_VALS_CUR,STF_MODULE, &
+                             lexport_shared_vars)
    use shr_pio_mod, only : shr_pio_getiotype, shr_pio_getiosys
    use POP_IOUnitsMod, only: inst_name
 
@@ -5846,6 +5837,9 @@ contains
 
    real (r8), dimension(:,:,:,:), &
       intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR ! module tracers
+
+   logical (log_kind), intent(in) :: &
+      lexport_shared_vars ! flag to save shared_vars or not
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -6056,8 +6050,6 @@ contains
 
       do iblock = 1, nblocks_clinic
 
-
-
 !-----------------------------------------------------------------------
 !  Apply OCMIP ice fraction mask when input is from a file.
 !-----------------------------------------------------------------------
@@ -6138,7 +6130,7 @@ contains
             end where
 
 ! Save surface field of PV for use in other modules
-            PV_SURF_fields(:,:,iblock) = PV
+            if (lexport_shared_vars) PV_SURF_fields(:,:,iblock) = PV
 
 !-----------------------------------------------------------------------
 !  Set XCO2
@@ -6196,10 +6188,12 @@ contains
 !  The following variables need to be shared with other modules, and
 !  are now defined in ecosys_share as targets.
 !-------------------------------------------------------------------
-               DIC_SURF_fields(:,j,iblock)      = DIC_ROW
-               CO2STAR_SURF_fields(:,j,iblock)  = CO2STAR_ROW
-               DCO2STAR_SURF_fields(:,j,iblock) = DCO2STAR_ROW
-               CO3_SURF_fields(:,j,iblock)      = CO3_ROW
+               if (lexport_shared_vars) then
+                  DIC_SURF_fields(:,j,iblock)      = DIC_ROW
+                  CO2STAR_SURF_fields(:,j,iblock)  = CO2STAR_ROW
+                  DCO2STAR_SURF_fields(:,j,iblock) = DCO2STAR_ROW
+                  CO3_SURF_fields(:,j,iblock)      = CO3_ROW
+               endif
 
                where (PH_PREV_ALT_CO2(:,j,iblock) /= c0)
                   PHLO = PH_PREV_ALT_CO2(:,j,iblock) - del_ph
@@ -6689,7 +6683,7 @@ contains
       STF_MODULE(:,:,dic_ind,:) = STF_MODULE(:,:,dic_ind,:) + INTERP_WORK(:,:,:,1)
       STF_MODULE(:,:,dic_alt_co2_ind,:) = STF_MODULE(:,:,dic_alt_co2_ind,:) + INTERP_WORK(:,:,:,1)
       ECO_SFLUX_TAVG(:,:,buf_ind_DIC_RIV_FLUX,:) = INTERP_WORK(:,:,:,1)
-      dic_riv_flux_fields=INTERP_WORK(:,:,:,1)
+      if (lexport_shared_vars) dic_riv_flux_fields=INTERP_WORK(:,:,:,1)
    endif
 
    if (alk_riv_flux%has_data) then
@@ -6739,9 +6733,8 @@ contains
          doc_riv_flux%interp_inc,        doc_riv_flux%interp_next, &
          doc_riv_flux%interp_last,       0)
       STF_MODULE(:,:,doc_ind,:) = STF_MODULE(:,:,doc_ind,:) + INTERP_WORK(:,:,:,1)
-      doc_riv_flux_fields=INTERP_WORK(:,:,:,1)
+      if (lexport_shared_vars) doc_riv_flux_fields=INTERP_WORK(:,:,:,1)
    endif
-
 
 !-----------------------------------------------------------------------
 !  Apply NO & NH fluxes to alkalinity

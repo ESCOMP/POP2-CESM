@@ -375,6 +375,7 @@
       TRACER_MODULE_OLD(:,:,:,ecosys_ind_begin:ecosys_ind_end),&
       TRACER_MODULE_CUR(:,:,:,ecosys_ind_begin:ecosys_ind_end),&
       DTRACER_MODULE(:,:,ecosys_ind_begin:ecosys_ind_end),     &
+      ciso_on,                                                 &
       this_block)
 
 !-----------------------------------------------------------------------
@@ -444,7 +445,8 @@
       SST, SSS,                                                 &
       SURFACE_VALS_OLD(:,:,ecosys_ind_begin:ecosys_ind_end,:),  &
       SURFACE_VALS_CUR(:,:,ecosys_ind_begin:ecosys_ind_end,:),  &
-      STF_MODULE(:,:,ecosys_ind_begin:ecosys_ind_end,:))
+      STF_MODULE(:,:,ecosys_ind_begin:ecosys_ind_end,:),        &
+      ciso_on)
 
 !-----------------------------------------------------------------------
 !  ECOSYSC_CISO block

@@ -1,6 +1,22 @@
 ===============================================================================
 Tag Creator: klindsay 
 Developers:  klindsay
+Tag Date:    22 September 2014
+Tag Name:
+pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150922_cesm_pop_2_1_20140905
+Summary: change ecosys_mod.F90 handling of ecosys_share.F90 vars to copy out,
+instead of using pointers, improving performance of ecosys_set_interior
+X                    source/cvmix
+M            63540   source/ecosys_mod.F90
+M            63540   source/ecosys_driver.F90
+M            63582   ChangeLog
+Status against revision:  63701
+
+Performing status on external item at 'source/cvmix'
+Status against revision:    352
+===============================================================================
+Tag Creator: klindsay 
+Developers:  klindsay
 Tag Date:    16 September 2014
 Tag Name:
 pop2/branch_tags/geotrace_ecosys_tags/geotrace_ecosys_20150916_cesm_pop_2_1_20140905
