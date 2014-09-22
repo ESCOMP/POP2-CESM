@@ -509,57 +509,68 @@ contains
 
    call define_tavg_field(tavg_CFC_IFRAC,'CFC_IFRAC',2,           &
                           long_name='Ice Fraction for CFC fluxes',&
-                          units='fraction', grid_loc='2110')
+                          units='fraction', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_CFC_XKW,'CFC_XKW',2,               &
                           long_name='XKW for CFC fluxes',         &
-                          units='cm/s', grid_loc='2110')
+                          units='cm/s', grid_loc='2110',          &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_CFC_ATM_PRESS,'CFC_ATM_PRESS',2,   &
                           long_name='Atmospheric Pressure for CFC fluxes',&
-                          units='atmospheres', grid_loc='2110')
+                          units='atmospheres', grid_loc='2110',   &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_pCFC11,'pCFC11',2,                 &
                           long_name='CFC11 atmospheric partial pressure',&
-                          units='pmol/mol', grid_loc='2110')
+                          units='pmol/mol', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_pCFC12,'pCFC12',2,                 &
                           long_name='CFC12 atmospheric partial pressure',&
-                          units='pmol/mol', grid_loc='2110')
+                          units='pmol/mol', grid_loc='2110',      &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_CFC11_SCHMIDT,'CFC11_SCHMIDT',2,   &
                           long_name='CFC11 Schmidt Number',       &
-                          units='none', grid_loc='2110')
+                          units='none', grid_loc='2110',          &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_CFC12_SCHMIDT,'CFC12_SCHMIDT',2,   &
                           long_name='CFC12 Schmidt Number',       &
-                          units='none', grid_loc='2110')
+                          units='none', grid_loc='2110',          &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_CFC11_PV,'CFC11_PV',2,             &
                           long_name='CFC11 piston velocity',      &
-                          units='cm/s', grid_loc='2110')
+                          units='cm/s', grid_loc='2110',          &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_CFC11_surf_sat,'CFC11_surf_sat',2, &
                           long_name='CFC11 Saturation',           &
-                          units='fmol/cm^3', grid_loc='2110')
+                          units='fmol/cm^3', grid_loc='2110',     &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_CFC12_PV,'CFC12_PV',2,             &
                           long_name='CFC12 piston velocity',      &
-                          units='cm/s', grid_loc='2110')
+                          units='cm/s', grid_loc='2110',          &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
    call define_tavg_field(tavg_CFC12_surf_sat,'CFC12_surf_sat',2, &
                           long_name='CFC12 Saturation',           &
-                          units='fmol/cm^3', grid_loc='2110')
+                          units='fmol/cm^3', grid_loc='2110',     &
+                          coordinates='TLONG TLAT time')
    var_cnt = var_cnt+1
 
 !-----------------------------------------------------------------------
@@ -748,6 +759,8 @@ contains
 
 ! !USES:
 
+!EOP
+!BOC
 !-----------------------------------------------------------------------
 !  local variables
 !-----------------------------------------------------------------------

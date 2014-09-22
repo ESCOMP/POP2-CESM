@@ -3980,6 +3980,26 @@ Flag for using moby module.
 Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
 </entry>
 
+<entry 
+id="abio_dic_dic14_on"
+type="logical" 
+category="passive_tracers"
+group="passive_tracers_on_nml" >
+Flag for using abio_dic_dic14 module.
+
+Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
+</entry>
+
+<entry 
+id="ciso_on"
+type="logical" 
+category="passive_tracers"
+group="passive_tracers_on_nml" >
+Flag for using ciso module.
+
+Default: 'Set by CESM scripts based on $OCN_TRACER_MODULES'
+</entry>
+
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: iage_nml                 - -->
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -4321,6 +4341,378 @@ category="passive_tracers"
 group="derived" >
 Default: 
 </entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: abio_dic_dic14_nml       - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry 
+id="init_abio_dic_dic14_option"
+type="char*256"
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default: 
+</entry>
+
+<entry 
+id="init_abio_dic_dic14_init_file"
+type="char*256" 
+category="passive_tracers"
+group="abio_dic_dic14_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="init_abio_dic_dic14_init_file_fmt"
+type="char*256" 
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default:
+</entry>
+
+<entry 
+id="abio_tracer_init_ext%mod_varname"
+type="dtype(2)%char*256" 
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default: 
+</entry>
+
+<entry 
+id="abio_tracer_init_ext%file_varname"
+type="dtype(2)%char*256" 
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default: 
+</entry>
+
+<entry 
+id="abio_tracer_init_ext%scale_factor"
+type="dtype(2)%real" 
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default: 
+</entry>
+
+<entry 
+id="abio_tracer_init_ext%default_val"
+type="dtype(2)%real" 
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default: 
+</entry>
+
+<entry 
+id="abio_surf_avg_dic_const"
+type="real"
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default: 
+</entry>
+
+<entry 
+id="abio_surf_avg_dic14_const"
+type="real"
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default: 
+</entry>
+
+<entry 
+id="abio_use_nml_surf_vals"
+type="logical" 
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default: 
+</entry>
+
+<entry 
+id="abio_comp_surf_avg_freq_opt"
+type="char*256" 
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default: 'never'
+</entry>
+
+<entry 
+id="abio_comp_surf_avg_freq"
+type="integer" 
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default: '1'
+</entry>
+
+<entry 
+id="abio_atm_d14c_filename"
+type="char*256(3)" 
+category="passive_tracers"
+group="abio_dic_dic14_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+
+<entry 
+id="abio_atm_co2_filename"
+type="char*256"
+category="passive_tracers"
+group="abio_dic_dic14_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="abio_atm_co2_d14c_opt"
+type="char*256"
+category="passive_tracers"
+group="abio_dic_dic14_nml" 
+valid_values="file,const,coupler" >
+Source of atmos CO2 and D14C.
+
+Valid Values: 'file', 'const', 'coupler'
+Default: '
+</entry>
+
+<entry 
+id="abio_atm_d14c_const"
+type="real"
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default: 
+</entry>
+
+<entry 
+id="abio_atm_co2_const"
+type="real"
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Default: 
+</entry>
+
+<entry 
+id="abio_dic_dic14_model_year"
+type="integer" 
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Arbitrary model year.
+
+Default: 1
+</entry>
+
+<entry 
+id="abio_dic_dic14_data_year"
+type="integer" 
+category="passive_tracers"
+group="abio_dic_dic14_nml" >
+Year in data that corresponds to abio_dic_dic14_model_year.
+
+Default: 1
+</entry>
+
+
+
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: ecosys_ciso_nml          - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry 
+id="ciso_init_ecosys_option"
+type="char*256" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_init_ecosys_init_file"
+type="char*256" 
+category="ecosys"
+group="ecosys_ciso_nml"
+input_pathname="abs" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_tracer_init_ext%mod_varname"
+type="dtype(14)%char*256" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_tracer_init_ext%file_varname"
+type="dtype(14)%char*256" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 
+</entry>
+
+
+<entry 
+id="ciso_tracer_init_ext%scale_factor"
+type="dtype(14)%real" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_tracer_init_ext%default_val"
+type="dtype(14)%real" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_init_ecosys_init_file_fmt"
+type="char*256" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 'nc'
+</entry>
+
+
+<entry 
+id="ciso_atm_d13c_opt"
+type="char*256" 
+category="ecosys"
+group="ecosys_ciso_nml"
+valid_values="const,file,coupled" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_atm_d13c_const"
+type="real" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_atm_d14c_opt"
+type="char*256" 
+category="ecosys"
+group="ecosys_ciso_nml"
+valid_values="const,file,coupled" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_atm_d14c_const"
+type="real" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_lsource_sink"
+type="logical"
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_comp_surf_avg_freq_opt"
+type="char*256" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_comp_surf_avg_freq"
+type="integer" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_use_nml_surf_vals"
+type="logical" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_surf_avg_di13c_const"
+type="real"
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 
+</entry>
+
+<entry 
+id="ciso_surf_avg_di14c_const"
+type="real"
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default: 
+</entry>
+
+
+<entry 
+id="ciso_atm_d13c_filename"
+type="char*256" 
+category="ecosys"
+group="ecosys_ciso_nml"
+input_pathname="abs" >
+Default:  
+</entry>
+
+<entry 
+id="ciso_atm_d14c_filename"
+type="char*256(3)" 
+category="ecosys"
+group="ecosys_ciso_nml"
+input_pathname="abs" >
+Default:  
+</entry>
+
+
+<entry 
+id="ciso_fract_factors"
+type="char*256" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default:  
+</entry>
+
+<entry 
+id="ciso_lecovars_full_depth_tavg"
+type="logical" 
+category="ecosys"
+group="ecosys_ciso_nml" >
+Default:  
+</entry>
+
+<entry 
+id="ciso_atm_model_year"
+type="integer" 
+category="passive_tracers"
+group="ecosys_ciso_nml" >
+Arbitrary model year.
+
+Default: 1
+</entry>
+
+<entry 
+id="ciso_atm_data_year"
+type="integer" 
+category="passive_tracers"
+group="ecosys_ciso_nml" >
+Year in atm data that corresponds to ciso_atm_model_year.
+
+Default: 1
+</entry>
+
 
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: ecosys_nml               - -->
@@ -5395,15 +5787,7 @@ id="ecosys_qsw_distrb_const"
 type="logical" 
 category="ecosys"
 group="ecosys_nml" >
-Default: .false.
-</entry>
-
-<entry 
-id="lmarginal_seas"
-type="logical"
-category="ecosys"
-group="ecosys_nml" >
-Default: .true.
+Default: 
 </entry>
 
 <entry 
@@ -5497,13 +5881,6 @@ group="ecosys_nml" >
 Default: CCSM_CO2_PPMV value in env_conf.xml
 </entry>
 
-<entry 
-id="ecosys_tadvect_ctype"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 'base_model'
-</entry>
 
 <entry 
 id="liron_patch"
@@ -5741,6 +6118,27 @@ category="ecosys"
 group="ecosys_parms_nml" >
 Default: (/3.8194e-5, 3.5648e-5, 6.9444e-6/) for gx1v6, (/3.7847e-5, 3.6227e-5, 6.9444e-6/) for gx3v7
 </entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: ecosys_driver_nml        - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry 
+id="lmarginal_seas"
+type="logical"
+category="ecosys"
+group="ecosys_driver_nml" >
+Default: .true. 
+</entry>
+
+<entry 
+id="ecosys_tadvect_ctype"
+type="char*256" 
+category="ecosys"
+group="ecosys_driver_nml" >
+Default: 'base model'
+</entry>
+
 
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: moby_nml                 - -->

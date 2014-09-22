@@ -25,6 +25,9 @@ MODULE ecosys_parms
   USE constants, ONLY : c1
   USE kinds_mod
   USE io_tools, ONLY : document
+  USE blocks, ONLY: nx_block, ny_block
+  USE domain_size, ONLY: max_blocks_clinic
+  USE ecosys_share
 
   IMPLICIT NONE
 
@@ -45,45 +48,6 @@ MODULE ecosys_parms
        dps = c1 / spd,          & ! number of days in a second
        yps = c1 / (365.0_r8*spd)  ! number of years in a second
 
-  !-----------------------------------------------------------------------------
-  !   functional group
-  !-----------------------------------------------------------------------------
-
-  TYPE, PUBLIC :: autotroph_type
-     CHARACTER(char_len) :: sname, lname
-     LOGICAL(KIND=log_kind) :: &
-        Nfixer,                             & ! flag set to true if this autotroph fixes N2
-        imp_calcifier,                      & ! flag set to true if this autotroph implicitly handles calcification
-        exp_calcifier                         ! flag set to true if this autotroph explicitly handles calcification
-     INTEGER (KIND=int_kind) :: &
-          grazee_ind                            , &! which grazee category does autotroph belong to
-          Chl_ind, C_ind, Fe_ind,             & ! tracer indices for Chl, C, Fe content
-          Si_ind, CaCO3_ind                ! tracer indices for Si, CaCO3 content
-     REAL(KIND=r8) :: &
-          kFe, kPO4, kDOP, kNO3, kNH4, kSiO3, & ! nutrient uptake half-sat constants
-          Qp,                                 & ! P/C ratio
-          gQfe_0, gQfe_min,                   & ! initial and minimum fe/C ratio
-          alphaPI,                            & ! init slope of P_I curve (GD98) (mmol C m^2/(mg Chl W sec))
-        PCref,                              & ! max C-spec. grth rate at tref (1/sec)
-        thetaN_max,                         & ! max thetaN (Chl/N) (mg Chl/mmol N)
-        loss_thres, loss_thres2,            & ! conc. where losses go to zero
-        temp_thres,                         & ! Temp. where concentration threshold and photosynth. rate drops
-        mort, mort2,                        & ! linear and quadratic mortality rates (1/sec), (1/sec/((mmol C/m3))
-        agg_rate_max, agg_rate_min,         & ! max and min agg. rate (1/d)
-        z_umax_0,                           & ! max zoo growth rate at tref (1/sec)
-        z_grz,                              & ! grazing coef. (mmol C/m^3)
-        graze_zoo, graze_poc, graze_doc,    & ! routing of grazed term, remainder goes to dic
-        loss_poc,                           & ! routing of loss term
-        f_zoo_detr                            ! fraction of zoo losses to detrital 
-  END TYPE
-
-  INTEGER (KIND=int_kind), PARAMETER :: &
-     autotroph_cnt   = 3, &
-     sp_ind          = 1, &  ! small phytoplankton
-     diat_ind        = 2, &  ! diatoms
-     diaz_ind        = 3     ! diazotrophs
-
-  TYPE(autotroph_type), DIMENSION(autotroph_cnt) :: autotrophs
 
   !-----------------------------------------------------------------------------
   !   Redfield Ratios, dissolved & particulate
@@ -219,6 +183,13 @@ MODULE ecosys_parms
   REAL(KIND=r8), PARAMETER :: &
        Tref = 30.0_r8, & ! reference temperature (C)
        Q_10 = 1.5_r8     ! factor for temperature dependence (non-dim)
+
+  !---------------------------------------------------------------------
+  !     Gas exchange/piston velocity parameter
+  !---------------------------------------------------------------------
+
+  real (r8), parameter :: &
+       xkw_coeff = 8.6e-9_r8 ! in s/cm, from a = 0.31 cm/hr s^2/m^2 in Wannikhof 1992
 
   !---------------------------------------------------------------------
   !  DOM parameters for refractory components and DOP uptake
