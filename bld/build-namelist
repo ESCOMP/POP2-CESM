@@ -642,7 +642,7 @@ if ($OCN_TAVG_HIFREQ eq "TRUE" ) {
 # namelist group: bsf_diagnostics_nml    #
 ##########################################
 
-add_default($nl, 'ldiag_bsf');
+add_default($nl, 'ldiag_bsf', 'ocn_onedim'=>"$OCN_ONEDIM");
 
 ##########################################
 # namelist group: restart_nml            #
@@ -1722,8 +1722,13 @@ if ($OCN_TAVG_HIFREQ eq "TRUE") {
     # High-frequency tavg contents
     $file = "${OCN_GRID}_tavg_contents_high_freq";
 } else {
-    # Default resolution dependent tavg contents
-    $file = "${OCN_GRID}_tavg_contents";
+    if ($OCN_ONEDIM eq "TRUE") {
+      # 1D resolution dependent tavg contents
+      $file = "${OCN_GRID}_1D_tavg_contents";
+    } else {
+      # Default resolution dependent tavg contents
+      $file = "${OCN_GRID}_tavg_contents";
+    }
 }
 if (-f "$my_path/$file") {
   $sysmod = "cp -fp ${my_path}/$file $base_tavg_file";

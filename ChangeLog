@@ -1,6 +1,18 @@
 SVN $Id$
 SVN $URL$
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    24 Sept 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140924
+Tag Summary: Remove diagnostic value BSF from 1D output
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop2.xml
+A       input_templates/gx3v7_1D_tavg_contents
+A       input_templates/gx1v6_1D_tavg_contents
+===============================================================================
 Tag Creator: klindsay
 Developers:  ajahn, klindsay
 Tag Date:    22 Sept 2014

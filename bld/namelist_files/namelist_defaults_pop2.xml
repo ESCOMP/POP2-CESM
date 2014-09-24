@@ -149,6 +149,7 @@
 <!---------------------------->
 
 <ldiag_bsf>.true.</ldiag_bsf>
+<ldiag_bsf ocn_onedim="TRUE" >.false.</ldiag_bsf>
 <ldiag_bsf ocn_grid="tx1v1"  >.false.</ldiag_bsf>
 <ldiag_bsf ocn_grid="tx0.1v2">.false.</ldiag_bsf>
 
