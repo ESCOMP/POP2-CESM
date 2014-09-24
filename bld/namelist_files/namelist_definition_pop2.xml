@@ -595,17 +595,6 @@ Default: 3
 </entry>
 
 <entry 
-id="lconst_Coriolis"
-type="logical"
-category="grid"
-group="grid_nml" >
-Flag to run POP with a spatially-constant Coriolis parameter; can not be run
-without lPOP1d = .true.
-
-Default: .false.
-</entry>
-
-<entry 
 id="lPOP1d"
 type="logical"
 category="grid"
@@ -615,15 +604,63 @@ Flag to run POP in 1D mode (recommend only using with T62_g37 resolution)
 Default: .false.
 </entry>
 
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: pop1d_nml                - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
 <entry 
-id="lKPP1d"
+id="lidentical_columns"
 type="logical"
 category="grid"
-group="grid_nml" >
-Flag to run KPP in 1D mode (recommend only using with T62_g37 resolution);
-can not be run without lPOP1d = .true.
+group="pop1d_nml" >
+Flag to treat all columns the same (true 1D run). Recommend only using with
+the T62_g37 resolution; can not be run without lPOP1d = .true.
 
 Default: .false.
+</entry>
+
+<entry 
+id="lconst_Coriolis"
+type="logical"
+category="grid"
+group="pop1d_nml" >
+Flag to run POP with a spatially-constant Coriolis parameter; can not be run
+without lPOP1d = .true.
+
+Default: .false.
+</entry>
+
+<entry
+id="Coriolis_val"
+type="real"
+category="grid"
+group="pop1d_nml" >
+If lconst_Coriolis = .true., use this value for Coriolis parameter.
+(units = 1/s)
+
+Default: 1e-4
+</entry>
+
+<entry
+id="global_taux"
+type="real"
+category="grid"
+group="pop1d_nml" >
+If lidentical_columns = .true., use this value for tau_x in surface forcing.
+(units = N/m^2, converted in source code)
+
+Default: 0.1
+</entry>
+
+<entry
+id="global_SHF_coef"
+type="real"
+category="grid"
+group="pop1d_nml" >
+If lidentical_columns = .true., use this value for SHF coefficient in surface
+forcing (units = W/m^2, converted in source code).
+
+Default: -100
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->

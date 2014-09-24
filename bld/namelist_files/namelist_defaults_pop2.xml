@@ -34,7 +34,9 @@
 
 <dt_option>steps_per_day</dt_option>
 <dt_count ocn_grid="gx3v7"  > 12</dt_count>
+<dt_count ocn_grid="gx3v7"  ocn_onedim="TRUE">24</dt_count>
 <dt_count ocn_grid="gx1v6"  > 23</dt_count>
+<dt_count ocn_grid="gx1v6"  ocn_onedim="TRUE">46</dt_count>
 <dt_count ocn_grid="tx1v1"  > 23</dt_count>
 <dt_count ocn_grid="tx0.1v2">300</dt_count>
 <dt_count ocn_grid="tx0.1v2" ocn_coupling="partial">500</dt_count>
@@ -94,7 +96,25 @@
 <n_topo_smooth>0</n_topo_smooth>
 
 <flat_bottom>.false.</flat_bottom>
-<flat_bottom ocn_onedim="TRUE">.true.</flat_bottom>
+<flat_bottom iden_cols="TRUE">.true.</flat_bottom>
+
+<lPOP1d>.false.</lPOP1d>
+<lPOP1d ocn_onedim="TRUE">.true.</lPOP1d>
+
+<!---------------------------->
+<!-- pop1d_nml -->
+<!---------------------------->
+
+<lidentical_columns>.false.</lidentical_columns>
+
+<lconst_Coriolis>.false.</lconst_Coriolis>
+<lconst_Coriolis iden_cols="TRUE">.true.</lconst_Coriolis>
+
+<Coriolis_val>1e-4</Coriolis_val>
+
+<global_taux>0.1</global_taux>
+
+<global_SHF_coef>-100</global_SHF_coef>
 
 <!---------------------------->
 <!-- init_ts_nml -->
@@ -504,9 +524,6 @@
 <!---------------------------->
 
 <reset_to_freezing>.false.</reset_to_freezing>
-
-<lPOP1d>.false.</lPOP1d>
-<lPOP1d ocn_onedim="TRUE">.true.</lPOP1d>
 
 <!---------------------------->
 <!-- ice_nml -->

@@ -4,6 +4,25 @@ SVN $URL$
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    24 Sept 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140924a
+Tag Summary: More flexibility in 1D POP runs
+             * taux and SHF coefficient are now namelist variables
+             * Coriolis parameter to use with lconst_Coriolis is namelist variable
+             * lKPP1d has been renamed lidentical_columns
+             * 1D POP uses smaller timestep for stability
+             * flat_bottom is only true for lidentical_columns
+
+Files Modified:
+M       source/step_mod.F90
+M       source/grid.F90
+M       source/vmix_kpp.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop2.xml
+M       bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    24 Sept 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140924
 Tag Summary: Remove diagnostic value BSF from 1D output
 
