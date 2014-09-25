@@ -3133,6 +3133,16 @@ Valid Values: 'bin', 'nc'
 Default: 'bin'
 </entry>
 
+<entry 
+id="pt_interior_surface_restore"
+type="logical"
+category="forcing"
+group="forcing_pt_interior_nml" >
+PT interior restoring includes the surface layer
+
+Default: .false.
+</entry>
+
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: forcing_s_interior_nml   - -->
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -3290,6 +3300,16 @@ s_interior_restore_filename format (binary or netCDF).
 
 Valid Values: 'bin', 'nc'
 Default: 'bin'
+</entry>
+
+<entry 
+id="s_interior_surface_restore"
+type="logical"
+category="forcing"
+group="forcing_s_interior_nml" >
+S interior restoring includes the surface layer
+
+Default: .false.
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->

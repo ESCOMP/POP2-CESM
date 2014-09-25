@@ -663,6 +663,8 @@
 <pt_interior_variable_restore>.false.</pt_interior_variable_restore>
 <pt_interior_restore_filename>'unknown-pt_interior_restore'</pt_interior_restore_filename>
 <pt_interior_restore_file_fmt>'bin'</pt_interior_restore_file_fmt>
+<pt_interior_surface_restore>.false.</pt_interior_surface_restore>
+<pt_interior_surface_restore ocn_onedim="TRUE">.true.</pt_interior_surface_restore>
 
 <!---------------------------->
 <!--forcing_s_interior_nml -->
@@ -682,6 +684,8 @@
 <s_interior_variable_restore>.false.</s_interior_variable_restore>
 <s_interior_restore_filename>'unknown-s_interior_restore'</s_interior_restore_filename>
 <s_interior_restore_file_fmt>'bin'</s_interior_restore_file_fmt>
+<s_interior_surface_restore>.false.</s_interior_surface_restore>
+<s_interior_surface_restore ocn_onedim="TRUE">.true.</s_interior_surface_restore>
 
 <!---------------------------->
 <!--forcing_ap_interior_nml -->

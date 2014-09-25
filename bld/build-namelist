@@ -1050,6 +1050,7 @@ add_default($nl,'pt_interior_data_renorm');
 add_default($nl,'pt_interior_variable_restore');
 add_default($nl,'pt_interior_restore_filename');
 add_default($nl,'pt_interior_restore_file_fmt');
+add_default($nl,'pt_interior_surface_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
 
 
 ##########################################
@@ -1070,6 +1071,7 @@ add_default($nl,'s_interior_data_renorm');
 add_default($nl,'s_interior_variable_restore');
 add_default($nl,'s_interior_restore_filename');
 add_default($nl,'s_interior_restore_file_fmt');
+add_default($nl,'s_interior_surface_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
 
 ##########################################
 # namelist group: forcing_ap_interior_nml#

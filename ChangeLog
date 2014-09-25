@@ -3,6 +3,22 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    25 Sept 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140925
+Tag Summary: by default, 1D pop uses interior restoring files at surface as
+             well (disable with [pt|s]_interior_surface_restoring=.false. in the
+             namelist). Note that this does not change the default behavior for
+             regular POP (B, C, and G compsets), just the B1D and C1D cases.
+
+Files Modified:
+M       source/forcing_pt_interior.F90
+M       source/forcing_s_interior.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop2.xml
+M       bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    24 Sept 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20140924a
 Tag Summary: More flexibility in 1D POP runs
