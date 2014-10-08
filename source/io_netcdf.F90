@@ -98,12 +98,13 @@
 
    integer (i4) ::  &
       iostat,       &! status flag
-      nsize,        &! size parameter returned by inquire function
       n,            &! loop index
       itype,        &! netCDF data type
       att_ival,     &! netCDF data type
       num_atts,     &! number of global attributes
       xtype
+
+   integer(pio_offset_kind) :: nsize ! size parameter returned by inquire function
 
    logical (log_kind) :: &
       att_lval           ! temp space for logical attribute
@@ -154,7 +155,6 @@
       !***
       !*** get attribute name
       !***
-
       att_name = char_blank
       iostat = pio_inq_attname(data_file%File, PIO_GLOBAL, n, att_name)
       !***
@@ -177,7 +177,7 @@
                                      data_file%title(1:nsize))
             else
                if (my_task == master_task) then
-                  call document('open_read_netcdf', 'nsize', nsize)
+                  call document('open_read_netcdf', 'nsize', int(nsize))
                   call document('open_read_netcdf', 'len(data_file%title)', &
                                 len(data_file%title))
                   write(stdout,*) 'string too short; not enough room to read title from ' /&
@@ -197,7 +197,7 @@
                                      data_file%history(1:nsize))
             else
                if (my_task == master_task) then
-                  call document('open_read_netcdf', 'nsize', nsize)
+                  call document('open_read_netcdf', 'nsize', int(nsize))
                   call document('open_read_netcdf', 'len(data_file%history)', &
                                 len(data_file%history))
                   write(stdout,*) 'string too short; not enough room to read history attribute from ' /&
@@ -217,7 +217,7 @@
                                       data_file%conventions(1:nsize))
             else
                if (my_task == master_task) then
-                  call document('open_read_netcdf', 'nsize', nsize)
+                  call document('open_read_netcdf', 'nsize', int(nsize))
                   call document('open_read_netcdf', 'len(data_file%conventions)', &
                                 len(data_file%conventions))
                   write(stdout,*) 'string too short; not enough room to read conventions from ' /&
@@ -245,7 +245,7 @@
                                      work_line(1:nsize))
             else
                if (my_task == master_task) then
-                  call document('open_read_netcdf', 'nsize', nsize)
+                  call document('open_read_netcdf', 'nsize', int(nsize))
                   call document('open_read_netcdf', 'len(work_line)', &
                                 len(work_line))
                   write(stdout,*) 'string too short; not enough room to read ' /&
@@ -557,7 +557,6 @@
       dimid,       &! dimension id
       n,           &! loop index
       ncount,      &! num additional attributes
-      nsize,       &! length of character strings
       itype,       &! netCDF data type
       num_atts,    &! number of variable attributes
       att_ival,    &! temp for integer attribute
@@ -566,6 +565,8 @@
       nivals,      &! counter for number of integer   attributes
       nrvals,      &! counter for number of real      attributes
       ndvals        ! counter for number of double    attributes
+
+   integer(pio_offset_kind) ::      nsize ! length of character strings
 
    logical (log_kind) ::    &
       att_lval      ! temp for logical attribute
@@ -650,7 +651,7 @@
                                         io_field%long_name(1:nsize))
                else
                   if (my_task == master_task) then
-                     call document('define_field_netcdf', 'nsize', nsize)
+                     call document('define_field_netcdf', 'nsize', int(nsize))
                      call document('define_field_netcdf', 'len(io_field%long_name)', &
                                    len(io_field%long_name))
                      write(stdout,*) 'string too short; not enough room to read long_name of ' /&
@@ -678,7 +679,7 @@
 	                                io_field%units(1:nsize))
                else
                   if (my_task == master_task) then
-                     call document('define_field_netcdf', 'nsize', nsize)
+                     call document('define_field_netcdf', 'nsize', int(nsize))
                      call document('define_field_netcdf', 'len(io_field%units)', &
                                    len(io_field%units))
                      write(stdout,*) 'string too short; not enough room to read units of ' /&
@@ -706,7 +707,7 @@
             endif
                else
                   if (my_task == master_task) then
-                     call document('define_field_netcdf', 'nsize', nsize)
+                     call document('define_field_netcdf', 'nsize', int(nsize))
                      call document('define_field_netcdf', 'len(io_field%coordinates)', &
                                    len(io_field%coordinates))
                      write(stdout,*) 'string too short; not enough room to read coordinates of ' /&
@@ -730,7 +731,7 @@
                   iostat = pio_get_att(data_file%File, io_field%id, 'grid_loc', &
                                         io_field%grid_loc(1:nsize))
                else
-                  call document('define_field_netcdf', 'nsize', nsize)
+                  call document('define_field_netcdf', 'nsize', int(nsize))
                   call document('define_field_netcdf', 'len(io_field%grid_loc)', &
                                 len(io_field%grid_loc))
                   write(stdout,*) 'string too short; not enough room to read grid_loc of ' /&
@@ -779,7 +780,7 @@
                                         work_line(1:nsize))
                else
                   if (my_task == master_task) then
-                     call document('define_field_netcdf', 'nsize', nsize)
+                     call document('define_field_netcdf', 'nsize', int(nsize))
                      call document('define_field_netcdf', 'len(work_line)', &
                                 len(work_line))
                      write(stdout,*) 'string too short; not enough room to read ' /&
@@ -1203,18 +1204,26 @@
       
    if (io_field%set_ioFrame) then	
       ndims = io_field%nfield_dims
-      call pio_setframe(io_field%vardesc, int(io_field%field_dim(ndims)%start,kind=PIO_OFFSET))
+      call pio_setframe(data_file%File, io_field%vardesc, int(io_field%field_dim(ndims)%start,kind=PIO_OFFSET_KIND))
+!   else
+!     call pio_setframe(data_file%File, io_field%vardesc, 0_PIO_OFFSET_KIND)
    end if
-
    if (associated(io_field%field_r_3d)) then
 
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
                             io_field%field_r_3d, iostat)
 
    else if (associated(io_field%field_r_2d)) then
+      if(io_field%id==8) then
+         print *,__FILE__,__LINE__,io_field%id
+      endif
 
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
                             io_field%field_r_2d, iostat)
+
+      if(io_field%id==8) Then
+         print *,__FILE__,__LINE__,io_field%id,minval(io_field%field_r_2d),maxval(io_field%field_r_2d), io_field%set_ioFrame, iostat
+      endif
 
    else if (associated(io_field%field_r_1d)) then
 
@@ -1349,7 +1358,7 @@
 !-----------------------------------------------------------------------
 
    if (io_field%set_iodesc) then
-      call pio_setframe(io_field%vardesc, int(1,kind=PIO_OFFSET))
+      !call pio_setframe(data_file%File,  io_field%vardesc, int(1,kind=PIO_OFFSET_KIND))
       if (associated(io_field%field_r_3d)) then
          call io_pio_initdecomp(PIO_REAL, ndim3=io_field%field_dim(3)%length, &
               kdim3=io_field%field_dim(3)%length, iodesc=io_field%ioDesc)
@@ -1615,8 +1624,8 @@
       iostat,         &! status flag for netCDF calls
       n,              &! loop index
       dimid,          &! dimension id
-      xtype,          &
-      len	
+      xtype          
+   integer(pio_offset_kind)::      len	
 
 
    logical (log_kind) :: &

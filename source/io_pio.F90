@@ -45,17 +45,17 @@ module io_pio
   integer (i4), parameter :: nmax = 10
 
   type ptr_ioDesc_int_type
-     type (IO_desc_t), pointer :: ioDesc(:)
+     type (IO_desc_t), pointer :: ioDesc
   end type ptr_ioDesc_int_type
   type (ptr_ioDesc_int_type), dimension(:), allocatable :: ptr_ioDesc_i
 
   type ptr_ioDesc_real_type
-     type (IO_desc_t), pointer :: ioDesc(:)
+     type (IO_desc_t), pointer :: ioDesc
   end type ptr_ioDesc_real_type
   type (ptr_ioDesc_real_type), dimension(:), allocatable :: ptr_ioDesc_r
 
   type ptr_ioDesc_double_type
-     type (IO_desc_t), pointer :: ioDesc(:)
+     type (IO_desc_t), pointer :: ioDesc
   end type ptr_ioDesc_double_type
   type (ptr_ioDesc_double_type), dimension(:), allocatable :: ptr_ioDesc_d
 
@@ -203,7 +203,7 @@ module io_pio
       type(iosystem_desc_t), pointer :: io_pio_subsystem
       type(block) :: this_block 
 
-      integer(kind=int_kind), pointer :: dof3d(:)
+      integer(kind=pio_offset_kind), pointer :: dof3d(:)
 
       logical, save :: first_time = .true.
 
@@ -214,9 +214,9 @@ module io_pio
          allocate(ptr_ioDesc_r(nmax))
          allocate(ptr_ioDesc_d(nmax))
          do i = 1,nmax
-            allocate(ptr_ioDesc_i(i)%ioDesc(1))
-            allocate(ptr_ioDesc_r(i)%ioDesc(1))
-            allocate(ptr_ioDesc_d(i)%ioDesc(1))
+            allocate(ptr_ioDesc_i(i)%ioDesc)
+            allocate(ptr_ioDesc_r(i)%ioDesc)
+            allocate(ptr_ioDesc_d(i)%ioDesc)
          end do
          first_time = .false.
       end if
@@ -334,29 +334,30 @@ module io_pio
          end if
 
          io_pio_subsystem => shr_pio_getiosys(inst_name)
+
          if (basetype == PIO_INT) then
             if (ndim3 == 0) then
                call pio_initdecomp(io_pio_subsystem, basetype, (/POP_nxGlobal,POP_nyGlobal/), &
-                    dof3d, ptr_ioDesc_i(index)%ioDesc(1))
+                    dof3d, ptr_ioDesc_i(index)%ioDesc)
             else
                call pio_initdecomp(io_pio_subsystem, basetype, (/POP_nxGlobal,POP_nyGlobal,ndim3/), &
-                    dof3d, ptr_ioDesc_i(index)%ioDesc(1))
+                    dof3d, ptr_ioDesc_i(index)%ioDesc)
             end if
          else if (basetype == PIO_REAL) then
             if (ndim3 == 0) then
                call pio_initdecomp(io_pio_subsystem, basetype, (/POP_nxGlobal,POP_nyGlobal/), &
-                    dof3d, ptr_ioDesc_r(index)%ioDesc(1))
+                    dof3d, ptr_ioDesc_r(index)%ioDesc)
             else
                call pio_initdecomp(io_pio_subsystem, basetype, (/POP_nxGlobal,POP_nyGlobal,ndim3/), &
-                    dof3d, ptr_ioDesc_r(index)%ioDesc(1))
+                    dof3d, ptr_ioDesc_r(index)%ioDesc)
             end if
          else if (basetype == PIO_DOUBLE) then
             if (ndim3 == 0) then
                call pio_initdecomp(io_pio_subsystem, basetype, (/POP_nxGlobal,POP_nyGlobal/), &
-                    dof3d, ptr_ioDesc_d(index)%ioDesc(1))
+                    dof3d, ptr_ioDesc_d(index)%ioDesc)
             else
                call pio_initdecomp(io_pio_subsystem, basetype, (/POP_nxGlobal,POP_nyGlobal,ndim3/), &
-                    dof3d, ptr_ioDesc_d(index)%ioDesc(1))
+                    dof3d, ptr_ioDesc_d(index)%ioDesc)
             end if
          end if
 
@@ -364,11 +365,11 @@ module io_pio
       end if
 
       if (basetype == PIO_INT) then
-         iodesc => ptr_ioDesc_i(index)%ioDesc(1)
+         iodesc => ptr_ioDesc_i(index)%ioDesc
       elseif (basetype == PIO_REAL) then
-         iodesc => ptr_ioDesc_r(index)%ioDesc(1)
+         iodesc => ptr_ioDesc_r(index)%ioDesc
       elseif (basetype == PIO_DOUBLE) then
-         iodesc => ptr_ioDesc_d(index)%ioDesc(1)
+         iodesc => ptr_ioDesc_d(index)%ioDesc
       end if
 
     end subroutine io_pio_initdecomp
