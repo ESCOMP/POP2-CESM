@@ -170,18 +170,18 @@
 
    call set_surface_forcing
 
-   if (lKPP1d) then
+   if (lidentical_columns) then
 
      !$OMP PARALLEL DO PRIVATE(iblock)
      do iblock = 1,nblocks_clinic
      
-       STF(:,:,1,iblock) = -100_r8 * RCALCT(:,:,iblock) * hflux_factor
-       STF(:,:,2,iblock) = c0 * RCALCT(:,:,iblock) * salinity_factor
+       STF(:,:,1,iblock) = global_SHF_coef * RCALCT(:,:,iblock) * hflux_factor
+       STF(:,:,2,iblock) = c0 ! * RCALCT(:,:,iblock) * salinity_factor
      
-       SHF_QSW(:,:,iblock) = c0 * RCALCT(:,:,iblock) * hflux_factor
+       SHF_QSW(:,:,iblock) = c0 ! * RCALCT(:,:,iblock) * hflux_factor
 
-       SMF(:,:,1,iblock) = 0.1_r8 * RCALCT(:,:,iblock)* momentum_factor
-       SMF(:,:,2,iblock) = c0 * RCALCT(:,:,iblock)* momentum_factor
+       SMF(:,:,1,iblock) = global_taux * RCALCT(:,:,iblock)* momentum_factor
+       SMF(:,:,2,iblock) = c0 ! * RCALCT(:,:,iblock)* momentum_factor
 
        SMFT(:,:,:,iblock) = SMF(:,:,:,iblock)
 

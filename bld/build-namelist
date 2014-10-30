@@ -533,7 +533,7 @@ add_default($nl, 'runid', 'val'=>"$CASE");
 add_default($nl, 'time_mix_opt');
 add_default($nl, 'time_mix_freq');
 add_default($nl, 'dt_option');
-add_default($nl, 'dt_count','ocn_coupling'=>"$OCN_COUPLING");
+add_default($nl, 'dt_count','ocn_coupling'=>"$OCN_COUPLING",'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl, 'impcor', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl, 'laccel');
 add_default($nl, 'dtuxcel');
@@ -558,6 +558,9 @@ add_default($nl, 'fit_freq', 'val'=>"$OCN_NCPL");
 # $CASEROOT/SourceMods/src.pop2 directory 
 # Currently this is hard-wired to 'file'
 
+# Also, flat_bottom is not set until after pop1d_nml because its
+# default value depends on lidentical_columns
+
 my $topography_opt = 'file';               # hard-wired for now
 my $bathymetry_file= 'unknown_bathymetry'; #hard-wired for now
 
@@ -578,9 +581,32 @@ if (not $nl->get_value('bottom_cell_file')) {
 	add_default($nl, 'bottom_cell_file', 'val'=>'unknown_bottom_cell','noprepend'=>1);
 }
 add_default($nl, 'n_topo_smooth');
-add_default($nl, 'flat_bottom', 'ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl, 'region_mask_file');
 add_default($nl, 'sfc_layer_opt', 'ocn_onedim'=>"$OCN_ONEDIM");
+
+add_default($nl, 'lPOP1d', 'ocn_onedim'=>"$OCN_ONEDIM");
+
+
+####################################
+# namelist group: pop1d_nml #
+####################################
+
+my $iden_cols = 'FALSE'; # used for constant Coriolis and flat bottom
+my $lPOP1d = $nl->get_value('lPOP1d');
+if ($lPOP1d eq '.true.') {
+  add_default($nl, 'lidentical_columns');
+  my $lidentical_cols = $nl->get_value('lidentical_columns');
+  if ($lidentical_cols eq '.true.') {
+    $iden_cols = 'TRUE';
+  }
+  add_default($nl, 'lconst_Coriolis', 'iden_cols'=>"$iden_cols");
+  add_default($nl, 'Coriolis_val');
+  add_default($nl, 'global_taux');
+  add_default($nl, 'global_SHF_coef');
+}
+
+# Back to grid_nml
+add_default($nl, 'flat_bottom', 'iden_cols'=>"$iden_cols");
 
 ####################################
 # namelist group: init_ts_nml      #
@@ -642,7 +668,7 @@ if ($OCN_TAVG_HIFREQ eq "TRUE" ) {
 # namelist group: bsf_diagnostics_nml    #
 ##########################################
 
-add_default($nl, 'ldiag_bsf');
+add_default($nl, 'ldiag_bsf', 'ocn_onedim'=>"$OCN_ONEDIM");
 
 ##########################################
 # namelist group: restart_nml            #
@@ -928,7 +954,6 @@ add_default($nl, 'state_range_freq');
 ##########################################
 
 add_default($nl, 'reset_to_freezing');
-add_default($nl, 'lPOP1d', 'ocn_onedim'=>"$OCN_ONEDIM");
 
 ##########################################
 # namelist group: ice_nml                #
@@ -1025,6 +1050,7 @@ add_default($nl,'pt_interior_data_renorm');
 add_default($nl,'pt_interior_variable_restore');
 add_default($nl,'pt_interior_restore_filename');
 add_default($nl,'pt_interior_restore_file_fmt');
+add_default($nl,'pt_interior_surface_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
 
 
 ##########################################
@@ -1045,6 +1071,7 @@ add_default($nl,'s_interior_data_renorm');
 add_default($nl,'s_interior_variable_restore');
 add_default($nl,'s_interior_restore_filename');
 add_default($nl,'s_interior_restore_file_fmt');
+add_default($nl,'s_interior_surface_restore', 'ocn_onedim'=>"$OCN_ONEDIM");
 
 ##########################################
 # namelist group: forcing_ap_interior_nml#
@@ -1214,7 +1241,125 @@ if (any(\@OCN_TRACER_MODULES, "cfc")) {
     add_default($nl, 'init_cfc_init_file', 'noprepend'=>1);
 }
 
+##########################################
+# namelist group: abio_dic_dic14_nml               #
+##########################################
 
+    if (any(\@OCN_TRACER_MODULES, "abio_dic_dic14")) {
+
+	
+    add_default($nl, 'init_abio_dic_dic14_option', 'val'=>"ccsm_${RUN_TYPE}");
+	
+    if ($RUN_TYPE eq "startup") {
+     add_default($nl, 'init_abio_dic_dic14_init_file');
+    } else {
+     add_default($nl, 'init_abio_dic_dic14_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+    }
+  
+    add_default($nl, 'init_abio_dic_dic14_init_file_fmt');
+    add_default($nl, 'abio_tracer_init_ext(1)%mod_varname');
+    add_default($nl, 'abio_tracer_init_ext(1)%file_varname');
+    add_default($nl, 'abio_tracer_init_ext(1)%scale_factor');
+    add_default($nl, 'abio_tracer_init_ext(2)%mod_varname');
+    add_default($nl, 'abio_tracer_init_ext(2)%file_varname');
+    add_default($nl, 'abio_tracer_init_ext(2)%scale_factor');
+    add_default($nl, 'abio_surf_avg_dic_const');
+    add_default($nl, 'abio_surf_avg_dic14_const');
+    add_default($nl, 'abio_use_nml_surf_vals', 'runtype'=>"$RUN_TYPE");
+    add_default($nl, 'abio_comp_surf_avg_freq_opt');
+    add_default($nl, 'abio_comp_surf_avg_freq');
+    add_default($nl, 'abio_atm_d14c_filename(1)');
+    add_default($nl, 'abio_atm_d14c_filename(2)');
+    add_default($nl, 'abio_atm_d14c_filename(3)');
+    add_default($nl, 'abio_atm_co2_filename');
+    add_default($nl, 'abio_atm_co2_d14c_opt');
+    add_default($nl, 'abio_atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
+    add_default($nl, 'abio_atm_d14c_const');
+    add_default($nl, 'abio_dic_dic14_model_year');
+    add_default($nl, 'abio_dic_dic14_data_year');
+ }
+
+##########################################
+# namelist group: ecosys_ciso_nml        #
+##########################################
+    if (any(\@OCN_TRACER_MODULES, "ciso")) {
+
+	my $temp;
+
+    if (($OCN_TRANSIENT ne "unset") &&  ($OCN_TRANSIENT ne "1850-2000") &&
+        ($OCN_TRANSIENT ne "rcp4.5") && ($OCN_TRANSIENT ne "rcp8.5")) {
+      print " OCN_TRANSIENT=$OCN_TRANSIENT not supported by ciso module \n";
+      die;
+    }
+
+    add_default($nl, 'ciso_init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
+    if ($RUN_TYPE eq "startup") {
+      add_default($nl, 'ciso_init_ecosys_init_file');
+    } else {
+      add_default($nl, 'ciso_init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
+    }
+    add_default($nl, 'ciso_init_ecosys_init_file_fmt');
+    add_default($nl, 'ciso_tracer_init_ext(1)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(1)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(1)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(2)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(2)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(2)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(3)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(3)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(3)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(4)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(4)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(4)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(5)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(5)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(5)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(6)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(6)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(6)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(7)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(7)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(7)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(8)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(8)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(8)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(9)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(9)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(9)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(10)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(10)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(10)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(11)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(11)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(11)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(12)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(12)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(12)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(13)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(13)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(13)%scale_factor');
+    add_default($nl, 'ciso_tracer_init_ext(14)%mod_varname');
+    add_default($nl, 'ciso_tracer_init_ext(14)%file_varname');
+    add_default($nl, 'ciso_tracer_init_ext(14)%scale_factor');
+    add_default($nl, 'ciso_atm_d13c_opt', 'val'=>"const");
+    add_default($nl, 'ciso_atm_d13c_const');
+    add_default($nl, 'ciso_atm_d14c_opt', 'val'=>"const");
+    add_default($nl, 'ciso_atm_d14c_const');
+    add_default($nl, 'ciso_lsource_sink');
+    add_default($nl, 'ciso_comp_surf_avg_freq_opt');
+    add_default($nl, 'ciso_comp_surf_avg_freq');
+    add_default($nl, 'ciso_use_nml_surf_vals', 'runtype'=>"$RUN_TYPE");
+    add_default($nl, 'ciso_surf_avg_di13c_const');
+    add_default($nl, 'ciso_surf_avg_di14c_const');
+    add_default($nl, 'ciso_atm_d13c_filename');
+    add_default($nl, 'ciso_atm_d14c_filename(1)');
+    add_default($nl, 'ciso_atm_d14c_filename(2)');
+    add_default($nl, 'ciso_atm_d14c_filename(3)');
+    add_default($nl, 'ciso_fract_factors');
+    add_default($nl, 'ciso_lecovars_full_depth_tavg');
+    add_default($nl, 'ciso_atm_model_year');
+    add_default($nl, 'ciso_atm_data_year');
+}
 ##########################################
 # namelist group: ecosys_nml             #
 ##########################################
@@ -1273,9 +1418,7 @@ if (any(\@OCN_TRACER_MODULES, "ecosys")) {
     add_default($nl, 'atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
     add_default($nl, 'atm_alt_co2_opt', 'val'=>"const");
     add_default($nl, 'atm_alt_co2_const', 'val'=>"$CCSM_CO2_PPMV");
-    add_default($nl, 'ecosys_tadvect_ctype');
     add_default($nl, 'gas_flux_forcing_opt');
-    add_default($nl, 'lmarginal_seas');
 
     add_default($nl, 'lsource_sink');
     add_default($nl, 'comp_surf_avg_freq_opt');
@@ -1394,6 +1537,16 @@ if (any(\@OCN_TRACER_MODULES, "ecosys")) {
     add_default($nl, 'autotrophs(3)%z_umax_0');
 }
 
+##########################################
+# namelist group: ecosys_driver_nml      #
+##########################################
+
+if (any(\@OCN_TRACER_MODULES, "ecosys")) {
+
+    add_default($nl, 'lmarginal_seas');
+    add_default($nl, 'ecosys_tadvect_ctype');
+    }
+ 
 ##########################################
 # namelist group: moby_nml             #
 ##########################################
@@ -1596,8 +1749,13 @@ if ($OCN_TAVG_HIFREQ eq "TRUE") {
     # High-frequency tavg contents
     $file = "${OCN_GRID}_tavg_contents_high_freq";
 } else {
-    # Default resolution dependent tavg contents
-    $file = "${OCN_GRID}_tavg_contents";
+    if ($OCN_ONEDIM eq "TRUE") {
+      # 1D resolution dependent tavg contents
+      $file = "${OCN_GRID}_1D_tavg_contents";
+    } else {
+      # Default resolution dependent tavg contents
+      $file = "${OCN_GRID}_tavg_contents";
+    }
 }
 if (-f "$my_path/$file") {
   $sysmod = "cp -fp ${my_path}/$file $base_tavg_file";
@@ -1717,6 +1875,7 @@ my @groups = qw(domain_nml
                 io_nml
                 time_manager_nml
                 grid_nml
+                pop1d_nml
                 init_ts_nml
                 diagnostics_nml
                 budget_diagnostics_nml
@@ -1766,10 +1925,16 @@ if (any(\@OCN_TRACER_MODULES, "cfc")) {
     push @groups, qw(cfc_nml);
 }    
 if (any(\@OCN_TRACER_MODULES, "ecosys")) {
-    push @groups, qw(ecosys_nml ecosys_parms_nml);
+    push @groups, qw(ecosys_nml ecosys_parms_nml ecosys_driver_nml);
 }    
 if (any(\@OCN_TRACER_MODULES, "moby")) {
     push @groups, qw(moby_nml moby_parms_nml );
+}
+if (any(\@OCN_TRACER_MODULES, "abio_dic_dic14")) {
+    push @groups, qw(abio_dic_dic14_nml);
+}
+if (any(\@OCN_TRACER_MODULES, "ciso")) {
+    push @groups, qw(ecosys_ciso_nml);
 }
 
 # Check for variables in the "derived" group, add them to appropriate group
@@ -1980,6 +2145,17 @@ sub check_input_files {
           ($pathname eq 'same_as_TS')) {
         $is_a_file = 0;
       }
+       # init_abio_dic_dic14_init_file could be 'same_as_TS'
+      if (($var eq 'init_abio_dic_dic14_init_file') and 
+          ($pathname eq 'same_as_TS')) {
+        $is_a_file = 0;
+      }
+      # ciso_init_ecosys_init_file could be 'same_as_TS'
+      if (($var eq 'ciso_init_ecosys_init_file') and 
+          ($pathname eq 'same_as_TS')) {
+        $is_a_file = 0;
+      }
+
     }
 
     # If it is, check whether it exists locally and print status

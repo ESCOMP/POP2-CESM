@@ -40,6 +40,7 @@
              open_netcdf,         &
              close_netcdf,        &
              sync_netcdf,         &
+             field_exists_netcdf, &
              define_field_netcdf, &
              read_field_netcdf,   &
              write_field_netcdf,  &
@@ -511,6 +512,73 @@
 !EOC
 
  end subroutine sync_netcdf
+
+!***********************************************************************
+!BOP
+! !IROUTINE: field_exists_netcdf
+! !INTERFACE:
+
+ subroutine field_exists_netcdf(data_file, fieldname, field_exists)
+
+! !DESCRIPTION:
+!  This routine determines if a field exists in a netCDF file.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   character (*), intent (in) :: fieldname
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   type (datafile), target, intent (inout)  :: &
+      data_file       ! data file in which field contained
+
+! !OUTPUT PARAMETERS:
+
+   logical (log_kind), intent (out) :: field_exists
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   !
+   ! temporary kludge until PIO2, which exports pio_enotvar, is available
+   ! this local variable will be removed at that time
+   !
+   integer (i4), parameter :: &
+      pio_enotvar = -49
+
+   integer (i4) :: &
+      iostat,      &! status flag for netCDF calls
+      varid         ! variable id for field
+
+!-----------------------------------------------------------------------
+
+   call pio_seterrorhandling(data_file%File, PIO_BCAST_ERROR)
+
+   iostat = pio_inq_varid(data_file%File, fieldname, varid)
+   if (iostat == pio_noerr) then
+      field_exists = .true.
+   else if (iostat == pio_enotvar) then
+      field_exists = .false.
+   else
+      call document('field_exists_netcdf', 'full_name', trim(data_file%full_name))
+      call document('field_exists_netcdf', 'fieldname', trim(fieldname))
+      call exit_POP(sigAbort,'Error in getting varid for netCDF field')
+   end if
+
+   call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine field_exists_netcdf
 
 !***********************************************************************
 !BOP

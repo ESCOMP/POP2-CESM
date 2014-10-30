@@ -98,7 +98,8 @@
       pt_interior_bndy_type     !   ghost cell updates
 
    logical (log_kind) :: &
-      pt_interior_variable_restore
+      pt_interior_variable_restore, &
+      pt_interior_surface_restore    ! Flag to include surface layer when restoring
 
 !EOC
 !***********************************************************************
@@ -153,7 +154,7 @@
         pt_interior_file_fmt,         pt_interior_restore_max_level,   &
         pt_interior_data_renorm,      pt_interior_formulation,         &
         pt_interior_variable_restore, pt_interior_restore_filename,    &
-        pt_interior_restore_file_fmt
+        pt_interior_restore_file_fmt, pt_interior_surface_restore
 
 !-----------------------------------------------------------------------
 !
@@ -176,6 +177,7 @@
    pt_interior_variable_restore  = .false.
    pt_interior_restore_filename  = 'unknown-pt_interior_restore'
    pt_interior_restore_filename  = 'bin'
+   pt_interior_surface_restore   = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old', iostat=nml_error)
@@ -209,6 +211,7 @@
    call broadcast_scalar(pt_interior_variable_restore,  master_task)
    call broadcast_scalar(pt_interior_restore_filename,  master_task)
    call broadcast_scalar(pt_interior_restore_file_fmt,  master_task)
+   call broadcast_scalar(pt_interior_surface_restore,   master_task)
    call broadcast_array (pt_interior_data_renorm,       master_task)
 
 !-----------------------------------------------------------------------
@@ -717,7 +720,8 @@
 !
 !-----------------------------------------------------------------------
 
-   if (pt_interior_data_type /= 'none' .and. k > 1) then
+   if ((k > 1 .or.pt_interior_surface_restore).and.                    &
+        pt_interior_data_type.ne.'none') then
 
       bid = this_block%local_id
 

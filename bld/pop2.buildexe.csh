@@ -134,9 +134,11 @@ EOF
 
 @ NT = 2
 foreach module ( `echo $OCN_TRACER_MODULES` )  
-   if ($module =~ "iage"   ) @ NT = $NT +  1
-   if ($module =~ "cfc"    ) @ NT = $NT +  2   
-   if ($module =~ "ecosys" ) @ NT = $NT + 27
+   if ($module =~ "iage"   )         @ NT = $NT +  1
+   if ($module =~ "cfc"    )         @ NT = $NT +  2   
+   if ($module =~ "ecosys" )         @ NT = $NT + 27
+   if ($module =~ "abio_dic_dic14" ) @ NT = $NT +  2 
+   if ($module =~ "ciso" )           @ NT = $NT + 14 
    if ($module == moby     ) then
       if (-e $my_path/${OCN_GRID}_data.ptracers) then
         set dir = $my_path

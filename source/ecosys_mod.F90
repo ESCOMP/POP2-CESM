@@ -117,6 +117,7 @@
    use registry
    use named_field_mod
    use co2calc
+   use ecosys_share
 #ifdef CCSMCOUPLED
    use POP_MCT_vars_mod
    use shr_strdata_mod
@@ -145,6 +146,9 @@
       ecosys_set_interior,          &
       ecosys_write_restart,         &
       ecosys_qsw_distrb_const
+
+!EOP
+!BOC
 
 !-----------------------------------------------------------------------
 !  module variables required by forcing_passive_tracer
@@ -249,7 +253,7 @@
    real (r8), dimension(:,:,:), allocatable :: &
       dust_FLUX_IN      ! dust flux not stored in STF since dust is not prognostic
 
-   real (r8), dimension(:,:,:,:), allocatable :: &
+   real (r8), dimension(:,:,:,:), allocatable, target :: &
       PH_PREV_3D,      & ! computed pH_3D from previous time step
       PH_PREV_ALT_CO2_3D ! computed pH_3D from previous time step, alternative CO2
 
@@ -337,27 +341,6 @@
       dic_riv_flux,              & ! river dic flux, added to dic pool
       alk_riv_flux,              & ! river alk flux, added to alk pool
       doc_riv_flux                 ! river doc flux, added to semi-labile DOC
-
-!-----------------------------------------------------------------------
-!  derived type for implicit handling of sinking particulate matter
-!-----------------------------------------------------------------------
-
-   type sinking_particle
-      real (r8) :: &
-         diss,        & ! dissolution length for soft subclass
-         gamma,       & ! fraction of production -> hard subclass
-         mass,        & ! mass of 1e9 base units in g
-         rho            ! QA mass ratio of POC to this particle class
-
-      real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
-         sflux_in,    & ! incoming flux of soft subclass (base units/cm^2/sec)
-         hflux_in,    & ! incoming flux of hard subclass (base units/cm^2/sec)
-         prod,        & ! production term (base units/cm^3/sec)
-         sflux_out,   & ! outgoing flux of soft subclass (base units/cm^2/sec)
-         hflux_out,   & ! outgoing flux of hard subclass (base units/cm^2/sec)
-         sed_loss,    & ! loss to sediments (base units/cm^s/sec)
-         remin          ! remineralization term (base units/cm^3/sec)
-   end type sinking_particle
 
 !-----------------------------------------------------------------------
 !  tavg ids and buffer indices (into ECO_SFLUX_TAVG) for 2d fields related to surface fluxes
@@ -614,6 +597,7 @@
       phhi_3d_init = 9.0_r8,   & ! high bound for subsurface ph for no prev soln
       del_ph = 0.20_r8           ! delta-ph for prev soln
 
+!EOC
 !*****************************************************************************
 
 contains
@@ -624,8 +608,8 @@ contains
 ! !INTERFACE:
 
  subroutine ecosys_init(init_ts_file_fmt, read_restart_filename, &
-                        tracer_d_module, TRACER_MODULE, tadvect_ctype, &
-                        errorCode)
+                        tracer_d_module, TRACER_MODULE, &
+                        lmarginal_seas, errorCode)
 
 ! !DESCRIPTION:
 !  Initialize ecosys tracer module. This involves setting metadata, reading
@@ -638,24 +622,21 @@ contains
 ! !INPUT PARAMETERS:
 
    character (*), intent(in) :: &
-      init_ts_file_fmt,    & ! format (bin or nc) for input file
-      read_restart_filename  ! file name for restart file
+      init_ts_file_fmt,     & ! format (bin or nc) for input file
+      read_restart_filename   ! file name for restart file
+
+   logical (kind=log_kind), intent(in) :: &
+     lmarginal_seas               ! Is ecosystem active in marginal seas ?
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-  !type (tracer_field), dimension(ecosys_tracer_cnt), intent(inout) :: &
    type (tracer_field), dimension(:), intent(inout) :: &
       tracer_d_module   ! descriptors for each tracer
 
-  !real (r8), dimension(nx_block,ny_block,km,ecosys_tracer_cnt,3,max_blocks_clinic), &
    real (r8), dimension(:,:,:,:,:,:), &
       intent(inout) :: TRACER_MODULE
 
 ! !OUTPUT PARAMETERS:
-
-  !character (char_len), dimension(ecosys_tracer_cnt), intent(out) :: &
-   character (char_len), dimension(:), intent(out) :: &
-      tadvect_ctype     ! advection method for ecosys tracers
 
    integer (POP_i4), intent(out) :: &
       errorCode
@@ -675,8 +656,7 @@ contains
       comp_surf_avg_freq_opt,    & ! choice for freq of comp_surf_avg
       gas_flux_forcing_opt,      & ! option for forcing gas fluxes
       atm_co2_opt,               & ! option for atmospheric co2 concentration
-      atm_alt_co2_opt,           & ! option for atmospheric alternative CO2
-      ecosys_tadvect_ctype         ! advection method for ecosys tracers
+      atm_alt_co2_opt              ! option for atmospheric alternative CO2
 
    type(tracer_read), dimension(ecosys_tracer_cnt) :: &
       tracer_init_ext              ! namelist variable for initializing tracers
@@ -698,8 +678,7 @@ contains
 
    logical (log_kind) :: &
       default,                   & ! arg to init_time_flag
-      lnml_found,                & ! Was ecosys_nml found ?
-      lmarginal_seas               ! Is ecosystem active in marginal seas ?
+      lnml_found                   ! Was ecosys_nml found ?
 
    integer (int_kind) :: &
       non_autotroph_ecosys_tracer_cnt, & ! number of non-autotroph ecosystem tracers
@@ -747,12 +726,11 @@ contains
       nutr_rest_file, po4_rest, no3_rest, sio3_rest, &
       comp_surf_avg_freq_opt, comp_surf_avg_freq,  &
       use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
-      ecosys_qsw_distrb_const, lmarginal_seas, &
+      ecosys_qsw_distrb_const, &
       lsource_sink, lflux_gas_o2, lflux_gas_co2, locmip_k1_k2_bug_fix, &
       lnutr_variable_restore, nutr_variable_rest_file,  &
       nutr_variable_rest_file_fmt,atm_co2_opt,atm_co2_const, &
       atm_alt_co2_opt, atm_alt_co2_const, &
-      ecosys_tadvect_ctype, &
       liron_patch,iron_patch_flux_filename,iron_patch_month, &
       lecovars_full_depth_tavg
 
@@ -1135,7 +1113,6 @@ contains
       tracer_init_ext(n)%file_fmt     = 'bin'
    end do
 
-   lmarginal_seas        = .true.
    lsource_sink          = .true.
    lflux_gas_o2          = .true.
    lflux_gas_co2         = .true.
@@ -1158,8 +1135,6 @@ contains
 
    atm_alt_co2_opt   = 'const'
    atm_alt_co2_const = 280.0_r8
-
-   ecosys_tadvect_ctype = 'base_model'
 
    lecovars_full_depth_tavg = .false.
 
@@ -1408,7 +1383,6 @@ contains
 
    call broadcast_scalar(ecosys_qsw_distrb_const, master_task)
 
-   call broadcast_scalar(lmarginal_seas, master_task)
    call broadcast_scalar(lsource_sink, master_task)
    call broadcast_scalar(lflux_gas_o2, master_task)
    call broadcast_scalar(lflux_gas_co2, master_task)
@@ -1423,9 +1397,6 @@ contains
 
    call broadcast_scalar(atm_alt_co2_opt, master_task)
    call broadcast_scalar(atm_alt_co2_const, master_task)
-
-   call broadcast_scalar(ecosys_tadvect_ctype, master_task)
-   tadvect_ctype = ecosys_tadvect_ctype
 
    call broadcast_scalar(lecovars_full_depth_tavg, master_task)
 
@@ -1498,8 +1469,6 @@ contains
    allocate( dust_FLUX_IN(nx_block,ny_block,max_blocks_clinic) )
    allocate( PH_PREV_3D(nx_block,ny_block,km,max_blocks_clinic) )
    allocate( PH_PREV_ALT_CO2_3D(nx_block,ny_block,km,max_blocks_clinic) )
-   PH_PREV_3D = c0
-   PH_PREV_ALT_CO2_3D = c0
 
 !-----------------------------------------------------------------------
 !  allocate and initialize LAND_MASK
@@ -1543,13 +1512,57 @@ contains
                                   tracer_d_module,           &
                                   TRACER_MODULE)
 
-      call read_field(init_ecosys_init_file_fmt, &
-                      ecosys_restart_filename,   &
-                      'PH_SURF', PH_PREV)
+      if (field_exists_in_file(init_ecosys_init_file_fmt, &
+                               ecosys_restart_filename, &
+                               'PH_SURF')) then
+         call read_field(init_ecosys_init_file_fmt, &
+                         ecosys_restart_filename,   &
+                         'PH_SURF', PH_PREV)
+      else
+         call document(subname, 'PH_SURF does not exist in ' /&
+                       &/ trim(ecosys_restart_filename) /&
+                       &/ ', setting PH_PREV to 0')
+         PH_PREV = c0
+      endif
 
-      call read_field(init_ecosys_init_file_fmt, &
-                      ecosys_restart_filename,   &
-                      'PH_SURF_ALT_CO2', PH_PREV_ALT_CO2)
+      if (field_exists_in_file(init_ecosys_init_file_fmt, &
+                               ecosys_restart_filename, &
+                               'PH_SURF_ALT_CO2')) then
+         call read_field(init_ecosys_init_file_fmt, &
+                         ecosys_restart_filename,   &
+                         'PH_SURF_ALT_CO2', PH_PREV_ALT_CO2)
+      else
+         call document(subname, 'PH_SURF_ALT_CO2 does not exist in ' /&
+                       &/ trim(ecosys_restart_filename) /&
+                       &/ ', setting PH_PREV_ALT_CO2 to 0')
+         PH_PREV_ALT_CO2 = c0
+      endif
+
+      if (field_exists_in_file(init_ecosys_init_file_fmt, &
+                               ecosys_restart_filename, &
+                               'PH_3D')) then
+         call read_field(init_ecosys_init_file_fmt, &
+                         ecosys_restart_filename,   &
+                         'PH_3D', PH_PREV_3D)
+      else
+         call document(subname, 'PH_3D does not exist in ' /&
+                       &/ trim(ecosys_restart_filename) /&
+                       &/ ', setting PH_PREV_3D to 0')
+         PH_PREV_3D  = c0
+      endif
+
+      if (field_exists_in_file(init_ecosys_init_file_fmt, &
+                               ecosys_restart_filename, &
+                               'PH_3D_ALT_CO2')) then
+         call read_field(init_ecosys_init_file_fmt, &
+                         ecosys_restart_filename,   &
+                         'PH_3D_ALT_CO2', PH_PREV_ALT_CO2_3D)
+      else
+         call document(subname, 'PH_3D_ALT_CO2 does not exist in ' /&
+                       &/ trim(ecosys_restart_filename) /&
+                       &/ ', setting PH_PREV_ALT_CO2_3D to 0')
+         PH_PREV_ALT_CO2_3D = c0
+      endif
 
       if (use_nml_surf_vals) then
          surf_avg = c0
@@ -1557,15 +1570,18 @@ contains
          surf_avg(dic_alt_co2_ind) = surf_avg_dic_const
          surf_avg(alk_ind) = surf_avg_alk_const
       else
-         call extract_surf_avg(init_ecosys_init_file_fmt, &
-                               ecosys_restart_filename)
+         call extract_surf_avg(init_ecosys_init_file_fmt,     &
+                               ecosys_restart_filename,       &
+                               ecosys_tracer_cnt, vflux_flag, &
+                               ind_name_table,surf_avg)
       endif
 
       call eval_time_flag(comp_surf_avg_flag) ! evaluates time_flag(comp_surf_avg_flag)%value via time_to_do
 
       if (check_time_flag(comp_surf_avg_flag)) &
          call comp_surf_avg(TRACER_MODULE(:,:,1,:,oldtime,:), &
-                            TRACER_MODULE(:,:,1,:,curtime,:))
+                            TRACER_MODULE(:,:,1,:,curtime,:), &
+                            ecosys_tracer_cnt,vflux_flag,surf_avg)
 
    case ('file', 'ccsm_startup')
       call document(subname, 'ecosystem vars being read from separate files')
@@ -1604,6 +1620,8 @@ contains
 
       PH_PREV = c0
       PH_PREV_ALT_CO2 = c0
+      PH_PREV_3D = c0
+      PH_PREV_ALT_CO2_3D = c0
 
       if (use_nml_surf_vals) then
          surf_avg = c0
@@ -1612,7 +1630,8 @@ contains
          surf_avg(alk_ind) = surf_avg_alk_const
       else
          call comp_surf_avg(TRACER_MODULE(:,:,1,:,oldtime,:), &
-                            TRACER_MODULE(:,:,1,:,curtime,:))
+                            TRACER_MODULE(:,:,1,:,curtime,:), &
+                            ecosys_tracer_cnt,vflux_flag,surf_avg)
       endif
 
    case default
@@ -1704,77 +1723,6 @@ contains
 !EOC
 
  end subroutine ecosys_init
-
-!***********************************************************************
-!BOP
-! !IROUTINE: extract_surf_avg
-! !INTERFACE:
-
- subroutine extract_surf_avg(init_ecosys_init_file_fmt, &
-                             ecosys_restart_filename)
-
-! !DESCRIPTION:
-!  Extract average surface values from restart file.
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
-   character (*), intent(in) :: &
-      init_ecosys_init_file_fmt, & ! file format (bin or nc)
-      ecosys_restart_filename      ! file name for restart file
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   type (datafile) ::&
-      restart_file    ! io file descriptor
-
-   integer (int_kind) :: &
-      n               ! tracer index
-
-   character (char_len) :: &
-      short_name      ! tracer name temporaries
-
-!-----------------------------------------------------------------------
-
-   surf_avg = c0
-
-   restart_file = construct_file(init_ecosys_init_file_fmt, &
-                                 full_name=trim(ecosys_restart_filename), &
-                                 record_length=rec_type_dbl, &
-                                 recl_words=nx_global*ny_global)
-
-   do n = 1, ecosys_tracer_cnt
-      if (vflux_flag(n)) then
-         short_name = 'surf_avg_' /&
-                   &/ ind_name_table(n)%name
-         call add_attrib_file(restart_file, trim(short_name), surf_avg(n))
-      endif
-   end do
-
-   call data_set(restart_file, 'open_read')
-
-   do n = 1, ecosys_tracer_cnt
-      if (vflux_flag(n)) then
-         short_name = 'surf_avg_' /&
-                   &/ ind_name_table(n)%name
-         call extract_attrib_file(restart_file, trim(short_name), surf_avg(n))
-      endif
-   end do
-
-   call data_set (restart_file, 'close')
-
-   call destroy_file (restart_file)
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine extract_surf_avg
 
 !***********************************************************************
 !BOP
@@ -2629,7 +2577,7 @@ contains
 ! !INTERFACE:
 
  subroutine ecosys_set_interior(k, TEMP_OLD, TEMP_CUR, SALT_OLD, SALT_CUR, &
-    TRACER_MODULE_OLD, TRACER_MODULE_CUR, DTRACER_MODULE, this_block)
+    TRACER_MODULE_OLD, TRACER_MODULE_CUR, DTRACER_MODULE, lexport_shared_vars, this_block)
 
 ! !DESCRIPTION:
 !  Compute time derivatives for ecosystem state variables
@@ -2648,17 +2596,18 @@ contains
       SALT_OLD,          &! old salinity (msu)
       SALT_CUR            ! current salinity (msu)
 
-  !real (r8), dimension(nx_block,ny_block,km,ecosys_tracer_cnt), intent(in) :: &
    real (r8), dimension(:,:,:,:), intent(in) :: &
       TRACER_MODULE_OLD, &! old tracer values
       TRACER_MODULE_CUR   ! current tracer values
+
+   logical (log_kind), intent(in) :: &
+      lexport_shared_vars ! flag to save shared_vars or not
 
    type (block), intent(in) :: &
       this_block          ! block info for the current block
 
 ! !OUTPUT PARAMETERS:
 
-  !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt), intent(out) :: &
    real (r8), dimension(:,:,:), intent(out) :: &
       DTRACER_MODULE      ! computed source/sink terms
 
@@ -2677,20 +2626,20 @@ contains
       epsnondim = 1.00e-6    ! small non-dimensional number (non-dim)
 
    type(sinking_particle), save :: &
-      POC,            & ! base units = nmol C
-      P_CaCO3,        & ! base units = nmol CaCO3
+!     POC               ! base units = nmol C -> Defined in ecosys_share
+!     P_CaCO3           ! base units = nmol CaCO3 -> Defined in ecosys_share
       P_SiO2,         & ! base units = nmol SiO2
       dust,           & ! base units = g
       P_iron            ! base units = nmol Fe
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), save :: &
-      QA_dust_def,    & ! incoming deficit in the QA(dust) POC flux
-      SED_DENITRIF,   & ! sedimentary denitrification (nmol N/cm^3/sec)
-      OTHER_REMIN,    & ! organic C remin not due oxic or denitrif (nmolC/cm^3/sec)
-      ZSATCALC,       & ! Calcite Saturation Depth
-      ZSATARAG,       & ! Aragonite Saturation Depth
-      CO3_CALC_ANOM_km1,&! CO3 concentration above calcite saturation at k-1
-      CO3_ARAG_ANOM_km1 ! CO3 concentration above aragonite saturation at k-1
+      QA_dust_def,      & ! incoming deficit in the QA(dust) POC flux
+      SED_DENITRIF,     & ! sedimentary denitrification (nmol N/cm^3/sec)
+      OTHER_REMIN,      & ! organic C remin not due oxic or denitrif (nmolC/cm^3/sec)
+      ZSATCALC,         & ! Calcite Saturation Depth
+      ZSATARAG,         & ! Aragonite Saturation Depth
+      CO3_CALC_ANOM_km1,& ! CO3 concentration above calcite saturation at k-1
+      CO3_ARAG_ANOM_km1   ! CO3 concentration above aragonite saturation at k-1
 
    real (r8), dimension(nx_block,ny_block) :: &
       TEMP,           & ! local copy of model TEMP
@@ -2750,7 +2699,6 @@ contains
       f_nut,          & ! nut limitation factor, modifies C fixation (non-dim)
       PCmax,          & ! max value of PCphoto at temperature TEMP (1/sec)
       light_lim,      & ! light limitation factor
-      PCphoto,        & ! C-specific rate of photosynth. (1/sec)
       pChl              ! Chl synth. regulation term (mg Chl/mmol N)
 
    real (r8), dimension(nx_block,ny_block) :: & ! max of 39 continuation lines
@@ -2771,6 +2719,7 @@ contains
       VSiO3             ! C-specific SiO3 uptake (non-dim)
 
    real (r8), dimension(nx_block,ny_block,autotroph_cnt) :: &
+      PCphoto,        & ! C-specific rate of photosynth. (1/sec)
       thetaC,         & ! local Chl/C ratio (mg Chl/mmol C)
       QCaCO3,         & ! CaCO3/C ratio (mmol CaCO3/mmol C)
       VNO3,           & ! NO3 uptake rate (non-dim)
@@ -3094,6 +3043,7 @@ contains
          call comp_CO3terms(bid, j, k, LAND_MASK(:,j,bid) .and. k <= KMT(:,j,bid), .true., &
                             TEMP(:,j), SALT(:,j), DIC_loc(:,j), ALK_loc(:,j), PO4_loc(:,j), SiO3_loc(:,j), &
                             WORK1(:,j), WORK2(:,j), WORK3(:,j), H2CO3(:,j), HCO3(:,j), CO3(:,j))
+
          if (lalt_co2_terms) then
             where (PH_PREV_ALT_CO2_3D(:,j,k,bid) /= c0)
                WORK1(:,j) = PH_PREV_ALT_CO2_3D(:,j,k,bid) - del_ph
@@ -3118,6 +3068,7 @@ contains
       call accumulate_tavg_field(WORK4, tavg_pH_3D_ALT_CO2,bid,k)
 
       PH_PREV_3D(:,:,k,bid) = WORK3
+
       if (lalt_co2_terms) then
          PH_PREV_ALT_CO2_3D(:,:,k,bid) = WORK4
       endif
@@ -3249,11 +3200,11 @@ contains
 
       light_lim = (c1 - exp((-c1 * autotrophs(auto_ind)%alphaPI * thetaC(:,:,auto_ind) * PAR_avg) / &
                             (PCmax + epsTinv)))
-      PCphoto = PCmax * light_lim
+      PCphoto(:,:,auto_ind) = PCmax * light_lim
 
       call accumulate_tavg_field(light_lim, tavg_light_lim(auto_ind),bid,k)
 
-      photoC(:,:,auto_ind) = PCphoto * autotrophC_loc(:,:,auto_ind)
+      photoC(:,:,auto_ind) = PCphoto(:,:,auto_ind) * autotrophC_loc(:,:,auto_ind)
 
 !-----------------------------------------------------------------------
 !  Get nutrient uptakes by small phyto based on calculated C fixation
@@ -3263,7 +3214,7 @@ contains
       where (VNtot(:,:,auto_ind) > c0)
          NO3_V(:,:,auto_ind) = (VNO3(:,:,auto_ind) / VNtot(:,:,auto_ind)) * photoC(:,:,auto_ind) * Q
          NH4_V(:,:,auto_ind) = (VNH4(:,:,auto_ind) / VNtot(:,:,auto_ind)) * photoC(:,:,auto_ind) * Q
-         VNC = PCphoto * Q
+         VNC = PCphoto(:,:,auto_ind) * Q
       elsewhere
          NO3_V(:,:,auto_ind) = c0
          NH4_V(:,:,auto_ind) = c0
@@ -3303,7 +3254,7 @@ contains
 
       WORK1 = autotrophs(auto_ind)%alphaPI * thetaC(:,:,auto_ind) * PAR_avg
       where (WORK1 > c0)
-         pChl = autotrophs(auto_ind)%thetaN_max * PCphoto / WORK1
+         pChl = autotrophs(auto_ind)%thetaN_max * PCphoto(:,:,auto_ind) / WORK1
          photoacc(:,:,auto_ind) = (pChl * VNC / thetaC(:,:,auto_ind)) * autotrophChl_loc(:,:,auto_ind)
       elsewhere
          photoacc(:,:,auto_ind) = c0
@@ -3334,9 +3285,9 @@ contains
          if (accumulate_tavg_now(tavg_CaCO3_form_zint(auto_ind)) .or. &
              accumulate_tavg_now(tavg_tot_CaCO3_form_zint)) then
             if (partial_bottom_cells) then
-               WORK1 = DZT(:,:,k,bid) * CaCO3_PROD(:,:,auto_ind)
+               WORK1 = merge(DZT(:,:,k,bid) * CaCO3_PROD(:,:,auto_ind), c0,k<=KMT(:,:,bid))
             else
-               WORK1 = dz(k) * CaCO3_PROD(:,:,auto_ind)
+               WORK1 = merge(dz(k) * CaCO3_PROD(:,:,auto_ind), c0,k<=KMT(:,:,bid))
             endif
             call accumulate_tavg_field(WORK1, tavg_CaCO3_form_zint(auto_ind),bid,k)
             call accumulate_tavg_field(WORK1, tavg_tot_CaCO3_form_zint,bid,k)
@@ -3350,8 +3301,8 @@ contains
 
       auto_loss(:,:,auto_ind) = autotrophs(auto_ind)%mort * Pprime(:,:,auto_ind) * Tfunc
 
-      auto_agg(:,:,auto_ind) = min((autotrophs(auto_ind)%agg_rate_max * dps) * &
-           Pprime(:,:,auto_ind), autotrophs(auto_ind)%mort2 * Pprime(:,:,auto_ind) * Pprime(:,:,auto_ind))
+      auto_agg(:,:,auto_ind) = min((autotrophs(auto_ind)%agg_rate_max * dps) * Pprime(:,:,auto_ind), &
+                                   autotrophs(auto_ind)%mort2 * Pprime(:,:,auto_ind) * Pprime(:,:,auto_ind))
       auto_agg(:,:,auto_ind) = max((autotrophs(auto_ind)%agg_rate_min * dps) * Pprime(:,:,auto_ind), auto_agg(:,:,auto_ind))
 
 !-----------------------------------------------------------------------
@@ -3570,7 +3521,8 @@ contains
 
    call compute_particulate_terms(k, POC, P_CaCO3, P_SiO2, dust, P_iron, &
                                   QA_dust_def, TEMP, O2_loc, NO3_loc, &
-                                  SED_DENITRIF, OTHER_REMIN, this_block)
+                                  SED_DENITRIF, OTHER_REMIN, lexport_shared_vars, &
+                                  this_block)
 
 !-----------------------------------------------------------------------
 !  nitrate & ammonium
@@ -3890,9 +3842,9 @@ contains
    do auto_ind = 1, autotroph_cnt
       if (accumulate_tavg_now(tavg_photoC_zint(auto_ind))) then
          if (partial_bottom_cells) then
-            WORK1 = DZT(:,:,k,bid) * photoC(:,:,auto_ind)
+            WORK1 = merge(DZT(:,:,k,bid) * photoC(:,:,auto_ind), c0,k<=KMT(:,:,bid))
          else
-            WORK1 = dz(k) * photoC(:,:,auto_ind)
+            WORK1 = merge(dz(k) * photoC(:,:,auto_ind), c0,k<=KMT(:,:,bid))
          endif
          call accumulate_tavg_field(WORK1, tavg_photoC_zint(auto_ind),bid,k)
       endif
@@ -3900,9 +3852,9 @@ contains
 
    if (accumulate_tavg_now(tavg_photoC_TOT_zint)) then
       if (partial_bottom_cells) then
-         WORK1 = DZT(:,:,k,bid) * sum(photoC, dim=3)
+         WORK1 = merge(DZT(:,:,k,bid) * sum(photoC, dim=3), c0,k<=KMT(:,:,bid))
       else
-         WORK1 = dz(k) * sum(photoC, dim=3)
+         WORK1 = merge(dz(k) * sum(photoC, dim=3), c0,k<=KMT(:,:,bid))
       endif
       call accumulate_tavg_field(WORK1, tavg_photoC_TOT_zint,bid,k)
    endif
@@ -3920,9 +3872,9 @@ contains
 
          if (accumulate_tavg_now(tavg_photoC_NO3_zint(auto_ind))) then
             if (partial_bottom_cells) then
-               WORK1 = DZT(:,:,k,bid) * WORK1
+               WORK1 = merge(DZT(:,:,k,bid) * WORK1, c0,k<=KMT(:,:,bid))
             else
-               WORK1 = dz(k) * WORK1
+               WORK1 = merge(dz(k) * WORK1, c0,k<=KMT(:,:,bid))
             endif
             call accumulate_tavg_field(WORK1, tavg_photoC_NO3_zint(auto_ind),bid,k)
          endif
@@ -3942,9 +3894,9 @@ contains
 
       if (accumulate_tavg_now(tavg_photoC_NO3_TOT_zint)) then
          if (partial_bottom_cells) then
-            WORK1 = DZT(:,:,k,bid) * WORK1
+            WORK1 = merge(DZT(:,:,k,bid) * WORK1, c0,k<=KMT(:,:,bid))
          else
-            WORK1 = dz(k) * WORK1
+            WORK1 = merge(dz(k) * WORK1, c0,k<=KMT(:,:,bid))
          endif
          call accumulate_tavg_field(WORK1, tavg_photoC_NO3_TOT_zint,bid,k)
       endif
@@ -4122,6 +4074,48 @@ contains
       endif
    endif
 
+   if (lexport_shared_vars) then
+      DIC_loc_fields(:,:,bid) = DIC_loc
+      DOC_loc_fields(:,:,bid) = DOC_loc
+      O2_loc_fields(:,:,bid) = O2_loc
+      NO3_loc_fields(:,:,bid) = NO3_loc
+      zooC_loc_fields(:,:,bid) = zooC_loc
+
+      f_zoo_detr_fields(:,:,bid) = f_zoo_detr
+      CO3_fields(:,:,bid) = CO3
+      HCO3_fields(:,:,bid) = HCO3
+      H2CO3_fields(:,:,bid) = H2CO3
+      zoo_loss_fields(:,:,bid) = zoo_loss
+      zoo_loss_doc_fields(:,:,bid) = zoo_loss_doc
+      zoo_loss_dic_fields(:,:,bid) = zoo_loss_dic
+      DOC_remin_fields(:,:,bid) = DOC_remin
+
+      autotrophChl_loc_fields(:,:,:,bid) = autotrophChl_loc
+      autotrophC_loc_fields(:,:,:,bid) = autotrophC_loc
+      autotrophFe_loc_fields(:,:,:,bid) = autotrophFe_loc
+      do auto_ind = 1, autotroph_cnt
+         if (autotrophs(auto_ind)%Si_ind > 0) &
+            autotrophSi_loc_fields(:,:,auto_ind,bid) = autotrophSi_loc(:,:,auto_ind)
+         if (autotrophs(auto_ind)%CaCO3_ind > 0) &
+            autotrophCaCO3_loc_fields(:,:,auto_ind,bid) = autotrophCaCO3_loc(:,:,auto_ind)
+      end do
+
+      QCaCO3_fields(:,:,:,bid) = QCaCO3
+      auto_graze_fields(:,:,:,bid) = auto_graze
+      auto_graze_zoo_fields(:,:,:,bid) = auto_graze_zoo
+      auto_graze_poc_fields(:,:,:,bid) = auto_graze_poc
+      auto_graze_doc_fields(:,:,:,bid) = auto_graze_doc
+      auto_graze_dic_fields(:,:,:,bid) = auto_graze_dic
+      auto_loss_fields(:,:,:,bid) = auto_loss
+      auto_loss_poc_fields(:,:,:,bid) = auto_loss_poc
+      auto_loss_doc_fields(:,:,:,bid) = auto_loss_doc
+      auto_loss_dic_fields(:,:,:,bid) = auto_loss_dic
+      auto_agg_fields(:,:,:,bid) = auto_agg
+      photoC_fields(:,:,:,bid) = photoC
+      CaCO3_PROD_fields(:,:,:,bid) = CaCO3_PROD
+      PCphoto_fields(:,:,:,bid) = PCphoto
+   endif
+
    call timer_stop(ecosys_interior_timer, block_id=bid)
 
 !-----------------------------------------------------------------------
@@ -4263,7 +4257,8 @@ contains
 ! !INTERFACE:
 
  subroutine compute_particulate_terms(k, POC, P_CaCO3, P_SiO2, dust, P_iron, &
-       QA_dust_def, TEMP, O2_loc, NO3_loc, SED_DENITRIF, OTHER_REMIN, this_block)
+       QA_dust_def, TEMP, O2_loc, NO3_loc, SED_DENITRIF, OTHER_REMIN, &
+       lexport_shared_vars, this_block)
 
 ! !DESCRIPTION:
 !  Compute outgoing fluxes and remineralization terms. Assumes that
@@ -4327,6 +4322,9 @@ contains
       O2_loc,       & ! dissolved oxygen used to modify POC%diss, Sed fluxes
       NO3_loc         ! dissolved nitrate used to modify sed fluxes
 
+   logical (log_kind), intent(in) :: &
+      lexport_shared_vars ! flag to save shared_vars or not
+
    type (block), intent(in) :: &
       this_block      ! block info for the current block
 
@@ -4386,7 +4384,7 @@ contains
 !  incoming fluxes are outgoing fluxes from previous level
 !-----------------------------------------------------------------------
 
-   bid = this_block%local_id
+  bid = this_block%local_id
 
    P_CaCO3%sflux_in(:,:,bid) = P_CaCO3%sflux_out(:,:,bid)
    P_CaCO3%hflux_in(:,:,bid) = P_CaCO3%hflux_out(:,:,bid)
@@ -4508,8 +4506,8 @@ contains
 !  It is assumed that there is no sub-surface dust production.
 !-----------------------------------------------------------------------
 
-            P_CaCO3%sflux_out(i,j,bid) = P_CaCO3%sflux_in(i,j,bid) * decay_caco3 + &
-               P_CaCO3%prod(i,j,bid) * ((c1 - P_CaCO3%gamma) * (c1 - decay_caco3) &
+            P_CaCO3%sflux_out(i,j,bid) = P_CaCO3%sflux_in(i,j,bid) * decay_CaCO3 + &
+               P_CaCO3%prod(i,j,bid) * ((c1 - P_CaCO3%gamma) * (c1 - decay_CaCO3) &
                   * caco3_diss)
 
             P_CaCO3%hflux_out(i,j,bid) = P_CaCO3%hflux_in(i,j,bid) * DECAY_Hard(i,j) + &
@@ -4572,6 +4570,15 @@ contains
             endif
 
             QA_dust_def(i,j,bid) = new_QA_dust_def
+
+! Save certain fields for use by other modules
+            if (lexport_shared_vars) then
+               POC_PROD_avail_fields(i,j,bid) = POC_PROD_avail
+               decay_POC_E_fields(i,j,bid)    = decay_POC_E
+               decay_CaCO3_fields(i,j,bid)    = decay_CaCO3
+               poc_diss_fields(i,j,bid)       = poc_diss
+               caco3_diss_fields(i,j,bid)     = caco3_diss
+            endif
 
 !-----------------------------------------------------------------------
 !  Compute outgoing POC fluxes. QA POC flux is computing using
@@ -4680,6 +4687,16 @@ contains
             P_iron%remin(i,j,bid) = c0
          endif
 
+! Save some fields for use by other modules before setting outgoing fluxes to 0.0 in bottom cell below
+         if (lexport_shared_vars) then
+            P_CaCO3_sflux_out_fields(i,j,bid) = P_CaCO3%sflux_out(i,j,bid)
+            P_CaCO3_hflux_out_fields(i,j,bid) = P_CaCO3%hflux_out(i,j,bid)
+            POC_sflux_out_fields(i,j,bid)     = POC%sflux_out(i,j,bid)
+            POC_hflux_out_fields(i,j,bid)     = POC%hflux_out(i,j,bid)
+            POC_remin_fields(i,j,bid)         = POC%remin(i,j,bid)
+            P_CaCO3_remin_fields(i,j,bid)     = P_CaCO3%remin(i,j,bid)
+         endif
+
 !-----------------------------------------------------------------------
 !  Bottom Sediments Cell?
 !  If so compute sedimentary burial and denitrification N losses.
@@ -4718,13 +4735,13 @@ contains
                         (flux - POC%sed_loss(i,j,bid) - (SED_DENITRIF(i,j,bid)*dz_loc*denitrif_C_N)))
 
 !----------------------------------------------------------------------------------
-!              if bottom water O2 is depleted, assume all remin is denitrif + other               
+!              if bottom water O2 is depleted, assume all remin is denitrif + other
 !----------------------------------------------------------------------------------
 
                if (O2_loc(i,j) < c1) then
-	          OTHER_REMIN(i,j,bid) = dzr_loc * &
+                  OTHER_REMIN(i,j,bid) = dzr_loc * &
                      (flux - POC%sed_loss(i,j,bid) - (SED_DENITRIF(i,j,bid)*dz_loc*denitrif_C_N))
-	       endif
+            endif
 
             endif
 
@@ -4767,7 +4784,7 @@ contains
             endif
 
 !-----------------------------------------------------------------------
-!   Remove all Piron and dust that hits bottom, sedimentary Fe source 
+!   Remove all Piron and dust that hits bottom, sedimentary Fe source
 !        accounted for by FESEDFLUX elsewhere.
 !-----------------------------------------------------------------------
 
@@ -4863,27 +4880,31 @@ contains
 ! - Accumulte losses of BGC tracers to sediments
 ! ***********************************************************************
 
-      call accumulate_tavg_field(P_CaCO3%sed_loss(:,:,bid), tavg_calcToSed,bid,k)
+   call accumulate_tavg_field(P_CaCO3%sed_loss(:,:,bid), tavg_calcToSed,bid,k)
 
-      call accumulate_tavg_field(P_SiO2%sed_loss(:,:,bid), tavg_bsiToSed,bid,k)
+   call accumulate_tavg_field(P_SiO2%sed_loss(:,:,bid), tavg_bsiToSed,bid,k)
 
-      call accumulate_tavg_field(POC%sed_loss(:,:,bid), tavg_pocToSed,bid,k)
+   call accumulate_tavg_field(POC%sed_loss(:,:,bid), tavg_pocToSed,bid,k)
 
-      WORK = SED_DENITRIF(:,:,bid) * dz_loc
-      call accumulate_tavg_field(WORK, tavg_SedDenitrif,bid,k)
+   WORK = SED_DENITRIF(:,:,bid) * dz_loc
+   call accumulate_tavg_field(WORK, tavg_SedDenitrif,bid,k)
 
-      WORK = OTHER_REMIN(:,:,bid) * dz_loc
-      call accumulate_tavg_field(WORK, tavg_OtherRemin,bid,k)
+   WORK = OTHER_REMIN(:,:,bid) * dz_loc
+   call accumulate_tavg_field(WORK, tavg_OtherRemin,bid,k)
 
-      WORK = (POC%sed_loss(:,:,bid) * Q)
-      call accumulate_tavg_field(WORK, tavg_ponToSed,bid,k)
+   WORK = (POC%sed_loss(:,:,bid) * Q)
+   call accumulate_tavg_field(WORK, tavg_ponToSed,bid,k)
 
-      WORK = (POC%sed_loss(:,:,bid) * Qp_zoo_pom)
-      call accumulate_tavg_field(WORK, tavg_popToSed,bid,k)
+   WORK = (POC%sed_loss(:,:,bid) * Qp_zoo_pom)
+   call accumulate_tavg_field(WORK, tavg_popToSed,bid,k)
 
-      call accumulate_tavg_field(dust%sed_loss(:,:,bid), tavg_dustToSed,bid,k)
+   call accumulate_tavg_field(dust%sed_loss(:,:,bid), tavg_dustToSed,bid,k)
 
-      call accumulate_tavg_field(P_iron%sed_loss(:,:,bid), tavg_pfeToSed,bid,k)
+   call accumulate_tavg_field(P_iron%sed_loss(:,:,bid), tavg_pfeToSed,bid,k)
+
+   if (lexport_shared_vars) then
+      DECAY_Hard_fields(:,:,bid) = DECAY_Hard
+   end if
 
 !-----------------------------------------------------------------------
 !EOC
@@ -5792,7 +5813,8 @@ contains
 
  subroutine ecosys_set_sflux(SHF_QSW_RAW, SHF_QSW, &
                              U10_SQR,IFRAC,PRESS,SST,SSS, &
-                             SURF_VALS_OLD,SURF_VALS_CUR,STF_MODULE)
+                             SURF_VALS_OLD,SURF_VALS_CUR,STF_MODULE, &
+                             lexport_shared_vars)
    use shr_pio_mod, only : shr_pio_getiotype, shr_pio_getiosys
    use POP_IOUnitsMod, only: inst_name
 
@@ -5813,13 +5835,14 @@ contains
       SST,          &! sea surface temperature (C)
       SSS            ! sea surface salinity (psu)
 
-  !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
    real (r8), dimension(:,:,:,:), &
       intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR ! module tracers
 
+   logical (log_kind), intent(in) :: &
+      lexport_shared_vars ! flag to save shared_vars or not
+
 ! !INPUT/OUTPUT PARAMETERS:
 
-  !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
    real (r8), dimension(:,:,:,:), &
       intent(inout) :: STF_MODULE
 
@@ -5862,6 +5885,7 @@ contains
       FLUX,         & ! tracer flux (nmol/cm^2/s)
       FLUX_ALT_CO2    ! tracer flux alternative CO2 (nmol/cm^2/s)
 
+
    real (r8), dimension(nx_block) :: &
       PHLO,         & ! lower bound for ph in solver
       PHHI,         & ! upper bound for ph in solver
@@ -5873,7 +5897,8 @@ contains
       CO2STAR_ROW,  & ! CO2STAR from solver
       DCO2STAR_ROW, & ! DCO2STAR from solver
       pCO2SURF_ROW, & ! pCO2SURF from solver
-      DpCO2_ROW       ! DpCO2 from solver
+      DpCO2_ROW,    & ! DpCO2 from solver
+      CO3_ROW
 
    character (char_len) :: &
       tracer_data_label,       & ! label for what is being updated
@@ -5891,12 +5916,6 @@ contains
 
    real (r8) :: scalar_temp
 
-!-----------------------------------------------------------------------
-!  local parameters
-!-----------------------------------------------------------------------
-
-   real (r8), parameter :: &
-      xkw_coeff = 8.6e-9_r8     ! a = 0.31 cm/hr s^2/m^2 in (s/cm)
 
 !-----------------------------------------------------------------------
 
@@ -5905,7 +5924,8 @@ contains
 !-----------------------------------------------------------------------
 
    if (check_time_flag(comp_surf_avg_flag))  &
-      call comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR)
+      call comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR,&
+                         ecosys_tracer_cnt,vflux_flag,surf_avg)
 
 !-----------------------------------------------------------------------
 !  fluxes initially set to 0
@@ -6025,7 +6045,8 @@ contains
       !$OMP                     O2SAT_1atm,FLUX,FLUX_ALT_CO2,XCO2,XCO2_ALT_CO2,&
       !$OMP                     PHLO,PHHI,DIC_ROW,ALK_ROW, &
       !$OMP                     PO4_ROW,SiO3_ROW,PH_NEW,CO2STAR_ROW, &
-      !$OMP                     DCO2STAR_ROW,pCO2SURF_ROW,DpCO2_ROW)
+      !$OMP                     DCO2STAR_ROW,pCO2SURF_ROW,DpCO2_ROW, &
+      !$OMP                     CO3_ROW)
 
       do iblock = 1, nblocks_clinic
 
@@ -6108,6 +6129,9 @@ contains
                PV = c0
             end where
 
+! Save surface field of PV for use in other modules
+            if (lexport_shared_vars) PV_SURF_fields(:,:,iblock) = PV
+
 !-----------------------------------------------------------------------
 !  Set XCO2
 !-----------------------------------------------------------------------
@@ -6148,7 +6172,8 @@ contains
                                 DIC_ROW, ALK_ROW, PO4_ROW, SiO3_ROW, &
                                 PHLO, PHHI, PH_NEW, XCO2(:,j), &
                                 AP_USED(:,j,iblock), CO2STAR_ROW, &
-                                DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW)
+                                DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW,&
+                                CO3_ROW)
 
                PH_PREV(:,j,iblock) = PH_NEW
 
@@ -6158,6 +6183,17 @@ contains
                ECO_SFLUX_TAVG(:,j,buf_ind_DCO2STAR,iblock) = DCO2STAR_ROW
                ECO_SFLUX_TAVG(:,j,buf_ind_pCO2SURF,iblock) = pCO2SURF_ROW
                ECO_SFLUX_TAVG(:,j,buf_ind_DpCO2,iblock)    = DpCO2_ROW
+
+!-------------------------------------------------------------------
+!  The following variables need to be shared with other modules, and
+!  are now defined in ecosys_share as targets.
+!-------------------------------------------------------------------
+               if (lexport_shared_vars) then
+                  DIC_SURF_fields(:,j,iblock)      = DIC_ROW
+                  CO2STAR_SURF_fields(:,j,iblock)  = CO2STAR_ROW
+                  DCO2STAR_SURF_fields(:,j,iblock) = DCO2STAR_ROW
+                  CO3_SURF_fields(:,j,iblock)      = CO3_ROW
+               endif
 
                where (PH_PREV_ALT_CO2(:,j,iblock) /= c0)
                   PHLO = PH_PREV_ALT_CO2(:,j,iblock) - del_ph
@@ -6176,7 +6212,8 @@ contains
                                 DIC_ROW, ALK_ROW, PO4_ROW, SiO3_ROW, &
                                 PHLO, PHHI, PH_NEW, XCO2_ALT_CO2(:,j), &
                                 AP_USED(:,j,iblock), CO2STAR_ROW, &
-                                DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW)
+                                DCO2STAR_ROW, pCO2SURF_ROW, DpCO2_ROW,&
+                                CO3_ROW)
 
                PH_PREV_ALT_CO2(:,j,iblock) = PH_NEW
 
@@ -6646,6 +6683,7 @@ contains
       STF_MODULE(:,:,dic_ind,:) = STF_MODULE(:,:,dic_ind,:) + INTERP_WORK(:,:,:,1)
       STF_MODULE(:,:,dic_alt_co2_ind,:) = STF_MODULE(:,:,dic_alt_co2_ind,:) + INTERP_WORK(:,:,:,1)
       ECO_SFLUX_TAVG(:,:,buf_ind_DIC_RIV_FLUX,:) = INTERP_WORK(:,:,:,1)
+      if (lexport_shared_vars) dic_riv_flux_fields=INTERP_WORK(:,:,:,1)
    endif
 
    if (alk_riv_flux%has_data) then
@@ -6695,6 +6733,7 @@ contains
          doc_riv_flux%interp_inc,        doc_riv_flux%interp_next, &
          doc_riv_flux%interp_last,       0)
       STF_MODULE(:,:,doc_ind,:) = STF_MODULE(:,:,doc_ind,:) + INTERP_WORK(:,:,:,1)
+      if (lexport_shared_vars) doc_riv_flux_fields=INTERP_WORK(:,:,:,1)
    endif
 
 !-----------------------------------------------------------------------
@@ -6853,57 +6892,6 @@ contains
 
 !*****************************************************************************
 !BOP
-! !IROUTINE: SCHMIDT_CO2
-! !INTERFACE:
-
- function SCHMIDT_CO2(SST, LAND_MASK)
-
-! !DESCRIPTION:
-!  Compute Schmidt number of CO2 in seawater as function of SST
-!  where LAND_MASK is true. Give zero where LAND_MASK is false.
-!
-!  ref : Wanninkhof, J. Geophys. Res, Vol. 97, No. C5,
-!  pp. 7373-7382, May 15, 1992
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
-   real (r8), dimension(nx_block,ny_block), intent(in) :: SST
-
-   logical (log_kind), dimension(nx_block,ny_block), intent(in) :: &
-      LAND_MASK
-
-! !OUTPUT PARAMETERS:
-
-   real (r8), dimension(nx_block,ny_block) :: SCHMIDT_CO2
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   real (r8), parameter :: &
-      a = 2073.1_r8, &
-      b = 125.62_r8, &
-      c = 3.6276_r8, &
-      d = 0.043219_r8
-
-   where (LAND_MASK)
-      SCHMIDT_CO2 = a + SST * (-b + SST * (c + SST * (-d)))
-   elsewhere
-      SCHMIDT_CO2 = c0
-   end where
-
-!-----------------------------------------------------------------------
-!EOC
-
- end function SCHMIDT_CO2
-
-!*****************************************************************************
-!BOP
 ! !IROUTINE: ecosys_tavg_forcing
 ! !INTERFACE:
 
@@ -6917,7 +6905,6 @@ contains
 
 ! !INPUT PARAMETERS:
 
- !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
   real (r8), dimension(:,:,:,:), &
      intent(in) :: STF_MODULE
 
@@ -7037,97 +7024,6 @@ contains
 
 !*****************************************************************************
 !BOP
-! !IROUTINE: comp_surf_avg
-! !INTERFACE:
-
- subroutine comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR)
-
-! !DESCRIPTION:
-!  compute average surface tracer values
-!
-!  avg = sum(SURF_VAL*TAREA) / sum(TAREA)
-!  with the sum taken over ocean points only
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
- !real (r8), dimension(nx_block,ny_block,ecosys_tracer_cnt,max_blocks_clinic), &
-  real (r8), dimension(:,:,:,:), &
-      intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   integer (int_kind) :: &
-      n,       & ! tracer index
-      iblock,  & ! block index
-      dcount,  & ! diag counter
-      ib,ie,jb,je
-
-   real (r8), dimension(max_blocks_clinic,ecosys_tracer_cnt) :: &
-      local_sums ! array for holding block sums of each diagnostic
-
-   real (r8) :: &
-      sum_tmp ! temp for local sum
-
-   real (r8), dimension(nx_block,ny_block) :: &
-      WORK1, &! local work space
-      TFACT   ! factor for normalizing sums
-
-   type (block) :: &
-      this_block ! block information for current block
-
-!-----------------------------------------------------------------------
-
-   local_sums = c0
-
-!jw   !$OMP PARALLEL DO PRIVATE(iblock,this_block,ib,ie,jb,je,TFACT,n,WORK1)
-   do iblock = 1,nblocks_clinic
-      this_block = get_block(blocks_clinic(iblock),iblock)
-      ib = this_block%ib
-      ie = this_block%ie
-      jb = this_block%jb
-      je = this_block%je
-      TFACT = TAREA(:,:,iblock)*RCALCT(:,:,iblock)
-
-      do n = 1, ecosys_tracer_cnt
-         if (vflux_flag(n)) then
-            WORK1 = p5*(SURF_VALS_OLD(:,:,n,iblock) + &
-                        SURF_VALS_CUR(:,:,n,iblock))*TFACT
-            local_sums(iblock,n) = sum(WORK1(ib:ie,jb:je))
-         endif
-      end do
-   end do
-!jw   !$OMP END PARALLEL DO
-
-   do n = 1, ecosys_tracer_cnt
-      if (vflux_flag(n)) then
-         sum_tmp = sum(local_sums(:,n))
-         surf_avg(n) = global_sum(sum_tmp,distrb_clinic)/area_t
-      endif
-   end do
-
-   if(my_task == master_task) then
-      write(stdout,*)' Calculating surface tracer averages'
-      do n = 1, ecosys_tracer_cnt
-         if (vflux_flag(n)) then
-            write(stdout,*) n, surf_avg(n)
-         endif
-      end do
-   endif
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine comp_surf_avg
-
-!*****************************************************************************
-!BOP
 ! !IROUTINE: ecosys_write_restart
 ! !INTERFACE:
 
@@ -7157,11 +7053,13 @@ contains
       short_name  ! tracer name temporaries
 
    type (io_dim) :: &
-      i_dim, j_dim ! dimension descriptors
+      i_dim, j_dim, & ! dimension descriptors
+      k_dim           ! dimension descriptor for vertical levels
 
    integer (int_kind) :: n
 
-   type (io_field_desc), save :: PH_SURF, PH_SURF_ALT_CO2
+   type (io_field_desc), save :: PH_SURF, PH_SURF_ALT_CO2, &
+                                 PH_3D_ALT_CO2,  PH_3D
 
 !-----------------------------------------------------------------------
 
@@ -7179,6 +7077,7 @@ contains
    if (trim(action) == 'define') then
       i_dim = construct_io_dim('i', nx_global)
       j_dim = construct_io_dim('j', ny_global)
+      k_dim = construct_io_dim('k', km)
 
       PH_SURF = construct_io_field('PH_SURF', i_dim, j_dim,     &
                    long_name='surface pH at current time',      &
@@ -7195,11 +7094,30 @@ contains
                    field_type = field_type_scalar,              &
                    d2d_array = PH_PREV_ALT_CO2)
       call data_set (restart_file, 'define', PH_SURF_ALT_CO2)
+
+      PH_3D_ALT_CO2 = construct_io_field('PH_3D_ALT_CO2', i_dim, j_dim, k_dim, &
+                   long_name='3D pH, alternate CO2, at current time', &
+                   units='pH', grid_loc='3111',            &
+                   field_loc = field_loc_center,                &
+                   field_type = field_type_scalar,              &
+                   d3d_array = PH_PREV_ALT_CO2_3D)
+      call data_set (restart_file, 'define', PH_3D_ALT_CO2)
+
+      PH_3D = construct_io_field('PH_3D', i_dim, j_dim, k_dim, &
+                   long_name='3D pH at current time', &
+                   units='pH', grid_loc='3111',            &
+                   field_loc = field_loc_center,                &
+                   field_type = field_type_scalar,              &
+                   d3d_array = PH_PREV_3D)
+      call data_set (restart_file, 'define', PH_3D)
+
    endif
 
    if (trim(action) == 'write') then
       call data_set (restart_file, 'write', PH_SURF)
       call data_set (restart_file, 'write', PH_SURF_ALT_CO2)
+      call data_set (restart_file, 'write', PH_3D)
+      call data_set (restart_file, 'write', PH_3D_ALT_CO2)
    endif
 
 !-----------------------------------------------------------------------

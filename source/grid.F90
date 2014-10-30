@@ -55,6 +55,12 @@
       area_t_marg          ,&! area of marginal seas (T cells)
       uarea_equator          ! area of equatorial cell
 
+   ! Default values used if lPOP1d and lidentical_columns = .true.
+   real (POP_r8), public :: &
+      Coriolis_val         ,&! value to use for Coriolis (if lconst_Coriolis=.true.)
+      global_taux          ,&! tau_x in surface forcing
+      global_SHF_coef        ! coefficient of SHF in surface forcing
+
    real (POP_r8), dimension(km), public :: &
       area_t_k             ,&! total ocean area (T cells) at each dpth
       volume_t_k           ,&! total ocean volume (T cells) at each dpth
@@ -74,7 +80,7 @@
       partial_bottom_cells,    &! flag for partial bottom cells
       lconst_Coriolis,         &! flag to run with spatially-constant Coriolis
       lPOP1d,                  &! flag to run POP in 1D mode (experimental)
-      lKPP1d                    ! flag for using 1D forcing for KPP (experimental)
+      lidentical_columns        ! flag to treat all columns the same (forcing, depth, etc)
 
    real (POP_r8), dimension(:,:), allocatable, public :: &
       BATH_G           ! Observed ocean bathymetry mapped to global T grid
@@ -289,7 +295,10 @@
                       n_topo_smooth, flat_bottom, lremove_points,      &
                       region_mask_file, region_info_file,sfc_layer_opt,&
                       partial_bottom_cells, bottom_cell_file, kmt_kmin,&
-                      lconst_Coriolis, lPOP1d, lKPP1d
+                      lconst_Coriolis, lPOP1d
+
+   namelist /pop1d_nml/lidentical_columns, lconst_Coriolis,            &
+                       Coriolis_val, global_taux, global_SHF_coef
 
    integer (POP_i4) :: &
       nml_error           ! namelist i/o error flag
@@ -319,7 +328,12 @@
    kmt_kmin             = 3
    lconst_Coriolis      = .false.
    lPOP1d               = .false.
-   lKPP1d               = .false.
+
+   lidentical_columns = .false.
+   lconst_Coriolis    = .false.
+   Coriolis_val       = 1e-4_r8
+   global_taux        = 0.1_r8
+   global_SHF_coef    = -100._r8
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -331,6 +345,16 @@
       do while (nml_error > 0)
          read(nml_in, nml=grid_nml,iostat=nml_error)
       end do
+      if (lPOP1d) then
+        if (nml_error /= 0) then
+           nml_error = -1
+        else
+           nml_error =  1
+        endif
+        do while (nml_error > 0)
+           read(nml_in, nml=pop1d_nml,iostat=nml_error)
+        end do
+      end if
       if (nml_error == 0) close(nml_in)
    endif
 
@@ -348,19 +372,20 @@
       write(stdout,*) ' grid_nml namelist settings:'
       write(stdout,blank_fmt)
       write(stdout, grid_nml)
+      write(stdout, pop1d_nml)
       if (lconst_Coriolis) &
         write(stdout,*) 'NOTE: running with constant Coriolis parameter!'
       if (lPOP1d) &
         write(stdout,*) 'NOTE: running in 1D mode!'
-      if (lKPP1d) &
-        write(stdout,*) 'NOTE: running with 1D KPP!'
+      if (lidentical_columns) &
+        write(stdout,*) 'NOTE: treat all columns identically!'
       if (lconst_Coriolis.and.(.not.lPOP1d)) then
       call exit_POP(sigAbort,'ERROR: can not run with constant Coriolis ' /&
                            &/'unless running in 1D mode!')
       end if
-      if (lKPP1d.and.(.not.lPOP1d)) then
-      call exit_POP(sigAbort,'ERROR: can not run with 1D KPP without ' /&
-                           &/'running in 1D mode!')
+      if (lidentical_columns.and.(.not.lconst_Coriolis)) then
+      call exit_POP(sigAbort,'ERROR: can not run with identical columns ' /&
+                           &/'unless running with constant Coriolis!')
       end if
    endif
 
@@ -376,7 +401,12 @@
    call broadcast_scalar(partial_bottom_cells, master_task)
    call broadcast_scalar(lconst_Coriolis,      master_task)
    call broadcast_scalar(lPOP1d,               master_task)
-   call broadcast_scalar(lKPP1d,               master_task)
+
+   call broadcast_scalar(lidentical_columns, master_task)
+   call broadcast_scalar(lconst_Coriolis,    master_task)
+   call broadcast_scalar(Coriolis_val,       master_task)
+   call broadcast_scalar(global_taux,        master_task)
+   call broadcast_scalar(global_SHF_coef,    master_task)
 
    if (partial_bottom_cells) then
       call broadcast_scalar(bottom_cell_file, master_task)
@@ -1080,14 +1110,14 @@
 !  else
 !    1e-4
 !
-!  Notes: if lKPP1d = .true., lconst_coriolis must also be true.
+!  Notes: if lidentical_columns = .true., lconst_coriolis must also be true.
 !         if lconst_Coriolis = .false., lPOP1d must also be false.
 !
 !-----------------------------------------------------------------------
 
    if (lconst_Coriolis) then
-     FCOR  = 1.0e-4_r8
-     FCORT = 1.0e-4_r8
+     FCOR  = Coriolis_val
+     FCORT = Coriolis_val
    else
      FCOR  = c2*omega*sin(ULAT)    ! at u-points
      FCORT = c2*omega*sin(TLAT)    ! at t-points

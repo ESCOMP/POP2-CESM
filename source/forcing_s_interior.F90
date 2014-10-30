@@ -98,7 +98,8 @@
       s_interior_bndy_type     !    cell updates
 
    logical (log_kind) :: &
-      s_interior_variable_restore
+      s_interior_variable_restore, &
+      s_interior_surface_restore    ! Flag to include surface layer when restoring
 
 !EOC
 !***********************************************************************
@@ -152,7 +153,7 @@
         s_interior_file_fmt,         s_interior_restore_max_level,    &
         s_interior_data_renorm,      s_interior_formulation,          &
         s_interior_variable_restore, s_interior_restore_filename,     &
-        s_interior_restore_file_fmt
+        s_interior_restore_file_fmt, s_interior_surface_restore
 
 !-----------------------------------------------------------------------
 !
@@ -175,6 +176,7 @@
    s_interior_variable_restore  = .false.
    s_interior_restore_filename  = 'unknown-s_interior_restore'
    s_interior_restore_file_fmt  = 'bin'
+   s_interior_surface_restore   = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old', iostat=nml_error)
@@ -208,6 +210,7 @@
    call broadcast_scalar(s_interior_variable_restore,  master_task)
    call broadcast_scalar(s_interior_restore_filename,  master_task)
    call broadcast_scalar(s_interior_restore_file_fmt,  master_task)
+   call broadcast_scalar(s_interior_surface_restore,   master_task)
    call broadcast_array (s_interior_data_renorm,       master_task)
 
 !-----------------------------------------------------------------------
@@ -714,7 +717,8 @@
 !
 !-----------------------------------------------------------------------
 
-   if (s_interior_data_type /= 'none' .and. k > 1) then
+   if ((k > 1 .or.s_interior_surface_restore).and.                     &
+        s_interior_data_type.ne.'none') then
 
 !-----------------------------------------------------------------------
 !
