@@ -376,6 +376,8 @@ my $RUN_REFDATE            = "$xmlvars{'RUN_REFDATE'}";
 my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
 my $OCN_CO2_FLUX_OCMIP_BUG_FIX = "$xmlvars{'OCN_CO2_FLUX_OCMIP_BUG_FIX'}";
 
+expand_xml_variables_in_namelist($nl, \%xmlvars);
+
 my $output_r = "./${CASE}.pop.r";
 my $output_h = "./${CASE}.pop.h";
 my $output_d = "./${CASE}.pop.d";
@@ -2346,6 +2348,25 @@ sub expand_env_xml {
     }
     return $value; 
 }	 
+
+#-------------------------------------------------------------------------------
+
+sub expand_xml_variables_in_namelist {
+   # Go through all variables in the namelist and expand any XML env settings in them
+   my ($nl, $envxml_ref) = @_;
+
+   require Streams::TemplateGeneric;
+
+   foreach my $group ( $nl->get_group_names() ) {
+       foreach my $var ( $nl->get_variable_names($group) ) {
+          my $val    = $nl->get_variable_value($group, $var);
+          my $newval = &Streams::TemplateGeneric::expandXMLVar( $val, $envxml_ref );
+          if ( $newval ne $val ) {
+             $nl->set_variable_value($group, $var, $newval);
+          }
+       }
+   }
+}
 
 #-------------------------------------------------------------------------------
 
