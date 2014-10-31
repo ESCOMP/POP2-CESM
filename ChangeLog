@@ -1,6 +1,15 @@
 SVN $Id$
 SVN $URL$
 ===============================================================================
+Tag Creator: andre
+Developers:  andre
+Tag Date:    31 Oct 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141031
+Tag Summary: Add code to pop build-namelist to expand all xml vars in namelist values.
+
+Files Modified:
+M       bld/build-namelist
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    25 Sept 2014
