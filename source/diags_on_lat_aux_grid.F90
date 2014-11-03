@@ -711,8 +711,11 @@
         REGION_MASK_LAT_AUX(:,:,2) = REGION_MASK_LAT_AUX(:,:,1)
      endif
 
-     REGION_MASK_LAT_AUX(:,:,1) =   &
-                    merge( 1, 0, REGION_MASK_LAT_AUX(:,:,1) > 0 )
+     where(REGION_MASK_LAT_AUX(:,:,1) > 0)
+        REGION_MASK_LAT_AUX(:,:,1) = 1
+     elsewhere
+        REGION_MASK_LAT_AUX(:,:,1) = 0
+     end where
 
     if (n_transport_reg > 1) then
  

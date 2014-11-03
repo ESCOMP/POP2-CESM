@@ -1,6 +1,16 @@
 SVN $Id$
 SVN $URL$
 ===============================================================================
+Tag Creator: mlevy
+Developers:  jedwards
+Tag Date:    3 Nov 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141103
+Tag Summary: Bugfix - memory leak in POP diagnostics (change a "merge" command
+             to a "where" statement)
+
+Files Modified:
+M       source/diags_on_lat_aux_grid.F90
+===============================================================================
 Tag Creator: andre
 Developers:  andre
 Tag Date:    31 Oct 2014
