@@ -2,6 +2,15 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    4 Nov 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141104
+Tag Summary: Update build-namelist to enable restarts in 1D runs
+
+Files Modified:
+M       bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
 Developers:  jedwards
 Tag Date:    3 Nov 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141103

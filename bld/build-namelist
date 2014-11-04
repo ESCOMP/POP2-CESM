@@ -614,7 +614,7 @@ add_default($nl, 'flat_bottom', 'iden_cols'=>"$iden_cols");
 # namelist group: init_ts_nml      #
 ####################################
 
-if ($OCN_ONEDIM eq 'TRUE') {
+if ($OCN_ONEDIM eq 'TRUE' && $RUN_TYPE eq 'startup') {
   add_default($nl, 'init_ts_option', 'val'=>'internal');
 } else {
 
