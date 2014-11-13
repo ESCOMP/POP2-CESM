@@ -536,7 +536,7 @@ add_default($nl, 'time_mix_opt');
 add_default($nl, 'time_mix_freq');
 add_default($nl, 'dt_option');
 add_default($nl, 'dt_count','ocn_coupling'=>"$OCN_COUPLING",'ocn_onedim'=>"$OCN_ONEDIM");
-add_default($nl, 'impcor', 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl, 'impcor');
 add_default($nl, 'laccel');
 add_default($nl, 'dtuxcel');
 add_default($nl, 'allow_leapyear', 'calendar'=>"$CALENDAR");
@@ -751,7 +751,7 @@ add_default($nl, 'rich_mix&vmix_rich_nml');
 # namelist group: tidal_nml              #
 ##########################################
 
-add_default($nl, 'ltidal_mixing', 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl, 'ltidal_mixing');
 add_default($nl, 'tidal_energy_file', 'nofail'=>1);
 if (not $nl->get_value('tidal_energy_file')) {
 	add_default($nl, 'tidal_energy_file', 'val'=>'unknown_tidal_mixing','noprepend'=>1);
@@ -790,8 +790,8 @@ add_default($nl, 'lcheckekmo');
 add_default($nl, 'larctic_bckgrnd_vdc');
 add_default($nl, 'num_v_smooth_Ri');
 
-add_default($nl, 'bckgrnd_vdc1',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing", 'ocn_onedim'=>"$OCN_ONEDIM");
-add_default($nl, 'bckgrnd_vdc2',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing", 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl, 'bckgrnd_vdc1',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
+add_default($nl, 'bckgrnd_vdc2',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
 add_default($nl, 'bckgrnd_vdc_dpth', 'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
 add_default($nl, 'bckgrnd_vdc_eq',   'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
 add_default($nl, 'bckgrnd_vdc_psim', 'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");

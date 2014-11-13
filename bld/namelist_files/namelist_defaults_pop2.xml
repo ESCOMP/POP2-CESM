@@ -42,7 +42,6 @@
 <dt_count ocn_grid="tx0.1v2" ocn_coupling="partial">500</dt_count>
 
 <impcor>.true.</impcor>
-<impcor ocn_onedim="TRUE">.false.</impcor>
 
 <laccel>.false.</laccel>
 
@@ -248,7 +247,6 @@
 <!---------------------------->
 
 <ltidal_mixing>.true.</ltidal_mixing>
-<ltidal_mixing ocn_onedim="TRUE"   >.false.</ltidal_mixing>
 <ltidal_mixing ocn_grid="tx1v1"  >.false.</ltidal_mixing>
 <ltidal_mixing ocn_grid="tx0.1v2">.false.</ltidal_mixing>
 
@@ -289,9 +287,6 @@
 <bckgrnd_vdc_dpth ocn_grid="gx3v7"  >1000.0e02</bckgrnd_vdc_dpth>
 <bckgrnd_vdc_dpth ocn_grid="tx1v1"  >2500.0e02</bckgrnd_vdc_dpth>
 <bckgrnd_vdc_dpth ocn_grid="tx0.1v2">2500.0e02</bckgrnd_vdc_dpth>
-
-<bckgrnd_vdc1 ocn_onedim="TRUE" lhoriz_varying_bckgrnd=".false."  ltidal_mixing=".false.">0.3</bckgrnd_vdc1>
-<bckgrnd_vdc2 ocn_onedim="TRUE" lhoriz_varying_bckgrnd=".false."  ltidal_mixing=".false.">0.0</bckgrnd_vdc2>
 
 <bckgrnd_vdc1 ocn_grid="gx3v7" lhoriz_varying_bckgrnd=".true."  ltidal_mixing=".true." >0.16</bckgrnd_vdc1>  
 <bckgrnd_vdc2 ocn_grid="gx3v7" lhoriz_varying_bckgrnd=".true."  ltidal_mixing=".true." >0.0</bckgrnd_vdc2>  
