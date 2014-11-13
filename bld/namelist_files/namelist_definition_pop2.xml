@@ -595,11 +595,11 @@ Default: 3
 </entry>
 
 <entry 
-id="lPOP1d"
+id="l1Ddyn"
 type="logical"
 category="grid"
 group="grid_nml" >
-Flag to run POP in 1D mode (recommend only using with T62_g37 resolution)
+Flag to run POP in 1D dynamics mode (recommend only using with T62_g37 resolution)
 
 Default: .false.
 </entry>
@@ -614,7 +614,7 @@ type="logical"
 category="grid"
 group="pop1d_nml" >
 Flag to treat all columns the same (true 1D run). Recommend only using with
-the T62_g37 resolution; can not be run without lPOP1d = .true.
+the T62_g37 resolution; can not be run without l1Ddyn = .true.
 
 Default: .false.
 </entry>
@@ -625,7 +625,7 @@ type="logical"
 category="grid"
 group="pop1d_nml" >
 Flag to run POP with a spatially-constant Coriolis parameter; can not be run
-without lPOP1d = .true.
+without l1Ddyn = .true.
 
 Default: .false.
 </entry>

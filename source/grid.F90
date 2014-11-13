@@ -55,7 +55,7 @@
       area_t_marg          ,&! area of marginal seas (T cells)
       uarea_equator          ! area of equatorial cell
 
-   ! Default values used if lPOP1d and lidentical_columns = .true.
+   ! Default values used if l1Ddyn and lidentical_columns = .true.
    real (POP_r8), public :: &
       Coriolis_val         ,&! value to use for Coriolis (if lconst_Coriolis=.true.)
       global_taux          ,&! tau_x in surface forcing
@@ -79,7 +79,7 @@
    logical (POP_logical), public ::    &
       partial_bottom_cells,    &! flag for partial bottom cells
       lconst_Coriolis,         &! flag to run with spatially-constant Coriolis
-      lPOP1d,                  &! flag to run POP in 1D mode (experimental)
+      l1Ddyn,                  &! flag to run POP in 1D mode (experimental)
       lidentical_columns        ! flag to treat all columns the same (forcing, depth, etc)
 
    real (POP_r8), dimension(:,:), allocatable, public :: &
@@ -295,7 +295,7 @@
                       n_topo_smooth, flat_bottom, lremove_points,      &
                       region_mask_file, region_info_file,sfc_layer_opt,&
                       partial_bottom_cells, bottom_cell_file, kmt_kmin,&
-                      lconst_Coriolis, lPOP1d
+                      lconst_Coriolis, l1Ddyn
 
    namelist /pop1d_nml/lidentical_columns, lconst_Coriolis,            &
                        Coriolis_val, global_taux, global_SHF_coef
@@ -327,7 +327,7 @@
    bottom_cell_file     = 'unknown_bottom_cell_file'
    kmt_kmin             = 3
    lconst_Coriolis      = .false.
-   lPOP1d               = .false.
+   l1Ddyn               = .false.
 
    lidentical_columns = .false.
    lconst_Coriolis    = .false.
@@ -345,7 +345,7 @@
       do while (nml_error > 0)
          read(nml_in, nml=grid_nml,iostat=nml_error)
       end do
-      if (lPOP1d) then
+      if (l1Ddyn) then
         if (nml_error /= 0) then
            nml_error = -1
         else
@@ -375,11 +375,11 @@
       write(stdout, pop1d_nml)
       if (lconst_Coriolis) &
         write(stdout,*) 'NOTE: running with constant Coriolis parameter!'
-      if (lPOP1d) &
+      if (l1Ddyn) &
         write(stdout,*) 'NOTE: running in 1D mode!'
       if (lidentical_columns) &
         write(stdout,*) 'NOTE: treat all columns identically!'
-      if (lconst_Coriolis.and.(.not.lPOP1d)) then
+      if (lconst_Coriolis.and.(.not.l1Ddyn)) then
       call exit_POP(sigAbort,'ERROR: can not run with constant Coriolis ' /&
                            &/'unless running in 1D mode!')
       end if
@@ -400,7 +400,7 @@
    call broadcast_scalar(region_info_file,     master_task)
    call broadcast_scalar(partial_bottom_cells, master_task)
    call broadcast_scalar(lconst_Coriolis,      master_task)
-   call broadcast_scalar(lPOP1d,               master_task)
+   call broadcast_scalar(l1Ddyn,               master_task)
 
    call broadcast_scalar(lidentical_columns, master_task)
    call broadcast_scalar(lconst_Coriolis,    master_task)
@@ -1111,7 +1111,7 @@
 !    1e-4
 !
 !  Notes: if lidentical_columns = .true., lconst_coriolis must also be true.
-!         if lconst_Coriolis = .false., lPOP1d must also be false.
+!         if lconst_Coriolis = .false., l1Ddyn must also be false.
 !
 !-----------------------------------------------------------------------
 

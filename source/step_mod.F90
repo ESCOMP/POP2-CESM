@@ -358,7 +358,7 @@
 
       if(profile_barrier) call POP_Barrier
 
-      if (.not.lPOP1d) then
+      if (.not.l1Ddyn) then
 
         call timer_start(timer_barotropic)
         call barotropic_driver(ZX,ZY,errorCode)
@@ -499,7 +499,7 @@
       !$OMP PARALLEL DO PRIVATE(iblock,k,i,j)
       do iblock = 1,nblocks_clinic
 
-         if (lPOP1d) then
+         if (l1Ddyn) then
            UBTROP(:,:,newtime,iblock) = c0     
            VBTROP(:,:,newtime,iblock) = c0     
          endif

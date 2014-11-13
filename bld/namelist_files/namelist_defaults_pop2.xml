@@ -98,8 +98,8 @@
 <flat_bottom>.false.</flat_bottom>
 <flat_bottom iden_cols="TRUE">.true.</flat_bottom>
 
-<lPOP1d>.false.</lPOP1d>
-<lPOP1d ocn_onedim="TRUE">.true.</lPOP1d>
+<l1Ddyn>.false.</l1Ddyn>
+<l1Ddyn ocn_onedim="TRUE">.true.</l1Ddyn>
 
 <!---------------------------->
 <!-- pop1d_nml -->
