@@ -1946,6 +1946,9 @@ for my $var ($nl->get_variable_names('derived')) {
   $nl->set_variable_value($broken[1], $broken[0], $val);
 }
 
+# Consistency check(s)
+if (pop2_consistency_check($nl)) { exit 1; }
+
 # Write out all groups  to pop2_in
 my $outfile = "./pop2_in";
 $nl->write($outfile, 'groups'=>\@groups);
@@ -2454,6 +2457,24 @@ sub leap() {
   return 0;
 }
 
+
+#-------------------------------------------------------------------------------
+
+sub pop2_consistency_check() {
+
+  my $nl = shift;
+
+  # 1) lconst_Coriolis = .true. => l1Ddyn = .true.
+  my $l1Ddyn = $nl->get_value('l1Ddyn');
+  my $lconst_Coriolis = $nl->get_value('lconst_Coriolis');
+  if ($l1Ddyn eq '.false.' && $lconst_Coriolis eq '.true.') {
+    print "POP2 namelist error: you can not run with ";
+    print "lconst_Coriolis = .true. if l1Ddyn = .false.\n";
+    return 1;
+  }
+
+  return 0;
+}
 
 #-------------------------------------------------------------------------------
 

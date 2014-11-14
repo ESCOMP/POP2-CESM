@@ -4,6 +4,19 @@ SVN $URL$
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    13 Nov 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141113b
+Tag Summary: Third step in responding to OS concerns about 1D POP
+             implementation - this commit adds a pop2_consistency_check()
+             routine to build-namelist [only current check is to return an
+             error if lconst_Coriolis = .true. and l1Ddyn = .false. but others
+             can be added easily]
+
+Files Modified:
+M       bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 Nov 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141113a
 Tag Summary: Second step in responding to OS concerns about 1D POP
              implementation - this commit does not change default values
