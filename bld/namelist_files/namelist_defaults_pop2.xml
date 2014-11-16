@@ -165,6 +165,7 @@
 <!---------------------------->
 
 <ldiag_global_tracer_budgets>.true.</ldiag_global_tracer_budgets>
+<ldiag_global_tracer_budgets ocn_onedim="TRUE">.false.</ldiag_global_tracer_budgets>
 <ldiag_global_tracer_budgets ocn_grid="tx1v1"  >.false.</ldiag_global_tracer_budgets>
 <ldiag_global_tracer_budgets ocn_grid="tx0.1v2">.false.</ldiag_global_tracer_budgets>
 
@@ -379,6 +380,8 @@
 
 <diag_gm_bolus ocn_grid="gx3v7"  >.true.</diag_gm_bolus>
 <diag_gm_bolus ocn_grid="gx1v6"  >.true.</diag_gm_bolus>
+<diag_gm_bolus ocn_grid="gx3v7" ocn_onedim="TRUE">.false.</diag_gm_bolus>
+<diag_gm_bolus ocn_grid="gx1v6" ocn_onedim="TRUE">.false.</diag_gm_bolus>
 <diag_gm_bolus ocn_grid="tx1v1"  >.false.</diag_gm_bolus>
 <diag_gm_bolus ocn_grid="tx0.1v2">.false.</diag_gm_bolus>
 
@@ -748,16 +751,22 @@
 
 <moc_requested ocn_grid="gx3v7"  >.true.</moc_requested>
 <moc_requested ocn_grid="gx1v6"  >.true.</moc_requested>
+<moc_requested ocn_grid="gx3v7" ocn_onedim="TRUE">.false.</moc_requested>
+<moc_requested ocn_grid="gx1v6" ocn_onedim="TRUE">.false.</moc_requested>
 <moc_requested ocn_grid="tx1v1"  >.false.</moc_requested>
 <moc_requested ocn_grid="tx0.1v2">.false.</moc_requested>
 
 <n_heat_trans_requested ocn_grid="gx3v7"  >.true.</n_heat_trans_requested>
 <n_heat_trans_requested ocn_grid="gx1v6"  >.true.</n_heat_trans_requested>
+<n_heat_trans_requested ocn_grid="gx3v7" ocn_onedim="TRUE">.false.</n_heat_trans_requested>
+<n_heat_trans_requested ocn_grid="gx1v6" ocn_onedim="TRUE">.false.</n_heat_trans_requested>
 <n_heat_trans_requested ocn_grid="tx1v1"  >.false.</n_heat_trans_requested>
 <n_heat_trans_requested ocn_grid="tx0.1v2">.false.</n_heat_trans_requested>
 
 <n_salt_trans_requested ocn_grid="gx3v7"  >.true.</n_salt_trans_requested>
 <n_salt_trans_requested ocn_grid="gx1v6"  >.true.</n_salt_trans_requested>
+<n_salt_trans_requested ocn_grid="gx3v7" ocn_onedim="TRUE">.false.</n_salt_trans_requested>
+<n_salt_trans_requested ocn_grid="gx1v6" ocn_onedim="TRUE">.false.</n_salt_trans_requested>
 <n_salt_trans_requested ocn_grid="tx1v1"  >.false.</n_salt_trans_requested>
 <n_salt_trans_requested ocn_grid="tx0.1v2">.false.</n_salt_trans_requested>
 

@@ -4,6 +4,21 @@ SVN $URL$
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    16 Nov 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141116a
+Tag Summary: Fifth step in responding to OS concerns about 1D POP
+             implementation - this commit reduces the size of history files in
+             1D cases by removing variables remain constant throughout the
+             run.
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop2.xml
+M       input_templates/gx3v7_1D_tavg_contents
+M       input_templates/gx1v6_1D_tavg_contents
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Nov 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141116
 Tag Summary: Fourth step in responding to OS concerns about 1D POP
              implementation - this commit moves the UVEL and VVEL damping to a

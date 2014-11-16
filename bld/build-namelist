@@ -665,7 +665,7 @@ add_default($nl, 'ldiag_velocity');
 if ($OCN_TAVG_HIFREQ eq "TRUE" ) {
     add_default($nl, 'ldiag_global_tracer_budgets', 'val'=>'.false.');
 } else {
-    add_default($nl, 'ldiag_global_tracer_budgets');
+    add_default($nl, 'ldiag_global_tracer_budgets','ocn_onedim'=>"$OCN_ONEDIM");
 }
 
 ##########################################
@@ -890,7 +890,7 @@ add_default($nl, 'ah&hmix_gm_nml',
 # is obtained from config_cache.xml
 
 add_default($nl, 'buoyancy_freq_filename', 'val'=>"${RUNDIR}/buoyancy_freq");
-add_default($nl, 'diag_gm_bolus');
+add_default($nl, 'diag_gm_bolus','ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl, 'kappa_freq_choice');
 add_default($nl, 'slope_control_choice');
 add_default($nl, 'kappa_depth_1');
@@ -1130,9 +1130,9 @@ add_default($nl,'lat_aux_grid_type');
 add_default($nl,'lat_aux_begin');
 add_default($nl,'lat_aux_end');
 add_default($nl,'n_lat_aux_grid');
-add_default($nl,'moc_requested');
-add_default($nl,'n_heat_trans_requested');
-add_default($nl,'n_salt_trans_requested');
+add_default($nl,'moc_requested','ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'n_heat_trans_requested','ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'n_salt_trans_requested','ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'transport_reg2_names', 'val'=>"@transport_reg2_names");
 add_default($nl,'n_transport_reg');
 
