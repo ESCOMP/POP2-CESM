@@ -3,6 +3,25 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    16 Nov 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141116
+Tag Summary: Fourth step in responding to OS concerns about 1D POP
+             implementation - this commit moves the UVEL and VVEL damping to a
+             well-named module (damping.F90) and adds control to the
+             damping_nml namelist. Note that 1D cases damp UVEL and VVEL by
+             default (and also set lmin_Coriolis = 6.4e-6)
+
+Files Modified:
+M       source/initial.F90
+M       source/step_mod.F90
+M       source/grid.F90
+A  +    source/damping.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop2.xml
+M       bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    13 Nov 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141113b
 Tag Summary: Third step in responding to OS concerns about 1D POP

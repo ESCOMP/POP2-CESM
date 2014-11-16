@@ -36,6 +36,7 @@
    use tavg
    use forcing_fields
    use forcing
+   use damping, only : ldamp_uv, damping_uv
    use forcing_shf
    use ice
    use passive_tracers
@@ -517,6 +518,17 @@
             enddo
             enddo
          enddo
+
+!-----------------------------------------------------------------------
+!
+!        Apply damping to UVEL and VVEL
+!
+!-----------------------------------------------------------------------
+
+         if (ldamp_uv) then
+           call damping_uv(UVEL(:,:,:,newtime,iblock),                        &
+                           VVEL(:,:,:,newtime,iblock))
+         end if
 
 !-----------------------------------------------------------------------
 !

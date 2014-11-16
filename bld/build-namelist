@@ -602,6 +602,8 @@ if ($l1Ddyn eq '.true.') {
     $iden_cols = 'TRUE';
   }
   add_default($nl, 'lconst_Coriolis', 'iden_cols'=>"$iden_cols");
+  add_default($nl, 'lmin_Coriolis', 'ocn_onedim'=>"$OCN_ONEDIM");
+  add_default($nl, 'Coriolis_min');
   add_default($nl, 'Coriolis_val');
   add_default($nl, 'global_taux');
   add_default($nl, 'global_SHF_coef');
@@ -979,6 +981,12 @@ add_default($nl,'lbouss_correct');
 
 add_default($nl,'ltopostress');
 add_default($nl,'nsmooth_topo');
+
+##########################################
+# namelist group: damping_nml            #
+##########################################
+
+add_default($nl, 'ldamp_uv', 'ocn_onedim'=>"$OCN_ONEDIM");
 
 ##########################################
 # namelist group: forcing_ws_nml         #
@@ -1906,6 +1914,7 @@ my @groups = qw(domain_nml
                 ice_nml
                 pressure_grad_nml
                 topostress_nml
+                damping_nml
                 forcing_ws_nml
                 forcing_shf_nml
                 forcing_sfwf_nml
@@ -1946,8 +1955,8 @@ for my $var ($nl->get_variable_names('derived')) {
   $nl->set_variable_value($broken[1], $broken[0], $val);
 }
 
-# Consistency check(s)
-if (pop2_consistency_check($nl)) { exit 1; }
+# Consistency checks
+if (pop2_consistency_check($nl, $OCN_ONEDIM)) { exit 1; }
 
 # Write out all groups  to pop2_in
 my $outfile = "./pop2_in";
@@ -2463,13 +2472,30 @@ sub leap() {
 sub pop2_consistency_check() {
 
   my $nl = shift;
-
-  # 1) lconst_Coriolis = .true. => l1Ddyn = .true.
+  my $OCN_ONEDIM = shift;
   my $l1Ddyn = $nl->get_value('l1Ddyn');
   my $lconst_Coriolis = $nl->get_value('lconst_Coriolis');
+  my $lmin_Coriolis = $nl->get_value('lmin_Coriolis');
+
+  # 1) l1Ddyn and $OCN_ONEDIM must match
+  if (($l1Ddyn eq '.true.'  && $OCN_ONEDIM eq 'FALSE') or
+      ($l1Ddyn eq '.false.' && $OCN_ONEDIM eq 'TRUE')) {
+    print "POP2 namelist error: Do not set l1Ddyn in user_nl_pop2, use ";
+    print "OCN_ONEDIM in env_run.xml to make sure namelist is set properly.\n";
+    return 1;
+  }
+
+  # 2) lconst_Coriolis = .true. => l1Ddyn = .true.
   if ($l1Ddyn eq '.false.' && $lconst_Coriolis eq '.true.') {
     print "POP2 namelist error: you can not run with ";
     print "lconst_Coriolis = .true. if l1Ddyn = .false.\n";
+    return 1;
+  }
+
+  # 3) lmin_Coriolis = .true. => l1Ddyn = .true.
+  if ($l1Ddyn eq '.false.' && $lmin_Coriolis eq '.true.') {
+    print "POP2 namelist error: you can not run with ";
+    print "lmin_Coriolis = .true. if l1Ddyn = .false.\n";
     return 1;
   }
 

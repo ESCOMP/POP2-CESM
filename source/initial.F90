@@ -61,6 +61,7 @@
    !use hydro_sections
    !use current_meters
    !use drifters
+   use damping, only: init_damping
    use forcing, only: init_forcing
    use forcing_sfwf, only: sfwf_formulation, lms_balance, sfwf_data_type, lfw_as_salt_flx
    use forcing_shf, only: luse_cpl_ifrac, OCN_WGT, shf_formulation, shf_data_type
@@ -401,7 +402,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  initialize fields for surface forcing
+!  initialize fields for damping and surface forcing
 !       o init_ws
 !       o init_shf 
 !       o init_sfwf
@@ -411,6 +412,7 @@
 !
 !-----------------------------------------------------------------------
 
+   call init_damping
    call init_forcing
 
 !-----------------------------------------------------------------------

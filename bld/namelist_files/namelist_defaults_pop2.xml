@@ -109,6 +109,11 @@
 <lconst_Coriolis>.false.</lconst_Coriolis>
 <lconst_Coriolis iden_cols="TRUE">.true.</lconst_Coriolis>
 
+<lmin_Coriolis>.false.</lmin_Coriolis>
+<lmin_Coriolis ocn_onedim="TRUE">.true.</lmin_Coriolis>
+
+<Coriolis_min>6.4e-6</Coriolis_min>
+
 <Coriolis_val>1e-4</Coriolis_val>
 
 <global_taux>0.1</global_taux>
@@ -546,6 +551,13 @@
 
 <ltopostress>.false.</ltopostress>
 <nsmooth_topo>0</nsmooth_topo>
+
+<!---------------------------->
+<!-- damping_nml -->
+<!---------------------------->
+
+<ldamp_uv>.false.</ldamp_uv>
+<ldamp_uv ocn_onedim="TRUE">.true.</ldamp_uv>
 
 <!---------------------------->
 <!-- forcing_ws_nml -->

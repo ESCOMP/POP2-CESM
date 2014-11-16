@@ -80,7 +80,11 @@
       partial_bottom_cells,    &! flag for partial bottom cells
       lconst_Coriolis,         &! flag to run with spatially-constant Coriolis
       l1Ddyn,                  &! flag to run POP in 1D mode (experimental)
+      lmin_Coriolis,           &! flag to specify min for FCOR
       lidentical_columns        ! flag to treat all columns the same (forcing, depth, etc)
+
+  real (POP_r8),          public :: Coriolis_min    ! smallest magnitude of Coriolis
+                                                    ! (if lmin_Coriolis = .true.)
 
    real (POP_r8), dimension(:,:), allocatable, public :: &
       BATH_G           ! Observed ocean bathymetry mapped to global T grid
@@ -298,7 +302,8 @@
                       lconst_Coriolis, l1Ddyn
 
    namelist /pop1d_nml/lidentical_columns, lconst_Coriolis,            &
-                       Coriolis_val, global_taux, global_SHF_coef
+                       lmin_Coriolis, Coriolis_min, Coriolis_val,      &
+                       global_taux, global_SHF_coef
 
    integer (POP_i4) :: &
       nml_error           ! namelist i/o error flag
@@ -331,6 +336,8 @@
 
    lidentical_columns = .false.
    lconst_Coriolis    = .false.
+   lmin_Coriolis      = .false.
+   Coriolis_min       = 6.4e-6_r8
    Coriolis_val       = 1e-4_r8
    global_taux        = 0.1_r8
    global_SHF_coef    = -100._r8
@@ -404,6 +411,8 @@
 
    call broadcast_scalar(lidentical_columns, master_task)
    call broadcast_scalar(lconst_Coriolis,    master_task)
+   call broadcast_scalar(lmin_Coriolis,      master_task)
+   call broadcast_scalar(Coriolis_min,       master_task)
    call broadcast_scalar(Coriolis_val,       master_task)
    call broadcast_scalar(global_taux,        master_task)
    call broadcast_scalar(global_SHF_coef,    master_task)
@@ -1121,6 +1130,18 @@
    else
      FCOR  = c2*omega*sin(ULAT)    ! at u-points
      FCORT = c2*omega*sin(TLAT)    ! at t-points
+     if (lmin_Coriolis) then
+       where ((FCOR.lt.Coriolis_min).and.(FCOR.ge.c0))
+         FCOR = Coriolis_min
+       elsewhere ((FCOR.gt.-Coriolis_min).and.(FCOR.lt.c0))
+         FCOR = -Coriolis_min
+       end where
+       where ((FCORT.lt.Coriolis_min).and.(FCORT.ge.c0))
+         FCORT = Coriolis_min
+       elsewhere ((FCORT.gt.-Coriolis_min).and.(FCORT.lt.c0))
+         FCORT = -Coriolis_min
+       end where
+     end if
    end if
 
 
