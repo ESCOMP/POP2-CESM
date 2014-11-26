@@ -1,6 +1,18 @@
 SVN $Id$
 SVN $URL$
 ===============================================================================
+Tag Creator: andre
+Developers:  andre
+Tag Date:    25 Nov 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141126
+Tag Summary: intel15 debug builds mistakenly treat unallocated memory
+             on all non-io processors as an error when calling
+             write_nstd_netcdf, even though only the ioprocesser
+             accesses the memory.
+
+Files Modified:
+M       source/diags_on_lat_aux_grid.F90
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    16 Nov 2014
