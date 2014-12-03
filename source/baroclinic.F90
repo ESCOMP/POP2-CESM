@@ -32,7 +32,7 @@
        RHO, newtime, oldtime, curtime, PSURF, nt
    use broadcast, only: broadcast_scalar
    use communicate, only: my_task, master_task
-   use grid, only: FCOR, DZU, HUR, KMU, KMT, sfc_layer_type, lPOP1d,         &
+   use grid, only: FCOR, DZU, HUR, KMU, KMT, sfc_layer_type, l1Ddyn,         &
        sfc_layer_varthick, partial_bottom_cells, dz, DZT, CALCT, dzw, dzr
    use advection, only: advu, advt, comp_flux_vel_ghost
    use pressure_grad, only: lpressure_avg, gradp
@@ -518,7 +518,7 @@
 
    errorCode = POP_Success
 
-   if (.not.lPOP1d) then
+   if (.not.l1Ddyn) then
 
      call comp_flux_vel_ghost(DH, errorCode)
 
@@ -970,7 +970,7 @@
 !
 !-----------------------------------------------------------------------
 
-         if (.not.lPOP1d) then
+         if (.not.l1Ddyn) then
 
            if (partial_bottom_cells) then
               ZX(:,:,iblock) = ZX(:,:,iblock) + FX*DZU(:,:,k,iblock)
@@ -1027,7 +1027,7 @@
 !
 !-----------------------------------------------------------------------
 
-      if (.not.lPOP1d) then
+      if (.not.l1Ddyn) then
 
         WORK1 = c0  ! initialize sums
         WORK2 = c0
@@ -1515,7 +1515,7 @@
  
    if (k == 1) WUK = DHU_BLOCK  ! free surface
 
-   if (.not.lPOP1d) then
+   if (.not.l1Ddyn) then
 
      call advu(k, WORKX, WORKY, WUK, UCUR, VCUR, this_block)
 
@@ -1575,7 +1575,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (.not.lPOP1d) then
+   if (.not.l1Ddyn) then
 
      call gradp(k,WORKX, WORKY, RHOKOLD, RHOKCUR, RHOKNEW, this_block)
 
@@ -1609,7 +1609,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (.not.lPOP1d) then
+   if (.not.l1Ddyn) then
 
      call hdiffu(k, WORKX, WORKY, UMIXK, VMIXK, this_block)
 
@@ -1768,7 +1768,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (.not.lPOP1d) then
+   if (.not.l1Ddyn) then
 
      call hdifft(k, WORKN, TMIX, UMIX, VMIX, this_block)
      FT = FT + WORKN
@@ -1844,7 +1844,7 @@
 
    endif
 
-   if (.not.lPOP1d) then
+   if (.not.l1Ddyn) then
 
      call advt(k,WORKN,WTK,TMIX,TCUR,UCUR,VCUR,this_block)
      FT = FT - WORKN   ! advt returns WORKN = +L(T) 

@@ -36,6 +36,7 @@
    use tavg
    use forcing_fields
    use forcing
+   use damping, only : ldamp_uv, damping_uv
    use forcing_shf
    use ice
    use passive_tracers
@@ -358,7 +359,7 @@
 
       if(profile_barrier) call POP_Barrier
 
-      if (.not.lPOP1d) then
+      if (.not.l1Ddyn) then
 
         call timer_start(timer_barotropic)
         call barotropic_driver(ZX,ZY,errorCode)
@@ -499,7 +500,7 @@
       !$OMP PARALLEL DO PRIVATE(iblock,k,i,j)
       do iblock = 1,nblocks_clinic
 
-         if (lPOP1d) then
+         if (l1Ddyn) then
            UBTROP(:,:,newtime,iblock) = c0     
            VBTROP(:,:,newtime,iblock) = c0     
          endif
@@ -517,6 +518,17 @@
             enddo
             enddo
          enddo
+
+!-----------------------------------------------------------------------
+!
+!        Apply damping to UVEL and VVEL
+!
+!-----------------------------------------------------------------------
+
+         if (ldamp_uv) then
+           call damping_uv(UVEL(:,:,:,newtime,iblock),                        &
+                           VVEL(:,:,:,newtime,iblock))
+         end if
 
 !-----------------------------------------------------------------------
 !

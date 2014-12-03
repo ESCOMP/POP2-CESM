@@ -1,6 +1,123 @@
 SVN $Id$
 SVN $URL$
 ===============================================================================
+Tag Creator: andre
+Developers:  andre
+Tag Date:    25 Nov 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141126
+Tag Summary: intel15 debug builds mistakenly treat unallocated memory
+             on all non-io processors as an error when calling
+             write_nstd_netcdf, even though only the ioprocesser
+             accesses the memory.
+
+Files Modified:
+M       source/diags_on_lat_aux_grid.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Nov 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141116a
+Tag Summary: Fifth step in responding to OS concerns about 1D POP
+             implementation - this commit reduces the size of history files in
+             1D cases by removing variables remain constant throughout the
+             run.
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop2.xml
+M       input_templates/gx3v7_1D_tavg_contents
+M       input_templates/gx1v6_1D_tavg_contents
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Nov 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141116
+Tag Summary: Fourth step in responding to OS concerns about 1D POP
+             implementation - this commit moves the UVEL and VVEL damping to a
+             well-named module (damping.F90) and adds control to the
+             damping_nml namelist. Note that 1D cases damp UVEL and VVEL by
+             default (and also set lmin_Coriolis = 6.4e-6)
+
+Files Modified:
+M       source/initial.F90
+M       source/step_mod.F90
+M       source/grid.F90
+A  +    source/damping.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop2.xml
+M       bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 Nov 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141113b
+Tag Summary: Third step in responding to OS concerns about 1D POP
+             implementation - this commit adds a pop2_consistency_check()
+             routine to build-namelist [only current check is to return an
+             error if lconst_Coriolis = .true. and l1Ddyn = .false. but others
+             can be added easily]
+
+Files Modified:
+M       bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 Nov 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141113a
+Tag Summary: Second step in responding to OS concerns about 1D POP
+             implementation - this commit does not change default values
+             for ltidal_mixing, impcor, bckgrnd_vdc1, or bckgrnd_vdc2 when
+             running with 1D dynamics instead of "regular" POP.
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop2.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 Nov 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141113
+Tag Summary: First step in responding to OS concerns about 1D POP
+             implementation - this commit renames lPOP1d -> l1Ddyn to emphasis
+             that this is 1D dynamics rather than a true 1D ocean model.
+
+Files Modified:
+M       source/step_mod.F90
+M       source/grid.F90
+M       source/vmix_kpp.F90
+M       source/baroclinic.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop2.xml
+M       bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    4 Nov 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141104
+Tag Summary: Update build-namelist to enable restarts in 1D runs
+
+Files Modified:
+M       bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
+Developers:  jedwards
+Tag Date:    3 Nov 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141103
+Tag Summary: Bugfix - memory leak in POP diagnostics (change a "merge" command
+             to a "where" statement)
+
+Files Modified:
+M       source/diags_on_lat_aux_grid.F90
+===============================================================================
+Tag Creator: andre
+Developers:  andre
+Tag Date:    31 Oct 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141031
+Tag Summary: Add code to pop build-namelist to expand all xml vars in namelist values.
+
+Files Modified:
+M       bld/build-namelist
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    25 Sept 2014

@@ -595,11 +595,11 @@ Default: 3
 </entry>
 
 <entry 
-id="lPOP1d"
+id="l1Ddyn"
 type="logical"
 category="grid"
 group="grid_nml" >
-Flag to run POP in 1D mode (recommend only using with T62_g37 resolution)
+Flag to run POP in 1D dynamics mode (recommend only using with T62_g37 resolution)
 
 Default: .false.
 </entry>
@@ -614,7 +614,7 @@ type="logical"
 category="grid"
 group="pop1d_nml" >
 Flag to treat all columns the same (true 1D run). Recommend only using with
-the T62_g37 resolution; can not be run without lPOP1d = .true.
+the T62_g37 resolution; can not be run without l1Ddyn = .true.
 
 Default: .false.
 </entry>
@@ -625,9 +625,31 @@ type="logical"
 category="grid"
 group="pop1d_nml" >
 Flag to run POP with a spatially-constant Coriolis parameter; can not be run
-without lPOP1d = .true.
+without l1Ddyn = .true.
 
 Default: .false.
+</entry>
+
+<entry 
+id="lmin_Coriolis"
+type="logical"
+category="grid"
+group="pop1d_nml" >
+Flag to run POP with a specified minimum value for the Coriolis parameter; can not be run
+without l1Ddyn = .true.
+
+Default: .false. if l1Ddyn = .false; .true. if l1Ddyn = .true.
+</entry>
+
+<entry
+id="Coriolis_min"
+type="real"
+category="grid"
+group="pop1d_nml" >
+If lmin_Coriolis = .true., this is smallest value for Coriolis parameter.
+(units = 1/s)
+
+Default: 6.4e-6 (corresponds to ~2.5 degrees)
 </entry>
 
 <entry
@@ -2507,6 +2529,20 @@ group="topostress_nml" >
 Number of passes the topography smoother will make.
 
 Default: 0
+</entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: damping_nml              - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry 
+id="ldamp_uv"
+type="logical"
+category="grid"
+group="damping_nml" >
+Flag to damp UVEL and VVEL; currently the only method for damping is from private communication with Nick Klingaman (Univ. of Reading); it is a non-linear damping.
+
+Default: .false.
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->

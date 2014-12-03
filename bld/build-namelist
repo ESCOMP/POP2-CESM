@@ -376,6 +376,8 @@ my $RUN_REFDATE            = "$xmlvars{'RUN_REFDATE'}";
 my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
 my $OCN_CO2_FLUX_OCMIP_BUG_FIX = "$xmlvars{'OCN_CO2_FLUX_OCMIP_BUG_FIX'}";
 
+expand_xml_variables_in_namelist($nl, \%xmlvars);
+
 my $output_r = "./${CASE}.pop.r";
 my $output_h = "./${CASE}.pop.h";
 my $output_d = "./${CASE}.pop.d";
@@ -534,7 +536,7 @@ add_default($nl, 'time_mix_opt');
 add_default($nl, 'time_mix_freq');
 add_default($nl, 'dt_option');
 add_default($nl, 'dt_count','ocn_coupling'=>"$OCN_COUPLING",'ocn_onedim'=>"$OCN_ONEDIM");
-add_default($nl, 'impcor', 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl, 'impcor');
 add_default($nl, 'laccel');
 add_default($nl, 'dtuxcel');
 add_default($nl, 'allow_leapyear', 'calendar'=>"$CALENDAR");
@@ -584,7 +586,7 @@ add_default($nl, 'n_topo_smooth');
 add_default($nl, 'region_mask_file');
 add_default($nl, 'sfc_layer_opt', 'ocn_onedim'=>"$OCN_ONEDIM");
 
-add_default($nl, 'lPOP1d', 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl, 'l1Ddyn', 'ocn_onedim'=>"$OCN_ONEDIM");
 
 
 ####################################
@@ -592,14 +594,16 @@ add_default($nl, 'lPOP1d', 'ocn_onedim'=>"$OCN_ONEDIM");
 ####################################
 
 my $iden_cols = 'FALSE'; # used for constant Coriolis and flat bottom
-my $lPOP1d = $nl->get_value('lPOP1d');
-if ($lPOP1d eq '.true.') {
+my $l1Ddyn = $nl->get_value('l1Ddyn');
+if ($l1Ddyn eq '.true.') {
   add_default($nl, 'lidentical_columns');
   my $lidentical_cols = $nl->get_value('lidentical_columns');
   if ($lidentical_cols eq '.true.') {
     $iden_cols = 'TRUE';
   }
   add_default($nl, 'lconst_Coriolis', 'iden_cols'=>"$iden_cols");
+  add_default($nl, 'lmin_Coriolis', 'ocn_onedim'=>"$OCN_ONEDIM");
+  add_default($nl, 'Coriolis_min');
   add_default($nl, 'Coriolis_val');
   add_default($nl, 'global_taux');
   add_default($nl, 'global_SHF_coef');
@@ -612,7 +616,7 @@ add_default($nl, 'flat_bottom', 'iden_cols'=>"$iden_cols");
 # namelist group: init_ts_nml      #
 ####################################
 
-if ($OCN_ONEDIM eq 'TRUE') {
+if ($OCN_ONEDIM eq 'TRUE' && $RUN_TYPE eq 'startup') {
   add_default($nl, 'init_ts_option', 'val'=>'internal');
 } else {
 
@@ -661,7 +665,7 @@ add_default($nl, 'ldiag_velocity');
 if ($OCN_TAVG_HIFREQ eq "TRUE" ) {
     add_default($nl, 'ldiag_global_tracer_budgets', 'val'=>'.false.');
 } else {
-    add_default($nl, 'ldiag_global_tracer_budgets');
+    add_default($nl, 'ldiag_global_tracer_budgets','ocn_onedim'=>"$OCN_ONEDIM");
 }
 
 ##########################################
@@ -749,7 +753,7 @@ add_default($nl, 'rich_mix&vmix_rich_nml');
 # namelist group: tidal_nml              #
 ##########################################
 
-add_default($nl, 'ltidal_mixing', 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl, 'ltidal_mixing');
 add_default($nl, 'tidal_energy_file', 'nofail'=>1);
 if (not $nl->get_value('tidal_energy_file')) {
 	add_default($nl, 'tidal_energy_file', 'val'=>'unknown_tidal_mixing','noprepend'=>1);
@@ -788,8 +792,8 @@ add_default($nl, 'lcheckekmo');
 add_default($nl, 'larctic_bckgrnd_vdc');
 add_default($nl, 'num_v_smooth_Ri');
 
-add_default($nl, 'bckgrnd_vdc1',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing", 'ocn_onedim'=>"$OCN_ONEDIM");
-add_default($nl, 'bckgrnd_vdc2',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing", 'ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl, 'bckgrnd_vdc1',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
+add_default($nl, 'bckgrnd_vdc2',     'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
 add_default($nl, 'bckgrnd_vdc_dpth', 'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
 add_default($nl, 'bckgrnd_vdc_eq',   'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
 add_default($nl, 'bckgrnd_vdc_psim', 'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
@@ -886,7 +890,7 @@ add_default($nl, 'ah&hmix_gm_nml',
 # is obtained from config_cache.xml
 
 add_default($nl, 'buoyancy_freq_filename', 'val'=>"${RUNDIR}/buoyancy_freq");
-add_default($nl, 'diag_gm_bolus');
+add_default($nl, 'diag_gm_bolus','ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl, 'kappa_freq_choice');
 add_default($nl, 'slope_control_choice');
 add_default($nl, 'kappa_depth_1');
@@ -977,6 +981,12 @@ add_default($nl,'lbouss_correct');
 
 add_default($nl,'ltopostress');
 add_default($nl,'nsmooth_topo');
+
+##########################################
+# namelist group: damping_nml            #
+##########################################
+
+add_default($nl, 'ldamp_uv', 'ocn_onedim'=>"$OCN_ONEDIM");
 
 ##########################################
 # namelist group: forcing_ws_nml         #
@@ -1120,9 +1130,9 @@ add_default($nl,'lat_aux_grid_type');
 add_default($nl,'lat_aux_begin');
 add_default($nl,'lat_aux_end');
 add_default($nl,'n_lat_aux_grid');
-add_default($nl,'moc_requested');
-add_default($nl,'n_heat_trans_requested');
-add_default($nl,'n_salt_trans_requested');
+add_default($nl,'moc_requested','ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'n_heat_trans_requested','ocn_onedim'=>"$OCN_ONEDIM");
+add_default($nl,'n_salt_trans_requested','ocn_onedim'=>"$OCN_ONEDIM");
 add_default($nl,'transport_reg2_names', 'val'=>"@transport_reg2_names");
 add_default($nl,'n_transport_reg');
 
@@ -1904,6 +1914,7 @@ my @groups = qw(domain_nml
                 ice_nml
                 pressure_grad_nml
                 topostress_nml
+                damping_nml
                 forcing_ws_nml
                 forcing_shf_nml
                 forcing_sfwf_nml
@@ -1943,6 +1954,9 @@ for my $var ($nl->get_variable_names('derived')) {
   my $val = $nl->get_variable_value('derived', $var);
   $nl->set_variable_value($broken[1], $broken[0], $val);
 }
+
+# Consistency checks
+if (pop2_consistency_check($nl, $OCN_ONEDIM)) { exit 1; }
 
 # Write out all groups  to pop2_in
 my $outfile = "./pop2_in";
@@ -2349,6 +2363,25 @@ sub expand_env_xml {
 
 #-------------------------------------------------------------------------------
 
+sub expand_xml_variables_in_namelist {
+   # Go through all variables in the namelist and expand any XML env settings in them
+   my ($nl, $envxml_ref) = @_;
+
+   require Streams::TemplateGeneric;
+
+   foreach my $group ( $nl->get_group_names() ) {
+       foreach my $var ( $nl->get_variable_names($group) ) {
+          my $val    = $nl->get_variable_value($group, $var);
+          my $newval = &Streams::TemplateGeneric::expandXMLVar( $val, $envxml_ref );
+          if ( $newval ne $val ) {
+             $nl->set_variable_value($group, $var, $newval);
+          }
+       }
+   }
+}
+
+#-------------------------------------------------------------------------------
+
 sub print_nl_to_screen {
 
   my $namelist = $_[0];
@@ -2433,6 +2466,41 @@ sub leap() {
   return 0;
 }
 
+
+#-------------------------------------------------------------------------------
+
+sub pop2_consistency_check() {
+
+  my $nl = shift;
+  my $OCN_ONEDIM = shift;
+  my $l1Ddyn = $nl->get_value('l1Ddyn');
+  my $lconst_Coriolis = $nl->get_value('lconst_Coriolis');
+  my $lmin_Coriolis = $nl->get_value('lmin_Coriolis');
+
+  # 1) l1Ddyn and $OCN_ONEDIM must match
+  if (($l1Ddyn eq '.true.'  && $OCN_ONEDIM eq 'FALSE') or
+      ($l1Ddyn eq '.false.' && $OCN_ONEDIM eq 'TRUE')) {
+    print "POP2 namelist error: Do not set l1Ddyn in user_nl_pop2, use ";
+    print "OCN_ONEDIM in env_run.xml to make sure namelist is set properly.\n";
+    return 1;
+  }
+
+  # 2) lconst_Coriolis = .true. => l1Ddyn = .true.
+  if ($l1Ddyn eq '.false.' && $lconst_Coriolis eq '.true.') {
+    print "POP2 namelist error: you can not run with ";
+    print "lconst_Coriolis = .true. if l1Ddyn = .false.\n";
+    return 1;
+  }
+
+  # 3) lmin_Coriolis = .true. => l1Ddyn = .true.
+  if ($l1Ddyn eq '.false.' && $lmin_Coriolis eq '.true.') {
+    print "POP2 namelist error: you can not run with ";
+    print "lmin_Coriolis = .true. if l1Ddyn = .false.\n";
+    return 1;
+  }
+
+  return 0;
+}
 
 #-------------------------------------------------------------------------------
 
