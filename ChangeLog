@@ -1,6 +1,23 @@
 SVN $Id$
 SVN $URL$
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mclong
+Tag Date:    3 Dec 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141203
+Tag Summary: More flexibility in ecosys tracer count, specifically zooplankton
+             and autotroph count.
+
+Files Modified:
+M       source/ecosys_share.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_parms.F90
+M       source/ecosys_ciso_mod.F90
+M       bld/build-namelist
+M       bld/pop2.buildexe.csh
+M       bld/namelist_files/namelist_defaults_pop2.xml
+M       bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
 Tag Creator: andre
 Developers:  andre
 Tag Date:    25 Nov 2014

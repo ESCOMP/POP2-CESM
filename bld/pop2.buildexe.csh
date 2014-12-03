@@ -132,11 +132,33 @@ cat >! Filepath <<EOF
 $OBJROOT/ocn/source
 EOF
 
+set ECOSYS_ON = FALSE
+set ECOSYS_NT = 27
+set ZOOPLANKTON_CNT = 1
+set AUTOTROPH_CNT = 3
+set GRAZER_PREY_CNT = 3
 @ NT = 2
 foreach module ( `echo $OCN_TRACER_MODULES` )  
    if ($module =~ "iage"   )         @ NT = $NT +  1
    if ($module =~ "cfc"    )         @ NT = $NT +  2   
-   if ($module =~ "ecosys" )         @ NT = $NT + 27
+   if ($module =~ "ecosys" ) then
+      set ECOSYS_ON = TRUE
+      foreach module_opt ( `echo $OCN_TRACER_MODULES_OPT` )
+         if ( `echo $module_opt | cut -f 1 -d =` == ECOSYS_NT ) then
+            set ECOSYS_NT = `echo $module_opt | cut -f 2 -d =`
+         endif
+         if ( `echo $module_opt | cut -f 1 -d =` == ZOOPLANKTON_CNT ) then
+            set ZOOPLANKTON_CNT = `echo $module_opt | cut -f 2 -d =`
+         endif
+         if ( `echo $module_opt | cut -f 1 -d =` == AUTOTROPH_CNT ) then
+            set AUTOTROPH_CNT = `echo $module_opt | cut -f 2 -d =`
+         endif
+         if ( `echo $module_opt | cut -f 1 -d =` == GRAZER_PREY_CNT ) then
+            set GRAZER_PREY_CNT = `echo $module_opt | cut -f 2 -d =`
+         endif
+      end    
+      @ NT = $NT + $ECOSYS_NT     
+   endif
    if ($module =~ "abio_dic_dic14" ) @ NT = $NT +  2 
    if ($module =~ "ciso" )           @ NT = $NT + 14 
    if ($module == moby     ) then
@@ -153,11 +175,16 @@ foreach module ( `echo $OCN_TRACER_MODULES` )
     endif
 end
 
-set cppdefs = "-DCCSMCOUPLED -DBLCKX=$POP_BLCKX -DBLCKY=$POP_BLCKY -DMXBLCKS=$POP_MXBLCKS -DNT=$NT"
+
+set cppdefs = "-DCCSMCOUPLED -DBLCKX=$POP_BLCKX -DBLCKY=$POP_BLCKY -DMXBLCKS=$POP_MXBLCKS -DNT=$NT "
 if ($OCN_ICE_FORCING == 'inactive' ) set cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL"
 if ($OCN_GRID =~ "tx0.1*"          ) set cppdefs = "$cppdefs -D_HIRES";
 if ($OCN_ICE_FORCING == 'inactive' ) set cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL"
 if ($POP_TAVG_R8 == 'TRUE'         ) set cppdefs = "$cppdefs -DTAVG_R8"
+set cppdefs = "$cppdefs -DECOSYS_NT=$ECOSYS_NT"
+set cppdefs = "$cppdefs -DZOOPLANKTON_CNT=$ZOOPLANKTON_CNT"
+set cppdefs = "$cppdefs -DAUTOTROPH_CNT=$AUTOTROPH_CNT"
+set cppdefs = "$cppdefs -DGRAZER_PREY_CNT=$GRAZER_PREY_CNT"
 
 cat >! $OBJROOT/ocn/obj/POP2_cppdefs.new <<EOF
 $cppdefs
