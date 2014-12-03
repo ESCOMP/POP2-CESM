@@ -78,8 +78,6 @@ MODULE ecosys_parms
        parm_o2_min_delta,     & ! width of min O2 range (nmol/cm^3)
        parm_kappa_nitrif,     & ! nitrification inverse time constant (1/sec)
        parm_nitrif_par_lim,   & ! PAR limit for nitrif. (W/m^2)
-       parm_z_mort_0,         & ! zoo linear mort rate (1/sec)
-       parm_z_mort2_0,        & ! zoo quad mort rate (1/sec/((mmol C/m3))
        parm_labile_ratio,     & ! fraction of loss to DOC that routed directly to DIC (non-dimensional)
        parm_POMbury,          & ! scale factor for burial of POC, PON, and POP
        parm_BSIbury,          & ! scale factor burial of bSi
@@ -164,10 +162,17 @@ MODULE ecosys_parms
   REAL(KIND=r8), PARAMETER :: &
       thres_z1          = 100.0e2_r8, & !threshold = C_loss_thres for z shallower than this (cm)
       thres_z2          = 150.0e2_r8, & !threshold = 0 for z deeper than this (cm)
-      loss_thres_zoo    = 0.005_r8,  & !zoo conc. where losses go to zero
       CaCO3_temp_thres1 = 6.0_r8,   & !upper temp threshold for CaCO3 prod
       CaCO3_temp_thres2 = -2.0_r8,  & !lower temp threshold
       CaCO3_sp_thres    = 4.0_r8      ! bloom condition thres (mmolC/m3)
+
+  !---------------------------------------------------------------------
+  !     grazing functions
+  !---------------------------------------------------------------------
+
+  INTEGER (INT_KIND), PARAMETER ::   &
+         grz_fnc_michaelis_menten = 1,       &
+         grz_fnc_sigmoidal        = 2
 
   !---------------------------------------------------------------------
   !     fraction of incoming shortwave assumed to be PAR
@@ -176,6 +181,7 @@ MODULE ecosys_parms
   REAL(KIND=r8), PARAMETER :: &
        f_qsw_par = 0.45_r8   ! PAR fraction
 
+        
   !---------------------------------------------------------------------
   !     Temperature parameters
   !---------------------------------------------------------------------
@@ -223,6 +229,7 @@ CONTAINS
     CHARACTER(LEN=*), PARAMETER :: subname = 'ecosys_parms:ecosys_parms_init'
 
     INTEGER(KIND=int_kind) :: auto_ind
+    INTEGER(KIND=int_kind) :: zoo_ind, prey_ind
 
     LOGICAL(KIND=log_kind) :: &
          lnml_found             ! Was ecosys_parms_nml found ?
@@ -233,8 +240,6 @@ CONTAINS
          parm_o2_min_delta, &
          parm_kappa_nitrif, &
          parm_nitrif_par_lim, &
-         parm_z_mort_0, &
-         parm_z_mort2_0, &
          parm_labile_ratio, &
          parm_POMbury, &
          parm_BSIbury, &
@@ -245,7 +250,9 @@ CONTAINS
          parm_CaCO3_diss, &
          parm_scalelen_z, &
          parm_scalelen_vals, &
-         autotrophs
+         autotrophs, & 
+         zooplankton, &
+         grazing
 
     !---------------------------------------------------------------------------
     !   default namelist settings
@@ -256,8 +263,6 @@ CONTAINS
     parm_o2_min_delta      = 2.0_r8
     parm_kappa_nitrif      = 0.06_r8 * dps  ! (= 1/( days))
     parm_nitrif_par_lim    = 1.0_r8
-    parm_z_mort_0          = 0.1_r8 * dps
-    parm_z_mort2_0         = 0.4_r8 * dps
     parm_labile_ratio      = 0.85_r8
     parm_POMbury           = 1.4_r8         ! x1 default
     parm_BSIbury           = 0.65_r8        ! x1 default
@@ -270,13 +275,19 @@ CONTAINS
     parm_scalelen_z    = (/ 130.0e2_r8, 290.0e2_r8, 670.0e2_r8, 1700.0e2_r8 /) ! x1 default
     parm_scalelen_vals = (/     1.0_r8,     3.0_r8,     5.0_r8,      9.0_r8 /) ! x1 default
 
+    zoo_ind = 1
+    zooplankton(zoo_ind)%sname          ='zoo'
+    zooplankton(zoo_ind)%lname          = 'Zooplankton'
+    zooplankton(zoo_ind)%z_mort_0       = 0.1_r8 * dps
+    zooplankton(zoo_ind)%z_mort2_0      = 0.4_r8 * dps
+    zooplankton(zoo_ind)%loss_thres     = 0.005_r8     !zoo conc. where losses go to zero
+
     auto_ind = sp_ind
     autotrophs(auto_ind)%sname         = 'sp'
     autotrophs(auto_ind)%lname         = 'Small Phyto'
     autotrophs(auto_ind)%Nfixer        = .false.
     autotrophs(auto_ind)%imp_calcifier = .true.
     autotrophs(auto_ind)%exp_calcifier = .false.
-    autotrophs(auto_ind)%grazee_ind    = auto_ind
     autotrophs(auto_ind)%kFe           = 0.04e-3_r8
     autotrophs(auto_ind)%kPO4          = 0.01_r8
     autotrophs(auto_ind)%kDOP          = 0.26_r8
@@ -296,13 +307,7 @@ CONTAINS
     autotrophs(auto_ind)%mort2         = 0.001_r8 * dps
     autotrophs(auto_ind)%agg_rate_max  = 0.9_r8
     autotrophs(auto_ind)%agg_rate_min  = 0.01_r8
-    autotrophs(auto_ind)%z_umax_0      = 3.3_r8 * dps ! x1 default
-    autotrophs(auto_ind)%z_grz         = 1.05_r8              
-    autotrophs(auto_ind)%graze_zoo     = 0.3_r8
-    autotrophs(auto_ind)%graze_poc     = 0.0_r8
-    autotrophs(auto_ind)%graze_doc     = 0.15_r8
     autotrophs(auto_ind)%loss_poc      = 0.0_r8
-    autotrophs(auto_ind)%f_zoo_detr    = 0.15_r8
 
     auto_ind = diat_ind
     autotrophs(auto_ind)%sname         = 'diat'
@@ -310,7 +315,6 @@ CONTAINS
     autotrophs(auto_ind)%Nfixer        = .false.
     autotrophs(auto_ind)%imp_calcifier = .false.
     autotrophs(auto_ind)%exp_calcifier = .false.
-    autotrophs(auto_ind)%grazee_ind    = auto_ind
     autotrophs(auto_ind)%kFe           = 0.06e-3_r8
     autotrophs(auto_ind)%kPO4          = 0.05_r8
     autotrophs(auto_ind)%kDOP          = 0.9_r8
@@ -330,13 +334,8 @@ CONTAINS
     autotrophs(auto_ind)%mort2         = 0.001_r8 * dps
     autotrophs(auto_ind)%agg_rate_max  = 0.9_r8
     autotrophs(auto_ind)%agg_rate_min  = 0.02_r8
-    autotrophs(auto_ind)%z_umax_0      = 3.08_r8 * dps ! x1 default
-    autotrophs(auto_ind)%z_grz         = 1.0_r8              
-    autotrophs(auto_ind)%graze_zoo     = 0.3_r8
-    autotrophs(auto_ind)%graze_poc     = 0.42_r8
-    autotrophs(auto_ind)%graze_doc     = 0.15_r8
     autotrophs(auto_ind)%loss_poc      = 0.0_r8
-    autotrophs(auto_ind)%f_zoo_detr    = 0.2_r8
+   
 
     auto_ind = diaz_ind
     autotrophs(auto_ind)%sname         = 'diaz'
@@ -344,7 +343,6 @@ CONTAINS
     autotrophs(auto_ind)%Nfixer        = .true.
     autotrophs(auto_ind)%imp_calcifier = .false.
     autotrophs(auto_ind)%exp_calcifier = .false.
-    autotrophs(auto_ind)%grazee_ind    = auto_ind
     autotrophs(auto_ind)%kFe           = 0.04e-3_r8
     autotrophs(auto_ind)%kPO4          = 0.02_r8
     autotrophs(auto_ind)%kDOP          = 0.09_r8
@@ -364,14 +362,60 @@ CONTAINS
     autotrophs(auto_ind)%mort2         = 0.0_r8
     autotrophs(auto_ind)%agg_rate_max  = 0.0_r8
     autotrophs(auto_ind)%agg_rate_min  = 0.0_r8
-    autotrophs(auto_ind)%z_umax_0      = 0.6_r8 * dps
-    autotrophs(auto_ind)%z_grz         = 1.2_r8              
-    autotrophs(auto_ind)%graze_zoo     = 0.3_r8
-    autotrophs(auto_ind)%graze_poc     = 0.05_r8
-    autotrophs(auto_ind)%graze_doc     = 0.15_r8
     autotrophs(auto_ind)%loss_poc      = 0.0_r8
-    autotrophs(auto_ind)%f_zoo_detr    = 0.15_r8
+ 
 
+    !---------------------------------------------------------------------------
+    ! predator-prey relationships
+    !---------------------------------------------------------------------------
+    zoo_ind = 1
+    prey_ind = sp_ind
+    grazing(prey_ind,zoo_ind)%sname            = 'grz_' // autotrophs(prey_ind)%sname // '_' // zooplankton(zoo_ind)%sname
+    grazing(prey_ind,zoo_ind)%lname            = 'Grazing of ' // autotrophs(prey_ind)%sname // ' by ' // zooplankton(zoo_ind)%sname
+    grazing(prey_ind,zoo_ind)%auto_ind(1)      = prey_ind
+    grazing(prey_ind,zoo_ind)%auto_ind_cnt       = 1
+    grazing(prey_ind,zoo_ind)%zoo_ind          = -1
+    grazing(prey_ind,zoo_ind)%zoo_ind_cnt        = 0
+    grazing(prey_ind,zoo_ind)%z_umax_0         = 3.3_r8 * dps ! x1 default
+    grazing(prey_ind,zoo_ind)%z_grz            = 1.05_r8              
+    grazing(prey_ind,zoo_ind)%graze_zoo        = 0.3_r8
+    grazing(prey_ind,zoo_ind)%graze_poc        = 0.0_r8
+    grazing(prey_ind,zoo_ind)%graze_doc        = 0.15_r8
+    grazing(prey_ind,zoo_ind)%f_zoo_detr       = 0.15_r8
+    grazing(prey_ind,zoo_ind)%grazing_function = grz_fnc_michaelis_menten
+
+    prey_ind = diat_ind
+    grazing(prey_ind,zoo_ind)%sname            = 'grz_' // autotrophs(prey_ind)%sname // '_' // zooplankton(zoo_ind)%sname
+    grazing(prey_ind,zoo_ind)%lname            = 'Grazing of ' // autotrophs(prey_ind)%sname // ' by ' // zooplankton(zoo_ind)%sname
+    grazing(prey_ind,zoo_ind)%auto_ind(1)      = prey_ind
+    grazing(prey_ind,zoo_ind)%auto_ind_cnt       = 1
+    grazing(prey_ind,zoo_ind)%zoo_ind          = -1
+    grazing(prey_ind,zoo_ind)%zoo_ind_cnt        = 0
+    grazing(prey_ind,zoo_ind)%z_umax_0         = 3.08_r8 * dps ! x1 default
+    grazing(prey_ind,zoo_ind)%z_grz            = 1.0_r8              
+    grazing(prey_ind,zoo_ind)%graze_zoo        = 0.3_r8
+    grazing(prey_ind,zoo_ind)%graze_poc        = 0.42_r8
+    grazing(prey_ind,zoo_ind)%graze_doc        = 0.15_r8
+    grazing(prey_ind,zoo_ind)%f_zoo_detr       = 0.2_r8
+    grazing(prey_ind,zoo_ind)%grazing_function = grz_fnc_michaelis_menten
+
+    prey_ind = diaz_ind
+    grazing(prey_ind,zoo_ind)%sname            = 'grz_' // autotrophs(prey_ind)%sname // '_' // zooplankton(zoo_ind)%sname
+    grazing(prey_ind,zoo_ind)%lname            = 'Grazing of ' // autotrophs(prey_ind)%sname // ' by ' // zooplankton(zoo_ind)%sname
+    grazing(prey_ind,zoo_ind)%auto_ind(1)      = prey_ind
+    grazing(prey_ind,zoo_ind)%auto_ind_cnt       = 1
+    grazing(prey_ind,zoo_ind)%zoo_ind          = -1
+    grazing(prey_ind,zoo_ind)%zoo_ind_cnt        = 0
+    grazing(prey_ind,zoo_ind)%z_umax_0         = 0.6_r8 * dps
+    grazing(prey_ind,zoo_ind)%z_grz            = 1.2_r8              
+    grazing(prey_ind,zoo_ind)%graze_zoo        = 0.3_r8
+    grazing(prey_ind,zoo_ind)%graze_poc        = 0.05_r8
+    grazing(prey_ind,zoo_ind)%graze_doc        = 0.15_r8
+    grazing(prey_ind,zoo_ind)%f_zoo_detr       = 0.15_r8
+    grazing(prey_ind,zoo_ind)%grazing_function = grz_fnc_michaelis_menten
+
+
+    
     !---------------------------------------------------------------------------
     !   read in namelist
     !---------------------------------------------------------------------------
@@ -392,6 +436,7 @@ CONTAINS
        CALL exit_POP(sigAbort, 'ERROR : stopping in ' // subname)
     END IF
 
+
     !---------------------------------------------------------------------------
     !   broadcast all namelist variables
     !---------------------------------------------------------------------------
@@ -401,8 +446,6 @@ CONTAINS
     CALL broadcast_scalar(parm_o2_min_delta, master_task)
     CALL broadcast_scalar(parm_kappa_nitrif, master_task)
     CALL broadcast_scalar(parm_nitrif_par_lim, master_task)
-    CALL broadcast_scalar(parm_z_mort_0, master_task)
-    CALL broadcast_scalar(parm_z_mort2_0, master_task)
     CALL broadcast_scalar(parm_labile_ratio, master_task)
     CALL broadcast_scalar(parm_POMbury, master_task)
     CALL broadcast_scalar(parm_BSIbury, master_task)
@@ -415,13 +458,20 @@ CONTAINS
     CALL broadcast_array(parm_scalelen_z, master_task)
     CALL broadcast_array(parm_scalelen_vals, master_task)
 
+    DO zoo_ind = 1, zooplankton_cnt
+       CALL broadcast_scalar(zooplankton(zoo_ind)%sname, master_task)
+       CALL broadcast_scalar(zooplankton(zoo_ind)%lname, master_task)
+       CALL broadcast_scalar(zooplankton(zoo_ind)%z_mort_0, master_task)
+       CALL broadcast_scalar(zooplankton(zoo_ind)%z_mort2_0, master_task)
+       CALL broadcast_scalar(zooplankton(zoo_ind)%loss_thres, master_task)
+    END DO
+
     DO auto_ind = 1, autotroph_cnt
        CALL broadcast_scalar(autotrophs(auto_ind)%sname, master_task)
        CALL broadcast_scalar(autotrophs(auto_ind)%lname, master_task)
        CALL broadcast_scalar(autotrophs(auto_ind)%Nfixer, master_task)
        CALL broadcast_scalar(autotrophs(auto_ind)%imp_calcifier, master_task)
        CALL broadcast_scalar(autotrophs(auto_ind)%exp_calcifier, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%grazee_ind, master_task)
        CALL broadcast_scalar(autotrophs(auto_ind)%kFe, master_task)
        CALL broadcast_scalar(autotrophs(auto_ind)%kPO4, master_task)
        CALL broadcast_scalar(autotrophs(auto_ind)%kDOP, master_task)
@@ -441,14 +491,27 @@ CONTAINS
        CALL broadcast_scalar(autotrophs(auto_ind)%mort2, master_task)
        CALL broadcast_scalar(autotrophs(auto_ind)%agg_rate_max, master_task)
        CALL broadcast_scalar(autotrophs(auto_ind)%agg_rate_min, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%z_umax_0, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%z_grz, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%graze_zoo, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%graze_poc, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%graze_doc, master_task)
        CALL broadcast_scalar(autotrophs(auto_ind)%loss_poc, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%f_zoo_detr, master_task)
     END DO
+
+    DO prey_ind = 1, grazer_prey_cnt
+       DO zoo_ind = 1, zooplankton_cnt
+          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%sname, master_task)
+          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%lname, master_task)
+          CALL broadcast_array(grazing(prey_ind,zoo_ind)%auto_ind, master_task)
+          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%auto_ind_cnt, master_task)
+          CALL broadcast_array(grazing(prey_ind,zoo_ind)%zoo_ind, master_task)
+          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%zoo_ind_cnt, master_task)
+          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%z_umax_0, master_task)
+          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%z_grz, master_task)
+          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%graze_zoo, master_task)
+          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%graze_poc, master_task)
+          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%graze_doc, master_task)
+          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%f_zoo_detr, master_task)
+          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%grazing_function, master_task)
+       END DO
+    END DO
+   
 
     !---------------------------------------------------------------------------
     !   echo all namelist variables to stdout
@@ -462,8 +525,6 @@ CONTAINS
        WRITE (stdout,*) 'parm_o2_min_delta      = ', parm_o2_min_delta
        WRITE (stdout,*) 'parm_kappa_nitrif      = ', parm_kappa_nitrif
        WRITE (stdout,*) 'parm_nitrif_par_lim    = ', parm_nitrif_par_lim
-       WRITE (stdout,*) 'parm_z_mort_0          = ', parm_z_mort_0
-       WRITE (stdout,*) 'parm_z_mort2_0         = ', parm_z_mort2_0
        WRITE (stdout,*) 'parm_labile_ratio      = ', parm_labile_ratio
        WRITE (stdout,*) 'parm_POMbury           = ', parm_POMbury
        WRITE (stdout,*) 'parm_BSIbury           = ', parm_BSIbury
@@ -474,12 +535,19 @@ CONTAINS
        WRITE (stdout,*) 'parm_CaCO3_diss        = ', parm_CaCO3_diss
        WRITE (stdout,*) 'parm_scalelen_z        = ', parm_scalelen_z
        WRITE (stdout,*) 'parm_scalelen_vals     = ', parm_scalelen_vals
+
+       DO zoo_ind = 1, zooplankton_cnt
+          WRITE (stdout,*) 'lname(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%lname
+          WRITE (stdout,*) 'z_mort_0(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%z_mort_0
+          WRITE (stdout,*) 'z_mort2_0(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%z_mort2_0
+          WRITE (stdout,*) 'loss_thres(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%loss_thres
+       END DO
+    
        DO auto_ind = 1, autotroph_cnt
           WRITE (stdout,*) 'lname(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%lname
           WRITE (stdout,*) 'Nfixer(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Nfixer
           WRITE (stdout,*) 'imp_calcifier(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%imp_calcifier
           WRITE (stdout,*) 'exp_calcifier(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%exp_calcifier
-          WRITE (stdout,*) 'grazee_ind(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%grazee_ind
           WRITE (stdout,*) 'kFe(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kFe
           WRITE (stdout,*) 'kPO4(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kPO4
           WRITE (stdout,*) 'kDOP(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kDOP
@@ -499,14 +567,27 @@ CONTAINS
           WRITE (stdout,*) 'mort2(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%mort2
           WRITE (stdout,*) 'agg_rate_max(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%agg_rate_max
           WRITE (stdout,*) 'agg_rate_min(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%agg_rate_min
-          WRITE (stdout,*) 'z_umax_0(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%z_umax_0
-          WRITE (stdout,*) 'z_grz(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%z_grz
-          WRITE (stdout,*) 'graze_zoo(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%graze_zoo
-          WRITE (stdout,*) 'graze_poc(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%graze_poc
-          WRITE (stdout,*) 'graze_doc(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%graze_doc
           WRITE (stdout,*) 'loss_poc(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%loss_poc
-          WRITE (stdout,*) 'f_zoo_detr(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%f_zoo_detr
        END DO
+
+       
+       DO prey_ind = 1, grazer_prey_cnt
+          DO zoo_ind = 1, zooplankton_cnt
+             WRITE (stdout,*) 'lname(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%lname
+             WRITE (stdout,*) 'auto_ind(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%auto_ind
+             WRITE (stdout,*) 'auto_ind_cnt(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%auto_ind_cnt
+             WRITE (stdout,*) 'zoo_ind(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%zoo_ind
+             WRITE (stdout,*) 'zoo_ind_cnt(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%zoo_ind_cnt
+             WRITE (stdout,*) 'z_umax_0(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%z_umax_0
+             WRITE (stdout,*) 'z_grz(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%z_grz
+             WRITE (stdout,*) 'graze_zoo(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%graze_zoo
+             WRITE (stdout,*) 'graze_poc(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%graze_poc
+             WRITE (stdout,*) 'graze_doc(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%graze_doc
+             WRITE (stdout,*) 'f_zoo_detr(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%f_zoo_detr
+             WRITE (stdout,*) 'grazing_function(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%grazing_function
+          END DO
+       END DO
+
        WRITE (stdout,*) '----------------------------------------'
     END IF
 

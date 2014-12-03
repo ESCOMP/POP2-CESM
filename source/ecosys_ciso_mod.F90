@@ -2143,19 +2143,20 @@ contains
 ! global array in ecosys_share
 !---------------------------------------------------------------
 
-   real (r8), dimension(:,:), pointer :: f_zoo_detr   ! frac of zoo losses into large detrital pool (non-dim)
    real (r8), dimension(:,:), pointer :: DIC_loc      ! local copy of model DIC
    real (r8), dimension(:,:), pointer :: DOC_loc      ! local copy of model DOC
    real (r8), dimension(:,:), pointer :: O2_loc       ! local copy of model O2
    real (r8), dimension(:,:), pointer :: NO3_loc      ! local copy of model NO3
-   real (r8), dimension(:,:), pointer :: zooC_loc     ! local copy of model zooC
    real (r8), dimension(:,:), pointer :: CO3          ! carbonate ion
    real (r8), dimension(:,:), pointer :: HCO3         ! bicarbonate ion
    real (r8), dimension(:,:), pointer :: H2CO3        ! carbonic acid
-   real (r8), dimension(:,:), pointer :: zoo_loss     ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
-   real (r8), dimension(:,:), pointer :: zoo_loss_doc ! zoo_loss routed to doc (mmol C/m^3/sec)
-   real (r8), dimension(:,:), pointer :: zoo_loss_dic ! zoo_loss routed to dic (mmol C/m^3/sec)
    real (r8), dimension(:,:), pointer :: DOC_remin    ! remineralization of 13C DOC (mmol C/m^3/sec)
+
+   real (r8), dimension(:,:,:), pointer :: zooC_loc     ! local copy of model zooC
+   real (r8), dimension(:,:,:), pointer :: zoo_loss     ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
+   real (r8), dimension(:,:,:), pointer :: zoo_loss_poc ! zoo_loss routed to large detrital pool (mmol C/m^3/sec)
+   real (r8), dimension(:,:,:), pointer :: zoo_loss_doc ! zoo_loss routed to doc (mmol C/m^3/sec)
+   real (r8), dimension(:,:,:), pointer :: zoo_loss_dic ! zoo_loss routed to dic (mmol C/m^3/sec)
 
    real (r8), dimension(:,:,:), pointer :: QCaCO3               ! small phyto CaCO3/C ratio (mmol CaCO3/mmol C)
    real (r8), dimension(:,:,:), pointer :: autotrophCaCO3_loc  ! local copy of model autotroph CaCO3
@@ -2203,19 +2204,20 @@ contains
 ! in ecosys_share
 !---------------------------------------------------------------
 
-   f_zoo_detr => f_zoo_detr_fields(:,:,bid)
    DIC_loc => DIC_loc_fields(:,:,bid)
    DOC_loc => DOC_loc_fields(:,:,bid)
    O2_loc  => O2_loc_fields(:,:,bid)
    NO3_loc  => NO3_loc_fields(:,:,bid)
-   zooC_loc => zooC_loc_fields(:,:,bid)
    CO3 => CO3_fields(:,:,bid)
    HCO3 => HCO3_fields(:,:,bid)
    H2CO3 => H2CO3_fields(:,:,bid)
-   zoo_loss => zoo_loss_fields(:,:,bid)
-   zoo_loss_doc => zoo_loss_doc_fields(:,:,bid)
-   zoo_loss_dic => zoo_loss_dic_fields(:,:,bid)
    DOC_remin => DOC_remin_fields(:,:,bid)
+
+   zooC_loc => zooC_loc_fields(:,:,:,bid)
+   zoo_loss => zoo_loss_fields(:,:,:,bid)
+   zoo_loss_poc => zoo_loss_poc_fields(:,:,:,bid)
+   zoo_loss_doc => zoo_loss_doc_fields(:,:,:,bid)
+   zoo_loss_dic => zoo_loss_dic_fields(:,:,:,bid)
 
    QCaCO3 => QCaCO3_fields(:,:,:,bid)
    autotrophCaCO3_loc => autotrophCaCO3_loc_fields(:,:,:,bid)
@@ -2426,9 +2428,10 @@ contains
       R14C_DIC = c0
    endwhere
 
-   where (zooC_loc > c0)
-      R13C_zooC = zoo13C_loc / zooC_loc
-      R14C_zooC = zoo14C_loc / zooC_loc
+   WORK1 = sum(zooC_loc,dim=3)
+   where (WORK1 > c0)
+      R13C_zooC = zoo13C_loc / WORK1
+      R14C_zooC = zoo14C_loc / WORK1
    elsewhere
       R13C_zooC = c0
       R14C_zooC = c0
@@ -2675,13 +2678,13 @@ contains
 !  compute terms for DO13C and DO14C
 !-----------------------------------------------------------------------
 
-   DO13C_prod = zoo_loss_doc *R13C_zooC +  &
+   DO13C_prod = sum(zoo_loss_doc, dim=3) *R13C_zooC +  &
                 sum( (auto_loss_doc + auto_graze_doc) * R13C_autotroph, dim=3)
 
    DO13C_remin = DOC_remin * R13C_DOC
 
 
-   DO14C_prod = zoo_loss_doc *R14C_zooC +  &
+   DO14C_prod = sum(zoo_loss_doc,dim=3) *R14C_zooC +  &
                 sum( (auto_loss_doc + auto_graze_doc) * R14C_autotroph, dim=3)
 
    DO14C_remin = DOC_remin * R14C_DOC
@@ -2692,12 +2695,12 @@ contains
 !  large detritus 13C and 14C
 !-----------------------------------------------------------------------
 
-   PO13C%prod(:,:,bid) = f_zoo_detr * zoo_loss * R13C_zooC + &
+   PO13C%prod(:,:,bid) = sum( zoo_loss_poc, dim=3 ) * R13C_zooC + &
                         sum( ( (auto_graze_poc + auto_agg + auto_loss_poc) &
                         * R13C_autotroph), dim=3)
 
 
-   PO14C%prod(:,:,bid) = f_zoo_detr * zoo_loss * R14C_zooC + &
+   PO14C%prod(:,:,bid) = sum( zoo_loss_poc, dim=3 ) * R14C_zooC + &
                          sum( ( (auto_graze_poc + auto_agg + auto_loss_poc) &
                          * R14C_autotroph), dim=3)
 
@@ -2768,10 +2771,10 @@ contains
 !-----------------------------------------------------------------------
 
    DTRACER_MODULE(:,:,zoo13C_ind) = sum(auto_graze_zoo * R13C_autotroph, dim=3) - &
-                                    zoo_loss *R13C_zooC
+                                    sum(zoo_loss,dim=3) *R13C_zooC
 
    DTRACER_MODULE(:,:,zoo14C_ind) = sum(auto_graze_zoo * R14C_autotroph, dim=3) - &
-                                    zoo_loss *R14C_zooC -                &
+                                    sum(zoo_loss,dim=3) *R14C_zooC -                &
                                     c14_lambda_inv_sec * zoo14C_loc
 
 !-----------------------------------------------------------------------
@@ -2792,7 +2795,7 @@ contains
        sum( (auto_loss_dic+ auto_graze_dic) * R13C_autotroph, dim=3)   &
        - sum(photo13C, dim=3)                                          &
        + DO13C_remin + PO13C%remin(:,:,bid)                            &
-       + zoo_loss_dic * R13C_zooC                                      &
+       + sum(zoo_loss_dic,dim=3) * R13C_zooC                                      &
        + P_Ca13CO3%remin(:,:,bid)
 
 
@@ -2800,7 +2803,7 @@ contains
       sum( (auto_loss_dic+ auto_graze_dic) * R14C_autotroph, dim=3)    &
       - sum(photo14C, dim=3)                                           &
       + DO14C_remin + PO14C%remin(:,:,bid)                             &
-      + zoo_loss_dic * R14C_zooC                                       &
+      + sum(zoo_loss_dic,dim=3) * R14C_zooC                                       &
       + P_Ca14CO3%remin(:,:,bid)                                       &
       - c14_lambda_inv_sec * DI14C_loc
 

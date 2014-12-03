@@ -6149,6 +6149,38 @@ Default: (/1, 3, 5, 9/)
 </entry>
 
 <entry 
+id="zooplankton%sname"
+type="dtype(1)%char*256" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/'zoo'/)
+</entry>
+
+<entry 
+id="zooplankton%z_mort_0"
+type="dtype(1)%real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/1.1574e-06/)
+</entry>
+
+<entry 
+id="zooplankton%z_mort2_0"
+type="dtype(1)%real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/4.6296e-06/)
+</entry>
+
+<entry 
+id="zooplankton%loss_thres"
+type="dtype(1)%real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/0.005/)
+</entry>
+
+<entry 
 id="autotrophs%sname"
 type="dtype(3)%char*256" 
 category="ecosys"
@@ -6211,6 +6243,111 @@ category="ecosys"
 group="ecosys_parms_nml" >
 Default: (/3.8194e-5, 3.5648e-5, 6.9444e-6/) for gx1v6, (/3.7847e-5, 3.6227e-5, 6.9444e-6/) for gx3v7
 </entry>
+
+<entry 
+id="grazing%lname"
+type="dtype(3,1)%char*256" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/'Grazing of sp by zoo','Grazing of diat by zoo','Grazing of diaz by zoo'/)
+</entry>
+
+<entry 
+id="grazing%sname"
+type="dtype(3,1)%char*256" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/'grz_sp_zoo','grz_diat_zoo','grz_diaz_zoo'/)
+</entry>
+
+<entry 
+id="grazing%auto_ind"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/1,2,3/)
+</entry>
+
+<entry 
+id="grazing%auto_ind_cnt"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/1,1,1/)
+</entry>
+
+<entry 
+id="grazing%zoo_ind"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/-1,-1,-1/)
+</entry>
+
+<entry 
+id="grazing%zoo_ind_cnt"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/0,0,0/)
+</entry>
+
+<entry 
+id="grazing%z_umax_0"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/3.8194e-05,3.5648e-05,6.9444e-06/)
+</entry>
+
+<entry 
+id="grazing%z_grz"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/1.05,1.0,1.2/)
+</entry>
+
+<entry 
+id="grazing%graze_zoo"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/0.3,0.3,0.3/)
+</entry>
+
+<entry 
+id="grazing%graze_poc"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/0.0,0.42,0.05/)
+</entry>
+
+<entry 
+id="grazing%graze_doc"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/0.15,0.15,0.15/)
+</entry>
+
+<entry 
+id="grazing%f_zoo_detr"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/0.15,0.2,0.15/)
+</entry>
+
+<entry 
+id="grazing%grazing_function"
+type="dtype(3,1)%real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: (/1,1,1/)
+</entry>
+
 
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: ecosys_driver_nml        - -->

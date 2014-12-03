@@ -155,7 +155,7 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind), parameter :: &
-      ecosys_tracer_cnt = 27
+      ecosys_tracer_cnt = ECOSYS_NT
 
 !-----------------------------------------------------------------------
 !  flags controlling which portion of code are executed
@@ -191,8 +191,7 @@
       dofe_ind        = 12,  & ! dissolved organic iron
       dop_ind         = 13,  & ! dissolved organic phosphorus
       dopr_ind        = 14,  & ! refractory DOP
-      donr_ind        = 15,  & ! refractory DON
-      zooC_ind        = 16     ! zooplankton carbon
+      donr_ind        = 15     ! refractory DON
 
 !-----------------------------------------------------------------------
 !  derived type & parameter for tracer index lookup
@@ -428,8 +427,8 @@
       tavg_P_iron_FLUX_IN, &! tavg id for p_iron flux into cell
       tavg_P_iron_PROD,    &! tavg id for p_iron production
       tavg_P_iron_REMIN,   &! tavg id for p_iron remineralization
-      tavg_auto_graze_TOT, &! tavg id for total autotroph grazing
-      tavg_zoo_loss       ! tavg id for zooplankton loss
+      tavg_auto_graze_TOT   ! tavg id for total autotroph grazing
+
 
 !-----------------------------------------------------------------------
 !  define tavg id for MORE nonstandard 3d fields
@@ -461,6 +460,16 @@
       tavg_DONr_remin,     &! tavg id for DONrefractory remin
       tavg_DOPr_remin       ! tavg id for DOPrefractory remin
 
+   integer (int_kind), dimension(zooplankton_cnt) :: &
+        tavg_zoo_loss,      & ! tavg id for zooplankton loss
+        tavg_zoo_loss_poc,  & ! tavg id for zooplankton loss to poc
+        tavg_zoo_loss_doc,  & ! tavg id for zooplankton loss to doc
+        tavg_zoo_graze,     & ! tavg id for zooplankton grazing
+        tavg_zoo_graze_poc, & ! tavg id for zooplankton grazing to poc
+        tavg_zoo_graze_doc, & ! tavg id for zooplankton grazing to doc
+        tavg_zoo_graze_zoo, & ! tavg id for zooplankton grazing to zoo
+        tavg_x_graze_zoo     ! tavg id for zooplankton grazing assimilation
+
    integer (int_kind), dimension(autotroph_cnt) :: &
       tavg_N_lim,          &! tavg id for N limitation
       tavg_P_lim,          &! tavg id for P limitation
@@ -477,7 +486,12 @@
       tavg_DOP_uptake,     &! tavg id for DOP uptake
       tavg_PO4_uptake,     &! tavg id for PO4 uptake
       tavg_auto_graze,     &! tavg id for autotroph grazing
+      tavg_auto_graze_poc, &! tavg id for autotroph grazing to poc
+      tavg_auto_graze_doc, &! tavg id for autotroph grazing to doc
+      tavg_auto_graze_zoo, &! tavg id for autotroph grazing to zoo
       tavg_auto_loss,      &! tavg id for autotroph loss
+      tavg_auto_loss_poc,  &! tavg id for autotroph loss to poc
+      tavg_auto_loss_doc,  &! tavg id for autotroph loss to doc
       tavg_auto_agg,       &! tavg id for autotroph aggregate
       tavg_bSi_form,       &! tavg id for Si uptake
       tavg_CaCO3_form,     &! tavg id for CaCO3 formation
@@ -681,7 +695,7 @@ contains
       lnml_found                   ! Was ecosys_nml found ?
 
    integer (int_kind) :: &
-      non_autotroph_ecosys_tracer_cnt, & ! number of non-autotroph ecosystem tracers
+      non_living_biomass_ecosys_tracer_cnt, & ! number of non-autotroph ecosystem tracers
       auto_ind,                  & ! autotroph functional group index
       n,                         & ! index for looping over tracers
       k,                         & ! index for looping over depth levels
@@ -689,6 +703,10 @@ contains
       ind,                       & ! tracer index for tracer name from namelist
       iblock,                    & ! index for looping over blocks
       nml_error                    ! namelist i/o error flag
+
+   integer (int_kind) :: &
+        zoo_ind                    ! zooplankton functional group index
+        
 
    integer (int_kind) :: &
       freq_opt, freq,            & ! args for init_time_flag
@@ -774,76 +792,72 @@ contains
 
 !-----------------------------------------------------------------------
 !  initialize non-autotroph tracer_d values
-!  accumulate non_autotroph_ecosys_tracer_cnt
+!  accumulate non_living_biomass_ecosys_tracer_cnt
 !-----------------------------------------------------------------------
 
-   non_autotroph_ecosys_tracer_cnt = 0
+   non_living_biomass_ecosys_tracer_cnt = 0
 
    tracer_d_module(po4_ind)%short_name='PO4'
    tracer_d_module(po4_ind)%long_name='Dissolved Inorganic Phosphate'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
    tracer_d_module(no3_ind)%short_name='NO3'
    tracer_d_module(no3_ind)%long_name='Dissolved Inorganic Nitrate'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
    tracer_d_module(sio3_ind)%short_name='SiO3'
    tracer_d_module(sio3_ind)%long_name='Dissolved Inorganic Silicate'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
    tracer_d_module(nh4_ind)%short_name='NH4'
    tracer_d_module(nh4_ind)%long_name='Dissolved Ammonia'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
    tracer_d_module(fe_ind)%short_name='Fe'
    tracer_d_module(fe_ind)%long_name='Dissolved Inorganic Iron'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
    tracer_d_module(o2_ind)%short_name='O2'
    tracer_d_module(o2_ind)%long_name='Dissolved Oxygen'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
    tracer_d_module(dic_ind)%short_name='DIC'
    tracer_d_module(dic_ind)%long_name='Dissolved Inorganic Carbon'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
    tracer_d_module(dic_alt_co2_ind)%short_name='DIC_ALT_CO2'
    tracer_d_module(dic_alt_co2_ind)%long_name='Dissolved Inorganic Carbon, Alternative CO2'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
    tracer_d_module(alk_ind)%short_name='ALK'
    tracer_d_module(alk_ind)%long_name='Alkalinity'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
    tracer_d_module(doc_ind)%short_name='DOC'
    tracer_d_module(doc_ind)%long_name='Dissolved Organic Carbon'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
    tracer_d_module(don_ind)%short_name='DON'
    tracer_d_module(don_ind)%long_name='Dissolved Organic Nitrogen'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
    tracer_d_module(dofe_ind)%short_name='DOFe'
    tracer_d_module(dofe_ind)%long_name='Dissolved Organic Iron'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
    tracer_d_module(dop_ind)%short_name='DOP'
    tracer_d_module(dop_ind)%long_name='Dissolved Organic Phosphorus'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
    tracer_d_module(dopr_ind)%short_name='DOPr'
    tracer_d_module(dopr_ind)%long_name='Refractory DOP'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
    tracer_d_module(donr_ind)%short_name='DONr'
    tracer_d_module(donr_ind)%long_name='Refractory DON'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
+   non_living_biomass_ecosys_tracer_cnt = non_living_biomass_ecosys_tracer_cnt + 1
 
-   tracer_d_module(zooC_ind)%short_name='zooC'
-   tracer_d_module(zooC_ind)%long_name='Zooplankton Carbon'
-   non_autotroph_ecosys_tracer_cnt = non_autotroph_ecosys_tracer_cnt + 1
-
-   do n = 1, non_autotroph_ecosys_tracer_cnt
+   do n = 1, non_living_biomass_ecosys_tracer_cnt
       if (n == alk_ind) then
          tracer_d_module(n)%units      = 'meq/m^3'
          tracer_d_module(n)%tend_units = 'meq/m^3/s'
@@ -858,8 +872,11 @@ contains
 !-----------------------------------------------------------------------
 !  confirm that ecosys_tracer_cnt is consistent with autotroph declarations
 !-----------------------------------------------------------------------
+   n = non_living_biomass_ecosys_tracer_cnt
+   do zoo_ind = 1, zooplankton_cnt
+      n = n + 1 ! C
+   end do
 
-   n = non_autotroph_ecosys_tracer_cnt
    do auto_ind = 1, autotroph_cnt
       n = n + 3 ! Chl,C,Fe tracers
       if (autotrophs(auto_ind)%kSiO3 > c0) n = n + 1 ! Si tracer
@@ -874,10 +891,31 @@ contains
    endif
 
 !-----------------------------------------------------------------------
+!  initialize zooplankton tracer_d values and tracer indices
+!-----------------------------------------------------------------------
+   n = non_living_biomass_ecosys_tracer_cnt + 1
+
+   do zoo_ind = 1, zooplankton_cnt
+      tracer_d_module(n)%short_name = trim(zooplankton(zoo_ind)%sname) // 'C'
+      tracer_d_module(n)%long_name  = trim(zooplankton(zoo_ind)%lname) // ' Carbon'
+      tracer_d_module(n)%units      = 'mmol/m^3'
+      tracer_d_module(n)%tend_units = 'mmol/m^3/s'
+      tracer_d_module(n)%flux_units = 'mmol/m^3 cm/s'
+      zooplankton(zoo_ind)%C_ind = n
+      n = n + 1
+   end do
+
+   if (my_task == master_task) THEN
+      write (stdout,*) '----- zooplankton tracer indices -----'
+      do zoo_ind = 1, zooplankton_cnt
+         write (stdout,*) 'C_ind(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%C_ind
+      end do
+      write (stdout,*) '------------------------------------'
+   endif
+
+!-----------------------------------------------------------------------
 !  initialize autotroph tracer_d values and tracer indices
 !-----------------------------------------------------------------------
-
-   n = non_autotroph_ecosys_tracer_cnt + 1
 
    do auto_ind = 1, autotroph_cnt
       tracer_d_module(n)%short_name = trim(autotrophs(auto_ind)%sname) // 'Chl'
@@ -1695,8 +1733,10 @@ contains
 !-----------------------------------------------------------------------
 !  set lfull_depth_tavg flag for short-lived ecosystem tracers
 !-----------------------------------------------------------------------
-
-   tracer_d_module(zooC_ind   )%lfull_depth_tavg = lecovars_full_depth_tavg
+   do zoo_ind = 1, zooplankton_cnt
+      n = zooplankton(zoo_ind)%C_ind
+      tracer_d_module(n)%lfull_depth_tavg = lecovars_full_depth_tavg
+   end do
 
    do auto_ind = 1, autotroph_cnt
       n = autotrophs(auto_ind)%Chl_ind
@@ -1749,6 +1789,7 @@ contains
 
    integer (int_kind) :: &
       auto_ind,       & ! autotroph functional group index
+      zoo_ind,        & ! zooplankton functional group index
       buf_len           ! how many surface flux fields are stored in ECO_SFLUX_TAVG
 
    character(char_len) :: &
@@ -2164,10 +2205,55 @@ contains
                           units='mmol/m^3/s', grid_loc='3114',         &
                           coordinates='TLONG TLAT z_t_150m time')
 
-   call define_tavg_field(tavg_zoo_loss,'zoo_loss',3,                  &
-                          long_name='Zooplankton Loss',                &
-                          units='mmol/m^3/s', grid_loc='3114',         &
-                          coordinates='TLONG TLAT z_t_150m time')
+   do zoo_ind = 1, zooplankton_cnt
+      call define_tavg_field(tavg_zoo_loss(zoo_ind),                   &
+           trim(zooplankton(zoo_ind)%sname) // '_loss', 3,             &
+           long_name=trim(zooplankton(zoo_ind)%lname) // ' Loss',      &
+           units='mmol/m^3/s', grid_loc='3114',                        &
+           coordinates='TLONG TLAT z_t_150m time')
+
+      call define_tavg_field(tavg_zoo_loss_poc(zoo_ind),                  &
+           trim(zooplankton(zoo_ind)%sname) // '_loss_poc', 3,            &
+           long_name=trim(zooplankton(zoo_ind)%lname) // ' Loss to POC',  &
+           units='mmol/m^3/s', grid_loc='3114',                           &
+           coordinates='TLONG TLAT z_t_150m time')
+
+      call define_tavg_field(tavg_zoo_loss_doc(zoo_ind),                  &
+           trim(zooplankton(zoo_ind)%sname) // '_loss_doc', 3,            &
+           long_name=trim(zooplankton(zoo_ind)%lname) // ' Loss to DOC',  &
+           units='mmol/m^3/s', grid_loc='3114',                           &
+           coordinates='TLONG TLAT z_t_150m time')
+
+      call define_tavg_field(tavg_zoo_graze(zoo_ind),                       &
+           'graze_' // trim(zooplankton(zoo_ind)%sname), 3,                 &
+           long_name=trim(zooplankton(zoo_ind)%lname) // ' grazing loss',   &
+           units='mmol/m^3/s', grid_loc='3114',                             &
+           coordinates='TLONG TLAT z_t_150m time')
+
+      call define_tavg_field(tavg_zoo_graze_poc(zoo_ind),                        &
+           'graze_' // trim(zooplankton(zoo_ind)%sname) // '_poc', 3,            &
+           long_name=trim(zooplankton(zoo_ind)%lname) // ' grazing loss to POC', &
+           units='mmol/m^3/s', grid_loc='3114',                                  &
+           coordinates='TLONG TLAT z_t_150m time')
+
+      call define_tavg_field(tavg_zoo_graze_doc(zoo_ind),                        &
+           'graze_' // trim(zooplankton(zoo_ind)%sname) // '_doc', 3,            &
+           long_name=trim(zooplankton(zoo_ind)%lname) // ' grazing loss to DOC', &
+           units='mmol/m^3/s', grid_loc='3114',                                  &
+           coordinates='TLONG TLAT z_t_150m time')
+
+      call define_tavg_field(tavg_zoo_graze_zoo(zoo_ind),                        &
+           'graze_' // trim(zooplankton(zoo_ind)%sname) // '_zoo', 3,            &
+           long_name=trim(zooplankton(zoo_ind)%lname) // ' grazing loss to ZOO', &
+           units='mmol/m^3/s', grid_loc='3114',                                  &
+           coordinates='TLONG TLAT z_t_150m time')
+
+      call define_tavg_field(tavg_x_graze_zoo(zoo_ind),                    &
+           'x_graze_' // trim(zooplankton(zoo_ind)%sname), 3,              &
+           long_name=trim(zooplankton(zoo_ind)%lname) // ' grazing gain',  &
+           units='mmol/m^3/s', grid_loc='3114',                            &
+           coordinates='TLONG TLAT z_t_150m time')
+   end do
 
    call define_tavg_field(tavg_photoC_TOT,'photoC_TOT',3,              &
                           long_name='Total C Fixation',                &
@@ -2242,6 +2328,7 @@ contains
                           long_name='Iron Scavenging Rate',            &
                           units='1/y', grid_loc='3111',                &
                           coordinates='TLONG TLAT z_t time')
+
 
 !-----------------------------------------------------------------------
 !  nonstandard 2D & 3D fields for each autotroph
@@ -2338,9 +2425,39 @@ contains
                              units='mmol/m^3/s', grid_loc='3114',         &
                              coordinates='TLONG TLAT z_t_150m time')
 
+      call define_tavg_field(tavg_auto_graze_poc(auto_ind), &
+                             'graze_' // trim(autotrophs(auto_ind)%sname) // '_poc', 3, &
+                             long_name=trim(autotrophs(auto_ind)%lname) // ' Grazing to POC', &
+                             units='mmol/m^3/s', grid_loc='3114',         &
+                             coordinates='TLONG TLAT z_t_150m time')
+
+      call define_tavg_field(tavg_auto_graze_doc(auto_ind), &
+                             'graze_' // trim(autotrophs(auto_ind)%sname) // '_doc', 3, &
+                             long_name=trim(autotrophs(auto_ind)%lname) // ' Grazing to DOC', &
+                             units='mmol/m^3/s', grid_loc='3114',         &
+                             coordinates='TLONG TLAT z_t_150m time')
+
+      call define_tavg_field(tavg_auto_graze_zoo(auto_ind), &
+                             'graze_' // trim(autotrophs(auto_ind)%sname) // '_zoo', 3, &
+                             long_name=trim(autotrophs(auto_ind)%lname) // ' Grazing to ZOO', &
+                             units='mmol/m^3/s', grid_loc='3114',         &
+                             coordinates='TLONG TLAT z_t_150m time')
+
       call define_tavg_field(tavg_auto_loss(auto_ind), &
                              trim(autotrophs(auto_ind)%sname) // '_loss', 3, &
                              long_name=trim(autotrophs(auto_ind)%lname) // ' Loss', &
+                             units='mmol/m^3/s', grid_loc='3114',         &
+                             coordinates='TLONG TLAT z_t_150m time')
+
+      call define_tavg_field(tavg_auto_loss_doc(auto_ind), &
+                             trim(autotrophs(auto_ind)%sname) // '_loss_doc', 3, &
+                             long_name=trim(autotrophs(auto_ind)%lname) // ' Loss to DOC', &
+                             units='mmol/m^3/s', grid_loc='3114',         &
+                             coordinates='TLONG TLAT z_t_150m time')
+
+      call define_tavg_field(tavg_auto_loss_poc(auto_ind), &
+                             trim(autotrophs(auto_ind)%sname) // '_loss_poc', 3, &
+                             long_name=trim(autotrophs(auto_ind)%lname) // ' Loss to POC', &
                              units='mmol/m^3/s', grid_loc='3114',         &
                              coordinates='TLONG TLAT z_t_150m time')
 
@@ -2654,12 +2771,14 @@ contains
       Fe_loc,         & ! local copy of model Fe
       O2_loc,         & ! local copy of model O2
       DOC_loc,        & ! local copy of model DOC
-      zooC_loc,       & ! local copy of model zooC
       DON_loc,        & ! local copy of model DON
       DOFe_loc,       & ! local copy of model DOFe
       DOP_loc,        & ! local copy of model DOP
       DOPr_loc,       & ! local copy of model DOPr
       DONr_loc          ! local copy of model DONr
+
+   real (r8), dimension(nx_block,ny_block,zooplankton_cnt) :: &
+      zooC_loc          ! local copy of model zooplankton C
 
    real (r8), dimension(nx_block,ny_block,autotroph_cnt) :: &
       autotrophChl_loc, & ! local copy of model autotroph Chl
@@ -2691,7 +2810,7 @@ contains
       RESTORE           ! restoring terms for nutrients (mmol ./m^3/sec)
 
    real (r8), dimension(nx_block,ny_block) :: &
-      z_umax,         & ! max. zoo growth rate at local T (1/sec)
+      graze_rate,         & ! max. zoo growth rate at local T (1/sec)
       C_loss_thres      ! bio-C threshold at which losses go to zero (mmol C/m^3)
 
    real (r8), dimension(nx_block,ny_block) :: &
@@ -2702,13 +2821,8 @@ contains
       pChl              ! Chl synth. regulation term (mg Chl/mmol N)
 
    real (r8), dimension(nx_block,ny_block) :: & ! max of 39 continuation lines
-      f_zoo_detr,     & ! frac of zoo losses into large detrital pool (non-dim)
       Fe_scavenge_rate,&! annual scavenging rate of iron as % of ambient
-      Fe_scavenge,    & ! loss of dissolved iron, scavenging (mmol Fe/m^3/sec)
-      Zprime,         & ! used to limit zoo mort at low biomass (mmol C/m^3)
-      zoo_loss,       & ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
-      zoo_loss_doc,   & ! zoo_loss routed to doc (mmol C/m^3/sec)
-      zoo_loss_dic      ! zoo_loss routed to dic (mmol C/m^3/sec)
+      Fe_scavenge       ! loss of dissolved iron, scavenging (mmol Fe/m^3/sec)
 
    real (r8), dimension(nx_block,ny_block) :: &
       VNC,            & ! C-specific N uptake rate (mmol N/mmol C/sec)
@@ -2752,6 +2866,20 @@ contains
       Nfix,           & ! total Nitrogen fixation (mmol N/m^3/sec)
       Nexcrete          ! fixed N excretion
 
+   real (r8), dimension(nx_block,ny_block,zooplankton_cnt) :: &
+        Zprime,         & ! used to limit zoo mort at low biomass (mmol C/m^3)        
+        f_zoo_detr,     & ! frac of zoo losses into large detrital pool (non-dim)
+        x_graze_zoo,    & ! {auto,zoo}_graze routed to zoo (mmol C/m^3/sec)
+        zoo_graze,      & ! zooplankton losses due to grazing (mmol C/m^3/sec)
+        zoo_graze_zoo,  & ! grazing of zooplankton routed to zoo (mmol C/m^3/sec)
+        zoo_graze_poc,  & ! grazing of zooplankton routed to poc (mmol C/m^3/sec)
+        zoo_graze_doc,  & ! grazing of zooplankton routed to doc (mmol C/m^3/sec)
+        zoo_graze_dic,  & ! grazing of zooplankton routed to dic (mmol C/m^3/sec)
+        zoo_loss,       & ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
+        zoo_loss_poc,   & ! zoo_loss routed to poc (mmol C/m^3/sec)
+        zoo_loss_doc,   & ! zoo_loss routed to doc (mmol C/m^3/sec)
+        zoo_loss_dic      ! zoo_loss routed to dic (mmol C/m^3/sec)
+
    real (r8), dimension(nx_block,ny_block) :: &
       remaining_P       ! used in routing P from autotrophs w/ Qp different from Qp_zoo_pom
 
@@ -2785,6 +2913,10 @@ contains
       n,              & ! tracer index
       auto_ind,       & ! autotroph functional group index
       auto_ind2,      & ! autotroph functional group index
+      zoo_ind,        & ! zooplankton functional group index
+      zoo_ind2,       & ! zooplankton functional group index
+      prey_ind,       & ! grazee group index
+      pred_ind,       & ! grazer group index
       kk,             & ! index for looping over k levels
       j                 ! index for looping over ny_block dimension
 
@@ -2837,8 +2969,6 @@ contains
                               TRACER_MODULE_CUR(:,:,k,o2_ind)))
    DOC_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,doc_ind) + &
                               TRACER_MODULE_CUR(:,:,k,doc_ind)))
-   zooC_loc     = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,zooC_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,zooC_ind)))
    DON_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,don_ind) + &
                               TRACER_MODULE_CUR(:,:,k,don_ind)))
    DOFe_loc     = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,dofe_ind) + &
@@ -2858,13 +2988,22 @@ contains
       Fe_loc       = c0
       O2_loc       = c0
       DOC_loc      = c0
-      zooC_loc     = c0
       DON_loc      = c0
       DOFe_loc     = c0
       DOP_loc      = c0
       DOPr_loc     = c0
       DONr_loc     = c0
    end where
+
+   ! and now the living pools 
+   do zoo_ind = 1, zooplankton_cnt
+      n = zooplankton(zoo_ind)%C_ind
+      zooC_loc(:,:,zoo_ind) = max(c0, & 
+           p5*(TRACER_MODULE_OLD(:,:,k,n) + TRACER_MODULE_CUR(:,:,k,n)))
+      where (.not. LAND_MASK(:,:,bid) .or. k > KMT(:,:,bid))
+         zooC_loc(:,:,zoo_ind) = c0
+      end where
+   end do
 
    do auto_ind = 1, autotroph_cnt
 
@@ -3305,25 +3444,6 @@ contains
                                    autotrophs(auto_ind)%mort2 * Pprime(:,:,auto_ind) * Pprime(:,:,auto_ind))
       auto_agg(:,:,auto_ind) = max((autotrophs(auto_ind)%agg_rate_min * dps) * Pprime(:,:,auto_ind), auto_agg(:,:,auto_ind))
 
-!-----------------------------------------------------------------------
-!  get grazing rate (graze_sp) on autotroph (in C units)
-!  compute sum of carbon in the grazee class including auto_ind
-!-----------------------------------------------------------------------
-
-      WORK1 = c0
-      do auto_ind2 = 1, autotroph_cnt
-         if (autotrophs(auto_ind2)%grazee_ind == autotrophs(auto_ind)%grazee_ind) &
-            WORK1 = WORK1 + Pprime(:,:,auto_ind)
-      end do
-
-      z_umax = autotrophs(auto_ind)%z_umax_0 * Tfunc
-
-      where (WORK1 > c0)
-         auto_graze(:,:,auto_ind) = (Pprime(:,:,auto_ind) / WORK1) * &
-            z_umax * zooC_loc * (WORK1 / (WORK1 + autotrophs(auto_ind)%z_grz))
-      elsewhere
-         auto_graze(:,:,auto_ind) = c0
-      end where
 
 !-----------------------------------------------------------------------
 !  Get N fixation by diazotrophs based on C fixation,
@@ -3339,31 +3459,10 @@ contains
       endif
 
 !-----------------------------------------------------------------------
-!  CALCULATE GRAZING AND OTHER MORT
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!  routing of grazing and loss terms
+!  routing of loss terms
 !  all aggregation goes to POC
-!  currently assumes that 33% of grazed caco3 is remineralized
-!  if autotrophs(sp_ind)%graze_zoo ever changes, coefficients on routing grazed sp must change!
-!  min.%C routed to POC from grazing for ballast requirements = 0.4 * Qcaco3
 !  min.%C routed from sp_loss = 0.59 * QCaCO3, or P_CaCO3%rho
-!  NOTE: if autotrophs(diat_ind)%graze_zoo is changed, coeff.s for poc,doc and dic must change!
 !-----------------------------------------------------------------------
-
-      auto_graze_zoo(:,:,auto_ind) = autotrophs(auto_ind)%graze_zoo * auto_graze(:,:,auto_ind)
-      if (autotrophs(auto_ind)%imp_calcifier) then
-         auto_graze_poc(:,:,auto_ind) = auto_graze(:,:,auto_ind) * max((caco3_poc_min * QCaCO3(:,:,auto_ind)),  &
-                                       min(spc_poc_fac * max(1.0_r8,Pprime(:,:,auto_ind)),&
-                                           f_graze_sp_poc_lim))
-      else
-         auto_graze_poc(:,:,auto_ind) = autotrophs(auto_ind)%graze_poc * auto_graze(:,:,auto_ind)
-      endif
-      auto_graze_doc(:,:,auto_ind) = autotrophs(auto_ind)%graze_doc * auto_graze(:,:,auto_ind)
-      auto_graze_dic(:,:,auto_ind) = auto_graze(:,:,auto_ind) &
-         - (auto_graze_zoo(:,:,auto_ind) + auto_graze_poc(:,:,auto_ind) + auto_graze_doc(:,:,auto_ind))
-
       if (autotrophs(auto_ind)%imp_calcifier) then
          auto_loss_poc(:,:,auto_ind) = QCaCO3(:,:,auto_ind) * auto_loss(:,:,auto_ind)
       else
@@ -3372,12 +3471,195 @@ contains
       auto_loss_doc(:,:,auto_ind) = (c1 - parm_labile_ratio) * (auto_loss(:,:,auto_ind) - auto_loss_poc(:,:,auto_ind))
       auto_loss_dic(:,:,auto_ind) = parm_labile_ratio * (auto_loss(:,:,auto_ind) - auto_loss_poc(:,:,auto_ind))
 
+   end do  ! auto_ind = 1, autotroph_cnt
+
+!-----------------------------------------------------------------------
+!  0.01 small zoo threshold C concentration (mmol C/m^3)
+!  zoo losses, scaled by Tfunc
+!-----------------------------------------------------------------------
+
+   do zoo_ind = 1, zooplankton_cnt
+      C_loss_thres = f_loss_thres * zooplankton(zoo_ind)%loss_thres
+      Zprime(:,:,zoo_ind) = max(zooC_loc(:,:,zoo_ind) - C_loss_thres, c0)
+
+      zoo_loss(:,:,zoo_ind) = (zooplankton(zoo_ind)%z_mort2_0 * Zprime(:,:,zoo_ind)**1.5_r8 &
+           + zooplankton(zoo_ind)%z_mort_0 * Zprime(:,:,zoo_ind)) * Tfunc
+   end do
+
+
+!-----------------------------------------------------------------------
+!  CALCULATE GRAZING
+!
+!  Autotroph prey
+!  routing of grazing terms
+!  all aggregation goes to POC
+!  currently assumes that 33% of grazed caco3 is remineralized
+!  if autotrophs(sp_ind)%graze_zoo ever changes, coefficients on routing grazed sp must change!
+!  min.%C routed to POC from grazing for ballast requirements = 0.4 * Qcaco3
+!  NOTE: if autotrophs(diat_ind)%graze_zoo is changed, coeff.s for poc,doc and dic must change!
+!-----------------------------------------------------------------------
+   auto_graze     = c0 ! total grazing losses from autotroph pool at auto_ind
+   auto_graze_zoo = c0 ! autotroph grazing losses routed to zooplankton at auto_ind
+   auto_graze_poc = c0 ! autotroph grazing losses routed to poc
+   auto_graze_doc = c0 ! autotroph grazing losses routed to doc
+   auto_graze_dic = c0 ! autotroph grazing losses routed to dic (computed by residual)
+
+   zoo_graze     = c0 ! total grazing losses from zooplankton pool at zoo_ind
+   zoo_graze_zoo = c0 ! zooplankton grazing losses routed to zooplankton at zoo_ind
+   zoo_graze_poc = c0 ! zooplankton grazing losses routed to poc
+   zoo_graze_doc = c0 ! zooplankton grazing losses routed to doc
+   zoo_graze_dic = c0 ! zooplankton grazing losses routed to dic (computed by residual)
+
+   x_graze_zoo   = c0 ! grazing gains by zooplankton at zoo_ind
+
+   do pred_ind = 1, zooplankton_cnt
+      WORK3 = c0
+      WORK4 = c0     
+ 
+      do prey_ind = 1,grazer_prey_cnt
+         
+         !-----------------------------------------------------------------------
+         !  compute sum of carbon in the grazee class, both autotrophs and zoop
+         !-----------------------------------------------------------------------
+         WORK1 = c0 ! biomass in prey class prey_ind
+         do auto_ind2 = 1, grazing(prey_ind,pred_ind)%auto_ind_cnt
+            auto_ind = grazing(prey_ind,pred_ind)%auto_ind(auto_ind2)
+            WORK1 = WORK1 + Pprime(:,:,auto_ind)
+         end do
+
+         do zoo_ind2 = 1, grazing(prey_ind,pred_ind)%zoo_ind_cnt
+            zoo_ind = grazing(prey_ind,pred_ind)%zoo_ind(zoo_ind2)
+            WORK1 = WORK1 + Zprime(:,:,zoo_ind)
+         end do
+
+         ! compute grazing rate
+         select case (grazing(prey_ind,pred_ind)%grazing_function)
+
+         case (grz_fnc_michaelis_menten)
+
+            where (WORK1 > c0)               
+               graze_rate = grazing(prey_ind,pred_ind)%z_umax_0 * Tfunc * zooC_loc(:,:,pred_ind) &
+                    * ( WORK1 / (WORK1 + grazing(prey_ind,pred_ind)%z_grz) )
+            elsewhere
+               graze_rate = c0
+            end where
+
+
+         case (grz_fnc_sigmoidal)
+
+            where (WORK1 > c0)               
+               graze_rate = grazing(prey_ind,pred_ind)%z_umax_0 * Tfunc * zooC_loc(:,:,pred_ind) &
+                    * ( WORK1**2 / (WORK1**2 + grazing(prey_ind,pred_ind)%z_grz**2) )
+            elsewhere
+               graze_rate = c0
+            end where
+
+         end select
+
+         !-----------------------------------------------------------------------
+         !  autotroph prey
+         !-----------------------------------------------------------------------
+         do auto_ind2 = 1, grazing(prey_ind,pred_ind)%auto_ind_cnt
+            auto_ind = grazing(prey_ind,pred_ind)%auto_ind(auto_ind2)
+
+            ! scale by biomass from autotroph pool
+            where (WORK1 > c0)               
+               WORK2 = (Pprime(:,:,auto_ind) / WORK1) * graze_rate ! total grazing loss from auto_ind
+            elsewhere
+               WORK2 = c0
+            end where                  
+            auto_graze(:,:,auto_ind) = auto_graze(:,:,auto_ind) + WORK2                   
+
+            ! routed to zooplankton 
+            auto_graze_zoo(:,:,auto_ind) = auto_graze_zoo(:,:,auto_ind) & 
+                 + grazing(prey_ind,pred_ind)%graze_zoo * WORK2
+
+            x_graze_zoo(:,:,pred_ind) = x_graze_zoo(:,:,pred_ind) & 
+                 + grazing(prey_ind,pred_ind)%graze_zoo * WORK2
+
+            ! routed to POC
+            if (autotrophs(auto_ind)%imp_calcifier) then
+               auto_graze_poc(:,:,auto_ind) = auto_graze_poc(:,:,auto_ind) &
+                    + WORK2 * max((caco3_poc_min * QCaCO3(:,:,auto_ind)),  &
+                    min(spc_poc_fac * max(1.0_r8,Pprime(:,:,auto_ind)),    &
+                    f_graze_sp_poc_lim))
+            else
+               auto_graze_poc(:,:,auto_ind) = auto_graze_poc(:,:,auto_ind) + grazing(prey_ind,pred_ind)%graze_poc * WORK2
+            endif
+
+            ! routed to DOC
+            auto_graze_doc(:,:,auto_ind) = auto_graze_doc(:,:,auto_ind) + grazing(prey_ind,pred_ind)%graze_doc * WORK2
+
+            !  get fractional factor for routing of zoo losses, based on food supply
+            WORK3 = WORK3 + grazing(prey_ind,pred_ind)%f_zoo_detr * (WORK2 + epsC * epsTinv)
+            WORK4 = WORK4 + (WORK2 + epsC * epsTinv)
+
+         end do
+
+         !-----------------------------------------------------------------------
+         !  Zooplankton prey
+         !-----------------------------------------------------------------------
+         do zoo_ind2 = 1, grazing(prey_ind,pred_ind)%zoo_ind_cnt
+            zoo_ind = grazing(prey_ind,pred_ind)%zoo_ind(zoo_ind2)
+
+            ! scale by biomass from zooplankton pool
+            where (WORK1 > c0)               
+               WORK2 = (Zprime(:,:,zoo_ind) / WORK1) * graze_rate                            
+            elsewhere
+               WORK2 = c0
+            end where                  
+
+            ! grazing loss from zooplankton prey pool
+            zoo_graze(:,:,zoo_ind) = zoo_graze(:,:,zoo_ind) + WORK2
+
+            ! routed to zooplankton             
+            zoo_graze_zoo(:,:,zoo_ind) = zoo_graze_zoo(:,:,zoo_ind) & 
+                 + grazing(prey_ind,pred_ind)%graze_zoo * WORK2
+
+            x_graze_zoo(:,:,pred_ind) = x_graze_zoo(:,:,pred_ind) & 
+                 + grazing(prey_ind,pred_ind)%graze_zoo * WORK2
+
+            ! routed to POC/DOC
+            zoo_graze_poc(:,:,zoo_ind) = zoo_graze_poc(:,:,zoo_ind) + grazing(prey_ind,pred_ind)%graze_poc * WORK2
+            zoo_graze_doc(:,:,zoo_ind) = zoo_graze_doc(:,:,zoo_ind) + grazing(prey_ind,pred_ind)%graze_doc * WORK2
+
+            !  get fractional factor for routing of zoo losses, based on food supply
+            WORK3 = WORK3 + grazing(prey_ind,pred_ind)%f_zoo_detr * (WORK2 + epsC * epsTinv)
+            WORK4 = WORK4 + (WORK2 + epsC * epsTinv)
+
+         end do
+      end do
+
+      f_zoo_detr(:,:,pred_ind) = WORK3 / WORK4
+   end do
+
+!-----------------------------------------------------------------------
+! compute routing to dic of grazed material
+!-----------------------------------------------------------------------
+   do auto_ind = 1, autotroph_cnt
+      auto_graze_dic(:,:,auto_ind) = auto_graze(:,:,auto_ind)  &
+           - (auto_graze_zoo(:,:,auto_ind) + auto_graze_poc(:,:,auto_ind) + auto_graze_doc(:,:,auto_ind))
+   end do
+   do zoo_ind = 1, zooplankton_cnt
+      zoo_graze_dic(:,:,zoo_ind) = zoo_graze(:,:,zoo_ind)  &
+           - (zoo_graze_zoo(:,:,zoo_ind) + zoo_graze_poc(:,:,zoo_ind) + zoo_graze_doc(:,:,zoo_ind))
+   end do
+
+!-----------------------------------------------------------------------
+! compute zooplankton loss routing
+!-----------------------------------------------------------------------
+   do zoo_ind = 1, zooplankton_cnt
+      zoo_loss_poc(:,:,zoo_ind) = f_zoo_detr(:,:,zoo_ind) * zoo_loss(:,:,zoo_ind)
+      zoo_loss_doc(:,:,zoo_ind) = (c1 - parm_labile_ratio) * (c1 - f_zoo_detr(:,:,zoo_ind)) * zoo_loss(:,:,zoo_ind)
+      zoo_loss_dic(:,:,zoo_ind) = parm_labile_ratio * (c1 - f_zoo_detr(:,:,zoo_ind)) * zoo_loss(:,:,zoo_ind)
+   end do
+
 !-----------------------------------------------------------------------
 ! P from some autotrophs w/ Qp different from Qp_zoo_pom must be routed differently than other
 ! elements to ensure that sinking detritus and zooplankton pools get their fixed P/C ratios.
 ! The remaining P is split evenly between DOP and PO4.
 !-----------------------------------------------------------------------
-
+   do auto_ind = 1, autotroph_cnt
       if (autotrophs(auto_ind)%Qp /= Qp_zoo_pom) then
          remaining_P = ((auto_graze(:,:,auto_ind) + auto_loss(:,:,auto_ind) + auto_agg(:,:,auto_ind)) * autotrophs(auto_ind)%Qp) &
                        - ((auto_graze_zoo(:,:,auto_ind)) * Qp_zoo_pom) &
@@ -3385,43 +3667,15 @@ contains
          remaining_P_dop(:,:,auto_ind) = (c1 - parm_labile_ratio) * remaining_P
          remaining_P_dip(:,:,auto_ind) = parm_labile_ratio * remaining_P
       endif
-
    end do
-
-!-----------------------------------------------------------------------
-!  get fractional factor for routing of zoo losses, based on food supply
-!  more material is routed to large detrital pool when diatoms eaten
-!-----------------------------------------------------------------------
-
-   WORK1 = c0
-   WORK2 = c0
-   do auto_ind = 1, autotroph_cnt
-      WORK1 = WORK1 + autotrophs(auto_ind)%f_zoo_detr * (auto_graze(:,:,auto_ind) + epsC * epsTinv)
-      WORK2 = WORK2 + (auto_graze(:,:,auto_ind) + epsC * epsTinv)
-   end do
-   f_zoo_detr = WORK1 / WORK2
-
-!-----------------------------------------------------------------------
-!  0.01 small zoo threshold C concentration (mmol C/m^3)
-!  zoo losses, scaled by Tfunc
-!-----------------------------------------------------------------------
-
-   C_loss_thres = f_loss_thres * loss_thres_zoo
-
-   Zprime = max(zooC_loc - C_loss_thres, c0)
-
-   zoo_loss = (parm_z_mort2_0 * Zprime**1.5_r8 + parm_z_mort_0 * Zprime) * Tfunc
-
-   zoo_loss_doc = (c1 - parm_labile_ratio) * (c1 - f_zoo_detr) * zoo_loss
-   zoo_loss_dic = parm_labile_ratio * (c1 - f_zoo_detr) * zoo_loss
 
 !-----------------------------------------------------------------------
 !  compute terms for DOM
 !-----------------------------------------------------------------------
 
-   DOC_prod = zoo_loss_doc + sum(auto_loss_doc, dim=3) + sum(auto_graze_doc, dim=3)
+   DOC_prod = sum(zoo_loss_doc, dim=3) + sum(auto_loss_doc, dim=3) + sum(auto_graze_doc, dim=3) + sum(zoo_graze_doc, dim=3)
    DON_prod = Q * DOC_prod
-   DOP_prod = Qp_zoo_pom * zoo_loss_doc
+   DOP_prod = Qp_zoo_pom * ( sum(zoo_loss_doc, dim=3) + sum(zoo_graze_doc, dim=3) )
    do auto_ind = 1, autotroph_cnt
       if (autotrophs(auto_ind)%Qp == Qp_zoo_pom) then
          DOP_prod = DOP_prod + autotrophs(auto_ind)%Qp * (auto_loss_doc(:,:,auto_ind) + auto_graze_doc(:,:,auto_ind))
@@ -3429,7 +3683,7 @@ contains
          DOP_prod = DOP_prod + remaining_P_dop(:,:,auto_ind)
       endif
    end do
-   DOFe_prod = Qfe_zoo * zoo_loss_doc
+   DOFe_prod = Qfe_zoo * ( sum(zoo_loss_doc, dim=3) + sum(zoo_graze_doc, dim=3) )
    do auto_ind = 1, autotroph_cnt
       DOFe_prod = DOFe_prod + Qfe(:,:,auto_ind) * (auto_loss_doc(:,:,auto_ind) + auto_graze_doc(:,:,auto_ind))
    end do
@@ -3460,8 +3714,9 @@ contains
 !  large detritus C
 !-----------------------------------------------------------------------
 
-   POC%prod(:,:,bid) = f_zoo_detr * zoo_loss + sum(auto_graze_poc, dim=3) &
-                       + sum(auto_agg, dim=3) + sum(auto_loss_poc, dim=3)
+   POC%prod(:,:,bid) = sum(zoo_loss_poc, dim=3) &
+        + sum(auto_graze_poc, dim=3) + sum(zoo_graze_poc, dim=3) &
+        + sum(auto_agg, dim=3) + sum(auto_loss_poc, dim=3)
 
 !-----------------------------------------------------------------------
 !  large detrital CaCO3
@@ -3512,7 +3767,7 @@ contains
 
    Fe_scavenge = yps * Fe_loc * Fe_scavenge_rate
 
-   P_iron%prod(:,:,bid) = (zoo_loss * f_zoo_detr * Qfe_zoo) + Fe_scavenge
+   P_iron%prod(:,:,bid) = ( sum(zoo_loss_poc, dim=3) + sum(zoo_graze_poc, dim=3) ) * Qfe_zoo + Fe_scavenge
 
    do auto_ind = 1, autotroph_cnt
       P_iron%prod(:,:,bid) = P_iron%prod(:,:,bid) &
@@ -3576,8 +3831,10 @@ contains
    DTRACER_MODULE(:,:,no3_ind) = RESTORE + NITRIF - DENITRIF - SED_DENITRIF(:,:,bid) - sum(NO3_V, dim=3)
 
    DTRACER_MODULE(:,:,nh4_ind) = -sum(NH4_V, dim=3) - NITRIF + DON_remin + DONr_remin &
-      + Q * (zoo_loss_dic + sum(auto_loss_dic, dim=3) + sum(auto_graze_dic, dim=3) &
-             + POC%remin(:,:,bid) * (c1 - DONrefract))
+      + Q * (                                                                         &
+      sum(zoo_loss_dic, dim=3) + sum(zoo_graze_dic, dim=3)                            &
+      + sum(auto_loss_dic, dim=3) + sum(auto_graze_dic, dim=3)                        &
+      + POC%remin(:,:,bid) * (c1 - DONrefract) )
 
    do auto_ind = 1, autotroph_cnt
       if (autotrophs(auto_ind)%Nfixer) &
@@ -3589,7 +3846,8 @@ contains
 !-----------------------------------------------------------------------
 
      DTRACER_MODULE(:,:,fe_ind) = P_iron%remin(:,:,bid) &
-       + (Qfe_zoo * zoo_loss_dic) + DOFe_remin - sum(photoFe, dim=3) - Fe_scavenge
+       + (Qfe_zoo * ( sum(zoo_loss_dic, dim=3) + sum(zoo_graze_dic, dim=3) )) &
+       + DOFe_remin - sum(photoFe, dim=3) - Fe_scavenge
 
      do auto_ind = 1, autotroph_cnt
         DTRACER_MODULE(:,:,fe_ind) = DTRACER_MODULE(:,:,fe_ind) &
@@ -3644,7 +3902,9 @@ contains
    call accumulate_tavg_field(RESTORE, tavg_PO4_RESTORE,bid,k)
 
    DTRACER_MODULE(:,:,po4_ind) = RESTORE + DOP_remin + DOPr_remin - sum(PO4_V, dim=3) &
-      + Qp_zoo_pom * ((c1 - DOPrefract) * POC%remin(:,:,bid) + zoo_loss_dic)
+      + Qp_zoo_pom * ( &
+      (c1 - DOPrefract) * POC%remin(:,:,bid) &
+      + sum(zoo_loss_dic, dim=3) + sum(zoo_graze_dic, dim=3) )
 
    do auto_ind = 1, autotroph_cnt
       if (autotrophs(auto_ind)%Qp == Qp_zoo_pom) then
@@ -3653,6 +3913,15 @@ contains
       else
          DTRACER_MODULE(:,:,po4_ind) = DTRACER_MODULE(:,:,po4_ind) + remaining_P_dip(:,:,auto_ind)
       endif
+   end do
+
+
+!-----------------------------------------------------------------------
+!  zoo Carbon
+!-----------------------------------------------------------------------
+   do zoo_ind = 1,zooplankton_cnt
+      n = zooplankton(zoo_ind)%C_ind
+      DTRACER_MODULE(:,:,n) = x_graze_zoo(:,:,zoo_ind) - zoo_graze(:,:,zoo_ind) - zoo_loss(:,:,zoo_ind)
    end do
 
 !-----------------------------------------------------------------------
@@ -3687,12 +3956,6 @@ contains
    end do
 
 !-----------------------------------------------------------------------
-!  zoo Carbon
-!-----------------------------------------------------------------------
-
-   DTRACER_MODULE(:,:,zooC_ind) = sum(auto_graze_zoo, dim=3) - zoo_loss
-
-!-----------------------------------------------------------------------
 !  dissolved organic Matter
 !  from sinking remin small fraction to refractory pool
 !-----------------------------------------------------------------------
@@ -3718,7 +3981,7 @@ contains
 
    DTRACER_MODULE(:,:,dic_ind) = &
       sum(auto_loss_dic, dim=3) + sum(auto_graze_dic, dim=3) - sum(photoC, dim=3) &
-      + DOC_remin + POC%remin(:,:,bid) + zoo_loss_dic &
+      + DOC_remin + POC%remin(:,:,bid) + sum(zoo_loss_dic, dim=3) + sum(zoo_graze_dic, dim=3) &
       + P_CaCO3%remin(:,:,bid)
 
    do auto_ind = 1, autotroph_cnt
@@ -3770,8 +4033,10 @@ contains
    WORK1 = (O2_loc - parm_o2_min) / parm_o2_min_delta
    WORK1 = min(max(WORK1,c0),c1)
    O2_CONSUMPTION = WORK1 * &
-      ((POC%remin(:,:,bid) + DOC_remin - (SED_DENITRIF(:,:,bid)*denitrif_C_N) - OTHER_REMIN(:,:,bid) + zoo_loss_dic &
-        + sum(auto_loss_dic, dim=3) + sum(auto_graze_dic, dim=3)) / parm_Remin_D_C_O2 + (c2 * NITRIF))
+        ( (POC%remin(:,:,bid) + DOC_remin - (SED_DENITRIF(:,:,bid)*denitrif_C_N) - OTHER_REMIN(:,:,bid) &
+        + sum(zoo_loss_dic, dim=3)  +  sum(zoo_graze_dic, dim=3) &
+        + sum(auto_loss_dic, dim=3) + sum(auto_graze_dic, dim=3) ) &
+        / parm_Remin_D_C_O2 + (c2 * NITRIF))
 
    DTRACER_MODULE(:,:,o2_ind) = O2_PRODUCTION - O2_CONSUMPTION
 
@@ -3820,7 +4085,18 @@ contains
 
    call accumulate_tavg_field(PAR_avg, tavg_PAR_avg,bid,k)
 
-   call accumulate_tavg_field(zoo_loss, tavg_zoo_loss,bid,k)
+   do zoo_ind = 1, zooplankton_cnt
+      call accumulate_tavg_field(zoo_loss(:,:,zoo_ind),    tavg_zoo_loss(zoo_ind),bid,k)
+      call accumulate_tavg_field(zoo_loss_poc(:,:,zoo_ind), tavg_zoo_loss_poc(zoo_ind),bid,k)
+      call accumulate_tavg_field(zoo_loss_doc(:,:,zoo_ind), tavg_zoo_loss_doc(zoo_ind),bid,k)
+
+      call accumulate_tavg_field(zoo_graze(:,:,zoo_ind),   tavg_zoo_graze(zoo_ind),bid,k)
+      call accumulate_tavg_field(zoo_graze_poc(:,:,zoo_ind),   tavg_zoo_graze_poc(zoo_ind),bid,k)
+      call accumulate_tavg_field(zoo_graze_doc(:,:,zoo_ind),   tavg_zoo_graze_doc(zoo_ind),bid,k)
+      call accumulate_tavg_field(zoo_graze_zoo(:,:,zoo_ind),   tavg_zoo_graze_zoo(zoo_ind),bid,k)
+
+      call accumulate_tavg_field(x_graze_zoo(:,:,zoo_ind), tavg_x_graze_zoo(zoo_ind),bid,k)
+   end do
 
    if (accumulate_tavg_now(tavg_auto_graze_TOT)) then
       WORK1 = sum(auto_graze, dim=3)
@@ -3829,7 +4105,12 @@ contains
 
    do auto_ind = 1, autotroph_cnt
       call accumulate_tavg_field(auto_graze(:,:,auto_ind), tavg_auto_graze(auto_ind),bid,k)
+      call accumulate_tavg_field(auto_graze_poc(:,:,auto_ind), tavg_auto_graze_poc(auto_ind),bid,k)
+      call accumulate_tavg_field(auto_graze_doc(:,:,auto_ind), tavg_auto_graze_doc(auto_ind),bid,k)
+      call accumulate_tavg_field(auto_graze_zoo(:,:,auto_ind), tavg_auto_graze_zoo(auto_ind),bid,k)
       call accumulate_tavg_field(auto_loss(:,:,auto_ind), tavg_auto_loss(auto_ind),bid,k)
+      call accumulate_tavg_field(auto_loss_poc(:,:,auto_ind), tavg_auto_loss_poc(auto_ind),bid,k)
+      call accumulate_tavg_field(auto_loss_doc(:,:,auto_ind), tavg_auto_loss_doc(auto_ind),bid,k)
       call accumulate_tavg_field(auto_agg(:,:,auto_ind), tavg_auto_agg(auto_ind),bid,k)
       call accumulate_tavg_field(photoC(:,:,auto_ind), tavg_photoC(auto_ind),bid,k)
    end do
@@ -3928,7 +4209,7 @@ contains
    if (accumulate_tavg_now(tavg_Jint_Ctot) .or. &
        (accumulate_tavg_now(tavg_Jint_100m_Ctot) .and. (ztop < 100.0e2_r8))) then
       WORK1 = DTRACER_MODULE(:,:,dic_ind) + DTRACER_MODULE(:,:,doc_ind) &
-              + DTRACER_MODULE(:,:,zooC_ind) &
+              + sum(DTRACER_MODULE(:,:,zooplankton(:)%C_ind), dim=3) &
               + sum(DTRACER_MODULE(:,:,autotrophs(:)%C_ind), dim=3)
       do auto_ind = 1, autotroph_cnt
          n = autotrophs(auto_ind)%CaCO3_ind
@@ -3967,7 +4248,7 @@ contains
        (accumulate_tavg_now(tavg_Jint_100m_Ntot) .and. (ztop < 100.0e2_r8))) then
       WORK1 = DTRACER_MODULE(:,:,no3_ind) + DTRACER_MODULE(:,:,nh4_ind) &
               + DTRACER_MODULE(:,:,don_ind) + DTRACER_MODULE(:,:,donr_ind) &
-              + Q * DTRACER_MODULE(:,:,zooC_ind) &
+              + Q * sum(DTRACER_MODULE(:,:,zooplankton(:)%C_ind), dim=3) &
               + Q * sum(DTRACER_MODULE(:,:,autotrophs(:)%C_ind), dim=3)
       ! add back column and sediment denitrification
       WORK1 = WORK1 + DENITRIF + SED_DENITRIF(:,:,bid)
@@ -4005,8 +4286,11 @@ contains
    if (accumulate_tavg_now(tavg_Jint_Ptot) .or. &
        (accumulate_tavg_now(tavg_Jint_100m_Ptot) .and. (ztop < 100.0e2_r8))) then
       WORK1 = DTRACER_MODULE(:,:,po4_ind) + DTRACER_MODULE(:,:,dop_ind) &
-              + DTRACER_MODULE(:,:,dopr_ind) &
-              + Qp_zoo_pom * DTRACER_MODULE(:,:,zooC_ind)
+              + DTRACER_MODULE(:,:,dopr_ind) 
+      do zoo_ind =1, zooplankton_cnt 
+         n = zooplankton(zoo_ind)%C_ind
+         WORK1 = WORK1 + Qp_zoo_pom * DTRACER_MODULE(:,:,n)
+      end do
       do auto_ind = 1, autotroph_cnt
          n = autotrophs(auto_ind)%C_ind
          WORK1 = WORK1 + autotrophs(auto_ind)%Qp * DTRACER_MODULE(:,:,n)
@@ -4079,15 +4363,18 @@ contains
       DOC_loc_fields(:,:,bid) = DOC_loc
       O2_loc_fields(:,:,bid) = O2_loc
       NO3_loc_fields(:,:,bid) = NO3_loc
-      zooC_loc_fields(:,:,bid) = zooC_loc
 
-      f_zoo_detr_fields(:,:,bid) = f_zoo_detr
+      
+      zooC_loc_fields(:,:,:,bid)     = zooC_loc
+      zoo_loss_fields(:,:,:,bid)     = zoo_loss
+      zoo_loss_poc_fields(:,:,:,bid) = zoo_loss_poc
+      zoo_loss_doc_fields(:,:,:,bid) = zoo_loss_doc
+      zoo_loss_dic_fields(:,:,:,bid) = zoo_loss_dic
+      
+
       CO3_fields(:,:,bid) = CO3
       HCO3_fields(:,:,bid) = HCO3
       H2CO3_fields(:,:,bid) = H2CO3
-      zoo_loss_fields(:,:,bid) = zoo_loss
-      zoo_loss_doc_fields(:,:,bid) = zoo_loss_doc
-      zoo_loss_dic_fields(:,:,bid) = zoo_loss_dic
       DOC_remin_fields(:,:,bid) = DOC_remin
 
       autotrophChl_loc_fields(:,:,:,bid) = autotrophChl_loc
