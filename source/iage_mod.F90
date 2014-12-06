@@ -194,6 +194,8 @@ contains
 
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
+      call document(subname, 'init_iage_option : ' // init_iage_option)
+      call document(subname, 'init_iage_init_file : ' // init_iage_init_file)
       call document(subname, 'iage_nml not found')
       call exit_POP(sigAbort, 'stopping in ' /&
                            &/ subname)

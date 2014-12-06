@@ -113,11 +113,13 @@
    use named_field_mod
    use forcing_tools
    use time_management
+   use ecosys_constants, only : ecosys_tracer_cnt
    use ecosys_parms
    use registry
    use named_field_mod
    use co2calc
    use ecosys_share
+   use ecosys_restore_mod, only : ecosys_restore_type
 #ifdef CCSMCOUPLED
    use POP_MCT_vars_mod
    use shr_strdata_mod
@@ -138,7 +140,6 @@
 !-----------------------------------------------------------------------
 
    public :: &
-      ecosys_tracer_cnt,            &
       ecosys_init,                  &
       ecosys_tracer_ref_val,        &
       ecosys_set_sflux,             &
@@ -149,13 +150,6 @@
 
 !EOP
 !BOC
-
-!-----------------------------------------------------------------------
-!  module variables required by forcing_passive_tracer
-!-----------------------------------------------------------------------
-
-   integer (int_kind), parameter :: &
-      ecosys_tracer_cnt = ECOSYS_NT
 
 !-----------------------------------------------------------------------
 !  flags controlling which portion of code are executed
@@ -225,16 +219,7 @@
 
 !-----------------------------------------------------------------------
 
-   real (r8) :: &
-      rest_time_inv_surf,  & ! inverse restoring timescale at surface
-      rest_time_inv_deep,  & ! inverse restoring timescale at depth
-      rest_z0,             & ! shallow end of transition regime
-      rest_z1                ! deep end of transition regime
-
    type(tracer_read) :: &
-      po4_rest,            & ! restoring data for PO4
-      no3_rest,            & ! restoring data for NO3
-      sio3_rest,           & ! restoring data for SiO3
       gas_flux_fice,       & ! ice fraction for gas fluxes
       gas_flux_ws,         & ! wind speed for gas fluxes
       gas_flux_ap,         & ! atmospheric pressure for gas fluxes
@@ -259,11 +244,6 @@
 !-----------------------------------------------------------------------
 !  restoring climatologies for nutrients
 !-----------------------------------------------------------------------
-
-   logical (log_kind) :: &
-      lrest_po4,  & ! restoring on po4 ?
-      lrest_no3,  & ! restoring on no3 ?
-      lrest_sio3    ! restoring on sio3 ?
 
    real (r8), dimension(km) :: &
       nutr_rest_time_inv ! inverse restoring time scale for nutrients (1/secs)
@@ -408,9 +388,6 @@
       tavg_O2_PRODUCTION,&! tavg id for o2 production
       tavg_O2_CONSUMPTION,&! tavg id for o2 consumption
       tavg_AOU,          &! tavg id for AOU
-      tavg_PO4_RESTORE,  &! tavg id for po4 restoring
-      tavg_NO3_RESTORE,  &! tavg id for no3 restoring
-      tavg_SiO3_RESTORE, &! tavg id for sio3 restoring
       tavg_PAR_avg,      &! tavg id for available radiation avg over mixed layer
       tavg_POC_FLUX_IN,  &! tavg id for poc flux into cell
       tavg_POC_PROD,     &! tavg id for poc production
@@ -611,6 +588,13 @@
       phhi_3d_init = 9.0_r8,   & ! high bound for subsurface ph for no prev soln
       del_ph = 0.20_r8           ! delta-ph for prev soln
 
+
+!-----------------------------------------------------------------------
+
+   type(ecosys_restore_type) :: ecosys_restore
+
+
+
 !EOC
 !*****************************************************************************
 
@@ -739,9 +723,7 @@ contains
       dic_riv_flux_input, alk_riv_flux_input, doc_riv_flux_input, &
       gas_flux_forcing_opt, gas_flux_forcing_file, &
       gas_flux_fice, gas_flux_ws, gas_flux_ap, &
-      lrest_po4, lrest_no3, lrest_sio3, &
-      rest_time_inv_surf, rest_time_inv_deep, rest_z0, rest_z1, &
-      nutr_rest_file, po4_rest, no3_rest, sio3_rest, &
+      nutr_rest_file, &
       comp_surf_avg_freq_opt, comp_surf_avg_freq,  &
       use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
       ecosys_qsw_distrb_const, &
@@ -1017,33 +999,7 @@ contains
    gas_flux_ap%default_val  = c0
    gas_flux_ap%file_fmt     = 'bin'
 
-   lrest_po4      = .false.
-   lrest_no3      = .false.
-   lrest_sio3     = .false.
    nutr_rest_file = 'unknown'
-
-   rest_time_inv_surf = c0
-   rest_time_inv_deep = c0
-   rest_z0            = c1000
-   rest_z1            = c2 * c1000
-
-   po4_rest%filename     = 'unknown'
-   po4_rest%file_varname = tracer_d_module(po4_ind)%short_name
-   po4_rest%scale_factor = c1
-   po4_rest%default_val  = c0
-   po4_rest%file_fmt     = 'bin'
-
-   no3_rest%filename     = 'unknown'
-   no3_rest%file_varname = tracer_d_module(no3_ind)%short_name
-   no3_rest%scale_factor = c1
-   no3_rest%default_val  = c0
-   no3_rest%file_fmt     = 'bin'
-
-   sio3_rest%filename     = 'unknown'
-   sio3_rest%file_varname = tracer_d_module(sio3_ind)%short_name
-   sio3_rest%scale_factor = c1
-   sio3_rest%default_val  = c0
-   sio3_rest%file_fmt     = 'bin'
 
 !maltrud variable restoring
    lnutr_variable_restore      = .false.
@@ -1253,33 +1209,7 @@ contains
 
    ap_file%input = gas_flux_ap
 
-   call broadcast_scalar(lrest_po4, master_task)
-   call broadcast_scalar(lrest_no3, master_task)
-   call broadcast_scalar(lrest_sio3, master_task)
    call broadcast_scalar(nutr_rest_file, master_task)
-
-   call broadcast_scalar(rest_time_inv_surf, master_task)
-   call broadcast_scalar(rest_time_inv_deep, master_task)
-   call broadcast_scalar(rest_z0, master_task)
-   call broadcast_scalar(rest_z1, master_task)
-
-   call broadcast_scalar(po4_rest%filename, master_task)
-   call broadcast_scalar(po4_rest%file_varname, master_task)
-   call broadcast_scalar(po4_rest%scale_factor, master_task)
-   call broadcast_scalar(po4_rest%default_val, master_task)
-   call broadcast_scalar(po4_rest%file_fmt, master_task)
-
-   call broadcast_scalar(no3_rest%filename, master_task)
-   call broadcast_scalar(no3_rest%file_varname, master_task)
-   call broadcast_scalar(no3_rest%scale_factor, master_task)
-   call broadcast_scalar(no3_rest%default_val, master_task)
-   call broadcast_scalar(no3_rest%file_fmt, master_task)
-
-   call broadcast_scalar(sio3_rest%filename, master_task)
-   call broadcast_scalar(sio3_rest%file_varname, master_task)
-   call broadcast_scalar(sio3_rest%scale_factor, master_task)
-   call broadcast_scalar(sio3_rest%default_val, master_task)
-   call broadcast_scalar(sio3_rest%file_fmt, master_task)
 
 !maltrud variable restoring
    call broadcast_scalar(lnutr_variable_restore, master_task)
@@ -1437,6 +1367,15 @@ contains
    call broadcast_scalar(atm_alt_co2_const, master_task)
 
    call broadcast_scalar(lecovars_full_depth_tavg, master_task)
+
+
+
+!-----------------------------------------------------------------------
+!  initialize modules with dependancies on above variables
+!-----------------------------------------------------------------------
+
+   call ecosys_restore%Init(nml_filename, nml_in, &
+        ind_name_table)
 
 !-----------------------------------------------------------------------
 !  set variables immediately dependent on namelist variables
@@ -2105,21 +2044,6 @@ contains
                           units='mmol/m^3', grid_loc='3111',           &
                           coordinates='TLONG TLAT z_t time')
 
-   call define_tavg_field(tavg_PO4_RESTORE,'PO4_RESTORE',3,            &
-                          long_name='PO4 Restoring',                   &
-                          units='mmol/m^3', grid_loc='3111',           &
-                          coordinates='TLONG TLAT z_t time')
-
-   call define_tavg_field(tavg_NO3_RESTORE,'NO3_RESTORE',3,            &
-                          long_name='NO3 Restoring',                   &
-                          units='mmol/m^3', grid_loc='3111',           &
-                          coordinates='TLONG TLAT z_t time')
-
-   call define_tavg_field(tavg_SiO3_RESTORE,'SiO3_RESTORE',3,          &
-                          long_name='SiO3 Restoring',                  &
-                          units='mmol/m^3', grid_loc='3111',           &
-                          coordinates='TLONG TLAT z_t time')
-
    call define_tavg_field(tavg_PAR_avg,'PAR_avg',3,                    &
                           long_name='PAR Average over Model Cell',     &
                           units='w/m^2', grid_loc='3114',              &
@@ -2683,6 +2607,9 @@ contains
                           units='mmol/m^3 cm/s', grid_loc='2110',      &
                           coordinates='TLONG TLAT time')
 
+
+   call ecosys_restore%define_tavg_fields()
+
 !-----------------------------------------------------------------------
 !EOC
 
@@ -2758,6 +2685,10 @@ contains
       CO3_CALC_ANOM_km1,& ! CO3 concentration above calcite saturation at k-1
       CO3_ARAG_ANOM_km1   ! CO3 concentration above aragonite saturation at k-1
 
+   ! FIXME(bja, 2014-10) size should be (nx, ny, non_autotroph_ecosys_tracer_cnt)
+   real (r8), dimension(nx_block, ny_block, ecosys_tracer_cnt) :: tracer_local ! local copies of model tracer concentrations
+   real (r8), dimension(nx_block, ny_block, ecosys_tracer_cnt) :: restore_local ! local restoring terms for nutrients (mmol ./m^3/sec)
+
    real (r8), dimension(nx_block,ny_block) :: &
       TEMP,           & ! local copy of model TEMP
       SALT,           & ! local copy of model SALT
@@ -2806,8 +2737,7 @@ contains
       DOFe_remin,     & ! portion of DOFe remineralized
       DOP_remin,      & ! portion of DOP remineralized
       NITRIF,         & ! nitrification (NH4 -> NO3) (mmol N/m^3/sec)
-      DENITRIF,       & ! WC nitrification (NO3 -> N2) (mmol N/m^3/sec)
-      RESTORE           ! restoring terms for nutrients (mmol ./m^3/sec)
+      DENITRIF          ! WC nitrification (NO3 -> N2) (mmol N/m^3/sec)
 
    real (r8), dimension(nx_block,ny_block) :: &
       graze_rate,         & ! max. zoo growth rate at local T (1/sec)
@@ -2923,6 +2853,24 @@ contains
    logical (log_kind) :: &
       lalt_co2_terms    ! are any alt_co2 terms being time averaged
 
+   associate( &
+        DIC_loc  => tracer_local(:, :, dic_ind), &
+        DIC_ALT_CO2_loc => tracer_local(:, :, dic_alt_co2_ind), &
+        ALK_loc  => tracer_local(:, :, alk_ind), &
+        PO4_loc  => tracer_local(:, :, po4_ind), &
+        NO3_loc  => tracer_local(:, :, no3_ind), &
+        SiO3_loc => tracer_local(:, :, sio3_ind), &
+        NH4_loc  => tracer_local(:, :, nh4_ind), &
+        Fe_loc   => tracer_local(:, :, fe_ind), &
+        O2_loc   => tracer_local(:, :, o2_ind), &
+        DOC_loc  => tracer_local(:, :, doc_ind), &
+        DON_loc  => tracer_local(:, :, don_ind), &
+        DOFe_loc => tracer_local(:, :, dofe_ind), &
+        DOP_loc  => tracer_local(:, :, dop_ind), &
+        DOPr_loc => tracer_local(:, :, dopr_ind), &
+        DONr_loc => tracer_local(:, :, donr_ind) &
+     )
+
 !-----------------------------------------------------------------------
 
    bid = this_block%local_id
@@ -2949,51 +2897,16 @@ contains
    TEMP         = p5*(TEMP_OLD + TEMP_CUR)
    SALT         = p5*(SALT_OLD + SALT_CUR)*salt_to_ppt
 
-   DIC_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,dic_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,dic_ind)))
-   DIC_ALT_CO2_loc = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,dic_alt_co2_ind) + &
-                                 TRACER_MODULE_CUR(:,:,k,dic_alt_co2_ind)))
-   ALK_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,alk_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,alk_ind)))
-   PO4_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,po4_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,po4_ind)))
-   NO3_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,no3_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,no3_ind)))
-   SiO3_loc     = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,sio3_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,sio3_ind)))
-   NH4_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,nh4_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,nh4_ind)))
-   Fe_loc       = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,fe_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,fe_ind)))
-   O2_loc       = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,o2_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,o2_ind)))
-   DOC_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,doc_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,doc_ind)))
-   DON_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,don_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,don_ind)))
-   DOFe_loc     = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,dofe_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,dofe_ind)))
-   DOP_loc      = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,dop_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,dop_ind)))
-   DOPr_loc     = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,dopr_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,dopr_ind)))
-   DONr_loc     = max(c0, p5*(TRACER_MODULE_OLD(:,:,k,donr_ind) + &
-                              TRACER_MODULE_CUR(:,:,k,donr_ind)))
+   do n = 1, ecosys_tracer_cnt
+      tracer_local(:, :, n) = max(c0, p5*(TRACER_MODULE_OLD(:, :, k, n) + &
+                              TRACER_MODULE_CUR(:, :, k, n)))
+   end do
 
-   where (.not. LAND_MASK(:,:,bid) .or. k > KMT(:,:,bid))
-      PO4_loc      = c0
-      NO3_loc      = c0
-      SiO3_loc     = c0
-      NH4_loc      = c0
-      Fe_loc       = c0
-      O2_loc       = c0
-      DOC_loc      = c0
-      DON_loc      = c0
-      DOFe_loc     = c0
-      DOP_loc      = c0
-      DOPr_loc     = c0
-      DONr_loc     = c0
-   end where
+   do n = 1, ecosys_tracer_cnt
+      where (.not. LAND_MASK(:, :, bid) .or. k > KMT(:, :, bid))
+         tracer_local(:, :, n) = c0
+      end where
+   end do
 
    ! and now the living pools 
    do zoo_ind = 1, zooplankton_cnt
@@ -3040,6 +2953,19 @@ contains
       end where
    end do
 
+!-----------------------------------------------------------------------
+!  set tracer restore fields
+!-----------------------------------------------------------------------
+
+   do n = 1, ecosys_tracer_cnt
+      call ecosys_restore%restore_variable(tracer_index=n, &
+           vert_level=k, block_id=bid, local_data=tracer_local(:, :, n), &
+           restore_data=restore_local(:, :, n))
+
+      call ecosys_restore%accumulate_tavg(tracer_index=n, &
+           vert_level=k, block_id=bid, &
+           restore_local=restore_local(:, :, n))
+   end do
 !-----------------------------------------------------------------------
 !  If any phyto box are zero, set others to zeros.
 !-----------------------------------------------------------------------
@@ -3785,20 +3711,6 @@ contains
 !  use exponential decay of PAR across model level to compute taper factor
 !-----------------------------------------------------------------------
 
-   if (lrest_no3) then
-      if (lnutr_variable_restore) then
-         RESTORE = NUTR_RESTORE_RTAU(:,:,bid) * &
-                      merge((NO3_CLIM(:,:,k,bid) - NO3_loc), &
-                            c0, k <= NUTR_RESTORE_MAX_LEVEL(:,:,bid))
-      else
-         RESTORE = (NO3_CLIM(:,:,k,bid) - NO3_loc) * nutr_rest_time_inv(k)
-      endif
-   else
-      RESTORE = c0
-   endif
-
-   call accumulate_tavg_field(RESTORE, tavg_NO3_RESTORE,bid,k)
-
    where (PAR_out(:,:,bid) < parm_nitrif_par_lim)
       NITRIF = parm_kappa_nitrif * NH4_loc
       where (PAR_in > parm_nitrif_par_lim)
@@ -3828,7 +3740,7 @@ contains
 !  nitrate & ammonium
 !-----------------------------------------------------------------------
 
-   DTRACER_MODULE(:,:,no3_ind) = RESTORE + NITRIF - DENITRIF - SED_DENITRIF(:,:,bid) - sum(NO3_V, dim=3)
+   DTRACER_MODULE(:,:,no3_ind) = restore_local(:, :, no3_ind) + NITRIF - DENITRIF - SED_DENITRIF(:,:,bid) - sum(NO3_V, dim=3)
 
    DTRACER_MODULE(:,:,nh4_ind) = -sum(NH4_V, dim=3) - NITRIF + DON_remin + DONr_remin &
       + Q * (                                                                         &
@@ -3859,21 +3771,7 @@ contains
 !  dissolved SiO3
 !-----------------------------------------------------------------------
 
-   if (lrest_sio3) then
-      if (lnutr_variable_restore) then
-         RESTORE = NUTR_RESTORE_RTAU(:,:,bid) * &
-                      merge((SiO3_CLIM(:,:,k,bid) - SiO3_loc), &
-                            c0, k <= NUTR_RESTORE_MAX_LEVEL(:,:,bid))
-      else
-         RESTORE = (SiO3_CLIM(:,:,k,bid) - SiO3_loc) * nutr_rest_time_inv(k)
-      endif
-   else
-      RESTORE = c0
-   endif
-
-   call accumulate_tavg_field(RESTORE, tavg_SiO3_RESTORE,bid,k)
-
-   DTRACER_MODULE(:,:,sio3_ind) = RESTORE + P_SiO2%remin(:,:,bid)
+   DTRACER_MODULE(:,:,sio3_ind) = restore_local(:, :, sio3_ind) + P_SiO2%remin(:,:,bid)
 
    do auto_ind = 1, autotroph_cnt
       if (autotrophs(auto_ind)%Si_ind > 0) then
@@ -3887,21 +3785,7 @@ contains
 !  phosphate
 !-----------------------------------------------------------------------
 
-   if (lrest_po4) then
-      if (lnutr_variable_restore) then
-         RESTORE = NUTR_RESTORE_RTAU(:,:,bid) * &
-                      merge((PO4_CLIM(:,:,k,bid) - PO4_loc), &
-                            c0, k <= NUTR_RESTORE_MAX_LEVEL(:,:,bid))
-      else
-         RESTORE = (PO4_CLIM(:,:,k,bid) - PO4_loc) * nutr_rest_time_inv(k)
-      endif
-   else
-      RESTORE = c0
-   endif
-
-   call accumulate_tavg_field(RESTORE, tavg_PO4_RESTORE,bid,k)
-
-   DTRACER_MODULE(:,:,po4_ind) = RESTORE + DOP_remin + DOPr_remin - sum(PO4_V, dim=3) &
+   DTRACER_MODULE(:,:,po4_ind) = restore_local(:, :, po4_ind) + DOP_remin + DOPr_remin - sum(PO4_V, dim=3) &
       + Qp_zoo_pom * ( &
       (c1 - DOPrefract) * POC%remin(:,:,bid) &
       + sum(zoo_loss_dic, dim=3) + sum(zoo_graze_dic, dim=3) )
@@ -4404,6 +4288,8 @@ contains
    endif
 
    call timer_stop(ecosys_interior_timer, block_id=bid)
+
+   end associate
 
 !-----------------------------------------------------------------------
 !EOC
@@ -5953,108 +5839,13 @@ contains
 !  initialize restoring timescale (if required)
 !-----------------------------------------------------------------------
 
-   if (lrest_po4 .or. lrest_no3 .or. lrest_sio3) then
-
-      if (lnutr_variable_restore) then
-
-         allocate(NUTR_RESTORE_RTAU(nx_block,ny_block,max_blocks_clinic))
-         allocate(NUTR_RESTORE_MAX_LEVEL(nx_block,ny_block,max_blocks_clinic))
-
-         call read_field(nutr_variable_rest_file_fmt, &
-                         nutr_variable_rest_file,     &
-                         'NUTR_RESTORE_MAX_LEVEL',    &
-                         NUTR_RESTORE_RTAU)
-
-         NUTR_RESTORE_MAX_LEVEL = nint(NUTR_RESTORE_RTAU)
-
-         call read_field(nutr_variable_rest_file_fmt, &
-                         nutr_variable_rest_file,     &
-                         'NUTR_RESTORE_RTAU',         &
-                         NUTR_RESTORE_RTAU)
-
-         NUTR_RESTORE_RTAU = NUTR_RESTORE_RTAU/seconds_in_day ! convert days to secs
-
-      else
-
-         do k = 1,km
-            if (zt(k) < rest_z0) then
-               nutr_rest_time_inv(k) = rest_time_inv_surf
-            else if (zt(k) > rest_z1) then
-               nutr_rest_time_inv(k) = rest_time_inv_deep
-            else if (rest_z1 == rest_z0) then
-               nutr_rest_time_inv(k) = rest_time_inv_surf + p5 * &
-                    (rest_time_inv_deep - rest_time_inv_surf)
-            else
-               nutr_rest_time_inv(k) = rest_time_inv_surf + &
-                    (zt(k) - rest_z0) / (rest_z1 - rest_z0) * &
-                    (rest_time_inv_deep - rest_time_inv_surf)
-            endif
-         end do
-
-      endif  !  variable restoring
-
-   endif  ! restoring
+   call ecosys_restore%initialize_restoring_timescale(nml_filename, nml_in, zt)
 
 !-----------------------------------------------------------------------
 !  load restoring fields (if required)
 !-----------------------------------------------------------------------
 
-   if (lrest_po4) then
-
-      allocate(PO4_CLIM(nx_block,ny_block,km,max_blocks_clinic))
-
-      call read_field(po4_rest%file_fmt, &
-                      po4_rest%filename, &
-                      po4_rest%file_varname, &
-                      PO4_CLIM)
-
-      do iblock=1,nblocks_clinic
-         do k = 1, km
-            where (.not. LAND_MASK(:,:,iblock) .or. k > KMT(:,:,iblock)) &
-               PO4_CLIM(:,:,k,iblock) = c0
-            PO4_CLIM(:,:,k,iblock) = PO4_CLIM(:,:,k,iblock) * po4_rest%scale_factor
-         enddo
-      end do
-
-   endif
-
-   if (lrest_no3) then
-
-      allocate(NO3_CLIM(nx_block,ny_block,km,max_blocks_clinic))
-
-      call read_field(no3_rest%file_fmt, &
-                      no3_rest%filename, &
-                      no3_rest%file_varname, &
-                      NO3_CLIM)
-
-      do iblock=1,nblocks_clinic
-         do k = 1, km
-            where (.not. LAND_MASK(:,:,iblock) .or. k > KMT(:,:,iblock)) &
-               NO3_CLIM(:,:,k,iblock) = c0
-            NO3_CLIM(:,:,k,iblock) = NO3_CLIM(:,:,k,iblock) * no3_rest%scale_factor
-         enddo
-      end do
-
-   endif
-
-   if (lrest_sio3) then
-
-      allocate(SiO3_CLIM(nx_block,ny_block,km,max_blocks_clinic))
-
-      call read_field(sio3_rest%file_fmt, &
-                      sio3_rest%filename, &
-                      sio3_rest%file_varname, &
-                      SiO3_CLIM)
-
-      do iblock=1,nblocks_clinic
-         do k = 1, km
-            where (.not. LAND_MASK(:,:,iblock) .or. k > KMT(:,:,iblock)) &
-               SiO3_CLIM(:,:,k,iblock) = c0
-            SiO3_CLIM(:,:,k,iblock) = SiO3_CLIM(:,:,k,iblock) * sio3_rest%scale_factor
-         enddo
-      end do
-
-   endif
+   call ecosys_restore%read_restoring_fields(LAND_MASK)
 
 !-----------------------------------------------------------------------
 !  load fesedflux

@@ -2,10 +2,30 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  andre
+Tag Date:    5 Dec 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141205
+Tag Summary: Bring Ben's updated ecosys_restore work to the trunk
+             Note: passed all tests in aux_pop test suite.
+
+Files Modified:
+M       source/passive_tracer_tools.F90
+A       source/ecosys_restore.F90
+M       source/iage_mod.F90
+A       source/ecosys_restore_timescale_file.F90
+M       source/ecosys_mod.F90
+A       source/ecosys_restore_timescale_interp.F90
+M       source/ecosys_driver.F90
+A       source/ecosys_constants.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_definition_pop2.xml
+===============================================================================
+Tag Creator: mlevy
 Developers:  jedwards
 Tag Date:    3 Dec 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141203a
 Tag Summary: Update to pio2 API (requires pio1_9_5 or later!)
+             Note: passed all tests in aux_pop test suite.
 
 Files Modified:
 M       source/io_pio.F90
@@ -17,6 +37,7 @@ Tag Date:    3 Dec 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141203
 Tag Summary: More flexibility in ecosys tracer count, specifically zooplankton
              and autotroph count.
+             Note: passed all tests in aux_pop test suite.
 
 Files Modified:
 M       source/ecosys_share.F90

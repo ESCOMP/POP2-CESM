@@ -5649,34 +5649,10 @@ Default: none provided
 </entry>
 
 <entry 
-id="lrest_po4"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: .false.
-</entry>
-
-<entry 
-id="lrest_no3"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: .false.
-</entry>
-
-<entry 
-id="lrest_sio3"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: .false.
-</entry>
-
-<entry 
 id="rest_time_inv_surf"
 type="real"
 category="ecosys"
-group="ecosys_nml" >
+group="ecosys_restore_timescale_interp_nml" >
 Default: none provided
 </entry>
 
@@ -5684,23 +5660,23 @@ Default: none provided
 id="rest_time_inv_deep"
 type="real"
 category="ecosys"
-group="ecosys_nml" >
+group="ecosys_restore_timescale_interp_nml" >
 Default: none provided
 </entry>
 
 <entry 
-id="rest_time_inv_z0"
+id="rest_z0"
 type="real"
 category="ecosys"
-group="ecosys_nml" >
+group="ecosys_restore_timescale_interp_nml" >
 Default: none provided
 </entry>
 
 <entry 
-id="rest_time_inv_z1"
+id="rest_z1"
 type="real"
 category="ecosys"
-group="ecosys_nml" >
+group="ecosys_restore_timescale_interp_nml" >
 Default: none provided
 </entry>
 
@@ -5710,129 +5686,6 @@ type="char*256"
 category="ecosys"
 group="ecosys_nml" >
 Default: 'unknown'
-</entry>
-
-<entry 
-id="po4_rest%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: none provided
-</entry>
-
-<entry 
-id="po4_rest%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="po4_rest%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="po4_rest%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="po4_rest%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="no3_rest%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: none provided
-</entry>
-
-<entry 
-id="no3_rest%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="no3_rest%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="no3_rest%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="no3_rest%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="sio3_rest%filename"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml"
-input_pathname="abs" >
-Default: none provided
-</entry>
-
-<entry 
-id="sio3_rest%file_fmt"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="sio3_rest%file_varname"
-type="char*256" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="sio3_rest%scale_factor"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="sio3_rest%default_val"
-type="real" 
-category="ecosys"
-group="ecosys_nml" >
-Default: none provided
 </entry>
 
 <entry 
@@ -6615,6 +6468,34 @@ type="logical"
 category="pop2"
 group="moby_nml" >
 Default: 
+</entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: ecosys_restore_nml       - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry 
+id="restore_short_names"
+type="char*256(100)"
+category="ecosys_restore"
+group="ecosys_restore_nml" >
+Default:
+</entry>
+
+<entry 
+id="restore_filenames"
+type="char*256(100)"
+category="ecosys_restore"
+group="ecosys_restore_nml" >
+Default:
+</entry>
+
+<entry 
+id="restore_file_varnames"
+type="char*256(100)"
+category="ecosys_restore"
+group="ecosys_restore_nml" >
+Default:
 </entry>
 
 </namelist_definition>

@@ -40,8 +40,9 @@
    use broadcast, only: broadcast_scalar
 
 
+   use ecosys_constants, only : ecosys_tracer_cnt
+
    use ecosys_mod, only:           &
-       ecosys_tracer_cnt,          &
        ecosys_init,                &
        ecosys_tracer_ref_val,      &
        ecosys_set_sflux,           &
