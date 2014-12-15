@@ -100,14 +100,14 @@ module ecosys_share
  TYPE, PUBLIC :: grazing_type
     CHARACTER(char_len) :: sname, lname
      INTEGER (KIND=int_kind) :: &
-          grazing_function                      ! functional form of grazing parameterization
+          grazing_function,           & ! functional form of grazing parameterization
+          auto_ind_cnt,               & ! number of autotrophs in prey-clase auto_ind
+          zoo_ind_cnt                   ! number of zooplankton in prey-clase zoo_ind
      REAL(KIND=r8) :: &
           z_umax_0,                           & ! max zoo growth rate at tref (1/sec)
           z_grz,                              & ! grazing coef. (mmol C/m^3)^2
           graze_zoo, graze_poc, graze_doc,    & ! routing of grazed term, remainder goes to dic
-          f_zoo_detr,                         & ! fraction of zoo losses to detrital
-          auto_ind_cnt,                       & ! number of autotrophs in prey-clase auto_ind
-          zoo_ind_cnt                             ! number of zooplankton in prey-clase zoo_ind
+          f_zoo_detr                            ! fraction of zoo losses to detrital
      INTEGER (KIND=int_kind), DIMENSION(autotroph_cnt) :: &
           auto_ind
      INTEGER (KIND=int_kind), DIMENSION(zooplankton_cnt) :: &
