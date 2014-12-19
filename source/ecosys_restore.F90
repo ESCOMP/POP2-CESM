@@ -357,6 +357,7 @@ subroutine read_restoring_fields(this, LAND_MASK)
   !-----------------------------------------------------------------------
   !  local variables
   !-----------------------------------------------------------------------
+  integer (int_kind) :: i,j    ! indoces for looping over horizontal grid
   integer (int_kind) :: k      ! index for looping over levels
   integer (int_kind) :: iblock ! index for looping over blocks
   integer (int_kind) :: tracer_index
@@ -377,10 +378,16 @@ subroutine read_restoring_fields(this, LAND_MASK)
 
           do iblock = 1, nblocks_clinic
              do k = 1, km
-                where (.not. LAND_MASK(:,:,iblock) .or. k > KMT(:,:,iblock)) &
-                     tracer%data(:,:,k,iblock) = c0
-                tracer%data(:,:,k,iblock) = tracer%data(:,:,k,iblock) * tracer%restore_file_info%scale_factor
-             enddo
+                do j=1,ny_block
+                   do i=1,nx_block
+                      if (LAND_MASK(i,j,iblock) .and. (k.le.KMT(i,j,iblock))) then
+                         tracer%data(i,j,k,iblock) = tracer%data(i,j,k,iblock) * tracer%restore_file_info%scale_factor
+                      else
+                         tracer%data(i,j,k,iblock) = c0
+                      end if
+                   end do
+                end do
+             end do
           end do
        endif
      end associate

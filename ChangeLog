@@ -2,6 +2,15 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  jedwards
+Tag Date:    18 Dec 2014
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141218
+Tag Summary: Minor code modification because pop wasn't compiling on mira
+
+Files Modified:
+M       source/ecosys_restore.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    15 Dec 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141215
