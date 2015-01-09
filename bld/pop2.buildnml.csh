@@ -1,5 +1,24 @@
 #! /bin/csh -f
 
+set CASEROOT		 = `xmlquery CASEROOT		 -valnoid`
+set CASEBUILD		 = `xmlquery CASEBUILD		 -valnoid`
+set CODEROOT		 = `xmlquery CODEROOT		 -valnoid`
+set CONTINUE_RUN	 = `xmlquery CONTINUE_RUN	 -valnoid`
+set DIN_LOC_ROOT	 = `xmlquery DIN_LOC_ROOT	 -valnoid`
+set EXEROOT		 = `xmlquery EXEROOT		 -valnoid`
+set GET_REFCASE		 = `xmlquery GET_REFCASE	 -valnoid`
+set NTASKS_OCN		 = `xmlquery NTASKS_OCN		 -valnoid`
+set NTHRDS_OCN		 = `xmlquery NTHRDS_OCN		 -valnoid`
+set NINST_OCN		 = `xmlquery NINST_OCN		 -valnoid`
+set OCN_GRID		 = `xmlquery OCN_GRID		 -valnoid`
+set POP_AUTO_DECOMP	 = `xmlquery POP_AUTO_DECOMP	 -valnoid`
+set RUN_TYPE		 = `xmlquery RUN_TYPE		 -valnoid`
+set RUN_REFCASE		 = `xmlquery RUN_REFCASE	 -valnoid`
+set RUN_REFDATE		 = `xmlquery RUN_REFDATE	 -valnoid`
+set RUNDIR		 = `xmlquery RUNDIR		 -valnoid`
+set UTILROOT		 = `xmlquery UTILROOT		 -valnoid`
+set SCRIPTSROOT		 = `xmlquery SCRIPTSROOT	 -valnoid`
+
 if !(-d $EXEROOT/ocn/obj   ) mkdir -p $EXEROOT/ocn/obj    || exit 2
 if !(-d $EXEROOT/ocn/source) mkdir -p $EXEROOT/ocn/source || exit 3 
 

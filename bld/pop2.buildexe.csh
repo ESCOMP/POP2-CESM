@@ -1,4 +1,20 @@
-#! /bin/csh -fv
+#! /bin/csh -f
+
+cd $CASEROOT
+
+#set CODEROOT		= `xmlquery CODEROOT		-valnoid`
+#set LIBROOT		= `xmlquery LIBROOT		-valnoid`
+#set OBJROOT		= `xmlquery OBJROOT		-valnoid`
+
+set CASETOOLS		= `xmlquery CASETOOLS		-valnoid`
+set OCN_GRID		= `xmlquery OCN_GRID		-valnoid`
+set OCN_TRACER_MODULES	= `xmlquery OCN_TRACER_MODULES	-valnoid`
+set OCN_ICE_FORCING	= `xmlquery OCN_ICE_FORCING	-valnoid`
+set OCN_GRID		= `xmlquery OCN_GRID		-valnoid`
+set POP_TAVG_R8		= `xmlquery POP_TAVG_R8		-valnoid`
+set POP_BLCKX           = `xmlquery POP_BLCKX		-valnoid`
+set POP_BLCKY           = `xmlquery POP_BLCKY		-valnoid`
+set POP_MXBLCKS         = `xmlquery POP_MXBLCKS		-valnoid`
 
 if !(-d $OBJROOT/ocn/obj   ) mkdir -p $OBJROOT/ocn/obj    || exit 2
 if !(-d $OBJROOT/ocn/source) mkdir -p $OBJROOT/ocn/source || exit 3 
