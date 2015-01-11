@@ -1,5 +1,9 @@
 #! /bin/csh -f
 
+set CASEROOT	= `./xmlquery  CASEROOT	 -value`
+set CODEROOT	= `./xmlquery  CODEROOT	 -value`
+set NINST_OCN	= `./xmlquery  NINST_OCN -value `  
+
 if ($NINST_OCN > 1) then
    set inst_counter = 1
    set inst_string = ""
