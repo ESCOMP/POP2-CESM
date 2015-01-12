@@ -1,23 +1,23 @@
 #! /bin/csh -f
 
-set CASEROOT		 = `xmlquery CASEROOT		 -value`
-set CASEBUILD		 = `xmlquery CASEBUILD		 -value`
-set CODEROOT		 = `xmlquery CODEROOT		 -value`
-set CONTINUE_RUN	 = `xmlquery CONTINUE_RUN	 -value`
-set DIN_LOC_ROOT	 = `xmlquery DIN_LOC_ROOT	 -value`
-set EXEROOT		 = `xmlquery EXEROOT		 -value`
-set GET_REFCASE		 = `xmlquery GET_REFCASE	 -value`
-set NTASKS_OCN		 = `xmlquery NTASKS_OCN		 -value`
-set NTHRDS_OCN		 = `xmlquery NTHRDS_OCN		 -value`
-set NINST_OCN		 = `xmlquery NINST_OCN		 -value`
-set OCN_GRID		 = `xmlquery OCN_GRID		 -value`
-set POP_AUTO_DECOMP	 = `xmlquery POP_AUTO_DECOMP	 -value`
-set RUN_TYPE		 = `xmlquery RUN_TYPE		 -value`
-set RUN_REFCASE		 = `xmlquery RUN_REFCASE	 -value`
-set RUN_REFDATE		 = `xmlquery RUN_REFDATE	 -value`
-set RUNDIR		 = `xmlquery RUNDIR		 -value`
-set UTILROOT		 = `xmlquery UTILROOT		 -value`
-set SCRIPTSROOT		 = `xmlquery SCRIPTSROOT	 -value`
+set CASEROOT		 = `./xmlquery CASEROOT		 -value`
+set CASEBUILD		 = `./xmlquery CASEBUILD	 -value`
+set CODEROOT		 = `./xmlquery CODEROOT		 -value`
+set CONTINUE_RUN	 = `./xmlquery CONTINUE_RUN	 -value`
+set DIN_LOC_ROOT	 = `./xmlquery DIN_LOC_ROOT	 -value`
+set EXEROOT		 = `./xmlquery EXEROOT		 -value`
+set GET_REFCASE		 = `./xmlquery GET_REFCASE	 -value`
+set NTASKS_OCN		 = `./xmlquery NTASKS_OCN	 -value`
+set NTHRDS_OCN		 = `./xmlquery NTHRDS_OCN	 -value`
+set NINST_OCN		 = `./xmlquery NINST_OCN	 -value`
+set OCN_GRID		 = `./xmlquery OCN_GRID		 -value`
+set POP_AUTO_DECOMP	 = `./xmlquery POP_AUTO_DECOMP	 -value`
+set RUN_TYPE		 = `./xmlquery RUN_TYPE		 -value`
+set RUN_REFCASE		 = `./xmlquery RUN_REFCASE	 -value`
+set RUN_REFDATE		 = `./xmlquery RUN_REFDATE	 -value`
+set RUNDIR		 = `./xmlquery RUNDIR		 -value`
+set UTILROOT		 = `./xmlquery UTILROOT		 -value`
+set SCRIPTSROOT		 = `./xmlquery SCRIPTSROOT	 -value`
 
 if !(-d $EXEROOT/ocn/obj   ) mkdir -p $EXEROOT/ocn/obj    || exit 2
 if !(-d $EXEROOT/ocn/source) mkdir -p $EXEROOT/ocn/source || exit 3 
