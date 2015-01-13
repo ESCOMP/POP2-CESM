@@ -1,37 +1,63 @@
-#! /bin/csh -f
+#! /usr/bin/env perl
+use strict;
 
-cd $CASEROOT
+if ($#ARGV == -1) {
+    die " ERROR pop2.buildexe: must specify a caseroot input argument";
+}
+my ($CASEROOT) = @ARGV;
+chdir "${CASEROOT}";
 
-#set CODEROOT		= `xmlquery CODEROOT		-value`
-#set LIBROOT		= `xmlquery LIBROOT		-value`
-#set OBJROOT		= `xmlquery OBJROOT		-value`
+my $CASEBUILD			= `./xmlquery CASEBUILD			-value`;
+my $CODEROOT			= `./xmlquery CODEROOT			-value`;
+my $LIBROOT			= `./xmlquery LIBROOT			-value`;
+my $OBJROOT			= `./xmlquery OBJROOT			-value`;
+my $CASETOOLS			= `./xmlquery CASETOOLS			-value`;
+my $OCN_GRID			= `./xmlquery OCN_GRID			-value`;
+my $OCN_TRACER_MODULES		= `./xmlquery OCN_TRACER_MODULES	-value`;
+my $OCN_TRACER_MODULES_OPT	= `./xmlquery OCN_TRACER_MODULES_OPT	-value`;
+my $OCN_ICE_FORCING		= `./xmlquery OCN_ICE_FORCING		-value`;
+my $OCN_GRID			= `./xmlquery OCN_GRID			-value`;
+my $POP_TAVG_R8			= `./xmlquery POP_TAVG_R8		-value`;
+my $POP_BLCKX			= `./xmlquery POP_BLCKX			-value`;
+my $POP_BLCKY			= `./xmlquery POP_BLCKY			-value`;
+my $POP_MXBLCKS			= `./xmlquery POP_MXBLCKS		-value`;
+my $GMAKE_J			= `./xmlquery GMAKE_J			-value`;
+my $GMAKE			= `./xmlquery GMAKE			-value`;
 
-set CASETOOLS		= `xmlquery CASETOOLS		-value`
-set OCN_GRID		= `xmlquery OCN_GRID		-value`
-set OCN_TRACER_MODULES	= `xmlquery OCN_TRACER_MODULES	-value`
-set OCN_ICE_FORCING	= `xmlquery OCN_ICE_FORCING	-value`
-set OCN_GRID		= `xmlquery OCN_GRID		-value`
-set POP_TAVG_R8		= `xmlquery POP_TAVG_R8		-value`
-set POP_BLCKX           = `xmlquery POP_BLCKX		-value`
-set POP_BLCKY           = `xmlquery POP_BLCKY		-value`
-set POP_MXBLCKS         = `xmlquery POP_MXBLCKS		-value`
+if (! -d "$OBJROOT/ocn/obj" ) {
+    my $sysmod = "mkdir -p $OBJROOT/ocn/obj";    
+    system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+}
+if (! -d "$OBJROOT/ocn/source" ) {
+    my $sysmod =  "mkdir -p $OBJROOT/ocn/source";
+    system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+}
+if (! -d "$OBJROOT/ocn/input" ) { 
+    my $sysmod = "mkdir -p $OBJROOT/ocn/input";
+    system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+}
+if (! -d "$OBJROOT/ocn/cvmix" ) {
+    my $sysmod = "mkdir -p $OBJROOT/ocn/cvmix";
+    system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+}
 
-if !(-d $OBJROOT/ocn/obj   ) mkdir -p $OBJROOT/ocn/obj    || exit 2
-if !(-d $OBJROOT/ocn/source) mkdir -p $OBJROOT/ocn/source || exit 3 
-if !(-d $OBJROOT/ocn/input ) mkdir -p $OBJROOT/ocn/input  || exit 4
-if !(-d $OBJROOT/ocn/cvmix ) mkdir -p $OBJROOT/ocn/cvmix  || exit 5
+my $my_path = "$CASEROOT/SourceMods/src.pop2";
 
-set my_path = $CASEROOT/SourceMods/src.pop2
+chdir "${OBJROOT}/ocn/source";
 
-echo -----------------------------------------------------------------
-echo  Copy the necessary files into $OBJROOT/ocn/source
-echo -----------------------------------------------------------------
+print " -----------------------------------------------------------------\n";
+print " Copy the necessary files into $OBJROOT/ocn/source \n";
+print " -----------------------------------------------------------------\n";
 
-cd $OBJROOT/ocn/source
 
-cp -fp $CODEROOT/ocn/pop2/source/*.F90  .
-cp -fp $CODEROOT/ocn/pop2/mpi/*.F90  .
-cp -fp $CODEROOT/ocn/pop2/drivers/cpl/*.F90 .
+my $sysmod = "cp -fp $CODEROOT/ocn/pop2/source/*.F90  .";
+system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+
+my $sysmod = "cp -fp $CODEROOT/ocn/pop2/mpi/*.F90  .";
+system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+
+my $sysmod = "cp -fp $CODEROOT/ocn/pop2/drivers/cpl/*.F90 .";
+system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
 
 # Two files require special attention because they get renamed when copied
 # from either SourceMods/src.pop2 or input_templates/:
@@ -42,205 +68,235 @@ cp -fp $CODEROOT/ocn/pop2/drivers/cpl/*.F90 .
 # For these files:
 # 1) Make sure SourceMods does not contain copies of the same file both
 #    with and without the ${OCN_GRID}_ preface.
-if ((-f ${my_path}/domain_size.F90) && \
-    (-f ${my_path}/${OCN_GRID}_domain_size.F90)) then
-   echo "ERROR: you can not have both domain_size.F90 and " \
-        "${OCN_GRID}_domain_size.F90 in SourceMods/src.pop2/"
-   exit -1
-endif
 
-if ((-f ${my_path}/POP_DomainSizeMod.F90) && \
-    (-f ${my_path}/${OCN_GRID}_POP_DomainSizeMod.F90)) then
-   echo "ERROR: you can not have both POP_DomainSizeMod.F90 and " \
-        "${OCN_GRID}_POP_DomainSizeMod.F90 in SourceMods/src.pop2/"
-   exit -1
-endif
+if ((-f "${my_path}/domain_size.F90") && (-f "${my_path}/${OCN_GRID}_domain_size.F90")) {
+    die "ERROR: you can not have both domain_size.F90 and ${OCN_GRID}_domain_size.F90 in SourceMods/src.pop2/";
+}
 
-set POP2_FOUND_d_s = 0
-set POP2_FOUND_POP_DSM = 0
+if ((-f "${my_path}/POP_DomainSizeMod.F90") && (-f "${my_path}/${OCN_GRID}_POP_DomainSizeMod.F90")) {
+    die "ERROR: you can not have both POP_DomainSizeMod.F90 and ${OCN_GRID}_POP_DomainSizeMod.F90 in SourceMods/src.pop2/"
+}
+
+my $POP2_FOUND_d_s = 0;
+my $POP2_FOUND_POP_DSM = 0;
+
 # 1) Copy (with name-change) from input templates/ if they exist
-if (-f  $CODEROOT/ocn/pop2/input_templates/${OCN_GRID}_domain_size.F90 ) then
-   cp -fp $CODEROOT/ocn/pop2/input_templates/${OCN_GRID}_domain_size.F90 domain_size.F90
-   set POP2_FOUND_d_s = 1
-endif
-if (-f $CODEROOT/ocn/pop2/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90) then 
-   cp -fp $CODEROOT/ocn/pop2/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90 POP_DomainSizeMod.F90
-   set POP2_FOUND_POP_DSM = 1
-endif
+
+if (-f  "$CODEROOT/ocn/pop2/input_templates/${OCN_GRID}_domain_size.F90" ) {
+    my $sysmod = "cp -fp $CODEROOT/ocn/pop2/input_templates/${OCN_GRID}_domain_size.F90 domain_size.F90";
+    system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+    $POP2_FOUND_d_s = 1;
+}
+if (-f "$CODEROOT/ocn/pop2/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90") {
+    my $sysmod = "cp -fp $CODEROOT/ocn/pop2/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90 POP_DomainSizeMod.F90";
+    system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+    $POP2_FOUND_POP_DSM = 1;
+}
 
 # 2) Copy everything from SourceMods over
-if (-d $my_path ) cp -fp $my_path/*.F90 .
 # If domain_size.F90 or POP_DomainSizeMod.F90 exist, they should overwrite 
 # anything copied from from input_templates/
-if (-f  ${my_path}/domain_size.F90 ) then
-   set POP2_FOUND_d_s = 1
-endif
-if (-f ${my_path}/POP_DomainSizeMod.F90) then 
-   set POP2_FOUND_POP_DSM = 1
-endif
+
+if (-d "$my_path" ) {
+    my $sysmod = "cp -fp $my_path/*.F90 .";
+    system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+}
+if (-f  "${my_path}/domain_size.F90" ) {
+    $POP2_FOUND_d_s = 1;
+}
+if (-f "${my_path}/POP_DomainSizeMod.F90") {
+    $POP2_FOUND_POP_DSM = 1;
+}
 
 # 3) If SourceMods/ contains ${OCN_GRID}_domain_size.F90 or
 #    ${OCN_GRID}_POP_DomainSizeMod.F90, those files will now exist in the
 #    current directory and need to be renamed
-if (-f  ${OCN_GRID}_domain_size.F90 ) then
-   mv -f ${OCN_GRID}_domain_size.F90 domain_size.F90
-   set POP2_FOUND_d_s = 1
-endif
-if (-f ${OCN_GRID}_POP_DomainSizeMod.F90) then
-   mv -f ${OCN_GRID}_POP_DomainSizeMod.F90 POP_DomainSizeMod.F90
-   set POP2_FOUND_POP_DSM = 1
-endif
+
+if (-f  "${OCN_GRID}_domain_size.F90" ) {
+    my $sysmod = "mv -f ${OCN_GRID}_domain_size.F90 domain_size.F90";
+    system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+    $POP2_FOUND_d_s = 1;
+}
+if (-f "${OCN_GRID}_POP_DomainSizeMod.F90") {
+    my $sysmod = "mv -f ${OCN_GRID}_POP_DomainSizeMod.F90 POP_DomainSizeMod.F90";
+    system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+    $POP2_FOUND_POP_DSM = 1;
+}
 
 # 4) Make sure both domain_size.F90 and POP_DomainSizeMod.F90 exist for the
 #    specified grid
-if (${POP2_FOUND_d_s} == 0) then
-  echo "ERROR: you need either ${OCN_GRID}_domain_size.F90 or domain_size.F90"
-  exit -1
-endif
-if (${POP2_FOUND_POP_DSM} == 0) then
-  echo "ERROR: you need either ${OCN_GRID}_POP_DomainSizeMod.F90 or " \
-       "POP_DomainSizeMod.F90"
-  exit -1
-endif
 
-echo -------------------------------------------------------------------------
-echo  Checking for any auxilliary ocean-component models before building pop2
-echo  For now - only looking for moby component
-echo -------------------------------------------------------------------------
+if (${POP2_FOUND_d_s} == 0) {
+    die "ERROR: you need either ${OCN_GRID}_domain_size.F90 or domain_size.F90";
+}
+if (${POP2_FOUND_POP_DSM} == 0) {
+    die "ERROR: you need either ${OCN_GRID}_POP_DomainSizeMod.F90 or POP_DomainSizeMod.F90";
+}
 
-setenv USE_OCN_MOBY FALSE
-foreach comp (`echo $OCN_TRACER_MODULES`)
-  if ($comp == moby) then
-    setenv USE_OCN_MOBY TRUE
-  endif
-end
+print " ------------------------------------------------------------------------- \n";
+print " Checking for any auxilliary ocean-component models before building pop2   \n";
+print " For now - only looking for moby component \n";
+print " ------------------------------------------------------------------------- \n";
 
-if ($USE_OCN_MOBY == TRUE ) then
+#setenv USE_OCN_MOBY FALSE TODO ??? - fix moby build
+my $USE_OCN_MOBY = "FALSE";
+foreach my $comp ($OCN_TRACER_MODULES) {
+    if ("$comp" eq 'moby') {
+	$USE_OCN_MOBY = "TRUE";
+    }
+}
 
-  echo -------------------------------------------------------------------------
-  echo  Building moby
-  echo -------------------------------------------------------------------------
+if ("$USE_OCN_MOBY" eq 'TRUE' ) {
+    print " ------------------------------------------------------------------------- \n";
+    print "  Building moby \n";
+    print " ------------------------------------------------------------------------- \n";
 
-  cd $CASEBUILD
-  if (-f moby.buildexe.csh) then
-    ./moby.buildexe.csh
-    if ( $status != 0 ) then
-      echo ERROR: moby.buildexe.csh failed
-      exit 18
-    endif
-  else 
-    cp $CODEROOT/ocn/pop2/aux/moby/pop2/bld/moby.buildexe.csh .
-    ./moby.buildexe.csh
-    if ( $status != 0 ) then
-      echo ERROR: moby.buildexe.csh failed
-      exit 18
-    endif
-  endif
-endif
+    chdir "$CASEBUILD";
+    if (-f "moby.buildexe") {
+	my $sysmod = "./moby.buildexe";
+	system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+    }  else  {
+	my $sysmod = "cp $CODEROOT/ocn/pop2/aux/moby/pop2/bld/moby.buildexe.csh .";
+	system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+	my $sysmod = "./moby.buildexe";
+	system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+    }
+}
 
-echo -----------------------------------------------------------------
-echo  Build pop2 library
-echo -----------------------------------------------------------------
+print " ----------------------------------------------------------------- \n";
+print "  Build pop2 library \n";
+print " ----------------------------------------------------------------- \n";
 
-cd ${OBJROOT}/ocn/obj 
+chdir "${OBJROOT}/ocn/obj ";
 
-cat >! Filepath <<EOF
-$OBJROOT/ocn/source
-EOF
+open(file,">Filepath") or die "Could not open file Filepath to write";
+print file "$OBJROOT/ocn/source \n";
+close(file);
 
-set ECOSYS_ON = FALSE
-set ECOSYS_NT = 27
-set ZOOPLANKTON_CNT = 1
-set AUTOTROPH_CNT = 3
-set GRAZER_PREY_CNT = 3
-@ NT = 2
-foreach module ( `echo $OCN_TRACER_MODULES` )  
-   if ($module =~ "iage"   )         @ NT = $NT +  1
-   if ($module =~ "cfc"    )         @ NT = $NT +  2   
-   if ($module =~ "ecosys" ) then
-      set ECOSYS_ON = TRUE
-      foreach module_opt ( `echo $OCN_TRACER_MODULES_OPT` )
-         if ( `echo $module_opt | cut -f 1 -d =` == ECOSYS_NT ) then
-            set ECOSYS_NT = `echo $module_opt | cut -f 2 -d =`
-         endif
-         if ( `echo $module_opt | cut -f 1 -d =` == ZOOPLANKTON_CNT ) then
-            set ZOOPLANKTON_CNT = `echo $module_opt | cut -f 2 -d =`
-         endif
-         if ( `echo $module_opt | cut -f 1 -d =` == AUTOTROPH_CNT ) then
-            set AUTOTROPH_CNT = `echo $module_opt | cut -f 2 -d =`
-         endif
-         if ( `echo $module_opt | cut -f 1 -d =` == GRAZER_PREY_CNT ) then
-            set GRAZER_PREY_CNT = `echo $module_opt | cut -f 2 -d =`
-         endif
-      end    
-      @ NT = $NT + $ECOSYS_NT     
-   endif
-   if ($module =~ "abio_dic_dic14" ) @ NT = $NT +  2 
-   if ($module =~ "ciso" )           @ NT = $NT + 14 
-   if ($module == moby     ) then
-      if (-e $my_path/${OCN_GRID}_data.ptracers) then
-        set dir = $my_path
-      else if (-e $CODEROOT/ocn/pop2/aux/moby/darwin/input/${OCN_GRID}_data.ptracers) then
-        set dir = $CODEROOT/ocn/pop2/aux/moby/darwin/input
-      else
-        exit 31
-      endif
-      set nt_moby = `grep PTRACERS_numInUse $dir/${OCN_GRID}_data.ptracers | cut -f 2 -d = | cut -f 1 -d","`
-      if ($status != 0) exit 32
-      @ NT = $NT + $nt_moby
-    endif
-end
+my $ECOSYS_ON = "FALSE";
+my $ECOSYS_NT = 27;
+my $ZOOPLANKTON_CNT = 1;
+my $AUTOTROPH_CNT = 3;
+my $GRAZER_PREY_CNT = 3;
+my $NT = 2;
+foreach my $module ( $OCN_TRACER_MODULES )  {
+   if ($module =~ /"iage"/ )  {
+       $NT = $NT + 1;
+   }
+   if ($module =~ /"cfc"/ ) {
+       $NT = $NT +  2;   
+   }
+   if ($module =~ /"ecosys"/ ) {
+       my $ECOSYS_ON = 'TRUE';
+       foreach my $module_opt ( $OCN_TRACER_MODULES_OPT ) {
+	   if ( `echo $module_opt | cut -f 1 -d =` ==  $ECOSYS_NT ) {
+	       $ECOSYS_NT = `echo $module_opt | cut -f 2 -d =`;
+	   }
+	   if ( `echo $module_opt | cut -f 1 -d =` == $ZOOPLANKTON_CNT ) {
+	       $ZOOPLANKTON_CNT = `echo $module_opt | cut -f 2 -d =`;
+	   }
+	   if ( `echo $module_opt | cut -f 1 -d =` == $AUTOTROPH_CNT ) {
+	       $AUTOTROPH_CNT = `echo $module_opt | cut -f 2 -d =`;
+	   }
+	   if ( `echo $module_opt | cut -f 1 -d =` == $GRAZER_PREY_CNT ) {
+	       $GRAZER_PREY_CNT = `echo $module_opt | cut -f 2 -d =`;
+	   }
+       }
+       $NT = $NT + $ECOSYS_NT;     
+   }
+   if ($module =~ /"abio_dic_dic14"/ ) {
+       $NT = $NT +  2; 
+   }
+   if ($module =~ /"ciso"/ ) {
+       $NT = $NT + 14; 
+   }
+   if ($module eq "moby" ) {
+       my $dir;
+       if (-e "$my_path/${OCN_GRID}_data.ptracers") {
+	   $dir = $my_path;
+       } elsif (-e "$CODEROOT/ocn/pop2/aux/moby/darwin/input/${OCN_GRID}_data.ptracers") {
+	   $dir = "$CODEROOT/ocn/pop2/aux/moby/darwin/input";
+       } else {
+	   die "ERROR 31";
+       }
+       my $nt_moby = `grep PTRACERS_numInUse $dir/${OCN_GRID}_data.ptracers | cut -f 2 -d = | cut -f 1 -d","`;
+       $NT = $NT + $nt_moby;
+   }
+}
 
+my $cppdefs = "-DCCSMCOUPLED -DBLCKX=$POP_BLCKX -DBLCKY=$POP_BLCKY -DMXBLCKS=$POP_MXBLCKS -DNT=$NT ";
+if ("$OCN_ICE_FORCING" eq 'inactive' ) {
+    $cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL";
+}
+if ("$OCN_GRID" =~ /tx0.1*/) {
+    $cppdefs = "$cppdefs -D_HIRES";
+}
+if ("$OCN_ICE_FORCING" eq 'inactive' ) {
+    $cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL";
+}
+if ("$POP_TAVG_R8" eq 'TRUE') {
+    $cppdefs = "$cppdefs -DTAVG_R8";
+}
+$cppdefs = "$cppdefs -DECOSYS_NT=$ECOSYS_NT";
+$cppdefs = "$cppdefs -DZOOPLANKTON_CNT=$ZOOPLANKTON_CNT";
+$cppdefs = "$cppdefs -DAUTOTROPH_CNT=$AUTOTROPH_CNT";
+$cppdefs = "$cppdefs -DGRAZER_PREY_CNT=$GRAZER_PREY_CNT";
 
-set cppdefs = "-DCCSMCOUPLED -DBLCKX=$POP_BLCKX -DBLCKY=$POP_BLCKY -DMXBLCKS=$POP_MXBLCKS -DNT=$NT "
-if ($OCN_ICE_FORCING == 'inactive' ) set cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL"
-if ($OCN_GRID =~ "tx0.1*"          ) set cppdefs = "$cppdefs -D_HIRES";
-if ($OCN_ICE_FORCING == 'inactive' ) set cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL"
-if ($POP_TAVG_R8 == 'TRUE'         ) set cppdefs = "$cppdefs -DTAVG_R8"
-set cppdefs = "$cppdefs -DECOSYS_NT=$ECOSYS_NT"
-set cppdefs = "$cppdefs -DZOOPLANKTON_CNT=$ZOOPLANKTON_CNT"
-set cppdefs = "$cppdefs -DAUTOTROPH_CNT=$AUTOTROPH_CNT"
-set cppdefs = "$cppdefs -DGRAZER_PREY_CNT=$GRAZER_PREY_CNT"
-
-cat >! $OBJROOT/ocn/obj/POP2_cppdefs.new <<EOF
-$cppdefs
-EOF
+open(file,">$OBJROOT/ocn/obj/POP2_cppdefs.new") or die "Could not open file $OBJROOT/ocn/obj/POP2_cppdefs.new to write";
+print file "$cppdefs \n";
+close(file);
 
 #  recompile if 2d decomp or NT is changed
-set recompile = FALSE
-if (-e $OBJROOT/ocn/obj/POP2_cppdefs) then
-    diff $OBJROOT/ocn/obj/POP2_cppdefs.new $OBJROOT/ocn/obj/POP2_cppdefs || set recompile = TRUE
-    echo "recompile is $recompile"
-    if ($recompile == 'TRUE') then
-      touch `grep -wl BLCKX   $OBJROOT/ocn/source/*`  # force recompile
-      touch `grep -wl BLCKY   $OBJROOT/ocn/source/*`  # force recompile
-      touch `grep -wl MXBLCKS $OBJROOT/ocn/source/*`  # force recompile
-      touch `grep -wl NT      $OBJROOT/ocn/source/*`  # force recompile
-    endif  
-endif
-cp -f $OBJROOT/ocn/obj/POP2_cppdefs.new $OBJROOT/ocn/obj/POP2_cppdefs
-set pop2defs = "`cat $OBJROOT/ocn/obj/POP2_cppdefs`"
+my $recompile = 'FALSE';
+if (-e "$OBJROOT/ocn/obj/POP2_cppdefs") {
+    if (compare("$OBJROOT/ocn/obj/POP2_cppdefs.new", "$OBJROOT/ocn/obj/POP2_cppdefs") != 0) {
+	$recompile = 'TRUE'; 
+    }
+    print "recompile is $recompile \n";
+    if ($recompile eq 'TRUE') {
+	my $sysmod = "touch `grep -wl BLCKX   $OBJROOT/ocn/source/*`";  # force recompile
+	system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+	my $sysmod = "touch `grep -wl BLCKY   $OBJROOT/ocn/source/*`";  # force recompile
+	system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+	my $sysmod = "touch `grep -wl MXBLCKS $OBJROOT/ocn/source/*`";  # force recompile
+	system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+	my $sysmod = "touch `grep -wl NT      $OBJROOT/ocn/source/*`";  # force recompile
+	system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+    }
+}
+my $sysmod = "cp -f $OBJROOT/ocn/obj/POP2_cppdefs.new $OBJROOT/ocn/obj/POP2_cppdefs";
+system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
 
-cd ${OBJROOT}/ocn/cvmix
-gmake -j $GMAKE_J -f $CASETOOLS/Makefile $LIBROOT/libcvmix.a || exit 2
-cd ${OBJROOT}/ocn/obj 
-gmake complib -j $GMAKE_J MODEL=pop2 COMPLIB=$LIBROOT/libocn.a USER_CPPDEFS="$pop2defs" -f $CASETOOLS/Makefile || exit 2
+my $pop2defs = "`cat $OBJROOT/ocn/obj/POP2_cppdefs`";
 
-echo " "
-echo ----------------------------------------------------------------------------
-echo  Note that f90 files may not exist on all machines
-echo ----------------------------------------------------------------------------
+chdir " ${OBJROOT}/ocn/cvmix";
+my $sysmod = "$GMAKE -j $GMAKE_J -f $CASETOOLS/Makefile $LIBROOT/libcvmix.a ";
+system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
 
-set f90_dir = $OBJROOT/ocn/source/f90
-if !(-d  $f90_dir ) mkdir -p $f90_dir
-mv -f *.f90 $f90_dir
+chdir " ${OBJROOT}/ocn/obj ";
+my $sysmod = "$GMAKE complib -j $GMAKE_J MODEL=pop2 COMPLIB=$LIBROOT/libocn.a USER_CPPDEFS=\"$pop2defs\" -f $CASETOOLS/Makefile"; 
+system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
 
-if !(-f $LIBROOT/libocn.a) then
-  echo "ERROR: pop2 library not available"
-  exit -1
-endif
+print " \n";
+print " ---------------------------------------------------------------------------- \n";
+print "  Note that f90 files may not exist on all machines \n";
+print " ---------------------------------------------------------------------------- \n";
+    
+my $f90_dir = "$OBJROOT/ocn/source/f90";
+if (! -d  "$f90_dir" ) {
+    my $sysmod = "mkdir -p $f90_dir";
+    system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+}
+my $sysmod = "mv -f *.f90 $f90_dir";
+system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
 
-echo " "
-echo -------------------------------------------------------------------------
-echo  Successful completion of the pop2 executable building process
-echo -------------------------------------------------------------------------
+if (! -f "$LIBROOT/libocn.a") {
+    die "ERROR: pop2 library not available"
+}
+
+print "  \n";
+print " ------------------------------------------------------------------------- \n";
+print "  Successful completion of the pop2 executable building process \n";
+print " ------------------------------------------------------------------------- \n";
+
+exit(0);
