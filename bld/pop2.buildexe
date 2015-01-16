@@ -139,15 +139,13 @@ print " Checking for any auxilliary ocean-component models before building pop2 
 print " For now - only looking for moby component \n";
 print " ------------------------------------------------------------------------- \n";
 
-#setenv USE_OCN_MOBY FALSE TODO ??? - fix moby build
-my $USE_OCN_MOBY = "FALSE";
+my $use_ocn_moby;
 foreach my $comp ($OCN_TRACER_MODULES) {
     if ("$comp" eq 'moby') {
-	$USE_OCN_MOBY = "TRUE";
+	$use_ocn_moby = "true";
     }
 }
-
-if ("$USE_OCN_MOBY" eq 'TRUE' ) {
+if ("$use_ocn_moby") {
     print " ------------------------------------------------------------------------- \n";
     print "  Building moby \n";
     print " ------------------------------------------------------------------------- \n";
@@ -239,14 +237,8 @@ if (-e "$OBJROOT/ocn/obj/POP2_cppdefs") {
     }
     print "recompile is $recompile \n";
     if ($recompile eq 'TRUE') {
-	my $sysmod = "touch `grep -wl BLCKX   $OBJROOT/ocn/source/*`";  # force recompile
-	system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
-	my $sysmod = "touch `grep -wl BLCKY   $OBJROOT/ocn/source/*`";  # force recompile
-	system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
-	my $sysmod = "touch `grep -wl MXBLCKS $OBJROOT/ocn/source/*`";  # force recompile
-	system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
-	my $sysmod = "touch `grep -wl NT      $OBJROOT/ocn/source/*`";  # force recompile
-	system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+	my $sysmod = "rm -f $OBJROOT/ocn/obj/*.o";
+	system($sysmod) == 0 or die "ERROR pop2.buildexe: $sysmod failed: $?\n";
     }
 }
 my $sysmod = "cp -f $OBJROOT/ocn/obj/POP2_cppdefs.new $OBJROOT/ocn/obj/POP2_cppdefs";
