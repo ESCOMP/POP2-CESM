@@ -1,158 +1,220 @@
-#! /bin/csh -f
+#! /usr/bin/env perl
+use strict;
 
-set CASEROOT		 = `./xmlquery CASEROOT		 -value`
-set CASEBUILD		 = `./xmlquery CASEBUILD	 -value`
-set CODEROOT		 = `./xmlquery CODEROOT		 -value`
-set CONTINUE_RUN	 = `./xmlquery CONTINUE_RUN	 -value`
-set DIN_LOC_ROOT	 = `./xmlquery DIN_LOC_ROOT	 -value`
-set EXEROOT		 = `./xmlquery EXEROOT		 -value`
-set GET_REFCASE		 = `./xmlquery GET_REFCASE	 -value`
-set NTASKS_OCN		 = `./xmlquery NTASKS_OCN	 -value`
-set NTHRDS_OCN		 = `./xmlquery NTHRDS_OCN	 -value`
-set NINST_OCN		 = `./xmlquery NINST_OCN	 -value`
-set OCN_GRID		 = `./xmlquery OCN_GRID		 -value`
-set POP_AUTO_DECOMP	 = `./xmlquery POP_AUTO_DECOMP	 -value`
-set RUN_TYPE		 = `./xmlquery RUN_TYPE		 -value`
-set RUN_REFCASE		 = `./xmlquery RUN_REFCASE	 -value`
-set RUN_REFDATE		 = `./xmlquery RUN_REFDATE	 -value`
-set RUNDIR		 = `./xmlquery RUNDIR		 -value`
-set UTILROOT		 = `./xmlquery UTILROOT		 -value`
-set SCRIPTSROOT		 = `./xmlquery SCRIPTSROOT	 -value`
+if ($#ARGV == -1) {
+    die " ERROR pop2.buildnml: must specify a caseroot input argument";
+}
+my ($CASEROOT) = @ARGV;
+chdir "${CASEROOT}";
 
-if !(-d $EXEROOT/ocn/obj   ) mkdir -p $EXEROOT/ocn/obj    || exit 2
-if !(-d $EXEROOT/ocn/source) mkdir -p $EXEROOT/ocn/source || exit 3 
+my @dirs = ("$CASEROOT/Tools");
+unshift @INC, @dirs;
+require SetupTools;
+my $sysmod; 
 
-if ($POP_AUTO_DECOMP == 'true') then
-  @ ntasks = $NTASKS_OCN / $NINST_OCN
-  cd $CASEBUILD
-  set config = `env UTILROOT=$UTILROOT ./generate_pop_decomp.pl -res $OCN_GRID \
-                                 -nproc $ntasks -thrds $NTHRDS_OCN -output all`
-  cd $CASEROOT 
-  if ($config[1] >= 0) then
-    # Make this all one command, because xmlchange init is slow.
-    ./xmlchange POP_BLCKX=$config[3],POP_BLCKY=$config[4],POP_MXBLCKS=$config[5],POP_DECOMPTYPE=$config[6],POP_NX_BLOCKS=$config[7],POP_NY_BLOCKS=$config[8] || exit -1
-    # need to do this since env_build.xml just changed
-    source $CASEROOT/Tools/ccsm_getenv
-  else
-    echo "ERROR configure: pop decomp not set for $OCN_GRID on $ntasks x       \
-                           $NTHRDS_OCN procs"
-    exit -1
-  endif
-endif
+my $CASEROOT			= `./xmlquery CASEROOT			-value`;
+my $CASEBUILD			= `./xmlquery CASEBUILD		        -value`;
+my $CODEROOT			= `./xmlquery CODEROOT			-value`;
+my $CONTINUE_RUN		= `./xmlquery CONTINUE_RUN		-value`;
+my $DIN_LOC_ROOT		= `./xmlquery DIN_LOC_ROOT		-value`;
+my $EXEROOT			= `./xmlquery EXEROOT			-value`;
+my $GET_REFCASE			= `./xmlquery GET_REFCASE		-value`;
+my $NTASKS_OCN			= `./xmlquery NTASKS_OCN		-value`;
+my $NTHRDS_OCN			= `./xmlquery NTHRDS_OCN		-value`;
+my $NINST_OCN			= `./xmlquery NINST_OCN		        -value`;
+my $OCN_GRID			= `./xmlquery OCN_GRID			-value`;
+my $OCN_TAVG_TRACER_BUDGET	= `./xmlquery OCN_TAVG_TRACER_BUDGET	-value`;
+my $POP_AUTO_DECOMP		= `./xmlquery POP_AUTO_DECOMP		-value`;
+my $RUN_TYPE			= `./xmlquery RUN_TYPE			-value`;
+my $RUN_REFCASE			= `./xmlquery RUN_REFCASE		-value`;
+my $RUN_REFDATE			= `./xmlquery RUN_REFDATE		-value`;
+my $RUNDIR			= `./xmlquery RUNDIR			-value`;
+my $UTILROOT			= `./xmlquery UTILROOT			-value`;
+my $SCRIPTSROOT			= `./xmlquery SCRIPTSROOT		-value`;
 
-if !(-d $CASEBUILD/pop2conf) mkdir $CASEBUILD/pop2conf || exit 1
-cd $CASEBUILD/pop2conf || exit -1
+if (! -d "$EXEROOT/ocn/obj" ) {
+    $sysmod = "mkdir -p $EXEROOT/ocn/obj";
+    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+}
+if (! -d "$EXEROOT/ocn/source") {
+    $sysmod = "mkdir -p $EXEROOT/ocn/source";
+    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+}
+if (! -d "$CASEBUILD/pop2conf" ) {
+    $sysmod = "mkdir $CASEBUILD/pop2conf";
+    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+}
 
-if (($GET_REFCASE == 'TRUE') && ($RUN_TYPE != 'startup') &&                    \
-    ($CONTINUE_RUN == 'FALSE')) then
-  # During prestage step, rpointer files are copied from refdir
-  # Get rid of old rpointer files if they exist and copy them 
-  # independently of the prestage.  This is needed for rerunability
-  # of cases from REFCASE data for first run
-  rm -f $RUNDIR/rpointer.ocn* >&! /dev/null
-  set refdir = "ccsm4_init/$RUN_REFCASE/$RUN_REFDATE"
-  cp -f $DIN_LOC_ROOT/$refdir/rpointer.ocn* $RUNDIR/
-  chmod u+w $RUNDIR/rpointer.ocn* >&! /dev/null
-endif
+chdir "$CASEBUILD/pop2conf";
 
-set default_ocn_in_filename = "pop2_in"
-set inst_counter = 1
+#--------------------------------------------------------------------
+# determine pop2 configuration
+#--------------------------------------------------------------------
 
-while ($inst_counter <= $NINST_OCN)
+if ($POP_AUTO_DECOMP eq 'true') {
+    my $ntasks = $NTASKS_OCN / $NINST_OCN;
+    chdir "$CASEBUILD";
+    my $config_args = `env UTILROOT=$UTILROOT ./generate_pop_decomp.pl -res $OCN_GRID -nproc $ntasks -thrds $NTHRDS_OCN -output all`;
+    my @config = split(/\s/, $config_args);
+    chdir "$CASEROOT";
+    if ($config[0] >= 0) {
+	$sysmod = "./xmlchange POP_BLCKX=$config[2],POP_BLCKY=$config[3],POP_MXBLCKS=$config[4],POP_DECOMPTYPE=$config[5],POP_NX_BLOCKS=$config[6],POP_NY_BLOCKS=$config[7]";
+	system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+    } else {
+	die "ERROR pop2.buildnml: pop decomp not set for $OCN_GRID on $ntasks x  $NTHRDS_OCN procs \n";
+    }
+}
 
-  if ($NINST_OCN > 1) then
-    set inst_string = `printf _%04d $inst_counter`
-  else
-    set inst_string = ""
-  endif
-  
-  set ocn_in_filename = ${default_ocn_in_filename}${inst_string}
-  
-  if ($NINST_OCN > 1) then
-    # If multi-instance case does not have restart file, use single-case restart
-    # for each instance
-    foreach suffix ( ovf restart tavg )
-      echo "Looking to see if rpointer.ocn.${suffix} exists and rpointer.ocn${inst_string}.${suffix} does not..."
-      if (! -e $RUNDIR/rpointer.ocn${inst_string}.${suffix} && -e $RUNDIR/rpointer.ocn.${suffix}) then
-        cp -v $RUNDIR/rpointer.ocn.${suffix} $RUNDIR/rpointer.ocn${inst_string}.${suffix}
-      endif
-    end # foreach
-  endif
-
-  # env variable declaring type of restart file (nc vs bin) is not in any xml files
-  # but is needed by pop's build-namelist; it comes from rpointer.ocn.restart, which
-  # is in $RUNDIR for continued runs, but is in $refdir for hybrid / branch runs
-  # that are not continuations
-  setenv RESTART_INPUT_TS_FMT 'bin'
-  if ($RUN_TYPE == startup && $CONTINUE_RUN == 'FALSE') then
-    set check_pointer_file = 'FALSE'
-  else
-    set check_pointer_file = 'TRUE'
-  endif
-  
-  if (($GET_REFCASE == 'TRUE') && ($RUN_TYPE != 'startup') && ($CONTINUE_RUN == 'FALSE')) then
+if (($GET_REFCASE eq 'TRUE') && ($RUN_TYPE ne 'startup') && ($CONTINUE_RUN eq 'FALSE')) {
     # During prestage step, rpointer files are copied from refdir
-    set refdir = "ccsm4_init/$RUN_REFCASE/$RUN_REFDATE"
-    set pointer_file = "$DIN_LOC_ROOT/$refdir/rpointer.ocn${inst_string}.restart"
-    if (! -e $pointer_file) then
-      set pointer_file = "$RUNDIR/rpointer.ocn${inst_string}.restart"
-    endif
-  else
-    set pointer_file = "$RUNDIR/rpointer.ocn${inst_string}.restart"
-  endif
+    # Get rid of old rpointer files if they exist and copy them 
+    # independently of the prestage.  This is needed for rerunability
+    # of cases from REFCASE data for first run
+    $sysmod = "  rm -f $RUNDIR/rpointer.ocn* >&! /dev/null";
+    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+
+    my $refdir = "ccsm4_init/$RUN_REFCASE/$RUN_REFDATE";
+    $sysmod = "cp -f $DIN_LOC_ROOT/$refdir/rpointer.ocn* $RUNDIR/.";
+    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+
+    $sysmod = "chmod u+w $RUNDIR/rpointer.ocn* >&! /dev/null";
+    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+}
+
+#--------------------------------------------------------------------
+# Invoke pop2 build-namelist - output will go in $CASEBUILD/pop2conf
+#--------------------------------------------------------------------
+
+chdir "$CASEBUILD/pop2conf";
+
+my $inst_string;
+my $inst_counter = 1;
+while ($inst_counter <= $NINST_OCN) {
+
+    # -----------------------------------------------------
+    # determine instance string 
+    # -----------------------------------------------------
+
+    $inst_string = "";       
+    if ($NINST_OCN > 1) {
+	$inst_string = `printf _%04d $inst_counter`;
+    
+	# If multi-instance case does not have restart file, use single-case restart for each instance
+	foreach my $suffix ( "ovf", "restart", "tavg" ) {
+	    print "Looking to see if rpointer.ocn.${suffix} exists and rpointer.ocn${inst_string}.${suffix} does not... \n";
+	    if ( (! -e "$RUNDIR/rpointer.ocn${inst_string}.${suffix}") && (-e "$RUNDIR/rpointer.ocn.${suffix}") ) {
+		$sysmod = "cp -v $RUNDIR/rpointer.ocn.${suffix} $RUNDIR/rpointer.ocn${inst_string}.${suffix}";
+		system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+	    }
+	}
+    }
+
+    # -----------------------------------------------------
+    # create pop2conf/cesm_namelist
+    # -----------------------------------------------------
+
+    open(file_cesm_namelist,">$CASEBUILD/pop2conf/cesm_namelist") or die "Could not open file $CASEBUILD/pop2conf/cesm_namelist to write";
+    print file_cesm_namelist "\&pop2_inparm \n";
+
+    # parse the target user_nl_pop2(_nnnn) file and add the relevant contents to pop2conf/cesm_namelist
+    open( file_usernl,"<$CASEROOT/user_nl_pop2${inst_string}") or die "** can't open file: $CASEROOT/user_nl_pop2${inst_string}\n";
+    while (my $line = <file_usernl>) {
+	if ($line =~ /^[\&\/\!]/ ) {
+	    next; # do nothing
+	} elsif ($line =~ /\$([\w\_]+)/) {
+	    my $var = $1;
+	    my $xmlhash;
+	    SetupTools::getxmlvars($CASEROOT, $xmlhash);
+	    $line = SetupTools::expand_env_var($line,$xmlhash);
+	}
+	print file_cesm_namelist "$line";
+    }
+    close(file_usernl);
+    
+    print file_cesm_namelist "\/ \n";
+    close(file_cesm_namelist);
+
+    # -----------------------------------------------------
+    # env variable declaring type of pop restart file (nc vs bin) 
+    # -----------------------------------------------------
+
+    # RESTART_INPUT_TS_FMT is needed by pop's build-namelist and is not in any xml files; 
+    # it comes from rpointer.ocn.restart, which is in $RUNDIR for continued runs, 
+    # but is in $refdir for hybrid / branch runs that are not continuations
+
+    my $check_pointer_file = 'TRUE';
+    if (($RUN_TYPE eq 'startup') && ($CONTINUE_RUN eq 'FALSE')) {$check_pointer_file = 'FALSE';}
   
-  if ($check_pointer_file == 'TRUE') then
-    grep 'RESTART_FMT=' $pointer_file >&! /dev/null
-    if ($status == 0) then
-      echo "Getting init_ts_file_fmt from $pointer_file"
-      setenv RESTART_INPUT_TS_FMT `grep RESTART_FMT= $pointer_file | cut -c13-15`
-    endif
-  endif
-
-  if (-e $CASEROOT/user_nl_pop2${inst_string})                                 \
-    $UTILROOT/Tools/user_nlcreate                                              \
-               -user_nl_file $CASEROOT/user_nl_pop2${inst_string}              \
-               -namelist_name pop2_inparm >! $CASEBUILD/pop2conf/cesm_namelist 
+    my $pointer_file = "$RUNDIR/rpointer.ocn${inst_string}.restart";
+    if (($GET_REFCASE == 'TRUE') && ($RUN_TYPE != 'startup') && ($CONTINUE_RUN == 'FALSE')) {
+	# During prestage step, rpointer files are copied from refdir
+	my $refdir = "ccsm4_init/$RUN_REFCASE/$RUN_REFDATE";
+	my $pointer_file = "$DIN_LOC_ROOT/$refdir/rpointer.ocn${inst_string}.restart";
+	if (! -e "$pointer_file") { $pointer_file = "$RUNDIR/rpointer.ocn${inst_string}.restart";}
+    }
   
-  # Check to see if "-preview" flag should be passed
-  if ( $?PREVIEW_NML ) then
-    set PREVIEW_FLAG = "-preview"
-  else
-    set PREVIEW_FLAG = ""
-  endif
+    $ENV{'RESTART_INPUT_TS_FMT'} = 'bin'; 
+    if ($check_pointer_file eq 'TRUE')  {
+	$sysmod = "grep 'RESTART_FMT=' $pointer_file >&! /dev/null";
+	if (system($sysmod) == 0) {
+	    print "Getting init_ts_file_fmt from $pointer_file \n";
+	    $ENV{'RESTART_INPUT_TS_FMT'}  = `grep RESTART_FMT= $pointer_file | cut -c13-15`;
+	}
+    }
 
-  # Check to see if build-namelist exists in SourceMods
-  if (-e $CASEROOT/SourceMods/src.pop2/build-namelist) then
-    set BLD_NML_DIR = $CASEROOT/SourceMods/src.pop2
-    set CFG_FLAG = "-cfg_dir $CODEROOT/ocn/pop2/bld"
-  else
-    set BLD_NML_DIR = $CODEROOT/ocn/pop2/bld
-    set CFG_FLAG = ""
-  endif
+    # -----------------------------------------------------
+    # call build-namelist- output will go in $CASEBUILD/pop2conf/ocn_in
+    # -----------------------------------------------------
+    
+    # Check to see if "-preview" flag should be passed
+    my $preview_flag = "";
+    if ( $ENV{'PREVIEW_NML'} ) {$preview_flag = "-preview"};
+    
+    # Check to see if build-namelist exists in SourceMods
+    
+    my $bld_nml_dir = "$CODEROOT/ocn/pop2/bld";
+    my $cfg_flag = "";
+    if (-e "$CASEROOT/SourceMods/src.pop2/build-namelist") {
+	$bld_nml_dir = "$CASEROOT/SourceMods/src.pop2";
+	$cfg_flag = "-cfg_dir $CODEROOT/ocn/pop2/bld";
+    }
   
-  $BLD_NML_DIR/build-namelist $CFG_FLAG $PREVIEW_FLAG                          \
-            -infile $CASEBUILD/pop2conf/cesm_namelist                          \
-            -caseroot $CASEROOT                                                \
-            -casebuild $CASEBUILD                                              \
-            -scriptsroot $SCRIPTSROOT \
-            -inst_string "$inst_string" \
-            -ocn_grid "$OCN_GRID" || exit -1  
+    # Note that the following two environment variables are needed by the csh template scripts 
+    # called by build-namelist
+    $sysmod = "env OCN_GRID=$OCN_GRID env OCN_TAVG_TRACER_BUDGET=$OCN_TAVG_TRACER_BUDGET $bld_nml_dir/build-namelist $cfg_flag $preview_flag";
+    $sysmod = "$sysmod -infile $CASEBUILD/pop2conf/cesm_namelist";
+    $sysmod = "$sysmod -caseroot $CASEROOT"; 
+    $sysmod = "$sysmod -casebuild $CASEBUILD";
+    $sysmod = "$sysmod -scriptsroot $SCRIPTSROOT";
+    $sysmod = "$sysmod -inst_string \"$inst_string\"";
+    $sysmod = "$sysmod -ocn_grid \"$OCN_GRID\"";
+    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
 
-  if (-d ${RUNDIR}) then
-    cp $CASEBUILD/pop2conf/pop2_in ${RUNDIR}/$ocn_in_filename || exit -2
-  endif
+    # -----------------------------------------------------
+    # Copy resolved namelist to $RUNDIR
+    # -----------------------------------------------------
 
-  if (-f $RUNDIR/pop2_in${inst_string})                                        \
-    rm $RUNDIR/pop2_in${inst_string}
+    if (-f "$RUNDIR/pop2_in${inst_string}") {
+	$sysmod = "rm $RUNDIR/pop2_in${inst_string}";
+	system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
 
-  cp -fp $CASEBUILD/pop2conf/pop2_in                                           \
-         ${RUNDIR}/pop2_in${inst_string}
-  cp -fp $CASEBUILD/pop2conf/${OCN_GRID}_tavg_contents                         \
-         ${RUNDIR}/${OCN_GRID}_tavg_contents
+	$sysmod = "cp -fp $CASEBUILD/pop2conf/pop2_in ${RUNDIR}/pop2_in${inst_string}";
+	system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
 
-  @ inst_counter = $inst_counter + 1
+	$sysmod = "cp -fp $CASEBUILD/pop2conf/${OCN_GRID}_tavg_contents ${RUNDIR}/${OCN_GRID}_tavg_contents";
+	system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+    }
 
-end  # inst_counter
+    # -----------------------------------------------------
+    # increment instance counter
+    # -----------------------------------------------------
+
+    $inst_counter = $inst_counter + 1;
+
+}
+
+exit (0);
+
 
 
 

@@ -1771,8 +1771,9 @@ if (-f "${my_path}/$file"){
 system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 
 # 1.b. read in pop2conf/base.tavg.nml file and fill in %tavg_nml entries
+my $file = "${CASEBUILD}/pop2conf/base.tavg.nml";
 my $fh_in = new IO::File;
-$fh_in->open("<$CASEBUILD/pop2conf/base.tavg.nml") or die "** can't open filepath file: $\n";
+$fh_in->open("<$file") or die "** can't open file $file $\n";
 my $line;
 my $numcols;
 while ($line = <$fh_in> )  {
@@ -1871,7 +1872,7 @@ for my $module (@OCN_TRACER_MODULES) {
   # Create new tracer stream namelists - if appropriate
   if (-f "${CASEBUILD}/pop2conf/${module}.tavg.nml") {
     my $fh_in = new IO::File;
-    $fh_in->open("<${CASEBUILD}/pop2conf/$module.tavg.nml") or die "** can't open filepath file: $\n";
+    $fh_in->open("<${CASEBUILD}/pop2conf/$module.tavg.nml") or die "** can't open file ${CASEBUILD}/pop2conf/$module.tavg.nml \n";
     my $line;
     while ($line = <$fh_in> )  {
       chomp($line);
