@@ -15,13 +15,6 @@ my $OBJROOT			= `./xmlquery OBJROOT			-value`;
 my $CASETOOLS			= `./xmlquery CASETOOLS			-value`;
 my $OCN_GRID			= `./xmlquery OCN_GRID			-value`;
 my $OCN_TRACER_MODULES		= `./xmlquery OCN_TRACER_MODULES	-value`;
-my $OCN_TRACER_MODULES_OPT	= `./xmlquery OCN_TRACER_MODULES_OPT	-value`;
-my $OCN_ICE_FORCING		= `./xmlquery OCN_ICE_FORCING		-value`;
-my $OCN_GRID			= `./xmlquery OCN_GRID			-value`;
-my $POP_TAVG_R8			= `./xmlquery POP_TAVG_R8		-value`;
-my $POP_BLCKX			= `./xmlquery POP_BLCKX			-value`;
-my $POP_BLCKY			= `./xmlquery POP_BLCKY			-value`;
-my $POP_MXBLCKS			= `./xmlquery POP_MXBLCKS		-value`;
 my $GMAKE_J			= `./xmlquery GMAKE_J			-value`;
 my $GMAKE			= `./xmlquery GMAKE			-value`;
 
@@ -139,102 +132,32 @@ print " Checking for any auxilliary ocean-component models before building pop2 
 print " For now - only looking for moby component \n";
 print " ------------------------------------------------------------------------- \n";
 
-my $use_ocn_moby;
 foreach my $comp ($OCN_TRACER_MODULES) {
-    if ("$comp" eq 'moby') {
-	$use_ocn_moby = "true";
-    }
-}
-if ("$use_ocn_moby") {
-    print " ------------------------------------------------------------------------- \n";
-    print "  Building moby \n";
-    print " ------------------------------------------------------------------------- \n";
+    if ("$comp" =~ 'moby') {
+	print " ------------------------------------------------------------------------- \n";
+	print "  Building moby \n";
+	print " ------------------------------------------------------------------------- \n";
 
-    chdir "$CASEBUILD";
-    if (! -f "moby.buildexe") {
-	my $sysmod = "cp $CODEROOT/ocn/pop2/aux/moby/pop2/bld/moby.buildexe.csh .";
+	chdir "$CASEBUILD";
+	if (! -f "moby.buildexe") {
+	    my $sysmod = "cp $CODEROOT/ocn/pop2/aux/moby/pop2/bld/moby.buildexe.csh .";
+	    system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+	}
+	my $sysmod = "./moby.buildexe";
 	system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
     }
-    my $sysmod = "./moby.buildexe";
-    system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
 }
 
-print " ----------------------------------------------------------------- \n";
-print "  Build pop2 library \n";
-print " ----------------------------------------------------------------- \n";
-
-chdir "${OBJROOT}/ocn/obj";
-
-open(file,">Filepath") or die "Could not open file Filepath to write";
-print file "$OBJROOT/ocn/source \n";
-close(file);
-
-my $ECOSYS_NT       = 27;
-my $ZOOPLANKTON_CNT = 1;
-my $AUTOTROPH_CNT   = 3;
-my $GRAZER_PREY_CNT = 3;
-
-my $NT = 2;
-foreach my $module ( $OCN_TRACER_MODULES )  {
-    if ($module eq "iage"		) {$NT = $NT +  1;}
-    if ($module eq "cfc"		) {$NT = $NT +  2;}   
-    if ($module eq "abio_dic_dic14"	) {$NT = $NT +  2;}
-    if ($module eq "ciso"		) {$NT = $NT + 14;}
-
-    if ($module =~ /"ecosys"/		) {
-	foreach my $module_opt ( $OCN_TRACER_MODULES_OPT ) {
-	   if ( `echo $module_opt | cut -f 1 -d =` eq "ECOSYS_NT" ) {
-	       $ECOSYS_NT = `echo $module_opt | cut -f 2 -d =`;
-	   }
-	   if ( `echo $module_opt | cut -f 1 -d =` eq "ZOOPLANKTON_CNT" ) {
-	       $ZOOPLANKTON_CNT = `echo $module_opt | cut -f 2 -d =`;
-	   }
-	   if ( `echo $module_opt | cut -f 1 -d =` eq "AUTOTROPH_CNT" ) {
-	       $AUTOTROPH_CNT = `echo $module_opt | cut -f 2 -d =`;
-	   }
-	   if ( `echo $module_opt | cut -f 1 -d =` eq "GRAZER_PREY_CNT" ) {
-	       $GRAZER_PREY_CNT = `echo $module_opt | cut -f 2 -d =`;
-	   }
-	}
-	$NT = $NT + $ECOSYS_NT;     
-    }
-
-    if ($module eq "moby" ) {
-	my $dir;
-	if (-e "$my_path/${OCN_GRID}_data.ptracers") {
-	   $dir = $my_path;
-	} elsif (-e "$CODEROOT/ocn/pop2/aux/moby/darwin/input/${OCN_GRID}_data.ptracers") {
-	    $dir = "$CODEROOT/ocn/pop2/aux/moby/darwin/input";
-	} else {
-	    die "ERROR 31";
-	}
-	my $nt_moby = `grep PTRACERS_numInUse $dir/${OCN_GRID}_data.ptracers | cut -f 2 -d = | cut -f 1 -d","`;
-	$NT = $NT + $nt_moby;
-    }
-}
-
-my $cppdefs = "-DCCSMCOUPLED -DBLCKX=$POP_BLCKX -DBLCKY=$POP_BLCKY -DMXBLCKS=$POP_MXBLCKS -DNT=$NT ";
-
-if ("$OCN_ICE_FORCING" eq 'inactive'	) {$cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL";}
-if ("$OCN_GRID" =~ /tx0.1*/		) {$cppdefs = "$cppdefs -D_HIRES";}
-if ("$OCN_ICE_FORCING" eq 'inactive'	) {$cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL";}
-if ("$POP_TAVG_R8" eq 'TRUE'		) {$cppdefs = "$cppdefs -DTAVG_R8";}
-
-$cppdefs = "$cppdefs -DECOSYS_NT=$ECOSYS_NT";
-$cppdefs = "$cppdefs -DZOOPLANKTON_CNT=$ZOOPLANKTON_CNT";
-$cppdefs = "$cppdefs -DAUTOTROPH_CNT=$AUTOTROPH_CNT";
-$cppdefs = "$cppdefs -DGRAZER_PREY_CNT=$GRAZER_PREY_CNT";
-
-open(file,">$OBJROOT/ocn/obj/POP2_cppdefs.new") or die "Could not open file $OBJROOT/ocn/obj/POP2_cppdefs.new to write";
-print file "$cppdefs \n";
-close(file);
-
-#  recompile if 2d decomp or NT is changed
+#-------------------------------------------------------------- 
+#  force gmake to recompile if any of the cppdefs are different 
+#-------------------------------------------------------------- 
 my $recompile = 'FALSE';
 if (-e "$OBJROOT/ocn/obj/POP2_cppdefs") {
     if (compare("$OBJROOT/ocn/obj/POP2_cppdefs.new", "$OBJROOT/ocn/obj/POP2_cppdefs") != 0) {
 	$recompile = 'TRUE'; 
     }
+    # NOTE - the following remove statements are what force pop to recompile if
+    # the cppdefs are different
     print "recompile is $recompile \n";
     if ($recompile eq 'TRUE') {
 	my $sysmod = "rm -f $OBJROOT/ocn/obj/*.o";
@@ -244,14 +167,25 @@ if (-e "$OBJROOT/ocn/obj/POP2_cppdefs") {
 my $sysmod = "cp -f $OBJROOT/ocn/obj/POP2_cppdefs.new $OBJROOT/ocn/obj/POP2_cppdefs";
 system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
 
-my $pop2defs = "`cat $OBJROOT/ocn/obj/POP2_cppdefs`";
+chdir $CASEROOT;
+my $cppdefs = `./xmlquery POP_CPPDEFS -value`;
+chomp($cppdefs);
+
+print " ----------------------------------------------------------------- \n";
+print "  Build pop2 library \n";
+print " ----------------------------------------------------------------- \n";
+
+chdir "${OBJROOT}/ocn/obj";
+open(file,">Filepath") or die "Could not open file Filepath to write";
+print file "$OBJROOT/ocn/source \n";
+close(file);
 
 chdir "${OBJROOT}/ocn/cvmix";
 my $sysmod = "$GMAKE -j $GMAKE_J -f $CASETOOLS/Makefile $LIBROOT/libcvmix.a ";
 system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
 
 chdir "${OBJROOT}/ocn/obj";
-my $sysmod = "$GMAKE complib -j $GMAKE_J MODEL=pop2 COMPLIB=$LIBROOT/libocn.a USER_CPPDEFS=\"$pop2defs\" -f $CASETOOLS/Makefile"; 
+my $sysmod = "$GMAKE complib -j $GMAKE_J MODEL=pop2 COMPLIB=$LIBROOT/libocn.a USER_CPPDEFS=\"$cppdefs\" -f $CASETOOLS/Makefile"; 
 system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
 
 print " \n";

@@ -15,6 +15,9 @@ my $sysmod;
 my $CASEROOT			= `./xmlquery CASEROOT			-value`;
 my $CASEBUILD			= `./xmlquery CASEBUILD		        -value`;
 my $CODEROOT			= `./xmlquery CODEROOT			-value`;
+my $LIBROOT			= `./xmlquery LIBROOT			-value`;
+my $OBJROOT			= `./xmlquery OBJROOT			-value`;
+my $CASETOOLS			= `./xmlquery CASETOOLS			-value`;
 my $CONTINUE_RUN		= `./xmlquery CONTINUE_RUN		-value`;
 my $DIN_LOC_ROOT		= `./xmlquery DIN_LOC_ROOT		-value`;
 my $EXEROOT			= `./xmlquery EXEROOT			-value`;
@@ -23,8 +26,15 @@ my $NTASKS_OCN			= `./xmlquery NTASKS_OCN		-value`;
 my $NTHRDS_OCN			= `./xmlquery NTHRDS_OCN		-value`;
 my $NINST_OCN			= `./xmlquery NINST_OCN		        -value`;
 my $OCN_GRID			= `./xmlquery OCN_GRID			-value`;
+my $OCN_TRACER_MODULES		= `./xmlquery OCN_TRACER_MODULES	-value`;
+my $OCN_TRACER_MODULES_OPT	= `./xmlquery OCN_TRACER_MODULES_OPT	-value`;
 my $OCN_TAVG_TRACER_BUDGET	= `./xmlquery OCN_TAVG_TRACER_BUDGET	-value`;
+my $OCN_ICE_FORCING		= `./xmlquery OCN_ICE_FORCING		-value`;
 my $POP_AUTO_DECOMP		= `./xmlquery POP_AUTO_DECOMP		-value`;
+my $POP_BLCKX			= `./xmlquery POP_BLCKX			-value`;
+my $POP_BLCKY			= `./xmlquery POP_BLCKY			-value`;
+my $POP_MXBLCKS			= `./xmlquery POP_MXBLCKS		-value`;
+my $POP_TAVG_R8			= `./xmlquery POP_TAVG_R8		-value`;
 my $RUN_TYPE			= `./xmlquery RUN_TYPE			-value`;
 my $RUN_REFCASE			= `./xmlquery RUN_REFCASE		-value`;
 my $RUN_REFDATE			= `./xmlquery RUN_REFDATE		-value`;
@@ -48,7 +58,9 @@ if (! -d "$CASEBUILD/pop2conf" ) {
 chdir "$CASEBUILD/pop2conf";
 
 #--------------------------------------------------------------------
-# determine pop2 configuration
+# determine pop2 build time settings 
+# this will potentially change values in env_build.xml 
+# and  will determine if need to rebuild before continuing
 #--------------------------------------------------------------------
 
 if ($POP_AUTO_DECOMP eq 'true') {
@@ -58,12 +70,30 @@ if ($POP_AUTO_DECOMP eq 'true') {
     my @config = split(/\s/, $config_args);
     chdir "$CASEROOT";
     if ($config[0] >= 0) {
-	$sysmod = "./xmlchange POP_BLCKX=$config[2],POP_BLCKY=$config[3],POP_MXBLCKS=$config[4],POP_DECOMPTYPE=$config[5],POP_NX_BLOCKS=$config[6],POP_NY_BLOCKS=$config[7]";
+	$sysmod = "./xmlchange POP_BLCKX=$config[2]";
+	system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+	$sysmod = "./xmlchange POP_BLCKY=$config[3]";
+	system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+	$sysmod = "./xmlchange POP_MXBLCKS=$config[4]";
+	system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+	$sysmod = "./xmlchange POP_DECOMPTYPE=$config[5]";
+	system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+	$sysmod = "./xmlchange POP_NX_BLOCKS=$config[6]";
+	system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+	$sysmod = "./xmlchange POP_NY_BLOCKS=$config[7]";
 	system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
     } else {
 	die "ERROR pop2.buildnml: pop decomp not set for $OCN_GRID on $ntasks x  $NTHRDS_OCN procs \n";
     }
 }
+
+# create POP_CPPDEFS (cpp definitions) in env_build.xml
+chdir "$CASEBUILD";
+generate_pop_cppdefs($CASEROOT);
+
+#--------------------------------------------------------------------
+# Obtain correct pop rpointer files
+#--------------------------------------------------------------------
 
 if (($GET_REFCASE eq 'TRUE') && ($RUN_TYPE ne 'startup') && ($CONTINUE_RUN eq 'FALSE')) {
     # During prestage step, rpointer files are copied from refdir
@@ -181,7 +211,7 @@ while ($inst_counter <= $NINST_OCN) {
   
     # Note that the following two environment variables are needed by the csh template scripts 
     # called by build-namelist
-    $sysmod = "env OCN_GRID=$OCN_GRID env OCN_TAVG_TRACER_BUDGET=$OCN_TAVG_TRACER_BUDGET $bld_nml_dir/build-namelist $cfg_flag $preview_flag";
+    $sysmod = "$bld_nml_dir/build-namelist $cfg_flag $preview_flag";
     $sysmod = "$sysmod -infile $CASEBUILD/pop2conf/cesm_namelist";
     $sysmod = "$sysmod -caseroot $CASEROOT"; 
     $sysmod = "$sysmod -casebuild $CASEBUILD";
@@ -194,14 +224,11 @@ while ($inst_counter <= $NINST_OCN) {
     # Copy resolved namelist to $RUNDIR
     # -----------------------------------------------------
 
-    if (-f "$RUNDIR/pop2_in${inst_string}") {
-	$sysmod = "rm $RUNDIR/pop2_in${inst_string}";
+    if (-d ${RUNDIR}) {
+	$sysmod = "cp -fp $CASEBUILD/pop2conf/pop2_in   ${RUNDIR}/pop2_in${inst_string}";
 	system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
 
-	$sysmod = "cp -fp $CASEBUILD/pop2conf/pop2_in ${RUNDIR}/pop2_in${inst_string}";
-	system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
-
-	$sysmod = "cp -fp $CASEBUILD/pop2conf/${OCN_GRID}_tavg_contents ${RUNDIR}/${OCN_GRID}_tavg_contents";
+	$sysmod = "cp -fp $CASEBUILD/pop2conf/${OCN_GRID}_tavg_contents   ${RUNDIR}/${OCN_GRID}_tavg_contents";
 	system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
     }
 
@@ -215,6 +242,82 @@ while ($inst_counter <= $NINST_OCN) {
 
 exit (0);
 
+sub generate_pop_cppdefs{
+    #-------------------------------------------------------------- 
+    # determine number of tracers
+    #-------------------------------------------------------------- 
+    my $ECOSYS_NT       = 27;
+    my $ZOOPLANKTON_CNT = 1;
+    my $AUTOTROPH_CNT   = 3;
+    my $GRAZER_PREY_CNT = 3;
+
+    my $NT = 2;
+    foreach my $module ( $OCN_TRACER_MODULES )  {
+	if ($module =~ "iage"		) {$NT = $NT +  1;}
+	if ($module =~ "cfc"		) {$NT = $NT +  2;}   
+	if ($module =~ "abio_dic_dic14"	) {$NT = $NT +  2;}
+	if ($module =~ "ciso"		) {$NT = $NT + 14;}
+	
+	if ($module =~ /"ecosys"/		) {
+	    foreach my $module_opt ( $OCN_TRACER_MODULES_OPT ) {
+		if ( `echo $module_opt | cut -f 1 -d =` eq "ECOSYS_NT" ) {
+		    $ECOSYS_NT = `echo $module_opt | cut -f 2 -d =`;
+		}
+		if ( `echo $module_opt | cut -f 1 -d =` eq "ZOOPLANKTON_CNT" ) {
+		    $ZOOPLANKTON_CNT = `echo $module_opt | cut -f 2 -d =`;
+		}
+		if ( `echo $module_opt | cut -f 1 -d =` eq "AUTOTROPH_CNT" ) {
+		    $AUTOTROPH_CNT = `echo $module_opt | cut -f 2 -d =`;
+		}
+		if ( `echo $module_opt | cut -f 1 -d =` eq "GRAZER_PREY_CNT" ) {
+		    $GRAZER_PREY_CNT = `echo $module_opt | cut -f 2 -d =`;
+		}
+	    }
+	    $NT = $NT + $ECOSYS_NT;     
+	}
+	
+	if ($module eq "moby" ) {
+	    my $dir;
+	    if (-e "$CASEROOT/SourceMods/src.pop2/${OCN_GRID}_data.ptracers") {
+		$dir = "$CASEROOT/SourceMods/src.pop2";
+	    } elsif (-e "$CODEROOT/ocn/pop2/aux/moby/darwin/input/${OCN_GRID}_data.ptracers") {
+		$dir = "$CODEROOT/ocn/pop2/aux/moby/darwin/input";
+	    } else {
+		die "ERROR pop2.buildexe: cannot find moby tracers";
+	    }
+	    my $NT_MOBY = `grep PTRACERS_numInUse $dir/${OCN_GRID}_data.ptracers | cut -f 2 -d = | cut -f 1 -d","`;
+	    $NT = $NT + $NT_MOBY;
+	}
+    }
+    #-------------------------------------------------------------- 
+    # determine CPP definitions
+    #-------------------------------------------------------------- 
+    
+    my $cppdefs = "-DCCSMCOUPLED -DBLCKX=$POP_BLCKX -DBLCKY=$POP_BLCKY -DMXBLCKS=$POP_MXBLCKS -DNT=$NT ";
+    if ("$OCN_GRID" =~ /tx0.1*/		) {$cppdefs = "$cppdefs -D_HIRES";}
+    if ("$OCN_ICE_FORCING" eq 'inactive'	) {$cppdefs = "$cppdefs -DZERO_SEA_ICE_REF_SAL";}
+    if ("$POP_TAVG_R8" eq 'TRUE'		) {$cppdefs = "$cppdefs -DTAVG_R8";}
+    $cppdefs = "$cppdefs -DECOSYS_NT=$ECOSYS_NT";
+    $cppdefs = "$cppdefs -DZOOPLANKTON_CNT=$ZOOPLANKTON_CNT";
+    $cppdefs = "$cppdefs -DAUTOTROPH_CNT=$AUTOTROPH_CNT";
+    $cppdefs = "$cppdefs -DGRAZER_PREY_CNT=$GRAZER_PREY_CNT";
+    
+    # write out cppdefs to env_build.xml
+    # this will determine if need to rebuild at runtime - force user to call $CASE.buildexe
+
+    chdir "$CASEROOT";
+    my $sysmod = "xmlchange -id POP_CPPDEFS -file env_build.xml -val=\'$cppdefs\'";
+    system($sysmod) == 0 or die "ERROR pop2.buildexe: $sysmod failed: $?\n";
+
+    # write out cppdefs to POP2_cppdefs.new
+    # this will force gmake to rebuild when $CASE.buildexe is called
+
+    open(file,">$OBJROOT/ocn/obj/POP2_cppdefs.new") or die "Could not open file $OBJROOT/ocn/obj/POP2_cppdefs.new to write";
+    print file "$cppdefs \n";
+    close(file);
+    
+}
+    
 
 
 

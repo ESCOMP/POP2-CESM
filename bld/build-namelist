@@ -1763,12 +1763,14 @@ my $file;
 # 1.a. create $CASEBUILD/pop2conf/base.tavg.nml file 
 $sysmod;
 $file = "ocn.base.tavg.csh";
+my $env = "env CASEBUILD=$CASEBUILD OCN_GRID=$OCN_GRID ";
 if (-f "${my_path}/$file"){
-    $sysmod = "${my_path}/${file}";
+    $sysmod = "$env ${my_path}/${file}";
+    system($sysmod) == 0 or die "ERROR ocn.base.tavg.csh: $sysmod failed: $?\n";
 } else {
-    $sysmod = "${CODEROOT}/ocn/pop2/input_templates/${file}";
+    $sysmod = "$env ${CODEROOT}/ocn/pop2/input_templates/${file}";
+    system($sysmod) == 0 or die "ERROR ocn.base.tavg.csh: $sysmod failed: $?\n";
 }
-system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 
 # 1.b. read in pop2conf/base.tavg.nml file and fill in %tavg_nml entries
 my $file = "${CASEBUILD}/pop2conf/base.tavg.nml";
@@ -1861,12 +1863,13 @@ if ($OCN_TAVG_TRACER_BUDGET eq "TRUE") {
 for my $module (@OCN_TRACER_MODULES) {
   my $file = "ocn.${module}.tavg.csh";
   my $my_stream = $numcols+1;
+  my $env = "env CASEROOT=$CASEROOT OCN_GRID=$OCN_GRID OCN_TAVG_TRACER_BUDGET=$OCN_TAVG_TRACER_BUDGET"; 
   if (-f "${my_path}/$file"){
-    $sysmod = "${my_path}/${file} $my_stream";
-    system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+      $sysmod = "$env ${my_path}/${file} $my_stream";
+      system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
   } else {
-    $sysmod = "${CODEROOT}/ocn/pop2/input_templates/${file} $my_stream";
-    system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+      $sysmod = "$env ${CODEROOT}/ocn/pop2/input_templates/${file} $my_stream";
+      system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
   }
 
   # Create new tracer stream namelists - if appropriate
