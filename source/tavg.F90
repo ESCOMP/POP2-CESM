@@ -5819,7 +5819,7 @@
         ndims=2
         data_1d_ch(1) = 'Total'
         data_1d_ch(2) = 'Eulerian-Mean Advection'
-        if (registry_match('init_gm')) then 
+        if (registry_match('init_gm') .or. registry_match('init_gm_aniso')) then 
           data_1d_ch(3) = 'Eddy-Induced Advection (bolus) + Diffusion'
         else
           data_1d_ch(3) = 'Diffusion'

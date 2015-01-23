@@ -62,7 +62,7 @@
 ! !IROUTINE: init_meso_mixing
 ! !INTERFACE:
 
-   subroutine init_meso_mixing(hmix_tracer_itype,hmix_tracer_type_gm)
+   subroutine init_meso_mixing(hmix_tracer_itype,hmix_tracer_type_gm,hmix_tracer_type_gm_aniso)
 
 ! !DESCRIPTION:
 !  Initializes various submesoscale and GM mixing options and allocates necessary
@@ -71,7 +71,7 @@
 
    integer (int_kind) :: &
       iblock,            &  ! block index
-      hmix_tracer_itype,hmix_tracer_type_gm
+      hmix_tracer_itype,hmix_tracer_type_gm,hmix_tracer_type_gm_aniso
  
 !-----------------------------------------------------------------------
 !
@@ -81,7 +81,8 @@
     
    allocate (HXY (nx_block,ny_block,nblocks_clinic),    &
              HYX (nx_block,ny_block,nblocks_clinic))
-   if(hmix_tracer_itype == hmix_tracer_type_gm) then
+   if(hmix_tracer_itype == hmix_tracer_type_gm .or. &
+      hmix_tracer_itype == hmix_tracer_type_gm_aniso) then
     allocate (SLX   (nx_block,ny_block,2,2,km,nblocks_clinic),  &
               SLY   (nx_block,ny_block,2,2,km,nblocks_clinic))
    endif
@@ -320,7 +321,7 @@
             RZ = DRDT * TZP(:,:,ks) + DRDS * TZ (:,:,kk+1,2,bid) 
             RZ = min(RZ,-eps2)
 
-            if (registry_match('init_gm')) then
+            if (registry_match('init_gm') .or. registry_match('init_gm_aniso')) then
               SLX(:,:,ieast ,kbt,kk,bid) = KMASK * RX(:,:,ieast ,kk,bid) / RZ
               SLX(:,:,iwest ,kbt,kk,bid) = KMASK * RX(:,:,iwest ,kk,bid) / RZ
               SLY(:,:,jnorth,kbt,kk,bid) = KMASK * RY(:,:,jnorth,kk,bid) / RZ
@@ -397,7 +398,7 @@
             RZ_SAVE(:,:,kk+1,bid) = min(RZ,c0)
             RZ = min(RZ,-eps2)
 	    
-            if (registry_match('init_gm')) then
+            if (registry_match('init_gm') .or. registry_match('init_gm_aniso')) then
 
 !-----------------------------------------------------------------------
 !
