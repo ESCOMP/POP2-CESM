@@ -101,14 +101,14 @@ if (($GET_REFCASE eq 'TRUE') && ($RUN_TYPE ne 'startup') && ($CONTINUE_RUN eq 'F
     # independently of the prestage.  This is needed for rerunability
     # of cases from REFCASE data for first run
     $sysmod = "  rm -f $RUNDIR/rpointer.ocn* >&! /dev/null";
-    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+    system($sysmod);
 
     my $refdir = "ccsm4_init/$RUN_REFCASE/$RUN_REFDATE";
     $sysmod = "cp -f $DIN_LOC_ROOT/$refdir/rpointer.ocn* $RUNDIR/.";
     system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
 
     $sysmod = "chmod u+w $RUNDIR/rpointer.ocn* >&! /dev/null";
-    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+    system($sysmod);
 }
 
 #--------------------------------------------------------------------
