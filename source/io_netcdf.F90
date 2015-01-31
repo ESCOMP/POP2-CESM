@@ -2166,7 +2166,7 @@
                        allocate (outdata_3d_r4(1,1,1))
                      endif
                      iostat = pio_put_var (data_file%File, field_id, ival=outdata_3d_r4,  &
-                                           start=start(:), count=count(:))
+                                           start=start(1:ndims), count=count(1:ndims))
                      deallocate (outdata_3d_r4)
                   case(4)
                      if (my_task == ioroot) then
@@ -2180,7 +2180,7 @@
                        allocate (outdata_4d_r4(1,1,1,1))
                      endif
                      iostat = pio_put_var (data_file%File, field_id, ival=outdata_4d_r4,  &
-                                           start=start(:), count=count(:))
+                                           start=start(1:ndims), count=count(1:ndims))
                      deallocate (outdata_4d_r4)
                   case(5)
                      if (my_task == ioroot) then
@@ -2194,7 +2194,7 @@
                        allocate (outdata_5d_r4(1,1,1,1,1))
                      endif
                      iostat = pio_put_var (data_file%File, field_id, ival=outdata_5d_r4,  &
-                                           start=start(:), count=count(:))
+                                           start=start(1:ndims), count=count(1:ndims))
                      deallocate (outdata_5d_r4)
                   case default
                    supported = .false. 
@@ -2233,7 +2233,7 @@
                           tmpString(m:m) = indata_1d_ch(n)(m:m)
                        end do
                        iostat = pio_put_var (data_file%File, field_id, &
-                               ival=tmpString(1:count(1)), start=start, count=count)
+                               ival=tmpString(1:count(1)), start=start(1:2), count=count(1:2))
                      enddo
 
                   case default

@@ -42,7 +42,7 @@
    type, public :: ind_name_pair
       integer(int_kind) :: ind
       character(char_len) :: name
-   end type
+   end type ind_name_pair
 
 !-----------------------------------------------------------------------
 !  derived type for reading tracers from a file
@@ -51,7 +51,8 @@
    type, public :: tracer_read
       character(char_len) :: mod_varname, filename, file_varname, file_fmt
       real(r8) :: scale_factor, default_val
-   end type
+
+   end type tracer_read
 
 !-----------------------------------------------------------------------
 !  monthly forcing variables
@@ -96,7 +97,8 @@
       name_to_ind,                           &
       extract_surf_avg,                      &
       comp_surf_avg,                         &
-      set_tracer_indices
+      set_tracer_indices,                    &
+      tracer_read_init
 
 !EOP
 !BOC
@@ -931,6 +933,65 @@
  end subroutine set_tracer_indices
 !***********************************************************************
 
+!*****************************************************************************
+!BOP
+! !IROUTINE: tracer_read_init
+! !INTERFACE:
+
+ subroutine tracer_read_init(tracer, mod_varname, filename, file_varname, file_fmt, &
+      scale_factor, default_val)
+
+! !DESCRIPTION:
+!  initialize a tracer_read type to common default values.
+!
+
+! !OUTPUT PARAMETERS:
+   type(tracer_read), intent (out) :: tracer
+! !INPUT PARAMETERS:
+   character(char_len), optional, intent(in) :: mod_varname
+   character(char_len), optional,  intent(in) :: filename
+   character(char_len), optional,  intent(in) :: file_varname
+   character(char_len), optional,  intent(in) :: file_fmt
+   real(r8), optional,  intent(in) :: scale_factor
+   real(r8), optional,  intent(in) :: default_val
+
+!EOP
+!BOC
+
+   tracer%mod_varname = 'unknown'
+   if (present(mod_varname)) then
+      tracer%mod_varname = mod_varname
+   end if
+
+   tracer%filename = 'unknown'
+   if (present(filename)) then
+      tracer%filename = filename
+   end if
+
+   tracer%file_varname = 'unknown'
+   if (present(file_varname)) then
+      tracer%file_varname = file_varname
+   end if
+
+   tracer%file_fmt = 'bin'
+   if (present(file_fmt)) then
+      tracer%file_fmt = file_fmt
+   end if
+
+   tracer%scale_factor = c1
+   if (present(scale_factor)) then
+      tracer%scale_factor = scale_factor
+   end if
+
+   tracer%default_val = c0
+   if (present(default_val)) then
+      tracer%default_val = default_val
+   end if
+
+!-----------------------------------------------------------------------
+!EOC
+ end subroutine tracer_read_init
+!***********************************************************************
 
 
  end module passive_tracer_tools
