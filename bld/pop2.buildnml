@@ -1,5 +1,6 @@
 #! /usr/bin/env perl
 use strict;
+use Cwd;
 
 if ($#ARGV == -1) {
     die " ERROR pop2.buildnml: must specify a caseroot input argument";
@@ -147,19 +148,19 @@ while ($inst_counter <= $NINST_OCN) {
     print file_cesm_namelist "\&pop2_inparm \n";
 
     # parse the target user_nl_pop2(_nnnn) file and add the relevant contents to pop2conf/cesm_namelist
+    my $cwd = getcwd();
+    chdir $CASEROOT;
     open( file_usernl,"<$CASEROOT/user_nl_pop2${inst_string}") or die "** can't open file: $CASEROOT/user_nl_pop2${inst_string}\n";
     while (my $line = <file_usernl>) {
 	if ($line =~ /^[\&\/\!]/ ) {
 	    next; # do nothing
 	} elsif ($line =~ /\$([\w\_]+)/) {
-	    my $var = $1;
-	    my $xmlhash;
-	    SetupTools::getxmlvars($CASEROOT, $xmlhash);
-	    $line = SetupTools::expand_env_var($line,$xmlhash);
+	    $line = SetupTools::expand_xml_var($line);
 	}
 	print file_cesm_namelist "$line";
     }
     close(file_usernl);
+    chdir ($cwd);
     
     print file_cesm_namelist "\/ \n";
     close(file_cesm_namelist);
