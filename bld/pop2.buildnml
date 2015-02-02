@@ -148,19 +148,18 @@ while ($inst_counter <= $NINST_OCN) {
     print file_cesm_namelist "\&pop2_inparm \n";
 
     # parse the target user_nl_pop2(_nnnn) file and add the relevant contents to pop2conf/cesm_namelist
-    my $cwd = getcwd();
-    chdir $CASEROOT;
     open( file_usernl,"<$CASEROOT/user_nl_pop2${inst_string}") or die "** can't open file: $CASEROOT/user_nl_pop2${inst_string}\n";
     while (my $line = <file_usernl>) {
 	if ($line =~ /^[\&\/\!]/ ) {
 	    next; # do nothing
 	} elsif ($line =~ /\$([\w\_]+)/) {
-	    $line = SetupTools::expand_xml_var($line);
+	    my %xmlvars = ();
+	    SetupTools::getxmlvars(${CASEROOT},\%xmlvars);
+	    $line = SetupTools::expand_xml_var($line, \%xmlvars);
 	}
 	print file_cesm_namelist "$line";
     }
     close(file_usernl);
-    chdir ($cwd);
     
     print file_cesm_namelist "\/ \n";
     close(file_cesm_namelist);
@@ -251,16 +250,19 @@ sub generate_pop_cppdefs{
     my $ZOOPLANKTON_CNT = 1;
     my $AUTOTROPH_CNT   = 3;
     my $GRAZER_PREY_CNT = 3;
-
     my $NT = 2;
-    foreach my $module ( $OCN_TRACER_MODULES )  {
-	if ($module =~ "iage"		) {$NT = $NT +  1;}
-	if ($module =~ "cfc"		) {$NT = $NT +  2;}   
-	if ($module =~ "abio_dic_dic14"	) {$NT = $NT +  2;}
-	if ($module =~ "ciso"		) {$NT = $NT + 14;}
+
+    my @ocn_tracer_modules = split(/\s/, $OCN_TRACER_MODULES);
+    foreach my $module ( @ocn_tracer_modules )  {
+
+	if ($module =~ /^iage/		) {$NT = $NT +  1;}
+	if ($module =~ /^cfc/		) {$NT = $NT +  2;}   
+	if ($module =~ /^abio_dic_dic14/) {$NT = $NT +  2;}
+	if ($module =~ /^ciso/		) {$NT = $NT + 14;}
 	
-	if ($module =~ /"ecosys"/		) {
-	    foreach my $module_opt ( $OCN_TRACER_MODULES_OPT ) {
+	if ($module =~ /^ecosys/		) {
+	    my @ocn_tracer_modules_opt = split(/\s/, $OCN_TRACER_MODULES_OPT);
+	    foreach my $module_opt ( @ocn_tracer_modules_opt ) {
 		if ( `echo $module_opt | cut -f 1 -d =` eq "ECOSYS_NT" ) {
 		    $ECOSYS_NT = `echo $module_opt | cut -f 2 -d =`;
 		}

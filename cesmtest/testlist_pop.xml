@@ -7,6 +7,7 @@
         <machine compiler="intel" testtype="aux_rasm" testmods="pop/default">evergreen</machine>
         <machine compiler="pgi" testtype="aux_rasm" testmods="pop/default">olympus</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
+        <machine compiler="intel" testtype="prealpha" testmods="pop/default">yellowstone</machine>
         <machine compiler="intel" testtype="aux_rasm" testmods="pop/default">yellowstone</machine>
         <machine compiler="intel" testtype="aux_science" testmods="pop/default">yellowstone</machine>
       </test>
@@ -59,6 +60,7 @@
         <machine compiler="pgi" testtype="prebeta" testmods="pop/default">goldbach</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/default">janus</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
+        <machine compiler="intel" testtype="prealpha" testmods="pop/default">yellowstone</machine>
         <machine compiler="gnu" testtype="prebeta" testmods="pop/default">yellowstone</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/default">yellowstone</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/default">yellowstone</machine>
@@ -119,6 +121,7 @@
     <grid name="T62_g16">
       <test name="ERS_IOP">
         <machine compiler="intel" testtype="prebeta" testmods="pop/default">janus</machine>
+        <machine compiler="intel" testtype="prealpha" testmods="pop/default">yellowstone</machine>
         <machine compiler="gnu" testtype="prebeta" testmods="pop/default">yellowstone</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/default">yellowstone</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/default">yellowstone</machine>
@@ -139,26 +142,26 @@
   <compset name="G">
     <grid name="T62_g16">
       <test name="ERS">
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">goldbach</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">goldbach</machine>
-        <machine compiler="intel" testtype="prealpha" testmods="popcice/default">janus</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">janus</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">goldbach</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">goldbach</machine>
+        <machine compiler="intel" testtype="prealpha" testmods="pop/cice">janus</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">janus</machine>
       </test>
       <test name="ICP">
-        <machine compiler="intel" testtype="aux_scripts" testmods="popcice/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_scripts" testmods="pop/cice">yellowstone</machine>
       </test>
       <test name="PET_PT">
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">bluewaters</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">edison</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">eos</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">goldbach</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">goldbach</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">hopper</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">janus</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">titan</machine>
-        <machine compiler="gnu" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">bluewaters</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">edison</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">eos</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">goldbach</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">goldbach</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">hopper</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">janus</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">titan</machine>
+        <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
       </test>
       <test name="PFS">
         <machine compiler="intel" testtype="csltiming">yellowstone</machine>
@@ -166,58 +169,58 @@
     </grid>
     <grid name="T62_g37">
       <test name="ERS">
-        <machine compiler="gnu" testtype="prealpha" testmods="popcice/default">yellowstone</machine>
-        <machine compiler="intel" testtype="prealpha" testmods="popcice/default">yellowstone</machine>
-        <machine compiler="gnu" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
+        <machine compiler="gnu" testtype="prealpha" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="intel" testtype="prealpha" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
       </test>
       <test name="ERS_Ld30">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/presaero">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14_presaero">yellowstone</machine>
       </test>
       <test name="ERS_Lm3">
-        <machine compiler="intel" testtype="aux_cice" testmods="popcice/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_cice" testmods="pop/cice">yellowstone</machine>
       </test>
       <test name="ERS_Lm3_E">
-        <machine compiler="intel" testtype="aux_esmf" testmods="popcice/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_esmf" testmods="pop/cice">yellowstone</machine>
       </test>
     </grid>
     <grid name="T62_s11">
       <test name="ERS">
-        <machine compiler="nag" testtype="prebeta" testmods="popcice/default">goldbach</machine>
+        <machine compiler="nag" testtype="prebeta" testmods="pop/cice">goldbach</machine>
       </test>
       <test name="ERS_IOP">
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">goldbach</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">goldbach</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">janus</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">goldbach</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">goldbach</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">janus</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
       </test>
       <test name="SMS_D">
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">janus</machine>
-        <machine compiler="gnu" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">janus</machine>
+        <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
       </test>
     </grid>
     <grid name="T62_t12">
       <test name="ERS">
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">bluewaters</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">edison</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">eos</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">hopper</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">titan</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">bluewaters</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">edison</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">eos</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">hopper</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">titan</machine>
       </test>
     </grid>
     <grid name="f19_g16_rx1">
       <test name="ERI">
-        <machine compiler="intel" testtype="aux_cice" testmods="popcice/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_cice" testmods="pop/cice">yellowstone</machine>
       </test>
     </grid>
     <grid name="f45_g37_rx1">
       <test name="PET_PT">
-        <machine compiler="intel" testtype="aux_cice" testmods="popcice/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_cice" testmods="pop/cice">yellowstone</machine>
       </test>
     </grid>
   </compset>
@@ -227,7 +230,7 @@
         <machine compiler="intel" testtype="csltiming">yellowstone</machine>
       </test>
       <test name="PMT_P120x1">
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
       </test>
       <test name="SBN">
         <machine compiler="null" testtype="null">null</machine>
@@ -235,7 +238,7 @@
     </grid>
     <grid name="T62_g37">
       <test name="ERS">
-        <machine compiler="pgi" testtype="prealpha" testmods="popcice/default">yellowstone</machine>
+        <machine compiler="pgi" testtype="prealpha" testmods="pop/cice">yellowstone</machine>
       </test>
       <test name="ERS_Ld30">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
@@ -249,23 +252,23 @@
     </grid>
     <grid name="f19_g16_rx1">
       <test name="ERS">
-        <machine compiler="intel" testtype="aux_cice" testmods="popcice/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_cice" testmods="pop/cice">yellowstone</machine>
       </test>
       <test name="ERS_D">
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">edison</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">goldbach</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">goldbach</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">hopper</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">edison</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">goldbach</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">goldbach</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">hopper</machine>
       </test>
     </grid>
   </compset>
   <compset name="GIAF">
     <grid name="T62_g16">
       <test name="ERS_PT_L3m">
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">janus</machine>
-        <machine compiler="gnu" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="popcice/default">yellowstone</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">janus</machine>
+        <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
       </test>
     </grid>
   </compset>
