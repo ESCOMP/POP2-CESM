@@ -216,7 +216,7 @@ subroutine initialize_restore_read_vars(this, restore_short_names, restore_filen
   !-----------------------------------------------------------------------
   integer(int_kind) :: t, tracer_index
   logical(log_kind) :: unknown_user_request
-  character(len=char_len) :: file_format
+  character(len=char_len) :: file_format, message
 
   !-----------------------------------------------------------------------
 
@@ -249,7 +249,10 @@ subroutine initialize_restore_read_vars(this, restore_short_names, restore_filen
   end do
 
   if (unknown_user_request) then
-     call exit_POP(sigAbort, "ecosys_restore%initialize_restore_read_vars - encountered unknown user specified tracer names. See ocn.log for details.")
+     write(message, *) "ecosys_restore%initialize_restore_read_vars - ",      &
+                       "encountered unknown user specified tracer names.",    &
+                       "See ocn.log for details."
+     call exit_POP(sigAbort, message)
 
   end if
 
