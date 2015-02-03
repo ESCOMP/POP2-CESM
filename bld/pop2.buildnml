@@ -144,25 +144,9 @@ while ($inst_counter <= $NINST_OCN) {
     # create pop2conf/cesm_namelist
     # -----------------------------------------------------
 
-    open(file_cesm_namelist,">$CASEBUILD/pop2conf/cesm_namelist") or die "Could not open file $CASEBUILD/pop2conf/cesm_namelist to write";
-    print file_cesm_namelist "\&pop2_inparm \n";
-
-    # parse the target user_nl_pop2(_nnnn) file and add the relevant contents to pop2conf/cesm_namelist
-    open( file_usernl,"<$CASEROOT/user_nl_pop2${inst_string}") or die "** can't open file: $CASEROOT/user_nl_pop2${inst_string}\n";
-    while (my $line = <file_usernl>) {
-	if ($line =~ /^[\&\/\!]/ ) {
-	    next; # do nothing
-	} elsif ($line =~ /\$([\w\_]+)/) {
-	    my %xmlvars = ();
-	    SetupTools::getxmlvars(${CASEROOT},\%xmlvars);
-	    $line = SetupTools::expand_xml_var($line, \%xmlvars);
-	}
-	print file_cesm_namelist "$line";
-    }
-    close(file_usernl);
-    
-    print file_cesm_namelist "\/ \n";
-    close(file_cesm_namelist);
+    SetupTools::create_namelist_infile("$CASEROOT", 
+				       "$CASEROOT/user_nl_pop2${inst_string}", 
+				       "$CASEBUILD/pop2conf/cesm_namelist"); 
 
     # -----------------------------------------------------
     # env variable declaring type of pop restart file (nc vs bin) 
