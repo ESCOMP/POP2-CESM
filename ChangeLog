@@ -7,8 +7,8 @@ Tag Date:    3 Feb 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150203
 Tag Summary: Bugfix - not compiling with NAG because some lines exceeded
              132 characters. Also cleaned up some string appends (writing
-						 to the variable 'message' instead of sending appended string
-						 as argument to function)
+             to the variable 'message' instead of sending appended string
+             as argument to function)
 
 Files Modified:
 M       source/ecosys_restore.F90
