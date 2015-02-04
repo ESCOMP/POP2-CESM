@@ -344,7 +344,7 @@ require SetupTools;
 my %xmlvars = ();
 SetupTools::getxmlvars($CASEROOT, \%xmlvars);
 foreach my $attr (keys %xmlvars) {
-  $xmlvars{$attr} = SetupTools::expand_env_var($xmlvars{$attr}, \%xmlvars);
+  $xmlvars{$attr} = SetupTools::expand_xml_var($xmlvars{$attr}, \%xmlvars);
 }
 
 my $RUNDIR                 = "$xmlvars{'RUNDIR'}";
@@ -365,7 +365,7 @@ my @OCN_TRACER_MODULES     = split(" ", "$xmlvars{'OCN_TRACER_MODULES'}");
 my $OCN_TRACER_MODULES_OPT = "$xmlvars{'OCN_TRACER_MODULES_OPT'}";
 my $OCN_TAVG_TRACER_BUDGET = "$xmlvars{'OCN_TAVG_TRACER_BUDGET'}";
 my $OCN_TAVG_HIFREQ        = "$xmlvars{'OCN_TAVG_HIFREQ'}";
-my $OCN_ONEDIM               = "$xmlvars{'OCN_ONEDIM'}";
+my $OCN_ONEDIM             = "$xmlvars{'OCN_ONEDIM'}";
 my $NTASKS_OCN             = "$xmlvars{'NTASKS_OCN'}";
 my $NINST_OCN              = "$xmlvars{'NINST_OCN'}";
 my $POP_DECOMPTYPE         = "$xmlvars{'POP_DECOMPTYPE'}";
@@ -2394,29 +2394,14 @@ sub quote_string {
 
 #-------------------------------------------------------------------------------
 
-sub expand_env_xml {
-
-    my $value = shift;
-
-    if ($value =~ /\$([\w_]+)(.*)$/) {
-	my $subst = $xmlvars{$1};
-	$value =~ s/\$${1}/$subst/g;
-    }
-    return $value; 
-}	 
-
-#-------------------------------------------------------------------------------
-
 sub expand_xml_variables_in_namelist {
-   # Go through all variables in the namelist and expand any XML env settings in them
-   my ($nl, $envxml_ref) = @_;
-
-   require Streams::TemplateGeneric;
+    # Go through all variables in the namelist and expand any XML env settings in them
+    my ($nl, $xmlvar_ref) = @_;
 
    foreach my $group ( $nl->get_group_names() ) {
        foreach my $var ( $nl->get_variable_names($group) ) {
           my $val    = $nl->get_variable_value($group, $var);
-          my $newval = &Streams::TemplateGeneric::expandXMLVar( $val, $envxml_ref );
+          my $newval = SetupTools::expand_xml_var( $val, $xmlvar_ref );
           if ( $newval ne $val ) {
              $nl->set_variable_value($group, $var, $newval);
           }
