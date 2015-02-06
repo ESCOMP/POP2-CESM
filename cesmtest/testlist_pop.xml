@@ -7,9 +7,9 @@
         <machine compiler="intel" testtype="aux_rasm" testmods="pop/default">evergreen</machine>
         <machine compiler="pgi" testtype="aux_rasm" testmods="pop/default">olympus</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
-        <machine compiler="intel" testtype="prealpha" testmods="pop/default">yellowstone</machine>
         <machine compiler="intel" testtype="aux_rasm" testmods="pop/default">yellowstone</machine>
         <machine compiler="intel" testtype="aux_science" testmods="pop/default">yellowstone</machine>
+        <machine compiler="intel" testtype="prealpha" testmods="pop/default">yellowstone</machine>
       </test>
       <test name="ERS_L3m">
         <machine compiler="intel" testtype="prebeta" testmods="pop/default">edison</machine>
@@ -17,7 +17,6 @@
         <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
       </test>
       <test name="PFS">
-        <machine compiler="intel" testtype="aux_pop">yellowstone</machine>
         <machine compiler="intel" testtype="csltiming">yellowstone</machine>
       </test>
     </grid>
@@ -55,32 +54,34 @@
   </compset>
   <compset name="CECO">
     <grid name="T62_g16">
-      <test name="ERS">
-        <machine compiler="intel" testtype="prebeta" testmods="pop/default">goldbach</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/default">goldbach</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="pop/default">janus</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
-        <machine compiler="intel" testtype="prealpha" testmods="pop/default">yellowstone</machine>
-        <machine compiler="gnu" testtype="prebeta" testmods="pop/default">yellowstone</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="pop/default">yellowstone</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/default">yellowstone</machine>
+      <test name="ERI">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
+        <machine compiler="intel" testtype="prealpha" testmods="pop/ecosys">yellowstone</machine>
       </test>
-      <test name="ERS_L3m">
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/default">bluewaters</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="pop/default">edison</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="pop/default">eos</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/default">hopper</machine>
-        <machine compiler="pgi" testtype="prealpha" testmods="pop/default">titan</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/default">titan</machine>
+      <test name="ERS">
+        <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">goldbach</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/ecosys">goldbach</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">janus</machine>
+        <machine compiler="gnu" testtype="prebeta" testmods="pop/ecosys">yellowstone</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">yellowstone</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/ecosys">yellowstone</machine>
       </test>
       <test name="ERS_E_L3m">
         <machine compiler="intel" testtype="aux_esmf" testmods="pop/default">yellowstone</machine>
+      </test>
+      <test name="ERS_L3m">
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/ecosys">bluewaters</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">edison</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">eos</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/ecosys">hopper</machine>
+        <machine compiler="pgi" testtype="aux_pop" testmods="pop/ecosys">titan</machine>
+        <machine compiler="pgi" testtype="prealpha" testmods="pop/ecosys">titan</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/ecosys">titan</machine>
       </test>
       <test name="OCP">
         <machine compiler="intel" testtype="aux_scripts">yellowstone</machine>
       </test>
       <test name="PFS">
-        <machine compiler="intel" testtype="aux_pop">yellowstone</machine>
         <machine compiler="intel" testtype="csltiming">yellowstone</machine>
       </test>
       <test name="SMS">
@@ -101,7 +102,7 @@
       </test>
       <test name="ERS_Ld30">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">yellowstone</machine>
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_transient">yellowstone</machine>
@@ -121,6 +122,7 @@
     <grid name="T62_g16">
       <test name="ERS_IOP">
         <machine compiler="intel" testtype="prebeta" testmods="pop/default">janus</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
         <machine compiler="intel" testtype="prealpha" testmods="pop/default">yellowstone</machine>
         <machine compiler="gnu" testtype="prebeta" testmods="pop/default">yellowstone</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/default">yellowstone</machine>
@@ -144,6 +146,7 @@
       <test name="ERS">
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">goldbach</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">goldbach</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/cice">janus</machine>
         <machine compiler="intel" testtype="prealpha" testmods="pop/cice">janus</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">janus</machine>
       </test>
@@ -168,9 +171,13 @@
       </test>
     </grid>
     <grid name="T62_g37">
-      <test name="ERS">
-        <machine compiler="gnu" testtype="prealpha" testmods="pop/cice">yellowstone</machine>
+      <test name="ERI">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/cice">yellowstone</machine>
         <machine compiler="intel" testtype="prealpha" testmods="pop/cice">yellowstone</machine>
+      </test>
+      <test name="ERS">
+        <machine compiler="gnu" testtype="aux_pop" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="gnu" testtype="prealpha" testmods="pop/cice">yellowstone</machine>
         <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
@@ -230,7 +237,7 @@
         <machine compiler="intel" testtype="csltiming">yellowstone</machine>
       </test>
       <test name="PMT_P120x1">
-        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice_ecosys">yellowstone</machine>
       </test>
       <test name="SBN">
         <machine compiler="null" testtype="null">null</machine>
@@ -238,10 +245,11 @@
     </grid>
     <grid name="T62_g37">
       <test name="ERS">
-        <machine compiler="pgi" testtype="prealpha" testmods="pop/cice">yellowstone</machine>
+        <machine compiler="pgi" testtype="aux_pop" testmods="pop/cice_ecosys">yellowstone</machine>
+        <machine compiler="pgi" testtype="prealpha" testmods="pop/cice_ecosys">yellowstone</machine>
       </test>
       <test name="ERS_Ld30">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/abio_dic_dic14">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">yellowstone</machine>
@@ -255,10 +263,10 @@
         <machine compiler="intel" testtype="aux_cice" testmods="pop/cice">yellowstone</machine>
       </test>
       <test name="ERS_D">
-        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">edison</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">goldbach</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">goldbach</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">hopper</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice_ecosys">edison</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice_ecosys">goldbach</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice_ecosys">goldbach</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice_ecosys">hopper</machine>
       </test>
     </grid>
   </compset>
@@ -272,5 +280,4 @@
       </test>
     </grid>
   </compset>
-
 </testlist>

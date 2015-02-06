@@ -293,8 +293,8 @@ sub generate_pop_cppdefs{
     # this will determine if need to rebuild at runtime - force user to call $CASE.buildexe
 
     chdir "$CASEROOT";
-    my $sysmod = "xmlchange -id POP_CPPDEFS -file env_build.xml -val=\'$cppdefs\'";
-    system($sysmod) == 0 or die "ERROR pop2.buildexe: $sysmod failed: $?\n";
+    my $sysmod = "./xmlchange -id POP_CPPDEFS -file env_build.xml -val=\'$cppdefs\'";
+    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
 
     # write out cppdefs to POP2_cppdefs.new
     # this will force gmake to rebuild when $CASE.buildexe is called
