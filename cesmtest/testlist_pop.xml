@@ -11,7 +11,7 @@
         <machine compiler="intel" testtype="aux_science" testmods="pop/default">yellowstone</machine>
         <machine compiler="intel" testtype="prealpha" testmods="pop/default">yellowstone</machine>
       </test>
-      <test name="ERS_L3m">
+      <test name="ERS_Lm3">
         <machine compiler="intel" testtype="prebeta" testmods="pop/default">edison</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/default">hopper</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
@@ -66,10 +66,10 @@
         <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">yellowstone</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/ecosys">yellowstone</machine>
       </test>
-      <test name="ERS_E_L3m">
+      <test name="ERS_E_Lm3">
         <machine compiler="intel" testtype="aux_esmf" testmods="pop/default">yellowstone</machine>
       </test>
-      <test name="ERS_L3m">
+      <test name="ERS_Lm3">
         <machine compiler="pgi" testtype="prebeta" testmods="pop/ecosys">bluewaters</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">edison</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">eos</machine>
@@ -128,7 +128,7 @@
         <machine compiler="intel" testtype="prebeta" testmods="pop/default">yellowstone</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/default">yellowstone</machine>
       </test>
-      <test name="ERS_L3m">
+      <test name="ERS_Lm3">
         <machine compiler="intel" testtype="prebeta" testmods="pop/default">goldbach</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/default">goldbach</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/default">janus</machine>
@@ -272,7 +272,7 @@
   </compset>
   <compset name="GIAF">
     <grid name="T62_g16">
-      <test name="ERS_PT_L3m">
+      <test name="ERS_PT_Lm3">
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">janus</machine>
         <machine compiler="gnu" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
