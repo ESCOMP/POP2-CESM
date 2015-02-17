@@ -101,14 +101,14 @@ if (($GET_REFCASE eq 'TRUE') && ($RUN_TYPE ne 'startup') && ($CONTINUE_RUN eq 'F
     # Get rid of old rpointer files if they exist and copy them 
     # independently of the prestage.  This is needed for rerunability
     # of cases from REFCASE data for first run
-    $sysmod = "  rm -f $RUNDIR/rpointer.ocn* >&! /dev/null";
+    $sysmod = "  rm -f $RUNDIR/rpointer.ocn* >& /dev/null";
     system($sysmod);
 
     my $refdir = "ccsm4_init/$RUN_REFCASE/$RUN_REFDATE";
     $sysmod = "cp -f $DIN_LOC_ROOT/$refdir/rpointer.ocn* $RUNDIR/.";
     system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
 
-    $sysmod = "chmod u+w $RUNDIR/rpointer.ocn* >&! /dev/null";
+    $sysmod = "chmod u+w $RUNDIR/rpointer.ocn* >& /dev/null";
     system($sysmod);
 }
 
@@ -169,7 +169,7 @@ while ($inst_counter <= $NINST_OCN) {
   
     $ENV{'RESTART_INPUT_TS_FMT'} = 'bin'; 
     if ($check_pointer_file eq 'TRUE')  {
-	$sysmod = "grep 'RESTART_FMT=' $pointer_file >&! /dev/null";
+	$sysmod = "grep 'RESTART_FMT=' $pointer_file >& /dev/null";
 	if (system($sysmod) == 0) {
 	    print "Getting init_ts_file_fmt from $pointer_file \n";
 	    $ENV{'RESTART_INPUT_TS_FMT'}  = `grep RESTART_FMT= $pointer_file | cut -c13-15`;
