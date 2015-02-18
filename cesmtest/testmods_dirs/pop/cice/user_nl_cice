@@ -1,3 +1,9 @@
+!----------------------------------------------------------------------------------
+! Have commented out the following due to known problems on restart
+! f_albice	= 'dxxxx'
+! f_albsno	= 'dxxxx'
+! f_albpnd	= 'dxxxx'
+!----------------------------------------------------------------------------------
 histfreq	= 'd','x','x','x','x'
 histfreq_n	=  1,1,1,1,1
 f_hi		= 'dxxxx'
@@ -31,9 +37,6 @@ f_alidr		= 'dxxxx'
 f_alidf		= 'dxxxx'
 f_alvdr		= 'dxxxx'
 f_alvdf		= 'dxxxx'
-f_albice	= 'dxxxx'
-f_albsno	= 'dxxxx'
-f_albpnd	= 'dxxxx'
 f_coszen	= 'dxxxx'
 f_flat		= 'dxxxx'
 f_flat_ai	= 'dxxxx'
