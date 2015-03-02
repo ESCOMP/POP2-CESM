@@ -22,7 +22,7 @@
 # 2012-01-30  Vertenstein      Original version
 #--------------------------------------------------------------------------------------------
 use strict;
-use Cwd;
+use Cwd qw( getcwd abs_path chdir );
 use English;
 use Getopt::Long;
 use IO::File;
@@ -71,7 +71,7 @@ my $ProgDir = $1;                      # name of directory containing this scrip
 my $cwd = getcwd();                    # current working directory
 my $cfgdir;                            # absolute pathname of directory that contains this script
 if ($ProgDir) { 
-    $cfgdir = absolute_path($ProgDir);
+    $cfgdir = abs_path($ProgDir);
 } else {
     $cfgdir = $cwd;
 }
@@ -158,12 +158,7 @@ EOF
 # Look for them under the directory that contains the configure script.
 
 # The root directory for the perl5 required utilities 
-my $perl5lib_dir = "${SCRIPTSROOT}/ccsm_utils/Tools/perl5lib";
-
-# The XML::Lite module is required to parse the XML files.
-(-f "$perl5lib_dir/XML/Lite.pm")  or  die <<"EOF";
-** $ProgName - Cannot find perl module \"XML/Lite.pm\" in directory \"$perl5lib_dir\" **
-EOF
+my $perl5lib_dir = "${SCRIPTSROOT}/../perl5lib";
 
 # The Build::Config module provides utilities to access the configuration information
 # in the config_cache.xml file (see below)
@@ -223,7 +218,6 @@ if ($print>=2) { print "Using namelist defaults file $nl_defaults_file$eol"; }
 #-----------------------------------------------------------------------------------------------
 # Add $perl5lib_dir to the list of paths that Perl searches for modules
 unshift @INC, "$perl5lib_dir";
-require XML::Lite;
 require Build::Config;
 require Build::NamelistDefinition;
 require Build::NamelistDefaults;
@@ -338,7 +332,6 @@ EOF
 #-----------------------------------------------------------------------------------------------
 # Determine xml variables
 unshift @INC, "$CASEROOT/Tools";
-require XML::Lite;
 require SetupTools;
 
 my %xmlvars = ();
@@ -348,7 +341,7 @@ foreach my $attr (keys %xmlvars) {
 }
 
 my $RUNDIR                 = "$xmlvars{'RUNDIR'}";
-my $CODEROOT               = "$xmlvars{'CODEROOT'}";
+my $CCSMROOT               = "$xmlvars{'CCSMROOT'}";
 my $DIN_LOC_ROOT           = "$xmlvars{'DIN_LOC_ROOT'}";
 my $CASE                   = "$xmlvars{'CASE'}";
 my $CALENDAR               = "$xmlvars{'CALENDAR'}";
@@ -1665,8 +1658,8 @@ if (any(\@OCN_TRACER_MODULES, "moby")) {
   my $datafile;
   if (-e "$CASEROOT/SourceMods/src.pop2/src.moby/$file") {
       $datafile = "${CASEROOT}/SourceMods/src.pop2/src.moby/$file";
-  } elsif ( -e "$CODEROOT/ocn/pop2/aux/moby/${OCN_TRACER_MODULES_OPT}/input/$file") {
-      $datafile = "$CODEROOT/ocn/pop2/aux/moby/${OCN_TRACER_MODULES_OPT}/input/$file";
+  } elsif ( -e "$CCSMROOT/components/pop2/aux/moby/${OCN_TRACER_MODULES_OPT}/input/$file") {
+      $datafile = "$CCSMROOT/components/pop2/aux/moby/${OCN_TRACER_MODULES_OPT}/input/$file";
   } else {
       die "MOBY error for input file $file \n";
   }
@@ -1741,7 +1734,7 @@ foreach my $file (@copy_files_to_input ) {
     my $sysmod = "cp -fp ${my_path}/$file ${RUNDIR}/$file";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
   } else {
-    my $sysmod = "cp -fp ${CODEROOT}/ocn/pop2/input_templates/$file ${RUNDIR}/$file";
+    my $sysmod = "cp -fp ${CCSMROOT}/components/pop2/input_templates/$file ${RUNDIR}/$file";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
   }
 }
@@ -1768,7 +1761,7 @@ if (-f "${my_path}/$file"){
     $sysmod = "$env ${my_path}/${file}";
     system($sysmod) == 0 or die "ERROR ocn.base.tavg.csh: $sysmod failed: $?\n";
 } else {
-    $sysmod = "$env ${CODEROOT}/ocn/pop2/input_templates/${file}";
+    $sysmod = "$env ${CCSMROOT}/components/pop2/input_templates/${file}";
     system($sysmod) == 0 or die "ERROR ocn.base.tavg.csh: $sysmod failed: $?\n";
 }
 
@@ -1813,8 +1806,8 @@ if (-f "$my_path/$file") {
   $sysmod = "cp -fp ${my_path}/$file $base_tavg_file";
   system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 } else {
-  if (-f "${CODEROOT}/ocn/pop2/input_templates/$file") {
-    $sysmod = "cp -fp ${CODEROOT}/ocn/pop2/input_templates/$file $base_tavg_file";
+  if (-f "${CCSMROOT}/components/pop2/input_templates/$file") {
+    $sysmod = "cp -fp ${CCSMROOT}/components/pop2/input_templates/$file $base_tavg_file";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
   }
 }
@@ -1828,8 +1821,8 @@ if ($lniw_mixing =~ /true/) {
     $sysmod = "cp -fp ${my_path}/${OCN_GRID}_$file $niw_tavg_file";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
   } else {
-    if (-f "${CODEROOT}/ocn/pop2/input_templates/${OCN_GRID}_$file") {
-      $sysmod = "cp -fp ${CODEROOT}/ocn/pop2/input_templates/${OCN_GRID}_$file $niw_tavg_file";
+    if (-f "${CCSMROOT}/components/pop2/input_templates/${OCN_GRID}_$file") {
+      $sysmod = "cp -fp ${CCSMROOT}/components/pop2/input_templates/${OCN_GRID}_$file $niw_tavg_file";
       system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
     }
   }
@@ -1850,7 +1843,7 @@ if ($OCN_TAVG_TRACER_BUDGET eq "TRUE") {
     $sysmod = "cp -fp ${my_path}/$file $budget_tavg_file";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
   } else {
-    $sysmod = "cp -fp ${CODEROOT}/ocn/pop2/input_templates/$file $budget_tavg_file";
+    $sysmod = "cp -fp ${CCSMROOT}/components/pop2/input_templates/$file $budget_tavg_file";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
   }
   $sysmod = "cat $budget_tavg_file >> $pop2_tavg_file";
@@ -1868,7 +1861,7 @@ for my $module (@OCN_TRACER_MODULES) {
       $sysmod = "$env ${my_path}/${file} $my_stream";
       system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
   } else {
-      $sysmod = "$env ${CODEROOT}/ocn/pop2/input_templates/${file} $my_stream";
+      $sysmod = "$env ${CCSMROOT}/components/pop2/input_templates/${file} $my_stream";
       system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
   }
 
@@ -2263,7 +2256,6 @@ sub check_input_files {
 }
 
 #-----------------------------------------------------------------------------------------------
-
 sub set_abs_filepath {
 
 # check whether the input filepath is an absolute path, and if it isn't then
@@ -2290,72 +2282,7 @@ sub set_abs_filepath {
     return $out;
 }
 
-#-----------------------------------------------------------------------------------------------
-
-
-sub absolute_path {
-#
-# Convert a pathname into an absolute pathname, expanding any . or .. characters.
-# Assumes pathnames refer to a local filesystem.
-# Assumes the directory separator is "/".
-#
-  my $path = shift;
-  my $cwd = getcwd();  # current working directory
-  my $abspath;         # resulting absolute pathname
-
-# Strip off any leading or trailing whitespace.  (This pattern won't match if
-# there's embedded whitespace.
-  $path =~ s!^\s*(\S*)\s*$!$1!;
-
-# Convert relative to absolute path.
-
-  if ($path =~ m!^\.$!) {          # path is "."
-      return $cwd;
-  } elsif ($path =~ m!^\./!) {     # path starts with "./"
-      $path =~ s!^\.!$cwd!;
-  } elsif ($path =~ m!^\.\.$!) {   # path is ".."
-      $path = "$cwd/..";
-  } elsif ($path =~ m!^\.\./!) {   # path starts with "../"
-      $path = "$cwd/$path";
-  } elsif ($path =~ m!^[^/]!) {    # path starts with non-slash character
-      $path = "$cwd/$path";
-  }
-
-  my ($dir, @dirs2);
-  my @dirs = split "/", $path, -1;   # The -1 prevents split from stripping trailing nulls
-                                     # This enables correct processing of the input "/".
-
-  # Remove any "" that are not leading.
-  for (my $i=0; $i<=$#dirs; ++$i) {
-      if ($i == 0 or $dirs[$i] ne "") {
-        push @dirs2, $dirs[$i];
-      }
-  }
-  @dirs = ();
-
-  # Remove any "."
-  foreach $dir (@dirs2) {
-      unless ($dir eq ".") {
-        push @dirs, $dir;
-      }
-  }
-  @dirs2 = ();
-
-  # Remove the "subdir/.." parts.
-  foreach $dir (@dirs) {
-    if ( $dir !~ /\.\./ ) {
-        push @dirs2, $dir;
-    } else {
-        pop @dirs2;   # remove previous dir when current dir is ..
-    }
-  }
-  if ($#dirs2 == 0 and $dirs2[0] eq "") { return "/"; }
-  $abspath = join '/', @dirs2;
-  return( $abspath );
-}
-
 #-------------------------------------------------------------------------------
-
 sub valid_option {
 
     my ($val, @expect) = @_;
@@ -2370,7 +2297,6 @@ sub valid_option {
 }
 
 #-------------------------------------------------------------------------------
-
 sub validate_options {
 
     my $source = shift;   # text string declaring the source of the options being validated
@@ -2381,7 +2307,6 @@ sub validate_options {
 }
 
 #-------------------------------------------------------------------------------
-
 sub quote_string {
     my $str = shift;
     $str =~ s/^\s+//;
@@ -2393,7 +2318,6 @@ sub quote_string {
 }
 
 #-------------------------------------------------------------------------------
-
 sub expand_xml_variables_in_namelist {
     # Go through all variables in the namelist and expand any XML env settings in them
     my ($nl, $xmlvar_ref) = @_;
@@ -2410,7 +2334,6 @@ sub expand_xml_variables_in_namelist {
 }
 
 #-------------------------------------------------------------------------------
-
 sub print_nl_to_screen {
 
   my $namelist = $_[0];
@@ -2432,7 +2355,6 @@ sub print_nl_to_screen {
 }
 
 #-------------------------------------------------------------------------------
-
 sub valid_date {
 # return 1 if given date ($$month/$$day/$$year) exists in calendar $cal
 # otherwise subtract number of days in $$month from $$day, and increment
@@ -2483,7 +2405,6 @@ sub valid_date {
 }
 
 #-------------------------------------------------------------------------------
-
 sub leap() {
 # return 1 if given year is a leap year, 0 otherwise
 
@@ -2497,7 +2418,6 @@ sub leap() {
 
 
 #-------------------------------------------------------------------------------
-
 sub pop2_consistency_check() {
 
   my $nl = shift;
@@ -2532,19 +2452,18 @@ sub pop2_consistency_check() {
 }
 
 #-------------------------------------------------------------------------------
-
 sub any() {
-# return 1 if array (arg 0) contains val (arg 1). Note that this uses "eq"
-# instead of "==" because it's meant for strings
+    # return 1 if array (arg 0) contains val (arg 1). Note that this uses "eq"
+    # instead of "==" because it's meant for strings
 
-  my $array_ref = shift;
-  my @array = @$array_ref;
-  my $val = shift;
-
-  foreach (@array) {
-    if ($_ eq $val) {
-      return 1;
+    my $array_ref = shift;
+    my @array = @$array_ref;
+    my $val = shift;
+    
+    foreach (@array) {
+	if ($_ eq $val) {
+	    return 1;
+	}
     }
-  }
-  return 0;
+    return 0;
 }

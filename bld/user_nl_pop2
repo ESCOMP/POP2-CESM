@@ -5,12 +5,12 @@
 ! *** EXCEPT FOR ***
 ! 1. DO NOT CHANGE iyear0, imonth0, iday0, ihour0 
 ! 2. DO NOT CHANGE any tavg_nml namelist variables below - copy any of the files
-!      $CODEROOT/ocn/pop2/input_templates/ocn.base.tavg.csh  
-!      $CODEROOT/ocn/pop2/input_templates/ocn.ecosys.tavg.csh  
-!      $CODEROOT/ocn/pop2/input_templates/ocn.iage.tavg.csh  
-!      $CODEROOT/ocn/pop2/input_templates/ocn.cfc.tavg.csh 
-!      $CODEROOT/ocn/pop2/input_templates/ocn.abio_dic_dic14.tavg.csh
-!      $CODEROOT/ocn/pop2/input_templates/ocn.ciso.tavg.csh  
+!      $CCSMROOT/components/pop2/input_templates/ocn.base.tavg.csh  
+!      $CCSMROOT/components/pop2/input_templates/ocn.ecosys.tavg.csh  
+!      $CCSMROOT/components/pop2/input_templates/ocn.iage.tavg.csh  
+!      $CCSMROOT/components/pop2/input_templates/ocn.cfc.tavg.csh 
+!      $CCSMROOT/components/pop2/input_templates/ocn.abio_dic_dic14.tavg.csh
+!      $CCSMROOT/components/pop2/input_templates/ocn.ciso.tavg.csh  
 !    into $CASEROOT/SourceMods/src.pop2 and edit them there. Invoke preview-namelist
 !    to see the changes in CaseDocs/pop2_in
 ! Also

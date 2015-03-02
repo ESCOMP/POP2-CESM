@@ -39,7 +39,7 @@ Summary of build-namelist
 
 build-namelist 
 
-  - exists in $CODEROOT/ocn/pop2/bld (throughout this document, $ALLCAPS
+  - exists in $CCSMROOT/components/pop2/bld (throughout this document, $ALLCAPS
     denotes an environment variable while $nocaps denotes a perl variable)
   
   - is called as follows from $CASEBUILD/pop2.buildnml.csh
@@ -52,7 +52,7 @@ build-namelist
     ones if that is desired
     (see "user_nl_pop2" and "POP2 Use Cases" sections below for details)
 
-  - depends on two files in $CODEROOT/ocn/pop2/bld/namelist_files
+  - depends on two files in $CCSMROOT/components/pop2/bld/namelist_files
 
       1. namelist_defaults_pop2.xml
       2. namelist_definition_pop2.xml
@@ -162,7 +162,7 @@ namelist_definition_pop2.xml
 ============================================================================
 
 The file namelist_definition_pop2.xml is located in the directory
-$CODEROOT/ocn/pop2/bld/namelist_files/. It contains entries for all namelist
+$CCSMROOT/components/pop2/bld/namelist_files/. It contains entries for all namelist
 variables that can be output by build-namelist.
 
 As mentioned in the "POP2 Use Cases" section below, a modified copy of this
@@ -241,7 +241,7 @@ namelist_defaults_pop2.xml
 ============================================================================
 
 The file namelist_defaults_pop2.xml is located in the directory
-$CODEROOT/onc/pop2/bld/namelist_files/. It provides default values for
+$CCSMROOT/onc/pop2/bld/namelist_files/. It provides default values for
 variables contained in the input namelist definition file. As mentioned in
 the "Summary of build-namelist" section above, build-namelist reads the
 ocn_grid attribute from config_cache.xml in $CASEBUILD/pop2conf. This
@@ -309,36 +309,32 @@ build-namelist has four perl objects that it uses
 
        my $nl = Build::Namelist->new();
 
---- Required $SCRIPTSROOT/ccsm_utils/Tools/perl5lib/ perl files  ---
+--- Required $SCRIPTSROOT/../perl5lib/ perl files  ---
 
 The root directory for the perl5 required utilities is
 
-  my $perl5lib_dir = "${SCRIPTSROOT}/ccsm_utils/Tools/perl5lib";
+  my $perl5lib_dir = "${SCRIPTSROOT}/../perl5lib";
 
 This directory contains all the required perl files:
 
-  1. The XML::Lite module is required to parse the XML files.
-
-       $perl5lib_dir/XML/Lite.pm
-
-  2. The Build::Config module provides utilities to access the configuration
+  1. The Build::Config module provides utilities to access the configuration
      information in the config_cache.xml file
 
        $perl5lib_dir/Build/Config.pm
 
-  3. The Build::NamelistDefinition module provides utilities to validate
+  2. The Build::NamelistDefinition module provides utilities to validate
      that the output namelists are consistent with the namelist definition
      file
 
        $perl5lib_dir/Build/NamelistDefinition.pm
 
-  4. The Build::NamelistDefaults module provides a utility to obtain default
+  3. The Build::NamelistDefaults module provides a utility to obtain default
      values of namelist variables based on finding a best fit with the
      attributes specified in the defaults file.
 
        $perl5lib_dir/Build/NamelistDefaults.pm
 
-  5. The Build::Namelist module provides utilities to parse input namelists,
+  4. The Build::Namelist module provides utilities to parse input namelists,
      to query and modify namelists, and to write output namelists.
 
        $perl5lib_dir/Build/Namelist.pm
@@ -514,7 +510,7 @@ exception unless the 'nofail' option is set to 1 (true).
       namelist_defaults_pop2.xml (all one line in file):
 
         <bottom_cell_file ocn_grid="tx0.1v2">
-          ocn/pop/tx0.1v2/grid/dzbc_pbc_s2.0_200709.ieeer8
+          components/pop/tx0.1v2/grid/dzbc_pbc_s2.0_200709.ieeer8
         </bottom_cell_file>
 
       namelist_definitions_pop2.xml:
@@ -578,7 +574,7 @@ A: We do not recommend changing the default values directly in the code, so
    your preferred defaults and use that for each case. However, if you are
    adamant about changing the defaults in your own sandbox, it is possible.
    To do so, you can modify the namelist_defaults_pop2.xml file in
-   $CODEROOT/ocn/pop2/bld/namelist_files to change the default values. For
+   $CCSMROOT/components/pop2/bld/namelist_files to change the default values. For
    example:
 
    1. If you want to change local_mixing_fraction from 0.33 to 0.375, you
@@ -640,7 +636,7 @@ A: Stream variables can be changed by simply editing the contents of
       tavg_freq_opt = 'nday' 'nday' 'once'
 
    Note that these default values are set by ocn.base.tavg.csh in 
-   $CODEROOT/ocn/pop2/input_templates; to change the default values, edit 
+   $CCSMROOT/components/pop2/input_templates; to change the default values, edit 
    this file.
 
 ----------------------------------------------------------------------------
@@ -655,7 +651,7 @@ A: Place a modified copy of namelist_definition_pop2.xml (that includes your
    For example, to add a variable gatekeeper_id to &domain_nml and set it
    equal to 'mlevy', you would take the following steps:
 
-     1. Copy $CODEROOT/ocn/pop2/bld/namelist_definition_pop2.xml to
+     1. Copy $CCSMROOT/components/pop2/bld/namelist_definition_pop2.xml to
         $CASEROOT/SourceMods/src.pop2
 
      2. Add the following (it can be added anywhere as long as it isn't in
@@ -681,11 +677,11 @@ A: Place a modified copy of namelist_definition_pop2.xml (that includes your
 
 Q: How do I add a new pop2 namelist variable to the pop2 code base?
 
-A: Again, we do not recommend editing files in $CODEROOT and instead ask
+A: Again, we do not recommend editing files in $CCSMROOT and instead ask
    that you follow the instructions above to use SourceMods/src.pop2/.
    However, if you must change the code in your sandbox, you would add new
    namelist variables by editting namelist_definition_pop2.xml directly in
-   $CODEROOT/ocn/pop2/bld/namelist_files/. You may also want to update
+   $CCSMROOT/components/pop2/bld/namelist_files/. You may also want to update
    namelist_defaults_pop2.xml and build-namelist so your new value can be
    set automatically. Continuing the example above, we would add
 

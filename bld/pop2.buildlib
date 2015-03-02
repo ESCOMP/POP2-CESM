@@ -9,7 +9,7 @@ my ($CASEROOT) = @ARGV;
 chdir "${CASEROOT}";
 
 my $CASEBUILD			= `./xmlquery CASEBUILD			-value`;
-my $CODEROOT			= `./xmlquery CODEROOT			-value`;
+my $CCSMROOT			= `./xmlquery CCSMROOT			-value`;
 my $LIBROOT			= `./xmlquery LIBROOT			-value`;
 my $OBJROOT			= `./xmlquery OBJROOT			-value`;
 my $CASETOOLS			= `./xmlquery CASETOOLS			-value`;
@@ -41,13 +41,13 @@ print " -----------------------------------------------------------------\n";
 print " Copy the necessary files into $OBJROOT/ocn/source \n";
 print " -----------------------------------------------------------------\n";
 
-my $sysmod = "cp -fp $CODEROOT/ocn/pop2/source/*.F90  .";
+my $sysmod = "cp -fp $CCSMROOT/components/pop2/source/*.F90  .";
 system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
 
-my $sysmod = "cp -fp $CODEROOT/ocn/pop2/mpi/*.F90  .";
+my $sysmod = "cp -fp $CCSMROOT/components/pop2/mpi/*.F90  .";
 system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
 
-my $sysmod = "cp -fp $CODEROOT/ocn/pop2/drivers/cpl/*.F90 .";
+my $sysmod = "cp -fp $CCSMROOT/components/pop2/drivers/cpl/*.F90 .";
 system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
 
 # Two files require special attention because they get renamed when copied
@@ -74,13 +74,13 @@ my $POP2_FOUND_POP_DSM = 0;
 
 # 1) Copy (with name-change) from input templates/ if they exist
 
-if (-f  "$CODEROOT/ocn/pop2/input_templates/${OCN_GRID}_domain_size.F90" ) {
-    my $sysmod = "cp -fp $CODEROOT/ocn/pop2/input_templates/${OCN_GRID}_domain_size.F90 domain_size.F90";
+if (-f  "$CCSMROOT/components/pop2/input_templates/${OCN_GRID}_domain_size.F90" ) {
+    my $sysmod = "cp -fp $CCSMROOT/components/pop2/input_templates/${OCN_GRID}_domain_size.F90 domain_size.F90";
     system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
     $POP2_FOUND_d_s = 1;
 }
-if (-f "$CODEROOT/ocn/pop2/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90") {
-    my $sysmod = "cp -fp $CODEROOT/ocn/pop2/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90 POP_DomainSizeMod.F90";
+if (-f "$CCSMROOT/components/pop2/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90") {
+    my $sysmod = "cp -fp $CCSMROOT/components/pop2/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90 POP_DomainSizeMod.F90";
     system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
     $POP2_FOUND_POP_DSM = 1;
 }
@@ -140,7 +140,7 @@ foreach my $comp ($OCN_TRACER_MODULES) {
 
 	chdir "$CASEBUILD";
 	if (! -f "moby.buildexe") {
-	    my $sysmod = "cp $CODEROOT/ocn/pop2/aux/moby/pop2/bld/moby.buildexe.csh .";
+	    my $sysmod = "cp $CCSMROOT/components/pop2/aux/moby/pop2/bld/moby.buildexe.csh .";
 	    system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
 	}
 	my $sysmod = "./moby.buildexe";

@@ -15,9 +15,9 @@ my $sysmod;
 
 my $CASEROOT			= `./xmlquery CASEROOT			-value`;
 my $CASEBUILD			= `./xmlquery CASEBUILD		        -value`;
-my $CODEROOT			= `./xmlquery CODEROOT			-value`;
-my $LIBROOT			= `./xmlquery LIBROOT			-value`;
+my $CCSMROOT			= `./xmlquery CCSMROOT			-value`;
 my $OBJROOT			= `./xmlquery OBJROOT			-value`;
+my $SCRIPTSROOT			= `./xmlquery SCRIPTSROOT		-value`;
 my $CASETOOLS			= `./xmlquery CASETOOLS			-value`;
 my $CONTINUE_RUN		= `./xmlquery CONTINUE_RUN		-value`;
 my $DIN_LOC_ROOT		= `./xmlquery DIN_LOC_ROOT		-value`;
@@ -40,8 +40,6 @@ my $RUN_TYPE			= `./xmlquery RUN_TYPE			-value`;
 my $RUN_REFCASE			= `./xmlquery RUN_REFCASE		-value`;
 my $RUN_REFDATE			= `./xmlquery RUN_REFDATE		-value`;
 my $RUNDIR			= `./xmlquery RUNDIR			-value`;
-my $UTILROOT			= `./xmlquery UTILROOT			-value`;
-my $SCRIPTSROOT			= `./xmlquery SCRIPTSROOT		-value`;
 
 if (! -d "$EXEROOT/ocn/obj" ) {
     $sysmod = "mkdir -p $EXEROOT/ocn/obj";
@@ -67,7 +65,7 @@ chdir "$CASEBUILD/pop2conf";
 if ($POP_AUTO_DECOMP eq 'true') {
     my $ntasks = $NTASKS_OCN / $NINST_OCN;
     chdir "$CASEBUILD";
-    my $config_args = `env UTILROOT=$UTILROOT ./generate_pop_decomp.pl -res $OCN_GRID -nproc $ntasks -thrds $NTHRDS_OCN -output all`;
+    my $config_args = `./generate_pop_decomp.pl -ccsmroot $CCSMROOT -res $OCN_GRID -nproc $ntasks -thrds $NTHRDS_OCN -output all`;
     my @config = split(/\s/, $config_args);
     chdir "$CASEROOT";
     if ($config[0] >= 0) {
@@ -186,11 +184,11 @@ while ($inst_counter <= $NINST_OCN) {
     
     # Check to see if build-namelist exists in SourceMods
     
-    my $bld_nml_dir = "$CODEROOT/ocn/pop2/bld";
+    my $bld_nml_dir = "$CCSMROOT/components/pop2/bld";
     my $cfg_flag = "";
     if (-e "$CASEROOT/SourceMods/src.pop2/build-namelist") {
 	$bld_nml_dir = "$CASEROOT/SourceMods/src.pop2";
-	$cfg_flag = "-cfg_dir $CODEROOT/ocn/pop2/bld";
+	$cfg_flag = "-cfg_dir $CCSMROOT/components/pop2/bld";
     }
   
     # Note that the following two environment variables are needed by the csh template scripts 
@@ -267,8 +265,8 @@ sub generate_pop_cppdefs{
 	    my $dir;
 	    if (-e "$CASEROOT/SourceMods/src.pop2/${OCN_GRID}_data.ptracers") {
 		$dir = "$CASEROOT/SourceMods/src.pop2";
-	    } elsif (-e "$CODEROOT/ocn/pop2/aux/moby/darwin/input/${OCN_GRID}_data.ptracers") {
-		$dir = "$CODEROOT/ocn/pop2/aux/moby/darwin/input";
+	    } elsif (-e "$CCSMROOT/components/pop2/aux/moby/darwin/input/${OCN_GRID}_data.ptracers") {
+		$dir = "$CCSMROOT/components/pop2/aux/moby/darwin/input";
 	    } else {
 		die "ERROR pop2.buildexe: cannot find moby tracers";
 	    }
