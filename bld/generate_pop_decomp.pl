@@ -83,8 +83,8 @@ foreach my $key ( keys( %opts ) ) {
 
 #------------------------------------------------------------------------------------------------
 # Add perl5lib to the list of paths that Perl searches for modules
-my $ccsmroot = $opts{'ccsmroot'};
-my @dirs = ("$ccsmroot/cime/perl5lib");
+my $cesmroot = $opts{'ccsmroot'};
+my @dirs = ("$cesmroot/cime/utils/perl5lib");
 unshift @INC, @dirs;
 require Decomp::Config;
 
@@ -98,7 +98,7 @@ my $dcmp = Decomp::Config->new( \%opts );
 my %decomp = ( maxblocks=>0, bsize_x=>0, bsize_y=>0, decomptype=>"",
                nlats=>0, nlons=>0, nx_blocks=>0, ny_blocks=>0 );
 
-my $file = "$ccsmroot/components/pop2/bld/pop_decomp.xml";
+my $file = "$cesmroot/components/pop2/bld/pop_decomp.xml";
 my $matches = $dcmp->ReadXML( $file, \%decomp );
 
 # if no xml entry, try to generate something

@@ -3,7 +3,7 @@ use strict;
 use File::Compare;
 
 if ($#ARGV == -1) {
-    die " ERROR pop2.buildexe: must specify a caseroot input argument";
+    die " ERROR pop2.buildlib: must specify a caseroot input argument";
 }
 my ($CASEROOT) = @ARGV;
 chdir "${CASEROOT}";
@@ -139,12 +139,12 @@ foreach my $comp ($OCN_TRACER_MODULES) {
 	print " ------------------------------------------------------------------------- \n";
 
 	chdir "$CASEBUILD";
-	if (! -f "moby.buildexe") {
-	    my $sysmod = "cp $CCSMROOT/components/pop2/aux/moby/pop2/bld/moby.buildexe.csh .";
+	if (! -f "moby.buildlib") {
+	    my $sysmod = "cp $CCSMROOT/components/pop2/aux/moby/pop2/bld/moby.buildlib.csh .";
 	    system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
 	}
-	my $sysmod = "./moby.buildexe";
-	system($sysmod) == 0 or die "ERROR: pop2.buidexe $sysmod failed: $?\n";
+	my $sysmod = "./moby.buildlib";
+	system($sysmod) == 0 or die "ERROR: pop2.buildlib $sysmod failed: $?\n";
     }
 }
 
@@ -161,7 +161,7 @@ if (-e "$OBJROOT/ocn/obj/POP2_cppdefs") {
     print "recompile is $recompile \n";
     if ($recompile eq 'TRUE') {
 	my $sysmod = "rm -f $OBJROOT/ocn/obj/*.o";
-	system($sysmod) == 0 or die "ERROR pop2.buildexe: $sysmod failed: $?\n";
+	system($sysmod) == 0 or die "ERROR pop2.buildlib: $sysmod failed: $?\n";
     }
 }
 my $sysmod = "cp -f $OBJROOT/ocn/obj/POP2_cppdefs.new $OBJROOT/ocn/obj/POP2_cppdefs";
