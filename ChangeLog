@@ -2,6 +2,29 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    3 Feb 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150203
+Tag Summary: Bugfix - not compiling with NAG because some lines exceeded
+             132 characters. Also cleaned up some string appends (writing
+             to the variable 'message' instead of sending appended string
+             as argument to function)
+
+Files Modified:
+M       source/ecosys_restore.F90
+M       source/abio_dic_dic14_mod.F90
+M       source/ecosys_parms.F90
+===============================================================================
+Tag Creator: jedwards
+Developers:  jedwards
+Tag Date:    31 Jan 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150131
+Tag Summary: pio2 port 
+
+Files Modified:
+M       source/io_netcdf.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  jedwards
 Tag Date:    18 Dec 2014
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20141218

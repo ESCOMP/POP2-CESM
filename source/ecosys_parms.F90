@@ -573,18 +573,31 @@ CONTAINS
        
        DO prey_ind = 1, grazer_prey_cnt
           DO zoo_ind = 1, zooplankton_cnt
-             WRITE (stdout,*) 'lname(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%lname
-             WRITE (stdout,*) 'auto_ind(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%auto_ind
-             WRITE (stdout,*) 'auto_ind_cnt(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%auto_ind_cnt
-             WRITE (stdout,*) 'zoo_ind(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%zoo_ind
-             WRITE (stdout,*) 'zoo_ind_cnt(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%zoo_ind_cnt
-             WRITE (stdout,*) 'z_umax_0(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%z_umax_0
-             WRITE (stdout,*) 'z_grz(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%z_grz
-             WRITE (stdout,*) 'graze_zoo(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%graze_zoo
-             WRITE (stdout,*) 'graze_poc(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%graze_poc
-             WRITE (stdout,*) 'graze_doc(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%graze_doc
-             WRITE (stdout,*) 'f_zoo_detr(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%f_zoo_detr
-             WRITE (stdout,*) 'grazing_function(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%grazing_function
+             WRITE (stdout,*) 'lname(', trim(grazing(prey_ind,zoo_ind)%sname),        &
+                              ') = ', grazing(prey_ind,zoo_ind)%lname
+             WRITE (stdout,*) 'auto_ind(', trim(grazing(prey_ind,zoo_ind)%sname),     &
+                              ') = ', grazing(prey_ind,zoo_ind)%auto_ind
+             WRITE (stdout,*) 'auto_ind_cnt(', trim(grazing(prey_ind,zoo_ind)%sname), &
+                              ') = ', grazing(prey_ind,zoo_ind)%auto_ind_cnt
+             WRITE (stdout,*) 'zoo_ind(', trim(grazing(prey_ind,zoo_ind)%sname),      &
+                              ') = ', grazing(prey_ind,zoo_ind)%zoo_ind
+             WRITE (stdout,*) 'zoo_ind_cnt(', trim(grazing(prey_ind,zoo_ind)%sname),  &
+                              ') = ', grazing(prey_ind,zoo_ind)%zoo_ind_cnt
+             WRITE (stdout,*) 'z_umax_0(', trim(grazing(prey_ind,zoo_ind)%sname),     &
+                              ') = ', grazing(prey_ind,zoo_ind)%z_umax_0
+             WRITE (stdout,*) 'z_grz(', trim(grazing(prey_ind,zoo_ind)%sname),        &
+                              ') = ', grazing(prey_ind,zoo_ind)%z_grz
+             WRITE (stdout,*) 'graze_zoo(', trim(grazing(prey_ind,zoo_ind)%sname),    &
+                              ') = ', grazing(prey_ind,zoo_ind)%graze_zoo
+             WRITE (stdout,*) 'graze_poc(', trim(grazing(prey_ind,zoo_ind)%sname),    &
+                              ') = ', grazing(prey_ind,zoo_ind)%graze_poc
+             WRITE (stdout,*) 'graze_doc(', trim(grazing(prey_ind,zoo_ind)%sname),    &
+                              ') = ', grazing(prey_ind,zoo_ind)%graze_doc
+             WRITE (stdout,*) 'f_zoo_detr(', trim(grazing(prey_ind,zoo_ind)%sname),   &
+                              ') = ', grazing(prey_ind,zoo_ind)%f_zoo_detr
+             WRITE (stdout,*) 'grazing_function(',                                    &
+                              trim(grazing(prey_ind,zoo_ind)%sname),                  &
+                              ') = ', grazing(prey_ind,zoo_ind)%grazing_function
           END DO
        END DO
 
