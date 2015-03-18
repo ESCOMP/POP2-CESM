@@ -137,22 +137,6 @@ $cfgdir         = $opts{'cfg_dir'};
 # Validate some of the commandline option values.
 validate_options("commandline", \%opts);
 
-# build config_cache.xml file (needed below)
-my $config_cache = "${CASEBUILD}/pop2conf/config_cache.xml";
-my  $fh = new IO::File;
-$fh->open(">$config_cache") or die "** can't open file: $config_cache\n";
-print $fh  <<"EOF";
-<?xml version="1.0"?>
-<config_definition>
-<entry id="ocn_grid" value="$OCN_GRID">
-</config_definition>
-EOF
-$fh->close;
-if ($print>=2) { print "Wrote file $config_cache $eol"; }
-(-f "config_cache.xml")  or  die <<"EOF";
-** $ProgName - Cannot find configuration cache file: config_cache.xml\" **
-EOF
-
 #-----------------------------------------------------------------------------------------------
 # Make sure we can find required perl modules, definition, and defaults files.
 # Look for them under the directory that contains the configure script.
@@ -1179,10 +1163,12 @@ if (not $nl->get_value('niw_energy_file')) {
 # namelist group: passive_tracers_on_nml #
 ##########################################
 
-foreach (@OCN_TRACER_MODULES) {
-  my $module = $_;
-  add_default($nl, "$module\_on", 'val'=>'.true.');
-}
+add_default($nl, "iage_on");
+add_default($nl, "cfc_on");
+add_default($nl, "ciso_on");
+add_default($nl, "abio_dic_dic14_on");
+add_default($nl, "ecosys_on");
+add_default($nl, "moby_on");
 
 
 ##########################################
