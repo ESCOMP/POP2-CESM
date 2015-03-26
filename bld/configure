@@ -125,8 +125,8 @@ sub determine_tracer_count {
     }
 
     if ($module eq "cfc" ) {
-      $USE_CISO = "TRUE";
-      $NT       = $NT +  2;
+      $USE_CFC = "TRUE";
+      $NT      = $NT +  2;
     }
 
     if ($module eq "abio_dic_dic14" ) {
