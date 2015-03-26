@@ -232,6 +232,9 @@
   </compset>
   <compset name="GECO">
     <grid name="T62_g16">
+      <test name="ERS">
+        <machine compiler="pgi" testtype="prealpha" testmods="pop/cice_ecosys">yellowstone</machine>
+      </test>
       <test name="PFS">
         <machine compiler="intel" testtype="csltiming">yellowstone</machine>
       </test>
@@ -245,7 +248,6 @@
     <grid name="T62_g37">
       <test name="ERS">
         <machine compiler="pgi" testtype="aux_pop" testmods="pop/cice_ecosys">yellowstone</machine>
-        <machine compiler="pgi" testtype="prealpha" testmods="pop/cice_ecosys">yellowstone</machine>
       </test>
       <test name="ERS_Ld30">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
