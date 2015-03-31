@@ -5,14 +5,14 @@
 #
 # This script sets up config_cache.xml (containing build-time parameters that
 # affect the ocean namelist, such as what grid is being used and which ocean
-# tracer modules are enabled) and also handles the pop2 decomposition.
+# tracer modules are enabled) and also handles the pop decomposition.
 #
 # Needs to be passed $CASEROOT!
 
 my $CASEROOT = shift;
 
 # Global variables
-my $CCSMROOT, $CASEBUILD, $OBJROOT, $OCN_GRID, $OCN_TRACER_MODULES;
+my $SRCROOT, $CASEBUILD, $OBJROOT, $OCN_GRID, $OCN_TRACER_MODULES;
 my $OCN_TRACER_MODULES_OPT, $POP_AUTO_DECOMP, $POP_BLCKX, $POP_BLCKY;
 my $POP_MXBLCKS, $POP_TAVG_R8, $NTHRDS_OCN, $NINST_OCN, $OCN_ICE_FORCING;
 my $NT, $ECOSYS_NT, $ZOOPLANKTON_CNT, $AUTOTROPH_CNT, $GRAZER_PREY_CNT;
@@ -30,7 +30,7 @@ sub set_environment {
   # Read variables from env_mach_pes.xml and env_build.xml
 
   chdir "$CASEROOT";
-  $CCSMROOT                = `./xmlquery CCSMROOT               -value`;
+  $SRCROOT                 = `./xmlquery SRCROOT               -value`;
   $CASEBUILD               = `./xmlquery CASEBUILD              -value`;
   $OBJROOT                 = `./xmlquery OBJROOT                -value`;
   $OCN_GRID                = `./xmlquery OCN_GRID               -value`;
@@ -58,30 +58,30 @@ sub auto_decomp {
 
   my $ntasks = $NTASKS_OCN / $NINST_OCN;
   chdir "$CASEBUILD";
-  my $config_args = `./generate_pop_decomp.pl -ccsmroot $CCSMROOT -res $OCN_GRID -nproc $ntasks -thrds $NTHRDS_OCN -output all`;
+  my $config_args = `./generate_pop_decomp.pl -ccsmroot $SRCROOT -res $OCN_GRID -nproc $ntasks -thrds $NTHRDS_OCN -output all`;
   my @config = split(/\s/, $config_args);
   if ($config[0] >= 0) {
     chdir "$CASEROOT";
     $POP_BLCKX=$config[2];
     $sysmod = "./xmlchange POP_BLCKX=$POP_BLCKX";
-    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
 
     $POP_BLCKY=$config[3];
     $sysmod = "./xmlchange POP_BLCKY=$POP_BLCKY";
-    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
 
     $POP_MXBLCKS=$config[4];
     $sysmod = "./xmlchange POP_MXBLCKS=$POP_MXBLCKS";
-    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
 
     $sysmod = "./xmlchange POP_DECOMPTYPE=$config[5]";
-    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
     $sysmod = "./xmlchange POP_NX_BLOCKS=$config[6]";
-    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
     $sysmod = "./xmlchange POP_NY_BLOCKS=$config[7]";
-    system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
   } else {
-    die "ERROR pop2.buildnml: pop decomp not set for $OCN_GRID on $ntasks x  $NTHRDS_OCN procs \n";
+    die "ERROR pop.buildnml: pop decomp not set for $OCN_GRID on $ntasks x  $NTHRDS_OCN procs \n";
   }
 
 }
@@ -147,12 +147,12 @@ sub determine_tracer_count {
     if ($module eq "moby" ) {
       $USE_MOBY = "TRUE";
       my $dir;
-      if (-e "$CASEROOT/SourceMods/src.pop2/${OCN_GRID}_data.ptracers") {
-        $dir = "$CASEROOT/SourceMods/src.pop2";
-      } elsif (-e "$CCSMROOT/components/pop2/aux/moby/darwin/input/${OCN_GRID}_data.ptracers") {
-        $dir = "$CCSMROOT/components/pop2/aux/moby/darwin/input";
+      if (-e "$CASEROOT/SourceMods/src.pop/${OCN_GRID}_data.ptracers") {
+        $dir = "$CASEROOT/SourceMods/src.pop";
+      } elsif (-e "$SRCROOT/components/pop/aux/moby/darwin/input/${OCN_GRID}_data.ptracers") {
+        $dir = "$SRCROOT/components/pop/aux/moby/darwin/input";
       } else {
-        die "ERROR pop2.buildexe: cannot find moby tracers";
+        die "ERROR pop.buildexe: cannot find moby tracers";
       }
       my $NT_MOBY = `grep PTRACERS_numInUse $dir/${OCN_GRID}_data.ptracers | cut -f 2 -d = | cut -f 1 -d","`;
       $NT       = $NT + $NT_MOBY;
@@ -180,19 +180,19 @@ sub set_cppdefs {
   # this will determine if need to rebuild at runtime - force user to call $CASE.buildexe
   chdir "$CASEROOT";
   my $sysmod = "./xmlchange -id POP_CPPDEFS -file env_build.xml -val=\'$cppdefs\'";
-  system($sysmod) == 0 or die "ERROR pop2.buildnml: $sysmod failed: $?\n";
+  system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
 
-  # write out cppdefs to POP2_cppdefs.new
+  # write out cppdefs to POP_cppdefs.new
   # this will force gmake to rebuild when $CASE.buildexe is called
 
-  open(file,">$OBJROOT/ocn/obj/POP2_cppdefs.new") or die "Could not open file $OBJROOT/ocn/obj/POP2_cppdefs.new to write";
+  open(file,">$OBJROOT/ocn/obj/POP_cppdefs.new") or die "Could not open file $OBJROOT/ocn/obj/POP_cppdefs.new to write";
   print file "$cppdefs \n";
   close(file);
     
 }
 
 sub write_config_cache {
-  open(file,">${CASEBUILD}/pop2conf/config_cache.xml") or die "Could not open file ${CASEBUILD}/pop2conf/config_cache.xml to write";
+  open(file,">${CASEBUILD}/popconf/config_cache.xml") or die "Could not open file ${CASEBUILD}/popconf/config_cache.xml to write";
   print file <<"EOF";
 <?xml version="1.0"?>
 <config_definition>
@@ -207,7 +207,7 @@ sub write_config_cache {
 EOF
   close(file);
 #  if ($print>=2) { print "Wrote file $config_cache $eol"; }
-  (-f "$CASEBUILD/pop2conf/config_cache.xml")  or  die <<"EOF";
+  (-f "$CASEBUILD/popconf/config_cache.xml")  or  die <<"EOF";
 ** $ProgName - Cannot find configuration cache file: config_cache.xml\" **
 EOF
 

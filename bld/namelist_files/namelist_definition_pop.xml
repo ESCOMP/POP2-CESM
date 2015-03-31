@@ -1369,7 +1369,7 @@ group="derived" >
 Coefficient for Richardson number term.
 
 Default: 50.0
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -1540,7 +1540,7 @@ group="derived" >
 Coefficient for Richardson number term.
 
 Default: 50.0
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <entry 
@@ -1710,7 +1710,7 @@ group="derived" >
 Flag to internally compute mixing coefficient.
 
 Default: .false.
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <entry 
@@ -1721,7 +1721,7 @@ group="derived" >
 Flag to enable spatially-varying mixing.
 
 Default: .false. 
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <entry 
@@ -1732,7 +1732,7 @@ group="derived" >
 Horizontal momentum mixing coefficient.
 
 Default: 0.5e8
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -1747,7 +1747,7 @@ group="derived" >
 Flag to internally compute mixing coefficient.
 
 Default: .false.
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <entry 
@@ -1758,7 +1758,7 @@ group="derived" >
 Flag to enable spatially-varying mixing.
 
 Default: .false.
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <entry 
@@ -1769,7 +1769,7 @@ group="derived" >
 Horizontal tracer mixing coefficient.
 
 Default: 0.6e7
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -1784,7 +1784,7 @@ group="derived" >
 Flag to internally compute mixing coefficient.
 
 Default: .false. 
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <entry 
@@ -1795,7 +1795,7 @@ group="derived" >
 Flag to enable spatially-varying mixing.
 
 Default: .false.
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <entry 
@@ -1806,7 +1806,7 @@ group="derived" >
 Horizontal momentum mixing coefficient.
 
 Default: -0.6e20
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -1821,7 +1821,7 @@ group="derived" >
 Flag to internally compute mixing coefficient.
 
 Default: .false.
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <entry 
@@ -1832,7 +1832,7 @@ group="derived" >
 Flag to enable spatially-varying mixing.
 
 Default: .false.
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <entry 
@@ -1843,7 +1843,7 @@ group="derived" >
 Horizontal tracer mixing coefficient.
 
 Default: -0.2e20
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -1936,7 +1936,7 @@ group="derived" >
 Isopycnal diffusivity.
 
 Default: 3.0e7
-Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop2!
+Note: You must specify both the variable name and namelist name if you change this variable in user_nl_pop!
 </entry>
 
 <entry 
@@ -6230,7 +6230,7 @@ Default: 'base model'
 <entry 
 id="moby_log_filename" 
 type="char*128" 
-category="pop2" 
+category="pop" 
 group="moby_nml" >
 Default: ''
 </entry>
@@ -6238,7 +6238,7 @@ Default: ''
 <entry 
 id="lmoby"
 type="logical" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: .true.
 </entry>
@@ -6246,7 +6246,7 @@ Default: .true.
 <entry 
 id="ldarwin"
 type="logical" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: .true.
 </entry>
@@ -6254,7 +6254,7 @@ Default: .true.
 <entry 
 id="init_moby_option"
 type="char*256"
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: '$ccsm_runtype'
 </entry>
@@ -6262,7 +6262,7 @@ Default: '$ccsm_runtype'
 <entry 
 id="init_moby_init_file"
 type="char*256" 
-category="pop2"
+category="pop"
 group="moby_nml"
 input_pathname="abs" >
 Default: 
@@ -6271,7 +6271,7 @@ Default:
 <entry 
 id="init_moby_init_file_fmt"
 type="char*256" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 'nc'
 </entry>
@@ -6279,7 +6279,7 @@ Default: 'nc'
 <entry 
 id="moby_comp_surf_avg_freq"
 type="integer"
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 1
 </entry>
@@ -6287,7 +6287,7 @@ Default: 1
 <entry 
 id="moby_comp_surf_avg_freq_opt"
 type="char*256"
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 'never'
 </entry>
@@ -6295,7 +6295,7 @@ Default: 'never'
 <entry 
 id="moby_iron_flux_input%filename"
 type="char*256" 
-category="pop2"
+category="pop"
 group="moby_nml"
 input_pathname="abs" >
 Default: 
@@ -6304,7 +6304,7 @@ Default:
 <entry 
 id="moby_iron_flux_input%file_fmt"
 type="char*256" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 
 </entry>
@@ -6312,7 +6312,7 @@ Default:
 <entry 
 id="moby_iron_flux_input%file_varname"
 type="char*256" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 
 </entry>
@@ -6320,7 +6320,7 @@ Default:
 <entry 
 id="moby_iron_flux_input%scale_factor"
 type="real" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 
 </entry>
@@ -6328,7 +6328,7 @@ Default:
 <entry 
 id="moby_lecovars_full_depth_tavg"
 type="logical" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: .false.
 </entry>
@@ -6336,7 +6336,7 @@ Default: .false.
 <entry 
 id="moby_lflux_gas_co2"
 type="logical" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: .false.
 </entry>
@@ -6344,7 +6344,7 @@ Default: .false.
 <entry 
 id="moby_lmarginal_seas"
 type="logical" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: .true.
 </entry>
@@ -6352,7 +6352,7 @@ Default: .true.
 <entry 
 id="moby_lrest_no3"
 type="logical" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: .false.
 </entry>
@@ -6360,7 +6360,7 @@ Default: .false.
 <entry 
 id="moby_lrest_po4"
 type="logical" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: .false.
 </entry>
@@ -6368,7 +6368,7 @@ Default: .false.
 <entry 
 id="moby_lrest_sio3"
 type="logical" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: .false.
 </entry>
@@ -6376,7 +6376,7 @@ Default: .false.
 <entry 
 id="moby_nutr_rest_file"
 type="char*256" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 'unknown'
 </entry>
@@ -6384,7 +6384,7 @@ Default: 'unknown'
 <entry 
 id="moby_qsw_distrb_const"
 type="logical" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: .false.
 </entry>
@@ -6392,7 +6392,7 @@ Default: .false.
 <entry 
 id="moby_surf_avg_alk_const"
 type="real"
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 
 </entry>
@@ -6400,7 +6400,7 @@ Default:
 <entry 
 id="moby_surf_avg_dic_const"
 type="real"
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 
 </entry>
@@ -6408,7 +6408,7 @@ Default:
 <entry 
 id="moby_tadvect_ctype"
 type="char*256" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 
 </entry>
@@ -6416,7 +6416,7 @@ Default:
 <entry 
 id="moby_tracer_init_ext%mod_varname"
 type="dtype(47)%char*256" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 
 </entry>
@@ -6424,7 +6424,7 @@ Default:
 <entry 
 id="moby_tracer_init_ext%filename"
 type="dtype(47)%char*256" 
-category="pop2"
+category="pop"
 group="moby_nml"
 input_pathname="abs" >
 Default: 
@@ -6433,7 +6433,7 @@ Default:
 <entry 
 id="moby_tracer_init_ext%file_varname"
 type="dtype(47)%char*256" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 
 </entry>
@@ -6441,7 +6441,7 @@ Default:
 <entry 
 id="moby_tracer_init_ext%file_fmt"
 type="dtype(47)%char*256" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 
 </entry>
@@ -6449,7 +6449,7 @@ Default:
 <entry 
 id="moby_tracer_init_ext%scale_factor"
 type="dtype(47)%real" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 
 </entry>
@@ -6457,7 +6457,7 @@ Default:
 <entry 
 id="moby_tracer_init_ext%default_val"
 type="dtype(47)%real" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 
 </entry>
@@ -6465,7 +6465,7 @@ Default:
 <entry 
 id="moby_use_nml_surf_vals"
 type="logical" 
-category="pop2"
+category="pop"
 group="moby_nml" >
 Default: 
 </entry>

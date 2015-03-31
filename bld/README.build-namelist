@@ -11,7 +11,7 @@ OPTIONS
      -namelist "namelist"  Specify namelist settings directly on the 
                            command line by supplying 
                            a string containing FORTRAN namelist syntax, 
-                           e.g.  -namelist "&pop2_nml dt=27 /"
+                           e.g.  -namelist "&pop_nml dt=27 /"
      -help [or -h]         Print usage to STDOUT.
      -test                 Enable checking that input datasets exist on 
                            local filesystem.
@@ -39,50 +39,50 @@ Summary of build-namelist
 
 build-namelist 
 
-  - exists in $CCSMROOT/components/pop2/bld (throughout this document, $ALLCAPS
+  - exists in $SRCROOT/components/pop/bld (throughout this document, $ALLCAPS
     denotes an environment variable while $nocaps denotes a perl variable)
   
-  - is called as follows from $CASEBUILD/pop2.buildnml.csh
+  - is called as follows from $CASEBUILD/pop.buildnml.csh
 
-      build-namelist -infile $CASEBUILD/pop2conf/cesm_namelist || exit -1
+      build-namelist -infile $CASEBUILD/popconf/cesm_namelist || exit -1
 
-    (pop2.buildnml.csh is now just a wrapper to build-namelist)
+    (pop.buildnml.csh is now just a wrapper to build-namelist)
 
   - allows the user to edit existing namelist variables or introduce new
     ones if that is desired
-    (see "user_nl_pop2" and "POP2 Use Cases" sections below for details)
+    (see "user_nl_pop" and "POP Use Cases" sections below for details)
 
-  - depends on two files in $CCSMROOT/components/pop2/bld/namelist_files
+  - depends on two files in $SRCROOT/components/pop/bld/namelist_files
 
-      1. namelist_defaults_pop2.xml
-      2. namelist_definition_pop2.xml
+      1. namelist_defaults_pop.xml
+      2. namelist_definition_pop.xml
 
-    (see "namelist_definition_pop2.xml" and "namelist defaults.xml" sections
+    (see "namelist_definition_pop.xml" and "namelist defaults.xml" sections
     below for details)
 
-  - reads the file $CASEBUILD/pop2conf/config_cache.xml (created by 
-    pop2.cpl7.template); currently this file only contains ocean grid 
+  - reads the file $CASEBUILD/popconf/config_cache.xml 
+    currently this file only contains ocean grid 
     information.  The grid resolution is used to determine appropriate 
     defaults for resolution-dependent namelist inputs
     (see "build-namelist details" section below for details)
 
-  - is invoked upon every build -AND- upon every call to pop2.buildnml.csh
+  - is invoked upon every build -AND- upon every call to pop.buildnml.csh
 
 
 ============================================================================
-user_nl_pop2
+user_nl_pop
 ============================================================================
 
-ALL USER-SPECIFIED MODIFICATIONS TO THE POP2 NAMELIST SHOULD OCCUR AS
-ENTRIES IN $CASEROOT/user_nl_pop2. Simply append each variable entry
-to user_nl_pop2 prior to running build-namelist. For example, to set the
+ALL USER-SPECIFIED MODIFICATIONS TO THE POP NAMELIST SHOULD OCCUR AS
+ENTRIES IN $CASEROOT/user_nl_pop. Simply append each variable entry
+to user_nl_pop prior to running build-namelist. For example, to set the
 value of dt_count to 14 and bckgrnd_vdc to 0.3, include the following in
-user_nl_pop2:
+user_nl_pop:
 
   dt_count = 14
   bckgrnd_vdc = 0.3
 
-After running build-namelist, the following will appear in pop2_in
+After running build-namelist, the following will appear in pop_in
 
   &time_manager_nml
     ...
@@ -97,16 +97,16 @@ After running build-namelist, the following will appear in pop2_in
 
 It is important to note that, for the most part, build-namelist knows what
 namelist each variable belongs to; except for the variables mentioned below
-in the Notes subsection, you do not need to include that in user_nl_pop2.
-(see "POP2 Use Cases" at the end of this guide for more examples)
+in the Notes subsection, you do not need to include that in user_nl_pop.
+(see "POP Use Cases" at the end of this guide for more examples)
 
 
 Notes:
 
   - As seen in the "Summary of build-namelist" section above, the only input
     to build-namelist is a file named cesm_namelist. There is a tool called
-    from pop2.buildnml.csh which, among other things, makes sure that all
-    entries in $CASEROOT/user_nl_pop2 are put in cesm_namelist
+    from pop.buildnml.csh which, among other things, makes sure that all
+    entries in $CASEROOT/user_nl_pop are put in cesm_namelist
 
   - Some variable names can show up in multiple namelists. For example:
 
@@ -119,7 +119,7 @@ Notes:
     5. rich_mix appears in vmix_rich_nml and vmix_kpp_nml
 
     The CESM scripts' perl modules assume that each namelist variable has a
-    unique name. To work around this condition for pop2, the following
+    unique name. To work around this condition for pop, the following
     "derived" namelist variables were introduced
 
       ah&hmix_del4t_nml
@@ -140,12 +140,12 @@ Notes:
 
     If the user wants to change the values of ah and lvariable_hmix in the
     namelist hmix_del2t to 0.7e7 and .true., respectively, he/she needs to
-    add the following lines to user_nl_pop2
+    add the following lines to user_nl_pop
 
       ah&hmix_del2t_nml = 0.7e7
       lvariable_hmix&hmix_del2t = .true.
 
-    After running build-namelist, the following will appear in pop2_in
+    After running build-namelist, the following will appear in pop_in
       
        &hmix_del2t_nml
           ah                  = 0.7e7
@@ -154,24 +154,24 @@ Notes:
        /
 
   - a new utility, $CASEROOT/preview-namelist, will enable you to preview
-    the pop2_in namelist in $CASEROOT/CaseDocs at any time
+    the pop_in namelist in $CASEROOT/CaseDocs at any time
 
    
 ============================================================================
-namelist_definition_pop2.xml
+namelist_definition_pop.xml
 ============================================================================
 
-The file namelist_definition_pop2.xml is located in the directory
-$CCSMROOT/components/pop2/bld/namelist_files/. It contains entries for all namelist
+The file namelist_definition_pop.xml is located in the directory
+$SRCROOT/components/pop/bld/namelist_files/. It contains entries for all namelist
 variables that can be output by build-namelist.
 
-As mentioned in the "POP2 Use Cases" section below, a modified copy of this
+As mentioned in the "POP Use Cases" section below, a modified copy of this
 file (with the same name) may be placed in the directory
-$CASEROOT/SourceMods/src.pop2/. Otherwise the file appears in build-namelist
+$CASEROOT/SourceMods/src.pop/. Otherwise the file appears in build-namelist
 as follows:
 
   $nl_definition_file = \
-      "$cfgdir/namelist_files/namelist_definition_pop2.xml";
+      "$cfgdir/namelist_files/namelist_definition_pop.xml";
 
 Each namelist variable is defined in an <entry> element.  The content of the
 element is the documentation of how the variable is used.  Other aspects of
@@ -237,21 +237,21 @@ Any text that appears after the first > (after valid_values) and before the
 
 
 ============================================================================
-namelist_defaults_pop2.xml
+namelist_defaults_pop.xml
 ============================================================================
 
-The file namelist_defaults_pop2.xml is located in the directory
-$CCSMROOT/onc/pop2/bld/namelist_files/. It provides default values for
+The file namelist_defaults_pop.xml is located in the directory
+$SRCROOT/components/pop/bld/namelist_files/. It provides default values for
 variables contained in the input namelist definition file. As mentioned in
 the "Summary of build-namelist" section above, build-namelist reads the
-ocn_grid attribute from config_cache.xml in $CASEBUILD/pop2conf. This
+ocn_grid attribute from config_cache.xml in $CASEBUILD/popconf. This
 attribute, along with optional user-specified attributes, is used in
 build-namelist to find the best match when looking for default values of
 variables.
 
 In build-namelist the file appears as follows:
 
-  $nl_defaults_file = "$cfgdir/namelist_files/namelist_defaults_pop2.xml";
+  $nl_defaults_file = "$cfgdir/namelist_files/namelist_defaults_pop.xml";
 
 The default namelist value for a given namelist variable is the one that
 matches the most attributes; if multiple values match the same number of
@@ -278,23 +278,23 @@ build-namelist details
 build-namelist has four perl objects that it uses
 
   1. $cfg
-     A configuration object obtained from the POP2 config_cache.xml file,
-     which is created by pop2.cpl7.template and can be found in the 
-     directory $CASEROOT/Builddconf/pop2conf/. Currently this only specifies
+     A configuration object obtained from the POP config_cache.xml file,
+     which is created by pop.cpl7.template and can be found in the 
+     directory $CASEROOT/Builddconf/popconf/. Currently this only specifies
      the grid resolution.
 
        my $cfg = Build::Config->new('config_cache.xml');
 
   2. $definition
      A namelist definition object which provides a method for verifying that
-     the output namelist variables are in namelist_definition_pop2.xml and
+     the output namelist variables are in namelist_definition_pop.xml and
      are output in the correct namelist groups.
 
        my $definition = Build::NamelistDefinition->new($nl_definition_file);
 
   3. $defaults
      A namelist defaults object which provides default values for variables
-     contained in the namelist_definition_pop2.xml file.
+     contained in the namelist_definition_pop.xml file.
 
        my $defaults = Build::NamelistDefaults->new($nl_defaults_file, $cfg);
 
@@ -366,11 +366,11 @@ exception unless the 'nofail' option is set to 1 (true).
 
        add_default($nl, 'ew_boundary_type');
 
-     namelist_defaults_pop2.xml:
+     namelist_defaults_pop.xml:
 
        <ew_boundary_type>cyclic</ew_boundary_type>
 
-     namelist_definitions_pop2.xml:
+     namelist_definitions_pop.xml:
 
        <entry
        id="ew_boundary_type"
@@ -384,7 +384,7 @@ exception unless the 'nofail' option is set to 1 (true).
        Default: 'cyclic'
        </entry>
 
-     result in pop2_in:
+     result in pop_in:
 
      &domain_nml
        ...
@@ -400,13 +400,13 @@ exception unless the 'nofail' option is set to 1 (true).
 
        add_default($nl, 'ns_boundary_type');
 
-     namelist_defaults_pop2.xml:
+     namelist_defaults_pop.xml:
 
        <ns_boundary_type>closed</ns_boundary_type>
        <ns_boundary_type ocn_grid="tx1v1"  >tripole</ns_boundary_type>
        <ns_boundary_type ocn_grid="tx0.1v2">tripole</ns_boundary_type>
 
-     namelist_definitions_pop2.xml:
+     namelist_definitions_pop.xml:
 
        <entry
        id="ns_boundary_type"
@@ -420,7 +420,7 @@ exception unless the 'nofail' option is set to 1 (true).
        Default: 'closed'
        </entry>
 
-     result in pop2_in if ocn_grid="gx1v6":
+     result in pop_in if ocn_grid="gx1v6":
 
      &domain_nml
        ...
@@ -428,7 +428,7 @@ exception unless the 'nofail' option is set to 1 (true).
        ...
      /
 
-     result in pop2_in if ocn_grid="tx1v1":
+     result in pop_in if ocn_grid="tx1v1":
 
      &domain_nml
        ...
@@ -438,19 +438,19 @@ exception unless the 'nofail' option is set to 1 (true).
 
   3. Set the value for the namelist variable clinic_distribution_type to
      the value of the environment variable $POP_DECOMPTYPE (environment
-     variables are not used in namelist_defaults_pop2.xml).
+     variables are not used in namelist_defaults_pop.xml).
 
      build-namelist:
 
        add_default($nl, 'clinic_distribution_type', \
                    'val'=>"$POP_DECOMPTYPE");
 
-     namelist_defaults_pop2.xml:
+     namelist_defaults_pop.xml:
 
        The contents of namelist defaults does not matter, since a value is
        specified in build-namelist.
 
-     namelist_definitions_pop2.xml:
+     namelist_definitions_pop.xml:
 
        <entry 
        id="clinic_distribution_type" 
@@ -464,14 +464,14 @@ exception unless the 'nofail' option is set to 1 (true).
        Default: 'cartesian'
        </entry>
 
-     result in pop2_in if $POP_DECOMPTYPE="cartesian":
+     result in pop_in if $POP_DECOMPTYPE="cartesian":
 
        &domain_nml
          clinic_distribution_type='cartesian'
          ...
        /
 
-     result in pop2_in if $POP_DECOMPTYPE="spacecurve":
+     result in pop_in if $POP_DECOMPTYPE="spacecurve":
 
        &domain_nml
          clinic_distribution_type='spacecurve'
@@ -507,13 +507,13 @@ exception unless the 'nofail' option is set to 1 (true).
                       'val'=>'unknown_bottom_cell','noprepend'=>1);
         }
 
-      namelist_defaults_pop2.xml (all one line in file):
+      namelist_defaults_pop.xml (all one line in file):
 
         <bottom_cell_file ocn_grid="tx0.1v2">
           components/pop/tx0.1v2/grid/dzbc_pbc_s2.0_200709.ieeer8
         </bottom_cell_file>
 
-      namelist_definitions_pop2.xml:
+      namelist_definitions_pop.xml:
  
         <entry
         id="bottom_cell_file"
@@ -527,14 +527,14 @@ exception unless the 'nofail' option is set to 1 (true).
         </entry>
 
       Note: this is done rather than just adding 'unknown_bottom_cell' to
-            namelist_defaults_pop2.xml because the latter would result in
+            namelist_defaults_pop.xml because the latter would result in
             the string '$DIN_LOC_ROOT/unknown_bottom_cell' being entered
             into the namelist (due to the input_pathname="abs" field in the
             definition above).
 
 
 ============================================================================
-POP2 Use Cases
+POP Use Cases
 ============================================================================
 
 Q: How do I add my own case-specific namelist variable changes?
@@ -543,38 +543,38 @@ A: For each namelist variable, just add a line of the form
 
      namelist_var = namelist_val
    
-   to $CASEROOT/user_nl_pop2. As shown in the "user_nl_pop2" section above,
+   to $CASEROOT/user_nl_pop. As shown in the "user_nl_pop" section above,
    one example is to set dt_count to 14 and bckgrnd_vdc to 0.3. The file 
-   $CASEROOT/user_nl_pop2 would then look as follows
+   $CASEROOT/user_nl_pop would then look as follows
 
      ...
      dt_count = 14
      bckgrnd_vdc = 0.3
 
-   Note that all pop2 namelist variables can be changed in this manner,
+   Note that all pop namelist variables can be changed in this manner,
    unless the same variable appears in multiple namelists. Those variables
-   are listed in the "user_nl_pop2" section above.
+   are listed in the "user_nl_pop" section above.
 
 ----------------------------------------------------------------------------
 
-Q: I have modified $CASEROOT/user_nl_pop2, but I want to see the namelist
+Q: I have modified $CASEROOT/user_nl_pop, but I want to see the namelist
    to make sure everything looks okay before building. How do I do this?
 
 A: The utility $CASEROOT/preview-namelist will generate copies of all the
-   namelists (including pop2_in) in $CASEROOT/CaseDocs. You can run this
+   namelists (including pop_in) in $CASEROOT/CaseDocs. You can run this
    utility at any time.
 
 ----------------------------------------------------------------------------
 
-Q: Rather than making the same changes to user_nl_pop2 over and over, can
+Q: Rather than making the same changes to user_nl_pop over and over, can
    I change the default values used by build-namelist?
 
 A: We do not recommend changing the default values directly in the code, so
-   the official answer is that you should keep a copy of user_nl_pop2 with
+   the official answer is that you should keep a copy of user_nl_pop with
    your preferred defaults and use that for each case. However, if you are
    adamant about changing the defaults in your own sandbox, it is possible.
-   To do so, you can modify the namelist_defaults_pop2.xml file in
-   $CCSMROOT/components/pop2/bld/namelist_files to change the default values. For
+   To do so, you can modify the namelist_defaults_pop.xml file in
+   $SRCROOT/components/pop/bld/namelist_files to change the default values. For
    example:
 
    1. If you want to change local_mixing_fraction from 0.33 to 0.375, you
@@ -586,7 +586,7 @@ A: We do not recommend changing the default values directly in the code, so
 
         <local_mixing_fraction>0.375</local_mixing_fraction>
 
-      This would result in the following new default setting in pop2_in:
+      This would result in the following new default setting in pop_in:
 
         &tidal_nml
           local_mixing_fraction = 0.375
@@ -603,7 +603,7 @@ A: We do not recommend changing the default values directly in the code, so
 
         <bckgrnd_vdc_dpth ocn_grid="gx1v6">2000.0e02</bckgrnd_vdc_dpth>
    
-      This would result in the following new default setting in pop2_in:
+      This would result in the following new default setting in pop_in:
 
         &vmix_kpp_nml
           ...
@@ -622,7 +622,7 @@ Q: How do I change the default values of streams associated with an existing
    passive tracer?
 
 A: Stream variables can be changed by simply editing the contents of
-   user_nl_pop2.
+   user_nl_pop.
 
    For example - for gx3v7 and gx1v6, the default values of tavg_freq and
    tavg_freq_opt are
@@ -631,28 +631,28 @@ A: Stream variables can be changed by simply editing the contents of
       tavg_freq_opt = 'nmonth' 'nday' 'once'
 
    To switch from monthly values to daily values for the first stream, add
-   the following to $CASEROOT/user_nl_pop2
+   the following to $CASEROOT/user_nl_pop
 
       tavg_freq_opt = 'nday' 'nday' 'once'
 
    Note that these default values are set by ocn.base.tavg.csh in 
-   $CCSMROOT/components/pop2/input_templates; to change the default values, edit 
+   $SRCROOT/components/pop/input_templates; to change the default values, edit 
    this file.
 
 ----------------------------------------------------------------------------
 
-Q: How do I add new pop2 namelist variables for just my case?
+Q: How do I add new pop namelist variables for just my case?
 
-A: Place a modified copy of namelist_definition_pop2.xml (that includes your
-   new variables) in the $CASEROOT/SourceMods/src.pop2 directory. You do
+A: Place a modified copy of namelist_definition_pop.xml (that includes your
+   new variables) in the $CASEROOT/SourceMods/src.pop directory. You do
    not need to modify build-namelist or the defaults file, just set the
-   appropriate values for the new variables in $CASEROOT/user_nl_pop2 file.
+   appropriate values for the new variables in $CASEROOT/user_nl_pop file.
 
    For example, to add a variable gatekeeper_id to &domain_nml and set it
    equal to 'mlevy', you would take the following steps:
 
-     1. Copy $CCSMROOT/components/pop2/bld/namelist_definition_pop2.xml to
-        $CASEROOT/SourceMods/src.pop2
+     1. Copy $SRCROOT/components/pop/bld/namelist_definition_pop.xml to
+        $CASEROOT/SourceMods/src.pop
 
      2. Add the following (it can be added anywhere as long as it isn't in
         a comment, but for consistency put it in the "group domain_nml"
@@ -661,12 +661,12 @@ A: Place a modified copy of namelist_definition_pop2.xml (that includes your
           <entry 
           id="gatekeeper_id"
           type="char*256"
-          category="pop2"
+          category="pop"
           group="domain_nml" >
           Default: ''
           </entry>
 
-     3. Add the following to $CASEROOT/user_nl_pop2
+     3. Add the following to $CASEROOT/user_nl_pop
 
           gatekeeper_id = 'mlevy'
 
@@ -675,19 +675,19 @@ A: Place a modified copy of namelist_definition_pop2.xml (that includes your
 
 ----------------------------------------------------------------------------
 
-Q: How do I add a new pop2 namelist variable to the pop2 code base?
+Q: How do I add a new pop namelist variable to the pop code base?
 
-A: Again, we do not recommend editing files in $CCSMROOT and instead ask
-   that you follow the instructions above to use SourceMods/src.pop2/.
+A: Again, we do not recommend editing files in $SRCROOT and instead ask
+   that you follow the instructions above to use SourceMods/src.pop/.
    However, if you must change the code in your sandbox, you would add new
-   namelist variables by editting namelist_definition_pop2.xml directly in
-   $CCSMROOT/components/pop2/bld/namelist_files/. You may also want to update
-   namelist_defaults_pop2.xml and build-namelist so your new value can be
+   namelist variables by editting namelist_definition_pop.xml directly in
+   $SRCROOT/components/pop/bld/namelist_files/. You may also want to update
+   namelist_defaults_pop.xml and build-namelist so your new value can be
    set automatically. Continuing the example above, we would add
 
      <gatekeeper_id>mlevy</gatekeeper_id>
 
-   to namelist_defaults_pop2.xml and
+   to namelist_defaults_pop.xml and
 
      add_default($nl, 'gatekeeper_id');
 
@@ -704,15 +704,15 @@ A: You can pass values through the add_default() function. As above, suppose
    a new variable named 'problem'. To have gatekeeper_id depend on problem,
    we add do the following.
 
-     1. Add problem and gatekeeper_id to namelist_definitions_pop2.xml (for
+     1. Add problem and gatekeeper_id to namelist_definitions_pop.xml (for
         this example, assume problem is of type logical)
 
-     2. Add this dependency to the namelist_defaults_pop2.xml file
+     2. Add this dependency to the namelist_defaults_pop.xml file
 
           <gatekeeper_id problem=".false.">mlevy</gatekeeper_id>
           <gatekeeper_id problem=".true.">someone_else</gatekeeper_id>
 
-     3. Add the following lines to build_namelist_pop2 (note that problem
+     3. Add the following lines to build_namelist_pop (note that problem
         must be set before gatekeeper_id)
 
           add_default($nl, 'problem', 'val'->".false.");
@@ -731,17 +731,17 @@ Q: How do I change the contents of ${ocn_grid}_tavg_contents for my
    experiment?
 
 A: Simply place your modified version of the ${ocn_grid}_tavg_contents file
-   in $CASEROOT/SourceMods/src.pop2/ - this version will then be used by
+   in $CASEROOT/SourceMods/src.pop/ - this version will then be used by
    CESM.
 
 ----------------------------------------------------------------------------
 
 Q: What happens with files that used to be placed in the directory
-   $CASEROOT/SourceMods/src.pop2/?
+   $CASEROOT/SourceMods/src.pop/?
 
 A: There is no change to this functionality. For example, you can still
    place a modified copy of ${ocn_grid}_transport_contents in the directory
-   $CASEROOT/SourceMods/src.pop2/ and it will used by CESM (the namelist
+   $CASEROOT/SourceMods/src.pop/ and it will used by CESM (the namelist
    variable diag_transport_file will be point to a copy of the modified
    file).
 
@@ -751,4 +751,4 @@ Q: Are they any other notable changes in the build system?
 
 A: Yes, the number of tracers (NT) is now a variable passed in when POP is
    compiled, rather than being stored a file. Additionally, NT is set in
-   pop2.buildexe.csh rather than calling ocn.${module}.setup.csh.
+   pop.buildexe.csh rather than calling ocn.${module}.setup.csh.
