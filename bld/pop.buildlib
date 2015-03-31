@@ -20,19 +20,19 @@ my $GMAKE			= `./xmlquery GMAKE			-value`;
 
 if (! -d "$OBJROOT/ocn/obj" ) {
     my $sysmod = "mkdir -p $OBJROOT/ocn/obj";    
-    system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 }
 if (! -d "$OBJROOT/ocn/source" ) {
     my $sysmod =  "mkdir -p $OBJROOT/ocn/source";
-    system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 }
 if (! -d "$OBJROOT/ocn/input" ) { 
     my $sysmod = "mkdir -p $OBJROOT/ocn/input";
-    system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 }
 if (! -d "$OBJROOT/ocn/cvmix" ) {
     my $sysmod = "mkdir -p $OBJROOT/ocn/cvmix";
-    system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 }
 
 chdir "${OBJROOT}/ocn/source";
@@ -42,13 +42,13 @@ print " Copy the necessary files into $OBJROOT/ocn/source \n";
 print " -----------------------------------------------------------------\n";
 
 my $sysmod = "cp -fp $SRCROOT/components/pop/source/*.F90  .";
-system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 
 my $sysmod = "cp -fp $SRCROOT/components/pop/mpi/*.F90  .";
-system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 
 my $sysmod = "cp -fp $SRCROOT/components/pop/drivers/cpl/*.F90 .";
-system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 
 # Two files require special attention because they get renamed when copied
 # from either SourceMods/src.pop or input_templates/:
@@ -76,12 +76,12 @@ my $POP_FOUND_POP_DSM = 0;
 
 if (-f  "$SRCROOT/components/pop/input_templates/${OCN_GRID}_domain_size.F90" ) {
     my $sysmod = "cp -fp $SRCROOT/components/pop/input_templates/${OCN_GRID}_domain_size.F90 domain_size.F90";
-    system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
     $POP_FOUND_d_s = 1;
 }
 if (-f "$SRCROOT/components/pop/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90") {
     my $sysmod = "cp -fp $SRCROOT/components/pop/input_templates/${OCN_GRID}_POP_DomainSizeMod.F90 POP_DomainSizeMod.F90";
-    system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
     $POP_FOUND_POP_DSM = 1;
 }
 
@@ -91,7 +91,7 @@ if (-f "$SRCROOT/components/pop/input_templates/${OCN_GRID}_POP_DomainSizeMod.F9
 
 if (-d "$my_path" ) {
     my $sysmod = "cp -fp $my_path/*.F90 .";
-    system($sysmod) == 0 or warn "WARNING: pop.buidexe $sysmod failed: $?\n";
+    system($sysmod) == 0 or warn "WARNING: pop.buildlib $sysmod failed: $?\n";
 }
 if (-f  "${my_path}/domain_size.F90" ) {
     $POP_FOUND_d_s = 1;
@@ -106,12 +106,12 @@ if (-f "${my_path}/POP_DomainSizeMod.F90") {
 
 if (-f  "${OCN_GRID}_domain_size.F90" ) {
     my $sysmod = "mv -f ${OCN_GRID}_domain_size.F90 domain_size.F90";
-    system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
     $POP_FOUND_d_s = 1;
 }
 if (-f "${OCN_GRID}_POP_DomainSizeMod.F90") {
     my $sysmod = "mv -f ${OCN_GRID}_POP_DomainSizeMod.F90 POP_DomainSizeMod.F90";
-    system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
     $POP_FOUND_POP_DSM = 1;
 }
 
@@ -139,7 +139,7 @@ foreach my $comp ($OCN_TRACER_MODULES) {
 	chdir "$CASEBUILD";
 	if (! -f "moby.buildlib") {
 	    my $sysmod = "cp $SRCROOT/components/pop/aux/moby/pop/bld/moby.buildlib.csh .";
-	    system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+	    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 	}
 	my $sysmod = "./moby.buildlib";
 	system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
@@ -163,7 +163,7 @@ if (-e "$OBJROOT/ocn/obj/POP_cppdefs") {
     }
 }
 my $sysmod = "cp -f $OBJROOT/ocn/obj/POP_cppdefs.new $OBJROOT/ocn/obj/POP_cppdefs";
-system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 
 chdir $CASEROOT;
 my $cppdefs = `./xmlquery POP_CPPDEFS -value`;
@@ -180,11 +180,11 @@ close(file);
 
 chdir "${OBJROOT}/ocn/cvmix";
 my $sysmod = "$GMAKE -j $GMAKE_J -f $CASETOOLS/Makefile $LIBROOT/libcvmix.a ";
-system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 
 chdir "${OBJROOT}/ocn/obj";
 my $sysmod = "$GMAKE complib -j $GMAKE_J MODEL=pop COMPLIB=$LIBROOT/libocn.a USER_CPPDEFS=\"$cppdefs\" -f $CASETOOLS/Makefile"; 
-system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 
 print " \n";
 print " ---------------------------------------------------------------------------- \n";
@@ -194,7 +194,7 @@ print " ------------------------------------------------------------------------
 my $f90_dir = "$OBJROOT/ocn/source/f90";
 if (! -d  "$f90_dir" ) {
     my $sysmod = "mkdir -p $f90_dir";
-    system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "ERROR: pop.buildlib $sysmod failed: $?\n";
 }
 my $sysmod = "mv -f *.f90 $f90_dir";
 
