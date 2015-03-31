@@ -91,9 +91,7 @@ if (-f "$SRCROOT/components/pop/input_templates/${OCN_GRID}_POP_DomainSizeMod.F9
 
 if (-d "$my_path" ) {
     my $sysmod = "cp -fp $my_path/*.F90 .";
-    # TODO - must first check if there are any files here otherwise
-    # cannot call the following error check
-    #system($sysmod) == 0 or die "ERROR: pop.buidexe $sysmod failed: $?\n";
+    system($sysmod) == 0 or warn "WARNING: pop.buidexe $sysmod failed: $?\n";
 }
 if (-f  "${my_path}/domain_size.F90" ) {
     $POP_FOUND_d_s = 1;
