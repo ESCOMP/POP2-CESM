@@ -178,7 +178,6 @@
         <machine compiler="nag" testtype="prebeta" testmods="pop/cice">goldbach</machine>
       </test>
       <test name="ERS_IOP">
-        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">goldbach</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">goldbach</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
