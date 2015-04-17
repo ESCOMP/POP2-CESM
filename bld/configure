@@ -63,22 +63,22 @@ sub auto_decomp {
   if ($config[0] >= 0) {
     chdir "$CASEROOT";
     $POP_BLCKX=$config[2];
-    $sysmod = "./xmlchange POP_BLCKX=$POP_BLCKX";
+    $sysmod = "./xmlchange -noecho POP_BLCKX=$POP_BLCKX";
     system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
 
     $POP_BLCKY=$config[3];
-    $sysmod = "./xmlchange POP_BLCKY=$POP_BLCKY";
+    $sysmod = "./xmlchange -noecho POP_BLCKY=$POP_BLCKY";
     system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
 
     $POP_MXBLCKS=$config[4];
-    $sysmod = "./xmlchange POP_MXBLCKS=$POP_MXBLCKS";
+    $sysmod = "./xmlchange -noecho POP_MXBLCKS=$POP_MXBLCKS";
     system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
 
-    $sysmod = "./xmlchange POP_DECOMPTYPE=$config[5]";
+    $sysmod = "./xmlchange -noecho POP_DECOMPTYPE=$config[5]";
     system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
-    $sysmod = "./xmlchange POP_NX_BLOCKS=$config[6]";
+    $sysmod = "./xmlchange -noecho POP_NX_BLOCKS=$config[6]";
     system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
-    $sysmod = "./xmlchange POP_NY_BLOCKS=$config[7]";
+    $sysmod = "./xmlchange -noecho POP_NY_BLOCKS=$config[7]";
     system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
   } else {
     die "ERROR pop.buildnml: pop decomp not set for $OCN_GRID on $ntasks x  $NTHRDS_OCN procs \n";
@@ -179,7 +179,7 @@ sub set_cppdefs {
   # write out cppdefs to env_build.xml
   # this will determine if need to rebuild at runtime - force user to call $CASE.buildexe
   chdir "$CASEROOT";
-  my $sysmod = "./xmlchange -id POP_CPPDEFS -file env_build.xml -val=\'$cppdefs\'";
+  my $sysmod = "./xmlchange -noecho -id POP_CPPDEFS -file env_build.xml -val=\'$cppdefs\'";
   system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
 
   # write out cppdefs to POP_cppdefs.new
