@@ -20,6 +20,7 @@
 <ns_boundary_type ocn_grid="tx1v1"  >tripole</ns_boundary_type>
 <ns_boundary_type ocn_grid="tx0.1v2">tripole</ns_boundary_type>
 
+<profile_barrier>.false.</profile_barrier>
 <num_iotasks>1</num_iotasks> 
 <lredirect_stdout>.true.</lredirect_stdout> 
 <luse_pointer_files>.true.</luse_pointer_files> 
@@ -215,8 +216,11 @@
 <convergenceCriterion>1.0e-13</convergenceCriterion>
 <maxIterations>1000</maxIterations>
 <convergenceCheckFreq>10</convergenceCheckFreq>
+<convergenceCheckStart>60</convergenceCheckStart>
 <preconditionerChoice>'diagonal'</preconditionerChoice>
 <preconditionerFile>'unknownPrecondFile'</preconditionerFile>
+<LanczosconvergenceCriterion>0.15</LanczosconvergenceCriterion>
+<maxLanczosStep>100</maxLanczosStep>
 
 <!---------------------------->
 <!-- vertical_mix_nml -->

@@ -494,6 +494,7 @@ add_default($nl, 'clinic_distribution_type', 'val'=>"$POP_DECOMPTYPE");
 add_default($nl, 'tropic_distribution_type', 'val'=>"$POP_DECOMPTYPE");
 add_default($nl, 'ew_boundary_type');
 add_default($nl, 'ns_boundary_type');
+add_default($nl, 'profile_barrier');
 
 ##################################
 # namelist group: io_nml         #
@@ -695,8 +696,11 @@ add_default($nl, 'solverChoice');
 add_default($nl, 'convergenceCriterion');
 add_default($nl, 'maxIterations');
 add_default($nl, 'convergenceCheckFreq');
+add_default($nl, 'convergenceCheckStart');
 add_default($nl, 'preconditionerChoice');
 add_default($nl, 'preconditionerFile');
+add_default($nl, 'lanczosconvergenceCriterion');
+add_default($nl, 'maxLanczosStep');
     
 ##########################################
 # namelist group: vertical_mix_nml       #
