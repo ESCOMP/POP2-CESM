@@ -3,6 +3,55 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    21 Apr 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150421
+Tag Summary: MAJOR UPDATE FOR CESM 1.4 DEVELOPMENT
+             -- This is the merge of the newtesting branch back onto the trunk
+             1) buildnml and buildexe scripts converted from csh -> perl
+             2) testlists moved from scripts to each component (cimetest/)
+             3) For consistency, many files use pop moniker instead of pop2
+             4) Created a "configure" script to add to variables stored in
+                config_cache.xml
+
+Used command
+$ svn merge --reintegrate https://svn-ccsm-models.cgd.ucar.edu/pop2/branches/newtesting/ .
+
+Files Modified:
+ M      .
+M       bld/README.build-namelist
+M       bld/build-namelist
+M       bld/check_decomp.csh
+A  +    bld/configure
+M       bld/generate_pop_decomp.pl
+M       bld/moby_activate.csh
+M       bld/moby_deactivate.csh
+A  +    bld/namelist_files/namelist_defaults_pop.xml
+D       bld/namelist_files/namelist_defaults_pop2.xml
+A  +    bld/namelist_files/namelist_definition_pop.xml
+D       bld/namelist_files/namelist_definition_pop2.xml
+A  +    bld/pop.buildlib
+A  +    bld/pop.buildnml
+D       bld/pop2.buildexe.csh
+D       bld/pop2.buildnml.csh
+D       bld/pop2.cpl7.template
+M       bld/pop_decomp.xml
+M       bld/regen_list.csh
+A  +    bld/user_nl_pop
+D       bld/user_nl_pop2
+A  +    cimetest
+M       input_templates/ocn.abio_dic_dic14.tavg.csh
+M       input_templates/ocn.base.tavg.csh
+M       input_templates/ocn.cfc.tavg.csh
+M       input_templates/ocn.ciso.tavg.csh
+M       input_templates/ocn.ecosys.tavg.csh
+M       input_templates/ocn.iage.tavg.csh
+M       input_templates/ocn.moby.tavg.csh
+M       input_templates/test_pop2_in_build.csh
+M       source/POP_ConfigMod.F90
+M       source/io_types.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    3 Feb 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150203
 Tag Summary: Bugfix - not compiling with NAG because some lines exceeded

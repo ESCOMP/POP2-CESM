@@ -829,6 +829,28 @@
 <niw_energy_file_fmt>'bin'</niw_energy_file_fmt>
 
 <!---------------------------->
+<!-- passive_tracers_on_nml -->
+<!---------------------------->
+
+<iage_on>.false.</iage_on>
+<iage_on use_iage="TRUE">.true.</iage_on>
+
+<cfc_on>.false.</cfc_on>
+<cfc_on use_cfc="TRUE">.true.</cfc_on>
+
+<abio_dic_dic14_on>.false.</abio_dic_dic14_on>
+<abio_dic_dic14_on use_abio="TRUE">.true.</abio_dic_dic14_on>
+
+<ciso_on>.false.</ciso_on>
+<ciso_on use_ciso="TRUE">.true.</ciso_on>
+
+<ecosys_on>.false.</ecosys_on>
+<ecosys_on use_ecosys="TRUE">.true.</ecosys_on>
+
+<moby_on>.false.</moby_on>
+<moby_on use_moby="TRUE">.true.</moby_on>
+
+<!---------------------------->
 <!--        cfc_nml         -->
 <!---------------------------->
 

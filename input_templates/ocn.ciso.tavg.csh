@@ -16,7 +16,7 @@ endif
 
 @ s1 = 1             # use the base-model stream 1
 
-cat >! $CASEROOT/Buildconf/pop2conf/ciso_tavg_contents << EOF
+cat >! $CASEROOT/Buildconf/popconf/ciso_tavg_contents << EOF
 #most important fields 
 $s1  CISO_DO13C_RIV_FLUX
 $s1  CISO_DI13C_RIV_FLUX
@@ -91,7 +91,7 @@ EOF
 
 # generic autotroph fields (important fields)
 foreach autotroph ( sp diat diaz )
-   cat >> $CASEROOT/Buildconf/pop2conf/ciso_tavg_contents << EOF
+   cat >> $CASEROOT/Buildconf/popconf/ciso_tavg_contents << EOF
 $s1  CISO_d14C_${autotroph}
 $s1  CISO_d13C_${autotroph}
 $s1  ${autotroph}14C
@@ -109,7 +109,7 @@ end
  
 # CaCO3 terms from calcifiers  (important fields)
 foreach autotroph ( sp )
-   cat >> $CASEROOT/Buildconf/pop2conf/ciso_tavg_contents << EOF
+   cat >> $CASEROOT/Buildconf/popconf/ciso_tavg_contents << EOF
 $s1  CISO_autotrophCaCO3_d14C_${autotroph}
 $s1  CISO_autotrophCaCO3_d13C_${autotroph}
 $s1  ${autotroph}Ca14CO3
