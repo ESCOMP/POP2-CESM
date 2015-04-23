@@ -568,8 +568,9 @@ contains
       !DEBUG      write(message,'(6a,1x,5a)')' Global averages of fluxes sent to cpl at ', &
       !DEBUG           cyear,'/',cmonth, '/',cday,  chour,':',cminute,':',csecond
       !DEBUG      call document ('pop_send_to_coupler', message)
-      write(stdout,*)'pop_send_to_coupler'
-
+      if (my_task == master_task) then
+         write(stdout,*)'pop_send_to_coupler'
+      endif
       m2percm2  = mpercm*mpercm
       nsend = size(o2x,dim=1)
       do k = 1,nsend
