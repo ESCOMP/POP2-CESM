@@ -2,6 +2,23 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    27 Apr 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150427b
+Tag Summary: Actually use perl5lib/Build/Config.pm to write config_cache.xml
+             and to read values in build-namelist; this will be useful for
+             setting / reading IRF_NT when I add Keith's impulse response
+             function module to the trunk (his mods are based on the CESM 1.3
+             build system rather than the CESM 1.4 system)
+
+Files Modified:
+M       bld/build-namelist
+A       bld/config_files
+A       bld/config_files/definition.xml
+A       bld/config_files/definition.xsl
+M       bld/configure
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay
 Tag Date:    27 Apr 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150427a

@@ -1178,7 +1178,8 @@ add_default($nl, "moby_on");
 # namelist group: iage_nml               #
 ##########################################
 
-if (any(\@OCN_TRACER_MODULES, "iage")) {
+my $iage_on = $cfg->get("use_iage");
+if ($iage_on eq "TRUE") {
     add_default($nl, 'init_iage_option',    'val'=>"ccsm_${RUN_TYPE}");
     add_default($nl, 'init_iage_init_file', 'val'=>'same_as_TS', 'noprepend'=>1);
 }
@@ -1187,7 +1188,8 @@ if (any(\@OCN_TRACER_MODULES, "iage")) {
 # namelist group: cfc_nml                #
 ##########################################
 
-if (any(\@OCN_TRACER_MODULES, "cfc")) {
+my $cfc_on = $cfg->get("use_cfc");
+if ($cfc_on eq "TRUE") {
 
 #===============================================================================
 #  values of init_cfc_option for OCN_TRANSIENT == 1850-2000 are from following table
@@ -1240,8 +1242,8 @@ if (any(\@OCN_TRACER_MODULES, "cfc")) {
 # namelist group: abio_dic_dic14_nml               #
 ##########################################
 
-    if (any(\@OCN_TRACER_MODULES, "abio_dic_dic14")) {
-
+my $abio_on = $cfg->get("use_abio");
+if ($abio_on eq "TRUE") {
 	
     add_default($nl, 'init_abio_dic_dic14_option', 'val'=>"ccsm_${RUN_TYPE}");
 	
@@ -1277,7 +1279,9 @@ if (any(\@OCN_TRACER_MODULES, "cfc")) {
 ##########################################
 # namelist group: ecosys_ciso_nml        #
 ##########################################
-    if (any(\@OCN_TRACER_MODULES, "ciso")) {
+
+my $ciso_on = $cfg->get("use_ciso");
+if ($ciso_on eq "TRUE") {
 
 	my $temp;
 
@@ -1359,7 +1363,8 @@ if (any(\@OCN_TRACER_MODULES, "cfc")) {
 # namelist group: ecosys_nml             #
 ##########################################
 
-if (any(\@OCN_TRACER_MODULES, "ecosys")) {
+my $ecosys_on = $cfg->get("use_ecosys");
+if ($ecosys_on eq "TRUE") {
 
 	my $temp;
 
@@ -1585,7 +1590,8 @@ if (any(\@OCN_TRACER_MODULES, "ecosys")) {
 # namelist group: moby_nml             #
 ##########################################
 
-if (any(\@OCN_TRACER_MODULES, "moby")) {
+my $moby_on = $cfg->get("use_moby");
+if ($moby_on eq "TRUE") {
     
     my $temp;
 
@@ -1957,23 +1963,23 @@ my @groups = qw(domain_nml
                 niw_nml
                 passive_tracers_on_nml);
 
-if (any(\@OCN_TRACER_MODULES, "iage")) {
+if ($iage_on eq "TRUE") {
     push @groups, qw(iage_nml);
 }    
-if (any(\@OCN_TRACER_MODULES, "cfc")) {
+if ($cfc_on eq "TRUE" ) {
     push @groups, qw(cfc_nml);
 }    
-if (any(\@OCN_TRACER_MODULES, "ecosys")) {
+if ($ecosys_on eq "TRUE") {
     push @groups, qw(ecosys_nml ecosys_parms_nml ecosys_driver_nml);
     push @groups, qw(ecosys_restore_nml ecosys_restore_timescale_interp_nml);
 }    
-if (any(\@OCN_TRACER_MODULES, "moby")) {
+if ($moby_on eq "TRUE" ) {
     push @groups, qw(moby_nml moby_parms_nml );
 }
-if (any(\@OCN_TRACER_MODULES, "abio_dic_dic14")) {
+if ($abio_on eq "TRUE" ) {
     push @groups, qw(abio_dic_dic14_nml);
 }
-if (any(\@OCN_TRACER_MODULES, "ciso")) {
+if ($ciso_on eq "TRUE" ) {
     push @groups, qw(ecosys_ciso_nml);
 }
 
