@@ -88,6 +88,7 @@
 #endif
    use overflows
    use overflow_type
+   use running_mean_mod, only: running_mean_init
 
    implicit none
    private
@@ -482,6 +483,14 @@
          'init_phase2: error in init_passive_tracers')
       return
    endif
+
+!-----------------------------------------------------------------------
+!
+!  initialize running mean module, only necessary for test mode
+!
+!-----------------------------------------------------------------------
+
+   call running_mean_init(init_ts_file_fmt, read_restart_filename)
 
 !-----------------------------------------------------------------------
 !

@@ -65,6 +65,7 @@
    use exit_mod, only: sigAbort, exit_pop, flushm
    use overflows
    use overflow_type
+   use running_mean_mod, only: running_mean_test_update_var
 
    implicit none
    private
@@ -1930,7 +1931,14 @@
 
 
    if (nt > 2) call set_interior_passive_tracers(k, this_block, WORKN)
-   
+
+!-----------------------------------------------------------------------
+!
+!  running_mean_test_update_var call is only necessary for test mode
+!
+!-----------------------------------------------------------------------
+
+   call running_mean_test_update_var(k, bid)
 
 !-----------------------------------------------------------------------
 !

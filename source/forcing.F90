@@ -42,6 +42,7 @@
 #ifdef CCSMCOUPLED
    use shr_sys_mod, only: shr_sys_abort
 #endif
+   use running_mean_mod, only: running_mean_test_update_sflux_var
 
    !*** ccsm
    use sw_absorption, only: set_chl
@@ -392,6 +393,9 @@
 
    if (nt > 2)  &
       call set_sflux_passive_tracers(U10_SQR,IFRAC,ATM_PRESS,STF)
+
+   ! running_mean_test_update_sflux_var is only necessary for test mode
+   call running_mean_test_update_sflux_var
 
    call set_chl   
 

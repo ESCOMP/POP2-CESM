@@ -134,6 +134,8 @@
 
    errorCode = POP_Success
 
+   lpre_time_manager = .true.
+
 !-----------------------------------------------------------------------
 !
 !  Gather data for comparison with hydrographic data
@@ -199,6 +201,8 @@
 !-----------------------------------------------------------------------
 
    call time_manager(registry_match('lcoupled'), liceform)
+
+   lpre_time_manager = .false.
 
    call passive_tracers_send_time
 
