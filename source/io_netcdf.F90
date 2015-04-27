@@ -1273,25 +1273,17 @@
    if (io_field%set_ioFrame) then	
       ndims = io_field%nfield_dims
       call pio_setframe(data_file%File, io_field%vardesc, int(io_field%field_dim(ndims)%start,kind=PIO_OFFSET_KIND))
-!   else
-!     call pio_setframe(data_file%File, io_field%vardesc, 0_PIO_OFFSET_KIND)
    end if
    if (associated(io_field%field_r_3d)) then
 
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_r_3d, iostat)
+                            io_field%field_r_3d(:,:,:,1:nblocks_clinic), iostat)
 
    else if (associated(io_field%field_r_2d)) then
-      if(io_field%id==8) then
-         print *,__FILE__,__LINE__,io_field%id
-      endif
 
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_r_2d, iostat)
+                            io_field%field_r_2d(:,:,1:nblocks_clinic), iostat)
 
-      if(io_field%id==8) Then
-         print *,__FILE__,__LINE__,io_field%id,minval(io_field%field_r_2d),maxval(io_field%field_r_2d), io_field%set_ioFrame, iostat
-      endif
 
    else if (associated(io_field%field_r_1d)) then
 
@@ -1301,12 +1293,12 @@
    else if (associated(io_field%field_d_3d)) then
 
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_d_3d, iostat)
+                            io_field%field_d_3d(:,:,:,1:nblocks_clinic), iostat)
 
    else if (associated(io_field%field_d_2d)) then
 
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_d_2d, iostat)
+                            io_field%field_d_2d(:,:,1:nblocks_clinic), iostat)
 
    else if (associated(io_field%field_d_1d)) then
 
@@ -1322,12 +1314,12 @@
    else if (associated(io_field%field_i_3d)) then
 
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_i_3d, iostat)
+                            io_field%field_i_3d(:,:,:,1:nblocks_clinic), iostat)
 
    else if (associated(io_field%field_i_2d)) then
 
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
-                            io_field%field_i_2d, iostat)
+                            io_field%field_i_2d(:,:,1:nblocks_clinic), iostat)
 
    else if (associated(io_field%field_i_1d)) then
 
