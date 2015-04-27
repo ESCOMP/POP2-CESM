@@ -70,12 +70,14 @@
       time_weight,       &
       salice              ! sea ice salinity in msu
 
-   real (r8), dimension(:,:,:), allocatable, public :: &
+   real (r8), dimension(:,:,:), allocatable, public, target :: &
       AQICE,             &! sum of accumulated ice heat flux since tlast
-      QFLUX,             &! internal ocn heat flux due to ice formation
+      QFLUX               ! internal ocn heat flux due to ice formation
+
+   real (r8), dimension(:,:,:), allocatable, public :: &
       QICE                ! tot column cooling from ice form (in C*cm)
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), public ::  &
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), public, target ::  &
       FW_FREEZE  ! water flux at T points due to frazil ice formation
 
    real (r8), public ::  &

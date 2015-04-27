@@ -200,10 +200,10 @@
       tavg_bufsize_2d,   &    ! size of buffer for 2d fields
       tavg_bufsize_3d         ! size of buffer for 3d fields
 
-   real (rtavg), dimension(:,:,:,:), allocatable :: &
+   real (rtavg), dimension(:,:,:,:), allocatable, target :: &
       TAVG_BUF_2D         ! buffer for holding accumulated sums
 
-   real (rtavg), dimension(:,:,:,:,:), allocatable :: &
+   real (rtavg), dimension(:,:,:,:,:), allocatable, target :: &
       TAVG_BUF_3D         ! buffer for holding accumulated sums
 
    integer (i4), dimension(:), allocatable :: &
@@ -4602,15 +4602,15 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
-   real (rtavg), dimension(km) ::  &
+   real (rtavg), dimension(km), target ::  &
       ZT_R,      &! single/double precision array
       ZW_R,      &! single/double precision array
       ZW_BOT_R    ! single/double precision array
 
-   real (rtavg), dimension(0:km) ::  &
+   real (rtavg), dimension(0:km), target ::  &
       MOC_Z_R
 
-   real (rtavg), dimension(1000) ::  &
+   real (rtavg), dimension(1000), target ::  &
       LAT_AUX_GRID_R
 
    integer (int_kind) ::  &
@@ -4801,13 +4801,13 @@
 
    integer (int_kind) :: ii, num
 
-   real (rtavg), dimension(km)   ::  &
+   real (rtavg), dimension(km), target   ::  &
       DZ_R
 
-   real (rtavg), dimension(0:km-1) ::  &
+   real (rtavg), dimension(0:km-1), target ::  &
       DZW_R
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), target ::  &
       ULON_DEG, ULAT_DEG
 
    integer (i4)       :: fill_value_i
@@ -5141,7 +5141,7 @@
 !EOP
 !BOC
 
-   real (r8) ::  &
+   real (r8), target ::  &
       d0d_days_in_norm_year,  &
       d0d_days_in_leap_year,  &
       d0d_nsurface_t,         &
@@ -5535,7 +5535,7 @@
 !
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(1) ::  &
+   real (r8), dimension(1), target ::  &
       TIME1D  
 
    character(char_len) ::  &

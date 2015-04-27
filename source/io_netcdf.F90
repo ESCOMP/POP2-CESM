@@ -982,7 +982,7 @@
                 dimids=(/ (io_field%field_dim(n)%id, n=1,ndims) /),&
                                   varDesc=io_field%varDesc)
 
-         else if (            io_field%nfield_dims == c0) then 
+         else if (associated (io_field%field_d_0d)) then 
             ! do not supply optional dimids for scalars
             iostat = pio_def_var (data_file%File,                           &
                                   name=trim(io_field%short_name), &
@@ -1313,10 +1313,9 @@
       ! 1d vectors are not distributed to blocks; no need for gather_global
       iostat = pio_put_var(data_file%File, io_field%vardesc, io_field%field_d_1d)
  
-   else if (io_field%nfield_dims == c0) then
+   else if (associated(io_field%field_d_0d)) then
 
       ! scalars are not distributed to blocks; no need for gather_global
-      ! for now, all scalars are r8   and are not pointers or targets 
       iostat = pio_put_var(data_file%File, io_field%vardesc, io_field%field_d_0d)
 
    else if (associated(io_field%field_i_3d)) then
@@ -1526,12 +1525,6 @@
       iostat = pio_get_var (data_file%File,io_field%varDesc,&
                             io_field%field_r_1d)
 
-   else if (associated(io_field%field_r_1d)) then
-
-      ! scalars are not distributed to blocks; therefore, no scatter_global needed
-      iostat = pio_get_var (data_file%File,io_field%varDesc, &
-                            io_field%field_r_0d)
-
    else if (associated(io_field%field_d_3d)) then
 
       call pio_read_darray(data_file%File, io_field%varDesc, io_field%ioDesc, &
@@ -1572,7 +1565,7 @@
       iostat = pio_get_var (data_file%File,io_field%varDesc, &
                             io_field%field_d_1d)
 
-   else if (associated(io_field%field_d_1d)) then
+   else if (associated(io_field%field_d_0d)) then
 
       ! scalars are not distributed to blocks; therefore, no scatter_global needed
       iostat = pio_get_var (data_file%File, io_field%varDesc, &
@@ -1618,11 +1611,6 @@
       iostat = pio_get_var (data_file%File,io_field%varDesc, &
                             io_field%field_i_1d)
 
-   else if (associated(io_field%field_i_1d)) then
-
-      ! scalars are not distributed to blocks; therefore, no scatter_global needed
-      iostat = pio_get_var (data_file%File, io_field%varDesc, &
-                            io_field%field_i_0d)
    else
       call exit_POP(sigAbort, &
                     'No field associated for reading from netCDF')

@@ -116,7 +116,7 @@
    ! these constants are defined in an init routine to allow
    !  CSM shared constants to over-ride
 
-   real (r8), public ::      &
+   real (r8), public, target ::      &
       grav                  ,&! gravit. accel. (cm/s^2)
       omega                 ,&! angular vel. of Earth 1/s
       radius                ,&! radius of Earth (cm)
@@ -141,7 +141,7 @@
 
    !  conversion factors
 
-   real (r8), public :: &
+   real (r8), public, target :: &
       T0_Kelvin        ,&! zero point for Celsius
       mpercm           ,&! meters per cm
       cmperm           ,&! cm per meter

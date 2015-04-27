@@ -118,7 +118,7 @@
 
    !*** geometric 2d arrays
 
-   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic), public :: &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic), public, target :: &
       DXU, DYU            ,&! {x,y} spacing centered at U points
       DXT, DYT            ,&! {x,y} spacing centered at T points
       DXUR, DYUR          ,&! reciprocals of DXU, DYU
@@ -133,7 +133,7 @@
       UAREA_R, TAREA_R    ,&! reciprocal of area of U,T cells
       HT, HU, HUR           ! ocean depth at T,U points
 
-   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic), public :: &
+   real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic), public, target :: &
       TLATD, TLOND          ! {latitude,longitude} of T points in degrees
 
    !*** 3d depth fields for partial bottom cells
@@ -144,7 +144,7 @@
    !*** 2d landmasks
 
    integer (POP_i4), dimension(nx_block,ny_block,max_blocks_clinic), &
-      public :: &
+      public, target :: &
       KMT            ,&! k index of deepest grid cell on T grid
       KMU            ,&! k index of deepest grid cell on U grid
       KMTOLD           ! KMT field before smoothing
@@ -168,7 +168,7 @@
       KMTEE,KMTNN      ! KMT field 2 cells away for upwind stencil
                        ! allocated and computed in advection module
 
-   integer (POP_i4), dimension(:,:,:), allocatable, public :: &
+   integer (POP_i4), dimension(:,:,:), allocatable, public, target :: &
       REGION_MASK      ! mask defining regions, marginal seas
 
 !-----------------------------------------------------------------------
