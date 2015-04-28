@@ -1172,6 +1172,7 @@ add_default($nl, "ciso_on");
 add_default($nl, "abio_dic_dic14_on");
 add_default($nl, "ecosys_on");
 add_default($nl, "moby_on");
+add_default($nl, "irf_on");
 
 
 ##########################################
@@ -1489,7 +1490,7 @@ if ($ecosys_on eq "TRUE") {
 # namelist group: ecosys_parms_nml       #
 ##########################################
 
-if (any(\@OCN_TRACER_MODULES, "ecosys")) {
+if ($ecosys_on eq "TRUE") {
     add_default($nl, 'parm_Fe_bioavail');
     add_default($nl, 'parm_o2_min');
     add_default($nl, 'parm_o2_min_delta');
@@ -1580,14 +1581,14 @@ if (any(\@OCN_TRACER_MODULES, "ecosys")) {
 # namelist group: ecosys_driver_nml      #
 ##########################################
 
-if (any(\@OCN_TRACER_MODULES, "ecosys")) {
+if ($ecosys_on eq "TRUE") {
 
     add_default($nl, 'lmarginal_seas');
     add_default($nl, 'ecosys_tadvect_ctype');
     }
  
 ##########################################
-# namelist group: moby_nml             #
+# namelist group: moby_nml               #
 ##########################################
 
 my $moby_on = $cfg->get("use_moby");
@@ -1676,6 +1677,16 @@ if ($moby_on eq "TRUE") {
   $fh_in->close;
     }
   $fh_out->close;
+}
+
+##########################################
+# namelist group: moby_nml               #
+##########################################
+
+my $IRF_on = $cfg->get("use_irf");
+if ($IRF_on eq "TRUE") {
+  add_default($nl, 'irf_tracer_file');
+  add_default($nl, 'irf_tracer_file_ind_start');
 }
 
 ##########################################
@@ -1854,12 +1865,13 @@ if ($OCN_TAVG_TRACER_BUDGET eq "TRUE") {
 for my $module (@OCN_TRACER_MODULES) {
   my $file = "ocn.${module}.tavg.csh";
   my $my_stream = $numcols+1;
-  my $env = "env CASEROOT=$CASEROOT CASEBUILD=$CASEBUILD OCN_GRID=$OCN_GRID OCN_TAVG_TRACER_BUDGET=$OCN_TAVG_TRACER_BUDGET"; 
+  my $env = "env CASEROOT=$CASEROOT CASEBUILD=$CASEBUILD OCN_GRID=$OCN_GRID OCN_TAVG_TRACER_BUDGET=$OCN_TAVG_TRACER_BUDGET";
+  my @tavg_script_args = module_tavg_script_args($nl, $module, $cfg);
   if (-f "${my_path}/$file"){
-      $sysmod = "$env ${my_path}/${file} $my_stream";
+      $sysmod = "$env ${my_path}/${file} $my_stream @tavg_script_args";
       system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
   } else {
-      $sysmod = "$env ${SRCROOT}/components/pop/input_templates/${file} $my_stream";
+      $sysmod = "$env ${SRCROOT}/components/pop/input_templates/${file} $my_stream @tavg_script_args";
       system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
   }
 
@@ -1981,6 +1993,9 @@ if ($abio_on eq "TRUE" ) {
 }
 if ($ciso_on eq "TRUE" ) {
     push @groups, qw(ecosys_ciso_nml);
+}
+if ($IRF_on eq "TRUE" ) {
+    push @groups, qw(irf_nml);
 }
 
 # Check for variables in the "derived" group, add them to appropriate group
@@ -2450,18 +2465,19 @@ sub pop_consistency_check() {
 }
 
 #-------------------------------------------------------------------------------
-sub any() {
-    # return 1 if array (arg 0) contains val (arg 1). Note that this uses "eq"
-    # instead of "==" because it's meant for strings
 
-    my $array_ref = shift;
-    my @array = @$array_ref;
-    my $val = shift;
-    
-    foreach (@array) {
-	if ($_ eq $val) {
-	    return 1;
-	}
-    }
-    return 0;
+sub module_tavg_script_args() {
+  my $nl     = shift;
+  my $module = shift;
+  my $cfg    = shift;
+  if ($module eq "IRF") {
+    my $IRF_NT   = $cfg->get("irf_nt");
+    my $IRF_MODE = $cfg->get("irf_mode");
+    return ($nl->get_variable_value("irf_nml", "irf_tracer_file"),
+            $nl->get_variable_value("irf_nml", "irf_tracer_file_ind_start"),
+            $IRF_NT,
+            "'$IRF_MODE'");
+  }
+  return "";
 }
+

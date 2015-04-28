@@ -854,6 +854,9 @@
 <moby_on>.false.</moby_on>
 <moby_on use_moby="TRUE">.true.</moby_on>
 
+<irf_on>.false.</irf_on>
+<irf_on use_irf="TRUE">.true.</irf_on>
+
 <!---------------------------->
 <!--        cfc_nml         -->
 <!---------------------------->
@@ -1380,6 +1383,17 @@
 
 <moby_use_nml_surf_vals>.false.</moby_use_nml_surf_vals>
 <moby_use_nml_surf_vals runtype="startup">.true.</moby_use_nml_surf_vals>
+
+<!---------------------------->
+<!-- irf_nml                -->
+<!---------------------------->
+
+<irf_tracer_file irf_mode="NK_precond"        ocn_grid="gx3v7">ocn/pop/gx3v7/ic/IRF_NK_precond_tracers_gx3v7_20150313.nc</irf_tracer_file>
+<irf_tracer_file irf_mode="NK_precond"        ocn_grid="gx1v6">ocn/pop/gx1v6/ic/IRF_NK_precond_tracers_gx1v6_20150313.nc</irf_tracer_file>
+<irf_tracer_file irf_mode="offline_transport" ocn_grid="gx3v7">ocn/pop/gx3v7/ic/IRF_offline_transport_tracers_gx3v7_20150313.nc</irf_tracer_file>
+<irf_tracer_file irf_mode="offline_transport" ocn_grid="gx1v6">ocn/pop/gx1v6/ic/IRF_offline_transport_tracers_gx1v6_20150313.nc</irf_tracer_file>
+
+<irf_tracer_file_ind_start>1</irf_tracer_file_ind_start>
 
 <!----------------------------------->
 <!--derived - thare are temporary --->

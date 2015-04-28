@@ -1388,6 +1388,7 @@
 !-----------------------------------------------------------------------
 
       if (nt > 2) call reset_passive_tracers(  &
+         TRACER(:,:,:,:,oldtime,iblock), &
          TRACER(:,:,:,:,newtime,iblock), iblock)
 
 

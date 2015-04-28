@@ -26,6 +26,16 @@ Use ecosys tracer module
 <entry id="use_moby" valid_values="FALSE,TRUE" value="FALSE">
 Use moby tracer module
 </entry>
+<entry id="use_irf" valid_values="FALSE,TRUE" value="FALSE">
+Use IRF tracer module
+</entry>
+
+<entry id="irf_nt" value="0">
+Number of IRF tracers
+</entry>
+<entry id="irf_mode" valid_values="NK_precond,offline_transport" value="NK_precond">
+IRF tracer module mode
+</entry>
 
 <entry id="cppdefs" value="">
 CPPDEF used during POP build

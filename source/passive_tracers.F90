@@ -86,6 +86,10 @@
        abio_dic_dic14_set_interior,   &
        abio_dic_dic14_write_restart
 
+   use IRF_mod, only: IRF_tracer_cnt
+   use IRF_mod, only: IRF_init
+   use IRF_mod, only: IRF_reset
+
    implicit none
    private
    save
@@ -151,23 +155,24 @@
 
    logical (kind=log_kind) ::  &
       ecosys_on, cfc_on, iage_on, moby_on, &
-      abio_dic_dic14_on, ciso_on
+      abio_dic_dic14_on, ciso_on, IRF_on
 
    namelist /passive_tracers_on_nml/  &
       ecosys_on, cfc_on, iage_on, moby_on, &
-      abio_dic_dic14_on, ciso_on
+      abio_dic_dic14_on, ciso_on, IRF_on
 
 
 !-----------------------------------------------------------------------
 !     index bounds of passive tracer module variables in TRACER
 !-----------------------------------------------------------------------
 
-   integer (kind=int_kind) ::                           &
-      ecosys_driver_ind_begin,  ecosys_driver_ind_end,  &
-      iage_ind_begin,           iage_ind_end,           &
-      cfc_ind_begin,            cfc_ind_end,            &
-      moby_ind_begin,            moby_ind_end,          &
-      abio_dic_dic14_ind_begin,  abio_dic_dic14_ind_end
+   integer (kind=int_kind) ::                            &
+      ecosys_driver_ind_begin,   ecosys_driver_ind_end,  &
+      iage_ind_begin,            iage_ind_end,           &
+      cfc_ind_begin,             cfc_ind_end,            &
+      moby_ind_begin,            moby_ind_end,           &
+      abio_dic_dic14_ind_begin,  abio_dic_dic14_ind_end, &
+      IRF_ind_begin,             IRF_ind_end
 
 !-----------------------------------------------------------------------
 !  filtered SST and SSS, if needed
@@ -243,6 +248,7 @@
    iage_on           = .false.
    moby_on           = .false.
    abio_dic_dic14_on = .false.
+   IRF_on            = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old', iostat=nml_error)
@@ -280,6 +286,7 @@
    call broadcast_scalar(iage_on,           master_task)
    call broadcast_scalar(moby_on,           master_task)
    call broadcast_scalar(abio_dic_dic14_on, master_task)
+   call broadcast_scalar(IRF_on,            master_task)
 
 !-----------------------------------------------------------------------
 !  check if ecosys_on = true if ciso_on = true, otherwise abort
@@ -345,6 +352,11 @@
    if (abio_dic_dic14_on) then
       call set_tracer_indices('ABIO', abio_dic_dic14_tracer_cnt, cumulative_nt,  &
                               abio_dic_dic14_ind_begin, abio_dic_dic14_ind_end)
+   end if
+
+   if (IRF_on) then
+      call set_tracer_indices('IRF', IRF_tracer_cnt, cumulative_nt,  &
+                              IRF_ind_begin, IRF_ind_end)
    end if
 
    if (cumulative_nt /= nt) then
@@ -457,6 +469,15 @@
          return
       endif
 
+   end if
+
+!-----------------------------------------------------------------------
+!  IRF (IRF) block
+!-----------------------------------------------------------------------
+
+   if (IRF_on) then
+      call IRF_init(tracer_d(IRF_ind_begin:IRF_ind_end), &
+                    TRACER(:,:,:,IRF_ind_begin:IRF_ind_end,:,:))
    end if
 
 !-----------------------------------------------------------------------
@@ -745,6 +766,10 @@
     end if
 
 !-----------------------------------------------------------------------
+!  IRF does not have source-sink terms
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
 !  accumulate time average if necessary
 !-----------------------------------------------------------------------
 
@@ -836,6 +861,10 @@
 
 !-----------------------------------------------------------------------
 !  ABIO DIC & DIC 14 does not compute and store 3D source-sink terms
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  IRF does not compute and store 3D source-sink terms
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
@@ -962,6 +991,10 @@
 
 
 !-----------------------------------------------------------------------
+!  IRF does not have surface fluxes
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
 !  add virtual fluxes for tracers that specify a non-zero ref_val
 !-----------------------------------------------------------------------
 
@@ -1044,6 +1077,10 @@
    end if
 
 !-----------------------------------------------------------------------
+!  IRF does not write additional restart fields
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
 !EOC
 
  end subroutine write_restart_passive_tracers
@@ -1053,7 +1090,7 @@
 ! !IROUTINE: reset_passive_tracers
 ! !INTERFACE:
 
- subroutine reset_passive_tracers(TRACER_NEW, bid)
+ subroutine reset_passive_tracers(TRACER_OLD, TRACER_NEW, bid)
 
 ! !DESCRIPTION:
 !  call subroutines for each tracer module to reset tracer values
@@ -1068,6 +1105,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 
    real(r8), dimension(nx_block,ny_block,km,nt), intent(inout) :: &
+      TRACER_OLD,   & ! all tracers at old time for a given block
       TRACER_NEW      ! all tracers at new time for a given block
 
 !EOP
@@ -1102,6 +1140,16 @@
 !-----------------------------------------------------------------------
 !  ABIO DIC & DIC14 does not reset values
 !-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  IRF block
+!-----------------------------------------------------------------------
+
+   if (IRF_on) then
+      call IRF_reset( &
+         TRACER_OLD(:,:,:,IRF_ind_begin:IRF_ind_end), &
+         TRACER_NEW(:,:,:,IRF_ind_begin:IRF_ind_end) )
+   end if
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1343,6 +1391,10 @@
    end if
 
 !-----------------------------------------------------------------------
+!  IRF does not have additional sflux tavg fields
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
 !EOC
 
  end subroutine passive_tracers_tavg_sflux
@@ -1506,6 +1558,10 @@
    if (moby_on) then
      call POP_mobySendTime
    endif
+
+!-----------------------------------------------------------------------
+!  IRF does not use virtual fluxes
+!-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
 !EOC

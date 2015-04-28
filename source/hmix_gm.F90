@@ -262,8 +262,9 @@
                                 !  advection tendency
          tavg_VNT_ISOP,     &   ! heat flux tendency in grid-y direction
                                 !  due to eddy-induced velocity
-         tavg_VNS_ISOP          ! salt flux tendency in grid-y direction
+         tavg_VNS_ISOP,     &   ! salt flux tendency in grid-y direction
                                 !  due to eddy-induced velocity
+         tavg_VDC_GM            ! GM contribution to VDC
 
 !-----------------------------------------------------------------------
 !
@@ -1113,6 +1114,11 @@
 
    endif
 
+   call define_tavg_field(tavg_VDC_GM,'VDC_GM',3, &
+                          long_name='vertical mixing coeff, GM contribution', &
+                          units='cm^2/s', grid_loc='3113', &
+                          coordinates='TLONG TLAT z_w_bot time')
+
       call get_timer(timer_nloop,'HMIX_TRACER_GM_NLOOP', &
                                   nblocks_clinic, distrb_clinic%nprocs)
 
@@ -1743,6 +1749,9 @@
           VDC_GM(:,:,k,bid) = WORK1
           VDC(:,:,k,n,bid) = VDC(:,:,k,n,bid) + WORK1
         end do
+
+        ! WORK1 and output axis are both at cell bottom
+        call accumulate_tavg_field(WORK1,tavg_VDC_GM,bid,k)
 
       end if
 

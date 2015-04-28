@@ -53,7 +53,8 @@ require XML::Lite;
 
 # Determine tracer count and which modules are active
 my $NT, $ECOSYS_NT, $ZOOPLANKTON_CNT, $AUTOTROPH_CNT, $GRAZER_PREY_CNT;
-my $USE_IAGE, $USE_CFC, $USE_ABIO, $USE_CISO, $USE_ECOSYS, $USE_MOBY;
+my $IRF_NT, $IRF_MODE;
+my $USE_IAGE, $USE_CFC, $USE_ABIO, $USE_CISO, $USE_ECOSYS, $USE_MOBY, $USE_IRF;
 determine_tracer_count();
 
 # Set up CPPDEFS
@@ -72,6 +73,9 @@ $cfg->set('use_abio',   $USE_ABIO);
 $cfg->set('use_ciso',   $USE_CISO);
 $cfg->set('use_ecosys', $USE_ECOSYS);
 $cfg->set('use_moby',   $USE_MOBY);
+$cfg->set('use_irf',    $USE_IRF);
+$cfg->set('irf_nt',     $IRF_NT);
+$cfg->set('irf_mode',   $IRF_MODE);
 $cfg->set('cppdefs',    $cppdefs);
 
 $cfg->write_file($cfg_cache_file,"");
@@ -122,6 +126,8 @@ sub determine_tracer_count {
   $ZOOPLANKTON_CNT = 1;
   $AUTOTROPH_CNT   = 3;
   $GRAZER_PREY_CNT = 3;
+  $IRF_NT          = 0;
+  $IRF_MODE        = "NK_precond";
 
   my @ocn_tracer_modules_opt = split(/\s/, $OCN_TRACER_MODULES_OPT);
   foreach my $module_opt ( @ocn_tracer_modules_opt ) {
@@ -137,6 +143,12 @@ sub determine_tracer_count {
     if ( `echo $module_opt | cut -f 1 -d =` eq "GRAZER_PREY_CNT" ) {
       $GRAZER_PREY_CNT = `echo $module_opt | cut -f 2 -d =`;
     }
+    if ( `echo $module_opt | cut -f 1 -d =` eq "IRF_NT" ) {
+      $IRF_NT = `echo $module_opt | cut -f 2 -d =`;
+    }
+    if ( `echo $module_opt | cut -f 1 -d =` eq "IRF_MODE" ) {
+      $IRF_MODE = `echo $module_opt | cut -f 2 -d =`;
+    }
   }
 
   $USE_IAGE   = "FALSE";
@@ -145,6 +157,7 @@ sub determine_tracer_count {
   $USE_CISO   = "FALSE";
   $USE_ECOSYS = "FALSE";
   $USE_MOBY   = "FALSE";
+  $USE_IRF    = "FALSE";
 
   $NT = 2;
   my @ocn_tracer_modules = split(/\s/, $OCN_TRACER_MODULES);
@@ -187,6 +200,22 @@ sub determine_tracer_count {
       my $NT_MOBY = `grep PTRACERS_numInUse $dir/${OCN_GRID}_data.ptracers | cut -f 2 -d = | cut -f 1 -d","`;
       $NT       = $NT + $NT_MOBY;
     }
+    
+    if ($module eq "IRF" ) {
+      $USE_IRF = "TRUE";
+      if ($IRF_NT == 0) {
+        if ($IRF_MODE eq "offline_transport" && $OCN_GRID eq "gx3v7") {
+          $IRF_NT = 156;
+        } elsif ($IRF_MODE eq "offline_transport" && $OCN_GRID eq "gx1v6") {
+          $IRF_NT = 178;
+        } elsif ($IRF_MODE eq "NK_precond") {
+          $IRF_NT = 36;
+        } else {
+          die "$IRF_MODE is not a valid choice for IRF_MODE!"
+        }
+      }
+      $NT      = $NT + $IRF_NT;
+    }
   }
 
 }
@@ -204,6 +233,7 @@ sub set_cppdefs {
   $cppdefs = "$cppdefs -DZOOPLANKTON_CNT=$ZOOPLANKTON_CNT";
   $cppdefs = "$cppdefs -DAUTOTROPH_CNT=$AUTOTROPH_CNT";
   $cppdefs = "$cppdefs -DGRAZER_PREY_CNT=$GRAZER_PREY_CNT";
+  $cppdefs = "$cppdefs -DIRF_NT=$IRF_NT";
     
   # write out cppdefs to env_build.xml
   # this will determine if need to rebuild at runtime - force user to call $CASE.buildexe
