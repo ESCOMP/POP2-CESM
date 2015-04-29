@@ -12,8 +12,8 @@
 my $CASEROOT = shift;
 
 # Environment variables
-my $SRCROOT, $SCRIPTSROOT, $CASEBUILD, $OBJROOT, $OCN_GRID, $OCN_TRACER_MODULES;
-my $OCN_TRACER_MODULES_OPT, $POP_AUTO_DECOMP, $POP_BLCKX, $POP_BLCKY;
+my $SRCROOT, $SCRIPTSROOT, $CASEBUILD, $OBJROOT, $OCN_GRID, @OCN_TRACER_MODULES;
+my @OCN_TRACER_MODULES_OPT, $POP_AUTO_DECOMP, $POP_BLCKX, $POP_BLCKY;
 my $POP_MXBLCKS, $POP_TAVG_R8, $NTHRDS_OCN, $NINST_OCN, $OCN_ICE_FORCING;
 
 chdir "$CASEROOT";
@@ -22,8 +22,8 @@ $SCRIPTSROOT             = `./xmlquery SCRIPTSROOT            -value`;
 $CASEBUILD               = `./xmlquery CASEBUILD              -value`;
 $OBJROOT                 = `./xmlquery OBJROOT                -value`;
 $OCN_GRID                = `./xmlquery OCN_GRID               -value`;
-$OCN_TRACER_MODULES      = `./xmlquery OCN_TRACER_MODULES     -value`;
-$OCN_TRACER_MODULES_OPT  = `./xmlquery OCN_TRACER_MODULES_OPT -value`;
+@OCN_TRACER_MODULES      = split(" ",`./xmlquery OCN_TRACER_MODULES     -value`);
+@OCN_TRACER_MODULES_OPT  = split(" ",`./xmlquery OCN_TRACER_MODULES_OPT -value`);
 $POP_AUTO_DECOMP         = `./xmlquery POP_AUTO_DECOMP        -value`;
 $POP_BLCKX               = `./xmlquery POP_BLCKX              -value`;
 $POP_BLCKY               = `./xmlquery POP_BLCKY              -value`;
@@ -129,8 +129,7 @@ sub determine_tracer_count {
   $IRF_NT          = 0;
   $IRF_MODE        = "NK_precond";
 
-  my @ocn_tracer_modules_opt = split(" ", $OCN_TRACER_MODULES_OPT);
-  foreach my $module_opt ( @ocn_tracer_modules_opt ) {
+  foreach my $module_opt ( @OCN_TRACER_MODULES_OPT ) {
     my $varname = qx{echo $module_opt | cut -f 1 -d =};
     my $value   = qx{echo $module_opt | cut -f 2 -d =};
     # no intrinsic trim() function, use regular expressions to remove whitespace
@@ -151,6 +150,7 @@ sub determine_tracer_count {
     } else {
         die "POP configure: $varname is not a valid value in OCN_TRACER_MODULES_OPT";
     }
+    print "POP configure: setting $varname = $value\n";
   }
 
   $USE_IAGE   = "FALSE";
@@ -162,8 +162,7 @@ sub determine_tracer_count {
   $USE_IRF    = "FALSE";
 
   $NT = 2;
-  my @ocn_tracer_modules = split(" ", $OCN_TRACER_MODULES);
-  foreach my $module ( @ocn_tracer_modules )  {
+  foreach my $module ( @OCN_TRACER_MODULES )  {
     if ($module eq "iage" ) {
       $USE_IAGE = "TRUE";
       $NT       = $NT +  1;
