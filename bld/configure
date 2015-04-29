@@ -98,24 +98,24 @@ sub auto_decomp {
     chdir "$CASEROOT";
     $POP_BLCKX=$config[2];
     $sysmod = "./xmlchange -noecho POP_BLCKX=$POP_BLCKX";
-    system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "POP configure: $sysmod failed: $?\n";
 
     $POP_BLCKY=$config[3];
     $sysmod = "./xmlchange -noecho POP_BLCKY=$POP_BLCKY";
-    system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "POP configure: $sysmod failed: $?\n";
 
     $POP_MXBLCKS=$config[4];
     $sysmod = "./xmlchange -noecho POP_MXBLCKS=$POP_MXBLCKS";
-    system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "POP configure: $sysmod failed: $?\n";
 
     $sysmod = "./xmlchange -noecho POP_DECOMPTYPE=$config[5]";
-    system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "POP configure: $sysmod failed: $?\n";
     $sysmod = "./xmlchange -noecho POP_NX_BLOCKS=$config[6]";
-    system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "POP configure: $sysmod failed: $?\n";
     $sysmod = "./xmlchange -noecho POP_NY_BLOCKS=$config[7]";
-    system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
+    system($sysmod) == 0 or die "POP configure: $sysmod failed: $?\n";
   } else {
-    die "ERROR pop.buildnml: pop decomp not set for $OCN_GRID on $ntasks x  $NTHRDS_OCN procs \n";
+    die "POP configure: pop decomp not set for $OCN_GRID on $ntasks x  $NTHRDS_OCN procs \n";
   }
 
 }
@@ -129,7 +129,7 @@ sub determine_tracer_count {
   $IRF_NT          = 0;
   $IRF_MODE        = "NK_precond";
 
-  my @ocn_tracer_modules_opt = split(/\s/, $OCN_TRACER_MODULES_OPT);
+  my @ocn_tracer_modules_opt = split(" ", $OCN_TRACER_MODULES_OPT);
   foreach my $module_opt ( @ocn_tracer_modules_opt ) {
     my $varname = qx{echo $module_opt | cut -f 1 -d =};
     my $value   = qx{echo $module_opt | cut -f 2 -d =};
@@ -138,21 +138,18 @@ sub determine_tracer_count {
     $value   =~ s/\s+$//;
     if ( $varname eq "ECOSYS_NT" ) {
       $ECOSYS_NT = $value;
-    }
-    if ( $varname eq "ZOOPLANKTON_CNT" ) {
+    } elsif ( $varname eq "ZOOPLANKTON_CNT" ) {
       $ZOOPLANKTON_CNT = $value;
-    }
-    if ( $varname eq "AUTOTROPH_CNT" ) {
+    } elsif ( $varname eq "AUTOTROPH_CNT" ) {
       $AUTOTROPH_CNT = $value;
-    }
-    if ( $varname eq "GRAZER_PREY_CNT" ) {
+    } elsif ( $varname eq "GRAZER_PREY_CNT" ) {
       $GRAZER_PREY_CNT = $value;
-    }
-    if ( $varname eq "IRF_NT" ) {
+    } elsif ( $varname eq "IRF_NT" ) {
       $IRF_NT = $value;
-    }
-    if ( $varname eq "IRF_MODE" ) {
+    } elsif ( $varname eq "IRF_MODE" ) {
       $IRF_MODE = $value;
+    } else {
+        die "POP configure: $varname is not a valid value in OCN_TRACER_MODULES_OPT";
     }
   }
 
@@ -165,34 +162,24 @@ sub determine_tracer_count {
   $USE_IRF    = "FALSE";
 
   $NT = 2;
-  my @ocn_tracer_modules = split(/\s/, $OCN_TRACER_MODULES);
+  my @ocn_tracer_modules = split(" ", $OCN_TRACER_MODULES);
   foreach my $module ( @ocn_tracer_modules )  {
     if ($module eq "iage" ) {
       $USE_IAGE = "TRUE";
       $NT       = $NT +  1;
-    }
-
-    if ($module eq "cfc" ) {
+    } elsif ($module eq "cfc" ) {
       $USE_CFC = "TRUE";
       $NT      = $NT +  2;
-    }
-
-    if ($module eq "abio_dic_dic14" ) {
+    } elsif ($module eq "abio_dic_dic14" ) {
       $USE_ABIO = "TRUE";
       $NT       = $NT +  2;
-    }
-    
-    if ($module eq "ciso" ) {
+    } elsif ($module eq "ciso" ) {
       $USE_CISO = "TRUE";
       $NT       = $NT + 14;
-    }
-    
-    if ($module eq "ecosys" ) {
+    } elsif ($module eq "ecosys" ) {
       $USE_ECOSYS = "TRUE";
       $NT         = $NT + $ECOSYS_NT;
-    }
-    
-    if ($module eq "moby" ) {
+    } elsif ($module eq "moby" ) {
       $USE_MOBY = "TRUE";
       my $dir;
       if (-e "$CASEROOT/SourceMods/src.pop/${OCN_GRID}_data.ptracers") {
@@ -200,13 +187,11 @@ sub determine_tracer_count {
       } elsif (-e "$SRCROOT/components/pop/aux/moby/darwin/input/${OCN_GRID}_data.ptracers") {
         $dir = "$SRCROOT/components/pop/aux/moby/darwin/input";
       } else {
-        die "ERROR pop.buildexe: cannot find moby tracers";
+        die "POP configure: cannot find moby tracers";
       }
       my $NT_MOBY = `grep PTRACERS_numInUse $dir/${OCN_GRID}_data.ptracers | cut -f 2 -d = | cut -f 1 -d","`;
       $NT       = $NT + $NT_MOBY;
-    }
-    
-    if ($module eq "IRF" ) {
+    } elsif ($module eq "IRF" ) {
       $USE_IRF = "TRUE";
       if ($IRF_NT == 0) {
         if ($IRF_MODE eq "offline_transport" && $OCN_GRID eq "gx3v7") {
@@ -216,15 +201,13 @@ sub determine_tracer_count {
         } elsif ($IRF_MODE eq "NK_precond") {
           $IRF_NT = 36;
         } else {
-          die "$IRF_MODE is not a valid choice for IRF_MODE!"
+          die "POP configure: $IRF_MODE is not a valid choice for IRF_MODE!";
         }
       }
       $NT      = $NT + $IRF_NT;
+    } else {
+      die "POP configure: $module is not a valid value in OCN_TRACER_MODULES!";
     }
-  }
-
-  if (($USE_IRF eq "FALSE" ) && ($IRF_NT == 0)) {
-    $IRF_NT = 1;
   }
 
 }
@@ -248,12 +231,12 @@ sub set_cppdefs {
   # this will determine if need to rebuild at runtime - force user to call $CASE.buildexe
   chdir "$CASEROOT";
   my $sysmod = "./xmlchange -noecho -id POP_CPPDEFS -file env_build.xml -val=\'$cppdefs\'";
-  system($sysmod) == 0 or die "ERROR pop.buildnml: $sysmod failed: $?\n";
+  system($sysmod) == 0 or die "POP configure: $sysmod failed: $?\n";
 
   # write out cppdefs to POP_cppdefs.new
   # this will force gmake to rebuild when $CASE.buildexe is called
 
-  open(file,">$OBJROOT/ocn/obj/POP_cppdefs.new") or die "Could not open file $OBJROOT/ocn/obj/POP_cppdefs.new to write";
+  open(file,">$OBJROOT/ocn/obj/POP_cppdefs.new") or die "POP configure: Could not open file $OBJROOT/ocn/obj/POP_cppdefs.new to write";
   print file "$cppdefs \n";
   close(file);
     

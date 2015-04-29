@@ -4,6 +4,23 @@ SVN $URL$
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    29 Apr 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150429a
+Tag Summary: A few improvements to IRF and configure
+             * Change dimensions from (IRF_NT) to (:) on intent(in) and
+               intent(inout) variables; remove possibility for compiler error
+               if IRF_NT = 0
+             * Improve error checking for OCN_TRACER_MODULES and
+               OCN_TRACER_MODULES_OPT in configure; now get error message if you
+               try to activate a module or set an option that configure does not
+               recognize.
+
+Files Modified:
+M       bld/configure
+M       source/IRF_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    29 Apr 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150429
 Tag Summary: Bugfixes in IRF set-up
              * forgot to include note to change tavg variables in ocn.IRF.tavg.csh
@@ -11,7 +28,6 @@ Tag Summary: Bugfixes in IRF set-up
                (needed to remove whitespace when parsing variables)
              * If not using IRF module, build with IRF_NT=1 to avoid possible
                compiler complaints (don't want arrays with dimsize=0)
-
 
 Files Modified:
 M       bld/configure
