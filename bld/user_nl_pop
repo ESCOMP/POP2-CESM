@@ -11,6 +11,7 @@
 !      $SRCROOT/components/pop/input_templates/ocn.cfc.tavg.csh 
 !      $SRCROOT/components/pop/input_templates/ocn.abio_dic_dic14.tavg.csh
 !      $SRCROOT/components/pop/input_templates/ocn.ciso.tavg.csh  
+!      $SRCROOT/components/pop/input_templates/ocn.IRF.tavg.csh  
 !    into $CASEROOT/SourceMods/src.pop and edit them there. Invoke preview-namelist
 !    to see the changes in CaseDocs/pop_in
 ! Also

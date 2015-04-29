@@ -131,23 +131,28 @@ sub determine_tracer_count {
 
   my @ocn_tracer_modules_opt = split(/\s/, $OCN_TRACER_MODULES_OPT);
   foreach my $module_opt ( @ocn_tracer_modules_opt ) {
-    if ( `echo $module_opt | cut -f 1 -d =` eq "ECOSYS_NT" ) {
-      $ECOSYS_NT = `echo $module_opt | cut -f 2 -d =`;
+    my $varname = qx{echo $module_opt | cut -f 1 -d =};
+    my $value   = qx{echo $module_opt | cut -f 2 -d =};
+    # no intrinsic trim() function, use regular expressions to remove whitespace
+    $varname =~ s/\s+$//;
+    $value   =~ s/\s+$//;
+    if ( $varname eq "ECOSYS_NT" ) {
+      $ECOSYS_NT = $value;
     }
-    if ( `echo $module_opt | cut -f 1 -d =` eq "ZOOPLANKTON_CNT" ) {
-      $ZOOPLANKTON_CNT = `echo $module_opt | cut -f 2 -d =`;
+    if ( $varname eq "ZOOPLANKTON_CNT" ) {
+      $ZOOPLANKTON_CNT = $value;
     }
-    if ( `echo $module_opt | cut -f 1 -d =` eq "AUTOTROPH_CNT" ) {
-      $AUTOTROPH_CNT = `echo $module_opt | cut -f 2 -d =`;
+    if ( $varname eq "AUTOTROPH_CNT" ) {
+      $AUTOTROPH_CNT = $value;
     }
-    if ( `echo $module_opt | cut -f 1 -d =` eq "GRAZER_PREY_CNT" ) {
-      $GRAZER_PREY_CNT = `echo $module_opt | cut -f 2 -d =`;
+    if ( $varname eq "GRAZER_PREY_CNT" ) {
+      $GRAZER_PREY_CNT = $value;
     }
-    if ( `echo $module_opt | cut -f 1 -d =` eq "IRF_NT" ) {
-      $IRF_NT = `echo $module_opt | cut -f 2 -d =`;
+    if ( $varname eq "IRF_NT" ) {
+      $IRF_NT = $value;
     }
-    if ( `echo $module_opt | cut -f 1 -d =` eq "IRF_MODE" ) {
-      $IRF_MODE = `echo $module_opt | cut -f 2 -d =`;
+    if ( $varname eq "IRF_MODE" ) {
+      $IRF_MODE = $value;
     }
   }
 
@@ -216,6 +221,10 @@ sub determine_tracer_count {
       }
       $NT      = $NT + $IRF_NT;
     }
+  }
+
+  if (($USE_IRF eq "FALSE" ) && ($IRF_NT == 0)) {
+    $IRF_NT = 1;
   }
 
 }

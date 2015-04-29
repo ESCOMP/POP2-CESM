@@ -2,6 +2,22 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    29 Apr 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150429
+Tag Summary: Bugfixes in IRF set-up
+             * forgot to include note to change tavg variables in ocn.IRF.tavg.csh
+             * Parsing of OCN_TRACER_MODULE_OPTS did not work as advertised
+               (needed to remove whitespace when parsing variables)
+             * If not using IRF module, build with IRF_NT=1 to avoid possible
+               compiler complaints (don't want arrays with dimsize=0)
+
+
+Files Modified:
+M       bld/configure
+M       bld/user_nl_pop
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay (source/), mlevy (bld/)
 Tag Date:    28 Apr 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150428
