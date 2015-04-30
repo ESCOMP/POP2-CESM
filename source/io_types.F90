@@ -76,6 +76,7 @@
       integer(i4), dimension(:),       pointer    :: field_i_1d
       integer(i4), dimension(:,:,:),   pointer    :: field_i_2d
       integer(i4), dimension(:,:,:,:), pointer    :: field_i_3d
+      real(r4),                        pointer    :: field_r_0d
       real(r4),    dimension(:),       pointer    :: field_r_1d
       real(r4),    dimension(:,:,:),   pointer    :: field_r_2d
       real(r4),    dimension(:,:,:,:), pointer    :: field_r_3d
@@ -1744,6 +1745,7 @@ contains
        i1d_array,        &
        i2d_array,        &
        i3d_array,        &
+       r0d_array,        &
        r1d_array,        &
        r2d_array,        &
        r3d_array,        &
@@ -1798,6 +1800,8 @@ contains
                                                            i2d_array
    integer (i4), dimension(:,:,:,:), intent(in), optional, target :: &
                                                            i3d_array
+   real    (r4),                     intent(in), optional, target :: &
+                                                           r0d_array
    real    (r4), dimension(:),       intent(in), optional, target :: &
                                                            r1d_array
    real    (r4), dimension(:,:,:),   intent(in), optional, target :: &
@@ -1974,8 +1978,13 @@ contains
       endif
 
    else
-      descriptor%nfield_dims = 0
-      ! field_dim is not used for scalars 
+      if (lactive_time_dim) then
+         descriptor%nfield_dims = 1
+         descriptor%field_dim(1) = time_dim
+      else
+         ! field_dim is not used for time-invariant scalars 
+         descriptor%nfield_dims = 0
+      endif
      
    end if
 
@@ -1983,6 +1992,7 @@ contains
    nullify (descriptor%field_i_2d)
    nullify (descriptor%field_i_3d)
 
+   nullify (descriptor%field_r_0d)
    nullify (descriptor%field_r_1d)
    nullify (descriptor%field_r_2d)
    nullify (descriptor%field_r_3d)
@@ -1992,7 +2002,9 @@ contains
    nullify (descriptor%field_d_2d)
    nullify (descriptor%field_d_3d)
 
-   if (present(r1d_array)) then
+   if (present(r0d_array)) then
+      descriptor%field_r_0d => r0d_array
+   else if (present(r1d_array)) then
       descriptor%field_r_1d => r1d_array
    else if (present(r2d_array)) then
       descriptor%field_r_2d => r2d_array
@@ -2089,6 +2101,7 @@ contains
    nullify (descriptor%field_i_2d)
    nullify (descriptor%field_i_3d)
 
+   nullify (descriptor%field_r_0d)
    nullify (descriptor%field_r_1d)
    nullify (descriptor%field_r_2d)
    nullify (descriptor%field_r_3d)

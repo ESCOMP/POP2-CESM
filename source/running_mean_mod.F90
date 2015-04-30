@@ -35,8 +35,9 @@ module running_mean_mod
 !  each rank will be defined, initialized, and updated. Two 2D test
 !  variables are implemented, one that update within surface forcing
 !  subroutines. All of the other test variables are updated after the time
-!  manager flags are updated. The tavg variables RUNNING_MEAN_TEST_VAR_2D
-!  and RUNNING_MEAN_TEST_VAR_2D_SFLUX can be added to tavg_contents.
+!  manager flags are updated. The tavg variables RUNNING_MEAN_TEST_VAR_0D,
+!  RUNNING_MEAN_TEST_VAR_2D, and RUNNING_MEAN_TEST_VAR_2D_SFLUX can be added
+!  to tavg_contents.
 !
 ! !REVISION HISTORY:
 !  SVN:$Id:$
@@ -90,6 +91,7 @@ module running_mean_mod
    integer (int_kind) :: test_index_2d
    integer (int_kind) :: test_index_2d_sflux
    integer (int_kind) :: test_index_3d
+   integer (int_kind) :: tavg_test_0d
    integer (int_kind) :: tavg_test_2d
    integer (int_kind) :: tavg_test_2d_sflux
 
@@ -170,6 +172,10 @@ contains
       call running_mean_define_var('RUNNING_MEAN_TEST_VAR_2D', 2, c3*tau, test_index_2d)
       call running_mean_define_var('RUNNING_MEAN_TEST_VAR_2D_SFLUX', 2, c3*tau, test_index_2d_sflux)
       call running_mean_define_var('RUNNING_MEAN_TEST_VAR_3D', 3, c4*tau, test_index_3d)
+
+      call define_tavg_field(tavg_test_0d, 'RUNNING_MEAN_TEST_VAR_0D', 0, &
+                             long_name='RUNNING_MEAN_TEST_VAR_0D', units='1', &
+                             grid_loc='0000')
 
       call define_tavg_field(tavg_test_2d, 'RUNNING_MEAN_TEST_VAR_2D', 2, &
                              long_name='RUNNING_MEAN_TEST_VAR_2D', units='1', &
@@ -276,6 +282,7 @@ contains
 !  local variables
 !-----------------------------------------------------------------------
 
+   real (r8) :: val_0d
    real (r8), dimension(nx_block,ny_block) :: FIELD
 
 !-----------------------------------------------------------------------
@@ -290,8 +297,13 @@ contains
       if (block == 1) call running_mean_update_var(test_index_1d, k=k, vals_1d_1klev=c1)
       call running_mean_update_var(test_index_3d, k=k, block=block, vals_3d_1klev_1block=FIELD)
 
-      ! accumulate corresponding 2d tavg vars
+      ! accumulate corresponding 0d and 2d tavg vars
       if (k == 1) then
+         if (block == 1) then
+            call running_mean_get_var(test_index_0d, vals_0d=val_0d)
+            call accumulate_tavg_field(val_0d, tavg_test_0d)
+         endif
+
          call running_mean_get_var(test_index_2d, block=block, vals_2d_1block=FIELD)
          call accumulate_tavg_field(FIELD, tavg_test_2d, block, k)
 
