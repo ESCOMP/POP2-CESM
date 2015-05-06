@@ -362,6 +362,22 @@
 
 !-----------------------------------------------------------------------
 !
+!  Preprocessing barotropic elliptic solver
+!
+!-----------------------------------------------------------------------
+
+   call POP_SolversPrep(errorCode)
+  
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_Init: error preprocessing solvers')
+      return
+   endif
+
+
+
+!-----------------------------------------------------------------------
+!
 !  initialize prognostic fields
 !
 !-----------------------------------------------------------------------
