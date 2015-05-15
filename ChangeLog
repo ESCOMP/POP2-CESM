@@ -2,6 +2,15 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    15 May 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150515
+Tag Summary: New namelist defaults to use updated barotropic solver
+
+Files Modified:
+M       bld/namelist_files/namelist_defaults_pop.xml
+===============================================================================
+Tag Creator: mlevy
 Developers:  huyong
 Tag Date:    6 May 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150506

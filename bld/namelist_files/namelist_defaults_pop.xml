@@ -212,12 +212,12 @@
 <!-- solvers -->
 <!---------------------------->
 
-<solverChoice>'ChronGear'</solverChoice>
+<solverChoice>'PCSI'</solverChoice>
 <convergenceCriterion>1.0e-13</convergenceCriterion>
 <maxIterations>1000</maxIterations>
 <convergenceCheckFreq>10</convergenceCheckFreq>
 <convergenceCheckStart>60</convergenceCheckStart>
-<preconditionerChoice>'diagonal'</preconditionerChoice>
+<preconditionerChoice>'evp'</preconditionerChoice>
 <preconditionerFile>'unknownPrecondFile'</preconditionerFile>
 <LanczosconvergenceCriterion>0.15</LanczosconvergenceCriterion>
 <maxLanczosStep>100</maxLanczosStep>
