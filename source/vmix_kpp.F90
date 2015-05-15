@@ -1681,9 +1681,13 @@
    integer (int_kind) :: &
       i,j,               &! loop indices
       bid,               &! local block index
-      kupper, kup, kdn, ktmp, kl  ! vertical level indices
+      kupper, kup, kdn, ktmp, kl, kref  ! vertical level indices
+
+   real (r8) :: ZREF      ! middle of surface layer (epssfc*depth/2)
+   real (r8) :: SURFTHICK ! thickness of surface layer (epssfc*depth)
 
    real (r8), dimension(nx_block,ny_block) :: &
+      UREF, VREF,        &! reference values for U & V in surface layer
       VSHEAR,            &! (velocity shear re sfc)^2
       SIGMA,             &! d/hbl
       WM, WS,            &! turb vel scale functions
@@ -1923,13 +1927,39 @@
    endif  ! if ( lniw_mixing .and. linertial ) then
 
    do kl = 2,km
- 
-      if ( lniw_mixing ) then
-        WORK = (UUU(:,:,1) + niuel(:,:) - UUU(:,:,kl))**2 + &
-               (VVV(:,:,1) + nivel(:,:) - VVV(:,:,kl))**2 
+      ! Determine which layer contains surface layer (epssfc*zt(kl)) 
+      SURFTHICK = epssfc*zt(kl)
+      kref = kl
+      do ktmp = 1,kl
+        if (zw(ktmp).ge.SURFTHICK) then
+          kref=ktmp
+          exit
+         end if
+      end do
+
+      ! Compute UREF and VREF (depth-weighted average of layers 1...kref)
+      if (kref>1) then
+         ! UREF and VREF are weighted averages of U and V
+         ! [weights are level thickness / contribution to surface layer]
+         UREF = UUU(:,:,kref)*(SURFTHICK-zw(kref-1))
+         VREF = VVV(:,:,kref)*(SURFTHICK-zw(kref-1))
+         do ktmp=1,kref-1
+           UREF = UREF + dz(ktmp)*UUU(:,:,ktmp)
+           VREF = VREF + dz(ktmp)*VVV(:,:,ktmp)
+         end do
+         UREF = UREF / SURFTHICK
+         VREF = VREF / SURFTHICK
       else
-        WORK = (UUU(:,:,1) - UUU(:,:,kl))**2 + &
-               (VVV(:,:,1) - VVV(:,:,kl))**2
+         UREF = UUU(:,:,1)
+         VREF = VVV(:,:,1)
+      end if
+
+      if ( lniw_mixing ) then
+        WORK = (UREF + niuel(:,:) - UUU(:,:,kl))**2 + &
+               (VREF + nivel(:,:) - VVV(:,:,kl))**2 
+      else
+        WORK = (UREF - UUU(:,:,kl))**2 + &
+               (VREF - VVV(:,:,kl))**2
       endif
      
       if (partial_bottom_cells) then
@@ -2062,6 +2092,11 @@
                     (zgrid(kl)-zgrid(kl+1)) )
       endif
 
+      if (kref.eq.1) then
+        ZREF = zgrid(1)
+      else
+        ZREF = -SURFTHICK/real(2,r8)
+      end if
       WM = ZKL*WS*B_FRQNCY* &
           ( (Vtc/Ricr(kl))*max(2.1_r8 - 200.0_r8*B_FRQNCY,concv) )
 
@@ -2086,7 +2121,7 @@
                                        DZU(:,:,kl-1,bid) -       &
                                        DZU(:,:,1,bid)))**2)
       else
-         WORK = MERGE( (zgrid(1)-zgrid(kl))*DBSFC(:,:,kl), &
+         WORK = MERGE( (ZREF-zgrid(kl))*DBSFC(:,:,kl), &
                       c0, KMT(:,:,bid) >= kl)
 
          if (lniw_mixing) then
@@ -3026,20 +3061,22 @@
 
    integer (int_kind) :: &
       k,                 &! vertical level index
+      kref,              &! vertical level index for surface layer
       i,j,               &! horizontal indices
-      kprev, klvl, ktmp, &! indices for 2-level TEMPK array
+      ktmp,              &! index for loop inside k loop
       bid                 ! local block index
 
+   real (r8) :: SURFTHICK ! thickness of surface layer (epssfc*depth)
+   real (r8), dimension(nx_block,ny_block,km) :: &
+      RHOSUM,            &! Sum of density from surface to k
+      TEMPMASK            ! Temperature, never < -2 deg C
+
    real (r8), dimension(nx_block,ny_block) :: &
-      RHO1,              &! density of sfc t,s displaced to k
+      RHOAVG,            &! Avg of density from surface to k (not weighted)
       RHOKM,             &! density of t(k-1),s(k-1) displaced to k
       RHOK,              &! density at level k
-      TEMPSFC,           &! adjusted temperature at surface
       TALPHA,            &! temperature expansion coefficient
       SBETA               ! salinity    expansion coefficient
-
-   real (r8), dimension(nx_block,ny_block,2) :: &
-      TEMPK               ! temp adjusted for freeze at levels k,k-1
 
 !-----------------------------------------------------------------------
 !
@@ -3047,15 +3084,10 @@
 !
 !-----------------------------------------------------------------------
 
-   TEMPSFC = merge(-c2,TRCR(:,:,1,1),TRCR(:,:,1,1) < -c2)
-
    bid = this_block%local_id
 
-   klvl  = 2
-   kprev = 1
-
-   TEMPK(:,:,kprev) = TEMPSFC
    DBSFC(:,:,1) = c0
+   TEMPMASK = merge(-c2,TRCR(:,:,:,1),TRCR(:,:,:,1) < -c2)
 
 !-----------------------------------------------------------------------
 !
@@ -3065,20 +3097,39 @@
 
    do k = 2,km
 
-      TEMPK(:,:,klvl) = merge(-c2,TRCR(:,:,k,1),TRCR(:,:,k,1) < -c2)
-
-      call state(k, k, TEMPSFC,          TRCR(:,:,1  ,2), &
-                       this_block, RHOFULL=RHO1)
-      call state(k, k, TEMPK(:,:,kprev), TRCR(:,:,k-1,2), &
+      call state(k, k, TEMPMASK(:,:,k-1), TRCR(:,:,k-1,2), &
                        this_block, RHOFULL=RHOKM)
-      call state(k, k, TEMPK(:,:,klvl),  TRCR(:,:,k  ,2), &
+      call state(k, k, TEMPMASK(:,:,k),   TRCR(:,:,k  ,2), &
                        this_block, RHOFULL=RHOK)
+
+      SURFTHICK = epssfc*zt(k)
+      kref = k
+      do ktmp = 1,k
+         call state(k, k, TEMPMASK(:,:,ktmp), TRCR(:,:,ktmp,2), &
+                    this_block, RHOFULL=RHOSUM(:,:,ktmp))
+        if (zw(ktmp).ge.SURFTHICK) then
+          kref=ktmp
+          exit
+        end if
+      end do
+
+      if (kref.eq.1) then
+        ! This is just the old RHO1
+        ! (temp at surface displaced to pressure at k)
+        RHOAVG = RHOSUM(:,:,kref)
+      else
+        RHOAVG = RHOSUM(:,:,kref)*(SURFTHICK-zw(kref-1))
+        do ktmp = 1,kref-1
+          RHOAVG = RHOAVG + dz(ktmp)*RHOSUM(:,:,ktmp)
+        end do
+        RHOAVG = RHOAVG / SURFTHICK
+      end if
 
       do j=1,ny_block
       do i=1,nx_block
          if (RHOK(i,j) /= c0) then
-            DBSFC(i,j,k)   = grav*(c1 - RHO1 (i,j)/RHOK(i,j))
-            DBLOC(i,j,k-1) = grav*(c1 - RHOKM(i,j)/RHOK(i,j))
+            DBSFC(i,j,k)   = grav*(c1 - RHOAVG(i,j)/RHOK(i,j))
+            DBLOC(i,j,k-1) = grav*(c1 - RHOKM (i,j)/RHOK(i,j))
          else
             DBSFC(i,j,k)   = c0
             DBLOC(i,j,k-1) = c0
@@ -3087,10 +3138,6 @@
          if (k-1 >= KMT(i,j,bid)) DBLOC(i,j,k-1) = c0
       end do
       end do
-
-      ktmp  = klvl
-      klvl  = kprev
-      kprev = ktmp
 
    enddo
 
