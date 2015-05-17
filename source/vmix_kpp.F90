@@ -2097,8 +2097,6 @@
       else
         ZREF = -SURFTHICK/real(2,r8)
       end if
-      WM = ZKL*WS*B_FRQNCY* &
-          ( (Vtc/Ricr(kl))*max(2.1_r8 - 200.0_r8*B_FRQNCY,concv) )
 
 !-----------------------------------------------------------------------
 ! 
@@ -2106,33 +2104,52 @@
 !
 !-----------------------------------------------------------------------
 
-      if (partial_bottom_cells) then
-         WORK = merge( DBSFC(:,:,kl)/(-zgrid(kl-1)+            &
-                                      p5*(DZT(:,:,kl-1,bid) +  &
-                                          DZT(:,:,kl  ,bid) -  &
-                                          DZT(:,:,1   ,bid))), & 
-                       c0, KMT(:,:,bid) >= kl)
-         WM = WM/(-zgrid(kl-1) +          &
-                  p5*(DZT(:,:,kl-1,bid) + &
-                      DZT(:,:,kl  ,bid) - &
-                      DZT(:,:,1   ,bid)))**2
-         RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+eps/(-zgrid(kl-1)+   &
-                                   p5*(DZU(:,:,kl,bid) +         &
-                                       DZU(:,:,kl-1,bid) -       &
-                                       DZU(:,:,1,bid)))**2)
+      if (lcvmix) then
+        do i = 1,nx_block
+          do j = 1,ny_block
+            WM(i,j:j) = cvmix_kpp_compute_unresolved_shear(                   &
+                        zt_cntr = -(/zt(kl)/)*1e-2_r8,                        &
+                        ws_cntr = (/WS(i,j)/)*1e-2_r8,                        &
+                        N_iface = (/B_FRQNCY(i,j), B_FRQNCY(i,j)/))*1e4_r8
+            RI_BULK(i,j,kdn:kdn) = cvmix_kpp_compute_bulk_Richardson(         &
+                        zt_cntr = -(/zt(kl)/)*1e-2_r8,                        &
+                        delta_buoy_cntr = (/DBSFC(i,j,kl)/)*1e-2_r8,          &
+                        delta_Vsqr_cntr = (/VSHEAR(i,j)/)*1e-4_r8,            &
+                        Vt_sqr_cntr = (/WM(i,j)/)*1e-4_r8)
+          end do
+        end do
       else
-         WORK = MERGE( (ZREF-zgrid(kl))*DBSFC(:,:,kl), &
-                      c0, KMT(:,:,bid) >= kl)
+        WM = ZKL*WS*B_FRQNCY* &
+            ( (Vtc/Ricr(kl))*max(2.1_r8 - 200.0_r8*B_FRQNCY,concv) )
 
-         if (lniw_mixing) then
-           RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+eps)
-         else
-           if ( linertial ) then
-             RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+USTAR*BOLUS_SP(:,:,bid)+eps)
-           else
+        if (partial_bottom_cells) then
+           WORK = merge( DBSFC(:,:,kl)/(-zgrid(kl-1)+            &
+                                        p5*(DZT(:,:,kl-1,bid) +  &
+                                            DZT(:,:,kl  ,bid) -  &
+                                            DZT(:,:,1   ,bid))), & 
+                         c0, KMT(:,:,bid) >= kl)
+           WM = WM/(-zgrid(kl-1) +          &
+                    p5*(DZT(:,:,kl-1,bid) + &
+                        DZT(:,:,kl  ,bid) - &
+                        DZT(:,:,1   ,bid)))**2
+           RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+eps/(-zgrid(kl-1)+   &
+                                     p5*(DZU(:,:,kl,bid) +         &
+                                         DZU(:,:,kl-1,bid) -       &
+                                         DZU(:,:,1,bid)))**2)
+        else
+           WORK = MERGE( (ZREF-zgrid(kl))*DBSFC(:,:,kl), &
+                        c0, KMT(:,:,bid) >= kl)
+
+           if (lniw_mixing) then
              RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+eps)
+           else
+             if ( linertial ) then
+               RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+USTAR*BOLUS_SP(:,:,bid)+eps)
+             else
+               RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+eps)
+             endif
            endif
-         endif
+        endif
       endif
 
 !-----------------------------------------------------------------------
