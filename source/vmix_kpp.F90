@@ -40,6 +40,7 @@
    use cvmix_put_get
    use cvmix_kpp
    use cvmix_math
+   use shr_sys_mod
 
    implicit none
    private
@@ -609,9 +610,8 @@
    if ( lcvmix ) then
      call cvmix_init_kpp(lEkman=lcheckekmo,                                     &
                          lMonOb=lcheckekmo,                                     &
-                         lnoDGat1=.false.,                                      &
                          surf_layer_ext = epssfc,                               &
-                         interp_type2="POP",                                    &
+                         lnoDGat1=.false.,                                      &
                          MatchTechnique="MatchBoth")
      call cvmix_put_kpp("a_m", a_m)
      call cvmix_put_kpp("a_s", a_s)
@@ -624,6 +624,7 @@
            ic = (jny-1)*nx_block + inx
            nlev = KMT(inx, jny, bid)
            call cvmix_put(CVmix_vars(ic,bid), 'nlev', nlev)
+           call cvmix_put(CVmix_vars(ic,bid), 'max_nlev', nlev)
            if (nlev.gt.0) then
              call cvmix_put(CVmix_vars(ic,bid), 'Mdiff', 0._r8)
              call cvmix_put(CVmix_vars(ic,bid), 'Tdiff', 0._r8)
@@ -1679,7 +1680,7 @@
    character (char_len) :: error_string
 
    integer (int_kind) :: &
-      i,j,               &! loop indices
+      i,j, ic,           &! loop indices
       bid,               &! local block index
       kupper, kup, kdn, ktmp, kl, kref  ! vertical level indices
 
@@ -2107,15 +2108,22 @@
       if (lcvmix) then
         do i = 1,nx_block
           do j = 1,ny_block
-            WM(i,j:j) = cvmix_kpp_compute_unresolved_shear(                   &
-                        zt_cntr = -(/zt(kl)/)*1e-2_r8,                        &
-                        ws_cntr = (/WS(i,j)/)*1e-2_r8,                        &
-                        N_iface = (/B_FRQNCY(i,j), B_FRQNCY(i,j)/))*1e4_r8
-            RI_BULK(i,j,kdn:kdn) = cvmix_kpp_compute_bulk_Richardson(         &
-                        zt_cntr = -(/zt(kl)/)*1e-2_r8,                        &
-                        delta_buoy_cntr = (/DBSFC(i,j,kl)/)*1e-2_r8,          &
-                        delta_Vsqr_cntr = (/VSHEAR(i,j)/)*1e-4_r8,            &
-                        Vt_sqr_cntr = (/WM(i,j)/)*1e-4_r8)
+            ic = (j-1)*nx_block + i
+            if (kl.le.CVmix_vars(ic)%nlev) then
+              WM(i,j:j) = cvmix_kpp_compute_unresolved_shear(                 &
+                          zt_cntr = (/zgrid(kl)/)*1e-2_r8,                    &
+                          ws_cntr = (/WS(i,j)/)*1e-2_r8,                      &
+                          N_iface = (/B_FRQNCY(i,j), B_FRQNCY(i,j)/))*1e4_r8
+              RI_BULK(i,j,kdn:kdn) = cvmix_kpp_compute_bulk_Richardson(       &
+                          zt_cntr = (/zgrid(kl)/)*1e-2_r8,                    &
+                          delta_buoy_cntr = (/DBSFC(i,j,kl)/)*1e-2_r8,        &
+                          delta_Vsqr_cntr = (/VSHEAR(i,j)/)*1e-4_r8,          &
+                          Vt_sqr_cntr = (/WM(i,j)/)*1e-4_r8)
+              CVmix_vars(ic)%BulkRichardson_cntr(kl) = RI_BULK(i,j,kdn)
+            else
+              WM(i,j) = c0
+              RI_BULK(i,j,kdn) = c0
+            end if
           end do
         end do
       else
@@ -2163,40 +2171,41 @@
 !       compute Langmuir depth always 
 !-----------------------------------------------------------------------
 
-      do j=1,ny_block
-      do i=1,nx_block
-         if ( KBL(i,j) == KMT(i,j,bid) .and.  &
-              RI_BULK(i,j,kdn) > Ricr(kl) ) then
+      if (.not.lcvmix) then
+         do j=1,ny_block
+         do i=1,nx_block
+            if ( KBL(i,j) == KMT(i,j,bid) .and.  &
+                 RI_BULK(i,j,kdn) > Ricr(kl) ) then
+               slope_up =  (RI_BULK(i,j,kupper) - RI_BULK(i,j,kup))/ &
+                           (z_up - z_upper)
+               a_co = (RI_BULK(i,j,kdn) - RI_BULK(i,j,kup) -         &
+                       slope_up*(ZKL(i,j) + z_up) )/(z_up + ZKL(i,j))**2
+               b_co = slope_up + c2 * a_co * z_up
+               c_co = RI_BULK(i,j,kup) + &
+                      z_up*(a_co*z_up + slope_up) - Ricr(kl)
+               sqrt_arg = b_co**2 - c4*a_co*c_co
 
-            slope_up =  (RI_BULK(i,j,kupper) - RI_BULK(i,j,kup))/ &
-                        (z_up - z_upper)
-            a_co = (RI_BULK(i,j,kdn) - RI_BULK(i,j,kup) -         &
-                    slope_up*(ZKL(i,j) + z_up) )/(z_up + ZKL(i,j))**2
-            b_co = slope_up + c2 * a_co * z_up
-            c_co = RI_BULK(i,j,kup) + &
-                   z_up*(a_co*z_up + slope_up) - Ricr(kl)
-            sqrt_arg = b_co**2 - c4*a_co*c_co
+               if ( ( abs(b_co) > eps .and. abs(a_co)/abs(b_co) <= eps ) &
+                    .or. sqrt_arg <= c0 ) then
 
-            if ( ( abs(b_co) > eps .and. abs(a_co)/abs(b_co) <= eps ) &
-                 .or. sqrt_arg <= c0 ) then
-                 	
-               HBLT(i,j) = -z_up + (z_up + ZKL(i,j)) *               &
-                           (Ricr(kl)         - RI_BULK(i,j,kup))/    &
-                           (RI_BULK(i,j,kdn) - RI_BULK(i,j,kup))
-            else
-               HBLT(i,j) = (-b_co + sqrt(sqrt_arg)) / (c2*a_co)
-            endif
+                  HBLT(i,j) = -z_up + (z_up + ZKL(i,j)) *               &
+                              (Ricr(kl)         - RI_BULK(i,j,kup))/    &
+                              (RI_BULK(i,j,kdn) - RI_BULK(i,j,kup))
+               else
+                  HBLT(i,j) = (-b_co + sqrt(sqrt_arg)) / (c2*a_co)
+               endif
             
-            KBL(i,j) = kl
+               KBL(i,j) = kl
+            end if
             RSH_HBLT(i,j) =  (VSHEAR(i,j)*Ricr(kl)/ &
                               (DBSFC(i,j,kl)+eps))/HBLT(i,j)
 
             HLANGM(i,j) = USTAR(i,j) * SQRT( FSTOKES(i,j,bid)*ZKL(i,j)/(DBSFC(i,j,kl)+eps) ) &
                           / 0.9_r8
 
-         endif
-      enddo
-      enddo
+         enddo
+         enddo
+      endif
 
 !-----------------------------------------------------------------------
 !
@@ -2212,6 +2221,20 @@
       z_up    = zgrid(kl)
 
    end do
+   if (lcvmix) then
+     do j=1,ny_block
+       do i=1,nx_block
+         ic = (j-1)*nx_block + i
+         if (KMT(i,j,bid).gt.0) then
+           call cvmix_kpp_compute_OBL_depth(CVmix_vars(ic))
+           HBLT(i,j) = CVmix_vars(ic)%BoundaryLayerDepth*1e2_r8
+           KBL(i,j) = nint(CVmix_vars(ic)%kOBL_depth)
+         end if
+         HLANGM(i,j) = USTAR(i,j) * SQRT( FSTOKES(i,j,bid)*ZKL(i,j)/(DBSFC(i,j,kl)+eps) ) &
+                       / 0.9_r8
+       end do
+     end do
+   end if
 
 !-----------------------------------------------------------------------
 !

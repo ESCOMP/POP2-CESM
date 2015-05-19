@@ -1,6 +1,18 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    19 May 2015
+Tag Name:    pop2/branch_tags/vertical_mix_updates_tags/vertical_mix_updates_n04_cesm_pop_2_1_20150506/
+Tag Summary: Update to make sure HBLT is computed via CVMix rather than POP. Note
+             that I found a bug in CVMix v0.66-beta so for the moment this tag
+             doesn't run with lcvmix=.true. -- will fix in n05 by updating to
+             v0.67-beta.
+
+Files Modified:
+M       source/vmix_kpp.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    17 May 2015
 Tag Name:    pop2/branch_tags/vertical_mix_updates_tags/vertical_mix_updates_n03_cesm_pop_2_1_20150506/
 Tag Summary: If lcvmix=.true. then use cvmix to compute OBL depth
