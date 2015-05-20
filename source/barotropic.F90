@@ -247,13 +247,6 @@
 
       end select
 
-      if (POP_myTask == POP_masterTask) then
-        if ((nx_block.ge.22).and.(ny_block.ge.22)) then
-          ! want diagonalCorrection(20,20) to exist and not be a halo pt
-          write(*,'(a8,4e12.5)') 'Diagonal',                             &
-               alpha,c2,dtp,diagonalCorrection(20,20) 
-        endif
-      endif
       call POP_SolversDiagonal(diagonalCorrection, iblock, errorCode)
 
     end do ! iblock
