@@ -149,7 +149,7 @@
    real (POP_r8) ::         &
       rmsResidual            ! residual (also a diagnostic)
 
-   real (POP_r8), save ::          & 
+   real (POP_r8) ::        & 
       PcsiMaxEigs,         &! Largest eigenvalues for PCSI method
       PcsiMinEigs           ! smallest eigenvalues for PCSI method
 
@@ -1562,9 +1562,6 @@
    real (POP_r8) ::          &
       csalpha,csbeta,csy,csomga,rr ! scalar inner product results
    
-   real (POP_r8), dimension(2)::          &
-      uvsum
-
    real (POP_r8), dimension(size(X,dim=1),size(X,dim=2), &
                                           size(X,dim=3)) :: &
       R,                 &! residual (b-Ax)
@@ -2305,7 +2302,7 @@
       f               ! reshaped X
 
    integer (POP_i4) :: &
-      i,j,js,je,is,ie,lm,ln,l,nx1,ny1,ib               ! dummy counters
+      i,j,js,je,is,ie,lm,ln,l,ib               ! dummy counters
 
 !-----------------------------------------------------------------------
 
@@ -2331,9 +2328,6 @@
 !-----------------------------------------------------------------------
 
    else if (trim(preconditionerChoice) == precondChoiceEvp) then
-       nx1 = size(X,dim=1)-1
-       ny1 = size(X,dim=2)-1
-
        f = 0.0_POP_r8 
        do j = 1, EvpYnb
          js = EvpYbidx(j)
@@ -2515,7 +2509,7 @@
    real(POP_r8),dimension(n+m-5,n+m-5),intent(inout) :: rinv !preconditioning matrix
 
  ! LOCAL VARIABLES
-   integer :: i,j,k,ii,info
+   integer :: i,j,k,ii
    integer :: nm                          ! length of error and final vectors
    integer (POP_i4)::  errorCode          ! returned error code
    real(POP_r8),dimension(n,m) :: y       ! temporary array
