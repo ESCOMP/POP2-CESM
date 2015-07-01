@@ -3,6 +3,18 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    1 July 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150701
+Tag Summary: Introduce new interface module for dealing with share stream
+             code. Note that this will allow removal CCSMCOUPLED macro from
+             ecosys_mod but that update hasn't been incorporated yet.
+
+Files Modified:
+M       source/ecosys_mod.F90
+A       source/strdata_interface_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    30 June 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150630
 Tag Summary: save attribute in module variable after global save was casusing
