@@ -119,6 +119,9 @@
 !  tavg ids for automatically generated tavg passive-tracer fields
 !-----------------------------------------------------------------------
 
+   integer (int_kind), dimension(nt), public :: &
+      tavg_TEND_TRACER    ! tavg id for tracer tendency
+
    integer (int_kind), dimension (3:nt) ::  &
       tavg_var,                 & ! tracer
       tavg_var_sqr,             & ! tracer square
@@ -644,6 +647,17 @@
                              tavg_method=tavg_method_qflux,         &
                              coordinates='TLONG TLAT time')
    enddo
+
+   do n=1,nt
+     call define_tavg_field(tavg_TEND_TRACER(n), 'TEND_' /&
+                                           &/ trim(tracer_d(n)%short_name),3, &
+                            long_name='Tendency of Thickness Weighted '/&
+                                           &/ trim(tracer_d(n)%short_name),   &
+                            units=trim(tracer_d(n)%tend_units),               &
+                            scale_factor=tracer_d(n)%scale_factor,            &
+                            grid_loc='3111',                                  &
+                            coordinates='TLONG TLAT z_t time')
+   end do
 
 !-----------------------------------------------------------------------
 !  allocate and initialize storage for virtual fluxes

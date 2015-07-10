@@ -61,7 +61,7 @@
    use passive_tracers, only: set_interior_passive_tracers,  &
        reset_passive_tracers, tavg_passive_tracers, &
        tavg_passive_tracers_baroclinic_correct, &
-       set_interior_passive_tracers_3D
+       set_interior_passive_tracers_3D, tavg_TEND_TRACER
    use exit_mod, only: sigAbort, exit_pop, flushm
    use overflows
    use overflow_type
@@ -1170,6 +1170,9 @@
       n,                  &! tracer index
       iblock               ! block index
 
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK
+
    real (r8), dimension(nx_block,ny_block,nt) :: &
       RHS1                 ! r.h.s. for impvmix on corrector step
 
@@ -1391,6 +1394,26 @@
          TRACER(:,:,:,:,oldtime,iblock), &
          TRACER(:,:,:,:,newtime,iblock), iblock)
 
+!-----------------------------------------------------------------------
+!
+!     compute tendency of thickness weighted TEMP and SALT
+!
+!-----------------------------------------------------------------------
+
+      if (mix_pass /= 1) then
+        do n = 1,nt
+            k = 1
+            WORK = c1 / c2dtt(k) *    &
+              ((c1 + PSURF(:,:,newtime,iblock)/grav/dz(k))*TRACER(:,:,k,n,newtime,iblock) - &
+               (c1 + PSURF(:,:,oldtime,iblock)/grav/dz(k))*TRACER(:,:,k,n,oldtime,iblock))
+            call accumulate_tavg_field(WORK, tavg_TEND_TRACER(n), iblock, k)
+            do k=2,km
+               WORK = (TRACER(:,:,k,n,newtime,iblock) -             &
+                       TRACER(:,:,k,n,oldtime,iblock)) / c2dtt(k)
+               call accumulate_tavg_field(WORK, tavg_TEND_TRACER(n), iblock, k)
+            end do
+        end do
+      endif
 
 !-----------------------------------------------------------------------
 !
