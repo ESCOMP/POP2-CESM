@@ -56,8 +56,8 @@
         <machine compiler="intel" testtype="prealpha" testmods="pop/ecosys">yellowstone</machine>
       </test>
       <test name="ERS">
-        <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">goldbach</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/ecosys">goldbach</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">hobart</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/ecosys">hobart</machine>
         <machine compiler="gnu" testtype="prebeta" testmods="pop/ecosys">yellowstone</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">yellowstone</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/ecosys">yellowstone</machine>
@@ -119,7 +119,7 @@
         <machine compiler="pgi" testtype="prebeta" testmods="pop/default">yellowstone</machine>
       </test>
       <test name="ERS_Lm3">
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/default">goldbach</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/default">hobart</machine>
         <machine compiler="gnu" testtype="prebeta" testmods="pop/default">yellowstone</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/default">yellowstone</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/default">yellowstone</machine>
@@ -132,8 +132,8 @@
   <compset name="G">
     <grid name="T62_g16">
       <test name="ERS">
-        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">goldbach</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">goldbach</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice">hobart</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">hobart</machine>
       </test>
       <test name="ICP">
         <machine compiler="intel" testtype="aux_scripts" testmods="pop/cice">yellowstone</machine>
@@ -175,10 +175,10 @@
     </grid>
     <grid name="T62_s11">
       <test name="ERS">
-        <machine compiler="nag" testtype="prebeta" testmods="pop/cice">goldbach</machine>
+        <machine compiler="nag" testtype="prebeta" testmods="pop/cice">hobart</machine>
       </test>
       <test name="ERS_IOP">
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">goldbach</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">hobart</machine>
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
         <machine compiler="pgi" testtype="prebeta" testmods="pop/cice">yellowstone</machine>
       </test>
@@ -241,8 +241,8 @@
       </test>
       <test name="ERS_D">
         <machine compiler="intel" testtype="prebeta" testmods="pop/cice_ecosys">edison</machine>
-        <machine compiler="intel" testtype="prebeta" testmods="pop/cice_ecosys">goldbach</machine>
-        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice_ecosys">goldbach</machine>
+        <machine compiler="intel" testtype="prebeta" testmods="pop/cice_ecosys">hobart</machine>
+        <machine compiler="pgi" testtype="prebeta" testmods="pop/cice_ecosys">hobart</machine>
       </test>
     </grid>
   </compset>

@@ -2,6 +2,15 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 July 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150713
+Tag Summary: Change all goldbach tests to hobart tests
+
+Files Modified:
+M       cimetest/testlist_pop.xml
+===============================================================================
+Tag Creator: mlevy
 Developers:  klindsay, mlevy
 Tag Date:    10 July 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150710
