@@ -7162,7 +7162,7 @@ contains
                    units='pH', grid_loc='2110',            &
                    field_loc = field_loc_center,                &
                    field_type = field_type_scalar,              &
-                   d2d_array = PH_PREV)
+                   d2d_array = PH_PREV(:,:,1:nblocks_clinic))
       call data_set (restart_file, 'define', PH_SURF)
 
       PH_SURF_ALT_CO2 = construct_io_field('PH_SURF_ALT_CO2', i_dim, j_dim, &
@@ -7170,7 +7170,7 @@ contains
                    units='pH', grid_loc='2110',            &
                    field_loc = field_loc_center,                &
                    field_type = field_type_scalar,              &
-                   d2d_array = PH_PREV_ALT_CO2)
+                   d2d_array = PH_PREV_ALT_CO2(:,:,1:nblocks_clinic))
       call data_set (restart_file, 'define', PH_SURF_ALT_CO2)
 
       PH_3D_ALT_CO2 = construct_io_field('PH_3D_ALT_CO2', i_dim, j_dim, k_dim, &
@@ -7178,7 +7178,7 @@ contains
                    units='pH', grid_loc='3111',            &
                    field_loc = field_loc_center,                &
                    field_type = field_type_scalar,              &
-                   d3d_array = PH_PREV_ALT_CO2_3D)
+                   d3d_array = PH_PREV_ALT_CO2_3D(:,:,:,1:nblocks_clinic))
       call data_set (restart_file, 'define', PH_3D_ALT_CO2)
 
       PH_3D = construct_io_field('PH_3D', i_dim, j_dim, k_dim, &
@@ -7186,7 +7186,7 @@ contains
                    units='pH', grid_loc='3111',            &
                    field_loc = field_loc_center,                &
                    field_type = field_type_scalar,              &
-                   d3d_array = PH_PREV_3D)
+                   d3d_array = PH_PREV_3D(:,:,:,1:nblocks_clinic))
       call data_set (restart_file, 'define', PH_3D)
 
    endif

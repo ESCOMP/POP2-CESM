@@ -4873,7 +4873,7 @@
         'ULONG', dim1=i_dim, dim2=j_dim,              &
          long_name='array of u-grid longitudes',      &
          units    ='degrees_east',                    &
-         d2d_array =ULON_DEG(:,:,:) )
+         d2d_array =ULON_DEG(:,:,1:nblocks_clinic) )
 
    !*** ULAT
    ii=ii+1
@@ -4883,7 +4883,7 @@
         'ULAT', dim1=i_dim, dim2=j_dim,               &
          long_name='array of u-grid latitudes',       &
          units    ='degrees_north',                   &
-         d2d_array =ULAT_DEG(:,:,:) )
+         d2d_array =ULAT_DEG(:,:,1:nblocks_clinic) )
 
    !*** TLONG (degrees)
    ii=ii+1
@@ -4892,7 +4892,7 @@
         'TLONG', dim1=i_dim, dim2=j_dim,              &
          long_name='array of t-grid longitudes',      &
          units    ='degrees_east',                    &
-         d2d_array =TLOND(:,:,:) )
+         d2d_array =TLOND(:,:,1:nblocks_clinic) )
 
    !*** TLAT (degrees)
    ii=ii+1
@@ -4901,7 +4901,7 @@
         'TLAT', dim1=i_dim, dim2=j_dim,               &
          long_name='array of t-grid latitudes',       &
          units    ='degrees_north',                   &
-         d2d_array =TLATD(:,:,:) )
+         d2d_array =TLATD(:,:,1:nblocks_clinic) )
 
    !*** KMT
    ii=ii+1
@@ -4910,7 +4910,7 @@
         'KMT', dim1=i_dim, dim2=j_dim,                        &
          long_name='k Index of Deepest Grid Cell on T Grid',  &
          coordinates = "TLONG TLAT",                          &
-         i2d_array =KMT(:,:,:) )
+         i2d_array =KMT(:,:,1:nblocks_clinic) )
 
    !*** KMU
    ii=ii+1
@@ -4919,7 +4919,7 @@
         'KMU', dim1=i_dim, dim2=j_dim,                        &
          long_name='k Index of Deepest Grid Cell on U Grid',  &
          coordinates = "ULONG ULAT",                          &
-         i2d_array =KMU(:,:,:) )
+         i2d_array =KMU(:,:,1:nblocks_clinic) )
 
 
    !*** REGION_MASK
@@ -4929,7 +4929,7 @@
         'REGION_MASK', dim1=i_dim, dim2=j_dim,                &
          long_name='basin index number (signed integers)',    &
          coordinates = "TLONG TLAT",                          &
-         i2d_array =REGION_MASK(:,:,:) )
+         i2d_array =REGION_MASK(:,:,1:nblocks_clinic) )
 
    !*** UAREA
    ii=ii+1
@@ -4939,7 +4939,7 @@
          long_name='area of U cells',                         &
          units    ='centimeter^2',                            &
          coordinates = "ULONG ULAT",                          &
-         d2d_array =UAREA(:,:,:) )
+         d2d_array =UAREA(:,:,1:nblocks_clinic) )
 
    !*** TAREA
    ii=ii+1
@@ -4949,7 +4949,7 @@
          long_name='area of T cells',                         &
          units    ='centimeter^2',                            &
          coordinates = "TLONG TLAT",                          &
-         d2d_array =TAREA(:,:,:) )
+         d2d_array =TAREA(:,:,1:nblocks_clinic) )
 
    !*** HU
    ii=ii+1
@@ -4959,7 +4959,7 @@
          long_name='ocean depth at U points',                 &
          units='centimeter',                                  &
          coordinates = "ULONG ULAT",                          &
-         d2d_array =HU(:,:,:) )
+         d2d_array =HU(:,:,1:nblocks_clinic) )
 
    !*** HT
    ii=ii+1
@@ -4969,7 +4969,7 @@
          long_name='ocean depth at T points',                 &
          units='centimeter',                                  &
          coordinates = "TLONG TLAT",                          &
-         d2d_array =HT(:,:,:) )
+         d2d_array =HT(:,:,1:nblocks_clinic) )
 
    !*** DXU
    ii=ii+1
@@ -4979,7 +4979,7 @@
          long_name='x-spacing centered at U points',          &
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
-         d2d_array =DXU(:,:,:) )
+         d2d_array =DXU(:,:,1:nblocks_clinic) )
 
    !*** DYU
    ii=ii+1
@@ -4989,7 +4989,7 @@
          long_name='y-spacing centered at U points',          &
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
-         d2d_array =DYU(:,:,:) )
+         d2d_array =DYU(:,:,1:nblocks_clinic) )
 
    !*** DXT
    ii=ii+1
@@ -4999,7 +4999,7 @@
          long_name='x-spacing centered at T points',          &
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
-         d2d_array =DXT(:,:,:) )
+         d2d_array =DXT(:,:,1:nblocks_clinic) )
 
    !*** DYT
    ii=ii+1
@@ -5009,7 +5009,7 @@
          long_name='y-spacing centered at T points',          &
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
-         d2d_array =DYT(:,:,:) )
+         d2d_array =DYT(:,:,1:nblocks_clinic) )
 
    !*** HTN
    ii=ii+1
@@ -5019,7 +5019,7 @@
          long_name='cell widths on North sides of T cell',    &
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
-         d2d_array =HTN(:,:,:) )
+         d2d_array =HTN(:,:,1:nblocks_clinic) )
 
    !*** HTE
    ii=ii+1
@@ -5029,7 +5029,7 @@
          long_name='cell widths on East sides of T cell',     &
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
-         d2d_array =HTE(:,:,:) )
+         d2d_array =HTE(:,:,1:nblocks_clinic) )
 
    !*** HUS
    ii=ii+1
@@ -5039,7 +5039,7 @@
          long_name='cell widths on South sides of U cell',    &
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
-         d2d_array =HUS(:,:,:) )
+         d2d_array =HUS(:,:,1:nblocks_clinic) )
 
    !*** HUW
    ii=ii+1
@@ -5049,7 +5049,7 @@
          long_name='cell widths on West sides of U cell',     &
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
-         d2d_array =HUW(:,:,:) )
+         d2d_array =HUW(:,:,1:nblocks_clinic) )
 
    !*** ANGLE
    ii=ii+1
@@ -5059,7 +5059,7 @@
          long_name='angle grid makes with latitude line',     &
          units='radians',                                     &
          coordinates = "ULONG ULAT",                          &
-         d2d_array =ANGLE(:,:,:) )
+         d2d_array =ANGLE(:,:,1:nblocks_clinic) )
 
    !*** ANGLET
    ii=ii+1
@@ -5069,7 +5069,7 @@
          long_name='angle grid makes with latitude line on T grid',&
          units='radians',                                          &
          coordinates = "TLONG TLAT",                               &
-         d2d_array =ANGLET(:,:,:) )
+         d2d_array =ANGLET(:,:,1:nblocks_clinic) )
 
    endif ! full_header
 
