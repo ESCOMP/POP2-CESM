@@ -35,14 +35,21 @@
 
 ! !DEFINED PARAMETERS:
 
-   integer, parameter, public ::                &
-      POP_CharLength  = 256                    ,&
-      POP_Logical     = kind(.true.)           ,&
-      POP_i4          = selected_int_kind(6)   ,&
-      POP_i8          = selected_int_kind(13)  ,&
-      POP_r4          = selected_real_kind(6)  ,&
-      POP_r8          = selected_real_kind(13) ,&
-      POP_r16         = selected_real_kind(26)
+   ! Note: we want POP_CharLength to be 256 and POP_CharLengthLong to be 512
+   !       but this is a quick work-around because some of variables containing
+   !       the name of restart files, history files, and other output files are
+   !       set to POP_CharLength. A later update should change these to the
+   !       newly introduced POP_CharLengthLong and then reset POP_CharLength
+   !       to its original 256 value. (MNL; 10 Aug 2015)
+   integer, parameter, public ::                   &
+      POP_CharLength     = 384                    ,&
+      POP_CharLengthLong = 512                    ,&
+      POP_Logical        = kind(.true.)           ,&
+      POP_i4             = selected_int_kind(6)   ,&
+      POP_i8             = selected_int_kind(13)  ,&
+      POP_r4             = selected_real_kind(6)  ,&
+      POP_r8             = selected_real_kind(13) ,&
+      POP_r16            = selected_real_kind(26)
 
    integer, parameter, public ::               &
 #ifdef TAVG_R8

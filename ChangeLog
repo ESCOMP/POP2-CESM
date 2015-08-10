@@ -1,6 +1,17 @@
 SVN $Id$
 SVN $URL$
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    10 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150810
+Tag Summary: Increase size of char_len and POP_CharLength to account for
+             tests producing exceptionally long case names
+
+Files Modified:
+M       source/POP_KindsMod.F90
+M       source/kinds_mod.F90
+===============================================================================
 Tag Creator: jedwards
 Developers:  jedwards
 Tag Date:    17 July 2015
