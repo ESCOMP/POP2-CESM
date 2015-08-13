@@ -450,8 +450,10 @@
    character (char_len) :: exit_string
 
    interface accumulate_tavg_field
-      module procedure accumulate_tavg_field_2d_3d, &
-                       accumulate_tavg_field_0d
+      module procedure accumulate_tavg_field_2d_3d
+      module procedure accumulate_tavg_field_2d_col
+      module procedure accumulate_tavg_field_3d_col
+      module procedure accumulate_tavg_field_0d
    end interface
 
 !EOC
@@ -2974,6 +2976,8 @@
    if (ndims == 0) then
      exit_string = 'FATAL ERROR: passed 2d FIELD for 0d tavg field'
      call document ('accumulate_tavg_field', exit_string)
+     call document ('accumulate_tavg_field','field short_name',               &
+                    avail_tavg_fields(field_id)%short_name)
      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
@@ -3036,10 +3040,220 @@
 
 !***********************************************************************
 !BOP
+! !IROUTINE: accumulate_tavg_field_2d_col
+! !INTERFACE:
+
+ subroutine accumulate_tavg_field_2d_col(POINT,field_id,block,i,j,const)
+
+! !DESCRIPTION:
+!  This routine updates a tavg field.  If the time average of the
+!  field is requested, it accumulates a time sum of a field by 
+!  multiplying by the time step and accumulating the sum into the 
+!  tavg buffer array.  If the min or max of a field is requested, it
+!  checks the current value and replaces the min, max if the current
+!  value is less than or greater than the stored value.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      block,           &! local block address (in baroclinic distribution)
+      i,j,             &! horizontal column
+      field_id          ! index into available fields for tavg field info
+
+   real (r8), intent(in) :: &
+      POINT             ! array of data for this block to add to 
+                        !  accumulated sum in tavg buffer
+   real (r8), optional, intent(in) ::  &
+      const
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      bufloc              ! location of field in tavg buffer
+
+!-----------------------------------------------------------------------
+! 
+!  test: mix_pass, ltavg_on, and tavg_requested.                
+!                                                              
+!-----------------------------------------------------------------------
+                                                                
+   if (.not. accumulate_tavg_now(field_id)) return             
+                                                              
+
+!-----------------------------------------------------------------------
+!
+!  get buffer location and field info from avail_tavg_field array
+!
+!-----------------------------------------------------------------------
+
+   bufloc = avail_tavg_fields(field_id)%buf_loc
+
+   if (bufloc <= 0) then
+     exit_string = 'FATAL ERROR: attempt to accumulate bad tavg field'
+     call document ('accumulate_tavg_field', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
+
+   if (avail_tavg_fields(field_id)%ndims.ne.2) then
+     exit_string = 'FATAL ERROR: passed POINT value for non-2d tavg field'
+     call document ('accumulate_tavg_field', exit_string)
+     call document ('accumulate_tavg_field','field short_name',               &
+                    avail_tavg_fields(field_id)%short_name)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  update the field into the tavg buffer
+!
+!-----------------------------------------------------------------------
+
+   select case (avail_tavg_fields(field_id)%method)
+
+   case (tavg_method_avg)  ! accumulate running time sum for time avg
+      TAVG_BUF_2D(i,j,block,bufloc) = &
+      TAVG_BUF_2D(i,j,block,bufloc) + dtavg*POINT
+   case (tavg_method_qflux)  
+      TAVG_BUF_2D(i,j,block,bufloc) =  &
+      TAVG_BUF_2D(i,j,block,bufloc) + const*max (c0,POINT)
+   case (tavg_method_min)  ! replace with current minimum value
+      if (POINT.lt.TAVG_BUF_2D(i,j,block,bufloc)) then
+         TAVG_BUF_2D(i,j,block,bufloc) = POINT
+      end if
+   case (tavg_method_max)  ! replace with current minimum value
+      if (POINT.gt.TAVG_BUF_2D(i,j,block,bufloc)) then
+         TAVG_BUF_2D(i,j,block,bufloc) = POINT
+      end if
+   case (tavg_method_constant)  ! overwrite with current value; intended for time-invariant fields
+      TAVG_BUF_2D(i,j,block,bufloc) = POINT
+   case default
+   end select
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine accumulate_tavg_field_2d_col
+
+!***********************************************************************
+!BOP
+! !IROUTINE: accumulate_tavg_field_3d_col
+! !INTERFACE:
+
+ subroutine accumulate_tavg_field_3d_col(COL,field_id,block,i,j)
+
+! !DESCRIPTION:
+!  This routine updates a tavg field.  If the time average of the
+!  field is requested, it accumulates a time sum of a field by 
+!  multiplying by the time step and accumulating the sum into the 
+!  tavg buffer array.  If the min or max of a field is requested, it
+!  checks the current value and replaces the min, max if the current
+!  value is less than or greater than the stored value.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      block,           &! local block address (in baroclinic distribution)
+      i,j,             &! column index
+      field_id          ! index into available fields for tavg field info
+
+   real (r8), dimension(km), intent(in) :: &
+      COL               ! array of data for this block to add to 
+                        !  accumulated sum in tavg buffer
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      bufloc,            &! location of field in tavg buffer
+      kmax                ! max number of levels to accumulate
+
+!-----------------------------------------------------------------------
+! 
+!  test: mix_pass, ltavg_on, and tavg_requested.                
+!                                                              
+!-----------------------------------------------------------------------
+                                                                
+   if (.not. accumulate_tavg_now(field_id)) return             
+                                                              
+
+!-----------------------------------------------------------------------
+!
+!  get buffer location and field info from avail_tavg_field array
+!
+!-----------------------------------------------------------------------
+
+   bufloc = avail_tavg_fields(field_id)%buf_loc
+
+   if (bufloc <= 0) then
+     exit_string = 'FATAL ERROR: attempt to accumulate bad tavg field'
+     call document ('accumulate_tavg_field', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
+
+   if (avail_tavg_fields(field_id)%ndims.ne.3) then
+     exit_string = 'FATAL ERROR: passed COL value for non-3d tavg field'
+     call document ('accumulate_tavg_field', exit_string)
+     call document ('accumulate_tavg_field','field short_name',               &
+                    avail_tavg_fields(field_id)%short_name)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
+
+   if (avail_tavg_fields(field_id)%grid_loc(4:4) == '4') then
+     kmax = zt_150m_levs
+   else
+     kmax = km
+   end if
+
+!-----------------------------------------------------------------------
+!
+!  update the field into the tavg buffer
+!
+!-----------------------------------------------------------------------
+
+   select case (avail_tavg_fields(field_id)%method)
+
+   case (tavg_method_avg)  ! accumulate running time sum for time avg
+      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = &
+      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) + dtavg*COL
+   case (tavg_method_min)  ! replace with current minimum value
+      where (COL.lt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
+         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL
+      end where
+   case (tavg_method_max)  ! replace with current minimum value
+      where (COL.gt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
+         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL
+      end where
+   case (tavg_method_constant)  ! overwrite with current value; intended for time-invariant fields
+      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL
+   case default
+   end select
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine accumulate_tavg_field_3d_col
+
+!***********************************************************************
+!BOP
 ! !IROUTINE: accumulate_tavg_field_0d
 ! !INTERFACE:
 
- subroutine accumulate_tavg_field_0d(VALUE_0d,field_id,const)
+ subroutine accumulate_tavg_field_0d(POINT,field_id,const)
 
 ! !DESCRIPTION:
 !  This routine updates a tavg field.  If the time average of the
@@ -3058,7 +3272,7 @@
       field_id          ! index into available fields for tavg field info
 
    real (r8), intent(in) :: &
-      VALUE_0d          ! data to add to accumulated sum in tavg buffer
+      POINT             ! data to add to accumulated sum in tavg buffer
 
    real (r8), optional, intent(in) ::  &
       const
@@ -3101,6 +3315,8 @@
    if (ndims /= 0) then
      exit_string = 'FATAL ERROR: passed 0d value for non-0d tavg field'
      call document ('accumulate_tavg_field', exit_string)
+     call document ('accumulate_tavg_field','field short_name',               &
+                    avail_tavg_fields(field_id)%short_name)
      call exit_POP (sigAbort,exit_string,out_unit=stdout)
    endif
 
@@ -3113,16 +3329,16 @@
    select case (avail_tavg_fields(field_id)%method)
 
    case (tavg_method_avg)  ! accumulate running time sum for time avg
-      TAVG_BUF_0D(bufloc) = TAVG_BUF_0D(bufloc) + dtavg*VALUE_0d
+      TAVG_BUF_0D(bufloc) = TAVG_BUF_0D(bufloc) + dtavg*POINT
    case (tavg_method_qflux)  
       TAVG_BUF_0D(bufloc) =  &
-      TAVG_BUF_0D(bufloc) + const*max (c0,VALUE_0d)
+      TAVG_BUF_0D(bufloc) + const*max (c0,POINT)
    case (tavg_method_min)  ! replace with current minimum value
-      if (VALUE_0d < TAVG_BUF_0D(bufloc)) TAVG_BUF_0D(bufloc) = VALUE_0d
+      if (POINT.lt.TAVG_BUF_0D(bufloc)) TAVG_BUF_0D(bufloc) = POINT
    case (tavg_method_max)  ! replace with current minimum value
-      if (VALUE_0d > TAVG_BUF_0D(bufloc)) TAVG_BUF_0D(bufloc) = VALUE_0d
+      if (POINT.gt.TAVG_BUF_0D(bufloc)) TAVG_BUF_0D(bufloc) = POINT
    case (tavg_method_constant)  ! overwrite with current value; intended for time-invariant fields
-      TAVG_BUF_0D(bufloc) = VALUE_0d
+      TAVG_BUF_0D(bufloc) = POINT
    case default
    end select
 
