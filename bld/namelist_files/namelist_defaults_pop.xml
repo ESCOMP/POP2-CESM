@@ -835,6 +835,12 @@
 <niw_energy_file_fmt>'bin'</niw_energy_file_fmt>
 
 <!---------------------------->
+<!-- se_nml                 -->
+<!---------------------------->
+
+<lchange_ans>.false.</lchange_ans>
+
+<!---------------------------->
 <!-- passive_tracers_on_nml -->
 <!---------------------------->
 

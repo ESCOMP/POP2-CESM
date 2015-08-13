@@ -1163,6 +1163,12 @@ if (not $nl->get_value('niw_energy_file')) {
 }
 
 ##########################################
+# namelist group: se_nml                 #
+##########################################
+
+add_default($nl, "lchange_ans");
+
+##########################################
 # namelist group: passive_tracers_on_nml #
 ##########################################
 
@@ -1973,6 +1979,7 @@ my @groups = qw(domain_nml
                 context_nml
                 overflows_nml
                 niw_nml
+                se_nml
                 passive_tracers_on_nml);
 
 if ($iage_on eq "TRUE") {
