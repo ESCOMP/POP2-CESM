@@ -2,6 +2,18 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  huyong
+Tag Date:    13 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150813a
+Tag Summary: Patch bug in barotropic solver that we worked around on May 20th.
+             Now the new solver should work on all decompositions, including
+             those with ghost cells => can be used with gx3v7 on yellowstone.
+             Will turn on by default for gx3v7 runs in an answer-changing tag.
+
+Files Modified:
+M       source/POP_SolversMod.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    13 Aug 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150813
