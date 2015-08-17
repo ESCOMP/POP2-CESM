@@ -2,6 +2,20 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mmills, andre
+Tag Date:    16 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150816a
+Tag Summary: Two updates to build-namelist
+             (1) as pointed out in Bug 2181, logic to determine starting day
+                 for a run was missing digits needed for Oct, Nov, and Dec
+             (2) Starting with perl 5.18, the "given / when" construct
+                 spits out experimental warnings; Ben showed me how to
+                 suppress those.
+
+Files Modified:
+M       bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    16 Aug 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150816
