@@ -530,6 +530,15 @@
     <decomptype>cartesian</decomptype>
   </decomp>
 
+  <decomp nproc="24" res="gx3v[567]" >
+    <maxblocks >1</maxblocks>
+    <bsize_x   >25</bsize_x>
+    <bsize_y   >20</bsize_y>
+    <nx_blocks >4</nx_blocks>
+    <ny_blocks >6</ny_blocks>
+    <decomptype>cartesian</decomptype>
+  </decomp>
+
   <decomp nproc="30" res="gx3v[567]" >
     <maxblocks >1</maxblocks>
     <bsize_x   >20</bsize_x>

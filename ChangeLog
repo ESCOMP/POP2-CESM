@@ -3,6 +3,16 @@ SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    16 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150816
+Tag Summary: Adding a 24-task decomposition for gx3v7 to close a 7 year old
+             bugzilla ticket (#730)
+
+Files Modified:
+M       bld/pop_decomp.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    13 Aug 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150813b
 Tag Summary: Introduce a new module to help CSEG handle testing when answer-
