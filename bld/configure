@@ -91,7 +91,8 @@ sub auto_decomp {
   }
 
   my $ntasks = $NTASKS_OCN / $NINST_OCN;
-  chdir "$CASEBUILD";
+
+  chdir "$SRCROOT/components/pop/bld";
   my $config_args = `./generate_pop_decomp.pl -ccsmroot $SRCROOT -res $OCN_GRID -nproc $ntasks -thrds $NTHRDS_OCN -output all`;
   my @config = split(/\s/, $config_args);
   if ($config[0] >= 0) {

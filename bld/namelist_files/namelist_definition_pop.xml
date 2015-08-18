@@ -5799,14 +5799,6 @@ Default: .true.
 </entry>
 
 <entry 
-id="locmip_k1_k2_bug_fix"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: .true. (set with OCN_CO2_FLUX_OCMPI_BUG_FIX in env_build.xml)
-</entry>
-
-<entry 
 id="lnutr_variable_restore"
 type="logical" 
 category="ecosys"
