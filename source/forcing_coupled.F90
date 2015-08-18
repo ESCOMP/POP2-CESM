@@ -1296,6 +1296,40 @@
       return
    endif
 
+! QL, 150526, LAMULT, USTOKES and VSTOKES
+   call POP_HaloUpdate(LAMULT,POP_haloClinic,         &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating LAMULT')
+      return
+   endif
+
+   call POP_HaloUpdate(USTOKES,POP_haloClinic,         &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating USTOKES')
+      return
+   endif
+
+   call POP_HaloUpdate(VSTOKES,POP_haloClinic,         &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating VSTOKES')
+      return
+   endif
+
 #endif
 !-----------------------------------------------------------------------
 !EOC

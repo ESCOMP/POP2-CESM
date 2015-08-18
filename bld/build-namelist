@@ -782,6 +782,8 @@ add_default($nl, 'bckgrnd_vdc_eq',   'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_
 add_default($nl, 'bckgrnd_vdc_psim', 'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
 add_default($nl, 'bckgrnd_vdc_ban',  'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
 add_default($nl, 'bckgrnd_vdc_linv');
+# QL, 150526, langmuir_opt
+add_default($nl, 'langmuir_opt');
 
 ##########################################
 # namelist group: advect_nml             #
