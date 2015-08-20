@@ -12,15 +12,16 @@
 my $CASEROOT = shift;
 
 # Environment variables
-my $SRCROOT, $SCRIPTSROOT, $CASEBUILD, $OBJROOT, $OCN_GRID, @OCN_TRACER_MODULES;
+my $SRCROOT, $CIMEROOT, $CASEROOT, $OBJROOT, $OCN_GRID, @OCN_TRACER_MODULES;
 my @OCN_TRACER_MODULES_OPT, $POP_AUTO_DECOMP, $POP_BLCKX, $POP_BLCKY;
 my $POP_MXBLCKS, $POP_TAVG_R8, $NTHRDS_OCN, $NINST_OCN, $OCN_ICE_FORCING;
 
 chdir "$CASEROOT";
 $SRCROOT                 = `./xmlquery SRCROOT                -value`;
-$SCRIPTSROOT             = `./xmlquery SCRIPTSROOT            -value`;
-$CASEBUILD               = `./xmlquery CASEBUILD              -value`;
+$CASEROOT                = `./xmlquery CASEROOT               -value`;
+$CIMEROOT                = `./xmlquery CIMEROOT               -value`;
 $OBJROOT                 = `./xmlquery OBJROOT                -value`;
+$TESTCASE                = `./xmlquery TESTCASE               -value`;
 $OCN_GRID                = `./xmlquery OCN_GRID               -value`;
 @OCN_TRACER_MODULES      = split(" ",`./xmlquery OCN_TRACER_MODULES     -value`);
 @OCN_TRACER_MODULES_OPT  = split(" ",`./xmlquery OCN_TRACER_MODULES_OPT -value`);
@@ -37,9 +38,8 @@ $OCN_ICE_FORCING         = `./xmlquery OCN_ICE_FORCING        -value`;
 # Decomposition 
 auto_decomp();
 
-my $cesmroot = "${SCRIPTSROOT}/../../";
 # The root directory for the perl5 required utilities 
-my $perl5lib = "$cesmroot/cime/utils/perl5lib";
+my $perl5lib = "$CIMEROOT/utils/perl5lib";
 
 # The Build::Config module provides utilities to access the configuration information
 # The Build::Config module provides utilities to access the configuration information
@@ -63,7 +63,7 @@ set_cppdefs();
 
 # Write configure file
 my $cfg_def_file = "$SRCROOT/components/pop/bld/config_files/definition.xml";
-my $cfg_cache_file = "$CASEBUILD/popconf/config_cache.xml";
+my $cfg_cache_file = "$CASEROOT/Buildconf/popconf/config_cache.xml";
 my $cfg = Build::Config->new("$cfg_def_file");
 
 $cfg->set('ocn_grid',   $OCN_GRID);
@@ -236,9 +236,13 @@ sub set_cppdefs {
   # write out cppdefs to POP_cppdefs.new
   # this will force gmake to rebuild when $CASE.buildexe is called
 
-  open(file,">$OBJROOT/ocn/obj/POP_cppdefs.new") or die "POP configure: Could not open file $OBJROOT/ocn/obj/POP_cppdefs.new to write";
-  print file "$cppdefs \n";
-  close(file);
+  if ($TESTCASE eq 'SBN') {
+      # do nothing
+  } else {
+      open(file,">$OBJROOT/ocn/obj/POP_cppdefs.new") or die "POP configure: Could not open file $OBJROOT/ocn/obj/POP_cppdefs.new to write";
+      print file "$cppdefs \n";
+      close(file);
+  }
     
 }
 
