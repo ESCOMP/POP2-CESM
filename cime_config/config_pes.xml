@@ -493,9 +493,9 @@
 	  <ntasks_ice>96</ntasks_ice>
 	  <ntasks_ocn>96</ntasks_ocn>
 	  <ntasks_cpl>96</ntasks_cpl>
-	  <ntasks_lnd>1</ntasks_lnd> 
-	  <ntasks_glc>1</ntasks_glc>
-	  <ntasks_wav>1</ntasks_wav>
+	  <ntasks_lnd>96</ntasks_lnd> 
+	  <ntasks_glc>96</ntasks_glc>
+	  <ntasks_wav>96</ntasks_wav>
 	</ntasks>
 	<nthrds>
 	  <nthrds_atm>4</nthrds_atm>                   

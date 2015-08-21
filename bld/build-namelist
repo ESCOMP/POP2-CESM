@@ -202,6 +202,7 @@ require Build::Config;
 require Build::NamelistDefinition;
 require Build::NamelistDefaults;
 require Build::Namelist;
+require Config::SetupTools;
 
 #-----------------------------------------------------------------------------------------------
 
@@ -311,8 +312,6 @@ EOF
 
 #-----------------------------------------------------------------------------------------------
 # Determine xml variables
-unshift @INC, "$CASEROOT/Tools";
-require SetupTools;
 
 my %xmlvars = ();
 SetupTools::getxmlvars($CASEROOT, \%xmlvars);

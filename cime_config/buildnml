@@ -8,27 +8,26 @@ if ($#ARGV == -1) {
 my ($CASEROOT) = @ARGV;
 chdir "${CASEROOT}";
 
-my @dirs = ("$CASEROOT/Tools");
-unshift @INC, @dirs;
-require SetupTools;
-my $sysmod; 
+my $CIMEROOT	        = `./xmlquery CIMEROOT			-value`;
+my $SRCROOT             = `./xmlquery SRCROOT                   -value`;
+my $DIN_LOC_ROOT        = `./xmlquery DIN_LOC_ROOT              -value`;
+my $EXEROOT             = `./xmlquery EXEROOT                   -value`;
+my $CONTINUE_RUN        = `./xmlquery CONTINUE_RUN              -value`;
+my $GET_REFCASE         = `./xmlquery GET_REFCASE               -value`;
+my $NINST_OCN           = `./xmlquery NINST_OCN                 -value`;
+my $OCN_GRID            = `./xmlquery OCN_GRID                  -value`;
+my $OCN_TRACER_MODULES  = `./xmlquery OCN_TRACER_MODULES        -value`;
+my $RUN_TYPE            = `./xmlquery RUN_TYPE                  -value`;
+my $RUN_REFCASE         = `./xmlquery RUN_REFCASE               -value`;
+my $RUN_REFDATE         = `./xmlquery RUN_REFDATE               -value`;
+my $RUNDIR              = `./xmlquery RUNDIR                    -value`;
+my $BUILD_COMPLETE      = `./xmlquery BUILD_COMPLETE            -value`;
+my $TESTCASE            = `./xmlquery TESTCASE                  -value`;
 
-my $CASEROOT                    = `./xmlquery CASEROOT                  -value`;
-my $SRCROOT                     = `./xmlquery SRCROOT                   -value`;
-my $CIMEROOT                    = `./xmlquery CIMEROOT                  -value`;
-my $DIN_LOC_ROOT                = `./xmlquery DIN_LOC_ROOT              -value`;
-my $EXEROOT                     = `./xmlquery EXEROOT                   -value`;
-my $CONTINUE_RUN                = `./xmlquery CONTINUE_RUN              -value`;
-my $GET_REFCASE                 = `./xmlquery GET_REFCASE               -value`;
-my $NINST_OCN                   = `./xmlquery NINST_OCN                 -value`;
-my $OCN_GRID                    = `./xmlquery OCN_GRID                  -value`;
-my $OCN_TRACER_MODULES          = `./xmlquery OCN_TRACER_MODULES        -value`;
-my $RUN_TYPE                    = `./xmlquery RUN_TYPE                  -value`;
-my $RUN_REFCASE                 = `./xmlquery RUN_REFCASE               -value`;
-my $RUN_REFDATE                 = `./xmlquery RUN_REFDATE               -value`;
-my $RUNDIR                      = `./xmlquery RUNDIR                    -value`;
-my $BUILD_COMPLETE              = `./xmlquery BUILD_COMPLETE            -value`;
-my $TESTCASE                    = `./xmlquery TESTCASE                  -value`;
+my @dirs = ( "${CIMEROOT}/utils/perl5lib" );
+unshift @INC, @dirs;
+require Config::SetupTools;
+my $sysmod; 
 
 if ($TESTCASE eq 'SBN') {
     #  do nothing for namelist comparison test
