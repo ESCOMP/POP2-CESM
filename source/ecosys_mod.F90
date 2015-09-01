@@ -5541,8 +5541,6 @@ contains
     real (r8) :: ph_upper_bound
     type(thermodynamic_coefficients_type) :: co3_coeffs
 
-    call timer_start(ecosys_comp_CO3terms_timer, block_id=bid)
-
     associate( &
          DIC_loc => tracer_local(dic_ind,:), &
          DIC_ALT_CO2_loc => tracer_local(dic_alt_co2_ind,:),  &
@@ -5562,6 +5560,8 @@ contains
          )
 
     do k=1,dkm
+
+       call timer_start(ecosys_comp_CO3terms_timer, block_id=bid)
 
        mask = column_land_mask .and. k <= column_kmt
 
