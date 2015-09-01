@@ -5559,9 +5559,9 @@ contains
          pH_ALT_CO2 => carbonate%pH_ALT_CO2 &
          )
 
-    do k=1,dkm
+    call timer_start(ecosys_comp_CO3terms_timer, block_id=bid)
 
-       call timer_start(ecosys_comp_CO3terms_timer, block_id=bid)
+    do k=1,dkm
 
        mask = column_land_mask .and. k <= column_kmt
 
@@ -5595,9 +5595,6 @@ contains
        
        ph_prev_alt_co2_3d(k) = pH_ALT_CO2(k)
        
-
-       call timer_stop(ecosys_comp_CO3terms_timer, block_id=bid)
-
        ! -------------------
        call comp_co3_sat_vals_scalar(k, mask, &
             temperature(k), salinity(k), CO3_sat_calcite(k), CO3_sat_aragonite(k))
@@ -5607,6 +5604,9 @@ contains
        co3_calcite_anom(k) = CO3(k) - CO3_sat_calcite(k)
        co3_aragonite_anom(k) = CO3(k) - CO3_sat_aragonite(k)
     enddo
+
+    call timer_stop(ecosys_comp_CO3terms_timer, block_id=bid)
+
     do k=1,dkm
 
        if (k == 1) then
