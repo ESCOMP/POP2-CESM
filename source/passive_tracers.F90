@@ -51,7 +51,8 @@
        ecosys_driver_set_sflux,           &
        ecosys_driver_tavg_forcing,        &
        ecosys_driver_set_interior,        &
-       ecosys_driver_write_restart
+       ecosys_driver_write_restart,       &
+       ecosys_driver_unpack_source_sink_terms
 
    use cfc_mod, only:              &
        cfc_tracer_cnt,             &
@@ -187,6 +188,9 @@
       SST_FILT,      & ! SST with time filter applied, [degC]
       SSS_FILT         ! SSS with time filter applied, [psu]
 
+   real(r8), dimension(:, :, :, :, :), pointer :: &
+        ecosys_source_sink_3d ! (nx_block, ny_block, km, nt, nblocks_clinic)
+   
 !EOC
 !***********************************************************************
 
@@ -397,6 +401,8 @@
             'init_passive_tracers: error in ecosys_driver_init')
          return
       endif
+
+      allocate(ecosys_source_sink_3d(nx_block, ny_block, km, nt, nblocks_clinic))
 
    end if
 
@@ -732,18 +738,15 @@
    bid = this_block%local_id
 
 !-----------------------------------------------------------------------
-!  ECOSYS  DRIVER block
-!-----------------------------------------------------------------------
-
+!  ECOSYS DRIVER block is done as part of
+!  set_interior_passive_tracers_3D. Here we are just unpacking the 3D
+!  structure into the 2D
+!  -----------------------------------------------------------------------
    if (ecosys_on) then
-      call ecosys_driver_set_interior(k,ciso_on,         &
-         TRACER(:,:,k,1,oldtime,bid), TRACER(:,:,k,1,curtime,bid), &
-         TRACER(:,:,k,2,oldtime,bid), TRACER(:,:,k,2,curtime,bid), &
-         TRACER(:,:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,oldtime,bid),&
-         TRACER(:,:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,curtime,bid),&
-         TRACER_SOURCE(:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end),       &
-         this_block)
-   end if
+      call ecosys_driver_unpack_source_sink_terms( &
+           ecosys_source_sink_3d(:, :, k, ecosys_driver_ind_begin:ecosys_driver_ind_end, bid), &
+           TRACER_SOURCE(:, :, ecosys_driver_ind_begin:ecosys_driver_ind_end))
+   endif
 
 !-----------------------------------------------------------------------
 !  CFC does not have source-sink terms
@@ -840,18 +843,41 @@
 ! !REVISION HISTORY:
 !  same as module
 
+   use domain, only : blocks_clinic
+   use blocks, only : get_block
+   
 ! !INPUT PARAMETERS:
    real (r8), dimension(nx_block,ny_block,km,nt,max_blocks_clinic), intent(in) :: &
-      TRACER_OLD, TRACER_CUR
+        TRACER_OLD, & ! previous timestep tracer tendencies
+        TRACER_CUR    ! new tracer tendencies
 
 ! !INPUT/OUTPUT PARAMETERS:
 
 !EOP
 !BOC
 
+   integer (int_kind) :: iblock ! counter for block loops
+   type (block) :: this_block   ! block information for this block
+   integer (int_kind) :: bid ! local block address for this block
+
 !-----------------------------------------------------------------------
-!  ECOSYS DRIVER modules do not compute and store 3D source-sink terms
+!  ECOSYS DRIVER modules 3D source-sink terms
 !-----------------------------------------------------------------------
+   if (ecosys_on) then
+      !$OMP PARALLEL DO PRIVATE(iblock, this_block, bid)
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock), iblock)
+         bid = this_block%local_id
+         call ecosys_driver_set_interior(ciso_on,         &
+              TRACER(:, :, :, 1, oldtime, bid), TRACER(:, :, :, 1, curtime, bid), &
+              TRACER(:, :, :, 2, oldtime, bid), TRACER(:, :, :, 2, curtime, bid), &
+              TRACER(:, :, :, ecosys_driver_ind_begin:ecosys_driver_ind_end, oldtime, bid), &
+              TRACER(:, :, :, ecosys_driver_ind_begin:ecosys_driver_ind_end, curtime, bid), &
+              ecosys_source_sink_3d(:, :, :, ecosys_driver_ind_begin:ecosys_driver_ind_end, bid), &
+              this_block)
+      end do
+      !$OMP END PARALLEL DO
+   end if
 
 !-----------------------------------------------------------------------
 !  CFC does not compute and store 3D source-sink terms

@@ -27,7 +27,7 @@ use English;
 use Getopt::Long;
 use IO::File;
 
-no warnings 'experimental::smartmatch';
+no if ($PERL_VERSION ge v5.18.0), 'warnings' => 'experimental::smartmatch';
 
 #-----------------------------------------------------------------------------------------------
 

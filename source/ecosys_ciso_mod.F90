@@ -11,7 +11,7 @@
 !  13C code is based on code form G. Xavier, ETH, 2010, which
 !  was written for pop1 (CCSM3)
 !  This code needs the ecosystem model to run, as it uses several
-!  variables computed there. Data is shared using ecosys_share_mod.F90
+!  variables computed there. Data is shared using marbl_share_mod.F90
 !  This module adds 7 carbon pools for 13C and another 7 for 14C
 !
 !  Developer: Alexandra Jahn, NCAR, Started Nov 2012, last edited July 2014
@@ -31,41 +31,108 @@
 
 ! !USES:
 
-   use POP_KindsMod
-   use POP_ErrorMod
-   use POP_CommMod
-   use POP_GridHorzMod
-   use POP_FieldMod
-   use POP_HaloMod
+   use POP_KindsMod, only : POP_i4
+   use POP_ErrorMod, only : POP_ErrorSet
+   use POP_ErrorMod, only : POP_Success
 
-   use kinds_mod
-   use constants
-   use communicate
-   use broadcast
-   use global_reductions
-   use blocks
-   use domain_size
-   use domain
-   use exit_mod
-   use prognostic
-   use grid
-   use io
-   use io_types
-   use io_tools
-   use tavg
-   use timers
-   use passive_tracer_tools
-   use named_field_mod
-   use forcing_tools
-   use time_management
-   use ecosys_parms
-   use registry
-   use named_field_mod
-   use ecosys_share
-#ifdef CCSMCOUPLED
-   use POP_MCT_vars_mod
-   use shr_strdata_mod
-#endif
+   use kinds_mod, only : r8
+   use kinds_mod, only : int_kind
+   use kinds_mod, only : log_kind
+   use kinds_mod, only : char_len
+
+   use constants, only : c0
+   use constants, only : c1
+   use constants, only : c2
+   use constants, only : c1000
+   use constants, only : p5
+   use constants, only : char_blank
+   use constants, only : blank_fmt
+   use constants, only : delim_fmt
+   use constants, only : ndelim_fmt
+   use constants, only : mpercm
+
+   use communicate, only : master_task
+   use communicate, only : my_task
+
+   use broadcast, only : broadcast_array
+   use broadcast, only : broadcast_scalar
+
+   use global_reductions, only : global_sum
+
+   use blocks, only : block
+   use blocks, only : nx_block
+   use blocks, only : ny_block
+   use blocks, only : get_block
+
+   use domain_size, only : km
+   use domain_size, only : max_blocks_clinic
+
+   use domain, only : distrb_clinic
+   use domain, only : nblocks_clinic
+   use domain, only : blocks_clinic
+
+   use exit_mod, only : exit_POP
+   use exit_mod, only : sigAbort
+
+   use prognostic, only : tracer_field
+   use prognostic, only : curtime
+   use prognostic, only : oldtime
+
+   use grid, only : KMT
+   use grid, only : TAREA
+   use grid, only : DZT
+   use grid, only : partial_bottom_cells
+   use grid, only : n_topo_smooth
+   use grid, only : REGION_MASK
+   use grid, only : TLATD
+   use grid, only : dz
+   use grid, only : zw
+   use grid, only : fill_points
+
+   use io, only : datafile
+
+   use io_types, only : io_dim
+   use io_types, only : stdout
+   use io_types, only : nml_in
+   use io_types, only : nml_filename
+   use io_types, only : add_attrib_file
+
+   use io_tools, only : document
+
+   use tavg, only : accumulate_tavg_now
+   use tavg, only : accumulate_tavg_field
+   use tavg, only : define_tavg_field
+
+   use timers, only : timer_start
+   use timers, only : timer_stop
+   use timers, only : get_timer
+
+   use passive_tracer_tools, only : ind_name_pair
+   use passive_tracer_tools, only : tracer_read
+   use passive_tracer_tools, only : comp_surf_avg
+   use passive_tracer_tools, only : extract_surf_avg
+   use passive_tracer_tools, only : file_read_tracer_block
+   use passive_tracer_tools, only : rest_read_tracer_block
+
+   use time_management, only : days_in_year
+   use time_management, only : frac_day
+   use time_management, only : iday_of_year
+   use time_management, only : iyear
+   use time_management, only : seconds_in_day
+   use time_management, only : seconds_in_year
+   use time_management, only : freq_opt_never
+   use time_management, only : freq_opt_nmonth
+   use time_management, only : freq_opt_nyear
+   use time_management, only : check_time_flag
+   use time_management, only : init_time_flag
+   use time_management, only : eval_time_flag
+
+   use marbl_parms, only : denitrif_C_N
+   use marbl_parms, only : parm_POMbury
+   use marbl_parms, only : spd
+   use marbl_parms, only : f_graze_CaCO3_REMIN
+
+   use marbl_share_mod, only : autotrophs, autotroph_cnt
 
 ! !INPUT PARAMETERS:
 !-----------------------------------------------------------------------
@@ -858,7 +925,7 @@ contains
             where (.not. LAND_MASK(:,:,iblock) .or. k > KMT(:,:,iblock))
                TRACER_MODULE(:,:,k,n,curtime,iblock) = c0
                TRACER_MODULE(:,:,k,n,oldtime,iblock) = c0
-            endwhere
+            end where
          end do
       end do
    enddo
@@ -1525,9 +1592,13 @@ contains
 !
 ! !INTERFACE:
 
- subroutine ecosys_ciso_set_sflux(SST,SURF_VALS_OLD,SURF_VALS_CUR,STF_MODULE)
+ subroutine ecosys_ciso_set_sflux(&
+      ecosys_surface_share, &
+      SST,SURF_VALS_OLD,SURF_VALS_CUR,STF_MODULE)
 
 
+   use marbl_share_mod, only: ecosys_surface_share_type
+   
 ! !INPUT PARAMETERS:
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) :: &
@@ -1540,6 +1611,8 @@ contains
 ! !INPUT/OUTPUT PARAMETERS:
 
    real (r8), dimension(:,:,:,:), intent(inout) :: STF_MODULE
+
+   type(ecosys_surface_share_type), intent(inout) :: ecosys_surface_share
 
 !EOP
 !BOC
@@ -1638,16 +1711,16 @@ contains
                              ! transfert (per mil) (air-sea CO2
                              ! exchange) at 21C, Zhang et al 1995,
                              ! eps_k = -0.95 at 5C
- !-----------------------------------------------------------------------
- ! The following variables from ecosys_share are used directly, without
- ! defining pointers:
- !   CO2STAR_SURF_fields
- !   DCO2STAR_SURF_fields
- !   PV_SURF_fields
- !   DIC_SURF_fields
- !   CO3_SURF_fields
- !-----------------------------------------------------------------------
 
+   associate(                                                               &
+        DIC_SURF_fields      => ecosys_surface_share%DIC_SURF_fields,       & ! IN/OUT
+        CO3_SURF_fields      => ecosys_surface_share%CO3_SURF_fields,       & ! IN/OUT
+        CO2STAR_SURF_fields  => ecosys_surface_share%CO2STAR_SURF_fields,   & ! IN/OUT
+        DCO2STAR_SURF_fields => ecosys_surface_share%DCO2STAR_SURF_fields , & ! IN/OUT
+        PV_SURF_fields       => ecosys_surface_share%PV_SURF_fields,        & ! IN/OUT
+        dic_riv_flux_fields  => ecosys_surface_share%dic_riv_flux_fields,   & ! IN/OUT
+        doc_riv_flux_fields  => ecosys_surface_share%doc_riv_flux_fields    & ! IN/OUT
+     )
 !-----------------------------------------------------------------------
 
    call timer_start(ecosys_ciso_sflux_timer)
@@ -1972,6 +2045,8 @@ contains
 
  call timer_stop(ecosys_ciso_sflux_timer)
 
+ end associate
+ 
 !-----------------------------------------------------------------------
 !EOC
 
@@ -1982,8 +2057,11 @@ contains
 ! !IROUTINE: ecosys_ciso_set_interior
 ! !INTERFACE:
 
- subroutine ecosys_ciso_set_interior(k, TEMP_OLD, TEMP_CUR, &
-    TRACER_MODULE_OLD, TRACER_MODULE_CUR, DTRACER_MODULE, this_block)
+ subroutine ecosys_ciso_set_interior(k, &
+      ecosys_interior_share, ecosys_zooplankton_share, &
+      ecosys_autotroph_share, ecosys_particulate_share, &
+      TEMP_OLD, TEMP_CUR, &
+      TRACER_MODULE_OLD, TRACER_MODULE_CUR, DTRACER_MODULE, bid)
 
 ! !DESCRIPTION:
 !  Compute time derivatives for 13C and 14C state variables.
@@ -1995,6 +2073,11 @@ contains
 !
 !
 
+   use marbl_share_mod, only: sinking_particle
+   use marbl_share_mod, only: ecosys_interior_share_type
+   use marbl_share_mod, only: ecosys_zooplankton_share_type
+   use marbl_share_mod, only: ecosys_autotroph_share_type
+   use marbl_share_mod, only: ecosys_particulate_share_type
 
 ! !INPUT PARAMETERS:
 
@@ -2009,13 +2092,18 @@ contains
       TRACER_MODULE_OLD, &! old tracer values
       TRACER_MODULE_CUR   ! current tracer values
 
-   type (block), intent(in) :: &
-      this_block          ! block info for the current block
+   integer(int_kind), intent(in) :: &
+      bid          ! local block id
 
 ! !OUTPUT PARAMETERS:
 
    real (r8), dimension(:,:,:), intent(out) :: &
       DTRACER_MODULE      ! computed source/sink terms
+
+   type(ecosys_interior_share_type), intent(inout) :: ecosys_interior_share
+   type(ecosys_zooplankton_share_type), intent(inout) :: ecosys_zooplankton_share
+   type(ecosys_autotroph_share_type), intent(inout) :: ecosys_autotroph_share
+   type(ecosys_particulate_share_type), intent(inout) :: ecosys_particulate_share
 
 !EOP
 !BOC
@@ -2038,7 +2126,6 @@ contains
       ztop              ! depth of top of cell
 
    integer (int_kind) :: &
-      bid,            & ! local_block id
       n,m,            & ! tracer index
       auto_ind,       & ! autotroph functional group index
       kk                ! index for looping over k levels
@@ -2051,8 +2138,8 @@ contains
       P_Ca13CO3,      & ! base units = nmol CaCO3 13C
       PO14C,          & ! base units = nmol 14C
       P_Ca14CO3         ! base units = nmol CaCO3 14C
-!     POC               ! base units = nmol C -> Defined in ecosys_share
-!     P_CaCO3           ! base units = nmol CaCO3 -> Defined in ecosys_share
+!     POC               ! base units = nmol C -> Defined in marbl_share
+!     P_CaCO3           ! base units = nmol CaCO3 -> Defined in marbl_share
 
    real (r8), dimension(nx_block,ny_block) :: &
       DO13C_loc,         & ! local copy of model DO13C
@@ -2136,54 +2223,45 @@ contains
    real(r8), parameter :: &
       eps_carb = -2.0_r8          ! eps_carb = d13C(CaCO3) - d13C(DIC)  Ziveri et al., 2003
 
-!---------------------------------------------------------------
-! Define pointer variables, used to share values with other modules
-! Target variables are defined in ecosys_share
-! Below pointers are used to point to the right part of the
-! global array in ecosys_share
-!---------------------------------------------------------------
-
-   real (r8), dimension(:,:), pointer :: DIC_loc      ! local copy of model DIC
-   real (r8), dimension(:,:), pointer :: DOC_loc      ! local copy of model DOC
-   real (r8), dimension(:,:), pointer :: O2_loc       ! local copy of model O2
-   real (r8), dimension(:,:), pointer :: NO3_loc      ! local copy of model NO3
-   real (r8), dimension(:,:), pointer :: CO3          ! carbonate ion
-   real (r8), dimension(:,:), pointer :: HCO3         ! bicarbonate ion
-   real (r8), dimension(:,:), pointer :: H2CO3        ! carbonic acid
-   real (r8), dimension(:,:), pointer :: DOC_remin    ! remineralization of 13C DOC (mmol C/m^3/sec)
-
-   real (r8), dimension(:,:,:), pointer :: zooC_loc     ! local copy of model zooC
-   real (r8), dimension(:,:,:), pointer :: zoo_loss     ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: zoo_loss_poc ! zoo_loss routed to large detrital pool (mmol C/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: zoo_loss_doc ! zoo_loss routed to doc (mmol C/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: zoo_loss_dic ! zoo_loss routed to dic (mmol C/m^3/sec)
-
-   real (r8), dimension(:,:,:), pointer :: QCaCO3               ! small phyto CaCO3/C ratio (mmol CaCO3/mmol C)
-   real (r8), dimension(:,:,:), pointer :: autotrophCaCO3_loc  ! local copy of model autotroph CaCO3
-   real (r8), dimension(:,:,:), pointer :: autotrophChl_loc    ! local copy of model autotroph Chl
-   real (r8), dimension(:,:,:), pointer :: autotrophC_loc      ! local copy of model autotroph C
-   real (r8), dimension(:,:,:), pointer :: autotrophFe_loc     ! local copy of model autotroph Fe
-   real (r8), dimension(:,:,:), pointer :: autotrophSi_loc     ! local copy of model autotroph Si
-   real (r8), dimension(:,:,:), pointer :: auto_graze          ! autotroph grazing rate (mmol C/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: auto_graze_zoo      ! auto_graze routed to zoo (mmol C/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: auto_graze_poc      ! auto_graze routed to poc (mmol C/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: auto_graze_doc      ! auto_graze routed to doc (mmol C/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: auto_graze_dic      ! auto_graze routed to dic (mmol C/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: auto_loss           ! autotroph non-grazing mort (mmol C/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: auto_loss_poc       ! auto_loss routed to poc (mmol C/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: auto_loss_doc       ! auto_loss routed to doc (mmol C/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: auto_loss_dic       ! auto_loss routed to dic (mmol C/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: auto_agg            ! autotroph aggregation (mmol C/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: photoC              ! C-fixation (mmol C/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: CaCO3_PROD          ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)
-   real (r8), dimension(:,:,:), pointer :: PCphoto             ! C-specific rate of photosynth. (1/sec)
-
+   associate(                                                                          &
+        DIC_loc            => ecosys_interior_share%DIC_loc_fields(:, :, bid)            , & ! IN/OUT local copy of model DIC                                                       
+        DOC_loc            => ecosys_interior_share%DOC_loc_fields(:, :, bid)            , & ! IN/OUT local copy of model DOC                                                       
+        O2_loc             => ecosys_interior_share%O2_loc_fields(:, :, bid)             , & ! IN/OUT local copy of model O2                                                        
+        NO3_loc            => ecosys_interior_share%NO3_loc_fields(:, :, bid)            , & ! IN/OUT local copy of model NO3                                                       
+        CO3                => ecosys_interior_share%CO3_fields(:, :, bid)                , & ! IN/OUT carbonate ion                                                                 
+        HCO3               => ecosys_interior_share%HCO3_fields(:, :, bid)               , & ! IN/OUT bicarbonate ion                                                               
+        H2CO3              => ecosys_interior_share%H2CO3_fields(:, :, bid)              , & ! IN/OUT carbonic acid                                                                 
+        DOC_remin          => ecosys_interior_share%DOC_remin_fields(:, :, bid)          , & ! IN/OUT remineralization of 13C DOC (mmol C/m^3/sec)
+        
+        zooC_loc           => ecosys_zooplankton_share%zooC_loc_fields(:, :, :, bid)           , & ! IN/OUT local copy of model zooC                                                      
+        zoo_loss           => ecosys_zooplankton_share%zoo_loss_fields(:, :, :, bid)           , & ! IN/OUT mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)            
+        zoo_loss_poc       => ecosys_zooplankton_share%zoo_loss_poc_fields(:, :, :, bid)       , & ! IN/OUT zoo_loss routed to large detrital pool (mmol C/m^3/sec)                       
+        zoo_loss_doc       => ecosys_zooplankton_share%zoo_loss_doc_fields(:, :, :, bid)       , & ! IN/OUT zoo_loss routed to doc (mmol C/m^3/sec)                                       
+        zoo_loss_dic       => ecosys_zooplankton_share%zoo_loss_dic_fields(:, :, :, bid)       , & ! IN/OUT zoo_loss routed to dic (mmol C/m^3/sec)                                       
+        QCaCO3             => ecosys_autotroph_share%QCaCO3_fields(:, :, :, bid)             , & ! IN/OUT small phyto CaCO3/C ratio (mmol CaCO3/mmol C)                                 
+        autotrophCaCO3_loc => ecosys_autotroph_share%autotrophCaCO3_loc_fields(:, :, :, bid) , & ! IN/OUT local copy of model autotroph CaCO3                                           
+        autotrophChl_loc   => ecosys_autotroph_share%autotrophChl_loc_fields(:, :, :, bid)   , & ! IN/OUT local copy of model autotroph Chl                                             
+        autotrophC_loc     => ecosys_autotroph_share%autotrophC_loc_fields(:, :, :, bid)     , & ! IN/OUT local copy of model autotroph C                                               
+        autotrophFe_loc    => ecosys_autotroph_share%autotrophFe_loc_fields(:, :, :, bid)    , & ! IN/OUT local copy of model autotroph Fe                                              
+        autotrophSi_loc    => ecosys_autotroph_share%autotrophSi_loc_fields(:, :, :, bid)    , & ! IN/OUT local copy of model autotroph Si                                              
+        auto_graze         => ecosys_autotroph_share%auto_graze_fields(:, :, :, bid)         , & ! IN/OUT autotroph grazing rate (mmol C/m^3/sec)                                       
+        auto_graze_zoo     => ecosys_autotroph_share%auto_graze_zoo_fields(:, :, :, bid)     , & ! IN/OUT auto_graze routed to zoo (mmol C/m^3/sec)                                     
+        auto_graze_poc     => ecosys_autotroph_share%auto_graze_poc_fields(:, :, :, bid)     , & ! IN/OUT auto_graze routed to poc (mmol C/m^3/sec)                                     
+        auto_graze_doc     => ecosys_autotroph_share%auto_graze_doc_fields(:, :, :, bid)     , & ! IN/OUT auto_graze routed to doc (mmol C/m^3/sec)                                     
+        auto_graze_dic     => ecosys_autotroph_share%auto_graze_dic_fields(:, :, :, bid)     , & ! IN/OUT auto_graze routed to dic (mmol C/m^3/sec)                                     
+        auto_loss          => ecosys_autotroph_share%auto_loss_fields(:, :, :, bid),           & ! IN/OUT autotroph non-grazing mort (mmol C/m^3/sec)                                   
+        auto_loss_poc      => ecosys_autotroph_share%auto_loss_poc_fields(:, :, :, bid)      , & ! IN/OUT auto_loss routed to poc (mmol C/m^3/sec)                                      
+        auto_loss_doc      => ecosys_autotroph_share%auto_loss_doc_fields(:, :, :, bid)      , & ! IN/OUT auto_loss routed to doc (mmol C/m^3/sec)                                      
+        auto_loss_dic      => ecosys_autotroph_share%auto_loss_dic_fields(:, :, :, bid)      , & ! IN/OUT auto_loss routed to dic (mmol C/m^3/sec)                                      
+        auto_agg           => ecosys_autotroph_share%auto_agg_fields(:, :, :, bid)           , & ! IN/OUT autotroph aggregation (mmol C/m^3/sec)                                        
+        photoC             => ecosys_autotroph_share%photoC_fields(:, :, :, bid)             , & ! IN/OUT C-fixation (mmol C/m^3/sec)                                                   
+        CaCO3_PROD         => ecosys_autotroph_share%CaCO3_PROD_fields(:, :, :, bid)         , & ! IN/OUT prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)                            
+        PCphoto            => ecosys_autotroph_share%PCphoto_fields(:, :, :, bid)            , & ! IN/OUT C-specific rate of photosynth. (1/sec)                                        
+        POC                => ecosys_particulate_share%POC,                        & ! IN/OUT
+        P_CaCO3            => ecosys_particulate_share%P_CaCO3                     & ! IN/OUT
+        )
 
 !-------------------------------------------------------------
-
-   bid = this_block%local_id
-
-!-----------------------------------------------------------------------
 
    call timer_start(ecosys_ciso_interior_timer, block_id=bid)
 
@@ -2198,46 +2276,6 @@ contains
       return
    endif
 
-!-------------------------------------------------------------
-! Assign locally used variables to pointer variables
-! => use pointers to point to the right part of the global array
-! in ecosys_share
-!---------------------------------------------------------------
-
-   DIC_loc => DIC_loc_fields(:,:,bid)
-   DOC_loc => DOC_loc_fields(:,:,bid)
-   O2_loc  => O2_loc_fields(:,:,bid)
-   NO3_loc  => NO3_loc_fields(:,:,bid)
-   CO3 => CO3_fields(:,:,bid)
-   HCO3 => HCO3_fields(:,:,bid)
-   H2CO3 => H2CO3_fields(:,:,bid)
-   DOC_remin => DOC_remin_fields(:,:,bid)
-
-   zooC_loc => zooC_loc_fields(:,:,:,bid)
-   zoo_loss => zoo_loss_fields(:,:,:,bid)
-   zoo_loss_poc => zoo_loss_poc_fields(:,:,:,bid)
-   zoo_loss_doc => zoo_loss_doc_fields(:,:,:,bid)
-   zoo_loss_dic => zoo_loss_dic_fields(:,:,:,bid)
-
-   QCaCO3 => QCaCO3_fields(:,:,:,bid)
-   autotrophCaCO3_loc => autotrophCaCO3_loc_fields(:,:,:,bid)
-   autotrophChl_loc => autotrophChl_loc_fields(:,:,:,bid)
-   autotrophC_loc => autotrophC_loc_fields(:,:,:,bid)
-   autotrophFe_loc => autotrophFe_loc_fields(:,:,:,bid)
-   autotrophSi_loc => autotrophSi_loc_fields(:,:,:,bid)
-   auto_graze => auto_graze_fields(:,:,:,bid)
-   auto_graze_zoo => auto_graze_zoo_fields(:,:,:,bid)
-   auto_graze_poc => auto_graze_poc_fields(:,:,:,bid)
-   auto_graze_doc => auto_graze_doc_fields(:,:,:,bid)
-   auto_graze_dic => auto_graze_dic_fields(:,:,:,bid)
-   auto_loss => auto_loss_fields(:,:,:,bid)
-   auto_loss_poc => auto_loss_poc_fields(:,:,:,bid)
-   auto_loss_doc => auto_loss_doc_fields(:,:,:,bid)
-   auto_loss_dic => auto_loss_dic_fields(:,:,:,bid)
-   auto_agg => auto_agg_fields(:,:,:,bid)
-   photoC => photoC_fields(:,:,:,bid)
-   CaCO3_PROD => CaCO3_PROD_fields(:,:,:,bid)
-   PCphoto => PCphoto_fields(:,:,:,bid)
 
 !----------------------------------------------------------------------------------------
 ! For Keller and Morel, set cell attributes based on autotroph type (from observations)
@@ -2467,8 +2505,8 @@ contains
 !-----------------------------------------------------------------------
 
    if (k == 1) then
-      call ciso_init_particulate_terms(PO13C, P_Ca13CO3, this_block)
-      call ciso_init_particulate_terms(PO14C, P_Ca14CO3, this_block)
+      call ciso_init_particulate_terms(PO13C, P_Ca13CO3, bid)
+      call ciso_init_particulate_terms(PO14C, P_Ca14CO3, bid)
    endif
 !-----------------------------------------------------------------------
 ! Calculate fraction of CO3
@@ -2722,16 +2760,20 @@ contains
 !-----------------------------------------------------------------------
 
 
-   call ciso_compute_particulate_terms(k, POC, P_CaCO3, PO13C, P_Ca13CO3, &
-                                  O2_loc, NO3_loc, this_block)
+   call ciso_compute_particulate_terms(k, &
+        ecosys_particulate_share, &
+        POC, P_CaCO3, PO13C, P_Ca13CO3, &
+        O2_loc, NO3_loc, bid)
 
 
-   call ciso_compute_particulate_terms(k, POC, P_CaCO3, PO14C, P_Ca14CO3, &
-                                  O2_loc, NO3_loc, this_block)
+   call ciso_compute_particulate_terms(k, &
+        ecosys_particulate_share, &
+        POC, P_CaCO3, PO14C, P_Ca14CO3, &
+        O2_loc, NO3_loc, bid)
 
 
    call ciso_tavg_particulate_terms(k, POC, P_CaCO3, PO13C, P_Ca13CO3, &
-                                  PO14C, P_Ca14CO3, this_block)
+                                  PO14C, P_Ca14CO3, bid)
 
 !-----------------------------------------------------------------------
 ! Update DTRACER_MODULE for the 7 carbon pools for each Carbon isotope
@@ -3025,6 +3067,7 @@ contains
 !-----------------------------------------------------------------------
  call timer_stop(ecosys_ciso_interior_timer, block_id=bid)
 
+ end associate
 
 !-----------------------------------------------------------------------
 !EOC
@@ -3201,12 +3244,14 @@ contains
 ! !IROUTINE: ciso_init_particulate_terms
 ! !INTERFACE:
 
- subroutine ciso_init_particulate_terms(POC_ciso, P_CaCO3_ciso, this_block)
+ subroutine ciso_init_particulate_terms(POC_ciso, P_CaCO3_ciso, bid)
 
 ! !DESCRIPTION:
 !  Set incoming fluxes (put into outgoing flux for first level usage).
 !  Set dissolution length, production fraction and mass terms.
-!
+
+   use marbl_share_mod, only: sinking_particle
+   
 !  The first 2 arguments are intent(inout) in
 !  order to preserve contents on other blocks.
 
@@ -3220,18 +3265,12 @@ contains
 
 ! !INPUT PARAMETERS:
 
-
-   type (block), intent(in) :: &
-      this_block      ! block info for the current block
+   integer(int_kind), intent(in) :: bid ! block info for the current block
 
 !EOP
 !BOC
 !-----------------------------------------------------------------------
 !  local variables
-!-----------------------------------------------------------------------
-
-   integer (int_kind) :: &
-      bid                 ! local_block id
 !-----------------------------------------------------------------------
 
    POC_ciso%diss      = c0       ! not used
@@ -3248,8 +3287,6 @@ contains
 !-----------------------------------------------------------------------
 !  Set incoming fluxes
 !-----------------------------------------------------------------------
-
-   bid = this_block%local_id
 
    P_CaCO3_ciso%sflux_out(:,:,bid) = c0
    P_CaCO3_ciso%hflux_out(:,:,bid) = c0
@@ -3270,8 +3307,10 @@ contains
 !BOP
 ! !IROUTINE: ciso_compute_particulate_terms
 ! !INTERFACE:
- subroutine ciso_compute_particulate_terms(k, POC, P_CaCO3, POC_ciso, P_CaCO3_ciso, &
-              O2_loc, NO3_loc, this_block)
+ subroutine ciso_compute_particulate_terms(k, &
+      ecosys_particulate_share, &
+      POC, P_CaCO3, POC_ciso, P_CaCO3_ciso, &
+      O2_loc, NO3_loc, bid)
 
 ! !DESCRIPTION:
 !  Compute outgoing fluxes and remineralization terms for Carbon isotopes.
@@ -3284,7 +3323,10 @@ contains
 !
 !  Alex Jahn, Nov 2012
 ! !USES:
-
+  
+   use marbl_share_mod, only: sinking_particle
+   use marbl_share_mod, only : ecosys_particulate_share_type
+   
 #ifdef CCSMCOUPLED
    use shr_sys_mod, only: shr_sys_abort
 #endif
@@ -3297,10 +3339,7 @@ contains
       O2_loc,       & ! dissolved oxygen used to modify POC%diss, Sed fluxes
       NO3_loc         ! dissolved nitrate used to modify sed fluxes
 
-   type (block), intent(in) :: &
-      this_block      ! block info for the current block
-
-
+   integer(int_kind), intent(in) :: bid ! block info for the current block
 
    type(sinking_particle), intent(in) :: &
       POC,          & ! base units = nmol C
@@ -3312,8 +3351,7 @@ contains
       POC_ciso,       &  ! base units = nmol particulate organic Carbon isotope
       P_CaCO3_ciso       ! base units = nmol CaCO3 Carbon isotope
 
-
-
+   type(ecosys_particulate_share_type), intent(inout) :: ecosys_particulate_share
 
 !EOP
 !BOC
@@ -3328,9 +3366,7 @@ contains
       dz_loc,              & ! dz at a particular i,j location
       dzr_loc                ! dzr at a particular i,j location
 
-   integer (int_kind) ::   &
-      i, j,                & ! loop indices
-      bid                    ! local_block id
+   integer (int_kind) :: i, j ! loop indices
 
    logical (log_kind) ::   &
       poc_error              ! POC error flag
@@ -3346,45 +3382,20 @@ contains
       SED_DENITRIF, & ! sedimentary denitrification (umolN/cm^2/s)
       OTHER_REMIN     ! sedimentary remin not due to oxic or denitrification
 
-!-----------------------------------------------------------------------
-!  Pointer variables (targets are defined in ecosys_share)
-!-----------------------------------------------------------------------
-   real (r8), dimension(:,:),pointer :: decay_CaCO3           ! scaling factor for dissolution of CaCO3
-   real (r8), dimension(:,:),pointer :: DECAY_Hard            ! scaling factor for dissolution of Hard Ballast
-   real (r8), dimension(:,:),pointer :: decay_POC_E           ! scaling factor for dissolution of excess POC
-   real (r8), dimension(:,:),pointer :: POC_PROD_avail        ! scaling factor for dissolution of Hard Ballast
-   real (r8), dimension(:,:),pointer :: poc_diss              ! diss. length used (cm)
-   real (r8), dimension(:,:),pointer :: caco3_diss            ! CaCO3 diss. length used (cm)
-   real (r8), dimension(:,:),pointer :: P_CaCO3_sflux_out
-   real (r8), dimension(:,:),pointer :: P_CaCO3_hflux_out
-   real (r8), dimension(:,:),pointer :: POC_sflux_out
-   real (r8), dimension(:,:),pointer :: POC_hflux_out
-   real (r8), dimension(:,:),pointer :: POC_remin
-   real (r8), dimension(:,:),pointer :: P_CaCO3_remin
-
-!-----------------------------------------------------------------------
-!  this_block index as integer
-!-----------------------------------------------------------------------
-
-   bid = this_block%local_id
-
-!---------------------------------------------------------------
-! Need the following variables from ecosys_mod --> use pointers
-! to point to the right part of the global array in ecosys_share
-!---------------------------------------------------------------
-
-   decay_CaCO3      => decay_CaCO3_fields(:,:,bid)
-   DECAY_Hard       => DECAY_Hard_fields(:,:,bid)
-   decay_POC_E      => decay_POC_E_fields(:,:,bid)
-   POC_PROD_avail   => POC_PROD_avail_fields(:,:,bid)
-   poc_diss         => poc_diss_fields(:,:,bid)
-   caco3_diss       => caco3_diss_fields(:,:,bid)
-   P_CaCO3_sflux_out=> P_CaCO3_sflux_out_fields(:,:,bid)
-   P_CaCO3_hflux_out=> P_CaCO3_hflux_out_fields(:,:,bid)
-   POC_sflux_out    => POC_sflux_out_fields(:,:,bid)
-   POC_hflux_out    => POC_hflux_out_fields(:,:,bid)
-   POC_remin        => POC_remin_fields(:,:,bid)
-   P_CaCO3_remin    => P_CaCO3_remin_fields(:,:,bid)
+   associate(                                                                       &
+        decay_CaCO3        => ecosys_particulate_share%decay_CaCO3_fields(:,:,bid)        , & ! IN/OUT
+        DECAY_Hard         => ecosys_particulate_share%DECAY_Hard_fields(:,:,bid)         , & ! IN/OUT
+        decay_POC_E        => ecosys_particulate_share%decay_POC_E_fields(:,:,bid)        , & ! IN/OUT
+        POC_PROD_avail     => ecosys_particulate_share%POC_PROD_avail_fields(:,:,bid)     , & ! IN/OUT
+        poc_diss           => ecosys_particulate_share%poc_diss_fields(:,:,bid)           , & ! IN/OUT
+        caco3_diss         => ecosys_particulate_share%caco3_diss_fields(:,:,bid)         , & ! IN/OUT
+        P_CaCO3_sflux_out  => ecosys_particulate_share%P_CaCO3_sflux_out_fields(:,:,bid)  , & ! IN/OUT
+        P_CaCO3_hflux_out  => ecosys_particulate_share%P_CaCO3_hflux_out_fields(:,:,bid)  , & ! IN/OUT
+        POC_sflux_out      => ecosys_particulate_share%POC_sflux_out_fields(:,:,bid)      , & ! IN/OUT
+        POC_hflux_out      => ecosys_particulate_share%POC_hflux_out_fields(:,:,bid)      , & ! IN/OUT
+        POC_remin          => ecosys_particulate_share%POC_remin_fields(:,:,bid)          , & ! IN/OUT
+        P_CaCO3_remin      => ecosys_particulate_share%P_CaCO3_remin_fields(:,:,bid)        & ! IN/OUT
+   )
 
 !-----------------------------------------------------------------------
 !  incoming fluxes are outgoing fluxes from previous level
@@ -3645,7 +3656,7 @@ contains
 
 
 
-
+end associate
 
 !-----------------------------------------------------------------------
 !EOC
@@ -3657,7 +3668,7 @@ end subroutine ciso_compute_particulate_terms
 ! !IROUTINE: ciso_tavg_particulate_terms
 ! !INTERFACE:
  subroutine ciso_tavg_particulate_terms(k, POC, P_CaCO3, PO13C, P_Ca13CO3, &
-               PO14C, P_Ca14CO3, this_block)
+               PO14C, P_Ca14CO3, bid)
 
 ! !DESCRIPTION:
 !  Writes tavg for particulate terms calculated in ciso_compute_particulate_terms
@@ -3665,7 +3676,7 @@ end subroutine ciso_compute_particulate_terms
 !
 !  Alex Jahn, Nov 2012
 ! !USES:
-
+   use marbl_share_mod, only: sinking_particle
 #ifdef CCSMCOUPLED
    use shr_sys_mod, only: shr_sys_abort
 #endif
@@ -3674,10 +3685,7 @@ end subroutine ciso_compute_particulate_terms
 
    integer (int_kind), intent(in) :: k ! vertical model level
 
-
-   type (block), intent(in) :: &
-      this_block      ! block info for the current block
-
+   integer (int_kind), intent(in) :: bid ! block info for the current block
 
    type(sinking_particle), intent(in) :: &
       POC,          &  ! base units = nmol C
@@ -3703,15 +3711,6 @@ end subroutine ciso_compute_particulate_terms
 
    real (r8), dimension(nx_block,ny_block) :: &
       WORK                  ! temporary for summed quantities to be averaged
-
-   integer (int_kind) :: &
-      bid                   ! local_block id
-
-!-----------------------------------------------------------------------
-!  this_block index as integer
-!-----------------------------------------------------------------------
-
-   bid = this_block%local_id
 
 !-----------------------------------------------------------------------
 !  Set tavg variables.
