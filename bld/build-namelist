@@ -1491,6 +1491,8 @@ if ($ecosys_on eq "TRUE") {
       add_default($nl, 'ndep_shr_stream_file', 'ocn_transient'=>"$OCN_TRANSIENT");
       add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
     }
+    add_default($nl, 'caco3_bury_thres_opt');
+    add_default($nl, 'caco3_bury_thres_depth');
     add_default($nl, 'lecovars_full_depth_tavg');
 }
 

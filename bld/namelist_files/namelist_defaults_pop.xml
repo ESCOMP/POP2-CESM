@@ -1225,6 +1225,9 @@
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp4.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp45_gx1v6_c100816.nc</ndep_shr_stream_file> 
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp8.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp85_gx1v6_c100816.nc</ndep_shr_stream_file> 
 
+<caco3_bury_thres_opt>fixed_depth</caco3_bury_thres_opt>
+<caco3_bury_thres_depth>3300.0e2</caco3_bury_thres_depth>
+
 <!---------------------------->
 <!--    ecosys_parms_nml    -->
 <!---------------------------->

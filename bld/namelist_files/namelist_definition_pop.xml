@@ -5907,6 +5907,25 @@ group="ecosys_nml" >
 Default: none provided
 </entry>
 
+<entry
+id="caco3_bury_thres_opt"
+type="char*256"
+category="ecosys"
+group="ecosys_nml"
+valid_values="fixed_depth,omega_calc" >
+option of threshold of caco3 burial
+Default: fixed_depth
+</entry>
+
+<entry
+id="caco3_bury_thres_depth"
+type="real" 
+category="ecosys"
+group="ecosys_nml" >
+threshold depth for caco3_bury_thres_opt='fixed_depth'
+Default: 3300.0e2
+</entry>
+
 <entry 
 id="lecovars_full_depth_tavg"
 type="logical" 

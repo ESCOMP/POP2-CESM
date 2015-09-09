@@ -1,0 +1,27 @@
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    9 Aug 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n01_cesm_pop_2_1_20150901a
+Tag Summary: introduce caco3_bury_thres_opt
+
+Purpose: Introduce ability for caco3 burial to be based on carbonate chemistry in bottom layer,
+instead of existing hard coded depth criteria.
+
+Testing: aux_pop
+   tests pass, except nlcomp, which fails for compsets with ecosys, due to new namelist variables
+   baseline comparison to n00 pass
+
+M       source/ecosys_mod.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+A       BranchChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    9 Aug 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n00_cesm_pop_2_1_20150901a
+Tag Summary: ecosys_cesm2_dev: baseline tag corresponding to cesm_pop_2_1_20150901a
+===============================================================================

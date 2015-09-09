@@ -803,6 +803,16 @@ module ecosys_mod
   integer (int_kind)  :: iron_patch_month          !  integer month to add patch flux
 
   !-----------------------------------------------------------------------
+  !  bury to sediment options
+  !-----------------------------------------------------------------------
+
+  character(char_len) :: caco3_bury_thres_opt    ! option of threshold of caco3 burial ['fixed_depth', 'omega_calc']
+  integer (int_kind)  :: caco3_bury_thres_iopt   ! integer version of caco3_bury_thres_opt
+  integer (int_kind), parameter :: caco3_bury_thres_iopt_fixed_depth = 1
+  integer (int_kind), parameter :: caco3_bury_thres_iopt_omega_calc  = 2
+  real (r8)           :: caco3_bury_thres_depth  ! threshold depth for caco3_bury_thres_opt='fixed_depth'
+
+  !-----------------------------------------------------------------------
   !  timers
   !-----------------------------------------------------------------------
 
@@ -982,6 +992,7 @@ contains
          nutr_variable_rest_file_fmt, atm_co2_opt, atm_co2_const, &
          atm_alt_co2_opt, atm_alt_co2_const, &
          liron_patch, iron_patch_flux_filename, iron_patch_month, &
+         caco3_bury_thres_opt, caco3_bury_thres_depth, &
          lecovars_full_depth_tavg
 
     character (char_len) :: &
@@ -1179,6 +1190,9 @@ contains
     atm_alt_co2_opt   = 'const'
     atm_alt_co2_const = 280.0_r8
 
+    caco3_bury_thres_opt = 'fixed_depth'
+    caco3_bury_thres_depth = 3300.0e2
+
     lecovars_full_depth_tavg = .false.
 
     ! read the namelist buffer on every processor
@@ -1293,6 +1307,16 @@ contains
     case default
        call document(subname, 'atm_alt_co2_opt', atm_alt_co2_opt)
        call exit_POP(sigAbort, 'unknown atm_alt_co2_opt')
+    end select
+
+    select case (caco3_bury_thres_opt)
+    case ('fixed_depth')
+       caco3_bury_thres_iopt = caco3_bury_thres_iopt_fixed_depth
+    case ('omega_calc')
+       caco3_bury_thres_iopt = caco3_bury_thres_iopt_omega_calc
+    case default
+       call document(subname, 'caco3_bury_thres_opt', caco3_bury_thres_opt)
+       call exit_POP(sigAbort, 'unknown caco3_bury_thres_opt')
     end select
 
     !-----------------------------------------------------------------------
@@ -1969,7 +1993,7 @@ contains
                   domain%land_mask, domain%kmt, domain%dzt(k), domain%dz(k), &
                   marbl_particulate_share, &
                   POC, P_CaCO3, P_SiO2, dust, P_iron, &
-                  QA_dust_def(k), domain%temperature(k), tracer_local(:, k), &
+                  QA_dust_def(k), domain%temperature(k), tracer_local(:, k), carbonate(k), &
                   sed_denitrif(k), other_remin(k), lexport_shared_vars, &
                   bid)
 
@@ -2310,7 +2334,8 @@ contains
        column_land_mask, column_kmt, column_dzt, column_dz, &
        marbl_particulate_share, &
        POC, P_CaCO3, P_SiO2, dust, P_iron, &
-       QA_dust_def, temperature, tracer_local, sed_denitrif, other_remin, &
+       QA_dust_def, temperature, tracer_local, carbonate, &
+       sed_denitrif, other_remin, &
        lexport_shared_vars, bid)
 
     ! !DESCRIPTION:
@@ -2382,6 +2407,8 @@ contains
     real (r8), intent(in) :: temperature ! temperature for scaling functions bsi%diss
 
     real (r8), dimension(ecosys_tracer_cnt), intent(in) :: tracer_local ! local copies of model tracer concentrations
+
+    type(carbonate_type) :: carbonate
 
     logical (log_kind), intent(in) :: &
          lexport_shared_vars ! flag to save shared_vars or not
@@ -2802,9 +2829,14 @@ contains
              endif
              P_SiO2%sed_loss(k) = flux * parm_BSIbury * P_SiO2%sed_loss(k)
 
-             if (zw(k) < 3300.0e2_r8) then
-                flux = P_CaCO3%sflux_out(k) + P_CaCO3%hflux_out(k)
-                P_CaCO3%sed_loss(k) = flux
+             if (caco3_bury_thres_iopt == caco3_bury_thres_iopt_fixed_depth) then
+                if (zw(k) < caco3_bury_thres_depth) then
+                   P_CaCO3%sed_loss(k) = P_CaCO3%sflux_out(k) + P_CaCO3%hflux_out(k)
+                endif
+             else ! caco3_bury_thres_iopt = caco3_bury_thres_iopt_omega_calc
+                if (carbonate%CO3 > carbonate%CO3_sat_calcite) then
+                   P_CaCO3%sed_loss(k) = P_CaCO3%sflux_out(k) + P_CaCO3%hflux_out(k)
+                endif
              endif
 
              !----------------------------------------------------------------------------------
