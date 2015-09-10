@@ -2201,13 +2201,11 @@ contains
     P_CaCO3%hflux_out(k) = c0
     P_CaCO3%sflux_in(k) = P_CaCO3%sflux_out(k)
     P_CaCO3%hflux_in(k) = P_CaCO3%hflux_out(k)
-    P_CaCO3%sed_loss(k)  = c0
 
     P_SiO2%sflux_out(k) = c0
     P_SiO2%hflux_out(k) = c0
     P_SiO2%sflux_in(k) = P_SiO2%sflux_out(k)
     P_SiO2%hflux_in(k) = P_SiO2%hflux_out(k)
-    P_SiO2%sed_loss(k)  = c0
 
     if (dust_flux%has_data) then
        dust%sflux_out(k) = (c1 - dust%gamma) * net_dust_in
@@ -2218,13 +2216,11 @@ contains
     endif
     dust%sflux_in(k) = dust%sflux_out(k)
     dust%hflux_in(k) = dust%hflux_out(k)
-    dust%sed_loss(k)  = c0
 
     P_iron%sflux_out(k) = c0
     P_iron%hflux_out(k) = c0
     P_iron%sflux_in(k) = P_iron%sflux_out(k)
     P_iron%hflux_in(k) = P_iron%hflux_out(k)
-    P_iron%sed_loss(k)  = c0
 
     !-----------------------------------------------------------------------
     !  Hard POC is QA flux and soft POC is excess POC.
@@ -2234,7 +2230,6 @@ contains
     POC%hflux_out(k) = c0
     POC%sflux_in(k) = POC%sflux_out(k)
     POC%hflux_in(k) = POC%hflux_out(k)
-    POC%sed_loss(k)  = c0
 
     !-----------------------------------------------------------------------
     !  Compute initial QA(dust) POC flux deficit.
@@ -2295,9 +2290,6 @@ contains
     sinking_particle%hflux_out(k) = sinking_particle%hflux_out(k-1)
     sinking_particle%sflux_in(k)  = sinking_particle%sflux_out(k-1)
     sinking_particle%hflux_in(k)  = sinking_particle%hflux_out(k-1)
-    sinking_particle%prod(k)      = sinking_particle%prod(k-1)
-    sinking_particle%remin(k)     = sinking_particle%remin(k-1)
-    sinking_particle%sed_loss(k)  = c0
 
   end subroutine update_sinking_particle_from_prior_level
 
@@ -2762,6 +2754,12 @@ contains
           !  Calcite is preserved in sediments above the lysocline, dissolves below.
           !       Here a constant depth is used for lysocline.
           !-----------------------------------------------------------------------
+
+          POC%sed_loss(k)     = c0
+          P_SiO2%sed_loss(k)  = c0
+          P_CaCO3%sed_loss(k) = c0
+          P_iron%sed_loss(k)  = c0
+          dust%sed_loss(k)    = c0
 
           if (column_land_mask .and. (k == column_kmt)) then
 
