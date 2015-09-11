@@ -108,6 +108,9 @@
       <test name="SMS_D_Ld2">
         <machine compiler="gnu" testtype="aux_pop_obgc_se" testmods="pop/ecosys">userdefined</machine>
       </test>
+      <test name="SMS_P15x1_D">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
+      </test>
     </grid>
   </compset>
   <compset name="CIAF">
@@ -233,6 +236,9 @@
       </test>
       <test name="ERS_Ld5_D">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ciso_abio_dic_dic14">yellowstone</machine>
+      </test>
+      <test name="SMS_D">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
       </test>
     </grid>
     <grid name="f19_g16_rx1">

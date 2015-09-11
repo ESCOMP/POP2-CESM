@@ -545,6 +545,12 @@ contains
        allocate(ecosys_diagnostics(k)%PART_DIAGS(nx_block, ny_block, part_diag_cnt))
        allocate(ecosys_diagnostics(k)%restore_diags(nx_block, ny_block, ecosys_tracer_cnt))
 
+       ecosys_diagnostics(k)%DIAGS = c0
+       ecosys_diagnostics(k)%AUTO_DIAGS = c0
+       ecosys_diagnostics(k)%ZOO_DIAGS = c0
+       ecosys_diagnostics(k)%PART_DIAGS = c0
+       ecosys_diagnostics(k)%restore_diags = c0
+
        allocate(marbl_diagnostics(k)%DIAGS(ecosys_diag_cnt))
        allocate(marbl_diagnostics(k)%AUTO_DIAGS(auto_diag_cnt, autotroph_cnt))
        allocate(marbl_diagnostics(k)%ZOO_DIAGS(zoo_diag_cnt, zooplankton_cnt))
@@ -577,68 +583,73 @@ contains
 
     call timer_start(ecosys_interior_timer, block_id=bid)
 
-    do c = 1, ny_block
-       do i = 1, nx_block
+    do c = this_block%jb,this_block%je
+       do i = this_block%ib,this_block%ie
        ! Copy data from slab to column for marbl
           marbl_domain%land_mask = marbl_saved_state%land_mask(i, c, bid)
           marbl_domain%kmt = KMT(i, c, bid)
-          do k = 1, marbl_domain%km
-             marbl_domain%temperature(k) = temperature(i,c,k)
-             marbl_domain%salinity(k) = salinity(i,c,k)
-             ! FIXME(bja, 2015-07) marbl shouldn't know about partial
-             ! bottom cells. just pass in delta_z, set to DZT(i, c,
-             ! k, bid) or dz(k) and use the single value!
-             marbl_domain%dz(k) = dz(k)
-             if (partial_bottom_cells) then
-                marbl_domain%dzt(k) = DZT(i, c, k, bid)
-             else
-                marbl_domain%dzt(k) = c0
-             end if
-             column_tracer_module(:, k) = tracer_module_avg(i, c, k, ecosys_ind_begin:ecosys_ind_end)
-          end do ! do k
+          if (marbl_saved_state%land_mask(i,c,bid)) then
+             do k = 1, marbl_domain%km
+                marbl_domain%temperature(k) = temperature(i,c,k)
+                marbl_domain%salinity(k) = salinity(i,c,k)
+                ! FIXME(bja, 2015-07) marbl shouldn't know about partial
+                ! bottom cells. just pass in delta_z, set to DZT(i, c,
+                ! k, bid) or dz(k) and use the single value!
+                marbl_domain%dz(k) = dz(k)
+                if (partial_bottom_cells) then
+                   marbl_domain%dzt(k) = DZT(i, c, k, bid)
+                else
+                   marbl_domain%dzt(k) = c0
+                end if
+                column_tracer_module(:, k) = tracer_module_avg(i, c, k, ecosys_ind_begin:ecosys_ind_end)
+             end do ! do k
+          end if ! land_mask
 
           
-          call ecosys_set_interior(i, c, ny_block, marbl_domain, &
-               marbl_diagnostics, marbl_saved_state, ecosys_restore, &
-               marbl%private_data%ecosys_interior_share, &
-               marbl%private_data%ecosys_zooplankton_share, &
-               marbl%private_data%ecosys_autotroph_share, &
-               marbl%private_data%ecosys_particulate_share,                    &
-               column_tracer_module, &
-               column_dtracer, &
-               ciso_on,                                                 &
-               bid)
+          if (marbl_saved_state%land_mask(i,c,bid) .and. &
+              KMT(i, c, bid).gt.0) then 
+            call ecosys_set_interior(i, c, ny_block, marbl_domain,            &
+                 marbl_diagnostics, marbl_saved_state, ecosys_restore,        &
+                 marbl%private_data%ecosys_interior_share,                    &
+                 marbl%private_data%ecosys_zooplankton_share,                 &
+                 marbl%private_data%ecosys_autotroph_share,                   &
+                 marbl%private_data%ecosys_particulate_share,                 &
+                 column_tracer_module,                                        &
+                 column_dtracer,                                              &
+                 ciso_on,                                                     &
+                 bid)
 
-          ! copy marbl column data back to slab
-          do k = 1, marbl_domain%km
-             do n = ecosys_ind_begin, ecosys_ind_end
-                DTRACER_MODULE(i, c, k, n) = column_dtracer(n, k)
-             end do ! do n
+            ! copy marbl column data back to slab
+            do k = 1, marbl_domain%km
+               do n = ecosys_ind_begin, ecosys_ind_end
+                  DTRACER_MODULE(i, c, k, n) = column_dtracer(n, k)
+               end do ! do n
 
-             do d = 1, ecosys_diag_cnt
-                ecosys_diagnostics(k)%diags(i, c, d) = marbl_diagnostics(k)%diags(d)
-             end do
+               do d = 1, ecosys_diag_cnt
+                  ecosys_diagnostics(k)%diags(i, c, d) = marbl_diagnostics(k)%diags(d)
+               end do
           
-             do n = 1, autotroph_cnt
-                do d = 1, auto_diag_cnt
-                   ecosys_diagnostics(k)%auto_diags(i, c, n, d) = marbl_diagnostics(k)%auto_diags(d, n)
-                end do ! do d
-             end do ! do n
+               do n = 1, autotroph_cnt
+                  do d = 1, auto_diag_cnt
+                     ecosys_diagnostics(k)%auto_diags(i, c, n, d) = marbl_diagnostics(k)%auto_diags(d, n)
+                  end do ! do d
+               end do ! do n
 
-             do n = 1, zooplankton_cnt
-                do d = 1, zoo_diag_cnt
-                   ecosys_diagnostics(k)%zoo_diags(i, c, n, d) = marbl_diagnostics(k)%zoo_diags(d, n)
-                end do ! do d
-             end do ! do n
+               do n = 1, zooplankton_cnt
+                  do d = 1, zoo_diag_cnt
+                     ecosys_diagnostics(k)%zoo_diags(i, c, n, d) = marbl_diagnostics(k)%zoo_diags(d, n)
+                  end do ! do d
+               end do ! do n
 
-             do d = 1, part_diag_cnt
-                ecosys_diagnostics(k)%part_diags(i, c, d) = marbl_diagnostics(k)%part_diags(d)
-             end do ! do d
+               do d = 1, part_diag_cnt
+                  ecosys_diagnostics(k)%part_diags(i, c, d) = marbl_diagnostics(k)%part_diags(d)
+               end do ! do d
 
-             do d = 1, ecosys_tracer_cnt
-                ecosys_diagnostics(k)%restore_diags(i, c, d) = marbl_diagnostics(k)%restore_diags(d)
-             end do ! do d
-          end do ! do k
+               do d = 1, ecosys_tracer_cnt
+                  ecosys_diagnostics(k)%restore_diags(i, c, d) = marbl_diagnostics(k)%restore_diags(d)
+               end do ! do d
+            end do ! do k
+          end if ! KMT > 0
 
        end do ! do i
     end do ! do c

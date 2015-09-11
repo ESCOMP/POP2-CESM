@@ -2,6 +2,25 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    11 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150911
+Tag Summary: performance mod for ecosys_driver_set_interior
+             * only call set_interior at active ocean cells
+               (not at ghost, halo, or land cells)
+             Note: this causes uninitialized memory errors in
+                   ecosys_ciso_set_interior, so all pop-ciso DEBUG tests fail.
+                   I've added some pop-ecosys DEBUG tests to make sure we
+                   don't introduce any other errors, and once we refactor the
+                   ciso module the original tests should pass again.
+
+Files Modified:
+M       cimetest/testlist_pop.xml
+M       source/ecosys_driver.F90
+D       source/ecosys_parms.F90
+D       source/ecosys_share.F90
+===============================================================================
+Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    10 Sept 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150910
