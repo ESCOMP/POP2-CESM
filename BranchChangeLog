@@ -1,7 +1,22 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
-Tag Date:    9 Aug 2015
+Tag Date:    11 Sep 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n03_cesm_pop_2_1_20150901a
+Tag Summary: merge pop2/trunk_tags/cesm_pop_2_1_20150910 to branch
+
+also correct comment regarding calcite burial, to reflect changes in n01
+
+Testing: aux_pop, baseline comparison to n02, all tests pass
+
+M       source/ecosys_mod.F90
+M       BranchChangeLog
+M       ChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    9 Sep 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n02_cesm_pop_2_1_20150901a
 Tag Summary: switch caco3_bury_thres_opt to omega_calc
 
@@ -16,7 +31,7 @@ M       BranchChangeLog
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
-Tag Date:    9 Aug 2015
+Tag Date:    9 Sep 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n01_cesm_pop_2_1_20150901a
 Tag Summary: introduce caco3_bury_thres_opt
 
@@ -36,7 +51,7 @@ A       BranchChangeLog
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
-Tag Date:    9 Aug 2015
+Tag Date:    9 Sep 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n00_cesm_pop_2_1_20150901a
 Tag Summary: ecosys_cesm2_dev: baseline tag corresponding to cesm_pop_2_1_20150901a
 ===============================================================================
