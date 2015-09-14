@@ -3746,9 +3746,9 @@ contains
 
     integer (int_kind) :: &
          i, j, iblock, n, & ! loop indices
-         auto_ind,     & ! autotroph functional group index
-         mcdate, sec,   & ! date vals for shr_strdata_advance
-         errorCode       ! errorCode from HaloUpdate call
+         auto_ind,        & ! autotroph functional group index
+         mcdate, sec,     & ! date vals for shr_strdata_advance
+         errorCode          ! errorCode from HaloUpdate call
 
     real (r8), dimension(nx_block, ny_block, max_blocks_clinic) :: &
          IFRAC_USED,   & ! used ice fraction (non-dimensional)
@@ -5506,10 +5506,9 @@ contains
        co3_calcite_anom, co3_aragonite_anom)
 
     use co2calc_column, only : comp_co3terms
-    use co2calc_column, only : comp_co3terms_scalar
     use co2calc_column, only : comp_co3_sat_vals
-    use co2calc_column, only : comp_co3_sat_vals_scalar
     use co2calc_column, only : thermodynamic_coefficients_type
+    USE state_mod,      ONLY : ref_pressure
 
     integer (int_kind), intent(in) :: dkm
     integer (int_kind), intent(in) :: bid
@@ -5517,8 +5516,8 @@ contains
     integer(int_kind), intent(in) :: column_kmt
 
     real (r8), intent(in) :: &
-         temperature(dkm),          &! old potential temperature (C)
-         salinity(dkm)            ! current salinity (msu)
+         temperature(dkm),   &! old potential temperature (C)
+         salinity(dkm)        ! current salinity (msu)
 
     real (r8), intent(in) :: tracer_local(ecosys_tracer_cnt,dkm) ! local copies of model tracer concentrations
 
@@ -5534,10 +5533,14 @@ contains
     real(r8), intent(inout) :: co3_aragonite_anom(km) ! CO3 concentration above aragonite saturation at k-1
 
     integer :: k
-    logical (log_kind) :: mask
-    real (r8) :: ph_lower_bound
-    real (r8) :: ph_upper_bound
-    type(thermodynamic_coefficients_type) :: co3_coeffs
+    logical(log_kind), dimension(dkm) :: mask
+    logical(log_kind), dimension(dkm) :: pressure_correct
+    real(r8), dimension(dkm) :: ph_lower_bound
+    real(r8), dimension(dkm) :: ph_upper_bound
+    real(r8), dimension(dkm) :: press_bar           ! pressure at level (bars)
+    type(thermodynamic_coefficients_type), dimension(dkm) :: co3_coeffs
+
+    call timer_start(ecosys_comp_CO3terms_timer, block_id=bid)
 
     associate( &
          DIC_loc => tracer_local(dic_ind,:), &
@@ -5557,53 +5560,58 @@ contains
          pH_ALT_CO2 => carbonate%pH_ALT_CO2 &
          )
 
-    call timer_start(ecosys_comp_CO3terms_timer, block_id=bid)
 
+    pressure_correct = .TRUE.
+    pressure_correct(1) = .FALSE.
     do k=1,dkm
 
-       mask = column_land_mask .and. k <= column_kmt
+      mask(k) = column_land_mask .and. k <= column_kmt
+      press_bar(k) = ref_pressure(k)
 
        ! -------------------
        if (ph_prev_3d(k)  /= c0) then
-          ph_lower_bound = ph_prev_3d(k) - del_ph
-          ph_upper_bound = ph_prev_3d(k) + del_ph
+          ph_lower_bound(k) = ph_prev_3d(k) - del_ph
+          ph_upper_bound(k) = ph_prev_3d(k) + del_ph
        else
-          ph_lower_bound = phlo_3d_init
-          ph_upper_bound = phhi_3d_init
+          ph_lower_bound(k) = phlo_3d_init
+          ph_upper_bound(k) = phhi_3d_init
        end if
 
-       call comp_CO3terms_scalar(k, mask, .true., co3_coeffs, &
-            temperature(k), salinity(k), DIC_loc(k), ALK_loc(k), PO4_loc(k), SiO3_loc(k), &
-            ph_lower_bound, ph_upper_bound, pH(k), H2CO3(k), HCO3(k), CO3(k))
+    enddo
+
+    call comp_CO3terms(dkm, mask, pressure_correct, .true., co3_coeffs, temperature, &
+                       salinity, press_bar, DIC_loc, ALK_loc, PO4_loc, SiO3_loc, &
+                       ph_lower_bound, ph_upper_bound, pH, H2CO3, HCO3, CO3)
        
+    do k=1,dkm
+
        ph_prev_3d(k) = pH(k)
        
        ! -------------------
        if (ph_prev_alt_co2_3d(k) /= c0) then
-          ph_lower_bound = ph_prev_alt_co2_3d(k) - del_ph
-          ph_upper_bound = ph_prev_alt_co2_3d(k) + del_ph
+          ph_lower_bound(k) = ph_prev_alt_co2_3d(k) - del_ph
+          ph_upper_bound(k) = ph_prev_alt_co2_3d(k) + del_ph
        else
-          ph_lower_bound = phlo_3d_init
-          ph_upper_bound = phhi_3d_init
+          ph_lower_bound(k) = phlo_3d_init
+          ph_upper_bound(k) = phhi_3d_init
        end if
 
-       call comp_CO3terms_scalar(k, mask, .false., co3_coeffs, &
-            temperature(k), salinity(k), DIC_ALT_CO2_loc(k), ALK_loc(k), PO4_loc(k), SiO3_loc(k), &
-            ph_lower_bound, ph_upper_bound, pH_ALT_CO2(k), H2CO3_ALT_CO2(k), HCO3_ALT_CO2(k), CO3_ALT_CO2(k))
-       
-       ph_prev_alt_co2_3d(k) = pH_ALT_CO2(k)
-       
-       ! -------------------
-       call comp_co3_sat_vals_scalar(k, mask, &
-            temperature(k), salinity(k), CO3_sat_calcite(k), CO3_sat_aragonite(k))
-       
-       ! -------------------
-
-       co3_calcite_anom(k) = CO3(k) - CO3_sat_calcite(k)
-       co3_aragonite_anom(k) = CO3(k) - CO3_sat_aragonite(k)
     enddo
 
+    call comp_CO3terms(dkm, mask, pressure_correct, .false., co3_coeffs, temperature,    &
+                       salinity, press_bar, DIC_ALT_CO2_loc, ALK_loc, PO4_loc, SiO3_loc, &
+                       ph_lower_bound, ph_upper_bound, pH_ALT_CO2, H2CO3_ALT_CO2,        &
+                       HCO3_ALT_CO2, CO3_ALT_CO2)
+       
+    ph_prev_alt_co2_3d = pH_ALT_CO2
+
     call timer_stop(ecosys_comp_CO3terms_timer, block_id=bid)
+
+    call comp_co3_sat_vals(dkm, mask, pressure_correct, temperature, salinity, &
+                           press_bar, CO3_sat_calcite, CO3_sat_aragonite)
+       
+    co3_calcite_anom   = CO3 - CO3_sat_calcite
+    co3_aragonite_anom = CO3 - CO3_sat_aragonite
 
     do k=1,dkm
 

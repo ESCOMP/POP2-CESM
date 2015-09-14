@@ -27,9 +27,7 @@ MODULE co2calc_column
   PRIVATE
   PUBLIC :: &
        comp_CO3terms, &
-       comp_CO3terms_scalar, &
-       comp_co3_sat_vals, &
-       comp_co3_sat_vals_scalar
+       comp_co3_sat_vals
 
   !-----------------------------------------------------------------------------
   !   module parameters
@@ -90,78 +88,10 @@ CONTAINS
 
   !*****************************************************************************
 
-  subroutine comp_CO3terms_scalar(k, mask, lcomp_co3_coeffs, co3_coeffs, temp, salt, &
-       dic_in, ta_in, pt_in, sit_in, phlo, phhi, ph, H2CO3, HCO3, CO3)
 
-    integer(KIND=int_kind), intent(IN) :: k
-    LOGICAL(KIND=log_kind), INTENT(IN) :: mask
-    LOGICAL(KIND=log_kind), INTENT(IN) :: lcomp_co3_coeffs
-    REAL(KIND=r8), INTENT(IN) :: &
-         temp,     & ! temperature (degrees C)
-         salt,     & ! salinity (PSU)
-         dic_in,   & ! total inorganic carbon (nmol/cm^3)
-         ta_in,    & ! total alkalinity (neq/cm^3)
-         pt_in,    & ! inorganic phosphate (nmol/cm^3)
-         sit_in      ! inorganic silicate (nmol/cm^3)
-
-    type(thermodynamic_coefficients_type), intent(inout) :: co3_coeffs
-
-    REAL(KIND=r8), INTENT(INOUT) :: &
-         phlo,     & ! lower limit of pH range
-         phhi        ! upper limit of pH range
-
-    REAL(KIND=r8), INTENT(OUT) :: &
-         pH,         & ! computed ph values, for initial guess on next time step
-         H2CO3,      & ! Carbonic Acid Concentration
-         HCO3,       & ! Bicarbonate Ion Concentration
-         CO3           ! Carbonate Ion Concentration
-
-
-    !---------------------------------------------------------------------------
-    !   locals
-    !---------------------------------------------------------------------------
-  
-    type(thermodynamic_coefficients_type) :: co3_coeffs_array(1)
-
-    real(kind=r8), dimension(1) :: &
-         phlo_array,     & ! lower limit of ph range
-         phhi_array        ! upper limit of ph range
-
-    real(kind=r8), dimension(1) :: &
-         ph_array,         & ! computed ph values, for initial guess on next time step
-         h2co3_array,      & ! carbonic acid concentration
-         hco3_array,       & ! bicarbonate ion concentration
-         co3_array           ! carbonate ion concentration
-
-    ! copy scalars into size one arrays for the array version of the
-    ! call. Note we only need to copy the inout and output arrays
-    ! manually. input arrays can be done using array initializers.
-    co3_coeffs_array(1) = co3_coeffs
-    phlo_array(1) = phlo
-    phhi_array(1) = phhi
-    ph_array(1) = ph
-    h2co3_array(1) = h2co3
-    hco3_array(1) = hco3
-    co3_array(1) = co3
-
-    call comp_CO3terms(1, k, (/mask/), lcomp_co3_coeffs, co3_coeffs_array, (/temp/), (/salt/), &
-       (/dic_in/), (/ta_in/), (/pt_in/), (/sit_in/), phlo_array, phhi_array, ph_array, H2CO3_array, HCO3_array, CO3_array)
-
-    ! copy output args back to the scalars
-    co3_coeffs = co3_coeffs_array(1)
-    phlo  = phlo_array(1) 
-    phhi  = phhi_array(1) 
-    ph    = ph_array(1)   
-    H2CO3 = H2CO3_array(1)
-    HCO3  = HCO3_array(1) 
-    CO3   = CO3_array(1)  
-
-  end subroutine comp_CO3terms_scalar
-
-  !*****************************************************************************
-
-  SUBROUTINE comp_CO3terms(num_columns, k, mask, lcomp_co3_coeffs, co3_coeffs, temp, salt, &
-       dic_in, ta_in, pt_in, sit_in, phlo, phhi, ph, H2CO3, HCO3, CO3)
+  SUBROUTINE comp_CO3terms(num_elements, mask, pressure_correct, lcomp_co3_coeffs, co3_coeffs,  &
+                           temp, salt, press_bar, dic_in, ta_in, pt_in, sit_in, phlo, phhi, ph, &
+                           H2CO3, HCO3, CO3)
 
     !---------------------------------------------------------------------------
     !   SUBROUTINE comp_CO3terms
@@ -174,24 +104,26 @@ CONTAINS
     !   input arguments
     !---------------------------------------------------------------------------
 
-    integer(KIND=int_kind), intent(IN) :: num_columns, k
-    LOGICAL(KIND=log_kind), DIMENSION(num_columns), INTENT(IN) :: mask
+    integer(KIND=int_kind), intent(IN) :: num_elements
+    LOGICAL(KIND=log_kind), DIMENSION(num_elements), INTENT(IN) :: mask
+    LOGICAL(KIND=log_kind), DIMENSION(num_elements), INTENT(IN) :: pressure_correct
     LOGICAL(KIND=log_kind), INTENT(IN) :: lcomp_co3_coeffs
-    REAL(KIND=r8), DIMENSION(num_columns), INTENT(IN) :: &
-         temp,     & ! temperature (degrees C)
-         salt,     & ! salinity (PSU)
-         dic_in,   & ! total inorganic carbon (nmol/cm^3)
-         ta_in,    & ! total alkalinity (neq/cm^3)
-         pt_in,    & ! inorganic phosphate (nmol/cm^3)
-         sit_in      ! inorganic silicate (nmol/cm^3)
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(IN) :: &
+         temp,      & ! temperature (degrees C)
+         salt,      & ! salinity (PSU)
+         press_bar, & ! pressure at level (bars)
+         dic_in,    & ! total inorganic carbon (nmol/cm^3)
+         ta_in,     & ! total alkalinity (neq/cm^3)
+         pt_in,     & ! inorganic phosphate (nmol/cm^3)
+         sit_in       ! inorganic silicate (nmol/cm^3)
 
     !---------------------------------------------------------------------------
     !   input/output arguments
     !---------------------------------------------------------------------------
 
-    type(thermodynamic_coefficients_type), intent(inout) :: co3_coeffs(num_columns)
+    type(thermodynamic_coefficients_type), intent(inout) :: co3_coeffs(num_elements)
 
-    REAL(KIND=r8), DIMENSION(num_columns), INTENT(INOUT) :: &
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(INOUT) :: &
          phlo,     & ! lower limit of pH range
          phhi        ! upper limit of pH range
 
@@ -199,7 +131,7 @@ CONTAINS
     !   output arguments
     !---------------------------------------------------------------------------
 
-    REAL(KIND=r8), DIMENSION(num_columns), INTENT(OUT) :: &
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(OUT) :: &
          pH,         & ! computed ph values, for initial guess on next time step
          H2CO3,      & ! Carbonic Acid Concentration
          HCO3,       & ! Bicarbonate Ion Concentration
@@ -216,7 +148,7 @@ CONTAINS
          vol_to_mass,  & ! (mmol/m^3) -> (mol/kg)
          htotal2, denom
 
-    REAL(KIND=r8), DIMENSION(num_columns) :: &
+    REAL(KIND=r8), DIMENSION(num_elements) :: &
          htotal  ! free concentration of H ion
 
     associate( &
@@ -265,14 +197,15 @@ CONTAINS
     !------------------------------------------------------------------------
 
     IF (lcomp_co3_coeffs) THEN
-       CALL comp_co3_coeffs(num_columns, k, mask, temp, salt, co3_coeffs, k1_k2_pH_tot=.true.)
+       CALL comp_co3_coeffs(num_elements, mask, pressure_correct, temp, salt, press_bar, &
+                            co3_coeffs, k1_k2_pH_tot=.true.)
     END IF
 
     !------------------------------------------------------------------------
     !   compute htotal
     !------------------------------------------------------------------------
 
-    CALL comp_htotal(num_columns, k, mask, temp, dic_in, &
+    CALL comp_htotal(num_elements, mask, temp, dic_in, &
                      ta_in, pt_in, sit_in, co3_coeffs, &
                      phlo, phhi, htotal)
 
@@ -281,7 +214,7 @@ CONTAINS
     !   ORNL/CDIAC-74, Dickson and Goyet, eds. (Ch 2 p 10, Eq A.49-51)
     !------------------------------------------------------------------------
 
-    DO c = 1,num_columns
+    DO c = 1,num_elements
        IF (mask(c)) THEN
 
           htotal2  = htotal(c) ** 2
@@ -313,7 +246,8 @@ CONTAINS
 
   !*****************************************************************************
 
-  SUBROUTINE comp_co3_coeffs(num_columns, k, mask, temp, salt, co3_coeffs, k1_k2_pH_tot)
+  SUBROUTINE comp_co3_coeffs(num_elements, mask, pressure_correct, temp, salt, press_bar, &
+                             co3_coeffs, k1_k2_pH_tot)
 
     !---------------------------------------------------------------------------
     !
@@ -327,19 +261,20 @@ CONTAINS
     !   input arguments
     !---------------------------------------------------------------------------
 
-    integer(kind=int_kind), intent(in) :: num_columns
-    INTEGER(KIND=int_kind), INTENT(IN) :: k
-    LOGICAL(KIND=log_kind), DIMENSION(num_columns), INTENT(IN) :: mask
-    REAL(KIND=r8), DIMENSION(num_columns), INTENT(IN) :: &
+    integer(kind=int_kind), intent(in) :: num_elements
+    LOGICAL(KIND=log_kind), DIMENSION(num_elements), INTENT(IN) :: mask
+    LOGICAL(KIND=log_kind), DIMENSION(num_elements), INTENT(IN) :: pressure_correct
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(IN) :: &
          temp,     & ! temperature (degrees C)
-         salt        ! salinity (PSU)
+         salt,     & ! salinity (PSU)
+         press_bar   ! pressure at level (bars)
     LOGICAL(KIND=log_kind), INTENT(IN) :: k1_k2_pH_tot
 
     !---------------------------------------------------------------------------
     !   output arguments
     !---------------------------------------------------------------------------
 
-    type(thermodynamic_coefficients_type), intent(out) :: co3_coeffs(num_columns)
+    type(thermodynamic_coefficients_type), intent(out) :: co3_coeffs(num_elements)
 
     !---------------------------------------------------------------------------
     !   local variable declarations
@@ -347,10 +282,7 @@ CONTAINS
 
     INTEGER(KIND=int_kind) :: c
 
-    REAL(KIND=r8) :: &
-         press_bar       ! pressure at level k [bars]
-
-    REAL(KIND=r8), DIMENSION(num_columns) :: &
+    REAL(KIND=r8), DIMENSION(num_elements) :: &
          salt_lim,     & ! bounded salt
          tk,           & ! temperature (K)
          is,           & ! ionic strength
@@ -384,8 +316,6 @@ CONTAINS
           sit => co3_coeffs(:)%sit &
           )
       
-    press_bar = ref_pressure(k)
-
     !---------------------------------------------------------------------------
     !   Calculate all constants needed to convert between various
     !   measured carbon species. References for each equation are
@@ -404,7 +334,7 @@ CONTAINS
     tk1002   = tk100 * tk100
     invtk    = c1 / tk
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_log(tk, dlogtk, num_columns)
+    CALL shr_vmath_log(tk, dlogtk, num_elements)
 #else
     dlogtk   = LOG(tk)
 #endif
@@ -413,8 +343,8 @@ CONTAINS
     is       = 19.924_r8 * salt_lim / (c1000 - 1.005_r8 * salt_lim)
     is2      = is * is
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_sqrt(is, sqrtis, num_columns)
-    CALL shr_vmath_sqrt(salt_lim, sqrts, num_columns)
+    CALL shr_vmath_sqrt(is, sqrtis, num_elements)
+    CALL shr_vmath_sqrt(salt_lim, sqrts, num_elements)
 #else
     sqrtis   = SQRT(is)
     sqrts    = SQRT(salt_lim)
@@ -424,7 +354,7 @@ CONTAINS
 
     arg = c1 - 0.001005_r8 * salt_lim
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_log(arg, log_1_m_1p005em3_s, num_columns)
+    CALL shr_vmath_log(arg, log_1_m_1p005em3_s, num_elements)
 #else
     log_1_m_1p005em3_s = LOG(arg)
 #endif
@@ -439,7 +369,7 @@ CONTAINS
           90.9241_r8 * (dlogtk + LOG(1e-2_r8)) - 1.47696_r8 * tk1002 + &
           salt_lim * (.025695_r8 - .025225_r8 * tk100 + 0.0049867_r8 * tk1002)
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(arg, ff, num_columns)
+    CALL shr_vmath_exp(arg, ff, num_elements)
 #else
     ff = EXP(arg)
 #endif
@@ -451,7 +381,7 @@ CONTAINS
     arg = 93.4517_r8 / tk100 - 60.2409_r8 + 23.3585_r8 * (dlogtk + LOG(1e-2_r8)) + &
           salt_lim * (.023517_r8 - 0.023656_r8 * tk100 + 0.0047036_r8 * tk1002)
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(arg, k0, num_columns)
+    CALL shr_vmath_exp(arg, k0, num_elements)
 #else
     k0 = EXP(arg)
 #endif
@@ -484,22 +414,24 @@ CONTAINS
     END IF
     arg = -LOG(c10) * arg
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(arg, k1, num_columns)
+    CALL shr_vmath_exp(arg, k1, num_elements)
 #else
     k1 = EXP(arg)
 #endif
 
-    IF (k > 1) THEN
+    WHERE (pressure_correct)
        deltaV = -25.5_r8 + 0.1271_r8 * temp
        Kappa  = (-3.08_r8 + 0.0877_r8 * temp) * p001
        lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+    ENDWHERE
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_exp(lnKfac, Kfac, num_columns)
+    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
 #else
-       Kfac = EXP(lnKfac)
+    Kfac = EXP(lnKfac)
 #endif
+    WHERE (pressure_correct)
        k1 = k1 * Kfac
-    END IF
+    ENDWHERE
 
     IF (k1_k2_pH_tot) THEN
        ! total pH scale
@@ -512,22 +444,24 @@ CONTAINS
     END IF
     arg = -LOG(c10) * arg
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(arg, k2, num_columns)
+    CALL shr_vmath_exp(arg, k2, num_elements)
 #else
     k2 = EXP(arg)
 #endif
 
-    IF (k > 1) THEN
+    WHERE (pressure_correct)
        deltaV = -15.82_r8 - 0.0219_r8 * temp
        Kappa  = (1.13_r8 - 0.1475_r8 * temp) * p001
        lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+    ENDWHERE
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_exp(lnKfac, Kfac, num_columns)
+    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
 #else
-       Kfac = EXP(lnKfac)
+    Kfac = EXP(lnKfac)
 #endif
+    WHERE (pressure_correct)
        k2 = k2 * Kfac
-    END IF
+    ENDWHERE
 
     !---------------------------------------------------------------------------
     !   kb = [H][BO2]/[HBO2]
@@ -544,22 +478,24 @@ CONTAINS
           (-24.4344_r8 - 25.085_r8 * sqrts - 0.2474_r8 * salt_lim) * dlogtk + &
           0.053105_r8 * sqrts * tk
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(arg, kb(:), num_columns)
+    CALL shr_vmath_exp(arg, kb(:), num_elements)
 #else
     kb(:) = EXP(arg)
 #endif
 
-    IF (k > 1) THEN
+    WHERE (pressure_correct)
        deltaV = -29.48_r8 + (0.1622_r8 - 0.002608_r8 * temp) * temp
        Kappa  = -2.84_r8 * p001
        lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+    ENDWHERE
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_exp(lnKfac, Kfac, num_columns)
+    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
 #else
-       Kfac = EXP(lnKfac)
+    Kfac = EXP(lnKfac)
 #endif
+    WHERE (pressure_correct)
        kb(:) = kb(:) * Kfac
-    END IF
+    ENDWHERE
 
     !---------------------------------------------------------------------------
     !   k1p = [H][H2PO4]/[H3PO4]
@@ -573,22 +509,24 @@ CONTAINS
           (-106.736_r8 * invtk + 0.69171_r8) * sqrts + &
           (-0.65643_r8 * invtk - 0.01844_r8) * salt_lim
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(arg, k1p(:), num_columns)
+    CALL shr_vmath_exp(arg, k1p(:), num_elements)
 #else
     k1p(:) = EXP(arg)
 #endif
 
-    IF (k > 1) THEN
+    WHERE (pressure_correct)
        deltaV = -14.51_r8 + (0.1211_r8 - 0.000321_r8 * temp) * temp
        Kappa  = (-2.67_r8 + 0.0427_r8 * temp) * p001
        lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+    ENDWHERE
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_exp(lnKfac, Kfac, num_columns)
+    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
 #else
-       Kfac = EXP(lnKfac)
+    Kfac = EXP(lnKfac)
 #endif
+    WHERE (pressure_correct)
        k1p(:) = k1p(:) * Kfac
-    END IF
+    ENDWHERE
 
     !---------------------------------------------------------------------------
     !   k2p = [H][HPO4]/[H2PO4]
@@ -602,22 +540,24 @@ CONTAINS
           (-160.340_r8 * invtk + 1.3566_r8) * sqrts + &
           (0.37335_r8 * invtk - 0.05778_r8) * salt_lim
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(arg, k2p(:), num_columns)
+    CALL shr_vmath_exp(arg, k2p(:), num_elements)
 #else
     k2p(:) = EXP(arg)
 #endif
 
-    IF (k > 1) THEN
+    WHERE (pressure_correct)
        deltaV = -23.12_r8 + (0.1758_r8 - 0.002647_r8 * temp) * temp
        Kappa  = (-5.15_r8 + 0.09_r8 * temp) * p001
        lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+    ENDWHERE
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_exp(lnKfac, Kfac, num_columns)
+    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
 #else
-       Kfac = EXP(lnKfac)
+    Kfac = EXP(lnKfac)
 #endif
+    WHERE (pressure_correct)
        k2p(:) = k2p(:) * Kfac
-    END IF
+    ENDWHERE
 
     !---------------------------------------------------------------------------
     !   k3p = [H][PO4]/[HPO4]
@@ -630,22 +570,24 @@ CONTAINS
           (17.27039_r8 * invtk + 2.81197_r8) * sqrts + &
           (-44.99486_r8 * invtk - 0.09984_r8) * salt_lim
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(arg, k3p(:), num_columns)
+    CALL shr_vmath_exp(arg, k3p(:), num_elements)
 #else
     k3p(:) = EXP(arg)
 #endif
 
-    IF (k > 1) THEN
+    WHERE (pressure_correct)
        deltaV = -26.57_r8 + (0.202_r8 - 0.003042_r8 * temp) * temp
        Kappa  = (-4.08_r8 + 0.0714_r8 * temp) * p001
        lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+    ENDWHERE
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_exp(lnKfac, Kfac, num_columns)
+    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
 #else
-       Kfac = EXP(lnKfac)
+    Kfac = EXP(lnKfac)
 #endif
+    WHERE (pressure_correct)
        k3p(:) = k3p(:) * Kfac
-    END IF
+    ENDWHERE
 
     !---------------------------------------------------------------------------
     !   ksi = [H][SiO(OH)3]/[Si(OH)4]
@@ -662,22 +604,24 @@ CONTAINS
           (-12.1652_r8 * invtk + 0.07871_r8) * is2 + &
           log_1_m_1p005em3_s
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(arg, ksi(:), num_columns)
+    CALL shr_vmath_exp(arg, ksi(:), num_elements)
 #else
     ksi(:) = EXP(arg)
 #endif
 
-    IF (k > 1) THEN
+    WHERE (pressure_correct)
        deltaV = -29.48_r8 + (0.1622_r8 - 0.002608_r8 * temp) * temp
        Kappa  = -2.84_r8 * p001
        lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+    ENDWHERE
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_exp(lnKfac, Kfac, num_columns)
+    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
 #else
-       Kfac = EXP(lnKfac)
+    Kfac = EXP(lnKfac)
 #endif
+    WHERE (pressure_correct)
        ksi(:) = ksi(:) * Kfac
-    END IF
+    ENDWHERE
 
     !---------------------------------------------------------------------------
     !   kw = [H][OH]
@@ -693,22 +637,24 @@ CONTAINS
           (118.67_r8 * invtk - 5.977_r8 + 1.0495_r8 * dlogtk) * sqrts - &
           0.01615_r8 * salt_lim
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(arg, kw(:), num_columns)
+    CALL shr_vmath_exp(arg, kw(:), num_elements)
 #else
     kw = EXP(arg)
 #endif
 
-    IF (k > 1) THEN
+    WHERE (pressure_correct)
        deltaV = -20.02_r8 + (0.1119_r8 - 0.001409_r8 * temp) * temp
        Kappa  = (-5.13_r8 + 0.0794_r8 * temp) * p001
        lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+    ENDWHERE
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_exp(lnKfac, Kfac, num_columns)
+    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
 #else
-       Kfac = EXP(lnKfac)
+    Kfac = EXP(lnKfac)
 #endif
+    WHERE (pressure_correct)
        kw(:) = kw(:) * Kfac
-    END IF
+    ENDWHERE
 
     !---------------------------------------------------------------------------
     !   ks = [H][SO4]/[HSO4], free pH scale
@@ -724,22 +670,24 @@ CONTAINS
           1776.0_r8 * invtk * is2 + &
           log_1_m_1p005em3_s
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(arg, ks(:), num_columns)
+    CALL shr_vmath_exp(arg, ks(:), num_elements)
 #else
     ks(:) = EXP(arg)
 #endif
 
-    IF (k > 1) THEN
+    WHERE (pressure_correct)
        deltaV = -18.03_r8 + (0.0466_r8 + 0.000316_r8 * temp) * temp
        Kappa  = (-4.53_r8 + 0.09_r8 * temp) * p001
        lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+    ENDWHERE
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_exp(lnKfac, Kfac, num_columns)
+    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
 #else
-       Kfac = EXP(lnKfac)
+    Kfac = EXP(lnKfac)
 #endif
+    WHERE (pressure_correct)
        ks(:) = ks(:) * Kfac
-    END IF
+    ENDWHERE
 
     !---------------------------------------------------------------------
     !   kf = [H][F]/[HF]
@@ -750,29 +698,31 @@ CONTAINS
 
     arg = c1 + (0.1400_r8 / 96.062_r8) * (scl) / ks(:)
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_log(arg, log_1_p_tot_sulfate_div_ks, num_columns)
+       CALL shr_vmath_log(arg, log_1_p_tot_sulfate_div_ks, num_elements)
 #else
     log_1_p_tot_sulfate_div_ks = LOG(arg)
 #endif
     arg = 1590.2_r8 * invtk - 12.641_r8 + 1.525_r8 * sqrtis + &
           log_1_m_1p005em3_s + log_1_p_tot_sulfate_div_ks
 #ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(arg, kf(:), num_columns)
+    CALL shr_vmath_exp(arg, kf(:), num_elements)
 #else
     kf(:) = EXP(arg)
 #endif
 
-    IF (k > 1) THEN
+    WHERE (pressure_correct)
        deltaV = -9.78_r8 - (0.009_r8 + 0.000942_r8 * temp) * temp
        Kappa  = (-3.91_r8 + 0.054_r8 * temp) * p001
        lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+    ENDWHERE
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_exp(lnKfac, Kfac, num_columns)
+    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
 #else
-       Kfac = EXP(lnKfac)
+    Kfac = EXP(lnKfac)
 #endif
+    WHERE (pressure_correct)
        kf(:) = kf(:) * Kfac
-    END IF
+    ENDWHERE
 
     !---------------------------------------------------------------------
     !   Calculate concentrations for borate, sulfate, and fluoride
@@ -790,7 +740,7 @@ CONTAINS
 
   !*****************************************************************************
 
-  SUBROUTINE comp_htotal(num_columns, k, mask, temp, dic_in, ta_in, pt_in, sit_in, &
+  SUBROUTINE comp_htotal(num_elements, mask, temp, dic_in, ta_in, pt_in, sit_in, &
                          co3_coeffs, phlo, phhi, htotal)
 
     !---------------------------------------------------------------------------
@@ -804,23 +754,22 @@ CONTAINS
     !   input arguments
     !---------------------------------------------------------------------------
 
-    integer(kind=int_kind), intent(in) :: num_columns
-    INTEGER(KIND=int_kind), INTENT(IN) :: k
-    LOGICAL(KIND=log_kind), DIMENSION(num_columns), INTENT(IN) :: mask
-    REAL(KIND=r8), DIMENSION(num_columns), INTENT(IN) :: &
+    integer(kind=int_kind), intent(in) :: num_elements
+    LOGICAL(KIND=log_kind), DIMENSION(num_elements), INTENT(IN) :: mask
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(IN) :: &
          temp,     & ! temperature (degrees C)
          dic_in,   & ! total inorganic carbon (nmol/cm^3)
          ta_in,    & ! total alkalinity (neq/cm^3)
          pt_in,    & ! inorganic phosphate (nmol/cm^3)
          sit_in      ! inorganic silicate (nmol/cm^3)
 
-    type(thermodynamic_coefficients_type), intent(inout) :: co3_coeffs(num_columns)
+    type(thermodynamic_coefficients_type), intent(inout) :: co3_coeffs(num_elements)
 
     !---------------------------------------------------------------------------
     !   input/output arguments
     !---------------------------------------------------------------------------
 
-    REAL(KIND=r8), DIMENSION(num_columns), INTENT(INOUT) :: &
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(INOUT) :: &
          phlo,     & ! lower limit of pH range
          phhi        ! upper limit of pH range
 
@@ -828,7 +777,7 @@ CONTAINS
     !   output arguments
     !---------------------------------------------------------------------------
 
-    REAL(KIND=r8), DIMENSION(num_columns), INTENT(OUT) :: &
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(OUT) :: &
          htotal      ! free concentration of H ion
 
     !---------------------------------------------------------------------------
@@ -841,7 +790,7 @@ CONTAINS
          mass_to_vol,  & ! (mol/kg) -> (mmol/m^3)
          vol_to_mass     ! (mmol/m^3) -> (mol/kg)
 
-    REAL(KIND=r8), DIMENSION(num_columns) :: &
+    REAL(KIND=r8), DIMENSION(num_elements) :: &
          x1, x2          ! bounds on htotal for solver
 
     associate( &
@@ -884,7 +833,7 @@ CONTAINS
     !   convert tracer units to per mass
     !---------------------------------------------------------------------------
 
-    do c = 1,num_columns
+    do c = 1,num_elements
        IF (mask(c)) THEN
           dic(c)  = max(dic_in(c),dic_min) * vol_to_mass
           ta(c)   = max(ta_in(c),alk_min)  * vol_to_mass
@@ -911,13 +860,13 @@ CONTAINS
     !   set x1 and x2 to the previous value of the pH +/- ~0.5.
     !---------------------------------------------------------------------------
 
-    CALL drtsafe_row(num_columns, k, mask, k1, k2, co3_coeffs, x1, x2, xacc, htotal)
+    CALL drtsafe_row(num_elements, mask, k1, k2, co3_coeffs, x1, x2, xacc, htotal)
   end associate
   END SUBROUTINE comp_htotal
 
   !*****************************************************************************
 
-  SUBROUTINE drtsafe_row(num_columns, k, mask_in, k1, k2, co3_coeffs, x1, x2, xacc, soln)
+  SUBROUTINE drtsafe_row(num_elements, mask_in, k1, k2, co3_coeffs, x1, x2, xacc, soln)
 
     !---------------------------------------------------------------------------
     !   Vectorized version of drtsafe, which was a modified version of
@@ -938,34 +887,33 @@ CONTAINS
     !   input arguments
     !---------------------------------------------------------------------------
 
-    integer(kind=int_kind), intent(in) :: num_columns
-    integer(kind=int_kind), intent(in) :: k
-    LOGICAL(KIND=log_kind), DIMENSION(num_columns), INTENT(IN) :: mask_in
-    REAL(KIND=r8), DIMENSION(num_columns), INTENT(IN) :: k1, k2
-    type(thermodynamic_coefficients_type), intent(in) :: co3_coeffs(num_columns)
+    integer(kind=int_kind), intent(in) :: num_elements
+    LOGICAL(KIND=log_kind), DIMENSION(num_elements), INTENT(IN) :: mask_in
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(IN) :: k1, k2
+    type(thermodynamic_coefficients_type), intent(in) :: co3_coeffs(num_elements)
     REAL(KIND=r8), INTENT(IN) :: xacc
 
     !---------------------------------------------------------------------------
     !   input/output arguments
     !---------------------------------------------------------------------------
 
-    REAL(KIND=r8), DIMENSION(num_columns), INTENT(INOUT) :: x1, x2
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(INOUT) :: x1, x2
 
     !---------------------------------------------------------------------------
     !   output arguments
     !---------------------------------------------------------------------------
 
-    REAL(KIND=r8), DIMENSION(num_columns), INTENT(OUT) :: soln
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(OUT) :: soln
 
     !---------------------------------------------------------------------------
     !   local variable declarations
     !---------------------------------------------------------------------------
 
     LOGICAL(KIND=log_kind) :: leave_bracket, dx_decrease
-    LOGICAL(KIND=log_kind), DIMENSION(num_columns) :: mask
+    LOGICAL(KIND=log_kind), DIMENSION(num_elements) :: mask
     INTEGER(KIND=int_kind) ::  c, it
     REAL(KIND=r8) :: temp
-    REAL(KIND=r8), DIMENSION(num_columns) :: xlo, xhi, flo, fhi, f, df, dxold, dx
+    REAL(KIND=r8), DIMENSION(num_elements) :: xlo, xhi, flo, fhi, f, df, dxold, dx
 
     !---------------------------------------------------------------------------
     !   bracket root at each location and set up first iteration
@@ -976,8 +924,8 @@ CONTAINS
     it = 0
 
     DO
-       CALL talk_row(num_columns, mask, k1, k2, x1, co3_coeffs, flo, df)
-       CALL talk_row(num_columns, mask, k1, k2, x2, co3_coeffs, fhi, df)
+       CALL talk_row(num_elements, mask, k1, k2, x1, co3_coeffs, flo, df)
+       CALL talk_row(num_elements, mask, k1, k2, x2, co3_coeffs, fhi, df)
 
        WHERE ( mask )
           mask = (flo > c0 .AND. fhi > c0) .OR. &
@@ -988,14 +936,13 @@ CONTAINS
 
        it = it + 1
 
-       do c = 1,num_columns
+       do c = 1,num_elements
           IF (mask(c)) THEN
 !!$             this_block = get_block(blocks_clinic(iblock), iblock)
 !!$                'i_glob = ', this_block%i_glob(i), &
 !!$                ', j_glob = ', this_block%j_glob(j), &
              WRITE(stdout,*) '(co2calc_column.F90:drtsafe_row) ', &
-                ', c = ', c, ', k = ', k, &
-                ', nsteps_run = ', nsteps_run, ', it = ', it
+                ', c = ', c, ', nsteps_run = ', nsteps_run, ', it = ', it
              WRITE(stdout,*) '(co2calc.F90:drtsafe_row) ', &
                 '   x1,f = ', x1(c), flo(c)
              WRITE(stdout,*) '(co2calc.F90:drtsafe_row) ', &
@@ -1016,7 +963,7 @@ CONTAINS
 
     mask = mask_in
 
-    do c = 1,num_columns
+    do c = 1,num_elements
        IF (mask(c)) THEN
           IF (flo(c) .LT. c0) THEN
              xlo(c) = x1(c)
@@ -1034,14 +981,14 @@ CONTAINS
        END IF
     END DO
 
-    CALL talk_row(num_columns, mask, k1, k2, soln, co3_coeffs, f, df)
+    CALL talk_row(num_elements, mask, k1, k2, soln, co3_coeffs, f, df)
 
     !---------------------------------------------------------------------------
     !   perform iterations, zeroing mask when a location has converged
     !---------------------------------------------------------------------------
 
     do it = 1,maxit
-       do c = 1,num_columns
+       do c = 1,num_elements
           IF (mask(c)) THEN
              leave_bracket = ((soln(c) - xhi(c)) * df(c) - f(c)) * &
                   ((soln(c) - xlo(c)) * df(c) - f(c)) .GE. 0
@@ -1064,9 +1011,9 @@ CONTAINS
 
        IF (.NOT. ANY(mask)) RETURN
 
-       CALL talk_row(num_columns, mask, k1, k2, soln, co3_coeffs, f, df)
+       CALL talk_row(num_elements, mask, k1, k2, soln, co3_coeffs, f, df)
 
-       do c = 1,num_columns
+       do c = 1,num_elements
           IF (mask(c)) THEN
              IF (f(c) .LT. c0) THEN
                 xlo(c) = soln(c)
@@ -1088,7 +1035,7 @@ CONTAINS
 
   !*****************************************************************************
 
-  SUBROUTINE talk_row(num_columns, mask, k1, k2, x, co3_coeffs, fn, df)
+  SUBROUTINE talk_row(num_elements, mask, k1, k2, x, co3_coeffs, fn, df)
 
     !---------------------------------------------------------------------------
     !   This routine computes TA as a function of DIC, htotal and constants.
@@ -1102,16 +1049,16 @@ CONTAINS
     !   input arguments
     !---------------------------------------------------------------------------
 
-    integer(kind=int_kind), intent(in) :: num_columns
-    LOGICAL(KIND=log_kind), DIMENSION(num_columns), INTENT(IN) :: mask
-    REAL(KIND=r8), DIMENSION(num_columns), INTENT(IN) :: k1, k2, x
-    type(thermodynamic_coefficients_type), intent(in) :: co3_coeffs(num_columns)
+    integer(kind=int_kind), intent(in) :: num_elements
+    LOGICAL(KIND=log_kind), DIMENSION(num_elements), INTENT(IN) :: mask
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(IN) :: k1, k2, x
+    type(thermodynamic_coefficients_type), intent(in) :: co3_coeffs(num_elements)
 
     !---------------------------------------------------------------------------
     !   output arguments
     !---------------------------------------------------------------------------
 
-    REAL(KIND=r8), DIMENSION(num_columns), INTENT(OUT) :: fn, df
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(OUT) :: fn, df
 
     !---------------------------------------------------------------------------
     !   local variable declarations
@@ -1144,7 +1091,7 @@ CONTAINS
           )
       
 
-    do c = 1,num_columns
+    do c = 1,num_elements
        IF (mask(c)) THEN
           x1 = x(c)
           x1_r = c1 / x1
@@ -1209,7 +1156,9 @@ end associate
 
   !*****************************************************************************
 
-  subroutine comp_co3_sat_vals_scalar(k, mask, temp, salt, co3_sat_calc, co3_sat_arag)
+
+  SUBROUTINE comp_co3_sat_vals(num_elements, mask, pressure_correct, temp, salt, press_bar, &
+                               co3_sat_calc, co3_sat_arag)
 
     !---------------------------------------------------------------------------
     !   SUBROUTINE comp_co3_sat_vals
@@ -1222,61 +1171,19 @@ end associate
     !   input arguments
     !---------------------------------------------------------------------------
 
-    integer(kind=int_kind), intent(in) :: k
-    logical(kind=log_kind), intent(in) :: mask
-    real(kind=r8), intent(in) :: &
-         temp,     & ! temperature (degrees c)
-         salt        ! salinity (psu)
-
-    !---------------------------------------------------------------------------
-    !   output arguments
-    !---------------------------------------------------------------------------
-
-    real(kind=r8), intent(out) :: &
-         co3_sat_calc,&! co3 concentration at calcite saturation
-         co3_sat_arag  ! co3 concentration at aragonite saturation
-
-    !---------------------------------------------------------------------------
-    !   local variable declarations
-    !---------------------------------------------------------------------------
-    real(kind=r8) :: co3_sat_calc_array(1)
-    real(kind=r8) :: co3_sat_arag_array(1)
-
-    call comp_co3_sat_vals(1, k, (/mask/), (/temp/), (/salt/), co3_sat_calc_array, co3_sat_arag_array)
-
-    co3_sat_calc = co3_sat_calc_array(1)
-    co3_sat_arag = co3_sat_arag_array(1)
-    
-    
-  end subroutine comp_co3_sat_vals_scalar
-    
-  !*****************************************************************************
-
-  SUBROUTINE comp_co3_sat_vals(num_columns, k, mask, temp, salt, co3_sat_calc, co3_sat_arag)
-
-    !---------------------------------------------------------------------------
-    !   SUBROUTINE comp_co3_sat_vals
-    !
-    !   PURPOSE : Calculate co3 concentration at calcite and aragonite saturation
-    !             from temp, salinity (s), press
-    !---------------------------------------------------------------------------
-
-    !---------------------------------------------------------------------------
-    !   input arguments
-    !---------------------------------------------------------------------------
-
-    integer(kind=int_kind), intent(in) :: num_columns
-    INTEGER(KIND=int_kind), INTENT(IN) :: k
-    LOGICAL(KIND=log_kind), DIMENSION(num_columns), INTENT(IN) :: mask
-    REAL(KIND=r8), DIMENSION(num_columns), INTENT(IN) :: &
+    integer(kind=int_kind), intent(in) :: num_elements
+    LOGICAL(KIND=log_kind), DIMENSION(num_elements), INTENT(IN) :: mask
+    LOGICAL(KIND=log_kind), DIMENSION(num_elements), INTENT(IN) :: pressure_correct
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(IN) :: &
          temp,     & ! temperature (degrees C)
-         salt        ! salinity (PSU)
+         salt,     & ! salinity (PSU)
+         press_bar   ! pressure at level k (bars)
 
     !---------------------------------------------------------------------------
     !   output arguments
     !---------------------------------------------------------------------------
 
-    REAL(KIND=r8), DIMENSION(num_columns), INTENT(OUT) :: &
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(OUT) :: &
          co3_sat_calc,&! co3 concentration at calcite saturation
          co3_sat_arag  ! co3 concentration at aragonite saturation
 
@@ -1285,10 +1192,9 @@ end associate
     !---------------------------------------------------------------------------
 
     REAL(KIND=r8) :: &
-         mass_to_vol,  & ! (mol/kg) -> (mmol/m^3)
-         press_bar       ! pressure at level k [bars]
+         mass_to_vol     ! (mol/kg) -> (mmol/m^3)
 
-    REAL(KIND=r8), DIMENSION(num_columns) :: &
+    REAL(KIND=r8), DIMENSION(num_elements) :: &
          salt_lim,     & ! bounded salt
          tk,           & ! temperature (K)
          log10tk,invtk,sqrts,s15,invRtk,arg,&
@@ -1307,8 +1213,6 @@ end associate
 
     !---------------------------------------------------------------------------
 
-    press_bar = ref_pressure(k)
-
 
        !------------------------------------------------------------------------
        !   check for existence of ocean points on this row
@@ -1323,7 +1227,7 @@ end associate
        salt_lim = max(salt(:),salt_min)
        tk       = T0_Kelvin + temp(:)
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_log(tk, log10tk, num_columns)
+       CALL shr_vmath_log(tk, log10tk, num_elements)
 #else
        log10tk  = LOG(tk)
 #endif
@@ -1332,7 +1236,7 @@ end associate
        invRtk   = (c1 / 83.1451_r8) * invtk
 
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_sqrt(salt_lim, sqrts, num_columns)
+       CALL shr_vmath_sqrt(salt_lim, sqrts, num_elements)
 #else
        sqrts    = SQRT(salt_lim)
 #endif
@@ -1348,43 +1252,47 @@ end associate
              0.07711_r8 * salt_lim + 0.0041249_r8 * s15
        arg = LOG(c10) * arg
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_exp(arg, K_calc, num_columns)
+       CALL shr_vmath_exp(arg, K_calc, num_elements)
 #else
        K_calc = EXP(arg)
 #endif
 
-       IF (k > 1) THEN
+       WHERE (pressure_correct)
           deltaV = -48.76_r8 + 0.5304_r8 * temp(:)
           Kappa  = (-11.76_r8 + 0.3692_r8 * temp(:)) * p001
           lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+       ENDWHERE
 #ifdef CCSMCOUPLED
-          CALL shr_vmath_exp(lnKfac, Kfac, num_columns)
+       CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
 #else
-          Kfac = EXP(lnKfac)
+       Kfac = EXP(lnKfac)
 #endif
+       WHERE (pressure_correct)
           K_calc = K_calc * Kfac
-       END IF
+       ENDWHERE
 
        arg = -171.945_r8 - 0.077993_r8 * tk + 2903.293_r8 * invtk + 71.595_r8 * log10tk + &
             (-0.068393_r8 + 0.0017276_r8 * tk + 88.135_r8 * invtk) * sqrts - &
             0.10018_r8 * salt_lim + 0.0059415_r8 * s15
        arg = LOG(c10) * arg
 #ifdef CCSMCOUPLED
-       CALL shr_vmath_exp(arg, K_arag, num_columns)
+       CALL shr_vmath_exp(arg, K_arag, num_elements)
 #else
        K_arag = EXP(arg)
 #endif
 
-       IF (k > 1) THEN
+       WHERE (pressure_correct)
           deltaV = deltaV + 2.8_r8
           lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+       ENDWHERE
 #ifdef CCSMCOUPLED
-          CALL shr_vmath_exp(lnKfac, Kfac, num_columns)
+       CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
 #else
-          Kfac = EXP(lnKfac)
+       Kfac = EXP(lnKfac)
 #endif
+       WHERE (pressure_correct)
           K_arag = K_arag * Kfac
-       END IF
+       ENDWHERE
 
        WHERE ( mask(:) )
 
