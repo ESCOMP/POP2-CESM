@@ -1,6 +1,26 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    15 Sep 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n04_cesm_pop_2_1_20150910
+Tag Summary: introduce PON_bury_coeff
+
+Testing: aux_pop
+   tests pass
+   non-ecosys baseline comparison to n02 pass
+   answers change for compsets with ecosys (CECO, GECO)
+      roundoff level changes occur because of changes in order of operations
+      nlcomp fails because of a new namelist variable
+
+M       source/ecosys_mod.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       BranchChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    11 Sep 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n03_cesm_pop_2_1_20150910
 Tag Summary: merge pop2/trunk_tags/cesm_pop_2_1_20150910 to branch
@@ -23,7 +43,7 @@ Tag Summary: switch caco3_bury_thres_opt to omega_calc
 Testing: aux_pop
    tests pass
    non-ecosys baseline comparison to n00 pass
-   answers change for compsets with ecosys
+   answers change for compsets with ecosys (CECO, GECO)
 
 M       bld/namelist_files/namelist_defaults_pop.xml
 M       BranchChangeLog
@@ -39,7 +59,7 @@ Purpose: Introduce ability for caco3 burial to be based on carbonate chemistry i
 instead of existing hard coded depth criteria.
 
 Testing: aux_pop
-   tests pass, except nlcomp, which fails for compsets with ecosys, due to new namelist variables
+   tests pass, except nlcomp, which fails for compsets with ecosys (CECO, GECO), due to new namelist variables
    baseline comparison to n00 pass
 
 M       source/ecosys_mod.F90

@@ -5926,6 +5926,15 @@ threshold depth for caco3_bury_thres_opt='fixed_depth'
 Default: 3300.0e2
 </entry>
 
+<entry
+id="pon_bury_coeff"
+type="real" 
+category="ecosys"
+group="ecosys_nml" >
+PON_sed_loss = PON_bury_coeff * Q * POC_sed_loss
+Default: 1.0
+</entry>
+
 <entry 
 id="lecovars_full_depth_tavg"
 type="logical" 

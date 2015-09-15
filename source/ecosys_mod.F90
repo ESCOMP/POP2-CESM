@@ -812,6 +812,10 @@ module ecosys_mod
   integer (int_kind), parameter :: caco3_bury_thres_iopt_omega_calc  = 2
   real (r8)           :: caco3_bury_thres_depth  ! threshold depth for caco3_bury_thres_opt='fixed_depth'
 
+  real (r8) :: PON_bury_coeff ! PON_sed_loss = PON_bury_coeff * Q * POC_sed_loss
+                              ! factor is used to avoid overburying PON like POC
+                              ! is when total C burial is matched to C riverine input
+
   !-----------------------------------------------------------------------
   !  timers
   !-----------------------------------------------------------------------
@@ -993,6 +997,7 @@ contains
          atm_alt_co2_opt, atm_alt_co2_const, &
          liron_patch, iron_patch_flux_filename, iron_patch_month, &
          caco3_bury_thres_opt, caco3_bury_thres_depth, &
+         PON_bury_coeff, &
          lecovars_full_depth_tavg
 
     character (char_len) :: &
@@ -1192,6 +1197,8 @@ contains
 
     caco3_bury_thres_opt = 'fixed_depth'
     caco3_bury_thres_depth = 3300.0e2
+
+    PON_bury_coeff = c1
 
     lecovars_full_depth_tavg = .false.
 
@@ -1856,6 +1863,9 @@ contains
     real(r8) :: other_remin(km)  ! organic C remin not due oxic or denitrif (nmolC/cm^3/sec)
     real(r8) :: column_o2(km)
 
+    real(r8) :: PON_remin(km)    ! remin of PON
+    real(r8) :: PON_sed_loss(km) ! loss of PON to sediments
+
     ! NOTE(bja, 2015-07) vectorization: arrays that are (n, k, c, i)
     ! probably can not be vectorized reasonably over c without memory
     ! copies. If we break up the main k loop, some of the (k, c) loops
@@ -1993,6 +2003,7 @@ contains
                   domain%land_mask, domain%kmt, domain%dzt(k), domain%dz(k), &
                   marbl_particulate_share, &
                   POC, P_CaCO3, P_SiO2, dust, P_iron, &
+                  PON_remin(k), PON_sed_loss(k), &
                   QA_dust_def(k), domain%temperature(k), tracer_local(:, k), carbonate(k), &
                   sed_denitrif(k), other_remin(k), lexport_shared_vars, &
                   bid)
@@ -2012,6 +2023,7 @@ contains
                   Fe_scavenge(k) , Fe_scavenge_rate(k), &
                   P_iron%remin(k), POC%remin(k), &
                   P_SiO2%remin(k), P_CaCO3%remin(k), other_remin(k), &
+                  PON_remin(k), &
                   restore_local(:, k), &
                   tracer_local(o2_ind, k), &
                   o2_production(k), o2_consumption(k), &
@@ -2039,6 +2051,7 @@ contains
              call store_diagnostics_particulates(k, domain%dz(k), POC, &
                   P_CaCO3, P_SiO2, &
                   dust,  P_iron, &
+                  PON_sed_loss(k), &
                   sed_denitrif(k), other_remin(k), &
                   marbl_diagnostics(k)%part_diags(:))
 
@@ -2070,7 +2083,7 @@ contains
 
              call store_diagnostics_nitrogen_fluxes(&
                   k, domain%kmt, domain%dzt(k), domain%dz(k), zw, &
-                  POC, denitrif(k), sed_denitrif(k), &
+                  PON_sed_loss(k), denitrif(k), sed_denitrif(k), &
                   autotroph_cnt, autotrophs, autotroph_secondary_species(:, k), &
                   zooplankton_cnt, zooplankton, &
                   dtracer(:, k), marbl_diagnostics(k)%diags(:))
@@ -2326,6 +2339,7 @@ contains
        column_land_mask, column_kmt, column_dzt, column_dz, &
        marbl_particulate_share, &
        POC, P_CaCO3, P_SiO2, dust, P_iron, &
+       PON_remin, PON_sed_loss, &
        QA_dust_def, temperature, tracer_local, carbonate, &
        sed_denitrif, other_remin, &
        lexport_shared_vars, bid)
@@ -2415,6 +2429,9 @@ contains
     type(column_sinking_particle_type), intent(inout) :: P_SiO2 ! base units = nmol SiO2
     type(column_sinking_particle_type), intent(inout) :: dust ! base units = g
     type(column_sinking_particle_type), intent(inout) :: P_iron ! base units = nmol Fe
+
+    real(r8), intent(out) :: PON_remin        ! remin of PON
+    real(r8), intent(out) :: PON_sed_loss     ! loss of PON to sediments
 
     real (r8), intent(inout) :: QA_dust_def     ! incoming deficit in the QA(dust) POC flux
 
@@ -2688,6 +2705,8 @@ contains
                   ((POC%sflux_in(k) - POC%sflux_out(k)) + &
                   (POC%hflux_in(k) - POC%hflux_out(k))) * dzr_loc
 
+             PON_remin = Q * POC%remin(k)
+
              dust%remin(k) = &
                   ((dust%sflux_in(k) - dust%sflux_out(k)) + &
                   (dust%hflux_in(k) - dust%hflux_out(k))) * dzr_loc
@@ -2747,6 +2766,8 @@ contains
              POC%hflux_out(k) = c0
              POC%remin(k) = c0
 
+             PON_remin = c0
+
              P_iron%sflux_out(k) = c0
              P_iron%hflux_out(k) = c0
              P_iron%remin(k) = c0
@@ -2788,6 +2809,8 @@ contains
           P_iron%sed_loss(k)  = c0
           dust%sed_loss(k)    = c0
 
+          PON_sed_loss        = c0
+
           if (column_land_mask .and. (k == column_kmt)) then
 
              flux = POC%sflux_out(k) + POC%hflux_out(k)
@@ -2797,6 +2820,8 @@ contains
 
                 POC%sed_loss(k) = flux * min(0.8_r8, parm_POMbury &
                      * (0.013_r8 + 0.53_r8 * flux_alt*flux_alt / (7.0_r8 + flux_alt)**2))
+
+                PON_sed_loss = PON_bury_coeff * Q * POC%sed_loss(k)
 
                 sed_denitrif = dzr_loc * flux &
                      * (0.06_r8 + 0.19_r8 * 0.99_r8**(O2_loc-NO3_loc))
@@ -2858,6 +2883,9 @@ contains
              if (flux > c0) then
                 POC%remin(k) = POC%remin(k) &
                      + ((flux - POC%sed_loss(k)) * dzr_loc)
+
+                PON_remin = PON_remin &
+                     + ((Q * flux - PON_sed_loss) * dzr_loc)
              endif
 
              !-----------------------------------------------------------------------
@@ -6726,7 +6754,7 @@ contains
        nitrif, denitrif, sed_denitrif, &
        Fe_scavenge, Fe_scavenge_rate, &
        P_iron_remin, POC_remin, &
-       P_SiO2_remin, P_CaCO3_remin, other_remin, &
+       P_SiO2_remin, P_CaCO3_remin, other_remin, PON_remin, &
        restore_local, &
        O2_loc, o2_production, o2_consumption, &
        dtracer)
@@ -6751,6 +6779,7 @@ contains
     real(r8)                                     , intent(in)  :: P_SiO2_remin
     real(r8)                                     , intent(in)  :: P_CaCO3_remin
     real(r8)                                     , intent(in)  :: other_remin
+    real(r8)                                     , intent(in)  :: PON_remin
     real(r8)                                     , intent(in)  :: restore_local(ecosys_tracer_cnt)
     real(r8)                                     , intent(in)  :: O2_loc
     real(r8)                                     , intent(out) :: o2_production
@@ -6811,8 +6840,8 @@ contains
     dtracer(no3_ind) = restore_local(no3_ind) + nitrif - denitrif - sed_denitrif - sum(NO3_V(:))
 
     dtracer(nh4_ind) = -sum(NH4_V(:)) - nitrif + DON_remin + DONr_remin  &
-         + Q * (sum(zoo_loss_dic(:)) + sum(zoo_graze_dic(:)) + sum(auto_loss_dic(:)) + sum(auto_graze_dic(:)) &
-         + POC_remin * (c1 - DONrefract) )
+         + Q * (sum(zoo_loss_dic(:)) + sum(zoo_graze_dic(:)) + sum(auto_loss_dic(:)) + sum(auto_graze_dic(:)) ) &
+         + PON_remin * (c1 - DONrefract)
 
     do auto_ind = 1, auto_cnt
        if (auto_meta(auto_ind)%Nfixer) then
@@ -6913,7 +6942,7 @@ contains
 
     dtracer(don_ind) = (DON_prod * (c1 - DONrefract)) - DON_remin
 
-    dtracer(donr_ind) = (DON_prod * DONrefract) - DONr_remin + (POC_remin * DONrefract * Q)
+    dtracer(donr_ind) = (DON_prod * DONrefract) - DONr_remin + (PON_remin * DONrefract)
 
     dtracer(dop_ind) = (DOP_prod * (c1 - DOPrefract)) - DOP_remin - sum(DOP_V(:))
 
@@ -7176,7 +7205,7 @@ contains
   !-----------------------------------------------------------------------
 
   subroutine store_diagnostics_particulates(k, column_dz, POC, P_CaCO3, P_SiO2, &
-       dust, P_iron, sed_denitrif, other_remin, part_diags)
+       dust, P_iron, PON_sed_loss, sed_denitrif, other_remin, part_diags)
     !-----------------------------------------------------------------------
     ! - Set tavg variables.
     ! - Accumulte losses of BGC tracers to sediments
@@ -7193,6 +7222,7 @@ contains
     type(column_sinking_particle_type), intent(in) :: P_SiO2
     type(column_sinking_particle_type), intent(in) :: dust
     type(column_sinking_particle_type), intent(in) :: P_iron
+    real(r8), intent(in) :: PON_sed_loss
     real(r8), intent(in) :: sed_denitrif
     real(r8), intent(in) :: other_remin
     real(r8), intent(inout) :: part_diags(part_diag_cnt)
@@ -7221,7 +7251,7 @@ contains
     part_diags(pocToSed_diag_ind) = POC%sed_loss(k)
     part_diags(SedDenitrif_diag_ind) = sed_denitrif * column_dz
     part_diags(OtherRemin_diag_ind) = other_remin * column_dz
-    part_diags(ponToSed_diag_ind) = (POC%sed_loss(k) * Q)
+    part_diags(ponToSed_diag_ind) = PON_sed_loss
     part_diags(popToSed_diag_ind) = (POC%sed_loss(k) * Qp_zoo_pom)
     part_diags(dustToSed_diag_ind) = dust%sed_loss(k)
     part_diags(pfeToSed_diag_ind) = P_iron%sed_loss(k)
@@ -7439,7 +7469,7 @@ contains
   !-----------------------------------------------------------------------
 
   subroutine store_diagnostics_nitrogen_fluxes(k, column_kmt, column_dzt, column_dz, column_zw, &
-       POC, column_denitrif, column_sed_denitrif, &
+       PON_sed_loss, column_denitrif, column_sed_denitrif, &
        auto_cnt, auto_meta, autotroph_secondary_species, &
        zoo_cnt, zoo_meta, dtracer, column_diags)
 
@@ -7452,7 +7482,7 @@ contains
     integer(int_kind), intent(in) :: column_kmt
     real(r8), intent(in) :: column_dzt, column_dz
     real(r8), intent(in) :: column_zw(km)
-    type(column_sinking_particle_type), intent(in) :: POC
+    real(r8), intent(in) :: PON_sed_loss
     real(r8), intent(in) :: column_denitrif
     real(r8), intent(in) :: column_sed_denitrif
     integer(int_kind), intent(in) :: auto_cnt
@@ -7502,7 +7532,7 @@ contains
     end if
     if (k <= column_kmt) then
        ! add back loss to sediments
-       work2 = work2 + POC%sed_loss(k) * Q
+       work2 = work2 + PON_sed_loss
     else
        work2 = work2 + c0
     end if
@@ -7515,7 +7545,7 @@ contains
           work2 = c0
        end if
        if (ztop + column_dzt <= 100.0e2_r8 .and. k <= column_kmt) then
-          work2 = work2 + POC%sed_loss(k) * Q
+          work2 = work2 + PON_sed_loss
        else
           work2 = work2 + c0
        end if
