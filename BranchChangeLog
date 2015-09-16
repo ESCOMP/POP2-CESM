@@ -15,6 +15,16 @@ aux_pop_MARBL:
    tests pass (no baseline) with following exceptions
       debug tests with ciso abort, as expected
 
+D       source/ecosys_share.F90
+M       source/ecosys_mod.F90
+D       source/ecosys_parms.F90
+M       source/ecosys_driver.F90
+M       source/co2calc_column.F90
+M       ChangeLog
+A  +    cimetest/testmods_dirs/pop/cice_ciso
+A  +    cimetest/testmods_dirs/pop/cice_ciso/include_user_mods
+M       cimetest/testlist_pop.xml
+
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
