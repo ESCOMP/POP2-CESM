@@ -4,6 +4,16 @@ SVN $URL$
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    16 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150916a
+Tag Summary: New aux_pop_MARBL test list requires cice_ciso test mod dir
+
+Files Modified:
+A       cimetest/testmods_dirs/pop/cice_ciso
+A       cimetest/testmods_dirs/pop/cice_ciso/include_user_mods
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Sept 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150916
 Tag Summary: * Refactor code to apply pressure correction in co2calc_column.F90
              * Create new aux_pop_MARBL test list to reduce testing overhead
