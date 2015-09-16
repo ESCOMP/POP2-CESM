@@ -2,6 +2,58 @@ SVN $Id$
 SVN $URL$
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150916a
+Tag Summary: New aux_pop_MARBL test list requires cice_ciso test mod dir
+
+Files Modified:
+A       cimetest/testmods_dirs/pop/cice_ciso
+A       cimetest/testmods_dirs/pop/cice_ciso/include_user_mods
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150916
+Tag Summary: * Refactor code to apply pressure correction in co2calc_column.F90
+             * Create new aux_pop_MARBL test list to reduce testing overhead
+               on MARBL-related branches
+
+Files Modified:
+M       cimetest/testlist_pop.xml
+M       source/co2calc_column.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  jwolfe
+Tag Date:    14 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150914
+Tag Summary: Vectorize comp_co3terms in co2calc_column for increased
+             performance
+
+Files Modified:
+M       source/co2calc_column.F90
+M       source/ecosys_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    11 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150911
+Tag Summary: performance mod for ecosys_driver_set_interior
+             * only call set_interior at active ocean cells
+               (not at ghost, halo, or land cells)
+             Note: this causes uninitialized memory errors in
+                   ecosys_ciso_set_interior, so all pop-ciso DEBUG tests fail.
+                   I've added some pop-ecosys DEBUG tests to make sure we
+                   don't introduce any other errors, and once we refactor the
+                   ciso module the original tests should pass again.
+
+Files Modified:
+M       cimetest/testlist_pop.xml
+M       source/ecosys_driver.F90
+D       source/ecosys_parms.F90
+D       source/ecosys_share.F90
+===============================================================================
+Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    10 Sept 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150910

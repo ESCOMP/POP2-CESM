@@ -1,6 +1,23 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    16 Sep 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n06_cesm_pop_2_1_20150916a
+Tag Summary: merge pop2/trunk_tags/cesm_pop_2_1_20150916a to branch
+
+Testing
+aux_pop:
+   tests pass (baseline to n05) with following exceptions
+      BFAIL for new aux_pop tests
+      debug tests with ciso abort, as expected
+
+aux_pop_MARBL:
+   tests pass (no baseline) with following exceptions
+      debug tests with ciso abort, as expected
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    15 Sep 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n05_cesm_pop_2_1_20150910
 Tag Summary: switch PON_bury_coeff default to 0.5
