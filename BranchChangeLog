@@ -2,6 +2,24 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    15 Sep 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n05_cesm_pop_2_1_20150901a
+Tag Summary: switch PON_bury_coeff default to 0.5
+
+also switch caco3_bury_thres_opt to omega_calc in code, should have been done in n02
+
+Testing: aux_pop
+   tests pass
+   non-ecosys baseline comparison to n02 pass
+   nlcomp and baseline comparison to n02 fail for with ecosys (CECO, GECO)
+
+M       source/ecosys_mod.F90
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       BranchChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    15 Sep 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n04_cesm_pop_2_1_20150910
 Tag Summary: introduce PON_bury_coeff
 

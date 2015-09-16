@@ -1228,7 +1228,7 @@
 <caco3_bury_thres_opt>omega_calc</caco3_bury_thres_opt>
 <caco3_bury_thres_depth>3300.0e2</caco3_bury_thres_depth>
 
-<pon_bury_coeff>1.0</pon_bury_coeff>
+<pon_bury_coeff>0.5</pon_bury_coeff>
 
 <!---------------------------->
 <!--    ecosys_parms_nml    -->

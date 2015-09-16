@@ -1195,10 +1195,10 @@ contains
     atm_alt_co2_opt   = 'const'
     atm_alt_co2_const = 280.0_r8
 
-    caco3_bury_thres_opt = 'fixed_depth'
+    caco3_bury_thres_opt = 'omega_calc'
     caco3_bury_thres_depth = 3300.0e2
 
-    PON_bury_coeff = c1
+    PON_bury_coeff = 0.5_r8
 
     lecovars_full_depth_tavg = .false.
 
