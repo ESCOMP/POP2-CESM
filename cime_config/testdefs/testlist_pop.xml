@@ -54,6 +54,7 @@
       <test name="ERI">
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
         <machine compiler="intel" testtype="prealpha" testmods="pop/ecosys">yellowstone</machine>
+        <machine compiler="cray"  testtype="prebeta" testmods="pop/ecosys">edison</machine>
       </test>
       <test name="ERS">
         <machine compiler="intel" testtype="prebeta" testmods="pop/ecosys">hobart</machine>
