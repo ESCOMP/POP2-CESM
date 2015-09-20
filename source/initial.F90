@@ -89,6 +89,7 @@
    use overflows
    use overflow_type
    use running_mean_mod, only: running_mean_init
+   use software_eng_mod, only : lchange_ans, init_software_eng
 
    implicit none
    private
@@ -440,6 +441,14 @@
 !-----------------------------------------------------------------------
 
    call pop_init_coupled
+
+!-----------------------------------------------------------------------
+!
+!  initialize tools for software engineering / development
+!
+!-----------------------------------------------------------------------
+
+   call init_software_eng
 
 !-----------------------------------------------------------------------
 !EOC
