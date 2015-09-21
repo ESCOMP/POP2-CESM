@@ -419,19 +419,11 @@ CONTAINS
     k1 = EXP(arg)
 #endif
 
-    WHERE (pressure_correct)
-       deltaV = -25.5_r8 + 0.1271_r8 * temp
-       Kappa  = (-3.08_r8 + 0.0877_r8 * temp) * p001
-       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
-    ENDWHERE
-#ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
-#else
-    Kfac = EXP(lnKfac)
-#endif
-    WHERE (pressure_correct)
-       k1 = k1 * Kfac
-    ENDWHERE
+    call apply_pressure_correction(num_elements, pressure_correct, temp,      &
+                        press_bar, invRtk,                                    &
+                        deltaV_coefs = (/-25.5_r8, 0.1271_r8, c0/),           &
+                        Kappa_coefs = (/-3.08_r8, 0.0877_r8, c0/),            &
+                        therm_coef = k1)
 
     IF (k1_k2_pH_tot) THEN
        ! total pH scale
@@ -449,19 +441,11 @@ CONTAINS
     k2 = EXP(arg)
 #endif
 
-    WHERE (pressure_correct)
-       deltaV = -15.82_r8 - 0.0219_r8 * temp
-       Kappa  = (1.13_r8 - 0.1475_r8 * temp) * p001
-       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
-    ENDWHERE
-#ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
-#else
-    Kfac = EXP(lnKfac)
-#endif
-    WHERE (pressure_correct)
-       k2 = k2 * Kfac
-    ENDWHERE
+    call apply_pressure_correction(num_elements, pressure_correct, temp,      &
+                        press_bar, invRtk,                                    &
+                        deltaV_coefs = (/-15.82_r8, -0.0219_r8, c0/),         &
+                        Kappa_coefs = (/1.13_r8, -0.1475_r8, c0/),            &
+                        therm_coef = k2)
 
     !---------------------------------------------------------------------------
     !   kb = [H][BO2]/[HBO2]
@@ -483,19 +467,11 @@ CONTAINS
     kb(:) = EXP(arg)
 #endif
 
-    WHERE (pressure_correct)
-       deltaV = -29.48_r8 + (0.1622_r8 - 0.002608_r8 * temp) * temp
-       Kappa  = -2.84_r8 * p001
-       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
-    ENDWHERE
-#ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
-#else
-    Kfac = EXP(lnKfac)
-#endif
-    WHERE (pressure_correct)
-       kb(:) = kb(:) * Kfac
-    ENDWHERE
+    call apply_pressure_correction(num_elements, pressure_correct, temp,      &
+                        press_bar, invRtk,                                    &
+                        deltaV_coefs = (/-29.48_r8, 0.1622_r8, -0.002608_r8/),&
+                        Kappa_coefs = (/-2.84_r8, c0, c0/),                   &
+                        therm_coef = kb)
 
     !---------------------------------------------------------------------------
     !   k1p = [H][H2PO4]/[H3PO4]
@@ -514,19 +490,11 @@ CONTAINS
     k1p(:) = EXP(arg)
 #endif
 
-    WHERE (pressure_correct)
-       deltaV = -14.51_r8 + (0.1211_r8 - 0.000321_r8 * temp) * temp
-       Kappa  = (-2.67_r8 + 0.0427_r8 * temp) * p001
-       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
-    ENDWHERE
-#ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
-#else
-    Kfac = EXP(lnKfac)
-#endif
-    WHERE (pressure_correct)
-       k1p(:) = k1p(:) * Kfac
-    ENDWHERE
+    call apply_pressure_correction(num_elements, pressure_correct, temp,      &
+                        press_bar, invRtk,                                    &
+                        deltaV_coefs = (/-14.51_r8, 0.1211_r8, -0.000321_r8/),&
+                        Kappa_coefs = (/-2.67_r8, 0.0427_r8, c0/),            &
+                        therm_coef = k1p)
 
     !---------------------------------------------------------------------------
     !   k2p = [H][HPO4]/[H2PO4]
@@ -545,19 +513,11 @@ CONTAINS
     k2p(:) = EXP(arg)
 #endif
 
-    WHERE (pressure_correct)
-       deltaV = -23.12_r8 + (0.1758_r8 - 0.002647_r8 * temp) * temp
-       Kappa  = (-5.15_r8 + 0.09_r8 * temp) * p001
-       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
-    ENDWHERE
-#ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
-#else
-    Kfac = EXP(lnKfac)
-#endif
-    WHERE (pressure_correct)
-       k2p(:) = k2p(:) * Kfac
-    ENDWHERE
+    call apply_pressure_correction(num_elements, pressure_correct, temp,      &
+                        press_bar, invRtk,                                    &
+                        deltaV_coefs = (/-23.12_r8, 0.1758_r8, -0.002647_r8/),&
+                        Kappa_coefs = (/-5.15_r8, 0.09_r8, c0/),              &
+                        therm_coef = k2p)
 
     !---------------------------------------------------------------------------
     !   k3p = [H][PO4]/[HPO4]
@@ -575,19 +535,11 @@ CONTAINS
     k3p(:) = EXP(arg)
 #endif
 
-    WHERE (pressure_correct)
-       deltaV = -26.57_r8 + (0.202_r8 - 0.003042_r8 * temp) * temp
-       Kappa  = (-4.08_r8 + 0.0714_r8 * temp) * p001
-       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
-    ENDWHERE
-#ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
-#else
-    Kfac = EXP(lnKfac)
-#endif
-    WHERE (pressure_correct)
-       k3p(:) = k3p(:) * Kfac
-    ENDWHERE
+    call apply_pressure_correction(num_elements, pressure_correct, temp,      &
+                        press_bar, invRtk,                                    &
+                        deltaV_coefs = (/-26.57_r8, 0.202_r8, -0.003042_r8/), &
+                        Kappa_coefs = (/-4.08_r8, 0.0714_r8, c0/),            &
+                        therm_coef = k3p)
 
     !---------------------------------------------------------------------------
     !   ksi = [H][SiO(OH)3]/[Si(OH)4]
@@ -609,19 +561,11 @@ CONTAINS
     ksi(:) = EXP(arg)
 #endif
 
-    WHERE (pressure_correct)
-       deltaV = -29.48_r8 + (0.1622_r8 - 0.002608_r8 * temp) * temp
-       Kappa  = -2.84_r8 * p001
-       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
-    ENDWHERE
-#ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
-#else
-    Kfac = EXP(lnKfac)
-#endif
-    WHERE (pressure_correct)
-       ksi(:) = ksi(:) * Kfac
-    ENDWHERE
+    call apply_pressure_correction(num_elements, pressure_correct, temp,      &
+                        press_bar, invRtk,                                    &
+                        deltaV_coefs = (/-29.48_r8, 0.1622_r8, -0.002608_r8/),&
+                        Kappa_coefs = (/-2.84_r8, c0, c0/),                   &
+                        therm_coef = ksi)
 
     !---------------------------------------------------------------------------
     !   kw = [H][OH]
@@ -642,19 +586,11 @@ CONTAINS
     kw = EXP(arg)
 #endif
 
-    WHERE (pressure_correct)
-       deltaV = -20.02_r8 + (0.1119_r8 - 0.001409_r8 * temp) * temp
-       Kappa  = (-5.13_r8 + 0.0794_r8 * temp) * p001
-       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
-    ENDWHERE
-#ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
-#else
-    Kfac = EXP(lnKfac)
-#endif
-    WHERE (pressure_correct)
-       kw(:) = kw(:) * Kfac
-    ENDWHERE
+    call apply_pressure_correction(num_elements, pressure_correct, temp,      &
+                        press_bar, invRtk,                                    &
+                        deltaV_coefs = (/-20.02_r8, 0.1119_r8, -0.001409_r8/),&
+                        Kappa_coefs = (/-5.13_r8, 0.0794_r8, c0/),            &
+                        therm_coef = kw)
 
     !---------------------------------------------------------------------------
     !   ks = [H][SO4]/[HSO4], free pH scale
@@ -675,19 +611,11 @@ CONTAINS
     ks(:) = EXP(arg)
 #endif
 
-    WHERE (pressure_correct)
-       deltaV = -18.03_r8 + (0.0466_r8 + 0.000316_r8 * temp) * temp
-       Kappa  = (-4.53_r8 + 0.09_r8 * temp) * p001
-       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
-    ENDWHERE
-#ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
-#else
-    Kfac = EXP(lnKfac)
-#endif
-    WHERE (pressure_correct)
-       ks(:) = ks(:) * Kfac
-    ENDWHERE
+    call apply_pressure_correction(num_elements, pressure_correct, temp,      &
+                        press_bar, invRtk,                                    &
+                        deltaV_coefs = (/-18.03_r8, 0.0466_r8, 0.000316_r8/), &
+                        Kappa_coefs = (/-4.53_r8, 0.09_r8, c0/),              &
+                        therm_coef = ks)
 
     !---------------------------------------------------------------------
     !   kf = [H][F]/[HF]
@@ -710,19 +638,11 @@ CONTAINS
     kf(:) = EXP(arg)
 #endif
 
-    WHERE (pressure_correct)
-       deltaV = -9.78_r8 - (0.009_r8 + 0.000942_r8 * temp) * temp
-       Kappa  = (-3.91_r8 + 0.054_r8 * temp) * p001
-       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
-    ENDWHERE
-#ifdef CCSMCOUPLED
-    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
-#else
-    Kfac = EXP(lnKfac)
-#endif
-    WHERE (pressure_correct)
-       kf(:) = kf(:) * Kfac
-    ENDWHERE
+    call apply_pressure_correction(num_elements, pressure_correct, temp,      &
+                        press_bar, invRtk,                                    &
+                        deltaV_coefs = (/-9.78_r8, -0.009_r8, -0.000942_r8/), &
+                        Kappa_coefs = (/-3.91_r8, 0.054_r8, c0/),             &
+                        therm_coef = kf)
 
     !---------------------------------------------------------------------
     !   Calculate concentrations for borate, sulfate, and fluoride
@@ -1321,5 +1241,37 @@ end associate
   END SUBROUTINE comp_co3_sat_vals
 
   !*****************************************************************************
+
+  SUBROUTINE apply_pressure_correction(num_elements, pressure_correct, temp,  &
+                            press_bar, invRtk, deltaV_coefs, Kappa_coefs,     &
+                            therm_coef)
+
+    INTEGER,                     INTENT(IN)    :: num_elements
+    LOGICAL,       DIMENSION(:), INTENT(IN)    :: pressure_correct
+    REAL(KIND=r8), DIMENSION(:), INTENT(IN)    :: temp, press_bar, invRtk
+    REAL(KIND=r8), DIMENSION(0:2), INTENT(IN)  :: deltaV_coefs, Kappa_coefs
+    REAL(KIND=r8), DIMENSION(:), INTENT(INOUT) :: therm_coef
+
+    REAL(KIND=r8), DIMENSION(num_elements) :: deltaV, Kappa, lnKfac, Kfac
+
+    if (.not.any(pressure_correct)) return
+
+    WHERE (pressure_correct)
+       deltaV = deltaV_coefs(0) + (deltaV_coefs(1) + deltaV_coefs(2) * temp) * temp
+       Kappa  = (Kappa_coefs(0) + (Kappa_coefs(1) + Kappa_coefs(2) * temp) * temp) * p001
+       lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
+    ELSEWHERE
+       lnKfac = c0
+    ENDWHERE
+#ifdef CCSMCOUPLED
+    CALL shr_vmath_exp(lnKfac, Kfac, num_elements)
+#else
+    Kfac = EXP(lnKfac)
+#endif
+    WHERE (pressure_correct)
+       therm_coef = therm_coef * Kfac
+    ENDWHERE
+
+  END SUBROUTINE apply_pressure_correction
 
 END MODULE co2calc_column
