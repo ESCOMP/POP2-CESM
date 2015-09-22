@@ -3371,6 +3371,7 @@ contains
       stdout = shr_file_getUnit()
       char_tmp = 'ocn_modelio.nml' // trim(inst_suffix)
       call shr_file_setIO(char_tmp,stdout)
+      call shr_file_setLogUnit (stdout)
    end if
 #endif
 

@@ -21,13 +21,14 @@ module strdata_interface_mod
   use kinds_mod,        only : int_kind
   use domain_size,      only : nx_global
   use domain_size,      only : ny_global
+  use domain_size,      only : km
   use communicate,      only : my_task
   use communicate,      only : master_task
   use POP_IOUnitsMod,   only : inst_name
   use POP_CommMod,      only : POP_communicator
   use POP_MCT_vars_mod, only : POP_MCT_OCNID
-  use POP_MCT_vars_mod, only : POP_MCT_gsMap_o
-  use POP_MCT_vars_mod, only : POP_MCT_dom_o
+  use POP_MCT_vars_mod, only : POP_MCT_gsMap_o, POP_MCT_gsMap3d_o
+  use POP_MCT_vars_mod, only : POP_MCT_dom_o, POP_MCT_dom3d_o
 
   implicit none
   private
@@ -53,11 +54,45 @@ module strdata_interface_mod
 
 contains
 
-  subroutine POP_strdata_create(inputlist)
+  subroutine POP_strdata_create(inputlist,depthflag)
 
     type(strdata_input_type), intent(inout) :: inputlist
+    logical, optional, intent(in) :: depthflag    ! true means 3d data expected
 
-    call shr_strdata_create(inputlist%sdat,name=trim(inputlist%field_name),   &
+    !--- local ---
+    logical :: ldepthflag
+
+    ldepthflag = .false.
+    if (present(depthflag)) then
+       ldepthflag = depthflag
+    endif
+
+    if (ldepthflag) then
+       !--- include nzg and domZvarName in call
+       call shr_strdata_create(inputlist%sdat,name=trim(inputlist%field_name),&
+                            mpicom=POP_communicator,                          &
+                            compid=POP_MCT_OCNID,                             &
+                            gsmap=POP_MCT_gsMap3d_o, ggrid=POP_MCT_dom3d_o,   &
+                            nxg=nx_global, nyg=ny_global, nzg=km,             &
+                            yearFirst=inputlist%year_first,                   &
+                            yearLast=inputlist%year_last,                     &
+                            yearAlign=inputlist%year_align,                   &
+                            offset=0,                                         &
+                            domFilePath='',                                   &
+                            domFileName=inputlist%file_name,                  &
+                            domTvarName='time',                               &
+                            domXvarName='TLONG', domYvarName='TLAT',          &
+                            domZvarName='depth',                              &
+                            domAreaName='TAREA', domMaskName='KMT',           &
+                            FilePath='',                                      &
+                            FileName=(/trim(inputlist%file_name)/),           &
+                            fldListFile=inputlist%field_list,                 &
+                            fldListModel=inputlist%field_list,                &
+                            pio_subsystem=shr_pio_getiosys(inst_name),        &
+                            pio_iotype=shr_pio_getiotype(inst_name),          &
+                            fillalgo='none', mapalgo='none')
+    else
+       call shr_strdata_create(inputlist%sdat,name=trim(inputlist%field_name),&
                             mpicom=POP_communicator,                          &
                             compid=POP_MCT_OCNID,                             &
                             gsmap=POP_MCT_gsMap_o, ggrid=POP_MCT_dom_o,       &
@@ -78,6 +113,7 @@ contains
                             pio_subsystem=shr_pio_getiosys(inst_name),        &
                             pio_iotype=shr_pio_getiotype(inst_name),          &
                             fillalgo='none', mapalgo='none')
+    endif
 
     if (my_task == master_task) then
       call shr_strdata_print(inputlist%sdat)

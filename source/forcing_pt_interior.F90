@@ -23,6 +23,13 @@
    use time_management
    use prognostic
    use grid
+   use strdata_interface_mod
+   use tavg
+   use timers
+   use POP_ErrorMod
+   use POP_GridHorzMod
+   use POP_FieldMod
+   use POP_HaloMod
    use exit_mod
 
    implicit none
@@ -64,6 +71,26 @@
 
    real (r8), dimension(20) :: &
       pt_interior_data_renorm  ! factors to convert to model units
+
+   integer (int_kind) :: &
+      pt_interior_shr_stream_year_first, & ! first year in stream to use
+      pt_interior_shr_stream_year_last,  & ! last year in stream to use
+      pt_interior_shr_stream_year_align    ! align pt_interior_shr_stream_year_first with this model year
+
+   character(char_len) :: &
+      pt_interior_shr_stream_file          ! file containing domain and input data
+
+   integer (int_kind) :: &
+      pt_interior_shr_stream_temp_ind      ! index into the stream av for temp
+
+   integer (int_kind) :: &
+      tavg_INTERIOR_T                      ! tavg id for PT_INTERIOR_DATA
+
+   type(strdata_input_type) :: &
+      pt_inputlist                         ! pop stream datatype
+
+   integer (int_kind) :: &
+      pt_interior_shr_strdata_advance_timer  ! timer
 
    real (r8) ::                &
       pt_interior_data_inc,    &! time increment between values of forcing data
@@ -154,7 +181,11 @@
         pt_interior_file_fmt,         pt_interior_restore_max_level,   &
         pt_interior_data_renorm,      pt_interior_formulation,         &
         pt_interior_variable_restore, pt_interior_restore_filename,    &
-        pt_interior_restore_file_fmt, pt_interior_surface_restore
+        pt_interior_restore_file_fmt, pt_interior_surface_restore,     &
+        pt_interior_shr_stream_year_first,                             &
+        pt_interior_shr_stream_year_last,                              &
+        pt_interior_shr_stream_year_align,                             &
+        pt_interior_shr_stream_file
 
 !-----------------------------------------------------------------------
 !
@@ -178,6 +209,10 @@
    pt_interior_restore_filename  = 'unknown-pt_interior_restore'
    pt_interior_restore_filename  = 'bin'
    pt_interior_surface_restore   = .false.
+   pt_interior_shr_stream_year_first = 1
+   pt_interior_shr_stream_year_last  = 1
+   pt_interior_shr_stream_year_align = 1
+   pt_interior_shr_stream_file       = 'unknown'
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old', iostat=nml_error)
@@ -213,6 +248,10 @@
    call broadcast_scalar(pt_interior_restore_file_fmt,  master_task)
    call broadcast_scalar(pt_interior_surface_restore,   master_task)
    call broadcast_array (pt_interior_data_renorm,       master_task)
+   call broadcast_scalar(pt_interior_shr_stream_year_first, master_task)
+   call broadcast_scalar(pt_interior_shr_stream_year_last , master_task)
+   call broadcast_scalar(pt_interior_shr_stream_year_align, master_task)
+   call broadcast_scalar(pt_interior_shr_stream_file      , master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -452,6 +491,30 @@
       if (pt_interior_data_renorm(1) /= c1) &
          PT_INTERIOR_DATA = PT_INTERIOR_DATA*pt_interior_data_renorm(1)
 
+   case ('shr_stream')
+      allocate(PT_INTERIOR_DATA(nx_block,ny_block,km, &
+                                max_blocks_clinic,1))
+      PT_INTERIOR_DATA = c0
+
+      pt_inputlist%field_name = 'pt data'
+      pt_inputlist%short_name = 'pt'
+      pt_inputlist%year_first = pt_interior_shr_stream_year_first
+      pt_inputlist%year_last  = pt_interior_shr_stream_year_last
+      pt_inputlist%year_align = pt_interior_shr_stream_year_align
+      pt_inputlist%file_name  = pt_interior_shr_stream_file
+      pt_inputlist%field_list = 'TEMP'
+      pt_interior_shr_stream_temp_ind = 1
+
+      !--- moved to "get" interface because gsmap and other data not yet set
+      !--- call POP_strdata_create(pt_inputlist,depthflag=.true.)
+ 
+      call get_timer(pt_interior_shr_strdata_advance_timer, &
+                     'pt_interior_shr_strdata_advance',1, distrb_clinic%nprocs)
+      if (my_task == master_task) then
+         write(stdout,blank_fmt)
+         write(stdout,'(a)') ' Interior PT shr_stream option: '
+      endif
+
    case default
 
      call exit_POP(sigAbort, &
@@ -555,6 +618,16 @@
 
 !-----------------------------------------------------------------------
 !
+!  tavg fields
+!
+!-----------------------------------------------------------------------
+
+   call define_tavg_field(tavg_INTERIOR_T,'INTERIOR_T',3,                      &
+                          long_name='T values of interior restoring data', &
+                          units='degC', grid_loc='3111',         &
+                          coordinates='TLONG TLAT z_t time')
+!-----------------------------------------------------------------------
+!
 !  echo forcing options to stdout.
 !
 !-----------------------------------------------------------------------
@@ -595,6 +668,15 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
+
+   type (block) :: &
+      this_block      ! block info for the current block
+
+   integer (int_kind) :: &
+      i,j,k,iblock,n, &    ! loop indices
+      errorcode            ! error code
+
+   logical (log_kind) :: first_call_strdata_create = .true.
 
 !-----------------------------------------------------------------------
 !
@@ -663,6 +745,45 @@
          if (nsteps_run /= 0) pt_interior_interp_next = &
                               pt_interior_interp_next + &
                               pt_interior_interp_inc
+      endif
+
+   case ('shr_stream')
+
+      if (first_call_strdata_create) then
+         call POP_strdata_create(pt_inputlist,depthflag=.true.)
+      endif
+      first_call_strdata_create = .false.
+
+      pt_inputlist%date = iyear*10000 + imonth*100 + iday
+      pt_inputlist%time = isecond + 60 * (iminute + 60 * ihour)
+      call timer_start(pt_interior_shr_strdata_advance_timer)
+      call POP_strdata_advance(pt_inputlist) 
+      call timer_stop(pt_interior_shr_strdata_advance_timer)
+
+      ! process interior restoring
+
+      PT_INTERIOR_DATA(:,:,:,:,:) = c0
+      n = 0
+      do k=1,km
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+            PT_INTERIOR_DATA(i,j,k,iblock,1) = &
+               pt_inputlist%sdat%avs(1)%rAttr(pt_interior_shr_stream_temp_ind,n)
+         enddo
+         enddo
+      enddo
+      enddo
+
+      call POP_HaloUpdate(PT_INTERIOR_DATA(:,:,:,:,1),POP_haloClinic, &
+                          POP_gridHorzLocCenter,          &
+                          POP_fieldKindScalar, errorCode, &
+                          fillValue = 0.0_POP_r8)
+      if (errorCode /= POP_Success) then
+         call exit_POP(sigAbort, 'get_pt_interior_data' /&
+            &/ ': error updating halo for pt fields')
       endif
 
    end select
@@ -742,6 +863,9 @@
       case('n-hour')
          now = 0
 
+      case('shr_stream')
+         now = 1
+
       end select
 
 !-----------------------------------------------------------------------
@@ -749,6 +873,9 @@
 !     now compute restoring
 !
 !-----------------------------------------------------------------------
+
+      !--- tcraig this is generally called for all k except k=1
+      call accumulate_tavg_field(PT_INTERIOR_DATA(:,:,k,bid,now), tavg_INTERIOR_T, bid, k)
 
       if (pt_interior_variable_restore) then
          DPT_INTERIOR = PT_RESTORE_RTAU(:,:,bid)*                &
