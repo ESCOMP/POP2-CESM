@@ -1,5 +1,131 @@
-SVN $Id$
-SVN $URL$
+===============================================================================
+Tag Creator: mvertens
+Developers:  mvertens
+Tag Date:    23 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150923
+Tag Summary: Updates for compatibility with cime3.0.5 and later
+
+Testing: Ran aux_pop pre-intel tests and compared to aux_pop_120916a
+	 All tests ran successfully other than the following:
+Baseline failures (unexpected):	
+FAIL SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys.cpl.hi.nc : baseline compare cpl.hi (baseline: compare .base file with aux_pop_120916a file) 
+	
+Run time failures (expected- see 9/11/2015 log entry):	
+RUN ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14.C.150921-232853 
+RUN ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14.C.150921-232853 
+	
+	
+Files Modified/Added/Removed:
+	
+M       source/POP_SolversMod.F90
+M       source/vmix_kpp.F90
+	
+M       bld/configure
+D       bld/pop.buildlib
+D       bld/pop.buildnml
+M       bld/README.build-namelist
+D       bld/user_nl_pop
+M       bld/build-namelist
+M       bld/namelist_files/namelist_definition_pop.xml
+	
+A  +    cime_config
+A  +    cime_config/config_compsets.xml
+A  +    cime_config/testdefs
+A  +    cime_config/testdefs/testmods_dirs
+A  +    cime_config/testdefs/testmods_dirs/pop
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ciso
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ciso/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/presaero
+A  +    cime_config/testdefs/testmods_dirs/pop/presaero/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/presaero/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/cice
+A  +    cime_config/testdefs/testmods_dirs/pop/cice/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/cice/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/cice/user_nl_cice
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_transient
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_transient/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_transient/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_transient
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_transient/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_transient/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/default
+A  +    cime_config/testdefs/testmods_dirs/pop/default/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/default/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_3steps
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_3steps/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_3steps/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ecosys
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ecosys/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_abio_dic_dic14
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_abio_dic_dic14/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_presaero
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_presaero/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_presaero/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso/shell_commands
+A  +    cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/user_nl_pop
+A  +    cime_config/buildlib
+A  +    cime_config/buildnml
+A  +    cime_config/config_component.xml
+A  +    cime_config/config_pes.xml
+D       cimetest
+D       cimetest/testmods_dirs
+D       cimetest/testmods_dirs/pop
+D       cimetest/testmods_dirs/pop/cice_ciso
+D       cimetest/testmods_dirs/pop/cice_ciso/include_user_mods
+D       cimetest/testmods_dirs/pop/presaero
+D       cimetest/testmods_dirs/pop/presaero/include_user_mods
+D       cimetest/testmods_dirs/pop/presaero/shell_commands
+D       cimetest/testmods_dirs/pop/cice
+D       cimetest/testmods_dirs/pop/cice/include_user_mods
+D       cimetest/testmods_dirs/pop/cice/shell_commands
+D       cimetest/testmods_dirs/pop/cice/user_nl_cice
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_transient
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_transient/include_user_mods
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_transient/user_nl_pop
+D       cimetest/testmods_dirs/pop/ciso_transient
+D       cimetest/testmods_dirs/pop/ciso_transient/include_user_mods
+D       cimetest/testmods_dirs/pop/ciso_transient/user_nl_pop
+D       cimetest/testmods_dirs/pop/default
+D       cimetest/testmods_dirs/pop/default/user_nl_pop
+D       cimetest/testmods_dirs/pop/default/shell_commands
+D       cimetest/testmods_dirs/pop/ecosys
+D       cimetest/testmods_dirs/pop/ecosys/include_user_mods
+D       cimetest/testmods_dirs/pop/ecosys/shell_commands
+D       cimetest/testmods_dirs/pop/ecosys_3steps
+D       cimetest/testmods_dirs/pop/ecosys_3steps/user_nl_pop
+D       cimetest/testmods_dirs/pop/ecosys_3steps/shell_commands
+D       cimetest/testmods_dirs/pop/ecosys_restore_gx3v7
+D       cimetest/testmods_dirs/pop/ecosys_restore_gx3v7/include_user_mods
+D       cimetest/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+D       cimetest/testmods_dirs/pop/cice_ecosys
+D       cimetest/testmods_dirs/pop/cice_ecosys/include_user_mods
+D       cimetest/testmods_dirs/pop/ciso_abio_dic_dic14
+D       cimetest/testmods_dirs/pop/ciso_abio_dic_dic14/include_user_mods
+D       cimetest/testmods_dirs/pop/abio_dic_dic14
+D       cimetest/testmods_dirs/pop/abio_dic_dic14/include_user_mods
+D       cimetest/testmods_dirs/pop/abio_dic_dic14/shell_commands
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_presaero
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_presaero/include_user_mods
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_presaero/shell_commands
+D       cimetest/testmods_dirs/pop/ciso
+D       cimetest/testmods_dirs/pop/ciso/include_user_mods
+D       cimetest/testmods_dirs/pop/ciso/shell_commands
+D       cimetest/testlist_pop.xml
+A       cimetest/testmods_dirs/pop/cice_ciso
+A       cimetest/testmods_dirs/pop/cice_ciso/include_user_mods
+	
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy

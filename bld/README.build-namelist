@@ -309,11 +309,11 @@ build-namelist has four perl objects that it uses
 
        my $nl = Build::Namelist->new();
 
---- Required $SCRIPTSROOT/../perl5lib/ perl files  ---
+--- Required $CIMEROOT/utils/perl5lib/ perl files  ---
 
 The root directory for the perl5 required utilities is
 
-  my $perl5lib_dir = "${SCRIPTSROOT}/../perl5lib";
+  my $perl5lib_dir = "${CIMEROOT}/utils/perl5lib";
 
 This directory contains all the required perl files:
 

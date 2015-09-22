@@ -730,7 +730,7 @@
                    .or.  trim(solverChoice) == solverChoicePCSI)) then
       call POP_ErrorSet(errorCode, &
       'POP_SolversInit: Matsnuo timestep is not supported in &
-       PCSI solver or EVP preconditioning')
+       &PCSI solver or EVP preconditioning')
       return
    endif
 
@@ -2608,7 +2608,7 @@
      write(POP_stdout,*) 'maxvalr ', maxvalr
      call POP_ErrorSet(errorCode, &
           'POP_EXPLICITPRE: error in computing the inverse, error > 1.0e-8 ;&
-           Check EVP sub-block size!')
+           &Check EVP sub-block size!')
      return
    endif 
 
