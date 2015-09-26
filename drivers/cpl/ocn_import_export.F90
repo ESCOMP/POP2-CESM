@@ -40,6 +40,8 @@ module ocn_import_export
    use prognostic
    use time_management
    use registry
+   ! QL, 150526, ocn<->wav
+   use vmix_kpp,          only: KPP_HBLT      ! ocn -> wav, bounadry layer depth
 
    implicit none
    public
@@ -223,6 +225,26 @@ contains
          !***  converting from m**2/s**2 to cm**2/s**2
          WORKB(i,j       ) = x2o(index_x2o_So_duu10n,n)
          U10_SQR(i,j,iblock) = cmperm * cmperm * WORKB(i,j) * RCALCT(i,j,iblock)
+         
+         ! QL, 150526, langmuir mixing variables
+         ! QL, 150908, only apply enhancement factor to ice-free region
+         if (IFRAC(i,j,iblock) <= 0.05_r8) then
+            ! import enhancement factor (unitless)
+            WORKB(i,j       ) = x2o(index_x2o_Sw_lamult,n)
+            LAMULT(i,j,iblock) = WORKB(i,j)*RCALCT(i,j,iblock)
+         else
+            LAMULT(i,j,iblock) = c1
+         endif
+         ! QL, 150706, DEBUG
+         !print*, "LAMULT = ", LAMULT(i,j,iblock)  
+         !print*, "RCALCT = ", RCALCT(i,j,iblock)  
+         !print*, "WORKB = ", WORKB(i,j)  
+         !! DEBUG
+         ! import surface Stokes drift (m/s)
+         WORKB(i,j       ) = x2o(index_x2o_Sw_ustokes,n)
+         USTOKES(i,j,iblock) = WORKB(i,j)*RCALCT(i,j,iblock)
+         WORKB(i,j       ) = x2o(index_x2o_Sw_vstokes,n)
+         VSTOKES(i,j,iblock) = WORKB(i,j)*RCALCT(i,j,iblock)
 
       enddo
       enddo
@@ -490,6 +512,24 @@ contains
 
 !-----------------------------------------------------------------------
 !
+!    QL, 150526, convert and pack boundary layer depth
+!
+!-----------------------------------------------------------------------
+
+   n = 0
+   do iblock = 1, nblocks_clinic
+      this_block = get_block(blocks_clinic(iblock),iblock)
+      do j=this_block%jb,this_block%je
+      do i=this_block%ib,this_block%ie
+         n = n + 1
+         o2x(index_o2x_So_bldepth,n) =   &
+             SBUFF_SUM(i,j,iblock,index_o2x_So_bldepth)/100./tlast_coupled
+      enddo
+      enddo
+   enddo
+
+!-----------------------------------------------------------------------
+!
 !     interpolate onto T-grid points, then rotate on T grid
 !
 !-----------------------------------------------------------------------
@@ -733,6 +773,11 @@ contains
    SBUFF_SUM(:,:,iblock,index_o2x_So_dhdy) =   &
       SBUFF_SUM(:,:,iblock,index_o2x_So_dhdy) + delt*  &
                                    GRADPY(:,:,curtime,iblock)
+
+   ! QL, 150526, boundary layer depth
+   SBUFF_SUM(:,:,iblock,index_o2x_So_bldepth) =   &
+      SBUFF_SUM(:,:,iblock,index_o2x_So_bldepth) + delt*  &
+                                   KPP_HBLT(:,:,iblock)
 
    if (index_o2x_Faoo_fco2_ocn > 0 .and. sflux_co2_nf_ind > 0) then
       call named_field_get(sflux_co2_nf_ind, iblock, WORK(:,:,iblock))

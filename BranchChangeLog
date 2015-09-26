@@ -1,0 +1,59 @@
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    19 May 2015
+Tag Name:    pop2/branch_tags/vertical_mix_updates_tags/vertical_mix_updates_n05_cesm_pop_2_1_20150506/
+Tag Summary: Use v0.67-beta tag of CVMix (fix a bug that caused seg-faults)
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    19 May 2015
+Tag Name:    pop2/branch_tags/vertical_mix_updates_tags/vertical_mix_updates_n04_cesm_pop_2_1_20150506/
+Tag Summary: Update to make sure HBLT is computed via CVMix rather than POP. Note
+             that I found a bug in CVMix v0.66-beta so for the moment this tag
+             doesn't run with lcvmix=.true. -- will fix in n05 by updating to
+             v0.67-beta.
+
+Files Modified:
+M       source/vmix_kpp.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    17 May 2015
+Tag Name:    pop2/branch_tags/vertical_mix_updates_tags/vertical_mix_updates_n03_cesm_pop_2_1_20150506/
+Tag Summary: If lcvmix=.true. then use cvmix to compute OBL depth
+
+Files Modified:
+M       source/vmix_kpp.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    15 May 2015
+Tag Name:    pop2/branch_tags/vertical_mix_updates_tags/vertical_mix_updates_n02_cesm_pop_2_1_20150506/
+Tag Summary: Change surface layer computation to use 10% of zt instead of the
+             top level for reference values (Br, Vr, and d-dr)
+
+Files Modified:
+M       source/vmix_kpp.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 May 2015
+Tag Name:    pop2/branch_tags/vertical_mix_updates_tags/vertical_mix_updates_n01_cesm_pop_2_1_20150506/
+Tag Summary: Update CVMix to latest version (v0.66-beta)
+
+Files Modified:
+ M      .
+M       SVN_EXTERNAL_DIRECTORIES
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    10 May 2015
+Tag Name:    pop2/branch_tags/vertical_mix_updates_tags/vertical_mix_updates_n00_cesm_pop_2_1_20150506/
+Tag Summary: initial branch tag, same as cesm_pop_2_1_20150506
+
+===============================================================================

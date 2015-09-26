@@ -1643,16 +1643,6 @@ Default: .true.
 </entry>
 
 <entry 
-id="llangmuir"
-type="logical"
-category="kpp"
-group="vmix_kpp_nml" >
-Flag for using Langmuir parameterization.
-
-Default: .false.
-</entry>
-
-<entry 
 id="linertial"
 type="logical"
 category="kpp"
@@ -1670,6 +1660,18 @@ group="vmix_kpp_nml" >
 Flag for using CVMix for mixing instead of POP routines
 
 Default: .false.
+</entry>
+
+<!--QL, 150526, Langmuir mixing options-->
+<entry 
+id="langmuir_opt"
+type="char*256"
+category="kpp"
+group="vmix_kpp_nml" >
+Langmuir mixing parameterization option.
+
+Valid Values: 'null', 'vr12-ma', 'vr12-en'
+Default: 'null'
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
