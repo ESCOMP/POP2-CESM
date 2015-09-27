@@ -143,6 +143,12 @@
    integer (int_kind) :: &
       tavg_WVEL,         &! Vertical Velocity
       tavg_WVEL2,        &! Vertical Velocity Squared
+      tavg_UTE_POS,      &! max(UTE,0)
+      tavg_UTE_NEG,      &! min(UTE,0)
+      tavg_VTN_POS,      &! max(VTN,0)
+      tavg_VTN_NEG,      &! min(VTN,0)
+      tavg_WTK_POS,      &! max(WTK,0)
+      tavg_WTK_NEG,      &! min(WTK,0)
       tavg_UEU,          &! flux of zonal momentum across east  face
       tavg_VNU,          &! flux of zonal momentum across north face
       tavg_WTU,          &! flux of zonal momentum across top   face
@@ -168,7 +174,8 @@
       tavg_ADV_TRACER,   &! vertical average of tracer advective tendency
       tavg_UE_TRACER,    &! flux of tracer across east  face
       tavg_VN_TRACER,    &! flux of tracer across north face
-      tavg_WT_TRACER      ! flux of tracer across top   face
+      tavg_WT_TRACER,    &! flux of tracer across top   face
+      tavg_ADV_3D_TRACER  ! tracer advective tendency
 
 !-----------------------------------------------------------------------
 !
@@ -250,6 +257,9 @@
 
    type (block) ::        &
       this_block          ! block information for current block
+
+   character (char_len) :: &
+      units_string        ! units string for tavg calls
 
 !-----------------------------------------------------------------------
 !
@@ -722,6 +732,42 @@
                           units='centimeter^2/s^2', grid_loc='3112',       &
                           coordinates='TLONG TLAT z_w time')
 
+   if (partial_bottom_cells) then
+      units_string = 'centimeter^3/s'
+   else
+      units_string = 'centimeter^2/s'
+   endif
+
+   call define_tavg_field(tavg_UTE_POS,'UTE_POS',3,                    &
+                          long_name='max(UTE,0)',                      &
+                          units=units_string, grid_loc='3211',         &
+                          coordinates='ULONG TLAT z_t time')
+
+   call define_tavg_field(tavg_UTE_NEG,'UTE_NEG',3,                    &
+                          long_name='min(UTE,0)',                      &
+                          units=units_string, grid_loc='3211',         &
+                          coordinates='ULONG TLAT z_t time')
+
+   call define_tavg_field(tavg_VTN_POS,'VTN_POS',3,                    &
+                          long_name='max(VTN,0)',                      &
+                          units=units_string, grid_loc='3121',         &
+                          coordinates='TLONG ULAT z_t time')
+
+   call define_tavg_field(tavg_VTN_NEG,'VTN_NEG',3,                    &
+                          long_name='min(VTN,0)',                      &
+                          units=units_string, grid_loc='3121',         &
+                          coordinates='TLONG ULAT z_t time')
+
+   call define_tavg_field(tavg_WTK_POS,'WTK_POS',3,                    &
+                          long_name='max(WTK,0)',                      &
+                          units='centimeter/s', grid_loc='3112',       &
+                          coordinates='TLONG TLAT z_w_top time')
+
+   call define_tavg_field(tavg_WTK_NEG,'WTK_NEG',3,                    &
+                          long_name='min(WTK,0)',                      &
+                          units='centimeter/s', grid_loc='3112',       &
+                          coordinates='TLONG TLAT z_w_top time')
+
    call define_tavg_field(tavg_UEU,'UEU',3,                            &
                           long_name='East Flux of Zonal Momentum',     &
                           units='cm/s^2', grid_loc='3321')
@@ -832,6 +878,20 @@
                              scale_factor=tracer_d(n)%scale_factor,    &
                              grid_loc='2110',                          &
                              coordinates='TLONG TLAT time' )
+
+   end do
+
+   do n=1,nt
+
+      call define_tavg_field(tavg_ADV_3D_TRACER(n),                    &
+                             'ADV_3D_' /&
+                                     &/ trim(tracer_d(n)%short_name),3,&
+                             long_name=trim(tracer_d(n)%short_name)   /&
+                                     &/' Advection Tendency',          &
+                             units=trim(tracer_d(n)%tend_units),       &
+                             scale_factor=tracer_d(n)%scale_factor,    &
+                             grid_loc='3111',                          &
+                             coordinates='TLONG TLAT z_t time' )
 
    end do
 
@@ -1690,6 +1750,24 @@
       call accumulate_tavg_field(WTK,tavg_WVEL,bid,k)
       call accumulate_tavg_field(WTK**2,tavg_WVEL2,bid,k)
 
+      WORK = max(UTE,c0)
+      call accumulate_tavg_field(WORK,tavg_UTE_POS,bid,k)
+
+      WORK = min(UTE,c0)
+      call accumulate_tavg_field(WORK,tavg_UTE_NEG,bid,k)
+
+      WORK = max(VTN,c0)
+      call accumulate_tavg_field(WORK,tavg_VTN_POS,bid,k)
+
+      WORK = min(VTN,c0)
+      call accumulate_tavg_field(WORK,tavg_VTN_NEG,bid,k)
+
+      WORK = max(WTK,c0)
+      call accumulate_tavg_field(WORK,tavg_WTK_POS,bid,k)
+
+      WORK = min(WTK,c0)
+      call accumulate_tavg_field(WORK,tavg_WTK_NEG,bid,k)
+
       do n=1,nt
          if (tadvect_itype(n) == tadvect_centered) then
 
@@ -1741,6 +1819,13 @@
             end do
          endif
          call accumulate_tavg_field(WORK,tavg_ADV_TRACER(n),bid,k)
+
+         where (k <= KMT(:,:,bid))
+            WORK = -LTK(:,:,n)
+         elsewhere
+            WORK = c0
+         end where
+         call accumulate_tavg_field(WORK,tavg_ADV_3D_TRACER(n),bid,k)
 
       enddo
 

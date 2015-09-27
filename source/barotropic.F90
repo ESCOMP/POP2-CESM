@@ -29,14 +29,14 @@
    use domain, only: distrb_clinic, blocks_clinic, nblocks_clinic,  &
        POP_haloClinic
    use constants, only: field_type_vector, field_type_scalar,       &
-       grav, c1, c0, field_loc_NEcorner, field_loc_center
+       grav, c1, c0, c2,field_loc_NEcorner, field_loc_center
    use prognostic, only: max_blocks_clinic, GRADPX, GRADPY, UBTROP, VBTROP, &
        PSURF, curtime, oldtime, newtime, PGUESS
    use operators, only: grad, div
    use grid, only: sfc_layer_type, sfc_layer_varthick, TAREA, REGION_MASK,    &
           KMT, FCOR, HU, CALCT, sfc_layer_rigid, sfc_layer_oldfree 
    use time_management, only: mix_pass, leapfrogts, impcor, c2dtu, theta,     &
-          gamma, f_euler_ts, beta, c2dtp, dtp
+          gamma, alpha,f_euler_ts, beta, c2dtp, dtp
    use global_reductions, only: global_sum
    use forcing_fields, only: ATM_PRESS, FW
    use forcing_ap, only: ap_data_type
@@ -130,12 +130,18 @@
    real (r8) :: & 
       acheck    ! sum(CHECKER*TAREA)/sum(CONSTNT*TAREA)
 
+   real (r8), dimension(nx_block,ny_block) :: &
+      diagonalCorrection     ! time dependent correction to operator
+
    real (r8), dimension(:,:,:), allocatable :: & 
       CHECK_AREA,    &! TAREA*CHEKER
       CONST_AREA      ! TAREA*CONSTNT
 
    type (block) :: &
       this_block   ! block information for this block
+
+   integer (POP_i4) :: &
+      errorCode          ! returned error code
 
 !-----------------------------------------------------------------------
 !
@@ -221,6 +227,32 @@
       deallocate(CHECK_AREA, CONST_AREA)
 
    endif ! varthick
+
+   ! prepare for solver preprocessing
+   do iblock = 1,nblocks_clinic
+      select case (sfc_layer_type)
+
+      case(sfc_layer_varthick)
+         diagonalCorrection(:,:) =                                       & 
+                        merge(TAREA(:,:,iblock)/(alpha*c2*dtp*dtp*grav), &
+                              c0,CALCT(:,:,iblock))
+
+      case(sfc_layer_rigid)
+         diagonalCorrection(:,:) = 0.0_POP_r8
+
+      case(sfc_layer_oldfree)
+         diagonalCorrection(:,:) =                                       &
+                        merge(TAREA(:,:,iblock)/(alpha*c2*dtp*dtp*grav), &
+                              c0,CALCT(:,:,iblock))
+
+      end select
+
+      call POP_SolversDiagonal(diagonalCorrection, iblock, errorCode)
+
+    end do ! iblock
+
+
+
 
 !-----------------------------------------------------------------------
 !EOC

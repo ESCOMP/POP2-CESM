@@ -88,6 +88,8 @@
 #endif
    use overflows
    use overflow_type
+   use running_mean_mod, only: running_mean_init
+   use software_eng_mod, only : lchange_ans, init_software_eng
 
    implicit none
    private
@@ -361,6 +363,22 @@
 
 !-----------------------------------------------------------------------
 !
+!  Preprocessing barotropic elliptic solver
+!
+!-----------------------------------------------------------------------
+
+   call POP_SolversPrep(errorCode)
+  
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_Init: error preprocessing solvers')
+      return
+   endif
+
+
+
+!-----------------------------------------------------------------------
+!
 !  initialize prognostic fields
 !
 !-----------------------------------------------------------------------
@@ -425,6 +443,14 @@
    call pop_init_coupled
 
 !-----------------------------------------------------------------------
+!
+!  initialize tools for software engineering / development
+!
+!-----------------------------------------------------------------------
+
+   call init_software_eng
+
+!-----------------------------------------------------------------------
 !EOC
 
  end subroutine pop_init_phase1
@@ -482,6 +508,14 @@
          'init_phase2: error in init_passive_tracers')
       return
    endif
+
+!-----------------------------------------------------------------------
+!
+!  initialize running mean module, only necessary for test mode
+!
+!-----------------------------------------------------------------------
+
+   call running_mean_init(init_ts_file_fmt, read_restart_filename)
 
 !-----------------------------------------------------------------------
 !

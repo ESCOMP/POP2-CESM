@@ -51,7 +51,8 @@
        ecosys_driver_set_sflux,           &
        ecosys_driver_tavg_forcing,        &
        ecosys_driver_set_interior,        &
-       ecosys_driver_write_restart
+       ecosys_driver_write_restart,       &
+       ecosys_driver_unpack_source_sink_terms
 
    use cfc_mod, only:              &
        cfc_tracer_cnt,             &
@@ -86,6 +87,10 @@
        abio_dic_dic14_set_interior,   &
        abio_dic_dic14_write_restart
 
+   use IRF_mod, only: IRF_tracer_cnt
+   use IRF_mod, only: IRF_init
+   use IRF_mod, only: IRF_reset
+
    implicit none
    private
    save
@@ -114,6 +119,9 @@
 !-----------------------------------------------------------------------
 !  tavg ids for automatically generated tavg passive-tracer fields
 !-----------------------------------------------------------------------
+
+   integer (int_kind), dimension(nt), public :: &
+      tavg_TEND_TRACER    ! tavg id for tracer tendency
 
    integer (int_kind), dimension (3:nt) ::  &
       tavg_var,                 & ! tracer
@@ -151,23 +159,24 @@
 
    logical (kind=log_kind) ::  &
       ecosys_on, cfc_on, iage_on, moby_on, &
-      abio_dic_dic14_on, ciso_on
+      abio_dic_dic14_on, ciso_on, IRF_on
 
    namelist /passive_tracers_on_nml/  &
       ecosys_on, cfc_on, iage_on, moby_on, &
-      abio_dic_dic14_on, ciso_on
+      abio_dic_dic14_on, ciso_on, IRF_on
 
 
 !-----------------------------------------------------------------------
 !     index bounds of passive tracer module variables in TRACER
 !-----------------------------------------------------------------------
 
-   integer (kind=int_kind) ::                           &
-      ecosys_driver_ind_begin,  ecosys_driver_ind_end,  &
-      iage_ind_begin,           iage_ind_end,           &
-      cfc_ind_begin,            cfc_ind_end,            &
-      moby_ind_begin,            moby_ind_end,          &
-      abio_dic_dic14_ind_begin,  abio_dic_dic14_ind_end
+   integer (kind=int_kind) ::                            &
+      ecosys_driver_ind_begin,   ecosys_driver_ind_end,  &
+      iage_ind_begin,            iage_ind_end,           &
+      cfc_ind_begin,             cfc_ind_end,            &
+      moby_ind_begin,            moby_ind_end,           &
+      abio_dic_dic14_ind_begin,  abio_dic_dic14_ind_end, &
+      IRF_ind_begin,             IRF_ind_end
 
 !-----------------------------------------------------------------------
 !  filtered SST and SSS, if needed
@@ -179,6 +188,9 @@
       SST_FILT,      & ! SST with time filter applied, [degC]
       SSS_FILT         ! SSS with time filter applied, [psu]
 
+   real(r8), dimension(:, :, :, :, :), pointer :: &
+        ecosys_source_sink_3d ! (nx_block, ny_block, km, nt, nblocks_clinic)
+   
 !EOC
 !***********************************************************************
 
@@ -243,6 +255,7 @@
    iage_on           = .false.
    moby_on           = .false.
    abio_dic_dic14_on = .false.
+   IRF_on            = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old', iostat=nml_error)
@@ -280,6 +293,7 @@
    call broadcast_scalar(iage_on,           master_task)
    call broadcast_scalar(moby_on,           master_task)
    call broadcast_scalar(abio_dic_dic14_on, master_task)
+   call broadcast_scalar(IRF_on,            master_task)
 
 !-----------------------------------------------------------------------
 !  check if ecosys_on = true if ciso_on = true, otherwise abort
@@ -347,6 +361,11 @@
                               abio_dic_dic14_ind_begin, abio_dic_dic14_ind_end)
    end if
 
+   if (IRF_on) then
+      call set_tracer_indices('IRF', IRF_tracer_cnt, cumulative_nt,  &
+                              IRF_ind_begin, IRF_ind_end)
+   end if
+
    if (cumulative_nt /= nt) then
       call document(subname, 'nt', nt)
       call document(subname, 'cumulative_nt', cumulative_nt)
@@ -382,6 +401,8 @@
             'init_passive_tracers: error in ecosys_driver_init')
          return
       endif
+
+      allocate(ecosys_source_sink_3d(nx_block, ny_block, km, nt, nblocks_clinic))
 
    end if
 
@@ -457,6 +478,15 @@
          return
       endif
 
+   end if
+
+!-----------------------------------------------------------------------
+!  IRF (IRF) block
+!-----------------------------------------------------------------------
+
+   if (IRF_on) then
+      call IRF_init(tracer_d(IRF_ind_begin:IRF_ind_end), &
+                    TRACER(:,:,:,IRF_ind_begin:IRF_ind_end,:,:))
    end if
 
 !-----------------------------------------------------------------------
@@ -624,6 +654,17 @@
                              coordinates='TLONG TLAT time')
    enddo
 
+   do n=1,nt
+     call define_tavg_field(tavg_TEND_TRACER(n), 'TEND_' /&
+                                           &/ trim(tracer_d(n)%short_name),3, &
+                            long_name='Tendency of Thickness Weighted '/&
+                                           &/ trim(tracer_d(n)%short_name),   &
+                            units=trim(tracer_d(n)%tend_units),               &
+                            scale_factor=tracer_d(n)%scale_factor,            &
+                            grid_loc='3111',                                  &
+                            coordinates='TLONG TLAT z_t time')
+   end do
+
 !-----------------------------------------------------------------------
 !  allocate and initialize storage for virtual fluxes
 !-----------------------------------------------------------------------
@@ -697,18 +738,15 @@
    bid = this_block%local_id
 
 !-----------------------------------------------------------------------
-!  ECOSYS  DRIVER block
-!-----------------------------------------------------------------------
-
+!  ECOSYS DRIVER block is done as part of
+!  set_interior_passive_tracers_3D. Here we are just unpacking the 3D
+!  structure into the 2D
+!  -----------------------------------------------------------------------
    if (ecosys_on) then
-      call ecosys_driver_set_interior(k,ciso_on,         &
-         TRACER(:,:,k,1,oldtime,bid), TRACER(:,:,k,1,curtime,bid), &
-         TRACER(:,:,k,2,oldtime,bid), TRACER(:,:,k,2,curtime,bid), &
-         TRACER(:,:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,oldtime,bid),&
-         TRACER(:,:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,curtime,bid),&
-         TRACER_SOURCE(:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end),       &
-         this_block)
-   end if
+      call ecosys_driver_unpack_source_sink_terms( &
+           ecosys_source_sink_3d(:, :, k, ecosys_driver_ind_begin:ecosys_driver_ind_end, bid), &
+           TRACER_SOURCE(:, :, ecosys_driver_ind_begin:ecosys_driver_ind_end))
+   endif
 
 !-----------------------------------------------------------------------
 !  CFC does not have source-sink terms
@@ -743,6 +781,10 @@
          TRACER_SOURCE(:,:,abio_dic_dic14_ind_begin:abio_dic_dic14_ind_end),       &
          this_block)
     end if
+
+!-----------------------------------------------------------------------
+!  IRF does not have source-sink terms
+!-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
 !  accumulate time average if necessary
@@ -801,18 +843,41 @@
 ! !REVISION HISTORY:
 !  same as module
 
+   use domain, only : blocks_clinic
+   use blocks, only : get_block
+   
 ! !INPUT PARAMETERS:
    real (r8), dimension(nx_block,ny_block,km,nt,max_blocks_clinic), intent(in) :: &
-      TRACER_OLD, TRACER_CUR
+        TRACER_OLD, & ! previous timestep tracer tendencies
+        TRACER_CUR    ! new tracer tendencies
 
 ! !INPUT/OUTPUT PARAMETERS:
 
 !EOP
 !BOC
 
+   integer (int_kind) :: iblock ! counter for block loops
+   type (block) :: this_block   ! block information for this block
+   integer (int_kind) :: bid ! local block address for this block
+
 !-----------------------------------------------------------------------
-!  ECOSYS DRIVER modules do not compute and store 3D source-sink terms
+!  ECOSYS DRIVER modules 3D source-sink terms
 !-----------------------------------------------------------------------
+   if (ecosys_on) then
+      !$OMP PARALLEL DO PRIVATE(iblock, this_block, bid)
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock), iblock)
+         bid = this_block%local_id
+         call ecosys_driver_set_interior(ciso_on,         &
+              TRACER(:, :, :, 1, oldtime, bid), TRACER(:, :, :, 1, curtime, bid), &
+              TRACER(:, :, :, 2, oldtime, bid), TRACER(:, :, :, 2, curtime, bid), &
+              TRACER(:, :, :, ecosys_driver_ind_begin:ecosys_driver_ind_end, oldtime, bid), &
+              TRACER(:, :, :, ecosys_driver_ind_begin:ecosys_driver_ind_end, curtime, bid), &
+              ecosys_source_sink_3d(:, :, :, ecosys_driver_ind_begin:ecosys_driver_ind_end, bid), &
+              this_block)
+      end do
+      !$OMP END PARALLEL DO
+   end if
 
 !-----------------------------------------------------------------------
 !  CFC does not compute and store 3D source-sink terms
@@ -836,6 +901,10 @@
 
 !-----------------------------------------------------------------------
 !  ABIO DIC & DIC 14 does not compute and store 3D source-sink terms
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  IRF does not compute and store 3D source-sink terms
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
@@ -962,6 +1031,10 @@
 
 
 !-----------------------------------------------------------------------
+!  IRF does not have surface fluxes
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
 !  add virtual fluxes for tracers that specify a non-zero ref_val
 !-----------------------------------------------------------------------
 
@@ -1044,6 +1117,10 @@
    end if
 
 !-----------------------------------------------------------------------
+!  IRF does not write additional restart fields
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
 !EOC
 
  end subroutine write_restart_passive_tracers
@@ -1053,7 +1130,7 @@
 ! !IROUTINE: reset_passive_tracers
 ! !INTERFACE:
 
- subroutine reset_passive_tracers(TRACER_NEW, bid)
+ subroutine reset_passive_tracers(TRACER_OLD, TRACER_NEW, bid)
 
 ! !DESCRIPTION:
 !  call subroutines for each tracer module to reset tracer values
@@ -1068,6 +1145,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 
    real(r8), dimension(nx_block,ny_block,km,nt), intent(inout) :: &
+      TRACER_OLD,   & ! all tracers at old time for a given block
       TRACER_NEW      ! all tracers at new time for a given block
 
 !EOP
@@ -1102,6 +1180,16 @@
 !-----------------------------------------------------------------------
 !  ABIO DIC & DIC14 does not reset values
 !-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  IRF block
+!-----------------------------------------------------------------------
+
+   if (IRF_on) then
+      call IRF_reset( &
+         TRACER_OLD(:,:,:,IRF_ind_begin:IRF_ind_end), &
+         TRACER_NEW(:,:,:,IRF_ind_begin:IRF_ind_end) )
+   end if
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1343,6 +1431,10 @@
    end if
 
 !-----------------------------------------------------------------------
+!  IRF does not have additional sflux tavg fields
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
 !EOC
 
  end subroutine passive_tracers_tavg_sflux
@@ -1506,6 +1598,10 @@
    if (moby_on) then
      call POP_mobySendTime
    endif
+
+!-----------------------------------------------------------------------
+!  IRF does not use virtual fluxes
+!-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
 !EOC

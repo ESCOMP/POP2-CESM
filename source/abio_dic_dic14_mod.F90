@@ -44,8 +44,8 @@ module abio_dic_dic14_mod
    use netcdf
    use co2calc
    use time_management
-   use ecosys_parms, only: xkw_coeff
-   use ecosys_share, only: SCHMIDT_CO2
+   use constants, only: xkw_coeff
+   use schmidt_number, only: SCHMIDT_CO2
 
    implicit none
    save
@@ -807,6 +807,7 @@ contains
 
 !EOP
 !BOC
+  character(len=char_len) :: message
 !-----------------------------------------------------------------------
 
 !-------------------------------------------------------------------------
@@ -818,7 +819,9 @@ contains
 
    case ('const')
       if (my_task == master_task) then
-         write(stdout,*)'Abiotic DIC/DIC14 calculation: Using constant CO2 and D14C values of ',abio_atm_co2_const,' & ',abio_atm_d14c_const
+         write(stdout,*)'Abiotic DIC/DIC14 calculation: Using constant CO2',  &
+                        ' and D14C values of ',abio_atm_co2_const,' & ',      &
+                        abio_atm_d14c_const
       endif
 
    case ('coupler')
@@ -830,8 +833,9 @@ contains
 !     Verify running coupled if gas fluxes use coupler forcing
 !-----------------------------------------------------------------------
       if (.not. registry_match('lcoupled')) then
-         call exit_POP(sigAbort, 'abio_dic_dic14_init: abio_dic_dic14 module requires the ' /&
-                           &/ 'flux coupler when abio_atm_co2_d14c_opt=coupler')
+         write(message, *) 'abio_dic_dic14_init: abio_dic_dic14 module requires ', &
+                           ' the flux coupler when abio_atm_co2_d14c_opt=coupler'
+         call exit_POP(sigAbort, message)
       endif
 !-----------------------------------------------------------------------
 !    Get co2 index from coupler for reading of CO2 data later
@@ -842,9 +846,10 @@ contains
                                  exit_on_err=.false.)
 
       if (atm_co2_nf_ind == 0) then
-         call exit_POP(sigAbort, 'abio_dic_dic14_init: abio_dic_dic14 module requires ' /&
-                              &/ 'atmopsheric CO2 from the flux coupler ' /&
-                              &/ 'and it is not present')
+         write(message, *) 'abio_dic_dic14_init: abio_dic_dic14 module requires ', &
+                           'atmopsheric CO2 from the flux coupler and it is not ', &
+                           'present'
+         call exit_POP(sigAbort, message)
       endif
 
 !-----------------------------------------------------------------------

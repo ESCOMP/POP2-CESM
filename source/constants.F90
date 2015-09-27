@@ -104,6 +104,13 @@
    character (5), parameter, public :: &
       blank_fmt = "(' ')"
 
+  !---------------------------------------------------------------------
+  !     Gas exchange/piston velocity parameter
+  !---------------------------------------------------------------------
+
+  real (r8), parameter, public :: &
+       xkw_coeff = 8.6e-9_r8 ! in s/cm, from a = 0.31 cm/hr s^2/m^2 in Wannikhof 1992
+
 !  !PUBLIC DATA MEMBERS:
 
    character (char_len), public ::  &
@@ -116,7 +123,7 @@
    ! these constants are defined in an init routine to allow
    !  CSM shared constants to over-ride
 
-   real (r8), public ::      &
+   real (r8), public, target ::      &
       grav                  ,&! gravit. accel. (cm/s^2)
       omega                 ,&! angular vel. of Earth 1/s
       radius                ,&! radius of Earth (cm)
@@ -141,7 +148,7 @@
 
    !  conversion factors
 
-   real (r8), public :: &
+   real (r8), public, target :: &
       T0_Kelvin        ,&! zero point for Celsius
       mpercm           ,&! meters per cm
       cmperm           ,&! cm per meter

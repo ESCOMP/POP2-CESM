@@ -118,6 +118,11 @@
       DH,DHU              ! time change of surface height minus
                           ! freshwater flux at T, U points
 
+   real (POP_r8), dimension(nx_block,ny_block) :: &
+      PSURF_FILT_OLD,    &! time filtered PSURF at oldtime
+      PSURF_FILT_CUR,    &! time filtered PSURF at curtime
+      WORK_MIN,WORK_MAX   ! work variables for enforcing tracer bounds during time filtering
+
    logical (POP_logical), save ::    &
       first_call = .true.          ! flag for initializing timers
 
@@ -133,6 +138,8 @@
    call timer_start(timer_step)
 
    errorCode = POP_Success
+
+   lpre_time_manager = .true.
 
 !-----------------------------------------------------------------------
 !
@@ -199,6 +206,8 @@
 !-----------------------------------------------------------------------
 
    call time_manager(registry_match('lcoupled'), liceform)
+
+   lpre_time_manager = .false.
 
    call passive_tracers_send_time
 
@@ -590,7 +599,9 @@
 
    if (avg_ts .or. back_to_back) then     ! averaging step
 
-      !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,n)
+      !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,n, &
+      !$OMP                     PSURF_FILT_OLD,PSURF_FILT_CUR, &
+      !$OMP                     WORK_MIN,WORK_MAX)
 
       do iblock = 1,nblocks_clinic
          this_block = get_block(blocks_clinic(iblock),iblock)  
@@ -640,33 +651,48 @@
 
          if (sfc_layer_type == sfc_layer_varthick) then
 
+            PSURF_FILT_OLD = p5*(PSURF(:,:,oldtime,iblock) + &
+                                 PSURF(:,:,curtime,iblock))
+            PSURF_FILT_CUR = p5*(PSURF(:,:,curtime,iblock) + &
+                                 PSURF(:,:,newtime,iblock))
+
             do n = 1,nt
+               WORK_MIN = min(TRACER(:,:,1,n,oldtime,iblock), TRACER(:,:,1,n,curtime,iblock))
+               WORK_MAX = max(TRACER(:,:,1,n,oldtime,iblock), TRACER(:,:,1,n,curtime,iblock))
 
                TRACER(:,:,1,n,oldtime,iblock) =                   &
                    p5*((dz(1) + PSURF(:,:,oldtime,iblock)/grav)*  &
                        TRACER(:,:,1,n,oldtime,iblock) +           &
                        (dz(1) + PSURF(:,:,curtime,iblock)/grav)*  &
                        TRACER(:,:,1,n,curtime,iblock) ) 
+               TRACER(:,:,1,n,oldtime,iblock) =                   &
+                   TRACER(:,:,1,n,oldtime,iblock)/(dz(1) + PSURF_FILT_OLD/grav)
+
+               where (TRACER(:,:,1,n,oldtime,iblock) < WORK_MIN) &
+                   TRACER(:,:,1,n,oldtime,iblock) = WORK_MIN
+               where (TRACER(:,:,1,n,oldtime,iblock) > WORK_MAX) &
+                   TRACER(:,:,1,n,oldtime,iblock) = WORK_MAX
+
+
+               WORK_MIN = min(TRACER(:,:,1,n,curtime,iblock), TRACER(:,:,1,n,newtime,iblock))
+               WORK_MAX = max(TRACER(:,:,1,n,curtime,iblock), TRACER(:,:,1,n,newtime,iblock))
+
                TRACER(:,:,1,n,curtime,iblock) =                   &
                    p5*((dz(1) + PSURF(:,:,curtime,iblock)/grav)*  &
                        TRACER(:,:,1,n,curtime,iblock) +           &
                        (dz(1) + PSURF(:,:,newtime,iblock)/grav)*  &
                        TRACER(:,:,1,n,newtime,iblock) ) 
-            end do ! nt
-
-            PSURF(:,:,oldtime,iblock) = p5*(PSURF(:,:,oldtime,iblock) + &
-                                            PSURF(:,:,curtime,iblock))
-            PSURF(:,:,curtime,iblock) = p5*(PSURF(:,:,curtime,iblock) + &
-                                            PSURF(:,:,newtime,iblock))
-            do n = 1,nt
-
-               TRACER(:,:,1,n,oldtime,iblock) =                   &
-               TRACER(:,:,1,n,oldtime,iblock)/(dz(1) +            &
-                                      PSURF(:,:,oldtime,iblock)/grav)
                TRACER(:,:,1,n,curtime,iblock) =                   &
-               TRACER(:,:,1,n,curtime,iblock)/(dz(1) +            &
-                                      PSURF(:,:,curtime,iblock)/grav)
+                   TRACER(:,:,1,n,curtime,iblock)/(dz(1) + PSURF_FILT_CUR/grav)
+
+               where (TRACER(:,:,1,n,curtime,iblock) < WORK_MIN) &
+                   TRACER(:,:,1,n,curtime,iblock) = WORK_MIN
+               where (TRACER(:,:,1,n,curtime,iblock) > WORK_MAX) &
+                   TRACER(:,:,1,n,curtime,iblock) = WORK_MAX
             enddo
+
+            PSURF(:,:,oldtime,iblock) = PSURF_FILT_OLD
+            PSURF(:,:,curtime,iblock) = PSURF_FILT_CUR
 
          else
 

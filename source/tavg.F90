@@ -108,7 +108,7 @@
       real (rtavg)            :: fill_value     ! _FillValue
       real (rtavg)            :: scale_factor   ! r4 scale factor
       real (r4), dimension(2) :: valid_range    ! min/max
-      integer (i4)            :: ndims          ! num dims (2 or 3)
+      integer (i4)            :: ndims          ! num dims (0, 2 or 3)
       integer (i4)            :: buf_loc        ! location in buffer
       integer (i4)            :: method         ! method for averaging
       integer (i4)            :: field_loc      ! grid location and field
@@ -120,7 +120,7 @@
 !BOC
 
    integer (int_kind), parameter :: &
-      max_avail_tavg_fields = 500+21*nt   ! limit on available fields - can
+      max_avail_tavg_fields = 500+24*nt   ! limit on available fields - can
                                           !   be pushed as high as necessary practical
                                           !   (total of all fields in all streams)
 
@@ -197,16 +197,21 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
+      tavg_bufsize_0d,   &    ! size of buffer for 0d fields
       tavg_bufsize_2d,   &    ! size of buffer for 2d fields
       tavg_bufsize_3d         ! size of buffer for 3d fields
 
-   real (rtavg), dimension(:,:,:,:), allocatable :: &
+   real (rtavg), dimension(:), allocatable, target :: &
+      TAVG_BUF_0D         ! buffer for holding accumulated sums
+
+   real (rtavg), dimension(:,:,:,:), allocatable, target :: &
       TAVG_BUF_2D         ! buffer for holding accumulated sums
 
-   real (rtavg), dimension(:,:,:,:,:), allocatable :: &
+   real (rtavg), dimension(:,:,:,:,:), allocatable, target :: &
       TAVG_BUF_3D         ! buffer for holding accumulated sums
 
    integer (i4), dimension(:), allocatable :: &
+      TAVG_BUF_0D_METHOD,  &! method for each requested 0d field
       TAVG_BUF_2D_METHOD,  &! method for each requested 2d field
       TAVG_BUF_3D_METHOD    ! method for each requested 3d field
 
@@ -443,6 +448,13 @@
       timer_tavg_ccsm_diags_trans
 
    character (char_len) :: exit_string
+
+   interface accumulate_tavg_field
+      module procedure accumulate_tavg_field_2d_3d
+      module procedure accumulate_tavg_field_2d_col
+      module procedure accumulate_tavg_field_3d_col
+      module procedure accumulate_tavg_field_0d
+   end interface
 
 !EOC
 !***********************************************************************
@@ -932,6 +944,7 @@
                           coordinates='ULONG ULAT time')
 
 
+   tavg_bufsize_0d = 0
    tavg_bufsize_2d = 0
    tavg_bufsize_3d = 0
 
@@ -1063,7 +1076,7 @@
           call document ('init_tavg', 'duplicate tavg_contents field: ',  trim(char_temp))
         else
           !*** activate requested tavg fields
-          !    determines tavg_bufsize_2d, tavg_bufsize_3d
+          !    determines tavg_bufsize_0d, tavg_bufsize_2d, tavg_bufsize_3d
 
           call request_tavg_field(trim(char_temp),ns)  
           !*** now that requested tavg field is successfully requested,
@@ -1099,6 +1112,12 @@
    if (tavg_num_requested_fields > 0) then
    !*** allocate and initialize running tavg buffers
 
+     if (tavg_bufsize_0d > 0) then
+      allocate(TAVG_BUF_0D(tavg_bufsize_0d))
+      allocate(TAVG_BUF_0D_METHOD(tavg_bufsize_0d))
+      TAVG_BUF_0D = c0
+     endif
+
      if (tavg_bufsize_2d > 0) then
       allocate(TAVG_BUF_2D(nx_block,ny_block,nblocks_clinic,tavg_bufsize_2d))
       allocate(TAVG_BUF_2D_METHOD(tavg_bufsize_2d))
@@ -1125,7 +1144,9 @@
      do n = 1,num_avail_tavg_fields  ! check all available fields
        loc = abs(avail_tavg_fields(n)%buf_loc)
        if (loc /= 0) then  ! field is actually requested and in buffer
-          if (avail_tavg_fields(n)%ndims == 2) then
+          if (avail_tavg_fields(n)%ndims == 0) then
+             TAVG_BUF_0D_METHOD(loc) = avail_tavg_fields(n)%method
+          else if (avail_tavg_fields(n)%ndims == 2) then
              TAVG_BUF_2D_METHOD(loc) = avail_tavg_fields(n)%method
           else if (avail_tavg_fields(n)%ndims == 3) then
              TAVG_BUF_3D_METHOD(loc) = avail_tavg_fields(n)%method
@@ -1654,7 +1675,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  construct io_field descriptors for each 2D and 3D field
+!  construct io_field descriptors for each 0D, 2D and 3D field
 !  if writing a regular tavg file in netcdf format, mask the fields
 !
 !-----------------------------------------------------------------------
@@ -1688,7 +1709,26 @@
             field_id = 0
           endif
 
-          if (avail_tavg_fields(nfield)%ndims == 2) then
+          if (avail_tavg_fields(nfield)%ndims == 0) then
+
+            tavg_streams(ns)%tavg_fields(field_counter) = construct_io_field(&
+                            avail_tavg_fields(nfield)%short_name,           &
+                            time_dim=time_dim,field_id=field_id,            &
+                  long_name=avail_tavg_fields(nfield)%long_name,            &
+                      units=avail_tavg_fields(nfield)%units    ,            &
+                   grid_loc=avail_tavg_fields(nfield)%grid_loc ,            &
+                  field_loc=avail_tavg_fields(nfield)%field_loc,            &
+                 field_type=avail_tavg_fields(nfield)%field_type,           &
+                coordinates=avail_tavg_fields(nfield)%coordinates,          &
+                valid_range=avail_tavg_fields(nfield)%valid_range,          &
+#ifdef TAVG_R8
+                 d0d_array=TAVG_BUF_0D(loc) ) 
+#else
+                r0d_array=TAVG_BUF_0D(loc) )
+#endif
+
+
+          else if (avail_tavg_fields(nfield)%ndims == 2) then
 
             if (ltavg_fmt_out_nc .and. ltavg_write_reg) then
               call tavg_mask(TAVG_BUF_2D(:,:,:,loc),avail_tavg_fields(nfield),1)
@@ -1750,7 +1790,7 @@
 #else
                  r3d_array=TAVG_BUF_3D(:,:,:,:,loc) ) 
 #endif
-          endif ! 2D/3D test
+          endif ! 0D/2D/3D test
 
           if (lccsm .and. ltavg_write_reg) &
              call tavg_add_attrib_io_field_ccsm (tavg_streams(ns)%tavg_fields(field_counter),nfield)
@@ -2034,7 +2074,7 @@
     endif !ltavg_fmt_out_nc .and. ltavg_write_reg
 
 
-   !*** standard 2D and 3D fields
+   !*** standard 0D, 2D and 3D fields
    call timer_start(timer_write_std)
 
    field_counter = 0
@@ -2355,7 +2395,22 @@
       loc = avail_tavg_fields(nfield)%buf_loc
       if (loc > 0) then
         if (tavg_in_this_stream(nfield,ns)) then
-         if (avail_tavg_fields(nfield)%ndims == 2) then
+         if (avail_tavg_fields(nfield)%ndims == 0) then
+
+            tavg_fields_in(nfield) = construct_io_field(                &
+                            avail_tavg_fields(nfield)%short_name,    &
+                  long_name=avail_tavg_fields(nfield)%long_name,     &
+                  units    =avail_tavg_fields(nfield)%units    ,     &
+                  grid_loc =avail_tavg_fields(nfield)%grid_loc ,     &
+                 field_loc =avail_tavg_fields(nfield)%field_loc,     &
+                field_type =avail_tavg_fields(nfield)%field_type,    &
+                valid_range=avail_tavg_fields(nfield)%valid_range,   &
+#ifdef TAVG_R8
+                 d0d_array =TAVG_BUF_0D(loc) ) !nonstandard, debugging only
+#else
+                 r0d_array =TAVG_BUF_0D(loc) )
+#endif
+         else if (avail_tavg_fields(nfield)%ndims == 2) then
 
             tavg_fields_in(nfield) = construct_io_field(                &
                             avail_tavg_fields(nfield)%short_name,    &
@@ -2545,9 +2600,15 @@
             !*** call exit_POP (SigAbort,'(tavg_gloal) ERROR: tavg_norm = 0 in tavg_global',out_unit=stdout)
          endif
 
+         !*** 0-d fields
+
+         if (avail_tavg_fields(nfield)%ndims == 0) then
+
+            tavg_field_sum = TAVG_BUF_0D(ifield)/tavg_norm
+
          !*** 2-d fields
 
-         if (avail_tavg_fields(nfield)%ndims == 2) then
+         else if (avail_tavg_fields(nfield)%ndims == 2) then
 
 !njn01      !$OMP PARALLEL DO PRIVATE(iblock)
             do iblock = 1,nblocks_clinic
@@ -2847,10 +2908,10 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: accumulate_tavg_field
+! !IROUTINE: accumulate_tavg_field_2d_3d
 ! !INTERFACE:
 
- subroutine accumulate_tavg_field(ARRAY,field_id,block,k,const)
+ subroutine accumulate_tavg_field_2d_3d(ARRAY,field_id,block,k,const)
 
 ! !DESCRIPTION:
 !  This routine updates a tavg field.  If the time average of the
@@ -2912,6 +2973,14 @@
 
    ndims = avail_tavg_fields(field_id)%ndims
 
+   if (ndims == 0) then
+     exit_string = 'FATAL ERROR: passed 2d FIELD for 0d tavg field'
+     call document ('accumulate_tavg_field', exit_string)
+     call document ('accumulate_tavg_field','field short_name',               &
+                    avail_tavg_fields(field_id)%short_name)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
+
    if ((ndims == 3) .and. &
        (avail_tavg_fields(field_id)%grid_loc(4:4) == '4') .and. &
        (k > zt_150m_levs)) return
@@ -2967,7 +3036,316 @@
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine accumulate_tavg_field
+ end subroutine accumulate_tavg_field_2d_3d
+
+!***********************************************************************
+!BOP
+! !IROUTINE: accumulate_tavg_field_2d_col
+! !INTERFACE:
+
+ subroutine accumulate_tavg_field_2d_col(POINT,field_id,block,i,j,const)
+
+! !DESCRIPTION:
+!  This routine updates a tavg field.  If the time average of the
+!  field is requested, it accumulates a time sum of a field by 
+!  multiplying by the time step and accumulating the sum into the 
+!  tavg buffer array.  If the min or max of a field is requested, it
+!  checks the current value and replaces the min, max if the current
+!  value is less than or greater than the stored value.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      block,           &! local block address (in baroclinic distribution)
+      i,j,             &! horizontal column
+      field_id          ! index into available fields for tavg field info
+
+   real (r8), intent(in) :: &
+      POINT             ! array of data for this block to add to 
+                        !  accumulated sum in tavg buffer
+   real (r8), optional, intent(in) ::  &
+      const
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      bufloc              ! location of field in tavg buffer
+
+!-----------------------------------------------------------------------
+! 
+!  test: mix_pass, ltavg_on, and tavg_requested.                
+!                                                              
+!-----------------------------------------------------------------------
+                                                                
+   if (.not. accumulate_tavg_now(field_id)) return             
+                                                              
+
+!-----------------------------------------------------------------------
+!
+!  get buffer location and field info from avail_tavg_field array
+!
+!-----------------------------------------------------------------------
+
+   bufloc = avail_tavg_fields(field_id)%buf_loc
+
+   if (bufloc <= 0) then
+     exit_string = 'FATAL ERROR: attempt to accumulate bad tavg field'
+     call document ('accumulate_tavg_field', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
+
+   if (avail_tavg_fields(field_id)%ndims.ne.2) then
+     exit_string = 'FATAL ERROR: passed POINT value for non-2d tavg field'
+     call document ('accumulate_tavg_field', exit_string)
+     call document ('accumulate_tavg_field','field short_name',               &
+                    avail_tavg_fields(field_id)%short_name)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  update the field into the tavg buffer
+!
+!-----------------------------------------------------------------------
+
+   select case (avail_tavg_fields(field_id)%method)
+
+   case (tavg_method_avg)  ! accumulate running time sum for time avg
+      TAVG_BUF_2D(i,j,block,bufloc) = &
+      TAVG_BUF_2D(i,j,block,bufloc) + dtavg*POINT
+   case (tavg_method_qflux)  
+      TAVG_BUF_2D(i,j,block,bufloc) =  &
+      TAVG_BUF_2D(i,j,block,bufloc) + const*max (c0,POINT)
+   case (tavg_method_min)  ! replace with current minimum value
+      if (POINT.lt.TAVG_BUF_2D(i,j,block,bufloc)) then
+         TAVG_BUF_2D(i,j,block,bufloc) = POINT
+      end if
+   case (tavg_method_max)  ! replace with current minimum value
+      if (POINT.gt.TAVG_BUF_2D(i,j,block,bufloc)) then
+         TAVG_BUF_2D(i,j,block,bufloc) = POINT
+      end if
+   case (tavg_method_constant)  ! overwrite with current value; intended for time-invariant fields
+      TAVG_BUF_2D(i,j,block,bufloc) = POINT
+   case default
+   end select
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine accumulate_tavg_field_2d_col
+
+!***********************************************************************
+!BOP
+! !IROUTINE: accumulate_tavg_field_3d_col
+! !INTERFACE:
+
+ subroutine accumulate_tavg_field_3d_col(COL,field_id,block,i,j)
+
+! !DESCRIPTION:
+!  This routine updates a tavg field.  If the time average of the
+!  field is requested, it accumulates a time sum of a field by 
+!  multiplying by the time step and accumulating the sum into the 
+!  tavg buffer array.  If the min or max of a field is requested, it
+!  checks the current value and replaces the min, max if the current
+!  value is less than or greater than the stored value.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      block,           &! local block address (in baroclinic distribution)
+      i,j,             &! column index
+      field_id          ! index into available fields for tavg field info
+
+   real (r8), dimension(km), intent(in) :: &
+      COL               ! array of data for this block to add to 
+                        !  accumulated sum in tavg buffer
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      bufloc,            &! location of field in tavg buffer
+      kmax                ! max number of levels to accumulate
+
+!-----------------------------------------------------------------------
+! 
+!  test: mix_pass, ltavg_on, and tavg_requested.                
+!                                                              
+!-----------------------------------------------------------------------
+                                                                
+   if (.not. accumulate_tavg_now(field_id)) return             
+                                                              
+
+!-----------------------------------------------------------------------
+!
+!  get buffer location and field info from avail_tavg_field array
+!
+!-----------------------------------------------------------------------
+
+   bufloc = avail_tavg_fields(field_id)%buf_loc
+
+   if (bufloc <= 0) then
+     exit_string = 'FATAL ERROR: attempt to accumulate bad tavg field'
+     call document ('accumulate_tavg_field', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
+
+   if (avail_tavg_fields(field_id)%ndims.ne.3) then
+     exit_string = 'FATAL ERROR: passed COL value for non-3d tavg field'
+     call document ('accumulate_tavg_field', exit_string)
+     call document ('accumulate_tavg_field','field short_name',               &
+                    avail_tavg_fields(field_id)%short_name)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
+
+   if (avail_tavg_fields(field_id)%grid_loc(4:4) == '4') then
+     kmax = zt_150m_levs
+   else
+     kmax = km
+   end if
+
+!-----------------------------------------------------------------------
+!
+!  update the field into the tavg buffer
+!
+!-----------------------------------------------------------------------
+
+   select case (avail_tavg_fields(field_id)%method)
+
+   case (tavg_method_avg)  ! accumulate running time sum for time avg
+      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = &
+      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) + dtavg*COL
+   case (tavg_method_min)  ! replace with current minimum value
+      where (COL.lt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
+         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL
+      end where
+   case (tavg_method_max)  ! replace with current minimum value
+      where (COL.gt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
+         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL
+      end where
+   case (tavg_method_constant)  ! overwrite with current value; intended for time-invariant fields
+      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL
+   case default
+   end select
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine accumulate_tavg_field_3d_col
+
+!***********************************************************************
+!BOP
+! !IROUTINE: accumulate_tavg_field_0d
+! !INTERFACE:
+
+ subroutine accumulate_tavg_field_0d(POINT,field_id,const)
+
+! !DESCRIPTION:
+!  This routine updates a tavg field.  If the time average of the
+!  field is requested, it accumulates a time sum of a field by 
+!  multiplying by the time step and accumulating the sum into the 
+!  tavg buffer array.  If the min or max of a field is requested, it
+!  checks the current value and replaces the min, max if the current
+!  value is less than or greater than the stored value.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      field_id          ! index into available fields for tavg field info
+
+   real (r8), intent(in) :: &
+      POINT             ! data to add to accumulated sum in tavg buffer
+
+   real (r8), optional, intent(in) ::  &
+      const
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      bufloc,            &! location of field in tavg buffer
+      ndims               ! rank of field (0=2d,2=2d,3=3d)
+
+!-----------------------------------------------------------------------
+! 
+!  test: mix_pass, ltavg_on, and tavg_requested.                
+!                                                              
+!-----------------------------------------------------------------------
+                                                                
+   if (.not. accumulate_tavg_now(field_id)) return             
+
+!-----------------------------------------------------------------------
+!
+!  get buffer location and field info from avail_tavg_field array
+!
+!-----------------------------------------------------------------------
+
+   bufloc = avail_tavg_fields(field_id)%buf_loc
+
+   if (bufloc <= 0) then
+     exit_string = 'FATAL ERROR: attempt to accumulate bad tavg field'
+     call document ('accumulate_tavg_field', exit_string)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
+
+   ndims = avail_tavg_fields(field_id)%ndims
+
+   if (ndims /= 0) then
+     exit_string = 'FATAL ERROR: passed 0d value for non-0d tavg field'
+     call document ('accumulate_tavg_field', exit_string)
+     call document ('accumulate_tavg_field','field short_name',               &
+                    avail_tavg_fields(field_id)%short_name)
+     call exit_POP (sigAbort,exit_string,out_unit=stdout)
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  update the field into the tavg buffer
+!
+!-----------------------------------------------------------------------
+
+   select case (avail_tavg_fields(field_id)%method)
+
+   case (tavg_method_avg)  ! accumulate running time sum for time avg
+      TAVG_BUF_0D(bufloc) = TAVG_BUF_0D(bufloc) + dtavg*POINT
+   case (tavg_method_qflux)  
+      TAVG_BUF_0D(bufloc) =  &
+      TAVG_BUF_0D(bufloc) + const*max (c0,POINT)
+   case (tavg_method_min)  ! replace with current minimum value
+      if (POINT.lt.TAVG_BUF_0D(bufloc)) TAVG_BUF_0D(bufloc) = POINT
+   case (tavg_method_max)  ! replace with current minimum value
+      if (POINT.gt.TAVG_BUF_0D(bufloc)) TAVG_BUF_0D(bufloc) = POINT
+   case (tavg_method_constant)  ! overwrite with current value; intended for time-invariant fields
+      TAVG_BUF_0D(bufloc) = POINT
+   case default
+   end select
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine accumulate_tavg_field_0d
 
 !***********************************************************************
 !BOP
@@ -3038,7 +3416,7 @@
  subroutine tavg_reset_field_all
  
 ! !DESCRIPTION:
-!  Resets all TAVG_BUF_2D and TAVG_BUF_3D arrays 
+!  Resets all TAVG_BUF_0d, TAVG_BUF_2D and TAVG_BUF_3D arrays 
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -3055,6 +3433,21 @@
       iblock,             &
       nfield
 
+   do nfield=1,tavg_bufsize_0d
+     select case (TAVG_BUF_0D_METHOD(nfield))
+      case (tavg_method_avg)
+         TAVG_BUF_0D(nfield) = c0
+      case (tavg_method_qflux)
+         TAVG_BUF_0D(nfield) = c0
+         tavg_sum_qflux = c0
+      case (tavg_method_min)
+         TAVG_BUF_0D(nfield) = bignum
+      case (tavg_method_max)
+         TAVG_BUF_0D(nfield) = -bignum
+      case default
+         TAVG_BUF_0D(nfield) = c0
+      end select
+   end do
 
  !$OMP PARALLEL DO PRIVATE(iblock,nfield)
   do iblock=1,nblocks_clinic
@@ -3103,7 +3496,7 @@
  subroutine tavg_reset_field_stream(ns)
 
 ! !DESCRIPTION:
-!  Resets all TAVG_BUF_2D and TAVG_BUF_3D arrays
+!  Resets all TAVG_BUF_0D, TAVG_BUF_2D and TAVG_BUF_3D arrays
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -3134,7 +3527,23 @@
      if (loc > 0) then
      if (tavg_in_this_stream(nfield,ns)) then
 
-       if (avail_tavg_fields(nfield)%ndims == 2) then
+       if (avail_tavg_fields(nfield)%ndims == 0) then
+
+         select case (TAVG_BUF_0D_METHOD(loc))
+            case (tavg_method_avg)
+               TAVG_BUF_0D(loc) = c0
+            case (tavg_method_qflux)
+               TAVG_BUF_0D(loc) = c0
+              tavg_sum_qflux(ns) = c0
+            case (tavg_method_min)
+               TAVG_BUF_0D(loc) = bignum
+            case (tavg_method_max)
+               TAVG_BUF_0D(loc) = -bignum
+            case default
+               TAVG_BUF_0D(loc) = c0
+            end select
+
+       else if (avail_tavg_fields(nfield)%ndims == 2) then
 
          select case (TAVG_BUF_2D_METHOD(loc))
             case (tavg_method_avg)
@@ -3163,7 +3572,7 @@
             TAVG_BUF_3D(:,:,:,:,loc) = c0
          end select
 
-       endif ! 2D/3D
+       endif ! 0D/2D/3D
      endif ! in stream
      endif ! loc
    enddo ! nfield
@@ -3182,7 +3591,7 @@
  subroutine tavg_norm_field_all (norm_flag,ns)
  
 ! !DESCRIPTION:
-!  Normalizes or de-normalizes all TAVG_BUF_2D and TAVG_BUF_3D arrays 
+!  Normalizes or de-normalizes all TAVG_BUF_0D, TAVG_BUF_2D and TAVG_BUF_3D arrays 
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -3257,7 +3666,18 @@
       if (loc > 0 ) then
         if (tavg_in_this_stream(nfield,ns)) then
 
-        if (avail_tavg_fields(nfield)%ndims == 2) then
+        if (avail_tavg_fields(nfield)%ndims == 0) then
+
+           select case (TAVG_BUF_0D_METHOD(loc))
+             case (tavg_method_avg)
+               TAVG_BUF_0D(loc) = TAVG_BUF_0D(loc)*factor
+             case (tavg_method_qflux)
+               if (tavg_streams(ns)%ltavg_qflux_method_on) then
+                 TAVG_BUF_0D(loc) = TAVG_BUF_0D(loc)*factorq
+               endif
+           end select
+
+        else if (avail_tavg_fields(nfield)%ndims == 2) then
 
            select case (TAVG_BUF_2D_METHOD(loc))
              case (tavg_method_avg)
@@ -3597,7 +4017,10 @@
 !
 !-----------------------------------------------------------------------
 
-   if (avail_tavg_fields(id)%ndims == 2) then
+   if (avail_tavg_fields(id)%ndims == 0) then
+      tavg_bufsize_0d = tavg_bufsize_0d + 1
+      avail_tavg_fields(id)%buf_loc = tavg_bufsize_0d
+   else if (avail_tavg_fields(id)%ndims == 2) then
       tavg_bufsize_2d = tavg_bufsize_2d + 1
       avail_tavg_fields(id)%buf_loc = tavg_bufsize_2d
    else if (avail_tavg_fields(id)%ndims == 3) then
@@ -4602,15 +5025,15 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
-   real (rtavg), dimension(km) ::  &
+   real (rtavg), dimension(km), target ::  &
       ZT_R,      &! single/double precision array
       ZW_R,      &! single/double precision array
       ZW_BOT_R    ! single/double precision array
 
-   real (rtavg), dimension(0:km) ::  &
+   real (rtavg), dimension(0:km), target ::  &
       MOC_Z_R
 
-   real (rtavg), dimension(1000) ::  &
+   real (rtavg), dimension(1000), target ::  &
       LAT_AUX_GRID_R
 
    integer (int_kind) ::  &
@@ -4801,13 +5224,13 @@
 
    integer (int_kind) :: ii, num
 
-   real (rtavg), dimension(km)   ::  &
+   real (rtavg), dimension(km), target   ::  &
       DZ_R
 
-   real (rtavg), dimension(0:km-1) ::  &
+   real (rtavg), dimension(0:km-1), target ::  &
       DZW_R
 
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), target ::  &
       ULON_DEG, ULAT_DEG
 
    integer (i4)       :: fill_value_i
@@ -4873,7 +5296,7 @@
         'ULONG', dim1=i_dim, dim2=j_dim,              &
          long_name='array of u-grid longitudes',      &
          units    ='degrees_east',                    &
-         d2d_array =ULON_DEG(:,:,:) )
+         d2d_array =ULON_DEG(:,:,1:nblocks_clinic) )
 
    !*** ULAT
    ii=ii+1
@@ -4883,7 +5306,7 @@
         'ULAT', dim1=i_dim, dim2=j_dim,               &
          long_name='array of u-grid latitudes',       &
          units    ='degrees_north',                   &
-         d2d_array =ULAT_DEG(:,:,:) )
+         d2d_array =ULAT_DEG(:,:,1:nblocks_clinic) )
 
    !*** TLONG (degrees)
    ii=ii+1
@@ -4892,7 +5315,7 @@
         'TLONG', dim1=i_dim, dim2=j_dim,              &
          long_name='array of t-grid longitudes',      &
          units    ='degrees_east',                    &
-         d2d_array =TLOND(:,:,:) )
+         d2d_array =TLOND(:,:,1:nblocks_clinic) )
 
    !*** TLAT (degrees)
    ii=ii+1
@@ -4901,7 +5324,7 @@
         'TLAT', dim1=i_dim, dim2=j_dim,               &
          long_name='array of t-grid latitudes',       &
          units    ='degrees_north',                   &
-         d2d_array =TLATD(:,:,:) )
+         d2d_array =TLATD(:,:,1:nblocks_clinic) )
 
    !*** KMT
    ii=ii+1
@@ -4910,7 +5333,7 @@
         'KMT', dim1=i_dim, dim2=j_dim,                        &
          long_name='k Index of Deepest Grid Cell on T Grid',  &
          coordinates = "TLONG TLAT",                          &
-         i2d_array =KMT(:,:,:) )
+         i2d_array =KMT(:,:,1:nblocks_clinic) )
 
    !*** KMU
    ii=ii+1
@@ -4919,7 +5342,7 @@
         'KMU', dim1=i_dim, dim2=j_dim,                        &
          long_name='k Index of Deepest Grid Cell on U Grid',  &
          coordinates = "ULONG ULAT",                          &
-         i2d_array =KMU(:,:,:) )
+         i2d_array =KMU(:,:,1:nblocks_clinic) )
 
 
    !*** REGION_MASK
@@ -4929,7 +5352,7 @@
         'REGION_MASK', dim1=i_dim, dim2=j_dim,                &
          long_name='basin index number (signed integers)',    &
          coordinates = "TLONG TLAT",                          &
-         i2d_array =REGION_MASK(:,:,:) )
+         i2d_array =REGION_MASK(:,:,1:nblocks_clinic) )
 
    !*** UAREA
    ii=ii+1
@@ -4939,7 +5362,7 @@
          long_name='area of U cells',                         &
          units    ='centimeter^2',                            &
          coordinates = "ULONG ULAT",                          &
-         d2d_array =UAREA(:,:,:) )
+         d2d_array =UAREA(:,:,1:nblocks_clinic) )
 
    !*** TAREA
    ii=ii+1
@@ -4949,7 +5372,7 @@
          long_name='area of T cells',                         &
          units    ='centimeter^2',                            &
          coordinates = "TLONG TLAT",                          &
-         d2d_array =TAREA(:,:,:) )
+         d2d_array =TAREA(:,:,1:nblocks_clinic) )
 
    !*** HU
    ii=ii+1
@@ -4959,7 +5382,7 @@
          long_name='ocean depth at U points',                 &
          units='centimeter',                                  &
          coordinates = "ULONG ULAT",                          &
-         d2d_array =HU(:,:,:) )
+         d2d_array =HU(:,:,1:nblocks_clinic) )
 
    !*** HT
    ii=ii+1
@@ -4969,7 +5392,7 @@
          long_name='ocean depth at T points',                 &
          units='centimeter',                                  &
          coordinates = "TLONG TLAT",                          &
-         d2d_array =HT(:,:,:) )
+         d2d_array =HT(:,:,1:nblocks_clinic) )
 
    !*** DXU
    ii=ii+1
@@ -4979,7 +5402,7 @@
          long_name='x-spacing centered at U points',          &
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
-         d2d_array =DXU(:,:,:) )
+         d2d_array =DXU(:,:,1:nblocks_clinic) )
 
    !*** DYU
    ii=ii+1
@@ -4989,7 +5412,7 @@
          long_name='y-spacing centered at U points',          &
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
-         d2d_array =DYU(:,:,:) )
+         d2d_array =DYU(:,:,1:nblocks_clinic) )
 
    !*** DXT
    ii=ii+1
@@ -4999,7 +5422,7 @@
          long_name='x-spacing centered at T points',          &
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
-         d2d_array =DXT(:,:,:) )
+         d2d_array =DXT(:,:,1:nblocks_clinic) )
 
    !*** DYT
    ii=ii+1
@@ -5009,7 +5432,7 @@
          long_name='y-spacing centered at T points',          &
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
-         d2d_array =DYT(:,:,:) )
+         d2d_array =DYT(:,:,1:nblocks_clinic) )
 
    !*** HTN
    ii=ii+1
@@ -5019,7 +5442,7 @@
          long_name='cell widths on North sides of T cell',    &
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
-         d2d_array =HTN(:,:,:) )
+         d2d_array =HTN(:,:,1:nblocks_clinic) )
 
    !*** HTE
    ii=ii+1
@@ -5029,7 +5452,7 @@
          long_name='cell widths on East sides of T cell',     &
          units='centimeters',                                 &
          coordinates = "TLONG TLAT",                          &
-         d2d_array =HTE(:,:,:) )
+         d2d_array =HTE(:,:,1:nblocks_clinic) )
 
    !*** HUS
    ii=ii+1
@@ -5039,7 +5462,7 @@
          long_name='cell widths on South sides of U cell',    &
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
-         d2d_array =HUS(:,:,:) )
+         d2d_array =HUS(:,:,1:nblocks_clinic) )
 
    !*** HUW
    ii=ii+1
@@ -5049,7 +5472,7 @@
          long_name='cell widths on West sides of U cell',     &
          units='centimeters',                                 &
          coordinates = "ULONG ULAT",                          &
-         d2d_array =HUW(:,:,:) )
+         d2d_array =HUW(:,:,1:nblocks_clinic) )
 
    !*** ANGLE
    ii=ii+1
@@ -5059,7 +5482,7 @@
          long_name='angle grid makes with latitude line',     &
          units='radians',                                     &
          coordinates = "ULONG ULAT",                          &
-         d2d_array =ANGLE(:,:,:) )
+         d2d_array =ANGLE(:,:,1:nblocks_clinic) )
 
    !*** ANGLET
    ii=ii+1
@@ -5069,7 +5492,7 @@
          long_name='angle grid makes with latitude line on T grid',&
          units='radians',                                          &
          coordinates = "TLONG TLAT",                               &
-         d2d_array =ANGLET(:,:,:) )
+         d2d_array =ANGLET(:,:,1:nblocks_clinic) )
 
    endif ! full_header
 
@@ -5141,7 +5564,7 @@
 !EOP
 !BOC
 
-   real (r8) ::  &
+   real (r8), target ::  &
       d0d_days_in_norm_year,  &
       d0d_days_in_leap_year,  &
       d0d_nsurface_t,         &
@@ -5535,7 +5958,7 @@
 !
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(1) ::  &
+   real (r8), dimension(1), target ::  &
       TIME1D  
 
    character(char_len) ::  &

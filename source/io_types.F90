@@ -73,15 +73,14 @@
       !   The others must be nullified.  For convenience in
       !   initialization, these declarations are the last listed
       !   in this type.
-      integer(i4)                                 :: field_i_0d
       integer(i4), dimension(:),       pointer    :: field_i_1d
       integer(i4), dimension(:,:,:),   pointer    :: field_i_2d
       integer(i4), dimension(:,:,:,:), pointer    :: field_i_3d
-      real(r4)                                    :: field_r_0d
+      real(r4),                        pointer    :: field_r_0d
       real(r4),    dimension(:),       pointer    :: field_r_1d
       real(r4),    dimension(:,:,:),   pointer    :: field_r_2d
       real(r4),    dimension(:,:,:,:), pointer    :: field_r_3d
-      real(r8)                                    :: field_d_0d
+      real(r8),                        pointer    :: field_d_0d
       real(r8),    dimension(:),       pointer    :: field_d_1d
       real(r8),    dimension(:,:,:),   pointer    :: field_d_2d
       real(r8),    dimension(:,:,:,:), pointer    :: field_d_3d
@@ -161,7 +160,7 @@
       rec_type_dbl  = -3       !
 
    character (12), public :: &
-      nml_filename = 'pop2_in'  ! namelist input file name
+      nml_filename = 'pop_in'  ! namelist input file name
 
    integer (i4), public :: &
       num_iotasks   ! num of procs to use for parallel io
@@ -1743,7 +1742,6 @@ contains
        field_loc,        &
        field_id,         &
        field_type,       &
-       i0d_array,        &
        i1d_array,        &
        i2d_array,        &
        i3d_array,        &
@@ -1796,15 +1794,13 @@ contains
    !*** the extra dimension on 2d,3d arrays corresponds to block index
    !***
 
-   integer (i4),                     intent(in), optional         :: &
-                                                           i0d_array
    integer (i4), dimension(:),       intent(in), optional, target :: &
                                                            i1d_array
    integer (i4), dimension(:,:,:),   intent(in), optional, target :: &
                                                            i2d_array
    integer (i4), dimension(:,:,:,:), intent(in), optional, target :: &
                                                            i3d_array
-   real    (r4),                     intent(in), optional         :: &
+   real    (r4),                     intent(in), optional, target :: &
                                                            r0d_array
    real    (r4), dimension(:),       intent(in), optional, target :: &
                                                            r1d_array
@@ -1812,7 +1808,7 @@ contains
                                                            r2d_array
    real    (r4), dimension(:,:,:,:), intent(in), optional, target :: &
                                                            r3d_array
-   real    (r8),                     intent(in), optional         :: &
+   real    (r8),                     intent(in), optional, target :: &
                                                            d0d_array
    real    (r8), dimension(:),       intent(in), optional, target :: &
                                                            d1d_array
@@ -1982,8 +1978,13 @@ contains
       endif
 
    else
-      descriptor%nfield_dims = 0
-      ! field_dim is not used for scalars 
+      if (lactive_time_dim) then
+         descriptor%nfield_dims = 1
+         descriptor%field_dim(1) = time_dim
+      else
+         ! field_dim is not used for time-invariant scalars 
+         descriptor%nfield_dims = 0
+      endif
      
    end if
 
@@ -1991,16 +1992,18 @@ contains
    nullify (descriptor%field_i_2d)
    nullify (descriptor%field_i_3d)
 
+   nullify (descriptor%field_r_0d)
    nullify (descriptor%field_r_1d)
    nullify (descriptor%field_r_2d)
    nullify (descriptor%field_r_3d)
 
+   nullify (descriptor%field_d_0d)
    nullify (descriptor%field_d_1d)
    nullify (descriptor%field_d_2d)
    nullify (descriptor%field_d_3d)
 
-   if      (present(r0d_array)) then
-      descriptor%field_r_0d =  r0d_array
+   if (present(r0d_array)) then
+      descriptor%field_r_0d => r0d_array
    else if (present(r1d_array)) then
       descriptor%field_r_1d => r1d_array
    else if (present(r2d_array)) then
@@ -2008,15 +2011,13 @@ contains
    else if (present(r3d_array)) then
       descriptor%field_r_3d => r3d_array
    else if (present(d0d_array)) then
-      descriptor%field_d_0d =  d0d_array
+      descriptor%field_d_0d => d0d_array
    else if (present(d1d_array)) then
       descriptor%field_d_1d => d1d_array
    else if (present(d2d_array)) then
       descriptor%field_d_2d => d2d_array
    else if (present(d3d_array)) then
       descriptor%field_d_3d => d3d_array
-   else if (present(i0d_array)) then
-      descriptor%field_i_0d =  i0d_array
    else if (present(i1d_array)) then
       descriptor%field_i_1d => i1d_array
    else if (present(i2d_array)) then
@@ -2100,10 +2101,12 @@ contains
    nullify (descriptor%field_i_2d)
    nullify (descriptor%field_i_3d)
 
+   nullify (descriptor%field_r_0d)
    nullify (descriptor%field_r_1d)
    nullify (descriptor%field_r_2d)
    nullify (descriptor%field_r_3d)
 
+   nullify (descriptor%field_d_0d)
    nullify (descriptor%field_d_1d)
    nullify (descriptor%field_d_2d)
    nullify (descriptor%field_d_3d)
@@ -3322,7 +3325,7 @@ contains
 
    if (my_task == master_task) then
 #ifdef CCSMCOUPLED
-      nml_filename = 'pop2_in' // trim(inst_suffix)
+      nml_filename = 'pop_in' // trim(inst_suffix)
       call get_unit(nml_in)
 #endif
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)

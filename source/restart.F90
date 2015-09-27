@@ -54,6 +54,7 @@
    use passive_tracers, only: write_restart_passive_tracers
    use overflows
    use overflow_type
+   use running_mean_mod, only: running_mean_write_restart
 
    implicit none
    private
@@ -515,7 +516,7 @@
                    units    ='cm/s', grid_loc ='2220',                &
                    field_loc = field_loc_NEcorner,                    &
                    field_type = field_type_vector,                    &
-                   d2d_array =UBTROP(:,:,curtime,:))
+                   d2d_array =UBTROP(:,:,curtime,1:nblocks_clinic))
    call data_set (restart_file, 'define', UBTROP_CUR)
 
    UBTROP_OLD = construct_io_field('UBTROP_OLD', dim1=i_dim, dim2=j_dim,        &
@@ -523,7 +524,7 @@
                    units    ='cm/s', grid_loc ='2220',                &
                    field_loc = field_loc_NEcorner,                    &
                    field_type = field_type_vector,                    &
-                   d2d_array =UBTROP(:,:,oldtime,:))
+                   d2d_array =UBTROP(:,:,oldtime,1:nblocks_clinic))
    call data_set (restart_file, 'define', UBTROP_OLD)
 
    VBTROP_CUR = construct_io_field('VBTROP_CUR', dim1=i_dim, dim2=j_dim,        &
@@ -531,7 +532,7 @@
                    units    ='cm/s', grid_loc ='2220',                &
                    field_loc = field_loc_NEcorner,                    &
                    field_type = field_type_vector,                    &
-                   d2d_array =VBTROP(:,:,curtime,:))
+                   d2d_array =VBTROP(:,:,curtime,1:nblocks_clinic))
    call data_set (restart_file, 'define', VBTROP_CUR)
 
    VBTROP_OLD = construct_io_field('VBTROP_OLD', dim1=i_dim, dim2=j_dim,        &
@@ -539,7 +540,7 @@
                    units    ='cm/s', grid_loc ='2220',                &
                    field_loc = field_loc_NEcorner,                    &
                    field_type = field_type_vector,                    &
-                   d2d_array =VBTROP(:,:,oldtime,:))
+                   d2d_array =VBTROP(:,:,oldtime,1:nblocks_clinic))
    call data_set (restart_file, 'define', VBTROP_OLD)
 
    PSURF_CUR = construct_io_field('PSURF_CUR', dim1=i_dim, dim2=j_dim,          &
@@ -547,7 +548,7 @@
                    units    ='dyne/cm2', grid_loc ='2110',            &
                    field_loc = field_loc_center,                      &
                    field_type = field_type_scalar,                    &
-                   d2d_array =PSURF(:,:,curtime,:))
+                   d2d_array =PSURF(:,:,curtime,1:nblocks_clinic))
    call data_set (restart_file, 'define', PSURF_CUR)
 
    PSURF_OLD = construct_io_field('PSURF_OLD', dim1=i_dim, dim2=j_dim,          &
@@ -555,7 +556,7 @@
                    units    ='dyne/cm2', grid_loc ='2110',            &
                    field_loc = field_loc_center,                      &
                    field_type = field_type_scalar,                    &
-                   d2d_array =PSURF(:,:,oldtime,:))
+                   d2d_array =PSURF(:,:,oldtime,1:nblocks_clinic))
    call data_set (restart_file, 'define', PSURF_OLD)
 
    GRADPX_CUR = construct_io_field('GRADPX_CUR', dim1=i_dim, dim2=j_dim,        &
@@ -563,7 +564,7 @@
                    units    ='dyne/cm3', grid_loc ='2220',            &
                    field_loc = field_loc_NEcorner,                    &
                    field_type = field_type_vector,                    &
-                   d2d_array =GRADPX(:,:,curtime,:))
+                   d2d_array =GRADPX(:,:,curtime,1:nblocks_clinic))
    call data_set (restart_file, 'define', GRADPX_CUR)
 
    GRADPX_OLD = construct_io_field('GRADPX_OLD', dim1=i_dim, dim2=j_dim,        &
@@ -571,7 +572,7 @@
                    units    ='dyne/cm3', grid_loc ='2220',            &
                    field_loc = field_loc_NEcorner,                    &
                    field_type = field_type_vector,                    &
-                   d2d_array =GRADPX(:,:,oldtime,:))
+                   d2d_array =GRADPX(:,:,oldtime,1:nblocks_clinic))
    call data_set (restart_file, 'define', GRADPX_OLD)
 
    GRADPY_CUR = construct_io_field('GRADPY_CUR', dim1=i_dim, dim2=j_dim,        &
@@ -579,7 +580,7 @@
                    units    ='dyne/cm3', grid_loc ='2220',            &
                    field_loc = field_loc_NEcorner,                    &
                    field_type = field_type_vector,                    &
-                   d2d_array =GRADPY(:,:,curtime,:))
+                   d2d_array =GRADPY(:,:,curtime,1:nblocks_clinic))
    call data_set (restart_file, 'define', GRADPY_CUR)
 
    GRADPY_OLD = construct_io_field('GRADPY_OLD', dim1=i_dim, dim2=j_dim,        &
@@ -587,7 +588,7 @@
                    units    ='dyne/cm3', grid_loc ='2220',            &
                    field_loc = field_loc_NEcorner,                    &
                    field_type = field_type_vector,                    &
-                   d2d_array =GRADPY(:,:,oldtime,:))
+                   d2d_array =GRADPY(:,:,oldtime,1:nblocks_clinic))
    call data_set (restart_file, 'define', GRADPY_OLD)
 
    PGUESSd = construct_io_field('PGUESS', dim1=i_dim, dim2=j_dim,               &
@@ -595,7 +596,7 @@
                    units    ='dyne/cm2', grid_loc ='2110',            &
                    field_loc = field_loc_center,                      &
                    field_type = field_type_scalar,                    &
-                   d2d_array =PGUESS)
+                   d2d_array =PGUESS(:,:,1:nblocks_clinic))
    call data_set (restart_file, 'define', PGUESSd)
 
    if (sfc_layer_type == sfc_layer_varthick) then
@@ -604,14 +605,14 @@
                    grid_loc ='2110',                                  &
                    field_loc = field_loc_center,                      &
                    field_type = field_type_scalar,                    &
-                   d2d_array = FW_OLD)
+                   d2d_array = FW_OLD(:,:,1:nblocks_clinic))
       call data_set (restart_file, 'define', FW_OLDd)
       FW_FREEZEd = construct_io_field('FW_FREEZE', dim1=i_dim, dim2=j_dim,      &
                    long_name='water flux due to frazil ice formation',&
                    grid_loc ='2110',                                  &
                    field_loc = field_loc_center,                      &
                    field_type = field_type_scalar,                    &
-                   d2d_array = FW_FREEZE)
+                   d2d_array = FW_FREEZE(:,:,1:nblocks_clinic))
       call data_set (restart_file, 'define', FW_FREEZEd)
    endif
 
@@ -622,7 +623,7 @@
                      grid_loc ='2110',                                &
                      field_loc = field_loc_center,                    &
                      field_type = field_type_scalar,                  &
-                     d2d_array = QFLUX)
+                     d2d_array = QFLUX(:,:,1:nblocks_clinic))
         call data_set (restart_file, 'define', QFLUXd)
       else
         AQICEd = construct_io_field('AQICE', dim1=i_dim, dim2=j_dim,            &
@@ -630,7 +631,7 @@
                      grid_loc ='2110',                                &
                      field_loc = field_loc_center,                    &
                      field_type = field_type_scalar,                  &
-                     d2d_array = AQICE)
+                     d2d_array = AQICE(:,:,1:nblocks_clinic))
         call data_set (restart_file, 'define', AQICEd)
       endif
    endif
@@ -641,7 +642,7 @@
                    grid_loc ='3221',                                  &
                    field_loc = field_loc_NEcorner,                    &
                    field_type = field_type_vector,                    &
-                   d3d_array = UVEL(:,:,:,curtime,:))
+                   d3d_array = UVEL(:,:,:,curtime,1:nblocks_clinic))
    call data_set (restart_file, 'define', UVEL_CUR)
 
 
@@ -651,7 +652,7 @@
                    grid_loc ='3221',                                  &
                    field_loc = field_loc_NEcorner,                    &
                    field_type = field_type_vector,                    &
-                   d3d_array = UVEL(:,:,:,oldtime,:))
+                   d3d_array = UVEL(:,:,:,oldtime,1:nblocks_clinic))
    call data_set (restart_file, 'define', UVEL_OLD)
 
    VVEL_CUR = construct_io_field('VVEL_CUR', dim1=i_dim, dim2=j_dim, dim3=k_dim,&
@@ -660,7 +661,7 @@
                    grid_loc ='3221',                                  &
                    field_loc = field_loc_NEcorner,                    &
                    field_type = field_type_vector,                    &
-                   d3d_array = VVEL(:,:,:,curtime,:))
+                   d3d_array = VVEL(:,:,:,curtime,1:nblocks_clinic))
    call data_set (restart_file, 'define', VVEL_CUR)
 
    VVEL_OLD = construct_io_field('VVEL_OLD', dim1=i_dim, dim2=j_dim, dim3=k_dim,&
@@ -669,7 +670,7 @@
                    grid_loc ='3221',                                  &
                    field_loc = field_loc_NEcorner,                    &
                    field_type = field_type_vector,                    &
-                   d3d_array = VVEL(:,:,:,oldtime,:))
+                   d3d_array = VVEL(:,:,:,oldtime,1:nblocks_clinic))
    call data_set (restart_file, 'define', VVEL_OLD)
 
    do n=1,2
@@ -686,7 +687,7 @@
                    grid_loc ='3111',                                  &
                    field_loc = field_loc_center,                      &
                    field_type = field_type_scalar,                    &
-                   d3d_array = TRACER(:,:,:,n,curtime,:))
+                   d3d_array = TRACER(:,:,:,n,curtime,1:nblocks_clinic))
       call data_set (restart_file, 'define', TRACER_CUR(n))
    end do
 
@@ -707,7 +708,7 @@
                       grid_loc ='3111',                               &
                       field_loc = field_loc_center,                   &
                       field_type = field_type_scalar,                 &
-                      d3d_array = TRACER(:,:,:,n,oldtime,:))
+                      d3d_array = TRACER(:,:,:,n,oldtime,1:nblocks_clinic))
 
       call data_set (restart_file, 'define', TRACER_OLD(n))
    end do
@@ -1287,77 +1288,77 @@
                    long_name='U barotropic velocity at current time', &
                    units    ='cm/s',                                  &
                    grid_loc ='2220',                                  &
-                   d2d_array =UBTROP(:,:,curtime,:))
+                   d2d_array =UBTROP(:,:,curtime,1:nblocks_clinic))
 
    UBTROP_OLD = construct_io_field('UBTROP_OLD', dim1=i_dim, dim2=j_dim,        &
                    long_name='U barotropic velocity at old time',     &
                    units    ='cm/s',                                  &
                    grid_loc ='2220',                                  &
-                   d2d_array =UBTROP(:,:,oldtime,:))
+                   d2d_array =UBTROP(:,:,oldtime,1:nblocks_clinic))
 
    VBTROP_CUR = construct_io_field('VBTROP_CUR', dim1=i_dim, dim2=j_dim,        &
                    long_name='V barotropic velocity at current time', &
                    units    ='cm/s',                                  &
                    grid_loc ='2220',                                  &
-                   d2d_array =VBTROP(:,:,curtime,:))
+                   d2d_array =VBTROP(:,:,curtime,1:nblocks_clinic))
 
    VBTROP_OLD = construct_io_field('VBTROP_OLD', dim1=i_dim, dim2=j_dim,        &
                    long_name='V barotropic velocity at old time',     &
                    units    ='cm/s',                                  &
                    grid_loc ='2220',                                  &
-                   d2d_array =VBTROP(:,:,oldtime,:))
+                   d2d_array =VBTROP(:,:,oldtime,1:nblocks_clinic))
 
    PSURF_CUR = construct_io_field('PSURF_CUR', dim1=i_dim, dim2=j_dim,          &
                    long_name='surface pressure at current time',      &
                    units    ='dyne/cm2',                              &
                    grid_loc ='2110',                                  &
-                   d2d_array =PSURF(:,:,curtime,:))
+                   d2d_array =PSURF(:,:,curtime,1:nblocks_clinic))
 
    PSURF_OLD = construct_io_field('PSURF_OLD', dim1=i_dim, dim2=j_dim,          &
                    long_name='surface pressure at old time',          &
                    units    ='dyne/cm2',                              &
                    grid_loc ='2110',                                  &
-                   d2d_array =PSURF(:,:,oldtime,:))
+                   d2d_array =PSURF(:,:,oldtime,1:nblocks_clinic))
 
    GRADPX_CUR = construct_io_field('GRADPX_CUR', dim1=i_dim, dim2=j_dim,        &
                    long_name='sfc press gradient in x at current time',&
                    units    ='dyne/cm3',                              &
                    grid_loc ='2220',                                  &
-                   d2d_array =GRADPX(:,:,curtime,:))
+                   d2d_array =GRADPX(:,:,curtime,1:nblocks_clinic))
 
    GRADPX_OLD = construct_io_field('GRADPX_OLD', dim1=i_dim, dim2=j_dim,        &
                    long_name='sfc press gradient in x at old time',   &
                    units    ='dyne/cm3',                              &
                    grid_loc ='2220',                                  &
-                   d2d_array =GRADPX(:,:,oldtime,:))
+                   d2d_array =GRADPX(:,:,oldtime,1:nblocks_clinic))
 
    GRADPY_CUR = construct_io_field('GRADPY_CUR', dim1=i_dim, dim2=j_dim,        &
                    long_name='sfc press gradient in y at current time',&
                    units    ='dyne/cm3',                              &
                    grid_loc ='2220',                                  &
-                   d2d_array =GRADPY(:,:,curtime,:))
+                   d2d_array =GRADPY(:,:,curtime,1:nblocks_clinic))
 
    GRADPY_OLD = construct_io_field('GRADPY_OLD', dim1=i_dim, dim2=j_dim,        &
                    long_name='sfc press gradient in y at old time',   &
                    units    ='dyne/cm3',                              &
                    grid_loc ='2220',                                  &
-                   d2d_array =GRADPY(:,:,oldtime,:))
+                   d2d_array =GRADPY(:,:,oldtime,1:nblocks_clinic))
 
    PGUESSd = construct_io_field('PGUESS', dim1=i_dim, dim2=j_dim,               &
                    long_name='guess for sfc pressure at new time',    &
                    units    ='dyne/cm2',                              &
                    grid_loc ='2110',                                  &
-                   d2d_array =PGUESS)
+                   d2d_array =PGUESS(:,:,1:nblocks_clinic))
 
    if (sfc_layer_type == sfc_layer_varthick) then
       FW_OLDd = construct_io_field('FW_OLD', dim1=i_dim, dim2=j_dim,            &
                    long_name='fresh water input at old time',         &
                    grid_loc ='2110',                                  &
-                   d2d_array = FW_OLD)
+                   d2d_array = FW_OLD(:,:,1:nblocks_clinic))
       FW_FREEZEd = construct_io_field('FW_FREEZE', dim1=i_dim, dim2=j_dim,      &
                    long_name='water flux due to frazil ice formation',&
                    grid_loc ='2110',                                  &
-                   d2d_array = FW_FREEZE)
+                   d2d_array = FW_FREEZE(:,:,1:nblocks_clinic))
    endif
 
    if (liceform) then
@@ -1365,12 +1366,12 @@
         QFLUXd = construct_io_field('QFLUX', dim1=i_dim, dim2=j_dim,            &
                      long_name='Internal Ocean Heat Flux Due to Ice Formation',&
                      grid_loc ='2110',                                &
-                     d2d_array = QFLUX)
+                     d2d_array = QFLUX(:,:,1:nblocks_clinic))
       else
         AQICEd = construct_io_field('AQICE', dim1=i_dim, dim2=j_dim,            &
                      long_name='accumulated ice melt/heat',           &
                      grid_loc ='2110',                                &
-                     d2d_array = AQICE)
+                     d2d_array = AQICE(:,:,1:nblocks_clinic))
       endif
    endif
 
@@ -1378,25 +1379,25 @@
                    long_name='U velocity at current time',            &
                    units    ='cm/s',                                  &
                    grid_loc ='3221',                                  &
-                   d3d_array = UVEL(:,:,:,curtime,:))
+                   d3d_array = UVEL(:,:,:,curtime,1:nblocks_clinic))
 
    UVEL_OLD = construct_io_field('UVEL_OLD', dim1=i_dim, dim2=j_dim, dim3=k_dim,&
                    long_name='U velocity at old time',                &
                    units    ='cm/s',                                  &
                    grid_loc ='3221',                                  &
-                   d3d_array = UVEL(:,:,:,oldtime,:))
+                   d3d_array = UVEL(:,:,:,oldtime,1:nblocks_clinic))
 
    VVEL_CUR = construct_io_field('VVEL_CUR', dim1=i_dim, dim2=j_dim, dim3=k_dim,&
                    long_name='V velocity at current time',            &
                    units    ='cm/s',                                  &
                    grid_loc ='3221',                                  &
-                   d3d_array = VVEL(:,:,:,curtime,:))
+                   d3d_array = VVEL(:,:,:,curtime,1:nblocks_clinic))
 
    VVEL_OLD = construct_io_field('VVEL_OLD', dim1=i_dim, dim2=j_dim, dim3=k_dim,&
                    long_name='V velocity at old time',                &
                    units    ='cm/s',                                  &
                    grid_loc ='3221',                                  &
-                   d3d_array = VVEL(:,:,:,oldtime,:))
+                   d3d_array = VVEL(:,:,:,oldtime,1:nblocks_clinic))
 
    do n=1,nt
       short_name = char_blank
@@ -1411,7 +1412,7 @@
                    long_name=trim(long_name),                         &
                    units    =trim(tracer_d(n)%units),                 &
                    grid_loc ='3111',                                  &
-                   d3d_array = TRACER(:,:,:,n,curtime,:))
+                   d3d_array = TRACER(:,:,:,n,curtime,1:nblocks_clinic))
    end do
 
    do n=1,nt
@@ -1427,7 +1428,7 @@
                    long_name=trim(long_name),                         &
                    units    =trim(tracer_d(n)%units),                 &
                    grid_loc ='3111',                                  &
-                   d3d_array = TRACER(:,:,:,n,oldtime,:))
+                   d3d_array = TRACER(:,:,:,n,oldtime,1:nblocks_clinic))
    end do
 
 !-----------------------------------------------------------------------
@@ -1474,6 +1475,8 @@
 
    if (nt > 2) call write_restart_passive_tracers(restart_file,'define')
 
+   call running_mean_write_restart(restart_file,'define')
+
 !-----------------------------------------------------------------------
 !
 !  now we actually write each field
@@ -1514,6 +1517,8 @@
    end do
 
    if (nt > 2) call write_restart_passive_tracers(restart_file,'write')
+
+   call running_mean_write_restart(restart_file,'write')
 
 !-----------------------------------------------------------------------
 !

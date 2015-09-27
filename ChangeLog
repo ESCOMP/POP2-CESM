@@ -1,5 +1,651 @@
-SVN $Id$
-SVN $URL$
+===============================================================================
+Tag Creator: mvertens
+Developers:  mvertens
+Tag Date:    23 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150923
+Tag Summary: Updates for compatibility with cime3.0.5 and later
+
+Testing: Ran aux_pop pre-intel tests and compared to aux_pop_120916a
+	 All tests ran successfully other than the following:
+Baseline failures (unexpected):	
+FAIL SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys.cpl.hi.nc : baseline compare cpl.hi (baseline: compare .base file with aux_pop_120916a file) 
+	
+Run time failures (expected- see 9/11/2015 log entry):	
+RUN ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14.C.150921-232853 
+RUN ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14.C.150921-232853 
+	
+	
+Files Modified/Added/Removed:
+	
+M       source/POP_SolversMod.F90
+M       source/vmix_kpp.F90
+	
+M       bld/configure
+D       bld/pop.buildlib
+D       bld/pop.buildnml
+M       bld/README.build-namelist
+D       bld/user_nl_pop
+M       bld/build-namelist
+M       bld/namelist_files/namelist_definition_pop.xml
+	
+A  +    cime_config
+A  +    cime_config/config_compsets.xml
+A  +    cime_config/testdefs
+A  +    cime_config/testdefs/testmods_dirs
+A  +    cime_config/testdefs/testmods_dirs/pop
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ciso
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ciso/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/presaero
+A  +    cime_config/testdefs/testmods_dirs/pop/presaero/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/presaero/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/cice
+A  +    cime_config/testdefs/testmods_dirs/pop/cice/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/cice/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/cice/user_nl_cice
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_transient
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_transient/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_transient/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_transient
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_transient/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_transient/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/default
+A  +    cime_config/testdefs/testmods_dirs/pop/default/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/default/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_3steps
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_3steps/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_3steps/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ecosys
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ecosys/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_abio_dic_dic14
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_abio_dic_dic14/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_presaero
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_presaero/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_presaero/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso/shell_commands
+A  +    cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/user_nl_pop
+A  +    cime_config/buildlib
+A  +    cime_config/buildnml
+A  +    cime_config/config_component.xml
+A  +    cime_config/config_pes.xml
+D       cimetest
+D       cimetest/testmods_dirs
+D       cimetest/testmods_dirs/pop
+D       cimetest/testmods_dirs/pop/cice_ciso
+D       cimetest/testmods_dirs/pop/cice_ciso/include_user_mods
+D       cimetest/testmods_dirs/pop/presaero
+D       cimetest/testmods_dirs/pop/presaero/include_user_mods
+D       cimetest/testmods_dirs/pop/presaero/shell_commands
+D       cimetest/testmods_dirs/pop/cice
+D       cimetest/testmods_dirs/pop/cice/include_user_mods
+D       cimetest/testmods_dirs/pop/cice/shell_commands
+D       cimetest/testmods_dirs/pop/cice/user_nl_cice
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_transient
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_transient/include_user_mods
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_transient/user_nl_pop
+D       cimetest/testmods_dirs/pop/ciso_transient
+D       cimetest/testmods_dirs/pop/ciso_transient/include_user_mods
+D       cimetest/testmods_dirs/pop/ciso_transient/user_nl_pop
+D       cimetest/testmods_dirs/pop/default
+D       cimetest/testmods_dirs/pop/default/user_nl_pop
+D       cimetest/testmods_dirs/pop/default/shell_commands
+D       cimetest/testmods_dirs/pop/ecosys
+D       cimetest/testmods_dirs/pop/ecosys/include_user_mods
+D       cimetest/testmods_dirs/pop/ecosys/shell_commands
+D       cimetest/testmods_dirs/pop/ecosys_3steps
+D       cimetest/testmods_dirs/pop/ecosys_3steps/user_nl_pop
+D       cimetest/testmods_dirs/pop/ecosys_3steps/shell_commands
+D       cimetest/testmods_dirs/pop/ecosys_restore_gx3v7
+D       cimetest/testmods_dirs/pop/ecosys_restore_gx3v7/include_user_mods
+D       cimetest/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+D       cimetest/testmods_dirs/pop/cice_ecosys
+D       cimetest/testmods_dirs/pop/cice_ecosys/include_user_mods
+D       cimetest/testmods_dirs/pop/ciso_abio_dic_dic14
+D       cimetest/testmods_dirs/pop/ciso_abio_dic_dic14/include_user_mods
+D       cimetest/testmods_dirs/pop/abio_dic_dic14
+D       cimetest/testmods_dirs/pop/abio_dic_dic14/include_user_mods
+D       cimetest/testmods_dirs/pop/abio_dic_dic14/shell_commands
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_presaero
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_presaero/include_user_mods
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_presaero/shell_commands
+D       cimetest/testmods_dirs/pop/ciso
+D       cimetest/testmods_dirs/pop/ciso/include_user_mods
+D       cimetest/testmods_dirs/pop/ciso/shell_commands
+D       cimetest/testlist_pop.xml
+A       cimetest/testmods_dirs/pop/cice_ciso
+A       cimetest/testmods_dirs/pop/cice_ciso/include_user_mods
+	
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150916a
+Tag Summary: New aux_pop_MARBL test list requires cice_ciso test mod dir
+
+Files Modified:
+A       cimetest/testmods_dirs/pop/cice_ciso
+A       cimetest/testmods_dirs/pop/cice_ciso/include_user_mods
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150916
+Tag Summary: * Refactor code to apply pressure correction in co2calc_column.F90
+             * Create new aux_pop_MARBL test list to reduce testing overhead
+               on MARBL-related branches
+
+Files Modified:
+M       cimetest/testlist_pop.xml
+M       source/co2calc_column.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  jwolfe
+Tag Date:    14 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150914
+Tag Summary: Vectorize comp_co3terms in co2calc_column for increased
+             performance
+
+Files Modified:
+M       source/co2calc_column.F90
+M       source/ecosys_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    11 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150911
+Tag Summary: performance mod for ecosys_driver_set_interior
+             * only call set_interior at active ocean cells
+               (not at ghost, halo, or land cells)
+             Note: this causes uninitialized memory errors in
+                   ecosys_ciso_set_interior, so all pop-ciso DEBUG tests fail.
+                   I've added some pop-ecosys DEBUG tests to make sure we
+                   don't introduce any other errors, and once we refactor the
+                   ciso module the original tests should pass again.
+
+Files Modified:
+M       cimetest/testlist_pop.xml
+M       source/ecosys_driver.F90
+D       source/ecosys_parms.F90
+D       source/ecosys_share.F90
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    10 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150910
+Tag Summary: tidy up ecosys subroutines that update from one k level to the next
+
+Make update from prior level subroutines only update fields that truly
+propagate from one level to the next. Ensure that sed_loss terms are
+always set in compute_particulate_terms.
+
+Files Modified:
+M       source/ecosys_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay, mlevy
+Tag Date:    1 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150901a
+Tag Summary: Fix CO3comp timer performance (start and stop are now both
+             outside the k-loop)
+
+Files Modified:
+M       source/ecosys_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay, mlevy
+Tag Date:    1 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150901
+Tag Summary: Fix CO3comp timer calls (start and stop inside a k-loop)
+
+Files Modified:
+M       source/ecosys_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  andre, klindsay, mclong, mlevy, mvertens
+Tag Date:    31 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150831
+Tag Summary: Merge MARBL development onto trunk (working towards
+             POP-independent biogeochemistry library)
+
+Files Modified:
+M       bld/build-namelist
+A       cimetest/testmods_dirs/pop/ecosys_3steps
+A       cimetest/testmods_dirs/pop/ecosys_3steps/shell_commands
+A       cimetest/testmods_dirs/pop/ecosys_3steps/user_nl_pop
+M       source/abio_dic_dic14_mod.F90
+M       source/co2calc.F90
+A       source/co2calc_column.F90
+M       source/constants.F90
+M       source/ecosys_ciso_mod.F90
+M       source/ecosys_constants.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_parms.F90
+M       source/ecosys_restore.F90
+M       source/ecosys_share.F90
+A       source/ecosys_tavg.F90
+A       source/marbl_interface.F90
+A       source/marbl_interface_constants.F90
+A       source/marbl_interface_types.F90
+A       source/marbl_kinds.F90
+A       source/marbl_oxygen.F90
+A       source/marbl_parms.F90
+A       source/marbl_share.F90
+M       source/passive_tracers.F90
+A       source/schmidt_number.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mmills, andre
+Tag Date:    16 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150816a
+Tag Summary: Two updates to build-namelist
+             (1) as pointed out in Bug 2181, logic to determine starting day
+                 for a run was missing digits needed for Oct, Nov, and Dec
+             (2) Starting with perl 5.18, the "given / when" construct
+                 spits out experimental warnings; Ben showed me how to
+                 suppress those.
+
+Files Modified:
+M       bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150816
+Tag Summary: Adding a 24-task decomposition for gx3v7 to close a 7 year old
+             bugzilla ticket (#730)
+
+Files Modified:
+M       bld/pop_decomp.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150813b
+Tag Summary: Introduce a new module to help CSEG handle testing when answer-
+             changing branch tags are merged back to the trunk. There is now
+             a namelist variable named lchange_ans and we encourage developers
+             to use the following workflow:
+             * branch_000 should be bit-for-bit with trunk
+             * branch_001 should have code structured like
+                  if (lchange_ans) then
+                    call new_code
+                  else
+                    call old_code
+                  end if
+               Note that this makes branch_001 + lchange_ans=F bit-for-bit with
+               branch_000
+             * branch_002 should remove the lchange_ans if statement and use
+               only the new code. Note that branch_001 + lchange_ans=T should
+               be bit-for-bit with branch_002
+             * CSEG will make a trunk tag based on branch_001 first and ensure
+               it is bit-for-bit with lchange_ans=F
+             * CSEG will then follow up with a trunk tag based on branch_002
+               and ensure it is bit-for-bit with the previous trunk tag +
+               lchange_ans=T
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/initial.F90
+A       source/software_eng_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  huyong
+Tag Date:    13 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150813a
+Tag Summary: Patch bug in barotropic solver that we worked around on May 20th.
+             Now the new solver should work on all decompositions, including
+             those with ghost cells => can be used with gx3v7 on yellowstone.
+             Will turn on by default for gx3v7 runs in an answer-changing tag.
+
+Files Modified:
+M       source/POP_SolversMod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150813
+Tag Summary: Add interfaces to allow accumulate_tavg_field to be called with a
+             single column of data (keeps existing interfaces to accumulate a
+             level at a time as well); also, trimmed exit message in exit_POP()
+
+Files Modified:
+M       source/exit_mod.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    10 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150810
+Tag Summary: Increase size of char_len and POP_CharLength to account for
+             tests producing exceptionally long case names
+
+Files Modified:
+M       source/POP_KindsMod.F90
+M       source/kinds_mod.F90
+===============================================================================
+Tag Creator: jedwards
+Developers:  jedwards
+Tag Date:    17 July 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150717
+Tag Summary: Changes for pio2 (array length must match dof length)
+
+M       source/ecosys_mod.F90
+M       source/io_netcdf.F90
+M       source/restart.F90
+M       source/tavg.F90
+
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 July 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150713
+Tag Summary: Change all goldbach tests to hobart tests
+
+Files Modified:
+M       cimetest/testlist_pop.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay, mlevy
+Tag Date:    10 July 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150710
+Tag Summary: Add tavg fields for total tracer tendency. Use TEND_[shortname]
+             e.g. TEND_TEMP for temperature and TEND_SALT for salinity. These
+             fields are available for all tracer modules.
+
+Files Modified:
+M       source/baroclinic.F90
+M       source/passive_tracers.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    1 July 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150701
+Tag Summary: Introduce new interface module for dealing with share stream
+             code. Note that this will allow removal CCSMCOUPLED macro from
+             ecosys_mod but that update hasn't been incorporated yet.
+
+Files Modified:
+M       source/ecosys_mod.F90
+A       source/strdata_interface_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    30 June 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150630
+Tag Summary: save attribute in module variable after global save was casusing
+             compilation error in nag; also removed some un-used variables.
+
+Files Modified:
+M       source/POP_SolversMod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    20 May 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150520
+Tag Summary: New preconditioner for barotropic solver doesn't work on default
+             gx3v7 layout for yellowstone; while investigating this issue,
+             we'll go back to the old solver / preconditioner for the 3 deg
+             resolution. Also removed some debugging lines of code left in
+             barotropic.F90 by mistake.
+
+Files Modified:
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       source/barotropic.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    15 May 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150515
+Tag Summary: New namelist defaults to use updated barotropic solver
+
+Files Modified:
+M       bld/namelist_files/namelist_defaults_pop.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  huyong
+Tag Date:    6 May 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150506
+Tag Summary: Bugfix for exact restarts with CSI solver
+
+Files Modified:
+M       source/POP_SolversMod.F90
+M       source/barotropic.F90
+M       source/initial.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    30 Apr 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150430
+Tag Summary: extend support for r8 0d IO to handle time dimension, add support
+             for r4 0d IO (with and without time dimension), add tavg support
+             for r4 and r8 0d variables, and add tavg output for existing 0d
+             running_mean test variable
+
+Files Modified:
+M       source/io_netcdf.F90
+M       source/io_types.F90
+M       source/running_mean_mod.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    29 Apr 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150429b
+Tag Summary: Clean up unnecessary variables in configure script, print changes
+             that come from OCN_TRACER_MODULES_OPT to screen
+
+Files Modified:
+M       bld/configure
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    29 Apr 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150429a
+Tag Summary: A few improvements to IRF and configure
+             * Change dimensions from (IRF_NT) to (:) on intent(in) and
+               intent(inout) variables; remove possibility for compiler error
+               if IRF_NT = 0
+             * Improve error checking for OCN_TRACER_MODULES and
+               OCN_TRACER_MODULES_OPT in configure; now get error message if you
+               try to activate a module or set an option that configure does not
+               recognize.
+
+Files Modified:
+M       bld/configure
+M       source/IRF_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    29 Apr 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150429
+Tag Summary: Bugfixes in IRF set-up
+             * forgot to include note to change tavg variables in ocn.IRF.tavg.csh
+             * Parsing of OCN_TRACER_MODULES_OPT did not work as advertised
+               (needed to remove whitespace when parsing variables)
+             * If not using IRF module, build with IRF_NT=1 to avoid possible
+               compiler complaints (don't want arrays with dimsize=0)
+
+Files Modified:
+M       bld/configure
+M       bld/user_nl_pop
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay (source/), mlevy (bld/)
+Tag Date:    28 Apr 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150428
+Tag Summary: Introduce Impulse Response Function (IRF) tracer module. Note that
+             in this initial commit, you need to have the irf_tracer_file
+             available in inputdata before you setup your case.
+
+             Also added check to ensure that thickness-weighted time-averaging
+             of tracers on mixing time steps does not exceed tracer bounds
+
+Files Modified:
+M       bld/build-namelist
+M       bld/config_files/definition.xml
+M       bld/configure
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+A       input_templates/ocn.IRF.tavg.csh
+A       source/IRF_mod.F90
+M       source/advection.F90
+M       source/baroclinic.F90
+M       source/hmix_gm.F90
+M       source/horizontal_mix.F90
+M       source/passive_tracers.F90
+M       source/step_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    27 Apr 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150427b
+Tag Summary: Actually use perl5lib/Build/Config.pm to write config_cache.xml
+             and to read values in build-namelist; this will be useful for
+             setting / reading IRF_NT when I add Keith's impulse response
+             function module to the trunk (his mods are based on the CESM 1.3
+             build system rather than the CESM 1.4 system)
+
+Files Modified:
+M       bld/build-namelist
+A       bld/config_files
+A       bld/config_files/definition.xml
+A       bld/config_files/definition.xsl
+M       bld/configure
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    27 Apr 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150427a
+Tag Summary: introduce running mean module (description at top of
+             source/running_mean_mod.F90), add lpre_time_manager flag to
+             time_management.F90 (remove lsflux flag, use lpre_time_manager
+             instead)
+
+Files Modified:
+M       source/baroclinic.F90
+M       source/forcing.F90
+M       source/initial.F90
+M       source/restart.F90
+A       source/running_mean_mod.F90
+M       source/step_mod.F90
+M       source/time_management.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay
+Tag Date:    27 Apr 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150427
+Tag Summary: fix io (read and write) for r8 0d vars, remove broken support for
+             r4 and integer 0d vars, and add target attribute to variables in
+             tavg and restart that get passed to io infrastruction
+
+Files Modified:
+M       source/constants.F90
+M       source/grid.F90
+M       source/ice.F90
+M       source/io_netcdf.F90
+M       source/io_types.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  huyong, abaker
+Tag Date:    21 Apr 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150421a
+Tag Summary: Add optional new preconditioner and solver for barotropic
+             equations (but use old solver by default)
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/POP_SolversMod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    21 Apr 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150421
+Tag Summary: MAJOR UPDATE FOR CESM 1.4 DEVELOPMENT
+             -- This is the merge of the newtesting branch back onto the trunk
+             1) buildnml and buildexe scripts converted from csh -> perl
+             2) testlists moved from scripts to each component (cimetest/)
+             3) For consistency, many files use pop moniker instead of pop2
+             4) Created a "configure" script to add to variables stored in
+                config_cache.xml
+
+Used command
+$ svn merge --reintegrate https://svn-ccsm-models.cgd.ucar.edu/pop2/branches/newtesting/ .
+
+Files Modified:
+ M      .
+M       bld/README.build-namelist
+M       bld/build-namelist
+M       bld/check_decomp.csh
+A  +    bld/configure
+M       bld/generate_pop_decomp.pl
+M       bld/moby_activate.csh
+M       bld/moby_deactivate.csh
+A  +    bld/namelist_files/namelist_defaults_pop.xml
+D       bld/namelist_files/namelist_defaults_pop2.xml
+A  +    bld/namelist_files/namelist_definition_pop.xml
+D       bld/namelist_files/namelist_definition_pop2.xml
+A  +    bld/pop.buildlib
+A  +    bld/pop.buildnml
+D       bld/pop2.buildexe.csh
+D       bld/pop2.buildnml.csh
+D       bld/pop2.cpl7.template
+M       bld/pop_decomp.xml
+M       bld/regen_list.csh
+A  +    bld/user_nl_pop
+D       bld/user_nl_pop2
+A  +    cimetest
+M       input_templates/ocn.abio_dic_dic14.tavg.csh
+M       input_templates/ocn.base.tavg.csh
+M       input_templates/ocn.cfc.tavg.csh
+M       input_templates/ocn.ciso.tavg.csh
+M       input_templates/ocn.ecosys.tavg.csh
+M       input_templates/ocn.iage.tavg.csh
+M       input_templates/ocn.moby.tavg.csh
+M       input_templates/test_pop2_in_build.csh
+M       source/POP_ConfigMod.F90
+M       source/io_types.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    3 Feb 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150203
+Tag Summary: Bugfix - not compiling with NAG because some lines exceeded
+             132 characters. Also cleaned up some string appends (writing
+             to the variable 'message' instead of sending appended string
+             as argument to function)
+
+Files Modified:
+M       source/ecosys_restore.F90
+M       source/abio_dic_dic14_mod.F90
+M       source/ecosys_parms.F90
+===============================================================================
+Tag Creator: jedwards
+Developers:  jedwards
+Tag Date:    31 Jan 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150131
+Tag Summary: pio2 port 
+
+Files Modified:
+M       source/io_netcdf.F90
 ===============================================================================
 Tag Creator: mlevy
 Developers:  jedwards

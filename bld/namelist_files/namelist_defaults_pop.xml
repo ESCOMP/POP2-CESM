@@ -20,6 +20,7 @@
 <ns_boundary_type ocn_grid="tx1v1"  >tripole</ns_boundary_type>
 <ns_boundary_type ocn_grid="tx0.1v2">tripole</ns_boundary_type>
 
+<profile_barrier>.false.</profile_barrier>
 <num_iotasks>1</num_iotasks> 
 <lredirect_stdout>.true.</lredirect_stdout> 
 <luse_pointer_files>.true.</luse_pointer_files> 
@@ -211,12 +212,17 @@
 <!-- solvers -->
 <!---------------------------->
 
-<solverChoice>'ChronGear'</solverChoice>
+<solverChoice>'PCSI'</solverChoice>
+<solverChoice ocn_grid="gx3v7">'ChronGear'</solverChoice>
 <convergenceCriterion>1.0e-13</convergenceCriterion>
 <maxIterations>1000</maxIterations>
 <convergenceCheckFreq>10</convergenceCheckFreq>
-<preconditionerChoice>'diagonal'</preconditionerChoice>
+<convergenceCheckStart>60</convergenceCheckStart>
+<preconditionerChoice>'evp'</preconditionerChoice>
+<preconditionerChoice ocn_grid="gx3v7">'diagonal'</preconditionerChoice>
 <preconditionerFile>'unknownPrecondFile'</preconditionerFile>
+<LanczosconvergenceCriterion>0.15</LanczosconvergenceCriterion>
+<maxLanczosStep>100</maxLanczosStep>
 
 <!---------------------------->
 <!-- vertical_mix_nml -->
@@ -829,6 +835,37 @@
 <niw_energy_file_fmt>'bin'</niw_energy_file_fmt>
 
 <!---------------------------->
+<!-- se_nml                 -->
+<!---------------------------->
+
+<lchange_ans>.false.</lchange_ans>
+
+<!---------------------------->
+<!-- passive_tracers_on_nml -->
+<!---------------------------->
+
+<iage_on>.false.</iage_on>
+<iage_on use_iage="TRUE">.true.</iage_on>
+
+<cfc_on>.false.</cfc_on>
+<cfc_on use_cfc="TRUE">.true.</cfc_on>
+
+<abio_dic_dic14_on>.false.</abio_dic_dic14_on>
+<abio_dic_dic14_on use_abio="TRUE">.true.</abio_dic_dic14_on>
+
+<ciso_on>.false.</ciso_on>
+<ciso_on use_ciso="TRUE">.true.</ciso_on>
+
+<ecosys_on>.false.</ecosys_on>
+<ecosys_on use_ecosys="TRUE">.true.</ecosys_on>
+
+<moby_on>.false.</moby_on>
+<moby_on use_moby="TRUE">.true.</moby_on>
+
+<irf_on>.false.</irf_on>
+<irf_on use_irf="TRUE">.true.</irf_on>
+
+<!---------------------------->
 <!--        cfc_nml         -->
 <!---------------------------->
 
@@ -1354,6 +1391,17 @@
 
 <moby_use_nml_surf_vals>.false.</moby_use_nml_surf_vals>
 <moby_use_nml_surf_vals runtype="startup">.true.</moby_use_nml_surf_vals>
+
+<!---------------------------->
+<!-- irf_nml                -->
+<!---------------------------->
+
+<irf_tracer_file irf_mode="NK_precond"        ocn_grid="gx3v7">ocn/pop/gx3v7/ic/IRF_NK_precond_tracers_gx3v7_20150313.nc</irf_tracer_file>
+<irf_tracer_file irf_mode="NK_precond"        ocn_grid="gx1v6">ocn/pop/gx1v6/ic/IRF_NK_precond_tracers_gx1v6_20150313.nc</irf_tracer_file>
+<irf_tracer_file irf_mode="offline_transport" ocn_grid="gx3v7">ocn/pop/gx3v7/ic/IRF_offline_transport_tracers_gx3v7_20150313.nc</irf_tracer_file>
+<irf_tracer_file irf_mode="offline_transport" ocn_grid="gx1v6">ocn/pop/gx1v6/ic/IRF_offline_transport_tracers_gx1v6_20150313.nc</irf_tracer_file>
+
+<irf_tracer_file_ind_start>1</irf_tracer_file_ind_start>
 
 <!----------------------------------->
 <!--derived - thare are temporary --->

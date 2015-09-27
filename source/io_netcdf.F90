@@ -973,22 +973,29 @@
       
       if (iostat /= PIO_NOERR) then ! variable was not yet defined
 
-         if (associated (io_field%field_r_1d).or. &
-             associated (io_field%field_r_2d).or. &
-             associated (io_field%field_r_3d)) then
+         if (associated (io_field%field_r_0d) .and. ndims==0) then 
+            ! do not supply optional dimids for time-invariant scalars
+            iostat = pio_def_var (data_file%File,                           &
+                                  name=trim(io_field%short_name), &
+                                  type=PIO_REAL,               &
+                                  varDesc=io_field%varDesc)
+         else if (associated (io_field%field_r_0d).or. &
+                  associated (io_field%field_r_1d).or. &
+                  associated (io_field%field_r_2d).or. &
+                  associated (io_field%field_r_3d)) then
             iostat = pio_def_var (data_file%File,                            &
                                   name=trim(io_field%short_name),  &
                                   type=PIO_REAL,                 &
                 dimids=(/ (io_field%field_dim(n)%id, n=1,ndims) /),&
                                   varDesc=io_field%varDesc)
-
-         else if (            io_field%nfield_dims == c0) then 
-            ! do not supply optional dimids for scalars
+         else if (associated (io_field%field_d_0d) .and. ndims==0) then 
+            ! do not supply optional dimids for time-invariant scalars
             iostat = pio_def_var (data_file%File,                           &
                                   name=trim(io_field%short_name), &
                                   type=PIO_DOUBLE,               &
                                   varDesc=io_field%varDesc)
-         else if (associated (io_field%field_d_1d).or. &
+         else if (associated (io_field%field_d_0d).or. &
+                  associated (io_field%field_d_1d).or. &
                   associated (io_field%field_d_2d).or. &
                   associated (io_field%field_d_3d)) then
             iostat = pio_def_var (data_file%File,                           &
@@ -1269,7 +1276,7 @@
       end if
       io_field%set_iodesc = .false.
    end if
-      
+   call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)      
    if (io_field%set_ioFrame) then	
       ndims = io_field%nfield_dims
       call pio_setframe(data_file%File, io_field%vardesc, int(io_field%field_dim(ndims)%start,kind=PIO_OFFSET_KIND))
@@ -1277,34 +1284,39 @@
 !     call pio_setframe(data_file%File, io_field%vardesc, 0_PIO_OFFSET_KIND)
    end if
    if (associated(io_field%field_r_3d)) then
-
+   call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
                             io_field%field_r_3d, iostat)
 
    else if (associated(io_field%field_r_2d)) then
-      if(io_field%id==8) then
-         print *,__FILE__,__LINE__,io_field%id
-      endif
-
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
                             io_field%field_r_2d, iostat)
-
-      if(io_field%id==8) Then
-         print *,__FILE__,__LINE__,io_field%id,minval(io_field%field_r_2d),maxval(io_field%field_r_2d), io_field%set_ioFrame, iostat
-      endif
-
    else if (associated(io_field%field_r_1d)) then
 
       ! 1d vectors are not distributed to blocks
       iostat = pio_put_var(data_file%File, io_field%vardesc, io_field%field_r_1d)
+ 
+   else if (associated(io_field%field_r_0d)) then
+
+      ! scalars are not distributed to blocks; no need for gather_global
+
+      if (io_field%nfield_dims == 1) then	
+         iostat = pio_put_var(data_file%File, io_field%vardesc, &
+                              start = (/ io_field%field_dim(ndims)%start /), &
+                              count = (/ io_field%field_dim(ndims)%stop &
+                                         - io_field%field_dim(ndims)%start + 1 /), &
+                              ival = (/ io_field%field_r_0d /))
+      else
+         iostat = pio_put_var(data_file%File, io_field%vardesc, io_field%field_r_0d)
+      end if
 
    else if (associated(io_field%field_d_3d)) then
-
+   call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
                             io_field%field_d_3d, iostat)
 
    else if (associated(io_field%field_d_2d)) then
-
+   call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
                             io_field%field_d_2d, iostat)
 
@@ -1313,19 +1325,27 @@
       ! 1d vectors are not distributed to blocks; no need for gather_global
       iostat = pio_put_var(data_file%File, io_field%vardesc, io_field%field_d_1d)
  
-   else if (io_field%nfield_dims == c0) then
+   else if (associated(io_field%field_d_0d)) then
 
       ! scalars are not distributed to blocks; no need for gather_global
-      ! for now, all scalars are r8   and are not pointers or targets 
-      iostat = pio_put_var(data_file%File, io_field%vardesc, io_field%field_d_0d)
+
+      if (io_field%nfield_dims == 1) then	
+         iostat = pio_put_var(data_file%File, io_field%vardesc, &
+                              start = (/ io_field%field_dim(ndims)%start /), &
+                              count = (/ io_field%field_dim(ndims)%stop &
+                                         - io_field%field_dim(ndims)%start + 1 /), &
+                              ival = (/ io_field%field_d_0d /))
+      else
+         iostat = pio_put_var(data_file%File, io_field%vardesc, io_field%field_d_0d)
+      end if
 
    else if (associated(io_field%field_i_3d)) then
-
+   call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
                             io_field%field_i_3d, iostat)
 
    else if (associated(io_field%field_i_2d)) then
-
+   call pio_seterrorhandling(data_file%File, PIO_INTERNAL_ERROR)
       call pio_write_darray(data_file%File, io_field%vardesc, io_field%iodesc, &
                             io_field%field_i_2d, iostat)
 
@@ -1526,10 +1546,10 @@
       iostat = pio_get_var (data_file%File,io_field%varDesc,&
                             io_field%field_r_1d)
 
-   else if (associated(io_field%field_r_1d)) then
+   else if (associated(io_field%field_r_0d)) then
 
       ! scalars are not distributed to blocks; therefore, no scatter_global needed
-      iostat = pio_get_var (data_file%File,io_field%varDesc, &
+      iostat = pio_get_var (data_file%File, io_field%varDesc, &
                             io_field%field_r_0d)
 
    else if (associated(io_field%field_d_3d)) then
@@ -1572,7 +1592,7 @@
       iostat = pio_get_var (data_file%File,io_field%varDesc, &
                             io_field%field_d_1d)
 
-   else if (associated(io_field%field_d_1d)) then
+   else if (associated(io_field%field_d_0d)) then
 
       ! scalars are not distributed to blocks; therefore, no scatter_global needed
       iostat = pio_get_var (data_file%File, io_field%varDesc, &
@@ -1618,11 +1638,6 @@
       iostat = pio_get_var (data_file%File,io_field%varDesc, &
                             io_field%field_i_1d)
 
-   else if (associated(io_field%field_i_1d)) then
-
-      ! scalars are not distributed to blocks; therefore, no scatter_global needed
-      iostat = pio_get_var (data_file%File, io_field%varDesc, &
-                            io_field%field_i_0d)
    else
       call exit_POP(sigAbort, &
                     'No field associated for reading from netCDF')
@@ -2166,7 +2181,7 @@
                        allocate (outdata_3d_r4(1,1,1))
                      endif
                      iostat = pio_put_var (data_file%File, field_id, ival=outdata_3d_r4,  &
-                                           start=start(:), count=count(:))
+                                           start=start(1:ndims), count=count(1:ndims))
                      deallocate (outdata_3d_r4)
                   case(4)
                      if (my_task == ioroot) then
@@ -2180,7 +2195,7 @@
                        allocate (outdata_4d_r4(1,1,1,1))
                      endif
                      iostat = pio_put_var (data_file%File, field_id, ival=outdata_4d_r4,  &
-                                           start=start(:), count=count(:))
+                                           start=start(1:ndims), count=count(1:ndims))
                      deallocate (outdata_4d_r4)
                   case(5)
                      if (my_task == ioroot) then
@@ -2194,7 +2209,7 @@
                        allocate (outdata_5d_r4(1,1,1,1,1))
                      endif
                      iostat = pio_put_var (data_file%File, field_id, ival=outdata_5d_r4,  &
-                                           start=start(:), count=count(:))
+                                           start=start(1:ndims), count=count(1:ndims))
                      deallocate (outdata_5d_r4)
                   case default
                    supported = .false. 
@@ -2233,7 +2248,7 @@
                           tmpString(m:m) = indata_1d_ch(n)(m:m)
                        end do
                        iostat = pio_put_var (data_file%File, field_id, &
-                               ival=tmpString(1:count(1)), start=start, count=count)
+                               ival=tmpString(1:count(1)), start=start(1:2), count=count(1:2))
                      enddo
 
                   case default

@@ -78,6 +78,7 @@
       tavg_HDIFS                     ! tavg id for horizontal diffusion
 
    integer (POP_i4), dimension(nt) :: &
+      tavg_HDIF_EXPLICIT_3D_TRACER, &! tavg id for explicit diffusive tendency of tracer
       tavg_HDIFE_TRACER,            &! tavg id for east face diffusive flux of tracer
       tavg_HDIFN_TRACER,            &! tavg id for north face diffusive flux of tracer
       tavg_HDIFB_TRACER              ! tavg id for bottom face diffusive flux of tracer
@@ -372,6 +373,16 @@
                           units='centimeter gram/kilogram/s', grid_loc='2110')
 
    do n = 1,nt
+      call define_tavg_field(tavg_HDIF_EXPLICIT_3D_TRACER(n),             &
+                             'HDIF_EXPLICIT_3D_' /&
+                                     &/ trim(tracer_d(n)%short_name),3,   &
+                             long_name='Explicit Horz Mix tendency for ' /&
+                                     &/trim(tracer_d(n)%short_name),      &
+                             units=trim(tracer_d(n)%tend_units),          &
+                             scale_factor=tracer_d(n)%scale_factor,       &
+                             grid_loc='3111',                             &
+                             coordinates='TLONG TLAT z_t time' )
+
       call define_tavg_field(tavg_HDIFE_TRACER(n),                        &
                              'HDIFE_' /&
                                        &/ trim(tracer_d(n)%short_name),3, &
@@ -510,6 +521,7 @@
 !-----------------------------------------------------------------------
 
    integer (POP_i4) :: &
+      n,                 &! tracer index
       bid                 ! local block id
 
    real (POP_r8), dimension(nx_block,ny_block) :: &
@@ -596,6 +608,10 @@
      endif
      call accumulate_tavg_field(WORK,tavg_HDIFS,bid,k)
    endif
+
+   do n = 1, nt
+     call accumulate_tavg_field(HDTK(:,:,n),tavg_HDIF_EXPLICIT_3D_TRACER(n),bid,k)
+   end do
 
 !-----------------------------------------------------------------------
 !EOC

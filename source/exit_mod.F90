@@ -107,7 +107,7 @@
          write (local_unit,'(a37)') 'POP exiting with unknown exit mode...'
       end select
 
-      write (local_unit,*) exit_message
+      write (local_unit,*) trim(exit_message)
       write (local_unit,blank_fmt)
       write (local_unit,delim_fmt)
 #ifndef CCSMCOUPLED

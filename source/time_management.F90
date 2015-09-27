@@ -154,6 +154,9 @@
       dt_tol_year             ! used to determine if seconds_this_year
                               !  is close enough to seconds_in_year
 
+   logical (log_kind)   :: &
+      lpre_time_manager   ! is model before time_manager call in step_mod loop
+
 !-----------------------------------------------------------------------
 !
 !     quantities related to date
