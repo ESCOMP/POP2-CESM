@@ -65,8 +65,11 @@ module forcing_fields
       IFRAC,             &! ice fraction; not initialized in this routine
       U10_SQR,           &! 10m wind speed squared; not initialized in this routine
       ATM_PRESS,         &! atmospheric pressure forcing
-      FW,FW_OLD           ! freshwater flux at T points (cm/s)
+      FW,FW_OLD,         &! freshwater flux at T points (cm/s)
                           ! FW_OLD is at time n-1
+      LAMULT,            &! Langmuir multiplier, QL, 150526
+      USTOKES,           &! surface Stokes drift x component
+      VSTOKES             ! surface Stokes drift y component
 
 
 !***********************************************************************

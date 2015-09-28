@@ -228,7 +228,7 @@
   </grid>    
   <grid name="a%T62.+oi%gx1v6">
     <mach name="any">
-      <pes pesize="any" compset="DATM.+CICE">
+      <pes pesize="any" compset="DATM.+CICE.+SWAV">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>1</ntasks_atm>
@@ -265,7 +265,7 @@
   </grid>    
   <grid name="a%T62.+oi%gx1v6">
     <mach name="any">
-      <pes pesize="L" compset="DATM.+CICE">
+      <pes pesize="L" compset="DATM.+CICE.+SWAV">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>1</ntasks_atm>
@@ -302,7 +302,7 @@
   </grid>    
   <grid name="a%T62.+oi%gx1v6">
     <mach name="any">
-      <pes pesize="any" compset="DATM.*CICE">
+      <pes pesize="any" compset="DATM.*CICE.+SWAV">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>64</ntasks_atm> 
@@ -450,7 +450,7 @@
   </grid>
   <grid name="a%T62.+oi%gx1v6">
     <mach name="yellowstone">
-      <pes pesize="any" compset="DATM.+CICE">
+      <pes pesize="any" compset="DATM.+CICE.+SWAV">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>1</ntasks_atm>
@@ -487,7 +487,7 @@
   </grid>
   <grid name="a%T62.+oi%gx1v6">
     <mach name="yellowstone">
-      <pes pesize="any" compset="DATM.+DICE">
+      <pes pesize="any" compset="DATM.+DICE.+SWAV">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>60</ntasks_atm>
@@ -672,7 +672,7 @@
   </grid>
   <grid name="a%T62.+oi%tx0.1"> 
     <mach name="any">
-      <pes pesize="any" compset="DATM.+CICE">
+      <pes pesize="any" compset="DATM.+CICE.+SWAV">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>48</ntasks_atm> 
@@ -709,7 +709,7 @@
   </grid>
   <grid name="a%T62.+oi%tx0.1"> 
     <mach name="any">
-      <pes pesize="any" compset="DATM.+DICE">
+      <pes pesize="any" compset="DATM.+DICE.+SWAV">
 	<comment>none</comment>
 	<ntasks>
 	  <ntasks_atm>48</ntasks_atm> 
@@ -966,5 +966,44 @@
       </pes>
     </mach>
   </grid>
+  <grid name="a%1.9x2.5.+oi%gx1v6.+w%ww3">
+    <mach name="yellowstone">
+      <pes pesize="any" compset="WW3|DWAV">
+	<comment>none</comment>
+	<ntasks>
+	  <ntasks_atm>180</ntasks_atm> 
+	  <ntasks_lnd>180</ntasks_lnd>
+	  <ntasks_rof>180</ntasks_rof> 
+	  <ntasks_ice>180</ntasks_ice> 
+	  <ntasks_ocn>180</ntasks_ocn> 
+	  <ntasks_cpl>180</ntasks_cpl> 
+	  <ntasks_glc>180</ntasks_glc> 
+	  <ntasks_wav>180</ntasks_wav> 
+	</ntasks>
+	<nthrds>
+	  <nthrds_atm>2</nthrds_atm>                   
+	  <nthrds_lnd>2</nthrds_lnd> 
+	  <nthrds_rof>2</nthrds_rof> 
+	  <nthrds_ice>2</nthrds_ice> 
+	  <nthrds_ocn>2</nthrds_ocn> 
+	  <nthrds_glc>2</nthrds_glc> 
+	  <nthrds_wav>2</nthrds_wav> 
+	  <nthrds_cpl>2</nthrds_cpl> 
+	</nthrds>
+	<rootpe>
+	  <rootpe_atm>0</rootpe_atm> 
+	  <rootpe_lnd>0</rootpe_lnd> 
+	  <rootpe_rof>0</rootpe_rof> 
+	  <rootpe_ice>0</rootpe_ice>    
+	  <rootpe_ocn>0</rootpe_ocn>   
+	  <rootpe_glc>0</rootpe_glc> 
+	  <rootpe_wav>0</rootpe_wav> 
+	  <rootpe_cpl>0</rootpe_cpl>                         
+	</rootpe>
+      </pes>
+    </mach>
+  </grid>
+
+
 
 </config_pes>
