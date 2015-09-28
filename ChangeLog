@@ -1,6 +1,15 @@
 ===============================================================================
 Tag Creator: mvertens
 Developers:  mvertens
+Tag Date:    27 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150927
+Tag Summary: Updated pes for edison and bluewaters
+
+M       cime_config/config_pes.xm	
+	
+===============================================================================
+Tag Creator: mvertens
+Developers:  mvertens
 Tag Date:    23 Sept 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150923
 Tag Summary: Updates for compatibility with cime3.0.5 and later
