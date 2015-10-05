@@ -113,4 +113,42 @@
     <lname>2000_DATM%NYF_SLND_CICE_POP2%1D_DROF%NYF_SGLC_SWAV</lname>
   </compset>
 
+  <!-- Prognostic wave -->
+
+  <compset> 
+    <alias>C_WAV</alias>
+    <lname>2000_DATM%NYF_SLND_DICE%SSMI_POP2_DROF%NYF_SGLC_WW3</lname>
+  </compset>
+  <compset>
+    <alias>CIAF_WAV</alias>
+    <lname>2000_DATM%IAF_SLND_DICE%SIAF_POP2_DROF%IAF_SGLC_WW3</lname>
+  </compset>
+  <compset>
+    <alias>G_WAV</alias>
+    <lname>2000_DATM%NYF_SLND_CICE_POP2_DROF%NYF_SGLC_WW3</lname>
+  </compset>
+  <compset>
+    <alias>GIAF_WAV</alias>
+    <lname>2000_DATM%IAF_SLND_CICE_POP2_DROF%IAF_SGLC_WW3</lname>
+  </compset>
+
+  <!-- Data wave -->
+
+  <compset>
+    <alias>C_DWAV</alias>
+    <lname>2000_DATM%NYF_SLND_DICE%SSMI_POP2_DROF%NYF_SGLC_DWAV%COPY</lname>
+  </compset>
+  <compset>
+    <alias>CIAF_DWAV</alias>
+    <lname>2000_DATM%IAF_SLND_DICE%SIAF_POP2_DROF%IAF_SGLC_DWAV%COPY</lname>
+  </compset>
+  <compset>
+    <alias>G_DWAV</alias>
+    <lname>2000_DATM%NYF_SLND_CICE_POP2_DROF%NYF_SGLC_DWAV%COPY</lname>
+  </compset>
+  <compset>
+    <alias>GIAF_DWAV</alias>
+    <lname>2000_DATM%IAF_SLND_CICE_POP2_DROF%IAF_SGLC_DWAV%COPY</lname>
+  </compset>
+
 </compsets>

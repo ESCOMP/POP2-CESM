@@ -40,6 +40,10 @@
    use cvmix_put_get
    use cvmix_kpp
    use cvmix_math
+   use shr_sys_mod
+   ! QL, 150526, forcing from wav
+   use forcing_fields, only: LAMULT, USTOKES, VSTOKES
+   use software_eng_mod, only : lchange_ans
 
    implicit none
    private
@@ -57,6 +61,7 @@
 
    real (r8), dimension(:,:,:), allocatable, public :: & 
       HMXL,               &! mixed layer depth
+      HMXL_DR,            &! mixed layer depth with density criterion, QL, 150526
       KPP_HBLT,           &! boundary layer depth
       BOLUS_SP             ! scaled eddy-induced (bolus) speed used in inertial
                            !  mixing parameterization
@@ -84,10 +89,13 @@
       ldbl_diff,         &! flag for computing double-diffusive mixing
       lshort_wave,       &! flag for computing short-wave forcing
       lcheckekmo,        &! check Ekman, Monin-Obhukov depth limit
-      llangmuir,         &! flag for using Langmuir parameterization
       linertial,         &! flag for using inertial mixing parameterization
       lcvmix,            &! flag for using CVMix KPP routine instead of POP
       lccsm_control_compatible !flag for backwards compatibility with ccsm4 control
+
+   character (char_len) :: &
+      langmuir_opt          ! QL, 150526, lanmguir mixing parameterization option
+                            ! valid: null, vr12-ma, vr12-en
 
    integer (int_kind) :: & 
       num_v_smooth_Ri     ! num of times to vertically smooth Ri
@@ -97,10 +105,6 @@
 
    real (r8) ::           &
       Prandtl              ! Prandtl number
-
-   real (r8), dimension(:,:,:), allocatable :: &
-      FSTOKES        ! ratio of stokes velocity to ustar used in Langmuir 
-                     !  parameterization
 
 !-----------------------------------------------------------------------
 !
@@ -278,6 +282,13 @@
    logical (log_kind) ::  &
       lhoriz_varying_bckgrnd,  &
       larctic_bckgrnd_vdc  ! historically only used as a suboption of lniw_mixing
+  
+   ! QL, 150611, local flag for applying langmuir enhancement factor and 
+   ! enhanced entrainment in CVMix
+   logical (log_kind) ::  &
+      llangmuir_efactor,  & ! applying Langmuir enhancement factor
+      lenhanced_entrainment ! accounting for Stokes shear in the bulk 
+                            ! Richardson number
 
    namelist /vmix_kpp_nml/bckgrnd_vdc1, bckgrnd_vdc2,           &
                           bckgrnd_vdc_eq, bckgrnd_vdc_psim,     &
@@ -287,8 +298,9 @@
                           num_v_smooth_Ri, lrich, ldbl_diff,    &
                           lshort_wave, lcheckekmo,              &
                           larctic_bckgrnd_vdc,                  &
-                          lhoriz_varying_bckgrnd, llangmuir,    &
-                          linertial, lcvmix
+                          lhoriz_varying_bckgrnd,               &
+                          linertial, lcvmix, langmuir_opt
+                          ! QL, 150526, add langmuir_opt
 
    character (16), parameter :: &
       fmt_real = '(a30,2x,1pe12.5)'
@@ -323,9 +335,9 @@
    lcheckekmo             = .false.
    larctic_bckgrnd_vdc    = .false.
    lhoriz_varying_bckgrnd = .false.
-   llangmuir              = .false.
    linertial              = .false.
    lcvmix                 = .false.
+   langmuir_opt           = 'null'
    num_v_smooth_Ri        = 1
 
    if (my_task == master_task) then
@@ -370,9 +382,28 @@
       write(stdout,fmt_int ) '  num_smooth_Ri             =', num_v_smooth_Ri
       write(stdout,fmt_log ) '  larctic_bckgrnd_vdc       =', larctic_bckgrnd_vdc
       write(stdout,fmt_log ) '  lhoriz_varying_bckgrnd    =', lhoriz_varying_bckgrnd
-      write(stdout,fmt_log ) '  langmuir parameterization =', llangmuir
       write(stdout,fmt_log ) '  inertial mixing param.    =', linertial
       write(stdout,fmt_log ) '  use CVMix KPP routines    =', lcvmix
+
+      select case (langmuir_opt)
+      ! QL, 150612, set llangmuir_efactor and lenhanced_entrainment based on langmuir_opt 
+      case ('null')
+         write(stdout,'(a38)'), '   no Lanmguir mixing parameterization'
+         llangmuir_efactor      = .false.
+         lenhanced_entrainment  = .false.
+      case ('vr12-ma')
+         write(stdout,'(a38)'), '   Langmuir param. option: vr12-ma    '
+         llangmuir_efactor      = .true.
+         lenhanced_entrainment  = .false.
+      case ('vr12-en')
+         write(stdout,'(a38)'), '   Langmuir param. option: vr12-en    '
+         llangmuir_efactor      = .true.
+         lenhanced_entrainment  = .true.
+      case default
+         llangmuir_efactor      = .false.
+         lenhanced_entrainment  = .false.
+      end select
+
    endif
 
    call broadcast_scalar(bckgrnd_vdc1,          master_task)
@@ -391,9 +422,13 @@
    call broadcast_scalar(lcheckekmo,            master_task)
    call broadcast_scalar(larctic_bckgrnd_vdc,   master_task)
    call broadcast_scalar(lhoriz_varying_bckgrnd,master_task)
-   call broadcast_scalar(llangmuir,             master_task)
    call broadcast_scalar(linertial,             master_task)
    call broadcast_scalar(lcvmix,                master_task)
+   call broadcast_scalar(langmuir_opt,          master_task)
+   ! QL, 150708, broadcast llangmuir_efactor and lenhanced_entrainment
+   ! from the master_task processor to all other processors
+   call broadcast_scalar(llangmuir_efactor,     master_task)
+   call broadcast_scalar(lenhanced_entrainment, master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -586,10 +621,12 @@
 !-----------------------------------------------------------------------
 
    allocate (HMXL     (nx_block,ny_block,nblocks_clinic), &
+             HMXL_DR  (nx_block,ny_block,nblocks_clinic), & ! QL, 150526
              KPP_HBLT (nx_block,ny_block,nblocks_clinic), &
              KPP_SRC  (nx_block,ny_block,km,nt,nblocks_clinic))
 
    HMXL     = c0
+   HMXL_DR  = c0 ! QL, 150526
    KPP_HBLT = c0
    KPP_SRC  = c0
    VDC      = c0
@@ -607,11 +644,13 @@
 !-----------------------------------------------------------------------
 
    if ( lcvmix ) then
+     ! QL, 150611, pass llangmuir_efactor and lenhanced_entrainment to CVMix
      call cvmix_init_kpp(lEkman=lcheckekmo,                                     &
                          lMonOb=lcheckekmo,                                     &
-                         lnoDGat1=.false.,                                      &
                          surf_layer_ext = epssfc,                               &
-                         interp_type2="POP",                                    &
+                         lnoDGat1=.false.,                                      &
+                         llangmuirEF=llangmuir_efactor,                         &
+                         lenhanced_entr=lenhanced_entrainment,                  &
                          MatchTechnique="MatchBoth")
      call cvmix_put_kpp("a_m", a_m)
      call cvmix_put_kpp("a_s", a_s)
@@ -624,6 +663,7 @@
            ic = (jny-1)*nx_block + inx
            nlev = KMT(inx, jny, bid)
            call cvmix_put(CVmix_vars(ic,bid), 'nlev', nlev)
+           call cvmix_put(CVmix_vars(ic,bid), 'max_nlev', nlev)
            if (nlev.gt.0) then
              call cvmix_put(CVmix_vars(ic,bid), 'Mdiff', 0._r8)
              call cvmix_put(CVmix_vars(ic,bid), 'Tdiff', 0._r8)
@@ -656,18 +696,6 @@
      BOLUS_SP = c0
 
    endif
-
-!-----------------------------------------------------------------------
-!
-!  allocate and initialize ratio of stokes velocity to ustar 
-!
-!-----------------------------------------------------------------------
-
-   allocate (FSTOKES(nx_block,ny_block,nblocks_clinic))
-
-   do iblock=1,nblocks_clinic
-     FSTOKES(:,:,iblock) = 11._r8 - MAX( c5*cos(c3*TLAT(:,:,iblock)) , c0 )
-   enddo
 
 !-----------------------------------------------------------------------
 !
@@ -872,7 +900,9 @@
       bid                 ! local block address for this block
 
    integer (int_kind), dimension(nx_block,ny_block) :: &
-      KBL                   ! index of first lvl below hbl
+      KBL,                 &! index of first lvl below hbl
+      FLGMOD                ! QL, 150526, used when calculating mixed layer
+                            ! depth from density criterion
 
    real (r8), dimension(nx_block,ny_block) :: &
       USTAR,      &! surface friction velocity
@@ -882,7 +912,10 @@
       STABLE,     &! = 1 for stable forcing; = 0 for unstable forcing
       KE_mix,     &! kinetic energy at mix time
       KE_cur,     &! kinetic energy at cur time
-      En           ! En for boundary layer kinetic energy
+      En,         &! En for boundary layer kinetic energy
+      RHO1,       &! density at surface, QL, 150526
+      RHOK,       &! density at level k
+      RHOKP1       ! density at level k+1
  
    real (r8), dimension(nx_block,ny_block,km) :: &
       DBLOC,      &! buoyancy difference between adjacent levels
@@ -1170,6 +1203,40 @@
          endwhere
       enddo
    endif
+
+!-----------------------------------------------------------------------
+!
+!  compute diagnostic mixed layer depth (cm) using a fixed density 
+!  threshold criterion (offset = 0.03 kg/m^3 = 3e-5 g/cm^3) 
+!  QL, 150526
+!
+!-----------------------------------------------------------------------
+
+   FLGMOD = 0 ! flag of status, 1=found
+   where (KMT(:,:,bid) == 1)
+      HMXL_DR(:,:,bid) = zt(1)
+      FLGMOD = 1    ! mark as found 
+   elsewhere
+      HMXL_DR(:,:,bid) = c0
+   endwhere
+
+   ! density at surface
+   WORK1 = merge(-c2,TRCR(:,:,1,1),TRCR(:,:,1,1) < -c2)
+   call state(1,1,WORK1,TRCR(:,:,1,2),this_block,RHOFULL=RHO1)
+   ! target density
+   WORK2 = RHO1 + 3.0e-05_r8 ! offset
+   RHOK = RHO1
+   do k=1,km-1
+      ! potential density (referenced to surface) at level k+1
+      WORK1 = merge(-c2,TRCR(:,:,k+1,1),TRCR(:,:,k+1,1) < -c2)
+      call state(k+1,1,WORK1,TRCR(:,:,k+1,2),this_block,RHOFULL=RHOKP1)
+      where (WORK2 > RHOK .and. WORK2 <= RHOKP1 .and. FLGMOD == 0)
+      HMXL_DR(:,:,bid) = zt(k) + (WORK2-RHOK) &
+                          * (zt(k+1)-zt(k)) / (RHOKP1-RHOK+eps)
+         FLGMOD = 1    ! mark as found 
+      endwhere
+      RHOK = RHOKP1
+   enddo
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1679,11 +1746,15 @@
    character (char_len) :: error_string
 
    integer (int_kind) :: &
-      i,j,               &! loop indices
+      i,j, ic,           &! loop indices
       bid,               &! local block index
-      kupper, kup, kdn, ktmp, kl  ! vertical level indices
+      kupper, kup, kdn, ktmp, kl, kref  ! vertical level indices
+
+   real (r8) :: ZREF      ! middle of surface layer (epssfc*depth/2)
+   real (r8) :: SURFTHICK ! thickness of surface layer (epssfc*depth)
 
    real (r8), dimension(nx_block,ny_block) :: &
+      UREF, VREF,        &! reference values for U & V in surface layer
       VSHEAR,            &! (velocity shear re sfc)^2
       SIGMA,             &! d/hbl
       WM, WS,            &! turb vel scale functions
@@ -1696,7 +1767,6 @@
       ZKL,               &! depth at current z level
       B_FRQNCY,          &! buoyancy frequency
       RSH_HBLT,          &! resolved shear contribution to HBLT (fraction)
-      HLANGM,            &! Langmuir depth
       HEKMAN,            &! Eckman depth limit
       HLIMIT              ! limit to mixed-layer depth
                           ! (= min(HEKMAN,HMONOB))
@@ -1808,8 +1878,6 @@
    RI_BULK(:,:,kupper) = c0
    RI_BULK(:,:,kup) = c0 
    KBL = merge(KMT(:,:,bid), 1, (KMT(:,:,bid) > 1))
-
-   HLANGM = c0
 
    do kl=1,km
       if (partial_bottom_cells) then
@@ -1923,13 +1991,45 @@
    endif  ! if ( lniw_mixing .and. linertial ) then
 
    do kl = 2,km
- 
-      if ( lniw_mixing ) then
-        WORK = (UUU(:,:,1) + niuel(:,:) - UUU(:,:,kl))**2 + &
-               (VVV(:,:,1) + nivel(:,:) - VVV(:,:,kl))**2 
+
+      if (lchange_ans) then
+         ! Determine which layer contains surface layer (epssfc*zt(kl)) 
+         SURFTHICK = epssfc*zt(kl)
+         kref = kl
+         do ktmp = 1,kl
+            if (zw(ktmp).ge.SURFTHICK) then
+               kref=ktmp
+               exit
+            end if
+         end do
       else
-        WORK = (UUU(:,:,1) - UUU(:,:,kl))**2 + &
-               (VVV(:,:,1) - VVV(:,:,kl))**2
+         SURFTHICK = zt(1)
+         kref = 1
+      end if
+
+      ! Compute UREF and VREF (depth-weighted average of layers 1...kref)
+      if (kref>1) then
+         ! UREF and VREF are weighted averages of U and V
+         ! [weights are level thickness / contribution to surface layer]
+         UREF = UUU(:,:,kref)*(SURFTHICK-zw(kref-1))
+         VREF = VVV(:,:,kref)*(SURFTHICK-zw(kref-1))
+         do ktmp=1,kref-1
+           UREF = UREF + dz(ktmp)*UUU(:,:,ktmp)
+           VREF = VREF + dz(ktmp)*VVV(:,:,ktmp)
+         end do
+         UREF = UREF / SURFTHICK
+         VREF = VREF / SURFTHICK
+      else
+         UREF = UUU(:,:,1)
+         VREF = VVV(:,:,1)
+      end if
+
+      if ( lniw_mixing ) then
+        WORK = (UREF + niuel(:,:) - UUU(:,:,kl))**2 + &
+               (VREF + nivel(:,:) - VVV(:,:,kl))**2 
+      else
+        WORK = (UREF - UUU(:,:,kl))**2 + &
+               (VREF - VVV(:,:,kl))**2
       endif
      
       if (partial_bottom_cells) then
@@ -2036,8 +2136,23 @@
 !-----------------------------------------------------------------------
 
       SIGMA = epssfc
-
-      call wscale(SIGMA, ZKL, USTAR, BFSFC, 2, WM, WS)
+      
+      ! QL, 150706, calculate WS with CVMix if lcvmix is true
+      if (lcvmix) then
+        do i = 1,nx_block
+          do j = 1,ny_block
+            call cvmix_kpp_compute_turbulent_scales(SIGMA(i,j), &
+                        ZKL(i,j)*1e-2_r8,                &
+                        BFSFC(i,j)*1e-4_r8,        &
+                        USTAR(i,j)*1e-2_r8,          &
+                        langmuir_Efactor=LAMULT(i,j,bid),     &
+                        w_s=WS(i,j))
+            WS(i,j) = WS(i,j)*1e2_r8
+          end do
+        end do
+      else
+        call wscale(SIGMA, ZKL, USTAR, BFSFC, 2, WM, WS)
+      end if
 
 !-----------------------------------------------------------------------
 !
@@ -2062,8 +2177,11 @@
                     (zgrid(kl)-zgrid(kl+1)) )
       endif
 
-      WM = ZKL*WS*B_FRQNCY* &
-          ( (Vtc/Ricr(kl))*max(2.1_r8 - 200.0_r8*B_FRQNCY,concv) )
+      if (kref.eq.1) then
+        ZREF = zgrid(1)
+      else
+        ZREF = -SURFTHICK/real(2,r8)
+      end if
 
 !-----------------------------------------------------------------------
 ! 
@@ -2071,33 +2189,62 @@
 !
 !-----------------------------------------------------------------------
 
-      if (partial_bottom_cells) then
-         WORK = merge( DBSFC(:,:,kl)/(-zgrid(kl-1)+            &
-                                      p5*(DZT(:,:,kl-1,bid) +  &
-                                          DZT(:,:,kl  ,bid) -  &
-                                          DZT(:,:,1   ,bid))), & 
-                       c0, KMT(:,:,bid) >= kl)
-         WM = WM/(-zgrid(kl-1) +          &
-                  p5*(DZT(:,:,kl-1,bid) + &
-                      DZT(:,:,kl  ,bid) - &
-                      DZT(:,:,1   ,bid)))**2
-         RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+eps/(-zgrid(kl-1)+   &
-                                   p5*(DZU(:,:,kl,bid) +         &
-                                       DZU(:,:,kl-1,bid) -       &
-                                       DZU(:,:,1,bid)))**2)
+      if (lcvmix) then
+        do i = 1,nx_block
+          do j = 1,ny_block
+            ic = (j-1)*nx_block + i
+            if (kl.le.CVmix_vars(ic)%nlev) then
+              WM(i,j:j) = cvmix_kpp_compute_unresolved_shear(                 &
+                          zt_cntr = (/zgrid(kl)/)*1e-2_r8,                    &
+                          ws_cntr = (/WS(i,j)/)*1e-2_r8,                      &
+                          N_iface = (/B_FRQNCY(i,j), B_FRQNCY(i,j)/))*1e4_r8
+              ! QL, 150611, pass in stokes_drift
+              RI_BULK(i,j,kdn:kdn) = cvmix_kpp_compute_bulk_Richardson(       &
+                          zt_cntr = (/zgrid(kl)/)*1e-2_r8,                    &
+                          delta_buoy_cntr = (/DBSFC(i,j,kl)/)*1e-2_r8,        &
+                          delta_Vsqr_cntr = (/VSHEAR(i,j)/)*1e-4_r8,          &
+                          Vt_sqr_cntr = (/WM(i,j)/)*1e-4_r8,                  &
+                         stokes_drift =                                       &
+                           sqrt(USTOKES(i,j,bid)**2+VSTOKES(i,j,bid)**2))
+              CVmix_vars(ic)%BulkRichardson_cntr(kl) = RI_BULK(i,j,kdn)
+            else
+              WM(i,j) = c0
+              RI_BULK(i,j,kdn) = c0
+            end if
+          end do
+        end do
       else
-         WORK = MERGE( (zgrid(1)-zgrid(kl))*DBSFC(:,:,kl), &
-                      c0, KMT(:,:,bid) >= kl)
+        WM = ZKL*WS*B_FRQNCY* &
+            ( (Vtc/Ricr(kl))*max(2.1_r8 - 200.0_r8*B_FRQNCY,concv) )
 
-         if (lniw_mixing) then
-           RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+eps)
-         else
-           if ( linertial ) then
-             RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+USTAR*BOLUS_SP(:,:,bid)+eps)
-           else
+        if (partial_bottom_cells) then
+           WORK = merge( DBSFC(:,:,kl)/(-zgrid(kl-1)+            &
+                                        p5*(DZT(:,:,kl-1,bid) +  &
+                                            DZT(:,:,kl  ,bid) -  &
+                                            DZT(:,:,1   ,bid))), & 
+                         c0, KMT(:,:,bid) >= kl)
+           WM = WM/(-zgrid(kl-1) +          &
+                    p5*(DZT(:,:,kl-1,bid) + &
+                        DZT(:,:,kl  ,bid) - &
+                        DZT(:,:,1   ,bid)))**2
+           RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+eps/(-zgrid(kl-1)+   &
+                                     p5*(DZU(:,:,kl,bid) +         &
+                                         DZU(:,:,kl-1,bid) -       &
+                                         DZU(:,:,1,bid)))**2)
+        else
+           WORK = MERGE( (ZREF-zgrid(kl))*DBSFC(:,:,kl), &
+                        c0, KMT(:,:,bid) >= kl)
+
+           if (lniw_mixing) then
              RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+eps)
+           else
+             if ( linertial ) then
+               RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+USTAR*BOLUS_SP(:,:,bid)+eps)
+             else
+               RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+eps)
+             endif
            endif
-         endif
+        endif
       endif
 
 !-----------------------------------------------------------------------
@@ -2111,40 +2258,37 @@
 !       compute Langmuir depth always 
 !-----------------------------------------------------------------------
 
-      do j=1,ny_block
-      do i=1,nx_block
-         if ( KBL(i,j) == KMT(i,j,bid) .and.  &
-              RI_BULK(i,j,kdn) > Ricr(kl) ) then
+      if (.not.lcvmix) then
+         do j=1,ny_block
+         do i=1,nx_block
+            if ( KBL(i,j) == KMT(i,j,bid) .and.  &
+                 RI_BULK(i,j,kdn) > Ricr(kl) ) then
+               slope_up =  (RI_BULK(i,j,kupper) - RI_BULK(i,j,kup))/ &
+                           (z_up - z_upper)
+               a_co = (RI_BULK(i,j,kdn) - RI_BULK(i,j,kup) -         &
+                       slope_up*(ZKL(i,j) + z_up) )/(z_up + ZKL(i,j))**2
+               b_co = slope_up + c2 * a_co * z_up
+               c_co = RI_BULK(i,j,kup) + &
+                      z_up*(a_co*z_up + slope_up) - Ricr(kl)
+               sqrt_arg = b_co**2 - c4*a_co*c_co
 
-            slope_up =  (RI_BULK(i,j,kupper) - RI_BULK(i,j,kup))/ &
-                        (z_up - z_upper)
-            a_co = (RI_BULK(i,j,kdn) - RI_BULK(i,j,kup) -         &
-                    slope_up*(ZKL(i,j) + z_up) )/(z_up + ZKL(i,j))**2
-            b_co = slope_up + c2 * a_co * z_up
-            c_co = RI_BULK(i,j,kup) + &
-                   z_up*(a_co*z_up + slope_up) - Ricr(kl)
-            sqrt_arg = b_co**2 - c4*a_co*c_co
+               if ( ( abs(b_co) > eps .and. abs(a_co)/abs(b_co) <= eps ) &
+                    .or. sqrt_arg <= c0 ) then
 
-            if ( ( abs(b_co) > eps .and. abs(a_co)/abs(b_co) <= eps ) &
-                 .or. sqrt_arg <= c0 ) then
-                 	
-               HBLT(i,j) = -z_up + (z_up + ZKL(i,j)) *               &
-                           (Ricr(kl)         - RI_BULK(i,j,kup))/    &
-                           (RI_BULK(i,j,kdn) - RI_BULK(i,j,kup))
-            else
-               HBLT(i,j) = (-b_co + sqrt(sqrt_arg)) / (c2*a_co)
-            endif
+                  HBLT(i,j) = -z_up + (z_up + ZKL(i,j)) *               &
+                              (Ricr(kl)         - RI_BULK(i,j,kup))/    &
+                              (RI_BULK(i,j,kdn) - RI_BULK(i,j,kup))
+               else
+                  HBLT(i,j) = (-b_co + sqrt(sqrt_arg)) / (c2*a_co)
+               endif
             
-            KBL(i,j) = kl
+               KBL(i,j) = kl
+            end if
             RSH_HBLT(i,j) =  (VSHEAR(i,j)*Ricr(kl)/ &
                               (DBSFC(i,j,kl)+eps))/HBLT(i,j)
-
-            HLANGM(i,j) = USTAR(i,j) * SQRT( FSTOKES(i,j,bid)*ZKL(i,j)/(DBSFC(i,j,kl)+eps) ) &
-                          / 0.9_r8
-
-         endif
-      enddo
-      enddo
+         enddo
+         enddo
+      endif
 
 !-----------------------------------------------------------------------
 !
@@ -2160,23 +2304,18 @@
       z_up    = zgrid(kl)
 
    end do
-
-!-----------------------------------------------------------------------
-!
-!     apply Langmuir parameterization if requested 
-!
-!-----------------------------------------------------------------------
-
-   if ( llangmuir ) then
-     do kl = km,2,-1
-        where ( HLANGM > HBLT          .and.   &
-                HLANGM >  -zgrid(kl-1) .and.   &
-                HLANGM <= ZKL                  )
-           HBLT  = HLANGM
-           KBL   = kl
-        end where
-     enddo
-   endif
+   if (lcvmix) then
+     do j=1,ny_block
+       do i=1,nx_block
+         ic = (j-1)*nx_block + i
+         if (KMT(i,j,bid).gt.0) then
+           call cvmix_kpp_compute_OBL_depth(CVmix_vars(ic))
+           HBLT(i,j) = CVmix_vars(ic)%BoundaryLayerDepth*1e2_r8
+           KBL(i,j) = nint(CVmix_vars(ic)%kOBL_depth)
+         end if
+       end do
+     end do
+   end if
 
 !-----------------------------------------------------------------------
 !
@@ -2396,6 +2535,10 @@
            CVmix_vars(ic)%kOBL_depth = real(KBL(i,j),r8)+p5*(p5-CASEA(i,j))
            CVmix_vars(ic)%SurfaceFriction = USTAR(i,j)*1e-2_r8
            CVmix_vars(ic)%SurfaceBuoyancyForcing = BFSFC(i,j)*1e-4_r8
+           ! QL, 150612, set langmuir enhancement factor and stokes drift
+           CVmix_vars(ic)%LangmuirEnhancementFactor = LAMULT(i,j,bid)
+           CVmix_vars(ic)%SurfaceStokesDrift =   &
+                            sqrt(USTOKES(i,j,bid)**2+VSTOKES(i,j,bid)**2)
 
            call cvmix_coeffs_kpp(CVmix_vars(ic))
 
@@ -3026,20 +3169,22 @@
 
    integer (int_kind) :: &
       k,                 &! vertical level index
+      kref,              &! vertical level index for surface layer
       i,j,               &! horizontal indices
-      kprev, klvl, ktmp, &! indices for 2-level TEMPK array
+      ktmp,              &! index for loop inside k loop
       bid                 ! local block index
 
+   real (r8) :: SURFTHICK ! thickness of surface layer (epssfc*depth)
+   real (r8), dimension(nx_block,ny_block,km) :: &
+      RHOSUM,            &! Sum of density from surface to k
+      TEMPMASK            ! Temperature, never < -2 deg C
+
    real (r8), dimension(nx_block,ny_block) :: &
-      RHO1,              &! density of sfc t,s displaced to k
+      RHOAVG,            &! Avg of density from surface to k (not weighted)
       RHOKM,             &! density of t(k-1),s(k-1) displaced to k
       RHOK,              &! density at level k
-      TEMPSFC,           &! adjusted temperature at surface
       TALPHA,            &! temperature expansion coefficient
       SBETA               ! salinity    expansion coefficient
-
-   real (r8), dimension(nx_block,ny_block,2) :: &
-      TEMPK               ! temp adjusted for freeze at levels k,k-1
 
 !-----------------------------------------------------------------------
 !
@@ -3047,15 +3192,10 @@
 !
 !-----------------------------------------------------------------------
 
-   TEMPSFC = merge(-c2,TRCR(:,:,1,1),TRCR(:,:,1,1) < -c2)
-
    bid = this_block%local_id
 
-   klvl  = 2
-   kprev = 1
-
-   TEMPK(:,:,kprev) = TEMPSFC
    DBSFC(:,:,1) = c0
+   TEMPMASK = merge(-c2,TRCR(:,:,:,1),TRCR(:,:,:,1) < -c2)
 
 !-----------------------------------------------------------------------
 !
@@ -3065,20 +3205,46 @@
 
    do k = 2,km
 
-      TEMPK(:,:,klvl) = merge(-c2,TRCR(:,:,k,1),TRCR(:,:,k,1) < -c2)
-
-      call state(k, k, TEMPSFC,          TRCR(:,:,1  ,2), &
-                       this_block, RHOFULL=RHO1)
-      call state(k, k, TEMPK(:,:,kprev), TRCR(:,:,k-1,2), &
+      call state(k, k, TEMPMASK(:,:,k-1), TRCR(:,:,k-1,2), &
                        this_block, RHOFULL=RHOKM)
-      call state(k, k, TEMPK(:,:,klvl),  TRCR(:,:,k  ,2), &
+      call state(k, k, TEMPMASK(:,:,k),   TRCR(:,:,k  ,2), &
                        this_block, RHOFULL=RHOK)
+
+      if (lchange_ans) then
+         SURFTHICK = epssfc*zt(k)
+         kref = k
+         do ktmp = 1,k
+            call state(k, k, TEMPMASK(:,:,ktmp), TRCR(:,:,ktmp,2), &
+                 this_block, RHOFULL=RHOSUM(:,:,ktmp))
+            if (zw(ktmp).ge.SURFTHICK) then
+               kref=ktmp
+               exit
+            end if
+         end do
+      else
+         SURFTHICK = zt(1)
+         kref = 1
+         call state(k, k, TEMPMASK(:,:,kref), TRCR(:,:,kref,2), &
+              this_block, RHOFULL=RHOSUM(:,:,kref))
+      end if
+
+      if (kref.eq.1) then
+        ! This is just the old RHO1
+        ! (temp at surface displaced to pressure at k)
+        RHOAVG = RHOSUM(:,:,kref)
+      else
+        RHOAVG = RHOSUM(:,:,kref)*(SURFTHICK-zw(kref-1))
+        do ktmp = 1,kref-1
+          RHOAVG = RHOAVG + dz(ktmp)*RHOSUM(:,:,ktmp)
+        end do
+        RHOAVG = RHOAVG / SURFTHICK
+      end if
 
       do j=1,ny_block
       do i=1,nx_block
          if (RHOK(i,j) /= c0) then
-            DBSFC(i,j,k)   = grav*(c1 - RHO1 (i,j)/RHOK(i,j))
-            DBLOC(i,j,k-1) = grav*(c1 - RHOKM(i,j)/RHOK(i,j))
+            DBSFC(i,j,k)   = grav*(c1 - RHOAVG(i,j)/RHOK(i,j))
+            DBLOC(i,j,k-1) = grav*(c1 - RHOKM (i,j)/RHOK(i,j))
          else
             DBSFC(i,j,k)   = c0
             DBLOC(i,j,k-1) = c0
@@ -3087,10 +3253,6 @@
          if (k-1 >= KMT(i,j,bid)) DBLOC(i,j,k-1) = c0
       end do
       end do
-
-      ktmp  = klvl
-      klvl  = kprev
-      kprev = ktmp
 
    enddo
 

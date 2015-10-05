@@ -1,11 +1,55 @@
 ===============================================================================
 Tag Creator: mvertens
-Developers:  mvertens
-Tag Date:    27 Sept 2015
-Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150927
-Tag Summary: Updated pes for edison and bluewaters
+Developers:  mvertens/tcraig/qing
+Tag Date:    29 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150929
+Tag Summary: Incorporation of wave watch compatibility
 
-M       cime_config/config_pes.xm	
+Testing: (ran in conjunction with tcraig/wave branch from https://github.com/mvertens/cime.git)
+      1) Ran aux_pop pre-intel tests and compared then to aux_pop_120916a
+	test failures:
+	  none
+	baseline failures: 
+	  none (other than in cpl.hi for one field o2x_So_bldepth
+	run time failures:
+          SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys (this failure is the same as the cesm_pop_2_1_20150923 tag)
+	  ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+	  ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+
+      2) Ran following new wave tests (these have not been incorporated into the pop test suite yet)
+	compile time failures:
+	  SMS_E.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
+	  SMS_E.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default
+        test failures (none) - the following ran successfully
+	  ERS.f19_g16_r05_ww3.B_WAV.yellowstone_intel.allactive-default 
+	  ERS.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default 
+	  ERS.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default 
+	  NCK.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
+	  NCK.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default 
+	  SMS_D.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
+	  SMS_D.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default
+	run time failures:
+	  SMS_D.f19_g16_r05_ww3.B_WAV.yellowstone_intel.allactive-default
+
+	3) Ran pre-alpha intel test suite on yellowstone - and all tests were bfb with cesm1_5_alpha07d
+	
+	
+Files Modified/Added/Removed:
+	
+M       source/diagnostics.F90
+M       source/vmix_kpp.F90
+M       source/forcing_coupled.F90
+M       source/forcing_fields.F90  
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_compsets.xml
+M       cime_config/config_pes.xml
+M       SVN_EXTERNAL_DIRECTORIES
+M       input_templates/gx1v6_tavg_contents
+M       input_templates/gx3v7_tavg_contents
+	
+
 	
 ===============================================================================
 Tag Creator: mvertens
@@ -20,8 +64,8 @@ Baseline failures (unexpected):
 FAIL SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys.cpl.hi.nc : baseline compare cpl.hi (baseline: compare .base file with aux_pop_120916a file) 
 	
 Run time failures (expected- see 9/11/2015 log entry):	
-RUN ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14.C.150921-232853 
-RUN ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14.C.150921-232853 
+RUN ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14
+RUN ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14
 	
 	
 Files Modified/Added/Removed:
