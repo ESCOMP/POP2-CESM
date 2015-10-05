@@ -1,6 +1,31 @@
 ===============================================================================
 Tag Creator: mvertens
-Developers:  mvertens/tcraig/qing
+Developers:  tcraig/reckinger
+Tag Date:    4 Oct 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151004
+Tag Summary: Incorporation of anisotropic gm option
+	
+Testing: 
+	Ran aux-pop pre-intel tests on yellowstone and compared to baseline cesm_pop_2_1_20150929
+        Everything was bfb except the following tests which had run time failures:
+          SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys (this failure is the same as the cesm_pop_2_1_20150923 tag)
+	  ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+	  ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+	Note that the wave tests listed in cesm_pop_2_1_20150929 have not been incorporated yet
+	The will be incorporated once new features are added to actually turn on wave coupling in pop
+	
+Files Modified/Added/Removed:
+	
+M       source/hmix_gm_submeso_share.F90
+M       source/mix_submeso.F90
+M       source/horizontal_mix.F90
+A  +    source/hmix_gm_aniso.F90
+M       source/tavg.F90
+M       bld/namelist_files/namelist_definition_pop.xml
+	
+===============================================================================
+Tag Creator: mvertens
+Developers:  tcraig/qing
 Tag Date:    29 Sept 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150929
 Tag Summary: Incorporation of wave watch compatibility

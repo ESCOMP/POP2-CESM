@@ -1711,10 +1711,10 @@ id="hmix_tracer_choice"
 type="char*256"
 category="hmix"
 group="hmix_nml"
-valid_values="del2,del4,gent" >
+valid_values="del2,del4,gent,gmaniso" >
 Type of horizontal tracer mixing.
 
-Valid Values: 'del2','del4','gent'
+Valid Values: 'del2','del4','gent','gmaniso'
 Default: 'gent'
 </entry>
 
