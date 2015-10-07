@@ -1,28 +1,52 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    7 Oct 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151007
+Tag Summary: Bug-fixes - SMS_D GECO test now passes and code compiles on mira
+
+Testing: 
+         Ran aux_pop tests with 20151004 tag, created temporary baseline (the
+         20150929 baseline was made with an answer-changing bug fix in CIME
+         that has since been removed, so couldn't use old baseline and the
+         cime change is going in soon so no need to keep new baseline).
+         Everything was bfb except the following tests:
+          SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys (test now runs, failed in baseline)
+          ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+          ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+
+Files Modified/Added/Removed:
+
+M       source/ecosys_driver.F90
+M       source/passive_tracers.F90
+M       source/vmix_kpp.F90
+===============================================================================
 Tag Creator: mvertens
 Developers:  tcraig/reckinger
 Tag Date:    4 Oct 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151004
 Tag Summary: Incorporation of anisotropic gm option
-	
+
 Testing: 
-	Ran aux-pop pre-intel tests on yellowstone and compared to baseline cesm_pop_2_1_20150929
-        Everything was bfb except the following tests which had run time failures:
+         Ran aux-pop pre-intel tests on yellowstone and compared to baseline
+         cesm_pop_2_1_20150929; Everything was bfb except the following tests
+         which had run time failures:
           SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys (this failure is the same as the cesm_pop_2_1_20150923 tag)
-	  ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
-	  ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
-	Note that the wave tests listed in cesm_pop_2_1_20150929 have not been incorporated yet
-	The will be incorporated once new features are added to actually turn on wave coupling in pop
-	
+          ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+          ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+         Note that the wave tests listed in cesm_pop_2_1_20150929 have not been
+         incorporated yet. They will be incorporated once new features are added
+         to actually turn on wave coupling in pop
+
 Files Modified/Added/Removed:
-	
+
 M       source/hmix_gm_submeso_share.F90
 M       source/mix_submeso.F90
 M       source/horizontal_mix.F90
 A  +    source/hmix_gm_aniso.F90
 M       source/tavg.F90
 M       bld/namelist_files/namelist_definition_pop.xml
-	
+
 ===============================================================================
 Tag Creator: mvertens
 Developers:  tcraig/qing
@@ -31,36 +55,37 @@ Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150929
 Tag Summary: Incorporation of wave watch compatibility
 
 Testing: (ran in conjunction with tcraig/wave branch from https://github.com/mvertens/cime.git)
-      1) Ran aux_pop pre-intel tests and compared then to aux_pop_120916a
-	test failures:
-	  none
-	baseline failures: 
-	  none (other than in cpl.hi for one field o2x_So_bldepth
-	run time failures:
-          SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys (this failure is the same as the cesm_pop_2_1_20150923 tag)
-	  ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
-	  ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+         1) Ran aux_pop pre-intel tests and compared then to aux_pop_120916a
+           test failures:
+             none
+           baseline failures: 
+             none (other than in cpl.hi for one field o2x_So_bldepth)
+           run time failures:
+             SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys (this failure is the same as the cesm_pop_2_1_20150923 tag)
+             ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+             ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
 
-      2) Ran following new wave tests (these have not been incorporated into the pop test suite yet)
-	compile time failures:
-	  SMS_E.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
-	  SMS_E.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default
-        test failures (none) - the following ran successfully
-	  ERS.f19_g16_r05_ww3.B_WAV.yellowstone_intel.allactive-default 
-	  ERS.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default 
-	  ERS.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default 
-	  NCK.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
-	  NCK.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default 
-	  SMS_D.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
-	  SMS_D.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default
-	run time failures:
-	  SMS_D.f19_g16_r05_ww3.B_WAV.yellowstone_intel.allactive-default
+         2) Ran following new wave tests (these have not been incorporated into
+            the pop test suite yet)
+           compile time failures:
+             SMS_E.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
+             SMS_E.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default
+           test failures (none) - the following ran successfully
+             ERS.f19_g16_r05_ww3.B_WAV.yellowstone_intel.allactive-default 
+             ERS.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default 
+             ERS.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default 
+             NCK.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
+             NCK.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default 
+             SMS_D.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
+             SMS_D.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default
+           run time failures:
+             SMS_D.f19_g16_r05_ww3.B_WAV.yellowstone_intel.allactive-default
 
-	3) Ran pre-alpha intel test suite on yellowstone - and all tests were bfb with cesm1_5_alpha07d
-	
-	
+         3) Ran pre-alpha intel test suite on yellowstone - and all tests were
+            bfb with cesm1_5_alpha07d
+
 Files Modified/Added/Removed:
-	
+
 M       source/diagnostics.F90
 M       source/vmix_kpp.F90
 M       source/forcing_coupled.F90
@@ -73,9 +98,7 @@ M       cime_config/config_pes.xml
 M       SVN_EXTERNAL_DIRECTORIES
 M       input_templates/gx1v6_tavg_contents
 M       input_templates/gx3v7_tavg_contents
-	
 
-	
 ===============================================================================
 Tag Creator: mvertens
 Developers:  mvertens
@@ -84,20 +107,19 @@ Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150923
 Tag Summary: Updates for compatibility with cime3.0.5 and later
 
 Testing: Ran aux_pop pre-intel tests and compared to aux_pop_120916a
-	 All tests ran successfully other than the following:
-Baseline failures (unexpected):	
-FAIL SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys.cpl.hi.nc : baseline compare cpl.hi (baseline: compare .base file with aux_pop_120916a file) 
-	
-Run time failures (expected- see 9/11/2015 log entry):	
-RUN ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14
-RUN ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14
-	
-	
+         All tests ran successfully other than the following:
+           Baseline failures (unexpected):
+             FAIL SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys.cpl.hi.nc : baseline compare cpl.hi (baseline: compare .base file with aux_pop_120916a file) 
+
+           Run time failures (expected- see 9/11/2015 log entry):
+             RUN ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14
+             RUN ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14
+
 Files Modified/Added/Removed:
-	
+
 M       source/POP_SolversMod.F90
 M       source/vmix_kpp.F90
-	
+
 M       bld/configure
 D       bld/pop.buildlib
 D       bld/pop.buildnml
@@ -105,7 +127,7 @@ M       bld/README.build-namelist
 D       bld/user_nl_pop
 M       bld/build-namelist
 M       bld/namelist_files/namelist_definition_pop.xml
-	
+
 A  +    cime_config
 A  +    cime_config/config_compsets.xml
 A  +    cime_config/testdefs
@@ -203,7 +225,7 @@ D       cimetest/testmods_dirs/pop/ciso/shell_commands
 D       cimetest/testlist_pop.xml
 A       cimetest/testmods_dirs/pop/cice_ciso
 A       cimetest/testmods_dirs/pop/cice_ciso/include_user_mods
-	
+
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy

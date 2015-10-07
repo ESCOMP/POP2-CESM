@@ -504,7 +504,7 @@ contains
 
     ! !OUTPUT PARAMETERS:
 
-    real (r8), dimension(:,:,:,:), intent(out) :: &
+    real (r8), dimension(:,:,:,:), intent(inout) :: &
          DTRACER_MODULE      ! computed source/sink terms
 
     type (block), intent(in) :: this_block   ! block information for this block

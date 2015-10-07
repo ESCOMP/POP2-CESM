@@ -388,15 +388,15 @@
       select case (langmuir_opt)
       ! QL, 150612, set llangmuir_efactor and lenhanced_entrainment based on langmuir_opt 
       case ('null')
-         write(stdout,'(a38)'), '   no Lanmguir mixing parameterization'
+         write(stdout,'(a38)') '   no Lanmguir mixing parameterization'
          llangmuir_efactor      = .false.
          lenhanced_entrainment  = .false.
       case ('vr12-ma')
-         write(stdout,'(a38)'), '   Langmuir param. option: vr12-ma    '
+         write(stdout,'(a38)') '   Langmuir param. option: vr12-ma    '
          llangmuir_efactor      = .true.
          lenhanced_entrainment  = .false.
       case ('vr12-en')
-         write(stdout,'(a38)'), '   Langmuir param. option: vr12-en    '
+         write(stdout,'(a38)') '   Langmuir param. option: vr12-en    '
          llangmuir_efactor      = .true.
          lenhanced_entrainment  = .true.
       case default
