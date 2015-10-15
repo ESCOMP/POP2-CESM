@@ -403,6 +403,7 @@
       endif
 
       allocate(ecosys_source_sink_3d(nx_block, ny_block, km, nt, nblocks_clinic))
+      ecosys_source_sink_3d = c0
 
    end if
 

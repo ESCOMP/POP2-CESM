@@ -1,6 +1,42 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    15 Oct 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n07_cesm_pop_2_1_20150916a
+Tag Summary: initial merge of MCOG code, not coupled to physics/BGC
+
+MCOG receives per column fields from driver
+also merge debug test fixing change from trunk tag cesm_pop_2_1_20151007
+
+Testing
+aux_pop:
+   tests pass (baseline to n06) with following exceptions
+      nlcomp comparisons fail for tests with ecosys (CECO, GECO)
+      debug tests with ciso abort, as expected
+
+aux_pop_MARBL:
+   tests pass (baseline to n06) with following exceptions
+      nlcomp comparisons fail for tests with ecosys (CECO, GECO)
+      debug tests with ciso abort, as expected
+
+M       source/initial.F90
+M       source/forcing.F90
+M       source/passive_tracers.F90
+M       source/forcing_coupled.F90
+M       source/ecosys_driver.F90
+A       source/mcog.F90
+M       bld/pop.buildnml
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       BranchChangeLog
+A       input_templates/ocn.mcog.tavg.csh
+M       drivers/cpl/ocn_import_export.F90
+M       drivers/cpl/POP_CplIndices.F90
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    16 Sep 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n06_cesm_pop_2_1_20150916a
 Tag Summary: merge pop2/trunk_tags/cesm_pop_2_1_20150916a to branch

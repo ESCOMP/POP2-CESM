@@ -89,6 +89,7 @@
    use overflows
    use overflow_type
    use running_mean_mod, only: running_mean_init
+   use mcog, only: lmcog, init_mcog
    use software_eng_mod, only : lchange_ans, init_software_eng
 
    implicit none
@@ -435,12 +436,20 @@
 
 !-----------------------------------------------------------------------
 !
-!  initialize generic aspects of coupled forcing (no coupling-specific 
-!  references)
+!  initialize generic aspects of coupled forcing (no references to specific
+!  couplers e.g. MCT, ESMF)
 !
 !-----------------------------------------------------------------------
 
    call pop_init_coupled
+
+!-----------------------------------------------------------------------
+!
+!  initialize mcog
+!
+!-----------------------------------------------------------------------
+
+   call init_mcog
 
 !-----------------------------------------------------------------------
 !

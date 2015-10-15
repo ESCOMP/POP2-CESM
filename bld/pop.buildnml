@@ -48,7 +48,7 @@ if (! -d "$CASEBUILD/popconf" ) {
 chdir "$CASEBUILD/popconf";
 
 #--------------------------------------------------------------------
-# Invoke pop configure, output will go in $CASEBUILD/camconf
+# Invoke pop configure, output will go in $CASEBUILD/popconf
 #--------------------------------------------------------------------
 
 if ($BUILD_COMPLETE eq 'FALSE' ) {
