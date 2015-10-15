@@ -58,6 +58,9 @@
 
 <fit_freq>1</fit_freq> 
 
+<robert_alpha> 0.53 </robert_alpha>
+<robert_nu>    0.20 </robert_nu>
+
 <!---------------------------->
 <!-- grid_nml -->
 <!---------------------------->

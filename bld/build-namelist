@@ -522,6 +522,8 @@ add_default($nl, 'date_separator');
 add_default($nl, 'stop_option');
 add_default($nl, 'stop_count');
 add_default($nl, 'fit_freq', 'val'=>"$OCN_NCPL");
+add_default($nl, 'robert_alpha');
+add_default($nl, 'robert_nu');
 
 ####################################
 # namelist group: grid_nml #
