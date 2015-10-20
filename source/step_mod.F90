@@ -68,6 +68,9 @@
       timer_3dupdate		! timer for the 3D update after baroclinic component
 
    integer (POP_i4) :: ierr
+
+   real (POP_r8), allocatable, dimension(:,:), private :: WORK1
+
 !EOP
 !BOC
 !EOC
@@ -85,7 +88,8 @@
 ! !DESCRIPTION:
 !  This routine advances the simulation on timestep.
 !  It controls logic for leapfrog and/or Matsuno timesteps and performs
-!  time-averaging if necessary.  Prognostic variables are updated for 
+!  modified Robert filtering or time-averaging if selected.  
+!  Prognostic variables are updated for 
 !  the next timestep near the end of the routine.
 !  On Matsuno steps, the time (n) velocity and tracer arrays
 !  UBTROP,VBTROP,UVEL,VVEL,TRACER contain the predicted new 
@@ -112,6 +116,8 @@
       ipass,             &! pass counter
       num_passes          ! number of passes through time step
                           ! (Matsuno requires two)
+   integer (POP_i4) :: nn ! loop index, ovf_id
+   integer (POP_i4) :: ovf_id
 
    real (POP_r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
       ZX,ZY,             &! vertically integrated forcing terms
@@ -306,6 +312,8 @@
 !-----------------------------------------------------------------------
 
       call dhdt(DH,DHU)
+
+      call ovf_reg_avgs_prd 
 
 !-----------------------------------------------------------------------
 !
@@ -733,6 +741,142 @@
       !$OMP END PARALLEL DO
 
 
+   else if (lrobert_filter) then   ! robert filter
+
+      !*** store tracer(curtime), prior to RF
+      call diag_for_tracer_budgets_robert1
+
+      !$OMP PARALLEL DO PRIVATE(iblock,this_block,k,n,WORK1)
+
+      do iblock = 1,nblocks_clinic
+
+         !*** filter UBTROP
+         WORK1 = & 
+         UBTROP(:,:,oldtime,iblock) + UBTROP(:,:,newtime,iblock) - c2*UBTROP(:,:,curtime,iblock)
+
+         UBTROP(:,:,curtime,iblock) = UBTROP(:,:,curtime,iblock) + robert_curtime*WORK1
+         UBTROP(:,:,newtime,iblock) = UBTROP(:,:,newtime,iblock) + robert_newtime*WORK1
+
+         !*** filter VBTROP
+         WORK1 = & 
+         VBTROP(:,:,oldtime,iblock) + VBTROP(:,:,newtime,iblock) - c2*VBTROP(:,:,curtime,iblock)
+
+         VBTROP(:,:,curtime,iblock) = VBTROP(:,:,curtime,iblock) + robert_curtime*WORK1
+         VBTROP(:,:,newtime,iblock) = VBTROP(:,:,newtime,iblock) + robert_newtime*WORK1
+
+         !*** filter GRADPX
+         WORK1 = &
+         GRADPX(:,:,oldtime,iblock) + GRADPX(:,:,newtime,iblock) - c2*GRADPX(:,:,curtime,iblock)
+
+         GRADPX(:,:,curtime,iblock) = GRADPX(:,:,curtime,iblock) + robert_curtime*WORK1
+         GRADPX(:,:,newtime,iblock) = GRADPX(:,:,newtime,iblock) + robert_newtime*WORK1
+
+         !*** filter GRADPY
+         WORK1 = &
+         GRADPY(:,:,oldtime,iblock) + GRADPY(:,:,newtime,iblock) - c2*GRADPY(:,:,curtime,iblock)
+
+         GRADPY(:,:,curtime,iblock) = GRADPY(:,:,curtime,iblock) + robert_curtime*WORK1
+         GRADPY(:,:,newtime,iblock) = GRADPY(:,:,newtime,iblock) + robert_newtime*WORK1
+
+         do k=1,km
+         !*** UVEL
+         WORK1 = &
+         UVEL(:,:,k,oldtime,iblock) + UVEL(:,:,k,newtime,iblock) - c2*UVEL(:,:,k,curtime,iblock)
+
+         UVEL(:,:,k,curtime,iblock) = UVEL(:,:,k,curtime,iblock) + robert_curtime*WORK1
+         UVEL(:,:,k,newtime,iblock) = UVEL(:,:,k,newtime,iblock) + robert_newtime*WORK1
+
+         !*** VVEL
+         WORK1 = &
+         VVEL(:,:,k,oldtime,iblock) + VVEL(:,:,k,newtime,iblock) - c2*VVEL(:,:,k,curtime,iblock)
+
+         VVEL(:,:,k,curtime,iblock) = VVEL(:,:,k,curtime,iblock) + robert_curtime*WORK1
+         VVEL(:,:,k,newtime,iblock) = VVEL(:,:,k,newtime,iblock) + robert_newtime*WORK1
+         enddo ! k
+
+         !*** TRACERS (interior)
+         do n=1,nt
+           do k=2,km
+             WORK1 = &
+             TRACER(:,:,k,n,oldtime,iblock) + TRACER(:,:,k,n,newtime,iblock) - c2*TRACER(:,:,k,n,curtime,iblock)
+
+             TRACER(:,:,k,n,curtime,iblock) = TRACER(:,:,k,n,curtime,iblock) + robert_curtime*WORK1
+             TRACER(:,:,k,n,newtime,iblock) = TRACER(:,:,k,n,newtime,iblock) + robert_newtime*WORK1
+           enddo ! k
+         enddo ! n
+
+         !*** surface TRACERS & pressure
+         if (sfc_layer_type == sfc_layer_varthick) then 
+           do n=1,nt
+             !*** k=1
+               WORK1 = &
+               (dz(1) + PSURF(:,:,oldtime,iblock)/grav)*TRACER(:,:,1,n,oldtime,iblock) +  &
+               (dz(1) + PSURF(:,:,newtime,iblock)/grav)*TRACER(:,:,1,n,newtime,iblock) -  &
+            c2*(dz(1) + PSURF(:,:,curtime,iblock)/grav)*TRACER(:,:,1,n,curtime,iblock)
+
+               TRACER(:,:,1,n,curtime,iblock) = &
+                (dz(1) + PSURF(:,:,curtime,iblock)/grav)*TRACER(:,:,1,n,curtime,iblock) + robert_curtime*WORK1
+               TRACER(:,:,1,n,newtime,iblock) = &
+                (dz(1) + PSURF(:,:,newtime,iblock)/grav)*TRACER(:,:,1,n,newtime,iblock) + robert_newtime*WORK1
+           enddo ! n
+
+           !*** PSURF
+           WORK1= PSURF(:,:,oldtime,iblock) + PSURF(:,:,newtime,iblock) - c2*PSURF(:,:,curtime,iblock)
+           PSURF(:,:,curtime,iblock) = PSURF(:,:,curtime,iblock) + robert_curtime*WORK1
+           PSURF(:,:,newtime,iblock) = PSURF(:,:,newtime,iblock) + robert_newtime*WORK1
+
+           do n=1,nt
+             !*** k=1
+               TRACER(:,:,1,n,curtime,iblock) = TRACER(:,:,1,n,curtime,iblock)/  &
+                (dz(1) + PSURF(:,:,curtime,iblock)/grav)
+               TRACER(:,:,1,n,newtime,iblock) = TRACER(:,:,1,n,newtime,iblock)/  &
+                (dz(1) + PSURF(:,:,newtime,iblock)/grav)
+           enddo ! n
+         else
+           !*** surface TRACER
+           do n=1,nt
+             !*** k=1
+             WORK1 = &
+             TRACER(:,:,1,n,oldtime,iblock) + TRACER(:,:,1,n,newtime,iblock) - c2*TRACER(:,:,1,n,curtime,iblock)
+
+             TRACER(:,:,1,n,curtime,iblock) = TRACER(:,:,1,n,curtime,iblock) + robert_curtime*WORK1
+             TRACER(:,:,1,n,newtime,iblock) = TRACER(:,:,1,n,newtime,iblock) + robert_newtime*WORK1
+           enddo ! n
+
+           !*** PSURF
+           WORK1= PSURF(:,:,oldtime,iblock) + PSURF(:,:,newtime,iblock) - c2*PSURF(:,:,curtime,iblock)
+           PSURF(:,:,curtime,iblock) = PSURF(:,:,curtime,iblock) + robert_curtime*WORK1
+           PSURF(:,:,newtime,iblock) = PSURF(:,:,newtime,iblock) + robert_newtime*WORK1
+
+         endif ! sfc_layer_type == sfc_layer_varthick
+
+         this_block = get_block(blocks_clinic(iblock),iblock)
+         do k = 1,km  ! recalculate densities from averaged tracers
+            call state(k,k,TRACER(:,:,k,1,curtime,iblock), TRACER(:,:,k,2,curtime,iblock), &
+                       this_block, RHOOUT=RHO(:,:,k,curtime,iblock))
+            call state(k,k,TRACER(:,:,k,1,newtime,iblock), TRACER(:,:,k,2,newtime,iblock), &
+                           this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
+         enddo !k
+
+
+
+         !** same as standard leapfrog
+         FW_OLD(:,:,iblock) = FW(:,:,iblock)
+
+      end do ! block loop (iblock)
+      !$OMP END PARALLEL DO
+
+      !*** accumulate RF budget term
+      call diag_for_tracer_budgets_robert2
+
+      !*** update time indices just like standard leapfrog
+      tmptime = oldtime
+      oldtime = curtime
+      curtime = newtime
+      newtime = tmptime
+
+      !*** MM version has additional indices -- check on these...
+
    else  ! non-averaging step
   
       !$OMP PARALLEL DO PRIVATE(iblock)
@@ -840,6 +984,15 @@
    call get_timer(timer_barotropic,'BAROTROPIC',1,distrb_clinic%nprocs)
    call get_timer(timer_3dupdate,'3D-UPDATE',1,distrb_clinic%nprocs)
 
+!-----------------------------------------------------------------------
+!
+!  allocate Robert-filter work array
+!
+!-----------------------------------------------------------------------
+   if (lrobert_filter) then
+      allocate (WORK1(nx_block,ny_block))
+      WORK1 = c0
+   endif
 
 !-----------------------------------------------------------------------
 !EOC

@@ -329,10 +329,13 @@
 
      if ( (qsw_distrb_iopt == qsw_distrb_iopt_12hr) .or. &
            (qsw_distrb_iopt == qsw_distrb_iopt_cosz) ) then
-        if ( tmix_iopt /= tmix_avgfit )  &
+        if ( tmix_iopt == tmix_avgfit .or. tmix_iopt == tmix_robert)  then
+          ! ok; these options are supported
+        else
           call exit_POP(sigAbort,   &
                'ERROR: time_mix_opt must be set to avgfit for qsw_distrb_opt '/&
             &/ 'of 12hr or cosz')
+        endif
 
         if ( dttxcel(1) /= c1  .or.  dtuxcel /= c1 )   &
           call exit_POP(sigAbort,   &

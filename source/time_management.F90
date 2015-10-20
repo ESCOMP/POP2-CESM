@@ -116,6 +116,13 @@
       stop_now            ,&! time_flag id for stopping
       coupled_ts            ! time_flag id for a coupled timestep
 
+   logical (log_kind)   :: &! time-method control
+      lrobert_filter,      &! true if using robert filtering time method
+      lfit_ts_interval      ! true if using any time method in which the timestep size is
+                            !   selected to enforce strict pop2 alignment with coupling intervals.
+                            !   Not true when using avg or avgbb, because the number of steps per
+                            !   interval is non-uniform.
+
    logical (log_kind)   :: &! this timestep is:
       adjust_year         ,&!   step at which year values updated
       eod                 ,&!   at the end of the day
@@ -408,15 +415,16 @@
       impcor              ! implicit treatment of Coriolis terms
 
    integer (int_kind), parameter :: &
-      tmix_matsuno = 1,  &! use matsuno step for time mixing
+      tmix_matsuno = 1,  &! use matsuno step for time mixing; not supported in CESM
       tmix_avg     = 2,  &! use averaging step for time mixing
       tmix_avgbb   = 3,  &! use averaging step for time mixing, with
                           !  back_to_back option to keep time boundaries
-      tmix_avgfit  = 4    ! use averaging step for time mixing, 
+      tmix_avgfit  = 4,  &! use averaging step for time mixing, 
                           !  selecting the timestep size in such
                           !  a way as to force the end of the day
                           !  (or interval) to coincide with the end of 
                           !  a timestep
+      tmix_robert  = 5    ! use modified robert time filtering (Williams, 2009)
 
    integer (int_kind) :: &
       tmix_iopt,         &! option for which time mixing to use
@@ -432,6 +440,12 @@
       gamma = c1 - c2*alpha  ! for geostrophic balance, otherwise
                              ! coriolis and  surface-pressure gradient
                              ! are not time centered
+
+   real (r8) :: &
+      robert_alpha,         &! Robert filter coefficient, default = 0.53; Williams, 2009
+      robert_nu,            &! Robert filter coefficient, default = 0.20; Williams, 2009
+      robert_curtime,       &! Robert filter weight for current time level
+      robert_newtime         ! Robert filter weight for new time level
 
 !-----------------------------------------------------------------------
 !
@@ -529,9 +543,8 @@
                iday0,          ihour0,          iminute0,        &
                isecond0,       dt_option,       dt_count,        &
                stop_option,    stop_count,      date_separator,  &
-               allow_leapyear, fit_freq
-
-
+               allow_leapyear, fit_freq,                         &
+               robert_alpha,   robert_nu
 
 !-----------------------------------------------------------------------
 !
@@ -546,7 +559,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  set initial values  for namelist inputs
+!  set default values for namelist inputs
 !
 !-----------------------------------------------------------------------
 
@@ -561,7 +574,7 @@
    allow_leapyear   = .false.
    stop_option      = 'unknown_stop_option'
    stop_count       = -1
-   dt_option        = 'auto_dt'
+   dt_option       = 'steps_per_day'
    dt_count         =  1
 
    dt_tol     = 1.0e-6
@@ -573,6 +586,12 @@
    ihour0     = 0
    iminute0   = 0
    isecond0   = 0
+
+   lrobert_filter = .false.
+   robert_nu      = 0.20_POP_r8 !nu = 0.2, Williams[2009]
+   robert_alpha   = 0.53_POP_r8 !alpha in Williams, 2009
+
+   lfit_ts_interval = .false.  
 
    date_separator = ' '
 
@@ -617,13 +636,20 @@
    if (my_task == master_task) then
       select case (time_mix_opt)
       case ('matsuno')
-         tmix_iopt = tmix_matsuno
+         tmix_iopt = tmix_matsuno !unsupported in CESM
       case ('avg')
          tmix_iopt = tmix_avg
+         lfit_ts_interval = .false.
       case ('avgbb')
          tmix_iopt = tmix_avgbb
+         lfit_ts_interval = .false. !because number of steps per interval is nonuniform
       case ('avgfit')
          tmix_iopt = tmix_avgfit
+         lfit_ts_interval = .true.
+      case ('robert','Robert')
+         tmix_iopt = tmix_robert
+         lrobert_filter = .true.
+         lfit_ts_interval = .true.
       case default
          tmix_iopt = -1000
       end select
@@ -648,6 +674,10 @@
    call broadcast_scalar (stop_count      , master_task)
    call broadcast_scalar (allow_leapyear  , master_task)
    call broadcast_scalar (date_separator  , master_task)
+   call broadcast_scalar (lfit_ts_interval, master_task)
+   call broadcast_scalar (lrobert_filter  , master_task)
+   call broadcast_scalar (robert_alpha    , master_task)
+   call broadcast_scalar (robert_nu       , master_task)
  
 
 !-----------------------------------------------------------------------
@@ -656,18 +686,27 @@
 !
 !-----------------------------------------------------------------------
 
-   if (tmix_iopt == -1000) then
-      exit_string = 'FATAL ERROR: unknown option for time mixing'
-      call document ('init_time1', exit_string)
-      call exit_POP (sigAbort, exit_string, out_unit=stdout)
-   endif
+   select case (tmix_iopt)
 
-   if (tmix_iopt == tmix_matsuno) then
+    case (tmix_matsuno)
       exit_string = 'FATAL ERROR:  matsuno time-mixing option is not supported in CCSM; ' /&
               &/' budget diagnostics are incorrect with matsuno and tavg may be incorrect'
       call document ('init_time1', exit_string)
       call exit_POP (sigAbort, exit_string, out_unit=stdout)
-   endif
+
+    case (-1000)
+      exit_string = 'FATAL ERROR: unknown option for time mixing'
+      call document ('init_time1', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
+
+    case default
+   end select
+
+!-----------------------------------------------------------------------
+!
+!  define variables dependent on namelist variables
+!
+!-----------------------------------------------------------------------
 
 
    len_runid = len_trim(runid)
@@ -682,9 +721,14 @@
  
    case('auto_dt')   
       !*** scale tracer timestep  dt = 1 hr at dx = 2 degrees
-      dtt = seconds_in_hour*(180.0_r8/float(nx_global))
-      steps_per_day  = seconds_in_day/dtt
-      steps_per_year = steps_per_day*days_in_norm_year
+     !dtt = seconds_in_hour*(180.0_r8/float(nx_global))
+     !steps_per_day  = seconds_in_day/dtt
+     !steps_per_year = steps_per_day*days_in_norm_year
+
+     !*** This option is not supported in CESM
+      exit_string = 'FATAL ERROR: unsupported dt_option: ' // trim(dt_option)
+      call document ('init_time1', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
 
    case('steps_per_year')
       steps_per_year = dt_count
@@ -707,7 +751,7 @@
       steps_per_year = steps_per_day*days_in_norm_year
 
    case default
-      exit_string = 'FATAL ERROR: unknown dt_option'
+      exit_string = 'FATAL ERROR: unknown dt_option: ' // trim(dt_option)
       call document ('init_time1', exit_string)
       call exit_POP (sigAbort, exit_string, out_unit=stdout)
    end select
@@ -785,12 +829,55 @@
       allocate (hour_at_interval(fit_freq), min_at_interval(fit_freq),  &
                 sec_at_interval(fit_freq))
 
-     !***  test and document tmix_avgfit timestep size and time-stepping logic
+     !***  test and document timestep size and time-stepping logic
      call test_timestep
-   else
-     nsteps_per_interval = steps_per_day
-   endif ! tmix_avgfit
 
+   elseif (tmix_iopt  == tmix_robert) then
+     !-----------------------------------------------------------------
+     !*** determine the number of full steps in each interval
+     !*** fit_freq = 1 ==> coupling interval is one day
+     !*** fit_freq > 1 ==> coupling every day/fit_freq
+     !*** fit_freq < 1 ==> coupling every abs(fit_freq)*day  (not supported)
+     !-----------------------------------------------------------------
+
+     fullsteps_per_interval = ceiling(steps_per_day/fit_freq)
+     halfsteps_per_interval = 0
+     nsteps_per_interval    = fullsteps_per_interval
+     
+     fullsteps_per_day      = fit_freq*fullsteps_per_interval
+     halfsteps_per_day      = 0
+     nsteps_per_day         = fullsteps_per_day
+
+     !*** compute modified dtt value
+     dtt            = seconds_in_day/fullsteps_per_day
+     steps_per_day  = seconds_in_day/dtt
+
+     !***  allocate arrays used for testing
+      allocate (hour_at_interval(fit_freq), min_at_interval(fit_freq),  &
+                sec_at_interval(fit_freq))
+
+     !***  test and document timestep size and time-stepping logic
+     call test_timestep
+
+     !*** define Robert-filter-related coefficients
+     robert_curtime = p5*robert_nu* robert_alpha
+     robert_newtime = p5*robert_nu*(robert_alpha - c1)
+
+   else !***all other tmix options except tmix_avgfit and tmix_robert
+
+     nsteps_per_interval = steps_per_day
+
+     if (fit_freq .ne. 1) then
+      !*** only tmix_avgfit and robert options are supported if
+      !      frequency is not exactly once per day
+      write(exit_string,'(a)') &
+        'FATAL ERROR: coupling more frequently than 1x per day is ' & 
+     // 'only supported in combination with time_mix_opt = tavgfit or robert'
+      call document ('init_time1', exit_string)
+      call exit_POP (sigAbort, exit_string, out_unit=stdout)
+     endif
+ 
+   endif ! tmix_iopt
 
    dtt_input = dtt
    dtp       = dtt
@@ -851,7 +938,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  set initial values; some of these may be overwritten by
+!  set default values; some of these may be overwritten by
 !  restart input
 !
 !-----------------------------------------------------------------------
@@ -921,11 +1008,10 @@
 !  local variables
 !
 !-----------------------------------------------------------------------
-   real (r8)     ::  &
-      dummy
+   real (r8)     :: dummy
+   real (r8),save:: test_timestep_eps = 0.0000001_r8
 
-   integer (int_kind)   ::  &
-      nfit,nn              ! dummy indices
+   integer (int_kind) :: nfit,nn ! dummy indices
 
 
    logical (log_kind)   ::  &
@@ -1036,7 +1122,7 @@
       endif
 
       !*** label full and half steps
-      if (avg_ts) then
+      if (avg_ts .or. back_to_back) then
         stepsize_string = 'H'
       else
         stepsize_string = 'F'
@@ -1046,8 +1132,8 @@
       error_code = .false.
       if (last_step) then
         if (avg_ts) error_code = .true.
-        if (seconds_this_day > nfit*86400.0_r8/fit_freq + 0.0000001_r8 .or.  & 
-            seconds_this_day < nfit*86400.0_r8/fit_freq - 0.0000001_r8)      &
+        if (seconds_this_day > nfit*seconds_in_day/fit_freq + test_timestep_eps .or.  & 
+            seconds_this_day < nfit*seconds_in_day/fit_freq - test_timestep_eps)      &
             error_code = .true.
       endif
 
@@ -1327,9 +1413,9 @@
 !
 !-----------------------------------------------------------------------
 
-   if (tmix_iopt == tmix_avgfit) then 
+   if (lfit_ts_interval) then
 
-     !***  does this run start at the beginning of a coupling interval?
+     !***  does this run start at the beginning of one of the coupling intervals?
 
       error_condition = .true.
 
@@ -1364,7 +1450,7 @@
       end_run_at_midnight = .false.
    endif
 
-   if (tmix_iopt == tmix_avgfit) end_run_at_midnight = .true.
+   if (lfit_ts_interval) end_run_at_midnight = .true.
 
 !-----------------------------------------------------------------------
 !
@@ -1660,7 +1746,7 @@
    nsteps_run   = nsteps_run   + 1
    nsteps_total = nsteps_total + 1
 
-   if (tmix_iopt == tmix_avgfit) then
+   if (lfit_ts_interval) then
       nsteps_this_interval = nsteps_this_interval + 1
       if (nsteps_this_interval > nsteps_per_interval) &
          nsteps_this_interval = 1
@@ -1784,8 +1870,7 @@
       if (lcoupled) then
 
          if (check_time_flag(coupled_ts) ) then
-            if (tmix_iopt == tmix_matsuno .or. &
-                tmix_iopt == tmix_avgfit       ) then
+            if (lfit_ts_interval) then
                ice_ts = .true.
             else
                exit_string = 'FATAL ERROR: Cannot use tmix_avg or tmix_avgbb with lcoupled and liceform'
@@ -1800,7 +1885,7 @@
             endif
          endif
 
-         if ( tmix_iopt == tmix_avgfit ) then
+         if (lfit_ts_interval) then
             if (mod(nsteps_this_interval+1,nsteps_per_interval) == 0) &
                ice_ts = .true.
          endif
@@ -1810,8 +1895,7 @@
          if (tmix_iopt == tmix_matsuno) then
             if (mod(nsteps_total,time_mix_freq) == time_mix_freq-1) &
                ice_ts = .true.
-         else if (tmix_iopt == tmix_avgfit  .or. &
-                  tmix_iopt == tmix_avg          ) then
+         else if (lfit_ts_interval) then
             ice_ts = .true.
          else
             exit_string = 'FATAL ERROR: tmix_avgbb option is inconsistent with ice_ts'
@@ -1887,7 +1971,11 @@
  if (eod .or. debug_time_management .or. registry_match('info_debug_ge2')) then
   if (my_task == master_task) then
     if (iyear <= 9999) then
-      write(stdout,1000) iyear, cmonth3, iday, seconds_this_day
+      if (debug_time_management) then
+      write(stdout,1002) iyear, cmonth3, iday, seconds_this_day, ice_ts, f_euler_ts
+      else
+      write(stdout,1001) iyear, cmonth3, iday, seconds_this_day
+      endif
     else
       write(stdout,1001) iyear, cmonth3, iday, seconds_this_day
     endif
@@ -1899,6 +1987,9 @@
 1001 format (' (time_manager)', ' ocn date ', i5.5, '-', a3, '-', &
                                   i2.2,', ', 1pe12.6, ' sec')
 
+1002 format (' (time_manager)', ' ocn date ', i4.4, '-', a3, '-', &
+                                  i2.2,', ', 1pe12.6, ' sec', ' ice_ts = ', l4, &
+                                  ' f_euler_ts = ', l4)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -5383,7 +5474,7 @@
       write (stdout,blank_fmt)
       write (stdout,'(a11,1pe12.6)') 'dt_count = ',dt_count
  
-      if (tmix_iopt == tmix_avgfit) then
+      if (lfit_ts_interval) then
          write(stdout,out_fmt9) fullsteps_per_day,' full '
          write(stdout,out_fmt9) halfsteps_per_day,' half '
          write(stdout,out_fmt9) nsteps_per_day,   ' total'
@@ -5391,7 +5482,6 @@
  
       write (stdout,blank_fmt)
       write (stdout,'(a16,i6)') 'time_mix_freq = ', time_mix_freq
- 
       write (stdout,'(a19)') 'Time mixing option:'
       select case (tmix_iopt)
  
@@ -5410,7 +5500,14 @@
  
       case (tmix_matsuno)
          write (stdout,'(a25,i6,a6)') &
-            'Matsuno time steps every ',time_mix_freq,' steps'
+            'UNSUPPORTED IN CESM: Matsuno time steps every ',time_mix_freq,' steps'
+ 
+      case (tmix_robert)
+         write (stdout,'(a26)') '  Modified Robert-Asselin time filtering'
+         write (stdout,'(a71)') '  with timestep chosen to fit'/&
+                               &/' exactly into one day or coupling'/&
+                               &/' interval'
+
       end select
 
       write (stdout,blank_fmt)
