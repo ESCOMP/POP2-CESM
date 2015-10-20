@@ -428,12 +428,8 @@ module ecosys_mod
   use POP_MCT_vars_mod, only : pop_mct_dom_o
   use POP_MCT_vars_mod, only : POP_MCT_gsMap_o
   use POP_MCT_vars_mod, only : POP_MCT_OCNID
-
-  use shr_strdata_mod, only : shr_strdata_type
-  use shr_strdata_mod, only : shr_strdata_advance
-  use shr_strdata_mod, only : shr_strdata_print
-  use shr_strdata_mod, only : shr_strdata_create
 #endif
+  use strdata_interface_mod, only : strdata_input_type
 
   ! !INPUT PARAMETERS:
   !-----------------------------------------------------------------------
@@ -725,9 +721,7 @@ module ecosys_mod
   real (r8) :: &
        ndep_shr_stream_scale_factor  ! unit conversion factor
 
-#ifdef CCSMCOUPLED
-  type(shr_strdata_type) :: ndep_sdat ! input data stream for ndep
-#endif
+  type(strdata_input_type) :: ndep_inputlist
 
   type(forcing_monthly_every_ts) :: &
        din_riv_flux,              & ! river DIN species flux, added to nitrate pool
@@ -3690,8 +3684,6 @@ contains
        U10_SQR, IFRAC, PRESS, SST, SSS, &
        SURF_VALS_OLD, SURF_VALS_CUR, STF_MODULE, &
        lexport_shared_vars)
-    use shr_pio_mod, only : shr_pio_getiotype, shr_pio_getiosys
-    use POP_IOUnitsMod, only: inst_name
 
     use co2calc, only : co2calc_row
     use schmidt_number, only : SCHMIDT_CO2
@@ -3699,6 +3691,8 @@ contains
     use marbl_oxygen, only : o2sat
     use marbl_share_mod, only : ecosys_surface_share_type
     use marbl_interface_types, only : marbl_saved_state_type
+    use strdata_interface_mod, only : POP_strdata_create
+    use strdata_interface_mod, only : POP_strdata_advance
 
     ! !DESCRIPTION:
     !  Compute surface fluxes for ecosys tracer module.
@@ -3747,7 +3741,6 @@ contains
     integer (int_kind) :: &
          i, j, iblock, n, & ! loop indices
          auto_ind,        & ! autotroph functional group index
-         mcdate, sec,     & ! date vals for shr_strdata_advance
          errorCode          ! errorCode from HaloUpdate call
 
     real (r8), dimension(nx_block, ny_block, max_blocks_clinic) :: &
@@ -3786,8 +3779,7 @@ contains
          CO3_ROW
 
     character (char_len) :: &
-         tracer_data_label,       & ! label for what is being updated
-         ndep_shr_stream_fldList
+         tracer_data_label          ! label for what is being updated
 
     character (char_len), dimension(1) :: &
          tracer_data_names          ! short names for input data fields
@@ -4278,52 +4270,34 @@ contains
     if (trim(ndep_data_type) == 'shr_stream') then
        if (first_call) then
 
-          ndep_shr_stream_fldList = ' '
+          ndep_inputlist%field_name = 'ndep data'
+          ndep_inputlist%short_name = 'ndep'
+          ndep_inputlist%year_first = ndep_shr_stream_year_first
+          ndep_inputlist%year_last = ndep_shr_stream_year_last
+          ndep_inputlist%year_align = ndep_shr_stream_year_align
+          ndep_inputlist%file_name = ndep_shr_stream_file
+          ndep_inputlist%field_list = ' '
           do n = 1, ndep_shr_stream_var_cnt
              if (n == ndep_shr_stream_no_ind) &
-                  ndep_shr_stream_fldList = trim(ndep_shr_stream_fldList) /&
+                  ndep_inputlist%field_list = trim(ndep_inputlist%field_list) /&
                   &/ 'NOy_deposition'
              if (n == ndep_shr_stream_nh_ind) &
-                  ndep_shr_stream_fldList = trim(ndep_shr_stream_fldList) /&
+                  ndep_inputlist%field_list = trim(ndep_inputlist%field_list) /&
                   &/ 'NHx_deposition'
              if (n < ndep_shr_stream_var_cnt) &
-                  ndep_shr_stream_fldList = trim(ndep_shr_stream_fldList) /&
+                  ndep_inputlist%field_list = trim(ndep_inputlist%field_list) /&
                   &/ ':'
           end do
 
-          call shr_strdata_create(ndep_sdat, name='ndep data',                   &
-               mpicom=POP_communicator,                      &
-               compid=POP_MCT_OCNID,                         &
-               gsmap=POP_MCT_gsMap_o, ggrid=POP_MCT_dom_o,   &
-               nxg=nx_global, nyg=ny_global,                 &
-               yearFirst=ndep_shr_stream_year_first,         &
-               yearLast=ndep_shr_stream_year_last,           &
-               yearAlign=ndep_shr_stream_year_align,         &
-               offset=0,                                     &
-               domFilePath='',                               &
-               domFileName=ndep_shr_stream_file,             &
-               domTvarName='time',                           &
-               domXvarName='TLONG', domYvarName='TLAT',      &
-               domAreaName='TAREA', domMaskName='KMT',       &
-               FilePath='',                                  &
-               FileName=(/trim(ndep_shr_stream_file)/),      &
-               fldListFile=ndep_shr_stream_fldList,          &
-               fldListModel=ndep_shr_stream_fldList,         &
-               pio_subsystem=shr_pio_getiosys(inst_name),    &
-               pio_iotype=shr_pio_getiotype(inst_name),      &
-               fillalgo='none', mapalgo='none')
-          if (my_task == master_task) then
-             call shr_strdata_print(ndep_sdat)
-          endif
+          call POP_strdata_create(ndep_inputlist)
           first_call = .false.
        endif
 
-       mcdate = iyear*10000 + imonth*100 + iday
-       sec = isecond + 60 * (iminute + 60 * ihour)
+       ndep_inputlist%date = iyear*10000 + imonth*100 + iday
+       ndep_inputlist%time = isecond + 60 * (iminute + 60 * ihour)
 
        call timer_start(ecosys_shr_strdata_advance_timer)
-       call shr_strdata_advance(ndep_sdat, mcdate, sec, &
-            POP_communicator, 'ndep')
+       call POP_strdata_advance(ndep_inputlist)
        call timer_stop(ecosys_shr_strdata_advance_timer)
 
        !
@@ -4338,7 +4312,7 @@ contains
              do i=this_block%ib, this_block%ie
                 n = n + 1
                 SHR_STREAM_WORK(i, j, iblock) = &
-                     ndep_sdat%avs(1)%rAttr(ndep_shr_stream_no_ind, n)
+                     ndep_inputlist%sdat%avs(1)%rAttr(ndep_shr_stream_no_ind, n)
              enddo
           enddo
        enddo
@@ -4375,7 +4349,7 @@ contains
              do i=this_block%ib, this_block%ie
                 n = n + 1
                 SHR_STREAM_WORK(i, j, iblock) = &
-                     ndep_sdat%avs(1)%rAttr(ndep_shr_stream_nh_ind, n)
+                     ndep_inputlist%sdat%avs(1)%rAttr(ndep_shr_stream_nh_ind, n)
              enddo
           enddo
        enddo
@@ -4795,7 +4769,7 @@ contains
             units='pH', grid_loc='2110',            &
             field_loc = field_loc_center,                &
             field_type = field_type_scalar,              &
-            d2d_array = PH_PREV)
+            d2d_array = PH_PREV(:,:,1:nblocks_clinic))
        call data_set (restart_file, 'define', PH_SURF)
 
        PH_SURF_ALT_CO2 = construct_io_field('PH_SURF_ALT_CO2', i_dim, j_dim, &
@@ -4803,7 +4777,7 @@ contains
             units='pH', grid_loc='2110',            &
             field_loc = field_loc_center,                &
             field_type = field_type_scalar,              &
-            d2d_array = PH_PREV_ALT_CO2)
+            d2d_array = PH_PREV_ALT_CO2(:,:,1:nblocks_clinic))
        call data_set (restart_file, 'define', PH_SURF_ALT_CO2)
 
        PH_3D_ALT_CO2 = construct_io_field('PH_3D_ALT_CO2', i_dim, j_dim, k_dim, &
@@ -4811,7 +4785,7 @@ contains
             units='pH', grid_loc='3111',            &
             field_loc = field_loc_center,                &
             field_type = field_type_scalar,              &
-            d3d_array = saved_state%PH_PREV_ALT_CO2_3D)
+            d3d_array = saved_state%PH_PREV_ALT_CO2_3D(:,:,:,1:nblocks_clinic))
        call data_set (restart_file, 'define', PH_3D_ALT_CO2)
 
        PH_3D = construct_io_field('PH_3D', i_dim, j_dim, k_dim, &
@@ -4819,7 +4793,7 @@ contains
             units='pH', grid_loc='3111',            &
             field_loc = field_loc_center,                &
             field_type = field_type_scalar,              &
-            d3d_array = saved_state%PH_PREV_3D)
+            d3d_array = saved_state%PH_PREV_3D(:,:,:,1:nblocks_clinic))
        call data_set (restart_file, 'define', PH_3D)
 
     endif

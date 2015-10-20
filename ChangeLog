@@ -1,4 +1,22 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    20 Oct 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151020
+Tag Summary: Bug-fix; when bringing in MARBL for 20150831, I accidentally
+             reverted ecosys_mod to its 20150421 state - this dropped updates
+             from two tags: 20150701 and 20150717. This tag puts those changes
+             back in.
+
+             Also, at some point I accidentally commited a BranchChangeLog file
+
+Testing: Ran using shr_stream for ndep, ensured bit-for-bit.
+
+Files Modified/Added/Removed:
+D       BranchChangeLog
+M       source/ecosys_mod.F90
+
+===============================================================================
 Tag Creator: jet
 Developers:  njn01
 Tag Date:    15 Oct 2015
