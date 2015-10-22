@@ -840,6 +840,14 @@
 <niw_energy_file_fmt>'bin'</niw_energy_file_fmt>
 
 <!---------------------------->
+<!-- Group: mcog_nml        -->
+<!---------------------------->
+
+<lmcog>.false.</lmcog>
+<lmcog_debug>.false.</lmcog_debug>
+<mcog_dagg_qsw_abort_thres>1.0e-10</mcog_dagg_qsw_abort_thres>
+
+<!---------------------------->
 <!-- se_nml                 -->
 <!---------------------------->
 
@@ -1229,6 +1237,11 @@
 <ndep_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_gx1v6_c100612.nc</ndep_shr_stream_file> 
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp4.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp45_gx1v6_c100816.nc</ndep_shr_stream_file> 
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp8.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp85_gx1v6_c100816.nc</ndep_shr_stream_file> 
+
+<caco3_bury_thres_opt>omega_calc</caco3_bury_thres_opt>
+<caco3_bury_thres_depth>3300.0e2</caco3_bury_thres_depth>
+
+<pon_bury_coeff>0.5</pon_bury_coeff>
 
 <!---------------------------->
 <!--    ecosys_parms_nml    -->

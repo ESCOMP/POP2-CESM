@@ -1,0 +1,158 @@
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    15 Oct 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n07_cesm_pop_2_1_20150916a
+Tag Summary: initial merge of MCOG code, not coupled to physics/BGC
+
+MCOG receives per column fields from driver
+also merge debug test fixing change from trunk tag cesm_pop_2_1_20151007
+
+Testing
+aux_pop:
+   tests pass (baseline to n06) with following exceptions
+      nlcomp comparisons fail for tests with ecosys (CECO, GECO)
+      debug tests with ciso abort, as expected
+
+aux_pop_MARBL:
+   tests pass (baseline to n06) with following exceptions
+      nlcomp comparisons fail for tests with ecosys (CECO, GECO)
+      debug tests with ciso abort, as expected
+
+M       source/initial.F90
+M       source/forcing.F90
+M       source/passive_tracers.F90
+M       source/forcing_coupled.F90
+M       source/ecosys_driver.F90
+A       source/mcog.F90
+M       bld/pop.buildnml
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       BranchChangeLog
+A       input_templates/ocn.mcog.tavg.csh
+M       drivers/cpl/ocn_import_export.F90
+M       drivers/cpl/POP_CplIndices.F90
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    16 Sep 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n06_cesm_pop_2_1_20150916a
+Tag Summary: merge pop2/trunk_tags/cesm_pop_2_1_20150916a to branch
+
+Testing
+aux_pop:
+   tests pass (baseline to n05) with following exceptions
+      BFAIL for new aux_pop tests
+      debug tests with ciso abort, as expected
+
+aux_pop_MARBL:
+   tests pass (no baseline) with following exceptions
+      debug tests with ciso abort, as expected
+
+D       source/ecosys_share.F90
+M       source/ecosys_mod.F90
+D       source/ecosys_parms.F90
+M       source/ecosys_driver.F90
+M       source/co2calc_column.F90
+M       ChangeLog
+A  +    cimetest/testmods_dirs/pop/cice_ciso
+A  +    cimetest/testmods_dirs/pop/cice_ciso/include_user_mods
+M       cimetest/testlist_pop.xml
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    15 Sep 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n05_cesm_pop_2_1_20150910
+Tag Summary: switch PON_bury_coeff default to 0.5
+
+also switch caco3_bury_thres_opt to omega_calc in code, should have been done in n02
+
+Testing: aux_pop
+   tests pass
+   non-ecosys baseline comparison to n02 pass
+   nlcomp and baseline comparison to n02 fail for with ecosys (CECO, GECO)
+
+M       source/ecosys_mod.F90
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       BranchChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    15 Sep 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n04_cesm_pop_2_1_20150910
+Tag Summary: introduce PON_bury_coeff
+
+Testing: aux_pop
+   tests pass
+   non-ecosys baseline comparison to n02 pass
+   answers change for compsets with ecosys (CECO, GECO)
+      roundoff level changes occur because of changes in order of operations
+      nlcomp fails because of a new namelist variable
+
+M       source/ecosys_mod.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       BranchChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    11 Sep 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n03_cesm_pop_2_1_20150910
+Tag Summary: merge pop2/trunk_tags/cesm_pop_2_1_20150910 to branch
+
+also correct comment regarding calcite burial, to reflect changes in n01
+
+Testing: aux_pop, baseline comparison to n02, all tests pass
+
+M       source/ecosys_mod.F90
+M       BranchChangeLog
+M       ChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    9 Sep 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n02_cesm_pop_2_1_20150901a
+Tag Summary: switch caco3_bury_thres_opt to omega_calc
+
+Testing: aux_pop
+   tests pass
+   non-ecosys baseline comparison to n00 pass
+   answers change for compsets with ecosys (CECO, GECO)
+
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       BranchChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    9 Sep 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n01_cesm_pop_2_1_20150901a
+Tag Summary: introduce caco3_bury_thres_opt
+
+Purpose: Introduce ability for caco3 burial to be based on carbonate chemistry in bottom layer,
+instead of existing hard coded depth criteria.
+
+Testing: aux_pop
+   tests pass, except nlcomp, which fails for compsets with ecosys (CECO, GECO), due to new namelist variables
+   baseline comparison to n00 pass
+
+M       source/ecosys_mod.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+A       BranchChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    9 Sep 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n00_cesm_pop_2_1_20150901a
+Tag Summary: ecosys_cesm2_dev: baseline tag corresponding to cesm_pop_2_1_20150901a
+===============================================================================

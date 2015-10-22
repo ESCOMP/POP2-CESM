@@ -26,6 +26,10 @@ module ocn_import_export
    use forcing_shf,       only: SHF_QSW
    use forcing_sfwf,      only: lsend_precip_fact, precip_fact
    use forcing_fields
+   use mcog,              only: lmcog, mcog_ncols, mcog_col_to_bin, mcog_nbins, lmcog_debug
+   use mcog,              only: FRAC_COL, QSW_RAW_COL, FRAC_BIN, QSW_RAW_BIN
+   use mcog,              only: QSW_RAW_COL_DAGG, QSW_RAW_BIN_DAGG, mcog_dagg_qsw_abort_thres
+   use mcog,              only: QSW_COL, QSW_BIN
    use forcing_coupled,   only: ncouple_per_day,  &
                                 update_ghost_cells_coupler_fluxes, &
                                 rotate_wind_stress, pop_set_coupled_forcing, &
@@ -115,7 +119,7 @@ contains
       message
  
    integer (int_kind) ::  &
-      i,j,k,n,iblock
+      i,j,k,n,ncol,nbin,iblock
 
    real (r8), dimension(nx_block,ny_block) ::  &
       WORKB
@@ -123,7 +127,15 @@ contains
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::   &
       WORK1, WORK2        ! local work space
 
+   real (r8), dimension(mcog_ncols) ::  &
+      work_frac_col, work_fracr_col, work_qsw_fracr_col, work_qsw_col
+
+   real (r8), dimension(mcog_nbins) ::  &
+      work_frac_bin, work_fracr_bin, work_qsw_fracr_bin, work_qsw_bin
+
    real (r8) ::  &
+      work_qsw_col_dagg, work_qsw_bin_dagg, &
+      work1_scalar, work2_scalar, &
       m2percm2,  &
       gsum
 
@@ -250,6 +262,125 @@ contains
       enddo
 
    enddo
+
+!-----------------------------------------------------------------------
+!
+!  optional fields per mcog column
+!
+!-----------------------------------------------------------------------
+
+   if (lmcog) then
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+
+            ! extract fields for each column and accumulate into corresponding bin
+
+            work_frac_bin(:) = c0
+            work_fracr_bin(:) = c0
+            work_qsw_fracr_bin(:) = c0
+
+            do ncol = 1, mcog_ncols
+               work_frac_col(ncol)  = max(c0, min(c1, x2o(index_x2o_frac_col(ncol), n)))
+               work_fracr_col(ncol) = max(c0, min(c1, x2o(index_x2o_fracr_col(ncol), n)))
+               work_qsw_fracr_col(ncol) = x2o(index_x2o_qsw_fracr_col(ncol), n)
+
+               nbin = mcog_col_to_bin(ncol)
+               work_frac_bin(nbin) = work_frac_bin(nbin) + x2o(index_x2o_frac_col(ncol), n)
+               work_fracr_bin(nbin) = work_fracr_bin(nbin) + x2o(index_x2o_fracr_col(ncol), n)
+               work_qsw_fracr_bin(nbin) = work_qsw_fracr_bin(nbin) + x2o(index_x2o_qsw_fracr_col(ncol), n)
+            enddo
+
+            ! apply upper limit to bin fractions, in case roundoff in bin accumulation yields an out of range value
+            ! it is not necessary to apply 0 as a lower limit,
+            !    because the summation terms are all >= 0
+            work_frac_bin  = min(c1, work_frac_bin)
+            work_fracr_bin = min(c1, work_fracr_bin)
+
+            ! compare aggregate over columns and bins to coupler aggregation
+            work_qsw_col_dagg = sum(work_qsw_fracr_col) - x2o(index_x2o_Foxx_swnet,n)
+            work_qsw_bin_dagg = sum(work_qsw_fracr_bin) - x2o(index_x2o_Foxx_swnet,n)
+
+            if ((abs(work_qsw_col_dagg) > mcog_dagg_qsw_abort_thres) .or. &
+                (abs(work_qsw_bin_dagg) > mcog_dagg_qsw_abort_thres)) then
+               write(stdout, '(a,2(x,a,i),2(x,a,e13.6))') &
+                  'qsw aggregation mismatch exceeds threshold', &
+                  'i_glob=', this_block%i_glob(i), &
+                  'j_glob=', this_block%j_glob(j), &
+                  'work_qsw_col_dagg=', work_qsw_col_dagg, &
+                  'work_qsw_bin_dagg=', work_qsw_bin_dagg
+               call shr_sys_abort ('Error: (ocn_import): qsw aggregation mismatch exceeds threshold')
+            endif
+
+            ! normalize columns and bin fluxes by corresponding fractions
+            where (work_fracr_col > c0)
+               work_qsw_col = work_qsw_fracr_col / work_frac_col
+            elsewhere
+               work_qsw_col = c0
+            endwhere
+
+            where (work_fracr_bin > c0)
+               work_qsw_bin = work_qsw_fracr_bin / work_frac_bin
+            elsewhere
+               work_qsw_bin = c0
+            endwhere
+
+            ! col_frac_adjust_ncol is a column index
+            ! if it is > 0, set that column's fraction to 1 minus the sum of the others
+            ! this is done to ensure that the fractions sum to 1, which is not
+            ! the case in some configurations where some column terms are lagged in
+            ! time and others are not lagged
+
+            if (col_frac_adjust_ncol > 0) then
+               ! compute sum of fractions for other columns
+               ! apply upper limit, in case roundoff in accumulation yields an out of range value
+               ! it is not necessary to apply 0 as a lower limit,
+               !    because the summation terms are all >= 0
+
+               work1_scalar = c0
+               do ncol = 1, col_frac_adjust_ncol-1
+                  work1_scalar = work1_scalar + work_frac_col(ncol)
+               enddo
+               do ncol = col_frac_adjust_ncol+1, mcog_ncols
+                  work1_scalar = work1_scalar + work_frac_col(ncol)
+               enddo
+
+               work1_scalar = min(c1, work1_scalar)
+
+               ! store pre-adjusted value, so that the adjustment can be applied to the
+               ! appropriate bin fraction
+               work2_scalar = work_frac_col(col_frac_adjust_ncol)
+
+               ! apply limits, in case roundoff yields an out of range value
+               ! it is not necessary to apply 1 as a upper limit, because the summation terms are all >= 0
+               work_frac_col(col_frac_adjust_ncol) = c1 - work1_scalar
+
+               ! apply adjustment to appropriate bin farction
+               ! apply limits, in case roundoff yields an out of range value
+               nbin = mcog_col_to_bin(col_frac_adjust_ncol)
+               work_frac_bin(nbin) = max(c0, min(c1, work_frac_bin(nbin) + \
+                  (work_frac_col(col_frac_adjust_ncol) - work2_scalar)))
+            endif
+
+            ! copy local work arrays to MCOG column and bin arrays
+
+            FRAC_BIN(i,j,:,iblock)    = work_frac_bin(:)
+            QSW_RAW_BIN(i,j,:,iblock) = work_qsw_bin(:)
+
+            if (lmcog_debug) then
+               FRAC_COL(i,j,:,iblock)       = work_frac_col(:)
+               QSW_RAW_COL(i,j,:,iblock)    = work_qsw_col(:)
+               QSW_RAW_COL_DAGG(i,j,iblock) = work_qsw_col_dagg
+               QSW_RAW_BIN_DAGG(i,j,iblock) = work_qsw_bin_dagg
+            endif
+         enddo ! do j
+         enddo ! do i
+      enddo ! do iblock = 1, nblocks_clinic
+   endif ! if (lmcog)
 
 !-----------------------------------------------------------------------
 !

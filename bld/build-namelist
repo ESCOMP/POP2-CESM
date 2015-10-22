@@ -349,6 +349,7 @@ my $RUN_STARTDATE          = "$xmlvars{'RUN_STARTDATE'}";
 my $RUN_REFDATE            = "$xmlvars{'RUN_REFDATE'}";
 my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
 my $OCN_CO2_FLUX_OCMIP_BUG_FIX = "$xmlvars{'OCN_CO2_FLUX_OCMIP_BUG_FIX'}";
+my $ICE_NCAT               = $xmlvars{'ICE_NCAT'};
 
 expand_xml_variables_in_namelist($nl, \%xmlvars);
 
@@ -1476,6 +1477,9 @@ if ($ecosys_on eq "TRUE") {
       add_default($nl, 'ndep_shr_stream_file', 'ocn_transient'=>"$OCN_TRANSIENT");
       add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
     }
+    add_default($nl, 'caco3_bury_thres_opt');
+    add_default($nl, 'caco3_bury_thres_depth');
+    add_default($nl, 'pon_bury_coeff');
     add_default($nl, 'lecovars_full_depth_tavg');
 }
 
@@ -1682,6 +1686,42 @@ if ($IRF_on eq "TRUE") {
   add_default($nl, 'irf_tracer_file_ind_start');
 }
 
+######################################
+# namelist group: mcog_nml           #
+######################################
+
+my $lmcog = $ecosys_on eq "TRUE";
+
+# set CESM CPL_I2O_PER_CAT XML variable 
+my $sysmod = "cd $CASEROOT ; ./xmlchange -noecho CPL_I2O_PER_CAT=TRUE";
+system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+
+# construct default mcog_col_to_bin array
+my @mcog_col_to_bin = ();
+for (my $ncol=1; $ncol<=$ICE_NCAT+1; $ncol++) {
+  push @mcog_col_to_bin, $ncol;
+}
+
+if ($lmcog) {
+  add_default($nl, 'lmcog', 'val'=>'.true.');
+} else {
+  add_default($nl, 'lmcog', 'val'=>'.false.');
+}
+
+add_default($nl, 'lmcog_debug');
+add_default($nl, 'mcog_dagg_qsw_abort_thres');
+add_default($nl, 'mcog_col_to_bin', 'val'=>"@mcog_col_to_bin");
+
+my $mcog_col_to_bin_string = $nl->get_variable_value("mcog_nml", "mcog_col_to_bin");
+my @mcog_col_to_bin = split(/[, ]/, $mcog_col_to_bin_string);
+my $mcog_ncols = @mcog_col_to_bin;
+if ($mcog_ncols ne $ICE_NCAT+1) {
+  print "ICE_NCAT = $ICE_NCAT\n";
+  print "mcog_col_to_bin = @mcog_col_to_bin\n";
+  print "mcog_ncols = $mcog_ncols doesn't match ICE_NCAT+1\n";
+  die;
+}
+
 ##########################################
 # namelist group: tavg_nml               #
 #        AND                             #
@@ -1854,10 +1894,14 @@ if ($OCN_TAVG_TRACER_BUDGET eq "TRUE") {
   system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 }
 
-#-------------------------
-# 3. tracer tavg contents 
-#-------------------------
-for my $module (@OCN_TRACER_MODULES) {
+#---------------------------------
+# 3. tracer and mcog tavg contents 
+#---------------------------------
+my @OCN_TRACER_MODULES_tmp = @OCN_TRACER_MODULES;
+if ($lmcog) {
+   push(@OCN_TRACER_MODULES_tmp, "mcog");
+}
+for my $module (@OCN_TRACER_MODULES_tmp) {
   my $file = "ocn.${module}.tavg.csh";
   my $my_stream = $numcols+1;
   my $env = "env CASEROOT=$CASEROOT CASEBUILD=$CASEBUILD OCN_GRID=$OCN_GRID OCN_TAVG_TRACER_BUDGET=$OCN_TAVG_TRACER_BUDGET";
@@ -1969,6 +2013,7 @@ my @groups = qw(domain_nml
                 overflows_nml
                 niw_nml
                 se_nml
+                mcog_nml
                 passive_tracers_on_nml);
 
 if ($iage_on eq "TRUE") {
@@ -2473,6 +2518,14 @@ sub module_tavg_script_args() {
             $nl->get_variable_value("irf_nml", "irf_tracer_file_ind_start"),
             $IRF_NT,
             "'$IRF_MODE'");
+  }
+  if ($module eq "mcog") {
+    use List::Util qw( max );
+    my $mcog_col_to_bin_string = $nl->get_variable_value("mcog_nml", "mcog_col_to_bin");
+    my @mcog_col_to_bin = split(/[, ]/, $mcog_col_to_bin_string);
+    my $mcog_ncols = @mcog_col_to_bin;
+    my $mcog_nbins = max @mcog_col_to_bin;
+    return ($nl->get_variable_value("mcog_nml", "lmcog_debug"), $mcog_ncols, $mcog_nbins);
   }
   return "";
 }
