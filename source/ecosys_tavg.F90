@@ -192,8 +192,8 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 
   public :: ecosys_tavg_init
-  public :: ecosys_tavg_write
-  public :: ecosys_tavg_write_flux
+  public :: ecosys_tavg_accumulate
+  public :: ecosys_tavg_accumulate_flux
 
   !-----------------------------------------------------------------------
   !  define tavg id for everything but zooplankton, autotrophs, surface
@@ -1128,7 +1128,7 @@ contains
 
   end subroutine ecosys_tavg_init
 
-  subroutine ecosys_tavg_write(k,bid, ecosys_diagnostics)
+  subroutine ecosys_tavg_accumulate(k,bid, ecosys_diagnostics)
 
     integer, intent(in) :: k, bid ! level index and block index
     ! MNL: eventually this will be type(marbl_diagnostics_type) so I am leaving
@@ -1207,9 +1207,9 @@ contains
 
     end associate
 
-  end subroutine ecosys_tavg_write
+  end subroutine ecosys_tavg_accumulate
 
-  subroutine ecosys_tavg_write_flux(FLUX_DIAGS)
+  subroutine ecosys_tavg_accumulate_flux(FLUX_DIAGS)
 
     real (r8), dimension(nx_block,ny_block, forcing_diag_cnt, nblocks_clinic),   &
                                                                    intent(in) :: &
@@ -1246,7 +1246,7 @@ contains
     end do
    !$OMP END PARALLEL DO
 
-  end subroutine ecosys_tavg_write_flux
+  end subroutine ecosys_tavg_accumulate_flux
 
 end module ecosys_tavg
 

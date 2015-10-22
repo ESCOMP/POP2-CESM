@@ -60,8 +60,8 @@ module ecosys_driver
   use ecosys_constants          , only : forcing_diag_cnt
 
   use ecosys_tavg               , only : ecosys_tavg_init
-  use ecosys_tavg               , only : ecosys_tavg_write
-  use ecosys_tavg               , only : ecosys_tavg_write_flux
+  use ecosys_tavg               , only : ecosys_tavg_accumulate
+  use ecosys_tavg               , only : ecosys_tavg_accumulate_flux
 
   use ecosys_mod, only:            &
        ecosys_init,                &
@@ -658,7 +658,7 @@ contains
     call timer_stop(ecosys_interior_timer, block_id=bid)
 
     do k = 1, km
-       call ecosys_tavg_write(k, bid, ecosys_diagnostics(k))
+       call ecosys_tavg_accumulate(k, bid, ecosys_diagnostics(k))
        do n = 1, ecosys_tracer_cnt
           call ecosys_restore%accumulate_tavg(tracer_index=n, &
                vert_level=k, block_id=bid, &
@@ -868,7 +868,7 @@ contains
 
     call ecosys_tavg_forcing(marbl_saved_state, STF_MODULE(:,:,ecosys_ind_begin:ecosys_ind_end,:),&
          FLUX_DIAGS)
-    call ecosys_tavg_write_flux(FLUX_DIAGS)
+    call ecosys_tavg_accumulate_flux(FLUX_DIAGS)
 
     !-----------------------------------------------------------------------
     !  ECOSYS_CISO block
