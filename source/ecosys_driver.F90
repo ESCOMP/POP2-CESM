@@ -539,17 +539,9 @@ contains
     call marbl%set_interior()
 
     do k = 1, km
-       allocate(ecosys_diagnostics(k)%DIAGS(nx_block, ny_block, ecosys_diag_cnt))
-       allocate(ecosys_diagnostics(k)%AUTO_DIAGS(nx_block, ny_block, autotroph_cnt, auto_diag_cnt))
-       allocate(ecosys_diagnostics(k)%ZOO_DIAGS(nx_block, ny_block, zooplankton_cnt, zoo_diag_cnt))
-       allocate(ecosys_diagnostics(k)%PART_DIAGS(nx_block, ny_block, part_diag_cnt))
-       allocate(ecosys_diagnostics(k)%restore_diags(nx_block, ny_block, ecosys_tracer_cnt))
-
-       ecosys_diagnostics(k)%DIAGS = c0
-       ecosys_diagnostics(k)%AUTO_DIAGS = c0
-       ecosys_diagnostics(k)%ZOO_DIAGS = c0
-       ecosys_diagnostics(k)%PART_DIAGS = c0
-       ecosys_diagnostics(k)%restore_diags = c0
+       call ecosys_diagnostics(k)%construct(nx_block, ny_block,               &
+                 ecosys_diag_cnt, auto_diag_cnt, zoo_diag_cnt, part_diag_cnt, &
+                 ecosys_tracer_cnt, autotroph_cnt, zooplankton_cnt)
 
        allocate(marbl_diagnostics(k)%DIAGS(ecosys_diag_cnt))
        allocate(marbl_diagnostics(k)%AUTO_DIAGS(auto_diag_cnt, autotroph_cnt))
