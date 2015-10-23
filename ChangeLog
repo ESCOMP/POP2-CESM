@@ -1,4 +1,28 @@
 ===============================================================================
+Tag Creator: jet
+Developers:  Scott Reckinger, Baylor Fox-Kemper, mvertens, jet
+Tag Date:    23 Oct 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151023
+Tag Summary: The is an update to the GM Aniso module added by Mariana.
+             It adds shear dispersion as well as a new hm_gmix_aniso_nml
+	     namelist which allows tuning the parameterization.
+
+Testing: Ran aux_pop.  Because of the new aniso namelist the nlcomp comparison tests
+	 failed against the baseline.  All of these were expected.  All bfb tests
+	 passed.
+	
+	  ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+          ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+
+
+Files Modified/Added/Removed:
+M       source/hmix_gm_aniso.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_pes.xml
+	
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    20 Oct 2015

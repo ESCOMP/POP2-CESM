@@ -375,6 +375,36 @@
 <lsubmesoscale_mixing ocn_grid="tx1v1"  >.false.</lsubmesoscale_mixing>
 <lsubmesoscale_mixing ocn_grid="tx0.1v2">.false.</lsubmesoscale_mixing>
 
+
+<!---------------------------->
+<!-- hmix_gm_aniso_nml      -->
+<!---------------------------->
+
+<isoonly                                       >.false.</isoonly>
+
+<kdir_type_choice                              >shear</kdir_type_choice>
+<kdir_type_choice isoonly="TRUE"               >flow</kdir_type_choice>
+
+<krat_type_choice                              >shear</krat_type_choice>
+<krat_type_choice isoonly="TRUE"               >simple</krat_type_choice>
+
+<kmin_type_choice                              >simple</kmin_type_choice>
+
+<savenewtavgs     isoonly="TRUE"               >.false.</savenewtavgs>
+<addrandfluc                                   >.false.</addrandfluc>
+<cflmajoronly                                  >.true.</cflmajoronly>
+<cflmult                                       >0.175</cflmult>
+<erat_const                                    >5.0</erat_const>
+<erat_const isoonly="TRUE"                     >1.0</erat_const>
+<erat_factor                                   >0.0</erat_factor>
+<erat_factor kmin_type_choice="simple"         >0.0</erat_factor>
+<isominoronly                                  >.true.</isominoronly>
+<minorfactor                                   >1.0</minorfactor>
+<savenewtavgs                                  >.true.</savenewtavgs>
+<shrdispfac                                    >0.05066</shrdispfac>
+<simpsubcells                                  >.false.</simpsubcells>
+<vertdiffhere                                  >.false.</vertdiffhere>
+
 <!---------------------------->
 <!-- hmix_gm_nml -->
 <!---------------------------->
