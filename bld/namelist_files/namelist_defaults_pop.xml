@@ -432,22 +432,30 @@
 <ah_bolus                    kappa_isop_choice="edgr"     kappa_thic_choice="edgr"    >1.0</ah_bolus>  
 <ah_bolus ocn_grid="gx3v7"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.87e7</ah_bolus>  
 <ah_bolus ocn_grid="gx3v7"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >4.0e7</ah_bolus>  
+<ah_bolus ocn_grid="gx3v7"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >4.0e7</ah_bolus>  
 <ah_bolus ocn_grid="gx1v6"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah_bolus>  
+<ah_bolus ocn_grid="gx1v6"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah_bolus>  
 <ah_bolus ocn_grid="gx1v6"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah_bolus>  
 <ah_bolus ocn_grid="tx1v1"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah_bolus>  
 <ah_bolus ocn_grid="tx1v1"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah_bolus>  
+<ah_bolus ocn_grid="tx1v1"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah_bolus>  
 <ah_bolus ocn_grid="tx0.1v2" kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah_bolus>  
 <ah_bolus ocn_grid="tx0.1v2" kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah_bolus>  
+<ah_bolus ocn_grid="tx0.1v2" kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah_bolus>  
 
 <ah_bkg_srfbl                    kappa_isop_choice="edgr"     kappa_thic_choice="edgr"    >1.0</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="gx3v7"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.87e7</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="gx3v7"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >4.0e7</ah_bkg_srfbl>  
+<ah_bkg_srfbl ocn_grid="gx3v7"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >4.0e7</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="gx1v6"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="gx1v6"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah_bkg_srfbl>  
+<ah_bkg_srfbl ocn_grid="gx1v6"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="tx1v1"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="tx1v1"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah_bkg_srfbl>  
+<ah_bkg_srfbl ocn_grid="tx1v1"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="tx0.1v2" kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="tx0.1v2" kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah_bkg_srfbl>  
+<ah_bkg_srfbl ocn_grid="tx0.1v2" kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah_bkg_srfbl>  
 
 <kappa_freq_choice>once_a_day</kappa_freq_choice>
 <slope_control_choice>notanh</slope_control_choice>
@@ -1507,12 +1515,16 @@
 <ah&hmix_gm_nml                    kappa_isop_choice="edgr"     kappa_thic_choice="edgr"    >1.0</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="gx3v7"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.8e7</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="gx3v7"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >4.0e7</ah&hmix_gm_nml>  
+<ah&hmix_gm_nml ocn_grid="gx3v7"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >4.0e7</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="gx1v6"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="gx1v6"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah&hmix_gm_nml>  
+<ah&hmix_gm_nml ocn_grid="gx1v6"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="tx1v1"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="tx1v1"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah&hmix_gm_nml>  
+<ah&hmix_gm_nml ocn_grid="tx1v1"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="tx0.1v2" kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="tx0.1v2" kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah&hmix_gm_nml>  
+<ah&hmix_gm_nml ocn_grid="tx0.1v2" kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah&hmix_gm_nml>  
 
 <rich_mix&vmix_rich_nml>50.0</rich_mix&vmix_rich_nml>
 

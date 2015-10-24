@@ -2086,10 +2086,10 @@ id="kappa_isop_choice"
 type="char*256"
 category="hmix"
 group="hmix_gm_nml"
-valid_values="cons,dept,depth,vmhs,hdgr,drad,bfre,bfvm,bfhd,bfdr,edgr" >
+valid_values="cons,steer,dept,depth,vmhs,hdgr,drad,bfre,bfvm,bfhd,bfdr,edgr" >
 Choice for KAPPA_ISOP (isopycnal).
 
-Valid Values: 'cons', 'depth', 'vmhs', 'hdgr', 'drad', 'bfre', 'bfvm', 'bfhd', 'bfdr', 'edgr'
+Valid Values: 'cons', 'steer', 'depth', 'vmhs', 'hdgr', 'drad', 'bfre', 'bfvm', 'bfhd', 'bfdr', 'edgr'
 Default: 'bfre'
 </entry>
 
@@ -2098,10 +2098,10 @@ id="kappa_thic_choice"
 type="char*256"
 category="hmix"
 group="hmix_gm_nml"
-valid_values="cons,dept,depth,vmhs,hdgr,drad,bfre,bfvm,bfhd,bfdr,edgr" >
+valid_values="cons,steer,dept,depth,vmhs,hdgr,drad,bfre,bfvm,bfhd,bfdr,edgr" >
 Choice for KAPPA_THIC (thickness).
 
-Valid Values: 'cons', 'depth', 'vmhs', 'hdgr', 'drad', 'bfre', 'bfvm', 'bfhd', 'bfdr', 'edgr'
+Valid Values: 'cons', 'steer', 'depth', 'vmhs', 'hdgr', 'drad', 'bfre', 'bfvm', 'bfhd', 'bfdr', 'edgr'
 Default: 'bfre'
 </entry>
 
@@ -2236,6 +2236,16 @@ type="logical"
 category="hmix"
 group="hmix_gm_nml" >
 Flag for diagnostic bolus velocity computation.
+
+Default: .true.
+</entry>
+
+<entry 
+id="diag_gm_steer"
+type="logical"
+category="hmix"
+group="hmix_gm_nml" >
+Flag for diagnostic steering level eddy flux computation.
 
 Default: .true.
 </entry>

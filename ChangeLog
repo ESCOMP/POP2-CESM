@@ -1,5 +1,27 @@
 ===============================================================================
 Tag Creator: jet
+Developers:  Gokhan, Matt Long, John Marshall, jet 
+Tag Date:    24 Oct 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151024
+Tag Summary: Add POP Implementation of Mesoscale eddy diffusivity (steering param) based on mixing theory
+	     New namelist options which enable the new parameterization:
+	     kappa_thic = 'steer'
+	     kappa_isop = 'steer'
+
+Testing: Ran aux_pop on yellowstone.  This parameterization is off by default and is bfb 
+	 with baseline with the exception of the following expected failures which have
+	 been in the baseline for awhile now.
+
+	  ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+          ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+
+Files Modified/Added/Removed:
+M       source/hmix_gm.F90
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       ChangeLog
+===============================================================================
+Tag Creator: jet
 Developers:  Scott Reckinger, Baylor Fox-Kemper, mvertens, jet
 Tag Date:    23 Oct 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151023
