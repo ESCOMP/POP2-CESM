@@ -68,7 +68,7 @@
    use forcing_ws, only: ws_data_type
    use sw_absorption, only: init_sw_absorption
    use passive_tracers, only: init_passive_tracers, ecosys_on
-   use ecosys_mod, only: ecosys_qsw_distrb_const
+   use ecosys_driver, only: ecosys_qsw_distrb_const
    use exit_mod, only: sigAbort, exit_pop, flushm
    use restart, only: read_restart, restart_fmt, read_restart_filename
    use ms_balance, only: init_ms_balance

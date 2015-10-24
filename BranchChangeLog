@@ -1,6 +1,43 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    24 Oct 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n08_cesm_pop_2_1_20150916a
+Tag Summary: incorporate MCOG infrastructure into ecosys/marbl, not coupled to MCOG forcing inputs
+
+Testing
+aux_pop_MARBL:
+   tests pass with following exceptions
+      nlcomp comparisons fail for tests with ecosys (CECO, GECO)
+         because of movement of ecosys_qsw_distrb_const variable
+      debug tests with ciso abort, as expected
+   baseline comparisons to previous tags fail because of roundoff level changes in PAR computation
+
+move ecosys_qsw_distrb_const from ecosys_nml to ecosys_driver_nml
+pass shortwave inputs to ecosys_set_interior instead of ecosys_set_sflux
+add MCOG related fields to marbl_column_domain_type and photosynthetically_available_radiation_type derived types
+eliminate PAR_out from saved state variables
+push k loops into autotroph_consistency_check, compute_photosynthetically_available_radiation
+add loop over PAR subcolumns to PAR dependent computations
+   (light lim for photosynthesis, photoacc, DOM remin, nitrif, PAR_avg diagnostic)
+
+PAR computation (PAR = (f_qsw_par / hflux_factor) * SHF_QSW) split into
+   shortwave = (1/hflux_factor)*SHF_QSW in ecosys_driver_set_interior
+   PAR = f_qsw_par*shortwave in ecosys_set_interior
+
+M       source/initial.F90
+M       source/marbl_interface_types.F90
+M       source/passive_tracers.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_driver.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       BranchChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    15 Oct 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n07_cesm_pop_2_1_20150916a
 Tag Summary: initial merge of MCOG code, not coupled to physics/BGC

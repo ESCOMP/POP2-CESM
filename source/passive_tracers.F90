@@ -869,7 +869,8 @@
       do iblock = 1, nblocks_clinic
          this_block = get_block(blocks_clinic(iblock), iblock)
          bid = this_block%local_id
-         call ecosys_driver_set_interior(ciso_on,         &
+         call ecosys_driver_set_interior(ciso_on, &
+              SHF_QSW_RAW(:, :, bid), SHF_QSW(:, :, bid), &
               TRACER(:, :, :, 1, oldtime, bid), TRACER(:, :, :, 1, curtime, bid), &
               TRACER(:, :, :, 2, oldtime, bid), TRACER(:, :, :, 2, curtime, bid), &
               TRACER(:, :, :, ecosys_driver_ind_begin:ecosys_driver_ind_end, oldtime, bid), &
@@ -981,7 +982,6 @@
 
    if (ecosys_on) then
       call ecosys_driver_set_sflux(ciso_on,    &
-         SHF_QSW_RAW, SHF_QSW,                                     &
          U10_SQR, ICE_FRAC, PRESS,                                 &
          SST_FILT, SSS_FILT,                                       &
          TRACER(:,:,1,ecosys_driver_ind_begin:ecosys_driver_ind_end,oldtime,:),  &

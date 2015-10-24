@@ -1066,8 +1066,6 @@
 
 <surf_avg_alk_const>2225.0</surf_avg_alk_const>          
 
-<ecosys_qsw_distrb_const>.false.</ecosys_qsw_distrb_const>     
-
 <iron_dust_flx_data_type>monthly</iron_dust_flx_data_type>     
 
 <dust_flux_input%file_fmt>nc</dust_flux_input%file_fmt>    
@@ -1348,6 +1346,7 @@
 
 <lmarginal_seas>.true.</lmarginal_seas>
 <ecosys_tadvect_ctype>base_model</ecosys_tadvect_ctype>
+<ecosys_qsw_distrb_const>.false.</ecosys_qsw_distrb_const>     
 
 <!---------------------------->
 <!--moby_nml -->
