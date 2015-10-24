@@ -46,6 +46,7 @@ module ecosys_driver
 
   use marbl_interface_constants , only : marbl_status_ok
   use marbl_interface_types     , only : marbl_status_type
+  use marbl_interface_types     , only : ecosys_diagnostics_type
 
   use marbl_interface_types     , only : marbl_saved_state_type
 
@@ -142,6 +143,8 @@ module ecosys_driver
   type(marbl_sizes_type) :: marbl_sizes
   type(marbl_driver_sizes_type) :: marbl_driver_sizes
   type(marbl_status_type) :: marbl_status
+  type(ecosys_diagnostics_type), dimension(km, max_blocks_clinic) :: ecosys_diagnostics
+!  type(ecosys_diagnostics_type), dimension(km, nblocks_clinic) :: ecosys_diagnostics
   ! FIXME(bja, 2015-08) this needs to go into marbl%private_data%saved_state !!!
   type(marbl_saved_state_type) :: marbl_saved_state
 
@@ -249,7 +252,7 @@ contains
 
     character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_init'
 
-    integer (int_kind) :: cumulative_nt, n, &
+    integer (int_kind) :: cumulative_nt, n, bid, k, &
          nml_error,        &! error flag for nml read
          iostat             ! io status flag
 
@@ -378,6 +381,16 @@ contains
             'ERROR in ecosys_driver_init: marbl_init returned status: "'//marbl_status%message//'"')
     end if
 
+    ! initialize ecosys_diagnostics type
+    do k=1,km
+      do bid=1,nblocks_clinic
+        call ecosys_diagnostics(k,bid)%construct(nx_block, ny_block,          &
+                 ecosys_diag_cnt, auto_diag_cnt, zoo_diag_cnt, part_diag_cnt, &
+                 ecosys_tracer_cnt, autotroph_cnt, zooplankton_cnt)
+      end do
+    end do
+
+
     ! now we know how many tracers marbl has, we can verify that pop
     ! has the correctly sized data.
 
@@ -474,7 +487,6 @@ contains
     ! !REVISION HISTORY:
     !  same as module
 
-    use marbl_interface_types, only: ecosys_diagnostics_type
     use marbl_interface_types, only: marbl_diagnostics_type
     use marbl_interface_types, only : marbl_column_domain_type
 
@@ -517,7 +529,6 @@ contains
     integer (int_kind) :: k ! vertical level index
     integer (int_kind) :: n, d
     integer (int_kind) :: bid ! local block address for this block
-    type(ecosys_diagnostics_type) :: ecosys_diagnostics(km)
     type(marbl_diagnostics_type) :: marbl_diagnostics(km)
 
     type(marbl_column_domain_type) :: marbl_domain
@@ -539,10 +550,6 @@ contains
     call marbl%set_interior()
 
     do k = 1, km
-       call ecosys_diagnostics(k)%construct(nx_block, ny_block,               &
-                 ecosys_diag_cnt, auto_diag_cnt, zoo_diag_cnt, part_diag_cnt, &
-                 ecosys_tracer_cnt, autotroph_cnt, zooplankton_cnt)
-
        allocate(marbl_diagnostics(k)%DIAGS(ecosys_diag_cnt))
        allocate(marbl_diagnostics(k)%AUTO_DIAGS(auto_diag_cnt, autotroph_cnt))
        allocate(marbl_diagnostics(k)%ZOO_DIAGS(zoo_diag_cnt, zooplankton_cnt))
@@ -618,27 +625,27 @@ contains
                end do ! do n
 
                do d = 1, ecosys_diag_cnt
-                  ecosys_diagnostics(k)%diags(i, c, d) = marbl_diagnostics(k)%diags(d)
+                  ecosys_diagnostics(k, bid)%diags(i, c, d) = marbl_diagnostics(k)%diags(d)
                end do
           
                do n = 1, autotroph_cnt
                   do d = 1, auto_diag_cnt
-                     ecosys_diagnostics(k)%auto_diags(i, c, n, d) = marbl_diagnostics(k)%auto_diags(d, n)
+                     ecosys_diagnostics(k, bid)%auto_diags(i, c, n, d) = marbl_diagnostics(k)%auto_diags(d, n)
                   end do ! do d
                end do ! do n
 
                do n = 1, zooplankton_cnt
                   do d = 1, zoo_diag_cnt
-                     ecosys_diagnostics(k)%zoo_diags(i, c, n, d) = marbl_diagnostics(k)%zoo_diags(d, n)
+                     ecosys_diagnostics(k, bid)%zoo_diags(i, c, n, d) = marbl_diagnostics(k)%zoo_diags(d, n)
                   end do ! do d
                end do ! do n
 
                do d = 1, part_diag_cnt
-                  ecosys_diagnostics(k)%part_diags(i, c, d) = marbl_diagnostics(k)%part_diags(d)
+                  ecosys_diagnostics(k, bid)%part_diags(i, c, d) = marbl_diagnostics(k)%part_diags(d)
                end do ! do d
 
                do d = 1, ecosys_tracer_cnt
-                  ecosys_diagnostics(k)%restore_diags(i, c, d) = marbl_diagnostics(k)%restore_diags(d)
+                  ecosys_diagnostics(k, bid)%restore_diags(i, c, d) = marbl_diagnostics(k)%restore_diags(d)
                end do ! do d
             end do ! do k
           end if ! KMT > 0
@@ -650,11 +657,11 @@ contains
     call timer_stop(ecosys_interior_timer, block_id=bid)
 
     do k = 1, km
-       call ecosys_tavg_accumulate(k, bid, ecosys_diagnostics(k))
+       call ecosys_tavg_accumulate(k, bid, ecosys_diagnostics(k, bid))
        do n = 1, ecosys_tracer_cnt
           call ecosys_restore%accumulate_tavg(tracer_index=n, &
                vert_level=k, block_id=bid, &
-               restore_local=ecosys_diagnostics(k)%restore_diags(:, :, n))
+               restore_local=ecosys_diagnostics(k, bid)%restore_diags(:, :, n))
        end do
     end do
     !-----------------------------------------------------------------------
@@ -677,12 +684,6 @@ contains
     end if
 
     do k = 1, km
-       deallocate(ecosys_diagnostics(k)%DIAGS)
-       deallocate(ecosys_diagnostics(k)%AUTO_DIAGS)
-       deallocate(ecosys_diagnostics(k)%ZOO_DIAGS)
-       deallocate(ecosys_diagnostics(k)%PART_DIAGS)
-       deallocate(ecosys_diagnostics(k)%restore_diags)
-
        deallocate(marbl_diagnostics(k)%DIAGS)
        deallocate(marbl_diagnostics(k)%AUTO_DIAGS)
        deallocate(marbl_diagnostics(k)%ZOO_DIAGS)
