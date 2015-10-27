@@ -1162,7 +1162,7 @@ contains
     type(ecosys_diagnostics_type), intent(in) :: ecosys_diagnostics
     !type(ecosys_diagnostics_type), intent(in) :: marbl_diagnostics
 
-    integer :: i, auto_ind, zoo_ind
+    integer :: n, auto_ind, zoo_ind
     logical :: accumulate
 
    associate(                                                                 &
@@ -1171,68 +1171,68 @@ contains
         AUTO_DIAGS                => ecosys_diagnostics%AUTO_DIAGS,           &
         ZOO_DIAGS                 => ecosys_diagnostics%ZOO_DIAGS,            &
         PART_DIAGS                => ecosys_diagnostics%PART_DIAGS)
-    do i=1,ecosys_diag_cnt_2d
+    do n=1,ecosys_diag_cnt_2d
       accumulate = .true.
-      select case (i)
+      select case (n)
         case (zsatcalc_diag_ind, zsatarag_diag_ind)
           accumulate = (k.eq.km)
         case (O2_ZMIN_diag_ind, O2_ZMIN_DEPTH_diag_ind)
           accumulate = (k.eq.1)
       end select
       if (accumulate) &
-        call accumulate_tavg_field(DIAGS_2D(:,:,i),tavg_ecosys_2d(i),bid,k)
+        call accumulate_tavg_field(DIAGS_2D(:,:,n),tavg_ecosys_2d(n),bid,k)
     end do
 
-    do i=1,ecosys_diag_cnt_3d
-      call accumulate_tavg_field(DIAGS_3D(:,:,i),tavg_ecosys_3d(i),bid,k)
+    do n=1,ecosys_diag_cnt_3d
+      call accumulate_tavg_field(DIAGS_3D(:,:,n),tavg_ecosys_3d(n),bid,k)
     end do
 
     ! Accumulate autotroph terms
-    do i=1,auto_diag_cnt
+    do n=1,auto_diag_cnt
       do auto_ind=1,autotroph_cnt
         accumulate = .true.
         ! Some autotrophs are only accumulated under specific conditions
-        select case (i)
+        select case (n)
           case (bSi_form_diag_ind)
             accumulate = (autotrophs(auto_ind)%Si_ind.gt.0)
             if ( accumulate) &
-              call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,i),  &
+              call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,n),  &
                                      tavg_tot_bSi_form, bid, k)
           case (CaCO3_form_diag_ind) 
             accumulate = (autotrophs(auto_ind)%imp_calcifier)
             if (accumulate) &
-              call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,i),  &
+              call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,n),  &
                                      tavg_tot_CaCO3_form, bid, k)
           case (CaCO3_form_zint_diag_ind)
             accumulate = (autotrophs(auto_ind)%imp_calcifier)
             if (accumulate) &
-              call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,i),  &
+              call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,n),  &
                                      tavg_tot_CaCO3_form_zint, bid, k)
           case (Nfix_diag_ind)
             accumulate = (autotrophs(auto_ind)%Nfixer)
             if (accumulate) &
-              call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,i),  &
+              call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,n),  &
                                      tavg_tot_Nfix, bid, k)
         end select
 
         if (accumulate) &
-          call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,i),      &
-                                     tavg_auto(i,auto_ind), bid, k)
+          call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,n),      &
+                                     tavg_auto(n,auto_ind), bid, k)
 
        end do
      end do
 
     ! Accumulate zooplankton terms
-    do i=1,zoo_diag_cnt
+    do n=1,zoo_diag_cnt
       do zoo_ind=1,zooplankton_cnt
-        call accumulate_tavg_field(ZOO_DIAGS(:,:,zoo_ind,i),                  &
-                                   tavg_zoo(i,zoo_ind), bid, k)
+        call accumulate_tavg_field(ZOO_DIAGS(:,:,zoo_ind,n),                  &
+                                   tavg_zoo(n,zoo_ind), bid, k)
       end do
     end do
 
     ! Accumulate particulate terms
-    do i=1,part_diag_cnt
-      call accumulate_tavg_field(PART_DIAGS(:,:,i), tavg_part(i), bid, k)
+    do n=1,part_diag_cnt
+      call accumulate_tavg_field(PART_DIAGS(:,:,n), tavg_part(n), bid, k)
     end do
 
     end associate
