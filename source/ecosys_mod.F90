@@ -210,154 +210,169 @@ module ecosys_mod
 
   use ecosys_constants, only : ecosys_tracer_cnt
   ! standard diagnostics
-  use ecosys_constants, only : ecosys_diag_cnt_2d
-  use ecosys_constants, only : ecosys_diag_cnt_3d
-  use ecosys_constants, only : CO3_diag_ind
-  use ecosys_constants, only : HCO3_diag_ind
-  use ecosys_constants, only : H2CO3_diag_ind
-  use ecosys_constants, only : pH_3D_diag_ind
-  use ecosys_constants, only : CO3_ALT_CO2_diag_ind
-  use ecosys_constants, only : HCO3_ALT_CO2_diag_ind
-  use ecosys_constants, only : H2CO3_ALT_CO2_diag_ind
-  use ecosys_constants, only : ph_3D_ALT_CO2_diag_ind
-  use ecosys_constants, only : co3_sat_calc_diag_ind
-  use ecosys_constants, only : co3_sat_arag_diag_ind
-  use ecosys_constants, only : zsatcalc_diag_ind
-  use ecosys_constants, only : zsatarag_diag_ind
-  use ecosys_constants, only : NITRIF_diag_ind
-  use ecosys_constants, only : DENITRIF_diag_ind
-  use ecosys_constants, only : O2_ZMIN_diag_ind
-  use ecosys_constants, only : O2_ZMIN_DEPTH_diag_ind
-  use ecosys_constants, only : O2_PRODUCTION_diag_ind
-  use ecosys_constants, only : O2_CONSUMPTION_diag_ind
-  use ecosys_constants, only : AOU_diag_ind
-  use ecosys_constants, only : PAR_avg_diag_ind
-  use ecosys_constants, only : auto_graze_TOT_diag_ind
-  use ecosys_constants, only : photoC_TOT_diag_ind
-  use ecosys_constants, only : photoC_TOT_zint_diag_ind
-  use ecosys_constants, only : photoC_NO3_TOT_diag_ind
-  use ecosys_constants, only : photoC_NO3_TOT_zint_diag_ind
-  use ecosys_constants, only : DOC_prod_diag_ind
-  use ecosys_constants, only : DOC_remin_diag_ind
-  use ecosys_constants, only : DON_prod_diag_ind
-  use ecosys_constants, only : DON_remin_diag_ind
-  use ecosys_constants, only : DOP_prod_diag_ind
-  use ecosys_constants, only : DOP_remin_diag_ind
-  use ecosys_constants, only : DOFe_prod_diag_ind
-  use ecosys_constants, only : DOFe_remin_diag_ind
-  use ecosys_constants, only : Fe_scavenge_diag_ind
-  use ecosys_constants, only : Fe_scavenge_rate_diag_ind
-  use ecosys_constants, only : Jint_Ctot_diag_ind
-  use ecosys_constants, only : Jint_100m_Ctot_diag_ind
-  use ecosys_constants, only : Jint_Ntot_diag_ind
-  use ecosys_constants, only : Jint_100m_Ntot_diag_ind
-  use ecosys_constants, only : Jint_Ptot_diag_ind
-  use ecosys_constants, only : Jint_100m_Ptot_diag_ind
-  use ecosys_constants, only : Jint_Sitot_diag_ind
-  use ecosys_constants, only : Jint_100m_Sitot_diag_ind
+  use ecosys_diagnostics_mod, only : ecosys_diag_cnt_2d
+  use ecosys_diagnostics_mod, only : ecosys_diag_cnt_3d
+  use ecosys_diagnostics_mod, only : CO3_diag_ind
+  use ecosys_diagnostics_mod, only : HCO3_diag_ind
+  use ecosys_diagnostics_mod, only : H2CO3_diag_ind
+  use ecosys_diagnostics_mod, only : pH_3D_diag_ind
+  use ecosys_diagnostics_mod, only : CO3_ALT_CO2_diag_ind
+  use ecosys_diagnostics_mod, only : HCO3_ALT_CO2_diag_ind
+  use ecosys_diagnostics_mod, only : H2CO3_ALT_CO2_diag_ind
+  use ecosys_diagnostics_mod, only : ph_3D_ALT_CO2_diag_ind
+  use ecosys_diagnostics_mod, only : co3_sat_calc_diag_ind
+  use ecosys_diagnostics_mod, only : co3_sat_arag_diag_ind
+  use ecosys_diagnostics_mod, only : zsatcalc_diag_ind
+  use ecosys_diagnostics_mod, only : zsatarag_diag_ind
+  use ecosys_diagnostics_mod, only : NITRIF_diag_ind
+  use ecosys_diagnostics_mod, only : DENITRIF_diag_ind
+  use ecosys_diagnostics_mod, only : O2_ZMIN_diag_ind
+  use ecosys_diagnostics_mod, only : O2_ZMIN_DEPTH_diag_ind
+  use ecosys_diagnostics_mod, only : O2_PRODUCTION_diag_ind
+  use ecosys_diagnostics_mod, only : O2_CONSUMPTION_diag_ind
+  use ecosys_diagnostics_mod, only : AOU_diag_ind
+  use ecosys_diagnostics_mod, only : PAR_avg_diag_ind
+  use ecosys_diagnostics_mod, only : auto_graze_TOT_diag_ind
+  use ecosys_diagnostics_mod, only : photoC_TOT_diag_ind
+  use ecosys_diagnostics_mod, only : photoC_TOT_zint_diag_ind
+  use ecosys_diagnostics_mod, only : photoC_NO3_TOT_diag_ind
+  use ecosys_diagnostics_mod, only : photoC_NO3_TOT_zint_diag_ind
+  use ecosys_diagnostics_mod, only : DOC_prod_diag_ind
+  use ecosys_diagnostics_mod, only : DOC_remin_diag_ind
+  use ecosys_diagnostics_mod, only : DON_prod_diag_ind
+  use ecosys_diagnostics_mod, only : DON_remin_diag_ind
+  use ecosys_diagnostics_mod, only : DOP_prod_diag_ind
+  use ecosys_diagnostics_mod, only : DOP_remin_diag_ind
+  use ecosys_diagnostics_mod, only : DOFe_prod_diag_ind
+  use ecosys_diagnostics_mod, only : DOFe_remin_diag_ind
+  use ecosys_diagnostics_mod, only : Fe_scavenge_diag_ind
+  use ecosys_diagnostics_mod, only : Fe_scavenge_rate_diag_ind
+  use ecosys_diagnostics_mod, only : Jint_Ctot_diag_ind
+  use ecosys_diagnostics_mod, only : Jint_100m_Ctot_diag_ind
+  use ecosys_diagnostics_mod, only : Jint_Ntot_diag_ind
+  use ecosys_diagnostics_mod, only : Jint_100m_Ntot_diag_ind
+  use ecosys_diagnostics_mod, only : Jint_Ptot_diag_ind
+  use ecosys_diagnostics_mod, only : Jint_100m_Ptot_diag_ind
+  use ecosys_diagnostics_mod, only : Jint_Sitot_diag_ind
+  use ecosys_diagnostics_mod, only : Jint_100m_Sitot_diag_ind
   ! autotroph diagnostics
-  use ecosys_constants, only : auto_diag_cnt
-  use ecosys_constants, only : N_lim_diag_ind
-  use ecosys_constants, only : P_lim_diag_ind
-  use ecosys_constants, only : Fe_lim_diag_ind
-  use ecosys_constants, only : SiO3_lim_diag_ind
-  use ecosys_constants, only : light_lim_diag_ind
-  use ecosys_constants, only : photoC_diag_ind
-  use ecosys_constants, only : photoC_zint_diag_ind
-  use ecosys_constants, only : photoC_NO3_diag_ind
-  use ecosys_constants, only : photoC_NO3_zint_diag_ind
-  use ecosys_constants, only : photoFe_diag_ind
-  use ecosys_constants, only : photoNO3_diag_ind
-  use ecosys_constants, only : photoNH4_diag_ind
-  use ecosys_constants, only : DOP_uptake_diag_ind
-  use ecosys_constants, only : PO4_uptake_diag_ind
-  use ecosys_constants, only : auto_graze_diag_ind
-  use ecosys_constants, only : auto_graze_poc_diag_ind
-  use ecosys_constants, only : auto_graze_doc_diag_ind
-  use ecosys_constants, only : auto_graze_zoo_diag_ind
-  use ecosys_constants, only : auto_loss_diag_ind
-  use ecosys_constants, only : auto_loss_poc_diag_ind
-  use ecosys_constants, only : auto_loss_doc_diag_ind
-  use ecosys_constants, only : auto_agg_diag_ind
-  use ecosys_constants, only : bSi_form_diag_ind
-  use ecosys_constants, only : CaCO3_form_diag_ind
-  use ecosys_constants, only : CaCO3_form_zint_diag_ind
-  use ecosys_constants, only : Nfix_diag_ind
+  use ecosys_diagnostics_mod, only : auto_diag_cnt
+  use ecosys_diagnostics_mod, only : N_lim_diag_ind
+  use ecosys_diagnostics_mod, only : P_lim_diag_ind
+  use ecosys_diagnostics_mod, only : Fe_lim_diag_ind
+  use ecosys_diagnostics_mod, only : SiO3_lim_diag_ind
+  use ecosys_diagnostics_mod, only : light_lim_diag_ind
+  use ecosys_diagnostics_mod, only : photoC_diag_ind
+  use ecosys_diagnostics_mod, only : photoC_zint_diag_ind
+  use ecosys_diagnostics_mod, only : photoC_NO3_diag_ind
+  use ecosys_diagnostics_mod, only : photoC_NO3_zint_diag_ind
+  use ecosys_diagnostics_mod, only : photoFe_diag_ind
+  use ecosys_diagnostics_mod, only : photoNO3_diag_ind
+  use ecosys_diagnostics_mod, only : photoNH4_diag_ind
+  use ecosys_diagnostics_mod, only : DOP_uptake_diag_ind
+  use ecosys_diagnostics_mod, only : PO4_uptake_diag_ind
+  use ecosys_diagnostics_mod, only : auto_graze_diag_ind
+  use ecosys_diagnostics_mod, only : auto_graze_poc_diag_ind
+  use ecosys_diagnostics_mod, only : auto_graze_doc_diag_ind
+  use ecosys_diagnostics_mod, only : auto_graze_zoo_diag_ind
+  use ecosys_diagnostics_mod, only : auto_loss_diag_ind
+  use ecosys_diagnostics_mod, only : auto_loss_poc_diag_ind
+  use ecosys_diagnostics_mod, only : auto_loss_doc_diag_ind
+  use ecosys_diagnostics_mod, only : auto_agg_diag_ind
+  use ecosys_diagnostics_mod, only : bSi_form_diag_ind
+  use ecosys_diagnostics_mod, only : CaCO3_form_diag_ind
+  use ecosys_diagnostics_mod, only : CaCO3_form_zint_diag_ind
+  use ecosys_diagnostics_mod, only : Nfix_diag_ind
   ! zooplankton diagnostics
-  use ecosys_constants, only : zoo_diag_cnt
-  use ecosys_constants, only : zoo_loss_diag_ind
-  use ecosys_constants, only : zoo_loss_poc_diag_ind
-  use ecosys_constants, only : zoo_loss_doc_diag_ind
-  use ecosys_constants, only : zoo_graze_diag_ind
-  use ecosys_constants, only : zoo_graze_poc_diag_ind
-  use ecosys_constants, only : zoo_graze_doc_diag_ind
-  use ecosys_constants, only : zoo_graze_zoo_diag_ind
-  use ecosys_constants, only : x_graze_zoo_diag_ind
+  use ecosys_diagnostics_mod, only : zoo_diag_cnt
+  use ecosys_diagnostics_mod, only : zoo_loss_diag_ind
+  use ecosys_diagnostics_mod, only : zoo_loss_poc_diag_ind
+  use ecosys_diagnostics_mod, only : zoo_loss_doc_diag_ind
+  use ecosys_diagnostics_mod, only : zoo_graze_diag_ind
+  use ecosys_diagnostics_mod, only : zoo_graze_poc_diag_ind
+  use ecosys_diagnostics_mod, only : zoo_graze_doc_diag_ind
+  use ecosys_diagnostics_mod, only : zoo_graze_zoo_diag_ind
+  use ecosys_diagnostics_mod, only : x_graze_zoo_diag_ind
   ! particulate diagnostics
-  use ecosys_constants, only : part_diag_cnt
-  use ecosys_constants, only : POC_FLUX_IN_diag_ind
-  use ecosys_constants, only : POC_PROD_diag_ind
-  use ecosys_constants, only : POC_REMIN_diag_ind
-  use ecosys_constants, only : CaCO3_FLUX_IN_diag_ind
-  use ecosys_constants, only : CaCO3_PROD_diag_ind
-  use ecosys_constants, only : CaCO3_REMIN_diag_ind
-  use ecosys_constants, only : SiO2_FLUX_IN_diag_ind
-  use ecosys_constants, only : SiO2_PROD_diag_ind
-  use ecosys_constants, only : SiO2_REMIN_diag_ind
-  use ecosys_constants, only : dust_FLUX_IN_diag_ind
-  use ecosys_constants, only : dust_REMIN_diag_ind
-  use ecosys_constants, only : P_iron_FLUX_IN_diag_ind
-  use ecosys_constants, only : P_iron_PROD_diag_ind
-  use ecosys_constants, only : P_iron_REMIN_diag_ind
-  use ecosys_constants, only : calcToSed_diag_ind
-  use ecosys_constants, only : bsiToSed_diag_ind
-  use ecosys_constants, only : pocToSed_diag_ind
-  use ecosys_constants, only : SedDenitrif_diag_ind
-  use ecosys_constants, only : OtherRemin_diag_ind
-  use ecosys_constants, only : ponToSed_diag_ind
-  use ecosys_constants, only : popToSed_diag_ind
-  use ecosys_constants, only : dustToSed_diag_ind
-  use ecosys_constants, only : pfeToSed_diag_ind
+  use ecosys_diagnostics_mod, only : part_diag_cnt
+  use ecosys_diagnostics_mod, only : POC_FLUX_IN_diag_ind
+  use ecosys_diagnostics_mod, only : POC_PROD_diag_ind
+  use ecosys_diagnostics_mod, only : POC_REMIN_diag_ind
+  use ecosys_diagnostics_mod, only : CaCO3_FLUX_IN_diag_ind
+  use ecosys_diagnostics_mod, only : CaCO3_PROD_diag_ind
+  use ecosys_diagnostics_mod, only : CaCO3_REMIN_diag_ind
+  use ecosys_diagnostics_mod, only : SiO2_FLUX_IN_diag_ind
+  use ecosys_diagnostics_mod, only : SiO2_PROD_diag_ind
+  use ecosys_diagnostics_mod, only : SiO2_REMIN_diag_ind
+  use ecosys_diagnostics_mod, only : dust_FLUX_IN_diag_ind
+  use ecosys_diagnostics_mod, only : dust_REMIN_diag_ind
+  use ecosys_diagnostics_mod, only : P_iron_FLUX_IN_diag_ind
+  use ecosys_diagnostics_mod, only : P_iron_PROD_diag_ind
+  use ecosys_diagnostics_mod, only : P_iron_REMIN_diag_ind
+  use ecosys_diagnostics_mod, only : calcToSed_diag_ind
+  use ecosys_diagnostics_mod, only : bsiToSed_diag_ind
+  use ecosys_diagnostics_mod, only : pocToSed_diag_ind
+  use ecosys_diagnostics_mod, only : SedDenitrif_diag_ind
+  use ecosys_diagnostics_mod, only : OtherRemin_diag_ind
+  use ecosys_diagnostics_mod, only : ponToSed_diag_ind
+  use ecosys_diagnostics_mod, only : popToSed_diag_ind
+  use ecosys_diagnostics_mod, only : dustToSed_diag_ind
+  use ecosys_diagnostics_mod, only : pfeToSed_diag_ind
   ! tavg_forcing diagnostics
-  use ecosys_constants, only : forcing_diag_cnt
-  use ecosys_constants, only : ECOSYS_IFRAC_diag_ind
-  use ecosys_constants, only : ECOSYS_XKW_diag_ind
-  use ecosys_constants, only : ECOSYS_ATM_PRESS_diag_ind
-  use ecosys_constants, only : PV_O2_diag_ind
-  use ecosys_constants, only : SCHMIDT_O2_diag_ind
-  use ecosys_constants, only : O2SAT_diag_ind
-  use ecosys_constants, only : O2_GAS_FLUX_diag_ind
-  use ecosys_constants, only : CO2STAR_diag_ind
-  use ecosys_constants, only : DCO2STAR_diag_ind
-  use ecosys_constants, only : pCO2SURF_diag_ind
-  use ecosys_constants, only : DpCO2_diag_ind
-  use ecosys_constants, only : PV_CO2_diag_ind
-  use ecosys_constants, only : SCHMIDT_CO2_diag_ind
-  use ecosys_constants, only : DIC_GAS_FLUX_diag_ind
-  use ecosys_constants, only : PH_diag_ind
-  use ecosys_constants, only : ATM_CO2_diag_ind
-  use ecosys_constants, only : CO2STAR_ALT_CO2_diag_ind
-  use ecosys_constants, only : DCO2STAR_ALT_CO2_diag_ind
-  use ecosys_constants, only : pCO2SURF_ALT_CO2_diag_ind
-  use ecosys_constants, only : DpCO2_ALT_CO2_diag_ind
-  use ecosys_constants, only : DIC_GAS_FLUX_ALT_CO2_diag_ind
-  use ecosys_constants, only : PH_ALT_CO2_diag_ind
-  use ecosys_constants, only : ATM_ALT_CO2_diag_ind
-  use ecosys_constants, only : IRON_FLUX_diag_ind
-  use ecosys_constants, only : DUST_FLUX_diag_ind
-  use ecosys_constants, only : NOx_FLUX_diag_ind
-  use ecosys_constants, only : NHy_FLUX_diag_ind
-  use ecosys_constants, only : DIN_RIV_FLUX_diag_ind
-  use ecosys_constants, only : DIP_RIV_FLUX_diag_ind
-  use ecosys_constants, only : DoN_RIV_FLUX_diag_ind
-  use ecosys_constants, only : DoNr_RIV_FLUX_diag_ind
-  use ecosys_constants, only : DOP_RIV_FLUX_diag_ind
-  use ecosys_constants, only : DOPr_RIV_FLUX_diag_ind
-  use ecosys_constants, only : DSI_RIV_FLUX_diag_ind
-  use ecosys_constants, only : DFE_RIV_FLUX_diag_ind
-  use ecosys_constants, only : DIC_RIV_FLUX_diag_ind
-  use ecosys_constants, only : ALK_RIV_FLUX_diag_ind
-  use ecosys_constants, only : DOC_RIV_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : forcing_diag_cnt
+  use ecosys_diagnostics_mod, only : ECOSYS_IFRAC_diag_ind
+  use ecosys_diagnostics_mod, only : ECOSYS_XKW_diag_ind
+  use ecosys_diagnostics_mod, only : ECOSYS_ATM_PRESS_diag_ind
+  use ecosys_diagnostics_mod, only : PV_O2_diag_ind
+  use ecosys_diagnostics_mod, only : SCHMIDT_O2_diag_ind
+  use ecosys_diagnostics_mod, only : O2SAT_diag_ind
+  use ecosys_diagnostics_mod, only : O2_GAS_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : CO2STAR_diag_ind
+  use ecosys_diagnostics_mod, only : DCO2STAR_diag_ind
+  use ecosys_diagnostics_mod, only : pCO2SURF_diag_ind
+  use ecosys_diagnostics_mod, only : DpCO2_diag_ind
+  use ecosys_diagnostics_mod, only : PV_CO2_diag_ind
+  use ecosys_diagnostics_mod, only : SCHMIDT_CO2_diag_ind
+  use ecosys_diagnostics_mod, only : DIC_GAS_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : PH_diag_ind
+  use ecosys_diagnostics_mod, only : ATM_CO2_diag_ind
+  use ecosys_diagnostics_mod, only : CO2STAR_ALT_CO2_diag_ind
+  use ecosys_diagnostics_mod, only : DCO2STAR_ALT_CO2_diag_ind
+  use ecosys_diagnostics_mod, only : pCO2SURF_ALT_CO2_diag_ind
+  use ecosys_diagnostics_mod, only : DpCO2_ALT_CO2_diag_ind
+  use ecosys_diagnostics_mod, only : DIC_GAS_FLUX_ALT_CO2_diag_ind
+  use ecosys_diagnostics_mod, only : PH_ALT_CO2_diag_ind
+  use ecosys_diagnostics_mod, only : ATM_ALT_CO2_diag_ind
+  use ecosys_diagnostics_mod, only : IRON_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : DUST_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : NOx_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : NHy_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : DIN_RIV_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : DIP_RIV_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : DoN_RIV_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : DoNr_RIV_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : DOP_RIV_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : DOPr_RIV_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : DSI_RIV_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : DFE_RIV_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : DIC_RIV_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : ALK_RIV_FLUX_diag_ind
+  use ecosys_diagnostics_mod, only : DOC_RIV_FLUX_diag_ind
+  ! Diagnostic subroutines
+  use ecosys_diagnostics_mod, only : store_diagnostics_carbonate
+  use ecosys_diagnostics_mod, only : store_diagnostics_nitrification
+  use ecosys_diagnostics_mod, only : store_diagnostics_autotrophs
+  use ecosys_diagnostics_mod, only : store_diagnostics_autotroph_sums
+  use ecosys_diagnostics_mod, only : store_diagnostics_particulates
+  use ecosys_diagnostics_mod, only : store_diagnostics_oxygen
+  use ecosys_diagnostics_mod, only : store_diagnostics_photosynthetically_available_radiation
+  use ecosys_diagnostics_mod, only : store_diagnostics_misc
+  use ecosys_diagnostics_mod, only : store_diagnostics_zooplankton
+  use ecosys_diagnostics_mod, only : store_diagnostics_dissolved_organic_matter
+  use ecosys_diagnostics_mod, only : store_diagnostics_carbon_fluxes
+  use ecosys_diagnostics_mod, only : store_diagnostics_nitrogen_fluxes
+  use ecosys_diagnostics_mod, only : store_diagnostics_phosphorus_fluxes
+  use ecosys_diagnostics_mod, only : store_diagnostics_silicon_fluxes
 
   use marbl_parms, only : marbl_params_init, marbl_params_print
   use marbl_parms, only : grz_fnc_michaelis_menten
@@ -424,6 +439,12 @@ module ecosys_mod
   use marbl_share_mod, only : zooplankton, zooplankton_cnt
   use marbl_share_mod, only : grazing, grazer_prey_cnt
 
+  use marbl_interface_types, only : carbonate_type
+  use marbl_interface_types, only : zooplankton_secondary_species_type
+  use marbl_interface_types, only : autotroph_secondary_species_type
+  use marbl_interface_types, only : photosynthetically_available_radiation_type
+  use marbl_interface_types, only : dissolved_organic_matter_type
+
   use ecosys_restore_mod, only : ecosys_restore_type
 #ifdef CCSMCOUPLED
   use POP_MCT_vars_mod, only : pop_mct_dom_o
@@ -489,101 +510,6 @@ module ecosys_mod
      real (r8) :: Si    ! local copy of model autotroph Si
      real (r8) :: CaCO3 ! local copy of model autotroph CaCO3
   end type autotroph_local_type
-
-  type, private :: autotroph_secondary_species_type
-     real (r8) :: thetaC          ! local Chl/C ratio (mg Chl/mmol C)
-     real (r8) :: QCaCO3          ! CaCO3/C ratio (mmol CaCO3/mmol C)
-     real (r8) :: Qfe             ! init fe/C ratio (mmolFe/mmolC)
-     real (r8) :: gQfe            ! fe/C for growth
-     real (r8) :: Qsi             ! initial Si/C ratio (mmol Si/mmol C)
-     real (r8) :: gQsi            ! diatom Si/C ratio for growth (new biomass)
-     real (r8) :: VNO3            ! NH4 uptake rate (non-dim)
-     real (r8) :: VNH4            ! NO3 uptake rate (non-dim)
-     real (r8) :: VNtot           ! total N uptake rate (non-dim)
-     real (r8) :: NO3_V           ! nitrate uptake (mmol NO3/m^3/sec)
-     real (r8) :: NH4_V           ! ammonium uptake (mmol NH4/m^3/sec)
-     real (r8) :: PO4_V           ! PO4 uptake (mmol PO4/m^3/sec)
-     real (r8) :: DOP_V           ! DOP uptake (mmol DOP/m^3/sec)
-     real (r8) :: VNC             ! C-specific N uptake rate (mmol N/mmol C/sec)
-     real (r8) :: VPO4            ! C-specific PO4 uptake (non-dim)
-     real (r8) :: VDOP            ! C-specific DOP uptake rate (non-dim)
-     real (r8) :: VPtot           ! total P uptake rate (non-dim)
-     real (r8) :: f_nut           ! nut limitation factor, modifies C fixation (non-dim)
-     real (r8) :: VFe             ! C-specific Fe uptake (non-dim)
-     real (r8) :: VSiO3           ! C-specific SiO3 uptake (non-dim)
-     real (r8) :: light_lim       ! light limitation factor
-     real (r8) :: PCphoto         ! C-specific rate of photosynth. (1/sec)
-     real (r8) :: photoC          ! C-fixation (mmol C/m^3/sec)
-     real (r8) :: photoFe         ! iron uptake
-     real (r8) :: photoSi         ! silicon uptake (mmol Si/m^3/sec)
-     real (r8) :: photoacc        ! Chl synth. term in photoadapt. (GD98) (mg Chl/m^3/sec)
-     real (r8) :: auto_loss       ! autotroph non-grazing mort (mmol C/m^3/sec)
-     real (r8) :: auto_loss_poc   ! auto_loss routed to poc (mmol C/m^3/sec)
-     real (r8) :: auto_loss_doc   ! auto_loss routed to doc (mmol C/m^3/sec)
-     real (r8) :: auto_loss_dic   ! auto_loss routed to dic (mmol C/m^3/sec)
-     real (r8) :: auto_agg        ! autotroph aggregation (mmol C/m^3/sec)
-     real (r8) :: auto_graze      ! autotroph grazing rate (mmol C/m^3/sec)
-     real (r8) :: auto_graze_zoo  ! auto_graze routed to zoo (mmol C/m^3/sec)
-     real (r8) :: auto_graze_poc  ! auto_graze routed to poc (mmol C/m^3/sec)
-     real (r8) :: auto_graze_doc  ! auto_graze routed to doc (mmol C/m^3/sec)
-     real (r8) :: auto_graze_dic  ! auto_graze routed to dic (mmol C/m^3/sec)
-     real (r8) :: Pprime          ! used to limit autotroph mort at low biomass (mmol C/m^3)
-     real (r8) :: CaCO3_PROD      ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)
-     real (r8) :: Nfix            ! total Nitrogen fixation (mmol N/m^3/sec)
-     real (r8) :: Nexcrete        ! fixed N excretion
-     real (r8) :: remaining_P_dop ! remaining_P from mort routed to DOP pool
-     real (r8) :: remaining_P_dip ! remaining_P from mort routed to remin
-  end type autotroph_secondary_species_type
-
-  type, private :: zooplankton_secondary_species_type
-     real (r8):: f_zoo_detr       ! frac of zoo losses into large detrital pool (non-dim)
-     real (r8):: x_graze_zoo      ! {auto, zoo}_graze routed to zoo (mmol C/m^3/sec)
-     real (r8):: zoo_graze        ! zooplankton losses due to grazing (mmol C/m^3/sec)
-     real (r8):: zoo_graze_zoo    ! grazing of zooplankton routed to zoo (mmol C/m^3/sec)
-     real (r8):: zoo_graze_poc    ! grazing of zooplankton routed to poc (mmol C/m^3/sec)
-     real (r8):: zoo_graze_doc    ! grazing of zooplankton routed to doc (mmol C/m^3/sec)
-     real (r8):: zoo_graze_dic    ! grazing of zooplankton routed to dic (mmol C/m^3/sec)
-     real (r8):: zoo_loss         ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
-     real (r8):: zoo_loss_poc     ! zoo_loss routed to poc (mmol C/m^3/sec)
-     real (r8):: zoo_loss_doc     ! zoo_loss routed to doc (mmol C/m^3/sec)
-     real (r8):: zoo_loss_dic     ! zoo_loss routed to dic (mmol C/m^3/sec)
-     real (r8):: Zprime           ! used to limit zoo mort at low biomass (mmol C/m^3)
-  end type zooplankton_secondary_species_type
-
-  type, private :: photosynthetically_available_radiation_type
-     real(r8) :: in     ! photosynthetically available radiation (W/m^2)
-     real(r8) :: KPARdz ! PAR adsorption coefficient (non-dim)
-     real(r8) :: avg    ! average PAR over mixed layer depth (W/m^2)
-  end type photosynthetically_available_radiation_type
-
-  type, private :: carbonate_type
-     ! FIXME(bja, 2015-07) remove alt_co2 variables, and just reuse
-     ! the type as type(column_carbonate_type) :: carbonate,
-     ! carbonate_alt
-     real (r8) :: CO3 ! carbonate ion
-     real (r8) :: HCO3 ! bicarbonate ion
-     real (r8) :: H2CO3 ! carbonic acid
-     real (r8) :: pH
-     real (r8) :: CO3_sat_calcite
-     real (r8) :: CO3_sat_aragonite
-     real (r8) :: CO3_ALT_CO2 ! carbonate ion, alternative CO2
-     real (r8) :: HCO3_ALT_CO2 ! bicarbonate ion, alternative CO2
-     real (r8) :: H2CO3_ALT_CO2  ! carbonic acid, alternative CO2
-     real (r8) :: pH_ALT_CO2
-  end type carbonate_type
-
-  type, private :: dissolved_organic_matter_type
-     real (r8) :: DOC_prod         ! production of DOC (mmol C/m^3/sec)
-     real (r8) :: DOC_remin        ! remineralization of DOC (mmol C/m^3/sec)
-     real (r8) :: DON_prod         ! production of dissolved organic N
-     real (r8) :: DON_remin        ! portion of DON remineralized
-     real (r8) :: DOFe_prod        ! produciton of dissolved organic Fe
-     real (r8) :: DOFe_remin       ! portion of DOFe remineralized
-     real (r8) :: DOP_prod         ! production of dissolved organic P
-     real (r8) :: DOP_remin        ! portion of DOP remineralized
-     real (r8) :: DONr_remin       ! portion of refractory DON remineralized
-     real (r8) :: DOPr_remin       ! portion of refractory DOP remineralized
-  end type dissolved_organic_matter_type
 
   !-----------------------------------------------------------------------
   !  flags controlling which portion of code are executed
@@ -5754,11 +5680,11 @@ contains
 
     use constants       , only : c1
     use marbl_share_mod , only : autotroph_type
-    use ecosys_constants, only : auto_diag_cnt
-    use ecosys_constants, only : N_lim_diag_ind
-    use ecosys_constants, only : P_lim_diag_ind
-    use ecosys_constants, only : Fe_lim_diag_ind
-    use ecosys_constants, only : SiO3_lim_diag_ind
+    use ecosys_diagnostics_mod, only : auto_diag_cnt
+    use ecosys_diagnostics_mod, only : N_lim_diag_ind
+    use ecosys_diagnostics_mod, only : P_lim_diag_ind
+    use ecosys_diagnostics_mod, only : Fe_lim_diag_ind
+    use ecosys_diagnostics_mod, only : SiO3_lim_diag_ind
 
     integer(int_kind)                 , intent(in)  :: auto_cnt
     type(autotroph_type)              , intent(in)  :: auto_meta(auto_cnt)
@@ -6939,717 +6865,6 @@ contains
 
     end associate
   end subroutine compute_dtracer_local
-
-  !-----------------------------------------------------------------------
-
-  subroutine store_diagnostics_carbonate(carbonate, zsat_calcite,             &
-                                         zsat_aragonite, diags_2d, diags_3d)
-
-    use marbl_interface_types, only : marbl_diagnostics_type
-
-    type(carbonate_type), intent(in) :: carbonate
-    real(r8), intent(in) :: zsat_calcite
-    real(r8), intent(in) :: zsat_aragonite
-    real(r8), intent(inout) :: diags_2d(ecosys_diag_cnt_2d)
-    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
-
-    diags_3d(CO3_diag_ind) = carbonate%CO3
-    diags_3d(HCO3_diag_ind) = carbonate%HCO3
-    diags_3d(H2CO3_diag_ind) = carbonate%H2CO3
-    diags_3d(pH_3D_diag_ind) = carbonate%pH
-    diags_3d(CO3_ALT_CO2_diag_ind) = carbonate%CO3_ALT_CO2
-    diags_3d(HCO3_ALT_CO2_diag_ind) = carbonate%HCO3_ALT_CO2
-    diags_3d(H2CO3_ALT_CO2_diag_ind) = carbonate%H2CO3_ALT_CO2
-    diags_3d(pH_3D_ALT_CO2_diag_ind) = carbonate%pH_ALT_CO2
-    diags_3d(co3_sat_calc_diag_ind) = carbonate%CO3_sat_calcite
-    diags_3d(co3_sat_arag_diag_ind) = carbonate%CO3_sat_aragonite
-    diags_2d(zsatcalc_diag_ind) = zsat_calcite
-    diags_2d(zsatarag_diag_ind) = zsat_aragonite
-
-  end subroutine store_diagnostics_carbonate
-
-  !-----------------------------------------------------------------------
-
-  subroutine store_diagnostics_nitrification(nitrif, denitrif, diags_3d)
-
-    real(r8), intent(in) :: nitrif
-    real(r8), intent(in) :: denitrif
-    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
-
-    diags_3d(NITRIF_diag_ind) = nitrif
-    diags_3d(DENITRIF_diag_ind) = denitrif
-
-  end subroutine store_diagnostics_nitrification
-
-  !-----------------------------------------------------------------------
-
-  subroutine store_diagnostics_autotrophs(k, column_kmt, column_dzt, column_dz, &
-       auto_cnt, auto_meta, autotroph_secondary_species, &
-       auto_diags)
-
-    use marbl_share_mod, only : autotroph_type
-    use ecosys_constants, only : auto_diag_cnt
-
-    integer(int_kind), intent(in) :: k
-    integer(int_kind), intent(in) :: column_kmt
-    real (r8), intent(in) :: column_dzt, column_dz
-
-    integer(int_kind), intent(in) :: auto_cnt
-    type(autotroph_type), intent(in)  :: auto_meta(auto_cnt)
-
-    type(autotroph_secondary_species_type), intent(in) :: autotroph_secondary_species(auto_cnt)
-    real(r8), intent(inout) :: auto_diags(auto_diag_cnt, auto_cnt)
-
-    integer(int_kind) :: n
-    real(r8) :: work1, delta_z
-
-    do n = 1, auto_cnt
-       auto_diags(N_lim_diag_ind, n)       = autotroph_secondary_species(n)%VNtot
-       auto_diags(Fe_lim_diag_ind, n)      = autotroph_secondary_species(n)%VFe
-       auto_diags(P_lim_diag_ind, n)       = autotroph_secondary_species(n)%VPtot
-
-       if (auto_meta(n)%kSiO3 > c0) then
-          auto_diags(SiO3_lim_diag_ind, n)   = autotroph_secondary_species(n)%VSiO3
-       end if
-
-       auto_diags(light_lim_diag_ind, n)   = autotroph_secondary_species(n)%light_lim
-       auto_diags(photoNO3_diag_ind, n)    = autotroph_secondary_species(n)%NO3_V
-       auto_diags(photoNH4_diag_ind, n)    = autotroph_secondary_species(n)%NH4_V
-       auto_diags(PO4_uptake_diag_ind, n)  = autotroph_secondary_species(n)%PO4_V
-       auto_diags(DOP_uptake_diag_ind, n)  = autotroph_secondary_species(n)%DOP_V
-       auto_diags(photoFE_diag_ind, n)     = autotroph_secondary_species(n)%photoFe
-
-       if (auto_meta(n)%Si_ind > 0) then
-          auto_diags(bSi_form_diag_ind, n) = autotroph_secondary_species(n)%photoSi
-       endif
-
-       auto_diags(CaCO3_form_diag_ind, n) = autotroph_secondary_species(n)%CaCO3_PROD
-
-       auto_diags(CaCO3_form_zint_diag_ind, n) = c0
-       if (k <= column_kmt) then
-          if (partial_bottom_cells) then
-             auto_diags(CaCO3_form_zint_diag_ind, n) = column_dzt * autotroph_secondary_species(n)%CaCO3_PROD
-          else
-             auto_diags(CaCO3_form_zint_diag_ind, n) = column_dz * autotroph_secondary_species(n)%CaCO3_PROD
-          end if
-       end if
-
-       auto_diags(Nfix_diag_ind, n) = autotroph_secondary_species(n)%Nfix
-
-       auto_diags(auto_graze_diag_ind, n)      = autotroph_secondary_species(n)%auto_graze
-       auto_diags(auto_graze_poc_diag_ind, n)  = autotroph_secondary_species(n)%auto_graze_poc
-       auto_diags(auto_graze_doc_diag_ind, n)  = autotroph_secondary_species(n)%auto_graze_doc
-       auto_diags(auto_graze_zoo_diag_ind, n)  = autotroph_secondary_species(n)%auto_graze_zoo
-       auto_diags(auto_loss_diag_ind, n)       = autotroph_secondary_species(n)%auto_loss
-       auto_diags(auto_loss_poc_diag_ind, n)   = autotroph_secondary_species(n)%auto_loss_poc
-       auto_diags(auto_loss_doc_diag_ind, n)   = autotroph_secondary_species(n)%auto_loss_doc
-       auto_diags(auto_agg_diag_ind, n)        = autotroph_secondary_species(n)%auto_agg
-       auto_diags(photoC_diag_ind, n)          = autotroph_secondary_species(n)%photoC
-
-       if (partial_bottom_cells) then
-          delta_z = column_dzt
-       else
-          delta_z = column_dz
-       end if
-       !--- begin work1 block
-       if (k <= column_kmt) then
-          work1 = delta_z
-       else
-          work1 = c0
-       end if
-       auto_diags(photoC_zint_diag_ind, n) = work1 * autotroph_secondary_species(n)%photoC
-       !--- end work1 block
-
-       !--- begin work1 block
-       if (autotroph_secondary_species(n)%VNtot > c0) then
-          work1 = autotroph_secondary_species(n)%photoC * &
-               (autotroph_secondary_species(n)%VNO3 / autotroph_secondary_species(n)%VNtot)
-       else
-          work1 = c0
-       end if
-       auto_diags(photoC_NO3_diag_ind, n) = work1
-
-       if (k <= column_kmt) then
-          work1 = delta_z * work1
-       else
-          work1 = c0
-       end if
-       auto_diags(photoC_NO3_zint_diag_ind, n) = work1
-       !--- end work1 block
-    end do ! do n
-
-  end subroutine store_diagnostics_autotrophs
-
-  !-----------------------------------------------------------------------
-
-  subroutine store_diagnostics_autotroph_sums(k, column_kmt, column_dzt, column_dz, &
-       auto_cnt, autotroph_secondary_species, diags_2d, diags_3d)
-
-    integer(int_kind), intent(in) :: k
-    integer(int_kind), intent(in) :: column_kmt
-    real (r8), intent(in) :: column_dzt, column_dz
-    integer(int_kind), intent(in) :: auto_cnt
-    type(autotroph_secondary_species_type), intent(in) :: autotroph_secondary_species(auto_cnt)
-
-    real(r8), intent(inout) :: diags_2d(ecosys_diag_cnt_2d)
-    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
-
-    integer(int_kind) :: n
-    real(r8) :: delta_z
-    real(r8) :: work1
-
-    if (k <= column_kmt) then
-       if (partial_bottom_cells) then
-          delta_z = column_dzt
-       else
-          delta_z = column_dz
-       endif
-    else
-       delta_z = c0
-    end if
-
-    diags_3d(auto_graze_TOT_diag_ind) = sum(autotroph_secondary_species(:)%auto_graze)
-
-    diags_3d(photoC_TOT_diag_ind) = sum(autotroph_secondary_species(:)%photoC)
-
-    diags_2d(photoC_TOT_zint_diag_ind) = delta_z * sum(autotroph_secondary_species(:)%photoC)
-
-    ! --- begin work1 block ---
-    work1 = c0
-    do n = 1, autotroph_cnt
-       if (autotroph_secondary_species(n)%VNtot > c0) then
-          work1 = work1 + (autotroph_secondary_species(n)%VNO3 / autotroph_secondary_species(n)%VNtot) * autotroph_secondary_species(n)%photoC
-       end if
-    end do
-    diags_3d(photoC_NO3_TOT_diag_ind) = work1
-    diags_2d(photoC_NO3_TOT_zint_diag_ind) = delta_z * work1
-    ! --- end work1 block ---
-
-
-  end subroutine store_diagnostics_autotroph_sums
-
-  !-----------------------------------------------------------------------
-
-  subroutine store_diagnostics_particulates(k, column_dz, POC, P_CaCO3, P_SiO2, &
-       dust, P_iron, sed_denitrif, other_remin, part_diags)
-    !-----------------------------------------------------------------------
-    ! - Set tavg variables.
-    ! - Accumulte losses of BGC tracers to sediments
-    !-----------------------------------------------------------------------
-    use marbl_share_mod, only : column_sinking_particle_type
-    use marbl_parms, only : Q
-    use marbl_parms, only : Qp_zoo_pom
-
-
-    integer(int_kind), intent(in) :: k
-    real(r8), intent(in) :: column_dz
-    type(column_sinking_particle_type), intent(in) :: POC
-    type(column_sinking_particle_type), intent(in) :: P_CaCO3
-    type(column_sinking_particle_type), intent(in) :: P_SiO2
-    type(column_sinking_particle_type), intent(in) :: dust
-    type(column_sinking_particle_type), intent(in) :: P_iron
-    real(r8), intent(in) :: sed_denitrif
-    real(r8), intent(in) :: other_remin
-    real(r8), intent(inout) :: part_diags(part_diag_cnt)
-
-    part_diags(POC_FLUX_IN_diag_ind) = POC%sflux_in(k) + POC%hflux_in(k)
-    part_diags(POC_PROD_diag_ind) = POC%prod(k)
-    part_diags(POC_REMIN_diag_ind) = POC%remin(k)
-
-    part_diags(CaCO3_FLUX_IN_diag_ind) = P_CaCO3%sflux_in(k) + P_CaCO3%hflux_in(k)
-    part_diags( CaCO3_PROD_diag_ind) = P_CaCO3%prod(k)
-    part_diags(CaCO3_REMIN_diag_ind) = P_CaCO3%remin(k)
-
-    part_diags(SiO2_FLUX_IN_diag_ind) = P_SiO2%sflux_in(k) + P_SiO2%hflux_in(k)
-    part_diags( SiO2_PROD_diag_ind) = P_SiO2%prod(k)
-    part_diags(SiO2_REMIN_diag_ind) = P_SiO2%remin(k)
-
-    part_diags(dust_FLUX_IN_diag_ind) = dust%sflux_in(k) + dust%hflux_in(k)
-    part_diags(dust_REMIN_diag_ind) = P_SiO2%remin(k)
-
-    part_diags(P_iron_FLUX_IN_diag_ind) = P_iron%sflux_in(k) + P_iron%hflux_in(k)
-    part_diags( P_iron_PROD_diag_ind) = P_iron%prod(k)
-    part_diags(P_iron_REMIN_diag_ind) = P_iron%remin(k)
-
-    part_diags(calcToSed_diag_ind) = P_CaCO3%sed_loss(k)
-    part_diags(bsiToSed_diag_ind) = P_SiO2%sed_loss(k)
-    part_diags(pocToSed_diag_ind) = POC%sed_loss(k)
-    part_diags(SedDenitrif_diag_ind) = sed_denitrif * column_dz
-    part_diags(OtherRemin_diag_ind) = other_remin * column_dz
-    part_diags(ponToSed_diag_ind) = (POC%sed_loss(k) * Q)
-    part_diags(popToSed_diag_ind) = (POC%sed_loss(k) * Qp_zoo_pom)
-    part_diags(dustToSed_diag_ind) = dust%sed_loss(k)
-    part_diags(pfeToSed_diag_ind) = P_iron%sed_loss(k)
-
-
-  end subroutine store_diagnostics_particulates
-
-  !-----------------------------------------------------------------------
-
-  subroutine store_diagnostics_oxygen(k, column_land_mask, column_kmt, &
-       column_zt, temperature, salinity, &
-       column_o2, o2_production, o2_consumption, diags_2d, diags_3d)
-
-    use marbl_oxygen, only : o2sat_scalar
-
-    integer(int_kind), intent(in) :: k
-    logical(log_kind), intent(in) :: column_land_mask
-    integer(int_kind), intent(in) :: column_kmt
-    real(r8), intent(in) :: column_zt(km)
-
-    real(r8), intent(in) :: temperature
-    real(r8), intent(in) :: salinity
-    real(r8), intent(in) :: column_o2(km)
-    real(r8), intent(in) :: o2_production
-    real(r8), intent(in) :: o2_consumption
-    real(r8), intent(inout) :: diags_2d(ecosys_diag_cnt_2d)
-    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
-
-    real(r8) :: level_o2 !O2 at this level
-    real(r8) :: o2_saturation
-    real(r8) :: vertical_min_o2 ! vertical minimum of O2
-    real(r8) :: depth_min_o2 ! depth of minimum O2
-
-    integer(int_kind) :: kk
-
-    if (k == 1) then
-       kk = 1
-       level_o2 = column_o2(kk)
-       vertical_min_o2 = level_o2
-       depth_min_o2 = column_zt(kk)
-
-       do kk = 2, km
-          level_o2 = column_o2(kk)
-          if (kk <= column_kmt .and. (level_o2 < vertical_min_o2)) then
-             vertical_min_o2 = level_o2
-             depth_min_o2 = column_zt(kk)
-          end if
-       end do
-
-       diags_2d(O2_ZMIN_diag_ind) = vertical_min_o2
-       diags_2d(O2_ZMIN_DEPTH_diag_ind) = depth_min_o2
-    endif
-
-    diags_3d(O2_PRODUCTION_diag_ind) = o2_production
-    diags_3d(O2_CONSUMPTION_diag_ind) = o2_consumption
-
-    o2_saturation = c0
-    if (column_land_mask .and. (k <= column_kmt)) then
-       o2_saturation = O2SAT_scalar(temperature, salinity)
-    end if
-    diags_3d(AOU_diag_ind) = o2_saturation - column_o2(k)
-
-
-  end subroutine store_diagnostics_oxygen
-
-  !-----------------------------------------------------------------------
-
-  subroutine store_diagnostics_photosynthetically_available_radiation( &
-       PAR, diags_3d)
-
-    type(photosynthetically_available_radiation_type), intent(in) :: PAR
-    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
-
-    diags_3d(PAR_avg_diag_ind) = PAR%avg
-
-  end subroutine store_diagnostics_photosynthetically_available_radiation
-
-  !-----------------------------------------------------------------------
-
-  subroutine store_diagnostics_misc(diags_3d)
-    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
-
-
-  end subroutine store_diagnostics_misc
-
-  !-----------------------------------------------------------------------
-
-  subroutine store_diagnostics_zooplankton (zoo_cnt, &
-       zooplankton_secondary_species, &
-       zoo_diags)
-
-    integer(int_kind), intent(in) :: zoo_cnt
-    type(zooplankton_secondary_species_type), intent(in) :: zooplankton_secondary_species(zoo_cnt)
-    real(r8), intent(inout) :: zoo_diags(zoo_diag_cnt, zoo_cnt)
-
-    integer(int_kind) :: zoo_ind
-
-    do zoo_ind = 1, zooplankton_cnt
-       zoo_diags(zoo_loss_diag_ind, zoo_ind)       = zooplankton_secondary_species(zoo_ind)%zoo_loss
-       zoo_diags(zoo_loss_poc_diag_ind, zoo_ind)   = zooplankton_secondary_species(zoo_ind)%zoo_loss_poc
-       zoo_diags(zoo_loss_doc_diag_ind, zoo_ind)   = zooplankton_secondary_species(zoo_ind)%zoo_loss_doc
-       zoo_diags(zoo_graze_diag_ind, zoo_ind)      = zooplankton_secondary_species(zoo_ind)%zoo_graze
-       zoo_diags(zoo_graze_poc_diag_ind, zoo_ind)  = zooplankton_secondary_species(zoo_ind)%zoo_graze_poc
-       zoo_diags(zoo_graze_doc_diag_ind, zoo_ind)  = zooplankton_secondary_species(zoo_ind)%zoo_graze_doc
-       zoo_diags(zoo_graze_zoo_diag_ind, zoo_ind)  = zooplankton_secondary_species(zoo_ind)%zoo_graze_zoo
-       zoo_diags(x_graze_zoo_diag_ind, zoo_ind)    = zooplankton_secondary_species(zoo_ind)%x_graze_zoo
-    end do
-
-  end subroutine store_diagnostics_zooplankton
-
-  !-----------------------------------------------------------------------
-
-  subroutine store_diagnostics_dissolved_organic_matter(&
-       dissolved_organic_matter, fe_scavenge, fe_scavenge_rate, diags_3d)
-
-    type(dissolved_organic_matter_type), intent(in) :: dissolved_organic_matter
-    real(r8), intent(in) :: fe_scavenge, fe_scavenge_rate
-    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
-
-    diags_3d(       DOC_prod_diag_ind)  = dissolved_organic_matter%DOC_prod
-    diags_3d(      DOC_remin_diag_ind)  = dissolved_organic_matter%DOC_remin
-    diags_3d(       DON_prod_diag_ind)  = dissolved_organic_matter%DON_prod
-    diags_3d(      DON_remin_diag_ind)  = dissolved_organic_matter%DON_remin
-    diags_3d(       DOP_prod_diag_ind)  = dissolved_organic_matter%DOP_prod
-    diags_3d(      DOP_remin_diag_ind)  = dissolved_organic_matter%DOP_remin
-    diags_3d(      DOFe_prod_diag_ind)  = dissolved_organic_matter%DOFe_prod
-    diags_3d(     DOFe_remin_diag_ind)  = dissolved_organic_matter%DOFe_remin
-    diags_3d(    Fe_scavenge_diag_ind)  = Fe_scavenge
-    diags_3d(Fe_scavenge_rate_diag_ind) = Fe_scavenge_rate
-
-  end subroutine store_diagnostics_dissolved_organic_matter
-
-  !-----------------------------------------------------------------------
-
-  subroutine store_diagnostics_carbon_fluxes(k, column_kmt, column_dzt, column_dz, column_zw, &
-       POC, P_CaCO3, &
-       auto_cnt, auto_meta, zoo_cnt, zoo_meta, dtracer, column_diags_3d)
-
-    use marbl_share_mod, only : column_sinking_particle_type
-    use marbl_share_mod, only : autotroph_type, zooplankton_type
-
-    integer(int_kind), intent(in) :: k
-    integer(int_kind), intent(in) :: column_kmt
-    real(r8), intent(in) :: column_dzt, column_dz
-    real(r8), intent(in) :: column_zw(km)
-    type(column_sinking_particle_type), intent(in) :: POC
-    type(column_sinking_particle_type), intent(in) :: P_CaCO3
-    integer(int_kind), intent(in) :: auto_cnt
-    type(autotroph_type), intent(in)  :: auto_meta(auto_cnt)
-    integer(int_kind), intent(in) :: zoo_cnt
-    type(zooplankton_type), intent(in)  :: zoo_meta(zoo_cnt)
-    real(r8), intent(in) :: dtracer(ecosys_tracer_cnt)
-
-    real(r8), intent(inout) :: column_diags_3d(ecosys_diag_cnt_3d)
-
-    integer(int_kind) :: n, auto_ind
-    real(r8) :: delta_z, ztop
-    real(r8) :: work1, work2
-
-    if (k <= column_kmt) then
-       if (partial_bottom_cells) then
-          delta_z = column_dzt
-       else
-          delta_z = column_dz
-       endif
-    else
-       delta_z = c0
-    end if
-
-    ztop = c0
-    if (k > 1) then
-       ztop = column_zw(k-1)
-    end if
-
-    ! begin vertically integrated total carbon flux
-    work1 = dtracer(dic_ind) + dtracer(doc_ind) &
-         + sum(dtracer(zooplankton(:)%C_ind)) &
-         + sum(dtracer(autotrophs(:)%C_ind))
-    do auto_ind = 1, auto_cnt
-       n = autotrophs(auto_ind)%CaCO3_ind
-       if (n > 0) then
-          work1 = work1 + dtracer(n)
-       endif
-    end do
-    work2 = delta_z * work1
-    if (k <= column_kmt) then
-       ! add back loss to sediments
-       work2 = work2 + (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
-    else
-       work2 = work2 + c0
-    end if
-    column_diags_3d(Jint_Ctot_diag_ind) = work2
-    ! end vertically integrated total carbon flux
-
-    if (ztop < 100.0e2_r8) then
-       if (k <= column_kmt) then
-          work2 = min(100.0e2_r8 - ztop, delta_z) * work1
-       else
-          work2 = c0
-       end if
-
-       if (ztop + delta_z <= 100.0e2_r8 .and. k <= column_kmt) then
-          ! add back loss to sediments
-          work2 = work2 + (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
-       else
-          work2 = work2 + c0
-       end if
-    else
-       work2 = c0
-    endif
-    column_diags_3d(Jint_100m_Ctot_diag_ind) = work2
-
-
-  end subroutine store_diagnostics_carbon_fluxes
-
-  !-----------------------------------------------------------------------
-
-  subroutine store_diagnostics_nitrogen_fluxes(k, column_kmt, column_dzt, column_dz, column_zw, &
-       POC, column_denitrif, column_sed_denitrif, &
-       auto_cnt, auto_meta, autotroph_secondary_species, &
-       zoo_cnt, zoo_meta, dtracer, column_diags_3d)
-
-    use marbl_share_mod, only : column_sinking_particle_type
-    use marbl_share_mod, only : autotroph_type, zooplankton_type
-
-    use marbl_parms     , only : Q
-
-    integer(int_kind), intent(in) :: k
-    integer(int_kind), intent(in) :: column_kmt
-    real(r8), intent(in) :: column_dzt, column_dz
-    real(r8), intent(in) :: column_zw(km)
-    type(column_sinking_particle_type), intent(in) :: POC
-    real(r8), intent(in) :: column_denitrif
-    real(r8), intent(in) :: column_sed_denitrif
-    integer(int_kind), intent(in) :: auto_cnt
-    type(autotroph_type), intent(in)  :: auto_meta(auto_cnt)
-    type(autotroph_secondary_species_type), intent(in) :: autotroph_secondary_species(auto_cnt)
-    integer(int_kind), intent(in) :: zoo_cnt
-    type(zooplankton_type), intent(in)  :: zoo_meta(zoo_cnt)
-    real(r8), intent(in) :: dtracer(ecosys_tracer_cnt)
-
-    real(r8), intent(inout) :: column_diags_3d(ecosys_diag_cnt_3d)
-
-    integer(int_kind) :: n, auto_ind
-    real(r8) :: delta_z, ztop
-    real(r8) :: work1, work2
-
-    if (k <= column_kmt) then
-       if (partial_bottom_cells) then
-          delta_z = column_dzt
-       else
-          delta_z = column_dz
-       endif
-    else
-       delta_z = c0
-    end if
-
-    ztop = c0
-    if (k > 1) then
-       ztop = column_zw(k-1)
-    end if
-
-    work1 = dtracer(no3_ind) + dtracer(nh4_ind) &
-         + dtracer(don_ind) + dtracer(donr_ind) &
-         + Q * sum(dtracer(zooplankton(:)%C_ind)) &
-         + Q * sum(dtracer(autotrophs(:)%C_ind))
-    ! add back column and sediment denitrification
-    work1 = work1 + column_denitrif + column_sed_denitrif
-    ! subtract out N fixation
-    do auto_ind = 1, auto_cnt
-       if (autotrophs(auto_ind)%Nfixer) then
-          work1 = work1 - autotroph_secondary_species(auto_ind)%Nfix
-       end if
-    end do
-    if (k <= column_kmt) then
-       work2 = delta_z * work1
-    else
-       work2 = c0
-    end if
-    if (k <= column_kmt) then
-       ! add back loss to sediments
-       work2 = work2 + POC%sed_loss(k) * Q
-    else
-       work2 = work2 + c0
-    end if
-    column_diags_3d(Jint_Ntot_diag_ind) = work2
-
-    if (ztop < 100.0e2_r8) then
-       if (k <= column_kmt) then
-          work2 = min(100.0e2_r8 - ztop, delta_z) * work1
-       else
-          work2 = c0
-       end if
-       if (ztop + column_dzt <= 100.0e2_r8 .and. k <= column_kmt) then
-          work2 = work2 + POC%sed_loss(k) * Q
-       else
-          work2 = work2 + c0
-       end if
-    else
-       work2 = c0
-    endif
-    column_diags_3d(Jint_100m_Ntot_diag_ind) = work2
-
-  end subroutine store_diagnostics_nitrogen_fluxes
-
-  !-----------------------------------------------------------------------
-
-  subroutine store_diagnostics_phosphorus_fluxes(k, column_kmt, column_dzt, column_dz, column_zw, &
-       POC, &
-       auto_cnt, auto_meta, &
-       zoo_cnt, zoo_meta, dtracer, column_diags_3d)
-
-    use marbl_share_mod, only : column_sinking_particle_type
-    use marbl_share_mod, only : autotroph_type, zooplankton_type
-
-    use marbl_parms     , only : Q
-    use marbl_parms     , only : Qp_zoo_pom
-
-    integer(int_kind), intent(in) :: k
-    integer(int_kind), intent(in) :: column_kmt
-    real(r8), intent(in) :: column_dzt, column_dz
-    real(r8), intent(in) :: column_zw(km)
-    type(column_sinking_particle_type), intent(in) :: POC
-    integer(int_kind), intent(in) :: auto_cnt
-    type(autotroph_type), intent(in)  :: auto_meta(auto_cnt)
-    integer(int_kind), intent(in) :: zoo_cnt
-    type(zooplankton_type), intent(in)  :: zoo_meta(zoo_cnt)
-    real(r8), intent(in) :: dtracer(ecosys_tracer_cnt)
-
-    real(r8), intent(inout) :: column_diags_3d(ecosys_diag_cnt_3d)
-
-    integer(int_kind) :: n, auto_ind, zoo_ind
-    real(r8) :: delta_z, ztop
-    real(r8) :: work1, work2
-
-    if (k <= column_kmt) then
-       if (partial_bottom_cells) then
-          delta_z = column_dzt
-       else
-          delta_z = column_dz
-       endif
-    else
-       delta_z = c0
-    end if
-
-    ztop = c0
-    if (k > 1) then
-       ztop = column_zw(k-1)
-    end if
-
-    work1 = dtracer(po4_ind) + dtracer(dop_ind) &
-         + dtracer(dopr_ind)
-    do zoo_ind =1, zoo_cnt
-       n = zooplankton(zoo_ind)%C_ind
-       work1 = work1 + Qp_zoo_pom * dtracer(n)
-    end do
-    do auto_ind = 1, auto_cnt
-       n = autotrophs(auto_ind)%C_ind
-       work1 = work1 + autotrophs(auto_ind)%Qp * dtracer(n)
-    end do
-    if (k <= column_kmt) then
-       work2 = delta_z * work1
-    else
-       work2 = c0
-    end if
-    if (k <= column_kmt) then
-       ! add back loss to sediments
-       work2 = work2 + POC%sed_loss(k) * Qp_zoo_pom
-    else
-       work2 = work2 + c0
-    end if
-    column_diags_3d(Jint_Ptot_diag_ind) = work2
-
-    if (ztop < 100.0e2_r8) then
-       if (k <= column_kmt) then
-          work2 = min(100.0e2_r8 - ztop, delta_z) * work1
-       else
-          work2 = c0
-       end if
-       if (ztop + delta_z <= 100.0e2_r8 .and. k <= column_kmt) then
-          ! add back loss to sediments
-          work2 = work2 + POC%sed_loss(k) * Qp_zoo_pom
-       else
-          work2 = work2 + c0
-       end if
-    else
-       work2 = c0
-    endif
-    column_diags_3d(Jint_100m_Ptot_diag_ind) = work2
-
-  end subroutine store_diagnostics_phosphorus_fluxes
-
-  !-----------------------------------------------------------------------
-
-  subroutine store_diagnostics_silicon_fluxes(k, column_kmt, column_dzt, column_dz, column_zw, &
-       P_SiO2, &
-       auto_cnt, auto_meta, &
-       dtracer, column_diags_3d)
-
-    use marbl_share_mod, only : column_sinking_particle_type
-    use marbl_share_mod, only : autotroph_type, zooplankton_type
-
-    use marbl_parms     , only : Q
-    use marbl_parms     , only : Qp_zoo_pom
-
-    integer(int_kind), intent(in) :: k
-    integer(int_kind), intent(in) :: column_kmt
-    real(r8), intent(in) :: column_dzt, column_dz
-    real(r8), intent(in) :: column_zw(km)
-    type(column_sinking_particle_type), intent(in) :: P_SiO2
-    integer(int_kind), intent(in) :: auto_cnt
-    type(autotroph_type), intent(in)  :: auto_meta(auto_cnt)
-    real(r8), intent(in) :: dtracer(ecosys_tracer_cnt)
-
-    real(r8), intent(inout) :: column_diags_3d(ecosys_diag_cnt_3d)
-
-    integer(int_kind) :: n, auto_ind
-    real(r8) :: delta_z, ztop
-    real(r8) :: work1, work2
-
-    if (k <= column_kmt) then
-       if (partial_bottom_cells) then
-          delta_z = column_dzt
-       else
-          delta_z = column_dz
-       endif
-    else
-       delta_z = c0
-    end if
-
-    ztop = c0
-    if (k > 1) then
-       ztop = column_zw(k-1)
-    end if
-
-    work1 = dtracer(sio3_ind)
-    do auto_ind = 1, auto_cnt
-       n = autotrophs(auto_ind)%Si_ind
-       if (n > 0) then
-          work1 = work1 + dtracer(n)
-       endif
-    end do
-    if (k <= column_kmt) then
-       work2 = delta_z * work1
-    else
-       work2 = c0
-    end if
-    if (k <= column_kmt) then
-       ! add back loss to sediments
-       work2 = work2 + P_SiO2%sed_loss(k)
-    else
-       work2 = work2 + c0
-    end if
-    column_diags_3d(Jint_Sitot_diag_ind) = work2
-
-    if (ztop < 100.0e2_r8) then
-       if (k <= column_kmt) then
-          work2 = min(100.0e2_r8 - ztop, delta_z) * work1
-       else
-          work2 = c0
-       end if
-       if (ztop + delta_z <= 100.0e2_r8 .and. k <= column_kmt) then
-          ! add back loss to sediments
-          work2 = work2 + P_SiO2%sed_loss(k)
-       else
-          work2 = work2 + c0
-       end if
-    else
-       work2 = c0
-    endif
-    column_diags_3d(Jint_100m_Sitot_diag_ind) = work2
-
-  end subroutine store_diagnostics_silicon_fluxes
 
   !-----------------------------------------------------------------------
 

@@ -53,17 +53,18 @@ module ecosys_driver
   ! NOTE(bja, 2014-12) all other uses of marbl/ecosys modules need to be removed!
   use marbl_share_mod           , only : autotroph_cnt, zooplankton_cnt
 
-  use ecosys_constants          , only : ecosys_tracer_cnt
-  use ecosys_constants          , only : ecosys_diag_cnt_2d
-  use ecosys_constants          , only : ecosys_diag_cnt_3d
-  use ecosys_constants          , only : auto_diag_cnt
-  use ecosys_constants          , only : zoo_diag_cnt
-  use ecosys_constants          , only : part_diag_cnt
-  use ecosys_constants          , only : forcing_diag_cnt
+  use ecosys_constants, only : ecosys_tracer_cnt
 
-  use ecosys_tavg               , only : ecosys_tavg_init
-  use ecosys_tavg               , only : ecosys_tavg_accumulate
-  use ecosys_tavg               , only : ecosys_tavg_accumulate_flux
+  use ecosys_diagnostics_mod, only : ecosys_diag_cnt_2d
+  use ecosys_diagnostics_mod, only : ecosys_diag_cnt_3d
+  use ecosys_diagnostics_mod, only : auto_diag_cnt
+  use ecosys_diagnostics_mod, only : zoo_diag_cnt
+  use ecosys_diagnostics_mod, only : part_diag_cnt
+  use ecosys_diagnostics_mod, only : forcing_diag_cnt
+
+  use ecosys_tavg, only : ecosys_tavg_init
+  use ecosys_tavg, only : ecosys_tavg_accumulate
+  use ecosys_tavg, only : ecosys_tavg_accumulate_flux
 
   use ecosys_mod, only:            &
        ecosys_init,                &

@@ -63,6 +63,101 @@ module marbl_interface_types
      real(r8), allocatable :: restore_diags(:) ! (ecosys_tracer_cnt, ny_block, nx_block)
   end type marbl_diagnostics_type
 
+  type, public :: carbonate_type
+     ! FIXME(bja, 2015-07) remove alt_co2 variables, and just reuse
+     ! the type as type(column_carbonate_type) :: carbonate,
+     ! carbonate_alt
+     real (r8) :: CO3 ! carbonate ion
+     real (r8) :: HCO3 ! bicarbonate ion
+     real (r8) :: H2CO3 ! carbonic acid
+     real (r8) :: pH
+     real (r8) :: CO3_sat_calcite
+     real (r8) :: CO3_sat_aragonite
+     real (r8) :: CO3_ALT_CO2 ! carbonate ion, alternative CO2
+     real (r8) :: HCO3_ALT_CO2 ! bicarbonate ion, alternative CO2
+     real (r8) :: H2CO3_ALT_CO2  ! carbonic acid, alternative CO2
+     real (r8) :: pH_ALT_CO2
+  end type carbonate_type
+
+  type, public :: autotroph_secondary_species_type
+     real (r8) :: thetaC          ! local Chl/C ratio (mg Chl/mmol C)
+     real (r8) :: QCaCO3          ! CaCO3/C ratio (mmol CaCO3/mmol C)
+     real (r8) :: Qfe             ! init fe/C ratio (mmolFe/mmolC)
+     real (r8) :: gQfe            ! fe/C for growth
+     real (r8) :: Qsi             ! initial Si/C ratio (mmol Si/mmol C)
+     real (r8) :: gQsi            ! diatom Si/C ratio for growth (new biomass)
+     real (r8) :: VNO3            ! NH4 uptake rate (non-dim)
+     real (r8) :: VNH4            ! NO3 uptake rate (non-dim)
+     real (r8) :: VNtot           ! total N uptake rate (non-dim)
+     real (r8) :: NO3_V           ! nitrate uptake (mmol NO3/m^3/sec)
+     real (r8) :: NH4_V           ! ammonium uptake (mmol NH4/m^3/sec)
+     real (r8) :: PO4_V           ! PO4 uptake (mmol PO4/m^3/sec)
+     real (r8) :: DOP_V           ! DOP uptake (mmol DOP/m^3/sec)
+     real (r8) :: VNC             ! C-specific N uptake rate (mmol N/mmol C/sec)
+     real (r8) :: VPO4            ! C-specific PO4 uptake (non-dim)
+     real (r8) :: VDOP            ! C-specific DOP uptake rate (non-dim)
+     real (r8) :: VPtot           ! total P uptake rate (non-dim)
+     real (r8) :: f_nut           ! nut limitation factor, modifies C fixation (non-dim)
+     real (r8) :: VFe             ! C-specific Fe uptake (non-dim)
+     real (r8) :: VSiO3           ! C-specific SiO3 uptake (non-dim)
+     real (r8) :: light_lim       ! light limitation factor
+     real (r8) :: PCphoto         ! C-specific rate of photosynth. (1/sec)
+     real (r8) :: photoC          ! C-fixation (mmol C/m^3/sec)
+     real (r8) :: photoFe         ! iron uptake
+     real (r8) :: photoSi         ! silicon uptake (mmol Si/m^3/sec)
+     real (r8) :: photoacc        ! Chl synth. term in photoadapt. (GD98) (mg Chl/m^3/sec)
+     real (r8) :: auto_loss       ! autotroph non-grazing mort (mmol C/m^3/sec)
+     real (r8) :: auto_loss_poc   ! auto_loss routed to poc (mmol C/m^3/sec)
+     real (r8) :: auto_loss_doc   ! auto_loss routed to doc (mmol C/m^3/sec)
+     real (r8) :: auto_loss_dic   ! auto_loss routed to dic (mmol C/m^3/sec)
+     real (r8) :: auto_agg        ! autotroph aggregation (mmol C/m^3/sec)
+     real (r8) :: auto_graze      ! autotroph grazing rate (mmol C/m^3/sec)
+     real (r8) :: auto_graze_zoo  ! auto_graze routed to zoo (mmol C/m^3/sec)
+     real (r8) :: auto_graze_poc  ! auto_graze routed to poc (mmol C/m^3/sec)
+     real (r8) :: auto_graze_doc  ! auto_graze routed to doc (mmol C/m^3/sec)
+     real (r8) :: auto_graze_dic  ! auto_graze routed to dic (mmol C/m^3/sec)
+     real (r8) :: Pprime          ! used to limit autotroph mort at low biomass (mmol C/m^3)
+     real (r8) :: CaCO3_PROD      ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)
+     real (r8) :: Nfix            ! total Nitrogen fixation (mmol N/m^3/sec)
+     real (r8) :: Nexcrete        ! fixed N excretion
+     real (r8) :: remaining_P_dop ! remaining_P from mort routed to DOP pool
+     real (r8) :: remaining_P_dip ! remaining_P from mort routed to remin
+  end type autotroph_secondary_species_type
+
+  type, public :: photosynthetically_available_radiation_type
+     real(r8) :: in     ! photosynthetically available radiation (W/m^2)
+     real(r8) :: KPARdz ! PAR adsorption coefficient (non-dim)
+     real(r8) :: avg    ! average PAR over mixed layer depth (W/m^2)
+  end type photosynthetically_available_radiation_type
+
+  type, public :: zooplankton_secondary_species_type
+     real (r8):: f_zoo_detr       ! frac of zoo losses into large detrital pool (non-dim)
+     real (r8):: x_graze_zoo      ! {auto, zoo}_graze routed to zoo (mmol C/m^3/sec)
+     real (r8):: zoo_graze        ! zooplankton losses due to grazing (mmol C/m^3/sec)
+     real (r8):: zoo_graze_zoo    ! grazing of zooplankton routed to zoo (mmol C/m^3/sec)
+     real (r8):: zoo_graze_poc    ! grazing of zooplankton routed to poc (mmol C/m^3/sec)
+     real (r8):: zoo_graze_doc    ! grazing of zooplankton routed to doc (mmol C/m^3/sec)
+     real (r8):: zoo_graze_dic    ! grazing of zooplankton routed to dic (mmol C/m^3/sec)
+     real (r8):: zoo_loss         ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
+     real (r8):: zoo_loss_poc     ! zoo_loss routed to poc (mmol C/m^3/sec)
+     real (r8):: zoo_loss_doc     ! zoo_loss routed to doc (mmol C/m^3/sec)
+     real (r8):: zoo_loss_dic     ! zoo_loss routed to dic (mmol C/m^3/sec)
+     real (r8):: Zprime           ! used to limit zoo mort at low biomass (mmol C/m^3)
+  end type zooplankton_secondary_species_type
+
+  type, public :: dissolved_organic_matter_type
+     real (r8) :: DOC_prod         ! production of DOC (mmol C/m^3/sec)
+     real (r8) :: DOC_remin        ! remineralization of DOC (mmol C/m^3/sec)
+     real (r8) :: DON_prod         ! production of dissolved organic N
+     real (r8) :: DON_remin        ! portion of DON remineralized
+     real (r8) :: DOFe_prod        ! produciton of dissolved organic Fe
+     real (r8) :: DOFe_remin       ! portion of DOFe remineralized
+     real (r8) :: DOP_prod         ! production of dissolved organic P
+     real (r8) :: DOP_remin        ! portion of DOP remineralized
+     real (r8) :: DONr_remin       ! portion of refractory DON remineralized
+     real (r8) :: DOPr_remin       ! portion of refractory DOP remineralized
+  end type dissolved_organic_matter_type
+
 contains
 
   subroutine ecosys_diagnostics_constructor(this, nx_block, ny_block,         &
