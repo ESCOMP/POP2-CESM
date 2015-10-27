@@ -1809,18 +1809,6 @@ contains
              ! store_diagnostics_restore
              marbl_diagnostics(k)%restore_diags(:) = restore_local(:, k)
 
-             call store_diagnostics_carbonate(carbonate(k), zsat_calcite(k),  &
-                                            zsat_aragonite(k),                &
-                                            marbl_diagnostics(k)%diags_2d(:), &
-                                            marbl_diagnostics(k)%diags_3d(:))
-
-             call store_diagnostics_nitrification(nitrif(k), denitrif(k),     &
-                                            marbl_diagnostics(k)%diags_3d(:))
-
-             call store_diagnostics_autotrophs(k, domain%kmt, domain%dzt(k), domain%dz(k), &
-                  autotroph_cnt, autotrophs, autotroph_secondary_species(:, k), &
-                  marbl_diagnostics(k)%auto_diags(:, :))
-
              call store_diagnostics_autotroph_sums(k, domain%kmt, domain%dzt(k), domain%dz(k), &
                   autotroph_cnt, autotroph_secondary_species(:, k), &
                   marbl_diagnostics(k)%diags_2d(:), &
@@ -1840,9 +1828,6 @@ contains
                   column_o2, o2_production(k), o2_consumption(k), &
                   marbl_diagnostics(k)%diags_2d(:), &
                   marbl_diagnostics(k)%diags_3d(:))
-
-             call store_diagnostics_photosynthetically_available_radiation( &
-                  PAR(k), marbl_diagnostics(k)%diags_3d(:))
 
              call store_diagnostics_zooplankton(zooplankton_cnt, &
                   zooplankton_secondary_species(:, k), &
@@ -1932,6 +1917,20 @@ contains
              endif
 
           end do ! k
+
+          call store_diagnostics_carbonate(carbonate, zsat_calcite,           &
+                                           zsat_aragonite, marbl_diagnostics)
+
+          call store_diagnostics_autotrophs(domain, autotrophs,               &
+                                            autotroph_secondary_species,      &
+                                            marbl_diagnostics)
+
+          call store_diagnostics_nitrification(nitrif, denitrif,              &
+                                               marbl_diagnostics)
+
+          call store_diagnostics_photosynthetically_available_radiation(PAR,  &
+                                                            marbl_diagnostics)
+
           end associate
 
   end subroutine ecosys_set_interior
