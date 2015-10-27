@@ -12,7 +12,15 @@ module ecosys_constants
 !  indices for diagnostic values written to tavg files
 !-----------------------------------------------------------------------
 
-  integer(int_kind), parameter :: ecosys_diag_cnt = 43
+  integer(int_kind), parameter :: ecosys_diag_cnt_2d =  6
+  integer(int_kind), parameter :: ecosys_diag_cnt_3d = 37
+  integer (int_kind), parameter ::  &
+      zsatcalc_diag_ind            = 1, &
+      zsatarag_diag_ind            = 2, &
+      O2_ZMIN_diag_ind             = 3, &
+      O2_ZMIN_DEPTH_diag_ind       = 4, &
+      photoC_TOT_zint_diag_ind     = 5, &
+      photoC_NO3_TOT_zint_diag_ind = 6
   integer (int_kind), parameter ::  &
       CO3_diag_ind                 =  1, &
       HCO3_diag_ind                =  2, &
@@ -23,40 +31,34 @@ module ecosys_constants
       H2CO3_ALT_CO2_diag_ind       =  7, &
       pH_3D_ALT_CO2_diag_ind       =  8, &
       co3_sat_calc_diag_ind        =  9, &
-      zsatcalc_diag_ind            = 10, &
-      co3_sat_arag_diag_ind        = 11, &
-      zsatarag_diag_ind            = 12, &
-      NITRIF_diag_ind              = 13, &
-      DENITRIF_diag_ind            = 14, &
-      O2_ZMIN_diag_ind             = 15, &
-      O2_ZMIN_DEPTH_diag_ind       = 16, &
-      O2_PRODUCTION_diag_ind       = 17, &
-      O2_CONSUMPTION_diag_ind      = 18, &
-      AOU_diag_ind                 = 19, &
-      PAR_avg_diag_ind             = 20, &
-      auto_graze_TOT_diag_ind      = 21, &
-      photoC_TOT_diag_ind          = 22, &
-      photoC_TOT_zint_diag_ind     = 23, &
-      photoC_NO3_TOT_diag_ind      = 24, &
-      photoC_NO3_TOT_zint_diag_ind = 25, &
-      DOC_prod_diag_ind            = 26, &
-      DOC_remin_diag_ind           = 27, &
-      DON_prod_diag_ind            = 28, &
-      DON_remin_diag_ind           = 29, &
-      DOP_prod_diag_ind            = 30, &
-      DOP_remin_diag_ind           = 31, &
-      DOFe_prod_diag_ind           = 32, &
-      DOFe_remin_diag_ind          = 33, &
-      Fe_scavenge_diag_ind         = 34, &
-      Fe_scavenge_rate_diag_ind    = 35, &
-      Jint_Ctot_diag_ind           = 36, &
-      Jint_100m_Ctot_diag_ind      = 37, &
-      Jint_Ntot_diag_ind           = 38, &
-      Jint_100m_Ntot_diag_ind      = 39, &
-      Jint_Ptot_diag_ind           = 40, &
-      Jint_100m_Ptot_diag_ind      = 41, &
-      Jint_Sitot_diag_ind          = 42, &
-      Jint_100m_Sitot_diag_ind     = 43
+      co3_sat_arag_diag_ind        = 10, &
+      NITRIF_diag_ind              = 11, &
+      DENITRIF_diag_ind            = 12, &
+      O2_PRODUCTION_diag_ind       = 13, &
+      O2_CONSUMPTION_diag_ind      = 14, &
+      AOU_diag_ind                 = 15, &
+      PAR_avg_diag_ind             = 16, &
+      auto_graze_TOT_diag_ind      = 17, &
+      photoC_TOT_diag_ind          = 18, &
+      photoC_NO3_TOT_diag_ind      = 19, &
+      DOC_prod_diag_ind            = 20, &
+      DOC_remin_diag_ind           = 21, &
+      DON_prod_diag_ind            = 22, &
+      DON_remin_diag_ind           = 23, &
+      DOP_prod_diag_ind            = 24, &
+      DOP_remin_diag_ind           = 25, &
+      DOFe_prod_diag_ind           = 26, &
+      DOFe_remin_diag_ind          = 27, &
+      Fe_scavenge_diag_ind         = 28, &
+      Fe_scavenge_rate_diag_ind    = 29, &
+      Jint_Ctot_diag_ind           = 30, &
+      Jint_100m_Ctot_diag_ind      = 31, &
+      Jint_Ntot_diag_ind           = 32, &
+      Jint_100m_Ntot_diag_ind      = 33, &
+      Jint_Ptot_diag_ind           = 34, &
+      Jint_100m_Ptot_diag_ind      = 35, &
+      Jint_Sitot_diag_ind          = 36, &
+      Jint_100m_Sitot_diag_ind     = 37
 
   integer(int_kind), parameter ::   auto_diag_cnt = 26
   integer (int_kind), parameter ::  &

@@ -54,7 +54,8 @@ module ecosys_driver
   use marbl_share_mod           , only : autotroph_cnt, zooplankton_cnt
 
   use ecosys_constants          , only : ecosys_tracer_cnt
-  use ecosys_constants          , only : ecosys_diag_cnt
+  use ecosys_constants          , only : ecosys_diag_cnt_2d
+  use ecosys_constants          , only : ecosys_diag_cnt_3d
   use ecosys_constants          , only : auto_diag_cnt
   use ecosys_constants          , only : zoo_diag_cnt
   use ecosys_constants          , only : part_diag_cnt
@@ -385,8 +386,9 @@ contains
     do k=1,km
       do bid=1,nblocks_clinic
         call ecosys_diagnostics(k,bid)%construct(nx_block, ny_block,          &
-                 ecosys_diag_cnt, auto_diag_cnt, zoo_diag_cnt, part_diag_cnt, &
-                 ecosys_tracer_cnt, autotroph_cnt, zooplankton_cnt)
+                 ecosys_diag_cnt_2d, ecosys_diag_cnt_3d, auto_diag_cnt,       &
+                 zoo_diag_cnt, part_diag_cnt, ecosys_tracer_cnt,              &
+                 autotroph_cnt, zooplankton_cnt)
       end do
     end do
 
@@ -550,7 +552,8 @@ contains
     call marbl%set_interior()
 
     do k = 1, km
-       allocate(marbl_diagnostics(k)%DIAGS(ecosys_diag_cnt))
+       allocate(marbl_diagnostics(k)%DIAGS_2D(ecosys_diag_cnt_2d))
+       allocate(marbl_diagnostics(k)%DIAGS_3D(ecosys_diag_cnt_3d))
        allocate(marbl_diagnostics(k)%AUTO_DIAGS(auto_diag_cnt, autotroph_cnt))
        allocate(marbl_diagnostics(k)%ZOO_DIAGS(zoo_diag_cnt, zooplankton_cnt))
        allocate(marbl_diagnostics(k)%PART_DIAGS(part_diag_cnt))
@@ -624,8 +627,12 @@ contains
                   DTRACER_MODULE(i, c, k, n) = column_dtracer(n, k)
                end do ! do n
 
-               do d = 1, ecosys_diag_cnt
-                  ecosys_diagnostics(k, bid)%diags(i, c, d) = marbl_diagnostics(k)%diags(d)
+               do d = 1, ecosys_diag_cnt_2d
+                  ecosys_diagnostics(k, bid)%diags_2d(i, c, d) = marbl_diagnostics(k)%diags_2d(d)
+               end do
+          
+               do d = 1, ecosys_diag_cnt_3d
+                  ecosys_diagnostics(k, bid)%diags_3d(i, c, d) = marbl_diagnostics(k)%diags_3d(d)
                end do
           
                do n = 1, autotroph_cnt
@@ -684,10 +691,11 @@ contains
     end if
 
     do k = 1, km
-       deallocate(marbl_diagnostics(k)%DIAGS)
-       deallocate(marbl_diagnostics(k)%AUTO_DIAGS)
-       deallocate(marbl_diagnostics(k)%ZOO_DIAGS)
-       deallocate(marbl_diagnostics(k)%PART_DIAGS)
+       deallocate(marbl_diagnostics(k)%diags_2d)
+       deallocate(marbl_diagnostics(k)%diags_3d)
+       deallocate(marbl_diagnostics(k)%auto_diags)
+       deallocate(marbl_diagnostics(k)%zoo_diags)
+       deallocate(marbl_diagnostics(k)%part_diags)
        deallocate(marbl_diagnostics(k)%restore_diags)
     end do
 

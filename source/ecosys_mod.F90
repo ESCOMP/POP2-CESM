@@ -210,7 +210,8 @@ module ecosys_mod
 
   use ecosys_constants, only : ecosys_tracer_cnt
   ! standard diagnostics
-  use ecosys_constants, only : ecosys_diag_cnt
+  use ecosys_constants, only : ecosys_diag_cnt_2d
+  use ecosys_constants, only : ecosys_diag_cnt_3d
   use ecosys_constants, only : CO3_diag_ind
   use ecosys_constants, only : HCO3_diag_ind
   use ecosys_constants, only : H2CO3_diag_ind
@@ -1991,12 +1992,13 @@ contains
              ! store_diagnostics_restore
              marbl_diagnostics(k)%restore_diags(:) = restore_local(:, k)
 
-             call store_diagnostics_carbonate(carbonate(k), &
-                  zsat_calcite(k), zsat_aragonite(k), &
-                  marbl_diagnostics(k)%diags(:))
+             call store_diagnostics_carbonate(carbonate(k), zsat_calcite(k),  &
+                                            zsat_aragonite(k),                &
+                                            marbl_diagnostics(k)%diags_2d(:), &
+                                            marbl_diagnostics(k)%diags_3d(:))
 
-             call store_diagnostics_nitrification(nitrif(k), denitrif(k), &
-                  marbl_diagnostics(k)%diags(:))
+             call store_diagnostics_nitrification(nitrif(k), denitrif(k),     &
+                                            marbl_diagnostics(k)%diags_3d(:))
 
              call store_diagnostics_autotrophs(k, domain%kmt, domain%dzt(k), domain%dz(k), &
                   autotroph_cnt, autotrophs, autotroph_secondary_species(:, k), &
@@ -2004,7 +2006,8 @@ contains
 
              call store_diagnostics_autotroph_sums(k, domain%kmt, domain%dzt(k), domain%dz(k), &
                   autotroph_cnt, autotroph_secondary_species(:, k), &
-                  marbl_diagnostics(k)%diags(:))
+                  marbl_diagnostics(k)%diags_2d(:), &
+                  marbl_diagnostics(k)%diags_3d(:))
 
              call store_diagnostics_particulates(k, domain%dz(k), POC, &
                   P_CaCO3, P_SiO2, &
@@ -2018,10 +2021,11 @@ contains
              call store_diagnostics_oxygen(k, domain%land_mask, domain%kmt, zt, &
                   domain%temperature(k), domain%salinity(k), &
                   column_o2, o2_production(k), o2_consumption(k), &
-                  marbl_diagnostics(k)%diags(:))
+                  marbl_diagnostics(k)%diags_2d(:), &
+                  marbl_diagnostics(k)%diags_3d(:))
 
              call store_diagnostics_photosynthetically_available_radiation( &
-                  PAR(k), marbl_diagnostics(k)%diags(:))
+                  PAR(k), marbl_diagnostics(k)%diags_3d(:))
 
              call store_diagnostics_zooplankton(zooplankton_cnt, &
                   zooplankton_secondary_species(:, k), &
@@ -2030,33 +2034,33 @@ contains
              call store_diagnostics_dissolved_organic_matter(&
                   dissolved_organic_matter(k), &
                   fe_scavenge(k), fe_scavenge_rate(k), &
-                  marbl_diagnostics(k)%diags(:))
+                  marbl_diagnostics(k)%diags_3d(:))
 
              call store_diagnostics_carbon_fluxes(&
                   k, domain%kmt, domain%dzt(k), domain%dz(k), zw, &
                   POC, P_CaCO3, &
                   autotroph_cnt, autotrophs, zooplankton_cnt, zooplankton, &
-                  dtracer(:, k), marbl_diagnostics(k)%diags(:))
+                  dtracer(:, k), marbl_diagnostics(k)%diags_3d(:))
 
              call store_diagnostics_nitrogen_fluxes(&
                   k, domain%kmt, domain%dzt(k), domain%dz(k), zw, &
                   POC, denitrif(k), sed_denitrif(k), &
                   autotroph_cnt, autotrophs, autotroph_secondary_species(:, k), &
                   zooplankton_cnt, zooplankton, &
-                  dtracer(:, k), marbl_diagnostics(k)%diags(:))
+                  dtracer(:, k), marbl_diagnostics(k)%diags_3d(:))
 
              call store_diagnostics_phosphorus_fluxes(&
                   k, domain%kmt, domain%dzt(k), domain%dz(k), zw, &
                   POC, &
                   autotroph_cnt, autotrophs, &
                   zooplankton_cnt, zooplankton, &
-                  dtracer(:, k), marbl_diagnostics(k)%diags(:))
+                  dtracer(:, k), marbl_diagnostics(k)%diags_3d(:))
 
              call store_diagnostics_silicon_fluxes(&
                   k, domain%kmt, domain%dzt(k), domain%dz(k), zw, &
                   P_SiO2, &
                   autotroph_cnt, autotrophs, &
-                  dtracer(:, k), marbl_diagnostics(k)%diags(:))
+                  dtracer(:, k), marbl_diagnostics(k)%diags_3d(:))
 
              if (lexport_shared_vars) then
                 call export_interior_shared_variables(tracer_local(:, k), &
@@ -6938,42 +6942,42 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_carbonate(carbonate, &
-       zsat_calcite, zsat_aragonite, diags)
+  subroutine store_diagnostics_carbonate(carbonate, zsat_calcite,             &
+                                         zsat_aragonite, diags_2d, diags_3d)
 
     use marbl_interface_types, only : marbl_diagnostics_type
 
     type(carbonate_type), intent(in) :: carbonate
     real(r8), intent(in) :: zsat_calcite
     real(r8), intent(in) :: zsat_aragonite
-    real(r8), intent(inout) :: diags(ecosys_diag_cnt)
+    real(r8), intent(inout) :: diags_2d(ecosys_diag_cnt_2d)
+    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
 
-    diags(CO3_diag_ind)   = carbonate%CO3
-    diags(CO3_diag_ind) = carbonate%CO3
-    diags(HCO3_diag_ind) = carbonate%HCO3
-    diags(H2CO3_diag_ind) = carbonate%H2CO3
-    diags(pH_3D_diag_ind) = carbonate%pH
-    diags(CO3_ALT_CO2_diag_ind) = carbonate%CO3_ALT_CO2
-    diags(HCO3_ALT_CO2_diag_ind) = carbonate%HCO3_ALT_CO2
-    diags(H2CO3_ALT_CO2_diag_ind) = carbonate%H2CO3_ALT_CO2
-    diags(pH_3D_ALT_CO2_diag_ind) = carbonate%pH_ALT_CO2
-    diags(co3_sat_calc_diag_ind) = carbonate%CO3_sat_calcite
-    diags(co3_sat_arag_diag_ind) = carbonate%CO3_sat_aragonite
-    diags(zsatcalc_diag_ind) = zsat_calcite
-    diags(zsatarag_diag_ind) = zsat_aragonite
+    diags_3d(CO3_diag_ind) = carbonate%CO3
+    diags_3d(HCO3_diag_ind) = carbonate%HCO3
+    diags_3d(H2CO3_diag_ind) = carbonate%H2CO3
+    diags_3d(pH_3D_diag_ind) = carbonate%pH
+    diags_3d(CO3_ALT_CO2_diag_ind) = carbonate%CO3_ALT_CO2
+    diags_3d(HCO3_ALT_CO2_diag_ind) = carbonate%HCO3_ALT_CO2
+    diags_3d(H2CO3_ALT_CO2_diag_ind) = carbonate%H2CO3_ALT_CO2
+    diags_3d(pH_3D_ALT_CO2_diag_ind) = carbonate%pH_ALT_CO2
+    diags_3d(co3_sat_calc_diag_ind) = carbonate%CO3_sat_calcite
+    diags_3d(co3_sat_arag_diag_ind) = carbonate%CO3_sat_aragonite
+    diags_2d(zsatcalc_diag_ind) = zsat_calcite
+    diags_2d(zsatarag_diag_ind) = zsat_aragonite
 
   end subroutine store_diagnostics_carbonate
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_nitrification(nitrif, denitrif, diags)
+  subroutine store_diagnostics_nitrification(nitrif, denitrif, diags_3d)
 
     real(r8), intent(in) :: nitrif
     real(r8), intent(in) :: denitrif
-    real(r8), intent(inout) :: diags(ecosys_diag_cnt)
+    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
 
-    diags(NITRIF_diag_ind) = nitrif
-    diags(DENITRIF_diag_ind) = denitrif
+    diags_3d(NITRIF_diag_ind) = nitrif
+    diags_3d(DENITRIF_diag_ind) = denitrif
 
   end subroutine store_diagnostics_nitrification
 
@@ -7079,7 +7083,7 @@ contains
   !-----------------------------------------------------------------------
 
   subroutine store_diagnostics_autotroph_sums(k, column_kmt, column_dzt, column_dz, &
-       auto_cnt, autotroph_secondary_species, diags)
+       auto_cnt, autotroph_secondary_species, diags_2d, diags_3d)
 
     integer(int_kind), intent(in) :: k
     integer(int_kind), intent(in) :: column_kmt
@@ -7087,7 +7091,8 @@ contains
     integer(int_kind), intent(in) :: auto_cnt
     type(autotroph_secondary_species_type), intent(in) :: autotroph_secondary_species(auto_cnt)
 
-    real(r8), intent(inout) :: diags(ecosys_diag_cnt)
+    real(r8), intent(inout) :: diags_2d(ecosys_diag_cnt_2d)
+    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
 
     integer(int_kind) :: n
     real(r8) :: delta_z
@@ -7103,11 +7108,11 @@ contains
        delta_z = c0
     end if
 
-    diags(auto_graze_TOT_diag_ind) = sum(autotroph_secondary_species(:)%auto_graze)
+    diags_3d(auto_graze_TOT_diag_ind) = sum(autotroph_secondary_species(:)%auto_graze)
 
-    diags(photoC_TOT_diag_ind) = sum(autotroph_secondary_species(:)%photoC)
+    diags_3d(photoC_TOT_diag_ind) = sum(autotroph_secondary_species(:)%photoC)
 
-    diags(photoC_TOT_zint_diag_ind) = delta_z * sum(autotroph_secondary_species(:)%photoC)
+    diags_2d(photoC_TOT_zint_diag_ind) = delta_z * sum(autotroph_secondary_species(:)%photoC)
 
     ! --- begin work1 block ---
     work1 = c0
@@ -7116,8 +7121,8 @@ contains
           work1 = work1 + (autotroph_secondary_species(n)%VNO3 / autotroph_secondary_species(n)%VNtot) * autotroph_secondary_species(n)%photoC
        end if
     end do
-    diags(photoC_NO3_TOT_diag_ind) = work1
-    diags(photoC_NO3_TOT_zint_diag_ind) = delta_z * work1
+    diags_3d(photoC_NO3_TOT_diag_ind) = work1
+    diags_2d(photoC_NO3_TOT_zint_diag_ind) = delta_z * work1
     ! --- end work1 block ---
 
 
@@ -7183,7 +7188,7 @@ contains
 
   subroutine store_diagnostics_oxygen(k, column_land_mask, column_kmt, &
        column_zt, temperature, salinity, &
-       column_o2, o2_production, o2_consumption, diags)
+       column_o2, o2_production, o2_consumption, diags_2d, diags_3d)
 
     use marbl_oxygen, only : o2sat_scalar
 
@@ -7197,7 +7202,8 @@ contains
     real(r8), intent(in) :: column_o2(km)
     real(r8), intent(in) :: o2_production
     real(r8), intent(in) :: o2_consumption
-    real(r8), intent(inout) :: diags(ecosys_diag_cnt)
+    real(r8), intent(inout) :: diags_2d(ecosys_diag_cnt_2d)
+    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
 
     real(r8) :: level_o2 !O2 at this level
     real(r8) :: o2_saturation
@@ -7220,18 +7226,18 @@ contains
           end if
        end do
 
-       diags(O2_ZMIN_diag_ind) = vertical_min_o2
-       diags(O2_ZMIN_DEPTH_diag_ind) = depth_min_o2
+       diags_2d(O2_ZMIN_diag_ind) = vertical_min_o2
+       diags_2d(O2_ZMIN_DEPTH_diag_ind) = depth_min_o2
     endif
 
-    diags(O2_PRODUCTION_diag_ind) = o2_production
-    diags(O2_CONSUMPTION_diag_ind) = o2_consumption
+    diags_3d(O2_PRODUCTION_diag_ind) = o2_production
+    diags_3d(O2_CONSUMPTION_diag_ind) = o2_consumption
 
     o2_saturation = c0
     if (column_land_mask .and. (k <= column_kmt)) then
        o2_saturation = O2SAT_scalar(temperature, salinity)
     end if
-    diags(AOU_diag_ind) = o2_saturation - column_o2(k)
+    diags_3d(AOU_diag_ind) = o2_saturation - column_o2(k)
 
 
   end subroutine store_diagnostics_oxygen
@@ -7239,19 +7245,19 @@ contains
   !-----------------------------------------------------------------------
 
   subroutine store_diagnostics_photosynthetically_available_radiation( &
-       PAR, diags)
+       PAR, diags_3d)
 
     type(photosynthetically_available_radiation_type), intent(in) :: PAR
-    real(r8), intent(inout) :: diags(ecosys_diag_cnt)
+    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
 
-    diags(PAR_avg_diag_ind) = PAR%avg
+    diags_3d(PAR_avg_diag_ind) = PAR%avg
 
   end subroutine store_diagnostics_photosynthetically_available_radiation
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_misc(diags)
-    real(r8), intent(inout) :: diags(ecosys_diag_cnt)
+  subroutine store_diagnostics_misc(diags_3d)
+    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
 
 
   end subroutine store_diagnostics_misc
@@ -7284,22 +7290,22 @@ contains
   !-----------------------------------------------------------------------
 
   subroutine store_diagnostics_dissolved_organic_matter(&
-       dissolved_organic_matter, fe_scavenge, fe_scavenge_rate, diags)
+       dissolved_organic_matter, fe_scavenge, fe_scavenge_rate, diags_3d)
 
     type(dissolved_organic_matter_type), intent(in) :: dissolved_organic_matter
     real(r8), intent(in) :: fe_scavenge, fe_scavenge_rate
-    real(r8), intent(inout) :: diags(ecosys_diag_cnt)
+    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
 
-    diags(       DOC_prod_diag_ind)  = dissolved_organic_matter%DOC_prod
-    diags(      DOC_remin_diag_ind)  = dissolved_organic_matter%DOC_remin
-    diags(       DON_prod_diag_ind)  = dissolved_organic_matter%DON_prod
-    diags(      DON_remin_diag_ind)  = dissolved_organic_matter%DON_remin
-    diags(       DOP_prod_diag_ind)  = dissolved_organic_matter%DOP_prod
-    diags(      DOP_remin_diag_ind)  = dissolved_organic_matter%DOP_remin
-    diags(      DOFe_prod_diag_ind)  = dissolved_organic_matter%DOFe_prod
-    diags(     DOFe_remin_diag_ind)  = dissolved_organic_matter%DOFe_remin
-    diags(    Fe_scavenge_diag_ind)  = Fe_scavenge
-    diags(Fe_scavenge_rate_diag_ind) = Fe_scavenge_rate
+    diags_3d(       DOC_prod_diag_ind)  = dissolved_organic_matter%DOC_prod
+    diags_3d(      DOC_remin_diag_ind)  = dissolved_organic_matter%DOC_remin
+    diags_3d(       DON_prod_diag_ind)  = dissolved_organic_matter%DON_prod
+    diags_3d(      DON_remin_diag_ind)  = dissolved_organic_matter%DON_remin
+    diags_3d(       DOP_prod_diag_ind)  = dissolved_organic_matter%DOP_prod
+    diags_3d(      DOP_remin_diag_ind)  = dissolved_organic_matter%DOP_remin
+    diags_3d(      DOFe_prod_diag_ind)  = dissolved_organic_matter%DOFe_prod
+    diags_3d(     DOFe_remin_diag_ind)  = dissolved_organic_matter%DOFe_remin
+    diags_3d(    Fe_scavenge_diag_ind)  = Fe_scavenge
+    diags_3d(Fe_scavenge_rate_diag_ind) = Fe_scavenge_rate
 
   end subroutine store_diagnostics_dissolved_organic_matter
 
@@ -7307,7 +7313,7 @@ contains
 
   subroutine store_diagnostics_carbon_fluxes(k, column_kmt, column_dzt, column_dz, column_zw, &
        POC, P_CaCO3, &
-       auto_cnt, auto_meta, zoo_cnt, zoo_meta, dtracer, column_diags)
+       auto_cnt, auto_meta, zoo_cnt, zoo_meta, dtracer, column_diags_3d)
 
     use marbl_share_mod, only : column_sinking_particle_type
     use marbl_share_mod, only : autotroph_type, zooplankton_type
@@ -7324,7 +7330,7 @@ contains
     type(zooplankton_type), intent(in)  :: zoo_meta(zoo_cnt)
     real(r8), intent(in) :: dtracer(ecosys_tracer_cnt)
 
-    real(r8), intent(inout) :: column_diags(ecosys_diag_cnt)
+    real(r8), intent(inout) :: column_diags_3d(ecosys_diag_cnt_3d)
 
     integer(int_kind) :: n, auto_ind
     real(r8) :: delta_z, ztop
@@ -7362,7 +7368,7 @@ contains
     else
        work2 = work2 + c0
     end if
-    column_diags(Jint_Ctot_diag_ind) = work2
+    column_diags_3d(Jint_Ctot_diag_ind) = work2
     ! end vertically integrated total carbon flux
 
     if (ztop < 100.0e2_r8) then
@@ -7381,7 +7387,7 @@ contains
     else
        work2 = c0
     endif
-    column_diags(Jint_100m_Ctot_diag_ind) = work2
+    column_diags_3d(Jint_100m_Ctot_diag_ind) = work2
 
 
   end subroutine store_diagnostics_carbon_fluxes
@@ -7391,7 +7397,7 @@ contains
   subroutine store_diagnostics_nitrogen_fluxes(k, column_kmt, column_dzt, column_dz, column_zw, &
        POC, column_denitrif, column_sed_denitrif, &
        auto_cnt, auto_meta, autotroph_secondary_species, &
-       zoo_cnt, zoo_meta, dtracer, column_diags)
+       zoo_cnt, zoo_meta, dtracer, column_diags_3d)
 
     use marbl_share_mod, only : column_sinking_particle_type
     use marbl_share_mod, only : autotroph_type, zooplankton_type
@@ -7412,7 +7418,7 @@ contains
     type(zooplankton_type), intent(in)  :: zoo_meta(zoo_cnt)
     real(r8), intent(in) :: dtracer(ecosys_tracer_cnt)
 
-    real(r8), intent(inout) :: column_diags(ecosys_diag_cnt)
+    real(r8), intent(inout) :: column_diags_3d(ecosys_diag_cnt_3d)
 
     integer(int_kind) :: n, auto_ind
     real(r8) :: delta_z, ztop
@@ -7456,7 +7462,7 @@ contains
     else
        work2 = work2 + c0
     end if
-    column_diags(Jint_Ntot_diag_ind) = work2
+    column_diags_3d(Jint_Ntot_diag_ind) = work2
 
     if (ztop < 100.0e2_r8) then
        if (k <= column_kmt) then
@@ -7472,7 +7478,7 @@ contains
     else
        work2 = c0
     endif
-    column_diags(Jint_100m_Ntot_diag_ind) = work2
+    column_diags_3d(Jint_100m_Ntot_diag_ind) = work2
 
   end subroutine store_diagnostics_nitrogen_fluxes
 
@@ -7481,7 +7487,7 @@ contains
   subroutine store_diagnostics_phosphorus_fluxes(k, column_kmt, column_dzt, column_dz, column_zw, &
        POC, &
        auto_cnt, auto_meta, &
-       zoo_cnt, zoo_meta, dtracer, column_diags)
+       zoo_cnt, zoo_meta, dtracer, column_diags_3d)
 
     use marbl_share_mod, only : column_sinking_particle_type
     use marbl_share_mod, only : autotroph_type, zooplankton_type
@@ -7500,7 +7506,7 @@ contains
     type(zooplankton_type), intent(in)  :: zoo_meta(zoo_cnt)
     real(r8), intent(in) :: dtracer(ecosys_tracer_cnt)
 
-    real(r8), intent(inout) :: column_diags(ecosys_diag_cnt)
+    real(r8), intent(inout) :: column_diags_3d(ecosys_diag_cnt_3d)
 
     integer(int_kind) :: n, auto_ind, zoo_ind
     real(r8) :: delta_z, ztop
@@ -7542,7 +7548,7 @@ contains
     else
        work2 = work2 + c0
     end if
-    column_diags(Jint_Ptot_diag_ind) = work2
+    column_diags_3d(Jint_Ptot_diag_ind) = work2
 
     if (ztop < 100.0e2_r8) then
        if (k <= column_kmt) then
@@ -7559,7 +7565,7 @@ contains
     else
        work2 = c0
     endif
-    column_diags(Jint_100m_Ptot_diag_ind) = work2
+    column_diags_3d(Jint_100m_Ptot_diag_ind) = work2
 
   end subroutine store_diagnostics_phosphorus_fluxes
 
@@ -7568,7 +7574,7 @@ contains
   subroutine store_diagnostics_silicon_fluxes(k, column_kmt, column_dzt, column_dz, column_zw, &
        P_SiO2, &
        auto_cnt, auto_meta, &
-       dtracer, column_diags)
+       dtracer, column_diags_3d)
 
     use marbl_share_mod, only : column_sinking_particle_type
     use marbl_share_mod, only : autotroph_type, zooplankton_type
@@ -7585,7 +7591,7 @@ contains
     type(autotroph_type), intent(in)  :: auto_meta(auto_cnt)
     real(r8), intent(in) :: dtracer(ecosys_tracer_cnt)
 
-    real(r8), intent(inout) :: column_diags(ecosys_diag_cnt)
+    real(r8), intent(inout) :: column_diags_3d(ecosys_diag_cnt_3d)
 
     integer(int_kind) :: n, auto_ind
     real(r8) :: delta_z, ztop
@@ -7624,7 +7630,7 @@ contains
     else
        work2 = work2 + c0
     end if
-    column_diags(Jint_Sitot_diag_ind) = work2
+    column_diags_3d(Jint_Sitot_diag_ind) = work2
 
     if (ztop < 100.0e2_r8) then
        if (k <= column_kmt) then
@@ -7641,7 +7647,7 @@ contains
     else
        work2 = c0
     endif
-    column_diags(Jint_100m_Sitot_diag_ind) = work2
+    column_diags_3d(Jint_100m_Sitot_diag_ind) = work2
 
   end subroutine store_diagnostics_silicon_fluxes
 

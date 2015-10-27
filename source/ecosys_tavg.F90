@@ -32,7 +32,8 @@
 
   use ecosys_constants, only : ecosys_tracer_cnt
   ! standard diagnostics 
-  use ecosys_constants, only : ecosys_diag_cnt
+  use ecosys_constants, only : ecosys_diag_cnt_2d
+  use ecosys_constants, only : ecosys_diag_cnt_3d
   use ecosys_constants, only : CO3_diag_ind
   use ecosys_constants, only : HCO3_diag_ind
   use ecosys_constants, only : H2CO3_diag_ind
@@ -200,7 +201,8 @@
   !  flux terms and particulate terms
   !-----------------------------------------------------------------------
 
-  integer (int_kind), dimension(ecosys_diag_cnt) :: tavg_ecosys
+  integer (int_kind), dimension(ecosys_diag_cnt_2d) :: tavg_ecosys_2d
+  integer (int_kind), dimension(ecosys_diag_cnt_3d) :: tavg_ecosys_3d
 
   !-----------------------------------------------------------------------
   !  tavg ids for 2d fields related to surface fluxes
@@ -513,230 +515,290 @@ contains
                            coordinates='TLONG TLAT time')
 
 !-----------------------------------------------------------------------
-!   Define tavg fields for everything but zooplankton, autotrophs,
+!   Define 2D tavg fields for everything but zooplankton, autotrophs,
 !   surface flux terms, and particulate terms
 !-----------------------------------------------------------------------
 
-    call define_tavg_field(tavg_ecosys(CO3_diag_ind),'CO3',3,           &
-                           long_name='Carbonate Ion Concentration',     &
-                           units='mmol/m^3', grid_loc='3111',           &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(HCO3_diag_ind),'HCO3',3,         &
-                           long_name='Bicarbonate Ion Concentration',   &
-                           units='mmol/m^3', grid_loc='3111',           &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(H2CO3_diag_ind),'H2CO3',3,       &
-                           long_name='Carbonic Acid Concentration',     &
-                           units='mmol/m^3', grid_loc='3111',           &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(pH_3D_diag_ind),'pH_3D',3,       &
-                           long_name='pH',                              &
-                           units='none', grid_loc='3111',               &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(CO3_ALT_CO2_diag_ind),'CO3_ALT_CO2',3, &
-                           long_name='Carbonate Ion Concentration, Alternative CO2', &
-                           units='mmol/m^3', grid_loc='3111',                 &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(HCO3_ALT_CO2_diag_ind),'HCO3_ALT_CO2',3, &
-                           long_name='Bicarbonate Ion Concentration, Alternative CO2', &
-                           units='mmol/m^3', grid_loc='3111',                   &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(H2CO3_ALT_CO2_diag_ind),'H2CO3_ALT_CO2',3, &
-                           long_name='Carbonic Acid Concentration, Alternative CO2', &
-                           units='mmol/m^3', grid_loc='3111',                     &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(pH_3D_ALT_CO2_diag_ind),'pH_3D_ALT_CO2',3, &
-                           long_name='pH, Alternative CO2',                       &
-                           units='none', grid_loc='3111',                         &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(co3_sat_calc_diag_ind),'co3_sat_calc',3, &
-                           long_name='CO3 concentration at calcite saturation', &
-                           units='mmol/m^3', grid_loc='3111',                   &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(zsatcalc_diag_ind),'zsatcalc',2, &
+    call define_tavg_field(tavg_ecosys_2d(zsatcalc_diag_ind),'zsatcalc',2, &
                            long_name='Calcite Saturation Depth',        &
                            units='cm', grid_loc='2110',                 &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys(co3_sat_arag_diag_ind),'co3_sat_arag',3, &
-                           long_name='CO3 concentration at aragonite saturation', &
-                           units='mmol/m^3', grid_loc='3111',                   &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(zsatarag_diag_ind),'zsatarag',2, &
+    call define_tavg_field(tavg_ecosys_2d(zsatarag_diag_ind),'zsatarag',2, &
                            long_name='Aragonite Saturation Depth',      &
                            units='cm', grid_loc='2110',                 &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys(NITRIF_diag_ind),'NITRIF',3,     &
-                           long_name='Nitrification',                   &
-                           units='mmol/m^3/s', grid_loc='3111',         &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(DENITRIF_diag_ind),'DENITRIF',3, &
-                           long_name='Denitrification',                 &
-                           units='mmol/m^3/s', grid_loc='3111',         &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(O2_ZMIN_diag_ind),'O2_ZMIN',2,   &
+    call define_tavg_field(tavg_ecosys_2d(O2_ZMIN_diag_ind),'O2_ZMIN',2,   &
                            long_name='Vertical Minimum of O2',          &
                            units='mmol/m^3', grid_loc='2110',           &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys(O2_ZMIN_DEPTH_diag_ind),'O2_ZMIN_DEPTH',2, &
+    call define_tavg_field(tavg_ecosys_2d(O2_ZMIN_DEPTH_diag_ind),'O2_ZMIN_DEPTH',2, &
                            long_name='Depth of Vertical Minimum of O2',           &
                            units='cm', grid_loc='2110',                           &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys(O2_PRODUCTION_diag_ind),'O2_PRODUCTION',3, &
-                           long_name='O2 Production',                             &
-                           units='mmol/m^3/s', grid_loc='3111',                   &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(O2_CONSUMPTION_diag_ind),'O2_CONSUMPTION',3, &
-                           long_name='O2 Consumption',                              &
-                           units='mmol/m^3/s', grid_loc='3111',                     &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(AOU_diag_ind),'AOU',3,           &
-                           long_name='Apparent O2 Utilization ',        &
-                           units='mmol/m^3', grid_loc='3111',           &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(PAR_avg_diag_ind),'PAR_avg',3,   &
-                           long_name='PAR Average over Model Cell',     &
-                           units='w/m^2', grid_loc='3114',              &
-                           coordinates='TLONG TLAT z_t_150m time')
-
-    call define_tavg_field(tavg_ecosys(auto_graze_TOT_diag_ind),'graze_auto_TOT',3, &
-                           long_name='Total Autotroph Grazing',                     &
-                           units='mmol/m^3/s', grid_loc='3114',                     &
-                           coordinates='TLONG TLAT z_t_150m time')
-
-    call define_tavg_field(tavg_ecosys(photoC_TOT_diag_ind),'photoC_TOT',3, &
-                           long_name='Total C Fixation',                    &
-                           units='mmol/m^3/s', grid_loc='3114',             &
-                           coordinates='TLONG TLAT z_t_150m time')
-
-    call define_tavg_field(tavg_ecosys(photoC_TOT_zint_diag_ind),'photoC_TOT_zint',2, &
+    call define_tavg_field(tavg_ecosys_2d(photoC_TOT_zint_diag_ind),'photoC_TOT_zint',2, &
                            long_name='Total C Fixation Vertical Integral',            &
                            units='mmol/m^3 cm/s', grid_loc='2110',                    &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys(photoC_NO3_TOT_diag_ind),'photoC_NO3_TOT',3, &
-                           long_name='Total C Fixation from NO3',                   &
-                           units='mmol/m^3/s', grid_loc='3114',                     &
-                           coordinates='TLONG TLAT z_t_150m time')
-
-    call define_tavg_field(tavg_ecosys(photoC_NO3_TOT_zint_diag_ind),'photoC_NO3_TOT_zint',2,&
+    call define_tavg_field(tavg_ecosys_2d(photoC_NO3_TOT_zint_diag_ind),'photoC_NO3_TOT_zint',2,&
                            long_name='Total C Fixation from NO3 Vertical Integral',&
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys(DOC_prod_diag_ind),'DOC_prod',3, &
-                           long_name='DOC Production',                  &
-                           units='mmol/m^3/s', grid_loc='3111',         &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(DOC_remin_diag_ind),'DOC_remin',3, &
-                           long_name='DOC Remineralization',              &
-                           units='mmol/m^3/s', grid_loc='3111',           &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(DON_prod_diag_ind),'DON_prod',3, &
-                           long_name='DON Production',                  &
-                           units='mmol/m^3/s', grid_loc='3114',         &
-                           coordinates='TLONG TLAT z_t_150m time')
-
-    call define_tavg_field(tavg_ecosys(DON_remin_diag_ind),'DON_remin',3, &
-                           long_name='DON Remineralization',              &
-                           units='mmol/m^3/s', grid_loc='3114',           &
-                           coordinates='TLONG TLAT z_t_150m time')
-
-    call define_tavg_field(tavg_ecosys(DOP_prod_diag_ind),'DOP_prod',3, &
-                           long_name='DOP Production',                  &
-                           units='mmol/m^3/s', grid_loc='3114',         &
-                           coordinates='TLONG TLAT z_t_150m time')
-
-    call define_tavg_field(tavg_ecosys(DOP_remin_diag_ind),'DOP_remin',3, &
-                           long_name='DOP Remineralization',            &
-                           units='mmol/m^3/s', grid_loc='3114',         &
-                           coordinates='TLONG TLAT z_t_150m time')
-
-    call define_tavg_field(tavg_ecosys(DOFe_prod_diag_ind),'DOFe_prod',3, &
-                           long_name='DOFe Production',                   &
-                           units='mmol/m^3/s', grid_loc='3114',           &
-                           coordinates='TLONG TLAT z_t_150m time')
-
-    call define_tavg_field(tavg_ecosys(DOFe_remin_diag_ind),'DOFe_remin',3, &
-                           long_name='DOFe Remineralization',               &
-                           units='mmol/m^3/s', grid_loc='3114',             &
-                           coordinates='TLONG TLAT z_t_150m time')
-
-    call define_tavg_field(tavg_ecosys(Fe_scavenge_diag_ind),'Fe_scavenge',3, &
-                           long_name='Iron Scavenging',                       &
-                           units='mmol/m^3/s', grid_loc='3111',               &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_ecosys(Fe_scavenge_rate_diag_ind),'Fe_scavenge_rate',3, &
-                           long_name='Iron Scavenging Rate',                            &
-                           units='1/y', grid_loc='3111',                                &
-                           coordinates='TLONG TLAT z_t time')
-
     !-----------------------------------------------------------------------
     !  Define tavg for fields related to conservation of total C, N, P, Si
     !-----------------------------------------------------------------------
-    call define_tavg_field(tavg_ecosys(Jint_Ctot_diag_ind),'Jint_Ctot',2, &
+    call define_tavg_field(tavg_ecosys_3d(Jint_Ctot_diag_ind),'Jint_Ctot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ctot', &
                            units='mmol/m^3 cm/s', grid_loc='2110',        &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys(Jint_100m_Ctot_diag_ind),'Jint_100m_Ctot',2, &
+    call define_tavg_field(tavg_ecosys_3d(Jint_100m_Ctot_diag_ind),'Jint_100m_Ctot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ctot, 0-100m', &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys(Jint_Ntot_diag_ind),'Jint_Ntot',2, &
+    call define_tavg_field(tavg_ecosys_3d(Jint_Ntot_diag_ind),'Jint_Ntot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ntot', &
                            units='mmol/m^3 cm/s', grid_loc='2110',        &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys(Jint_100m_Ntot_diag_ind),'Jint_100m_Ntot',2, &
+    call define_tavg_field(tavg_ecosys_3d(Jint_100m_Ntot_diag_ind),'Jint_100m_Ntot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ntot, 0-100m', &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys(Jint_Ptot_diag_ind),'Jint_Ptot',2, &
+    call define_tavg_field(tavg_ecosys_3d(Jint_Ptot_diag_ind),'Jint_Ptot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ptot', &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys(Jint_100m_Ptot_diag_ind),'Jint_100m_Ptot',2, &
+    call define_tavg_field(tavg_ecosys_3d(Jint_100m_Ptot_diag_ind),'Jint_100m_Ptot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ptot, 0-100m', &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys(Jint_Sitot_diag_ind),'Jint_Sitot',2, &
+    call define_tavg_field(tavg_ecosys_3d(Jint_Sitot_diag_ind),'Jint_Sitot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Sitot', &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys(Jint_100m_Sitot_diag_ind),'Jint_100m_Sitot',2, &
+    call define_tavg_field(tavg_ecosys_3d(Jint_100m_Sitot_diag_ind),'Jint_100m_Sitot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Sitot, 0-100m', &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
 !-----------------------------------------------------------------------
-!  Define tavg fields for particulate terms
+!   Define 3D tavg fields for everything but zooplankton, autotrophs,
+!   surface flux terms, and particulate terms
+!-----------------------------------------------------------------------
+
+    call define_tavg_field(tavg_ecosys_3d(CO3_diag_ind),'CO3',3,           &
+                           long_name='Carbonate Ion Concentration',     &
+                           units='mmol/m^3', grid_loc='3111',           &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(HCO3_diag_ind),'HCO3',3,         &
+                           long_name='Bicarbonate Ion Concentration',   &
+                           units='mmol/m^3', grid_loc='3111',           &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(H2CO3_diag_ind),'H2CO3',3,       &
+                           long_name='Carbonic Acid Concentration',     &
+                           units='mmol/m^3', grid_loc='3111',           &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(pH_3D_diag_ind),'pH_3D',3,       &
+                           long_name='pH',                              &
+                           units='none', grid_loc='3111',               &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(CO3_ALT_CO2_diag_ind),'CO3_ALT_CO2',3, &
+                           long_name='Carbonate Ion Concentration, Alternative CO2', &
+                           units='mmol/m^3', grid_loc='3111',                 &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(HCO3_ALT_CO2_diag_ind),'HCO3_ALT_CO2',3, &
+                           long_name='Bicarbonate Ion Concentration, Alternative CO2', &
+                           units='mmol/m^3', grid_loc='3111',                   &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(H2CO3_ALT_CO2_diag_ind),'H2CO3_ALT_CO2',3, &
+                           long_name='Carbonic Acid Concentration, Alternative CO2', &
+                           units='mmol/m^3', grid_loc='3111',                     &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(pH_3D_ALT_CO2_diag_ind),'pH_3D_ALT_CO2',3, &
+                           long_name='pH, Alternative CO2',                       &
+                           units='none', grid_loc='3111',                         &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(co3_sat_calc_diag_ind),'co3_sat_calc',3, &
+                           long_name='CO3 concentration at calcite saturation', &
+                           units='mmol/m^3', grid_loc='3111',                   &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(co3_sat_arag_diag_ind),'co3_sat_arag',3, &
+                           long_name='CO3 concentration at aragonite saturation', &
+                           units='mmol/m^3', grid_loc='3111',                   &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(NITRIF_diag_ind),'NITRIF',3,     &
+                           long_name='Nitrification',                   &
+                           units='mmol/m^3/s', grid_loc='3111',         &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(DENITRIF_diag_ind),'DENITRIF',3, &
+                           long_name='Denitrification',                 &
+                           units='mmol/m^3/s', grid_loc='3111',         &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(O2_PRODUCTION_diag_ind),'O2_PRODUCTION',3, &
+                           long_name='O2 Production',                             &
+                           units='mmol/m^3/s', grid_loc='3111',                   &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(O2_CONSUMPTION_diag_ind),'O2_CONSUMPTION',3, &
+                           long_name='O2 Consumption',                              &
+                           units='mmol/m^3/s', grid_loc='3111',                     &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(AOU_diag_ind),'AOU',3,           &
+                           long_name='Apparent O2 Utilization ',        &
+                           units='mmol/m^3', grid_loc='3111',           &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(PAR_avg_diag_ind),'PAR_avg',3,   &
+                           long_name='PAR Average over Model Cell',     &
+                           units='w/m^2', grid_loc='3114',              &
+                           coordinates='TLONG TLAT z_t_150m time')
+
+    call define_tavg_field(tavg_ecosys_3d(auto_graze_TOT_diag_ind),'graze_auto_TOT',3, &
+                           long_name='Total Autotroph Grazing',                     &
+                           units='mmol/m^3/s', grid_loc='3114',                     &
+                           coordinates='TLONG TLAT z_t_150m time')
+
+    call define_tavg_field(tavg_ecosys_3d(photoC_TOT_diag_ind),'photoC_TOT',3, &
+                           long_name='Total C Fixation',                    &
+                           units='mmol/m^3/s', grid_loc='3114',             &
+                           coordinates='TLONG TLAT z_t_150m time')
+
+    call define_tavg_field(tavg_ecosys_3d(photoC_NO3_TOT_diag_ind),'photoC_NO3_TOT',3, &
+                           long_name='Total C Fixation from NO3',                   &
+                           units='mmol/m^3/s', grid_loc='3114',                     &
+                           coordinates='TLONG TLAT z_t_150m time')
+
+    call define_tavg_field(tavg_ecosys_3d(DOC_prod_diag_ind),'DOC_prod',3, &
+                           long_name='DOC Production',                  &
+                           units='mmol/m^3/s', grid_loc='3111',         &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(DOC_remin_diag_ind),'DOC_remin',3, &
+                           long_name='DOC Remineralization',              &
+                           units='mmol/m^3/s', grid_loc='3111',           &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(DON_prod_diag_ind),'DON_prod',3, &
+                           long_name='DON Production',                  &
+                           units='mmol/m^3/s', grid_loc='3114',         &
+                           coordinates='TLONG TLAT z_t_150m time')
+
+    call define_tavg_field(tavg_ecosys_3d(DON_remin_diag_ind),'DON_remin',3, &
+                           long_name='DON Remineralization',              &
+                           units='mmol/m^3/s', grid_loc='3114',           &
+                           coordinates='TLONG TLAT z_t_150m time')
+
+    call define_tavg_field(tavg_ecosys_3d(DOP_prod_diag_ind),'DOP_prod',3, &
+                           long_name='DOP Production',                  &
+                           units='mmol/m^3/s', grid_loc='3114',         &
+                           coordinates='TLONG TLAT z_t_150m time')
+
+    call define_tavg_field(tavg_ecosys_3d(DOP_remin_diag_ind),'DOP_remin',3, &
+                           long_name='DOP Remineralization',            &
+                           units='mmol/m^3/s', grid_loc='3114',         &
+                           coordinates='TLONG TLAT z_t_150m time')
+
+    call define_tavg_field(tavg_ecosys_3d(DOFe_prod_diag_ind),'DOFe_prod',3, &
+                           long_name='DOFe Production',                   &
+                           units='mmol/m^3/s', grid_loc='3114',           &
+                           coordinates='TLONG TLAT z_t_150m time')
+
+    call define_tavg_field(tavg_ecosys_3d(DOFe_remin_diag_ind),               &
+                           'DOFe_remin',3,                                    &
+                           long_name='DOFe Remineralization',                 &
+                           units='mmol/m^3/s', grid_loc='3114',               &
+                           coordinates='TLONG TLAT z_t_150m time')
+
+    call define_tavg_field(tavg_ecosys_3d(Fe_scavenge_diag_ind),              &
+                           'Fe_scavenge',3,                                   &
+                           long_name='Iron Scavenging',                       &
+                           units='mmol/m^3/s', grid_loc='3111',               &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys_3d(Fe_scavenge_rate_diag_ind),         &
+                           'Fe_scavenge_rate',3,                              &
+                           long_name='Iron Scavenging Rate',                  &
+                           units='1/y', grid_loc='3111',                      &
+                           coordinates='TLONG TLAT z_t time')
+
+!-----------------------------------------------------------------------
+!  Define 2D tavg fields for particulate terms
+!-----------------------------------------------------------------------
+
+    !-----------------------------------------------------------------------
+    !  Vars to sum up burial in sediments and sed Denitrif N losses
+    !-----------------------------------------------------------------------
+    call define_tavg_field(tavg_part(calcToSed_diag_ind),'calcToSed',2, &
+                           long_name='CaCO3 Flux to Sediments',         &
+                           units='nmolC/cm^2/s', grid_loc='2110',       &
+                           coordinates='TLONG TLAT time')
+
+    call define_tavg_field(tavg_part(pocToSed_diag_ind),'pocToSed',2,   &
+                           long_name='POC Flux to Sediments',           &
+                           units='nmolC/cm^2/s', grid_loc='2110',       &
+                           coordinates='TLONG TLAT time')
+
+    call define_tavg_field(tavg_part(ponToSed_diag_ind),'ponToSed',2,   &
+                           long_name='nitrogen burial Flux to Sediments',&
+                           units='nmolN/cm^2/s', grid_loc='2110',       &
+                           coordinates='TLONG TLAT time')
+
+    call define_tavg_field(tavg_part(SedDenitrif_diag_ind),'SedDenitrif',2, &
+                           long_name='nitrogen loss in Sediments',          &
+                           units='nmolN/cm^2/s', grid_loc='2110',           &
+                           coordinates='TLONG TLAT time')
+
+    call define_tavg_field(tavg_part(OtherRemin_diag_ind),'OtherRemin',2, &
+                           long_name='non-oxic,non-dentr remin in Sediments', &
+                           units='nmolC/cm^2/s', grid_loc='2110',         &
+                           coordinates='TLONG TLAT time')
+
+    call define_tavg_field(tavg_part(popToSed_diag_ind),'popToSed',2, &
+                           long_name='phosporus Flux to Sediments',   &
+                           units='nmolP/cm^2/s', grid_loc='2110',     &
+                           coordinates='TLONG TLAT time')
+
+    call define_tavg_field(tavg_part(bsiToSed_diag_ind),'bsiToSed',2,   &
+                           long_name='biogenic Si Flux to Sediments',   &
+                           units='nmolSi/cm^2/s', grid_loc='2110',      &
+                           coordinates='TLONG TLAT time')
+
+    call define_tavg_field(tavg_part(dustToSed_diag_ind),'dustToSed',2, &
+                           long_name='dust Flux to Sediments',          &
+                           units='g/cm^2/s', grid_loc='2110',           &
+                           coordinates='TLONG TLAT time')
+
+    call define_tavg_field(tavg_part(pfeToSed_diag_ind),'pfeToSed',2,   &
+                           long_name='pFe Flux to Sediments',           &
+                           units='nmolFe/cm^2/s', grid_loc='2110',      &
+                           coordinates='TLONG TLAT time')
+
+!-----------------------------------------------------------------------
+!  Define 3D tavg fields for particulate terms
 !-----------------------------------------------------------------------
 
     call define_tavg_field(tavg_part(POC_FLUX_IN_diag_ind),'POC_FLUX_IN',3, &
@@ -809,62 +871,17 @@ contains
                            units='mmol/m^3/s', grid_loc='3111',               &
                            coordinates='TLONG TLAT z_t time')
 
-    !-----------------------------------------------------------------------
-    !  Vars to sum up burial in sediments and sed Denitrif N losses
-    !-----------------------------------------------------------------------
-
-    call define_tavg_field(tavg_part(calcToSed_diag_ind),'calcToSed',2, &
-                           long_name='CaCO3 Flux to Sediments',         &
-                           units='nmolC/cm^2/s', grid_loc='2110',       &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part(pocToSed_diag_ind),'pocToSed',2,   &
-                           long_name='POC Flux to Sediments',           &
-                           units='nmolC/cm^2/s', grid_loc='2110',       &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part(ponToSed_diag_ind),'ponToSed',2,   &
-                           long_name='nitrogen burial Flux to Sediments',&
-                           units='nmolN/cm^2/s', grid_loc='2110',       &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part(SedDenitrif_diag_ind),'SedDenitrif',2, &
-                           long_name='nitrogen loss in Sediments',          &
-                           units='nmolN/cm^2/s', grid_loc='2110',           &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part(OtherRemin_diag_ind),'OtherRemin',2, &
-                           long_name='non-oxic,non-dentr remin in Sediments', &
-                           units='nmolC/cm^2/s', grid_loc='2110',         &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part(popToSed_diag_ind),'popToSed',2, &
-                           long_name='phosporus Flux to Sediments',   &
-                           units='nmolP/cm^2/s', grid_loc='2110',     &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part(bsiToSed_diag_ind),'bsiToSed',2,   &
-                           long_name='biogenic Si Flux to Sediments',   &
-                           units='nmolSi/cm^2/s', grid_loc='2110',      &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part(dustToSed_diag_ind),'dustToSed',2, &
-                           long_name='dust Flux to Sediments',          &
-                           units='g/cm^2/s', grid_loc='2110',           &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part(pfeToSed_diag_ind),'pfeToSed',2,   &
-                           long_name='pFe Flux to Sediments',           &
-                           units='nmolFe/cm^2/s', grid_loc='2110',      &
-                           coordinates='TLONG TLAT time')
-
     call define_tavg_field(tavg_POC_ACCUM,'POC_ACCUM',3,                &
                            long_name='POC Accumulation',                &
                            units='mmol/m^3/s', grid_loc='3111',         &
                            coordinates='TLONG TLAT z_t time')
 
 !-----------------------------------------------------------------------
-!  Define tavg fields for zooplankton
+!  Define 2D tavg fields for zooplankton
+!-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
+!  Define 3D tavg fields for zooplankton
 !-----------------------------------------------------------------------
 
     do zoo_ind = 1, zooplankton_cnt
@@ -919,7 +936,39 @@ contains
 
 
 !-----------------------------------------------------------------------
-!  Define tavg fields for autotrophs
+!  Define 2D tavg fields for autotrophs
+!-----------------------------------------------------------------------
+
+    do auto_ind = 1, autotroph_cnt
+       call define_tavg_field(tavg_auto(photoC_zint_diag_ind,auto_ind), &
+                              'photoC_' // trim(autotrophs(auto_ind)%sname) // '_zint', 2, &
+                              long_name=trim(autotrophs(auto_ind)%lname) // ' C Fixation Vertical Integral', &
+                              units='mmol/m^3 cm/s', grid_loc='2110', &
+                              coordinates='TLONG TLAT time')
+
+       call define_tavg_field(tavg_auto(photoC_NO3_zint_diag_ind,auto_ind), &
+                              'photoC_NO3_' // trim(autotrophs(auto_ind)%sname) // '_zint',2, &
+                              long_name=trim(autotrophs(auto_ind)%lname) // ' C Fixation from NO3 Vertical Integral', &
+                              units='mmol/m^3 cm/s', grid_loc='2110', &
+                              coordinates='TLONG TLAT time')
+
+       if (autotrophs(auto_ind)%CaCO3_ind > 0) then
+          sname = trim(autotrophs(auto_ind)%sname) // '_CaCO3_form'
+          sname = trim(sname) // '_zint'
+          call define_tavg_field(tavg_auto(CaCO3_form_zint_diag_ind,auto_ind), sname, 2, &
+                                 long_name=trim(autotrophs(auto_ind)%lname) // ' CaCO3 Formation Vertical Integral', &
+                                 units='mmol/m^3 cm/s', grid_loc='2110', &
+                                 coordinates='TLONG TLAT time')
+       endif
+    end do
+
+    call define_tavg_field(tavg_tot_CaCO3_form_zint, 'CaCO3_form_zint', 2, &
+                           long_name='Total CaCO3 Formation Vertical Integral', &
+                           units='mmol/m^3 cm/s', grid_loc='2110', &
+                           coordinates='TLONG TLAT time')
+
+!-----------------------------------------------------------------------
+!  Define 3D tavg fields for autotrophs
 !-----------------------------------------------------------------------
 
     do auto_ind = 1, autotroph_cnt
@@ -959,23 +1008,11 @@ contains
                               units='mmol/m^3/s', grid_loc='3114', &
                               coordinates='TLONG TLAT z_t_150m time')
 
-       call define_tavg_field(tavg_auto(photoC_zint_diag_ind,auto_ind), &
-                              'photoC_' // trim(autotrophs(auto_ind)%sname) // '_zint', 2, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' C Fixation Vertical Integral', &
-                              units='mmol/m^3 cm/s', grid_loc='2110', &
-                              coordinates='TLONG TLAT time')
-
        call define_tavg_field(tavg_auto(photoC_NO3_diag_ind,auto_ind), &
                               'photoC_NO3_' // trim(autotrophs(auto_ind)%sname), 3, &
                               long_name=trim(autotrophs(auto_ind)%lname) // ' C Fixation from NO3', &
                               units='mmol/m^3/s', grid_loc='3114', &
                               coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto(photoC_NO3_zint_diag_ind,auto_ind), &
-                              'photoC_NO3_' // trim(autotrophs(auto_ind)%sname) // '_zint',2, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' C Fixation from NO3 Vertical Integral', &
-                              units='mmol/m^3 cm/s', grid_loc='2110', &
-                              coordinates='TLONG TLAT time')
 
        call define_tavg_field(tavg_auto(photoFe_diag_ind,auto_ind), &
                               'photoFe_' // trim(autotrophs(auto_ind)%sname), 3, &
@@ -1069,12 +1106,6 @@ contains
                                  long_name=trim(autotrophs(auto_ind)%lname) // ' CaCO3 Formation', &
                                  units='mmol/m^3/s', grid_loc='3114', &
                                  coordinates='TLONG TLAT z_t_150m time')
-
-          sname = trim(sname) // '_zint'
-          call define_tavg_field(tavg_auto(CaCO3_form_zint_diag_ind,auto_ind), sname, 2, &
-                                 long_name=trim(autotrophs(auto_ind)%lname) // ' CaCO3 Formation Vertical Integral', &
-                                 units='mmol/m^3 cm/s', grid_loc='2110', &
-                                 coordinates='TLONG TLAT time')
        endif
 
        if (autotrophs(auto_ind)%Nfixer) then
@@ -1099,11 +1130,6 @@ contains
                            long_name='Total CaCO3 Formation', &
                            units='mmol/m^3/s', grid_loc='3114', &
                            coordinates='TLONG TLAT z_t_150m time')
-
-    call define_tavg_field(tavg_tot_CaCO3_form_zint, 'CaCO3_form_zint', 2, &
-                           long_name='Total CaCO3 Formation Vertical Integral', &
-                           units='mmol/m^3 cm/s', grid_loc='2110', &
-                           coordinates='TLONG TLAT time')
 
     call define_tavg_field(tavg_tot_Nfix, 'Nfix', 3, &
                            long_name='Total N Fixation', &
@@ -1139,12 +1165,13 @@ contains
     integer :: i, auto_ind, zoo_ind
     logical :: accumulate
 
-   associate(                                                                          &
-        DIAGS                     => ecosys_diagnostics%DIAGS,                          &
-        AUTO_DIAGS                => ecosys_diagnostics%AUTO_DIAGS,                     &
-        ZOO_DIAGS                 => ecosys_diagnostics%ZOO_DIAGS,                      &
+   associate(                                                                 &
+        DIAGS_2D                  => ecosys_diagnostics%DIAGS_2D,             &
+        DIAGS_3D                  => ecosys_diagnostics%DIAGS_3D,             &
+        AUTO_DIAGS                => ecosys_diagnostics%AUTO_DIAGS,           &
+        ZOO_DIAGS                 => ecosys_diagnostics%ZOO_DIAGS,            &
         PART_DIAGS                => ecosys_diagnostics%PART_DIAGS)
-    do i=1,ecosys_diag_cnt
+    do i=1,ecosys_diag_cnt_2d
       accumulate = .true.
       select case (i)
         case (zsatcalc_diag_ind, zsatarag_diag_ind)
@@ -1152,9 +1179,12 @@ contains
         case (O2_ZMIN_diag_ind, O2_ZMIN_DEPTH_diag_ind)
           accumulate = (k.eq.1)
       end select
-
       if (accumulate) &
-        call accumulate_tavg_field(DIAGS(:,:,i),tavg_ecosys(i),bid,k)
+        call accumulate_tavg_field(DIAGS_2D(:,:,i),tavg_ecosys_2d(i),bid,k)
+    end do
+
+    do i=1,ecosys_diag_cnt_3d
+      call accumulate_tavg_field(DIAGS_3D(:,:,i),tavg_ecosys_3d(i),bid,k)
     end do
 
     ! Accumulate autotroph terms
