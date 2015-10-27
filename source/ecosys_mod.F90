@@ -209,115 +209,6 @@ module ecosys_mod
   use time_management, only : eval_time_flag
 
   use ecosys_constants, only : ecosys_tracer_cnt
-  ! standard diagnostics
-  use ecosys_diagnostics_mod, only : ecosys_diag_cnt_2d
-  use ecosys_diagnostics_mod, only : ecosys_diag_cnt_3d
-  use ecosys_diagnostics_mod, only : CO3_diag_ind
-  use ecosys_diagnostics_mod, only : HCO3_diag_ind
-  use ecosys_diagnostics_mod, only : H2CO3_diag_ind
-  use ecosys_diagnostics_mod, only : pH_3D_diag_ind
-  use ecosys_diagnostics_mod, only : CO3_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : HCO3_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : H2CO3_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : ph_3D_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : co3_sat_calc_diag_ind
-  use ecosys_diagnostics_mod, only : co3_sat_arag_diag_ind
-  use ecosys_diagnostics_mod, only : zsatcalc_diag_ind
-  use ecosys_diagnostics_mod, only : zsatarag_diag_ind
-  use ecosys_diagnostics_mod, only : NITRIF_diag_ind
-  use ecosys_diagnostics_mod, only : DENITRIF_diag_ind
-  use ecosys_diagnostics_mod, only : O2_ZMIN_diag_ind
-  use ecosys_diagnostics_mod, only : O2_ZMIN_DEPTH_diag_ind
-  use ecosys_diagnostics_mod, only : O2_PRODUCTION_diag_ind
-  use ecosys_diagnostics_mod, only : O2_CONSUMPTION_diag_ind
-  use ecosys_diagnostics_mod, only : AOU_diag_ind
-  use ecosys_diagnostics_mod, only : PAR_avg_diag_ind
-  use ecosys_diagnostics_mod, only : auto_graze_TOT_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_TOT_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_TOT_zint_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_NO3_TOT_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_NO3_TOT_zint_diag_ind
-  use ecosys_diagnostics_mod, only : DOC_prod_diag_ind
-  use ecosys_diagnostics_mod, only : DOC_remin_diag_ind
-  use ecosys_diagnostics_mod, only : DON_prod_diag_ind
-  use ecosys_diagnostics_mod, only : DON_remin_diag_ind
-  use ecosys_diagnostics_mod, only : DOP_prod_diag_ind
-  use ecosys_diagnostics_mod, only : DOP_remin_diag_ind
-  use ecosys_diagnostics_mod, only : DOFe_prod_diag_ind
-  use ecosys_diagnostics_mod, only : DOFe_remin_diag_ind
-  use ecosys_diagnostics_mod, only : Fe_scavenge_diag_ind
-  use ecosys_diagnostics_mod, only : Fe_scavenge_rate_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_Ctot_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_100m_Ctot_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_Ntot_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_100m_Ntot_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_Ptot_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_100m_Ptot_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_Sitot_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_100m_Sitot_diag_ind
-  ! autotroph diagnostics
-  use ecosys_diagnostics_mod, only : auto_diag_cnt
-  use ecosys_diagnostics_mod, only : N_lim_diag_ind
-  use ecosys_diagnostics_mod, only : P_lim_diag_ind
-  use ecosys_diagnostics_mod, only : Fe_lim_diag_ind
-  use ecosys_diagnostics_mod, only : SiO3_lim_diag_ind
-  use ecosys_diagnostics_mod, only : light_lim_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_zint_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_NO3_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_NO3_zint_diag_ind
-  use ecosys_diagnostics_mod, only : photoFe_diag_ind
-  use ecosys_diagnostics_mod, only : photoNO3_diag_ind
-  use ecosys_diagnostics_mod, only : photoNH4_diag_ind
-  use ecosys_diagnostics_mod, only : DOP_uptake_diag_ind
-  use ecosys_diagnostics_mod, only : PO4_uptake_diag_ind
-  use ecosys_diagnostics_mod, only : auto_graze_diag_ind
-  use ecosys_diagnostics_mod, only : auto_graze_poc_diag_ind
-  use ecosys_diagnostics_mod, only : auto_graze_doc_diag_ind
-  use ecosys_diagnostics_mod, only : auto_graze_zoo_diag_ind
-  use ecosys_diagnostics_mod, only : auto_loss_diag_ind
-  use ecosys_diagnostics_mod, only : auto_loss_poc_diag_ind
-  use ecosys_diagnostics_mod, only : auto_loss_doc_diag_ind
-  use ecosys_diagnostics_mod, only : auto_agg_diag_ind
-  use ecosys_diagnostics_mod, only : bSi_form_diag_ind
-  use ecosys_diagnostics_mod, only : CaCO3_form_diag_ind
-  use ecosys_diagnostics_mod, only : CaCO3_form_zint_diag_ind
-  use ecosys_diagnostics_mod, only : Nfix_diag_ind
-  ! zooplankton diagnostics
-  use ecosys_diagnostics_mod, only : zoo_diag_cnt
-  use ecosys_diagnostics_mod, only : zoo_loss_diag_ind
-  use ecosys_diagnostics_mod, only : zoo_loss_poc_diag_ind
-  use ecosys_diagnostics_mod, only : zoo_loss_doc_diag_ind
-  use ecosys_diagnostics_mod, only : zoo_graze_diag_ind
-  use ecosys_diagnostics_mod, only : zoo_graze_poc_diag_ind
-  use ecosys_diagnostics_mod, only : zoo_graze_doc_diag_ind
-  use ecosys_diagnostics_mod, only : zoo_graze_zoo_diag_ind
-  use ecosys_diagnostics_mod, only : x_graze_zoo_diag_ind
-  ! particulate diagnostics
-  use ecosys_diagnostics_mod, only : part_diag_cnt
-  use ecosys_diagnostics_mod, only : POC_FLUX_IN_diag_ind
-  use ecosys_diagnostics_mod, only : POC_PROD_diag_ind
-  use ecosys_diagnostics_mod, only : POC_REMIN_diag_ind
-  use ecosys_diagnostics_mod, only : CaCO3_FLUX_IN_diag_ind
-  use ecosys_diagnostics_mod, only : CaCO3_PROD_diag_ind
-  use ecosys_diagnostics_mod, only : CaCO3_REMIN_diag_ind
-  use ecosys_diagnostics_mod, only : SiO2_FLUX_IN_diag_ind
-  use ecosys_diagnostics_mod, only : SiO2_PROD_diag_ind
-  use ecosys_diagnostics_mod, only : SiO2_REMIN_diag_ind
-  use ecosys_diagnostics_mod, only : dust_FLUX_IN_diag_ind
-  use ecosys_diagnostics_mod, only : dust_REMIN_diag_ind
-  use ecosys_diagnostics_mod, only : P_iron_FLUX_IN_diag_ind
-  use ecosys_diagnostics_mod, only : P_iron_PROD_diag_ind
-  use ecosys_diagnostics_mod, only : P_iron_REMIN_diag_ind
-  use ecosys_diagnostics_mod, only : calcToSed_diag_ind
-  use ecosys_diagnostics_mod, only : bsiToSed_diag_ind
-  use ecosys_diagnostics_mod, only : pocToSed_diag_ind
-  use ecosys_diagnostics_mod, only : SedDenitrif_diag_ind
-  use ecosys_diagnostics_mod, only : OtherRemin_diag_ind
-  use ecosys_diagnostics_mod, only : ponToSed_diag_ind
-  use ecosys_diagnostics_mod, only : popToSed_diag_ind
-  use ecosys_diagnostics_mod, only : dustToSed_diag_ind
-  use ecosys_diagnostics_mod, only : pfeToSed_diag_ind
   ! tavg_forcing diagnostics
   use ecosys_diagnostics_mod, only : forcing_diag_cnt
   use ecosys_diagnostics_mod, only : ECOSYS_IFRAC_diag_ind
@@ -5680,11 +5571,6 @@ contains
 
     use constants       , only : c1
     use marbl_share_mod , only : autotroph_type
-    use ecosys_diagnostics_mod, only : auto_diag_cnt
-    use ecosys_diagnostics_mod, only : N_lim_diag_ind
-    use ecosys_diagnostics_mod, only : P_lim_diag_ind
-    use ecosys_diagnostics_mod, only : Fe_lim_diag_ind
-    use ecosys_diagnostics_mod, only : SiO3_lim_diag_ind
 
     integer(int_kind)                 , intent(in)  :: auto_cnt
     type(autotroph_type)              , intent(in)  :: auto_meta(auto_cnt)
