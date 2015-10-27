@@ -1809,11 +1809,6 @@ contains
              ! store_diagnostics_restore
              marbl_diagnostics(k)%restore_diags(:) = restore_local(:, k)
 
-             call store_diagnostics_autotroph_sums(k, domain%kmt, domain%dzt(k), domain%dz(k), &
-                  autotroph_cnt, autotroph_secondary_species(:, k), &
-                  marbl_diagnostics(k)%diags_2d(:), &
-                  marbl_diagnostics(k)%diags_3d(:))
-
              call store_diagnostics_particulates(k, domain%dz(k), POC, &
                   P_CaCO3, P_SiO2, &
                   dust,  P_iron, &
@@ -1924,6 +1919,10 @@ contains
           call store_diagnostics_autotrophs(domain, autotrophs,               &
                                             autotroph_secondary_species,      &
                                             marbl_diagnostics)
+
+          call store_diagnostics_autotroph_sums(domain,                       &
+                                                autotroph_secondary_species,  &
+                                                marbl_diagnostics)
 
           call store_diagnostics_nitrification(nitrif, denitrif,              &
                                                marbl_diagnostics)

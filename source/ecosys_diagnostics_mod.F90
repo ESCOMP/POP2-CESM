@@ -325,49 +325,40 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_autotroph_sums(k, column_kmt, column_dzt, column_dz, &
-       auto_cnt, autotroph_secondary_species, diags_2d, diags_3d)
+  subroutine store_diagnostics_autotroph_sums(marbl_domain,                   &
+                                              autotroph_secondary_species,    &
+                                              marbl_diags)
 
-    integer(int_kind), intent(in) :: k
-    integer(int_kind), intent(in) :: column_kmt
-    real (r8), intent(in) :: column_dzt, column_dz
-    integer(int_kind), intent(in) :: auto_cnt
-    type(autotroph_secondary_species_type), intent(in) :: autotroph_secondary_species(auto_cnt)
+    type(marbl_column_domain_type), intent(in) :: marbl_domain
+    type(autotroph_secondary_species_type), dimension(:,:), intent(in) :: autotroph_secondary_species ! autotroph_cnt, km
+    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
 
-    real(r8), intent(inout) :: diags_2d(ecosys_diag_cnt_2d)
-    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
 
-    integer(int_kind) :: n
-    real(r8) :: delta_z
-    real(r8) :: work1
+    integer(int_kind) :: n, k
+    real(r8), dimension(km) :: delta_z
 
-    if (k <= column_kmt) then
-       if (partial_bottom_cells) then
-          delta_z = column_dzt
-       else
-          delta_z = column_dz
-       endif
+    if (partial_bottom_cells) then
+          delta_z = marbl_domain%dzt
     else
-       delta_z = c0
-    end if
+          delta_z = marbl_domain%dz
+    endif
 
-    diags_3d(auto_graze_TOT_diag_ind) = sum(autotroph_secondary_species(:)%auto_graze)
+    marbl_diags%diags_3d(auto_graze_TOT_diag_ind) = sum(autotroph_secondary_species%auto_graze, dim=1)
 
-    diags_3d(photoC_TOT_diag_ind) = sum(autotroph_secondary_species(:)%photoC)
+    marbl_diags%diags_3d(photoC_TOT_diag_ind) = sum(autotroph_secondary_species%photoC, dim=1)
 
-    diags_2d(photoC_TOT_zint_diag_ind) = delta_z * sum(autotroph_secondary_species(:)%photoC)
+    marbl_diags%diags_2d(photoC_TOT_zint_diag_ind) = delta_z * sum(autotroph_secondary_species%photoC, dim=1)
 
-    ! --- begin work1 block ---
-    work1 = c0
-    do n = 1, autotroph_cnt
-       if (autotroph_secondary_species(n)%VNtot > c0) then
-          work1 = work1 + (autotroph_secondary_species(n)%VNO3 / autotroph_secondary_species(n)%VNtot) * autotroph_secondary_species(n)%photoC
-       end if
+    marbl_diags%diags_3d(photoC_NO3_TOT_diag_ind) = c0
+    do k=1,marbl_domain%kmt
+       do n = 1, autotroph_cnt
+          if (autotroph_secondary_species(n,k)%VNtot > c0) then
+             marbl_diags%diags_3d(photoC_NO3_TOT_diag_ind) =  marbl_diags%diags_3d(photoC_NO3_TOT_diag_ind)+ &
+                (autotroph_secondary_species(n,k)%VNO3 / autotroph_secondary_species(n,k)%VNtot) * autotroph_secondary_species(n,k)%photoC
+          end if
+       end do
     end do
-    diags_3d(photoC_NO3_TOT_diag_ind) = work1
-    diags_2d(photoC_NO3_TOT_zint_diag_ind) = delta_z * work1
-    ! --- end work1 block ---
-
+    marbl_diags%diags_2d(photoC_NO3_TOT_zint_diag_ind) = delta_z * marbl_diags%diags_3d(photoC_NO3_TOT_diag_ind)
 
   end subroutine store_diagnostics_autotroph_sums
 
