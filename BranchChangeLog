@@ -1,6 +1,28 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    27 Oct 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n09_cesm_pop_2_1_20150916a
+Tag Summary: fix incomplete MCOG infrastructure in ecosys/marbl
+
+roundoff changes to ecosys answers because some computations have been rearranged
+changes physics answers if chl_option = 'model'
+
+move photoacc computation from compute_autotroph_phyto_diatoms to compute_autotroph_photosynthesis
+change PAR dependent column average terms in photoacc computation to sub-column terms
+
+Testing
+aux_pop_MARBL:
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+      baseline comparisons to previous tags fail, because of answer changing mods
+
+M       source/ecosys_mod.F90
+M       BranchChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    24 Oct 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n08_cesm_pop_2_1_20150916a
 Tag Summary: incorporate MCOG infrastructure into ecosys/marbl, not coupled to MCOG forcing inputs

@@ -506,7 +506,6 @@ module ecosys_mod
      real (r8) :: NH4_V           ! ammonium uptake (mmol NH4/m^3/sec)
      real (r8) :: PO4_V           ! PO4 uptake (mmol PO4/m^3/sec)
      real (r8) :: DOP_V           ! DOP uptake (mmol DOP/m^3/sec)
-     real (r8) :: VNC             ! C-specific N uptake rate (mmol N/mmol C/sec)
      real (r8) :: VPO4            ! C-specific PO4 uptake (non-dim)
      real (r8) :: VDOP            ! C-specific DOP uptake rate (non-dim)
      real (r8) :: VPtot           ! total P uptake rate (non-dim)
@@ -1979,8 +1978,8 @@ contains
                   autotroph_local(:, k), domain%temperature(k), Tfunc(k), &
                   PAR%col_frac(:), PAR%avg(k,:), autotroph_secondary_species(:, k))
 
-             call compute_autotroph_phyto_diatoms (autotroph_cnt, domain%PAR_nsubcols, autotrophs, &
-                  autotroph_local(:, k), PAR%col_frac(:), PAR%avg(k,:), autotroph_secondary_species(:, k))
+             call compute_autotroph_phyto_diatoms (autotroph_cnt, autotrophs, &
+                  autotroph_local(:, k), autotroph_secondary_species(:, k))
 
              call compute_autotroph_calcification(autotroph_cnt, autotrophs, &
                   autotroph_local(:, k),  domain%temperature(k), autotroph_secondary_species(:, k))
@@ -5999,15 +5998,21 @@ contains
     real(r8)                               , intent(in)    :: PAR_avg(PAR_nsubcols)
     type(autotroph_secondary_species_type) , intent(inout) :: autotroph_secondary_species(auto_cnt)
 
-    integer   :: auto_ind, subcol_ind
-    real (r8) :: PCmax  ! max value of PCphoto at temperature TEMP (1/sec)
+    integer  :: auto_ind, subcol_ind
+    real(r8) :: PCmax            ! max value of PCphoto at temperature TEMP (1/sec)
+    real(r8) :: light_lim_subcol ! light_lim for a sub-column
+    real(r8) :: PCphoto_subcol   ! PCphoto for a sub-column
+    real(r8) :: pChl_subcol      ! Chl synth. regulation term (mg Chl/mmol N)
+    real(r8) :: photoacc_subcol  ! photoacc for a sub-column
 
-    associate(                                               &
+    associate(                                                  &
          thetaC    => autotroph_secondary_species(:)%thetaC,    & ! local Chl/C ratio (mg Chl/mmol C)
          f_nut     => autotroph_secondary_species(:)%f_nut,     & ! input
+         VNtot    => autotroph_secondary_species(:)%VNtot,      & ! input
          light_lim => autotroph_secondary_species(:)%light_lim, & ! output
          PCPhoto   => autotroph_secondary_species(:)%PCPhoto,   & ! output
-         photoC    => autotroph_secondary_species(:)%photoC     & ! output
+         photoC    => autotroph_secondary_species(:)%photoC,    & ! output
+         photoacc => autotroph_secondary_species(:)%photoacc    & ! output
          )
 
     do auto_ind = 1, auto_cnt
@@ -6019,18 +6024,32 @@ contains
 
        if (thetaC(auto_ind) > c0) then
           light_lim(auto_ind) = c0
+          PCphoto(auto_ind)   = c0
+          photoacc(auto_ind)  = c0
+
           do subcol_ind = 1, PAR_nsubcols
              if (PAR_avg(subcol_ind) > c0) then
-                light_lim(auto_ind) = light_lim(auto_ind) + PAR_col_frac(subcol_ind) * &
-                   (c1 - exp((-c1 * auto_meta(auto_ind)%alphaPI * thetaC(auto_ind) * PAR_avg(subcol_ind)) / (PCmax + epsTinv)))
+                light_lim_subcol = (c1 - exp((-c1 * auto_meta(auto_ind)%alphaPI * thetaC(auto_ind) * PAR_avg(subcol_ind)) / (PCmax + epsTinv)))
+
+                PCphoto_subcol = PCmax * light_lim_subcol
+
+                ! GD 98 Chl. synth. term
+                pChl_subcol = autotrophs(auto_ind)%thetaN_max * PCphoto_subcol / &
+                   (autotrophs(auto_ind)%alphaPI * thetaC(auto_ind) * PAR_avg(subcol_ind))
+                photoacc_subcol = (pChl_subcol * PCphoto_subcol * Q / thetaC(auto_ind)) * autotroph_loc(auto_ind)%Chl
+
+                light_lim(auto_ind) = light_lim(auto_ind) + PAR_col_frac(subcol_ind) * light_lim_subcol
+                PCphoto(auto_ind)   = PCphoto(auto_ind)   + PAR_col_frac(subcol_ind) * PCphoto_subcol
+                photoacc(auto_ind)  = photoacc(auto_ind)  + PAR_col_frac(subcol_ind) * photoacc_subcol
              end if
           end do
-          PCphoto(auto_ind) = PCmax * light_lim(auto_ind)
+
           photoC(auto_ind) = PCphoto(auto_ind) * autotroph_loc(auto_ind)%C
        else
           light_lim(auto_ind) = c0
-          PCphoto(auto_ind) = c0
-          photoC(auto_ind) = c0
+          PCphoto(auto_ind)   = c0
+          photoacc(auto_ind)  = c0
+          photoC(auto_ind)    = c0
        endif
 
     end do
@@ -6041,12 +6060,11 @@ contains
 
   !***********************************************************************
 
-  subroutine compute_autotroph_phyto_diatoms (auto_cnt, PAR_nsubcols, auto_meta, &
-       autotroph_loc, PAR_col_frac, PAR_avg, autotroph_secondary_species)
+  subroutine compute_autotroph_phyto_diatoms (auto_cnt, auto_meta, &
+       autotroph_loc, autotroph_secondary_species)
 
     !-----------------------------------------------------------------------
     !  Get nutrient uptakes by small phyto based on calculated C fixation
-    !  total N uptake VNC is used in photoadaption
     !-----------------------------------------------------------------------
 
     use marbl_share_mod , only : autotroph_type
@@ -6054,19 +6072,13 @@ contains
     use marbl_parms     , only : Q
 
     integer(int_kind)                      , intent(in)    :: auto_cnt
-    integer(int_kind)                      , intent(in)    :: PAR_nsubcols
     type(autotroph_type)                   , intent(in)    :: auto_meta(auto_cnt)
     type(autotroph_local_type)             , intent(in)    :: autotroph_loc(auto_cnt)
-    real(r8)                               , intent(in)    :: PAR_col_frac(PAR_nsubcols)
-    real(r8)                               , intent(in)    :: PAR_avg(PAR_nsubcols)
     type(autotroph_secondary_species_type) , intent(inout) :: autotroph_secondary_species(auto_cnt)
 
-    integer  :: auto_ind, subcol_ind
-    real(r8) :: WORK1 ! temporary
-    real(r8) :: pChl             ! Chl synth. regulation term (mg Chl/mmol N)
+    integer  :: auto_ind
 
     associate(                                            &
-         thetaC   => autotroph_secondary_species(:)%thetaC , & ! local Chl/C ratio (mg Chl/mmol C)
          gQfe     => autotroph_secondary_species(:)%gQfe,    & ! fe/C for growth
          gQsi     => autotroph_secondary_species(:)%gQsi,    & ! diatom Si/C ratio for growth (new biomass)
          VNO3     => autotroph_secondary_species(:)%VNO3,    & ! input
@@ -6075,16 +6087,13 @@ contains
          VPO4     => autotroph_secondary_species(:)%VPO4,    & ! input
          VDOP     => autotroph_secondary_species(:)%VDOP,    & ! input
          VPtot    => autotroph_secondary_species(:)%VPtot,   & ! input
-         PCphoto  => autotroph_secondary_species(:)%PCphoto, & ! input
          photoC   => autotroph_secondary_species(:)%photoC,  & ! input
          NO3_V    => autotroph_secondary_species(:)%NO3_V,   & ! output
          NH4_V    => autotroph_secondary_species(:)%NH4_V,   & ! output
-         VNC      => autotroph_secondary_species(:)%VNC,     & ! output
          PO4_V    => autotroph_secondary_species(:)%PO4_V,   & ! output
          DOP_V    => autotroph_secondary_species(:)%DOP_V,   & ! output
          photoFe  => autotroph_secondary_species(:)%photoFe, & ! output
-         photoSi  => autotroph_secondary_species(:)%photoSi, & ! output
-         photoacc => autotroph_secondary_species(:)%photoacc & ! output
+         photoSi  => autotroph_secondary_species(:)%photoSi  & ! output
          )
 
     do auto_ind = 1, auto_cnt
@@ -6092,11 +6101,9 @@ contains
        if (VNtot(auto_ind) > c0) then
           NO3_V(auto_ind) = (VNO3(auto_ind) / VNtot(auto_ind)) * photoC(auto_ind) * Q
           NH4_V(auto_ind) = (VNH4(auto_ind) / VNtot(auto_ind)) * photoC(auto_ind) * Q
-          VNC(auto_ind) = PCphoto(auto_ind) * Q
        else
           NO3_V(auto_ind) = c0
           NH4_V(auto_ind) = c0
-          VNC(auto_ind)   = c0
        end if
 
        if (VPtot(auto_ind) > c0) then
@@ -6116,25 +6123,6 @@ contains
        if (autotrophs(auto_ind)%Si_ind > 0) then
           photoSi(auto_ind) = photoC(auto_ind) * gQsi(auto_ind)
        endif
-
-       !-----------------------------------------------------------------------
-       !  calculate pChl, (used in photoadapt., GD98)
-       !  2.3   max value of thetaN (Chl/N ratio) (mg Chl/mmol N)
-       !  GD 98 Chl. synth. term
-       !-----------------------------------------------------------------------
-
-       photoacc(auto_ind) = c0
-
-       if (thetaC(auto_ind) > c0) then
-          do subcol_ind = 1, PAR_nsubcols
-             if (PAR_avg(subcol_ind) > c0) then
-                WORK1 = autotrophs(auto_ind)%alphaPI * thetaC(auto_ind) * PAR_avg(subcol_ind)
-                pChl = autotrophs(auto_ind)%thetaN_max * PCphoto(auto_ind) / WORK1
-                photoacc(auto_ind) = photoacc(auto_ind) + PAR_col_frac(subcol_ind) * &
-                   (pChl * VNC(auto_ind) / thetaC(auto_ind)) * autotroph_loc(auto_ind)%Chl
-             end if
-          end do
-       end if
 
     end do
 
