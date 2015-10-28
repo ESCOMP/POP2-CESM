@@ -1561,7 +1561,7 @@ contains
     integer (int_kind), intent(in) :: bid       ! local_block id
     real (r8), intent(out) :: dtracer(ecosys_tracer_cnt, km)      ! computed source/sink terms
 
-    type(marbl_diagnostics_type), intent(inout) :: marbl_diagnostics(km)
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diagnostics
 
     type(marbl_saved_state_type), intent(inout) :: saved_state
     type(ecosys_restore_type), intent(inout) :: ecosys_restore
@@ -1803,7 +1803,7 @@ contains
 
 
              ! store_diagnostics_restore
-             marbl_diagnostics(k)%restore_diags(:) = restore_local(:, k)
+             marbl_diagnostics%restore_diags(k, :) = restore_local(:, k)
 
              if (lexport_shared_vars) then
                 call export_interior_shared_variables(tracer_local(:, k), &

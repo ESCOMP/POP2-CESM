@@ -532,7 +532,7 @@ contains
     integer (int_kind) :: k ! vertical level index
     integer (int_kind) :: n, d
     integer (int_kind) :: bid ! local block address for this block
-    type(marbl_diagnostics_type) :: marbl_diagnostics(km)
+    type(marbl_diagnostics_type) :: marbl_diagnostics
 
     type(marbl_column_domain_type) :: marbl_domain
 
@@ -552,15 +552,12 @@ contains
 
     call marbl%set_interior()
 
-    do k = 1, km
-       allocate(marbl_diagnostics(k)%DIAGS_2D(ecosys_diag_cnt_2d))
-       allocate(marbl_diagnostics(k)%DIAGS_3D(ecosys_diag_cnt_3d))
-       allocate(marbl_diagnostics(k)%AUTO_DIAGS(auto_diag_cnt, autotroph_cnt))
-       allocate(marbl_diagnostics(k)%ZOO_DIAGS(zoo_diag_cnt, zooplankton_cnt))
-       allocate(marbl_diagnostics(k)%PART_DIAGS(part_diag_cnt))
-       allocate(marbl_diagnostics(k)%restore_diags(ecosys_tracer_cnt))
-
-    end do
+    allocate(marbl_diagnostics%DIAGS_2D(km,ecosys_diag_cnt_2d))
+    allocate(marbl_diagnostics%DIAGS_3D(km,ecosys_diag_cnt_3d))
+    allocate(marbl_diagnostics%AUTO_DIAGS(km,auto_diag_cnt, autotroph_cnt))
+    allocate(marbl_diagnostics%ZOO_DIAGS(km,zoo_diag_cnt, zooplankton_cnt))
+    allocate(marbl_diagnostics%PART_DIAGS(km,part_diag_cnt))
+    allocate(marbl_diagnostics%restore_diags(km,ecosys_tracer_cnt))
 
     ! FIXME(bja, 2015-07) one time copy of global marbl_domain
     ! related memory from slab to column ordering. move entire
@@ -629,31 +626,31 @@ contains
                end do ! do n
 
                do d = 1, ecosys_diag_cnt_2d
-                  ecosys_diagnostics(k, bid)%diags_2d(i, c, d) = marbl_diagnostics(k)%diags_2d(d)
+                  ecosys_diagnostics(k, bid)%diags_2d(i, c, d) = marbl_diagnostics%diags_2d(k, d)
                end do
           
                do d = 1, ecosys_diag_cnt_3d
-                  ecosys_diagnostics(k, bid)%diags_3d(i, c, d) = marbl_diagnostics(k)%diags_3d(d)
+                  ecosys_diagnostics(k, bid)%diags_3d(i, c, d) = marbl_diagnostics%diags_3d(k, d)
                end do
           
                do n = 1, autotroph_cnt
                   do d = 1, auto_diag_cnt
-                     ecosys_diagnostics(k, bid)%auto_diags(i, c, n, d) = marbl_diagnostics(k)%auto_diags(d, n)
+                     ecosys_diagnostics(k, bid)%auto_diags(i, c, n, d) = marbl_diagnostics%auto_diags(k, d, n)
                   end do ! do d
                end do ! do n
 
                do n = 1, zooplankton_cnt
                   do d = 1, zoo_diag_cnt
-                     ecosys_diagnostics(k, bid)%zoo_diags(i, c, n, d) = marbl_diagnostics(k)%zoo_diags(d, n)
+                     ecosys_diagnostics(k, bid)%zoo_diags(i, c, n, d) = marbl_diagnostics%zoo_diags(k, d, n)
                   end do ! do d
                end do ! do n
 
                do d = 1, part_diag_cnt
-                  ecosys_diagnostics(k, bid)%part_diags(i, c, d) = marbl_diagnostics(k)%part_diags(d)
+                  ecosys_diagnostics(k, bid)%part_diags(i, c, d) = marbl_diagnostics%part_diags(k, d)
                end do ! do d
 
                do d = 1, ecosys_tracer_cnt
-                  ecosys_diagnostics(k, bid)%restore_diags(i, c, d) = marbl_diagnostics(k)%restore_diags(d)
+                  ecosys_diagnostics(k, bid)%restore_diags(i, c, d) = marbl_diagnostics%restore_diags(k, d)
                end do ! do d
             end do ! do k
           end if ! KMT > 0
@@ -691,14 +688,12 @@ contains
        end do
     end if
 
-    do k = 1, km
-       deallocate(marbl_diagnostics(k)%diags_2d)
-       deallocate(marbl_diagnostics(k)%diags_3d)
-       deallocate(marbl_diagnostics(k)%auto_diags)
-       deallocate(marbl_diagnostics(k)%zoo_diags)
-       deallocate(marbl_diagnostics(k)%part_diags)
-       deallocate(marbl_diagnostics(k)%restore_diags)
-    end do
+    deallocate(marbl_diagnostics%diags_2d)
+    deallocate(marbl_diagnostics%diags_3d)
+    deallocate(marbl_diagnostics%auto_diags)
+    deallocate(marbl_diagnostics%zoo_diags)
+    deallocate(marbl_diagnostics%part_diags)
+    deallocate(marbl_diagnostics%restore_diags)
 
     deallocate(marbl_domain%dzt)
     deallocate(marbl_domain%dz)

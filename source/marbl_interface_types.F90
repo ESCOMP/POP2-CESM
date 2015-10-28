@@ -55,12 +55,12 @@ module marbl_interface_types
   end type ecosys_diagnostics_type
 
   type, public :: marbl_diagnostics_type
-     real(r8), allocatable :: diags_2d(:)        ! (ecosys_diag_cnt_2d)
-     real(r8), allocatable :: diags_3d(:)        ! (ecosys_diag_cnt_2d)
-     real(r8), allocatable :: auto_diags(:, :) ! (auto_diag_cnt, autotroph_cnt)
-     real(r8), allocatable :: zoo_diags(:, :)  ! (zoo_diag_cnt, zooplankton_cnt)
-     real(r8), allocatable :: part_diags(:)      ! (part_diag_cnt)
-     real(r8), allocatable :: restore_diags(:) ! (ecosys_tracer_cnt, ny_block, nx_block)
+     real(r8), allocatable :: diags_2d(:,:)        ! (km, ecosys_diag_cnt_2d)
+     real(r8), allocatable :: diags_3d(:,:)        ! (km, ecosys_diag_cnt_3d)
+     real(r8), allocatable :: auto_diags(:, :, :) ! (km, auto_diag_cnt, autotroph_cnt)
+     real(r8), allocatable :: zoo_diags(:, :, :)  ! (km, zoo_diag_cnt, zooplankton_cnt)
+     real(r8), allocatable :: part_diags(:,:)      ! (km, part_diag_cnt)
+     real(r8), allocatable :: restore_diags(:,:) ! (km, ecosys_tracer_cnt)
   end type marbl_diagnostics_type
 
   type, public :: carbonate_type

@@ -213,20 +213,25 @@ contains
     type(carbonate_type), dimension(:), intent(in) :: carbonate
     real(r8), dimension(:), intent(in) :: zsat_calcite
     real(r8), dimension(:), intent(in) :: zsat_aragonite
-    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
-    marbl_diags%diags_3d(CO3_diag_ind) = carbonate%CO3
-    marbl_diags%diags_3d(HCO3_diag_ind) = carbonate%HCO3
-    marbl_diags%diags_3d(H2CO3_diag_ind) = carbonate%H2CO3
-    marbl_diags%diags_3d(pH_3D_diag_ind) = carbonate%pH
-    marbl_diags%diags_3d(CO3_ALT_CO2_diag_ind) = carbonate%CO3_ALT_CO2
-    marbl_diags%diags_3d(HCO3_ALT_CO2_diag_ind) = carbonate%HCO3_ALT_CO2
-    marbl_diags%diags_3d(H2CO3_ALT_CO2_diag_ind) = carbonate%H2CO3_ALT_CO2
-    marbl_diags%diags_3d(pH_3D_ALT_CO2_diag_ind) = carbonate%pH_ALT_CO2
-    marbl_diags%diags_3d(co3_sat_calc_diag_ind) = carbonate%CO3_sat_calcite
-    marbl_diags%diags_3d(co3_sat_arag_diag_ind) = carbonate%CO3_sat_aragonite
-    marbl_diags%diags_2d(zsatcalc_diag_ind) = zsat_calcite
-    marbl_diags%diags_2d(zsatarag_diag_ind) = zsat_aragonite
+    associate(                                                                &
+              diags_2d => marbl_diags%diags_2d,                               &
+              diags_3d => marbl_diags%diags_3d                                &
+              )
+      diags_3d(:, CO3_diag_ind) = carbonate%CO3
+      diags_3d(:, HCO3_diag_ind) = carbonate%HCO3
+      diags_3d(:, H2CO3_diag_ind) = carbonate%H2CO3
+      diags_3d(:, pH_3D_diag_ind) = carbonate%pH
+      diags_3d(:, CO3_ALT_CO2_diag_ind) = carbonate%CO3_ALT_CO2
+      diags_3d(:, HCO3_ALT_CO2_diag_ind) = carbonate%HCO3_ALT_CO2
+      diags_3d(:, H2CO3_ALT_CO2_diag_ind) = carbonate%H2CO3_ALT_CO2
+      diags_3d(:, pH_3D_ALT_CO2_diag_ind) = carbonate%pH_ALT_CO2
+      diags_3d(:, co3_sat_calc_diag_ind) = carbonate%CO3_sat_calcite
+      diags_3d(:, co3_sat_arag_diag_ind) = carbonate%CO3_sat_aragonite
+      diags_2d(:, zsatcalc_diag_ind) = zsat_calcite
+      diags_2d(:, zsatarag_diag_ind) = zsat_aragonite
+    end associate
 
   end subroutine store_diagnostics_carbonate
 
@@ -236,10 +241,12 @@ contains
 
     real(r8), dimension(:), intent(in) :: nitrif
     real(r8), dimension(:), intent(in) :: denitrif
-    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
-    marbl_diags%diags_3d(NITRIF_diag_ind) = nitrif
-    marbl_diags%diags_3d(DENITRIF_diag_ind) = denitrif
+    associate(diags_3d => marbl_diags%diags_3d)
+      diags_3d(:, NITRIF_diag_ind) = nitrif
+      diags_3d(:, DENITRIF_diag_ind) = denitrif
+    end associate
 
   end subroutine store_diagnostics_nitrification
 
@@ -253,7 +260,7 @@ contains
 
     type(marbl_column_domain_type), intent(in) :: marbl_domain
     type(autotroph_secondary_species_type), dimension(:,:), intent(in) :: autotroph_secondary_species ! autotroph_cnt, km
-    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
     integer(int_kind) :: n, k
     real(r8), dimension(km) :: delta_z
@@ -264,61 +271,60 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    do n = 1, autotroph_cnt
-       marbl_diags%auto_diags(N_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VNtot
-       marbl_diags%auto_diags(Fe_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VFe
-       marbl_diags%auto_diags(P_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VPtot
+    associate(auto_diags => marbl_diags%auto_diags)
+      do n = 1, autotroph_cnt
+         auto_diags(:, N_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VNtot
+         auto_diags(:, Fe_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VFe
+         auto_diags(:, P_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VPtot
 
-       if (autotrophs(n)%kSiO3 > c0) then
-          marbl_diags%auto_diags(SiO3_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VSiO3
-       end if
+         if (autotrophs(n)%kSiO3 > c0) then
+            auto_diags(:, SiO3_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VSiO3
+         end if
 
-       marbl_diags%auto_diags(light_lim_diag_ind, n) = autotroph_secondary_species(n,:)%light_lim
-       marbl_diags%auto_diags(photoNO3_diag_ind, n) = autotroph_secondary_species(n,:)%NO3_V
-       marbl_diags%auto_diags(photoNH4_diag_ind, n) = autotroph_secondary_species(n,:)%NH4_V
-       marbl_diags%auto_diags(PO4_uptake_diag_ind, n) = autotroph_secondary_species(n,:)%PO4_V
-       marbl_diags%auto_diags(DOP_uptake_diag_ind, n) = autotroph_secondary_species(n,:)%DOP_V
-       marbl_diags%auto_diags(photoFE_diag_ind, n) = autotroph_secondary_species(n,:)%photoFe
+         auto_diags(:, light_lim_diag_ind, n) = autotroph_secondary_species(n,:)%light_lim
+         auto_diags(:, photoNO3_diag_ind, n) = autotroph_secondary_species(n,:)%NO3_V
+         auto_diags(:, photoNH4_diag_ind, n) = autotroph_secondary_species(n,:)%NH4_V
+         auto_diags(:, PO4_uptake_diag_ind, n) = autotroph_secondary_species(n,:)%PO4_V
+         auto_diags(:, DOP_uptake_diag_ind, n) = autotroph_secondary_species(n,:)%DOP_V
+         auto_diags(:, photoFE_diag_ind, n) = autotroph_secondary_species(n,:)%photoFe
 
-       if (autotrophs(n)%Si_ind > 0) then
-          marbl_diags%auto_diags(bSi_form_diag_ind, n) = autotroph_secondary_species(n,:)%photoSi
-       endif
+         if (autotrophs(n)%Si_ind > 0) then
+           auto_diags(:, bSi_form_diag_ind, n) = autotroph_secondary_species(n,:)%photoSi
+         endif
 
-       marbl_diags%auto_diags(CaCO3_form_diag_ind, n) = autotroph_secondary_species(n,:)%CaCO3_PROD
+         auto_diags(:, CaCO3_form_diag_ind, n) = autotroph_secondary_species(n,:)%CaCO3_PROD
+         auto_diags(:, Nfix_diag_ind, n) = autotroph_secondary_species(n,:)%Nfix
+         auto_diags(:, auto_graze_diag_ind, n)      = autotroph_secondary_species(n,:)%auto_graze
+         auto_diags(:, auto_graze_poc_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_poc
+         auto_diags(:, auto_graze_doc_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_doc
+         auto_diags(:, auto_graze_zoo_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_zoo
+         auto_diags(:, auto_loss_diag_ind, n)       = autotroph_secondary_species(n,:)%auto_loss
+         auto_diags(:, auto_loss_poc_diag_ind, n)   = autotroph_secondary_species(n,:)%auto_loss_poc
+         auto_diags(:, auto_loss_doc_diag_ind, n)   = autotroph_secondary_species(n,:)%auto_loss_doc
+         auto_diags(:, auto_agg_diag_ind, n)        = autotroph_secondary_species(n,:)%auto_agg
+         auto_diags(:, photoC_diag_ind, n)          = autotroph_secondary_species(n,:)%photoC
 
-       marbl_diags%auto_diags(Nfix_diag_ind, n) = autotroph_secondary_species(n,:)%Nfix
-
-       marbl_diags%auto_diags(auto_graze_diag_ind, n)      = autotroph_secondary_species(n,:)%auto_graze
-       marbl_diags%auto_diags(auto_graze_poc_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_poc
-       marbl_diags%auto_diags(auto_graze_doc_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_doc
-       marbl_diags%auto_diags(auto_graze_zoo_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_zoo
-       marbl_diags%auto_diags(auto_loss_diag_ind, n)       = autotroph_secondary_species(n,:)%auto_loss
-       marbl_diags%auto_diags(auto_loss_poc_diag_ind, n)   = autotroph_secondary_species(n,:)%auto_loss_poc
-       marbl_diags%auto_diags(auto_loss_doc_diag_ind, n)   = autotroph_secondary_species(n,:)%auto_loss_doc
-       marbl_diags%auto_diags(auto_agg_diag_ind, n)        = autotroph_secondary_species(n,:)%auto_agg
-       marbl_diags%auto_diags(photoC_diag_ind, n)          = autotroph_secondary_species(n,:)%photoC
-
-       marbl_diags%auto_diags(CaCO3_form_zint_diag_ind, n) = c0
-       marbl_diags%auto_diags(photoC_zint_diag_ind, n) = c0
-       marbl_diags%auto_diags(photoC_NO3_zint_diag_ind, n) = c0
-       marbl_diags%auto_diags(photoC_NO3_diag_ind, n) = c0
-       where (autotroph_secondary_species(n,:)%VNtot > c0)
-          marbl_diags%auto_diags(photoC_NO3_diag_ind, n) =                    &
+         auto_diags(:, CaCO3_form_zint_diag_ind, n) = c0
+         auto_diags(:, photoC_zint_diag_ind, n) = c0
+         auto_diags(:, photoC_NO3_zint_diag_ind, n) = c0
+         auto_diags(:, photoC_NO3_diag_ind, n) = c0
+         where (autotroph_secondary_species(n,:)%VNtot > c0)
+           auto_diags(:, photoC_NO3_diag_ind, n) =                            &
  autotroph_secondary_species(n,:)%photoC *                                    &
  (autotroph_secondary_species(n,:)%VNO3 / autotroph_secondary_species(n,:)%VNtot)
-       end where
+         end where
 
-       ! vertical integrals
-       do k = 1,marbl_domain%kmt
-         marbl_diags(k)%auto_diags(CaCO3_form_zint_diag_ind, n) = delta_z(k) * &
-                                   autotroph_secondary_species(n,k)%CaCO3_PROD
-         marbl_diags(k)%auto_diags(photoC_zint_diag_ind, n) = delta_z(k) *     &
-                                       autotroph_secondary_species(n,k)%photoC
-         marbl_diags(k)%auto_diags(photoC_NO3_zint_diag_ind, n) = delta_z(k)*  &
-                             marbl_diags(k)%auto_diags(photoC_NO3_diag_ind, n)
-       end do
-       
-    end do ! do n
+         ! vertical integrals
+         do k = 1,marbl_domain%kmt
+           auto_diags(k, CaCO3_form_zint_diag_ind, n) = delta_z(k) *          &
+                                  autotroph_secondary_species(n,k)%CaCO3_PROD
+           auto_diags(k, photoC_zint_diag_ind, n) = delta_z(k) *              &
+                                      autotroph_secondary_species(n,k)%photoC
+           auto_diags(k, photoC_NO3_zint_diag_ind, n) = delta_z(k)*           &
+                                        auto_diags(k, photoC_NO3_diag_ind, n)
+         end do
+      end do ! do n
+    end associate
 
   end subroutine store_diagnostics_autotrophs
 
@@ -330,10 +336,10 @@ contains
 
     type(marbl_column_domain_type), intent(in) :: marbl_domain
     type(autotroph_secondary_species_type), dimension(:,:), intent(in) :: autotroph_secondary_species ! autotroph_cnt, km
-    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
 
-    integer(int_kind) :: n, k
+    integer(int_kind) :: n
     real(r8), dimension(km) :: delta_z
 
     if (partial_bottom_cells) then
@@ -342,22 +348,30 @@ contains
           delta_z = marbl_domain%dz
     endif
 
-    marbl_diags%diags_3d(auto_graze_TOT_diag_ind) = sum(autotroph_secondary_species%auto_graze, dim=1)
+    associate(                                                                &
+              diags_2d => marbl_diags%diags_2d,                               &
+              diags_3d => marbl_diags%diags_3d                                &
+              )
+      diags_3d(:, auto_graze_TOT_diag_ind) =                                  &
+                           sum(autotroph_secondary_species%auto_graze, dim=1)
+      diags_3d(:, photoC_TOT_diag_ind) =                                      &
+                           sum(autotroph_secondary_species%photoC, dim=1)
+      diags_2d(:, photoC_TOT_zint_diag_ind) =                                 &
+                 delta_z * sum(autotroph_secondary_species%photoC, dim=1)
 
-    marbl_diags%diags_3d(photoC_TOT_diag_ind) = sum(autotroph_secondary_species%photoC, dim=1)
-
-    marbl_diags%diags_2d(photoC_TOT_zint_diag_ind) = delta_z * sum(autotroph_secondary_species%photoC, dim=1)
-
-    marbl_diags%diags_3d(photoC_NO3_TOT_diag_ind) = c0
-    do k=1,marbl_domain%kmt
-       do n = 1, autotroph_cnt
-          if (autotroph_secondary_species(n,k)%VNtot > c0) then
-             marbl_diags%diags_3d(photoC_NO3_TOT_diag_ind) =  marbl_diags%diags_3d(photoC_NO3_TOT_diag_ind)+ &
-                (autotroph_secondary_species(n,k)%VNO3 / autotroph_secondary_species(n,k)%VNtot) * autotroph_secondary_species(n,k)%photoC
-          end if
-       end do
-    end do
-    marbl_diags%diags_2d(photoC_NO3_TOT_zint_diag_ind) = delta_z * marbl_diags%diags_3d(photoC_NO3_TOT_diag_ind)
+      diags_3d(:, photoC_NO3_TOT_diag_ind) = c0
+      do n = 1, autotroph_cnt
+        where (autotroph_secondary_species(n,:)%VNtot > c0)
+          diags_3d(:, photoC_NO3_TOT_diag_ind) =                          &
+                                   diags_3d(:, photoC_NO3_TOT_diag_ind) + &
+                                 (autotroph_secondary_species(n,:)%VNO3 / &
+                                autotroph_secondary_species(n,:)%VNtot) * &
+                                autotroph_secondary_species(n,:)%photoC
+        end where
+      end do
+      diags_2d(:, photoC_NO3_TOT_zint_diag_ind) =                             &
+                              delta_z * diags_3d(:, photoC_NO3_TOT_diag_ind)
+    end associate
 
   end subroutine store_diagnostics_autotroph_sums
 
@@ -383,7 +397,7 @@ contains
     type(column_sinking_particle_type), intent(in) :: P_iron
     real(r8), dimension(:), intent(in) :: sed_denitrif ! km
     real(r8), dimension(:), intent(in) :: other_remin  ! km
-    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
     real(r8), dimension(km) :: delta_z
 
@@ -392,34 +406,36 @@ contains
     else
        delta_z = marbl_domain%dz
     end if
-    marbl_diags%part_diags(POC_FLUX_IN_diag_ind) = POC%sflux_in + POC%hflux_in
-    marbl_diags%part_diags(POC_PROD_diag_ind) = POC%prod
-    marbl_diags%part_diags(POC_REMIN_diag_ind) = POC%remin
+    associate(part_diags => marbl_diags%part_diags)
+      part_diags(:, POC_FLUX_IN_diag_ind) = POC%sflux_in + POC%hflux_in
+      part_diags(:, POC_PROD_diag_ind) = POC%prod
+      part_diags(:, POC_REMIN_diag_ind) = POC%remin
 
-    marbl_diags%part_diags(CaCO3_FLUX_IN_diag_ind) = P_CaCO3%sflux_in + P_CaCO3%hflux_in
-    marbl_diags%part_diags(CaCO3_PROD_diag_ind) = P_CaCO3%prod
-    marbl_diags%part_diags(CaCO3_REMIN_diag_ind) = P_CaCO3%remin
+      part_diags(:, CaCO3_FLUX_IN_diag_ind) = P_CaCO3%sflux_in + P_CaCO3%hflux_in
+      part_diags(:, CaCO3_PROD_diag_ind) = P_CaCO3%prod
+      part_diags(:, CaCO3_REMIN_diag_ind) = P_CaCO3%remin
 
-    marbl_diags%part_diags(SiO2_FLUX_IN_diag_ind) = P_SiO2%sflux_in + P_SiO2%hflux_in
-    marbl_diags%part_diags(SiO2_PROD_diag_ind) = P_SiO2%prod
-    marbl_diags%part_diags(SiO2_REMIN_diag_ind) = P_SiO2%remin
+      part_diags(:, SiO2_FLUX_IN_diag_ind) = P_SiO2%sflux_in + P_SiO2%hflux_in
+      part_diags(:, SiO2_PROD_diag_ind) = P_SiO2%prod
+      part_diags(:, SiO2_REMIN_diag_ind) = P_SiO2%remin
 
-    marbl_diags%part_diags(dust_FLUX_IN_diag_ind) = dust%sflux_in + dust%hflux_in
-    marbl_diags%part_diags(dust_REMIN_diag_ind) = P_SiO2%remin
+      part_diags(:, dust_FLUX_IN_diag_ind) = dust%sflux_in + dust%hflux_in
+      part_diags(:, dust_REMIN_diag_ind) = P_SiO2%remin
 
-    marbl_diags%part_diags(P_iron_FLUX_IN_diag_ind) = P_iron%sflux_in + P_iron%hflux_in
-    marbl_diags%part_diags(P_iron_PROD_diag_ind) = P_iron%prod
-    marbl_diags%part_diags(P_iron_REMIN_diag_ind) = P_iron%remin
+      part_diags(:, P_iron_FLUX_IN_diag_ind) = P_iron%sflux_in + P_iron%hflux_in
+      part_diags(:, P_iron_PROD_diag_ind) = P_iron%prod
+      part_diags(:, P_iron_REMIN_diag_ind) = P_iron%remin
 
-    marbl_diags%part_diags(calcToSed_diag_ind) = P_CaCO3%sed_loss
-    marbl_diags%part_diags(bsiToSed_diag_ind) = P_SiO2%sed_loss
-    marbl_diags%part_diags(pocToSed_diag_ind) = POC%sed_loss
-    marbl_diags%part_diags(SedDenitrif_diag_ind) = sed_denitrif * delta_z
-    marbl_diags%part_diags(OtherRemin_diag_ind) = other_remin * delta_z
-    marbl_diags%part_diags(ponToSed_diag_ind) = (POC%sed_loss * Q)
-    marbl_diags%part_diags(popToSed_diag_ind) = (POC%sed_loss * Qp_zoo_pom)
-    marbl_diags%part_diags(dustToSed_diag_ind) = dust%sed_loss
-    marbl_diags%part_diags(pfeToSed_diag_ind) = P_iron%sed_loss
+      part_diags(:, calcToSed_diag_ind) = P_CaCO3%sed_loss
+      part_diags(:, bsiToSed_diag_ind) = P_SiO2%sed_loss
+      part_diags(:, pocToSed_diag_ind) = POC%sed_loss
+      part_diags(:, SedDenitrif_diag_ind) = sed_denitrif * delta_z
+      part_diags(:, OtherRemin_diag_ind) = other_remin * delta_z
+      part_diags(:, ponToSed_diag_ind) = (POC%sed_loss * Q)
+      part_diags(:, popToSed_diag_ind) = (POC%sed_loss * Qp_zoo_pom)
+      part_diags(:, dustToSed_diag_ind) = dust%sed_loss
+      part_diags(:, pfeToSed_diag_ind) = P_iron%sed_loss
+    end associate
 
   end subroutine store_diagnostics_particulates
 
@@ -436,33 +452,36 @@ contains
     real(r8), dimension(:), intent(in) :: column_o2
     real(r8), dimension(:), intent(in) :: o2_production
     real(r8), dimension(:), intent(in) :: o2_consumption
-    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
     integer(int_kind) :: k, min_ind
 
     ! Find min_o2 and depth_min_o2
-    min_ind = minloc(column_o2(1:marbl_domain%kmt), dim=1)
-    if ((min_ind.gt.0).and.(min_ind.le.marbl_domain%kmt)) then
-      marbl_diags%diags_2d(O2_ZMIN_diag_ind) = column_o2(min_ind)
-      marbl_diags%diags_2d(O2_ZMIN_DEPTH_diag_ind) = column_zt(min_ind)
-    else
-      marbl_diags%diags_2d(O2_ZMIN_diag_ind) = column_o2(1)
-      marbl_diags%diags_2d(O2_ZMIN_DEPTH_diag_ind) = column_zt(1)
-    end if
+    associate(                                                                &
+              diags_2d => marbl_diags%diags_2d,                               &
+              diags_3d => marbl_diags%diags_3d                                &
+              )
+      min_ind = minloc(column_o2(1:marbl_domain%kmt), dim=1)
+      if ((min_ind.gt.0).and.(min_ind.le.marbl_domain%kmt)) then
+        diags_2d(:, O2_ZMIN_diag_ind) = column_o2(min_ind)
+        diags_2d(:, O2_ZMIN_DEPTH_diag_ind) = column_zt(min_ind)
+      else
+        diags_2d(:, O2_ZMIN_diag_ind) = column_o2(1)
+        diags_2d(:, O2_ZMIN_DEPTH_diag_ind) = column_zt(1)
+      end if
 
-    marbl_diags%diags_3d(O2_PRODUCTION_diag_ind) = o2_production
-    marbl_diags%diags_3d(O2_CONSUMPTION_diag_ind) = o2_consumption
+      diags_3d(:, O2_PRODUCTION_diag_ind) = o2_production
+      diags_3d(:, O2_CONSUMPTION_diag_ind) = o2_consumption
 
-    
-    marbl_diags%diags_3d(AOU_diag_ind) = -column_o2
-    do k=1,marbl_domain%kmt
-       if (marbl_domain%land_mask) then
-          marbl_diags(k)%diags_3d(AOU_diag_ind) =                             &
+      diags_3d(:, AOU_diag_ind) = -column_o2
+      do k=1,marbl_domain%kmt
+        if (marbl_domain%land_mask) then
+          diags_3d(k, AOU_diag_ind) =                                         &
         O2SAT_scalar(marbl_domain%temperature(k), marbl_domain%salinity(k)) - &
         column_o2(k)
-       end if
-    end do
-
+        end if
+      end do
+    end associate
 
   end subroutine store_diagnostics_oxygen
 
@@ -472,18 +491,18 @@ contains
        PAR, marbl_diags)
 
     type(photosynthetically_available_radiation_type), dimension(:), intent(in) :: PAR
-    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
-    marbl_diags%diags_3d(PAR_avg_diag_ind) = PAR%avg
+    associate(diags_3d => marbl_diags%diags_3d)
+      diags_3d(:, PAR_avg_diag_ind) = PAR%avg
+    end associate
 
   end subroutine store_diagnostics_photosynthetically_available_radiation
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_misc(diags_3d)
-    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
-
-
+  subroutine store_diagnostics_misc(marbl_diags)
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
   end subroutine store_diagnostics_misc
 
   !-----------------------------------------------------------------------
@@ -493,20 +512,22 @@ contains
 
     type(zooplankton_secondary_species_type), dimension(:,:), intent(in) ::   &
                                               zooplankton_secondary_species
-    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
     integer(int_kind) :: n
 
-    do n = 1, zooplankton_cnt
-       marbl_diags%zoo_diags(zoo_loss_diag_ind, n)       = zooplankton_secondary_species(n,:)%zoo_loss
-       marbl_diags%zoo_diags(zoo_loss_poc_diag_ind, n)   = zooplankton_secondary_species(n,:)%zoo_loss_poc
-       marbl_diags%zoo_diags(zoo_loss_doc_diag_ind, n)   = zooplankton_secondary_species(n,:)%zoo_loss_doc
-       marbl_diags%zoo_diags(zoo_graze_diag_ind, n)      = zooplankton_secondary_species(n,:)%zoo_graze
-       marbl_diags%zoo_diags(zoo_graze_poc_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_poc
-       marbl_diags%zoo_diags(zoo_graze_doc_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_doc
-       marbl_diags%zoo_diags(zoo_graze_zoo_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_zoo
-       marbl_diags%zoo_diags(x_graze_zoo_diag_ind, n)    = zooplankton_secondary_species(n,:)%x_graze_zoo
-    end do
+    associate(zoo_diags => marbl_diags%zoo_diags)
+      do n = 1, zooplankton_cnt
+        zoo_diags(:, zoo_loss_diag_ind, n)       = zooplankton_secondary_species(n,:)%zoo_loss
+        zoo_diags(:, zoo_loss_poc_diag_ind, n)   = zooplankton_secondary_species(n,:)%zoo_loss_poc
+        zoo_diags(:, zoo_loss_doc_diag_ind, n)   = zooplankton_secondary_species(n,:)%zoo_loss_doc
+        zoo_diags(:, zoo_graze_diag_ind, n)      = zooplankton_secondary_species(n,:)%zoo_graze
+        zoo_diags(:, zoo_graze_poc_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_poc
+        zoo_diags(:, zoo_graze_doc_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_doc
+        zoo_diags(:, zoo_graze_zoo_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_zoo
+        zoo_diags(:, x_graze_zoo_diag_ind, n)    = zooplankton_secondary_species(n,:)%x_graze_zoo
+      end do
+    end associate
 
   end subroutine store_diagnostics_zooplankton
 
@@ -518,18 +539,20 @@ contains
     type(dissolved_organic_matter_type), dimension(:), intent(in) ::          &
                                             dissolved_organic_matter
     real(r8), dimension(:), intent(in) :: fe_scavenge, fe_scavenge_rate
-    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
-    marbl_diags%diags_3d(       DOC_prod_diag_ind)  = dissolved_organic_matter%DOC_prod
-    marbl_diags%diags_3d(      DOC_remin_diag_ind)  = dissolved_organic_matter%DOC_remin
-    marbl_diags%diags_3d(       DON_prod_diag_ind)  = dissolved_organic_matter%DON_prod
-    marbl_diags%diags_3d(      DON_remin_diag_ind)  = dissolved_organic_matter%DON_remin
-    marbl_diags%diags_3d(       DOP_prod_diag_ind)  = dissolved_organic_matter%DOP_prod
-    marbl_diags%diags_3d(      DOP_remin_diag_ind)  = dissolved_organic_matter%DOP_remin
-    marbl_diags%diags_3d(      DOFe_prod_diag_ind)  = dissolved_organic_matter%DOFe_prod
-    marbl_diags%diags_3d(     DOFe_remin_diag_ind)  = dissolved_organic_matter%DOFe_remin
-    marbl_diags%diags_3d(    Fe_scavenge_diag_ind)  = Fe_scavenge
-    marbl_diags%diags_3d(Fe_scavenge_rate_diag_ind) = Fe_scavenge_rate
+    associate(diags_3d => marbl_diags%diags_3d)
+      diags_3d(:, DOC_prod_diag_ind)         = dissolved_organic_matter%DOC_prod
+      diags_3d(:, DOC_remin_diag_ind)        = dissolved_organic_matter%DOC_remin
+      diags_3d(:, DON_prod_diag_ind)         = dissolved_organic_matter%DON_prod
+      diags_3d(:, DON_remin_diag_ind)        = dissolved_organic_matter%DON_remin
+      diags_3d(:, DOP_prod_diag_ind)         = dissolved_organic_matter%DOP_prod
+      diags_3d(:, DOP_remin_diag_ind)        = dissolved_organic_matter%DOP_remin
+      diags_3d(:, DOFe_prod_diag_ind)        = dissolved_organic_matter%DOFe_prod
+      diags_3d(:, DOFe_remin_diag_ind)       = dissolved_organic_matter%DOFe_remin
+      diags_3d(:, Fe_scavenge_diag_ind)      = Fe_scavenge
+      diags_3d(:, Fe_scavenge_rate_diag_ind) = Fe_scavenge_rate
+    end associate
 
   end subroutine store_diagnostics_dissolved_organic_matter
 
@@ -546,7 +569,7 @@ contains
     type(column_sinking_particle_type), intent(in) :: POC
     type(column_sinking_particle_type), intent(in) :: P_CaCO3
     real(r8), dimension(:,:), intent(in) :: dtracer ! ecosys_tracer_cnt, km
-    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
     integer(int_kind) :: k, n, auto_ind
     real(r8), dimension(km) :: delta_z
@@ -558,32 +581,37 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    ! vertical integrals
-    marbl_diags%diags_3d(Jint_Ctot_diag_ind) = c0
-    marbl_diags%diags_3d(Jint_100m_Ctot_diag_ind) = c0
+    associate(diags_3d => marbl_diags%diags_3d)
+      ! vertical integrals
+      diags_3d(:, Jint_Ctot_diag_ind) = c0
+      diags_3d(:, Jint_100m_Ctot_diag_ind) = c0
 
-    ztop = c0
-    do k = 1,marbl_domain%kmt
-      work1 = dtracer(dic_ind,k) + dtracer(doc_ind,k) +                       &
-              sum(dtracer(zooplankton(:)%C_ind,k)) +                          &
-              sum(dtracer(autotrophs(:)%C_ind,k))
-      do auto_ind = 1, autotroph_cnt
-        n = autotrophs(auto_ind)%CaCO3_ind
-        if (n > 0) then
-          work1 = work1 + dtracer(n,k)
-        endif
-      end do
-      marbl_diags(k)%diags_3d(Jint_Ctot_diag_ind) = delta_z(k) * work1 +      &
+      ztop = c0
+      do k = 1,marbl_domain%kmt
+        work1 = dtracer(dic_ind,k) + dtracer(doc_ind,k) +                     &
+                sum(dtracer(zooplankton(:)%C_ind,k)) +                        &
+                sum(dtracer(autotrophs(:)%C_ind,k))
+        do auto_ind = 1, autotroph_cnt
+          n = autotrophs(auto_ind)%CaCO3_ind
+          if (n > 0) then
+            work1 = work1 + dtracer(n,k)
+          endif
+        end do
+        diags_3d(k, Jint_Ctot_diag_ind) = delta_z(k) * work1 +                &
                                       (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
 
-      if (ztop < 100.0e2_r8) then
-        marbl_diags(k)%diags_3d(Jint_100m_Ctot_diag_ind) = min(100.0e2_r8 - ztop, delta_z(k)) * work1
-      end if
-      if (zw(k).le.100.0e2_r8) then
-        marbl_diags(k)%diags_3d(Jint_100m_Ctot_diag_ind) = marbl_diags(k)%diags_3d(Jint_100m_Ctot_diag_ind) + (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
-      end if
-      ztop = zw(k)
-    end do
+        if (ztop < 100.0e2_r8) then
+          diags_3d(k, Jint_100m_Ctot_diag_ind) =                              &
+                                   min(100.0e2_r8 - ztop, delta_z(k)) * work1
+        end if
+        if (zw(k).le.100.0e2_r8) then
+          diags_3d(k, Jint_100m_Ctot_diag_ind) =                              &
+                                       diags_3d(k, Jint_100m_Ctot_diag_ind) + &
+                                      (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
+        end if
+        ztop = zw(k)
+      end do
+    end associate
 
   end subroutine store_diagnostics_carbon_fluxes
 
@@ -605,7 +633,7 @@ contains
     type(autotroph_secondary_species_type), dimension(:,:), intent(in) ::     &
                                               autotroph_secondary_species
     real(r8), dimension(:,:), intent(in) :: dtracer ! ecosys_tracer_cnt, km
-    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
     integer(int_kind) :: k, n
     real(r8), dimension(km) :: delta_z
@@ -617,35 +645,39 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    ! vertical integrals
-    marbl_diags%diags_3d(Jint_Ntot_diag_ind) = c0
-    marbl_diags%diags_3d(Jint_100m_Ntot_diag_ind) = c0
+    associate(diags_3d => marbl_diags%diags_3d)
+      ! vertical integrals
+      diags_3d(:, Jint_Ntot_diag_ind) = c0
+      diags_3d(:, Jint_100m_Ntot_diag_ind) = c0
 
-    ztop = c0
-    do k = 1,marbl_domain%kmt
-      work1 = dtracer(no3_ind,k) + dtracer(nh4_ind,k) &
-           + dtracer(don_ind,k) + dtracer(donr_ind,k) &
-           + Q * sum(dtracer(zooplankton(:)%C_ind,k)) &
-           + Q * sum(dtracer(autotrophs(:)%C_ind,k))
-      ! add back column and sediment denitrification
-      work1 = work1 + denitrif(k) + sed_denitrif(k)
-      ! subtract out N fixation
-      do n = 1, autotroph_cnt
-        if (autotrophs(n)%Nfixer) then
-          work1 = work1 - autotroph_secondary_species(n,k)%Nfix
+      ztop = c0
+      do k = 1,marbl_domain%kmt
+        work1 = dtracer(no3_ind,k) + dtracer(nh4_ind,k) +                     &
+                dtracer(don_ind,k) + dtracer(donr_ind,k) +                    &
+                Q * sum(dtracer(zooplankton(:)%C_ind,k)) +                    &
+                Q * sum(dtracer(autotrophs(:)%C_ind,k))
+        ! add back column and sediment denitrification
+        work1 = work1 + denitrif(k) + sed_denitrif(k)
+        ! subtract out N fixation
+        do n = 1, autotroph_cnt
+          if (autotrophs(n)%Nfixer) then
+            work1 = work1 - autotroph_secondary_species(n,k)%Nfix
+          end if
+        end do
+        diags_3d(k, Jint_Ntot_diag_ind) = delta_z(k) * work1 +                &
+                                          POC%sed_loss(k) * Q
+
+        if (ztop < 100.0e2_r8) then
+            diags_3d(k, Jint_100m_Ntot_diag_ind) =                            &
+                                   min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
+        if (zw(k).le.100.0e2_r8) then
+            diags_3d(k, Jint_100m_Ntot_diag_ind) =                            &
+                   diags_3d(k, Jint_100m_Ntot_diag_ind) + POC%sed_loss(k) * Q
+        end if
+        ztop = zw(k)
       end do
-      marbl_diags(k)%diags_3d(Jint_Ntot_diag_ind) = delta_z(k) * work1 +      &
-                                                    POC%sed_loss(k) * Q
-
-      if (ztop < 100.0e2_r8) then
-          marbl_diags(k)%diags_3d(Jint_100m_Ntot_diag_ind) = min(100.0e2_r8 - ztop, delta_z(k)) * work1
-      end if
-      if (zw(k).le.100.0e2_r8) then
-          marbl_diags(k)%diags_3d(Jint_100m_Ntot_diag_ind) = marbl_diags(k)%diags_3d(Jint_100m_Ntot_diag_ind) + POC%sed_loss(k) * Q
-      end if
-      ztop = zw(k)
-    end do
+    end associate
 
   end subroutine store_diagnostics_nitrogen_fluxes
 
@@ -664,7 +696,7 @@ contains
     real(r8), dimension(:), intent(in) :: zw  ! km
     type(column_sinking_particle_type), intent(in) :: POC
     real(r8), dimension(:,:), intent(in) :: dtracer ! ecosys_tracer_cnt, km
-    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
 
     integer(int_kind) :: k, n
@@ -677,31 +709,35 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    ! vertical integrals
-    marbl_diags%diags_3d(Jint_Ptot_diag_ind) = c0
-    marbl_diags%diags_3d(Jint_100m_Ptot_diag_ind) = c0
+    associate(diags_3d => marbl_diags%diags_3d)
+      ! vertical integrals
+      diags_3d(:, Jint_Ptot_diag_ind) = c0
+      diags_3d(:, Jint_100m_Ptot_diag_ind) = c0
 
-    ztop = c0
-    do k = 1,marbl_domain%kmt
-      work1 = dtracer(po4_ind,k) + dtracer(dop_ind,k) + dtracer(dopr_ind,k)
-      do n = 1, zooplankton_cnt
-        work1 = work1 + Qp_zoo_pom * dtracer(zooplankton(n)%C_ind,k)
-      end do
-      do n = 1, autotroph_cnt
-        work1 = work1 + autotrophs(n)%Qp * dtracer(autotrophs(n)%C_ind,k)
-      end do
-      marbl_diags(k)%diags_3d(Jint_Ptot_diag_ind) = delta_z(k) * work1 +         &
+      ztop = c0
+      do k = 1,marbl_domain%kmt
+        work1 = dtracer(po4_ind,k) + dtracer(dop_ind,k) + dtracer(dopr_ind,k)
+        do n = 1, zooplankton_cnt
+          work1 = work1 + Qp_zoo_pom * dtracer(zooplankton(n)%C_ind,k)
+        end do
+        do n = 1, autotroph_cnt
+          work1 = work1 + autotrophs(n)%Qp * dtracer(autotrophs(n)%C_ind,k)
+        end do
+        diags_3d(k, Jint_Ptot_diag_ind) = delta_z(k) * work1 +                &
                                                  POC%sed_loss(k) * Qp_zoo_pom
 
-      if (ztop < 100.0e2_r8) then
-          marbl_diags(k)%diags_3d(Jint_100m_Ptot_diag_ind) =                  &
-                                  min(100.0e2_r8 - ztop, delta_z(k)) * work1
-      end if
-      if (zw(k).le.100.0e2_r8) then
-          marbl_diags(k)%diags_3d(Jint_100m_Ptot_diag_ind) = marbl_diags(k)%diags_3d(Jint_100m_Ptot_diag_ind) + POC%sed_loss(k) * Qp_zoo_pom
-      end if
-      ztop = zw(k)
+        if (ztop < 100.0e2_r8) then
+          diags_3d(k, Jint_100m_Ptot_diag_ind) =                              &
+                                   min(100.0e2_r8 - ztop, delta_z(k)) * work1
+        end if
+        if (zw(k).le.100.0e2_r8) then
+          diags_3d(k, Jint_100m_Ptot_diag_ind) =                              &
+                                       diags_3d(k, Jint_100m_Ptot_diag_ind) + &
+                                                 POC%sed_loss(k) * Qp_zoo_pom
+        end if
+        ztop = zw(k)
     end do
+    end associate
 
   end subroutine store_diagnostics_phosphorus_fluxes
 
@@ -719,7 +755,7 @@ contains
     real(r8), dimension(:), intent(in) :: zw  ! km
     type(column_sinking_particle_type), intent(in) :: P_SiO2
     real(r8), dimension(:,:), intent(in) :: dtracer ! ecosys_tracer_cnt, km
-    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
     integer(int_kind) :: k, n
     real(r8), dimension(km) :: delta_z
@@ -731,29 +767,34 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    ! vertical integrals
-    marbl_diags%diags_3d(Jint_Sitot_diag_ind) = c0
-    marbl_diags%diags_3d(Jint_100m_Sitot_diag_ind) = c0
+    associate(diags_3d => marbl_diags%diags_3d)
+      ! vertical integrals
+      diags_3d(:, Jint_Sitot_diag_ind) = c0
+      diags_3d(:, Jint_100m_Sitot_diag_ind) = c0
 
-    ztop = c0
-    do k = 1,marbl_domain%kmt
-      work1 = dtracer(sio3_ind,k)
-      do n = 1, autotroph_cnt
-        if (autotrophs(n)%Si_ind > 0) then
-          work1 = work1 + dtracer(autotrophs(n)%Si_ind,k)
+      ztop = c0
+      do k = 1,marbl_domain%kmt
+        work1 = dtracer(sio3_ind,k)
+        do n = 1, autotroph_cnt
+          if (autotrophs(n)%Si_ind > 0) then
+            work1 = work1 + dtracer(autotrophs(n)%Si_ind,k)
+          end if
+        end do
+        diags_3d(k, Jint_Sitot_diag_ind) = delta_z(k) * work1 +               &
+                                                           P_SiO2%sed_loss(k)
+
+        if (ztop < 100.0e2_r8) then
+          diags_3d(k, Jint_100m_Sitot_diag_ind) =                             &
+                                   min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
+        if (zw(k).le.100.0e2_r8) then
+          diags_3d(k, Jint_100m_Sitot_diag_ind) =                             &
+                                      diags_3d(k, Jint_100m_Sitot_diag_ind) + &
+                                                           P_SiO2%sed_loss(k)
+        end if
+        ztop = zw(k)
       end do
-      marbl_diags(k)%diags_3d(Jint_Sitot_diag_ind) = delta_z(k) * work1 +     &
-                                                     P_SiO2%sed_loss(k)
-
-      if (ztop < 100.0e2_r8) then
-          marbl_diags(k)%diags_3d(Jint_100m_Sitot_diag_ind) = min(100.0e2_r8 - ztop, delta_z(k)) * work1
-      end if
-      if (zw(k).le.100.0e2_r8) then
-          marbl_diags(k)%diags_3d(Jint_100m_Sitot_diag_ind) = marbl_diags(k)%diags_3d(Jint_100m_Sitot_diag_ind) + P_SiO2%sed_loss(k)
-      end if
-      ztop = zw(k)
-    end do
+    end associate
 
   end subroutine store_diagnostics_silicon_fluxes
 
