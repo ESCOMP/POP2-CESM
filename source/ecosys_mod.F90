@@ -1811,11 +1811,6 @@ contains
                   sed_denitrif(k), other_remin(k), &
                   marbl_diagnostics(k)%part_diags(:))
 
-             call store_diagnostics_dissolved_organic_matter(&
-                  dissolved_organic_matter(k), &
-                  fe_scavenge(k), fe_scavenge_rate(k), &
-                  marbl_diagnostics(k)%diags_3d(:))
-
              call store_diagnostics_carbon_fluxes(&
                   k, domain%kmt, domain%dzt(k), domain%dz(k), zw, &
                   POC, P_CaCO3, &
@@ -1919,6 +1914,11 @@ contains
 
           call store_diagnostics_zooplankton(zooplankton_secondary_species,   &
                                              marbl_diagnostics)
+
+          call store_diagnostics_dissolved_organic_matter(                    &
+                                               dissolved_organic_matter,      &
+                                               fe_scavenge, fe_scavenge_rate, &
+                                               marbl_diagnostics)
 
           end associate
 

@@ -508,22 +508,23 @@ contains
   !-----------------------------------------------------------------------
 
   subroutine store_diagnostics_dissolved_organic_matter(&
-       dissolved_organic_matter, fe_scavenge, fe_scavenge_rate, diags_3d)
+       dissolved_organic_matter, fe_scavenge, fe_scavenge_rate, marbl_diags)
 
-    type(dissolved_organic_matter_type), intent(in) :: dissolved_organic_matter
-    real(r8), intent(in) :: fe_scavenge, fe_scavenge_rate
-    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
+    type(dissolved_organic_matter_type), dimension(:), intent(in) ::          &
+                                            dissolved_organic_matter
+    real(r8), dimension(:), intent(in) :: fe_scavenge, fe_scavenge_rate
+    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
 
-    diags_3d(       DOC_prod_diag_ind)  = dissolved_organic_matter%DOC_prod
-    diags_3d(      DOC_remin_diag_ind)  = dissolved_organic_matter%DOC_remin
-    diags_3d(       DON_prod_diag_ind)  = dissolved_organic_matter%DON_prod
-    diags_3d(      DON_remin_diag_ind)  = dissolved_organic_matter%DON_remin
-    diags_3d(       DOP_prod_diag_ind)  = dissolved_organic_matter%DOP_prod
-    diags_3d(      DOP_remin_diag_ind)  = dissolved_organic_matter%DOP_remin
-    diags_3d(      DOFe_prod_diag_ind)  = dissolved_organic_matter%DOFe_prod
-    diags_3d(     DOFe_remin_diag_ind)  = dissolved_organic_matter%DOFe_remin
-    diags_3d(    Fe_scavenge_diag_ind)  = Fe_scavenge
-    diags_3d(Fe_scavenge_rate_diag_ind) = Fe_scavenge_rate
+    marbl_diags%diags_3d(       DOC_prod_diag_ind)  = dissolved_organic_matter%DOC_prod
+    marbl_diags%diags_3d(      DOC_remin_diag_ind)  = dissolved_organic_matter%DOC_remin
+    marbl_diags%diags_3d(       DON_prod_diag_ind)  = dissolved_organic_matter%DON_prod
+    marbl_diags%diags_3d(      DON_remin_diag_ind)  = dissolved_organic_matter%DON_remin
+    marbl_diags%diags_3d(       DOP_prod_diag_ind)  = dissolved_organic_matter%DOP_prod
+    marbl_diags%diags_3d(      DOP_remin_diag_ind)  = dissolved_organic_matter%DOP_remin
+    marbl_diags%diags_3d(      DOFe_prod_diag_ind)  = dissolved_organic_matter%DOFe_prod
+    marbl_diags%diags_3d(     DOFe_remin_diag_ind)  = dissolved_organic_matter%DOFe_remin
+    marbl_diags%diags_3d(    Fe_scavenge_diag_ind)  = Fe_scavenge
+    marbl_diags%diags_3d(Fe_scavenge_rate_diag_ind) = Fe_scavenge_rate
 
   end subroutine store_diagnostics_dissolved_organic_matter
 
