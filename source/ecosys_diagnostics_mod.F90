@@ -567,8 +567,8 @@ contains
           work1 = work1 + dtracer(n,k)
         endif
       end do
-      marbl_diags(k)%diags_3d(Jint_Ctot_diag_ind) = delta_z(k) * work1
-      marbl_diags(k)%diags_3d(Jint_Ctot_diag_ind) = marbl_diags(k)%diags_3d(Jint_Ctot_diag_ind) + (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
+      marbl_diags(k)%diags_3d(Jint_Ctot_diag_ind) = delta_z(k) * work1 +      &
+                                      (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
 
       if (ztop < 100.0e2_r8) then
         marbl_diags(k)%diags_3d(Jint_100m_Ctot_diag_ind) = min(100.0e2_r8 - ztop, delta_z(k)) * work1
@@ -583,91 +583,64 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_nitrogen_fluxes(k, column_kmt, column_dzt, column_dz, column_zw, &
-       POC, column_denitrif, column_sed_denitrif, &
-       auto_cnt, auto_meta, autotroph_secondary_species, &
-       zoo_cnt, zoo_meta, dtracer, column_diags_3d)
+  subroutine store_diagnostics_nitrogen_fluxes(marbl_domain, zw, POC, denitrif,&
+                                    sed_denitrif, autotroph_secondary_species, &
+                                    dtracer, marbl_diags)
 
     use marbl_share_mod, only : column_sinking_particle_type
-    use marbl_share_mod, only : autotroph_type, zooplankton_type
 
     use marbl_parms     , only : Q
 
-    integer(int_kind), intent(in) :: k
-    integer(int_kind), intent(in) :: column_kmt
-    real(r8), intent(in) :: column_dzt, column_dz
-    real(r8), intent(in) :: column_zw(km)
+    type(marbl_column_domain_type), intent(in) :: marbl_domain
+    real(r8), dimension(:), intent(in) :: zw  ! km
     type(column_sinking_particle_type), intent(in) :: POC
-    real(r8), intent(in) :: column_denitrif
-    real(r8), intent(in) :: column_sed_denitrif
-    integer(int_kind), intent(in) :: auto_cnt
-    type(autotroph_type), intent(in)  :: auto_meta(auto_cnt)
-    type(autotroph_secondary_species_type), intent(in) :: autotroph_secondary_species(auto_cnt)
-    integer(int_kind), intent(in) :: zoo_cnt
-    type(zooplankton_type), intent(in)  :: zoo_meta(zoo_cnt)
-    real(r8), intent(in) :: dtracer(ecosys_tracer_cnt)
+    real(r8), dimension(:), intent(in) :: denitrif ! km
+    real(r8), dimension(:), intent(in) :: sed_denitrif ! km
+    type(autotroph_secondary_species_type), dimension(:,:), intent(in) ::     &
+                                              autotroph_secondary_species
+    real(r8), dimension(:,:), intent(in) :: dtracer ! ecosys_tracer_cnt, km
+    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
 
-    real(r8), intent(inout) :: column_diags_3d(ecosys_diag_cnt_3d)
 
-    integer(int_kind) :: n, auto_ind
-    real(r8) :: delta_z, ztop
-    real(r8) :: work1, work2
+    integer(int_kind) :: k, n
+    real(r8), dimension(km) :: delta_z
+    real(r8) :: ztop, work1
 
-    if (k <= column_kmt) then
-       if (partial_bottom_cells) then
-          delta_z = column_dzt
-       else
-          delta_z = column_dz
-       endif
+    if (partial_bottom_cells) then
+       delta_z = marbl_domain%dzt
     else
-       delta_z = c0
+       delta_z = marbl_domain%dz
     end if
+
+    ! vertical integrals
+    marbl_diags%diags_3d(Jint_Ntot_diag_ind) = c0
+    marbl_diags%diags_3d(Jint_100m_Ntot_diag_ind) = c0
 
     ztop = c0
-    if (k > 1) then
-       ztop = column_zw(k-1)
-    end if
+    do k = 1,marbl_domain%kmt
+      work1 = dtracer(no3_ind,k) + dtracer(nh4_ind,k) &
+           + dtracer(don_ind,k) + dtracer(donr_ind,k) &
+           + Q * sum(dtracer(zooplankton(:)%C_ind,k)) &
+           + Q * sum(dtracer(autotrophs(:)%C_ind,k))
+      ! add back column and sediment denitrification
+      work1 = work1 + denitrif(k) + sed_denitrif(k)
+      ! subtract out N fixation
+      do n = 1, autotroph_cnt
+        if (autotrophs(n)%Nfixer) then
+          work1 = work1 - autotroph_secondary_species(n,k)%Nfix
+        end if
+      end do
+      marbl_diags(k)%diags_3d(Jint_Ntot_diag_ind) = delta_z(k) * work1 +      &
+                                                    POC%sed_loss(k) * Q
 
-    work1 = dtracer(no3_ind) + dtracer(nh4_ind) &
-         + dtracer(don_ind) + dtracer(donr_ind) &
-         + Q * sum(dtracer(zooplankton(:)%C_ind)) &
-         + Q * sum(dtracer(autotrophs(:)%C_ind))
-    ! add back column and sediment denitrification
-    work1 = work1 + column_denitrif + column_sed_denitrif
-    ! subtract out N fixation
-    do auto_ind = 1, auto_cnt
-       if (autotrophs(auto_ind)%Nfixer) then
-          work1 = work1 - autotroph_secondary_species(auto_ind)%Nfix
-       end if
+      if (ztop < 100.0e2_r8) then
+          marbl_diags(k)%diags_3d(Jint_100m_Ntot_diag_ind) = min(100.0e2_r8 - ztop, delta_z(k)) * work1
+      end if
+      if (zw(k).le.100.0e2_r8) then
+          marbl_diags(k)%diags_3d(Jint_100m_Ntot_diag_ind) = marbl_diags(k)%diags_3d(Jint_100m_Ntot_diag_ind) + POC%sed_loss(k) * Q
+      end if
+      ztop = zw(k)
     end do
-    if (k <= column_kmt) then
-       work2 = delta_z * work1
-    else
-       work2 = c0
-    end if
-    if (k <= column_kmt) then
-       ! add back loss to sediments
-       work2 = work2 + POC%sed_loss(k) * Q
-    else
-       work2 = work2 + c0
-    end if
-    column_diags_3d(Jint_Ntot_diag_ind) = work2
-
-    if (ztop < 100.0e2_r8) then
-       if (k <= column_kmt) then
-          work2 = min(100.0e2_r8 - ztop, delta_z) * work1
-       else
-          work2 = c0
-       end if
-       if (ztop + column_dzt <= 100.0e2_r8 .and. k <= column_kmt) then
-          work2 = work2 + POC%sed_loss(k) * Q
-       else
-          work2 = work2 + c0
-       end if
-    else
-       work2 = c0
-    endif
-    column_diags_3d(Jint_100m_Ntot_diag_ind) = work2
 
   end subroutine store_diagnostics_nitrogen_fluxes
 
