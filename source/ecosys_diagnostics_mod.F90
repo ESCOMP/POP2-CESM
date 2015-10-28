@@ -422,7 +422,7 @@ contains
 
   subroutine store_diagnostics_oxygen(marbl_domain, column_zt,                &
                                       column_o2, o2_production, o2_consumption,&
-                                      column_o2sat, marbl_diags)
+                                      marbl_diags)
 
     use marbl_oxygen, only : o2sat_scalar
 
@@ -431,7 +431,6 @@ contains
     real(r8), dimension(:), intent(in) :: column_o2
     real(r8), dimension(:), intent(in) :: o2_production
     real(r8), dimension(:), intent(in) :: o2_consumption
-    real(r8), dimension(:), intent(in) :: column_o2sat
     type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
 
     integer(int_kind) :: k, min_ind
@@ -453,7 +452,9 @@ contains
     marbl_diags%diags_3d(AOU_diag_ind) = -column_o2
     do k=1,marbl_domain%kmt
        if (marbl_domain%land_mask) then
-          marbl_diags(k)%diags_3d(AOU_diag_ind) = column_o2sat(k) - column_o2(k)
+          marbl_diags(k)%diags_3d(AOU_diag_ind) =                             &
+        O2SAT_scalar(marbl_domain%temperature(k), marbl_domain%salinity(k)) - &
+        column_o2(k)
        end if
     end do
 

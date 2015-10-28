@@ -1549,8 +1549,6 @@ contains
 
     use marbl_parms, only : epsC, epsTinv
 
-    use marbl_oxygen, only : o2sat_scalar
-
     integer (int_kind), intent(in) :: i         ! index for looping over nx_block dimension
     integer (int_kind), intent(in) :: c         ! column index
     integer (int_kind), intent(in) :: num_columns
@@ -1642,8 +1640,6 @@ contains
 
     real(r8) :: sed_denitrif(km) ! sedimentary denitrification (nmol N/cm^3/sec)
     real(r8) :: other_remin(km)  ! organic C remin not due oxic or denitrif (nmolC/cm^3/sec)
-    real(r8) :: column_o2(km), column_o2sat(km)
-
     ! NOTE(bja, 2015-07) vectorization: arrays that are (n, k, c, i)
     ! probably can not be vectorized reasonably over c without memory
     ! copies. If we break up the main k loop, some of the (k, c) loops
@@ -1815,11 +1811,6 @@ contains
                   sed_denitrif(k), other_remin(k), &
                   marbl_diagnostics(k)%part_diags(:))
 
-             if (k == 1) then
-                column_o2 = tracer_module(o2_ind, :)
-             end if
-             column_o2sat(k) = O2SAT_scalar(domain%temperature(k), domain%salinity(k))
-
              call store_diagnostics_zooplankton(zooplankton_cnt, &
                   zooplankton_secondary_species(:, k), &
                   marbl_diagnostics(k)%zoo_diags(:, :))
@@ -1923,14 +1914,9 @@ contains
           call store_diagnostics_nitrification(nitrif, denitrif,              &
                                                marbl_diagnostics)
 
-          call store_diagnostics_oxygen(domain, zt, column_o2,                &
+          call store_diagnostics_oxygen(domain, zt, tracer_module(o2_ind, :), &
                                         o2_production, o2_consumption,        &
-                                        column_o2sat, marbl_diagnostics)
-!          call store_diagnostics_oxygen(k, domain%land_mask, domain%kmt, zt, &
-!                  domain%temperature(k), domain%salinity(k), &
-!                  column_o2, o2_production(k), o2_consumption(k), &
-!                  marbl_diagnostics(k)%diags_2d(:), &
-!                  marbl_diagnostics(k)%diags_3d(:))
+                                        marbl_diagnostics)
 
           call store_diagnostics_photosynthetically_available_radiation(PAR,  &
                                                             marbl_diagnostics)
