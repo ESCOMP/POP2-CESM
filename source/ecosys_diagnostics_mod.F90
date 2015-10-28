@@ -420,58 +420,42 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_oxygen(k, column_land_mask, column_kmt, &
-       column_zt, temperature, salinity, &
-       column_o2, o2_production, o2_consumption, diags_2d, diags_3d)
+  subroutine store_diagnostics_oxygen(marbl_domain, column_zt,                &
+                                      column_o2, o2_production, o2_consumption,&
+                                      column_o2sat, marbl_diags)
 
     use marbl_oxygen, only : o2sat_scalar
 
-    integer(int_kind), intent(in) :: k
-    logical(log_kind), intent(in) :: column_land_mask
-    integer(int_kind), intent(in) :: column_kmt
-    real(r8), intent(in) :: column_zt(km)
+    type(marbl_column_domain_type), intent(in) :: marbl_domain
+    real(r8), dimension(:), intent(in) :: column_zt
+    real(r8), dimension(:), intent(in) :: column_o2
+    real(r8), dimension(:), intent(in) :: o2_production
+    real(r8), dimension(:), intent(in) :: o2_consumption
+    real(r8), dimension(:), intent(in) :: column_o2sat
+    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
 
-    real(r8), intent(in) :: temperature
-    real(r8), intent(in) :: salinity
-    real(r8), intent(in) :: column_o2(km)
-    real(r8), intent(in) :: o2_production
-    real(r8), intent(in) :: o2_consumption
-    real(r8), intent(inout) :: diags_2d(ecosys_diag_cnt_2d)
-    real(r8), intent(inout) :: diags_3d(ecosys_diag_cnt_3d)
+    integer(int_kind) :: k, min_ind
 
-    real(r8) :: level_o2 !O2 at this level
-    real(r8) :: o2_saturation
-    real(r8) :: vertical_min_o2 ! vertical minimum of O2
-    real(r8) :: depth_min_o2 ! depth of minimum O2
-
-    integer(int_kind) :: kk
-
-    if (k == 1) then
-       kk = 1
-       level_o2 = column_o2(kk)
-       vertical_min_o2 = level_o2
-       depth_min_o2 = column_zt(kk)
-
-       do kk = 2, km
-          level_o2 = column_o2(kk)
-          if (kk <= column_kmt .and. (level_o2 < vertical_min_o2)) then
-             vertical_min_o2 = level_o2
-             depth_min_o2 = column_zt(kk)
-          end if
-       end do
-
-       diags_2d(O2_ZMIN_diag_ind) = vertical_min_o2
-       diags_2d(O2_ZMIN_DEPTH_diag_ind) = depth_min_o2
-    endif
-
-    diags_3d(O2_PRODUCTION_diag_ind) = o2_production
-    diags_3d(O2_CONSUMPTION_diag_ind) = o2_consumption
-
-    o2_saturation = c0
-    if (column_land_mask .and. (k <= column_kmt)) then
-       o2_saturation = O2SAT_scalar(temperature, salinity)
+    ! Find min_o2 and depth_min_o2
+    min_ind = minloc(column_o2(1:marbl_domain%kmt), dim=1)
+    if ((min_ind.gt.0).and.(min_ind.le.marbl_domain%kmt)) then
+      marbl_diags%diags_2d(O2_ZMIN_diag_ind) = column_o2(min_ind)
+      marbl_diags%diags_2d(O2_ZMIN_DEPTH_diag_ind) = column_zt(min_ind)
+    else
+      marbl_diags%diags_2d(O2_ZMIN_diag_ind) = column_o2(1)
+      marbl_diags%diags_2d(O2_ZMIN_DEPTH_diag_ind) = column_zt(1)
     end if
-    diags_3d(AOU_diag_ind) = o2_saturation - column_o2(k)
+
+    marbl_diags%diags_3d(O2_PRODUCTION_diag_ind) = o2_production
+    marbl_diags%diags_3d(O2_CONSUMPTION_diag_ind) = o2_consumption
+
+    
+    marbl_diags%diags_3d(AOU_diag_ind) = -column_o2
+    do k=1,marbl_domain%kmt
+       if (marbl_domain%land_mask) then
+          marbl_diags(k)%diags_3d(AOU_diag_ind) = column_o2sat(k) - column_o2(k)
+       end if
+    end do
 
 
   end subroutine store_diagnostics_oxygen
