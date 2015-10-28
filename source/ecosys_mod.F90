@@ -1811,12 +1811,6 @@ contains
                   sed_denitrif(k), other_remin(k), &
                   marbl_diagnostics(k)%part_diags(:))
 
-             call store_diagnostics_carbon_fluxes(&
-                  k, domain%kmt, domain%dzt(k), domain%dz(k), zw, &
-                  POC, P_CaCO3, &
-                  autotroph_cnt, autotrophs, zooplankton_cnt, zooplankton, &
-                  dtracer(:, k), marbl_diagnostics(k)%diags_3d(:))
-
              call store_diagnostics_nitrogen_fluxes(&
                   k, domain%kmt, domain%dzt(k), domain%dz(k), zw, &
                   POC, denitrif(k), sed_denitrif(k), &
@@ -1894,7 +1888,7 @@ contains
           call store_diagnostics_carbonate(carbonate, zsat_calcite,           &
                                            zsat_aragonite, marbl_diagnostics)
 
-          call store_diagnostics_autotrophs(domain, autotrophs,               &
+          call store_diagnostics_autotrophs(domain,                           &
                                             autotroph_secondary_species,      &
                                             marbl_diagnostics)
 
@@ -1919,6 +1913,9 @@ contains
                                                dissolved_organic_matter,      &
                                                fe_scavenge, fe_scavenge_rate, &
                                                marbl_diagnostics)
+
+          call store_diagnostics_carbon_fluxes(domain, zw, POC, P_CaCO3,      &
+                                               dtracer, marbl_diagnostics)
 
           end associate
 
