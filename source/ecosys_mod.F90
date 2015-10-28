@@ -1811,12 +1811,6 @@ contains
                   sed_denitrif(k), other_remin(k), &
                   marbl_diagnostics(k)%part_diags(:))
 
-             call store_diagnostics_silicon_fluxes(&
-                  k, domain%kmt, domain%dzt(k), domain%dz(k), zw, &
-                  P_SiO2, &
-                  autotroph_cnt, autotrophs, &
-                  dtracer(:, k), marbl_diagnostics(k)%diags_3d(:))
-
              if (lexport_shared_vars) then
                 call export_interior_shared_variables(tracer_local(:, k), &
                      carbonate(k), dissolved_organic_matter(k), &
@@ -1909,6 +1903,9 @@ contains
 
           call store_diagnostics_phosphorus_fluxes(domain, zw, POC, dtracer,  &
                                                    marbl_diagnostics)
+
+             call store_diagnostics_silicon_fluxes(domain, zw, P_SiO2,        &
+                                                   dtracer, marbl_diagnostics)
 
           end associate
 

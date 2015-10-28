@@ -601,7 +601,6 @@ contains
     real(r8), dimension(:,:), intent(in) :: dtracer ! ecosys_tracer_cnt, km
     type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
 
-
     integer(int_kind) :: k, n
     real(r8), dimension(km) :: delta_z
     real(r8) :: ztop, work1
@@ -702,83 +701,53 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_silicon_fluxes(k, column_kmt, column_dzt, column_dz, column_zw, &
-       P_SiO2, &
-       auto_cnt, auto_meta, &
-       dtracer, column_diags_3d)
+  subroutine store_diagnostics_silicon_fluxes(marbl_domain, zw, P_SiO2,       &
+                                              dtracer, marbl_diags)
 
     use marbl_share_mod, only : column_sinking_particle_type
-    use marbl_share_mod, only : autotroph_type, zooplankton_type
 
     use marbl_parms     , only : Q
     use marbl_parms     , only : Qp_zoo_pom
 
-    integer(int_kind), intent(in) :: k
-    integer(int_kind), intent(in) :: column_kmt
-    real(r8), intent(in) :: column_dzt, column_dz
-    real(r8), intent(in) :: column_zw(km)
+    type(marbl_column_domain_type), intent(in) :: marbl_domain
+    real(r8), dimension(:), intent(in) :: zw  ! km
     type(column_sinking_particle_type), intent(in) :: P_SiO2
-    integer(int_kind), intent(in) :: auto_cnt
-    type(autotroph_type), intent(in)  :: auto_meta(auto_cnt)
-    real(r8), intent(in) :: dtracer(ecosys_tracer_cnt)
+    real(r8), dimension(:,:), intent(in) :: dtracer ! ecosys_tracer_cnt, km
+    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
 
-    real(r8), intent(inout) :: column_diags_3d(ecosys_diag_cnt_3d)
+    integer(int_kind) :: k, n
+    real(r8), dimension(km) :: delta_z
+    real(r8) :: ztop, work1
 
-    integer(int_kind) :: n, auto_ind
-    real(r8) :: delta_z, ztop
-    real(r8) :: work1, work2
-
-    if (k <= column_kmt) then
-       if (partial_bottom_cells) then
-          delta_z = column_dzt
-       else
-          delta_z = column_dz
-       endif
+    if (partial_bottom_cells) then
+       delta_z = marbl_domain%dzt
     else
-       delta_z = c0
+       delta_z = marbl_domain%dz
     end if
+
+    ! vertical integrals
+    marbl_diags%diags_3d(Jint_Sitot_diag_ind) = c0
+    marbl_diags%diags_3d(Jint_100m_Sitot_diag_ind) = c0
 
     ztop = c0
-    if (k > 1) then
-       ztop = column_zw(k-1)
-    end if
+    do k = 1,marbl_domain%kmt
+      work1 = dtracer(sio3_ind,k)
+      do n = 1, autotroph_cnt
+        if (autotrophs(n)%Si_ind > 0) then
+          work1 = work1 + dtracer(autotrophs(n)%Si_ind,k)
+        end if
+      end do
+      marbl_diags(k)%diags_3d(Jint_Sitot_diag_ind) = delta_z(k) * work1 +     &
+                                                     P_SiO2%sed_loss(k)
 
-    work1 = dtracer(sio3_ind)
-    do auto_ind = 1, auto_cnt
-       n = autotrophs(auto_ind)%Si_ind
-       if (n > 0) then
-          work1 = work1 + dtracer(n)
-       endif
+      if (ztop < 100.0e2_r8) then
+          marbl_diags(k)%diags_3d(Jint_100m_Sitot_diag_ind) = min(100.0e2_r8 - ztop, delta_z(k)) * work1
+      end if
+      if (zw(k).le.100.0e2_r8) then
+          marbl_diags(k)%diags_3d(Jint_100m_Sitot_diag_ind) = marbl_diags(k)%diags_3d(Jint_100m_Sitot_diag_ind) + P_SiO2%sed_loss(k)
+      end if
+      ztop = zw(k)
     end do
-    if (k <= column_kmt) then
-       work2 = delta_z * work1
-    else
-       work2 = c0
-    end if
-    if (k <= column_kmt) then
-       ! add back loss to sediments
-       work2 = work2 + P_SiO2%sed_loss(k)
-    else
-       work2 = work2 + c0
-    end if
-    column_diags_3d(Jint_Sitot_diag_ind) = work2
-
-    if (ztop < 100.0e2_r8) then
-       if (k <= column_kmt) then
-          work2 = min(100.0e2_r8 - ztop, delta_z) * work1
-       else
-          work2 = c0
-       end if
-       if (ztop + delta_z <= 100.0e2_r8 .and. k <= column_kmt) then
-          ! add back loss to sediments
-          work2 = work2 + P_SiO2%sed_loss(k)
-       else
-          work2 = work2 + c0
-       end if
-    else
-       work2 = c0
-    endif
-    column_diags_3d(Jint_100m_Sitot_diag_ind) = work2
 
   end subroutine store_diagnostics_silicon_fluxes
 
