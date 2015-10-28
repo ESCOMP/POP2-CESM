@@ -2,6 +2,26 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    27 Oct 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n10_cesm_pop_2_1_20150916a
+Tag Summary: couple MCOG forcings to ecosys/marbl
+
+changes ecosys answers
+changes physics answers if chl_option = 'model'
+
+Testing
+aux_pop_MARBL:
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+      baseline comparisons to previous tags fail, because of answer changing mods
+
+M       source/passive_tracers.F90
+M       source/ecosys_driver.F90
+M       BranchChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    27 Oct 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n09_cesm_pop_2_1_20150916a
 Tag Summary: fix incomplete MCOG infrastructure in ecosys/marbl
 

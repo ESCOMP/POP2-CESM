@@ -462,7 +462,7 @@ contains
   ! !INTERFACE:
 
   subroutine ecosys_driver_set_interior(ciso_on, &
-       SHF_QSW_RAW, SHF_QSW, &
+       FRAC_BIN, QSW_RAW_BIN, QSW_BIN, &
        TEMP_OLD, TEMP_CUR, SALT_OLD, SALT_CUR, &
        TRACER_MODULE_OLD, TRACER_MODULE_CUR, DTRACER_MODULE, &
        this_block)
@@ -479,7 +479,6 @@ contains
     use marbl_interface_types, only : marbl_column_domain_type
 
     use constants, only : salt_to_ppt
-    use constants, only : hflux_factor
 
     use grid, only : KMT
     use grid, only : DZT
@@ -493,9 +492,10 @@ contains
     logical (kind=log_kind), intent(in)  ::  &
          ciso_on                 ! ecosys_ciso on
 
-    real (r8), dimension(nx_block, ny_block), intent(in) :: &
-         SHF_QSW_RAW,  &! penetrative solar heat flux, from coupler (degC*cm/s)
-         SHF_QSW        ! SHF_QSW used by physics, may have diurnal cylce imposed (degC*cm/s)
+    real (r8), dimension(nx_block, ny_block, mcog_nbins), intent(in) :: &
+         FRAC_BIN,     &! fraction of cell occupied by mcog bin
+         QSW_RAW_BIN,  &! raw (directly from cpl) shortwave into each mcog column (W/m^2)
+         QSW_BIN        ! shortwave into each mcog bin, potentially modified by coszen factor (W/m^2)
 
     real (r8), dimension(nx_block, ny_block, km), intent(in) :: &
          TEMP_OLD,          &! old potential temperature (C)
@@ -527,7 +527,7 @@ contains
 
     type(marbl_column_domain_type) :: marbl_domain
 
-    real (r8), dimension(nx_block, ny_block) :: SHF_QSW_USE
+    real (r8), dimension(nx_block, ny_block, mcog_nbins) :: QSW_USE
 
     real (r8), dimension(nx_block, ny_block, km, ecosys_tracer_cnt) :: tracer_module_avg
     real (r8), dimension(nx_block, ny_block, km) :: &
@@ -583,12 +583,12 @@ contains
     !  ECOSYS computations
     !-----------------------------------------------------------------------
 
-    ! select short-wave forcing and convert to W/m^2
+    ! select short-wave forcing
 
     if (ecosys_qsw_distrb_const) then
-       SHF_QSW_USE = (c1/hflux_factor) * SHF_QSW_RAW
+       QSW_USE = QSW_RAW_BIN
     else
-       SHF_QSW_USE = (c1/hflux_factor) * SHF_QSW
+       QSW_USE = QSW_BIN
     endif
 
     ! gcm dependent quantities (i.e. time stepping). need to be
@@ -607,9 +607,8 @@ contains
           marbl_domain%land_mask = marbl_saved_state%land_mask(i, c, bid)
           marbl_domain%kmt = KMT(i, c, bid)
           if (marbl_saved_state%land_mask(i,c,bid)) then
-             marbl_domain%PAR_col_frac(:) = c0
-             marbl_domain%PAR_col_frac(1) = c1
-             marbl_domain%surf_shortwave(:) = SHF_QSW_USE(i, c)
+             marbl_domain%PAR_col_frac(:) = FRAC_BIN(i, c, :)
+             marbl_domain%surf_shortwave(:) = QSW_USE(i, c, :)
              do k = 1, marbl_domain%km
                 marbl_domain%temperature(k) = temperature(i,c,k)
                 marbl_domain%salinity(k) = salinity(i,c,k)
