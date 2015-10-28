@@ -1,6 +1,18 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    28 Oct 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n05_cesm_pop_2_1_20151020/
+Tag Summary: Refactor store_diagnostics routines; they are now called with full
+             column rather than level by level (bit-for-bit with old method)
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    27 Oct 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n04_cesm_pop_2_1_20151020/
 Tag Summary: Refactor diagnostics -- create ecosys_diagnostics_mod to contain

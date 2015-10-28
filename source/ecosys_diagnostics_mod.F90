@@ -363,8 +363,10 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_particulates(k, column_dz, POC, P_CaCO3, P_SiO2, &
-       dust, P_iron, sed_denitrif, other_remin, part_diags)
+  subroutine store_diagnostics_particulates(marbl_domain, POC, P_CaCO3,       &
+                                            P_SiO2, dust, P_iron,             &
+                                            sed_denitrif, other_remin,        &
+                                            marbl_diags)
     !-----------------------------------------------------------------------
     ! - Set tavg variables.
     ! - Accumulte losses of BGC tracers to sediments
@@ -373,47 +375,51 @@ contains
     use marbl_parms, only : Q
     use marbl_parms, only : Qp_zoo_pom
 
-
-    integer(int_kind), intent(in) :: k
-    real(r8), intent(in) :: column_dz
+    type(marbl_column_domain_type), intent(in) :: marbl_domain
     type(column_sinking_particle_type), intent(in) :: POC
     type(column_sinking_particle_type), intent(in) :: P_CaCO3
     type(column_sinking_particle_type), intent(in) :: P_SiO2
     type(column_sinking_particle_type), intent(in) :: dust
     type(column_sinking_particle_type), intent(in) :: P_iron
-    real(r8), intent(in) :: sed_denitrif
-    real(r8), intent(in) :: other_remin
-    real(r8), intent(inout) :: part_diags(part_diag_cnt)
+    real(r8), dimension(:), intent(in) :: sed_denitrif ! km
+    real(r8), dimension(:), intent(in) :: other_remin  ! km
+    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
 
-    part_diags(POC_FLUX_IN_diag_ind) = POC%sflux_in(k) + POC%hflux_in(k)
-    part_diags(POC_PROD_diag_ind) = POC%prod(k)
-    part_diags(POC_REMIN_diag_ind) = POC%remin(k)
+    real(r8), dimension(km) :: delta_z
 
-    part_diags(CaCO3_FLUX_IN_diag_ind) = P_CaCO3%sflux_in(k) + P_CaCO3%hflux_in(k)
-    part_diags( CaCO3_PROD_diag_ind) = P_CaCO3%prod(k)
-    part_diags(CaCO3_REMIN_diag_ind) = P_CaCO3%remin(k)
+    if (partial_bottom_cells) then
+       delta_z = marbl_domain%dzt
+    else
+       delta_z = marbl_domain%dz
+    end if
+    marbl_diags%part_diags(POC_FLUX_IN_diag_ind) = POC%sflux_in + POC%hflux_in
+    marbl_diags%part_diags(POC_PROD_diag_ind) = POC%prod
+    marbl_diags%part_diags(POC_REMIN_diag_ind) = POC%remin
 
-    part_diags(SiO2_FLUX_IN_diag_ind) = P_SiO2%sflux_in(k) + P_SiO2%hflux_in(k)
-    part_diags( SiO2_PROD_diag_ind) = P_SiO2%prod(k)
-    part_diags(SiO2_REMIN_diag_ind) = P_SiO2%remin(k)
+    marbl_diags%part_diags(CaCO3_FLUX_IN_diag_ind) = P_CaCO3%sflux_in + P_CaCO3%hflux_in
+    marbl_diags%part_diags(CaCO3_PROD_diag_ind) = P_CaCO3%prod
+    marbl_diags%part_diags(CaCO3_REMIN_diag_ind) = P_CaCO3%remin
 
-    part_diags(dust_FLUX_IN_diag_ind) = dust%sflux_in(k) + dust%hflux_in(k)
-    part_diags(dust_REMIN_diag_ind) = P_SiO2%remin(k)
+    marbl_diags%part_diags(SiO2_FLUX_IN_diag_ind) = P_SiO2%sflux_in + P_SiO2%hflux_in
+    marbl_diags%part_diags(SiO2_PROD_diag_ind) = P_SiO2%prod
+    marbl_diags%part_diags(SiO2_REMIN_diag_ind) = P_SiO2%remin
 
-    part_diags(P_iron_FLUX_IN_diag_ind) = P_iron%sflux_in(k) + P_iron%hflux_in(k)
-    part_diags(P_iron_PROD_diag_ind) = P_iron%prod(k)
-    part_diags(P_iron_REMIN_diag_ind) = P_iron%remin(k)
+    marbl_diags%part_diags(dust_FLUX_IN_diag_ind) = dust%sflux_in + dust%hflux_in
+    marbl_diags%part_diags(dust_REMIN_diag_ind) = P_SiO2%remin
 
-    part_diags(calcToSed_diag_ind) = P_CaCO3%sed_loss(k)
-    part_diags(bsiToSed_diag_ind) = P_SiO2%sed_loss(k)
-    part_diags(pocToSed_diag_ind) = POC%sed_loss(k)
-    part_diags(SedDenitrif_diag_ind) = sed_denitrif * column_dz
-    part_diags(OtherRemin_diag_ind) = other_remin * column_dz
-    part_diags(ponToSed_diag_ind) = (POC%sed_loss(k) * Q)
-    part_diags(popToSed_diag_ind) = (POC%sed_loss(k) * Qp_zoo_pom)
-    part_diags(dustToSed_diag_ind) = dust%sed_loss(k)
-    part_diags(pfeToSed_diag_ind) = P_iron%sed_loss(k)
+    marbl_diags%part_diags(P_iron_FLUX_IN_diag_ind) = P_iron%sflux_in + P_iron%hflux_in
+    marbl_diags%part_diags(P_iron_PROD_diag_ind) = P_iron%prod
+    marbl_diags%part_diags(P_iron_REMIN_diag_ind) = P_iron%remin
 
+    marbl_diags%part_diags(calcToSed_diag_ind) = P_CaCO3%sed_loss
+    marbl_diags%part_diags(bsiToSed_diag_ind) = P_SiO2%sed_loss
+    marbl_diags%part_diags(pocToSed_diag_ind) = POC%sed_loss
+    marbl_diags%part_diags(SedDenitrif_diag_ind) = sed_denitrif * delta_z
+    marbl_diags%part_diags(OtherRemin_diag_ind) = other_remin * delta_z
+    marbl_diags%part_diags(ponToSed_diag_ind) = (POC%sed_loss * Q)
+    marbl_diags%part_diags(popToSed_diag_ind) = (POC%sed_loss * Qp_zoo_pom)
+    marbl_diags%part_diags(dustToSed_diag_ind) = dust%sed_loss
+    marbl_diags%part_diags(pfeToSed_diag_ind) = P_iron%sed_loss
 
   end subroutine store_diagnostics_particulates
 

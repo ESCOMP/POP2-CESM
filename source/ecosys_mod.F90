@@ -1805,12 +1805,6 @@ contains
              ! store_diagnostics_restore
              marbl_diagnostics(k)%restore_diags(:) = restore_local(:, k)
 
-             call store_diagnostics_particulates(k, domain%dz(k), POC, &
-                  P_CaCO3, P_SiO2, &
-                  dust,  P_iron, &
-                  sed_denitrif(k), other_remin(k), &
-                  marbl_diagnostics(k)%part_diags(:))
-
              if (lexport_shared_vars) then
                 call export_interior_shared_variables(tracer_local(:, k), &
                      carbonate(k), dissolved_organic_matter(k), &
@@ -1872,6 +1866,10 @@ contains
                                             autotroph_secondary_species,      &
                                             marbl_diagnostics)
 
+          call store_diagnostics_particulates(domain, POC, P_CaCO3, P_SiO2,   &
+                                              dust,  P_iron, sed_denitrif,    &
+                                              other_remin, marbl_diagnostics)
+
           call store_diagnostics_autotroph_sums(domain,                       &
                                                 autotroph_secondary_species,  &
                                                 marbl_diagnostics)
@@ -1904,8 +1902,8 @@ contains
           call store_diagnostics_phosphorus_fluxes(domain, zw, POC, dtracer,  &
                                                    marbl_diagnostics)
 
-             call store_diagnostics_silicon_fluxes(domain, zw, P_SiO2,        &
-                                                   dtracer, marbl_diagnostics)
+          call store_diagnostics_silicon_fluxes(domain, zw, P_SiO2, dtracer,  &
+                                                marbl_diagnostics)
 
           end associate
 
