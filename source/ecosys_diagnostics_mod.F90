@@ -483,25 +483,24 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_zooplankton (zoo_cnt, &
-       zooplankton_secondary_species, &
-       zoo_diags)
+  subroutine store_diagnostics_zooplankton(zooplankton_secondary_species,     &
+                                           marbl_diags)
 
-    integer(int_kind), intent(in) :: zoo_cnt
-    type(zooplankton_secondary_species_type), intent(in) :: zooplankton_secondary_species(zoo_cnt)
-    real(r8), intent(inout) :: zoo_diags(zoo_diag_cnt, zoo_cnt)
+    type(zooplankton_secondary_species_type), dimension(:,:), intent(in) ::   &
+                                              zooplankton_secondary_species
+    type(marbl_diagnostics_type), dimension(:), intent(inout) :: marbl_diags
 
-    integer(int_kind) :: zoo_ind
+    integer(int_kind) :: n
 
-    do zoo_ind = 1, zooplankton_cnt
-       zoo_diags(zoo_loss_diag_ind, zoo_ind)       = zooplankton_secondary_species(zoo_ind)%zoo_loss
-       zoo_diags(zoo_loss_poc_diag_ind, zoo_ind)   = zooplankton_secondary_species(zoo_ind)%zoo_loss_poc
-       zoo_diags(zoo_loss_doc_diag_ind, zoo_ind)   = zooplankton_secondary_species(zoo_ind)%zoo_loss_doc
-       zoo_diags(zoo_graze_diag_ind, zoo_ind)      = zooplankton_secondary_species(zoo_ind)%zoo_graze
-       zoo_diags(zoo_graze_poc_diag_ind, zoo_ind)  = zooplankton_secondary_species(zoo_ind)%zoo_graze_poc
-       zoo_diags(zoo_graze_doc_diag_ind, zoo_ind)  = zooplankton_secondary_species(zoo_ind)%zoo_graze_doc
-       zoo_diags(zoo_graze_zoo_diag_ind, zoo_ind)  = zooplankton_secondary_species(zoo_ind)%zoo_graze_zoo
-       zoo_diags(x_graze_zoo_diag_ind, zoo_ind)    = zooplankton_secondary_species(zoo_ind)%x_graze_zoo
+    do n = 1, zooplankton_cnt
+       marbl_diags%zoo_diags(zoo_loss_diag_ind, n)       = zooplankton_secondary_species(n,:)%zoo_loss
+       marbl_diags%zoo_diags(zoo_loss_poc_diag_ind, n)   = zooplankton_secondary_species(n,:)%zoo_loss_poc
+       marbl_diags%zoo_diags(zoo_loss_doc_diag_ind, n)   = zooplankton_secondary_species(n,:)%zoo_loss_doc
+       marbl_diags%zoo_diags(zoo_graze_diag_ind, n)      = zooplankton_secondary_species(n,:)%zoo_graze
+       marbl_diags%zoo_diags(zoo_graze_poc_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_poc
+       marbl_diags%zoo_diags(zoo_graze_doc_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_doc
+       marbl_diags%zoo_diags(zoo_graze_zoo_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_zoo
+       marbl_diags%zoo_diags(x_graze_zoo_diag_ind, n)    = zooplankton_secondary_species(n,:)%x_graze_zoo
     end do
 
   end subroutine store_diagnostics_zooplankton
