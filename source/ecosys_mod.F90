@@ -352,11 +352,6 @@ module ecosys_mod
   use marbl_interface_types, only : dissolved_organic_matter_type
 
   use ecosys_restore_mod, only : ecosys_restore_type
-#ifdef CCSMCOUPLED
-  use POP_MCT_vars_mod, only : pop_mct_dom_o
-  use POP_MCT_vars_mod, only : POP_MCT_gsMap_o
-  use POP_MCT_vars_mod, only : POP_MCT_OCNID
-#endif
   use strdata_interface_mod, only : strdata_input_type
 
   ! !INPUT PARAMETERS:
@@ -366,7 +361,6 @@ module ecosys_mod
   !-----------------------------------------------------------------------
 
   implicit none
-  save
   private
 
   !-----------------------------------------------------------------------
@@ -431,8 +425,7 @@ module ecosys_mod
   !  derived type & parameter for tracer index lookup
   !-----------------------------------------------------------------------
 
-  type(ind_name_pair), dimension(ecosys_tracer_cnt) :: &
-       ind_name_table
+  type(ind_name_pair), dimension(ecosys_tracer_cnt) :: ind_name_table
 
   !-----------------------------------------------------------------------
   !  options for forcing of gas fluxes
@@ -469,8 +462,6 @@ module ecosys_mod
   !  module variables related to ph computations
   !-----------------------------------------------------------------------
 
-  real (r8), dimension(:, :, :)   , allocatable, target :: PH_PREV            ! computed ph from previous time step
-  real (r8), dimension(:, :, :)   , allocatable, target :: PH_PREV_ALT_CO2    ! computed ph from previous time step, alternative CO2
   real (r8), dimension(:, :, :)   , allocatable, target :: IRON_PATCH_FLUX    ! localized iron patch flux
 
   !-----------------------------------------------------------------------
@@ -594,9 +585,7 @@ module ecosys_mod
   !  used as reference value for virtual flux computations
   !-----------------------------------------------------------------------
 
-  logical (log_kind) , dimension(ecosys_tracer_cnt) :: vflux_flag ! which tracers get virtual fluxes applied
   real (r8)          , dimension(ecosys_tracer_cnt) :: surf_avg   ! average surface tracer values
-  integer (int_kind)          :: comp_surf_avg_flag               ! time flag id for computing average surface tracer values
   logical (log_kind) , public :: ecosys_qsw_distrb_const
 
   !-----------------------------------------------------------------------
@@ -651,11 +640,17 @@ contains
   ! !IROUTINE: ecosys_init
   ! !INTERFACE:
 
-  subroutine ecosys_init(nl_buffer, init_ts_file_fmt, read_restart_filename, &
-       tracer_d_module, TRACER_MODULE, &
-       lmarginal_seas, ecosys_restore, &
-       saved_state, &
-       errorCode, marbl_status)
+  subroutine ecosys_init(nl_buffer, &
+       init_ts_file_fmt, read_restart_filename, &
+       tracer_d_module, &
+       TRACER_MODULE, &
+       lmarginal_seas, ecosys_restore, saved_state, vflux_flag, &
+       errorCode, marbl_status, &
+       comp_surf_avg_flag, use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
+       init_ecosys_option, init_ecosys_init_file, init_ecosys_init_file_fmt, &
+       tracer_init_ext, &
+      !ind_name_table, &
+       PH_PREV, PH_PREV_ALT_CO2)
 
     ! !DESCRIPTION:
     !  Initialize ecosys tracer module. This involves setting metadata, reading
@@ -665,41 +660,46 @@ contains
     ! !REVISION HISTORY:
     !  same as module
 
-    use marbl_interface_constants, only : marbl_nl_buffer_size, marbl_status_ok, marbl_status_could_not_read_namelist
-    use marbl_interface_types, only : marbl_status_type
-    use marbl_interface_types, only : marbl_saved_state_type
+    use marbl_interface_constants , only : marbl_nl_buffer_size
+    use marbl_interface_constants , only : marbl_status_ok,
+    use marbl_interface_constants , only : marbl_status_could_not_read_namelist
+    use marbl_interface_types     , only : marbl_status_type
+    use marbl_interface_types     , only : marbl_saved_state_type
 
     implicit none
 
     ! !INPUT PARAMETERS:
 
-    character(marbl_nl_buffer_size), intent(in) :: nl_buffer
-
-    character (*), intent(in) :: &
-         init_ts_file_fmt,     & ! format (bin or nc) for input file
-         read_restart_filename   ! file name for restart file
-
-    logical (kind=log_kind), intent(in) :: &
-         lmarginal_seas               ! Is ecosystem active in marginal seas ?
+    character(marbl_nl_buffer_size) , intent(in) :: nl_buffer
+    character (*)                   , intent(in) :: init_ts_file_fmt      ! format (bin or nc) for input file
+    character (*)                   , intent(in) :: read_restart_filename ! file name for restart file
+    logical (kind=log_kind)         , intent(in) :: lmarginal_seas        ! Is ecosystem active in marginal seas ?
 
     ! !INPUT/OUTPUT PARAMETERS:
 
-    type (tracer_field), dimension(:), intent(inout) :: &
-         tracer_d_module   ! descriptors for each tracer
-
-    real (r8), dimension(:, :, :, :, :, :), &
-         intent(inout) :: TRACER_MODULE
-
-    type(ecosys_restore_type), intent(inout) :: ecosys_restore
-
-    type(marbl_saved_state_type), intent(inout) :: saved_state
+    type (tracer_field)          , intent(inout) :: tracer_d_module(:)   ! descriptors for each tracer
+    real (r8)                    , intent(inout) :: TRACER_MODULE(:, :, :, :, :, :)
+    type(ecosys_restore_type)    , intent(inout) :: ecosys_restore
+    type(marbl_saved_state_type) , intent(inout) :: saved_state
 
     ! !OUTPUT PARAMETERS:
 
-    integer (POP_i4), intent(out) :: &
-         errorCode
+    integer (POP_i4)        , intent(out) :: errorCode
+    type(marbl_status_type) , intent(out) :: marbl_status
 
-    type(marbl_status_type), intent(out) :: marbl_status
+
+    ! new
+    logical (log_kind)  , intent(in)  :: vflux_flag(:) 
+    integer (int_kind)  , intent(out) :: comp_surf_avg_flag                 ! time flag id for computing average surface tracer values
+    logical (log_kind)  , intent(out) :: use_nml_surf_vals                  ! do namelist surf values override values from restart file
+    real (r8)           , intent(out) :: surf_avg_dic_const
+    real (r8)           , intent(out) :: surf_avg_alk_const
+    character(char_len) , intent(out) :: init_ecosys_option                 ! namelist option for initialization of bgc
+    character(char_len) , intent(out) :: init_ecosys_init_file              ! filename for option 'file'
+    character(char_len) , intent(out) :: init_ecosys_init_file_fmt          ! file format for option 'file'
+    type(tracer_read)   , intent(out) :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers
+    real (r8)           , intent(out) :: PH_PREV(:, :, :)                   ! computed ph from previous time step
+    real (r8)           , intent(out) :: PH_PREV_ALT_CO2(:, :, :)           ! computed ph from previous time step
 
     !EOP
     !BOC
@@ -710,16 +710,10 @@ contains
     character(*), parameter :: subname = 'ecosys_mod:ecosys_init'
 
     character(char_len) :: &
-         init_ecosys_option,        & ! option for initialization of bgc
-         init_ecosys_init_file,     & ! filename for option 'file'
-         init_ecosys_init_file_fmt, & ! file format for option 'file'
          comp_surf_avg_freq_opt,    & ! choice for freq of comp_surf_avg
          gas_flux_forcing_opt,      & ! option for forcing gas fluxes
          atm_co2_opt,               & ! option for atmospheric co2 concentration
          atm_alt_co2_opt              ! option for atmospheric alternative CO2
-
-    type(tracer_read), dimension(ecosys_tracer_cnt) :: &
-         tracer_init_ext              ! namelist variable for initializing tracers
 
     type(tracer_read) :: &
          dust_flux_input,           & ! namelist input for dust_flux
@@ -747,13 +741,9 @@ contains
     integer (int_kind) :: &
          zoo_ind                    ! zooplankton functional group index
 
-
     integer (int_kind) :: &
          comp_surf_avg_freq_iopt,   & ! choice for freq of comp_surf_avg
          comp_surf_avg_freq           ! choice for freq of comp_surf_avg
-
-    logical (log_kind) :: &
-         use_nml_surf_vals            ! do namelist surf values override values from restart file
 
     logical (log_kind) :: &
          lecovars_full_depth_tavg     ! should ecosystem vars be written full depth
@@ -761,9 +751,6 @@ contains
     !-----------------------------------------------------------------------
     !  values to be used when comp_surf_avg_freq_opt==never
     !-----------------------------------------------------------------------
-
-    real (r8) :: &
-         surf_avg_dic_const, surf_avg_alk_const
 
     namelist /ecosys_nml/ &
          init_ecosys_option, init_ecosys_init_file, tracer_init_ext, &
@@ -1110,22 +1097,6 @@ contains
        call exit_POP(sigAbort, 'use_nml_surf_vals can only be .true. if ' /&
             &/ ' comp_surf_avg_freq_opt is never')
     endif
-
-    !-----------------------------------------------------------------------
-    !  initialize virtual flux flag array
-    !-----------------------------------------------------------------------
-
-    vflux_flag = .false.
-    vflux_flag(dic_ind) = .true.
-    vflux_flag(alk_ind) = .true.
-    vflux_flag(dic_alt_co2_ind) = .true.
-
-    !-----------------------------------------------------------------------
-    !  allocate various ecosys allocatable module variables
-    !-----------------------------------------------------------------------
-
-    allocate( PH_PREV(nx_block, ny_block, max_blocks_clinic) )
-    allocate( PH_PREV_ALT_CO2(nx_block, ny_block, max_blocks_clinic) )
 
     !-----------------------------------------------------------------------
     !  allocate and initialize LAND_MASK
@@ -3470,7 +3441,8 @@ contains
        SHF_QSW_RAW, SHF_QSW, &
        U10_SQR, IFRAC, PRESS, SST, SSS, &
        SURF_VALS_OLD, SURF_VALS_CUR, STF_MODULE, &
-       lexport_shared_vars)
+       lexport_shared_vars, &
+       vflux_flag, PH_PREV, PH_PREV_ALT_CO2, comp_surf_avg_flag) !new
 
     use co2calc, only : co2calc_row
     use schmidt_number, only : SCHMIDT_CO2
@@ -3500,18 +3472,19 @@ contains
          SST,          &! sea surface temperature (C)
          SSS            ! sea surface salinity (psu)
 
-    real (r8), dimension(:, :, :, :), &
-         intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR ! module tracers
-
-    logical (log_kind), intent(in) :: &
-         lexport_shared_vars ! flag to save shared_vars or not
+    real (r8)          , intent(in) :: SURF_VALS_OLD(:, :, :, :)     ! module tracers 
+    real (r8)          , intent(in) :: SURF_VALS_CUR(:, :, :, :)     ! module tracers
+    logical (log_kind) , intent(in) :: lexport_shared_vars           ! flag to save shared_vars or not
+    logical (log_kind) , intent(in) :: vflux_flag(ecosys_tracer_cnt) ! which tracers get virtual fluxes applied
+    integer (int_kind) , intent(in) :: comp_surf_avg_flag            ! time flag id for computing average surface tracer values
 
     ! !INPUT/OUTPUT PARAMETERS:
 
-    real (r8), dimension(:, :, :, :), &
-         intent(inout) :: STF_MODULE
+    real (r8)                       , intent(inout) :: STF_MODULE(:, :, :, :) 
+    type(ecosys_surface_share_type) , intent(inout) :: marbl_surface_share
+    real (r8)                       , intent(inout) :: PH_PREV(:, :, :) ! computed ph from previous time step
+    real (r8)                       , intent(inout) :: PH_PREV_ALT_CO2(:, :, :) ! computed ph from previous time step
 
-    type(ecosys_surface_share_type), intent(inout) :: marbl_surface_share
     !EOP
     !BOC
     !-----------------------------------------------------------------------
@@ -3596,9 +3569,9 @@ contains
 
     !-----------------------------------------------------------------------
 
-    if (check_time_flag(comp_surf_avg_flag))  &
-         call comp_surf_avg(SURF_VALS_OLD, SURF_VALS_CUR, &
-         ecosys_tracer_cnt, vflux_flag, surf_avg)
+    if (check_time_flag(comp_surf_avg_flag))  then
+       call comp_surf_avg(SURF_VALS_OLD, SURF_VALS_CUR, ecosys_tracer_cnt, vflux_flag, surf_avg)
+    end if
 
     !-----------------------------------------------------------------------
     !  fluxes initially set to 0
@@ -4497,22 +4470,25 @@ contains
   ! !IROUTINE: ecosys_write_restart
   ! !INTERFACE:
 
-  subroutine ecosys_write_restart(saved_state, restart_file, action)
+  subroutine ecosys_write_restart(saved_state, restart_file, action, &
+       vflux_flag, PH_PREV, PH_PREV_ALT_CO2) !new
 
     ! !DESCRIPTION:
     !  write auxiliary fields & scalars to restart files
     !
     ! !REVISION HISTORY:
     !  same as module
+
     use marbl_interface_types, only : marbl_saved_state_type
 
-
     ! !INPUT PARAMETERS:
-    type(marbl_saved_state_type), intent(in) :: saved_state
-    character(*), intent(in) :: action
+    type(marbl_saved_state_type) , intent(in) :: saved_state
+    character(*)                 , intent(in) :: action
+    logical (log_kind)           , intent(in) :: vflux_flag(:) 
+    real (r8)                    , intent(in) :: PH_PREV(:, :, :)         ! computed ph from previous time step
+    real (r8)                    , intent(in) :: PH_PREV_ALT_CO2(:, :, :) ! computed ph from previous time step
 
     ! !INPUT/OUTPUT PARAMETERS:
-
     type (datafile), intent (inout)  :: restart_file
 
     !EOP
@@ -4538,7 +4514,7 @@ contains
     if (trim(action) == 'add_attrib_file') then
        short_name = char_blank
        do n=1, ecosys_tracer_cnt
-          if (vflux_flag(n)) then
+          if (vflux_flag(n)) then   
              short_name = 'surf_avg_' /&
                   &/ ind_name_table(n)%name
              call add_attrib_file(restart_file, trim(short_name), surf_avg(n))
@@ -4604,7 +4580,7 @@ contains
   ! !IROUTINE: ecosys_tracer_ref_val
   ! !INTERFACE:
 
-  function ecosys_tracer_ref_val(ind)
+  function ecosys_tracer_ref_val(ind, vflux_flag)
 
     ! !DESCRIPTION:
     !  return reference value for tracers using virtual fluxes
@@ -4614,7 +4590,8 @@ contains
 
     ! !INPUT PARAMETERS:
 
-    integer (int_kind), intent(in) :: ind
+    integer (int_kind) , intent(in) :: ind
+    logical (log_kind) , intent(in) :: vflux_flag(:) 
 
     ! !OUTPUT PARAMETERS:
 

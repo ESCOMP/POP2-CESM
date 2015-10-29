@@ -38,7 +38,12 @@ module ecosys_driver
   use prognostic                , only : tracer_field
   use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
   use passive_tracer_tools      , only : set_tracer_indices
+  use passive_tracer_tools      , only : ind_name_pair
   use broadcast                 , only : broadcast_scalar
+
+  use marbl_parms               , only : dic_ind
+  use marbl_parms               , only : alk_ind
+  use marbl_parms               , only : dic_alt_co2_ind
 
   use marbl_interface           , only : marbl_interface_class
   use marbl_interface           , only : marbl_sizes_type
@@ -73,7 +78,6 @@ module ecosys_driver
        ecosys_tavg_forcing,        &
        ecosys_set_interior,        &
        ecosys_write_restart
-
 
   use ecosys_ciso_mod, only:        &
        ecosys_ciso_tracer_cnt,      &
@@ -153,6 +157,22 @@ module ecosys_driver
 
   type(ecosys_restore_type) :: ecosys_restore
 
+  !-----------------------------------------------------------------------
+  !  average surface tracer value related variables
+  !  used as reference value for virtual flux computations
+  !-----------------------------------------------------------------------
+  ! NOTE (mvertens, 2015-10) the following has been moved from ecosys_mod module variables
+  ! to ecosys_driver module variables as part of the marbilization of the ecosys initialization
+
+  logical (log_kind) :: vflux_flag(ecosys_tracer_cnt) ! which tracers get virtual fluxes applied
+  real (r8)          :: surf_avg(ecosys_tracer_cnt)   ! average surface tracer values
+  integer (int_kind) :: comp_surf_avg_flag            ! time flag id for computing average surface tracer values
+
+  real (r8), allocatable, target :: PH_PREV(:, :, :)         ! computed ph from previous time step
+  real (r8), allocatable, target :: PH_PREV_ALT_CO2(:, :, :) ! computed ph from previous time step, alternative CO2
+
+  type(ind_name_pair) :: ind_name_table(ecosys_tracer_cnt) !  derived type & parameter for tracer index lookup
+
   !EOC
   !***********************************************************************
 
@@ -218,33 +238,37 @@ contains
     !
     ! !REVISION HISTORY:
     !  same as module
-    use marbl_interface_constants, only : marbl_nl_buffer_size
+
+    use marbl_interface_constants , only : marbl_nl_buffer_size
+    use grid                      , only : n_topo_smooth
+    use grid                      , only : fill_points
+    use broadcast                 , only : broadcast_scalar
+    use time_management           , only : eval_time_flag
+    use passive_tracer_tools      , only : set_tracer_indices
+    use passive_tracer_tools      , only : extract_surf_avg
+    use passive_tracer_tools      , only : extract_surf_avg
+    use passive_tracer_tools      , only : comp_surf_avg
+    use passive_tracer_tools      , only : rest_read_tracer_block
+    use passive_tracer_tools      , only : field_exists_in_file
+    use passive_tracer_tools      , only : tracer_read
+    use passive_tracer_tools      , only : file_read_tracer_block
+    use passive_tracer_tools      , only : read_field
 
     ! !INPUT PARAMETERS:
 
-    character (*), intent(in) :: &
-         init_ts_file_fmt,    & ! format (bin or nc) for input file
-         read_restart_filename  ! file name for restart file
-
-
-    logical (kind=log_kind), intent(in)  ::  &
-         ciso_on                 ! ecosys_ciso on
+    logical (kind=log_kind) , intent(in) :: ciso_on                ! ecosys_ciso on
+    character (*)           , intent(in) :: init_ts_file_fmt       ! format (bin or nc) for input file
+    character (*)           , intent(in) :: read_restart_filename  ! file name for restart file
 
     ! !INPUT/OUTPUT PARAMETERS:
 
-    type (tracer_field), dimension(:), intent(inout) :: &
-         tracer_d_module   ! descriptors for each tracer
-
-    real (r8), dimension(:,:,:,:,:,:), &
-         intent(inout) :: TRACER_MODULE
+    type (tracer_field) , intent(inout) :: tracer_d_module(:)   ! descriptors for each tracer
+    real (r8)           , intent(inout) :: TRACER_MODULE(:,:,:,:,:,:)
 
     ! !OUTPUT PARAMETERS:
 
-    character (char_len), dimension(:), intent(out) :: &
-         tadvect_ctype     ! advection method for ecosys tracers
-
-    integer (POP_i4), intent(out) :: &
-         errorCode
+    character (char_len), intent(out) :: tadvect_ctype(:)     ! advection method for ecosys tracers
+    integer (POP_i4)    , intent(out) :: errorCode
 
     !EOP
     !BOC
@@ -252,17 +276,25 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
 
-    character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_init'
-
-    integer (int_kind) :: cumulative_nt, n, bid, k, &
-         nml_error,        &! error flag for nml read
-         iostat             ! io status flag
-
-    character (char_len) :: sname, lname, units, coordinates
-    character (4) :: grid_loc
+    character(*), parameter         :: subname = 'ecosys_driver:ecosys_driver_init'
+    integer (int_kind)              :: cumulative_nt, n, bid, k
+    integer (int_kind)              :: nml_error          ! error flag for nml read
+    integer (int_kind)              :: iostat             ! io status flag
+    character (char_len)            :: sname, lname, units, coordinates
+    character (4)                   :: grid_loc
     character(marbl_nl_buffer_size) :: nl_buffer
-    character(char_len_long) :: ioerror_msg
+    character(char_len_long)        :: ioerror_msg
 
+    ! NOTE (mvertens, 2015-10) variables moved from ecosys_init
+    character (char_len) ::  ecosys_restart_filename            ! modified file name for restart file
+
+    ! NOTE (mvertens, 2015-10) namelist variables moved from ecosys_mod to ecosys_driver
+    real (r8)           :: surf_avg_dic_const, surf_avg_alk_const
+    logical (log_kind)  :: use_nml_surf_vals         ! do namelist surf values override values from restart file
+    character(char_len) :: init_ecosys_option        ! namelist option for initialization of bgc
+    character(char_len) :: init_ecosys_init_file     ! filename for option 'file'
+    character(char_len) :: init_ecosys_init_file_fmt ! file format for option 'file'
+    type(tracer_read)   :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers
 
     !-----------------------------------------------------------------------
     !  read in ecosys_driver namelist, to set namelist parameters that
@@ -376,8 +408,7 @@ contains
     allocate(marbl_saved_state%ph_prev_alt_co2_3d(nx_block, ny_block, km, max_blocks_clinic))
     allocate(marbl_saved_state%land_mask(nx_block, ny_block, nblocks_clinic) )
     
-    call marbl%init(marbl_driver_sizes, marbl_sizes, &
-         nl_buffer, marbl_status)
+    call marbl%init(marbl_driver_sizes, marbl_sizes, nl_buffer, marbl_status)
     if (marbl_status%status /= marbl_status_ok) then
        call exit_POP(sigAbort, &
             'ERROR in ecosys_driver_init: marbl_init returned status: "'//marbl_status%message//'"')
@@ -428,25 +459,40 @@ contains
     !  ECOSYS block
     !-----------------------------------------------------------------------
 
+    !  initialize virtual flux flag array
+    vflux_flag(:) = .false.
+    vflux_flag(dic_ind) = .true.
+    vflux_flag(alk_ind) = .true.
+    vflux_flag(dic_alt_co2_ind) = .true.
+
+    !  allocate various  allocatable module variables
+    allocate( PH_PREV(nx_block, ny_block, max_blocks_clinic) )
+    allocate( PH_PREV_ALT_CO2(nx_block, ny_block, max_blocks_clinic) )
+
     tadvect_ctype(ecosys_ind_begin:ecosys_ind_end) = ecosys_tadvect_ctype
 
-    call ecosys_init(nl_buffer, init_ts_file_fmt, read_restart_filename,       &
+    call ecosys_init(nl_buffer, &
+         init_ts_file_fmt, read_restart_filename, &
          tracer_d_module(ecosys_ind_begin:ecosys_ind_end),         &
          TRACER_MODULE(:,:,:,ecosys_ind_begin:ecosys_ind_end,:,:), &
-         lmarginal_seas, ecosys_restore, marbl_saved_state, &
-         errorCode, marbl_status)
+         lmarginal_seas, ecosys_restore, marbl_saved_state, vflux_flag, &
+         errorCode, marbl_status, &
+         comp_surf_avg_flag, use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
+         init_ecosys_option, init_ecosys_init_file, init_ecosys_init_file_fmt, &
+         tracer_init_ext, &
+        !ind_name_table, &
+         PH_PREV, PH_PREV_ALT_CO2)
+
     if (marbl_status%status /= marbl_status_ok) then
        call exit_POP(sigAbort, &
             'ERROR in ecosys_driver_init: ecosys_init returned status: "'//marbl_status%message//'"')
     end if
-
-    call ecosys_tavg_init(ecosys_restore)
-
     if (errorCode /= POP_Success) then
        call POP_ErrorSet(errorCode, 'init_ecosys_driver: error in ecosys_init')
        return
     endif
 
+    call ecosys_tavg_init(ecosys_restore)
 
     !-----------------------------------------------------------------------
     !  ECOSYS CISO block
@@ -753,16 +799,17 @@ contains
     !  ECOSYS block
     !-----------------------------------------------------------------------
 
-    call ecosys_set_sflux(                                       &
-         marbl_saved_state, &
-         marbl%private_data%surface_share,                         &
-         SHF_QSW_RAW, SHF_QSW,                                     &
-         U10_SQR, IFRAC, PRESS,                                    &
-         SST, SSS,                                                 &
-         SURFACE_VALS_OLD(:,:,ecosys_ind_begin:ecosys_ind_end,:),  &
-         SURFACE_VALS_CUR(:,:,ecosys_ind_begin:ecosys_ind_end,:),  &
-         STF_MODULE(:,:,ecosys_ind_begin:ecosys_ind_end,:),        &
-         ciso_on)
+    call ecosys_set_sflux(                                        &
+         marbl_saved_state,                                       &
+         marbl%private_data%surface_share,                        &
+         SHF_QSW_RAW, SHF_QSW,                                    &
+         U10_SQR, IFRAC, PRESS,                                   &
+         SST, SSS,                                                &
+         SURFACE_VALS_OLD(:,:,ecosys_ind_begin:ecosys_ind_end,:), &
+         SURFACE_VALS_CUR(:,:,ecosys_ind_begin:ecosys_ind_end,:), &
+         STF_MODULE(:,:,ecosys_ind_begin:ecosys_ind_end,:),       &
+         ciso_on,                                                 &
+         vflux_flag, PH_PREV, PH_PREV_ALT_CO2, comp_surf_avg_flag) !new args
 
     !-----------------------------------------------------------------------
     !  ECOSYSC_CISO block
@@ -814,7 +861,8 @@ contains
     !  ECOSYS block
     !-----------------------------------------------------------------------
 
-    call ecosys_write_restart(marbl_saved_state, restart_file, action)
+    call ecosys_write_restart(marbl_saved_state, restart_file, action, &
+         vflux_flag, PH_PREV, PH_PREV_ALT_CO2)
 
     !-----------------------------------------------------------------------
     !  ECOSYS_CISO block
@@ -924,7 +972,7 @@ contains
     !-----------------------------------------------------------------------
 
     if (ind >= ecosys_ind_begin .and. ind <= ecosys_ind_end) then
-       ecosys_driver_tracer_ref_val = ecosys_tracer_ref_val(ind-ecosys_ind_begin+1)
+       ecosys_driver_tracer_ref_val = ecosys_tracer_ref_val(ind-ecosys_ind_begin+1, vflux_flag)
     endif
 
     !-----------------------------------------------------------------------
