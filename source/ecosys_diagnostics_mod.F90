@@ -138,7 +138,19 @@ module ecosys_diagnostics_mod
       zoo_graze_zoo_diag_ind   =  7, &
       x_graze_zoo_diag_ind     =  8
 
-  integer(int_kind), parameter ::   part_diag_cnt =  23
+  integer(int_kind), parameter ::   part_diag_cnt_2d =   9
+  integer (int_kind), parameter ::   &
+      calcToSed_diag_ind       = 1, &
+      pocToSed_diag_ind        = 2, &
+      ponToSed_diag_ind        = 3, &
+      SedDenitrif_diag_ind     = 4, &
+      OtherRemin_diag_ind      = 5, &
+      popToSed_diag_ind        = 6, &
+      bsiToSed_diag_ind        = 7, &
+      dustToSed_diag_ind       = 8, &
+      pfeToSed_diag_ind        = 9
+
+  integer(int_kind), parameter ::   part_diag_cnt_3d =  14
   integer (int_kind), parameter ::   &
       POC_FLUX_IN_diag_ind     =  1, &
       POC_PROD_diag_ind        =  2, &
@@ -153,16 +165,7 @@ module ecosys_diagnostics_mod
       dust_REMIN_diag_ind      = 11, &
       P_iron_FLUX_IN_diag_ind  = 12, &
       P_iron_PROD_diag_ind     = 13, &
-      P_iron_REMIN_diag_ind    = 14, &
-      calcToSed_diag_ind       = 15, &
-      bsiToSed_diag_ind        = 16, &
-      pocToSed_diag_ind        = 17, &
-      SedDenitrif_diag_ind     = 18, &
-      OtherRemin_diag_ind      = 19, &
-      ponToSed_diag_ind        = 20, &
-      popToSed_diag_ind        = 21, &
-      dustToSed_diag_ind       = 22, &
-      pfeToSed_diag_ind        = 23
+      P_iron_REMIN_diag_ind    = 14
 
   integer(int_kind), parameter ::   forcing_diag_cnt =  38
   integer (int_kind), parameter ::   &
@@ -406,35 +409,38 @@ contains
     else
        delta_z = marbl_domain%dz
     end if
-    associate(part_diags => marbl_diags%part_diags)
-      part_diags(:, POC_FLUX_IN_diag_ind) = POC%sflux_in + POC%hflux_in
-      part_diags(:, POC_PROD_diag_ind) = POC%prod
-      part_diags(:, POC_REMIN_diag_ind) = POC%remin
+    associate(&
+              part_diags_2d => marbl_diags%part_diags_2d,&
+              part_diags_3d => marbl_diags%part_diags_3d &
+              )
+      part_diags_3d(:, POC_FLUX_IN_diag_ind) = POC%sflux_in + POC%hflux_in
+      part_diags_3d(:, POC_PROD_diag_ind) = POC%prod
+      part_diags_3d(:, POC_REMIN_diag_ind) = POC%remin
 
-      part_diags(:, CaCO3_FLUX_IN_diag_ind) = P_CaCO3%sflux_in + P_CaCO3%hflux_in
-      part_diags(:, CaCO3_PROD_diag_ind) = P_CaCO3%prod
-      part_diags(:, CaCO3_REMIN_diag_ind) = P_CaCO3%remin
+      part_diags_3d(:, CaCO3_FLUX_IN_diag_ind) = P_CaCO3%sflux_in + P_CaCO3%hflux_in
+      part_diags_3d(:, CaCO3_PROD_diag_ind) = P_CaCO3%prod
+      part_diags_3d(:, CaCO3_REMIN_diag_ind) = P_CaCO3%remin
 
-      part_diags(:, SiO2_FLUX_IN_diag_ind) = P_SiO2%sflux_in + P_SiO2%hflux_in
-      part_diags(:, SiO2_PROD_diag_ind) = P_SiO2%prod
-      part_diags(:, SiO2_REMIN_diag_ind) = P_SiO2%remin
+      part_diags_3d(:, SiO2_FLUX_IN_diag_ind) = P_SiO2%sflux_in + P_SiO2%hflux_in
+      part_diags_3d(:, SiO2_PROD_diag_ind) = P_SiO2%prod
+      part_diags_3d(:, SiO2_REMIN_diag_ind) = P_SiO2%remin
 
-      part_diags(:, dust_FLUX_IN_diag_ind) = dust%sflux_in + dust%hflux_in
-      part_diags(:, dust_REMIN_diag_ind) = P_SiO2%remin
+      part_diags_3d(:, dust_FLUX_IN_diag_ind) = dust%sflux_in + dust%hflux_in
+      part_diags_3d(:, dust_REMIN_diag_ind) = P_SiO2%remin
 
-      part_diags(:, P_iron_FLUX_IN_diag_ind) = P_iron%sflux_in + P_iron%hflux_in
-      part_diags(:, P_iron_PROD_diag_ind) = P_iron%prod
-      part_diags(:, P_iron_REMIN_diag_ind) = P_iron%remin
+      part_diags_3d(:, P_iron_FLUX_IN_diag_ind) = P_iron%sflux_in + P_iron%hflux_in
+      part_diags_3d(:, P_iron_PROD_diag_ind) = P_iron%prod
+      part_diags_3d(:, P_iron_REMIN_diag_ind) = P_iron%remin
 
-      part_diags(:, calcToSed_diag_ind) = P_CaCO3%sed_loss
-      part_diags(:, bsiToSed_diag_ind) = P_SiO2%sed_loss
-      part_diags(:, pocToSed_diag_ind) = POC%sed_loss
-      part_diags(:, SedDenitrif_diag_ind) = sed_denitrif * delta_z
-      part_diags(:, OtherRemin_diag_ind) = other_remin * delta_z
-      part_diags(:, ponToSed_diag_ind) = (POC%sed_loss * Q)
-      part_diags(:, popToSed_diag_ind) = (POC%sed_loss * Qp_zoo_pom)
-      part_diags(:, dustToSed_diag_ind) = dust%sed_loss
-      part_diags(:, pfeToSed_diag_ind) = P_iron%sed_loss
+      part_diags_2d(:, calcToSed_diag_ind) = P_CaCO3%sed_loss
+      part_diags_2d(:, bsiToSed_diag_ind) = P_SiO2%sed_loss
+      part_diags_2d(:, pocToSed_diag_ind) = POC%sed_loss
+      part_diags_2d(:, SedDenitrif_diag_ind) = sed_denitrif * delta_z
+      part_diags_2d(:, OtherRemin_diag_ind) = other_remin * delta_z
+      part_diags_2d(:, ponToSed_diag_ind) = (POC%sed_loss * Q)
+      part_diags_2d(:, popToSed_diag_ind) = (POC%sed_loss * Qp_zoo_pom)
+      part_diags_2d(:, dustToSed_diag_ind) = dust%sed_loss
+      part_diags_2d(:, pfeToSed_diag_ind) = P_iron%sed_loss
     end associate
 
   end subroutine store_diagnostics_particulates

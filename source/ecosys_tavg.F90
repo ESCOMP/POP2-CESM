@@ -116,7 +116,19 @@
   use ecosys_diagnostics_mod, only : zoo_graze_zoo_diag_ind
   use ecosys_diagnostics_mod, only : x_graze_zoo_diag_ind
   ! particulate diagnostics
-  use ecosys_diagnostics_mod, only : part_diag_cnt
+  ! 2D
+  use ecosys_diagnostics_mod, only : part_diag_cnt_2d
+  use ecosys_diagnostics_mod, only : calcToSed_diag_ind
+  use ecosys_diagnostics_mod, only : bsiToSed_diag_ind
+  use ecosys_diagnostics_mod, only : pocToSed_diag_ind
+  use ecosys_diagnostics_mod, only : SedDenitrif_diag_ind
+  use ecosys_diagnostics_mod, only : OtherRemin_diag_ind
+  use ecosys_diagnostics_mod, only : ponToSed_diag_ind
+  use ecosys_diagnostics_mod, only : popToSed_diag_ind
+  use ecosys_diagnostics_mod, only : dustToSed_diag_ind
+  use ecosys_diagnostics_mod, only : pfeToSed_diag_ind
+  ! 3D
+  use ecosys_diagnostics_mod, only : part_diag_cnt_3d
   use ecosys_diagnostics_mod, only : POC_FLUX_IN_diag_ind
   use ecosys_diagnostics_mod, only : POC_PROD_diag_ind
   use ecosys_diagnostics_mod, only : POC_REMIN_diag_ind
@@ -131,15 +143,6 @@
   use ecosys_diagnostics_mod, only : P_iron_FLUX_IN_diag_ind
   use ecosys_diagnostics_mod, only : P_iron_PROD_diag_ind
   use ecosys_diagnostics_mod, only : P_iron_REMIN_diag_ind
-  use ecosys_diagnostics_mod, only : calcToSed_diag_ind
-  use ecosys_diagnostics_mod, only : bsiToSed_diag_ind
-  use ecosys_diagnostics_mod, only : pocToSed_diag_ind
-  use ecosys_diagnostics_mod, only : SedDenitrif_diag_ind
-  use ecosys_diagnostics_mod, only : OtherRemin_diag_ind
-  use ecosys_diagnostics_mod, only : ponToSed_diag_ind
-  use ecosys_diagnostics_mod, only : popToSed_diag_ind
-  use ecosys_diagnostics_mod, only : dustToSed_diag_ind
-  use ecosys_diagnostics_mod, only : pfeToSed_diag_ind
   ! tavg_forcing diagnostics
   use ecosys_diagnostics_mod, only : forcing_diag_cnt
   use ecosys_diagnostics_mod, only : ECOSYS_IFRAC_diag_ind
@@ -229,7 +232,8 @@
   !  tavg ids for particulate terms
   !-----------------------------------------------------------------------
 
-  integer (int_kind), dimension(part_diag_cnt) :: tavg_part
+  integer (int_kind), dimension(part_diag_cnt_2d) :: tavg_part_2d
+  integer (int_kind), dimension(part_diag_cnt_3d) :: tavg_part_3d
   integer (int_kind) :: tavg_POC_ACCUM      ! tavg id for poc accumulation
 
   !-----------------------------------------------------------------------
@@ -753,47 +757,47 @@ contains
     !-----------------------------------------------------------------------
     !  Vars to sum up burial in sediments and sed Denitrif N losses
     !-----------------------------------------------------------------------
-    call define_tavg_field(tavg_part(calcToSed_diag_ind),'calcToSed',2, &
+    call define_tavg_field(tavg_part_2d(calcToSed_diag_ind),'calcToSed',2, &
                            long_name='CaCO3 Flux to Sediments',         &
                            units='nmolC/cm^2/s', grid_loc='2110',       &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_part(pocToSed_diag_ind),'pocToSed',2,   &
+    call define_tavg_field(tavg_part_2d(pocToSed_diag_ind),'pocToSed',2,   &
                            long_name='POC Flux to Sediments',           &
                            units='nmolC/cm^2/s', grid_loc='2110',       &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_part(ponToSed_diag_ind),'ponToSed',2,   &
+    call define_tavg_field(tavg_part_2d(ponToSed_diag_ind),'ponToSed',2,   &
                            long_name='nitrogen burial Flux to Sediments',&
                            units='nmolN/cm^2/s', grid_loc='2110',       &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_part(SedDenitrif_diag_ind),'SedDenitrif',2, &
+    call define_tavg_field(tavg_part_2d(SedDenitrif_diag_ind),'SedDenitrif',2, &
                            long_name='nitrogen loss in Sediments',          &
                            units='nmolN/cm^2/s', grid_loc='2110',           &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_part(OtherRemin_diag_ind),'OtherRemin',2, &
+    call define_tavg_field(tavg_part_2d(OtherRemin_diag_ind),'OtherRemin',2, &
                            long_name='non-oxic,non-dentr remin in Sediments', &
                            units='nmolC/cm^2/s', grid_loc='2110',         &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_part(popToSed_diag_ind),'popToSed',2, &
+    call define_tavg_field(tavg_part_2d(popToSed_diag_ind),'popToSed',2, &
                            long_name='phosporus Flux to Sediments',   &
                            units='nmolP/cm^2/s', grid_loc='2110',     &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_part(bsiToSed_diag_ind),'bsiToSed',2,   &
+    call define_tavg_field(tavg_part_2d(bsiToSed_diag_ind),'bsiToSed',2,   &
                            long_name='biogenic Si Flux to Sediments',   &
                            units='nmolSi/cm^2/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_part(dustToSed_diag_ind),'dustToSed',2, &
+    call define_tavg_field(tavg_part_2d(dustToSed_diag_ind),'dustToSed',2, &
                            long_name='dust Flux to Sediments',          &
                            units='g/cm^2/s', grid_loc='2110',           &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_part(pfeToSed_diag_ind),'pfeToSed',2,   &
+    call define_tavg_field(tavg_part_2d(pfeToSed_diag_ind),'pfeToSed',2,   &
                            long_name='pFe Flux to Sediments',           &
                            units='nmolFe/cm^2/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
@@ -802,72 +806,72 @@ contains
 !  Define 3D tavg fields for particulate terms
 !-----------------------------------------------------------------------
 
-    call define_tavg_field(tavg_part(POC_FLUX_IN_diag_ind),'POC_FLUX_IN',3, &
+    call define_tavg_field(tavg_part_3d(POC_FLUX_IN_diag_ind),'POC_FLUX_IN',3, &
                            long_name='POC Flux into Cell',                  &
                            units='mmol/m^3 cm/s', grid_loc='3111',          &
                            coordinates='TLONG TLAT z_t time')
 
-    call define_tavg_field(tavg_part(POC_PROD_diag_ind),'POC_PROD',3,   &
+    call define_tavg_field(tavg_part_3d(POC_PROD_diag_ind),'POC_PROD',3,   &
                            long_name='POC Production',                  &
                            units='mmol/m^3/s', grid_loc='3111',         &
                            coordinates='TLONG TLAT z_t time')
 
-    call define_tavg_field(tavg_part(POC_REMIN_diag_ind),'POC_REMIN',3, &
+    call define_tavg_field(tavg_part_3d(POC_REMIN_diag_ind),'POC_REMIN',3, &
                            long_name='POC Remineralization',            &
                            units='mmol/m^3/s', grid_loc='3111',         &
                            coordinates='TLONG TLAT z_t time')
 
-    call define_tavg_field(tavg_part(CaCO3_FLUX_IN_diag_ind),'CaCO3_FLUX_IN',3, &
+    call define_tavg_field(tavg_part_3d(CaCO3_FLUX_IN_diag_ind),'CaCO3_FLUX_IN',3, &
                            long_name='CaCO3 flux into cell',                    &
                            units='mmol/m^3 cm/s', grid_loc='3111',              &
                            coordinates='TLONG TLAT z_t time')
 
-    call define_tavg_field(tavg_part(CaCO3_PROD_diag_ind),'CaCO3_PROD',3, &
+    call define_tavg_field(tavg_part_3d(CaCO3_PROD_diag_ind),'CaCO3_PROD',3, &
                            long_name='CaCO3 Production',                  &
                            units='mmol/m^3/s', grid_loc='3111',           &
                            coordinates='TLONG TLAT z_t time')
 
-    call define_tavg_field(tavg_part(CaCO3_REMIN_diag_ind),'CaCO3_REMIN',3, &
+    call define_tavg_field(tavg_part_3d(CaCO3_REMIN_diag_ind),'CaCO3_REMIN',3, &
                            long_name='CaCO3 Remineralization',              &
                            units='mmol/m^3/s', grid_loc='3111',             &
                            coordinates='TLONG TLAT z_t time')
 
-    call define_tavg_field(tavg_part(SiO2_FLUX_IN_diag_ind),'SiO2_FLUX_IN',3, &
+    call define_tavg_field(tavg_part_3d(SiO2_FLUX_IN_diag_ind),'SiO2_FLUX_IN',3, &
                            long_name='SiO2 Flux into Cell',                   &
                            units='mmol/m^3 cm/s', grid_loc='3111',            &
                            coordinates='TLONG TLAT z_t time')
 
-    call define_tavg_field(tavg_part(SiO2_PROD_diag_ind),'SiO2_PROD',3, &
+    call define_tavg_field(tavg_part_3d(SiO2_PROD_diag_ind),'SiO2_PROD',3, &
                            long_name='SiO2 Production',                 &
                            units='mmol/m^3/s', grid_loc='3111',         &
                            coordinates='TLONG TLAT z_t time')
 
-    call define_tavg_field(tavg_part(SiO2_REMIN_diag_ind),'SiO2_REMIN',3, &
+    call define_tavg_field(tavg_part_3d(SiO2_REMIN_diag_ind),'SiO2_REMIN',3, &
                            long_name='SiO2 Remineralization',             &
                            units='mmol/m^3/s', grid_loc='3111',           &
                            coordinates='TLONG TLAT z_t time')
 
-    call define_tavg_field(tavg_part(dust_FLUX_IN_diag_ind),'dust_FLUX_IN',3, &
+    call define_tavg_field(tavg_part_3d(dust_FLUX_IN_diag_ind),'dust_FLUX_IN',3, &
                            long_name='Dust Flux into Cell',                   &
                            units='ng/s/m^2', grid_loc='3111',                 &
                            coordinates='TLONG TLAT z_t time')
 
-    call define_tavg_field(tavg_part(dust_REMIN_diag_ind),'dust_REMIN',3, &
+    call define_tavg_field(tavg_part_3d(dust_REMIN_diag_ind),'dust_REMIN',3, &
                            long_name='Dust Remineralization',             &
                            units='mmol/m^3/s', grid_loc='3111',           &
                            coordinates='TLONG TLAT z_t time')
 
-    call define_tavg_field(tavg_part(P_iron_FLUX_IN_diag_ind),'P_iron_FLUX_IN',3, &
+    call define_tavg_field(tavg_part_3d(P_iron_FLUX_IN_diag_ind),'P_iron_FLUX_IN',3, &
                            long_name='P_iron Flux into Cell',                     &
                            units='mmol/m^3 cm/s', grid_loc='3111',                &
                            coordinates='TLONG TLAT z_t time')
 
-    call define_tavg_field(tavg_part(P_iron_PROD_diag_ind),'P_iron_PROD',3, &
+    call define_tavg_field(tavg_part_3d(P_iron_PROD_diag_ind),'P_iron_PROD',3, &
                            long_name='P_iron Production',                   &
                            units='mmol/m^3/s', grid_loc='3111',             &
                            coordinates='TLONG TLAT z_t time')
 
-    call define_tavg_field(tavg_part(P_iron_REMIN_diag_ind),'P_iron_REMIN',3, &
+    call define_tavg_field(tavg_part_3d(P_iron_REMIN_diag_ind),'P_iron_REMIN',3, &
                            long_name='P_iron Remineralization',               &
                            units='mmol/m^3/s', grid_loc='3111',               &
                            coordinates='TLONG TLAT z_t time')
@@ -1168,7 +1172,8 @@ contains
         DIAGS_3D                  => marbl_diagnostics%diags_3d,              &
         AUTO_DIAGS                => marbl_diagnostics%auto_diags,            &
         ZOO_DIAGS                 => marbl_diagnostics%zoo_diags,             &
-        PART_DIAGS                => marbl_diagnostics%part_diags)
+        PART_DIAGS_2D             => marbl_diagnostics%part_diags_2d,         &
+        PART_DIAGS_3D             => marbl_diagnostics%part_diags_3d)
     do n=1,ecosys_diag_cnt_2d
       if (any((/zsatcalc_diag_ind, zsatarag_diag_ind/).eq.n)) then
         call accumulate_tavg_field(DIAGS_2D(km,n),tavg_ecosys_2d(n),bid,i,c)
@@ -1241,17 +1246,13 @@ contains
     end do
 
     ! Accumulate particulate terms
-    do n=1,part_diag_cnt
-      if (any((/calcToSed_diag_ind,pocToSed_diag_ind,ponToSed_diag_ind,       &
-                SedDenitrif_diag_ind, OtherRemin_diag_ind, popToSed_diag_ind, &
-                bsiToSed_diag_ind, dustToSed_diag_ind,pfeToSed_diag_ind/)     &
-             .eq.n)) then
-        do k=1,km
-          call accumulate_tavg_field(PART_DIAGS(k,n), tavg_part(n), bid, i, c)
-        end do
-      else
-        call accumulate_tavg_field(PART_DIAGS(:,n), tavg_part(n), bid, i, c)
-      end if
+    do n=1,part_diag_cnt_2d
+      do k=1,km
+        call accumulate_tavg_field(PART_DIAGS_2D(k,n), tavg_part_2d(n), bid, i, c)
+      end do
+    end do
+    do n=1,part_diag_cnt_3d
+      call accumulate_tavg_field(PART_DIAGS_3D(:,n), tavg_part_3d(n), bid, i, c)
     end do
 
     end associate
