@@ -1,7 +1,7 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
-Tag Date:    28 Oct 2015
+Tag Date:    29 Oct 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n07_cesm_pop_2_1_20151020/
 Tag Summary: Make marbl_diagnostics a module variable in ecosys_driver; goal
              now is to remove ecosys_diagnostics_type all together, which
