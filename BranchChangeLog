@@ -2,6 +2,22 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    29 Oct 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n08_cesm_pop_2_1_20151020/
+Tag Summary: Completely removed ecosys_diagnostics_type; ecosys_tavg now uses
+             marbl_diagnostics_type. Need to split the particulate and
+             autotroph diagnostics into 2D and 3D forms, then need to make the
+             2D fields actually be 2D (currently they are 3D and summing is
+             done in the accumulation step).
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_tavg.F90
+M       source/marbl_interface_types.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    29 Oct 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n07_cesm_pop_2_1_20151020/
 Tag Summary: Make marbl_diagnostics a module variable in ecosys_driver; goal
              now is to remove ecosys_diagnostics_type all together, which

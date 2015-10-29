@@ -46,7 +46,6 @@ module ecosys_driver
 
   use marbl_interface_constants , only : marbl_status_ok
   use marbl_interface_types     , only : marbl_status_type
-  use marbl_interface_types     , only : ecosys_diagnostics_type
   use marbl_interface_types     , only: marbl_diagnostics_type
   use marbl_interface_types     , only : marbl_saved_state_type
 
@@ -146,7 +145,6 @@ module ecosys_driver
   type(marbl_driver_sizes_type) :: marbl_driver_sizes
   type(marbl_status_type) :: marbl_status
   type(marbl_diagnostics_type), dimension(max_blocks_clinic) :: marbl_diagnostics
-  type(ecosys_diagnostics_type), dimension(km, max_blocks_clinic) :: ecosys_diagnostics
   ! FIXME(bja, 2015-08) this needs to go into marbl%private_data%saved_state !!!
   type(marbl_saved_state_type) :: marbl_saved_state
 
@@ -388,12 +386,6 @@ contains
       call marbl_diagnostics(bid)%construct(km, ecosys_diag_cnt_2d,           &
               ecosys_diag_cnt_3d, auto_diag_cnt, zoo_diag_cnt, part_diag_cnt, &
               ecosys_tracer_cnt, autotroph_cnt, zooplankton_cnt)
-      do k=1,km
-        call ecosys_diagnostics(k,bid)%construct(nx_block, ny_block,          &
-                 ecosys_diag_cnt_2d, ecosys_diag_cnt_3d, auto_diag_cnt,       &
-                 zoo_diag_cnt, part_diag_cnt, ecosys_tracer_cnt,              &
-                 autotroph_cnt, zooplankton_cnt)
-      end do
     end do
 
 
@@ -614,36 +606,10 @@ contains
                do n = ecosys_ind_begin, ecosys_ind_end
                   DTRACER_MODULE(i, c, k, n) = column_dtracer(n, k)
                end do ! do n
-
-               do d = 1, ecosys_diag_cnt_2d
-                  ecosys_diagnostics(k, bid)%diags_2d(i, c, d) = marbl_diagnostics(bid)%diags_2d(k, d)
-               end do
-          
-               do d = 1, ecosys_diag_cnt_3d
-                  ecosys_diagnostics(k, bid)%diags_3d(i, c, d) = marbl_diagnostics(bid)%diags_3d(k, d)
-               end do
-          
-               do n = 1, autotroph_cnt
-                  do d = 1, auto_diag_cnt
-                     ecosys_diagnostics(k, bid)%auto_diags(i, c, n, d) = marbl_diagnostics(bid)%auto_diags(k, d, n)
-                  end do ! do d
-               end do ! do n
-
-               do n = 1, zooplankton_cnt
-                  do d = 1, zoo_diag_cnt
-                     ecosys_diagnostics(k, bid)%zoo_diags(i, c, n, d) = marbl_diagnostics(bid)%zoo_diags(k, d, n)
-                  end do ! do d
-               end do ! do n
-
-               do d = 1, part_diag_cnt
-                  ecosys_diagnostics(k, bid)%part_diags(i, c, d) = marbl_diagnostics(bid)%part_diags(k, d)
-               end do ! do d
-
-               do d = 1, ecosys_tracer_cnt
-                  ecosys_diagnostics(k, bid)%restore_diags(i, c, d) = marbl_diagnostics(bid)%restore_diags(k, d)
-               end do ! do d
             end do ! do k
           end if ! KMT > 0
+
+          call ecosys_tavg_accumulate(i, c, bid, marbl_diagnostics(bid))
 
        end do ! do i
     end do ! do c
@@ -651,14 +617,14 @@ contains
 
     call timer_stop(ecosys_interior_timer, block_id=bid)
 
-    do k = 1, km
-       call ecosys_tavg_accumulate(k, bid, ecosys_diagnostics(k, bid))
-       do n = 1, ecosys_tracer_cnt
-          call ecosys_restore%accumulate_tavg(tracer_index=n, &
-               vert_level=k, block_id=bid, &
-               restore_local=ecosys_diagnostics(k, bid)%restore_diags(:, :, n))
-       end do
-    end do
+!    do k = 1, km
+!       do n = 1, ecosys_tracer_cnt
+!          call ecosys_restore%accumulate_tavg(tracer_index=n, &
+!               vert_level=k, block_id=bid, &
+!               restore_local=ecosys_diagnostics(k, bid)%restore_diags(:, :, n))
+!       end do
+!    end do
+
     !-----------------------------------------------------------------------
     !  ECOSYS_CISO computations
     !-----------------------------------------------------------------------

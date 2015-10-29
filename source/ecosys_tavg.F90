@@ -185,7 +185,8 @@
   use marbl_share_mod, only : zooplankton
   use marbl_share_mod, only : autotroph_cnt
   use marbl_share_mod, only : zooplankton_cnt
-  use marbl_interface_types, only : ecosys_diagnostics_type
+
+  use marbl_interface_types, only : marbl_diagnostics_type
 
   implicit none
   private
@@ -552,42 +553,42 @@ contains
     !-----------------------------------------------------------------------
     !  Define tavg for fields related to conservation of total C, N, P, Si
     !-----------------------------------------------------------------------
-    call define_tavg_field(tavg_ecosys_3d(Jint_Ctot_diag_ind),'Jint_Ctot',2, &
+    call define_tavg_field(tavg_ecosys_2d(Jint_Ctot_diag_ind),'Jint_Ctot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ctot', &
                            units='mmol/m^3 cm/s', grid_loc='2110',        &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys_3d(Jint_100m_Ctot_diag_ind),'Jint_100m_Ctot',2, &
+    call define_tavg_field(tavg_ecosys_2d(Jint_100m_Ctot_diag_ind),'Jint_100m_Ctot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ctot, 0-100m', &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys_3d(Jint_Ntot_diag_ind),'Jint_Ntot',2, &
+    call define_tavg_field(tavg_ecosys_2d(Jint_Ntot_diag_ind),'Jint_Ntot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ntot', &
                            units='mmol/m^3 cm/s', grid_loc='2110',        &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys_3d(Jint_100m_Ntot_diag_ind),'Jint_100m_Ntot',2, &
+    call define_tavg_field(tavg_ecosys_2d(Jint_100m_Ntot_diag_ind),'Jint_100m_Ntot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ntot, 0-100m', &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys_3d(Jint_Ptot_diag_ind),'Jint_Ptot',2, &
+    call define_tavg_field(tavg_ecosys_2d(Jint_Ptot_diag_ind),'Jint_Ptot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ptot', &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys_3d(Jint_100m_Ptot_diag_ind),'Jint_100m_Ptot',2, &
+    call define_tavg_field(tavg_ecosys_2d(Jint_100m_Ptot_diag_ind),'Jint_100m_Ptot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ptot, 0-100m', &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys_3d(Jint_Sitot_diag_ind),'Jint_Sitot',2, &
+    call define_tavg_field(tavg_ecosys_2d(Jint_Sitot_diag_ind),'Jint_Sitot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Sitot', &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
-    call define_tavg_field(tavg_ecosys_3d(Jint_100m_Sitot_diag_ind),'Jint_100m_Sitot',2, &
+    call define_tavg_field(tavg_ecosys_2d(Jint_100m_Sitot_diag_ind),'Jint_100m_Sitot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Sitot, 0-100m', &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
@@ -940,13 +941,13 @@ contains
 !-----------------------------------------------------------------------
 
     do auto_ind = 1, autotroph_cnt
-       call define_tavg_field(tavg_auto(photoC_zint_diag_ind,auto_ind), &
+       call define_tavg_field(tavg_auto(photoC_zint_diag_ind, auto_ind),       &
                               'photoC_' // trim(autotrophs(auto_ind)%sname) // '_zint', 2, &
                               long_name=trim(autotrophs(auto_ind)%lname) // ' C Fixation Vertical Integral', &
                               units='mmol/m^3 cm/s', grid_loc='2110', &
                               coordinates='TLONG TLAT time')
 
-       call define_tavg_field(tavg_auto(photoC_NO3_zint_diag_ind,auto_ind), &
+       call define_tavg_field(tavg_auto(photoC_NO3_zint_diag_ind, auto_ind),  &
                               'photoC_NO3_' // trim(autotrophs(auto_ind)%sname) // '_zint',2, &
                               long_name=trim(autotrophs(auto_ind)%lname) // ' C Fixation from NO3 Vertical Integral', &
                               units='mmol/m^3 cm/s', grid_loc='2110', &
@@ -1154,37 +1155,34 @@ contains
 
   end subroutine ecosys_tavg_init
 
-  subroutine ecosys_tavg_accumulate(k,bid, ecosys_diagnostics)
+  subroutine ecosys_tavg_accumulate(i, c,bid, marbl_diagnostics)
 
-    integer, intent(in) :: k, bid ! level index and block index
-    ! MNL: eventually this will be type(marbl_diagnostics_type) so I am leaving
-    !      the variable name as marbl_diagnostics
-    type(ecosys_diagnostics_type), intent(in) :: ecosys_diagnostics
-    !type(ecosys_diagnostics_type), intent(in) :: marbl_diagnostics
+    integer, intent(in) :: i, c, bid ! column indices and block index
+    type(marbl_diagnostics_type), intent(in) :: marbl_diagnostics
 
-    integer :: n, auto_ind, zoo_ind
+    integer :: n, auto_ind, zoo_ind, k
     logical :: accumulate
 
    associate(                                                                 &
-        DIAGS_2D                  => ecosys_diagnostics%DIAGS_2D,             &
-        DIAGS_3D                  => ecosys_diagnostics%DIAGS_3D,             &
-        AUTO_DIAGS                => ecosys_diagnostics%AUTO_DIAGS,           &
-        ZOO_DIAGS                 => ecosys_diagnostics%ZOO_DIAGS,            &
-        PART_DIAGS                => ecosys_diagnostics%PART_DIAGS)
+        DIAGS_2D                  => marbl_diagnostics%diags_2d,              &
+        DIAGS_3D                  => marbl_diagnostics%diags_3d,              &
+        AUTO_DIAGS                => marbl_diagnostics%auto_diags,            &
+        ZOO_DIAGS                 => marbl_diagnostics%zoo_diags,             &
+        PART_DIAGS                => marbl_diagnostics%part_diags)
     do n=1,ecosys_diag_cnt_2d
-      accumulate = .true.
-      select case (n)
-        case (zsatcalc_diag_ind, zsatarag_diag_ind)
-          accumulate = (k.eq.km)
-        case (O2_ZMIN_diag_ind, O2_ZMIN_DEPTH_diag_ind)
-          accumulate = (k.eq.1)
-      end select
-      if (accumulate) &
-        call accumulate_tavg_field(DIAGS_2D(:,:,n),tavg_ecosys_2d(n),bid,k)
+      if (any((/zsatcalc_diag_ind, zsatarag_diag_ind/).eq.n)) then
+        call accumulate_tavg_field(DIAGS_2D(km,n),tavg_ecosys_2d(n),bid,i,c)
+      elseif (any((/O2_ZMIN_diag_ind, O2_ZMIN_DEPTH_diag_ind/).eq.n)) then
+        call accumulate_tavg_field(DIAGS_2D(1,n),tavg_ecosys_2d(n),bid,i,c)
+      else
+        do k=1,km
+          call accumulate_tavg_field(DIAGS_2D(k,n),tavg_ecosys_2d(n),bid,i,c)
+        end do
+      end if
     end do
 
     do n=1,ecosys_diag_cnt_3d
-      call accumulate_tavg_field(DIAGS_3D(:,:,n),tavg_ecosys_3d(n),bid,k)
+      call accumulate_tavg_field(DIAGS_3D(:,n),tavg_ecosys_3d(n),bid,i,c)
     end do
 
     ! Accumulate autotroph terms
@@ -1196,28 +1194,40 @@ contains
           case (bSi_form_diag_ind)
             accumulate = (autotrophs(auto_ind)%Si_ind.gt.0)
             if ( accumulate) &
-              call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,n),  &
-                                     tavg_tot_bSi_form, bid, k)
+              call accumulate_tavg_field(AUTO_DIAGS(:,n,auto_ind),            &
+                                     tavg_tot_bSi_form, bid, i, c)
           case (CaCO3_form_diag_ind) 
             accumulate = (autotrophs(auto_ind)%imp_calcifier)
             if (accumulate) &
-              call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,n),  &
-                                     tavg_tot_CaCO3_form, bid, k)
+              call accumulate_tavg_field(AUTO_DIAGS(:,n,auto_ind),            &
+                                     tavg_tot_CaCO3_form, bid, i, c)
           case (CaCO3_form_zint_diag_ind)
             accumulate = (autotrophs(auto_ind)%imp_calcifier)
-            if (accumulate) &
-              call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,n),  &
-                                     tavg_tot_CaCO3_form_zint, bid, k)
+            if ( accumulate) then
+              do k=1,km
+                call accumulate_tavg_field(AUTO_DIAGS(k,n,auto_ind),          &
+                                           tavg_tot_CaCO3_form_zint, bid, i, c)
+              end do
+            end if
           case (Nfix_diag_ind)
             accumulate = (autotrophs(auto_ind)%Nfixer)
             if (accumulate) &
-              call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,n),  &
-                                     tavg_tot_Nfix, bid, k)
+              call accumulate_tavg_field(AUTO_DIAGS(:,n,auto_ind),            &
+                                     tavg_tot_Nfix, bid, i, c)
         end select
 
-        if (accumulate) &
-          call accumulate_tavg_field(AUTO_DIAGS(:,:,auto_ind,n),      &
-                                     tavg_auto(n,auto_ind), bid, k)
+        if (accumulate) then
+          if (any((/photoC_zint_diag_ind,photoC_NO3_zint_diag_ind,            &
+                    CaCO3_form_zint_diag_ind/).eq.n)) then
+            do k=1,km
+              call accumulate_tavg_field(AUTO_DIAGS(k,n,auto_ind),            &
+                                         tavg_auto(n,auto_ind), bid, i, c)
+            end do
+          else
+            call accumulate_tavg_field(AUTO_DIAGS(:,n,auto_ind),              &
+                                       tavg_auto(n,auto_ind), bid, i, c)
+          end if
+        end if
 
        end do
      end do
@@ -1225,14 +1235,23 @@ contains
     ! Accumulate zooplankton terms
     do n=1,zoo_diag_cnt
       do zoo_ind=1,zooplankton_cnt
-        call accumulate_tavg_field(ZOO_DIAGS(:,:,zoo_ind,n),                  &
-                                   tavg_zoo(n,zoo_ind), bid, k)
+        call accumulate_tavg_field(ZOO_DIAGS(:,n,zoo_ind),                    &
+                                   tavg_zoo(n,zoo_ind), bid, i, c)
       end do
     end do
 
     ! Accumulate particulate terms
     do n=1,part_diag_cnt
-      call accumulate_tavg_field(PART_DIAGS(:,:,n), tavg_part(n), bid, k)
+      if (any((/calcToSed_diag_ind,pocToSed_diag_ind,ponToSed_diag_ind,       &
+                SedDenitrif_diag_ind, OtherRemin_diag_ind, popToSed_diag_ind, &
+                bsiToSed_diag_ind, dustToSed_diag_ind,pfeToSed_diag_ind/)     &
+             .eq.n)) then
+        do k=1,km
+          call accumulate_tavg_field(PART_DIAGS(k,n), tavg_part(n), bid, i, c)
+        end do
+      else
+        call accumulate_tavg_field(PART_DIAGS(:,n), tavg_part(n), bid, i, c)
+      end if
     end do
 
     end associate
