@@ -490,8 +490,9 @@ contains
     ! !REVISION HISTORY:
     !  same as module
 
-    use marbl_interface_types, only: marbl_diagnostics_type
+    use marbl_interface_types, only : marbl_diagnostics_type
     use marbl_interface_types, only : marbl_column_domain_type
+    use marbl_interface_types, only : marbl_gcm_state_type
 
     use constants, only : salt_to_ppt
 
@@ -535,6 +536,7 @@ contains
     type(marbl_diagnostics_type) :: marbl_diagnostics
 
     type(marbl_column_domain_type) :: marbl_domain
+    type(marbl_gcm_state_type)     :: marbl_gcm_state
 
     real (r8), dimension(nx_block, ny_block, km, ecosys_tracer_cnt) :: tracer_module_avg
     real (r8), dimension(nx_block, ny_block, km) :: &
@@ -565,8 +567,8 @@ contains
     marbl_domain%km = km
     allocate(marbl_domain%dzt(marbl_domain%km))
     allocate(marbl_domain%dz(marbl_domain%km))
-    allocate(marbl_domain%temperature(marbl_domain%km))
-    allocate(marbl_domain%salinity(marbl_domain%km))
+    allocate(marbl_gcm_state%temperature(marbl_domain%km))
+    allocate(marbl_gcm_state%salinity(marbl_domain%km))
 
     bid = this_block%local_id
     !-----------------------------------------------------------------------
@@ -590,8 +592,8 @@ contains
           marbl_domain%kmt = KMT(i, c, bid)
           if (marbl_saved_state%land_mask(i,c,bid)) then
              do k = 1, marbl_domain%km
-                marbl_domain%temperature(k) = temperature(i,c,k)
-                marbl_domain%salinity(k) = salinity(i,c,k)
+                marbl_gcm_state%temperature(k) = temperature(i,c,k)
+                marbl_gcm_state%salinity(k) = salinity(i,c,k)
                 ! FIXME(bja, 2015-07) marbl shouldn't know about partial
                 ! bottom cells. just pass in delta_z, set to DZT(i, c,
                 ! k, bid) or dz(k) and use the single value!
@@ -608,7 +610,7 @@ contains
           
           if (marbl_saved_state%land_mask(i,c,bid) .and. &
               KMT(i, c, bid).gt.0) then 
-            call ecosys_set_interior(i, c, ny_block, marbl_domain,            &
+            call ecosys_set_interior(i, c, ny_block, marbl_domain, marbl_gcm_state, &
                  marbl_diagnostics, marbl_saved_state, ecosys_restore,        &
                  marbl%private_data%ecosys_interior_share,                    &
                  marbl%private_data%ecosys_zooplankton_share,                 &
@@ -697,8 +699,8 @@ contains
 
     deallocate(marbl_domain%dzt)
     deallocate(marbl_domain%dz)
-    deallocate(marbl_domain%temperature)
-    deallocate(marbl_domain%salinity)
+    deallocate(marbl_gcm_state%temperature)
+    deallocate(marbl_gcm_state%salinity)
 
     !-----------------------------------------------------------------------
     !EOC

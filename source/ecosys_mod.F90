@@ -321,6 +321,21 @@ module ecosys_mod
   use marbl_parms, only : thres_z1
   use marbl_parms, only : thres_z2
   use marbl_parms, only : yps
+  use marbl_parms, only : po4_ind 
+  use marbl_parms, only : no3_ind         
+  use marbl_parms, only : sio3_ind        
+  use marbl_parms, only : nh4_ind         
+  use marbl_parms, only : fe_ind          
+  use marbl_parms, only : o2_ind          
+  use marbl_parms, only : dic_ind         
+  use marbl_parms, only : dic_alt_co2_ind 
+  use marbl_parms, only : alk_ind         
+  use marbl_parms, only : doc_ind         
+  use marbl_parms, only : don_ind         
+  use marbl_parms, only : dofe_ind        
+  use marbl_parms, only : dop_ind         
+  use marbl_parms, only : dopr_ind        
+  use marbl_parms, only : donr_ind        
 
   use registry, only : registry_match
 
@@ -411,28 +426,6 @@ module ecosys_mod
   logical (log_kind) ::  lflux_gas_o2
   logical (log_kind) ::  lflux_gas_co2
   logical (log_kind) ::  locmip_k1_k2_bug_fix
-
-  !-----------------------------------------------------------------------
-  !  non-autotroph relative tracer indices
-  !  autotroph relative tracer indices are in autotroph derived type and are determined at run time
-  !-----------------------------------------------------------------------
-
-  integer (int_kind), parameter :: &
-       po4_ind         =  1,  & ! dissolved inorganic phosphate
-       no3_ind         =  2,  & ! dissolved inorganic nitrate
-       sio3_ind        =  3,  & ! dissolved inorganic silicate
-       nh4_ind         =  4,  & ! dissolved ammonia
-       fe_ind          =  5,  & ! dissolved inorganic iron
-       o2_ind          =  6,  & ! dissolved oxygen
-       dic_ind         =  7,  & ! dissolved inorganic carbon
-       dic_alt_co2_ind =  8,  & ! dissolved inorganic carbon with alternative CO2
-       alk_ind         =  9,  & ! alkalinity
-       doc_ind         = 10,  & ! dissolved organic carbon
-       don_ind         = 11,  & ! dissolved organic nitrogen
-       dofe_ind        = 12,  & ! dissolved organic iron
-       dop_ind         = 13,  & ! dissolved organic phosphorus
-       dopr_ind        = 14,  & ! refractory DOP
-       donr_ind        = 15     ! refractory DON
 
   !-----------------------------------------------------------------------
   !  derived type & parameter for tracer index lookup
@@ -1511,7 +1504,7 @@ contains
   ! !IROUTINE: ecosys_set_interior
   ! !INTERFACE:
 
-  subroutine ecosys_set_interior(i, c, num_columns, domain, &
+  subroutine ecosys_set_interior(i, c, num_columns, domain, gcm_state, &
        marbl_diagnostics, &
        saved_state, ecosys_restore, &
        ecosys_interior_share, ecosys_zooplankton_share, &
@@ -1545,6 +1538,7 @@ contains
 
     use marbl_interface_types, only : marbl_diagnostics_type
     use marbl_interface_types, only : marbl_column_domain_type
+    use marbl_interface_types, only : marbl_gcm_state_type
     use marbl_interface_types, only : marbl_saved_state_type
 
     use marbl_parms, only : epsC, epsTinv
@@ -1555,6 +1549,7 @@ contains
     ! FIXME(bja, 2015-08) domain will become intent(in) once the loops
     ! are moved!
     type(marbl_column_domain_type), intent(inout) :: domain
+    type(marbl_gcm_state_type), intent(inout) :: gcm_state
 
     real (r8), intent(in)  :: tracer_module(ecosys_tracer_cnt, km)       ! tracer values
     logical (log_kind), intent(in)  :: lexport_shared_vars ! flag to save shared_vars or not
@@ -1706,7 +1701,7 @@ contains
 
           call compute_carbonate_chemistry(domain%km, bid, &
                domain%land_mask, domain%kmt, &
-               domain%temperature(:), domain%salinity(:), &
+               gcm_state%temperature(:), gcm_state%salinity(:), &
                tracer_local(:, :), &
                carbonate(:), &
                ph_prev_3d(:), ph_prev_alt_co2_3d(:), &
@@ -1714,8 +1709,6 @@ contains
                co3_calc_anom(:), co3_arag_anom(:))
 
           do k = 1, domain%km
-
-
 
              call autotroph_consistency_check(autotroph_cnt, autotrophs, autotroph_local(:, k))
 
@@ -1728,24 +1721,24 @@ contains
                   PAR_out, PAR(k))
 
 
-             call compute_function_scaling(domain%temperature(k), Tfunc(k))
+             call compute_function_scaling(gcm_state%temperature(k), Tfunc(k))
 
              call compute_Pprime(k, autotroph_cnt, autotrophs, autotroph_local(:, k), &
-                  domain%temperature(k), autotroph_secondary_species(:, k))
+                  gcm_state%temperature(k), autotroph_secondary_species(:, k))
 
              call compute_autotroph_uptake(autotroph_cnt, autotrophs, &
                   tracer_local(:, k), &
                   autotroph_secondary_species(:, k))
 
              call compute_autotroph_photosynthesis(autotroph_cnt, autotrophs, &
-                  autotroph_local(:, k), domain%temperature(k), Tfunc(k), &
+                  autotroph_local(:, k), gcm_state%temperature(k), Tfunc(k), &
                   PAR(k)%avg, autotroph_secondary_species(:, k))
 
              call compute_autotroph_phyto_diatoms (autotroph_cnt, autotrophs, &
                   autotroph_local(:, k), PAR(k)%avg, autotroph_secondary_species(:, k))
 
              call compute_autotroph_calcification(autotroph_cnt, autotrophs, &
-                  autotroph_local(:, k),  domain%temperature(k), autotroph_secondary_species(:, k))
+                  autotroph_local(:, k),  gcm_state%temperature(k), autotroph_secondary_species(:, k))
 
              call compute_autotroph_nfixation(autotroph_cnt, autotrophs, &
                   autotroph_secondary_species(:, k))
@@ -1777,7 +1770,7 @@ contains
                   domain%land_mask, domain%kmt, domain%dzt(k), domain%dz(k), &
                   marbl_particulate_share, &
                   POC, P_CaCO3, P_SiO2, dust, P_iron, &
-                  QA_dust_def(k), domain%temperature(k), tracer_local(:, k), &
+                  QA_dust_def(k), gcm_state%temperature(k), tracer_local(:, k), &
                   sed_denitrif(k), other_remin(k), lexport_shared_vars, &
                   bid)
 
@@ -1877,7 +1870,7 @@ contains
           call store_diagnostics_nitrification(nitrif, denitrif,              &
                                                marbl_diagnostics)
 
-          call store_diagnostics_oxygen(domain, zt, tracer_module(o2_ind, :), &
+          call store_diagnostics_oxygen(domain, gcm_state, zt, tracer_module(o2_ind, :), &
                                         o2_production, o2_consumption,        &
                                         marbl_diagnostics)
 

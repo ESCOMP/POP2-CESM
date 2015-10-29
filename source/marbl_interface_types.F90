@@ -19,9 +19,12 @@ module marbl_interface_types
      integer(int_kind) :: kmt ! index of ocean floor
      real(r8), allocatable :: dzt(:) ! (km) delta z for partial bottom cells
      real(r8), allocatable :: dz(:) ! (km) delta z
-     real(r8), allocatable :: temperature(:) ! (km)
-     real(r8), allocatable :: salinity(:) ! (km)
   end type marbl_column_domain_type
+
+  type, public :: marbl_gcm_state_type
+     real(r8), allocatable :: temperature(:) ! (km)
+     real(r8), allocatable :: salinity(:)    ! (km)
+  end type marbl_gcm_state_type
 
   type, public :: marbl_saved_state_type
      ! this struct is necessary because there is some global state

@@ -19,31 +19,29 @@ module ecosys_diagnostics_mod
   use marbl_interface_types, only : dissolved_organic_matter_type
   use marbl_interface_types, only : marbl_diagnostics_type
   use marbl_interface_types, only : marbl_column_domain_type
+  use marbl_interface_types, only : marbl_gcm_state_type
 
   use grid, only : partial_bottom_cells
   use domain_size, only : km
 
+  use marbl_parms, only : po4_ind 
+  use marbl_parms, only : no3_ind         
+  use marbl_parms, only : sio3_ind        
+  use marbl_parms, only : nh4_ind         
+  use marbl_parms, only : fe_ind          
+  use marbl_parms, only : o2_ind          
+  use marbl_parms, only : dic_ind         
+  use marbl_parms, only : dic_alt_co2_ind 
+  use marbl_parms, only : alk_ind         
+  use marbl_parms, only : doc_ind         
+  use marbl_parms, only : don_ind         
+  use marbl_parms, only : dofe_ind        
+  use marbl_parms, only : dop_ind         
+  use marbl_parms, only : dopr_ind        
+  use marbl_parms, only : donr_ind        
+
   Implicit None
   Public
-
-  ! FIXME: MNL - These are copied from ecosys_mod and need to be put somewhere
-  ! accessible from both modules
-  integer (int_kind), private, parameter :: &
-       po4_ind         =  1,  & ! dissolved inorganic phosphate
-       no3_ind         =  2,  & ! dissolved inorganic nitrate
-       sio3_ind        =  3,  & ! dissolved inorganic silicate
-       nh4_ind         =  4,  & ! dissolved ammonia
-       fe_ind          =  5,  & ! dissolved inorganic iron
-       o2_ind          =  6,  & ! dissolved oxygen
-       dic_ind         =  7,  & ! dissolved inorganic carbon
-       dic_alt_co2_ind =  8,  & ! dissolved inorganic carbon with alternative CO2
-       alk_ind         =  9,  & ! alkalinity
-       doc_ind         = 10,  & ! dissolved organic carbon
-       don_ind         = 11,  & ! dissolved organic nitrogen
-       dofe_ind        = 12,  & ! dissolved organic iron
-       dop_ind         = 13,  & ! dissolved organic phosphorus
-       dopr_ind        = 14,  & ! refractory DOP
-       donr_ind        = 15     ! refractory DON
 
 !-----------------------------------------------------------------------
 !  indices for diagnostic values written to tavg files
@@ -441,13 +439,14 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_oxygen(marbl_domain, column_zt,                &
+  subroutine store_diagnostics_oxygen(marbl_domain, marbl_gcm_state, column_zt,                &
                                       column_o2, o2_production, o2_consumption,&
                                       marbl_diags)
 
     use marbl_oxygen, only : o2sat_scalar
 
     type(marbl_column_domain_type), intent(in) :: marbl_domain
+    type(marbl_gcm_state_type), intent(in) :: marbl_gcm_state
     real(r8), dimension(:), intent(in) :: column_zt
     real(r8), dimension(:), intent(in) :: column_o2
     real(r8), dimension(:), intent(in) :: o2_production
@@ -477,7 +476,7 @@ contains
       do k=1,marbl_domain%kmt
         if (marbl_domain%land_mask) then
           diags_3d(k, AOU_diag_ind) =                                         &
-        O2SAT_scalar(marbl_domain%temperature(k), marbl_domain%salinity(k)) - &
+        O2SAT_scalar(marbl_gcm_state%temperature(k), marbl_gcm_state%salinity(k)) - &
         column_o2(k)
         end if
       end do

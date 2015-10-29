@@ -46,6 +46,28 @@ module marbl_parms
   PUBLIC
   SAVE
 
+  !-----------------------------------------------------------------------
+  !  non-autotroph relative tracer indices
+  !  autotroph relative tracer indices are in autotroph derived type and are determined at run time
+  !-----------------------------------------------------------------------
+
+  integer (int_kind), parameter :: &
+       po4_ind         =  1,  & ! dissolved inorganic phosphate
+       no3_ind         =  2,  & ! dissolved inorganic nitrate
+       sio3_ind        =  3,  & ! dissolved inorganic silicate
+       nh4_ind         =  4,  & ! dissolved ammonia
+       fe_ind          =  5,  & ! dissolved inorganic iron
+       o2_ind          =  6,  & ! dissolved oxygen
+       dic_ind         =  7,  & ! dissolved inorganic carbon
+       dic_alt_co2_ind =  8,  & ! dissolved inorganic carbon with alternative CO2
+       alk_ind         =  9,  & ! alkalinity
+       doc_ind         = 10,  & ! dissolved organic carbon
+       don_ind         = 11,  & ! dissolved organic nitrogen
+       dofe_ind        = 12,  & ! dissolved organic iron
+       dop_ind         = 13,  & ! dissolved organic phosphorus
+       dopr_ind        = 14,  & ! refractory DOP
+       donr_ind        = 15     ! refractory DON
+
   !-----------------------------------------------------------------------------
   !   epsilon values
   !-----------------------------------------------------------------------------
