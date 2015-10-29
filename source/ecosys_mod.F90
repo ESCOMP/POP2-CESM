@@ -372,8 +372,7 @@ module ecosys_mod
        ecosys_tracer_ref_val,        &
        ecosys_set_sflux,             &
        ecosys_tavg_forcing,          &
-       ecosys_set_interior,          &
-       ecosys_write_restart
+       ecosys_set_interior
 
   private :: &
        ecosys_init_non_autotroph_tracer_metadata, &
@@ -661,7 +660,7 @@ contains
     !  same as module
 
     use marbl_interface_constants , only : marbl_nl_buffer_size
-    use marbl_interface_constants , only : marbl_status_ok,
+    use marbl_interface_constants , only : marbl_status_ok
     use marbl_interface_constants , only : marbl_status_could_not_read_namelist
     use marbl_interface_types     , only : marbl_status_type
     use marbl_interface_types     , only : marbl_saved_state_type
@@ -4464,116 +4463,6 @@ contains
     !EOC
 
   end subroutine ecosys_tavg_forcing
-
-  !*****************************************************************************
-  !BOP
-  ! !IROUTINE: ecosys_write_restart
-  ! !INTERFACE:
-
-  subroutine ecosys_write_restart(saved_state, restart_file, action, &
-       vflux_flag, PH_PREV, PH_PREV_ALT_CO2) !new
-
-    ! !DESCRIPTION:
-    !  write auxiliary fields & scalars to restart files
-    !
-    ! !REVISION HISTORY:
-    !  same as module
-
-    use marbl_interface_types, only : marbl_saved_state_type
-
-    ! !INPUT PARAMETERS:
-    type(marbl_saved_state_type) , intent(in) :: saved_state
-    character(*)                 , intent(in) :: action
-    logical (log_kind)           , intent(in) :: vflux_flag(:) 
-    real (r8)                    , intent(in) :: PH_PREV(:, :, :)         ! computed ph from previous time step
-    real (r8)                    , intent(in) :: PH_PREV_ALT_CO2(:, :, :) ! computed ph from previous time step
-
-    ! !INPUT/OUTPUT PARAMETERS:
-    type (datafile), intent (inout)  :: restart_file
-
-    !EOP
-    !BOC
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-
-    character (char_len) :: &
-         short_name  ! tracer name temporaries
-
-    type (io_dim) :: &
-         i_dim, j_dim, & ! dimension descriptors
-         k_dim           ! dimension descriptor for vertical levels
-
-    integer (int_kind) :: n
-
-    type (io_field_desc), save :: PH_SURF, PH_SURF_ALT_CO2, &
-         PH_3D_ALT_CO2,  PH_3D
-
-    !-----------------------------------------------------------------------
-
-    if (trim(action) == 'add_attrib_file') then
-       short_name = char_blank
-       do n=1, ecosys_tracer_cnt
-          if (vflux_flag(n)) then   
-             short_name = 'surf_avg_' /&
-                  &/ ind_name_table(n)%name
-             call add_attrib_file(restart_file, trim(short_name), surf_avg(n))
-          endif
-       end do
-    endif
-
-    if (trim(action) == 'define') then
-       i_dim = construct_io_dim('i', nx_global)
-       j_dim = construct_io_dim('j', ny_global)
-       k_dim = construct_io_dim('k', km)
-
-       PH_SURF = construct_io_field('PH_SURF', i_dim, j_dim,     &
-            long_name='surface pH at current time',      &
-            units='pH', grid_loc='2110',            &
-            field_loc = field_loc_center,                &
-            field_type = field_type_scalar,              &
-            d2d_array = PH_PREV(:,:,1:nblocks_clinic))
-       call data_set (restart_file, 'define', PH_SURF)
-
-       PH_SURF_ALT_CO2 = construct_io_field('PH_SURF_ALT_CO2', i_dim, j_dim, &
-            long_name='surface pH, alternate CO2, at current time', &
-            units='pH', grid_loc='2110',            &
-            field_loc = field_loc_center,                &
-            field_type = field_type_scalar,              &
-            d2d_array = PH_PREV_ALT_CO2(:,:,1:nblocks_clinic))
-       call data_set (restart_file, 'define', PH_SURF_ALT_CO2)
-
-       PH_3D_ALT_CO2 = construct_io_field('PH_3D_ALT_CO2', i_dim, j_dim, k_dim, &
-            long_name='3D pH, alternate CO2, at current time', &
-            units='pH', grid_loc='3111',            &
-            field_loc = field_loc_center,                &
-            field_type = field_type_scalar,              &
-            d3d_array = saved_state%PH_PREV_ALT_CO2_3D(:,:,:,1:nblocks_clinic))
-       call data_set (restart_file, 'define', PH_3D_ALT_CO2)
-
-       PH_3D = construct_io_field('PH_3D', i_dim, j_dim, k_dim, &
-            long_name='3D pH at current time', &
-            units='pH', grid_loc='3111',            &
-            field_loc = field_loc_center,                &
-            field_type = field_type_scalar,              &
-            d3d_array = saved_state%PH_PREV_3D(:,:,:,1:nblocks_clinic))
-       call data_set (restart_file, 'define', PH_3D)
-
-    endif
-
-    if (trim(action) == 'write') then
-       call data_set (restart_file, 'write', PH_SURF)
-       call data_set (restart_file, 'write', PH_SURF_ALT_CO2)
-       call data_set (restart_file, 'write', PH_3D)
-       call data_set (restart_file, 'write', PH_3D_ALT_CO2)
-    endif
-
-    !-----------------------------------------------------------------------
-    !EOC
-
-  end subroutine ecosys_write_restart
-
-  !*****************************************************************************
 
   !*****************************************************************************
   !BOP
