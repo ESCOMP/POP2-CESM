@@ -252,7 +252,7 @@
   !  tavg ids for zooplankton fields
   !-----------------------------------------------------------------------
 
-!  integer (int_kind), dimension(zoo_diag_cnt_2d, zooplankton_cnt) :: tavg_zoo_2d
+  integer (int_kind), dimension(zoo_diag_cnt_2d, zooplankton_cnt) :: tavg_zoo_2d
   integer (int_kind), dimension(zoo_diag_cnt_3d, zooplankton_cnt) :: tavg_zoo_3d
 
   !-----------------------------------------------------------------------
@@ -1186,7 +1186,7 @@ contains
               DIAGS_3D      => marbl_diagnostics%diags_3d,                    &
               AUTO_DIAGS_2D => marbl_diagnostics%auto_diags_2d,               &
               AUTO_DIAGS_3D => marbl_diagnostics%auto_diags_3d,               &
-!              ZOO_DIAGS_2D  => marbl_diagnostics%zoo_diags_2d,                &
+              ZOO_DIAGS_2D  => marbl_diagnostics%zoo_diags_2d,                &
               ZOO_DIAGS_3D  => marbl_diagnostics%zoo_diags_3d,                &
               PART_DIAGS_2D => marbl_diagnostics%part_diags_2d,               &
               PART_DIAGS_3D => marbl_diagnostics%part_diags_3d                &

@@ -2,6 +2,20 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    29 Oct 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n09_cesm_pop_2_1_20151020/
+Tag Summary: Split autotroph, zooplankton, and particulate diagnostics into 2D
+             and 3D components. Like earlier, 2D components are still stored
+             in 3D arrays and accumulated.
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_tavg.F90
+M       source/marbl_interface_types.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    29 Oct 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n08_cesm_pop_2_1_20151020/
 Tag Summary: Completely removed ecosys_diagnostics_type; ecosys_tavg now uses
              marbl_diagnostics_type. Need to split the particulate and

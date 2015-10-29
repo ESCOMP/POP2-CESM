@@ -171,7 +171,7 @@ contains
     allocate(this%diags_3d(km, ecosys_diag_cnt_3d))
     allocate(this%auto_diags_2d(km, auto_diag_cnt_2d, autotroph_cnt))
     allocate(this%auto_diags_3d(km, auto_diag_cnt_3d, autotroph_cnt))
-!    allocate(this%zoo_diags_2d(km, zoo_diag_cnt_2d, zooplankton_cnt))
+    allocate(this%zoo_diags_2d(km, zoo_diag_cnt_2d, zooplankton_cnt))
     allocate(this%zoo_diags_3d(km, zoo_diag_cnt_3d, zooplankton_cnt))
     allocate(this%part_diags_2d(km, part_diag_cnt_2d))
     allocate(this%part_diags_3d(km, part_diag_cnt_3d))
@@ -189,7 +189,7 @@ contains
     this%diags_3d = c0
     this%auto_diags_2d = c0
     this%auto_diags_3d = c0
-    !this%zoo_diags_2d= c0
+    this%zoo_diags_2d= c0
     this%zoo_diags_3d= c0
     this%part_diags_2d = c0
     this%part_diags_3d = c0
@@ -205,7 +205,7 @@ contains
     deallocate(this%diags_3d)
     deallocate(this%auto_diags_2d)
     deallocate(this%auto_diags_3d)
-    !deallocate(this%zoo_diags_2d)
+    deallocate(this%zoo_diags_2d)
     deallocate(this%zoo_diags_3d)
     deallocate(this%part_diags_2d)
     deallocate(this%part_diags_3d)
