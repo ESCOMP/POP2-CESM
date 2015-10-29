@@ -98,7 +98,12 @@ module ecosys_diagnostics_mod
       Fe_scavenge_diag_ind         = 28, &
       Fe_scavenge_rate_diag_ind    = 29
 
-  integer(int_kind), parameter ::   auto_diag_cnt = 26
+  integer(int_kind), parameter ::   auto_diag_cnt_2d = 3
+  integer (int_kind), parameter ::  &
+      photoC_zint_diag_ind     =  1,  &
+      photoC_NO3_zint_diag_ind =  2,  &
+      CaCO3_form_zint_diag_ind =  3
+  integer(int_kind), parameter ::   auto_diag_cnt_3d = 23
   integer (int_kind), parameter ::  &
       N_lim_diag_ind           =  1,  &
       P_lim_diag_ind           =  2,  &
@@ -106,26 +111,23 @@ module ecosys_diagnostics_mod
       SiO3_lim_diag_ind        =  4,  &
       light_lim_diag_ind       =  5,  &
       photoC_diag_ind          =  6,  &
-      photoC_zint_diag_ind     =  7,  &
-      photoC_NO3_diag_ind      =  8,  &
-      photoC_NO3_zint_diag_ind =  9,  &
-      photoFe_diag_ind         = 10,  &
-      photoNO3_diag_ind        = 11,  &
-      photoNH4_diag_ind        = 12,  &
-      DOP_uptake_diag_ind      = 13,  &
-      PO4_uptake_diag_ind      = 14,  &
-      auto_graze_diag_ind      = 15,  &
-      auto_graze_poc_diag_ind  = 16,  &
-      auto_graze_doc_diag_ind  = 17,  &
-      auto_graze_zoo_diag_ind  = 18,  &
-      auto_loss_diag_ind       = 19,  &
-      auto_loss_poc_diag_ind   = 20,  &
-      auto_loss_doc_diag_ind   = 21,  &
-      auto_agg_diag_ind        = 22,  &
-      bSi_form_diag_ind        = 23,  &
-      CaCO3_form_diag_ind      = 24,  &
-      CaCO3_form_zint_diag_ind = 25,  &
-      Nfix_diag_ind            = 26
+      photoC_NO3_diag_ind      =  7,  &
+      photoFe_diag_ind         =  8,  &
+      photoNO3_diag_ind        =  9,  &
+      photoNH4_diag_ind        = 10,  &
+      DOP_uptake_diag_ind      = 11,  &
+      PO4_uptake_diag_ind      = 12,  &
+      auto_graze_diag_ind      = 13,  &
+      auto_graze_poc_diag_ind  = 14,  &
+      auto_graze_doc_diag_ind  = 15,  &
+      auto_graze_zoo_diag_ind  = 16,  &
+      auto_loss_diag_ind       = 17,  &
+      auto_loss_poc_diag_ind   = 18,  &
+      auto_loss_doc_diag_ind   = 19,  &
+      auto_agg_diag_ind        = 20,  &
+      bSi_form_diag_ind        = 21,  &
+      CaCO3_form_diag_ind      = 22,  &
+      Nfix_diag_ind            = 23
 
   integer(int_kind), parameter ::    zoo_diag_cnt =  8
   integer (int_kind), parameter ::   &
@@ -274,57 +276,60 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(auto_diags => marbl_diags%auto_diags)
+    associate(&
+              auto_diags_2d => marbl_diags%auto_diags_2d,&
+              auto_diags_3d => marbl_diags%auto_diags_3d &
+             )
       do n = 1, autotroph_cnt
-         auto_diags(:, N_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VNtot
-         auto_diags(:, Fe_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VFe
-         auto_diags(:, P_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VPtot
+         auto_diags_3d(:, N_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VNtot
+         auto_diags_3d(:, Fe_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VFe
+         auto_diags_3d(:, P_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VPtot
 
          if (autotrophs(n)%kSiO3 > c0) then
-            auto_diags(:, SiO3_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VSiO3
+            auto_diags_3d(:, SiO3_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VSiO3
          end if
 
-         auto_diags(:, light_lim_diag_ind, n) = autotroph_secondary_species(n,:)%light_lim
-         auto_diags(:, photoNO3_diag_ind, n) = autotroph_secondary_species(n,:)%NO3_V
-         auto_diags(:, photoNH4_diag_ind, n) = autotroph_secondary_species(n,:)%NH4_V
-         auto_diags(:, PO4_uptake_diag_ind, n) = autotroph_secondary_species(n,:)%PO4_V
-         auto_diags(:, DOP_uptake_diag_ind, n) = autotroph_secondary_species(n,:)%DOP_V
-         auto_diags(:, photoFE_diag_ind, n) = autotroph_secondary_species(n,:)%photoFe
+         auto_diags_3d(:, light_lim_diag_ind, n) = autotroph_secondary_species(n,:)%light_lim
+         auto_diags_3d(:, photoNO3_diag_ind, n) = autotroph_secondary_species(n,:)%NO3_V
+         auto_diags_3d(:, photoNH4_diag_ind, n) = autotroph_secondary_species(n,:)%NH4_V
+         auto_diags_3d(:, PO4_uptake_diag_ind, n) = autotroph_secondary_species(n,:)%PO4_V
+         auto_diags_3d(:, DOP_uptake_diag_ind, n) = autotroph_secondary_species(n,:)%DOP_V
+         auto_diags_3d(:, photoFE_diag_ind, n) = autotroph_secondary_species(n,:)%photoFe
 
          if (autotrophs(n)%Si_ind > 0) then
-           auto_diags(:, bSi_form_diag_ind, n) = autotroph_secondary_species(n,:)%photoSi
+           auto_diags_3d(:, bSi_form_diag_ind, n) = autotroph_secondary_species(n,:)%photoSi
          endif
 
-         auto_diags(:, CaCO3_form_diag_ind, n) = autotroph_secondary_species(n,:)%CaCO3_PROD
-         auto_diags(:, Nfix_diag_ind, n) = autotroph_secondary_species(n,:)%Nfix
-         auto_diags(:, auto_graze_diag_ind, n)      = autotroph_secondary_species(n,:)%auto_graze
-         auto_diags(:, auto_graze_poc_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_poc
-         auto_diags(:, auto_graze_doc_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_doc
-         auto_diags(:, auto_graze_zoo_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_zoo
-         auto_diags(:, auto_loss_diag_ind, n)       = autotroph_secondary_species(n,:)%auto_loss
-         auto_diags(:, auto_loss_poc_diag_ind, n)   = autotroph_secondary_species(n,:)%auto_loss_poc
-         auto_diags(:, auto_loss_doc_diag_ind, n)   = autotroph_secondary_species(n,:)%auto_loss_doc
-         auto_diags(:, auto_agg_diag_ind, n)        = autotroph_secondary_species(n,:)%auto_agg
-         auto_diags(:, photoC_diag_ind, n)          = autotroph_secondary_species(n,:)%photoC
+         auto_diags_3d(:, CaCO3_form_diag_ind, n) = autotroph_secondary_species(n,:)%CaCO3_PROD
+         auto_diags_3d(:, Nfix_diag_ind, n) = autotroph_secondary_species(n,:)%Nfix
+         auto_diags_3d(:, auto_graze_diag_ind, n)      = autotroph_secondary_species(n,:)%auto_graze
+         auto_diags_3d(:, auto_graze_poc_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_poc
+         auto_diags_3d(:, auto_graze_doc_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_doc
+         auto_diags_3d(:, auto_graze_zoo_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_zoo
+         auto_diags_3d(:, auto_loss_diag_ind, n)       = autotroph_secondary_species(n,:)%auto_loss
+         auto_diags_3d(:, auto_loss_poc_diag_ind, n)   = autotroph_secondary_species(n,:)%auto_loss_poc
+         auto_diags_3d(:, auto_loss_doc_diag_ind, n)   = autotroph_secondary_species(n,:)%auto_loss_doc
+         auto_diags_3d(:, auto_agg_diag_ind, n)        = autotroph_secondary_species(n,:)%auto_agg
+         auto_diags_3d(:, photoC_diag_ind, n)          = autotroph_secondary_species(n,:)%photoC
 
-         auto_diags(:, CaCO3_form_zint_diag_ind, n) = c0
-         auto_diags(:, photoC_zint_diag_ind, n) = c0
-         auto_diags(:, photoC_NO3_zint_diag_ind, n) = c0
-         auto_diags(:, photoC_NO3_diag_ind, n) = c0
+         auto_diags_2d(:, CaCO3_form_zint_diag_ind, n) = c0
+         auto_diags_2d(:, photoC_zint_diag_ind, n) = c0
+         auto_diags_2d(:, photoC_NO3_zint_diag_ind, n) = c0
+         auto_diags_3d(:, photoC_NO3_diag_ind, n) = c0
          where (autotroph_secondary_species(n,:)%VNtot > c0)
-           auto_diags(:, photoC_NO3_diag_ind, n) =                            &
+           auto_diags_3d(:, photoC_NO3_diag_ind, n) =                         &
  autotroph_secondary_species(n,:)%photoC *                                    &
  (autotroph_secondary_species(n,:)%VNO3 / autotroph_secondary_species(n,:)%VNtot)
          end where
 
          ! vertical integrals
          do k = 1,marbl_domain%kmt
-           auto_diags(k, CaCO3_form_zint_diag_ind, n) = delta_z(k) *          &
+           auto_diags_2d(k, CaCO3_form_zint_diag_ind, n) = delta_z(k) *       &
                                   autotroph_secondary_species(n,k)%CaCO3_PROD
-           auto_diags(k, photoC_zint_diag_ind, n) = delta_z(k) *              &
+           auto_diags_2d(k, photoC_zint_diag_ind, n) = delta_z(k) *           &
                                       autotroph_secondary_species(n,k)%photoC
-           auto_diags(k, photoC_NO3_zint_diag_ind, n) = delta_z(k)*           &
-                                        auto_diags(k, photoC_NO3_diag_ind, n)
+           auto_diags_2d(k, photoC_NO3_zint_diag_ind, n) = delta_z(k)*        &
+                                      auto_diags_3d(k, photoC_NO3_diag_ind, n)
          end do
       end do ! do n
     end associate
