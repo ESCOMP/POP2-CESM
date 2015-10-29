@@ -47,7 +47,7 @@ module ecosys_driver
   use marbl_interface_constants , only : marbl_status_ok
   use marbl_interface_types     , only : marbl_status_type
   use marbl_interface_types     , only : ecosys_diagnostics_type
-
+  use marbl_interface_types     , only: marbl_diagnostics_type
   use marbl_interface_types     , only : marbl_saved_state_type
 
   ! NOTE(bja, 2014-12) all other uses of marbl/ecosys modules need to be removed!
@@ -145,8 +145,8 @@ module ecosys_driver
   type(marbl_sizes_type) :: marbl_sizes
   type(marbl_driver_sizes_type) :: marbl_driver_sizes
   type(marbl_status_type) :: marbl_status
+  type(marbl_diagnostics_type), dimension(max_blocks_clinic) :: marbl_diagnostics
   type(ecosys_diagnostics_type), dimension(km, max_blocks_clinic) :: ecosys_diagnostics
-!  type(ecosys_diagnostics_type), dimension(km, nblocks_clinic) :: ecosys_diagnostics
   ! FIXME(bja, 2015-08) this needs to go into marbl%private_data%saved_state !!!
   type(marbl_saved_state_type) :: marbl_saved_state
 
@@ -384,8 +384,11 @@ contains
     end if
 
     ! initialize ecosys_diagnostics type
-    do k=1,km
-      do bid=1,nblocks_clinic
+    do bid=1,nblocks_clinic
+      call marbl_diagnostics(bid)%construct(km, ecosys_diag_cnt_2d,           &
+              ecosys_diag_cnt_3d, auto_diag_cnt, zoo_diag_cnt, part_diag_cnt, &
+              ecosys_tracer_cnt, autotroph_cnt, zooplankton_cnt)
+      do k=1,km
         call ecosys_diagnostics(k,bid)%construct(nx_block, ny_block,          &
                  ecosys_diag_cnt_2d, ecosys_diag_cnt_3d, auto_diag_cnt,       &
                  zoo_diag_cnt, part_diag_cnt, ecosys_tracer_cnt,              &
@@ -490,7 +493,6 @@ contains
     ! !REVISION HISTORY:
     !  same as module
 
-    use marbl_interface_types, only: marbl_diagnostics_type
     use marbl_interface_types, only : marbl_column_domain_type
 
     use constants, only : salt_to_ppt
@@ -532,7 +534,6 @@ contains
     integer (int_kind) :: k ! vertical level index
     integer (int_kind) :: n, d
     integer (int_kind) :: bid ! local block address for this block
-    type(marbl_diagnostics_type) :: marbl_diagnostics
 
     type(marbl_column_domain_type) :: marbl_domain
 
@@ -543,21 +544,11 @@ contains
 
     real(r8), dimension(ecosys_tracer_cnt, km) :: column_tracer_module
     real(r8), dimension(ecosys_tracer_cnt, km) :: column_dtracer
-    ! NOTE(bja MNL, 2015-03) eventually marbl%set_interior will be
-    ! called with marbl_diagnostics_type and we may convert to
-    ! ecosys_diagnostics_type for tavg. But for now we just use
-    ! ecosys_diagnostics_type == marbl_diagnostics_type; I'm keeping
-    ! the marbl_diagnostics name because eventually this will be
-    ! calling marbl%set_interior.
 
     call marbl%set_interior()
 
-    allocate(marbl_diagnostics%DIAGS_2D(km,ecosys_diag_cnt_2d))
-    allocate(marbl_diagnostics%DIAGS_3D(km,ecosys_diag_cnt_3d))
-    allocate(marbl_diagnostics%AUTO_DIAGS(km,auto_diag_cnt, autotroph_cnt))
-    allocate(marbl_diagnostics%ZOO_DIAGS(km,zoo_diag_cnt, zooplankton_cnt))
-    allocate(marbl_diagnostics%PART_DIAGS(km,part_diag_cnt))
-    allocate(marbl_diagnostics%restore_diags(km,ecosys_tracer_cnt))
+    bid = this_block%local_id
+    call marbl_diagnostics(bid)%set_to_zero()
 
     ! FIXME(bja, 2015-07) one time copy of global marbl_domain
     ! related memory from slab to column ordering. move entire
@@ -568,7 +559,6 @@ contains
     allocate(marbl_domain%temperature(marbl_domain%km))
     allocate(marbl_domain%salinity(marbl_domain%km))
 
-    bid = this_block%local_id
     !-----------------------------------------------------------------------
     !  ECOSYS computations
     !-----------------------------------------------------------------------
@@ -609,7 +599,7 @@ contains
           if (marbl_saved_state%land_mask(i,c,bid) .and. &
               KMT(i, c, bid).gt.0) then 
             call ecosys_set_interior(i, c, ny_block, marbl_domain,            &
-                 marbl_diagnostics, marbl_saved_state, ecosys_restore,        &
+                 marbl_diagnostics(bid), marbl_saved_state, ecosys_restore,   &
                  marbl%private_data%ecosys_interior_share,                    &
                  marbl%private_data%ecosys_zooplankton_share,                 &
                  marbl%private_data%ecosys_autotroph_share,                   &
@@ -626,31 +616,31 @@ contains
                end do ! do n
 
                do d = 1, ecosys_diag_cnt_2d
-                  ecosys_diagnostics(k, bid)%diags_2d(i, c, d) = marbl_diagnostics%diags_2d(k, d)
+                  ecosys_diagnostics(k, bid)%diags_2d(i, c, d) = marbl_diagnostics(bid)%diags_2d(k, d)
                end do
           
                do d = 1, ecosys_diag_cnt_3d
-                  ecosys_diagnostics(k, bid)%diags_3d(i, c, d) = marbl_diagnostics%diags_3d(k, d)
+                  ecosys_diagnostics(k, bid)%diags_3d(i, c, d) = marbl_diagnostics(bid)%diags_3d(k, d)
                end do
           
                do n = 1, autotroph_cnt
                   do d = 1, auto_diag_cnt
-                     ecosys_diagnostics(k, bid)%auto_diags(i, c, n, d) = marbl_diagnostics%auto_diags(k, d, n)
+                     ecosys_diagnostics(k, bid)%auto_diags(i, c, n, d) = marbl_diagnostics(bid)%auto_diags(k, d, n)
                   end do ! do d
                end do ! do n
 
                do n = 1, zooplankton_cnt
                   do d = 1, zoo_diag_cnt
-                     ecosys_diagnostics(k, bid)%zoo_diags(i, c, n, d) = marbl_diagnostics%zoo_diags(k, d, n)
+                     ecosys_diagnostics(k, bid)%zoo_diags(i, c, n, d) = marbl_diagnostics(bid)%zoo_diags(k, d, n)
                   end do ! do d
                end do ! do n
 
                do d = 1, part_diag_cnt
-                  ecosys_diagnostics(k, bid)%part_diags(i, c, d) = marbl_diagnostics%part_diags(k, d)
+                  ecosys_diagnostics(k, bid)%part_diags(i, c, d) = marbl_diagnostics(bid)%part_diags(k, d)
                end do ! do d
 
                do d = 1, ecosys_tracer_cnt
-                  ecosys_diagnostics(k, bid)%restore_diags(i, c, d) = marbl_diagnostics%restore_diags(k, d)
+                  ecosys_diagnostics(k, bid)%restore_diags(i, c, d) = marbl_diagnostics(bid)%restore_diags(k, d)
                end do ! do d
             end do ! do k
           end if ! KMT > 0
@@ -687,13 +677,6 @@ contains
                bid)
        end do
     end if
-
-    deallocate(marbl_diagnostics%diags_2d)
-    deallocate(marbl_diagnostics%diags_3d)
-    deallocate(marbl_diagnostics%auto_diags)
-    deallocate(marbl_diagnostics%zoo_diags)
-    deallocate(marbl_diagnostics%part_diags)
-    deallocate(marbl_diagnostics%restore_diags)
 
     deallocate(marbl_domain%dzt)
     deallocate(marbl_domain%dz)

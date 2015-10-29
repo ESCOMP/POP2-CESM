@@ -61,6 +61,11 @@ module marbl_interface_types
      real(r8), allocatable :: zoo_diags(:, :, :)  ! (km, zoo_diag_cnt, zooplankton_cnt)
      real(r8), allocatable :: part_diags(:,:)      ! (km, part_diag_cnt)
      real(r8), allocatable :: restore_diags(:,:) ! (km, ecosys_tracer_cnt)
+
+  contains
+    procedure, public :: construct   => marbl_diagnostics_constructor
+    procedure, public :: set_to_zero => marbl_diagnostics_set_to_zero
+    procedure, public :: deconstruct => marbl_diagnostics_deconstructor
   end type marbl_diagnostics_type
 
   type, public :: carbonate_type
@@ -200,5 +205,51 @@ contains
 
   end subroutine ecosys_diagnostics_deconstructor
 
-  
+  subroutine marbl_diagnostics_constructor(this, km, ecosys_diag_cnt_2d,      &
+              ecosys_diag_cnt_3d, auto_diag_cnt, zoo_diag_cnt, part_diag_cnt, &
+              ecosys_tracer_cnt, autotroph_cnt, zooplankton_cnt)
+
+    class(marbl_diagnostics_type), intent(inout) :: this
+    integer, intent(in) :: km
+    integer, intent(in) :: ecosys_diag_cnt_2d, ecosys_diag_cnt_3d,            &
+                           auto_diag_cnt, zoo_diag_cnt, part_diag_cnt
+    integer, intent(in) :: ecosys_tracer_cnt, autotroph_cnt, zooplankton_cnt
+
+    allocate(this%diags_2d(km, ecosys_diag_cnt_2d))
+    allocate(this%diags_3d(km, ecosys_diag_cnt_3d))
+    allocate(this%auto_diags(km, auto_diag_cnt, autotroph_cnt))
+    allocate(this%zoo_diags(km, zoo_diag_cnt, zooplankton_cnt))
+    allocate(this%part_diags(km, part_diag_cnt))
+    allocate(this%restore_diags(km, ecosys_tracer_cnt))
+
+    call this%set_to_zero()
+
+  end subroutine marbl_diagnostics_constructor
+
+  subroutine marbl_diagnostics_set_to_zero(this)
+
+    class(marbl_diagnostics_type), intent(inout) :: this
+
+    this%diags_2d = c0
+    this%diags_3d = c0
+    this%auto_diags = c0
+    this%zoo_diags = c0
+    this%part_diags = c0
+    this%restore_diags = c0
+
+  end subroutine marbl_diagnostics_set_to_zero
+
+  subroutine marbl_diagnostics_deconstructor(this)
+
+    class(marbl_diagnostics_type), intent(inout) :: this
+
+    deallocate(this%diags_2d)
+    deallocate(this%diags_3d)
+    deallocate(this%auto_diags)
+    deallocate(this%zoo_diags)
+    deallocate(this%part_diags)
+    deallocate(this%restore_diags)
+
+  end subroutine marbl_diagnostics_deconstructor
+
 end module marbl_interface_types
