@@ -129,7 +129,8 @@ module ecosys_diagnostics_mod
       CaCO3_form_diag_ind      = 22,  &
       Nfix_diag_ind            = 23
 
-  integer(int_kind), parameter ::    zoo_diag_cnt =  8
+  integer(int_kind), parameter ::    zoo_diag_cnt_2d =  0
+  integer(int_kind), parameter ::    zoo_diag_cnt_3d =  8
   integer (int_kind), parameter ::   &
       zoo_loss_diag_ind        =  1, &
       zoo_loss_poc_diag_ind    =  2, &
@@ -527,16 +528,16 @@ contains
 
     integer(int_kind) :: n
 
-    associate(zoo_diags => marbl_diags%zoo_diags)
+    associate(zoo_diags_3d => marbl_diags%zoo_diags_3d)
       do n = 1, zooplankton_cnt
-        zoo_diags(:, zoo_loss_diag_ind, n)       = zooplankton_secondary_species(n,:)%zoo_loss
-        zoo_diags(:, zoo_loss_poc_diag_ind, n)   = zooplankton_secondary_species(n,:)%zoo_loss_poc
-        zoo_diags(:, zoo_loss_doc_diag_ind, n)   = zooplankton_secondary_species(n,:)%zoo_loss_doc
-        zoo_diags(:, zoo_graze_diag_ind, n)      = zooplankton_secondary_species(n,:)%zoo_graze
-        zoo_diags(:, zoo_graze_poc_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_poc
-        zoo_diags(:, zoo_graze_doc_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_doc
-        zoo_diags(:, zoo_graze_zoo_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_zoo
-        zoo_diags(:, x_graze_zoo_diag_ind, n)    = zooplankton_secondary_species(n,:)%x_graze_zoo
+        zoo_diags_3d(:, zoo_loss_diag_ind, n)       = zooplankton_secondary_species(n,:)%zoo_loss
+        zoo_diags_3d(:, zoo_loss_poc_diag_ind, n)   = zooplankton_secondary_species(n,:)%zoo_loss_poc
+        zoo_diags_3d(:, zoo_loss_doc_diag_ind, n)   = zooplankton_secondary_species(n,:)%zoo_loss_doc
+        zoo_diags_3d(:, zoo_graze_diag_ind, n)      = zooplankton_secondary_species(n,:)%zoo_graze
+        zoo_diags_3d(:, zoo_graze_poc_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_poc
+        zoo_diags_3d(:, zoo_graze_doc_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_doc
+        zoo_diags_3d(:, zoo_graze_zoo_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_zoo
+        zoo_diags_3d(:, x_graze_zoo_diag_ind, n)    = zooplankton_secondary_species(n,:)%x_graze_zoo
       end do
     end associate
 

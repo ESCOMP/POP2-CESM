@@ -58,7 +58,8 @@ module ecosys_driver
   use ecosys_diagnostics_mod, only : ecosys_diag_cnt_3d
   use ecosys_diagnostics_mod, only : auto_diag_cnt_2d
   use ecosys_diagnostics_mod, only : auto_diag_cnt_3d
-  use ecosys_diagnostics_mod, only : zoo_diag_cnt
+  use ecosys_diagnostics_mod, only : zoo_diag_cnt_2d
+  use ecosys_diagnostics_mod, only : zoo_diag_cnt_3d
   use ecosys_diagnostics_mod, only : part_diag_cnt_2d
   use ecosys_diagnostics_mod, only : part_diag_cnt_3d
   use ecosys_diagnostics_mod, only : forcing_diag_cnt
@@ -386,9 +387,10 @@ contains
     ! initialize ecosys_diagnostics type
     do bid=1,nblocks_clinic
       call marbl_diagnostics(bid)%construct(km, ecosys_diag_cnt_2d,           &
-        ecosys_diag_cnt_3d, auto_diag_cnt_2d, auto_diag_cnt_3d, zoo_diag_cnt, &
-        part_diag_cnt_2d, part_diag_cnt_3d, ecosys_tracer_cnt, autotroph_cnt, &
-        zooplankton_cnt)
+                      ecosys_diag_cnt_3d, auto_diag_cnt_2d, auto_diag_cnt_3d, &
+                      zoo_diag_cnt_2d, zoo_diag_cnt_3d, part_diag_cnt_2d,     &
+                      part_diag_cnt_3d, ecosys_tracer_cnt, autotroph_cnt,     &
+                      zooplankton_cnt)
     end do
 
 
