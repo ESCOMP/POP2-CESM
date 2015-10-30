@@ -74,7 +74,8 @@ module ecosys_driver
   use ecosys_tavg, only : ecosys_tavg_accumulate_flux
 
   use ecosys_mod, only:            &
-       ecosys_init,                &
+       ecosys_init_nml,            &
+       ecosys_init_postnml,        &
        ecosys_tracer_ref_val,      &
        ecosys_set_sflux,           &
        ecosys_tavg_forcing,        &
@@ -472,18 +473,21 @@ contains
 
     tadvect_ctype(ecosys_ind_begin:ecosys_ind_end) = ecosys_tadvect_ctype
 
-    call ecosys_init(nl_buffer, &
-         init_ts_file_fmt, read_restart_filename, &
-         tracer_d_module(ecosys_ind_begin:ecosys_ind_end),         &
-         TRACER_MODULE(:,:,:,ecosys_ind_begin:ecosys_ind_end,:,:), &
-         lmarginal_seas, ecosys_restore, marbl_saved_state, vflux_flag, &
-         errorCode, marbl_status, &
-         comp_surf_avg_flag, use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
-         init_ecosys_option, init_ecosys_init_file, init_ecosys_init_file_fmt, &
-         tracer_init_ext, &
-        !ind_name_table, &
-         PH_PREV, PH_PREV_ALT_CO2)
+    call  ecosys_init_nml(nl_buffer, comp_surf_avg_flag,          &
+       use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
+       init_ecosys_option, init_ecosys_init_file,                 &
+       init_ecosys_init_file_fmt,tracer_init_ext, errorCode, marbl_status)
 
+    call ecosys_init_postnml(init_ts_file_fmt,                        &
+       read_restart_filename, tracer_d_module, TRACER_MODULE,         &
+       lmarginal_seas, ecosys_restore, marbl_saved_state, vflux_flag, &
+       comp_surf_avg_flag, use_nml_surf_vals, surf_avg_dic_const,     &
+       surf_avg_alk_const, init_ecosys_option,                        &
+       init_ecosys_init_file, init_ecosys_init_file_fmt,              &
+       tracer_init_ext,                                               &
+      !ind_name_table,                                                &
+       PH_PREV, PH_PREV_ALT_CO2, errorCode, marbl_status)
+    
     if (marbl_status%status /= marbl_status_ok) then
        call exit_POP(sigAbort, &
             'ERROR in ecosys_driver_init: ecosys_init returned status: "'//marbl_status%message//'"')
@@ -638,18 +642,18 @@ contains
           end if ! land_mask
 
           
-          if (marbl_saved_state%land_mask(i,c,bid) .and. &
-              KMT(i, c, bid).gt.0) then 
-            call ecosys_set_interior(i, c, ny_block, marbl_domain, marbl_gcm_state, &
-                 marbl_diagnostics(bid), marbl_saved_state, ecosys_restore,   &
-                 marbl%private_data%ecosys_interior_share,                    &
-                 marbl%private_data%ecosys_zooplankton_share,                 &
-                 marbl%private_data%ecosys_autotroph_share,                   &
-                 marbl%private_data%ecosys_particulate_share,                 &
-                 column_tracer_module,                                        &
-                 column_dtracer,                                              &
-                 ciso_on,                                                     &
-                 bid)
+          if (marbl_saved_state%land_mask(i,c,bid) .and. KMT(i, c, bid).gt.0) then 
+
+            call ecosys_set_interior(i, c, bid,                             &
+                 marbl_domain, marbl_gcm_state,                             &
+                 marbl_diagnostics(bid), marbl_saved_state, ecosys_restore, &
+                 marbl%private_data%ecosys_interior_share,                  &
+                 marbl%private_data%ecosys_zooplankton_share,               &
+                 marbl%private_data%ecosys_autotroph_share,                 &
+                 marbl%private_data%ecosys_particulate_share,               &
+                 column_tracer_module,                                      &
+                 column_dtracer,                                            &
+                 ciso_on)
 
             ! copy marbl column data back to slab
             do k = 1, marbl_domain%km
@@ -659,8 +663,7 @@ contains
             end do ! do k
           end if ! KMT > 0
 
-          call ecosys_tavg_accumulate(i, c, bid, marbl_diagnostics(bid),      &
-                                      ecosys_restore)
+          call ecosys_tavg_accumulate(i, c, bid, marbl_diagnostics(bid), ecosys_restore)
 
        end do ! do i
     end do ! do c
@@ -877,33 +880,20 @@ contains
   end subroutine ecosys_driver_tavg_forcing
 
 
-
   !***********************************************************************
-  !BOP
-  !IROUTINE: ecosys_driver_tracer_ref_val
-  ! !INTERFACE:
-  !
+
   function ecosys_driver_tracer_ref_val(ciso_on,ind)
     !
     ! !DESCRIPTION:
     !  return reference value for tracer with global tracer index ind
     !  this is used in virtual flux computations
     !
-    ! !REVISION HISTORY:
-    !  same as module
-
     !INPUT PARAMETERS:
-    logical (kind=log_kind), intent(in)  ::  &
-         ciso_on                 ! ecosys_ciso on
-
-    integer(int_kind), intent(in) :: ind
+    logical (kind=log_kind) , intent(in) :: ciso_on                 ! ecosys_ciso on
+    integer(int_kind)       , intent(in) :: ind
 
     !OUTPUT PARAMETERS:
-
     real(r8) :: ecosys_driver_tracer_ref_val
-
-    !EOP
-    !BOC
 
     !-----------------------------------------------------------------------
     !  default value for reference value is 0
@@ -928,9 +918,6 @@ contains
           ecosys_driver_tracer_ref_val = ecosys_ciso_tracer_ref_val(ind-ecosys_ciso_ind_begin+1)
        endif
     endif
-
-    !-----------------------------------------------------------------------
-    !EOC
 
   end function ecosys_driver_tracer_ref_val
 

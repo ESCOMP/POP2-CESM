@@ -87,19 +87,14 @@ module ecosys_mod
 
   ! !USES:
 
-  use POP_KindsMod, only : POP_i4 ! pop, need similar in marbl
-  use POP_KindsMod, only : POP_r8 ! pop, need similar in marbl
-
-  use POP_ErrorMod, only : POP_ErrorSet ! pop, need similar in marbl
-  use POP_ErrorMod, only : POP_Success  ! pop, need similar in marbl
-
-  use POP_CommMod, only : POP_communicator ! pop
-
-  use POP_GridHorzMod, only : POP_gridHorzLocCenter ! pop
-
-  use POP_FieldMod, only : POP_fieldKindScalar
-
-  use POP_HaloMod, only : POP_HaloUpdate ! pop
+  use POP_KindsMod    , only : POP_i4                ! pop, need similar in marbl
+  use POP_KindsMod    , only : POP_r8                ! pop, need similar in marbl
+  use POP_ErrorMod    , only : POP_ErrorSet          ! pop, need similar in marbl
+  use POP_ErrorMod    , only : POP_Success           ! pop, need similar in marbl
+  use POP_CommMod     , only : POP_communicator      ! pop
+  use POP_GridHorzMod , only : POP_gridHorzLocCenter ! pop
+  use POP_FieldMod    , only : POP_fieldKindScalar
+  use POP_HaloMod     , only : POP_HaloUpdate        ! pop
 
   use kinds_mod, only : log_kind
   use kinds_mod, only : int_kind
@@ -367,35 +362,36 @@ module ecosys_mod
   !  public/private member procedure declarations
   !-----------------------------------------------------------------------
 
-  public :: &
-       ecosys_init,                  &
-       ecosys_tracer_ref_val,        &
-       ecosys_set_sflux,             &
-       ecosys_tavg_forcing,          &
+  public ::                    &
+       ecosys_init_nml       , &
+       ecosys_init_postnml   , &
+       ecosys_tracer_ref_val , &
+       ecosys_set_sflux      , &
+       ecosys_tavg_forcing   , &
        ecosys_set_interior
 
-  private :: &
-       ecosys_init_non_autotroph_tracer_metadata, &
-       ecosys_init_forcing_monthly_every_ts, &
-       ecosys_init_tavg, &
-       init_particulate_terms, &
-       update_particulate_terms_from_prior_level, &
-       update_sinking_particle_from_prior_level, &
-       compute_particulate_terms, &
-       ecosys_init_sflux, &
-       ecosys_init_interior_restore, &
-       check_ecosys_tracer_count_consistency, &
-       initialize_zooplankton_tracer_metadata, &
-       initialize_autotroph_tracer_metadata, &
-       setup_local_tracers, &
-       setup_local_zooplankton, &
-       setup_local_autotrophs, &
-       autotroph_consistency_check, &
-       compute_autotroph_elemental_ratios, &
+  private ::                                           &
+       ecosys_init_non_autotroph_tracer_metadata,      &
+       ecosys_init_forcing_monthly_every_ts,           &
+       ecosys_init_tavg,                               &
+       init_particulate_terms,                         &
+       update_particulate_terms_from_prior_level,      &
+       update_sinking_particle_from_prior_level,       &
+       compute_particulate_terms,                      &
+       ecosys_init_sflux,                              &
+       ecosys_init_interior_restore,                   &
+       check_ecosys_tracer_count_consistency,          &
+       initialize_zooplankton_tracer_metadata,         &
+       initialize_autotroph_tracer_metadata,           &
+       setup_local_tracers,                            &
+       setup_local_zooplankton,                        &
+       setup_local_autotrophs,                         &
+       autotroph_consistency_check,                    &
+       compute_autotroph_elemental_ratios,             &
        compute_photosynthetically_available_radiation, &
-       compute_carbonate_chemistry, &
-       compute_function_scaling, &
-       compute_Pprime, &
+       compute_carbonate_chemistry,                    &
+       compute_function_scaling,                       &
+       compute_Pprime,                                 &
        compute_Zprime
 
   type, private :: zooplankton_local_type
@@ -628,6 +624,8 @@ module ecosys_mod
 
   !-----------------------------------------------------------------------
 
+  logical (log_kind)  :: lecovars_full_depth_tavg ! should ecosystem vars be written full depth
+
   !EOC
   !*****************************************************************************
 
@@ -635,180 +633,102 @@ module ecosys_mod
 contains
 
   !*****************************************************************************
-  !BOP
-  ! !IROUTINE: ecosys_init
-  ! !INTERFACE:
 
-  subroutine ecosys_init(nl_buffer, &
-       init_ts_file_fmt, read_restart_filename, &
-       tracer_d_module, &
-       TRACER_MODULE, &
-       lmarginal_seas, ecosys_restore, saved_state, vflux_flag, &
-       errorCode, marbl_status, &
-       comp_surf_avg_flag, use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
-       init_ecosys_option, init_ecosys_init_file, init_ecosys_init_file_fmt, &
-       tracer_init_ext, &
-      !ind_name_table, &
-       PH_PREV, PH_PREV_ALT_CO2)
+  subroutine ecosys_init_nml(nl_buffer, comp_surf_avg_flag,       &
+       use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
+       init_ecosys_option, init_ecosys_init_file,                 &
+       init_ecosys_init_file_fmt,tracer_init_ext, errorCode, marbl_status)
 
     ! !DESCRIPTION:
     !  Initialize ecosys tracer module. This involves setting metadata, reading
     !  the module namelist, setting initial conditions, setting up forcing,
     !  and defining additional tavg variables.
     !
-    ! !REVISION HISTORY:
-    !  same as module
-
     use marbl_interface_constants , only : marbl_nl_buffer_size
     use marbl_interface_constants , only : marbl_status_ok
     use marbl_interface_constants , only : marbl_status_could_not_read_namelist
     use marbl_interface_types     , only : marbl_status_type
-    use marbl_interface_types     , only : marbl_saved_state_type
+    use ecosys_constants          , only : ecosys_tracer_cnt
 
     implicit none
 
     ! !INPUT PARAMETERS:
 
     character(marbl_nl_buffer_size) , intent(in) :: nl_buffer
-    character (*)                   , intent(in) :: init_ts_file_fmt      ! format (bin or nc) for input file
-    character (*)                   , intent(in) :: read_restart_filename ! file name for restart file
-    logical (kind=log_kind)         , intent(in) :: lmarginal_seas        ! Is ecosystem active in marginal seas ?
-
-    ! !INPUT/OUTPUT PARAMETERS:
-
-    type (tracer_field)          , intent(inout) :: tracer_d_module(:)   ! descriptors for each tracer
-    real (r8)                    , intent(inout) :: TRACER_MODULE(:, :, :, :, :, :)
-    type(ecosys_restore_type)    , intent(inout) :: ecosys_restore
-    type(marbl_saved_state_type) , intent(inout) :: saved_state
 
     ! !OUTPUT PARAMETERS:
 
+    integer (int_kind)      , intent(out) :: comp_surf_avg_flag                 ! time flag id for computing average surface tracer values
+    logical (log_kind)      , intent(out) :: use_nml_surf_vals                  ! do namelist surf values override values from restart file
+    real (r8)               , intent(out) :: surf_avg_dic_const
+    real (r8)               , intent(out) :: surf_avg_alk_const
+    character(char_len)     , intent(out) :: init_ecosys_option                 ! namelist option for initialization of bgc
+    character(char_len)     , intent(out) :: init_ecosys_init_file              ! filename for option 'file'
+    character(char_len)     , intent(out) :: init_ecosys_init_file_fmt          ! file format for option 'file'
+    type(tracer_read)       , intent(out) :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers
     integer (POP_i4)        , intent(out) :: errorCode
     type(marbl_status_type) , intent(out) :: marbl_status
 
-
-    ! new
-    logical (log_kind)  , intent(in)  :: vflux_flag(:) 
-    integer (int_kind)  , intent(out) :: comp_surf_avg_flag                 ! time flag id for computing average surface tracer values
-    logical (log_kind)  , intent(out) :: use_nml_surf_vals                  ! do namelist surf values override values from restart file
-    real (r8)           , intent(out) :: surf_avg_dic_const
-    real (r8)           , intent(out) :: surf_avg_alk_const
-    character(char_len) , intent(out) :: init_ecosys_option                 ! namelist option for initialization of bgc
-    character(char_len) , intent(out) :: init_ecosys_init_file              ! filename for option 'file'
-    character(char_len) , intent(out) :: init_ecosys_init_file_fmt          ! file format for option 'file'
-    type(tracer_read)   , intent(out) :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers
-    real (r8)           , intent(out) :: PH_PREV(:, :, :)                   ! computed ph from previous time step
-    real (r8)           , intent(out) :: PH_PREV_ALT_CO2(:, :, :)           ! computed ph from previous time step
-
-    !EOP
-    !BOC
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
 
-    character(*), parameter :: subname = 'ecosys_mod:ecosys_init'
+    character(*), parameter :: subname = 'ecosys_mod:ecosys_init_nml'
 
-    character(char_len) :: &
-         comp_surf_avg_freq_opt,    & ! choice for freq of comp_surf_avg
-         gas_flux_forcing_opt,      & ! option for forcing gas fluxes
-         atm_co2_opt,               & ! option for atmospheric co2 concentration
-         atm_alt_co2_opt              ! option for atmospheric alternative CO2
-
-    type(tracer_read) :: &
-         dust_flux_input,           & ! namelist input for dust_flux
-         iron_flux_input,           & ! namelist input for iron_flux
-         nox_flux_monthly_input,    & ! namelist input for nox_flux_monthly
-         nhy_flux_monthly_input,    & ! namelist input for nhy_flux_monthly
-         din_riv_flux_input,        & ! namelist input for din_riv_flux
-         dip_riv_flux_input,        & ! namelist input for dip_riv_flux
-         don_riv_flux_input,        & ! namelist input for don_riv_flux
-         dop_riv_flux_input,        & ! namelist input for dop_riv_flux
-         dsi_riv_flux_input,        & ! namelist input for dsi_riv_flux
-         dfe_riv_flux_input,        & ! namelist input for dfe_riv_flux
-         dic_riv_flux_input,        & ! namelist input for dic_riv_flux
-         alk_riv_flux_input,        & ! namelist input for alk_riv_flux
-         doc_riv_flux_input           ! namelist input for doc_riv_flux
-
-    integer (int_kind) :: &
-         non_living_biomass_ecosys_tracer_cnt, & ! number of non-autotroph ecosystem tracers
-         auto_ind,                  & ! autotroph functional group index
-         n,                         & ! index for looping over tracers
-         k,                         & ! index for looping over depth levels
-         iblock,                    & ! index for looping over blocks
-         nml_error                    ! namelist i/o error flag
-
-    integer (int_kind) :: &
-         zoo_ind                    ! zooplankton functional group index
-
-    integer (int_kind) :: &
-         comp_surf_avg_freq_iopt,   & ! choice for freq of comp_surf_avg
-         comp_surf_avg_freq           ! choice for freq of comp_surf_avg
-
-    logical (log_kind) :: &
-         lecovars_full_depth_tavg     ! should ecosystem vars be written full depth
+    integer (int_kind)  :: n                        ! index for looping over tracers
+    character(char_len) :: comp_surf_avg_freq_opt   ! choice for freq of comp_surf_avg
+    character(char_len) :: gas_flux_forcing_opt     ! option for forcing gas fluxes
+    character(char_len) :: atm_co2_opt              ! option for atmospheric co2 concentration
+    character(char_len) :: atm_alt_co2_opt          ! option for atmospheric alternative CO2
+    type(tracer_read)   :: dust_flux_input          ! namelist input for dust_flux
+    type(tracer_read)   :: iron_flux_input          ! namelist input for iron_flux
+    type(tracer_read)   :: nox_flux_monthly_input   ! namelist input for nox_flux_monthly
+    type(tracer_read)   :: nhy_flux_monthly_input   ! namelist input for nhy_flux_monthly
+    type(tracer_read)   :: din_riv_flux_input       ! namelist input for din_riv_flux
+    type(tracer_read)   :: dip_riv_flux_input       ! namelist input for dip_riv_flux
+    type(tracer_read)   :: don_riv_flux_input       ! namelist input for don_riv_flux
+    type(tracer_read)   :: dop_riv_flux_input       ! namelist input for dop_riv_flux
+    type(tracer_read)   :: dsi_riv_flux_input       ! namelist input for dsi_riv_flux
+    type(tracer_read)   :: dfe_riv_flux_input       ! namelist input for dfe_riv_flux
+    type(tracer_read)   :: dic_riv_flux_input       ! namelist input for dic_riv_flux
+    type(tracer_read)   :: alk_riv_flux_input       ! namelist input for alk_riv_flux
+    type(tracer_read)   :: doc_riv_flux_input       ! namelist input for doc_riv_flux
+    integer (int_kind)  :: nml_error                ! namelist i/o error flag
+    integer (int_kind)  :: zoo_ind                  ! zooplankton functional group index
+    integer (int_kind)  :: comp_surf_avg_freq_iopt  ! choice for freq of comp_surf_avg
+    integer (int_kind)  :: comp_surf_avg_freq       ! choice for freq of comp_surf_avg
 
     !-----------------------------------------------------------------------
     !  values to be used when comp_surf_avg_freq_opt==never
     !-----------------------------------------------------------------------
 
-    namelist /ecosys_nml/ &
-         init_ecosys_option, init_ecosys_init_file, tracer_init_ext, &
-         init_ecosys_init_file_fmt, &
-         dust_flux_input, iron_flux_input, fesedflux_input, &
-         ndep_data_type, nox_flux_monthly_input, nhy_flux_monthly_input, &
-         ndep_shr_stream_year_first, ndep_shr_stream_year_last, &
-         ndep_shr_stream_year_align, ndep_shr_stream_file, &
-         ndep_shr_stream_scale_factor, &
-         din_riv_flux_input, dip_riv_flux_input, don_riv_flux_input, &
-         dop_riv_flux_input, dsi_riv_flux_input, dfe_riv_flux_input, &
-         dic_riv_flux_input, alk_riv_flux_input, doc_riv_flux_input, &
-         gas_flux_forcing_opt, gas_flux_forcing_file, &
-         gas_flux_fice, gas_flux_ws, gas_flux_ap, &
-         nutr_rest_file, &
-         comp_surf_avg_freq_opt, comp_surf_avg_freq,  &
-         use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
-         ecosys_qsw_distrb_const, &
+    namelist /ecosys_nml/                                                 &
+         init_ecosys_option, init_ecosys_init_file, tracer_init_ext,      &
+         init_ecosys_init_file_fmt,                                       &
+         dust_flux_input, iron_flux_input, fesedflux_input,               &
+         ndep_data_type, nox_flux_monthly_input, nhy_flux_monthly_input,  &
+         ndep_shr_stream_year_first, ndep_shr_stream_year_last,           &
+         ndep_shr_stream_year_align, ndep_shr_stream_file,                &
+         ndep_shr_stream_scale_factor,                                    &
+         din_riv_flux_input, dip_riv_flux_input, don_riv_flux_input,      &
+         dop_riv_flux_input, dsi_riv_flux_input, dfe_riv_flux_input,      &
+         dic_riv_flux_input, alk_riv_flux_input, doc_riv_flux_input,      &
+         gas_flux_forcing_opt, gas_flux_forcing_file,                     &
+         gas_flux_fice, gas_flux_ws, gas_flux_ap,                         &
+         nutr_rest_file,                                                  &
+         comp_surf_avg_freq_opt, comp_surf_avg_freq,                      &
+         use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const,       &
+         ecosys_qsw_distrb_const,                                         &
          lsource_sink, lflux_gas_o2, lflux_gas_co2, locmip_k1_k2_bug_fix, &
-         lnutr_variable_restore, nutr_variable_rest_file,  &
-         nutr_variable_rest_file_fmt, atm_co2_opt, atm_co2_const, &
-         atm_alt_co2_opt, atm_alt_co2_const, &
-         liron_patch, iron_patch_flux_filename, iron_patch_month, &
+         lnutr_variable_restore, nutr_variable_rest_file,                 &
+         nutr_variable_rest_file_fmt, atm_co2_opt, atm_co2_const,         &
+         atm_alt_co2_opt, atm_alt_co2_const,                              &
+         liron_patch, iron_patch_flux_filename, iron_patch_month,         &
          lecovars_full_depth_tavg
 
-    character (char_len) :: &
-         ecosys_restart_filename  ! modified file name for restart file
-
-    real (r8), dimension (nx_block, ny_block) :: WORK
     marbl_status%status = marbl_status_ok
     marbl_status%message = ''
     errorCode = POP_Success
-
-    call ecosys_init_forcing_monthly_every_ts()
-
-    call marbl_params_init(nl_buffer, marbl_status)
-    if (marbl_status%status /= marbl_status_ok) then
-       return
-    end if
-    ! FIXME(bja, 2015-01) need to have a flag if params should be printed!
-    ! if (stdout > 0) then
-    !    call marbl_params_print(stdout)
-    ! end if
-
-    call ecosys_init_non_autotroph_tracer_metadata(tracer_d_module, non_living_biomass_ecosys_tracer_cnt)
-
-    call check_ecosys_tracer_count_consistency(non_living_biomass_ecosys_tracer_cnt)
-
-    call initialize_zooplankton_tracer_metadata(tracer_d_module, &
-         non_living_biomass_ecosys_tracer_cnt, n)
-
-    call initialize_autotroph_tracer_metadata(tracer_d_module, n)
-    !-----------------------------------------------------------------------
-    !  initialize ind_name_table
-    !-----------------------------------------------------------------------
-
-    do n = 1, ecosys_tracer_cnt
-       ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
-    end do
 
     !-----------------------------------------------------------------------
     !  default namelist settings
@@ -972,7 +892,10 @@ contains
 
     lecovars_full_depth_tavg = .false.
 
+    !-----------------------------------------------------------------------
     ! read the namelist buffer on every processor
+    !-----------------------------------------------------------------------
+
     read(nl_buffer, nml=ecosys_nml, iostat=nml_error)
     if (nml_error /= 0) then
        marbl_status%status = marbl_status_could_not_read_namelist
@@ -1006,45 +929,22 @@ contains
        call exit_POP(sigAbort, 'unknown gas_flux_forcing_opt')
     endif
 
-    fice_file%input = gas_flux_fice
-
-    xkw_file%input = gas_flux_ws
-
-    ap_file%input = gas_flux_ap
-
-    dust_flux%input = dust_flux_input
-
-    iron_flux%input = iron_flux_input
-
+    fice_file%input        = gas_flux_fice
+    xkw_file%input         = gas_flux_ws
+    ap_file%input          = gas_flux_ap
+    dust_flux%input        = dust_flux_input
+    iron_flux%input        = iron_flux_input
     nox_flux_monthly%input = nox_flux_monthly_input
-
     nhy_flux_monthly%input = nhy_flux_monthly_input
-
-    din_riv_flux%input = din_riv_flux_input
-
-    dip_riv_flux%input = dip_riv_flux_input
-
-    don_riv_flux%input = don_riv_flux_input
-
-    dop_riv_flux%input = dop_riv_flux_input
-
-    dsi_riv_flux%input = dsi_riv_flux_input
-
-    dfe_riv_flux%input = dfe_riv_flux_input
-
-    dic_riv_flux%input = dic_riv_flux_input
-
-    alk_riv_flux%input = alk_riv_flux_input
-
-    doc_riv_flux%input = doc_riv_flux_input
-
-
-    !-----------------------------------------------------------------------
-    !  initialize modules with dependancies on above variables
-    !-----------------------------------------------------------------------
-
-    call ecosys_restore%Init(nml_filename, nml_in, &
-         ind_name_table)
+    din_riv_flux%input     = din_riv_flux_input
+    dip_riv_flux%input     = dip_riv_flux_input
+    don_riv_flux%input     = don_riv_flux_input
+    dop_riv_flux%input     = dop_riv_flux_input
+    dsi_riv_flux%input     = dsi_riv_flux_input
+    dfe_riv_flux%input     = dfe_riv_flux_input
+    dic_riv_flux%input     = dic_riv_flux_input
+    alk_riv_flux%input     = alk_riv_flux_input
+    doc_riv_flux%input     = doc_riv_flux_input
 
     !-----------------------------------------------------------------------
     !  set variables immediately dependent on namelist variables
@@ -1098,14 +998,115 @@ contains
     endif
 
     !-----------------------------------------------------------------------
-    !  allocate and initialize LAND_MASK
+    !  read ecosys_parms_nml namelist
     !-----------------------------------------------------------------------
 
+    call marbl_params_init(nl_buffer, marbl_status)
+    if (marbl_status%status /= marbl_status_ok) then
+       return
+    end if
+    ! FIXME(bja, 2015-01) need to have a flag if params should be printed!
+    ! if (stdout > 0) then
+    !    call marbl_params_print(stdout)
+    ! end if
+
+  end subroutine ecosys_init_nml
+
+  !*****************************************************************************
+
+  subroutine ecosys_init_postnml(init_ts_file_fmt,                &
+       read_restart_filename, tracer_d_module, TRACER_MODULE,     &
+       lmarginal_seas, ecosys_restore, saved_state, vflux_flag,   &
+       comp_surf_avg_flag, use_nml_surf_vals, surf_avg_dic_const, &
+       surf_avg_alk_const, init_ecosys_option,                    &
+       init_ecosys_init_file, init_ecosys_init_file_fmt,          &
+       tracer_init_ext,                                           &
+      !ind_name_table,                                            &
+       PH_PREV, PH_PREV_ALT_CO2, errorCode, marbl_status)
+
+    ! !DESCRIPTION:
+    !  Initialize ecosys tracer module. This involves setting metadata, reading
+    !  the module namelist, setting initial conditions, setting up forcing,
+    !  and defining additional tavg variables.
+
+    use marbl_interface_constants , only : marbl_status_ok
+    use marbl_interface_constants , only : marbl_status_could_not_read_namelist
+    use marbl_interface_types     , only : marbl_status_type
+    use marbl_interface_types     , only : marbl_saved_state_type
+
+    implicit none
+
+    ! !INPUT PARAMETERS:
+
+    character (*)                   , intent(in) :: init_ts_file_fmt      ! format (bin or nc) for input file
+    character (*)                   , intent(in) :: read_restart_filename ! file name for restart file
+    logical (kind=log_kind)         , intent(in) :: lmarginal_seas        ! Is ecosystem active in marginal seas ?
+
+    ! !INPUT/OUTPUT PARAMETERS:
+
+    type (tracer_field)          , intent(inout) :: tracer_d_module(:)   ! descriptors for each tracer
+    real (r8)                    , intent(inout) :: TRACER_MODULE(:, :, :, :, :, :)
+    type(ecosys_restore_type)    , intent(inout) :: ecosys_restore
+    type(marbl_saved_state_type) , intent(inout) :: saved_state
+
+    ! !OUTPUT PARAMETERS:
+
+    logical (log_kind)      , intent(in)  :: vflux_flag(:) 
+    integer (int_kind)      , intent(out) :: comp_surf_avg_flag                 ! time flag id for computing average surface tracer values
+    logical (log_kind)      , intent(out) :: use_nml_surf_vals                  ! do namelist surf values override values from restart file
+    real (r8)               , intent(out) :: surf_avg_dic_const
+    real (r8)               , intent(out) :: surf_avg_alk_const
+    character(char_len)     , intent(out) :: init_ecosys_option                 ! namelist option for initialization of bgc
+    character(char_len)     , intent(out) :: init_ecosys_init_file              ! filename for option 'file'
+    character(char_len)     , intent(out) :: init_ecosys_init_file_fmt          ! file format for option 'file'
+    type(tracer_read)       , intent(out) :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers
+    real (r8)               , intent(out) :: PH_PREV(:, :, :)                   ! computed ph from previous time step
+    real (r8)               , intent(out) :: PH_PREV_ALT_CO2(:, :, :)           ! computed ph from previous time step
+    integer (POP_i4)        , intent(out) :: errorCode
+    type(marbl_status_type) , intent(out) :: marbl_status
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+
+    character(*), parameter :: subname = 'ecosys_mod:ecosys_init_postnml'
+
+    integer (int_kind) :: non_living_biomass_ecosys_tracer_cnt ! number of non-autotroph ecosystem tracers
+    integer (int_kind) :: auto_ind ! autotroph functional group index
+    integer (int_kind) :: n        ! index for looping over tracers
+    integer (int_kind) :: k        ! index for looping over depth levels
+    integer (int_kind) :: iblock   ! index for looping over blocks
+    integer (int_kind) :: zoo_ind  ! zooplankton functional group index
+
+    real(r8) :: WORK(nx_block, ny_block) ! FIXME (mvertens, 2015-10) remove this
+
+    character (char_len) :: ecosys_restart_filename  ! modified file name for restart file
+
+    !-----------------------------------------------------------------------
+    !  post-namelist initializations
+    !-----------------------------------------------------------------------
+
+    !  allocate and initialize LAND_MASK
     if (lmarginal_seas) then
        saved_state%land_mask = REGION_MASK /= 0
     else
        saved_state%land_mask = REGION_MASK > 0
     endif
+
+    call ecosys_init_forcing_monthly_every_ts()
+
+    call ecosys_init_non_autotroph_tracer_metadata(tracer_d_module, non_living_biomass_ecosys_tracer_cnt)
+
+    call check_ecosys_tracer_count_consistency(non_living_biomass_ecosys_tracer_cnt)
+
+    call initialize_zooplankton_tracer_metadata(tracer_d_module, non_living_biomass_ecosys_tracer_cnt, n)
+
+    call initialize_autotroph_tracer_metadata(tracer_d_module, n)
+
+    !  initialize ind_name_table
+    do n = 1, ecosys_tracer_cnt
+       ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
+    end do
 
     call ecosys_init_tracers(&
          init_ts_file_fmt, &
@@ -1142,7 +1143,7 @@ contains
        do auto_ind = 1, autotroph_cnt
           n = autotrophs(auto_ind)%Chl_ind
           WORK = WORK + max(c0, p5*(TRACER_MODULE(:, :, 1, n, oldtime, iblock) + &
-               TRACER_MODULE(:, :, 1, n, curtime, iblock)))
+                                    TRACER_MODULE(:, :, 1, n, curtime, iblock)))
        end do
        call named_field_set(totChl_surf_nf_ind, iblock, WORK)
     enddo
@@ -1167,6 +1168,8 @@ contains
 
     call ecosys_init_tavg()
     call ecosys_init_sflux(saved_state)
+
+    call ecosys_restore%init(nml_filename, nml_in, ind_name_table)
     call ecosys_init_interior_restore(saved_state, ecosys_restore)
 
     !-----------------------------------------------------------------------
@@ -1198,10 +1201,7 @@ contains
        endif
     end do
 
-    !-----------------------------------------------------------------------
-    !EOC
-
-  end subroutine ecosys_init
+  end subroutine ecosys_init_postnml
 
   !***********************************************************************
   !BOP
@@ -1328,14 +1328,14 @@ contains
   ! !IROUTINE: ecosys_set_interior
   ! !INTERFACE:
 
-  subroutine ecosys_set_interior(i, c, num_columns, domain, gcm_state, &
+  subroutine ecosys_set_interior(i, c, bid, &
+       domain, gcm_state, &
        marbl_diagnostics, &
        saved_state, ecosys_restore, &
        ecosys_interior_share, ecosys_zooplankton_share, &
        ecosys_autotroph_share, ecosys_particulate_share, &
        tracer_module, &
-       dtracer, lexport_shared_vars,         &
-       bid)
+       dtracer, lexport_shared_vars)
 
     ! !DESCRIPTION:
     !  Compute time derivatives for ecosystem state variables
@@ -1369,7 +1369,6 @@ contains
 
     integer (int_kind), intent(in) :: i         ! index for looping over nx_block dimension
     integer (int_kind), intent(in) :: c         ! column index
-    integer (int_kind), intent(in) :: num_columns
     ! FIXME(bja, 2015-08) domain will become intent(in) once the loops
     ! are moved!
     type(marbl_column_domain_type), intent(inout) :: domain

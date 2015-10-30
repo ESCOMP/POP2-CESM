@@ -126,13 +126,14 @@ contains
   subroutine marbl_init(this, marbl_driver_sizes, marbl_sizes, &
        nl_buffer, marbl_status)
 
-    use ecosys_constants, only: ecosys_tracer_cnt
-    use marbl_share_mod, only: autotroph_cnt, zooplankton_cnt
-    use marbl_interface_constants, only: marbl_nl_buffer_size
-    use marbl_interface_types, only: marbl_status_type
+    use ecosys_constants          , only: ecosys_tracer_cnt
+    use marbl_share_mod           , only: autotroph_cnt, zooplankton_cnt
+    use marbl_interface_constants , only: marbl_nl_buffer_size
+    use marbl_interface_types     , only: marbl_status_type
 
-    use ecosys_mod, only: ecosys_init
-    use ecosys_ciso_mod, only: ecosys_ciso_init
+    use ecosys_mod                , only: ecosys_init_nml
+    use ecosys_mod                , only: ecosys_init_postnml
+    use ecosys_ciso_mod           , only: ecosys_ciso_init
     
     implicit none
 
