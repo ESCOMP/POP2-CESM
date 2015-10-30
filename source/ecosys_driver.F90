@@ -614,21 +614,14 @@ contains
             end do ! do k
           end if ! KMT > 0
 
-          call ecosys_tavg_accumulate(i, c, bid, marbl_diagnostics(bid))
+          call ecosys_tavg_accumulate(i, c, bid, marbl_diagnostics(bid),      &
+                                      ecosys_restore)
 
        end do ! do i
     end do ! do c
           
 
     call timer_stop(ecosys_interior_timer, block_id=bid)
-
-!    do k = 1, km
-!       do n = 1, ecosys_tracer_cnt
-!          call ecosys_restore%accumulate_tavg(tracer_index=n, &
-!               vert_level=k, block_id=bid, &
-!               restore_local=ecosys_diagnostics(k, bid)%restore_diags(:, :, n))
-!       end do
-!    end do
 
     !-----------------------------------------------------------------------
     !  ECOSYS_CISO computations

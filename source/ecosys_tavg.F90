@@ -1173,10 +1173,14 @@ contains
 
   end subroutine ecosys_tavg_init
 
-  subroutine ecosys_tavg_accumulate(i, c,bid, marbl_diagnostics)
+  subroutine ecosys_tavg_accumulate(i, c,bid, marbl_diagnostics,              &
+                                    ecosys_restore)
+
+    use ecosys_restore_mod, only : ecosys_restore_type
 
     integer, intent(in) :: i, c, bid ! column indices and block index
     type(marbl_diagnostics_type), intent(in) :: marbl_diagnostics
+    type(ecosys_restore_type), intent(in) :: ecosys_restore
 
     integer :: n, auto_ind, zoo_ind, k
     logical :: accumulate
@@ -1189,7 +1193,8 @@ contains
               ZOO_DIAGS_2D  => marbl_diagnostics%zoo_diags_2d,                &
               ZOO_DIAGS_3D  => marbl_diagnostics%zoo_diags_3d,                &
               PART_DIAGS_2D => marbl_diagnostics%part_diags_2d,               &
-              PART_DIAGS_3D => marbl_diagnostics%part_diags_3d                &
+              PART_DIAGS_3D => marbl_diagnostics%part_diags_3d,               &
+              restore_diags => marbl_diagnostics%restore_diags                &
              )
 
     ! Accumulate general diagnostics
@@ -1285,6 +1290,8 @@ contains
     do n=1,part_diag_cnt_3d
       call accumulate_tavg_field(PART_DIAGS_3D(:,n), tavg_part_3d(n), bid, i, c)
     end do
+
+    call ecosys_restore%accumulate_tavg(restore_diags, bid, i, c)
 
     end associate
 
