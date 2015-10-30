@@ -40,15 +40,15 @@ module marbl_interface_types
   ! sizing these arrays correctly according to the size of the domain
   ! and tracer count returned by marbl.
   type, public :: marbl_diagnostics_type
-     real(r8), allocatable :: diags_2d(:,:)        ! (km, ecosys_diag_cnt_2d)
-     real(r8), allocatable :: diags_3d(:,:)        ! (km, ecosys_diag_cnt_3d)
-     real(r8), allocatable :: auto_diags_2d(:, :, :) ! (km, auto_diag_cnt_2d, autotroph_cnt)
+     real(r8), allocatable :: diags_2d(:)            ! (ecosys_diag_cnt_2d)
+     real(r8), allocatable :: diags_3d(:, :)         ! (km, ecosys_diag_cnt_3d)
+     real(r8), allocatable :: auto_diags_2d(:, :)    ! (auto_diag_cnt_2d, autotroph_cnt)
      real(r8), allocatable :: auto_diags_3d(:, :, :) ! (km, auto_diag_cnt_3d, autotroph_cnt)
-     real(r8), allocatable :: zoo_diags_2d(:, :, :)  ! (km, zoo_diag_cnt_2d, zooplankton_cnt)
+     real(r8), allocatable :: zoo_diags_2d(:, :)     ! (zoo_diag_cnt_2d, zooplankton_cnt)
      real(r8), allocatable :: zoo_diags_3d(:, :, :)  ! (km, zoo_diag_cnt_3d, zooplankton_cnt)
-     real(r8), allocatable :: part_diags_2d(:,:)      ! (km, part_diag_cnt_2d)
-     real(r8), allocatable :: part_diags_3d(:,:)      ! (km, part_diag_cnt_3d)
-     real(r8), allocatable :: restore_diags(:,:) ! (km, ecosys_tracer_cnt)
+     real(r8), allocatable :: part_diags_2d(:)       ! (part_diag_cnt_2d)
+     real(r8), allocatable :: part_diags_3d(:, :)    ! (km, part_diag_cnt_3d)
+     real(r8), allocatable :: restore_diags(:, :)    ! (km, ecosys_tracer_cnt)
 
   contains
     procedure, public :: construct   => marbl_diagnostics_constructor
@@ -167,13 +167,13 @@ contains
                            part_diag_cnt_2d, part_diag_cnt_3d
     integer, intent(in) :: ecosys_tracer_cnt, autotroph_cnt, zooplankton_cnt
 
-    allocate(this%diags_2d(km, ecosys_diag_cnt_2d))
+    allocate(this%diags_2d(ecosys_diag_cnt_2d))
     allocate(this%diags_3d(km, ecosys_diag_cnt_3d))
-    allocate(this%auto_diags_2d(km, auto_diag_cnt_2d, autotroph_cnt))
+    allocate(this%auto_diags_2d(auto_diag_cnt_2d, autotroph_cnt))
     allocate(this%auto_diags_3d(km, auto_diag_cnt_3d, autotroph_cnt))
-    allocate(this%zoo_diags_2d(km, zoo_diag_cnt_2d, zooplankton_cnt))
+    allocate(this%zoo_diags_2d(zoo_diag_cnt_2d, zooplankton_cnt))
     allocate(this%zoo_diags_3d(km, zoo_diag_cnt_3d, zooplankton_cnt))
-    allocate(this%part_diags_2d(km, part_diag_cnt_2d))
+    allocate(this%part_diags_2d(part_diag_cnt_2d))
     allocate(this%part_diags_3d(km, part_diag_cnt_3d))
     allocate(this%restore_diags(km, ecosys_tracer_cnt))
 

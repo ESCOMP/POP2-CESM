@@ -1200,15 +1200,7 @@ contains
     ! Accumulate general diagnostics
     ! 2D
     do n=1,ecosys_diag_cnt_2d
-      if (any((/zsatcalc_diag_ind, zsatarag_diag_ind/).eq.n)) then
-        call accumulate_tavg_field(DIAGS_2D(km,n),tavg_ecosys_2d(n),bid,i,c)
-      elseif (any((/O2_ZMIN_diag_ind, O2_ZMIN_DEPTH_diag_ind/).eq.n)) then
-        call accumulate_tavg_field(DIAGS_2D(1,n),tavg_ecosys_2d(n),bid,i,c)
-      else
-        do k=1,km
-          call accumulate_tavg_field(DIAGS_2D(k,n),tavg_ecosys_2d(n),bid,i,c)
-        end do
-      end if
+      call accumulate_tavg_field(DIAGS_2D(n),tavg_ecosys_2d(n),bid,i,c)
     end do
 
     ! 3D
@@ -1224,18 +1216,14 @@ contains
         if (n.eq.CaCO3_form_zint_diag_ind) then
           accumulate = (autotrophs(auto_ind)%imp_calcifier)
           if ( accumulate) then
-            do k=1,km
-              call accumulate_tavg_field(AUTO_DIAGS_2D(k,n,auto_ind),         &
-                                         tavg_tot_CaCO3_form_zint, bid, i, c)
-            end do
+            call accumulate_tavg_field(AUTO_DIAGS_2D(n,auto_ind),             &
+                                       tavg_tot_CaCO3_form_zint, bid, i, c)
           end if
         end if
 
         if (accumulate) then
-          do k=1,km
-            call accumulate_tavg_field(AUTO_DIAGS_2D(k,n,auto_ind),           &
-                                       tavg_auto_2d(n,auto_ind), bid, i, c)
-          end do
+          call accumulate_tavg_field(AUTO_DIAGS_2D(n,auto_ind),               &
+                                     tavg_auto_2d(n,auto_ind), bid, i, c)
         end if
       end do
     end do
@@ -1281,9 +1269,7 @@ contains
     ! Accumulate particulate terms
     ! 2D
     do n=1,part_diag_cnt_2d
-      do k=1,km
-        call accumulate_tavg_field(PART_DIAGS_2D(k,n), tavg_part_2d(n), bid, i, c)
-      end do
+      call accumulate_tavg_field(PART_DIAGS_2D(n), tavg_part_2d(n), bid, i, c)
     end do
 
     ! 3D

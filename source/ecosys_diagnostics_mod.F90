@@ -235,8 +235,8 @@ contains
       diags_3d(:, pH_3D_ALT_CO2_diag_ind) = carbonate%pH_ALT_CO2
       diags_3d(:, co3_sat_calc_diag_ind) = carbonate%CO3_sat_calcite
       diags_3d(:, co3_sat_arag_diag_ind) = carbonate%CO3_sat_aragonite
-      diags_2d(:, zsatcalc_diag_ind) = zsat_calcite
-      diags_2d(:, zsatarag_diag_ind) = zsat_aragonite
+      diags_2d(zsatcalc_diag_ind) = zsat_calcite(km)
+      diags_2d(zsatarag_diag_ind) = zsat_aragonite(km)
     end associate
 
   end subroutine store_diagnostics_carbonate
@@ -313,9 +313,6 @@ contains
          auto_diags_3d(:, auto_agg_diag_ind, n)        = autotroph_secondary_species(n,:)%auto_agg
          auto_diags_3d(:, photoC_diag_ind, n)          = autotroph_secondary_species(n,:)%photoC
 
-         auto_diags_2d(:, CaCO3_form_zint_diag_ind, n) = c0
-         auto_diags_2d(:, photoC_zint_diag_ind, n) = c0
-         auto_diags_2d(:, photoC_NO3_zint_diag_ind, n) = c0
          auto_diags_3d(:, photoC_NO3_diag_ind, n) = c0
          where (autotroph_secondary_species(n,:)%VNtot > c0)
            auto_diags_3d(:, photoC_NO3_diag_ind, n) =                         &
@@ -324,14 +321,20 @@ contains
          end where
 
          ! vertical integrals
+         auto_diags_2d(CaCO3_form_zint_diag_ind, n) = c0
+         auto_diags_2d(photoC_zint_diag_ind, n) = c0
+         auto_diags_2d(photoC_NO3_zint_diag_ind, n) = c0
          do k = 1,marbl_domain%kmt
-           auto_diags_2d(k, CaCO3_form_zint_diag_ind, n) = delta_z(k) *       &
-                                  autotroph_secondary_species(n,k)%CaCO3_PROD
-           auto_diags_2d(k, photoC_zint_diag_ind, n) = delta_z(k) *           &
-                                      autotroph_secondary_species(n,k)%photoC
-           auto_diags_2d(k, photoC_NO3_zint_diag_ind, n) = delta_z(k)*        &
-                                      auto_diags_3d(k, photoC_NO3_diag_ind, n)
-         end do
+           auto_diags_2d(CaCO3_form_zint_diag_ind, n) =                       &
+                     auto_diags_2d(CaCO3_form_zint_diag_ind, n) +             &
+                     delta_z(k) * autotroph_secondary_species(n,k)%CaCO3_PROD
+           auto_diags_2d(photoC_zint_diag_ind, n) =                           &
+                         auto_diags_2d(photoC_zint_diag_ind, n) +             &
+                         delta_z(k) * autotroph_secondary_species(n,k)%photoC
+           auto_diags_2d(photoC_NO3_zint_diag_ind, n) =                       &
+                        auto_diags_2d(photoC_NO3_zint_diag_ind, n) +          &
+                        delta_z(k) * auto_diags_3d(k, photoC_NO3_diag_ind, n)
+         end do ! do k
       end do ! do n
     end associate
 
@@ -365,8 +368,6 @@ contains
                            sum(autotroph_secondary_species%auto_graze, dim=1)
       diags_3d(:, photoC_TOT_diag_ind) =                                      &
                            sum(autotroph_secondary_species%photoC, dim=1)
-      diags_2d(:, photoC_TOT_zint_diag_ind) =                                 &
-                 delta_z * sum(autotroph_secondary_species%photoC, dim=1)
 
       diags_3d(:, photoC_NO3_TOT_diag_ind) = c0
       do n = 1, autotroph_cnt
@@ -378,8 +379,11 @@ contains
                                 autotroph_secondary_species(n,:)%photoC
         end where
       end do
-      diags_2d(:, photoC_NO3_TOT_zint_diag_ind) =                             &
-                              delta_z * diags_3d(:, photoC_NO3_TOT_diag_ind)
+
+      diags_2d(photoC_TOT_zint_diag_ind) = sum(                               &
+                 delta_z * sum(autotroph_secondary_species%photoC, dim=1))
+      diags_2d(photoC_NO3_TOT_zint_diag_ind) = sum(                           &
+                              delta_z * diags_3d(:, photoC_NO3_TOT_diag_ind))
     end associate
 
   end subroutine store_diagnostics_autotroph_sums
@@ -438,15 +442,15 @@ contains
       part_diags_3d(:, P_iron_PROD_diag_ind) = P_iron%prod
       part_diags_3d(:, P_iron_REMIN_diag_ind) = P_iron%remin
 
-      part_diags_2d(:, calcToSed_diag_ind) = P_CaCO3%sed_loss
-      part_diags_2d(:, bsiToSed_diag_ind) = P_SiO2%sed_loss
-      part_diags_2d(:, pocToSed_diag_ind) = POC%sed_loss
-      part_diags_2d(:, SedDenitrif_diag_ind) = sed_denitrif * delta_z
-      part_diags_2d(:, OtherRemin_diag_ind) = other_remin * delta_z
-      part_diags_2d(:, ponToSed_diag_ind) = (POC%sed_loss * Q)
-      part_diags_2d(:, popToSed_diag_ind) = (POC%sed_loss * Qp_zoo_pom)
-      part_diags_2d(:, dustToSed_diag_ind) = dust%sed_loss
-      part_diags_2d(:, pfeToSed_diag_ind) = P_iron%sed_loss
+      part_diags_2d(calcToSed_diag_ind) = sum(P_CaCO3%sed_loss)
+      part_diags_2d(bsiToSed_diag_ind) = sum(P_SiO2%sed_loss)
+      part_diags_2d(pocToSed_diag_ind) = sum(POC%sed_loss)
+      part_diags_2d(SedDenitrif_diag_ind) = sum(sed_denitrif * delta_z)
+      part_diags_2d(OtherRemin_diag_ind) = sum(other_remin * delta_z)
+      part_diags_2d(ponToSed_diag_ind) = sum(POC%sed_loss * Q)
+      part_diags_2d(popToSed_diag_ind) = sum(POC%sed_loss * Qp_zoo_pom)
+      part_diags_2d(dustToSed_diag_ind) = sum(dust%sed_loss)
+      part_diags_2d(pfeToSed_diag_ind) = sum(P_iron%sed_loss)
     end associate
 
   end subroutine store_diagnostics_particulates
@@ -474,13 +478,8 @@ contains
               diags_3d => marbl_diags%diags_3d                                &
               )
       min_ind = minloc(column_o2(1:marbl_domain%kmt), dim=1)
-      if ((min_ind.gt.0).and.(min_ind.le.marbl_domain%kmt)) then
-        diags_2d(:, O2_ZMIN_diag_ind) = column_o2(min_ind)
-        diags_2d(:, O2_ZMIN_DEPTH_diag_ind) = column_zt(min_ind)
-      else
-        diags_2d(:, O2_ZMIN_diag_ind) = column_o2(1)
-        diags_2d(:, O2_ZMIN_DEPTH_diag_ind) = column_zt(1)
-      end if
+      diags_2d(O2_ZMIN_diag_ind) = column_o2(min_ind)
+      diags_2d(O2_ZMIN_DEPTH_diag_ind) = column_zt(min_ind)
 
       diags_3d(:, O2_PRODUCTION_diag_ind) = o2_production
       diags_3d(:, O2_CONSUMPTION_diag_ind) = o2_consumption
@@ -595,8 +594,8 @@ contains
 
     associate(diags_2d => marbl_diags%diags_2d)
       ! vertical integrals
-      diags_2d(:, Jint_Ctot_diag_ind) = c0
-      diags_2d(:, Jint_100m_Ctot_diag_ind) = c0
+      diags_2d(Jint_Ctot_diag_ind) = c0
+      diags_2d(Jint_100m_Ctot_diag_ind) = c0
 
       ztop = c0
       do k = 1,marbl_domain%kmt
@@ -609,16 +608,17 @@ contains
             work1 = work1 + dtracer(n,k)
           endif
         end do
-        diags_2d(k, Jint_Ctot_diag_ind) = delta_z(k) * work1 +                &
-                                      (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
+        diags_2d(Jint_Ctot_diag_ind) = diags_2d(Jint_Ctot_diag_ind) +         &
+                 delta_z(k) * work1 + (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
 
         if (ztop < 100.0e2_r8) then
-          diags_2d(k, Jint_100m_Ctot_diag_ind) =                              &
+          diags_2d(Jint_100m_Ctot_diag_ind) =                                 &
+                                   diags_2d(Jint_100m_Ctot_diag_ind) +        &
                                    min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
         if (zw(k).le.100.0e2_r8) then
-          diags_2d(k, Jint_100m_Ctot_diag_ind) =                              &
-                                       diags_2d(k, Jint_100m_Ctot_diag_ind) + &
+          diags_2d(Jint_100m_Ctot_diag_ind) =                                 &
+                                      diags_2d(Jint_100m_Ctot_diag_ind) +     &
                                       (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
         end if
         ztop = zw(k)
@@ -659,8 +659,8 @@ contains
 
     associate(diags_2d => marbl_diags%diags_2d)
       ! vertical integrals
-      diags_2d(:, Jint_Ntot_diag_ind) = c0
-      diags_2d(:, Jint_100m_Ntot_diag_ind) = c0
+      diags_2d(Jint_Ntot_diag_ind) = c0
+      diags_2d(Jint_100m_Ntot_diag_ind) = c0
 
       ztop = c0
       do k = 1,marbl_domain%kmt
@@ -676,16 +676,17 @@ contains
             work1 = work1 - autotroph_secondary_species(n,k)%Nfix
           end if
         end do
-        diags_2d(k, Jint_Ntot_diag_ind) = delta_z(k) * work1 +                &
-                                          POC%sed_loss(k) * Q
+        diags_2d(Jint_Ntot_diag_ind) = diags_2d(Jint_Ntot_diag_ind) +         &
+                                     delta_z(k) * work1 + POC%sed_loss(k) * Q
 
         if (ztop < 100.0e2_r8) then
-            diags_2d(k, Jint_100m_Ntot_diag_ind) =                            &
+            diags_2d(Jint_100m_Ntot_diag_ind) =                               &
+                                   diags_2d(Jint_100m_Ntot_diag_ind) +        &
                                    min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
         if (zw(k).le.100.0e2_r8) then
-            diags_2d(k, Jint_100m_Ntot_diag_ind) =                            &
-                   diags_2d(k, Jint_100m_Ntot_diag_ind) + POC%sed_loss(k) * Q
+            diags_2d(Jint_100m_Ntot_diag_ind) =                               &
+                      diags_2d(Jint_100m_Ntot_diag_ind) + POC%sed_loss(k) * Q
         end if
         ztop = zw(k)
       end do
@@ -723,8 +724,8 @@ contains
 
     associate(diags_2d => marbl_diags%diags_2d)
       ! vertical integrals
-      diags_2d(:, Jint_Ptot_diag_ind) = c0
-      diags_2d(:, Jint_100m_Ptot_diag_ind) = c0
+      diags_2d(Jint_Ptot_diag_ind) = c0
+      diags_2d(Jint_100m_Ptot_diag_ind) = c0
 
       ztop = c0
       do k = 1,marbl_domain%kmt
@@ -735,17 +736,17 @@ contains
         do n = 1, autotroph_cnt
           work1 = work1 + autotrophs(n)%Qp * dtracer(autotrophs(n)%C_ind,k)
         end do
-        diags_2d(k, Jint_Ptot_diag_ind) = delta_z(k) * work1 +                &
-                                                 POC%sed_loss(k) * Qp_zoo_pom
+        diags_2d(Jint_Ptot_diag_ind) = diags_2d(Jint_Ptot_diag_ind) +         &
+                            delta_z(k) * work1 + POC%sed_loss(k) * Qp_zoo_pom
 
         if (ztop < 100.0e2_r8) then
-          diags_2d(k, Jint_100m_Ptot_diag_ind) =                              &
+          diags_2d(Jint_100m_Ptot_diag_ind) =                                 &
+                                   diags_2d(Jint_100m_Ptot_diag_ind) +        &
                                    min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
         if (zw(k).le.100.0e2_r8) then
-          diags_2d(k, Jint_100m_Ptot_diag_ind) =                              &
-                                       diags_2d(k, Jint_100m_Ptot_diag_ind) + &
-                                                 POC%sed_loss(k) * Qp_zoo_pom
+          diags_2d(Jint_100m_Ptot_diag_ind) =                                 &
+             diags_2d(Jint_100m_Ptot_diag_ind) + POC%sed_loss(k) * Qp_zoo_pom
         end if
         ztop = zw(k)
     end do
@@ -781,8 +782,8 @@ contains
 
     associate(diags_2d => marbl_diags%diags_2d)
       ! vertical integrals
-      diags_2d(:, Jint_Sitot_diag_ind) = c0
-      diags_2d(:, Jint_100m_Sitot_diag_ind) = c0
+      diags_2d(Jint_Sitot_diag_ind) = c0
+      diags_2d(Jint_100m_Sitot_diag_ind) = c0
 
       ztop = c0
       do k = 1,marbl_domain%kmt
@@ -792,17 +793,17 @@ contains
             work1 = work1 + dtracer(autotrophs(n)%Si_ind,k)
           end if
         end do
-        diags_2d(k, Jint_Sitot_diag_ind) = delta_z(k) * work1 +               &
-                                                           P_SiO2%sed_loss(k)
+        diags_2d(Jint_Sitot_diag_ind) = diags_2d(Jint_Sitot_diag_ind) +       &
+                                      delta_z(k) * work1 + P_SiO2%sed_loss(k)
 
         if (ztop < 100.0e2_r8) then
-          diags_2d(k, Jint_100m_Sitot_diag_ind) =                             &
+          diags_2d(Jint_100m_Sitot_diag_ind) =                                &
+                                   diags_2d(Jint_100m_Sitot_diag_ind) +       &
                                    min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
         if (zw(k).le.100.0e2_r8) then
-          diags_2d(k, Jint_100m_Sitot_diag_ind) =                             &
-                                      diags_2d(k, Jint_100m_Sitot_diag_ind) + &
-                                                           P_SiO2%sed_loss(k)
+          diags_2d(Jint_100m_Sitot_diag_ind) =                                &
+                      diags_2d(Jint_100m_Sitot_diag_ind) + P_SiO2%sed_loss(k)
         end if
         ztop = zw(k)
       end do
