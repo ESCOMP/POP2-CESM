@@ -1619,9 +1619,6 @@ contains
                   dtracer(:, k) )
 
 
-             ! store_diagnostics_restore
-             marbl_diagnostics%restore_diags(k, :) = restore_local(:, k)
-
              if (lexport_shared_vars) then
                 call export_interior_shared_variables(tracer_local(:, k), &
                      carbonate(k), dissolved_organic_matter(k), &
@@ -1721,6 +1718,11 @@ contains
 
           call store_diagnostics_silicon_fluxes(domain, zw, P_SiO2, dtracer,  &
                                                 marbl_diagnostics)
+
+          do k = 1, domain%km
+             ! store_diagnostics_restore (transpose restore_local!)
+             marbl_diagnostics%restore_diags(k, :) = restore_local(:, k)
+          end do
 
           end associate
 

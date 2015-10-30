@@ -456,11 +456,11 @@ end subroutine restore_tracers
 
 !*****************************************************************************
 
-subroutine accumulate_tavg(this, tracer_index, vert_level, block_id, restore_local)
+subroutine accumulate_tavg(this, restore_local, block_id, i_ind, j_ind)
   !
   ! accumulate tavg field info for the specified tracer if approprate
   !
-  use kinds_mod, only : r8, int_kind, log_kind
+  use kinds_mod, only : r8, int_kind
   use tavg, only : accumulate_tavg_field
 
   implicit none
@@ -468,22 +468,25 @@ subroutine accumulate_tavg(this, tracer_index, vert_level, block_id, restore_loc
   !  input variables
   !-----------------------------------------------------------------------
   class(ecosys_restore_type) :: this
-  integer(int_kind), intent(in) :: tracer_index
-  integer(int_kind), intent(in) :: vert_level
+  real (r8), dimension(:,:), intent(in) :: restore_local
   integer (int_kind), intent(in) :: block_id
-  real (r8), intent(in) :: restore_local(:, :)
+  integer(int_kind), intent(in) :: i_ind, j_ind
 
   !-----------------------------------------------------------------------
   !  local variables
   !-----------------------------------------------------------------------
 
+  integer(int_kind) :: n
+
   !-----------------------------------------------------------------------
 
-  if (this%tracers(tracer_index)%tavg_restore_index > 0) then
-     call accumulate_tavg_field(restore_local, &
-          this%tracers(tracer_index)%tavg_restore_index, &
-          block_id, vert_level)
-  end if
+  do n = 1,ecosys_tracer_cnt
+    if (this%tracers(n)%tavg_restore_index > 0) then
+      call accumulate_tavg_field(restore_local(:,n),                          &
+                                 this%tracers(n)%tavg_restore_index,          &
+                                 block_id, i_ind, j_ind)
+    end if
+  end do
 
 end subroutine accumulate_tavg
 
