@@ -3,6 +3,7 @@ module ecosys_diagnostics_mod
   use ecosys_constants, only : ecosys_tracer_cnt
 
   use marbl_kinds_mod, only : c0
+  use marbl_kinds_mod, only : c1
   use marbl_kinds_mod, only : r8
   use marbl_kinds_mod, only : int_kind
   use marbl_kinds_mod, only : log_kind
@@ -213,18 +214,26 @@ module ecosys_diagnostics_mod
 
 contains
 
-  subroutine store_diagnostics_carbonate(carbonate, zsat_calcite,             &
-                                         zsat_aragonite, marbl_diags)
+  subroutine store_diagnostics_carbonate(marbl_domain, carbonate, zt, zw,     &
+                                         marbl_diags)
 
     type(carbonate_type), dimension(:), intent(in) :: carbonate
-    real(r8), dimension(:), intent(in) :: zsat_calcite
-    real(r8), dimension(:), intent(in) :: zsat_aragonite
+    type(marbl_column_domain_type), intent(in) :: marbl_domain
+    real(r8), dimension(:), intent(in) :: zt, zw
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
+
+    real(r8), dimension(km) :: zsat_calcite, zsat_aragonite
 
     associate(                                                                &
               diags_2d => marbl_diags%diags_2d,                               &
               diags_3d => marbl_diags%diags_3d                                &
               )
+      ! Find depth where CO3 = CO3_sat_calcite or CO3_sat_argonite
+      call temp_calc_zsat(marbl_domain, carbonate, zt, zw,                    &
+                          zsat_calcite, zsat_aragonite)
+      diags_2d(zsatcalc_diag_ind) = zsat_calcite(km)
+      diags_2d(zsatarag_diag_ind) = zsat_aragonite(km)
+
       diags_3d(:, CO3_diag_ind) = carbonate%CO3
       diags_3d(:, HCO3_diag_ind) = carbonate%HCO3
       diags_3d(:, H2CO3_diag_ind) = carbonate%H2CO3
@@ -235,11 +244,67 @@ contains
       diags_3d(:, pH_3D_ALT_CO2_diag_ind) = carbonate%pH_ALT_CO2
       diags_3d(:, co3_sat_calc_diag_ind) = carbonate%CO3_sat_calcite
       diags_3d(:, co3_sat_arag_diag_ind) = carbonate%CO3_sat_aragonite
-      diags_2d(zsatcalc_diag_ind) = zsat_calcite(km)
-      diags_2d(zsatarag_diag_ind) = zsat_aragonite(km)
     end associate
 
   end subroutine store_diagnostics_carbonate
+
+  subroutine temp_calc_zsat(marbl_domain, carbonate, zt, zw, zsat_calcite,    &
+                            zsat_aragonite)
+
+    type(marbl_column_domain_type), intent(in) :: marbl_domain
+    type(carbonate_type), dimension(:), intent(in) :: carbonate
+    real(r8), dimension(:), intent(in) :: zt, zw
+    real(r8), dimension(km), intent(out) :: zsat_calcite, zsat_aragonite
+
+    real(r8) :: co3_calcite_anom(km) ! CO3 concentration above calcite saturation at k-1
+    real(r8) :: co3_aragonite_anom(km) ! CO3 concentration above aragonite saturation at k-1
+    integer :: k
+
+    associate(&
+              column_kmt => marbl_domain%kmt,                                 &
+              column_land_mask => marbl_domain%land_mask,                     &
+              CO3 => carbonate%CO3,                                           &
+              CO3_sat_calcite => carbonate%CO3_sat_calcite,                   &
+              CO3_sat_aragonite => carbonate%CO3_sat_aragonite                &
+             )
+    co3_calcite_anom   = CO3 - CO3_sat_calcite
+    co3_aragonite_anom = CO3 - CO3_sat_aragonite
+
+    do k=1,km
+
+       if (k == 1) then
+          ! set to -1, i.e. depth not found yet,
+          ! if mask == .true. and surface supersaturated to -1
+          zsat_calcite(k) = merge(-c1, c0, column_land_mask .and. CO3(k) > CO3_sat_calcite(k))
+       else
+          zsat_calcite(k) = zsat_calcite(k-1)
+          if (zsat_calcite(k) == -c1 .and. CO3(k) <= CO3_sat_calcite(k)) then
+             zsat_calcite(k) = zt(k-1) + (zt(k) - zt(k-1)) * &
+                  co3_calcite_anom(k-1) / (co3_calcite_anom(k-1) - co3_calcite_anom(k))
+          end if
+          if (zsat_calcite(k) == -c1 .and. column_kmt == k) then
+             zsat_calcite(k) = zw(k)
+          end if
+       end if
+
+       ! -------------------
+       if (k == 1) then
+          ! set to -1, i.e. depth not found yet,
+          ! if mask == .true. and surface supersaturated to -1
+          zsat_aragonite(k) = merge(-c1, c0, column_land_mask .and. CO3(k) > CO3_sat_aragonite(k))
+       else
+          zsat_aragonite(k) = zsat_aragonite(k-1)
+          if (zsat_aragonite(k) == -c1 .and. CO3(k) <= CO3_sat_aragonite(k)) then
+             zsat_aragonite(k) = zt(k-1) + (zt(k) - zt(k-1)) * &
+                  co3_aragonite_anom(k-1) / (co3_aragonite_anom(k-1) - co3_aragonite_anom(k))
+          end if
+          if (zsat_aragonite(k) == -c1 .and. column_kmt == k) then
+             zsat_aragonite(k) = zw(k)
+          end if
+       end if
+    enddo
+    end associate
+  end subroutine temp_calc_zsat
 
   !-----------------------------------------------------------------------
 

@@ -1635,9 +1635,6 @@ contains
     real(r8) :: zsat_calcite(km) ! Calcite Saturation Depth
     real(r8) :: zsat_aragonite(km) ! Aragonite Saturation Depth
 
-    real(r8) :: co3_calc_anom(km) ! CO3 concentration above calcite saturation at k-1
-    real(r8) :: co3_arag_anom(km) ! CO3 concentration above aragonite saturation at k-1
-
     real(r8) :: sed_denitrif(km) ! sedimentary denitrification (nmol N/cm^3/sec)
     real(r8) :: other_remin(km)  ! organic C remin not due oxic or denitrif (nmolC/cm^3/sec)
     ! NOTE(bja, 2015-07) vectorization: arrays that are (n, k, c, i)
@@ -1710,8 +1707,7 @@ contains
                tracer_local(:, :), &
                carbonate(:), &
                ph_prev_3d(:), ph_prev_alt_co2_3d(:), &
-               zsat_calcite(:), zsat_aragonite(:), &
-               co3_calc_anom(:), co3_arag_anom(:))
+               zsat_calcite(:), zsat_aragonite(:))
 
           do k = 1, domain%km
 
@@ -1854,8 +1850,8 @@ contains
 
           end do ! k
 
-          call store_diagnostics_carbonate(carbonate, zsat_calcite,           &
-                                           zsat_aragonite, marbl_diagnostics)
+          call store_diagnostics_carbonate(domain, carbonate, zt, zw,         &
+                                           marbl_diagnostics)
 
           call store_diagnostics_autotrophs(domain,                           &
                                             autotroph_secondary_species,      &
@@ -5270,8 +5266,7 @@ contains
        temperature, salinity, &
        tracer_local, carbonate, &
        ph_prev_3d, ph_prev_alt_co2_3d, &
-       zsat_calcite, zsat_aragonite, &
-       co3_calcite_anom, co3_aragonite_anom)
+       zsat_calcite, zsat_aragonite)
 
     use co2calc_column, only : comp_co3terms
     use co2calc_column, only : comp_co3_sat_vals
@@ -5296,9 +5291,6 @@ contains
 
     real(r8), intent(inout) :: zsat_calcite(km) ! Calcite Saturation Depth
     real(r8), intent(inout) :: zsat_aragonite(km) ! Aragonite Saturation Depth
-
-    real(r8), intent(inout) :: co3_calcite_anom(km) ! CO3 concentration above calcite saturation at k-1
-    real(r8), intent(inout) :: co3_aragonite_anom(km) ! CO3 concentration above aragonite saturation at k-1
 
     integer :: k
     logical(log_kind), dimension(dkm) :: mask
@@ -5378,42 +5370,6 @@ contains
     call comp_co3_sat_vals(dkm, mask, pressure_correct, temperature, salinity, &
                            press_bar, CO3_sat_calcite, CO3_sat_aragonite)
        
-    co3_calcite_anom   = CO3 - CO3_sat_calcite
-    co3_aragonite_anom = CO3 - CO3_sat_aragonite
-
-    do k=1,dkm
-
-       if (k == 1) then
-          ! set to -1, i.e. depth not found yet,
-          ! if mask == .true. and surface supersaturated to -1
-          zsat_calcite(k) = merge(-c1, c0, column_land_mask .and. CO3(k) > CO3_sat_calcite(k))
-       else
-          zsat_calcite(k) = zsat_calcite(k-1)
-          if (zsat_calcite(k) == -c1 .and. CO3(k) <= CO3_sat_calcite(k)) then
-             zsat_calcite(k) = zt(k-1) + (zt(k) - zt(k-1)) * &
-                  co3_calcite_anom(k-1) / (co3_calcite_anom(k-1) - co3_calcite_anom(k))
-          end if
-          if (zsat_calcite(k) == -c1 .and. column_kmt == k) then
-             zsat_calcite(k) = zw(k)
-          end if
-       end if
-
-       ! -------------------
-       if (k == 1) then
-          ! set to -1, i.e. depth not found yet,
-          ! if mask == .true. and surface supersaturated to -1
-          zsat_aragonite(k) = merge(-c1, c0, column_land_mask .and. CO3(k) > CO3_sat_aragonite(k))
-       else
-          zsat_aragonite(k) = zsat_aragonite(k-1)
-          if (zsat_aragonite(k) == -c1 .and. CO3(k) <= CO3_sat_aragonite(k)) then
-             zsat_aragonite(k) = zt(k-1) + (zt(k) - zt(k-1)) * &
-                  co3_aragonite_anom(k-1) / (co3_aragonite_anom(k-1) - co3_aragonite_anom(k))
-          end if
-          if (zsat_aragonite(k) == -c1 .and. column_kmt == k) then
-             zsat_aragonite(k) = zw(k)
-          end if
-       end if
-    enddo
     end associate
 
   end subroutine compute_carbonate_chemistry
