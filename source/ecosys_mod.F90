@@ -1107,163 +1107,17 @@ contains
        saved_state%land_mask = REGION_MASK > 0
     endif
 
-    !-----------------------------------------------------------------------
-    !  initialize tracers
-    !-----------------------------------------------------------------------
-
-    select case (init_ecosys_option)
-
-    case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
-
-       ecosys_restart_filename = char_blank
-
-       if (init_ecosys_init_file == 'same_as_TS') then
-          if (read_restart_filename == 'undefined') then
-             call document(subname, 'no restart file to read ecosys from')
-             call exit_POP(sigAbort, 'stopping in ' /&
-                  &/ subname)
-          endif
-          ecosys_restart_filename = read_restart_filename
-          init_ecosys_init_file_fmt = init_ts_file_fmt
-
-       else  ! do not read from TS restart file
-
-          ecosys_restart_filename = trim(init_ecosys_init_file)
-
-       endif
-
-       call rest_read_tracer_block(init_ecosys_init_file_fmt, &
-            ecosys_restart_filename,   &
-            tracer_d_module,           &
-            TRACER_MODULE)
-
-       if (field_exists_in_file(init_ecosys_init_file_fmt, &
-            ecosys_restart_filename, &
-            'PH_SURF')) then
-          call read_field(init_ecosys_init_file_fmt, &
-               ecosys_restart_filename,   &
-               'PH_SURF', PH_PREV)
-       else
-          call document(subname, 'PH_SURF does not exist in ' /&
-               &/ trim(ecosys_restart_filename) /&
-               &/ ', setting PH_PREV to 0')
-          PH_PREV = c0
-       endif
-
-       if (field_exists_in_file(init_ecosys_init_file_fmt, &
-            ecosys_restart_filename, &
-            'PH_SURF_ALT_CO2')) then
-          call read_field(init_ecosys_init_file_fmt, &
-               ecosys_restart_filename,   &
-               'PH_SURF_ALT_CO2', PH_PREV_ALT_CO2)
-       else
-          call document(subname, 'PH_SURF_ALT_CO2 does not exist in ' /&
-               &/ trim(ecosys_restart_filename) /&
-               &/ ', setting PH_PREV_ALT_CO2 to 0')
-          PH_PREV_ALT_CO2 = c0
-       endif
-
-       if (field_exists_in_file(init_ecosys_init_file_fmt, &
-            ecosys_restart_filename, &
-            'PH_3D')) then
-          call read_field(init_ecosys_init_file_fmt, &
-               ecosys_restart_filename,   &
-               'PH_3D', saved_state%PH_PREV_3D)
-       else
-          call document(subname, 'PH_3D does not exist in ' /&
-               &/ trim(ecosys_restart_filename) /&
-               &/ ', setting PH_PREV_3D to 0')
-          saved_state%PH_PREV_3D  = c0
-       endif
-
-       if (field_exists_in_file(init_ecosys_init_file_fmt, &
-            ecosys_restart_filename, &
-            'PH_3D_ALT_CO2')) then
-          call read_field(init_ecosys_init_file_fmt, &
-               ecosys_restart_filename,   &
-               'PH_3D_ALT_CO2', saved_state%PH_PREV_ALT_CO2_3D)
-       else
-          call document(subname, 'PH_3D_ALT_CO2 does not exist in ' /&
-               &/ trim(ecosys_restart_filename) /&
-               &/ ', setting PH_PREV_ALT_CO2_3D to 0')
-          saved_state%PH_PREV_ALT_CO2_3D = c0
-       endif
-
-       if (use_nml_surf_vals) then
-          surf_avg = c0
-          surf_avg(dic_ind) = surf_avg_dic_const
-          surf_avg(dic_alt_co2_ind) = surf_avg_dic_const
-          surf_avg(alk_ind) = surf_avg_alk_const
-       else
-          call extract_surf_avg(init_ecosys_init_file_fmt,     &
-               ecosys_restart_filename,       &
-               ecosys_tracer_cnt, vflux_flag, &
-               ind_name_table, surf_avg)
-       endif
-
-       call eval_time_flag(comp_surf_avg_flag) ! evaluates time_flag(comp_surf_avg_flag)%value via time_to_do
-
-       if (check_time_flag(comp_surf_avg_flag)) &
-            call comp_surf_avg(TRACER_MODULE(:, :, 1, :, oldtime, :), &
-            TRACER_MODULE(:, :, 1, :, curtime, :), &
-            ecosys_tracer_cnt, vflux_flag, surf_avg)
-
-    case ('file', 'ccsm_startup')
-       call document(subname, 'ecosystem vars being read from separate files')
-
-       call file_read_tracer_block(init_ecosys_init_file_fmt, &
-            init_ecosys_init_file,     &
-            tracer_d_module,           &
-            ind_name_table,            &
-            tracer_init_ext,           &
-            TRACER_MODULE)
-
-       if (n_topo_smooth > 0) then
-          do n = 1, ecosys_tracer_cnt
-             do k=1, km
-                call fill_points(k, TRACER_MODULE(:, :, k, n, oldtime, :), &
-                     errorCode)
-
-                if (errorCode /= POP_Success) then
-                   call POP_ErrorSet(errorCode, &
-                        'ecosys_init: error in fill points for tracers(oldtime)')
-                   return
-                endif
-
-                call fill_points(k, TRACER_MODULE(:, :, k, n, curtime, :), &
-                     errorCode)
-
-                if (errorCode /= POP_Success) then
-                   call POP_ErrorSet(errorCode, &
-                        'ecosys_init: error in fill points for tracers(newtime)')
-                   return
-                endif
-
-             enddo
-          enddo
-       endif
-
-       PH_PREV = c0
-       PH_PREV_ALT_CO2 = c0
-       saved_state%PH_PREV_3D = c0
-       saved_state%PH_PREV_ALT_CO2_3D = c0
-
-       if (use_nml_surf_vals) then
-          surf_avg = c0
-          surf_avg(dic_ind) = surf_avg_dic_const
-          surf_avg(dic_alt_co2_ind) = surf_avg_dic_const
-          surf_avg(alk_ind) = surf_avg_alk_const
-       else
-          call comp_surf_avg(TRACER_MODULE(:, :, 1, :, oldtime, :), &
-               TRACER_MODULE(:, :, 1, :, curtime, :), &
-               ecosys_tracer_cnt, vflux_flag, surf_avg)
-       endif
-
-    case default
-       call document(subname, 'init_ecosys_option', init_ecosys_option)
-       call exit_POP(sigAbort, 'unknown init_ecosys_option')
-
-    end select
+    call ecosys_init_tracers(&
+         init_ts_file_fmt, &
+         init_ecosys_option, init_ecosys_init_file, init_ecosys_init_file_fmt, &
+         read_restart_filename, vflux_flag, use_nml_surf_vals, ind_name_table, &
+         surf_avg_dic_const, surf_avg_alk_const, &         
+         tracer_init_ext, &
+         tracer_d_module, &
+         TRACER_MODULE, &
+         ecosys_restart_filename, surf_avg, PH_PREV, PH_PREV_ALT_CO2, saved_state, &
+         comp_surf_avg_flag, &
+         errorCode)       
 
     !-----------------------------------------------------------------------
     !  register Chl field for short-wave absorption
@@ -6704,6 +6558,232 @@ contains
     end do
     end associate
   end subroutine export_autotroph_shared_variables
+
+  !-----------------------------------------------------------------------
+
+  subroutine ecosys_init_tracers(&
+       init_ts_file_fmt, &
+       init_ecosys_option, init_ecosys_init_file, init_ecosys_init_file_fmt, &
+       read_restart_filename, vflux_flag, use_nml_surf_vals, ind_name_table, &
+       surf_avg_dic_const, surf_avg_alk_const, &         
+       tracer_init_ext, &
+       tracer_d_module, &
+       TRACER_MODULE, &
+       ecosys_restart_filename, surf_avg, PH_PREV, PH_PREV_ALT_CO2, saved_state, &
+       comp_surf_avg_flag, &
+       errorCode)       
+
+    use marbl_interface_types , only : marbl_saved_state_type
+    use passive_tracer_tools  , only : rest_read_tracer_block
+    use passive_tracer_tools  , only : file_read_tracer_block
+    use passive_tracer_tools  , only : field_exists_in_file
+    use passive_tracer_tools  , only : read_field
+    use passive_tracer_tools  , only : extract_surf_avg
+    use passive_tracer_tools  , only : tracer_read
+    use passive_tracer_tools  , only : ind_name_pair
+    use passive_tracer_tools  , only : comp_surf_avg
+    use prognostic            , only : tracer_field
+    use prognostic            , only : curtime
+    use prognostic            , only : oldtime
+    use time_management       , only : check_time_flag
+    use time_management       , only : eval_time_flag
+    use ecosys_constants      , only : ecosys_tracer_cnt
+    use io_tools              , only : document
+    use exit_mod              , only : exit_POP
+    use grid                  , only : fill_points
+    use grid                  , only : n_topo_smooth
+    
+    implicit none
+    
+    character (*)                , intent(in)    :: init_ts_file_fmt                   ! format (bin or nc) for input file
+    character(char_len)          , intent(in)    :: init_ecosys_option                 ! namelist option for initialization of bgc
+    character(char_len)          , intent(in)    :: init_ecosys_init_file              ! filename for option 'file'
+    character(char_len)          , intent(inout) :: init_ecosys_init_file_fmt          ! file format for option 'file'
+    character (*)                , intent(in)    :: read_restart_filename              ! file name for restart file
+    logical (log_kind)           , intent(in)    :: vflux_flag(:) 
+    logical (log_kind)           , intent(in)    :: use_nml_surf_vals                  ! do namelist surf values override values from restart    
+    type(ind_name_pair)          , intent(in)    :: ind_name_table(ecosys_tracer_cnt)
+    type(tracer_read)            , intent(in)    :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers
+    type(tracer_field)           , intent(in)    :: tracer_d_module(:)                 ! descriptors for each tracer
+    real (r8)                    , intent(out)   :: surf_avg_dic_const
+    real (r8)                    , intent(out)   :: surf_avg_alk_const
+
+    real (r8)                    , intent(inout) :: TRACER_MODULE(:,:,:,:,:,:)
+    type(marbl_saved_state_type) , intent(inout) :: saved_state
+
+    character(char_len)          , intent(out)   :: ecosys_restart_filename            ! modified file name for restart file
+    real (r8)                    , intent(out)   :: surf_avg(ecosys_tracer_cnt) ! average surface tracer values
+    real (r8)                    , intent(out)   :: PH_PREV(:, :, :)            ! computed ph from previous time step
+    real (r8)                    , intent(out)   :: PH_PREV_ALT_CO2(:, :, :)    ! computed ph from previous time step
+    integer (int_kind)           , intent(out)   :: comp_surf_avg_flag          ! time flag id for computing average surface tracer
+    integer (POP_i4)             , intent(out)   :: errorCode
+    
+    
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+
+    character(*), parameter :: subname = 'ecosys_driver_mod:ecosys_init_tracers'
+    integer :: n, k
+
+    !-----------------------------------------------------------------------
+    !  initialize tracers
+    !-----------------------------------------------------------------------
+    
+    select case (init_ecosys_option)
+       
+    case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
+
+       ecosys_restart_filename = char_blank
+       
+       if (init_ecosys_init_file == 'same_as_TS') then
+          if (read_restart_filename == 'undefined') then
+             call document(subname, 'no restart file to read ecosys from')
+             call exit_POP(sigAbort, 'stopping in ' // subname)
+          endif
+          ecosys_restart_filename = read_restart_filename
+          init_ecosys_init_file_fmt = init_ts_file_fmt
+          
+       else  ! do not read from TS restart file
+          
+          ecosys_restart_filename = trim(init_ecosys_init_file)
+          
+       endif
+       
+       call rest_read_tracer_block(init_ecosys_init_file_fmt, &
+            ecosys_restart_filename,   &
+            tracer_d_module,           &
+            TRACER_MODULE)
+       
+       if (field_exists_in_file(init_ecosys_init_file_fmt, ecosys_restart_filename, &
+            'PH_SURF')) then
+          call read_field(init_ecosys_init_file_fmt, &
+               ecosys_restart_filename,   &
+               'PH_SURF', PH_PREV)
+       else
+          call document(subname, 'PH_SURF does not exist in ' /&
+               &/ trim(ecosys_restart_filename) /&
+               &/ ', setting PH_PREV to 0')
+          PH_PREV = c0
+       endif
+
+       if (field_exists_in_file(init_ecosys_init_file_fmt, ecosys_restart_filename, &
+            'PH_SURF_ALT_CO2')) then
+          call read_field(init_ecosys_init_file_fmt, &
+               ecosys_restart_filename,   &
+               'PH_SURF_ALT_CO2', PH_PREV_ALT_CO2)
+       else
+          call document(subname, 'PH_SURF_ALT_CO2 does not exist in ' /&
+               &/ trim(ecosys_restart_filename) /&
+               &/ ', setting PH_PREV_ALT_CO2 to 0')
+          PH_PREV_ALT_CO2 = c0
+       endif
+
+       if (field_exists_in_file(init_ecosys_init_file_fmt, ecosys_restart_filename, &
+            'PH_3D')) then
+          call read_field(init_ecosys_init_file_fmt, &
+               ecosys_restart_filename,   &
+               'PH_3D', saved_state%PH_PREV_3D)
+       else
+          call document(subname, 'PH_3D does not exist in ' /&
+               &/ trim(ecosys_restart_filename) /&
+               &/ ', setting PH_PREV_3D to 0')
+          saved_state%PH_PREV_3D  = c0
+       endif
+
+       if (field_exists_in_file(init_ecosys_init_file_fmt, ecosys_restart_filename, &
+            'PH_3D_ALT_CO2')) then
+          call read_field(init_ecosys_init_file_fmt, &
+               ecosys_restart_filename,   &
+               'PH_3D_ALT_CO2', saved_state%PH_PREV_ALT_CO2_3D)
+       else
+          call document(subname, 'PH_3D_ALT_CO2 does not exist in ' /&
+               &/ trim(ecosys_restart_filename) /&
+               &/ ', setting PH_PREV_ALT_CO2_3D to 0')
+          saved_state%PH_PREV_ALT_CO2_3D = c0
+       endif
+
+       if (use_nml_surf_vals) then
+          surf_avg(:) = c0
+          surf_avg(dic_ind) = surf_avg_dic_const
+          surf_avg(dic_alt_co2_ind) = surf_avg_dic_const
+          surf_avg(alk_ind) = surf_avg_alk_const
+       else
+          call extract_surf_avg(init_ecosys_init_file_fmt,     &
+               ecosys_restart_filename,       &
+               ecosys_tracer_cnt, vflux_flag, &
+               ind_name_table, surf_avg)
+       endif
+
+       call eval_time_flag(comp_surf_avg_flag) ! evaluates time_flag(comp_surf_avg_flag)%value via time_to_do
+
+       if (check_time_flag(comp_surf_avg_flag)) then
+          call comp_surf_avg(&
+               TRACER_MODULE(:, :, 1, :, oldtime, :), &
+               TRACER_MODULE(:, :, 1, :, curtime, :), &
+               ecosys_tracer_cnt, vflux_flag, surf_avg)
+       end if
+
+    case ('file', 'ccsm_startup')
+       call document(subname, 'ecosystem vars being read from separate files')
+
+       call file_read_tracer_block(init_ecosys_init_file_fmt, &
+            init_ecosys_init_file,     &
+            tracer_d_module,           &
+            ind_name_table,            &
+            tracer_init_ext,           &
+            TRACER_MODULE)
+
+       if (n_topo_smooth > 0) then
+          do n = 1, ecosys_tracer_cnt
+             do k=1, km
+                call fill_points(k, TRACER_MODULE(:, :, k, n, oldtime, :), &
+                     errorCode)
+
+                if (errorCode /= POP_Success) then
+                   call POP_ErrorSet(errorCode, &
+                        'ecosys_init: error in fill points for tracers(oldtime)')
+                   return
+                endif
+
+                call fill_points(k, TRACER_MODULE(:, :, k, n, curtime, :), &
+                     errorCode)
+
+                if (errorCode /= POP_Success) then
+                   call POP_ErrorSet(errorCode, &
+                        'ecosys_init: error in fill points for tracers(newtime)')
+                   return
+                endif
+
+             enddo
+          enddo
+       endif
+
+       PH_PREV = c0
+       PH_PREV_ALT_CO2 = c0
+       saved_state%PH_PREV_3D = c0
+       saved_state%PH_PREV_ALT_CO2_3D = c0
+
+       if (use_nml_surf_vals) then
+          surf_avg = c0
+          surf_avg(dic_ind) = surf_avg_dic_const
+          surf_avg(dic_alt_co2_ind) = surf_avg_dic_const
+          surf_avg(alk_ind) = surf_avg_alk_const
+       else
+          call comp_surf_avg(&
+               TRACER_MODULE(:, :, 1, :, oldtime, :), &
+               TRACER_MODULE(:, :, 1, :, curtime, :), &
+               ecosys_tracer_cnt, vflux_flag, surf_avg)
+       endif
+
+    case default
+       call document(subname, 'init_ecosys_option', init_ecosys_option)
+       call exit_POP(sigAbort, 'unknown init_ecosys_option')
+
+    end select
+
+
+  end subroutine ecosys_init_tracers
 
 end module ecosys_mod
 
