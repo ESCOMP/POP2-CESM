@@ -246,6 +246,8 @@ contains
     use marbl_interface_constants , only : marbl_nl_buffer_size
     use grid                      , only : n_topo_smooth
     use grid                      , only : fill_points
+    use grid                      , only : REGION_MASK
+    use grid                      , only : KMT
     use broadcast                 , only : broadcast_scalar
     use time_management           , only : eval_time_flag
     use passive_tracer_tools      , only : set_tracer_indices
@@ -474,13 +476,23 @@ contains
 
     tadvect_ctype(ecosys_ind_begin:ecosys_ind_end) = ecosys_tadvect_ctype
 
+    ! initialize marbl namelists
     call  ecosys_init_nml(nl_buffer, comp_surf_avg_flag,          &
        use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
        init_ecosys_option, init_ecosys_init_file,                 &
        init_ecosys_init_file_fmt,tracer_init_ext, errorCode, marbl_status)
 
-    call ecosys_init_tracer_metadata(lmarginal_seas, marbl_saved_state, tracer_d_module)
+    ! initialize marbl land mask
+    if (lmarginal_seas) then
+       marbl_saved_state%land_mask = REGION_MASK /= 0
+    else
+       marbl_saved_state%land_mask = REGION_MASK > 0
+    endif
 
+    ! initialize metadata for tracers
+    call ecosys_init_tracer_metadata(tracer_d_module)
+
+    ! initialize remaining variables
     call ecosys_init_postnml(init_ts_file_fmt,                        &
        read_restart_filename, tracer_d_module, TRACER_MODULE,         &
        lmarginal_seas, ecosys_restore, marbl_saved_state, vflux_flag, &

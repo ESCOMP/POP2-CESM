@@ -143,7 +143,6 @@ module ecosys_mod
   use prognostic, only : curtime
   use prognostic, only : oldtime
 
-  use grid, only : KMT
   use grid, only : DZT
   use grid, only : zt
   use grid, only : partial_bottom_cells
@@ -362,38 +361,40 @@ module ecosys_mod
   !  public/private member procedure declarations
   !-----------------------------------------------------------------------
 
-  public ::                    &
-       ecosys_init_nml       , &
-       ecosys_init_tracer_metadata, &
-       ecosys_init_postnml   , &
-       ecosys_tracer_ref_val , &
-       ecosys_set_sflux      , &
-       ecosys_tavg_forcing   , &
-       ecosys_set_interior
+  ! initialization routines
+  public  :: ecosys_init_nml
+  public  :: ecosys_init_tracer_metadata
+  public  :: ecosys_init_postnml
+  private :: ecosys_init_non_autotroph_tracer_metadata
+  private :: ecosys_init_forcing_metadata
+  private :: ecosys_init_interior_restore
+  private :: ecosys_init_tavg
+  private :: ecosys_init_sflux
 
-  private ::                                           &
-       ecosys_init_non_autotroph_tracer_metadata,      &
-       ecosys_init_forcing_monthly_every_ts,           &
-       ecosys_init_tavg,                               &
-       init_particulate_terms,                         &
-       update_particulate_terms_from_prior_level,      &
-       update_sinking_particle_from_prior_level,       &
-       compute_particulate_terms,                      &
-       ecosys_init_sflux,                              &
-       ecosys_init_interior_restore,                   &
-       check_ecosys_tracer_count_consistency,          &
-       initialize_zooplankton_tracer_metadata,         &
-       initialize_autotroph_tracer_metadata,           &
-       setup_local_tracers,                            &
-       setup_local_zooplankton,                        &
-       setup_local_autotrophs,                         &
-       autotroph_consistency_check,                    &
-       compute_autotroph_elemental_ratios,             &
-       compute_photosynthetically_available_radiation, &
-       compute_carbonate_chemistry,                    &
-       compute_function_scaling,                       &
-       compute_Pprime,                                 &
-       compute_Zprime
+  ! set_interior routines
+  public  :: ecosys_set_interior
+  private :: init_particulate_terms
+  private :: update_particulate_terms_from_prior_level      
+  private :: update_sinking_particle_from_prior_level       
+  private :: compute_particulate_terms                      
+  private :: check_ecosys_tracer_count_consistency          
+  private :: initialize_zooplankton_tracer_metadata         
+  private :: initialize_autotroph_tracer_metadata           
+  private :: setup_local_tracers                            
+  private :: setup_local_zooplankton                        
+  private :: setup_local_autotrophs                         
+  private :: autotroph_consistency_check                    
+  private :: compute_autotroph_elemental_ratios             
+  private :: compute_photosynthetically_available_radiation 
+  private :: compute_carbonate_chemistry                    
+  private :: compute_function_scaling                       
+  private :: compute_Pprime                                 
+  private :: compute_Zprime
+       
+  ! set_flux routines
+  public  :: ecosys_set_sflux
+  public  :: ecosys_tavg_forcing
+  public  :: ecosys_tracer_ref_val
 
   type, private :: zooplankton_local_type
      real (r8) :: C  ! local copy of model zooplankton C
@@ -1015,7 +1016,7 @@ contains
 
   !*****************************************************************************
   
-  subroutine ecosys_init_tracer_metadata(lmarginal_seas, saved_state, tracer_d_module)
+  subroutine ecosys_init_tracer_metadata(tracer_d_module)
 
     ! !DESCRIPTION:
     !  Set tracer and forcing metadata
@@ -1028,8 +1029,6 @@ contains
     implicit none
 
     ! !INPUT/OUTPUT PARAMETERS:
-    logical (kind=log_kind)         , intent(in) :: lmarginal_seas        ! Is ecosystem active in marginal seas ?
-    type(marbl_saved_state_type) , intent(inout) :: saved_state
     type (tracer_field)          , intent(inout) :: tracer_d_module(:)   ! descriptors for each tracer
 
     !-----------------------------------------------------------------------
@@ -1040,21 +1039,14 @@ contains
 
     integer (int_kind) :: non_living_biomass_ecosys_tracer_cnt ! number of non-autotroph ecosystem tracers
     integer (int_kind) :: n        ! index for looping over tracers
-
-    !-----------------------------------------------------------------------
-    !  allocate and initialize LAND_MASK
-    !-----------------------------------------------------------------------
-    if (lmarginal_seas) then
-       saved_state%land_mask = REGION_MASK /= 0
-    else
-       saved_state%land_mask = REGION_MASK > 0
-    endif
+    integer (int_kind) :: zoo_ind  ! zooplankton functional group index
+    integer (int_kind) :: auto_ind ! autotroph functional group index
 
     !-----------------------------------------------------------------------
     ! initialize tracer metatdata
     !-----------------------------------------------------------------------
 
-    call ecosys_init_forcing_monthly_every_ts()
+    call ecosys_init_forcing_metadata()
 
     call ecosys_init_non_autotroph_tracer_metadata(tracer_d_module, non_living_biomass_ecosys_tracer_cnt)
 
@@ -1063,6 +1055,36 @@ contains
     call initialize_zooplankton_tracer_metadata(tracer_d_module, non_living_biomass_ecosys_tracer_cnt, n)
 
     call initialize_autotroph_tracer_metadata(tracer_d_module, n)
+
+    !-----------------------------------------------------------------------
+    !  set lfull_depth_tavg flag for short-lived ecosystem tracers
+    !-----------------------------------------------------------------------
+
+    do zoo_ind = 1, zooplankton_cnt
+       n = zooplankton(zoo_ind)%C_ind
+       tracer_d_module(n)%lfull_depth_tavg = lecovars_full_depth_tavg
+    end do
+
+    do auto_ind = 1, autotroph_cnt
+       n = autotrophs(auto_ind)%Chl_ind
+       tracer_d_module(n)%lfull_depth_tavg = lecovars_full_depth_tavg
+
+       n = autotrophs(auto_ind)%C_ind
+       tracer_d_module(n)%lfull_depth_tavg = lecovars_full_depth_tavg
+
+       n = autotrophs(auto_ind)%Fe_ind
+       tracer_d_module(n)%lfull_depth_tavg = lecovars_full_depth_tavg
+
+       n = autotrophs(auto_ind)%Si_ind
+       if (n > 0) then
+          tracer_d_module(n)%lfull_depth_tavg = lecovars_full_depth_tavg
+       endif
+
+       n = autotrophs(auto_ind)%CaCO3_ind
+       if (n > 0) then
+          tracer_d_module(n)%lfull_depth_tavg = lecovars_full_depth_tavg
+       endif
+    end do
 
   end subroutine ecosys_init_tracer_metadata
 
@@ -1087,6 +1109,7 @@ contains
     use marbl_interface_constants , only : marbl_status_could_not_read_namelist
     use marbl_interface_types     , only : marbl_status_type
     use marbl_interface_types     , only : marbl_saved_state_type
+    use grid, only : KMT
 
     implicit none
 
@@ -1208,35 +1231,6 @@ contains
 
     call ecosys_restore%init(nml_filename, nml_in, ind_name_table)
     call ecosys_init_interior_restore(saved_state, ecosys_restore)
-
-    !-----------------------------------------------------------------------
-    !  set lfull_depth_tavg flag for short-lived ecosystem tracers
-    !-----------------------------------------------------------------------
-    do zoo_ind = 1, zooplankton_cnt
-       n = zooplankton(zoo_ind)%C_ind
-       tracer_d_module(n)%lfull_depth_tavg = lecovars_full_depth_tavg
-    end do
-
-    do auto_ind = 1, autotroph_cnt
-       n = autotrophs(auto_ind)%Chl_ind
-       tracer_d_module(n)%lfull_depth_tavg = lecovars_full_depth_tavg
-
-       n = autotrophs(auto_ind)%C_ind
-       tracer_d_module(n)%lfull_depth_tavg = lecovars_full_depth_tavg
-
-       n = autotrophs(auto_ind)%Fe_ind
-       tracer_d_module(n)%lfull_depth_tavg = lecovars_full_depth_tavg
-
-       n = autotrophs(auto_ind)%Si_ind
-       if (n > 0) then
-          tracer_d_module(n)%lfull_depth_tavg = lecovars_full_depth_tavg
-       endif
-
-       n = autotrophs(auto_ind)%CaCO3_ind
-       if (n > 0) then
-          tracer_d_module(n)%lfull_depth_tavg = lecovars_full_depth_tavg
-       endif
-    end do
 
   end subroutine ecosys_init_postnml
 
@@ -3255,6 +3249,7 @@ contains
     !  same as module
 
     use marbl_interface_types, only : marbl_saved_state_type
+    use grid, only : KMT
 
     type(marbl_saved_state_type), intent(in) :: saved_state
     type(ecosys_restore_type), intent(inout) :: ecosys_restore
@@ -4357,29 +4352,17 @@ contains
   end subroutine ecosys_tavg_forcing
 
   !*****************************************************************************
-  !BOP
-  ! !IROUTINE: ecosys_tracer_ref_val
-  ! !INTERFACE:
-
   function ecosys_tracer_ref_val(ind, vflux_flag)
 
     ! !DESCRIPTION:
     !  return reference value for tracers using virtual fluxes
     !
-    ! !REVISION HISTORY:
-    !  same as module
-
     ! !INPUT PARAMETERS:
-
     integer (int_kind) , intent(in) :: ind
     logical (log_kind) , intent(in) :: vflux_flag(:) 
 
     ! !OUTPUT PARAMETERS:
-
     real (r8) :: ecosys_tracer_ref_val
-
-    !EOP
-    !BOC
     !-----------------------------------------------------------------------
 
     if (vflux_flag(ind)) then
@@ -4388,14 +4371,11 @@ contains
        ecosys_tracer_ref_val = c0
     endif
 
-    !-----------------------------------------------------------------------
-    !EOC
-
   end function ecosys_tracer_ref_val
 
   !***********************************************************************
 
-  subroutine ecosys_init_forcing_monthly_every_ts()
+  subroutine ecosys_init_forcing_metadata()
     !
     ! initialize
     !
@@ -4418,7 +4398,7 @@ contains
     call init_forcing_monthly_every_ts(alk_riv_flux)
     call init_forcing_monthly_every_ts(doc_riv_flux)
 
-  end subroutine ecosys_init_forcing_monthly_every_ts
+  end subroutine ecosys_init_forcing_metadata
 
   !***********************************************************************
 
@@ -6775,8 +6755,7 @@ contains
        if (n_topo_smooth > 0) then
           do n = 1, ecosys_tracer_cnt
              do k=1, km
-                call fill_points(k, TRACER_MODULE(:, :, k, n, oldtime, :), &
-                     errorCode)
+                call fill_points(k, TRACER_MODULE(:, :, k, n, oldtime, :), errorCode)
 
                 if (errorCode /= POP_Success) then
                    call POP_ErrorSet(errorCode, &
@@ -6784,8 +6763,7 @@ contains
                    return
                 endif
 
-                call fill_points(k, TRACER_MODULE(:, :, k, n, curtime, :), &
-                     errorCode)
+                call fill_points(k, TRACER_MODULE(:, :, k, n, curtime, :), errorCode)
 
                 if (errorCode /= POP_Success) then
                    call POP_ErrorSet(errorCode, &
