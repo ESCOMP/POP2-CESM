@@ -419,12 +419,6 @@ module ecosys_mod
   logical (log_kind) ::  locmip_k1_k2_bug_fix
 
   !-----------------------------------------------------------------------
-  !  derived type & parameter for tracer index lookup
-  !-----------------------------------------------------------------------
-
-  type(ind_name_pair), dimension(ecosys_tracer_cnt) :: ind_name_table
-
-  !-----------------------------------------------------------------------
   !  options for forcing of gas fluxes
   !-----------------------------------------------------------------------
 
@@ -1097,7 +1091,6 @@ contains
        surf_avg_alk_const, init_ecosys_option,                    &
        init_ecosys_init_file, init_ecosys_init_file_fmt,          &
        tracer_init_ext,                                           &
-      !ind_name_table,                                            &
        PH_PREV, PH_PREV_ALT_CO2, errorCode, marbl_status)
 
     ! !DESCRIPTION:
@@ -1158,6 +1151,7 @@ contains
     real(r8) :: WORK(nx_block, ny_block) ! FIXME (mvertens, 2015-10) remove this
 
     character (char_len) :: ecosys_restart_filename  ! modified file name for restart file
+    type(ind_name_pair), dimension(ecosys_tracer_cnt) :: ind_name_table
 
     !-----------------------------------------------------------------------
     !  post-namelist initializations
@@ -6616,19 +6610,19 @@ contains
     character (*)                , intent(in)    :: init_ts_file_fmt                   ! format (bin or nc) for input file
     character(char_len)          , intent(in)    :: init_ecosys_option                 ! namelist option for initialization of bgc
     character(char_len)          , intent(in)    :: init_ecosys_init_file              ! filename for option 'file'
-    character(char_len)          , intent(inout) :: init_ecosys_init_file_fmt          ! file format for option 'file'
     character (*)                , intent(in)    :: read_restart_filename              ! file name for restart file
     logical (log_kind)           , intent(in)    :: vflux_flag(:) 
     logical (log_kind)           , intent(in)    :: use_nml_surf_vals                  ! do namelist surf values override values from restart    
     type(ind_name_pair)          , intent(in)    :: ind_name_table(ecosys_tracer_cnt)
     type(tracer_read)            , intent(in)    :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers
     type(tracer_field)           , intent(in)    :: tracer_d_module(:)                 ! descriptors for each tracer
-    real (r8)                    , intent(out)   :: surf_avg_dic_const
-    real (r8)                    , intent(out)   :: surf_avg_alk_const
 
+    character(char_len)          , intent(inout) :: init_ecosys_init_file_fmt          ! file format for option 'file'
     real (r8)                    , intent(inout) :: TRACER_MODULE(:,:,:,:,:,:)
     type(marbl_saved_state_type) , intent(inout) :: saved_state
 
+    real (r8)                    , intent(out)   :: surf_avg_dic_const
+    real (r8)                    , intent(out)   :: surf_avg_alk_const
     character(char_len)          , intent(out)   :: ecosys_restart_filename            ! modified file name for restart file
     real (r8)                    , intent(out)   :: surf_avg(ecosys_tracer_cnt) ! average surface tracer values
     real (r8)                    , intent(out)   :: PH_PREV(:, :, :)            ! computed ph from previous time step
