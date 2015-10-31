@@ -75,6 +75,7 @@ module ecosys_driver
 
   use ecosys_mod, only:            &
        ecosys_init_nml,            &
+       ecosys_init_tracer_metadata, &
        ecosys_init_postnml,        &
        ecosys_tracer_ref_val,      &
        ecosys_set_sflux,           &
@@ -478,6 +479,15 @@ contains
        init_ecosys_option, init_ecosys_init_file,                 &
        init_ecosys_init_file_fmt,tracer_init_ext, errorCode, marbl_status)
 
+    call ecosys_init_tracer_metadata(init_ts_file_fmt,                        &
+       read_restart_filename, tracer_d_module, TRACER_MODULE,         &
+       lmarginal_seas, ecosys_restore, marbl_saved_state, vflux_flag, &
+       comp_surf_avg_flag, use_nml_surf_vals, surf_avg_dic_const,     &
+       surf_avg_alk_const, init_ecosys_option,                        &
+       init_ecosys_init_file, init_ecosys_init_file_fmt,              &
+       tracer_init_ext,                                               &
+       PH_PREV, PH_PREV_ALT_CO2, errorCode, marbl_status)
+
     call ecosys_init_postnml(init_ts_file_fmt,                        &
        read_restart_filename, tracer_d_module, TRACER_MODULE,         &
        lmarginal_seas, ecosys_restore, marbl_saved_state, vflux_flag, &
@@ -485,7 +495,6 @@ contains
        surf_avg_alk_const, init_ecosys_option,                        &
        init_ecosys_init_file, init_ecosys_init_file_fmt,              &
        tracer_init_ext,                                               &
-      !ind_name_table,                                                &
        PH_PREV, PH_PREV_ALT_CO2, errorCode, marbl_status)
     
     if (marbl_status%status /= marbl_status_ok) then

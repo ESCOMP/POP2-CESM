@@ -364,6 +364,7 @@ module ecosys_mod
 
   public ::                    &
        ecosys_init_nml       , &
+       ecosys_init_tracer_metadata, &
        ecosys_init_postnml   , &
        ecosys_tracer_ref_val , &
        ecosys_set_sflux      , &
@@ -1013,8 +1014,8 @@ contains
   end subroutine ecosys_init_nml
 
   !*****************************************************************************
-
-  subroutine ecosys_init_postnml(init_ts_file_fmt,                &
+  
+  subroutine ecosys_init_tracer_metadata(init_ts_file_fmt,                &
        read_restart_filename, tracer_d_module, TRACER_MODULE,     &
        lmarginal_seas, ecosys_restore, saved_state, vflux_flag,   &
        comp_surf_avg_flag, use_nml_surf_vals, surf_avg_dic_const, &
@@ -1102,6 +1103,82 @@ contains
     call initialize_zooplankton_tracer_metadata(tracer_d_module, non_living_biomass_ecosys_tracer_cnt, n)
 
     call initialize_autotroph_tracer_metadata(tracer_d_module, n)
+
+  end subroutine ecosys_init_tracer_metadata
+
+  !*****************************************************************************
+
+  subroutine ecosys_init_postnml(init_ts_file_fmt,                &
+       read_restart_filename, tracer_d_module, TRACER_MODULE,     &
+       lmarginal_seas, ecosys_restore, saved_state, vflux_flag,   &
+       comp_surf_avg_flag, use_nml_surf_vals, surf_avg_dic_const, &
+       surf_avg_alk_const, init_ecosys_option,                    &
+       init_ecosys_init_file, init_ecosys_init_file_fmt,          &
+       tracer_init_ext,                                           &
+      !ind_name_table,                                            &
+       PH_PREV, PH_PREV_ALT_CO2, errorCode, marbl_status)
+
+    ! !DESCRIPTION:
+    !  Initialize ecosys tracer module. This involves setting metadata, reading
+    !  the module namelist, setting initial conditions, setting up forcing,
+    !  and defining additional tavg variables.
+
+    use marbl_interface_constants , only : marbl_status_ok
+    use marbl_interface_constants , only : marbl_status_could_not_read_namelist
+    use marbl_interface_types     , only : marbl_status_type
+    use marbl_interface_types     , only : marbl_saved_state_type
+
+    implicit none
+
+    ! !INPUT PARAMETERS:
+
+    character (*)                   , intent(in) :: init_ts_file_fmt      ! format (bin or nc) for input file
+    character (*)                   , intent(in) :: read_restart_filename ! file name for restart file
+    logical (kind=log_kind)         , intent(in) :: lmarginal_seas        ! Is ecosystem active in marginal seas ?
+
+    ! !INPUT/OUTPUT PARAMETERS:
+
+    type (tracer_field)          , intent(inout) :: tracer_d_module(:)   ! descriptors for each tracer
+    real (r8)                    , intent(inout) :: TRACER_MODULE(:, :, :, :, :, :)
+    type(ecosys_restore_type)    , intent(inout) :: ecosys_restore
+    type(marbl_saved_state_type) , intent(inout) :: saved_state
+
+    ! !OUTPUT PARAMETERS:
+
+    logical (log_kind)      , intent(in)  :: vflux_flag(:) 
+    integer (int_kind)      , intent(out) :: comp_surf_avg_flag                 ! time flag id for computing average surface tracer values
+    logical (log_kind)      , intent(out) :: use_nml_surf_vals                  ! do namelist surf values override values from restart file
+    real (r8)               , intent(out) :: surf_avg_dic_const
+    real (r8)               , intent(out) :: surf_avg_alk_const
+    character(char_len)     , intent(out) :: init_ecosys_option                 ! namelist option for initialization of bgc
+    character(char_len)     , intent(out) :: init_ecosys_init_file              ! filename for option 'file'
+    character(char_len)     , intent(out) :: init_ecosys_init_file_fmt          ! file format for option 'file'
+    type(tracer_read)       , intent(out) :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers
+    real (r8)               , intent(out) :: PH_PREV(:, :, :)                   ! computed ph from previous time step
+    real (r8)               , intent(out) :: PH_PREV_ALT_CO2(:, :, :)           ! computed ph from previous time step
+    integer (POP_i4)        , intent(out) :: errorCode
+    type(marbl_status_type) , intent(out) :: marbl_status
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+
+    character(*), parameter :: subname = 'ecosys_mod:ecosys_init_postnml'
+
+    integer (int_kind) :: non_living_biomass_ecosys_tracer_cnt ! number of non-autotroph ecosystem tracers
+    integer (int_kind) :: auto_ind ! autotroph functional group index
+    integer (int_kind) :: n        ! index for looping over tracers
+    integer (int_kind) :: k        ! index for looping over depth levels
+    integer (int_kind) :: iblock   ! index for looping over blocks
+    integer (int_kind) :: zoo_ind  ! zooplankton functional group index
+
+    real(r8) :: WORK(nx_block, ny_block) ! FIXME (mvertens, 2015-10) remove this
+
+    character (char_len) :: ecosys_restart_filename  ! modified file name for restart file
+
+    !-----------------------------------------------------------------------
+    !  post-namelist initializations
+    !-----------------------------------------------------------------------
 
     !  initialize ind_name_table
     do n = 1, ecosys_tracer_cnt
