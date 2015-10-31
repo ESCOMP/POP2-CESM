@@ -1157,15 +1157,10 @@ contains
     !  post-namelist initializations
     !-----------------------------------------------------------------------
 
-    !  initialize ind_name_table
-    do n = 1, ecosys_tracer_cnt
-       ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
-    end do
-
     call ecosys_init_tracers(&
          init_ts_file_fmt, &
          init_ecosys_option, init_ecosys_init_file, init_ecosys_init_file_fmt, &
-         read_restart_filename, vflux_flag, use_nml_surf_vals, ind_name_table, &
+         read_restart_filename, vflux_flag, use_nml_surf_vals, &
          surf_avg_dic_const, surf_avg_alk_const, &         
          tracer_init_ext, &
          tracer_d_module, &
@@ -1223,7 +1218,12 @@ contains
     call ecosys_init_tavg()
     call ecosys_init_sflux(saved_state)
 
+    do n = 1, ecosys_tracer_cnt
+       ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
+    end do
+
     call ecosys_restore%init(nml_filename, nml_in, ind_name_table)
+
     call ecosys_init_interior_restore(saved_state, ecosys_restore)
 
   end subroutine ecosys_init_postnml
@@ -6576,7 +6576,7 @@ contains
   subroutine ecosys_init_tracers(&
        init_ts_file_fmt, &
        init_ecosys_option, init_ecosys_init_file, init_ecosys_init_file_fmt, &
-       read_restart_filename, vflux_flag, use_nml_surf_vals, ind_name_table, &
+       read_restart_filename, vflux_flag, use_nml_surf_vals, &
        surf_avg_dic_const, surf_avg_alk_const, &         
        tracer_init_ext, &
        tracer_d_module, &
@@ -6613,7 +6613,6 @@ contains
     character (*)                , intent(in)    :: read_restart_filename              ! file name for restart file
     logical (log_kind)           , intent(in)    :: vflux_flag(:) 
     logical (log_kind)           , intent(in)    :: use_nml_surf_vals                  ! do namelist surf values override values from restart    
-    type(ind_name_pair)          , intent(in)    :: ind_name_table(ecosys_tracer_cnt)
     type(tracer_read)            , intent(in)    :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers
     type(tracer_field)           , intent(in)    :: tracer_d_module(:)                 ! descriptors for each tracer
 
@@ -6637,11 +6636,17 @@ contains
 
     character(*), parameter :: subname = 'ecosys_driver_mod:ecosys_init_tracers'
     integer :: n, k
+    type(ind_name_pair) :: ind_name_table(ecosys_tracer_cnt)
 
     !-----------------------------------------------------------------------
     !  initialize tracers
     !-----------------------------------------------------------------------
     
+    !  initialize ind_name_table
+    do n = 1, ecosys_tracer_cnt
+       ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
+    end do
+
     select case (init_ecosys_option)
        
     case ('restart', 'ccsm_continue', 'ccsm_branch', 'ccsm_hybrid')
