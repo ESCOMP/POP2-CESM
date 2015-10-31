@@ -463,16 +463,6 @@ contains
     !  ECOSYS block
     !-----------------------------------------------------------------------
 
-    !  initialize virtual flux flag array
-    vflux_flag(:) = .false.
-    vflux_flag(dic_ind) = .true.
-    vflux_flag(alk_ind) = .true.
-    vflux_flag(dic_alt_co2_ind) = .true.
-
-    !  allocate various  allocatable module variables
-    allocate( PH_PREV(nx_block, ny_block, max_blocks_clinic) )
-    allocate( PH_PREV_ALT_CO2(nx_block, ny_block, max_blocks_clinic) )
-
     tadvect_ctype(ecosys_ind_begin:ecosys_ind_end) = ecosys_tadvect_ctype
 
     ! initialize marbl namelists
@@ -480,6 +470,15 @@ contains
        use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
        init_ecosys_option, init_ecosys_init_file,                 &
        init_ecosys_init_file_fmt,tracer_init_ext, errorCode, marbl_status)
+
+    if (marbl_status%status /= marbl_status_ok) then
+       call exit_POP(sigAbort, &
+            'ERROR in ecosys_driver_init: ecosys_init returned status: "'//marbl_status%message//'"')
+    end if
+    if (errorCode /= POP_Success) then
+       call POP_ErrorSet(errorCode, 'init_ecosys_driver: error in ecosys_init')
+       return
+    endif
 
     ! initialize marbl land mask
     if (lmarginal_seas) then
@@ -492,36 +491,34 @@ contains
     call ecosys_init_tracer_metadata(tracer_d_module)
 
     ! initialize ecosys tracers
+
+    !  initialize virtual flux flag array - move to ecosys_driver_init_tracers
+    vflux_flag(:) = .false.
+    vflux_flag(dic_ind) = .true.
+    vflux_flag(alk_ind) = .true.
+    vflux_flag(dic_alt_co2_ind) = .true.
+
+    !  allocate various  allocatable module variables - move to ecosys_driver_init_tracers
+    allocate( PH_PREV(nx_block, ny_block, max_blocks_clinic) )
+    allocate( PH_PREV_ALT_CO2(nx_block, ny_block, max_blocks_clinic) )
+
     call ecosys_driver_init_tracers(&
-       init_ts_file_fmt, &
-       init_ecosys_option, init_ecosys_init_file, init_ecosys_init_file_fmt, &
+       init_ts_file_fmt, init_ecosys_option, init_ecosys_init_file, init_ecosys_init_file_fmt, &
        read_restart_filename, vflux_flag, use_nml_surf_vals, &
-       tracer_init_ext, &
-       tracer_d_module, &
-       TRACER_MODULE, &
+       tracer_init_ext, tracer_d_module, TRACER_MODULE, &
        ecosys_restart_filename, PH_PREV, PH_PREV_ALT_CO2, marbl_saved_state, &
        comp_surf_avg_flag, surf_avg, surf_avg_dic_const, surf_avg_alk_const, &
        errorCode)       
 
-    ! initialize remaining variables
-    call ecosys_init_postnml(init_ts_file_fmt,                        &
-       read_restart_filename, tracer_d_module, TRACER_MODULE,         &
-       lmarginal_seas, ecosys_restore, marbl_saved_state, vflux_flag, &
-       use_nml_surf_vals, comp_surf_avg_flag, surf_avg,               &
-       surf_avg_dic_const, surf_avg_alk_const, init_ecosys_option,    &
-       init_ecosys_init_file, init_ecosys_init_file_fmt,              &
-       tracer_init_ext,                                               &
-       PH_PREV, PH_PREV_ALT_CO2, errorCode, marbl_status)
-    
-    if (marbl_status%status /= marbl_status_ok) then
-       call exit_POP(sigAbort, &
-            'ERROR in ecosys_driver_init: ecosys_init returned status: "'//marbl_status%message//'"')
-    end if
     if (errorCode /= POP_Success) then
        call POP_ErrorSet(errorCode, 'init_ecosys_driver: error in ecosys_init')
        return
     endif
 
+    ! initialize remaining variables
+    call ecosys_init_postnml(tracer_d_module, TRACER_MODULE, ecosys_restore, marbl_saved_state)
+
+    ! initialize tavg restoring
     call ecosys_tavg_init(ecosys_restore)
 
     !-----------------------------------------------------------------------
@@ -552,12 +549,9 @@ contains
   !-----------------------------------------------------------------------
 
   subroutine ecosys_driver_init_tracers(&
-       init_ts_file_fmt, &
-       init_ecosys_option, init_ecosys_init_file, init_ecosys_init_file_fmt, &
+       init_ts_file_fmt, init_ecosys_option, init_ecosys_init_file, init_ecosys_init_file_fmt, &
        read_restart_filename, vflux_flag, use_nml_surf_vals, &
-       tracer_init_ext, &
-       tracer_d_module, &
-       TRACER_MODULE, &
+       tracer_init_ext, tracer_d_module, TRACER_MODULE, &
        ecosys_restart_filename, PH_PREV, PH_PREV_ALT_CO2, saved_state, &
        comp_surf_avg_flag, surf_avg, surf_avg_dic_const, surf_avg_alk_const, &
        errorCode)       

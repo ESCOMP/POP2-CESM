@@ -143,14 +143,9 @@ module ecosys_mod
   use prognostic, only : curtime
   use prognostic, only : oldtime
 
-  use grid, only : DZT
   use grid, only : zt
   use grid, only : partial_bottom_cells
-  use grid, only : n_topo_smooth
-  use grid, only : REGION_MASK
-  use grid, only : dz
   use grid, only : zw
-  use grid, only : fill_points
 
   use io, only : datafile, data_set
 
@@ -169,7 +164,6 @@ module ecosys_mod
   use timers, only : timer_stop
   use timers, only : get_timer
 
-  use passive_tracer_tools, only : ind_name_pair
   use passive_tracer_tools, only : tracer_read
   use passive_tracer_tools, only : field_exists_in_file
   use passive_tracer_tools, only : forcing_monthly_every_ts
@@ -1083,56 +1077,23 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_init_postnml(init_ts_file_fmt,                        &
-       read_restart_filename, tracer_d_module, TRACER_MODULE,             &
-       lmarginal_seas, ecosys_restore, saved_state, vflux_flag,           &
-       use_nml_surf_vals, comp_surf_avg_flag, surf_avg,                   &
-       surf_avg_dic_const, surf_avg_alk_const, init_ecosys_option,        &
-       init_ecosys_init_file, init_ecosys_init_file_fmt, tracer_init_ext, &
-       PH_PREV, PH_PREV_ALT_CO2, errorCode, marbl_status)
+  subroutine ecosys_init_postnml(tracer_d_module, TRACER_MODULE, ecosys_restore, saved_state)
 
     ! !DESCRIPTION:
-    !  Initialize ecosys tracer module. This involves setting metadata, reading
-    !  the module namelist, setting initial conditions, setting up forcing,
-    !  and defining additional tavg variables.
+    !  Final initialization of ecosys tracers
 
-    use marbl_interface_constants , only : marbl_status_ok
-    use marbl_interface_constants , only : marbl_status_could_not_read_namelist
-    use marbl_interface_types     , only : marbl_status_type
-    use marbl_interface_types     , only : marbl_saved_state_type
-    use grid, only : KMT
+    use marbl_interface_types , only : marbl_saved_state_type
+    use passive_tracer_tools  , only : ind_name_pair
+    use grid                  , only : KMT
 
     implicit none
 
-    ! !INPUT PARAMETERS:
-
-    character (*)                   , intent(in) :: init_ts_file_fmt      ! format (bin or nc) for input file
-    character (*)                   , intent(in) :: read_restart_filename ! file name for restart file
-    logical (kind=log_kind)         , intent(in) :: lmarginal_seas        ! Is ecosystem active in marginal seas ?
-
     ! !INPUT/OUTPUT PARAMETERS:
 
-    type (tracer_field)          , intent(inout) :: tracer_d_module(:)   ! descriptors for each tracer
+    type (tracer_field)          , intent(inout) :: tracer_d_module(:)   ! tracer metadata
     real (r8)                    , intent(inout) :: TRACER_MODULE(:, :, :, :, :, :)
     type(ecosys_restore_type)    , intent(inout) :: ecosys_restore
     type(marbl_saved_state_type) , intent(inout) :: saved_state
-
-    ! !OUTPUT PARAMETERS:
-
-    logical (log_kind)      , intent(in)  :: vflux_flag(:) 
-    integer (int_kind)      , intent(out) :: comp_surf_avg_flag        ! time flag id for computing average surface tracer values
-    real (r8)               , intent(out) :: surf_avg(:)               ! average surface tracer values
-    logical (log_kind)      , intent(out) :: use_nml_surf_vals         ! do namelist surf values override values from restart file
-    real (r8)               , intent(out) :: surf_avg_dic_const
-    real (r8)               , intent(out) :: surf_avg_alk_const
-    character(char_len)     , intent(out) :: init_ecosys_option        ! namelist option for initialization of bgc
-    character(char_len)     , intent(out) :: init_ecosys_init_file     ! filename for option 'file'
-    character(char_len)     , intent(out) :: init_ecosys_init_file_fmt ! file format for option 'file'
-    type(tracer_read)       , intent(out) :: tracer_init_ext(:)        ! namelist variable for initializing tracers
-    real (r8)               , intent(out) :: PH_PREV(:, :, :)          ! computed ph from previous time step
-    real (r8)               , intent(out) :: PH_PREV_ALT_CO2(:, :, :)  ! computed ph from previous time step
-    integer (POP_i4)        , intent(out) :: errorCode
-    type(marbl_status_type) , intent(out) :: marbl_status
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1140,27 +1101,15 @@ contains
 
     character(*), parameter :: subname = 'ecosys_mod:ecosys_init_postnml'
 
-    integer (int_kind) :: non_living_biomass_ecosys_tracer_cnt ! number of non-autotroph ecosystem tracers
-    integer (int_kind) :: auto_ind ! autotroph functional group index
-    integer (int_kind) :: n        ! index for looping over tracers
-    integer (int_kind) :: k        ! index for looping over depth levels
-    integer (int_kind) :: iblock   ! index for looping over blocks
-    integer (int_kind) :: zoo_ind  ! zooplankton functional group index
-
-    real(r8) :: WORK(nx_block, ny_block) ! FIXME (mvertens, 2015-10) remove this
-
-    character (char_len) :: ecosys_restart_filename  ! modified file name for restart file
-    type(ind_name_pair), dimension(ecosys_tracer_cnt) :: ind_name_table
-
-    !-----------------------------------------------------------------------
-    !  register Chl field for short-wave absorption
-    !  apply land mask to tracers
-    !  set Chl field for short-wave absorption
+    integer (int_kind)  :: auto_ind                 ! autotroph functional group index
+    integer (int_kind)  :: n                        ! index for looping over tracers
+    integer (int_kind)  :: k                        ! index for looping over depth levels
+    integer (int_kind)  :: iblock                   ! index for looping over blocks
+    real(r8)            :: WORK(nx_block, ny_block) ! FIXME (mvertens, 2015-10) remove this
+    type(ind_name_pair) :: ind_name_table(ecosys_tracer_cnt)
     !-----------------------------------------------------------------------
 
-    call named_field_register('model_chlorophyll', totChl_surf_nf_ind)
-
-    !$OMP PARALLEL DO PRIVATE(iblock, n, k, WORK)
+    !$OMP PARALLEL DO PRIVATE(iblock, n, k)
     do iblock=1, nblocks_clinic
        do n = 1, ecosys_tracer_cnt
           do k = 1, km
@@ -1170,7 +1119,19 @@ contains
              end where
           end do
        end do
+    end do
+    !$OMP END PARALLEL DO
 
+    !-----------------------------------------------------------------------
+    !  register Chl field for short-wave absorption
+    !  apply land mask to tracers
+    !  set Chl field for short-wave absorption
+    !-----------------------------------------------------------------------
+
+    call named_field_register('model_chlorophyll', totChl_surf_nf_ind)
+
+    !$OMP PARALLEL DO PRIVATE(iblock, n, WORK)
+    do iblock=1, nblocks_clinic
        WORK = c0
        do auto_ind = 1, autotroph_cnt
           n = autotrophs(auto_ind)%Chl_ind
@@ -4222,13 +4183,9 @@ contains
     STF_MODULE(:, :, alk_ind, :) = STF_MODULE(:, :, alk_ind, :) &
          + STF_MODULE(:, :, nh4_ind, :) - STF_MODULE(:, :, no3_ind, :)
 
-    !-----------------------------------------------------------------------
-
     call timer_stop(ecosys_sflux_timer)
 
     end associate
-    !-----------------------------------------------------------------------
-    !EOC
 
   end subroutine ecosys_set_sflux
 
