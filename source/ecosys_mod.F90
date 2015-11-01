@@ -197,6 +197,7 @@ module ecosys_mod
   use time_management, only : eval_time_flag
 
   use ecosys_constants, only : ecosys_tracer_cnt
+
   ! tavg_forcing diagnostics
   use ecosys_diagnostics_mod, only : forcing_diag_cnt
   use ecosys_diagnostics_mod, only : ECOSYS_IFRAC_diag_ind
@@ -478,19 +479,10 @@ module ecosys_mod
   real (r8), dimension(:, :, :, :), allocatable :: &
        INTERP_WORK                  ! temp array for interpolate_forcing output
 
-  type(forcing_monthly_every_ts) :: &
-       dust_flux,                 & ! surface dust flux
-       iron_flux,                 & ! iron component of surface dust flux
-       fice_file,                 & ! ice fraction, if read from file
-       xkw_file,                  & ! a * wind-speed ** 2, if read from file
-       ap_file                      ! atmoshperic pressure, if read from file
 
   character(char_len) :: &
        ndep_data_type               ! type of ndep forcing
 
-  type(forcing_monthly_every_ts) :: &
-       nox_flux_monthly,          & ! surface NOx species flux, added to nitrate pool
-       nhy_flux_monthly             ! surface NHy species flux, added to ammonium pool
 
   integer (int_kind) :: &
        ndep_shr_stream_year_first, & ! first year in stream to use
@@ -508,18 +500,24 @@ module ecosys_mod
   real (r8) :: &
        ndep_shr_stream_scale_factor  ! unit conversion factor
 
-  type(strdata_input_type) :: ndep_inputlist
+  type(strdata_input_type)       :: ndep_inputlist
 
-  type(forcing_monthly_every_ts) :: &
-       din_riv_flux,              & ! river DIN species flux, added to nitrate pool
-       dip_riv_flux,              & ! river DIP species flux, added to phosphate pool
-       don_riv_flux,              & ! river DON flux, added to semi-lab don pool
-       dop_riv_flux,              & ! river DOP flux, added to semi-lab dop pool
-       dsi_riv_flux,              & ! river DSI flux, added to dsi pool
-       dfe_riv_flux,              & ! river dfe flux, added to dfe pool
-       dic_riv_flux,              & ! river dic flux, added to dic pool
-       alk_riv_flux,              & ! river alk flux, added to alk pool
-       doc_riv_flux                 ! river doc flux, added to semi-labile DOC
+  type(forcing_monthly_every_ts) :: dust_flux        ! surface dust flux
+  type(forcing_monthly_every_ts) :: iron_flux        ! iron component of surface dust flux
+  type(forcing_monthly_every_ts) :: fice_file        ! ice fraction, if read from file
+  type(forcing_monthly_every_ts) :: xkw_file         ! a * wind-speed ** 2, if read from file
+  type(forcing_monthly_every_ts) :: ap_file          ! atmoshperic pressure, if read from file
+  type(forcing_monthly_every_ts) :: nox_flux_monthly ! surface NOx species flux, added to nitrate pool
+  type(forcing_monthly_every_ts) :: nhy_flux_monthly ! surface NHy species flux, added to ammonium pool
+  type(forcing_monthly_every_ts) :: din_riv_flux     ! river DIN species flux, added to nitrate pool
+  type(forcing_monthly_every_ts) :: dip_riv_flux     ! river DIP species flux, added to phosphate pool
+  type(forcing_monthly_every_ts) :: don_riv_flux     ! river DON flux, added to semi-lab don pool
+  type(forcing_monthly_every_ts) :: dop_riv_flux     ! river DOP flux, added to semi-lab dop pool
+  type(forcing_monthly_every_ts) :: dsi_riv_flux     ! river DSI flux, added to dsi pool
+  type(forcing_monthly_every_ts) :: dfe_riv_flux     ! river dfe flux, added to dfe pool
+  type(forcing_monthly_every_ts) :: dic_riv_flux     ! river dic flux, added to dic pool
+  type(forcing_monthly_every_ts) :: alk_riv_flux     ! river alk flux, added to alk pool
+  type(forcing_monthly_every_ts) :: doc_riv_flux     ! river doc flux, added to semi-labile DOC
 
   !-----------------------------------------------------------------------
   !  buffer indices (into ECO_SFLUX_TAVG) for 2d fields related to surface fluxes
@@ -637,6 +635,7 @@ contains
     use marbl_interface_constants , only : marbl_status_ok
     use marbl_interface_constants , only : marbl_status_could_not_read_namelist
     use marbl_interface_types     , only : marbl_status_type
+    use marbl_interface_types     , only : marbl_tracer_read_type
     use ecosys_constants          , only : ecosys_tracer_cnt
 
     implicit none
@@ -4201,14 +4200,10 @@ contains
     type(marbl_saved_state_type), intent(in) :: saved_state
 
     ! !INPUT PARAMETERS:
-
-    real (r8), dimension(:, :, :, :), &
-         intent(in) :: STF_MODULE
+    real (r8), intent(in) :: STF_MODULE(:, :, :, :)
 
     ! !OUTPUT PARAMETERS:
-    real (r8), dimension(nx_block, ny_block, forcing_diag_cnt, nblocks_clinic), &
-         intent(out) :: &
-         FLUX_DIAGS                ! Computed diagnostics for surface fluxes
+    real (r8),  intent(out) :: FLUX_DIAGS(nx_block, ny_block, forcing_diag_cnt, nblocks_clinic)  ! Computed diagnostics for surface fluxes
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -4221,47 +4216,44 @@ contains
     !    units (cm/s)(mmol/m^3) to mmol/s/m^2
     !-----------------------------------------------------------------------
 
-    FLUX_DIAGS(:, :, ECOSYS_IFRAC_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_ECOSYS_IFRAC, :)
-    FLUX_DIAGS(:, :, ECOSYS_XKW_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_ECOSYS_XKW, :)
-    FLUX_DIAGS(:, :, ECOSYS_ATM_PRESS_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_ECOSYS_ATM_PRESS, :)
-    FLUX_DIAGS(:, :, PV_O2_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_PV_O2, :)
-    FLUX_DIAGS(:, :, SCHMIDT_O2_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_SCHMIDT_O2, :)
-    FLUX_DIAGS(:, :, O2SAT_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_O2SAT, :)
-    FLUX_DIAGS(:, :, O2_GAS_FLUX_diag_ind, :) = STF_MODULE(:, :, o2_ind, :)
-    FLUX_DIAGS(:, :, CO2STAR_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_CO2STAR, :)
-    FLUX_DIAGS(:, :, DCO2STAR_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_DCO2STAR, :)
-    FLUX_DIAGS(:, :, pCO2SURF_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_pCO2SURF, :)
-    FLUX_DIAGS(:, :, DpCO2_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_DpCO2, :)
-    FLUX_DIAGS(:, :, PV_CO2_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_PV_CO2, :)
-    FLUX_DIAGS(:, :, SCHMIDT_CO2_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_SCHMIDT_CO2, :)
-    FLUX_DIAGS(:, :, DIC_GAS_FLUX_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_DIC_GAS_FLUX, :)
-    FLUX_DIAGS(:, :, PH_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_PH, :)
-    FLUX_DIAGS(:, :, ATM_CO2_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_ATM_CO2, :)
-    FLUX_DIAGS(:, :, CO2STAR_ALT_CO2_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_CO2STAR_ALT_CO2, :)
-    FLUX_DIAGS(:, :, DCO2STAR_ALT_CO2_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_DCO2STAR_ALT_CO2, :)
-    FLUX_DIAGS(:, :, pCO2SURF_ALT_CO2_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_pCO2SURF_ALT_CO2, :)
-    FLUX_DIAGS(:, :, DpCO2_ALT_CO2_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_DpCO2_ALT_CO2, :)
+    FLUX_DIAGS(:, :, ECOSYS_IFRAC_diag_ind, :)         = ECO_SFLUX_TAVG(:, :, buf_ind_ECOSYS_IFRAC, :)
+    FLUX_DIAGS(:, :, ECOSYS_XKW_diag_ind, :)           = ECO_SFLUX_TAVG(:, :, buf_ind_ECOSYS_XKW, :)
+    FLUX_DIAGS(:, :, ECOSYS_ATM_PRESS_diag_ind, :)     = ECO_SFLUX_TAVG(:, :, buf_ind_ECOSYS_ATM_PRESS, :)
+    FLUX_DIAGS(:, :, PV_O2_diag_ind, :)                = ECO_SFLUX_TAVG(:, :, buf_ind_PV_O2, :)
+    FLUX_DIAGS(:, :, SCHMIDT_O2_diag_ind, :)           = ECO_SFLUX_TAVG(:, :, buf_ind_SCHMIDT_O2, :)
+    FLUX_DIAGS(:, :, O2SAT_diag_ind, :)                = ECO_SFLUX_TAVG(:, :, buf_ind_O2SAT, :)
+    FLUX_DIAGS(:, :, O2_GAS_FLUX_diag_ind, :)          = STF_MODULE(:, :, o2_ind, :)
+    FLUX_DIAGS(:, :, CO2STAR_diag_ind, :)              = ECO_SFLUX_TAVG(:, :, buf_ind_CO2STAR, :)
+    FLUX_DIAGS(:, :, DCO2STAR_diag_ind, :)             = ECO_SFLUX_TAVG(:, :, buf_ind_DCO2STAR, :)
+    FLUX_DIAGS(:, :, pCO2SURF_diag_ind, :)             = ECO_SFLUX_TAVG(:, :, buf_ind_pCO2SURF, :)
+    FLUX_DIAGS(:, :, DpCO2_diag_ind, :)                = ECO_SFLUX_TAVG(:, :, buf_ind_DpCO2, :)
+    FLUX_DIAGS(:, :, PV_CO2_diag_ind, :)               = ECO_SFLUX_TAVG(:, :, buf_ind_PV_CO2, :)
+    FLUX_DIAGS(:, :, SCHMIDT_CO2_diag_ind, :)          = ECO_SFLUX_TAVG(:, :, buf_ind_SCHMIDT_CO2, :)
+    FLUX_DIAGS(:, :, DIC_GAS_FLUX_diag_ind, :)         = ECO_SFLUX_TAVG(:, :, buf_ind_DIC_GAS_FLUX, :)
+    FLUX_DIAGS(:, :, PH_diag_ind, :)                   = ECO_SFLUX_TAVG(:, :, buf_ind_PH, :)
+    FLUX_DIAGS(:, :, ATM_CO2_diag_ind, :)              = ECO_SFLUX_TAVG(:, :, buf_ind_ATM_CO2, :)
+    FLUX_DIAGS(:, :, CO2STAR_ALT_CO2_diag_ind, :)      = ECO_SFLUX_TAVG(:, :, buf_ind_CO2STAR_ALT_CO2, :)
+    FLUX_DIAGS(:, :, DCO2STAR_ALT_CO2_diag_ind, :)     = ECO_SFLUX_TAVG(:, :, buf_ind_DCO2STAR_ALT_CO2, :)
+    FLUX_DIAGS(:, :, pCO2SURF_ALT_CO2_diag_ind, :)     = ECO_SFLUX_TAVG(:, :, buf_ind_pCO2SURF_ALT_CO2, :)
+    FLUX_DIAGS(:, :, DpCO2_ALT_CO2_diag_ind, :)        = ECO_SFLUX_TAVG(:, :, buf_ind_DpCO2_ALT_CO2, :)
     FLUX_DIAGS(:, :, DIC_GAS_FLUX_ALT_CO2_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_DIC_GAS_FLUX_ALT_CO2, :)
-    FLUX_DIAGS(:, :, PH_ALT_CO2_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_PH_ALT_CO2, :)
-    FLUX_DIAGS(:, :, ATM_ALT_CO2_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_ATM_ALT_CO2, :)
-    FLUX_DIAGS(:, :, IRON_FLUX_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_IRON_FLUX, :)*mpercm
-    FLUX_DIAGS(:, :, DUST_FLUX_diag_ind, :) = saved_state%dust_FLUX_IN(:, :, :)*mpercm
-    FLUX_DIAGS(:, :, NOx_FLUX_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_NOx_FLUX, :)
-    FLUX_DIAGS(:, :, NHy_FLUX_diag_ind, :) = STF_MODULE(:, :, nh4_ind, :)
-    FLUX_DIAGS(:, :, DIN_RIV_FLUX_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_DIN_RIV_FLUX, :)
-    FLUX_DIAGS(:, :, DIP_RIV_FLUX_diag_ind, :) = STF_MODULE(:, :, po4_ind, :)
-    FLUX_DIAGS(:, :, DON_RIV_FLUX_diag_ind, :) = STF_MODULE(:, :, don_ind, :)
-    FLUX_DIAGS(:, :, DONr_RIV_FLUX_diag_ind, :) = STF_MODULE(:, :, donr_ind, :)
-    FLUX_DIAGS(:, :, DOP_RIV_FLUX_diag_ind, :) = STF_MODULE(:, :, dop_ind, :)
-    FLUX_DIAGS(:, :, DOPr_RIV_FLUX_diag_ind, :) = STF_MODULE(:, :, dopr_ind, :)
-    FLUX_DIAGS(:, :, DSI_RIV_FLUX_diag_ind, :) = STF_MODULE(:, :, sio3_ind, :)
-    FLUX_DIAGS(:, :, DFE_RIV_FLUX_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_DFE_RIV_FLUX, :)
-    FLUX_DIAGS(:, :, DIC_RIV_FLUX_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_DIC_RIV_FLUX, :)
-    FLUX_DIAGS(:, :, ALK_RIV_FLUX_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_ALK_RIV_FLUX, :)
-    FLUX_DIAGS(:, :, DOC_RIV_FLUX_diag_ind, :) = STF_MODULE(:, :, doc_ind, :)
-
-    !-----------------------------------------------------------------------
-    !EOC
+    FLUX_DIAGS(:, :, PH_ALT_CO2_diag_ind, :)           = ECO_SFLUX_TAVG(:, :, buf_ind_PH_ALT_CO2, :)
+    FLUX_DIAGS(:, :, ATM_ALT_CO2_diag_ind, :)          = ECO_SFLUX_TAVG(:, :, buf_ind_ATM_ALT_CO2, :)
+    FLUX_DIAGS(:, :, IRON_FLUX_diag_ind, :)            = ECO_SFLUX_TAVG(:, :, buf_ind_IRON_FLUX, :)*mpercm
+    FLUX_DIAGS(:, :, DUST_FLUX_diag_ind, :)            = saved_state%dust_FLUX_IN(:, :, :)*mpercm
+    FLUX_DIAGS(:, :, NOx_FLUX_diag_ind, :)             = ECO_SFLUX_TAVG(:, :, buf_ind_NOx_FLUX, :)
+    FLUX_DIAGS(:, :, NHy_FLUX_diag_ind, :)             = STF_MODULE(:, :, nh4_ind, :)
+    FLUX_DIAGS(:, :, DIN_RIV_FLUX_diag_ind, :)         = ECO_SFLUX_TAVG(:, :, buf_ind_DIN_RIV_FLUX, :)
+    FLUX_DIAGS(:, :, DIP_RIV_FLUX_diag_ind, :)         = STF_MODULE(:, :, po4_ind, :)
+    FLUX_DIAGS(:, :, DON_RIV_FLUX_diag_ind, :)         = STF_MODULE(:, :, don_ind, :)
+    FLUX_DIAGS(:, :, DONr_RIV_FLUX_diag_ind, :)        = STF_MODULE(:, :, donr_ind, :)
+    FLUX_DIAGS(:, :, DOP_RIV_FLUX_diag_ind, :)         = STF_MODULE(:, :, dop_ind, :)
+    FLUX_DIAGS(:, :, DOPr_RIV_FLUX_diag_ind, :)        = STF_MODULE(:, :, dopr_ind, :)
+    FLUX_DIAGS(:, :, DSI_RIV_FLUX_diag_ind, :)         = STF_MODULE(:, :, sio3_ind, :)
+    FLUX_DIAGS(:, :, DFE_RIV_FLUX_diag_ind, :)         = ECO_SFLUX_TAVG(:, :, buf_ind_DFE_RIV_FLUX, :)
+    FLUX_DIAGS(:, :, DIC_RIV_FLUX_diag_ind, :)         = ECO_SFLUX_TAVG(:, :, buf_ind_DIC_RIV_FLUX, :)
+    FLUX_DIAGS(:, :, ALK_RIV_FLUX_diag_ind, :)         = ECO_SFLUX_TAVG(:, :, buf_ind_ALK_RIV_FLUX, :)
+    FLUX_DIAGS(:, :, DOC_RIV_FLUX_diag_ind, :)         = STF_MODULE(:, :, doc_ind, :)
 
   end subroutine ecosys_tavg_forcing
 

@@ -1,7 +1,7 @@
 module marbl_interface_types
   ! module for definitions of types that are shared between marbl interior and the driver.
 
-  use marbl_kinds_mod, only : c0, r8, log_kind, int_kind
+  use marbl_kinds_mod, only : c0, r8, log_kind, int_kind, char_len
   use marbl_interface_constants, only : marbl_str_length
 
   implicit none
@@ -26,16 +26,23 @@ module marbl_interface_types
      real(r8), allocatable :: salinity(:)    ! (km)
   end type marbl_gcm_state_type
 
+  type, public :: marbl_tracer_read_type
+      character(char_len) :: mod_varname
+      character(char_len) :: filename
+      character(char_len) :: file_varname
+      character(char_len) :: file_fmt
+      real(r8)            :: scale_factor 
+      real(r8)            :: default_val
+  end type marbl_tracer_read_type
+
   type, public :: marbl_saved_state_type
      ! this struct is necessary because there is some global state
      ! that needs to be preserved for marbl
-     real (r8), dimension(:, :, :), allocatable :: dust_FLUX_IN  ! dust flux not stored in STF since dust is not prognostic
-     real (r8), dimension(:, :, :), allocatable :: PAR_out  ! photosynthetically available radiation (W/m^2)
-     real (r8), dimension(:, :, :, :), allocatable :: PH_PREV_3D         ! computed pH_3D from previous time step
-     real (r8), dimension(:, :, :, :), allocatable :: PH_PREV_ALT_CO2_3D ! computed pH_3D from previous time step, alternative CO2
-     logical (log_kind), dimension(:, :, :), allocatable :: LAND_MASK
-
-     
+     real (r8) , dimension(:, :, :)         , allocatable :: dust_FLUX_IN       ! dust flux not stored in STF since dust is not prognostic
+     real (r8) , dimension(:, :, :)         , allocatable :: PAR_out            ! photosynthetically available radiation (W/m^2)
+     real (r8) , dimension(:, :, :, :)      , allocatable :: PH_PREV_3D         ! computed pH_3D from previous time step
+     real (r8) , dimension(:, :, :, :)      , allocatable :: PH_PREV_ALT_CO2_3D ! computed pH_3D from previous time step, alternative CO2
+     logical (log_kind), dimension(:, :, :) , allocatable :: LAND_MASK
   end type marbl_saved_state_type
   
   ! marbl_diagnostics : used to pass diagnostic information for tavg

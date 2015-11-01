@@ -29,21 +29,11 @@ module ecosys_driver
   use domain                    , only : nblocks_clinic
   use domain                    , only : distrb_clinic
   use domain_size               , only : max_blocks_clinic, km, nt
-  use communicate               , only : my_task, master_task
-  use prognostic                , only : TRACER, tracer_d, oldtime, curtime, newtime
-  use forcing_shf               , only : SHF_QSW_RAW, SHF_QSW
-  use io_types                  , only : stdout, nml_in, nml_filename, io_field_desc, datafile
+  use prognostic                , only : TRACER
+  use io_types                  , only : stdout, nml_in, nml_filename, datafile
   use exit_mod                  , only : sigAbort, exit_pop
-  use io_tools                  , only : document
-  use prognostic                , only : tracer_field
   use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
-  use passive_tracer_tools      , only : set_tracer_indices
   use passive_tracer_tools      , only : ind_name_pair
-  use broadcast                 , only : broadcast_scalar
-
-  use marbl_parms               , only : dic_ind
-  use marbl_parms               , only : alk_ind
-  use marbl_parms               , only : dic_alt_co2_ind
 
   use marbl_interface           , only : marbl_interface_class
   use marbl_interface           , only : marbl_sizes_type
@@ -51,7 +41,7 @@ module ecosys_driver
 
   use marbl_interface_constants , only : marbl_status_ok
   use marbl_interface_types     , only : marbl_status_type
-  use marbl_interface_types     , only: marbl_diagnostics_type
+  use marbl_interface_types     , only : marbl_diagnostics_type
   use marbl_interface_types     , only : marbl_saved_state_type
 
   ! NOTE(bja, 2014-12) all other uses of marbl/ecosys modules need to be removed!
@@ -59,37 +49,25 @@ module ecosys_driver
 
   use ecosys_constants, only : ecosys_tracer_cnt
 
-  use ecosys_diagnostics_mod, only : ecosys_diag_cnt_2d
-  use ecosys_diagnostics_mod, only : ecosys_diag_cnt_3d
-  use ecosys_diagnostics_mod, only : auto_diag_cnt_2d
-  use ecosys_diagnostics_mod, only : auto_diag_cnt_3d
-  use ecosys_diagnostics_mod, only : zoo_diag_cnt_2d
-  use ecosys_diagnostics_mod, only : zoo_diag_cnt_3d
-  use ecosys_diagnostics_mod, only : part_diag_cnt_2d
-  use ecosys_diagnostics_mod, only : part_diag_cnt_3d
-  use ecosys_diagnostics_mod, only : forcing_diag_cnt
-
   use ecosys_tavg, only : ecosys_tavg_init
   use ecosys_tavg, only : ecosys_tavg_accumulate
   use ecosys_tavg, only : ecosys_tavg_accumulate_flux
 
-  use ecosys_mod, only:            &
-       ecosys_init_nml,            &
-       ecosys_init_tracer_metadata, &
-       ecosys_init_postnml,        &
-       ecosys_tracer_ref_val,      &
-       ecosys_set_sflux,           &
-       ecosys_tavg_forcing,        &
-       ecosys_set_interior
-
-  use ecosys_ciso_mod, only:        &
-       ecosys_ciso_tracer_cnt,      &
-       ecosys_ciso_init,            &
-       ecosys_ciso_tracer_ref_val,  &
-       ecosys_ciso_set_sflux,       &
-       ecosys_ciso_tavg_forcing,    &
-       ecosys_ciso_set_interior,    &
-       ecosys_ciso_write_restart
+  use ecosys_mod, only: ecosys_init_nml    
+  use ecosys_mod, only: ecosys_init_tracer_metadata
+  use ecosys_mod, only: ecosys_init_postnml
+  use ecosys_mod, only: ecosys_tracer_ref_val
+  use ecosys_mod, only: ecosys_set_sflux
+  use ecosys_mod, only: ecosys_tavg_forcing
+  use ecosys_mod, only: ecosys_set_interior
+  
+  use ecosys_ciso_mod, only: ecosys_ciso_tracer_cnt
+  use ecosys_ciso_mod, only: ecosys_ciso_init
+  use ecosys_ciso_mod, only: ecosys_ciso_tracer_ref_val
+  use ecosys_ciso_mod, only: ecosys_ciso_set_sflux
+  use ecosys_ciso_mod, only: ecosys_ciso_tavg_forcing
+  use ecosys_ciso_mod, only: ecosys_ciso_set_interior
+  use ecosys_ciso_mod, only: ecosys_ciso_write_restart
 
   use ecosys_restore_mod, only : ecosys_restore_type
 
@@ -99,26 +77,21 @@ module ecosys_driver
 
   implicit none
   private
-  save
 
   ! !PUBLIC MEMBER FUNCTIONS:
 
-  public ::                          &
-       ecosys_driver_tracer_cnt_init,  &
-       ecosys_driver_init,             &
-       ecosys_driver_set_interior,     &
-       ecosys_driver_set_sflux,        &
-       ecosys_driver_tracer_cnt,       &
-       ecosys_driver_tracer_ref_val,   &
-       ecosys_driver_tavg_forcing,     &
-       ecosys_driver_write_restart,    &
-       ecosys_driver_unpack_source_sink_terms
+  public :: ecosys_driver_tracer_cnt_init
+  public :: ecosys_driver_init
+  public :: ecosys_driver_set_interior
+  public :: ecosys_driver_set_sflux
+  public :: ecosys_driver_tracer_cnt
+  public :: ecosys_driver_tracer_ref_val
+  public :: ecosys_driver_tavg_forcing
+  public :: ecosys_driver_write_restart
+  public :: ecosys_driver_unpack_source_sink_terms
 
-  private :: &
-       ecosys_write_restart
-
-  !EOP
-  !BOC
+  private :: ecosys_write_restart
+  private :: ecosys_driver_init_tracers
 
   !-----------------------------------------------------------------------
   !  module variables required by forcing_passive_tracer
@@ -150,16 +123,14 @@ module ecosys_driver
   !-----------------------------------------------------------------------
   !  data storage for interaction with the marbl bgc library
   !-----------------------------------------------------------------------
-  type(marbl_interface_class) :: marbl
-  type(marbl_sizes_type) :: marbl_sizes
+  type(marbl_interface_class)   :: marbl
+  type(marbl_sizes_type)        :: marbl_sizes
   type(marbl_driver_sizes_type) :: marbl_driver_sizes
-  type(marbl_status_type) :: marbl_status
-  type(marbl_diagnostics_type), dimension(max_blocks_clinic) :: marbl_diagnostics
+  type(marbl_status_type)       :: marbl_status
+  type(marbl_diagnostics_type)  :: marbl_diagnostics(max_blocks_clinic)
   ! FIXME(bja, 2015-08) this needs to go into marbl%private_data%saved_state !!!
-  type(marbl_saved_state_type) :: marbl_saved_state
-
-
-  type(ecosys_restore_type) :: ecosys_restore
+  type(marbl_saved_state_type)  :: marbl_saved_state
+  type(ecosys_restore_type)     :: ecosys_restore
 
   !-----------------------------------------------------------------------
   !  average surface tracer value related variables
@@ -177,7 +148,6 @@ module ecosys_driver
 
   type(ind_name_pair) :: ind_name_table(ecosys_tracer_cnt) !  derived type & parameter for tracer index lookup
 
-  !EOC
   !***********************************************************************
 
 contains
@@ -216,18 +186,9 @@ contains
        ecosys_driver_tracer_cnt = ecosys_driver_tracer_cnt + ecosys_ciso_tracer_cnt
     end if
 
-
-    !-----------------------------------------------------------------------
-    !EOC
-
   end subroutine ecosys_driver_tracer_cnt_init
 
-
-
   !***********************************************************************
-  !BOP
-  ! !IROUTINE: ecosys_driver_init
-  ! !INTERFACE:
 
   subroutine ecosys_driver_init(ciso_on,init_ts_file_fmt,     &
        read_restart_filename,                         &
@@ -249,6 +210,8 @@ contains
     use grid                      , only : REGION_MASK
     use grid                      , only : KMT
     use broadcast                 , only : broadcast_scalar
+    use prognostic                , only : tracer_field
+    use io_tools                  , only : document
     use time_management           , only : eval_time_flag
     use passive_tracer_tools      , only : set_tracer_indices
     use passive_tracer_tools      , only : extract_surf_avg
@@ -258,6 +221,16 @@ contains
     use passive_tracer_tools      , only : tracer_read
     use passive_tracer_tools      , only : file_read_tracer_block
     use passive_tracer_tools      , only : read_field
+    use ecosys_diagnostics_mod    , only : ecosys_diag_cnt_2d
+    use ecosys_diagnostics_mod    , only : ecosys_diag_cnt_3d
+    use ecosys_diagnostics_mod    , only : auto_diag_cnt_2d
+    use ecosys_diagnostics_mod    , only : auto_diag_cnt_3d
+    use ecosys_diagnostics_mod    , only : zoo_diag_cnt_2d
+    use ecosys_diagnostics_mod    , only : zoo_diag_cnt_3d
+    use ecosys_diagnostics_mod    , only : part_diag_cnt_2d
+    use ecosys_diagnostics_mod    , only : part_diag_cnt_3d
+    use ecosys_diagnostics_mod    , only : forcing_diag_cnt
+    use communicate               , only : my_task, master_task
 
     ! !INPUT PARAMETERS:
 
@@ -491,22 +464,11 @@ contains
     call ecosys_init_tracer_metadata(tracer_d_module)
 
     ! initialize ecosys tracers
-
-    !  initialize virtual flux flag array - move to ecosys_driver_init_tracers
-    vflux_flag(:) = .false.
-    vflux_flag(dic_ind) = .true.
-    vflux_flag(alk_ind) = .true.
-    vflux_flag(dic_alt_co2_ind) = .true.
-
-    !  allocate various  allocatable module variables - move to ecosys_driver_init_tracers
-    allocate( PH_PREV(nx_block, ny_block, max_blocks_clinic) )
-    allocate( PH_PREV_ALT_CO2(nx_block, ny_block, max_blocks_clinic) )
-
     call ecosys_driver_init_tracers(&
        init_ts_file_fmt, init_ecosys_option, init_ecosys_init_file, init_ecosys_init_file_fmt, &
-       read_restart_filename, vflux_flag, use_nml_surf_vals, &
+       read_restart_filename, use_nml_surf_vals, &
        tracer_init_ext, tracer_d_module, TRACER_MODULE, &
-       ecosys_restart_filename, PH_PREV, PH_PREV_ALT_CO2, marbl_saved_state, &
+       ecosys_restart_filename, marbl_saved_state, &
        comp_surf_avg_flag, surf_avg, surf_avg_dic_const, surf_avg_alk_const, &
        errorCode)       
 
@@ -540,23 +502,22 @@ contains
 
     end if
 
-
-    !-----------------------------------------------------------------------
-    !EOC
-
   end subroutine ecosys_driver_init
 
   !-----------------------------------------------------------------------
 
   subroutine ecosys_driver_init_tracers(&
        init_ts_file_fmt, init_ecosys_option, init_ecosys_init_file, init_ecosys_init_file_fmt, &
-       read_restart_filename, vflux_flag, use_nml_surf_vals, &
+       read_restart_filename, use_nml_surf_vals, &
        tracer_init_ext, tracer_d_module, TRACER_MODULE, &
-       ecosys_restart_filename, PH_PREV, PH_PREV_ALT_CO2, saved_state, &
+       ecosys_restart_filename, marbl_saved_state, &
        comp_surf_avg_flag, surf_avg, surf_avg_dic_const, surf_avg_alk_const, &
        errorCode)       
 
     use marbl_interface_types , only : marbl_saved_state_type
+    use marbl_parms           , only : dic_ind
+    use marbl_parms           , only : alk_ind
+    use marbl_parms           , only : dic_alt_co2_ind
     use passive_tracer_tools  , only : rest_read_tracer_block
     use passive_tracer_tools  , only : file_read_tracer_block
     use passive_tracer_tools  , only : field_exists_in_file
@@ -568,13 +529,14 @@ contains
     use prognostic            , only : tracer_field
     use prognostic            , only : curtime
     use prognostic            , only : oldtime
+    use prognostic            , only : newtime
     use time_management       , only : check_time_flag
     use time_management       , only : eval_time_flag
     use ecosys_constants      , only : ecosys_tracer_cnt
     use io_tools              , only : document
-    use exit_mod              , only : exit_POP
     use grid                  , only : fill_points
     use grid                  , only : n_topo_smooth
+    use exit_mod              , only : exit_POP
     
     implicit none
     
@@ -582,18 +544,15 @@ contains
     character(char_len)          , intent(in)    :: init_ecosys_option                 ! namelist option for initialization of bgc
     character(char_len)          , intent(in)    :: init_ecosys_init_file              ! filename for option 'file'
     character (*)                , intent(in)    :: read_restart_filename              ! file name for restart file
-    logical (log_kind)           , intent(in)    :: vflux_flag(:) 
     logical (log_kind)           , intent(in)    :: use_nml_surf_vals                  ! do namelist surf values override values from restart    
     type(tracer_read)            , intent(in)    :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers
     type(tracer_field)           , intent(in)    :: tracer_d_module(:)                 ! descriptors for each tracer
 
     character(char_len)          , intent(inout) :: init_ecosys_init_file_fmt          ! file format for option 'file'
     real (r8)                    , intent(inout) :: TRACER_MODULE(:,:,:,:,:,:)
-    type(marbl_saved_state_type) , intent(inout) :: saved_state
+    type(marbl_saved_state_type) , intent(inout) :: marbl_saved_state
 
     character(char_len)          , intent(out)   :: ecosys_restart_filename            ! modified file name for restart file
-    real (r8)                    , intent(out)   :: PH_PREV(:, :, :)            ! computed ph from previous time step
-    real (r8)                    , intent(out)   :: PH_PREV_ALT_CO2(:, :, :)    ! computed ph from previous time step
     integer (int_kind)           , intent(out)   :: comp_surf_avg_flag          ! time flag id for computing average surface tracer
     real (r8)                    , intent(out)   :: surf_avg(ecosys_tracer_cnt) ! average surface tracer values
     real (r8)                    , intent(out)   :: surf_avg_dic_const
@@ -613,6 +572,16 @@ contains
     !  initialize tracers
     !-----------------------------------------------------------------------
     
+    ! allocate module variables PH_PREV an PH_PREV_ALT_CO2
+    allocate( PH_PREV(nx_block, ny_block, max_blocks_clinic) )
+    allocate( PH_PREV_ALT_CO2(nx_block, ny_block, max_blocks_clinic) )
+
+    ! initialize module variable - virtual flux flag array
+    vflux_flag(:) = .false.
+    vflux_flag(dic_ind) = .true.
+    vflux_flag(alk_ind) = .true.
+    vflux_flag(dic_alt_co2_ind) = .true.
+
     !  initialize ind_name_table
     do n = 1, ecosys_tracer_cnt
        ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
@@ -671,24 +640,24 @@ contains
             'PH_3D')) then
           call read_field(init_ecosys_init_file_fmt, &
                ecosys_restart_filename,   &
-               'PH_3D', saved_state%PH_PREV_3D)
+               'PH_3D', marbl_saved_state%PH_PREV_3D)
        else
           call document(subname, 'PH_3D does not exist in ' /&
                &/ trim(ecosys_restart_filename) /&
                &/ ', setting PH_PREV_3D to 0')
-          saved_state%PH_PREV_3D  = c0
+          marbl_saved_state%PH_PREV_3D  = c0
        endif
 
        if (field_exists_in_file(init_ecosys_init_file_fmt, ecosys_restart_filename, &
             'PH_3D_ALT_CO2')) then
           call read_field(init_ecosys_init_file_fmt, &
                ecosys_restart_filename,   &
-               'PH_3D_ALT_CO2', saved_state%PH_PREV_ALT_CO2_3D)
+               'PH_3D_ALT_CO2', marbl_saved_state%PH_PREV_ALT_CO2_3D)
        else
           call document(subname, 'PH_3D_ALT_CO2 does not exist in ' /&
                &/ trim(ecosys_restart_filename) /&
                &/ ', setting PH_PREV_ALT_CO2_3D to 0')
-          saved_state%PH_PREV_ALT_CO2_3D = c0
+          marbl_saved_state%PH_PREV_ALT_CO2_3D = c0
        endif
 
        if (use_nml_surf_vals) then
@@ -747,8 +716,8 @@ contains
 
        PH_PREV = c0
        PH_PREV_ALT_CO2 = c0
-       saved_state%PH_PREV_3D = c0
-       saved_state%PH_PREV_ALT_CO2_3D = c0
+       marbl_saved_state%PH_PREV_3D = c0
+       marbl_saved_state%PH_PREV_ALT_CO2_3D = c0
 
        if (use_nml_surf_vals) then
           surf_avg = c0
@@ -1071,32 +1040,29 @@ contains
 
 
   !***********************************************************************
-  !BOP
-  ! !IROUTINE: ecosys_driver_tavg_forcing
-  ! !INTERFACE:
 
   subroutine ecosys_driver_tavg_forcing(ciso_on,STF_MODULE)
 
     ! !DESCRIPTION:
     !  accumulate common tavg fields for tracer surface fluxes
-    !  call accumation subroutines for tracer modules that have additional
+    !  call accumulation subroutines for tracer modules that have additional
     !     tavg fields related to surface fluxes
-    !
-    ! !REVISION HISTORY:
-    !  same as module
+
+    use ecosys_diagnostics_mod , only : forcing_diag_cnt
+    use domain                 , only : nblocks_clinic
+    use blocks                 , only : nx_block, ny_block
+
+    implicit none 
 
     ! !INPUT PARAMETERS:
-    logical (kind=log_kind), intent(in)  ::  &
-         ciso_on                 ! ecosys_ciso on
+    logical (kind=log_kind), intent(in) ::  ciso_on                 ! ecosys_ciso on
+    real (r8), intent(in)               :: STF_MODULE(:,:,:,:)
 
-    real (r8), dimension(:,:,:,:), &
-         intent(in) :: STF_MODULE
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
 
-    !EOP
-    !BOC
-
-    real (r8), dimension(nx_block,ny_block, forcing_diag_cnt, nblocks_clinic) :: &
-         FLUX_DIAGS                ! Computed diagnostics for surface fluxes
+    real (r8) :: FLUX_DIAGS(nx_block,ny_block, forcing_diag_cnt, nblocks_clinic)  ! Computed diagnostics for surface fluxes
 
     !-----------------------------------------------------------------------
     !  call routines from modules that have additional sflux tavg fields
@@ -1106,8 +1072,7 @@ contains
     !  ECOSYS block
     !-----------------------------------------------------------------------
 
-    call ecosys_tavg_forcing(marbl_saved_state, STF_MODULE(:,:,ecosys_ind_begin:ecosys_ind_end,:),&
-         FLUX_DIAGS)
+    call ecosys_tavg_forcing(marbl_saved_state, STF_MODULE(:,:,ecosys_ind_begin:ecosys_ind_end,:), FLUX_DIAGS)
     call ecosys_tavg_accumulate_flux(FLUX_DIAGS)
 
     !-----------------------------------------------------------------------
@@ -1115,13 +1080,8 @@ contains
     !-----------------------------------------------------------------------
 
     if (ciso_on) then
-       call ecosys_ciso_tavg_forcing( &
-            STF_MODULE(:,:,ecosys_ciso_ind_begin:ecosys_ciso_ind_end,:))
+       call ecosys_ciso_tavg_forcing(STF_MODULE(:,:,ecosys_ciso_ind_begin:ecosys_ciso_ind_end,:))
     end if
-
-
-    !-----------------------------------------------------------------------
-    !EOC
 
   end subroutine ecosys_driver_tavg_forcing
 
