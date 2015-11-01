@@ -222,7 +222,7 @@ contains
     real(r8), dimension(:), intent(in) :: zt, zw
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
-    real(r8), dimension(km) :: zsat_calcite, zsat_aragonite
+    real(r8) :: zsat_calcite, zsat_aragonite
 
     associate(                                                                &
               diags_2d => marbl_diags%diags_2d,                               &
@@ -231,8 +231,8 @@ contains
       ! Find depth where CO3 = CO3_sat_calcite or CO3_sat_argonite
       call temp_calc_zsat(marbl_domain, carbonate, zt, zw,                    &
                           zsat_calcite, zsat_aragonite)
-      diags_2d(zsatcalc_diag_ind) = zsat_calcite(km)
-      diags_2d(zsatarag_diag_ind) = zsat_aragonite(km)
+      diags_2d(zsatcalc_diag_ind) = zsat_calcite
+      diags_2d(zsatarag_diag_ind) = zsat_aragonite
 
       diags_3d(:, CO3_diag_ind) = carbonate%CO3
       diags_3d(:, HCO3_diag_ind) = carbonate%HCO3
@@ -254,7 +254,7 @@ contains
     type(marbl_column_domain_type), intent(in) :: marbl_domain
     type(carbonate_type), dimension(:), intent(in) :: carbonate
     real(r8), dimension(:), intent(in) :: zt, zw
-    real(r8), dimension(km), intent(out) :: zsat_calcite, zsat_aragonite
+    real(r8), intent(out) :: zsat_calcite, zsat_aragonite
 
     real(r8) :: co3_calcite_anom(km) ! CO3 concentration above calcite saturation at k-1
     real(r8) :: co3_aragonite_anom(km) ! CO3 concentration above aragonite saturation at k-1
@@ -262,7 +262,6 @@ contains
 
     associate(&
               column_kmt => marbl_domain%kmt,                                 &
-              column_land_mask => marbl_domain%land_mask,                     &
               CO3 => carbonate%CO3,                                           &
               CO3_sat_calcite => carbonate%CO3_sat_calcite,                   &
               CO3_sat_aragonite => carbonate%CO3_sat_aragonite                &
@@ -270,41 +269,50 @@ contains
     co3_calcite_anom   = CO3 - CO3_sat_calcite
     co3_aragonite_anom = CO3 - CO3_sat_aragonite
 
-    do k=1,km
 
-       if (k == 1) then
-          ! set to -1, i.e. depth not found yet,
-          ! if mask == .true. and surface supersaturated to -1
-          zsat_calcite(k) = merge(-c1, c0, column_land_mask .and. CO3(k) > CO3_sat_calcite(k))
-       else
-          zsat_calcite(k) = zsat_calcite(k-1)
-          if (zsat_calcite(k) == -c1 .and. CO3(k) <= CO3_sat_calcite(k)) then
-             zsat_calcite(k) = zt(k-1) + (zt(k) - zt(k-1)) * &
-                  co3_calcite_anom(k-1) / (co3_calcite_anom(k-1) - co3_calcite_anom(k))
-          end if
-          if (zsat_calcite(k) == -c1 .and. column_kmt == k) then
-             zsat_calcite(k) = zw(k)
-          end if
-       end if
+    if (all(co3_calcite_anom(1:column_kmt).gt.c0)) then
+      zsat_calcite = zw(column_kmt)
+    elseif (co3_calcite_anom(1).le.c0) then
+      zsat_calcite = c0
+    else
+      do k=2,column_kmt
+        if (co3_calcite_anom(k).le.c0) exit
+      end do
+      zsat_calcite = linear_root(zt(k-1:k), co3_calcite_anom(k-1:k))
+    end if
 
-       ! -------------------
-       if (k == 1) then
-          ! set to -1, i.e. depth not found yet,
-          ! if mask == .true. and surface supersaturated to -1
-          zsat_aragonite(k) = merge(-c1, c0, column_land_mask .and. CO3(k) > CO3_sat_aragonite(k))
-       else
-          zsat_aragonite(k) = zsat_aragonite(k-1)
-          if (zsat_aragonite(k) == -c1 .and. CO3(k) <= CO3_sat_aragonite(k)) then
-             zsat_aragonite(k) = zt(k-1) + (zt(k) - zt(k-1)) * &
-                  co3_aragonite_anom(k-1) / (co3_aragonite_anom(k-1) - co3_aragonite_anom(k))
-          end if
-          if (zsat_aragonite(k) == -c1 .and. column_kmt == k) then
-             zsat_aragonite(k) = zw(k)
-          end if
-       end if
-    enddo
+    if (all(co3_aragonite_anom(1:column_kmt).gt.c0)) then
+      zsat_aragonite = zw(column_kmt)
+    elseif (co3_aragonite_anom(1).le.c0) then
+      zsat_aragonite = c0
+    else
+      do k=2,column_kmt
+        if (co3_aragonite_anom(k).le.c0) exit
+      end do
+      zsat_aragonite = linear_root(zt(k-1:k), co3_aragonite_anom(k-1:k))
+    end if
+
     end associate
   end subroutine temp_calc_zsat
+
+  function linear_root(x,y)
+
+    real(kind=r8), dimension(2), intent(in) :: x,y
+    real(kind=r8) :: linear_root
+
+    real(kind=r8) :: m_inv
+
+    if (y(1)*y(2).gt.c0) then
+      print*, "MNL MNL MNL: can not find root, y-values are same sign!"
+    end if
+    if (y(2).eq.c0) then
+      linear_root = x(2)
+    else
+      m_inv = (x(2)-x(1))/(y(2)-y(1))
+      linear_root = x(1)-m_inv*y(1)
+    end if
+
+  end function linear_root
 
   !-----------------------------------------------------------------------
 
