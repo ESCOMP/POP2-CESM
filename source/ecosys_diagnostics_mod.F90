@@ -226,13 +226,18 @@ contains
 
     associate(                                                                &
               diags_2d => marbl_diags%diags_2d,                               &
-              diags_3d => marbl_diags%diags_3d                                &
+              diags_3d => marbl_diags%diags_3d,                               &
+              CO3 => carbonate%CO3,                                           &
+              CO3_sat_calcite => carbonate%CO3_sat_calcite,                   &
+              CO3_sat_aragonite => carbonate%CO3_sat_aragonite                &
               )
       ! Find depth where CO3 = CO3_sat_calcite or CO3_sat_argonite
-      call temp_calc_zsat(marbl_domain, carbonate, zt, zw,                    &
-                          zsat_calcite, zsat_aragonite)
-      diags_2d(zsatcalc_diag_ind) = zsat_calcite
-      diags_2d(zsatarag_diag_ind) = zsat_aragonite
+      diags_2d(zsatcalc_diag_ind) = compute_saturation_depth(marbl_domain,    &
+                                                           zt, zw, CO3,       &
+                                                           CO3_sat_calcite)
+      diags_2d(zsatarag_diag_ind) = compute_saturation_depth(marbl_domain,    &
+                                                           zt, zw, CO3,       &
+                                                           CO3_sat_aragonite)
 
       diags_3d(:, CO3_diag_ind) = carbonate%CO3
       diags_3d(:, HCO3_diag_ind) = carbonate%HCO3
@@ -248,52 +253,34 @@ contains
 
   end subroutine store_diagnostics_carbonate
 
-  subroutine temp_calc_zsat(marbl_domain, carbonate, zt, zw, zsat_calcite,    &
-                            zsat_aragonite)
+  function compute_saturation_depth(marbl_domain, zt, zw, CO3, sat_val)
 
     type(marbl_column_domain_type), intent(in) :: marbl_domain
-    type(carbonate_type), dimension(:), intent(in) :: carbonate
-    real(r8), dimension(:), intent(in) :: zt, zw
-    real(r8), intent(out) :: zsat_calcite, zsat_aragonite
+    real(r8), dimension(:), intent(in) :: zt, zw, CO3, sat_val
+    real(r8) :: compute_saturation_depth
 
-    real(r8) :: co3_calcite_anom(km) ! CO3 concentration above calcite saturation at k-1
-    real(r8) :: co3_aragonite_anom(km) ! CO3 concentration above aragonite saturation at k-1
+    real(r8) :: anomaly(km) ! CO3 concentration above saturation at level
     integer :: k
 
     associate(&
-              column_kmt => marbl_domain%kmt,                                 &
-              CO3 => carbonate%CO3,                                           &
-              CO3_sat_calcite => carbonate%CO3_sat_calcite,                   &
-              CO3_sat_aragonite => carbonate%CO3_sat_aragonite                &
+              column_kmt => marbl_domain%kmt                                  &
              )
-    co3_calcite_anom   = CO3 - CO3_sat_calcite
-    co3_aragonite_anom = CO3 - CO3_sat_aragonite
+      anomaly   = CO3 - sat_val
 
-
-    if (all(co3_calcite_anom(1:column_kmt).gt.c0)) then
-      zsat_calcite = zw(column_kmt)
-    elseif (co3_calcite_anom(1).le.c0) then
-      zsat_calcite = c0
-    else
-      do k=2,column_kmt
-        if (co3_calcite_anom(k).le.c0) exit
-      end do
-      zsat_calcite = linear_root(zt(k-1:k), co3_calcite_anom(k-1:k))
-    end if
-
-    if (all(co3_aragonite_anom(1:column_kmt).gt.c0)) then
-      zsat_aragonite = zw(column_kmt)
-    elseif (co3_aragonite_anom(1).le.c0) then
-      zsat_aragonite = c0
-    else
-      do k=2,column_kmt
-        if (co3_aragonite_anom(k).le.c0) exit
-      end do
-      zsat_aragonite = linear_root(zt(k-1:k), co3_aragonite_anom(k-1:k))
-    end if
-
+      if (all(anomaly(1:column_kmt).gt.c0)) then
+        compute_saturation_depth = zw(column_kmt)
+      elseif (anomaly(1).le.c0) then
+        compute_saturation_depth = c0
+      else
+        do k=2,column_kmt
+          if (anomaly(k).le.c0) exit
+        end do
+        ! saturation depth is location of root of anomaly
+        compute_saturation_depth = linear_root(zt(k-1:k), anomaly(k-1:k))
+      end if
     end associate
-  end subroutine temp_calc_zsat
+
+  end function compute_saturation_depth
 
   function linear_root(x,y)
 
