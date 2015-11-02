@@ -283,6 +283,10 @@ contains
   end function compute_saturation_depth
 
   function linear_root(x,y)
+  ! TO-DO (MNL): if we end up with a marbl_math_mod, this can be generalized
+  !              to a better root-finding routine; otherwise maybe we compute
+  !              the root inside compute_saturation_depth rather than as a
+  !              separate function?
 
     real(kind=r8), dimension(2), intent(in) :: x,y
     real(kind=r8) :: linear_root
@@ -290,6 +294,8 @@ contains
     real(kind=r8) :: m_inv
 
     if (y(1)*y(2).gt.c0) then
+      ! TO-DO (MNL): do we have a marbl_abort() routine? How do I exit if we
+      !              hit this error?
       print*, "MNL MNL MNL: can not find root, y-values are same sign!"
     end if
     if (y(2).eq.c0) then
