@@ -225,11 +225,11 @@ contains
     real(r8) :: zsat_calcite, zsat_aragonite
 
     associate(                                                                &
-              diags_2d => marbl_diags%diags_2d,                               &
-              diags_3d => marbl_diags%diags_3d,                               &
-              CO3 => carbonate%CO3,                                           &
-              CO3_sat_calcite => carbonate%CO3_sat_calcite,                   &
-              CO3_sat_aragonite => carbonate%CO3_sat_aragonite                &
+              diags_2d => marbl_diags%diags_2d(:)%field,                      &
+              diags_3d => marbl_diags%diags_3d(:),                            &
+              CO3 => carbonate(:)%CO3,                                        &
+              CO3_sat_calcite => carbonate(:)%CO3_sat_calcite,                &
+              CO3_sat_aragonite => carbonate(:)%CO3_sat_aragonite             &
               )
       ! Find depth where CO3 = CO3_sat_calcite or CO3_sat_argonite
       diags_2d(zsatcalc_diag_ind) = compute_saturation_depth(marbl_domain,    &
@@ -239,16 +239,16 @@ contains
                                                            zt, zw, CO3,       &
                                                            CO3_sat_aragonite)
 
-      diags_3d(:, CO3_diag_ind) = carbonate%CO3
-      diags_3d(:, HCO3_diag_ind) = carbonate%HCO3
-      diags_3d(:, H2CO3_diag_ind) = carbonate%H2CO3
-      diags_3d(:, pH_3D_diag_ind) = carbonate%pH
-      diags_3d(:, CO3_ALT_CO2_diag_ind) = carbonate%CO3_ALT_CO2
-      diags_3d(:, HCO3_ALT_CO2_diag_ind) = carbonate%HCO3_ALT_CO2
-      diags_3d(:, H2CO3_ALT_CO2_diag_ind) = carbonate%H2CO3_ALT_CO2
-      diags_3d(:, pH_3D_ALT_CO2_diag_ind) = carbonate%pH_ALT_CO2
-      diags_3d(:, co3_sat_calc_diag_ind) = carbonate%CO3_sat_calcite
-      diags_3d(:, co3_sat_arag_diag_ind) = carbonate%CO3_sat_aragonite
+      diags_3d(CO3_diag_ind)%field(:) = carbonate%CO3
+      diags_3d(HCO3_diag_ind)%field(:) = carbonate%HCO3
+      diags_3d(H2CO3_diag_ind)%field(:) = carbonate%H2CO3
+      diags_3d(pH_3D_diag_ind)%field(:) = carbonate%pH
+      diags_3d(CO3_ALT_CO2_diag_ind)%field(:) = carbonate%CO3_ALT_CO2
+      diags_3d(HCO3_ALT_CO2_diag_ind)%field(:) = carbonate%HCO3_ALT_CO2
+      diags_3d(H2CO3_ALT_CO2_diag_ind)%field(:) = carbonate%H2CO3_ALT_CO2
+      diags_3d(pH_3D_ALT_CO2_diag_ind)%field(:) = carbonate%pH_ALT_CO2
+      diags_3d(co3_sat_calc_diag_ind)%field(:) = carbonate%CO3_sat_calcite
+      diags_3d(co3_sat_arag_diag_ind)%field(:) = carbonate%CO3_sat_aragonite
     end associate
 
   end subroutine store_diagnostics_carbonate
@@ -315,9 +315,9 @@ contains
     real(r8), dimension(:), intent(in) :: denitrif
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
-    associate(diags_3d => marbl_diags%diags_3d)
-      diags_3d(:, NITRIF_diag_ind) = nitrif
-      diags_3d(:, DENITRIF_diag_ind) = denitrif
+    associate(diags_3d => marbl_diags%diags_3d(:))
+      diags_3d(NITRIF_diag_ind)%field(:) = nitrif
+      diags_3d(DENITRIF_diag_ind)%field(:) = denitrif
     end associate
 
   end subroutine store_diagnostics_nitrification
@@ -344,44 +344,44 @@ contains
     end if
 
     associate(&
-              auto_diags_2d => marbl_diags%auto_diags_2d,&
-              auto_diags_3d => marbl_diags%auto_diags_3d &
+              auto_diags_2d => marbl_diags%auto_diags_2d(:,:)%field,          &
+              auto_diags_3d => marbl_diags%auto_diags_3d(:,:)                 &
              )
       do n = 1, autotroph_cnt
-         auto_diags_3d(:, N_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VNtot
-         auto_diags_3d(:, Fe_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VFe
-         auto_diags_3d(:, P_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VPtot
+         auto_diags_3d(N_lim_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%VNtot
+         auto_diags_3d(Fe_lim_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%VFe
+         auto_diags_3d(P_lim_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%VPtot
 
          if (autotrophs(n)%kSiO3 > c0) then
-            auto_diags_3d(:, SiO3_lim_diag_ind, n) = autotroph_secondary_species(n,:)%VSiO3
+            auto_diags_3d(SiO3_lim_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%VSiO3
          end if
 
-         auto_diags_3d(:, light_lim_diag_ind, n) = autotroph_secondary_species(n,:)%light_lim
-         auto_diags_3d(:, photoNO3_diag_ind, n) = autotroph_secondary_species(n,:)%NO3_V
-         auto_diags_3d(:, photoNH4_diag_ind, n) = autotroph_secondary_species(n,:)%NH4_V
-         auto_diags_3d(:, PO4_uptake_diag_ind, n) = autotroph_secondary_species(n,:)%PO4_V
-         auto_diags_3d(:, DOP_uptake_diag_ind, n) = autotroph_secondary_species(n,:)%DOP_V
-         auto_diags_3d(:, photoFE_diag_ind, n) = autotroph_secondary_species(n,:)%photoFe
+         auto_diags_3d(light_lim_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%light_lim
+         auto_diags_3d(photoNO3_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%NO3_V
+         auto_diags_3d(photoNH4_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%NH4_V
+         auto_diags_3d(PO4_uptake_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%PO4_V
+         auto_diags_3d(DOP_uptake_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%DOP_V
+         auto_diags_3d(photoFE_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%photoFe
 
          if (autotrophs(n)%Si_ind > 0) then
-           auto_diags_3d(:, bSi_form_diag_ind, n) = autotroph_secondary_species(n,:)%photoSi
+           auto_diags_3d(bSi_form_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%photoSi
          endif
 
-         auto_diags_3d(:, CaCO3_form_diag_ind, n) = autotroph_secondary_species(n,:)%CaCO3_PROD
-         auto_diags_3d(:, Nfix_diag_ind, n) = autotroph_secondary_species(n,:)%Nfix
-         auto_diags_3d(:, auto_graze_diag_ind, n)      = autotroph_secondary_species(n,:)%auto_graze
-         auto_diags_3d(:, auto_graze_poc_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_poc
-         auto_diags_3d(:, auto_graze_doc_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_doc
-         auto_diags_3d(:, auto_graze_zoo_diag_ind, n)  = autotroph_secondary_species(n,:)%auto_graze_zoo
-         auto_diags_3d(:, auto_loss_diag_ind, n)       = autotroph_secondary_species(n,:)%auto_loss
-         auto_diags_3d(:, auto_loss_poc_diag_ind, n)   = autotroph_secondary_species(n,:)%auto_loss_poc
-         auto_diags_3d(:, auto_loss_doc_diag_ind, n)   = autotroph_secondary_species(n,:)%auto_loss_doc
-         auto_diags_3d(:, auto_agg_diag_ind, n)        = autotroph_secondary_species(n,:)%auto_agg
-         auto_diags_3d(:, photoC_diag_ind, n)          = autotroph_secondary_species(n,:)%photoC
+         auto_diags_3d(CaCO3_form_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%CaCO3_PROD
+         auto_diags_3d(Nfix_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%Nfix
+         auto_diags_3d(auto_graze_diag_ind, n)%field(:)      = autotroph_secondary_species(n,:)%auto_graze
+         auto_diags_3d(auto_graze_poc_diag_ind, n)%field(:)  = autotroph_secondary_species(n,:)%auto_graze_poc
+         auto_diags_3d(auto_graze_doc_diag_ind, n)%field(:)  = autotroph_secondary_species(n,:)%auto_graze_doc
+         auto_diags_3d(auto_graze_zoo_diag_ind, n)%field(:)  = autotroph_secondary_species(n,:)%auto_graze_zoo
+         auto_diags_3d(auto_loss_diag_ind, n)%field(:)       = autotroph_secondary_species(n,:)%auto_loss
+         auto_diags_3d(auto_loss_poc_diag_ind, n)%field(:)   = autotroph_secondary_species(n,:)%auto_loss_poc
+         auto_diags_3d(auto_loss_doc_diag_ind, n)%field(:)   = autotroph_secondary_species(n,:)%auto_loss_doc
+         auto_diags_3d(auto_agg_diag_ind, n)%field(:)        = autotroph_secondary_species(n,:)%auto_agg
+         auto_diags_3d(photoC_diag_ind, n)%field(:)          = autotroph_secondary_species(n,:)%photoC
 
-         auto_diags_3d(:, photoC_NO3_diag_ind, n) = c0
+         auto_diags_3d(photoC_NO3_diag_ind, n)%field(:) = c0
          where (autotroph_secondary_species(n,:)%VNtot > c0)
-           auto_diags_3d(:, photoC_NO3_diag_ind, n) =                         &
+           auto_diags_3d(photoC_NO3_diag_ind, n)%field(:) =                   &
  autotroph_secondary_species(n,:)%photoC *                                    &
  (autotroph_secondary_species(n,:)%VNO3 / autotroph_secondary_species(n,:)%VNtot)
          end where
@@ -398,8 +398,8 @@ contains
                          auto_diags_2d(photoC_zint_diag_ind, n) +             &
                          delta_z(k) * autotroph_secondary_species(n,k)%photoC
            auto_diags_2d(photoC_NO3_zint_diag_ind, n) =                       &
-                        auto_diags_2d(photoC_NO3_zint_diag_ind, n) +          &
-                        delta_z(k) * auto_diags_3d(k, photoC_NO3_diag_ind, n)
+                   auto_diags_2d(photoC_NO3_zint_diag_ind, n) +               &
+                   delta_z(k) * auto_diags_3d(photoC_NO3_diag_ind,n)%field(k)
          end do ! do k
       end do ! do n
     end associate
@@ -427,29 +427,29 @@ contains
     endif
 
     associate(                                                                &
-              diags_2d => marbl_diags%diags_2d,                               &
-              diags_3d => marbl_diags%diags_3d                                &
+              diags_2d => marbl_diags%diags_2d(:)%field,                      &
+              diags_3d => marbl_diags%diags_3d(:)                             &
               )
-      diags_3d(:, auto_graze_TOT_diag_ind) =                                  &
+      diags_3d(auto_graze_TOT_diag_ind)%field(:) =                            &
                            sum(autotroph_secondary_species%auto_graze, dim=1)
-      diags_3d(:, photoC_TOT_diag_ind) =                                      &
+      diags_3d(photoC_TOT_diag_ind)%field(:) =                                &
                            sum(autotroph_secondary_species%photoC, dim=1)
 
-      diags_3d(:, photoC_NO3_TOT_diag_ind) = c0
+      diags_3d(photoC_NO3_TOT_diag_ind)%field(:) = c0
       do n = 1, autotroph_cnt
         where (autotroph_secondary_species(n,:)%VNtot > c0)
-          diags_3d(:, photoC_NO3_TOT_diag_ind) =                          &
-                                   diags_3d(:, photoC_NO3_TOT_diag_ind) + &
-                                 (autotroph_secondary_species(n,:)%VNO3 / &
-                                autotroph_secondary_species(n,:)%VNtot) * &
-                                autotroph_secondary_species(n,:)%photoC
+          diags_3d(photoC_NO3_TOT_diag_ind)%field(:) =                        &
+                                 diags_3d(photoC_NO3_TOT_diag_ind)%field(:) + &
+                                 (autotroph_secondary_species(n,:)%VNO3 /     &
+                                 autotroph_secondary_species(n,:)%VNtot) *    &
+                                 autotroph_secondary_species(n,:)%photoC
         end where
       end do
 
       diags_2d(photoC_TOT_zint_diag_ind) = sum(                               &
                  delta_z * sum(autotroph_secondary_species%photoC, dim=1))
       diags_2d(photoC_NO3_TOT_zint_diag_ind) = sum(                           &
-                              delta_z * diags_3d(:, photoC_NO3_TOT_diag_ind))
+                          delta_z * diags_3d(photoC_NO3_TOT_diag_ind)%field)
     end associate
 
   end subroutine store_diagnostics_autotroph_sums
@@ -486,27 +486,27 @@ contains
        delta_z = marbl_domain%dz
     end if
     associate(&
-              part_diags_2d => marbl_diags%part_diags_2d,&
-              part_diags_3d => marbl_diags%part_diags_3d &
+              part_diags_2d => marbl_diags%part_diags_2d(:)%field,            &
+              part_diags_3d => marbl_diags%part_diags_3d(:)                   &
               )
-      part_diags_3d(:, POC_FLUX_IN_diag_ind) = POC%sflux_in + POC%hflux_in
-      part_diags_3d(:, POC_PROD_diag_ind) = POC%prod
-      part_diags_3d(:, POC_REMIN_diag_ind) = POC%remin
+      part_diags_3d(POC_FLUX_IN_diag_ind)%field(:) = POC%sflux_in + POC%hflux_in
+      part_diags_3d(POC_PROD_diag_ind)%field(:) = POC%prod
+      part_diags_3d(POC_REMIN_diag_ind)%field(:) = POC%remin
 
-      part_diags_3d(:, CaCO3_FLUX_IN_diag_ind) = P_CaCO3%sflux_in + P_CaCO3%hflux_in
-      part_diags_3d(:, CaCO3_PROD_diag_ind) = P_CaCO3%prod
-      part_diags_3d(:, CaCO3_REMIN_diag_ind) = P_CaCO3%remin
+      part_diags_3d(CaCO3_FLUX_IN_diag_ind)%field(:) = P_CaCO3%sflux_in + P_CaCO3%hflux_in
+      part_diags_3d(CaCO3_PROD_diag_ind)%field(:) = P_CaCO3%prod
+      part_diags_3d(CaCO3_REMIN_diag_ind)%field(:) = P_CaCO3%remin
 
-      part_diags_3d(:, SiO2_FLUX_IN_diag_ind) = P_SiO2%sflux_in + P_SiO2%hflux_in
-      part_diags_3d(:, SiO2_PROD_diag_ind) = P_SiO2%prod
-      part_diags_3d(:, SiO2_REMIN_diag_ind) = P_SiO2%remin
+      part_diags_3d(SiO2_FLUX_IN_diag_ind)%field(:) = P_SiO2%sflux_in + P_SiO2%hflux_in
+      part_diags_3d(SiO2_PROD_diag_ind)%field(:) = P_SiO2%prod
+      part_diags_3d(SiO2_REMIN_diag_ind)%field(:) = P_SiO2%remin
 
-      part_diags_3d(:, dust_FLUX_IN_diag_ind) = dust%sflux_in + dust%hflux_in
-      part_diags_3d(:, dust_REMIN_diag_ind) = P_SiO2%remin
+      part_diags_3d(dust_FLUX_IN_diag_ind)%field(:) = dust%sflux_in + dust%hflux_in
+      part_diags_3d(dust_REMIN_diag_ind)%field(:) = P_SiO2%remin
 
-      part_diags_3d(:, P_iron_FLUX_IN_diag_ind) = P_iron%sflux_in + P_iron%hflux_in
-      part_diags_3d(:, P_iron_PROD_diag_ind) = P_iron%prod
-      part_diags_3d(:, P_iron_REMIN_diag_ind) = P_iron%remin
+      part_diags_3d(P_iron_FLUX_IN_diag_ind)%field(:) = P_iron%sflux_in + P_iron%hflux_in
+      part_diags_3d(P_iron_PROD_diag_ind)%field(:) = P_iron%prod
+      part_diags_3d(P_iron_REMIN_diag_ind)%field(:) = P_iron%remin
 
       part_diags_2d(calcToSed_diag_ind) = sum(P_CaCO3%sed_loss)
       part_diags_2d(bsiToSed_diag_ind) = sum(P_SiO2%sed_loss)
@@ -540,20 +540,20 @@ contains
 
     ! Find min_o2 and depth_min_o2
     associate(                                                                &
-              diags_2d => marbl_diags%diags_2d,                               &
-              diags_3d => marbl_diags%diags_3d                                &
+              diags_2d => marbl_diags%diags_2d(:)%field,                      &
+              diags_3d => marbl_diags%diags_3d(:)                             &
               )
       min_ind = minloc(column_o2(1:marbl_domain%kmt), dim=1)
       diags_2d(O2_ZMIN_diag_ind) = column_o2(min_ind)
       diags_2d(O2_ZMIN_DEPTH_diag_ind) = column_zt(min_ind)
 
-      diags_3d(:, O2_PRODUCTION_diag_ind) = o2_production
-      diags_3d(:, O2_CONSUMPTION_diag_ind) = o2_consumption
+      diags_3d(O2_PRODUCTION_diag_ind)%field(:) = o2_production
+      diags_3d(O2_CONSUMPTION_diag_ind)%field(:) = o2_consumption
 
-      diags_3d(:, AOU_diag_ind) = -column_o2
+      diags_3d(AOU_diag_ind)%field(:) = -column_o2
       do k=1,marbl_domain%kmt
         if (marbl_domain%land_mask) then
-          diags_3d(k, AOU_diag_ind) =                                         &
+          diags_3d(AOU_diag_ind)%field(k) =                                   &
         O2SAT_scalar(marbl_domain%temperature(k), marbl_domain%salinity(k)) - &
         column_o2(k)
         end if
@@ -570,8 +570,8 @@ contains
     type(photosynthetically_available_radiation_type), dimension(:), intent(in) :: PAR
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
-    associate(diags_3d => marbl_diags%diags_3d)
-      diags_3d(:, PAR_avg_diag_ind) = PAR%avg
+    associate(diags_3d => marbl_diags%diags_3d(:))
+      diags_3d(PAR_avg_diag_ind)%field(:) = PAR%avg
     end associate
 
   end subroutine store_diagnostics_photosynthetically_available_radiation
@@ -593,16 +593,16 @@ contains
 
     integer(int_kind) :: n
 
-    associate(zoo_diags_3d => marbl_diags%zoo_diags_3d)
+    associate(zoo_diags_3d => marbl_diags%zoo_diags_3d(:,:))
       do n = 1, zooplankton_cnt
-        zoo_diags_3d(:, zoo_loss_diag_ind, n)       = zooplankton_secondary_species(n,:)%zoo_loss
-        zoo_diags_3d(:, zoo_loss_poc_diag_ind, n)   = zooplankton_secondary_species(n,:)%zoo_loss_poc
-        zoo_diags_3d(:, zoo_loss_doc_diag_ind, n)   = zooplankton_secondary_species(n,:)%zoo_loss_doc
-        zoo_diags_3d(:, zoo_graze_diag_ind, n)      = zooplankton_secondary_species(n,:)%zoo_graze
-        zoo_diags_3d(:, zoo_graze_poc_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_poc
-        zoo_diags_3d(:, zoo_graze_doc_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_doc
-        zoo_diags_3d(:, zoo_graze_zoo_diag_ind, n)  = zooplankton_secondary_species(n,:)%zoo_graze_zoo
-        zoo_diags_3d(:, x_graze_zoo_diag_ind, n)    = zooplankton_secondary_species(n,:)%x_graze_zoo
+        zoo_diags_3d(zoo_loss_diag_ind, n)%field(:)       = zooplankton_secondary_species(n,:)%zoo_loss
+        zoo_diags_3d(zoo_loss_poc_diag_ind, n)%field(:)   = zooplankton_secondary_species(n,:)%zoo_loss_poc
+        zoo_diags_3d(zoo_loss_doc_diag_ind, n)%field(:)   = zooplankton_secondary_species(n,:)%zoo_loss_doc
+        zoo_diags_3d(zoo_graze_diag_ind, n)%field(:)      = zooplankton_secondary_species(n,:)%zoo_graze
+        zoo_diags_3d(zoo_graze_poc_diag_ind, n)%field(:)  = zooplankton_secondary_species(n,:)%zoo_graze_poc
+        zoo_diags_3d(zoo_graze_doc_diag_ind, n)%field(:)  = zooplankton_secondary_species(n,:)%zoo_graze_doc
+        zoo_diags_3d(zoo_graze_zoo_diag_ind, n)%field(:)  = zooplankton_secondary_species(n,:)%zoo_graze_zoo
+        zoo_diags_3d(x_graze_zoo_diag_ind, n)%field(:)    = zooplankton_secondary_species(n,:)%x_graze_zoo
       end do
     end associate
 
@@ -618,17 +618,17 @@ contains
     real(r8), dimension(:), intent(in) :: fe_scavenge, fe_scavenge_rate
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
-    associate(diags_3d => marbl_diags%diags_3d)
-      diags_3d(:, DOC_prod_diag_ind)         = dissolved_organic_matter%DOC_prod
-      diags_3d(:, DOC_remin_diag_ind)        = dissolved_organic_matter%DOC_remin
-      diags_3d(:, DON_prod_diag_ind)         = dissolved_organic_matter%DON_prod
-      diags_3d(:, DON_remin_diag_ind)        = dissolved_organic_matter%DON_remin
-      diags_3d(:, DOP_prod_diag_ind)         = dissolved_organic_matter%DOP_prod
-      diags_3d(:, DOP_remin_diag_ind)        = dissolved_organic_matter%DOP_remin
-      diags_3d(:, DOFe_prod_diag_ind)        = dissolved_organic_matter%DOFe_prod
-      diags_3d(:, DOFe_remin_diag_ind)       = dissolved_organic_matter%DOFe_remin
-      diags_3d(:, Fe_scavenge_diag_ind)      = Fe_scavenge
-      diags_3d(:, Fe_scavenge_rate_diag_ind) = Fe_scavenge_rate
+    associate(diags_3d => marbl_diags%diags_3d(:))
+      diags_3d(DOC_prod_diag_ind)%field(:)         = dissolved_organic_matter%DOC_prod
+      diags_3d(DOC_remin_diag_ind)%field(:)        = dissolved_organic_matter%DOC_remin
+      diags_3d(DON_prod_diag_ind)%field(:)         = dissolved_organic_matter%DON_prod
+      diags_3d(DON_remin_diag_ind)%field(:)        = dissolved_organic_matter%DON_remin
+      diags_3d(DOP_prod_diag_ind)%field(:)         = dissolved_organic_matter%DOP_prod
+      diags_3d(DOP_remin_diag_ind)%field(:)        = dissolved_organic_matter%DOP_remin
+      diags_3d(DOFe_prod_diag_ind)%field(:)        = dissolved_organic_matter%DOFe_prod
+      diags_3d(DOFe_remin_diag_ind)%field(:)       = dissolved_organic_matter%DOFe_remin
+      diags_3d(Fe_scavenge_diag_ind)%field(:)      = Fe_scavenge
+      diags_3d(Fe_scavenge_rate_diag_ind)%field(:) = Fe_scavenge_rate
     end associate
 
   end subroutine store_diagnostics_dissolved_organic_matter
@@ -658,7 +658,7 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(diags_2d => marbl_diags%diags_2d)
+    associate(diags_2d => marbl_diags%diags_2d(:)%field)
       ! vertical integrals
       diags_2d(Jint_Ctot_diag_ind) = c0
       diags_2d(Jint_100m_Ctot_diag_ind) = c0
@@ -723,7 +723,7 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(diags_2d => marbl_diags%diags_2d)
+    associate(diags_2d => marbl_diags%diags_2d(:)%field)
       ! vertical integrals
       diags_2d(Jint_Ntot_diag_ind) = c0
       diags_2d(Jint_100m_Ntot_diag_ind) = c0
@@ -788,7 +788,7 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(diags_2d => marbl_diags%diags_2d)
+    associate(diags_2d => marbl_diags%diags_2d(:)%field)
       ! vertical integrals
       diags_2d(Jint_Ptot_diag_ind) = c0
       diags_2d(Jint_100m_Ptot_diag_ind) = c0
@@ -846,7 +846,7 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(diags_2d => marbl_diags%diags_2d)
+    associate(diags_2d => marbl_diags%diags_2d(:)%field)
       ! vertical integrals
       diags_2d(Jint_Sitot_diag_ind) = c0
       diags_2d(Jint_100m_Sitot_diag_ind) = c0

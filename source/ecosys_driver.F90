@@ -386,7 +386,7 @@ contains
 
     ! initialize ecosys_diagnostics type
     do bid=1,nblocks_clinic
-      call marbl_diagnostics(bid)%construct(km, ecosys_diag_cnt_2d,           &
+      call marbl_diagnostics(bid)%construct(ecosys_diag_cnt_2d,               &
                       ecosys_diag_cnt_3d, auto_diag_cnt_2d, auto_diag_cnt_3d, &
                       zoo_diag_cnt_2d, zoo_diag_cnt_3d, part_diag_cnt_2d,     &
                       part_diag_cnt_3d, ecosys_tracer_cnt, autotroph_cnt,     &

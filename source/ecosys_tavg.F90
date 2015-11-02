@@ -1186,15 +1186,15 @@ contains
     logical :: accumulate
 
     associate(                                                                &
-              DIAGS_2D      => marbl_diagnostics%diags_2d,                    &
-              DIAGS_3D      => marbl_diagnostics%diags_3d,                    &
-              AUTO_DIAGS_2D => marbl_diagnostics%auto_diags_2d,               &
-              AUTO_DIAGS_3D => marbl_diagnostics%auto_diags_3d,               &
-              ZOO_DIAGS_2D  => marbl_diagnostics%zoo_diags_2d,                &
-              ZOO_DIAGS_3D  => marbl_diagnostics%zoo_diags_3d,                &
-              PART_DIAGS_2D => marbl_diagnostics%part_diags_2d,               &
-              PART_DIAGS_3D => marbl_diagnostics%part_diags_3d,               &
-              restore_diags => marbl_diagnostics%restore_diags                &
+              DIAGS_2D      => marbl_diagnostics%diags_2d(:)%field,           &
+              DIAGS_3D      => marbl_diagnostics%diags_3d(:),                 &
+              AUTO_DIAGS_2D => marbl_diagnostics%auto_diags_2d(:,:)%field,    &
+              AUTO_DIAGS_3D => marbl_diagnostics%auto_diags_3d(:,:),          &
+              ZOO_DIAGS_2D  => marbl_diagnostics%zoo_diags_2d(:,:)%field,     &
+              ZOO_DIAGS_3D  => marbl_diagnostics%zoo_diags_3d(:,:),           &
+              PART_DIAGS_2D => marbl_diagnostics%part_diags_2d(:)%field,      &
+              PART_DIAGS_3D => marbl_diagnostics%part_diags_3d(:),            &
+              restore_diags => marbl_diagnostics%restore_diags(:)             &
              )
 
     ! Accumulate general diagnostics
@@ -1205,7 +1205,7 @@ contains
 
     ! 3D
     do n=1,ecosys_diag_cnt_3d
-      call accumulate_tavg_field(DIAGS_3D(:,n),tavg_ecosys_3d(n),bid,i,c)
+      call accumulate_tavg_field(DIAGS_3D(n)%field(:),tavg_ecosys_3d(n),bid,i,c)
     end do
 
     ! Accumulate autotroph terms
@@ -1237,22 +1237,22 @@ contains
           case (bSi_form_diag_ind)
             accumulate = (autotrophs(auto_ind)%Si_ind.gt.0)
             if ( accumulate) &
-              call accumulate_tavg_field(AUTO_DIAGS_3D(:,n,auto_ind),         &
+              call accumulate_tavg_field(AUTO_DIAGS_3D(n,auto_ind)%field(:),  &
                                      tavg_tot_bSi_form, bid, i, c)
           case (CaCO3_form_diag_ind) 
             accumulate = (autotrophs(auto_ind)%imp_calcifier)
             if (accumulate) &
-              call accumulate_tavg_field(AUTO_DIAGS_3D(:,n,auto_ind),         &
+              call accumulate_tavg_field(AUTO_DIAGS_3D(n,auto_ind)%field(:),  &
                                      tavg_tot_CaCO3_form, bid, i, c)
           case (Nfix_diag_ind)
             accumulate = (autotrophs(auto_ind)%Nfixer)
             if (accumulate) &
-              call accumulate_tavg_field(AUTO_DIAGS_3D(:,n,auto_ind),         &
+              call accumulate_tavg_field(AUTO_DIAGS_3D(n,auto_ind)%field(:),  &
                                      tavg_tot_Nfix, bid, i, c)
         end select
 
         if (accumulate) &
-            call accumulate_tavg_field(AUTO_DIAGS_3D(:,n,auto_ind),           &
+            call accumulate_tavg_field(AUTO_DIAGS_3D(n,auto_ind)%field(:),    &
                                        tavg_auto_3d(n,auto_ind), bid, i, c)
       end do
      end do
@@ -1261,7 +1261,7 @@ contains
     ! 3D
     do n=1,zoo_diag_cnt_3d
       do zoo_ind=1,zooplankton_cnt
-        call accumulate_tavg_field(ZOO_DIAGS_3d(:,n,zoo_ind),                  &
+        call accumulate_tavg_field(ZOO_DIAGS_3d(n,zoo_ind)%field(:),           &
                                    tavg_zoo_3d(n,zoo_ind), bid, i, c)
       end do
     end do
@@ -1274,10 +1274,11 @@ contains
 
     ! 3D
     do n=1,part_diag_cnt_3d
-      call accumulate_tavg_field(PART_DIAGS_3D(:,n), tavg_part_3d(n), bid, i, c)
+      call accumulate_tavg_field(PART_DIAGS_3D(n)%field(:), tavg_part_3d(n),  &
+                                 bid, i, c)
     end do
 
-    call ecosys_restore%accumulate_tavg(restore_diags, bid, i, c)
+!    call ecosys_restore%accumulate_tavg(restore_diags, bid, i, c)
 
     end associate
 

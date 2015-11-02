@@ -1,8 +1,10 @@
 module marbl_interface_types
   ! module for definitions of types that are shared between marbl interior and the driver.
 
-  use marbl_kinds_mod, only : c0, r8, log_kind, int_kind
+  use marbl_kinds_mod, only : c0, r8, log_kind, int_kind, char_len
   use marbl_interface_constants, only : marbl_str_length
+
+  use domain_size, only : km
 
   implicit none
 
@@ -39,19 +41,46 @@ module marbl_interface_types
   ! etc from marbl back to the driver. The driver is responsible for
   ! sizing these arrays correctly according to the size of the domain
   ! and tracer count returned by marbl.
+  type :: marbl_diagnostic_metadata_type
+    character(len=char_len) :: long_name
+    character(len=char_len) :: short_name
+  end type marbl_diagnostic_metadata_type
+
+  type, extends(marbl_diagnostic_metadata_type) :: marbl_2D_diagnostic_type
+    real(r8) :: field
+  end type marbl_2D_diagnostic_type
+
+  type, extends(marbl_diagnostic_metadata_type) :: marbl_3D_diagnostic_type
+    real(r8), dimension(km) :: field
+  end type marbl_3D_diagnostic_type
+
   type, public :: marbl_diagnostics_type
-     real(r8), allocatable :: diags_2d(:)            ! (ecosys_diag_cnt_2d)
-     real(r8), allocatable :: diags_3d(:, :)         ! (km, ecosys_diag_cnt_3d)
-     real(r8), allocatable :: auto_diags_2d(:, :)    ! (auto_diag_cnt_2d, autotroph_cnt)
-     real(r8), allocatable :: auto_diags_3d(:, :, :) ! (km, auto_diag_cnt_3d, autotroph_cnt)
-     real(r8), allocatable :: zoo_diags_2d(:, :)     ! (zoo_diag_cnt_2d, zooplankton_cnt)
-     real(r8), allocatable :: zoo_diags_3d(:, :, :)  ! (km, zoo_diag_cnt_3d, zooplankton_cnt)
-     real(r8), allocatable :: part_diags_2d(:)       ! (part_diag_cnt_2d)
-     real(r8), allocatable :: part_diags_3d(:, :)    ! (km, part_diag_cnt_3d)
-     real(r8), allocatable :: restore_diags(:, :)    ! (km, ecosys_tracer_cnt)
+     ! (ecosys_diag_cnt_2d)
+     type(marbl_2D_diagnostic_type), dimension(:), allocatable :: diags_2d
+     ! (ecosys_diag_cnt_3d)
+     type(marbl_3D_diagnostic_type), dimension(:), allocatable :: diags_3d
+
+     ! (auto_diag_cnt_2d, autotroph_cnt)
+     type(marbl_2D_diagnostic_type), dimension(:,:), allocatable :: auto_diags_2d
+     ! (auto_diag_cnt_3d, autotroph_cnt)
+     type(marbl_3D_diagnostic_type), dimension(:,:), allocatable :: auto_diags_3d
+
+     ! (zoo_diag_cnt_2d, zooplankton_cnt)
+     type(marbl_2D_diagnostic_type), dimension(:,:), allocatable :: zoo_diags_2d
+     ! (zoo_diag_cnt_3d, zooplankton_cnt)
+     type(marbl_3D_diagnostic_type), dimension(:,:), allocatable :: zoo_diags_3d
+
+     ! (part_diag_cnt_2d)
+     type(marbl_2D_diagnostic_type), dimension(:), allocatable :: part_diags_2d
+     ! (part_diag_cnt_3d)
+     type(marbl_3D_diagnostic_type), dimension(:), allocatable :: part_diags_3d
+
+     ! (km, ecosys_tracer_cnt)
+     type(marbl_3D_diagnostic_type), dimension(:), allocatable :: restore_diags
 
   contains
     procedure, public :: construct   => marbl_diagnostics_constructor
+    procedure, public :: initialize  => marbl_diagnostics_init
     procedure, public :: set_to_zero => marbl_diagnostics_set_to_zero
     procedure, public :: deconstruct => marbl_diagnostics_deconstructor
   end type marbl_diagnostics_type
@@ -153,14 +182,13 @@ module marbl_interface_types
 
 contains
 
-  subroutine marbl_diagnostics_constructor(this, km, ecosys_diag_cnt_2d,      &
+  subroutine marbl_diagnostics_constructor(this, ecosys_diag_cnt_2d,          &
                       ecosys_diag_cnt_3d, auto_diag_cnt_2d, auto_diag_cnt_3d, &
                       zoo_diag_cnt_2d, zoo_diag_cnt_3d, part_diag_cnt_2d,     &
                       part_diag_cnt_3d, ecosys_tracer_cnt, autotroph_cnt,     &
                       zooplankton_cnt)
 
     class(marbl_diagnostics_type), intent(inout) :: this
-    integer, intent(in) :: km
     integer, intent(in) :: ecosys_diag_cnt_2d, ecosys_diag_cnt_3d,            &
                            auto_diag_cnt_2d, auto_diag_cnt_3d,                &
                            zoo_diag_cnt_2d, zoo_diag_cnt_3d,                  &
@@ -168,32 +196,68 @@ contains
     integer, intent(in) :: ecosys_tracer_cnt, autotroph_cnt, zooplankton_cnt
 
     allocate(this%diags_2d(ecosys_diag_cnt_2d))
-    allocate(this%diags_3d(km, ecosys_diag_cnt_3d))
+    allocate(this%diags_3d(ecosys_diag_cnt_3d))
     allocate(this%auto_diags_2d(auto_diag_cnt_2d, autotroph_cnt))
-    allocate(this%auto_diags_3d(km, auto_diag_cnt_3d, autotroph_cnt))
+    allocate(this%auto_diags_3d(auto_diag_cnt_3d, autotroph_cnt))
     allocate(this%zoo_diags_2d(zoo_diag_cnt_2d, zooplankton_cnt))
-    allocate(this%zoo_diags_3d(km, zoo_diag_cnt_3d, zooplankton_cnt))
+    allocate(this%zoo_diags_3d(zoo_diag_cnt_3d, zooplankton_cnt))
     allocate(this%part_diags_2d(part_diag_cnt_2d))
-    allocate(this%part_diags_3d(km, part_diag_cnt_3d))
-    allocate(this%restore_diags(km, ecosys_tracer_cnt))
+    allocate(this%part_diags_3d(part_diag_cnt_3d))
+    allocate(this%restore_diags(ecosys_tracer_cnt))
+
+    call this%initialize()
+
+  end subroutine marbl_diagnostics_constructor
+
+  subroutine marbl_diagnostics_init(this)
+
+    class(marbl_diagnostics_type), intent(inout) :: this
 
     call this%set_to_zero()
 
-  end subroutine marbl_diagnostics_constructor
+  end subroutine marbl_diagnostics_init
 
   subroutine marbl_diagnostics_set_to_zero(this)
 
     class(marbl_diagnostics_type), intent(inout) :: this
 
-    this%diags_2d = c0
-    this%diags_3d = c0
-    this%auto_diags_2d = c0
-    this%auto_diags_3d = c0
-    this%zoo_diags_2d= c0
-    this%zoo_diags_3d= c0
-    this%part_diags_2d = c0
-    this%part_diags_3d = c0
-    this%restore_diags = c0
+    integer :: m,n
+
+    do n=1,size(this%diags_2d) ! ecosys_diag_cnt_2d
+      this%diags_2d(n)%field = c0
+    end do
+    do n=1,size(this%diags_3d) ! ecosys_diag_cnt_3d
+      this%diags_3d(n)%field(:) = c0
+    end do
+
+    do n=1,size(this%auto_diags_2d,dim=2)   ! autotroph_cnt
+      do m=1,size(this%auto_diags_2d,dim=1) !auto_diag_cnt_2d
+        this%auto_diags_2d(m,n)%field = c0
+      end do
+      do m=1,size(this%auto_diags_3d,dim=1) !auto_diag_cnt_3d
+        this%auto_diags_3d(m,n)%field(:) = c0
+      end do
+    end do
+
+    do n=1,size(this%zoo_diags_2d,dim=2)   ! zooplankton_cnt
+      do m=1,size(this%zoo_diags_2d,dim=1) !zoo_diag_cnt_2d
+        this%zoo_diags_2d(m,n)%field = c0
+      end do
+      do m=1,size(this%zoo_diags_3d,dim=1) !zoo_diag_cnt_3d
+        this%zoo_diags_3d(m,n)%field(:) = c0
+      end do
+    end do
+
+    do n=1,size(this%part_diags_2d) ! part_diag_cnt_2d
+      this%part_diags_2d(n)%field = c0
+    end do
+    do n=1,size(this%part_diags_3d) ! part_diag_cnt_3d
+      this%part_diags_3d(n)%field(:) = c0
+    end do
+
+    do n=1,size(this%restore_diags) ! ecosys_tracer_cnt
+      this%restore_diags(n)%field(:) = c0
+    end do
 
   end subroutine marbl_diagnostics_set_to_zero
 

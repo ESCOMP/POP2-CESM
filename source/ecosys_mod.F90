@@ -1897,8 +1897,8 @@ contains
                                                 marbl_diagnostics)
 
           do k = 1, domain%km
-             ! store_diagnostics_restore (transpose restore_local!)
-             marbl_diagnostics%restore_diags(k, :) = restore_local(:, k)
+             ! store_diagnostics_restore
+             marbl_diagnostics%restore_diags(:)%field(k) = restore_local(:, k)
           end do
 
           end associate
