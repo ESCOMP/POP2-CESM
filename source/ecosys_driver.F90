@@ -54,14 +54,7 @@ module ecosys_driver
 
   use ecosys_constants, only : ecosys_tracer_cnt
 
-  use ecosys_diagnostics_mod, only : ecosys_diag_cnt_2d
-  use ecosys_diagnostics_mod, only : ecosys_diag_cnt_3d
-  use ecosys_diagnostics_mod, only : auto_diag_cnt_2d
-  use ecosys_diagnostics_mod, only : auto_diag_cnt_3d
-  use ecosys_diagnostics_mod, only : zoo_diag_cnt_2d
-  use ecosys_diagnostics_mod, only : zoo_diag_cnt_3d
-  use ecosys_diagnostics_mod, only : part_diag_cnt_2d
-  use ecosys_diagnostics_mod, only : part_diag_cnt_3d
+  use ecosys_diagnostics_mod, only : ecosys_diagnostics_init
   use ecosys_diagnostics_mod, only : forcing_diag_cnt
 
   use ecosys_tavg, only : ecosys_tavg_init
@@ -386,11 +379,7 @@ contains
 
     ! initialize ecosys_diagnostics type
     do bid=1,nblocks_clinic
-      call marbl_diagnostics(bid)%construct(ecosys_diag_cnt_2d,               &
-                      ecosys_diag_cnt_3d, auto_diag_cnt_2d, auto_diag_cnt_3d, &
-                      zoo_diag_cnt_2d, zoo_diag_cnt_3d, part_diag_cnt_2d,     &
-                      part_diag_cnt_3d, ecosys_tracer_cnt, autotroph_cnt,     &
-                      zooplankton_cnt)
+      call ecosys_diagnostics_init(marbl_diagnostics(bid))
     end do
 
 
@@ -440,7 +429,8 @@ contains
             'ERROR in ecosys_driver_init: ecosys_init returned status: "'//marbl_status%message//'"')
     end if
 
-    call ecosys_tavg_init(ecosys_restore)
+    ! Only set up tavg files from first block?
+    call ecosys_tavg_init(marbl_diagnostics(1), ecosys_restore)
 
     if (errorCode /= POP_Success) then
        call POP_ErrorSet(errorCode, 'init_ecosys_driver: error in ecosys_init')

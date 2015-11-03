@@ -214,6 +214,100 @@ module ecosys_diagnostics_mod
 
 contains
 
+  subroutine ecosys_diagnostics_init(marbl_diags)
+
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
+
+    integer :: n
+
+    ! Allocate memory in marbl_diagnostics_type
+    call marbl_diags%construct(ecosys_diag_cnt_2d, ecosys_diag_cnt_3d,        &
+                               auto_diag_cnt_2d, auto_diag_cnt_3d,            &
+                               zoo_diag_cnt_2d, zoo_diag_cnt_3d,              &
+                               part_diag_cnt_2d, part_diag_cnt_3d,            &
+                               ecosys_tracer_cnt, autotroph_cnt,              &
+                               zooplankton_cnt)
+
+    ! Setup meta-data
+    associate(                                                                &
+              diags_2d      => marbl_diags%diags_2d(:),                       &
+              diags_3d      => marbl_diags%diags_3d(:),                       &
+              auto_diags_2d => marbl_diags%auto_diags_2d(:,:),                &
+              auto_diags_3d => marbl_diags%auto_diags_3d(:,:),                &
+              zoo_diags_2d  => marbl_diags%zoo_diags_2d(:,:),                 &
+              zoo_diags_3d  => marbl_diags%zoo_diags_3d(:,:),                 &
+              part_diags_2d => marbl_diags%part_diags_2d(:),                  &
+              part_diags_3d => marbl_diags%part_diags_3d(:),                  &
+              restore_diags => marbl_diags%restore_diags(:)                   &
+             )
+    do n=1,ecosys_diag_cnt_2d
+      diags_2d(n)%compute_now = .true.
+      select case (n)
+        case (zsatcalc_diag_ind)
+          diags_2d(n)%long_name = 'Calcite Saturation Depth'
+          diags_2d(n)%short_name = 'zsatcalc'
+          diags_2d(n)%units = 'cm'
+        case (zsatarag_diag_ind)
+          diags_2d(n)%long_name = 'Aragonite Saturation Depth'
+          diags_2d(n)%short_name = 'zsatarag'
+          diags_2d(n)%units = 'cm'
+        case (O2_ZMIN_diag_ind)
+          diags_2d(n)%long_name = 'Vertical Minimum of O2'
+          diags_2d(n)%short_name = 'O2_ZMIN'
+          diags_2d(n)%units = 'mmol/m^3'
+        case (O2_ZMIN_DEPTH_diag_ind)
+          diags_2d(n)%long_name = 'Depth of Vertical Minimum of O2'
+          diags_2d(n)%short_name = 'O2_ZMIN_DEPTH'
+          diags_2d(n)%units = 'cm'
+        case (photoC_TOT_zint_diag_ind)
+          diags_2d(n)%long_name = 'Total C Fixation Vertical Integral'
+          diags_2d(n)%short_name = 'photoC_TOT_zint'
+          diags_2d(n)%units = 'mmol/m^3 cm/s'
+        case (photoC_NO3_TOT_zint_diag_ind)
+          diags_2d(n)%long_name = 'Total C Fixation from NO3 Vertical Integral'
+          diags_2d(n)%short_name = 'photoC_NO3_TOT_zint'
+          diags_2d(n)%units = 'mmol/m^3 cm/s'
+        case (Jint_Ctot_diag_ind)
+          diags_2d(n)%long_name = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ctot'
+          diags_2d(n)%short_name = 'Jint_Ctot'
+          diags_2d(n)%units = 'mmol/m^3 cm/s'
+        case (Jint_100m_Ctot_diag_ind)
+          diags_2d(n)%long_name = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ctot, 0-100m'
+          diags_2d(n)%short_name = 'Jint_100m_Ctot'
+          diags_2d(n)%units = 'mmol/m^3 cm/s'
+        case (Jint_Ntot_diag_ind)
+          diags_2d(n)%long_name = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ntot'
+          diags_2d(n)%short_name = 'Jint_Ntot'
+          diags_2d(n)%units = 'mmol/m^3 cm/s'
+        case (Jint_100m_Ntot_diag_ind)
+          diags_2d(n)%long_name = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ntot, 0-100m'
+          diags_2d(n)%short_name = 'Jint_100m_Ntot'
+          diags_2d(n)%units = 'mmol/m^3 cm/s'
+        case (Jint_Ptot_diag_ind)
+          diags_2d(n)%long_name = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ptot'
+          diags_2d(n)%short_name = 'Jint_Ptot'
+          diags_2d(n)%units = 'mmol/m^3 cm/s'
+        case (Jint_100m_Ptot_diag_ind)
+          diags_2d(n)%long_name = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ptot, 0-100m'
+          diags_2d(n)%short_name = 'Jint_100m_Ptot'
+          diags_2d(n)%units = 'mmol/m^3 cm/s'
+        case (Jint_Sitot_diag_ind)
+          diags_2d(n)%long_name = 'Vertical Integral of Conservative Subterms of Source Sink Term for Sitot'
+          diags_2d(n)%short_name = 'Jint_Sitot'
+          diags_2d(n)%units = 'mmol/m^3 cm/s'
+        case (Jint_100m_Sitot_diag_ind)
+          diags_2d(n)%long_name = 'Vertical Integral of Conservative Subterms of Source Sink Term for Sitot, 0-100m'
+          diags_2d(n)%short_name = 'Jint_100m_Sitot'
+          diags_2d(n)%units = 'mmol/m^3 cm/s'
+        case DEFAULT
+          print*, "ERROR in ecosys_diagnostics_init():"
+          print*, n, " is not a valid index for marbl_diags%diags_2d"
+      end select
+    end do
+    end associate
+
+  end subroutine ecosys_diagnostics_init
+
   subroutine store_diagnostics_carbonate(marbl_domain, carbonate, zt, zw,     &
                                          marbl_diags)
 

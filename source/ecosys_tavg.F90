@@ -271,7 +271,7 @@
 
 contains
 
-  subroutine ecosys_tavg_init(ecosys_restore)
+  subroutine ecosys_tavg_init(marbl_diags, ecosys_restore)
 ! !DESCRIPTION:
 !  call define_tavg_field for all tavg fields
 !
@@ -280,6 +280,7 @@ contains
 !
     use ecosys_restore_mod, only : ecosys_restore_type
 
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
     type(ecosys_restore_type), intent(inout) :: ecosys_restore
 !-----------------------------------------------------------------------
 !  local variables
@@ -292,11 +293,23 @@ contains
       zoo_ind           ! zooplankton functional group index
 
     character(char_len) :: sname             ! short-name of tavg variable
+    integer(int_kind) :: n
 
 !-----------------------------------------------------------------------
 !   Define tavg fields for surface flux terms
 !-----------------------------------------------------------------------
 
+    associate(                                                                &
+              diags_2d      => marbl_diags%diags_2d(:),                       &
+              diags_3d      => marbl_diags%diags_3d(:),                       &
+              auto_diags_2d => marbl_diags%auto_diags_2d(:,:),                &
+              auto_diags_3d => marbl_diags%auto_diags_3d(:,:),                &
+              zoo_diags_2d  => marbl_diags%zoo_diags_2d(:,:),                 &
+              zoo_diags_3d  => marbl_diags%zoo_diags_3d(:,:),                 &
+              part_diags_2d => marbl_diags%part_diags_2d(:),                  &
+              part_diags_3d => marbl_diags%part_diags_3d(:),                  &
+              restore_diags => marbl_diags%restore_diags(:)                   &
+             )
     call define_tavg_field(tavg_forcing(ECOSYS_IFRAC_diag_ind),         &
                            'ECOSYS_IFRAC',2,                            &
                            long_name='Ice Fraction for ecosys fluxes',  &
@@ -538,78 +551,12 @@ contains
 !   surface flux terms, and particulate terms
 !-----------------------------------------------------------------------
 
-    call define_tavg_field(tavg_ecosys_2d(zsatcalc_diag_ind),'zsatcalc',2, &
-                           long_name='Calcite Saturation Depth',        &
-                           units='cm', grid_loc='2110',                 &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_ecosys_2d(zsatarag_diag_ind),'zsatarag',2, &
-                           long_name='Aragonite Saturation Depth',      &
-                           units='cm', grid_loc='2110',                 &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_ecosys_2d(O2_ZMIN_diag_ind),'O2_ZMIN',2,   &
-                           long_name='Vertical Minimum of O2',          &
-                           units='mmol/m^3', grid_loc='2110',           &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_ecosys_2d(O2_ZMIN_DEPTH_diag_ind),'O2_ZMIN_DEPTH',2, &
-                           long_name='Depth of Vertical Minimum of O2',           &
-                           units='cm', grid_loc='2110',                           &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_ecosys_2d(photoC_TOT_zint_diag_ind),'photoC_TOT_zint',2, &
-                           long_name='Total C Fixation Vertical Integral',            &
-                           units='mmol/m^3 cm/s', grid_loc='2110',                    &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_ecosys_2d(photoC_NO3_TOT_zint_diag_ind),'photoC_NO3_TOT_zint',2,&
-                           long_name='Total C Fixation from NO3 Vertical Integral',&
-                           units='mmol/m^3 cm/s', grid_loc='2110',      &
-                           coordinates='TLONG TLAT time')
-
-    !-----------------------------------------------------------------------
-    !  Define tavg for fields related to conservation of total C, N, P, Si
-    !-----------------------------------------------------------------------
-    call define_tavg_field(tavg_ecosys_2d(Jint_Ctot_diag_ind),'Jint_Ctot',2, &
-                           long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ctot', &
-                           units='mmol/m^3 cm/s', grid_loc='2110',        &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_ecosys_2d(Jint_100m_Ctot_diag_ind),'Jint_100m_Ctot',2, &
-                           long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ctot, 0-100m', &
-                           units='mmol/m^3 cm/s', grid_loc='2110',      &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_ecosys_2d(Jint_Ntot_diag_ind),'Jint_Ntot',2, &
-                           long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ntot', &
-                           units='mmol/m^3 cm/s', grid_loc='2110',        &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_ecosys_2d(Jint_100m_Ntot_diag_ind),'Jint_100m_Ntot',2, &
-                           long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ntot, 0-100m', &
-                           units='mmol/m^3 cm/s', grid_loc='2110',      &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_ecosys_2d(Jint_Ptot_diag_ind),'Jint_Ptot',2, &
-                           long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ptot', &
-                           units='mmol/m^3 cm/s', grid_loc='2110',      &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_ecosys_2d(Jint_100m_Ptot_diag_ind),'Jint_100m_Ptot',2, &
-                           long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Ptot, 0-100m', &
-                           units='mmol/m^3 cm/s', grid_loc='2110',      &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_ecosys_2d(Jint_Sitot_diag_ind),'Jint_Sitot',2, &
-                           long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Sitot', &
-                           units='mmol/m^3 cm/s', grid_loc='2110',      &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_ecosys_2d(Jint_100m_Sitot_diag_ind),'Jint_100m_Sitot',2, &
-                           long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Sitot, 0-100m', &
-                           units='mmol/m^3 cm/s', grid_loc='2110',      &
-                           coordinates='TLONG TLAT time')
+    do n=1,ecosys_diag_cnt_2d
+      call define_tavg_field(tavg_ecosys_2d(n), trim(diags_2d(n)%short_name), &
+                            2, long_name=trim(diags_2d(n)%long_name),         &
+                            units=trim(diags_2d(n)%units),                    &
+                            grid_loc='2110', coordinates='TLONG TLAT time')
+    end do
 
 !-----------------------------------------------------------------------
 !   Define 3D tavg fields for everything but zooplankton, autotrophs,
@@ -1167,6 +1114,7 @@ contains
                            coordinates='TLONG TLAT z_t time')
 
     call ecosys_restore%define_tavg_fields()
+    end associate
 
 !-----------------------------------------------------------------------
 !EOC

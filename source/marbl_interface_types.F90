@@ -44,6 +44,8 @@ module marbl_interface_types
   type :: marbl_diagnostic_metadata_type
     character(len=char_len) :: long_name
     character(len=char_len) :: short_name
+    character(len=char_len) :: units
+    logical(log_kind) :: compute_now
   end type marbl_diagnostic_metadata_type
 
   type, extends(marbl_diagnostic_metadata_type) :: marbl_2D_diagnostic_type
@@ -51,6 +53,8 @@ module marbl_interface_types
   end type marbl_2D_diagnostic_type
 
   type, extends(marbl_diagnostic_metadata_type) :: marbl_3D_diagnostic_type
+    character(len=char_len) :: vertical_grid ! 'layer_avg', 'layer_iface'
+    logical(log_kind) :: ltruncated_vertical_extent
     real(r8), dimension(km) :: field
   end type marbl_3D_diagnostic_type
 
