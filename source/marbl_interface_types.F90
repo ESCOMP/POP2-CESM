@@ -15,10 +15,13 @@ module marbl_interface_types
 
   type, public :: marbl_column_domain_type
      logical(log_kind) :: land_mask
+     integer(int_kind) :: PAR_nsubcols ! number of sub-column values for PAR
      integer(int_kind) :: km ! number of vertical grid cells
      integer(int_kind) :: kmt ! index of ocean floor
      real(r8), allocatable :: dzt(:) ! (km) delta z for partial bottom cells
      real(r8), allocatable :: dz(:) ! (km) delta z
+     real(r8), allocatable :: PAR_col_frac(:) ! column fraction occupied by each sub-column
+     real(r8), allocatable :: surf_shortwave(:) ! surface shortwave for each sub-column (W/m^2)
      real(r8), allocatable :: temperature(:) ! (km)
      real(r8), allocatable :: salinity(:) ! (km)
   end type marbl_column_domain_type
@@ -27,7 +30,6 @@ module marbl_interface_types
      ! this struct is necessary because there is some global state
      ! that needs to be preserved for marbl
      real (r8), dimension(:, :, :), allocatable :: dust_FLUX_IN  ! dust flux not stored in STF since dust is not prognostic
-     real (r8), dimension(:, :, :), allocatable :: PAR_out  ! photosynthetically available radiation (W/m^2)
      real (r8), dimension(:, :, :, :), allocatable :: PH_PREV_3D         ! computed pH_3D from previous time step
      real (r8), dimension(:, :, :, :), allocatable :: PH_PREV_ALT_CO2_3D ! computed pH_3D from previous time step, alternative CO2
      logical (log_kind), dimension(:, :, :), allocatable :: LAND_MASK

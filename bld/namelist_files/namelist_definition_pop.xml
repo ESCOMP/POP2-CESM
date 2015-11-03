@@ -5872,14 +5872,6 @@ Default: 2225.0
 </entry>
 
 <entry 
-id="ecosys_qsw_distrb_const"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
 id="lsource_sink"
 type="logical"
 category="ecosys"
@@ -6383,6 +6375,14 @@ type="char*256"
 category="ecosys"
 group="ecosys_driver_nml" >
 Default: 'base model'
+</entry>
+
+<entry 
+id="ecosys_qsw_distrb_const"
+type="logical" 
+category="ecosys"
+group="ecosys_driver_nml" >
+Default: 
 </entry>
 
 

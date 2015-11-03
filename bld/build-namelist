@@ -1425,7 +1425,6 @@ if ($ecosys_on eq "TRUE") {
 
     add_default($nl, 'surf_avg_alk_const');
 
-    add_default($nl, 'ecosys_qsw_distrb_const');
    #add_default($nl, 'iron_dust_flx_data_type');
     add_default($nl, 'dust_flux_input%filename');
     add_default($nl, 'dust_flux_input%file_fmt');
@@ -1582,6 +1581,7 @@ if ($ecosys_on eq "TRUE") {
 
     add_default($nl, 'lmarginal_seas');
     add_default($nl, 'ecosys_tadvect_ctype');
+    add_default($nl, 'ecosys_qsw_distrb_const');
     }
  
 ##########################################
