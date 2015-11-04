@@ -243,7 +243,6 @@ contains
               restore_diags => marbl_diags%restore_diags(:)                   &
              )
     do n=1,ecosys_diag_cnt_2d
-      diags_2d(n)%compute_now = .true.
       select case (n)
         case (zsatcalc_diag_ind)
           lname = 'Calcite Saturation Depth'
@@ -309,6 +308,57 @@ contains
       diags_2d(n)%long_name = trim(lname)
       diags_2d(n)%short_name = trim(sname)
       diags_2d(n)%units = trim(units)
+      diags_2d(n)%compute_now = .true.
+    end do
+
+    do n=1,part_diag_cnt_2d
+      select case (n)
+        case (calcToSed_diag_ind)
+          lname = 'CaCO3 Flux to Sediments'
+          sname = 'calcToSed'
+          units = 'nmolC/cm^2/s'
+        case (pocToSed_diag_ind)
+          lname = 'POC Flux to Sediments'
+          sname = 'pocToSed'
+          units = 'nmolC/cm^2/s'
+        case (ponToSed_diag_ind)
+          lname = 'nitrogen burial Flux to Sediments'
+          sname = 'ponToSed'
+          units = 'nmolN/cm^2/s'
+        case (SedDenitrif_diag_ind)
+          lname = 'nitrogen loss in Sediments'
+          sname = 'SedDenitrif'
+          units = 'nmolN/cm^2/s'
+        case (OtherRemin_diag_ind)
+          lname = 'non-oxic,non-dentr remin in Sediments'
+          sname = 'OtherRemin'
+          units = 'nmolC/cm^2/s'
+        case (popToSed_diag_ind)
+          ! FIXME: should be phosphorus? (missing second h?)
+          lname = 'phosporus Flux to Sediments'
+          sname = 'popToSed'
+          units = 'nmolP/cm^2/s'
+        case (bsiToSed_diag_ind)
+          lname = 'biogenic Si Flux to Sediments'
+          sname = 'bsiToSed'
+          units = 'nmolSi/cm^2/s'
+        case (dustToSed_diag_ind)
+          lname = 'dust Flux to Sediments'
+          sname = 'dustToSed'
+          units = 'g/cm^2/s'
+        case (pfeToSed_diag_ind)
+          lname = 'pFe Flux to Sediments'
+          sname = 'pfeToSed'
+          units = 'nmolFe/cm^2/s'
+        case DEFAULT
+          print*, "ERROR in ecosys_diagnostics_init():"
+          print*, n, " is not a valid index for marbl_diags%diags_2d"
+          sname = 'ERRORERRORERROR'
+      end select
+      part_diags_2d(n)%long_name = trim(lname)
+      part_diags_2d(n)%short_name = trim(sname)
+      part_diags_2d(n)%units = trim(units)
+      part_diags_2d(n)%compute_now = .true.
     end do
 
     do auto_ind=1,autotroph_cnt
@@ -337,6 +387,7 @@ contains
         auto_diags_2d(n, auto_ind)%long_name = trim(lname)
         auto_diags_2d(n, auto_ind)%short_name = trim(sname)
         auto_diags_2d(n, auto_ind)%units = trim(units)
+        auto_diags_2d(n, auto_ind)%compute_now = .true.
       end do
     end do
     end associate

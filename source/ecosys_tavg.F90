@@ -719,50 +719,13 @@ contains
     !-----------------------------------------------------------------------
     !  Vars to sum up burial in sediments and sed Denitrif N losses
     !-----------------------------------------------------------------------
-    call define_tavg_field(tavg_part_2d(calcToSed_diag_ind),'calcToSed',2, &
-                           long_name='CaCO3 Flux to Sediments',         &
-                           units='nmolC/cm^2/s', grid_loc='2110',       &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part_2d(pocToSed_diag_ind),'pocToSed',2,   &
-                           long_name='POC Flux to Sediments',           &
-                           units='nmolC/cm^2/s', grid_loc='2110',       &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part_2d(ponToSed_diag_ind),'ponToSed',2,   &
-                           long_name='nitrogen burial Flux to Sediments',&
-                           units='nmolN/cm^2/s', grid_loc='2110',       &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part_2d(SedDenitrif_diag_ind),'SedDenitrif',2, &
-                           long_name='nitrogen loss in Sediments',          &
-                           units='nmolN/cm^2/s', grid_loc='2110',           &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part_2d(OtherRemin_diag_ind),'OtherRemin',2, &
-                           long_name='non-oxic,non-dentr remin in Sediments', &
-                           units='nmolC/cm^2/s', grid_loc='2110',         &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part_2d(popToSed_diag_ind),'popToSed',2, &
-                           long_name='phosporus Flux to Sediments',   &
-                           units='nmolP/cm^2/s', grid_loc='2110',     &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part_2d(bsiToSed_diag_ind),'bsiToSed',2,   &
-                           long_name='biogenic Si Flux to Sediments',   &
-                           units='nmolSi/cm^2/s', grid_loc='2110',      &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part_2d(dustToSed_diag_ind),'dustToSed',2, &
-                           long_name='dust Flux to Sediments',          &
-                           units='g/cm^2/s', grid_loc='2110',           &
-                           coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_part_2d(pfeToSed_diag_ind),'pfeToSed',2,   &
-                           long_name='pFe Flux to Sediments',           &
-                           units='nmolFe/cm^2/s', grid_loc='2110',      &
-                           coordinates='TLONG TLAT time')
+    do n=1,part_diag_cnt_2d
+      call define_tavg_field(tavg_part_2d(n),                                 &
+                            trim(part_diags_2d(n)%short_name), 2,             &
+                            long_name=trim(part_diags_2d(n)%long_name),       &
+                            units=trim(part_diags_2d(n)%units),               &
+                            grid_loc='2110', coordinates='TLONG TLAT time')
+    end do
 
 !-----------------------------------------------------------------------
 !  Define 3D tavg fields for particulate terms
