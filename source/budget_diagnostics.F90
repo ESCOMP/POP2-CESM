@@ -39,10 +39,14 @@
 ! !PUBLIC MEMBER FUNCTIONS:
    public :: init_budget_diagnostics, &
              diag_for_tracer_budgets, &
+             diag_for_tracer_budgets_robert1,  &
+             diag_for_tracer_budgets_robert2,  &
              tracer_budgets
 
    logical (kind=log_kind),public ::  &
-      ldiag_global_tracer_budgets      ! global budget diagnostics for tracers
+      ldiag_global_tracer_budgets,    &! global budget diagnostics for tracers
+      ldiag_robert_begin_budget,      &! controls collection of tracer-adjustment terms (Robert filter)
+      ldiag_robert_budget_term_use_now ! controls usage of tracer-adjustment terms in tracer budget (Robert filter)
  
 
 !EOP
@@ -69,6 +73,15 @@
    logical (kind=log_kind)     ::  &
       budget_warning_1st_step       ! warning flag for budget diagnostics
  
+   real (r8), dimension(:,:,:,:,:), allocatable :: TR_STORE
+   real (r8), dimension(:,:,:),     allocatable :: PSURF_STORE
+   real (r8), dimension(:,:,:),     allocatable :: WORK1 !work array
+   real (r8), dimension(:,:,:),     allocatable :: WORK2 !work array
+   real (r8), dimension(:,:,:),     allocatable :: WORK3 !work array
+   real (r8), dimension(:,:,:),     allocatable :: WORK4 !work array
+
+   real (r8), dimension(:), allocatable :: robert_budget_term ! accumulate RF budget term
+
 !EOC
 
 !***********************************************************************
@@ -182,11 +195,50 @@
 
 !-----------------------------------------------------------------------
 !
-!     nothing more to do here
+!     initialize Robert filter budget flags
+!
+!      The S1 term cannot ever be computed at beginning of a startup or
+!      continuation run, because the info is not available. 
+!
+!      Budgets from the first time interval will be incorrect.
+!
+!      The only time these switches are toggled true is when using Robert 
+!      filtering (see tracer_budgets); otherwise, they are always false.
+!
+!-----------------------------------------------------------------------
+      
+   ldiag_robert_begin_budget        = .false.
+   ldiag_robert_budget_term_use_now = .false.
+
+!-----------------------------------------------------------------------
+!
+!     if not computing budgets, there is nothing more to do here
 !
 !-----------------------------------------------------------------------
 
    if (.not. ldiag_global_tracer_budgets) return
+ 
+   allocate (WORK1(nx_block,ny_block,nblocks_clinic))
+   allocate (WORK2(nx_block,ny_block,nblocks_clinic))
+   allocate (WORK3(nx_block,ny_block,nblocks_clinic))
+   allocate (WORK4(nx_block,ny_block,nblocks_clinic))
+   WORK1 = c0
+   WORK2 = c0
+   WORK3 = c0
+   WORK4 = c0
+   
+   !*** variables associated with Robert filtering
+   if (lrobert_filter) then
+     allocate (robert_budget_term(nt)) 
+     robert_budget_term = c0
+   
+     allocate (TR_STORE   (nx_block,ny_block,km,nt,nblocks_clinic))
+     TR_STORE = c0
+
+     allocate (PSURF_STORE(nx_block,ny_block,       nblocks_clinic))
+     PSURF_STORE = c0
+
+   endif
  
    budget_error_flag = 0
 
@@ -320,6 +372,7 @@
 
 ! !REVISION HISTORY:
 !  same as module
+!  modified for Robert Filter term 2015-09-23 by Nancy J Norton
 
 
 ! !INPUT PARAMETERS:
@@ -338,9 +391,6 @@
 !     local variables
 !
 !-----------------------------------------------------------------------
-
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::  &
-      WORK1, WORK2, WORK3, WORK4      ! work arrays
 
    real (r8) ::  &
       sum_tmp,   &
@@ -469,6 +519,207 @@
 !***********************************************************************
 
 !BOP
+! !IROUTINE: diag_for_tracer_budgets_robert1
+! !INTERFACE:
+
+   subroutine diag_for_tracer_budgets_robert1 
+                                       
+! !DESCRIPTION:
+!
+!  This subroutine stores the cur_time tracer value, before
+!  the Robert filter is applied. The stored values are used
+!  in subroutine diag_for_tracer_budgets_robert2, when they
+!  are used to compute the Robert filter budget term,
+!  when the Robert Filter is active.
+
+! !REVISION HISTORY:
+!  created 2015-10  by Nancy J Norton
+!  NOTE: UNDER DEVELOPMENT -- incomplete
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!     local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: iblock, k, n
+
+
+!-----------------------------------------------------------------------
+!
+!    store the pre-filtered fields at curtime
+!
+!----------------------------------------------------------------------- 
+
+   do n=1,nt
+    do k=1,km
+       !$OMP PARALLEL DO PRIVATE(iblock)
+       do iblock = 1,nblocks_clinic
+         TR_STORE(:,:,k,n,iblock) = TRACER(:,:,k,n,curtime,iblock)
+       enddo ! iblock
+    enddo ! k
+   enddo ! n
+
+   !$OMP PARALLEL DO PRIVATE(iblock)
+   do iblock = 1,nblocks_clinic
+     PSURF_STORE(:,:,iblock) = PSURF(:,:,curtime,iblock)
+   enddo ! iblock
+
+   end subroutine diag_for_tracer_budgets_robert1
+
+!***********************************************************************
+
+!BOP
+! !IROUTINE: diag_for_tracer_budgets_robert2 
+! !INTERFACE:
+
+   subroutine diag_for_tracer_budgets_robert2
+                                       
+! !DESCRIPTION:
+!
+!  This subroutine accumulates the budget term associated with the
+!  Robert Filter. subroutine diag_for_tracer_budgets_robert1 must
+!  be called prior to the Robert filtering of the tracers.
+!    
+
+! !REVISION HISTORY:
+!  created 2015-10  by Nancy J Norton
+!  NOTE: UNDER DEVELOPMENT -- incomplete
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!     local variables
+!
+!-----------------------------------------------------------------------
+
+   real (r8) :: sum_preRF  ! temporary variable
+   real (r8) :: sum_postRF ! temporary variable
+   real (r8) :: vol_preRF  ! pre-filtering volume
+   real (r8) :: vol_postRF ! post-filtering volume
+
+   real (r8), save :: vol_interior ! volume interior ocean 
+
+   integer (int_kind) ::  iblock, k, n
+
+   logical (log_kind), save :: first = .true.
+
+
+!-----------------------------------------------------------------------
+!
+!    compute the Robert filter budget adjustment term now.
+!      robert_cur*adjustment = TRACER(curtime,post-filter)-TRACER(curtime,pre-filter)
+!
+!----------------------------------------------------------------------- 
+
+   if (sfc_layer_type == sfc_layer_varthick) then
+   else
+    !*** temporary budget diagnostics limitation; 
+    !    add support for this feature later
+    call exit_POP (sigAbort, &
+      'FATAL ERROR: budget diagnostics do not work with this option', out_unit=stdout)
+   endif
+
+!----------------------------------------------------------------------- 
+!
+!    compute pre- and post-filtering volumes
+!
+!----------------------------------------------------------------------- 
+    if (first) then
+
+      WORK1 = c0
+      vol_interior = c0
+
+      !*** volume vertical interior
+      do k=2,km
+        !$OMP PARALLEL DO PRIVATE(iblock)
+        do iblock = 1,nblocks_clinic
+          WORK1(:,:,iblock) = dz(k)*TAREA(:,:,iblock)
+        enddo ! iblock
+       !$OMP END PARALLEL DO
+        vol_interior  = vol_interior + global_sum(WORK1, distrb_clinic, field_loc_center)
+     enddo ! k
+     first = .false.
+   endif
+
+   !*** compute and add pre- and post-filtering surface volumes
+   k = 1
+   !$OMP PARALLEL DO PRIVATE(iblock)
+   do iblock = 1,nblocks_clinic
+     WORK1(:,:,iblock) = (dz(1) + PSURF_STORE(:,:,iblock)/grav)*TAREA(:,:,iblock)
+     WORK2(:,:,iblock) = (dz(1)+PSURF(:,:,curtime,iblock)/grav)*TAREA(:,:,iblock)
+   enddo ! iblock
+   !$OMP END PARALLEL DO
+
+   vol_preRF   = vol_interior + global_sum(WORK1, distrb_clinic, field_loc_center)
+   vol_postRF  = vol_interior + global_sum(WORK2, distrb_clinic, field_loc_center)
+
+!----------------------------------------------------------------------- 
+!
+!    compute pre- and post-filtering volume*tracer
+!
+!----------------------------------------------------------------------- 
+
+   do n=1,nt
+     sum_preRF  = c0
+     sum_postRF = c0
+     !*** sum over vertical interior; surface is computed separately
+     do k=2,km
+       !$OMP PARALLEL DO PRIVATE(iblock)
+       do iblock = 1,nblocks_clinic
+         WORK3(:,:,iblock) = dz(k)*TAREA(:,:,iblock)
+         WORK1(:,:,iblock) = WORK3(:,:,iblock)*TR_STORE(:,:,k,n,iblock)
+         WORK2(:,:,iblock) = WORK3(:,:,iblock)*TRACER  (:,:,k,n,curtime,iblock)
+       enddo ! iblock
+       !$OMP END PARALLEL DO
+
+       sum_preRF  = sum_preRF +global_sum(WORK1, distrb_clinic, field_loc_center)
+       sum_postRF = sum_postRF+global_sum(WORK2, distrb_clinic, field_loc_center)
+     enddo ! k
+
+   !*** add pre- and post-filtering surface contribution to volume*TRACER 
+   !    assumption: sfc_layer_type == sfc_layer_varthick 
+   k = 1
+   !$OMP PARALLEL DO PRIVATE(iblock)
+   do iblock = 1,nblocks_clinic
+
+     !*** surface volume*tracer -- pre-Robert Filter
+     WORK1(:,:,iblock) = (dz(1) + PSURF_STORE(:,:,iblock)/grav)*  &
+                           TR_STORE(:,:,k,n,iblock)*TAREA(:,:,iblock)
+     !*** surface volume*tracer -- post-Robert Filter
+     WORK2(:,:,iblock) = (dz(1) + PSURF(:,:,curtime,iblock)/grav)*  &
+                         TRACER(:,:,k,n,curtime,iblock)*TAREA(:,:,iblock)
+   enddo ! iblock
+   !$OMP END PARALLEL DO
+
+   sum_preRF   = sum_preRF  + global_sum(WORK1, distrb_clinic, field_loc_center)
+   sum_postRF  = sum_postRF + global_sum(WORK2, distrb_clinic, field_loc_center)
+     
+   if (vol_preRF .ne. c0 .and. vol_postRF .ne. c0) then
+     robert_budget_term(n) = robert_budget_term(n) - sum_preRF/vol_preRF + sum_postRF/vol_postRF
+   else
+     !*** punt
+     robert_budget_term(n) = c0
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  toggle begin_budget switch for next budget cycle; 
+!    storage has been completed for this cycle after last tracer
+!
+!-----------------------------------------------------------------------
+     if (n == nt) ldiag_robert_begin_budget = .false.
+
+   enddo ! n
+
+   end subroutine diag_for_tracer_budgets_robert2
+
+!***********************************************************************
+
+!BOP
 ! !IROUTINE: tracer_budgets
 ! !INTERFACE:
 
@@ -511,16 +762,30 @@
       tfw_t_mean,   tfw_s_mean,     &
       T_change,     S_change,       &
       fw_mean,      volume_change,  &
+      robert_adj,                   &
       tavg_norm,    sum
 
    character*132 :: explanation
 
- 
+!-----------------------------------------------------------------------
+!
+!   if not yet time to compute and report budgets, return.
+!   if it IS time, determine if the S1 budget term needs to be computed
+!     next timestep, then continue to copmuting and reporting the budgets.
+!
 !-----------------------------------------------------------------------
 
+   if (.not. check_time_flag(tavg_streams(budget_stream)%field_flag)) then
+    if (lrobert_filter) ldiag_robert_begin_budget = .false.
+    !*** not yet time to compute and report budgets
+    return
+   else
+    !*** if using Robert filtering, it will be time to collect S1 for 
+    !    the NEXT budget interval during the NEXT pass through step.
+    if (lrobert_filter) ldiag_robert_begin_budget = .true.
 
-   if (.not. check_time_flag(tavg_streams(budget_stream)%field_flag)) return
-
+    !*** now, continue on to computations for this budget interval
+   endif
 
    tavg_norm = c1 / (tavg_sum(budget_stream) * area_t)
 
@@ -623,9 +888,19 @@
      explanation = ' Imbalance           = -tendency + SHF flux'  /&
        &/' + ice formation + FW heat content + free-srf non-consv. '
  
+     if (lrobert_filter .and. ldiag_robert_budget_term_use_now) then
+       robert_adj = p5*robert_budget_term(1)/hflux_factor
+       sum = sum + robert_adj
+       explanation = trim(explanation) /&
+                                       &/' + Robert adj'
+       write (stdout, 10051) T_change, shf_mean, qflux_t_mean,      &
+                             tfw_t_mean,  resid_t_mean, robert_adj, &
+                             sum, explanation
+     else
      write (stdout, 1005) T_change, shf_mean, qflux_t_mean, &
                           tfw_t_mean,  resid_t_mean, sum,   &
                           explanation
+     endif
      call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
 
      if ( sfc_layer_type == sfc_layer_varthick .and.  &
@@ -641,15 +916,38 @@
      explanation = ' Imbalance = -tendency + SFWF flux'   /&
      &/          ' + ice formation + FW salt content'     /&
      &/          ' + free-srf non-consv. '
+
+     if (lrobert_filter .and. ldiag_robert_budget_term_use_now) then
+       robert_adj = p5*robert_budget_term(2)*rho_sw*c10
+       sum = sum + robert_adj
+       explanation = trim(explanation) /&
+                                       &/' + Robert adj'
+       write (stdout, 10081) S_change, sfwf_mean, qflux_s_mean, &
+                             tfw_s_mean,  resid_s_mean, robert_adj,&
+                             sum, explanation
+     else
      write (stdout, 1008) S_change, sfwf_mean, qflux_s_mean, &
                           tfw_s_mean,  resid_s_mean, sum,    &
                           explanation
+     endif
      call POP_IOUnitsFlush(POP_stdout); call POP_IOUnitsFlush(stdout)
 
    endif
 
    volume_t_initial    = volume_t_final
    tracer_mean_initial = tracer_mean_final
+
+!-----------------------------------------------------------------------
+!
+!     update Robert filter diagnostics flags and reset robert_budget_term
+!
+!-----------------------------------------------------------------------
+
+   if (lrobert_filter) then
+     !*** ok to use robert diagnostics in subsequent diagnostics
+     ldiag_robert_budget_term_use_now = .true.
+     robert_budget_term = c0
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -717,6 +1015,16 @@
                /, 7x, ' Imbalance           = ', e18.12,                 &
                /, 7x,   a                              )
 
+10051 format  (/, 7x, ' tendency            = ', e18.12,                 &
+               /, 7x, ' SHF flux            = ', e18.12,                 &
+               /, 7x, ' ice formation       = ', e18.12,                 &
+               /, 7x, ' FW heat content     = ', e18.12,                 &
+               /, 7x, ' free-srf non-consv. = ', e18.12,                 &
+               /, 7x, ' Robert adj. term    = ', e18.12,                 &
+               /, 7x, ' Imbalance           = ', e18.12,                 &
+               /, 7x,   a                              )
+
+
  1006 format ( /, 5x, 'SALT BUDGET FOR THE GIVEN TAVG INTERVAL',         &
                       ' (kg of salt/m^2/s):',                            &
                /, 5x, '---------------------------------------',         &
@@ -731,6 +1039,15 @@
                /, 7x, ' ice formation       = ', e18.12,                 &
                /, 7x, ' FW salt content     = ', e18.12,                 &
                /, 7x, ' free-srf non-consv. = ', e18.12,                 &
+               /, 7x, ' Imbalance           = ', e18.12,                 &
+               /, 7x,   a                              )
+
+10081 format ( /, 7x, ' tendency            = ', e18.12,                 &
+               /, 7x, ' SFWF flux           = ', e18.12,                 &
+               /, 7x, ' ice formation       = ', e18.12,                 &
+               /, 7x, ' FW salt content     = ', e18.12,                 &
+               /, 7x, ' free-srf non-consv. = ', e18.12,                 &
+               /, 7x, ' Robert adj. term    = ', e18.12,                 &
                /, 7x, ' Imbalance           = ', e18.12,                 &
                /, 7x,   a                              )
 

@@ -207,7 +207,7 @@ id="runid"
 type="char*256"
 category="timemgr"
 group="time_manager_nml" >
-An identifier for the run.
+The CESM identifier for the run.
 
 Default: $CASENAME
 </entry>
@@ -217,10 +217,22 @@ id="time_mix_opt"
 type="char*256"
 category="timemgr"
 group="time_manager_nml"
-valid_values="matsuno,avg,avgbb,avgfit" >
-Option for time mixing (Matsuno or averaging).
+valid_values="avg,avgbb,avgfit" >
+Option for time mixing: 
+   avgfit = leapfrog with occasional time-averaging timestep to control stability. 
+            The timestep is modified such that an integer number of full and half timesteps
+            fits into each coupling interval.
+   robert = leapfrog with modified Robert-Asselin time filtering to control stability.
+            The timestep is modifed such that an integer number of full timesteps 
+            fits into each coupling interval.
+   avg    = leapfrog with occasional time-averaging timestep to control stability.
+            NOT SUPPORTED in CESM, because the timesteps will not always align with
+            a coupling boundary.
+   avgbb  = DEPRECATED OPTION. leapfrog with occasional time-averaging timestep, immediately
+            followed by another time-averaging timestep ("back-to-back" avg). DO NOT USE THIS
+            OPTION in scientific experiments.
 
-Valid Values: 'matsuno', 'avg', 'avgbb', 'avgfit'
+Valid Values: 'avgfit', 'avg', 'avgbb'
 Default: 'avgfit' 
 </entry>
 
@@ -229,7 +241,7 @@ id="time_mix_freq"
 type="integer" 
 category="timemgr"
 group="time_manager_nml" >
-Frequency of mixing.
+Frequency of mixing timestep.
 
 Default: 17
 </entry>
@@ -339,10 +351,13 @@ id="dt_option"
 type="char*256" 
 category="timemgr"
 group="time_manager_nml"
-valid_values="auto_dt,steps_per_year,steps_per_day,seconds,hours" >
+valid_values="steps_per_year,steps_per_day,seconds,hours" >
 Method to determine tracer timestep size.
 
-Valid Values: 'auto_dt', 'steps_per_year', 'steps_per_day', 'seconds', 'hours'
+Not all time_mix_opt values are compatible with all dt_option values,
+so steps_per_day is the recommended CESM option.
+
+Valid Values: 'steps_per_year', 'steps_per_day', 'seconds', 'hours'
 Default: 'steps_per_day'
 </entry>
 
@@ -406,6 +421,32 @@ group="time_manager_nml" >
 Number of intervals / days into which full and half timesteps must exactly "fit".
 
 Default: 1
+</entry>
+
+<entry 
+id="robert_alpha"
+type="real"
+category="timemgr"
+group="time_manager_nml">
+Tuning parameter used in Robert filtering. 
+
+Williams, Paul D. "A proposed Modification to the Robert-Asselin Time Filter." Monthly
+Weather Review, Vol 137, 2009.
+
+Default: 0.53 
+</entry>
+
+<entry 
+id="robert_nu"
+type="real"
+category="timemgr"
+group="time_manager_nml">
+Tuning parameter used in Robert filtering. 
+
+Williams, Paul D. "A proposed Modification to the Robert-Asselin Time Filter." Monthly
+Weather Review, Vol 137, 2009. 
+
+Default: 0.20
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -1643,16 +1684,6 @@ Default: .true.
 </entry>
 
 <entry 
-id="llangmuir"
-type="logical"
-category="kpp"
-group="vmix_kpp_nml" >
-Flag for using Langmuir parameterization.
-
-Default: .false.
-</entry>
-
-<entry 
 id="linertial"
 type="logical"
 category="kpp"
@@ -1670,6 +1701,18 @@ group="vmix_kpp_nml" >
 Flag for using CVMix for mixing instead of POP routines
 
 Default: .false.
+</entry>
+
+<!--QL, 150526, Langmuir mixing options-->
+<entry 
+id="langmuir_opt"
+type="char*256"
+category="kpp"
+group="vmix_kpp_nml" >
+Langmuir mixing parameterization option.
+
+Valid Values: 'null', 'vr12-ma', 'vr12-en'
+Default: 'null'
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -1709,10 +1752,10 @@ id="hmix_tracer_choice"
 type="char*256"
 category="hmix"
 group="hmix_nml"
-valid_values="del2,del4,gent" >
+valid_values="del2,del4,gent,gmaniso" >
 Type of horizontal tracer mixing.
 
-Valid Values: 'del2','del4','gent'
+Valid Values: 'del2','del4','gent','gmaniso'
 Default: 'gent'
 </entry>
 
@@ -5850,14 +5893,6 @@ type="logical"
 category="ecosys"
 group="ecosys_nml" >
 Default: .true.
-</entry>
-
-<entry 
-id="locmip_k1_k2_bug_fix"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: .true. (set with OCN_CO2_FLUX_OCMPI_BUG_FIX in env_build.xml)
 </entry>
 
 <entry 

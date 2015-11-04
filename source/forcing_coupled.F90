@@ -332,10 +332,13 @@
 
      if ( (qsw_distrb_iopt == qsw_distrb_iopt_12hr) .or. &
            (qsw_distrb_iopt == qsw_distrb_iopt_cosz) ) then
-        if ( tmix_iopt /= tmix_avgfit )  &
+        if ( tmix_iopt == tmix_avgfit .or. tmix_iopt == tmix_robert)  then
+          ! ok; these options are supported
+        else
           call exit_POP(sigAbort,   &
                'ERROR: time_mix_opt must be set to avgfit for qsw_distrb_opt '/&
             &/ 'of 12hr or cosz')
+        endif
 
         if ( dttxcel(1) /= c1  .or.  dtuxcel /= c1 )   &
           call exit_POP(sigAbort,   &
@@ -1298,6 +1301,40 @@
    if (errorCode /= POP_Success) then
       call POP_ErrorSet(errorCode, &
          'update_ghost_cells_coupler: error updating U10_SQR')
+      return
+   endif
+
+! QL, 150526, LAMULT, USTOKES and VSTOKES
+   call POP_HaloUpdate(LAMULT,POP_haloClinic,         &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating LAMULT')
+      return
+   endif
+
+   call POP_HaloUpdate(USTOKES,POP_haloClinic,         &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating USTOKES')
+      return
+   endif
+
+   call POP_HaloUpdate(VSTOKES,POP_haloClinic,         &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating VSTOKES')
       return
    endif
 

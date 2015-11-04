@@ -18,6 +18,8 @@ module POP_CplIndices
   integer :: index_o2x_So_s
   integer :: index_o2x_So_dhdx
   integer :: index_o2x_So_dhdy
+  ! QL, 150526, to wav, boundary layer depth
+  integer :: index_o2x_So_bldepth
   integer :: index_o2x_Fioo_q
   integer :: index_o2x_Faoo_fco2_ocn
   integer :: index_o2x_Faoo_fdms_ocn
@@ -29,6 +31,10 @@ module POP_CplIndices
   integer :: index_x2o_Sa_pslv         ! sea-level pressure               (Pa)
   integer :: index_x2o_Sa_co2prog      ! bottom atm level prognostic CO2
   integer :: index_x2o_Sa_co2diag      ! bottom atm level diagnostic CO2
+  ! QL, 150526, from wav
+  integer :: index_x2o_Sw_lamult       ! wave model langmuir multiplier
+  integer :: index_x2o_Sw_ustokes      ! surface Stokes drift, x-component
+  integer :: index_x2o_Sw_vstokes      ! surface Stokes drift, y-component
   integer :: index_x2o_Foxx_taux       ! zonal wind stress (taux)         (W/m2   )
   integer :: index_x2o_Foxx_tauy       ! meridonal wind stress (tauy)     (W/m2   )
   integer :: index_x2o_Foxx_swnet      ! net short-wave heat flux         (W/m2   )
@@ -89,12 +95,18 @@ contains
     index_o2x_So_s          = mct_avect_indexra(o2x,'So_s')
     index_o2x_So_dhdx       = mct_avect_indexra(o2x,'So_dhdx')
     index_o2x_So_dhdy       = mct_avect_indexra(o2x,'So_dhdy')
+    ! QL, 150526, to wav, boundary layer depth
+    index_o2x_So_bldepth    = mct_avect_indexra(o2x,'So_bldepth')
     index_o2x_Fioo_q        = mct_avect_indexra(o2x,'Fioo_q')
     index_o2x_Faoo_fco2_ocn = mct_avect_indexra(o2x,'Faoo_fco2_ocn',perrWith='quiet')
     index_o2x_Faoo_fdms_ocn = mct_avect_indexra(o2x,'Faoo_fdms_ocn',perrWith='quiet')
     index_x2o_Si_ifrac      = mct_avect_indexra(x2o,'Si_ifrac')
     index_x2o_Sa_pslv       = mct_avect_indexra(x2o,'Sa_pslv')
     index_x2o_So_duu10n     = mct_avect_indexra(x2o,'So_duu10n')
+    ! QL, 150526, from wav
+    index_x2o_Sw_lamult     = mct_avect_indexra(x2o,'Sw_lamult')
+    index_x2o_Sw_ustokes    = mct_avect_indexra(x2o,'Sw_ustokes')
+    index_x2o_Sw_vstokes    = mct_avect_indexra(x2o,'Sw_vstokes')
 
     index_x2o_Foxx_tauy     = mct_avect_indexra(x2o,'Foxx_tauy')
     index_x2o_Foxx_taux     = mct_avect_indexra(x2o,'Foxx_taux')

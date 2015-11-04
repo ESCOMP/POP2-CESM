@@ -58,6 +58,9 @@
 
 <fit_freq>1</fit_freq> 
 
+<robert_alpha> 0.53 </robert_alpha>
+<robert_nu>    0.20 </robert_nu>
+
 <!---------------------------->
 <!-- grid_nml -->
 <!---------------------------->
@@ -279,7 +282,6 @@
 <lcvmix>.false.</lcvmix>
 <lcvmix ocn_onedim="TRUE">.true.</lcvmix>
 <linertial>.false.</linertial>
-<llangmuir>.false.</llangmuir>
 <Prandtl>10.0</Prandtl>
 <lrich>.true.</lrich>
 <ldbl_diff>.true.</ldbl_diff>
@@ -288,6 +290,9 @@
 <larctic_bckgrnd_vdc>.false.</larctic_bckgrnd_vdc>
 <num_v_smooth_Ri>1</num_v_smooth_Ri>
 <bckgrnd_vdc_linv>4.5e-05</bckgrnd_vdc_linv>
+<!--QL, 150526, langmuir mixing parameterization option-->
+<langmuir_opt>'null'</langmuir_opt>
+
 <lhoriz_varying_bckgrnd ocn_grid="gx3v7"  >.true.</lhoriz_varying_bckgrnd>
 <lhoriz_varying_bckgrnd ocn_grid="gx3v7"  ocn_onedim="TRUE">.false.</lhoriz_varying_bckgrnd>
 <lhoriz_varying_bckgrnd ocn_grid="gx1v6"  >.true.</lhoriz_varying_bckgrnd>

@@ -3,7 +3,7 @@
 #
 # build-namelist
 #
-# This script builds the namelists for the POP configuration of CESM1.
+# This script builds the namelists for the POP configuration
 #
 # build-namelist uses a config_cache.xml file that current contains the ocean grid information.
 # build-namelist reads this file to obtain information it needs to provide
@@ -44,8 +44,7 @@ OPTIONS
      -test                 Enable checking that input datasets exist on local filesystem.
      -verbose              Turn on verbose echoing of informational messages.
      -caseroot             CASEROOT directory variable
-     -casebuild            CASEBUILD directory variable          
-     -scriptsroot          SCRIPTSROOT directory variable
+     -cimeroot             CIMEROOT directory variable
      -ocn_grid             OCN_GRID variable
      -cfg_grid             Directory containing POP configuration scripts.
                            If not defined, location is set as \$ProgDir or \$cwd
@@ -87,8 +86,7 @@ my %opts = ( help        => 0,
              verbose     => 0,
              preview     => 0,
              caseroot    => undef,
-             casebuild   => undef,
-             scriptsroot => undef,
+             cimeroot    => undef,
              inst_string => undef,
              ocn_grid    => undef,
              cfg_dir     => $cfgdir,
@@ -100,8 +98,7 @@ GetOptions(
     "namelist=s"    => \$opts{'namelist'},
     "v|verbose"     => \$opts{'verbose'},
     "caseroot=s"    => \$opts{'caseroot'},
-    "casebuild=s"   => \$opts{'casebuild'},
-    "scriptsroot=s" => \$opts{'scriptsroot'},
+    "cimeroot=s"    => \$opts{'cimeroot'},
     "inst_string=s" => \$opts{'inst_string'},	   
     "ocn_grid=s"    => \$opts{'ocn_grid'},
     "cfg_dir=s"     => \$opts{'cfg_dir'},
@@ -130,10 +127,9 @@ my $eol = "\n";
 if ($print>=2) { print "Setting POP configuration script directory to $cfgdir$eol"; }
 
 my $CASEROOT    = $opts{'caseroot'};
-my $CASEBUILD   = $opts{'casebuild'};
-my $SCRIPTSROOT = $opts{'scriptsroot'};
-my $inst_string = $opts{'inst_string'};
+my $CIMEROOT    = $opts{'cimeroot'};
 my $OCN_GRID    = $opts{'ocn_grid'};
+my $inst_string = $opts{'inst_string'};
 $cfgdir         = $opts{'cfg_dir'};
 
 # Validate some of the commandline option values.
@@ -143,10 +139,8 @@ validate_options("commandline", \%opts);
 # Make sure we can find required perl modules, definition, and defaults files.
 # Look for them under the directory that contains the configure script.
 
-my $cesmroot = "${SCRIPTSROOT}/../../";
-
 # The root directory for the perl5 required utilities 
-my $perl5lib = "$cesmroot/cime/utils/perl5lib";
+my $perl5lib = "$CIMEROOT/utils/perl5lib";
 
 # The Build::Config module provides utilities to access the configuration information
 # in the config_cache.xml file (see below)
@@ -210,10 +204,11 @@ require Build::Config;
 require Build::NamelistDefinition;
 require Build::NamelistDefaults;
 require Build::Namelist;
+require Config::SetupTools;
 
 #-----------------------------------------------------------------------------------------------
 
-# Create a configuration object from the POP config_cache.xml file in $CASEBUILD/popconf
+# Create a configuration object from the POP config_cache.xml file in $CASEROOT/Buildconf/popconf
 my $cfg = Build::Config->new('config_cache.xml');
 
 # Create a namelist definition object.  This object provides a method for verifying that the
@@ -319,8 +314,6 @@ EOF
 
 #-----------------------------------------------------------------------------------------------
 # Determine xml variables
-unshift @INC, "$CASEROOT/Tools";
-require SetupTools;
 
 my %xmlvars = ();
 SetupTools::getxmlvars($CASEROOT, \%xmlvars);
@@ -478,10 +471,7 @@ if ($tmp > 0) {
 print "POP build-namelist: ocn_grid is $OCN_GRID \n";
 print "POP build-namelist: ocn_tracer_modules are @OCN_TRACER_MODULES \n";
 
-(-d $DIN_LOC_ROOT)  or  die <<"EOF";
-** $ProgName - CCSM inputdata root is not a directory: \"$DIN_LOC_ROOT\" **
-EOF
-if ($print>=2) { print "CESM inputdata root directory: $DIN_LOC_ROOT$eol"; }
+if ($print>=2) { print "Inputdata root directory: $DIN_LOC_ROOT$eol"; }
 
 #-----------------------------------------------------------------------------------------------
 # Determine namelist 
@@ -533,6 +523,8 @@ add_default($nl, 'date_separator');
 add_default($nl, 'stop_option');
 add_default($nl, 'stop_count');
 add_default($nl, 'fit_freq', 'val'=>"$OCN_NCPL");
+add_default($nl, 'robert_alpha');
+add_default($nl, 'robert_nu');
 
 ####################################
 # namelist group: grid_nml #
@@ -768,7 +760,6 @@ add_default($nl, 'lhoriz_varying_bckgrnd', 'ocn_onedim'=>"$OCN_ONEDIM");
 my $lhoriz_varying_bckgrnd= $nl->get_value('lhoriz_varying_bckgrnd');
 $lhoriz_varying_bckgrnd =~ s/ //g;
 
-add_default($nl, 'llangmuir');
 add_default($nl, 'linertial');
 add_default($nl, 'Prandtl');
 add_default($nl, 'lrich');
@@ -785,6 +776,8 @@ add_default($nl, 'bckgrnd_vdc_eq',   'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_
 add_default($nl, 'bckgrnd_vdc_psim', 'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
 add_default($nl, 'bckgrnd_vdc_ban',  'lhoriz_varying_bckgrnd'=>"$lhoriz_varying_bckgrnd", 'ltidal_mixing'=>"$ltidal_mixing");
 add_default($nl, 'bckgrnd_vdc_linv');
+# QL, 150526, langmuir_opt
+add_default($nl, 'langmuir_opt');
 
 ##########################################
 # namelist group: advect_nml             #
@@ -1397,13 +1390,6 @@ if ($ecosys_on eq "TRUE") {
       die;
     }
 
-    my $locmip_k1_k2_bug_fix;
-    if ($OCN_CO2_FLUX_OCMIP_BUG_FIX eq "TRUE") {
-      $locmip_k1_k2_bug_fix = ".true.";
-    } else {
-      $locmip_k1_k2_bug_fix = ".false.";
-    }
-
     add_default($nl, 'init_ecosys_option', 'val'=>"ccsm_${RUN_TYPE}");
     if ($RUN_TYPE eq "startup") {
       add_default($nl, 'init_ecosys_init_file');
@@ -1423,7 +1409,6 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'lflux_gas_o2');
     add_default($nl, 'lflux_gas_co2');
 
-    add_default($nl, 'locmip_k1_k2_bug_fix', 'val'=>"$locmip_k1_k2_bug_fix");
     add_default($nl, 'atm_co2_opt', 'val'=>"$atm_co2_opt");
     add_default($nl, 'atm_co2_const', 'val'=>"$CCSM_CO2_PPMV");
     add_default($nl, 'atm_alt_co2_opt', 'val'=>"const");
@@ -1727,14 +1712,12 @@ add_default($nl, 'lmcog_debug');
 add_default($nl, 'mcog_dagg_qsw_abort_thres');
 add_default($nl, 'mcog_col_to_bin', 'val'=>"@mcog_col_to_bin");
 
+# verify that number of values in mcog_col_to_bin is correct
 my $mcog_col_to_bin_string = $nl->get_variable_value("mcog_nml", "mcog_col_to_bin");
 my @mcog_col_to_bin = split(/[, ]/, $mcog_col_to_bin_string);
 my $mcog_ncols = @mcog_col_to_bin;
 if ($mcog_ncols ne $ICE_NCAT+1) {
-  print "ICE_NCAT = $ICE_NCAT\n";
-  print "mcog_col_to_bin = @mcog_col_to_bin\n";
-  print "mcog_ncols = $mcog_ncols doesn't match ICE_NCAT+1\n";
-  die;
+  die "ERROR\nICE_NCAT = $ICE_NCAT\nmcog_col_to_bin = @mcog_col_to_bin\nmcog_ncols = $mcog_ncols doesn't match ICE_NCAT+1\n";
 }
 
 ##########################################
@@ -1802,15 +1785,17 @@ foreach my $file (@copy_files_to_input ) {
 
 # Create tavg contents file
 
-my $pop_tavg_file  = "${CASEBUILD}/popconf/${OCN_GRID}_tavg_contents";
+my $pop_tavg_file  = "${CASEROOT}/Buildconf/popconf/${OCN_GRID}_tavg_contents";
 my $sysmod;
 my $file;
+
+my $CASEBUILD = "$CASEROOT/Buildconf";
 
 #-------------------------
 # 1. base tavg contents
 #-------------------------
 
-# 1.a. create $CASEBUILD/popconf/base.tavg.nml file 
+# 1.a. create $CASEROOT/Buildconf/popconf/base.tavg.nml file 
 $sysmod;
 $file = "ocn.base.tavg.csh";
 my $env = "env CASEBUILD=$CASEBUILD OCN_GRID=$OCN_GRID ";
@@ -1823,7 +1808,7 @@ if (-f "${my_path}/$file"){
 }
 
 # 1.b. read in popconf/base.tavg.nml file and fill in %tavg_nml entries
-my $file = "${CASEBUILD}/popconf/base.tavg.nml";
+my $file = "${CASEROOT}/Buildconf/popconf/base.tavg.nml";
 my $fh_in = new IO::File;
 $fh_in->open("<$file") or die "** can't open file $file $\n";
 my $line;
@@ -1846,7 +1831,7 @@ $fh_in->close();
 
 # 1.d create base tavg contents file - in popconf/
 #     either from $my_path (first) or from 
-my $base_tavg_file  = "${CASEBUILD}/popconf/${OCN_GRID}_tavg_contents";
+my $base_tavg_file  = "${CASEROOT}/Buildconf/popconf/${OCN_GRID}_tavg_contents";
 if ($OCN_TAVG_HIFREQ eq "TRUE") {
     # High-frequency tavg contents
     $file = "${OCN_GRID}_tavg_contents_high_freq";
@@ -1873,7 +1858,7 @@ if (-f "$my_path/$file") {
 my $lniw_mixing = $nl->get_value('lniw_mixing');
 if ($lniw_mixing =~ /true/) {
   $file = "niw_tavg_contents";
-  my $niw_tavg_file = "${CASEBUILD}/popconf/$file";
+  my $niw_tavg_file = "${CASEROOT}/Buildconf/popconf/$file";
   if (-f "$my_path/${OCN_GRID}_$file") {
     $sysmod = "cp -fp ${my_path}/${OCN_GRID}_$file $niw_tavg_file";
     system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
@@ -1892,7 +1877,7 @@ if ($lniw_mixing =~ /true/) {
 #-------------------------
 # 2. budget tavg contents
 #-------------------------
-my $budget_tavg_file = "${CASEBUILD}/popconf/budget_tavg_contents";
+my $budget_tavg_file = "${CASEROOT}/Buildconf/popconf/budget_tavg_contents";
 $file = "tavg_contents_tracer_budget_terms";
 if ($OCN_TAVG_TRACER_BUDGET eq "TRUE") {
   # tracer budget tavg contents 

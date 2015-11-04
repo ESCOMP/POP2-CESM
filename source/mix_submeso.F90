@@ -831,7 +831,7 @@
       endif
       
 	do n = 1,nt
-          if (.not.registry_match('init_gm')) then
+          if (.not.registry_match('init_gm') .and. .not.registry_match('init_gm_aniso')) then
            if (n > 2 .and. k < km)  &
              TZ(:,:,k+1,n,bid) = TMIX(:,:,k  ,n) - TMIX(:,:,k+1,n)
           endif
