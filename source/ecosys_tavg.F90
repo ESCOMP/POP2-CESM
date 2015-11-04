@@ -294,6 +294,7 @@ contains
 
     character(char_len) :: sname             ! short-name of tavg variable
     integer(int_kind) :: n
+    logical :: define_field
 
 !-----------------------------------------------------------------------
 !   Define tavg fields for surface flux terms
@@ -906,26 +907,20 @@ contains
 !-----------------------------------------------------------------------
 
     do auto_ind = 1, autotroph_cnt
-       call define_tavg_field(tavg_auto_2d(photoC_zint_diag_ind, auto_ind),       &
-                              'photoC_' // trim(autotrophs(auto_ind)%sname) // '_zint', 2, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' C Fixation Vertical Integral', &
-                              units='mmol/m^3 cm/s', grid_loc='2110', &
-                              coordinates='TLONG TLAT time')
+      do n=1,auto_diag_cnt_2d
+        define_field = .true.
+        if (n.eq.CaCO3_form_zint_diag_ind) then
+          define_field = (autotrophs(auto_ind)%CaCO3_ind > 0)
+        end if
 
-       call define_tavg_field(tavg_auto_2d(photoC_NO3_zint_diag_ind, auto_ind),  &
-                              'photoC_NO3_' // trim(autotrophs(auto_ind)%sname) // '_zint',2, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' C Fixation from NO3 Vertical Integral', &
-                              units='mmol/m^3 cm/s', grid_loc='2110', &
-                              coordinates='TLONG TLAT time')
-
-       if (autotrophs(auto_ind)%CaCO3_ind > 0) then
-          sname = trim(autotrophs(auto_ind)%sname) // '_CaCO3_form'
-          sname = trim(sname) // '_zint'
-          call define_tavg_field(tavg_auto_2d(CaCO3_form_zint_diag_ind,auto_ind), sname, 2, &
-                                 long_name=trim(autotrophs(auto_ind)%lname) // ' CaCO3 Formation Vertical Integral', &
-                                 units='mmol/m^3 cm/s', grid_loc='2110', &
-                                 coordinates='TLONG TLAT time')
-       endif
+        if (define_field) then
+          call define_tavg_field(tavg_auto_2d(n, auto_ind),                   &
+                        trim(auto_diags_2d(n, auto_ind)%short_name), 2,       &
+                        long_name=trim(auto_diags_2d(n, auto_ind)%long_name), &
+                        units=trim(auto_diags_2d(n, auto_ind)%units),         &
+                        grid_loc='2110', coordinates='TLONG TLAT time')
+        end if
+      end do
     end do
 
     call define_tavg_field(tavg_tot_CaCO3_form_zint, 'CaCO3_form_zint', 2, &

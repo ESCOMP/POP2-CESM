@@ -377,12 +377,6 @@ contains
             'ERROR in ecosys_driver_init: marbl_init returned status: "'//marbl_status%message//'"')
     end if
 
-    ! initialize ecosys_diagnostics type
-    do bid=1,nblocks_clinic
-      call ecosys_diagnostics_init(marbl_diagnostics(bid))
-    end do
-
-
     ! now we know how many tracers marbl has, we can verify that pop
     ! has the correctly sized data.
 
@@ -428,6 +422,11 @@ contains
        call exit_POP(sigAbort, &
             'ERROR in ecosys_driver_init: ecosys_init returned status: "'//marbl_status%message//'"')
     end if
+
+    ! initialize ecosys_diagnostics type
+    do bid=1,nblocks_clinic
+      call ecosys_diagnostics_init(marbl_diagnostics(bid))
+    end do
 
     ! Only set up tavg files from first block?
     call ecosys_tavg_init(marbl_diagnostics(1), ecosys_restore)
