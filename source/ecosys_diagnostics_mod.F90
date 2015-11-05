@@ -220,7 +220,8 @@ contains
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
     integer :: n, auto_ind
-    character(len=char_len) :: lname, sname, units
+    character(len=char_len) :: lname, sname, units, vgrid
+    logical :: truncate
 
     ! Allocate memory in marbl_diagnostics_type
     call marbl_diags%construct(ecosys_diag_cnt_2d, ecosys_diag_cnt_3d,        &
@@ -389,6 +390,150 @@ contains
         auto_diags_2d(n, auto_ind)%units = trim(units)
         auto_diags_2d(n, auto_ind)%compute_now = .true.
       end do
+    end do
+
+    do n=1,ecosys_diag_cnt_3d
+      ! Default assumption: layer average vertical coordinates, not truncated
+      vgrid = 'layer_avg'
+      truncate = .false.
+      select case (n)
+        case (CO3_diag_ind)
+          lname = 'Carbonate Ion Concentration'
+          sname = 'CO3'
+          units = 'mmol/m^3'
+        case (HCO3_diag_ind)
+          lname = 'Bicarbonate Ion Concentration'
+          sname = 'HCO3'
+          units = 'mmol/m^3'
+        case (H2CO3_diag_ind)
+          lname = 'Carbonic Acid Concentration'
+          sname = 'H2CO3'
+          units = 'mmol/m^3'
+        case (ph_3D_diag_ind)
+          lname = 'pH'
+          sname = 'pH_3D'
+          units = 'none'
+        case (CO3_ALT_CO2_diag_ind)
+          lname = 'Carbonate Ion Concentration, Alternative CO2'
+          sname = 'CO3_ALT_CO2'
+          units = 'mmol/m^3'
+        case (HCO3_ALT_CO2_diag_ind)
+          lname = 'Bicarbonate Ion Concentration, Alternative CO2'
+          sname = 'HCO3_ALT_CO2'
+          units = 'mmol/m^3'
+        case (H2CO3_ALT_CO2_diag_ind)
+          lname = 'Carbonic Acid Concentration, Alternative CO2'
+          sname = 'H2CO3_ALT_CO2'
+          units = 'mmol/m^3'
+        case (ph_3D_ALT_CO2_diag_ind)
+          lname = 'pH_ALT_CO2'
+          sname = 'pH_3D, Alternative CO2'
+          units = 'none'
+        case (co3_sat_calc_diag_ind)
+          lname = 'CO3 concentration at calcite saturation'
+          sname = 'co3_sat_calc'
+          units = 'mmol/m^3'
+        case (co3_sat_arag_diag_ind)
+          lname = 'CO3 concentration at aragonite saturation'
+          sname = 'co3_sat_arag'
+          units = 'mmol/m^3'
+        case (NITRIF_diag_ind)
+          lname = 'Nitrification'
+          sname = 'NITRIF'
+          units = 'mmol/m^3/s'
+        case (DENITRIF_diag_ind)
+          lname = 'Denitrification'
+          sname = 'DENITRIF'
+          units = 'mmol/m^3/s'
+        case (O2_PRODUCTION_diag_ind)
+          lname = 'O2 Production'
+          sname = 'O2_PRODUCTION'
+          units = 'mmol/m^3/s'
+        case (O2_CONSUMPTION_diag_ind)
+          lname = 'O2 Consumption'
+          sname = 'O2_CONSUMPTION'
+          units = 'mmol/m^3/s'
+        case (AOU_diag_ind)
+          lname = 'Apparent O2 Utilization'
+          sname = 'AOU'
+          units = 'mmol/m^3'
+        case (PAR_avg_diag_ind)
+          lname = 'PAR Average over Model Cell'
+          sname = 'PAR_avg'
+          units = 'w/m^2' ! FIXME: watt / m^2 should be W/m^2?
+          truncate = .true.
+        case (auto_graze_TOT_diag_ind)
+          lname = 'Total Autotroph Grazing'
+          sname = 'graze_auto_TOT'
+          units = 'mmol/m^3/s'
+          truncate = .true.
+        case (photoC_TOT_diag_ind)
+          lname = 'Total C Fixation'
+          sname = 'photoC_TOT'
+          units = 'mmol/m^3/s'
+          truncate = .true.
+        case (photoC_NO3_TOT_diag_ind)
+          lname = 'Total C Fixation from NO3'
+          sname = 'photoC_TOT'
+          units = 'mmol/m^3/s'
+          truncate = .true.
+        case (DOC_prod_diag_ind) ! FIXME rest of _remin and _prod truncate!
+          lname = 'DOC Production'
+          sname = 'DOC_prod'
+          units = 'mmol/m^3/s'
+        case (DOC_remin_diag_ind) ! FIXME rest of _remin and _prod truncate!
+          lname = 'DOC Remineralization'
+          sname = 'DOC_remin'
+          units = 'mmol/m^3/s'
+        case (DON_prod_diag_ind)
+          lname = 'DON Production'
+          sname = 'DON_prod'
+          units = 'mmol/m^3/s'
+          truncate = .true.
+        case (DON_remin_diag_ind)
+          lname = 'DON Remineralization'
+          sname = 'DON_remin'
+          units = 'mmol/m^3/s'
+          truncate = .true.
+        case (DOP_prod_diag_ind)
+          lname = 'DOP Production'
+          sname = 'DOP_prod'
+          units = 'mmol/m^3/s'
+          truncate = .true.
+        case (DOP_remin_diag_ind)
+          lname = 'DOP Remineralization'
+          sname = 'DOP_remin'
+          units = 'mmol/m^3/s'
+          truncate = .true.
+        case (DOFe_prod_diag_ind)
+          lname = 'DOFe Production'
+          sname = 'DOFe_prod'
+          units = 'mmol/m^3/s'
+          truncate = .true.
+        case (DOFe_remin_diag_ind)
+          lname = 'DOFe Remineralization'
+          sname = 'DOFe_remin'
+          units = 'mmol/m^3/s'
+          truncate = .true.
+        case (Fe_scavenge_diag_ind)
+          lname = 'Iron Scavenging'
+          sname = 'Fe_scavenge'
+          units = 'mmol/m^3/s'
+        case (Fe_scavenge_rate_diag_ind)
+          lname = 'Iron Scavenging Rate'
+          sname = 'Fe_scavenge_rate'
+          units = '1/y'
+        case DEFAULT
+          print*, "ERROR in ecosys_diagnostics_init():"
+          print*, n, " is not a valid index for marbl_diags%diags_2d"
+          sname = 'ERRORERRORERROR'
+      end select
+      diags_3d(n)%long_name = trim(lname)
+      diags_3d(n)%short_name = trim(sname)
+      diags_3d(n)%units = trim(units)
+      diags_3d(n)%vertical_grid = trim(vgrid)
+      diags_3d(n)%ltruncated_vertical_extent = truncate
+      diags_3d(n)%compute_now = .true.
     end do
     end associate
 
