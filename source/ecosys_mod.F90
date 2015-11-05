@@ -168,7 +168,6 @@ module ecosys_mod
   use passive_tracer_tools, only : comp_surf_avg
   use passive_tracer_tools, only : extract_surf_avg
   use passive_tracer_tools, only : file_read_tracer_block
-  use passive_tracer_tools, only : init_forcing_monthly_every_ts
   use passive_tracer_tools, only : read_field
   use passive_tracer_tools, only : rest_read_tracer_block
 
@@ -176,7 +175,6 @@ module ecosys_mod
   use named_field_mod, only : named_field_register
   use named_field_mod, only : named_field_set
 
-  use forcing_tools, only : find_forcing_times
   use forcing_tools, only : interpolate_forcing
   use forcing_tools, only : update_forcing_data
 
@@ -360,7 +358,6 @@ module ecosys_mod
   private :: ecosys_init_non_autotroph_tracer_metadata
   private :: ecosys_init_forcing_metadata
   public  :: ecosys_init_tavg
-  public  :: ecosys_init_sflux
 
   ! set_interior routines
   public  :: ecosys_set_interior
@@ -410,40 +407,11 @@ module ecosys_mod
   logical (log_kind) ::  locmip_k1_k2_bug_fix
 
   !-----------------------------------------------------------------------
-  !  options for forcing of gas fluxes
-  !-----------------------------------------------------------------------
-
-  integer (int_kind), parameter :: &
-       gas_flux_forcing_iopt_drv   = 1,   &
-       gas_flux_forcing_iopt_file  = 2,   &
-       atm_co2_iopt_const          = 1,   &
-       atm_co2_iopt_drv_prog       = 2,   &
-       atm_co2_iopt_drv_diag       = 3
-
-  integer (int_kind) :: &
-       gas_flux_forcing_iopt,             &
-       atm_co2_iopt,                      &
-       atm_alt_co2_iopt
-
-  real (r8)       :: &
-       atm_co2_const,                     &  ! value of atmospheric co2 (ppm, dry-air, 1 atm)
-       atm_alt_co2_const                     ! value of atmospheric alternative co2 (ppm, dry-air, 1 atm)
-
-  character(char_len) :: &
-       gas_flux_forcing_file    ! file containing gas flux forcing fields
-
-  !-----------------------------------------------------------------------
 
   type(tracer_read) :: &
        gas_flux_fice,       & ! ice fraction for gas fluxes
        gas_flux_ws,         & ! wind speed for gas fluxes
        gas_flux_ap            ! atmospheric pressure for gas fluxes
-
-  !-----------------------------------------------------------------------
-  !  module variables related to ph computations
-  !-----------------------------------------------------------------------
-
-  real (r8), dimension(:, :, :)   , allocatable, target :: IRON_PATCH_FLUX    ! localized iron patch flux
 
   !-----------------------------------------------------------------------
   !  restoring climatologies for nutrients
@@ -460,56 +428,7 @@ module ecosys_mod
        nutr_variable_rest_file,   & ! file containing variable restoring info
        nutr_variable_rest_file_fmt  ! format of file containing variable restoring info
 
-  real (r8), dimension(:, :, :), allocatable, target :: &
-       NUTR_RESTORE_RTAU            ! inverse restoring timescale for variable
-  ! interior restoring
-
-  integer (int_kind), dimension(:, :, :), allocatable :: &
-       NUTR_RESTORE_MAX_LEVEL       ! maximum level for applying variable
-  ! interior restoring
-
-  real (r8), dimension(:, :, :, :), allocatable :: &
-       INTERP_WORK                  ! temp array for interpolate_forcing output
-
-
-  character(char_len) :: &
-       ndep_data_type               ! type of ndep forcing
-
-
-  integer (int_kind) :: &
-       ndep_shr_stream_year_first, & ! first year in stream to use
-       ndep_shr_stream_year_last,  & ! last year in stream to use
-       ndep_shr_stream_year_align    ! align ndep_shr_stream_year_first with this model year
-
-  integer (int_kind), parameter :: &
-       ndep_shr_stream_var_cnt = 2, & ! number of variables in ndep shr_stream
-       ndep_shr_stream_no_ind  = 1, & ! index for NO forcing
-       ndep_shr_stream_nh_ind  = 2    ! index for NH forcing
-
-  character(char_len) :: &
-       ndep_shr_stream_file          ! file containing domain and input data
-
-  real (r8) :: &
-       ndep_shr_stream_scale_factor  ! unit conversion factor
-
   type(strdata_input_type)       :: ndep_inputlist
-
-  type(forcing_monthly_every_ts) :: dust_flux        ! surface dust flux
-  type(forcing_monthly_every_ts) :: iron_flux        ! iron component of surface dust flux
-  type(forcing_monthly_every_ts) :: fice_file        ! ice fraction, if read from file
-  type(forcing_monthly_every_ts) :: xkw_file         ! a * wind-speed ** 2, if read from file
-  type(forcing_monthly_every_ts) :: ap_file          ! atmoshperic pressure, if read from file
-  type(forcing_monthly_every_ts) :: nox_flux_monthly ! surface NOx species flux, added to nitrate pool
-  type(forcing_monthly_every_ts) :: nhy_flux_monthly ! surface NHy species flux, added to ammonium pool
-  type(forcing_monthly_every_ts) :: din_riv_flux     ! river DIN species flux, added to nitrate pool
-  type(forcing_monthly_every_ts) :: dip_riv_flux     ! river DIP species flux, added to phosphate pool
-  type(forcing_monthly_every_ts) :: don_riv_flux     ! river DON flux, added to semi-lab don pool
-  type(forcing_monthly_every_ts) :: dop_riv_flux     ! river DOP flux, added to semi-lab dop pool
-  type(forcing_monthly_every_ts) :: dsi_riv_flux     ! river DSI flux, added to dsi pool
-  type(forcing_monthly_every_ts) :: dfe_riv_flux     ! river dfe flux, added to dfe pool
-  type(forcing_monthly_every_ts) :: dic_riv_flux     ! river dic flux, added to dic pool
-  type(forcing_monthly_every_ts) :: alk_riv_flux     ! river alk flux, added to alk pool
-  type(forcing_monthly_every_ts) :: doc_riv_flux     ! river doc flux, added to semi-labile DOC
 
   !-----------------------------------------------------------------------
   !  buffer indices (into ECO_SFLUX_TAVG) for 2d fields related to surface fluxes
@@ -556,13 +475,6 @@ module ecosys_mod
   real (r8), dimension(:, :, :, :), allocatable :: ECO_SFLUX_TAVG
 
   !-----------------------------------------------------------------------
-  !  average surface tracer value related variables
-  !  used as reference value for virtual flux computations
-  !-----------------------------------------------------------------------
-
-  logical (log_kind) , public :: ecosys_qsw_distrb_const
-
-  !-----------------------------------------------------------------------
   !  iron patch fertilization
   !-----------------------------------------------------------------------
 
@@ -599,23 +511,17 @@ module ecosys_mod
        phhi_3d_init = 9.0_r8,   & ! high bound for subsurface ph for no prev soln
        del_ph = 0.20_r8           ! delta-ph for prev soln
 
-
   !-----------------------------------------------------------------------
 
   logical (log_kind)  :: lecovars_full_depth_tavg ! should ecosystem vars be written full depth
 
-  !EOC
   !*****************************************************************************
-
 
 contains
 
   !*****************************************************************************
 
-  subroutine ecosys_init_nml(nl_buffer, comp_surf_avg_flag,       &
-       use_nml_surf_vals, surf_avg_dic_const, surf_avg_alk_const, &
-       init_ecosys_option, init_ecosys_init_file,                 &
-       init_ecosys_init_file_fmt,tracer_init_ext, errorCode, marbl_status)
+  subroutine ecosys_init_nml(nl_buffer, errorCode, marbl_status)
 
     ! !DESCRIPTION:
     !  Initialize ecosys tracer module. This involves setting metadata, reading
@@ -627,25 +533,64 @@ contains
     use marbl_interface_constants , only : marbl_status_could_not_read_namelist
     use marbl_interface_types     , only : marbl_status_type
     use marbl_interface_types     , only : marbl_tracer_read_type
-    use marbl_share_mod           , only : fesedflux_input
+    use marbl_share_mod           , only : surf_avg_dic_const, surf_avg_alk_const
+    use marbl_share_mod           , only : use_nml_surf_vals         
+    use marbl_share_mod           , only : init_ecosys_option        
+    use marbl_share_mod           , only : init_ecosys_init_file     
+    use marbl_share_mod           , only : init_ecosys_init_file_fmt 
+    use marbl_share_mod           , only : tracer_init_ext
+    use marbl_share_mod           , only : ndep_data_type 
+    use marbl_share_mod           , only : ndep_shr_stream_year_first
+    use marbl_share_mod           , only : ndep_shr_stream_year_last
+    use marbl_share_mod           , only : ndep_shr_stream_year_align
+    use marbl_share_mod           , only : ndep_shr_stream_file
+    use marbl_share_mod           , only : ndep_shr_stream_scale_factor
+    use marbl_share_mod           , only : lflux_gas_co2
+    use marbl_share_mod           , only : lflux_gas_o2
+    use marbl_share_mod           , only : gas_flux_forcing_iopt_drv
+    use marbl_share_mod           , only : gas_flux_forcing_iopt_file
+    use marbl_share_mod           , only : gas_flux_forcing_iopt
+    use marbl_share_mod           , only : gas_flux_forcing_file
+    use marbl_share_mod           , only : atm_co2_const
+    use marbl_share_mod           , only : atm_alt_co2_const
+    use marbl_share_mod           , only : atm_co2_iopt
+    use marbl_share_mod           , only : atm_co2_iopt_const
+    use marbl_share_mod           , only : atm_co2_iopt_drv_prog
+    use marbl_share_mod           , only : atm_co2_iopt_drv_diag
+    use marbl_share_mod           , only : atm_alt_co2_iopt
+    use marbl_share_mod           , only : dust_flux        
+    use marbl_share_mod           , only : iron_flux        
+    use marbl_share_mod           , only : fice_file        
+    use marbl_share_mod           , only : xkw_file         
+    use marbl_share_mod           , only : ap_file          
+    use marbl_share_mod           , only : nox_flux_monthly 
+    use marbl_share_mod           , only : nhy_flux_monthly 
+    use marbl_share_mod           , only : din_riv_flux     
+    use marbl_share_mod           , only : dip_riv_flux     
+    use marbl_share_mod           , only : don_riv_flux     
+    use marbl_share_mod           , only : dop_riv_flux     
+    use marbl_share_mod           , only : dsi_riv_flux     
+    use marbl_share_mod           , only : dfe_riv_flux     
+    use marbl_share_mod           , only : dic_riv_flux     
+    use marbl_share_mod           , only : alk_riv_flux     
+    use marbl_share_mod           , only : doc_riv_flux     
+    use marbl_share_mod           , only : liron_patch  
+    use marbl_share_mod           , only : iron_patch_flux_filename  
+    use marbl_share_mod           , only : iron_patch_month  
+    use marbl_share_mod           , only : ecosys_qsw_distrb_const
+    use marbl_share_mod           , only : fesedflux_input 
+
+    !FIXME (mvertens, 2015-11) where does this variable belong?
+    use marbl_share_mod           , only : comp_surf_avg_flag 
+
     use ecosys_constants          , only : ecosys_tracer_cnt
 
     implicit none
 
     ! !INPUT PARAMETERS:
-
     character(marbl_nl_buffer_size) , intent(in) :: nl_buffer
 
     ! !OUTPUT PARAMETERS:
-
-    integer (int_kind)      , intent(out) :: comp_surf_avg_flag                 ! time flag id for computing average surface tracer values
-    logical (log_kind)      , intent(out) :: use_nml_surf_vals                  ! do namelist surf values override values from restart file
-    real (r8)               , intent(out) :: surf_avg_dic_const
-    real (r8)               , intent(out) :: surf_avg_alk_const
-    character(char_len)     , intent(out) :: init_ecosys_option                 ! namelist option for initialization of bgc
-    character(char_len)     , intent(out) :: init_ecosys_init_file              ! filename for option 'file'
-    character(char_len)     , intent(out) :: init_ecosys_init_file_fmt          ! file format for option 'file'
-    type(tracer_read)       , intent(out) :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers
     integer (POP_i4)        , intent(out) :: errorCode
     type(marbl_status_type) , intent(out) :: marbl_status
 
@@ -1073,6 +1018,8 @@ contains
     ! !DESCRIPTION:
     ! timer init
 
+    use marbl_share_mod, only : ndep_data_type 
+
     implicit none
 
     call get_timer(ecosys_comp_CO3terms_timer, 'comp_CO3terms', nblocks_clinic, distrb_clinic%nprocs)
@@ -1194,9 +1141,6 @@ contains
   end subroutine ecosys_init_tavg
 
   !***********************************************************************
-  !BOP
-  ! !IROUTINE: ecosys_set_interior
-  ! !INTERFACE:
 
   subroutine ecosys_set_interior(i, c, bid, &
        domain, gcm_state, &
@@ -1234,6 +1178,11 @@ contains
     use marbl_interface_types, only : marbl_column_domain_type
     use marbl_interface_types, only : marbl_gcm_state_type
     use marbl_interface_types, only : marbl_saved_state_type
+
+    use marbl_share_mod , only : gas_flux_forcing_iopt_drv
+    use marbl_share_mod , only : gas_flux_forcing_iopt_file
+    use marbl_share_mod , only : atm_co2_iopt_drv_prog
+    use marbl_share_mod , only : atm_co2_iopt_drv_diag
 
     use marbl_parms, only : epsC, epsTinv
 
@@ -1586,9 +1535,6 @@ contains
   end subroutine ecosys_set_interior
 
   !***********************************************************************
-  !BOP
-  ! !IROUTINE: init_particulate_terms
-  ! !INTERFACE:
 
   subroutine init_particulate_terms(k, POC, P_CaCO3, P_SiO2, dust, P_iron, &
        QA_dust_def, NET_DUST_IN)
@@ -1601,6 +1547,7 @@ contains
     !  order to preserve contents on other blocks.
 
     use marbl_share_mod, only : column_sinking_particle_type
+    use marbl_share_mod, only : dust_flux        
 
     ! !INPUT/OUTPUT PARAMETERS:
 
@@ -1619,8 +1566,6 @@ contains
 
     real (r8), intent(in) :: net_dust_in ! dust flux
 
-    !EOP
-    !BOC
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
@@ -2337,721 +2282,6 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_init_sflux(saved_state)
-
-    ! !DESCRIPTION:
-    !  Initialize surface flux computations for ecosys tracer module.
-
-    use marbl_interface_types, only : marbl_saved_state_type
-    type(marbl_saved_state_type), intent(inout) :: saved_state
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-
-    character(*), parameter :: subname = 'ecosys_mod:ecosys_init_sflux'
-
-    logical (log_kind) :: &
-         luse_INTERP_WORK     ! does INTERP_WORK need to be allocated
-
-    integer (int_kind) :: &
-         n,                 & ! index for looping over tracers
-         iblock               ! index for looping over blocks
-
-    real (r8), dimension (nx_block, ny_block) :: WORK
-
-    real (r8), dimension (nx_block, ny_block, 12, max_blocks_clinic), target :: &
-         WORK_READ            ! temporary space to read in fields
-
-    !-----------------------------------------------------------------------
-
-    luse_INTERP_WORK = .false.
-
-    !-----------------------------------------------------------------------
-    !  read gas flux forcing (if required)
-    !-----------------------------------------------------------------------
-
-    if ((lflux_gas_o2 .or. lflux_gas_co2) .and. &
-         gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
-
-       luse_INTERP_WORK = .true.
-
-       !-----------------------------------------------------------------------
-       !  first, read ice file
-       !-----------------------------------------------------------------------
-
-       allocate(fice_file%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-       if (trim(fice_file%input%filename) == 'unknown') &
-            fice_file%input%filename = gas_flux_forcing_file
-
-       call read_field(fice_file%input%file_fmt, &
-            fice_file%input%filename, &
-            fice_file%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             fice_file%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  fice_file%DATA(:, :, iblock, 1, n) = c0
-             fice_file%DATA(:, :, iblock, 1, n) = &
-                  fice_file%DATA(:, :, iblock, 1, n) * fice_file%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(fice_file%data_time, &
-            fice_file%data_inc, fice_file%interp_type, &
-            fice_file%data_next, fice_file%data_time_min_loc, &
-            fice_file%data_update, fice_file%data_type)
-
-       !-----------------------------------------------------------------------
-       !  next, read piston velocity file
-       !-----------------------------------------------------------------------
-
-       allocate(xkw_file%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-       if (trim(xkw_file%input%filename) == 'unknown') &
-            xkw_file%input%filename = gas_flux_forcing_file
-
-       call read_field(xkw_file%input%file_fmt, &
-            xkw_file%input%filename, &
-            xkw_file%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             xkw_file%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  xkw_file%DATA(:, :, iblock, 1, n) = c0
-             xkw_file%DATA(:, :, iblock, 1, n) = &
-                  xkw_file%DATA(:, :, iblock, 1, n) * xkw_file%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(xkw_file%data_time, &
-            xkw_file%data_inc, xkw_file%interp_type, &
-            xkw_file%data_next, xkw_file%data_time_min_loc, &
-            xkw_file%data_update, xkw_file%data_type)
-
-       !-----------------------------------------------------------------------
-       !  last, read atmospheric pressure file
-       !-----------------------------------------------------------------------
-
-       allocate(ap_file%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-       if (trim(ap_file%input%filename) == 'unknown') &
-            ap_file%input%filename = gas_flux_forcing_file
-
-       call read_field(ap_file%input%file_fmt, &
-            ap_file%input%filename, &
-            ap_file%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             ap_file%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  ap_file%DATA(:, :, iblock, 1, n) = c0
-             ap_file%DATA(:, :, iblock, 1, n) = &
-                  ap_file%DATA(:, :, iblock, 1, n) * ap_file%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(ap_file%data_time, &
-            ap_file%data_inc, ap_file%interp_type, &
-            ap_file%data_next, ap_file%data_time_min_loc, &
-            ap_file%data_update, ap_file%data_type)
-
-    endif
-
-    !-----------------------------------------------------------------------
-    !  load dust flux fields (if required)
-    !-----------------------------------------------------------------------
-
-    if (trim(dust_flux%input%filename) /= 'none' .and. &
-         trim(dust_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(dust_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-       if (trim(dust_flux%input%filename) == 'unknown') &
-            dust_flux%input%filename = gas_flux_forcing_file
-
-       call read_field(dust_flux%input%file_fmt, &
-            dust_flux%input%filename, &
-            dust_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             dust_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  dust_flux%DATA(:, :, iblock, 1, n) = c0
-             dust_flux%DATA(:, :, iblock, 1, n) = &
-                  dust_flux%DATA(:, :, iblock, 1, n) * dust_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(dust_flux%data_time, &
-            dust_flux%data_inc, dust_flux%interp_type, &
-            dust_flux%data_next, dust_flux%data_time_min_loc, &
-            dust_flux%data_update, dust_flux%data_type)
-
-       dust_flux%has_data = .true.
-    else
-       dust_flux%has_data = .false.
-    endif
-
-    !-----------------------------------------------------------------------
-    !  load iron flux fields (if required)
-    !-----------------------------------------------------------------------
-
-    if (trim(iron_flux%input%filename) /= 'none' .and. &
-         trim(iron_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(iron_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-       if (trim(iron_flux%input%filename) == 'unknown') &
-            iron_flux%input%filename = gas_flux_forcing_file
-
-       call read_field(iron_flux%input%file_fmt, &
-            iron_flux%input%filename, &
-            iron_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             iron_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  iron_flux%DATA(:, :, iblock, 1, n) = c0
-             iron_flux%DATA(:, :, iblock, 1, n) = &
-                  iron_flux%DATA(:, :, iblock, 1, n) * iron_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(iron_flux%data_time, &
-            iron_flux%data_inc, iron_flux%interp_type, &
-            iron_flux%data_next, iron_flux%data_time_min_loc, &
-            iron_flux%data_update, iron_flux%data_type)
-
-       iron_flux%has_data = .true.
-    else
-       iron_flux%has_data = .false.
-    endif
-
-    !-----------------------------------------------------------------------
-    !  load nox & noy flux fields (if required)
-    !-----------------------------------------------------------------------
-
-    if (trim(ndep_data_type) /= 'none' .and. &
-         trim(ndep_data_type) /= 'monthly-calendar' .and. &
-         trim(ndep_data_type) /= 'shr_stream') then
-       call document(subname, 'ndep_data_type', ndep_data_type)
-       call exit_POP(sigAbort, 'unknown ndep_data_type')
-    endif
-
-    if (trim(ndep_data_type) == 'monthly-calendar' .and. &
-         trim(nox_flux_monthly%input%filename) /= 'none' .and. &
-         trim(nox_flux_monthly%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(nox_flux_monthly%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-       if (trim(nox_flux_monthly%input%filename) == 'unknown') &
-            nox_flux_monthly%input%filename = gas_flux_forcing_file
-
-       call read_field(nox_flux_monthly%input%file_fmt, &
-            nox_flux_monthly%input%filename, &
-            nox_flux_monthly%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             nox_flux_monthly%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  nox_flux_monthly%DATA(:, :, iblock, 1, n) = c0
-             nox_flux_monthly%DATA(:, :, iblock, 1, n) = &
-                  nox_flux_monthly%DATA(:, :, iblock, 1, n) * nox_flux_monthly%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(nox_flux_monthly%data_time, &
-            nox_flux_monthly%data_inc, nox_flux_monthly%interp_type, &
-            nox_flux_monthly%data_next, nox_flux_monthly%data_time_min_loc, &
-            nox_flux_monthly%data_update, nox_flux_monthly%data_type)
-
-       nox_flux_monthly%has_data = .true.
-    else
-       nox_flux_monthly%has_data = .false.
-    endif
-
-    if (trim(ndep_data_type) == 'monthly-calendar' .and. &
-         trim(nhy_flux_monthly%input%filename) /= 'none' .and. &
-         trim(nhy_flux_monthly%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(nhy_flux_monthly%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-       if (trim(nhy_flux_monthly%input%filename) == 'unknown') &
-            nhy_flux_monthly%input%filename = gas_flux_forcing_file
-
-       call read_field(nhy_flux_monthly%input%file_fmt, &
-            nhy_flux_monthly%input%filename, &
-            nhy_flux_monthly%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             nhy_flux_monthly%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  nhy_flux_monthly%DATA(:, :, iblock, 1, n) = c0
-             nhy_flux_monthly%DATA(:, :, iblock, 1, n) = &
-                  nhy_flux_monthly%DATA(:, :, iblock, 1, n) * nhy_flux_monthly%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(nhy_flux_monthly%data_time, &
-            nhy_flux_monthly%data_inc, nhy_flux_monthly%interp_type, &
-            nhy_flux_monthly%data_next, nhy_flux_monthly%data_time_min_loc, &
-            nhy_flux_monthly%data_update, nhy_flux_monthly%data_type)
-
-       nhy_flux_monthly%has_data = .true.
-    else
-       nhy_flux_monthly%has_data = .false.
-    endif
-
-    !-----------------------------------------------------------------------
-
-#ifndef CCSMCOUPLED
-    if (trim(ndep_data_type) == 'shr_stream') then
-       call document(subname, 'ndep_data_type', ndep_data_type)
-       call exit_POP(sigAbort, &
-            'shr_stream option only supported when CCSMCOUPLED is defined')
-    endif
-#endif
-
-    !-----------------------------------------------------------------------
-    !  load river nutrient flux fields (if required)
-    !-----------------------------------------------------------------------
-
-    if (trim(din_riv_flux%input%filename) /= 'none' .and. &
-         trim(din_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(din_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(din_riv_flux%input%file_fmt, &
-            din_riv_flux%input%filename, &
-            din_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             din_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  din_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             din_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  din_riv_flux%DATA(:, :, iblock, 1, n) * din_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(din_riv_flux%data_time, &
-            din_riv_flux%data_inc, din_riv_flux%interp_type, &
-            din_riv_flux%data_next, din_riv_flux%data_time_min_loc, &
-            din_riv_flux%data_update, din_riv_flux%data_type)
-
-       din_riv_flux%has_data = .true.
-    else
-       din_riv_flux%has_data = .false.
-    endif
-
-
-    if (trim(dip_riv_flux%input%filename) /= 'none' .and. &
-         trim(dip_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(dip_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(dip_riv_flux%input%file_fmt, &
-            dip_riv_flux%input%filename, &
-            dip_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             dip_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  dip_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             dip_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  dip_riv_flux%DATA(:, :, iblock, 1, n) * dip_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(dip_riv_flux%data_time, &
-            dip_riv_flux%data_inc, dip_riv_flux%interp_type, &
-            dip_riv_flux%data_next, dip_riv_flux%data_time_min_loc, &
-            dip_riv_flux%data_update, dip_riv_flux%data_type)
-
-       dip_riv_flux%has_data = .true.
-    else
-       dip_riv_flux%has_data = .false.
-    endif
-
-
-    if (trim(don_riv_flux%input%filename) /= 'none' .and. &
-         trim(don_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(don_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(don_riv_flux%input%file_fmt, &
-            don_riv_flux%input%filename, &
-            don_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             don_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  don_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             don_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  don_riv_flux%DATA(:, :, iblock, 1, n) * don_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(don_riv_flux%data_time, &
-            don_riv_flux%data_inc, don_riv_flux%interp_type, &
-            don_riv_flux%data_next, don_riv_flux%data_time_min_loc, &
-            don_riv_flux%data_update, don_riv_flux%data_type)
-
-       don_riv_flux%has_data = .true.
-    else
-       don_riv_flux%has_data = .false.
-    endif
-
-
-    if (trim(dop_riv_flux%input%filename) /= 'none' .and. &
-         trim(dop_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(dop_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(dop_riv_flux%input%file_fmt, &
-            dop_riv_flux%input%filename, &
-            dop_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             dop_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  dop_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             dop_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  dop_riv_flux%DATA(:, :, iblock, 1, n) * dop_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(dop_riv_flux%data_time, &
-            dop_riv_flux%data_inc, dop_riv_flux%interp_type, &
-            dop_riv_flux%data_next, dop_riv_flux%data_time_min_loc, &
-            dop_riv_flux%data_update, dop_riv_flux%data_type)
-
-       dop_riv_flux%has_data = .true.
-    else
-       dop_riv_flux%has_data = .false.
-    endif
-
-    if (trim(dsi_riv_flux%input%filename) /= 'none' .and. &
-         trim(dsi_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(dsi_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(dsi_riv_flux%input%file_fmt, &
-            dsi_riv_flux%input%filename, &
-            dsi_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             dsi_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  dsi_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             dsi_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  dsi_riv_flux%DATA(:, :, iblock, 1, n) * dsi_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(dsi_riv_flux%data_time, &
-            dsi_riv_flux%data_inc, dsi_riv_flux%interp_type, &
-            dsi_riv_flux%data_next, dsi_riv_flux%data_time_min_loc, &
-            dsi_riv_flux%data_update, dsi_riv_flux%data_type)
-
-       dsi_riv_flux%has_data = .true.
-    else
-       dsi_riv_flux%has_data = .false.
-    endif
-
-
-    if (trim(dfe_riv_flux%input%filename) /= 'none' .and. &
-         trim(dfe_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(dfe_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(dfe_riv_flux%input%file_fmt, &
-            dfe_riv_flux%input%filename, &
-            dfe_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             dfe_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  dfe_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             dfe_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  dfe_riv_flux%DATA(:, :, iblock, 1, n) * dfe_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(dfe_riv_flux%data_time, &
-            dfe_riv_flux%data_inc, dfe_riv_flux%interp_type, &
-            dfe_riv_flux%data_next, dfe_riv_flux%data_time_min_loc, &
-            dfe_riv_flux%data_update, dfe_riv_flux%data_type)
-
-       dfe_riv_flux%has_data = .true.
-    else
-       dfe_riv_flux%has_data = .false.
-    endif
-
-
-    if (trim(dic_riv_flux%input%filename) /= 'none' .and. &
-         trim(dic_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(dic_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(dic_riv_flux%input%file_fmt, &
-            dic_riv_flux%input%filename, &
-            dic_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             dic_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  dic_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             dic_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  dic_riv_flux%DATA(:, :, iblock, 1, n) * dic_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(dic_riv_flux%data_time, &
-            dic_riv_flux%data_inc, dic_riv_flux%interp_type, &
-            dic_riv_flux%data_next, dic_riv_flux%data_time_min_loc, &
-            dic_riv_flux%data_update, dic_riv_flux%data_type)
-
-       dic_riv_flux%has_data = .true.
-    else
-       dic_riv_flux%has_data = .false.
-    endif
-
-
-    if (trim(alk_riv_flux%input%filename) /= 'none' .and. &
-         trim(alk_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(alk_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(alk_riv_flux%input%file_fmt, &
-            alk_riv_flux%input%filename, &
-            alk_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             alk_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  alk_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             alk_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  alk_riv_flux%DATA(:, :, iblock, 1, n) * alk_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(alk_riv_flux%data_time, &
-            alk_riv_flux%data_inc, alk_riv_flux%interp_type, &
-            alk_riv_flux%data_next, alk_riv_flux%data_time_min_loc, &
-            alk_riv_flux%data_update, alk_riv_flux%data_type)
-
-       alk_riv_flux%has_data = .true.
-    else
-       alk_riv_flux%has_data = .false.
-    endif
-
-    if (trim(doc_riv_flux%input%filename) /= 'none' .and. &
-         trim(doc_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(doc_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(doc_riv_flux%input%file_fmt, &
-            doc_riv_flux%input%filename, &
-            doc_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             doc_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  doc_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             doc_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  doc_riv_flux%DATA(:, :, iblock, 1, n) * doc_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(doc_riv_flux%data_time, &
-            doc_riv_flux%data_inc, doc_riv_flux%interp_type, &
-            doc_riv_flux%data_next, doc_riv_flux%data_time_min_loc, &
-            doc_riv_flux%data_update, doc_riv_flux%data_type)
-
-       doc_riv_flux%has_data = .true.
-    else
-       doc_riv_flux%has_data = .false.
-    endif
-
-    !-----------------------------------------------------------------------
-    !  allocate space for interpolate_forcing
-    !-----------------------------------------------------------------------
-
-    if (luse_INTERP_WORK) &
-         allocate(INTERP_WORK(nx_block, ny_block, max_blocks_clinic, 1))
-
-    !-----------------------------------------------------------------------
-    !  load iron PATCH flux fields (if required)
-    !-----------------------------------------------------------------------
-
-    if (liron_patch) then
-
-       !maltrud iron patch
-       !  assume patch file has same normalization and format as deposition file
-
-       allocate(IRON_PATCH_FLUX(nx_block, ny_block, max_blocks_clinic))
-
-       if (trim(iron_flux%input%filename) == 'unknown') &
-            iron_flux%input%filename = gas_flux_forcing_file
-
-       call read_field(iron_flux%input%file_fmt, &
-            iron_flux%input%filename, &
-            iron_patch_flux_filename, &
-            IRON_PATCH_FLUX)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             where (.not. saved_state%land_mask(:, :, iblock)) &
-                  IRON_PATCH_FLUX(:, :, iblock) = c0
-             iron_flux%DATA(:, :, iblock, 1, n) = &
-                  IRON_PATCH_FLUX(:, :, iblock) * iron_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-    endif
-
-    !-----------------------------------------------------------------------
-    !  register and set
-    !     fco2, the air-sea co2 gas flux
-    !-----------------------------------------------------------------------
-
-    call named_field_register('SFLUX_CO2', sflux_co2_nf_ind)
-    !$OMP PARALLEL DO PRIVATE(iblock, WORK)
-    do iblock=1, nblocks_clinic
-       WORK = c0
-       call named_field_set(sflux_co2_nf_ind, iblock, WORK)
-    end do
-    !$OMP END PARALLEL DO
-
-    !-----------------------------------------------------------------------
-    !  verify running coupled if gas fluxes use coupler forcing
-    !-----------------------------------------------------------------------
-
-    if ((lflux_gas_o2 .or. lflux_gas_co2) .and. &
-         (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv .or. &
-         atm_co2_iopt == atm_co2_iopt_drv_prog .or. &
-         atm_co2_iopt == atm_co2_iopt_drv_diag) .and. &
-         .not. registry_match('lcoupled')) then
-       call exit_POP(sigAbort, 'ecosys_init: ecosys module requires the ' /&
-            &/ 'flux coupler when gas_flux_forcing_opt=drv')
-    endif
-
-    !-----------------------------------------------------------------------
-    !  get named field index for atmospheric CO2, if required
-    !-----------------------------------------------------------------------
-
-    if (lflux_gas_co2 .and. atm_co2_iopt == atm_co2_iopt_drv_prog) then
-       call named_field_get_index('ATM_CO2_PROG', atm_co2_nf_ind, &
-            exit_on_err=.false.)
-       if (atm_co2_nf_ind == 0) then
-          call exit_POP(sigAbort, 'ecosys_init: ecosys module requires ' /&
-               &/ 'atmopsheric CO2 from the flux coupler ' /&
-               &/ 'and it is not present')
-       endif
-    endif
-
-    if (lflux_gas_co2 .and. atm_co2_iopt == atm_co2_iopt_drv_diag) then
-       call named_field_get_index('ATM_CO2_DIAG', atm_co2_nf_ind, &
-            exit_on_err=.false.)
-       if (atm_co2_nf_ind == 0) then
-          call exit_POP(sigAbort, 'ecosys_init: ecosys module requires ' /&
-               &/ 'atmopsheric CO2 from the flux coupler ' /&
-               &/ 'and it is not present')
-       endif
-    endif
-
-  end subroutine ecosys_init_sflux
-
-  !***********************************************************************
-
   subroutine ecosys_set_sflux( &
        saved_state, &
        marbl_surface_share, &
@@ -3059,17 +2289,74 @@ contains
        U10_SQR, IFRAC, PRESS, SST, SSS, &
        SURF_VALS_OLD, SURF_VALS_CUR, STF_MODULE, &
        lexport_shared_vars, &
-       vflux_flag, PH_PREV, PH_PREV_ALT_CO2, comp_surf_avg_flag, surf_avg) !new
+       vflux_flag, PH_PREV, PH_PREV_ALT_CO2, comp_surf_avg_flag, surf_avg, &
+       IRON_PATCH_FLUX)
 
-    use co2calc, only : co2calc_row
-    use schmidt_number, only : SCHMIDT_CO2
-    use marbl_oxygen, only : schmidt_o2
-    use marbl_oxygen, only : o2sat
-    use marbl_share_mod, only : ecosys_surface_share_type
-    use marbl_interface_types, only : marbl_saved_state_type
-    use strdata_interface_mod, only : POP_strdata_create
-    use strdata_interface_mod, only : POP_strdata_advance
-    use marbl_share_mod, only : totChl_surf_nf_ind
+    use co2calc               , only : co2calc_row
+    use schmidt_number        , only : SCHMIDT_CO2
+    use marbl_oxygen          , only : schmidt_o2
+    use marbl_oxygen          , only : o2sat
+    use marbl_share_mod       , only : ecosys_surface_share_type
+    use marbl_share_mod       , only : lflux_gas_o2
+    use marbl_share_mod       , only : lflux_gas_co2
+    use marbl_share_mod       , only : ndep_data_type
+    use marbl_share_mod       , only : ndep_shr_stream_scale_factor
+    use marbl_share_mod       , only : gas_flux_forcing_iopt_drv
+    use marbl_share_mod       , only : gas_flux_forcing_iopt_file
+    use marbl_share_mod       , only : gas_flux_forcing_iopt
+    use marbl_share_mod       , only : nox_flux_monthly 
+    use marbl_share_mod       , only : nhy_flux_monthly 
+    use marbl_share_mod       , only : ecosys_qsw_distrb_const
+    use marbl_share_mod       , only : ndep_shr_stream_year_first
+    use marbl_share_mod       , only : ndep_shr_stream_year_last
+    use marbl_share_mod       , only : ndep_shr_stream_year_align
+    use marbl_share_mod       , only : ndep_shr_stream_file
+    use marbl_share_mod       , only : ndep_shr_stream_var_cnt
+    use marbl_share_mod       , only : ndep_shr_stream_no_ind
+    use marbl_share_mod       , only : ndep_shr_stream_nh_ind
+    use marbl_share_mod       , only : dust_flux        
+    use marbl_share_mod       , only : iron_flux        
+    use marbl_share_mod       , only : fice_file        
+    use marbl_share_mod       , only : xkw_file         
+    use marbl_share_mod       , only : ap_file          
+    use marbl_share_mod       , only : nox_flux_monthly 
+    use marbl_share_mod       , only : nhy_flux_monthly 
+    use marbl_share_mod       , only : din_riv_flux     
+    use marbl_share_mod       , only : dip_riv_flux     
+    use marbl_share_mod       , only : don_riv_flux     
+    use marbl_share_mod       , only : dop_riv_flux     
+    use marbl_share_mod       , only : dsi_riv_flux     
+    use marbl_share_mod       , only : dfe_riv_flux     
+    use marbl_share_mod       , only : dic_riv_flux     
+    use marbl_share_mod       , only : alk_riv_flux     
+    use marbl_share_mod       , only : doc_riv_flux     
+    use marbl_parms           , only : ind_nox_flux
+    use marbl_parms           , only : ind_nhy_flux
+    use marbl_parms           , only : ind_no3_flux
+    use marbl_parms           , only : ind_nh4_flux
+    use marbl_parms           , only : ind_din_riv_flux
+    use marbl_parms           , only : ind_dip_riv_flux
+    use marbl_parms           , only : ind_don_riv_flux
+    use marbl_parms           , only : ind_dop_riv_flux
+    use marbl_parms           , only : ind_dsi_riv_flux
+    use marbl_parms           , only : ind_dfe_riv_flux
+    use marbl_parms           , only : ind_dic_riv_flux
+    use marbl_parms           , only : ind_alk_riv_flux
+    use marbl_parms           , only : ind_doc_riv_flux
+    use marbl_interface_types , only : marbl_saved_state_type
+    use strdata_interface_mod , only : POP_strdata_create
+    use strdata_interface_mod , only : POP_strdata_advance
+
+    use marbl_share_mod       , only : totChl_surf_nf_ind !TEMPORARY
+    use marbl_share_mod       , only : sflux_co2_nf_ind   !TEMPORARY
+
+    use marbl_share_mod       , only : atm_co2_iopt
+    use marbl_share_mod       , only : atm_co2_iopt_const
+    use marbl_share_mod       , only : atm_co2_iopt_drv_prog
+    use marbl_share_mod       , only : atm_co2_iopt_drv_diag
+    use marbl_share_mod       , only : atm_co2_const
+    use marbl_share_mod       , only : atm_alt_co2_iopt
+    use marbl_share_mod       , only : atm_alt_co2_const
 
     ! !DESCRIPTION:
     !  Compute surface fluxes for ecosys tracer module.
@@ -3091,8 +2378,10 @@ contains
     logical (log_kind) , intent(in) :: lexport_shared_vars           ! flag to save shared_vars or not
     logical (log_kind) , intent(in) :: vflux_flag(ecosys_tracer_cnt) ! which tracers get virtual fluxes applied
     integer (int_kind) , intent(in) :: comp_surf_avg_flag            ! time flag id for computing average surface tracer values
+    real (r8)          , intent(in) :: IRON_PATCH_FLUX(:,:,:)
 
     ! !INPUT/OUTPUT PARAMETERS:
+
     real (r8)                       , intent(inout) :: STF_MODULE(:, :, :, :) 
     type(ecosys_surface_share_type) , intent(inout) :: marbl_surface_share
     real (r8)                       , intent(inout) :: PH_PREV(:, :, :) ! computed ph from previous time step
@@ -3165,6 +2454,10 @@ contains
 
     real (r8) :: scalar_temp
 
+    real (r8) :: INTERP_WORK(nx_block, ny_block, max_blocks_clinic, 1) ! temp array for interpolate_forcing output
+
+    !-----------------------------------------------------------------------
+
     associate(                                                              &
          PV_SURF_fields       => marbl_surface_share%PV_SURF_fields,       & ! IN/OUT
          DIC_SURF_fields      => marbl_surface_share%DIC_SURF_fields,      & ! IN/OUT
@@ -3201,7 +2494,7 @@ contains
        do auto_ind = 1, autotroph_cnt
           n = autotrophs(auto_ind)%Chl_ind
           WORK1 = WORK1 + max(c0, p5*(SURF_VALS_OLD(:, :, n, iblock) + &
-               SURF_VALS_CUR(:, :, n, iblock)))
+                                      SURF_VALS_CUR(:, :, n, iblock)))
        end do
        call named_field_set(totChl_surf_nf_ind, iblock, WORK1)
 
@@ -3645,9 +2938,9 @@ contains
           ndep_inputlist%field_name = 'ndep data'
           ndep_inputlist%short_name = 'ndep'
           ndep_inputlist%year_first = ndep_shr_stream_year_first
-          ndep_inputlist%year_last = ndep_shr_stream_year_last
+          ndep_inputlist%year_last  = ndep_shr_stream_year_last
           ndep_inputlist%year_align = ndep_shr_stream_year_align
-          ndep_inputlist%file_name = ndep_shr_stream_file
+          ndep_inputlist%file_name  = ndep_shr_stream_file
           ndep_inputlist%field_list = ' '
           do n = 1, ndep_shr_stream_var_cnt
              if (n == ndep_shr_stream_no_ind) &
@@ -3981,7 +3274,8 @@ contains
     !-----------------------------------------------------------------------
 
     STF_MODULE(:, :, alk_ind, :) = STF_MODULE(:, :, alk_ind, :) &
-         + STF_MODULE(:, :, nh4_ind, :) - STF_MODULE(:, :, no3_ind, :)
+                                 + STF_MODULE(:, :, nh4_ind, :) &
+                                 - STF_MODULE(:, :, no3_ind, :)
 
     call timer_stop(ecosys_sflux_timer)
 
@@ -4092,6 +3386,24 @@ contains
     !-----------------------------------------------------------------------
     ! initialize surface forcing metadata
     !-----------------------------------------------------------------------
+
+    use passive_tracer_tools , only : init_forcing_monthly_every_ts
+    use marbl_share_mod      , only : dust_flux        
+    use marbl_share_mod      , only : iron_flux        
+    use marbl_share_mod      , only : fice_file        
+    use marbl_share_mod      , only : xkw_file         
+    use marbl_share_mod      , only : ap_file          
+    use marbl_share_mod      , only : nox_flux_monthly 
+    use marbl_share_mod      , only : nhy_flux_monthly 
+    use marbl_share_mod      , only : din_riv_flux     
+    use marbl_share_mod      , only : dip_riv_flux     
+    use marbl_share_mod      , only : don_riv_flux     
+    use marbl_share_mod      , only : dop_riv_flux     
+    use marbl_share_mod      , only : dsi_riv_flux     
+    use marbl_share_mod      , only : dfe_riv_flux     
+    use marbl_share_mod      , only : dic_riv_flux     
+    use marbl_share_mod      , only : alk_riv_flux     
+    use marbl_share_mod      , only : doc_riv_flux     
 
     implicit none
 

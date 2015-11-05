@@ -39,9 +39,74 @@ module marbl_share_mod
 ! namelist inputs
 !-----------------------------------------------------------------------------
 
-  type(tracer_read) :: fesedflux_input         ! namelist input for iron_flux
-
   integer (int_kind) :: totChl_surf_nf_ind = 0 ! total chlorophyll in surface layer (TEMPORARY)
+  integer (int_kind) :: sflux_co2_nf_ind   = 0 ! air-sea co2 gas flux (TEMPORARY)
+
+  !  options for forcing of gas fluxes
+  integer (int_kind), parameter :: gas_flux_forcing_iopt_drv   = 1
+  integer (int_kind), parameter :: gas_flux_forcing_iopt_file  = 2
+  integer (int_kind), parameter :: atm_co2_iopt_const          = 1
+  integer (int_kind), parameter :: atm_co2_iopt_drv_prog       = 2
+  integer (int_kind), parameter :: atm_co2_iopt_drv_diag       = 3
+
+  integer (int_kind), parameter :: ndep_shr_stream_var_cnt = 2 ! number of variables in ndep shr_stream
+  integer (int_kind), parameter :: ndep_shr_stream_no_ind  = 1 ! index for NO forcing
+  integer (int_kind), parameter :: ndep_shr_stream_nh_ind  = 2 ! index for NH forcing
+
+  ! namelists
+
+  character(char_len) :: gas_flux_forcing_file        ! file containing gas flux forcing fields
+  integer (int_kind)  :: gas_flux_forcing_iopt
+  integer (int_kind)  :: atm_co2_iopt
+  integer (int_kind)  :: atm_alt_co2_iopt
+  real (r8)           :: atm_co2_const                ! value of atmospheric co2 (ppm, dry-air, 1 atm)
+  real (r8)           :: atm_alt_co2_const            ! value of atmospheric alternative co2 (ppm, dry-air, 1 atm)
+  logical (log_kind)  :: lflux_gas_o2                 ! controls which portion of code are executed usefull for debugging
+  logical (log_kind)  :: lflux_gas_co2                ! controls which portion of code are executed usefull for debugging
+  character(char_len) :: init_ecosys_option           ! namelist option for initialization of bgc
+  character(char_len) :: init_ecosys_init_file        ! filename for option 'file'
+  character(char_len) :: init_ecosys_init_file_fmt    ! file format for option 'file'
+  logical (log_kind)  :: use_nml_surf_vals            ! do namelist surf values override values from restart file
+  real (r8)           :: surf_avg_dic_const
+  real (r8)           :: surf_avg_alk_const
+
+  logical (log_kind)  :: ecosys_qsw_distrb_const
+
+  logical (log_kind)  :: liron_patch                  ! flag for iron patch fertilization
+  character(char_len) :: iron_patch_flux_filename     ! file containing name of iron patch file
+  integer (int_kind)  :: iron_patch_month             !  integer month to add patch flux
+
+  character(char_len) :: ndep_data_type               ! type of ndep forcing
+  integer (int_kind)  :: ndep_shr_stream_year_first   ! first year in stream to use
+  integer (int_kind)  :: ndep_shr_stream_year_last    ! last year in stream to use
+  integer (int_kind)  :: ndep_shr_stream_year_align   ! align ndep_shr_stream_year_first with this model year
+  character(char_len) :: ndep_shr_stream_file         ! file containing domain and input data
+  real (r8)           :: ndep_shr_stream_scale_factor ! unit conversion factor
+
+  ! (FIXME, mvertens 2015-11, need to introduce marbl type) 
+  type(tracer_read)   :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers 
+
+  ! (FIXME, mvertens 2015-11, need to introduce marbl type) 
+  type(forcing_monthly_every_ts) :: fesedflux        ! iron sedimentation flux
+  type(forcing_monthly_every_ts) :: dust_flux        ! surface dust flux
+  type(forcing_monthly_every_ts) :: iron_flux        ! iron component of surface dust flux
+  type(forcing_monthly_every_ts) :: fice_file        ! ice fraction, if read from file
+  type(forcing_monthly_every_ts) :: xkw_file         ! a * wind-speed ** 2, if read from file
+  type(forcing_monthly_every_ts) :: ap_file          ! atmoshperic pressure, if read from file
+  type(forcing_monthly_every_ts) :: nox_flux_monthly ! surface NOx species flux, added to nitrate pool
+  type(forcing_monthly_every_ts) :: nhy_flux_monthly ! surface NHy species flux, added to ammonium pool
+  type(forcing_monthly_every_ts) :: din_riv_flux     ! river DIN species flux, added to nitrate pool
+  type(forcing_monthly_every_ts) :: dip_riv_flux     ! river DIP species flux, added to phosphate pool
+  type(forcing_monthly_every_ts) :: don_riv_flux     ! river DON flux, added to semi-lab don pool
+  type(forcing_monthly_every_ts) :: dop_riv_flux     ! river DOP flux, added to semi-lab dop pool
+  type(forcing_monthly_every_ts) :: dsi_riv_flux     ! river DSI flux, added to dsi pool
+  type(forcing_monthly_every_ts) :: dfe_riv_flux     ! river dfe flux, added to dfe pool
+  type(forcing_monthly_every_ts) :: dic_riv_flux     ! river dic flux, added to dic pool
+  type(forcing_monthly_every_ts) :: alk_riv_flux     ! river alk flux, added to alk pool
+  type(forcing_monthly_every_ts) :: doc_riv_flux     ! river doc flux, added to semi-labile DOC
+
+  type(tracer_read)  :: fesedflux_input              ! namelist input for iron_flux
+  integer (int_kind) :: comp_surf_avg_flag           ! time flag id for computing average surface tracer values TEMPORARY
 
 !-----------------------------------------------------------------------------
 ! number of ecosystem constituents and grazing interactions
