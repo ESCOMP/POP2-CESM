@@ -593,9 +593,6 @@ contains
 !  Define 2D tavg fields for particulate terms
 !-----------------------------------------------------------------------
 
-    !-----------------------------------------------------------------------
-    !  Vars to sum up burial in sediments and sed Denitrif N losses
-    !-----------------------------------------------------------------------
     do n=1,part_diag_cnt_2d
       call define_tavg_field(tavg_part_2d(n),                                 &
                             trim(part_diags_2d(n)%short_name), 2,             &
@@ -608,75 +605,28 @@ contains
 !  Define 3D tavg fields for particulate terms
 !-----------------------------------------------------------------------
 
-    call define_tavg_field(tavg_part_3d(POC_FLUX_IN_diag_ind),'POC_FLUX_IN',3, &
-                           long_name='POC Flux into Cell',                  &
-                           units='mmol/m^3 cm/s', grid_loc='3111',          &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_part_3d(POC_PROD_diag_ind),'POC_PROD',3,   &
-                           long_name='POC Production',                  &
-                           units='mmol/m^3/s', grid_loc='3111',         &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_part_3d(POC_REMIN_diag_ind),'POC_REMIN',3, &
-                           long_name='POC Remineralization',            &
-                           units='mmol/m^3/s', grid_loc='3111',         &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_part_3d(CaCO3_FLUX_IN_diag_ind),'CaCO3_FLUX_IN',3, &
-                           long_name='CaCO3 flux into cell',                    &
-                           units='mmol/m^3 cm/s', grid_loc='3111',              &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_part_3d(CaCO3_PROD_diag_ind),'CaCO3_PROD',3, &
-                           long_name='CaCO3 Production',                  &
-                           units='mmol/m^3/s', grid_loc='3111',           &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_part_3d(CaCO3_REMIN_diag_ind),'CaCO3_REMIN',3, &
-                           long_name='CaCO3 Remineralization',              &
-                           units='mmol/m^3/s', grid_loc='3111',             &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_part_3d(SiO2_FLUX_IN_diag_ind),'SiO2_FLUX_IN',3, &
-                           long_name='SiO2 Flux into Cell',                   &
-                           units='mmol/m^3 cm/s', grid_loc='3111',            &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_part_3d(SiO2_PROD_diag_ind),'SiO2_PROD',3, &
-                           long_name='SiO2 Production',                 &
-                           units='mmol/m^3/s', grid_loc='3111',         &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_part_3d(SiO2_REMIN_diag_ind),'SiO2_REMIN',3, &
-                           long_name='SiO2 Remineralization',             &
-                           units='mmol/m^3/s', grid_loc='3111',           &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_part_3d(dust_FLUX_IN_diag_ind),'dust_FLUX_IN',3, &
-                           long_name='Dust Flux into Cell',                   &
-                           units='ng/s/m^2', grid_loc='3111',                 &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_part_3d(dust_REMIN_diag_ind),'dust_REMIN',3, &
-                           long_name='Dust Remineralization',             &
-                           units='mmol/m^3/s', grid_loc='3111',           &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_part_3d(P_iron_FLUX_IN_diag_ind),'P_iron_FLUX_IN',3, &
-                           long_name='P_iron Flux into Cell',                     &
-                           units='mmol/m^3 cm/s', grid_loc='3111',                &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_part_3d(P_iron_PROD_diag_ind),'P_iron_PROD',3, &
-                           long_name='P_iron Production',                   &
-                           units='mmol/m^3/s', grid_loc='3111',             &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_part_3d(P_iron_REMIN_diag_ind),'P_iron_REMIN',3, &
-                           long_name='P_iron Remineralization',               &
-                           units='mmol/m^3/s', grid_loc='3111',               &
-                           coordinates='TLONG TLAT z_t time')
+    do n=1,part_diag_cnt_3d
+      if (trim(part_diags_3d(n)%vertical_grid).eq.'layer_avg') then
+        if (part_diags_3d(n)%ltruncated_vertical_extent) then
+          gloc = '3114'
+          coords = 'TLONG TLAT z_t_150m time'
+        else
+          gloc = '3111'
+          coords = 'TLONG TLAT z_t time'
+        end if
+      elseif (trim(part_diags_3d(n)%vertical_grid).eq.'layer_iface') then
+          gloc = '3113'
+          coords = 'TLONG TLAT z_w_bot time'
+      else
+        write(err_msg,*) "'", trim(part_diags_3d(n)%vertical_grid),           &
+                         "' is not a valid vertical grid"
+        call shr_sys_abort(err_msg)
+      end if
+      call define_tavg_field(tavg_part_3d(n),trim(part_diags_3d(n)%short_name), &
+                             3, long_name=trim(part_diags_3d(n)%long_name),     &
+                             units=trim(part_diags_3d(n)%units), grid_loc=gloc, &
+                             coordinates=coords)
+    end do
 
     call define_tavg_field(tavg_POC_ACCUM,'POC_ACCUM',3,                &
                            long_name='POC Accumulation',                &

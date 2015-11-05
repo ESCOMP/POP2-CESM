@@ -336,6 +336,7 @@ contains
           units = 'nmolC/cm^2/s'
         case (popToSed_diag_ind)
           ! FIXME: should be phosphorus? (missing second h?)
+!          lname = 'phosphorus Flux to Sediments'
           lname = 'phosporus Flux to Sediments'
           sname = 'popToSed'
           units = 'nmolP/cm^2/s'
@@ -460,6 +461,7 @@ contains
         case (PAR_avg_diag_ind)
           lname = 'PAR Average over Model Cell'
           sname = 'PAR_avg'
+          !units = 'W/m^2'
           units = 'w/m^2' ! FIXME: watt / m^2 should be W/m^2?
           truncate = .true.
         case (auto_graze_TOT_diag_ind)
@@ -481,10 +483,12 @@ contains
           lname = 'DOC Production'
           sname = 'DOC_prod'
           units = 'mmol/m^3/s'
+!          truncate = .true.
         case (DOC_remin_diag_ind) ! FIXME rest of _remin and _prod truncate!
           lname = 'DOC Remineralization'
           sname = 'DOC_remin'
           units = 'mmol/m^3/s'
+!          truncate = .true.
         case (DON_prod_diag_ind)
           lname = 'DON Production'
           sname = 'DON_prod'
@@ -535,6 +539,82 @@ contains
       diags_3d(n)%ltruncated_vertical_extent = truncate
       diags_3d(n)%compute_now = .true.
     end do
+
+    do n=1,part_diag_cnt_3d
+      ! Default assumption: layer average vertical coordinates, not truncated
+      vgrid = 'layer_avg'
+      truncate = .false.
+      select case (n)
+        case (POC_FLUX_IN_diag_ind)
+          lname = 'POC Flux into Cell'
+          sname = 'POC_FLUX_IN'
+          units = 'mmol/m^3 cm/s'
+        case (POC_PROD_diag_ind)
+          lname = 'POC Production'
+          sname = 'POC_PROD'
+          units = 'mmol/m^3/s'
+        case (POC_REMIN_diag_ind)
+          lname = 'POC Remineralization'
+          sname = 'POC_REMIN'
+          units = 'mmol/m^3/s'
+        case (CaCO3_FLUX_IN_diag_ind)
+!          lname = 'CaCO3 Flux into Cell'
+          lname = 'CaCO3 flux into cell' ! FIXME lower case? consistent with rest?
+          sname = 'CaCO3_FLUX_IN'
+          units = 'mmol/m^3 cm/s'
+        case (CaCO3_PROD_diag_ind)
+          lname = 'CaCO3 Production'
+          sname = 'CaCO3_PROD'
+          units = 'mmol/m^3/s'
+        case (CaCO3_REMIN_diag_ind)
+          lname = 'CaCO3 Remineralization'
+          sname = 'CaCO3_REMIN'
+          units = 'mmol/m^3/s'
+        case (SiO2_FLUX_IN_diag_ind)
+          lname = 'SiO2 Flux into Cell'
+          sname = 'SiO2_FLUX_IN'
+          units = 'mmol/m^3 cm/s'
+        case (SiO2_PROD_diag_ind)
+          lname = 'SiO2 Production'
+          sname = 'SiO2_PROD'
+          units = 'mmol/m^3/s'
+        case (SiO2_REMIN_diag_ind)
+          lname = 'SiO2 Remineralization'
+          sname = 'SiO2_REMIN'
+          units = 'mmol/m^3/s'
+        case (dust_FLUX_IN_diag_ind)
+          lname = 'Dust Flux into Cell'
+          sname = 'dust_FLUX_IN'
+          units = 'ng/s/m^2'
+        case (dust_REMIN_diag_ind)
+          lname = 'Dust Remineralization'
+          sname = 'dust_REMIN'
+          units = 'mmol/m^3/s'
+        case (P_iron_FLUX_IN_diag_ind)
+          lname = 'P_iron Flux into Cell'
+          sname = 'P_iron_FLUX_IN'
+          units = 'mmol/m^3 cm/s'
+        case (P_iron_PROD_diag_ind)
+          lname = 'P_iron Production'
+          sname = 'P_iron_PROD'
+          units = 'mmol/m^3/s'
+        case (P_iron_REMIN_diag_ind)
+          lname = 'P_iron Remineralization'
+          sname = 'P_iron_REMIN'
+          units = 'mmol/m^3/s'
+        case DEFAULT
+          print*, "ERROR in ecosys_diagnostics_init():"
+          print*, n, " is not a valid index for marbl_diags%diags_2d"
+          sname = 'ERRORERRORERROR'
+      end select
+      part_diags_3d(n)%long_name = trim(lname)
+      part_diags_3d(n)%short_name = trim(sname)
+      part_diags_3d(n)%units = trim(units)
+      part_diags_3d(n)%vertical_grid = trim(vgrid)
+      part_diags_3d(n)%ltruncated_vertical_extent = truncate
+      part_diags_3d(n)%compute_now = .true.
+    end do
+
     end associate
 
   end subroutine ecosys_diagnostics_init
