@@ -140,8 +140,6 @@ module ecosys_mod
   use exit_mod, only : sigAbort
 
   use prognostic, only : tracer_field
-  use prognostic, only : curtime
-  use prognostic, only : oldtime
 
   use grid, only : zt
   use grid, only : partial_bottom_cells
@@ -340,7 +338,6 @@ module ecosys_mod
   use marbl_interface_types, only : photosynthetically_available_radiation_type
   use marbl_interface_types, only : dissolved_organic_matter_type
 
-  use ecosys_restore_mod, only : ecosys_restore_type
   use strdata_interface_mod, only : strdata_input_type
 
   ! !INPUT PARAMETERS:
@@ -362,9 +359,8 @@ module ecosys_mod
   public  :: ecosys_init_postnml
   private :: ecosys_init_non_autotroph_tracer_metadata
   private :: ecosys_init_forcing_metadata
-  private :: ecosys_init_interior_restore
-  private :: ecosys_init_tavg
-  private :: ecosys_init_sflux
+  public  :: ecosys_init_tavg
+  public  :: ecosys_init_sflux
 
   ! set_interior routines
   public  :: ecosys_set_interior
@@ -441,8 +437,7 @@ module ecosys_mod
   type(tracer_read) :: &
        gas_flux_fice,       & ! ice fraction for gas fluxes
        gas_flux_ws,         & ! wind speed for gas fluxes
-       gas_flux_ap,         & ! atmospheric pressure for gas fluxes
-       fesedflux_input        ! namelist input for iron_flux
+       gas_flux_ap            ! atmospheric pressure for gas fluxes
 
   !-----------------------------------------------------------------------
   !  module variables related to ph computations
@@ -453,9 +448,6 @@ module ecosys_mod
   !-----------------------------------------------------------------------
   !  restoring climatologies for nutrients
   !-----------------------------------------------------------------------
-
-  real (r8), dimension(:, :, :, :), allocatable, target :: &
-       FESEDFLUX      !  sedimentary Fe inputs
 
   character(char_len) :: &
        nutr_rest_file               ! file containing nutrient fields
@@ -592,7 +584,6 @@ module ecosys_mod
   !-----------------------------------------------------------------------
 
   integer (int_kind) :: &
-       totChl_surf_nf_ind = 0,    & ! total chlorophyll in surface layer
        sflux_co2_nf_ind   = 0,    & ! air-sea co2 gas flux
        atm_co2_nf_ind     = 0       ! atmospheric co2
 
@@ -636,6 +627,7 @@ contains
     use marbl_interface_constants , only : marbl_status_could_not_read_namelist
     use marbl_interface_types     , only : marbl_status_type
     use marbl_interface_types     , only : marbl_tracer_read_type
+    use marbl_share_mod           , only : fesedflux_input
     use ecosys_constants          , only : ecosys_tracer_cnt
 
     implicit none
@@ -1076,123 +1068,33 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_init_postnml(tracer_d_module, TRACER_MODULE, ecosys_restore, saved_state)
+  subroutine ecosys_init_postnml()
 
     ! !DESCRIPTION:
-    !  Final initialization of ecosys tracers
-
-    use marbl_interface_types , only : marbl_saved_state_type
-    use passive_tracer_tools  , only : ind_name_pair
-    use grid                  , only : KMT
+    ! timer init
 
     implicit none
 
-    ! !INPUT/OUTPUT PARAMETERS:
-
-    type (tracer_field)          , intent(inout) :: tracer_d_module(:)   ! tracer metadata
-    real (r8)                    , intent(inout) :: TRACER_MODULE(:, :, :, :, :, :)
-    type(ecosys_restore_type)    , intent(inout) :: ecosys_restore
-    type(marbl_saved_state_type) , intent(inout) :: saved_state
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-
-    character(*), parameter :: subname = 'ecosys_mod:ecosys_init_postnml'
-
-    integer (int_kind)  :: auto_ind                 ! autotroph functional group index
-    integer (int_kind)  :: n                        ! index for looping over tracers
-    integer (int_kind)  :: k                        ! index for looping over depth levels
-    integer (int_kind)  :: iblock                   ! index for looping over blocks
-    real(r8)            :: WORK(nx_block, ny_block) ! FIXME (mvertens, 2015-10) remove this
-    type(ind_name_pair) :: ind_name_table(ecosys_tracer_cnt)
-    !-----------------------------------------------------------------------
-
-    !$OMP PARALLEL DO PRIVATE(iblock, n, k)
-    do iblock=1, nblocks_clinic
-       do n = 1, ecosys_tracer_cnt
-          do k = 1, km
-             where (.not. saved_state%land_mask(:, :, iblock) .or. k > KMT(:, :, iblock))
-                TRACER_MODULE(:, :, k, n, curtime, iblock) = c0
-                TRACER_MODULE(:, :, k, n, oldtime, iblock) = c0
-             end where
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    !-----------------------------------------------------------------------
-    !  register Chl field for short-wave absorption
-    !  apply land mask to tracers
-    !  set Chl field for short-wave absorption
-    !-----------------------------------------------------------------------
-
-    call named_field_register('model_chlorophyll', totChl_surf_nf_ind)
-
-    !$OMP PARALLEL DO PRIVATE(iblock, n, WORK)
-    do iblock=1, nblocks_clinic
-       WORK = c0
-       do auto_ind = 1, autotroph_cnt
-          n = autotrophs(auto_ind)%Chl_ind
-          WORK = WORK + max(c0, p5*(TRACER_MODULE(:, :, 1, n, oldtime, iblock) + &
-                                    TRACER_MODULE(:, :, 1, n, curtime, iblock)))
-       end do
-       call named_field_set(totChl_surf_nf_ind, iblock, WORK)
-    enddo
-    !$OMP END PARALLEL DO
-
-    !-----------------------------------------------------------------------
-    !  timer init
-    !-----------------------------------------------------------------------
-
-    call get_timer(ecosys_comp_CO3terms_timer, 'comp_CO3terms', &
-         nblocks_clinic, distrb_clinic%nprocs)
-    call get_timer(ecosys_sflux_timer, 'ECOSYS_SFLUX', 1, &
-         distrb_clinic%nprocs)
+    call get_timer(ecosys_comp_CO3terms_timer, 'comp_CO3terms', nblocks_clinic, distrb_clinic%nprocs)
+    call get_timer(ecosys_sflux_timer, 'ECOSYS_SFLUX', 1, distrb_clinic%nprocs)
     if (ndep_data_type == 'shr_stream') then
-       call get_timer(ecosys_shr_strdata_advance_timer, &
-            'ecosys_shr_strdata_advance', 1, distrb_clinic%nprocs)
+       call get_timer(ecosys_shr_strdata_advance_timer, 'ecosys_shr_strdata_advance', 1, distrb_clinic%nprocs)
     endif
-
-    !-----------------------------------------------------------------------
-    !  call other initialization subroutines
-    !-----------------------------------------------------------------------
-
-    call ecosys_init_tavg()
-    call ecosys_init_sflux(saved_state)
-
-    do n = 1, ecosys_tracer_cnt
-       ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
-    end do
-
-    call ecosys_restore%init(nml_filename, nml_in, ind_name_table)
-
-    call ecosys_init_interior_restore(saved_state, ecosys_restore)
 
   end subroutine ecosys_init_postnml
 
   !***********************************************************************
-  !BOP
-  ! !IROUTINE: ecosys_init_tavg
-  ! !INTERFACE:
 
   subroutine ecosys_init_tavg
 
     ! !DESCRIPTION:
     !  call define_tavg_field for nonstandard tavg fields
-    !
-    ! !REVISION HISTORY:
-    !  same as module
-    !
 
-    !EOP
-    !BOC
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
 
-    integer (int_kind) :: &
-         buf_len           ! how many surface flux fields are stored in ECO_SFLUX_TAVG
+    integer (int_kind) :: buf_len  ! how many surface flux fields are stored in ECO_SFLUX_TAVG
 
     !-----------------------------------------------------------------------
     !  2D fields related to surface fluxes
@@ -1299,11 +1201,11 @@ contains
   subroutine ecosys_set_interior(i, c, bid, &
        domain, gcm_state, &
        marbl_diagnostics, &
-       saved_state, ecosys_restore, &
+       saved_state, restore_local, &
        ecosys_interior_share, ecosys_zooplankton_share, &
        ecosys_autotroph_share, ecosys_particulate_share, &
        tracer_module, &
-       dtracer, lexport_shared_vars)
+       dtracer, fesedflux, lexport_shared_vars)
 
     ! !DESCRIPTION:
     !  Compute time derivatives for ecosystem state variables
@@ -1335,27 +1237,24 @@ contains
 
     use marbl_parms, only : epsC, epsTinv
 
-    integer (int_kind), intent(in) :: i         ! index for looping over nx_block dimension
-    integer (int_kind), intent(in) :: c         ! column index
-    ! FIXME(bja, 2015-08) domain will become intent(in) once the loops
-    ! are moved!
-    type(marbl_column_domain_type), intent(inout) :: domain
-    type(marbl_gcm_state_type), intent(inout) :: gcm_state
+    integer (int_kind)                  , intent(in)    :: i                                    ! index for looping over nx_block dimension
+    integer (int_kind)                  , intent(in)    :: c                                    ! column index
+    real(r8)                            , intent(in)    :: fesedflux(:)
+    real(r8)                            , intent(in)    :: restore_local(ecosys_tracer_cnt, km) ! local restoring terms for nutrients (mmol ./m^3/sec)
+    real (r8)                           , intent(in)    :: tracer_module(ecosys_tracer_cnt, km) ! tracer values
 
-    real (r8), intent(in)  :: tracer_module(ecosys_tracer_cnt, km)       ! tracer values
-    logical (log_kind), intent(in)  :: lexport_shared_vars ! flag to save shared_vars or not
-    integer (int_kind), intent(in) :: bid       ! local_block id
-    real (r8), intent(out) :: dtracer(ecosys_tracer_cnt, km)      ! computed source/sink terms
-
-    type(marbl_diagnostics_type), intent(inout) :: marbl_diagnostics
-
-    type(marbl_saved_state_type), intent(inout) :: saved_state
-    type(ecosys_restore_type), intent(inout) :: ecosys_restore
-
-    type(ecosys_interior_share_type)   , intent(inout) :: ecosys_interior_share(:)
-    type(ecosys_zooplankton_share_type)   , intent(inout) :: ecosys_zooplankton_share(:)
+    ! FIXME(bja, 2015-08) domain will become intent(in) once the loops are moved!
+    type(marbl_column_domain_type)      , intent(inout) :: domain
+    type(marbl_gcm_state_type)          , intent(inout) :: gcm_state
+    logical (log_kind)                  , intent(in)    :: lexport_shared_vars            ! flag to save shared_vars or not
+    integer (int_kind)                  , intent(in)    :: bid                            ! local_block id
+    real (r8)                           , intent(out)   :: dtracer(ecosys_tracer_cnt, km) ! computed source/sink terms
+    type(marbl_diagnostics_type)        , intent(inout) :: marbl_diagnostics
+    type(marbl_saved_state_type)        , intent(inout) :: saved_state
+    type(ecosys_interior_share_type)    , intent(inout) :: ecosys_interior_share(:)
+    type(ecosys_zooplankton_share_type) , intent(inout) :: ecosys_zooplankton_share(:)
     type(ecosys_autotroph_share_type)   , intent(inout) :: ecosys_autotroph_share(:)
-    type(ecosys_particulate_share_type), intent(inout) :: ecosys_particulate_share(:)
+    type(ecosys_particulate_share_type) , intent(inout) :: ecosys_particulate_share(:)
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1388,11 +1287,6 @@ contains
     real (r8) :: Fe_scavenge(km)      ! loss of dissolved iron, scavenging (mmol Fe/m^3/sec)
 
     real(r8) :: tracer_local(ecosys_tracer_cnt, km)
-    ! FIXME(bja, 2014-10) size should be
-    ! (non_living_biomass_ecosys_tracer_cnt, km) but
-    ! non-living-biomass-tracer-count isn't global and I'm reluctant
-    ! to make it right now.
-    real(r8) :: restore_local(ecosys_tracer_cnt, km) ! local restoring terms for nutrients (mmol ./m^3/sec)
 
     type(zooplankton_local_type) :: zooplankton_local(zooplankton_cnt, km)
     type(autotroph_local_type) :: autotroph_local(autotroph_cnt, km)
@@ -1433,41 +1327,41 @@ contains
 
     !-----------------------------------------------------------------------
 
-          dust_flux_in = saved_state%dust_FLUX_IN(i, c, bid)
-          PAR_out = saved_state%PAR_out(i, c, bid)
-          ph_prev_3d(:) = saved_state%PH_PREV_3D(i, c, :, bid)
-          ph_prev_alt_co2_3d(:) = saved_state%PH_PREV_ALT_CO2_3D(i, c, :, bid)
+    dust_flux_in          = saved_state%dust_FLUX_IN(i, c, bid)
+    PAR_out               = saved_state%PAR_out(i, c, bid)
+    ph_prev_3d(:)         = saved_state%PH_PREV_3D(i, c, :, bid)
+    ph_prev_alt_co2_3d(:) = saved_state%PH_PREV_ALT_CO2_3D(i, c, :, bid)
 
-          ! NOTE(bja, 2015-07) dTracer=0 must come before the "not
-          ! lsource_sink check to ensure correct answer when not doing
-          ! computations.
-          dtracer(:, :) = c0
+    ! NOTE(bja, 2015-07) dTracer=0 must come before the "not
+    ! lsource_sink check to ensure correct answer when not doing
+    ! computations.
+    dtracer(:, :) = c0
 
-          if (.not. lsource_sink) then
-             !-----------------------------------------------------------------------
-             !  exit immediately if computations are not to be performed
-             !-----------------------------------------------------------------------
-             return
-          endif
-
-
-       !! NOTE(bja, 2015-07) this comment got mis-placed during
-       !! refactoring, not sure where it should actually go.
-       !! MNL NOTE: removing logical flags triggered by accumulate_tavg_now
-       !!           I realize this greatly increases the amount of work done
-       !!           in cases where we aren't accumulating, but we need a better
-       !!           way to handle this logic and my first pass ignores that fact
-
+    if (.not. lsource_sink) then
        !-----------------------------------------------------------------------
-       !  create local copies of model tracers
+       !  exit immediately if computations are not to be performed
        !-----------------------------------------------------------------------
-          associate(&
-               POC => marbl_particulate_share%POC, &
-               P_CaCO3 => marbl_particulate_share%P_CaCO3, &
-               P_SiO2 => marbl_particulate_share%P_SiO2, &
-               dust => marbl_particulate_share%dust, &
-               P_iron => marbl_particulate_share%P_iron &
-               )
+       return
+    endif
+
+    !! NOTE(bja, 2015-07) this comment got mis-placed during
+    !! refactoring, not sure where it should actually go.
+    !! MNL NOTE: removing logical flags triggered by accumulate_tavg_now
+    !!           I realize this greatly increases the amount of work done
+    !!           in cases where we aren't accumulating, but we need a better
+    !!           way to handle this logic and my first pass ignores that fact
+    
+    !-----------------------------------------------------------------------
+    !  create local copies of model tracers
+    !-----------------------------------------------------------------------
+
+    associate(&
+         POC     => marbl_particulate_share%POC,     &
+         P_CaCO3 => marbl_particulate_share%P_CaCO3, &
+         P_SiO2  => marbl_particulate_share%P_SiO2,  &
+         dust    => marbl_particulate_share%dust,    &
+         P_iron  => marbl_particulate_share%P_iron   &
+         )
 
           do k = 1, domain%km
              !write(*, *) 'set_interior loop: ', k, i, c
@@ -1480,17 +1374,13 @@ contains
              call setup_local_autotrophs(k, domain%land_mask, domain%kmt, tracer_module(:, k), &
                   autotroph_cnt, autotrophs, autotroph_local(:, k))
 
-             !  set tracer restore fields
-             call ecosys_restore%restore_tracers(ecosys_tracer_cnt, &
-                  vert_level=k, x_index=i, y_index=c, block_id=bid, local_data=tracer_local(:, k), &
-                  restore_data=restore_local(:, k))
-
           enddo
           call init_particulate_terms(1, POC, P_CaCO3, P_SiO2, &
                dust, P_iron, &
                QA_dust_def(:), dust_flux_in)
 
-          call compute_carbonate_chemistry(domain%km, bid, &
+          call timer_start(ecosys_comp_CO3terms_timer, block_id=bid)
+          call compute_carbonate_chemistry(domain%km,  &
                domain%land_mask, domain%kmt, &
                gcm_state%temperature(:), gcm_state%salinity(:), &
                tracer_local(:, :), &
@@ -1498,6 +1388,7 @@ contains
                ph_prev_3d(:), ph_prev_alt_co2_3d(:), &
                zsat_calcite(:), zsat_aragonite(:), &
                co3_calc_anom(:), co3_arag_anom(:))
+          call timer_stop(ecosys_comp_CO3terms_timer, block_id=bid)
 
           do k = 1, domain%km
 
@@ -1557,13 +1448,12 @@ contains
                   POC, P_CaCO3, P_SiO2, dust, P_iron, &
                   Fe_scavenge(k), Fe_scavenge_rate(k))
 
-             call compute_particulate_terms(i, c, k, &
+             call compute_particulate_terms(k, &
                   domain%land_mask, domain%kmt, domain%dzt(k), domain%dz(k), &
                   marbl_particulate_share, &
                   POC, P_CaCO3, P_SiO2, dust, P_iron, &
                   QA_dust_def(k), gcm_state%temperature(k), tracer_local(:, k), &
-                  sed_denitrif(k), other_remin(k), lexport_shared_vars, &
-                  bid)
+                  sed_denitrif(k), other_remin(k), fesedflux(k), lexport_shared_vars)
 
              call compute_nitrif(PAR_out, PAR(k)%in, PAR(k)%KPARdz, &
                   tracer_local(nh4_ind, k), nitrif(k))
@@ -1872,12 +1762,12 @@ contains
   ! !IROUTINE: compute_particulate_terms
   ! !INTERFACE:
 
-  subroutine compute_particulate_terms(i, j, k, &
+  subroutine compute_particulate_terms(k, &
        column_land_mask, column_kmt, column_dzt, column_dz, &
        marbl_particulate_share, &
        POC, P_CaCO3, P_SiO2, dust, P_iron, &
        QA_dust_def, temperature, tracer_local, sed_denitrif, other_remin, &
-       lexport_shared_vars, bid)
+       fesedflux, lexport_shared_vars)
 
     ! !DESCRIPTION:
     !  Compute outgoing fluxes and remineralization terms. Assumes that
@@ -1940,7 +1830,7 @@ contains
 
     ! !INPUT PARAMETERS:
 
-    integer (int_kind), intent(in) :: i, j, k ! vertical model level
+    integer (int_kind), intent(in) :: k ! vertical model level
     logical(log_kind), intent(in) :: column_land_mask
     integer(int_kind), intent(in) :: column_kmt
     real (r8), intent(in) :: column_dzt, column_dz
@@ -1949,10 +1839,7 @@ contains
 
     real (r8), dimension(ecosys_tracer_cnt), intent(in) :: tracer_local ! local copies of model tracer concentrations
 
-    logical (log_kind), intent(in) :: &
-         lexport_shared_vars ! flag to save shared_vars or not
-
-    integer (int_kind), intent(in) :: bid ! block info for the current block
+    logical (log_kind), intent(in) :: lexport_shared_vars ! flag to save shared_vars or not
 
     ! !INPUT/OUTPUT PARAMETERS:
 
@@ -1970,6 +1857,7 @@ contains
 
     type(marbl_particulate_share_type), intent(inout) :: marbl_particulate_share
 
+    real(r8), intent(in) :: fesedflux  ! sedimentary Fe input
     !EOP
     !BOC
     !-----------------------------------------------------------------------
@@ -2273,7 +2161,7 @@ contains
 
              P_iron%remin(k) = P_iron%remin(k) &
                   + dust%remin(k) * dust_to_Fe &
-                  + (FESEDFLUX(i, j, k, bid) * dzr_loc)
+                  + (fesedflux * dzr_loc)
 
              P_iron%hflux_out(k) = P_iron%hflux_in(k)
 
@@ -2404,7 +2292,7 @@ contains
 
              !-----------------------------------------------------------------------
              !   Remove all Piron and dust that hits bottom, sedimentary Fe source
-             !        accounted for by FESEDFLUX elsewhere.
+             !        accounted for by fesedflux elsewhere.
              !-----------------------------------------------------------------------
 
              flux = (P_iron%sflux_out(k) + P_iron%hflux_out(k))
@@ -2448,22 +2336,15 @@ contains
   end subroutine compute_particulate_terms
 
   !***********************************************************************
-  !BOP
-  ! !IROUTINE: ecosys_init_sflux
-  ! !INTERFACE:
 
   subroutine ecosys_init_sflux(saved_state)
 
     ! !DESCRIPTION:
     !  Initialize surface flux computations for ecosys tracer module.
-    !
-    ! !REVISION HISTORY:
-    !  same as module
+
     use marbl_interface_types, only : marbl_saved_state_type
     type(marbl_saved_state_type), intent(inout) :: saved_state
 
-    !EOP
-    !BOC
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
@@ -3167,88 +3048,7 @@ contains
        endif
     endif
 
-    !-----------------------------------------------------------------------
-    !EOC
-
   end subroutine ecosys_init_sflux
-
-  !***********************************************************************
-  !BOP
-  ! !IROUTINE: ecosys_init_interior_restore
-  ! !INTERFACE:
-
-  subroutine ecosys_init_interior_restore(saved_state, ecosys_restore)
-
-    ! !DESCRIPTION:
-    !  Initialize interior restoring computations for ecosys tracer module.
-    !
-    ! !REVISION HISTORY:
-    !  same as module
-
-    use marbl_interface_types, only : marbl_saved_state_type
-    use grid, only : KMT
-
-    type(marbl_saved_state_type), intent(in) :: saved_state
-    type(ecosys_restore_type), intent(inout) :: ecosys_restore
-    !EOP
-    !BOC
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-
-    integer (int_kind) :: &
-         k,                   & ! index for looping over levels
-         i, j,                 & ! index for looping over horiz. dims.
-         iblock                 ! index for looping over blocks
-
-    real (r8) :: &
-         subsurf_fesed          ! sum of subsurface fesed values
-
-    !-----------------------------------------------------------------------
-    !  initialize restoring timescale (if required)
-    !-----------------------------------------------------------------------
-
-    call ecosys_restore%initialize_restoring_timescale(nml_filename, nml_in, zt)
-
-    !-----------------------------------------------------------------------
-    !  load restoring fields (if required)
-    !-----------------------------------------------------------------------
-
-    call ecosys_restore%read_restoring_fields(saved_state%land_mask)
-
-    !-----------------------------------------------------------------------
-    !  load fesedflux
-    !  add subsurface positives to 1 level shallower, to accomodate overflow pop-ups
-    !-----------------------------------------------------------------------
-
-    allocate(FESEDFLUX(nx_block, ny_block, km, max_blocks_clinic))
-
-    call read_field(fesedflux_input%file_fmt, &
-         fesedflux_input%filename, &
-         fesedflux_input%file_varname, &
-         FESEDFLUX)
-
-    do iblock=1, nblocks_clinic
-       do j=1, ny_block
-          do i=1, nx_block
-             if (KMT(i, j, iblock) > 0 .and. KMT(i, j, iblock) < km) then
-                subsurf_fesed = c0
-                do k=KMT(i, j, iblock)+1, km
-                   subsurf_fesed = subsurf_fesed + FESEDFLUX(i, j, k, iblock)
-                enddo
-                FESEDFLUX(i, j, KMT(i, j, iblock), iblock) = FESEDFLUX(i, j, KMT(i, j, iblock), iblock) + subsurf_fesed
-             endif
-          enddo
-       enddo
-
-       do k = 1, km
-          where (.not. saved_state%land_mask(:, :, iblock) .or. k > KMT(:, :, iblock)) &
-               FESEDFLUX(:, :, k, iblock) = c0
-          FESEDFLUX(:, :, k, iblock) = FESEDFLUX(:, :, k, iblock) * fesedflux_input%scale_factor
-       enddo
-    end do
-
-  end subroutine ecosys_init_interior_restore
 
   !***********************************************************************
 
@@ -3269,6 +3069,7 @@ contains
     use marbl_interface_types, only : marbl_saved_state_type
     use strdata_interface_mod, only : POP_strdata_create
     use strdata_interface_mod, only : POP_strdata_advance
+    use marbl_share_mod, only : totChl_surf_nf_ind
 
     ! !DESCRIPTION:
     !  Compute surface fluxes for ecosys tracer module.
@@ -4910,8 +4711,7 @@ contains
 
   !***********************************************************************
 
-
-  subroutine compute_carbonate_chemistry(dkm, bid, &
+  subroutine compute_carbonate_chemistry(dkm, &
        column_land_mask, column_kmt, &
        temperature, salinity, &
        tracer_local, carbonate, &
@@ -4925,7 +4725,6 @@ contains
     USE state_mod,      ONLY : ref_pressure
 
     integer (int_kind), intent(in) :: dkm
-    integer (int_kind), intent(in) :: bid
     logical(log_kind), intent(in) :: column_land_mask
     integer(int_kind), intent(in) :: column_kmt
 
@@ -4953,8 +4752,6 @@ contains
     real(r8), dimension(dkm) :: ph_upper_bound
     real(r8), dimension(dkm) :: press_bar           ! pressure at level (bars)
     type(thermodynamic_coefficients_type), dimension(dkm) :: co3_coeffs
-
-    call timer_start(ecosys_comp_CO3terms_timer, block_id=bid)
 
     associate( &
          DIC_loc => tracer_local(dic_ind,:), &
@@ -5018,8 +4815,6 @@ contains
                        HCO3_ALT_CO2, CO3_ALT_CO2)
        
     ph_prev_alt_co2_3d = pH_ALT_CO2
-
-    call timer_stop(ecosys_comp_CO3terms_timer, block_id=bid)
 
     call comp_co3_sat_vals(dkm, mask, pressure_correct, temperature, salinity, &
                            press_bar, CO3_sat_calcite, CO3_sat_aragonite)

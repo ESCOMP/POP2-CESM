@@ -17,7 +17,7 @@ module marbl_share_mod
   use blocks, only: nx_block
   use blocks, only: ny_block
 
-  use domain_size, only : km
+  use domain_size, only: km
   use domain_size, only: max_blocks_clinic
 
   use marbl_kinds_mod, only : r8
@@ -25,10 +25,23 @@ module marbl_share_mod
   use marbl_kinds_mod, only : int_kind
   use marbl_kinds_mod, only : char_len
   
+  ! (FIXME, mvertens 2015-11, need to introduce marbl type) 
+  use passive_tracer_tools, only : tracer_read
+  use passive_tracer_tools, only : forcing_monthly_every_ts
+  use ecosys_constants    , only : ecosys_tracer_cnt
+
   implicit none
 
   public
   save
+
+!-----------------------------------------------------------------------------
+! namelist inputs
+!-----------------------------------------------------------------------------
+
+  type(tracer_read) :: fesedflux_input         ! namelist input for iron_flux
+
+  integer (int_kind) :: totChl_surf_nf_ind = 0 ! total chlorophyll in surface layer (TEMPORARY)
 
 !-----------------------------------------------------------------------------
 ! number of ecosystem constituents and grazing interactions
@@ -354,6 +367,7 @@ module marbl_share_mod
      column_particle%hflux_in(k)  = particle%hflux_in(i, c, bid)
      column_particle%sed_loss(k)  = particle%sed_loss(i, c, bid)
      column_particle%remin(k)     = particle%remin(i, c, bid)
+
      ! NOTE(bja, 2015-07) remin doesn't actually affect bit for bit
      ! reproducibility...?
 

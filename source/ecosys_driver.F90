@@ -55,12 +55,14 @@ module ecosys_driver
 
   use ecosys_mod, only: ecosys_init_nml    
   use ecosys_mod, only: ecosys_init_tracer_metadata
-  use ecosys_mod, only: ecosys_init_postnml
+  use ecosys_mod, only: ecosys_init_postnml ! TEMPORARY
+  use ecosys_mod, only: ecosys_init_tavg    ! TEMPORARY
+  use ecosys_mod, only: ecosys_init_sflux   ! TEMPORARY
   use ecosys_mod, only: ecosys_tracer_ref_val
   use ecosys_mod, only: ecosys_set_sflux
   use ecosys_mod, only: ecosys_tavg_forcing
   use ecosys_mod, only: ecosys_set_interior
-  
+
   use ecosys_ciso_mod, only: ecosys_ciso_tracer_cnt
   use ecosys_ciso_mod, only: ecosys_ciso_init
   use ecosys_ciso_mod, only: ecosys_ciso_tracer_ref_val
@@ -92,6 +94,7 @@ module ecosys_driver
 
   private :: ecosys_write_restart
   private :: ecosys_driver_init_tracers
+  private :: ecosys_driver_init_interior_restore 
 
   !-----------------------------------------------------------------------
   !  module variables required by forcing_passive_tracer
@@ -147,6 +150,8 @@ module ecosys_driver
   real (r8), allocatable, target :: PH_PREV_ALT_CO2(:, :, :) ! computed ph from previous time step, alternative CO2
 
   type(ind_name_pair) :: ind_name_table(ecosys_tracer_cnt) !  derived type & parameter for tracer index lookup
+
+  real (r8), dimension(:, :, :, :), allocatable, target :: fesedflux      !  sedimentary Fe inputs
 
   !***********************************************************************
 
@@ -231,6 +236,12 @@ contains
     use ecosys_diagnostics_mod    , only : part_diag_cnt_3d
     use ecosys_diagnostics_mod    , only : forcing_diag_cnt
     use communicate               , only : my_task, master_task
+    use named_field_mod           , only : named_field_register
+    use named_field_mod           , only : named_field_set
+    use marbl_share_mod           , only : totChl_surf_nf_ind
+    use marbl_share_mod           , only : autotrophs
+    use prognostic                , only : curtime
+    use prognostic                , only : oldtime
 
     ! !INPUT PARAMETERS:
 
@@ -256,12 +267,15 @@ contains
 
     character(*), parameter         :: subname = 'ecosys_driver:ecosys_driver_init'
     integer (int_kind)              :: cumulative_nt, n, bid, k
-    integer (int_kind)              :: nml_error          ! error flag for nml read
-    integer (int_kind)              :: iostat             ! io status flag
+    integer (int_kind)              :: nml_error                ! error flag for nml read
+    integer (int_kind)              :: iostat                   ! io status flag
     character (char_len)            :: sname, lname, units, coordinates
     character (4)                   :: grid_loc
     character(marbl_nl_buffer_size) :: nl_buffer
     character(char_len_long)        :: ioerror_msg
+    integer (int_kind)              :: auto_ind                 ! autotroph functional group index
+    integer (int_kind)              :: iblock                   ! index for looping over blocks
+    real(r8)                        :: WORK(nx_block, ny_block) ! FIXME (mvertens, 2015-10) remove this
 
     ! NOTE (mvertens, 2015-10) variables moved from ecosys_init
     character (char_len) ::  ecosys_restart_filename            ! modified file name for restart file
@@ -478,10 +492,47 @@ contains
     endif
 
     ! initialize remaining variables
-    call ecosys_init_postnml(tracer_d_module, TRACER_MODULE, ecosys_restore, marbl_saved_state)
+    call ecosys_init_postnml()                  !FIXME (mvertens, 2015-11) move routine to driver 
+    call ecosys_init_tavg()                     !FIXME (mvertens, 2015-11) move routine to driver
+    call ecosys_init_sflux(marbl_saved_state)   !FIXME (mvertens, 2015-11) move routine to driver
 
-    ! initialize tavg restoring
+    ! initialize interior tavg restoring
+    do n = 1, ecosys_tracer_cnt
+       ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
+    end do
+    call ecosys_restore%init(nml_filename, nml_in, ind_name_table)
+    call ecosys_driver_init_interior_restore(marbl_saved_state, ecosys_restore)
     call ecosys_tavg_init(ecosys_restore)
+
+    !$OMP PARALLEL DO PRIVATE(iblock, n, k)
+    do iblock=1, nblocks_clinic
+       do n = 1, ecosys_tracer_cnt
+          do k = 1, km
+             where (.not. marbl_saved_state%land_mask(:, :, iblock) .or. k > KMT(:, :, iblock))
+                TRACER_MODULE(:, :, k, n, curtime, iblock) = c0
+                TRACER_MODULE(:, :, k, n, oldtime, iblock) = c0
+             end where
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !  register Chl field for short-wave absorption
+    !  apply land mask to tracers
+    !  set Chl field for short-wave absorption
+
+    call named_field_register('model_chlorophyll', totChl_surf_nf_ind)
+    !$OMP PARALLEL DO PRIVATE(iblock, n, WORK)
+    do iblock=1, nblocks_clinic
+       WORK = c0
+       do auto_ind = 1, autotroph_cnt
+          n = autotrophs(auto_ind)%Chl_ind
+          WORK = WORK + max(c0, p5*(TRACER_MODULE(:, :, 1, n, oldtime, iblock) + &
+                                    TRACER_MODULE(:, :, 1, n, curtime, iblock)))
+       end do
+       call named_field_set(totChl_surf_nf_ind, iblock, WORK)
+    enddo
+    !$OMP END PARALLEL DO
 
     !-----------------------------------------------------------------------
     !  ECOSYS CISO block
@@ -540,6 +591,8 @@ contains
     
     implicit none
     
+  ! !INPUT PARAMETERS:
+
     character (*)                , intent(in)    :: init_ts_file_fmt                   ! format (bin or nc) for input file
     character(char_len)          , intent(in)    :: init_ecosys_option                 ! namelist option for initialization of bgc
     character(char_len)          , intent(in)    :: init_ecosys_init_file              ! filename for option 'file'
@@ -548,9 +601,13 @@ contains
     type(tracer_read)            , intent(in)    :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers
     type(tracer_field)           , intent(in)    :: tracer_d_module(:)                 ! descriptors for each tracer
 
+    ! !INPUT/OUTPUT PARAMETERS:
+
     character(char_len)          , intent(inout) :: init_ecosys_init_file_fmt          ! file format for option 'file'
     real (r8)                    , intent(inout) :: TRACER_MODULE(:,:,:,:,:,:)
     type(marbl_saved_state_type) , intent(inout) :: marbl_saved_state
+
+    ! !OUTPUT PARAMETERS:
 
     character(char_len)          , intent(out)   :: ecosys_restart_filename            ! modified file name for restart file
     integer (int_kind)           , intent(out)   :: comp_surf_avg_flag          ! time flag id for computing average surface tracer
@@ -788,7 +845,10 @@ contains
     !EOP
     !BOC
 
-    ! local
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+
     integer (int_kind) :: i ! nx_block loop index
     integer (int_kind) :: c ! ny_block / column loop index
     integer (int_kind) :: k ! vertical level index
@@ -799,12 +859,19 @@ contains
     type(marbl_gcm_state_type)     :: marbl_gcm_state
 
     real (r8), dimension(nx_block, ny_block, km, ecosys_tracer_cnt) :: tracer_module_avg
-    real (r8), dimension(nx_block, ny_block, km) :: &
-         temperature,          & ! temperature (C)
-         salinity                ! salinity(ppt)
+    real (r8), dimension(nx_block, ny_block, km)                    :: temperature ! temperature (C)
+    real (r8), dimension(nx_block, ny_block, km)                    :: salinity    ! salinity(ppt)
 
     real(r8), dimension(ecosys_tracer_cnt, km) :: column_tracer_module
     real(r8), dimension(ecosys_tracer_cnt, km) :: column_dtracer
+
+    ! FIXME(bja, 2014-10) size of restore_local should be
+    ! (non_living_biomass_ecosys_tracer_cnt, km) but non-living-biomass-tracer-count isn't global and I'm reluctant
+    ! to make it right now.
+    real(r8) :: tracer_local(ecosys_tracer_cnt)
+    real(r8) :: restore_local(ecosys_tracer_cnt, km) ! local restoring terms for nutrients (mmol ./m^3/sec)
+
+    !-----------------------------------------------------------------------
 
     call marbl%set_interior()
 
@@ -814,6 +881,7 @@ contains
     ! FIXME(bja, 2015-07) one time copy of global marbl_domain
     ! related memory from slab to column ordering. move entire
     ! copy to ecosys_driver_set_interior.
+
     marbl_domain%km = km
     allocate(marbl_domain%dzt(marbl_domain%km))
     allocate(marbl_domain%dz(marbl_domain%km))
@@ -836,13 +904,16 @@ contains
 
     do c = this_block%jb,this_block%je
        do i = this_block%ib,this_block%ie
-       ! Copy data from slab to column for marbl
+
+          ! Copy data from slab to column for marbl
           marbl_domain%land_mask = marbl_saved_state%land_mask(i, c, bid)
           marbl_domain%kmt = KMT(i, c, bid)
+
           if (marbl_saved_state%land_mask(i,c,bid)) then
              do k = 1, marbl_domain%km
                 marbl_gcm_state%temperature(k) = temperature(i,c,k)
                 marbl_gcm_state%salinity(k) = salinity(i,c,k)
+
                 ! FIXME(bja, 2015-07) marbl shouldn't know about partial
                 ! bottom cells. just pass in delta_z, set to DZT(i, c,
                 ! k, bid) or dz(k) and use the single value!
@@ -856,34 +927,46 @@ contains
              end do ! do k
           end if ! land_mask
 
-          
-          if (marbl_saved_state%land_mask(i,c,bid) .and. KMT(i, c, bid).gt.0) then 
+          if (marbl_domain%land_mask .and. marbl_domain%kmt > 0) then 
 
-            call ecosys_set_interior(i, c, bid,                             &
-                 marbl_domain, marbl_gcm_state,                             &
-                 marbl_diagnostics(bid), marbl_saved_state, ecosys_restore, &
-                 marbl%private_data%ecosys_interior_share,                  &
-                 marbl%private_data%ecosys_zooplankton_share,               &
-                 marbl%private_data%ecosys_autotroph_share,                 &
-                 marbl%private_data%ecosys_particulate_share,               &
-                 column_tracer_module,                                      &
-                 column_dtracer,                                            &
-                 ciso_on)
+             !  set tracer restore fields
+             do k = 1, marbl_domain%km
+                do n = 1, ecosys_tracer_cnt
+                   tracer_local(n) = max(c0, column_tracer_module(n,k))
+                end do
 
-            ! copy marbl column data back to slab
-            do k = 1, marbl_domain%km
-               do n = ecosys_ind_begin, ecosys_ind_end
-                  DTRACER_MODULE(i, c, k, n) = column_dtracer(n, k)
-               end do ! do n
-            end do ! do k
+                call ecosys_restore%restore_tracers(ecosys_tracer_cnt, &
+                     vert_level=k, x_index=i, y_index=c, block_id=bid, &
+                     local_data=tracer_local(:), restore_data=restore_local(:, k))
+             end do
+
+             !  compute time derivatives for ecosystem state variables
+             call ecosys_set_interior(i, c, bid,                             &
+                  marbl_domain, marbl_gcm_state,                             &
+                  marbl_diagnostics(bid), marbl_saved_state, restore_local,  &
+                  marbl%private_data%ecosys_interior_share,                  &
+                  marbl%private_data%ecosys_zooplankton_share,               &
+                  marbl%private_data%ecosys_autotroph_share,                 &
+                  marbl%private_data%ecosys_particulate_share,               &
+                  column_tracer_module,                                      &
+                  column_dtracer,                                            &
+                  fesedflux(i,c,:,bid), &
+                  ciso_on)
+
+             ! copy marbl column data back to slab
+             do k = 1, marbl_domain%km
+                do n = ecosys_ind_begin, ecosys_ind_end
+                   DTRACER_MODULE(i, c, k, n) = column_dtracer(n, k)
+                end do ! do n
+             end do ! do k
+
           end if ! KMT > 0
-
+          
           call ecosys_tavg_accumulate(i, c, bid, marbl_diagnostics(bid), ecosys_restore)
 
        end do ! do i
     end do ! do c
           
-
     call timer_stop(ecosys_interior_timer, block_id=bid)
 
     !-----------------------------------------------------------------------
@@ -1002,27 +1085,19 @@ contains
     ! !DESCRIPTION:
     !  call restart routines for each tracer module that
     !  write fields besides the tracers themselves
-    !
-    ! !REVISION HISTORY:
-    !  same as module
 
     ! !INPUT PARAMETERS:
-    logical (kind=log_kind), intent(in)  ::  &
-         ciso_on                 ! ecosys_ciso on
 
-    character(*), intent(in) :: action
+    logical (kind=log_kind) , intent(in) :: ciso_on  ! ecosys_ciso on
+    character(*)            , intent(in) :: action
 
     ! !INPUT/OUTPUT PARAMETERS:
 
     type (datafile), intent (inout)  :: restart_file
 
-    !EOP
-    !BOC
-
     !-----------------------------------------------------------------------
     !  ECOSYS block
     !-----------------------------------------------------------------------
-
     call ecosys_write_restart(marbl_saved_state, restart_file, action, &
          vflux_flag, PH_PREV, PH_PREV_ALT_CO2)
 
@@ -1032,9 +1107,6 @@ contains
     if (ciso_on) then
        call ecosys_ciso_write_restart(restart_file, action)
     end if
-
-    !-----------------------------------------------------------------------
-    !EOC
 
   end subroutine ecosys_driver_write_restart
 
@@ -1249,6 +1321,87 @@ contains
   end subroutine ecosys_write_restart
 
   !*****************************************************************************
+
+  subroutine ecosys_driver_init_interior_restore(marbl_saved_state, ecosys_restore)
+
+    ! !DESCRIPTION:
+    !  Initialize interior restoring computations for ecosys tracer module.
+
+    use ecosys_restore_mod    , only : ecosys_restore_type
+    use marbl_interface_types , only : marbl_saved_state_type
+    use grid                  , only : KMT
+    use grid                  , only : zt
+    use io_types              , only : nml_in, nml_filename
+    use blocks                , only : nx_block, ny_block
+    use domain_size           , only : max_blocks_clinic, km
+    use marbl_share_mod       , only : fesedflux_input
+    use passive_tracer_tools  , only : read_field
+
+    ! !INPUT PARAMETERS:
+
+    type(marbl_saved_state_type), intent(in) :: marbl_saved_state
+
+    ! !INPUT/OUTPUT PARAMETERS:
+
+    type(ecosys_restore_type)   , intent(inout) :: ecosys_restore
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+
+    integer (int_kind) :: &
+         k,               & ! index for looping over levels
+         i, j,            & ! index for looping over horiz. dims.
+         iblock             ! index for looping over blocks
+
+    real (r8) :: &
+         subsurf_fesed      ! sum of subsurface fesed values
+
+    !-----------------------------------------------------------------------
+    !  initialize restoring timescale (if required)
+    !-----------------------------------------------------------------------
+
+    call ecosys_restore%initialize_restoring_timescale(nml_filename, nml_in, zt)
+
+    !-----------------------------------------------------------------------
+    !  load restoring fields (if required)
+    !-----------------------------------------------------------------------
+
+    call ecosys_restore%read_restoring_fields(marbl_saved_state%land_mask)
+
+    !-----------------------------------------------------------------------
+    !  load fesedflux
+    !  add subsurface positives to 1 level shallower, to accomodate overflow pop-ups
+    !-----------------------------------------------------------------------
+
+    allocate(fesedflux(nx_block, ny_block, km, max_blocks_clinic))
+
+    call read_field(fesedflux_input%file_fmt, &
+         fesedflux_input%filename, &
+         fesedflux_input%file_varname, &
+         fesedflux)
+
+    do iblock=1, nblocks_clinic
+       do j=1, ny_block
+          do i=1, nx_block
+             if (KMT(i, j, iblock) > 0 .and. KMT(i, j, iblock) < km) then
+                subsurf_fesed = c0
+                do k=KMT(i, j, iblock)+1, km
+                   subsurf_fesed = subsurf_fesed + fesedflux(i, j, k, iblock)
+                enddo
+                fesedflux(i, j, KMT(i, j, iblock), iblock) = fesedflux(i, j, KMT(i, j, iblock), iblock) + subsurf_fesed
+             endif
+          enddo
+       enddo
+
+       do k = 1, km
+          where (.not. marbl_saved_state%land_mask(:, :, iblock) .or. k > KMT(:, :, iblock)) &
+               fesedflux(:, :, k, iblock) = c0
+          fesedflux(:, :, k, iblock) = fesedflux(:, :, k, iblock) * fesedflux_input%scale_factor
+       enddo
+    end do
+
+  end subroutine ecosys_driver_init_interior_restore
 
 end module ecosys_driver
 
