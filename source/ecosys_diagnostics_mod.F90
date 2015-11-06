@@ -675,6 +675,141 @@ contains
       end do
     end do
 
+    do auto_ind=1,autotroph_cnt
+      do n=1,auto_diag_cnt_3d
+        ! Default assumption: layer average vertical coordinates, not truncated
+        vgrid = 'layer_avg'
+        truncate = .false.
+        select case (n)
+          case (N_lim_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' N Limitation'
+            sname = trim(autotrophs(auto_ind)%sname) // '_N_lim'
+            units = 'none'
+            truncate = .true.
+          case (P_lim_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' P Limitation'
+            sname = trim(autotrophs(auto_ind)%sname) // '_P_lim'
+            units = 'none'
+            truncate = .true.
+          case (Fe_lim_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' Fe Limitation'
+            sname = trim(autotrophs(auto_ind)%sname) // '_Fe_lim'
+            units = 'none'
+            truncate = .true.
+          case (SiO3_lim_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' SiO3 Limitation'
+            sname = trim(autotrophs(auto_ind)%sname) // '_SiO3_lim'
+            units = 'none'
+            truncate = .true.
+          case (light_lim_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' Light Limitation'
+            sname = trim(autotrophs(auto_ind)%sname) // '_light_lim'
+            units = 'none'
+            truncate = .true.
+          case (photoC_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' C Fixation'
+            sname = 'photoC_' // trim(autotrophs(auto_ind)%sname)
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (photoC_NO3_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' C Fixation from NO3'
+            sname = 'photoC_NO3_' // trim(autotrophs(auto_ind)%sname)
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (photoFe_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' Fe Uptake'
+            sname = 'photoFe_' // trim(autotrophs(auto_ind)%sname)
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (photoNO3_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' NO3 Uptake'
+            sname = 'photoNO3_' // trim(autotrophs(auto_ind)%sname)
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (photoNH4_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' NH4 Uptake'
+            sname = 'photoNH4_' // trim(autotrophs(auto_ind)%sname)
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (DOP_uptake_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' DOP Uptake'
+            sname = 'DOP_' // trim(autotrophs(auto_ind)%sname) // '_uptake'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (PO4_uptake_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' PO4 Uptake'
+            sname = 'PO4_' // trim(autotrophs(auto_ind)%sname) // '_uptake'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (auto_graze_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' Grazing'
+            sname = 'graze_' // trim(autotrophs(auto_ind)%sname)
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (auto_graze_poc_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' Grazing to POC'
+            sname = 'graze_' // trim(autotrophs(auto_ind)%sname) // '_poc'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (auto_graze_doc_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' Grazing to DOC'
+            sname = 'graze_' // trim(autotrophs(auto_ind)%sname) // '_doc'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (auto_graze_zoo_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' Grazing to ZOO'
+            sname = 'graze_' // trim(autotrophs(auto_ind)%sname) // '_zoo'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (auto_loss_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' Loss'
+            sname = trim(autotrophs(auto_ind)%sname) // '_loss'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (auto_loss_poc_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' Loss to POC'
+            sname = trim(autotrophs(auto_ind)%sname) // '_loss_poc'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (auto_loss_doc_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' Loss to DOC'
+            sname = trim(autotrophs(auto_ind)%sname) // '_loss_doc'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (auto_agg_diag_ind)
+            lname = trim(autotrophs(auto_ind)%lname) // ' Aggregate'
+            sname = trim(autotrophs(auto_ind)%sname) // '_agg'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (bSi_form_diag_ind)
+            lname=trim(autotrophs(auto_ind)%lname) // ' Si Uptake' ! FIXME: formation?
+            sname = trim(autotrophs(auto_ind)%sname) // 'bSi_form' ! FIXME: _?
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (CaCO3_form_diag_ind)
+            lname=trim(autotrophs(auto_ind)%lname) // ' CaCO3 Formation'
+            sname = trim(autotrophs(auto_ind)%sname) // '_CaCO3_form'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (Nfix_diag_ind)
+            lname=trim(autotrophs(auto_ind)%lname) // ' N Fixation'
+            sname = trim(autotrophs(auto_ind)%sname) // '_Nfix'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case DEFAULT
+            print*, "ERROR in ecosys_diagnostics_init():"
+            print*, n, " is not a valid index for marbl_diags%diags_2d"
+            sname = 'ERRORERRORERROR'
+        end select
+        auto_diags_3d(n,auto_ind)%long_name = trim(lname)
+        auto_diags_3d(n,auto_ind)%short_name = trim(sname)
+        auto_diags_3d(n,auto_ind)%units = trim(units)
+        auto_diags_3d(n,auto_ind)%vertical_grid = trim(vgrid)
+        auto_diags_3d(n,auto_ind)%ltruncated_vertical_extent = truncate
+        auto_diags_3d(n,auto_ind)%compute_now = .true.
+      end do
+    end do
+
     end associate
 
   end subroutine ecosys_diagnostics_init

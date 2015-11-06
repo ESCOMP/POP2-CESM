@@ -550,8 +550,7 @@ contains
                            coordinates='TLONG TLAT time')
 
 !-----------------------------------------------------------------------
-!   Define 2D tavg fields for everything but zooplankton, autotrophs,
-!   surface flux terms, and particulate terms
+!   Define 2D tavg fields
 !-----------------------------------------------------------------------
 
     do n=1,ecosys_diag_cnt_2d
@@ -561,9 +560,38 @@ contains
                             grid_loc='2110', coordinates='TLONG TLAT time')
     end do
 
+    do n=1,part_diag_cnt_2d
+      call define_tavg_field(tavg_part_2d(n),                                 &
+                            trim(part_diags_2d(n)%short_name), 2,             &
+                            long_name=trim(part_diags_2d(n)%long_name),       &
+                            units=trim(part_diags_2d(n)%units),               &
+                            grid_loc='2110', coordinates='TLONG TLAT time')
+    end do
+
+    do auto_ind = 1, autotroph_cnt
+      do n=1,auto_diag_cnt_2d
+        define_field = .true.
+        if (n.eq.CaCO3_form_zint_diag_ind) then
+          define_field = (autotrophs(auto_ind)%CaCO3_ind > 0)
+        end if
+
+        if (define_field) then
+          call define_tavg_field(tavg_auto_2d(n, auto_ind),                   &
+                        trim(auto_diags_2d(n, auto_ind)%short_name), 2,       &
+                        long_name=trim(auto_diags_2d(n, auto_ind)%long_name), &
+                        units=trim(auto_diags_2d(n, auto_ind)%units),         &
+                        grid_loc='2110', coordinates='TLONG TLAT time')
+        end if
+      end do
+    end do
+
+    call define_tavg_field(tavg_tot_CaCO3_form_zint, 'CaCO3_form_zint', 2, &
+                           long_name='Total CaCO3 Formation Vertical Integral', &
+                           units='mmol/m^3 cm/s', grid_loc='2110', &
+                           coordinates='TLONG TLAT time')
+
 !-----------------------------------------------------------------------
-!   Define 3D tavg fields for everything but zooplankton, autotrophs,
-!   surface flux terms, and particulate terms
+!   Define 3D tavg fields
 !-----------------------------------------------------------------------
 
     do n=1,ecosys_diag_cnt_3d
@@ -589,22 +617,6 @@ contains
                              coordinates=coords)
     end do
 
-!-----------------------------------------------------------------------
-!  Define 2D tavg fields for particulate terms
-!-----------------------------------------------------------------------
-
-    do n=1,part_diag_cnt_2d
-      call define_tavg_field(tavg_part_2d(n),                                 &
-                            trim(part_diags_2d(n)%short_name), 2,             &
-                            long_name=trim(part_diags_2d(n)%long_name),       &
-                            units=trim(part_diags_2d(n)%units),               &
-                            grid_loc='2110', coordinates='TLONG TLAT time')
-    end do
-
-!-----------------------------------------------------------------------
-!  Define 3D tavg fields for particulate terms
-!-----------------------------------------------------------------------
-
     do n=1,part_diag_cnt_3d
       if (trim(part_diags_3d(n)%vertical_grid).eq.'layer_avg') then
         if (part_diags_3d(n)%ltruncated_vertical_extent) then
@@ -627,14 +639,6 @@ contains
                              units=trim(part_diags_3d(n)%units), grid_loc=gloc, &
                              coordinates=coords)
     end do
-
-!-----------------------------------------------------------------------
-!  Define 2D tavg fields for zooplankton
-!-----------------------------------------------------------------------
-
-!-----------------------------------------------------------------------
-!  Define 3D tavg fields for zooplankton
-!-----------------------------------------------------------------------
 
     do zoo_ind = 1, zooplankton_cnt
       do n=1,zoo_diag_cnt_3d
@@ -663,180 +667,59 @@ contains
     end do
 
 !-----------------------------------------------------------------------
-!  Define 2D tavg fields for autotrophs
-!-----------------------------------------------------------------------
-
-    do auto_ind = 1, autotroph_cnt
-      do n=1,auto_diag_cnt_2d
-        define_field = .true.
-        if (n.eq.CaCO3_form_zint_diag_ind) then
-          define_field = (autotrophs(auto_ind)%CaCO3_ind > 0)
-        end if
-
-        if (define_field) then
-          call define_tavg_field(tavg_auto_2d(n, auto_ind),                   &
-                        trim(auto_diags_2d(n, auto_ind)%short_name), 2,       &
-                        long_name=trim(auto_diags_2d(n, auto_ind)%long_name), &
-                        units=trim(auto_diags_2d(n, auto_ind)%units),         &
-                        grid_loc='2110', coordinates='TLONG TLAT time')
-        end if
-      end do
-    end do
-
-    call define_tavg_field(tavg_tot_CaCO3_form_zint, 'CaCO3_form_zint', 2, &
-                           long_name='Total CaCO3 Formation Vertical Integral', &
-                           units='mmol/m^3 cm/s', grid_loc='2110', &
-                           coordinates='TLONG TLAT time')
-
-!-----------------------------------------------------------------------
 !  Define 3D tavg fields for autotrophs
 !-----------------------------------------------------------------------
 
     do auto_ind = 1, autotroph_cnt
-       call define_tavg_field(tavg_auto_3d(N_lim_diag_ind,auto_ind), &
-                              trim(autotrophs(auto_ind)%sname) // '_N_lim', 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' N Limitation', &
-                              units='none', grid_loc='3114', &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(P_lim_diag_ind,auto_ind), &
-                              trim(autotrophs(auto_ind)%sname) // '_P_lim', 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' P Limitation', &
-                              units='none', grid_loc='3114', &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(Fe_lim_diag_ind,auto_ind), &
-                              trim(autotrophs(auto_ind)%sname) // '_Fe_lim', 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' Fe Limitation', &
-                              units='none', grid_loc='3114', &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(SiO3_lim_diag_ind,auto_ind), &
-                              trim(autotrophs(auto_ind)%sname) // '_SiO3_lim', 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' SiO3 Limitation', &
-                              units='none', grid_loc='3114', &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(light_lim_diag_ind,auto_ind), &
-                              trim(autotrophs(auto_ind)%sname) // '_light_lim', 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' Light Limitation', &
-                              units='none', grid_loc='3114', &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(photoC_diag_ind,auto_ind), &
-                              'photoC_' // trim(autotrophs(auto_ind)%sname), 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' C Fixation', &
-                              units='mmol/m^3/s', grid_loc='3114', &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(photoC_NO3_diag_ind,auto_ind), &
-                              'photoC_NO3_' // trim(autotrophs(auto_ind)%sname), 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' C Fixation from NO3', &
-                              units='mmol/m^3/s', grid_loc='3114', &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(photoFe_diag_ind,auto_ind), &
-                              'photoFe_' // trim(autotrophs(auto_ind)%sname), 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' Fe Uptake', &
-                              units='mmol/m^3/s', grid_loc='3114', &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(photoNO3_diag_ind,auto_ind), &
-                              'photoNO3_' // trim(autotrophs(auto_ind)%sname), 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' NO3 Uptake', &
-                              units='mmol/m^3/s', grid_loc='3114', &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(photoNH4_diag_ind,auto_ind), &
-                              'photoNH4_' // trim(autotrophs(auto_ind)%sname), 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' NH4 Uptake', &
-                              units='mmol/m^3/s', grid_loc='3114', &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(DOP_uptake_diag_ind,auto_ind), &
-                              'DOP_' // trim(autotrophs(auto_ind)%sname) // '_uptake', 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' DOP Uptake', &
-                              units='mmol/m^3/s', grid_loc='3114', &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(PO4_uptake_diag_ind,auto_ind), &
-                              'PO4_' // trim(autotrophs(auto_ind)%sname) // '_uptake', 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' PO4 Uptake', &
-                              units='mmol/m^3/s', grid_loc='3114', &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(auto_graze_diag_ind,auto_ind), &
-                              'graze_' // trim(autotrophs(auto_ind)%sname), 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' Grazing', &
-                              units='mmol/m^3/s', grid_loc='3114',         &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(auto_graze_poc_diag_ind,auto_ind), &
-                              'graze_' // trim(autotrophs(auto_ind)%sname) // '_poc', 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' Grazing to POC', &
-                              units='mmol/m^3/s', grid_loc='3114',         &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(auto_graze_doc_diag_ind,auto_ind), &
-                              'graze_' // trim(autotrophs(auto_ind)%sname) // '_doc', 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' Grazing to DOC', &
-                              units='mmol/m^3/s', grid_loc='3114',         &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(auto_graze_zoo_diag_ind,auto_ind), &
-                              'graze_' // trim(autotrophs(auto_ind)%sname) // '_zoo', 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' Grazing to ZOO', &
-                              units='mmol/m^3/s', grid_loc='3114',         &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(auto_loss_diag_ind,auto_ind), &
-                              trim(autotrophs(auto_ind)%sname) // '_loss', 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' Loss', &
-                              units='mmol/m^3/s', grid_loc='3114',         &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(auto_loss_poc_diag_ind,auto_ind), &
-                              trim(autotrophs(auto_ind)%sname) // '_loss_poc', 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' Loss to POC', &
-                              units='mmol/m^3/s', grid_loc='3114',         &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(auto_loss_doc_diag_ind,auto_ind), &
-                              trim(autotrophs(auto_ind)%sname) // '_loss_doc', 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' Loss to DOC', &
-                              units='mmol/m^3/s', grid_loc='3114',         &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_auto_3d(auto_agg_diag_ind,auto_ind), &
-                              trim(autotrophs(auto_ind)%sname) // '_agg', 3, &
-                              long_name=trim(autotrophs(auto_ind)%lname) // ' Aggregate', &
-                              units='mmol/m^3/s', grid_loc='3114',         &
-                              coordinates='TLONG TLAT z_t_150m time')
-
-       if (autotrophs(auto_ind)%Si_ind > 0) then
-          sname = trim(autotrophs(auto_ind)%sname) // 'bSi_form'
-          call define_tavg_field(tavg_auto_3d(bSi_form_diag_ind,auto_ind), sname, 3, &
-                                 long_name=trim(autotrophs(auto_ind)%lname) // ' Si Uptake', &
-                                 units='mmol/m^3/s', grid_loc='3114', &
-                                 coordinates='TLONG TLAT z_t_150m time')
-       endif
-
-       if (autotrophs(auto_ind)%CaCO3_ind > 0) then
-          sname = trim(autotrophs(auto_ind)%sname) // '_CaCO3_form'
-          call define_tavg_field(tavg_auto_3d(CaCO3_form_diag_ind,auto_ind), sname, 3, &
-                                 long_name=trim(autotrophs(auto_ind)%lname) // ' CaCO3 Formation', &
-                                 units='mmol/m^3/s', grid_loc='3114', &
-                                 coordinates='TLONG TLAT z_t_150m time')
-       endif
-
-       if (autotrophs(auto_ind)%Nfixer) then
-          call define_tavg_field(tavg_auto_3d(Nfix_diag_ind,auto_ind), &
-                                 trim(autotrophs(auto_ind)%sname) // '_Nfix', 3, &
-                                 long_name=trim(autotrophs(auto_ind)%lname) // ' N Fixation', &
-                                 units='mmol/m^3/s', grid_loc='3114',   &
-                                 coordinates='TLONG TLAT z_t_150m time')
-       endif
+      do n=1,auto_diag_cnt_3d
+        if (trim(auto_diags_3d(n,auto_ind)%vertical_grid).eq.'layer_avg') then
+          if (auto_diags_3d(n,auto_ind)%ltruncated_vertical_extent) then
+            gloc = '3114'
+            coords = 'TLONG TLAT z_t_150m time'
+          else
+            gloc = '3111'
+            coords = 'TLONG TLAT z_t time'
+          end if
+        elseif (trim(auto_diags_3d(n,auto_ind)%vertical_grid).eq.'layer_iface') then
+            gloc = '3113'
+            coords = 'TLONG TLAT z_w_bot time'
+        else
+          write(err_msg,*) "'", trim(auto_diags_3d(n,auto_ind)%vertical_grid),  &
+                           "' is not a valid vertical grid"
+          call shr_sys_abort(err_msg)
+        end if
+        call define_tavg_field(tavg_auto_3d(n,auto_ind),                        &
+                               trim(auto_diags_3d(n,auto_ind)%short_name), 3,   &
+                               long_name=trim(auto_diags_3d(n,auto_ind)%long_name), &
+                               units=trim(auto_diags_3d(n,auto_ind)%units),     &
+                               grid_loc=gloc, coordinates=coords)
+      end do
     end do
+
+!       if (autotrophs(auto_ind)%Si_ind > 0) then
+!          sname = trim(autotrophs(auto_ind)%sname) // 'bSi_form'
+!          call define_tavg_field(tavg_auto_3d(bSi_form_diag_ind,auto_ind), sname, 3, &
+!                                 long_name=trim(autotrophs(auto_ind)%lname) // ' Si Uptake', &
+!                                 units='mmol/m^3/s', grid_loc='3114', &
+!                                 coordinates='TLONG TLAT z_t_150m time')
+!       endif
+
+!       if (autotrophs(auto_ind)%CaCO3_ind > 0) then
+!          sname = trim(autotrophs(auto_ind)%sname) // '_CaCO3_form'
+!          call define_tavg_field(tavg_auto_3d(CaCO3_form_diag_ind,auto_ind), sname, 3, &
+!                                 long_name=trim(autotrophs(auto_ind)%lname) // ' CaCO3 Formation', &
+!                                 units='mmol/m^3/s', grid_loc='3114', &
+!                                 coordinates='TLONG TLAT z_t_150m time')
+!       endif
+
+!       if (autotrophs(auto_ind)%Nfixer) then
+!          call define_tavg_field(tavg_auto_3d(Nfix_diag_ind,auto_ind), &
+!                                 trim(autotrophs(auto_ind)%sname) // '_Nfix', 3, &
+!                                 long_name=trim(autotrophs(auto_ind)%lname) // ' N Fixation', &
+!                                 units='mmol/m^3/s', grid_loc='3114',   &
+!                                 coordinates='TLONG TLAT z_t_150m time')
+!       endif
+!    end do
 
     !-----------------------------------------------------------------------
     !  Define tavg fields for sum over all autotrophs
