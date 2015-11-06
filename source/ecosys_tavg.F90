@@ -628,11 +628,6 @@ contains
                              coordinates=coords)
     end do
 
-    call define_tavg_field(tavg_POC_ACCUM,'POC_ACCUM',3,                &
-                           long_name='POC Accumulation',                &
-                           units='mmol/m^3/s', grid_loc='3111',         &
-                           coordinates='TLONG TLAT z_t time')
-
 !-----------------------------------------------------------------------
 !  Define 2D tavg fields for zooplankton
 !-----------------------------------------------------------------------
@@ -642,55 +637,30 @@ contains
 !-----------------------------------------------------------------------
 
     do zoo_ind = 1, zooplankton_cnt
-       call define_tavg_field(tavg_zoo_3d(zoo_loss_diag_ind,zoo_ind),      &
-            trim(zooplankton(zoo_ind)%sname) // '_loss', 3,             &
-            long_name=trim(zooplankton(zoo_ind)%lname) // ' Loss',      &
-            units='mmol/m^3/s', grid_loc='3114',                        &
-            coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_zoo_3d(zoo_loss_poc_diag_ind,zoo_ind),     &
-            trim(zooplankton(zoo_ind)%sname) // '_loss_poc', 3,            &
-            long_name=trim(zooplankton(zoo_ind)%lname) // ' Loss to POC',  &
-            units='mmol/m^3/s', grid_loc='3114',                           &
-            coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_zoo_3d(zoo_loss_doc_diag_ind,zoo_ind),     &
-            trim(zooplankton(zoo_ind)%sname) // '_loss_doc', 3,            &
-            long_name=trim(zooplankton(zoo_ind)%lname) // ' Loss to DOC',  &
-            units='mmol/m^3/s', grid_loc='3114',                           &
-            coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_zoo_3d(zoo_graze_diag_ind,zoo_ind),          &
-            'graze_' // trim(zooplankton(zoo_ind)%sname), 3,                 &
-            long_name=trim(zooplankton(zoo_ind)%lname) // ' grazing loss',   &
-            units='mmol/m^3/s', grid_loc='3114',                             &
-            coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_zoo_3d(zoo_graze_poc_diag_ind,zoo_ind),           &
-            'graze_' // trim(zooplankton(zoo_ind)%sname) // '_poc', 3,            &
-            long_name=trim(zooplankton(zoo_ind)%lname) // ' grazing loss to POC', &
-            units='mmol/m^3/s', grid_loc='3114',                                  &
-            coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_zoo_3d(zoo_graze_doc_diag_ind,zoo_ind),           &
-            'graze_' // trim(zooplankton(zoo_ind)%sname) // '_doc', 3,            &
-            long_name=trim(zooplankton(zoo_ind)%lname) // ' grazing loss to DOC', &
-            units='mmol/m^3/s', grid_loc='3114',                                  &
-            coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_zoo_3d(zoo_graze_zoo_diag_ind,zoo_ind),           &
-            'graze_' // trim(zooplankton(zoo_ind)%sname) // '_zoo', 3,            &
-            long_name=trim(zooplankton(zoo_ind)%lname) // ' grazing loss to ZOO', &
-            units='mmol/m^3/s', grid_loc='3114',                                  &
-            coordinates='TLONG TLAT z_t_150m time')
-
-       call define_tavg_field(tavg_zoo_3d(x_graze_zoo_diag_ind,zoo_ind),       &
-            'x_graze_' // trim(zooplankton(zoo_ind)%sname), 3,              &
-            long_name=trim(zooplankton(zoo_ind)%lname) // ' grazing gain',  &
-            units='mmol/m^3/s', grid_loc='3114',                            &
-            coordinates='TLONG TLAT z_t_150m time')
+      do n=1,zoo_diag_cnt_3d
+        if (trim(zoo_diags_3d(n,zoo_ind)%vertical_grid).eq.'layer_avg') then
+          if (zoo_diags_3d(n,zoo_ind)%ltruncated_vertical_extent) then
+            gloc = '3114'
+            coords = 'TLONG TLAT z_t_150m time'
+          else
+            gloc = '3111'
+            coords = 'TLONG TLAT z_t time'
+          end if
+        elseif (trim(zoo_diags_3d(n,zoo_ind)%vertical_grid).eq.'layer_iface') then
+            gloc = '3113'
+            coords = 'TLONG TLAT z_w_bot time'
+        else
+          write(err_msg,*) "'", trim(zoo_diags_3d(n,zoo_ind)%vertical_grid),  &
+                           "' is not a valid vertical grid"
+          call shr_sys_abort(err_msg)
+        end if
+        call define_tavg_field(tavg_zoo_3d(n,zoo_ind),                        &
+                               trim(zoo_diags_3d(n,zoo_ind)%short_name), 3,   &
+                               long_name=trim(zoo_diags_3d(n,zoo_ind)%long_name), &
+                               units=trim(zoo_diags_3d(n,zoo_ind)%units),     &
+                               grid_loc=gloc, coordinates=coords)
+      end do
     end do
-
 
 !-----------------------------------------------------------------------
 !  Define 2D tavg fields for autotrophs
@@ -895,6 +865,11 @@ contains
 
     call define_tavg_field(tavg_DOPr_REMIN,'DOPr_REMIN',3,              &
                            long_name='DOPr Remineralization',           &
+                           units='mmol/m^3/s', grid_loc='3111',         &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_POC_ACCUM,'POC_ACCUM',3,                &
+                           long_name='POC Accumulation',                &
                            units='mmol/m^3/s', grid_loc='3111',         &
                            coordinates='TLONG TLAT z_t time')
 

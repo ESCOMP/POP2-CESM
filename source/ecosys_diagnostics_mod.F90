@@ -219,7 +219,7 @@ contains
 
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
-    integer :: n, auto_ind
+    integer :: n, auto_ind, zoo_ind
     character(len=char_len) :: lname, sname, units, vgrid
     logical :: truncate
 
@@ -381,10 +381,10 @@ contains
                     ' CaCO3 Formation Vertical Integral'
             sname = trim(autotrophs(auto_ind)%sname) // '_CaCO3_form_zint'
             units = 'mmol/m^3 cm/s'
-        case DEFAULT
-          print*, "ERROR in ecosys_diagnostics_init():"
-          print*, n, " is not a valid index for marbl_diags%diags_2d"
-          sname = 'ERRORERRORERROR'
+          case DEFAULT
+            print*, "ERROR in ecosys_diagnostics_init():"
+            print*, n, " is not a valid index for marbl_diags%diags_2d"
+            sname = 'ERRORERRORERROR'
         end select
         auto_diags_2d(n, auto_ind)%long_name = trim(lname)
         auto_diags_2d(n, auto_ind)%short_name = trim(sname)
@@ -613,6 +613,66 @@ contains
       part_diags_3d(n)%vertical_grid = trim(vgrid)
       part_diags_3d(n)%ltruncated_vertical_extent = truncate
       part_diags_3d(n)%compute_now = .true.
+    end do
+
+    do zoo_ind=1,zooplankton_cnt
+      do n=1,zoo_diag_cnt_3d
+        ! Default assumption: layer average vertical coordinates, not truncated
+        vgrid = 'layer_avg'
+        truncate = .false.
+        select case (n)
+          case (zoo_loss_diag_ind)
+            lname = trim(zooplankton(zoo_ind)%lname) // ' Loss'
+            sname = trim(zooplankton(zoo_ind)%sname) // '_loss'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (zoo_loss_poc_diag_ind)
+            lname = trim(zooplankton(zoo_ind)%lname) // ' Loss to POC'
+            sname = trim(zooplankton(zoo_ind)%sname) // '_loss_poc'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (zoo_loss_doc_diag_ind)
+            lname = trim(zooplankton(zoo_ind)%lname) // ' Loss to DOC'
+            sname = trim(zooplankton(zoo_ind)%sname) // '_loss_doc'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (zoo_graze_diag_ind)
+            lname = trim(zooplankton(zoo_ind)%lname) // ' grazing loss'
+            sname = 'graze_' // trim(zooplankton(zoo_ind)%sname)
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (zoo_graze_poc_diag_ind)
+            lname = trim(zooplankton(zoo_ind)%lname) // ' grazing loss to POC'
+            sname = 'graze_' // trim(zooplankton(zoo_ind)%sname) // '_poc'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (zoo_graze_doc_diag_ind)
+            lname = trim(zooplankton(zoo_ind)%lname) // ' grazing loss to DOC'
+            sname = 'graze_' // trim(zooplankton(zoo_ind)%sname) // '_doc'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (zoo_graze_zoo_diag_ind)
+            lname = trim(zooplankton(zoo_ind)%lname) // ' grazing loss to ZOO'
+            sname = 'graze_' // trim(zooplankton(zoo_ind)%sname) // '_zoo'
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case (x_graze_zoo_diag_ind)
+            lname = trim(zooplankton(zoo_ind)%lname) // ' grazing gain'
+            sname = 'x_graze_' // trim(zooplankton(zoo_ind)%sname)
+            units = 'mmol/m^3/s'
+            truncate = .true.
+          case DEFAULT
+            print*, "ERROR in ecosys_diagnostics_init():"
+            print*, n, " is not a valid index for marbl_diags%diags_2d"
+            sname = 'ERRORERRORERROR'
+        end select
+        zoo_diags_3d(n,zoo_ind)%long_name = trim(lname)
+        zoo_diags_3d(n,zoo_ind)%short_name = trim(sname)
+        zoo_diags_3d(n,zoo_ind)%units = trim(units)
+        zoo_diags_3d(n,zoo_ind)%vertical_grid = trim(vgrid)
+        zoo_diags_3d(n,zoo_ind)%ltruncated_vertical_extent = truncate
+        zoo_diags_3d(n,zoo_ind)%compute_now = .true.
+      end do
     end do
 
     end associate
