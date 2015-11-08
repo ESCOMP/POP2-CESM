@@ -236,9 +236,9 @@ contains
     use passive_tracer_tools      , only : extract_surf_avg
     use passive_tracer_tools      , only : comp_surf_avg
     use passive_tracer_tools      , only : rest_read_tracer_block
+    use passive_tracer_tools      , only : file_read_tracer_block
     use passive_tracer_tools      , only : field_exists_in_file
     use passive_tracer_tools      , only : tracer_read
-    use passive_tracer_tools      , only : file_read_tracer_block
     use passive_tracer_tools      , only : read_field
     use ecosys_diagnostics_mod    , only : ecosys_diag_cnt_2d
     use ecosys_diagnostics_mod    , only : ecosys_diag_cnt_3d
@@ -494,8 +494,10 @@ contains
     call ecosys_init_tracer_metadata(tracer_d_module)
 
     ! initialize ecosys tracers
-    call ecosys_driver_init_tracers(&
-       init_ts_file_fmt, read_restart_filename, tracer_d_module, TRACER_MODULE, &
+    call ecosys_driver_init_tracers(                             &
+       init_ts_file_fmt, read_restart_filename,                  &
+       tracer_d_module(ecosys_ind_begin:ecosys_ind_end),         &
+       TRACER_MODULE(:,:,:,ecosys_ind_begin:ecosys_ind_end,:,:), &
        ecosys_restart_filename, marbl_saved_state, errorCode)       
 
     if (errorCode /= POP_Success) then
@@ -673,9 +675,9 @@ contains
        endif
        
        call rest_read_tracer_block(init_ecosys_init_file_fmt, &
-            ecosys_restart_filename,   &
-            tracer_d_module,           &
-            TRACER_MODULE)
+                                   ecosys_restart_filename,   &
+                                   tracer_d_module,           &
+                                   TRACER_MODULE)
        
        if (field_exists_in_file(init_ecosys_init_file_fmt, ecosys_restart_filename, &
             'PH_SURF')) then
@@ -752,11 +754,11 @@ contains
        call document(subname, 'ecosystem vars being read from separate files')
 
        call file_read_tracer_block(init_ecosys_init_file_fmt, &
-            init_ecosys_init_file,     &
-            tracer_d_module,           &
-            ind_name_table,            &
-            tracer_init_ext,           &
-            TRACER_MODULE)
+                                   init_ecosys_init_file,     &
+                                   tracer_d_module,           &
+                                   ind_name_table,            &
+                                   tracer_init_ext,           &
+                                   TRACER_MODULE)
 
        if (n_topo_smooth > 0) then
           do n = 1, ecosys_tracer_cnt
@@ -2505,7 +2507,9 @@ contains
        case (atm_co2_iopt_const)
           XCO2 = atm_co2_const
        case (atm_co2_iopt_drv_prog, atm_co2_iopt_drv_diag)
-          call named_field_get(atm_co2_nf_ind, iblock, XCO2(:, :, iblock))
+          do iblock = 1, nblocks_clinic
+             call named_field_get(atm_co2_nf_ind, iblock, XCO2(:, :, iblock))
+          end do
        end select
 
        select case (atm_alt_co2_iopt)

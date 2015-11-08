@@ -74,10 +74,6 @@ module ecosys_mod
   !   limitation patterns in surface waters of the world ocean. Deep-Sea Res. II,
   !   49: 463-507.
 
-  ! !REVISION HISTORY:
-
-  !  SVN:$Id:  $
-
   !-----------------------------------------------------------------------
   !  variables/subroutines/function used from other modules
   !  The following are used extensively in this ecosys, so are used at
@@ -191,6 +187,7 @@ module ecosys_mod
   use ecosys_diagnostics_mod, only : DIC_RIV_FLUX_diag_ind
   use ecosys_diagnostics_mod, only : ALK_RIV_FLUX_diag_ind
   use ecosys_diagnostics_mod, only : DOC_RIV_FLUX_diag_ind
+
   ! Diagnostic subroutines
   use ecosys_diagnostics_mod, only : store_diagnostics_carbonate
   use ecosys_diagnostics_mod, only : store_diagnostics_nitrification
@@ -207,6 +204,7 @@ module ecosys_mod
   use ecosys_diagnostics_mod, only : store_diagnostics_phosphorus_fluxes
   use ecosys_diagnostics_mod, only : store_diagnostics_silicon_fluxes
 
+  !
   use marbl_parms, only : marbl_params_init, marbl_params_print
   use marbl_parms, only : grz_fnc_michaelis_menten
   use marbl_parms, only : grz_fnc_sigmoidal
@@ -1638,9 +1636,6 @@ contains
   end subroutine update_sinking_particle_from_prior_level
 
   !***********************************************************************
-  !BOP
-  ! !IROUTINE: compute_particulate_terms
-  ! !INTERFACE:
 
   subroutine compute_particulate_terms(k, &
        column_land_mask, column_kmt, column_dzt, column_dz, &
