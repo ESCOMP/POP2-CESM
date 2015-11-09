@@ -10,7 +10,8 @@ module marbl_kinds_mod
        log_kind       = kind(.true.)           ,&
        int_kind       = kind(1)                ,&
        i8             = selected_int_kind(13)  ,&
-       r8             = selected_real_kind(13)  
+       r8             = selected_real_kind(13) ,&  
+       r4             = selected_real_kind(6)  
 
   ! FIXME(bja, 2015-02) these don't belong in the kinds module, but
   ! not sure where they should go. Only used internally to marbl? Used

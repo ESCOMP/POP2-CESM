@@ -39,19 +39,31 @@ module marbl_interface
   !      .....
   !      call marbl_set_interior(marbl_private_data, ....)
 
-  use marbl_share_mod, only : ecosys_interior_share_type
-  use marbl_share_mod, only : ecosys_autotroph_share_type
-  use marbl_share_mod, only : ecosys_zooplankton_share_type
-  use marbl_share_mod, only : ecosys_particulate_share_type
-  use marbl_share_mod, only : ecosys_surface_share_type
-  use marbl_share_mod, only : marbl_interior_share_type
-  use marbl_share_mod, only : marbl_autotroph_share_type
-  use marbl_share_mod, only : marbl_zooplankton_share_type
-  use marbl_share_mod, only : marbl_particulate_share_type
+  use marbl_kinds_mod           , only : r8, int_kind ! MNL: need kind number for real attributes of diagnostics type
+  use marbl_interface_constants , only : marbl_status_ok
+  use marbl_interface_types     , only : marbl_diagnostics_type
+  use marbl_share_mod           , only : ecosys_interior_share_type
+  use marbl_share_mod           , only : ecosys_autotroph_share_type
+  use marbl_share_mod           , only : ecosys_zooplankton_share_type
+  use marbl_share_mod           , only : ecosys_particulate_share_type
+  use marbl_share_mod           , only : ecosys_surface_share_type
+  use marbl_share_mod           , only : marbl_interior_share_type
+  use marbl_share_mod           , only : marbl_autotroph_share_type
+  use marbl_share_mod           , only : marbl_zooplankton_share_type
+  use marbl_share_mod           , only : marbl_particulate_share_type
   
-  ! MNL: need kind number for real attributes of diagnostics type
-  use marbl_kinds_mod, only: r8
-  
+  use ecosys_diagnostics_mod    , only : ecosys_diag_cnt_2d
+  use ecosys_diagnostics_mod    , only : ecosys_diag_cnt_3d
+  use ecosys_diagnostics_mod    , only : auto_diag_cnt_2d
+  use ecosys_diagnostics_mod    , only : auto_diag_cnt_3d
+  use ecosys_diagnostics_mod    , only : zoo_diag_cnt_2d
+  use ecosys_diagnostics_mod    , only : zoo_diag_cnt_3d
+  use ecosys_diagnostics_mod    , only : part_diag_cnt_2d
+  use ecosys_diagnostics_mod    , only : part_diag_cnt_3d
+
+  use exit_mod, only : exit_POP
+  use exit_mod, only : sigAbort
+
   implicit none
 
   private
@@ -61,15 +73,16 @@ module marbl_interface
   ! to the marbl library; the driver should consider it to be an
   ! opaque blob of memory. Do not access any data in this
   ! structure. The contents may change at any time between api
-  ! revisions, and the data may change at any time during a
-  ! simulation!
+  ! revisions, and the data may change at any time during a simulation!
+
   type, private :: marbl_private_data_type
-     type(ecosys_interior_share_type), allocatable :: ecosys_interior_share(:) ! (km)
-     type(ecosys_zooplankton_share_type), allocatable :: ecosys_zooplankton_share(:) ! (km)
-     type(ecosys_autotroph_share_type), allocatable :: ecosys_autotroph_share(:) ! (km)
-     type(ecosys_particulate_share_type), allocatable :: ecosys_particulate_share(:) ! (km)
-     type(ecosys_surface_share_type) :: surface_share
+     type(ecosys_interior_share_type)    , allocatable :: ecosys_interior_share(:)    ! (km)
+     type(ecosys_zooplankton_share_type) , allocatable :: ecosys_zooplankton_share(:) ! (km)
+     type(ecosys_autotroph_share_type)   , allocatable :: ecosys_autotroph_share(:)   ! (km)
+     type(ecosys_particulate_share_type) , allocatable :: ecosys_particulate_share(:) ! (km)
+     type(ecosys_surface_share_type)                   :: surface_share
   end type marbl_private_data_type
+
   ! NOTE: to avoid circular dependancies, marbl_private_data can not
   ! leave the marbl interface level, i.e. be passed into marbl
   ! routines outside this module. It must be unpacked!
@@ -124,37 +137,79 @@ contains
   !-----------------------------------------------------------------------------
   
   subroutine marbl_init(this, marbl_driver_sizes, marbl_sizes, &
-       nl_buffer, marbl_status)
+       nl_buffer, marbl_tracer_metadata, marbl_diagnostics, marbl_status )
 
-    use ecosys_constants          , only: ecosys_tracer_cnt
     use marbl_share_mod           , only: autotroph_cnt, zooplankton_cnt
     use marbl_interface_constants , only: marbl_nl_buffer_size
     use marbl_interface_types     , only: marbl_status_type
-
-    use ecosys_mod                , only: ecosys_init_nml
-    use ecosys_mod                , only: ecosys_init_postnml
+    use marbl_interface_types     , only: marbl_tracer_metadata_type
+    use ecosys_mod                , only: marbl_ecosys_init_nml
+    use ecosys_mod                , only: marbl_ecosys_init_tracer_metadata
+    use ecosys_mod                , only: marbl_ecosys_init_tavg    
+    use ecosys_constants          , only: ecosys_tracer_cnt
     use ecosys_ciso_mod           , only: ecosys_ciso_init
     
     implicit none
 
-    class(marbl_interface_class), intent(inout) :: this
-    type(marbl_driver_sizes_type), intent(in) :: marbl_driver_sizes
-    type(marbl_sizes_type), intent(out) :: marbl_sizes
-    character(marbl_nl_buffer_size), intent(in) :: nl_buffer
-    type(marbl_status_type), intent(out) :: marbl_status
+    class(marbl_interface_class)    , intent(inout) :: this
 
-    allocate(this%private_data%ecosys_interior_share(marbl_driver_sizes%km))
-    allocate(this%private_data%ecosys_zooplankton_share(marbl_driver_sizes%km))
-    allocate(this%private_data%ecosys_autotroph_share(marbl_driver_sizes%km))
-    allocate(this%private_data%ecosys_particulate_share(marbl_driver_sizes%km))
+    ! !INPUT PARAMETERS:
+    type(marbl_driver_sizes_type)   , intent(in)    :: marbl_driver_sizes
+    character(marbl_nl_buffer_size) , intent(in)    :: nl_buffer
+
+    ! !INPUT/OUTPUT PARAMETERS:
+    type(marbl_tracer_metadata_type), intent(inout) :: marbl_tracer_metadata(:)
+
+    ! OUTPUT PARAMETERS:
+    type(marbl_sizes_type)          , intent(out)   :: marbl_sizes
+    type(marbl_status_type)         , intent(out)   :: marbl_status
+    type(marbl_diagnostics_type)    , intent(out)   :: marbl_diagnostics(:)
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+
+    integer (int_kind) :: bid ! local block address for this block
+
+    !-----------------------------------------------------------------------
+
+    allocate(this%private_data%ecosys_interior_share    (marbl_driver_sizes%km))
+    allocate(this%private_data%ecosys_zooplankton_share (marbl_driver_sizes%km))
+    allocate(this%private_data%ecosys_autotroph_share   (marbl_driver_sizes%km))
+    allocate(this%private_data%ecosys_particulate_share (marbl_driver_sizes%km))
     
-!!$    call ecosys_init(driver_sizes)
-!!$    call ecosys_ciso_init(driver_sizes)
-
+    ! now we know how many tracers marbl has, we can verify that pop
+    ! has the correctly sized data.
     marbl_sizes%ecosys_tracer_cnt = ecosys_tracer_cnt
-    marbl_sizes%autotroph_cnt = autotroph_cnt
-    marbl_sizes%zooplankton_cnt = zooplankton_cnt
+    marbl_sizes%autotroph_cnt     = autotroph_cnt
+    marbl_sizes%zooplankton_cnt   = zooplankton_cnt
     
+    ! initialize ecosys_diagnostics type
+    do bid=1,size(marbl_diagnostics)
+      call marbl_diagnostics(bid)%construct(        &
+           marbl_driver_sizes%km,                   &
+           ecosys_diag_cnt_2d , ecosys_diag_cnt_3d, &
+           auto_diag_cnt_2d   , auto_diag_cnt_3d  , &
+           zoo_diag_cnt_2d    , zoo_diag_cnt_3d   , &
+           part_diag_cnt_2d   , part_diag_cnt_3d  , &
+           ecosys_tracer_cnt  , autotroph_cnt     , zooplankton_cnt)
+    end do
+
+    ! initialize marbl namelists
+    call marbl_ecosys_init_nml(nl_buffer, marbl_status)
+
+    if (marbl_status%status /= marbl_status_ok) then
+       call exit_POP(sigAbort, &
+            'ERROR in marbl_init: returned status: "'//marbl_status%message//'"')
+    end if
+
+    ! initialize marbl tracer metadata 
+    call marbl_ecosys_init_tracer_metadata(marbl_tracer_metadata)
+
+    ! initialize tavg 
+    ! FIXME (mvertens, 2015-11), the following call should go away with the diagnostic refactoring
+    call marbl_ecosys_init_tavg()                     
+
   end subroutine marbl_init
 
   !-----------------------------------------------------------------------------
@@ -177,7 +232,7 @@ contains
   
   subroutine marbl_set_interior(this)
 
-    use ecosys_mod, only: ecosys_set_interior
+    use ecosys_mod     , only: marbl_ecosys_set_interior
     use ecosys_ciso_mod, only: ecosys_ciso_set_interior
     
     implicit none
@@ -194,7 +249,7 @@ contains
   
   subroutine marbl_set_surface_flux(this)
 
-    use ecosys_mod, only: ecosys_set_sflux
+    use ecosys_mod     , only: marbl_ecosys_set_sflux
     use ecosys_ciso_mod, only: ecosys_ciso_set_sflux
     
     implicit none

@@ -74,7 +74,7 @@
    use exit_mod, only : exit_POP
    use exit_mod, only : sigAbort
 
-   use prognostic, only : tracer_field
+   use marbl_interface_types, only : marbl_tracer_metadata_type
    use prognostic, only : curtime
    use prognostic, only : oldtime
 
@@ -436,7 +436,7 @@ contains
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   type (tracer_field), dimension(:), intent(inout) :: &
+   type (marbl_tracer_metadata_type), dimension(:), intent(inout) :: &
       tracer_d_module   ! descriptors for each tracer
 
    real (r8), dimension(:,:,:,:,:,:), &

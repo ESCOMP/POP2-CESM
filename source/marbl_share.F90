@@ -39,22 +39,17 @@ module marbl_share_mod
 ! namelist inputs
 !-----------------------------------------------------------------------------
 
-  integer (int_kind) :: totChl_surf_nf_ind = 0 ! total chlorophyll in surface layer (TEMPORARY)
-  integer (int_kind) :: sflux_co2_nf_ind   = 0 ! air-sea co2 gas flux (TEMPORARY)
-
   !  options for forcing of gas fluxes
-  integer (int_kind), parameter :: gas_flux_forcing_iopt_drv   = 1
-  integer (int_kind), parameter :: gas_flux_forcing_iopt_file  = 2
-  integer (int_kind), parameter :: atm_co2_iopt_const          = 1
-  integer (int_kind), parameter :: atm_co2_iopt_drv_prog       = 2
-  integer (int_kind), parameter :: atm_co2_iopt_drv_diag       = 3
-
-  integer (int_kind), parameter :: ndep_shr_stream_var_cnt = 2 ! number of variables in ndep shr_stream
-  integer (int_kind), parameter :: ndep_shr_stream_no_ind  = 1 ! index for NO forcing
-  integer (int_kind), parameter :: ndep_shr_stream_nh_ind  = 2 ! index for NH forcing
+  integer (int_kind), parameter :: gas_flux_forcing_iopt_drv  = 1
+  integer (int_kind), parameter :: gas_flux_forcing_iopt_file = 2
+  integer (int_kind), parameter :: atm_co2_iopt_const         = 1
+  integer (int_kind), parameter :: atm_co2_iopt_drv_prog      = 2
+  integer (int_kind), parameter :: atm_co2_iopt_drv_diag      = 3
+  integer (int_kind), parameter :: ndep_shr_stream_var_cnt    = 2 ! number of variables in ndep shr_stream
+  integer (int_kind), parameter :: ndep_shr_stream_no_ind     = 1 ! index for NO forcing
+  integer (int_kind), parameter :: ndep_shr_stream_nh_ind     = 2 ! index for NH forcing
 
   ! namelists
-
   character(char_len) :: gas_flux_forcing_file        ! file containing gas flux forcing fields
   integer (int_kind)  :: gas_flux_forcing_iopt
   integer (int_kind)  :: atm_co2_iopt

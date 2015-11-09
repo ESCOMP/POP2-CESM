@@ -1,7 +1,7 @@
 module marbl_interface_types
   ! module for definitions of types that are shared between marbl interior and the driver.
 
-  use marbl_kinds_mod, only : c0, r8, log_kind, int_kind, char_len
+  use marbl_kinds_mod, only : c0, r8, r4, log_kind, int_kind, char_len
   use marbl_interface_constants, only : marbl_str_length
 
   implicit none
@@ -13,6 +13,22 @@ module marbl_interface_types
      character(marbl_str_length) :: message
   end type marbl_status_type
 
+  type, public :: marbl_tracer_metadata_type
+     character(char_len) :: short_name
+     character(char_len) :: long_name
+     character(char_len) :: units
+     character(char_len) :: tend_units
+     character(char_len) :: flux_units
+     logical             :: lfull_depth_tavg
+     !FIXME (mvertens, 2015-11) - can't scale factor always be real*8
+     ! to avoid duplicating this entire data type in pop?
+#ifdef TAVG_R8
+     real(r8)            :: scale_factor
+#else
+     real(r4)            :: scale_factor
+#endif
+  end type marbl_tracer_metadata_type
+  
   type, public :: marbl_column_domain_type
      logical(log_kind) :: land_mask
      integer(int_kind) :: km ! number of vertical grid cells

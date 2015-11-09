@@ -3,7 +3,6 @@
 
 module ecosys_mod
 
-  !BOP
   ! !MODULE: ecosys_mod
   !
   ! !DESCRIPTION:
@@ -83,7 +82,6 @@ module ecosys_mod
 
   ! !USES:
 
-  use POP_KindsMod    , only : POP_i4                ! pop, need similar in marbl
   use POP_ErrorMod    , only : POP_Success           ! pop, need similar in marbl
 
   use kinds_mod, only : log_kind
@@ -91,14 +89,11 @@ module ecosys_mod
   use kinds_mod, only : r8
   use kinds_mod, only : char_len
 
-  use constants, only : p5
   use constants, only : c0
   use constants, only : c1
   use constants, only : c2
   use constants, only : c10
-  use constants, only : char_blank
   use constants, only : mpercm
-  use constants, only : hflux_factor
   use constants, only : blank_fmt
   use constants, only : delim_fmt
   use constants, only : ndelim_fmt
@@ -107,24 +102,20 @@ module ecosys_mod
   use communicate, only : master_task
   use communicate, only : my_task
 
-  use blocks, only : block
   use blocks, only : nx_block
   use blocks, only : ny_block
 
   use domain_size, only : km
   use domain_size, only : max_blocks_clinic
-
-  use domain, only : distrb_clinic
-  use domain, only : nblocks_clinic
-  use domain, only : blocks_clinic
+  use domain     , only : nblocks_clinic
 
   use exit_mod, only : exit_POP
   use exit_mod, only : sigAbort
 
-  use prognostic, only : tracer_field
+  use marbl_interface_types, only: marbl_tracer_metadata_type
 
-  use grid, only : zt
   use grid, only : partial_bottom_cells
+  use grid, only : zt
   use grid, only : zw
 
   use io_types, only : stdout
@@ -295,39 +286,37 @@ module ecosys_mod
   !-----------------------------------------------------------------------
 
   ! initialization routines
-  public  :: ecosys_init_nml
-  public  :: ecosys_init_tracer_metadata
-  public  :: ecosys_init_postnml
-  private :: ecosys_init_non_autotroph_tracer_metadata
-  private :: ecosys_init_forcing_metadata
-  public  :: ecosys_init_tavg
+  public  :: marbl_ecosys_init_nml
+  public  :: marbl_ecosys_init_tracer_metadata
+  private :: marbl_ecosys_init_non_autotroph_tracer_metadata
+  private :: marbl_ecosys_init_forcing_metadata
+  public  :: marbl_ecosys_init_tavg
 
   ! set_interior routines
-  public  :: ecosys_set_interior
-  private :: init_particulate_terms
-  private :: update_particulate_terms_from_prior_level      
-  private :: update_sinking_particle_from_prior_level       
-  private :: compute_particulate_terms                      
-  private :: check_ecosys_tracer_count_consistency          
-  private :: initialize_zooplankton_tracer_metadata         
-  private :: initialize_autotroph_tracer_metadata           
-  private :: setup_local_tracers                            
-  private :: setup_local_zooplankton                        
-  private :: setup_local_autotrophs                         
-  private :: autotroph_consistency_check                    
-  private :: compute_autotroph_elemental_ratios             
-  private :: compute_photosynthetically_available_radiation 
-  private :: compute_carbonate_chemistry                    
-  private :: compute_function_scaling                       
-  private :: compute_Pprime                                 
-  private :: compute_Zprime
+  public  :: marbl_ecosys_set_interior
+  private :: marbl_init_particulate_terms
+  private :: marbl_update_particulate_terms_from_prior_level      
+  private :: marbl_update_sinking_particle_from_prior_level       
+  private :: marbl_compute_particulate_terms                      
+  private :: marbl_check_ecosys_tracer_count_consistency          
+  private :: marbl_initialize_zooplankton_tracer_metadata         
+  private :: marbl_initialize_autotroph_tracer_metadata           
+  private :: marbl_setup_local_tracers                            
+  private :: marbl_setup_local_zooplankton                        
+  private :: marbl_setup_local_autotrophs                         
+  private :: marbl_autotroph_consistency_check                    
+  private :: marbl_compute_autotroph_elemental_ratios             
+  private :: marbl_compute_photosynthetically_available_radiation 
+  private :: marbl_compute_carbonate_chemistry                    
+  private :: marbl_compute_function_scaling                       
+  private :: marbl_compute_Pprime                                 
+  private :: marbl_compute_Zprime
        
   ! set surface co2 flux
-  public  :: ecosys_set_sflux
+  public  :: marbl_ecosys_set_sflux
 
   ! tavg
-  public  :: ecosys_tavg_forcing
-  public  :: ecosys_tracer_ref_val
+  public  :: marbl_ecosys_tavg_forcing
 
   type, private :: zooplankton_local_type
      real (r8) :: C  ! local copy of model zooplankton C
@@ -426,12 +415,6 @@ module ecosys_mod
   integer (int_kind)  :: iron_patch_month          !  integer month to add patch flux
 
   !-----------------------------------------------------------------------
-  !  timers
-  !-----------------------------------------------------------------------
-
-  integer (int_kind) :: ecosys_comp_CO3terms_timer
-
-  !-----------------------------------------------------------------------
   !  named field indices
   !-----------------------------------------------------------------------
 
@@ -458,7 +441,7 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_init_nml(nl_buffer, errorCode, marbl_status)
+  subroutine marbl_ecosys_init_nml(nl_buffer, marbl_status)
 
     ! !DESCRIPTION:
     !  Initialize ecosys tracer module. This involves setting metadata, reading
@@ -528,7 +511,6 @@ contains
     character(marbl_nl_buffer_size) , intent(in) :: nl_buffer
 
     ! !OUTPUT PARAMETERS:
-    integer (POP_i4)        , intent(out) :: errorCode
     type(marbl_status_type) , intent(out) :: marbl_status
 
     !-----------------------------------------------------------------------
@@ -590,7 +572,6 @@ contains
 
     marbl_status%status = marbl_status_ok
     marbl_status%message = ''
-    errorCode = POP_Success
 
     !-----------------------------------------------------------------------
     !  default namelist settings
@@ -872,11 +853,11 @@ contains
     !    call marbl_params_print(stdout)
     ! end if
 
-  end subroutine ecosys_init_nml
+  end subroutine marbl_ecosys_init_nml
 
   !*****************************************************************************
   
-  subroutine ecosys_init_tracer_metadata(tracer_d_module)
+  subroutine marbl_ecosys_init_tracer_metadata(tracer_d_module)
 
     ! !DESCRIPTION:
     !  Set tracer and forcing metadata
@@ -884,18 +865,17 @@ contains
     use marbl_interface_constants , only : marbl_status_ok
     use marbl_interface_constants , only : marbl_status_could_not_read_namelist
     use marbl_interface_types     , only : marbl_status_type
-    use marbl_interface_types     , only : marbl_saved_state_type
 
     implicit none
 
     ! !INPUT/OUTPUT PARAMETERS:
-    type (tracer_field)          , intent(inout) :: tracer_d_module(:)   ! descriptors for each tracer
+    type (marbl_tracer_metadata_type), intent(inout) :: tracer_d_module(:)   ! descriptors for each tracer
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
 
-    character(*), parameter :: subname = 'ecosys_mod:ecosys_init_tracer_metadata'
+    character(*), parameter :: subname = 'ecosys_mod:marbl_ecosys_init_tracer_metadata'
 
     integer (int_kind) :: non_living_biomass_ecosys_tracer_cnt ! number of non-autotroph ecosystem tracers
     integer (int_kind) :: n        ! index for looping over tracers
@@ -906,15 +886,15 @@ contains
     ! initialize tracer metatdata
     !-----------------------------------------------------------------------
 
-    call ecosys_init_forcing_metadata()
+    call marbl_ecosys_init_forcing_metadata()
 
-    call ecosys_init_non_autotroph_tracer_metadata(tracer_d_module, non_living_biomass_ecosys_tracer_cnt)
+    call marbl_ecosys_init_non_autotroph_tracer_metadata(tracer_d_module, non_living_biomass_ecosys_tracer_cnt)
 
-    call check_ecosys_tracer_count_consistency(non_living_biomass_ecosys_tracer_cnt)
+    call marbl_check_ecosys_tracer_count_consistency(non_living_biomass_ecosys_tracer_cnt)
 
-    call initialize_zooplankton_tracer_metadata(tracer_d_module, non_living_biomass_ecosys_tracer_cnt, n)
+    call marbl_initialize_zooplankton_tracer_metadata(tracer_d_module, non_living_biomass_ecosys_tracer_cnt, n)
 
-    call initialize_autotroph_tracer_metadata(tracer_d_module, n)
+    call marbl_initialize_autotroph_tracer_metadata(tracer_d_module, n)
 
     !-----------------------------------------------------------------------
     !  set lfull_depth_tavg flag for short-lived ecosystem tracers
@@ -946,26 +926,11 @@ contains
        endif
     end do
 
-  end subroutine ecosys_init_tracer_metadata
-
-  !*****************************************************************************
-
-  subroutine ecosys_init_postnml()
-
-    ! !DESCRIPTION:
-    ! timer init
-
-    use marbl_share_mod, only : ndep_data_type 
-
-    implicit none
-
-    call get_timer(ecosys_comp_CO3terms_timer, 'comp_CO3terms', nblocks_clinic, distrb_clinic%nprocs)
-
-  end subroutine ecosys_init_postnml
+  end subroutine marbl_ecosys_init_tracer_metadata
 
   !***********************************************************************
 
-  subroutine ecosys_init_tavg
+  subroutine marbl_ecosys_init_tavg
 
     ! !DESCRIPTION:
     !  call define_tavg_field for nonstandard tavg fields
@@ -981,101 +946,43 @@ contains
     !-----------------------------------------------------------------------
 
     buf_len = 0
-
-    buf_len = buf_len+1
-    buf_ind_ECOSYS_IFRAC = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_ECOSYS_XKW = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_ECOSYS_ATM_PRESS = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_PV_O2 = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_SCHMIDT_O2 = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_O2SAT = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_CO2STAR = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_DCO2STAR = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_pCO2SURF = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_DpCO2 = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_PV_CO2 = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_SCHMIDT_CO2 = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_DIC_GAS_FLUX = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_PH = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_ATM_CO2 = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_CO2STAR_ALT_CO2 = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_DCO2STAR_ALT_CO2 = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_pCO2SURF_ALT_CO2 = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_DpCO2_ALT_CO2 = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_DIC_GAS_FLUX_ALT_CO2 = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_PH_ALT_CO2 = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_ATM_ALT_CO2 = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_IRON_FLUX = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_NOx_FLUX = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_DIN_RIV_FLUX = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_DFE_RIV_FLUX = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_DIC_RIV_FLUX = buf_len
-
-    buf_len = buf_len+1
-    buf_ind_ALK_RIV_FLUX = buf_len
-
-    !-----------------------------------------------------------------------
+    buf_len = buf_len+1;     buf_ind_ECOSYS_IFRAC = buf_len
+    buf_len = buf_len+1;     buf_ind_ECOSYS_XKW = buf_len
+    buf_len = buf_len+1;     buf_ind_ECOSYS_ATM_PRESS = buf_len
+    buf_len = buf_len+1;     buf_ind_PV_O2 = buf_len
+    buf_len = buf_len+1;     buf_ind_SCHMIDT_O2 = buf_len
+    buf_len = buf_len+1;     buf_ind_O2SAT = buf_len
+    buf_len = buf_len+1;     buf_ind_CO2STAR = buf_len
+    buf_len = buf_len+1;     buf_ind_DCO2STAR = buf_len
+    buf_len = buf_len+1;     buf_ind_pCO2SURF = buf_len
+    buf_len = buf_len+1;     buf_ind_DpCO2 = buf_len
+    buf_len = buf_len+1;     buf_ind_PV_CO2 = buf_len
+    buf_len = buf_len+1;     buf_ind_SCHMIDT_CO2 = buf_len
+    buf_len = buf_len+1;     buf_ind_DIC_GAS_FLUX = buf_len
+    buf_len = buf_len+1;     buf_ind_PH = buf_len
+    buf_len = buf_len+1;     buf_ind_ATM_CO2 = buf_len
+    buf_len = buf_len+1;     buf_ind_CO2STAR_ALT_CO2 = buf_len
+    buf_len = buf_len+1;     buf_ind_DCO2STAR_ALT_CO2 = buf_len
+    buf_len = buf_len+1;     buf_ind_pCO2SURF_ALT_CO2 = buf_len
+    buf_len = buf_len+1;     buf_ind_DpCO2_ALT_CO2 = buf_len
+    buf_len = buf_len+1;     buf_ind_DIC_GAS_FLUX_ALT_CO2 = buf_len
+    buf_len = buf_len+1;     buf_ind_PH_ALT_CO2 = buf_len
+    buf_len = buf_len+1;     buf_ind_ATM_ALT_CO2 = buf_len
+    buf_len = buf_len+1;     buf_ind_IRON_FLUX = buf_len
+    buf_len = buf_len+1;     buf_ind_NOx_FLUX = buf_len
+    buf_len = buf_len+1;     buf_ind_DIN_RIV_FLUX = buf_len
+    buf_len = buf_len+1;     buf_ind_DFE_RIV_FLUX = buf_len
+    buf_len = buf_len+1;     buf_ind_DIC_RIV_FLUX = buf_len
+    buf_len = buf_len+1;     buf_ind_ALK_RIV_FLUX = buf_len
 
     allocate(ECO_SFLUX_TAVG(nx_block, ny_block, buf_len, max_blocks_clinic))
     ECO_SFLUX_TAVG(:,:,:,:) = c0
 
-  end subroutine ecosys_init_tavg
+  end subroutine marbl_ecosys_init_tavg
 
   !***********************************************************************
 
-  subroutine ecosys_set_interior(i, c, bid, &
+  subroutine marbl_ecosys_set_interior(i, c, bid, &
        domain, gcm_state, &
        marbl_diagnostics, &
        saved_state, restore_local, &
@@ -1186,9 +1093,9 @@ contains
 
     type(carbonate_type) :: carbonate(km)
 
-    type(marbl_interior_share_type) :: marbl_interior_share(km)
+    type(marbl_interior_share_type)    :: marbl_interior_share(km)
     type(marbl_zooplankton_share_type) :: marbl_zooplankton_share(zooplankton_cnt, km)
-    type(marbl_autotroph_share_type) :: marbl_autotroph_share(autotroph_cnt, km)
+    type(marbl_autotroph_share_type)   :: marbl_autotroph_share(autotroph_cnt, km)
     type(marbl_particulate_share_type) :: marbl_particulate_share
 
     real(r8) :: ph_prev_3d(km)
@@ -1247,22 +1154,23 @@ contains
 
           do k = 1, domain%km
              !write(*, *) 'set_interior loop: ', k, i, c
-             call setup_local_tracers(k, domain%land_mask, domain%kmt, &
+             call marbl_setup_local_tracers(k, domain%land_mask, domain%kmt, &
                   tracer_module(:, k), tracer_local(:, k))
 
-             call setup_local_zooplankton(k, domain%land_mask, domain%kmt, &
+             call marbl_setup_local_zooplankton(k, domain%land_mask, domain%kmt, &
                   tracer_module(:, k), zooplankton_cnt, zooplankton, zooplankton_local(:, k))
 
-             call setup_local_autotrophs(k, domain%land_mask, domain%kmt, tracer_module(:, k), &
+             call marbl_setup_local_autotrophs(k, domain%land_mask, domain%kmt, tracer_module(:, k), &
                   autotroph_cnt, autotrophs, autotroph_local(:, k))
 
           enddo
-          call init_particulate_terms(1, POC, P_CaCO3, P_SiO2, &
+          call marbl_init_particulate_terms(1, POC, P_CaCO3, P_SiO2, &
                dust, P_iron, &
                QA_dust_def(:), dust_flux_in)
 
-          call timer_start(ecosys_comp_CO3terms_timer, block_id=bid)
-          call compute_carbonate_chemistry(domain%km,  &
+          !FIXME (mvertens, 2015-11), new marbl timers need to be implemented to turn on timers here
+          !call timer_start(ecosys_comp_CO3terms_timer, block_id=bid)
+          call marbl_compute_carbonate_chemistry(domain%km,  &
                domain%land_mask, domain%kmt, &
                gcm_state%temperature(:), gcm_state%salinity(:), &
                tracer_local(:, :), &
@@ -1270,81 +1178,81 @@ contains
                ph_prev_3d(:), ph_prev_alt_co2_3d(:), &
                zsat_calcite(:), zsat_aragonite(:), &
                co3_calc_anom(:), co3_arag_anom(:))
-          call timer_stop(ecosys_comp_CO3terms_timer, block_id=bid)
+          !call timer_stop(ecosys_comp_CO3terms_timer, block_id=bid)
 
           do k = 1, domain%km
 
-             call autotroph_consistency_check(autotroph_cnt, autotrophs, autotroph_local(:, k))
+             call marbl_autotroph_consistency_check(autotroph_cnt, autotrophs, autotroph_local(:, k))
 
-             call compute_autotroph_elemental_ratios(k, autotroph_cnt, autotrophs, autotroph_local(:, k), &
+             call marbl_compute_autotroph_elemental_ratios(k, autotroph_cnt, autotrophs, autotroph_local(:, k), &
                   tracer_local(:, k), autotroph_secondary_species(:, k))
 
-             call compute_photosynthetically_available_radiation(k, autotroph_cnt, &
+             call marbl_compute_photosynthetically_available_radiation(k, autotroph_cnt, &
                   autotroph_local(:, k), &
                   domain%land_mask, domain%kmt, domain%dzt(k), domain%dz(k), &
                   PAR_out, PAR(k))
 
 
-             call compute_function_scaling(gcm_state%temperature(k), Tfunc(k))
+             call marbl_compute_function_scaling(gcm_state%temperature(k), Tfunc(k))
 
-             call compute_Pprime(k, autotroph_cnt, autotrophs, autotroph_local(:, k), &
+             call marbl_compute_Pprime(k, autotroph_cnt, autotrophs, autotroph_local(:, k), &
                   gcm_state%temperature(k), autotroph_secondary_species(:, k))
 
-             call compute_autotroph_uptake(autotroph_cnt, autotrophs, &
+             call marbl_compute_autotroph_uptake(autotroph_cnt, autotrophs, &
                   tracer_local(:, k), &
                   autotroph_secondary_species(:, k))
 
-             call compute_autotroph_photosynthesis(autotroph_cnt, autotrophs, &
+             call marbl_compute_autotroph_photosynthesis(autotroph_cnt, autotrophs, &
                   autotroph_local(:, k), gcm_state%temperature(k), Tfunc(k), &
                   PAR(k)%avg, autotroph_secondary_species(:, k))
 
-             call compute_autotroph_phyto_diatoms (autotroph_cnt, autotrophs, &
+             call marbl_compute_autotroph_phyto_diatoms (autotroph_cnt, autotrophs, &
                   autotroph_local(:, k), PAR(k)%avg, autotroph_secondary_species(:, k))
 
-             call compute_autotroph_calcification(autotroph_cnt, autotrophs, &
+             call marbl_compute_autotroph_calcification(autotroph_cnt, autotrophs, &
                   autotroph_local(:, k),  gcm_state%temperature(k), autotroph_secondary_species(:, k))
 
-             call compute_autotroph_nfixation(autotroph_cnt, autotrophs, &
+             call marbl_compute_autotroph_nfixation(autotroph_cnt, autotrophs, &
                   autotroph_secondary_species(:, k))
 
-             call compute_autotroph_loss(autotroph_cnt, autotrophs, &
+             call marbl_compute_autotroph_loss(autotroph_cnt, autotrophs, &
                   Tfunc(k), autotroph_secondary_species(:, k))
 
-             call compute_Zprime(k, zooplankton_cnt, zooplankton, zooplankton_local(:, k)%C, &
+             call marbl_compute_Zprime(k, zooplankton_cnt, zooplankton, zooplankton_local(:, k)%C, &
                   Tfunc(k), zooplankton_secondary_species(:, k))
 
-             call compute_grazing (autotroph_cnt, zooplankton_cnt, grazer_prey_cnt, autotrophs, &
+             call marbl_compute_grazing (autotroph_cnt, zooplankton_cnt, grazer_prey_cnt, autotrophs, &
                   Tfunc(k), zooplankton_local(:, k), &
                   zooplankton_secondary_species(:, k), autotroph_secondary_species(:, k))
 
-             call compute_routing (autotroph_cnt, zooplankton_cnt, autotrophs, &
+             call marbl_compute_routing (autotroph_cnt, zooplankton_cnt, autotrophs, &
                   zooplankton_secondary_species(:, k), autotroph_secondary_species(:, k))
 
-             call compute_dissolved_organic_matter (autotroph_cnt, zooplankton_cnt, autotrophs, &
+             call marbl_compute_dissolved_organic_matter (autotroph_cnt, zooplankton_cnt, autotrophs, &
                   zooplankton_secondary_species(:, k), autotroph_secondary_species(:, k), &
                   PAR(k)%avg, tracer_local(:, k), &
                   dissolved_organic_matter(k))
 
-             call compute_large_detritus(k, autotroph_cnt, zooplankton_cnt, autotrophs, &
+             call marbl_compute_large_detritus(k, autotroph_cnt, zooplankton_cnt, autotrophs, &
                   zooplankton_secondary_species(:, k), autotroph_secondary_species(:, k), tracer_local(fe_ind, k), &
                   POC, P_CaCO3, P_SiO2, dust, P_iron, &
                   Fe_scavenge(k), Fe_scavenge_rate(k))
 
-             call compute_particulate_terms(k, &
+             call marbl_compute_particulate_terms(k, &
                   domain%land_mask, domain%kmt, domain%dzt(k), domain%dz(k), &
                   marbl_particulate_share, &
                   POC, P_CaCO3, P_SiO2, dust, P_iron, &
                   QA_dust_def(k), gcm_state%temperature(k), tracer_local(:, k), &
                   sed_denitrif(k), other_remin(k), fesedflux(k), lexport_shared_vars)
 
-             call compute_nitrif(PAR_out, PAR(k)%in, PAR(k)%KPARdz, &
+             call marbl_compute_nitrif(PAR_out, PAR(k)%in, PAR(k)%KPARdz, &
                   tracer_local(nh4_ind, k), nitrif(k))
 
-             call compute_denitrif(tracer_local(o2_ind, k), tracer_local(no3_ind, k), &
+             call marbl_compute_denitrif(tracer_local(o2_ind, k), tracer_local(no3_ind, k), &
                   dissolved_organic_matter(k)%DOC_remin, &
                   POC%remin(k), other_remin(k), sed_denitrif(k), denitrif(k))
 
-             call compute_dtracer_local (autotroph_cnt, zooplankton_cnt, autotrophs, zooplankton, &
+             call marbl_compute_dtracer_local (autotroph_cnt, zooplankton_cnt, autotrophs, zooplankton, &
                   autotroph_secondary_species(:, k), &
                   zooplankton_secondary_species(:, k), &
                   dissolved_organic_matter(k), &
@@ -1359,17 +1267,17 @@ contains
 
 
              if (lexport_shared_vars) then
-                call export_interior_shared_variables(tracer_local(:, k), &
+                call marbl_export_interior_shared_variables(tracer_local(:, k), &
                      carbonate(k), dissolved_organic_matter(k), &
                      QA_dust_def(k), &
                      marbl_interior_share(k))
 
-                call export_zooplankton_shared_variables(zooplankton_cnt, &
+                call marbl_export_zooplankton_shared_variables(zooplankton_cnt, &
                      zooplankton_local(:, k), &
                      zooplankton_secondary_species(:, k), &
                      marbl_zooplankton_share(:, k))
 
-                call export_autotroph_shared_variables(autotroph_cnt, &
+                call marbl_export_autotroph_shared_variables(autotroph_cnt, &
                      autotroph_local(:, k), &
                      autotroph_secondary_species(:, k), &
                      marbl_autotroph_share(:, k))
@@ -1378,17 +1286,17 @@ contains
                 ! out of compute_particulate_terms!
              end if
 
-       ! FIXME(bja, 2015-07) copy column ordered local tracers back to
-       ! slab ordered for remaining computations. This will go a way
-       ! once the slab --> column reordering is complete.
-
+             ! FIXME(bja, 2015-07) copy column ordered local tracers back to
+             ! slab ordered for remaining computations. This will go a way
+             ! once the slab --> column reordering is complete.
+             
              saved_state%PAR_out(i, c, bid)               = PAR_out
              saved_state%PH_PREV_3D(i, c, k, bid)         = ph_prev_3d(k)
              saved_state%PH_PREV_ALT_CO2_3D(i, c, k, bid) = ph_prev_alt_co2_3d(k)
 
-       ! FIXME(bja, 2015-07) copy column diags back to slab eventually
-       ! gets moved into ecosys_driver!
-
+             ! FIXME(bja, 2015-07) copy column diags back to slab eventually
+             ! gets moved into ecosys_driver!
+             
              if (lexport_shared_vars) then
                 ! FIXME(bja, 2015-08) copy column shared data back to slab
                 ! eventually gets moved into ecosys_driver!
@@ -1405,8 +1313,8 @@ contains
                 call column_particulate_share_to_slab_particulate_share(i, c, k, bid, &
                      marbl_particulate_share, ecosys_particulate_share(k))
              end if
-             if(k<domain%km) THEN
-                call update_particulate_terms_from_prior_level(k+1, POC, P_CaCO3, &
+             if  (k<domain%km) then
+                call marbl_update_particulate_terms_from_prior_level(k+1, POC, P_CaCO3, &
                      P_SiO2, dust, P_iron, QA_dust_def(:))
              endif
 
@@ -1465,11 +1373,11 @@ contains
 
           end associate
 
-  end subroutine ecosys_set_interior
+  end subroutine marbl_ecosys_set_interior
 
   !***********************************************************************
 
-  subroutine init_particulate_terms(k, POC, P_CaCO3, P_SiO2, dust, P_iron, &
+  subroutine marbl_init_particulate_terms(k, POC, P_CaCO3, P_SiO2, dust, P_iron, &
        QA_dust_def, NET_DUST_IN)
 
     ! !DESCRIPTION:
@@ -1583,11 +1491,11 @@ contains
     !-----------------------------------------------------------------------
     !EOC
 
-  end subroutine init_particulate_terms
+  end subroutine marbl_init_particulate_terms
 
   !***********************************************************************
 
-  subroutine update_particulate_terms_from_prior_level(k, POC, P_CaCO3, P_SiO2, dust, P_iron, QA_dust_def)
+  subroutine marbl_update_particulate_terms_from_prior_level(k, POC, P_CaCO3, P_SiO2, dust, P_iron, QA_dust_def)
 
     use marbl_share_mod, only : column_sinking_particle_type
 
@@ -1603,24 +1511,24 @@ contains
        !
        ! initialize loss to sediments = 0
        !-----------------------------------------------------------------------
-       call update_sinking_particle_from_prior_level(k, P_CaCO3)
+       call marbl_update_sinking_particle_from_prior_level(k, P_CaCO3)
 
-       call update_sinking_particle_from_prior_level(k, P_SiO2)
+       call marbl_update_sinking_particle_from_prior_level(k, P_SiO2)
 
-       call update_sinking_particle_from_prior_level(k, dust)
+       call marbl_update_sinking_particle_from_prior_level(k, dust)
 
-       call update_sinking_particle_from_prior_level(k, POC)
+       call marbl_update_sinking_particle_from_prior_level(k, POC)
 
-       call update_sinking_particle_from_prior_level(k, P_iron)
+       call marbl_update_sinking_particle_from_prior_level(k, P_iron)
 
        QA_dust_def(k) = QA_dust_def(k-1)
     end if
 
-  end subroutine update_particulate_terms_from_prior_level
+  end subroutine marbl_update_particulate_terms_from_prior_level
 
   !***********************************************************************
 
-  subroutine update_sinking_particle_from_prior_level(k, sinking_particle)
+  subroutine marbl_update_sinking_particle_from_prior_level(k, sinking_particle)
 
     use marbl_share_mod, only : column_sinking_particle_type
 
@@ -1633,11 +1541,11 @@ contains
     sinking_particle%sflux_in(k)  = sinking_particle%sflux_out(k-1)
     sinking_particle%hflux_in(k)  = sinking_particle%hflux_out(k-1)
 
-  end subroutine update_sinking_particle_from_prior_level
+  end subroutine marbl_update_sinking_particle_from_prior_level
 
   !***********************************************************************
 
-  subroutine compute_particulate_terms(k, &
+  subroutine marbl_compute_particulate_terms(k, &
        column_land_mask, column_kmt, column_dzt, column_dz, &
        marbl_particulate_share, &
        POC, P_CaCO3, P_SiO2, dust, P_iron, &
@@ -2208,11 +2116,11 @@ contains
 
           end associate
 
-  end subroutine compute_particulate_terms
+  end subroutine marbl_compute_particulate_terms
 
   !***********************************************************************
 
-  subroutine ecosys_set_sflux(                             &
+  subroutine marbl_ecosys_set_sflux(                       &
        saved_state,                                        &
        marbl_surface_share,                                &
        U10_SQR, IFRAC, PRESS, SST, SSS,                    &
@@ -2284,12 +2192,12 @@ contains
     ! !INPUT PARAMETERS:
 
     type(marbl_saved_state_type), intent(in) :: saved_state
-    real (r8)          , intent(in) :: U10_SQR(nx_block, ny_block, max_blocks_clinic) ! 10m wind speed squared (cm/s)**2
-    real (r8)          , intent(in) :: IFRAC  (nx_block, ny_block, max_blocks_clinic) ! sea ice fraction (non-dimensional)
-    real (r8)          , intent(in) :: PRESS  (nx_block, ny_block, max_blocks_clinic) ! sea level atmospheric pressure (dyne/cm**2)
-    real (r8)          , intent(in) :: SST    (nx_block, ny_block, max_blocks_clinic) ! sea surface temperature (C)
-    real (r8)          , intent(in) :: SSS    (nx_block, ny_block, max_blocks_clinic) ! sea surface salinity (psu)
-    real (r8)          , intent(in) :: SURF_VALS(:, :, :, :)                          ! module tracers
+    real (r8)          , intent(in) :: U10_SQR(:, :, :)      ! 10m wind speed squared (cm/s)**2
+    real (r8)          , intent(in) :: IFRAC  (:, :, :)      ! sea ice fraction (non-dimensional)
+    real (r8)          , intent(in) :: PRESS  (:, :, :)      ! sea level atmospheric pressure (dyne/cm**2)
+    real (r8)          , intent(in) :: SST    (:, :, :)      ! sea surface temperature (C)
+    real (r8)          , intent(in) :: SSS    (:, :, :)      ! sea surface salinity (psu)
+    real (r8)          , intent(in) :: SURF_VALS(:, :, :, :) ! module tracers
     real (r8)          , intent(in) :: MARBL_STF(:, :, :, :) 
     real (r8)          , intent(in) :: XCO2(:, :, :)         ! atmospheric co2 conc. (dry-air, 1 atm)
     real (r8)          , intent(in) :: XCO2_ALT_CO2(:, :, :) ! atmospheric alternative CO2 (dry-air, 1 atm)
@@ -2316,13 +2224,9 @@ contains
 
     logical (log_kind) :: first_call = .true.
 
-    type (block) :: &
-         this_block      ! block info for the current block
-
     integer (int_kind) :: &
          i, j, iblock, n, & ! loop indices
-         auto_ind,        & ! autotroph functional group index
-         errorCode          ! errorCode from HaloUpdate call
+         auto_ind           ! autotroph functional group index
 
     ! the following arrays need to be used by both set_sflux and store_sflux
     ! in the original routine, they were dimensioned ny_block and reused
@@ -2662,7 +2566,7 @@ contains
 
     end associate
 
-    call ecosys_store_sflux(                                 &
+    call marbl_ecosys_store_sflux(                           &
          STF_MODULE,                                         &
          SURF_VALS, MARBL_STF,                               &
          SCHMIDT_USED_CO2, SCHMIDT_USED_O2, PV, O2SAT_USED,  &
@@ -2673,11 +2577,11 @@ contains
          PH_PREV, PH_PREV_ALT_CO2,                           &
          lexport_shared_vars)
 
-  end subroutine ecosys_set_sflux
+  end subroutine marbl_ecosys_set_sflux
 
   !***********************************************************************
 
-  subroutine ecosys_store_sflux(                           &
+  subroutine marbl_ecosys_store_sflux(                           &
        STF_MODULE,                                         &
        SURF_VALS, MARBL_STF,                               &
        SCHMIDT_USED_CO2, SCHMIDT_USED_O2, PV, O2SAT_USED,  & 
@@ -2753,13 +2657,9 @@ contains
 
     logical (log_kind) :: first_call = .true.
 
-    type (block) :: &
-         this_block      ! block info for the current block
-
     integer (int_kind) :: &
          i, j, iblock, n, & ! loop indices
-         auto_ind,     & ! autotroph functional group index
-         errorCode       ! errorCode from HaloUpdate call
+         auto_ind           ! autotroph functional group index
 
     real (r8), dimension(nx_block, ny_block, max_blocks_clinic) :: &
          SHR_STREAM_WORK
@@ -2874,11 +2774,11 @@ contains
        ECO_SFLUX_TAVG(:, :, buf_ind_ALK_RIV_FLUX, :) = MARBL_STF(:, :, ind_alk_riv_flux, :)
     endif
 
-  end subroutine ecosys_store_sflux
+  end subroutine marbl_ecosys_store_sflux
 
   !*****************************************************************************
 
-  subroutine ecosys_tavg_forcing(saved_state, STF_MODULE, FLUX_DIAGS)
+  subroutine marbl_ecosys_tavg_forcing(saved_state, STF_MODULE, FLUX_DIAGS)
 
     ! !DESCRIPTION:
     !  Accumulate non-standard forcing related tavg variables.
@@ -2943,38 +2843,11 @@ contains
     FLUX_DIAGS(:, :, ALK_RIV_FLUX_diag_ind, :)         = ECO_SFLUX_TAVG(:, :, buf_ind_ALK_RIV_FLUX, :)
     FLUX_DIAGS(:, :, DOC_RIV_FLUX_diag_ind, :)         = STF_MODULE(:, :, doc_ind, :)
 
-  end subroutine ecosys_tavg_forcing
-
-  !*****************************************************************************
-
-  function ecosys_tracer_ref_val(ind, vflux_flag, surf_avg)
-
-    !-----------------------------------------------------------------------
-    !  return reference value for tracers using virtual fluxes
-    !-----------------------------------------------------------------------
-
-    implicit none
-
-    ! !INPUT PARAMETERS:
-    integer (int_kind) , intent(in) :: ind
-    logical (log_kind) , intent(in) :: vflux_flag(:) 
-    real (r8)          , intent(in) :: surf_avg(:)   ! average surface tracer values
-
-    ! !OUTPUT PARAMETERS:
-    real (r8) :: ecosys_tracer_ref_val
-    !-----------------------------------------------------------------------
-
-    if (vflux_flag(ind)) then
-       ecosys_tracer_ref_val = surf_avg(ind)
-    else
-       ecosys_tracer_ref_val = c0
-    endif
-
-  end function ecosys_tracer_ref_val
+  end subroutine marbl_ecosys_tavg_forcing
 
   !***********************************************************************
 
-  subroutine ecosys_init_forcing_metadata()
+  subroutine marbl_ecosys_init_forcing_metadata()
 
     !-----------------------------------------------------------------------
     ! initialize surface forcing metadata
@@ -3017,11 +2890,11 @@ contains
     call init_forcing_monthly_every_ts(alk_riv_flux)
     call init_forcing_monthly_every_ts(doc_riv_flux)
 
-  end subroutine ecosys_init_forcing_metadata
+  end subroutine marbl_ecosys_init_forcing_metadata
 
   !***********************************************************************
 
-  subroutine ecosys_init_non_autotroph_tracer_metadata(tracer_d_module, &
+  subroutine marbl_ecosys_init_non_autotroph_tracer_metadata(tracer_d_module, &
        non_living_biomass_ecosys_tracer_cnt)
 
     !-----------------------------------------------------------------------
@@ -3031,8 +2904,7 @@ contains
 
     implicit none
 
-    type (tracer_field), dimension(:), intent(inout) :: &
-         tracer_d_module   ! descriptors for each tracer
+    type (marbl_tracer_metadata_type), dimension(:), intent(inout) :: tracer_d_module   ! descriptors for each tracer
 
     integer (int_kind), intent(out) :: &
          non_living_biomass_ecosys_tracer_cnt ! number of non-autotroph ecosystem tracers
@@ -3113,11 +2985,11 @@ contains
        endif
     end do
 
-  end subroutine ecosys_init_non_autotroph_tracer_metadata
+  end subroutine marbl_ecosys_init_non_autotroph_tracer_metadata
 
   !***********************************************************************
 
-  subroutine check_ecosys_tracer_count_consistency(non_living_biomass_ecosys_tracer_cnt)
+  subroutine marbl_check_ecosys_tracer_count_consistency(non_living_biomass_ecosys_tracer_cnt)
 
     implicit none
 
@@ -3153,17 +3025,17 @@ contains
        call exit_POP(sigAbort, 'inconsistency between actual ecosys_tracer_cnt and computed ecosys_tracer_cnt')
     endif
 
-  end subroutine check_ecosys_tracer_count_consistency
+  end subroutine marbl_check_ecosys_tracer_count_consistency
 
   !***********************************************************************
 
-  subroutine initialize_zooplankton_tracer_metadata(tracer_d_module, &
+  subroutine marbl_initialize_zooplankton_tracer_metadata(tracer_d_module, &
        non_living_biomass_ecosys_tracer_cnt, n)
+
     !-----------------------------------------------------------------------
     !  initialize zooplankton tracer_d values and tracer indices
     !-----------------------------------------------------------------------
-    type (tracer_field), dimension(:), intent(inout) :: &
-         tracer_d_module   ! descriptors for each tracer
+    type (marbl_tracer_metadata_type), dimension(:), intent(inout) :: tracer_d_module   ! descriptors for each tracer
 
     integer (int_kind), intent(in) :: &
          non_living_biomass_ecosys_tracer_cnt ! number of non-autotroph ecosystem tracers
@@ -3193,21 +3065,20 @@ contains
        write (stdout, *) '------------------------------------'
     endif
 
-  end subroutine initialize_zooplankton_tracer_metadata
+  end subroutine marbl_initialize_zooplankton_tracer_metadata
 
   !***********************************************************************
 
-  subroutine initialize_autotroph_tracer_metadata(tracer_d_module, n)
+  subroutine marbl_initialize_autotroph_tracer_metadata(tracer_d_module, n)
+
     !-----------------------------------------------------------------------
     !  initialize autotroph tracer_d values and tracer indices
     !-----------------------------------------------------------------------
-    type (tracer_field), dimension(:), intent(inout) :: &
-         tracer_d_module   ! descriptors for each tracer
 
+    type (marbl_tracer_metadata_type), dimension(:), intent(inout) :: tracer_d_module   ! descriptors for each tracer
     integer(int_kind), intent(inout) :: n
 
-    integer (int_kind) :: &
-         auto_ind            ! zooplankton functional group index
+    integer (int_kind) :: auto_ind ! zooplankton functional group index
 
     do auto_ind = 1, autotroph_cnt
        tracer_d_module(n)%short_name = trim(autotrophs(auto_ind)%sname) // 'Chl'
@@ -3272,11 +3143,11 @@ contains
        write (stdout, *) '------------------------------------'
     endif
 
-  end subroutine initialize_autotroph_tracer_metadata
+  end subroutine marbl_initialize_autotroph_tracer_metadata
 
   !***********************************************************************
 
-  subroutine setup_local_tracers(k, column_land_mask, column_kmt, tracer_module, tracer_local)
+  subroutine marbl_setup_local_tracers(k, column_land_mask, column_kmt, tracer_module, tracer_local)
     !-----------------------------------------------------------------------
     !  create local copies of model tracers
     !  treat negative values as zero
@@ -3305,11 +3176,13 @@ contains
        end if
     end do
 
-  end subroutine setup_local_tracers
+  end subroutine marbl_setup_local_tracers
 
   !***********************************************************************
 
-  subroutine setup_local_zooplankton(k, column_land_mask, column_kmt, tracer_module, zoo_cnt, zoo, zooplankton_local)
+  subroutine marbl_setup_local_zooplankton(k, column_land_mask, column_kmt, &
+       tracer_module, zoo_cnt, zoo, zooplankton_local)
+
     !-----------------------------------------------------------------------
     !  create local copies of model tracers
     !  treat negative values as zero
@@ -3343,12 +3216,14 @@ contains
        end if
     end do
 
-  end subroutine setup_local_zooplankton
+  end subroutine marbl_setup_local_zooplankton
 
 
   !***********************************************************************
 
-  subroutine setup_local_autotrophs(k, column_land_mask, column_kmt, tracer_module, auto_cnt, auto_meta, autotroph_loc)
+  subroutine marbl_setup_local_autotrophs(k, column_land_mask, column_kmt, &
+       tracer_module, auto_cnt, auto_meta, autotroph_loc)
+
     !-----------------------------------------------------------------------
     !  create local copies of model tracers
     !  treat negative values as zero
@@ -3407,12 +3282,13 @@ contains
        end if
     end do
 
-  end subroutine setup_local_autotrophs
+  end subroutine marbl_setup_local_autotrophs
 
   !***********************************************************************
 
-  subroutine autotroph_consistency_check(auto_cnt, auto_meta, &
+  subroutine marbl_autotroph_consistency_check(auto_cnt, auto_meta, &
        autotroph_local)
+
     !-----------------------------------------------------------------------
     !  If any phyto box are zero, set others to zeros.
     !-----------------------------------------------------------------------
@@ -3454,11 +3330,12 @@ contains
        end if
     end do
 
-  end subroutine autotroph_consistency_check
+  end subroutine marbl_autotroph_consistency_check
 
   !***********************************************************************
 
-  subroutine compute_autotroph_elemental_ratios(k, auto_cnt, auto_meta, autotroph_local, tracer_local, autotroph_secondary_species)
+  subroutine marbl_compute_autotroph_elemental_ratios(k, auto_cnt, auto_meta, autotroph_local, &
+       tracer_local, autotroph_secondary_species)
 
     use marbl_share_mod, only : autotroph_type
 
@@ -3558,11 +3435,11 @@ contains
        end if
     end do
     end associate
-  end subroutine compute_autotroph_elemental_ratios
+  end subroutine marbl_compute_autotroph_elemental_ratios
 
   !***********************************************************************
 
-  subroutine compute_photosynthetically_available_radiation(k, auto_cnt, &
+  subroutine marbl_compute_photosynthetically_available_radiation(k, auto_cnt, &
        autotroph_local, &
        column_land_mask, column_kmt, column_dzt, column_dz, &
        PAR_out, PAR)
@@ -3572,18 +3449,16 @@ contains
     !  0.45   fraction of incoming SW -> PAR (non-dim)
     !-----------------------------------------------------------------------
 
-    integer(int_kind), intent(in) :: k, auto_cnt
-    type(autotroph_local_type), intent(in) :: autotroph_local(auto_cnt)
-    logical(log_kind), intent(in) :: column_land_mask
-    integer(int_kind), intent(in) :: column_kmt
-    real (r8), intent(in) :: &
-         column_dzt, &
-         column_dz
+    integer(int_kind)          , intent(in) :: k, auto_cnt
+    type(autotroph_local_type) , intent(in) :: autotroph_local(auto_cnt)
+    logical(log_kind)          , intent(in) :: column_land_mask
+    integer(int_kind)          , intent(in) :: column_kmt
+    real (r8)                  , intent(in) :: column_dzt
+    real (r8)                  , intent(in) :: column_dz
 
     real (r8), intent(inout) :: PAR_out
 
     type(photosynthetically_available_radiation_type), intent(out) :: PAR
-
 
     real (r8) :: WORK1
 
@@ -3612,11 +3487,11 @@ contains
     PAR%avg = PAR%in * (c1 - exp(-PAR%KPARdz)) / PAR%KPARdz
 
 
-  end subroutine compute_photosynthetically_available_radiation
+  end subroutine marbl_compute_photosynthetically_available_radiation
 
   !***********************************************************************
 
-  subroutine compute_carbonate_chemistry(dkm, &
+  subroutine marbl_compute_carbonate_chemistry(dkm, &
        column_land_mask, column_kmt, &
        temperature, salinity, &
        tracer_local, carbonate, &
@@ -3627,7 +3502,7 @@ contains
     use co2calc_column, only : comp_co3terms
     use co2calc_column, only : comp_co3_sat_vals
     use co2calc_column, only : thermodynamic_coefficients_type
-    USE state_mod,      ONLY : ref_pressure
+    use state_mod,      only : ref_pressure
 
     integer (int_kind), intent(in) :: dkm
     logical(log_kind), intent(in) :: column_land_mask
@@ -3762,11 +3637,12 @@ contains
     enddo
     end associate
 
-  end subroutine compute_carbonate_chemistry
+  end subroutine marbl_compute_carbonate_chemistry
 
   !***********************************************************************
 
-  subroutine compute_function_scaling(column_temperature, Tfunc )
+  subroutine marbl_compute_function_scaling(column_temperature, Tfunc )
+
     !-----------------------------------------------------------------------
     !  Tref = 30.0 reference temperature (deg. C)
     !  Using q10 formulation with Q10 value of 2.0 (Doney et al., 1996).
@@ -3782,11 +3658,11 @@ contains
 
     Tfunc = Q_10**(((column_temperature + T0_Kelvin) - (Tref + T0_Kelvin)) / c10)
 
-  end subroutine compute_function_scaling
+  end subroutine marbl_compute_function_scaling
 
   !***********************************************************************
 
-  subroutine compute_Pprime(k, auto_cnt, auto_meta, &
+  subroutine marbl_compute_Pprime(k, auto_cnt, auto_meta, &
        autotroph_local, column_temperature, autotroph_secondary_species)
 
     use marbl_share_mod, only : autotroph_type
@@ -3831,11 +3707,11 @@ contains
     end do
 
     end associate
-  end subroutine compute_Pprime
+  end subroutine marbl_compute_Pprime
 
   !***********************************************************************
 
-  subroutine compute_Zprime(k, zoo_cnt, zoo_meta, zooC, &
+  subroutine marbl_compute_Zprime(k, zoo_cnt, zoo_meta, zooC, &
        Tfunc, zooplankton_secondary_species)
 
     use constants       , only : c1, c0
@@ -3880,11 +3756,11 @@ contains
     end do
 
     end associate
-  end subroutine compute_Zprime
+  end subroutine marbl_compute_Zprime
 
   !***********************************************************************
 
-  subroutine compute_autotroph_uptake (auto_cnt, auto_meta, &
+  subroutine marbl_compute_autotroph_uptake (auto_cnt, auto_meta, &
        tracer_local, &
        autotroph_secondary_species)
 
@@ -3952,11 +3828,11 @@ contains
 
     end associate
 
-  end subroutine compute_autotroph_uptake
+  end subroutine marbl_compute_autotroph_uptake
 
   !***********************************************************************
 
-  subroutine compute_autotroph_photosynthesis (auto_cnt, auto_meta, &
+  subroutine marbl_compute_autotroph_photosynthesis (auto_cnt, auto_meta, &
        autotroph_loc, temperature, Tfunc, PAR_avg, autotroph_secondary_species)
 
     !-----------------------------------------------------------------------
@@ -4000,11 +3876,11 @@ contains
 
     end associate
 
-  end subroutine compute_autotroph_photosynthesis
+  end subroutine marbl_compute_autotroph_photosynthesis
 
   !***********************************************************************
 
-  subroutine compute_autotroph_phyto_diatoms (auto_cnt, auto_meta, &
+  subroutine marbl_compute_autotroph_phyto_diatoms (auto_cnt, auto_meta, &
        autotroph_loc, PAR_avg, autotroph_secondary_species)
 
     !-----------------------------------------------------------------------
@@ -4096,11 +3972,11 @@ contains
 
     end associate
 
-  end subroutine compute_autotroph_phyto_diatoms
+  end subroutine marbl_compute_autotroph_phyto_diatoms
 
   !***********************************************************************
 
-  subroutine compute_autotroph_calcification (auto_cnt, auto_meta, &
+  subroutine marbl_compute_autotroph_calcification (auto_cnt, auto_meta, &
        autotroph_loc, temperature, autotroph_secondary_species)
 
     !-----------------------------------------------------------------------
@@ -4149,11 +4025,11 @@ contains
     end do
 
     end associate
-  end subroutine compute_autotroph_calcification
+  end subroutine marbl_compute_autotroph_calcification
 
   !***********************************************************************
 
-  subroutine compute_autotroph_nfixation (auto_cnt, auto_meta, &
+  subroutine marbl_compute_autotroph_nfixation (auto_cnt, auto_meta, &
        autotroph_secondary_species)
 
     !-----------------------------------------------------------------------
@@ -4190,11 +4066,11 @@ contains
     end do
 
     end associate
-  end subroutine compute_autotroph_nfixation
+  end subroutine marbl_compute_autotroph_nfixation
 
   !***********************************************************************
 
-  subroutine compute_autotroph_loss (auto_cnt, auto_meta, &
+  subroutine marbl_compute_autotroph_loss (auto_cnt, auto_meta, &
        Tfunc, autotroph_secondary_species)
 
     !-----------------------------------------------------------------------
@@ -4250,11 +4126,11 @@ contains
     end do  ! auto_ind = 1, autotroph_cnt
 
     end associate
-  end subroutine compute_autotroph_loss
+  end subroutine marbl_compute_autotroph_loss
 
   !***********************************************************************
 
-  subroutine compute_grazing (auto_cnt, zoo_cnt, grazer_prey_cnt, auto_meta, &
+  subroutine marbl_compute_grazing (auto_cnt, zoo_cnt, grazer_prey_cnt, auto_meta, &
        Tfunc, zooplankton_loc, &
        zooplankton_secondary_species, autotroph_secondary_species)
 
@@ -4445,11 +4321,11 @@ contains
 
     end associate
 
-  end subroutine compute_grazing
+  end subroutine marbl_compute_grazing
 
   !***********************************************************************
 
-  subroutine compute_routing (auto_cnt, zoo_cnt,  auto_meta, &
+  subroutine marbl_compute_routing (auto_cnt, zoo_cnt,  auto_meta, &
        zooplankton_secondary_species, autotroph_secondary_species)
 
     use constants       , only : c1
@@ -4530,11 +4406,11 @@ contains
 
     end associate
 
-  end subroutine compute_routing
+  end subroutine marbl_compute_routing
 
   !***********************************************************************
 
-  subroutine compute_dissolved_organic_matter (auto_cnt, zoo_cnt, auto_meta, &
+  subroutine marbl_compute_dissolved_organic_matter (auto_cnt, zoo_cnt, auto_meta, &
        zooplankton_secondary_species, autotroph_secondary_species, &
        PAR_avg, tracer_local, &
        dissolved_organic_matter)
@@ -4629,11 +4505,11 @@ contains
       end if
 
     end associate
-  end subroutine compute_dissolved_organic_matter
+  end subroutine marbl_compute_dissolved_organic_matter
 
   !***********************************************************************
 
-  subroutine compute_large_detritus(k, auto_cnt, zoo_cnt, auto_meta, &
+  subroutine marbl_compute_large_detritus(k, auto_cnt, zoo_cnt, auto_meta, &
        zooplankton_secondary_species, autotroph_secondary_species, Fe_loc, &
        POC, P_CaCO3, P_SiO2, dust, P_iron, &
        Fe_scavenge, Fe_scavenge_rate)
@@ -4744,11 +4620,11 @@ contains
     end do
 
     end associate
-  end subroutine compute_large_detritus
+  end subroutine marbl_compute_large_detritus
 
   !***********************************************************************
 
-  subroutine compute_nitrif(PAR_out, PAR_in, KPARdz, NH4_loc, nitrif)
+  subroutine marbl_compute_nitrif(PAR_out, PAR_in, KPARdz, NH4_loc, nitrif)
 
     !-----------------------------------------------------------------------
     !  nitrate & ammonium
@@ -4774,12 +4650,12 @@ contains
        nitrif = c0
     end if
 
-  end subroutine compute_nitrif
+  end subroutine marbl_compute_nitrif
 
   !***********************************************************************
 
-  subroutine compute_denitrif(O2_loc, NO3_loc, DOC_remin, POC_remin, other_remin, sed_denitrif, &
-       denitrif)
+  subroutine marbl_compute_denitrif(O2_loc, NO3_loc, DOC_remin, &
+       POC_remin, other_remin, sed_denitrif, denitrif)
 
     !-----------------------------------------------------------------------
     !  Compute denitrification under low O2 conditions
@@ -4800,11 +4676,11 @@ contains
     work = merge(c0, work, NO3_loc == c0)
     denitrif = work * ((DOC_remin + POC_remin - other_remin) / denitrif_C_N  - sed_denitrif)
 
-  end subroutine compute_denitrif
+  end subroutine marbl_compute_denitrif
 
   !***********************************************************************
 
-  subroutine compute_dtracer_local (auto_cnt, zoo_cnt, auto_meta, zoo_meta, &
+  subroutine marbl_compute_dtracer_local (auto_cnt, zoo_cnt, auto_meta, zoo_meta, &
        autotroph_secondary_species, &
        zooplankton_secondary_species, &
        dissolved_organic_matter, &
@@ -5069,11 +4945,11 @@ contains
     dtracer(o2_ind) = o2_production - o2_consumption
 
     end associate
-  end subroutine compute_dtracer_local
+  end subroutine marbl_compute_dtracer_local
 
   !-----------------------------------------------------------------------
 
-  subroutine export_interior_shared_variables (&
+  subroutine marbl_export_interior_shared_variables (&
        tracer_local, &
        carbonate, &
        dissolved_organic_matter, &
@@ -5106,11 +4982,11 @@ contains
     share%DOC_remin_fields = dissolved_organic_matter%DOC_remin
 
     end associate
-  end subroutine export_interior_shared_variables
+  end subroutine marbl_export_interior_shared_variables
 
   !-----------------------------------------------------------------------
 
-  subroutine export_zooplankton_shared_variables (&
+  subroutine marbl_export_zooplankton_shared_variables (&
        zoo_cnt, &
        zooplankton_local, &
        zooplankton_secondary_species, &
@@ -5138,11 +5014,11 @@ contains
     end do
 
     end associate
-  end subroutine export_zooplankton_shared_variables
+  end subroutine marbl_export_zooplankton_shared_variables
 
   !-----------------------------------------------------------------------
 
-  subroutine export_autotroph_shared_variables (&
+  subroutine marbl_export_autotroph_shared_variables (&
        auto_cnt, &
        autotroph_local, &
        autotroph_secondary_species, &
@@ -5190,7 +5066,7 @@ contains
        share(n)%PCphoto_fields        = autotroph_secondary_species(n)%PCphoto
     end do
     end associate
-  end subroutine export_autotroph_shared_variables
+  end subroutine marbl_export_autotroph_shared_variables
 
 end module ecosys_mod
 

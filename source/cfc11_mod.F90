@@ -21,7 +21,7 @@ module cfc11_mod
    use domain, only: nblocks_clinic, distrb_clinic
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
-   use prognostic, only: tracer_field
+   use marbl_interface_types, only: tracer_field => marbl_tracer_metadata_type
    use kinds_mod
    use constants, only: c0, c1, char_blank, delim_fmt
    use io, only: data_set
@@ -164,7 +164,8 @@ contains
    use broadcast, only: broadcast_scalar, broadcast_array
    use constants, only: c0, field_loc_center, blank_fmt, &
        field_type_scalar
-   use prognostic, only: nx_global, ny_global, curtime, oldtime
+   use domain_size, only : nx_global, ny_global 
+   use prognostic, only: curtime, oldtime
    use grid, only: KMT, zt, zw, n_topo_smooth, fill_points
    use forcing_tools, only: find_forcing_times
    use time_management, only: freq_opt_nyear, freq_opt_nmonth

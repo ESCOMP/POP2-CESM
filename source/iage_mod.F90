@@ -21,7 +21,7 @@ module iage_mod
    use domain, only: nblocks_clinic
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
-   use prognostic, only: tracer_field
+   use marbl_interface_types, only : tracer_field => marbl_tracer_metadata_type
    use kinds_mod
    use constants, only: c0, c1, char_blank, delim_fmt
    use io, only: data_set

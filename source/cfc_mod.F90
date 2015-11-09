@@ -188,7 +188,7 @@ contains
    use grid, only: KMT, n_topo_smooth, fill_points
    use grid, only: REGION_MASK
    use io_types, only: nml_in, nml_filename
-   use prognostic, only: tracer_field
+   use marbl_interface_types, only: tracer_field => marbl_tracer_metadata_type
    use timers, only: get_timer
    use passive_tracer_tools, only: init_forcing_monthly_every_ts, &
        rest_read_tracer_block, file_read_tracer_block

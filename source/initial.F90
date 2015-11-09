@@ -22,7 +22,7 @@
 
    use kinds_mod, only: i4, i8, r8, int_kind, log_kind, char_len
    use blocks, only: block, nx_block, ny_block, get_block
-   use domain_size
+   use domain_size, only: nx_global, ny_global, max_blocks_clinic, km, nt
    use domain, only: nblocks_clinic, blocks_clinic, init_domain_blocks,    &
        init_domain_distribution, distrb_clinic
    use constants, only: radian, delim_fmt, blank_fmt, field_loc_center, blank_fmt, &
@@ -34,8 +34,7 @@
    use communicate, only: my_task, master_task, init_communicate
    use budget_diagnostics, only: init_budget_diagnostics
    use broadcast, only: broadcast_array, broadcast_scalar
-   use prognostic, only: init_prognostic, max_blocks_clinic, nx_global,    &
-       ny_global, km, nt, TRACER, curtime, RHO, newtime, oldtime
+   use prognostic, only: init_prognostic, TRACER, curtime, RHO, newtime, oldtime
    use grid, only: init_grid1, init_grid2, kmt, kmt_g, n_topo_smooth, zt,    &
        fill_points, sfc_layer_varthick, sfc_layer_type, TLON, TLAT, partial_bottom_cells
    use io

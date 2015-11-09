@@ -21,7 +21,7 @@
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
    use constants, only: char_blank, field_loc_center, field_type_scalar,delim_fmt
-   use prognostic, only: tracer_field
+   use marbl_interface_types, only : tracer_field => marbl_tracer_metadata_type
    use io_tools, only: document
    use io, only: data_set
    use io_types, only: datafile, io_dim, io_field_desc, rec_type_dbl, &
@@ -51,7 +51,6 @@
    type, public :: tracer_read
       character(char_len) :: mod_varname, filename, file_varname, file_fmt
       real(r8) :: scale_factor, default_val
-
    end type tracer_read
 
 !-----------------------------------------------------------------------
