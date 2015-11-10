@@ -73,10 +73,7 @@ module marbl_interface_types
   end type marbl_3D_diagnostic_type
 
   type, public :: marbl_diagnostics_type
-     ! (ecosys_diag_cnt_2d)
-     type(marbl_diagnostic_data_and_metadata_type), dimension(:), allocatable :: diags_2d
-     ! (ecosys_diag_cnt_3d)
-     type(marbl_diagnostic_data_and_metadata_type), dimension(:), allocatable :: diags_3d
+     type(marbl_diagnostic_data_and_metadata_type), dimension(:), allocatable :: diags
 
      ! (auto_diag_cnt_2d, autotroph_cnt)
      type(marbl_2D_diagnostic_type), dimension(:,:), allocatable :: auto_diags_2d
@@ -199,10 +196,8 @@ module marbl_interface_types
      real (r8) :: DOPr_remin       ! portion of refractory DOP remineralized
   end type dissolved_organic_matter_type
 
- integer, parameter :: max_diags_2d = 14
- integer, parameter :: max_diags_3d = 29
- integer, public :: diag_cnt_2d
- integer, public :: diag_cnt_3d
+ integer, parameter :: max_diags = 43
+ integer, public :: diag_cnt
 
 contains
 
@@ -210,21 +205,18 @@ contains
                                    truncate, id)
 
     class(marbl_diagnostics_type), intent(inout) :: this
-    character(len=char_len), intent(in) :: lname, sname, units
-    character(len=char_len), intent(in) :: vgrid
+    character(len=char_len), intent(in) :: lname, sname, units, vgrid
     logical, intent(in) :: truncate
     integer, intent(out) :: id
 
 
-    if (trim(vgrid).eq.'none') then
-      diag_cnt_2d = diag_cnt_2d + 1
-      id = diag_cnt_2d
-      call this%diags_2d(id)%initialize(lname, sname, units)
-    else
-      diag_cnt_3d = diag_cnt_3d + 1
-      id = diag_cnt_3d
-      call this%diags_3d(id)%initialize(lname, sname, units, vgrid, truncate)
+    diag_cnt = diag_cnt + 1
+    id = diag_cnt
+    if (id.gt.size(this%diags)) then
+      print*, "ERROR: increase max number of diagnostics!"
+      ! FIXME: abort
     end if
+    call this%diags(id)%initialize(lname, sname, units, vgrid, truncate)
 
   end subroutine marbl_diagnostics_add
 
@@ -232,9 +224,8 @@ contains
                                             truncate)
 
     class(marbl_diagnostic_data_and_metadata_type), intent(inout) :: this
-    character(len=char_len), intent(in) :: lname, sname, units
-    character(len=char_len), intent(in), optional :: vgrid
-    logical, intent(in), optional :: truncate
+    character(len=char_len), intent(in) :: lname, sname, units, vgrid
+    logical, intent(in) :: truncate
 
     character(len=char_len), dimension(3) :: valid_vertical_grids
     integer :: n
@@ -243,33 +234,29 @@ contains
     valid_vertical_grids(1) = 'none'
     valid_vertical_grids(2) = 'layer_avg'
     valid_vertical_grids(3) = 'layer_iface'
+    valid_vgrid = .false.
+    do n=1,size(valid_vertical_grids)
+      if (trim(vgrid).eq.trim(valid_vertical_grids(n))) valid_vgrid = .true.
+    end do
+    if (.not.valid_vgrid) then
+      print*, "ERROR: ", trim(vgrid), " is not a valid vertical grid for MARBL"
+      ! FIXME: abort
+    end if
 
     this%compute_now = .true.
     this%long_name = trim(lname)
     this%short_name = trim(sname)
     this%units = trim(units)
+    this%vertical_grid = trim(vgrid)
+    this%ltruncated_vertical_extent = truncate
 
-    if (present(vgrid)) then
-      valid_vgrid = .false.
-      do n=1,size(valid_vertical_grids)
-        if (trim(vgrid).eq.trim(valid_vertical_grids(n))) valid_vgrid = .true.
-      end do
-      if (.not.valid_vgrid) then
-        print*, "ERROR: ", trim(vgrid), " is not a valid vertical grid for MARBL"
-      end if
-      this%vertical_grid = trim(vgrid)
-    else
-      this%vertical_grid = 'none'
-    end if
-
-    if (trim(this%vertical_grid).ne.'none') then
+    ! Allocate column memory for 3D variables
+    if (trim(vgrid).eq.'layer_avg') then
       allocate(this%field_3d(km))
     end if
 
-    if (present(truncate)) then
-      this%ltruncated_vertical_extent = truncate
-    else
-      this%ltruncated_vertical_extent = .false.
+    if (trim(vgrid).eq.'layer_iface') then
+      allocate(this%field_3d(km+1))
     end if
 
   end subroutine marbl_diagnostic_metadata_init
@@ -285,10 +272,8 @@ contains
                            part_diag_cnt_2d, part_diag_cnt_3d
     integer, intent(in) :: ecosys_tracer_cnt, autotroph_cnt, zooplankton_cnt
 
-    allocate(this%diags_2d(max_diags_2d))
-    diag_cnt_2d = 0
-    allocate(this%diags_3d(max_diags_3d))
-    diag_cnt_3d = 0
+    allocate(this%diags(max_diags))
+    diag_cnt = 0
     allocate(this%auto_diags_2d(auto_diag_cnt_2d, autotroph_cnt))
     allocate(this%auto_diags_3d(auto_diag_cnt_3d, autotroph_cnt))
     allocate(this%zoo_diags_2d(zoo_diag_cnt_2d, zooplankton_cnt))
@@ -315,11 +300,11 @@ contains
 
     integer :: m,n
 
-    do n=1,size(this%diags_2d) ! ecosys_diag_cnt_2d
-      this%diags_2d(n)%field_2d = c0
-    end do
-    do n=1,size(this%diags_3d) ! ecosys_diag_cnt_3d
-      this%diags_3d(n)%field_3d(:) = c0
+    do n=1,size(this%diags) ! ecosys_diag_cnt_2d
+      this%diags(n)%field_2d = c0
+      if (allocated(this%diags(n)%field_3d)) then
+        this%diags(n)%field_3d(:) = c0
+      end if
     end do
 
     do n=1,size(this%auto_diags_2d,dim=2)   ! autotroph_cnt
@@ -357,8 +342,14 @@ contains
 
     class(marbl_diagnostics_type), intent(inout) :: this
 
-    deallocate(this%diags_2d)
-    deallocate(this%diags_3d)
+    integer :: n
+
+    do n=1,size(this%diags) ! ecosys_diag_cnt_2d
+      if (allocated(this%diags(n)%field_3d)) then
+        deallocate(this%diags(n)%field_3d)
+      end if
+    end do
+    deallocate(this%diags)
     deallocate(this%auto_diags_2d)
     deallocate(this%auto_diags_3d)
     deallocate(this%zoo_diags_2d)

@@ -172,8 +172,7 @@
   !  flux terms and particulate terms
   !-----------------------------------------------------------------------
 
-  integer (int_kind), allocatable, dimension(:) :: tavg_ecosys_2d
-  integer (int_kind), allocatable, dimension(:) :: tavg_ecosys_3d
+  integer (int_kind), allocatable, dimension(:) :: tavg_ecosys
 
   !-----------------------------------------------------------------------
   !  tavg ids for 2d fields related to surface fluxes
@@ -248,18 +247,16 @@ contains
       zoo_ind           ! zooplankton functional group index
 
     character(char_len) :: err_msg, gloc, coords, sname
-    integer(int_kind) :: n
+    integer(int_kind) :: n, ndims
     logical :: define_field
 
 !-----------------------------------------------------------------------
 !   Define tavg fields for surface flux terms
 !-----------------------------------------------------------------------
 
-    allocate(tavg_ecosys_2d(marbl_diag_ind%count_2d))
-    allocate(tavg_ecosys_3d(marbl_diag_ind%count_3d))
+    allocate(tavg_ecosys(marbl_diag_ind%count))
     associate(                                                                &
-              diags_2d      => marbl_diags%diags_2d(:),                       &
-              diags_3d      => marbl_diags%diags_3d(:),                       &
+              diags         => marbl_diags%diags(:),                          &
               auto_diags_2d => marbl_diags%auto_diags_2d(:,:),                &
               auto_diags_3d => marbl_diags%auto_diags_3d(:,:),                &
               zoo_diags_2d  => marbl_diags%zoo_diags_2d(:,:),                 &
@@ -508,11 +505,34 @@ contains
 !   Define 2D tavg fields
 !-----------------------------------------------------------------------
 
-    do n=1,marbl_diag_ind%count_2d
-      call define_tavg_field(tavg_ecosys_2d(n), trim(diags_2d(n)%short_name), &
-                            2, long_name=trim(diags_2d(n)%long_name),         &
-                            units=trim(diags_2d(n)%units),                    &
-                            grid_loc='2110', coordinates='TLONG TLAT time')
+    do n=1,marbl_diag_ind%count
+      if (trim(diags(n)%vertical_grid).eq.'none') then
+        ndims = 2
+        gloc = '2110'
+        coords = 'TLONG TLAT time'
+      else
+        ndims = 3
+        if (trim(diags(n)%vertical_grid).eq.'layer_avg') then
+          if (diags(n)%ltruncated_vertical_extent) then
+            gloc = '3114'
+            coords = 'TLONG TLAT z_t_150m time'
+          else
+            gloc = '3111'
+            coords = 'TLONG TLAT z_t time'
+          end if
+        elseif (trim(diags(n)%vertical_grid).eq.'layer_iface') then
+            gloc = '3113'
+            coords = 'TLONG TLAT z_w_bot time'
+        else
+          write(err_msg,*) "'", trim(diags(n)%vertical_grid),                 &
+                           "' is not a valid vertical grid"
+          call shr_sys_abort(err_msg)
+        end if
+      end if
+      call define_tavg_field(tavg_ecosys(n),trim(diags(n)%short_name),        &
+                             ndims, long_name=trim(diags(n)%long_name),       &
+                             units=trim(diags(n)%units), grid_loc=gloc,       &
+                             coordinates=coords)
     end do
 
     do n=1,part_diag_cnt_2d
@@ -548,29 +568,6 @@ contains
 !-----------------------------------------------------------------------
 !   Define 3D tavg fields
 !-----------------------------------------------------------------------
-
-    do n=1,marbl_diag_ind%count_3d
-      if (trim(diags_3d(n)%vertical_grid).eq.'layer_avg') then
-        if (diags_3d(n)%ltruncated_vertical_extent) then
-          gloc = '3114'
-          coords = 'TLONG TLAT z_t_150m time'
-        else
-          gloc = '3111'
-          coords = 'TLONG TLAT z_t time'
-        end if
-      elseif (trim(diags_3d(n)%vertical_grid).eq.'layer_iface') then
-          gloc = '3113'
-          coords = 'TLONG TLAT z_w_bot time'
-      else
-        write(err_msg,*) "'", trim(diags_3d(n)%vertical_grid),                &
-                         "' is not a valid vertical grid"
-        call shr_sys_abort(err_msg)
-      end if
-      call define_tavg_field(tavg_ecosys_3d(n),trim(diags_3d(n)%short_name),  &
-                             3, long_name=trim(diags_3d(n)%long_name),        &
-                             units=trim(diags_3d(n)%units), grid_loc=gloc,    &
-                             coordinates=coords)
-    end do
 
     do n=1,part_diag_cnt_3d
       if (trim(part_diags_3d(n)%vertical_grid).eq.'layer_avg') then
@@ -732,8 +729,7 @@ contains
     logical :: accumulate
 
     associate(                                                                &
-              DIAGS_2D      => marbl_diagnostics%diags_2d(:),                 &
-              DIAGS_3D      => marbl_diagnostics%diags_3d(:),                 &
+              diags         => marbl_diagnostics%diags(:),                    &
               AUTO_DIAGS_2D => marbl_diagnostics%auto_diags_2d(:,:)%field,    &
               AUTO_DIAGS_3D => marbl_diagnostics%auto_diags_3d(:,:),          &
               ZOO_DIAGS_2D  => marbl_diagnostics%zoo_diags_2d(:,:)%field,     &
@@ -744,16 +740,14 @@ contains
              )
 
     ! Accumulate general diagnostics
-    ! 2D
-    do n=1,marbl_diag_ind%count_2d
-      call accumulate_tavg_field(DIAGS_2D(n)%field_2d, tavg_ecosys_2d(n),     &
-                                 bid, i, c)
-    end do
-
-    ! 3D
-    do n=1,marbl_diag_ind%count_3d
-      call accumulate_tavg_field(DIAGS_3D(n)%field_3d(:), tavg_ecosys_3d(n),  &
-                                 bid, i, c)
+    do n=1,marbl_diag_ind%count
+      if (trim(diags(n)%vertical_grid).eq.'none') then
+        call accumulate_tavg_field(diags(n)%field_2d, tavg_ecosys(n),         &
+                                   bid, i, c)
+      else
+        call accumulate_tavg_field(diags(n)%field_3d(:), tavg_ecosys(n),      &
+                                   bid, i, c)
+      end if
     end do
 
     ! Accumulate autotroph terms
