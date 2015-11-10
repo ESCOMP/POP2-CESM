@@ -21,6 +21,8 @@ module ecosys_diagnostics_mod
   use marbl_interface_types, only : dissolved_organic_matter_type
   use marbl_interface_types, only : marbl_diagnostics_type
   use marbl_interface_types, only : marbl_column_domain_type
+  use marbl_interface_types, only : diag_cnt_2d
+  use marbl_interface_types, only : diag_cnt_3d
 
   use grid, only : partial_bottom_cells
   use domain_size, only : km
@@ -51,54 +53,56 @@ module ecosys_diagnostics_mod
 !  indices for diagnostic values written to tavg files
 !-----------------------------------------------------------------------
 
-  integer(int_kind), parameter :: ecosys_diag_cnt_2d = 14
-  integer (int_kind), parameter ::  &
-      zsatcalc_diag_ind            =  1, &
-      zsatarag_diag_ind            =  2, &
-      O2_ZMIN_diag_ind             =  3, &
-      O2_ZMIN_DEPTH_diag_ind       =  4, &
-      photoC_TOT_zint_diag_ind     =  5, &
-      photoC_NO3_TOT_zint_diag_ind =  6, &
-      Jint_Ctot_diag_ind           =  7, &
-      Jint_100m_Ctot_diag_ind      =  8, &
-      Jint_Ntot_diag_ind           =  9, &
-      Jint_100m_Ntot_diag_ind      = 10, &
-      Jint_Ptot_diag_ind           = 11, &
-      Jint_100m_Ptot_diag_ind      = 12, &
-      Jint_Sitot_diag_ind          = 13, &
-      Jint_100m_Sitot_diag_ind     = 14
+  type, public :: marbl_diagnostics_indexing_type
+    integer(int_kind) :: count_2d
+    integer(int_kind) :: zsatcalc
+    integer(int_kind) :: zsatarag
+    integer(int_kind) :: O2_ZMIN
+    integer(int_kind) :: O2_ZMIN_DEPTH
+    integer(int_kind) :: photoC_TOT_zint
+    integer(int_kind) :: photoC_NO3_TOT_zint
+    integer(int_kind) :: Jint_Ctot
+    integer(int_kind) :: Jint_100m_Ctot
+    integer(int_kind) :: Jint_Ntot
+    integer(int_kind) :: Jint_100m_Ntot
+    integer(int_kind) :: Jint_Ptot
+    integer(int_kind) :: Jint_100m_Ptot
+    integer(int_kind) :: Jint_Sitot
+    integer(int_kind) :: Jint_100m_Sitot
 
-  integer(int_kind), parameter :: ecosys_diag_cnt_3d = 29
-  integer (int_kind), parameter ::  &
-      CO3_diag_ind                 =  1, &
-      HCO3_diag_ind                =  2, &
-      H2CO3_diag_ind               =  3, &
-      pH_3D_diag_ind               =  4, &
-      CO3_ALT_CO2_diag_ind         =  5, &
-      HCO3_ALT_CO2_diag_ind        =  6, &
-      H2CO3_ALT_CO2_diag_ind       =  7, &
-      pH_3D_ALT_CO2_diag_ind       =  8, &
-      co3_sat_calc_diag_ind        =  9, &
-      co3_sat_arag_diag_ind        = 10, &
-      NITRIF_diag_ind              = 11, &
-      DENITRIF_diag_ind            = 12, &
-      O2_PRODUCTION_diag_ind       = 13, &
-      O2_CONSUMPTION_diag_ind      = 14, &
-      AOU_diag_ind                 = 15, &
-      PAR_avg_diag_ind             = 16, &
-      auto_graze_TOT_diag_ind      = 17, &
-      photoC_TOT_diag_ind          = 18, &
-      photoC_NO3_TOT_diag_ind      = 19, &
-      DOC_prod_diag_ind            = 20, &
-      DOC_remin_diag_ind           = 21, &
-      DON_prod_diag_ind            = 22, &
-      DON_remin_diag_ind           = 23, &
-      DOP_prod_diag_ind            = 24, &
-      DOP_remin_diag_ind           = 25, &
-      DOFe_prod_diag_ind           = 26, &
-      DOFe_remin_diag_ind          = 27, &
-      Fe_scavenge_diag_ind         = 28, &
-      Fe_scavenge_rate_diag_ind    = 29
+    integer(int_kind) :: count_3d
+    integer(int_kind) :: CO3
+    integer(int_kind) :: HCO3
+    integer(int_kind) :: H2CO3
+    integer(int_kind) :: pH_3D
+    integer(int_kind) :: CO3_ALT_CO2
+    integer(int_kind) :: HCO3_ALT_CO2
+    integer(int_kind) :: H2CO3_ALT_CO2
+    integer(int_kind) :: pH_3D_ALT_CO2
+    integer(int_kind) :: co3_sat_calc
+    integer(int_kind) :: co3_sat_arag
+    integer(int_kind) :: NITRIF
+    integer(int_kind) :: DENITRIF
+    integer(int_kind) :: O2_PRODUCTION
+    integer(int_kind) :: O2_CONSUMPTION
+    integer(int_kind) :: AOU
+    integer(int_kind) :: PAR_avg
+    integer(int_kind) :: auto_graze_TOT
+    integer(int_kind) :: photoC_TOT
+    integer(int_kind) :: photoC_NO3_TOT
+    integer(int_kind) :: DOC_prod
+    integer(int_kind) :: DOC_remin
+    integer(int_kind) :: DON_prod
+    integer(int_kind) :: DON_remin
+    integer(int_kind) :: DOP_prod
+    integer(int_kind) :: DOP_remin
+    integer(int_kind) :: DOFe_prod
+    integer(int_kind) :: DOFe_remin
+    integer(int_kind) :: Fe_scavenge
+    integer(int_kind) :: Fe_scavenge_rate
+  end type marbl_diagnostics_indexing_type
+
+  type(marbl_diagnostics_indexing_type) :: marbl_diag_ind
 
   integer(int_kind), parameter ::   auto_diag_cnt_2d = 3
   integer (int_kind), parameter ::  &
@@ -224,8 +228,7 @@ contains
     logical :: truncate
 
     ! Allocate memory in marbl_diagnostics_type
-    call marbl_diags%construct(ecosys_diag_cnt_2d, ecosys_diag_cnt_3d,        &
-                               auto_diag_cnt_2d, auto_diag_cnt_3d,            &
+    call marbl_diags%construct(auto_diag_cnt_2d, auto_diag_cnt_3d,            &
                                zoo_diag_cnt_2d, zoo_diag_cnt_3d,              &
                                part_diag_cnt_2d, part_diag_cnt_3d,            &
                                ecosys_tracer_cnt, autotroph_cnt,              &
@@ -243,74 +246,120 @@ contains
               part_diags_3d => marbl_diags%part_diags_3d(:),                  &
               restore_diags => marbl_diags%restore_diags(:)                   &
              )
-    do n=1,ecosys_diag_cnt_2d
-      select case (n)
-        case (zsatcalc_diag_ind)
-          lname = 'Calcite Saturation Depth'
-          sname = 'zsatcalc'
-          units = 'cm'
-        case (zsatarag_diag_ind)
-          lname = 'Aragonite Saturation Depth'
-          sname = 'zsatarag'
-          units = 'cm'
-        case (O2_ZMIN_diag_ind)
-          lname = 'Vertical Minimum of O2'
-          sname = 'O2_ZMIN'
-          units = 'mmol/m^3'
-        case (O2_ZMIN_DEPTH_diag_ind)
-          lname = 'Depth of Vertical Minimum of O2'
-          sname = 'O2_ZMIN_DEPTH'
-          units = 'cm'
-        case (photoC_TOT_zint_diag_ind)
-          lname = 'Total C Fixation Vertical Integral'
-          sname = 'photoC_TOT_zint'
-          units = 'mmol/m^3 cm/s'
-        case (photoC_NO3_TOT_zint_diag_ind)
-          lname = 'Total C Fixation from NO3 Vertical Integral'
-          sname = 'photoC_NO3_TOT_zint'
-          units = 'mmol/m^3 cm/s'
-        case (Jint_Ctot_diag_ind)
-          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ctot'
-          sname = 'Jint_Ctot'
-          units = 'mmol/m^3 cm/s'
-        case (Jint_100m_Ctot_diag_ind)
-          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ctot, 0-100m'
-          sname = 'Jint_100m_Ctot'
-          units = 'mmol/m^3 cm/s'
-        case (Jint_Ntot_diag_ind)
-          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ntot'
-          sname = 'Jint_Ntot'
-          units = 'mmol/m^3 cm/s'
-        case (Jint_100m_Ntot_diag_ind)
-          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ntot, 0-100m'
-          sname = 'Jint_100m_Ntot'
-          units = 'mmol/m^3 cm/s'
-        case (Jint_Ptot_diag_ind)
-          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ptot'
-          sname = 'Jint_Ptot'
-          units = 'mmol/m^3 cm/s'
-        case (Jint_100m_Ptot_diag_ind)
-          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ptot, 0-100m'
-          sname = 'Jint_100m_Ptot'
-          units = 'mmol/m^3 cm/s'
-        case (Jint_Sitot_diag_ind)
-          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Sitot'
-          sname = 'Jint_Sitot'
-          units = 'mmol/m^3 cm/s'
-        case (Jint_100m_Sitot_diag_ind)
-          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Sitot, 0-100m'
-          sname = 'Jint_100m_Sitot'
-          units = 'mmol/m^3 cm/s'
-        case DEFAULT
-          print*, "ERROR in ecosys_diagnostics_init():"
-          print*, n, " is not a valid index for marbl_diags%diags_2d"
-          sname = 'ERRORERRORERROR'
-      end select
-      diags_2d(n)%long_name = trim(lname)
-      diags_2d(n)%short_name = trim(sname)
-      diags_2d(n)%units = trim(units)
-      diags_2d(n)%compute_now = .true.
-    end do
+
+    lname = 'Calcite Saturation Depth'
+    sname = 'zsatcalc'
+    units = 'cm'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%zsatcalc)
+
+    lname = 'Aragonite Saturation Depth'
+    sname = 'zsatarag'
+    units = 'cm'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%zsatarag)
+
+    lname = 'Vertical Minimum of O2'
+    sname = 'O2_ZMIN'
+    units = 'mmol/m^3'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%O2_ZMIN)
+
+    lname = 'Depth of Vertical Minimum of O2'
+    sname = 'O2_ZMIN_DEPTH'
+    units = 'cm'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%O2_ZMIN_DEPTH)
+
+    lname = 'Total C Fixation Vertical Integral'
+    sname = 'photoC_TOT_zint'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%photoC_TOT_zint)
+
+    lname = 'Total C Fixation from NO3 Vertical Integral'
+    sname = 'photoC_NO3_TOT_zint'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%photoC_NO3_TOT_zint)
+
+    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ctot'
+    sname = 'Jint_Ctot'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%Jint_Ctot)
+
+    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ctot, 0-100m'
+    sname = 'Jint_100m_Ctot'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%Jint_100m_Ctot)
+
+    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ntot'
+    sname = 'Jint_Ntot'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%Jint_Ntot)
+
+    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ntot, 0-100m'
+    sname = 'Jint_100m_Ntot'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%Jint_100m_Ntot)
+
+    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ptot'
+    sname = 'Jint_Ptot'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%Jint_Ptot)
+
+    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ptot, 0-100m'
+    sname = 'Jint_100m_Ptot'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%Jint_100m_Ptot)
+
+    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Sitot'
+    sname = 'Jint_Sitot'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%Jint_Sitot)
+
+    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Sitot, 0-100m'
+    sname = 'Jint_100m_Sitot'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%Jint_100m_Sitot)
+
+    marbl_diag_ind%count_2d = diag_cnt_2d
 
     do n=1,part_diag_cnt_2d
       select case (n)
@@ -393,152 +442,240 @@ contains
       end do
     end do
 
-    do n=1,ecosys_diag_cnt_3d
-      ! Default assumption: layer average vertical coordinates, not truncated
-      vgrid = 'layer_avg'
-      truncate = .false.
-      select case (n)
-        case (CO3_diag_ind)
-          lname = 'Carbonate Ion Concentration'
-          sname = 'CO3'
-          units = 'mmol/m^3'
-        case (HCO3_diag_ind)
-          lname = 'Bicarbonate Ion Concentration'
-          sname = 'HCO3'
-          units = 'mmol/m^3'
-        case (H2CO3_diag_ind)
-          lname = 'Carbonic Acid Concentration'
-          sname = 'H2CO3'
-          units = 'mmol/m^3'
-        case (ph_3D_diag_ind)
-          lname = 'pH'
-          sname = 'pH_3D'
-          units = 'none'
-        case (CO3_ALT_CO2_diag_ind)
-          lname = 'Carbonate Ion Concentration, Alternative CO2'
-          sname = 'CO3_ALT_CO2'
-          units = 'mmol/m^3'
-        case (HCO3_ALT_CO2_diag_ind)
-          lname = 'Bicarbonate Ion Concentration, Alternative CO2'
-          sname = 'HCO3_ALT_CO2'
-          units = 'mmol/m^3'
-        case (H2CO3_ALT_CO2_diag_ind)
-          lname = 'Carbonic Acid Concentration, Alternative CO2'
-          sname = 'H2CO3_ALT_CO2'
-          units = 'mmol/m^3'
-        case (ph_3D_ALT_CO2_diag_ind)
-          lname = 'pH_ALT_CO2'
-          sname = 'pH_3D, Alternative CO2'
-          units = 'none'
-        case (co3_sat_calc_diag_ind)
-          lname = 'CO3 concentration at calcite saturation'
-          sname = 'co3_sat_calc'
-          units = 'mmol/m^3'
-        case (co3_sat_arag_diag_ind)
-          lname = 'CO3 concentration at aragonite saturation'
-          sname = 'co3_sat_arag'
-          units = 'mmol/m^3'
-        case (NITRIF_diag_ind)
-          lname = 'Nitrification'
-          sname = 'NITRIF'
-          units = 'mmol/m^3/s'
-        case (DENITRIF_diag_ind)
-          lname = 'Denitrification'
-          sname = 'DENITRIF'
-          units = 'mmol/m^3/s'
-        case (O2_PRODUCTION_diag_ind)
-          lname = 'O2 Production'
-          sname = 'O2_PRODUCTION'
-          units = 'mmol/m^3/s'
-        case (O2_CONSUMPTION_diag_ind)
-          lname = 'O2 Consumption'
-          sname = 'O2_CONSUMPTION'
-          units = 'mmol/m^3/s'
-        case (AOU_diag_ind)
-          lname = 'Apparent O2 Utilization'
-          sname = 'AOU'
-          units = 'mmol/m^3'
-        case (PAR_avg_diag_ind)
-          lname = 'PAR Average over Model Cell'
-          sname = 'PAR_avg'
-          !units = 'W/m^2'
-          units = 'w/m^2' ! FIXME: watt / m^2 should be W/m^2?
-          truncate = .true.
-        case (auto_graze_TOT_diag_ind)
-          lname = 'Total Autotroph Grazing'
-          sname = 'graze_auto_TOT'
-          units = 'mmol/m^3/s'
-          truncate = .true.
-        case (photoC_TOT_diag_ind)
-          lname = 'Total C Fixation'
-          sname = 'photoC_TOT'
-          units = 'mmol/m^3/s'
-          truncate = .true.
-        case (photoC_NO3_TOT_diag_ind)
-          lname = 'Total C Fixation from NO3'
-          sname = 'photoC_TOT'
-          units = 'mmol/m^3/s'
-          truncate = .true.
-        case (DOC_prod_diag_ind) ! FIXME rest of _remin and _prod truncate!
-          lname = 'DOC Production'
-          sname = 'DOC_prod'
-          units = 'mmol/m^3/s'
-!          truncate = .true.
-        case (DOC_remin_diag_ind) ! FIXME rest of _remin and _prod truncate!
-          lname = 'DOC Remineralization'
-          sname = 'DOC_remin'
-          units = 'mmol/m^3/s'
-!          truncate = .true.
-        case (DON_prod_diag_ind)
-          lname = 'DON Production'
-          sname = 'DON_prod'
-          units = 'mmol/m^3/s'
-          truncate = .true.
-        case (DON_remin_diag_ind)
-          lname = 'DON Remineralization'
-          sname = 'DON_remin'
-          units = 'mmol/m^3/s'
-          truncate = .true.
-        case (DOP_prod_diag_ind)
-          lname = 'DOP Production'
-          sname = 'DOP_prod'
-          units = 'mmol/m^3/s'
-          truncate = .true.
-        case (DOP_remin_diag_ind)
-          lname = 'DOP Remineralization'
-          sname = 'DOP_remin'
-          units = 'mmol/m^3/s'
-          truncate = .true.
-        case (DOFe_prod_diag_ind)
-          lname = 'DOFe Production'
-          sname = 'DOFe_prod'
-          units = 'mmol/m^3/s'
-          truncate = .true.
-        case (DOFe_remin_diag_ind)
-          lname = 'DOFe Remineralization'
-          sname = 'DOFe_remin'
-          units = 'mmol/m^3/s'
-          truncate = .true.
-        case (Fe_scavenge_diag_ind)
-          lname = 'Iron Scavenging'
-          sname = 'Fe_scavenge'
-          units = 'mmol/m^3/s'
-        case (Fe_scavenge_rate_diag_ind)
-          lname = 'Iron Scavenging Rate'
-          sname = 'Fe_scavenge_rate'
-          units = '1/y'
-        case DEFAULT
-          print*, "ERROR in ecosys_diagnostics_init():"
-          print*, n, " is not a valid index for marbl_diags%diags_2d"
-          sname = 'ERRORERRORERROR'
-      end select
-      diags_3d(n)%long_name = trim(lname)
-      diags_3d(n)%short_name = trim(sname)
-      diags_3d(n)%units = trim(units)
-      diags_3d(n)%vertical_grid = trim(vgrid)
-      diags_3d(n)%ltruncated_vertical_extent = truncate
-      diags_3d(n)%compute_now = .true.
-    end do
+    lname = 'Carbonate Ion Concentration'
+    sname = 'CO3'
+    units = 'mmol/m^3'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%CO3)
+
+    lname = 'Bicarbonate Ion Concentration'
+    sname = 'HCO3'
+    units = 'mmol/m^3'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%HCO3)
+
+    lname = 'Carbonic Acid Concentration'
+    sname = 'H2CO3'
+    units = 'mmol/m^3'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%H2CO3)
+
+    lname = 'pH'
+    sname = 'pH_3D'
+    units = 'none'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%ph_3D)
+
+    lname = 'Carbonate Ion Concentration, Alternative CO2'
+    sname = 'CO3_ALT_CO2'
+    units = 'mmol/m^3'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%CO3_ALT_CO2)
+
+    lname = 'Bicarbonate Ion Concentration, Alternative CO2'
+    sname = 'HCO3_ALT_CO2'
+    units = 'mmol/m^3'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%HCO3_ALT_CO2)
+
+    lname = 'Carbonic Acid Concentration, Alternative CO2'
+    sname = 'H2CO3_ALT_CO2'
+    units = 'mmol/m^3'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%H2CO3_ALT_CO2)
+
+    lname = 'pH, Alternative CO2'
+    sname = 'pH_3D_ALT_CO2'
+    units = 'none'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%ph_3D_ALT_CO2)
+
+    lname = 'CO3 concentration at calcite saturation'
+    sname = 'co3_sat_calc'
+    units = 'mmol/m^3'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%co3_sat_calc)
+
+    lname = 'CO3 concentration at aragonite saturation'
+    sname = 'co3_sat_arag'
+    units = 'mmol/m^3'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%co3_sat_arag)
+
+    lname = 'Nitrification'
+    sname = 'NITRIF'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%NITRIF)
+
+    lname = 'Denitrification'
+    sname = 'DENITRIF'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%DENITRIF)
+
+    lname = 'O2 Production'
+    sname = 'O2_PRODUCTION'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%O2_PRODUCTION)
+
+    lname = 'O2 Consumption'
+    sname = 'O2_CONSUMPTION'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%O2_CONSUMPTION)
+
+    lname = 'Apparent O2 Utilization'
+    sname = 'AOU'
+    units = 'mmol/m^3'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%AOU)
+
+    lname = 'PAR Average over Model Cell'
+    sname = 'PAR_avg'
+    !units = 'W/m^2'
+    units = 'w/m^2' ! FIXME: watt / m^2 should be W/m^2?
+    vgrid = 'layer_avg'
+    truncate = .true.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%PAR_avg)
+
+    lname = 'Total Autotroph Grazing'
+    sname = 'graze_auto_TOT'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .true.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%auto_graze_TOT)
+
+    lname = 'Total C Fixation'
+    sname = 'photoC_TOT'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .true.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%photoC_TOT)
+
+    lname = 'Total C Fixation from NO3'
+    sname = 'photoC_TOT'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .true.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%photoC_NO3_TOT)
+
+    lname = 'DOC Production'
+    sname = 'DOC_prod'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%DOC_prod)
+
+    lname = 'DOC Remineralization'
+    sname = 'DOC_remin'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%DOC_remin)
+
+    lname = 'DON Production'
+    sname = 'DON_prod'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .true.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%DON_prod)
+
+    lname = 'DON Remineralization'
+    sname = 'DON_remin'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .true.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%DON_remin)
+
+    lname = 'DOP Production'
+    sname = 'DOP_prod'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .true.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%DOP_prod)
+
+    lname = 'DOP Remineralization'
+    sname = 'DOP_remin'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .true.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%DOP_remin)
+
+    lname = 'DOFe Production'
+    sname = 'DOFe_prod'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .true.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%DOFe_prod)
+
+    lname = 'DOFe Remineralization'
+    sname = 'DOFe_remin'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .true.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%DOFe_remin)
+
+    lname = 'Iron Scavenging'
+    sname = 'Fe_scavenge'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%Fe_scavenge)
+
+    lname = 'Iron Scavenging Rate'
+    sname = 'Fe_scavenge_rate'
+    units = '1/y'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%Fe_scavenge_rate)
+
+    marbl_diag_ind%count_3d = diag_cnt_3d
 
     do n=1,part_diag_cnt_3d
       ! Default assumption: layer average vertical coordinates, not truncated
@@ -825,30 +962,28 @@ contains
     real(r8) :: zsat_calcite, zsat_aragonite
 
     associate(                                                                &
-              diags_2d => marbl_diags%diags_2d(:)%field,                      &
+              diags_2d => marbl_diags%diags_2d(:),                            &
               diags_3d => marbl_diags%diags_3d(:),                            &
               CO3 => carbonate(:)%CO3,                                        &
               CO3_sat_calcite => carbonate(:)%CO3_sat_calcite,                &
               CO3_sat_aragonite => carbonate(:)%CO3_sat_aragonite             &
               )
       ! Find depth where CO3 = CO3_sat_calcite or CO3_sat_argonite
-      diags_2d(zsatcalc_diag_ind) = compute_saturation_depth(marbl_domain,    &
-                                                           zt, zw, CO3,       &
-                                                           CO3_sat_calcite)
-      diags_2d(zsatarag_diag_ind) = compute_saturation_depth(marbl_domain,    &
-                                                           zt, zw, CO3,       &
-                                                           CO3_sat_aragonite)
+      diags_2d(marbl_diag_ind%zsatcalc)%field_2d =                            &
+        compute_saturation_depth(marbl_domain, zt, zw, CO3, CO3_sat_calcite)
+      diags_2d(marbl_diag_ind%zsatarag)%field_2d =                            &
+        compute_saturation_depth(marbl_domain, zt, zw, CO3, CO3_sat_aragonite)
 
-      diags_3d(CO3_diag_ind)%field(:) = carbonate%CO3
-      diags_3d(HCO3_diag_ind)%field(:) = carbonate%HCO3
-      diags_3d(H2CO3_diag_ind)%field(:) = carbonate%H2CO3
-      diags_3d(pH_3D_diag_ind)%field(:) = carbonate%pH
-      diags_3d(CO3_ALT_CO2_diag_ind)%field(:) = carbonate%CO3_ALT_CO2
-      diags_3d(HCO3_ALT_CO2_diag_ind)%field(:) = carbonate%HCO3_ALT_CO2
-      diags_3d(H2CO3_ALT_CO2_diag_ind)%field(:) = carbonate%H2CO3_ALT_CO2
-      diags_3d(pH_3D_ALT_CO2_diag_ind)%field(:) = carbonate%pH_ALT_CO2
-      diags_3d(co3_sat_calc_diag_ind)%field(:) = carbonate%CO3_sat_calcite
-      diags_3d(co3_sat_arag_diag_ind)%field(:) = carbonate%CO3_sat_aragonite
+      diags_3d(marbl_diag_ind%CO3)%field_3d(:) = carbonate%CO3
+      diags_3d(marbl_diag_ind%HCO3)%field_3d(:) = carbonate%HCO3
+      diags_3d(marbl_diag_ind%H2CO3)%field_3d(:) = carbonate%H2CO3
+      diags_3d(marbl_diag_ind%pH_3D)%field_3d(:) = carbonate%pH
+      diags_3d(marbl_diag_ind%CO3_ALT_CO2)%field_3d(:) = carbonate%CO3_ALT_CO2
+      diags_3d(marbl_diag_ind%HCO3_ALT_CO2)%field_3d(:) = carbonate%HCO3_ALT_CO2
+      diags_3d(marbl_diag_ind%H2CO3_ALT_CO2)%field_3d(:) = carbonate%H2CO3_ALT_CO2
+      diags_3d(marbl_diag_ind%pH_3D_ALT_CO2)%field_3d(:) = carbonate%pH_ALT_CO2
+      diags_3d(marbl_diag_ind%co3_sat_calc)%field_3d(:) = carbonate%CO3_sat_calcite
+      diags_3d(marbl_diag_ind%co3_sat_arag)%field_3d(:) = carbonate%CO3_sat_aragonite
     end associate
 
   end subroutine store_diagnostics_carbonate
@@ -916,8 +1051,8 @@ contains
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
     associate(diags_3d => marbl_diags%diags_3d(:))
-      diags_3d(NITRIF_diag_ind)%field(:) = nitrif
-      diags_3d(DENITRIF_diag_ind)%field(:) = denitrif
+      diags_3d(marbl_diag_ind%NITRIF)%field_3d(:) = nitrif
+      diags_3d(marbl_diag_ind%DENITRIF)%field_3d(:) = denitrif
     end associate
 
   end subroutine store_diagnostics_nitrification
@@ -1027,29 +1162,29 @@ contains
     endif
 
     associate(                                                                &
-              diags_2d => marbl_diags%diags_2d(:)%field,                      &
+              diags_2d => marbl_diags%diags_2d(:),                            &
               diags_3d => marbl_diags%diags_3d(:)                             &
               )
-      diags_3d(auto_graze_TOT_diag_ind)%field(:) =                            &
+      diags_3d(marbl_diag_ind%auto_graze_TOT)%field_3d(:) =                   &
                            sum(autotroph_secondary_species%auto_graze, dim=1)
-      diags_3d(photoC_TOT_diag_ind)%field(:) =                                &
+      diags_3d(marbl_diag_ind%photoC_TOT)%field_3d(:) =                       &
                            sum(autotroph_secondary_species%photoC, dim=1)
 
-      diags_3d(photoC_NO3_TOT_diag_ind)%field(:) = c0
+      diags_3d(marbl_diag_ind%photoC_NO3_TOT)%field_3d(:) = c0
       do n = 1, autotroph_cnt
         where (autotroph_secondary_species(n,:)%VNtot > c0)
-          diags_3d(photoC_NO3_TOT_diag_ind)%field(:) =                        &
-                                 diags_3d(photoC_NO3_TOT_diag_ind)%field(:) + &
-                                 (autotroph_secondary_species(n,:)%VNO3 /     &
-                                 autotroph_secondary_species(n,:)%VNtot) *    &
-                                 autotroph_secondary_species(n,:)%photoC
+          diags_3d(marbl_diag_ind%photoC_NO3_TOT)%field_3d(:) =               &
+                        diags_3d(marbl_diag_ind%photoC_NO3_TOT)%field_3d(:) + &
+                        (autotroph_secondary_species(n,:)%VNO3 /              &
+                        autotroph_secondary_species(n,:)%VNtot) *             &
+                        autotroph_secondary_species(n,:)%photoC
         end where
       end do
 
-      diags_2d(photoC_TOT_zint_diag_ind) = sum(                               &
-                 delta_z * sum(autotroph_secondary_species%photoC, dim=1))
-      diags_2d(photoC_NO3_TOT_zint_diag_ind) = sum(                           &
-                          delta_z * diags_3d(photoC_NO3_TOT_diag_ind)%field)
+      diags_2d(marbl_diag_ind%photoC_TOT_zint)%field_2d = sum(                &
+                  delta_z * sum(autotroph_secondary_species%photoC, dim=1))
+      diags_2d(marbl_diag_ind%photoC_NO3_TOT_zint)%field_2d = sum(            &
+                  delta_z * diags_3d(marbl_diag_ind%photoC_NO3_TOT)%field_3d)
     end associate
 
   end subroutine store_diagnostics_autotroph_sums
@@ -1140,20 +1275,20 @@ contains
 
     ! Find min_o2 and depth_min_o2
     associate(                                                                &
-              diags_2d => marbl_diags%diags_2d(:)%field,                      &
+              diags_2d => marbl_diags%diags_2d(:),                            &
               diags_3d => marbl_diags%diags_3d(:)                             &
               )
       min_ind = minloc(column_o2(1:marbl_domain%kmt), dim=1)
-      diags_2d(O2_ZMIN_diag_ind) = column_o2(min_ind)
-      diags_2d(O2_ZMIN_DEPTH_diag_ind) = column_zt(min_ind)
+      diags_2d(marbl_diag_ind%O2_ZMIN)%field_2d = column_o2(min_ind)
+      diags_2d(marbl_diag_ind%O2_ZMIN_DEPTH)%field_2d = column_zt(min_ind)
 
-      diags_3d(O2_PRODUCTION_diag_ind)%field(:) = o2_production
-      diags_3d(O2_CONSUMPTION_diag_ind)%field(:) = o2_consumption
+      diags_3d(marbl_diag_ind%O2_PRODUCTION)%field_3d(:) = o2_production
+      diags_3d(marbl_diag_ind%O2_CONSUMPTION)%field_3d(:) = o2_consumption
 
-      diags_3d(AOU_diag_ind)%field(:) = -column_o2
+      diags_3d(marbl_diag_ind%AOU)%field_3d(:) = -column_o2
       do k=1,marbl_domain%kmt
         if (marbl_domain%land_mask) then
-          diags_3d(AOU_diag_ind)%field(k) =                                   &
+          diags_3d(marbl_diag_ind%AOU)%field_3d(k) =                          &
         O2SAT_scalar(marbl_domain%temperature(k), marbl_domain%salinity(k)) - &
         column_o2(k)
         end if
@@ -1171,7 +1306,7 @@ contains
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
     associate(diags_3d => marbl_diags%diags_3d(:))
-      diags_3d(PAR_avg_diag_ind)%field(:) = PAR%avg
+      diags_3d(marbl_diag_ind%PAR_avg)%field_3d(:) = PAR%avg
     end associate
 
   end subroutine store_diagnostics_photosynthetically_available_radiation
@@ -1219,16 +1354,25 @@ contains
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
     associate(diags_3d => marbl_diags%diags_3d(:))
-      diags_3d(DOC_prod_diag_ind)%field(:)         = dissolved_organic_matter%DOC_prod
-      diags_3d(DOC_remin_diag_ind)%field(:)        = dissolved_organic_matter%DOC_remin
-      diags_3d(DON_prod_diag_ind)%field(:)         = dissolved_organic_matter%DON_prod
-      diags_3d(DON_remin_diag_ind)%field(:)        = dissolved_organic_matter%DON_remin
-      diags_3d(DOP_prod_diag_ind)%field(:)         = dissolved_organic_matter%DOP_prod
-      diags_3d(DOP_remin_diag_ind)%field(:)        = dissolved_organic_matter%DOP_remin
-      diags_3d(DOFe_prod_diag_ind)%field(:)        = dissolved_organic_matter%DOFe_prod
-      diags_3d(DOFe_remin_diag_ind)%field(:)       = dissolved_organic_matter%DOFe_remin
-      diags_3d(Fe_scavenge_diag_ind)%field(:)      = Fe_scavenge
-      diags_3d(Fe_scavenge_rate_diag_ind)%field(:) = Fe_scavenge_rate
+      diags_3d(marbl_diag_ind%DOC_prod)%field_3d(:) =                         &
+                                          dissolved_organic_matter%DOC_prod
+      diags_3d(marbl_diag_ind%DOC_remin)%field_3d(:) =                        &
+                                          dissolved_organic_matter%DOC_remin
+      diags_3d(marbl_diag_ind%DON_prod)%field_3d(:) =                         &
+                                          dissolved_organic_matter%DON_prod
+      diags_3d(marbl_diag_ind%DON_remin)%field_3d(:) =                        &
+                                          dissolved_organic_matter%DON_remin
+      diags_3d(marbl_diag_ind%DOP_prod)%field_3d(:) =                         &
+                                          dissolved_organic_matter%DOP_prod
+      diags_3d(marbl_diag_ind%DOP_remin)%field_3d(:) =                        &
+                                          dissolved_organic_matter%DOP_remin
+      diags_3d(marbl_diag_ind%DOFe_prod)%field_3d(:) =                        &
+                                          dissolved_organic_matter%DOFe_prod
+      diags_3d(marbl_diag_ind%DOFe_remin)%field_3d(:) =                       &
+                                          dissolved_organic_matter%DOFe_remin
+
+      diags_3d(marbl_diag_ind%Fe_scavenge)%field_3d(:) = Fe_scavenge
+      diags_3d(marbl_diag_ind%Fe_scavenge_rate)%field_3d(:) = Fe_scavenge_rate
     end associate
 
   end subroutine store_diagnostics_dissolved_organic_matter
@@ -1258,10 +1402,10 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(diags_2d => marbl_diags%diags_2d(:)%field)
+    associate(diags_2d => marbl_diags%diags_2d(:))
       ! vertical integrals
-      diags_2d(Jint_Ctot_diag_ind) = c0
-      diags_2d(Jint_100m_Ctot_diag_ind) = c0
+      diags_2d(marbl_diag_ind%Jint_Ctot)%field_2d = c0
+      diags_2d(marbl_diag_ind%Jint_100m_Ctot)%field_2d = c0
 
       ztop = c0
       do k = 1,marbl_domain%kmt
@@ -1274,18 +1418,19 @@ contains
             work1 = work1 + dtracer(n,k)
           endif
         end do
-        diags_2d(Jint_Ctot_diag_ind) = diags_2d(Jint_Ctot_diag_ind) +         &
+        diags_2d(marbl_diag_ind%Jint_Ctot)%field_2d =                         &
+                 diags_2d(marbl_diag_ind%Jint_Ctot)%field_2d +                &
                  delta_z(k) * work1 + (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
 
         if (ztop < 100.0e2_r8) then
-          diags_2d(Jint_100m_Ctot_diag_ind) =                                 &
-                                   diags_2d(Jint_100m_Ctot_diag_ind) +        &
-                                   min(100.0e2_r8 - ztop, delta_z(k)) * work1
+          diags_2d(marbl_diag_ind%Jint_100m_Ctot)%field_2d =                  &
+                           diags_2d(marbl_diag_ind%Jint_100m_Ctot)%field_2d + &
+                           min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
         if (zw(k).le.100.0e2_r8) then
-          diags_2d(Jint_100m_Ctot_diag_ind) =                                 &
-                                      diags_2d(Jint_100m_Ctot_diag_ind) +     &
-                                      (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
+          diags_2d(marbl_diag_ind%Jint_100m_Ctot)%field_2d =                  &
+                           diags_2d(marbl_diag_ind%Jint_100m_Ctot)%field_2d + &
+                           (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
         end if
         ztop = zw(k)
       end do
@@ -1323,10 +1468,10 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(diags_2d => marbl_diags%diags_2d(:)%field)
+    associate(diags_2d => marbl_diags%diags_2d(:))
       ! vertical integrals
-      diags_2d(Jint_Ntot_diag_ind) = c0
-      diags_2d(Jint_100m_Ntot_diag_ind) = c0
+      diags_2d(marbl_diag_ind%Jint_Ntot)%field_2d = c0
+      diags_2d(marbl_diag_ind%Jint_100m_Ntot)%field_2d = c0
 
       ztop = c0
       do k = 1,marbl_domain%kmt
@@ -1342,17 +1487,19 @@ contains
             work1 = work1 - autotroph_secondary_species(n,k)%Nfix
           end if
         end do
-        diags_2d(Jint_Ntot_diag_ind) = diags_2d(Jint_Ntot_diag_ind) +         &
-                                     delta_z(k) * work1 + POC%sed_loss(k) * Q
+        diags_2d(marbl_diag_ind%Jint_Ntot)%field_2d =                         &
+                                diags_2d(marbl_diag_ind%Jint_Ntot)%field_2d + &
+                                delta_z(k) * work1 + POC%sed_loss(k) * Q
 
         if (ztop < 100.0e2_r8) then
-            diags_2d(Jint_100m_Ntot_diag_ind) =                               &
-                                   diags_2d(Jint_100m_Ntot_diag_ind) +        &
-                                   min(100.0e2_r8 - ztop, delta_z(k)) * work1
+            diags_2d(marbl_diag_ind%Jint_100m_Ntot)%field_2d =                &
+                           diags_2d(marbl_diag_ind%Jint_100m_Ntot)%field_2d + &
+                           min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
         if (zw(k).le.100.0e2_r8) then
-            diags_2d(Jint_100m_Ntot_diag_ind) =                               &
-                      diags_2d(Jint_100m_Ntot_diag_ind) + POC%sed_loss(k) * Q
+            diags_2d(marbl_diag_ind%Jint_100m_Ntot)%field_2d =                &
+                           diags_2d(marbl_diag_ind%Jint_100m_Ntot)%field_2d + &
+                           POC%sed_loss(k) * Q
         end if
         ztop = zw(k)
       end do
@@ -1388,10 +1535,10 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(diags_2d => marbl_diags%diags_2d(:)%field)
+    associate(diags_2d => marbl_diags%diags_2d(:))
       ! vertical integrals
-      diags_2d(Jint_Ptot_diag_ind) = c0
-      diags_2d(Jint_100m_Ptot_diag_ind) = c0
+      diags_2d(marbl_diag_ind%Jint_Ptot)%field_2d = c0
+      diags_2d(marbl_diag_ind%Jint_100m_Ptot)%field_2d = c0
 
       ztop = c0
       do k = 1,marbl_domain%kmt
@@ -1402,17 +1549,19 @@ contains
         do n = 1, autotroph_cnt
           work1 = work1 + autotrophs(n)%Qp * dtracer(autotrophs(n)%C_ind,k)
         end do
-        diags_2d(Jint_Ptot_diag_ind) = diags_2d(Jint_Ptot_diag_ind) +         &
+        diags_2d(marbl_diag_ind%Jint_Ptot)%field_2d =                         &
+                            diags_2d(marbl_diag_ind%Jint_Ptot)%field_2d +     &
                             delta_z(k) * work1 + POC%sed_loss(k) * Qp_zoo_pom
 
         if (ztop < 100.0e2_r8) then
-          diags_2d(Jint_100m_Ptot_diag_ind) =                                 &
-                                   diags_2d(Jint_100m_Ptot_diag_ind) +        &
-                                   min(100.0e2_r8 - ztop, delta_z(k)) * work1
+          diags_2d(marbl_diag_ind%Jint_100m_Ptot)%field_2d =                  &
+                           diags_2d(marbl_diag_ind%Jint_100m_Ptot)%field_2d + &
+                           min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
         if (zw(k).le.100.0e2_r8) then
-          diags_2d(Jint_100m_Ptot_diag_ind) =                                 &
-             diags_2d(Jint_100m_Ptot_diag_ind) + POC%sed_loss(k) * Qp_zoo_pom
+          diags_2d(marbl_diag_ind%Jint_100m_Ptot)%field_2d =                  &
+                           diags_2d(marbl_diag_ind%Jint_100m_Ptot)%field_2d + &
+                           POC%sed_loss(k) * Qp_zoo_pom
         end if
         ztop = zw(k)
     end do
@@ -1446,10 +1595,10 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(diags_2d => marbl_diags%diags_2d(:)%field)
+    associate(diags_2d => marbl_diags%diags_2d(:))
       ! vertical integrals
-      diags_2d(Jint_Sitot_diag_ind) = c0
-      diags_2d(Jint_100m_Sitot_diag_ind) = c0
+      diags_2d(marbl_diag_ind%Jint_Sitot)%field_2d = c0
+      diags_2d(marbl_diag_ind%Jint_100m_Sitot)%field_2d = c0
 
       ztop = c0
       do k = 1,marbl_domain%kmt
@@ -1459,17 +1608,19 @@ contains
             work1 = work1 + dtracer(autotrophs(n)%Si_ind,k)
           end if
         end do
-        diags_2d(Jint_Sitot_diag_ind) = diags_2d(Jint_Sitot_diag_ind) +       &
-                                      delta_z(k) * work1 + P_SiO2%sed_loss(k)
+        diags_2d(marbl_diag_ind%Jint_Sitot)%field_2d =                        &
+                               diags_2d(marbl_diag_ind%Jint_Sitot)%field_2d + &
+                               delta_z(k) * work1 + P_SiO2%sed_loss(k)
 
         if (ztop < 100.0e2_r8) then
-          diags_2d(Jint_100m_Sitot_diag_ind) =                                &
-                                   diags_2d(Jint_100m_Sitot_diag_ind) +       &
-                                   min(100.0e2_r8 - ztop, delta_z(k)) * work1
+          diags_2d(marbl_diag_ind%Jint_100m_Sitot)%field_2d =                 &
+                          diags_2d(marbl_diag_ind%Jint_100m_Sitot)%field_2d + &
+                          min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
         if (zw(k).le.100.0e2_r8) then
-          diags_2d(Jint_100m_Sitot_diag_ind) =                                &
-                      diags_2d(Jint_100m_Sitot_diag_ind) + P_SiO2%sed_loss(k)
+          diags_2d(marbl_diag_ind%Jint_100m_Sitot)%field_2d =                 &
+                          diags_2d(marbl_diag_ind%Jint_100m_Sitot)%field_2d + &
+                          P_SiO2%sed_loss(k)
         end if
         ztop = zw(k)
       end do

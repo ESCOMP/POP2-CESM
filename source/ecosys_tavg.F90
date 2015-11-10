@@ -33,54 +33,7 @@
   use shr_sys_mod, only : shr_sys_abort
 
   use ecosys_constants, only : ecosys_tracer_cnt
-  ! standard diagnostics
-  ! 2d
-  use ecosys_diagnostics_mod, only : ecosys_diag_cnt_2d
-  use ecosys_diagnostics_mod, only : zsatcalc_diag_ind
-  use ecosys_diagnostics_mod, only : zsatarag_diag_ind
-  use ecosys_diagnostics_mod, only : O2_ZMIN_diag_ind
-  use ecosys_diagnostics_mod, only : O2_ZMIN_DEPTH_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_TOT_zint_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_NO3_TOT_zint_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_Ctot_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_100m_Ctot_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_Ntot_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_100m_Ntot_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_Ptot_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_100m_Ptot_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_Sitot_diag_ind
-  use ecosys_diagnostics_mod, only : Jint_100m_Sitot_diag_ind
-  ! 3d
-  use ecosys_diagnostics_mod, only : ecosys_diag_cnt_3d
-  use ecosys_diagnostics_mod, only : CO3_diag_ind
-  use ecosys_diagnostics_mod, only : HCO3_diag_ind
-  use ecosys_diagnostics_mod, only : H2CO3_diag_ind
-  use ecosys_diagnostics_mod, only : pH_3D_diag_ind
-  use ecosys_diagnostics_mod, only : CO3_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : HCO3_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : H2CO3_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : ph_3D_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : co3_sat_calc_diag_ind
-  use ecosys_diagnostics_mod, only : co3_sat_arag_diag_ind
-  use ecosys_diagnostics_mod, only : NITRIF_diag_ind
-  use ecosys_diagnostics_mod, only : DENITRIF_diag_ind
-  use ecosys_diagnostics_mod, only : O2_PRODUCTION_diag_ind
-  use ecosys_diagnostics_mod, only : O2_CONSUMPTION_diag_ind
-  use ecosys_diagnostics_mod, only : AOU_diag_ind
-  use ecosys_diagnostics_mod, only : PAR_avg_diag_ind
-  use ecosys_diagnostics_mod, only : auto_graze_TOT_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_TOT_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_NO3_TOT_diag_ind
-  use ecosys_diagnostics_mod, only : DOC_prod_diag_ind
-  use ecosys_diagnostics_mod, only : DOC_remin_diag_ind
-  use ecosys_diagnostics_mod, only : DON_prod_diag_ind
-  use ecosys_diagnostics_mod, only : DON_remin_diag_ind
-  use ecosys_diagnostics_mod, only : DOP_prod_diag_ind
-  use ecosys_diagnostics_mod, only : DOP_remin_diag_ind
-  use ecosys_diagnostics_mod, only : DOFe_prod_diag_ind
-  use ecosys_diagnostics_mod, only : DOFe_remin_diag_ind
-  use ecosys_diagnostics_mod, only : Fe_scavenge_diag_ind
-  use ecosys_diagnostics_mod, only : Fe_scavenge_rate_diag_ind
+  use ecosys_diagnostics_mod, only : marbl_diag_ind
 
   ! autotroph diagnostics
   ! 2d
@@ -219,8 +172,8 @@
   !  flux terms and particulate terms
   !-----------------------------------------------------------------------
 
-  integer (int_kind), dimension(ecosys_diag_cnt_2d) :: tavg_ecosys_2d
-  integer (int_kind), dimension(ecosys_diag_cnt_3d) :: tavg_ecosys_3d
+  integer (int_kind), allocatable, dimension(:) :: tavg_ecosys_2d
+  integer (int_kind), allocatable, dimension(:) :: tavg_ecosys_3d
 
   !-----------------------------------------------------------------------
   !  tavg ids for 2d fields related to surface fluxes
@@ -302,6 +255,8 @@ contains
 !   Define tavg fields for surface flux terms
 !-----------------------------------------------------------------------
 
+    allocate(tavg_ecosys_2d(marbl_diag_ind%count_2d))
+    allocate(tavg_ecosys_3d(marbl_diag_ind%count_3d))
     associate(                                                                &
               diags_2d      => marbl_diags%diags_2d(:),                       &
               diags_3d      => marbl_diags%diags_3d(:),                       &
@@ -553,7 +508,7 @@ contains
 !   Define 2D tavg fields
 !-----------------------------------------------------------------------
 
-    do n=1,ecosys_diag_cnt_2d
+    do n=1,marbl_diag_ind%count_2d
       call define_tavg_field(tavg_ecosys_2d(n), trim(diags_2d(n)%short_name), &
                             2, long_name=trim(diags_2d(n)%long_name),         &
                             units=trim(diags_2d(n)%units),                    &
@@ -594,7 +549,7 @@ contains
 !   Define 3D tavg fields
 !-----------------------------------------------------------------------
 
-    do n=1,ecosys_diag_cnt_3d
+    do n=1,marbl_diag_ind%count_3d
       if (trim(diags_3d(n)%vertical_grid).eq.'layer_avg') then
         if (diags_3d(n)%ltruncated_vertical_extent) then
           gloc = '3114'
@@ -777,7 +732,7 @@ contains
     logical :: accumulate
 
     associate(                                                                &
-              DIAGS_2D      => marbl_diagnostics%diags_2d(:)%field,           &
+              DIAGS_2D      => marbl_diagnostics%diags_2d(:),                 &
               DIAGS_3D      => marbl_diagnostics%diags_3d(:),                 &
               AUTO_DIAGS_2D => marbl_diagnostics%auto_diags_2d(:,:)%field,    &
               AUTO_DIAGS_3D => marbl_diagnostics%auto_diags_3d(:,:),          &
@@ -790,13 +745,15 @@ contains
 
     ! Accumulate general diagnostics
     ! 2D
-    do n=1,ecosys_diag_cnt_2d
-      call accumulate_tavg_field(DIAGS_2D(n),tavg_ecosys_2d(n),bid,i,c)
+    do n=1,marbl_diag_ind%count_2d
+      call accumulate_tavg_field(DIAGS_2D(n)%field_2d, tavg_ecosys_2d(n),     &
+                                 bid, i, c)
     end do
 
     ! 3D
-    do n=1,ecosys_diag_cnt_3d
-      call accumulate_tavg_field(DIAGS_3D(n)%field(:),tavg_ecosys_3d(n),bid,i,c)
+    do n=1,marbl_diag_ind%count_3d
+      call accumulate_tavg_field(DIAGS_3D(n)%field_3d(:), tavg_ecosys_3d(n),  &
+                                 bid, i, c)
     end do
 
     ! Accumulate autotroph terms

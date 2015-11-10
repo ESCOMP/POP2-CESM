@@ -9,7 +9,7 @@ module marbl_interface_types
   implicit none
 
   private
- 
+
   type, public :: marbl_status_type
      integer :: status
      character(marbl_str_length) :: message
@@ -41,6 +41,20 @@ module marbl_interface_types
   ! etc from marbl back to the driver. The driver is responsible for
   ! sizing these arrays correctly according to the size of the domain
   ! and tracer count returned by marbl.
+  type :: marbl_diagnostic_data_and_metadata_type
+    character(len=char_len) :: long_name
+    character(len=char_len) :: short_name
+    character(len=char_len) :: units
+    logical(log_kind) :: compute_now
+    character(len=char_len) :: vertical_grid ! 'none', 'layer_avg', 'layer_iface'
+    logical(log_kind) :: ltruncated_vertical_extent
+    real(r8) :: field_2d
+    real(r8), allocatable, dimension(:) :: field_3d
+
+  contains
+    procedure, public :: initialize  => marbl_diagnostic_metadata_init
+  end type marbl_diagnostic_data_and_metadata_type
+
   type :: marbl_diagnostic_metadata_type
     character(len=char_len) :: long_name
     character(len=char_len) :: short_name
@@ -60,9 +74,9 @@ module marbl_interface_types
 
   type, public :: marbl_diagnostics_type
      ! (ecosys_diag_cnt_2d)
-     type(marbl_2D_diagnostic_type), dimension(:), allocatable :: diags_2d
+     type(marbl_diagnostic_data_and_metadata_type), dimension(:), allocatable :: diags_2d
      ! (ecosys_diag_cnt_3d)
-     type(marbl_3D_diagnostic_type), dimension(:), allocatable :: diags_3d
+     type(marbl_diagnostic_data_and_metadata_type), dimension(:), allocatable :: diags_3d
 
      ! (auto_diag_cnt_2d, autotroph_cnt)
      type(marbl_2D_diagnostic_type), dimension(:,:), allocatable :: auto_diags_2d
@@ -83,10 +97,11 @@ module marbl_interface_types
      type(marbl_3D_diagnostic_type), dimension(:), allocatable :: restore_diags
 
   contains
-    procedure, public :: construct   => marbl_diagnostics_constructor
-    procedure, public :: initialize  => marbl_diagnostics_init
-    procedure, public :: set_to_zero => marbl_diagnostics_set_to_zero
-    procedure, public :: deconstruct => marbl_diagnostics_deconstructor
+    procedure, public :: construct      => marbl_diagnostics_constructor
+    procedure, public :: initialize     => marbl_diagnostics_init
+    procedure, public :: add_diagnostic => marbl_diagnostics_add
+    procedure, public :: set_to_zero    => marbl_diagnostics_set_to_zero
+    procedure, public :: deconstruct    => marbl_diagnostics_deconstructor
   end type marbl_diagnostics_type
 
   type, public :: carbonate_type
@@ -184,23 +199,96 @@ module marbl_interface_types
      real (r8) :: DOPr_remin       ! portion of refractory DOP remineralized
   end type dissolved_organic_matter_type
 
+ integer, parameter :: max_diags_2d = 14
+ integer, parameter :: max_diags_3d = 29
+ integer, public :: diag_cnt_2d
+ integer, public :: diag_cnt_3d
+
 contains
 
-  subroutine marbl_diagnostics_constructor(this, ecosys_diag_cnt_2d,          &
-                      ecosys_diag_cnt_3d, auto_diag_cnt_2d, auto_diag_cnt_3d, &
-                      zoo_diag_cnt_2d, zoo_diag_cnt_3d, part_diag_cnt_2d,     &
-                      part_diag_cnt_3d, ecosys_tracer_cnt, autotroph_cnt,     &
-                      zooplankton_cnt)
+  subroutine marbl_diagnostics_add(this, lname, sname, units, vgrid,          &
+                                   truncate, id)
 
     class(marbl_diagnostics_type), intent(inout) :: this
-    integer, intent(in) :: ecosys_diag_cnt_2d, ecosys_diag_cnt_3d,            &
-                           auto_diag_cnt_2d, auto_diag_cnt_3d,                &
+    character(len=char_len), intent(in) :: lname, sname, units
+    character(len=char_len), intent(in) :: vgrid
+    logical, intent(in) :: truncate
+    integer, intent(out) :: id
+
+
+    if (trim(vgrid).eq.'none') then
+      diag_cnt_2d = diag_cnt_2d + 1
+      id = diag_cnt_2d
+      call this%diags_2d(id)%initialize(lname, sname, units)
+    else
+      diag_cnt_3d = diag_cnt_3d + 1
+      id = diag_cnt_3d
+      call this%diags_3d(id)%initialize(lname, sname, units, vgrid, truncate)
+    end if
+
+  end subroutine marbl_diagnostics_add
+
+  subroutine marbl_diagnostic_metadata_init(this, lname, sname, units, vgrid, &
+                                            truncate)
+
+    class(marbl_diagnostic_data_and_metadata_type), intent(inout) :: this
+    character(len=char_len), intent(in) :: lname, sname, units
+    character(len=char_len), intent(in), optional :: vgrid
+    logical, intent(in), optional :: truncate
+
+    character(len=char_len), dimension(3) :: valid_vertical_grids
+    integer :: n
+    logical :: valid_vgrid
+
+    valid_vertical_grids(1) = 'none'
+    valid_vertical_grids(2) = 'layer_avg'
+    valid_vertical_grids(3) = 'layer_iface'
+
+    this%compute_now = .true.
+    this%long_name = trim(lname)
+    this%short_name = trim(sname)
+    this%units = trim(units)
+
+    if (present(vgrid)) then
+      valid_vgrid = .false.
+      do n=1,size(valid_vertical_grids)
+        if (trim(vgrid).eq.trim(valid_vertical_grids(n))) valid_vgrid = .true.
+      end do
+      if (.not.valid_vgrid) then
+        print*, "ERROR: ", trim(vgrid), " is not a valid vertical grid for MARBL"
+      end if
+      this%vertical_grid = trim(vgrid)
+    else
+      this%vertical_grid = 'none'
+    end if
+
+    if (trim(this%vertical_grid).ne.'none') then
+      allocate(this%field_3d(km))
+    end if
+
+    if (present(truncate)) then
+      this%ltruncated_vertical_extent = truncate
+    else
+      this%ltruncated_vertical_extent = .false.
+    end if
+
+  end subroutine marbl_diagnostic_metadata_init
+
+  subroutine marbl_diagnostics_constructor(this, auto_diag_cnt_2d,            &
+                      auto_diag_cnt_3d, zoo_diag_cnt_2d, zoo_diag_cnt_3d,     &
+                      part_diag_cnt_2d, part_diag_cnt_3d, ecosys_tracer_cnt,  &
+                      autotroph_cnt, zooplankton_cnt)
+
+    class(marbl_diagnostics_type), intent(inout) :: this
+    integer, intent(in) :: auto_diag_cnt_2d, auto_diag_cnt_3d,                &
                            zoo_diag_cnt_2d, zoo_diag_cnt_3d,                  &
                            part_diag_cnt_2d, part_diag_cnt_3d
     integer, intent(in) :: ecosys_tracer_cnt, autotroph_cnt, zooplankton_cnt
 
-    allocate(this%diags_2d(ecosys_diag_cnt_2d))
-    allocate(this%diags_3d(ecosys_diag_cnt_3d))
+    allocate(this%diags_2d(max_diags_2d))
+    diag_cnt_2d = 0
+    allocate(this%diags_3d(max_diags_3d))
+    diag_cnt_3d = 0
     allocate(this%auto_diags_2d(auto_diag_cnt_2d, autotroph_cnt))
     allocate(this%auto_diags_3d(auto_diag_cnt_3d, autotroph_cnt))
     allocate(this%zoo_diags_2d(zoo_diag_cnt_2d, zooplankton_cnt))
@@ -228,10 +316,10 @@ contains
     integer :: m,n
 
     do n=1,size(this%diags_2d) ! ecosys_diag_cnt_2d
-      this%diags_2d(n)%field = c0
+      this%diags_2d(n)%field_2d = c0
     end do
     do n=1,size(this%diags_3d) ! ecosys_diag_cnt_3d
-      this%diags_3d(n)%field(:) = c0
+      this%diags_3d(n)%field_3d(:) = c0
     end do
 
     do n=1,size(this%auto_diags_2d,dim=2)   ! autotroph_cnt
