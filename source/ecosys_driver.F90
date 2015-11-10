@@ -750,17 +750,22 @@ contains
     ! !DESCRIPTION:
     !  call subroutines for each tracer module that compute source-sink terms
     !  accumulate commnon tavg fields related to source-sink terms
-    !
-    ! !REVISION HISTORY:
-    !  same as module
 
-    use marbl_interface_types , only : marbl_column_domain_type
-    use marbl_interface_types , only : marbl_gcm_state_type
     use constants             , only : salt_to_ppt
     use grid                  , only : KMT
     use grid                  , only : DZT
     use grid                  , only : dz
     use grid                  , only : partial_bottom_cells
+    use marbl_interface_types , only : marbl_column_domain_type
+    use marbl_interface_types , only : marbl_gcm_state_type
+    use marbl_share_mod       , only : marbl_interior_share_type
+    use marbl_share_mod       , only : marbl_autotroph_share_type
+    use marbl_share_mod       , only : marbl_zooplankton_share_type
+    use marbl_share_mod       , only : marbl_particulate_share_type
+    use marbl_share_mod       , only : column_interior_share_to_slab_interior_share
+    use marbl_share_mod       , only : column_zooplankton_share_to_slab_zooplankton_share
+    use marbl_share_mod       , only : column_autotroph_share_to_slab_autotroph_share
+    use marbl_share_mod       , only : column_particulate_share_to_slab_particulate_share
     
     ! !INPUT PARAMETERS:
 
@@ -794,8 +799,12 @@ contains
     integer (int_kind) :: n, d
     integer (int_kind) :: bid ! local block address for this block
 
-    type(marbl_column_domain_type) :: marbl_domain
-    type(marbl_gcm_state_type)     :: marbl_gcm_state
+    type(marbl_column_domain_type)     :: marbl_domain
+    type(marbl_gcm_state_type)         :: marbl_gcm_state
+    type(marbl_interior_share_type)    :: marbl_interior_share(km)
+    type(marbl_zooplankton_share_type) :: marbl_zooplankton_share(zooplankton_cnt, km)
+    type(marbl_autotroph_share_type)   :: marbl_autotroph_share(autotroph_cnt, km)
+    type(marbl_particulate_share_type) :: marbl_particulate_share
 
     real (r8), dimension(nx_block, ny_block, km, ecosys_tracer_cnt) :: tracer_module_avg
     real (r8), dimension(nx_block, ny_block, km)                    :: temperature ! temperature (C)
@@ -809,6 +818,11 @@ contains
     ! to make it right now.
     real(r8) :: tracer_local(ecosys_tracer_cnt)
     real(r8) :: restore_local(ecosys_tracer_cnt, km) ! local restoring terms for nutrients (mmol ./m^3/sec)
+
+    real(r8) :: PAR_out       ! photosynthetically available radiation (W/m^2)
+    real(r8) :: dust_flux_in
+    real(r8) :: ph_prev_3d(km)
+    real(r8) :: ph_prev_alt_co2_3d(km)
 
     !-----------------------------------------------------------------------
 
@@ -835,9 +849,8 @@ contains
     ! averaged into a single quantity for marbl ecosys
     temperature  = p5*(TEMP_OLD + TEMP_CUR)
     salinity     = p5*(SALT_OLD + SALT_CUR)*salt_to_ppt
-    tracer_module_avg = p5*(&
-         TRACER_MODULE_OLD(:, :, :, ecosys_ind_begin:ecosys_ind_end) + &
-         TRACER_MODULE_CUR(:, :, :, ecosys_ind_begin:ecosys_ind_end))
+    tracer_module_avg = p5*(TRACER_MODULE_OLD(:, :, :, ecosys_ind_begin:ecosys_ind_end) + &
+                            TRACER_MODULE_CUR(:, :, :, ecosys_ind_begin:ecosys_ind_end))
 
     call timer_start(ecosys_interior_timer, block_id=bid)
 
@@ -848,10 +861,10 @@ contains
           marbl_domain%land_mask = marbl_saved_state%land_mask(i, c, bid)
           marbl_domain%kmt = KMT(i, c, bid)
 
-          if (marbl_saved_state%land_mask(i,c,bid)) then
+          if (marbl_domain%land_mask) then
              do k = 1, marbl_domain%km
                 marbl_gcm_state%temperature(k) = temperature(i,c,k)
-                marbl_gcm_state%salinity(k) = salinity(i,c,k)
+                marbl_gcm_state%salinity(k)    = salinity(i,c,k)
 
                 ! FIXME(bja, 2015-07) marbl shouldn't know about partial
                 ! bottom cells. just pass in delta_z, set to DZT(i, c,
@@ -873,36 +886,68 @@ contains
                 do n = 1, ecosys_tracer_cnt
                    tracer_local(n) = max(c0, column_tracer_module(n,k))
                 end do
-
                 call ecosys_restore%restore_tracers(ecosys_tracer_cnt, &
                      vert_level=k, x_index=i, y_index=c, block_id=bid, &
                      local_data=tracer_local(:), restore_data=restore_local(:, k))
              end do
 
+             dust_flux_in  = marbl_saved_state%dust_FLUX_IN(i, c, bid)
+             PAR_out       = marbl_saved_state%PAR_out(i, c, bid)
+             do k = 1, marbl_domain%km
+                ph_prev_3d(k)         = marbl_saved_state%ph_prev_3d(i, c, k, bid)
+                ph_prev_alt_co2_3d(k) = marbl_saved_state%ph_prev_alt_co2_3d(i, c, k, bid)
+             end do
+
              !  compute time derivatives for ecosystem state variables
-             call marbl_ecosys_set_interior(i, c, bid,                       &
-                  marbl_domain, marbl_gcm_state,                             &
-                  marbl_diagnostics(bid), marbl_saved_state, restore_local,  &
-                  marbl%private_data%ecosys_interior_share,                  &
-                  marbl%private_data%ecosys_zooplankton_share,               &
-                  marbl%private_data%ecosys_autotroph_share,                 &
-                  marbl%private_data%ecosys_particulate_share,               &
-                  column_tracer_module,                                      &
-                  column_dtracer,                                            &
+             call marbl_ecosys_set_interior( &
+                  ciso_on,                   &
+                  marbl_domain,              &
+                  marbl_gcm_state,           &
+                  marbl_diagnostics(bid),    &
+                  restore_local,             &
+                  marbl_interior_share,      &
+                  marbl_zooplankton_share,   &
+                  marbl_autotroph_share,     &
+                  marbl_particulate_share,   &
+                  column_tracer_module,      &
+                  column_dtracer,            &
                   fesedflux(i,c,:,bid), &
-                  ciso_on)
+                  dust_flux_in, par_out, &
+                  ph_prev_3d, ph_prev_alt_co2_3d)
+             
+             marbl_saved_state%par_out(i, c, bid) = par_out
+             do k = 1, marbl_domain%km
+                marbl_saved_state%ph_prev_3d(i, c, k, bid)         = ph_prev_3d(k)
+                marbl_saved_state%ph_prev_alt_co2_3d(i, c, k, bid) = ph_prev_alt_co2_3d(k)
+             end do
 
              ! copy marbl column data back to slab
              do k = 1, marbl_domain%km
+
+                if (ciso_on) then
+                   call column_interior_share_to_slab_interior_share(i, c, k, bid, &
+                        marbl_interior_share(k), marbl%private_data%ecosys_interior_share(k))
+                   
+                   call column_zooplankton_share_to_slab_zooplankton_share(i, c, k, bid, &
+                        marbl_zooplankton_share, marbl%private_data%ecosys_zooplankton_share(k))
+                   
+                   call column_autotroph_share_to_slab_autotroph_share(i, c, k, bid, &
+                        marbl_autotroph_share, marbl%private_data%ecosys_autotroph_share(k))
+                   
+                   call column_particulate_share_to_slab_particulate_share(i, c, k, bid, &
+                        marbl_particulate_share, marbl%private_data%ecosys_particulate_share(k))
+                end if
+                
                 do n = ecosys_ind_begin, ecosys_ind_end
                    DTRACER_MODULE(i, c, k, n) = column_dtracer(n, k)
                 end do ! do n
+                
              end do ! do k
 
           end if ! KMT > 0
-          
+             
           call ecosys_tavg_accumulate(i, c, bid, marbl_diagnostics(bid), ecosys_restore)
-
+             
        end do ! do i
     end do ! do c
           

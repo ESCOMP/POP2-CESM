@@ -82,61 +82,43 @@ module ecosys_mod
 
   ! !USES:
 
-  use POP_ErrorMod    , only : POP_Success           ! pop, need similar in marbl
+  use marbl_kinds_mod, only : log_kind
+  use marbl_kinds_mod, only : int_kind
+  use marbl_kinds_mod, only : r8
+  use marbl_kinds_mod, only : char_len
 
-  use kinds_mod, only : log_kind
-  use kinds_mod, only : int_kind
-  use kinds_mod, only : r8
-  use kinds_mod, only : char_len
-
-  use constants, only : c0
-  use constants, only : c1
-  use constants, only : c2
-  use constants, only : c10
-  use constants, only : mpercm
-  use constants, only : blank_fmt
-  use constants, only : delim_fmt
-  use constants, only : ndelim_fmt
-  use constants, only : xkw_coeff
-
-  use communicate, only : master_task
-  use communicate, only : my_task
-
-  use blocks, only : nx_block
-  use blocks, only : ny_block
-
-  use domain_size, only : km
-  use domain_size, only : max_blocks_clinic
-  use domain     , only : nblocks_clinic
-
-  use exit_mod, only : exit_POP
-  use exit_mod, only : sigAbort
-
-  use marbl_interface_types, only: marbl_tracer_metadata_type
-
-  use grid, only : partial_bottom_cells
-  use grid, only : zt
-  use grid, only : zw
-
-  use io_types, only : stdout
-  use io_tools, only : document
-
-  use timers, only : timer_start
-  use timers, only : timer_stop
-  use timers, only : get_timer
-
-  use passive_tracer_tools, only : tracer_read
-  use passive_tracer_tools, only : forcing_monthly_every_ts
-  use passive_tracer_tools, only : comp_surf_avg
-
-  use time_management, only : freq_opt_never
-  use time_management, only : freq_opt_nmonth
-  use time_management, only : freq_opt_nyear
-  use time_management, only : check_time_flag
-  use time_management, only : init_time_flag
-  use time_management, only : eval_time_flag
-
-  use ecosys_constants, only : ecosys_tracer_cnt
+  use POP_ErrorMod         , only : POP_Success  
+  use constants            , only : c0
+  use constants            , only : c1
+  use constants            , only : c2
+  use constants            , only : c10
+  use constants            , only : mpercm
+  use constants            , only : blank_fmt
+  use constants            , only : delim_fmt
+  use constants            , only : ndelim_fmt
+  use constants            , only : xkw_coeff
+  use communicate          , only : master_task
+  use communicate          , only : my_task
+  use blocks               , only : nx_block
+  use blocks               , only : ny_block
+  use domain_size          , only : km
+  use domain_size          , only : max_blocks_clinic
+  use domain               , only : nblocks_clinic
+  use exit_mod             , only : exit_POP
+  use exit_mod             , only : sigAbort
+  use grid                 , only : partial_bottom_cells
+  use grid                 , only : zt
+  use grid                 , only : zw
+  use io_types             , only : stdout
+  use io_tools             , only : document
+  use passive_tracer_tools , only : tracer_read
+  use time_management      , only : freq_opt_never
+  use time_management      , only : freq_opt_nmonth
+  use time_management      , only : freq_opt_nyear
+  use time_management      , only : check_time_flag
+  use time_management      , only : init_time_flag
+  use time_management      , only : eval_time_flag
+  use ecosys_constants     , only : ecosys_tracer_cnt
 
   ! tavg_forcing diagnostics
   use ecosys_diagnostics_mod, only : forcing_diag_cnt
@@ -865,6 +847,7 @@ contains
     use marbl_interface_constants , only : marbl_status_ok
     use marbl_interface_constants , only : marbl_status_could_not_read_namelist
     use marbl_interface_types     , only : marbl_status_type
+    use marbl_interface_types     , only : marbl_tracer_metadata_type
 
     implicit none
 
@@ -982,75 +965,55 @@ contains
 
   !***********************************************************************
 
-  subroutine marbl_ecosys_set_interior(i, c, bid, &
-       domain, gcm_state, &
-       marbl_diagnostics, &
-       saved_state, restore_local, &
-       ecosys_interior_share, ecosys_zooplankton_share, &
-       ecosys_autotroph_share, ecosys_particulate_share, &
-       tracer_module, &
-       dtracer, fesedflux, lexport_shared_vars)
-
+  subroutine marbl_ecosys_set_interior( &
+       lexport_shared_vars,             &
+       domain,                          &
+       gcm_state,                       &
+       marbl_diagnostics,               &
+       restore_local,                   &
+       marbl_interior_share,            &
+       marbl_zooplankton_share,         &
+       marbl_autotroph_share,           &
+       marbl_particulate_share,         &
+       tracer_module,                   &
+       dtracer,                         &
+       fesedflux, &
+       dust_flux_in, PAR_out, &
+       ph_prev_3d, ph_prev_alt_co2_3d)
+    
     ! !DESCRIPTION:
     !  Compute time derivatives for ecosystem state variables
-    !
-    ! !REVISION HISTORY:
-    !  same as module
 
-    use marbl_share_mod, only : sinking_particle
-    use marbl_share_mod, only : column_sinking_particle_type
-    use marbl_share_mod, only : column_sinking_particle_to_slab_sinking_particle
-    use marbl_share_mod, only : slab_sinking_particle_to_column_sinking_particle
-    use marbl_share_mod, only : ecosys_interior_share_type
-    use marbl_share_mod, only : ecosys_autotroph_share_type
-    use marbl_share_mod, only : ecosys_zooplankton_share_type
-    use marbl_share_mod, only : ecosys_particulate_share_type
-    use marbl_share_mod, only : marbl_interior_share_type
-    use marbl_share_mod, only : marbl_autotroph_share_type
-    use marbl_share_mod, only : marbl_zooplankton_share_type
-    use marbl_share_mod, only : marbl_particulate_share_type
-    use marbl_share_mod, only : column_interior_share_to_slab_interior_share
-    use marbl_share_mod, only : column_zooplankton_share_to_slab_zooplankton_share
-    use marbl_share_mod, only : column_autotroph_share_to_slab_autotroph_share
-    use marbl_share_mod, only : column_particulate_share_to_slab_particulate_share
+    use marbl_interface_types , only : marbl_diagnostics_type
+    use marbl_interface_types , only : marbl_column_domain_type
+    use marbl_interface_types , only : marbl_gcm_state_type
+    use marbl_share_mod       , only : marbl_interior_share_type
+    use marbl_share_mod       , only : marbl_autotroph_share_type
+    use marbl_share_mod       , only : marbl_zooplankton_share_type
+    use marbl_share_mod       , only : marbl_particulate_share_type
 
-    use marbl_interface_types, only : marbl_diagnostics_type
-    use marbl_interface_types, only : marbl_column_domain_type
-    use marbl_interface_types, only : marbl_gcm_state_type
-    use marbl_interface_types, only : marbl_saved_state_type
-
-    use marbl_share_mod , only : gas_flux_forcing_iopt_drv
-    use marbl_share_mod , only : gas_flux_forcing_iopt_file
-    use marbl_share_mod , only : atm_co2_iopt_drv_prog
-    use marbl_share_mod , only : atm_co2_iopt_drv_diag
-
-    use marbl_parms, only : epsC, epsTinv
-
-    integer (int_kind)                  , intent(in)    :: i                                    ! index for looping over nx_block dimension
-    integer (int_kind)                  , intent(in)    :: c                                    ! column index
-    real(r8)                            , intent(in)    :: fesedflux(:)
-    real(r8)                            , intent(in)    :: restore_local(ecosys_tracer_cnt, km) ! local restoring terms for nutrients (mmol ./m^3/sec)
-    real (r8)                           , intent(in)    :: tracer_module(ecosys_tracer_cnt, km) ! tracer values
-
-    ! FIXME(bja, 2015-08) domain will become intent(in) once the loops are moved!
-    type(marbl_column_domain_type)      , intent(inout) :: domain
-    type(marbl_gcm_state_type)          , intent(inout) :: gcm_state
-    logical (log_kind)                  , intent(in)    :: lexport_shared_vars            ! flag to save shared_vars or not
-    integer (int_kind)                  , intent(in)    :: bid                            ! local_block id
-    real (r8)                           , intent(out)   :: dtracer(ecosys_tracer_cnt, km) ! computed source/sink terms
-    type(marbl_diagnostics_type)        , intent(inout) :: marbl_diagnostics
-    type(marbl_saved_state_type)        , intent(inout) :: saved_state
-    type(ecosys_interior_share_type)    , intent(inout) :: ecosys_interior_share(:)
-    type(ecosys_zooplankton_share_type) , intent(inout) :: ecosys_zooplankton_share(:)
-    type(ecosys_autotroph_share_type)   , intent(inout) :: ecosys_autotroph_share(:)
-    type(ecosys_particulate_share_type) , intent(inout) :: ecosys_particulate_share(:)
+    logical (log_kind)                 , intent(in)    :: lexport_shared_vars                  ! flag to save shared_vars or not
+    real(r8)                           , intent(in)    :: fesedflux(:)
+    real(r8)                           , intent(in)    :: restore_local(ecosys_tracer_cnt, km) ! local restoring terms for nutrients (mmol ./m^3/sec)
+    real(r8)                           , intent(in)    :: tracer_module(ecosys_tracer_cnt, km) ! tracer values
+    type(marbl_column_domain_type)     , intent(inout) :: domain                               ! FIXME(bja, 2015-08) domain will become intent(in) once the loops are moved!
+    type(marbl_gcm_state_type)         , intent(inout) :: gcm_state
+    real (r8)                          , intent(out)   :: dtracer(ecosys_tracer_cnt, km)       ! computed source/sink terms
+    type(marbl_diagnostics_type)       , intent(inout) :: marbl_diagnostics
+    type(marbl_interior_share_type)    , intent(out)   :: marbl_interior_share(km)
+    type(marbl_zooplankton_share_type) , intent(out)   :: marbl_zooplankton_share(zooplankton_cnt, km)
+    type(marbl_autotroph_share_type)   , intent(out)   :: marbl_autotroph_share(autotroph_cnt, km)
+    type(marbl_particulate_share_type) , intent(out)   :: marbl_particulate_share
+    real(r8)                           , intent(in)    :: dust_flux_in
+    real(r8)                           , intent(inout) :: PAR_out
+    real(r8)                           , intent(inout) :: ph_prev_3d(km)        
+    real(r8)                           , intent(inout) :: ph_prev_alt_co2_3d(km)
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
 
-    character(*), parameter :: &
-         subname = 'ecosys_mod:ecosys_set_interior'
+    character(*), parameter :: subname = 'ecosys_mod:marbl_ecosys_set_interior'
 
     real (r8) :: f_loss_thres ! fraction of grazing loss reduction at depth
 
@@ -1077,14 +1040,12 @@ contains
 
     real(r8) :: tracer_local(ecosys_tracer_cnt, km)
 
+    real(r8) :: QA_dust_def(km)
+
     type(zooplankton_local_type) :: zooplankton_local(zooplankton_cnt, km)
     type(autotroph_local_type) :: autotroph_local(autotroph_cnt, km)
 
-    real(r8) :: QA_dust_def(km)
-    real(r8) :: PAR_out ! photosynthetically available radiation (W/m^2)
-    real(r8) :: dust_flux_in
-
-    type(autotroph_secondary_species_type) :: autotroph_secondary_species(autotroph_cnt, km)
+    type(autotroph_secondary_species_type)   :: autotroph_secondary_species(autotroph_cnt, km)
     type(zooplankton_secondary_species_type) :: zooplankton_secondary_species(zooplankton_cnt, km)
 
     type(photosynthetically_available_radiation_type) :: PAR(km)
@@ -1092,14 +1053,6 @@ contains
     type(dissolved_organic_matter_type) :: dissolved_organic_matter(km)
 
     type(carbonate_type) :: carbonate(km)
-
-    type(marbl_interior_share_type)    :: marbl_interior_share(km)
-    type(marbl_zooplankton_share_type) :: marbl_zooplankton_share(zooplankton_cnt, km)
-    type(marbl_autotroph_share_type)   :: marbl_autotroph_share(autotroph_cnt, km)
-    type(marbl_particulate_share_type) :: marbl_particulate_share
-
-    real(r8) :: ph_prev_3d(km)
-    real(r8) :: ph_prev_alt_co2_3d(km)
 
     real(r8) :: zsat_calcite(km) ! Calcite Saturation Depth
     real(r8) :: zsat_aragonite(km) ! Aragonite Saturation Depth
@@ -1115,11 +1068,6 @@ contains
     ! can probably be vectorized over k and / or c!
 
     !-----------------------------------------------------------------------
-
-    dust_flux_in          = saved_state%dust_FLUX_IN(i, c, bid)
-    PAR_out               = saved_state%PAR_out(i, c, bid)
-    ph_prev_3d(:)         = saved_state%PH_PREV_3D(i, c, :, bid)
-    ph_prev_alt_co2_3d(:) = saved_state%PH_PREV_ALT_CO2_3D(i, c, :, bid)
 
     ! NOTE(bja, 2015-07) dTracer=0 must come before the "not
     ! lsource_sink check to ensure correct answer when not doing
@@ -1169,7 +1117,7 @@ contains
                QA_dust_def(:), dust_flux_in)
 
           !FIXME (mvertens, 2015-11), new marbl timers need to be implemented to turn on timers here
-          !call timer_start(ecosys_comp_CO3terms_timer, block_id=bid)
+          ! around this subroutine call
           call marbl_compute_carbonate_chemistry(domain%km,  &
                domain%land_mask, domain%kmt, &
                gcm_state%temperature(:), gcm_state%salinity(:), &
@@ -1178,7 +1126,6 @@ contains
                ph_prev_3d(:), ph_prev_alt_co2_3d(:), &
                zsat_calcite(:), zsat_aragonite(:), &
                co3_calc_anom(:), co3_arag_anom(:))
-          !call timer_stop(ecosys_comp_CO3terms_timer, block_id=bid)
 
           do k = 1, domain%km
 
@@ -1191,7 +1138,6 @@ contains
                   autotroph_local(:, k), &
                   domain%land_mask, domain%kmt, domain%dzt(k), domain%dz(k), &
                   PAR_out, PAR(k))
-
 
              call marbl_compute_function_scaling(gcm_state%temperature(k), Tfunc(k))
 
@@ -1265,7 +1211,6 @@ contains
                   o2_production(k), o2_consumption(k), &
                   dtracer(:, k) )
 
-
              if (lexport_shared_vars) then
                 call marbl_export_interior_shared_variables(tracer_local(:, k), &
                      carbonate(k), dissolved_organic_matter(k), &
@@ -1286,33 +1231,6 @@ contains
                 ! out of compute_particulate_terms!
              end if
 
-             ! FIXME(bja, 2015-07) copy column ordered local tracers back to
-             ! slab ordered for remaining computations. This will go a way
-             ! once the slab --> column reordering is complete.
-             
-             saved_state%PAR_out(i, c, bid)               = PAR_out
-             saved_state%PH_PREV_3D(i, c, k, bid)         = ph_prev_3d(k)
-             saved_state%PH_PREV_ALT_CO2_3D(i, c, k, bid) = ph_prev_alt_co2_3d(k)
-
-             ! FIXME(bja, 2015-07) copy column diags back to slab eventually
-             ! gets moved into ecosys_driver!
-             
-             if (lexport_shared_vars) then
-                ! FIXME(bja, 2015-08) copy column shared data back to slab
-                ! eventually gets moved into ecosys_driver!
-                call column_interior_share_to_slab_interior_share(i, c, k, bid, &
-                     marbl_interior_share(k), ecosys_interior_share(k))
-
-                call column_zooplankton_share_to_slab_zooplankton_share(i, c, k, bid, &
-                     marbl_zooplankton_share, ecosys_zooplankton_share(k))
-
-
-                call column_autotroph_share_to_slab_autotroph_share(i, c, k, bid, &
-                     marbl_autotroph_share, ecosys_autotroph_share(k))
-
-                call column_particulate_share_to_slab_particulate_share(i, c, k, bid, &
-                     marbl_particulate_share, ecosys_particulate_share(k))
-             end if
              if  (k<domain%km) then
                 call marbl_update_particulate_terms_from_prior_level(k+1, POC, P_CaCO3, &
                      P_SiO2, dust, P_iron, QA_dust_def(:))
@@ -2902,6 +2820,8 @@ contains
     !  non_living_biomass_ecosys_tracer_cnt
     !-----------------------------------------------------------------------
 
+    use marbl_interface_types     , only : marbl_tracer_metadata_type
+
     implicit none
 
     type (marbl_tracer_metadata_type), dimension(:), intent(inout) :: tracer_d_module   ! descriptors for each tracer
@@ -3032,9 +2952,12 @@ contains
   subroutine marbl_initialize_zooplankton_tracer_metadata(tracer_d_module, &
        non_living_biomass_ecosys_tracer_cnt, n)
 
+    use marbl_interface_types     , only : marbl_tracer_metadata_type
+
     !-----------------------------------------------------------------------
     !  initialize zooplankton tracer_d values and tracer indices
     !-----------------------------------------------------------------------
+
     type (marbl_tracer_metadata_type), dimension(:), intent(inout) :: tracer_d_module   ! descriptors for each tracer
 
     integer (int_kind), intent(in) :: &
@@ -3074,6 +2997,8 @@ contains
     !-----------------------------------------------------------------------
     !  initialize autotroph tracer_d values and tracer indices
     !-----------------------------------------------------------------------
+
+    use marbl_interface_types     , only : marbl_tracer_metadata_type
 
     type (marbl_tracer_metadata_type), dimension(:), intent(inout) :: tracer_d_module   ! descriptors for each tracer
     integer(int_kind), intent(inout) :: n
@@ -4958,11 +4883,11 @@ contains
 
     use marbl_share_mod, only : marbl_interior_share_type
 
-    real(r8), intent(in) :: tracer_local(ecosys_tracer_cnt)
-    type(carbonate_type), intent(in) :: carbonate
-    type(dissolved_organic_matter_type), intent(in) :: dissolved_organic_matter
-    real(r8), intent(in) :: QA_dust_def
-    type(marbl_interior_share_type), intent(inout) :: marbl_interior_share
+    real(r8)                            , intent(in)    :: tracer_local(ecosys_tracer_cnt)
+    type(carbonate_type)                , intent(in)    :: carbonate
+    type(dissolved_organic_matter_type) , intent(in)    :: dissolved_organic_matter
+    real(r8)                            , intent(in)    :: QA_dust_def
+    type(marbl_interior_share_type)     , intent(inout) :: marbl_interior_share
 
     associate( &
          share => marbl_interior_share &

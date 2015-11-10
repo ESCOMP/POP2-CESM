@@ -438,19 +438,19 @@ module marbl_share_mod
    subroutine column_interior_share_to_slab_interior_share(i, c, k, bid, &
         column_share, slab_share)
 
-     integer(int_kind), intent(in) :: i, c, k, bid
-     type(marbl_interior_share_type), intent(in) :: column_share
-     type(ecosys_interior_share_type), intent(out) :: slab_share
+     integer(int_kind)                , intent(in)    :: i, c, k, bid
+     type(marbl_interior_share_type)  , intent(in)    :: column_share
+     type(ecosys_interior_share_type) , intent(inout) :: slab_share
 
-     slab_share%QA_dust_def(i, c, bid) = column_share%QA_dust_def
-     slab_share%DIC_loc_fields(i, c, bid) = column_share%DIC_loc_fields
-     slab_share%DOC_loc_fields(i, c, bid) = column_share%DOC_loc_fields
-     slab_share%O2_loc_fields(i, c, bid) = column_share%O2_loc_fields
-     slab_share%NO3_loc_fields(i, c, bid) = column_share%NO3_loc_fields
+     slab_share%QA_dust_def(i, c, bid)      = column_share%QA_dust_def
+     slab_share%DIC_loc_fields(i, c, bid)   = column_share%DIC_loc_fields
+     slab_share%DOC_loc_fields(i, c, bid)   = column_share%DOC_loc_fields
+     slab_share%O2_loc_fields(i, c, bid)    = column_share%O2_loc_fields
+     slab_share%NO3_loc_fields(i, c, bid)   = column_share%NO3_loc_fields
 
-     slab_share%CO3_fields(i, c, bid) = column_share%CO3_fields
-     slab_share%HCO3_fields(i, c, bid) = column_share%HCO3_fields
-     slab_share%H2CO3_fields(i, c, bid) = column_share%H2CO3_fields
+     slab_share%CO3_fields(i, c, bid)       = column_share%CO3_fields
+     slab_share%HCO3_fields(i, c, bid)      = column_share%HCO3_fields
+     slab_share%H2CO3_fields(i, c, bid)     = column_share%H2CO3_fields
      slab_share%DOC_remin_fields(i, c, bid) = column_share%DOC_remin_fields
 
    end subroutine column_interior_share_to_slab_interior_share
@@ -460,9 +460,9 @@ module marbl_share_mod
    subroutine column_zooplankton_share_to_slab_zooplankton_share(i, c, k, bid, &
         column_share, slab_share)
 
-     integer(int_kind), intent(in) :: i, c, k, bid
-     type(marbl_zooplankton_share_type), intent(in) :: column_share(zooplankton_cnt, km)
-     type(ecosys_zooplankton_share_type), intent(out) :: slab_share
+     integer(int_kind)                   , intent(in)  :: i, c, k, bid
+     type(marbl_zooplankton_share_type)  , intent(in)  :: column_share(zooplankton_cnt, km)
+     type(ecosys_zooplankton_share_type) , intent(out) :: slab_share
 
      integer(int_kind) :: n
      
@@ -520,29 +520,24 @@ module marbl_share_mod
      type(marbl_particulate_share_type), intent(in) :: column_share
      type(ecosys_particulate_share_type), intent(out) :: slab_share
 
-     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, &
-          column_share%POC, slab_share%POC)
-     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, &
-          column_share%P_CaCO3, slab_share%P_CaCO3)
-     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, &
-          column_share%P_SiO2, slab_share%P_SiO2)
-     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, &
-          column_share%dust, slab_share%dust)
-     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, &
-          column_share%P_iron, slab_share%P_iron)
+     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, column_share%POC     , slab_share%POC)
+     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, column_share%P_CaCO3 , slab_share%P_CaCO3)
+     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, column_share%P_SiO2  , slab_share%P_SiO2)
+     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, column_share%dust    , slab_share%dust)
+     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, column_share%P_iron  , slab_share%P_iron)
 
-     slab_share%POC_PROD_avail_fields(i, c, bid) = column_share%POC_PROD_avail_fields(k)
-     slab_share%decay_CaCO3_fields(i, c, bid) = column_share%decay_CaCO3_fields(k)
-     slab_share%decay_POC_E_fields(i, c, bid) = column_share%decay_POC_E_fields(k)
-     slab_share%poc_diss_fields(i, c, bid) = column_share%poc_diss_fields(k)
-     slab_share%caco3_diss_fields(i, c, bid) = column_share%caco3_diss_fields(k)
+     slab_share%POC_PROD_avail_fields(i, c, bid)    = column_share%POC_PROD_avail_fields(k)
+     slab_share%decay_CaCO3_fields(i, c, bid)       = column_share%decay_CaCO3_fields(k)
+     slab_share%decay_POC_E_fields(i, c, bid)       = column_share%decay_POC_E_fields(k)
+     slab_share%poc_diss_fields(i, c, bid)          = column_share%poc_diss_fields(k)
+     slab_share%caco3_diss_fields(i, c, bid)        = column_share%caco3_diss_fields(k)
      slab_share%P_CaCO3_sflux_out_fields(i, c, bid) = column_share%P_CaCO3_sflux_out_fields(k)
      slab_share%P_CaCO3_hflux_out_fields(i, c, bid) = column_share%P_CaCO3_hflux_out_fields(k)
-     slab_share%POC_sflux_out_fields(i, c, bid) = column_share%POC_sflux_out_fields(k)
-     slab_share%POC_hflux_out_fields(i, c, bid) = column_share%POC_hflux_out_fields(k)
-     slab_share%POC_remin_fields(i, c, bid) = column_share%POC_remin_fields(k)
-     slab_share%P_CaCO3_remin_fields(i, c, bid) = column_share%P_CaCO3_remin_fields(k)
-     slab_share%DECAY_Hard_fields(i, c, bid) = column_share%DECAY_Hard_fields(k)
+     slab_share%POC_sflux_out_fields(i, c, bid)     = column_share%POC_sflux_out_fields(k)
+     slab_share%POC_hflux_out_fields(i, c, bid)     = column_share%POC_hflux_out_fields(k)
+     slab_share%POC_remin_fields(i, c, bid)         = column_share%POC_remin_fields(k)
+     slab_share%P_CaCO3_remin_fields(i, c, bid)     = column_share%P_CaCO3_remin_fields(k)
+     slab_share%DECAY_Hard_fields(i, c, bid)        = column_share%DECAY_Hard_fields(k)
 
    end subroutine column_particulate_share_to_slab_particulate_share
 

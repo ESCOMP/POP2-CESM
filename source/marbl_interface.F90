@@ -115,9 +115,9 @@ module marbl_interface
 
   type, public :: marbl_interface_class
      ! FIXME(bja, 2015-01) needs to private when all data is isolated!
-     type(marbl_private_data_type), public :: private_data
-     type(marbl_sizes_type), private :: marbl_sizes
-     type(marbl_driver_sizes_type), private :: marbl_driver_sizes
+     type(marbl_private_data_type) , public  :: private_data
+     type(marbl_sizes_type)        , private :: marbl_sizes
+     type(marbl_driver_sizes_type) , private :: marbl_driver_sizes
 
    contains
      procedure, public :: init => marbl_init
