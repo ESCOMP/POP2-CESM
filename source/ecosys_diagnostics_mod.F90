@@ -113,6 +113,23 @@ module ecosys_diagnostics_mod
     integer(int_kind) :: DOFe_remin
     integer(int_kind) :: Fe_scavenge
     integer(int_kind) :: Fe_scavenge_rate
+
+    ! Particulate 3D diags
+    integer(int_kind) :: POC_FLUX_IN
+    integer(int_kind) :: POC_PROD
+    integer(int_kind) :: POC_REMIN
+    integer(int_kind) :: CaCO3_FLUX_IN
+    integer(int_kind) :: CaCO3_PROD
+    integer(int_kind) :: CaCO3_REMIN
+    integer(int_kind) :: SiO2_FLUX_IN
+    integer(int_kind) :: SiO2_PROD
+    integer(int_kind) :: SiO2_REMIN
+    integer(int_kind) :: dust_FLUX_IN
+    integer(int_kind) :: dust_REMIN
+    integer(int_kind) :: P_iron_FLUX_IN
+    integer(int_kind) :: P_iron_PROD
+    integer(int_kind) :: P_iron_REMIN
+
   end type marbl_diagnostics_indexing_type
 
   type(marbl_diagnostics_indexing_type) :: marbl_diag_ind
@@ -159,23 +176,6 @@ module ecosys_diagnostics_mod
       zoo_graze_doc_diag_ind   =  6, &
       zoo_graze_zoo_diag_ind   =  7, &
       x_graze_zoo_diag_ind     =  8
-
-  integer(int_kind), parameter ::   part_diag_cnt_3d =  14
-  integer (int_kind), parameter ::   &
-      POC_FLUX_IN_diag_ind     =  1, &
-      POC_PROD_diag_ind        =  2, &
-      POC_REMIN_diag_ind       =  3, &
-      CaCO3_FLUX_IN_diag_ind   =  4, &
-      CaCO3_PROD_diag_ind      =  5, &
-      CaCO3_REMIN_diag_ind     =  6, &
-      SiO2_FLUX_IN_diag_ind    =  7, &
-      SiO2_PROD_diag_ind       =  8, &
-      SiO2_REMIN_diag_ind      =  9, &
-      dust_FLUX_IN_diag_ind    = 10, &
-      dust_REMIN_diag_ind      = 11, &
-      P_iron_FLUX_IN_diag_ind  = 12, &
-      P_iron_PROD_diag_ind     = 13, &
-      P_iron_REMIN_diag_ind    = 14
 
   integer(int_kind), parameter ::   forcing_diag_cnt =  38
   integer (int_kind), parameter ::   &
@@ -231,7 +231,6 @@ contains
     ! Allocate memory in marbl_diagnostics_type
     call marbl_diags%construct(auto_diag_cnt_2d, auto_diag_cnt_3d,            &
                                zoo_diag_cnt_2d, zoo_diag_cnt_3d,              &
-                               part_diag_cnt_3d,            &
                                ecosys_tracer_cnt, autotroph_cnt,              &
                                zooplankton_cnt)
 
@@ -241,7 +240,6 @@ contains
               auto_diags_3d => marbl_diags%auto_diags_3d(:,:),                &
               zoo_diags_2d  => marbl_diags%zoo_diags_2d(:,:),                 &
               zoo_diags_3d  => marbl_diags%zoo_diags_3d(:,:),                 &
-              part_diags_3d => marbl_diags%part_diags_3d(:),                  &
               restore_diags => marbl_diags%restore_diags(:)                   &
              )
 
@@ -664,6 +662,120 @@ contains
     call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
                                     marbl_diag_ind%Fe_scavenge_rate)
 
+    ! Particulate 3D diags
+    lname = 'POC Flux into Cell'
+    sname = 'POC_FLUX_IN'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%POC_FLUX_IN)
+
+    lname = 'POC Production'
+    sname = 'POC_PROD'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%POC_PROD)
+
+    lname = 'POC Remineralization'
+    sname = 'POC_REMIN'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%POC_REMIN)
+
+!    lname = 'CaCO3 Flux into Cell'
+    lname = 'CaCO3 flux into cell' ! FIXME lower case? consistent with rest?
+    sname = 'CaCO3_FLUX_IN'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%CaCO3_FLUX_IN)
+
+    lname = 'CaCO3 Production'
+    sname = 'CaCO3_PROD'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%CaCO3_PROD)
+
+    lname = 'CaCO3 Remineralization'
+    sname = 'CaCO3_REMIN'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%CaCO3_REMIN)
+
+    lname = 'SiO2 Flux into Cell'
+    sname = 'SiO2_FLUX_IN'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%SiO2_FLUX_IN)
+
+    lname = 'SiO2 Production'
+    sname = 'SiO2_PROD'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%SiO2_PROD)
+
+    lname = 'SiO2 Remineralization'
+    sname = 'SiO2_REMIN'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%SiO2_REMIN)
+
+    lname = 'Dust Flux into Cell'
+    sname = 'dust_FLUX_IN'
+    units = 'ng/s/m^2'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%dust_FLUX_IN)
+
+    lname = 'Dust Remineralization'
+    sname = 'dust_REMIN'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%dust_REMIN)
+
+    lname = 'P_iron Flux into Cell'
+    sname = 'P_iron_FLUX_IN'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%P_iron_FLUX_IN)
+
+    lname = 'P_iron Production'
+    sname = 'P_iron_PROD'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%P_iron_PROD)
+
+    lname = 'P_iron Remineralization'
+    sname = 'P_iron_REMIN'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%P_iron_REMIN)
+
     marbl_diag_ind%count = diag_cnt
 
     do auto_ind=1,autotroph_cnt
@@ -694,81 +806,6 @@ contains
         auto_diags_2d(n, auto_ind)%units = trim(units)
         auto_diags_2d(n, auto_ind)%compute_now = .true.
       end do
-    end do
-
-    do n=1,part_diag_cnt_3d
-      ! Default assumption: layer average vertical coordinates, not truncated
-      vgrid = 'layer_avg'
-      truncate = .false.
-      select case (n)
-        case (POC_FLUX_IN_diag_ind)
-          lname = 'POC Flux into Cell'
-          sname = 'POC_FLUX_IN'
-          units = 'mmol/m^3 cm/s'
-        case (POC_PROD_diag_ind)
-          lname = 'POC Production'
-          sname = 'POC_PROD'
-          units = 'mmol/m^3/s'
-        case (POC_REMIN_diag_ind)
-          lname = 'POC Remineralization'
-          sname = 'POC_REMIN'
-          units = 'mmol/m^3/s'
-        case (CaCO3_FLUX_IN_diag_ind)
-!          lname = 'CaCO3 Flux into Cell'
-          lname = 'CaCO3 flux into cell' ! FIXME lower case? consistent with rest?
-          sname = 'CaCO3_FLUX_IN'
-          units = 'mmol/m^3 cm/s'
-        case (CaCO3_PROD_diag_ind)
-          lname = 'CaCO3 Production'
-          sname = 'CaCO3_PROD'
-          units = 'mmol/m^3/s'
-        case (CaCO3_REMIN_diag_ind)
-          lname = 'CaCO3 Remineralization'
-          sname = 'CaCO3_REMIN'
-          units = 'mmol/m^3/s'
-        case (SiO2_FLUX_IN_diag_ind)
-          lname = 'SiO2 Flux into Cell'
-          sname = 'SiO2_FLUX_IN'
-          units = 'mmol/m^3 cm/s'
-        case (SiO2_PROD_diag_ind)
-          lname = 'SiO2 Production'
-          sname = 'SiO2_PROD'
-          units = 'mmol/m^3/s'
-        case (SiO2_REMIN_diag_ind)
-          lname = 'SiO2 Remineralization'
-          sname = 'SiO2_REMIN'
-          units = 'mmol/m^3/s'
-        case (dust_FLUX_IN_diag_ind)
-          lname = 'Dust Flux into Cell'
-          sname = 'dust_FLUX_IN'
-          units = 'ng/s/m^2'
-        case (dust_REMIN_diag_ind)
-          lname = 'Dust Remineralization'
-          sname = 'dust_REMIN'
-          units = 'mmol/m^3/s'
-        case (P_iron_FLUX_IN_diag_ind)
-          lname = 'P_iron Flux into Cell'
-          sname = 'P_iron_FLUX_IN'
-          units = 'mmol/m^3 cm/s'
-        case (P_iron_PROD_diag_ind)
-          lname = 'P_iron Production'
-          sname = 'P_iron_PROD'
-          units = 'mmol/m^3/s'
-        case (P_iron_REMIN_diag_ind)
-          lname = 'P_iron Remineralization'
-          sname = 'P_iron_REMIN'
-          units = 'mmol/m^3/s'
-        case DEFAULT
-          print*, "ERROR in ecosys_diagnostics_init():"
-          print*, n, " is not a valid index for marbl_diags%diags_2d"
-          sname = 'ERRORERRORERROR'
-      end select
-      part_diags_3d(n)%long_name = trim(lname)
-      part_diags_3d(n)%short_name = trim(sname)
-      part_diags_3d(n)%units = trim(units)
-      part_diags_3d(n)%vertical_grid = trim(vgrid)
-      part_diags_3d(n)%ltruncated_vertical_extent = truncate
-      part_diags_3d(n)%compute_now = .true.
     end do
 
     do zoo_ind=1,zooplankton_cnt
@@ -1235,28 +1272,30 @@ contains
     else
        delta_z = marbl_domain%dz
     end if
-    associate(&
-              diags => marbl_diags%diags,            &
-              part_diags_3d => marbl_diags%part_diags_3d(:)                   &
-              )
-      part_diags_3d(POC_FLUX_IN_diag_ind)%field(:) = POC%sflux_in + POC%hflux_in
-      part_diags_3d(POC_PROD_diag_ind)%field(:) = POC%prod
-      part_diags_3d(POC_REMIN_diag_ind)%field(:) = POC%remin
+    associate(diags => marbl_diags%diags)
+      diags(marbl_diag_ind%POC_FLUX_IN)%field_3d(:) = POC%sflux_in +          &
+                                                      POC%hflux_in
+      diags(marbl_diag_ind%POC_PROD)%field_3d(:) = POC%prod
+      diags(marbl_diag_ind%POC_REMIN)%field_3d(:) = POC%remin
 
-      part_diags_3d(CaCO3_FLUX_IN_diag_ind)%field(:) = P_CaCO3%sflux_in + P_CaCO3%hflux_in
-      part_diags_3d(CaCO3_PROD_diag_ind)%field(:) = P_CaCO3%prod
-      part_diags_3d(CaCO3_REMIN_diag_ind)%field(:) = P_CaCO3%remin
+      diags(marbl_diag_ind%CaCO3_FLUX_IN)%field_3d(:) = P_CaCO3%sflux_in +    &
+                                                        P_CaCO3%hflux_in
+      diags(marbl_diag_ind%CaCO3_PROD)%field_3d(:) = P_CaCO3%prod
+      diags(marbl_diag_ind%CaCO3_REMIN)%field_3d(:) = P_CaCO3%remin
 
-      part_diags_3d(SiO2_FLUX_IN_diag_ind)%field(:) = P_SiO2%sflux_in + P_SiO2%hflux_in
-      part_diags_3d(SiO2_PROD_diag_ind)%field(:) = P_SiO2%prod
-      part_diags_3d(SiO2_REMIN_diag_ind)%field(:) = P_SiO2%remin
+      diags(marbl_diag_ind%SiO2_FLUX_IN)%field_3d(:) = P_SiO2%sflux_in +      &
+                                                       P_SiO2%hflux_in
+      diags(marbl_diag_ind%SiO2_PROD)%field_3d(:) = P_SiO2%prod
+      diags(marbl_diag_ind%SiO2_REMIN)%field_3d(:) = P_SiO2%remin
 
-      part_diags_3d(dust_FLUX_IN_diag_ind)%field(:) = dust%sflux_in + dust%hflux_in
-      part_diags_3d(dust_REMIN_diag_ind)%field(:) = P_SiO2%remin
+      diags(marbl_diag_ind%dust_FLUX_IN)%field_3d(:) = dust%sflux_in +        &
+                                                       dust%hflux_in
+      diags(marbl_diag_ind%dust_REMIN)%field_3d(:) = P_SiO2%remin
 
-      part_diags_3d(P_iron_FLUX_IN_diag_ind)%field(:) = P_iron%sflux_in + P_iron%hflux_in
-      part_diags_3d(P_iron_PROD_diag_ind)%field(:) = P_iron%prod
-      part_diags_3d(P_iron_REMIN_diag_ind)%field(:) = P_iron%remin
+      diags(marbl_diag_ind%P_iron_FLUX_IN)%field_3d(:) = P_iron%sflux_in +    &
+                                                         P_iron%hflux_in
+      diags(marbl_diag_ind%P_iron_PROD)%field_3d(:) = P_iron%prod
+      diags(marbl_diag_ind%P_iron_REMIN)%field_3d(:) = P_iron%remin
 
       diags(marbl_diag_ind%calcToSed)%field_2d = sum(P_CaCO3%sed_loss)
       diags(marbl_diag_ind%bsiToSed)%field_2d = sum(P_SiO2%sed_loss)

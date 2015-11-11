@@ -81,24 +81,6 @@
   use ecosys_diagnostics_mod, only : zoo_graze_zoo_diag_ind
   use ecosys_diagnostics_mod, only : x_graze_zoo_diag_ind
 
-  ! particulate diagnostics
-  ! 3D
-  use ecosys_diagnostics_mod, only : part_diag_cnt_3d
-  use ecosys_diagnostics_mod, only : POC_FLUX_IN_diag_ind
-  use ecosys_diagnostics_mod, only : POC_PROD_diag_ind
-  use ecosys_diagnostics_mod, only : POC_REMIN_diag_ind
-  use ecosys_diagnostics_mod, only : CaCO3_FLUX_IN_diag_ind
-  use ecosys_diagnostics_mod, only : CaCO3_PROD_diag_ind
-  use ecosys_diagnostics_mod, only : CaCO3_REMIN_diag_ind
-  use ecosys_diagnostics_mod, only : SiO2_FLUX_IN_diag_ind
-  use ecosys_diagnostics_mod, only : SiO2_PROD_diag_ind
-  use ecosys_diagnostics_mod, only : SiO2_REMIN_diag_ind
-  use ecosys_diagnostics_mod, only : dust_FLUX_IN_diag_ind
-  use ecosys_diagnostics_mod, only : dust_REMIN_diag_ind
-  use ecosys_diagnostics_mod, only : P_iron_FLUX_IN_diag_ind
-  use ecosys_diagnostics_mod, only : P_iron_PROD_diag_ind
-  use ecosys_diagnostics_mod, only : P_iron_REMIN_diag_ind
-
   ! tavg_forcing diagnostics
   use ecosys_diagnostics_mod, only : forcing_diag_cnt
   use ecosys_diagnostics_mod, only : ECOSYS_IFRAC_diag_ind
@@ -187,7 +169,6 @@
   !  tavg ids for particulate terms
   !-----------------------------------------------------------------------
 
-  integer (int_kind), dimension(part_diag_cnt_3d) :: tavg_part_3d
   integer (int_kind) :: tavg_POC_ACCUM      ! tavg id for poc accumulation
 
   !-----------------------------------------------------------------------
@@ -249,7 +230,6 @@ contains
               auto_diags_3d => marbl_diags%auto_diags_3d(:,:),                &
               zoo_diags_2d  => marbl_diags%zoo_diags_2d(:,:),                 &
               zoo_diags_3d  => marbl_diags%zoo_diags_3d(:,:),                 &
-              part_diags_3d => marbl_diags%part_diags_3d(:),                  &
               restore_diags => marbl_diags%restore_diags(:)                   &
              )
     call define_tavg_field(tavg_forcing(ECOSYS_IFRAC_diag_ind),         &
@@ -548,29 +528,6 @@ contains
 !   Define 3D tavg fields
 !-----------------------------------------------------------------------
 
-    do n=1,part_diag_cnt_3d
-      if (trim(part_diags_3d(n)%vertical_grid).eq.'layer_avg') then
-        if (part_diags_3d(n)%ltruncated_vertical_extent) then
-          gloc = '3114'
-          coords = 'TLONG TLAT z_t_150m time'
-        else
-          gloc = '3111'
-          coords = 'TLONG TLAT z_t time'
-        end if
-      elseif (trim(part_diags_3d(n)%vertical_grid).eq.'layer_iface') then
-          gloc = '3113'
-          coords = 'TLONG TLAT z_w_bot time'
-      else
-        write(err_msg,*) "'", trim(part_diags_3d(n)%vertical_grid),           &
-                         "' is not a valid vertical grid"
-        call shr_sys_abort(err_msg)
-      end if
-      call define_tavg_field(tavg_part_3d(n),trim(part_diags_3d(n)%short_name), &
-                             3, long_name=trim(part_diags_3d(n)%long_name),     &
-                             units=trim(part_diags_3d(n)%units), grid_loc=gloc, &
-                             coordinates=coords)
-    end do
-
     do zoo_ind = 1, zooplankton_cnt
       do n=1,zoo_diag_cnt_3d
         if (trim(zoo_diags_3d(n,zoo_ind)%vertical_grid).eq.'layer_avg') then
@@ -713,7 +670,6 @@ contains
               AUTO_DIAGS_3D => marbl_diagnostics%auto_diags_3d(:,:),          &
               ZOO_DIAGS_2D  => marbl_diagnostics%zoo_diags_2d(:,:)%field,     &
               ZOO_DIAGS_3D  => marbl_diagnostics%zoo_diags_3d(:,:),           &
-              PART_DIAGS_3D => marbl_diagnostics%part_diags_3d(:),            &
               restore_diags => marbl_diagnostics%restore_diags(:)             &
              )
 
@@ -784,13 +740,6 @@ contains
         call accumulate_tavg_field(ZOO_DIAGS_3d(n,zoo_ind)%field(:),           &
                                    tavg_zoo_3d(n,zoo_ind), bid, i, c)
       end do
-    end do
-
-    ! Accumulate particulate terms
-    ! 3D
-    do n=1,part_diag_cnt_3d
-      call accumulate_tavg_field(PART_DIAGS_3D(n)%field(:), tavg_part_3d(n),  &
-                                 bid, i, c)
     end do
 
 !    call ecosys_restore%accumulate_tavg(restore_diags, bid, i, c)
