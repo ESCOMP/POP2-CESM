@@ -14,31 +14,33 @@
    use communicate,   only: my_task, master_task
    use io_types,      only: nml_in, nml_filename, stdout
    use broadcast,     only: broadcast_scalar, broadcast_array
-   use exit_mod,      only: sigAbort, exit_pop
-   use constants,     only: c0, blank_fmt, ndelim_fmt
+   use exit_mod,      only: sigAbort, exit_POP
+   use constants,     only: c0, c1, blank_fmt, ndelim_fmt
    use io_tools,      only: document
-   use blocks,        only: nx_block, ny_block
-   use domain,        only: nblocks_clinic
+   use blocks,        only: nx_block, ny_block, block, get_block
+   use domain,        only: nblocks_clinic, blocks_clinic
    use tavg,          only: define_tavg_field, accumulate_tavg_field
+   use shr_sys_mod,   only: shr_sys_abort
+   use grid,          only: KMT
 
    implicit none
    private
    save
 
 !-----------------------------------------------------------------------
-! This module cotains variables, initialization, and tavg routines
-! for the handling of shortwave heat flux over subsets of each ocean
-! model cell. These subsets are referred to as columns. The module
-! name mcog denotes Multi-Column Ocean Grid, a term from the CPT
-! (Climate Process Team) project
+! This module contains variables, initialization, import, and tavg routines
+! for the handling of shortwave heat flux over subsets of each ocean model
+! cell. These subsets are referred to as columns. The module name mcog
+! denotes Multi-Column Ocean Grid, a term from the CPT (Climate Process
+! Team) project
 !
 !    Ocean Mixing Processes Associated with High Spatial Heterogeneity
 !           in Sea Ice and the Implications for Climate Models
 !
 ! that funded the initial implementation. The initial mcog implementation
-! handled heat and freshwater fluxes over seperate columns and was
+! handled heat and freshwater fluxes over separate columns and was
 ! coupled to the KPP vertical mixing scheme. The current implementation
-! only handles shortwave heat flux over seperate columns and is not
+! only handles shortwave heat flux over separate columns and is not
 ! directly coupled to the ocean model's physics. Notes from the initial
 ! implementation are included below.
 !
@@ -82,22 +84,23 @@
 ! value of 1.0e-10 W/m^2.
 !
 ! The treatment of radiative fluxes in CESM leads to different time
-! time lags in frac_n and fracr_n in the sea ice covered and open
-! ocean columns. Because of this, the frac_n variables do not necessarily
-! sum to 1. The mcog code handles this by adjusting the open ocean
-! column fraction, which is column col_frac_adjust_ncol, to ensure
-! that the adjusted fractions sum to 1. This adjustment is applied
-! after per column and per bin fluxes are normalized by the column
-! and bin fractions. The choice for this adjustment would likely need
-! to change if the nature of the columns were to change.
-!
-! fracr_n is not used after this. For columns that arise only from
-! sea ice thickness categories, the adjusted fracr_n fractions would
-! be identical to the adjusted frac_n fractions.
+! time lags in frac_n and fracr_n in the sea ice covered and open ocean
+! columns. Because of this, the frac_n and fracr_n variables do not
+! necessarily sum to 1. The mcog code handles this by computing
+! s = sum(frac_n) and dividing each frac_n by s and multiplying each column
+! flux by frac_n. This ensures that the product frac_n * flux_n is preserved
+! and that the sum of the resulting frac_n's is 1. This is also done for
+! the fracr_n fractions and radiative fluxes. A caveat is that the sum s
+! is capped to not deviate too much from 1. If this cap is triggered then
+! the sum of the resulting frac_n's will not be 1, though the products
+! will still be preserved.
 !
 ! The subcoupling treatment that is applied to coupler aggregated
 ! shortwave heat flux (e.g. coszen normalization) is applied to the
-! per column and per bin shortwave heat fluxes.
+! per bin shortwave heat fluxes.
+!
+! If lmcog is .false., then mcog_ncols is set to 1 and the mcog buffers
+! are filled with the coupler aggregated fractions and fluxes.
 !
 !-----------------------------------------------------------------------
 
@@ -251,50 +254,65 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_mcog, tavg_mcog
+   public :: init_mcog, import_mcog, tavg_mcog
 
 ! !PUBLIC DATA MEMBERS:
 
    logical (log_kind), public ::  &
-      lmcog,                      &! .true. if mcog is on, i.e. select per columns fields are passed to the ocean
-      lmcog_debug                  ! enable more tavg output if true
+      lmcog,                      &! .true. if mcog is on, i.e. select per columns fields are being handled
+      lmcog_flds_sent              ! .true. if the per column fields are actually being sent
+                                   ! public so that it can be set in POP_CplIndicesSet
 
    integer, public ::  &
       mcog_ncols,                 &! number of mcog columns (set in POP_CplIndicesSet)
-      mcog_nbins,                 &! number of mcog bins (set in init_mcog)
-      col_frac_adjust_ncol         ! index of column whose fraction is adjusted, if any (set in POP_CplIndicesSet)
-
-   real (r8), public :: &
-      mcog_dagg_qsw_abort_thres    ! call abort if abs(dagg_qsw_raw) exceeds this threshold
-
-   integer, dimension(:), allocatable, public ::  &
-      mcog_col_to_bin              ! index mapping of mcog columns to mcog bins
+      mcog_nbins                   ! number of mcog bins (set in init_mcog)
 
    real (r8), dimension(:,:,:,:), allocatable, public :: &
-      FRAC_COL,                   &! fraction of cell occupied by mcog column
       FRAC_BIN,                   &! fraction of cell occupied by mcog bin
-      QSW_RAW_COL,                &! raw (directly from cpl) shortwave into each mcog column
+      FRACR_BIN,                  &! fraction of cell occupied by mcog bin for radiative terms
       QSW_RAW_BIN,                &! raw (directly from cpl) shortwave into each mcog bin
-      QSW_COL,                    &! shortwave into each mcog column, potentially modified by coszen factor
       QSW_BIN                      ! shortwave into each mcog bin, potentially modified by coszen factor
-
-   real (r8), dimension(:,:,:), allocatable, public :: &
-      QSW_RAW_COL_DAGG,           &! difference between QSW_RAW aggregated over columns and cpl aggregate
-      QSW_RAW_BIN_DAGG             ! difference between QSW_RAW aggregated over columns and cpl aggregate
 
 ! !PRIVATE DATA MEMBERS:
 
+   logical (log_kind) ::  &
+      lmcog_debug                  ! enable more tavg output if true
+
+   integer, dimension(:), allocatable ::  &
+      mcog_col_to_bin              ! index mapping of mcog columns to mcog bins
+
+   real (r8) :: &
+      mcog_dagg_qsw_abort_thres    ! call abort if abs(dagg_qsw_raw) exceeds this threshold
+
+   real (r8), parameter :: &
+      mcog_max_frac_sum_anom = 0.10_r8 ! maximum abs used value for frac_sum-1 in fraction adjustment
+                                       ! i.e. do not adjust fractions and fluxes by more than 10%
+
+   real (r8), dimension(:,:,:,:), allocatable :: &
+      FRAC_COL,                   &! fraction of cell occupied by mcog column
+      FRACR_COL,                  &! fraction of cell occupied by mcog column for radiative terms
+      QSW_RAW_COL                  ! raw (directly from cpl) shortwave into each mcog column
+
+   real (r8), dimension(:,:,:), allocatable :: &
+      QSW_RAW_COL_DAGG,           &! difference between QSW_RAW aggregated over columns and cpl aggregate
+      QSW_RAW_BIN_DAGG,           &! difference between QSW_RAW aggregated over bins and cpl aggregate
+      FRAC_ADJUST_FACT,           &! factor used in FRAC adjustment
+      FRACR_ADJUST_FACT            ! factor used in FRACR adjustment
+
    integer (int_kind), dimension(:), allocatable ::  &
-      tavg_FRAC_COL,              &! tavg id for FRAC_COL
       tavg_FRAC_BIN,              &! tavg id for FRAC_BIN
-      tavg_QSW_RAW_COL,           &! tavg id for QSW_RAW_COL
+      tavg_FRACR_BIN,             &! tavg id for FRAC_BIN
       tavg_QSW_RAW_BIN,           &! tavg id for QSW_RAW_BIN
-      tavg_QSW_COL,               &! tavg id for QSW_COL
-      tavg_QSW_BIN                 ! tavg id for QSW_BIN
+      tavg_QSW_BIN,               &! tavg id for QSW_BIN
+      tavg_FRAC_COL,              &! tavg id for FRAC_COL
+      tavg_FRACR_COL,             &! tavg id for FRAC_COL
+      tavg_QSW_RAW_COL             ! tavg id for QSW_RAW_COL
 
    integer (int_kind) ::  &
       tavg_QSW_RAW_COL_DAGG,      &! tavg id for QSW_RAW_COL_DAGG
-      tavg_QSW_RAW_BIN_DAGG        ! tavg id for QSW_RAW_BIN_DAGG
+      tavg_QSW_RAW_BIN_DAGG,      &! tavg id for QSW_RAW_BIN_DAGG
+      tavg_FRAC_ADJUST_FACT,      &! tavg id for FRAC_ADJUST_FACT
+      tavg_FRACR_ADJUST_FACT       ! tavg id for FRACR_ADJUST_FACT
 
 !EOP
 !BOC
@@ -368,7 +386,7 @@
 
    call broadcast_scalar(nml_error, master_task)
    if (nml_error /= 0) then
-     call exit_POP (SigAbort, 'ERROR reading mcog_nml')
+     call exit_POP (sigAbort, 'ERROR reading mcog_nml')
    endif
 
    if (my_task == master_task) then
@@ -388,7 +406,15 @@
    call broadcast_scalar(mcog_dagg_qsw_abort_thres, master_task)
    call broadcast_array(mcog_col_to_bin, master_task)
 
-   if (.not. lmcog) return
+!-----------------------------------------------------------------------
+!  ensure that lmcog and lmcog_flds_sent are consistent
+!-----------------------------------------------------------------------
+
+   if (lmcog .neqv. lmcog_flds_sent) then
+      call document('init_mcog', 'lmcog_flds_sent', lmcog_flds_sent)
+      call exit_POP (sigAbort, &
+         'FATAL ERROR: lmcog and mcog_flds_sent are inconsistent')
+   endif
 
 !-----------------------------------------------------------------------
 !  ensure that mcog_col_to_bin has valid values
@@ -398,7 +424,7 @@
       if ((mcog_col_to_bin(ncol) <= 0) .or. (mcog_col_to_bin(ncol) > mcog_ncols)) then
          call document('init_mcog', 'ncol', ncol)
          call document('init_mcog', 'mcog_col_to_bin(ncol)', mcog_col_to_bin(ncol))
-         call exit_POP (SigAbort, 'FATAL ERROR: out of range mcog_col_to_bin(ncol) value')
+         call exit_POP (sigAbort, 'FATAL ERROR: out of range mcog_col_to_bin(ncol) value')
       endif
    end do
 
@@ -410,38 +436,54 @@
 !-----------------------------------------------------------------------
 
    allocate(FRAC_BIN            (nx_block,ny_block,mcog_nbins,nblocks_clinic))
+   allocate(FRACR_BIN           (nx_block,ny_block,mcog_nbins,nblocks_clinic))
    allocate(QSW_RAW_BIN         (nx_block,ny_block,mcog_nbins,nblocks_clinic))
    allocate(QSW_BIN             (nx_block,ny_block,mcog_nbins,nblocks_clinic))
 
    FRAC_BIN    = c0
+   FRACR_BIN   = c0
    QSW_RAW_BIN = c0
    QSW_BIN     = c0
 
    if (lmcog_debug) then
       allocate(FRAC_COL         (nx_block,ny_block,mcog_ncols,nblocks_clinic))
+      allocate(FRACR_COL        (nx_block,ny_block,mcog_ncols,nblocks_clinic))
       allocate(QSW_RAW_COL      (nx_block,ny_block,mcog_ncols,nblocks_clinic))
-      allocate(QSW_COL          (nx_block,ny_block,mcog_ncols,nblocks_clinic))
       allocate(QSW_RAW_COL_DAGG (nx_block,ny_block,nblocks_clinic))
       allocate(QSW_RAW_BIN_DAGG (nx_block,ny_block,nblocks_clinic))
+      allocate(FRAC_ADJUST_FACT (nx_block,ny_block,nblocks_clinic))
+      allocate(FRACR_ADJUST_FACT(nx_block,ny_block,nblocks_clinic))
 
-      FRAC_COL         = c0
-      QSW_RAW_COL      = c0
-      QSW_COL          = c0
-      QSW_RAW_COL_DAGG = c0
-      QSW_RAW_BIN_DAGG = c0
+      FRAC_COL          = c0
+      FRACR_COL         = c0
+      QSW_RAW_COL       = c0
+      QSW_RAW_COL_DAGG  = c0
+      QSW_RAW_BIN_DAGG  = c0
+      FRAC_ADJUST_FACT  = c0
+      FRACR_ADJUST_FACT = c0
    endif
+
+   if (.not. lmcog) return
 
 !-----------------------------------------------------------------------
 !  define tavg fields
 !-----------------------------------------------------------------------
 
    allocate(tavg_FRAC_BIN (mcog_nbins))
+   allocate(tavg_FRACR_BIN(mcog_nbins))
    allocate(tavg_QSW_BIN  (mcog_nbins))
 
    do nbin = 1, mcog_nbins
       write(sname, '(a,i2.2)') 'FRAC_BIN_', nbin
       write(lname, '(a,i2.2)') 'fraction of ocean cell occupied by mcog bin ', nbin
       call define_tavg_field(tavg_FRAC_BIN(nbin), trim(sname), 2, &
+                             long_name=trim(lname),               &
+                             units='1', grid_loc='2110',          &
+                             coordinates='TLONG TLAT time')
+
+      write(sname, '(a,i2.2)') 'FRACR_BIN_', nbin
+      write(lname, '(a,i2.2,a)') 'fraction of ocean cell occupied by mcog bin ', nbin, ' for radiative terms'
+      call define_tavg_field(tavg_FRACR_BIN(nbin), trim(sname), 2, &
                              long_name=trim(lname),               &
                              units='1', grid_loc='2110',          &
                              coordinates='TLONG TLAT time')
@@ -457,8 +499,8 @@
    if (lmcog_debug) then
       allocate(tavg_QSW_RAW_BIN (mcog_nbins))
       allocate(tavg_FRAC_COL    (mcog_ncols))
+      allocate(tavg_FRACR_COL   (mcog_ncols))
       allocate(tavg_QSW_RAW_COL (mcog_ncols))
-      allocate(tavg_QSW_COL     (mcog_ncols))
 
       do nbin = 1, mcog_nbins
          write(sname, '(a,i2.2)') 'QSW_RAW_BIN_', nbin
@@ -477,18 +519,18 @@
                                 units='1', grid_loc='2110',          &
                                 coordinates='TLONG TLAT time')
 
+         write(sname, '(a,i2.2)') 'FRACR_COL_', ncol
+         write(lname, '(a,i2.2,a)') 'fraction of ocean cell occupied by mcog column ', ncol, ' for radiative terms'
+         call define_tavg_field(tavg_FRACR_COL(ncol), trim(sname), 2, &
+                                long_name=trim(lname),               &
+                                units='1', grid_loc='2110',          &
+                                coordinates='TLONG TLAT time')
+
          write(sname, '(a,i2.2)') 'QSW_RAW_COL_', ncol
          write(lname, '(a,i2.2)') 'raw (from cpl) net shortwave into mcog column ', ncol
          call define_tavg_field(tavg_QSW_RAW_COL(ncol), trim(sname), 2, &
                                 long_name=trim(lname),                  &
                                 units='W m-2', grid_loc='2110',         &
-                                coordinates='TLONG TLAT time')
-
-         write(sname, '(a,i2.2)') 'QSW_COL_', ncol
-         write(lname, '(a,i2.2)') 'net shortwave into mcog column ', ncol
-         call define_tavg_field(tavg_QSW_COL(ncol), trim(sname), 2, &
-                                long_name=trim(lname),              &
-                                units='W m-2', grid_loc='2110',     &
                                 coordinates='TLONG TLAT time')
 
       end do
@@ -507,12 +549,172 @@
                              units='W m-2', grid_loc='2110',        &
                              coordinates='TLONG TLAT time')
 
+      sname = 'FRAC_ADJUST_FACT'
+      lname = 'factor used in FRAC adjustment'
+      call define_tavg_field(tavg_FRAC_ADJUST_FACT, trim(sname), 2 , &
+                             long_name=trim(lname),                 &
+                             units='1', grid_loc='2110',            &
+                             coordinates='TLONG TLAT time')
+
+      sname = 'FRACR_ADJUST_FACT'
+      lname = 'factor used in FRACR adjustment'
+      call define_tavg_field(tavg_FRACR_ADJUST_FACT, trim(sname), 2 , &
+                             long_name=trim(lname),                 &
+                             units='1', grid_loc='2110',            &
+                             coordinates='TLONG TLAT time')
+
    endif
 
 !-----------------------------------------------------------------------
 !EOC
 
  end subroutine init_mcog
+
+!***********************************************************************
+!BOP
+! !IROUTINE: import_mcog
+! !INTERFACE:
+
+ subroutine import_mcog(frac_col_1pt, fracr_col_1pt, qsw_fracr_col_1pt, &
+                        swnet, iblock, i, j)
+
+! !DESCRIPTION:
+!   imports received fields into MCOG variables for a single column
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   real (r8), dimension(mcog_ncols), intent(inout) ::  &
+      frac_col_1pt, fracr_col_1pt
+
+! !INPUT PARAMETERS:
+
+   real (r8), dimension(mcog_ncols), intent(in) ::  &
+      qsw_fracr_col_1pt
+
+   real (r8), intent(in) ::  &
+      swnet
+
+   integer (int_kind), intent(in) :: &
+      iblock, i, j
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: nbin, ncol ! loop indices
+
+   real (r8), dimension(mcog_ncols) ::  &
+      qsw_col_1pt
+
+   real (r8), dimension(mcog_nbins) ::  &
+      frac_bin_1pt, fracr_bin_1pt, qsw_fracr_bin_1pt, qsw_bin_1pt
+
+   real (r8) ::  &
+      qsw_col_dagg_1pt, qsw_bin_dagg_1pt, &
+      frac_col_adjust_scalar, frac_col_sum, fracr_col_sum
+
+   type (block) :: this_block ! local block info
+
+!-----------------------------------------------------------------------
+!  do nothing for land points, rely on zero initializtion in init_mcog
+!-----------------------------------------------------------------------
+
+   if (KMT(i,j,iblock) == 0) return
+
+!-----------------------------------------------------------------------
+
+   ! accumulate fields into corresponding bin
+
+   frac_bin_1pt(:) = c0
+   fracr_bin_1pt(:) = c0
+   qsw_fracr_bin_1pt(:) = c0
+
+   do ncol = 1, mcog_ncols
+      nbin = mcog_col_to_bin(ncol)
+      frac_bin_1pt(nbin) = frac_bin_1pt(nbin) + frac_col_1pt(ncol)
+      fracr_bin_1pt(nbin) = fracr_bin_1pt(nbin) + fracr_col_1pt(ncol)
+      qsw_fracr_bin_1pt(nbin) = qsw_fracr_bin_1pt(nbin) + qsw_fracr_col_1pt(ncol)
+   enddo
+
+   ! apply upper limit to bin fractions, in case roundoff in bin accumulation yields an out of range value
+   ! it is not necessary to apply 0 as a lower limit,
+   !    because the summation terms are all >= 0
+   frac_bin_1pt  = min(c1, frac_bin_1pt)
+   fracr_bin_1pt = min(c1, fracr_bin_1pt)
+
+   ! compare aggregate over columns and bins to coupler aggregation
+   qsw_col_dagg_1pt = sum(qsw_fracr_col_1pt) - swnet
+   qsw_bin_dagg_1pt = sum(qsw_fracr_bin_1pt) - swnet
+
+   if ((abs(qsw_col_dagg_1pt) > mcog_dagg_qsw_abort_thres) .or. &
+       (abs(qsw_bin_dagg_1pt) > mcog_dagg_qsw_abort_thres)) then
+      this_block = get_block(blocks_clinic(iblock),iblock)
+      write(stdout, '(a,2(x,a,i),2(x,a,e13.6))') &
+         'qsw aggregation mismatch exceeds threshold', &
+         'i_glob=', this_block%i_glob(i), &
+         'j_glob=', this_block%j_glob(j), &
+         'qsw_col_dagg_1pt=', qsw_col_dagg_1pt, &
+         'qsw_bin_dagg_1pt=', qsw_bin_dagg_1pt
+      call shr_sys_abort ('Error: (ocn_import): qsw aggregation mismatch exceeds threshold')
+   endif
+
+   ! normalize column and bin fluxes by corresponding fractions
+   where (fracr_col_1pt > c0)
+      qsw_col_1pt = qsw_fracr_col_1pt / fracr_col_1pt
+   elsewhere
+      qsw_col_1pt = c0
+   endwhere
+
+   where (fracr_bin_1pt > c0)
+      qsw_bin_1pt = qsw_fracr_bin_1pt / fracr_bin_1pt
+   elsewhere
+      qsw_bin_1pt = c0
+   endwhere
+
+   ! scale frac_col so it sums to 1
+   ! apply inverse scaling to fields, to preserve fraction weighted sum of fields
+   ! (there are no such fields, because MCOG is only being applied to qsw)
+   frac_col_sum = sum(frac_col_1pt)
+   frac_col_sum = min(c1 + mcog_max_frac_sum_anom, max(c1 - mcog_max_frac_sum_anom, frac_col_sum))
+   frac_col_1pt(:) = frac_col_1pt(:) * (c1 / frac_col_sum)
+   frac_bin_1pt(:) = frac_bin_1pt(:) * (c1 / frac_col_sum)
+
+   ! scale fracr_col so it sums to 1
+   ! apply inverse scaling to fields, to preserve fraction weighted sum of fields
+   fracr_col_sum = sum(fracr_col_1pt)
+   fracr_col_sum = min(c1 + mcog_max_frac_sum_anom, max(c1 - mcog_max_frac_sum_anom, fracr_col_sum))
+   fracr_col_1pt(:) = fracr_col_1pt(:) * (c1 / fracr_col_sum)
+   fracr_bin_1pt(:) = fracr_bin_1pt(:) * (c1 / fracr_col_sum)
+   qsw_col_1pt(:) = qsw_col_1pt(:) * fracr_col_sum
+   qsw_bin_1pt(:) = qsw_bin_1pt(:) * fracr_col_sum
+
+   ! copy results to MCOG column and bin arrays
+
+   FRAC_BIN(i,j,:,iblock)    = frac_bin_1pt(:)
+   FRACR_BIN(i,j,:,iblock)   = fracr_bin_1pt(:)
+   QSW_RAW_BIN(i,j,:,iblock) = qsw_bin_1pt(:)
+
+   if (lmcog_debug) then
+      FRAC_COL(i,j,:,iblock)        = frac_col_1pt(:)
+      FRACR_COL(i,j,:,iblock)       = fracr_col_1pt(:)
+      QSW_RAW_COL(i,j,:,iblock)     = qsw_col_1pt(:)
+      QSW_RAW_COL_DAGG(i,j,iblock)  = qsw_col_dagg_1pt
+      QSW_RAW_BIN_DAGG(i,j,iblock)  = qsw_bin_dagg_1pt
+      FRAC_ADJUST_FACT(i,j,iblock)  = (c1 / frac_col_sum)
+      FRACR_ADJUST_FACT(i,j,iblock) = (c1 / fracr_col_sum)
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine import_mcog
 
 !***********************************************************************
 !BOP
@@ -544,6 +746,7 @@
    do iblock = 1, nblocks_clinic
       do nbin = 1, mcog_nbins
          call accumulate_tavg_field(FRAC_BIN(:,:,nbin,iblock), tavg_FRAC_BIN(nbin), iblock, 1)
+         call accumulate_tavg_field(FRACR_BIN(:,:,nbin,iblock), tavg_FRACR_BIN(nbin), iblock, 1)
          call accumulate_tavg_field(QSW_BIN(:,:,nbin,iblock), tavg_QSW_BIN(nbin), iblock, 1)
       end do
    end do
@@ -556,12 +759,14 @@
 
          do ncol = 1, mcog_ncols
             call accumulate_tavg_field(FRAC_COL(:,:,ncol,iblock), tavg_FRAC_COL(ncol), iblock, 1)
+            call accumulate_tavg_field(FRACR_COL(:,:,ncol,iblock), tavg_FRACR_COL(ncol), iblock, 1)
             call accumulate_tavg_field(QSW_RAW_COL(:,:,ncol,iblock), tavg_QSW_RAW_COL(ncol), iblock, 1)
-            call accumulate_tavg_field(QSW_COL(:,:,ncol,iblock), tavg_QSW_COL(ncol), iblock, 1)
          end do
 
          call accumulate_tavg_field(QSW_RAW_COL_DAGG(:,:,iblock), tavg_QSW_RAW_COL_DAGG, iblock, 1)
          call accumulate_tavg_field(QSW_RAW_BIN_DAGG(:,:,iblock), tavg_QSW_RAW_BIN_DAGG, iblock, 1)
+         call accumulate_tavg_field(FRAC_ADJUST_FACT(:,:,iblock), tavg_FRAC_ADJUST_FACT, iblock, 1)
+         call accumulate_tavg_field(FRACR_ADJUST_FACT(:,:,iblock), tavg_FRACR_ADJUST_FACT, iblock, 1)
       end do
    endif
 

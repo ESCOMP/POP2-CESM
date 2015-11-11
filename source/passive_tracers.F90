@@ -27,7 +27,7 @@
    use broadcast, only: broadcast_scalar
    use prognostic, only: TRACER, PSURF, tracer_d, oldtime, curtime, newtime
    use forcing_shf, only: SHF_QSW_RAW, SHF_QSW
-   use mcog, only: FRAC_BIN, QSW_RAW_BIN, QSW_BIN
+   use mcog, only: FRACR_BIN, QSW_RAW_BIN, QSW_BIN
    use io_types, only: stdout, nml_in, nml_filename, io_field_desc, &
        datafile
    use exit_mod, only: sigAbort, exit_pop
@@ -871,7 +871,7 @@
          this_block = get_block(blocks_clinic(iblock), iblock)
          bid = this_block%local_id
          call ecosys_driver_set_interior(ciso_on, &
-              FRAC_BIN(:, :, :, bid), QSW_RAW_BIN(:, :, :, bid), QSW_BIN(:, :, :, bid), &
+              FRACR_BIN(:, :, :, bid), QSW_RAW_BIN(:, :, :, bid), QSW_BIN(:, :, :, bid), &
               TRACER(:, :, :, 1, oldtime, bid), TRACER(:, :, :, 1, curtime, bid), &
               TRACER(:, :, :, 2, oldtime, bid), TRACER(:, :, :, 2, curtime, bid), &
               TRACER(:, :, :, ecosys_driver_ind_begin:ecosys_driver_ind_end, oldtime, bid), &

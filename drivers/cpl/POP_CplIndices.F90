@@ -2,7 +2,7 @@ module POP_CplIndices
  
   use seq_flds_mod, only : seq_flds_x2o_fields, seq_flds_o2x_fields 
   use seq_flds_mod, only : seq_flds_i2o_per_cat, ice_ncat 
-  use mcog, only : lmcog, mcog_ncols, col_frac_adjust_ncol
+  use mcog, only : mcog_ncols, lmcog_flds_sent
   use mct_mod
 
   implicit none
@@ -146,13 +146,10 @@ contains
     ! convert cpl indices to mcog column indices
     ! this implementation only handles columns due to ice thickness categories
 
-    ! adjust the open ocean fraction in this case, because it is not lagged in
-    ! time, while the ice covered fractions are lagged
-
-    mcog_ncols = ice_ncat+1
-    col_frac_adjust_ncol = 1
+    lmcog_flds_sent = seq_flds_i2o_per_cat
 
     if (seq_flds_i2o_per_cat) then
+      mcog_ncols = ice_ncat+1
       allocate(index_x2o_frac_col(mcog_ncols))
       allocate(index_x2o_fracr_col(mcog_ncols))
       allocate(index_x2o_qsw_fracr_col(mcog_ncols))
@@ -169,6 +166,8 @@ contains
         index_x2o_fracr_col(ncol)     = index_x2o_frac_col(ncol)
         index_x2o_qsw_fracr_col(ncol) = mct_avect_indexra(x2o,'PFioi_swpen_ifrac_'//cncat)
       enddo
+    else
+      mcog_ncols = 1
     endif
 
     call mct_aVect_clean(x2o)

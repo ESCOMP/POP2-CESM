@@ -52,8 +52,7 @@
        named_field_set, named_field_get
    use forcing_fields
    use mcog, only: tavg_mcog
-   use mcog, only: lmcog, FRAC_BIN, QSW_RAW_BIN
-   use mcog, only: lmcog_debug, FRAC_COL, QSW_RAW_COL
+   use mcog, only: FRAC_BIN, QSW_RAW_BIN
       
    implicit none
    save
@@ -1338,52 +1337,26 @@
       return
    endif
 
-   if (lmcog) then
-      call POP_HaloUpdate(FRAC_BIN,POP_haloClinic,        &
-                          POP_gridHorzLocCenter,          &
-                          POP_fieldKindScalar, errorCode, &
-                          fillValue = 0.0_POP_r8)
+   call POP_HaloUpdate(FRAC_BIN,POP_haloClinic,        &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
 
-      if (errorCode /= POP_Success) then
-         call POP_ErrorSet(errorCode, &
-            'update_ghost_cells_coupler: error updating FRAC_BIN')
-         return
-      endif
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating FRAC_BIN')
+      return
+   endif
 
-      call POP_HaloUpdate(QSW_RAW_BIN,POP_haloClinic,     &
-                          POP_gridHorzLocCenter,          &
-                          POP_fieldKindScalar, errorCode, &
-                          fillValue = 0.0_POP_r8)
+   call POP_HaloUpdate(QSW_RAW_BIN,POP_haloClinic,     &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
 
-      if (errorCode /= POP_Success) then
-         call POP_ErrorSet(errorCode, &
-            'update_ghost_cells_coupler: error updating QSW_RAW_BIN')
-         return
-      endif
-
-      if (lmcog_debug) then
-         call POP_HaloUpdate(FRAC_COL,POP_haloClinic,        &
-                             POP_gridHorzLocCenter,          &
-                             POP_fieldKindScalar, errorCode, &
-                             fillValue = 0.0_POP_r8)
-
-         if (errorCode /= POP_Success) then
-            call POP_ErrorSet(errorCode, &
-               'update_ghost_cells_coupler: error updating FRAC_COL')
-            return
-         endif
-
-         call POP_HaloUpdate(QSW_RAW_COL,POP_haloClinic,     &
-                             POP_gridHorzLocCenter,          &
-                             POP_fieldKindScalar, errorCode, &
-                             fillValue = 0.0_POP_r8)
-
-         if (errorCode /= POP_Success) then
-            call POP_ErrorSet(errorCode, &
-               'update_ghost_cells_coupler: error updating QSW_RAW_COL')
-            return
-         endif
-      endif
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating QSW_RAW_BIN')
+      return
    endif
 
 #endif

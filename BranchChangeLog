@@ -1,5 +1,51 @@
 ===============================================================================
 Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    11 Nov 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n12_cesm_pop_2_1_20151020
+Tag Summary: incorporate changes suggested from review of MCOG code
+
+answer changing mods to MCOG
+answer changing mods to how ecosys uses MCOG
+changes physics answers if chl_option = 'model'
+
+Make FRACR_BIN available outside of mcog.
+Remove QSW_COL variable.
+Fraction adjustment algorithm changed to conserve integrated qsw flux per column (changes answers).
+Have ecosys use FRACR_BIN for PAR instead of FRAC_BIN (changes answers).
+Code converting cpl fields into MCOG variables moved from ocn_import_export.F90 to mcog.F90.
+Do not turn mcog entirely off even if lmcog=.false., set mcog_ncols to 1 and
+   fill MCOG arrays with single column/bin cpl aggregated flux and frac=1.
+Apply halo updates unilaterally to FRAC_BIN, QSW_RAW_BIN, not to debug vars.
+Apply coszen unilaterally to QSW_RAW_BIN, not to QSW_RAW_COL.
+Move setting of lmcog from build-namelist to namelist_defaults.xml.
+Correct setting of CPL_I2O_PER_CAT in build-namelist.
+
+Testing
+aux_pop_MARBL: (baseline comparison to n11 tag
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+      baseline comparisons to previous n10 fail, because of answer changing mods
+
+aux_pop: (no baseline comparison)
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+
+M       source/initial.F90
+M       source/forcing.F90
+M       source/passive_tracers.F90
+M       source/forcing_coupled.F90
+M       source/ecosys_driver.F90
+M       source/mcog.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       BranchChangeLog
+M       input_templates/ocn.mcog.tavg.csh
+M       drivers/cpl/ocn_import_export.F90
+M       drivers/cpl/POP_CplIndices.F90
+
+===============================================================================
+Tag Creator: klindsay
 Developers:  klindsay, mvertens
 Tag Date:    3 Nov 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n11_cesm_pop_2_1_20151020

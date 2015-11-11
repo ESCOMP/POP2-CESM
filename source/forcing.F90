@@ -48,8 +48,7 @@
    use sw_absorption, only: set_chl
    use registry
    use forcing_fields
-   use mcog, only: lmcog, lmcog_debug, mcog_ncols, mcog_nbins
-   use mcog, only: QSW_COL, QSW_RAW_COL, QSW_BIN, QSW_RAW_BIN
+   use mcog, only: mcog_nbins, QSW_BIN, QSW_RAW_BIN
 
    implicit none
    private
@@ -357,16 +356,9 @@
             SHF_QSW(:,:,iblock) = QSW_COSZ_WGHT(:,:,iblock) &
                * SHF_COMP(:,:,iblock,shf_comp_qsw)
 
-            if (lmcog) then
-               if (lmcog_debug) then
-                  do ncol = 1, mcog_ncols
-                     QSW_COL(:,:,ncol,iblock) = QSW_COSZ_WGHT(:,:,iblock) * QSW_RAW_COL(:,:,ncol,iblock)
-                  enddo
-               endif
-               do nbin = 1, mcog_nbins
-                  QSW_BIN(:,:,nbin,iblock) = QSW_COSZ_WGHT(:,:,iblock) * QSW_RAW_BIN(:,:,nbin,iblock)
-               enddo
-            endif
+            do nbin = 1, mcog_nbins
+               QSW_BIN(:,:,nbin,iblock) = QSW_COSZ_WGHT(:,:,iblock) * QSW_RAW_BIN(:,:,nbin,iblock)
+            enddo
 
          enddo
          !$OMP END PARALLEL DO
@@ -377,12 +369,7 @@
             SHF_QSW = qsw_12hr_factor(index_qsw)*SHF_COMP(:,:,:,shf_comp_qsw)
          endif
 
-         if (lmcog) then
-            if (lmcog_debug) then
-               QSW_COL(:,:,:,:) = qsw_12hr_factor(index_qsw) * QSW_RAW_COL(:,:,:,:)
-            endif
-            QSW_BIN(:,:,:,:) = qsw_12hr_factor(index_qsw) * QSW_RAW_BIN(:,:,:,:)
-         endif
+         QSW_BIN(:,:,:,:) = qsw_12hr_factor(index_qsw) * QSW_RAW_BIN(:,:,:,:)
 
       endif
 

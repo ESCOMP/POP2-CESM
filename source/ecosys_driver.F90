@@ -462,7 +462,7 @@ contains
   ! !INTERFACE:
 
   subroutine ecosys_driver_set_interior(ciso_on, &
-       FRAC_BIN, QSW_RAW_BIN, QSW_BIN, &
+       FRACR_BIN, QSW_RAW_BIN, QSW_BIN, &
        TEMP_OLD, TEMP_CUR, SALT_OLD, SALT_CUR, &
        TRACER_MODULE_OLD, TRACER_MODULE_CUR, DTRACER_MODULE, &
        this_block)
@@ -493,7 +493,7 @@ contains
          ciso_on                 ! ecosys_ciso on
 
     real (r8), dimension(nx_block, ny_block, mcog_nbins), intent(in) :: &
-         FRAC_BIN,     &! fraction of cell occupied by mcog bin
+         FRACR_BIN,    &! fraction of cell occupied by mcog bin
          QSW_RAW_BIN,  &! raw (directly from cpl) shortwave into each mcog column (W/m^2)
          QSW_BIN        ! shortwave into each mcog bin, potentially modified by coszen factor (W/m^2)
 
@@ -607,7 +607,7 @@ contains
           marbl_domain%land_mask = marbl_saved_state%land_mask(i, c, bid)
           marbl_domain%kmt = KMT(i, c, bid)
           if (marbl_saved_state%land_mask(i,c,bid)) then
-             marbl_domain%PAR_col_frac(:) = FRAC_BIN(i, c, :)
+             marbl_domain%PAR_col_frac(:) = FRACR_BIN(i, c, :)
              marbl_domain%surf_shortwave(:) = QSW_USE(i, c, :)
              do k = 1, marbl_domain%km
                 marbl_domain%temperature(k) = temperature(i,c,k)

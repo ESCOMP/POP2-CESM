@@ -844,6 +844,8 @@
 <!---------------------------->
 
 <lmcog>.false.</lmcog>
+<lmcog use_ecosys="TRUE">.true.</lmcog>
+
 <lmcog_debug>.false.</lmcog_debug>
 <mcog_dagg_qsw_abort_thres>1.0e-10</mcog_dagg_qsw_abort_thres>
 
