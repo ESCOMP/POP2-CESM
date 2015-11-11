@@ -35,38 +35,6 @@
   use ecosys_constants, only : ecosys_tracer_cnt
   use ecosys_diagnostics_mod, only : marbl_diag_ind
 
-  ! autotroph diagnostics
-  ! 2d
-  use ecosys_diagnostics_mod, only : auto_diag_cnt_2d
-  use ecosys_diagnostics_mod, only : photoC_zint_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_NO3_zint_diag_ind
-  use ecosys_diagnostics_mod, only : CaCO3_form_zint_diag_ind
-  ! 3d
-  use ecosys_diagnostics_mod, only : auto_diag_cnt_3d
-  use ecosys_diagnostics_mod, only : N_lim_diag_ind
-  use ecosys_diagnostics_mod, only : P_lim_diag_ind
-  use ecosys_diagnostics_mod, only : Fe_lim_diag_ind
-  use ecosys_diagnostics_mod, only : SiO3_lim_diag_ind
-  use ecosys_diagnostics_mod, only : light_lim_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_diag_ind
-  use ecosys_diagnostics_mod, only : photoC_NO3_diag_ind
-  use ecosys_diagnostics_mod, only : photoFe_diag_ind
-  use ecosys_diagnostics_mod, only : photoNO3_diag_ind
-  use ecosys_diagnostics_mod, only : photoNH4_diag_ind
-  use ecosys_diagnostics_mod, only : DOP_uptake_diag_ind
-  use ecosys_diagnostics_mod, only : PO4_uptake_diag_ind
-  use ecosys_diagnostics_mod, only : auto_graze_diag_ind
-  use ecosys_diagnostics_mod, only : auto_graze_poc_diag_ind
-  use ecosys_diagnostics_mod, only : auto_graze_doc_diag_ind
-  use ecosys_diagnostics_mod, only : auto_graze_zoo_diag_ind
-  use ecosys_diagnostics_mod, only : auto_loss_diag_ind
-  use ecosys_diagnostics_mod, only : auto_loss_poc_diag_ind
-  use ecosys_diagnostics_mod, only : auto_loss_doc_diag_ind
-  use ecosys_diagnostics_mod, only : auto_agg_diag_ind
-  use ecosys_diagnostics_mod, only : bSi_form_diag_ind
-  use ecosys_diagnostics_mod, only : CaCO3_form_diag_ind
-  use ecosys_diagnostics_mod, only : Nfix_diag_ind
-
   ! zooplankton diagnostics
   ! 2d
   use ecosys_diagnostics_mod, only : zoo_diag_cnt_2d
@@ -182,9 +150,6 @@
   !  tavg ids for autotroph fields
   !-----------------------------------------------------------------------
 
-  integer (int_kind), dimension(auto_diag_cnt_2d, autotroph_cnt) :: tavg_auto_2d
-  integer (int_kind), dimension(auto_diag_cnt_3d, autotroph_cnt) :: tavg_auto_3d
-
   integer (int_kind) ::         &
       tavg_tot_bSi_form,        &! tavg id for Si uptake
       tavg_tot_CaCO3_form,      &! tavg id for CaCO3 formation
@@ -226,8 +191,6 @@ contains
     allocate(tavg_ecosys(marbl_diag_ind%count))
     associate(                                                                &
               diags         => marbl_diags%diags(:),                          &
-              auto_diags_2d => marbl_diags%auto_diags_2d(:,:),                &
-              auto_diags_3d => marbl_diags%auto_diags_3d(:,:),                &
               zoo_diags_2d  => marbl_diags%zoo_diags_2d(:,:),                 &
               zoo_diags_3d  => marbl_diags%zoo_diags_3d(:,:),                 &
               restore_diags => marbl_diags%restore_diags(:)                   &
@@ -502,23 +465,6 @@ contains
                              coordinates=coords)
     end do
 
-    do auto_ind = 1, autotroph_cnt
-      do n=1,auto_diag_cnt_2d
-        define_field = .true.
-!        if (n.eq.CaCO3_form_zint_diag_ind) then
-!          define_field = (autotrophs(auto_ind)%CaCO3_ind > 0)
-!        end if
-
-        if (define_field) then
-          call define_tavg_field(tavg_auto_2d(n, auto_ind),                   &
-                        trim(auto_diags_2d(n, auto_ind)%short_name), 2,       &
-                        long_name=trim(auto_diags_2d(n, auto_ind)%long_name), &
-                        units=trim(auto_diags_2d(n, auto_ind)%units),         &
-                        grid_loc='2110', coordinates='TLONG TLAT time')
-        end if
-      end do
-    end do
-
     call define_tavg_field(tavg_tot_CaCO3_form_zint, 'CaCO3_form_zint', 2, &
                            long_name='Total CaCO3 Formation Vertical Integral', &
                            units='mmol/m^3 cm/s', grid_loc='2110', &
@@ -557,32 +503,6 @@ contains
 !-----------------------------------------------------------------------
 !  Define 3D tavg fields for autotrophs
 !-----------------------------------------------------------------------
-
-    do auto_ind = 1, autotroph_cnt
-      do n=1,auto_diag_cnt_3d
-        if (trim(auto_diags_3d(n,auto_ind)%vertical_grid).eq.'layer_avg') then
-          if (auto_diags_3d(n,auto_ind)%ltruncated_vertical_extent) then
-            gloc = '3114'
-            coords = 'TLONG TLAT z_t_150m time'
-          else
-            gloc = '3111'
-            coords = 'TLONG TLAT z_t time'
-          end if
-        elseif (trim(auto_diags_3d(n,auto_ind)%vertical_grid).eq.'layer_iface') then
-            gloc = '3113'
-            coords = 'TLONG TLAT z_w_bot time'
-        else
-          write(err_msg,*) "'", trim(auto_diags_3d(n,auto_ind)%vertical_grid),  &
-                           "' is not a valid vertical grid"
-          call shr_sys_abort(err_msg)
-        end if
-        call define_tavg_field(tavg_auto_3d(n,auto_ind),                        &
-                               trim(auto_diags_3d(n,auto_ind)%short_name), 3,   &
-                               long_name=trim(auto_diags_3d(n,auto_ind)%long_name), &
-                               units=trim(auto_diags_3d(n,auto_ind)%units),     &
-                               grid_loc=gloc, coordinates=coords)
-      end do
-    end do
 
 !       if (autotrophs(auto_ind)%Si_ind > 0) then
 !          sname = trim(autotrophs(auto_ind)%sname) // 'bSi_form'
@@ -666,8 +586,6 @@ contains
 
     associate(                                                                &
               diags         => marbl_diagnostics%diags(:),                    &
-              AUTO_DIAGS_2D => marbl_diagnostics%auto_diags_2d(:,:)%field,    &
-              AUTO_DIAGS_3D => marbl_diagnostics%auto_diags_3d(:,:),          &
               ZOO_DIAGS_2D  => marbl_diagnostics%zoo_diags_2d(:,:)%field,     &
               ZOO_DIAGS_3D  => marbl_diagnostics%zoo_diags_3d(:,:),           &
               restore_diags => marbl_diagnostics%restore_diags(:)             &
@@ -683,55 +601,6 @@ contains
                                    bid, i, c)
       end if
     end do
-
-    ! Accumulate autotroph terms
-    ! 2D autotrophs
-    do n=1,auto_diag_cnt_2d
-      do auto_ind=1,autotroph_cnt
-        accumulate = .true.
-        if (n.eq.CaCO3_form_zint_diag_ind) then
-          accumulate = (autotrophs(auto_ind)%imp_calcifier)
-          if ( accumulate) then
-            call accumulate_tavg_field(AUTO_DIAGS_2D(n,auto_ind),             &
-                                       tavg_tot_CaCO3_form_zint, bid, i, c)
-          end if
-        end if
-
-        if (accumulate) then
-          call accumulate_tavg_field(AUTO_DIAGS_2D(n,auto_ind),               &
-                                     tavg_auto_2d(n,auto_ind), bid, i, c)
-        end if
-      end do
-    end do
-
-    ! 3D autotrophs
-    do n=1,auto_diag_cnt_3d
-      do auto_ind=1,autotroph_cnt
-        accumulate = .true.
-        ! Some autotrophs are only accumulated under specific conditions
-        select case (n)
-          case (bSi_form_diag_ind)
-            accumulate = (autotrophs(auto_ind)%Si_ind.gt.0)
-            if ( accumulate) &
-              call accumulate_tavg_field(AUTO_DIAGS_3D(n,auto_ind)%field(:),  &
-                                     tavg_tot_bSi_form, bid, i, c)
-          case (CaCO3_form_diag_ind) 
-            accumulate = (autotrophs(auto_ind)%imp_calcifier)
-            if (accumulate) &
-              call accumulate_tavg_field(AUTO_DIAGS_3D(n,auto_ind)%field(:),  &
-                                     tavg_tot_CaCO3_form, bid, i, c)
-          case (Nfix_diag_ind)
-            accumulate = (autotrophs(auto_ind)%Nfixer)
-            if (accumulate) &
-              call accumulate_tavg_field(AUTO_DIAGS_3D(n,auto_ind)%field(:),  &
-                                     tavg_tot_Nfix, bid, i, c)
-        end select
-
-        if (accumulate) &
-            call accumulate_tavg_field(AUTO_DIAGS_3D(n,auto_ind)%field(:),    &
-                                       tavg_auto_3d(n,auto_ind), bid, i, c)
-      end do
-     end do
 
     ! Accumulate zooplankton terms
     ! 3D

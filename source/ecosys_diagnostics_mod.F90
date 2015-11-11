@@ -83,6 +83,11 @@ module ecosys_diagnostics_mod
     integer(int_kind) :: dustToSed
     integer(int_kind) :: pfeToSed
 
+    ! Autotroph 2D diags
+    integer(int_kind), dimension(autotroph_cnt) :: photoC_zint
+    integer(int_kind), dimension(autotroph_cnt) :: photoC_NO3_zint
+    integer(int_kind), dimension(autotroph_cnt) :: CaCO3_form_zint
+
     ! General 3D diags
     integer(int_kind) :: CO3
     integer(int_kind) :: HCO3
@@ -130,40 +135,34 @@ module ecosys_diagnostics_mod
     integer(int_kind) :: P_iron_PROD
     integer(int_kind) :: P_iron_REMIN
 
+    ! Autotroph 3D diags
+    integer(int_kind), dimension(autotroph_cnt) :: N_lim
+    integer(int_kind), dimension(autotroph_cnt) :: P_lim
+    integer(int_kind), dimension(autotroph_cnt) :: Fe_lim
+    integer(int_kind), dimension(autotroph_cnt) :: SiO3_lim
+    integer(int_kind), dimension(autotroph_cnt) :: light_lim
+    integer(int_kind), dimension(autotroph_cnt) :: photoC
+    integer(int_kind), dimension(autotroph_cnt) :: photoC_NO3
+    integer(int_kind), dimension(autotroph_cnt) :: photoFe
+    integer(int_kind), dimension(autotroph_cnt) :: photoNO3
+    integer(int_kind), dimension(autotroph_cnt) :: photoNH4
+    integer(int_kind), dimension(autotroph_cnt) :: DOP_uptake
+    integer(int_kind), dimension(autotroph_cnt) :: PO4_uptake
+    integer(int_kind), dimension(autotroph_cnt) :: auto_graze
+    integer(int_kind), dimension(autotroph_cnt) :: auto_graze_poc
+    integer(int_kind), dimension(autotroph_cnt) :: auto_graze_doc
+    integer(int_kind), dimension(autotroph_cnt) :: auto_graze_zoo
+    integer(int_kind), dimension(autotroph_cnt) :: auto_loss
+    integer(int_kind), dimension(autotroph_cnt) :: auto_loss_poc
+    integer(int_kind), dimension(autotroph_cnt) :: auto_loss_doc
+    integer(int_kind), dimension(autotroph_cnt) :: auto_agg
+    integer(int_kind), dimension(autotroph_cnt) :: bSi_form
+    integer(int_kind), dimension(autotroph_cnt) :: CaCO3_form
+    integer(int_kind), dimension(autotroph_cnt) :: Nfix
+
   end type marbl_diagnostics_indexing_type
 
   type(marbl_diagnostics_indexing_type) :: marbl_diag_ind
-
-  integer(int_kind), parameter ::   auto_diag_cnt_2d = 3
-  integer (int_kind), parameter ::  &
-      photoC_zint_diag_ind     =  1,  &
-      photoC_NO3_zint_diag_ind =  2,  &
-      CaCO3_form_zint_diag_ind =  3
-  integer(int_kind), parameter ::   auto_diag_cnt_3d = 23
-  integer (int_kind), parameter ::  &
-      N_lim_diag_ind           =  1,  &
-      P_lim_diag_ind           =  2,  &
-      Fe_lim_diag_ind          =  3,  &
-      SiO3_lim_diag_ind        =  4,  &
-      light_lim_diag_ind       =  5,  &
-      photoC_diag_ind          =  6,  &
-      photoC_NO3_diag_ind      =  7,  &
-      photoFe_diag_ind         =  8,  &
-      photoNO3_diag_ind        =  9,  &
-      photoNH4_diag_ind        = 10,  &
-      DOP_uptake_diag_ind      = 11,  &
-      PO4_uptake_diag_ind      = 12,  &
-      auto_graze_diag_ind      = 13,  &
-      auto_graze_poc_diag_ind  = 14,  &
-      auto_graze_doc_diag_ind  = 15,  &
-      auto_graze_zoo_diag_ind  = 16,  &
-      auto_loss_diag_ind       = 17,  &
-      auto_loss_poc_diag_ind   = 18,  &
-      auto_loss_doc_diag_ind   = 19,  &
-      auto_agg_diag_ind        = 20,  &
-      bSi_form_diag_ind        = 21,  &
-      CaCO3_form_diag_ind      = 22,  &
-      Nfix_diag_ind            = 23
 
   integer(int_kind), parameter ::    zoo_diag_cnt_2d =  0
   integer(int_kind), parameter ::    zoo_diag_cnt_3d =  8
@@ -224,20 +223,16 @@ contains
 
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
-    integer :: n, auto_ind, zoo_ind
+    integer :: n, zoo_ind
     character(len=char_len) :: lname, sname, units, vgrid
     logical :: truncate
 
     ! Allocate memory in marbl_diagnostics_type
-    call marbl_diags%construct(auto_diag_cnt_2d, auto_diag_cnt_3d,            &
-                               zoo_diag_cnt_2d, zoo_diag_cnt_3d,              &
-                               ecosys_tracer_cnt, autotroph_cnt,              &
-                               zooplankton_cnt)
+    call marbl_diags%construct(zoo_diag_cnt_2d, zoo_diag_cnt_3d,              &
+                               ecosys_tracer_cnt)
 
     ! Setup meta-data
     associate(                                                                &
-              auto_diags_2d => marbl_diags%auto_diags_2d(:,:),                &
-              auto_diags_3d => marbl_diags%auto_diags_3d(:,:),                &
               zoo_diags_2d  => marbl_diags%zoo_diags_2d(:,:),                 &
               zoo_diags_3d  => marbl_diags%zoo_diags_3d(:,:),                 &
               restore_diags => marbl_diags%restore_diags(:)                   &
@@ -428,6 +423,36 @@ contains
     truncate = .false.
     call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
                                     marbl_diag_ind%pfeToSed)
+
+    ! Autotroph 2D diags
+    do n=1,autotroph_cnt
+      lname = trim(autotrophs(n)%lname) //                             &
+              ' C Fixation Vertical Integral'
+      sname = 'photoC_' // trim(autotrophs(n)%sname) // '_zint'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%photoC_zint(n))
+
+      lname = trim(autotrophs(n)%lname) //                             &
+              ' C Fixation from NO3 Vertical Integral'
+      sname = 'photoC_NO3_' // trim(autotrophs(n)%sname) // '_zint'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%photoC_NO3_zint(n))
+
+      lname = trim(autotrophs(n)%lname) //                             &
+              ' CaCO3 Formation Vertical Integral'
+      sname = trim(autotrophs(n)%sname) // '_CaCO3_form_zint'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%CaCO3_form_zint(n))
+    end do
 
     ! General 3D diags
     lname = 'Carbonate Ion Concentration'
@@ -776,37 +801,194 @@ contains
     call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
                                     marbl_diag_ind%P_iron_REMIN)
 
-    marbl_diag_ind%count = diag_cnt
+    ! Autotroph 3D diags
+    do n=1,autotroph_cnt
+      lname = trim(autotrophs(n)%lname) // ' N Limitation'
+      sname = trim(autotrophs(n)%sname) // '_N_lim'
+      units = 'none'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%N_lim(n))
 
-    do auto_ind=1,autotroph_cnt
-      do n=1,auto_diag_cnt_2d
-        select case (n)
-          case (photoC_zint_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) //                       &
-                    ' C Fixation Vertical Integral'
-            sname = 'photoC_' // trim(autotrophs(auto_ind)%sname) // '_zint'
-            units = 'mmol/m^3 cm/s'
-          case (photoC_NO3_zint_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) //                       &
-                    ' C Fixation from NO3 Vertical Integral'
-            sname = 'photoC_NO3_' // trim(autotrophs(auto_ind)%sname) // '_zint'
-            units = 'mmol/m^3 cm/s'
-          case (CACO3_form_zint_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) //                       &
-                    ' CaCO3 Formation Vertical Integral'
-            sname = trim(autotrophs(auto_ind)%sname) // '_CaCO3_form_zint'
-            units = 'mmol/m^3 cm/s'
-          case DEFAULT
-            print*, "ERROR in ecosys_diagnostics_init():"
-            print*, n, " is not a valid index for marbl_diags%diags_2d"
-            sname = 'ERRORERRORERROR'
-        end select
-        auto_diags_2d(n, auto_ind)%long_name = trim(lname)
-        auto_diags_2d(n, auto_ind)%short_name = trim(sname)
-        auto_diags_2d(n, auto_ind)%units = trim(units)
-        auto_diags_2d(n, auto_ind)%compute_now = .true.
-      end do
+      lname = trim(autotrophs(n)%lname) // ' P Limitation'
+      sname = trim(autotrophs(n)%sname) // '_P_lim'
+      units = 'none'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%P_lim(n))
+
+      lname = trim(autotrophs(n)%lname) // ' Fe Limitation'
+      sname = trim(autotrophs(n)%sname) // '_Fe_lim'
+      units = 'none'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%Fe_lim(n))
+
+      lname = trim(autotrophs(n)%lname) // ' SiO3 Limitation'
+      sname = trim(autotrophs(n)%sname) // '_SiO3_lim'
+      units = 'none'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%SiO3_lim(n))
+
+      lname = trim(autotrophs(n)%lname) // ' Light Limitation'
+      sname = trim(autotrophs(n)%sname) // '_light_lim'
+      units = 'none'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%light_lim(n))
+
+      lname = trim(autotrophs(n)%lname) // ' C Fixation'
+      sname = 'photoC_' // trim(autotrophs(n)%sname)
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%photoC(n))
+
+      lname = trim(autotrophs(n)%lname) // ' C Fixation from NO3'
+      sname = 'photoC_NO3_' // trim(autotrophs(n)%sname)
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%photoC_NO3(n))
+
+      lname = trim(autotrophs(n)%lname) // ' Fe Uptake'
+      sname = 'photoFe_' // trim(autotrophs(n)%sname)
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%photoFe(n))
+
+      lname = trim(autotrophs(n)%lname) // ' NO3 Uptake'
+      sname = 'photoNO3_' // trim(autotrophs(n)%sname)
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%photoNO3(n))
+
+      lname = trim(autotrophs(n)%lname) // ' NH4 Uptake'
+      sname = 'photoNH4_' // trim(autotrophs(n)%sname)
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%photoNH4(n))
+
+      lname = trim(autotrophs(n)%lname) // ' DOP Uptake'
+      sname = 'DOP_' // trim(autotrophs(n)%sname) // '_uptake'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%DOP_uptake(n))
+
+      lname = trim(autotrophs(n)%lname) // ' PO4 Uptake'
+      sname = 'PO4_' // trim(autotrophs(n)%sname) // '_uptake'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%PO4_uptake(n))
+
+      lname = trim(autotrophs(n)%lname) // ' Grazing'
+      sname = 'graze_' // trim(autotrophs(n)%sname)
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%auto_graze(n))
+
+      lname = trim(autotrophs(n)%lname) // ' Grazing to POC'
+      sname = 'graze_' // trim(autotrophs(n)%sname) // '_poc'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%auto_graze_poc(n))
+
+      lname = trim(autotrophs(n)%lname) // ' Grazing to DOC'
+      sname = 'graze_' // trim(autotrophs(n)%sname) // '_doc'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%auto_graze_doc(n))
+
+      lname = trim(autotrophs(n)%lname) // ' Grazing to ZOO'
+      sname = 'graze_' // trim(autotrophs(n)%sname) // '_zoo'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%auto_graze_zoo(n))
+
+      lname = trim(autotrophs(n)%lname) // ' Loss'
+      sname = trim(autotrophs(n)%sname) // '_loss'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%auto_loss(n))
+
+      lname = trim(autotrophs(n)%lname) // ' Loss to POC'
+      sname = trim(autotrophs(n)%sname) // '_loss_poc'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%auto_loss_poc(n))
+
+      lname = trim(autotrophs(n)%lname) // ' Loss to DOC'
+      sname = trim(autotrophs(n)%sname) // '_loss_doc'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%auto_loss_doc(n))
+
+      lname = trim(autotrophs(n)%lname) // ' Aggregate'
+      sname = trim(autotrophs(n)%sname) // '_agg'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%auto_agg(n))
+
+      lname=trim(autotrophs(n)%lname) // ' Si Uptake' ! FIXME: formation?
+      sname = trim(autotrophs(n)%sname) // 'bSi_form' ! FIXME: _?
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%bSi_form(n))
+
+      lname=trim(autotrophs(n)%lname) // ' CaCO3 Formation'
+      sname = trim(autotrophs(n)%sname) // '_CaCO3_form'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%CaCO3_form(n))
+
+      lname=trim(autotrophs(n)%lname) // ' N Fixation'
+      sname = trim(autotrophs(n)%sname) // '_Nfix'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                      marbl_diag_ind%Nfix(n))
     end do
+
+    marbl_diag_ind%count = diag_cnt
 
     do zoo_ind=1,zooplankton_cnt
       do n=1,zoo_diag_cnt_3d
@@ -865,141 +1047,6 @@ contains
         zoo_diags_3d(n,zoo_ind)%vertical_grid = trim(vgrid)
         zoo_diags_3d(n,zoo_ind)%ltruncated_vertical_extent = truncate
         zoo_diags_3d(n,zoo_ind)%compute_now = .true.
-      end do
-    end do
-
-    do auto_ind=1,autotroph_cnt
-      do n=1,auto_diag_cnt_3d
-        ! Default assumption: layer average vertical coordinates, not truncated
-        vgrid = 'layer_avg'
-        truncate = .false.
-        select case (n)
-          case (N_lim_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' N Limitation'
-            sname = trim(autotrophs(auto_ind)%sname) // '_N_lim'
-            units = 'none'
-            truncate = .true.
-          case (P_lim_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' P Limitation'
-            sname = trim(autotrophs(auto_ind)%sname) // '_P_lim'
-            units = 'none'
-            truncate = .true.
-          case (Fe_lim_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' Fe Limitation'
-            sname = trim(autotrophs(auto_ind)%sname) // '_Fe_lim'
-            units = 'none'
-            truncate = .true.
-          case (SiO3_lim_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' SiO3 Limitation'
-            sname = trim(autotrophs(auto_ind)%sname) // '_SiO3_lim'
-            units = 'none'
-            truncate = .true.
-          case (light_lim_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' Light Limitation'
-            sname = trim(autotrophs(auto_ind)%sname) // '_light_lim'
-            units = 'none'
-            truncate = .true.
-          case (photoC_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' C Fixation'
-            sname = 'photoC_' // trim(autotrophs(auto_ind)%sname)
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (photoC_NO3_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' C Fixation from NO3'
-            sname = 'photoC_NO3_' // trim(autotrophs(auto_ind)%sname)
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (photoFe_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' Fe Uptake'
-            sname = 'photoFe_' // trim(autotrophs(auto_ind)%sname)
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (photoNO3_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' NO3 Uptake'
-            sname = 'photoNO3_' // trim(autotrophs(auto_ind)%sname)
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (photoNH4_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' NH4 Uptake'
-            sname = 'photoNH4_' // trim(autotrophs(auto_ind)%sname)
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (DOP_uptake_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' DOP Uptake'
-            sname = 'DOP_' // trim(autotrophs(auto_ind)%sname) // '_uptake'
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (PO4_uptake_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' PO4 Uptake'
-            sname = 'PO4_' // trim(autotrophs(auto_ind)%sname) // '_uptake'
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (auto_graze_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' Grazing'
-            sname = 'graze_' // trim(autotrophs(auto_ind)%sname)
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (auto_graze_poc_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' Grazing to POC'
-            sname = 'graze_' // trim(autotrophs(auto_ind)%sname) // '_poc'
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (auto_graze_doc_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' Grazing to DOC'
-            sname = 'graze_' // trim(autotrophs(auto_ind)%sname) // '_doc'
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (auto_graze_zoo_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' Grazing to ZOO'
-            sname = 'graze_' // trim(autotrophs(auto_ind)%sname) // '_zoo'
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (auto_loss_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' Loss'
-            sname = trim(autotrophs(auto_ind)%sname) // '_loss'
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (auto_loss_poc_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' Loss to POC'
-            sname = trim(autotrophs(auto_ind)%sname) // '_loss_poc'
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (auto_loss_doc_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' Loss to DOC'
-            sname = trim(autotrophs(auto_ind)%sname) // '_loss_doc'
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (auto_agg_diag_ind)
-            lname = trim(autotrophs(auto_ind)%lname) // ' Aggregate'
-            sname = trim(autotrophs(auto_ind)%sname) // '_agg'
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (bSi_form_diag_ind)
-            lname=trim(autotrophs(auto_ind)%lname) // ' Si Uptake' ! FIXME: formation?
-            sname = trim(autotrophs(auto_ind)%sname) // 'bSi_form' ! FIXME: _?
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (CaCO3_form_diag_ind)
-            lname=trim(autotrophs(auto_ind)%lname) // ' CaCO3 Formation'
-            sname = trim(autotrophs(auto_ind)%sname) // '_CaCO3_form'
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case (Nfix_diag_ind)
-            lname=trim(autotrophs(auto_ind)%lname) // ' N Fixation'
-            sname = trim(autotrophs(auto_ind)%sname) // '_Nfix'
-            units = 'mmol/m^3/s'
-            truncate = .true.
-          case DEFAULT
-            print*, "ERROR in ecosys_diagnostics_init():"
-            print*, n, " is not a valid index for marbl_diags%diags_2d"
-            sname = 'ERRORERRORERROR'
-        end select
-        auto_diags_3d(n,auto_ind)%long_name = trim(lname)
-        auto_diags_3d(n,auto_ind)%short_name = trim(sname)
-        auto_diags_3d(n,auto_ind)%units = trim(units)
-        auto_diags_3d(n,auto_ind)%vertical_grid = trim(vgrid)
-        auto_diags_3d(n,auto_ind)%ltruncated_vertical_extent = truncate
-        auto_diags_3d(n,auto_ind)%compute_now = .true.
       end do
     end do
 
@@ -1133,63 +1180,82 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(&
-              auto_diags_2d => marbl_diags%auto_diags_2d(:,:)%field,          &
-              auto_diags_3d => marbl_diags%auto_diags_3d(:,:)                 &
-             )
+    associate(diags => marbl_diags%diags(:))
       do n = 1, autotroph_cnt
-         auto_diags_3d(N_lim_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%VNtot
-         auto_diags_3d(Fe_lim_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%VFe
-         auto_diags_3d(P_lim_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%VPtot
+         diags(marbl_diag_ind%N_lim(n))%field_3d(:) =                         &
+                                       autotroph_secondary_species(n,:)%VNtot
+         diags(marbl_diag_ind%Fe_lim(n))%field_3d(:) =                        &
+                                         autotroph_secondary_species(n,:)%VFe
+         diags(marbl_diag_ind%P_lim(n))%field_3d(:) =                         &
+                                       autotroph_secondary_species(n,:)%VPtot
 
          if (autotrophs(n)%kSiO3 > c0) then
-            auto_diags_3d(SiO3_lim_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%VSiO3
+            diags(marbl_diag_ind%SiO3_lim(n))%field_3d(:) =                   &
+                                       autotroph_secondary_species(n,:)%VSiO3
          end if
 
-         auto_diags_3d(light_lim_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%light_lim
-         auto_diags_3d(photoNO3_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%NO3_V
-         auto_diags_3d(photoNH4_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%NH4_V
-         auto_diags_3d(PO4_uptake_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%PO4_V
-         auto_diags_3d(DOP_uptake_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%DOP_V
-         auto_diags_3d(photoFE_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%photoFe
+         diags(marbl_diag_ind%light_lim(n))%field_3d(:) =                     &
+                                   autotroph_secondary_species(n,:)%light_lim
+         diags(marbl_diag_ind%photoNO3(n))%field_3d(:) =                      &
+                                       autotroph_secondary_species(n,:)%NO3_V
+         diags(marbl_diag_ind%photoNH4(n))%field_3d(:) =                      &
+                                       autotroph_secondary_species(n,:)%NH4_V
+         diags(marbl_diag_ind%PO4_uptake(n))%field_3d(:) =                    &
+                                       autotroph_secondary_species(n,:)%PO4_V
+         diags(marbl_diag_ind%DOP_uptake(n))%field_3d(:) =                    &
+                                       autotroph_secondary_species(n,:)%DOP_V
+         diags(marbl_diag_ind%photoFE(n))%field_3d(:) =                       &
+                                     autotroph_secondary_species(n,:)%photoFe
 
          if (autotrophs(n)%Si_ind > 0) then
-           auto_diags_3d(bSi_form_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%photoSi
+           diags(marbl_diag_ind%bSi_form(n))%field_3d(:) =                    &
+                                     autotroph_secondary_species(n,:)%photoSi
          endif
 
-         auto_diags_3d(CaCO3_form_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%CaCO3_PROD
-         auto_diags_3d(Nfix_diag_ind, n)%field(:) = autotroph_secondary_species(n,:)%Nfix
-         auto_diags_3d(auto_graze_diag_ind, n)%field(:)      = autotroph_secondary_species(n,:)%auto_graze
-         auto_diags_3d(auto_graze_poc_diag_ind, n)%field(:)  = autotroph_secondary_species(n,:)%auto_graze_poc
-         auto_diags_3d(auto_graze_doc_diag_ind, n)%field(:)  = autotroph_secondary_species(n,:)%auto_graze_doc
-         auto_diags_3d(auto_graze_zoo_diag_ind, n)%field(:)  = autotroph_secondary_species(n,:)%auto_graze_zoo
-         auto_diags_3d(auto_loss_diag_ind, n)%field(:)       = autotroph_secondary_species(n,:)%auto_loss
-         auto_diags_3d(auto_loss_poc_diag_ind, n)%field(:)   = autotroph_secondary_species(n,:)%auto_loss_poc
-         auto_diags_3d(auto_loss_doc_diag_ind, n)%field(:)   = autotroph_secondary_species(n,:)%auto_loss_doc
-         auto_diags_3d(auto_agg_diag_ind, n)%field(:)        = autotroph_secondary_species(n,:)%auto_agg
-         auto_diags_3d(photoC_diag_ind, n)%field(:)          = autotroph_secondary_species(n,:)%photoC
+         diags(marbl_diag_ind%CaCO3_form(n))%field_3d(:) =                    &
+                                  autotroph_secondary_species(n,:)%CaCO3_PROD
+         diags(marbl_diag_ind%Nfix(n))%field_3d(:) =                          &
+                                        autotroph_secondary_species(n,:)%Nfix
+         diags(marbl_diag_ind%auto_graze(n))%field_3d(:) =                    &
+                                  autotroph_secondary_species(n,:)%auto_graze
+         diags(marbl_diag_ind%auto_graze_poc(n))%field_3d(:) =                &
+                              autotroph_secondary_species(n,:)%auto_graze_poc
+         diags(marbl_diag_ind%auto_graze_doc(n))%field_3d(:) =                &
+                              autotroph_secondary_species(n,:)%auto_graze_doc
+         diags(marbl_diag_ind%auto_graze_zoo(n))%field_3d(:) =                &
+                              autotroph_secondary_species(n,:)%auto_graze_zoo
+         diags(marbl_diag_ind%auto_loss(n))%field_3d(:) =                     &
+                                   autotroph_secondary_species(n,:)%auto_loss
+         diags(marbl_diag_ind%auto_loss_poc(n))%field_3d(:) =                 &
+                               autotroph_secondary_species(n,:)%auto_loss_poc
+         diags(marbl_diag_ind%auto_loss_doc(n))%field_3d(:) =                 &
+                               autotroph_secondary_species(n,:)%auto_loss_doc
+         diags(marbl_diag_ind%auto_agg(n))%field_3d(:) =                      &
+                                    autotroph_secondary_species(n,:)%auto_agg
+         diags(marbl_diag_ind%photoC(n))%field_3d(:) =                        &
+                                      autotroph_secondary_species(n,:)%photoC
 
-         auto_diags_3d(photoC_NO3_diag_ind, n)%field(:) = c0
+         diags(marbl_diag_ind%photoC_NO3(n))%field_3d(:) = c0
          where (autotroph_secondary_species(n,:)%VNtot > c0)
-           auto_diags_3d(photoC_NO3_diag_ind, n)%field(:) =                   &
+           diags(marbl_diag_ind%photoC_NO3(n))%field_3d(:) =                  &
  autotroph_secondary_species(n,:)%photoC *                                    &
  (autotroph_secondary_species(n,:)%VNO3 / autotroph_secondary_species(n,:)%VNtot)
          end where
 
          ! vertical integrals
-         auto_diags_2d(CaCO3_form_zint_diag_ind, n) = c0
-         auto_diags_2d(photoC_zint_diag_ind, n) = c0
-         auto_diags_2d(photoC_NO3_zint_diag_ind, n) = c0
+         diags(marbl_diag_ind%CaCO3_form_zint(n))%field_2d = c0
+         diags(marbl_diag_ind%photoC_zint(n))%field_2d = c0
+         diags(marbl_diag_ind%photoC_NO3_zint(n))%field_2d = c0
          do k = 1,marbl_domain%kmt
-           auto_diags_2d(CaCO3_form_zint_diag_ind, n) =                       &
-                     auto_diags_2d(CaCO3_form_zint_diag_ind, n) +             &
-                     delta_z(k) * autotroph_secondary_species(n,k)%CaCO3_PROD
-           auto_diags_2d(photoC_zint_diag_ind, n) =                           &
-                         auto_diags_2d(photoC_zint_diag_ind, n) +             &
-                         delta_z(k) * autotroph_secondary_species(n,k)%photoC
-           auto_diags_2d(photoC_NO3_zint_diag_ind, n) =                       &
-                   auto_diags_2d(photoC_NO3_zint_diag_ind, n) +               &
-                   delta_z(k) * auto_diags_3d(photoC_NO3_diag_ind,n)%field(k)
+           diags(marbl_diag_ind%CaCO3_form_zint(n))%field_2d =                &
+                    diags(marbl_diag_ind%CaCO3_form_zint(n))%field_2d +       &
+                    delta_z(k) * autotroph_secondary_species(n, k)%CaCO3_PROD
+           diags(marbl_diag_ind%photoC_zint(n))%field_2d =                    &
+                        diags(marbl_diag_ind%photoC_zint(n))%field_2d +       &
+                        delta_z(k) * autotroph_secondary_species(n, k)%photoC
+           diags(marbl_diag_ind%photoC_NO3_zint(n))%field_2d =                &
+                 diags(marbl_diag_ind%photoC_NO3_zint(n))%field_2d +          &
+                 delta_z(k) * diags(marbl_diag_ind%photoC_NO3(n))%field_3d(k)
          end do ! do k
       end do ! do n
     end associate
