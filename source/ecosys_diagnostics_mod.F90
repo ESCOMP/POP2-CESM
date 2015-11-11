@@ -72,6 +72,17 @@ module ecosys_diagnostics_mod
     integer(int_kind) :: Jint_Sitot
     integer(int_kind) :: Jint_100m_Sitot
 
+    ! Particulate 2D diags
+    integer(int_kind) :: calcToSed
+    integer(int_kind) :: pocToSed
+    integer(int_kind) :: ponToSed
+    integer(int_kind) :: SedDenitrif
+    integer(int_kind) :: OtherRemin
+    integer(int_kind) :: popToSed
+    integer(int_kind) :: bsiToSed
+    integer(int_kind) :: dustToSed
+    integer(int_kind) :: pfeToSed
+
     ! General 3D diags
     integer(int_kind) :: CO3
     integer(int_kind) :: HCO3
@@ -149,18 +160,6 @@ module ecosys_diagnostics_mod
       zoo_graze_zoo_diag_ind   =  7, &
       x_graze_zoo_diag_ind     =  8
 
-  integer(int_kind), parameter ::   part_diag_cnt_2d =   9
-  integer (int_kind), parameter ::   &
-      calcToSed_diag_ind       = 1, &
-      pocToSed_diag_ind        = 2, &
-      ponToSed_diag_ind        = 3, &
-      SedDenitrif_diag_ind     = 4, &
-      OtherRemin_diag_ind      = 5, &
-      popToSed_diag_ind        = 6, &
-      bsiToSed_diag_ind        = 7, &
-      dustToSed_diag_ind       = 8, &
-      pfeToSed_diag_ind        = 9
-
   integer(int_kind), parameter ::   part_diag_cnt_3d =  14
   integer (int_kind), parameter ::   &
       POC_FLUX_IN_diag_ind     =  1, &
@@ -232,7 +231,7 @@ contains
     ! Allocate memory in marbl_diagnostics_type
     call marbl_diags%construct(auto_diag_cnt_2d, auto_diag_cnt_3d,            &
                                zoo_diag_cnt_2d, zoo_diag_cnt_3d,              &
-                               part_diag_cnt_2d, part_diag_cnt_3d,            &
+                               part_diag_cnt_3d,            &
                                ecosys_tracer_cnt, autotroph_cnt,              &
                                zooplankton_cnt)
 
@@ -242,11 +241,11 @@ contains
               auto_diags_3d => marbl_diags%auto_diags_3d(:,:),                &
               zoo_diags_2d  => marbl_diags%zoo_diags_2d(:,:),                 &
               zoo_diags_3d  => marbl_diags%zoo_diags_3d(:,:),                 &
-              part_diags_2d => marbl_diags%part_diags_2d(:),                  &
               part_diags_3d => marbl_diags%part_diags_3d(:),                  &
               restore_diags => marbl_diags%restore_diags(:)                   &
              )
 
+    ! General 2D diags
     lname = 'Calcite Saturation Depth'
     sname = 'zsatcalc'
     units = 'cm'
@@ -359,7 +358,80 @@ contains
     call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
                                     marbl_diag_ind%Jint_100m_Sitot)
 
-    ! 3D Diags
+    ! Particulate 2D diags
+    lname = 'CaCO3 Flux to Sediments'
+    sname = 'calcToSed'
+    units = 'nmolC/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%calcToSed)
+
+    lname = 'POC Flux to Sediments'
+    sname = 'pocToSed'
+    units = 'nmolC/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%pocToSed)
+
+    lname = 'nitrogen burial Flux to Sediments'
+    sname = 'ponToSed'
+    units = 'nmolN/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%ponToSed)
+
+    lname = 'nitrogen loss in Sediments'
+    sname = 'SedDenitrif'
+    units = 'nmolN/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%SedDenitrif)
+
+    lname = 'non-oxic,non-dentr remin in Sediments'
+    sname = 'OtherRemin'
+    units = 'nmolC/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%OtherRemin)
+
+    lname = 'phosphorus Flux to Sediments'
+    sname = 'popToSed'
+    units = 'nmolP/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%popToSed)
+
+    lname = 'biogenic Si Flux to Sediments'
+    sname = 'bsiToSed'
+    units = 'nmolSi/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%bsiToSed)
+
+    lname = 'dust Flux to Sediments'
+    sname = 'dustToSed'
+    units = 'g/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%dustToSed)
+
+    lname = 'pFe Flux to Sediments'
+    sname = 'pfeToSed'
+    units = 'nmolFe/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_diag_ind%pfeToSed)
+
+    ! General 3D diags
     lname = 'Carbonate Ion Concentration'
     sname = 'CO3'
     units = 'mmol/m^3'
@@ -482,8 +554,7 @@ contains
 
     lname = 'PAR Average over Model Cell'
     sname = 'PAR_avg'
-    !units = 'W/m^2'
-    units = 'w/m^2' ! FIXME: watt / m^2 should be W/m^2?
+    units = 'W/m^2'
     vgrid = 'layer_avg'
     truncate = .true.
     call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
@@ -506,7 +577,7 @@ contains
                                     marbl_diag_ind%photoC_TOT)
 
     lname = 'Total C Fixation from NO3'
-    sname = 'photoC_TOT'
+    sname = 'photoC_NO3_TOT'
     units = 'mmol/m^3/s'
     vgrid = 'layer_avg'
     truncate = .true.
@@ -594,57 +665,6 @@ contains
                                     marbl_diag_ind%Fe_scavenge_rate)
 
     marbl_diag_ind%count = diag_cnt
-
-    do n=1,part_diag_cnt_2d
-      select case (n)
-        case (calcToSed_diag_ind)
-          lname = 'CaCO3 Flux to Sediments'
-          sname = 'calcToSed'
-          units = 'nmolC/cm^2/s'
-        case (pocToSed_diag_ind)
-          lname = 'POC Flux to Sediments'
-          sname = 'pocToSed'
-          units = 'nmolC/cm^2/s'
-        case (ponToSed_diag_ind)
-          lname = 'nitrogen burial Flux to Sediments'
-          sname = 'ponToSed'
-          units = 'nmolN/cm^2/s'
-        case (SedDenitrif_diag_ind)
-          lname = 'nitrogen loss in Sediments'
-          sname = 'SedDenitrif'
-          units = 'nmolN/cm^2/s'
-        case (OtherRemin_diag_ind)
-          lname = 'non-oxic,non-dentr remin in Sediments'
-          sname = 'OtherRemin'
-          units = 'nmolC/cm^2/s'
-        case (popToSed_diag_ind)
-          ! FIXME: should be phosphorus? (missing second h?)
-!          lname = 'phosphorus Flux to Sediments'
-          lname = 'phosporus Flux to Sediments'
-          sname = 'popToSed'
-          units = 'nmolP/cm^2/s'
-        case (bsiToSed_diag_ind)
-          lname = 'biogenic Si Flux to Sediments'
-          sname = 'bsiToSed'
-          units = 'nmolSi/cm^2/s'
-        case (dustToSed_diag_ind)
-          lname = 'dust Flux to Sediments'
-          sname = 'dustToSed'
-          units = 'g/cm^2/s'
-        case (pfeToSed_diag_ind)
-          lname = 'pFe Flux to Sediments'
-          sname = 'pfeToSed'
-          units = 'nmolFe/cm^2/s'
-        case DEFAULT
-          print*, "ERROR in ecosys_diagnostics_init():"
-          print*, n, " is not a valid index for marbl_diags%part_diags_2d"
-          sname = 'ERRORERRORERROR'
-      end select
-      part_diags_2d(n)%long_name = trim(lname)
-      part_diags_2d(n)%short_name = trim(sname)
-      part_diags_2d(n)%units = trim(units)
-      part_diags_2d(n)%compute_now = .true.
-    end do
 
     do auto_ind=1,autotroph_cnt
       do n=1,auto_diag_cnt_2d
@@ -1216,7 +1236,7 @@ contains
        delta_z = marbl_domain%dz
     end if
     associate(&
-              part_diags_2d => marbl_diags%part_diags_2d(:)%field,            &
+              diags => marbl_diags%diags,            &
               part_diags_3d => marbl_diags%part_diags_3d(:)                   &
               )
       part_diags_3d(POC_FLUX_IN_diag_ind)%field(:) = POC%sflux_in + POC%hflux_in
@@ -1238,15 +1258,15 @@ contains
       part_diags_3d(P_iron_PROD_diag_ind)%field(:) = P_iron%prod
       part_diags_3d(P_iron_REMIN_diag_ind)%field(:) = P_iron%remin
 
-      part_diags_2d(calcToSed_diag_ind) = sum(P_CaCO3%sed_loss)
-      part_diags_2d(bsiToSed_diag_ind) = sum(P_SiO2%sed_loss)
-      part_diags_2d(pocToSed_diag_ind) = sum(POC%sed_loss)
-      part_diags_2d(SedDenitrif_diag_ind) = sum(sed_denitrif * delta_z)
-      part_diags_2d(OtherRemin_diag_ind) = sum(other_remin * delta_z)
-      part_diags_2d(ponToSed_diag_ind) = sum(POC%sed_loss * Q)
-      part_diags_2d(popToSed_diag_ind) = sum(POC%sed_loss * Qp_zoo_pom)
-      part_diags_2d(dustToSed_diag_ind) = sum(dust%sed_loss)
-      part_diags_2d(pfeToSed_diag_ind) = sum(P_iron%sed_loss)
+      diags(marbl_diag_ind%calcToSed)%field_2d = sum(P_CaCO3%sed_loss)
+      diags(marbl_diag_ind%bsiToSed)%field_2d = sum(P_SiO2%sed_loss)
+      diags(marbl_diag_ind%pocToSed)%field_2d = sum(POC%sed_loss)
+      diags(marbl_diag_ind%SedDenitrif)%field_2d = sum(sed_denitrif * delta_z)
+      diags(marbl_diag_ind%OtherRemin)%field_2d = sum(other_remin * delta_z)
+      diags(marbl_diag_ind%ponToSed)%field_2d = sum(POC%sed_loss * Q)
+      diags(marbl_diag_ind%popToSed)%field_2d = sum(POC%sed_loss * Qp_zoo_pom)
+      diags(marbl_diag_ind%dustToSed)%field_2d = sum(dust%sed_loss)
+      diags(marbl_diag_ind%pfeToSed)%field_2d = sum(P_iron%sed_loss)
     end associate
 
   end subroutine store_diagnostics_particulates

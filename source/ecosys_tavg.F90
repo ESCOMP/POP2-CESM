@@ -82,17 +82,6 @@
   use ecosys_diagnostics_mod, only : x_graze_zoo_diag_ind
 
   ! particulate diagnostics
-  ! 2D
-  use ecosys_diagnostics_mod, only : part_diag_cnt_2d
-  use ecosys_diagnostics_mod, only : calcToSed_diag_ind
-  use ecosys_diagnostics_mod, only : bsiToSed_diag_ind
-  use ecosys_diagnostics_mod, only : pocToSed_diag_ind
-  use ecosys_diagnostics_mod, only : SedDenitrif_diag_ind
-  use ecosys_diagnostics_mod, only : OtherRemin_diag_ind
-  use ecosys_diagnostics_mod, only : ponToSed_diag_ind
-  use ecosys_diagnostics_mod, only : popToSed_diag_ind
-  use ecosys_diagnostics_mod, only : dustToSed_diag_ind
-  use ecosys_diagnostics_mod, only : pfeToSed_diag_ind
   ! 3D
   use ecosys_diagnostics_mod, only : part_diag_cnt_3d
   use ecosys_diagnostics_mod, only : POC_FLUX_IN_diag_ind
@@ -198,7 +187,6 @@
   !  tavg ids for particulate terms
   !-----------------------------------------------------------------------
 
-  integer (int_kind), dimension(part_diag_cnt_2d) :: tavg_part_2d
   integer (int_kind), dimension(part_diag_cnt_3d) :: tavg_part_3d
   integer (int_kind) :: tavg_POC_ACCUM      ! tavg id for poc accumulation
 
@@ -261,7 +249,6 @@ contains
               auto_diags_3d => marbl_diags%auto_diags_3d(:,:),                &
               zoo_diags_2d  => marbl_diags%zoo_diags_2d(:,:),                 &
               zoo_diags_3d  => marbl_diags%zoo_diags_3d(:,:),                 &
-              part_diags_2d => marbl_diags%part_diags_2d(:),                  &
               part_diags_3d => marbl_diags%part_diags_3d(:),                  &
               restore_diags => marbl_diags%restore_diags(:)                   &
              )
@@ -535,20 +522,12 @@ contains
                              coordinates=coords)
     end do
 
-    do n=1,part_diag_cnt_2d
-      call define_tavg_field(tavg_part_2d(n),                                 &
-                            trim(part_diags_2d(n)%short_name), 2,             &
-                            long_name=trim(part_diags_2d(n)%long_name),       &
-                            units=trim(part_diags_2d(n)%units),               &
-                            grid_loc='2110', coordinates='TLONG TLAT time')
-    end do
-
     do auto_ind = 1, autotroph_cnt
       do n=1,auto_diag_cnt_2d
         define_field = .true.
-        if (n.eq.CaCO3_form_zint_diag_ind) then
-          define_field = (autotrophs(auto_ind)%CaCO3_ind > 0)
-        end if
+!        if (n.eq.CaCO3_form_zint_diag_ind) then
+!          define_field = (autotrophs(auto_ind)%CaCO3_ind > 0)
+!        end if
 
         if (define_field) then
           call define_tavg_field(tavg_auto_2d(n, auto_ind),                   &
@@ -734,7 +713,6 @@ contains
               AUTO_DIAGS_3D => marbl_diagnostics%auto_diags_3d(:,:),          &
               ZOO_DIAGS_2D  => marbl_diagnostics%zoo_diags_2d(:,:)%field,     &
               ZOO_DIAGS_3D  => marbl_diagnostics%zoo_diags_3d(:,:),           &
-              PART_DIAGS_2D => marbl_diagnostics%part_diags_2d(:)%field,      &
               PART_DIAGS_3D => marbl_diagnostics%part_diags_3d(:),            &
               restore_diags => marbl_diagnostics%restore_diags(:)             &
              )
@@ -809,11 +787,6 @@ contains
     end do
 
     ! Accumulate particulate terms
-    ! 2D
-    do n=1,part_diag_cnt_2d
-      call accumulate_tavg_field(PART_DIAGS_2D(n), tavg_part_2d(n), bid, i, c)
-    end do
-
     ! 3D
     do n=1,part_diag_cnt_3d
       call accumulate_tavg_field(PART_DIAGS_3D(n)%field(:), tavg_part_3d(n),  &
