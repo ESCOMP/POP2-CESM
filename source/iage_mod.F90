@@ -28,8 +28,8 @@ module iage_mod
    use io_types, only: stdout, nml_in, nml_filename
    use io_tools, only: document
    use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now
-   use passive_tracer_tools, only: ind_name_pair, tracer_read, &
-       rest_read_tracer_block, file_read_tracer_block
+   use passive_tracer_tools, only: ind_name_pair, rest_read_tracer_block, file_read_tracer_block
+   use marbl_interface_types, only : tracer_read  => marbl_tracer_read_type
    implicit none
    private
 

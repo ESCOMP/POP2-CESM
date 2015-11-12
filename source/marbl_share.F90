@@ -26,9 +26,9 @@ module marbl_share_mod
   use marbl_kinds_mod, only : char_len
   
   ! (FIXME, mvertens 2015-11, need to introduce marbl type) 
-  use passive_tracer_tools, only : tracer_read
-  use passive_tracer_tools, only : forcing_monthly_every_ts
-  use ecosys_constants    , only : ecosys_tracer_cnt
+  use marbl_interface_types, only : marbl_tracer_read_type
+  use passive_tracer_tools , only : forcing_monthly_every_ts
+  use ecosys_constants     , only : ecosys_tracer_cnt
 
   implicit none
 
@@ -78,8 +78,8 @@ module marbl_share_mod
   character(char_len) :: ndep_shr_stream_file         ! file containing domain and input data
   real (r8)           :: ndep_shr_stream_scale_factor ! unit conversion factor
 
-  ! (FIXME, mvertens 2015-11, need to introduce marbl type) 
-  type(tracer_read)   :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers 
+  type(marbl_tracer_read_type)   :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers 
+  type(marbl_tracer_read_type)   :: fesedflux_input                    ! namelist input for iron_flux
 
   ! (FIXME, mvertens 2015-11, need to introduce marbl type) 
   type(forcing_monthly_every_ts) :: fesedflux        ! iron sedimentation flux
@@ -100,7 +100,6 @@ module marbl_share_mod
   type(forcing_monthly_every_ts) :: alk_riv_flux     ! river alk flux, added to alk pool
   type(forcing_monthly_every_ts) :: doc_riv_flux     ! river doc flux, added to semi-labile DOC
 
-  type(tracer_read)  :: fesedflux_input              ! namelist input for iron_flux
   integer (int_kind) :: comp_surf_avg_flag           ! time flag id for computing average surface tracer values TEMPORARY
 
 !-----------------------------------------------------------------------------

@@ -29,6 +29,15 @@ module marbl_interface_types
 #endif
   end type marbl_tracer_metadata_type
   
+  type, public :: marbl_tracer_read_type
+     character(char_len) :: mod_varname
+     character(char_len) :: filename
+     character(char_len) :: file_varname
+     character(char_len) :: file_fmt
+     real(r8)            :: scale_factor
+     real(r8)            :: default_val
+  end type marbl_tracer_read_type
+
   type, public :: marbl_column_domain_type
      logical(log_kind) :: land_mask
      integer(int_kind) :: km ! number of vertical grid cells
@@ -41,15 +50,6 @@ module marbl_interface_types
      real(r8), allocatable :: temperature(:) ! (km)
      real(r8), allocatable :: salinity(:)    ! (km)
   end type marbl_gcm_state_type
-
-  type, public :: marbl_tracer_read_type
-      character(char_len) :: mod_varname
-      character(char_len) :: filename
-      character(char_len) :: file_varname
-      character(char_len) :: file_fmt
-      real(r8)            :: scale_factor 
-      real(r8)            :: default_val
-  end type marbl_tracer_read_type
 
   type, public :: marbl_saved_state_type
      ! this struct is necessary because there is some global state

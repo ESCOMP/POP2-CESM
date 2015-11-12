@@ -111,7 +111,6 @@ module ecosys_mod
   use grid                 , only : zw
   use io_types             , only : stdout
   use io_tools             , only : document
-  use passive_tracer_tools , only : tracer_read
   use time_management      , only : freq_opt_never
   use time_management      , only : freq_opt_nmonth
   use time_management      , only : freq_opt_nyear
@@ -259,6 +258,7 @@ module ecosys_mod
   use marbl_interface_types, only : autotroph_secondary_species_type
   use marbl_interface_types, only : photosynthetically_available_radiation_type
   use marbl_interface_types, only : dissolved_organic_matter_type
+  use marbl_interface_types, only : marbl_tracer_read_type
 
   implicit none
   private
@@ -324,7 +324,7 @@ module ecosys_mod
 
   !-----------------------------------------------------------------------
 
-  type(tracer_read) :: &
+  type(marbl_tracer_read_type) :: &
        gas_flux_fice,       & ! ice fraction for gas fluxes
        gas_flux_ws,         & ! wind speed for gas fluxes
        gas_flux_ap            ! atmospheric pressure for gas fluxes
@@ -501,28 +501,28 @@ contains
 
     character(*), parameter :: subname = 'ecosys_mod:ecosys_init_nml'
 
-    integer (int_kind)  :: n                        ! index for looping over tracers
-    character(char_len) :: comp_surf_avg_freq_opt   ! choice for freq of comp_surf_avg
-    character(char_len) :: gas_flux_forcing_opt     ! option for forcing gas fluxes
-    character(char_len) :: atm_co2_opt              ! option for atmospheric co2 concentration
-    character(char_len) :: atm_alt_co2_opt          ! option for atmospheric alternative CO2
-    type(tracer_read)   :: dust_flux_input          ! namelist input for dust_flux
-    type(tracer_read)   :: iron_flux_input          ! namelist input for iron_flux
-    type(tracer_read)   :: nox_flux_monthly_input   ! namelist input for nox_flux_monthly
-    type(tracer_read)   :: nhy_flux_monthly_input   ! namelist input for nhy_flux_monthly
-    type(tracer_read)   :: din_riv_flux_input       ! namelist input for din_riv_flux
-    type(tracer_read)   :: dip_riv_flux_input       ! namelist input for dip_riv_flux
-    type(tracer_read)   :: don_riv_flux_input       ! namelist input for don_riv_flux
-    type(tracer_read)   :: dop_riv_flux_input       ! namelist input for dop_riv_flux
-    type(tracer_read)   :: dsi_riv_flux_input       ! namelist input for dsi_riv_flux
-    type(tracer_read)   :: dfe_riv_flux_input       ! namelist input for dfe_riv_flux
-    type(tracer_read)   :: dic_riv_flux_input       ! namelist input for dic_riv_flux
-    type(tracer_read)   :: alk_riv_flux_input       ! namelist input for alk_riv_flux
-    type(tracer_read)   :: doc_riv_flux_input       ! namelist input for doc_riv_flux
-    integer (int_kind)  :: nml_error                ! namelist i/o error flag
-    integer (int_kind)  :: zoo_ind                  ! zooplankton functional group index
-    integer (int_kind)  :: comp_surf_avg_freq_iopt  ! choice for freq of comp_surf_avg
-    integer (int_kind)  :: comp_surf_avg_freq       ! choice for freq of comp_surf_avg
+    integer (int_kind)           :: n                        ! index for looping over tracers
+    character(char_len)          :: comp_surf_avg_freq_opt   ! choice for freq of comp_surf_avg
+    character(char_len)          :: gas_flux_forcing_opt     ! option for forcing gas fluxes
+    character(char_len)          :: atm_co2_opt              ! option for atmospheric co2 concentration
+    character(char_len)          :: atm_alt_co2_opt          ! option for atmospheric alternative CO2
+    type(marbl_tracer_read_type) :: dust_flux_input          ! namelist input for dust_flux
+    type(marbl_tracer_read_type) :: iron_flux_input          ! namelist input for iron_flux
+    type(marbl_tracer_read_type) :: nox_flux_monthly_input   ! namelist input for nox_flux_monthly
+    type(marbl_tracer_read_type) :: nhy_flux_monthly_input   ! namelist input for nhy_flux_monthly
+    type(marbl_tracer_read_type) :: din_riv_flux_input       ! namelist input for din_riv_flux
+    type(marbl_tracer_read_type) :: dip_riv_flux_input       ! namelist input for dip_riv_flux
+    type(marbl_tracer_read_type) :: don_riv_flux_input       ! namelist input for don_riv_flux
+    type(marbl_tracer_read_type) :: dop_riv_flux_input       ! namelist input for dop_riv_flux
+    type(marbl_tracer_read_type) :: dsi_riv_flux_input       ! namelist input for dsi_riv_flux
+    type(marbl_tracer_read_type) :: dfe_riv_flux_input       ! namelist input for dfe_riv_flux
+    type(marbl_tracer_read_type) :: dic_riv_flux_input       ! namelist input for dic_riv_flux
+    type(marbl_tracer_read_type) :: alk_riv_flux_input       ! namelist input for alk_riv_flux
+    type(marbl_tracer_read_type) :: doc_riv_flux_input       ! namelist input for doc_riv_flux
+    integer (int_kind)           :: nml_error                ! namelist i/o error flag
+    integer (int_kind)           :: zoo_ind                  ! zooplankton functional group index
+    integer (int_kind)           :: comp_surf_avg_freq_iopt  ! choice for freq of comp_surf_avg
+    integer (int_kind)           :: comp_surf_avg_freq       ! choice for freq of comp_surf_avg
 
     !-----------------------------------------------------------------------
     !  values to be used when comp_surf_avg_freq_opt==never

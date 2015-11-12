@@ -207,13 +207,13 @@ contains
 
     use marbl_interface_constants , only : marbl_nl_buffer_size
     use marbl_interface_types     , only : tracer_field => marbl_tracer_metadata_type
+    use marbl_interface_types     , only : tracer_read  => marbl_tracer_read_type
     use grid                      , only : REGION_MASK
     use grid                      , only : KMT
     use broadcast                 , only : broadcast_scalar
     use io_tools                  , only : document
     use time_management           , only : eval_time_flag
     use passive_tracer_tools      , only : set_tracer_indices
-    use passive_tracer_tools      , only : tracer_read
     use passive_tracer_tools      , only : read_field
     use communicate               , only : my_task, master_task
     use named_field_mod           , only : named_field_register

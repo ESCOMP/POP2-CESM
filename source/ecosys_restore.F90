@@ -3,22 +3,23 @@ module ecosys_restore_mod
   ! Module to generalize restoring any non-autotroph tracer
   !
 
-  use kinds_mod, only : r8, log_kind, int_kind
-  use domain_size, only : km
-  use ecosys_constants, only : ecosys_tracer_cnt
-  use passive_tracer_tools, only : tracer_read, tracer_read_init
-  use ecosys_restore_timescale_file, only : ecosys_restore_timescale_file_type
-  use ecosys_restore_timescale_interp, only : ecosys_restore_timescale_interp_type
+  use kinds_mod                       , only : r8, log_kind, int_kind
+  use domain_size                     , only : km
+  use ecosys_constants                , only : ecosys_tracer_cnt
+  use passive_tracer_tools            , only : tracer_read_init
+  use marbl_interface_types           , only : tracer_read => marbl_tracer_read_type
+  use ecosys_restore_timescale_file   , only : ecosys_restore_timescale_file_type
+  use ecosys_restore_timescale_interp , only : ecosys_restore_timescale_interp_type
 
   implicit none
 
   private
 
   type, private :: restore_info
-     logical(log_kind) :: restore ! flag indicating if this tracer should be restored
-     type(tracer_read) :: restore_file_info ! info about file containing restoring field
-     real (r8), dimension(:, :, :, :), allocatable :: data ! restoring field
+     logical(log_kind) :: restore            ! flag indicating if this tracer should be restored
+     type(tracer_read) :: restore_file_info  ! info about file containing restoring field
      integer(int_kind) :: tavg_restore_index ! index for tavg output
+     real (r8), dimension(:, :, :, :), allocatable :: data ! restoring field
   end type restore_info
 
   type, public :: ecosys_restore_type
@@ -32,14 +33,16 @@ module ecosys_restore_mod
      type(ecosys_restore_timescale_interp_type), private :: timescale_interp
 
    contains
-     procedure, public :: init
-     procedure, public :: read_restoring_fields
-     procedure, public :: restore_tracers
-     procedure, public :: define_tavg_fields
-     procedure, public :: accumulate_tavg
-     procedure, public :: initialize_restoring_timescale
+     procedure, public  :: init
+     procedure, public  :: read_restoring_fields
+     procedure, public  :: restore_tracers
+     procedure, public  :: define_tavg_fields
+     procedure, public  :: accumulate_tavg
+     procedure, public  :: initialize_restoring_timescale
+
      procedure, private :: read_namelist
      procedure, private :: initialize_restore_read_vars
+     procedure, private :: set_tracer_read_metadata
 
   end type ecosys_restore_type
 
@@ -48,23 +51,24 @@ contains
 !*****************************************************************************
 
 subroutine init(this, nml_filename, nml_in, ind_name_table)
+
   ! initialize ecosys_restore instance to default values, then read
   ! namelist and setup tracers that need to be restored
 
-  use kinds_mod, only : char_len, int_kind, i4, log_kind
-  use constants, only : c0, c2, c1000
-  use passive_tracer_tools, only : tracer_read, tracer_read_init, &
-       ind_name_pair, name_to_ind
+  use kinds_mod             , only : char_len, int_kind, i4, log_kind
+  use constants             , only : c0, c2 
+  use passive_tracer_tools  , only : ind_name_pair, name_to_ind
+  use marbl_interface_types , only : tracer_read  => marbl_tracer_read_type
 
   implicit none
 
   !-----------------------------------------------------------------------
   !  input variables
   !-----------------------------------------------------------------------
-  class(ecosys_restore_type) :: this
-  character(len=*), intent(in) :: nml_filename
-  integer(i4), intent(in) :: nml_in
-  type(ind_name_pair), dimension(:), intent(in) :: ind_name_table
+  class(ecosys_restore_type), intent(inout) :: this
+  character(len=*)    , intent(in) :: nml_filename
+  integer(i4)         , intent(in) :: nml_in
+  type(ind_name_pair) , dimension(:), intent(in) :: ind_name_table
 
   !-----------------------------------------------------------------------
   !  local variables
@@ -77,14 +81,14 @@ subroutine init(this, nml_filename, nml_in, ind_name_table)
   !-----------------------------------------------------------------------
 
   ! initialize class data to default values
-  this%restore_any_tracer = .false.
   allocate(this%tracers(ecosys_tracer_cnt))
-  ! NOTE(bja, 2014-10) don't allocate tracers(t)%data here
-  ! because we don't know if it is needed yet!
+
+  this%restore_any_tracer = .false.
+  this%tracers(:)%restore = .false.
+  this%tracers(:)%tavg_restore_index = -1
+
   do t = 1, ecosys_tracer_cnt
-     call tracer_read_init(this%tracers(t)%restore_file_info)
-     this%tracers(t)%restore = .false.
-     this%tracers(t)%tavg_restore_index = -1
+     call this%set_tracer_read_metadata(t)
   end do
 
   call this%read_namelist(nml_filename, nml_in, &
@@ -215,9 +219,10 @@ subroutine initialize_restore_read_vars(this, restore_short_names, restore_filen
   !-----------------------------------------------------------------------
   !  local variables
   !-----------------------------------------------------------------------
-  integer(int_kind) :: t, tracer_index
-  logical(log_kind) :: unknown_user_request
-  character(len=char_len) :: file_format, message
+  integer(int_kind)       :: t, tracer_index
+  logical(log_kind)       :: unknown_user_request
+  character(len=char_len) :: file_format
+  character(len=char_len) :: message
 
   !-----------------------------------------------------------------------
 
@@ -225,26 +230,34 @@ subroutine initialize_restore_read_vars(this, restore_short_names, restore_filen
 
   this%restore_any_tracer = .false.
   unknown_user_request = .false.
+
   ! reinitialize any restore vars requested by the user
   do t = 1, size(restore_short_names)
      if (len(trim(restore_short_names(t))) > 0) then
+
         ! attempt to map the user specified tracer name to tracer index
         tracer_index = name_to_ind(trim(restore_short_names(t)), ind_name_table)
         if (tracer_index > 0) then
+
            this%restore_any_tracer = .true.
-           call tracer_read_init(this%tracers(tracer_index)%restore_file_info, &
-                mod_varname=restore_short_names(t), filename=restore_filenames(t), &
-                file_varname=restore_file_varnames(t), file_fmt=file_format)
            this%tracers(tracer_index)%restore = .true.
+           call this%set_tracer_read_metadata(tracer_index, &
+                mod_varname=restore_short_names(t),         &
+                filename=restore_filenames(t),              &
+                file_varname=restore_file_varnames(t),      &
+                file_fmt=file_format)
            if (my_task == master_task) then
               write(stdout, *) "Setting up restoring for '", trim(restore_short_names(t)), "'"
            end if
+
         else
+
            unknown_user_request = .true.
            if (my_task == master_task) then
               write(stdout, *) "ERROR: Could not find user requested restore variable '", &
                    trim(restore_short_names(t)), "'"
            end if
+
         end if
      end if
   end do
@@ -406,11 +419,11 @@ subroutine restore_tracers(this, tracer_cnt, vert_level, x_index, y_index, &
   !
   !  restore a variable if required
   !
-  use kinds_mod, only : r8, int_kind, log_kind
-  use constants, only : c0
-  use blocks, only : nx_block, ny_block
-  use domain_size, only : km
-  use passive_tracer_tools, only : tracer_read
+  use kinds_mod             , only : r8, int_kind, log_kind
+  use constants             , only : c0
+  use blocks                , only : nx_block, ny_block
+  use domain_size           , only : km
+  use marbl_interface_types , only : tracer_read => marbl_tracer_read_type
 
   implicit none
   !-----------------------------------------------------------------------
@@ -436,6 +449,7 @@ subroutine restore_tracers(this, tracer_cnt, vert_level, x_index, y_index, &
        restore_max_level => this%timescale_file%restore_max_level, &
        inv_restoring_time_scale => this%timescale_interp%inv_restoring_time_scale &
        )
+
     do n=1,tracer_cnt
        if (tracer(n)%restore) then
           if (this%spatial_variability_from_file) then
@@ -468,9 +482,9 @@ subroutine accumulate_tavg(this, restore_local, block_id, i_ind, j_ind)
   !  input variables
   !-----------------------------------------------------------------------
   class(ecosys_restore_type) :: this
-  real (r8), dimension(:,:), intent(in) :: restore_local
-  integer (int_kind), intent(in) :: block_id
-  integer(int_kind), intent(in) :: i_ind, j_ind
+  real (r8)          , dimension(:,:), intent(in) :: restore_local
+  integer (int_kind) , intent(in) :: block_id
+  integer(int_kind)  , intent(in) :: i_ind, j_ind
 
   !-----------------------------------------------------------------------
   !  local variables
@@ -489,6 +503,45 @@ subroutine accumulate_tavg(this, restore_local, block_id, i_ind, j_ind)
   end do
 
 end subroutine accumulate_tavg
+
+!*****************************************************************************
+
+subroutine set_tracer_read_metadata(this, index, &
+     mod_varname, filename, file_varname, file_fmt, &
+     scale_factor, default_val)
+
+  use kinds_mod , only : char_len, r8
+  use constants , only : c0, c1
+
+  implicit none
+
+  !  initialize a tracer_read type to common default values.
+
+  class(ecosys_restore_type) :: this
+  integer(int_kind)              , intent(in) :: index
+  character(char_len) , optional , intent(in) :: mod_varname
+  character(char_len) , optional , intent(in) :: filename
+  character(char_len) , optional , intent(in) :: file_varname
+  character(char_len) , optional , intent(in) :: file_fmt
+  real(r8)            , optional , intent(in) :: scale_factor
+  real(r8)            , optional , intent(in) :: default_val
+
+
+  this%tracers(index)%restore_file_info%mod_varname  = 'unknown'
+  this%tracers(index)%restore_file_info%filename     = 'unknown'
+  this%tracers(index)%restore_file_info%file_varname = 'unknown'
+  this%tracers(index)%restore_file_info%file_fmt     = 'bin'
+  this%tracers(index)%restore_file_info%scale_factor = c1
+  this%tracers(index)%restore_file_info%default_val  = c0
+
+  if (present(mod_varname  )) this%tracers(index)%restore_file_info%mod_varname  = mod_varname
+  if (present(filename     )) this%tracers(index)%restore_file_info%filename     = filename
+  if (present(file_varname )) this%tracers(index)%restore_file_info%file_varname = file_varname
+  if (present(file_fmt     )) this%tracers(index)%restore_file_info%file_fmt     = file_fmt
+  if (present(scale_factor )) this%tracers(index)%restore_file_info%scale_factor = scale_factor
+  if (present(default_val  )) this%tracers(index)%restore_file_info%default_val  = default_val
+
+end subroutine set_tracer_read_metadata
 
 !*****************************************************************************
 

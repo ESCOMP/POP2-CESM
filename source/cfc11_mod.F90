@@ -22,6 +22,7 @@ module cfc11_mod
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
    use marbl_interface_types, only: tracer_field => marbl_tracer_metadata_type
+   use marbl_interface_types, only: tracer_read  => marbl_tracer_read_type
    use kinds_mod
    use constants, only: c0, c1, char_blank, delim_fmt
    use io, only: data_set
@@ -33,7 +34,7 @@ module cfc11_mod
    use tavg, only: define_tavg_field, accumulate_tavg_field
    use timers, only: get_timer
    use passive_tracer_tools, only: forcing_monthly_every_ts,          &
-       init_forcing_monthly_every_ts, ind_name_pair, tracer_read,     &
+       init_forcing_monthly_every_ts, ind_name_pair,   &
        rest_read_tracer_block, file_read_tracer_block, read_field
 
    implicit none
