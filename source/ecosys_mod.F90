@@ -1896,10 +1896,10 @@ contains
           call store_diagnostics_silicon_fluxes(domain, zw, P_SiO2, dtracer,  &
                                                 marbl_diagnostics)
 
-          do k = 1, domain%km
-             ! store_diagnostics_restore
-             marbl_diagnostics%restore_diags(:)%field(k) = restore_local(:, k)
-          end do
+!          do k = 1, domain%km
+!             ! store_diagnostics_restore
+!             marbl_diagnostics%restore_diags(:)%field(k) = restore_local(:, k)
+!          end do
 
           end associate
 

@@ -164,10 +164,7 @@ contains
 !-----------------------------------------------------------------------
 
     allocate(tavg_ecosys(marbl_diag_ind%count))
-    associate(                                                                &
-              diags         => marbl_diags%diags(:),                          &
-              restore_diags => marbl_diags%restore_diags(:)                   &
-             )
+    associate(diags => marbl_diags%diags(:))
     call define_tavg_field(tavg_forcing(ECOSYS_IFRAC_diag_ind),         &
                            'ECOSYS_IFRAC',2,                            &
                            long_name='Ice Fraction for ecosys fluxes',  &
@@ -527,10 +524,7 @@ contains
     integer :: n, auto_ind, zoo_ind, k
     logical :: accumulate
 
-    associate(                                                                &
-              diags         => marbl_diagnostics%diags(:),                    &
-              restore_diags => marbl_diagnostics%restore_diags(:)             &
-             )
+    associate(diags => marbl_diagnostics%diags(:))
 
     ! Accumulate general diagnostics
     do n=1,marbl_diag_ind%count
@@ -542,8 +536,6 @@ contains
                                    bid, i, c)
       end if
     end do
-
-!    call ecosys_restore%accumulate_tavg(restore_diags, bid, i, c)
 
     end associate
 

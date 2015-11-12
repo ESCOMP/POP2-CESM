@@ -56,28 +56,8 @@ module marbl_interface_types
     procedure, public :: initialize  => marbl_diagnostic_metadata_init
   end type marbl_diagnostic_data_and_metadata_type
 
-  type :: marbl_diagnostic_metadata_type
-    character(len=char_len) :: long_name
-    character(len=char_len) :: short_name
-    character(len=char_len) :: units
-    logical(log_kind) :: compute_now
-  end type marbl_diagnostic_metadata_type
-
-  type, extends(marbl_diagnostic_metadata_type) :: marbl_2D_diagnostic_type
-    real(r8) :: field
-  end type marbl_2D_diagnostic_type
-
-  type, extends(marbl_diagnostic_metadata_type) :: marbl_3D_diagnostic_type
-    character(len=char_len) :: vertical_grid ! 'layer_avg', 'layer_iface'
-    logical(log_kind) :: ltruncated_vertical_extent
-    real(r8), dimension(km) :: field
-  end type marbl_3D_diagnostic_type
-
   type, public :: marbl_diagnostics_type
      type(marbl_diagnostic_data_and_metadata_type), dimension(:), allocatable :: diags
-
-     ! (km, ecosys_tracer_cnt)
-     type(marbl_3D_diagnostic_type), dimension(:), allocatable :: restore_diags
 
   contains
     procedure, public :: construct      => marbl_diagnostics_constructor
@@ -254,7 +234,6 @@ contains
 
     allocate(this%diags(max_diags))
     diag_cnt = 0
-    allocate(this%restore_diags(ecosys_tracer_cnt))
 
     call this%initialize()
 
@@ -281,10 +260,6 @@ contains
       end if
     end do
 
-    do n=1,size(this%restore_diags) ! ecosys_tracer_cnt
-      this%restore_diags(n)%field(:) = c0
-    end do
-
   end subroutine marbl_diagnostics_set_to_zero
 
   subroutine marbl_diagnostics_deconstructor(this)
@@ -299,7 +274,6 @@ contains
       end if
     end do
     deallocate(this%diags)
-    deallocate(this%restore_diags)
 
   end subroutine marbl_diagnostics_deconstructor
 
