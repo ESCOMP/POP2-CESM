@@ -35,20 +35,6 @@
   use ecosys_constants, only : ecosys_tracer_cnt
   use ecosys_diagnostics_mod, only : marbl_diag_ind
 
-  ! zooplankton diagnostics
-  ! 2d
-  use ecosys_diagnostics_mod, only : zoo_diag_cnt_2d
-  ! 3d
-  use ecosys_diagnostics_mod, only : zoo_diag_cnt_3d
-  use ecosys_diagnostics_mod, only : zoo_loss_diag_ind
-  use ecosys_diagnostics_mod, only : zoo_loss_poc_diag_ind
-  use ecosys_diagnostics_mod, only : zoo_loss_doc_diag_ind
-  use ecosys_diagnostics_mod, only : zoo_graze_diag_ind
-  use ecosys_diagnostics_mod, only : zoo_graze_poc_diag_ind
-  use ecosys_diagnostics_mod, only : zoo_graze_doc_diag_ind
-  use ecosys_diagnostics_mod, only : zoo_graze_zoo_diag_ind
-  use ecosys_diagnostics_mod, only : x_graze_zoo_diag_ind
-
   ! tavg_forcing diagnostics
   use ecosys_diagnostics_mod, only : forcing_diag_cnt
   use ecosys_diagnostics_mod, only : ECOSYS_IFRAC_diag_ind
@@ -139,17 +125,6 @@
 
   integer (int_kind) :: tavg_POC_ACCUM      ! tavg id for poc accumulation
 
-  !-----------------------------------------------------------------------
-  !  tavg ids for zooplankton fields
-  !-----------------------------------------------------------------------
-
-  integer (int_kind), dimension(zoo_diag_cnt_2d, zooplankton_cnt) :: tavg_zoo_2d
-  integer (int_kind), dimension(zoo_diag_cnt_3d, zooplankton_cnt) :: tavg_zoo_3d
-
-  !-----------------------------------------------------------------------
-  !  tavg ids for autotroph fields
-  !-----------------------------------------------------------------------
-
   integer (int_kind) ::         &
       tavg_tot_bSi_form,        &! tavg id for Si uptake
       tavg_tot_CaCO3_form,      &! tavg id for CaCO3 formation
@@ -191,8 +166,6 @@ contains
     allocate(tavg_ecosys(marbl_diag_ind%count))
     associate(                                                                &
               diags         => marbl_diags%diags(:),                          &
-              zoo_diags_2d  => marbl_diags%zoo_diags_2d(:,:),                 &
-              zoo_diags_3d  => marbl_diags%zoo_diags_3d(:,:),                 &
               restore_diags => marbl_diags%restore_diags(:)                   &
              )
     call define_tavg_field(tavg_forcing(ECOSYS_IFRAC_diag_ind),         &
@@ -471,36 +444,6 @@ contains
                            coordinates='TLONG TLAT time')
 
 !-----------------------------------------------------------------------
-!   Define 3D tavg fields
-!-----------------------------------------------------------------------
-
-    do zoo_ind = 1, zooplankton_cnt
-      do n=1,zoo_diag_cnt_3d
-        if (trim(zoo_diags_3d(n,zoo_ind)%vertical_grid).eq.'layer_avg') then
-          if (zoo_diags_3d(n,zoo_ind)%ltruncated_vertical_extent) then
-            gloc = '3114'
-            coords = 'TLONG TLAT z_t_150m time'
-          else
-            gloc = '3111'
-            coords = 'TLONG TLAT z_t time'
-          end if
-        elseif (trim(zoo_diags_3d(n,zoo_ind)%vertical_grid).eq.'layer_iface') then
-            gloc = '3113'
-            coords = 'TLONG TLAT z_w_bot time'
-        else
-          write(err_msg,*) "'", trim(zoo_diags_3d(n,zoo_ind)%vertical_grid),  &
-                           "' is not a valid vertical grid"
-          call shr_sys_abort(err_msg)
-        end if
-        call define_tavg_field(tavg_zoo_3d(n,zoo_ind),                        &
-                               trim(zoo_diags_3d(n,zoo_ind)%short_name), 3,   &
-                               long_name=trim(zoo_diags_3d(n,zoo_ind)%long_name), &
-                               units=trim(zoo_diags_3d(n,zoo_ind)%units),     &
-                               grid_loc=gloc, coordinates=coords)
-      end do
-    end do
-
-!-----------------------------------------------------------------------
 !  Define 3D tavg fields for autotrophs
 !-----------------------------------------------------------------------
 
@@ -586,8 +529,6 @@ contains
 
     associate(                                                                &
               diags         => marbl_diagnostics%diags(:),                    &
-              ZOO_DIAGS_2D  => marbl_diagnostics%zoo_diags_2d(:,:)%field,     &
-              ZOO_DIAGS_3D  => marbl_diagnostics%zoo_diags_3d(:,:),           &
               restore_diags => marbl_diagnostics%restore_diags(:)             &
              )
 
@@ -600,15 +541,6 @@ contains
         call accumulate_tavg_field(diags(n)%field_3d(:), tavg_ecosys(n),      &
                                    bid, i, c)
       end if
-    end do
-
-    ! Accumulate zooplankton terms
-    ! 3D
-    do n=1,zoo_diag_cnt_3d
-      do zoo_ind=1,zooplankton_cnt
-        call accumulate_tavg_field(ZOO_DIAGS_3d(n,zoo_ind)%field(:),           &
-                                   tavg_zoo_3d(n,zoo_ind), bid, i, c)
-      end do
     end do
 
 !    call ecosys_restore%accumulate_tavg(restore_diags, bid, i, c)

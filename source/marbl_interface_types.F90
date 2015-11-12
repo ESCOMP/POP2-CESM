@@ -76,11 +76,6 @@ module marbl_interface_types
   type, public :: marbl_diagnostics_type
      type(marbl_diagnostic_data_and_metadata_type), dimension(:), allocatable :: diags
 
-     ! (zoo_diag_cnt_2d, zooplankton_cnt)
-     type(marbl_2D_diagnostic_type), dimension(:,:), allocatable :: zoo_diags_2d
-     ! (zoo_diag_cnt_3d, zooplankton_cnt)
-     type(marbl_3D_diagnostic_type), dimension(:,:), allocatable :: zoo_diags_3d
-
      ! (km, ecosys_tracer_cnt)
      type(marbl_3D_diagnostic_type), dimension(:), allocatable :: restore_diags
 
@@ -187,7 +182,7 @@ module marbl_interface_types
      real (r8) :: DOPr_remin       ! portion of refractory DOP remineralized
   end type dissolved_organic_matter_type
 
- integer, parameter :: max_diags = 66 + autotroph_cnt*26
+ integer, parameter :: max_diags = 66 + autotroph_cnt*26 + zooplankton_cnt*8
  integer, public :: diag_cnt
 
 contains
@@ -252,17 +247,13 @@ contains
 
   end subroutine marbl_diagnostic_metadata_init
 
-  subroutine marbl_diagnostics_constructor(this, zoo_diag_cnt_2d,             &
-                                           zoo_diag_cnt_3d, ecosys_tracer_cnt)
+  subroutine marbl_diagnostics_constructor(this, ecosys_tracer_cnt)
 
     class(marbl_diagnostics_type), intent(inout) :: this
-    integer, intent(in) :: zoo_diag_cnt_2d, zoo_diag_cnt_3d
     integer, intent(in) :: ecosys_tracer_cnt
 
     allocate(this%diags(max_diags))
     diag_cnt = 0
-    allocate(this%zoo_diags_2d(zoo_diag_cnt_2d, zooplankton_cnt))
-    allocate(this%zoo_diags_3d(zoo_diag_cnt_3d, zooplankton_cnt))
     allocate(this%restore_diags(ecosys_tracer_cnt))
 
     call this%initialize()
@@ -290,15 +281,6 @@ contains
       end if
     end do
 
-    do n=1,size(this%zoo_diags_2d,dim=2)   ! zooplankton_cnt
-      do m=1,size(this%zoo_diags_2d,dim=1) !zoo_diag_cnt_2d
-        this%zoo_diags_2d(m,n)%field = c0
-      end do
-      do m=1,size(this%zoo_diags_3d,dim=1) !zoo_diag_cnt_3d
-        this%zoo_diags_3d(m,n)%field(:) = c0
-      end do
-    end do
-
     do n=1,size(this%restore_diags) ! ecosys_tracer_cnt
       this%restore_diags(n)%field(:) = c0
     end do
@@ -317,8 +299,6 @@ contains
       end if
     end do
     deallocate(this%diags)
-    deallocate(this%zoo_diags_2d)
-    deallocate(this%zoo_diags_3d)
     deallocate(this%restore_diags)
 
   end subroutine marbl_diagnostics_deconstructor
