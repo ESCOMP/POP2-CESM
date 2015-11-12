@@ -82,6 +82,7 @@
   use marbl_share_mod, only : zooplankton_cnt
 
   use marbl_interface_types, only : marbl_diagnostics_type
+  use marbl_interface_types, only : max_interior_diags
 
   implicit none
   private
@@ -97,7 +98,7 @@
   !  flux terms and particulate terms
   !-----------------------------------------------------------------------
 
-  integer (int_kind), allocatable, dimension(:) :: tavg_ecosys
+  integer (int_kind), dimension(max_interior_diags) :: tavg_ecosys
 
   !-----------------------------------------------------------------------
   !  tavg ids for 2d fields related to surface fluxes
@@ -134,7 +135,7 @@
 
 contains
 
-  subroutine ecosys_tavg_init(marbl_diags, ecosys_restore)
+  subroutine ecosys_tavg_init(marbl_interior_diags, ecosys_restore)
 ! !DESCRIPTION:
 !  call define_tavg_field for all tavg fields
 !
@@ -143,7 +144,7 @@ contains
 !
     use ecosys_restore_mod, only : ecosys_restore_type
 
-    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_interior_diags
     type(ecosys_restore_type), intent(inout) :: ecosys_restore
 !-----------------------------------------------------------------------
 !  local variables
@@ -163,8 +164,7 @@ contains
 !   Define tavg fields for surface flux terms
 !-----------------------------------------------------------------------
 
-    allocate(tavg_ecosys(marbl_diag_ind%count))
-    associate(diags => marbl_diags%diags(:))
+    associate(diags => marbl_interior_diags%diags(:))
     call define_tavg_field(tavg_forcing(ECOSYS_IFRAC_diag_ind),         &
                            'ECOSYS_IFRAC',2,                            &
                            long_name='Ice Fraction for ecosys fluxes',  &
@@ -405,7 +405,7 @@ contains
 !   Define 2D tavg fields
 !-----------------------------------------------------------------------
 
-    do n=1,marbl_diag_ind%count
+    do n=1,marbl_interior_diags%diag_cnt
       if (trim(diags(n)%vertical_grid).eq.'none') then
         ndims = 2
         gloc = '2110'
@@ -512,22 +512,22 @@ contains
 
   end subroutine ecosys_tavg_init
 
-  subroutine ecosys_tavg_accumulate(i, c,bid, marbl_diagnostics,              &
+  subroutine ecosys_tavg_accumulate(i, c,bid, marbl_interior_diags,           &
                                     ecosys_restore)
 
     use ecosys_restore_mod, only : ecosys_restore_type
 
     integer, intent(in) :: i, c, bid ! column indices and block index
-    type(marbl_diagnostics_type), intent(in) :: marbl_diagnostics
+    type(marbl_diagnostics_type), intent(in) :: marbl_interior_diags
     type(ecosys_restore_type), intent(in) :: ecosys_restore
 
     integer :: n, auto_ind, zoo_ind, k
     logical :: accumulate
 
-    associate(diags => marbl_diagnostics%diags(:))
+    associate(diags => marbl_interior_diags%diags(:))
 
     ! Accumulate general diagnostics
-    do n=1,marbl_diag_ind%count
+    do n=1,marbl_interior_diags%diag_cnt
       if (trim(diags(n)%vertical_grid).eq.'none') then
         call accumulate_tavg_field(diags(n)%field_2d, tavg_ecosys(n),         &
                                    bid, i, c)

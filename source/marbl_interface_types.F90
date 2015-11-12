@@ -11,6 +11,11 @@ module marbl_interface_types
 
   private
 
+ integer, public, parameter :: max_interior_diags =                           &
+                                    66 + autotroph_cnt*26 + zooplankton_cnt*8
+ integer, public, parameter :: max_sflux_diags = 0
+ integer, public, parameter :: max_forcing_diags = 0
+
   type, public :: marbl_status_type
      integer :: status
      character(marbl_str_length) :: message
@@ -37,33 +42,37 @@ module marbl_interface_types
 
      
   end type marbl_saved_state_type
-  
-  ! marbl_diagnostics : used to pass diagnostic information for tavg
-  ! etc from marbl back to the driver. The driver is responsible for
-  ! sizing these arrays correctly according to the size of the domain
-  ! and tracer count returned by marbl.
-  type :: marbl_diagnostic_data_and_metadata_type
+ 
+  ! marbl_singl_diagnostic : A private type, this contains both the metadata
+  !                          and the actual diagnostic data for a single
+  !                          diagnostic quantity. Data must be accessed via
+  !                          the marbl_diagnostics_type data structure.
+  type :: marbl_single_diagnostic_type
     character(len=char_len) :: long_name
     character(len=char_len) :: short_name
     character(len=char_len) :: units
     logical(log_kind) :: compute_now
-    character(len=char_len) :: vertical_grid ! 'none', 'layer_avg', 'layer_iface'
+    ! Valid choices for vertical_grid are: 'none', 'layer_avg', 'layer_iface'
+    character(len=char_len) :: vertical_grid
     logical(log_kind) :: ltruncated_vertical_extent
     real(r8) :: field_2d
     real(r8), allocatable, dimension(:) :: field_3d
 
   contains
-    procedure, public :: initialize  => marbl_diagnostic_metadata_init
-  end type marbl_diagnostic_data_and_metadata_type
+    procedure :: initialize  => marbl_single_diag_init
+  end type marbl_single_diagnostic_type
 
+  ! marbl_diagnostics : used to pass diagnostic information from marbl back to
+  !                     the driver. If size is not known when the constructor
+  !                     is called, use the max_diags parameter in this module.
   type, public :: marbl_diagnostics_type
-     type(marbl_diagnostic_data_and_metadata_type), dimension(:), allocatable :: diags
+     integer :: diag_cnt
+     type(marbl_single_diagnostic_type), dimension(:), allocatable :: diags
 
   contains
     procedure, public :: construct      => marbl_diagnostics_constructor
-    procedure, public :: initialize     => marbl_diagnostics_init
-    procedure, public :: add_diagnostic => marbl_diagnostics_add
     procedure, public :: set_to_zero    => marbl_diagnostics_set_to_zero
+    procedure, public :: add_diagnostic => marbl_diagnostics_add
     procedure, public :: deconstruct    => marbl_diagnostics_deconstructor
   end type marbl_diagnostics_type
 
@@ -162,34 +171,12 @@ module marbl_interface_types
      real (r8) :: DOPr_remin       ! portion of refractory DOP remineralized
   end type dissolved_organic_matter_type
 
- integer, parameter :: max_diags = 66 + autotroph_cnt*26 + zooplankton_cnt*8
- integer, public :: diag_cnt
-
 contains
 
-  subroutine marbl_diagnostics_add(this, lname, sname, units, vgrid,          &
-                                   truncate, id)
+  subroutine marbl_single_diag_init(this, lname, sname, units, vgrid, truncate)
+                                            
 
-    class(marbl_diagnostics_type), intent(inout) :: this
-    character(len=char_len), intent(in) :: lname, sname, units, vgrid
-    logical, intent(in) :: truncate
-    integer, intent(out) :: id
-
-
-    diag_cnt = diag_cnt + 1
-    id = diag_cnt
-    if (id.gt.size(this%diags)) then
-      print*, "ERROR: increase max number of diagnostics!"
-      ! FIXME: abort
-    end if
-    call this%diags(id)%initialize(lname, sname, units, vgrid, truncate)
-
-  end subroutine marbl_diagnostics_add
-
-  subroutine marbl_diagnostic_metadata_init(this, lname, sname, units, vgrid, &
-                                            truncate)
-
-    class(marbl_diagnostic_data_and_metadata_type), intent(inout) :: this
+    class(marbl_single_diagnostic_type), intent(inout) :: this
     character(len=char_len), intent(in) :: lname, sname, units, vgrid
     logical, intent(in) :: truncate
 
@@ -225,35 +212,26 @@ contains
       allocate(this%field_3d(km+1))
     end if
 
-  end subroutine marbl_diagnostic_metadata_init
+  end subroutine marbl_single_diag_init
 
-  subroutine marbl_diagnostics_constructor(this, ecosys_tracer_cnt)
-
-    class(marbl_diagnostics_type), intent(inout) :: this
-    integer, intent(in) :: ecosys_tracer_cnt
-
-    allocate(this%diags(max_diags))
-    diag_cnt = 0
-
-    call this%initialize()
-
-  end subroutine marbl_diagnostics_constructor
-
-  subroutine marbl_diagnostics_init(this)
+  subroutine marbl_diagnostics_constructor(this, num_diags)
 
     class(marbl_diagnostics_type), intent(inout) :: this
+    integer, intent(in) :: num_diags
 
+    allocate(this%diags(num_diags))
+    this%diag_cnt = 0
     call this%set_to_zero()
 
-  end subroutine marbl_diagnostics_init
+  end subroutine marbl_diagnostics_constructor
 
   subroutine marbl_diagnostics_set_to_zero(this)
 
     class(marbl_diagnostics_type), intent(inout) :: this
 
-    integer :: m,n
+    integer :: n
 
-    do n=1,size(this%diags) ! ecosys_diag_cnt_2d
+    do n=1,size(this%diags)
       this%diags(n)%field_2d = c0
       if (allocated(this%diags(n)%field_3d)) then
         this%diags(n)%field_3d(:) = c0
@@ -262,13 +240,32 @@ contains
 
   end subroutine marbl_diagnostics_set_to_zero
 
+  subroutine marbl_diagnostics_add(this, lname, sname, units, vgrid,          &
+                                   truncate, id)
+
+    class(marbl_diagnostics_type), intent(inout) :: this
+    character(len=char_len), intent(in) :: lname, sname, units, vgrid
+    logical, intent(in) :: truncate
+    integer, intent(out) :: id
+
+
+    this%diag_cnt = this%diag_cnt + 1
+    id = this%diag_cnt
+    if (id.gt.size(this%diags)) then
+      print*, "ERROR: increase max number of diagnostics!"
+      ! FIXME: abort
+    end if
+    call this%diags(id)%initialize(lname, sname, units, vgrid, truncate)
+
+  end subroutine marbl_diagnostics_add
+
   subroutine marbl_diagnostics_deconstructor(this)
 
     class(marbl_diagnostics_type), intent(inout) :: this
 
     integer :: n
 
-    do n=1,size(this%diags) ! ecosys_diag_cnt_2d
+    do n=1,size(this%diags)
       if (allocated(this%diags(n)%field_3d)) then
         deallocate(this%diags(n)%field_3d)
       end if

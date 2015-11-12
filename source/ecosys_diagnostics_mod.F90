@@ -14,6 +14,7 @@ module ecosys_diagnostics_mod
   use marbl_share_mod, only : zooplankton
   use marbl_share_mod, only : zooplankton_cnt
 
+  use marbl_interface_types, only : max_interior_diags
   use marbl_interface_types, only : carbonate_type
   use marbl_interface_types, only : zooplankton_secondary_species_type
   use marbl_interface_types, only : autotroph_secondary_species_type
@@ -21,7 +22,6 @@ module ecosys_diagnostics_mod
   use marbl_interface_types, only : dissolved_organic_matter_type
   use marbl_interface_types, only : marbl_diagnostics_type
   use marbl_interface_types, only : marbl_column_domain_type
-  use marbl_interface_types, only : diag_cnt
 
   use grid, only : partial_bottom_cells
   use domain_size, only : km
@@ -52,10 +52,7 @@ module ecosys_diagnostics_mod
 !  indices for diagnostic values written to tavg files
 !-----------------------------------------------------------------------
 
-  type, public :: marbl_diagnostics_indexing_type
-    ! Total number of diagnostics (used for looping)
-    integer(int_kind) :: count
-
+  type, private :: marbl_interior_diagnostics_indexing_type
     ! General 2D diags
     integer(int_kind) :: zsatcalc
     integer(int_kind) :: zsatarag
@@ -170,9 +167,9 @@ module ecosys_diagnostics_mod
     integer(int_kind), dimension(zooplankton_cnt) :: zoo_graze_zoo
     integer(int_kind), dimension(zooplankton_cnt) :: x_graze_zoo
 
-  end type marbl_diagnostics_indexing_type
+  end type marbl_interior_diagnostics_indexing_type
 
-  type(marbl_diagnostics_indexing_type) :: marbl_diag_ind
+  type(marbl_interior_diagnostics_indexing_type) :: marbl_diag_ind
 
   integer(int_kind), parameter ::   forcing_diag_cnt =  38
   integer (int_kind), parameter ::   &
@@ -226,7 +223,7 @@ contains
     logical :: truncate
 
     ! Allocate memory in marbl_diagnostics_type
-    call marbl_diags%construct(ecosys_tracer_cnt)
+    call marbl_diags%construct(max_interior_diags)
 
     ! General 2D diags
     lname = 'Calcite Saturation Depth'
@@ -821,13 +818,17 @@ contains
       call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
                                       marbl_diag_ind%Fe_lim(n))
 
-      lname = trim(autotrophs(n)%lname) // ' SiO3 Limitation'
-      sname = trim(autotrophs(n)%sname) // '_SiO3_lim'
-      units = 'none'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_diag_ind%SiO3_lim(n))
+      if (autotrophs(n)%kSiO3 > c0) then
+        lname = trim(autotrophs(n)%lname) // ' SiO3 Limitation'
+        sname = trim(autotrophs(n)%sname) // '_SiO3_lim'
+        units = 'none'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call marbl_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
+                                        marbl_diag_ind%SiO3_lim(n))
+      else
+        marbl_diag_ind%SiO3_lim(n) = -1
+      end if
 
       lname = trim(autotrophs(n)%lname) // ' Light Limitation'
       sname = trim(autotrophs(n)%sname) // '_light_lim'
@@ -1061,8 +1062,6 @@ contains
 
     end do
 
-    marbl_diag_ind%count = diag_cnt
-
   end subroutine ecosys_diagnostics_init
 
   subroutine store_diagnostics_carbonate(marbl_domain, carbonate, zt, zw,     &
@@ -1200,7 +1199,7 @@ contains
          diags(marbl_diag_ind%P_lim(n))%field_3d(:) =                         &
                                        autotroph_secondary_species(n,:)%VPtot
 
-         if (autotrophs(n)%kSiO3 > c0) then
+         if (marbl_diag_ind%SiO3_lim(n).ne.-1) then
             diags(marbl_diag_ind%SiO3_lim(n))%field_3d(:) =                   &
                                        autotroph_secondary_species(n,:)%VSiO3
          end if
