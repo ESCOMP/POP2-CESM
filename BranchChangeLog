@@ -1,6 +1,28 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    13 Nov 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n13_cesm_pop_2_1_20151024
+Tag Summary: merge pop2/trunk_tags/cesm_pop_2_1_20151024 to branch
+
+Testing
+aux_pop_MARBL: (baseline comparison to n12 tag)
+   tests pass with following exceptions
+      nlcomp fails because of basemodel namelist changes
+      debug tests with ciso abort, as expected
+
+M       source/hmix_gm_aniso.F90
+M       source/hmix_gm.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_pes.xml
+M       BranchChangeLog
+M       ChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    11 Nov 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n12_cesm_pop_2_1_20151020
 Tag Summary: incorporate changes suggested from review of MCOG code
