@@ -107,26 +107,6 @@
       tavg_DIC_GAS_FLUX_2     ! dic flux duplicate
 
   !-----------------------------------------------------------------------
-  !  define tavg id for MORE nonstandard 3d fields
-  !-----------------------------------------------------------------------
-
-  integer (int_kind) :: &
-      tavg_DONr_remin,  &! tavg id for DONrefractory remin
-      tavg_DOPr_remin    ! tavg id for DOPrefractory remin
-
-  !-----------------------------------------------------------------------
-  !  tavg ids for particulate terms
-  !-----------------------------------------------------------------------
-
-  integer (int_kind) :: tavg_POC_ACCUM      ! tavg id for poc accumulation
-
-  integer (int_kind) ::         &
-      tavg_tot_bSi_form,        &! tavg id for Si uptake
-      tavg_tot_CaCO3_form,      &! tavg id for CaCO3 formation
-      tavg_tot_CaCO3_form_zint, &! tavg id for CaCO3 formation vertical integral
-      tavg_tot_Nfix              ! tavg id for N fixation
-
-  !-----------------------------------------------------------------------
   !  define tavg id for interior diagnostics and diagnostics related to
   !  restoring
   !-----------------------------------------------------------------------
@@ -400,50 +380,6 @@ contains
                            units='alk/cm^2/s', grid_loc='2110',         &
                            coordinates='TLONG TLAT time')
 
-!-----------------------------------------------------------------------
-!   Define 2D tavg fields
-!-----------------------------------------------------------------------
-
-    call define_tavg_field(tavg_tot_CaCO3_form_zint, 'CaCO3_form_zint', 2, &
-                           long_name='Total CaCO3 Formation Vertical Integral', &
-                           units='mmol/m^3 cm/s', grid_loc='2110', &
-                           coordinates='TLONG TLAT time')
-
-    !-----------------------------------------------------------------------
-    !  Define tavg fields for sum over all autotrophs
-    !-----------------------------------------------------------------------
-
-    call define_tavg_field(tavg_tot_bSi_form, 'bSi_form', 3, &
-                           long_name='Total Si Uptake', &
-                           units='mmol/m^3/s', grid_loc='3114', &
-                           coordinates='TLONG TLAT z_t_150m time')
-
-    call define_tavg_field(tavg_tot_CaCO3_form, 'CaCO3_form', 3, &
-                           long_name='Total CaCO3 Formation', &
-                           units='mmol/m^3/s', grid_loc='3114', &
-                           coordinates='TLONG TLAT z_t_150m time')
-
-    call define_tavg_field(tavg_tot_Nfix, 'Nfix', 3, &
-                           long_name='Total N Fixation', &
-                           units='mmol/m^3/s', grid_loc='3114',   &
-                           coordinates='TLONG TLAT z_t_150m time')
-
-!  DEFINED BUT NEVER WRITTEN
-    call define_tavg_field(tavg_DONr_REMIN,'DONr_REMIN',3,              &
-                           long_name='DONr Remineralization',           &
-                           units='mmol/m^3/s', grid_loc='3111',         &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_DOPr_REMIN,'DOPr_REMIN',3,              &
-                           long_name='DOPr Remineralization',           &
-                           units='mmol/m^3/s', grid_loc='3111',         &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_POC_ACCUM,'POC_ACCUM',3,                &
-                           long_name='POC Accumulation',                &
-                           units='mmol/m^3/s', grid_loc='3111',         &
-                           coordinates='TLONG TLAT z_t time')
-
     !-----------------------------------------------------------------------
     !  Define tavg fields for MARBL diagnostics
     !-----------------------------------------------------------------------
@@ -477,27 +413,6 @@ contains
               Nfix_ind            => marbl_interior_diag_ind%Nfix,            &
               CaCO3_form_zint_ind => marbl_interior_diag_ind%CaCO3_form_zint  &
              )
-      do n=1,autotroph_cnt
-        if (bSi_form_ind(n).ne.-1) then
-          call accumulate_tavg_field(diags(bsi_form_ind(n))%field_3d(:),      &
-                                     tavg_tot_bSi_form, bid, i, c)
-        end if
-
-        if (CaCO3_form_ind(n).ne.-1) then
-          call accumulate_tavg_field(diags(CaCO3_form_ind(n))%field_3d(:),    &
-                                     tavg_tot_CaCO3_form, bid, i, c)
-        end if
-
-        if (Nfix_ind(n).ne.-1) then
-          call accumulate_tavg_field(diags(Nfix_ind(n))%field_3d(:),          &
-                                     tavg_tot_Nfix, bid, i, c)
-        end if
-
-        if (CaCO3_form_zint_ind(n).ne.-1) then
-          call accumulate_tavg_field(diags(CaCO3_form_zint_ind(n))%field_2d,  &
-                                     tavg_tot_CaCO3_form_zint, bid, i, c)
-        end if
-      end do
     end associate
 
     call ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_restore_diags,     &

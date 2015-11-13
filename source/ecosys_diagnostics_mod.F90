@@ -85,6 +85,7 @@ module ecosys_diagnostics_mod
     integer(int_kind), dimension(autotroph_cnt) :: photoC_zint
     integer(int_kind), dimension(autotroph_cnt) :: photoC_NO3_zint
     integer(int_kind), dimension(autotroph_cnt) :: CaCO3_form_zint
+    integer(int_kind) :: tot_CaCO3_form_zint
 
     ! General 3D diags
     integer(int_kind) :: CO3
@@ -114,6 +115,8 @@ module ecosys_diagnostics_mod
     integer(int_kind) :: DOP_remin
     integer(int_kind) :: DOFe_prod
     integer(int_kind) :: DOFe_remin
+    integer(int_kind) :: DONr_remin
+    integer(int_kind) :: DOPr_remin
     integer(int_kind) :: Fe_scavenge
     integer(int_kind) :: Fe_scavenge_rate
 
@@ -157,6 +160,9 @@ module ecosys_diagnostics_mod
     integer(int_kind), dimension(autotroph_cnt) :: bSi_form
     integer(int_kind), dimension(autotroph_cnt) :: CaCO3_form
     integer(int_kind), dimension(autotroph_cnt) :: Nfix
+    integer(int_kind) :: tot_bSi_form
+    integer(int_kind) :: tot_CaCO3_form
+    integer(int_kind) :: tot_Nfix
 
     ! zooplankton 3D diags
     integer(int_kind), dimension(zooplankton_cnt) :: zoo_loss
@@ -452,6 +458,13 @@ contains
         marbl_interior_diag_ind%CaCO3_form_zint(n) = -1
       end if
     end do
+    lname = 'Total CaCO3 Formation Vertical Integral'
+    sname = 'CaCO3_form_zint'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
+                                      marbl_interior_diag_ind%tot_CaCO3_form_zint)
 
     ! General 3D diags
     lname = 'Carbonate Ion Concentration'
@@ -670,6 +683,22 @@ contains
     call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
                                     marbl_interior_diag_ind%DOFe_remin)
 
+    lname = 'DONr Remineralization'
+    sname = 'DONr_remin'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_interior_diag_ind%DONr_remin)
+
+    lname = 'DOPr Remineralization'
+    sname = 'DOPr_remin'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_interior_diag_ind%DOPr_remin)
+
     lname = 'Iron Scavenging'
     sname = 'Fe_scavenge'
     units = 'mmol/m^3/s'
@@ -711,8 +740,7 @@ contains
     call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
                                     marbl_interior_diag_ind%POC_REMIN)
 
-!    lname = 'CaCO3 Flux into Cell'
-    lname = 'CaCO3 flux into cell' ! FIXME lower case? consistent with rest?
+    lname = 'CaCO3 Flux into Cell'
     sname = 'CaCO3_FLUX_IN'
     units = 'mmol/m^3 cm/s'
     vgrid = 'layer_avg'
@@ -967,8 +995,9 @@ contains
                                       marbl_interior_diag_ind%auto_agg(n))
 
       if (autotrophs(n)%Si_ind.gt.0) then
-        lname=trim(autotrophs(n)%lname) // ' Si Uptake' ! FIXME: formation?
-        sname = trim(autotrophs(n)%sname) // 'bSi_form' ! FIXME: _?
+        lname=trim(autotrophs(n)%lname) // ' Si Uptake'
+        !sname = trim(autotrophs(n)%sname) // '_bSi_form'
+        sname = trim(autotrophs(n)%sname) // 'bSi_form' ! FIXME: eventually add _
         units = 'mmol/m^3/s'
         vgrid = 'layer_avg'
         truncate = .true.
@@ -1003,6 +1032,31 @@ contains
       end if
     end do
 
+    lname= 'Total Si Uptake'
+    sname = 'bSi_form'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .true.
+    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
+                                             marbl_interior_diag_ind%tot_bSi_form)
+
+    lname = 'Total CaCO3 Formation'
+    sname = 'CaCO3_form'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .true.
+    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
+                                           marbl_interior_diag_ind%tot_CaCO3_form)
+
+    lname = 'Total N Fixation'
+    sname = 'Nfix'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .true.
+    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
+                                        marbl_interior_diag_ind%tot_Nfix)
+
+    ! Zooplankton 3D diags
     do n=1,zooplankton_cnt
       lname = trim(zooplankton(n)%lname) // ' Loss'
       sname = trim(zooplankton(n)%sname) // '_loss'
@@ -1213,6 +1267,10 @@ contains
     end if
 
     associate(diags => marbl_diags%diags(:))
+      diags(marbl_interior_diag_ind%tot_CaCO3_form_zint)%field_2d = c0
+      diags(marbl_interior_diag_ind%tot_bSi_form)%field_3d(:) = c0
+      diags(marbl_interior_diag_ind%tot_Nfix)%field_3d(:) = c0
+      diags(marbl_interior_diag_ind%tot_CaCO3_form)%field_3d(:) = c0
       do n = 1, autotroph_cnt
          diags(marbl_interior_diag_ind%N_lim(n))%field_3d(:) =                         &
                                        autotroph_secondary_species(n,:)%VNtot
@@ -1242,16 +1300,25 @@ contains
          if (marbl_interior_diag_ind%bSi_form(n).ne.-1) then
            diags(marbl_interior_diag_ind%bSi_form(n))%field_3d(:) =                    &
                                      autotroph_secondary_species(n,:)%photoSi
+           diags(marbl_interior_diag_ind%tot_bSi_form)%field_3d(:) =          &
+                    diags(marbl_interior_diag_ind%tot_bSi_form)%field_3d(:) + &
+                    diags(marbl_interior_diag_ind%bSi_form(n))%field_3d(:)
          endif
 
          if (marbl_interior_diag_ind%CaCO3_form(n).ne.-1) then
            diags(marbl_interior_diag_ind%CaCO3_form(n))%field_3d(:) =                  &
                                   autotroph_secondary_species(n,:)%CaCO3_PROD
+           diags(marbl_interior_diag_ind%tot_CaCO3_form)%field_3d(:) =        &
+                  diags(marbl_interior_diag_ind%tot_CaCO3_form)%field_3d(:) + &
+                  diags(marbl_interior_diag_ind%CaCO3_form(n))%field_3d(:)
          end if
 
          if (marbl_interior_diag_ind%Nfix(n).ne.-1) then
            diags(marbl_interior_diag_ind%Nfix(n))%field_3d(:) =                        &
                                         autotroph_secondary_species(n,:)%Nfix
+           diags(marbl_interior_diag_ind%tot_Nfix)%field_3d(:) =              &
+                        diags(marbl_interior_diag_ind%tot_Nfix)%field_3d(:) + &
+                        diags(marbl_interior_diag_ind%Nfix(n))%field_3d(:)
          end if
 
          diags(marbl_interior_diag_ind%auto_graze(n))%field_3d(:) =                    &
@@ -1288,6 +1355,9 @@ contains
                     diags(marbl_interior_diag_ind%CaCO3_form_zint(n))%field_2d +       &
                     delta_z(k) * autotroph_secondary_species(n, k)%CaCO3_PROD
            end do
+           diags(marbl_interior_diag_ind%tot_CaCO3_form_zint)%field_2d =      &
+                diags(marbl_interior_diag_ind%tot_CaCO3_form_zint)%field_2d + &
+                diags(marbl_interior_diag_ind%CaCO3_form_zint(n))%field_2d
          end if
 
          diags(marbl_interior_diag_ind%photoC_zint(n))%field_2d = c0
@@ -1534,6 +1604,10 @@ contains
                                           dissolved_organic_matter%DOP_prod
       diags(marbl_interior_diag_ind%DOP_remin)%field_3d(:) =                           &
                                           dissolved_organic_matter%DOP_remin
+      diags(marbl_interior_diag_ind%DONr_remin)%field_3d(:) =                          &
+                                          dissolved_organic_matter%DONr_remin
+      diags(marbl_interior_diag_ind%DOPr_remin)%field_3d(:) =                          &
+                                          dissolved_organic_matter%DOPr_remin
       diags(marbl_interior_diag_ind%DOFe_prod)%field_3d(:) =                           &
                                           dissolved_organic_matter%DOFe_prod
       diags(marbl_interior_diag_ind%DOFe_remin)%field_3d(:) =                          &
