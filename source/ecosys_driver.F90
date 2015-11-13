@@ -48,7 +48,6 @@ module ecosys_driver
   use marbl_interface_types     , only : marbl_status_type
   use marbl_interface_types     , only : marbl_diagnostics_type
   use marbl_interface_types     , only : marbl_saved_state_type
-  use marbl_interface_types     , only : max_interior_diags
 
   ! NOTE(bja, 2014-12) all other uses of marbl/ecosys modules need to be removed!
   use marbl_share_mod           , only : autotroph_cnt, zooplankton_cnt
@@ -106,14 +105,6 @@ module ecosys_driver
 
   !EOP
   !BOC
-
-  !-----------------------------------------------------------------------
-  !  define tavg id for interior diagnostics and diagnostics related to
-  !  restoring
-  !-----------------------------------------------------------------------
-
-  integer (int_kind), dimension(max_interior_diags) :: tavg_interior
-  integer (int_kind), dimension(ecosys_tracer_cnt) :: tavg_restore
 
   !-----------------------------------------------------------------------
   !  module variables required by forcing_passive_tracer
@@ -441,8 +432,7 @@ contains
     end do
 
     ! Only set up tavg files from first block?
-    call ecosys_tavg_init(marbl_interior_diags(1), marbl_restore_diags(1),    &
-                          tavg_interior, tavg_restore)
+    call ecosys_tavg_init(marbl_interior_diags(1), marbl_restore_diags(1))
 
     if (errorCode /= POP_Success) then
        call POP_ErrorSet(errorCode, 'init_ecosys_driver: error in ecosys_init')
@@ -618,9 +608,7 @@ contains
           end if ! KMT > 0
 
           call ecosys_tavg_accumulate(i, c, bid, marbl_interior_diags(bid),   &
-                                      tavg_interior)
-          call ecosys_tavg_accumulate(i, c, bid, marbl_restore_diags(bid),    &
-                                      tavg_restore)
+                                      marbl_restore_diags(bid))
 
        end do ! do i
     end do ! do c

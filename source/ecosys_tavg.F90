@@ -1,3 +1,4 @@
+! Stays in POP (ecosys driver)
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  module ecosys_tavg
@@ -32,7 +33,10 @@
 
   use shr_sys_mod, only : shr_sys_abort
 
+  use ecosys_constants, only : ecosys_tracer_cnt
+
   ! tavg_forcing diagnostics
+  use ecosys_diagnostics_mod, only : marbl_interior_diag_ind
   use ecosys_diagnostics_mod, only : forcing_diag_cnt
   use ecosys_diagnostics_mod, only : ECOSYS_IFRAC_diag_ind
   use ecosys_diagnostics_mod, only : ECOSYS_XKW_diag_ind
@@ -79,6 +83,7 @@
   use marbl_share_mod, only : zooplankton_cnt
 
   use marbl_interface_types, only : marbl_diagnostics_type
+  use marbl_interface_types, only : max_interior_diags
 
   implicit none
   private
@@ -121,11 +126,18 @@
       tavg_tot_CaCO3_form_zint, &! tavg id for CaCO3 formation vertical integral
       tavg_tot_Nfix              ! tavg id for N fixation
 
+  !-----------------------------------------------------------------------
+  !  define tavg id for interior diagnostics and diagnostics related to
+  !  restoring
+  !-----------------------------------------------------------------------
+
+  integer (int_kind), dimension(max_interior_diags) :: tavg_interior
+  integer (int_kind), dimension(ecosys_tracer_cnt) :: tavg_restore
+
 
 contains
 
-  subroutine ecosys_tavg_init(marbl_interior_diags, marbl_restore_diags,      &
-                              tavg_interior, tavg_restore)
+  subroutine ecosys_tavg_init(marbl_interior_diags, marbl_restore_diags)
 ! !DESCRIPTION:
 !  call define_tavg_field for all tavg fields
 !
@@ -134,8 +146,7 @@ contains
 !
     type(marbl_diagnostics_type), intent(in) :: marbl_interior_diags
     type(marbl_diagnostics_type), intent(in) :: marbl_restore_diags
-    integer (int_kind), dimension(:), intent(inout) :: tavg_interior
-    integer (int_kind), dimension(:), intent(inout) :: tavg_restore
+
 !-----------------------------------------------------------------------
 !  local variables
 !-----------------------------------------------------------------------
@@ -446,7 +457,55 @@ contains
 
   end subroutine ecosys_tavg_init
 
-  subroutine ecosys_tavg_accumulate(i, c, bid, marbl_diags, tavg_id)
+  subroutine ecosys_tavg_accumulate(i, c, bid, marbl_interior_diags,          &
+                                    marbl_restore_diags)
+
+    integer, intent(in) :: i, c, bid ! column indices and block index
+    type(marbl_diagnostics_type), intent(in) :: marbl_interior_diags
+    type(marbl_diagnostics_type), intent(in) :: marbl_restore_diags
+
+    integer :: n
+
+    ! Interior diagnostics
+    call ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_interior_diags,    &
+                                          tavg_interior)
+
+    associate(                                                                &
+              diags               => marbl_interior_diags%diags,              &
+              bSi_form_ind        => marbl_interior_diag_ind%bSi_form,        &
+              CaCO3_form_ind      => marbl_interior_diag_ind%CaCO3_form,      &
+              Nfix_ind            => marbl_interior_diag_ind%Nfix,            &
+              CaCO3_form_zint_ind => marbl_interior_diag_ind%CaCO3_form_zint  &
+             )
+      do n=1,autotroph_cnt
+        if (bSi_form_ind(n).ne.-1) then
+          call accumulate_tavg_field(diags(bsi_form_ind(n))%field_3d(:),      &
+                                     tavg_tot_bSi_form, bid, i, c)
+        end if
+
+        if (CaCO3_form_ind(n).ne.-1) then
+          call accumulate_tavg_field(diags(CaCO3_form_ind(n))%field_3d(:),    &
+                                     tavg_tot_CaCO3_form, bid, i, c)
+        end if
+
+        if (Nfix_ind(n).ne.-1) then
+          call accumulate_tavg_field(diags(Nfix_ind(n))%field_3d(:),          &
+                                     tavg_tot_Nfix, bid, i, c)
+        end if
+
+        if (CaCO3_form_zint_ind(n).ne.-1) then
+          call accumulate_tavg_field(diags(CaCO3_form_zint_ind(n))%field_2d,  &
+                                     tavg_tot_CaCO3_form_zint, bid, i, c)
+        end if
+      end do
+    end associate
+
+    call ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_restore_diags,     &
+                                          tavg_restore)
+
+  end subroutine ecosys_tavg_accumulate
+
+  subroutine ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_diags, tavg_id)
 
     integer, intent(in) :: i, c, bid ! column indices and block index
     type(marbl_diagnostics_type), intent(in) :: marbl_diags
@@ -466,7 +525,7 @@ contains
       end do
     end associate
 
-  end subroutine ecosys_tavg_accumulate
+  end subroutine ecosys_tavg_accumulate_from_diag
 
   subroutine ecosys_tavg_accumulate_flux(FLUX_DIAGS)
 

@@ -1,6 +1,5 @@
+! Will be part of MARBL library
 module ecosys_diagnostics_mod
-
-  use ecosys_constants, only : ecosys_tracer_cnt
 
   use marbl_kinds_mod, only : c0
   use marbl_kinds_mod, only : c1
@@ -13,6 +12,7 @@ module ecosys_diagnostics_mod
   use marbl_share_mod, only : autotroph_cnt
   use marbl_share_mod, only : zooplankton
   use marbl_share_mod, only : zooplankton_cnt
+  use marbl_share_mod, only : ecosys_tracer_cnt
 
   use marbl_interface_types, only : max_interior_diags
   use marbl_interface_types, only : max_restore_diags
@@ -170,7 +170,8 @@ module ecosys_diagnostics_mod
 
   end type marbl_interior_diagnostics_indexing_type
 
-  type(marbl_interior_diagnostics_indexing_type), private :: marbl_interior_diag_ind
+  type(marbl_interior_diagnostics_indexing_type), public ::                   &
+                                                      marbl_interior_diag_ind
 
   integer(int_kind), parameter ::   forcing_diag_cnt =  38
   integer (int_kind), parameter ::   &
