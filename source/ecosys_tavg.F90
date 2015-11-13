@@ -32,9 +32,6 @@
 
   use shr_sys_mod, only : shr_sys_abort
 
-  use ecosys_constants, only : ecosys_tracer_cnt
-  use ecosys_diagnostics_mod, only : marbl_diag_ind
-
   ! tavg_forcing diagnostics
   use ecosys_diagnostics_mod, only : forcing_diag_cnt
   use ecosys_diagnostics_mod, only : ECOSYS_IFRAC_diag_ind
@@ -82,7 +79,6 @@
   use marbl_share_mod, only : zooplankton_cnt
 
   use marbl_interface_types, only : marbl_diagnostics_type
-  use marbl_interface_types, only : max_interior_diags
 
   implicit none
   private
@@ -92,13 +88,6 @@
   public :: ecosys_tavg_init
   public :: ecosys_tavg_accumulate
   public :: ecosys_tavg_accumulate_flux
-
-  !-----------------------------------------------------------------------
-  !  define tavg id for everything but zooplankton, autotrophs, surface
-  !  flux terms and particulate terms
-  !-----------------------------------------------------------------------
-
-  integer (int_kind), dimension(max_interior_diags) :: tavg_ecosys
 
   !-----------------------------------------------------------------------
   !  tavg ids for 2d fields related to surface fluxes
@@ -135,17 +124,18 @@
 
 contains
 
-  subroutine ecosys_tavg_init(marbl_interior_diags, ecosys_restore)
+  subroutine ecosys_tavg_init(marbl_interior_diags, marbl_restore_diags,      &
+                              tavg_interior, tavg_restore)
 ! !DESCRIPTION:
 !  call define_tavg_field for all tavg fields
 !
 ! !REVISION HISTORY:
 !  same as module
 !
-    use ecosys_restore_mod, only : ecosys_restore_type
-
-    type(marbl_diagnostics_type), intent(inout) :: marbl_interior_diags
-    type(ecosys_restore_type), intent(inout) :: ecosys_restore
+    type(marbl_diagnostics_type), intent(in) :: marbl_interior_diags
+    type(marbl_diagnostics_type), intent(in) :: marbl_restore_diags
+    integer (int_kind), dimension(:), intent(inout) :: tavg_interior
+    integer (int_kind), dimension(:), intent(inout) :: tavg_restore
 !-----------------------------------------------------------------------
 !  local variables
 !-----------------------------------------------------------------------
@@ -156,7 +146,6 @@ contains
       auto_ind,       & ! autotroph functional group index
       zoo_ind           ! zooplankton functional group index
 
-    character(char_len) :: err_msg, gloc, coords, sname
     integer(int_kind) :: n, ndims
     logical :: define_field
 
@@ -164,7 +153,6 @@ contains
 !   Define tavg fields for surface flux terms
 !-----------------------------------------------------------------------
 
-    associate(diags => marbl_interior_diags%diags(:))
     call define_tavg_field(tavg_forcing(ECOSYS_IFRAC_diag_ind),         &
                            'ECOSYS_IFRAC',2,                            &
                            long_name='Ice Fraction for ecosys fluxes',  &
@@ -405,69 +393,10 @@ contains
 !   Define 2D tavg fields
 !-----------------------------------------------------------------------
 
-    do n=1,marbl_interior_diags%diag_cnt
-      if (trim(diags(n)%vertical_grid).eq.'none') then
-        ndims = 2
-        gloc = '2110'
-        coords = 'TLONG TLAT time'
-      else
-        ndims = 3
-        if (trim(diags(n)%vertical_grid).eq.'layer_avg') then
-          if (diags(n)%ltruncated_vertical_extent) then
-            gloc = '3114'
-            coords = 'TLONG TLAT z_t_150m time'
-          else
-            gloc = '3111'
-            coords = 'TLONG TLAT z_t time'
-          end if
-        elseif (trim(diags(n)%vertical_grid).eq.'layer_iface') then
-            gloc = '3113'
-            coords = 'TLONG TLAT z_w_bot time'
-        else
-          write(err_msg,*) "'", trim(diags(n)%vertical_grid),                 &
-                           "' is not a valid vertical grid"
-          call shr_sys_abort(err_msg)
-        end if
-      end if
-      call define_tavg_field(tavg_ecosys(n),trim(diags(n)%short_name),        &
-                             ndims, long_name=trim(diags(n)%long_name),       &
-                             units=trim(diags(n)%units), grid_loc=gloc,       &
-                             coordinates=coords)
-    end do
-
     call define_tavg_field(tavg_tot_CaCO3_form_zint, 'CaCO3_form_zint', 2, &
                            long_name='Total CaCO3 Formation Vertical Integral', &
                            units='mmol/m^3 cm/s', grid_loc='2110', &
                            coordinates='TLONG TLAT time')
-
-!-----------------------------------------------------------------------
-!  Define 3D tavg fields for autotrophs
-!-----------------------------------------------------------------------
-
-!       if (autotrophs(auto_ind)%Si_ind > 0) then
-!          sname = trim(autotrophs(auto_ind)%sname) // 'bSi_form'
-!          call define_tavg_field(tavg_auto_3d(bSi_form_diag_ind,auto_ind), sname, 3, &
-!                                 long_name=trim(autotrophs(auto_ind)%lname) // ' Si Uptake', &
-!                                 units='mmol/m^3/s', grid_loc='3114', &
-!                                 coordinates='TLONG TLAT z_t_150m time')
-!       endif
-
-!       if (autotrophs(auto_ind)%CaCO3_ind > 0) then
-!          sname = trim(autotrophs(auto_ind)%sname) // '_CaCO3_form'
-!          call define_tavg_field(tavg_auto_3d(CaCO3_form_diag_ind,auto_ind), sname, 3, &
-!                                 long_name=trim(autotrophs(auto_ind)%lname) // ' CaCO3 Formation', &
-!                                 units='mmol/m^3/s', grid_loc='3114', &
-!                                 coordinates='TLONG TLAT z_t_150m time')
-!       endif
-
-!       if (autotrophs(auto_ind)%Nfixer) then
-!          call define_tavg_field(tavg_auto_3d(Nfix_diag_ind,auto_ind), &
-!                                 trim(autotrophs(auto_ind)%sname) // '_Nfix', 3, &
-!                                 long_name=trim(autotrophs(auto_ind)%lname) // ' N Fixation', &
-!                                 units='mmol/m^3/s', grid_loc='3114',   &
-!                                 coordinates='TLONG TLAT z_t_150m time')
-!       endif
-!    end do
 
     !-----------------------------------------------------------------------
     !  Define tavg fields for sum over all autotrophs
@@ -504,39 +433,37 @@ contains
                            units='mmol/m^3/s', grid_loc='3111',         &
                            coordinates='TLONG TLAT z_t time')
 
-    call ecosys_restore%define_tavg_fields()
-    end associate
+    !-----------------------------------------------------------------------
+    !  Define tavg fields for MARBL diagnostics
+    !-----------------------------------------------------------------------
+
+    call ecosys_tavg_define_from_diagnostics(marbl_interior_diags,            &
+                                             tavg_interior)
+    call ecosys_tavg_define_from_diagnostics(marbl_restore_diags, tavg_restore)
 
 !-----------------------------------------------------------------------
 !EOC
 
   end subroutine ecosys_tavg_init
 
-  subroutine ecosys_tavg_accumulate(i, c,bid, marbl_interior_diags,           &
-                                    ecosys_restore)
-
-    use ecosys_restore_mod, only : ecosys_restore_type
+  subroutine ecosys_tavg_accumulate(i, c, bid, marbl_diags, tavg_id)
 
     integer, intent(in) :: i, c, bid ! column indices and block index
-    type(marbl_diagnostics_type), intent(in) :: marbl_interior_diags
-    type(ecosys_restore_type), intent(in) :: ecosys_restore
+    type(marbl_diagnostics_type), intent(in) :: marbl_diags
+    integer, dimension(:), intent(in) :: tavg_id
+    integer :: n
 
-    integer :: n, auto_ind, zoo_ind, k
-    logical :: accumulate
-
-    associate(diags => marbl_interior_diags%diags(:))
-
-    ! Accumulate general diagnostics
-    do n=1,marbl_interior_diags%diag_cnt
-      if (trim(diags(n)%vertical_grid).eq.'none') then
-        call accumulate_tavg_field(diags(n)%field_2d, tavg_ecosys(n),         &
-                                   bid, i, c)
-      else
-        call accumulate_tavg_field(diags(n)%field_3d(:), tavg_ecosys(n),      &
-                                   bid, i, c)
-      end if
-    end do
-
+    associate(diags => marbl_diags%diags(:))
+      ! Accumulate diagnostics
+      do n=1,marbl_diags%diag_cnt
+        if (trim(diags(n)%vertical_grid).eq.'none') then
+          call accumulate_tavg_field(diags(n)%field_2d, tavg_id(n),           &
+                                     bid, i, c)
+        else
+          call accumulate_tavg_field(diags(n)%field_3d(:), tavg_id(n),        &
+                                     bid, i, c)
+        end if
+      end do
     end associate
 
   end subroutine ecosys_tavg_accumulate
@@ -579,6 +506,48 @@ contains
    !$OMP END PARALLEL DO
 
   end subroutine ecosys_tavg_accumulate_flux
+
+  subroutine ecosys_tavg_define_from_diagnostics(marbl_diags, tavg_id)
+
+    type(marbl_diagnostics_type), intent(in) :: marbl_diags
+    integer(int_kind), dimension(:), intent(inout) :: tavg_id
+
+    character(char_len) :: err_msg, gloc, coords
+    integer :: n, ndims
+    
+    associate(diags => marbl_diags%diags(:))
+    do n=1,marbl_diags%diag_cnt
+      if (trim(diags(n)%vertical_grid).eq.'none') then
+        ndims = 2
+        gloc = '2110'
+        coords = 'TLONG TLAT time'
+      else
+        ndims = 3
+        if (trim(diags(n)%vertical_grid).eq.'layer_avg') then
+          if (diags(n)%ltruncated_vertical_extent) then
+            gloc = '3114'
+            coords = 'TLONG TLAT z_t_150m time'
+          else
+            gloc = '3111'
+            coords = 'TLONG TLAT z_t time'
+          end if
+        elseif (trim(diags(n)%vertical_grid).eq.'layer_iface') then
+            gloc = '3113'
+            coords = 'TLONG TLAT z_w_bot time'
+        else
+          write(err_msg,*) "'", trim(diags(n)%vertical_grid),                 &
+                           "' is not a valid vertical grid"
+          call shr_sys_abort(err_msg)
+        end if
+      end if
+      call define_tavg_field(tavg_id(n),trim(diags(n)%short_name),        &
+                             ndims, long_name=trim(diags(n)%long_name),       &
+                             units=trim(diags(n)%units), grid_loc=gloc,       &
+                             coordinates=coords)
+    end do
+    end associate
+
+  end subroutine ecosys_tavg_define_from_diagnostics
 
 end module ecosys_tavg
 

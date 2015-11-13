@@ -3,7 +3,7 @@ module marbl_interface_types
 
   use marbl_kinds_mod, only : c0, r8, log_kind, int_kind, char_len
   use marbl_interface_constants, only : marbl_str_length
-  use marbl_share_mod, only : autotroph_cnt, zooplankton_cnt
+  use marbl_share_mod, only : autotroph_cnt, zooplankton_cnt, ecosys_tracer_cnt
 
   use domain_size, only : km
 
@@ -14,7 +14,7 @@ module marbl_interface_types
  integer, public, parameter :: max_interior_diags =                           &
                                     66 + autotroph_cnt*26 + zooplankton_cnt*8
  integer, public, parameter :: max_sflux_diags = 0
- integer, public, parameter :: max_forcing_diags = 0
+ integer, public, parameter :: max_restore_diags = ecosys_tracer_cnt
 
   type, public :: marbl_status_type
      integer :: status

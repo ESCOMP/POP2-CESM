@@ -46,8 +46,9 @@ module ecosys_driver
 
   use marbl_interface_constants , only : marbl_status_ok
   use marbl_interface_types     , only : marbl_status_type
-  use marbl_interface_types     , only: marbl_diagnostics_type
+  use marbl_interface_types     , only : marbl_diagnostics_type
   use marbl_interface_types     , only : marbl_saved_state_type
+  use marbl_interface_types     , only : max_interior_diags
 
   ! NOTE(bja, 2014-12) all other uses of marbl/ecosys modules need to be removed!
   use marbl_share_mod           , only : autotroph_cnt, zooplankton_cnt
@@ -107,6 +108,14 @@ module ecosys_driver
   !BOC
 
   !-----------------------------------------------------------------------
+  !  define tavg id for interior diagnostics and diagnostics related to
+  !  restoring
+  !-----------------------------------------------------------------------
+
+  integer (int_kind), dimension(max_interior_diags) :: tavg_interior
+  integer (int_kind), dimension(ecosys_tracer_cnt) :: tavg_restore
+
+  !-----------------------------------------------------------------------
   !  module variables required by forcing_passive_tracer
   !-----------------------------------------------------------------------
 
@@ -140,7 +149,8 @@ module ecosys_driver
   type(marbl_sizes_type) :: marbl_sizes
   type(marbl_driver_sizes_type) :: marbl_driver_sizes
   type(marbl_status_type) :: marbl_status
-  type(marbl_diagnostics_type), dimension(max_blocks_clinic) :: marbl_diagnostics
+  type(marbl_diagnostics_type), dimension(max_blocks_clinic) :: marbl_interior_diags
+  type(marbl_diagnostics_type), dimension(max_blocks_clinic) :: marbl_restore_diags
   ! FIXME(bja, 2015-08) this needs to go into marbl%private_data%saved_state !!!
   type(marbl_saved_state_type) :: marbl_saved_state
 
@@ -425,11 +435,14 @@ contains
 
     ! initialize ecosys_diagnostics type
     do bid=1,nblocks_clinic
-      call ecosys_diagnostics_init(marbl_diagnostics(bid))
+      call ecosys_diagnostics_init(marbl_interior_diags(bid),                 &
+                           marbl_restore_diags(bid),                          &
+                           tracer_d_module(ecosys_ind_begin:ecosys_ind_end))
     end do
 
     ! Only set up tavg files from first block?
-    call ecosys_tavg_init(marbl_diagnostics(1), ecosys_restore)
+    call ecosys_tavg_init(marbl_interior_diags(1), marbl_restore_diags(1),    &
+                          tavg_interior, tavg_restore)
 
     if (errorCode /= POP_Success) then
        call POP_ErrorSet(errorCode, 'init_ecosys_driver: error in ecosys_init')
@@ -534,7 +547,7 @@ contains
     call marbl%set_interior()
 
     bid = this_block%local_id
-    call marbl_diagnostics(bid)%set_to_zero()
+    call marbl_interior_diags(bid)%set_to_zero()
 
     ! FIXME(bja, 2015-07) one time copy of global marbl_domain
     ! related memory from slab to column ordering. move entire
@@ -585,7 +598,8 @@ contains
           if (marbl_saved_state%land_mask(i,c,bid) .and. &
               KMT(i, c, bid).gt.0) then 
             call ecosys_set_interior(i, c, ny_block, marbl_domain,            &
-                 marbl_diagnostics(bid), marbl_saved_state, ecosys_restore,   &
+                 marbl_interior_diags(bid), marbl_restore_diags(bid),         &
+                 marbl_saved_state, ecosys_restore,&
                  marbl%private_data%ecosys_interior_share,                    &
                  marbl%private_data%ecosys_zooplankton_share,                 &
                  marbl%private_data%ecosys_autotroph_share,                   &
@@ -603,8 +617,10 @@ contains
             end do ! do k
           end if ! KMT > 0
 
-          call ecosys_tavg_accumulate(i, c, bid, marbl_diagnostics(bid),      &
-                                      ecosys_restore)
+          call ecosys_tavg_accumulate(i, c, bid, marbl_interior_diags(bid),   &
+                                      tavg_interior)
+          call ecosys_tavg_accumulate(i, c, bid, marbl_restore_diags(bid),    &
+                                      tavg_restore)
 
        end do ! do i
     end do ! do c

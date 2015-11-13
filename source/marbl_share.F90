@@ -31,6 +31,11 @@ module marbl_share_mod
   save
 
 !-----------------------------------------------------------------------------
+! number of ecosystem tracers (also in ecosys_constants.F90)
+!-----------------------------------------------------------------------------
+  integer(int_kind), parameter :: ecosys_tracer_cnt = ECOSYS_NT
+
+!-----------------------------------------------------------------------------
 ! number of ecosystem constituents and grazing interactions
 !-----------------------------------------------------------------------------
   integer (KIND=int_kind), parameter :: &

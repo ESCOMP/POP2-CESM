@@ -1512,7 +1512,7 @@ contains
   ! !INTERFACE:
 
   subroutine ecosys_set_interior(i, c, num_columns, domain, &
-       marbl_diagnostics, &
+       marbl_interior_diags, marbl_restore_diags, &
        saved_state, ecosys_restore, &
        ecosys_interior_share, ecosys_zooplankton_share, &
        ecosys_autotroph_share, ecosys_particulate_share, &
@@ -1561,7 +1561,8 @@ contains
     integer (int_kind), intent(in) :: bid       ! local_block id
     real (r8), intent(out) :: dtracer(ecosys_tracer_cnt, km)      ! computed source/sink terms
 
-    type(marbl_diagnostics_type), intent(inout) :: marbl_diagnostics
+    type(marbl_diagnostics_type), intent(inout) :: marbl_interior_diags
+    type(marbl_diagnostics_type), intent(inout) :: marbl_restore_diags
 
     type(marbl_saved_state_type), intent(inout) :: saved_state
     type(ecosys_restore_type), intent(inout) :: ecosys_restore
@@ -1851,55 +1852,55 @@ contains
           end do ! k
 
           call store_diagnostics_carbonate(domain, carbonate, zt, zw,         &
-                                           marbl_diagnostics)
+                                           marbl_interior_diags)
 
           call store_diagnostics_autotrophs(domain,                           &
                                             autotroph_secondary_species,      &
-                                            marbl_diagnostics)
+                                            marbl_interior_diags)
 
           call store_diagnostics_particulates(domain, POC, P_CaCO3, P_SiO2,   &
-                                              dust,  P_iron, sed_denitrif,    &
-                                              other_remin, marbl_diagnostics)
+                                           dust,  P_iron, sed_denitrif,       &
+                                           other_remin, marbl_interior_diags)
 
           call store_diagnostics_autotroph_sums(domain,                       &
                                                 autotroph_secondary_species,  &
-                                                marbl_diagnostics)
+                                                marbl_interior_diags)
 
           call store_diagnostics_nitrification(nitrif, denitrif,              &
-                                               marbl_diagnostics)
+                                               marbl_interior_diags)
 
           call store_diagnostics_oxygen(domain, zt, tracer_module(o2_ind, :), &
                                         o2_production, o2_consumption,        &
-                                        marbl_diagnostics)
+                                        marbl_interior_diags)
 
           call store_diagnostics_photosynthetically_available_radiation(PAR,  &
-                                                            marbl_diagnostics)
+                                                       marbl_interior_diags)
 
           call store_diagnostics_zooplankton(zooplankton_secondary_species,   &
-                                             marbl_diagnostics)
+                                             marbl_interior_diags)
 
           call store_diagnostics_dissolved_organic_matter(                    &
                                                dissolved_organic_matter,      &
                                                fe_scavenge, fe_scavenge_rate, &
-                                               marbl_diagnostics)
+                                               marbl_interior_diags)
 
           call store_diagnostics_carbon_fluxes(domain, zw, POC, P_CaCO3,      &
-                                               dtracer, marbl_diagnostics)
+                                               dtracer, marbl_interior_diags)
 
           call store_diagnostics_nitrogen_fluxes(domain, zw, POC, denitrif,   &
                                    sed_denitrif, autotroph_secondary_species, &
-                                   dtracer, marbl_diagnostics)
+                                   dtracer, marbl_interior_diags)
 
           call store_diagnostics_phosphorus_fluxes(domain, zw, POC, dtracer,  &
-                                                   marbl_diagnostics)
+                                                   marbl_interior_diags)
 
           call store_diagnostics_silicon_fluxes(domain, zw, P_SiO2, dtracer,  &
-                                                marbl_diagnostics)
+                                                marbl_interior_diags)
 
-!          do k = 1, domain%km
-!             ! store_diagnostics_restore
-!             marbl_diagnostics%restore_diags(:)%field(k) = restore_local(:, k)
-!          end do
+          ! store_diagnostics_restore
+          do n = 1, ecosys_tracer_cnt
+            marbl_restore_diags%diags(n)%field_3d(:) = restore_local(n,:)
+          end do
 
           end associate
 
