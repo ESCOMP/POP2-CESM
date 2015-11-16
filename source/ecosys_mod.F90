@@ -2160,7 +2160,8 @@ contains
     real (r8), dimension(nx_block, ny_block, max_blocks_clinic) :: &
          SCHMIDT_USED_CO2, & ! used Schmidt number
          SCHMIDT_USED_O2,  & ! used Schmidt number
-         PV,               & ! piston velocity (cm/s)
+         PV_O2,            & ! piston velocity (cm/s)
+         PV_CO2,           & ! piston velocity (cm/s)
          O2SAT_USED,       & ! used O2 saturation (mmol/m^3)
          FLUX_ALT_CO2        ! tracer flux alternative CO2 (nmol/cm^2/s)
 
@@ -2270,15 +2271,19 @@ contains
              O2SAT_1atm = O2SAT(nx_block, ny_block, SST(:, :, iblock), SSS(:, :, iblock), saved_state%land_mask(:, :, iblock))
 
              where (saved_state%land_mask(:, :, iblock))
-                PV(:, :, iblock)         = XKW_ICE * SQRT(660.0_r8 / SCHMIDT_USED_O2(:, :, iblock))
+                PV_O2(:, :, iblock)      = XKW_ICE * SQRT(660.0_r8 / SCHMIDT_USED_O2(:, :, iblock))
                 O2SAT_USED(:, :, iblock) = AP_USED(:, :, iblock) * O2SAT_1atm
-                FLUX(:, :, iblock)       = PV(:, :, iblock) * (O2SAT_USED(:, :, iblock) &
+                FLUX(:, :, iblock)       = PV_O2(:, :, iblock) * (O2SAT_USED(:, :, iblock) &
                                          - SURF_VALS(:, :, o2_ind, iblock))
                 STF_MODULE(:, :, o2_ind, iblock) = STF_MODULE(:, :, o2_ind, iblock) + FLUX(:, :, iblock)
              elsewhere
+                PV_O2(:, :, iblock)      = c0
                 O2SAT_USED(:, :, iblock) = c0
              end where
-
+          else
+             SCHMIDT_USED_O2(:, :, iblock) = c0
+             PV_O2(:, :, iblock)           = c0
+             O2SAT_USED(:, :, iblock)      = c0
           endif  ! lflux_gas_o2
 
           !-----------------------------------------------------------------------
@@ -2290,13 +2295,13 @@ contains
              SCHMIDT_USED_CO2(:, :, iblock) = SCHMIDT_CO2(SST(:, :, iblock), saved_state%land_mask(:, :, iblock))
 
              where (saved_state%land_mask(:, :, iblock))
-                PV(:, :, iblock) = XKW_ICE * SQRT(660.0_r8 / SCHMIDT_USED_CO2(:, :, iblock))
+                PV_CO2(:, :, iblock) = XKW_ICE * SQRT(660.0_r8 / SCHMIDT_USED_CO2(:, :, iblock))
              elsewhere
-                PV(:, :, iblock) = c0
+                PV_CO2(:, :, iblock) = c0
              end where
 
              ! Save surface field of PV for use in other modules
-             if (lexport_shared_vars) PV_SURF_fields(:, :, iblock) = PV(:, :, iblock)
+             if (lexport_shared_vars) PV_SURF_fields(:, :, iblock) = PV_CO2(:, :, iblock)
 
              !-----------------------------------------------------------------------
              !  Set XCO2
@@ -2331,7 +2336,7 @@ contains
                 DpCO2(:, j, iblock)    = DpCO2_ROW
                 PH_PREV(:, j, iblock)  = PH_NEW
 
-                FLUX(:, j, iblock) = PV(:, j, iblock) * DCO2STAR_ROW
+                FLUX(:, j, iblock) = PV_CO2(:, j, iblock) * DCO2STAR_ROW
  
                 !-------------------------------------------------------------------
                 !  The following variables need to be shared with other modules,
@@ -2369,7 +2374,7 @@ contains
                 DpCO2_ALT(:, j, iblock)    = DpCO2_ROW
                 PH_PREV_ALT_CO2(:, j, iblock) = PH_NEW
 
-                FLUX_ALT_CO2(:, j, iblock) = PV(:, j, iblock) * DCO2STAR_ROW
+                FLUX_ALT_CO2(:, j, iblock) = PV_CO2(:, j, iblock) * DCO2STAR_ROW
 
              end do
 
@@ -2382,6 +2387,9 @@ contains
 
              STF_MODULE(:, :, dic_alt_co2_ind, iblock) = STF_MODULE(:, :, dic_alt_co2_ind, iblock) + FLUX_ALT_CO2(:, :, iblock)
 
+          else
+             SCHMIDT_USED_CO2(:, :, iblock) = c0
+             PV_CO2(:, :, iblock)           = c0
           endif  !  lflux_gas_co2
 
        enddo
@@ -2485,9 +2493,9 @@ contains
     call marbl_ecosys_store_sflux(                           &
          STF_MODULE,                                         &
          SURF_VALS, MARBL_STF,                               &
-         SCHMIDT_USED_CO2, SCHMIDT_USED_O2, PV, O2SAT_USED,  &
-         XCO2, XCO2_ALT_CO2, FLUX, FLUX_ALT_CO2, IFRAC_USED, &
-         XKW_USED, AP_USED, IRON_FLUX_IN,                    &
+         SCHMIDT_USED_CO2, SCHMIDT_USED_O2, PV_O2, PV_CO2,   &
+         O2SAT_USED, XCO2, XCO2_ALT_CO2, FLUX, FLUX_ALT_CO2, &
+         IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN,        &
          CO2STAR, DCO2STAR, pCO2SURF, DpCO2,                 &
          CO2STAR_ALT, DCO2STAR_ALT, pCO2SURF_ALT, DpCO2_ALT, &
          PH_PREV, PH_PREV_ALT_CO2,                           &
@@ -2500,9 +2508,9 @@ contains
   subroutine marbl_ecosys_store_sflux(                           &
        STF_MODULE,                                         &
        SURF_VALS, MARBL_STF,                               &
-       SCHMIDT_USED_CO2, SCHMIDT_USED_O2, PV, O2SAT_USED,  & 
-       XCO2, XCO2_ALT_CO2, FLUX, FLUX_ALT_CO2, IFRAC_USED, & 
-       XKW_USED, AP_USED, IRON_FLUX_IN,                    &
+       SCHMIDT_USED_CO2, SCHMIDT_USED_O2, PV_O2, PV_CO2,   &
+       O2SAT_USED, XCO2, XCO2_ALT_CO2, FLUX, FLUX_ALT_CO2, &
+       IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN,        &
        CO2STAR, DCO2STAR, pCO2SURF, DpCO2,                 &
        CO2STAR_ALT, DCO2STAR_ALT, pCO2SURF_ALT, DpCO2_ALT, &
        PH_PREV, PH_PREV_ALT_CO2,                           &
@@ -2539,7 +2547,7 @@ contains
 
     real (r8), dimension(:, :, :)    , intent(in) :: SCHMIDT_USED_CO2 ! used Schmidt number
     real (r8), dimension(:, :, :)    , intent(in) :: SCHMIDT_USED_O2  ! used Schmidt number
-    real (r8), dimension(:, :, :)    , intent(in) :: PV               ! piston velocity (cm/s)
+    real (r8), dimension(:, :, :)    , intent(in) :: PV_O2, PV_CO2    ! piston velocity (cm/s)
     real (r8), dimension(:, :, :)    , intent(in) :: O2SAT_USED       ! used O2 saturation (mmol/m^3)
     real (r8), dimension(:, :, :)    , intent(in) :: XCO2             ! atmospheric co2 conc. (dry-air, 1 atm)
     real (r8), dimension(:, :, :)    , intent(in) :: XCO2_ALT_CO2     ! atmospheric alternative CO2 (dry-air, 1 atm)
@@ -2608,7 +2616,7 @@ contains
           if (lflux_gas_o2) then
 
              !JW this could be in post, but would require returning  SCHMIDT and O2SAT_USED
-             ECO_SFLUX_TAVG(:, :, buf_ind_PV_O2, iblock)      = PV(:, :, iblock)
+             ECO_SFLUX_TAVG(:, :, buf_ind_PV_O2, iblock)      = PV_O2(:, :, iblock)
              ECO_SFLUX_TAVG(:, :, buf_ind_SCHMIDT_O2, iblock) = SCHMIDT_USED_O2(:, :, iblock)
              ECO_SFLUX_TAVG(:, :, buf_ind_O2SAT, iblock)      = O2SAT_USED(:, :, iblock)
 
@@ -2631,7 +2639,7 @@ contains
              ECO_SFLUX_TAVG(:, :, buf_ind_DpCO2_ALT_CO2, iblock)    = DpCO2_ALT(:, :, iblock)
 
    
-             ECO_SFLUX_TAVG(:, :, buf_ind_PV_CO2,       iblock) = PV(:, :, iblock)
+             ECO_SFLUX_TAVG(:, :, buf_ind_PV_CO2,       iblock) = PV_CO2(:, :, iblock)
              ECO_SFLUX_TAVG(:, :, buf_ind_SCHMIDT_CO2,  iblock) = SCHMIDT_USED_CO2(:, :, iblock)
              ECO_SFLUX_TAVG(:, :, buf_ind_DIC_GAS_FLUX, iblock) = FLUX(:, :, iblock)
              ECO_SFLUX_TAVG(:, :, buf_ind_PH,           iblock) = PH_PREV(:, :, iblock)
