@@ -39,9 +39,8 @@ module marbl_interface
   !      .....
   !      call marbl_set_interior(marbl_private_data, ....)
 
-  use marbl_kinds_mod           , only : r8, int_kind ! MNL: need kind number for real attributes of diagnostics type
+  use marbl_kinds_mod           , only : int_kind
   use marbl_interface_constants , only : marbl_status_ok
-  use marbl_interface_types     , only : marbl_diagnostics_type
   use marbl_share_mod           , only : ecosys_interior_share_type
   use marbl_share_mod           , only : ecosys_autotroph_share_type
   use marbl_share_mod           , only : ecosys_zooplankton_share_type
@@ -52,15 +51,6 @@ module marbl_interface
   use marbl_share_mod           , only : marbl_zooplankton_share_type
   use marbl_share_mod           , only : marbl_particulate_share_type
   
-  use ecosys_diagnostics_mod    , only : ecosys_diag_cnt_2d
-  use ecosys_diagnostics_mod    , only : ecosys_diag_cnt_3d
-  use ecosys_diagnostics_mod    , only : auto_diag_cnt_2d
-  use ecosys_diagnostics_mod    , only : auto_diag_cnt_3d
-  use ecosys_diagnostics_mod    , only : zoo_diag_cnt_2d
-  use ecosys_diagnostics_mod    , only : zoo_diag_cnt_3d
-  use ecosys_diagnostics_mod    , only : part_diag_cnt_2d
-  use ecosys_diagnostics_mod    , only : part_diag_cnt_3d
-
   use exit_mod, only : exit_POP
   use exit_mod, only : sigAbort
 
@@ -137,7 +127,7 @@ contains
   !-----------------------------------------------------------------------------
   
   subroutine marbl_init(this, marbl_driver_sizes, marbl_sizes, &
-       nl_buffer, marbl_tracer_metadata, marbl_diagnostics, marbl_status )
+       nl_buffer, marbl_tracer_metadata, marbl_status )
 
     use marbl_share_mod           , only: autotroph_cnt, zooplankton_cnt
     use marbl_interface_constants , only: marbl_nl_buffer_size
@@ -163,7 +153,6 @@ contains
     ! OUTPUT PARAMETERS:
     type(marbl_sizes_type)          , intent(out)   :: marbl_sizes
     type(marbl_status_type)         , intent(out)   :: marbl_status
-    type(marbl_diagnostics_type)    , intent(out)   :: marbl_diagnostics(:)
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -184,17 +173,6 @@ contains
     marbl_sizes%autotroph_cnt     = autotroph_cnt
     marbl_sizes%zooplankton_cnt   = zooplankton_cnt
     
-    ! initialize ecosys_diagnostics type
-    do bid=1,size(marbl_diagnostics)
-      call marbl_diagnostics(bid)%construct(        &
-           marbl_driver_sizes%km,                   &
-           ecosys_diag_cnt_2d , ecosys_diag_cnt_3d, &
-           auto_diag_cnt_2d   , auto_diag_cnt_3d  , &
-           zoo_diag_cnt_2d    , zoo_diag_cnt_3d   , &
-           part_diag_cnt_2d   , part_diag_cnt_3d  , &
-           ecosys_tracer_cnt  , autotroph_cnt     , zooplankton_cnt)
-    end do
-
     ! initialize marbl namelists
     call marbl_ecosys_init_nml(nl_buffer, marbl_status)
 

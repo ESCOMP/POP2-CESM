@@ -1,13 +1,21 @@
 module marbl_interface_types
   ! module for definitions of types that are shared between marbl interior and the driver.
 
-  use marbl_kinds_mod, only : c0, r8, r4, log_kind, int_kind, char_len
+  use marbl_kinds_mod, only : c0, r8, log_kind, int_kind, char_len
   use marbl_interface_constants, only : marbl_str_length
+  use ecosys_constants, only : autotroph_cnt, zooplankton_cnt, ecosys_tracer_cnt
+
+  use domain_size, only : km
 
   implicit none
 
   private
- 
+
+ integer, public, parameter :: max_interior_diags =                           &
+                                    72 + autotroph_cnt*26 + zooplankton_cnt*8
+ integer, public, parameter :: max_sflux_diags = 0
+ integer, public, parameter :: max_restore_diags = ecosys_tracer_cnt
+
   type, public :: marbl_status_type
      integer :: status
      character(marbl_str_length) :: message
@@ -20,13 +28,7 @@ module marbl_interface_types
      character(char_len) :: tend_units
      character(char_len) :: flux_units
      logical             :: lfull_depth_tavg
-     !FIXME (mvertens, 2015-11) - can't scale factor always be real*8
-     ! to avoid duplicating this entire data type in pop?
-#ifdef TAVG_R8
      real(r8)            :: scale_factor
-#else
-     real(r4)            :: scale_factor
-#endif
   end type marbl_tracer_metadata_type
   
   type, public :: marbl_tracer_read_type
@@ -60,26 +62,38 @@ module marbl_interface_types
      real (r8) , dimension(:, :, :, :)      , allocatable :: PH_PREV_ALT_CO2_3D ! computed pH_3D from previous time step, alternative CO2
      logical (log_kind), dimension(:, :, :) , allocatable :: LAND_MASK
   end type marbl_saved_state_type
-  
-  ! marbl_diagnostics : used to pass diagnostic information for tavg
-  ! etc from marbl back to the driver. The driver is responsible for
-  ! sizing these arrays correctly according to the size of the domain
-  ! and tracer count returned by marbl.
-  type, public :: marbl_diagnostics_type
-     real(r8), allocatable :: diags_2d(:,:)        ! (km, ecosys_diag_cnt_2d)
-     real(r8), allocatable :: diags_3d(:,:)        ! (km, ecosys_diag_cnt_3d)
-     real(r8), allocatable :: auto_diags_2d(:, :, :) ! (km, auto_diag_cnt_2d, autotroph_cnt)
-     real(r8), allocatable :: auto_diags_3d(:, :, :) ! (km, auto_diag_cnt_3d, autotroph_cnt)
-     real(r8), allocatable :: zoo_diags_2d(:, :, :)  ! (km, zoo_diag_cnt_2d, zooplankton_cnt)
-     real(r8), allocatable :: zoo_diags_3d(:, :, :)  ! (km, zoo_diag_cnt_3d, zooplankton_cnt)
-     real(r8), allocatable :: part_diags_2d(:,:)      ! (km, part_diag_cnt_2d)
-     real(r8), allocatable :: part_diags_3d(:,:)      ! (km, part_diag_cnt_3d)
-     real(r8), allocatable :: restore_diags(:,:) ! (km, ecosys_tracer_cnt)
+ 
+  ! marbl_singl_diagnostic : A private type, this contains both the metadata
+  !                          and the actual diagnostic data for a single
+  !                          diagnostic quantity. Data must be accessed via
+  !                          the marbl_diagnostics_type data structure.
+  type :: marbl_single_diagnostic_type
+    character(len=char_len) :: long_name
+    character(len=char_len) :: short_name
+    character(len=char_len) :: units
+    logical(log_kind) :: compute_now
+    ! Valid choices for vertical_grid are: 'none', 'layer_avg', 'layer_iface'
+    character(len=char_len) :: vertical_grid
+    logical(log_kind) :: ltruncated_vertical_extent
+    real(r8) :: field_2d
+    real(r8), allocatable, dimension(:) :: field_3d
 
   contains
-    procedure, public :: construct   => marbl_diagnostics_constructor
-    procedure, public :: set_to_zero => marbl_diagnostics_set_to_zero
-    procedure, public :: deconstruct => marbl_diagnostics_deconstructor
+    procedure :: initialize  => marbl_single_diag_init
+  end type marbl_single_diagnostic_type
+
+  ! marbl_diagnostics : used to pass diagnostic information from marbl back to
+  !                     the driver. If size is not known when the constructor
+  !                     is called, use the max_diags parameter in this module.
+  type, public :: marbl_diagnostics_type
+     integer :: diag_cnt
+     type(marbl_single_diagnostic_type), dimension(:), allocatable :: diags
+
+  contains
+    procedure, public :: construct      => marbl_diagnostics_constructor
+    procedure, public :: set_to_zero    => marbl_diagnostics_set_to_zero
+    procedure, public :: add_diagnostic => marbl_diagnostics_add
+    procedure, public :: deconstruct    => marbl_diagnostics_deconstructor
   end type marbl_diagnostics_type
 
   type, public :: carbonate_type
@@ -179,30 +193,54 @@ module marbl_interface_types
 
 contains
 
-  subroutine marbl_diagnostics_constructor(this, km, ecosys_diag_cnt_2d,      &
-                      ecosys_diag_cnt_3d, auto_diag_cnt_2d, auto_diag_cnt_3d, &
-                      zoo_diag_cnt_2d, zoo_diag_cnt_3d, part_diag_cnt_2d,     &
-                      part_diag_cnt_3d, ecosys_tracer_cnt, autotroph_cnt,     &
-                      zooplankton_cnt)
+  subroutine marbl_single_diag_init(this, lname, sname, units, vgrid, truncate)
+                                            
+
+    class(marbl_single_diagnostic_type), intent(inout) :: this
+    character(len=char_len), intent(in) :: lname, sname, units, vgrid
+    logical, intent(in) :: truncate
+
+    character(len=char_len), dimension(3) :: valid_vertical_grids
+    integer :: n
+    logical :: valid_vgrid
+
+    valid_vertical_grids(1) = 'none'
+    valid_vertical_grids(2) = 'layer_avg'
+    valid_vertical_grids(3) = 'layer_iface'
+    valid_vgrid = .false.
+    do n=1,size(valid_vertical_grids)
+      if (trim(vgrid).eq.trim(valid_vertical_grids(n))) valid_vgrid = .true.
+    end do
+    if (.not.valid_vgrid) then
+      print*, "ERROR: ", trim(vgrid), " is not a valid vertical grid for MARBL"
+      ! FIXME: abort
+    end if
+
+    this%compute_now = .true.
+    this%long_name = trim(lname)
+    this%short_name = trim(sname)
+    this%units = trim(units)
+    this%vertical_grid = trim(vgrid)
+    this%ltruncated_vertical_extent = truncate
+
+    ! Allocate column memory for 3D variables
+    if (trim(vgrid).eq.'layer_avg') then
+      allocate(this%field_3d(km))
+    end if
+
+    if (trim(vgrid).eq.'layer_iface') then
+      allocate(this%field_3d(km+1))
+    end if
+
+  end subroutine marbl_single_diag_init
+
+  subroutine marbl_diagnostics_constructor(this, num_diags)
 
     class(marbl_diagnostics_type), intent(inout) :: this
-    integer, intent(in) :: km
-    integer, intent(in) :: ecosys_diag_cnt_2d, ecosys_diag_cnt_3d,            &
-                           auto_diag_cnt_2d, auto_diag_cnt_3d,                &
-                           zoo_diag_cnt_2d, zoo_diag_cnt_3d,                  &
-                           part_diag_cnt_2d, part_diag_cnt_3d
-    integer, intent(in) :: ecosys_tracer_cnt, autotroph_cnt, zooplankton_cnt
+    integer, intent(in) :: num_diags
 
-    allocate(this%diags_2d(km, ecosys_diag_cnt_2d))
-    allocate(this%diags_3d(km, ecosys_diag_cnt_3d))
-    allocate(this%auto_diags_2d(km, auto_diag_cnt_2d, autotroph_cnt))
-    allocate(this%auto_diags_3d(km, auto_diag_cnt_3d, autotroph_cnt))
-    allocate(this%zoo_diags_2d(km, zoo_diag_cnt_2d, zooplankton_cnt))
-    allocate(this%zoo_diags_3d(km, zoo_diag_cnt_3d, zooplankton_cnt))
-    allocate(this%part_diags_2d(km, part_diag_cnt_2d))
-    allocate(this%part_diags_3d(km, part_diag_cnt_3d))
-    allocate(this%restore_diags(km, ecosys_tracer_cnt))
-
+    allocate(this%diags(num_diags))
+    this%diag_cnt = 0
     call this%set_to_zero()
 
   end subroutine marbl_diagnostics_constructor
@@ -211,31 +249,48 @@ contains
 
     class(marbl_diagnostics_type), intent(inout) :: this
 
-    this%diags_2d = c0
-    this%diags_3d = c0
-    this%auto_diags_2d = c0
-    this%auto_diags_3d = c0
-    this%zoo_diags_2d= c0
-    this%zoo_diags_3d= c0
-    this%part_diags_2d = c0
-    this%part_diags_3d = c0
-    this%restore_diags = c0
+    integer :: n
+
+    do n=1,size(this%diags)
+      this%diags(n)%field_2d = c0
+      if (allocated(this%diags(n)%field_3d)) then
+        this%diags(n)%field_3d(:) = c0
+      end if
+    end do
 
   end subroutine marbl_diagnostics_set_to_zero
+
+  subroutine marbl_diagnostics_add(this, lname, sname, units, vgrid,          &
+                                   truncate, id)
+
+    class(marbl_diagnostics_type), intent(inout) :: this
+    character(len=char_len), intent(in) :: lname, sname, units, vgrid
+    logical, intent(in) :: truncate
+    integer, intent(out) :: id
+
+
+    this%diag_cnt = this%diag_cnt + 1
+    id = this%diag_cnt
+    if (id.gt.size(this%diags)) then
+      print*, "ERROR: increase max number of diagnostics!"
+      ! FIXME: abort
+    end if
+    call this%diags(id)%initialize(lname, sname, units, vgrid, truncate)
+
+  end subroutine marbl_diagnostics_add
 
   subroutine marbl_diagnostics_deconstructor(this)
 
     class(marbl_diagnostics_type), intent(inout) :: this
 
-    deallocate(this%diags_2d)
-    deallocate(this%diags_3d)
-    deallocate(this%auto_diags_2d)
-    deallocate(this%auto_diags_3d)
-    deallocate(this%zoo_diags_2d)
-    deallocate(this%zoo_diags_3d)
-    deallocate(this%part_diags_2d)
-    deallocate(this%part_diags_3d)
-    deallocate(this%restore_diags)
+    integer :: n
+
+    do n=1,size(this%diags)
+      if (allocated(this%diags(n)%field_3d)) then
+        deallocate(this%diags(n)%field_3d)
+      end if
+    end do
+    deallocate(this%diags)
 
   end subroutine marbl_diagnostics_deconstructor
 

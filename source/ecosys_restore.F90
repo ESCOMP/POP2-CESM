@@ -33,13 +33,12 @@ module ecosys_restore_mod
      type(ecosys_restore_timescale_interp_type), private :: timescale_interp
 
    contains
-     procedure, public  :: init
-     procedure, public  :: read_restoring_fields
-     procedure, public  :: restore_tracers
-     procedure, public  :: define_tavg_fields
-     procedure, public  :: accumulate_tavg
-     procedure, public  :: initialize_restoring_timescale
 
+     procedure, public :: init
+     procedure, public :: read_restoring_fields
+     procedure, public :: restore_tracers
+     procedure, public :: accumulate_tavg
+     procedure, public :: initialize_restoring_timescale
      procedure, private :: read_namelist
      procedure, private :: initialize_restore_read_vars
      procedure, private :: set_tracer_read_metadata
@@ -271,45 +270,6 @@ subroutine initialize_restore_read_vars(this, restore_short_names, restore_filen
   end if
 
 end subroutine initialize_restore_read_vars
-
-!*****************************************************************************
-
-subroutine define_tavg_fields(this)
-  !
-  ! define the tavg fields for restoring data
-  !
-  use kinds_mod, only : char_len, int_kind
-  use tavg, only : define_tavg_field
-
-  implicit none
-  !-----------------------------------------------------------------------
-  !  input variables
-  !-----------------------------------------------------------------------
-  class(ecosys_restore_type) :: this
-
-  !-----------------------------------------------------------------------
-  !  local variables
-  !-----------------------------------------------------------------------
-  integer (int_kind) :: n
-  character (char_len) :: short_name
-  character (char_len) :: long_name
-
-  !-----------------------------------------------------------------------
-
-  do n = 1, size(this%tracers)
-     if (this%tracers(n)%restore) then
-        short_name = trim(this%tracers(n)%restore_file_info%file_varname) // "_RESTORE"
-        long_name = trim(this%tracers(n)%restore_file_info%file_varname) // " Restoring"
-
-        call define_tavg_field(this%tracers(n)%tavg_restore_index, short_name, 3, &
-             long_name=long_name, &
-             units='mmol/m^3', &
-             grid_loc='3111', &
-             coordinates='TLONG TLAT z_t time')
-     end if
-  end do
-
-end subroutine define_tavg_fields
 
 !*****************************************************************************
 

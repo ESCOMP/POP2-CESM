@@ -3229,17 +3229,17 @@
 
    case (tavg_method_avg)  ! accumulate running time sum for time avg
       TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = &
-      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) + dtavg*COL
+      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) + dtavg*COL(1:kmax)
    case (tavg_method_min)  ! replace with current minimum value
-      where (COL.lt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
-         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL
+      where (COL(1:kmax).lt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
+         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL(1:kmax)
       end where
    case (tavg_method_max)  ! replace with current minimum value
-      where (COL.gt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
-         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL
+      where (COL(1:kmax).gt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
+         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL(1:kmax)
       end where
    case (tavg_method_constant)  ! overwrite with current value; intended for time-invariant fields
-      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL
+      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL(1:kmax)
    case default
    end select
 

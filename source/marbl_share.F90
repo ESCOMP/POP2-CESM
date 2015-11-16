@@ -28,7 +28,11 @@ module marbl_share_mod
   ! (FIXME, mvertens 2015-11, need to introduce marbl type) 
   use marbl_interface_types, only : marbl_tracer_read_type
   use passive_tracer_tools , only : forcing_monthly_every_ts
-  use ecosys_constants     , only : ecosys_tracer_cnt
+
+  use ecosys_constants, only : ecosys_tracer_cnt
+  use ecosys_constants, only : zooplankton_cnt
+  use ecosys_constants, only : autotroph_cnt
+  use ecosys_constants, only : grazer_prey_cnt
 
   implicit none
 
@@ -101,14 +105,6 @@ module marbl_share_mod
   type(forcing_monthly_every_ts) :: doc_riv_flux     ! river doc flux, added to semi-labile DOC
 
   integer (int_kind) :: comp_surf_avg_flag           ! time flag id for computing average surface tracer values TEMPORARY
-
-!-----------------------------------------------------------------------------
-! number of ecosystem constituents and grazing interactions
-!-----------------------------------------------------------------------------
-  integer (KIND=int_kind), parameter :: &
-       zooplankton_cnt = ZOOPLANKTON_CNT, &
-       autotroph_cnt   = AUTOTROPH_CNT,   &
-       grazer_prey_cnt = GRAZER_PREY_CNT
 
 !-----------------------------------------------------------------------------
 !   derived type for grazers

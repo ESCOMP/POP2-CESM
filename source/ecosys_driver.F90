@@ -48,6 +48,9 @@ module ecosys_driver
 
   use ecosys_constants          , only : ecosys_tracer_cnt
 
+  use ecosys_diagnostics_mod    , only : ecosys_diagnostics_init
+  use ecosys_diagnostics_mod    , only : forcing_diag_cnt
+
   use ecosys_tavg               , only : ecosys_tavg_init
   use ecosys_tavg               , only : ecosys_tavg_accumulate
   use ecosys_tavg               , only : ecosys_tavg_accumulate_flux
@@ -126,8 +129,9 @@ module ecosys_driver
   !  data storage for interaction with the marbl bgc library
   !-----------------------------------------------------------------------
 
-  type(marbl_interface_class)   :: marbl
-  type(marbl_diagnostics_type)  :: marbl_diagnostics(max_blocks_clinic)
+  type(marbl_interface_class) :: marbl
+  type(marbl_diagnostics_type), dimension(max_blocks_clinic) :: marbl_interior_diags
+  type(marbl_diagnostics_type), dimension(max_blocks_clinic) :: marbl_restore_diags
   type(marbl_saved_state_type)  :: marbl_saved_state ! FIXME(bja, 2015-08) this needs to go into marbl%private_data%saved_state !!!
   type(ecosys_restore_type)     :: ecosys_restore
 
@@ -420,7 +424,7 @@ contains
     endif
 
     call marbl%init(marbl_driver_sizes, marbl_sizes, &
-         nl_buffer, tracer_d_module, marbl_diagnostics, marbl_status)
+         nl_buffer, tracer_d_module, marbl_status)
 
     if (marbl_status%status /= marbl_status_ok) then
        call exit_POP(sigAbort, &
@@ -454,7 +458,16 @@ contains
     ! initialize interior tavg restoring
     call ecosys_restore%init(nml_filename, nml_in, ind_name_table)
     call ecosys_driver_init_interior_restore(marbl_saved_state, ecosys_restore)
-    call ecosys_tavg_init(ecosys_restore)
+
+    ! initialize ecosys_diagnostics type
+    do bid=1,nblocks_clinic
+      call ecosys_diagnostics_init(marbl_interior_diags(bid),                 &
+                           marbl_restore_diags(bid),                          &
+                           tracer_d_module(ecosys_ind_begin:ecosys_ind_end))
+    end do
+
+    ! Only set up tavg files from first block
+    call ecosys_tavg_init(marbl_interior_diags(1), marbl_restore_diags(1))
 
     !$OMP PARALLEL DO PRIVATE(iblock, n, k)
     do iblock=1, nblocks_clinic
@@ -829,7 +842,7 @@ contains
     call marbl%set_interior()
 
     bid = this_block%local_id
-    call marbl_diagnostics(bid)%set_to_zero()
+    call marbl_interior_diags(bid)%set_to_zero()
 
     ! FIXME(bja, 2015-07) one time copy of global marbl_domain
     ! related memory from slab to column ordering. move entire
@@ -903,7 +916,8 @@ contains
                   ciso_on,                   &
                   marbl_domain,              &
                   marbl_gcm_state,           &
-                  marbl_diagnostics(bid),    &
+                  marbl_interior_diags(bid), &
+                  marbl_restore_diags(bid),  &
                   restore_local,             &
                   marbl_interior_share,      &
                   marbl_zooplankton_share,   &
@@ -946,7 +960,8 @@ contains
 
           end if ! KMT > 0
              
-          call ecosys_tavg_accumulate(i, c, bid, marbl_diagnostics(bid), ecosys_restore)
+           call ecosys_tavg_accumulate(i, c, bid, marbl_interior_diags(bid),&
+                                       marbl_restore_diags(bid))
              
        end do ! do i
     end do ! do c

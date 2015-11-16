@@ -1,6 +1,91 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    13 Nov 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n15_cesm_pop_2_1_20151020/
+Tag Summary: A little more diagnostic clean-up -- moved tot_CaCO3_form_zint,
+             tot_bSi_form, tot_CaCO3_form, and tot_Nfix into
+             marbl_interior_diagnostics_type and also started accumulating
+             DONr_REMIN and DOPr_REMIN. I removed POC_ACCUM from the tavg list
+             and updated a couple of small FIXMEs relating to variable
+             metadata (uniform capitalization, etc).
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_tavg.F90
+M       source/marbl_interface_types.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 Nov 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n14_cesm_pop_2_1_20151020/
+Tag Summary: All interior and restoring diagnostics are defined via marbl
+             data type, POP uses metadata from this type to define tavg fields
+             and also accumulates the tavg values in this order.
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_restore.F90
+M       source/ecosys_tavg.F90
+M       source/marbl_interface_types.F90
+M       source/marbl_share.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    6 Nov 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n13_cesm_pop_2_1_20151020/
+Tag Summary: Added metadata to the diagnostics datatypes; this gets populated
+             by MARBL in ecosys_diagnostics_init and then used by the driver
+             in ecosys_tavg to define the tavg fields. Next step is two-fold -
+             condense auto_, part_, and zoo_diags into the diags_[23]d and
+             update the indexing so that the indices are computed in
+             ecosys_diagnostic_init rather than set as parameters.
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_tavg.F90
+M       source/marbl_interface_types.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    2 Nov 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n12_cesm_pop_2_1_20151020/
+Tag Summary: Clean up how saturation depths for calcite and aragonite are
+             computed -- no longer requires a column array to compute this 2D
+             diagnostic.
+
+Notes:       (1) I added a linear root finder to ecosys_diagnostics_mod that
+                 should either get moved to marbl_math_mod or rolled into the
+                 compute_saturation_depth() function
+             (2) root-finder has an error check, but I don't know how to abort
+                 from MARBL!
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    30 Oct 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n11_cesm_pop_2_1_20151020/
+Tag Summary: 2D diagnostics are no longer stored in arrays with a k dimension.
+             Note: this introduces so order-of-operations changes that lead to
+             round-off level differences. For the Jint_*Tot variables, the
+             accumulated values should be O(1e-18), or double-precision
+             roundoff. This will lead to O(1) relative errors.
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_tavg.F90
+M       source/marbl_interface_types.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    30 Oct 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n10_cesm_pop_2_1_20151020/
 Tag Summary: Update tavg_accumulation in ecosys_restore to use new
