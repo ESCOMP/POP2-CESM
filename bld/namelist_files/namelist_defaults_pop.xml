@@ -1222,6 +1222,8 @@
 
 <lecovars_full_depth_tavg>.false.</lecovars_full_depth_tavg>    
 
+<lecosys_debug>.false.</lecosys_debug>
+
 <tracer_init_ext(1)%scale_factor&ecosys_nml ocn_grid="gx3v7">1.025</tracer_init_ext(1)%scale_factor&ecosys_nml>
 <tracer_init_ext(1)%scale_factor&ecosys_nml ocn_grid="gx1v6">1.025</tracer_init_ext(1)%scale_factor&ecosys_nml> 
  

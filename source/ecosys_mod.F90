@@ -4046,6 +4046,7 @@ contains
                      SURF_VALS_CUR(:, :, o2_ind, iblock)))
                 STF_MODULE(:, :, o2_ind, iblock) = STF_MODULE(:, :, o2_ind, iblock) + FLUX
              elsewhere
+                PV = c0
                 O2SAT_USED = c0
              end where
 

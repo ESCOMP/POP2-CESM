@@ -6186,6 +6186,14 @@ group="ecosys_nml" >
 Default: .false.
 </entry>
 
+<entry
+id="lecosys_debug"
+type="logical"
+category="ecosys"
+group="derived">
+When turned on, ocn.ecosys.tavg.csh will accumulate ALL ecosys diagnostics
+</entry>
+
 <!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: ecosys_parms_nml         - -->
 <!-- - - - - - - - - - - - - - - - - - -->

@@ -1515,6 +1515,8 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'caco3_bury_thres_depth');
     add_default($nl, 'pon_bury_coeff');
     add_default($nl, 'lecovars_full_depth_tavg');
+
+    add_default($nl, 'lecosys_debug');
 }
 
 ##########################################
@@ -2552,6 +2554,9 @@ sub module_tavg_script_args() {
   my $nl     = shift;
   my $module = shift;
   my $cfg    = shift;
+  if ($module eq "ecosys") {
+    return ($nl->get_value('lecosys_debug'));
+  }
   if ($module eq "IRF") {
     my $IRF_NT   = $cfg->get("irf_nt");
     my $IRF_MODE = $cfg->get("irf_mode");
