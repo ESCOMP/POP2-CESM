@@ -1,5 +1,28 @@
 ===============================================================================
 Tag Creator: jet
+Developers:  K. Lindsay, B. Sacks, J. Edwards
+Tag Date:    16 Nov 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151116
+Tag Summary: Allow negative ice runnoff to Pop needed for landice
+	     Fix memory corruption issue in overflows.F90
+	     Timing mods to fix the intermittent timer errors. Adapted
+	     from cice mods for same error.
+
+Testing: Ran aux_pop on yellowstone.  This parameterization is off by default and is bfb 
+	 with baseline with the exception of the following expected failures which have
+	 been in the baseline for awhile now.
+
+	  ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+          ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+
+Files Modified/Added/Removed:
+M       overflows.F90
+M       timers.F90
+M       ocn_import_export.F90
+M       ChangeLog
+===============================================================================
+===============================================================================
+Tag Creator: jet
 Developers:  Gokhan, Matt Long, John Marshall, jet 
 Tag Date:    24 Oct 2015
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151024
