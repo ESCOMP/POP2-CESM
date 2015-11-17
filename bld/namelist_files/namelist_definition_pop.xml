@@ -1918,6 +1918,166 @@ Note: You must specify both the variable name and namelist name if you change th
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: hmix_gm_aniso_nml        - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry 
+id="kdir_type_choice"
+type="char*256"
+category="hmix"
+group="hmix_gm_aniso_nml"
+valid_values="shear,east,zonal,flow,pvgrid,read" >
+choice for major axis direction
+
+Valid Values: 'shear', 'east', 'zonal', 'flow', 'pvgrid', 'read'
+Default: 'shear'
+</entry>
+
+<entry 
+id="kmin_type_choice"
+type="char*256"
+category="hmix"
+group="hmix_gm_aniso_nml"
+valid_values="simple,read" >
+choice for minor diffusivity
+
+Valid Values: 'simple', 'read'
+Default: 'simple'
+</entry>
+
+<entry 
+id="krat_type_choice"
+type="char*256"
+category="hmix"
+group="hmix_gm_aniso_nml"
+valid_values="shear,simple,read" >
+choice for diffusivity ratio (major/minor)
+
+Valid Values: 'shear', 'simple', 'read'
+Default: 'shear'
+</entry>
+
+<entry 
+id="addrandfluc"
+type="logical"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+Flag to add random fluctuation to orientation
+
+Default: .false.
+</entry>
+
+<entry 
+id="cflmajoronly"
+type="logical"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+T reduce major only for cfl violations, F reduce entire tensor for cfl violations
+
+Default: .true.
+</entry>
+
+<entry 
+id="isominoronly"
+type="logical"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+T Set isotropic diffusivity with minor: F set isotropic diffusivity with avg of major and minor
+
+Default: .true.
+</entry>
+
+<entry 
+id="isoonly"
+type="logical"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+T to do isotropic using diagnosis
+
+Default: .false.
+</entry>
+
+<entry 
+id="savenewtavgs"
+type="logical"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+Save aniso time averaged diagnostics
+
+Default: .true.
+</entry>
+
+<entry 
+id="simpsubcells"
+type="logical"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+T to use simple subcell volume = 1/8 T-cell volume, F to use HTN & HTE
+
+Default: .false.
+</entry>
+
+<entry 
+id="vertdiffhere"
+type="logical"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+T do VDC here, F to do in vertical_mix 
+
+Default: .false.
+</entry>
+
+<entry 
+id="cflmult"
+type="real"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+multiplication factor for cfl check
+
+Default: 0.175
+</entry>
+
+<entry 
+id="erat_const"
+type="real"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+constant eigenvalue ratio 
+
+Default: 5.0
+</entry>
+
+<entry 
+id="erat_factor"
+type="real"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+max negative factor of major to set minor, set to 0 to force minor to be positive 
+
+Default: 0.0
+</entry>
+
+<entry 
+id="minorfactor"
+type="real"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+minor eigenvalue multiplicative factor 
+
+Default: 1.0
+</entry>
+
+<entry 
+id="shrdispfac"
+type="real"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+multiplicative coefficient for shear dispersion term: MAJOR = MINOR + shrdispfac/MINOR*<(U*dy)^2+(V*dx)^2> 
+
+Default: 0.5
+</entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: hmix_gm_nml              - -->
 <!-- - - - - - - - - - - - - - - - - - -->
 
@@ -1926,10 +2086,10 @@ id="kappa_isop_choice"
 type="char*256"
 category="hmix"
 group="hmix_gm_nml"
-valid_values="cons,dept,depth,vmhs,hdgr,drad,bfre,bfvm,bfhd,bfdr,edgr" >
+valid_values="cons,steer,dept,depth,vmhs,hdgr,drad,bfre,bfvm,bfhd,bfdr,edgr" >
 Choice for KAPPA_ISOP (isopycnal).
 
-Valid Values: 'cons', 'depth', 'vmhs', 'hdgr', 'drad', 'bfre', 'bfvm', 'bfhd', 'bfdr', 'edgr'
+Valid Values: 'cons', 'steer', 'depth', 'vmhs', 'hdgr', 'drad', 'bfre', 'bfvm', 'bfhd', 'bfdr', 'edgr'
 Default: 'bfre'
 </entry>
 
@@ -1938,10 +2098,10 @@ id="kappa_thic_choice"
 type="char*256"
 category="hmix"
 group="hmix_gm_nml"
-valid_values="cons,dept,depth,vmhs,hdgr,drad,bfre,bfvm,bfhd,bfdr,edgr" >
+valid_values="cons,steer,dept,depth,vmhs,hdgr,drad,bfre,bfvm,bfhd,bfdr,edgr" >
 Choice for KAPPA_THIC (thickness).
 
-Valid Values: 'cons', 'depth', 'vmhs', 'hdgr', 'drad', 'bfre', 'bfvm', 'bfhd', 'bfdr', 'edgr'
+Valid Values: 'cons', 'steer', 'depth', 'vmhs', 'hdgr', 'drad', 'bfre', 'bfvm', 'bfhd', 'bfdr', 'edgr'
 Default: 'bfre'
 </entry>
 
@@ -2076,6 +2236,16 @@ type="logical"
 category="hmix"
 group="hmix_gm_nml" >
 Flag for diagnostic bolus velocity computation.
+
+Default: .true.
+</entry>
+
+<entry 
+id="diag_gm_steer"
+type="logical"
+category="hmix"
+group="hmix_gm_nml" >
+Flag for diagnostic steering level eddy flux computation.
 
 Default: .true.
 </entry>

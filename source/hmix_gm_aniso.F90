@@ -95,12 +95,6 @@
 
       logical (log_kind) ::   &
          diff_tapering,       &   ! different tapering for two diffusivities
-         vertdiffhere, & !SJR ADD ! do VDC here, F to do in vertical_mix 
-         simpsubcells, & !SJR ADD ! T to use simple subcell volume = 1/8 T-cell volume, F to use HTN & HTE
-         isoonly, & !SJR ADD ! T to do isotropic using diagnosis
-         isominoronly, & !SJR ADD ! T to set isotropic diffusivity with minor, F to use avg of major and minor 
-         addrandfluc, &  !SJR ADD ! T to add random fluctuation to orientation
-         savenewtavgs, & !SJR ADD ! T to set isotropic diffusivity with minor, F to use avg of major and minor 
          cancellation_occurs, &   ! specified choices for the isopycnal and
                                   !  thickness diffusion coefficients result in 
                                   !  cancellation of some tensor elements
@@ -138,6 +132,8 @@
          HXX_DIFF, &      !SJR ADD
          HXY_DIFF, &      !SJR ADD
          HYY_DIFF, &      !SJR ADD
+         K_EIGENVAL_RAT, &  !SJR ADD
+         KRAT_SHRD, &  !SJR ADD
          HOR_DIFF           ! 3D horizontal diffusion coefficient
                             !  for top and bottom half of a grid cell
 
@@ -145,10 +141,10 @@
          KXX_IN, &  !SJR ADD !KXX read in from file
          KXY_IN, &  !SJR ADD
          KYY_IN, &  !SJR ADD
-         K_EIGENVAL_RAT, &  !SJR ADD
          MAJOR_EIGENVAL, &  !SJR ADD
          MINOR_EIGENVAL, &  !SJR ADD
-         NX_ISOP, NY_ISOP        !SJR ADD  !principal axis of major eigenvalue
+         NX_ISOP, NY_ISOP, &        !SJR ADD  !principal axis of major eigenvalue
+         NX_SHRD, NY_SHRD        !SJR ADD  !principal axis of major eigenvalue
 
 
       real (r8), dimension(:,:,:), allocatable :: &
@@ -181,6 +177,7 @@
 !-----------------------------------------------------------------------
 
       integer (int_kind), parameter ::   &
+         kdir_type_shrd           = 0,   & !SJR ADD !using shear dispersion parameterization
          kdir_type_east           = 1,   & !SJR ADD !using grad(f)
          kdir_type_zonl           = 2,   & !SJR ADD !using angle
          kdir_type_flow           = 3,   & !SJR ADD !align with flow velcoity
@@ -188,6 +185,7 @@
          kdir_type_read           = 5,   & !SJR ADD !read from files for KXX, KXY, KYY
          kmin_type_simp           = 1,   & !SJR ADD
          kmin_type_read           = 2,   & !SJR ADD
+         krat_type_shrd           = 0,   & !SJR ADD
          krat_type_simp           = 1,   & !SJR ADD
          krat_type_read           = 2,   & !SJR ADD
          kappa_type_const         = 1,   &
@@ -209,9 +207,6 @@
          kappa_freq_once_a_day      = 3  
 
       integer (int_kind) :: &
-         kdir_type,         &   !SJR ADD - choice for major axis direction
-         kmin_type,         &   !SJR ADD - choice for minor diffusivity
-         krat_type,         &   !SJR ADD - choice for diffusivity ratio (major/minor)
          kappa_isop_type,   &   ! choice of KAPPA_ISOP
          kappa_thic_type,   &   ! choice of KAPPA_THIC
          kappa_freq,        &   ! frequency of KAPPA computations
@@ -250,10 +245,6 @@
 !-----------------------------------------------------------------------
 
       real (r8) ::      &
-         cflmult,       &  !SJR ADD ! multiplication factor for cfl check
-         erat_const,    &  !SJR ADD ! constant eigenvalue ratio 
-         minorfactor,   &  !SJR ADD ! minor eigenvalue multiplicative factor 
-         erat_factor,   &  !SJR ADD ! max negative factor of major to set minor, set to 0 to force minor to be positive 
          const_eg,      &  ! tuning parameter (unitless)
          gamma_eg,      &  ! (> 0) effective upper limit for inverse eddy 
                            !  time scale (unitless)
@@ -337,11 +328,42 @@
 
 !-----------------------------------------------------------------------
 !
+!     input namelist for setting GM ANISO options
+!
+!-----------------------------------------------------------------------
+      logical (log_kind) ::   &
+         addrandfluc,  & !SJR ADD ! T to add random fluctuation to orientation
+         cflmajoronly, & !SJR ADD ! T to reduce major only for cfl violations, F to reduce entire tensor
+         vertdiffhere, & !SJR ADD ! do VDC here, F to do in vertical_mix 
+         simpsubcells, & !SJR ADD ! T to use simple subcell volume = 1/8 T-cell volume, F to use HTN & HTE
+         isoonly,      & !SJR ADD ! T to do isotropic using diagnosis
+         isominoronly, & !SJR ADD ! T to set isotropic diffusivity with minor, F to use avg of major and minor 
+         savenewtavgs    !SJR ADD ! T to set isotropic diffusivity with minor, F to use avg of major and minor 
+
+      real (r8) ::      &
+         cflmult,       &  !SJR ADD ! multiplication factor for cfl check
+         erat_const,    &  !SJR ADD ! constant eigenvalue ratio 
+         minorfactor,   &  !SJR ADD ! minor eigenvalue multiplicative factor 
+         erat_factor,   &  !SJR ADD ! max negative factor of major to set minor, set to 0 to force minor to be positive 
+         shrdispfac        !SJR ADD ! multiplicative coefficient for shear dispersion term: MAJOR = MINOR + shrdispfac/MINOR*<(U*dy)^2+(V*dx)^2> 
+
+      integer (int_kind) :: &
+         kdir_type,         &   !SJR ADD - choice for major axis direction
+         kmin_type,         &   !SJR ADD - choice for minor diffusivity
+         krat_type              !SJR ADD - choice for diffusivity ratio (major/minor)
+
+      character (char_len) :: &
+         kdir_type_choice,    & 
+         kmin_type_choice,    & 
+         krat_type_choice
+
+!-----------------------------------------------------------------------
+!
 !  timers
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) :: &
+      integer (int_kind) :: &
       timer_gm0, &         ! main n loop
       timer_gm1, &         ! main n loop
       timer_gm2, &         ! main n loop
@@ -355,6 +377,21 @@
       timer_gm8, &         ! main n loop
       timer_gm9, &         ! main n loop
       timer_nloop         ! main n loop
+
+!-----------------------------------------------------------------------
+!
+!     GM specific options
+!
+!     kappa_freq = how often spatial variations of the diffusion 
+!                  coefficients are computed. Same frequency is 
+!                  used for both coefficients.
+!     slope_control = tanh function (Danabasoglu and McWilliams 1995) or
+!                     DM95 with replacement function to tanh or
+!                     slope clipping or
+!                     method of Gerdes et al (1991)
+!     diag_gm_bolus = .true. for diagnostic bolus velocity computation.
+!
+!-----------------------------------------------------------------------
 
 !EOC
 !***********************************************************************
@@ -438,6 +475,7 @@
       kappa_thic_choice,   &  ! choice for KAPPA_THIC
       slope_control_choice    ! choice for slope control
 
+
       real (r8), dimension(nx_block,ny_block) :: &
          WORK3            ! local work space
 
@@ -490,6 +528,28 @@
 !
 !-----------------------------------------------------------------------
 
+
+   namelist /hmix_gm_aniso_nml/ addrandfluc,                     &
+                                cflmajoronly,                    &
+                                cflmult,                         &
+                                erat_const,                      &
+                                erat_factor,                     &
+                                isominoronly,                    &
+                                isoonly,                         &
+                                kdir_type_choice,                &
+                                kmin_type_choice,                &
+                                krat_type_choice,                &
+                                minorfactor,                     &
+                                savenewtavgs,                    &
+                                shrdispfac,                      &
+                                simpsubcells,                    &
+                                vertdiffhere
+
+!-----------------------------------------------------------------------
+!
+!     read input namelist for additional GM ANISO options
+!
+
 !-----------------------------------------------------------------------
 !
 !     register init_gm_aniso
@@ -539,6 +599,56 @@
    if (nml_error /= 0) then
      call exit_POP(sigAbort,'ERROR reading hmix_gm_nml')
    endif
+
+!-----------------------------------------------------------------------
+!
+!     Defaults for aniso namelist
+!
+!-----------------------------------------------------------------------
+   
+   addrandfluc = .false.
+   cflmajoronly = .true.
+   cflmult = 0.175_r8
+   erat_const = c5
+   erat_factor = c0
+   isominoronly = .true.
+   isoonly = .false.
+   kdir_type = kdir_type_shrd !flow
+   kmin_type = kmin_type_simp
+   krat_type = krat_type_shrd !simp
+   minorfactor = c1 !sqrt(c5)
+   savenewtavgs = .true.
+   shrdispfac = p5 / pi**2
+   simpsubcells = .false.
+   vertdiffhere = .false.						 
+
+   if (my_task == master_task) then
+     open (nml_in, file=nml_filename, status='old',iostat=nml_error)
+     if (nml_error /= 0) then
+       nml_error = -1
+     else
+       nml_error =  1
+     endif
+     do while (nml_error > 0)
+       read(nml_in, nml=hmix_gm_aniso_nml,iostat=nml_error)
+     end do
+     if (nml_error == 0) close(nml_in)
+   endif
+
+   call broadcast_scalar(nml_error, master_task)
+   if (nml_error /= 0) then
+     call exit_POP(sigAbort,'ERROR reading hmix_gm_aniso_nml')
+   endif
+
+!-------------v--SJR ADD--v--------------------------------------------- 
+   if (kmin_type == kmin_type_simp) erat_factor=c0
+   if (isoonly) then
+      erat_const=c1
+      kdir_type=kdir_type_flow
+      krat_type=krat_type_simp
+      savenewtavgs = .false.
+   endif
+!-------------^--SJR ADD--^--------------------------------------------- 
 
    if (my_task == master_task) then
 
@@ -590,6 +700,103 @@
      if ( transition_layer_on ) then
        write(stdout,'(a33)') '  transition layer scheme is on. '
      endif
+
+     write(stdout,*) ' '
+     write(stdout,  hmix_gm_aniso_nml)
+     write(stdout,*) ' '
+
+     write(stdout,*) '  Gent-McWilliams Anisotropic options:'
+     write(stdout,*) '     major axis direction             ',  &
+                     kdir_type_choice
+     write(stdout,*) '     minor diffusivity                ',  &
+                     kmin_type_choice
+     write(stdout,*) '     diffusivity ratio (major/minor)  ',  &
+                     krat_type_choice
+
+     if (addrandfluc) &
+     write(stdout,*) '     add random fluctuation to orientation '
+
+     if (cflmajoronly) then
+        write(stdout,*) '     reduce major only for cfl violations'
+     else
+        write(stdout,*) '     reduce entire tensor for cfl violations'
+     end if
+
+     if (isominoronly) then
+        write(stdout,*) '     set isotropic diffusivity with minor'
+     else
+        write(stdout,*) '     set isotropic diffusivity with avg of major and minor'
+     end if
+
+     if (isoonly) then
+        write(stdout,*) '     do isotropic using diagnosis'
+     else
+        write(stdout,*) '     dont do isotropic using diagnosis'
+     end if
+
+     if (simpsubcells) then
+        write(stdout,*) '     subcell volume = 1/8 T-cell volume (simple)'
+     else
+        write(stdout,*) '     subcell volume determined using HTN and HTE'
+     end if
+
+     if (savenewtavgs) then
+        write(stdout,*) '     save aniso time averaged diagnostics'
+     end if
+
+     if (vertdiffhere) then
+        write(stdout,*) '     calculate effective vertical diffusion coefficient here'
+     else
+        write(stdout,*) '     calculate effective vertical diffusion coefficient in vertical_mix'
+     end if
+
+     write(stdout,'(a28,1pe13.6)') '     mult factor for cfl check is ', &
+                                   cflmult
+     write(stdout,'(a28,1pe13.6)') '     constant eigenvalue ratio is ', &
+                                   erat_const
+     write(stdout,'(a28,1pe13.6)') '     max neg factor of major to set minor ', &
+                                   erat_factor
+     write(stdout,'(a28,1pe13.6)') '     minor eigenvalue mult factor ', &
+                                   minorfactor
+     write(stdout,'(a28,1pe13.6)') '     mult coef for shear dispersion', &
+                                   shrdispfac
+
+     select case (kdir_type_choice(1:4))
+     case ('shea')
+        kdir_type=kdir_type_shrd
+     case ('east')
+        kdir_type=kdir_type_east
+     case ('zona')
+        kdir_type=kdir_type_zonl
+     case ('flow')
+        kdir_type=kdir_type_flow
+     case ('pvgr')
+        kdir_type=kdir_type_apvg
+     case ('read')
+        kdir_type=kdir_type_read
+     case default
+        kdir_type = -1000
+     end select
+
+     select case (kmin_type_choice(1:4))
+     case ('simp')
+        kmin_type=kmin_type_simp
+     case ('read')
+        kmin_type=kmin_type_read
+     case default
+        kmin_type = -1000
+     end select
+
+     select case (krat_type_choice(1:4))
+     case ('shea')
+        krat_type=krat_type_shrd
+     case ('simp')
+        krat_type=krat_type_simp
+     case ('read')
+        krat_type=krat_type_read
+     case default
+        krat_type = -1000
+     end select
 
      select case (kappa_isop_choice(1:4))
      case ('cons')
@@ -712,6 +919,7 @@
 
      endif
 
+
    endif
 
    call broadcast_scalar(kappa_isop_type,        master_task)
@@ -737,6 +945,22 @@
    call broadcast_scalar(gamma_eg,               master_task)
    call broadcast_scalar(kappa_min_eg,           master_task)
    call broadcast_scalar(kappa_max_eg,           master_task)
+
+   call broadcast_scalar(addrandfluc,            master_task)
+   call broadcast_scalar(cflmajoronly,           master_task)
+   call broadcast_scalar(cflmult,                master_task)
+   call broadcast_scalar(erat_const,             master_task)
+   call broadcast_scalar(erat_factor,            master_task)
+   call broadcast_scalar(isominoronly,           master_task)
+   call broadcast_scalar(isoonly,                master_task)
+   call broadcast_scalar(kdir_type,              master_task)
+   call broadcast_scalar(kmin_type,              master_task)
+   call broadcast_scalar(krat_type,              master_task)
+   call broadcast_scalar(minorfactor,            master_task)
+   call broadcast_scalar(savenewtavgs,           master_task)
+   call broadcast_scalar(shrdispfac,             master_task)
+   call broadcast_scalar(simpsubcells,           master_task)
+   call broadcast_scalar(vertdiffhere,           master_task)
 
 !-----------------------------------------------------------------------
 !
@@ -865,40 +1089,24 @@
                    'Must define buoyancy_freq_filename if read_n2_data is .true.')
    endif
 
+   if ( kmin_type == -1000 ) then
+     call exit_POP(sigAbort,  &
+                   'unknown type for minor diffusivity KMIN_TYPE in GM Aniso setup')
+   endif
+   if ( krat_type == -1000 ) then
+     call exit_POP(sigAbort,  &
+                   'unknown type for diffusivity ratio KRAT_TYPE in GM Aniso setup')
+   endif
+   if ( kdir_type == -1000 ) then
+     call exit_POP(sigAbort,  &
+                   'unknown type for major axis direction KDIR_TYPE in GM Aniso setup')
+   endif
+
 !-----------------------------------------------------------------------
 !
 !  allocate GM arrays
 !
 !-----------------------------------------------------------------------
-
-
-!-------------v--SJR ADD--v--------------------------------------------- 
-    vertdiffhere = .false.
-    simpsubcells = .false.
-    cflmult = 0.2_r8
-    erat_factor = c0
-    minorfactor = c1 !sqrt(c5)
-
-    kmin_type = kmin_type_simp
-    krat_type = krat_type_simp
-       erat_const = c5
-    kdir_type = kdir_type_flow
-       addrandfluc = .false.
-
-    isoonly = .false.
-    isominoronly = .true.
-
-    savenewtavgs = .false.
-!-------------^--SJR ADD--^--------------------------------------------- 
-!-------------v--SJR ADD--v--------------------------------------------- 
-    if (kmin_type == kmin_type_simp) erat_factor=c0
-    if (isoonly) then
-       erat_const=c1
-       kdir_type=kdir_type_flow
-       krat_type=krat_type_simp
-       !savenewtavgs = .false.
-    endif
-!-------------^--SJR ADD--^--------------------------------------------- 
 
 
     allocate (HYXW(nx_block,ny_block,nblocks_clinic),    &
@@ -930,16 +1138,23 @@
               HXX_DIFF(nx_block,ny_block,2,km,nblocks_clinic),  &   !SJR ADD
               HXY_DIFF(nx_block,ny_block,2,km,nblocks_clinic),  &   !SJR ADD
               HYY_DIFF(nx_block,ny_block,2,km,nblocks_clinic),  &   !SJR ADD
+              K_EIGENVAL_RAT(nx_block,ny_block,2,km,nblocks_clinic), & !SJR ADD
               HOR_DIFF(nx_block,ny_block,2,km,nblocks_clinic))
 
     allocate (KXX_IN(nx_block,ny_block,km,nblocks_clinic), & !SJR ADD
               KXY_IN(nx_block,ny_block,km,nblocks_clinic), & !SJR ADD
               KYY_IN(nx_block,ny_block,km,nblocks_clinic), & !SJR ADD
-              K_EIGENVAL_RAT(nx_block,ny_block,km,nblocks_clinic), & !SJR ADD
               MAJOR_EIGENVAL(nx_block,ny_block,km,nblocks_clinic), & !SJR ADD
               MINOR_EIGENVAL(nx_block,ny_block,km,nblocks_clinic), & !SJR ADD
               NX_ISOP(nx_block,ny_block,km,nblocks_clinic),        & !SJR ADD
               NY_ISOP(nx_block,ny_block,km,nblocks_clinic) )         !SJR ADD
+
+    if (kdir_type == kdir_type_shrd .or. krat_type == krat_type_shrd) then
+       allocate (NX_SHRD(nx_block,ny_block,km,nblocks_clinic),        & !SJR ADD
+                 NY_SHRD(nx_block,ny_block,km,nblocks_clinic) )         !SJR ADD
+       allocate (KRAT_SHRD(nx_block,ny_block,2,km,nblocks_clinic))  !SJR ADD
+
+    endif
 
     allocate (SUBCELLV(nx_block,ny_block,2,2,2,km,nblocks_clinic)) !SJR ADD
     allocate (SL_MAG(nx_block,ny_block,2,2,2,km,nblocks_clinic)) !SJR ADD
@@ -1132,16 +1347,16 @@
       call destroy_io_field (KYY_data_in)
       call destroy_file (KYY_data_file)
 
-      K_EIGENVAL_RAT = sqrt((KXX_IN+KYY_IN)**2-c4*(KXX_IN*KYY_IN-KXY_IN**2))/c2 !EIGENVALUES are +/- this
-      MAJOR_EIGENVAL = (KXX_IN+KYY_IN)/c2+K_EIGENVAL_RAT
-      MINOR_EIGENVAL = (KXX_IN+KYY_IN)/c2-K_EIGENVAL_RAT
-      K_EIGENVAL_RAT = KXY_IN**2 + (MAJOR_EIGENVAL - KXX_IN)**2 !NORMALIZATION FACTOR
-      where (K_EIGENVAL_RAT > eps)
-         NX_ISOP = KXY_IN/sqrt(K_EIGENVAL_RAT)
-         NY_ISOP = (MAJOR_EIGENVAL - KXX_IN)/sqrt(K_EIGENVAL_RAT)
-      elsewhere
-         NX_ISOP = c1
+      NX_ISOP = sqrt((KXX_IN+KYY_IN)**2-c4*(KXX_IN*KYY_IN-KXY_IN**2))/c2 !EIGENVALUES are +/- this
+      MAJOR_EIGENVAL = (KXX_IN+KYY_IN)/c2+NX_ISOP
+      MINOR_EIGENVAL = (KXX_IN+KYY_IN)/c2-NX_ISOP
+      KYY_IN = KXY_IN**2 + (MAJOR_EIGENVAL - KXX_IN)**2 !NORMALIZATION FACTOR
+      where (KYY_IN < eps2)
          NY_ISOP = c0
+         NX_ISOP = c1
+      elsewhere
+         NY_ISOP = (MAJOR_EIGENVAL - KXX_IN)/sqrt(KYY_IN)
+         NX_ISOP = KXY_IN/sqrt(KYY_IN)
       endwhere
 
 !---------------------------------------------------
@@ -1158,7 +1373,8 @@
       KYY_IN = MINOR_EIGENVAL*NX_ISOP**2 + MAJOR_EIGENVAL*NY_ISOP**2 
       KXY_IN = (MAJOR_EIGENVAL-MINOR_EIGENVAL)*NX_ISOP*NY_ISOP 
 
-      K_EIGENVAL_RAT = MAJOR_EIGENVAL/MINOR_EIGENVAL
+      K_EIGENVAL_RAT(:,:,1,:,:) = MAJOR_EIGENVAL/MINOR_EIGENVAL
+      K_EIGENVAL_RAT(:,:,2,:,:) = K_EIGENVAL_RAT(:,:,1,:,:)  
 
 !---------------------------------------------------
 
@@ -2168,8 +2384,16 @@
       call timer_start(timer_gm3, block_id=this_block%local_id)
 
 !-------------v--SJR ADD--v--------------------------------------------- 
+      if (kdir_type == kdir_type_shrd .or. krat_type == krat_type_shrd) then
+         call shear_dispersion (UMIX, VMIX, TMIX, this_block) !sets NX_SHRD, NY_SHRD, KRAT_SHRD
+      endif
 !_________________________________________________
-           if (kdir_type == kdir_type_east) then
+           if (kdir_type == kdir_type_shrd) then
+
+              NX_ISOP(:,:,:,bid) = NX_SHRD(:,:,:,bid)
+              NY_ISOP(:,:,:,bid) = NY_SHRD(:,:,:,bid)
+
+           elseif (kdir_type == kdir_type_east) then
 
               GRADX_FCOR = c0
               GRADY_FCOR = c0
@@ -2269,13 +2493,13 @@
 
         do kk=1,km
            WORK1=sqrt(NX_ISOP(:,:,kk,bid)**2+NY_ISOP(:,:,kk,bid)**2)
-           where ( WORK1 < eps2 ) 
-              NX_ISOP(:,:,kk,bid)=c1 
-              NY_ISOP(:,:,kk,bid)=c0
+           where (WORK1 < eps2)
+              NY_ISOP(:,:,kk,bid) = c0
+              NX_ISOP(:,:,kk,bid) = c1
            elsewhere
-              NX_ISOP(:,:,kk,bid)=NX_ISOP(:,:,kk,bid)/WORK1
               NY_ISOP(:,:,kk,bid)=NY_ISOP(:,:,kk,bid)/WORK1
-           endwhere
+              NX_ISOP(:,:,kk,bid)=NX_ISOP(:,:,kk,bid)/WORK1
+           endwhere 
         enddo
 
         if (addrandfluc) then
@@ -2284,7 +2508,11 @@
               call random_number(WORK1)
               call random_seed
               call random_number(WORK2)
-              WORK3 = atan(NY_ISOP(:,:,kk,bid) / NX_ISOP(:,:,kk,bid)) + pi/c4*sqrt(-c2*log(WORK1))*cos(pi2*WORK2) 
+              where (abs(NX_ISOP(:,:,kk,bid)) < eps2)
+                 WORK3 = pi/c2 + pi/c4*sqrt(-c2*log(WORK1))*cos(pi2*WORK2) 
+              elsewhere
+                 WORK3 = atan(NY_ISOP(:,:,kk,bid) / NX_ISOP(:,:,kk,bid)) + pi/c4*sqrt(-c2*log(WORK1))*cos(pi2*WORK2) 
+              endwhere 
               NX_ISOP(:,:,kk,bid) = cos(WORK3)
               NY_ISOP(:,:,kk,bid) = sin(WORK3)
            enddo
@@ -2315,38 +2543,56 @@
         endif
 
         if ( krat_type == krat_type_read ) then
-           K_EIGENVAL_RAT(:,:,:,bid) = MAJOR_EIGENVAL(:,:,:,bid) / MINOR_EIGENVAL(:,:,:,bid)
+           K_EIGENVAL_RAT(:,:,1,:,bid) = MAJOR_EIGENVAL(:,:,:,bid) / MINOR_EIGENVAL(:,:,:,bid)
+           K_EIGENVAL_RAT(:,:,2,:,bid) = K_EIGENVAL_RAT(:,:,1,:,bid) 
+        elseif ( krat_type == krat_type_shrd ) then
+           K_EIGENVAL_RAT(:,:,:,:,bid) = KRAT_SHRD(:,:,:,:,bid)
         else
-           K_EIGENVAL_RAT(:,:,:,bid) = erat_const
+           K_EIGENVAL_RAT(:,:,:,:,bid) = erat_const
         endif
 
         if (cflmult > c0) then
          do kk=1,km
           do kk_sub=1,2
            WORK1 = ABS(KXX_ISOP(:,:,kk_sub,kk,bid)) + ABS(HXX_DIFF(:,:,kk_sub,kk,bid))
-           WORK2 = WORK1 * K_EIGENVAL_RAT(:,:,kk,bid) 
+           if (cflmajoronly) then
+              WORK3 = ( cflmult / dtt - &
+                           ( ABS( WORK1 * NY_ISOP(:,:,kk,bid) * DXTR(:,:,bid)**2 ) + &
+                             ABS( WORK1 * NX_ISOP(:,:,kk,bid) * DYTR(:,:,bid)**2 ) ) ) / &
+                           ( ABS( WORK1 * NX_ISOP(:,:,kk,bid) * DXTR(:,:,bid)**2 ) + &
+                             ABS( WORK1 * NY_ISOP(:,:,kk,bid) * DYTR(:,:,bid)**2 ) ) !r*
+              K_EIGENVAL_RAT(:,:,kk_sub,kk,bid) = MIN(K_EIGENVAL_RAT(:,:,kk_sub,kk,bid),MAX(WORK3,c1))
+           endif
+           WORK2 = WORK1 * K_EIGENVAL_RAT(:,:,kk_sub,kk,bid) 
            WORK4 = dtt / cflmult * &
                          ( ( ABS( WORK2 * NX_ISOP(:,:,kk,bid) ) + &
                              ABS( WORK1 * NY_ISOP(:,:,kk,bid) ) ) * DXTR(:,:,bid)**2 + &
                            ( ABS( WORK2 * NY_ISOP(:,:,kk,bid) ) + &
                              ABS( WORK1 * NX_ISOP(:,:,kk,bid) ) ) * DYTR(:,:,bid)**2 )
+           if (cflmajoronly) then
+              where ( WORK4 > c1 ) 
+                 K_EIGENVAL_RAT(:,:,kk_sub,kk,bid) = c1
+                 KXX_ISOP(:,:,kk_sub,kk,bid) =  KXX_ISOP(:,:,kk_sub,kk,bid) / WORK4
+                 HXX_DIFF(:,:,kk_sub,kk,bid) =  HXX_DIFF(:,:,kk_sub,kk,bid) / WORK4
+                 KXX_THIC(:,:,kk_sub,kk,bid) =  KXX_THIC(:,:,kk_sub,kk,bid) / WORK4
+              endwhere
+           else
               where ( WORK4 > c1 ) 
                  KXX_ISOP(:,:,kk_sub,kk,bid) =  KXX_ISOP(:,:,kk_sub,kk,bid) / WORK4
                  HXX_DIFF(:,:,kk_sub,kk,bid) =  HXX_DIFF(:,:,kk_sub,kk,bid) / WORK4
                  KXX_THIC(:,:,kk_sub,kk,bid) =  KXX_THIC(:,:,kk_sub,kk,bid) / WORK4
               endwhere
-              !where ( ABS(KXX_THIC(:,:,kk_sub,kk,bid)) > ABS(KXX_ISOP(:,:,kk_sub,kk,bid)) + ABS(HXX_DIFF(:,:,kk_sub,kk,bid)) )
-              !   KXX_THIC(:,:,kk_sub,kk,bid) = KXX_ISOP(:,:,kk_sub,kk,bid) + HXX_DIFF(:,:,kk_sub,kk,bid)
-              !endwhere
-           enddo
+           endif
           enddo
+         enddo
         endif
 
         do kk=1,km
-           WORK1 = NY_ISOP(:,:,kk,bid)**2 + NX_ISOP(:,:,kk,bid)**2 * K_EIGENVAL_RAT(:,:,kk,bid)
-           WORK2 = NX_ISOP(:,:,kk,bid)**2 + NY_ISOP(:,:,kk,bid)**2 * K_EIGENVAL_RAT(:,:,kk,bid)
-           WORK3 = NX_ISOP(:,:,kk,bid)    * NY_ISOP(:,:,kk,bid)    *(K_EIGENVAL_RAT(:,:,kk,bid)-c1)   
            do kk_sub=ktp,kbt
+              WORK1 = NY_ISOP(:,:,kk,bid)**2 + NX_ISOP(:,:,kk,bid)**2 * K_EIGENVAL_RAT(:,:,kk_sub,kk,bid)
+              WORK2 = NX_ISOP(:,:,kk,bid)**2 + NY_ISOP(:,:,kk,bid)**2 * K_EIGENVAL_RAT(:,:,kk_sub,kk,bid)
+              WORK3 = NX_ISOP(:,:,kk,bid)    * NY_ISOP(:,:,kk,bid)    *(K_EIGENVAL_RAT(:,:,kk_sub,kk,bid)-c1)   
+
               KYY_THIC(:,:,kk_sub,kk,bid)=KXX_THIC(:,:,kk_sub,kk,bid)*WORK2
               KXY_THIC(:,:,kk_sub,kk,bid)=KXX_THIC(:,:,kk_sub,kk,bid)*WORK3
               KXX_THIC(:,:,kk_sub,kk,bid)=KXX_THIC(:,:,kk_sub,kk,bid)*WORK1
@@ -2358,6 +2604,15 @@
               HXX_DIFF(:,:,kk_sub,kk,bid)=HXX_DIFF(:,:,kk_sub,kk,bid)*WORK1
            enddo        
         enddo
+        if ( ah_bkg_bottom /= c0 ) then
+          where ( k == KMT(:,:,bid) ) 
+!-------------v--SJR MOD--v--------------------------------------------- 
+            HXX_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom*( NY_ISOP(:,:,k,bid)**2 + NX_ISOP(:,:,k,bid)**2 * K_EIGENVAL_RAT(:,:,kbt,k,bid) )
+            HYY_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom*( NX_ISOP(:,:,k,bid)**2 + NY_ISOP(:,:,k,bid)**2 * K_EIGENVAL_RAT(:,:,kbt,k,bid) )
+            HXY_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom*  NX_ISOP(:,:,k,bid)    * NY_ISOP(:,:,k,bid)    *(K_EIGENVAL_RAT(:,:,kbt,k,bid)-c1)
+!-------------^--SJR MOD--^--------------------------------------------- 
+          endwhere
+        endif
       call timer_stop(timer_gm3, block_id=this_block%local_id)
       call timer_start(timer_gm4, block_id=this_block%local_id)
 
@@ -2535,15 +2790,6 @@
 !-----------------------------------------------------------------------
 
       call timer_start(timer_gm6, block_id=this_block%local_id)
-      if ( ah_bkg_bottom /= c0 ) then
-        where ( k == KMT(:,:,bid) ) 
-!-------------v--SJR MOD--v--------------------------------------------- 
-          HXX_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom*( NY_ISOP(:,:,k,bid)**2 + NX_ISOP(:,:,k,bid)**2 * K_EIGENVAL_RAT(:,:,k,bid) )
-          HYY_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom*( NX_ISOP(:,:,k,bid)**2 + NY_ISOP(:,:,k,bid)**2 * K_EIGENVAL_RAT(:,:,k,bid) )
-          HXY_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom*  NX_ISOP(:,:,k,bid)    * NY_ISOP(:,:,k,bid)    *(K_EIGENVAL_RAT(:,:,k,bid)-c1)
-!-------------^--SJR MOD--^--------------------------------------------- 
-        endwhere
-      endif
 
 !-----------------------------------------------------------------------
 !
@@ -3094,11 +3340,12 @@
           WORK5 = (WORK1+WORK3)/c2+WORK4
           WORK6 = (WORK1+WORK3)/c2-WORK4
           WORK4 = WORK2**2+(WORK5-WORK1)**2
-          WORK3 = c2*WORK2*(WORK5-WORK1) / WORK4 !sin(2*theta)
-          WORK2 = ( WORK2**2-(WORK5-WORK1)**2 ) / WORK4 !cos(2*theta)
-          where (WORK4 < eps)
+          where (WORK4 < eps2)
              WORK3 = c0
              WORK2 = c1
+          elsewhere
+             WORK3 = c2*WORK2*(WORK5-WORK1) / WORK4 !sin(2*theta)
+             WORK2 = ( WORK2**2-(WORK5-WORK1)**2 ) / WORK4 !cos(2*theta)
           endwhere
 
           call accumulate_tavg_field(WORK5,tavg_MAJ_ISOP, bid, k)
@@ -3125,11 +3372,12 @@
           WORK5 = (WORK1+WORK3)/c2+WORK4
           WORK6 = (WORK1+WORK3)/c2-WORK4
           WORK4 = WORK2**2+(WORK5-WORK1)**2
-          WORK3 = c2*WORK2*(WORK5-WORK1) / WORK4 !sin(2*theta)
-          WORK2 = ( WORK2**2-(WORK5-WORK1)**2 ) / WORK4 !cos(2*theta)
-          where (WORK4 < eps)
+          where (WORK4 < eps2)
              WORK3 = c0
              WORK2 = c1
+          elsewhere
+             WORK3 = c2*WORK2*(WORK5-WORK1) / WORK4 !sin(2*theta)
+             WORK2 = ( WORK2**2-(WORK5-WORK1)**2 ) / WORK4 !cos(2*theta)
           endwhere
 
           call accumulate_tavg_field(WORK5,tavg_MAJ_THIC, bid, k)
@@ -3156,11 +3404,12 @@
           WORK5 = (WORK1+WORK3)/c2+WORK4
           WORK6 = (WORK1+WORK3)/c2-WORK4
           WORK4 = WORK2**2+(WORK5-WORK1)**2
-          WORK3 = c2*WORK2*(WORK5-WORK1) / WORK4 !sin(2*theta)
-          WORK2 = ( WORK2**2-(WORK5-WORK1)**2 ) / WORK4 !cos(2*theta)
-          where (WORK4 < eps)
+          where (WORK4 < eps2)
              WORK3 = c0
              WORK2 = c1
+          elsewhere
+             WORK3 = c2*WORK2*(WORK5-WORK1) / WORK4 !sin(2*theta)
+             WORK2 = ( WORK2**2-(WORK5-WORK1)**2 ) / WORK4 !cos(2*theta)
           endwhere
 
           call accumulate_tavg_field(WORK5,tavg_MAJ_DIFF, bid, k)
@@ -5258,6 +5507,491 @@
 !EOC
 
       end subroutine apply_vertical_profile_to_isop_hor_diff
+
+!***********************************************************************
+!BOP
+! !IROUTINE: shear_dispersion 
+! !INTERFACE:
+
+      subroutine shear_dispersion (UMIX, VMIX, TMIX, this_block)
+
+! !DESCRIPTION:
+!
+! !REVISION HISTORY:
+
+! !INPUT PARAMETERS:
+
+
+      real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+         UMIX, VMIX         ! U,V  at all vertical levels
+                            !  at mixing time level
+
+      real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+         TMIX   ! T  at all vertical levels
+                            !  at mixing time level
+
+      type (block), intent(in) :: &
+         this_block         ! block info for this sub block
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!     shear_method: (0) MAJOR = kappa+1/kappa*<(u*dy)^2+(v*dx)^2>, flow aligned
+!                   (1) MAJOR = kappa+1/kappa*[<u*dy>^2+<v*dx>^2], flow aligned
+!                   (2) MAJOR = kappa+1/kappa*[<(u*dy)^2>+<(v*dx)^2>], flow aligned
+!                   (3) MAJOR = kappa+1/kappa*<(|u*dy|+|v*dx|)^2>, flow aligned 
+!                   (4) K_tensor = kappa*[1 0; 0 1]+1/kappa*[<u*dy>^2 <u*dy><v*dx>; <u*dy><v*dx> <v*dx>^2]
+!                   (5) K_tensor = kappa*[1 0; 0 1]+1/kappa*[<(u*dy)^2> <u*dy*v*dx>; <u*dy*v*dx> <(v*dx)^2>]
+!
+!     grid_type: treatment for dx and dy for flux calculation across flow (Dx and Dy are grid spacings)
+!                   (0) dx=Dx, dy=Dy
+!                   (1) dx=dy=R_1 (first baroclinic Rossby deformation radius)
+!                   (2) dx=dy=Delta/sqrt(2) (where Delta is actual distance cutting across T-cell perpendicular to velocity)
+!                   (3) dx=dy=sqrt(Dx*Dy)
+!                   (4) dx=Dx or dy=Dy and the other is reduced to match actual distance cut across T-cell, across flow
+!-----------------------------------------------------------------------
+
+      integer (int_kind) :: &
+         k, k_sub, kp1,    &
+         shear_method, &
+         area_type, &  ! type of area handling - 0=just do ugrid_to_tgrid, 1=UAREA, 2=SUBCELLV
+         grid_type, &
+         bid                ! local block address for this sub block
+
+
+      integer (int_kind), dimension(4) :: &
+         stencil_type      ! type of stencil added to ME for averaging - 
+                           ! index 1=+E+W, 2=+N+S, 3=+NE+SW, 4=+NW+SE
+
+      real (r8), dimension(nx_block,ny_block,km) :: &
+         UAVG, VAVG, UFLX, VFLX, &
+         NXLOC, NYLOC, &
+         RNLOC, WORK, KMAJ, WORKU, WORKV, WORKW, &
+         LDX, LDY
+
+      real (r8), dimension(nx_block,ny_block) :: &
+         TK, TKP,                                &  ! level k and k+1 TMIX
+         WORK1, WORK2, WORK3,                    &  ! work arrays
+         C_ROSSBY,                               &  ! first baroclinic Rossby wave speed
+         L_ROSSBY,                               &  ! Rossby deformation radius
+         RHOT, RHOS,                             &   ! dRHOdT and dRHOdS
+         RDLOC
+
+
+!-----------------------------------------------------------------------
+!  initialization
+!-----------------------------------------------------------------------
+
+      bid = this_block%local_id
+      
+      stencil_type(1) = 0
+      stencil_type(2) = 0
+      stencil_type(3) = 0
+      stencil_type(4) = 0
+
+      shear_method = 0
+      grid_type = 4
+      area_type = 0
+
+      if (grid_type == 1) then
+         BUOY_FREQ_SQ(:,:,:,bid) = c0
+
+         !-----------------------------------------------------------------------
+         !
+         !     compute buoyancy frequency and Richardson number at the bottom of 
+         !     T box:
+         !             Ri = -g*Dz(RHO)/RHO_0/(Dz(u)**2+Dz(v)**2)
+         !
+         !     RHO_0 ~ 1 in cgs units.
+         !
+         !-----------------------------------------------------------------------
+
+         do k=1,km-1
+
+            if ( k == 1 ) then
+               TK = max(-c2, TMIX(:,:,k,1))
+            endif
+
+            kp1 = k+1
+
+            call state (k, kp1, TMIX(:,:,k,1), TMIX(:,:,k,2), &
+                        this_block, DRHODT=RHOT, DRHODS=RHOS)
+
+            TKP = max(-c2, TMIX(:,:,kp1,1))
+
+            WORK1 = TK - TKP
+            WORK2 = TMIX(:,:,k,2) - TMIX(:,:,kp1,2)
+            WORK3 = RHOT * WORK1 + RHOS * WORK2
+            WORK3 = min(WORK3,-eps2)
+
+            if (partial_bottom_cells) then
+             where (k < KMT(:,:,bid))
+              BUOY_FREQ_SQ(:,:,k,bid) = - grav * WORK3 / DZTW(:,:,k,bid)
+             end where
+            else
+             where (k < KMT(:,:,bid))
+              BUOY_FREQ_SQ(:,:,k,bid) = - grav * WORK3 * dzwr(k)
+             end where
+            endif
+
+            TK  = TKP
+
+         end do
+
+         !-----------------------------------------------------------------------
+         !
+         !     compute the first baroclinic gravity-wave phase speed.
+         !     Computation of Rossby deformation radius follows Chelton et al.(1998)
+         !
+         !-----------------------------------------------------------------------
+
+         C_ROSSBY = c0
+
+         k = 1
+         if (partial_bottom_cells) then
+          where ( k < KMT(:,:,bid) )
+           C_ROSSBY = C_ROSSBY + sqrt(BUOY_FREQ_SQ(:,:,k,bid)) * DZTW(:,:,k-1,bid)
+          endwhere
+
+          do k=1,km
+           where ( k < KMT(:,:,bid) )
+             C_ROSSBY = C_ROSSBY + sqrt(BUOY_FREQ_SQ(:,:,k,bid)) * DZTW(:,:,k,bid)
+           endwhere
+           where ( k > 1  .and.  k == KMT(:,:,bid) )
+             C_ROSSBY = C_ROSSBY + sqrt(BUOY_FREQ_SQ(:,:,k-1,bid)) * DZTW(:,:,k,bid)
+           endwhere
+          enddo
+         else
+          where ( k < KMT(:,:,bid) )
+           C_ROSSBY = C_ROSSBY + sqrt(BUOY_FREQ_SQ(:,:,k,bid)) * dzw(k-1)
+          endwhere
+   
+          do k=1,km
+           where ( k < KMT(:,:,bid) )
+             C_ROSSBY = C_ROSSBY + sqrt(BUOY_FREQ_SQ(:,:,k,bid)) * dzw(k)
+           endwhere
+           where ( k > 1  .and.  k == KMT(:,:,bid) )
+             C_ROSSBY = C_ROSSBY + sqrt(BUOY_FREQ_SQ(:,:,k-1,bid)) * dzw(k)
+           endwhere
+          enddo
+         endif
+
+         C_ROSSBY = C_ROSSBY / pi
+
+         L_ROSSBY = min( C_ROSSBY / (abs(FCORT(:,:,bid))+eps), &
+                         sqrt( C_ROSSBY / (c2*BTP(:,:,bid)) ) )
+
+         LDX(:,:,1) = L_ROSSBY !R1 - first Rossby radius of deformation
+         do k=2,km
+            LDX(:,:,k) = LDX(:,:,1) 
+         enddo
+         LDY = LDX
+
+      elseif (grid_type == 2) then
+         RNLOC = abs(VMIX) / (abs(UMIX)+eps)
+         RDLOC = DXU(:,:,bid) / DYU(:,:,bid)
+         do k=1,km
+            where ( RNLOC(:,:,k) > RDLOC )
+               LDX(:,:,k) = DXU(:,:,bid) * sqrt(c1 + c1/RNLOC(:,:,k)**2)
+            elsewhere
+               LDX(:,:,k) = DYU(:,:,bid) * sqrt(c1 +    RNLOC(:,:,k)**2)
+            endwhere
+         enddo
+         LDY = LDX
+      elseif (grid_type == 3) then
+         LDX(:,:,1) = sqrt( DXU(:,:,bid)*DYU(:,:,bid) )
+         do k=2,km
+            LDX(:,:,k) = LDX(:,:,1) 
+         enddo
+         LDY = LDX
+      elseif (grid_type == 4) then
+         do k=1,km
+            LDX(:,:,k) = DXU(:,:,bid)
+            LDY(:,:,k) = DYU(:,:,bid)
+         enddo
+
+         RNLOC = abs(VMIX) / (abs(UMIX)+eps)
+         RDLOC = DXU(:,:,bid) / DYU(:,:,bid)
+         do k=1,km
+            where ( RNLOC(:,:,k) > RDLOC )
+               LDY(:,:,k) = DXU(:,:,bid) / RNLOC(:,:,k)
+            elsewhere
+               LDX(:,:,k) = DYU(:,:,bid) * RNLOC(:,:,k)
+            endwhere
+         enddo
+      else
+         do k=1,km
+            LDX(:,:,k) = DXU(:,:,bid)
+            LDY(:,:,k) = DYU(:,:,bid)
+         enddo
+      endif
+
+      UFLX = UMIX * LDY
+      VFLX = VMIX * LDX
+
+      if (shear_method < 4) then
+         call local_avg_at_t (UMIX, UAVG, stencil_type, area_type, this_block)
+         call local_avg_at_t (VMIX, VAVG, stencil_type, area_type, this_block)
+         NXLOC = UAVG
+         NYLOC = VAVG
+         WORK = sqrt(NXLOC**2 + NYLOC**2)
+         where (WORK < eps2)
+            NYLOC = c0
+            NXLOC = c1
+         elsewhere
+            NYLOC = NYLOC / WORK
+            NXLOC = NXLOC / WORK
+         endwhere 
+         if (shear_method == 0) then ! (0) MAJOR = kappa+1/kappa*<(u*dy)^2+(v*dx)^2>, flow aligned
+            WORK = UFLX**2 + VFLX**2
+            call local_avg_at_t (WORK, KMAJ, stencil_type, area_type, this_block)
+         elseif (shear_method == 1) then ! (1) MAJOR = kappa+1/kappa*[<u*dy>^2+<v*dx>^2], flow aligned
+            call local_avg_at_t (UFLX, WORKU, stencil_type, area_type, this_block)
+            call local_avg_at_t (VFLX, WORKV, stencil_type, area_type, this_block)
+            KMAJ = WORKU**2 + WORKV**2
+         elseif (shear_method == 2) then ! (2) MAJOR = kappa+1/kappa*[<(u*dy)^2>+<(v*dx)^2>], flow aligned
+            WORKU = UFLX**2 
+            WORKV = VFLX**2 
+            call local_avg_at_t (WORKU, KMAJ, stencil_type, area_type, this_block)
+            call local_avg_at_t (WORKV, WORK, stencil_type, area_type, this_block)
+            KMAJ = KMAJ + WORK
+         elseif (shear_method == 3) then ! (3) MAJOR = kappa+1/kappa*<(|u*dy|+|v*dx|)^2>, flow aligned 
+            WORK = ( abs(UFLX) + abs(VFLX) )**2
+            call local_avg_at_t (WORK, KMAJ, stencil_type, area_type, this_block)
+         endif
+
+         NX_SHRD(:,:,:,bid) = NXLOC
+         NY_SHRD(:,:,:,bid) = NYLOC
+         do k_sub=1,2 
+            KRAT_SHRD(:,:,k_sub,:,bid) = c1 + shrdispfac * KMAJ / ( abs( KAPPA_ISOP(:,:,k_sub,:,bid)+HOR_DIFF(:,:,k_sub,:,bid) ) + eps )**2
+         enddo
+
+         !KXX_ISOP(:,:,1,:,bid) = KMAJ * NXLOC**2
+         !KXY_ISOP(:,:,1,:,bid) = KMAJ * NXLOC * NYLOC
+         !KYY_ISOP(:,:,1,:,bid) = KMAJ * NYLOC**2
+      elseif (shear_method == 4) then ! (4) K_tensor = kappa*[1 0; 0 1]+1/kappa*[<u*dy>^2 <u*dy><v*dx>; <u*dy><v*dx> <v*dx>^2]
+         call local_avg_at_t (UFLX, WORKU, stencil_type, area_type, this_block)
+         call local_avg_at_t (VFLX, WORKV, stencil_type, area_type, this_block)
+         WORK  = WORKU*WORKV !KXY
+         WORKV = WORKV**2 !KYY
+         WORKU = WORKU**2 !KXX
+      elseif (shear_method == 5) then ! (5) K_tensor = kappa*[1 0; 0 1]+1/kappa*[<(u*dy)^2> <u*dy*v*dx>; <u*dy*v*dx> <(v*dx)^2>]
+         WORKU = UFLX*VFLX 
+         call local_avg_at_t (WORKU, KMAJ, stencil_type, area_type, this_block)
+         WORK = KMAJ !KXY
+         
+         WORKV = VFLX**2 
+         call local_avg_at_t (WORKV, KMAJ, stencil_type, area_type, this_block)
+         WORKV = KMAJ !KYY
+
+         WORKU = UFLX**2 
+         call local_avg_at_t (WORKU, KMAJ, stencil_type, area_type, this_block)
+         WORKU = KMAJ !KXX
+      endif
+
+      if (shear_method > 3) then
+         do k_sub=1,2
+            KMAJ = abs( KAPPA_ISOP(:,:,k_sub,:,bid)+HOR_DIFF(:,:,k_sub,:,bid) ) !ISOTROPIC KAPPA
+            WORKU = KMAJ + shrdispfac * WORKU / (KMAJ+eps) !KXX
+            WORKV = KMAJ + shrdispfac * WORKV / (KMAJ+eps) !KYY
+            WORK  =        shrdispfac * WORK  / (KMAJ+eps) !KXY
+
+            WORKW = sqrt((WORKU+WORKV)**2-c4*(WORKU*WORKV-WORK**2))/c2 !EIGENVALUES are +/- this
+            KMAJ  = (WORKU+WORKV)/c2+WORKW !MAJOR=(KXX+KYY)/2+sqrt((KXX+KYY)^2-4*(KXX*KYY-KXY^2))/2
+            WORKW = (WORKU+WORKV)/c2-WORKW !MINOR=(KXX+KYY)/2-sqrt((KXX+KYY)^2-4*(KXX*KYY-KXY^2))/2
+            WORKV = WORK**2 + (KMAJ - WORKU)**2 !NORMALIZATION FACTOR=KXY^2+(MAJOR-KXX)^2
+            where (WORKV < eps2)
+               NY_SHRD(:,:,:,bid) = c0
+               NX_SHRD(:,:,:,bid) = c1
+            elsewhere
+               NY_SHRD(:,:,:,bid) = (KMAJ - WORKU)/sqrt(WORKV) !\vec{n}=(KXY,MAJOR-KXX)... normalized here
+               NX_SHRD(:,:,:,bid) = WORK/sqrt(WORKV) 
+            endwhere 
+
+            KRAT_SHRD(:,:,k_sub,:,bid) = KMAJ / WORKW !RAT=MAJOR/MINOR
+         enddo
+      endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+      end subroutine shear_dispersion 
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: local_avg_at_t 
+! !INTERFACE:
+
+      subroutine local_avg_at_t (FGEN, FAVG, stencil_type, area_type, this_block)
+
+! !DESCRIPTION: local average of U-type variable neighbors at T-cell centers
+!
+! !REVISION HISTORY:
+
+! !INPUT PARAMETERS:
+
+      real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+         FGEN               ! general variable defined at U-pts
+
+      integer (int_kind), intent(in) :: &
+         area_type  ! type of area handling - 0=just do ugrid_to_tgrid, 1=UAREA, 2=SUBCELLV
+
+      integer (int_kind), dimension(4), intent(in) :: &
+         stencil_type      ! type of stencil added to ME for averaging - 
+                           ! index 1=+E+W, 2=+N+S, 3=+NE+SW, 4=+NW+SE
+
+      type (block), intent(in) :: &
+         this_block         ! block info for this sub block
+
+      real (r8), dimension(nx_block,ny_block,km), intent(out) :: &
+         FAVG               ! general variable local average
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+      integer (int_kind) :: &
+         k,      &
+         bid                ! local block address for this sub block
+
+      real (r8), dimension(nx_block,ny_block,km) :: &
+         SUMF, TOTVOL, TUMF, TTTVOL
+
+!-----------------------------------------------------------------------
+!  initialization
+!-----------------------------------------------------------------------
+
+     bid = this_block%local_id
+     if (area_type == 0) then
+
+      do k=1,km
+         call ugrid_to_tgrid(FAVG(:,:,k),FGEN(:,:,k),bid)
+      enddo
+
+     else
+      
+      SUMF = c0
+      TOTVOL = c0
+      TUMF = c0
+      TTTVOL = c0
+      FAVG = c0
+
+      if (area_type == 1) then
+         if (partial_bottom_cells) then
+            do k=1,km
+               TUMF(2:nx_block,2:ny_block,k) = &
+                                             FGEN(1:nx_block-1,2:ny_block  ,k) * &
+                                            UAREA(1:nx_block-1,2:ny_block  ,bid) * &
+                                              DZT(1:nx_block-1,2:ny_block  ,k,bid) +  &
+                                             FGEN(2:nx_block  ,2:ny_block  ,k) * &
+                                            UAREA(2:nx_block  ,2:ny_block  ,bid) * &
+                                              DZT(2:nx_block  ,2:ny_block  ,k,bid) +  &
+                                             FGEN(1:nx_block-1,1:ny_block-1,k) * &
+                                            UAREA(1:nx_block-1,1:ny_block-1,bid) * &
+                                              DZT(1:nx_block-1,1:ny_block-1,k,bid) +  &
+                                             FGEN(2:nx_block  ,1:ny_block-1,k) * &
+                                            UAREA(2:nx_block  ,1:ny_block-1,bid) * &
+                                              DZT(2:nx_block  ,1:ny_block-1,k,bid) 
+               TTTVOL(2:nx_block,2:ny_block,k) = &
+                                            UAREA(1:nx_block-1,2:ny_block  ,bid) * &
+                                              DZT(1:nx_block-1,2:ny_block  ,k,bid) +  &
+                                            UAREA(2:nx_block  ,2:ny_block  ,bid) * &
+                                              DZT(2:nx_block  ,2:ny_block  ,k,bid) +  &
+                                            UAREA(1:nx_block-1,1:ny_block-1,bid) * &
+                                              DZT(1:nx_block-1,1:ny_block-1,k,bid) +  &
+                                            UAREA(2:nx_block  ,1:ny_block-1,bid) * &
+                                              DZT(2:nx_block  ,1:ny_block-1,k,bid) 
+            enddo
+         else
+            do k=1,km
+               TUMF(2:nx_block,2:ny_block,k) = dz(k) * ( &
+                                             FGEN(1:nx_block-1,2:ny_block  ,k) * &
+                                            UAREA(1:nx_block-1,2:ny_block  ,bid) +  &
+                                             FGEN(2:nx_block  ,2:ny_block  ,k) * &
+                                            UAREA(2:nx_block  ,2:ny_block  ,bid) +  &
+                                             FGEN(1:nx_block-1,1:ny_block-1,k) * &
+                                            UAREA(1:nx_block-1,1:ny_block-1,bid) +  &
+                                             FGEN(2:nx_block  ,1:ny_block-1,k) * &
+                                            UAREA(2:nx_block  ,1:ny_block-1,bid) )
+               TTTVOL(2:nx_block,2:ny_block,k) = dz(k) * ( &
+                                            UAREA(1:nx_block-1,2:ny_block  ,bid) +  &
+                                            UAREA(2:nx_block  ,2:ny_block  ,bid) +  &
+                                            UAREA(1:nx_block-1,1:ny_block-1,bid) +  &
+                                            UAREA(2:nx_block  ,1:ny_block-1,bid) )
+            enddo
+         endif
+      else
+         do k=1,km
+            TUMF(2:nx_block,2:ny_block,k) = &
+                                             FGEN(1:nx_block-1,2:ny_block  ,k) * &
+                                     (   SUBCELLV(2:nx_block  ,2:ny_block  ,2,1,1,k,bid) + &
+                                         SUBCELLV(2:nx_block  ,2:ny_block  ,2,1,2,k,bid) ) + &
+                                             FGEN(2:nx_block  ,2:ny_block  ,k) * &
+                                     (   SUBCELLV(2:nx_block  ,2:ny_block  ,1,1,1,k,bid) + &
+                                         SUBCELLV(2:nx_block  ,2:ny_block  ,1,1,2,k,bid) ) + &
+                                             FGEN(1:nx_block-1,1:ny_block-1,k) * &
+                                     (   SUBCELLV(2:nx_block  ,2:ny_block  ,2,2,1,k,bid) + &
+                                         SUBCELLV(2:nx_block  ,2:ny_block  ,2,2,2,k,bid) ) + &
+                                             FGEN(2:nx_block  ,1:ny_block-1,k) * &
+                                     (   SUBCELLV(2:nx_block  ,2:ny_block  ,1,2,1,k,bid) + &
+                                         SUBCELLV(2:nx_block  ,2:ny_block  ,1,2,2,k,bid) ) 
+            TTTVOL(2:nx_block,2:ny_block,k) = &
+                                     (   SUBCELLV(2:nx_block  ,2:ny_block  ,2,1,1,k,bid) + &
+                                         SUBCELLV(2:nx_block  ,2:ny_block  ,2,1,2,k,bid) ) + &
+                                     (   SUBCELLV(2:nx_block  ,2:ny_block  ,1,1,1,k,bid) + &
+                                         SUBCELLV(2:nx_block  ,2:ny_block  ,1,1,2,k,bid) ) + &
+                                     (   SUBCELLV(2:nx_block  ,2:ny_block  ,2,2,1,k,bid) + &
+                                         SUBCELLV(2:nx_block  ,2:ny_block  ,2,2,2,k,bid) ) + &
+                                     (   SUBCELLV(2:nx_block  ,2:ny_block  ,1,2,1,k,bid) + &
+                                         SUBCELLV(2:nx_block  ,2:ny_block  ,1,2,2,k,bid) ) 
+         enddo
+      endif
+
+      if (stencil_type(1) == 1) then
+            SUMF(2:nx_block-1,:,:) = SUMF(2:nx_block-1,:,:) + & !E+W
+                                     TUMF(1:nx_block-2,:,:) + TUMF(3:nx_block,:,:)
+            TOTVOL(2:nx_block-1,:,:) = TOTVOL(2:nx_block-1,:,:) + & !E+W
+                                       TTTVOL(1:nx_block-2,:,:) + TTTVOL(3:nx_block,:,:)
+      endif
+
+      if (stencil_type(2) == 1) then
+            SUMF(:,2:ny_block-1,:) = SUMF(:,2:ny_block-1,:) + & !N+S
+                                     TUMF(:,1:ny_block-2,:) + TUMF(:,3:ny_block,:)
+            TOTVOL(:,2:ny_block-1,:) = TOTVOL(:,2:ny_block-1,:) + & !N+S
+                                       TTTVOL(:,1:ny_block-2,:) + TTTVOL(:,3:ny_block,:)
+      endif
+
+      if (stencil_type(3) == 1) then
+            SUMF(2:nx_block-1,2:ny_block-1,:) = SUMF(2:nx_block-1,2:ny_block-1,:) + & !NE+SW
+                                                TUMF(1:nx_block-2,1:ny_block-2,:) + TUMF(3:nx_block,3:ny_block,:)
+            TOTVOL(2:nx_block-1,2:ny_block-1,:) = TOTVOL(2:nx_block-1,2:ny_block-1,:) + & !NE+SW
+                                                  TTTVOL(1:nx_block-2,1:ny_block-2,:) + TTTVOL(3:nx_block,3:ny_block,:)
+      endif
+
+      if (stencil_type(4) == 1) then
+            SUMF(2:nx_block-1,2:ny_block-1,:) = SUMF(2:nx_block-1,2:ny_block-1,:) + & !NW+SE
+                                                TUMF(3:nx_block  ,1:ny_block-2,:) + TUMF(1:nx_block-2,3:ny_block,:)
+            TOTVOL(2:nx_block-1,2:ny_block-1,:) = TOTVOL(2:nx_block-1,2:ny_block-1,:) + & !NE+SW
+                                                  TTTVOL(3:nx_block  ,1:ny_block-2,:) + TTTVOL(1:nx_block-2,3:ny_block,:)
+      endif
+
+      SUMF = SUMF + TUMF
+      TOTVOL = TOTVOL + TTTVOL
+
+      FAVG(2:nx_block-1,2:ny_block-1,:) = SUMF(2:nx_block-1,2:ny_block-1,:) / ( TOTVOL(2:nx_block-1,2:ny_block-1,:) + eps )
+     endif
+!-----------------------------------------------------------------------
+!EOC
+
+      end subroutine local_avg_at_t
 
 !***********************************************************************
 
