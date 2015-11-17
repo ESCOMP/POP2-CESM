@@ -1,6 +1,24 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    17 Nov 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n15_cesm_pop_2_1_20151116
+Tag Summary: merge pop2/trunk_tags/cesm_pop_2_1_20151116 to branch
+
+Testing
+aux_pop_MARBL: (baseline comparison to n14 tag)
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+
+M       source/overflows.F90
+M       source/timers.F90
+M       BranchChangeLog
+M       ChangeLog
+M       drivers/cpl/ocn_import_export.F90
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    16 Nov 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n14_cesm_pop_2_1_20151024
 Tag Summary: add lecosys_debug option, change test definitions
