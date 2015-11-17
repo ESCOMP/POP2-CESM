@@ -74,7 +74,8 @@
    use exit_mod, only : exit_POP
    use exit_mod, only : sigAbort
 
-   use prognostic, only : tracer_field
+   use marbl_interface_types, only : marbl_tracer_metadata_type
+   use marbl_interface_types, only : marbl_tracer_read_type
    use prognostic, only : curtime
    use prognostic, only : oldtime
 
@@ -108,7 +109,6 @@
    use timers, only : get_timer
 
    use passive_tracer_tools, only : ind_name_pair
-   use passive_tracer_tools, only : tracer_read
    use passive_tracer_tools, only : comp_surf_avg
    use passive_tracer_tools, only : extract_surf_avg
    use passive_tracer_tools, only : file_read_tracer_block
@@ -436,7 +436,7 @@ contains
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   type (tracer_field), dimension(:), intent(inout) :: &
+   type (marbl_tracer_metadata_type), dimension(:), intent(inout) :: &
       tracer_d_module   ! descriptors for each tracer
 
    real (r8), dimension(:,:,:,:,:,:), &
@@ -461,7 +461,7 @@ contains
       ciso_init_ecosys_init_file_fmt, & ! file format for option 'file'
       ciso_comp_surf_avg_freq_opt
 
-   type(tracer_read), dimension(ecosys_ciso_tracer_cnt) :: &
+   type(marbl_tracer_read_type), dimension(ecosys_ciso_tracer_cnt) :: &
       ciso_tracer_init_ext              ! namelist variable for initializing tracers
 
 

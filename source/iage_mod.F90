@@ -21,15 +21,15 @@ module iage_mod
    use domain, only: nblocks_clinic
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
-   use prognostic, only: tracer_field
+   use marbl_interface_types, only : tracer_field => marbl_tracer_metadata_type
    use kinds_mod
    use constants, only: c0, c1, char_blank, delim_fmt
    use io, only: data_set
    use io_types, only: stdout, nml_in, nml_filename
    use io_tools, only: document
    use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now
-   use passive_tracer_tools, only: ind_name_pair, tracer_read, &
-       rest_read_tracer_block, file_read_tracer_block
+   use passive_tracer_tools, only: ind_name_pair, rest_read_tracer_block, file_read_tracer_block
+   use marbl_interface_types, only : tracer_read  => marbl_tracer_read_type
    implicit none
    private
 

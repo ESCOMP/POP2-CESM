@@ -79,7 +79,8 @@ contains
    use io_tools, only: document
    use io_types, only: stdout, nml_in, nml_filename
    use passive_tracer_tools, only: read_field
-   use prognostic, only: oldtime, curtime, tracer_field
+   use prognostic, only: oldtime, curtime
+   use marbl_interface_types, only : tracer_field => marbl_tracer_metadata_type
    use grid, only: KMT
 
    use netcdf

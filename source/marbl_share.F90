@@ -17,7 +17,7 @@ module marbl_share_mod
   use blocks, only: nx_block
   use blocks, only: ny_block
 
-  use domain_size, only : km
+  use domain_size, only: km
   use domain_size, only: max_blocks_clinic
 
   use marbl_kinds_mod, only : r8
@@ -25,23 +25,86 @@ module marbl_share_mod
   use marbl_kinds_mod, only : int_kind
   use marbl_kinds_mod, only : char_len
   
+  ! (FIXME, mvertens 2015-11, need to introduce marbl type) 
+  use marbl_interface_types, only : marbl_tracer_read_type
+  use passive_tracer_tools , only : forcing_monthly_every_ts
+
+  use ecosys_constants, only : ecosys_tracer_cnt
+  use ecosys_constants, only : zooplankton_cnt
+  use ecosys_constants, only : autotroph_cnt
+  use ecosys_constants, only : grazer_prey_cnt
+
   implicit none
 
   public
   save
 
 !-----------------------------------------------------------------------------
-! number of ecosystem tracers (also in ecosys_constants.F90)
+! namelist inputs
 !-----------------------------------------------------------------------------
-  integer(int_kind), parameter :: ecosys_tracer_cnt = ECOSYS_NT
 
-!-----------------------------------------------------------------------------
-! number of ecosystem constituents and grazing interactions
-!-----------------------------------------------------------------------------
-  integer (KIND=int_kind), parameter :: &
-       zooplankton_cnt = ZOOPLANKTON_CNT, &
-       autotroph_cnt   = AUTOTROPH_CNT,   &
-       grazer_prey_cnt = GRAZER_PREY_CNT
+  !  options for forcing of gas fluxes
+  integer (int_kind), parameter :: gas_flux_forcing_iopt_drv  = 1
+  integer (int_kind), parameter :: gas_flux_forcing_iopt_file = 2
+  integer (int_kind), parameter :: atm_co2_iopt_const         = 1
+  integer (int_kind), parameter :: atm_co2_iopt_drv_prog      = 2
+  integer (int_kind), parameter :: atm_co2_iopt_drv_diag      = 3
+  integer (int_kind), parameter :: ndep_shr_stream_var_cnt    = 2 ! number of variables in ndep shr_stream
+  integer (int_kind), parameter :: ndep_shr_stream_no_ind     = 1 ! index for NO forcing
+  integer (int_kind), parameter :: ndep_shr_stream_nh_ind     = 2 ! index for NH forcing
+
+  ! namelists
+  character(char_len) :: gas_flux_forcing_file        ! file containing gas flux forcing fields
+  integer (int_kind)  :: gas_flux_forcing_iopt
+  integer (int_kind)  :: atm_co2_iopt
+  integer (int_kind)  :: atm_alt_co2_iopt
+  real (r8)           :: atm_co2_const                ! value of atmospheric co2 (ppm, dry-air, 1 atm)
+  real (r8)           :: atm_alt_co2_const            ! value of atmospheric alternative co2 (ppm, dry-air, 1 atm)
+  logical (log_kind)  :: lflux_gas_o2                 ! controls which portion of code are executed usefull for debugging
+  logical (log_kind)  :: lflux_gas_co2                ! controls which portion of code are executed usefull for debugging
+  character(char_len) :: init_ecosys_option           ! namelist option for initialization of bgc
+  character(char_len) :: init_ecosys_init_file        ! filename for option 'file'
+  character(char_len) :: init_ecosys_init_file_fmt    ! file format for option 'file'
+  logical (log_kind)  :: use_nml_surf_vals            ! do namelist surf values override values from restart file
+  real (r8)           :: surf_avg_dic_const
+  real (r8)           :: surf_avg_alk_const
+
+  logical (log_kind)  :: ecosys_qsw_distrb_const
+
+  logical (log_kind)  :: liron_patch                  ! flag for iron patch fertilization
+  character(char_len) :: iron_patch_flux_filename     ! file containing name of iron patch file
+  integer (int_kind)  :: iron_patch_month             !  integer month to add patch flux
+
+  character(char_len) :: ndep_data_type               ! type of ndep forcing
+  integer (int_kind)  :: ndep_shr_stream_year_first   ! first year in stream to use
+  integer (int_kind)  :: ndep_shr_stream_year_last    ! last year in stream to use
+  integer (int_kind)  :: ndep_shr_stream_year_align   ! align ndep_shr_stream_year_first with this model year
+  character(char_len) :: ndep_shr_stream_file         ! file containing domain and input data
+  real (r8)           :: ndep_shr_stream_scale_factor ! unit conversion factor
+
+  type(marbl_tracer_read_type)   :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers 
+  type(marbl_tracer_read_type)   :: fesedflux_input                    ! namelist input for iron_flux
+
+  ! (FIXME, mvertens 2015-11, need to introduce marbl type) 
+  type(forcing_monthly_every_ts) :: fesedflux        ! iron sedimentation flux
+  type(forcing_monthly_every_ts) :: dust_flux        ! surface dust flux
+  type(forcing_monthly_every_ts) :: iron_flux        ! iron component of surface dust flux
+  type(forcing_monthly_every_ts) :: fice_file        ! ice fraction, if read from file
+  type(forcing_monthly_every_ts) :: xkw_file         ! a * wind-speed ** 2, if read from file
+  type(forcing_monthly_every_ts) :: ap_file          ! atmoshperic pressure, if read from file
+  type(forcing_monthly_every_ts) :: nox_flux_monthly ! surface NOx species flux, added to nitrate pool
+  type(forcing_monthly_every_ts) :: nhy_flux_monthly ! surface NHy species flux, added to ammonium pool
+  type(forcing_monthly_every_ts) :: din_riv_flux     ! river DIN species flux, added to nitrate pool
+  type(forcing_monthly_every_ts) :: dip_riv_flux     ! river DIP species flux, added to phosphate pool
+  type(forcing_monthly_every_ts) :: don_riv_flux     ! river DON flux, added to semi-lab don pool
+  type(forcing_monthly_every_ts) :: dop_riv_flux     ! river DOP flux, added to semi-lab dop pool
+  type(forcing_monthly_every_ts) :: dsi_riv_flux     ! river DSI flux, added to dsi pool
+  type(forcing_monthly_every_ts) :: dfe_riv_flux     ! river dfe flux, added to dfe pool
+  type(forcing_monthly_every_ts) :: dic_riv_flux     ! river dic flux, added to dic pool
+  type(forcing_monthly_every_ts) :: alk_riv_flux     ! river alk flux, added to alk pool
+  type(forcing_monthly_every_ts) :: doc_riv_flux     ! river doc flux, added to semi-labile DOC
+
+  integer (int_kind) :: comp_surf_avg_flag           ! time flag id for computing average surface tracer values TEMPORARY
 
 !-----------------------------------------------------------------------------
 !   derived type for grazers
@@ -359,6 +422,7 @@ module marbl_share_mod
      column_particle%hflux_in(k)  = particle%hflux_in(i, c, bid)
      column_particle%sed_loss(k)  = particle%sed_loss(i, c, bid)
      column_particle%remin(k)     = particle%remin(i, c, bid)
+
      ! NOTE(bja, 2015-07) remin doesn't actually affect bit for bit
      ! reproducibility...?
 
@@ -369,19 +433,19 @@ module marbl_share_mod
    subroutine column_interior_share_to_slab_interior_share(i, c, k, bid, &
         column_share, slab_share)
 
-     integer(int_kind), intent(in) :: i, c, k, bid
-     type(marbl_interior_share_type), intent(in) :: column_share
-     type(ecosys_interior_share_type), intent(out) :: slab_share
+     integer(int_kind)                , intent(in)    :: i, c, k, bid
+     type(marbl_interior_share_type)  , intent(in)    :: column_share
+     type(ecosys_interior_share_type) , intent(inout) :: slab_share
 
-     slab_share%QA_dust_def(i, c, bid) = column_share%QA_dust_def
-     slab_share%DIC_loc_fields(i, c, bid) = column_share%DIC_loc_fields
-     slab_share%DOC_loc_fields(i, c, bid) = column_share%DOC_loc_fields
-     slab_share%O2_loc_fields(i, c, bid) = column_share%O2_loc_fields
-     slab_share%NO3_loc_fields(i, c, bid) = column_share%NO3_loc_fields
+     slab_share%QA_dust_def(i, c, bid)      = column_share%QA_dust_def
+     slab_share%DIC_loc_fields(i, c, bid)   = column_share%DIC_loc_fields
+     slab_share%DOC_loc_fields(i, c, bid)   = column_share%DOC_loc_fields
+     slab_share%O2_loc_fields(i, c, bid)    = column_share%O2_loc_fields
+     slab_share%NO3_loc_fields(i, c, bid)   = column_share%NO3_loc_fields
 
-     slab_share%CO3_fields(i, c, bid) = column_share%CO3_fields
-     slab_share%HCO3_fields(i, c, bid) = column_share%HCO3_fields
-     slab_share%H2CO3_fields(i, c, bid) = column_share%H2CO3_fields
+     slab_share%CO3_fields(i, c, bid)       = column_share%CO3_fields
+     slab_share%HCO3_fields(i, c, bid)      = column_share%HCO3_fields
+     slab_share%H2CO3_fields(i, c, bid)     = column_share%H2CO3_fields
      slab_share%DOC_remin_fields(i, c, bid) = column_share%DOC_remin_fields
 
    end subroutine column_interior_share_to_slab_interior_share
@@ -391,9 +455,9 @@ module marbl_share_mod
    subroutine column_zooplankton_share_to_slab_zooplankton_share(i, c, k, bid, &
         column_share, slab_share)
 
-     integer(int_kind), intent(in) :: i, c, k, bid
-     type(marbl_zooplankton_share_type), intent(in) :: column_share(zooplankton_cnt, km)
-     type(ecosys_zooplankton_share_type), intent(out) :: slab_share
+     integer(int_kind)                   , intent(in)  :: i, c, k, bid
+     type(marbl_zooplankton_share_type)  , intent(in)  :: column_share(zooplankton_cnt, km)
+     type(ecosys_zooplankton_share_type) , intent(out) :: slab_share
 
      integer(int_kind) :: n
      
@@ -451,29 +515,24 @@ module marbl_share_mod
      type(marbl_particulate_share_type), intent(in) :: column_share
      type(ecosys_particulate_share_type), intent(out) :: slab_share
 
-     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, &
-          column_share%POC, slab_share%POC)
-     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, &
-          column_share%P_CaCO3, slab_share%P_CaCO3)
-     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, &
-          column_share%P_SiO2, slab_share%P_SiO2)
-     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, &
-          column_share%dust, slab_share%dust)
-     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, &
-          column_share%P_iron, slab_share%P_iron)
+     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, column_share%POC     , slab_share%POC)
+     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, column_share%P_CaCO3 , slab_share%P_CaCO3)
+     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, column_share%P_SiO2  , slab_share%P_SiO2)
+     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, column_share%dust    , slab_share%dust)
+     call column_sinking_particle_to_slab_sinking_particle(k, c, i, bid, column_share%P_iron  , slab_share%P_iron)
 
-     slab_share%POC_PROD_avail_fields(i, c, bid) = column_share%POC_PROD_avail_fields(k)
-     slab_share%decay_CaCO3_fields(i, c, bid) = column_share%decay_CaCO3_fields(k)
-     slab_share%decay_POC_E_fields(i, c, bid) = column_share%decay_POC_E_fields(k)
-     slab_share%poc_diss_fields(i, c, bid) = column_share%poc_diss_fields(k)
-     slab_share%caco3_diss_fields(i, c, bid) = column_share%caco3_diss_fields(k)
+     slab_share%POC_PROD_avail_fields(i, c, bid)    = column_share%POC_PROD_avail_fields(k)
+     slab_share%decay_CaCO3_fields(i, c, bid)       = column_share%decay_CaCO3_fields(k)
+     slab_share%decay_POC_E_fields(i, c, bid)       = column_share%decay_POC_E_fields(k)
+     slab_share%poc_diss_fields(i, c, bid)          = column_share%poc_diss_fields(k)
+     slab_share%caco3_diss_fields(i, c, bid)        = column_share%caco3_diss_fields(k)
      slab_share%P_CaCO3_sflux_out_fields(i, c, bid) = column_share%P_CaCO3_sflux_out_fields(k)
      slab_share%P_CaCO3_hflux_out_fields(i, c, bid) = column_share%P_CaCO3_hflux_out_fields(k)
-     slab_share%POC_sflux_out_fields(i, c, bid) = column_share%POC_sflux_out_fields(k)
-     slab_share%POC_hflux_out_fields(i, c, bid) = column_share%POC_hflux_out_fields(k)
-     slab_share%POC_remin_fields(i, c, bid) = column_share%POC_remin_fields(k)
-     slab_share%P_CaCO3_remin_fields(i, c, bid) = column_share%P_CaCO3_remin_fields(k)
-     slab_share%DECAY_Hard_fields(i, c, bid) = column_share%DECAY_Hard_fields(k)
+     slab_share%POC_sflux_out_fields(i, c, bid)     = column_share%POC_sflux_out_fields(k)
+     slab_share%POC_hflux_out_fields(i, c, bid)     = column_share%POC_hflux_out_fields(k)
+     slab_share%POC_remin_fields(i, c, bid)         = column_share%POC_remin_fields(k)
+     slab_share%P_CaCO3_remin_fields(i, c, bid)     = column_share%P_CaCO3_remin_fields(k)
+     slab_share%DECAY_Hard_fields(i, c, bid)        = column_share%DECAY_Hard_fields(k)
 
    end subroutine column_particulate_share_to_slab_particulate_share
 

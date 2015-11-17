@@ -22,7 +22,7 @@
 
    use kinds_mod, only: i4, i8, r8, int_kind, log_kind, char_len
    use blocks, only: block, nx_block, ny_block, get_block
-   use domain_size
+   use domain_size, only: nx_global, ny_global, max_blocks_clinic, km, nt
    use domain, only: nblocks_clinic, blocks_clinic, init_domain_blocks,    &
        init_domain_distribution, distrb_clinic
    use constants, only: radian, delim_fmt, blank_fmt, field_loc_center, blank_fmt, &
@@ -34,8 +34,7 @@
    use communicate, only: my_task, master_task, init_communicate
    use budget_diagnostics, only: init_budget_diagnostics
    use broadcast, only: broadcast_array, broadcast_scalar
-   use prognostic, only: init_prognostic, max_blocks_clinic, nx_global,    &
-       ny_global, km, nt, TRACER, curtime, RHO, newtime, oldtime
+   use prognostic, only: init_prognostic, TRACER, curtime, RHO, newtime, oldtime
    use grid, only: init_grid1, init_grid2, kmt, kmt_g, n_topo_smooth, zt,    &
        fill_points, sfc_layer_varthick, sfc_layer_type, TLON, TLAT, partial_bottom_cells
    use io
@@ -68,7 +67,6 @@
    use forcing_ws, only: ws_data_type
    use sw_absorption, only: init_sw_absorption
    use passive_tracers, only: init_passive_tracers, ecosys_on
-   use ecosys_mod, only: ecosys_qsw_distrb_const
    use exit_mod, only: sigAbort, exit_pop, flushm
    use restart, only: read_restart, restart_fmt, read_restart_filename
    use ms_balance, only: init_ms_balance
@@ -90,6 +88,8 @@
    use overflow_type
    use running_mean_mod, only: running_mean_init
    use software_eng_mod, only : lchange_ans, init_software_eng
+
+   use marbl_share_mod, only: ecosys_qsw_distrb_const !FIXME(mvertens, 2015-11) where does this belong?
 
    implicit none
    private

@@ -46,6 +46,47 @@ module marbl_parms
   PUBLIC
   SAVE
 
+  !-----------------------------------------------------------------------
+  !  MARBL indices for surface fluxes
+  !-----------------------------------------------------------------------
+
+  integer (int_kind), parameter :: &
+       ind_nox_flux     =  1,  &
+       ind_nhy_flux     =  2,  &
+       ind_no3_flux     =  3,  &
+       ind_nh4_flux     =  4,  &
+       ind_din_riv_flux =  5,  &
+       ind_dip_riv_flux =  6,  &
+       ind_don_riv_flux =  7,  &
+       ind_dop_riv_flux =  8,  &
+       ind_dsi_riv_flux =  9,  &
+       ind_dfe_riv_flux = 10,  &
+       ind_dic_riv_flux = 11,  &
+       ind_alk_riv_flux = 12,  &
+       ind_doc_riv_flux = 13
+
+  !-----------------------------------------------------------------------
+  !  non-autotroph relative tracer indices
+  !  autotroph relative tracer indices are in autotroph derived type and are determined at run time
+  !-----------------------------------------------------------------------
+
+  integer (int_kind), parameter :: &
+       po4_ind         =  1,  & ! dissolved inorganic phosphate
+       no3_ind         =  2,  & ! dissolved inorganic nitrate
+       sio3_ind        =  3,  & ! dissolved inorganic silicate
+       nh4_ind         =  4,  & ! dissolved ammonia
+       fe_ind          =  5,  & ! dissolved inorganic iron
+       o2_ind          =  6,  & ! dissolved oxygen
+       dic_ind         =  7,  & ! dissolved inorganic carbon
+       dic_alt_co2_ind =  8,  & ! dissolved inorganic carbon with alternative CO2
+       alk_ind         =  9,  & ! alkalinity
+       doc_ind         = 10,  & ! dissolved organic carbon
+       don_ind         = 11,  & ! dissolved organic nitrogen
+       dofe_ind        = 12,  & ! dissolved organic iron
+       dop_ind         = 13,  & ! dissolved organic phosphorus
+       dopr_ind        = 14,  & ! refractory DOP
+       donr_ind        = 15     ! refractory DON
+
   !-----------------------------------------------------------------------------
   !   epsilon values
   !-----------------------------------------------------------------------------

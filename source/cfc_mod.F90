@@ -35,8 +35,8 @@ module cfc_mod
    use io_types, only: stdout
    use io_tools, only: document
    use tavg, only: define_tavg_field, accumulate_tavg_field
-   use passive_tracer_tools, only: forcing_monthly_every_ts, &
-       ind_name_pair, tracer_read, read_field
+   use passive_tracer_tools, only: forcing_monthly_every_ts, ind_name_pair, read_field
+   use marbl_interface_types, only : tracer_read  => marbl_tracer_read_type
    use broadcast
    use netcdf
 
@@ -188,7 +188,7 @@ contains
    use grid, only: KMT, n_topo_smooth, fill_points
    use grid, only: REGION_MASK
    use io_types, only: nml_in, nml_filename
-   use prognostic, only: tracer_field
+   use marbl_interface_types, only: tracer_field => marbl_tracer_metadata_type
    use timers, only: get_timer
    use passive_tracer_tools, only: init_forcing_monthly_every_ts, &
        rest_read_tracer_block, file_read_tracer_block

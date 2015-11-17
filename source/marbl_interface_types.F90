@@ -3,7 +3,7 @@ module marbl_interface_types
 
   use marbl_kinds_mod, only : c0, r8, log_kind, int_kind, char_len
   use marbl_interface_constants, only : marbl_str_length
-  use marbl_share_mod, only : autotroph_cnt, zooplankton_cnt, ecosys_tracer_cnt
+  use ecosys_constants, only : autotroph_cnt, zooplankton_cnt, ecosys_tracer_cnt
 
   use domain_size, only : km
 
@@ -21,26 +21,46 @@ module marbl_interface_types
      character(marbl_str_length) :: message
   end type marbl_status_type
 
+  type, public :: marbl_tracer_metadata_type
+     character(char_len) :: short_name
+     character(char_len) :: long_name
+     character(char_len) :: units
+     character(char_len) :: tend_units
+     character(char_len) :: flux_units
+     logical             :: lfull_depth_tavg
+     real(r8)            :: scale_factor
+  end type marbl_tracer_metadata_type
+  
+  type, public :: marbl_tracer_read_type
+     character(char_len) :: mod_varname
+     character(char_len) :: filename
+     character(char_len) :: file_varname
+     character(char_len) :: file_fmt
+     real(r8)            :: scale_factor
+     real(r8)            :: default_val
+  end type marbl_tracer_read_type
+
   type, public :: marbl_column_domain_type
      logical(log_kind) :: land_mask
      integer(int_kind) :: km ! number of vertical grid cells
      integer(int_kind) :: kmt ! index of ocean floor
      real(r8), allocatable :: dzt(:) ! (km) delta z for partial bottom cells
      real(r8), allocatable :: dz(:) ! (km) delta z
-     real(r8), allocatable :: temperature(:) ! (km)
-     real(r8), allocatable :: salinity(:) ! (km)
   end type marbl_column_domain_type
+
+  type, public :: marbl_gcm_state_type
+     real(r8), allocatable :: temperature(:) ! (km)
+     real(r8), allocatable :: salinity(:)    ! (km)
+  end type marbl_gcm_state_type
 
   type, public :: marbl_saved_state_type
      ! this struct is necessary because there is some global state
      ! that needs to be preserved for marbl
-     real (r8), dimension(:, :, :), allocatable :: dust_FLUX_IN  ! dust flux not stored in STF since dust is not prognostic
-     real (r8), dimension(:, :, :), allocatable :: PAR_out  ! photosynthetically available radiation (W/m^2)
-     real (r8), dimension(:, :, :, :), allocatable :: PH_PREV_3D         ! computed pH_3D from previous time step
-     real (r8), dimension(:, :, :, :), allocatable :: PH_PREV_ALT_CO2_3D ! computed pH_3D from previous time step, alternative CO2
-     logical (log_kind), dimension(:, :, :), allocatable :: LAND_MASK
-
-     
+     real (r8) , dimension(:, :, :)         , allocatable :: dust_FLUX_IN       ! dust flux not stored in STF since dust is not prognostic
+     real (r8) , dimension(:, :, :)         , allocatable :: PAR_out            ! photosynthetically available radiation (W/m^2)
+     real (r8) , dimension(:, :, :, :)      , allocatable :: PH_PREV_3D         ! computed pH_3D from previous time step
+     real (r8) , dimension(:, :, :, :)      , allocatable :: PH_PREV_ALT_CO2_3D ! computed pH_3D from previous time step, alternative CO2
+     logical (log_kind), dimension(:, :, :) , allocatable :: LAND_MASK
   end type marbl_saved_state_type
  
   ! marbl_singl_diagnostic : A private type, this contains both the metadata
