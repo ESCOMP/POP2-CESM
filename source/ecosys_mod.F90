@@ -2419,7 +2419,7 @@ contains
 
     real (r8), dimension(ecosys_tracer_cnt), intent(in) :: tracer_local ! local copies of model tracer concentrations
 
-    type(carbonate_type) :: carbonate
+    type(carbonate_type), intent(in) :: carbonate
 
     logical (log_kind), intent(in) :: &
          lexport_shared_vars ! flag to save shared_vars or not
@@ -7584,7 +7584,6 @@ contains
        auto_cnt, auto_meta, autotroph_secondary_species, &
        zoo_cnt, zoo_meta, dtracer, column_diags)
 
-    use marbl_share_mod, only : column_sinking_particle_type
     use marbl_share_mod, only : autotroph_type, zooplankton_type
 
     use marbl_parms     , only : Q

@@ -4282,7 +4282,7 @@ group="mcog_nml"
 valid_values=".true.,.false." >
 Flag for activating mcog, the multiple-column ocean grid parameterization.
 
-Default: .false.
+Default: .false., unless ecosys is turned on
 </entry>
 
 <entry
@@ -6157,7 +6157,7 @@ category="ecosys"
 group="ecosys_nml"
 valid_values="fixed_depth,omega_calc" >
 option of threshold of caco3 burial
-Default: fixed_depth
+Default: omega_calc
 </entry>
 
 <entry
@@ -6175,7 +6175,7 @@ type="real"
 category="ecosys"
 group="ecosys_nml" >
 PON_sed_loss = PON_bury_coeff * Q * POC_sed_loss
-Default: 1.0
+Default: 0.5
 </entry>
 
 <entry 

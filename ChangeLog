@@ -1,4 +1,55 @@
 ===============================================================================
+Tag Creator: klindsay
+Developers:  K. Lindsay, B. Briegleb (MCOG), N. Norton (MCOG), M. Levy (lecosys_debug)
+Tag Date:    17 Nov 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151117
+Tag Summary: merge ecosys_cesm2_dev_n15_cesm_pop_2_1_20151116 to trunk
+
+changes ecosystem answers
+
+introduce caco3_bury_thres_opt, default=omega_calc
+introduce PON_bury_coeff, default=0.5
+introduce MCOG infrastructure, receive per column shortwave from driver
+incorporate MCOG infrastructure into ecosys/marbl
+couple MCOG forcings to ecosys/marbl (default on)
+add lecosys_debug option, include all ecosys tavg output in test runs
+
+Testing:
+aux_pop with new ecosys mods disabled: (yellowstone, baseline comparison to cesm_pop_2_1_20151116)
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+      all nlcomp tests fail because of new mcog namelist and lecosys_debug
+         changes ecosys tavg related tavg output
+      baseline comparisons in CECO and GECO compsets fail because of
+         roundoff level changes in ecosys
+
+aux_pop with new ecosys mods enabled: (yellowstone, baseline comparison to above aux_pop)
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+      CECO and GECO nlcomp tests fail because of namelist variable changes
+      baseline comparisons in CECO and GECO compsets fail because of changed answers
+
+M       source/initial.F90
+M       source/marbl_interface_types.F90
+M       source/forcing.F90
+M       source/passive_tracers.F90
+M       source/forcing_coupled.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_driver.F90
+A       source/mcog.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/ecosys/user_nl_pop
+D       cime_config/testdefs/testmods_dirs/pop/ecosys/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/ciso/include_user_mods
+M       ChangeLog
+A       input_templates/ocn.mcog.tavg.csh
+M       input_templates/ocn.ecosys.tavg.csh
+M       drivers/cpl/ocn_import_export.F90
+M       drivers/cpl/POP_CplIndices.F90
+
+===============================================================================
 Tag Creator: jet
 Developers:  K. Lindsay, B. Sacks, J. Edwards
 Tag Date:    16 Nov 2016

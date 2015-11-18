@@ -1,6 +1,23 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    18 Nov 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n16_cesm_pop_2_1_20151117
+Tag Summary: merge pop2/trunk_tags/cesm_pop_2_1_20151117 to branch
+
+Testing: none
+
+ M      .
+M       source/ecosys_mod.F90
+M       bld/namelist_files/namelist_definition_pop.xml
+M       BranchChangeLog
+M       ChangeLog
+ M      drivers/cpl_none
+ M      drivers/cpl
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    17 Nov 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n15_cesm_pop_2_1_20151116
 Tag Summary: merge pop2/trunk_tags/cesm_pop_2_1_20151116 to branch
