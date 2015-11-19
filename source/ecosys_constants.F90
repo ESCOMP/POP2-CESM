@@ -12,7 +12,7 @@ module ecosys_constants
 !  indices for diagnostic values written to tavg files
 !-----------------------------------------------------------------------
 
-  integer(int_kind), parameter :: ecosys_diag_cnt = 43
+  integer(int_kind), parameter :: ecosys_diag_cnt = 45
   integer (int_kind), parameter ::  &
       CO3_diag_ind                 =  1, &
       HCO3_diag_ind                =  2, &
@@ -56,7 +56,9 @@ module ecosys_constants
       Jint_Ptot_diag_ind           = 40, &
       Jint_100m_Ptot_diag_ind      = 41, &
       Jint_Sitot_diag_ind          = 42, &
-      Jint_100m_Sitot_diag_ind     = 43
+      Jint_100m_Sitot_diag_ind     = 43, &
+      Jint_Fetot_diag_ind          = 44, &
+      Jint_100m_Fetot_diag_ind     = 45
 
   integer(int_kind), parameter ::   auto_diag_cnt = 26
   integer (int_kind), parameter ::  &

@@ -62,6 +62,8 @@ if ($lecosys_debug == ".true.") then
 1  Jint_100m_Ptot
 1  Jint_Sitot
 1  Jint_100m_Sitot
+1  Jint_Fetot
+1  Jint_100m_Fetot
 1  CO3
 1  HCO3
 1  H2CO3
@@ -469,6 +471,8 @@ $s1  Jint_Ptot
 $s1  Jint_100m_Ptot
 $s1  Jint_Sitot
 $s1  Jint_100m_Sitot
+$s1  Jint_Fetot
+$s1  Jint_100m_Fetot
 EOF
   endif
 

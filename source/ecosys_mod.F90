@@ -253,6 +253,8 @@ module ecosys_mod
   use ecosys_constants, only : Jint_100m_Ptot_diag_ind
   use ecosys_constants, only : Jint_Sitot_diag_ind
   use ecosys_constants, only : Jint_100m_Sitot_diag_ind
+  use ecosys_constants, only : Jint_Fetot_diag_ind
+  use ecosys_constants, only : Jint_100m_Fetot_diag_ind
   ! autotroph diagnostics
   use ecosys_constants, only : auto_diag_cnt
   use ecosys_constants, only : N_lim_diag_ind
@@ -2106,6 +2108,12 @@ contains
                   P_SiO2, &
                   autotroph_cnt, autotrophs, &
                   dtracer(:, k), marbl_diagnostics(k)%diags(:))
+
+             call store_diagnostics_iron_fluxes(&
+                  i, c, k, domain%kmt, domain%dzt(k), domain%dz(k), zw, &
+                  P_iron, dust, &
+                  autotroph_cnt, autotrophs, &
+                  dtracer(:, k), marbl_diagnostics(k)%diags(:), bid)
 
              if (lexport_shared_vars) then
                 call export_interior_shared_variables(tracer_local(:, k), &
@@ -7834,6 +7842,87 @@ contains
     column_diags(Jint_100m_Sitot_diag_ind) = work2
 
   end subroutine store_diagnostics_silicon_fluxes
+
+  !-----------------------------------------------------------------------
+
+  subroutine store_diagnostics_iron_fluxes(i, j, k, column_kmt, column_dzt, column_dz, column_zw, &
+       P_iron, dust, &
+       auto_cnt, auto_meta, &
+       dtracer, column_diags, bid)
+
+    use marbl_share_mod, only : column_sinking_particle_type
+    use marbl_share_mod, only : autotroph_type, zooplankton_type
+
+    integer(int_kind), intent(in) :: i, j, k
+    integer(int_kind), intent(in) :: column_kmt
+    real(r8), intent(in) :: column_dzt, column_dz
+    real(r8), intent(in) :: column_zw(km)
+    type(column_sinking_particle_type), intent(in) :: P_iron
+    type(column_sinking_particle_type), intent(in) :: dust
+    integer(int_kind), intent(in) :: auto_cnt
+    type(autotroph_type), intent(in)  :: auto_meta(auto_cnt)
+    real(r8), intent(in) :: dtracer(ecosys_tracer_cnt)
+
+    integer (int_kind), intent(in) :: bid ! block info for the current block
+
+    real(r8), intent(inout) :: column_diags(ecosys_diag_cnt)
+
+    real(r8) :: delta_z, ztop
+    real(r8) :: work1, work2
+
+    if (k <= column_kmt) then
+       if (partial_bottom_cells) then
+          delta_z = column_dzt
+       else
+          delta_z = column_dz
+       endif
+    else
+       delta_z = c0
+    end if
+
+    ztop = c0
+    if (k > 1) then
+       ztop = column_zw(k-1)
+    end if
+
+    work1 = dtracer(fe_ind) + dtracer(dofe_ind) + sum(dtracer(autotrophs(:)%Fe_ind)) &
+       + Qfe_zoo * sum(dtracer(zooplankton(:)%C_ind))
+
+    ! remove iron source from dust remin
+    work1 = work1 - dust%remin(k) * dust_to_Fe
+
+    if (k <= column_kmt) then
+       work2 = delta_z * work1
+    else
+       work2 = c0
+    end if
+    if (k <= column_kmt) then
+       ! add back loss to sediments, remove FESEDFLUX source
+       work2 = work2 + P_iron%sed_loss(k) - FESEDFLUX(i, j, k, bid)
+    else
+       work2 = work2 + c0
+    end if
+    column_diags(Jint_Fetot_diag_ind) = work2
+
+    if (ztop < 100.0e2_r8) then
+       if (k <= column_kmt) then
+          work2 = min(100.0e2_r8 - ztop, delta_z) * work1
+       else
+          work2 = c0
+       end if
+       if (ztop + delta_z <= 100.0e2_r8 .and. k <= column_kmt) then
+          ! add back loss to sediments, remove FESEDFLUX source
+          work2 = work2 + P_iron%sed_loss(k) - FESEDFLUX(i, j, k, bid)
+       else
+          work2 = work2 + c0
+       end if
+    else
+       work2 = c0
+    endif
+    column_diags(Jint_100m_Fetot_diag_ind) = work2
+
+  end subroutine store_diagnostics_iron_fluxes
+
 
   !-----------------------------------------------------------------------
 

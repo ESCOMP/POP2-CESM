@@ -1,6 +1,24 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    19 Nov 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n17_cesm_pop_2_1_20151117
+Tag Summary: add iron conservation diagnostics (Jint_Fetot, Jint_100m_Fetot)
+
+Testing:
+aux_pop_MARBL: (baseline comparison to n15 tag)
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+
+M       source/ecosys_tavg.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_constants.F90
+M       BranchChangeLog
+M       input_templates/ocn.ecosys.tavg.csh
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    18 Nov 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n16_cesm_pop_2_1_20151117
 Tag Summary: merge pop2/trunk_tags/cesm_pop_2_1_20151117 to branch

@@ -76,6 +76,8 @@
   use ecosys_constants, only : Jint_100m_Ptot_diag_ind
   use ecosys_constants, only : Jint_Sitot_diag_ind
   use ecosys_constants, only : Jint_100m_Sitot_diag_ind
+  use ecosys_constants, only : Jint_Fetot_diag_ind
+  use ecosys_constants, only : Jint_100m_Fetot_diag_ind
   ! autotroph diagnostics
   use ecosys_constants, only : auto_diag_cnt
   use ecosys_constants, only : N_lim_diag_ind
@@ -732,6 +734,16 @@ contains
 
     call define_tavg_field(tavg_ecosys(Jint_100m_Sitot_diag_ind),'Jint_100m_Sitot',2, &
                            long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Sitot, 0-100m', &
+                           units='mmol/m^3 cm/s', grid_loc='2110',      &
+                           coordinates='TLONG TLAT time')
+
+    call define_tavg_field(tavg_ecosys(Jint_Fetot_diag_ind),'Jint_Fetot',2, &
+                           long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Fetot', &
+                           units='mmol/m^3 cm/s', grid_loc='2110',      &
+                           coordinates='TLONG TLAT time')
+
+    call define_tavg_field(tavg_ecosys(Jint_100m_Fetot_diag_ind),'Jint_100m_Fetot',2, &
+                           long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Fetot, 0-100m', &
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
