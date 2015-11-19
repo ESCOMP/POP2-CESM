@@ -1,4 +1,34 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    18 Nov 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151118
+Tag Summary: 3 minor (and bit-for-bit) updates
+
+1) update svn metadata on 3 files (status "R" below) to include information
+   from ecosys_cesm2_dev branch
+2) Update default PE layout for G compset on yellowstone to better balance
+   CICE and POP (and to account for using 15 cores / node rather than 16 plus
+   turn on hyperthreading). Note that we need to come up with a better layout
+   for GECO as well, that is not balanced at all
+3) Add SMS.T62_g16.G test to the aux_pop test suite to catch future changes to
+   the pe-layout -- the update from 1023 did not change answers in the test
+   suite and it should have.
+
+Testing:
+
+aux_pop: (yellowstone, baseline comparison to baseline from 20151117 tag)
+   tests pass with following exceptions
+     * debug tests with ciso abort, as expected
+     * new SMS.T62_g16.G case gives BFAIL because there is no baseline for
+       comparison
+
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+R  +    cime_config/testdefs/testmods_dirs/pop/ecosys/user_nl_pop
+R  +    input_templates/ocn.mcog.tavg.csh
+R  +    source/mcog.F90
+===============================================================================
 Tag Creator: klindsay
 Developers:  K. Lindsay, B. Briegleb (MCOG), N. Norton (MCOG), M. Levy (lecosys_debug)
 Tag Date:    17 Nov 2016
