@@ -12,7 +12,7 @@ module ecosys_constants
 !  indices for diagnostic values written to tavg files
 !-----------------------------------------------------------------------
 
-  integer(int_kind), parameter :: ecosys_diag_cnt = 45
+  integer(int_kind), parameter :: ecosys_diag_cnt = 46
   integer (int_kind), parameter ::  &
       CO3_diag_ind                 =  1, &
       HCO3_diag_ind                =  2, &
@@ -41,24 +41,25 @@ module ecosys_constants
       photoC_NO3_TOT_zint_diag_ind = 25, &
       DOC_prod_diag_ind            = 26, &
       DOC_remin_diag_ind           = 27, &
-      DON_prod_diag_ind            = 28, &
-      DON_remin_diag_ind           = 29, &
-      DOP_prod_diag_ind            = 30, &
-      DOP_remin_diag_ind           = 31, &
-      DOFe_prod_diag_ind           = 32, &
-      DOFe_remin_diag_ind          = 33, &
-      Fe_scavenge_diag_ind         = 34, &
-      Fe_scavenge_rate_diag_ind    = 35, &
-      Jint_Ctot_diag_ind           = 36, &
-      Jint_100m_Ctot_diag_ind      = 37, &
-      Jint_Ntot_diag_ind           = 38, &
-      Jint_100m_Ntot_diag_ind      = 39, &
-      Jint_Ptot_diag_ind           = 40, &
-      Jint_100m_Ptot_diag_ind      = 41, &
-      Jint_Sitot_diag_ind          = 42, &
-      Jint_100m_Sitot_diag_ind     = 43, &
-      Jint_Fetot_diag_ind          = 44, &
-      Jint_100m_Fetot_diag_ind     = 45
+      DOCr_remin_diag_ind          = 28, &
+      DON_prod_diag_ind            = 29, &
+      DON_remin_diag_ind           = 30, &
+      DONr_remin_diag_ind          = 31, &
+      DOP_prod_diag_ind            = 32, &
+      DOP_remin_diag_ind           = 33, &
+      DOPr_remin_diag_ind          = 34, &
+      Fe_scavenge_diag_ind         = 35, &
+      Fe_scavenge_rate_diag_ind    = 36, &
+      Jint_Ctot_diag_ind           = 37, &
+      Jint_100m_Ctot_diag_ind      = 38, &
+      Jint_Ntot_diag_ind           = 39, &
+      Jint_100m_Ntot_diag_ind      = 40, &
+      Jint_Ptot_diag_ind           = 41, &
+      Jint_100m_Ptot_diag_ind      = 42, &
+      Jint_Sitot_diag_ind          = 43, &
+      Jint_100m_Sitot_diag_ind     = 44, &
+      Jint_Fetot_diag_ind          = 45, &
+      Jint_100m_Fetot_diag_ind     = 46
 
   integer(int_kind), parameter ::   auto_diag_cnt = 26
   integer (int_kind), parameter ::  &
@@ -100,33 +101,36 @@ module ecosys_constants
       zoo_graze_zoo_diag_ind   =  7, &
       x_graze_zoo_diag_ind     =  8
 
-  integer(int_kind), parameter ::   part_diag_cnt =  23
+  integer(int_kind), parameter ::   part_diag_cnt =  26
   integer (int_kind), parameter ::   &
       POC_FLUX_IN_diag_ind     =  1, &
       POC_PROD_diag_ind        =  2, &
       POC_REMIN_diag_ind       =  3, &
-      CaCO3_FLUX_IN_diag_ind   =  4, &
-      CaCO3_PROD_diag_ind      =  5, &
-      CaCO3_REMIN_diag_ind     =  6, &
-      SiO2_FLUX_IN_diag_ind    =  7, &
-      SiO2_PROD_diag_ind       =  8, &
-      SiO2_REMIN_diag_ind      =  9, &
-      dust_FLUX_IN_diag_ind    = 10, &
-      dust_REMIN_diag_ind      = 11, &
-      P_iron_FLUX_IN_diag_ind  = 12, &
-      P_iron_PROD_diag_ind     = 13, &
-      P_iron_REMIN_diag_ind    = 14, &
-      calcToSed_diag_ind       = 15, &
-      bsiToSed_diag_ind        = 16, &
-      pocToSed_diag_ind        = 17, &
-      SedDenitrif_diag_ind     = 18, &
-      OtherRemin_diag_ind      = 19, &
-      ponToSed_diag_ind        = 20, &
-      popToSed_diag_ind        = 21, &
-      dustToSed_diag_ind       = 22, &
-      pfeToSed_diag_ind        = 23
+      POC_REMIN_DIC_diag_ind   =  4, &
+      PON_REMIN_NH4_diag_ind   =  5, &
+      POP_REMIN_PO4_diag_ind   =  6, &
+      CaCO3_FLUX_IN_diag_ind   =  7, &
+      CaCO3_PROD_diag_ind      =  8, &
+      CaCO3_REMIN_diag_ind     =  9, &
+      SiO2_FLUX_IN_diag_ind    = 10, &
+      SiO2_PROD_diag_ind       = 11, &
+      SiO2_REMIN_diag_ind      = 12, &
+      dust_FLUX_IN_diag_ind    = 13, &
+      dust_REMIN_diag_ind      = 14, &
+      P_iron_FLUX_IN_diag_ind  = 15, &
+      P_iron_PROD_diag_ind     = 16, &
+      P_iron_REMIN_diag_ind    = 17, &
+      calcToSed_diag_ind       = 18, &
+      bsiToSed_diag_ind        = 19, &
+      pocToSed_diag_ind        = 20, &
+      SedDenitrif_diag_ind     = 21, &
+      OtherRemin_diag_ind      = 22, &
+      ponToSed_diag_ind        = 23, &
+      popToSed_diag_ind        = 24, &
+      dustToSed_diag_ind       = 25, &
+      pfeToSed_diag_ind        = 26
 
-  integer(int_kind), parameter ::   forcing_diag_cnt =  38
+  integer(int_kind), parameter ::   forcing_diag_cnt =  39
   integer (int_kind), parameter ::   &
       ECOSYS_IFRAC_diag_ind         =  1, &
       ECOSYS_XKW_diag_ind           =  2, &
@@ -157,14 +161,15 @@ module ecosys_constants
       NHy_FLUX_diag_ind             = 27, &
       DIN_RIV_FLUX_diag_ind         = 28, &
       DIP_RIV_FLUX_diag_ind         = 29, &
-      DoN_RIV_FLUX_diag_ind         = 30, &
-      DoNr_RIV_FLUX_diag_ind        = 31, &
+      DON_RIV_FLUX_diag_ind         = 30, &
+      DONr_RIV_FLUX_diag_ind        = 31, &
       DOP_RIV_FLUX_diag_ind         = 32, &
       DOPr_RIV_FLUX_diag_ind        = 33, &
       DSI_RIV_FLUX_diag_ind         = 34, &
       DFE_RIV_FLUX_diag_ind         = 35, &
       DIC_RIV_FLUX_diag_ind         = 36, &
       ALK_RIV_FLUX_diag_ind         = 37, &
-      DOC_RIV_FLUX_diag_ind         = 38
+      DOC_RIV_FLUX_diag_ind         = 38, &
+      DOCr_RIV_FLUX_diag_ind        = 39
 
 end module ecosys_constants

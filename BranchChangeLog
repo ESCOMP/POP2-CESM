@@ -1,6 +1,43 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    23 Nov 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n18_cesm_pop_2_1_20151117
+Tag Summary: science devs, details below
+
+changes ecosys answers
+changes physics answers if chl_option = 'model'
+
+DOFe tracer removed
+DOCr tracer added
+restructure DOM remin code
+many nml params changed
+add PO4 and SiO3 content to dust dep
+new ICs and fesedflux datasets
+introduce parameters for routing of (DOM prod, POM remin, riverine input) to DOMr
+add DOMr remin tavg vars
+
+Testing:
+aux_pop_MARBL: (baseline comparison to n17 tag)
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+      nlcomp fails because of answer changing mods
+      baseline comparisons to previous tags fail because of answer changing mods
+
+M       source/ecosys_tavg.F90
+M       source/marbl_parms.F90
+M       source/ecosys_mod.F90
+M       source/mcog.F90
+M       source/ecosys_constants.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       BranchChangeLog
+M       input_templates/ocn.ecosys.tavg.csh
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    19 Nov 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n17_cesm_pop_2_1_20151117
 Tag Summary: add iron conservation diagnostics (Jint_Fetot, Jint_100m_Fetot)

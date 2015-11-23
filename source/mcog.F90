@@ -656,7 +656,7 @@
    if ((abs(qsw_col_dagg_1pt) > mcog_dagg_qsw_abort_thres) .or. &
        (abs(qsw_bin_dagg_1pt) > mcog_dagg_qsw_abort_thres)) then
       this_block = get_block(blocks_clinic(iblock),iblock)
-      write(stdout, '(a,2(x,a,i),2(x,a,e13.6))') &
+      write(stdout, '(a,2(1x,a,i0),2(1x,a,e13.6))') &
          'qsw aggregation mismatch exceeds threshold', &
          'i_glob=', this_block%i_glob(i), &
          'j_glob=', this_block%j_glob(j), &
