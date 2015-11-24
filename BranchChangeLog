@@ -1,6 +1,24 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    24 Nov 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n19_cesm_pop_2_1_20151117
+Tag Summary: introduce POP_bury_coeff
+
+roundoff changes to ecosys answers because some computations have been rearranged
+
+Testing:
+aux_pop_MARBL: (baseline comparison to n18 tag)
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+      baseline comparisons to previous tags fail because of answer changing mods
+
+M       source/ecosys_mod.F90
+M       BranchChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    23 Nov 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n18_cesm_pop_2_1_20151117
 Tag Summary: science devs, details below
