@@ -1,6 +1,9 @@
 ! Will be part of MARBL library
 module ecosys_diagnostics_mod
 
+  use grid, only : partial_bottom_cells
+  use domain_size, only : km
+
   use marbl_kinds_mod, only : c0
   use marbl_kinds_mod, only : c1
   use marbl_kinds_mod, only : r8
@@ -16,6 +19,7 @@ module ecosys_diagnostics_mod
 
   use marbl_interface_types, only : max_interior_diags
   use marbl_interface_types, only : max_restore_diags
+
   use marbl_interface_types, only : carbonate_type
   use marbl_interface_types, only : zooplankton_secondary_species_type
   use marbl_interface_types, only : autotroph_secondary_species_type
@@ -25,21 +29,13 @@ module ecosys_diagnostics_mod
   use marbl_interface_types, only : marbl_column_domain_type
   use marbl_interface_types, only : marbl_gcm_state_type
 
-  use grid, only : partial_bottom_cells
-  use domain_size, only : km
-
   use marbl_parms, only : po4_ind 
   use marbl_parms, only : no3_ind         
   use marbl_parms, only : sio3_ind        
   use marbl_parms, only : nh4_ind         
-  use marbl_parms, only : fe_ind          
-  use marbl_parms, only : o2_ind          
   use marbl_parms, only : dic_ind         
-  use marbl_parms, only : dic_alt_co2_ind 
-  use marbl_parms, only : alk_ind         
   use marbl_parms, only : doc_ind         
   use marbl_parms, only : don_ind         
-  use marbl_parms, only : dofe_ind        
   use marbl_parms, only : dop_ind         
   use marbl_parms, only : dopr_ind        
   use marbl_parms, only : donr_ind        
@@ -47,9 +43,9 @@ module ecosys_diagnostics_mod
   Implicit None
   Public
 
-!-----------------------------------------------------------------------
-!  indices for diagnostic values written to tavg files
-!-----------------------------------------------------------------------
+  !-----------------------------------------------------------------------
+  !  indices for diagnostic values written to tavg files
+  !-----------------------------------------------------------------------
 
   type, private :: marbl_interior_diagnostics_indexing_type
     ! General 2D diags
@@ -171,68 +167,438 @@ module ecosys_diagnostics_mod
     integer(int_kind), dimension(zooplankton_cnt) :: zoo_graze_doc
     integer(int_kind), dimension(zooplankton_cnt) :: zoo_graze_zoo
     integer(int_kind), dimension(zooplankton_cnt) :: x_graze_zoo
-
   end type marbl_interior_diagnostics_indexing_type
+  type(marbl_interior_diagnostics_indexing_type), public :: marbl_interior_diag_ind
 
-  type(marbl_interior_diagnostics_indexing_type), public ::                   &
-                                                      marbl_interior_diag_ind
+  type marbl_forcing_diagnostics_indexing_type
+     integer(int_kind) :: ECOSYS_IFRAC
+     integer(int_kind) :: ECOSYS_IFRAC_2   
+     integer(int_kind) :: ECOSYS_XKW
+     integer(int_kind) :: ECOSYS_XKW_2     
+     integer(int_kind) :: ECOSYS_ATM_PRESS
+     integer(int_kind) :: PV_O2
+     integer(int_kind) :: SCHMIDT_O2
+     integer(int_kind) :: O2SAT
+     integer(int_kind) :: O2_GAS_FLUX
+     integer(int_kind) :: O2_GAS_FLUX_2    
+     integer(int_kind) :: CO2STAR
+     integer(int_kind) :: DCO2STAR
+     integer(int_kind) :: pCO2SURF
+     integer(int_kind) :: DpCO2
+     integer(int_kind) :: DpCO2_2          
+     integer(int_kind) :: PV_CO2
+     integer(int_kind) :: SCHMIDT_CO2
+     integer(int_kind) :: DIC_GAS_FLUX
+     integer(int_kind) :: DIC_GAS_FLUX_2   
+     integer(int_kind) :: PH
+     integer(int_kind) :: ATM_CO2
+     integer(int_kind) :: CO2STAR_ALT_CO2
+     integer(int_kind) :: DCO2STAR_ALT_CO2
+     integer(int_kind) :: pCO2SURF_ALT_CO2
+     integer(int_kind) :: DpCO2_ALT_CO2
+     integer(int_kind) :: DIC_GAS_FLUX_ALT_CO2
+     integer(int_kind) :: PH_ALT_CO2
+     integer(int_kind) :: ATM_ALT_CO2
+     integer(int_kind) :: IRON_FLUX
+     integer(int_kind) :: DUST_FLUX
+     integer(int_kind) :: NOx_FLUX
+     integer(int_kind) :: NHy_FLUX
+     integer(int_kind) :: DIN_RIV_FLUX
+     integer(int_kind) :: DIP_RIV_FLUX
+     integer(int_kind) :: DoN_RIV_FLUX
+     integer(int_kind) :: DoNr_RIV_FLUX
+     integer(int_kind) :: DOP_RIV_FLUX
+     integer(int_kind) :: DOPr_RIV_FLUX
+     integer(int_kind) :: DSI_RIV_FLUX
+     integer(int_kind) :: DFE_RIV_FLUX
+     integer(int_kind) :: DIC_RIV_FLUX
+     integer(int_kind) :: ALK_RIV_FLUX
+     integer(int_kind) :: DOC_RIV_FLUX
+  end type marbl_forcing_diagnostics_indexing_type
+  type(marbl_forcing_diagnostics_indexing_type), public :: marbl_forcing_diag_ind
 
-  integer(int_kind), parameter ::   forcing_diag_cnt =  38
-  integer (int_kind), parameter ::   &
-      ECOSYS_IFRAC_diag_ind         =  1, &
-      ECOSYS_XKW_diag_ind           =  2, &
-      ECOSYS_ATM_PRESS_diag_ind     =  3, &
-      PV_O2_diag_ind                =  4, &
-      SCHMIDT_O2_diag_ind           =  5, &
-      O2SAT_diag_ind                =  6, &
-      O2_GAS_FLUX_diag_ind          =  7, &
-      CO2STAR_diag_ind              =  8, &
-      DCO2STAR_diag_ind             =  9, &
-      pCO2SURF_diag_ind             = 10, &
-      DpCO2_diag_ind                = 11, &
-      PV_CO2_diag_ind               = 12, &
-      SCHMIDT_CO2_diag_ind          = 13, &
-      DIC_GAS_FLUX_diag_ind         = 14, &
-      PH_diag_ind                   = 15, &
-      ATM_CO2_diag_ind              = 16, &
-      CO2STAR_ALT_CO2_diag_ind      = 17, &
-      DCO2STAR_ALT_CO2_diag_ind     = 18, &
-      pCO2SURF_ALT_CO2_diag_ind     = 19, &
-      DpCO2_ALT_CO2_diag_ind        = 20, &
-      DIC_GAS_FLUX_ALT_CO2_diag_ind = 21, &
-      PH_ALT_CO2_diag_ind           = 22, &
-      ATM_ALT_CO2_diag_ind          = 23, &
-      IRON_FLUX_diag_ind            = 24, &
-      DUST_FLUX_diag_ind            = 25, &
-      NOx_FLUX_diag_ind             = 26, &
-      NHy_FLUX_diag_ind             = 27, &
-      DIN_RIV_FLUX_diag_ind         = 28, &
-      DIP_RIV_FLUX_diag_ind         = 29, &
-      DoN_RIV_FLUX_diag_ind         = 30, &
-      DoNr_RIV_FLUX_diag_ind        = 31, &
-      DOP_RIV_FLUX_diag_ind         = 32, &
-      DOPr_RIV_FLUX_diag_ind        = 33, &
-      DSI_RIV_FLUX_diag_ind         = 34, &
-      DFE_RIV_FLUX_diag_ind         = 35, &
-      DIC_RIV_FLUX_diag_ind         = 36, &
-      ALK_RIV_FLUX_diag_ind         = 37, &
-      DOC_RIV_FLUX_diag_ind         = 38
+  !***********************************************************************
 
 contains
 
-  subroutine ecosys_diagnostics_init(marbl_interior_diags,                    &
-                                     marbl_restore_diags, tracer_d_module)
+  !***********************************************************************
 
-    use prognostic                , only : tracer_field
+  subroutine marbl_ecosys_diagnostics_init(marbl_interior_diags, &
+       marbl_restore_diags, marbl_forcing_diags, tracer_d_module)
+
+    use prognostic           , only : tracer_field
+    use marbl_interface_types, only : max_forcing_diags
+    use marbl_interface_types, only : max_interior_diags
+    use marbl_interface_types, only : max_restore_diags
 
     type(marbl_diagnostics_type), intent(inout) :: marbl_interior_diags
     type(marbl_diagnostics_type), intent(inout) :: marbl_restore_diags
-    type (tracer_field), dimension(:), intent(in) :: &
-         tracer_d_module   ! descriptors for each tracer
+    type(marbl_diagnostics_type), intent(inout) :: marbl_forcing_diags
+    type (tracer_field)         , intent(in)    :: tracer_d_module(:)   ! descriptors for each tracer
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
 
     integer :: n, tmp_id
     character(len=char_len) :: lname, sname, units, vgrid
     logical :: truncate
+    !-----------------------------------------------------------------------
+
+    !-----------------------------------------------------------------
+    ! Surface forcing diagnostics
+    !-----------------------------------------------------------------
+
+    ! Allocate memory for forcing diagnostics
+    call marbl_forcing_diags%construct(max_forcing_diags)
+
+    lname='Ice Fraction for ecosys fluxes'
+    sname='ECOSYS_IFRAC'
+    units='fraction'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ECOSYS_IFRAC)
+
+    lname='Ice Fraction for ecosys fluxes'
+    sname='ECOSYS_IFRAC_2'
+    units='fraction'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ECOSYS_IFRAC_2)
+
+    lname='XKW for ecosys fluxes'
+    sname='ECOSYS_XKW'
+    units='cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ECOSYS_XKW)
+
+    lname='XKW for ecosys fluxes'
+    sname='ECOSYS_XKW_2'
+    units='cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ECOSYS_XKW_2)
+
+    lname='Atmospheric Pressure for ecosys fluxes'
+    sname='ECOSYS_ATM_PRESS'
+    units='atmospheres'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ECOSYS_ATM_PRESS)
+
+    lname='PV_O2'
+    sname='PV_O2'
+    units='cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%PV_O2)
+
+    lname='O2 Schmidt Number'
+    sname='SCHMIDT_O2'
+    units='none'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%SCHMIDT_O2)
+
+    lname='O2 Saturation'
+    sname='O2SAT'
+    units='mmol/m^3'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%O2SAT)
+
+    lname='Dissolved Oxygen Surface Flux'
+    sname='STF_O2'
+    units='mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%O2_GAS_FLUX)
+
+    lname='Dissolved Oxygen Surface Flux'
+    sname='STF_O2_2'
+    units='mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%O2_GAS_FLUX_2)
+
+    lname='CO2 Star'
+    sname='CO2STAR'
+    units='mmol/m^3'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%CO2STAR)
+
+    lname='D CO2 Star'
+    sname='DCO2STAR'
+    units='mmol/m^3'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DCO2STAR)
+
+    lname='surface pCO2'
+    sname='pCO2SURF'
+    units='ppmv'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%pCO2SURF)
+
+    lname='D pCO2'
+    sname='DpCO2'
+    units='ppmv'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DpCO2)
+
+    lname='D pCO2'
+    sname='DpCO2_2'
+    units='ppmv'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DpCO2_2)
+
+    lname='CO2 Piston Velocity'
+    sname='PV_CO2'
+    units='cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%PV_CO2)
+
+    lname='CO2 Schmidt Number'
+    sname='SCHMIDT_CO2'
+    units='none'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%SCHMIDT_CO2)
+
+    lname='DIC Surface Gas Flux'
+    sname='FG_CO2'
+    units='mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DIC_GAS_FLUX)
+
+    lname='DIC Surface Gas Flux'
+    sname='FG_CO2_2'
+    units='mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DIC_GAS_FLUX_2)
+
+    lname='Surface pH'
+    sname='PH'
+    units='none'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%PH)
+
+    lname='Atmospheric CO2'
+    sname='ATM_CO2'
+    units='ppmv'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ATM_CO2)
+
+    lname='CO2 Star, Alternative CO2'
+    sname='CO2STAR_ALT_CO2'
+    units='mmol/m^3'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%CO2STAR_ALT_CO2)
+
+    lname='D CO2 Star, Alternative CO2'
+    sname='DCO2STAR_ALT_CO2'
+    units='mmol/m^3'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DCO2STAR_ALT_CO2)
+
+    lname='surface pCO2, Alternative CO2'
+    sname='pCO2SURF_ALT_CO2'
+    units='ppmv'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%pCO2SURF_ALT_CO2)
+
+    lname='D pCO2, Alternative CO2'
+    sname='DpCO2_ALT_CO2'
+    units='ppmv'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DpCO2_ALT_CO2)
+
+    lname='DIC Surface Gas Flux, Alternative CO2'
+    sname='FG_ALT_CO2'
+    units='mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DIC_GAS_FLUX_ALT_CO2)
+
+    lname='Surface pH, Alternative CO2'
+    sname='PH_ALT_CO2'
+    units='none'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%PH_ALT_CO2)
+
+    lname='Atmospheric Alternative CO2'
+    sname='ATM_ALT_CO2'
+    units='ppmv'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ATM_ALT_CO2)
+
+    lname='Atmospheric Iron Flux'
+    sname='IRON_FLUX'
+    units='mmol/m^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%IRON_FLUX)
+
+    lname='Dust Flux'
+    sname='DUST_FLUX'
+    units='g/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DUST_FLUX)
+
+    lname='Flux of NOx from Atmosphere'
+    sname='NOx_FLUX'
+    units='nmol/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%NOx_FLUX)
+
+    lname='Flux of NHy from Atmosphere'
+    sname='NHy_FLUX'
+    units='nmol/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%NHy_FLUX)
+
+    lname='Flux of DIN from rivers'
+    sname='DIN_RIV_FLUX'
+    units='nmol/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DIN_RIV_FLUX)
+
+    lname='Flux of DIP from rivers'
+    sname='DIP_RIV_FLUX'
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DIP_RIV_FLUX)
+    units='nmol/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+
+    lname='Flux of DON from rivers'
+    sname='DON_RIV_FLUX'
+    units='nmol/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DON_RIV_FLUX)
+
+    lname='Flux of DONr from rivers'
+    sname='DONr_RIV_FLUX'
+    units='nmol/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DONr_RIV_FLUX)
+
+    lname='Flux of DOP from rivers'
+    sname='DOP_RIV_FLUX'
+    units='nmol/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DOP_RIV_FLUX)
+
+    lname='Flux of DOPr from rivers'
+    sname='DOPr_RIV_FLUX'
+    units='nmol/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DOPr_RIV_FLUX)
+
+    lname='Flux of DSI from rivers'
+    sname='DSI_RIV_FLUX'
+    units='nmol/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DSI_RIV_FLUX)
+
+    lname='Flux of DFE from rivers'
+    sname='DFE_RIV_FLUX'
+    units='nmol/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DFE_RIV_FLUX)
+
+    lname = 'Flux of DIC from rivers'
+    sname = 'DIC_RIV_FLUX'
+    units = 'nmol/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DIC_RIV_FLUX)
+
+    lname='Flux of ALK from rivers'
+    sname='ALK_RIV_FLUX'
+    units='alk/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ALK_RIV_FLUX)
+
+    lname='Flux of DOC from rivers'
+    sname='DOC_RIV_FLUX'
+    units='alk/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DOC_RIV_FLUX)
+
+    !-----------------------------------------------------------------
+    ! Interior diagnostics
+    !-----------------------------------------------------------------
 
     ! Allocate memory for interior diagnostics
     call marbl_interior_diags%construct(max_interior_diags)
@@ -425,8 +791,7 @@ contains
 
     ! Autotroph 2D diags
     do n=1,autotroph_cnt
-      lname = trim(autotrophs(n)%lname) //                                    &
-              ' C Fixation Vertical Integral'
+      lname = trim(autotrophs(n)%lname) // ' C Fixation Vertical Integral'
       sname = 'photoC_' // trim(autotrophs(n)%sname) // '_zint'
       units = 'mmol/m^3 cm/s'
       vgrid = 'none'
@@ -434,8 +799,7 @@ contains
       call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
                                       marbl_interior_diag_ind%photoC_zint(n))
 
-      lname = trim(autotrophs(n)%lname) //                                    &
-              ' C Fixation from NO3 Vertical Integral'
+      lname = trim(autotrophs(n)%lname) // ' C Fixation from NO3 Vertical Integral'
       sname = 'photoC_NO3_' // trim(autotrophs(n)%sname) // '_zint'
       units = 'mmol/m^3 cm/s'
       vgrid = 'none'
@@ -456,6 +820,7 @@ contains
         marbl_interior_diag_ind%CaCO3_form_zint(n) = -1
       end if
     end do
+
     lname = 'Total CaCO3 Formation Vertical Integral'
     sname = 'CaCO3_form_zint'
     units = 'mmol/m^3 cm/s'
@@ -910,7 +1275,7 @@ contains
       vgrid = 'layer_avg'
       truncate = .true.
       call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%photoNH4(n))
+           marbl_interior_diag_ind%photoNH4(n))
 
       lname = trim(autotrophs(n)%lname) // ' DOP Uptake'
       sname = 'DOP_' // trim(autotrophs(n)%sname) // '_uptake'
@@ -918,7 +1283,7 @@ contains
       vgrid = 'layer_avg'
       truncate = .true.
       call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%DOP_uptake(n))
+           marbl_interior_diag_ind%DOP_uptake(n))
 
       lname = trim(autotrophs(n)%lname) // ' PO4 Uptake'
       sname = 'PO4_' // trim(autotrophs(n)%sname) // '_uptake'
@@ -926,7 +1291,7 @@ contains
       vgrid = 'layer_avg'
       truncate = .true.
       call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%PO4_uptake(n))
+           marbl_interior_diag_ind%PO4_uptake(n))
 
       lname = trim(autotrophs(n)%lname) // ' Grazing'
       sname = 'graze_' // trim(autotrophs(n)%sname)
@@ -934,7 +1299,7 @@ contains
       vgrid = 'layer_avg'
       truncate = .true.
       call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%auto_graze(n))
+           marbl_interior_diag_ind%auto_graze(n))
 
       lname = trim(autotrophs(n)%lname) // ' Grazing to POC'
       sname = 'graze_' // trim(autotrophs(n)%sname) // '_poc'
@@ -942,7 +1307,7 @@ contains
       vgrid = 'layer_avg'
       truncate = .true.
       call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%auto_graze_poc(n))
+           marbl_interior_diag_ind%auto_graze_poc(n))
 
       lname = trim(autotrophs(n)%lname) // ' Grazing to DOC'
       sname = 'graze_' // trim(autotrophs(n)%sname) // '_doc'
@@ -950,7 +1315,7 @@ contains
       vgrid = 'layer_avg'
       truncate = .true.
       call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%auto_graze_doc(n))
+           marbl_interior_diag_ind%auto_graze_doc(n))
 
       lname = trim(autotrophs(n)%lname) // ' Grazing to ZOO'
       sname = 'graze_' // trim(autotrophs(n)%sname) // '_zoo'
@@ -958,7 +1323,7 @@ contains
       vgrid = 'layer_avg'
       truncate = .true.
       call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%auto_graze_zoo(n))
+           marbl_interior_diag_ind%auto_graze_zoo(n))
 
       lname = trim(autotrophs(n)%lname) // ' Loss'
       sname = trim(autotrophs(n)%sname) // '_loss'
@@ -966,7 +1331,7 @@ contains
       vgrid = 'layer_avg'
       truncate = .true.
       call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%auto_loss(n))
+           marbl_interior_diag_ind%auto_loss(n))
 
       lname = trim(autotrophs(n)%lname) // ' Loss to POC'
       sname = trim(autotrophs(n)%sname) // '_loss_poc'
@@ -974,7 +1339,7 @@ contains
       vgrid = 'layer_avg'
       truncate = .true.
       call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%auto_loss_poc(n))
+           marbl_interior_diag_ind%auto_loss_poc(n))
 
       lname = trim(autotrophs(n)%lname) // ' Loss to DOC'
       sname = trim(autotrophs(n)%sname) // '_loss_doc'
@@ -982,7 +1347,7 @@ contains
       vgrid = 'layer_avg'
       truncate = .true.
       call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%auto_loss_doc(n))
+           marbl_interior_diag_ind%auto_loss_doc(n))
 
       lname = trim(autotrophs(n)%lname) // ' Aggregate'
       sname = trim(autotrophs(n)%sname) // '_agg'
@@ -990,7 +1355,7 @@ contains
       vgrid = 'layer_avg'
       truncate = .true.
       call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%auto_agg(n))
+           marbl_interior_diag_ind%auto_agg(n))
 
       if (autotrophs(n)%Si_ind.gt.0) then
         lname=trim(autotrophs(n)%lname) // ' Si Uptake'
@@ -1000,7 +1365,7 @@ contains
         vgrid = 'layer_avg'
         truncate = .true.
         call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
-                                        marbl_interior_diag_ind%bSi_form(n))
+             marbl_interior_diag_ind%bSi_form(n))
       else
         marbl_interior_diag_ind%bSi_form(n) = -1
       end if
@@ -1012,7 +1377,7 @@ contains
         vgrid = 'layer_avg'
         truncate = .true.
         call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
-                                        marbl_interior_diag_ind%CaCO3_form(n))
+             marbl_interior_diag_ind%CaCO3_form(n))
       else
         marbl_interior_diag_ind%CaCO3_form(n) = -1
       end if
@@ -1122,7 +1487,11 @@ contains
 
     end do
 
-    ! Allocate memory for interior diagnostics
+    !-----------------------------------------------------------------
+    ! Restoring diagnostics
+    !-----------------------------------------------------------------
+
+    ! Allocate memory for restore diagnostics
     call marbl_restore_diags%construct(max_restore_diags)
 
     units = 'mmol/m^3'
@@ -1130,16 +1499,17 @@ contains
     do n=1,ecosys_tracer_cnt
       lname = trim(tracer_d_module(n)%long_name) // " Restoring"
       sname = trim(tracer_d_module(n)%short_name) // "_RESTORE"
+
       ! Note that tmp_id is a temp variable because restoring diagnostics
       ! have same indexing as the ecosys tracers
-      call marbl_restore_diags%add_diagnostic(lname, sname, units, vgrid,     &
-                                              .false., tmp_id)
+      call marbl_restore_diags%add_diagnostic(lname, sname, units, vgrid, .false., tmp_id)
     end do
 
-  end subroutine ecosys_diagnostics_init
+  end subroutine marbl_ecosys_diagnostics_init
 
-  subroutine store_diagnostics_carbonate(marbl_domain, carbonate, zt, zw,     &
-                                         marbl_diags)
+  !***********************************************************************
+
+  subroutine store_diagnostics_carbonate(marbl_domain, carbonate, zt, zw, marbl_diags)
 
     type(carbonate_type), dimension(:), intent(in) :: carbonate
     type(marbl_column_domain_type), intent(in) :: marbl_domain
@@ -1156,52 +1526,55 @@ contains
               )
       ! Find depth where CO3 = CO3_sat_calcite or CO3_sat_argonite
       diags(marbl_interior_diag_ind%zsatcalc)%field_2d =                               &
-        compute_saturation_depth(marbl_domain, zt, zw, CO3, CO3_sat_calcite)
+           marbl_compute_saturation_depth(marbl_domain, zt, zw, CO3, CO3_sat_calcite)
       diags(marbl_interior_diag_ind%zsatarag)%field_2d =                               &
-        compute_saturation_depth(marbl_domain, zt, zw, CO3, CO3_sat_aragonite)
+           marbl_compute_saturation_depth(marbl_domain, zt, zw, CO3, CO3_sat_aragonite)
 
-      diags(marbl_interior_diag_ind%CO3)%field_3d(:) = carbonate%CO3
-      diags(marbl_interior_diag_ind%HCO3)%field_3d(:) = carbonate%HCO3
-      diags(marbl_interior_diag_ind%H2CO3)%field_3d(:) = carbonate%H2CO3
-      diags(marbl_interior_diag_ind%pH_3D)%field_3d(:) = carbonate%pH
-      diags(marbl_interior_diag_ind%CO3_ALT_CO2)%field_3d(:) = carbonate%CO3_ALT_CO2
-      diags(marbl_interior_diag_ind%HCO3_ALT_CO2)%field_3d(:) = carbonate%HCO3_ALT_CO2
+      diags(marbl_interior_diag_ind%CO3)%field_3d(:)           = carbonate%CO3
+      diags(marbl_interior_diag_ind%HCO3)%field_3d(:)          = carbonate%HCO3
+      diags(marbl_interior_diag_ind%H2CO3)%field_3d(:)         = carbonate%H2CO3
+      diags(marbl_interior_diag_ind%pH_3D)%field_3d(:)         = carbonate%pH
+      diags(marbl_interior_diag_ind%CO3_ALT_CO2)%field_3d(:)   = carbonate%CO3_ALT_CO2
+      diags(marbl_interior_diag_ind%HCO3_ALT_CO2)%field_3d(:)  = carbonate%HCO3_ALT_CO2
       diags(marbl_interior_diag_ind%H2CO3_ALT_CO2)%field_3d(:) = carbonate%H2CO3_ALT_CO2
       diags(marbl_interior_diag_ind%pH_3D_ALT_CO2)%field_3d(:) = carbonate%pH_ALT_CO2
-      diags(marbl_interior_diag_ind%co3_sat_calc)%field_3d(:) = carbonate%CO3_sat_calcite
-      diags(marbl_interior_diag_ind%co3_sat_arag)%field_3d(:) = carbonate%CO3_sat_aragonite
+      diags(marbl_interior_diag_ind%co3_sat_calc)%field_3d(:)  = carbonate%CO3_sat_calcite
+      diags(marbl_interior_diag_ind%co3_sat_arag)%field_3d(:)  = carbonate%CO3_sat_aragonite
+
     end associate
 
   end subroutine store_diagnostics_carbonate
 
-  function compute_saturation_depth(marbl_domain, zt, zw, CO3, sat_val)
+  !***********************************************************************
+
+  function marbl_compute_saturation_depth(marbl_domain, zt, zw, CO3, sat_val)
 
     type(marbl_column_domain_type), intent(in) :: marbl_domain
     real(r8), dimension(:), intent(in) :: zt, zw, CO3, sat_val
-    real(r8) :: compute_saturation_depth
+    real(r8) :: marbl_compute_saturation_depth
 
     real(r8) :: anomaly(km) ! CO3 concentration above saturation at level
     integer :: k
 
-    associate(&
-              column_kmt => marbl_domain%kmt                                  &
-             )
+    associate(column_kmt => marbl_domain%kmt)
       anomaly   = CO3 - sat_val
 
       if (all(anomaly(1:column_kmt).gt.c0)) then
-        compute_saturation_depth = zw(column_kmt)
+         marbl_compute_saturation_depth = zw(column_kmt)
       elseif (anomaly(1).le.c0) then
-        compute_saturation_depth = c0
+         marbl_compute_saturation_depth = c0
       else
         do k=2,column_kmt
           if (anomaly(k).le.c0) exit
         end do
         ! saturation depth is location of root of anomaly
-        compute_saturation_depth = linear_root(zt(k-1:k), anomaly(k-1:k))
+        marbl_compute_saturation_depth = linear_root(zt(k-1:k), anomaly(k-1:k))
       end if
     end associate
 
-  end function compute_saturation_depth
+  end function marbl_compute_saturation_depth
+
+  !***********************************************************************
 
   function linear_root(x,y)
   ! TO-DO (MNL): if we end up with a marbl_math_mod, this can be generalized
@@ -1228,7 +1601,7 @@ contains
 
   end function linear_root
 
-  !-----------------------------------------------------------------------
+  !***********************************************************************
 
   subroutine store_diagnostics_nitrification(nitrif, denitrif, marbl_diags)
 
@@ -1243,11 +1616,10 @@ contains
 
   end subroutine store_diagnostics_nitrification
 
-  !-----------------------------------------------------------------------
+  !***********************************************************************
 
-  subroutine store_diagnostics_autotrophs(marbl_domain,                       &
-                                          autotroph_secondary_species,        &
-                                          marbl_diags)
+  subroutine store_diagnostics_autotrophs(marbl_domain, autotroph_secondary_species,  &
+       marbl_diags)
 
     use marbl_share_mod, only : autotroph_type
 
@@ -1341,8 +1713,8 @@ contains
          diags(marbl_interior_diag_ind%photoC_NO3(n))%field_3d(:) = c0
          where (autotroph_secondary_species(n,:)%VNtot > c0)
            diags(marbl_interior_diag_ind%photoC_NO3(n))%field_3d(:) =                  &
- autotroph_secondary_species(n,:)%photoC *                                    &
- (autotroph_secondary_species(n,:)%VNO3 / autotroph_secondary_species(n,:)%VNtot)
+                autotroph_secondary_species(n,:)%photoC *                              &
+                (autotroph_secondary_species(n,:)%VNO3 / autotroph_secondary_species(n,:)%VNtot)
          end where
 
          ! vertical integrals
@@ -1375,9 +1747,8 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_autotroph_sums(marbl_domain,                   &
-                                              autotroph_secondary_species,    &
-                                              marbl_diags)
+  subroutine store_diagnostics_autotroph_sums(marbl_domain, autotroph_secondary_species,    &
+       marbl_diags)
 
     type(marbl_column_domain_type), intent(in) :: marbl_domain
     type(autotroph_secondary_species_type), dimension(:,:), intent(in) :: autotroph_secondary_species ! autotroph_cnt, km
@@ -1418,7 +1789,7 @@ contains
 
   end subroutine store_diagnostics_autotroph_sums
 
-  !-----------------------------------------------------------------------
+  !***********************************************************************
 
   subroutine store_diagnostics_particulates(marbl_domain, POC, P_CaCO3,       &
                                             P_SiO2, dust, P_iron,             &
@@ -1487,9 +1858,9 @@ contains
 
   end subroutine store_diagnostics_particulates
 
-  !-----------------------------------------------------------------------
+   !***********************************************************************
 
-  subroutine store_diagnostics_oxygen(marbl_domain, marbl_gcm_state, column_zt,                &
+  subroutine store_diagnostics_oxygen(marbl_domain, marbl_gcm_state, column_zt, &
                                       column_o2, o2_production, o2_consumption,&
                                       marbl_diags)
 
@@ -1528,8 +1899,7 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_photosynthetically_available_radiation( &
-       PAR, marbl_diags)
+  subroutine store_diagnostics_photosynthetically_available_radiation(PAR, marbl_diags)
 
     type(photosynthetically_available_radiation_type), dimension(:), intent(in) :: PAR
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
@@ -1540,16 +1910,15 @@ contains
 
   end subroutine store_diagnostics_photosynthetically_available_radiation
 
-  !-----------------------------------------------------------------------
+  !***********************************************************************
 
   subroutine store_diagnostics_misc(marbl_diags)
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
   end subroutine store_diagnostics_misc
 
-  !-----------------------------------------------------------------------
+  !***********************************************************************
 
-  subroutine store_diagnostics_zooplankton(zooplankton_secondary_species,     &
-                                           marbl_diags)
+  subroutine store_diagnostics_zooplankton(zooplankton_secondary_species, marbl_diags)
 
     type(zooplankton_secondary_species_type), dimension(:,:), intent(in) ::   &
                                               zooplankton_secondary_species
@@ -1580,7 +1949,7 @@ contains
 
   end subroutine store_diagnostics_zooplankton
 
-  !-----------------------------------------------------------------------
+  !***********************************************************************
 
   subroutine store_diagnostics_dissolved_organic_matter(&
        dissolved_organic_matter, fe_scavenge, fe_scavenge_rate, marbl_diags)
@@ -1618,7 +1987,7 @@ contains
 
   end subroutine store_diagnostics_dissolved_organic_matter
 
-  !-----------------------------------------------------------------------
+  !***********************************************************************
 
   subroutine store_diagnostics_carbon_fluxes(marbl_domain, zw, POC, P_CaCO3,  &
                                              dtracer, marbl_diags)
@@ -1679,7 +2048,7 @@ contains
 
   end subroutine store_diagnostics_carbon_fluxes
 
-  !-----------------------------------------------------------------------
+  !***********************************************************************
 
   subroutine store_diagnostics_nitrogen_fluxes(marbl_domain, zw, POC, denitrif,&
                                     sed_denitrif, autotroph_secondary_species, &
@@ -1748,10 +2117,10 @@ contains
 
   end subroutine store_diagnostics_nitrogen_fluxes
 
-  !-----------------------------------------------------------------------
+  !***********************************************************************
 
-  subroutine store_diagnostics_phosphorus_fluxes(marbl_domain, zw, POC,       &
-                                                 dtracer, marbl_diags)
+  subroutine store_diagnostics_phosphorus_fluxes(marbl_domain, zw, POC, &
+       dtracer, marbl_diags)
 
     use marbl_share_mod, only : column_sinking_particle_type
     use marbl_share_mod, only : autotroph_type, zooplankton_type
@@ -1810,15 +2179,14 @@ contains
 
   end subroutine store_diagnostics_phosphorus_fluxes
 
-  !-----------------------------------------------------------------------
+  !***********************************************************************
 
-  subroutine store_diagnostics_silicon_fluxes(marbl_domain, zw, P_SiO2,       &
+  subroutine store_diagnostics_silicon_fluxes(marbl_domain, zw, P_SiO2, &
                                               dtracer, marbl_diags)
 
     use marbl_share_mod, only : column_sinking_particle_type
-
-    use marbl_parms     , only : Q
-    use marbl_parms     , only : Qp_zoo_pom
+    use marbl_parms    , only : Q
+    use marbl_parms    , only : Qp_zoo_pom
 
     type(marbl_column_domain_type), intent(in) :: marbl_domain
     real(r8), dimension(:), intent(in) :: zw  ! km
@@ -1868,7 +2236,5 @@ contains
     end associate
 
   end subroutine store_diagnostics_silicon_fluxes
-
-  !-----------------------------------------------------------------------
 
 end module ecosys_diagnostics_mod

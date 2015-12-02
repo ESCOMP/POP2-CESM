@@ -119,64 +119,6 @@ module ecosys_mod
   use time_management      , only : eval_time_flag
   use ecosys_constants     , only : ecosys_tracer_cnt
 
-  ! tavg_forcing diagnostics
-  use ecosys_diagnostics_mod, only : forcing_diag_cnt
-  use ecosys_diagnostics_mod, only : ECOSYS_IFRAC_diag_ind
-  use ecosys_diagnostics_mod, only : ECOSYS_XKW_diag_ind
-  use ecosys_diagnostics_mod, only : ECOSYS_ATM_PRESS_diag_ind
-  use ecosys_diagnostics_mod, only : PV_O2_diag_ind
-  use ecosys_diagnostics_mod, only : SCHMIDT_O2_diag_ind
-  use ecosys_diagnostics_mod, only : O2SAT_diag_ind
-  use ecosys_diagnostics_mod, only : O2_GAS_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : CO2STAR_diag_ind
-  use ecosys_diagnostics_mod, only : DCO2STAR_diag_ind
-  use ecosys_diagnostics_mod, only : pCO2SURF_diag_ind
-  use ecosys_diagnostics_mod, only : DpCO2_diag_ind
-  use ecosys_diagnostics_mod, only : PV_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : SCHMIDT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : DIC_GAS_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : PH_diag_ind
-  use ecosys_diagnostics_mod, only : ATM_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : CO2STAR_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : DCO2STAR_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : pCO2SURF_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : DpCO2_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : DIC_GAS_FLUX_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : PH_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : ATM_ALT_CO2_diag_ind
-  use ecosys_diagnostics_mod, only : IRON_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : DUST_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : NOx_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : NHy_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : DIN_RIV_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : DIP_RIV_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : DoN_RIV_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : DoNr_RIV_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : DOP_RIV_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : DOPr_RIV_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : DSI_RIV_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : DFE_RIV_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : DIC_RIV_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : ALK_RIV_FLUX_diag_ind
-  use ecosys_diagnostics_mod, only : DOC_RIV_FLUX_diag_ind
-
-  ! Diagnostic subroutines
-  use ecosys_diagnostics_mod, only : store_diagnostics_carbonate
-  use ecosys_diagnostics_mod, only : store_diagnostics_nitrification
-  use ecosys_diagnostics_mod, only : store_diagnostics_autotrophs
-  use ecosys_diagnostics_mod, only : store_diagnostics_autotroph_sums
-  use ecosys_diagnostics_mod, only : store_diagnostics_particulates
-  use ecosys_diagnostics_mod, only : store_diagnostics_oxygen
-  use ecosys_diagnostics_mod, only : store_diagnostics_photosynthetically_available_radiation
-  use ecosys_diagnostics_mod, only : store_diagnostics_misc
-  use ecosys_diagnostics_mod, only : store_diagnostics_zooplankton
-  use ecosys_diagnostics_mod, only : store_diagnostics_dissolved_organic_matter
-  use ecosys_diagnostics_mod, only : store_diagnostics_carbon_fluxes
-  use ecosys_diagnostics_mod, only : store_diagnostics_nitrogen_fluxes
-  use ecosys_diagnostics_mod, only : store_diagnostics_phosphorus_fluxes
-  use ecosys_diagnostics_mod, only : store_diagnostics_silicon_fluxes
-
-  !
   use marbl_parms, only : marbl_params_init, marbl_params_print
   use marbl_parms, only : grz_fnc_michaelis_menten
   use marbl_parms, only : grz_fnc_sigmoidal
@@ -272,7 +214,6 @@ module ecosys_mod
   public  :: marbl_ecosys_init_tracer_metadata
   private :: marbl_ecosys_init_non_autotroph_tracer_metadata
   private :: marbl_ecosys_init_forcing_metadata
-  public  :: marbl_ecosys_init_tavg
 
   ! set_interior routines
   public  :: marbl_ecosys_set_interior
@@ -296,9 +237,6 @@ module ecosys_mod
        
   ! set surface co2 flux
   public  :: marbl_ecosys_set_sflux
-
-  ! tavg
-  public  :: marbl_ecosys_tavg_forcing
 
   type, private :: zooplankton_local_type
      real (r8) :: C  ! local copy of model zooplankton C
@@ -343,50 +281,6 @@ module ecosys_mod
   character(char_len) :: &
        nutr_variable_rest_file,   & ! file containing variable restoring info
        nutr_variable_rest_file_fmt  ! format of file containing variable restoring info
-
-  !-----------------------------------------------------------------------
-  !  buffer indices (into ECO_SFLUX_TAVG) for 2d fields related to surface fluxes
-  !  duplicates, which are used for placing fields into multiple tavg streams,
-  !  do not need separate buffer indices
-  !  fields that are recoverable from the STF field do not need separate buffer indices
-  !-----------------------------------------------------------------------
-
-  integer (int_kind) :: &
-       buf_ind_ECOSYS_IFRAC,          &! ice fraction
-       buf_ind_ECOSYS_XKW,            &! xkw
-       buf_ind_ECOSYS_ATM_PRESS,      &! atmospheric pressure
-       buf_ind_PV_O2,                 &! o2 piston velocity
-       buf_ind_SCHMIDT_O2,            &! O2 schmidt number
-       buf_ind_O2SAT,                 &! O2 saturation
-       buf_ind_CO2STAR,               &! co2star
-       buf_ind_DCO2STAR,              &! dco2star
-       buf_ind_pCO2SURF,              &! surface pco2
-       buf_ind_DpCO2,                 &! delta pco2
-       buf_ind_PV_CO2,                &! co2 piston velocity
-       buf_ind_SCHMIDT_CO2,           &! co2 schmidt number
-       buf_ind_DIC_GAS_FLUX,          &! dic flux
-       buf_ind_PH,                    &! surface pH
-       buf_ind_ATM_CO2,               &! atmospheric CO2
-       buf_ind_CO2STAR_ALT_CO2,       &! co2star alternative CO2
-       buf_ind_DCO2STAR_ALT_CO2,      &! dco2star alternative CO2
-       buf_ind_pCO2SURF_ALT_CO2,      &! surface pco2 alternative CO2
-       buf_ind_DpCO2_ALT_CO2,         &! delta pco2 alternative CO2
-       buf_ind_DIC_GAS_FLUX_ALT_CO2,  &! dic flux alternative CO2
-       buf_ind_PH_ALT_CO2,            &! surface pH alternative CO2
-       buf_ind_ATM_ALT_CO2,           &! atmospheric alternative CO2
-       buf_ind_IRON_FLUX,             &! iron flux
-       buf_ind_NOx_FLUX,              &! nox flux
-       buf_ind_DIN_RIV_FLUX,          &! din river flux
-       buf_ind_DFE_RIV_FLUX,          &! dfe river flux
-       buf_ind_DIC_RIV_FLUX,          &! dic river flux
-       buf_ind_ALK_RIV_FLUX            ! alk river flux
-
-  !-----------------------------------------------------------------------
-  !  define array for holding flux-related quantities that need to be time-averaged
-  !  this is necessary since the forcing routines are called before tavg flags
-  !-----------------------------------------------------------------------
-
-  real (r8), dimension(:, :, :, :), allocatable :: ECO_SFLUX_TAVG
 
   !-----------------------------------------------------------------------
   !  iron patch fertilization
@@ -913,58 +807,6 @@ contains
 
   !***********************************************************************
 
-  subroutine marbl_ecosys_init_tavg
-
-    ! !DESCRIPTION:
-    !  call define_tavg_field for nonstandard tavg fields
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-
-    integer (int_kind) :: buf_len  ! how many surface flux fields are stored in ECO_SFLUX_TAVG
-
-    !-----------------------------------------------------------------------
-    !  2D fields related to surface fluxes
-    !-----------------------------------------------------------------------
-
-    buf_len = 0
-    buf_len = buf_len+1;     buf_ind_ECOSYS_IFRAC = buf_len
-    buf_len = buf_len+1;     buf_ind_ECOSYS_XKW = buf_len
-    buf_len = buf_len+1;     buf_ind_ECOSYS_ATM_PRESS = buf_len
-    buf_len = buf_len+1;     buf_ind_PV_O2 = buf_len
-    buf_len = buf_len+1;     buf_ind_SCHMIDT_O2 = buf_len
-    buf_len = buf_len+1;     buf_ind_O2SAT = buf_len
-    buf_len = buf_len+1;     buf_ind_CO2STAR = buf_len
-    buf_len = buf_len+1;     buf_ind_DCO2STAR = buf_len
-    buf_len = buf_len+1;     buf_ind_pCO2SURF = buf_len
-    buf_len = buf_len+1;     buf_ind_DpCO2 = buf_len
-    buf_len = buf_len+1;     buf_ind_PV_CO2 = buf_len
-    buf_len = buf_len+1;     buf_ind_SCHMIDT_CO2 = buf_len
-    buf_len = buf_len+1;     buf_ind_DIC_GAS_FLUX = buf_len
-    buf_len = buf_len+1;     buf_ind_PH = buf_len
-    buf_len = buf_len+1;     buf_ind_ATM_CO2 = buf_len
-    buf_len = buf_len+1;     buf_ind_CO2STAR_ALT_CO2 = buf_len
-    buf_len = buf_len+1;     buf_ind_DCO2STAR_ALT_CO2 = buf_len
-    buf_len = buf_len+1;     buf_ind_pCO2SURF_ALT_CO2 = buf_len
-    buf_len = buf_len+1;     buf_ind_DpCO2_ALT_CO2 = buf_len
-    buf_len = buf_len+1;     buf_ind_DIC_GAS_FLUX_ALT_CO2 = buf_len
-    buf_len = buf_len+1;     buf_ind_PH_ALT_CO2 = buf_len
-    buf_len = buf_len+1;     buf_ind_ATM_ALT_CO2 = buf_len
-    buf_len = buf_len+1;     buf_ind_IRON_FLUX = buf_len
-    buf_len = buf_len+1;     buf_ind_NOx_FLUX = buf_len
-    buf_len = buf_len+1;     buf_ind_DIN_RIV_FLUX = buf_len
-    buf_len = buf_len+1;     buf_ind_DFE_RIV_FLUX = buf_len
-    buf_len = buf_len+1;     buf_ind_DIC_RIV_FLUX = buf_len
-    buf_len = buf_len+1;     buf_ind_ALK_RIV_FLUX = buf_len
-
-    allocate(ECO_SFLUX_TAVG(nx_block, ny_block, buf_len, max_blocks_clinic))
-    ECO_SFLUX_TAVG(:,:,:,:) = c0
-
-  end subroutine marbl_ecosys_init_tavg
-
-  !***********************************************************************
-
   subroutine marbl_ecosys_set_interior( &
        lexport_shared_vars,             &
        domain,                          &
@@ -992,6 +834,21 @@ contains
     use marbl_share_mod       , only : marbl_autotroph_share_type
     use marbl_share_mod       , only : marbl_zooplankton_share_type
     use marbl_share_mod       , only : marbl_particulate_share_type
+
+    use ecosys_diagnostics_mod, only : store_diagnostics_carbonate
+    use ecosys_diagnostics_mod, only : store_diagnostics_nitrification
+    use ecosys_diagnostics_mod, only : store_diagnostics_autotrophs
+    use ecosys_diagnostics_mod, only : store_diagnostics_autotroph_sums
+    use ecosys_diagnostics_mod, only : store_diagnostics_particulates
+    use ecosys_diagnostics_mod, only : store_diagnostics_oxygen
+    use ecosys_diagnostics_mod, only : store_diagnostics_photosynthetically_available_radiation
+    use ecosys_diagnostics_mod, only : store_diagnostics_misc
+    use ecosys_diagnostics_mod, only : store_diagnostics_zooplankton
+    use ecosys_diagnostics_mod, only : store_diagnostics_dissolved_organic_matter
+    use ecosys_diagnostics_mod, only : store_diagnostics_carbon_fluxes
+    use ecosys_diagnostics_mod, only : store_diagnostics_nitrogen_fluxes
+    use ecosys_diagnostics_mod, only : store_diagnostics_phosphorus_fluxes
+    use ecosys_diagnostics_mod, only : store_diagnostics_silicon_fluxes
 
     logical (log_kind)                 , intent(in)    :: lexport_shared_vars                  ! flag to save shared_vars or not
     real(r8)                           , intent(in)    :: fesedflux(:)
@@ -2036,15 +1893,15 @@ contains
 
   !***********************************************************************
 
-  subroutine marbl_ecosys_set_sflux(                       &
-       saved_state,                                        &
-       marbl_surface_share,                                &
-       U10_SQR, IFRAC, PRESS, SST, SSS,                    &
-       SURF_VALS, MARBL_STF,                               &
-       XCO2, XCO2_ALT_CO2, &
-       STF_MODULE,                                         &
-       IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN,        &
-       lexport_shared_vars, PH_PREV, PH_PREV_ALT_CO2, FLUX) 
+  subroutine marbl_ecosys_set_sflux(                &
+       saved_state,                                 &
+       marbl_surface_share,                         &
+       U10_SQR, IFRAC, PRESS, SST, SSS,             &
+       SURF_VALS, MARBL_STF,                        &
+       XCO2, XCO2_ALT_CO2,                          &
+       STF_MODULE,                                  &
+       IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN, &
+       lexport_shared_vars, PH_PREV, PH_PREV_ALT_CO2, FLUX, FLUX_DIAGS) 
 
     use co2calc               , only : co2calc_row
     use schmidt_number        , only : SCHMIDT_CO2
@@ -2131,14 +1988,13 @@ contains
     ! !OUTPUT PARAMETERS:
     real (r8), dimension(:, :, :, :) , intent(out) :: STF_MODULE
     real (r8), dimension(:, :, :)    , intent(out) :: FLUX              ! tracer flux (nmol/cm^2/s)
+    real (r8), dimension(:, :, :, :) , intent(out) :: FLUX_DIAGS
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
 
     character(*), parameter :: subname = 'ecosys_mod:ecosys_set_sflux'
-
-    logical (log_kind) :: first_call = .true.
 
     integer (int_kind) :: &
          i, j, iblock, n, & ! loop indices
@@ -2182,18 +2038,6 @@ contains
     real (r8), dimension(nx_block, ny_block) :: &
          XKW_ICE,      & ! common portion of piston vel., (1-fice)*xkw (cm/s)
          O2SAT_1atm      ! O2 saturation @ 1 atm (mmol/m^3)
-
-    character (char_len) :: &
-         tracer_data_label,       & ! label for what is being updated
-         ndep_shr_stream_fldList
-
-    character (char_len), dimension(1) :: &
-         tracer_data_names          ! short names for input data fields
-
-    integer (int_kind), dimension(1) :: &
-         tracer_bndy_loc,         & ! location and field type for ghost
-         tracer_bndy_type           !    cell updates
-
     !-----------------------------------------------------------------------
 
     associate(                                                              &
@@ -2210,22 +2054,19 @@ contains
     !  calculate gas flux quantities if necessary
     !-----------------------------------------------------------------------
 
-    !-----------------------------------------------------------------------
-    !  fluxes initially set to 0
-    !-----------------------------------------------------------------------
-
     do iblock = 1, nblocks_clinic
+
+       !-----------------------------------------------------------------------
+       !  fluxes initially set to 0
+       !-----------------------------------------------------------------------
+
        STF_MODULE(:, :, :, iblock) = c0
-    enddo
 
-    !-----------------------------------------------------------------------
-    !  compute CO2 flux, computing disequilibrium one row at a time
-    !-----------------------------------------------------------------------
-
-    if (lflux_gas_o2 .or. lflux_gas_co2) then
-
-       do iblock = 1, nblocks_clinic
-
+       !-----------------------------------------------------------------------
+       !  compute CO2 flux, computing disequilibrium one row at a time
+       !-----------------------------------------------------------------------
+       
+       if (lflux_gas_o2 .or. lflux_gas_co2) then
           !-----------------------------------------------------------------------
           !  Apply OCMIP ice fraction mask when input is from a file.
           !-----------------------------------------------------------------------
@@ -2392,45 +2233,41 @@ contains
              PV_CO2(:, :, iblock)           = c0
           endif  !  lflux_gas_co2
 
-       enddo
 
-    endif  ! lflux_gas_o2 .or. lflux_gas_co2
+       endif  ! lflux_gas_o2 .or. lflux_gas_co2
 
-    !-----------------------------------------------------------------------
-    !  calculate iron and dust fluxes if necessary
-    !-----------------------------------------------------------------------
 
-    IRON_FLUX_IN = IRON_FLUX_IN * parm_Fe_bioavail
+       !-----------------------------------------------------------------------
+       !  calculate iron and dust fluxes if necessary
+       !-----------------------------------------------------------------------
+
+       IRON_FLUX_IN(:, :, iblock) = IRON_FLUX_IN(:, :, iblock) * parm_Fe_bioavail
    
-    STF_MODULE(:, :, fe_ind, :) = STF_MODULE(:, :, fe_ind, :) + IRON_FLUX_IN
+       STF_MODULE(:, :, fe_ind, iblock) = STF_MODULE(:, :, fe_ind, iblock) + IRON_FLUX_IN(:, :, iblock)
 
-    !-----------------------------------------------------------------------
-    !  calculate nox and nhy fluxes if necessary
-    !-----------------------------------------------------------------------
-
-    if (nox_flux_monthly%has_data) then
-       STF_MODULE(:, :, no3_ind, :) = STF_MODULE(:, :, no3_ind, :) + MARBL_STF(:, :, ind_nox_flux, :)
-    endif
-
-    if (nhy_flux_monthly%has_data) then
-       STF_MODULE(:, :, nh4_ind, :) = STF_MODULE(:, :, nh4_ind, :) + MARBL_STF(:, :, ind_nhy_flux, :)
-    endif
-
-    if (trim(ndep_data_type) == 'shr_stream') then
-       do iblock = 1, nblocks_clinic
+       !-----------------------------------------------------------------------
+       !  calculate nox and nhy fluxes if necessary
+       !-----------------------------------------------------------------------
+       
+       if (nox_flux_monthly%has_data) then
+          STF_MODULE(:, :, no3_ind, iblock) = STF_MODULE(:, :, no3_ind, iblock) + MARBL_STF(:, :, ind_nox_flux, iblock)
+       endif
+       
+       if (nhy_flux_monthly%has_data) then
+          STF_MODULE(:, :, nh4_ind, iblock) = STF_MODULE(:, :, nh4_ind, iblock) + MARBL_STF(:, :, ind_nhy_flux, iblock)
+       endif
+       
+       if (trim(ndep_data_type) == 'shr_stream') then
           where (saved_state%land_mask(:, :, iblock))
              STF_MODULE(:, :, no3_ind, iblock) = STF_MODULE(:, :, no3_ind, iblock) &
                   + ndep_shr_stream_scale_factor * MARBL_STF(:, :, ind_no3_flux, iblock)
-          endwhere
-       enddo
-
-       do iblock = 1, nblocks_clinic
-          where (saved_state%land_mask(:, :, iblock))
+             
              STF_MODULE(:, :, nh4_ind, iblock) = STF_MODULE(:, :, nh4_ind, iblock) &
                   + ndep_shr_stream_scale_factor * MARBL_STF(:, :, ind_nh4_flux, iblock)
           endwhere
-       enddo
-    endif
+       endif
+
+    enddo
 
     !-----------------------------------------------------------------------
     !  calculate river bgc fluxes if necessary
@@ -2486,26 +2323,34 @@ contains
                                  + STF_MODULE(:, :, nh4_ind, :) &
                                  - STF_MODULE(:, :, no3_ind, :)
 
-    !-----------------------------------------------------------------------
 
     end associate
 
-    call marbl_ecosys_store_sflux(                           &
-         STF_MODULE,                                         &
-         SURF_VALS, MARBL_STF,                               &
-         SCHMIDT_USED_CO2, SCHMIDT_USED_O2, PV_O2, PV_CO2,   &
-         O2SAT_USED, XCO2, XCO2_ALT_CO2, FLUX, FLUX_ALT_CO2, &
-         IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN,        &
-         CO2STAR, DCO2STAR, pCO2SURF, DpCO2,                 &
-         CO2STAR_ALT, DCO2STAR_ALT, pCO2SURF_ALT, DpCO2_ALT, &
-         PH_PREV, PH_PREV_ALT_CO2,                           &
-         lexport_shared_vars)
+    do iblock = 1, nblocks_clinic
+
+       call marbl_ecosys_store_sflux(                           &
+            iblock,                                             &
+            lexport_shared_vars,                                &
+            saved_state,                                        &
+            STF_MODULE,                                         &
+            SURF_VALS, MARBL_STF,                               &
+            SCHMIDT_USED_CO2, SCHMIDT_USED_O2, PV_O2, PV_CO2,   &
+            O2SAT_USED, XCO2, XCO2_ALT_CO2, FLUX, FLUX_ALT_CO2, &
+            IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN,        &
+            CO2STAR, DCO2STAR, pCO2SURF, DpCO2,                 &
+            CO2STAR_ALT, DCO2STAR_ALT, pCO2SURF_ALT, DpCO2_ALT, &
+            PH_PREV, PH_PREV_ALT_CO2,                           &
+            FLUX_DIAGS)
+    end do
 
   end subroutine marbl_ecosys_set_sflux
 
   !***********************************************************************
 
-  subroutine marbl_ecosys_store_sflux(                           &
+  subroutine marbl_ecosys_store_sflux(                     &
+       iblock,                                             &
+       lexport_shared_vars,                                &
+       saved_state,                                        &
        STF_MODULE,                                         &
        SURF_VALS, MARBL_STF,                               &
        SCHMIDT_USED_CO2, SCHMIDT_USED_O2, PV_O2, PV_CO2,   &
@@ -2514,8 +2359,9 @@ contains
        CO2STAR, DCO2STAR, pCO2SURF, DpCO2,                 &
        CO2STAR_ALT, DCO2STAR_ALT, pCO2SURF_ALT, DpCO2_ALT, &
        PH_PREV, PH_PREV_ALT_CO2,                           &
-       lexport_shared_vars)
+       FLUX_DIAGS)
 
+    use marbl_interface_types , only : marbl_saved_state_type
     use marbl_share_mod       , only : ecosys_surface_share_type
     use marbl_share_mod       , only : ndep_data_type
     use marbl_share_mod       , only : ndep_shr_stream_scale_factor
@@ -2538,12 +2384,15 @@ contains
     use marbl_parms           , only : ind_dfe_riv_flux
     use marbl_parms           , only : ind_dic_riv_flux
     use marbl_parms           , only : ind_alk_riv_flux
+    use ecosys_diagnostics_mod, only : marbl_forcing_diag_ind
 
     ! !DESCRIPTION:
     !  Compute surface fluxes for ecosys tracer module.
 
     ! !INPUT PARAMETERS:
-    logical (log_kind), intent(in) :: lexport_shared_vars ! flag to save shared_vars or not
+    integer (int_kind)               , intent(in) :: iblock
+    logical (log_kind)               , intent(in) :: lexport_shared_vars ! flag to save shared_vars or not
+    type(marbl_saved_state_type)     , intent(in) :: saved_state
 
     real (r8), dimension(:, :, :)    , intent(in) :: SCHMIDT_USED_CO2 ! used Schmidt number
     real (r8), dimension(:, :, :)    , intent(in) :: SCHMIDT_USED_O2  ! used Schmidt number
@@ -2571,96 +2420,80 @@ contains
     real (r8), dimension(:, :, :)    , intent(in) :: PH_PREV         
     real (r8), dimension(:, :, :)    , intent(in) :: PH_PREV_ALT_CO2 
 
-    !JW    type(ecosys_surface_share_type), intent(inout) :: marbl_surface_share
+    real (r8), dimension(:, :, :, :) , intent(out) :: FLUX_DIAGS
 
+    !JW    type(ecosys_surface_share_type), intent(inout) :: marbl_surface_share
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
 
-    character(*), parameter :: subname = 'ecosys_mod:ecosys_store_sflux'
+    character(*), parameter :: subname = 'ecosys_mod:marbl_ecosys_store_sflux'
 
-    logical (log_kind) :: first_call = .true.
-
-    integer (int_kind) :: &
-         i, j, iblock, n, & ! loop indices
-         auto_ind           ! autotroph functional group index
-
-    real (r8), dimension(nx_block, ny_block, max_blocks_clinic) :: &
-         SHR_STREAM_WORK
-
-    character (char_len) :: &
-         tracer_data_label,       & ! label for what is being updated
-         ndep_shr_stream_fldList
-
-    character (char_len), dimension(1) :: &
-         tracer_data_names          ! short names for input data fields
-
-    integer (int_kind), dimension(1) :: &
-         tracer_bndy_loc,         & ! location and field type for ghost
-         tracer_bndy_type           !    cell updates
-
+    integer (int_kind) :: i, j, n          ! loop indices
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
     !  calculate gas flux quantities if necessary
     !-----------------------------------------------------------------------
 
-   if (lflux_gas_o2 .or. lflux_gas_co2) then
+    associate( ind  => marbl_forcing_diag_ind )
 
-       do iblock = 1, nblocks_clinic
+    if (lflux_gas_o2 .or. lflux_gas_co2) then
 
-          ECO_SFLUX_TAVG(:, :, buf_ind_ECOSYS_IFRAC, iblock)     = IFRAC_USED(:, :, iblock)
-          ECO_SFLUX_TAVG(:, :, buf_ind_ECOSYS_XKW, iblock)       = XKW_USED(:, :, iblock)
-          ECO_SFLUX_TAVG(:, :, buf_ind_ECOSYS_ATM_PRESS, iblock) = AP_USED(:, :, iblock)
-
-          if (lflux_gas_o2) then
-
-             !JW this could be in post, but would require returning  SCHMIDT and O2SAT_USED
-             ECO_SFLUX_TAVG(:, :, buf_ind_PV_O2, iblock)      = PV_O2(:, :, iblock)
-             ECO_SFLUX_TAVG(:, :, buf_ind_SCHMIDT_O2, iblock) = SCHMIDT_USED_O2(:, :, iblock)
-             ECO_SFLUX_TAVG(:, :, buf_ind_O2SAT, iblock)      = O2SAT_USED(:, :, iblock)
-
-          endif  ! lflux_gas_o2
-
-          !-----------------------------------------------------------------------
-          !  compute CO2 flux, computing disequilibrium one row at a time
-          !-----------------------------------------------------------------------
-
-          if (lflux_gas_co2) then
-
-             ECO_SFLUX_TAVG(:, :, buf_ind_CO2STAR, iblock)  = CO2STAR(:, :, iblock)
-             ECO_SFLUX_TAVG(:, :, buf_ind_DCO2STAR, iblock) = DCO2STAR(:, :, iblock)
-             ECO_SFLUX_TAVG(:, :, buf_ind_pCO2SURF, iblock) = pCO2SURF(:, :, iblock)
-             ECO_SFLUX_TAVG(:, :, buf_ind_DpCO2, iblock)    = DpCO2(:, :, iblock)
-
-             ECO_SFLUX_TAVG(:, :, buf_ind_CO2STAR_ALT_CO2, iblock)  = CO2STAR_ALT(:, :, iblock)
-             ECO_SFLUX_TAVG(:, :, buf_ind_DCO2STAR_ALT_CO2, iblock) = DCO2STAR_ALT(:, :, iblock)
-             ECO_SFLUX_TAVG(:, :, buf_ind_pCO2SURF_ALT_CO2, iblock) = pCO2SURF_ALT(:, :, iblock)
-             ECO_SFLUX_TAVG(:, :, buf_ind_DpCO2_ALT_CO2, iblock)    = DpCO2_ALT(:, :, iblock)
-
-   
-             ECO_SFLUX_TAVG(:, :, buf_ind_PV_CO2,       iblock) = PV_CO2(:, :, iblock)
-             ECO_SFLUX_TAVG(:, :, buf_ind_SCHMIDT_CO2,  iblock) = SCHMIDT_USED_CO2(:, :, iblock)
-             ECO_SFLUX_TAVG(:, :, buf_ind_DIC_GAS_FLUX, iblock) = FLUX(:, :, iblock)
-             ECO_SFLUX_TAVG(:, :, buf_ind_PH,           iblock) = PH_PREV(:, :, iblock)
-             ECO_SFLUX_TAVG(:, :, buf_ind_ATM_CO2,      iblock) = XCO2(:, :, iblock)
-
-             ECO_SFLUX_TAVG(:, :, buf_ind_DIC_GAS_FLUX_ALT_CO2, iblock) = FLUX_ALT_CO2(:, :, iblock)
-             ECO_SFLUX_TAVG(:, :, buf_ind_PH_ALT_CO2,           iblock) = PH_PREV_ALT_CO2(:, :, iblock)
-             ECO_SFLUX_TAVG(:, :, buf_ind_ATM_ALT_CO2,          iblock) = XCO2_ALT_CO2(:, :, iblock)
-
-          endif  !  lflux_gas_co2
-
-       enddo
+       FLUX_DIAGS(:, :, ind%ECOSYS_IFRAC, iblock)     = IFRAC_USED(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%ECOSYS_IFRAC_2, iblock)   = IFRAC_USED(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%ECOSYS_XKW, iblock)       = XKW_USED(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%ECOSYS_XKW_2, iblock)     = XKW_USED(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%ECOSYS_ATM_PRESS, iblock) = AP_USED(:, :, iblock)
 
     endif  ! lflux_gas_o2 .or. lflux_gas_co2
+
+    if (lflux_gas_o2) then
+
+       FLUX_DIAGS(:, :, ind%PV_O2, iblock)      = PV_O2(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%SCHMIDT_O2, iblock) = SCHMIDT_USED_O2(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%O2SAT, iblock)      = O2SAT_USED(:, :, iblock)
+       
+    endif  ! lflux_gas_o2
+
+    !-----------------------------------------------------------------------
+    !  compute CO2 flux, computing disequilibrium one row at a time
+    !-----------------------------------------------------------------------
+    
+    if (lflux_gas_co2) then
+       
+       FLUX_DIAGS(:, :, ind%CO2STAR, iblock)              = CO2STAR(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%DCO2STAR, iblock)             = DCO2STAR(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%pCO2SURF, iblock)             = pCO2SURF(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%DpCO2, iblock)                = DpCO2(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%DpCO2_2, iblock)              = DpCO2(:, :, iblock)
+       
+       FLUX_DIAGS(:, :, ind%CO2STAR_ALT_CO2, iblock)      = CO2STAR_ALT(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%DCO2STAR_ALT_CO2, iblock)     = DCO2STAR_ALT(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%pCO2SURF_ALT_CO2, iblock)     = pCO2SURF_ALT(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%DpCO2_ALT_CO2, iblock)        = DpCO2_ALT(:, :, iblock)
+       
+       FLUX_DIAGS(:, :, ind%PV_CO2, iblock)               = PV_CO2(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%SCHMIDT_CO2, iblock)          = SCHMIDT_USED_CO2(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%DIC_GAS_FLUX, iblock)         = FLUX(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%DIC_GAS_FLUX_2, iblock)       = FLUX(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%PH, iblock)                   = PH_PREV(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%ATM_CO2, iblock)              = XCO2(:, :, iblock)
+       
+       FLUX_DIAGS(:, :, ind%DIC_GAS_FLUX_ALT_CO2, iblock) = FLUX_ALT_CO2(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%PH_ALT_CO2, iblock)           = PH_PREV_ALT_CO2(:, :, iblock)
+       FLUX_DIAGS(:, :, ind%ATM_ALT_CO2, iblock)          = XCO2_ALT_CO2(:, :, iblock)
+       
+    endif  !  lflux_gas_co2
 
     !-----------------------------------------------------------------------
     !  calculate iron and dust fluxes if necessary
     !-----------------------------------------------------------------------
 
+    ! multiply IRON flux by mpercm (.01) to convert from model units (cm/s)(mmol/m^3) to mmol/s/m^2
+
     if (iron_flux%has_data) then
-       ECO_SFLUX_TAVG(:, :, buf_ind_IRON_FLUX, :) = IRON_FLUX_IN
+       FLUX_DIAGS(:, :, ind%IRON_FLUX, iblock) = IRON_FLUX_IN(:, :, iblock) * mpercm
     endif
 
     !-----------------------------------------------------------------------
@@ -2668,108 +2501,61 @@ contains
     !-----------------------------------------------------------------------
 
     if (nox_flux_monthly%has_data) then
-       ECO_SFLUX_TAVG(:, :, buf_ind_NOx_FLUX, :) = MARBL_STF(:, :, ind_nox_flux, :)
+       FLUX_DIAGS(:, :, ind%NOx_FLUX, iblock) = MARBL_STF(:, :, ind_nox_flux, iblock)
     endif
 
     if (trim(ndep_data_type) == 'shr_stream') then
-       do iblock = 1, nblocks_clinic
-          ECO_SFLUX_TAVG(:, :, buf_ind_NOx_FLUX, iblock) = &
-                 ndep_shr_stream_scale_factor * MARBL_STF(:, :, ind_no3_flux, iblock)
-       enddo
+       FLUX_DIAGS(:, :, ind%NOx_FLUX, iblock) = &
+            ndep_shr_stream_scale_factor * MARBL_STF(:, :, ind_no3_flux, iblock)
     endif
 
     !-----------------------------------------------------------------------
     !  calculate river bgc fluxes if necessary
     !-----------------------------------------------------------------------
- 
+
     if (din_riv_flux%has_data) then
-       ECO_SFLUX_TAVG(:, :, buf_ind_DIN_RIV_FLUX, :) = MARBL_STF(:, :, ind_din_riv_flux, :)
+       FLUX_DIAGS(:, :, ind%DIN_RIV_FLUX, iblock) = MARBL_STF(:, :, ind_din_riv_flux, iblock)
     endif
 
     if (dfe_riv_flux%has_data) then
-       ECO_SFLUX_TAVG(:, :, buf_ind_DFE_RIV_FLUX, :) = MARBL_STF(:, :, ind_dfe_riv_flux, :)
+       FLUX_DIAGS(:, :, ind%DFE_RIV_FLUX, iblock) = MARBL_STF(:, :, ind_dfe_riv_flux, iblock)
     endif
 
     if (dic_riv_flux%has_data) then
-       ECO_SFLUX_TAVG(:, :, buf_ind_DIC_RIV_FLUX, :) = MARBL_STF(:, :, ind_dic_riv_flux, :)
+       FLUX_DIAGS(:, :, ind%DIC_RIV_FLUX, iblock) = MARBL_STF(:, :, ind_dic_riv_flux, iblock)
     endif
 
     if (alk_riv_flux%has_data) then
-       ECO_SFLUX_TAVG(:, :, buf_ind_ALK_RIV_FLUX, :) = MARBL_STF(:, :, ind_alk_riv_flux, :)
+       FLUX_DIAGS(:, :, ind%ALK_RIV_FLUX, iblock)= MARBL_STF(:, :, ind_alk_riv_flux, iblock)
     endif
+
+    FLUX_DIAGS(:, :, ind%O2_GAS_FLUX, iblock)   = STF_MODULE(:, :, o2_ind, iblock)
+    FLUX_DIAGS(:, :, ind%O2_GAS_FLUX_2, iblock) = STF_MODULE(:, :, o2_ind, iblock)
+
+    FLUX_DIAGS(:, :, ind%NHy_FLUX, iblock)      = STF_MODULE(:, :, nh4_ind, iblock)
+
+    FLUX_DIAGS(:, :, ind%DIP_RIV_FLUX, iblock)  = STF_MODULE(:, :, po4_ind, iblock)
+
+    FLUX_DIAGS(:, :, ind%DON_RIV_FLUX, iblock)  = STF_MODULE(:, :, don_ind, iblock)
+
+    FLUX_DIAGS(:, :, ind%DONr_RIV_FLUX, iblock) = STF_MODULE(:, :, donr_ind, iblock)
+
+    FLUX_DIAGS(:, :, ind%DOP_RIV_FLUX, iblock)  = STF_MODULE(:, :, dop_ind, iblock)
+
+    FLUX_DIAGS(:, :, ind%DOPr_RIV_FLUX, iblock) = STF_MODULE(:, :, dopr_ind, iblock)
+
+    FLUX_DIAGS(:, :, ind%DSI_RIV_FLUX, iblock)  = STF_MODULE(:, :, sio3_ind, iblock)
+
+    FLUX_DIAGS(:, :, ind%DOC_RIV_FLUX, iblock)  = STF_MODULE(:, :, doc_ind, iblock)
+
+    ! multiply DUST flux by mpercm (.01) to convert from model units (cm/s)(mmol/m^3) to mmol/s/m^2
+    FLUX_DIAGS(:, :, ind%DUST_FLUX, iblock)= saved_state%dust_FLUX_IN(:, :, iblock)*mpercm
+
+    end associate
 
   end subroutine marbl_ecosys_store_sflux
 
   !*****************************************************************************
-
-  subroutine marbl_ecosys_tavg_forcing(saved_state, STF_MODULE, FLUX_DIAGS)
-
-    ! !DESCRIPTION:
-    !  Accumulate non-standard forcing related tavg variables.
-
-    use marbl_interface_types, only : marbl_saved_state_type
-
-    type(marbl_saved_state_type), intent(in) :: saved_state
-
-    ! !INPUT PARAMETERS:
-    real (r8), intent(in) :: STF_MODULE(:, :, :, :)
-
-    ! !OUTPUT PARAMETERS:
-    real (r8),  intent(out) :: FLUX_DIAGS(nx_block, ny_block, forcing_diag_cnt, nblocks_clinic)  ! Computed diagnostics for surface fluxes
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-
-    !-----------------------------------------------------------------------
-    ! accumulate surface flux related fields in the order in which they are declared
-    !
-    !  multiply IRON, DUST fluxes by mpercm (.01) to convert from model
-    !    units (cm/s)(mmol/m^3) to mmol/s/m^2
-    !-----------------------------------------------------------------------
-
-    FLUX_DIAGS(:, :, ECOSYS_IFRAC_diag_ind, :)         = ECO_SFLUX_TAVG(:, :, buf_ind_ECOSYS_IFRAC, :)
-    FLUX_DIAGS(:, :, ECOSYS_XKW_diag_ind, :)           = ECO_SFLUX_TAVG(:, :, buf_ind_ECOSYS_XKW, :)
-    FLUX_DIAGS(:, :, ECOSYS_ATM_PRESS_diag_ind, :)     = ECO_SFLUX_TAVG(:, :, buf_ind_ECOSYS_ATM_PRESS, :)
-    FLUX_DIAGS(:, :, PV_O2_diag_ind, :)                = ECO_SFLUX_TAVG(:, :, buf_ind_PV_O2, :)
-    FLUX_DIAGS(:, :, SCHMIDT_O2_diag_ind, :)           = ECO_SFLUX_TAVG(:, :, buf_ind_SCHMIDT_O2, :)
-    FLUX_DIAGS(:, :, O2SAT_diag_ind, :)                = ECO_SFLUX_TAVG(:, :, buf_ind_O2SAT, :)
-    FLUX_DIAGS(:, :, O2_GAS_FLUX_diag_ind, :)          = STF_MODULE(:, :, o2_ind, :)
-    FLUX_DIAGS(:, :, CO2STAR_diag_ind, :)              = ECO_SFLUX_TAVG(:, :, buf_ind_CO2STAR, :)
-    FLUX_DIAGS(:, :, DCO2STAR_diag_ind, :)             = ECO_SFLUX_TAVG(:, :, buf_ind_DCO2STAR, :)
-    FLUX_DIAGS(:, :, pCO2SURF_diag_ind, :)             = ECO_SFLUX_TAVG(:, :, buf_ind_pCO2SURF, :)
-    FLUX_DIAGS(:, :, DpCO2_diag_ind, :)                = ECO_SFLUX_TAVG(:, :, buf_ind_DpCO2, :)
-    FLUX_DIAGS(:, :, PV_CO2_diag_ind, :)               = ECO_SFLUX_TAVG(:, :, buf_ind_PV_CO2, :)
-    FLUX_DIAGS(:, :, SCHMIDT_CO2_diag_ind, :)          = ECO_SFLUX_TAVG(:, :, buf_ind_SCHMIDT_CO2, :)
-    FLUX_DIAGS(:, :, DIC_GAS_FLUX_diag_ind, :)         = ECO_SFLUX_TAVG(:, :, buf_ind_DIC_GAS_FLUX, :)
-    FLUX_DIAGS(:, :, PH_diag_ind, :)                   = ECO_SFLUX_TAVG(:, :, buf_ind_PH, :)
-    FLUX_DIAGS(:, :, ATM_CO2_diag_ind, :)              = ECO_SFLUX_TAVG(:, :, buf_ind_ATM_CO2, :)
-    FLUX_DIAGS(:, :, CO2STAR_ALT_CO2_diag_ind, :)      = ECO_SFLUX_TAVG(:, :, buf_ind_CO2STAR_ALT_CO2, :)
-    FLUX_DIAGS(:, :, DCO2STAR_ALT_CO2_diag_ind, :)     = ECO_SFLUX_TAVG(:, :, buf_ind_DCO2STAR_ALT_CO2, :)
-    FLUX_DIAGS(:, :, pCO2SURF_ALT_CO2_diag_ind, :)     = ECO_SFLUX_TAVG(:, :, buf_ind_pCO2SURF_ALT_CO2, :)
-    FLUX_DIAGS(:, :, DpCO2_ALT_CO2_diag_ind, :)        = ECO_SFLUX_TAVG(:, :, buf_ind_DpCO2_ALT_CO2, :)
-    FLUX_DIAGS(:, :, DIC_GAS_FLUX_ALT_CO2_diag_ind, :) = ECO_SFLUX_TAVG(:, :, buf_ind_DIC_GAS_FLUX_ALT_CO2, :)
-    FLUX_DIAGS(:, :, PH_ALT_CO2_diag_ind, :)           = ECO_SFLUX_TAVG(:, :, buf_ind_PH_ALT_CO2, :)
-    FLUX_DIAGS(:, :, ATM_ALT_CO2_diag_ind, :)          = ECO_SFLUX_TAVG(:, :, buf_ind_ATM_ALT_CO2, :)
-    FLUX_DIAGS(:, :, IRON_FLUX_diag_ind, :)            = ECO_SFLUX_TAVG(:, :, buf_ind_IRON_FLUX, :)*mpercm
-    FLUX_DIAGS(:, :, DUST_FLUX_diag_ind, :)            = saved_state%dust_FLUX_IN(:, :, :)*mpercm
-    FLUX_DIAGS(:, :, NOx_FLUX_diag_ind, :)             = ECO_SFLUX_TAVG(:, :, buf_ind_NOx_FLUX, :)
-    FLUX_DIAGS(:, :, NHy_FLUX_diag_ind, :)             = STF_MODULE(:, :, nh4_ind, :)
-    FLUX_DIAGS(:, :, DIN_RIV_FLUX_diag_ind, :)         = ECO_SFLUX_TAVG(:, :, buf_ind_DIN_RIV_FLUX, :)
-    FLUX_DIAGS(:, :, DIP_RIV_FLUX_diag_ind, :)         = STF_MODULE(:, :, po4_ind, :)
-    FLUX_DIAGS(:, :, DON_RIV_FLUX_diag_ind, :)         = STF_MODULE(:, :, don_ind, :)
-    FLUX_DIAGS(:, :, DONr_RIV_FLUX_diag_ind, :)        = STF_MODULE(:, :, donr_ind, :)
-    FLUX_DIAGS(:, :, DOP_RIV_FLUX_diag_ind, :)         = STF_MODULE(:, :, dop_ind, :)
-    FLUX_DIAGS(:, :, DOPr_RIV_FLUX_diag_ind, :)        = STF_MODULE(:, :, dopr_ind, :)
-    FLUX_DIAGS(:, :, DSI_RIV_FLUX_diag_ind, :)         = STF_MODULE(:, :, sio3_ind, :)
-    FLUX_DIAGS(:, :, DFE_RIV_FLUX_diag_ind, :)         = ECO_SFLUX_TAVG(:, :, buf_ind_DFE_RIV_FLUX, :)
-    FLUX_DIAGS(:, :, DIC_RIV_FLUX_diag_ind, :)         = ECO_SFLUX_TAVG(:, :, buf_ind_DIC_RIV_FLUX, :)
-    FLUX_DIAGS(:, :, ALK_RIV_FLUX_diag_ind, :)         = ECO_SFLUX_TAVG(:, :, buf_ind_ALK_RIV_FLUX, :)
-    FLUX_DIAGS(:, :, DOC_RIV_FLUX_diag_ind, :)         = STF_MODULE(:, :, doc_ind, :)
-
-  end subroutine marbl_ecosys_tavg_forcing
-
-  !***********************************************************************
 
   subroutine marbl_ecosys_init_forcing_metadata()
 
