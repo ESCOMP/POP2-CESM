@@ -34,30 +34,24 @@ module ecosys_driver
   use exit_mod                  , only : sigAbort, exit_pop
   use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
 
+  ! NOTE(bja, 2014-12) all other uses of marbl/ecosys modules need to be removed!
+  use marbl_share_mod           , only : autotroph_cnt, zooplankton_cnt
   use marbl_interface           , only : marbl_interface_class
   use marbl_interface           , only : marbl_sizes_type
   use marbl_interface           , only : marbl_driver_sizes_type
-
   use marbl_interface_constants , only : marbl_status_ok
   use marbl_interface_types     , only : marbl_status_type
   use marbl_interface_types     , only : marbl_diagnostics_type
   use marbl_interface_types     , only : marbl_saved_state_type
-
-  ! NOTE(bja, 2014-12) all other uses of marbl/ecosys modules need to be removed!
-  use marbl_share_mod           , only : autotroph_cnt, zooplankton_cnt
+  use ecosys_mod                , only : marbl_ecosys_set_sflux
+  use ecosys_mod                , only : marbl_ecosys_set_interior
+  use ecosys_diagnostics_mod    , only : marbl_ecosys_diagnostics_init  
 
   use ecosys_constants          , only : ecosys_tracer_cnt
-
-  use ecosys_diagnostics_mod    , only : ecosys_diagnostics_init
-  use ecosys_diagnostics_mod    , only : forcing_diag_cnt
 
   use ecosys_tavg               , only : ecosys_tavg_init
   use ecosys_tavg               , only : ecosys_tavg_accumulate
   use ecosys_tavg               , only : ecosys_tavg_accumulate_flux
-
-  use ecosys_mod                , only : marbl_ecosys_set_sflux
-  use ecosys_mod                , only : marbl_ecosys_tavg_forcing
-  use ecosys_mod                , only : marbl_ecosys_set_interior
 
   use ecosys_ciso_mod           , only : ecosys_ciso_tracer_cnt
   use ecosys_ciso_mod           , only : ecosys_ciso_init
@@ -132,7 +126,16 @@ module ecosys_driver
   type(marbl_interface_class) :: marbl
   type(marbl_diagnostics_type), dimension(max_blocks_clinic) :: marbl_interior_diags
   type(marbl_diagnostics_type), dimension(max_blocks_clinic) :: marbl_restore_diags
-  type(marbl_saved_state_type)  :: marbl_saved_state ! FIXME(bja, 2015-08) this needs to go into marbl%private_data%saved_state !!!
+  type(marbl_diagnostics_type), dimension(max_blocks_clinic) :: marbl_forcing_diags
+
+  real (r8), allocatable :: flux_diags(:, :, :, :)  ! Computed diagnostics for surface fluxes
+
+  !-----------------------------------------------------------------------
+  ! pop data storage for interaction with marbl
+  !-----------------------------------------------------------------------
+
+  ! FIXME(bja, 2015-08) the next statement needs to go into marbl%private_data%saved_state !!!
+  type(marbl_saved_state_type)  :: marbl_saved_state 
   type(ecosys_restore_type)     :: ecosys_restore
 
   !-----------------------------------------------------------------------
@@ -164,6 +167,11 @@ module ecosys_driver
   !-----------------------------------------------------------------------
 
   real (r8), allocatable, target :: FESEDFLUX(:, :, :, :)      !  sedimentary Fe inputs
+
+  !-----------------------------------------------------------------------
+  !  define array for holding flux-related quantities that need to be time-averaged
+  !-----------------------------------------------------------------------
+
 
   !***********************************************************************
 
@@ -461,13 +469,15 @@ contains
 
     ! initialize ecosys_diagnostics type
     do bid=1,nblocks_clinic
-      call ecosys_diagnostics_init(marbl_interior_diags(bid),                 &
-                           marbl_restore_diags(bid),                          &
-                           tracer_d_module(ecosys_ind_begin:ecosys_ind_end))
+       call marbl_ecosys_diagnostics_init(&
+            marbl_interior_diags(bid), &
+            marbl_restore_diags(bid),  &
+            marbl_forcing_diags(bid),  &
+            tracer_d_module(ecosys_ind_begin:ecosys_ind_end))
     end do
 
-    ! Only set up tavg files from first block
-    call ecosys_tavg_init(marbl_interior_diags(1), marbl_restore_diags(1))
+    ! Initialize tavg ids (need only do this using first block)
+    call ecosys_tavg_init(marbl_interior_diags(1), marbl_restore_diags(1), marbl_forcing_diags(1))
 
     !$OMP PARALLEL DO PRIVATE(iblock, n, k)
     do iblock=1, nblocks_clinic
@@ -999,7 +1009,8 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_driver_set_sflux(ciso_on,SHF_QSW_RAW, SHF_QSW, &
+  subroutine ecosys_driver_set_sflux(ciso_on,&
+       SHF_QSW_RAW, SHF_QSW, &
        U10_SQR,IFRAC,PRESS,SST,SSS, &
        SURFACE_VALS_OLD, &
        SURFACE_VALS_CUR, &
@@ -1013,6 +1024,7 @@ contains
     use named_field_mod , only : named_field_set
     use marbl_share_mod , only : lflux_gas_co2
     use marbl_share_mod , only : autotrophs
+    use marbl_share_mod , only : marbl_surface_share_type
     use domain          , only : nblocks_clinic
 
     ! !INPUT PARAMETERS:
@@ -1044,6 +1056,8 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
 
+    logical (log_kind) :: first_call = .true.
+
     integer (int_kind) :: &
          i, j, iblock, n, & ! loop indices
          auto_ind,        & ! autotroph functional group index
@@ -1061,21 +1075,47 @@ contains
     real (r8), dimension(nx_block, ny_block) :: &
          WORK1 ! temporaries for averages
 
-  real (r8), dimension(nx_block, ny_block, ecosys_ind_begin:ecosys_ind_end, max_blocks_clinic) :: &
+    real (r8), dimension(nx_block, ny_block, ecosys_ind_begin:ecosys_ind_end, max_blocks_clinic) :: &
          SURFACE_VALS
 
     real (r8), dimension(nx_block, ny_block, 13, max_blocks_clinic) :: &
          MARBL_STF
 
-    !-----------------------------------------------------------------------
+    integer (int_kind) :: forcing_diag_cnt
 
-    call marbl%set_surface_flux()
+    real (r8), dimension(1) :: &
+         U10_SQR_1, IFRAC_1, PRESS_1, SST_1, SSS_1, XCO2_1, XCO2_ALT_CO2_1, &
+         IFRAC_USED_1, XKW_USED_1, AP_USED_1, IRON_FLUX_IN_1, PH_PREV_1,    &
+         PH_PREV_ALT_CO2_1, FLUX_1
+
+    real (r8), dimension(1, ecosys_ind_begin:ecosys_ind_end) :: &
+         SURFACE_VALS_1, STF_MODULE_1
+
+    real (r8), dimension(1, 13) :: &
+         MARBL_STF_1
+
+    real (r8), allocatable :: FLUX_DIAGS_1(:, :)
+
+    type(marbl_surface_share_type) :: marbl_surface_share
+
+    !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
     !  ECOSYS block
     !-----------------------------------------------------------------------
+    forcing_diag_cnt = marbl_forcing_diags(1)%diag_cnt
+    allocate(FLUX_DIAGS_1(1, forcing_diag_cnt))
 
-    ! set STF_MODULE
+    if (first_call) then
+       forcing_diag_cnt = marbl_forcing_diags(1)%diag_cnt
+       allocate(flux_diags(nx_block,ny_block, forcing_diag_cnt, nblocks_clinic))
+       first_call = .false.
+    end if
+
+    ! set MARBL_STF
+
+    call marbl%set_surface_flux()
+
     call ecosys_driver_read_sflux(                                &
          marbl_saved_state,                                       &
          SHF_QSW_RAW, SHF_QSW,                                    &
@@ -1088,16 +1128,85 @@ contains
          PH_PREV, PH_PREV_ALT_CO2)
 
     call timer_start(ecosys_set_sflux_timer)
-    call marbl_ecosys_set_sflux(                              &
-         marbl_saved_state,                                   &
-         marbl%private_data%surface_share,                    &
-         U10_SQR, IFRAC, PRESS, SST, SSS,                     &
-         SURFACE_VALS(:,:,ecosys_ind_begin:ecosys_ind_end,:), &
-         MARBL_STF,                                           &
-         XCO2, XCO2_ALT_CO2,                                  &
-         STF_MODULE(:,:,ecosys_ind_begin:ecosys_ind_end,:),   &
-         IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN,         &
-         ciso_on, PH_PREV, PH_PREV_ALT_CO2, FLUX)
+    call marbl%set_surface_flux()
+
+    do iblock = 1, nblocks_clinic
+       do j = 1, ny_block
+          do i = 1, nx_block
+
+             ! Copy data from slab to column for marbl
+             U10_SQR_1(1)         = U10_SQR(i,j,iblock)
+             IFRAC_1(1)           = IFRAC(i,j,iblock)
+             PRESS_1(1)           = PRESS(i,j,iblock)
+             SST_1(1)             = SST(i,j,iblock)
+             SSS_1(1)             = SSS(i,j,iblock)
+             XCO2_1(1)            = XCO2(i,j,iblock)
+             XCO2_ALT_CO2_1(1)    = XCO2_ALT_CO2(i,j,iblock)
+             IFRAC_USED_1(1)      = IFRAC_USED(i,j,iblock)
+             XKW_USED_1(1)        = XKW_USED(i,j,iblock)
+             AP_USED_1(1)         = AP_USED(i,j,iblock)
+             IRON_FLUX_IN_1(1)    = IRON_FLUX_IN(i,j,iblock)
+             PH_PREV_1(1)         = PH_PREV(i,j,iblock)
+             PH_PREV_ALT_CO2_1(1) = PH_PREV_ALT_CO2(i,j,iblock)
+             FLUX_1(1)            = FLUX(i,j,iblock)
+             FLUX_DIAGS_1(1,:)    = FLUX_DIAGS(i,j,:,iblock)
+             SURFACE_VALS_1(1,:)  = SURFACE_VALS(i,j,:,iblock)
+             MARBL_STF_1(1,:)     = MARBL_STF(i,j,:,iblock)
+             STF_MODULE_1(1,:)    = STF_MODULE(i,j,:,iblock)
+
+             call marbl_ecosys_set_sflux(                              &
+                  1, marbl_saved_state%land_mask(i,j,iblock),          &
+                  marbl_saved_state%dust_flux_in(i,j,iblock),          &
+                  marbl_surface_share,                                 &
+                  U10_SQR_1, IFRAC_1, PRESS_1, SST_1, SSS_1,           &
+                  SURFACE_VALS_1, MARBL_STF_1,                         &
+                  XCO2_1, XCO2_ALT_CO2_1, STF_MODULE_1,                &
+                  IFRAC_USED_1, XKW_USED_1, AP_USED_1, IRON_FLUX_IN_1, &
+                  ciso_on, PH_PREV_1, PH_PREV_ALT_CO2_1, FLUX_1,       &
+                  FLUX_DIAGS_1)
+
+             marbl%private_data%surface_share%PV_SURF_fields(i,j,iblock) = &
+                          marbl_surface_share%PV_SURF_fields(1)
+             marbl%private_data%surface_share%DIC_SURF_fields(i,j,iblock) = &
+                          marbl_surface_share%DIC_SURF_fields(1)
+             marbl%private_data%surface_share%CO2STAR_SURF_fields(i,j,iblock) = &
+                          marbl_surface_share%CO2STAR_SURF_fields(1)
+             marbl%private_data%surface_share%DCO2STAR_SURF_fields(i,j,iblock) = &
+                          marbl_surface_share%DCO2STAR_SURF_fields(1)
+             marbl%private_data%surface_share%CO3_SURF_fields(i,j,iblock) = &
+                          marbl_surface_share%CO3_SURF_fields(1)
+             marbl%private_data%surface_share%dic_riv_flux_fields(i,j,iblock) = &
+                          marbl_surface_share%dic_riv_flux_fields(1)
+             marbl%private_data%surface_share%doc_riv_flux_fields(i,j,iblock) = &
+                          marbl_surface_share%doc_riv_flux_fields(1)
+             XCO2(i,j,iblock)            = XCO2_1(1)
+             XCO2_ALT_CO2(i,j,iblock)    = XCO2_ALT_CO2_1(1)
+             IFRAC_USED(i,j,iblock)      = IFRAC_USED_1(1)
+             XKW_USED(i,j,iblock)        = XKW_USED_1(1)
+             AP_USED(i,j,iblock)         = AP_USED_1(1)
+             IRON_FLUX_IN(i,j,iblock)    = IRON_FLUX_IN_1(1)
+             PH_PREV(i,j,iblock)         = PH_PREV_1(1)
+             PH_PREV_ALT_CO2(i,j,iblock) = PH_PREV_ALT_CO2_1(1)
+             FLUX(i,j,iblock)            = FLUX_1(1)
+             FLUX_DIAGS(i,j,:,iblock)    = FLUX_DIAGS_1(1,:)
+             SURFACE_VALS(i,j,:,iblock)  = SURFACE_VALS_1(1,:)
+             MARBL_STF(i,j,:,iblock)     = MARBL_STF_1(1,:)
+             STF_MODULE(i,j,:,iblock)    = STF_MODULE_1(1,:)
+
+          enddo
+       enddo
+    enddo
+
+!    call marbl_ecosys_set_sflux(                              &
+!         marbl_saved_state,                                   &
+!         marbl%private_data%surface_share,                    &
+!         U10_SQR, IFRAC, PRESS, SST, SSS,                     &
+!         SURFACE_VALS(:,:,ecosys_ind_begin:ecosys_ind_end,:), &
+!         MARBL_STF,                                           &
+!         XCO2, XCO2_ALT_CO2,                                  &
+!         STF_MODULE(:,:,ecosys_ind_begin:ecosys_ind_end,:),   &
+!         IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN,         &
+!         ciso_on, PH_PREV, PH_PREV_ALT_CO2, FLUX, flux_diags)
     call timer_stop(ecosys_set_sflux_timer)
 
     do iblock = 1, nblocks_clinic
@@ -1168,43 +1277,30 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_driver_tavg_forcing(ciso_on,STF_MODULE)
+  subroutine ecosys_driver_tavg_forcing(ciso_on)
 
     ! !DESCRIPTION:
     !  accumulate common tavg fields for tracer surface fluxes
     !  call accumulation subroutines for tracer modules that have additional
     !     tavg fields related to surface fluxes
 
-    use ecosys_diagnostics_mod , only : forcing_diag_cnt
-    use domain                 , only : nblocks_clinic
-    use blocks                 , only : nx_block, ny_block
-
     implicit none 
 
     ! !INPUT PARAMETERS:
-    logical (kind=log_kind), intent(in) ::  ciso_on                 ! ecosys_ciso on
-    real (r8), intent(in)               :: STF_MODULE(:,:,:,:)
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-
-    real (r8) :: FLUX_DIAGS(nx_block,ny_block, forcing_diag_cnt, nblocks_clinic)  ! Computed diagnostics for surface fluxes
+    logical (kind=log_kind), intent(in) ::  ciso_on ! ecosys_ciso on
 
     !-----------------------------------------------------------------------
     !  ECOSYS block
     !-----------------------------------------------------------------------
 
-    call marbl_ecosys_tavg_forcing(marbl_saved_state, STF_MODULE(:,:,ecosys_ind_begin:ecosys_ind_end,:), FLUX_DIAGS)
-
-    call ecosys_tavg_accumulate_flux(FLUX_DIAGS)
+    call ecosys_tavg_accumulate_flux(flux_diags, marbl_forcing_diags)
 
     !-----------------------------------------------------------------------
     !  ECOSYS_CISO block
     !-----------------------------------------------------------------------
 
     if (ciso_on) then
-       call ecosys_ciso_tavg_forcing(STF_MODULE(:,:,ecosys_ciso_ind_begin:ecosys_ciso_ind_end,:))
+       call ecosys_ciso_tavg_forcing()
     end if
 
   end subroutine ecosys_driver_tavg_forcing

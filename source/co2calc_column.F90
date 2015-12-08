@@ -26,6 +26,7 @@ MODULE co2calc_column
 
   PRIVATE
   PUBLIC :: &
+       co2calc_surf,  &
        comp_CO3terms, &
        comp_co3_sat_vals
 
@@ -87,6 +88,202 @@ CONTAINS
   ! want to modify a big hunk of code without testing....
 
   !*****************************************************************************
+
+  SUBROUTINE co2calc_surf(num_elements, mask, lcomp_co3_coeffs, &
+       temp, salt, dic_in, ta_in, pt_in, sit_in, phlo, phhi, ph, xco2_in, atmpres, &
+       co2star, dco2star, pCO2surf, dpco2, CO3)
+
+    !---------------------------------------------------------------------------
+    !   SUBROUTINE co2calc_surf
+    !
+    !   PURPOSE : Calculate delta co2*, etc. from total alkalinity, total CO2,
+    !             temp, salinity (s), etc.
+    !---------------------------------------------------------------------------
+
+    !---------------------------------------------------------------------------
+    !   input arguments
+    !---------------------------------------------------------------------------
+
+    INTEGER(KIND=int_kind), INTENT(IN) :: num_elements
+    LOGICAL(KIND=log_kind), DIMENSION(num_elements), INTENT(IN) :: mask
+    LOGICAL(KIND=log_kind), INTENT(IN) :: lcomp_co3_coeffs
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(IN) :: &
+         temp,     & ! temperature (degrees C)
+         salt,     & ! salinity (PSU)
+         dic_in,   & ! total inorganic carbon (nmol/cm^3)
+         ta_in,    & ! total alkalinity (neq/cm^3)
+         pt_in,    & ! inorganic phosphate (nmol/cm^3)
+         sit_in,   & ! inorganic silicate (nmol/cm^3)
+         xco2_in,  & ! atmospheric mole fraction CO2 in dry air (ppmv)
+         atmpres     ! atmospheric pressure (atmosphere)
+
+    !---------------------------------------------------------------------------
+    !   input/output arguments
+    !---------------------------------------------------------------------------
+
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(INOUT) :: &
+         phlo,     & ! lower limit of pH range
+         phhi        ! upper limit of pH range
+
+    !---------------------------------------------------------------------------
+    !   output arguments
+    !---------------------------------------------------------------------------
+
+    REAL(KIND=r8), DIMENSION(num_elements), INTENT(OUT) :: &
+         ph,       & ! computed ph values, for initial guess on next time step
+         co2star,  & ! CO2*water (nmol/cm^3)
+         dco2star, & ! delta CO2 (nmol/cm^3)
+         pco2surf, & ! oceanic pCO2 (ppmv)
+         dpco2,    & ! Delta pCO2, i.e, pCO2ocn - pCO2atm (ppmv)
+         CO3         ! Carbonate Ion Concentration
+
+    !---------------------------------------------------------------------------
+    !   local variable declarations
+    !---------------------------------------------------------------------------
+    type(thermodynamic_coefficients_type) :: co3_coeffs(num_elements)
+
+    INTEGER(KIND=int_kind) :: n
+    INTEGER(KIND=int_kind) :: k
+
+    REAL(KIND=r8) ::   &
+         mass_to_vol,  & ! (mol/kg) -> (mmol/m^3)
+         vol_to_mass,  & ! (mmol/m^3) -> (mol/kg)
+         co2starair,   & ! co2star saturation
+         htotal2, denom
+
+    REAL(KIND=r8), DIMENSION(num_elements) :: &
+         xco2,         & ! atmospheric CO2 (atm)
+         htotal,       & ! free concentration of H ion
+         press_bar
+
+    LOGICAL(KIND=log_kind), DIMENSION(num_elements) :: pressure_correct
+
+    associate( &
+          k0 => co3_coeffs(:)%k0, &
+          k1 => co3_coeffs(:)%k1, &
+          k2 => co3_coeffs(:)%k2, &
+          ff => co3_coeffs(:)%ff, &
+          kw => co3_coeffs(:)%kw, &
+          kb => co3_coeffs(:)%kb, &
+          ks => co3_coeffs(:)%ks, &
+          kf => co3_coeffs(:)%kf, &
+          k1p => co3_coeffs(:)%k1p, &
+          k2p => co3_coeffs(:)%k2p, &
+          k3p => co3_coeffs(:)%k3p, &
+          ksi => co3_coeffs(:)%ksi, &
+          bt => co3_coeffs(:)%bt, &
+          st => co3_coeffs(:)%st, &
+          ft => co3_coeffs(:)%ft, &
+          dic => co3_coeffs(:)%dic, &
+          ta => co3_coeffs(:)%ta, &
+          pt => co3_coeffs(:)%pt, &
+          sit => co3_coeffs(:)%sit &
+          )
+
+    !---------------------------------------------------------------------------
+    !   check for existence of ocean points
+    !---------------------------------------------------------------------------
+
+    IF (COUNT(mask) == 0) THEN
+       ph          = c0
+       co2star     = c0
+       dco2star    = c0
+       pCO2surf    = c0
+       dpCO2       = c0
+       CO3         = c0
+       RETURN
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   set unit conversion factors
+    !---------------------------------------------------------------------------
+
+    mass_to_vol = 1e6_r8 * rho_sw
+    vol_to_mass = c1 / mass_to_vol
+
+    ! all surface points:
+    k = 1
+    pressure_correct = .FALSE.
+    press_bar = 0.0
+
+    !---------------------------------------------------------------------------
+    !   compute thermodynamic CO3 coefficients
+    !---------------------------------------------------------------------------
+
+    IF (lcomp_co3_coeffs) THEN
+       CALL comp_co3_coeffs(num_elements, mask, pressure_correct, temp, salt, press_bar, &
+                            co3_coeffs, k1_k2_pH_tot=.true.)
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   compute htotal
+    !---------------------------------------------------------------------------
+
+    CALL comp_htotal(num_elements, mask, temp, dic_in, &
+                     ta_in, pt_in, sit_in, co3_coeffs, &
+                     phlo, phhi, htotal)
+
+    !---------------------------------------------------------------------------
+    !   convert xco2 from uatm to atm
+    !---------------------------------------------------------------------------
+
+    WHERE (mask)
+       xco2 = xco2_in * 1e-6_r8
+    END WHERE
+
+    !---------------------------------------------------------------------------
+    !   Calculate [CO2*] as defined in DOE Methods Handbook 1994 Ver.2,
+    !   ORNL/CDIAC-74, Dickson and Goyet, eds. (Ch 2 p 10, Eq A.49)
+    !
+    !   Compute co2starair
+    !---------------------------------------------------------------------------
+
+    DO n = 1, num_elements
+       IF (mask(n)) THEN
+
+          htotal2     = htotal(n) ** 2
+          denom       = c1 / (htotal2 + k1(n) * htotal(n) + k1(n) * k2(n))
+          CO3(n)      = dic(n) * k1(n) * k2(n) * denom
+          co2star(n)  = dic(n) * htotal2 / &
+               (htotal2 + k1(n) * htotal(n) + k1(n) * k2(n))
+          co2starair  = xco2(n) * ff(n) * atmpres(n)
+          dco2star(n) = co2starair - co2star(n)
+          ph(n)       = -LOG10(htotal(n))
+
+          !---------------------------------------------------------------------
+          !   Add two output arguments for storing pCO2surf
+          !   Should we be using K0 or ff for the solubility here?
+          !---------------------------------------------------------------------
+
+          pCO2surf(n) = co2star(n) / ff(n)
+          dpCO2(n)    = pCO2surf(n) - xco2(n) * atmpres(n)
+
+          !---------------------------------------------------------------------
+          !   Convert units of output arguments
+          !   Note: pCO2surf and dpCO2 are calculated in atm above.
+          !---------------------------------------------------------------------
+
+          CO3(n)      = CO3(n)      * mass_to_vol
+          co2star(n)  = co2star(n)  * mass_to_vol
+          dco2star(n) = dco2star(n) * mass_to_vol
+
+          pCO2surf(n) = pCO2surf(n) * 1e6_r8
+          dpCO2(n)    = dpCO2(n)    * 1e6_r8
+
+       ELSE ! if mask
+
+          ph(n)       = c0
+          co2star(n)  = c0
+          dco2star(n) = c0
+          pCO2surf(n) = c0
+          dpCO2(n)    = c0
+          CO3(n)      = c0
+
+       END IF ! if mask
+    END DO
+  end associate
+
+  END SUBROUTINE co2calc_surf
 
 
   SUBROUTINE comp_CO3terms(num_elements, mask, pressure_correct, lcomp_co3_coeffs, co3_coeffs,  &

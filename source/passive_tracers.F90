@@ -1399,8 +1399,7 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-     call ecosys_driver_tavg_forcing(ciso_on, &
-         STF(:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,:))
+     call ecosys_driver_tavg_forcing(ciso_on)
    end if
 
 !-----------------------------------------------------------------------

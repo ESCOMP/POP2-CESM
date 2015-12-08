@@ -184,6 +184,40 @@ module marbl_share_mod
   type(grazing_type), dimension(grazer_prey_cnt,zooplankton_cnt) :: grazing
 
 !-----------------------------------------------------------------------------
+!   derived type for forcing
+!-----------------------------------------------------------------------------
+
+  type, public :: marbl_forcing_file_type
+     character(char_len) ::    &
+          file_varname,        &
+          temporal                  ! temporarily to support current I/O routines
+     integer(KIND=int_kind) :: &
+          year_first,          &
+          year_last,           &
+          year_align,          &
+          date,                &
+          time
+  end type marbl_forcing_file_type
+
+  type, public :: marbl_forcing_field_type
+     character(char_len) ::    &
+          marbl_name,          &
+          short_name,          &
+          field_units,         &   ! units represent what is in field_data,
+                                   ! not the file (up to driver to do unit
+                                   ! conversion)
+          field_source,        &   ! "file", "coupler", "POP monthly calendar", "none", etc
+          field_constant,      &   ! constant value for field_source="constant"
+          unit_conv_factor,    &   ! unit conversion factor, incorporates scale_factor
+          temporal_interp          ! information on interpolation scheme used to populate field_data
+     real(KIND=r8), dimension(:,:), allocatable :: &
+          field_data                ! only allocate if field_source != 'none'
+     type (marbl_forcing_file_type) :: &
+          field_file_info           ! marbl_forcing_file_type should have things like
+  end type marbl_forcing_field_type
+
+
+!-----------------------------------------------------------------------------
 !  derived type for implicit handling of sinking particulate matter
 !-----------------------------------------------------------------------------
 
@@ -374,6 +408,18 @@ module marbl_share_mod
       real(r8) :: dic_riv_flux_fields(nx_block, ny_block, max_blocks_clinic)  ! River input of DIC in ecosystem (from file)
       real(r8) :: doc_riv_flux_fields(nx_block, ny_block, max_blocks_clinic)  ! River input of DOC in ecosystem (from file)
    end type ecosys_surface_share_type
+
+   !---------------------------------------------------------------------------
+
+   type, public :: marbl_surface_share_type
+      real(r8) :: PV_SURF_fields(1)       ! piston velocity (cm/s)
+      real(r8) :: DIC_SURF_fields(1)      ! surface values of DIC for solver
+      real(r8) :: CO2STAR_SURF_fields(1)  ! CO2STAR from solver
+      real(r8) :: DCO2STAR_SURF_fields(1) ! DCO2STAR from solver
+      real(r8) :: CO3_SURF_fields(1)      ! Surface carbonate ion
+      real(r8) :: dic_riv_flux_fields(1)  ! River input of DIC in ecosystem (from file)
+      real(r8) :: doc_riv_flux_fields(1)  ! River input of DOC in ecosystem (from file)
+   end type marbl_surface_share_type
 
    !---------------------------------------------------------------------------
 

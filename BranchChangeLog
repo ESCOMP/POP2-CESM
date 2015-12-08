@@ -1,6 +1,26 @@
 ===============================================================================
 Tag Creator: mlevy
-Developers:  mvertens, jwolfe
+Developers:  mvertens, jwolfe, mlevy
+Tag Date:    8 Nov 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n18_cesm_pop_2_1_20151116/
+Tag Summary: Merge updates from marbl_init2 branch back to marbl_diags branch
+
+Files Modified:
+M       source/co2calc_column.F90
+M       source/ecosys_ciso_mod.F90
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_tavg.F90
+M       source/marbl_interface.F90
+M       source/marbl_interface_types.F90
+M       source/marbl_oxygen.F90
+M       source/marbl_share.F90
+M       source/passive_tracers.F90
+M       source/schmidt_number.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    17 Nov 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n17_cesm_pop_2_1_20151116/
 Tag Summary: Merge latest trunk onto branch

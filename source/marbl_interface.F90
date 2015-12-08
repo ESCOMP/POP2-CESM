@@ -135,7 +135,6 @@ contains
     use marbl_interface_types     , only: marbl_tracer_metadata_type
     use ecosys_mod                , only: marbl_ecosys_init_nml
     use ecosys_mod                , only: marbl_ecosys_init_tracer_metadata
-    use ecosys_mod                , only: marbl_ecosys_init_tavg    
     use ecosys_constants          , only: ecosys_tracer_cnt
     use ecosys_ciso_mod           , only: ecosys_ciso_init
     
@@ -183,10 +182,6 @@ contains
 
     ! initialize marbl tracer metadata 
     call marbl_ecosys_init_tracer_metadata(marbl_tracer_metadata)
-
-    ! initialize tavg 
-    ! FIXME (mvertens, 2015-11), the following call should go away with the diagnostic refactoring
-    call marbl_ecosys_init_tavg()                     
 
   end subroutine marbl_init
 

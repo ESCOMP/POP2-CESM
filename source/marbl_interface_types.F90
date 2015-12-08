@@ -11,9 +11,8 @@ module marbl_interface_types
 
   private
 
- integer, public, parameter :: max_interior_diags =                           &
-                                    72 + autotroph_cnt*26 + zooplankton_cnt*8
- integer, public, parameter :: max_sflux_diags = 0
+ integer, public, parameter :: max_interior_diags = 72 + autotroph_cnt*26 + zooplankton_cnt*8
+ integer, public, parameter :: max_forcing_diags = 100
  integer, public, parameter :: max_restore_diags = ecosys_tracer_cnt
 
   type, public :: marbl_status_type

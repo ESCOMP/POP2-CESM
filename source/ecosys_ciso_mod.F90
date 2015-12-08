@@ -4280,18 +4280,13 @@ end subroutine ciso_compute_particulate_terms
 ! !IROUTINE: ecosys_ciso_tavg_forcing
 ! !INTERFACE:
 
- subroutine ecosys_ciso_tavg_forcing(STF_MODULE)
+ subroutine ecosys_ciso_tavg_forcing()
 
 ! !DESCRIPTION:
 !  Accumulate non-standard forcing related tavg variables.
 !
 ! !REVISION HISTORY:
 !  same as module
-
-! !INPUT PARAMETERS:
-
-  real (r8), dimension(:,:,:,:), &
-     intent(in) :: STF_MODULE
 
 !EOP
 !BOC
