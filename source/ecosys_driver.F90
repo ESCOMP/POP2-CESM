@@ -1009,7 +1009,8 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_driver_set_sflux(ciso_on,SHF_QSW_RAW, SHF_QSW, &
+  subroutine ecosys_driver_set_sflux(ciso_on,&
+       SHF_QSW_RAW, SHF_QSW, &
        U10_SQR,IFRAC,PRESS,SST,SSS, &
        SURFACE_VALS_OLD, &
        SURFACE_VALS_CUR, &
@@ -1023,6 +1024,7 @@ contains
     use named_field_mod , only : named_field_set
     use marbl_share_mod , only : lflux_gas_co2
     use marbl_share_mod , only : autotrophs
+    use marbl_share_mod , only : marbl_surface_share_type
     use domain          , only : nblocks_clinic
 
     ! !INPUT PARAMETERS:
@@ -1081,11 +1083,28 @@ contains
 
     integer (int_kind) :: forcing_diag_cnt
 
+    real (r8), dimension(1) :: &
+         U10_SQR_1, IFRAC_1, PRESS_1, SST_1, SSS_1, XCO2_1, XCO2_ALT_CO2_1, &
+         IFRAC_USED_1, XKW_USED_1, AP_USED_1, IRON_FLUX_IN_1, PH_PREV_1,    &
+         PH_PREV_ALT_CO2_1, FLUX_1
+
+    real (r8), dimension(1, ecosys_ind_begin:ecosys_ind_end) :: &
+         SURFACE_VALS_1, STF_MODULE_1
+
+    real (r8), dimension(1, 13) :: &
+         MARBL_STF_1
+
+    real (r8), allocatable :: FLUX_DIAGS_1(:, :)
+
+    type(marbl_surface_share_type) :: marbl_surface_share
+
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
     !  ECOSYS block
     !-----------------------------------------------------------------------
+    forcing_diag_cnt = marbl_forcing_diags(1)%diag_cnt
+    allocate(FLUX_DIAGS_1(1, forcing_diag_cnt))
 
     if (first_call) then
        forcing_diag_cnt = marbl_forcing_diags(1)%diag_cnt
@@ -1093,7 +1112,7 @@ contains
        first_call = .false.
     end if
 
-    ! set STF_MODULE
+    ! set MARBL_STF
 
     call marbl%set_surface_flux()
 
@@ -1109,16 +1128,85 @@ contains
          PH_PREV, PH_PREV_ALT_CO2)
 
     call timer_start(ecosys_set_sflux_timer)
-    call marbl_ecosys_set_sflux(                              &
-         marbl_saved_state,                                   &
-         marbl%private_data%surface_share,                    &
-         U10_SQR, IFRAC, PRESS, SST, SSS,                     &
-         SURFACE_VALS(:,:,ecosys_ind_begin:ecosys_ind_end,:), &
-         MARBL_STF,                                           &
-         XCO2, XCO2_ALT_CO2,                                  &
-         STF_MODULE(:,:,ecosys_ind_begin:ecosys_ind_end,:),   &
-         IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN,         &
-         ciso_on, PH_PREV, PH_PREV_ALT_CO2, FLUX, flux_diags)
+    call marbl%set_surface_flux()
+
+    do iblock = 1, nblocks_clinic
+       do j = 1, ny_block
+          do i = 1, nx_block
+
+             ! Copy data from slab to column for marbl
+             U10_SQR_1(1)         = U10_SQR(i,j,iblock)
+             IFRAC_1(1)           = IFRAC(i,j,iblock)
+             PRESS_1(1)           = PRESS(i,j,iblock)
+             SST_1(1)             = SST(i,j,iblock)
+             SSS_1(1)             = SSS(i,j,iblock)
+             XCO2_1(1)            = XCO2(i,j,iblock)
+             XCO2_ALT_CO2_1(1)    = XCO2_ALT_CO2(i,j,iblock)
+             IFRAC_USED_1(1)      = IFRAC_USED(i,j,iblock)
+             XKW_USED_1(1)        = XKW_USED(i,j,iblock)
+             AP_USED_1(1)         = AP_USED(i,j,iblock)
+             IRON_FLUX_IN_1(1)    = IRON_FLUX_IN(i,j,iblock)
+             PH_PREV_1(1)         = PH_PREV(i,j,iblock)
+             PH_PREV_ALT_CO2_1(1) = PH_PREV_ALT_CO2(i,j,iblock)
+             FLUX_1(1)            = FLUX(i,j,iblock)
+             FLUX_DIAGS_1(1,:)    = FLUX_DIAGS(i,j,:,iblock)
+             SURFACE_VALS_1(1,:)  = SURFACE_VALS(i,j,:,iblock)
+             MARBL_STF_1(1,:)     = MARBL_STF(i,j,:,iblock)
+             STF_MODULE_1(1,:)    = STF_MODULE(i,j,:,iblock)
+
+             call marbl_ecosys_set_sflux(                              &
+                  1, marbl_saved_state%land_mask(i,j,iblock),          &
+                  marbl_saved_state%dust_flux_in(i,j,iblock),          &
+                  marbl_surface_share,                                 &
+                  U10_SQR_1, IFRAC_1, PRESS_1, SST_1, SSS_1,           &
+                  SURFACE_VALS_1, MARBL_STF_1,                         &
+                  XCO2_1, XCO2_ALT_CO2_1, STF_MODULE_1,                &
+                  IFRAC_USED_1, XKW_USED_1, AP_USED_1, IRON_FLUX_IN_1, &
+                  ciso_on, PH_PREV_1, PH_PREV_ALT_CO2_1, FLUX_1,       &
+                  FLUX_DIAGS_1)
+
+             marbl%private_data%surface_share%PV_SURF_fields(i,j,iblock) = &
+                          marbl_surface_share%PV_SURF_fields(1)
+             marbl%private_data%surface_share%DIC_SURF_fields(i,j,iblock) = &
+                          marbl_surface_share%DIC_SURF_fields(1)
+             marbl%private_data%surface_share%CO2STAR_SURF_fields(i,j,iblock) = &
+                          marbl_surface_share%CO2STAR_SURF_fields(1)
+             marbl%private_data%surface_share%DCO2STAR_SURF_fields(i,j,iblock) = &
+                          marbl_surface_share%DCO2STAR_SURF_fields(1)
+             marbl%private_data%surface_share%CO3_SURF_fields(i,j,iblock) = &
+                          marbl_surface_share%CO3_SURF_fields(1)
+             marbl%private_data%surface_share%dic_riv_flux_fields(i,j,iblock) = &
+                          marbl_surface_share%dic_riv_flux_fields(1)
+             marbl%private_data%surface_share%doc_riv_flux_fields(i,j,iblock) = &
+                          marbl_surface_share%doc_riv_flux_fields(1)
+             XCO2(i,j,iblock)            = XCO2_1(1)
+             XCO2_ALT_CO2(i,j,iblock)    = XCO2_ALT_CO2_1(1)
+             IFRAC_USED(i,j,iblock)      = IFRAC_USED_1(1)
+             XKW_USED(i,j,iblock)        = XKW_USED_1(1)
+             AP_USED(i,j,iblock)         = AP_USED_1(1)
+             IRON_FLUX_IN(i,j,iblock)    = IRON_FLUX_IN_1(1)
+             PH_PREV(i,j,iblock)         = PH_PREV_1(1)
+             PH_PREV_ALT_CO2(i,j,iblock) = PH_PREV_ALT_CO2_1(1)
+             FLUX(i,j,iblock)            = FLUX_1(1)
+             FLUX_DIAGS(i,j,:,iblock)    = FLUX_DIAGS_1(1,:)
+             SURFACE_VALS(i,j,:,iblock)  = SURFACE_VALS_1(1,:)
+             MARBL_STF(i,j,:,iblock)     = MARBL_STF_1(1,:)
+             STF_MODULE(i,j,:,iblock)    = STF_MODULE_1(1,:)
+
+          enddo
+       enddo
+    enddo
+
+!    call marbl_ecosys_set_sflux(                              &
+!         marbl_saved_state,                                   &
+!         marbl%private_data%surface_share,                    &
+!         U10_SQR, IFRAC, PRESS, SST, SSS,                     &
+!         SURFACE_VALS(:,:,ecosys_ind_begin:ecosys_ind_end,:), &
+!         MARBL_STF,                                           &
+!         XCO2, XCO2_ALT_CO2,                                  &
+!         STF_MODULE(:,:,ecosys_ind_begin:ecosys_ind_end,:),   &
+!         IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN,         &
+!         ciso_on, PH_PREV, PH_PREV_ALT_CO2, FLUX, flux_diags)
     call timer_stop(ecosys_set_sflux_timer)
 
     do iblock = 1, nblocks_clinic
