@@ -1,5 +1,3 @@
-
-
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  MODULE overflows
@@ -5570,7 +5568,16 @@ subroutine ovf_reg_avgs(time_level)
 !     return
    endif
 
-   HUM(:,:,:) = HU(:,:,:)
+   !$OMP PARALLEL DO PRIVATE(iblock,i,j)
+   do iblock = 1,numBlocksClinic
+      do j=1,POP_nyBlock
+         do i=1,POP_nxBlock
+            HUM(i,j,iblock) = HU(i,j,iblock)
+         enddo
+      enddo
+   enddo
+   !$OMP END PARALLEL DO
+
    call ovf_HU(HU,HUM)
    call POP_HaloUpdate(HUM, POP_haloClinic, POP_gridHorzLocNECorner,&
                        POP_fieldKindScalar, errorCode,              &

@@ -253,21 +253,6 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  incoming data quality control
-!
-!-----------------------------------------------------------------------
-#ifdef CCSMCOUPLED
-      if ( any(IOFF_F < c0) ) then
-        write(message, "(A,1x,e10.3,A)") 'Error: incoming IOFF_F has min value', &
-                                      minval(IOFF_F), '; value can not be negative.'
-        ! call shr_sys_abort ('Error: incoming IOFF_F is negative')
-        call shr_sys_abort (trim(message))
-      endif
-#endif
-
-
-!-----------------------------------------------------------------------
-!
 !  update ghost cells for fluxes received from the coupler
 !
 !-----------------------------------------------------------------------

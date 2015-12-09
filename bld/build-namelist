@@ -886,6 +886,41 @@ add_default($nl, 'kappa_min_eg');
 add_default($nl, 'kappa_max_eg');
 
 ##########################################
+# namelist group: hmix_gm_aniso_nml      #
+##########################################
+
+add_default($nl, 'kdir_type_choice');
+add_default($nl, 'krat_type_choice');
+add_default($nl, 'kmin_type_choice');
+
+# All namelist values are stored in exactly the format
+# that is required in a valid namelist.  So if that value 
+# is a string, then the quotes are stored as part of the value. 
+
+my $kdir_type_choice = $nl->get_value('kdir_type_choice');
+my $krat_type_choice = $nl->get_value('krat_type_choice');
+my $kmin_type_choice = $nl->get_value('kmin_type_choice');
+$kdir_type_choice =~ s/[\'\"]//g;
+$krat_type_choice =~ s/[\'\"]//g;
+$kmin_type_choice =~ s/[\'\"]//g;
+add_default($nl, 'efficiency_factor');
+add_default($nl, 'addrandfluc');
+add_default($nl, 'cflmajoronly');
+add_default($nl, 'cflmult');
+add_default($nl, 'erat_const');
+add_default($nl, 'erat_factor');
+add_default($nl, 'isominoronly');
+add_default($nl, 'isoonly');
+add_default($nl, 'kdir_type_choice');
+add_default($nl, 'kmin_type_choice');
+add_default($nl, 'krat_type_choice');
+add_default($nl, 'minorfactor');
+add_default($nl, 'savenewtavgs');
+add_default($nl, 'shrdispfac');
+add_default($nl, 'simpsubcells');
+add_default($nl, 'vertdiffhere');
+
+##########################################
 # namelist group: mix_submeso_nml        #
 ##########################################
 
@@ -1948,6 +1983,7 @@ my @groups = qw(domain_nml
                 hmix_del4u_nml
                 hmix_del4t_nml
                 hmix_gm_nml
+                hmix_gm_aniso_nml
                 mix_submeso_nml
                 hmix_aniso_nml
                 state_nml

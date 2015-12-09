@@ -130,6 +130,7 @@
 
       real (r8), dimension(:,:,:,:), allocatable :: &
          BUOY_FREQ_SQ,    & ! N^2 defined at level interfaces
+         BUOY_FREQ_SQ_NORM,   & ! normalized N^2 defined at level interfaces
          SIGMA_TOPO_MASK    ! bottom topography mask used with kappa_type_eg
 
 !-----------------------------------------------------------------------
@@ -158,6 +159,7 @@
          kappa_type_bfreq_hdgr    = 8,   &
          kappa_type_bfreq_dradius = 9,   &
          kappa_type_eg            = 10,  &
+         kappa_type_steer         = 11,  &
          slope_control_tanh   = 1,       &
          slope_control_notanh = 2,       &
          slope_control_clip   = 3,       &
@@ -174,6 +176,9 @@
 
       logical (log_kind) ::  &
          diag_gm_bolus          ! true for diagnostic bolus velocity computation 
+
+      logical (log_kind) ::  &
+         diag_gm_steer          ! true for diagnostic steering level eddy flux computation 
 
 !-----------------------------------------------------------------------
 !
@@ -358,7 +363,7 @@
                           buoyancy_freq_filename,                &
                           buoyancy_freq_fmt,                     &
                           const_eg, gamma_eg,                    &
-                          kappa_min_eg, kappa_max_eg
+                          kappa_min_eg, kappa_max_eg, diag_gm_steer
 
 !-----------------------------------------------------------------------
 !
@@ -385,6 +390,7 @@
 !     slm_r           : max. slope allowed for isopycnal (redi) diffusion (= 0.3)
 !     slm_b           : max. slope allowed for thickness (bolus) diffusion (= 0.3)
 !     diag_gm_bolus   : .true.
+!     diag_gm_steer   : .true.
 !     transition_layer_on: .false.
 !     read_n2_data    : .false.
 !     const_eg        : 1.
@@ -416,6 +422,7 @@
    slm_r = 0.3_r8
    slm_b = 0.3_r8
    diag_gm_bolus          = .true.
+   diag_gm_steer          = .true.
    use_const_ah_bkg_srfbl = .true.
    transition_layer_on    = .false.
    read_n2_data           = .false.
@@ -516,6 +523,8 @@
        kappa_isop_type = kappa_type_bfreq_dradius
      case ('edgr')
        kappa_isop_type = kappa_type_eg
+     case ('stee')
+       kappa_isop_type = kappa_type_steer
      case default
        kappa_isop_type = -1000
      end select
@@ -541,6 +550,8 @@
        kappa_thic_type = kappa_type_bfreq_dradius
      case ('edgr')
        kappa_thic_type = kappa_type_eg
+     case ('stee')
+       kappa_thic_type = kappa_type_steer
      case default
        kappa_thic_type = -1000
      end select
@@ -571,10 +582,12 @@
 
      if ( kappa_isop_type == kappa_type_bfreq          .or.  &
           kappa_isop_type == kappa_type_bfreq_vmhs     .or.  &
+          kappa_isop_type == kappa_type_steer          .or.  &
           kappa_isop_type == kappa_type_bfreq_hdgr     .or.  &
           kappa_isop_type == kappa_type_bfreq_dradius  .or.  &
           kappa_thic_type == kappa_type_bfreq          .or.  &
           kappa_thic_type == kappa_type_bfreq_vmhs     .or.  &
+          kappa_thic_type == kappa_type_steer          .or.  &
           kappa_thic_type == kappa_type_bfreq_hdgr     .or.  &
           kappa_thic_type == kappa_type_bfreq_dradius ) then
        if ( read_n2_data ) then
@@ -632,6 +645,7 @@
    call broadcast_scalar(slm_r,                  master_task)
    call broadcast_scalar(slm_b,                  master_task)
    call broadcast_scalar(diag_gm_bolus,          master_task)
+   call broadcast_scalar(diag_gm_steer,          master_task)
    call broadcast_scalar(use_const_ah_bkg_srfbl, master_task)
    call broadcast_scalar(transition_layer_on,    master_task)
    call broadcast_scalar(read_n2_data,           master_task)
@@ -695,6 +709,8 @@
             kappa_thic_type == kappa_type_vmhs )          .or.     &
           ( kappa_isop_type == kappa_type_bfreq_vmhs     .and.     &
             kappa_thic_type == kappa_type_bfreq_vmhs )    .or.     &
+          ( kappa_isop_type == kappa_type_steer          .and.     &
+            kappa_thic_type == kappa_type_steer )         .or.     &
           ( kappa_isop_type == kappa_type_dradius        .and.     &
             kappa_thic_type == kappa_type_dradius )       .or.     &
           ( kappa_isop_type == kappa_type_bfreq_dradius  .and.     &
@@ -717,6 +733,8 @@
           kappa_thic_type == kappa_type_vmhs         .or.   &
           kappa_isop_type == kappa_type_bfreq_vmhs   .or.   &
           kappa_thic_type == kappa_type_bfreq_vmhs   .or.   &
+          kappa_isop_type == kappa_type_steer        .or.   &
+          kappa_thic_type == kappa_type_steer        .or.   &
           kappa_isop_type == kappa_type_hdgr         .or.   &
           kappa_thic_type == kappa_type_hdgr         .or.   &
           kappa_isop_type == kappa_type_bfreq_hdgr   .or.   &
@@ -743,6 +761,8 @@
           kappa_thic_type == kappa_type_dradius        .or.    &
           kappa_isop_type == kappa_type_bfreq_vmhs     .or.    &
           kappa_thic_type == kappa_type_bfreq_vmhs     .or.    &
+          kappa_isop_type == kappa_type_steer          .or.    &
+          kappa_thic_type == kappa_type_steer          .or.    &
           kappa_isop_type == kappa_type_bfreq_hdgr     .or.    &
           kappa_thic_type == kappa_type_bfreq_hdgr     .or.    &
           kappa_isop_type == kappa_type_bfreq_dradius  .or.    &
@@ -796,6 +816,8 @@
              KAPPA_VERTICAL(nx_block,ny_block,km,nblocks_clinic))
 
     allocate (BUOY_FREQ_SQ(nx_block,ny_block,km,nblocks_clinic))
+
+    allocate (BUOY_FREQ_SQ_NORM(nx_block,ny_block,km,nblocks_clinic))
 
     allocate (VDC_GM(nx_block,ny_block,km,nblocks_clinic))
 
@@ -898,6 +920,7 @@
 !                                             field_type_scalar)
 
    BUOY_FREQ_SQ = c0
+   BUOY_FREQ_SQ_NORM = c0
 
    if ( read_n2_data ) then
 
@@ -971,7 +994,9 @@
 !-----------------------------------------------------------------------
 
    if ( kappa_isop_type == kappa_type_eg  .or.  &
-        kappa_thic_type == kappa_type_eg ) then 
+        kappa_thic_type == kappa_type_eg  .or.  &
+        kappa_isop_type == kappa_type_steer  .or.  &
+        kappa_thic_type == kappa_type_steer ) then 
 
      allocate (SIGMA_TOPO_MASK(nx_block,ny_block,km,nblocks_clinic))
 
@@ -1297,6 +1322,8 @@
                kappa_thic_type == kappa_type_dradius        .or.    &
                kappa_isop_type == kappa_type_bfreq          .or.    &
                kappa_thic_type == kappa_type_bfreq          .or.    &
+               kappa_isop_type == kappa_type_steer          .or.    &
+               kappa_thic_type == kappa_type_steer          .or.    &
                kappa_isop_type == kappa_type_bfreq_vmhs     .or.    &
                kappa_thic_type == kappa_type_bfreq_vmhs     .or.    &
                kappa_isop_type == kappa_type_bfreq_hdgr     .or.    &
@@ -1340,17 +1367,24 @@
 
           if ( kappa_isop_type == kappa_type_bfreq          .or.  &
                kappa_thic_type == kappa_type_bfreq          .or.  &
+               kappa_isop_type == kappa_type_steer          .or.  &
+               kappa_thic_type == kappa_type_steer          .or.  &
                kappa_isop_type == kappa_type_bfreq_vmhs     .or.  &
                kappa_thic_type == kappa_type_bfreq_vmhs     .or.  &
                kappa_isop_type == kappa_type_bfreq_hdgr     .or.  &
                kappa_thic_type == kappa_type_bfreq_hdgr     .or.  &
                kappa_isop_type == kappa_type_bfreq_dradius  .or.  &
                kappa_thic_type == kappa_type_bfreq_dradius )      &
-            call buoyancy_frequency_dependent_profile (TMIX, this_block)
+            call buoyancy_frequency_dependent_profile (TMIX, BUOY_FREQ_SQ_NORM, this_block)
 
           if ( kappa_isop_type == kappa_type_eg  .or.  &
                kappa_thic_type == kappa_type_eg ) &
             call kappa_eg (TMIX, UMIX, VMIX, this_block) 
+
+!  Just call kappa_steer all the time to output diagnostic versions of the steering variables.
+         if ( kappa_isop_type == kappa_type_steer  .or.  &
+              kappa_thic_type == kappa_type_steer ) &
+            call kappa_steer (TMIX, UMIX, VMIX, BUOY_FREQ_SQ_NORM, this_block) 
 
           compute_kappa(bid) = .false.
 
@@ -3120,7 +3154,7 @@
 ! !IROUTINE: buoyancy_frequency_dependent_profile 
 ! !INTERFACE:
 
-      subroutine buoyancy_frequency_dependent_profile (TMIX, this_block)
+      subroutine buoyancy_frequency_dependent_profile (TMIX, BUOY_FREQ_SQ_NORM, this_block)
 
 ! !DESCRIPTION:
 !  Computes normalized buoyancy frequency ($N$) dependent profiles that 
@@ -3148,6 +3182,9 @@
       type (block), intent(in) :: &
          this_block            ! block info for this sub block
 
+      real (r8), dimension(nx_block,ny_block,km,nblocks_clinic), intent(out) :: &
+         BUOY_FREQ_SQ_NORM    ! normalized N^2 defined at level interfaces
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -3172,8 +3209,6 @@
                               !  of N^2
          SDL                  ! surface diabatic layer (see below)
 
-      real (r8), dimension(nx_block,ny_block,km) :: &
-         BUOY_FREQ_SQ_NORM    ! normalized N^2 defined at level interfaces
 
 !-----------------------------------------------------------------------
 !
@@ -3187,7 +3222,7 @@
 
       bid = this_block%local_id
 
-      BUOY_FREQ_SQ_NORM         = c0
+      BUOY_FREQ_SQ_NORM(:,:,:,bid)         = c0
       BUOY_FREQ_SQ_REF          = c0
       KAPPA_VERTICAL(:,:,:,bid) = c1
 
@@ -3252,18 +3287,18 @@
       do k=1,km-1
         where ( ( k >= K_MIN ) .and. ( k < KMT(:,:,bid) ) .and. &
                ( BUOY_FREQ_SQ_REF /= c0 ) )
-          BUOY_FREQ_SQ_NORM(:,:,k) =  &
+          BUOY_FREQ_SQ_NORM(:,:,k,bid) =  &
               max( BUOY_FREQ_SQ(:,:,k,bid) / BUOY_FREQ_SQ_REF, 0.1_r8 )
-          BUOY_FREQ_SQ_NORM(:,:,k) =  &
-              min( BUOY_FREQ_SQ_NORM(:,:,k), c1 ) 
+          BUOY_FREQ_SQ_NORM(:,:,k,bid) =  &
+              min( BUOY_FREQ_SQ_NORM(:,:,k,bid), c1 ) 
         elsewhere
-          BUOY_FREQ_SQ_NORM(:,:,k) = c1
+          BUOY_FREQ_SQ_NORM(:,:,k,bid) = c1
         endwhere
       enddo
 
       do k=1,km-1
         where ( k == KMT(:,:,bid)-1 ) 
-          BUOY_FREQ_SQ_NORM(:,:,k+1) = BUOY_FREQ_SQ_NORM(:,:,k)
+          BUOY_FREQ_SQ_NORM(:,:,k+1,bid) = BUOY_FREQ_SQ_NORM(:,:,k,bid)
         endwhere
       enddo
 
@@ -3277,7 +3312,7 @@
 
       do k=2,km
         where ( ( k > K_MIN ) .and. ( k <= KMT(:,:,bid) ) )
-          KAPPA_VERTICAL(:,:,k,bid) = BUOY_FREQ_SQ_NORM(:,:,k-1)
+          KAPPA_VERTICAL(:,:,k,bid) = BUOY_FREQ_SQ_NORM(:,:,k-1,bid)
         endwhere
       enddo
 
@@ -3951,6 +3986,633 @@
       end subroutine apply_vertical_profile_to_isop_hor_diff
 
 !***********************************************************************
+
+!***********************************************************************
+!BOP
+! !IROUTINE: calc_ri_n2
+! !INTERFACE:
+
+    subroutine calc_ri_n2 (TMIX, UMIX, VMIX, RI, N2, this_block)
+
+! !DESCRIPTION:
+!
+!  This subroutine returns the local richardson number at T points.
+!  local Richardson number at the bottom of T box, level k
+!     = -g*Dz(RHO)/RHO_0/(Dz(u)**2+Dz(v)**2)
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+      real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+           TMIX               ! tracers at all vertical levels
+      !  at mixing time level
+      
+      real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+           UMIX, VMIX         ! U,V at all vertical levels
+      !  at mixing time level
+      
+      type (block), intent(in) :: &
+           this_block         ! block info for this sub block
+      
+      real (r8), intent(out), dimension(nx_block,ny_block,km) :: &
+           RI,                                    & ! local Richardson number T pts
+           N2                                       ! local Richardson number U pts
+      
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+      integer (int_kind) :: &
+           bid,             &   ! local block address for this sub block
+           k, kp1                  ! vertical level index
+      
+      real (r8), dimension(nx_block,ny_block,km) :: &
+           SHEAR                                    ! vertical t cell shear
+      real (r8), dimension(nx_block,ny_block) :: &
+           THETAK, THETAKP,                         &  ! level k and k+1 TMIX
+           SALINITYK, SALINITYKP,                   &
+           UKT,UKPT,VKT,VKPT,                       &
+           DRHODT, DRHODS,                          &                               ! dRHOdT and dRHOdS
+           USHEAR,VSHEAR,                           &
+           DTDZ, DSDZ
+      
+      ! Boussinesq reference density (kg/m3) and its inverse. Ideally, this
+      ! density should be set equal to the domain averaged density
+      ! in the model.
+
+      real(r8),parameter :: rho0 = 1.0350_r8
+!jt-test      real(r8),parameter :: rho0r = 1.0_r8/1.035_r8
+      real(r8),parameter :: rho0r = 1.0_r8
+      integer :: m,ii,jj,kbot
+      real(r8) :: prev,tmp1
+!-----------------------------------------------------------------------
+!  initialization
+!-----------------------------------------------------------------------
+
+      bid = this_block%local_id
+      
+      RI    =  c0
+      N2    =  c0
+      SHEAR =  c0
+      UKT   =  c0
+      VKT   =  c0
+      UKPT  =  c0
+      VKPT  =  c0
+
+!-----------------------------------------------------------------------
+!
+!     compute buoyancy frequency and Richardson number at the bottom of 
+!     T box:
+!             Ri = -g*Dz(RHO)/RHO_0/(Dz(u)**2+Dz(v)**2)
+!
+!     RHO_0 ~ 1 in cgs units.
+!
+!-----------------------------------------------------------------------
+
+      ! compute N2 on bottom of T-cell
+      do k=1,km-1
+         kp1 = k+1
+         
+         THETAK = max(-c2, TMIX(:,:,k,1))
+         THETAKP = max(-c2, TMIX(:,:,kp1,1))
+         SALINITYK  = TMIX(:,:,k,2)
+         SALINITYKP = TMIX(:,:,kp1,2)
+         
+         call state (k, kp1, THETAK, SALINITYK, &
+              this_block, DRHODT=DRHODT, DRHODS=DRHODS)
+         
+
+         DTDZ=(THETAK-THETAKP)*dzwr(k)
+         DSDZ=(SALINITYK-SALINITYKP)*dzwr(k)
+         where (k < KMT(:,:,bid))
+            N2(:,:,k) = max(c0,-grav*rho0r*(DRHODT*DTDZ+DRHODS*DSDZ))
+         end where
+      end do
+if (.false.) then
+      ! smooth N2 to reduce vertical noise
+      do m=1,1
+         do ii=1,nx_block
+            do jj=1,ny_block
+               prev = 0.25*N2(ii,jj,1)
+	       kbot=kmt(ii,jj,bid)
+               if (kbot > 3) then
+                  do k=2,kbot-2
+                     tmp1 = N2(ii,jj,k)
+                     N2(ii,jj,k) = prev + p5*N2(ii,jj,k) + p25*N2(ii,jj,k+1)
+                     prev = p25*tmp1
+                  enddo
+               endif
+            enddo
+         enddo
+      enddo
+end if
+      ! compute vertical shear on T-cell points
+      SHEAR = 0.
+      call ugrid_to_tgrid(UKT,UMIX(:,:,1),bid)
+      call ugrid_to_tgrid(VKT,VMIX(:,:,1),bid)
+      do k=1,km-1
+         kp1 = k+1
+
+         call ugrid_to_tgrid(UKPT,UMIX(:,:,kp1),bid)
+         call ugrid_to_tgrid(VKPT,VMIX(:,:,kp1),bid)
+
+         where (k < KMT(:,:,bid))
+            USHEAR = (UKT-UKPT)*dzwr(k)
+            VSHEAR = (VKT-VKPT)*dzwr(k)
+            SHEAR(:,:,k) = USHEAR**2 + VSHEAR**2
+         elsewhere
+            SHEAR(:,:,k) = c0
+         end where
+         UKT=UKPT
+         VKT=VKPT
+      enddo
+
+      ! compute richardson number at bottom of T-cell
+      do k=1,km
+         where (k < KMT(:,:,bid) .and. SHEAR(:,:,k)>c0 )
+            RI(:,:,k) = N2(:,:,k)/SHEAR(:,:,k)
+         elsewhere
+            RI(:,:,k) = c0
+         end where
+      enddo
+      ! smooth Richardson number in the vertical using a 1-2-1 filter
+if (.false.) then
+      do m=1,1
+         do ii=1,nx_block
+            do jj=1,ny_block
+	       kbot=kmt(ii,jj,bid)
+               prev = 0.25*RI(ii,jj,1)
+               if (kbot > 3) then
+                  do k=2,kbot-2
+                     tmp1 = RI(ii,jj,k)
+                     RI(ii,jj,k) = prev + p5*RI(ii,jj,k) + p25*RI(ii,jj,k+1)
+                     prev = p25*tmp1
+                  enddo
+               endif
+            enddo
+         enddo
+      enddo
+endif
+    end subroutine calc_ri_n2
+
+!***********************************************************************
+!BOP
+! !IROUTINE: calc_sigma
+! !INTERFACE:
+
+    subroutine calc_sigma (SIGMA,N2,M4,this_block)
+
+! !DESCRIPTION:
+!
+!  This subroutine returns sigma 
+!  local Richardson number at the bottom of T box, level k
+!
+!   Ri  =           f**2 N**2                                f**2 N**2
+!          -------------------------               =     ---------
+!          g**2/rho0**2 * ((drho/dy)**2+(drho/dx)**2)            m**4
+!
+!   sigma= f/sqrt(RI) = m**2/N 
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+      type (block), intent(in) :: &
+           this_block         ! block info for this sub block
+      
+! !OUTPUT PARAMETERS:
+
+      real (r8), dimension(nx_block,ny_block,km), intent(out) :: &
+         SIGMA,M4,N2             ! local Buoyancy Freq Sq
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+      real (r8), dimension(nx_block,ny_block) :: &
+           RXA2,RYA2
+      
+      integer (int_kind) :: &
+           bid,             &   ! local block address for this sub block
+           k
+      integer (int_kind), parameter :: &
+           ieast  = 1, iwest  = 2,       &
+           jnorth = 1, jsouth = 2
+
+! Boussinesq reference density (kg/m3) and its inverse. Ideally, this
+! density should be set equal to the domain averaged density
+! in the model.
+
+      real(r8),parameter :: rho0 = 1.0350_r8
+      !jt-test      real(r8),parameter :: rho0r = 1.0_r8/1.035_r8
+      real(r8),parameter :: rho0r = 1.0_r8
+      
+!-----------------------------------------------------------------------
+!  initialization RX,RY,TX,TY,TZ,RZ_SAVE coming from hmix_gm_submeso_share
+!-----------------------------------------------------------------------
+
+      bid = this_block%local_id
+      
+      N2    =  c0
+      M4    =  c0
+      SIGMA =  c0
+      RXA2 =  c0
+      RYA2 =  c0
+      
+      do k=1,km
+         if ( k < km ) then
+! Here N2 is located on the bottom of the TCell face
+            
+            N2(:,:,k)=-grav*rho0r*RZ_SAVE(:,:,k+1,bid)*dzwr(k)
+
+! Average RX (RY) east and west to move to T grid and K and K+1 to move to bottom of TCELL face.
+
+            RXA2(:,:)= p25 * (RX(:,:,ieast,k,bid)**2 &
+            +  RX(:,:,iwest,k,bid)**2                  &
+            +  RX(:,:,ieast,k+1,bid)**2                &
+            +  RX(:,:,iwest,k+1,bid)**2) /DXT(:,:,bid)**2
+            
+            RYA2(:,:)= p25 * (RY(:,:,jnorth,k,bid)**2 &
+            +  RY(:,:,jsouth,k,bid)**2                  &
+            +  RY(:,:,jnorth,k+1,bid)**2                &
+            +  RY(:,:,jsouth,k+1,bid)**2) /DYT(:,:,bid)**2
+            M4(:,:,k)=(grav**2*rho0r*(RXA2(:,:)+RYA2(:,:)))
+!-----------------------------------------------------------------------
+! ri=f**2 n**2 / (grav**2*rho0r*(RXM+RYM))
+! sigma = f/sqrt(ri) = f/(fN/m**2) = 1/sqrt(N**2/m**4)
+!-----------------------------------------------------------------------
+            where (k < KMT(:,:,bid).and.N2(:,:,k).ne.0. .and. (RXA2(:,:)+RYA2(:,:)).ne.0.)
+               SIGMA(:,:,k) = SQRT(M4(:,:,k))/SQRT(N2(:,:,k))
+            end where
+         end if
+      end do
+    end subroutine calc_sigma
+
+!***********************************************************************
+!BOP
+! !IROUTINE: kappa_steer
+! !INTERFACE:
+
+    subroutine kappa_steer (TMIX, UMIX, VMIX, BUOY_FREQ_SQ_NORM, this_block)
+
+! !DESCRIPTION:
+!  Variable kappa parameterization based on mixing length theory
+!  
+!  K = u_rms ( Gamma * L_eddy / (1 + b_1 |u_mean - c|**2 / u_rms**2(z=0) ).
+!  
+!  Gamma = 0.35
+!  b_1 ~ 4. 
+!  u_mean= instantaneous zonal velocity
+!  
+!  L_eddy = min (L_r, L_req, L_Rh)  Eddy length scale
+!  
+!  L_r = c_r/f :  the Rossby radius of deformation for mode 1 (no beta). c_r
+!                      is calculated based on Chelton et al. (1998) subject to WKB
+!                      approximation. Alternatively, we can use NH/f.
+!  
+!  L_req = sqrt(c_r / 2 beta) : Equatorial deformation radius which involves
+!                                             beta
+!  
+!  L_Rh = sqrt(u*_rms / beta) ~ sigma / beta : Rhines scale
+!  
+!  sigma = f / sqrt(Ri).
+!  
+!  Eddy Velocity:
+!  
+!  u_rms = alpha * sigma * L_r
+!
+!  alpha = 0.015 from Specification of Eddy Transfer Coefficients in Coarse-Resolution Ocean 
+!                     Circulation Models Visbeck et al 1997
+!  
+!  Eddy Zonal phase speed:
+!  
+!  In the ACC, the phase speed of the eddies measured by altimetry is, roughly:
+!  
+!  c = u - beta *  L_r**2
+!  
+!  In most of the ocean u is small and 
+!  
+!  c ~ - beta *  L_r**2
+!   
+ 
+!  Computation follows AMS Bates et al (2014) 
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+      real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+         TMIX               ! tracers at all vertical levels
+                            !  at mixing time level
+
+      real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+         UMIX, VMIX         ! U,V  at all vertical levels
+                            !  at mixing time level
+
+      real (r8), dimension(nx_block,ny_block,km,nblocks_clinic), intent(in) :: &
+         BUOY_FREQ_SQ_NORM    ! normalized N^2 defined at level interfaces
+
+      type (block), intent(in) :: &
+         this_block         ! block info for this sub block
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+      integer (int_kind) :: &
+           bid,             &   ! local block address for this sub block
+           i,               &
+           j,               &
+           k
+
+      real (r8) :: &
+         const, zmin1, zmin2, gamma, b1, alpha, minri, &
+         kappa_min         = 100.e4_r8,    & ! min KAPPA_LATERAL value in cm^2/s m2/s
+         kappa_max         = 10000.e4_r8     ! max KAPPA_LATERAL value in cm^2/s
+
+      real (r8), dimension(nx_block,ny_block) ::  &
+         DEPTH_SUM,                               &
+         RI_ZAVG,                                 &
+         C_ROSSBY,                                &  ! first baroclinic Rossby wave speed
+         L_ROSSBY,                                &  ! Rossby deformation radius
+         L_ROSSBYEQ,                              &  ! Rossby deformation radius
+         L_EDDY,                                  &  
+         C_EDDY,                                  &  
+         C_EDDYLIM,                               &  
+         SUPP,                                    &  
+         LMIX,                                    &  
+         BFREQ_SQ_NORM,                           &  
+         L_RHINES,                                &  
+         URMS_AVG,                                &
+         URMS_AVG_SQ,                             &
+         URMS_AVG_K,                             &
+         URMS_AVG_K_SQ,                          &
+         ULEV,                                    &
+         U_MEAN,                                  &
+         U_MINUS_C,                               &
+         U_MINUS_C_SQ,                            &
+         UMCSQ_OVR_URMSSQ,                        &
+         DEPTH_MASK,                              &
+         N2OVM4_AVG,                              &
+         SIGMA_AVG
+
+      real (r8), dimension(nx_block,ny_block,km) :: &
+         N2,                                      &  ! local Buoyancy Freq Sq
+         UTGRD_MAX,                               &
+         VTGRD_MAX,                               &
+         M4,                                      &
+         SIGMA,                                   &
+         RI                ! local Richardson number
+
+	 integer ii,jj
+!-----------------------------------------------------------------------
+!  initialization
+!-----------------------------------------------------------------------
+
+      bid = this_block%local_id
+
+      alpha   = c4
+      b1      = c4
+!jt      gamma   = 0.35_r8
+      gamma   = 1.75_r8
+      RI      = c0
+      BFREQ_SQ_NORM    = c0
+      C_EDDY   = c0
+      C_EDDYLIM   = c0
+      DEPTH_SUM = c0
+      RI_ZAVG   = c0
+      ULEV   = c0
+      U_MEAN   = c0
+      DEPTH_MASK = c0
+
+!-----------------------------------------------------------------------
+!  put out temp u and v on tgrid
+!-----------------------------------------------------------------------
+      do k=1,km
+         call ugrid_to_tgrid(UTGRD_MAX(:,:,k),UMIX(:,:,k),bid)
+         call ugrid_to_tgrid(VTGRD_MAX(:,:,k),VMIX(:,:,k),bid)
+      end do
+
+!-----------------------------------------------------------------------
+!  calc richardson number
+!-----------------------------------------------------------------------
+
+      call calc_ri_n2(TMIX, UMIX, VMIX, RI, N2, this_block)
+
+!-----------------------------------------------------------------------
+!  vertical average from 100m to 2000m
+!-----------------------------------------------------------------------
+      DEPTH_SUM=0.
+      RI_ZAVG =  c0
+      do k=1,km
+         if ( zt(k) >= 1.0e4_r8 .and. zt(k) <= 2.0e5_r8 ) then
+            DEPTH_MASK=c0
+            where(RI(:,:,k)>c0)
+               DEPTH_MASK=c1
+            endwhere
+            where (k < KMT(:,:,bid))
+               RI_ZAVG = RI_ZAVG + RI(:,:,k)*dzw(k)
+               DEPTH_SUM = DEPTH_SUM + dzw(k)*DEPTH_MASK
+            end where
+         endif
+      enddo
+
+      where (DEPTH_SUM > c0)
+         RI_ZAVG = RI_ZAVG/DEPTH_SUM
+      elsewhere
+         RI_ZAVG =  c0
+      end where
+
+!-----------------------------------------------------------------------
+!  get U_SRF on TGRID
+!-----------------------------------------------------------------------
+
+      call ugrid_to_tgrid(U_MEAN,UMIX(:,:,1),bid)
+
+!-----------------------------------------------------------------------
+!
+!    compute the first baroclinic gravity-wave phase speed.
+!    Computation of Rossby deformation radius follows Chelton et al.(1998)
+!
+!
+!    ! EoM: 16.62, G(2004) 14.81
+!    rossby_non_equator(COMP) = gravity_wave_speed(COMP)/(coriolis_param(COMP) + epsln)
+!    
+!    ! EoM: 16.63, G(2004) 14.82    
+!    rossby_equator(COMP)     = sqrt(gravity_wave_speed(COMP)/(2.0*beta_param(COMP)))
+!
+!-----------------------------------------------------------------------
+
+      C_ROSSBY = c0
+
+      k = 1
+      where ( k < KMT(:,:,bid) )
+        C_ROSSBY = C_ROSSBY + sqrt(N2(:,:,k)) * dzw(k-1)
+      endwhere
+
+      do k=1,km
+        where ( k < KMT(:,:,bid) )
+          C_ROSSBY = C_ROSSBY + sqrt(N2(:,:,k)) * dzw(k)
+        endwhere
+        where ( k > 1  .and.  k == KMT(:,:,bid) )
+          C_ROSSBY = C_ROSSBY + sqrt(N2(:,:,k-1)) * dzw(k)
+        endwhere
+      enddo
+
+      C_ROSSBY = C_ROSSBY / pi
+
+      L_ROSSBY = C_ROSSBY / (abs(FCORT(:,:,bid))+eps2)   !c_r/f
+
+      L_ROSSBYEQ = sqrt( C_ROSSBY / (c2*BTP(:,:,bid)) ) 
+
+      L_EDDY = min( L_ROSSBY ,L_ROSSBYEQ )
+
+      !-----------------------------------------------------------------------
+      !     compute sigma - inverse eady time scale
+      !-----------------------------------------------------------------------
+
+      SIGMA  = 0.
+      SIGMA_AVG  = 0.
+      L_RHINES   = 0.
+      URMS_AVG= c0
+      URMS_AVG_K = c0
+      URMS_AVG_SQ= c0
+      URMS_AVG_K_SQ= c0
+
+      !-----------------------------------------------------------------------
+      ! Calculate sigma = f/sqrt(Ri)
+      !-----------------------------------------------------------------------
+      !
+      ! where(RI_ZAVG.ne.0.)
+      !    SIGMA_AVG=abs(FCORT(:,:,bid))/sqrt(RI_ZAVG)
+      ! endwhere
+
+      !-----------------------------------------------------------------------
+      ! Calculate sigma = m**2/N      
+      !-----------------------------------------------------------------------
+
+      DEPTH_SUM=c0
+      N2OVM4_AVG=c0
+      call calc_sigma(SIGMA,N2,M4,this_block)
+      do k=1,km
+         if ( zw(k) >= 1.0e4_r8 .and. zw(k) <= 2.0e5_r8 ) then
+            where (k < KMT(:,:,bid).and.M4(:,:,k)>c0)
+               N2OVM4_AVG=N2OVM4_AVG+N2(:,:,k)/M4(:,:,k)*dzw(k)
+               DEPTH_SUM = DEPTH_SUM + dzw(k)
+            end where
+         endif
+      enddo
+
+      where (DEPTH_SUM > c0)
+         N2OVM4_AVG = N2OVM4_AVG/DEPTH_SUM
+      elsewhere
+         N2OVM4_AVG =  c0
+      end where
+
+      where(N2OVM4_AVG.ne.0.)
+         SIGMA_AVG =  c1/sqrt(N2OVM4_AVG)
+      elsewhere
+         SIGMA_AVG =  c0
+      endwhere
+
+
+      L_RHINES  = SIGMA_AVG / BTP(:,:,bid)
+         
+      !-----------------------------------------------------------------------
+      !  Eddy Velocity u_rms = alpha * sigma * L_eddy
+      !-----------------------------------------------------------------------
+      
+      URMS_AVG = alpha * SIGMA_AVG * L_EDDY
+
+      !-----------------------------------------------------------------------
+      !  Eddy Velocity limited to 5 cm/sec
+      !-----------------------------------------------------------------------
+      URMS_AVG=max(URMS_AVG,c5)
+
+      URMS_AVG_SQ=URMS_AVG*URMS_AVG
+
+      !-----------------------------------------------------------------------
+      !  Eddy Zonal phase speed:
+      !  c_eddy = u - beta *  L_eddy**2
+      !  In most of the ocean u is small and 
+      !  c_eddy ~ - beta *  L_eddy**2
+      !-----------------------------------------------------------------------
+
+      C_EDDY = -c1 * BTP(:,:,bid) *  L_EDDY**2
+
+      C_EDDYLIM = max(C_EDDY,-20.)
+      
+      !-----------------------------------------------------------------------
+      !  Calculate KAPPA_VERTICAL using a depth dependent U and adding
+      !  a depth scaling to U_RMS based on a normalized buoyance_frequency
+      !-----------------------------------------------------------------------
+
+      do k=1,km
+         if (k.gt.1) then
+      !-----------------------------------------------------------------------
+      !     BUOY_FREQ_SQ_NORM is located on tops and bot
+      !     In order to preserve maxima BUOY_FREQ_SQ_NORM is not interpolated to
+      !     midpoint but copied from above.  The first level of URMS will have
+      !     no scaling (or alternatively a scaling of 1.)
+      !-----------------------------------------------------------------------
+            BFREQ_SQ_NORM=BUOY_FREQ_SQ_NORM(:,:,k-1,bid)
+         else	    
+            BFREQ_SQ_NORM=c1
+         end if
+         URMS_AVG_K=URMS_AVG*BFREQ_SQ_NORM
+
+         URMS_AVG_K_SQ=URMS_AVG_K*URMS_AVG_K
+
+         where ( k < KMT(:,:,bid) .and. URMS_AVG_SQ.gt.0.)
+            
+            U_MINUS_C =  abs(UTGRD_MAX(:,:,k) - C_EDDYLIM)
+            U_MINUS_C_SQ =  U_MINUS_C**2
+            UMCSQ_OVR_URMSSQ=U_MINUS_C_SQ/ URMS_AVG_SQ
+            SUPP= c1/(c1 + b1*UMCSQ_OVR_URMSSQ)
+            LMIX = gamma * L_EDDY * SUPP
+                        
+      !-----------------------------------------------------------------------
+      !     compute KAPPA_VERTICAL using depth dependent value for U
+      !-----------------------------------------------------------------------
+                        
+            KAPPA_VERTICAL(:,:,k,bid)= URMS_AVG_K * LMIX
+         elsewhere
+            KAPPA_VERTICAL(:,:,k,bid)= c0
+            URMS_AVG_K_SQ = c0
+            URMS_AVG_K = c0
+            UMCSQ_OVR_URMSSQ = c0
+            LMIX = c0
+            SUPP = c0
+            U_MINUS_C = c0
+            U_MINUS_C_SQ = c0
+         end where
+         
+      !-----------------------------------------------------------------------
+      !     Bound KAPPA_VERTICAL
+      !-----------------------------------------------------------------------
+         KAPPA_VERTICAL(:,:,k,bid) = min( kappa_max, KAPPA_VERTICAL(:,:,k,bid) )
+         KAPPA_VERTICAL(:,:,k,bid) = max( kappa_min, KAPPA_VERTICAL(:,:,k,bid) )
+      end do
+      KAPPA_LATERAL(:,:,bid) = c1
+
+    end subroutine kappa_steer
 
       end module hmix_gm
 
