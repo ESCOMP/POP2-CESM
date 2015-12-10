@@ -5,6 +5,10 @@ Tag Date:    10 Dec 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n19_cesm_pop_2_1_20151123/
 Tag Summary: Merge Nov 23 trunk to marbl_diags branch
 
+Testing: aux_pop_MARBL, compared to Nov 17 trunk, only show round-off level
+         differences in the 2D diagnostics that are expected from the n11 tag
+         of this branch
+
 Still to Do:
              1) Remove DONr_remin and DOPr_remin
              2) Update output from lecosys_debug
