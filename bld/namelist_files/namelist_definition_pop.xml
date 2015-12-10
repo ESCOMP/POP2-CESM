@@ -4271,6 +4271,52 @@ Default: .false. .false. .false.
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: mcog_nml                 - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry
+id="lmcog"
+type="logical"
+category="mcog"
+group="mcog_nml"
+valid_values=".true.,.false." >
+Flag for activating mcog, the multiple-column ocean grid parameterization.
+
+Default: .false., unless ecosys is turned on
+</entry>
+
+<entry
+id="lmcog_debug"
+type="logical"
+category="mcog"
+group="mcog_nml"
+valid_values=".true.,.false." >
+Flag for activating debugging statements in multiple-column ocean grid parameterization.
+
+Default: .false.
+</entry>
+
+<entry 
+id="mcog_dagg_qsw_abort_thres"
+type="real"
+category="mcog"
+group="mcog_nml" >
+call abort if abs(dagg_qsw) exceeds this threshold
+
+Default: 1.0e-10
+</entry>
+
+<entry
+id="mcog_col_to_bin"
+type="integer(100)"
+category="mcog"
+group="mcog_nml" >
+bin index for each column
+
+Default: mcog_col_to_bin(nbin) = nbin
+</entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: se_nml                   - -->
 <!-- - - - - - - - - - - - - - - - - - -->
 
@@ -5996,14 +6042,6 @@ Default: 2225.0
 </entry>
 
 <entry 
-id="ecosys_qsw_distrb_const"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
 id="lsource_sink"
 type="logical"
 category="ecosys"
@@ -6112,12 +6150,48 @@ group="ecosys_nml" >
 Default: none provided
 </entry>
 
+<entry
+id="caco3_bury_thres_opt"
+type="char*256"
+category="ecosys"
+group="ecosys_nml"
+valid_values="fixed_depth,omega_calc" >
+option of threshold of caco3 burial
+Default: omega_calc
+</entry>
+
+<entry
+id="caco3_bury_thres_depth"
+type="real" 
+category="ecosys"
+group="ecosys_nml" >
+threshold depth for caco3_bury_thres_opt='fixed_depth'
+Default: 3300.0e2
+</entry>
+
+<entry
+id="pon_bury_coeff"
+type="real" 
+category="ecosys"
+group="ecosys_nml" >
+PON_sed_loss = PON_bury_coeff * Q * POC_sed_loss
+Default: 0.5
+</entry>
+
 <entry 
 id="lecovars_full_depth_tavg"
 type="logical" 
 category="ecosys"
 group="ecosys_nml" >
 Default: .false.
+</entry>
+
+<entry
+id="lecosys_debug"
+type="logical"
+category="ecosys"
+group="derived">
+When turned on, ocn.ecosys.tavg.csh will accumulate ALL ecosys diagnostics
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -6479,6 +6553,14 @@ type="char*256"
 category="ecosys"
 group="ecosys_driver_nml" >
 Default: 'base model'
+</entry>
+
+<entry 
+id="ecosys_qsw_distrb_const"
+type="logical" 
+category="ecosys"
+group="ecosys_driver_nml" >
+Default: 
 </entry>
 
 

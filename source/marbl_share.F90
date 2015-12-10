@@ -69,8 +69,6 @@ module marbl_share_mod
   real (r8)           :: surf_avg_dic_const
   real (r8)           :: surf_avg_alk_const
 
-  logical (log_kind)  :: ecosys_qsw_distrb_const
-
   logical (log_kind)  :: liron_patch                  ! flag for iron patch fertilization
   character(char_len) :: iron_patch_flux_filename     ! file containing name of iron patch file
   integer (int_kind)  :: iron_patch_month             !  integer month to add patch flux

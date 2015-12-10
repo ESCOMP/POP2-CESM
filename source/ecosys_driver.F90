@@ -29,12 +29,11 @@ module ecosys_driver
   use domain                    , only : nblocks_clinic
   use domain                    , only : distrb_clinic
   use domain_size               , only : max_blocks_clinic, km, nt
-  use prognostic                , only : TRACER
   use io_types                  , only : stdout, nml_in, nml_filename, datafile
+  use prognostic                , only : TRACER
   use exit_mod                  , only : sigAbort, exit_pop
   use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
 
-  ! NOTE(bja, 2014-12) all other uses of marbl/ecosys modules need to be removed!
   use marbl_share_mod           , only : autotroph_cnt, zooplankton_cnt
   use marbl_interface           , only : marbl_interface_class
   use marbl_interface           , only : marbl_sizes_type
@@ -43,6 +42,7 @@ module ecosys_driver
   use marbl_interface_types     , only : marbl_status_type
   use marbl_interface_types     , only : marbl_diagnostics_type
   use marbl_interface_types     , only : marbl_saved_state_type
+  use marbl_interface_types     , only : photosynthetically_available_radiation_type
   use ecosys_mod                , only : marbl_ecosys_set_sflux
   use ecosys_mod                , only : marbl_ecosys_set_interior
   use ecosys_diagnostics_mod    , only : marbl_ecosys_diagnostics_init  
@@ -67,6 +67,7 @@ module ecosys_driver
   use timers                    , only : timer_start
   use timers                    , only : timer_stop
   use timers                    , only : get_timer
+  use mcog, only : mcog_nbins
 
   implicit none
   private
@@ -112,6 +113,15 @@ module ecosys_driver
   integer (int_kind) :: ecosys_pre_sflux_timer
   integer (int_kind) :: ecosys_set_sflux_timer
   integer (int_kind) :: ecosys_comp_CO3terms_timer
+  
+  !--------------------------------------------------------------------
+  ! removed from marbl_share because they are read from pop's
+  ! namelist and passed into marbl (lmarginal_seas) or not used in
+  ! marbl at all (tadvect, ecosys_qsw_distrb_const).
+  ! --------------------------------------------------------------------
+  logical(log_kind) :: lmarginal_seas         ! Is ecosystem active in marginal seas ?
+  character(char_len) :: ecosys_tadvect_ctype ! advection method for ecosys tracers
+  logical (log_kind) , public :: ecosys_qsw_distrb_const
 
   !-----------------------------------------------------------------------
   ! needed as a module variable because of interface to ecosys_write_restart
@@ -143,6 +153,7 @@ module ecosys_driver
   !  used as reference value for virtual flux computations
   !-----------------------------------------------------------------------
 
+  type(photosynthetically_available_radiation_type) :: PAR_instances(max_blocks_clinic)
   logical (log_kind)  :: vflux_flag(ecosys_tracer_cnt)     ! which tracers get virtual fluxes applied
   real (r8)           :: surf_avg(ecosys_tracer_cnt)       ! average surface tracer values
 
@@ -266,8 +277,6 @@ contains
     integer (int_kind)              :: auto_ind                           ! autotroph functional group index
     integer (int_kind)              :: iblock                             ! index for looping over blocks
     real(r8)                        :: WORK(nx_block, ny_block)           ! FIXME (mvertens, 2015-10) remove this
-    logical (log_kind)              :: lmarginal_seas                     ! Is ecosystem active in marginal seas ?
-    character (char_len)            :: ecosys_tadvect_ctype               ! advection method for ecosys tracers
     character (char_len)            ::  ecosys_restart_filename           ! modified file name for restart file
     logical (log_kind)              :: use_nml_surf_vals                  ! do namelist surf values override values from restart file
     character (char_len)            :: init_ecosys_option                 ! namelist option for initialization of bgc
@@ -284,12 +293,13 @@ contains
     !-----------------------------------------------------------------------
 
     namelist /ecosys_driver_nml/ &
-         lmarginal_seas, ecosys_tadvect_ctype
+         lmarginal_seas, ecosys_tadvect_ctype, ecosys_qsw_distrb_const
 
     errorCode = POP_Success
 
     lmarginal_seas        = .true.
     ecosys_tadvect_ctype  = 'base_model'
+    ecosys_qsw_distrb_const = .true.
 
     nl_buffer = ''
     if (my_task == master_task) then
@@ -419,7 +429,6 @@ contains
     ! about the domain. initialization of elements will occur in marbl/ecosys_init
 
     allocate(marbl_saved_state%dust_flux_in       (nx_block, ny_block, max_blocks_clinic))
-    allocate(marbl_saved_state%par_out            (nx_block, ny_block, max_blocks_clinic))
     allocate(marbl_saved_state%ph_prev_3d         (nx_block, ny_block, km, max_blocks_clinic))
     allocate(marbl_saved_state%ph_prev_alt_co2_3d (nx_block, ny_block, km, max_blocks_clinic))
     allocate(marbl_saved_state%land_mask          (nx_block, ny_block, nblocks_clinic) )
@@ -592,7 +601,7 @@ contains
     !-----------------------------------------------------------------------
 
     character(*), parameter :: subname = 'ecosys_driver_mod:ecosys_driver_init_tracers'
-    integer :: n, k
+    integer :: n, k, bid
 
     !-----------------------------------------------------------------------
     !  initialize tracers
@@ -607,6 +616,19 @@ contains
     vflux_flag(dic_ind) = .true.
     vflux_flag(alk_ind) = .true.
     vflux_flag(dic_alt_co2_ind) = .true.
+
+    !-----------------------------------------------------------------------
+    !  allocate components in PAR derived type
+    !  FIXME(ktl) eventually is allocation for a single instance
+    !  FIXME(ktl) use PAR_nsubcols instead of MCOG_nbins
+    !-----------------------------------------------------------------------
+
+    do bid=1, nblocks_clinic
+       allocate(PAR_instances(bid)%col_frac(mcog_nbins))
+       allocate(PAR_instances(bid)%interface(0:km,mcog_nbins))
+       allocate(PAR_instances(bid)%avg(km,mcog_nbins))
+       allocate(PAR_instances(bid)%KPARdz(km))
+    enddo
 
     select case (init_ecosys_option)
        
@@ -765,6 +787,7 @@ contains
   !***********************************************************************
 
   subroutine ecosys_driver_set_interior(ciso_on, &
+       FRACR_BIN, QSW_RAW_BIN, QSW_BIN, &
        TEMP_OLD, TEMP_CUR, &
        SALT_OLD, SALT_CUR, &
        TRACER_MODULE_OLD, TRACER_MODULE_CUR, &
@@ -789,11 +812,16 @@ contains
     use marbl_share_mod       , only : column_zooplankton_share_to_slab_zooplankton_share
     use marbl_share_mod       , only : column_autotroph_share_to_slab_autotroph_share
     use marbl_share_mod       , only : column_particulate_share_to_slab_particulate_share
-    
+
     ! !INPUT PARAMETERS:
 
     logical (kind=log_kind), intent(in)  ::  &
          ciso_on                 ! ecosys_ciso on
+
+    real (r8), dimension(nx_block, ny_block, mcog_nbins), intent(in) :: &
+         FRACR_BIN,    &! fraction of cell occupied by mcog bin
+         QSW_RAW_BIN,  &! raw (directly from cpl) shortwave into each mcog column (W/m^2)
+         QSW_BIN        ! shortwave into each mcog bin, potentially modified by coszen factor (W/m^2)
 
     real (r8), dimension(nx_block, ny_block, km), intent(in) :: &
          TEMP_OLD,          &! old potential temperature (C)
@@ -829,6 +857,8 @@ contains
     type(marbl_autotroph_share_type)   :: marbl_autotroph_share(autotroph_cnt, km)
     type(marbl_particulate_share_type) :: marbl_particulate_share
 
+    real (r8), dimension(nx_block, ny_block, mcog_nbins) :: QSW_USE
+
     real (r8), dimension(nx_block, ny_block, km, ecosys_tracer_cnt) :: tracer_module_avg
     real (r8), dimension(nx_block, ny_block, km)                    :: temperature ! temperature (C)
     real (r8), dimension(nx_block, ny_block, km)                    :: salinity    ! salinity(ppt)
@@ -842,7 +872,6 @@ contains
     real(r8) :: tracer_local(ecosys_tracer_cnt)
     real(r8) :: restore_local(ecosys_tracer_cnt, km) ! local restoring terms for nutrients (mmol ./m^3/sec)
 
-    real(r8) :: PAR_out       ! photosynthetically available radiation (W/m^2)
     real(r8) :: dust_flux_in
     real(r8) :: ph_prev_3d(km)
     real(r8) :: ph_prev_alt_co2_3d(km)
@@ -856,17 +885,28 @@ contains
 
     ! FIXME(bja, 2015-07) one time copy of global marbl_domain
     ! related memory from slab to column ordering. move entire
-    ! copy to ecosys_driver_set_interior.
+    ! copy to ecosys_driver_init.
+    marbl_domain%PAR_nsubcols = mcog_nbins
 
     marbl_domain%km = km
     allocate(marbl_domain%dzt(marbl_domain%km))
     allocate(marbl_domain%dz(marbl_domain%km))
     allocate(marbl_gcm_state%temperature(marbl_domain%km))
     allocate(marbl_gcm_state%salinity(marbl_domain%km))
+    allocate(marbl_domain%PAR_col_frac(marbl_domain%PAR_nsubcols))
+    allocate(marbl_domain%surf_shortwave(marbl_domain%PAR_nsubcols))
 
     !-----------------------------------------------------------------------
     !  ECOSYS computations
     !-----------------------------------------------------------------------
+
+    ! select short-wave forcing
+
+    if (ecosys_qsw_distrb_const) then
+       QSW_USE = QSW_RAW_BIN
+    else
+       QSW_USE = QSW_BIN
+    endif
 
     ! gcm dependent quantities (i.e. time stepping). need to be
     ! averaged into a single quantity for marbl ecosys
@@ -885,6 +925,8 @@ contains
           marbl_domain%kmt = KMT(i, c, bid)
 
           if (marbl_domain%land_mask) then
+             marbl_domain%PAR_col_frac(:) = FRACR_BIN(i, c, :)
+             marbl_domain%surf_shortwave(:) = QSW_USE(i, c, :)
              do k = 1, marbl_domain%km
                 marbl_gcm_state%temperature(k) = temperature(i,c,k)
                 marbl_gcm_state%salinity(k)    = salinity(i,c,k)
@@ -915,7 +957,6 @@ contains
              end do
 
              dust_flux_in  = marbl_saved_state%dust_FLUX_IN(i, c, bid)
-             PAR_out       = marbl_saved_state%PAR_out(i, c, bid)
              do k = 1, marbl_domain%km
                 ph_prev_3d(k)         = marbl_saved_state%ph_prev_3d(i, c, k, bid)
                 ph_prev_alt_co2_3d(k) = marbl_saved_state%ph_prev_alt_co2_3d(i, c, k, bid)
@@ -933,13 +974,13 @@ contains
                   marbl_zooplankton_share,   &
                   marbl_autotroph_share,     &
                   marbl_particulate_share,   &
+                  PAR_instances(bid),        &
                   column_tracer_module,      &
                   column_dtracer,            &
                   fesedflux(i,c,:,bid), &
-                  dust_flux_in, par_out, &
+                  dust_flux_in,          &
                   ph_prev_3d, ph_prev_alt_co2_3d)
              
-             marbl_saved_state%par_out(i, c, bid) = par_out
              do k = 1, marbl_domain%km
                 marbl_saved_state%ph_prev_3d(i, c, k, bid)         = ph_prev_3d(k)
                 marbl_saved_state%ph_prev_alt_co2_3d(i, c, k, bid) = ph_prev_alt_co2_3d(k)
@@ -1010,7 +1051,6 @@ contains
   !***********************************************************************
 
   subroutine ecosys_driver_set_sflux(ciso_on,&
-       SHF_QSW_RAW, SHF_QSW, &
        U10_SQR,IFRAC,PRESS,SST,SSS, &
        SURFACE_VALS_OLD, &
        SURFACE_VALS_CUR, &
@@ -1033,8 +1073,6 @@ contains
          ciso_on                 ! ecosys_ciso on
 
     real (r8), dimension(nx_block,ny_block,max_blocks_clinic), intent(in) :: &
-         SHF_QSW_RAW,  &! penetrative solar heat flux, from coupler (degC*cm/s)
-         SHF_QSW,      &! SHF_QSW used by physics, may have diurnal cylce imposed (degC*cm/s)
          U10_SQR,      &! 10m wind speed squared (cm/s)**2
          IFRAC,        &! sea ice fraction (non-dimensional)
          PRESS,        &! sea level atmospheric pressure (dyne/cm**2)
@@ -1118,7 +1156,6 @@ contains
 
     call ecosys_driver_read_sflux(                                &
          marbl_saved_state,                                       &
-         SHF_QSW_RAW, SHF_QSW,                                    &
          SURFACE_VALS_OLD(:,:,ecosys_ind_begin:ecosys_ind_end,:), &
          SURFACE_VALS_CUR(:,:,ecosys_ind_begin:ecosys_ind_end,:), &
          SURFACE_VALS    (:,:,ecosys_ind_begin:ecosys_ind_end,:), &
@@ -1197,16 +1234,6 @@ contains
        enddo
     enddo
 
-!    call marbl_ecosys_set_sflux(                              &
-!         marbl_saved_state,                                   &
-!         marbl%private_data%surface_share,                    &
-!         U10_SQR, IFRAC, PRESS, SST, SSS,                     &
-!         SURFACE_VALS(:,:,ecosys_ind_begin:ecosys_ind_end,:), &
-!         MARBL_STF,                                           &
-!         XCO2, XCO2_ALT_CO2,                                  &
-!         STF_MODULE(:,:,ecosys_ind_begin:ecosys_ind_end,:),   &
-!         IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN,         &
-!         ciso_on, PH_PREV, PH_PREV_ALT_CO2, FLUX, flux_diags)
     call timer_stop(ecosys_set_sflux_timer)
 
     do iblock = 1, nblocks_clinic
@@ -2308,7 +2335,6 @@ contains
 
   subroutine ecosys_driver_read_sflux(              &
        saved_state,                                 &
-       SHF_QSW_RAW, SHF_QSW,                        &
        SURF_VALS_OLD,                               &
        SURF_VALS_CUR,                               &
        SURF_VALS,                                   &
@@ -2399,7 +2425,6 @@ contains
     use marbl_share_mod       , only : dic_riv_flux     
     use marbl_share_mod       , only : alk_riv_flux     
     use marbl_share_mod       , only : doc_riv_flux     
-    use marbl_share_mod       , only : ecosys_qsw_distrb_const 
     use marbl_share_mod       , only : liron_patch  
     use marbl_share_mod       , only : iron_patch_month  
     use marbl_share_mod       , only : comp_surf_avg_flag
@@ -2411,8 +2436,6 @@ contains
     ! !INPUT PARAMETERS:
 
     type(marbl_saved_state_type), intent(inout) :: saved_state
-    real (r8) , intent(in) :: SHF_QSW_RAW(nx_block, ny_block, max_blocks_clinic) ! penetrative solar heat flux, from coupler (degC*cm/s)
-    real (r8) , intent(in) :: SHF_QSW    (nx_block, ny_block, max_blocks_clinic) ! SHF_QSW used by physics, may have diurnal cycle imposed (degC*cm/s)
     real (r8) , intent(in) :: SURF_VALS_OLD(:, :, :, :)                          ! module tracers
     real (r8) , intent(in) :: SURF_VALS_CUR(:, :, :, :)                          ! module tracers
     real (r8) , intent(in) :: PH_PREV(:, :, :)                                   ! computed ph from previous time step
@@ -2472,27 +2495,12 @@ contains
     !-----------------------------------------------------------------------
     !  fluxes initially set to 0
     !  set Chl field for short-wave absorption
-    !  store incoming shortwave in PAR_out field, converting to W/m^2
     !-----------------------------------------------------------------------
-
-    scalar_temp = f_qsw_par / hflux_factor
 
     do iblock = 1, nblocks_clinic
        MARBL_STF(:, :, :, iblock) = c0
        SURF_VALS(:, :, :, iblock) = p5*(SURF_VALS_OLD(:, :, :, iblock)      &
                                       + SURF_VALS_CUR(:, :, :, iblock))
-
-       if (ecosys_qsw_distrb_const) then
-          saved_state%PAR_out(:, :, iblock) = SHF_QSW_RAW(:, :, iblock)
-       else
-          saved_state%PAR_out(:, :, iblock) = SHF_QSW(:, :, iblock)
-       endif
-
-       where (saved_state%land_mask(:, :, iblock))
-          saved_state%PAR_out(:, :, iblock) = max(c0, scalar_temp * saved_state%PAR_out(:, :, iblock))
-       elsewhere
-          saved_state%PAR_out(:, :, iblock) = c0
-       end where
     enddo
 
     !-----------------------------------------------------------------------

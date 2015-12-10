@@ -41,10 +41,13 @@ module marbl_interface_types
 
   type, public :: marbl_column_domain_type
      logical(log_kind) :: land_mask
+     integer(int_kind) :: PAR_nsubcols ! number of sub-column values for PAR
      integer(int_kind) :: km ! number of vertical grid cells
      integer(int_kind) :: kmt ! index of ocean floor
      real(r8), allocatable :: dzt(:) ! (km) delta z for partial bottom cells
      real(r8), allocatable :: dz(:) ! (km) delta z
+     real(r8), allocatable :: PAR_col_frac(:) ! column fraction occupied by each sub-column
+     real(r8), allocatable :: surf_shortwave(:) ! surface shortwave for each sub-column (W/m^2)
   end type marbl_column_domain_type
 
   type, public :: marbl_gcm_state_type
@@ -56,7 +59,6 @@ module marbl_interface_types
      ! this struct is necessary because there is some global state
      ! that needs to be preserved for marbl
      real (r8) , dimension(:, :, :)         , allocatable :: dust_FLUX_IN       ! dust flux not stored in STF since dust is not prognostic
-     real (r8) , dimension(:, :, :)         , allocatable :: PAR_out            ! photosynthetically available radiation (W/m^2)
      real (r8) , dimension(:, :, :, :)      , allocatable :: PH_PREV_3D         ! computed pH_3D from previous time step
      real (r8) , dimension(:, :, :, :)      , allocatable :: PH_PREV_ALT_CO2_3D ! computed pH_3D from previous time step, alternative CO2
      logical (log_kind), dimension(:, :, :) , allocatable :: LAND_MASK
@@ -125,7 +127,6 @@ module marbl_interface_types
      real (r8) :: NH4_V           ! ammonium uptake (mmol NH4/m^3/sec)
      real (r8) :: PO4_V           ! PO4 uptake (mmol PO4/m^3/sec)
      real (r8) :: DOP_V           ! DOP uptake (mmol DOP/m^3/sec)
-     real (r8) :: VNC             ! C-specific N uptake rate (mmol N/mmol C/sec)
      real (r8) :: VPO4            ! C-specific PO4 uptake (non-dim)
      real (r8) :: VDOP            ! C-specific DOP uptake rate (non-dim)
      real (r8) :: VPtot           ! total P uptake rate (non-dim)
@@ -156,12 +157,6 @@ module marbl_interface_types
      real (r8) :: remaining_P_dip ! remaining_P from mort routed to remin
   end type autotroph_secondary_species_type
 
-  type, public :: photosynthetically_available_radiation_type
-     real(r8) :: in     ! photosynthetically available radiation (W/m^2)
-     real(r8) :: KPARdz ! PAR adsorption coefficient (non-dim)
-     real(r8) :: avg    ! average PAR over mixed layer depth (W/m^2)
-  end type photosynthetically_available_radiation_type
-
   type, public :: zooplankton_secondary_species_type
      real (r8):: f_zoo_detr       ! frac of zoo losses into large detrital pool (non-dim)
      real (r8):: x_graze_zoo      ! {auto, zoo}_graze routed to zoo (mmol C/m^3/sec)
@@ -176,6 +171,13 @@ module marbl_interface_types
      real (r8):: zoo_loss_dic     ! zoo_loss routed to dic (mmol C/m^3/sec)
      real (r8):: Zprime           ! used to limit zoo mort at low biomass (mmol C/m^3)
   end type zooplankton_secondary_species_type
+
+  type, public :: photosynthetically_available_radiation_type
+     real(r8), allocatable :: col_frac(:)    ! column fraction occupied by each sub-column, dimension is (PAR_nsubcols)
+     real(r8), allocatable :: interface(:,:) ! PAR at layer interfaces, dimensions are (0:km,PAR_nsubcols)
+     real(r8), allocatable :: avg(:,:)       ! PAR averaged over layer, dimensions are (km,PAR_nsubcols)
+     real(r8), allocatable :: KPARdz(:)      ! PAR adsorption coefficient times dz (cm), dimension is (km)
+  end type photosynthetically_available_radiation_type
 
   type, public :: dissolved_organic_matter_type
      real (r8) :: DOC_prod         ! production of DOC (mmol C/m^3/sec)

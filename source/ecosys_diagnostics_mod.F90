@@ -1792,9 +1792,8 @@ contains
   !***********************************************************************
 
   subroutine store_diagnostics_particulates(marbl_domain, POC, P_CaCO3,       &
-                                            P_SiO2, dust, P_iron,             &
-                                            sed_denitrif, other_remin,        &
-                                            marbl_diags)
+             P_SiO2, dust, P_iron, PON_sed_loss, sed_denitrif, other_remin,   &
+             marbl_diags)
     !-----------------------------------------------------------------------
     ! - Set tavg variables.
     ! - Accumulte losses of BGC tracers to sediments
@@ -1809,6 +1808,7 @@ contains
     type(column_sinking_particle_type), intent(in) :: P_SiO2
     type(column_sinking_particle_type), intent(in) :: dust
     type(column_sinking_particle_type), intent(in) :: P_iron
+    real(r8), dimension(:), intent(in) :: PON_sed_loss ! km
     real(r8), dimension(:), intent(in) :: sed_denitrif ! km
     real(r8), dimension(:), intent(in) :: other_remin  ! km
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
@@ -1850,7 +1850,7 @@ contains
       diags(marbl_interior_diag_ind%pocToSed)%field_2d = sum(POC%sed_loss)
       diags(marbl_interior_diag_ind%SedDenitrif)%field_2d = sum(sed_denitrif * delta_z)
       diags(marbl_interior_diag_ind%OtherRemin)%field_2d = sum(other_remin * delta_z)
-      diags(marbl_interior_diag_ind%ponToSed)%field_2d = sum(POC%sed_loss * Q)
+      diags(marbl_interior_diag_ind%ponToSed)%field_2d = sum(PON_sed_loss)
       diags(marbl_interior_diag_ind%popToSed)%field_2d = sum(POC%sed_loss * Qp_zoo_pom)
       diags(marbl_interior_diag_ind%dustToSed)%field_2d = sum(dust%sed_loss)
       diags(marbl_interior_diag_ind%pfeToSed)%field_2d = sum(P_iron%sed_loss)
@@ -1899,13 +1899,21 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_photosynthetically_available_radiation(PAR, marbl_diags)
+  subroutine store_diagnostics_photosynthetically_available_radiation(        &
+             PAR_nsubcols, PAR_col_frac, PAR_avg, marbl_diags)
 
-    type(photosynthetically_available_radiation_type), dimension(:), intent(in) :: PAR
+    integer(int_kind), intent(in)    :: PAR_nsubcols
+    real(r8),          dimension(:),   intent(in) :: PAR_col_frac
+    real(r8),          dimension(:,:), intent(in) :: PAR_avg
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
+    integer :: k
+
     associate(diags => marbl_diags%diags(:))
-      diags(marbl_interior_diag_ind%PAR_avg)%field_3d(:) = PAR%avg
+      do k=1,km
+        diags(marbl_interior_diag_ind%PAR_avg)%field_3d(k) =                  &
+             sum(PAR_col_frac(:)*PAR_avg(k,:))
+      end do
     end associate
 
   end subroutine store_diagnostics_photosynthetically_available_radiation
@@ -2050,17 +2058,15 @@ contains
 
   !***********************************************************************
 
-  subroutine store_diagnostics_nitrogen_fluxes(marbl_domain, zw, POC, denitrif,&
-                                    sed_denitrif, autotroph_secondary_species, &
-                                    dtracer, marbl_diags)
-
-    use marbl_share_mod, only : column_sinking_particle_type
+  subroutine store_diagnostics_nitrogen_fluxes(marbl_domain, zw, PON_sed_loss,&
+             denitrif, sed_denitrif, autotroph_secondary_species, dtracer,    &
+             marbl_diags)
 
     use marbl_parms     , only : Q
 
     type(marbl_column_domain_type), intent(in) :: marbl_domain
     real(r8), dimension(:), intent(in) :: zw  ! km
-    type(column_sinking_particle_type), intent(in) :: POC
+    real(r8), dimension(:), intent(in) :: PON_sed_loss  ! km
     real(r8), dimension(:), intent(in) :: denitrif ! km
     real(r8), dimension(:), intent(in) :: sed_denitrif ! km
     type(autotroph_secondary_species_type), dimension(:,:), intent(in) ::     &
@@ -2099,7 +2105,7 @@ contains
         end do
         diags(marbl_interior_diag_ind%Jint_Ntot)%field_2d =                            &
                                    diags(marbl_interior_diag_ind%Jint_Ntot)%field_2d + &
-                                   delta_z(k) * work1 + POC%sed_loss(k) * Q
+                                   delta_z(k) * work1 + PON_sed_loss(k)
 
         if (ztop < 100.0e2_r8) then
             diags(marbl_interior_diag_ind%Jint_100m_Ntot)%field_2d =                   &
@@ -2109,7 +2115,7 @@ contains
         if (zw(k).le.100.0e2_r8) then
             diags(marbl_interior_diag_ind%Jint_100m_Ntot)%field_2d =                   &
                               diags(marbl_interior_diag_ind%Jint_100m_Ntot)%field_2d + &
-                              POC%sed_loss(k) * Q
+                              PON_sed_loss(k)
         end if
         ztop = zw(k)
       end do

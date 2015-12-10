@@ -4557,7 +4557,7 @@ endif
 
       C_EDDY = -c1 * BTP(:,:,bid) *  L_EDDY**2
 
-      C_EDDYLIM = max(C_EDDY,-20.)
+      C_EDDYLIM = max(C_EDDY,-20._r8)
       
       !-----------------------------------------------------------------------
       !  Calculate KAPPA_VERTICAL using a depth dependent U and adding

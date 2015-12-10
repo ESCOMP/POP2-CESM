@@ -67,6 +67,7 @@
    use forcing_ws, only: ws_data_type
    use sw_absorption, only: init_sw_absorption
    use passive_tracers, only: init_passive_tracers, ecosys_on
+   use ecosys_driver, only: ecosys_qsw_distrb_const
    use exit_mod, only: sigAbort, exit_pop, flushm
    use restart, only: read_restart, restart_fmt, read_restart_filename
    use ms_balance, only: init_ms_balance
@@ -87,9 +88,8 @@
    use overflows
    use overflow_type
    use running_mean_mod, only: running_mean_init
+   use mcog, only: init_mcog
    use software_eng_mod, only : lchange_ans, init_software_eng
-
-   use marbl_share_mod, only: ecosys_qsw_distrb_const !FIXME(mvertens, 2015-11) where does this belong?
 
    implicit none
    private
@@ -435,12 +435,20 @@
 
 !-----------------------------------------------------------------------
 !
-!  initialize generic aspects of coupled forcing (no coupling-specific 
-!  references)
+!  initialize generic aspects of coupled forcing (no references to specific
+!  couplers e.g. MCT, ESMF)
 !
 !-----------------------------------------------------------------------
 
    call pop_init_coupled
+
+!-----------------------------------------------------------------------
+!
+!  initialize mcog
+!
+!-----------------------------------------------------------------------
+
+   call init_mcog
 
 !-----------------------------------------------------------------------
 !

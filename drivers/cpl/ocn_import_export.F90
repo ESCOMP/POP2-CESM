@@ -26,6 +26,7 @@ module ocn_import_export
    use forcing_shf,       only: SHF_QSW
    use forcing_sfwf,      only: lsend_precip_fact, precip_fact
    use forcing_fields
+   use mcog,              only: lmcog, mcog_ncols, import_mcog
    use forcing_coupled,   only: ncouple_per_day,  &
                                 update_ghost_cells_coupler_fluxes, &
                                 rotate_wind_stress, pop_set_coupled_forcing, &
@@ -115,13 +116,16 @@ contains
       message
  
    integer (int_kind) ::  &
-      i,j,k,n,iblock
+      i,j,k,n,ncol,iblock
 
    real (r8), dimension(nx_block,ny_block) ::  &
       WORKB
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::   &
       WORK1, WORK2        ! local work space
+
+   real (r8), dimension(mcog_ncols) ::  &
+      frac_col_1pt, fracr_col_1pt, qsw_fracr_col_1pt
 
    real (r8) ::  &
       m2percm2,  &
@@ -250,6 +254,63 @@ contains
       enddo
 
    enddo
+
+!-----------------------------------------------------------------------
+!
+!  optional fields per mcog column
+!
+!-----------------------------------------------------------------------
+
+   if (lmcog) then
+
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+
+            ! extract fields for each column and pass to import_mcog
+
+            do ncol = 1, mcog_ncols
+               frac_col_1pt(ncol)  = max(c0, min(c1, x2o(index_x2o_frac_col(ncol), n)))
+               fracr_col_1pt(ncol) = max(c0, min(c1, x2o(index_x2o_fracr_col(ncol), n)))
+               qsw_fracr_col_1pt(ncol) = x2o(index_x2o_qsw_fracr_col(ncol), n)
+            enddo
+
+            call import_mcog(frac_col_1pt, fracr_col_1pt, qsw_fracr_col_1pt, &
+                             x2o(index_x2o_Foxx_swnet,n), iblock, i, j)
+
+         enddo ! do j
+         enddo ! do i
+      enddo ! do iblock = 1, nblocks_clinic
+
+   else ! if (lmcog) then
+
+      ! if mcog is off, fill its arrays with cpl aggregated full cell means
+
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+
+            ncol = 1
+            frac_col_1pt(ncol)  = c1
+            fracr_col_1pt(ncol) = c1
+            qsw_fracr_col_1pt(ncol) = x2o(index_x2o_Foxx_swnet,n)
+
+            call import_mcog(frac_col_1pt, fracr_col_1pt, qsw_fracr_col_1pt, &
+                             x2o(index_x2o_Foxx_swnet,n), iblock, i, j)
+
+         enddo ! do j
+         enddo ! do i
+      enddo ! do iblock = 1, nblocks_clinic
+
+   endif ! if (lmcog) then
 
 !-----------------------------------------------------------------------
 !
