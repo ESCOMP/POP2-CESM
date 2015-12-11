@@ -1,6 +1,38 @@
 ===============================================================================
 Tag Creator: klindsay
 Developers:  klindsay
+Tag Date:    11 Dec 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n20_cesm_pop_2_1_20151117
+Tag Summary: science devs, workaround for gfortran bug, fix small memory leak
+
+changes ecosys answers
+changes physics answers if chl_option = 'model'
+
+many nml vars and Fortran parameters changed
+correct DSI_RIV_FLUX diag to include only riverine term
+change arguments to comp_CO3terms to local vars instead of non-contiguous associates
+
+Testing:
+aux_pop_MARBL: (baseline comparison to n19 tag)
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+      nlcomp fails because of answer changing mods
+      baseline comparisons to previous tags fail because of answer changing mods
+
+aux_pop_MARBL (gnu): (no baseline comparison)
+   all tests pass
+
+M       source/marbl_parms.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_driver.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       BranchChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
 Tag Date:    24 Nov 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n19_cesm_pop_2_1_20151117
 Tag Summary: introduce POP_bury_coeff
