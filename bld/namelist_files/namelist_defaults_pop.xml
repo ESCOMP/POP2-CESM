@@ -1291,8 +1291,8 @@
 <parm_fe_scavenge_rate0 ocn_grid="gx3v7">1.4</parm_fe_scavenge_rate0>
 <parm_fe_scavenge_rate0                 >1.9</parm_fe_scavenge_rate0>
 
-<parm_f_prod_sp_CaCO3 ocn_grid="gx3v7">0.065</parm_f_prod_sp_CaCO3>
-<parm_f_prod_sp_CaCO3                 >0.08</parm_f_prod_sp_CaCO3>
+<parm_f_prod_sp_CaCO3 ocn_grid="gx3v7">0.08</parm_f_prod_sp_CaCO3>
+<parm_f_prod_sp_CaCO3                 >0.065</parm_f_prod_sp_CaCO3>
 
 <parm_POC_diss  > 90.0e2</parm_POC_diss>
 <parm_SiO2_diss >600.0e2</parm_SiO2_diss>

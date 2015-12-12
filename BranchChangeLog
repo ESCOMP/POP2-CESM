@@ -2,6 +2,31 @@
 Tag Creator: klindsay
 Developers:  klindsay
 Tag Date:    11 Dec 2015
+Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n22_cesm_pop_2_1_20151123
+Tag Summary: change namelist_defaults for parm_f_prod_sp_CaCO3
+
+changes ecosys answers
+changes physics answers if chl_option = 'model'
+
+Testing:
+aux_pop_MARBL: (baseline comparison to n21 tag)
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+      nlcomp fails because of answer changing mods
+      baseline comparisons to previous tags fail because of answer changing mods
+
+aux_pop_MARBL (gnu): (baseline comparison to n21 tag)
+   all tests pass
+      nlcomp fails because of answer changing mods
+      baseline comparisons to previous tags fail because of answer changing mods
+
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       BranchChangeLog
+
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    11 Dec 2015
 Tag Name:    pop2/branch_tags/ecosys_cesm2_dev_tags/ecosys_cesm2_dev_n21_cesm_pop_2_1_20151123
 Tag Summary: merge pop2/trunk_tags/cesm_pop_2_1_20151123 to branch
 
