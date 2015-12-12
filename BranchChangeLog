@@ -1,6 +1,21 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    11 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n20_cesm_pop_2_1_20151123/
+Tag Summary: Updating output when lecosys_debug = .true. to include 
+             STF_${tracer}, *_2, FvPER_{ALK,DIC}, and FvICE_{ALK,DIC}. It
+             turns out that DONr_remin and DOPr_remin were still on the trunk,
+             just with all-caps for REMIN. So ignore (1) on "Still to Do" in
+             the list below.
+
+Testing: Generated new baselines with full output set.
+
+Files Modified:
+M       input_templates/ocn.ecosys.tavg.csh
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    10 Dec 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n19_cesm_pop_2_1_20151123/
 Tag Summary: Merge Nov 23 trunk to marbl_diags branch
