@@ -2,6 +2,24 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    11 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n21_cesm_pop_2_1_20151123/
+Tag Summary: There are 5 diagnostic fields that POP can accumulate twice --
+             ECOSYS_IFRAC, ECOSYS_XKW, O2_GAS_FLUX, DpCO2, and DIC_GAS_FLUX.
+             These variables should only be stored in the marbl diagnostics
+             once, and all the required infrastructure to accumulate them with
+             the _2 tavg id should be managed in POP.
+
+Testing: aux_pop_MARBL vs the n20 tag.
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_tavg.F90
+M       source/marbl_interface_types.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    11 Dec 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n20_cesm_pop_2_1_20151123/
 Tag Summary: Updating output when lecosys_debug = .true. to include 
              STF_${tracer}, *_2, FvPER_{ALK,DIC}, and FvICE_{ALK,DIC}. It

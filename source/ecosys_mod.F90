@@ -2475,9 +2475,7 @@ contains
     if (lflux_gas_o2 .or. lflux_gas_co2) then
 
        FLUX_DIAGS(:, ind%ECOSYS_IFRAC)     = IFRAC_USED(:)
-       FLUX_DIAGS(:, ind%ECOSYS_IFRAC_2)   = IFRAC_USED(:)
        FLUX_DIAGS(:, ind%ECOSYS_XKW)       = XKW_USED(:)
-       FLUX_DIAGS(:, ind%ECOSYS_XKW_2)     = XKW_USED(:)
        FLUX_DIAGS(:, ind%ECOSYS_ATM_PRESS) = AP_USED(:)
 
     endif  ! lflux_gas_o2 .or. lflux_gas_co2
@@ -2500,7 +2498,6 @@ contains
        FLUX_DIAGS(:, ind%DCO2STAR)             = DCO2STAR(:)
        FLUX_DIAGS(:, ind%pCO2SURF)             = pCO2SURF(:)
        FLUX_DIAGS(:, ind%DpCO2)                = DpCO2(:)
-       FLUX_DIAGS(:, ind%DpCO2_2)              = DpCO2(:)
        
        FLUX_DIAGS(:, ind%CO2STAR_ALT_CO2)      = CO2STAR_ALT(:)
        FLUX_DIAGS(:, ind%DCO2STAR_ALT_CO2)     = DCO2STAR_ALT(:)
@@ -2510,7 +2507,6 @@ contains
        FLUX_DIAGS(:, ind%PV_CO2)               = PV_CO2(:)
        FLUX_DIAGS(:, ind%SCHMIDT_CO2)          = SCHMIDT_USED_CO2(:)
        FLUX_DIAGS(:, ind%DIC_GAS_FLUX)         = FLUX(:)
-       FLUX_DIAGS(:, ind%DIC_GAS_FLUX_2)       = FLUX(:)
        FLUX_DIAGS(:, ind%PH)                   = PH_PREV(:)
        FLUX_DIAGS(:, ind%ATM_CO2)              = XCO2(:)
       
@@ -2564,7 +2560,6 @@ contains
     endif
 
     FLUX_DIAGS(:, ind%O2_GAS_FLUX)   = STF_MODULE(:, o2_ind)
-    FLUX_DIAGS(:, ind%O2_GAS_FLUX_2) = STF_MODULE(:, o2_ind)
 
     FLUX_DIAGS(:, ind%NHy_FLUX)      = STF_MODULE(:, nh4_ind)
 

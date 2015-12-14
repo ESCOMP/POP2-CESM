@@ -172,24 +172,19 @@ module ecosys_diagnostics_mod
 
   type marbl_forcing_diagnostics_indexing_type
      integer(int_kind) :: ECOSYS_IFRAC
-     integer(int_kind) :: ECOSYS_IFRAC_2   
      integer(int_kind) :: ECOSYS_XKW
-     integer(int_kind) :: ECOSYS_XKW_2     
      integer(int_kind) :: ECOSYS_ATM_PRESS
      integer(int_kind) :: PV_O2
      integer(int_kind) :: SCHMIDT_O2
      integer(int_kind) :: O2SAT
      integer(int_kind) :: O2_GAS_FLUX
-     integer(int_kind) :: O2_GAS_FLUX_2    
      integer(int_kind) :: CO2STAR
      integer(int_kind) :: DCO2STAR
      integer(int_kind) :: pCO2SURF
      integer(int_kind) :: DpCO2
-     integer(int_kind) :: DpCO2_2          
      integer(int_kind) :: PV_CO2
      integer(int_kind) :: SCHMIDT_CO2
      integer(int_kind) :: DIC_GAS_FLUX
-     integer(int_kind) :: DIC_GAS_FLUX_2   
      integer(int_kind) :: PH
      integer(int_kind) :: ATM_CO2
      integer(int_kind) :: CO2STAR_ALT_CO2
@@ -260,14 +255,6 @@ contains
     call marbl_forcing_diags%add_diagnostic(&
          lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ECOSYS_IFRAC)
 
-    lname='Ice Fraction for ecosys fluxes'
-    sname='ECOSYS_IFRAC_2'
-    units='fraction'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ECOSYS_IFRAC_2)
-
     lname='XKW for ecosys fluxes'
     sname='ECOSYS_XKW'
     units='cm/s'
@@ -275,14 +262,6 @@ contains
     truncate = .false.
     call marbl_forcing_diags%add_diagnostic(&
          lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ECOSYS_XKW)
-
-    lname='XKW for ecosys fluxes'
-    sname='ECOSYS_XKW_2'
-    units='cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ECOSYS_XKW_2)
 
     lname='Atmospheric Pressure for ecosys fluxes'
     sname='ECOSYS_ATM_PRESS'
@@ -324,14 +303,6 @@ contains
     call marbl_forcing_diags%add_diagnostic(&
          lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%O2_GAS_FLUX)
 
-    lname='Dissolved Oxygen Surface Flux'
-    sname='STF_O2_2'
-    units='mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%O2_GAS_FLUX_2)
-
     lname='CO2 Star'
     sname='CO2STAR'
     units='mmol/m^3'
@@ -364,14 +335,6 @@ contains
     call marbl_forcing_diags%add_diagnostic(&
          lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DpCO2)
 
-    lname='D pCO2'
-    sname='DpCO2_2'
-    units='ppmv'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DpCO2_2)
-
     lname='CO2 Piston Velocity'
     sname='PV_CO2'
     units='cm/s'
@@ -395,14 +358,6 @@ contains
     truncate = .false.
     call marbl_forcing_diags%add_diagnostic(&
          lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DIC_GAS_FLUX)
-
-    lname='DIC Surface Gas Flux'
-    sname='FG_CO2_2'
-    units='mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DIC_GAS_FLUX_2)
 
     lname='Surface pH'
     sname='PH'
