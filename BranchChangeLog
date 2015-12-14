@@ -1,7 +1,7 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
-Tag Date:    11 Dec 2015
+Tag Date:    14 Dec 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n21_cesm_pop_2_1_20151123/
 Tag Summary: There are 5 diagnostic fields that POP can accumulate twice --
              ECOSYS_IFRAC, ECOSYS_XKW, O2_GAS_FLUX, DpCO2, and DIC_GAS_FLUX.
