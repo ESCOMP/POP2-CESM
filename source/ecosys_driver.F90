@@ -720,6 +720,8 @@ contains
 
     deallocate(marbl_domain%dzt)
     deallocate(marbl_domain%dz)
+    deallocate(marbl_domain%PAR_col_frac)
+    deallocate(marbl_domain%surf_shortwave)
     deallocate(marbl_domain%temperature)
     deallocate(marbl_domain%salinity)
 

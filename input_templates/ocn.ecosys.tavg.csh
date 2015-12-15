@@ -62,6 +62,8 @@ if ($lecosys_debug == ".true.") then
 1  Jint_100m_Ptot
 1  Jint_Sitot
 1  Jint_100m_Sitot
+1  Jint_Fetot
+1  Jint_100m_Fetot
 1  CO3
 1  HCO3
 1  H2CO3
@@ -83,12 +85,13 @@ if ($lecosys_debug == ".true.") then
 1  photoC_NO3_TOT
 1  DOC_prod
 1  DOC_remin
+1  DOCr_remin
 1  DON_prod
 1  DON_remin
+1  DONr_remin
 1  DOP_prod
 1  DOP_remin
-1  DOFe_prod
-1  DOFe_remin
+1  DOPr_remin
 1  Fe_scavenge
 1  Fe_scavenge_rate
 #  PARTICULATE
@@ -104,6 +107,9 @@ if ($lecosys_debug == ".true.") then
 1  POC_FLUX_IN
 1  POC_PROD
 1  POC_REMIN
+1  POC_REMIN_DIC
+1  PON_REMIN_NH4
+1  POP_REMIN_PO4
 1  CaCO3_FLUX_IN
 1  CaCO3_PROD
 1  CaCO3_REMIN
@@ -153,6 +159,7 @@ if ($lecosys_debug == ".true.") then
 1  DIC_RIV_FLUX
 1  ALK_RIV_FLUX
 1  DOC_RIV_FLUX
+1  DOCr_RIV_FLUX
 EOF
 
   # interior autotroph fields
@@ -208,12 +215,14 @@ EOF
 EOF
   end
 
-  foreach tracer ( PO4 NO3 SiO3 NH4 Fe O2 DIC DIC_ALT_CO2 ALK DOC DON DOFe    \
+  foreach tracer ( PO4 NO3 SiO3 NH4 Fe O2 DIC DIC_ALT_CO2 ALK DOC DON DOCr    \
                    DOP DOPr DONr zooC spChl spC spFe spCaCO3 diatChl diatC    \
                    diatFe diatSi diazChl diazC diazFe )
     cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 #  TRACERS (${tracer})
+1  ${tracer}
 1  J_${tracer}
+1  STF_${tracer}
 #  ${tracer}_RESTORE
 EOF
   end
@@ -267,15 +276,17 @@ $s1  zsatarag
 $s1  DOC
 $s1  DOC_prod
 $s1  DOC_remin
+$s1  DOCr_remin
 $s1  zooC
 $s1  DON
 $s1  DON_remin
-$s1  DOFe
-$s1  DOFe_remin
+$s1  DONr_remin
 $s1  DOP
 $s1  DOP_remin
+$s1  DOPr_remin
 $s1  DONr
 $s1  DOPr
+$s1  DOCr
 $s1  DIN_RIV_FLUX
 $s1  DIP_RIV_FLUX
 $s1  DON_RIV_FLUX
@@ -283,6 +294,7 @@ $s1  DONr_RIV_FLUX
 $s1  DOP_RIV_FLUX
 $s1  DOPr_RIV_FLUX
 $s1  DOC_RIV_FLUX
+$s1  DOCr_RIV_FLUX
 $s1  DSI_RIV_FLUX
 $s1  DFE_RIV_FLUX
 $s1  DIC_RIV_FLUX
@@ -302,6 +314,10 @@ $s1  bSi_form
 $s1  NITRIF
 $s1  DENITRIF
 $s1  POC_PROD
+$s1  POC_REMIN
+$s1  POC_REMIN_DIC
+$s1  PON_REMIN_NH4
+$s1  POP_REMIN_PO4
 $s1  CaCO3_PROD
 $s1  SiO2_PROD
 $s1  P_iron_PROD
@@ -312,7 +328,6 @@ $s1  P_iron_FLUX_IN
 $s1  dust_FLUX_IN
 $s1  PAR_avg
 $s1  DON_prod
-$s1  DOFe_prod
 $s1  DOP_prod
 $s1  zoo_loss
 $s1  Jint_100m_DIC
@@ -469,6 +484,8 @@ $s1  Jint_Ptot
 $s1  Jint_100m_Ptot
 $s1  Jint_Sitot
 $s1  Jint_100m_Sitot
+$s1  Jint_Fetot
+$s1  Jint_100m_Fetot
 EOF
   endif
 

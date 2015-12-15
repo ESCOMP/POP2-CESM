@@ -60,12 +60,13 @@
   use ecosys_constants, only : photoC_NO3_TOT_zint_diag_ind
   use ecosys_constants, only : DOC_prod_diag_ind
   use ecosys_constants, only : DOC_remin_diag_ind
+  use ecosys_constants, only : DOCr_remin_diag_ind
   use ecosys_constants, only : DON_prod_diag_ind
   use ecosys_constants, only : DON_remin_diag_ind
+  use ecosys_constants, only : DONr_remin_diag_ind
   use ecosys_constants, only : DOP_prod_diag_ind
   use ecosys_constants, only : DOP_remin_diag_ind
-  use ecosys_constants, only : DOFe_prod_diag_ind
-  use ecosys_constants, only : DOFe_remin_diag_ind
+  use ecosys_constants, only : DOPr_remin_diag_ind
   use ecosys_constants, only : Fe_scavenge_diag_ind
   use ecosys_constants, only : Fe_scavenge_rate_diag_ind
   use ecosys_constants, only : Jint_Ctot_diag_ind
@@ -76,6 +77,8 @@
   use ecosys_constants, only : Jint_100m_Ptot_diag_ind
   use ecosys_constants, only : Jint_Sitot_diag_ind
   use ecosys_constants, only : Jint_100m_Sitot_diag_ind
+  use ecosys_constants, only : Jint_Fetot_diag_ind
+  use ecosys_constants, only : Jint_100m_Fetot_diag_ind
   ! autotroph diagnostics
   use ecosys_constants, only : auto_diag_cnt
   use ecosys_constants, only : N_lim_diag_ind
@@ -119,6 +122,9 @@
   use ecosys_constants, only : POC_FLUX_IN_diag_ind
   use ecosys_constants, only : POC_PROD_diag_ind
   use ecosys_constants, only : POC_REMIN_diag_ind
+  use ecosys_constants, only : POC_REMIN_DIC_diag_ind
+  use ecosys_constants, only : PON_REMIN_NH4_diag_ind
+  use ecosys_constants, only : POP_REMIN_PO4_diag_ind
   use ecosys_constants, only : CaCO3_FLUX_IN_diag_ind
   use ecosys_constants, only : CaCO3_PROD_diag_ind
   use ecosys_constants, only : CaCO3_REMIN_diag_ind
@@ -170,8 +176,8 @@
   use ecosys_constants, only : NHy_FLUX_diag_ind
   use ecosys_constants, only : DIN_RIV_FLUX_diag_ind
   use ecosys_constants, only : DIP_RIV_FLUX_diag_ind
-  use ecosys_constants, only : DoN_RIV_FLUX_diag_ind
-  use ecosys_constants, only : DoNr_RIV_FLUX_diag_ind
+  use ecosys_constants, only : DON_RIV_FLUX_diag_ind
+  use ecosys_constants, only : DONr_RIV_FLUX_diag_ind
   use ecosys_constants, only : DOP_RIV_FLUX_diag_ind
   use ecosys_constants, only : DOPr_RIV_FLUX_diag_ind
   use ecosys_constants, only : DSI_RIV_FLUX_diag_ind
@@ -179,6 +185,7 @@
   use ecosys_constants, only : DIC_RIV_FLUX_diag_ind
   use ecosys_constants, only : ALK_RIV_FLUX_diag_ind
   use ecosys_constants, only : DOC_RIV_FLUX_diag_ind
+  use ecosys_constants, only : DOCr_RIV_FLUX_diag_ind
 
   use marbl_share_mod, only : autotrophs
   use marbl_share_mod, only : zooplankton
@@ -215,19 +222,10 @@
       tavg_DIC_GAS_FLUX_2     ! dic flux duplicate
 
   !-----------------------------------------------------------------------
-  !  define tavg id for MORE nonstandard 3d fields
-  !-----------------------------------------------------------------------
-
-  integer (int_kind) :: &
-      tavg_DONr_remin,  &! tavg id for DONrefractory remin
-      tavg_DOPr_remin    ! tavg id for DOPrefractory remin
-
-  !-----------------------------------------------------------------------
   !  tavg ids for particulate terms
   !-----------------------------------------------------------------------
 
   integer (int_kind), dimension(part_diag_cnt) :: tavg_part
-  integer (int_kind) :: tavg_POC_ACCUM      ! tavg id for poc accumulation
 
   !-----------------------------------------------------------------------
   !  tavg ids for zooplankton fields
@@ -509,7 +507,13 @@ contains
     call define_tavg_field(tavg_forcing(DOC_RIV_FLUX_diag_ind),         &
                            'DOC_RIV_FLUX',2,                            &
                            long_name='Flux of DOC from rivers',         &
-                           units='alk/cm^2/s', grid_loc='2110',         &
+                           units='nmol/cm^2/s', grid_loc='2110',        &
+                           coordinates='TLONG TLAT time')
+
+    call define_tavg_field(tavg_forcing(DOCr_RIV_FLUX_diag_ind),        &
+                           'DOCr_RIV_FLUX',2,                           &
+                           long_name='Flux of DOCr from rivers',        &
+                           units='nmol/cm^2/s', grid_loc='2110',        &
                            coordinates='TLONG TLAT time')
 
 !-----------------------------------------------------------------------
@@ -652,35 +656,40 @@ contains
                            units='mmol/m^3/s', grid_loc='3111',           &
                            coordinates='TLONG TLAT z_t time')
 
+    call define_tavg_field(tavg_ecosys(DOCr_remin_diag_ind),'DOCr_remin',3, &
+                           long_name='DOCr Remineralization',               &
+                           units='mmol/m^3/s', grid_loc='3111',             &
+                           coordinates='TLONG TLAT z_t time')
+
     call define_tavg_field(tavg_ecosys(DON_prod_diag_ind),'DON_prod',3, &
                            long_name='DON Production',                  &
-                           units='mmol/m^3/s', grid_loc='3114',         &
-                           coordinates='TLONG TLAT z_t_150m time')
+                           units='mmol/m^3/s', grid_loc='3111',         &
+                           coordinates='TLONG TLAT z_t time')
 
     call define_tavg_field(tavg_ecosys(DON_remin_diag_ind),'DON_remin',3, &
                            long_name='DON Remineralization',              &
-                           units='mmol/m^3/s', grid_loc='3114',           &
-                           coordinates='TLONG TLAT z_t_150m time')
+                           units='mmol/m^3/s', grid_loc='3111',           &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_ecosys(DONr_remin_diag_ind),'DONr_remin',3, &
+                           long_name='DONr Remineralization',               &
+                           units='mmol/m^3/s', grid_loc='3111',             &
+                           coordinates='TLONG TLAT z_t time')
 
     call define_tavg_field(tavg_ecosys(DOP_prod_diag_ind),'DOP_prod',3, &
                            long_name='DOP Production',                  &
-                           units='mmol/m^3/s', grid_loc='3114',         &
-                           coordinates='TLONG TLAT z_t_150m time')
+                           units='mmol/m^3/s', grid_loc='3111',         &
+                           coordinates='TLONG TLAT z_t time')
 
     call define_tavg_field(tavg_ecosys(DOP_remin_diag_ind),'DOP_remin',3, &
                            long_name='DOP Remineralization',            &
-                           units='mmol/m^3/s', grid_loc='3114',         &
-                           coordinates='TLONG TLAT z_t_150m time')
+                           units='mmol/m^3/s', grid_loc='3111',         &
+                           coordinates='TLONG TLAT z_t time')
 
-    call define_tavg_field(tavg_ecosys(DOFe_prod_diag_ind),'DOFe_prod',3, &
-                           long_name='DOFe Production',                   &
-                           units='mmol/m^3/s', grid_loc='3114',           &
-                           coordinates='TLONG TLAT z_t_150m time')
-
-    call define_tavg_field(tavg_ecosys(DOFe_remin_diag_ind),'DOFe_remin',3, &
-                           long_name='DOFe Remineralization',               &
-                           units='mmol/m^3/s', grid_loc='3114',             &
-                           coordinates='TLONG TLAT z_t_150m time')
+    call define_tavg_field(tavg_ecosys(DOPr_remin_diag_ind),'DOPr_remin',3, &
+                           long_name='DOPr Remineralization',               &
+                           units='mmol/m^3/s', grid_loc='3111',             &
+                           coordinates='TLONG TLAT z_t time')
 
     call define_tavg_field(tavg_ecosys(Fe_scavenge_diag_ind),'Fe_scavenge',3, &
                            long_name='Iron Scavenging',                       &
@@ -735,6 +744,16 @@ contains
                            units='mmol/m^3 cm/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
 
+    call define_tavg_field(tavg_ecosys(Jint_Fetot_diag_ind),'Jint_Fetot',2, &
+                           long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Fetot', &
+                           units='mmol/m^3 cm/s', grid_loc='2110',      &
+                           coordinates='TLONG TLAT time')
+
+    call define_tavg_field(tavg_ecosys(Jint_100m_Fetot_diag_ind),'Jint_100m_Fetot',2, &
+                           long_name='Vertical Integral of Conservative Subterms of Source Sink Term for Fetot, 0-100m', &
+                           units='mmol/m^3 cm/s', grid_loc='2110',      &
+                           coordinates='TLONG TLAT time')
+
 !-----------------------------------------------------------------------
 !  Define tavg fields for particulate terms
 !-----------------------------------------------------------------------
@@ -752,6 +771,21 @@ contains
     call define_tavg_field(tavg_part(POC_REMIN_diag_ind),'POC_REMIN',3, &
                            long_name='POC Remineralization',            &
                            units='mmol/m^3/s', grid_loc='3111',         &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_part(POC_REMIN_DIC_diag_ind),'POC_REMIN_DIC',3, &
+                           long_name='POC Remineralization routed to DIC',      &
+                           units='mmol/m^3/s', grid_loc='3111',                 &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_part(PON_REMIN_NH4_diag_ind),'PON_REMIN_NH4',3, &
+                           long_name='PON Remineralization routed to NH4',      &
+                           units='mmol/m^3/s', grid_loc='3111',                 &
+                           coordinates='TLONG TLAT z_t time')
+
+    call define_tavg_field(tavg_part(POP_REMIN_PO4_diag_ind),'POP_REMIN_PO4',3, &
+                           long_name='POP Remineralization routed to PO4',      &
+                           units='mmol/m^3/s', grid_loc='3111',                 &
                            coordinates='TLONG TLAT z_t time')
 
     call define_tavg_field(tavg_part(CaCO3_FLUX_IN_diag_ind),'CaCO3_FLUX_IN',3, &
@@ -839,7 +873,7 @@ contains
                            coordinates='TLONG TLAT time')
 
     call define_tavg_field(tavg_part(popToSed_diag_ind),'popToSed',2, &
-                           long_name='phosporus Flux to Sediments',   &
+                           long_name='phosphorus Flux to Sediments',  &
                            units='nmolP/cm^2/s', grid_loc='2110',     &
                            coordinates='TLONG TLAT time')
 
@@ -857,11 +891,6 @@ contains
                            long_name='pFe Flux to Sediments',           &
                            units='nmolFe/cm^2/s', grid_loc='2110',      &
                            coordinates='TLONG TLAT time')
-
-    call define_tavg_field(tavg_POC_ACCUM,'POC_ACCUM',3,                &
-                           long_name='POC Accumulation',                &
-                           units='mmol/m^3/s', grid_loc='3111',         &
-                           coordinates='TLONG TLAT z_t time')
 
 !-----------------------------------------------------------------------
 !  Define tavg fields for zooplankton
@@ -1109,17 +1138,6 @@ contains
                            long_name='Total N Fixation', &
                            units='mmol/m^3/s', grid_loc='3114',   &
                            coordinates='TLONG TLAT z_t_150m time')
-
-!  DEFINED BUT NEVER WRITTEN
-    call define_tavg_field(tavg_DONr_REMIN,'DONr_REMIN',3,              &
-                           long_name='DONr Remineralization',           &
-                           units='mmol/m^3/s', grid_loc='3111',         &
-                           coordinates='TLONG TLAT z_t time')
-
-    call define_tavg_field(tavg_DOPr_REMIN,'DOPr_REMIN',3,              &
-                           long_name='DOPr Remineralization',           &
-                           units='mmol/m^3/s', grid_loc='3111',         &
-                           coordinates='TLONG TLAT z_t time')
 
     call ecosys_restore%define_tavg_fields()
 

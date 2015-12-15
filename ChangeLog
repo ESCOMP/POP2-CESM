@@ -1,4 +1,45 @@
 ===============================================================================
+Tag Creator: klindsay
+Developers:  K. Lindsay, K. Moore
+Tag Date:    15 Dec 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151215
+Tag Summary: merge ecosys_cesm2_dev_n22_cesm_pop_2_1_20151123 to trunk
+
+changes ecosystem answers
+changes physics answers if chl_option = 'model'
+
+new ICs and fesedflux datasets
+many nml vars and Fortran parameters changed
+DOFe tracer removed
+DOCr tracer added
+restructure DOM remin code
+add PO4 and SiO3 content to dust dep
+introduce parameters for routing of (DOM prod, POM remin, riverine input) to DOMr
+add DOMr remin tavg vars
+introduce POP_bury_coeff
+correct DSI_RIV_FLUX diag to include only riverine term
+change arguments to comp_CO3terms to local vars instead of non-contiguous associates
+add iron conservation diagnostics (Jint_Fetot, Jint_100m_Fetot)
+
+Testing:
+aux_pop (in cesm1_5_beta03): (yellowstone, baseline comparison to cesm_pop_2_1_20151123)
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+      CECO and GECO nlcomp tests fail because of namelist variable changes
+      baseline comparisons in CECO and GECO compsets fail because of changed answers
+
+M       source/ecosys_tavg.F90
+M       source/marbl_parms.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_constants.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       ChangeLog
+M       input_templates/ocn.ecosys.tavg.csh
+
+===============================================================================
 Tag Creator: jet
 Developers:  mlevy
 Tag Date:    23 Nov 2016

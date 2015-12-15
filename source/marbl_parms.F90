@@ -100,7 +100,8 @@ module marbl_parms
        parm_f_prod_sp_CaCO3,  & !fraction of sp prod. as CaCO3 prod.
        parm_POC_diss,         & ! base POC diss len scale
        parm_SiO2_diss,        & ! base SiO2 diss len scale
-       parm_CaCO3_diss          ! base CaCO3 diss len scale
+       parm_CaCO3_diss,       & ! base CaCO3 diss len scale
+       fe_max_scale2            ! unitless scaling coeff.
 
   REAL(KIND=r8), DIMENSION(4) :: &
        parm_scalelen_z,       & ! depths of prescribed scalelen values
@@ -112,8 +113,7 @@ module marbl_parms
 
   REAL(KIND=r8), PARAMETER :: &
        fe_scavenge_thres1 = 0.8e-3_r8,  & !upper thres. for Fe scavenging
-       dust_fescav_scale  = 1.0e9,      & !dust scavenging scale factor
-       fe_max_scale2      = 1200.0_r8     !unitless scaling coeff.
+       dust_fescav_scale  = 1.0e9         !dust scavenging scale factor
 
   !---------------------------------------------------------------------
   !     Compute iron remineralization and flux out.
@@ -134,17 +134,16 @@ module marbl_parms
   !----------------------------------------------------------------------------
 
   REAL(KIND=r8), PARAMETER :: &
-      caco3_poc_min    = 0.4_r8,  & !minimum proportionality between 
+      caco3_poc_min         = 0.40_r8,  & ! minimum proportionality between 
                                           !   QCaCO3 and grazing losses to POC 
                                           !   (mmol C/mmol CaCO3)
-      spc_poc_fac      = 0.11_r8, & !small phyto grazing factor (1/mmolC)
-      f_graze_sp_poc_lim = 0.3_r8, & 
-      f_photosp_CaCO3  = 0.4_r8,  & !proportionality between small phyto 
+      spc_poc_fac           = 0.10_r8,  & ! small phyto grazing factor (1/mmolC)
+      f_graze_sp_poc_lim    = 0.40_r8,  & 
+      f_photosp_CaCO3       = 0.40_r8,  & ! proportionality between small phyto 
                                           !    production and CaCO3 production
-      f_graze_CaCO3_remin = 0.33_r8, & !fraction of spCaCO3 grazing 
-                                             !          which is remin
-      f_graze_si_remin    = 0.35_r8      !fraction of diatom Si grazing 
-                                             !          which is remin
+      f_graze_CaCO3_remin   = 0.33_r8,  & ! fraction of spCaCO3 grazing which is remin
+      f_graze_si_remin      = 0.50_r8,  & ! fraction of diatom Si grazing which is remin
+      f_toDON               = 0.66_r8     ! fraction lower to DOM for DON
 
   !----------------------------------------------------------------------------
   !     fixed ratios
@@ -175,11 +174,13 @@ module marbl_parms
   !----------------------------------------------------------------------------
 
   REAL(KIND=r8), PARAMETER :: &
-      thres_z1          = 100.0e2_r8, & !threshold = C_loss_thres for z shallower than this (cm)
-      thres_z2          = 150.0e2_r8, & !threshold = 0 for z deeper than this (cm)
-      CaCO3_temp_thres1 = 6.0_r8,   & !upper temp threshold for CaCO3 prod
+      thres_z1_auto     =  80.0e2_r8, & !autotroph threshold = C_loss_thres for z shallower than this (cm)
+      thres_z2_auto     = 120.0e2_r8, & !autotroph threshold = 0 for z deeper than this (cm)
+      thres_z1_zoo      = 110.0e2_r8, & !zooplankton threshold = C_loss_thres for z shallower than this (cm)
+      thres_z2_zoo      = 150.0e2_r8, & !zooplankton threshold = 0 for z deeper than this (cm)
+      CaCO3_temp_thres1 = 4.0_r8,   & !upper temp threshold for CaCO3 prod
       CaCO3_temp_thres2 = -2.0_r8,  & !lower temp threshold
-      CaCO3_sp_thres    = 4.0_r8      ! bloom condition thres (mmolC/m3)
+      CaCO3_sp_thres    = 2.5_r8      ! bloom condition thres (mmolC/m3)
 
   !---------------------------------------------------------------------
   !     grazing functions
@@ -203,21 +204,36 @@ module marbl_parms
 
   REAL(KIND=r8), PARAMETER :: &
        Tref = 30.0_r8, & ! reference temperature (C)
-       Q_10 = 1.5_r8     ! factor for temperature dependence (non-dim)
+       Q_10 = 1.7_r8     ! factor for temperature dependence (non-dim)
 
   !---------------------------------------------------------------------
   !  DOM parameters for refractory components and DOP uptake
   !---------------------------------------------------------------------
 
   REAL(KIND=r8), PARAMETER :: &
-       DOC_reminR  = (c1/250.0_r8) * dps,          & ! rate for semi-labile DOC 1/250days
-       DON_reminR  = (c1/160.0_r8) * dps,          & ! rate for semi-labile DON 1/160days
-       DOFe_reminR = (c1/160.0_r8) * dps,          & ! rate for semi-labile DOFe 1/160days
-       DOP_reminR  = (c1/160.0_r8) * dps,          & ! rate for semi-labile DOP 1/160days  
-       DONr_reminR = (c1/(365.0_r8*2.5_r8)) * dps, & ! timescale for refrac DON 1/2.5yrs
-       DOPr_reminR = (c1/(365.0_r8*2.5_r8)) * dps, & ! timescale for refrac DOP 1/2.5yrs
-       DONrefract = 0.08_r8,                       & ! fraction of DON to refractory pool
-       DOPrefract = 0.03_r8                          ! fraction of DOP to refractory pool
+       DOC_reminR_light  = (c1/(365.0_r8*15.0_r8)) * dps, & ! remin rate for semi-labile DOC, 1/15yr
+       DON_reminR_light  = (c1/(365.0_r8*15.0_r8)) * dps, & ! remin rate for semi-labile DON, 1/15yr
+       DOP_reminR_light  = (c1/(365.0_r8*60.0_r8)) * dps, & ! remin rate for semi-labile DOP, 1/60yr
+       DOC_reminR_dark   = (c1/(365.0_r8*6.0_r8)) * dps,  & ! remin rate in the dark, 1/6yr
+       DON_reminR_dark   = (c1/(365.0_r8*5.5_r8)) * dps,  & ! remin rate in the dark, 1/5.5yr
+       DOP_reminR_dark   = (c1/(365.0_r8*4.5_r8)) * dps     ! remin rate in the dark, 1/4.5yr
+
+  REAL(KIND=r8), PARAMETER :: &
+       DOCr_reminR0      = (c1/(365.0_r8*16000.0_r8)) * dps, & ! remin rate for refractory DOC, 1/16000yr
+       DONr_reminR0      = (c1/(365.0_r8*9500.0_r8)) * dps,  & ! remin rate for refractory DON, 1/9500yr
+       DOPr_reminR0      = (c1/(365.0_r8*5500.0_r8)) * dps,  & ! remin rate for refractory DOP, 1/5500yr
+       DOMr_reminR_photo = (c1/(365.0_r8*18.0_r8)) * dps       ! additional remin from photochemistry, 1/18yrs over top 10m
+
+  REAL(KIND=r8), PARAMETER :: &
+       DOCprod_refract  = 0.01_r8,                   & ! fraction of DOCprod to refractory pool
+       DONprod_refract  = 0.0115_r8,                 & ! fraction of DONprod to refractory pool
+       DOPprod_refract  = 0.003_r8,                  & ! fraction of DOPprod to refractory pool
+       POCremin_refract = DOCprod_refract * 0.06_r8, & ! fraction of POCremin to refractory pool
+       PONremin_refract = DONprod_refract * 0.03_r8, & ! fraction of POCremin to refractory pool
+       POPremin_refract = DOPprod_refract * 0.06_r8, & ! fraction of POCremin to refractory pool
+       DOCriv_refract   = 0.2_r8,                    & ! fraction of DOC river input to refractory pool
+       DONriv_refract   = 0.1_r8,                    & ! fraction of DON river input to refractory pool
+       DOPriv_refract   = 0.025_r8                     ! fraction of DOP river input to refractory pool
 
   !*****************************************************************************
 
@@ -240,28 +256,29 @@ contains
     integer :: auto_ind, zoo_ind, prey_ind
     
     parm_Fe_bioavail       = 1.0_r8
-    parm_o2_min            = 4.0_r8
-    parm_o2_min_delta      = 2.0_r8
+    parm_o2_min            = 5.0_r8
+    parm_o2_min_delta      = 5.0_r8
     parm_kappa_nitrif      = 0.06_r8 * dps  ! (= 1/( days))
     parm_nitrif_par_lim    = 1.0_r8
-    parm_labile_ratio      = 0.85_r8
-    parm_POMbury           = 1.4_r8         ! x1 default
-    parm_BSIbury           = 0.65_r8        ! x1 default
-    parm_fe_scavenge_rate0 = 3.0_r8         ! x1 default
-    parm_f_prod_sp_CaCO3   = 0.055_r8       ! x1 default
-    parm_POC_diss          = 88.0e2_r8
-    parm_SiO2_diss         = 250.0e2_r8
-    parm_CaCO3_diss        = 150.0e2_r8
+    parm_labile_ratio      = 0.94_r8
+    parm_POMbury           = 1.1_r8         ! x1 default
+    parm_BSIbury           = 1.0_r8         ! x1 default
+    parm_fe_scavenge_rate0 = 1.9_r8         ! x1 default
+    parm_f_prod_sp_CaCO3   = 0.065_r8       ! x1 default
+    parm_POC_diss          = 90.0e2_r8
+    parm_SiO2_diss         = 600.0e2_r8
+    parm_CaCO3_diss        = 450.0e2_r8
+    fe_max_scale2          = 2200.0_r8      ! x1 default
 
-    parm_scalelen_z    = (/ 130.0e2_r8, 290.0e2_r8, 670.0e2_r8, 1700.0e2_r8 /) ! x1 default
-    parm_scalelen_vals = (/     1.0_r8,     3.0_r8,     5.0_r8,      9.0_r8 /) ! x1 default
+    parm_scalelen_z    = (/ 100.0e2_r8, 250.0e2_r8, 500.0e2_r8,  750.0e2_r8 /)
+    parm_scalelen_vals = (/     1.0_r8,     3.3_r8,     4.6_r8,      5.0_r8 /) ! x1 default
 
     zoo_ind = 1
     zooplankton(zoo_ind)%sname          ='zoo'
     zooplankton(zoo_ind)%lname          = 'Zooplankton'
     zooplankton(zoo_ind)%z_mort_0       = 0.1_r8 * dps
     zooplankton(zoo_ind)%z_mort2_0      = 0.4_r8 * dps
-    zooplankton(zoo_ind)%loss_thres     = 0.005_r8     !zoo conc. where losses go to zero
+    zooplankton(zoo_ind)%loss_thres     = 0.075_r8     !zoo conc. where losses go to zero
 
     auto_ind = sp_ind
     autotrophs(auto_ind)%sname         = 'sp'
@@ -269,24 +286,24 @@ contains
     autotrophs(auto_ind)%Nfixer        = .false.
     autotrophs(auto_ind)%imp_calcifier = .true.
     autotrophs(auto_ind)%exp_calcifier = .false.
-    autotrophs(auto_ind)%kFe           = 0.04e-3_r8
+    autotrophs(auto_ind)%kFe           = 0.03e-3_r8
     autotrophs(auto_ind)%kPO4          = 0.01_r8
-    autotrophs(auto_ind)%kDOP          = 0.26_r8
-    autotrophs(auto_ind)%kNO3          = 0.1_r8
-    autotrophs(auto_ind)%kNH4          = 0.01_r8
+    autotrophs(auto_ind)%kDOP          = 0.2_r8
+    autotrophs(auto_ind)%kNO3          = 0.25_r8
+    autotrophs(auto_ind)%kNH4          = 0.0125_r8
     autotrophs(auto_ind)%kSiO3         = 0.0_r8
     autotrophs(auto_ind)%Qp            = 0.00855_r8
-    autotrophs(auto_ind)%gQfe_0        = 20.0e-6_r8
+    autotrophs(auto_ind)%gQfe_0        = 30.0e-6_r8
     autotrophs(auto_ind)%gQfe_min      = 3.0e-6_r8
-    autotrophs(auto_ind)%alphaPI       = 0.6_r8 * dps
+    autotrophs(auto_ind)%alphaPI       = 0.39_r8 * dps
     autotrophs(auto_ind)%PCref         = 5.5_r8 * dps
     autotrophs(auto_ind)%thetaN_max    = 2.5_r8
-    autotrophs(auto_ind)%loss_thres    = 0.04_r8
+    autotrophs(auto_ind)%loss_thres    = 0.02_r8
     autotrophs(auto_ind)%loss_thres2   = 0.0_r8
     autotrophs(auto_ind)%temp_thres    = -10.0_r8
-    autotrophs(auto_ind)%mort          = 0.12_r8 * dps
-    autotrophs(auto_ind)%mort2         = 0.001_r8 * dps
-    autotrophs(auto_ind)%agg_rate_max  = 0.9_r8
+    autotrophs(auto_ind)%mort          = 0.1_r8 * dps
+    autotrophs(auto_ind)%mort2         = 0.01_r8 * dps
+    autotrophs(auto_ind)%agg_rate_max  = 0.5_r8
     autotrophs(auto_ind)%agg_rate_min  = 0.01_r8
     autotrophs(auto_ind)%loss_poc      = 0.0_r8
 
@@ -296,24 +313,24 @@ contains
     autotrophs(auto_ind)%Nfixer        = .false.
     autotrophs(auto_ind)%imp_calcifier = .false.
     autotrophs(auto_ind)%exp_calcifier = .false.
-    autotrophs(auto_ind)%kFe           = 0.06e-3_r8
+    autotrophs(auto_ind)%kFe           = 0.07e-3_r8
     autotrophs(auto_ind)%kPO4          = 0.05_r8
-    autotrophs(auto_ind)%kDOP          = 0.9_r8
-    autotrophs(auto_ind)%kNO3          = 0.5_r8
+    autotrophs(auto_ind)%kDOP          = 0.5_r8
+    autotrophs(auto_ind)%kNO3          = 1.0_r8
     autotrophs(auto_ind)%kNH4          = 0.05_r8
     autotrophs(auto_ind)%kSiO3         = 0.8_r8
     autotrophs(auto_ind)%Qp            = 0.00855_r8
-    autotrophs(auto_ind)%gQfe_0        = 20.0e-6_r8
+    autotrophs(auto_ind)%gQfe_0        = 30.0e-6_r8
     autotrophs(auto_ind)%gQfe_min      = 3.0e-6_r8
-    autotrophs(auto_ind)%alphaPI       = 0.465_r8 * dps
+    autotrophs(auto_ind)%alphaPI       = 0.29_r8 * dps
     autotrophs(auto_ind)%PCref         = 5.5_r8 * dps
     autotrophs(auto_ind)%thetaN_max    = 4.0_r8
-    autotrophs(auto_ind)%loss_thres    = 0.04_r8
+    autotrophs(auto_ind)%loss_thres    = 0.02_r8
     autotrophs(auto_ind)%loss_thres2   = 0.0_r8
     autotrophs(auto_ind)%temp_thres    = -10.0_r8
-    autotrophs(auto_ind)%mort          = 0.12_r8 * dps
-    autotrophs(auto_ind)%mort2         = 0.001_r8 * dps
-    autotrophs(auto_ind)%agg_rate_max  = 0.9_r8
+    autotrophs(auto_ind)%mort          = 0.1_r8 * dps
+    autotrophs(auto_ind)%mort2         = 0.01_r8 * dps
+    autotrophs(auto_ind)%agg_rate_max  = 0.5_r8
     autotrophs(auto_ind)%agg_rate_min  = 0.02_r8
     autotrophs(auto_ind)%loss_poc      = 0.0_r8
    
@@ -324,25 +341,25 @@ contains
     autotrophs(auto_ind)%Nfixer        = .true.
     autotrophs(auto_ind)%imp_calcifier = .false.
     autotrophs(auto_ind)%exp_calcifier = .false.
-    autotrophs(auto_ind)%kFe           = 0.04e-3_r8
-    autotrophs(auto_ind)%kPO4          = 0.02_r8
-    autotrophs(auto_ind)%kDOP          = 0.09_r8
-    autotrophs(auto_ind)%kNO3          = 1.0_r8
-    autotrophs(auto_ind)%kNH4          = 0.15_r8
+    autotrophs(auto_ind)%kFe           = 0.03e-3_r8
+    autotrophs(auto_ind)%kPO4          = 0.0125_r8
+    autotrophs(auto_ind)%kDOP          = 0.05_r8
+    autotrophs(auto_ind)%kNO3          = 4.0_r8
+    autotrophs(auto_ind)%kNH4          = 0.4_r8
     autotrophs(auto_ind)%kSiO3         = 0.0_r8
     autotrophs(auto_ind)%Qp            = 0.002735_r8
     autotrophs(auto_ind)%gQfe_0        = 60.0e-6_r8
-    autotrophs(auto_ind)%gQfe_min      = 12.0e-6_r8
-    autotrophs(auto_ind)%alphaPI       = 0.4_r8 * dps
-    autotrophs(auto_ind)%PCref         = 0.7_r8 * dps
+    autotrophs(auto_ind)%gQfe_min      = 6.0e-6_r8
+    autotrophs(auto_ind)%alphaPI       = 0.39_r8 * dps
+    autotrophs(auto_ind)%PCref         = 1.55_r8 * dps
     autotrophs(auto_ind)%thetaN_max    = 2.5_r8
-    autotrophs(auto_ind)%loss_thres    = 0.022_r8
+    autotrophs(auto_ind)%loss_thres    = 0.02_r8
     autotrophs(auto_ind)%loss_thres2   = 0.001_r8
-    autotrophs(auto_ind)%temp_thres    = 14.0_r8
-    autotrophs(auto_ind)%mort          = 0.15_r8 * dps
-    autotrophs(auto_ind)%mort2         = 0.0_r8
-    autotrophs(auto_ind)%agg_rate_max  = 0.0_r8
-    autotrophs(auto_ind)%agg_rate_min  = 0.0_r8
+    autotrophs(auto_ind)%temp_thres    = 15.0_r8
+    autotrophs(auto_ind)%mort          = 0.1_r8 * dps
+    autotrophs(auto_ind)%mort2         = 0.01_r8 * dps
+    autotrophs(auto_ind)%agg_rate_max  = 0.5_r8
+    autotrophs(auto_ind)%agg_rate_min  = 0.01_r8
     autotrophs(auto_ind)%loss_poc      = 0.0_r8
  
 
@@ -357,12 +374,12 @@ contains
     grazing(prey_ind,zoo_ind)%auto_ind_cnt       = 1
     grazing(prey_ind,zoo_ind)%zoo_ind          = -1
     grazing(prey_ind,zoo_ind)%zoo_ind_cnt        = 0
-    grazing(prey_ind,zoo_ind)%z_umax_0         = 3.3_r8 * dps ! x1 default
-    grazing(prey_ind,zoo_ind)%z_grz            = 1.05_r8              
+    grazing(prey_ind,zoo_ind)%z_umax_0         = 3.25_r8 * dps
+    grazing(prey_ind,zoo_ind)%z_grz            = 1.15_r8              
     grazing(prey_ind,zoo_ind)%graze_zoo        = 0.3_r8
     grazing(prey_ind,zoo_ind)%graze_poc        = 0.0_r8
-    grazing(prey_ind,zoo_ind)%graze_doc        = 0.15_r8
-    grazing(prey_ind,zoo_ind)%f_zoo_detr       = 0.15_r8
+    grazing(prey_ind,zoo_ind)%graze_doc        = 0.06_r8
+    grazing(prey_ind,zoo_ind)%f_zoo_detr       = 0.1_r8
     grazing(prey_ind,zoo_ind)%grazing_function = grz_fnc_michaelis_menten
 
     prey_ind = diat_ind
@@ -372,11 +389,11 @@ contains
     grazing(prey_ind,zoo_ind)%auto_ind_cnt       = 1
     grazing(prey_ind,zoo_ind)%zoo_ind          = -1
     grazing(prey_ind,zoo_ind)%zoo_ind_cnt        = 0
-    grazing(prey_ind,zoo_ind)%z_umax_0         = 3.08_r8 * dps ! x1 default
-    grazing(prey_ind,zoo_ind)%z_grz            = 1.0_r8              
+    grazing(prey_ind,zoo_ind)%z_umax_0         = 2.9_r8 * dps
+    grazing(prey_ind,zoo_ind)%z_grz            = 1.15_r8              
     grazing(prey_ind,zoo_ind)%graze_zoo        = 0.3_r8
-    grazing(prey_ind,zoo_ind)%graze_poc        = 0.42_r8
-    grazing(prey_ind,zoo_ind)%graze_doc        = 0.15_r8
+    grazing(prey_ind,zoo_ind)%graze_poc        = 0.4_r8
+    grazing(prey_ind,zoo_ind)%graze_doc        = 0.06_r8
     grazing(prey_ind,zoo_ind)%f_zoo_detr       = 0.2_r8
     grazing(prey_ind,zoo_ind)%grazing_function = grz_fnc_michaelis_menten
 
@@ -387,12 +404,12 @@ contains
     grazing(prey_ind,zoo_ind)%auto_ind_cnt       = 1
     grazing(prey_ind,zoo_ind)%zoo_ind          = -1
     grazing(prey_ind,zoo_ind)%zoo_ind_cnt        = 0
-    grazing(prey_ind,zoo_ind)%z_umax_0         = 0.6_r8 * dps
-    grazing(prey_ind,zoo_ind)%z_grz            = 1.2_r8              
+    grazing(prey_ind,zoo_ind)%z_umax_0         = 1.85_r8 * dps
+    grazing(prey_ind,zoo_ind)%z_grz            = 1.15_r8              
     grazing(prey_ind,zoo_ind)%graze_zoo        = 0.3_r8
-    grazing(prey_ind,zoo_ind)%graze_poc        = 0.05_r8
-    grazing(prey_ind,zoo_ind)%graze_doc        = 0.15_r8
-    grazing(prey_ind,zoo_ind)%f_zoo_detr       = 0.15_r8
+    grazing(prey_ind,zoo_ind)%graze_poc        = 0.08_r8
+    grazing(prey_ind,zoo_ind)%graze_doc        = 0.06_r8
+    grazing(prey_ind,zoo_ind)%f_zoo_detr       = 0.1_r8
     grazing(prey_ind,zoo_ind)%grazing_function = grz_fnc_michaelis_menten
 
     
@@ -433,6 +450,7 @@ contains
          parm_POC_diss, &
          parm_SiO2_diss, &
          parm_CaCO3_diss, &
+         fe_max_scale2, &
          parm_scalelen_z, &
          parm_scalelen_vals, &
          autotrophs, & 
@@ -484,6 +502,7 @@ contains
     write(stdout, *) 'parm_POC_diss          = ', parm_POC_diss
     write(stdout, *) 'parm_SiO2_diss         = ', parm_SiO2_diss
     write(stdout, *) 'parm_CaCO3_diss        = ', parm_CaCO3_diss
+    write(stdout, *) 'fe_max_scale2          = ', fe_max_scale2
     write(stdout, *) 'parm_scalelen_z        = ', parm_scalelen_z
     write(stdout, *) 'parm_scalelen_vals     = ', parm_scalelen_vals
 
@@ -501,7 +520,7 @@ contains
        write(stdout, *) 'exp_calcifier(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%exp_calcifier
        write(stdout, *) 'kFe(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kFe
        write(stdout, *) 'kPO4(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kPO4
-       write(stdout, *) 'kdoP(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kdoP
+       write(stdout, *) 'kDOP(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kDOP
        write(stdout, *) 'kNO3(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kNO3
        write(stdout, *) 'kNH4(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kNH4
        write(stdout, *) 'kSiO3(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kSiO3
