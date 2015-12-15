@@ -1,5 +1,20 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy, mvertens
+Tag Date:    15 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n22_cesm_pop_2_1_20151123/
+Tag Summary: Merge changes from marbl_init2_n21 - last bit of work Mariana did
+             with marbl_ecosys_set_sflux
+
+Testing: aux_pop_MARBL vs the n20 tag (bit-for-bit).
+
+Files Modified:
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/marbl_interface_types.F90
+M       source/marbl_share.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    14 Dec 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n21_cesm_pop_2_1_20151123/
@@ -9,7 +24,7 @@ Tag Summary: There are 5 diagnostic fields that POP can accumulate twice --
              once, and all the required infrastructure to accumulate them with
              the _2 tavg id should be managed in POP.
 
-Testing: aux_pop_MARBL vs the n20 tag.
+Testing: aux_pop_MARBL vs the n20 tag (bit-for-bit).
 
 Files Modified:
 M       source/ecosys_diagnostics_mod.F90

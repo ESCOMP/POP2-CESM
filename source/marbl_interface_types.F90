@@ -11,15 +11,17 @@ module marbl_interface_types
 
   private
 
- integer, public, parameter :: max_interior_diags = 72 + autotroph_cnt*26 + zooplankton_cnt*8
- integer, public, parameter :: max_forcing_diags = 38
- integer, public, parameter :: max_restore_diags = ecosys_tracer_cnt
+  integer, public, parameter :: max_interior_diags = 72 + autotroph_cnt*26 + zooplankton_cnt*8
+  integer, public, parameter :: max_forcing_diags = 38
+  integer, public, parameter :: max_restore_diags = ecosys_tracer_cnt
 
+  !*****************************************************************************
   type, public :: marbl_status_type
      integer :: status
      character(marbl_str_length) :: message
   end type marbl_status_type
 
+  !*****************************************************************************
   type, public :: marbl_tracer_metadata_type
      character(char_len) :: short_name
      character(char_len) :: long_name
@@ -29,7 +31,8 @@ module marbl_interface_types
      logical             :: lfull_depth_tavg
      real(r8)            :: scale_factor
   end type marbl_tracer_metadata_type
-  
+
+  !*****************************************************************************
   type, public :: marbl_tracer_read_type
      character(char_len) :: mod_varname
      character(char_len) :: filename
@@ -39,6 +42,7 @@ module marbl_interface_types
      real(r8)            :: default_val
   end type marbl_tracer_read_type
 
+  !*****************************************************************************
   type, public :: marbl_column_domain_type
      logical(log_kind) :: land_mask
      integer(int_kind) :: PAR_nsubcols ! number of sub-column values for PAR
@@ -50,11 +54,13 @@ module marbl_interface_types
      real(r8), allocatable :: surf_shortwave(:) ! surface shortwave for each sub-column (W/m^2)
   end type marbl_column_domain_type
 
+  !*****************************************************************************
   type, public :: marbl_gcm_state_type
      real(r8), allocatable :: temperature(:) ! (km)
      real(r8), allocatable :: salinity(:)    ! (km)
   end type marbl_gcm_state_type
 
+  !*****************************************************************************
   type, public :: marbl_saved_state_type
      ! this struct is necessary because there is some global state
      ! that needs to be preserved for marbl
@@ -63,44 +69,97 @@ module marbl_interface_types
      real (r8) , dimension(:, :, :, :)      , allocatable :: PH_PREV_ALT_CO2_3D ! computed pH_3D from previous time step, alternative CO2
      logical (log_kind), dimension(:, :, :) , allocatable :: LAND_MASK
   end type marbl_saved_state_type
- 
-  ! marbl_singl_diagnostic : A private type, this contains both the metadata
-  !                          and the actual diagnostic data for a single
-  !                          diagnostic quantity. Data must be accessed via
-  !                          the marbl_diagnostics_type data structure.
-  type :: marbl_single_diagnostic_type
-    character(len=char_len) :: long_name
-    character(len=char_len) :: short_name
-    character(len=char_len) :: units
-    logical(log_kind) :: compute_now
-    ! Valid choices for vertical_grid are: 'none', 'layer_avg', 'layer_iface'
-    character(len=char_len) :: vertical_grid
-    logical(log_kind) :: ltruncated_vertical_extent
-    real(r8) :: field_2d
-    real(r8), allocatable, dimension(:) :: field_3d
 
-  contains
-    procedure :: initialize  => marbl_single_diag_init
+  !*****************************************************************************
+  type :: marbl_single_diagnostic_type
+     ! marbl_singl_diagnostic : 
+     ! a private type, this contains both the metadata
+     ! and the actual diagnostic data for a single
+     ! diagnostic quantity. Data must be accessed via
+     ! the marbl_diagnostics_type data structure.
+     character(len=char_len) :: long_name
+     character(len=char_len) :: short_name
+     character(len=char_len) :: units
+     character(len=char_len) :: vertical_grid ! 'none', 'layer_avg', 'layer_iface'
+     logical(log_kind)       :: compute_now
+     logical(log_kind)       :: ltruncated_vertical_extent
+     real(r8)                :: field_2d
+     real(r8), allocatable, dimension(:) :: field_3d
+
+   contains
+     procedure :: initialize  => marbl_single_diag_init
   end type marbl_single_diagnostic_type
 
-  ! marbl_diagnostics : used to pass diagnostic information from marbl back to
-  !                     the driver. If size is not known when the constructor
-  !                     is called, use the max_diags parameter in this module.
+  !*****************************************************************************
   type, public :: marbl_diagnostics_type
+     ! marbl_diagnostics : 
+     ! used to pass diagnostic information from marbl back to
+     ! the driver. If size is not known when the constructor
+     ! is called, use the max_diags parameter in this module.
      integer :: diag_cnt
      type(marbl_single_diagnostic_type), dimension(:), allocatable :: diags
 
-  contains
-    procedure, public :: construct      => marbl_diagnostics_constructor
-    procedure, public :: set_to_zero    => marbl_diagnostics_set_to_zero
-    procedure, public :: add_diagnostic => marbl_diagnostics_add
-    procedure, public :: deconstruct    => marbl_diagnostics_deconstructor
+   contains
+     procedure, public :: construct      => marbl_diagnostics_constructor
+     procedure, public :: set_to_zero    => marbl_diagnostics_set_to_zero
+     procedure, public :: add_diagnostic => marbl_diagnostics_add
+     procedure, public :: deconstruct    => marbl_diagnostics_deconstructor
   end type marbl_diagnostics_type
 
+  !*****************************************************************************
+  type, public :: marbl_forcing_input_type
+     real (r8), allocatable, dimension(:)   :: u10_sqr         
+     real (r8), allocatable, dimension(:)   :: ifrac           ! ice fraction
+     real (r8), allocatable, dimension(:)   :: atm_press
+     real (r8), allocatable, dimension(:)   :: sst             
+     real (r8), allocatable, dimension(:)   :: sss             
+     real (r8), allocatable, dimension(:)   :: xco2            
+     real (r8), allocatable, dimension(:)   :: xco2_alt_co2    
+     real (r8), allocatable, dimension(:)   :: ap         
+     real (r8), allocatable, dimension(:)   :: dust_flux
+     real (r8), allocatable, dimension(:)   :: xkw        
+     real (r8), allocatable, dimension(:)   :: iron_flux    
+     real (r8), allocatable, dimension(:)   :: ph_prev         
+     real (r8), allocatable, dimension(:)   :: ph_prev_alt_co2 
+     real (r8), allocatable, dimension(:,:) :: marbl_stf
+     real (r8), allocatable, dimension(:,:) :: surface_vals
+     logical (log_kind), allocatable, dimension(:)   :: land_mask
+   contains
+     procedure, public :: construct => marbl_forcing_input_constructor
+  end type marbl_forcing_input_type
+
+  !*****************************************************************************
+  type, public :: marbl_forcing_output_type
+     real (r8), allocatable, dimension(:)   :: ph_prev         
+     real (r8), allocatable, dimension(:)   :: ph_prev_alt_co2 
+     real (r8), allocatable, dimension(:)   :: iron_flux    
+     real (r8), allocatable, dimension(:)   :: flux_o2     
+     real (r8), allocatable, dimension(:)   :: flux_co2     
+     real (r8), allocatable, dimension(:)   :: flux_alt_co2 ! tracer flux alternative CO2 (nmol/cm^2/s)
+     real (r8), allocatable, dimension(:)   :: co2star
+     real (r8), allocatable, dimension(:)   :: dco2star
+     real (r8), allocatable, dimension(:)   :: pco2surf
+     real (r8), allocatable, dimension(:)   :: dpco2
+     real (r8), allocatable, dimension(:)   :: co3
+     real (r8), allocatable, dimension(:)   :: co2star_alt
+     real (r8), allocatable, dimension(:)   :: dco2star_alt
+     real (r8), allocatable, dimension(:)   :: pco2surf_alt
+     real (r8), allocatable, dimension(:)   :: dpco2_alt
+     real (r8), allocatable, dimension(:)   :: schmidt_co2  ! Schmidt number
+     real (r8), allocatable, dimension(:)   :: schmidt_o2   ! Schmidt number
+     real (r8), allocatable, dimension(:)   :: pv_o2        ! piston velocity (cm/s)
+     real (r8), allocatable, dimension(:)   :: pv_co2       ! piston velocity (cm/s)
+     real (r8), allocatable, dimension(:)   :: o2sat        ! used O2 saturation (mmol/m^3)
+     real (r8), allocatable, dimension(:,:) :: stf_module
+     real (r8), allocatable, dimension(:,:) :: flux_diags
+   contains
+     procedure, public :: construct => marbl_forcing_output_constructor
+  end type marbl_forcing_output_type
+
+  !*****************************************************************************
   type, public :: carbonate_type
      ! FIXME(bja, 2015-07) remove alt_co2 variables, and just reuse
-     ! the type as type(column_carbonate_type) :: carbonate,
-     ! carbonate_alt
+     ! the type as type(column_carbonate_type) :: carbonate, carbonate_alt
      real (r8) :: CO3 ! carbonate ion
      real (r8) :: HCO3 ! bicarbonate ion
      real (r8) :: H2CO3 ! carbonic acid
@@ -113,6 +172,7 @@ module marbl_interface_types
      real (r8) :: pH_ALT_CO2
   end type carbonate_type
 
+  !*****************************************************************************
   type, public :: autotroph_secondary_species_type
      real (r8) :: thetaC          ! local Chl/C ratio (mg Chl/mmol C)
      real (r8) :: QCaCO3          ! CaCO3/C ratio (mmol CaCO3/mmol C)
@@ -157,6 +217,7 @@ module marbl_interface_types
      real (r8) :: remaining_P_dip ! remaining_P from mort routed to remin
   end type autotroph_secondary_species_type
 
+  !*****************************************************************************
   type, public :: zooplankton_secondary_species_type
      real (r8):: f_zoo_detr       ! frac of zoo losses into large detrital pool (non-dim)
      real (r8):: x_graze_zoo      ! {auto, zoo}_graze routed to zoo (mmol C/m^3/sec)
@@ -172,6 +233,7 @@ module marbl_interface_types
      real (r8):: Zprime           ! used to limit zoo mort at low biomass (mmol C/m^3)
   end type zooplankton_secondary_species_type
 
+  !*****************************************************************************
   type, public :: photosynthetically_available_radiation_type
      real(r8), allocatable :: col_frac(:)    ! column fraction occupied by each sub-column, dimension is (PAR_nsubcols)
      real(r8), allocatable :: interface(:,:) ! PAR at layer interfaces, dimensions are (0:km,PAR_nsubcols)
@@ -179,6 +241,7 @@ module marbl_interface_types
      real(r8), allocatable :: KPARdz(:)      ! PAR adsorption coefficient times dz (cm), dimension is (km)
   end type photosynthetically_available_radiation_type
 
+  !*****************************************************************************
   type, public :: dissolved_organic_matter_type
      real (r8) :: DOC_prod         ! production of DOC (mmol C/m^3/sec)
      real (r8) :: DOC_remin        ! remineralization of DOC (mmol C/m^3/sec)
@@ -192,14 +255,17 @@ module marbl_interface_types
      real (r8) :: DOPr_remin       ! portion of refractory DOP remineralized
   end type dissolved_organic_matter_type
 
+  !*****************************************************************************
+
 contains
 
-  subroutine marbl_single_diag_init(this, lname, sname, units, vgrid, truncate)
-                                            
+  !*****************************************************************************
 
-    class(marbl_single_diagnostic_type), intent(inout) :: this
-    character(len=char_len), intent(in) :: lname, sname, units, vgrid
-    logical, intent(in) :: truncate
+  subroutine marbl_single_diag_init(this, lname, sname, units, vgrid, truncate)
+
+    class(marbl_single_diagnostic_type) , intent(inout) :: this
+    character(len=char_len) , intent(in)    :: lname, sname, units, vgrid
+    logical                 , intent(in)    :: truncate
 
     character(len=char_len), dimension(3) :: valid_vertical_grids
     integer :: n
@@ -235,10 +301,76 @@ contains
 
   end subroutine marbl_single_diag_init
 
+  !*****************************************************************************
+
+  subroutine marbl_forcing_input_constructor(this, &
+       num_elements, num_surface_vals, num_marbl_stf)
+
+    class(marbl_forcing_input_type), intent(inout) :: this
+    integer (int_kind), intent(in) :: num_elements
+    integer (int_kind), intent(in) :: num_surface_vals
+    integer (int_kind), intent(in) :: num_marbl_stf
+
+    allocate(this%u10_sqr(num_elements))         
+    allocate(this%ifrac(num_elements))           
+    allocate(this%land_mask(num_elements))
+    allocate(this%sst(num_elements))             
+    allocate(this%sss(num_elements))             
+    allocate(this%xco2(num_elements))            
+    allocate(this%atm_press(num_elements))         
+    allocate(this%xco2_alt_co2(num_elements))    
+    allocate(this%xkw(num_elements))        
+    allocate(this%dust_flux(num_elements))    
+    allocate(this%iron_flux(num_elements))
+    allocate(this%ph_prev(num_elements))
+    allocate(this%ph_prev_alt_co2(num_elements)) 
+
+    allocate(this%surface_vals(num_elements, num_surface_vals))
+    allocate(this%marbl_stf(num_elements, num_marbl_stf))
+
+  end subroutine marbl_forcing_input_constructor
+
+  !*****************************************************************************
+
+  subroutine marbl_forcing_output_constructor(this, &
+       num_elements, num_surface_vals, num_forcing_diags)
+
+    class(marbl_forcing_output_type), intent(inout) :: this
+    integer (int_kind), intent(in) :: num_elements
+    integer (int_kind), intent(in) :: num_surface_vals
+    integer (int_kind), intent(in) :: num_forcing_diags 
+
+     allocate(this%ph_prev(num_elements))
+     allocate(this%ph_prev_alt_co2(num_elements)) 
+     allocate(this%iron_flux(num_elements)) 
+     allocate(this%flux_co2(num_elements))            
+     allocate(this%flux_o2(num_elements))            
+     allocate(this%co2star(num_elements))
+     allocate(this%dco2star(num_elements))
+     allocate(this%pco2surf(num_elements))
+     allocate(this%dpco2(num_elements))
+     allocate(this%co3(num_elements))
+     allocate(this%co2star_alt(num_elements))
+     allocate(this%dco2star_alt(num_elements))
+     allocate(this%pco2surf_alt(num_elements))
+     allocate(this%dpco2_alt(num_elements))
+     allocate(this%schmidt_co2(num_elements)) 
+     allocate(this%schmidt_o2(num_elements))  
+     allocate(this%pv_o2(num_elements))       
+     allocate(this%pv_co2(num_elements))      
+     allocate(this%o2sat(num_elements))       
+     allocate(this%flux_alt_co2(num_elements))
+     allocate(this%flux_diags(num_elements, num_forcing_diags))
+     allocate(this%stf_module(num_elements, num_surface_vals))
+
+  end subroutine marbl_forcing_output_constructor
+
+  !*****************************************************************************
+
   subroutine marbl_diagnostics_constructor(this, num_diags)
 
     class(marbl_diagnostics_type), intent(inout) :: this
-    integer, intent(in) :: num_diags
+    integer (int_kind) , intent(in) :: num_diags
 
     allocate(this%diags(num_diags))
     this%diag_cnt = 0
@@ -246,11 +378,13 @@ contains
 
   end subroutine marbl_diagnostics_constructor
 
+  !*****************************************************************************
+
   subroutine marbl_diagnostics_set_to_zero(this)
 
     class(marbl_diagnostics_type), intent(inout) :: this
 
-    integer :: n
+    integer (int_kind) :: n
 
     do n=1,size(this%diags)
       this%diags(n)%field_2d = c0
@@ -261,14 +395,14 @@ contains
 
   end subroutine marbl_diagnostics_set_to_zero
 
-  subroutine marbl_diagnostics_add(this, lname, sname, units, vgrid,          &
-                                   truncate, id)
+  !*****************************************************************************
 
-    class(marbl_diagnostics_type), intent(inout) :: this
-    character(len=char_len), intent(in) :: lname, sname, units, vgrid
-    logical, intent(in) :: truncate
-    integer, intent(out) :: id
+  subroutine marbl_diagnostics_add(this, lname, sname, units, vgrid, truncate, id)
 
+    class(marbl_diagnostics_type) , intent(inout) :: this
+    character(len=char_len)       , intent(in)    :: lname, sname, units, vgrid
+    logical (int_kind)            , intent(in)    :: truncate
+    integer (int_kind)            , intent(out)   :: id
 
     this%diag_cnt = this%diag_cnt + 1
     id = this%diag_cnt
@@ -279,6 +413,8 @@ contains
     call this%diags(id)%initialize(lname, sname, units, vgrid, truncate)
 
   end subroutine marbl_diagnostics_add
+
+  !*****************************************************************************
 
   subroutine marbl_diagnostics_deconstructor(this)
 

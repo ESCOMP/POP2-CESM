@@ -43,6 +43,9 @@ module ecosys_driver
   use marbl_interface_types     , only : marbl_diagnostics_type
   use marbl_interface_types     , only : marbl_saved_state_type
   use marbl_interface_types     , only : photosynthetically_available_radiation_type
+  use marbl_interface_types     , only : marbl_forcing_input_type
+  use marbl_interface_types     , only : marbl_forcing_output_type
+  use marbl_share_mod           , only : marbl_forcing_share_type
   use ecosys_mod                , only : marbl_ecosys_set_sflux
   use ecosys_mod                , only : marbl_ecosys_set_interior
   use ecosys_diagnostics_mod    , only : marbl_ecosys_diagnostics_init  
@@ -134,9 +137,14 @@ module ecosys_driver
   !-----------------------------------------------------------------------
 
   type(marbl_interface_class) :: marbl
+
   type(marbl_diagnostics_type), dimension(max_blocks_clinic) :: marbl_interior_diags
   type(marbl_diagnostics_type), dimension(max_blocks_clinic) :: marbl_restore_diags
   type(marbl_diagnostics_type), dimension(max_blocks_clinic) :: marbl_forcing_diags
+
+  type(marbl_forcing_input_type)  , dimension(max_blocks_clinic) :: marbl_forcing_input
+  type(marbl_forcing_output_type) , dimension(max_blocks_clinic) :: marbl_forcing_output
+  type(marbl_forcing_share_type)  , dimension(max_blocks_clinic) :: marbl_forcing_share
 
   real (r8), allocatable :: flux_diags(:, :, :, :)  ! Computed diagnostics for surface fluxes
 
@@ -183,6 +191,9 @@ module ecosys_driver
   !  define array for holding flux-related quantities that need to be time-averaged
   !-----------------------------------------------------------------------
 
+  integer (int_kind) :: num_elements  = 1  !TODO - make this an input namelist value
+  integer (int_kind) :: num_marbl_stf = 13 !TODO - this should not be hard-wired
+  integer (int_kind) :: forcing_diag_cnt
 
   !***********************************************************************
 
@@ -286,6 +297,9 @@ contains
     type(marbl_driver_sizes_type)   :: marbl_driver_sizes
     type(marbl_sizes_type)          :: marbl_sizes
     type(marbl_status_type)         :: marbl_status
+
+    integer (int_kind)              :: num_forcing_diags
+    integer (int_kind)              :: num_surface_vals
 
     !-----------------------------------------------------------------------
     !  read in ecosys_driver namelist, to set namelist parameters that
@@ -477,12 +491,19 @@ contains
     call ecosys_driver_init_interior_restore(marbl_saved_state, ecosys_restore)
 
     ! initialize ecosys_diagnostics type
-    do bid=1,nblocks_clinic
+    do iblock=1,nblocks_clinic
        call marbl_ecosys_diagnostics_init(&
-            marbl_interior_diags(bid), &
-            marbl_restore_diags(bid),  &
-            marbl_forcing_diags(bid),  &
+            marbl_interior_diags(iblock), &
+            marbl_restore_diags(iblock),  &
+            marbl_forcing_diags(iblock),  &
             tracer_d_module(ecosys_ind_begin:ecosys_ind_end))
+
+       num_forcing_diags = marbl_forcing_diags(1)%diag_cnt
+       num_surface_vals  = ecosys_ind_end - ecosys_ind_begin + 1
+
+       call marbl_forcing_input(iblock)%construct(num_elements, num_surface_vals, num_marbl_stf)
+       call marbl_forcing_output(iblock)%construct(num_elements, num_surface_vals, num_forcing_diags)
+       call marbl_forcing_share(iblock)%construct(num_elements)
     end do
 
     ! Initialize tavg ids (need only do this using first block)
@@ -1060,11 +1081,17 @@ contains
     !  call subroutines for each tracer module that compute surface fluxes
 
     !FIXME (mvertens, 2015-11) where does this variable belong?
+    use constants       , only : xkw_coeff
     use named_field_mod , only : named_field_set
     use named_field_mod , only : named_field_set
+    use marbl_share_mod , only : gas_flux_forcing_iopt
+    use marbl_share_mod , only : gas_flux_forcing_iopt_drv
+    use marbl_share_mod , only : gas_flux_forcing_iopt_file
     use marbl_share_mod , only : lflux_gas_co2
+    use marbl_share_mod , only : lflux_gas_o2
     use marbl_share_mod , only : autotrophs
     use marbl_share_mod , only : marbl_surface_share_type
+    use marbl_parms     , only : parm_Fe_bioavail
     use domain          , only : nblocks_clinic
 
     ! !INPUT PARAMETERS:
@@ -1101,14 +1128,15 @@ contains
          auto_ind,        & ! autotroph functional group index
          errorCode          ! errorCode from HaloUpdate call
 
-    real (r8), dimension(nx_block, ny_block, max_blocks_clinic) :: &
-         IFRAC_USED,   & ! used ice fraction (non-dimensional)
-         XKW_USED,     & ! portion of piston velocity (cm/s)
-         AP_USED,      & ! used atm pressure (converted from dyne/cm**2 to atm)
-         IRON_FLUX_IN, & ! iron flux
-         XCO2,         & ! atmospheric co2 conc. (dry-air, 1 atm)
-         XCO2_ALT_CO2, & ! atmospheric alternative CO2 (dry-air, 1 atm)
-         FLUX
+    real (r8)             , dimension(nx_block, ny_block, max_blocks_clinic) :: &
+         ifrac_file_input , & ! file input ice fraction (non-dimensional)
+         xkw_file_input   , & ! file input portion of piston velocity (cm/s)
+         ap_file_input    , & ! used atm pressure (converted from dyne/cm**2 to atm)
+         iron_flux_in     , & ! iron flux
+         ifrac_used       , & ! used ice fraction (non-dimensional)
+         xco2             , & ! atmospheric co2 conc. (dry-air, 1 atm)
+         xco2_alt_co2     , & ! atmospheric alternative CO2 (dry-air, 1 atm)
+         flux_co2
 
     real (r8), dimension(nx_block, ny_block) :: &
          WORK1 ! temporaries for averages
@@ -1119,22 +1147,15 @@ contains
     real (r8), dimension(nx_block, ny_block, 13, max_blocks_clinic) :: &
          MARBL_STF
 
-    integer (int_kind) :: forcing_diag_cnt
-
-    real (r8), dimension(1) :: &
-         U10_SQR_1, IFRAC_1, PRESS_1, SST_1, SSS_1, XCO2_1, XCO2_ALT_CO2_1, &
-         IFRAC_USED_1, XKW_USED_1, AP_USED_1, IRON_FLUX_IN_1, PH_PREV_1,    &
-         PH_PREV_ALT_CO2_1, FLUX_1
-
     real (r8), dimension(1, ecosys_ind_begin:ecosys_ind_end) :: &
-         SURFACE_VALS_1, STF_MODULE_1
+         STF_MODULE_1
 
-    real (r8), dimension(1, 13) :: &
-         MARBL_STF_1
+    integer (int_kind) :: forcing_diag_cnt
+    integer (int_kind) :: num_surface_vals
 
     real (r8), allocatable :: FLUX_DIAGS_1(:, :)
 
-    type(marbl_surface_share_type) :: marbl_surface_share
+    type(marbl_surface_share_type) :: marbl_surface_share(max_blocks_clinic)
 
     !-----------------------------------------------------------------------
 
@@ -1150,9 +1171,9 @@ contains
        first_call = .false.
     end if
 
-    ! set MARBL_STF
-
-    call marbl%set_surface_flux()
+    !-----------------------------------------------------------------------
+    ! Set marbl_stf and surface_vals (driver)
+    !-----------------------------------------------------------------------
 
     call ecosys_driver_read_sflux(                                &
          marbl_saved_state,                                       &
@@ -1161,80 +1182,110 @@ contains
          SURFACE_VALS    (:,:,ecosys_ind_begin:ecosys_ind_end,:), &
          MARBL_STF,                                               &
          XCO2, XCO2_ALT_CO2,                                      &
-         IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN,             &
-         PH_PREV, PH_PREV_ALT_CO2)
+         ifrac_file_input, xkw_file_input, ap_file_input, IRON_FLUX_IN)
+
+    ! Apply OCMIP ice fraction mask when input is from a file.
+
+    if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
+       ifrac_used = ifrac_file_input
+       where (ifrac_used < 0.2000_r8) ifrac_used = 0.2000_r8
+       where (ifrac_used > 0.9999_r8) ifrac_used = 0.9999_r8
+    else if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
+       ifrac_used = ifrac
+       where (ifrac_used < c0) ifrac_used = c0
+       where (ifrac_used > c1) ifrac_used = c1
+    endif
+
+    !-----------------------------------------------------------------------
+    ! Set surface flux 
+    !-----------------------------------------------------------------------
 
     call timer_start(ecosys_set_sflux_timer)
+
     call marbl%set_surface_flux()
 
     do iblock = 1, nblocks_clinic
        do j = 1, ny_block
           do i = 1, nx_block
 
-             ! Copy data from slab to column for marbl
-             U10_SQR_1(1)         = U10_SQR(i,j,iblock)
-             IFRAC_1(1)           = IFRAC(i,j,iblock)
-             PRESS_1(1)           = PRESS(i,j,iblock)
-             SST_1(1)             = SST(i,j,iblock)
-             SSS_1(1)             = SSS(i,j,iblock)
-             XCO2_1(1)            = XCO2(i,j,iblock)
-             XCO2_ALT_CO2_1(1)    = XCO2_ALT_CO2(i,j,iblock)
-             IFRAC_USED_1(1)      = IFRAC_USED(i,j,iblock)
-             XKW_USED_1(1)        = XKW_USED(i,j,iblock)
-             AP_USED_1(1)         = AP_USED(i,j,iblock)
-             IRON_FLUX_IN_1(1)    = IRON_FLUX_IN(i,j,iblock)
-             PH_PREV_1(1)         = PH_PREV(i,j,iblock)
-             PH_PREV_ALT_CO2_1(1) = PH_PREV_ALT_CO2(i,j,iblock)
-             FLUX_1(1)            = FLUX(i,j,iblock)
-             FLUX_DIAGS_1(1,:)    = FLUX_DIAGS(i,j,:,iblock)
-             SURFACE_VALS_1(1,:)  = SURFACE_VALS(i,j,:,iblock)
-             MARBL_STF_1(1,:)     = MARBL_STF(i,j,:,iblock)
-             STF_MODULE_1(1,:)    = STF_MODULE(i,j,:,iblock)
+             !-----------------------------------------------------------------------
+             ! Set marbl input: copy data from slab to column for marbl
+             !-----------------------------------------------------------------------
+
+             marbl_forcing_input(iblock)%u10_sqr(1)         = u10_sqr(i,j,iblock)
+             marbl_forcing_input(iblock)%sst(1)             = sst(i,j,iblock)
+             marbl_forcing_input(iblock)%sss(1)             = sss(i,j,iblock)
+             marbl_forcing_input(iblock)%xco2(1)            = xco2(i,j,iblock)
+             marbl_forcing_input(iblock)%xco2_alt_co2(1)    = xco2_alt_co2(i,j,iblock)
+             marbl_forcing_input(iblock)%ifrac(1)           = ifrac_used(i,j,iblock)
+             marbl_forcing_input(iblock)%ph_prev(1)         = ph_prev(i,j,iblock)         
+             marbl_forcing_input(iblock)%ph_prev_alt_co2(1) = ph_prev_alt_co2(i,j,iblock) 
+             marbl_forcing_input(iblock)%iron_flux(1)       = iron_flux_in(i,j,iblock)
+             marbl_forcing_input(iblock)%dust_flux(1)       = marbl_saved_state%dust_flux_in(i,j,iblock)
+             marbl_forcing_input(iblock)%land_mask(1)       = marbl_saved_state%land_mask(i,j,iblock)
+             
+             if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
+                marbl_forcing_input(iblock)%xkw(1) = xkw_coeff * u10_sqr(i,j,iblock)
+             else
+                marbl_forcing_input(iblock)%xkw(1) = xkw_file_input(i,j,iblock)
+             end if
+
+             if (lflux_gas_o2 .or. lflux_gas_co2) then
+                !  assume PRESS is in cgs units (dyne/cm**2) since that is what is
+                !    required for pressure forcing in barotropic
+                !  want units to be atmospheres
+                !  convertion from dyne/cm**2 to Pascals is P(mks) = P(cgs)/10.
+                !  convertion from Pascals to atm is P(atm) = P(Pa)/101.325e+3_r8
+
+                marbl_forcing_input(iblock)%atm_press(1) = press(i,j,iblock) / 101.325e+4_r8
+             end if
+
+             marbl_forcing_input(iblock)%marbl_stf(1,:) = marbl_stf(i,j,:,iblock)
+
+             num_surface_vals  = ecosys_ind_end - ecosys_ind_begin + 1
+             do n = 1,num_surface_vals
+                marbl_forcing_input(iblock)%surface_vals(1,n)= surface_vals(i,j,ecosys_ind_begin+n-1,iblock)  
+             end do
+
+             !-----------------------------------------------------------------------
+             ! Determine surface flux - marbl
+             !-----------------------------------------------------------------------
 
              call marbl_ecosys_set_sflux(                              &
-                  1, marbl_saved_state%land_mask(i,j,iblock),          &
-                  marbl_saved_state%dust_flux_in(i,j,iblock),          &
-                  marbl_surface_share,                                 &
-                  U10_SQR_1, IFRAC_1, PRESS_1, SST_1, SSS_1,           &
-                  SURFACE_VALS_1, MARBL_STF_1,                         &
-                  XCO2_1, XCO2_ALT_CO2_1, STF_MODULE_1,                &
-                  IFRAC_USED_1, XKW_USED_1, AP_USED_1, IRON_FLUX_IN_1, &
-                  ciso_on, PH_PREV_1, PH_PREV_ALT_CO2_1, FLUX_1,       &
-                  FLUX_DIAGS_1)
+                  1, ciso_on,                                          &
+                  marbl_forcing_input(iblock),                         &
+                  marbl_forcing_output(iblock),                        &
+                  marbl_surface_share(iblock))
 
-             marbl%private_data%surface_share%PV_SURF_fields(i,j,iblock) = &
-                          marbl_surface_share%PV_SURF_fields(1)
-             marbl%private_data%surface_share%DIC_SURF_fields(i,j,iblock) = &
-                          marbl_surface_share%DIC_SURF_fields(1)
-             marbl%private_data%surface_share%CO2STAR_SURF_fields(i,j,iblock) = &
-                          marbl_surface_share%CO2STAR_SURF_fields(1)
-             marbl%private_data%surface_share%DCO2STAR_SURF_fields(i,j,iblock) = &
-                          marbl_surface_share%DCO2STAR_SURF_fields(1)
-             marbl%private_data%surface_share%CO3_SURF_fields(i,j,iblock) = &
-                          marbl_surface_share%CO3_SURF_fields(1)
-             marbl%private_data%surface_share%dic_riv_flux_fields(i,j,iblock) = &
-                          marbl_surface_share%dic_riv_flux_fields(1)
-             marbl%private_data%surface_share%doc_riv_flux_fields(i,j,iblock) = &
-                          marbl_surface_share%doc_riv_flux_fields(1)
-             XCO2(i,j,iblock)            = XCO2_1(1)
-             XCO2_ALT_CO2(i,j,iblock)    = XCO2_ALT_CO2_1(1)
-             IFRAC_USED(i,j,iblock)      = IFRAC_USED_1(1)
-             XKW_USED(i,j,iblock)        = XKW_USED_1(1)
-             AP_USED(i,j,iblock)         = AP_USED_1(1)
-             IRON_FLUX_IN(i,j,iblock)    = IRON_FLUX_IN_1(1)
-             PH_PREV(i,j,iblock)         = PH_PREV_1(1)
-             PH_PREV_ALT_CO2(i,j,iblock) = PH_PREV_ALT_CO2_1(1)
-             FLUX(i,j,iblock)            = FLUX_1(1)
-             FLUX_DIAGS(i,j,:,iblock)    = FLUX_DIAGS_1(1,:)
-             SURFACE_VALS(i,j,:,iblock)  = SURFACE_VALS_1(1,:)
-             MARBL_STF(i,j,:,iblock)     = MARBL_STF_1(1,:)
-             STF_MODULE(i,j,:,iblock)    = STF_MODULE_1(1,:)
+             !-----------------------------------------------------------------------
+             ! Copy data from marbl output column to pop slab data structure
+             !-----------------------------------------------------------------------
+
+             iron_flux_in(i,j,iblock)    = marbl_forcing_output(iblock)%iron_flux(1)
+             ph_prev(i,j,iblock)         = marbl_forcing_output(iblock)%ph_prev(1)
+             ph_prev_alt_co2(i,j,iblock) = marbl_forcing_output(iblock)%ph_prev_alt_co2(1)
+             flux_co2(i,j,iblock)        = marbl_forcing_output(iblock)%flux_co2(1)
+
+             flux_diags(i,j,:,iblock) = marbl_forcing_output(iblock)%flux_diags(1,:)
+             do n = 1,num_surface_vals
+                stf_module(i,j,ecosys_ind_begin+n-1,iblock) = marbl_forcing_output(iblock)%stf_module(1,n)  
+             end do
+
+             marbl%private_data%surface_share%PV_SURF_fields       (i,j,iblock) = marbl_surface_share(iblock)%PV_SURF_fields       (1)
+             marbl%private_data%surface_share%DIC_SURF_fields      (i,j,iblock) = marbl_surface_share(iblock)%DIC_SURF_fields      (1)
+             marbl%private_data%surface_share%CO2STAR_SURF_fields  (i,j,iblock) = marbl_surface_share(iblock)%CO2STAR_SURF_fields  (1)
+             marbl%private_data%surface_share%DCO2STAR_SURF_fields (i,j,iblock) = marbl_surface_share(iblock)%DCO2STAR_SURF_fields (1)
+             marbl%private_data%surface_share%CO3_SURF_fields      (i,j,iblock) = marbl_surface_share(iblock)%CO3_SURF_fields      (1)
+             marbl%private_data%surface_share%dic_riv_flux_fields  (i,j,iblock) = marbl_surface_share(iblock)%dic_riv_flux_fields  (1)
+             marbl%private_data%surface_share%doc_riv_flux_fields  (i,j,iblock) = marbl_surface_share(iblock)%doc_riv_flux_fields  (1)
 
           enddo
        enddo
     enddo
 
     call timer_stop(ecosys_set_sflux_timer)
+
+    ! Note for me - out of this subroutine rest of pop needs stf_module, ph_prev, named_state, diagnostics
 
     do iblock = 1, nblocks_clinic
        WORK1 = c0
@@ -1250,7 +1301,7 @@ contains
     
     if (lflux_gas_co2) then
        do iblock = 1, nblocks_clinic
-          call named_field_set(sflux_co2_nf_ind, iblock, 44.0e-8_r8 * FLUX(:, :, iblock))
+          call named_field_set(sflux_co2_nf_ind, iblock, 44.0e-8_r8 * flux_co2(:, :, iblock))
        end do
     end if
     
@@ -2340,8 +2391,7 @@ contains
        SURF_VALS,                                   &
        MARBL_STF,                                   &
        XCO2, XCO2_ALT_CO2,                          &
-       IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN, &
-       PH_PREV, PH_PREV_ALT_CO2)
+       IFRAC_FILE_INPUT, XKW_FILE_INPUT, AP_FILE_INPUT, IRON_FLUX_IN)
 
     use shr_pio_mod           , only : shr_pio_getiotype, shr_pio_getiosys
     use POP_IOUnitsMod        , only : inst_name
@@ -2438,19 +2488,17 @@ contains
     type(marbl_saved_state_type), intent(inout) :: saved_state
     real (r8) , intent(in) :: SURF_VALS_OLD(:, :, :, :)                          ! module tracers
     real (r8) , intent(in) :: SURF_VALS_CUR(:, :, :, :)                          ! module tracers
-    real (r8) , intent(in) :: PH_PREV(:, :, :)                                   ! computed ph from previous time step
-    real (r8) , intent(in) :: PH_PREV_ALT_CO2(:, :, :)                           ! computed ph from previous time step
 
     ! !INPUT/OUTPUT PARAMETERS:
 
-    real (r8), dimension(:, :, :), intent(out) :: XCO2                           ! atmospheric co2 conc. (dry-air, 1 atm)
-    real (r8), dimension(:, :, :), intent(out) :: XCO2_ALT_CO2                   ! atmospheric alternative CO2 (dry-air, 1 atm)
-    real (r8), dimension(:, :, :), intent(out) :: IFRAC_USED                     ! used ice fraction (non-dimensional)
-    real (r8), dimension(:, :, :), intent(out) :: XKW_USED                       ! portion of piston velocity (cm/s)
-    real (r8), dimension(:, :, :), intent(out) :: AP_USED                        ! used atm pressure (converted from dyne/cm**2 to atm)
-    real (r8), dimension(:, :, :), intent(out) :: IRON_FLUX_IN                   ! iron flux
-    real (r8), intent(out)                     :: MARBL_STF(:, :, :, :)
-    real (r8), intent(out)                     :: SURF_VALS(:, :, :, :)
+    real (r8), dimension(:, :, :)    , intent(out) :: XCO2             ! atmospheric co2 conc. (dry-air, 1 atm)
+    real (r8), dimension(:, :, :)    , intent(out) :: XCO2_ALT_CO2     ! atmospheric alternative CO2 (dry-air, 1 atm)
+    real (r8), dimension(:, :, :)    , intent(out) :: IFRAC_FILE_INPUT ! used ice fraction (non-dimensional)
+    real (r8), dimension(:, :, :)    , intent(out) :: XKW_FILE_INPUT   ! portion of piston velocity (cm/s)
+    real (r8), dimension(:, :, :)    , intent(out) :: AP_FILE_INPUT    ! used atm pressure (converted from dyne/cm**2 to atm)
+    real (r8), dimension(:, :, :)    , intent(out) :: IRON_FLUX_IN     ! iron flux
+    real (r8), dimension(:, :, :, :) , intent(out) :: MARBL_STF
+    real (r8), dimension(:, :, :, :) , intent(out) :: SURF_VALS
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -2530,7 +2578,7 @@ contains
             fice_file%data_time_min_loc, fice_file%interp_freq, &
             fice_file%interp_inc,        fice_file%interp_next, &
             fice_file%interp_last,       0)
-       IFRAC_USED = INTERP_WORK(:, :, :, 1)
+       IFRAC_FILE_INPUT = INTERP_WORK(:, :, :, 1)
 
        if (thour00 >= xkw_file%data_update) then
           tracer_data_names = xkw_file%input%file_varname
@@ -2552,7 +2600,7 @@ contains
             xkw_file%data_time_min_loc, xkw_file%interp_freq, &
             xkw_file%interp_inc,        xkw_file%interp_next, &
             xkw_file%interp_last,       0)
-       XKW_USED = INTERP_WORK(:, :, :, 1)
+       XKW_FILE_INPUT = INTERP_WORK(:, :, :, 1)
 
        if (thour00 >= ap_file%data_update) then
           tracer_data_names = ap_file%input%file_varname
@@ -2574,7 +2622,7 @@ contains
             ap_file%data_time_min_loc, ap_file%interp_freq, &
             ap_file%interp_inc,        ap_file%interp_next, &
             ap_file%interp_last,       0)
-       AP_USED = INTERP_WORK(:, :, :, 1)
+       AP_FILE_INPUT = INTERP_WORK(:, :, :, 1)
 
     endif
 

@@ -96,14 +96,9 @@ module ecosys_mod
   use constants            , only : blank_fmt
   use constants            , only : delim_fmt
   use constants            , only : ndelim_fmt
-  use constants            , only : xkw_coeff
   use communicate          , only : master_task
   use communicate          , only : my_task
-  use blocks               , only : nx_block
-  use blocks               , only : ny_block
   use domain_size          , only : km
-  use domain_size          , only : max_blocks_clinic
-  use domain               , only : nblocks_clinic
   use exit_mod             , only : exit_POP
   use exit_mod             , only : sigAbort
   use grid                 , only : partial_bottom_cells
@@ -1946,19 +1941,14 @@ contains
 
   !***********************************************************************
 
-  subroutine marbl_ecosys_set_sflux(                &
-       num_elements,                                &
-       land_mask, dust_flux_in,                     &
-       marbl_surface_share,                         &
-       U10_SQR, IFRAC, PRESS, SST, SSS,             &
-       SURF_VALS, MARBL_STF,                        &
-       XCO2, XCO2_ALT_CO2,                          &
-       STF_MODULE,                                  &
-       IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN, &
-       lexport_shared_vars, PH_PREV, PH_PREV_ALT_CO2, FLUX, FLUX_DIAGS) 
+  subroutine marbl_ecosys_set_sflux( num_elements, lexport_shared_vars, &
+       marbl_forcing_input, marbl_forcing_output, marbl_surface_share)
+
+    ! !DESCRIPTION:
+    !  Compute surface fluxes for ecosys tracer module.
 
     use co2calc_column        , only : co2calc_surf
-    use schmidt_number        , only : SCHMIDT_CO2_surf
+    use schmidt_number        , only : schmidt_co2_surf
     use marbl_oxygen          , only : schmidt_o2_surf
     use marbl_oxygen          , only : o2sat_surf
     use marbl_share_mod       , only : marbl_surface_share_type
@@ -2009,42 +1999,17 @@ contains
     use marbl_parms           , only : ind_alk_riv_flux
     use marbl_parms           , only : ind_doc_riv_flux
     use marbl_interface_types , only : marbl_saved_state_type
+    use marbl_interface_types , only : marbl_forcing_input_type
+    use marbl_interface_types , only : marbl_forcing_output_type
 
-    !FIXME (mvertens, 2015-11) where does this variable belong?
-    use marbl_share_mod           , only : comp_surf_avg_flag 
-
-    ! !DESCRIPTION:
-    !  Compute surface fluxes for ecosys tracer module.
-    !
     ! !INPUT PARAMETERS:
-
-    integer (int_kind),                          intent(in) :: num_elements
-    logical (log_kind), dimension(num_elements), intent(in) :: land_mask
-    real (r8)         , dimension(num_elements), intent(in) :: dust_flux_in        ! here to get passed through to store
-    real (r8)         , dimension(num_elements), intent(in) :: U10_SQR             ! 10m wind speed squared (cm/s)**2
-    real (r8)         , dimension(num_elements), intent(in) :: IFRAC               ! sea ice fraction (non-dimensional)
-    real (r8)         , dimension(num_elements), intent(in) :: PRESS               ! sea level atmospheric pressure (dyne/cm**2)
-    real (r8)         , dimension(num_elements), intent(in) :: SST                 ! sea surface temperature (C)
-    real (r8)         , dimension(num_elements), intent(in) :: SSS                 ! sea surface salinity (psu)
-    real (r8)         , dimension(:,:)         , intent(in) :: SURF_VALS           ! module tracers
-    real (r8)         , dimension(:,:)         , intent(in) :: MARBL_STF
-    real (r8)         , dimension(num_elements), intent(in) :: XCO2                ! atmospheric co2 conc. (dry-air, 1 atm)
-    real (r8)         , dimension(num_elements), intent(in) :: XCO2_ALT_CO2        ! atmospheric alternative CO2 (dry-air, 1 atm)
-    logical (log_kind),                          intent(in) :: lexport_shared_vars ! flag to save shared_vars or not
+    integer (int_kind)              , intent(in) :: num_elements
+    logical (log_kind)              , intent(in) :: lexport_shared_vars ! flag to save shared_vars or not
+    type(marbl_forcing_input_type)  , intent(in) :: marbl_forcing_input
 
     ! !INPUT/OUTPUT PARAMETERS:
-    type(marbl_surface_share_type) ,   intent(inout) :: marbl_surface_share
-    real (r8), dimension(num_elements), intent(inout) :: IFRAC_USED      ! used ice fraction (non-dimensional)
-    real (r8), dimension(num_elements), intent(inout) :: XKW_USED        !  portion of piston velocity (cm/s)
-    real (r8), dimension(num_elements), intent(inout) :: AP_USED         ! used atm pressure (converted from dyne/cm**2 to atm)
-    real (r8), dimension(num_elements), intent(inout) :: IRON_FLUX_IN    ! iron flux
-    real (r8), dimension(num_elements), intent(inout) :: PH_PREV         !  computed ph from previous time step
-    real (r8), dimension(num_elements), intent(inout) :: PH_PREV_ALT_CO2 !  computed ph from previous time step
-
-    ! !OUTPUT PARAMETERS:
-    real (r8), dimension(:, :)        , intent(out) :: STF_MODULE
-    real (r8), dimension(num_elements), intent(out) :: FLUX              !  tracer flux (nmol/cm^2/s)
-    real (r8), dimension(:, :)        , intent(out) :: FLUX_DIAGS
+    type(marbl_forcing_output_type) , intent(inout) :: marbl_forcing_output
+    type(marbl_surface_share_type)  , intent(inout) :: marbl_surface_share
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -2056,47 +2021,61 @@ contains
          n,               & ! loop indices
          auto_ind           ! autotroph functional group index
 
-    ! the following arrays need to be used by both set_sflux and store_sflux
-    ! in the original routine, they were dimensioned ny_block and reused
-    ! could also go into a marbl datatype
-    real (r8), dimension(num_elements) :: &
-         CO2STAR,      &
-         DCO2STAR,     &
-         pCO2SURF,     &
-         DpCO2,        &
-         CO3,          &
-         CO2STAR_ALT,  &
-         DCO2STAR_ALT, &
-         pCO2SURF_ALT, &
-         DpCO2_ALT
-
-    real (r8), dimension(num_elements) :: &
-         SCHMIDT_USED_CO2, & ! used Schmidt number
-         SCHMIDT_USED_O2,  & ! used Schmidt number
-         PV_O2,            & ! piston velocity (cm/s)
-         PV_CO2,           & ! piston velocity (cm/s)
-         O2SAT_USED,       & ! used O2 saturation (mmol/m^3)
-         FLUX_ALT_CO2        ! tracer flux alternative CO2 (nmol/cm^2/s)
-
     real (r8), dimension(num_elements) :: &
          PHLO,         & ! lower bound for ph in solver
          PHHI,         & ! upper bound for ph in solver
-         PH_NEW          ! computed PH from solver
-
-    real (r8), dimension(num_elements) :: &
+         PH_NEW,       & ! computed PH from solver
          XKW_ICE,      & ! common portion of piston vel., (1-fice)*xkw (cm/s)
          O2SAT_1atm      ! O2 saturation @ 1 atm (mmol/m^3)
 
     !-----------------------------------------------------------------------
 
     associate(                                                              &
-         PV_SURF_fields       => marbl_surface_share%PV_SURF_fields,       & ! IN/OUT
-         DIC_SURF_fields      => marbl_surface_share%DIC_SURF_fields,      & ! IN/OUT
-         CO2STAR_SURF_fields  => marbl_surface_share%CO2STAR_SURF_fields,  & ! IN/OUT
-         DCO2STAR_SURF_fields => marbl_surface_share%DCO2STAR_SURF_fields, & ! IN/OUT
-         CO3_SURF_fields      => marbl_surface_share%CO3_SURF_fields,      & ! IN/OUT
-         dic_riv_flux_fields  => marbl_surface_share%dic_riv_flux_fields,  & ! IN/OUT
-         doc_riv_flux_fields  => marbl_surface_share%doc_riv_flux_fields   & ! IN/OUT
+         land_mask            => marbl_forcing_input%land_mask            , & 
+         ifrac                => marbl_forcing_input%ifrac                , &
+         u10_sqr              => marbl_forcing_input%u10_sqr              , &
+         sst                  => marbl_forcing_input%sst                  , & ! sea surface temperature (c)
+         sss                  => marbl_forcing_input%sss                  , & ! sea surface salinity (psu)
+         xco2                 => marbl_forcing_input%xco2                 , & ! atmospheric co2 conc. (dry-air, 1 atm)
+         xco2_alt_co2         => marbl_forcing_input%xco2_alt_co2         , & ! atmospheric alternative CO2 (dry-air, 1 atm)
+         ap_used              => marbl_forcing_input%atm_press            , & ! used atm pressure (atm)
+         xkw                  => marbl_forcing_input%xkw                  , &
+         iron_flux_in         => marbl_forcing_input%iron_flux            , &
+         surface_vals         => marbl_forcing_input%surface_vals         , & 
+         marbl_stf            => marbl_forcing_input%marbl_stf            , & 
+         ph_prev              => marbl_forcing_input%ph_prev              , &
+         ph_prev_alt_co2      => marbl_forcing_input%ph_prev_alt_co2      , &
+
+         ph_prev_new          => marbl_forcing_output%ph_prev             , &
+         ph_prev_alt_co2_new  => marbl_forcing_output%ph_prev_alt_co2     , &
+         iron_flux_in_new     => marbl_forcing_output%iron_flux           , &
+         flux_co2             => marbl_forcing_output%flux_co2            , &
+         flux_alt_co2         => marbl_forcing_output%flux_alt_co2        , & ! (used by store_sflux)
+         flux_o2              => marbl_forcing_output%flux_o2             , & ! (used by store_sflux)
+         co2star              => marbl_forcing_output%co2star             , & ! (used by store_sflux)
+         dco2star             => marbl_forcing_output%dco2star            , & ! (used by store_sflux)
+         pco2surf             => marbl_forcing_output%pco2surf            , & ! (used by store_sflux)
+         dpco2                => marbl_forcing_output%dpco2               , & ! (used by store_sflux)
+         co3                  => marbl_forcing_output%co3                 , & ! (used by store_sflux)
+         co2star_alt          => marbl_forcing_output%co2star_alt         , & ! (used by store_sflux)
+         dco2star_alt         => marbl_forcing_output%dco2star_alt        , & ! (used by store_sflux)
+         pco2surf_alt         => marbl_forcing_output%pco2surf_alt        , & ! (used by store_sflux)
+         dpco2_alt            => marbl_forcing_output%dpco2_alt           , & ! (used by store_sflux)
+         schmidt_co2          => marbl_forcing_output%schmidt_co2         , & ! (used by store_sflux) used schmidt number 
+         schmidt_o2           => marbl_forcing_output%schmidt_o2          , & ! (used by store_sflux) used schmidt number 
+         pv_o2                => marbl_forcing_output%pv_o2               , & ! (used by store_sflux) piston velocity (cm/s) 
+         pv_co2               => marbl_forcing_output%pv_co2              , & ! (used by store_sflux) piston velocity (cm/s) 
+         o2sat                => marbl_forcing_output%o2sat               , & ! (used by store_sflux) used O2 saturation (mmol/m^3) 
+         flux_diags           => marbl_forcing_output%flux_diags(:,:)     , & ! (used by store_sflux) output diagnostic fluxes 
+         stf_module           => marbl_forcing_output%stf_module(:,:)     , & !
+
+         PV_SURF_fields       => marbl_surface_share%PV_SURF_fields       , & ! IN/OUT
+         DIC_SURF_fields      => marbl_surface_share%DIC_SURF_fields      , & ! IN/OUT
+         CO2STAR_SURF_fields  => marbl_surface_share%CO2STAR_SURF_fields  , & ! IN/OUT
+         DCO2STAR_SURF_fields => marbl_surface_share%DCO2STAR_SURF_fields , & ! IN/OUT
+         CO3_SURF_fields      => marbl_surface_share%CO3_SURF_fields      , & ! IN/OUT
+         dic_riv_flux_fields  => marbl_surface_share%dic_riv_flux_fields  , & ! IN/OUT
+         doc_riv_flux_fields  => marbl_surface_share%doc_riv_flux_fields    & ! IN/OUT
          )
 
     !-----------------------------------------------------------------------
@@ -2116,64 +2095,35 @@ contains
     if (lflux_gas_o2 .or. lflux_gas_co2) then
 
        !-----------------------------------------------------------------------
-       !  Apply OCMIP ice fraction mask when input is from a file.
-       !-----------------------------------------------------------------------
-
-       if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
-          where (IFRAC_USED < 0.2000_r8) &
-                 IFRAC_USED = 0.2000_r8
-          where (IFRAC_USED > 0.9999_r8) &
-                 IFRAC_USED = 0.9999_r8
-       endif
-
-       if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
-          IFRAC_USED = IFRAC
-          where (IFRAC_USED < c0) IFRAC_USED = c0
-          where (IFRAC_USED > c1) IFRAC_USED = c1
-          XKW_USED = xkw_coeff * U10_SQR
-          AP_USED  = PRESS
-       endif
-
-       !-----------------------------------------------------------------------
-       !  assume PRESS is in cgs units (dyne/cm**2) since that is what is
-       !    required for pressure forcing in barotropic
-       !  want units to be atmospheres
-       !  convertion from dyne/cm**2 to Pascals is P(mks) = P(cgs)/10.
-       !  convertion from Pascals to atm is P(atm) = P(Pa)/101.325e+3_r8
-       !-----------------------------------------------------------------------
-
-       AP_USED = PRESS / 101.325e+4_r8
-
-       !-----------------------------------------------------------------------
        !  Compute XKW_ICE. XKW is zero over land, so XKW_ICE is too.
        !-----------------------------------------------------------------------
 
-       XKW_ICE = (c1 - IFRAC_USED) * XKW_USED
+       xkw_ice(:) = (c1 - ifrac(:)) * xkw
 
        !-----------------------------------------------------------------------
        !  compute O2 flux
        !-----------------------------------------------------------------------
 
-       if (lflux_gas_o2) then
-          !TODO: JW could move the where land_mask ahead of this and assume mask
-          !         in surface calls
-          SCHMIDT_USED_O2 = SCHMIDT_O2_surf(num_elements, SST, land_mask)
+       !TODO: JW could move the where land_mask ahead of this and assume mask in surface calls
 
-          O2SAT_1atm = O2SAT_surf(num_elements, SST, SSS, land_mask)
+       if (lflux_gas_o2) then
+          schmidt_o2(:) = schmidt_o2_surf(num_elements, sst, land_mask)
+
+          o2sat_1atm(:) = o2sat_surf(num_elements, sst, sss, land_mask)
 
           where (land_mask)
-             PV_O2      = XKW_ICE * SQRT(660.0_r8 / SCHMIDT_USED_O2)
-             O2SAT_USED = AP_USED * O2SAT_1atm
-             FLUX(:)    = PV_O2(:) * (O2SAT_USED(:) - SURF_VALS(:, o2_ind))
-             STF_MODULE(:, o2_ind) = STF_MODULE(:, o2_ind) + FLUX(:)
+             pv_o2(:) = xkw_ice(:) * sqrt(660.0_r8 / schmidt_o2(:))
+             o2sat(:) = ap_used(:) * o2sat_1atm(:)
+             flux_o2(:) = pv_o2(:) * (o2sat(:) - surface_vals(:, o2_ind))
+             stf_module(:, o2_ind) = stf_module(:, o2_ind) + flux_o2(:)
           elsewhere
-             PV_O2      = c0
-             O2SAT_USED = c0
+             pv_o2(:) = c0
+             o2sat(:) = c0
           end where
        else
-          SCHMIDT_USED_O2 = c0
-          PV_O2           = c0
-          O2SAT_USED      = c0
+          schmidt_o2(:) = c0
+          pv_o2(:)      = c0
+          o2sat(:)      = c0
        endif  ! lflux_gas_o2
 
        !-----------------------------------------------------------------------
@@ -2182,20 +2132,16 @@ contains
 
        if (lflux_gas_co2) then
 
-          SCHMIDT_USED_CO2 = SCHMIDT_CO2_surf(num_elements, SST, land_mask)
+          SCHMIDT_CO2 = SCHMIDT_CO2_surf(num_elements, SST, land_mask)
 
           where (land_mask)
-             PV_CO2 = XKW_ICE * SQRT(660.0_r8 / SCHMIDT_USED_CO2)
+             PV_CO2 = XKW_ICE * SQRT(660.0_r8 / SCHMIDT_CO2)
           elsewhere
              PV_CO2 = c0
           end where
 
-          ! Save surface field of PV for use in other modules
-          ! TODO: pass in array of marbl_surface_share types?
-          if (lexport_shared_vars) PV_SURF_fields = PV_CO2(1)
-
           !-----------------------------------------------------------------------
-          !  Set XCO2
+          !  Set FLUX_CO2
           !-----------------------------------------------------------------------
 
           where (PH_PREV /= c0)
@@ -2206,37 +2152,32 @@ contains
              PHHI = phhi_surf_init
           end where
 
-!          do n = 1, num_elements
-!             DIC(n)  = SURF_VALS(n,  dic_ind)
-!             ALK(n)  = SURF_VALS(n,  alk_ind)
-!             PO4(n)  = SURF_VALS(n,  po4_ind)
-!             SiO3(n) = SURF_VALS(n, sio3_ind)
-!          enddo
-
-!          call co2calc_surf(num_elements, land_mask, .true., &
-!                            SST, SSS, DIC, ALK, PO4, SiO3, &
-!                            PHLO, PHHI, PH_NEW, XCO2, AP_USED, &
-!                            CO2STAR, DCO2STAR, pCO2SURF, DpCO2, CO3)
           call co2calc_surf(num_elements, land_mask, .true., SST, SSS, &
-                            SURF_VALS(:,dic_ind), SURF_VALS(:,alk_ind), &
-                            SURF_VALS(:,po4_ind), SURF_VALS(:,sio3_ind), &
+                            surface_vals(:,dic_ind), surface_vals(:,alk_ind), &
+                            surface_vals(:,po4_ind), surface_vals(:,sio3_ind), &
                             PHLO, PHHI, PH_NEW, XCO2, AP_USED, &
                             CO2STAR, DCO2STAR, pCO2SURF, DpCO2, CO3)
 
-          PH_PREV = PH_NEW
+          PH_PREV_NEW = PH_NEW
 
-          FLUX    = PV_CO2 * DCO2STAR
+          FLUX_CO2 = PV_CO2 * DCO2STAR
  
           !-------------------------------------------------------------------
           !  The following variables need to be shared with other modules,
           !  and are now defined in marbl_share as targets.
           !-------------------------------------------------------------------
+
           if (lexport_shared_vars) then
-             DIC_SURF_fields      = SURF_VALS(1,dic_ind)
+             PV_SURF_fields       = PV_CO2(1)
+             DIC_SURF_fields      = surface_vals(1,dic_ind)
              CO2STAR_SURF_fields  = CO2STAR(1)
              DCO2STAR_SURF_fields = DCO2STAR(1)
              CO3_SURF_fields      = CO3(1)
           endif
+
+          !-----------------------------------------------------------------------
+          !  Set FLUX_ALT_CO2
+          !-----------------------------------------------------------------------
 
           where (PH_PREV_ALT_CO2 /= c0)
              PHLO = PH_PREV_ALT_CO2 - del_ph
@@ -2246,20 +2187,13 @@ contains
              PHHI = phhi_surf_init
           end where
 
-!          DIC(:) = SURF_VALS(:, dic_alt_co2_ind)
-!          call co2calc_surf(num_elements, land_mask, .false., &
-!                            SST, SSS, DIC, ALK, PO4, SiO3, &
-!                            PHLO, PHHI, PH_NEW, XCO2_ALT_CO2, AP_USED, &
-!                            CO2STAR_ALT, DCO2STAR_ALT, pCO2SURF_ALT, DpCO2_ALT,
-!                            CO3)
-
           call co2calc_surf(num_elements, land_mask, .false., SST, SSS,         &
-                            SURF_VALS(:,dic_alt_co2_ind), SURF_VALS(:,alk_ind), &
-                            SURF_VALS(:,po4_ind), SURF_VALS(:,sio3_ind),        &
+                            surface_vals(:,dic_alt_co2_ind), surface_vals(:,alk_ind), &
+                            surface_vals(:,po4_ind)        , surface_vals(:,sio3_ind),&
                             PHLO, PHHI, PH_NEW, XCO2_ALT_CO2, AP_USED,          &
                             CO2STAR_ALT, DCO2STAR_ALT, pCO2SURF_ALT, DpCO2_ALT, CO3)
 
-          PH_PREV_ALT_CO2 = PH_NEW
+          PH_PREV_ALT_CO2_NEW = PH_NEW
 
           FLUX_ALT_CO2    = PV_CO2 * DCO2STAR_ALT
 
@@ -2268,12 +2202,12 @@ contains
           !  nmol/cm^2/s (positive down) to kg CO2/m^2/s (positive down)
           !-----------------------------------------------------------------------
 
-          STF_MODULE(:, dic_ind)         = STF_MODULE(:, dic_ind)         + FLUX(:)
+          STF_MODULE(:, dic_ind)         = STF_MODULE(:, dic_ind)         + FLUX_CO2(:)
           STF_MODULE(:, dic_alt_co2_ind) = STF_MODULE(:, dic_alt_co2_ind) + FLUX_ALT_CO2(:)
 
        else
-          SCHMIDT_USED_CO2 = c0
-          PV_CO2           = c0
+          SCHMIDT_CO2(:) = c0
+          PV_CO2(:)           = c0
        endif  !  lflux_gas_co2
 
     endif  ! lflux_gas_o2 .or. lflux_gas_co2
@@ -2282,9 +2216,9 @@ contains
     !  calculate iron and dust fluxes if necessary
     !-----------------------------------------------------------------------
 
-    IRON_FLUX_IN = IRON_FLUX_IN * parm_Fe_bioavail
-   
-    STF_MODULE(:, fe_ind) = STF_MODULE(:, fe_ind) + IRON_FLUX_IN(:)
+    IRON_FLUX_IN_NEW(:) = IRON_FLUX_IN(:) * parm_Fe_bioavail
+
+    STF_MODULE(:, fe_ind) = STF_MODULE(:, fe_ind) + IRON_FLUX_IN_NEW(:)
 
     !-----------------------------------------------------------------------
     !  calculate nox and nhy fluxes if necessary
@@ -2357,47 +2291,24 @@ contains
     !  Apply NO & NH fluxes to alkalinity
     !-----------------------------------------------------------------------
 
-    STF_MODULE(:, alk_ind) = STF_MODULE(:, alk_ind) &
-                           + STF_MODULE(:, nh4_ind) &
-                           - STF_MODULE(:, no3_ind)
-
+    STF_MODULE(:, alk_ind) = STF_MODULE(:, alk_ind) + STF_MODULE(:, nh4_ind) - STF_MODULE(:, no3_ind)
 
     end associate
 
-    call marbl_ecosys_store_sflux(                           &
-         num_elements,                                       &
-         lexport_shared_vars,                                &
-         dust_flux_in,                                       &
-         STF_MODULE,                                         &
-         SURF_VALS, MARBL_STF,                               &
-         SCHMIDT_USED_CO2, SCHMIDT_USED_O2, PV_O2, PV_CO2,   &
-         O2SAT_USED, XCO2, XCO2_ALT_CO2, FLUX, FLUX_ALT_CO2, &
-         IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN,        &
-         CO2STAR, DCO2STAR, pCO2SURF, DpCO2,                 &
-         CO2STAR_ALT, DCO2STAR_ALT, pCO2SURF_ALT, DpCO2_ALT, &
-         PH_PREV, PH_PREV_ALT_CO2,                           &
-         FLUX_DIAGS)
+    call marbl_ecosys_store_sflux( marbl_forcing_input, marbl_forcing_output )
 
   end subroutine marbl_ecosys_set_sflux
 
   !***********************************************************************
 
-  subroutine marbl_ecosys_store_sflux(                     &
-       num_elements,                                       &
-       lexport_shared_vars,                                &
-       dust_flux_in,                                       &
-       STF_MODULE,                                         &
-       SURF_VALS, MARBL_STF,                               &
-       SCHMIDT_USED_CO2, SCHMIDT_USED_O2, PV_O2, PV_CO2,   &
-       O2SAT_USED, XCO2, XCO2_ALT_CO2, FLUX, FLUX_ALT_CO2, &
-       IFRAC_USED, XKW_USED, AP_USED, IRON_FLUX_IN,        &
-       CO2STAR, DCO2STAR, pCO2SURF, DpCO2,                 &
-       CO2STAR_ALT, DCO2STAR_ALT, pCO2SURF_ALT, DpCO2_ALT, &
-       PH_PREV, PH_PREV_ALT_CO2,                           &
-       FLUX_DIAGS)
+  subroutine marbl_ecosys_store_sflux( marbl_forcing_input, marbl_forcing_output)
 
-    use marbl_interface_types , only : marbl_saved_state_type
-    use marbl_share_mod       , only : ecosys_surface_share_type
+    ! !DESCRIPTION:
+    !  Compute surface fluxes for ecosys tracer module.
+
+    use ecosys_diagnostics_mod, only : marbl_forcing_diag_ind
+    use marbl_interface_types , only : marbl_forcing_input_type
+    use marbl_interface_types , only : marbl_forcing_output_type
     use marbl_share_mod       , only : ndep_data_type
     use marbl_share_mod       , only : ndep_shr_stream_scale_factor
     use marbl_share_mod       , only : lflux_gas_o2
@@ -2419,45 +2330,11 @@ contains
     use marbl_parms           , only : ind_dfe_riv_flux
     use marbl_parms           , only : ind_dic_riv_flux
     use marbl_parms           , only : ind_alk_riv_flux
-    use ecosys_diagnostics_mod, only : marbl_forcing_diag_ind
-
-    ! !DESCRIPTION:
-    !  Compute surface fluxes for ecosys tracer module.
 
     ! !INPUT PARAMETERS:
-    integer (int_kind)                , intent(in) :: num_elements
-    logical (log_kind)                , intent(in) :: lexport_shared_vars ! flag to save shared_vars or not
-    real (r8), dimension(num_elements), intent(in) :: DUST_FLUX_IN
+    type(marbl_forcing_input_type)    , intent(in)    :: marbl_forcing_input
+    type(marbl_forcing_output_type)   , intent(inout) :: marbl_forcing_output
 
-    real (r8), dimension(num_elements), intent(in) :: SCHMIDT_USED_CO2 ! used Schmidt number
-    real (r8), dimension(num_elements), intent(in) :: SCHMIDT_USED_O2  ! used Schmidt number
-    real (r8), dimension(num_elements), intent(in) :: PV_O2, PV_CO2    ! piston velocity (cm/s)
-    real (r8), dimension(num_elements), intent(in) :: O2SAT_USED       ! used O2 saturation (mmol/m^3)
-    real (r8), dimension(num_elements), intent(in) :: XCO2             ! atmospheric co2 conc. (dry-air, 1 atm)
-    real (r8), dimension(num_elements), intent(in) :: XCO2_ALT_CO2     ! atmospheric alternative CO2 (dry-air, 1 atm)
-    real (r8), dimension(num_elements), intent(in) :: FLUX             ! tracer flux (nmol/cm^2/s)
-    real (r8), dimension(num_elements), intent(in) :: FLUX_ALT_CO2     ! tracer flux alternative CO2 (nmol/cm^2/s)
-    real (r8), dimension(num_elements), intent(in) :: IFRAC_USED       ! used ice fraction (non-dimensional)
-    real (r8), dimension(num_elements), intent(in) :: XKW_USED         ! portion of piston velocity (cm/s)
-    real (r8), dimension(num_elements), intent(in) :: AP_USED          ! used atm pressure (converted from dyne/cm**2 to atm)
-    real (r8), dimension(num_elements), intent(in) :: IRON_FLUX_IN     ! iron flux! 
-    real (r8), dimension(num_elements), intent(in) :: CO2STAR
-    real (r8), dimension(num_elements), intent(in) :: DCO2STAR
-    real (r8), dimension(num_elements), intent(in) :: pCO2SURF
-    real (r8), dimension(num_elements), intent(in) :: DpCO2
-    real (r8), dimension(num_elements), intent(in) :: CO2STAR_ALT
-    real (r8), dimension(num_elements), intent(in) :: DCO2STAR_ALT
-    real (r8), dimension(num_elements), intent(in) :: pCO2SURF_ALT
-    real (r8), dimension(num_elements), intent(in) :: DpCO2_ALT
-    real (r8), dimension(:, :)        , intent(in) :: STF_MODULE
-    real (r8), dimension(:, :)        , intent(in) :: MARBL_STF
-    real (r8), dimension(:, :)        , intent(in) :: SURF_VALS
-    real (r8), dimension(num_elements), intent(in) :: PH_PREV         
-    real (r8), dimension(num_elements), intent(in) :: PH_PREV_ALT_CO2 
-
-    real (r8), dimension(:, :)        , intent(out) :: FLUX_DIAGS
-
-    !JW    type(ecosys_surface_share_type), intent(inout) :: marbl_surface_share
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
@@ -2470,12 +2347,43 @@ contains
     !  calculate gas flux quantities if necessary
     !-----------------------------------------------------------------------
 
-    associate( ind  => marbl_forcing_diag_ind )
+    associate( &
+         ind             => marbl_forcing_diag_ind               , &
+
+         xkw             => marbl_forcing_input%xkw              , & 
+         xco2            => marbl_forcing_input%xco2             , & 
+         xco2_alt_co2    => marbl_forcing_input%xco2_alt_co2     , & 
+         ifrac           => marbl_forcing_input%ifrac            , &
+         ap_used         => marbl_forcing_input%atm_press        , &
+         dust_flux_in    => marbl_forcing_input%dust_flux        , & 
+         marbl_stf       => marbl_forcing_input%marbl_stf        , & 
+
+         ph_prev         => marbl_forcing_output%ph_prev         , &
+         ph_prev_alt_co2 => marbl_forcing_output%ph_prev_alt_co2 , &
+         iron_flux_in    => marbl_forcing_output%iron_flux       , &
+         flux_co2        => marbl_forcing_output%flux_co2        , &
+         flux_alt_co2    => marbl_forcing_output%flux_alt_co2    , & 
+         co2star         => marbl_forcing_output%co2star         , & 
+         dco2star        => marbl_forcing_output%dco2star        , & 
+         pco2surf        => marbl_forcing_output%pco2surf        , & 
+         dpco2           => marbl_forcing_output%dpco2           , & 
+         co2star_alt     => marbl_forcing_output%co2star_alt     , & 
+         dco2star_alt    => marbl_forcing_output%dco2star_alt    , & 
+         pco2surf_alt    => marbl_forcing_output%pco2surf_alt    , & 
+         dpco2_alt       => marbl_forcing_output%dpco2_alt       , & 
+         pv_co2          => marbl_forcing_output%pv_co2          , & 
+         pv_o2           => marbl_forcing_output%pv_o2           , & 
+         schmidt_co2     => marbl_forcing_output%schmidt_co2     , & 
+         schmidt_o2      => marbl_forcing_output%schmidt_o2      , & 
+         o2sat           => marbl_forcing_output%o2sat           , & 
+         flux_diags      => marbl_forcing_output%flux_diags      , & 
+         stf_module      => marbl_forcing_output%stf_module        & 
+         )
 
     if (lflux_gas_o2 .or. lflux_gas_co2) then
 
-       FLUX_DIAGS(:, ind%ECOSYS_IFRAC)     = IFRAC_USED(:)
-       FLUX_DIAGS(:, ind%ECOSYS_XKW)       = XKW_USED(:)
+       FLUX_DIAGS(:, ind%ECOSYS_IFRAC)     = ifrac(:)
+       FLUX_DIAGS(:, ind%ECOSYS_XKW)       = xkw(:)
        FLUX_DIAGS(:, ind%ECOSYS_ATM_PRESS) = AP_USED(:)
 
     endif  ! lflux_gas_o2 .or. lflux_gas_co2
@@ -2483,8 +2391,8 @@ contains
     if (lflux_gas_o2) then
 
        FLUX_DIAGS(:, ind%PV_O2)      = PV_O2(:)
-       FLUX_DIAGS(:, ind%SCHMIDT_O2) = SCHMIDT_USED_O2(:)
-       FLUX_DIAGS(:, ind%O2SAT)      = O2SAT_USED(:)
+       FLUX_DIAGS(:, ind%SCHMIDT_O2) = SCHMIDT_O2(:)
+       FLUX_DIAGS(:, ind%O2SAT)      = O2SAT(:)
        
     endif  ! lflux_gas_o2
 
@@ -2505,8 +2413,8 @@ contains
        FLUX_DIAGS(:, ind%DpCO2_ALT_CO2)        = DpCO2_ALT(:)
        
        FLUX_DIAGS(:, ind%PV_CO2)               = PV_CO2(:)
-       FLUX_DIAGS(:, ind%SCHMIDT_CO2)          = SCHMIDT_USED_CO2(:)
-       FLUX_DIAGS(:, ind%DIC_GAS_FLUX)         = FLUX(:)
+       FLUX_DIAGS(:, ind%SCHMIDT_CO2)          = SCHMIDT_CO2(:)
+       FLUX_DIAGS(:, ind%DIC_GAS_FLUX)         = FLUX_CO2(:)
        FLUX_DIAGS(:, ind%PH)                   = PH_PREV(:)
        FLUX_DIAGS(:, ind%ATM_CO2)              = XCO2(:)
       
@@ -2546,35 +2454,23 @@ contains
     if (din_riv_flux%has_data) then
        FLUX_DIAGS(:, ind%DIN_RIV_FLUX) = MARBL_STF(:, ind_din_riv_flux)
     endif
-
     if (dfe_riv_flux%has_data) then
        FLUX_DIAGS(:, ind%DFE_RIV_FLUX) = MARBL_STF(:, ind_dfe_riv_flux)
     endif
-
     if (dic_riv_flux%has_data) then
        FLUX_DIAGS(:, ind%DIC_RIV_FLUX) = MARBL_STF(:, ind_dic_riv_flux)
     endif
-
     if (alk_riv_flux%has_data) then
-       FLUX_DIAGS(:, ind%ALK_RIV_FLUX)= MARBL_STF(:, ind_alk_riv_flux)
+       FLUX_DIAGS(:, ind%ALK_RIV_FLUX) = MARBL_STF(:, ind_alk_riv_flux)
     endif
-
     FLUX_DIAGS(:, ind%O2_GAS_FLUX)   = STF_MODULE(:, o2_ind)
-
     FLUX_DIAGS(:, ind%NHy_FLUX)      = STF_MODULE(:, nh4_ind)
-
     FLUX_DIAGS(:, ind%DIP_RIV_FLUX)  = STF_MODULE(:, po4_ind)
-
     FLUX_DIAGS(:, ind%DON_RIV_FLUX)  = STF_MODULE(:, don_ind)
-
     FLUX_DIAGS(:, ind%DONr_RIV_FLUX) = STF_MODULE(:, donr_ind)
-
     FLUX_DIAGS(:, ind%DOP_RIV_FLUX)  = STF_MODULE(:, dop_ind)
-
     FLUX_DIAGS(:, ind%DOPr_RIV_FLUX) = STF_MODULE(:, dopr_ind)
-
     FLUX_DIAGS(:, ind%DSI_RIV_FLUX)  = STF_MODULE(:, sio3_ind)
-
     FLUX_DIAGS(:, ind%DOC_RIV_FLUX)  = STF_MODULE(:, doc_ind)
 
     ! multiply DUST flux by mpercm (.01) to convert from model units (cm/s)(mmol/m^3) to mmol/s/m^2
