@@ -1063,6 +1063,8 @@ contains
     deallocate(marbl_domain%dz)
     deallocate(marbl_gcm_state%temperature)
     deallocate(marbl_gcm_state%salinity)
+    deallocate(marbl_domain%PAR_col_frac)
+    deallocate(marbl_domain%surf_shortwave)
 
     !-----------------------------------------------------------------------
     !EOC

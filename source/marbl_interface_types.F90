@@ -11,8 +11,8 @@ module marbl_interface_types
 
   private
 
-  integer, public, parameter :: max_interior_diags = 72 + autotroph_cnt*26 + zooplankton_cnt*8
-  integer, public, parameter :: max_forcing_diags = 38
+  integer, public, parameter :: max_interior_diags = 75 + autotroph_cnt*26 + zooplankton_cnt*8
+  integer, public, parameter :: max_forcing_diags = 40
   integer, public, parameter :: max_restore_diags = ecosys_tracer_cnt
 
   !*****************************************************************************
@@ -245,14 +245,13 @@ module marbl_interface_types
   type, public :: dissolved_organic_matter_type
      real (r8) :: DOC_prod         ! production of DOC (mmol C/m^3/sec)
      real (r8) :: DOC_remin        ! remineralization of DOC (mmol C/m^3/sec)
-     real (r8) :: DON_prod         ! production of dissolved organic N
-     real (r8) :: DON_remin        ! portion of DON remineralized
-     real (r8) :: DOFe_prod        ! produciton of dissolved organic Fe
-     real (r8) :: DOFe_remin       ! portion of DOFe remineralized
-     real (r8) :: DOP_prod         ! production of dissolved organic P
-     real (r8) :: DOP_remin        ! portion of DOP remineralized
-     real (r8) :: DONr_remin       ! portion of refractory DON remineralized
-     real (r8) :: DOPr_remin       ! portion of refractory DOP remineralized
+     real (r8) :: DOCr_remin       ! remineralization of DOCr
+     real (r8) :: DON_prod         ! production of DON
+     real (r8) :: DON_remin        ! remineralization of DON
+     real (r8) :: DONr_remin       ! remineralization of DONr
+     real (r8) :: DOP_prod         ! production of DOP
+     real (r8) :: DOP_remin        ! remineralization of DOP
+     real (r8) :: DOPr_remin       ! remineralization of DOPr
   end type dissolved_organic_matter_type
 
   !*****************************************************************************

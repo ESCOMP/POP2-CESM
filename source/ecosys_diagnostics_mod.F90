@@ -29,16 +29,18 @@ module ecosys_diagnostics_mod
   use marbl_interface_types, only : marbl_column_domain_type
   use marbl_interface_types, only : marbl_gcm_state_type
 
-  use marbl_parms, only : po4_ind 
-  use marbl_parms, only : no3_ind         
-  use marbl_parms, only : sio3_ind        
-  use marbl_parms, only : nh4_ind         
-  use marbl_parms, only : dic_ind         
-  use marbl_parms, only : doc_ind         
-  use marbl_parms, only : don_ind         
-  use marbl_parms, only : dop_ind         
-  use marbl_parms, only : dopr_ind        
-  use marbl_parms, only : donr_ind        
+  use marbl_parms, only : po4_ind
+  use marbl_parms, only : no3_ind
+  use marbl_parms, only : sio3_ind
+  use marbl_parms, only : nh4_ind
+  use marbl_parms, only : fe_ind
+  use marbl_parms, only : dic_ind
+  use marbl_parms, only : doc_ind
+  use marbl_parms, only : don_ind
+  use marbl_parms, only : dop_ind
+  use marbl_parms, only : dopr_ind
+  use marbl_parms, only : donr_ind
+  use marbl_parms, only : docr_ind
 
   Implicit None
   Public
@@ -63,6 +65,8 @@ module ecosys_diagnostics_mod
     integer(int_kind) :: Jint_100m_Ptot
     integer(int_kind) :: Jint_Sitot
     integer(int_kind) :: Jint_100m_Sitot
+    integer(int_kind) :: Jint_Fetot
+    integer(int_kind) :: Jint_100m_Fetot
 
     ! Particulate 2D diags
     integer(int_kind) :: calcToSed
@@ -103,13 +107,12 @@ module ecosys_diagnostics_mod
     integer(int_kind) :: photoC_NO3_TOT
     integer(int_kind) :: DOC_prod
     integer(int_kind) :: DOC_remin
+    integer(int_kind) :: DOCr_remin
     integer(int_kind) :: DON_prod
     integer(int_kind) :: DON_remin
+    integer(int_kind) :: DONr_remin
     integer(int_kind) :: DOP_prod
     integer(int_kind) :: DOP_remin
-    integer(int_kind) :: DOFe_prod
-    integer(int_kind) :: DOFe_remin
-    integer(int_kind) :: DONr_remin
     integer(int_kind) :: DOPr_remin
     integer(int_kind) :: Fe_scavenge
     integer(int_kind) :: Fe_scavenge_rate
@@ -118,6 +121,9 @@ module ecosys_diagnostics_mod
     integer(int_kind) :: POC_FLUX_IN
     integer(int_kind) :: POC_PROD
     integer(int_kind) :: POC_REMIN
+    integer(int_kind) :: POC_REMIN_DIC
+    integer(int_kind) :: PON_REMIN_NH4
+    integer(int_kind) :: POP_REMIN_PO4
     integer(int_kind) :: CaCO3_FLUX_IN
     integer(int_kind) :: CaCO3_PROD
     integer(int_kind) :: CaCO3_REMIN
@@ -200,8 +206,8 @@ module ecosys_diagnostics_mod
      integer(int_kind) :: NHy_FLUX
      integer(int_kind) :: DIN_RIV_FLUX
      integer(int_kind) :: DIP_RIV_FLUX
-     integer(int_kind) :: DoN_RIV_FLUX
-     integer(int_kind) :: DoNr_RIV_FLUX
+     integer(int_kind) :: DON_RIV_FLUX
+     integer(int_kind) :: DONr_RIV_FLUX
      integer(int_kind) :: DOP_RIV_FLUX
      integer(int_kind) :: DOPr_RIV_FLUX
      integer(int_kind) :: DSI_RIV_FLUX
@@ -209,6 +215,7 @@ module ecosys_diagnostics_mod
      integer(int_kind) :: DIC_RIV_FLUX
      integer(int_kind) :: ALK_RIV_FLUX
      integer(int_kind) :: DOC_RIV_FLUX
+     integer(int_kind) :: DOCr_RIV_FLUX
   end type marbl_forcing_diagnostics_indexing_type
   type(marbl_forcing_diagnostics_indexing_type), public :: marbl_forcing_diag_ind
 
@@ -545,11 +552,19 @@ contains
 
     lname='Flux of DOC from rivers'
     sname='DOC_RIV_FLUX'
-    units='alk/cm^2/s'
+    units='nmol/cm^2/s'
     vgrid = 'none'
     truncate = .false.
     call marbl_forcing_diags%add_diagnostic(&
          lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DOC_RIV_FLUX)
+
+    lname='Flux of DOCr from rivers'
+    sname='DOCr_RIV_FLUX'
+    units='nmol/cm^2/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_forcing_diags%add_diagnostic(&
+         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DOCr_RIV_FLUX)
 
     !-----------------------------------------------------------------
     ! Interior diagnostics
@@ -670,6 +685,22 @@ contains
     truncate = .false.
     call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
                                     marbl_interior_diag_ind%Jint_100m_Sitot)
+
+    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Fetot'
+    sname = 'Jint_Fetot'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_interior_diag_ind%Jint_Fetot)
+
+    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Fetot, 0-100m'
+    sname = 'Jint_100m_Fetot'
+    units = 'mmol/m^3 cm/s'
+    vgrid = 'none'
+    truncate = .false.
+    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_interior_diag_ind%Jint_100m_Fetot)
 
     ! Particulate 2D diags
     lname = 'CaCO3 Flux to Sediments'
@@ -953,11 +984,19 @@ contains
     call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
                                     marbl_interior_diag_ind%DOC_remin)
 
+    lname = 'DOCr Remineralization'
+    sname = 'DOCr_remin'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_interior_diag_ind%DOCr_remin)
+
     lname = 'DON Production'
     sname = 'DON_prod'
     units = 'mmol/m^3/s'
     vgrid = 'layer_avg'
-    truncate = .true.
+    truncate = .false.
     call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
                                     marbl_interior_diag_ind%DON_prod)
 
@@ -965,41 +1004,9 @@ contains
     sname = 'DON_remin'
     units = 'mmol/m^3/s'
     vgrid = 'layer_avg'
-    truncate = .true.
+    truncate = .false.
     call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
                                     marbl_interior_diag_ind%DON_remin)
-
-    lname = 'DOP Production'
-    sname = 'DOP_prod'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%DOP_prod)
-
-    lname = 'DOP Remineralization'
-    sname = 'DOP_remin'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%DOP_remin)
-
-    lname = 'DOFe Production'
-    sname = 'DOFe_prod'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%DOFe_prod)
-
-    lname = 'DOFe Remineralization'
-    sname = 'DOFe_remin'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%DOFe_remin)
 
     lname = 'DONr Remineralization'
     sname = 'DONr_remin'
@@ -1008,6 +1015,22 @@ contains
     truncate = .false.
     call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
                                     marbl_interior_diag_ind%DONr_remin)
+
+    lname = 'DOP Production'
+    sname = 'DOP_prod'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_interior_diag_ind%DOP_prod)
+
+    lname = 'DOP Remineralization'
+    sname = 'DOP_remin'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_interior_diag_ind%DOP_remin)
 
     lname = 'DOPr Remineralization'
     sname = 'DOPr_remin'
@@ -1057,6 +1080,30 @@ contains
     truncate = .false.
     call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
                                     marbl_interior_diag_ind%POC_REMIN)
+
+    lname = 'POC Remineralization routed to DIC'
+    sname = 'POC_REMIN_DIC'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_interior_diag_ind%POC_REMIN_DIC)
+
+    lname = 'PON Remineralization routed to NH4'
+    sname = 'PON_REMIN_NH4'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_interior_diag_ind%PON_REMIN_NH4)
+
+    lname = 'POP Remineralization routed to PO4'
+    sname = 'POP_REMIN_PO4'
+    units = 'mmol/m^3/s'
+    vgrid = 'layer_avg'
+    truncate = .false.
+    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                    marbl_interior_diag_ind%POP_REMIN_PO4)
 
     lname = 'CaCO3 Flux into Cell'
     sname = 'CaCO3_FLUX_IN'
@@ -1747,15 +1794,17 @@ contains
   !***********************************************************************
 
   subroutine store_diagnostics_particulates(marbl_domain, POC, P_CaCO3,       &
-             P_SiO2, dust, P_iron, PON_sed_loss, sed_denitrif, other_remin,   &
-             marbl_diags)
+             P_SiO2, dust, P_iron, PON_remin, PON_sed_loss, POP_remin,        &
+             POP_sed_loss, sed_denitrif, other_remin, marbl_diags)
     !-----------------------------------------------------------------------
     ! - Set tavg variables.
     ! - Accumulte losses of BGC tracers to sediments
     !-----------------------------------------------------------------------
     use marbl_share_mod, only : column_sinking_particle_type
-    use marbl_parms, only : Q
-    use marbl_parms, only : Qp_zoo_pom
+
+    use marbl_parms, only : POCremin_refract
+    use marbl_parms, only : PONremin_refract
+    use marbl_parms, only : POPremin_refract
 
     type(marbl_column_domain_type), intent(in) :: marbl_domain
     type(column_sinking_particle_type), intent(in) :: POC
@@ -1763,7 +1812,10 @@ contains
     type(column_sinking_particle_type), intent(in) :: P_SiO2
     type(column_sinking_particle_type), intent(in) :: dust
     type(column_sinking_particle_type), intent(in) :: P_iron
+    real(r8), dimension(:), intent(in) :: PON_remin    ! km
     real(r8), dimension(:), intent(in) :: PON_sed_loss ! km
+    real(r8), dimension(:), intent(in) :: POP_remin    ! km
+    real(r8), dimension(:), intent(in) :: POP_sed_loss ! km
     real(r8), dimension(:), intent(in) :: sed_denitrif ! km
     real(r8), dimension(:), intent(in) :: other_remin  ! km
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
@@ -1780,6 +1832,13 @@ contains
                                                       POC%hflux_in
       diags(marbl_interior_diag_ind%POC_PROD)%field_3d(:) = POC%prod
       diags(marbl_interior_diag_ind%POC_REMIN)%field_3d(:) = POC%remin
+
+      diags(marbl_interior_diag_ind%POC_REMIN_DIC)%field_3d(:) = POC%remin *  &
+                                                      (c1 - POCremin_refract)
+      diags(marbl_interior_diag_ind%PON_REMIN_NH4)%field_3d(:) = PON_remin *  &
+                                                      (c1 - PONremin_refract)
+      diags(marbl_interior_diag_ind%POP_REMIN_PO4)%field_3d(:) = POP_remin *  &
+                                                      (c1 - POPremin_refract)
 
       diags(marbl_interior_diag_ind%CaCO3_FLUX_IN)%field_3d(:) = P_CaCO3%sflux_in +    &
                                                         P_CaCO3%hflux_in
@@ -1806,7 +1865,7 @@ contains
       diags(marbl_interior_diag_ind%SedDenitrif)%field_2d = sum(sed_denitrif * delta_z)
       diags(marbl_interior_diag_ind%OtherRemin)%field_2d = sum(other_remin * delta_z)
       diags(marbl_interior_diag_ind%ponToSed)%field_2d = sum(PON_sed_loss)
-      diags(marbl_interior_diag_ind%popToSed)%field_2d = sum(POC%sed_loss * Qp_zoo_pom)
+      diags(marbl_interior_diag_ind%popToSed)%field_2d = sum(POP_sed_loss)
       diags(marbl_interior_diag_ind%dustToSed)%field_2d = sum(dust%sed_loss)
       diags(marbl_interior_diag_ind%pfeToSed)%field_2d = sum(P_iron%sed_loss)
     end associate
@@ -1923,26 +1982,24 @@ contains
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
     associate(diags => marbl_diags%diags(:))
-      diags(marbl_interior_diag_ind%DOC_prod)%field_3d(:) =                            &
+      diags(marbl_interior_diag_ind%DOC_prod)%field_3d(:) =                   &
                                           dissolved_organic_matter%DOC_prod
-      diags(marbl_interior_diag_ind%DOC_remin)%field_3d(:) =                           &
+      diags(marbl_interior_diag_ind%DOC_remin)%field_3d(:) =                  &
                                           dissolved_organic_matter%DOC_remin
-      diags(marbl_interior_diag_ind%DON_prod)%field_3d(:) =                            &
+      diags(marbl_interior_diag_ind%DOCr_remin)%field_3d(:) =                 &
+                                          dissolved_organic_matter%DOCr_remin
+      diags(marbl_interior_diag_ind%DON_prod)%field_3d(:) =                   &
                                           dissolved_organic_matter%DON_prod
-      diags(marbl_interior_diag_ind%DON_remin)%field_3d(:) =                           &
+      diags(marbl_interior_diag_ind%DON_remin)%field_3d(:) =                  &
                                           dissolved_organic_matter%DON_remin
-      diags(marbl_interior_diag_ind%DOP_prod)%field_3d(:) =                            &
-                                          dissolved_organic_matter%DOP_prod
-      diags(marbl_interior_diag_ind%DOP_remin)%field_3d(:) =                           &
-                                          dissolved_organic_matter%DOP_remin
-      diags(marbl_interior_diag_ind%DONr_remin)%field_3d(:) =                          &
+      diags(marbl_interior_diag_ind%DONr_remin)%field_3d(:) =                 &
                                           dissolved_organic_matter%DONr_remin
-      diags(marbl_interior_diag_ind%DOPr_remin)%field_3d(:) =                          &
+      diags(marbl_interior_diag_ind%DOP_prod)%field_3d(:) =                   &
+                                          dissolved_organic_matter%DOP_prod
+      diags(marbl_interior_diag_ind%DOP_remin)%field_3d(:) =                  &
+                                          dissolved_organic_matter%DOP_remin
+      diags(marbl_interior_diag_ind%DOPr_remin)%field_3d(:) =                 &
                                           dissolved_organic_matter%DOPr_remin
-      diags(marbl_interior_diag_ind%DOFe_prod)%field_3d(:) =                           &
-                                          dissolved_organic_matter%DOFe_prod
-      diags(marbl_interior_diag_ind%DOFe_remin)%field_3d(:) =                          &
-                                          dissolved_organic_matter%DOFe_remin
 
       diags(marbl_interior_diag_ind%Fe_scavenge)%field_3d(:) = Fe_scavenge
       diags(marbl_interior_diag_ind%Fe_scavenge_rate)%field_3d(:) = Fe_scavenge_rate
@@ -1983,7 +2040,7 @@ contains
       ztop = c0
       do k = 1,marbl_domain%kmt
         work1 = dtracer(dic_ind,k) + dtracer(doc_ind,k) +                     &
-                sum(dtracer(zooplankton(:)%C_ind,k)) +                        &
+                dtracer(docr_ind,k) + sum(dtracer(zooplankton(:)%C_ind,k)) +  &
                 sum(dtracer(autotrophs(:)%C_ind,k))
         do auto_ind = 1, autotroph_cnt
           n = autotrophs(auto_ind)%CaCO3_ind
@@ -2017,7 +2074,7 @@ contains
              denitrif, sed_denitrif, autotroph_secondary_species, dtracer,    &
              marbl_diags)
 
-    use marbl_parms     , only : Q
+    use marbl_parms, only : Q
 
     type(marbl_column_domain_type), intent(in) :: marbl_domain
     real(r8), dimension(:), intent(in) :: zw  ! km
@@ -2080,18 +2137,15 @@ contains
 
   !***********************************************************************
 
-  subroutine store_diagnostics_phosphorus_fluxes(marbl_domain, zw, POC, &
-       dtracer, marbl_diags)
+  subroutine store_diagnostics_phosphorus_fluxes(marbl_domain, zw,            &
+             POP_sed_loss, dtracer, marbl_diags)
 
-    use marbl_share_mod, only : column_sinking_particle_type
     use marbl_share_mod, only : autotroph_type, zooplankton_type
-
-    use marbl_parms     , only : Q
-    use marbl_parms     , only : Qp_zoo_pom
+    use marbl_parms,     only : Qp_zoo_pom
 
     type(marbl_column_domain_type), intent(in) :: marbl_domain
-    real(r8), dimension(:), intent(in) :: zw  ! km
-    type(column_sinking_particle_type), intent(in) :: POC
+    real(r8), dimension(:), intent(in) :: zw            ! km
+    real(r8), dimension(:), intent(in) :: POP_sed_loss  ! km
     real(r8), dimension(:,:), intent(in) :: dtracer ! ecosys_tracer_cnt, km
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
@@ -2120,9 +2174,9 @@ contains
         do n = 1, autotroph_cnt
           work1 = work1 + autotrophs(n)%Qp * dtracer(autotrophs(n)%C_ind,k)
         end do
-        diags(marbl_interior_diag_ind%Jint_Ptot)%field_2d =                            &
-                            diags(marbl_interior_diag_ind%Jint_Ptot)%field_2d +        &
-                            delta_z(k) * work1 + POC%sed_loss(k) * Qp_zoo_pom
+        diags(marbl_interior_diag_ind%Jint_Ptot)%field_2d =                   &
+                         diags(marbl_interior_diag_ind%Jint_Ptot)%field_2d +  &
+                         delta_z(k) * work1 + POP_sed_loss(k)
 
         if (ztop < 100.0e2_r8) then
           diags(marbl_interior_diag_ind%Jint_100m_Ptot)%field_2d =                     &
@@ -2130,9 +2184,9 @@ contains
                               min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
         if (zw(k).le.100.0e2_r8) then
-          diags(marbl_interior_diag_ind%Jint_100m_Ptot)%field_2d =                     &
-                              diags(marbl_interior_diag_ind%Jint_100m_Ptot)%field_2d + &
-                              POC%sed_loss(k) * Qp_zoo_pom
+          diags(marbl_interior_diag_ind%Jint_100m_Ptot)%field_2d =            &
+                     diags(marbl_interior_diag_ind%Jint_100m_Ptot)%field_2d + &
+                     POP_sed_loss(k)
         end if
         ztop = zw(k)
     end do
@@ -2146,8 +2200,6 @@ contains
                                               dtracer, marbl_diags)
 
     use marbl_share_mod, only : column_sinking_particle_type
-    use marbl_parms    , only : Q
-    use marbl_parms    , only : Qp_zoo_pom
 
     type(marbl_column_domain_type), intent(in) :: marbl_domain
     real(r8), dimension(:), intent(in) :: zw  ! km
@@ -2197,5 +2249,60 @@ contains
     end associate
 
   end subroutine store_diagnostics_silicon_fluxes
+
+  subroutine store_diagnostics_iron_fluxes(marbl_domain, zw, P_iron, dust,    &
+             fesedflux, dtracer, marbl_diags)
+
+    use marbl_share_mod, only : column_sinking_particle_type
+    use marbl_parms, only : Qfe_zoo
+    use marbl_parms, only : dust_to_Fe
+
+    type(marbl_column_domain_type), intent(in) :: marbl_domain
+    real(r8), dimension(:), intent(in) :: zw  ! km
+    type(column_sinking_particle_type), intent(in) :: P_iron
+    type(column_sinking_particle_type), intent(in) :: dust
+    real(r8), dimension(:), intent(in) :: fesedflux  ! km
+    real(r8), dimension(:,:), intent(in) :: dtracer ! ecosys_tracer_cnt, km
+    type(marbl_diagnostics_type), intent(inout) :: marbl_diags
+
+    integer(int_kind) :: k, n
+    real(r8), dimension(km) :: delta_z
+    real(r8) :: ztop, work1
+
+    if (partial_bottom_cells) then
+       delta_z = marbl_domain%dzt
+    else
+       delta_z = marbl_domain%dz
+    end if
+
+    associate(diags => marbl_diags%diags(:))
+      ! vertical integrals
+      diags(marbl_interior_diag_ind%Jint_Fetot)%field_2d = c0
+      diags(marbl_interior_diag_ind%Jint_100m_Fetot)%field_2d = c0
+
+      ztop = c0
+      do k = 1,marbl_domain%kmt
+        work1 = dtracer(Fe_ind, k) + sum(dtracer(autotrophs(:)%Fe_ind, k)) +  &
+                Qfe_zoo * sum(dtracer(zooplankton(:)%C_ind, k)) -             &
+                dust%remin(k) * dust_to_Fe
+        diags(marbl_interior_diag_ind%Jint_Fetot)%field_2d =                  &
+                       diags(marbl_interior_diag_ind%Jint_Fetot)%field_2d +   &
+                       delta_z(k) * work1 + P_iron%sed_loss(k) - fesedflux(k)
+
+        if (ztop < 100.0e2_r8) then
+          diags(marbl_interior_diag_ind%Jint_100m_Fetot)%field_2d =           &
+                    diags(marbl_interior_diag_ind%Jint_100m_Fetot)%field_2d + &
+                    min(100.0e2_r8 - ztop, delta_z(k)) * work1
+        end if
+        if (zw(k).le.100.0e2_r8) then
+          diags(marbl_interior_diag_ind%Jint_100m_Fetot)%field_2d =           &
+                    diags(marbl_interior_diag_ind%Jint_100m_Fetot)%field_2d + &
+                    P_iron%sed_loss(k) - fesedflux(k)
+        end if
+        ztop = zw(k)
+      end do
+    end associate
+
+  end subroutine store_diagnostics_iron_fluxes
 
 end module ecosys_diagnostics_mod

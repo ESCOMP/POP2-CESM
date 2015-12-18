@@ -1432,14 +1432,6 @@ if ($ecosys_on eq "TRUE") {
       add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
     }
     add_default($nl, 'init_ecosys_init_file_fmt');
-    add_default($nl, 'tracer_init_ext(1)%mod_varname&ecosys_nml');
-    add_default($nl, 'tracer_init_ext(1)%scale_factor&ecosys_nml');
-    add_default($nl, 'tracer_init_ext(2)%mod_varname&ecosys_nml');
-    add_default($nl, 'tracer_init_ext(2)%scale_factor&ecosys_nml');
-    add_default($nl, 'tracer_init_ext(3)%mod_varname&ecosys_nml');
-    add_default($nl, 'tracer_init_ext(3)%scale_factor&ecosys_nml');
-    add_default($nl, 'tracer_init_ext(4)%mod_varname&ecosys_nml');
-    add_default($nl, 'tracer_init_ext(4)%scale_factor&ecosys_nml');
 
     add_default($nl, 'lflux_gas_o2');
     add_default($nl, 'lflux_gas_co2');
@@ -1537,6 +1529,7 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'parm_POC_diss');
     add_default($nl, 'parm_SiO2_diss');
     add_default($nl, 'parm_CaCO3_diss');
+    add_default($nl, 'fe_max_scale2');
 
     add_default($nl, 'parm_scalelen_z');
     add_default($nl, 'parm_scalelen_vals');
