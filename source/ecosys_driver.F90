@@ -161,9 +161,15 @@ module ecosys_driver
   !  used as reference value for virtual flux computations
   !-----------------------------------------------------------------------
 
-  type(photosynthetically_available_radiation_type) :: PAR_instances(max_blocks_clinic)
   logical (log_kind)  :: vflux_flag(ecosys_tracer_cnt)     ! which tracers get virtual fluxes applied
   real (r8)           :: surf_avg(ecosys_tracer_cnt)       ! average surface tracer values
+
+  !-----------------------------------------------------------------------
+  !  PAR variable for each thread
+  !  FIXME(ktl) move to appropriate marbl derived type and allocate and initialize it in marbl_init
+  !-----------------------------------------------------------------------
+
+  type(photosynthetically_available_radiation_type) :: PAR_instances(max_blocks_clinic)
 
   !-----------------------------------------------------------------------
   !  named field indices

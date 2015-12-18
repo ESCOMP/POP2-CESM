@@ -2305,4 +2305,205 @@ contains
 
   end subroutine store_diagnostics_iron_fluxes
 
+  subroutine store_diagnostics_sflux( marbl_forcing_input, marbl_forcing_output)
+
+    ! !DESCRIPTION:
+    !  Compute surface fluxes for ecosys tracer module.
+
+    use constants, only : mpercm
+
+    use marbl_interface_types , only : marbl_forcing_input_type
+    use marbl_interface_types , only : marbl_forcing_output_type
+    use marbl_share_mod       , only : ndep_data_type
+    use marbl_share_mod       , only : ndep_shr_stream_scale_factor
+    use marbl_share_mod       , only : lflux_gas_o2
+    use marbl_share_mod       , only : lflux_gas_co2
+    use marbl_share_mod       , only : nox_flux_monthly 
+    use marbl_share_mod       , only : nhy_flux_monthly 
+    use marbl_share_mod       , only : iron_flux     
+    use marbl_share_mod       , only : din_riv_flux     
+    use marbl_share_mod       , only : dip_riv_flux     
+    use marbl_share_mod       , only : don_riv_flux     
+    use marbl_share_mod       , only : dop_riv_flux     
+    use marbl_share_mod       , only : dsi_riv_flux     
+    use marbl_share_mod       , only : dfe_riv_flux     
+    use marbl_share_mod       , only : dic_riv_flux     
+    use marbl_share_mod       , only : alk_riv_flux     
+    use marbl_parms           , only : ind_nox_flux
+    use marbl_parms           , only : ind_no3_flux
+    use marbl_parms           , only : ind_din_riv_flux
+    use marbl_parms           , only : ind_dsi_riv_flux
+    use marbl_parms           , only : ind_dfe_riv_flux
+    use marbl_parms           , only : ind_dic_riv_flux
+    use marbl_parms           , only : ind_alk_riv_flux
+    use marbl_parms, only : po4_ind
+    use marbl_parms, only : no3_ind
+    use marbl_parms, only : sio3_ind
+    use marbl_parms, only : nh4_ind
+    use marbl_parms, only : fe_ind
+    use marbl_parms, only : o2_ind
+    use marbl_parms, only : dic_ind
+    use marbl_parms, only : dic_alt_co2_ind
+    use marbl_parms, only : alk_ind
+    use marbl_parms, only : doc_ind
+    use marbl_parms, only : don_ind
+    use marbl_parms, only : dop_ind
+    use marbl_parms, only : dopr_ind
+    use marbl_parms, only : donr_ind
+    use marbl_parms, only : docr_ind
+
+    ! !INPUT PARAMETERS:
+    type(marbl_forcing_input_type)    , intent(in)    :: marbl_forcing_input
+    type(marbl_forcing_output_type)   , intent(inout) :: marbl_forcing_output
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+
+    character(*), parameter :: subname = 'ecosys_diagnostics:store_diagnostics_sflux'
+
+    !-----------------------------------------------------------------------
+
+    !-----------------------------------------------------------------------
+    !  calculate gas flux quantities if necessary
+    !-----------------------------------------------------------------------
+
+    associate( &
+         ind             => marbl_forcing_diag_ind               , &
+
+         xkw             => marbl_forcing_input%xkw              , & 
+         xco2            => marbl_forcing_input%xco2             , & 
+         xco2_alt_co2    => marbl_forcing_input%xco2_alt_co2     , & 
+         ifrac           => marbl_forcing_input%ifrac            , &
+         ap_used         => marbl_forcing_input%atm_press        , &
+         dust_flux_in    => marbl_forcing_input%dust_flux        , & 
+         marbl_stf       => marbl_forcing_input%marbl_stf        , & 
+
+         ph_prev         => marbl_forcing_output%ph_prev         , &
+         ph_prev_alt_co2 => marbl_forcing_output%ph_prev_alt_co2 , &
+         iron_flux_in    => marbl_forcing_output%iron_flux       , &
+         flux_co2        => marbl_forcing_output%flux_co2        , &
+         flux_alt_co2    => marbl_forcing_output%flux_alt_co2    , & 
+         co2star         => marbl_forcing_output%co2star         , & 
+         dco2star        => marbl_forcing_output%dco2star        , & 
+         pco2surf        => marbl_forcing_output%pco2surf        , & 
+         dpco2           => marbl_forcing_output%dpco2           , & 
+         co2star_alt     => marbl_forcing_output%co2star_alt     , & 
+         dco2star_alt    => marbl_forcing_output%dco2star_alt    , & 
+         pco2surf_alt    => marbl_forcing_output%pco2surf_alt    , & 
+         dpco2_alt       => marbl_forcing_output%dpco2_alt       , & 
+         pv_co2          => marbl_forcing_output%pv_co2          , & 
+         pv_o2           => marbl_forcing_output%pv_o2           , & 
+         schmidt_co2     => marbl_forcing_output%schmidt_co2     , & 
+         schmidt_o2      => marbl_forcing_output%schmidt_o2      , & 
+         o2sat           => marbl_forcing_output%o2sat           , & 
+         flux_diags      => marbl_forcing_output%flux_diags      , & 
+         stf_module      => marbl_forcing_output%stf_module        & 
+         )
+
+    if (lflux_gas_o2 .or. lflux_gas_co2) then
+
+       FLUX_DIAGS(:, ind%ECOSYS_IFRAC)     = ifrac(:)
+       FLUX_DIAGS(:, ind%ECOSYS_XKW)       = xkw(:)
+       FLUX_DIAGS(:, ind%ECOSYS_ATM_PRESS) = AP_USED(:)
+
+    endif  ! lflux_gas_o2 .or. lflux_gas_co2
+
+    if (lflux_gas_o2) then
+
+       FLUX_DIAGS(:, ind%PV_O2)      = PV_O2(:)
+       FLUX_DIAGS(:, ind%SCHMIDT_O2) = SCHMIDT_O2(:)
+       FLUX_DIAGS(:, ind%O2SAT)      = O2SAT(:)
+       
+    endif  ! lflux_gas_o2
+
+    !-----------------------------------------------------------------------
+    !  compute CO2 flux, computing disequilibrium one row at a time
+    !-----------------------------------------------------------------------
+    
+    if (lflux_gas_co2) then
+       
+       FLUX_DIAGS(:, ind%CO2STAR)              = CO2STAR(:)
+       FLUX_DIAGS(:, ind%DCO2STAR)             = DCO2STAR(:)
+       FLUX_DIAGS(:, ind%pCO2SURF)             = pCO2SURF(:)
+       FLUX_DIAGS(:, ind%DpCO2)                = DpCO2(:)
+       
+       FLUX_DIAGS(:, ind%CO2STAR_ALT_CO2)      = CO2STAR_ALT(:)
+       FLUX_DIAGS(:, ind%DCO2STAR_ALT_CO2)     = DCO2STAR_ALT(:)
+       FLUX_DIAGS(:, ind%pCO2SURF_ALT_CO2)     = pCO2SURF_ALT(:)
+       FLUX_DIAGS(:, ind%DpCO2_ALT_CO2)        = DpCO2_ALT(:)
+       
+       FLUX_DIAGS(:, ind%PV_CO2)               = PV_CO2(:)
+       FLUX_DIAGS(:, ind%SCHMIDT_CO2)          = SCHMIDT_CO2(:)
+       FLUX_DIAGS(:, ind%DIC_GAS_FLUX)         = FLUX_CO2(:)
+       FLUX_DIAGS(:, ind%PH)                   = PH_PREV(:)
+       FLUX_DIAGS(:, ind%ATM_CO2)              = XCO2(:)
+      
+       FLUX_DIAGS(:, ind%DIC_GAS_FLUX_ALT_CO2) = FLUX_ALT_CO2(:)
+       FLUX_DIAGS(:, ind%PH_ALT_CO2)           = PH_PREV_ALT_CO2(:)
+       FLUX_DIAGS(:, ind%ATM_ALT_CO2)          = XCO2_ALT_CO2(:)
+       
+    endif  !  lflux_gas_co2
+
+    !-----------------------------------------------------------------------
+    !  calculate iron and dust fluxes if necessary
+    !-----------------------------------------------------------------------
+
+    ! multiply IRON flux by mpercm (.01) to convert from model units (cm/s)(mmol/m^3) to mmol/s/m^2
+
+    if (iron_flux%has_data) then
+       FLUX_DIAGS(:, ind%IRON_FLUX) = IRON_FLUX_IN(:) * mpercm
+    endif
+
+    !-----------------------------------------------------------------------
+    !  calculate nox and nhy fluxes if necessary
+    !-----------------------------------------------------------------------
+
+    if (nox_flux_monthly%has_data) then
+       FLUX_DIAGS(:, ind%NOx_FLUX) = MARBL_STF(:, ind_nox_flux)
+    endif
+
+    if (trim(ndep_data_type) == 'shr_stream') then
+       FLUX_DIAGS(:, ind%NOx_FLUX) = &
+            ndep_shr_stream_scale_factor * MARBL_STF(:, ind_no3_flux)
+    endif
+
+    !-----------------------------------------------------------------------
+    !  calculate river bgc fluxes if necessary
+    !-----------------------------------------------------------------------
+
+    if (din_riv_flux%has_data) then
+       FLUX_DIAGS(:, ind%DIN_RIV_FLUX) = MARBL_STF(:, ind_din_riv_flux)
+    endif
+    if (dsi_riv_flux%has_data) then
+       FLUX_DIAGS(:, ind%DSI_RIV_FLUX) = MARBL_STF(:, ind_dsi_riv_flux)
+    endif
+    if (dfe_riv_flux%has_data) then
+       FLUX_DIAGS(:, ind%DFE_RIV_FLUX) = MARBL_STF(:, ind_dfe_riv_flux)
+    endif
+    if (dic_riv_flux%has_data) then
+       FLUX_DIAGS(:, ind%DIC_RIV_FLUX) = MARBL_STF(:, ind_dic_riv_flux)
+    endif
+    if (alk_riv_flux%has_data) then
+       FLUX_DIAGS(:, ind%ALK_RIV_FLUX) = MARBL_STF(:, ind_alk_riv_flux)
+    endif
+    FLUX_DIAGS(:, ind%O2_GAS_FLUX)   = STF_MODULE(:, o2_ind)
+    FLUX_DIAGS(:, ind%NHy_FLUX)      = STF_MODULE(:, nh4_ind)
+    FLUX_DIAGS(:, ind%DIP_RIV_FLUX)  = STF_MODULE(:, po4_ind)
+    FLUX_DIAGS(:, ind%DON_RIV_FLUX)  = STF_MODULE(:, don_ind)
+    FLUX_DIAGS(:, ind%DONr_RIV_FLUX) = STF_MODULE(:, donr_ind)
+    FLUX_DIAGS(:, ind%DOP_RIV_FLUX)  = STF_MODULE(:, dop_ind)
+    FLUX_DIAGS(:, ind%DOPr_RIV_FLUX) = STF_MODULE(:, dopr_ind)
+    FLUX_DIAGS(:, ind%DOC_RIV_FLUX)  = STF_MODULE(:, doc_ind)
+    FLUX_DIAGS(:, ind%DOCr_RIV_FLUX) = STF_MODULE(:, docr_ind)
+
+    ! multiply DUST flux by mpercm (.01) to convert from model units (cm/s)(mmol/m^3) to mmol/s/m^2
+    FLUX_DIAGS(:, ind%DUST_FLUX) = DUST_FLUX_IN(:)*mpercm
+
+    end associate
+
+  end subroutine store_diagnostics_sflux
+
+  !*****************************************************************************
+
 end module ecosys_diagnostics_mod
