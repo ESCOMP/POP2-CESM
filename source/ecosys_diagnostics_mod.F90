@@ -2305,7 +2305,8 @@ contains
 
   end subroutine store_diagnostics_iron_fluxes
 
-  subroutine store_diagnostics_sflux( marbl_forcing_input, marbl_forcing_output)
+  subroutine store_diagnostics_sflux(marbl_forcing_input,                     &
+             marbl_forcing_output, marbl_diags)
 
     ! !DESCRIPTION:
     !  Compute surface fluxes for ecosys tracer module.
@@ -2355,6 +2356,7 @@ contains
     ! !INPUT PARAMETERS:
     type(marbl_forcing_input_type)    , intent(in)    :: marbl_forcing_input
     type(marbl_forcing_output_type)   , intent(inout) :: marbl_forcing_output
+    type(marbl_diagnostics_type)      , intent(inout) :: marbl_diags
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -2370,50 +2372,48 @@ contains
 
     associate( &
          ind             => marbl_forcing_diag_ind               , &
-
-         xkw             => marbl_forcing_input%xkw              , & 
-         xco2            => marbl_forcing_input%xco2             , & 
-         xco2_alt_co2    => marbl_forcing_input%xco2_alt_co2     , & 
+         xkw             => marbl_forcing_input%xkw              , &
+         xco2            => marbl_forcing_input%xco2             , &
+         xco2_alt_co2    => marbl_forcing_input%xco2_alt_co2     , &
          ifrac           => marbl_forcing_input%ifrac            , &
          ap_used         => marbl_forcing_input%atm_press        , &
-         dust_flux_in    => marbl_forcing_input%dust_flux        , & 
-         marbl_stf       => marbl_forcing_input%marbl_stf        , & 
-
+         dust_flux_in    => marbl_forcing_input%dust_flux        , &
+         marbl_stf       => marbl_forcing_input%marbl_stf        , &
          ph_prev         => marbl_forcing_output%ph_prev         , &
          ph_prev_alt_co2 => marbl_forcing_output%ph_prev_alt_co2 , &
          iron_flux_in    => marbl_forcing_output%iron_flux       , &
          flux_co2        => marbl_forcing_output%flux_co2        , &
-         flux_alt_co2    => marbl_forcing_output%flux_alt_co2    , & 
-         co2star         => marbl_forcing_output%co2star         , & 
-         dco2star        => marbl_forcing_output%dco2star        , & 
-         pco2surf        => marbl_forcing_output%pco2surf        , & 
-         dpco2           => marbl_forcing_output%dpco2           , & 
-         co2star_alt     => marbl_forcing_output%co2star_alt     , & 
-         dco2star_alt    => marbl_forcing_output%dco2star_alt    , & 
-         pco2surf_alt    => marbl_forcing_output%pco2surf_alt    , & 
-         dpco2_alt       => marbl_forcing_output%dpco2_alt       , & 
-         pv_co2          => marbl_forcing_output%pv_co2          , & 
-         pv_o2           => marbl_forcing_output%pv_o2           , & 
-         schmidt_co2     => marbl_forcing_output%schmidt_co2     , & 
-         schmidt_o2      => marbl_forcing_output%schmidt_o2      , & 
-         o2sat           => marbl_forcing_output%o2sat           , & 
-         flux_diags      => marbl_forcing_output%flux_diags      , & 
-         stf_module      => marbl_forcing_output%stf_module        & 
+         flux_alt_co2    => marbl_forcing_output%flux_alt_co2    , &
+         co2star         => marbl_forcing_output%co2star         , &
+         dco2star        => marbl_forcing_output%dco2star        , &
+         pco2surf        => marbl_forcing_output%pco2surf        , &
+         dpco2           => marbl_forcing_output%dpco2           , &
+         co2star_alt     => marbl_forcing_output%co2star_alt     , &
+         dco2star_alt    => marbl_forcing_output%dco2star_alt    , &
+         pco2surf_alt    => marbl_forcing_output%pco2surf_alt    , &
+         dpco2_alt       => marbl_forcing_output%dpco2_alt       , &
+         pv_co2          => marbl_forcing_output%pv_co2          , &
+         pv_o2           => marbl_forcing_output%pv_o2           , &
+         schmidt_co2     => marbl_forcing_output%schmidt_co2     , &
+         schmidt_o2      => marbl_forcing_output%schmidt_o2      , &
+         o2sat           => marbl_forcing_output%o2sat           , &
+         stf_module      => marbl_forcing_output%stf_module      , &
+         diags           => marbl_diags%diags(:)                   &
          )
 
     if (lflux_gas_o2 .or. lflux_gas_co2) then
 
-       FLUX_DIAGS(:, ind%ECOSYS_IFRAC)     = ifrac(:)
-       FLUX_DIAGS(:, ind%ECOSYS_XKW)       = xkw(:)
-       FLUX_DIAGS(:, ind%ECOSYS_ATM_PRESS) = AP_USED(:)
+       diags(ind%ECOSYS_IFRAC)%field_2d     = ifrac(1)
+       diags(ind%ECOSYS_XKW)%field_2d       = xkw(1)
+       diags(ind%ECOSYS_ATM_PRESS)%field_2d = AP_USED(1)
 
     endif  ! lflux_gas_o2 .or. lflux_gas_co2
 
     if (lflux_gas_o2) then
 
-       FLUX_DIAGS(:, ind%PV_O2)      = PV_O2(:)
-       FLUX_DIAGS(:, ind%SCHMIDT_O2) = SCHMIDT_O2(:)
-       FLUX_DIAGS(:, ind%O2SAT)      = O2SAT(:)
+       diags(ind%PV_O2)%field_2d      = PV_O2(1)
+       diags(ind%SCHMIDT_O2)%field_2d = SCHMIDT_O2(1)
+       diags(ind%O2SAT)%field_2d      = O2SAT(1)
        
     endif  ! lflux_gas_o2
 
@@ -2423,25 +2423,25 @@ contains
     
     if (lflux_gas_co2) then
        
-       FLUX_DIAGS(:, ind%CO2STAR)              = CO2STAR(:)
-       FLUX_DIAGS(:, ind%DCO2STAR)             = DCO2STAR(:)
-       FLUX_DIAGS(:, ind%pCO2SURF)             = pCO2SURF(:)
-       FLUX_DIAGS(:, ind%DpCO2)                = DpCO2(:)
+       diags(ind%CO2STAR)%field_2d              = CO2STAR(1)
+       diags(ind%DCO2STAR)%field_2d             = DCO2STAR(1)
+       diags(ind%pCO2SURF)%field_2d             = pCO2SURF(1)
+       diags(ind%DpCO2)%field_2d                = DpCO2(1)
        
-       FLUX_DIAGS(:, ind%CO2STAR_ALT_CO2)      = CO2STAR_ALT(:)
-       FLUX_DIAGS(:, ind%DCO2STAR_ALT_CO2)     = DCO2STAR_ALT(:)
-       FLUX_DIAGS(:, ind%pCO2SURF_ALT_CO2)     = pCO2SURF_ALT(:)
-       FLUX_DIAGS(:, ind%DpCO2_ALT_CO2)        = DpCO2_ALT(:)
+       diags(ind%CO2STAR_ALT_CO2)%field_2d      = CO2STAR_ALT(1)
+       diags(ind%DCO2STAR_ALT_CO2)%field_2d     = DCO2STAR_ALT(1)
+       diags(ind%pCO2SURF_ALT_CO2)%field_2d     = pCO2SURF_ALT(1)
+       diags(ind%DpCO2_ALT_CO2)%field_2d        = DpCO2_ALT(1)
        
-       FLUX_DIAGS(:, ind%PV_CO2)               = PV_CO2(:)
-       FLUX_DIAGS(:, ind%SCHMIDT_CO2)          = SCHMIDT_CO2(:)
-       FLUX_DIAGS(:, ind%DIC_GAS_FLUX)         = FLUX_CO2(:)
-       FLUX_DIAGS(:, ind%PH)                   = PH_PREV(:)
-       FLUX_DIAGS(:, ind%ATM_CO2)              = XCO2(:)
+       diags(ind%PV_CO2)%field_2d               = PV_CO2(1)
+       diags(ind%SCHMIDT_CO2)%field_2d          = SCHMIDT_CO2(1)
+       diags(ind%DIC_GAS_FLUX)%field_2d         = FLUX_CO2(1)
+       diags(ind%PH)%field_2d                   = PH_PREV(1)
+       diags(ind%ATM_CO2)%field_2d              = XCO2(1)
       
-       FLUX_DIAGS(:, ind%DIC_GAS_FLUX_ALT_CO2) = FLUX_ALT_CO2(:)
-       FLUX_DIAGS(:, ind%PH_ALT_CO2)           = PH_PREV_ALT_CO2(:)
-       FLUX_DIAGS(:, ind%ATM_ALT_CO2)          = XCO2_ALT_CO2(:)
+       diags(ind%DIC_GAS_FLUX_ALT_CO2)%field_2d = FLUX_ALT_CO2(1)
+       diags(ind%PH_ALT_CO2)%field_2d           = PH_PREV_ALT_CO2(1)
+       diags(ind%ATM_ALT_CO2)%field_2d          = XCO2_ALT_CO2(1)
        
     endif  !  lflux_gas_co2
 
@@ -2452,7 +2452,7 @@ contains
     ! multiply IRON flux by mpercm (.01) to convert from model units (cm/s)(mmol/m^3) to mmol/s/m^2
 
     if (iron_flux%has_data) then
-       FLUX_DIAGS(:, ind%IRON_FLUX) = IRON_FLUX_IN(:) * mpercm
+       diags(ind%IRON_FLUX)%field_2d = IRON_FLUX_IN(1) * mpercm
     endif
 
     !-----------------------------------------------------------------------
@@ -2460,12 +2460,12 @@ contains
     !-----------------------------------------------------------------------
 
     if (nox_flux_monthly%has_data) then
-       FLUX_DIAGS(:, ind%NOx_FLUX) = MARBL_STF(:, ind_nox_flux)
+       diags(ind%NOx_FLUX)%field_2d = MARBL_STF(1, ind_nox_flux)
     endif
 
     if (trim(ndep_data_type) == 'shr_stream') then
-       FLUX_DIAGS(:, ind%NOx_FLUX) = &
-            ndep_shr_stream_scale_factor * MARBL_STF(:, ind_no3_flux)
+       diags(ind%NOx_FLUX)%field_2d = &
+            ndep_shr_stream_scale_factor * MARBL_STF(1, ind_no3_flux)
     endif
 
     !-----------------------------------------------------------------------
@@ -2473,32 +2473,32 @@ contains
     !-----------------------------------------------------------------------
 
     if (din_riv_flux%has_data) then
-       FLUX_DIAGS(:, ind%DIN_RIV_FLUX) = MARBL_STF(:, ind_din_riv_flux)
+       diags(ind%DIN_RIV_FLUX)%field_2d = MARBL_STF(1, ind_din_riv_flux)
     endif
     if (dsi_riv_flux%has_data) then
-       FLUX_DIAGS(:, ind%DSI_RIV_FLUX) = MARBL_STF(:, ind_dsi_riv_flux)
+       diags(ind%DSI_RIV_FLUX)%field_2d = MARBL_STF(1, ind_dsi_riv_flux)
     endif
     if (dfe_riv_flux%has_data) then
-       FLUX_DIAGS(:, ind%DFE_RIV_FLUX) = MARBL_STF(:, ind_dfe_riv_flux)
+       diags(ind%DFE_RIV_FLUX)%field_2d = MARBL_STF(1, ind_dfe_riv_flux)
     endif
     if (dic_riv_flux%has_data) then
-       FLUX_DIAGS(:, ind%DIC_RIV_FLUX) = MARBL_STF(:, ind_dic_riv_flux)
+       diags(ind%DIC_RIV_FLUX)%field_2d = MARBL_STF(1, ind_dic_riv_flux)
     endif
     if (alk_riv_flux%has_data) then
-       FLUX_DIAGS(:, ind%ALK_RIV_FLUX) = MARBL_STF(:, ind_alk_riv_flux)
+       diags(ind%ALK_RIV_FLUX)%field_2d = MARBL_STF(1, ind_alk_riv_flux)
     endif
-    FLUX_DIAGS(:, ind%O2_GAS_FLUX)   = STF_MODULE(:, o2_ind)
-    FLUX_DIAGS(:, ind%NHy_FLUX)      = STF_MODULE(:, nh4_ind)
-    FLUX_DIAGS(:, ind%DIP_RIV_FLUX)  = STF_MODULE(:, po4_ind)
-    FLUX_DIAGS(:, ind%DON_RIV_FLUX)  = STF_MODULE(:, don_ind)
-    FLUX_DIAGS(:, ind%DONr_RIV_FLUX) = STF_MODULE(:, donr_ind)
-    FLUX_DIAGS(:, ind%DOP_RIV_FLUX)  = STF_MODULE(:, dop_ind)
-    FLUX_DIAGS(:, ind%DOPr_RIV_FLUX) = STF_MODULE(:, dopr_ind)
-    FLUX_DIAGS(:, ind%DOC_RIV_FLUX)  = STF_MODULE(:, doc_ind)
-    FLUX_DIAGS(:, ind%DOCr_RIV_FLUX) = STF_MODULE(:, docr_ind)
+    diags(ind%O2_GAS_FLUX)%field_2d   = STF_MODULE(1, o2_ind)
+    diags(ind%NHy_FLUX)%field_2d      = STF_MODULE(1, nh4_ind)
+    diags(ind%DIP_RIV_FLUX)%field_2d  = STF_MODULE(1, po4_ind)
+    diags(ind%DON_RIV_FLUX)%field_2d  = STF_MODULE(1, don_ind)
+    diags(ind%DONr_RIV_FLUX)%field_2d = STF_MODULE(1, donr_ind)
+    diags(ind%DOP_RIV_FLUX)%field_2d  = STF_MODULE(1, dop_ind)
+    diags(ind%DOPr_RIV_FLUX)%field_2d = STF_MODULE(1, dopr_ind)
+    diags(ind%DOC_RIV_FLUX)%field_2d  = STF_MODULE(1, doc_ind)
+    diags(ind%DOCr_RIV_FLUX)%field_2d = STF_MODULE(1, docr_ind)
 
     ! multiply DUST flux by mpercm (.01) to convert from model units (cm/s)(mmol/m^3) to mmol/s/m^2
-    FLUX_DIAGS(:, ind%DUST_FLUX) = DUST_FLUX_IN(:)*mpercm
+    diags(ind%DUST_FLUX)%field_2d = DUST_FLUX_IN(1)*mpercm
 
     end associate
 

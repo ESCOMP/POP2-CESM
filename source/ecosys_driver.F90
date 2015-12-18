@@ -45,6 +45,7 @@ module ecosys_driver
   use marbl_interface_types     , only : photosynthetically_available_radiation_type
   use marbl_interface_types     , only : marbl_forcing_input_type
   use marbl_interface_types     , only : marbl_forcing_output_type
+  use marbl_interface_types, only : max_forcing_diags
   use marbl_share_mod           , only : marbl_forcing_share_type
   use ecosys_mod                , only : marbl_ecosys_set_sflux
   use ecosys_mod                , only : marbl_ecosys_set_interior
@@ -146,7 +147,8 @@ module ecosys_driver
   type(marbl_forcing_output_type) , dimension(max_blocks_clinic) :: marbl_forcing_output
   type(marbl_forcing_share_type)  , dimension(max_blocks_clinic) :: marbl_forcing_share
 
-  real (r8), allocatable :: flux_diags(:, :, :, :)  ! Computed diagnostics for surface fluxes
+  ! Computed diagnostics for surface fluxes
+  real (r8) :: FLUX_DIAGS(nx_block, ny_block, max_forcing_diags, max_blocks_clinic)
 
   !-----------------------------------------------------------------------
   ! pop data storage for interaction with marbl
@@ -1129,8 +1131,6 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
 
-    logical (log_kind) :: first_call = .true.
-
     integer (int_kind) :: &
          i, j, iblock, n, & ! loop indices
          auto_ind,        & ! autotroph functional group index
@@ -1161,8 +1161,6 @@ contains
     integer (int_kind) :: forcing_diag_cnt
     integer (int_kind) :: num_surface_vals
 
-    real (r8), allocatable :: FLUX_DIAGS_1(:, :)
-
     type(marbl_surface_share_type) :: marbl_surface_share(max_blocks_clinic)
 
     !-----------------------------------------------------------------------
@@ -1170,14 +1168,6 @@ contains
     !-----------------------------------------------------------------------
     !  ECOSYS block
     !-----------------------------------------------------------------------
-    forcing_diag_cnt = marbl_forcing_diags(1)%diag_cnt
-    allocate(FLUX_DIAGS_1(1, forcing_diag_cnt))
-
-    if (first_call) then
-       forcing_diag_cnt = marbl_forcing_diags(1)%diag_cnt
-       allocate(flux_diags(nx_block,ny_block, forcing_diag_cnt, nblocks_clinic))
-       first_call = .false.
-    end if
 
     !-----------------------------------------------------------------------
     ! Set marbl_stf and surface_vals (driver)
@@ -1259,11 +1249,12 @@ contains
              ! Determine surface flux - marbl
              !-----------------------------------------------------------------------
 
-             call marbl_ecosys_set_sflux(                              &
-                  1, ciso_on,                                          &
-                  marbl_forcing_input(iblock),                         &
-                  marbl_forcing_output(iblock),                        &
-                  marbl_surface_share(iblock))
+             call marbl_ecosys_set_sflux(                                     &
+                  1, ciso_on,                                                 &
+                  marbl_forcing_input(iblock),                                &
+                  marbl_forcing_output(iblock),                               &
+                  marbl_surface_share(iblock),                                &
+                  marbl_forcing_diags(iblock))
 
              !-----------------------------------------------------------------------
              ! Copy data from marbl output column to pop slab data structure
@@ -1274,7 +1265,10 @@ contains
              ph_prev_alt_co2(i,j,iblock) = marbl_forcing_output(iblock)%ph_prev_alt_co2(1)
              flux_co2(i,j,iblock)        = marbl_forcing_output(iblock)%flux_co2(1)
 
-             flux_diags(i,j,:,iblock) = marbl_forcing_output(iblock)%flux_diags(1,:)
+             do n=1,marbl_forcing_diags(iblock)%diag_cnt
+               FLUX_DIAGS(i,j,n,iblock) =                                     &
+                                marbl_forcing_diags(iblock)%diags(n)%field_2d
+             end do
              do n = 1,num_surface_vals
                 stf_module(i,j,ecosys_ind_begin+n-1,iblock) = marbl_forcing_output(iblock)%stf_module(1,n)  
              end do
@@ -1379,7 +1373,7 @@ contains
     !  ECOSYS block
     !-----------------------------------------------------------------------
 
-    call ecosys_tavg_accumulate_flux(flux_diags, marbl_forcing_diags)
+    call ecosys_tavg_accumulate_flux(FLUX_DIAGS, marbl_forcing_diags)
 
     !-----------------------------------------------------------------------
     !  ECOSYS_CISO block

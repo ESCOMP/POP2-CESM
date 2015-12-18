@@ -151,7 +151,6 @@ module marbl_interface_types
      real (r8), allocatable, dimension(:)   :: pv_co2       ! piston velocity (cm/s)
      real (r8), allocatable, dimension(:)   :: o2sat        ! used O2 saturation (mmol/m^3)
      real (r8), allocatable, dimension(:,:) :: stf_module
-     real (r8), allocatable, dimension(:,:) :: flux_diags
    contains
      procedure, public :: construct => marbl_forcing_output_constructor
   end type marbl_forcing_output_type
@@ -359,7 +358,6 @@ contains
      allocate(this%pv_co2(num_elements))      
      allocate(this%o2sat(num_elements))       
      allocate(this%flux_alt_co2(num_elements))
-     allocate(this%flux_diags(num_elements, num_forcing_diags))
      allocate(this%stf_module(num_elements, num_surface_vals))
 
   end subroutine marbl_forcing_output_constructor

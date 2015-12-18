@@ -1981,8 +1981,9 @@ contains
 
   !***********************************************************************
 
-  subroutine marbl_ecosys_set_sflux( num_elements, lexport_shared_vars, &
-       marbl_forcing_input, marbl_forcing_output, marbl_surface_share)
+  subroutine marbl_ecosys_set_sflux( num_elements, lexport_shared_vars,       &
+             marbl_forcing_input, marbl_forcing_output, marbl_surface_share,  &
+             marbl_forcing_diags)
 
     ! !DESCRIPTION:
     !  Compute surface fluxes for ecosys tracer module.
@@ -2038,6 +2039,7 @@ contains
     use marbl_parms           , only : ind_dic_riv_flux
     use marbl_parms           , only : ind_alk_riv_flux
     use marbl_parms           , only : ind_doc_riv_flux
+    use marbl_interface_types , only : marbl_diagnostics_type
     use marbl_interface_types , only : marbl_saved_state_type
     use marbl_interface_types , only : marbl_forcing_input_type
     use marbl_interface_types , only : marbl_forcing_output_type
@@ -2050,6 +2052,7 @@ contains
 
     ! !INPUT/OUTPUT PARAMETERS:
     type(marbl_forcing_output_type) , intent(inout) :: marbl_forcing_output
+    type(marbl_diagnostics_type),     intent(inout) :: marbl_forcing_diags
     type(marbl_surface_share_type)  , intent(inout) :: marbl_surface_share
 
     !-----------------------------------------------------------------------
@@ -2108,7 +2111,6 @@ contains
          pv_o2                => marbl_forcing_output%pv_o2               , & ! (used by store_sflux) piston velocity (cm/s) 
          pv_co2               => marbl_forcing_output%pv_co2              , & ! (used by store_sflux) piston velocity (cm/s) 
          o2sat                => marbl_forcing_output%o2sat               , & ! (used by store_sflux) used O2 saturation (mmol/m^3) 
-         flux_diags           => marbl_forcing_output%flux_diags(:,:)     , & ! (used by store_sflux) output diagnostic fluxes 
          stf_module           => marbl_forcing_output%stf_module(:,:)     , & !
 
          PV_SURF_fields       => marbl_surface_share%PV_SURF_fields       , & ! IN/OUT
@@ -2357,7 +2359,8 @@ contains
 
     end associate
 
-    call store_diagnostics_sflux( marbl_forcing_input, marbl_forcing_output )
+    call store_diagnostics_sflux(marbl_forcing_input, marbl_forcing_output,   &
+         marbl_forcing_diags)
 
   end subroutine marbl_ecosys_set_sflux
 
