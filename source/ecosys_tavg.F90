@@ -40,9 +40,10 @@
   use marbl_share_mod       , only : autotroph_cnt
   use marbl_share_mod       , only : zooplankton_cnt
 
+  use ecosys_diagnostics_mod, only : max_interior_diags
+  use ecosys_diagnostics_mod, only : max_forcing_diags
+
   use marbl_interface_types , only : marbl_diagnostics_type
-  use marbl_interface_types , only : max_interior_diags
-  use marbl_interface_types , only : max_forcing_diags
 
   implicit none
   private

@@ -11,10 +11,6 @@ module marbl_interface_types
 
   private
 
-  integer, public, parameter :: max_interior_diags = 75 + autotroph_cnt*26 + zooplankton_cnt*8
-  integer, public, parameter :: max_forcing_diags = 40
-  integer, public, parameter :: max_restore_diags = ecosys_tracer_cnt
-
   !*****************************************************************************
   type, public :: marbl_status_type
      integer :: status
@@ -94,8 +90,7 @@ module marbl_interface_types
   type, public :: marbl_diagnostics_type
      ! marbl_diagnostics : 
      ! used to pass diagnostic information from marbl back to
-     ! the driver. If size is not known when the constructor
-     ! is called, use the max_diags parameter in this module.
+     ! the driver.
      integer :: diag_cnt
      integer :: num_elements
      type(marbl_single_diagnostic_type), dimension(:), allocatable :: diags
@@ -432,6 +427,9 @@ contains
     integer :: n
 
     do n=1,size(this%diags)
+      if (allocated(this%diags(n)%field_2d)) then
+        deallocate(this%diags(n)%field_2d)
+      end if
       if (allocated(this%diags(n)%field_3d)) then
         deallocate(this%diags(n)%field_3d)
       end if

@@ -45,11 +45,11 @@ module ecosys_driver
   use marbl_interface_types     , only : photosynthetically_available_radiation_type
   use marbl_interface_types     , only : marbl_forcing_input_type
   use marbl_interface_types     , only : marbl_forcing_output_type
-  use marbl_interface_types, only : max_forcing_diags
   use marbl_share_mod           , only : marbl_forcing_share_type
   use ecosys_mod                , only : marbl_ecosys_set_sflux
   use ecosys_mod                , only : marbl_ecosys_set_interior
   use ecosys_diagnostics_mod    , only : marbl_ecosys_diagnostics_init  
+  use ecosys_diagnostics_mod    , only : max_forcing_diags
 
   use ecosys_constants          , only : ecosys_tracer_cnt
 

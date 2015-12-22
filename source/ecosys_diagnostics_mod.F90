@@ -17,9 +17,6 @@ module ecosys_diagnostics_mod
   use marbl_share_mod, only : zooplankton_cnt
   use marbl_share_mod, only : ecosys_tracer_cnt
 
-  use marbl_interface_types, only : max_interior_diags
-  use marbl_interface_types, only : max_restore_diags
-
   use marbl_interface_types, only : carbonate_type
   use marbl_interface_types, only : zooplankton_secondary_species_type
   use marbl_interface_types, only : autotroph_secondary_species_type
@@ -44,6 +41,14 @@ module ecosys_diagnostics_mod
 
   Implicit None
   Public
+
+  !-----------------------------------------------------------------------
+  !  Largest possible size for each class of diagnostics
+  !-----------------------------------------------------------------------
+
+  integer, public, parameter :: max_interior_diags = 75 + autotroph_cnt*26 + zooplankton_cnt*8
+  integer, public, parameter :: max_forcing_diags = 40
+  integer, public, parameter :: max_restore_diags = ecosys_tracer_cnt
 
   !-----------------------------------------------------------------------
   !  indices for diagnostic values written to tavg files
@@ -230,9 +235,6 @@ contains
              num_elements_forcing, tracer_d_module)
 
     use prognostic           , only : tracer_field
-    use marbl_interface_types, only : max_forcing_diags
-    use marbl_interface_types, only : max_interior_diags
-    use marbl_interface_types, only : max_restore_diags
 
     type(marbl_diagnostics_type), intent(inout) :: marbl_interior_diags
     type(marbl_diagnostics_type), intent(inout) :: marbl_restore_diags
