@@ -1188,7 +1188,7 @@ contains
 
           ! store_diagnostics_restore
           do n = 1, ecosys_tracer_cnt
-            marbl_restore_diags%diags(n)%field_3d(:) = restore_local(n,:)
+            marbl_restore_diags%diags(n)%field_3d(:,1) = restore_local(n,:)
           end do
 
           end associate

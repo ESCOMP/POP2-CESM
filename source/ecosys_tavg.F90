@@ -130,43 +130,64 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate(i, c, bid, marbl_interior_diags, marbl_restore_diags)
+  subroutine ecosys_tavg_accumulate(i, c, bid, marbl_interior_diags,          &
+             marbl_restore_diags, marbl_forcing_diags)
 
-    integer, intent(in) :: i, c, bid ! column indices and block index
-    type(marbl_diagnostics_type), intent(in) :: marbl_interior_diags
-    type(marbl_diagnostics_type), intent(in) :: marbl_restore_diags
+    integer, dimension(:),        intent(in) :: i, c ! column indices
+    integer,                      intent(in) :: bid ! block index
+    type(marbl_diagnostics_type), optional, intent(in) :: marbl_interior_diags
+    type(marbl_diagnostics_type), optional, intent(in) :: marbl_restore_diags
+    type(marbl_diagnostics_type), optional, intent(in) :: marbl_forcing_diags
 
-    integer :: n
+    if (present(marbl_interior_diags)) then
+      call ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_interior_diags,  &
+           tavg_ids_interior, marbl_interior_diags%num_elements)
+    end if
 
-    call ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_interior_diags, tavg_ids_interior)
-    call ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_restore_diags , tavg_ids_restore)
+    if (present(marbl_restore_diags)) then
+      call ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_restore_diags,   &
+           tavg_ids_restore, marbl_restore_diags%num_elements)
+    end if
+
+    if (present(marbl_forcing_diags)) then
+      call ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_forcing_diags,   &
+           tavg_ids_forcing, marbl_forcing_diags%num_elements)
+    end if
 
   end subroutine ecosys_tavg_accumulate
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_diags, tavg_ids)
+  subroutine ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_diags,         &
+             tavg_ids, num_elements)
 
     ! Accumulate diagnostics
 
-    integer                      , intent(in) :: i, c, bid ! column indices and block index
+    integer, dimension(:)        , intent(in) :: i, c ! column indices
+    integer                      , intent(in) :: bid ! block index
     type(marbl_diagnostics_type) , intent(in) :: marbl_diags
     integer, dimension(:)        , intent(in) :: tavg_ids
+    integer                      , intent(in) :: num_elements
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
 
-    integer :: n
+    integer :: n, ne
+
     !-----------------------------------------------------------------------
 
     associate(diags => marbl_diags%diags(:))
       do n=1,marbl_diags%diag_cnt
-        if (trim(diags(n)%vertical_grid).eq.'none') then
-          call accumulate_tavg_field(diags(n)%field_2d, tavg_ids(n), bid, i, c)
-        else
-          call accumulate_tavg_field(diags(n)%field_3d(:), tavg_ids(n), bid, i, c)
-        end if
+        do ne=1,num_elements
+          if (trim(diags(n)%vertical_grid).eq.'none') then
+            call accumulate_tavg_field(diags(n)%field_2d(ne), tavg_ids(n),    &
+                 bid, i(ne), c(ne))
+          else
+            call accumulate_tavg_field(diags(n)%field_3d(:,ne), tavg_ids(n),  &
+                 bid, i(ne), c(ne))
+          end if
+        end do
       end do
     end associate
 

@@ -1,6 +1,26 @@
 ===============================================================================
 Tag Creator: mlevy
-Developers:  mlevy, klindsay
+Developers:  mlevy
+Tag Date:    21 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n25_cesm_pop_2_1_20151215/
+Tag Summary: Update marbl_single_diagnostic_type to all num_elements of data
+             to be stored at once, rather than just a single column. This
+             requires knowing num_elements during initialization, and allows
+             for one num_elements value for interior / restoring and another
+             for forcing. Currently both values are set to 1, but on my to-do
+             list is testing num_elements = nx_block for forcing diags.
+
+Testing: aux_pop_MARBL vs the n23 baselines (bit-for-bit)
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_tavg.F90
+M       source/marbl_interface_types.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    18 Dec 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n24_cesm_pop_2_1_20151215/
 Tag Summary: Better use of marbl_forcing_diags, which allowed me to remove

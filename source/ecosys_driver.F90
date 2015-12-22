@@ -504,6 +504,7 @@ contains
             marbl_interior_diags(iblock), &
             marbl_restore_diags(iblock),  &
             marbl_forcing_diags(iblock),  &
+            1, 1,                         & ! num_elements interior / forcing
             tracer_d_module(ecosys_ind_begin:ecosys_ind_end))
 
        num_forcing_diags = marbl_forcing_diags(1)%diag_cnt
@@ -1031,18 +1032,19 @@ contains
                    call column_particulate_share_to_slab_particulate_share(i, c, k, bid, &
                         marbl_particulate_share, marbl%private_data%ecosys_particulate_share(k))
                 end if
-                
+
                 do n = ecosys_ind_begin, ecosys_ind_end
                    DTRACER_MODULE(i, c, k, n) = column_dtracer(n, k)
                 end do ! do n
-                
+
              end do ! do k
 
           end if ! KMT > 0
-             
-           call ecosys_tavg_accumulate(i, c, bid, marbl_interior_diags(bid),&
-                                       marbl_restore_diags(bid))
-             
+
+           call ecosys_tavg_accumulate((/i/), (/c/), bid,                     &
+                marbl_interior_diags=marbl_interior_diags(bid),               &
+                marbl_restore_diags=marbl_restore_diags(bid))
+
        end do ! do i
     end do ! do c
           
@@ -1267,7 +1269,7 @@ contains
 
              do n=1,marbl_forcing_diags(iblock)%diag_cnt
                FLUX_DIAGS(i,j,n,iblock) =                                     &
-                                marbl_forcing_diags(iblock)%diags(n)%field_2d
+                             marbl_forcing_diags(iblock)%diags(n)%field_2d(1)
              end do
              do n = 1,num_surface_vals
                 stf_module(i,j,ecosys_ind_begin+n-1,iblock) = marbl_forcing_output(iblock)%stf_module(1,n)  

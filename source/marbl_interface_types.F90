@@ -83,8 +83,8 @@ module marbl_interface_types
      character(len=char_len) :: vertical_grid ! 'none', 'layer_avg', 'layer_iface'
      logical(log_kind)       :: compute_now
      logical(log_kind)       :: ltruncated_vertical_extent
-     real(r8)                :: field_2d
-     real(r8), allocatable, dimension(:) :: field_3d
+     real(r8), allocatable, dimension(:) :: field_2d
+     real(r8), allocatable, dimension(:,:) :: field_3d
 
    contains
      procedure :: initialize  => marbl_single_diag_init
@@ -97,6 +97,7 @@ module marbl_interface_types
      ! the driver. If size is not known when the constructor
      ! is called, use the max_diags parameter in this module.
      integer :: diag_cnt
+     integer :: num_elements
      type(marbl_single_diagnostic_type), dimension(:), allocatable :: diags
 
    contains
@@ -259,11 +260,13 @@ contains
 
   !*****************************************************************************
 
-  subroutine marbl_single_diag_init(this, lname, sname, units, vgrid, truncate)
+  subroutine marbl_single_diag_init(this, lname, sname, units, vgrid,         &
+             truncate, num_elements)
 
     class(marbl_single_diagnostic_type) , intent(inout) :: this
     character(len=char_len) , intent(in)    :: lname, sname, units, vgrid
     logical                 , intent(in)    :: truncate
+    integer                 , intent(in)    :: num_elements
 
     character(len=char_len), dimension(3) :: valid_vertical_grids
     integer :: n
@@ -288,14 +291,15 @@ contains
     this%vertical_grid = trim(vgrid)
     this%ltruncated_vertical_extent = truncate
 
-    ! Allocate column memory for 3D variables
-    if (trim(vgrid).eq.'layer_avg') then
-      allocate(this%field_3d(km))
-    end if
-
-    if (trim(vgrid).eq.'layer_iface') then
-      allocate(this%field_3d(km+1))
-    end if
+    ! Allocate column memory for 3D vars or num_elements memory for 2D vars
+    select case (trim(vgrid))
+      case ('layer_avg')
+        allocate(this%field_3d(km, num_elements))
+      case ('layer_iface')
+        allocate(this%field_3d(km+1, num_elements))
+      case ('none')
+        allocate(this%field_2d(num_elements))
+    end select
 
   end subroutine marbl_single_diag_init
 
@@ -364,14 +368,14 @@ contains
 
   !*****************************************************************************
 
-  subroutine marbl_diagnostics_constructor(this, num_diags)
+  subroutine marbl_diagnostics_constructor(this, num_diags, num_elements)
 
     class(marbl_diagnostics_type), intent(inout) :: this
-    integer (int_kind) , intent(in) :: num_diags
+    integer (int_kind),            intent(in)    :: num_diags, num_elements
 
     allocate(this%diags(num_diags))
     this%diag_cnt = 0
-    call this%set_to_zero()
+    this%num_elements = num_elements
 
   end subroutine marbl_diagnostics_constructor
 
@@ -383,10 +387,16 @@ contains
 
     integer (int_kind) :: n
 
-    do n=1,size(this%diags)
-      this%diags(n)%field_2d = c0
-      if (allocated(this%diags(n)%field_3d)) then
-        this%diags(n)%field_3d(:) = c0
+    do n=1,this%diag_cnt
+      if (allocated(this%diags(n)%field_2d)) then
+        this%diags(n)%field_2d(:) = c0
+      elseif (allocated(this%diags(n)%field_3d)) then
+        this%diags(n)%field_3d(:, :) = c0
+      else
+        ! TODO abort abort abort
+        write(*,*) "ERROR: neither field_2d nor field_3d are allocated"
+        write(*,*) "Diag short name = ", trim(this%diags(n)%short_name)
+        write(*,*) "Diag long name = ", trim(this%diags(n)%long_name)
       end if
     end do
 
@@ -394,7 +404,8 @@ contains
 
   !*****************************************************************************
 
-  subroutine marbl_diagnostics_add(this, lname, sname, units, vgrid, truncate, id)
+  subroutine marbl_diagnostics_add(this, lname, sname, units, vgrid,          &
+             truncate, id)
 
     class(marbl_diagnostics_type) , intent(inout) :: this
     character(len=char_len)       , intent(in)    :: lname, sname, units, vgrid
@@ -407,7 +418,8 @@ contains
       print*, "ERROR: increase max number of diagnostics!"
       ! FIXME: abort
     end if
-    call this%diags(id)%initialize(lname, sname, units, vgrid, truncate)
+    call this%diags(id)%initialize(lname, sname, units, vgrid, truncate,      &
+         this%num_elements)
 
   end subroutine marbl_diagnostics_add
 
