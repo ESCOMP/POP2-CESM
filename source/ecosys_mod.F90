@@ -1983,7 +1983,7 @@ contains
   !***********************************************************************
 
   subroutine marbl_ecosys_set_sflux( num_elements, lexport_shared_vars,       &
-             marbl_forcing_input, marbl_forcing_output, marbl_surface_share,  &
+             marbl_forcing_input, marbl_forcing_output, marbl_forcing_share,  &
              marbl_forcing_diags)
 
     ! !DESCRIPTION:
@@ -1993,7 +1993,7 @@ contains
     use schmidt_number        , only : schmidt_co2_surf
     use marbl_oxygen          , only : schmidt_o2_surf
     use marbl_oxygen          , only : o2sat_surf
-    use marbl_share_mod       , only : marbl_surface_share_type
+    use marbl_share_mod       , only : marbl_forcing_share_type
     use marbl_share_mod       , only : ecosys_surface_share_type
     use marbl_share_mod       , only : lflux_gas_o2
     use marbl_share_mod       , only : lflux_gas_co2
@@ -2054,7 +2054,7 @@ contains
     ! !INPUT/OUTPUT PARAMETERS:
     type(marbl_forcing_output_type) , intent(inout) :: marbl_forcing_output
     type(marbl_diagnostics_type),     intent(inout) :: marbl_forcing_diags
-    type(marbl_surface_share_type)  , intent(inout) :: marbl_surface_share
+    type(marbl_forcing_share_type)  , intent(inout) :: marbl_forcing_share
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -2116,13 +2116,13 @@ contains
          o2sat                => marbl_forcing_output%o2sat               , & ! (used by store_sflux) used O2 saturation (mmol/m^3) 
          stf_module           => marbl_forcing_output%stf_module(:,:)     , & !
 
-         PV_SURF_fields       => marbl_surface_share%PV_SURF_fields       , & ! IN/OUT
-         DIC_SURF_fields      => marbl_surface_share%DIC_SURF_fields      , & ! IN/OUT
-         CO2STAR_SURF_fields  => marbl_surface_share%CO2STAR_SURF_fields  , & ! IN/OUT
-         DCO2STAR_SURF_fields => marbl_surface_share%DCO2STAR_SURF_fields , & ! IN/OUT
-         CO3_SURF_fields      => marbl_surface_share%CO3_SURF_fields      , & ! IN/OUT
-         dic_riv_flux_fields  => marbl_surface_share%dic_riv_flux_fields  , & ! IN/OUT
-         doc_riv_flux_fields  => marbl_surface_share%doc_riv_flux_fields    & ! IN/OUT
+         PV_SURF_fields       => marbl_forcing_share%PV_SURF_fields       , & ! IN/OUT
+         DIC_SURF_fields      => marbl_forcing_share%DIC_SURF_fields      , & ! IN/OUT
+         CO2STAR_SURF_fields  => marbl_forcing_share%CO2STAR_SURF_fields  , & ! IN/OUT
+         DCO2STAR_SURF_fields => marbl_forcing_share%DCO2STAR_SURF_fields , & ! IN/OUT
+         CO3_SURF_fields      => marbl_forcing_share%CO3_SURF_fields      , & ! IN/OUT
+         dic_riv_flux_fields  => marbl_forcing_share%dic_riv_flux_fields  , & ! IN/OUT
+         doc_riv_flux_fields  => marbl_forcing_share%doc_riv_flux_fields    & ! IN/OUT
          )
 
     !-----------------------------------------------------------------------

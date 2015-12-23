@@ -35,7 +35,6 @@ module ecosys_driver
   use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
 
   use marbl_share_mod           , only : autotroph_cnt, zooplankton_cnt
-  use marbl_share_mod           , only : marbl_surface_share_type
 
   use marbl_interface           , only : marbl_interface_class
   use marbl_interface           , only : marbl_sizes_type
@@ -149,8 +148,6 @@ module ecosys_driver
   type(marbl_forcing_output_type) , dimension(max_blocks_clinic) :: marbl_forcing_output
   type(marbl_forcing_share_type)  , dimension(max_blocks_clinic) :: marbl_forcing_share
 
-  type(marbl_surface_share_type) :: marbl_surface_share(max_blocks_clinic)
-    
   ! Computed diagnostics for surface fluxes
   real (r8) :: FLUX_DIAGS(nx_block, ny_block, max_forcing_diags, max_blocks_clinic)
 
@@ -518,14 +515,6 @@ contains
        call marbl_forcing_output(iblock)%construct(num_elements, num_surface_vals, num_forcing_diags)
        call marbl_forcing_share(iblock)%construct(num_elements)
 
-       ! Allocate memory for marbl_surface_share_type
-       allocate(marbl_surface_share(iblock)%PV_SURF_fields(num_elements))
-       allocate(marbl_surface_share(iblock)%DIC_SURF_fields(num_elements))
-       allocate(marbl_surface_share(iblock)%CO2STAR_SURF_fields(num_elements))
-       allocate(marbl_surface_share(iblock)%DCO2STAR_SURF_fields(num_elements))
-       allocate(marbl_surface_share(iblock)%CO3_SURF_fields(num_elements))
-       allocate(marbl_surface_share(iblock)%dic_riv_flux_fields(num_elements))
-       allocate(marbl_surface_share(iblock)%doc_riv_flux_fields(num_elements))
     end do
 
     ! Initialize tavg ids (need only do this using first block)
@@ -1263,7 +1252,7 @@ contains
                num_elements, ciso_on,                                      &
                marbl_forcing_input(iblock),                                &
                marbl_forcing_output(iblock),                               &
-               marbl_surface_share(iblock),                                &
+               marbl_forcing_share(iblock),                                &
                marbl_forcing_diags(iblock))
 
           !-----------------------------------------------------------------------
@@ -1283,13 +1272,13 @@ contains
              stf_module(:,j,ecosys_ind_begin+n-1,iblock) = marbl_forcing_output(iblock)%stf_module(:,n)  
           end do
 
-          marbl%private_data%surface_share%PV_SURF_fields       (:,j,iblock) = marbl_surface_share(iblock)%PV_SURF_fields       (:)
-          marbl%private_data%surface_share%DIC_SURF_fields      (:,j,iblock) = marbl_surface_share(iblock)%DIC_SURF_fields      (:)
-          marbl%private_data%surface_share%CO2STAR_SURF_fields  (:,j,iblock) = marbl_surface_share(iblock)%CO2STAR_SURF_fields  (:)
-          marbl%private_data%surface_share%DCO2STAR_SURF_fields (:,j,iblock) = marbl_surface_share(iblock)%DCO2STAR_SURF_fields (:)
-          marbl%private_data%surface_share%CO3_SURF_fields      (:,j,iblock) = marbl_surface_share(iblock)%CO3_SURF_fields      (:)
-          marbl%private_data%surface_share%dic_riv_flux_fields  (:,j,iblock) = marbl_surface_share(iblock)%dic_riv_flux_fields  (:)
-          marbl%private_data%surface_share%doc_riv_flux_fields  (:,j,iblock) = marbl_surface_share(iblock)%doc_riv_flux_fields  (:)
+          marbl%private_data%surface_share%PV_SURF_fields       (:,j,iblock) = marbl_forcing_share(iblock)%PV_SURF_fields       (:)
+          marbl%private_data%surface_share%DIC_SURF_fields      (:,j,iblock) = marbl_forcing_share(iblock)%DIC_SURF_fields      (:)
+          marbl%private_data%surface_share%CO2STAR_SURF_fields  (:,j,iblock) = marbl_forcing_share(iblock)%CO2STAR_SURF_fields  (:)
+          marbl%private_data%surface_share%DCO2STAR_SURF_fields (:,j,iblock) = marbl_forcing_share(iblock)%DCO2STAR_SURF_fields (:)
+          marbl%private_data%surface_share%CO3_SURF_fields      (:,j,iblock) = marbl_forcing_share(iblock)%CO3_SURF_fields      (:)
+          marbl%private_data%surface_share%dic_riv_flux_fields  (:,j,iblock) = marbl_forcing_share(iblock)%dic_riv_flux_fields  (:)
+          marbl%private_data%surface_share%doc_riv_flux_fields  (:,j,iblock) = marbl_forcing_share(iblock)%doc_riv_flux_fields  (:)
 
        enddo
     enddo
