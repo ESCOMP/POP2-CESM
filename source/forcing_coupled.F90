@@ -51,6 +51,8 @@
    use named_field_mod, only: named_field_register, named_field_get_index, &
        named_field_set, named_field_get
    use forcing_fields
+   use mcog, only: tavg_mcog
+   use mcog, only: FRAC_BIN, QSW_RAW_BIN
       
    implicit none
    save
@@ -1098,6 +1100,8 @@
 
    !$OMP END PARALLEL DO
 
+   call tavg_mcog
+
 #endif
 
 !-----------------------------------------------------------------------
@@ -1330,6 +1334,28 @@
    if (errorCode /= POP_Success) then
       call POP_ErrorSet(errorCode, &
          'update_ghost_cells_coupler: error updating VSTOKES')
+      return
+   endif
+
+   call POP_HaloUpdate(FRAC_BIN,POP_haloClinic,        &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating FRAC_BIN')
+      return
+   endif
+
+   call POP_HaloUpdate(QSW_RAW_BIN,POP_haloClinic,     &
+                       POP_gridHorzLocCenter,          &
+                       POP_fieldKindScalar, errorCode, &
+                       fillValue = 0.0_POP_r8)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'update_ghost_cells_coupler: error updating QSW_RAW_BIN')
       return
    endif
 

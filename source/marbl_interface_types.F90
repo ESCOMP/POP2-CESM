@@ -11,10 +11,6 @@ module marbl_interface_types
 
   private
 
-  integer, public, parameter :: max_interior_diags = 72 + autotroph_cnt*26 + zooplankton_cnt*8
-  integer, public, parameter :: max_forcing_diags = 100
-  integer, public, parameter :: max_restore_diags = ecosys_tracer_cnt
-
   !*****************************************************************************
   type, public :: marbl_status_type
      integer :: status
@@ -45,10 +41,13 @@ module marbl_interface_types
   !*****************************************************************************
   type, public :: marbl_column_domain_type
      logical(log_kind) :: land_mask
+     integer(int_kind) :: PAR_nsubcols ! number of sub-column values for PAR
      integer(int_kind) :: km ! number of vertical grid cells
      integer(int_kind) :: kmt ! index of ocean floor
      real(r8), allocatable :: dzt(:) ! (km) delta z for partial bottom cells
      real(r8), allocatable :: dz(:) ! (km) delta z
+     real(r8), allocatable :: PAR_col_frac(:) ! column fraction occupied by each sub-column
+     real(r8), allocatable :: surf_shortwave(:) ! surface shortwave for each sub-column (W/m^2)
   end type marbl_column_domain_type
 
   !*****************************************************************************
@@ -62,7 +61,6 @@ module marbl_interface_types
      ! this struct is necessary because there is some global state
      ! that needs to be preserved for marbl
      real (r8) , dimension(:, :, :)         , allocatable :: dust_FLUX_IN       ! dust flux not stored in STF since dust is not prognostic
-     real (r8) , dimension(:, :, :)         , allocatable :: PAR_out            ! photosynthetically available radiation (W/m^2)
      real (r8) , dimension(:, :, :, :)      , allocatable :: PH_PREV_3D         ! computed pH_3D from previous time step
      real (r8) , dimension(:, :, :, :)      , allocatable :: PH_PREV_ALT_CO2_3D ! computed pH_3D from previous time step, alternative CO2
      logical (log_kind), dimension(:, :, :) , allocatable :: LAND_MASK
@@ -81,8 +79,8 @@ module marbl_interface_types
      character(len=char_len) :: vertical_grid ! 'none', 'layer_avg', 'layer_iface'
      logical(log_kind)       :: compute_now
      logical(log_kind)       :: ltruncated_vertical_extent
-     real(r8)                :: field_2d
-     real(r8), allocatable, dimension(:) :: field_3d
+     real(r8), allocatable, dimension(:) :: field_2d
+     real(r8), allocatable, dimension(:,:) :: field_3d
 
    contains
      procedure :: initialize  => marbl_single_diag_init
@@ -92,9 +90,9 @@ module marbl_interface_types
   type, public :: marbl_diagnostics_type
      ! marbl_diagnostics : 
      ! used to pass diagnostic information from marbl back to
-     ! the driver. If size is not known when the constructor
-     ! is called, use the max_diags parameter in this module.
+     ! the driver.
      integer :: diag_cnt
+     integer :: num_elements
      type(marbl_single_diagnostic_type), dimension(:), allocatable :: diags
 
    contains
@@ -149,7 +147,6 @@ module marbl_interface_types
      real (r8), allocatable, dimension(:)   :: pv_co2       ! piston velocity (cm/s)
      real (r8), allocatable, dimension(:)   :: o2sat        ! used O2 saturation (mmol/m^3)
      real (r8), allocatable, dimension(:,:) :: stf_module
-     real (r8), allocatable, dimension(:,:) :: flux_diags
    contains
      procedure, public :: construct => marbl_forcing_output_constructor
   end type marbl_forcing_output_type
@@ -185,7 +182,6 @@ module marbl_interface_types
      real (r8) :: NH4_V           ! ammonium uptake (mmol NH4/m^3/sec)
      real (r8) :: PO4_V           ! PO4 uptake (mmol PO4/m^3/sec)
      real (r8) :: DOP_V           ! DOP uptake (mmol DOP/m^3/sec)
-     real (r8) :: VNC             ! C-specific N uptake rate (mmol N/mmol C/sec)
      real (r8) :: VPO4            ! C-specific PO4 uptake (non-dim)
      real (r8) :: VDOP            ! C-specific DOP uptake rate (non-dim)
      real (r8) :: VPtot           ! total P uptake rate (non-dim)
@@ -217,13 +213,6 @@ module marbl_interface_types
   end type autotroph_secondary_species_type
 
   !*****************************************************************************
-  type, public :: photosynthetically_available_radiation_type
-     real(r8) :: in     ! photosynthetically available radiation (W/m^2)
-     real(r8) :: KPARdz ! PAR adsorption coefficient (non-dim)
-     real(r8) :: avg    ! average PAR over mixed layer depth (W/m^2)
-  end type photosynthetically_available_radiation_type
-
-  !*****************************************************************************
   type, public :: zooplankton_secondary_species_type
      real (r8):: f_zoo_detr       ! frac of zoo losses into large detrital pool (non-dim)
      real (r8):: x_graze_zoo      ! {auto, zoo}_graze routed to zoo (mmol C/m^3/sec)
@@ -240,17 +229,24 @@ module marbl_interface_types
   end type zooplankton_secondary_species_type
 
   !*****************************************************************************
+  type, public :: photosynthetically_available_radiation_type
+     real(r8), allocatable :: col_frac(:)    ! column fraction occupied by each sub-column, dimension is (PAR_nsubcols)
+     real(r8), allocatable :: interface(:,:) ! PAR at layer interfaces, dimensions are (0:km,PAR_nsubcols)
+     real(r8), allocatable :: avg(:,:)       ! PAR averaged over layer, dimensions are (km,PAR_nsubcols)
+     real(r8), allocatable :: KPARdz(:)      ! PAR adsorption coefficient times dz (cm), dimension is (km)
+  end type photosynthetically_available_radiation_type
+
+  !*****************************************************************************
   type, public :: dissolved_organic_matter_type
      real (r8) :: DOC_prod         ! production of DOC (mmol C/m^3/sec)
      real (r8) :: DOC_remin        ! remineralization of DOC (mmol C/m^3/sec)
-     real (r8) :: DON_prod         ! production of dissolved organic N
-     real (r8) :: DON_remin        ! portion of DON remineralized
-     real (r8) :: DOFe_prod        ! produciton of dissolved organic Fe
-     real (r8) :: DOFe_remin       ! portion of DOFe remineralized
-     real (r8) :: DOP_prod         ! production of dissolved organic P
-     real (r8) :: DOP_remin        ! portion of DOP remineralized
-     real (r8) :: DONr_remin       ! portion of refractory DON remineralized
-     real (r8) :: DOPr_remin       ! portion of refractory DOP remineralized
+     real (r8) :: DOCr_remin       ! remineralization of DOCr
+     real (r8) :: DON_prod         ! production of DON
+     real (r8) :: DON_remin        ! remineralization of DON
+     real (r8) :: DONr_remin       ! remineralization of DONr
+     real (r8) :: DOP_prod         ! production of DOP
+     real (r8) :: DOP_remin        ! remineralization of DOP
+     real (r8) :: DOPr_remin       ! remineralization of DOPr
   end type dissolved_organic_matter_type
 
   !*****************************************************************************
@@ -259,11 +255,13 @@ contains
 
   !*****************************************************************************
 
-  subroutine marbl_single_diag_init(this, lname, sname, units, vgrid, truncate)
+  subroutine marbl_single_diag_init(this, lname, sname, units, vgrid,         &
+             truncate, num_elements)
 
     class(marbl_single_diagnostic_type) , intent(inout) :: this
     character(len=char_len) , intent(in)    :: lname, sname, units, vgrid
     logical                 , intent(in)    :: truncate
+    integer                 , intent(in)    :: num_elements
 
     character(len=char_len), dimension(3) :: valid_vertical_grids
     integer :: n
@@ -288,14 +286,15 @@ contains
     this%vertical_grid = trim(vgrid)
     this%ltruncated_vertical_extent = truncate
 
-    ! Allocate column memory for 3D variables
-    if (trim(vgrid).eq.'layer_avg') then
-      allocate(this%field_3d(km))
-    end if
-
-    if (trim(vgrid).eq.'layer_iface') then
-      allocate(this%field_3d(km+1))
-    end if
+    ! Allocate column memory for 3D vars or num_elements memory for 2D vars
+    select case (trim(vgrid))
+      case ('layer_avg')
+        allocate(this%field_3d(km, num_elements))
+      case ('layer_iface')
+        allocate(this%field_3d(km+1, num_elements))
+      case ('none')
+        allocate(this%field_2d(num_elements))
+    end select
 
   end subroutine marbl_single_diag_init
 
@@ -358,21 +357,20 @@ contains
      allocate(this%pv_co2(num_elements))      
      allocate(this%o2sat(num_elements))       
      allocate(this%flux_alt_co2(num_elements))
-     allocate(this%flux_diags(num_elements, num_forcing_diags))
      allocate(this%stf_module(num_elements, num_surface_vals))
 
   end subroutine marbl_forcing_output_constructor
 
   !*****************************************************************************
 
-  subroutine marbl_diagnostics_constructor(this, num_diags)
+  subroutine marbl_diagnostics_constructor(this, num_diags, num_elements)
 
     class(marbl_diagnostics_type), intent(inout) :: this
-    integer (int_kind) , intent(in) :: num_diags
+    integer (int_kind),            intent(in)    :: num_diags, num_elements
 
     allocate(this%diags(num_diags))
     this%diag_cnt = 0
-    call this%set_to_zero()
+    this%num_elements = num_elements
 
   end subroutine marbl_diagnostics_constructor
 
@@ -384,10 +382,16 @@ contains
 
     integer (int_kind) :: n
 
-    do n=1,size(this%diags)
-      this%diags(n)%field_2d = c0
-      if (allocated(this%diags(n)%field_3d)) then
-        this%diags(n)%field_3d(:) = c0
+    do n=1,this%diag_cnt
+      if (allocated(this%diags(n)%field_2d)) then
+        this%diags(n)%field_2d(:) = c0
+      elseif (allocated(this%diags(n)%field_3d)) then
+        this%diags(n)%field_3d(:, :) = c0
+      else
+        ! TODO abort abort abort
+        write(*,*) "ERROR: neither field_2d nor field_3d are allocated"
+        write(*,*) "Diag short name = ", trim(this%diags(n)%short_name)
+        write(*,*) "Diag long name = ", trim(this%diags(n)%long_name)
       end if
     end do
 
@@ -395,7 +399,8 @@ contains
 
   !*****************************************************************************
 
-  subroutine marbl_diagnostics_add(this, lname, sname, units, vgrid, truncate, id)
+  subroutine marbl_diagnostics_add(this, lname, sname, units, vgrid,          &
+             truncate, id)
 
     class(marbl_diagnostics_type) , intent(inout) :: this
     character(len=char_len)       , intent(in)    :: lname, sname, units, vgrid
@@ -408,7 +413,8 @@ contains
       print*, "ERROR: increase max number of diagnostics!"
       ! FIXME: abort
     end if
-    call this%diags(id)%initialize(lname, sname, units, vgrid, truncate)
+    call this%diags(id)%initialize(lname, sname, units, vgrid, truncate,      &
+         this%num_elements)
 
   end subroutine marbl_diagnostics_add
 
@@ -421,6 +427,9 @@ contains
     integer :: n
 
     do n=1,size(this%diags)
+      if (allocated(this%diags(n)%field_2d)) then
+        deallocate(this%diags(n)%field_2d)
+      end if
       if (allocated(this%diags(n)%field_3d)) then
         deallocate(this%diags(n)%field_3d)
       end if

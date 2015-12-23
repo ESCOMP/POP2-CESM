@@ -4271,6 +4271,52 @@ Default: .false. .false. .false.
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: mcog_nml                 - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry
+id="lmcog"
+type="logical"
+category="mcog"
+group="mcog_nml"
+valid_values=".true.,.false." >
+Flag for activating mcog, the multiple-column ocean grid parameterization.
+
+Default: .false., unless ecosys is turned on
+</entry>
+
+<entry
+id="lmcog_debug"
+type="logical"
+category="mcog"
+group="mcog_nml"
+valid_values=".true.,.false." >
+Flag for activating debugging statements in multiple-column ocean grid parameterization.
+
+Default: .false.
+</entry>
+
+<entry 
+id="mcog_dagg_qsw_abort_thres"
+type="real"
+category="mcog"
+group="mcog_nml" >
+call abort if abs(dagg_qsw) exceeds this threshold
+
+Default: 1.0e-10
+</entry>
+
+<entry
+id="mcog_col_to_bin"
+type="integer(100)"
+category="mcog"
+group="mcog_nml" >
+bin index for each column
+
+Default: mcog_col_to_bin(nbin) = nbin
+</entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: se_nml                   - -->
 <!-- - - - - - - - - - - - - - - - - - -->
 
@@ -5092,7 +5138,7 @@ type="char*256"
 category="ecosys"
 group="ecosys_nml"
 input_pathname="abs" >
-Default: ecosys_jan_IC_gx3v7_Nov2012_corrO2.nc or ecosys_jan_IC_gx1v6_corrO2_Feb2013.nc (none provided for tripole grids)
+Default: ecosys_jan_IC_gx3v7_20151210.nc or ecosys_jan_IC_gx1v6_20150108.nc (none provided for tripole grids)
 </entry>
 
 <entry 
@@ -5240,7 +5286,7 @@ type="char*256"
 category="ecosys"
 group="ecosys_nml"
 input_pathname="abs" >
-Default: fesedflux_CCSM4gx3v7_orgc_etopo2v2_Dec2012.nc or fesedflux_gx1v6_etopo2v2_Dec2012.nc
+Default: fesedflux_gx3v7_etopo2v2_Nov2015_vents.nc or fesedflux_gx1v6_etopo2v2_Nov2015_vents.nc
 </entry>
 
 <entry 
@@ -5996,14 +6042,6 @@ Default: 2225.0
 </entry>
 
 <entry 
-id="ecosys_qsw_distrb_const"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
 id="lsource_sink"
 type="logical"
 category="ecosys"
@@ -6112,12 +6150,48 @@ group="ecosys_nml" >
 Default: none provided
 </entry>
 
+<entry
+id="caco3_bury_thres_opt"
+type="char*256"
+category="ecosys"
+group="ecosys_nml"
+valid_values="fixed_depth,omega_calc" >
+option of threshold of caco3 burial
+Default: omega_calc
+</entry>
+
+<entry
+id="caco3_bury_thres_depth"
+type="real" 
+category="ecosys"
+group="ecosys_nml" >
+threshold depth for caco3_bury_thres_opt='fixed_depth'
+Default: 3000.0e2
+</entry>
+
+<entry
+id="pon_bury_coeff"
+type="real" 
+category="ecosys"
+group="ecosys_nml" >
+PON_sed_loss = PON_bury_coeff * Q * POC_sed_loss
+Default: 0.5
+</entry>
+
 <entry 
 id="lecovars_full_depth_tavg"
 type="logical" 
 category="ecosys"
 group="ecosys_nml" >
 Default: .false.
+</entry>
+
+<entry
+id="lecosys_debug"
+type="logical"
+category="ecosys"
+group="derived">
+When turned on, ocn.ecosys.tavg.csh will accumulate ALL ecosys diagnostics
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -6137,7 +6211,7 @@ id="parm_o2_min"
 type="real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: 4.0
+Default: 5.0
 </entry>
 
 <entry 
@@ -6145,7 +6219,7 @@ id="parm_o2_min_delta"
 type="real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: 2.0
+Default: 5.0
 </entry>
 
 <entry 
@@ -6165,27 +6239,11 @@ Default: 1.0
 </entry>
 
 <entry 
-id="parm_z_mort_0"
-type="real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: 1.1574e-6
-</entry>
-
-<entry 
-id="parm_z_mort2_0"
-type="real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: 4.6296e-6
-</entry>
-
-<entry 
 id="parm_labile_ratio"
 type="real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: 0.85
+Default: 0.94
 </entry>
 
 <entry 
@@ -6193,7 +6251,7 @@ id="parm_POMbury"
 type="real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: 1.4 for gx1v6, 5.0 for gx3v7
+Default: 5.0 for gx3v7, 1.1 otherwise
 </entry>
 
 <entry 
@@ -6201,7 +6259,7 @@ id="parm_BSIbury"
 type="real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: 0.65 for gx1v6, 0.95 for gx3v7
+Default: 1.1 for gx3v7, 1.0 otherwise
 </entry>
 
 <entry 
@@ -6209,7 +6267,7 @@ id="parm_fe_scavenge_rate0"
 type="real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: 3.0 for gx1v6, 2.7 for gx3v7
+Default: 1.4 for gx3v7, 1.9 otherwise
 </entry>
 
 <entry 
@@ -6217,7 +6275,7 @@ id="parm_f_prod_sp_CaCO3"
 type="real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: 0.055 for gx1v6, 0.053 for gx3v7
+Default: 0.08 for gx3v7, 0.065 otherwise
 </entry>
 
 <entry 
@@ -6225,7 +6283,7 @@ id="parm_POC_diss"
 type="real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: 8800
+Default: 90.0e2
 </entry>
 
 <entry 
@@ -6233,7 +6291,7 @@ id="parm_SiO2_diss"
 type="real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: 25000
+Default: 600.0e2
 </entry>
 
 <entry 
@@ -6241,7 +6299,15 @@ id="parm_CaCO3_diss"
 type="real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: 15000
+Default: 450.0e2
+</entry>
+
+<entry 
+id="fe_max_scale2"
+type="real" 
+category="ecosys"
+group="ecosys_parms_nml" >
+Default: 1600 for gx3v7, 2200 otherwise
 </entry>
 
 <entry 
@@ -6249,7 +6315,7 @@ id="parm_scalelen_z"
 type="real(4)" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/13000, 29000, 67000, 170000/)
+Default: (/100.0e2, 250.0e2, 500.0e2, 750.0e2/)
 </entry>
 
 <entry 
@@ -6257,7 +6323,7 @@ id="parm_scalelen_vals"
 type="real(4)" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/1, 3, 5, 9/)
+Default:  (/1.0, 4.0, 4.5, 4.6/) for gx3v7, (/1.0, 3.3, 4.6, 5.0/) otherwise
 </entry>
 
 <entry 
@@ -6273,7 +6339,7 @@ id="zooplankton%z_mort_0"
 type="dtype(1)%real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/1.1574e-06/)
+Default: (/1.15741e-06/)
 </entry>
 
 <entry 
@@ -6281,7 +6347,7 @@ id="zooplankton%z_mort2_0"
 type="dtype(1)%real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/4.6296e-06/)
+Default: (/4.62963e-06/)
 </entry>
 
 <entry 
@@ -6289,7 +6355,7 @@ id="zooplankton%loss_thres"
 type="dtype(1)%real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/0.005/)
+Default: (/0.075/)
 </entry>
 
 <entry 
@@ -6305,7 +6371,7 @@ id="autotrophs%kFe"
 type="dtype(3)%real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/0.04e-3, 0.06e-3, 0.04e-3/)
+Default: (/0.03e-3, 0.07e-3, 0.03e-3/)
 </entry>
 
 <entry 
@@ -6313,7 +6379,7 @@ id="autotrophs%kPO4"
 type="dtype(3)%real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/0.01, 0.05, 0.02/)
+Default: (/0.01, 0.05, 0.0125/)
 </entry>
 
 <entry 
@@ -6321,7 +6387,7 @@ id="autotrophs%kDOP"
 type="dtype(3)%real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/0.26, 0.9, 0.09/)
+Default: (/0.2, 0.5, 0.05/)
 </entry>
 
 <entry 
@@ -6329,7 +6395,7 @@ id="autotrophs%kNO3"
 type="dtype(3)%real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/0.1, 0.5, 1.0/)
+Default: (/0.25, 1.0, 4.0/)
 </entry>
 
 <entry 
@@ -6337,7 +6403,7 @@ id="autotrophs%kNH4"
 type="dtype(3)%real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/0.01, 0.05, 0.15/)
+Default: (/0.0125, 0.05, 0.4/)
 </entry>
 
 <entry 
@@ -6346,14 +6412,6 @@ type="dtype(3)%real"
 category="ecosys"
 group="ecosys_parms_nml" >
 Default: (/0.0, 0.8, 0.0/)
-</entry>
-
-<entry 
-id="autotrophs%z_umax_0"
-type="dtype(3)%real" 
-category="ecosys"
-group="ecosys_parms_nml" >
-Default: (/3.8194e-5, 3.5648e-5, 6.9444e-6/) for gx1v6, (/3.7847e-5, 3.6227e-5, 6.9444e-6/) for gx3v7
 </entry>
 
 <entry 
@@ -6409,7 +6467,7 @@ id="grazing%z_umax_0"
 type="dtype(3,1)%real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/3.8194e-05,3.5648e-05,6.9444e-06/)
+Default: (/3.76157e-05,3.35648e-05,2.14120e-05/)
 </entry>
 
 <entry 
@@ -6417,7 +6475,7 @@ id="grazing%z_grz"
 type="dtype(3,1)%real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/1.05,1.0,1.2/)
+Default: (/1.15,1.15,1.15/)
 </entry>
 
 <entry 
@@ -6433,7 +6491,7 @@ id="grazing%graze_poc"
 type="dtype(3,1)%real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/0.0,0.42,0.05/)
+Default: (/0.0,0.4,0.08/)
 </entry>
 
 <entry 
@@ -6441,7 +6499,7 @@ id="grazing%graze_doc"
 type="dtype(3,1)%real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/0.15,0.15,0.15/)
+Default: (/0.06,0.06,0.06/)
 </entry>
 
 <entry 
@@ -6449,7 +6507,7 @@ id="grazing%f_zoo_detr"
 type="dtype(3,1)%real" 
 category="ecosys"
 group="ecosys_parms_nml" >
-Default: (/0.15,0.2,0.15/)
+Default: (/0.1,0.2,0.1/)
 </entry>
 
 <entry 
@@ -6479,6 +6537,14 @@ type="char*256"
 category="ecosys"
 group="ecosys_driver_nml" >
 Default: 'base model'
+</entry>
+
+<entry 
+id="ecosys_qsw_distrb_const"
+type="logical" 
+category="ecosys"
+group="ecosys_driver_nml" >
+Default: 
 </entry>
 
 

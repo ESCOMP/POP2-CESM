@@ -349,6 +349,7 @@ my $RUN_STARTDATE          = "$xmlvars{'RUN_STARTDATE'}";
 my $RUN_REFDATE            = "$xmlvars{'RUN_REFDATE'}";
 my $CONTINUE_RUN           = "$xmlvars{'CONTINUE_RUN'}";
 my $OCN_CO2_FLUX_OCMIP_BUG_FIX = "$xmlvars{'OCN_CO2_FLUX_OCMIP_BUG_FIX'}";
+my $ICE_NCAT               = $xmlvars{'ICE_NCAT'};
 
 expand_xml_variables_in_namelist($nl, \%xmlvars);
 
@@ -1431,14 +1432,6 @@ if ($ecosys_on eq "TRUE") {
       add_default($nl, 'init_ecosys_init_file', 'val'=>"same_as_TS", 'noprepend'=>1);
     }
     add_default($nl, 'init_ecosys_init_file_fmt');
-    add_default($nl, 'tracer_init_ext(1)%mod_varname&ecosys_nml');
-    add_default($nl, 'tracer_init_ext(1)%scale_factor&ecosys_nml');
-    add_default($nl, 'tracer_init_ext(2)%mod_varname&ecosys_nml');
-    add_default($nl, 'tracer_init_ext(2)%scale_factor&ecosys_nml');
-    add_default($nl, 'tracer_init_ext(3)%mod_varname&ecosys_nml');
-    add_default($nl, 'tracer_init_ext(3)%scale_factor&ecosys_nml');
-    add_default($nl, 'tracer_init_ext(4)%mod_varname&ecosys_nml');
-    add_default($nl, 'tracer_init_ext(4)%scale_factor&ecosys_nml');
 
     add_default($nl, 'lflux_gas_o2');
     add_default($nl, 'lflux_gas_co2');
@@ -1459,7 +1452,6 @@ if ($ecosys_on eq "TRUE") {
 
     add_default($nl, 'surf_avg_alk_const');
 
-    add_default($nl, 'ecosys_qsw_distrb_const');
    #add_default($nl, 'iron_dust_flx_data_type');
     add_default($nl, 'dust_flux_input%filename');
     add_default($nl, 'dust_flux_input%file_fmt');
@@ -1511,7 +1503,12 @@ if ($ecosys_on eq "TRUE") {
       add_default($nl, 'ndep_shr_stream_file', 'ocn_transient'=>"$OCN_TRANSIENT");
       add_default($nl, 'ndep_shr_stream_scale_factor'); # kgN/m^2/sec -> nmolN/cm^2/sec
     }
+    add_default($nl, 'caco3_bury_thres_opt');
+    add_default($nl, 'caco3_bury_thres_depth');
+    add_default($nl, 'pon_bury_coeff');
     add_default($nl, 'lecovars_full_depth_tavg');
+
+    add_default($nl, 'lecosys_debug');
 }
 
 ##########################################
@@ -1532,6 +1529,7 @@ if ($ecosys_on eq "TRUE") {
     add_default($nl, 'parm_POC_diss');
     add_default($nl, 'parm_SiO2_diss');
     add_default($nl, 'parm_CaCO3_diss');
+    add_default($nl, 'fe_max_scale2');
 
     add_default($nl, 'parm_scalelen_z');
     add_default($nl, 'parm_scalelen_vals');
@@ -1613,6 +1611,7 @@ if ($ecosys_on eq "TRUE") {
 
     add_default($nl, 'lmarginal_seas');
     add_default($nl, 'ecosys_tadvect_ctype');
+    add_default($nl, 'ecosys_qsw_distrb_const');
     }
  
 ##########################################
@@ -1715,6 +1714,47 @@ my $IRF_on = $cfg->get("use_irf");
 if ($IRF_on eq "TRUE") {
   add_default($nl, 'irf_tracer_file');
   add_default($nl, 'irf_tracer_file_ind_start');
+}
+
+######################################
+# namelist group: mcog_nml           #
+######################################
+
+add_default($nl, 'lmcog');
+add_default($nl, 'lmcog_debug');
+add_default($nl, 'mcog_dagg_qsw_abort_thres');
+
+my $lmcog = $nl->get_value('lmcog') eq '.true.';
+
+my $mcog_ncols;
+if ($lmcog) {
+  $mcog_ncols = $ICE_NCAT+1;
+} else {
+  $mcog_ncols = 1;
+}
+
+# construct default mcog_col_to_bin array
+my @mcog_col_to_bin = ();
+for (my $ncol=1; $ncol<=$mcog_ncols; $ncol++) {
+  push @mcog_col_to_bin, $ncol;
+}
+
+add_default($nl, 'mcog_col_to_bin', 'val'=>"@mcog_col_to_bin");
+
+# verify that number of values in mcog_col_to_bin is correct
+my $mcog_col_to_bin_string = $nl->get_variable_value("mcog_nml", "mcog_col_to_bin");
+my @mcog_col_to_bin = split(/[, ]/, $mcog_col_to_bin_string);
+if (@mcog_col_to_bin ne $mcog_ncols) {
+  die "ERROR\nmcog_ncols = $mcog_ncols\nmcog_col_to_bin = @mcog_col_to_bin\nmcog_col_to_bin length doesn't match mcog_ncols\n";
+}
+
+# set CESM CPL_I2O_PER_CAT XML variable 
+if ($lmcog) {
+  my $sysmod = "cd $CASEROOT ; ./xmlchange -noecho CPL_I2O_PER_CAT=TRUE";
+  system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
+} else {
+  my $sysmod = "cd $CASEROOT ; ./xmlchange -noecho CPL_I2O_PER_CAT=FALSE";
+  system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 }
 
 ##########################################
@@ -1889,10 +1929,14 @@ if ($OCN_TAVG_TRACER_BUDGET eq "TRUE") {
   system($sysmod) == 0 or die "ERROR: $sysmod failed: $?\n";
 }
 
-#-------------------------
-# 3. tracer tavg contents 
-#-------------------------
-for my $module (@OCN_TRACER_MODULES) {
+#---------------------------------
+# 3. tracer and mcog tavg contents 
+#---------------------------------
+my @OCN_TAVG_MODULES = @OCN_TRACER_MODULES;
+if ($lmcog) {
+   push(@OCN_TAVG_MODULES, "mcog");
+}
+for my $module (@OCN_TAVG_MODULES) {
   my $file = "ocn.${module}.tavg.csh";
   my $my_stream = $numcols+1;
   my $env = "env CASEROOT=$CASEROOT CASEBUILD=$CASEBUILD OCN_GRID=$OCN_GRID OCN_TAVG_TRACER_BUDGET=$OCN_TAVG_TRACER_BUDGET";
@@ -2005,6 +2049,7 @@ my @groups = qw(domain_nml
                 overflows_nml
                 niw_nml
                 se_nml
+                mcog_nml
                 passive_tracers_on_nml);
 
 if ($iage_on eq "TRUE") {
@@ -2502,6 +2547,9 @@ sub module_tavg_script_args() {
   my $nl     = shift;
   my $module = shift;
   my $cfg    = shift;
+  if ($module eq "ecosys") {
+    return ($nl->get_value('lecosys_debug'));
+  }
   if ($module eq "IRF") {
     my $IRF_NT   = $cfg->get("irf_nt");
     my $IRF_MODE = $cfg->get("irf_mode");
@@ -2509,6 +2557,14 @@ sub module_tavg_script_args() {
             $nl->get_variable_value("irf_nml", "irf_tracer_file_ind_start"),
             $IRF_NT,
             "'$IRF_MODE'");
+  }
+  if ($module eq "mcog") {
+    use List::Util qw( max );
+    my $mcog_col_to_bin_string = $nl->get_variable_value("mcog_nml", "mcog_col_to_bin");
+    my @mcog_col_to_bin = split(/[, ]/, $mcog_col_to_bin_string);
+    my $mcog_ncols = @mcog_col_to_bin;
+    my $mcog_nbins = max @mcog_col_to_bin;
+    return ($nl->get_variable_value("mcog_nml", "lmcog_debug"), $mcog_ncols, $mcog_nbins);
   }
   return "";
 }

@@ -89,7 +89,7 @@ CONTAINS
 
   !*****************************************************************************
 
-  SUBROUTINE co2calc_surf(num_elements, mask, lcomp_co3_coeffs, &
+  SUBROUTINE co2calc_surf(num_elements, mask, lcomp_co3_coeffs, co3_coeffs, &
        temp, salt, dic_in, ta_in, pt_in, sit_in, phlo, phhi, ph, xco2_in, atmpres, &
        co2star, dco2star, pCO2surf, dpco2, CO3)
 
@@ -125,6 +125,10 @@ CONTAINS
          phlo,     & ! lower limit of pH range
          phhi        ! upper limit of pH range
 
+    ! intent(in)  if lcomp_co3_coeffs = .false.
+    ! intent(out) if lcomp_co3_coeffs = .true.
+    type(thermodynamic_coefficients_type), INTENT(INOUT) :: co3_coeffs(num_elements)
+
     !---------------------------------------------------------------------------
     !   output arguments
     !---------------------------------------------------------------------------
@@ -140,7 +144,6 @@ CONTAINS
     !---------------------------------------------------------------------------
     !   local variable declarations
     !---------------------------------------------------------------------------
-    type(thermodynamic_coefficients_type) :: co3_coeffs(num_elements)
 
     INTEGER(KIND=int_kind) :: n
     INTEGER(KIND=int_kind) :: k
@@ -301,7 +304,7 @@ CONTAINS
     !   input arguments
     !---------------------------------------------------------------------------
 
-    integer(KIND=int_kind), intent(IN) :: num_elements
+    INTEGER(KIND=int_kind), INTENT(IN) :: num_elements
     LOGICAL(KIND=log_kind), DIMENSION(num_elements), INTENT(IN) :: mask
     LOGICAL(KIND=log_kind), DIMENSION(num_elements), INTENT(IN) :: pressure_correct
     LOGICAL(KIND=log_kind), INTENT(IN) :: lcomp_co3_coeffs
@@ -318,7 +321,7 @@ CONTAINS
     !   input/output arguments
     !---------------------------------------------------------------------------
 
-    type(thermodynamic_coefficients_type), intent(inout) :: co3_coeffs(num_elements)
+    TYPE(thermodynamic_coefficients_type), INTENT(INOUT) :: co3_coeffs(num_elements)
 
     REAL(KIND=r8), DIMENSION(num_elements), INTENT(INOUT) :: &
          phlo,     & ! lower limit of pH range

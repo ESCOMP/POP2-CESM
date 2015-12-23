@@ -1,6 +1,8 @@
 module POP_CplIndices
-  
-  use seq_flds_mod
+ 
+  use seq_flds_mod, only : seq_flds_x2o_fields, seq_flds_o2x_fields 
+  use seq_flds_mod, only : seq_flds_i2o_per_cat, ice_ncat 
+  use mcog, only : mcog_ncols, lmcog_flds_sent
   use mct_mod
 
   implicit none
@@ -64,12 +66,22 @@ module POP_CplIndices
   integer :: index_x2o_Foxx_rofl       ! river runoff flux                (kg/m2/s)
   integer :: index_x2o_Foxx_rofi       ! ice runoff flux                  (kg/m2/s)
 
+! optional per thickness category fields
+
+  integer, dimension(:), allocatable :: index_x2o_frac_col       ! fraction of ocean cell, per column
+  integer, dimension(:), allocatable :: index_x2o_fracr_col      ! fraction of ocean cell used in radiation computations, per column
+  integer, dimension(:), allocatable :: index_x2o_qsw_fracr_col  ! qsw * fracr, per column
+
 contains
 
   subroutine POP_CplIndicesSet( )
 
     type(mct_aVect) :: o2x      ! temporary
     type(mct_aVect) :: x2o      ! temporary
+
+    integer          :: ncat  ! thickness category index
+    character(len=2) :: cncat ! character version of ncat
+    integer          :: ncol  ! column index
 
     ! Determine attribute vector indices
 
@@ -128,6 +140,35 @@ contains
     index_x2o_Faxa_dstwet4  = mct_avect_indexra(x2o,'Faxa_dstwet4')
     index_x2o_Sa_co2prog    = mct_avect_indexra(x2o,'Sa_co2prog',perrWith='quiet')
     index_x2o_Sa_co2diag    = mct_avect_indexra(x2o,'Sa_co2diag',perrWith='quiet')
+
+    ! optional per thickness category fields
+
+    ! convert cpl indices to mcog column indices
+    ! this implementation only handles columns due to ice thickness categories
+
+    lmcog_flds_sent = seq_flds_i2o_per_cat
+
+    if (seq_flds_i2o_per_cat) then
+      mcog_ncols = ice_ncat+1
+      allocate(index_x2o_frac_col(mcog_ncols))
+      allocate(index_x2o_fracr_col(mcog_ncols))
+      allocate(index_x2o_qsw_fracr_col(mcog_ncols))
+
+      ncol = 1
+      index_x2o_frac_col(ncol)        = mct_avect_indexra(x2o,'Sf_afrac')
+      index_x2o_fracr_col(ncol)       = mct_avect_indexra(x2o,'Sf_afracr')
+      index_x2o_qsw_fracr_col(ncol)   = mct_avect_indexra(x2o,'Foxx_swnet_afracr')
+
+      do ncat = 1, ice_ncat
+        write(cncat,'(i2.2)') ncat
+        ncol = ncat+1
+        index_x2o_frac_col(ncol)      = mct_avect_indexra(x2o,'Si_ifrac_'//cncat)
+        index_x2o_fracr_col(ncol)     = index_x2o_frac_col(ncol)
+        index_x2o_qsw_fracr_col(ncol) = mct_avect_indexra(x2o,'PFioi_swpen_ifrac_'//cncat)
+      enddo
+    else
+      mcog_ncols = 1
+    endif
 
     call mct_aVect_clean(x2o)
     call mct_aVect_clean(o2x)

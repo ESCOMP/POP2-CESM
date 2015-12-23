@@ -1,7 +1,198 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    22 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n27_cesm_pop_2_1_20151215/
+Tag Summary: 1) Set num_elements = nx_block for set_sflux vectorization.
+             2) send co3_coeffs to co2calc_surf so we use proper values when
+                lcomp_co3_coeffs = .false. and remove land_mask from AOU
+                diagnostic computation (land_mask should always be true in
+                subroutines called from ecosys_set_interior!)
+             3) Remove marbl_surface_share_type (use marbl_forcing_share_type
+                instead)
+             4) Alias marbl_*_diag_ind => ind in ecosys_diagnostics_mod
+
+Testing: aux_pop_MARBL vs the n23 baselines (bit-for-bit)
+
+Files Modified:
+M       source/co2calc_column.F90
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/marbl_share.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    22 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n26_cesm_pop_2_1_20151215/
+Tag Summary: Refactoring -- move max_*_diags from marbl_interface_types to
+             ecosys_diagnostics_mod.
+
+Testing: aux_pop_MARBL vs the n23 baselines (bit-for-bit)
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_tavg.F90
+M       source/marbl_interface_types.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    21 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n25_cesm_pop_2_1_20151215/
+Tag Summary: Update marbl_single_diagnostic_type to all num_elements of data
+             to be stored at once, rather than just a single column. This
+             requires knowing num_elements during initialization, and allows
+             for one num_elements value for interior / restoring and another
+             for forcing. Currently both values are set to 1, but on my to-do
+             list is testing num_elements = nx_block for forcing diags.
+
+Testing: aux_pop_MARBL vs the n23 baselines (bit-for-bit)
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_tavg.F90
+M       source/marbl_interface_types.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    18 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n24_cesm_pop_2_1_20151215/
+Tag Summary: Better use of marbl_forcing_diags, which allowed me to remove
+             marbl_forcing_output%flux_diags. ecosys_driver.F90 still has a
+             module variable named FLUX_DIAGS that behaves similarly to the
+             old ECOSYS_SFLUX_TAVG variable (a buffer to hold data for
+             accumulation until after the time manager has been called in
+             step)
+
+Testing: aux_pop_MARBL vs the n23 baselines (bit-for-bit)
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/marbl_interface_types.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, klindsay
+Tag Date:    17 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n23_cesm_pop_2_1_20151215/
+Tag Summary: Merge changes from latest pop trunk
+
+Testing: aux_pop_MARBL vs the trunk tag (round-off error in 2D diags,
+         everything else is bit-for-bit)
+
+Files Modified:
+M       ChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       input_templates/ocn.ecosys.tavg.csh
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/marbl_interface_types.F90
+M       source/marbl_parms.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, mvertens
+Tag Date:    15 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n22_cesm_pop_2_1_20151123/
+Tag Summary: Merge changes from marbl_init2_n21 - last bit of work Mariana did
+             with marbl_ecosys_set_sflux
+
+Testing: aux_pop_MARBL vs the n20 tag (bit-for-bit).
+
+Files Modified:
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/marbl_interface_types.F90
+M       source/marbl_share.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    14 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n21_cesm_pop_2_1_20151123/
+Tag Summary: There are 5 diagnostic fields that POP can accumulate twice --
+             ECOSYS_IFRAC, ECOSYS_XKW, O2_GAS_FLUX, DpCO2, and DIC_GAS_FLUX.
+             These variables should only be stored in the marbl diagnostics
+             once, and all the required infrastructure to accumulate them with
+             the _2 tavg id should be managed in POP.
+
+Testing: aux_pop_MARBL vs the n20 tag (bit-for-bit).
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_tavg.F90
+M       source/marbl_interface_types.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    11 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n20_cesm_pop_2_1_20151123/
+Tag Summary: Updating output when lecosys_debug = .true. to include 
+             STF_${tracer}, *_2, FvPER_{ALK,DIC}, and FvICE_{ALK,DIC}. It
+             turns out that DONr_remin and DOPr_remin were still on the trunk,
+             just with all-caps for REMIN. So ignore (1) on "Still to Do" in
+             the list below.
+
+Testing: Generated new baselines with full output set.
+
+Files Modified:
+M       input_templates/ocn.ecosys.tavg.csh
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    10 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n19_cesm_pop_2_1_20151123/
+Tag Summary: Merge Nov 23 trunk to marbl_diags branch
+
+Testing: aux_pop_MARBL, compared to Nov 17 trunk, only show round-off level
+         differences in the 2D diagnostics that are expected from the n11 tag
+         of this branch
+
+Still to Do:
+             1) Remove DONr_remin and DOPr_remin
+             2) Update output from lecosys_debug
+             3) allocate PAR_instances in more reasonable place (it is not a
+                tracer!) -- also, include Keith's FIXME about putting it in a
+                MARBL data type
+             4) Fix set_sflux diagnostics (we still want _2 to have individual
+                tavg_id variables -- MARBL shouldn't return two copies of
+                these diagnostics!)
+
+Files Modified:
+M       ChangeLog
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       cime_config/testdefs/testmods_dirs/pop/ciso/include_user_mods
+D       cime_config/testdefs/testmods_dirs/pop/ecosys/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys/user_nl_pop
+M       drivers/cpl/POP_CplIndices.F90
+M       drivers/cpl/ocn_import_export.F90
+M       input_templates/ocn.ecosys.tavg.csh
+A  +    input_templates/ocn.mcog.tavg.csh
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/forcing.F90
+M       source/forcing_coupled.F90
+M       source/hmix_gm.F90
+M       source/initial.F90
+M       source/marbl_interface_types.F90
+M       source/marbl_share.F90
+A  +    source/mcog.F90
+M       source/passive_tracers.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  mvertens, jwolfe, mlevy
-Tag Date:    8 Nov 2015
+Tag Date:    8 Dec 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n18_cesm_pop_2_1_20151116/
 Tag Summary: Merge updates from marbl_init2 branch back to marbl_diags branch
 
