@@ -1,6 +1,33 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    23 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n28_cesm_pop_2_1_20151215/
+Tag Summary: Updates to allow code to compile with NAG
+             1) mismatch between rtavg and r8 in way scale_factor was written
+                to tavg files
+             2) Lots of lines exceeding 132 characters
+             3) incorrect use statements (use prognostic, only : nx_global
+                when nx_global is not a module variable in prognostic.F90)
+
+Testing:
+
+Files Modified:
+M       source/advection.F90
+M       source/baroclinic.F90
+M       source/ecosys_mod.F90
+M       source/hmix_gm.F90
+M       source/hmix_gm_aniso.F90
+M       source/horizontal_mix.F90
+M       source/marbl_parms.F90
+M       source/mix_submeso.F90
+M       source/passive_tracers.F90
+M       source/prognostic.F90
+M       source/restart.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    22 Dec 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n27_cesm_pop_2_1_20151215/
 Tag Summary: 1) Set num_elements = nx_block for set_sflux vectorization.

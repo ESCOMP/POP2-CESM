@@ -3757,7 +3757,7 @@
    character(4), intent(in), optional :: &
       grid_loc                 ! location in grid (in 4-digit code)
 
-   real (rtavg), intent(in), optional :: &
+   real (r8), intent(in), optional :: &
       scale_factor             ! scale factor
 
    real (r4), dimension(2), intent(in), optional :: &
@@ -3795,6 +3795,9 @@
    logical (log_kind) ::  &
       error,              &
       nonstandard_fields
+
+   real (rtavg)  :: &
+      scale_factor_use             ! scale factor written to file
 
 !-----------------------------------------------------------------------
 !
@@ -3869,10 +3872,15 @@
 !  kludge for  MOC and transport diagnostics -- always r4
    if (.not. nonstandard_fields) then
    if (present(scale_factor)) then
-      if (scale_factor /= 1.0_rtavg) then
-        tavg_field%scale_factor = scale_factor
-        if (scale_factor /= 0.0_rtavg) then
-          tavg_field%fill_value    = undefined_nf/scale_factor
+      if (rtavg .eq. r8) then
+        scale_factor_use = scale_factor
+      else
+        scale_factor_use = real(scale_factor, rtavg)
+      end if
+      if (scale_factor_use /= 1.0_rtavg) then
+        tavg_field%scale_factor = scale_factor_use
+        if (scale_factor_use /= 0.0_rtavg) then
+          tavg_field%fill_value    = undefined_nf/scale_factor_use
         endif
       else
         tavg_field%scale_factor  = undefined_nf

@@ -1122,7 +1122,7 @@
 
      call define_tavg_field (tavg_ADVS_ISOP, 'ADVS_ISOP', 2,                            &
       long_name='Vertically-Integrated S Eddy-Induced Advection Tendency (diagnostic)', &
-                   scale_factor=1000.0_rtavg,                                           &
+                   scale_factor=1000.0_r8,                                              &
                    units='cm gram/kilogram/s', grid_loc='2110',                         &
                    coordinates='TLONG TLAT time')
 
@@ -1133,7 +1133,7 @@
 
      call define_tavg_field (tavg_VNS_ISOP, 'VNS_ISOP', 3,                               &
       long_name='Salt Flux Tendency in grid-y Dir due to Eddy-Induced Vel (diagnostic)', &
-                   scale_factor=1000.0_rtavg,                                            &
+                   scale_factor=1000.0_r8,                                               &
                    units='gram/kilogram/s', grid_loc='3121',                             &
                    coordinates='TLONG ULAT z_t time')
 

@@ -384,7 +384,7 @@
 !  by default, all tracers have scale_factor equal to one
 !-----------------------------------------------------------------------
 
-   tracer_d(3:nt)%scale_factor = 1.0_POP_rtavg
+   tracer_d(3:nt)%scale_factor = 1.0_POP_r8
 
 !-----------------------------------------------------------------------
 !  ECOSYS  DRIVER block

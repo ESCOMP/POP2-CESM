@@ -3350,24 +3350,6 @@ contains
 
     integer  :: auto_ind
 
-    associate(                                               &
-         DOP_loc => tracer_local(dop_ind), &
-         NO3_loc => tracer_local(no3_ind), &
-         NH4_loc => tracer_local(nh4_ind), &
-         PO4_loc => tracer_local(po4_ind), &
-         Fe_loc   => tracer_local(fe_ind),       &
-         SiO3_loc => tracer_local(sio3_ind),     &
-         VNO3  => autotroph_secondary_species(:)%VNO3  , & ! output
-         VNH4  => autotroph_secondary_species(:)%VNH4  , & ! output
-         VNtot => autotroph_secondary_species(:)%VNtot , & ! output
-         VFe   => autotroph_secondary_species(:)%VFe   , & ! output
-         f_nut => autotroph_secondary_species(:)%f_nut , & ! output
-         VDOP  => autotroph_secondary_species(:)%VDOP  , & ! output
-         VPO4  => autotroph_secondary_species(:)%VPO4  , & ! output
-         VPtot => autotroph_secondary_species(:)%VPtot , & ! output
-         VSiO3 => autotroph_secondary_species(:)%VSiO3   & ! output
-         )
-
     !-----------------------------------------------------------------------
     !  Get relative nutrient uptake rates for autotrophs,
     !  min. relative uptake rate modifies C fixation in the manner
@@ -3376,32 +3358,59 @@ contains
 
     do auto_ind = 1, auto_cnt
 
-       VNO3(auto_ind) = (NO3_loc / auto_meta(auto_ind)%kNO3) / (c1 + (NO3_loc / auto_meta(auto_ind)%kNO3) + (NH4_loc / auto_meta(auto_ind)%kNH4))
-       VNH4(auto_ind) = (NH4_loc / auto_meta(auto_ind)%kNH4) / (c1 + (NO3_loc / auto_meta(auto_ind)%kNO3) + (NH4_loc / auto_meta(auto_ind)%kNH4))
-       VNtot(auto_ind) = VNO3(auto_ind) + VNH4(auto_ind)
-       if (auto_meta(auto_ind)%Nfixer) then
-          VNtot(auto_ind) = c1
+       associate(                                                             &
+                 DOP_loc => tracer_local(dop_ind),                            &
+                 NO3_loc => tracer_local(no3_ind),                            &
+                 NH4_loc => tracer_local(nh4_ind),                            &
+                 PO4_loc => tracer_local(po4_ind),                            &
+                 Fe_loc   => tracer_local(fe_ind),                            &
+                 SiO3_loc => tracer_local(sio3_ind),                          &
+                 ! OUTPUTS
+                 VNO3  => autotroph_secondary_species(auto_ind)%VNO3,         &
+                 VNH4  => autotroph_secondary_species(auto_ind)%VNH4,         &
+                 VNtot => autotroph_secondary_species(auto_ind)%VNtot,        &
+                 VFe   => autotroph_secondary_species(auto_ind)%VFe,          &
+                 f_nut => autotroph_secondary_species(auto_ind)%f_nut,        &
+                 VDOP  => autotroph_secondary_species(auto_ind)%VDOP,         &
+                 VPO4  => autotroph_secondary_species(auto_ind)%VPO4,         &
+                 VPtot => autotroph_secondary_species(auto_ind)%VPtot,        &
+                 VSiO3 => autotroph_secondary_species(auto_ind)%VSiO3,        &
+                 ! AUTO_META
+                 kNO3   => auto_meta(auto_ind)%kNO3,                          &
+                 kNH4   => auto_meta(auto_ind)%kNH4,                          &
+                 kFe    => auto_meta(auto_ind)%kFe,                           &
+                 kPO4   => auto_meta(auto_ind)%kPO4,                          &
+                 kDOP   => auto_meta(auto_ind)%kDOP,                          &
+                 kSiO3  => auto_meta(auto_ind)%kSiO3,                         &
+                 Nfixer => auto_meta(auto_ind)%Nfixer                         &
+                )
+
+       VNO3 = (NO3_loc / kNO3) / (c1 + (NO3_loc / kNO3) + (NH4_loc / kNH4))
+       VNH4 = (NH4_loc / kNH4) / (c1 + (NO3_loc / kNO3) + (NH4_loc / kNH4))
+       VNtot = VNO3 + VNH4
+       if (Nfixer) then
+          VNtot = c1
        end if
 
-       VFe(auto_ind) = Fe_loc / (Fe_loc + auto_meta(auto_ind)%kFe)
+       VFe = Fe_loc / (Fe_loc + kFe)
 
-       VPO4(auto_ind) = (PO4_loc / auto_meta(auto_ind)%kPO4) / (c1 + (PO4_loc / auto_meta(auto_ind)%kPO4) + (DOP_loc / auto_meta(auto_ind)%kDOP))
-       VDOP(auto_ind) = (DOP_loc / auto_meta(auto_ind)%kDOP) / (c1 + (PO4_loc / auto_meta(auto_ind)%kPO4) + (DOP_loc / auto_meta(auto_ind)%kDOP))
-       VPtot(auto_ind) = VPO4(auto_ind) + VDOP(auto_ind)
+       VPO4 = (PO4_loc / kPO4) / (c1 + (PO4_loc / kPO4) + (DOP_loc / kDOP))
+       VDOP = (DOP_loc / kDOP) / (c1 + (PO4_loc / kPO4) + (DOP_loc / kDOP))
+       VPtot = VPO4 + VDOP
 
-       if (auto_meta(auto_ind)%kSiO3 > c0) then
-          VSiO3(auto_ind) = SiO3_loc / (SiO3_loc + auto_meta(auto_ind)%kSiO3)
+       if (kSiO3 > c0) then
+          VSiO3 = SiO3_loc / (SiO3_loc + kSiO3)
        endif
 
-       f_nut(auto_ind) = min(VNtot(auto_ind), VFe(auto_ind))
-       f_nut(auto_ind) = min(f_nut(auto_ind), VPO4(auto_ind))
-       if (auto_meta(auto_ind)%kSiO3 > c0) then
-          f_nut(auto_ind) = min(f_nut(auto_ind), VSiO3(auto_ind))
+       f_nut = min(VNtot, VFe)
+       f_nut = min(f_nut, VPO4)
+       if (kSiO3 > c0) then
+          f_nut = min(f_nut, VSiO3)
        endif
-
-    end do
 
     end associate
+
+    end do
 
   end subroutine marbl_compute_autotroph_uptake
 
@@ -3436,56 +3445,62 @@ contains
     real(r8) :: pChl_subcol      ! Chl synth. regulation term (mg Chl/mmol N)
     real(r8) :: photoacc_subcol  ! photoacc for a sub-column
 
-    associate(                                                  &
-         thetaC    => autotroph_secondary_species(:)%thetaC,    & ! local Chl/C ratio (mg Chl/mmol C)
-         f_nut     => autotroph_secondary_species(:)%f_nut,     & ! input
-         VNtot    => autotroph_secondary_species(:)%VNtot,      & ! input
-         light_lim => autotroph_secondary_species(:)%light_lim, & ! output
-         PCPhoto   => autotroph_secondary_species(:)%PCPhoto,   & ! output
-         photoC    => autotroph_secondary_species(:)%photoC,    & ! output
-         photoacc => autotroph_secondary_species(:)%photoacc    & ! output
-         )
-
     do auto_ind = 1, auto_cnt
 
-       PCmax = auto_meta(auto_ind)%PCref * f_nut(auto_ind) * Tfunc
+    associate(                                                  &
+         ! local Chl/C ratio (mg Chl / mmol C)
+         thetaC    => autotroph_secondary_species(auto_ind)%thetaC,           &
+         ! INPUTS
+         f_nut     => autotroph_secondary_species(auto_ind)%f_nut,            &
+         VNtot    => autotroph_secondary_species(auto_ind)%VNtot,             &
+         ! OUTPUTS
+         light_lim => autotroph_secondary_species(auto_ind)%light_lim,        &
+         PCPhoto   => autotroph_secondary_species(auto_ind)%PCPhoto,          &
+         photoC    => autotroph_secondary_species(auto_ind)%photoC,           &
+         photoacc => autotroph_secondary_species(auto_ind)%photoacc,          &
+         ! AUTO_META
+         PCref   => auto_meta(auto_ind)%PCref,                                &
+         alphaPI => auto_meta(auto_ind)%alphaPI                               &
+         )
+
+       PCmax = PCref * f_nut * Tfunc
        if (temperature < autotrophs(auto_ind)%temp_thres) then
           PCmax = c0
        end if
 
-       if (thetaC(auto_ind) > c0) then
-          light_lim(auto_ind) = c0
-          PCphoto(auto_ind)   = c0
-          photoacc(auto_ind)  = c0
+       if (thetaC > c0) then
+          light_lim = c0
+          PCphoto   = c0
+          photoacc  = c0
 
           do subcol_ind = 1, PAR_nsubcols
              if (PAR_avg(subcol_ind) > c0) then
-                light_lim_subcol = (c1 - exp((-c1 * auto_meta(auto_ind)%alphaPI * thetaC(auto_ind) * PAR_avg(subcol_ind)) / (PCmax + epsTinv)))
+                light_lim_subcol = (c1 - exp((-c1 * alphaPI * thetaC * PAR_avg(subcol_ind)) / (PCmax + epsTinv)))
 
                 PCphoto_subcol = PCmax * light_lim_subcol
 
                 ! GD 98 Chl. synth. term
                 pChl_subcol = autotrophs(auto_ind)%thetaN_max * PCphoto_subcol / &
-                   (autotrophs(auto_ind)%alphaPI * thetaC(auto_ind) * PAR_avg(subcol_ind))
-                photoacc_subcol = (pChl_subcol * PCphoto_subcol * Q / thetaC(auto_ind)) * autotroph_loc(auto_ind)%Chl
+                   (autotrophs(auto_ind)%alphaPI * thetaC * PAR_avg(subcol_ind))
+                photoacc_subcol = (pChl_subcol * PCphoto_subcol * Q / thetaC) * autotroph_loc(auto_ind)%Chl
 
-                light_lim(auto_ind) = light_lim(auto_ind) + PAR_col_frac(subcol_ind) * light_lim_subcol
-                PCphoto(auto_ind)   = PCphoto(auto_ind)   + PAR_col_frac(subcol_ind) * PCphoto_subcol
-                photoacc(auto_ind)  = photoacc(auto_ind)  + PAR_col_frac(subcol_ind) * photoacc_subcol
+                light_lim = light_lim + PAR_col_frac(subcol_ind) * light_lim_subcol
+                PCphoto   = PCphoto   + PAR_col_frac(subcol_ind) * PCphoto_subcol
+                photoacc  = photoacc  + PAR_col_frac(subcol_ind) * photoacc_subcol
              end if
           end do
 
-          photoC(auto_ind) = PCphoto(auto_ind) * autotroph_loc(auto_ind)%C
+          photoC = PCphoto * autotroph_loc(auto_ind)%C
        else
-          light_lim(auto_ind) = c0
-          PCphoto(auto_ind)   = c0
-          photoacc(auto_ind)  = c0
-          photoC(auto_ind)    = c0
+          light_lim = c0
+          PCphoto   = c0
+          photoacc  = c0
+          photoC    = c0
        endif
 
-    end do
-
     end associate
+
+    end do
 
   end subroutine marbl_compute_autotroph_photosynthesis
 
