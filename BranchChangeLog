@@ -2,6 +2,25 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    22 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n27_cesm_pop_2_1_20151215/
+Tag Summary: Set num_elements = nx_block for set_sflux vectorization. Also
+             send co3_coeffs to co2calc_surf so we use proper values when
+             lcomp_co3_coeffs = .false. and remove land_mask from AOU
+             diagnostic computation (land_mask should always be true in
+             subroutines called from ecosys_set_interior!)
+
+Testing: aux_pop_MARBL vs the n23 baselines (bit-for-bit)
+
+Files Modified:
+M       source/co2calc_column.F90
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/marbl_share.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    22 Dec 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n26_cesm_pop_2_1_20151215/
 Tag Summary: Refactoring -- move max_*_diags from marbl_interface_types to
              ecosys_diagnostics_mod.

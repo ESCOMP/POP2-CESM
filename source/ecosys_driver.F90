@@ -35,6 +35,8 @@ module ecosys_driver
   use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
 
   use marbl_share_mod           , only : autotroph_cnt, zooplankton_cnt
+  use marbl_share_mod           , only : marbl_surface_share_type
+
   use marbl_interface           , only : marbl_interface_class
   use marbl_interface           , only : marbl_sizes_type
   use marbl_interface           , only : marbl_driver_sizes_type
@@ -147,6 +149,8 @@ module ecosys_driver
   type(marbl_forcing_output_type) , dimension(max_blocks_clinic) :: marbl_forcing_output
   type(marbl_forcing_share_type)  , dimension(max_blocks_clinic) :: marbl_forcing_share
 
+  type(marbl_surface_share_type) :: marbl_surface_share(max_blocks_clinic)
+    
   ! Computed diagnostics for surface fluxes
   real (r8) :: FLUX_DIAGS(nx_block, ny_block, max_forcing_diags, max_blocks_clinic)
 
@@ -199,7 +203,7 @@ module ecosys_driver
   !  define array for holding flux-related quantities that need to be time-averaged
   !-----------------------------------------------------------------------
 
-  integer (int_kind) :: num_elements  = 1  !TODO - make this an input namelist value
+  integer (int_kind) :: num_elements  = nx_block !TODO - make this an input namelist value
   integer (int_kind) :: num_marbl_stf = 13 !TODO - this should not be hard-wired
   integer (int_kind) :: forcing_diag_cnt
 
@@ -504,7 +508,7 @@ contains
             marbl_interior_diags(iblock), &
             marbl_restore_diags(iblock),  &
             marbl_forcing_diags(iblock),  &
-            1, 1,                         & ! num_elements interior / forcing
+            1, num_elements,              & ! num_elements interior / forcing
             tracer_d_module(ecosys_ind_begin:ecosys_ind_end))
 
        num_forcing_diags = marbl_forcing_diags(1)%diag_cnt
@@ -513,6 +517,15 @@ contains
        call marbl_forcing_input(iblock)%construct(num_elements, num_surface_vals, num_marbl_stf)
        call marbl_forcing_output(iblock)%construct(num_elements, num_surface_vals, num_forcing_diags)
        call marbl_forcing_share(iblock)%construct(num_elements)
+
+       ! Allocate memory for marbl_surface_share_type
+       allocate(marbl_surface_share(iblock)%PV_SURF_fields(num_elements))
+       allocate(marbl_surface_share(iblock)%DIC_SURF_fields(num_elements))
+       allocate(marbl_surface_share(iblock)%CO2STAR_SURF_fields(num_elements))
+       allocate(marbl_surface_share(iblock)%DCO2STAR_SURF_fields(num_elements))
+       allocate(marbl_surface_share(iblock)%CO3_SURF_fields(num_elements))
+       allocate(marbl_surface_share(iblock)%dic_riv_flux_fields(num_elements))
+       allocate(marbl_surface_share(iblock)%doc_riv_flux_fields(num_elements))
     end do
 
     ! Initialize tavg ids (need only do this using first block)
@@ -1102,7 +1115,6 @@ contains
     use marbl_share_mod , only : lflux_gas_co2
     use marbl_share_mod , only : lflux_gas_o2
     use marbl_share_mod , only : autotrophs
-    use marbl_share_mod , only : marbl_surface_share_type
     use marbl_parms     , only : parm_Fe_bioavail
     use domain          , only : nblocks_clinic
 
@@ -1163,8 +1175,6 @@ contains
     integer (int_kind) :: forcing_diag_cnt
     integer (int_kind) :: num_surface_vals
 
-    type(marbl_surface_share_type) :: marbl_surface_share(max_blocks_clinic)
-
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
@@ -1206,84 +1216,81 @@ contains
 
     do iblock = 1, nblocks_clinic
        do j = 1, ny_block
-          do i = 1, nx_block
+          !-----------------------------------------------------------------------
+          ! Set marbl input: copy data from slab to column for marbl
+          !-----------------------------------------------------------------------
 
-             !-----------------------------------------------------------------------
-             ! Set marbl input: copy data from slab to column for marbl
-             !-----------------------------------------------------------------------
+          marbl_forcing_input(iblock)%u10_sqr(:)         = u10_sqr(:,j,iblock)
+          marbl_forcing_input(iblock)%sst(:)             = sst(:,j,iblock)
+          marbl_forcing_input(iblock)%sss(:)             = sss(:,j,iblock)
+          marbl_forcing_input(iblock)%xco2(:)            = xco2(:,j,iblock)
+          marbl_forcing_input(iblock)%xco2_alt_co2(:)    = xco2_alt_co2(:,j,iblock)
+          marbl_forcing_input(iblock)%ifrac(:)           = ifrac_used(:,j,iblock)
+          marbl_forcing_input(iblock)%ph_prev(:)         = ph_prev(:,j,iblock)         
+          marbl_forcing_input(iblock)%ph_prev_alt_co2(:) = ph_prev_alt_co2(:,j,iblock) 
+          marbl_forcing_input(iblock)%iron_flux(:)       = iron_flux_in(:,j,iblock)
+          marbl_forcing_input(iblock)%dust_flux(:)       = marbl_saved_state%dust_flux_in(:,j,iblock)
+          marbl_forcing_input(iblock)%land_mask(:)       = marbl_saved_state%land_mask(:,j,iblock)
 
-             marbl_forcing_input(iblock)%u10_sqr(1)         = u10_sqr(i,j,iblock)
-             marbl_forcing_input(iblock)%sst(1)             = sst(i,j,iblock)
-             marbl_forcing_input(iblock)%sss(1)             = sss(i,j,iblock)
-             marbl_forcing_input(iblock)%xco2(1)            = xco2(i,j,iblock)
-             marbl_forcing_input(iblock)%xco2_alt_co2(1)    = xco2_alt_co2(i,j,iblock)
-             marbl_forcing_input(iblock)%ifrac(1)           = ifrac_used(i,j,iblock)
-             marbl_forcing_input(iblock)%ph_prev(1)         = ph_prev(i,j,iblock)         
-             marbl_forcing_input(iblock)%ph_prev_alt_co2(1) = ph_prev_alt_co2(i,j,iblock) 
-             marbl_forcing_input(iblock)%iron_flux(1)       = iron_flux_in(i,j,iblock)
-             marbl_forcing_input(iblock)%dust_flux(1)       = marbl_saved_state%dust_flux_in(i,j,iblock)
-             marbl_forcing_input(iblock)%land_mask(1)       = marbl_saved_state%land_mask(i,j,iblock)
-             
-             if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
-                marbl_forcing_input(iblock)%xkw(1) = xkw_coeff * u10_sqr(i,j,iblock)
-             else
-                marbl_forcing_input(iblock)%xkw(1) = xkw_file_input(i,j,iblock)
-             end if
+          if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
+             marbl_forcing_input(iblock)%xkw(:) = xkw_coeff * u10_sqr(:,j,iblock)
+          else
+             marbl_forcing_input(iblock)%xkw(:) = xkw_file_input(:,j,iblock)
+          end if
 
-             if (lflux_gas_o2 .or. lflux_gas_co2) then
-                !  assume PRESS is in cgs units (dyne/cm**2) since that is what is
-                !    required for pressure forcing in barotropic
-                !  want units to be atmospheres
-                !  convertion from dyne/cm**2 to Pascals is P(mks) = P(cgs)/10.
-                !  convertion from Pascals to atm is P(atm) = P(Pa)/101.325e+3_r8
+          if (lflux_gas_o2 .or. lflux_gas_co2) then
+             !  assume PRESS is in cgs units (dyne/cm**2) since that is what is
+             !    required for pressure forcing in barotropic
+             !  want units to be atmospheres
+             !  convertion from dyne/cm**2 to Pascals is P(mks) = P(cgs)/10.
+             !  convertion from Pascals to atm is P(atm) = P(Pa)/101.325e+3_r8
 
-                marbl_forcing_input(iblock)%atm_press(1) = press(i,j,iblock) / 101.325e+4_r8
-             end if
+             marbl_forcing_input(iblock)%atm_press(:) = press(:,j,iblock) / 101.325e+4_r8
+          end if
 
-             marbl_forcing_input(iblock)%marbl_stf(1,:) = marbl_stf(i,j,:,iblock)
+          marbl_forcing_input(iblock)%marbl_stf(:,:) = marbl_stf(:,j,:,iblock)
 
-             num_surface_vals  = ecosys_ind_end - ecosys_ind_begin + 1
-             do n = 1,num_surface_vals
-                marbl_forcing_input(iblock)%surface_vals(1,n)= surface_vals(i,j,ecosys_ind_begin+n-1,iblock)  
-             end do
+          num_surface_vals  = ecosys_ind_end - ecosys_ind_begin + 1
+          do n = 1,num_surface_vals
+             marbl_forcing_input(iblock)%surface_vals(:,n)= surface_vals(:,j,ecosys_ind_begin+n-1,iblock)  
+          end do
 
-             !-----------------------------------------------------------------------
-             ! Determine surface flux - marbl
-             !-----------------------------------------------------------------------
+          !-----------------------------------------------------------------------
+          ! Determine surface flux - marbl
+          !-----------------------------------------------------------------------
 
-             call marbl_ecosys_set_sflux(                                     &
-                  1, ciso_on,                                                 &
-                  marbl_forcing_input(iblock),                                &
-                  marbl_forcing_output(iblock),                               &
-                  marbl_surface_share(iblock),                                &
-                  marbl_forcing_diags(iblock))
+          call marbl_ecosys_set_sflux(                                     &
+               num_elements, ciso_on,                                      &
+               marbl_forcing_input(iblock),                                &
+               marbl_forcing_output(iblock),                               &
+               marbl_surface_share(iblock),                                &
+               marbl_forcing_diags(iblock))
 
-             !-----------------------------------------------------------------------
-             ! Copy data from marbl output column to pop slab data structure
-             !-----------------------------------------------------------------------
+          !-----------------------------------------------------------------------
+          ! Copy data from marbl output column to pop slab data structure
+          !-----------------------------------------------------------------------
 
-             iron_flux_in(i,j,iblock)    = marbl_forcing_output(iblock)%iron_flux(1)
-             ph_prev(i,j,iblock)         = marbl_forcing_output(iblock)%ph_prev(1)
-             ph_prev_alt_co2(i,j,iblock) = marbl_forcing_output(iblock)%ph_prev_alt_co2(1)
-             flux_co2(i,j,iblock)        = marbl_forcing_output(iblock)%flux_co2(1)
+          iron_flux_in(:,j,iblock)    = marbl_forcing_output(iblock)%iron_flux(:)
+          ph_prev(:,j,iblock)         = marbl_forcing_output(iblock)%ph_prev(:)
+          ph_prev_alt_co2(:,j,iblock) = marbl_forcing_output(iblock)%ph_prev_alt_co2(:)
+          flux_co2(:,j,iblock)        = marbl_forcing_output(iblock)%flux_co2(:)
 
-             do n=1,marbl_forcing_diags(iblock)%diag_cnt
-               FLUX_DIAGS(i,j,n,iblock) =                                     &
-                             marbl_forcing_diags(iblock)%diags(n)%field_2d(1)
-             end do
-             do n = 1,num_surface_vals
-                stf_module(i,j,ecosys_ind_begin+n-1,iblock) = marbl_forcing_output(iblock)%stf_module(1,n)  
-             end do
+          do n=1,marbl_forcing_diags(iblock)%diag_cnt
+            FLUX_DIAGS(:,j,n,iblock) =                                     &
+                          marbl_forcing_diags(iblock)%diags(n)%field_2d(:)
+          end do
+          do n = 1,num_surface_vals
+             stf_module(:,j,ecosys_ind_begin+n-1,iblock) = marbl_forcing_output(iblock)%stf_module(:,n)  
+          end do
 
-             marbl%private_data%surface_share%PV_SURF_fields       (i,j,iblock) = marbl_surface_share(iblock)%PV_SURF_fields       (1)
-             marbl%private_data%surface_share%DIC_SURF_fields      (i,j,iblock) = marbl_surface_share(iblock)%DIC_SURF_fields      (1)
-             marbl%private_data%surface_share%CO2STAR_SURF_fields  (i,j,iblock) = marbl_surface_share(iblock)%CO2STAR_SURF_fields  (1)
-             marbl%private_data%surface_share%DCO2STAR_SURF_fields (i,j,iblock) = marbl_surface_share(iblock)%DCO2STAR_SURF_fields (1)
-             marbl%private_data%surface_share%CO3_SURF_fields      (i,j,iblock) = marbl_surface_share(iblock)%CO3_SURF_fields      (1)
-             marbl%private_data%surface_share%dic_riv_flux_fields  (i,j,iblock) = marbl_surface_share(iblock)%dic_riv_flux_fields  (1)
-             marbl%private_data%surface_share%doc_riv_flux_fields  (i,j,iblock) = marbl_surface_share(iblock)%doc_riv_flux_fields  (1)
+          marbl%private_data%surface_share%PV_SURF_fields       (:,j,iblock) = marbl_surface_share(iblock)%PV_SURF_fields       (:)
+          marbl%private_data%surface_share%DIC_SURF_fields      (:,j,iblock) = marbl_surface_share(iblock)%DIC_SURF_fields      (:)
+          marbl%private_data%surface_share%CO2STAR_SURF_fields  (:,j,iblock) = marbl_surface_share(iblock)%CO2STAR_SURF_fields  (:)
+          marbl%private_data%surface_share%DCO2STAR_SURF_fields (:,j,iblock) = marbl_surface_share(iblock)%DCO2STAR_SURF_fields (:)
+          marbl%private_data%surface_share%CO3_SURF_fields      (:,j,iblock) = marbl_surface_share(iblock)%CO3_SURF_fields      (:)
+          marbl%private_data%surface_share%dic_riv_flux_fields  (:,j,iblock) = marbl_surface_share(iblock)%dic_riv_flux_fields  (:)
+          marbl%private_data%surface_share%doc_riv_flux_fields  (:,j,iblock) = marbl_surface_share(iblock)%doc_riv_flux_fields  (:)
 
-          enddo
        enddo
     enddo
 

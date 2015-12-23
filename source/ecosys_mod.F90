@@ -86,6 +86,7 @@ module ecosys_mod
   use marbl_kinds_mod, only : int_kind
   use marbl_kinds_mod, only : r8
   use marbl_kinds_mod, only : char_len
+  use co2calc_column, only : thermodynamic_coefficients_type
 
   use POP_ErrorMod         , only : POP_Success  
   use constants            , only : c0
@@ -2072,6 +2073,8 @@ contains
          XKW_ICE,      & ! common portion of piston vel., (1-fice)*xkw (cm/s)
          O2SAT_1atm      ! O2 saturation @ 1 atm (mmol/m^3)
 
+    type(thermodynamic_coefficients_type), dimension(num_elements) :: co3_coeffs
+
     !-----------------------------------------------------------------------
 
     associate(                                                              &
@@ -2196,7 +2199,7 @@ contains
              PHHI = phhi_surf_init
           end where
 
-          call co2calc_surf(num_elements, land_mask, .true., SST, SSS, &
+          call co2calc_surf(num_elements, land_mask, .true., co3_coeffs, SST, SSS, &
                             surface_vals(:,dic_ind), surface_vals(:,alk_ind), &
                             surface_vals(:,po4_ind), surface_vals(:,sio3_ind), &
                             PHLO, PHHI, PH_NEW, XCO2, AP_USED, &
@@ -2212,11 +2215,11 @@ contains
           !-------------------------------------------------------------------
 
           if (lexport_shared_vars) then
-             PV_SURF_fields       = PV_CO2(1)
-             DIC_SURF_fields      = surface_vals(1,dic_ind)
-             CO2STAR_SURF_fields  = CO2STAR(1)
-             DCO2STAR_SURF_fields = DCO2STAR(1)
-             CO3_SURF_fields      = CO3(1)
+             PV_SURF_fields       = PV_CO2(:)
+             DIC_SURF_fields      = surface_vals(:,dic_ind)
+             CO2STAR_SURF_fields  = CO2STAR(:)
+             DCO2STAR_SURF_fields = DCO2STAR(:)
+             CO3_SURF_fields      = CO3(:)
           endif
 
           !-----------------------------------------------------------------------
@@ -2231,7 +2234,7 @@ contains
              PHHI = phhi_surf_init
           end where
 
-          call co2calc_surf(num_elements, land_mask, .false., SST, SSS,         &
+          call co2calc_surf(num_elements, land_mask, .false., co3_coeffs, SST, SSS,   &
                             surface_vals(:,dic_alt_co2_ind), surface_vals(:,alk_ind), &
                             surface_vals(:,po4_ind)        , surface_vals(:,sio3_ind),&
                             PHLO, PHHI, PH_NEW, XCO2_ALT_CO2, AP_USED,          &
@@ -2335,7 +2338,7 @@ contains
     if (dic_riv_flux%has_data) then
        STF_MODULE(:, dic_ind)         = STF_MODULE(:, dic_ind)         + MARBL_STF(:, ind_dic_riv_flux)
        STF_MODULE(:, dic_alt_co2_ind) = STF_MODULE(:, dic_alt_co2_ind) + MARBL_STF(:, ind_dic_riv_flux)
-       if (lexport_shared_vars) dic_riv_flux_fields = MARBL_STF(1, ind_dic_riv_flux)
+       if (lexport_shared_vars) dic_riv_flux_fields = MARBL_STF(:, ind_dic_riv_flux)
     endif
 
     if (alk_riv_flux%has_data) then
@@ -2348,7 +2351,7 @@ contains
        STF_MODULE(:, docr_ind) = STF_MODULE(:, docr_ind) +                    &
               (MARBL_STF(:, ind_doc_riv_flux) * DOCriv_refract)
        ! FIXME(ktl) sending total doc river input to ciso for now, need to separate doc and docr
-       if (lexport_shared_vars) doc_riv_flux_fields = MARBL_STF(1, ind_doc_riv_flux)
+       if (lexport_shared_vars) doc_riv_flux_fields = MARBL_STF(:, ind_doc_riv_flux)
     endif
 
     !-----------------------------------------------------------------------
@@ -3104,7 +3107,6 @@ contains
 
     use co2calc_column, only : comp_co3terms
     use co2calc_column, only : comp_co3_sat_vals
-    use co2calc_column, only : thermodynamic_coefficients_type
     use state_mod,      only : ref_pressure
 
     integer (int_kind), intent(in) :: dkm

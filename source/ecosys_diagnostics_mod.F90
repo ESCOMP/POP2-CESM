@@ -1909,13 +1909,10 @@ contains
       diags(marbl_interior_diag_ind%O2_PRODUCTION)%field_3d(:, 1) = o2_production
       diags(marbl_interior_diag_ind%O2_CONSUMPTION)%field_3d(:, 1) = o2_consumption
 
-      diags(marbl_interior_diag_ind%AOU)%field_3d(:, 1) = -column_o2
       do k=1,marbl_domain%kmt
-        if (marbl_domain%land_mask) then
-          diags(marbl_interior_diag_ind%AOU)%field_3d(k, 1) =                       &
-        O2SAT_scalar(marbl_gcm_state%temperature(k), marbl_gcm_state%salinity(k)) - &
-        column_o2(k)
-        end if
+        diags(marbl_interior_diag_ind%AOU)%field_3d(k, 1) =                       &
+      O2SAT_scalar(marbl_gcm_state%temperature(k), marbl_gcm_state%salinity(k)) - &
+      column_o2(k)
       end do
     end associate
 

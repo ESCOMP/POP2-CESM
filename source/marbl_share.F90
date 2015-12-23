@@ -422,13 +422,14 @@ module marbl_share_mod
    !---------------------------------------------------------------------------
 
    type, public :: marbl_surface_share_type
-      real(r8) :: PV_SURF_fields(1)       ! piston velocity (cm/s)
-      real(r8) :: DIC_SURF_fields(1)      ! surface values of DIC for solver
-      real(r8) :: CO2STAR_SURF_fields(1)  ! CO2STAR from solver
-      real(r8) :: DCO2STAR_SURF_fields(1) ! DCO2STAR from solver
-      real(r8) :: CO3_SURF_fields(1)      ! Surface carbonate ion
-      real(r8) :: dic_riv_flux_fields(1)  ! River input of DIC in ecosystem (from file)
-      real(r8) :: doc_riv_flux_fields(1)  ! River input of DOC in ecosystem (from file)
+      ! All should be dimension num_elements
+      real(r8), allocatable, dimension(:) :: PV_SURF_fields       ! piston velocity (cm/s)
+      real(r8), allocatable, dimension(:) :: DIC_SURF_fields      ! surface values of DIC for solver
+      real(r8), allocatable, dimension(:) :: CO2STAR_SURF_fields  ! CO2STAR from solver
+      real(r8), allocatable, dimension(:) :: DCO2STAR_SURF_fields ! DCO2STAR from solver
+      real(r8), allocatable, dimension(:) :: CO3_SURF_fields      ! Surface carbonate ion
+      real(r8), allocatable, dimension(:) :: dic_riv_flux_fields  ! River input of DIC in ecosystem (from file)
+      real(r8), allocatable, dimension(:) :: doc_riv_flux_fields  ! River input of DOC in ecosystem (from file)
    end type marbl_surface_share_type
 
    !---------------------------------------------------------------------------
