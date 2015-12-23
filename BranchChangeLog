@@ -3,11 +3,14 @@ Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    22 Dec 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n27_cesm_pop_2_1_20151215/
-Tag Summary: Set num_elements = nx_block for set_sflux vectorization. Also
-             send co3_coeffs to co2calc_surf so we use proper values when
-             lcomp_co3_coeffs = .false. and remove land_mask from AOU
-             diagnostic computation (land_mask should always be true in
-             subroutines called from ecosys_set_interior!)
+Tag Summary: 1) Set num_elements = nx_block for set_sflux vectorization.
+             2) send co3_coeffs to co2calc_surf so we use proper values when
+                lcomp_co3_coeffs = .false. and remove land_mask from AOU
+                diagnostic computation (land_mask should always be true in
+                subroutines called from ecosys_set_interior!)
+             3) Remove marbl_surface_share_type (use marbl_forcing_share_type
+                instead)
+             4) Alias marbl_*_diag_ind => ind in ecosys_diagnostics_mod
 
 Testing: aux_pop_MARBL vs the n23 baselines (bit-for-bit)
 

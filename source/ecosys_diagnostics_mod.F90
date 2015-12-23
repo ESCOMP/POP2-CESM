@@ -259,317 +259,323 @@ contains
     ! Allocate memory for forcing diagnostics
     call marbl_forcing_diags%construct(max_forcing_diags, num_elements_forcing)
 
-    lname='Ice Fraction for ecosys fluxes'
-    sname='ECOSYS_IFRAC'
-    units='fraction'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ECOSYS_IFRAC)
+    associate(                                                                &
+              ind => marbl_forcing_diag_ind,                                  &
+              diags => marbl_forcing_diags                                    &
+             )
+      lname='Ice Fraction for ecosys fluxes'
+      sname='ECOSYS_IFRAC'
+      units='fraction'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%ECOSYS_IFRAC)
 
-    lname='XKW for ecosys fluxes'
-    sname='ECOSYS_XKW'
-    units='cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ECOSYS_XKW)
+      lname='XKW for ecosys fluxes'
+      sname='ECOSYS_XKW'
+      units='cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%ECOSYS_XKW)
 
-    lname='Atmospheric Pressure for ecosys fluxes'
-    sname='ECOSYS_ATM_PRESS'
-    units='atmospheres'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ECOSYS_ATM_PRESS)
+      lname='Atmospheric Pressure for ecosys fluxes'
+      sname='ECOSYS_ATM_PRESS'
+      units='atmospheres'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%ECOSYS_ATM_PRESS)
 
-    lname='PV_O2'
-    sname='PV_O2'
-    units='cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%PV_O2)
+      lname='PV_O2'
+      sname='PV_O2'
+      units='cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%PV_O2)
 
-    lname='O2 Schmidt Number'
-    sname='SCHMIDT_O2'
-    units='none'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%SCHMIDT_O2)
+      lname='O2 Schmidt Number'
+      sname='SCHMIDT_O2'
+      units='none'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%SCHMIDT_O2)
 
-    lname='O2 Saturation'
-    sname='O2SAT'
-    units='mmol/m^3'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%O2SAT)
+      lname='O2 Saturation'
+      sname='O2SAT'
+      units='mmol/m^3'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%O2SAT)
 
-    lname='Dissolved Oxygen Surface Flux'
-    sname='STF_O2'
-    units='mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%O2_GAS_FLUX)
+      lname='Dissolved Oxygen Surface Flux'
+      sname='STF_O2'
+      units='mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%O2_GAS_FLUX)
 
-    lname='CO2 Star'
-    sname='CO2STAR'
-    units='mmol/m^3'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%CO2STAR)
+      lname='CO2 Star'
+      sname='CO2STAR'
+      units='mmol/m^3'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%CO2STAR)
 
-    lname='D CO2 Star'
-    sname='DCO2STAR'
-    units='mmol/m^3'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DCO2STAR)
+      lname='D CO2 Star'
+      sname='DCO2STAR'
+      units='mmol/m^3'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DCO2STAR)
 
-    lname='surface pCO2'
-    sname='pCO2SURF'
-    units='ppmv'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%pCO2SURF)
+      lname='surface pCO2'
+      sname='pCO2SURF'
+      units='ppmv'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%pCO2SURF)
 
-    lname='D pCO2'
-    sname='DpCO2'
-    units='ppmv'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DpCO2)
+      lname='D pCO2'
+      sname='DpCO2'
+      units='ppmv'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DpCO2)
 
-    lname='CO2 Piston Velocity'
-    sname='PV_CO2'
-    units='cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%PV_CO2)
+      lname='CO2 Piston Velocity'
+      sname='PV_CO2'
+      units='cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%PV_CO2)
 
-    lname='CO2 Schmidt Number'
-    sname='SCHMIDT_CO2'
-    units='none'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%SCHMIDT_CO2)
+      lname='CO2 Schmidt Number'
+      sname='SCHMIDT_CO2'
+      units='none'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%SCHMIDT_CO2)
 
-    lname='DIC Surface Gas Flux'
-    sname='FG_CO2'
-    units='mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DIC_GAS_FLUX)
+      lname='DIC Surface Gas Flux'
+      sname='FG_CO2'
+      units='mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DIC_GAS_FLUX)
 
-    lname='Surface pH'
-    sname='PH'
-    units='none'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%PH)
+      lname='Surface pH'
+      sname='PH'
+      units='none'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%PH)
 
-    lname='Atmospheric CO2'
-    sname='ATM_CO2'
-    units='ppmv'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ATM_CO2)
+      lname='Atmospheric CO2'
+      sname='ATM_CO2'
+      units='ppmv'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%ATM_CO2)
 
-    lname='CO2 Star, Alternative CO2'
-    sname='CO2STAR_ALT_CO2'
-    units='mmol/m^3'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%CO2STAR_ALT_CO2)
+      lname='CO2 Star, Alternative CO2'
+      sname='CO2STAR_ALT_CO2'
+      units='mmol/m^3'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%CO2STAR_ALT_CO2)
 
-    lname='D CO2 Star, Alternative CO2'
-    sname='DCO2STAR_ALT_CO2'
-    units='mmol/m^3'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DCO2STAR_ALT_CO2)
+      lname='D CO2 Star, Alternative CO2'
+      sname='DCO2STAR_ALT_CO2'
+      units='mmol/m^3'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DCO2STAR_ALT_CO2)
 
-    lname='surface pCO2, Alternative CO2'
-    sname='pCO2SURF_ALT_CO2'
-    units='ppmv'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%pCO2SURF_ALT_CO2)
+      lname='surface pCO2, Alternative CO2'
+      sname='pCO2SURF_ALT_CO2'
+      units='ppmv'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%pCO2SURF_ALT_CO2)
 
-    lname='D pCO2, Alternative CO2'
-    sname='DpCO2_ALT_CO2'
-    units='ppmv'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DpCO2_ALT_CO2)
+      lname='D pCO2, Alternative CO2'
+      sname='DpCO2_ALT_CO2'
+      units='ppmv'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DpCO2_ALT_CO2)
 
-    lname='DIC Surface Gas Flux, Alternative CO2'
-    sname='FG_ALT_CO2'
-    units='mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DIC_GAS_FLUX_ALT_CO2)
+      lname='DIC Surface Gas Flux, Alternative CO2'
+      sname='FG_ALT_CO2'
+      units='mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DIC_GAS_FLUX_ALT_CO2)
 
-    lname='Surface pH, Alternative CO2'
-    sname='PH_ALT_CO2'
-    units='none'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%PH_ALT_CO2)
+      lname='Surface pH, Alternative CO2'
+      sname='PH_ALT_CO2'
+      units='none'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%PH_ALT_CO2)
 
-    lname='Atmospheric Alternative CO2'
-    sname='ATM_ALT_CO2'
-    units='ppmv'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ATM_ALT_CO2)
+      lname='Atmospheric Alternative CO2'
+      sname='ATM_ALT_CO2'
+      units='ppmv'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%ATM_ALT_CO2)
 
-    lname='Atmospheric Iron Flux'
-    sname='IRON_FLUX'
-    units='mmol/m^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%IRON_FLUX)
+      lname='Atmospheric Iron Flux'
+      sname='IRON_FLUX'
+      units='mmol/m^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%IRON_FLUX)
 
-    lname='Dust Flux'
-    sname='DUST_FLUX'
-    units='g/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DUST_FLUX)
+      lname='Dust Flux'
+      sname='DUST_FLUX'
+      units='g/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DUST_FLUX)
 
-    lname='Flux of NOx from Atmosphere'
-    sname='NOx_FLUX'
-    units='nmol/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%NOx_FLUX)
+      lname='Flux of NOx from Atmosphere'
+      sname='NOx_FLUX'
+      units='nmol/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%NOx_FLUX)
 
-    lname='Flux of NHy from Atmosphere'
-    sname='NHy_FLUX'
-    units='nmol/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%NHy_FLUX)
+      lname='Flux of NHy from Atmosphere'
+      sname='NHy_FLUX'
+      units='nmol/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%NHy_FLUX)
 
-    lname='Flux of DIN from rivers'
-    sname='DIN_RIV_FLUX'
-    units='nmol/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DIN_RIV_FLUX)
+      lname='Flux of DIN from rivers'
+      sname='DIN_RIV_FLUX'
+      units='nmol/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DIN_RIV_FLUX)
 
-    lname='Flux of DIP from rivers'
-    sname='DIP_RIV_FLUX'
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DIP_RIV_FLUX)
-    units='nmol/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
+      lname='Flux of DIP from rivers'
+      sname='DIP_RIV_FLUX'
+      units='nmol/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DIP_RIV_FLUX)
 
-    lname='Flux of DON from rivers'
-    sname='DON_RIV_FLUX'
-    units='nmol/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DON_RIV_FLUX)
+      lname='Flux of DON from rivers'
+      sname='DON_RIV_FLUX'
+      units='nmol/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DON_RIV_FLUX)
 
-    lname='Flux of DONr from rivers'
-    sname='DONr_RIV_FLUX'
-    units='nmol/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DONr_RIV_FLUX)
+      lname='Flux of DONr from rivers'
+      sname='DONr_RIV_FLUX'
+      units='nmol/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DONr_RIV_FLUX)
 
-    lname='Flux of DOP from rivers'
-    sname='DOP_RIV_FLUX'
-    units='nmol/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DOP_RIV_FLUX)
+      lname='Flux of DOP from rivers'
+      sname='DOP_RIV_FLUX'
+      units='nmol/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DOP_RIV_FLUX)
 
-    lname='Flux of DOPr from rivers'
-    sname='DOPr_RIV_FLUX'
-    units='nmol/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DOPr_RIV_FLUX)
+      lname='Flux of DOPr from rivers'
+      sname='DOPr_RIV_FLUX'
+      units='nmol/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DOPr_RIV_FLUX)
 
-    lname='Flux of DSI from rivers'
-    sname='DSI_RIV_FLUX'
-    units='nmol/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DSI_RIV_FLUX)
+      lname='Flux of DSI from rivers'
+      sname='DSI_RIV_FLUX'
+      units='nmol/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DSI_RIV_FLUX)
 
-    lname='Flux of DFE from rivers'
-    sname='DFE_RIV_FLUX'
-    units='nmol/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DFE_RIV_FLUX)
+      lname='Flux of DFE from rivers'
+      sname='DFE_RIV_FLUX'
+      units='nmol/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DFE_RIV_FLUX)
 
-    lname = 'Flux of DIC from rivers'
-    sname = 'DIC_RIV_FLUX'
-    units = 'nmol/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DIC_RIV_FLUX)
+      lname = 'Flux of DIC from rivers'
+      sname = 'DIC_RIV_FLUX'
+      units = 'nmol/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DIC_RIV_FLUX)
 
-    lname='Flux of ALK from rivers'
-    sname='ALK_RIV_FLUX'
-    units='alk/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%ALK_RIV_FLUX)
+      lname='Flux of ALK from rivers'
+      sname='ALK_RIV_FLUX'
+      units='alk/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%ALK_RIV_FLUX)
 
-    lname='Flux of DOC from rivers'
-    sname='DOC_RIV_FLUX'
-    units='nmol/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DOC_RIV_FLUX)
+      lname='Flux of DOC from rivers'
+      sname='DOC_RIV_FLUX'
+      units='nmol/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid,     &
+           truncate, ind%DOC_RIV_FLUX)
 
-    lname='Flux of DOCr from rivers'
-    sname='DOCr_RIV_FLUX'
-    units='nmol/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_forcing_diags%add_diagnostic(&
-         lname, sname, units, vgrid, truncate, marbl_forcing_diag_ind%DOCr_RIV_FLUX)
+      lname='Flux of DOCr from rivers'
+      sname='DOCr_RIV_FLUX'
+      units='nmol/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,         &
+           ind%DOCr_RIV_FLUX)
+
+    end associate
 
     !-----------------------------------------------------------------
     ! Interior diagnostics
@@ -579,921 +585,927 @@ contains
     call marbl_interior_diags%construct(max_interior_diags,                   &
          num_elements_interior)
 
-    ! General 2D diags
-    lname = 'Calcite Saturation Depth'
-    sname = 'zsatcalc'
-    units = 'cm'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%zsatcalc)
+    associate(                                                                &
+              ind => marbl_interior_diag_ind,                                 &
+              diags => marbl_interior_diags                                   &
+             )
+      ! General 2D diags
+      lname = 'Calcite Saturation Depth'
+      sname = 'zsatcalc'
+      units = 'cm'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%zsatcalc)
 
-    lname = 'Aragonite Saturation Depth'
-    sname = 'zsatarag'
-    units = 'cm'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%zsatarag)
+      lname = 'Aragonite Saturation Depth'
+      sname = 'zsatarag'
+      units = 'cm'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%zsatarag)
 
-    lname = 'Vertical Minimum of O2'
-    sname = 'O2_ZMIN'
-    units = 'mmol/m^3'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%O2_ZMIN)
+      lname = 'Vertical Minimum of O2'
+      sname = 'O2_ZMIN'
+      units = 'mmol/m^3'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%O2_ZMIN)
 
-    lname = 'Depth of Vertical Minimum of O2'
-    sname = 'O2_ZMIN_DEPTH'
-    units = 'cm'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%O2_ZMIN_DEPTH)
+      lname = 'Depth of Vertical Minimum of O2'
+      sname = 'O2_ZMIN_DEPTH'
+      units = 'cm'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%O2_ZMIN_DEPTH)
 
-    lname = 'Total C Fixation Vertical Integral'
-    sname = 'photoC_TOT_zint'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%photoC_TOT_zint)
-
-    lname = 'Total C Fixation from NO3 Vertical Integral'
-    sname = 'photoC_NO3_TOT_zint'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%photoC_NO3_TOT_zint)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ctot'
-    sname = 'Jint_Ctot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%Jint_Ctot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ctot, 0-100m'
-    sname = 'Jint_100m_Ctot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%Jint_100m_Ctot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ntot'
-    sname = 'Jint_Ntot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%Jint_Ntot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ntot, 0-100m'
-    sname = 'Jint_100m_Ntot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%Jint_100m_Ntot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ptot'
-    sname = 'Jint_Ptot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%Jint_Ptot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ptot, 0-100m'
-    sname = 'Jint_100m_Ptot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%Jint_100m_Ptot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Sitot'
-    sname = 'Jint_Sitot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%Jint_Sitot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Sitot, 0-100m'
-    sname = 'Jint_100m_Sitot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%Jint_100m_Sitot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Fetot'
-    sname = 'Jint_Fetot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%Jint_Fetot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Fetot, 0-100m'
-    sname = 'Jint_100m_Fetot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%Jint_100m_Fetot)
-
-    ! Particulate 2D diags
-    lname = 'CaCO3 Flux to Sediments'
-    sname = 'calcToSed'
-    units = 'nmolC/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%calcToSed)
-
-    lname = 'POC Flux to Sediments'
-    sname = 'pocToSed'
-    units = 'nmolC/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%pocToSed)
-
-    lname = 'nitrogen burial Flux to Sediments'
-    sname = 'ponToSed'
-    units = 'nmolN/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%ponToSed)
-
-    lname = 'nitrogen loss in Sediments'
-    sname = 'SedDenitrif'
-    units = 'nmolN/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%SedDenitrif)
-
-    lname = 'non-oxic,non-dentr remin in Sediments'
-    sname = 'OtherRemin'
-    units = 'nmolC/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%OtherRemin)
-
-    lname = 'phosphorus Flux to Sediments'
-    sname = 'popToSed'
-    units = 'nmolP/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%popToSed)
-
-    lname = 'biogenic Si Flux to Sediments'
-    sname = 'bsiToSed'
-    units = 'nmolSi/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%bsiToSed)
-
-    lname = 'dust Flux to Sediments'
-    sname = 'dustToSed'
-    units = 'g/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%dustToSed)
-
-    lname = 'pFe Flux to Sediments'
-    sname = 'pfeToSed'
-    units = 'nmolFe/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%pfeToSed)
-
-    ! Autotroph 2D diags
-    do n=1,autotroph_cnt
-      lname = trim(autotrophs(n)%lname) // ' C Fixation Vertical Integral'
-      sname = 'photoC_' // trim(autotrophs(n)%sname) // '_zint'
+      lname = 'Total C Fixation Vertical Integral'
+      sname = 'photoC_TOT_zint'
       units = 'mmol/m^3 cm/s'
       vgrid = 'none'
       truncate = .false.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%photoC_zint(n))
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%photoC_TOT_zint)
 
-      lname = trim(autotrophs(n)%lname) // ' C Fixation from NO3 Vertical Integral'
-      sname = 'photoC_NO3_' // trim(autotrophs(n)%sname) // '_zint'
+      lname = 'Total C Fixation from NO3 Vertical Integral'
+      sname = 'photoC_NO3_TOT_zint'
       units = 'mmol/m^3 cm/s'
       vgrid = 'none'
       truncate = .false.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%photoC_NO3_zint(n))
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%photoC_NO3_TOT_zint)
 
-      if (autotrophs(n)%CaCO3_ind.gt.0) then
-        lname = trim(autotrophs(n)%lname) //                                  &
-                ' CaCO3 Formation Vertical Integral'
-        sname = trim(autotrophs(n)%sname) // '_CaCO3_form_zint'
+      lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ctot'
+      sname = 'Jint_Ctot'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%Jint_Ctot)
+
+      lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ctot, 0-100m'
+      sname = 'Jint_100m_Ctot'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%Jint_100m_Ctot)
+
+      lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ntot'
+      sname = 'Jint_Ntot'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%Jint_Ntot)
+
+      lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ntot, 0-100m'
+      sname = 'Jint_100m_Ntot'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%Jint_100m_Ntot)
+
+      lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ptot'
+      sname = 'Jint_Ptot'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%Jint_Ptot)
+
+      lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ptot, 0-100m'
+      sname = 'Jint_100m_Ptot'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%Jint_100m_Ptot)
+
+      lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Sitot'
+      sname = 'Jint_Sitot'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%Jint_Sitot)
+
+      lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Sitot, 0-100m'
+      sname = 'Jint_100m_Sitot'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%Jint_100m_Sitot)
+
+      lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Fetot'
+      sname = 'Jint_Fetot'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%Jint_Fetot)
+
+      lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Fetot, 0-100m'
+      sname = 'Jint_100m_Fetot'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%Jint_100m_Fetot)
+
+      ! Particulate 2D diags
+      lname = 'CaCO3 Flux to Sediments'
+      sname = 'calcToSed'
+      units = 'nmolC/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%calcToSed)
+
+      lname = 'POC Flux to Sediments'
+      sname = 'pocToSed'
+      units = 'nmolC/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%pocToSed)
+
+      lname = 'nitrogen burial Flux to Sediments'
+      sname = 'ponToSed'
+      units = 'nmolN/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%ponToSed)
+
+      lname = 'nitrogen loss in Sediments'
+      sname = 'SedDenitrif'
+      units = 'nmolN/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%SedDenitrif)
+
+      lname = 'non-oxic,non-dentr remin in Sediments'
+      sname = 'OtherRemin'
+      units = 'nmolC/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%OtherRemin)
+
+      lname = 'phosphorus Flux to Sediments'
+      sname = 'popToSed'
+      units = 'nmolP/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%popToSed)
+
+      lname = 'biogenic Si Flux to Sediments'
+      sname = 'bsiToSed'
+      units = 'nmolSi/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%bsiToSed)
+
+      lname = 'dust Flux to Sediments'
+      sname = 'dustToSed'
+      units = 'g/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%dustToSed)
+
+      lname = 'pFe Flux to Sediments'
+      sname = 'pfeToSed'
+      units = 'nmolFe/cm^2/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%pfeToSed)
+
+      ! Autotroph 2D diags
+      do n=1,autotroph_cnt
+        lname = trim(autotrophs(n)%lname) // ' C Fixation Vertical Integral'
+        sname = 'photoC_' // trim(autotrophs(n)%sname) // '_zint'
         units = 'mmol/m^3 cm/s'
         vgrid = 'none'
         truncate = .false.
-        call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
-                                        marbl_interior_diag_ind%CaCO3_form_zint(n))
-      else
-        marbl_interior_diag_ind%CaCO3_form_zint(n) = -1
-      end if
-    end do
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%photoC_zint(n))
 
-    lname = 'Total CaCO3 Formation Vertical Integral'
-    sname = 'CaCO3_form_zint'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
-                                      marbl_interior_diag_ind%tot_CaCO3_form_zint)
+        lname = trim(autotrophs(n)%lname) // ' C Fixation from NO3 Vertical Integral'
+        sname = 'photoC_NO3_' // trim(autotrophs(n)%sname) // '_zint'
+        units = 'mmol/m^3 cm/s'
+        vgrid = 'none'
+        truncate = .false.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%photoC_NO3_zint(n))
 
-    ! General 3D diags
-    lname = 'Carbonate Ion Concentration'
-    sname = 'CO3'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%CO3)
+        if (autotrophs(n)%CaCO3_ind.gt.0) then
+          lname = trim(autotrophs(n)%lname) //                                  &
+                  ' CaCO3 Formation Vertical Integral'
+          sname = trim(autotrophs(n)%sname) // '_CaCO3_form_zint'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
+                                          ind%CaCO3_form_zint(n))
+        else
+          ind%CaCO3_form_zint(n) = -1
+        end if
+      end do
 
-    lname = 'Bicarbonate Ion Concentration'
-    sname = 'HCO3'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%HCO3)
+      lname = 'Total CaCO3 Formation Vertical Integral'
+      sname = 'CaCO3_form_zint'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'none'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
+                                        ind%tot_CaCO3_form_zint)
 
-    lname = 'Carbonic Acid Concentration'
-    sname = 'H2CO3'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%H2CO3)
+      ! General 3D diags
+      lname = 'Carbonate Ion Concentration'
+      sname = 'CO3'
+      units = 'mmol/m^3'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%CO3)
 
-    lname = 'pH'
-    sname = 'pH_3D'
-    units = 'none'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%ph_3D)
+      lname = 'Bicarbonate Ion Concentration'
+      sname = 'HCO3'
+      units = 'mmol/m^3'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%HCO3)
 
-    lname = 'Carbonate Ion Concentration, Alternative CO2'
-    sname = 'CO3_ALT_CO2'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%CO3_ALT_CO2)
+      lname = 'Carbonic Acid Concentration'
+      sname = 'H2CO3'
+      units = 'mmol/m^3'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%H2CO3)
 
-    lname = 'Bicarbonate Ion Concentration, Alternative CO2'
-    sname = 'HCO3_ALT_CO2'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%HCO3_ALT_CO2)
-
-    lname = 'Carbonic Acid Concentration, Alternative CO2'
-    sname = 'H2CO3_ALT_CO2'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%H2CO3_ALT_CO2)
-
-    lname = 'pH, Alternative CO2'
-    sname = 'pH_3D_ALT_CO2'
-    units = 'none'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%ph_3D_ALT_CO2)
-
-    lname = 'CO3 concentration at calcite saturation'
-    sname = 'co3_sat_calc'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%co3_sat_calc)
-
-    lname = 'CO3 concentration at aragonite saturation'
-    sname = 'co3_sat_arag'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%co3_sat_arag)
-
-    lname = 'Nitrification'
-    sname = 'NITRIF'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%NITRIF)
-
-    lname = 'Denitrification'
-    sname = 'DENITRIF'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%DENITRIF)
-
-    lname = 'O2 Production'
-    sname = 'O2_PRODUCTION'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%O2_PRODUCTION)
-
-    lname = 'O2 Consumption'
-    sname = 'O2_CONSUMPTION'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%O2_CONSUMPTION)
-
-    lname = 'Apparent O2 Utilization'
-    sname = 'AOU'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%AOU)
-
-    lname = 'PAR Average over Model Cell'
-    sname = 'PAR_avg'
-    units = 'W/m^2'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%PAR_avg)
-
-    lname = 'Total Autotroph Grazing'
-    sname = 'graze_auto_TOT'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%auto_graze_TOT)
-
-    lname = 'Total C Fixation'
-    sname = 'photoC_TOT'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%photoC_TOT)
-
-    lname = 'Total C Fixation from NO3'
-    sname = 'photoC_NO3_TOT'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%photoC_NO3_TOT)
-
-    lname = 'DOC Production'
-    sname = 'DOC_prod'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%DOC_prod)
-
-    lname = 'DOC Remineralization'
-    sname = 'DOC_remin'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%DOC_remin)
-
-    lname = 'DOCr Remineralization'
-    sname = 'DOCr_remin'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%DOCr_remin)
-
-    lname = 'DON Production'
-    sname = 'DON_prod'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%DON_prod)
-
-    lname = 'DON Remineralization'
-    sname = 'DON_remin'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%DON_remin)
-
-    lname = 'DONr Remineralization'
-    sname = 'DONr_remin'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%DONr_remin)
-
-    lname = 'DOP Production'
-    sname = 'DOP_prod'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%DOP_prod)
-
-    lname = 'DOP Remineralization'
-    sname = 'DOP_remin'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%DOP_remin)
-
-    lname = 'DOPr Remineralization'
-    sname = 'DOPr_remin'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%DOPr_remin)
-
-    lname = 'Iron Scavenging'
-    sname = 'Fe_scavenge'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%Fe_scavenge)
-
-    lname = 'Iron Scavenging Rate'
-    sname = 'Fe_scavenge_rate'
-    units = '1/y'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%Fe_scavenge_rate)
-
-    ! Particulate 3D diags
-    lname = 'POC Flux into Cell'
-    sname = 'POC_FLUX_IN'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%POC_FLUX_IN)
-
-    lname = 'POC Production'
-    sname = 'POC_PROD'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%POC_PROD)
-
-    lname = 'POC Remineralization'
-    sname = 'POC_REMIN'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%POC_REMIN)
-
-    lname = 'POC Remineralization routed to DIC'
-    sname = 'POC_REMIN_DIC'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%POC_REMIN_DIC)
-
-    lname = 'PON Remineralization routed to NH4'
-    sname = 'PON_REMIN_NH4'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%PON_REMIN_NH4)
-
-    lname = 'POP Remineralization routed to PO4'
-    sname = 'POP_REMIN_PO4'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%POP_REMIN_PO4)
-
-    lname = 'CaCO3 Flux into Cell'
-    sname = 'CaCO3_FLUX_IN'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%CaCO3_FLUX_IN)
-
-    lname = 'CaCO3 Production'
-    sname = 'CaCO3_PROD'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%CaCO3_PROD)
-
-    lname = 'CaCO3 Remineralization'
-    sname = 'CaCO3_REMIN'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%CaCO3_REMIN)
-
-    lname = 'SiO2 Flux into Cell'
-    sname = 'SiO2_FLUX_IN'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%SiO2_FLUX_IN)
-
-    lname = 'SiO2 Production'
-    sname = 'SiO2_PROD'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%SiO2_PROD)
-
-    lname = 'SiO2 Remineralization'
-    sname = 'SiO2_REMIN'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%SiO2_REMIN)
-
-    lname = 'Dust Flux into Cell'
-    sname = 'dust_FLUX_IN'
-    units = 'ng/s/m^2'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%dust_FLUX_IN)
-
-    lname = 'Dust Remineralization'
-    sname = 'dust_REMIN'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%dust_REMIN)
-
-    lname = 'P_iron Flux into Cell'
-    sname = 'P_iron_FLUX_IN'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%P_iron_FLUX_IN)
-
-    lname = 'P_iron Production'
-    sname = 'P_iron_PROD'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%P_iron_PROD)
-
-    lname = 'P_iron Remineralization'
-    sname = 'P_iron_REMIN'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
-                                    marbl_interior_diag_ind%P_iron_REMIN)
-
-    ! Autotroph 3D diags
-    do n=1,autotroph_cnt
-      lname = trim(autotrophs(n)%lname) // ' N Limitation'
-      sname = trim(autotrophs(n)%sname) // '_N_lim'
+      lname = 'pH'
+      sname = 'pH_3D'
       units = 'none'
       vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%N_lim(n))
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%ph_3D)
 
-      lname = trim(autotrophs(n)%lname) // ' P Limitation'
-      sname = trim(autotrophs(n)%sname) // '_P_lim'
+      lname = 'Carbonate Ion Concentration, Alternative CO2'
+      sname = 'CO3_ALT_CO2'
+      units = 'mmol/m^3'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%CO3_ALT_CO2)
+
+      lname = 'Bicarbonate Ion Concentration, Alternative CO2'
+      sname = 'HCO3_ALT_CO2'
+      units = 'mmol/m^3'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%HCO3_ALT_CO2)
+
+      lname = 'Carbonic Acid Concentration, Alternative CO2'
+      sname = 'H2CO3_ALT_CO2'
+      units = 'mmol/m^3'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%H2CO3_ALT_CO2)
+
+      lname = 'pH, Alternative CO2'
+      sname = 'pH_3D_ALT_CO2'
       units = 'none'
       vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%P_lim(n))
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%ph_3D_ALT_CO2)
 
-      lname = trim(autotrophs(n)%lname) // ' Fe Limitation'
-      sname = trim(autotrophs(n)%sname) // '_Fe_lim'
-      units = 'none'
+      lname = 'CO3 concentration at calcite saturation'
+      sname = 'co3_sat_calc'
+      units = 'mmol/m^3'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%co3_sat_calc)
+
+      lname = 'CO3 concentration at aragonite saturation'
+      sname = 'co3_sat_arag'
+      units = 'mmol/m^3'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%co3_sat_arag)
+
+      lname = 'Nitrification'
+      sname = 'NITRIF'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%NITRIF)
+
+      lname = 'Denitrification'
+      sname = 'DENITRIF'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%DENITRIF)
+
+      lname = 'O2 Production'
+      sname = 'O2_PRODUCTION'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%O2_PRODUCTION)
+
+      lname = 'O2 Consumption'
+      sname = 'O2_CONSUMPTION'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%O2_CONSUMPTION)
+
+      lname = 'Apparent O2 Utilization'
+      sname = 'AOU'
+      units = 'mmol/m^3'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%AOU)
+
+      lname = 'PAR Average over Model Cell'
+      sname = 'PAR_avg'
+      units = 'W/m^2'
       vgrid = 'layer_avg'
       truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%Fe_lim(n))
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%PAR_avg)
 
-      if (autotrophs(n)%kSiO3 > c0) then
-        lname = trim(autotrophs(n)%lname) // ' SiO3 Limitation'
-        sname = trim(autotrophs(n)%sname) // '_SiO3_lim'
+      lname = 'Total Autotroph Grazing'
+      sname = 'graze_auto_TOT'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%auto_graze_TOT)
+
+      lname = 'Total C Fixation'
+      sname = 'photoC_TOT'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%photoC_TOT)
+
+      lname = 'Total C Fixation from NO3'
+      sname = 'photoC_NO3_TOT'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .true.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%photoC_NO3_TOT)
+
+      lname = 'DOC Production'
+      sname = 'DOC_prod'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%DOC_prod)
+
+      lname = 'DOC Remineralization'
+      sname = 'DOC_remin'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%DOC_remin)
+
+      lname = 'DOCr Remineralization'
+      sname = 'DOCr_remin'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%DOCr_remin)
+
+      lname = 'DON Production'
+      sname = 'DON_prod'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%DON_prod)
+
+      lname = 'DON Remineralization'
+      sname = 'DON_remin'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%DON_remin)
+
+      lname = 'DONr Remineralization'
+      sname = 'DONr_remin'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%DONr_remin)
+
+      lname = 'DOP Production'
+      sname = 'DOP_prod'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%DOP_prod)
+
+      lname = 'DOP Remineralization'
+      sname = 'DOP_remin'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%DOP_remin)
+
+      lname = 'DOPr Remineralization'
+      sname = 'DOPr_remin'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%DOPr_remin)
+
+      lname = 'Iron Scavenging'
+      sname = 'Fe_scavenge'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%Fe_scavenge)
+
+      lname = 'Iron Scavenging Rate'
+      sname = 'Fe_scavenge_rate'
+      units = '1/y'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%Fe_scavenge_rate)
+
+      ! Particulate 3D diags
+      lname = 'POC Flux into Cell'
+      sname = 'POC_FLUX_IN'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%POC_FLUX_IN)
+
+      lname = 'POC Production'
+      sname = 'POC_PROD'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%POC_PROD)
+
+      lname = 'POC Remineralization'
+      sname = 'POC_REMIN'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%POC_REMIN)
+
+      lname = 'POC Remineralization routed to DIC'
+      sname = 'POC_REMIN_DIC'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%POC_REMIN_DIC)
+
+      lname = 'PON Remineralization routed to NH4'
+      sname = 'PON_REMIN_NH4'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%PON_REMIN_NH4)
+
+      lname = 'POP Remineralization routed to PO4'
+      sname = 'POP_REMIN_PO4'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%POP_REMIN_PO4)
+
+      lname = 'CaCO3 Flux into Cell'
+      sname = 'CaCO3_FLUX_IN'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%CaCO3_FLUX_IN)
+
+      lname = 'CaCO3 Production'
+      sname = 'CaCO3_PROD'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%CaCO3_PROD)
+
+      lname = 'CaCO3 Remineralization'
+      sname = 'CaCO3_REMIN'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%CaCO3_REMIN)
+
+      lname = 'SiO2 Flux into Cell'
+      sname = 'SiO2_FLUX_IN'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%SiO2_FLUX_IN)
+
+      lname = 'SiO2 Production'
+      sname = 'SiO2_PROD'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%SiO2_PROD)
+
+      lname = 'SiO2 Remineralization'
+      sname = 'SiO2_REMIN'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%SiO2_REMIN)
+
+      lname = 'Dust Flux into Cell'
+      sname = 'dust_FLUX_IN'
+      units = 'ng/s/m^2'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%dust_FLUX_IN)
+
+      lname = 'Dust Remineralization'
+      sname = 'dust_REMIN'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%dust_REMIN)
+
+      lname = 'P_iron Flux into Cell'
+      sname = 'P_iron_FLUX_IN'
+      units = 'mmol/m^3 cm/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%P_iron_FLUX_IN)
+
+      lname = 'P_iron Production'
+      sname = 'P_iron_PROD'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%P_iron_PROD)
+
+      lname = 'P_iron Remineralization'
+      sname = 'P_iron_REMIN'
+      units = 'mmol/m^3/s'
+      vgrid = 'layer_avg'
+      truncate = .false.
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate,     &
+                                      ind%P_iron_REMIN)
+
+      ! Autotroph 3D diags
+      do n=1,autotroph_cnt
+        lname = trim(autotrophs(n)%lname) // ' N Limitation'
+        sname = trim(autotrophs(n)%sname) // '_N_lim'
         units = 'none'
         vgrid = 'layer_avg'
         truncate = .true.
-        call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
-                                        marbl_interior_diag_ind%SiO3_lim(n))
-      else
-        marbl_interior_diag_ind%SiO3_lim(n) = -1
-      end if
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%N_lim(n))
 
-      lname = trim(autotrophs(n)%lname) // ' Light Limitation'
-      sname = trim(autotrophs(n)%sname) // '_light_lim'
-      units = 'none'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%light_lim(n))
+        lname = trim(autotrophs(n)%lname) // ' P Limitation'
+        sname = trim(autotrophs(n)%sname) // '_P_lim'
+        units = 'none'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%P_lim(n))
 
-      lname = trim(autotrophs(n)%lname) // ' C Fixation'
-      sname = 'photoC_' // trim(autotrophs(n)%sname)
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%photoC(n))
+        lname = trim(autotrophs(n)%lname) // ' Fe Limitation'
+        sname = trim(autotrophs(n)%sname) // '_Fe_lim'
+        units = 'none'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%Fe_lim(n))
 
-      lname = trim(autotrophs(n)%lname) // ' C Fixation from NO3'
-      sname = 'photoC_NO3_' // trim(autotrophs(n)%sname)
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%photoC_NO3(n))
+        if (autotrophs(n)%kSiO3 > c0) then
+          lname = trim(autotrophs(n)%lname) // ' SiO3 Limitation'
+          sname = trim(autotrophs(n)%sname) // '_SiO3_lim'
+          units = 'none'
+          vgrid = 'layer_avg'
+          truncate = .true.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
+                                          ind%SiO3_lim(n))
+        else
+          ind%SiO3_lim(n) = -1
+        end if
 
-      lname = trim(autotrophs(n)%lname) // ' Fe Uptake'
-      sname = 'photoFe_' // trim(autotrophs(n)%sname)
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%photoFe(n))
+        lname = trim(autotrophs(n)%lname) // ' Light Limitation'
+        sname = trim(autotrophs(n)%sname) // '_light_lim'
+        units = 'none'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%light_lim(n))
 
-      lname = trim(autotrophs(n)%lname) // ' NO3 Uptake'
-      sname = 'photoNO3_' // trim(autotrophs(n)%sname)
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%photoNO3(n))
-
-      lname = trim(autotrophs(n)%lname) // ' NH4 Uptake'
-      sname = 'photoNH4_' // trim(autotrophs(n)%sname)
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-           marbl_interior_diag_ind%photoNH4(n))
-
-      lname = trim(autotrophs(n)%lname) // ' DOP Uptake'
-      sname = 'DOP_' // trim(autotrophs(n)%sname) // '_uptake'
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-           marbl_interior_diag_ind%DOP_uptake(n))
-
-      lname = trim(autotrophs(n)%lname) // ' PO4 Uptake'
-      sname = 'PO4_' // trim(autotrophs(n)%sname) // '_uptake'
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-           marbl_interior_diag_ind%PO4_uptake(n))
-
-      lname = trim(autotrophs(n)%lname) // ' Grazing'
-      sname = 'graze_' // trim(autotrophs(n)%sname)
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-           marbl_interior_diag_ind%auto_graze(n))
-
-      lname = trim(autotrophs(n)%lname) // ' Grazing to POC'
-      sname = 'graze_' // trim(autotrophs(n)%sname) // '_poc'
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-           marbl_interior_diag_ind%auto_graze_poc(n))
-
-      lname = trim(autotrophs(n)%lname) // ' Grazing to DOC'
-      sname = 'graze_' // trim(autotrophs(n)%sname) // '_doc'
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-           marbl_interior_diag_ind%auto_graze_doc(n))
-
-      lname = trim(autotrophs(n)%lname) // ' Grazing to ZOO'
-      sname = 'graze_' // trim(autotrophs(n)%sname) // '_zoo'
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-           marbl_interior_diag_ind%auto_graze_zoo(n))
-
-      lname = trim(autotrophs(n)%lname) // ' Loss'
-      sname = trim(autotrophs(n)%sname) // '_loss'
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-           marbl_interior_diag_ind%auto_loss(n))
-
-      lname = trim(autotrophs(n)%lname) // ' Loss to POC'
-      sname = trim(autotrophs(n)%sname) // '_loss_poc'
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-           marbl_interior_diag_ind%auto_loss_poc(n))
-
-      lname = trim(autotrophs(n)%lname) // ' Loss to DOC'
-      sname = trim(autotrophs(n)%sname) // '_loss_doc'
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-           marbl_interior_diag_ind%auto_loss_doc(n))
-
-      lname = trim(autotrophs(n)%lname) // ' Aggregate'
-      sname = trim(autotrophs(n)%sname) // '_agg'
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-           marbl_interior_diag_ind%auto_agg(n))
-
-      if (autotrophs(n)%Si_ind.gt.0) then
-        lname=trim(autotrophs(n)%lname) // ' Si Uptake'
-        !sname = trim(autotrophs(n)%sname) // '_bSi_form'
-        sname = trim(autotrophs(n)%sname) // 'bSi_form' ! FIXME: eventually add _
+        lname = trim(autotrophs(n)%lname) // ' C Fixation'
+        sname = 'photoC_' // trim(autotrophs(n)%sname)
         units = 'mmol/m^3/s'
         vgrid = 'layer_avg'
         truncate = .true.
-        call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
-             marbl_interior_diag_ind%bSi_form(n))
-      else
-        marbl_interior_diag_ind%bSi_form(n) = -1
-      end if
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%photoC(n))
 
-      if (autotrophs(n)%CaCO3_ind.gt.0) then
-        lname=trim(autotrophs(n)%lname) // ' CaCO3 Formation'
-        sname = trim(autotrophs(n)%sname) // '_CaCO3_form'
+        lname = trim(autotrophs(n)%lname) // ' C Fixation from NO3'
+        sname = 'photoC_NO3_' // trim(autotrophs(n)%sname)
         units = 'mmol/m^3/s'
         vgrid = 'layer_avg'
         truncate = .true.
-        call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
-             marbl_interior_diag_ind%CaCO3_form(n))
-      else
-        marbl_interior_diag_ind%CaCO3_form(n) = -1
-      end if
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%photoC_NO3(n))
 
-      if (autotrophs(n)%Nfixer) then
-        lname=trim(autotrophs(n)%lname) // ' N Fixation'
-        sname = trim(autotrophs(n)%sname) // '_Nfix'
+        lname = trim(autotrophs(n)%lname) // ' Fe Uptake'
+        sname = 'photoFe_' // trim(autotrophs(n)%sname)
         units = 'mmol/m^3/s'
         vgrid = 'layer_avg'
         truncate = .true.
-        call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
-                                        marbl_interior_diag_ind%Nfix(n))
-      else
-        marbl_interior_diag_ind%Nfix(n) = -1
-      end if
-    end do
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%photoFe(n))
 
-    lname= 'Total Si Uptake'
-    sname = 'bSi_form'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
-                                             marbl_interior_diag_ind%tot_bSi_form)
+        lname = trim(autotrophs(n)%lname) // ' NO3 Uptake'
+        sname = 'photoNO3_' // trim(autotrophs(n)%sname)
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%photoNO3(n))
 
-    lname = 'Total CaCO3 Formation'
-    sname = 'CaCO3_form'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
-                                           marbl_interior_diag_ind%tot_CaCO3_form)
+        lname = trim(autotrophs(n)%lname) // ' NH4 Uptake'
+        sname = 'photoNH4_' // trim(autotrophs(n)%sname)
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+             ind%photoNH4(n))
 
-    lname = 'Total N Fixation'
-    sname = 'Nfix'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
-                                        marbl_interior_diag_ind%tot_Nfix)
+        lname = trim(autotrophs(n)%lname) // ' DOP Uptake'
+        sname = 'DOP_' // trim(autotrophs(n)%sname) // '_uptake'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+             ind%DOP_uptake(n))
 
-    ! Zooplankton 3D diags
-    do n=1,zooplankton_cnt
-      lname = trim(zooplankton(n)%lname) // ' Loss'
-      sname = trim(zooplankton(n)%sname) // '_loss'
+        lname = trim(autotrophs(n)%lname) // ' PO4 Uptake'
+        sname = 'PO4_' // trim(autotrophs(n)%sname) // '_uptake'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+             ind%PO4_uptake(n))
+
+        lname = trim(autotrophs(n)%lname) // ' Grazing'
+        sname = 'graze_' // trim(autotrophs(n)%sname)
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+             ind%auto_graze(n))
+
+        lname = trim(autotrophs(n)%lname) // ' Grazing to POC'
+        sname = 'graze_' // trim(autotrophs(n)%sname) // '_poc'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+             ind%auto_graze_poc(n))
+
+        lname = trim(autotrophs(n)%lname) // ' Grazing to DOC'
+        sname = 'graze_' // trim(autotrophs(n)%sname) // '_doc'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+             ind%auto_graze_doc(n))
+
+        lname = trim(autotrophs(n)%lname) // ' Grazing to ZOO'
+        sname = 'graze_' // trim(autotrophs(n)%sname) // '_zoo'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+             ind%auto_graze_zoo(n))
+
+        lname = trim(autotrophs(n)%lname) // ' Loss'
+        sname = trim(autotrophs(n)%sname) // '_loss'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+             ind%auto_loss(n))
+
+        lname = trim(autotrophs(n)%lname) // ' Loss to POC'
+        sname = trim(autotrophs(n)%sname) // '_loss_poc'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+             ind%auto_loss_poc(n))
+
+        lname = trim(autotrophs(n)%lname) // ' Loss to DOC'
+        sname = trim(autotrophs(n)%sname) // '_loss_doc'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+             ind%auto_loss_doc(n))
+
+        lname = trim(autotrophs(n)%lname) // ' Aggregate'
+        sname = trim(autotrophs(n)%sname) // '_agg'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+             ind%auto_agg(n))
+
+        if (autotrophs(n)%Si_ind.gt.0) then
+          lname=trim(autotrophs(n)%lname) // ' Si Uptake'
+          !sname = trim(autotrophs(n)%sname) // '_bSi_form'
+          sname = trim(autotrophs(n)%sname) // 'bSi_form' ! FIXME: eventually add _
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .true.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
+               ind%bSi_form(n))
+        else
+          ind%bSi_form(n) = -1
+        end if
+
+        if (autotrophs(n)%CaCO3_ind.gt.0) then
+          lname=trim(autotrophs(n)%lname) // ' CaCO3 Formation'
+          sname = trim(autotrophs(n)%sname) // '_CaCO3_form'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .true.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
+               ind%CaCO3_form(n))
+        else
+          ind%CaCO3_form(n) = -1
+        end if
+
+        if (autotrophs(n)%Nfixer) then
+          lname=trim(autotrophs(n)%lname) // ' N Fixation'
+          sname = trim(autotrophs(n)%sname) // '_Nfix'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .true.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
+                                          ind%Nfix(n))
+        else
+          ind%Nfix(n) = -1
+        end if
+      end do
+
+      lname= 'Total Si Uptake'
+      sname = 'bSi_form'
       units = 'mmol/m^3/s'
       vgrid = 'layer_avg'
       truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%zoo_loss(n))
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
+                                               ind%tot_bSi_form)
 
-      lname = trim(zooplankton(n)%lname) // ' Loss to POC'
-      sname = trim(zooplankton(n)%sname) // '_loss_poc'
+      lname = 'Total CaCO3 Formation'
+      sname = 'CaCO3_form'
       units = 'mmol/m^3/s'
       vgrid = 'layer_avg'
       truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%zoo_loss_poc(n))
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
+                                             ind%tot_CaCO3_form)
 
-      lname = trim(zooplankton(n)%lname) // ' Loss to DOC'
-      sname = trim(zooplankton(n)%sname) // '_loss_doc'
+      lname = 'Total N Fixation'
+      sname = 'Nfix'
       units = 'mmol/m^3/s'
       vgrid = 'layer_avg'
       truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%zoo_loss_doc(n))
+      call diags%add_diagnostic(lname, sname, units, vgrid, truncate, &
+                                          ind%tot_Nfix)
 
-      lname = trim(zooplankton(n)%lname) // ' grazing loss'
-      sname = 'graze_' // trim(zooplankton(n)%sname)
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%zoo_graze(n))
+      ! Zooplankton 3D diags
+      do n=1,zooplankton_cnt
+        lname = trim(zooplankton(n)%lname) // ' Loss'
+        sname = trim(zooplankton(n)%sname) // '_loss'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%zoo_loss(n))
 
-      lname = trim(zooplankton(n)%lname) // ' grazing loss to POC'
-      sname = 'graze_' // trim(zooplankton(n)%sname) // '_poc'
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%zoo_graze_poc(n))
+        lname = trim(zooplankton(n)%lname) // ' Loss to POC'
+        sname = trim(zooplankton(n)%sname) // '_loss_poc'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%zoo_loss_poc(n))
 
-      lname = trim(zooplankton(n)%lname) // ' grazing loss to DOC'
-      sname = 'graze_' // trim(zooplankton(n)%sname) // '_doc'
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%zoo_graze_doc(n))
+        lname = trim(zooplankton(n)%lname) // ' Loss to DOC'
+        sname = trim(zooplankton(n)%sname) // '_loss_doc'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%zoo_loss_doc(n))
 
-      lname = trim(zooplankton(n)%lname) // ' grazing loss to ZOO'
-      sname = 'graze_' // trim(zooplankton(n)%sname) // '_zoo'
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%zoo_graze_zoo(n))
+        lname = trim(zooplankton(n)%lname) // ' grazing loss'
+        sname = 'graze_' // trim(zooplankton(n)%sname)
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%zoo_graze(n))
 
-      lname = trim(zooplankton(n)%lname) // ' grazing gain'
-      sname = 'x_graze_' // trim(zooplankton(n)%sname)
-      units = 'mmol/m^3/s'
-      vgrid = 'layer_avg'
-      truncate = .true.
-      call marbl_interior_diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
-                                      marbl_interior_diag_ind%x_graze_zoo(n))
+        lname = trim(zooplankton(n)%lname) // ' grazing loss to POC'
+        sname = 'graze_' // trim(zooplankton(n)%sname) // '_poc'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%zoo_graze_poc(n))
 
-    end do
+        lname = trim(zooplankton(n)%lname) // ' grazing loss to DOC'
+        sname = 'graze_' // trim(zooplankton(n)%sname) // '_doc'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%zoo_graze_doc(n))
+
+        lname = trim(zooplankton(n)%lname) // ' grazing loss to ZOO'
+        sname = 'graze_' // trim(zooplankton(n)%sname) // '_zoo'
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%zoo_graze_zoo(n))
+
+        lname = trim(zooplankton(n)%lname) // ' grazing gain'
+        sname = 'x_graze_' // trim(zooplankton(n)%sname)
+        units = 'mmol/m^3/s'
+        vgrid = 'layer_avg'
+        truncate = .true.
+        call diags%add_diagnostic(lname, sname, units, vgrid, truncate,   &
+                                        ind%x_graze_zoo(n))
+
+      end do
+
+    end associate
 
     !-----------------------------------------------------------------
     ! Restoring diagnostics
@@ -1502,16 +1514,20 @@ contains
     ! Allocate memory for restore diagnostics
     call marbl_restore_diags%construct(max_restore_diags, num_elements_interior)
 
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    do n=1,ecosys_tracer_cnt
-      lname = trim(tracer_d_module(n)%long_name) // " Restoring"
-      sname = trim(tracer_d_module(n)%short_name) // "_RESTORE"
+    associate(                                                                &
+              diags => marbl_restore_diags                                    &
+             )
+      units = 'mmol/m^3'
+      vgrid = 'layer_avg'
+      do n=1,ecosys_tracer_cnt
+        lname = trim(tracer_d_module(n)%long_name) // " Restoring"
+        sname = trim(tracer_d_module(n)%short_name) // "_RESTORE"
 
-      ! Note that tmp_id is a temp variable because restoring diagnostics
-      ! have same indexing as the ecosys tracers
-      call marbl_restore_diags%add_diagnostic(lname, sname, units, vgrid, .false., tmp_id)
-    end do
+        ! Note that tmp_id is a temp variable because restoring diagnostics
+        ! have same indexing as the ecosys tracers
+        call diags%add_diagnostic(lname, sname, units, vgrid, .false., tmp_id)
+      end do
+    end associate
 
     call marbl_interior_diags%set_to_zero()
     call marbl_restore_diags%set_to_zero()
@@ -1532,26 +1548,27 @@ contains
 
     associate(                                                                &
               diags => marbl_diags%diags(:),                                  &
+              ind => marbl_interior_diag_ind,                                 &
               CO3 => carbonate(:)%CO3,                                        &
               CO3_sat_calcite => carbonate(:)%CO3_sat_calcite,                &
               CO3_sat_aragonite => carbonate(:)%CO3_sat_aragonite             &
               )
       ! Find depth where CO3 = CO3_sat_calcite or CO3_sat_argonite
-      diags(marbl_interior_diag_ind%zsatcalc)%field_2d(1) =                               &
-           marbl_compute_saturation_depth(marbl_domain, zt, zw, CO3, CO3_sat_calcite)
-      diags(marbl_interior_diag_ind%zsatarag)%field_2d(1) =                               &
-           marbl_compute_saturation_depth(marbl_domain, zt, zw, CO3, CO3_sat_aragonite)
+      diags(ind%zsatcalc)%field_2d(1) =                                       &
+ marbl_compute_saturation_depth(marbl_domain, zt, zw, CO3, CO3_sat_calcite)
+      diags(ind%zsatarag)%field_2d(1) =                                       &
+ marbl_compute_saturation_depth(marbl_domain, zt, zw, CO3, CO3_sat_aragonite)
 
-      diags(marbl_interior_diag_ind%CO3)%field_3d(:, 1)           = carbonate%CO3
-      diags(marbl_interior_diag_ind%HCO3)%field_3d(:, 1)          = carbonate%HCO3
-      diags(marbl_interior_diag_ind%H2CO3)%field_3d(:, 1)         = carbonate%H2CO3
-      diags(marbl_interior_diag_ind%pH_3D)%field_3d(:, 1)         = carbonate%pH
-      diags(marbl_interior_diag_ind%CO3_ALT_CO2)%field_3d(:, 1)   = carbonate%CO3_ALT_CO2
-      diags(marbl_interior_diag_ind%HCO3_ALT_CO2)%field_3d(:, 1)  = carbonate%HCO3_ALT_CO2
-      diags(marbl_interior_diag_ind%H2CO3_ALT_CO2)%field_3d(:, 1) = carbonate%H2CO3_ALT_CO2
-      diags(marbl_interior_diag_ind%pH_3D_ALT_CO2)%field_3d(:, 1) = carbonate%pH_ALT_CO2
-      diags(marbl_interior_diag_ind%co3_sat_calc)%field_3d(:, 1)  = carbonate%CO3_sat_calcite
-      diags(marbl_interior_diag_ind%co3_sat_arag)%field_3d(:, 1)  = carbonate%CO3_sat_aragonite
+      diags(ind%CO3)%field_3d(:, 1)           = carbonate%CO3
+      diags(ind%HCO3)%field_3d(:, 1)          = carbonate%HCO3
+      diags(ind%H2CO3)%field_3d(:, 1)         = carbonate%H2CO3
+      diags(ind%pH_3D)%field_3d(:, 1)         = carbonate%pH
+      diags(ind%CO3_ALT_CO2)%field_3d(:, 1)   = carbonate%CO3_ALT_CO2
+      diags(ind%HCO3_ALT_CO2)%field_3d(:, 1)  = carbonate%HCO3_ALT_CO2
+      diags(ind%H2CO3_ALT_CO2)%field_3d(:, 1) = carbonate%H2CO3_ALT_CO2
+      diags(ind%pH_3D_ALT_CO2)%field_3d(:, 1) = carbonate%pH_ALT_CO2
+      diags(ind%co3_sat_calc)%field_3d(:, 1)  = carbonate%CO3_sat_calcite
+      diags(ind%co3_sat_arag)%field_3d(:, 1)  = carbonate%CO3_sat_aragonite
 
     end associate
 
@@ -1621,9 +1638,12 @@ contains
     real(r8), dimension(:), intent(in) :: denitrif
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
-    associate(diags => marbl_diags%diags(:))
-      diags(marbl_interior_diag_ind%NITRIF)%field_3d(:, 1) = nitrif
-      diags(marbl_interior_diag_ind%DENITRIF)%field_3d(:, 1) = denitrif
+    associate(                                                                &
+              diags => marbl_diags%diags(:),                                  &
+              ind => marbl_interior_diag_ind                                  &
+             )
+      diags(ind%NITRIF)%field_3d(:, 1) = nitrif
+      diags(ind%DENITRIF)%field_3d(:, 1) = denitrif
     end associate
 
   end subroutine store_diagnostics_nitrification
@@ -1648,109 +1668,112 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(diags => marbl_diags%diags(:))
-      diags(marbl_interior_diag_ind%tot_CaCO3_form_zint)%field_2d(1) = c0
-      diags(marbl_interior_diag_ind%tot_bSi_form)%field_3d(:, 1) = c0
-      diags(marbl_interior_diag_ind%tot_Nfix)%field_3d(:, 1) = c0
-      diags(marbl_interior_diag_ind%tot_CaCO3_form)%field_3d(:, 1) = c0
+    associate(                                                                &
+              diags => marbl_diags%diags(:),                                  &
+              ind => marbl_interior_diag_ind                                  &
+             )
+      diags(ind%tot_CaCO3_form_zint)%field_2d(1) = c0
+      diags(ind%tot_bSi_form)%field_3d(:, 1) = c0
+      diags(ind%tot_Nfix)%field_3d(:, 1) = c0
+      diags(ind%tot_CaCO3_form)%field_3d(:, 1) = c0
       do n = 1, autotroph_cnt
-         diags(marbl_interior_diag_ind%N_lim(n))%field_3d(:, 1) =                         &
+         diags(ind%N_lim(n))%field_3d(:, 1) =                         &
                                        autotroph_secondary_species(n,:)%VNtot
-         diags(marbl_interior_diag_ind%Fe_lim(n))%field_3d(:, 1) =                        &
+         diags(ind%Fe_lim(n))%field_3d(:, 1) =                        &
                                          autotroph_secondary_species(n,:)%VFe
-         diags(marbl_interior_diag_ind%P_lim(n))%field_3d(:, 1) =                         &
+         diags(ind%P_lim(n))%field_3d(:, 1) =                         &
                                        autotroph_secondary_species(n,:)%VPtot
 
-         if (marbl_interior_diag_ind%SiO3_lim(n).ne.-1) then
-            diags(marbl_interior_diag_ind%SiO3_lim(n))%field_3d(:, 1) =                   &
+         if (ind%SiO3_lim(n).ne.-1) then
+            diags(ind%SiO3_lim(n))%field_3d(:, 1) =                   &
                                        autotroph_secondary_species(n,:)%VSiO3
          end if
 
-         diags(marbl_interior_diag_ind%light_lim(n))%field_3d(:, 1) =                     &
+         diags(ind%light_lim(n))%field_3d(:, 1) =                     &
                                    autotroph_secondary_species(n,:)%light_lim
-         diags(marbl_interior_diag_ind%photoNO3(n))%field_3d(:, 1) =                      &
+         diags(ind%photoNO3(n))%field_3d(:, 1) =                      &
                                        autotroph_secondary_species(n,:)%NO3_V
-         diags(marbl_interior_diag_ind%photoNH4(n))%field_3d(:, 1) =                      &
+         diags(ind%photoNH4(n))%field_3d(:, 1) =                      &
                                        autotroph_secondary_species(n,:)%NH4_V
-         diags(marbl_interior_diag_ind%PO4_uptake(n))%field_3d(:, 1) =                    &
+         diags(ind%PO4_uptake(n))%field_3d(:, 1) =                    &
                                        autotroph_secondary_species(n,:)%PO4_V
-         diags(marbl_interior_diag_ind%DOP_uptake(n))%field_3d(:, 1) =                    &
+         diags(ind%DOP_uptake(n))%field_3d(:, 1) =                    &
                                        autotroph_secondary_species(n,:)%DOP_V
-         diags(marbl_interior_diag_ind%photoFE(n))%field_3d(:, 1) =                       &
+         diags(ind%photoFE(n))%field_3d(:, 1) =                       &
                                      autotroph_secondary_species(n,:)%photoFe
 
-         if (marbl_interior_diag_ind%bSi_form(n).ne.-1) then
-           diags(marbl_interior_diag_ind%bSi_form(n))%field_3d(:, 1) =                    &
+         if (ind%bSi_form(n).ne.-1) then
+           diags(ind%bSi_form(n))%field_3d(:, 1) =                    &
                                      autotroph_secondary_species(n,:)%photoSi
-           diags(marbl_interior_diag_ind%tot_bSi_form)%field_3d(:, 1) =          &
-                    diags(marbl_interior_diag_ind%tot_bSi_form)%field_3d(:, 1) + &
-                    diags(marbl_interior_diag_ind%bSi_form(n))%field_3d(:, 1)
+           diags(ind%tot_bSi_form)%field_3d(:, 1) =          &
+                    diags(ind%tot_bSi_form)%field_3d(:, 1) + &
+                    diags(ind%bSi_form(n))%field_3d(:, 1)
          endif
 
-         if (marbl_interior_diag_ind%CaCO3_form(n).ne.-1) then
-           diags(marbl_interior_diag_ind%CaCO3_form(n))%field_3d(:, 1) =                  &
+         if (ind%CaCO3_form(n).ne.-1) then
+           diags(ind%CaCO3_form(n))%field_3d(:, 1) =                  &
                                   autotroph_secondary_species(n,:)%CaCO3_PROD
-           diags(marbl_interior_diag_ind%tot_CaCO3_form)%field_3d(:, 1) =        &
-                  diags(marbl_interior_diag_ind%tot_CaCO3_form)%field_3d(:, 1) + &
-                  diags(marbl_interior_diag_ind%CaCO3_form(n))%field_3d(:, 1)
+           diags(ind%tot_CaCO3_form)%field_3d(:, 1) =        &
+                  diags(ind%tot_CaCO3_form)%field_3d(:, 1) + &
+                  diags(ind%CaCO3_form(n))%field_3d(:, 1)
          end if
 
-         if (marbl_interior_diag_ind%Nfix(n).ne.-1) then
-           diags(marbl_interior_diag_ind%Nfix(n))%field_3d(:, 1) =                        &
+         if (ind%Nfix(n).ne.-1) then
+           diags(ind%Nfix(n))%field_3d(:, 1) =                        &
                                         autotroph_secondary_species(n,:)%Nfix
-           diags(marbl_interior_diag_ind%tot_Nfix)%field_3d(:, 1) =              &
-                        diags(marbl_interior_diag_ind%tot_Nfix)%field_3d(:, 1) + &
-                        diags(marbl_interior_diag_ind%Nfix(n))%field_3d(:, 1)
+           diags(ind%tot_Nfix)%field_3d(:, 1) =              &
+                        diags(ind%tot_Nfix)%field_3d(:, 1) + &
+                        diags(ind%Nfix(n))%field_3d(:, 1)
          end if
 
-         diags(marbl_interior_diag_ind%auto_graze(n))%field_3d(:, 1) =                    &
+         diags(ind%auto_graze(n))%field_3d(:, 1) =                    &
                                   autotroph_secondary_species(n,:)%auto_graze
-         diags(marbl_interior_diag_ind%auto_graze_poc(n))%field_3d(:, 1) =                &
+         diags(ind%auto_graze_poc(n))%field_3d(:, 1) =                &
                               autotroph_secondary_species(n,:)%auto_graze_poc
-         diags(marbl_interior_diag_ind%auto_graze_doc(n))%field_3d(:, 1) =                &
+         diags(ind%auto_graze_doc(n))%field_3d(:, 1) =                &
                               autotroph_secondary_species(n,:)%auto_graze_doc
-         diags(marbl_interior_diag_ind%auto_graze_zoo(n))%field_3d(:, 1) =                &
+         diags(ind%auto_graze_zoo(n))%field_3d(:, 1) =                &
                               autotroph_secondary_species(n,:)%auto_graze_zoo
-         diags(marbl_interior_diag_ind%auto_loss(n))%field_3d(:, 1) =                     &
+         diags(ind%auto_loss(n))%field_3d(:, 1) =                     &
                                    autotroph_secondary_species(n,:)%auto_loss
-         diags(marbl_interior_diag_ind%auto_loss_poc(n))%field_3d(:, 1) =                 &
+         diags(ind%auto_loss_poc(n))%field_3d(:, 1) =                 &
                                autotroph_secondary_species(n,:)%auto_loss_poc
-         diags(marbl_interior_diag_ind%auto_loss_doc(n))%field_3d(:, 1) =                 &
+         diags(ind%auto_loss_doc(n))%field_3d(:, 1) =                 &
                                autotroph_secondary_species(n,:)%auto_loss_doc
-         diags(marbl_interior_diag_ind%auto_agg(n))%field_3d(:, 1) =                      &
+         diags(ind%auto_agg(n))%field_3d(:, 1) =                      &
                                     autotroph_secondary_species(n,:)%auto_agg
-         diags(marbl_interior_diag_ind%photoC(n))%field_3d(:, 1) =                        &
+         diags(ind%photoC(n))%field_3d(:, 1) =                        &
                                       autotroph_secondary_species(n,:)%photoC
 
-         diags(marbl_interior_diag_ind%photoC_NO3(n))%field_3d(:, 1) = c0
+         diags(ind%photoC_NO3(n))%field_3d(:, 1) = c0
          where (autotroph_secondary_species(n,:)%VNtot > c0)
-           diags(marbl_interior_diag_ind%photoC_NO3(n))%field_3d(:, 1) =                  &
+           diags(ind%photoC_NO3(n))%field_3d(:, 1) =                  &
                 autotroph_secondary_species(n,:)%photoC *                              &
                 (autotroph_secondary_species(n,:)%VNO3 / autotroph_secondary_species(n,:)%VNtot)
          end where
 
          ! vertical integrals
-         if (marbl_interior_diag_ind%CaCO3_form_zint(n).ne.-1) then
-           diags(marbl_interior_diag_ind%CaCO3_form_zint(n))%field_2d(1) = c0
+         if (ind%CaCO3_form_zint(n).ne.-1) then
+           diags(ind%CaCO3_form_zint(n))%field_2d(1) = c0
            do k = 1,marbl_domain%kmt
-             diags(marbl_interior_diag_ind%CaCO3_form_zint(n))%field_2d(1) =              &
-                    diags(marbl_interior_diag_ind%CaCO3_form_zint(n))%field_2d(1) +       &
+             diags(ind%CaCO3_form_zint(n))%field_2d(1) =              &
+                    diags(ind%CaCO3_form_zint(n))%field_2d(1) +       &
                     delta_z(k) * autotroph_secondary_species(n, k)%CaCO3_PROD
            end do
-           diags(marbl_interior_diag_ind%tot_CaCO3_form_zint)%field_2d(1) =      &
-                diags(marbl_interior_diag_ind%tot_CaCO3_form_zint)%field_2d(1) + &
-                diags(marbl_interior_diag_ind%CaCO3_form_zint(n))%field_2d(1)
+           diags(ind%tot_CaCO3_form_zint)%field_2d(1) =      &
+                diags(ind%tot_CaCO3_form_zint)%field_2d(1) + &
+                diags(ind%CaCO3_form_zint(n))%field_2d(1)
          end if
 
-         diags(marbl_interior_diag_ind%photoC_zint(n))%field_2d(1) = c0
-         diags(marbl_interior_diag_ind%photoC_NO3_zint(n))%field_2d(1) = c0
+         diags(ind%photoC_zint(n))%field_2d(1) = c0
+         diags(ind%photoC_NO3_zint(n))%field_2d(1) = c0
          do k = 1,marbl_domain%kmt
-           diags(marbl_interior_diag_ind%photoC_zint(n))%field_2d(1) =                    &
-                        diags(marbl_interior_diag_ind%photoC_zint(n))%field_2d(1) +       &
+           diags(ind%photoC_zint(n))%field_2d(1) =                    &
+                        diags(ind%photoC_zint(n))%field_2d(1) +       &
                         delta_z(k) * autotroph_secondary_species(n, k)%photoC
-           diags(marbl_interior_diag_ind%photoC_NO3_zint(n))%field_2d(1) =                &
-                 diags(marbl_interior_diag_ind%photoC_NO3_zint(n))%field_2d(1) +          &
-                 delta_z(k) * diags(marbl_interior_diag_ind%photoC_NO3(n))%field_3d(k, 1)
+           diags(ind%photoC_NO3_zint(n))%field_2d(1) =                &
+                 diags(ind%photoC_NO3_zint(n))%field_2d(1) +          &
+                 delta_z(k) * diags(ind%photoC_NO3(n))%field_3d(k, 1)
          end do ! do k
       end do ! do n
     end associate
@@ -1776,27 +1799,30 @@ contains
           delta_z = marbl_domain%dz
     endif
 
-    associate(diags => marbl_diags%diags)
-      diags(marbl_interior_diag_ind%auto_graze_TOT)%field_3d(:, 1) =                      &
+    associate(                                                                &
+              diags => marbl_diags%diags(:),                                  &
+              ind => marbl_interior_diag_ind                                  &
+             )
+      diags(ind%auto_graze_TOT)%field_3d(:, 1) =                      &
                            sum(autotroph_secondary_species%auto_graze, dim=1)
-      diags(marbl_interior_diag_ind%photoC_TOT)%field_3d(:, 1) =                          &
+      diags(ind%photoC_TOT)%field_3d(:, 1) =                          &
                            sum(autotroph_secondary_species%photoC, dim=1)
 
-      diags(marbl_interior_diag_ind%photoC_NO3_TOT)%field_3d(:, 1) = c0
+      diags(ind%photoC_NO3_TOT)%field_3d(:, 1) = c0
       do n = 1, autotroph_cnt
         where (autotroph_secondary_species(n,:)%VNtot > c0)
-          diags(marbl_interior_diag_ind%photoC_NO3_TOT)%field_3d(:, 1) =                  &
-                           diags(marbl_interior_diag_ind%photoC_NO3_TOT)%field_3d(:, 1) + &
+          diags(ind%photoC_NO3_TOT)%field_3d(:, 1) =                  &
+                           diags(ind%photoC_NO3_TOT)%field_3d(:, 1) + &
                            (autotroph_secondary_species(n,:)%VNO3 /           &
                            autotroph_secondary_species(n,:)%VNtot) *          &
                            autotroph_secondary_species(n,:)%photoC
         end where
       end do
 
-      diags(marbl_interior_diag_ind%photoC_TOT_zint)%field_2d(1) = sum(                   &
+      diags(ind%photoC_TOT_zint)%field_2d(1) = sum(                   &
                     delta_z * sum(autotroph_secondary_species%photoC, dim=1))
-      diags(marbl_interior_diag_ind%photoC_NO3_TOT_zint)%field_2d(1) = sum(               &
-                    delta_z * diags(marbl_interior_diag_ind%photoC_NO3_TOT)%field_3d(:, 1))
+      diags(ind%photoC_NO3_TOT_zint)%field_2d(1) = sum(               &
+                    delta_z * diags(ind%photoC_NO3_TOT)%field_3d(:, 1))
     end associate
 
   end subroutine store_diagnostics_autotroph_sums
@@ -1837,47 +1863,50 @@ contains
     else
        delta_z = marbl_domain%dz
     end if
-    associate(diags => marbl_diags%diags)
-      diags(marbl_interior_diag_ind%POC_FLUX_IN)%field_3d(:, 1) = POC%sflux_in +          &
+    associate(                                                                &
+              diags => marbl_diags%diags(:),                                  &
+              ind => marbl_interior_diag_ind                                  &
+             )
+      diags(ind%POC_FLUX_IN)%field_3d(:, 1) = POC%sflux_in +          &
                                                       POC%hflux_in
-      diags(marbl_interior_diag_ind%POC_PROD)%field_3d(:, 1) = POC%prod
-      diags(marbl_interior_diag_ind%POC_REMIN)%field_3d(:, 1) = POC%remin
+      diags(ind%POC_PROD)%field_3d(:, 1) = POC%prod
+      diags(ind%POC_REMIN)%field_3d(:, 1) = POC%remin
 
-      diags(marbl_interior_diag_ind%POC_REMIN_DIC)%field_3d(:, 1) = POC%remin *  &
+      diags(ind%POC_REMIN_DIC)%field_3d(:, 1) = POC%remin *  &
                                                       (c1 - POCremin_refract)
-      diags(marbl_interior_diag_ind%PON_REMIN_NH4)%field_3d(:, 1) = PON_remin *  &
+      diags(ind%PON_REMIN_NH4)%field_3d(:, 1) = PON_remin *  &
                                                       (c1 - PONremin_refract)
-      diags(marbl_interior_diag_ind%POP_REMIN_PO4)%field_3d(:, 1) = POP_remin *  &
+      diags(ind%POP_REMIN_PO4)%field_3d(:, 1) = POP_remin *  &
                                                       (c1 - POPremin_refract)
 
-      diags(marbl_interior_diag_ind%CaCO3_FLUX_IN)%field_3d(:, 1) = P_CaCO3%sflux_in +    &
+      diags(ind%CaCO3_FLUX_IN)%field_3d(:, 1) = P_CaCO3%sflux_in +    &
                                                         P_CaCO3%hflux_in
-      diags(marbl_interior_diag_ind%CaCO3_PROD)%field_3d(:, 1) = P_CaCO3%prod
-      diags(marbl_interior_diag_ind%CaCO3_REMIN)%field_3d(:, 1) = P_CaCO3%remin
+      diags(ind%CaCO3_PROD)%field_3d(:, 1) = P_CaCO3%prod
+      diags(ind%CaCO3_REMIN)%field_3d(:, 1) = P_CaCO3%remin
 
-      diags(marbl_interior_diag_ind%SiO2_FLUX_IN)%field_3d(:, 1) = P_SiO2%sflux_in +      &
+      diags(ind%SiO2_FLUX_IN)%field_3d(:, 1) = P_SiO2%sflux_in +      &
                                                        P_SiO2%hflux_in
-      diags(marbl_interior_diag_ind%SiO2_PROD)%field_3d(:, 1) = P_SiO2%prod
-      diags(marbl_interior_diag_ind%SiO2_REMIN)%field_3d(:, 1) = P_SiO2%remin
+      diags(ind%SiO2_PROD)%field_3d(:, 1) = P_SiO2%prod
+      diags(ind%SiO2_REMIN)%field_3d(:, 1) = P_SiO2%remin
 
-      diags(marbl_interior_diag_ind%dust_FLUX_IN)%field_3d(:, 1) = dust%sflux_in +        &
+      diags(ind%dust_FLUX_IN)%field_3d(:, 1) = dust%sflux_in +        &
                                                        dust%hflux_in
-      diags(marbl_interior_diag_ind%dust_REMIN)%field_3d(:, 1) = P_SiO2%remin
+      diags(ind%dust_REMIN)%field_3d(:, 1) = P_SiO2%remin
 
-      diags(marbl_interior_diag_ind%P_iron_FLUX_IN)%field_3d(:, 1) = P_iron%sflux_in +    &
+      diags(ind%P_iron_FLUX_IN)%field_3d(:, 1) = P_iron%sflux_in +    &
                                                          P_iron%hflux_in
-      diags(marbl_interior_diag_ind%P_iron_PROD)%field_3d(:, 1) = P_iron%prod
-      diags(marbl_interior_diag_ind%P_iron_REMIN)%field_3d(:, 1) = P_iron%remin
+      diags(ind%P_iron_PROD)%field_3d(:, 1) = P_iron%prod
+      diags(ind%P_iron_REMIN)%field_3d(:, 1) = P_iron%remin
 
-      diags(marbl_interior_diag_ind%calcToSed)%field_2d(1) = sum(P_CaCO3%sed_loss)
-      diags(marbl_interior_diag_ind%bsiToSed)%field_2d(1) = sum(P_SiO2%sed_loss)
-      diags(marbl_interior_diag_ind%pocToSed)%field_2d(1) = sum(POC%sed_loss)
-      diags(marbl_interior_diag_ind%SedDenitrif)%field_2d(1) = sum(sed_denitrif * delta_z)
-      diags(marbl_interior_diag_ind%OtherRemin)%field_2d(1) = sum(other_remin * delta_z)
-      diags(marbl_interior_diag_ind%ponToSed)%field_2d(1) = sum(PON_sed_loss)
-      diags(marbl_interior_diag_ind%popToSed)%field_2d(1) = sum(POP_sed_loss)
-      diags(marbl_interior_diag_ind%dustToSed)%field_2d(1) = sum(dust%sed_loss)
-      diags(marbl_interior_diag_ind%pfeToSed)%field_2d(1) = sum(P_iron%sed_loss)
+      diags(ind%calcToSed)%field_2d(1) = sum(P_CaCO3%sed_loss)
+      diags(ind%bsiToSed)%field_2d(1) = sum(P_SiO2%sed_loss)
+      diags(ind%pocToSed)%field_2d(1) = sum(POC%sed_loss)
+      diags(ind%SedDenitrif)%field_2d(1) = sum(sed_denitrif * delta_z)
+      diags(ind%OtherRemin)%field_2d(1) = sum(other_remin * delta_z)
+      diags(ind%ponToSed)%field_2d(1) = sum(PON_sed_loss)
+      diags(ind%popToSed)%field_2d(1) = sum(POP_sed_loss)
+      diags(ind%dustToSed)%field_2d(1) = sum(dust%sed_loss)
+      diags(ind%pfeToSed)%field_2d(1) = sum(P_iron%sed_loss)
     end associate
 
   end subroutine store_diagnostics_particulates
@@ -1901,16 +1930,19 @@ contains
     integer(int_kind) :: k, min_ind
 
     ! Find min_o2 and depth_min_o2
-    associate(diags => marbl_diags%diags(:))
+    associate(                                                                &
+              diags => marbl_diags%diags(:),                                  &
+              ind => marbl_interior_diag_ind                                  &
+             )
       min_ind = minloc(column_o2(1:marbl_domain%kmt), dim=1)
-      diags(marbl_interior_diag_ind%O2_ZMIN)%field_2d(1) = column_o2(min_ind)
-      diags(marbl_interior_diag_ind%O2_ZMIN_DEPTH)%field_2d(1) = column_zt(min_ind)
+      diags(ind%O2_ZMIN)%field_2d(1) = column_o2(min_ind)
+      diags(ind%O2_ZMIN_DEPTH)%field_2d(1) = column_zt(min_ind)
 
-      diags(marbl_interior_diag_ind%O2_PRODUCTION)%field_3d(:, 1) = o2_production
-      diags(marbl_interior_diag_ind%O2_CONSUMPTION)%field_3d(:, 1) = o2_consumption
+      diags(ind%O2_PRODUCTION)%field_3d(:, 1) = o2_production
+      diags(ind%O2_CONSUMPTION)%field_3d(:, 1) = o2_consumption
 
       do k=1,marbl_domain%kmt
-        diags(marbl_interior_diag_ind%AOU)%field_3d(k, 1) =                       &
+        diags(ind%AOU)%field_3d(k, 1) =                       &
       O2SAT_scalar(marbl_gcm_state%temperature(k), marbl_gcm_state%salinity(k)) - &
       column_o2(k)
       end do
@@ -1930,10 +1962,12 @@ contains
 
     integer :: k
 
-    associate(diags => marbl_diags%diags(:))
+    associate(                                                                &
+              diags => marbl_diags%diags(:),                                  &
+              ind => marbl_interior_diag_ind                                  &
+             )
       do k=1,km
-        diags(marbl_interior_diag_ind%PAR_avg)%field_3d(k, 1) =               &
-                                            sum(PAR_col_frac(:)*PAR_avg(k,:))
+        diags(ind%PAR_avg)%field_3d(k, 1) = sum(PAR_col_frac(:)*PAR_avg(k,:))
       end do
     end associate
 
@@ -1955,23 +1989,26 @@ contains
 
     integer(int_kind) :: n
 
-    associate(diags => marbl_diags%diags(:))
+    associate(                                                                &
+              diags => marbl_diags%diags(:),                                  &
+              ind => marbl_interior_diag_ind                                  &
+             )
       do n = 1, zooplankton_cnt
-        diags(marbl_interior_diag_ind%zoo_loss(n))%field_3d(:, 1) =                       &
+        diags(ind%zoo_loss(n))%field_3d(:, 1) =                       &
                                   zooplankton_secondary_species(n,:)%zoo_loss
-        diags(marbl_interior_diag_ind%zoo_loss_poc(n))%field_3d(:, 1) =                   &
+        diags(ind%zoo_loss_poc(n))%field_3d(:, 1) =                   &
                               zooplankton_secondary_species(n,:)%zoo_loss_poc
-        diags(marbl_interior_diag_ind%zoo_loss_doc(n))%field_3d(:, 1) =                   &
+        diags(ind%zoo_loss_doc(n))%field_3d(:, 1) =                   &
                               zooplankton_secondary_species(n,:)%zoo_loss_doc
-        diags(marbl_interior_diag_ind%zoo_graze(n))%field_3d(:, 1) =                      &
+        diags(ind%zoo_graze(n))%field_3d(:, 1) =                      &
                                  zooplankton_secondary_species(n,:)%zoo_graze
-        diags(marbl_interior_diag_ind%zoo_graze_poc(n))%field_3d(:, 1) =                  &
+        diags(ind%zoo_graze_poc(n))%field_3d(:, 1) =                  &
                              zooplankton_secondary_species(n,:)%zoo_graze_poc
-        diags(marbl_interior_diag_ind%zoo_graze_doc(n))%field_3d(:, 1) =                  &
+        diags(ind%zoo_graze_doc(n))%field_3d(:, 1) =                  &
                              zooplankton_secondary_species(n,:)%zoo_graze_doc
-        diags(marbl_interior_diag_ind%zoo_graze_zoo(n))%field_3d(:, 1) =                  &
+        diags(ind%zoo_graze_zoo(n))%field_3d(:, 1) =                  &
                              zooplankton_secondary_species(n,:)%zoo_graze_zoo
-        diags(marbl_interior_diag_ind%x_graze_zoo(n))%field_3d(:, 1) =                    &
+        diags(ind%x_graze_zoo(n))%field_3d(:, 1) =                    &
                                zooplankton_secondary_species(n,:)%x_graze_zoo
       end do
     end associate
@@ -1988,28 +2025,31 @@ contains
     real(r8), dimension(:), intent(in) :: fe_scavenge, fe_scavenge_rate
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
-    associate(diags => marbl_diags%diags(:))
-      diags(marbl_interior_diag_ind%DOC_prod)%field_3d(:, 1) =                   &
+    associate(                                                                &
+              diags => marbl_diags%diags(:),                                  &
+              ind => marbl_interior_diag_ind                                  &
+             )
+      diags(ind%DOC_prod)%field_3d(:, 1) =                   &
                                           dissolved_organic_matter%DOC_prod
-      diags(marbl_interior_diag_ind%DOC_remin)%field_3d(:, 1) =                  &
+      diags(ind%DOC_remin)%field_3d(:, 1) =                  &
                                           dissolved_organic_matter%DOC_remin
-      diags(marbl_interior_diag_ind%DOCr_remin)%field_3d(:, 1) =                 &
+      diags(ind%DOCr_remin)%field_3d(:, 1) =                 &
                                           dissolved_organic_matter%DOCr_remin
-      diags(marbl_interior_diag_ind%DON_prod)%field_3d(:, 1) =                   &
+      diags(ind%DON_prod)%field_3d(:, 1) =                   &
                                           dissolved_organic_matter%DON_prod
-      diags(marbl_interior_diag_ind%DON_remin)%field_3d(:, 1) =                  &
+      diags(ind%DON_remin)%field_3d(:, 1) =                  &
                                           dissolved_organic_matter%DON_remin
-      diags(marbl_interior_diag_ind%DONr_remin)%field_3d(:, 1) =                 &
+      diags(ind%DONr_remin)%field_3d(:, 1) =                 &
                                           dissolved_organic_matter%DONr_remin
-      diags(marbl_interior_diag_ind%DOP_prod)%field_3d(:, 1) =                   &
+      diags(ind%DOP_prod)%field_3d(:, 1) =                   &
                                           dissolved_organic_matter%DOP_prod
-      diags(marbl_interior_diag_ind%DOP_remin)%field_3d(:, 1) =                  &
+      diags(ind%DOP_remin)%field_3d(:, 1) =                  &
                                           dissolved_organic_matter%DOP_remin
-      diags(marbl_interior_diag_ind%DOPr_remin)%field_3d(:, 1) =                 &
+      diags(ind%DOPr_remin)%field_3d(:, 1) =                 &
                                           dissolved_organic_matter%DOPr_remin
 
-      diags(marbl_interior_diag_ind%Fe_scavenge)%field_3d(:, 1) = Fe_scavenge
-      diags(marbl_interior_diag_ind%Fe_scavenge_rate)%field_3d(:, 1) = Fe_scavenge_rate
+      diags(ind%Fe_scavenge)%field_3d(:, 1) = Fe_scavenge
+      diags(ind%Fe_scavenge_rate)%field_3d(:, 1) = Fe_scavenge_rate
     end associate
 
   end subroutine store_diagnostics_dissolved_organic_matter
@@ -2039,10 +2079,13 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(diags => marbl_diags%diags(:))
+    associate(                                                                &
+              diags => marbl_diags%diags(:),                                  &
+              ind => marbl_interior_diag_ind                                  &
+             )
       ! vertical integrals
-      diags(marbl_interior_diag_ind%Jint_Ctot)%field_2d(1) = c0
-      diags(marbl_interior_diag_ind%Jint_100m_Ctot)%field_2d(1) = c0
+      diags(ind%Jint_Ctot)%field_2d(1) = c0
+      diags(ind%Jint_100m_Ctot)%field_2d(1) = c0
 
       ztop = c0
       do k = 1,marbl_domain%kmt
@@ -2055,18 +2098,18 @@ contains
             work1 = work1 + dtracer(n,k)
           endif
         end do
-        diags(marbl_interior_diag_ind%Jint_Ctot)%field_2d(1) =                            &
-                 diags(marbl_interior_diag_ind%Jint_Ctot)%field_2d(1) +                   &
+        diags(ind%Jint_Ctot)%field_2d(1) =                            &
+                 diags(ind%Jint_Ctot)%field_2d(1) +                   &
                  delta_z(k) * work1 + (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
 
         if (ztop < 100.0e2_r8) then
-          diags(marbl_interior_diag_ind%Jint_100m_Ctot)%field_2d(1) =                     &
-                              diags(marbl_interior_diag_ind%Jint_100m_Ctot)%field_2d(1) + &
+          diags(ind%Jint_100m_Ctot)%field_2d(1) =                     &
+                              diags(ind%Jint_100m_Ctot)%field_2d(1) + &
                               min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
         if (zw(k).le.100.0e2_r8) then
-          diags(marbl_interior_diag_ind%Jint_100m_Ctot)%field_2d(1) =                     &
-                              diags(marbl_interior_diag_ind%Jint_100m_Ctot)%field_2d(1) + &
+          diags(ind%Jint_100m_Ctot)%field_2d(1) =                     &
+                              diags(ind%Jint_100m_Ctot)%field_2d(1) + &
                               (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
         end if
         ztop = zw(k)
@@ -2103,10 +2146,13 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(diags => marbl_diags%diags(:))
+    associate(                                                                &
+              diags => marbl_diags%diags(:),                                  &
+              ind => marbl_interior_diag_ind                                  &
+             )
       ! vertical integrals
-      diags(marbl_interior_diag_ind%Jint_Ntot)%field_2d(1) = c0
-      diags(marbl_interior_diag_ind%Jint_100m_Ntot)%field_2d(1) = c0
+      diags(ind%Jint_Ntot)%field_2d(1) = c0
+      diags(ind%Jint_100m_Ntot)%field_2d(1) = c0
 
       ztop = c0
       do k = 1,marbl_domain%kmt
@@ -2122,18 +2168,18 @@ contains
             work1 = work1 - autotroph_secondary_species(n,k)%Nfix
           end if
         end do
-        diags(marbl_interior_diag_ind%Jint_Ntot)%field_2d(1) =                            &
-                                   diags(marbl_interior_diag_ind%Jint_Ntot)%field_2d(1) + &
+        diags(ind%Jint_Ntot)%field_2d(1) =                            &
+                                   diags(ind%Jint_Ntot)%field_2d(1) + &
                                    delta_z(k) * work1 + PON_sed_loss(k)
 
         if (ztop < 100.0e2_r8) then
-            diags(marbl_interior_diag_ind%Jint_100m_Ntot)%field_2d(1) =                   &
-                              diags(marbl_interior_diag_ind%Jint_100m_Ntot)%field_2d(1) + &
+            diags(ind%Jint_100m_Ntot)%field_2d(1) =                   &
+                              diags(ind%Jint_100m_Ntot)%field_2d(1) + &
                            min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
         if (zw(k).le.100.0e2_r8) then
-            diags(marbl_interior_diag_ind%Jint_100m_Ntot)%field_2d(1) =                   &
-                              diags(marbl_interior_diag_ind%Jint_100m_Ntot)%field_2d(1) + &
+            diags(ind%Jint_100m_Ntot)%field_2d(1) =                   &
+                              diags(ind%Jint_100m_Ntot)%field_2d(1) + &
                               PON_sed_loss(k)
         end if
         ztop = zw(k)
@@ -2167,10 +2213,13 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(diags => marbl_diags%diags(:))
+    associate(                                                                &
+              diags => marbl_diags%diags(:),                                  &
+              ind => marbl_interior_diag_ind                                  &
+             )
       ! vertical integrals
-      diags(marbl_interior_diag_ind%Jint_Ptot)%field_2d(1) = c0
-      diags(marbl_interior_diag_ind%Jint_100m_Ptot)%field_2d(1) = c0
+      diags(ind%Jint_Ptot)%field_2d(1) = c0
+      diags(ind%Jint_100m_Ptot)%field_2d(1) = c0
 
       ztop = c0
       do k = 1,marbl_domain%kmt
@@ -2181,18 +2230,18 @@ contains
         do n = 1, autotroph_cnt
           work1 = work1 + autotrophs(n)%Qp * dtracer(autotrophs(n)%C_ind,k)
         end do
-        diags(marbl_interior_diag_ind%Jint_Ptot)%field_2d(1) =                   &
-                         diags(marbl_interior_diag_ind%Jint_Ptot)%field_2d(1) +  &
+        diags(ind%Jint_Ptot)%field_2d(1) =                   &
+                         diags(ind%Jint_Ptot)%field_2d(1) +  &
                          delta_z(k) * work1 + POP_sed_loss(k)
 
         if (ztop < 100.0e2_r8) then
-          diags(marbl_interior_diag_ind%Jint_100m_Ptot)%field_2d(1) =                     &
-                              diags(marbl_interior_diag_ind%Jint_100m_Ptot)%field_2d(1) + &
+          diags(ind%Jint_100m_Ptot)%field_2d(1) =                     &
+                              diags(ind%Jint_100m_Ptot)%field_2d(1) + &
                               min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
         if (zw(k).le.100.0e2_r8) then
-          diags(marbl_interior_diag_ind%Jint_100m_Ptot)%field_2d(1) =            &
-                     diags(marbl_interior_diag_ind%Jint_100m_Ptot)%field_2d(1) + &
+          diags(ind%Jint_100m_Ptot)%field_2d(1) =            &
+                     diags(ind%Jint_100m_Ptot)%field_2d(1) + &
                      POP_sed_loss(k)
         end if
         ztop = zw(k)
@@ -2224,10 +2273,13 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(diags => marbl_diags%diags(:))
+    associate(                                                                &
+              diags => marbl_diags%diags(:),                                  &
+              ind => marbl_interior_diag_ind                                  &
+             )
       ! vertical integrals
-      diags(marbl_interior_diag_ind%Jint_Sitot)%field_2d(1) = c0
-      diags(marbl_interior_diag_ind%Jint_100m_Sitot)%field_2d(1) = c0
+      diags(ind%Jint_Sitot)%field_2d(1) = c0
+      diags(ind%Jint_100m_Sitot)%field_2d(1) = c0
 
       ztop = c0
       do k = 1,marbl_domain%kmt
@@ -2237,18 +2289,18 @@ contains
             work1 = work1 + dtracer(autotrophs(n)%Si_ind,k)
           end if
         end do
-        diags(marbl_interior_diag_ind%Jint_Sitot)%field_2d(1) =                           &
-                                  diags(marbl_interior_diag_ind%Jint_Sitot)%field_2d(1) + &
+        diags(ind%Jint_Sitot)%field_2d(1) =                           &
+                                  diags(ind%Jint_Sitot)%field_2d(1) + &
                                   delta_z(k) * work1 + P_SiO2%sed_loss(k)
 
         if (ztop < 100.0e2_r8) then
-          diags(marbl_interior_diag_ind%Jint_100m_Sitot)%field_2d(1) =                    &
-                             diags(marbl_interior_diag_ind%Jint_100m_Sitot)%field_2d(1) + &
+          diags(ind%Jint_100m_Sitot)%field_2d(1) =                    &
+                             diags(ind%Jint_100m_Sitot)%field_2d(1) + &
                              min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
         if (zw(k).le.100.0e2_r8) then
-          diags(marbl_interior_diag_ind%Jint_100m_Sitot)%field_2d(1) =                    &
-                             diags(marbl_interior_diag_ind%Jint_100m_Sitot)%field_2d(1) + &
+          diags(ind%Jint_100m_Sitot)%field_2d(1) =                    &
+                             diags(ind%Jint_100m_Sitot)%field_2d(1) + &
                              P_SiO2%sed_loss(k)
         end if
         ztop = zw(k)
@@ -2282,28 +2334,31 @@ contains
        delta_z = marbl_domain%dz
     end if
 
-    associate(diags => marbl_diags%diags(:))
+    associate(                                                                &
+              diags => marbl_diags%diags(:),                                  &
+              ind => marbl_interior_diag_ind                                  &
+             )
       ! vertical integrals
-      diags(marbl_interior_diag_ind%Jint_Fetot)%field_2d(1) = c0
-      diags(marbl_interior_diag_ind%Jint_100m_Fetot)%field_2d(1) = c0
+      diags(ind%Jint_Fetot)%field_2d(1) = c0
+      diags(ind%Jint_100m_Fetot)%field_2d(1) = c0
 
       ztop = c0
       do k = 1,marbl_domain%kmt
         work1 = dtracer(Fe_ind, k) + sum(dtracer(autotrophs(:)%Fe_ind, k)) +  &
                 Qfe_zoo * sum(dtracer(zooplankton(:)%C_ind, k)) -             &
                 dust%remin(k) * dust_to_Fe
-        diags(marbl_interior_diag_ind%Jint_Fetot)%field_2d(1) =                  &
-                       diags(marbl_interior_diag_ind%Jint_Fetot)%field_2d(1) +   &
+        diags(ind%Jint_Fetot)%field_2d(1) =                  &
+                       diags(ind%Jint_Fetot)%field_2d(1) +   &
                        delta_z(k) * work1 + P_iron%sed_loss(k) - fesedflux(k)
 
         if (ztop < 100.0e2_r8) then
-          diags(marbl_interior_diag_ind%Jint_100m_Fetot)%field_2d(1) =           &
-                    diags(marbl_interior_diag_ind%Jint_100m_Fetot)%field_2d(1) + &
+          diags(ind%Jint_100m_Fetot)%field_2d(1) =           &
+                    diags(ind%Jint_100m_Fetot)%field_2d(1) + &
                     min(100.0e2_r8 - ztop, delta_z(k)) * work1
         end if
         if (zw(k).le.100.0e2_r8) then
-          diags(marbl_interior_diag_ind%Jint_100m_Fetot)%field_2d(1) =           &
-                    diags(marbl_interior_diag_ind%Jint_100m_Fetot)%field_2d(1) + &
+          diags(ind%Jint_100m_Fetot)%field_2d(1) =           &
+                    diags(ind%Jint_100m_Fetot)%field_2d(1) + &
                     P_iron%sed_loss(k) - fesedflux(k)
         end if
         ztop = zw(k)
@@ -2377,35 +2432,35 @@ contains
     !  calculate gas flux quantities if necessary
     !-----------------------------------------------------------------------
 
-    associate( &
-         ind             => marbl_forcing_diag_ind               , &
-         xkw             => marbl_forcing_input%xkw              , &
-         xco2            => marbl_forcing_input%xco2             , &
-         xco2_alt_co2    => marbl_forcing_input%xco2_alt_co2     , &
-         ifrac           => marbl_forcing_input%ifrac            , &
-         ap_used         => marbl_forcing_input%atm_press        , &
-         dust_flux_in    => marbl_forcing_input%dust_flux        , &
-         marbl_stf       => marbl_forcing_input%marbl_stf        , &
-         ph_prev         => marbl_forcing_output%ph_prev         , &
-         ph_prev_alt_co2 => marbl_forcing_output%ph_prev_alt_co2 , &
-         iron_flux_in    => marbl_forcing_output%iron_flux       , &
-         flux_co2        => marbl_forcing_output%flux_co2        , &
-         flux_alt_co2    => marbl_forcing_output%flux_alt_co2    , &
-         co2star         => marbl_forcing_output%co2star         , &
-         dco2star        => marbl_forcing_output%dco2star        , &
-         pco2surf        => marbl_forcing_output%pco2surf        , &
-         dpco2           => marbl_forcing_output%dpco2           , &
-         co2star_alt     => marbl_forcing_output%co2star_alt     , &
-         dco2star_alt    => marbl_forcing_output%dco2star_alt    , &
-         pco2surf_alt    => marbl_forcing_output%pco2surf_alt    , &
-         dpco2_alt       => marbl_forcing_output%dpco2_alt       , &
-         pv_co2          => marbl_forcing_output%pv_co2          , &
-         pv_o2           => marbl_forcing_output%pv_o2           , &
-         schmidt_co2     => marbl_forcing_output%schmidt_co2     , &
-         schmidt_o2      => marbl_forcing_output%schmidt_o2      , &
-         o2sat           => marbl_forcing_output%o2sat           , &
-         stf_module      => marbl_forcing_output%stf_module      , &
-         diags           => marbl_diags%diags(:)                   &
+    associate(                                                                &
+         diags           => marbl_diags%diags(:),                             &
+         ind             => marbl_forcing_diag_ind,                           &
+         xkw             => marbl_forcing_input%xkw,                          &
+         xco2            => marbl_forcing_input%xco2,                         &
+         xco2_alt_co2    => marbl_forcing_input%xco2_alt_co2,                 &
+         ifrac           => marbl_forcing_input%ifrac,                        &
+         ap_used         => marbl_forcing_input%atm_press,                    &
+         dust_flux_in    => marbl_forcing_input%dust_flux,                    &
+         marbl_stf       => marbl_forcing_input%marbl_stf,                    &
+         ph_prev         => marbl_forcing_output%ph_prev,                     &
+         ph_prev_alt_co2 => marbl_forcing_output%ph_prev_alt_co2,             &
+         iron_flux_in    => marbl_forcing_output%iron_flux,                   &
+         flux_co2        => marbl_forcing_output%flux_co2,                    &
+         flux_alt_co2    => marbl_forcing_output%flux_alt_co2,                &
+         co2star         => marbl_forcing_output%co2star,                     &
+         dco2star        => marbl_forcing_output%dco2star,                    &
+         pco2surf        => marbl_forcing_output%pco2surf,                    &
+         dpco2           => marbl_forcing_output%dpco2,                       &
+         co2star_alt     => marbl_forcing_output%co2star_alt,                 &
+         dco2star_alt    => marbl_forcing_output%dco2star_alt,                &
+         pco2surf_alt    => marbl_forcing_output%pco2surf_alt,                &
+         dpco2_alt       => marbl_forcing_output%dpco2_alt,                   &
+         pv_co2          => marbl_forcing_output%pv_co2,                      &
+         pv_o2           => marbl_forcing_output%pv_o2,                       &
+         schmidt_co2     => marbl_forcing_output%schmidt_co2,                 &
+         schmidt_o2      => marbl_forcing_output%schmidt_o2,                  &
+         o2sat           => marbl_forcing_output%o2sat,                       &
+         stf_module      => marbl_forcing_output%stf_module                   &
          )
 
     if (lflux_gas_o2 .or. lflux_gas_co2) then
