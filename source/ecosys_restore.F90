@@ -37,7 +37,6 @@ module ecosys_restore_mod
      procedure, public :: init
      procedure, public :: read_restoring_fields
      procedure, public :: restore_tracers
-     procedure, public :: accumulate_tavg
      procedure, public :: initialize_restoring_timescale
      procedure, private :: read_namelist
      procedure, private :: initialize_restore_read_vars
@@ -427,42 +426,6 @@ subroutine restore_tracers(this, tracer_cnt, vert_level, x_index, y_index, &
   end associate
 
 end subroutine restore_tracers
-
-!*****************************************************************************
-
-subroutine accumulate_tavg(this, restore_local, block_id, i_ind, j_ind)
-  !
-  ! accumulate tavg field info for the specified tracer if approprate
-  !
-  use kinds_mod, only : r8, int_kind
-  use tavg, only : accumulate_tavg_field
-
-  implicit none
-  !-----------------------------------------------------------------------
-  !  input variables
-  !-----------------------------------------------------------------------
-  class(ecosys_restore_type) :: this
-  real (r8)          , dimension(:,:), intent(in) :: restore_local
-  integer (int_kind) , intent(in) :: block_id
-  integer(int_kind)  , intent(in) :: i_ind, j_ind
-
-  !-----------------------------------------------------------------------
-  !  local variables
-  !-----------------------------------------------------------------------
-
-  integer(int_kind) :: n
-
-  !-----------------------------------------------------------------------
-
-  do n = 1,ecosys_tracer_cnt
-    if (this%tracers(n)%tavg_restore_index > 0) then
-      call accumulate_tavg_field(restore_local(:,n),                          &
-                                 this%tracers(n)%tavg_restore_index,          &
-                                 block_id, i_ind, j_ind)
-    end if
-  end do
-
-end subroutine accumulate_tavg
 
 !*****************************************************************************
 

@@ -9,13 +9,16 @@ Tag Summary: Updates to allow code to compile with NAG
              2) Lots of lines exceeding 132 characters
              3) incorrect use statements (use prognostic, only : nx_global
                 when nx_global is not a module variable in prognostic.F90)
+             4) Removed tavg from ecosys_restore (again? did it creep back in
+                after being removed in n14)
 
-Testing:
+Testing: aux_pop_MARBL vs the n23 baselines (bit-for-bit)
 
 Files Modified:
 M       source/advection.F90
 M       source/baroclinic.F90
 M       source/ecosys_mod.F90
+M       source/ecosys_restore.F90
 M       source/hmix_gm.F90
 M       source/hmix_gm_aniso.F90
 M       source/horizontal_mix.F90
