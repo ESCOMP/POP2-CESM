@@ -506,6 +506,7 @@ contains
             marbl_restore_diags(iblock),  &
             marbl_forcing_diags(iblock),  &
             1, num_elements,              & ! num_elements interior / forcing
+            km,                           & ! num_levels
             tracer_d_module(ecosys_ind_begin:ecosys_ind_end))
 
        num_forcing_diags = marbl_forcing_diags(1)%diag_cnt

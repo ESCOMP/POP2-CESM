@@ -232,7 +232,7 @@ contains
 
   subroutine marbl_ecosys_diagnostics_init(marbl_interior_diags,              &
              marbl_restore_diags, marbl_forcing_diags, num_elements_interior, &
-             num_elements_forcing, tracer_d_module)
+             num_elements_forcing, num_levels, tracer_d_module)
 
     use prognostic           , only : tracer_field
 
@@ -241,6 +241,7 @@ contains
     type(marbl_diagnostics_type), intent(inout) :: marbl_forcing_diags
     integer                     , intent(in)    :: num_elements_interior
     integer                     , intent(in)    :: num_elements_forcing
+    integer                     , intent(in)    :: num_levels
     type (tracer_field)         , intent(in)    :: tracer_d_module(:)   ! descriptors for each tracer
 
     !-----------------------------------------------------------------------
@@ -257,7 +258,8 @@ contains
     !-----------------------------------------------------------------
 
     ! Allocate memory for forcing diagnostics
-    call marbl_forcing_diags%construct(max_forcing_diags, num_elements_forcing)
+    call marbl_forcing_diags%construct(max_forcing_diags,                     &
+         num_elements_forcing, num_levels)
 
     associate(                                                                &
               ind => marbl_forcing_diag_ind,                                  &
@@ -583,7 +585,7 @@ contains
 
     ! Allocate memory for interior diagnostics
     call marbl_interior_diags%construct(max_interior_diags,                   &
-         num_elements_interior)
+         num_elements_interior, num_levels)
 
     associate(                                                                &
               ind => marbl_interior_diag_ind,                                 &
@@ -1512,7 +1514,8 @@ contains
     !-----------------------------------------------------------------
 
     ! Allocate memory for restore diagnostics
-    call marbl_restore_diags%construct(max_restore_diags, num_elements_interior)
+    call marbl_restore_diags%construct(max_restore_diags,                     &
+         num_elements_interior, num_levels)
 
     associate(                                                                &
               diags => marbl_restore_diags                                    &
