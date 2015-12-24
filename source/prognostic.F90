@@ -56,6 +56,8 @@
       mixtime             ! set to oldtime on leafrog steps
                           ! and to curtime on matsuno steps
 
+    public :: tracer_field ! used from marbl_interface_types
+
 !EOP
 !BOC
 !EOC
