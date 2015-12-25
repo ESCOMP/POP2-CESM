@@ -501,13 +501,15 @@ contains
 
     ! initialize ecosys_diagnostics type
     do iblock=1,nblocks_clinic
-       call marbl_ecosys_diagnostics_init(&
-            marbl_interior_diags(iblock), &
-            marbl_restore_diags(iblock),  &
-            marbl_forcing_diags(iblock),  &
-            1, num_elements,              & ! num_elements interior / forcing
-            km,                           & ! num_levels
-            tracer_d_module(ecosys_ind_begin:ecosys_ind_end))
+       call marbl_ecosys_diagnostics_init(                    &
+            marbl_interior_diags(iblock),                     &
+            marbl_restore_diags(iblock),                      &
+            marbl_forcing_diags(iblock),                      &
+            1,                                                & ! num_elements interior
+            num_elements,                                     & ! num_elements forcing
+            km,                                               & ! num_levels
+            tracer_d_module(ecosys_ind_begin:ecosys_ind_end), &
+            ciso_on)
 
        num_forcing_diags = marbl_forcing_diags(1)%diag_cnt
        num_surface_vals  = ecosys_ind_end - ecosys_ind_begin + 1
@@ -835,6 +837,8 @@ contains
     use grid                  , only : DZT
     use grid                  , only : dz
     use grid                  , only : partial_bottom_cells
+    use grid                  , only : zt
+    use grid                  , only : zw
     use marbl_interface_types , only : marbl_column_domain_type
     use marbl_interface_types , only : marbl_gcm_state_type
     use marbl_share_mod       , only : marbl_interior_share_type
@@ -922,8 +926,10 @@ contains
     marbl_domain%PAR_nsubcols = mcog_nbins
 
     marbl_domain%km = km
-    allocate(marbl_domain%dzt(marbl_domain%km))
     allocate(marbl_domain%dz(marbl_domain%km))
+    allocate(marbl_domain%delta_z(marbl_domain%km))
+    allocate(marbl_domain%zw(marbl_domain%km))
+    allocate(marbl_domain%zt(marbl_domain%km))
     allocate(marbl_gcm_state%temperature(marbl_domain%km))
     allocate(marbl_gcm_state%salinity(marbl_domain%km))
     allocate(marbl_domain%PAR_col_frac(marbl_domain%PAR_nsubcols))
@@ -953,26 +959,25 @@ contains
     do c = this_block%jb,this_block%je
        do i = this_block%ib,this_block%ie
 
-          ! Copy data from slab to column for marbl
+          ! Determine marbl column domain and copy data from slab to column for marbl
           marbl_domain%land_mask = marbl_saved_state%land_mask(i, c, bid)
           marbl_domain%kmt = KMT(i, c, bid)
-
           if (marbl_domain%land_mask) then
              marbl_domain%PAR_col_frac(:) = FRACR_BIN(i, c, :)
              marbl_domain%surf_shortwave(:) = QSW_USE(i, c, :)
              do k = 1, marbl_domain%km
-                marbl_gcm_state%temperature(k) = temperature(i,c,k)
-                marbl_gcm_state%salinity(k)    = salinity(i,c,k)
-
-                ! FIXME(bja, 2015-07) marbl shouldn't know about partial
-                ! bottom cells. just pass in delta_z, set to DZT(i, c,
-                ! k, bid) or dz(k) and use the single value!
                 marbl_domain%dz(k) = dz(k)
                 if (partial_bottom_cells) then
-                   marbl_domain%dzt(k) = DZT(i, c, k, bid)
+                   marbl_domain%delta_z(k) = DZT(i, c, k, bid)
                 else
-                   marbl_domain%dzt(k) = c0
+                   marbl_domain%delta_z(k) = dz(k)
                 end if
+                marbl_domain%zw(k) = zw(k)
+                marbl_domain%zt(k) = zt(k)
+
+                marbl_gcm_state%temperature(k) = temperature(i,c,k)
+                marbl_gcm_state%salinity(k) = salinity(i,c,k)
+
                 column_tracer_module(:, k) = tracer_module_avg(i, c, k, ecosys_ind_begin:ecosys_ind_end)
              end do ! do k
           end if ! land_mask
@@ -1072,8 +1077,10 @@ contains
        end do
     end if
 
-    deallocate(marbl_domain%dzt)
+    deallocate(marbl_domain%delta_z)
     deallocate(marbl_domain%dz)
+    deallocate(marbl_domain%zw)
+    deallocate(marbl_domain%zt)
     deallocate(marbl_gcm_state%temperature)
     deallocate(marbl_gcm_state%salinity)
     deallocate(marbl_domain%PAR_col_frac)
