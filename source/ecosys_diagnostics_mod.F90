@@ -1992,7 +1992,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    integer(int_kind) :: n, k
+    integer(int_kind) :: n
     !-----------------------------------------------------------------------
 
     associate(                               &
@@ -2058,24 +2058,17 @@ contains
 
        ! vertical integrals
        if (ind%CaCO3_form_zint(n).ne.-1) then
-          diags(ind%CaCO3_form_zint(n))%field_2d(1) = c0
-          do k = 1,kmt
-             diags(ind%CaCO3_form_zint(n))%field_2d(1) = diags(ind%CaCO3_form_zint(n))%field_2d(1) + &
-                  delta_z(k) * autotroph_secondary_species(n, k)%CaCO3_PROD
-          end do
+          call compute_vertical_integrals(autotroph_secondary_species(n,:)%CaCO3_PROD, &
+               delta_z, kmt, full_depth=diags(ind%CaCO3_form_zint(n))%field_2d(1))
           diags(ind%tot_CaCO3_form_zint)%field_2d(1) = diags(ind%tot_CaCO3_form_zint)%field_2d(1) + &
                diags(ind%CaCO3_form_zint(n))%field_2d(1)
        end if
 
        diags(ind%photoC_zint(n))%field_2d(1) = c0
-       diags(ind%photoC_NO3_zint(n))%field_2d(1) = c0
-       do k = 1,kmt
-          diags(ind%photoC_zint(n))%field_2d(1) = diags(ind%photoC_zint(n))%field_2d(1) + &
-               delta_z(k) * autotroph_secondary_species(n, k)%photoC
-          diags(ind%photoC_NO3_zint(n))%field_2d(1) = diags(ind%photoC_NO3_zint(n))%field_2d(1) + &
-               delta_z(k) * diags(ind%photoC_NO3(n))%field_3d(k, 1)
-       end do ! do k
-
+       call compute_vertical_integrals(autotroph_secondary_species(n,:)%photoC, &
+            delta_z, kmt, full_depth=diags(ind%photoC_zint(n))%field_2d(1))
+       call compute_vertical_integrals(diags(ind%photoC_NO3(n))%field_3d(:, 1), &
+            delta_z, kmt, full_depth=diags(ind%photoC_NO3_zint(n))%field_2d(1))
     end do ! do n
 
     end associate
@@ -2366,46 +2359,31 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    integer(int_kind) :: k, n, auto_ind
-    real(r8) :: ztop, work1
+    integer(int_kind) :: n, auto_ind
+    real(r8), dimension(marbl_domain%km) :: work
     !-----------------------------------------------------------------------
 
     associate(                               &
          diags   => marbl_diags%diags(:),    &
          ind     => marbl_interior_diag_ind, &
          kmt     => marbl_domain%kmt,        &
-         zw      => marbl_domain%zw(:),      &
          delta_z => marbl_domain%delta_z(:)  &
          )
 
     ! vertical integrals
-    diags(ind%Jint_Ctot)%field_2d(1) = c0
-    diags(ind%Jint_100m_Ctot)%field_2d(1) = c0
-
-    ztop = c0
-    do k = 1,kmt
-       work1 = dtracer(dic_ind,k) + dtracer(doc_ind,k) +                     &
-            dtracer(docr_ind,k) + sum(dtracer(zooplankton(:)%C_ind,k)) +     &
-            sum(dtracer(autotrophs(:)%C_ind,k))
-       do auto_ind = 1, autotroph_cnt
-          n = autotrophs(auto_ind)%CaCO3_ind
-          if (n > 0) then
-             work1 = work1 + dtracer(n,k)
-          endif
-       end do
-       diags(ind%Jint_Ctot)%field_2d(1) = diags(ind%Jint_Ctot)%field_2d(1) + &
-            delta_z(k) * work1 + (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
-
-       if (ztop < 100.0e2_r8) then
-          diags(ind%Jint_100m_Ctot)%field_2d(1) = diags(ind%Jint_100m_Ctot)%field_2d(1) + &
-               min(100.0e2_r8 - ztop, delta_z(k)) * work1
+    work = dtracer(dic_ind,:) + dtracer(doc_ind,:) +                        &
+         dtracer(docr_ind,:) + sum(dtracer(zooplankton(:)%C_ind,:), dim=1) + &
+         sum(dtracer(autotrophs(:)%C_ind,:),dim=1)
+    do auto_ind = 1, autotroph_cnt
+       n = autotrophs(auto_ind)%CaCO3_ind
+       if (n.gt.0) then
+          work = work + dtracer(n,:)
        end if
-       if (zw(k).le.100.0e2_r8) then
-          diags(ind%Jint_100m_Ctot)%field_2d(1) = diags(ind%Jint_100m_Ctot)%field_2d(1) + &
-               (POC%sed_loss(k) + P_CaCO3%sed_loss(k))
-       end if
-       ztop = zw(k)
     end do
+    call compute_vertical_integrals(work, delta_z, kmt,         &
+         full_depth=diags(ind%Jint_Ctot)%field_2d(1),            &
+         near_surface=diags(ind%Jint_100m_Ctot)%field_2d(1),     &
+         flux_in = POC%sed_loss + P_CaCO3%sed_loss)
 
     end associate
 
@@ -2430,52 +2408,33 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    integer(int_kind) :: k, n
-    real(r8) :: ztop, work1
+    integer(int_kind) :: n
+    real(r8), dimension(marbl_domain%km) :: work
     !-----------------------------------------------------------------------
 
     associate(                               &
          diags   => marbl_diags%diags(:),    &
          ind     => marbl_interior_diag_ind, &
          kmt     => marbl_domain%kmt,        &
-         zw      => marbl_domain%zw(:),      &
          delta_z => marbl_domain%delta_z(:)  &
          )
 
     ! vertical integrals
-    diags(ind%Jint_Ntot)%field_2d(1) = c0
-    diags(ind%Jint_100m_Ntot)%field_2d(1) = c0
-
-    ztop = c0
-    do k = 1,kmt
-       work1 = dtracer(no3_ind,k) + dtracer(nh4_ind,k) + &
-            dtracer(don_ind,k) + dtracer(donr_ind,k) +   &
-            Q * sum(dtracer(zooplankton(:)%C_ind,k)) +   &
-            Q * sum(dtracer(autotrophs(:)%C_ind,k))
-
-       ! add back column and sediment denitrification
-       work1 = work1 + denitrif(k) + sed_denitrif(k)
-
-       ! subtract out N fixation
-       do n = 1, autotroph_cnt
-          if (autotrophs(n)%Nfixer) then
-             work1 = work1 - autotroph_secondary_species(n,k)%Nfix
-          end if
-       end do
-
-       diags(ind%Jint_Ntot)%field_2d(1) = diags(ind%Jint_Ntot)%field_2d(1) + &
-            delta_z(k) * work1 + PON_sed_loss(k)
-
-       if (ztop < 100.0e2_r8) then
-          diags(ind%Jint_100m_Ntot)%field_2d(1) = diags(ind%Jint_100m_Ntot)%field_2d(1) + &
-               min(100.0e2_r8 - ztop, delta_z(k)) * work1
+    work = dtracer(no3_ind,:) + dtracer(nh4_ind,:) +           &
+           dtracer(don_ind,:) + dtracer(donr_ind,:) +          &
+           Q * sum(dtracer(zooplankton(:)%C_ind,:), dim=1) +   &
+           Q * sum(dtracer(autotrophs(:)%C_ind,:), dim=1) +    &
+           denitrif(:) + sed_denitrif(:)
+    ! subtract out N fixation
+    do n = 1, autotroph_cnt
+       if (autotrophs(n)%Nfixer) then
+          work = work - autotroph_secondary_species(n,:)%Nfix
        end if
-       if (zw(k).le.100.0e2_r8) then
-          diags(ind%Jint_100m_Ntot)%field_2d(1) = diags(ind%Jint_100m_Ntot)%field_2d(1) + &
-               PON_sed_loss(k)
-       end if
-       ztop = zw(k)
     end do
+    call compute_vertical_integrals(work, delta_z, kmt,         &
+         full_depth=diags(ind%Jint_Ntot)%field_2d(1),            &
+         near_surface=diags(ind%Jint_100m_Ntot)%field_2d(1),     &
+         flux_in = PON_sed_loss)
 
     end associate
 
@@ -2496,44 +2455,29 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    integer(int_kind) :: k, n
-    real(r8) :: ztop, work1
+    integer(int_kind) :: n
+    real(r8), dimension(marbl_domain%km) :: work
     !-----------------------------------------------------------------------
 
     associate(                               &
          diags   => marbl_diags%diags(:),    &
          ind     => marbl_interior_diag_ind, &
          kmt     => marbl_domain%kmt,        &
-         zw      => marbl_domain%zw(:),      &
          delta_z => marbl_domain%delta_z(:)  &
          )
 
     ! vertical integrals
-    diags(ind%Jint_Ptot)%field_2d(1) = c0
-    diags(ind%Jint_100m_Ptot)%field_2d(1) = c0
-
-    ztop = c0
-    do k = 1, kmt
-       work1 = dtracer(po4_ind,k) + dtracer(dop_ind,k) + dtracer(dopr_ind,k)
-       do n = 1, zooplankton_cnt
-          work1 = work1 + Qp_zoo_pom * dtracer(zooplankton(n)%C_ind,k)
-       end do
-       do n = 1, autotroph_cnt
-          work1 = work1 + autotrophs(n)%Qp * dtracer(autotrophs(n)%C_ind,k)
-       end do
-       diags(ind%Jint_Ptot)%field_2d(1) = diags(ind%Jint_Ptot)%field_2d(1) +  &
-            delta_z(k) * work1 + POP_sed_loss(k)
-
-       if (ztop < 100.0e2_r8) then
-          diags(ind%Jint_100m_Ptot)%field_2d(1) = diags(ind%Jint_100m_Ptot)%field_2d(1) + &
-               min(100.0e2_r8 - ztop, delta_z(k)) * work1
-       end if
-       if (zw(k).le.100.0e2_r8) then
-          diags(ind%Jint_100m_Ptot)%field_2d(1) = diags(ind%Jint_100m_Ptot)%field_2d(1) + &
-               POP_sed_loss(k)
-       end if
-       ztop = zw(k)
+    work = dtracer(po4_ind,:) + dtracer(dop_ind,:) + dtracer(dopr_ind,:)
+    do n = 1, zooplankton_cnt
+       work = work + Qp_zoo_pom * dtracer(zooplankton(n)%C_ind,:)
     end do
+    do n = 1, autotroph_cnt
+       work = work + autotrophs(n)%Qp * dtracer(autotrophs(n)%C_ind,:)
+    end do
+    call compute_vertical_integrals(work, delta_z, kmt,         &
+         full_depth=diags(ind%Jint_Ptot)%field_2d(1),            &
+         near_surface=diags(ind%Jint_100m_Ptot)%field_2d(1),     &
+         flux_in = POP_sed_loss)
 
     end associate
 
@@ -2554,8 +2498,8 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    integer(int_kind) :: k, n
-    real(r8) :: ztop, work1
+    integer(int_kind) :: n
+    real(r8), dimension(marbl_domain%km) :: work
     !-----------------------------------------------------------------------
 
     associate(                               &
@@ -2567,30 +2511,16 @@ contains
          )
 
     ! vertical integrals
-    diags(ind%Jint_Sitot)%field_2d(1) = c0
-    diags(ind%Jint_100m_Sitot)%field_2d(1) = c0
-
-    ztop = c0
-    do k = 1,kmt
-       work1 = dtracer(sio3_ind,k)
-       do n = 1, autotroph_cnt
-          if (autotrophs(n)%Si_ind > 0) then
-             work1 = work1 + dtracer(autotrophs(n)%Si_ind,k)
-          end if
-       end do
-       diags(ind%Jint_Sitot)%field_2d(1) = diags(ind%Jint_Sitot)%field_2d(1) + &
-            delta_z(k) * work1 + P_SiO2%sed_loss(k)
-
-       if (ztop < 100.0e2_r8) then
-          diags(ind%Jint_100m_Sitot)%field_2d(1) = diags(ind%Jint_100m_Sitot)%field_2d(1) + &
-               min(100.0e2_r8 - ztop, delta_z(k)) * work1
+    work = dtracer(sio3_ind,:)
+    do n = 1, autotroph_cnt
+       if (autotrophs(n)%Si_ind > 0) then
+          work = work + dtracer(autotrophs(n)%Si_ind,:)
        end if
-       if (zw(k).le.100.0e2_r8) then
-          diags(ind%Jint_100m_Sitot)%field_2d(1) = diags(ind%Jint_100m_Sitot)%field_2d(1) + &
-               P_SiO2%sed_loss(k)
-       end if
-       ztop = zw(k)
     end do
+    call compute_vertical_integrals(work, delta_z, kmt,         &
+         full_depth=diags(ind%Jint_Sitot)%field_2d(1),            &
+         near_surface=diags(ind%Jint_100m_Sitot)%field_2d(1),     &
+         flux_in = P_SiO2%sed_loss)
 
     end associate
 
@@ -2615,8 +2545,8 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    integer(int_kind) :: k, n
-    real(r8) :: ztop, work1
+    integer(int_kind) :: n
+    real(r8), dimension(marbl_domain%km) :: work
     !-----------------------------------------------------------------------
 
     associate(                               &
@@ -2628,28 +2558,13 @@ contains
          )
 
     ! vertical integrals
-    diags(ind%Jint_Fetot)%field_2d(1) = c0
-    diags(ind%Jint_100m_Fetot)%field_2d(1) = c0
-
-    ztop = c0
-    do k = 1,kmt
-       work1 = dtracer(Fe_ind, k) + sum(dtracer(autotrophs(:)%Fe_ind, k)) +  &
-            Qfe_zoo * sum(dtracer(zooplankton(:)%C_ind, k)) -             &
-            dust%remin(k) * dust_to_Fe
-       diags(ind%Jint_Fetot)%field_2d(1) = diags(ind%Jint_Fetot)%field_2d(1) +   &
-            delta_z(k) * work1 + P_iron%sed_loss(k) - fesedflux(k)
-
-       if (ztop < 100.0e2_r8) then
-          diags(ind%Jint_100m_Fetot)%field_2d(1) = diags(ind%Jint_100m_Fetot)%field_2d(1) + &
-               min(100.0e2_r8 - ztop, delta_z(k)) * work1
-       end if
-
-       if (zw(k).le.100.0e2_r8) then
-          diags(ind%Jint_100m_Fetot)%field_2d(1) = diags(ind%Jint_100m_Fetot)%field_2d(1) + &
-               P_iron%sed_loss(k) - fesedflux(k)
-       end if
-       ztop = zw(k)
-      end do
+    work = dtracer(Fe_ind, :) + sum(dtracer(autotrophs(:)%Fe_ind, :),dim=1) + &
+           Qfe_zoo * sum(dtracer(zooplankton(:)%C_ind, :),dim=1) -            &
+           dust%remin(:) * dust_to_Fe
+    call compute_vertical_integrals(work, delta_z, kmt,         &
+         full_depth=diags(ind%Jint_Fetot)%field_2d(1),            &
+         near_surface=diags(ind%Jint_100m_Fetot)%field_2d(1),     &
+         flux_in = P_iron%sed_loss - fesedflux)
 
     end associate
 
@@ -3083,5 +2998,46 @@ contains
     end associate
 
   end subroutine store_diagnostics_ciso_interior
+
+  subroutine compute_vertical_integrals(integrand, delta_z, kmt, full_depth, near_surface, flux_in)
+
+     real(kind=r8), dimension(:),           intent(in) :: integrand, delta_z
+     integer,                               intent(in) :: kmt
+     real(kind=r8), dimension(:), optional, intent(in) :: flux_in
+     real(kind=r8), intent(out), optional :: full_depth, near_surface
+
+     real(kind=r8), dimension(size(integrand)) :: flux_in_used
+     real(kind=r8) :: zw, ztop, shallow_depth
+     integer :: k
+
+     shallow_depth = 100.0e2_r8
+
+     if (present(flux_in)) then
+        flux_in_used = flux_in
+     else
+        flux_in_used = c0
+     end if
+
+     if (present(full_depth)) then
+        full_depth = sum(delta_z(1:kmt)*integrand(1:kmt) + flux_in_used(1:kmt))
+     end if
+     ! Initialize integrals to zero
+     if (present(near_surface)) then
+        near_surface = c0
+        ztop = c0
+        zw = c0
+        do k=1,kmt
+           zw = zw + delta_z(k)
+           near_surface = near_surface + min(shallow_depth-ztop,delta_z(k))*integrand(k)
+           if (zw.le.shallow_depth) then
+              near_surface = near_surface + flux_in_used(k)
+           else
+              exit
+           end if
+           ztop = zw
+        end do
+     end if
+
+  end subroutine compute_vertical_integrals
 
 end module ecosys_diagnostics_mod
