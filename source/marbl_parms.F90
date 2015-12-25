@@ -24,8 +24,6 @@ module marbl_parms
   use marbl_kinds_mod, only : int_kind
   use marbl_kinds_mod, only : log_kind
 
-  use marbl_kinds_mod, only : c1
-
   use marbl_share_mod, only : zooplankton
   use marbl_share_mod, only : autotrophs
   use marbl_share_mod, only : grazing
@@ -47,6 +45,52 @@ module marbl_parms
   SAVE
 
   !-----------------------------------------------------------------------
+  !  MARBL isotope tracer cnt
+  !-----------------------------------------------------------------------
+
+  integer (int_kind), parameter :: marbl_ciso_tracer_cnt = 14
+
+  !-----------------------------------------------------------------------
+  !  numbers
+  !-----------------------------------------------------------------------
+  
+  real (r8), parameter :: c0     =    0.0_r8
+  real (r8), parameter :: c1     =    1.0_r8
+  real (r8), parameter :: c2     =    2.0_r8
+  real (r8), parameter :: c3     =    3.0_r8
+  real (r8), parameter :: c4     =    4.0_r8
+  real (r8), parameter :: c5     =    5.0_r8
+  real (r8), parameter :: c8     =    8.0_r8
+  real (r8), parameter :: c10    =   10.0_r8
+  real (r8), parameter :: c16    =   16.0_r8
+  real (r8), parameter :: c1000  = 1000.0_r8
+  real (r8), parameter :: c10000 =10000.0_r8
+  real (r8), parameter :: c1p5   =    1.5_r8
+  real (r8), parameter :: p33    = c1/c3    
+  real (r8), parameter :: p5     = 0.500_r8 
+  real (r8), parameter :: p25    = 0.250_r8 
+  real (r8), parameter :: p125   = 0.125_r8 
+  real (r8), parameter :: p001   = 0.001_r8 
+  real (r8), parameter :: eps    = 1.0e-10_r8
+  real (r8), parameter :: eps2   = 1.0e-20_r8
+  real (r8), parameter :: bignum = 1.0e+30_r8
+
+  !-----------------------------------------------------------------------
+  !  conversion factors
+  !-----------------------------------------------------------------------
+
+  real (r8) :: mpercm    = .01_r8        ! meters per cm
+
+  !-----------------------------------------------------------------------
+  !  common formats for formatted output
+  !-----------------------------------------------------------------------
+
+   character (1), parameter :: char_delim = ','
+   character (9), parameter :: delim_fmt  = "(72('-'))"
+   character (9), parameter :: ndelim_fmt = "(72('='))"
+   character (5), parameter :: blank_fmt  = "(' ')"
+
+  !-----------------------------------------------------------------------
   !  MARBL indices for surface fluxes
   !-----------------------------------------------------------------------
 
@@ -64,6 +108,14 @@ module marbl_parms
        ind_dic_riv_flux = 11,  &
        ind_alk_riv_flux = 12,  &
        ind_doc_riv_flux = 13
+
+  integer (int_kind), parameter :: &
+       di13c_ind          =  1,  & ! dissolved inorganic carbon 13
+       do13c_ind          =  2,  & ! dissolved organic carbon 13
+       zoo13C_ind         =  3,  & ! zooplankton carbon 13
+       di14c_ind          =  4,  & ! dissolved inorganic carbon 14
+       do14c_ind          =  5,  & ! dissolved organic carbon 14
+       zoo14C_ind         =  6     ! zooplankton carbon 14
 
   !-----------------------------------------------------------------------
   !  non-autotroph relative tracer indices

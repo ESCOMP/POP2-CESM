@@ -40,13 +40,15 @@ module marbl_interface_types
 
   !*****************************************************************************
   type, public :: marbl_column_domain_type
-     logical(log_kind) :: land_mask
-     integer(int_kind) :: PAR_nsubcols ! number of sub-column values for PAR
-     integer(int_kind) :: km ! number of vertical grid cells
-     integer(int_kind) :: kmt ! index of ocean floor
-     real(r8), allocatable :: dzt(:) ! (km) delta z for partial bottom cells
-     real(r8), allocatable :: dz(:) ! (km) delta z
-     real(r8), allocatable :: PAR_col_frac(:) ! column fraction occupied by each sub-column
+     logical(log_kind)     :: land_mask
+     integer(int_kind)     :: PAR_nsubcols      ! number of sub-column values for PAR
+     integer(int_kind)     :: km                ! number of vertical grid cells
+     integer(int_kind)     :: kmt               ! index of ocean floor
+     real(r8), allocatable :: zt(:)             ! (km) vert dist from sfc to midpoint of layer
+     real(r8), allocatable :: zw(:)             ! (km) vert dist from sfc to bottom of layer
+     real(r8), allocatable :: delta_z(:)        ! (km) delta z - different values for partial bottom cells
+     real(r8), allocatable :: dz(:)             ! (km) delta z - same values for partial bottom cells
+     real(r8), allocatable :: PAR_col_frac(:)   ! column fraction occupied by each sub-column
      real(r8), allocatable :: surf_shortwave(:) ! surface shortwave for each sub-column (W/m^2)
   end type marbl_column_domain_type
 
