@@ -253,7 +253,7 @@
 
    call define_tavg_field(tavg_S1_8,'S1_8',2,                          &
                           long_name='Salinity lvls 1-8',               &
-                          scale_factor=1000.0_rtavg,                      &
+                          scale_factor=1000.0_r8,                      &
                           units='gram/kilogram', grid_loc='2111')
 
    call define_tavg_field(tavg_UVEL,'UVEL',3,                          &
@@ -335,21 +335,21 @@
    call define_tavg_field(tavg_SALT,'SALT',3,                          &
                           long_name='Salinity',                        &
                           units='gram/kilogram', grid_loc='3111',      &
-                          scale_factor=1000.0_rtavg,                      &
+                          scale_factor=1000.0_r8,                      &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_SALT_MAX,'SALT_MAX',3,                  &
                           tavg_method=tavg_method_max,                 &
                           long_name='Maximum Salinity',                &
                           units='gram/kilogram', grid_loc='3111',      &
-                          scale_factor=1000.0_rtavg,                   &
+                          scale_factor=1000.0_r8,                      &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_SALT_MIN,'SALT_MIN',3,                  &
                           tavg_method=tavg_method_min,                 &
                           long_name='Minimum Salinity',                &
                           units='gram/kilogram', grid_loc='3111',      &
-                          scale_factor=1000.0_rtavg,                   &
+                          scale_factor=1000.0_r8,                      &
                           coordinates='TLONG TLAT z_t time')
 
    call define_tavg_field(tavg_TEMP2,'TEMP2',3,                        &

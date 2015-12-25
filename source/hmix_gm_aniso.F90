@@ -1286,7 +1286,8 @@
                  SUBCELLV(:,1,i_sub,j_sub,1,k,iblock) = &
                               p125 * DXT(:,1,iblock) * &
                                      DYT(:,1,iblock) * dz(k)
-                 if ( partial_bottom_cells ) SUBCELLV(:,:,i_sub,j_sub,1,k,iblock) = SUBCELLV(:,:,i_sub,j_sub,1,k,iblock) * DZT(:,:,k,iblock) / dz(k)
+                 if ( partial_bottom_cells ) &
+                    SUBCELLV(:,:,i_sub,j_sub,1,k,iblock) = SUBCELLV(:,:,i_sub,j_sub,1,k,iblock) * DZT(:,:,k,iblock) / dz(k)
               enddo
            enddo
         enddo
@@ -1721,7 +1722,7 @@
 
      call define_tavg_field (tavg_ADVS_ISOP, 'ADVS_ISOP', 2,                            &
       long_name='Vertically-Integrated S Eddy-Induced Advection Tendency (diagnostic)', &
-                   scale_factor=1000.0_rtavg,                                           &
+                   scale_factor=1000.0_r8,                                              &
                    units='cm gram/kilogram/s', grid_loc='2110',                         &
                    coordinates='TLONG TLAT time')
 
@@ -1732,7 +1733,7 @@
 
      call define_tavg_field (tavg_VNS_ISOP, 'VNS_ISOP', 3,                               &
       long_name='Salt Flux Tendency in grid-y Dir due to Eddy-Induced Vel (diagnostic)', &
-                   scale_factor=1000.0_rtavg,                                            &
+                   scale_factor=1000.0_r8,                                               &
                    units='gram/kilogram/s', grid_loc='3121',                             &
                    coordinates='TLONG ULAT z_t time')
 
@@ -2607,9 +2608,15 @@
         if ( ah_bkg_bottom /= c0 ) then
           where ( k == KMT(:,:,bid) ) 
 !-------------v--SJR MOD--v--------------------------------------------- 
-            HXX_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom*( NY_ISOP(:,:,k,bid)**2 + NX_ISOP(:,:,k,bid)**2 * K_EIGENVAL_RAT(:,:,kbt,k,bid) )
-            HYY_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom*( NX_ISOP(:,:,k,bid)**2 + NY_ISOP(:,:,k,bid)**2 * K_EIGENVAL_RAT(:,:,kbt,k,bid) )
-            HXY_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom*  NX_ISOP(:,:,k,bid)    * NY_ISOP(:,:,k,bid)    *(K_EIGENVAL_RAT(:,:,kbt,k,bid)-c1)
+            HXX_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom *                         &
+                            ( NY_ISOP(:,:,k,bid)**2 + NX_ISOP(:,:,k,bid)**2 * &
+                            K_EIGENVAL_RAT(:,:,kbt,k,bid) )
+            HYY_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom *                         &
+                            ( NX_ISOP(:,:,k,bid)**2 + NY_ISOP(:,:,k,bid)**2 * &
+                            K_EIGENVAL_RAT(:,:,kbt,k,bid) )
+            HXY_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom *                         &
+                            NX_ISOP(:,:,k,bid)    * NY_ISOP(:,:,k,bid)    *   &
+                            (K_EIGENVAL_RAT(:,:,kbt,k,bid)-c1)
 !-------------^--SJR MOD--^--------------------------------------------- 
           endwhere
         endif
@@ -3142,14 +3149,22 @@
 
       if (partial_bottom_cells) then
          do n=1,nt
-            GTK(2:nx_block-1,2:ny_block-1,n) = &
-                (    (  FX(2:nx_block-1,2:ny_block-1,n) * MIN(DZT(3:nx_block  ,2:ny_block-1,k,bid),DZT(2:nx_block-1,2:ny_block-1,k,bid)) - &
-                        FX(1:nx_block-2,2:ny_block-1,n) * MIN(DZT(1:nx_block-2,2:ny_block-1,k,bid),DZT(2:nx_block-1,2:ny_block-1,k,bid)) + &
-                        FY(2:nx_block-1,2:ny_block-1,n) * MIN(DZT(2:nx_block-1,3:ny_block  ,k,bid),DZT(2:nx_block-1,2:ny_block-1,k,bid)) - &
-                        FY(2:nx_block-1,1:ny_block-2,n) * MIN(DZT(2:nx_block-1,1:ny_block-2,k,bid),DZT(2:nx_block-1,2:ny_block-1,k,bid)) ) / &
-                                                                                                 DZT(2:nx_block-1,2:ny_block-1,k,bid) + &
-                     FZTOP(2:nx_block-1,2:ny_block-1,n,bid) - &
-                     FZBOT(2:nx_block-1,2:ny_block-1,n) ) / DZT(2:nx_block-1,2:ny_block-1,k,bid)
+            GTK(2:nx_block-1,2:ny_block-1,n) = ((FX(2:nx_block-1,2:ny_block-1,n) * &
+             MIN(DZT(3:nx_block  ,2:ny_block-1,k,bid),                        &
+                 DZT(2:nx_block-1,2:ny_block-1,k,bid)) -                      &
+             FX(1:nx_block-2,2:ny_block-1,n) *                                &
+             MIN(DZT(1:nx_block-2,2:ny_block-1,k,bid),                        &
+                 DZT(2:nx_block-1,2:ny_block-1,k,bid)) +                      &
+             FY(2:nx_block-1,2:ny_block-1,n) *                                &
+             MIN(DZT(2:nx_block-1,3:ny_block  ,k,bid),                        &
+                 DZT(2:nx_block-1,2:ny_block-1,k,bid)) -                      &
+             FY(2:nx_block-1,1:ny_block-2,n) *                                &
+             MIN(DZT(2:nx_block-1,1:ny_block-2,k,bid),                        &
+                 DZT(2:nx_block-1,2:ny_block-1,k,bid)) ) /                    &
+             DZT(2:nx_block-1,2:ny_block-1,k,bid) +                           &
+             FZTOP(2:nx_block-1,2:ny_block-1,n,bid) -                         &
+             FZBOT(2:nx_block-1,2:ny_block-1,n) ) /                           &
+             DZT(2:nx_block-1,2:ny_block-1,k,bid)
          enddo
       else
          GTK(2:nx_block-1,2:ny_block-1,:) = dzr(k) * &
@@ -5766,7 +5781,8 @@
          NX_SHRD(:,:,:,bid) = NXLOC
          NY_SHRD(:,:,:,bid) = NYLOC
          do k_sub=1,2 
-            KRAT_SHRD(:,:,k_sub,:,bid) = c1 + shrdispfac * KMAJ / ( abs( KAPPA_ISOP(:,:,k_sub,:,bid)+HOR_DIFF(:,:,k_sub,:,bid) ) + eps )**2
+            KRAT_SHRD(:,:,k_sub,:,bid) = c1 + shrdispfac * KMAJ /             &
+            ( abs( KAPPA_ISOP(:,:,k_sub,:,bid)+HOR_DIFF(:,:,k_sub,:,bid) ) + eps )**2
          enddo
 
          !KXX_ISOP(:,:,1,:,bid) = KMAJ * NXLOC**2

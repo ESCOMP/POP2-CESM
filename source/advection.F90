@@ -809,19 +809,19 @@
 
    call define_tavg_field(tavg_UE_TRACER(2),'UES',3,                   &
                           long_name='Salt Flux in grid-x direction',   &
-                          scale_factor=1000.0_rtavg,                   &
+                          scale_factor=1000.0_r8,                      &
                           units='gram/kilogram/s', grid_loc='3211',    &
                           coordinates='ULONG TLAT z_t time' )
 
    call define_tavg_field(tavg_VN_TRACER(2),'VNS',3,                   &
                           long_name='Salt Flux in grid-y direction',   &
-                          scale_factor=1000.0_rtavg,                   &
+                          scale_factor=1000.0_r8,                      &
                           units='gram/kilogram/s', grid_loc='3121',    &
                           coordinates='TLONG ULAT z_t time')
 
    call define_tavg_field(tavg_WT_TRACER(2),'WTS',3,                   &
                           long_name='Salt Flux Across Top Face',       &
-                          scale_factor=1000.0_rtavg,                   &
+                          scale_factor=1000.0_r8,                      &
                           units='gram/kilogram/s', grid_loc='3112',    &
                           coordinates='TLONG TLAT z_w time' )
 
@@ -832,7 +832,7 @@
 
    call define_tavg_field(tavg_ADV_TRACER(2),'ADVS',2,                        &
                     long_name='Vertically-Integrated S Advection Tendency',   &
-                          scale_factor=1000.0_rtavg,                             &
+                          scale_factor=1000.0_r8,                             &
                           units='centimeter gram/kilogram/s', grid_loc='2110',&
                           coordinates='TLONG TLAT time')
 

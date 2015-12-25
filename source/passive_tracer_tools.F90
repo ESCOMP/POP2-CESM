@@ -21,7 +21,6 @@
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
    use constants, only: char_blank, field_loc_center, field_type_scalar,delim_fmt
-   use marbl_interface_types, only : tracer_field => marbl_tracer_metadata_type
    use marbl_interface_types, only : tracer_read  => marbl_tracer_read_type
    use io_tools, only: document
    use io, only: data_set
@@ -29,7 +28,7 @@
        construct_file, construct_io_dim, construct_io_field, &
        destroy_file, destroy_io_field, stdout,add_attrib_file,&
        extract_attrib_file
-   use prognostic, only: curtime, oldtime
+   use prognostic, only: curtime, oldtime, tracer_field
    use grid, only: TAREA, RCALCT, area_t
    use global_reductions, only: global_sum
    use blocks
@@ -89,6 +88,7 @@
       extract_surf_avg,                      &
       comp_surf_avg,                         &
       set_tracer_indices,                    &
+      tracer_read,                           & ! from marbl_interface_types
       tracer_read_init
 
 !EOP

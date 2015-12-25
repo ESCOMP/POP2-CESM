@@ -369,7 +369,7 @@
    call define_tavg_field(tavg_HDIFS,'HDIFS',2,                             &
                     long_name='Vertically Integrated Horz Diff S tendency', &
                           coordinates='TLONG TLAT time',                    &
-                          scale_factor=1000.0_rtavg,                        &
+                          scale_factor=1000.0_r8,                           &
                           units='centimeter gram/kilogram/s', grid_loc='2110')
 
    do n = 1,nt

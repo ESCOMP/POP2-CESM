@@ -5,8 +5,6 @@ module marbl_interface_types
   use marbl_interface_constants, only : marbl_str_length
   use ecosys_constants, only : autotroph_cnt, zooplankton_cnt, ecosys_tracer_cnt
 
-  use domain_size, only : km
-
   implicit none
 
   private
@@ -95,6 +93,7 @@ module marbl_interface_types
      ! the driver.
      integer :: diag_cnt
      integer :: num_elements
+     integer :: num_levels
      type(marbl_single_diagnostic_type), dimension(:), allocatable :: diags
 
    contains
@@ -258,28 +257,26 @@ contains
   !*****************************************************************************
 
   subroutine marbl_single_diag_init(this, lname, sname, units, vgrid,         &
-             truncate, num_elements)
+             truncate, num_elements, num_levels)
 
     class(marbl_single_diagnostic_type) , intent(inout) :: this
     character(len=char_len) , intent(in)    :: lname, sname, units, vgrid
     logical                 , intent(in)    :: truncate
     integer                 , intent(in)    :: num_elements
+    integer                 , intent(in)    :: num_levels
 
-    character(len=char_len), dimension(3) :: valid_vertical_grids
-    integer :: n
-    logical :: valid_vgrid
-
-    valid_vertical_grids(1) = 'none'
-    valid_vertical_grids(2) = 'layer_avg'
-    valid_vertical_grids(3) = 'layer_iface'
-    valid_vgrid = .false.
-    do n=1,size(valid_vertical_grids)
-      if (trim(vgrid).eq.trim(valid_vertical_grids(n))) valid_vgrid = .true.
-    end do
-    if (.not.valid_vgrid) then
-      print*, "ERROR: ", trim(vgrid), " is not a valid vertical grid for MARBL"
-      ! FIXME: abort
-    end if
+    ! Allocate column memory for 3D vars or num_elements memory for 2D vars
+    select case (trim(vgrid))
+      case ('layer_avg')
+        allocate(this%field_3d(num_levels, num_elements))
+      case ('layer_iface')
+        allocate(this%field_3d(num_levels+1, num_elements))
+      case ('none')
+        allocate(this%field_2d(num_elements))
+      case DEFAULT
+        print*, "ERROR: ", trim(vgrid), " is not a valid vertical grid for MARBL"
+        ! FIXME: abort
+    end select
 
     this%compute_now = .true.
     this%long_name = trim(lname)
@@ -287,16 +284,6 @@ contains
     this%units = trim(units)
     this%vertical_grid = trim(vgrid)
     this%ltruncated_vertical_extent = truncate
-
-    ! Allocate column memory for 3D vars or num_elements memory for 2D vars
-    select case (trim(vgrid))
-      case ('layer_avg')
-        allocate(this%field_3d(km, num_elements))
-      case ('layer_iface')
-        allocate(this%field_3d(km+1, num_elements))
-      case ('none')
-        allocate(this%field_2d(num_elements))
-    end select
 
   end subroutine marbl_single_diag_init
 
@@ -365,14 +352,18 @@ contains
 
   !*****************************************************************************
 
-  subroutine marbl_diagnostics_constructor(this, num_diags, num_elements)
+  subroutine marbl_diagnostics_constructor(this, num_diags, num_elements,     &
+             num_levels)
 
     class(marbl_diagnostics_type), intent(inout) :: this
-    integer (int_kind),            intent(in)    :: num_diags, num_elements
+    integer (int_kind),            intent(in)    :: num_diags
+    integer (int_kind),            intent(in)    :: num_elements
+    integer (int_kind),            intent(in)    :: num_levels
 
     allocate(this%diags(num_diags))
     this%diag_cnt = 0
     this%num_elements = num_elements
+    this%num_levels = num_levels
 
   end subroutine marbl_diagnostics_constructor
 
@@ -416,7 +407,7 @@ contains
       ! FIXME: abort
     end if
     call this%diags(id)%initialize(lname, sname, units, vgrid, truncate,      &
-         this%num_elements)
+         this%num_elements, this%num_levels)
 
   end subroutine marbl_diagnostics_add
 

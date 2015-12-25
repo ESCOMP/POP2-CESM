@@ -56,7 +56,6 @@
    use shr_strdata_mod
    use shr_sys_mod
 #endif
-   use marbl_interface_types           , only : tracer_read => marbl_tracer_read_type
 
 
    implicit none

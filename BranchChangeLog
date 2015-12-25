@@ -1,6 +1,100 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    25 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n32_cesm_pop_2_1_20151215/
+Tag Summary: Calculate vertical integrals via separate subroutine in
+             ecosys_diagnostics_mod.F90
+
+Testing: aux_pop_MARBL vs the n23 tag (bit-for-bit except for Jint_*, which
+         are round-off level different).
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy, mvertens
+Tag Date:    24 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n31_cesm_pop_2_1_20151215/
+Tag Summary: Merge changes from marbl_init2_n23 - cleaning up CISO module
+
+Testing: aux_pop_MARBL vs the n23 tag (bit-for-bit).
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/marbl_interface_types.F90
+M       source/marbl_parms.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    24 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n30_cesm_pop_2_1_20151215/
+Tag Summary: Outside of the ecosys driver, only prognostic and
+             passive_tracer_tools should use marbl_interface_types (because
+             we moved tracer_read and tracer_field into MARBL)
+
+Testing: aux_pop_MARBL vs the n23 baselines (bit-for-bit)
+
+Files Modified:
+M       source/IRF_mod.F90
+M       source/abio_dic_dic14_mod.F90
+M       source/cfc11_mod.F90
+M       source/cfc_mod.F90
+M       source/iage_mod.F90
+M       source/moby_mod.F90
+M       source/passive_tracer_tools.F90
+M       source/prognostic.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    24 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n29_cesm_pop_2_1_20151215/
+Tag Summary: Remove "use domain_size, only : km" from marbl_interface_types
+             -- Introduced num_levels attribute in marbl_diagnostics_type data
+                type, which is set (to km) in the constructor. diags%field_3d
+                is then allocated based on the size of num_levels, rather than
+                km
+
+Testing: aux_pop_MARBL vs the n23 baselines (bit-for-bit)
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/marbl_interface_types.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    23 Dec 2015
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n28_cesm_pop_2_1_20151215/
+Tag Summary: Updates to allow code to compile with NAG
+             1) mismatch between rtavg and r8 in way scale_factor was written
+                to tavg files
+             2) Lots of lines exceeding 132 characters
+             3) incorrect use statements (use prognostic, only : nx_global
+                when nx_global is not a module variable in prognostic.F90)
+             Also -- removed tavg from ecosys_restore (not related to NAG)
+
+Testing: aux_pop_MARBL vs the n23 baselines (bit-for-bit)
+
+Files Modified:
+M       source/advection.F90
+M       source/baroclinic.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_restore.F90
+M       source/hmix_gm.F90
+M       source/hmix_gm_aniso.F90
+M       source/horizontal_mix.F90
+M       source/marbl_parms.F90
+M       source/mix_submeso.F90
+M       source/passive_tracers.F90
+M       source/prognostic.F90
+M       source/restart.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    22 Dec 2015
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n27_cesm_pop_2_1_20151215/
 Tag Summary: 1) Set num_elements = nx_block for set_sflux vectorization.
