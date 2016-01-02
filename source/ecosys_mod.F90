@@ -195,6 +195,7 @@ module ecosys_mod
   use marbl_share_mod, only : autotrophs, autotroph_cnt
   use marbl_share_mod, only : zooplankton, zooplankton_cnt
   use marbl_share_mod, only : grazing, grazer_prey_cnt
+  use marbl_share_mod, only : ecosys_ciso_ind_begin, ecosys_ciso_ind_end
 
   use marbl_interface_types, only : carbonate_type
   use marbl_interface_types, only : zooplankton_secondary_species_type
@@ -837,22 +838,19 @@ contains
   !***********************************************************************
 
   subroutine marbl_ecosys_set_interior( &
-       lexport_shared_vars,             &
+       ciso_on,                         &
        domain,                          &
        gcm_state,                       &
        marbl_interior_diags,            &
        marbl_restore_diags,             &
-       restore_local,                   &
-       marbl_interior_share,            &
-       marbl_zooplankton_share,         &
-       marbl_autotroph_share,           &
-       marbl_particulate_share,         &
+       restore_local ,                  &
        PAR,                             &
+       fesedflux,                       &
+       dust_flux_in,                    &
        tracer_module,                   &
-       dtracer,                         &
-       fesedflux, &
-       dust_flux_in, &
-       ph_prev_3d, ph_prev_alt_co2_3d)
+       ph_prev_3d,                      &
+       ph_prev_alt_co2_3d,              &
+       dtracer)
     
     ! !DESCRIPTION:
     !  Compute time derivatives for ecosystem state variables
@@ -865,6 +863,7 @@ contains
     use marbl_share_mod       , only : marbl_autotroph_share_type
     use marbl_share_mod       , only : marbl_zooplankton_share_type
     use marbl_share_mod       , only : marbl_particulate_share_type
+    use marbl_ciso_mod        , only : marbl_ciso_set_interior
 
     use ecosys_diagnostics_mod, only : store_diagnostics_carbonate
     use ecosys_diagnostics_mod, only : store_diagnostics_nitrification
@@ -882,23 +881,19 @@ contains
     use ecosys_diagnostics_mod, only : store_diagnostics_silicon_fluxes
     use ecosys_diagnostics_mod, only : store_diagnostics_iron_fluxes
 
-    logical (log_kind)                 , intent(in)    :: lexport_shared_vars                  ! flag to save shared_vars or not
-    type(marbl_column_domain_type)     , intent(in)    :: domain                               
-    real(r8)                           , intent(in)    :: fesedflux(:)
-    real(r8)                           , intent(in)    :: restore_local(ecosys_tracer_cnt, domain%km) ! local restoring terms for nutrients (mmol ./m^3/sec)
-    real(r8)                           , intent(in)    :: tracer_module(ecosys_tracer_cnt, domain%km) ! tracer values
-    type(marbl_gcm_state_type)         , intent(inout) :: gcm_state
-    real (r8)                          , intent(out)   :: dtracer(ecosys_tracer_cnt, domain%km)       ! computed source/sink terms
-    type(marbl_diagnostics_type)       , intent(inout) :: marbl_interior_diags
-    type(marbl_diagnostics_type)       , intent(inout) :: marbl_restore_diags
-    type(marbl_interior_share_type)    , intent(out)   :: marbl_interior_share(domain%km)
-    type(marbl_zooplankton_share_type) , intent(out)   :: marbl_zooplankton_share(zooplankton_cnt, domain%km)
-    type(marbl_autotroph_share_type)   , intent(out)   :: marbl_autotroph_share(autotroph_cnt, domain%km)
-    type(marbl_particulate_share_type) , intent(out)   :: marbl_particulate_share
-    type(photosynthetically_available_radiation_type), intent(inout) :: PAR
-    real(r8)                           , intent(in)    :: dust_flux_in
-    real(r8)                           , intent(inout) :: ph_prev_3d(domain%km)        
-    real(r8)                           , intent(inout) :: ph_prev_alt_co2_3d(domain%km)
+    logical (log_kind)                                , intent(in)    :: ciso_on   ! flag to turn on carbon isotope calculations
+    type(marbl_column_domain_type)                    , intent(in)    :: domain                                
+    type(marbl_gcm_state_type)                        , intent(in)    :: gcm_state
+    real(r8)                                          , intent(in)    :: restore_local(:,:)    ! (ecosys_driver_tracer_cnt, km) local restoring terms for nutrients (mmol ./m^3/sec) 
+    real(r8)                                          , intent(in)    :: dust_flux_in
+    real(r8)                                          , intent(in)    :: fesedflux(:)
+    real(r8)                                          , intent(in)    :: tracer_module(:,: )   ! (ecosys_driver_tracer_cnt, km) tracer values 
+    type(photosynthetically_available_radiation_type) , intent(inout) :: PAR
+    real(r8)                                          , intent(inout) :: ph_prev_3d(:)         ! (km)
+    real(r8)                                          , intent(inout) :: ph_prev_alt_co2_3d(:) ! (km)
+    type(marbl_diagnostics_type)                      , intent(inout) :: marbl_interior_diags
+    type(marbl_diagnostics_type)                      , intent(inout) :: marbl_restore_diags
+    real (r8)                                         , intent(out)   :: dtracer(:,:)          ! (ecosys_driver_tracer_cnt, km) computed source/sink terms
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -926,31 +921,28 @@ contains
     real (r8) :: Tfunc(domain%km)
     real (r8) :: Fe_scavenge_rate(domain%km) ! annual scavenging rate of iron as % of ambient
     real (r8) :: Fe_scavenge(domain%km)      ! loss of dissolved iron, scavenging (mmol Fe/m^3/sec)
+    real (r8) :: tracer_local(ecosys_tracer_cnt, domain%km)
+    real (r8) :: QA_dust_def(domain%km)
+    real (r8) :: zsat_calcite(domain%km)     ! Calcite Saturation Depth
+    real (r8) :: zsat_aragonite(domain%km)   ! Aragonite Saturation Depth
+    real (r8) :: sed_denitrif(domain%km)     ! sedimentary denitrification (nmol N/cm^3/sec)
+    real (r8) :: other_remin(domain%km)      ! organic C remin not due oxic or denitrif (nmolC/cm^3/sec)
+    real (r8) :: PON_remin(domain%km)        ! remin of PON
+    real (r8) :: PON_sed_loss(domain%km)     ! loss of PON to sediments
+    real (r8) :: POP_remin(domain%km)        ! remin of POP
+    real (r8) :: POP_sed_loss(domain%km)     ! loss of POP to sediments
 
-    real(r8) :: tracer_local(ecosys_tracer_cnt, domain%km)
-
-    real(r8) :: QA_dust_def(domain%km)
-
-    type(zooplankton_local_type) :: zooplankton_local(zooplankton_cnt, domain%km)
-    type(autotroph_local_type) :: autotroph_local(autotroph_cnt, domain%km)
-
+    type(zooplankton_local_type)             :: zooplankton_local(zooplankton_cnt, domain%km)
+    type(autotroph_local_type)               :: autotroph_local(autotroph_cnt, domain%km)
     type(autotroph_secondary_species_type)   :: autotroph_secondary_species(autotroph_cnt, domain%km)
     type(zooplankton_secondary_species_type) :: zooplankton_secondary_species(zooplankton_cnt, domain%km)
+    type(dissolved_organic_matter_type)      :: dissolved_organic_matter(domain%km)
+    type(carbonate_type)                     :: carbonate(domain%km)
 
-    type(dissolved_organic_matter_type) :: dissolved_organic_matter(domain%km)
-
-    type(carbonate_type) :: carbonate(domain%km)
-
-    real(r8) :: zsat_calcite(domain%km) ! Calcite Saturation Depth
-    real(r8) :: zsat_aragonite(domain%km) ! Aragonite Saturation Depth
-
-    real(r8) :: sed_denitrif(domain%km) ! sedimentary denitrification (nmol N/cm^3/sec)
-    real(r8) :: other_remin(domain%km)  ! organic C remin not due oxic or denitrif (nmolC/cm^3/sec)
-    real(r8) :: PON_remin(domain%km)    ! remin of PON
-    real(r8) :: PON_sed_loss(domain%km) ! loss of PON to sediments
-
-    real(r8) :: POP_remin(domain%km)    ! remin of POP
-    real(r8) :: POP_sed_loss(domain%km) ! loss of POP to sediments
+    type(marbl_interior_share_type)          :: marbl_interior_share(domain%km)
+    type(marbl_zooplankton_share_type)       :: marbl_zooplankton_share(zooplankton_cnt, domain%km)
+    type(marbl_autotroph_share_type)         :: marbl_autotroph_share(autotroph_cnt, domain%km)
+    type(marbl_particulate_share_type)       :: marbl_particulate_share
 
     ! NOTE(bja, 2015-07) vectorization: arrays that are (n, k, c, i)
     ! probably can not be vectorized reasonably over c without memory
@@ -962,6 +954,9 @@ contains
     ! NOTE(bja, 2015-07) dTracer=0 must come before the "not
     ! lsource_sink check to ensure correct answer when not doing
     ! computations.
+    ! NOTE(mvertens, 2015-12) the following includes carbon isotopes if 
+    ! ciso_on is true
+
     dtracer(:, :) = c0
 
     if (.not. lsource_sink) then
@@ -995,6 +990,7 @@ contains
             tracer_module(:, k), autotroph_cnt, autotrophs, autotroph_local(:, k))
 
     enddo
+
     call marbl_init_particulate_terms(1, &
          POC, P_CaCO3, P_SiO2, dust, P_iron, QA_dust_def(:), dust_flux_in)
 
@@ -1075,7 +1071,7 @@ contains
             P_iron, PON_remin(k), PON_sed_loss(k), POP_remin(k),       &
             POP_sed_loss(k), QA_dust_def(k), gcm_state%temperature(k), &
             tracer_local(:, k), carbonate(k), sed_denitrif(k),         &
-            other_remin(k), fesedflux(k), lexport_shared_vars)
+            other_remin(k), fesedflux(k), ciso_on)
 
        call marbl_compute_nitrif(k, domain%PAR_nsubcols, domain%kmt,    &
             PAR%col_frac(:), PAR%interface(k-1,:), PAR%interface(k,:),  &
@@ -1100,7 +1096,9 @@ contains
             o2_production(k), o2_consumption(k), &
             dtracer(:, k) )
 
-       if (lexport_shared_vars) then
+       if (ciso_on) then
+          ! FIXME(bja, 2015-08) need to pull particulate share
+          ! out of compute_particulate_terms!
           call marbl_export_interior_shared_variables(tracer_local(:, k), &
                carbonate(k), dissolved_organic_matter(k), &
                QA_dust_def(k), &
@@ -1117,7 +1115,7 @@ contains
                marbl_autotroph_share(:, k))
        end if
 
-       if  (k<domain%km) then
+       if  (k < domain%km) then
           call marbl_update_particulate_terms_from_prior_level(k+1, POC, P_CaCO3, &
                P_SiO2, dust, P_iron, QA_dust_def(:))
        endif
@@ -1170,6 +1168,20 @@ contains
     do n = 1, ecosys_tracer_cnt
        marbl_restore_diags%diags(n)%field_3d(:,1) = restore_local(n,:)
     end do
+
+    !  compute time derivatives for ecosystem carbon isotope state variables
+    if (ciso_on) then
+       call marbl_ciso_set_interior(                                    &
+            domain,                                                     &
+            gcm_state,                                                  &
+            marbl_interior_share,                                       &
+            marbl_zooplankton_share,                                    &
+            marbl_autotroph_share,                                      &
+            marbl_particulate_share,                                    &
+            tracer_module(ecosys_ciso_ind_begin:ecosys_ciso_ind_end,:), &
+            marbl_interior_diags,                                       &
+            dtracer(ecosys_ciso_ind_begin:ecosys_ciso_ind_end,:))
+    end if
 
     end associate
 
@@ -1390,7 +1402,6 @@ contains
     ! !USES:
 
     use marbl_interface_types , only : marbl_column_domain_type
-    use marbl_share_mod       , only : sinking_particle
     use marbl_share_mod       , only : column_sinking_particle_type
     use marbl_share_mod       , only : marbl_particulate_share_type
     use marbl_parms           , only : Tref
@@ -2934,7 +2945,6 @@ contains
     associate(                                     &
          dkm              => domain%km,            &
          column_kmt       => domain%kmt,           &
-         column_land_mask => domain%land_mask,     &
          delta_z          => domain%delta_z,       &
          PAR_nsubcols     => domain%PAR_nsubcols,  &
          col_frac         => domain%PAR_col_frac,  &
