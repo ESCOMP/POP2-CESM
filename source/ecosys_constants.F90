@@ -7,16 +7,18 @@ module ecosys_constants
   public
 
 !-----------------------------------------------------------------------------
-! number of ecosystem tracers (also in ecosys_constants.F90)
+! number of ecosystem tracers
 !-----------------------------------------------------------------------------
+
   integer(int_kind), parameter :: ecosys_tracer_cnt = ECOSYS_NT
+  integer(int_kind), parameter :: ecosys_ciso_tracer_cnt = 14
 
 !-----------------------------------------------------------------------------
 ! number of ecosystem constituents and grazing interactions
 !-----------------------------------------------------------------------------
-  integer (KIND=int_kind), parameter :: &
-       zooplankton_cnt = ZOOPLANKTON_CNT, &
-       autotroph_cnt   = AUTOTROPH_CNT,   &
-       grazer_prey_cnt = GRAZER_PREY_CNT
+
+  integer (KIND=int_kind), parameter :: zooplankton_cnt = ZOOPLANKTON_CNT
+  integer (KIND=int_kind), parameter :: autotroph_cnt   = AUTOTROPH_CNT
+  integer (KIND=int_kind), parameter :: grazer_prey_cnt = GRAZER_PREY_CNT
 
 end module ecosys_constants

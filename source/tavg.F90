@@ -3871,25 +3871,25 @@
 
 !  kludge for  MOC and transport diagnostics -- always r4
    if (.not. nonstandard_fields) then
-   if (present(scale_factor)) then
-      if (rtavg .eq. r8) then
-        scale_factor_use = scale_factor
-      else
-        scale_factor_use = real(scale_factor, rtavg)
-      end if
-      if (scale_factor_use /= 1.0_rtavg) then
-        tavg_field%scale_factor = scale_factor_use
-        if (scale_factor_use /= 0.0_rtavg) then
-          tavg_field%fill_value    = undefined_nf/scale_factor_use
-        endif
-      else
-        tavg_field%scale_factor  = undefined_nf
-        tavg_field%fill_value    = undefined_nf
-      endif
-   else
-      tavg_field%scale_factor  = undefined_nf
-      tavg_field%fill_value    = undefined_nf
-   endif
+     if (present(scale_factor)) then
+       if (rtavg .eq. r8) then
+         scale_factor_use = scale_factor
+       else
+         scale_factor_use = real(scale_factor, rtavg)
+       end if
+       if (scale_factor_use /= 1.0_rtavg) then
+         tavg_field%scale_factor = scale_factor_use
+         if (scale_factor_use /= 0.0_rtavg) then
+           tavg_field%fill_value    = undefined_nf/scale_factor_use
+         endif
+       else
+         tavg_field%scale_factor  = undefined_nf
+         tavg_field%fill_value    = undefined_nf
+       endif
+     else
+       tavg_field%scale_factor  = undefined_nf
+       tavg_field%fill_value    = undefined_nf
+     endif
    endif
 
    if (present(valid_range)) then
