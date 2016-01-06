@@ -96,7 +96,8 @@ contains
   
   subroutine marbl_init(this, marbl_sizes, nl_buffer, marbl_tracer_metadata, marbl_status )
 
-    use marbl_interface_constants , only: marbl_nl_buffer_size
+    use marbl_namelist_mod        , only: marbl_nl_cnt
+    use marbl_namelist_mod        , only: marbl_nl_buffer_size
     use marbl_interface_types     , only: marbl_status_type
     use marbl_interface_types     , only: marbl_tracer_metadata_type
     use marbl_share_mod           , only: autotroph_cnt, zooplankton_cnt
@@ -108,7 +109,7 @@ contains
     implicit none
 
     class(marbl_interface_class)    , intent(inout) :: this
-    character(marbl_nl_buffer_size) , intent(in)    :: nl_buffer
+    character(marbl_nl_buffer_size), dimension(marbl_nl_cnt), intent(in) :: nl_buffer
     type(marbl_tracer_metadata_type), intent(inout) :: marbl_tracer_metadata(:)
     type(marbl_sizes_type)          , intent(out)   :: marbl_sizes
     type(marbl_status_type)         , intent(out)   :: marbl_status

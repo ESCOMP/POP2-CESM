@@ -62,10 +62,15 @@
       ! Read namelist on master_task
       if (my_task.eq.master_task) then
         open(nml_in, file=nml_filename, status='old', iostat=nml_error)
-        if (nml_error.eq.0) then
+        if (nml_error /= 0) then
+           nml_error = -1
+        else
+           nml_error =  1
+        endif
+        do while (nml_error > 0)
           read(nml_in, nml=se_nml, iostat=nml_error)
-          if (nml_error.eq.0) close(nml_in)
-        end if
+        end do
+        if (nml_error.eq.0) close(nml_in)
       end if
 
       call broadcast_scalar(nml_error, master_task)

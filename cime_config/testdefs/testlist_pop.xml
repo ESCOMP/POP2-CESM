@@ -86,6 +86,7 @@
     </grid>
     <grid name="T62_g37">
       <test name="ERS">
+        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys_restore_gx3v7">hobart</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop" testmods="pop/ecosys_restore_gx3v7">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys_restore_gx3v7">yellowstone</machine>
@@ -110,6 +111,10 @@
       </test>
       <test name="PET_D_Ld2">
         <machine compiler="gnu" testtype="aux_pop_obgc_se" testmods="pop/ecosys_restore_gx3v7">userdefined</machine>
+      </test>
+      <test name="SMS">
+        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ciso_transient">hobart</machine>
+        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/ecosys">hobart</machine>
       </test>
       <test name="SMS_D">
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/ecosys">yellowstone</machine>
@@ -238,6 +243,7 @@
     </grid>
     <grid name="T62_g37">
       <test name="ERS">
+        <machine compiler="nag" testtype="aux_pop_MARBL" testmods="pop/cice_ciso">hobart</machine>
         <machine compiler="pgi" testtype="aux_pop" testmods="pop/cice_ecosys">yellowstone</machine>
         <machine compiler="intel" testtype="aux_pop_MARBL" testmods="pop/cice_ciso">yellowstone</machine>
       </test>

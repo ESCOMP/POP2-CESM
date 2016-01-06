@@ -514,13 +514,15 @@ contains
 
   subroutine marbl_params_init(nl_buffer, marbl_status)
 
-    use marbl_interface_constants, only: marbl_nl_buffer_size
+    use marbl_namelist_mod       , only : marbl_nl_cnt
+    use marbl_namelist_mod       , only : marbl_nl_buffer_size
+    use marbl_namelist_mod       , only : marbl_namelist
     use marbl_interface_constants, only: marbl_status_ok, marbl_status_could_not_read_namelist
     use marbl_interface_types, only: marbl_status_type
 
     implicit none
 
-    character(marbl_nl_buffer_size), intent(in) :: nl_buffer
+    character(marbl_nl_buffer_size), dimension(marbl_nl_cnt), intent(in) :: nl_buffer
     type(marbl_status_type), intent(inout) :: marbl_status
 
     !---------------------------------------------------------------------------
@@ -528,6 +530,7 @@ contains
     !---------------------------------------------------------------------------
 
     CHARACTER(LEN=*), PARAMETER :: subname = 'marbl_parms:marbl_parms_init'
+    character(len=marbl_nl_buffer_size) :: tmp_nl_buffer
 
     integer(kind=int_kind) :: io_error
 
@@ -560,7 +563,8 @@ contains
     !---------------------------------------------------------------------------
     ! read in namelist to override some defaults
     !---------------------------------------------------------------------------
-    read(nl_buffer, nml=ecosys_parms_nml, iostat=io_error)
+    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_parms_nml')
+    read(tmp_nl_buffer, nml=ecosys_parms_nml, iostat=io_error)
     if (io_error /= 0) then
        marbl_status%status = marbl_status_could_not_read_namelist
        marbl_status%message = "ERROR: marbl_parmams_read_namelist(): could not read namelist 'ecosys_parms_nml'."

@@ -51,6 +51,16 @@
       POP_r8             = selected_real_kind(13) ,&
       POP_r16            = selected_real_kind(26)
 
+   ! Note: we need to hard-code these sizes for NAG compiler; no sizeof()
+   !       intrinsic is present, and the kind number != size (as it is for
+   !       intel, pgi, and gnu compilers)
+   integer, parameter, public ::               &
+      POP_i4_size  = 4,                        &
+      POP_i8_size  = 8,                        &
+      POP_r4_size  = 4,                        &
+      POP_r8_size  = 8,                        &
+      POP_r16_size = 16
+
    integer, parameter, public ::               &
 #ifdef TAVG_R8
       POP_rtavg          = POP_r8 ! nonstandard r8 for debugging purposes only

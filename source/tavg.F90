@@ -4005,7 +4005,7 @@
    id = 0
 
    srch_loop: do n=1,num_avail_tavg_fields
-      if (trim(avail_tavg_fields(n)%short_name) == short_name) then
+      if (trim(avail_tavg_fields(n)%short_name) == trim(short_name)) then
          id = n
          exit srch_loop
       endif

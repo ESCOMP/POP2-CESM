@@ -1,5 +1,40 @@
 ===============================================================================
 Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    6 Jan 2016
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n34_cesm_pop_2_1_20151215/
+Tag Summary: More NAG compatibility issues... most invasive change is in how
+             ecosys / MARBL handle namelists. Reading pop_in into one big string
+             isn't sufficient, so nl_buffer is now an array with one &*_nml
+             per element (and all carriage returns converted to ' '). I also
+             needed to hard-code the size of r4, r8, and i4 variables since
+             NAG doesn't necessarily use kind=4 for 4-byte data and kind=8 for
+             8-byte data. I did this by introducing POP_[ir][48]_size in
+             POP_KindsMod.F90 (only used in io_types.F90). There were also a
+             few new issues of lines exceeding 132 characters, and I updated
+             config_pes.xml to use 24 tasks for gx3v7 cases and 48 tasks for
+             gx1v6 cases (which still don't seem to be stable). Lastly, I added
+             some hobart_nag tests to aux_pop_MARBL.
+
+Testing: I brought this back to yellowstone to compare against the n33 baselines
+         and also generated nag baselines for aux_pop_MARBL to use moving forward.
+
+Files Modified:
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+M       source/POP_KindsMod.F90
+M       source/ecosys_ciso_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/io_types.F90
+M       source/marbl_interface.F90
+M       source/marbl_interface_constants.F90
+A       source/marbl_namelist_mod.F90
+M       source/marbl_parms.F90
+M       source/software_eng_mod.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
 Developers:  mlevy, mvertens
 Tag Date:    6 Jan 2016
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n33_cesm_pop_2_1_20151215/

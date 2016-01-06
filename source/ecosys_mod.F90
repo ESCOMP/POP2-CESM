@@ -343,7 +343,9 @@ contains
     !  the module namelist, setting initial conditions, setting up forcing,
     !  and defining additional tavg variables.
     !
-    use marbl_interface_constants , only : marbl_nl_buffer_size
+    use marbl_namelist_mod        , only : marbl_nl_cnt
+    use marbl_namelist_mod        , only : marbl_nl_buffer_size
+    use marbl_namelist_mod        , only : marbl_namelist
     use marbl_interface_constants , only : marbl_status_ok
     use marbl_interface_constants , only : marbl_status_could_not_read_namelist
     use marbl_interface_types     , only : marbl_status_type
@@ -399,7 +401,7 @@ contains
     implicit none
 
     ! !INPUT PARAMETERS:
-    character(marbl_nl_buffer_size) , intent(in) :: nl_buffer
+    character(marbl_nl_buffer_size), dimension(marbl_nl_cnt), intent(in) :: nl_buffer
 
     ! !OUTPUT PARAMETERS:
     type(marbl_status_type) , intent(out) :: marbl_status
@@ -409,6 +411,7 @@ contains
     !-----------------------------------------------------------------------
 
     character(*), parameter :: subname = 'ecosys_mod:ecosys_init_nml'
+    character(len=marbl_nl_buffer_size) :: tmp_nl_buffer
 
     integer (int_kind)           :: n                        ! index for looping over tracers
     character(char_len)          :: comp_surf_avg_freq_opt   ! choice for freq of comp_surf_avg
@@ -635,7 +638,8 @@ contains
     ! read the namelist buffer on every processor
     !-----------------------------------------------------------------------
 
-    read(nl_buffer, nml=ecosys_nml, iostat=nml_error)
+    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_nml')
+    read(tmp_nl_buffer, nml=ecosys_nml, iostat=nml_error)
     if (nml_error /= 0) then
        marbl_status%status = marbl_status_could_not_read_namelist
        marbl_status%message = "ERROR: "//subname//"(): could not read ecosys_nml."

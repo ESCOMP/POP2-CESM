@@ -234,7 +234,11 @@ contains
     !  1) setting ecosys and ecosys_ciso module index bounds
     !  2) calling ecosys and ecosys_ciso module init subroutine
 
-    use marbl_interface_constants , only : marbl_nl_buffer_size
+    use marbl_namelist_mod        , only : marbl_nl_in_size
+    use marbl_namelist_mod        , only : marbl_nl_cnt
+    use marbl_namelist_mod        , only : marbl_nl_buffer_size
+    use marbl_namelist_mod        , only : marbl_nl_split_string
+    use marbl_namelist_mod        , only : marbl_namelist
     use marbl_interface_types     , only : tracer_field => marbl_tracer_metadata_type
     use marbl_interface_types     , only : tracer_read  => marbl_tracer_read_type
     use grid                      , only : REGION_MASK
@@ -278,7 +282,9 @@ contains
     integer (int_kind)              :: iostat                             ! io status flag
     character (char_len)            :: sname, lname, units, coordinates
     character (4)                   :: grid_loc
-    character(marbl_nl_buffer_size) :: nl_buffer
+    character(len=marbl_nl_buffer_size), dimension(marbl_nl_cnt) :: nl_buffer
+    character(len=marbl_nl_buffer_size) :: tmp_nl_buffer
+    character(len=marbl_nl_in_size) :: nl_str
     character(char_len_long)        :: ioerror_msg
     integer (int_kind)              :: auto_ind                           ! autotroph functional group index
     integer (int_kind)              :: iblock                             ! index for looping over blocks
@@ -309,13 +315,14 @@ contains
     ecosys_tadvect_ctype  = 'base_model'
     ecosys_qsw_distrb_const = .true.
 
-    nl_buffer = ''
+    nl_buffer(:) = ''
+    nl_str    = ''
     if (my_task == master_task) then
        ! read the namelist file into a buffer.
        open(unit=nml_in, file=nml_filename, action='read', access='stream', &
             form='unformatted', iostat=nml_error)
        if (nml_error == 0) then
-          read(unit=nml_in, iostat=nml_error, iomsg=ioerror_msg) nl_buffer
+          read(unit=nml_in, iostat=nml_error, iomsg=ioerror_msg) nl_str
 
           ! we should always reach the EOF to capture the entire file...
           if (.not. is_iostat_end(nml_error)) then
@@ -327,7 +334,7 @@ contains
           end if
 
           write(stdout, '(a, a, i7, a)') subname, ": Read buffer of ", &
-               len_trim(nl_buffer), " characters."
+               len_trim(nl_str), " characters."
 
           write(stdout, '(a)') "  If it looks like part of the namelist is missing, "
           write(stdout, '(a)') "  compare the number of characters read to the actual "
@@ -347,12 +354,15 @@ contains
        call exit_POP(sigAbort, 'ERROR reading pop namelist file into buffer.')
     endif
 
-    ! broadcast the namelist buffer
-    call broadcast_scalar(nl_buffer, master_task)
+    ! broadcast the namelist string
+    call broadcast_scalar(nl_str, master_task)
+    ! process namelist string to store in nl_buffer
+    call marbl_nl_split_string(nl_str, nl_buffer)
 
     ! now every process reads the namelist from the buffer
     ioerror_msg=''
-    read(nl_buffer, nml=ecosys_driver_nml, iostat=nml_error, iomsg=ioerror_msg)
+    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_driver_nml')
+    read(tmp_nl_buffer, nml=ecosys_driver_nml, iostat=nml_error, iomsg=ioerror_msg)
     if (nml_error /= 0) then
        write(stdout, *) subname, ": process ", my_task, ": namelist read error: ", nml_error, " : ", ioerror_msg
        call exit_POP(sigAbort, 'ERROR reading ecosys_driver_nml from buffer.')
