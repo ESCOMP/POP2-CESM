@@ -2610,10 +2610,10 @@
 !-------------v--SJR MOD--v--------------------------------------------- 
             HXX_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom *                         &
                             ( NY_ISOP(:,:,k,bid)**2 + NX_ISOP(:,:,k,bid)**2 * &
-                            K_EIGENVAL_RAT(:,:,kbt,k,bid) )
+                              K_EIGENVAL_RAT(:,:,kbt,k,bid) )
             HYY_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom *                         &
                             ( NX_ISOP(:,:,k,bid)**2 + NY_ISOP(:,:,k,bid)**2 * &
-                            K_EIGENVAL_RAT(:,:,kbt,k,bid) )
+                              K_EIGENVAL_RAT(:,:,kbt,k,bid) )
             HXY_DIFF(:,:,kbt,k,bid) = ah_bkg_bottom *                         &
                             NX_ISOP(:,:,k,bid)    * NY_ISOP(:,:,k,bid)    *   &
                             (K_EIGENVAL_RAT(:,:,kbt,k,bid)-c1)
@@ -3149,22 +3149,23 @@
 
       if (partial_bottom_cells) then
          do n=1,nt
-            GTK(2:nx_block-1,2:ny_block-1,n) = ((FX(2:nx_block-1,2:ny_block-1,n) * &
-             MIN(DZT(3:nx_block  ,2:ny_block-1,k,bid),                        &
-                 DZT(2:nx_block-1,2:ny_block-1,k,bid)) -                      &
-             FX(1:nx_block-2,2:ny_block-1,n) *                                &
-             MIN(DZT(1:nx_block-2,2:ny_block-1,k,bid),                        &
-                 DZT(2:nx_block-1,2:ny_block-1,k,bid)) +                      &
-             FY(2:nx_block-1,2:ny_block-1,n) *                                &
-             MIN(DZT(2:nx_block-1,3:ny_block  ,k,bid),                        &
-                 DZT(2:nx_block-1,2:ny_block-1,k,bid)) -                      &
-             FY(2:nx_block-1,1:ny_block-2,n) *                                &
-             MIN(DZT(2:nx_block-1,1:ny_block-2,k,bid),                        &
-                 DZT(2:nx_block-1,2:ny_block-1,k,bid)) ) /                    &
-             DZT(2:nx_block-1,2:ny_block-1,k,bid) +                           &
-             FZTOP(2:nx_block-1,2:ny_block-1,n,bid) -                         &
-             FZBOT(2:nx_block-1,2:ny_block-1,n) ) /                           &
-             DZT(2:nx_block-1,2:ny_block-1,k,bid)
+            GTK(2:nx_block-1,2:ny_block-1,n) =                                &
+                ( ( FX(2:nx_block-1,2:ny_block-1,n) *                         &
+                    MIN(DZT(3:nx_block  ,2:ny_block-1,k,bid),                 &
+                        DZT(2:nx_block-1,2:ny_block-1,k,bid)) -               &
+                    FX(1:nx_block-2,2:ny_block-1,n) *                         &
+                    MIN(DZT(1:nx_block-2,2:ny_block-1,k,bid),                 &
+                        DZT(2:nx_block-1,2:ny_block-1,k,bid)) +               &
+                    FY(2:nx_block-1,2:ny_block-1,n) *                         &
+                    MIN(DZT(2:nx_block-1,3:ny_block  ,k,bid),                 &
+                        DZT(2:nx_block-1,2:ny_block-1,k,bid)) -               &
+                    FY(2:nx_block-1,1:ny_block-2,n) *                         &
+                    MIN(DZT(2:nx_block-1,1:ny_block-2,k,bid),                 &
+                        DZT(2:nx_block-1,2:ny_block-1,k,bid)) ) /             &
+                  DZT(2:nx_block-1,2:ny_block-1,k,bid) +                      &
+                  FZTOP(2:nx_block-1,2:ny_block-1,n,bid) -                    &
+                  FZBOT(2:nx_block-1,2:ny_block-1,n) ) /                      &
+                DZT(2:nx_block-1,2:ny_block-1,k,bid)
          enddo
       else
          GTK(2:nx_block-1,2:ny_block-1,:) = dzr(k) * &
