@@ -3085,19 +3085,19 @@ contains
     PO4_loc(:)         = tracer_local(po4_ind,:)
     SiO3_loc(:)        = tracer_local(sio3_ind,:)
 
-    associate(                                             &
-         dkm               => domain%km,                   &
-         column_kmt        => domain%kmt,                  &
-         CO3               => carbonate%CO3,               &
-         HCO3              => carbonate%HCO3,              &
-         H2CO3             => carbonate%H2CO3,             &
-         pH                => carbonate%pH,                &
-         CO3_sat_calcite   => carbonate%CO3_sat_calcite,   &
-         CO3_sat_aragonite => carbonate%CO3_sat_aragonite, &
-         CO3_ALT_CO2       => carbonate%CO3_ALT_CO2,       &
-         HCO3_ALT_CO2      => carbonate%HCO3_ALT_CO2,      &
-         H2CO3_ALT_CO2     => carbonate%H2CO3_ALT_CO2,     &
-         pH_ALT_CO2        => carbonate%pH_ALT_CO2         &
+    associate(                                                &
+         dkm               => domain%km,                      &
+         column_kmt        => domain%kmt,                     &
+         CO3               => carbonate(:)%CO3,               &
+         HCO3              => carbonate(:)%HCO3,              &
+         H2CO3             => carbonate(:)%H2CO3,             &
+         pH                => carbonate(:)%pH,                &
+         CO3_sat_calcite   => carbonate(:)%CO3_sat_calcite,   &
+         CO3_sat_aragonite => carbonate(:)%CO3_sat_aragonite, &
+         CO3_ALT_CO2       => carbonate(:)%CO3_ALT_CO2,       &
+         HCO3_ALT_CO2      => carbonate(:)%HCO3_ALT_CO2,      &
+         H2CO3_ALT_CO2     => carbonate(:)%H2CO3_ALT_CO2,     &
+         pH_ALT_CO2        => carbonate(:)%pH_ALT_CO2         &
          )
 
     pressure_correct = .TRUE.
@@ -4398,40 +4398,40 @@ contains
     !-----------------------------------------------------------------------
 
     associate(                                                            &
-         thetaC          => autotroph_secondary_species%thetaC          , & ! local Chl/C ratio (mg Chl/mmol C)
-         QCaCO3          => autotroph_secondary_species%QCaCO3          , & ! CaCO3/C ratio (mmol CaCO3/mmol C)
-         Qfe             => autotroph_secondary_species%Qfe             , & ! init fe/C ratio (mmolFe/mmolC)
-         Qsi             => autotroph_secondary_species%Qsi             , & ! initial Si/C ratio (mmol Si/mmol C)
-         NO3_V           => autotroph_secondary_species%NO3_V           , & ! nitrate uptake (mmol NO3/m^3/sec)
-         NH4_V           => autotroph_secondary_species%NH4_V           , & ! ammonium uptake (mmol NH4/m^3/sec)
-         PO4_V           => autotroph_secondary_species%PO4_V           , & ! PO4 uptake (mmol PO4/m^3/sec)
-         DOP_V           => autotroph_secondary_species%DOP_V           , & ! DOP uptake (mmol DOP/m^3/sec)
-         photoC          => autotroph_secondary_species%photoC          , & ! C-fixation (mmol C/m^3/sec)
-         photoFe         => autotroph_secondary_species%photoFe         , & ! iron uptake
-         photoSi         => autotroph_secondary_species%photoSi         , & ! silicon uptake (mmol Si/m^3/sec)
-         photoacc        => autotroph_secondary_species%photoacc        , & ! Chl synth. term in photoadapt. (GD98) (mg Chl/m^3/sec)
-         auto_loss       => autotroph_secondary_species%auto_loss       , & ! autotroph non-grazing mort (mmol C/m^3/sec)
-         auto_loss_dic   => autotroph_secondary_species%auto_loss_dic   , & ! auto_loss routed to dic (mmol C/m^3/sec)
-         auto_loss_doc   => autotroph_secondary_species%auto_loss_doc   , & ! auto_loss routed to doc (mmol C/m^3/sec)
-         auto_agg        => autotroph_secondary_species%auto_agg        , & ! autotroph aggregation (mmol C/m^3/sec)
-         auto_graze      => autotroph_secondary_species%auto_graze      , & ! autotroph grazing rate (mmol C/m^3/sec)
-         auto_graze_zoo  => autotroph_secondary_species%auto_graze_zoo  , & ! auto_graze routed to zoo (mmol C/m^3/sec)
-         auto_graze_dic  => autotroph_secondary_species%auto_graze_dic  , & ! auto_graze routed to dic (mmol C/m^3/sec)
-         auto_graze_doc  => autotroph_secondary_species%auto_graze_doc  , & ! auto_graze routed to doc (mmol C/m^3/sec)
-         CaCO3_PROD      => autotroph_secondary_species%CaCO3_PROD      , & ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)
-         Nfix            => autotroph_secondary_species%Nfix            , & ! total Nitrogen fixation (mmol N/m^3/sec)
-         Nexcrete        => autotroph_secondary_species%Nexcrete        , & ! fixed N excretion
-         remaining_P_dip => autotroph_secondary_species%remaining_P_dip , & ! remaining_P from mort routed to remin
+         thetaC          => autotroph_secondary_species(:)%thetaC          , & ! local Chl/C ratio (mg Chl/mmol C)
+         QCaCO3          => autotroph_secondary_species(:)%QCaCO3          , & ! CaCO3/C ratio (mmol CaCO3/mmol C)
+         Qfe             => autotroph_secondary_species(:)%Qfe             , & ! init fe/C ratio (mmolFe/mmolC)
+         Qsi             => autotroph_secondary_species(:)%Qsi             , & ! initial Si/C ratio (mmol Si/mmol C)
+         NO3_V           => autotroph_secondary_species(:)%NO3_V           , & ! nitrate uptake (mmol NO3/m^3/sec)
+         NH4_V           => autotroph_secondary_species(:)%NH4_V           , & ! ammonium uptake (mmol NH4/m^3/sec)
+         PO4_V           => autotroph_secondary_species(:)%PO4_V           , & ! PO4 uptake (mmol PO4/m^3/sec)
+         DOP_V           => autotroph_secondary_species(:)%DOP_V           , & ! DOP uptake (mmol DOP/m^3/sec)
+         photoC          => autotroph_secondary_species(:)%photoC          , & ! C-fixation (mmol C/m^3/sec)
+         photoFe         => autotroph_secondary_species(:)%photoFe         , & ! iron uptake
+         photoSi         => autotroph_secondary_species(:)%photoSi         , & ! silicon uptake (mmol Si/m^3/sec)
+         photoacc        => autotroph_secondary_species(:)%photoacc        , & ! Chl synth. term in photoadapt. (GD98) (mg Chl/m^3/sec)
+         auto_loss       => autotroph_secondary_species(:)%auto_loss       , & ! autotroph non-grazing mort (mmol C/m^3/sec)
+         auto_loss_dic   => autotroph_secondary_species(:)%auto_loss_dic   , & ! auto_loss routed to dic (mmol C/m^3/sec)
+         auto_loss_doc   => autotroph_secondary_species(:)%auto_loss_doc   , & ! auto_loss routed to doc (mmol C/m^3/sec)
+         auto_agg        => autotroph_secondary_species(:)%auto_agg        , & ! autotroph aggregation (mmol C/m^3/sec)
+         auto_graze      => autotroph_secondary_species(:)%auto_graze      , & ! autotroph grazing rate (mmol C/m^3/sec)
+         auto_graze_zoo  => autotroph_secondary_species(:)%auto_graze_zoo  , & ! auto_graze routed to zoo (mmol C/m^3/sec)
+         auto_graze_dic  => autotroph_secondary_species(:)%auto_graze_dic  , & ! auto_graze routed to dic (mmol C/m^3/sec)
+         auto_graze_doc  => autotroph_secondary_species(:)%auto_graze_doc  , & ! auto_graze routed to doc (mmol C/m^3/sec)
+         CaCO3_PROD      => autotroph_secondary_species(:)%CaCO3_PROD      , & ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)
+         Nfix            => autotroph_secondary_species(:)%Nfix            , & ! total Nitrogen fixation (mmol N/m^3/sec)
+         Nexcrete        => autotroph_secondary_species(:)%Nexcrete        , & ! fixed N excretion
+         remaining_P_dip => autotroph_secondary_species(:)%remaining_P_dip , & ! remaining_P from mort routed to remin
 
-         f_zoo_detr      => zooplankton_secondary_species%f_zoo_detr    , & ! frac of zoo losses into large detrital pool (non-dim)
-         x_graze_zoo     => zooplankton_secondary_species%x_graze_zoo   , & ! {auto, zoo}_graze routed to zoo (mmol C/m^3/sec)
-         zoo_graze       => zooplankton_secondary_species%zoo_graze     , & ! zooplankton losses due to grazing (mmol C/m^3/sec)
-         zoo_graze_zoo   => zooplankton_secondary_species%zoo_graze_zoo , & ! grazing of zooplankton routed to zoo (mmol C/m^3/sec)
-         zoo_graze_dic   => zooplankton_secondary_species%zoo_graze_dic , & ! grazing of zooplankton routed to dic (mmol C/m^3/sec)
-         zoo_graze_doc   => zooplankton_secondary_species%zoo_graze_doc , & ! grazing of zooplankton routed to doc (mmol C/m^3/sec)
-         zoo_loss        => zooplankton_secondary_species%zoo_loss      , & ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
-         zoo_loss_dic    => zooplankton_secondary_species%zoo_loss_dic  , & ! zoo_loss routed to dic (mmol C/m^3/sec)
-         zoo_loss_doc    => zooplankton_secondary_species%zoo_loss_doc  , & ! zoo_loss routed to doc (mmol C/m^3/sec)
+         f_zoo_detr      => zooplankton_secondary_species(:)%f_zoo_detr    , & ! frac of zoo losses into large detrital pool (non-dim)
+         x_graze_zoo     => zooplankton_secondary_species(:)%x_graze_zoo   , & ! {auto, zoo}_graze routed to zoo (mmol C/m^3/sec)
+         zoo_graze       => zooplankton_secondary_species(:)%zoo_graze     , & ! zooplankton losses due to grazing (mmol C/m^3/sec)
+         zoo_graze_zoo   => zooplankton_secondary_species(:)%zoo_graze_zoo , & ! grazing of zooplankton routed to zoo (mmol C/m^3/sec)
+         zoo_graze_dic   => zooplankton_secondary_species(:)%zoo_graze_dic , & ! grazing of zooplankton routed to dic (mmol C/m^3/sec)
+         zoo_graze_doc   => zooplankton_secondary_species(:)%zoo_graze_doc , & ! grazing of zooplankton routed to doc (mmol C/m^3/sec)
+         zoo_loss        => zooplankton_secondary_species(:)%zoo_loss      , & ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
+         zoo_loss_dic    => zooplankton_secondary_species(:)%zoo_loss_dic  , & ! zoo_loss routed to dic (mmol C/m^3/sec)
+         zoo_loss_doc    => zooplankton_secondary_species(:)%zoo_loss_doc  , & ! zoo_loss routed to doc (mmol C/m^3/sec)
 
          DOC_prod        => dissolved_organic_matter%DOC_prod        , & ! production of DOC (mmol C/m^3/sec)
          DOC_remin       => dissolved_organic_matter%DOC_remin       , & ! remineralization of DOC (mmol C/m^3/sec)

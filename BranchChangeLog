@@ -16,6 +16,11 @@ Tag Summary: More NAG compatibility issues... most invasive change is in how
              gx1v6 cases (which still don't seem to be stable). Lastly, I added
              some hobart_nag tests to aux_pop_MARBL.
 
+             Also worked towards getting the code to compile with PGI, but
+             that hit another snag (read: internal compiler error) and we need
+             PGI to provide a work-around or update their compiler. Bug has
+             been reported to PGI by Jim Edwards.
+
 Testing: I brought this back to yellowstone to compare against the n33 baselines
          and also generated nag baselines for aux_pop_MARBL to use moving forward.
 
