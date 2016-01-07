@@ -477,7 +477,6 @@ contains
     call ecosys_driver_init_interior_restore(marbl_saved_state, ecosys_restore)
 
     ! initialize ecosys_diagnostics type
-    ! initialize ecosys_diagnostics type
     do iblock=1,nblocks_clinic
        call marbl_diagnostics_init(                                           &
             marbl_interior_diags(iblock),                                     &

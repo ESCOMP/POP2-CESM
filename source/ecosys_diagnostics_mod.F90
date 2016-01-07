@@ -48,7 +48,7 @@ module ecosys_diagnostics_mod
   !-----------------------------------------------------------------------
 
   ! FIXME - the following should be counted and not be parameters
-  integer, public, parameter :: max_interior_diags = 2 * (75 + autotroph_cnt*26 + zooplankton_cnt*8)
+  integer, public, parameter :: max_interior_diags = 112 + (40*autotroph_cnt) + (8*zooplankton_cnt)
   integer, public, parameter :: max_forcing_diags  = 40
   integer, public, parameter :: max_restore_diags  = ecosys_tracer_cnt
 
@@ -2053,7 +2053,7 @@ contains
        ! vertical integrals
        if (ind%CaCO3_form_zint(n).ne.-1) then
           call compute_vertical_integrals(autotroph_secondary_species(n,:)%CaCO3_PROD, &
-               delta_z, kmt, full_depth=diags(ind%CaCO3_form_zint(n))%field_2d(1))
+               delta_z, kmt, full_depth_integral=diags(ind%CaCO3_form_zint(n))%field_2d(1))
 
           diags(ind%tot_CaCO3_form_zint)%field_2d(1) = diags(ind%tot_CaCO3_form_zint)%field_2d(1) + &
                diags(ind%CaCO3_form_zint(n))%field_2d(1)
@@ -2062,10 +2062,10 @@ contains
        diags(ind%photoC_zint(n))%field_2d(1) = c0
 
        call compute_vertical_integrals(autotroph_secondary_species(n,:)%photoC, &
-            delta_z, kmt, full_depth=diags(ind%photoC_zint(n))%field_2d(1))
+            delta_z, kmt, full_depth_integral=diags(ind%photoC_zint(n))%field_2d(1))
 
        call compute_vertical_integrals(diags(ind%photoC_NO3(n))%field_3d(:, 1), &
-            delta_z, kmt, full_depth=diags(ind%photoC_NO3_zint(n))%field_2d(1))
+            delta_z, kmt, full_depth_integral=diags(ind%photoC_NO3_zint(n))%field_2d(1))
     end do ! do n
 
     end associate
@@ -2368,8 +2368,8 @@ contains
          )
 
     ! vertical integrals
-    work = dtracer(dic_ind,:) + dtracer(doc_ind,:) +                        &
-         dtracer(docr_ind,:) + sum(dtracer(zooplankton(:)%C_ind,:), dim=1) + &
+    work = dtracer(dic_ind,:) + dtracer(doc_ind,:) +                          &
+         dtracer(docr_ind,:) + sum(dtracer(zooplankton(:)%C_ind,:), dim=1) +  &
          sum(dtracer(autotrophs(:)%C_ind,:),dim=1)
     do auto_ind = 1, autotroph_cnt
        n = autotrophs(auto_ind)%CaCO3_ind
@@ -2377,10 +2377,10 @@ contains
           work = work + dtracer(n,:)
        end if
     end do
-    call compute_vertical_integrals(work, delta_z, kmt,         &
-         full_depth=diags(ind%Jint_Ctot)%field_2d(1),            &
-         near_surface=diags(ind%Jint_100m_Ctot)%field_2d(1),     &
-         flux_in = POC%sed_loss + P_CaCO3%sed_loss)
+    call compute_vertical_integrals(work, delta_z, kmt,                       &
+         full_depth_integral=diags(ind%Jint_Ctot)%field_2d(1),                &
+         near_surface_integral=diags(ind%Jint_100m_Ctot)%field_2d(1),         &
+         integrated_terms = POC%sed_loss + P_CaCO3%sed_loss)
 
     end associate
 
@@ -2417,10 +2417,10 @@ contains
          )
 
     ! vertical integrals
-    work = dtracer(no3_ind,:) + dtracer(nh4_ind,:) +           &
-           dtracer(don_ind,:) + dtracer(donr_ind,:) +          &
-           Q * sum(dtracer(zooplankton(:)%C_ind,:), dim=1) +   &
-           Q * sum(dtracer(autotrophs(:)%C_ind,:), dim=1) +    &
+    work = dtracer(no3_ind,:) + dtracer(nh4_ind,:) +                          &
+           dtracer(don_ind,:) + dtracer(donr_ind,:) +                         &
+           Q * sum(dtracer(zooplankton(:)%C_ind,:), dim=1) +                  &
+           Q * sum(dtracer(autotrophs(:)%C_ind,:), dim=1) +                   &
            denitrif(:) + sed_denitrif(:)
     ! subtract out N fixation
     do n = 1, autotroph_cnt
@@ -2428,10 +2428,10 @@ contains
           work = work - autotroph_secondary_species(n,:)%Nfix
        end if
     end do
-    call compute_vertical_integrals(work, delta_z, kmt,         &
-         full_depth=diags(ind%Jint_Ntot)%field_2d(1),            &
-         near_surface=diags(ind%Jint_100m_Ntot)%field_2d(1),     &
-         flux_in = PON_sed_loss)
+    call compute_vertical_integrals(work, delta_z, kmt,                       &
+         full_depth_integral=diags(ind%Jint_Ntot)%field_2d(1),                &
+         near_surface_integral=diags(ind%Jint_100m_Ntot)%field_2d(1),         &
+         integrated_terms = PON_sed_loss)
 
     end associate
 
@@ -2471,10 +2471,10 @@ contains
     do n = 1, autotroph_cnt
        work = work + autotrophs(n)%Qp * dtracer(autotrophs(n)%C_ind,:)
     end do
-    call compute_vertical_integrals(work, delta_z, kmt,         &
-         full_depth=diags(ind%Jint_Ptot)%field_2d(1),            &
-         near_surface=diags(ind%Jint_100m_Ptot)%field_2d(1),     &
-         flux_in = POP_sed_loss)
+    call compute_vertical_integrals(work, delta_z, kmt,                       &
+         full_depth_integral=diags(ind%Jint_Ptot)%field_2d(1),                &
+         near_surface_integral=diags(ind%Jint_100m_Ptot)%field_2d(1),         &
+         integrated_terms = POP_sed_loss)
 
     end associate
 
@@ -2514,10 +2514,10 @@ contains
           work = work + dtracer(autotrophs(n)%Si_ind,:)
        end if
     end do
-    call compute_vertical_integrals(work, delta_z, kmt,         &
-         full_depth=diags(ind%Jint_Sitot)%field_2d(1),            &
-         near_surface=diags(ind%Jint_100m_Sitot)%field_2d(1),     &
-         flux_in = P_SiO2%sed_loss)
+    call compute_vertical_integrals(work, delta_z, kmt,                       &
+         full_depth_integral=diags(ind%Jint_Sitot)%field_2d(1),               &
+         near_surface_integral=diags(ind%Jint_100m_Sitot)%field_2d(1),        &
+         integrated_terms = P_SiO2%sed_loss)
 
     end associate
 
@@ -2558,10 +2558,10 @@ contains
     work = dtracer(Fe_ind, :) + sum(dtracer(autotrophs(:)%Fe_ind, :),dim=1) + &
            Qfe_zoo * sum(dtracer(zooplankton(:)%C_ind, :),dim=1) -            &
            dust%remin(:) * dust_to_Fe
-    call compute_vertical_integrals(work, delta_z, kmt,         &
-         full_depth=diags(ind%Jint_Fetot)%field_2d(1),            &
-         near_surface=diags(ind%Jint_100m_Fetot)%field_2d(1),     &
-         flux_in = P_iron%sed_loss - fesedflux)
+    call compute_vertical_integrals(work, delta_z, kmt,                       &
+         full_depth_integral=diags(ind%Jint_Fetot)%field_2d(1),               &
+         near_surface_integral=diags(ind%Jint_100m_Fetot)%field_2d(1),        &
+         integrated_terms = P_iron%sed_loss - fesedflux)
 
     end associate
 
@@ -2896,10 +2896,10 @@ contains
           work = work + dtracer(n,:)
        end if
     end do
-    call compute_vertical_integrals(work, delta_z, kmt,             &
-         full_depth=diags(ind%CISO_Jint_13Ctot)%field_2d(1),        &
-         near_surface=diags(ind%CISO_Jint_100m_13Ctot)%field_2d(1), &
-         flux_in = PO13C%sed_loss + P_Ca13CO3%sed_loss)
+    call compute_vertical_integrals(work, delta_z, kmt,                       &
+         full_depth_integral=diags(ind%CISO_Jint_13Ctot)%field_2d(1),         &
+         near_surface_integral=diags(ind%CISO_Jint_100m_13Ctot)%field_2d(1),  &
+         integrated_terms = PO13C%sed_loss + P_Ca13CO3%sed_loss)
 
     ! Vertical integral - CISO_Jint_14Ctot and Jint_100m_14Ctot
 
@@ -2912,29 +2912,29 @@ contains
           work = work + dtracer(n,:)
        end if
     end do
-    call compute_vertical_integrals(work, delta_z, kmt,             &
-         full_depth=diags(ind%CISO_Jint_14Ctot)%field_2d(1),        &
-         near_surface=diags(ind%CISO_Jint_100m_14Ctot)%field_2d(1), &
-         flux_in = PO14C%sed_loss + P_Ca14CO3%sed_loss)
+    call compute_vertical_integrals(work, delta_z, kmt,                       &
+         full_depth_integral=diags(ind%CISO_Jint_14Ctot)%field_2d(1),         &
+         near_surface_integral=diags(ind%CISO_Jint_100m_14Ctot)%field_2d(1),  &
+         integrated_terms = PO14C%sed_loss + P_Ca14CO3%sed_loss)
 
     ! Other vertical integrals
 
     do n = 1,autotroph_cnt
        diags(ind%CISO_photo13C_zint(n))%field_2d(1) = c0
-       call compute_vertical_integrals(photo13C(n,:), delta_z, kmt, &
-            full_depth=diags(ind%CISO_photo13C_zint(n))%field_2d(1))
+       call compute_vertical_integrals(photo13C(n,:), delta_z, kmt,           &
+            full_depth_integral=diags(ind%CISO_photo13C_zint(n))%field_2d(1))
        
        diags(ind%CISO_photo14C_zint(n))%field_2d(1) = c0
-       call compute_vertical_integrals(photo14C(n,:), delta_z, kmt, &
-            full_depth=diags(ind%CISO_photo14C_zint(n))%field_2d(1))
+       call compute_vertical_integrals(photo14C(n,:), delta_z, kmt,           &
+            full_depth_integral=diags(ind%CISO_photo14C_zint(n))%field_2d(1))
        
        diags(ind%CISO_Ca13CO3_form_zint(n))%field_2d(1) = c0
-       call compute_vertical_integrals(Ca13CO3_prod(n,:), delta_z, kmt, &
-            full_depth=diags(ind%CISO_Ca13CO3_form_zint(n))%field_2d(1))
+       call compute_vertical_integrals(Ca13CO3_prod(n,:), delta_z, kmt,       &
+            full_depth_integral=diags(ind%CISO_Ca13CO3_form_zint(n))%field_2d(1))
        
        diags(ind%CISO_Ca14CO3_form_zint(n))%field_2d(1) = c0
-       call compute_vertical_integrals(Ca14CO3_prod(n,:), delta_z, kmt, &
-            full_depth=diags(ind%CISO_Ca14CO3_form_zint(n))%field_2d(1))
+       call compute_vertical_integrals(Ca14CO3_prod(n,:), delta_z, kmt,       &
+            full_depth_integral=diags(ind%CISO_Ca14CO3_form_zint(n))%field_2d(1))
     end do
 
     do k = 1,km
@@ -3004,45 +3004,49 @@ contains
   !*****************************************************************************
 
   subroutine compute_vertical_integrals(integrand, delta_z, kmt, &
-       full_depth, near_surface, flux_in)
+       full_depth_integral, near_surface_integral, integrated_terms)
 
     real(kind=r8) , intent(in)             :: integrand(:)
     real(kind=r8) , intent(in)             :: delta_z(:)
     integer       , intent(in)             :: kmt
-    real(kind=r8) , intent(in)  , optional :: flux_in(:)
-    real(kind=r8) , intent(out) , optional :: full_depth
-    real(kind=r8) , intent(out) , optional :: near_surface
+    ! For some vertical integral diagnostics, we need to add additional terms
+    ! that have already been integrated, so they are seperated from the
+    ! integrand
+    real(kind=r8) , intent(in)  , optional :: integrated_terms(:)
+    real(kind=r8) , intent(out) , optional :: full_depth_integral
+    real(kind=r8) , intent(out) , optional :: near_surface_integral
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
     integer (int_kind) :: k
-    real(kind=r8)      :: flux_in_used(size(integrand))
+    real(kind=r8)      :: integrated_terms_used(size(integrand))
     real(kind=r8)      :: zw
     real(kind=r8)      :: ztop
     real(kind=r8)      :: shallow_depth = 100.0e2_r8
     !-----------------------------------------------------------------------
 
-    if (present(flux_in)) then
-       flux_in_used = flux_in
+    if (present(integrated_terms)) then
+       integrated_terms_used = integrated_terms
     else
-       flux_in_used = c0
+       integrated_terms_used = c0
     end if
 
-    if (present(full_depth)) then
-       full_depth = sum(delta_z(1:kmt)*integrand(1:kmt) + flux_in_used(1:kmt))
+    if (present(full_depth_integral)) then
+       full_depth_integral = sum(delta_z(1:kmt)*integrand(1:kmt) + integrated_terms_used(1:kmt))
     end if
 
-    if (present(near_surface)) then
+    if (present(near_surface_integral)) then
        ! initialize integral to zero
-       near_surface = c0
+       near_surface_integral = c0
        ztop = c0
        zw = c0
        do k=1,kmt
           zw = zw + delta_z(k)
-          near_surface = near_surface + min(shallow_depth-ztop,delta_z(k))*integrand(k)
+          near_surface_integral = near_surface_integral +                     &
+                              min(shallow_depth-ztop,delta_z(k))*integrand(k)
           if (zw.le.shallow_depth) then
-             near_surface = near_surface + flux_in_used(k)
+             near_surface_integral = near_surface_integral + integrated_terms_used(k)
           else
              exit
           end if
