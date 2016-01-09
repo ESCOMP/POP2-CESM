@@ -512,9 +512,7 @@ contains
        do i = 1, nx_block
          do j = 1, ny_block
            WORK(i,j) = marbl_ecosys_compute_totalChl(                         &
-                             tracer_in=SURFACE_VALS_BLOCK(i, j, :),           &
-                             nb=ecosys_ind_begin,                             &
-                             ne=ecosys_ind_end)
+                             tracer_in=SURFACE_VALS_BLOCK(i, j, :))
          end do
        end do
        call named_field_set(totChl_surf_nf_ind, iblock, WORK)
@@ -1255,9 +1253,7 @@ contains
        do i = 1, nx_block
          do j = 1, ny_block
            WORK1(i,j) = marbl_ecosys_compute_totalChl(                        &
-                             tracer_in=SURFACE_VALS(i, j, :, iblock),         &
-                             nb=ecosys_ind_begin,                             &
-                             ne=ecosys_ind_end)
+                             tracer_in=SURFACE_VALS(i, j, :, iblock))
          end do
        end do
        call named_field_set(totChl_surf_nf_ind, iblock, WORK1)

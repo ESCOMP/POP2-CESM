@@ -4756,10 +4756,12 @@ contains
     end associate
   end subroutine marbl_export_autotroph_shared_variables
 
-  function marbl_ecosys_compute_totalChl(tracer_in,nb,ne) result(compute_totalChl)
+  function marbl_ecosys_compute_totalChl(tracer_in) result(compute_totalChl)
 
-    integer, intent(in) :: nb, ne
-    real(kind=r8), dimension(nb:ne), intent(in) :: tracer_in
+    use marbl_share_mod           , only : ecosys_ind_begin, ecosys_ind_end
+
+    ! use specified indices because that is what autotrophs(:)%Chl_ind uses
+    real(kind=r8), dimension(ecosys_ind_begin:ecosys_ind_end), intent(in) :: tracer_in
     real(kind=r8) :: compute_totalChl
 
     integer :: auto_ind, n

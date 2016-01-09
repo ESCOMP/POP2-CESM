@@ -201,20 +201,18 @@ contains
     ! Compute diagnostics for surface fluxes
 
     use ecosys_diagnostics_mod, only : ind => marbl_forcing_diag_ind
+    use domain                , only : nblocks_clinic
 
     implicit none
-    real (r8)                    , intent(in)    :: flux_diags (:, :, :, :)
-    type(marbl_diagnostics_type) , intent(inout) :: marbl_forcing_diags(:)
+    real (r8)                   , intent(in) :: flux_diags (:, :, :, :)
+    type(marbl_diagnostics_type), intent(in) :: marbl_forcing_diags(:)
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
 
     integer :: i, iblock
-    integer :: nblocks_clinic
     !-----------------------------------------------------------------------
-
-    nblocks_clinic = size(flux_diags,4)
 
     !$OMP PARALLEL DO PRIVATE(iblock)
     do iblock=1,nblocks_clinic
