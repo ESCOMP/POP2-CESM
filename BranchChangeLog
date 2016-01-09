@@ -1,6 +1,52 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    8 Jan 2016
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n37_cesm_pop_2_1_20151215/
+Tag Summary: Lots of small fixes following code review of this branch -- input
+             from klindsay, mvertens, and jwolfe.
+             1 moved marbl_interface_types::marbl_saved_state_type to
+               ecosys_driver::ecosys_saved_state_types
+               -- Added ph_surf and ph_surf_alt_co2
+               -- Added a constructor to allocate memory
+               -- Turned land_mask into a module variable instead of a member
+                  of this data type
+             2 Created ecosys_mod::marbl_ecosys_compute_totalChl() to
+               (a) move science computation from driver to marbl
+               (b) refactor duplicate code
+             3 renamed ecosys_driver_init_tracers ->
+               ecosys_driver_init_tracers_and_saved_state to better describe
+               the initialization being done
+             4 Removed some un-necessary variables that were duplicating
+               computations already in memory (num_forcing_diags was not being
+               used at all and num_surface_vals = ecosys_tracer_cnt)
+             5 Since ecosys_saved_state is a module variable in ecosys_driver
+               it does not need to be passed as an argument to subroutines in
+               ecosys driver
+             6 Moved some tracer initialization from ecosys_driver_init() to
+               ecosys_driver_init_tracers_and_saved_state()
+             7 ecosys_restore now restores towards tracer values, not
+               max(0, tracer_vals)
+             8 Small improvements to portability of new marbl_namelist_mod
+               module, with notes for bigger changes that still need to be
+               made
+               -- instead of hard-coded achar(10) in two places, introduced
+                  module parameter for carriage return character
+               -- Removed leading white-space from strings, so first character
+                  should be a '&' regardless of whitespace in file
+
+Testing: Bit-for-bit against n33 with aux_pop_MARBL except the ecosys_restore
+         test is answer-changing (due to change #7)
+
+Files Modified:
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/marbl_interface_types.F90
+M       source/marbl_namelist_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    7 Jan 2016
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n36_cesm_pop_2_1_20151215/
 Tag Summary: Rename some of the arguments to compute_vertical_integrals()

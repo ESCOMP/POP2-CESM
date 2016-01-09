@@ -213,6 +213,7 @@ module ecosys_mod
   ! initialization routines
   public  :: marbl_ecosys_init_nml
   public  :: marbl_ecosys_init_tracer_metadata
+  public  :: marbl_ecosys_compute_totalChl
   private :: marbl_ecosys_init_non_autotroph_tracer_metadata
   private :: marbl_ecosys_init_forcing_metadata
 
@@ -754,6 +755,7 @@ contains
     !  read ecosys_parms_nml namelist
     !-----------------------------------------------------------------------
 
+    ! FIXME(mnl, 2016-01): eliminate marbl_parms!
     call marbl_params_init(nl_buffer, marbl_status)
     if (marbl_status%status /= marbl_status_ok) then
        return
@@ -811,6 +813,7 @@ contains
     !  set lfull_depth_tavg flag for short-lived ecosystem tracers
     !-----------------------------------------------------------------------
 
+    ! Should be done in ecosys_diagnostics, and without the _tavg name
     do zoo_ind = 1, zooplankton_cnt
        n = zooplankton(zoo_ind)%C_ind
        tracer_d_module(n)%lfull_depth_tavg = lecovars_full_depth_tavg
@@ -1125,6 +1128,10 @@ contains
        endif
 
     end do ! k
+
+    ! FIXME(mnl,2016-01) call store_diagnostics_interior() to call each individually
+    !                    and call set_to_zero from that new routine
+    call marbl_interior_diags%set_to_zero()
 
     call store_diagnostics_carbonate(domain, &
          carbonate, marbl_interior_diags)
@@ -2001,7 +2008,6 @@ contains
     use marbl_parms           , only : ind_alk_riv_flux
     use marbl_parms           , only : ind_doc_riv_flux
     use marbl_interface_types , only : marbl_diagnostics_type
-    use marbl_interface_types , only : marbl_saved_state_type
     use marbl_interface_types , only : marbl_forcing_input_type
     use marbl_interface_types , only : marbl_forcing_output_type
     use ecosys_diagnostics_mod, only : store_diagnostics_sflux
@@ -4749,6 +4755,22 @@ contains
     end do
     end associate
   end subroutine marbl_export_autotroph_shared_variables
+
+  function marbl_ecosys_compute_totalChl(tracer_in,nb,ne) result(compute_totalChl)
+
+    integer, intent(in) :: nb, ne
+    real(kind=r8), dimension(nb:ne), intent(in) :: tracer_in
+    real(kind=r8) :: compute_totalChl
+
+    integer :: auto_ind, n
+
+    compute_totalChl = c0
+    do auto_ind = 1, autotroph_cnt
+       n = autotrophs(auto_ind)%Chl_ind
+       compute_totalChl = compute_totalChl + max(c0, tracer_in(n))
+    end do
+
+  end function marbl_ecosys_compute_totalChl
 
 end module ecosys_mod
 

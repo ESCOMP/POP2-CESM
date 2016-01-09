@@ -3010,7 +3010,7 @@ contains
     real(kind=r8) , intent(in)             :: delta_z(:)
     integer       , intent(in)             :: kmt
     ! For some vertical integral diagnostics, we need to add additional terms
-    ! that have already been integrated, so they are seperated from the
+    ! that have already been integrated, so they are separated from the
     ! integrand
     real(kind=r8) , intent(in)  , optional :: integrated_terms(:)
     real(kind=r8) , intent(out) , optional :: full_depth_integral

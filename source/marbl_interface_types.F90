@@ -51,20 +51,12 @@ module marbl_interface_types
   end type marbl_column_domain_type
 
   !*****************************************************************************
+  ! FIXME(mnl,2016-01) move PAR_col_frac and surf_shortwave into this datatype
+  !                    and come up with better name
   type, public :: marbl_gcm_state_type
      real(r8), allocatable :: temperature(:) ! (km)
      real(r8), allocatable :: salinity(:)    ! (km)
   end type marbl_gcm_state_type
-
-  !*****************************************************************************
-  type, public :: marbl_saved_state_type
-     ! this struct is necessary because there is some global state
-     ! that needs to be preserved for marbl
-     real (r8) , dimension(:, :, :)         , allocatable :: dust_FLUX_IN       ! dust flux not stored in STF since dust is not prognostic
-     real (r8) , dimension(:, :, :, :)      , allocatable :: PH_PREV_3D         ! computed pH_3D from previous time step
-     real (r8) , dimension(:, :, :, :)      , allocatable :: PH_PREV_ALT_CO2_3D ! computed pH_3D from previous time step, alternative CO2
-     logical (log_kind), dimension(:, :, :) , allocatable :: LAND_MASK
-  end type marbl_saved_state_type
 
   !*****************************************************************************
   type :: marbl_single_diagnostic_type
@@ -319,12 +311,11 @@ contains
   !*****************************************************************************
 
   subroutine marbl_forcing_output_constructor(this, &
-       num_elements, num_surface_vals, num_forcing_diags)
+       num_elements, num_surface_vals)
 
     class(marbl_forcing_output_type), intent(inout) :: this
     integer (int_kind), intent(in) :: num_elements
     integer (int_kind), intent(in) :: num_surface_vals
-    integer (int_kind), intent(in) :: num_forcing_diags 
 
      allocate(this%ph_prev(num_elements))
      allocate(this%ph_prev_alt_co2(num_elements)) 
