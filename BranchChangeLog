@@ -36,7 +36,8 @@ Tag Summary: Lots of small fixes following code review of this branch -- input
                   should be a '&' regardless of whitespace in file
 
 Testing: Bit-for-bit against n33 with aux_pop_MARBL except the ecosys_restore
-         test is answer-changing (due to change #7)
+         test is answer-changing (due to change #7); tested on both
+         yellowstone_intel and hobart_nag
 
 Files Modified:
 M       source/ecosys_diagnostics_mod.F90
