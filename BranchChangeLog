@@ -23,8 +23,10 @@ Tag Summary: A couple of small tweaks because SMS_P15x1_D was failing
                (that matches the indices that come from autotrophs(:)%Chl_ind)
 
 Testing: Bit-for-bit against n37 with aux_pop, which only had expected
-         round-off level answer changes when compared to cesm_2_1_20151215.
-         aux_pop_MARBL is bit-for-bit against n37 on hobart_nag.
+         round-off level answer changes when compared to cesm_2_1_20151215
+         [except for the SMS_P15x1_D test, which is answer-changing because it
+         uses a different grid decomposition]. aux_pop_MARBL is bit-for-bit
+         against n37 on hobart_nag.
 
 Files Modified:
 M       bld/pop_decomp.xml
@@ -70,7 +72,9 @@ Tag Summary: Lots of small fixes following code review of this branch -- input
 
 Testing: Bit-for-bit against n33 with aux_pop_MARBL except the ecosys_restore
          test is answer-changing (due to change #7); tested on both
-         yellowstone_intel and hobart_nag
+         yellowstone_intel and hobart_nag. Ran aux_pop on yellowstone_intel,
+         saw expected round-off level answer changes in 2D diagnostics, but
+         also failed SMS_P15x1_D test so next commit will fix that issue.
 
 Files Modified:
 M       source/ecosys_diagnostics_mod.F90
