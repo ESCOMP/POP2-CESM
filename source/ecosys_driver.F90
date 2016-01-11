@@ -866,7 +866,6 @@ contains
 
     real (r8) :: column_tracer_module(ecosys_driver_tracer_cnt, km)
     real (r8) :: column_dtracer(ecosys_driver_tracer_cnt, km)
-    real (r8) :: tracer_local(ecosys_tracer_cnt)
     real (r8) :: restore_local(ecosys_tracer_cnt, km) ! local restoring terms for nutrients (mmol ./m^3/sec)
     real (r8) :: column_dust_flux_in
     real (r8) :: column_fesedflux(km)
@@ -951,10 +950,6 @@ contains
 
                 !  set tracer restore fields
                 do k = 1, marbl_domain%km
-                   do n = 1, ecosys_tracer_cnt
-                      ! FIXME(mnl,2016-01) this max should be in ecosys_set_interior
-                      tracer_local(n) = max(c0, column_tracer_module(n,k))
-                   end do
                    call ecosys_restore%restore_tracers(ecosys_tracer_cnt,     &
                         vert_level=k, x_index=i, y_index=c, block_id=bid,     &
                         local_data=column_tracer_module(:,k),                 &

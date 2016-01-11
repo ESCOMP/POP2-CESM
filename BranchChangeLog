@@ -1,6 +1,19 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    11 Jan 2016
+Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n39_cesm_pop_2_1_20151215/
+Tag Summary: One more small code clean-up: tracer_local was declared but never
+             used in ecosys_driver_set_interior (originally passed to
+             ecosys_restore, but that was changed in n37)
+
+Testing: Quick one-off test to make sure it still builds and runs
+
+Files Modified:
+M       source/ecosys_driver.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    9 Jan 2016
 Tag Name:    pop2/branch_tags/marbl_diags_tags/marbl_diags_n38_cesm_pop_2_1_20151215/
 Tag Summary: A couple of small tweaks because SMS_P15x1_D was failing
