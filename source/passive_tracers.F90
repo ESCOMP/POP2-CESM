@@ -384,7 +384,7 @@
 !  by default, all tracers have scale_factor equal to one
 !-----------------------------------------------------------------------
 
-   tracer_d(3:nt)%scale_factor = 1.0_POP_rtavg
+   tracer_d(3:nt)%scale_factor = 1.0_POP_r8
 
 !-----------------------------------------------------------------------
 !  ECOSYS  DRIVER block
@@ -1400,8 +1400,7 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-     call ecosys_driver_tavg_forcing(ciso_on, &
-         STF(:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,:))
+     call ecosys_driver_tavg_forcing(ciso_on)
    end if
 
 !-----------------------------------------------------------------------

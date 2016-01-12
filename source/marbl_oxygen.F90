@@ -13,8 +13,10 @@ module marbl_oxygen
   private
 
   public :: &
-       schmidt_o2, &
-       o2sat, &
+       schmidt_o2,      &
+       schmidt_o2_surf, &
+       o2sat,           &
+       o2sat_surf,      &
        o2sat_scalar
 
 contains
@@ -60,6 +62,48 @@ contains
     end where
 
   end function SCHMIDT_O2
+
+  !*****************************************************************************
+
+  function SCHMIDT_O2_surf(n, SST, LAND_MASK)
+
+    ! !DESCRIPTION:
+    !  Compute Schmidt number of O2 in seawater as function of SST
+    !  where LAND_MASK is true. Give zero where LAND_MASK is false.
+    !
+    !  ref : Keeling et al, Global Biogeochem. Cycles, Vol. 12,
+    !        No. 1, pp. 141-163, March 1998
+    !
+    ! !REVISION HISTORY:
+    !  same as module
+
+    ! !INPUT PARAMETERS:
+    integer(int_kind), intent(in) :: n
+    real (r8), intent(in) :: SST(n)
+
+    logical (log_kind), intent(in) :: LAND_MASK(n)
+
+    ! !OUTPUT PARAMETERS:
+
+    real (r8) :: SCHMIDT_O2_surf(n)
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+
+    real (r8), parameter :: &
+         a = 1638.0_r8, &
+         b = 81.83_r8, &
+         c = 1.483_r8, &
+         d = 0.008004_r8
+
+    where (LAND_MASK)
+       SCHMIDT_O2_surf = a + SST * (-b + SST * (c + SST * (-d)))
+    elsewhere
+       SCHMIDT_O2_surf = c0
+    end where
+
+  end function SCHMIDT_O2_surf
 
   !*****************************************************************************
 
@@ -109,6 +153,53 @@ contains
     end do
 
   end function O2SAT
+
+  !*****************************************************************************
+
+  function O2SAT_surf(n, SST, SSS, LAND_MASK)
+
+    !  Computes oxygen saturation concentration at 1 atm total pressure
+    !  in mmol/m^3 given the temperature (t, in deg C) and the salinity (s,
+    !  in permil) where LAND_MASK is true. Give zero where LAND_MASK is false.
+    !
+    !  FROM GARCIA AND GORDON (1992), LIMNOLOGY and OCEANOGRAPHY.
+    !  THE FORMULA USED IS FROM PAGE 1310, EQUATION (8).
+    !
+    !  *** NOTE: THE "A_3*TS^2" TERM (IN THE PAPER) IS INCORRECT. ***
+    !  *** IT SHOULD NOT BE THERE.                                ***
+    !
+    !  O2SAT IS DEFINED BETWEEN T(freezing) <= T <= 40(deg C) AND
+    !  0 permil <= S <= 42 permil
+    !  CHECK VALUE:  T = 10.0 deg C, S = 35.0 permil,
+    !  O2SAT = 282.015 mmol/m^3
+    !
+    ! !INPUT PARAMETERS:
+
+    integer(int_kind), intent(in) :: n
+    real (r8), intent(in) :: SST(n) ! sea surface temperature (C)
+    real (r8), intent(in) :: SSS(n) ! sea surface salinity (psu)
+
+    logical (log_kind), intent(in) :: LAND_MASK(n)
+
+    ! !OUTPUT PARAMETERS:
+
+    real (r8) :: O2SAT_surf(n)
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+
+    integer(int_kind) :: i
+
+    do i = 1, n
+       if (LAND_MASK(i)) then
+          O2SAT_surf(i) = O2SAT_scalar(SST(i), SSS(i))
+       else
+          O2SAT_surf(i) = c0
+       end if
+    end do
+
+  end function O2SAT_surf
 
   !-----------------------------------------------------------------------
   function O2SAT_scalar(SST, SSS)

@@ -8,11 +8,6 @@ module marbl_interface_constants
   private
 
   
-  ! FIXME(bja, 2015-01) nl_buffer_size shouldn't be a hard coded
-  ! constant, but runtime configurable?! Just not sure what the best
-  ! approach is at the moment....
-  integer, public, parameter :: marbl_nl_buffer_size = 262144
-
   ! string sizes
   integer, public, parameter :: marbl_str_length = 1024
 

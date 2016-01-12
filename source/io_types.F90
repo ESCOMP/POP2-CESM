@@ -417,17 +417,17 @@ contains
                     'construct_file: must supply recl_words')
          select case (record_length)
          case (rec_type_int)
-            io_record_length = POP_i4*recl_words
+            io_record_length = POP_i4_size*recl_words
 !MEMSAVE            allocate (work_i(recl_words))
 !MEMSAVE            inquire (iolength=io_record_length) work_i
 !MEMSAVE            deallocate (work_i)
          case (rec_type_real)
-            io_record_length = POP_r4*recl_words
+            io_record_length = POP_r4_size*recl_words
 !MEMSAVE            allocate (work_r(recl_words))
 !MEMSAVE            inquire (iolength=io_record_length) work_r
 !MEMSAVE            deallocate (work_r)
          case (rec_type_dbl)
-            io_record_length = POP_r8*recl_words
+            io_record_length = POP_r8_size*recl_words
 !MEMSAVE            allocate (work_d(recl_words))
 !MEMSAVE            inquire (iolength=io_record_length) work_d
 !MEMSAVE            deallocate (work_d)

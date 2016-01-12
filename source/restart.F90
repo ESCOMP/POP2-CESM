@@ -25,9 +25,8 @@
    use constants, only: char_blank, field_loc_NEcorner, field_type_vector,  &
        field_loc_center, field_type_scalar, blank_fmt, c0, grav
    use blocks, only: nx_block, ny_block, block, get_block
-   use prognostic, only: UBTROP, VBTROP, PSURF, GRADPX, GRADPY, UVEL, VVEL, &
-       PGUESS, TRACER, nt, nx_global, ny_global, km, curtime, newtime, oldtime,      &
-       tracer_d
+   use prognostic, only : UBTROP, VBTROP, PSURF, GRADPX, GRADPY, UVEL, VVEL
+   use prognostic, only : PGUESS, TRACER, curtime, newtime, oldtime, tracer_d
    use broadcast, only: broadcast_scalar 
    use communicate, only: my_task, master_task
    use operators, only: div

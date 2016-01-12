@@ -21,7 +21,6 @@ module cfc11_mod
    use domain, only: nblocks_clinic, distrb_clinic
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
-   use prognostic, only: tracer_field
    use kinds_mod
    use constants, only: c0, c1, char_blank, delim_fmt
    use io, only: data_set
@@ -33,8 +32,9 @@ module cfc11_mod
    use tavg, only: define_tavg_field, accumulate_tavg_field
    use timers, only: get_timer
    use passive_tracer_tools, only: forcing_monthly_every_ts,          &
-       init_forcing_monthly_every_ts, ind_name_pair, tracer_read,     &
-       rest_read_tracer_block, file_read_tracer_block, read_field
+       init_forcing_monthly_every_ts, ind_name_pair,   &
+       rest_read_tracer_block, file_read_tracer_block, read_field, &
+       tracer_read
 
    implicit none
 
@@ -164,7 +164,8 @@ contains
    use broadcast, only: broadcast_scalar, broadcast_array
    use constants, only: c0, field_loc_center, blank_fmt, &
        field_type_scalar
-   use prognostic, only: nx_global, ny_global, curtime, oldtime
+   use domain_size, only : nx_global, ny_global 
+   use prognostic, only: curtime, oldtime, tracer_field
    use grid, only: KMT, zt, zw, n_topo_smooth, fill_points
    use forcing_tools, only: find_forcing_times
    use time_management, only: freq_opt_nyear, freq_opt_nmonth

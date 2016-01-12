@@ -160,6 +160,12 @@ if ($lecosys_debug == ".true.") then
 1  ALK_RIV_FLUX
 1  DOC_RIV_FLUX
 1  DOCr_RIV_FLUX
+#  DUPLICATE TAVG VARS
+1  ECOSYS_IFRAC_2
+1  ECOSYS_XKW_2
+1  DpCO2_2
+1  FG_CO2_2
+1  STF_O2_2
 EOF
 
   # interior autotroph fields
@@ -220,12 +226,17 @@ EOF
                    diatFe diatSi diazChl diazC diazFe )
     cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
 #  TRACERS (${tracer})
-1  ${tracer}
-1  J_${tracer}
 1  STF_${tracer}
-#  ${tracer}_RESTORE
+1  J_${tracer}
+1  ${tracer}_RESTORE
 EOF
   end
+  cat >> $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF
+1  FvPER_DIC
+1  FvPER_ALK
+1  FvICE_DIC
+1  FvICE_ALK
+EOF
 
 else # ecosys not in debug mode
   cat >! $CASEROOT/Buildconf/popconf/ecosys_tavg_contents << EOF

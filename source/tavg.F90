@@ -3229,17 +3229,17 @@
 
    case (tavg_method_avg)  ! accumulate running time sum for time avg
       TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = &
-      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) + dtavg*COL
+      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) + dtavg*COL(1:kmax)
    case (tavg_method_min)  ! replace with current minimum value
-      where (COL.lt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
-         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL
+      where (COL(1:kmax).lt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
+         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL(1:kmax)
       end where
    case (tavg_method_max)  ! replace with current minimum value
-      where (COL.gt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
-         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL
+      where (COL(1:kmax).gt.TAVG_BUF_3D(i,j,1:kmax,block,bufloc))
+         TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL(1:kmax)
       end where
    case (tavg_method_constant)  ! overwrite with current value; intended for time-invariant fields
-      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL
+      TAVG_BUF_3D(i,j,1:kmax,block,bufloc) = COL(1:kmax)
    case default
    end select
 
@@ -3757,7 +3757,7 @@
    character(4), intent(in), optional :: &
       grid_loc                 ! location in grid (in 4-digit code)
 
-   real (rtavg), intent(in), optional :: &
+   real (r8), intent(in), optional :: &
       scale_factor             ! scale factor
 
    real (r4), dimension(2), intent(in), optional :: &
@@ -3795,6 +3795,9 @@
    logical (log_kind) ::  &
       error,              &
       nonstandard_fields
+
+   real (rtavg)  :: &
+      scale_factor_use             ! scale factor written to file
 
 !-----------------------------------------------------------------------
 !
@@ -3868,20 +3871,25 @@
 
 !  kludge for  MOC and transport diagnostics -- always r4
    if (.not. nonstandard_fields) then
-   if (present(scale_factor)) then
-      if (scale_factor /= 1.0_rtavg) then
-        tavg_field%scale_factor = scale_factor
-        if (scale_factor /= 0.0_rtavg) then
-          tavg_field%fill_value    = undefined_nf/scale_factor
-        endif
-      else
-        tavg_field%scale_factor  = undefined_nf
-        tavg_field%fill_value    = undefined_nf
-      endif
-   else
-      tavg_field%scale_factor  = undefined_nf
-      tavg_field%fill_value    = undefined_nf
-   endif
+     if (present(scale_factor)) then
+       if (rtavg .eq. r8) then
+         scale_factor_use = scale_factor
+       else
+         scale_factor_use = real(scale_factor, rtavg)
+       end if
+       if (scale_factor_use /= 1.0_rtavg) then
+         tavg_field%scale_factor = scale_factor_use
+         if (scale_factor_use /= 0.0_rtavg) then
+           tavg_field%fill_value    = undefined_nf/scale_factor_use
+         endif
+       else
+         tavg_field%scale_factor  = undefined_nf
+         tavg_field%fill_value    = undefined_nf
+       endif
+     else
+       tavg_field%scale_factor  = undefined_nf
+       tavg_field%fill_value    = undefined_nf
+     endif
    endif
 
    if (present(valid_range)) then
@@ -3997,7 +4005,7 @@
    id = 0
 
    srch_loop: do n=1,num_avail_tavg_fields
-      if (trim(avail_tavg_fields(n)%short_name) == short_name) then
+      if (trim(avail_tavg_fields(n)%short_name) == trim(short_name)) then
          id = n
          exit srch_loop
       endif

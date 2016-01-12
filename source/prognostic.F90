@@ -12,27 +12,15 @@
 
 ! !USES:
 
-   use kinds_mod
-   use blocks
-   use domain_size
-   use domain
+   use kinds_mod             , only : r8, int_kind, rtavg
+   use blocks                , only : nx_block, ny_block
+   use domain_size           , only : max_blocks_clinic, km, nt
+   use marbl_interface_types , only : tracer_field => marbl_tracer_metadata_type
    use constants
 
    implicit none
    public
    save
-
-! !PUBLIC DATA TYPES:
-
-   type, public :: tracer_field
-      character(char_len) :: short_name
-      character(char_len) :: long_name
-      character(char_len) :: units
-      character(char_len) :: tend_units
-      character(char_len) :: flux_units
-      real(rtavg)         :: scale_factor
-      logical :: lfull_depth_tavg
-   end type
 
 ! !PUBLIC DATA MEMBERS:
 
@@ -67,6 +55,8 @@
       oldtime,           &! previous time level (n-1)
       mixtime             ! set to oldtime on leafrog steps
                           ! and to curtime on matsuno steps
+
+    public :: tracer_field ! used from marbl_interface_types
 
 !EOP
 !BOC
@@ -119,14 +109,14 @@
       tracer_d(1)%units      = 'degC'
       tracer_d(1)%tend_units = 'degC/s'
       tracer_d(1)%flux_units = 'degC cm/s'
-      tracer_d(1)%scale_factor = 1.0_rtavg 
+      tracer_d(1)%scale_factor = 1.0_r8
 
       tracer_d(2)%short_name = 'SALT'
       tracer_d(2)%long_name  = 'Salinity'
       tracer_d(2)%units      = 'msu (g/g)'
       tracer_d(2)%tend_units = 'gram/kilogram/s'
       tracer_d(2)%flux_units = 'gram/kilogram cm/s'
-      tracer_d(2)%scale_factor = 1000.0_rtavg
+      tracer_d(2)%scale_factor = 1000.0_r8
 
 !-----------------------------------------------------------------------
 !EOC

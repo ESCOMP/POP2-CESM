@@ -21,15 +21,14 @@ module iage_mod
    use domain, only: nblocks_clinic
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
-   use prognostic, only: tracer_field
    use kinds_mod
    use constants, only: c0, c1, char_blank, delim_fmt
    use io, only: data_set
    use io_types, only: stdout, nml_in, nml_filename
    use io_tools, only: document
    use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now
-   use passive_tracer_tools, only: ind_name_pair, tracer_read, &
-       rest_read_tracer_block, file_read_tracer_block
+   use passive_tracer_tools, only: ind_name_pair, rest_read_tracer_block
+   use passive_tracer_tools, only: file_read_tracer_block, tracer_read
    implicit none
    private
 
@@ -94,7 +93,7 @@ contains
 ! !USES:
 
    use broadcast, only: broadcast_scalar
-   use prognostic, only: curtime, oldtime
+   use prognostic, only: curtime, oldtime, tracer_field
    use grid, only: KMT, n_topo_smooth, fill_points
 
 ! !INPUT PARAMETERS:

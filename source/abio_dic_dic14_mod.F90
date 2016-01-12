@@ -39,7 +39,8 @@ module abio_dic_dic14_mod
    use io_types
    use io_tools, only: document
    use tavg, only: define_tavg_field, accumulate_tavg_field
-   use passive_tracer_tools, only: ind_name_pair, tracer_read, read_field, comp_surf_avg, extract_surf_avg
+   use passive_tracer_tools, only: ind_name_pair, read_field, comp_surf_avg
+   use passive_tracer_tools, only: extract_surf_avg, tracer_read
    use broadcast, only: broadcast_array, broadcast_scalar
    use netcdf
    use co2calc

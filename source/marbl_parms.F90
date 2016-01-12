@@ -24,8 +24,6 @@ module marbl_parms
   use marbl_kinds_mod, only : int_kind
   use marbl_kinds_mod, only : log_kind
 
-  use marbl_kinds_mod, only : c1
-
   use marbl_share_mod, only : zooplankton
   use marbl_share_mod, only : autotrophs
   use marbl_share_mod, only : grazing
@@ -45,6 +43,103 @@ module marbl_parms
 
   PUBLIC
   SAVE
+
+  !---------------------------------------------------------------------
+  !  isotope standards
+  !---------------------------------------------------------------------
+
+  ! Using scaled isotopic carbon pools, so Rstd =1
+  real(r8), parameter :: R13C_std = 1.0_r8  ! actual 13C/12C PDB standard ratio (Craig, 1957) = 1123.72e-5_r8
+  real(r8), parameter :: R14C_std = 1.0_r8  ! actual 14C/12C NOSAMS standard ratio = 11.76e-13_r8
+
+  !-----------------------------------------------------------------------
+  !  numbers
+  !-----------------------------------------------------------------------
+  
+  real (r8), parameter :: c0     =    0.0_r8
+  real (r8), parameter :: c1     =    1.0_r8
+  real (r8), parameter :: c2     =    2.0_r8
+  real (r8), parameter :: c3     =    3.0_r8
+  real (r8), parameter :: c4     =    4.0_r8
+  real (r8), parameter :: c5     =    5.0_r8
+  real (r8), parameter :: c8     =    8.0_r8
+  real (r8), parameter :: c10    =   10.0_r8
+  real (r8), parameter :: c16    =   16.0_r8
+  real (r8), parameter :: c1000  = 1000.0_r8
+  real (r8), parameter :: c10000 =10000.0_r8
+  real (r8), parameter :: c1p5   =    1.5_r8
+  real (r8), parameter :: p33    = c1/c3    
+  real (r8), parameter :: p5     = 0.500_r8 
+  real (r8), parameter :: p25    = 0.250_r8 
+  real (r8), parameter :: p125   = 0.125_r8 
+  real (r8), parameter :: p001   = 0.001_r8 
+  real (r8), parameter :: eps    = 1.0e-10_r8
+  real (r8), parameter :: eps2   = 1.0e-20_r8
+  real (r8), parameter :: bignum = 1.0e+30_r8
+
+  !-----------------------------------------------------------------------
+  !  conversion factors
+  !-----------------------------------------------------------------------
+
+  real (r8) :: mpercm    = .01_r8        ! meters per cm
+
+  !-----------------------------------------------------------------------
+  !  common formats for formatted output
+  !-----------------------------------------------------------------------
+
+   character (1), parameter :: char_delim = ','
+   character (9), parameter :: delim_fmt  = "(72('-'))"
+   character (9), parameter :: ndelim_fmt = "(72('='))"
+   character (5), parameter :: blank_fmt  = "(' ')"
+
+  !-----------------------------------------------------------------------
+  !  MARBL indices for surface fluxes
+  !-----------------------------------------------------------------------
+
+  integer (int_kind), parameter :: &
+       ind_nox_flux     =  1,  &
+       ind_nhy_flux     =  2,  &
+       ind_no3_flux     =  3,  &
+       ind_nh4_flux     =  4,  &
+       ind_din_riv_flux =  5,  &
+       ind_dip_riv_flux =  6,  &
+       ind_don_riv_flux =  7,  &
+       ind_dop_riv_flux =  8,  &
+       ind_dsi_riv_flux =  9,  &
+       ind_dfe_riv_flux = 10,  &
+       ind_dic_riv_flux = 11,  &
+       ind_alk_riv_flux = 12,  &
+       ind_doc_riv_flux = 13
+
+  !-----------------------------------------------------------------------
+  !  non-autotroph relative tracer indices
+  !  autotroph relative tracer indices are in autotroph derived type and are determined at run time
+  !-----------------------------------------------------------------------
+
+  integer (int_kind), parameter :: &
+       po4_ind         =  1,  & ! dissolved inorganic phosphate
+       no3_ind         =  2,  & ! dissolved inorganic nitrate
+       sio3_ind        =  3,  & ! dissolved inorganic silicate
+       nh4_ind         =  4,  & ! dissolved ammonia
+       fe_ind          =  5,  & ! dissolved inorganic iron
+       o2_ind          =  6,  & ! dissolved oxygen
+       dic_ind         =  7,  & ! dissolved inorganic carbon
+       dic_alt_co2_ind =  8,  & ! dissolved inorganic carbon with alternative CO2
+       alk_ind         =  9,  & ! alkalinity
+       doc_ind         = 10,  & ! dissolved organic carbon
+       don_ind         = 11,  & ! dissolved organic nitrogen
+       dop_ind         = 12,  & ! dissolved organic phosphorus
+       dopr_ind        = 13,  & ! refractory DOP
+       donr_ind        = 14,  & ! refractory DON
+       docr_ind        = 15     ! refractory DOC
+
+  integer (int_kind), parameter :: &
+       di13c_ind       = 1,  & ! dissolved inorganic carbon 13
+       do13c_ind       = 2,  & ! dissolved organic carbon 13
+       zoo13C_ind      = 3,  & ! zooplankton carbon 13
+       di14c_ind       = 4,  & ! dissolved inorganic carbon 14
+       do14c_ind       = 5,  & ! dissolved organic carbon 14
+       zoo14C_ind      = 6     ! zooplankton carbon 14
 
   !-----------------------------------------------------------------------------
   !   epsilon values
@@ -419,13 +514,15 @@ contains
 
   subroutine marbl_params_init(nl_buffer, marbl_status)
 
-    use marbl_interface_constants, only: marbl_nl_buffer_size
+    use marbl_namelist_mod       , only : marbl_nl_cnt
+    use marbl_namelist_mod       , only : marbl_nl_buffer_size
+    use marbl_namelist_mod       , only : marbl_namelist
     use marbl_interface_constants, only: marbl_status_ok, marbl_status_could_not_read_namelist
     use marbl_interface_types, only: marbl_status_type
 
     implicit none
 
-    character(marbl_nl_buffer_size), intent(in) :: nl_buffer
+    character(marbl_nl_buffer_size), dimension(marbl_nl_cnt), intent(in) :: nl_buffer
     type(marbl_status_type), intent(inout) :: marbl_status
 
     !---------------------------------------------------------------------------
@@ -433,6 +530,7 @@ contains
     !---------------------------------------------------------------------------
 
     CHARACTER(LEN=*), PARAMETER :: subname = 'marbl_parms:marbl_parms_init'
+    character(len=marbl_nl_buffer_size) :: tmp_nl_buffer
 
     integer(kind=int_kind) :: io_error
 
@@ -465,7 +563,8 @@ contains
     !---------------------------------------------------------------------------
     ! read in namelist to override some defaults
     !---------------------------------------------------------------------------
-    read(nl_buffer, nml=ecosys_parms_nml, iostat=io_error)
+    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_parms_nml')
+    read(tmp_nl_buffer, nml=ecosys_parms_nml, iostat=io_error)
     if (io_error /= 0) then
        marbl_status%status = marbl_status_could_not_read_namelist
        marbl_status%message = "ERROR: marbl_parmams_read_namelist(): could not read namelist 'ecosys_parms_nml'."
@@ -507,54 +606,56 @@ contains
     write(stdout, *) 'parm_scalelen_vals     = ', parm_scalelen_vals
 
     do zoo_ind = 1, zooplankton_cnt
-       write(stdout, *) 'lname(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%lname
-       write(stdout, *) 'z_mort_0(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%z_mort_0
-       write(stdout, *) 'z_mort2_0(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%z_mort2_0
-       write(stdout, *) 'loss_thres(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%loss_thres
+       write(stdout, *) 'lname('      , trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%lname
+       write(stdout, *) 'z_mort_0('   , trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%z_mort_0
+       write(stdout, *) 'z_mort2_0('  , trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%z_mort2_0
+       write(stdout, *) 'loss_thres(' , trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%loss_thres
     end do
     
     do auto_ind = 1, autotroph_cnt
-       write(stdout, *) 'lname(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%lname
-       write(stdout, *) 'Nfixer(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Nfixer
-       write(stdout, *) 'imp_calcifier(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%imp_calcifier
-       write(stdout, *) 'exp_calcifier(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%exp_calcifier
-       write(stdout, *) 'kFe(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kFe
-       write(stdout, *) 'kPO4(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kPO4
-       write(stdout, *) 'kDOP(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kDOP
-       write(stdout, *) 'kNO3(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kNO3
-       write(stdout, *) 'kNH4(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kNH4
-       write(stdout, *) 'kSiO3(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kSiO3
-       write(stdout, *) 'Qp(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Qp
-       write(stdout, *) 'gQfe_0(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%gQfe_0
-       write(stdout, *) 'gQfe_min(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%gQfe_min
-       write(stdout, *) 'alphaPI(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%alphaPI
-       write(stdout, *) 'PCref(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%PCref
-       write(stdout, *) 'thetaN_max(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%thetaN_max
-       write(stdout, *) 'loss_thres(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%loss_thres
-       write(stdout, *) 'loss_thres2(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%loss_thres2
-       write(stdout, *) 'temp_thres(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%temp_thres
-       write(stdout, *) 'mort(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%mort
-       write(stdout, *) 'mort2(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%mort2
-       write(stdout, *) 'agg_rate_max(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%agg_rate_max
-       write(stdout, *) 'agg_rate_min(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%agg_rate_min
-       write(stdout, *) 'loss_poc(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%loss_poc
+       write(stdout, *) 'lname('         , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%lname
+       write(stdout, *) 'Nfixer('        , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Nfixer
+       write(stdout, *) 'imp_calcifier(' , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%imp_calcifier
+       write(stdout, *) 'exp_calcifier(' , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%exp_calcifier
+       write(stdout, *) 'kFe('           , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kFe
+       write(stdout, *) 'kPO4('          , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kPO4
+       write(stdout, *) 'kDOP('          , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kDOP
+       write(stdout, *) 'kNO3('          , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kNO3
+       write(stdout, *) 'kNH4('          , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kNH4
+       write(stdout, *) 'kSiO3('         , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kSiO3
+       write(stdout, *) 'Qp('            , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Qp
+       write(stdout, *) 'gQfe_0('        , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%gQfe_0
+       write(stdout, *) 'gQfe_min('      , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%gQfe_min
+       write(stdout, *) 'alphaPI('       , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%alphaPI
+       write(stdout, *) 'PCref('         , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%PCref
+       write(stdout, *) 'thetaN_max('    , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%thetaN_max
+       write(stdout, *) 'loss_thres('    , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%loss_thres
+       write(stdout, *) 'loss_thres2('   , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%loss_thres2
+       write(stdout, *) 'temp_thres('    , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%temp_thres
+       write(stdout, *) 'mort('          , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%mort
+       write(stdout, *) 'mort2('         , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%mort2
+       write(stdout, *) 'agg_rate_max('  , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%agg_rate_max
+       write(stdout, *) 'agg_rate_min('  , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%agg_rate_min
+       write(stdout, *) 'loss_poc('      , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%loss_poc
     end do
 
     
     do prey_ind = 1, grazer_prey_cnt
        do zoo_ind = 1, zooplankton_cnt
-          write(stdout, *) 'lname(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%lname
-          write(stdout, *) 'auto_ind(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%auto_ind
-          write(stdout, *) 'auto_ind_cnt(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%auto_ind_cnt
-          write(stdout, *) 'zoo_ind(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%zoo_ind
-          write(stdout, *) 'zoo_ind_cnt(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%zoo_ind_cnt
-          write(stdout, *) 'z_umax_0(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%z_umax_0
-          write(stdout, *) 'z_grz(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%z_grz
-          write(stdout, *) 'graze_zoo(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%graze_zoo
-          write(stdout, *) 'graze_poc(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%graze_poc
-          write(stdout, *) 'graze_doc(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%graze_doc
-          write(stdout, *) 'f_zoo_detr(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%f_zoo_detr
-          write(stdout, *) 'grazing_function(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%grazing_function
+          associate(grazer => grazing(prey_ind, zoo_ind))
+             write(stdout, *) 'lname(', trim(grazer%sname), ') = ', grazer%lname
+             write(stdout, *) 'auto_ind(', trim(grazer%sname), ') = ', grazer%auto_ind
+             write(stdout, *) 'auto_ind_cnt(', trim(grazer%sname), ') = ', grazer%auto_ind_cnt
+             write(stdout, *) 'zoo_ind(', trim(grazer%sname), ') = ', grazer%zoo_ind
+             write(stdout, *) 'zoo_ind_cnt(', trim(grazer%sname), ') = ', grazer%zoo_ind_cnt
+             write(stdout, *) 'z_umax_0(', trim(grazer%sname), ') = ', grazer%z_umax_0
+             write(stdout, *) 'z_grz(', trim(grazer%sname), ') = ', grazer%z_grz
+             write(stdout, *) 'graze_zoo(', trim(grazer%sname), ') = ', grazer%graze_zoo
+             write(stdout, *) 'graze_poc(', trim(grazer%sname), ') = ', grazer%graze_poc
+             write(stdout, *) 'graze_doc(', trim(grazer%sname), ') = ', grazer%graze_doc
+             write(stdout, *) 'f_zoo_detr(', trim(grazer%sname), ') = ', grazer%f_zoo_detr
+             write(stdout, *) 'grazing_function(', trim(grazer%sname), ') = ', grazer%grazing_function
+          end associate
        end do
     end do
 
