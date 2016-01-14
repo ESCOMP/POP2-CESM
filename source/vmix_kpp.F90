@@ -648,6 +648,7 @@
      call cvmix_init_kpp(lEkman=lcheckekmo,                                     &
                          lMonOb=lcheckekmo,                                     &
                          surf_layer_ext = epssfc,                               &
+                         minVtsqr=c0,                                           &
                          lnoDGat1=.false.,                                      &
                          llangmuirEF=llangmuir_efactor,                         &
                          lenhanced_entr=lenhanced_entrainment,                  &
@@ -2177,17 +2178,11 @@
                     (zgrid(kl)-zgrid(kl+1)) )
       endif
 
-      if (kref.eq.1) then
+      if ((kref.eq.1).and.(.not.lchange_ans)) then
         ZREF = zgrid(1)
       else
         ZREF = -SURFTHICK/real(2,r8)
       end if
-
-!-----------------------------------------------------------------------
-! 
-!     compute bulk Richardson number at new level
-!
-!-----------------------------------------------------------------------
 
       if (lcvmix) then
         do i = 1,nx_block
@@ -2206,8 +2201,14 @@
                           Vt_sqr_cntr = (/WM(i,j)/)*1e-4_r8,                  &
                          stokes_drift =                                       &
                            sqrt(USTOKES(i,j,bid)**2+VSTOKES(i,j,bid)**2))
-              CVmix_vars(ic)%BulkRichardson_cntr(kl) = RI_BULK(i,j,kdn)
             else
+
+!-----------------------------------------------------------------------
+! 
+!     compute bulk Richardson number at new level
+!
+!-----------------------------------------------------------------------
+
               WM(i,j) = c0
               RI_BULK(i,j,kdn) = c0
             end if
@@ -2258,11 +2259,17 @@
 !       compute Langmuir depth always 
 !-----------------------------------------------------------------------
 
-      if (.not.lcvmix) then
          do j=1,ny_block
          do i=1,nx_block
-            if ( KBL(i,j) == KMT(i,j,bid) .and.  &
+           if (lcvmix) then
+              ic = (j-1)*nx_block + i
+              if (kl.le.CVmix_vars(ic)%nlev) then
+                CVmix_vars(ic)%BulkRichardson_cntr(kl) = RI_BULK(i,j,kdn)
+              end if
+           end if
+           if ( KBL(i,j) == KMT(i,j,bid) .and.  &
                  RI_BULK(i,j,kdn) > Ricr(kl) ) then
+             if (.not.lcvmix) then
                slope_up =  (RI_BULK(i,j,kupper) - RI_BULK(i,j,kup))/ &
                            (z_up - z_upper)
                a_co = (RI_BULK(i,j,kdn) - RI_BULK(i,j,kup) -         &
@@ -2283,12 +2290,12 @@
                endif
             
                KBL(i,j) = kl
-            end if
-            RSH_HBLT(i,j) =  (VSHEAR(i,j)*Ricr(kl)/ &
+             end if
+             RSH_HBLT(i,j) =  (VSHEAR(i,j)*Ricr(kl)/ &
                               (DBSFC(i,j,kl)+eps))/HBLT(i,j)
+           endif
          enddo
          enddo
-      endif
 
 !-----------------------------------------------------------------------
 !
