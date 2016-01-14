@@ -2,6 +2,22 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    12 Jan 2016
+Tag Name:    pop2/branch_tags/cvmix_kpp_roundoff_tags/cvmix_kpp_roundoff_n02_cesm_pop_2_1_20160112
+Tag Summary: Update CVMix to latest version (v0.71-beta) and add a pop-cvmix
+             test to the aux_pop testlist (also changed a G.pop-default to
+             C.pop-default; other option would've been G.pop-cice but I wanted
+             a C.pop-cvmix test that was comparable to a C.pop-default test)
+
+Files Modified:
+M       SVN_EXTERNAL_DIRECTORIES
+M       cime_config/testdefs/testlist_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/cvmix
+A       cime_config/testdefs/testmods_dirs/pop/cvmix/include_user_mods
+A       cime_config/testdefs/testmods_dirs/pop/cvmix/user_nl_pop
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    12 Jan 2016
 Tag Name:    pop2/branch_tags/cvmix_kpp_roundoff_tags/cvmix_kpp_roundoff_n01_cesm_pop_2_1_20160112
 Tag Summary: Re-order some of the CVMix computations, update when lchange_ans is
              used wrt ZREF

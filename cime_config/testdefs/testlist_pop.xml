@@ -18,6 +18,10 @@
       <test name="PFS">
         <machine compiler="intel" testtype="csltiming">yellowstone</machine>
       </test>
+      <test name="SMS">
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
+        <machine compiler="intel" testtype="aux_pop" testmods="pop/cvmix">yellowstone</machine>
+      </test>
     </grid>
     <grid name="T62_g37">
       <test name="ERS_Ld3">
@@ -164,9 +168,6 @@
       </test>
       <test name="PFS">
         <machine compiler="intel" testtype="csltiming">yellowstone</machine>
-      </test>
-      <test name="SMS">
-        <machine compiler="intel" testtype="aux_pop" testmods="pop/default">yellowstone</machine>
       </test>
     </grid>
     <grid name="T62_g37">
