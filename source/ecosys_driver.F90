@@ -518,7 +518,6 @@ contains
     !  Initialize module variables ind_name_table and ciso_ind_name_table
     !--------------------------------------------------------------------
 
-
     ! NOTE (mvertens, 2015-11), this currently has to be a module variable 
     ! since ecosys_driver_write_restart is called by passive_tracers and 
     ! does not pass in tracer_d_module into the interface
@@ -527,10 +526,12 @@ contains
        ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
     end do
 
-    do n = 1, ecosys_ciso_tracer_cnt
-       ciso_ind_name_table(n) = ind_name_pair(n, tracer_d_module(ecosys_ciso_ind_begin+n-1)%short_name)
-    end do
-
+    if (ciso_on) then
+       do n = 1, ecosys_ciso_tracer_cnt
+          ciso_ind_name_table(n) = ind_name_pair(n, tracer_d_module(ecosys_ciso_ind_begin+n-1)%short_name)
+       end do
+    end if
+       
     !--------------------------------------------------------------------
     !  Initialize ecosys tracers
     !--------------------------------------------------------------------
