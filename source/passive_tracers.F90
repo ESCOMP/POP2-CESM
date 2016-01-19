@@ -326,10 +326,10 @@
 !  determine ecosys_driver tracer count, which is the sum of the tracer
 !  count in all ecosys modules --> done in ecosys_driver
 !-----------------------------------------------------------------------
+
    if (ecosys_on) then
       call ecosys_driver_tracer_cnt_init(ciso_on)
    end if
-
 
 !-----------------------------------------------------------------------
 !  set up indices for passive tracer modules that are on
@@ -391,11 +391,13 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      call ecosys_driver_init(ciso_on,init_ts_file_fmt, read_restart_filename, &
-                       tracer_d(ecosys_driver_ind_begin:ecosys_driver_ind_end), &
-                       TRACER(:,:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,:,:), &
-                       tadvect_ctype_passive_tracers(ecosys_driver_ind_begin:ecosys_driver_ind_end), &
-                       errorCode)
+      call ecosys_driver_init(                                                           &
+           init_ts_file_fmt,                                                             &
+           read_restart_filename,                                                        &
+           tracer_d(ecosys_driver_ind_begin:ecosys_driver_ind_end),                      &
+           TRACER(:,:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,:,:),              &
+           tadvect_ctype_passive_tracers(ecosys_driver_ind_begin:ecosys_driver_ind_end), &
+           errorCode)
 
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
@@ -868,9 +870,11 @@
    if (ecosys_on) then
       !$OMP PARALLEL DO PRIVATE(iblock, this_block, bid)
       do iblock = 1, nblocks_clinic
+
          this_block = get_block(blocks_clinic(iblock), iblock)
          bid = this_block%local_id
-         call ecosys_driver_set_interior(ciso_on, &
+
+         call ecosys_driver_set_interior(&
               FRACR_BIN(:, :, :, bid), QSW_RAW_BIN(:, :, :, bid), QSW_BIN(:, :, :, bid), &
               TRACER(:, :, :, 1, oldtime, bid), TRACER(:, :, :, 1, curtime, bid), &
               TRACER(:, :, :, 2, oldtime, bid), TRACER(:, :, :, 2, curtime, bid), &
@@ -878,6 +882,7 @@
               TRACER(:, :, :, ecosys_driver_ind_begin:ecosys_driver_ind_end, curtime, bid), &
               ecosys_source_sink_3d(:, :, :, ecosys_driver_ind_begin:ecosys_driver_ind_end, bid), &
               this_block)
+
       end do
       !$OMP END PARALLEL DO
    end if
@@ -982,11 +987,11 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      call ecosys_driver_set_sflux(ciso_on,    &
-         U10_SQR, ICE_FRAC, PRESS,                                 &
-         SST_FILT, SSS_FILT,                                       &
-         TRACER(:,:,1,ecosys_driver_ind_begin:ecosys_driver_ind_end,oldtime,:),  &
-         TRACER(:,:,1,ecosys_driver_ind_begin:ecosys_driver_ind_end,curtime,:),  &
+      call ecosys_driver_set_sflux(                                             &
+         U10_SQR, ICE_FRAC, PRESS,                                              &
+         SST_FILT, SSS_FILT,                                                    &
+         TRACER(:,:,1,ecosys_driver_ind_begin:ecosys_driver_ind_end,oldtime,:), &
+         TRACER(:,:,1,ecosys_driver_ind_begin:ecosys_driver_ind_end,curtime,:), &
          STF(:,:,ecosys_driver_ind_begin:ecosys_driver_ind_end,:))
    end if
 
@@ -1092,7 +1097,7 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-      call ecosys_driver_write_restart(ciso_on,restart_file, action)
+      call ecosys_driver_write_restart(restart_file, action)
    end if
 
 !-----------------------------------------------------------------------
@@ -1400,7 +1405,7 @@
 !-----------------------------------------------------------------------
 
    if (ecosys_on) then
-     call ecosys_driver_tavg_forcing(ciso_on)
+     call ecosys_driver_tavg_forcing()
    end if
 
 !-----------------------------------------------------------------------
@@ -1535,11 +1540,9 @@
 
    if (ecosys_on) then
       if (ind >= ecosys_driver_ind_begin .and. ind <= ecosys_driver_ind_end) then
-         tracer_ref_val = &
-            ecosys_driver_tracer_ref_val(ciso_on,ind-ecosys_driver_ind_begin+1)
+         tracer_ref_val = ecosys_driver_tracer_ref_val(ind - ecosys_driver_ind_begin + 1)
       endif
    endif
-
 
 !-----------------------------------------------------------------------
 !  CFC does not use virtual fluxes

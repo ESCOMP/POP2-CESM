@@ -34,6 +34,10 @@ module marbl_parms
   use marbl_share_mod, only : autotroph_cnt
   use marbl_share_mod, only : grazer_prey_cnt
 
+  use time_management , only : freq_opt_never  !FIXME
+  use time_management , only : freq_opt_nmonth !FIXME
+  use time_management , only : freq_opt_nyear  !FIXME
+
   IMPLICIT NONE
 
   !-----------------------------------------------------------------------------

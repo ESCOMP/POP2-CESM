@@ -49,7 +49,7 @@ module ecosys_diagnostics_mod
 
   ! FIXME - the following should be counted and not be parameters
   integer, public, parameter :: max_interior_diags = 112 + (40*autotroph_cnt) + (8*zooplankton_cnt)
-  integer, public, parameter :: max_forcing_diags  = 40
+  integer, public, parameter :: max_forcing_diags  = 80
   integer, public, parameter :: max_restore_diags  = ecosys_tracer_cnt
 
   !-----------------------------------------------------------------------
@@ -281,6 +281,28 @@ module ecosys_diagnostics_mod
      integer(int_kind) :: ALK_RIV_FLUX
      integer(int_kind) :: DOC_RIV_FLUX
      integer(int_kind) :: DOCr_RIV_FLUX
+     
+     integer(int_kind) :: CISO_DI13C_GAS_FLUX       ! di13c flux
+     integer(int_kind) :: CISO_DI14C_GAS_FLUX       ! di14c flux
+     integer(int_kind) :: CISO_DI13C_AS_GAS_FLUX    ! air-sea di13c flux
+     integer(int_kind) :: CISO_DI14C_AS_GAS_FLUX    ! air-sea di14c flux
+     integer(int_kind) :: CISO_DI13C_SA_GAS_FLUX    ! sea-air di13c flux
+     integer(int_kind) :: CISO_DI14C_SA_GAS_FLUX    ! sea-air di14c flux
+     integer(int_kind) :: CISO_d13C_GAS_FLUX        ! surface ocean delta 13C
+     integer(int_kind) :: CISO_d14C_GAS_FLUX        ! surface ocean delta 14C
+     integer(int_kind) :: CISO_R13C_DIC_SURF        ! 13C/12C ratio in total DIC
+     integer(int_kind) :: CISO_R14C_DIC_SURF        ! 14C/12C ratio in total DIC
+     integer(int_kind) :: CISO_R13C_atm             ! atmospheric ratio of 13C/12C
+     integer(int_kind) :: CISO_R14C_atm             ! atmospheric ratio of 14C/12C
+     integer(int_kind) :: CISO_D13C_atm             ! atmospheric delta13C in permil
+     integer(int_kind) :: CISO_D14C_atm             ! atmospheric delta14C in permil
+     integer(int_kind) :: CISO_DI13C_RIV_FLUX       ! river input of DI13C
+     integer(int_kind) :: CISO_DI14C_RIV_FLUX       ! river input of DI14C
+     integer(int_kind) :: CISO_DO13C_RIV_FLUX       ! river input of DO13C
+     integer(int_kind) :: CISO_DO14C_RIV_FLUX       ! river input of DO14C
+     integer(int_kind) :: CISO_eps_aq_g_surf        ! tavg id for eps_aq_g_surf
+     integer(int_kind) :: CISO_eps_dic_g_surf       ! tavg id for eps_dic_g_surf
+     integer(int_kind) :: CISO_GLOBAL_D14C          ! tavg id for the global averaged atmos. D14C (debugging)
   end type marbl_forcing_diagnostics_indexing_type
   type(marbl_forcing_diagnostics_indexing_type), public :: marbl_forcing_diag_ind
 
@@ -291,13 +313,14 @@ contains
   !***********************************************************************
 
   subroutine marbl_diagnostics_init( &
-       marbl_interior_diags,                &
-       marbl_restore_diags,                 &
-       marbl_forcing_diags,                 &
-       num_elements_interior,               &
-       num_elements_forcing,                &
-       num_levels,                          &
-       tracer_d_module, ciso_on)
+       marbl_interior_diags,         &
+       marbl_restore_diags,          &
+       marbl_forcing_diags,          &
+       num_elements_interior,        &
+       num_elements_forcing,         &
+       num_levels,                   &
+       tracer_d_module,              &
+       ciso_on)
 
     use marbl_interface_types , only : marbl_tracer_metadata_type
 
@@ -305,8 +328,7 @@ contains
     integer                          , intent(in) :: num_elements_interior
     integer                          , intent(in) :: num_elements_forcing
     integer                          , intent(in) :: num_levels
-    ! descriptors for each tracer
-    type (marbl_tracer_metadata_type), intent(in) :: tracer_d_module(:)
+    type (marbl_tracer_metadata_type), intent(in) :: tracer_d_module(:) ! descriptors for each tracer
     logical (log_kind)               , intent(in) :: ciso_on 
 
     ! intent(inout)s
@@ -606,6 +628,160 @@ contains
     vgrid    = 'none'
     truncate = .false.
     call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOCr_RIV_FLUX)
+
+    !-----------------------------------------------------------------------
+    !  2D fields related to C13/C14 surface fluxes
+    !-----------------------------------------------------------------------
+
+    if (ciso_on) then
+
+       lname    = 'DI13C Surface Gas Flux'
+       sname    = 'CISO_FG_13CO2'
+       units    = 'mmol/m^3 cm/s'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI13C_GAS_FLUX)
+
+       lname    = 'DI13C Surface Air-Sea Gas Flux'
+       sname    = 'CISO_FG_as_13CO2'
+       units    = 'mmol/m^3 cm/s'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI13C_AS_GAS_FLUX)
+
+       lname    = 'DI13C Surface Sea-Air Gas Flux'
+       sname    = 'CISO_FG_sa_13CO2'
+       units    = 'mmol/m^3 cm/s'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI13C_SA_GAS_FLUX)
+
+       lname    = 'D13C Surface GAS FLUX'
+       sname    = 'CISO_FG_d13C'
+       units    = 'permil'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_d13C_GAS_FLUX)
+
+       lname    = 'Atmospheric Delta 13C in permil'
+       sname    = 'CISO_D13C_atm'
+       units    = 'permil'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_D13C_atm)
+
+       lname    = '13C/12C ratio in total DIC'
+       sname    = 'CISO_R13C_DIC_surf'
+       units    = 'permil'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_R13C_DIC_surf)
+
+       lname    = '13C/12C ratio in atmosphere'
+       sname    = 'CISO_R13C_atm'
+       units    = 'permil'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_R13C_atm)
+
+       lname    = 'Flux of DI13C from rivers'
+       sname    = 'CISO_DI13C_RIV_FLUX'
+       units    = 'nmol/cm^2/s'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI13C_RIV_FLUX)
+
+       lname    = 'Flux of DO13C from rivers'
+       sname    = 'CISO_DO13C_RIV_FLUX'
+       units    = 'nmol/cm^2/s'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DO13C_RIV_FLUX)
+
+       lname    = 'Surface equilibrium fractionation (CO2_gaseous <-> CO2_aq)'
+       sname    = 'CISO_eps_aq_g_surf'
+       units    = 'permil'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_eps_aq_g_surf)
+
+       lname    = 'Surface equilibrium fractionation between total DIC and gaseous CO2'
+       sname    = 'CISO_eps_dic_g_surf'
+       units    = 'permil'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_eps_dic_g_surf)
+
+       lname    = 'DI14C Surface Gas Flux'
+       sname    = 'CISO_FG_14CO2'
+       units    = 'mmol/m^3 cm/s'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI14C_GAS_FLUX)
+
+       lname    = 'DI14C Surface Air-Sea Gas Flux'
+       sname    = 'CISO_FG_as_14CO2'
+       units    = 'mmol/m^3 cm/s'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI14C_AS_GAS_FLUX)
+
+       lname    = 'DI14C Surface Sea-Air Gas Flux'
+       sname    = 'CISO_FG_sa_14CO2'
+       units    = 'mmol/m^3 cm/s'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI14C_SA_GAS_FLUX)
+
+       lname    = 'D14C Surface GAS FLUX'
+       sname    = 'CISO_FG_d14C'
+       units    = 'permil'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_d14C_GAS_FLUX)
+
+       lname    = 'Atmospheric Delta 14C in permil'
+       sname    = 'CISO_D14C_atm'
+       units    = 'permil'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_D14C_atm)
+
+       lname    = '14C/12C ratio in total DIC'
+       sname    = 'CISO_R14C_DIC_surf'
+       units    = 'permil'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_R14C_DIC_surf)
+
+       lname    = '14C/12C ratio in atmosphere'
+       sname    = 'CISO_R14C_atm'
+       units    = 'permil'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_R14C_atm)
+
+       lname    = 'Flux of DI14C from rivers'
+       sname    = 'CISO_DI14C_RIV_FLUX'
+       units    = 'nmol/cm^2/s'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI14C_RIV_FLUX)
+
+       lname    = 'Flux of DO14C from rivers'
+       sname    = 'CISO_DO14C_RIV_FLUX'
+       units    = 'nmol/cm^2/s'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DO14C_RIV_FLUX)
+
+       lname    = 'GLOBAL_D14C'
+       sname    = 'CISO_GLOBAL_D14C'
+       units    = 'permil'
+       vgrid    = 'none'
+       truncate = .false.
+       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_GLOBAL_D14C)
+    end if
 
     end associate
 
@@ -2624,10 +2800,8 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-
     character(*), parameter :: subname = 'ecosys_diagnostics:store_diagnostics_sflux'
     !-----------------------------------------------------------------------
-
 
     !-----------------------------------------------------------------------
     !  calculate gas flux quantities if necessary
@@ -2642,7 +2816,7 @@ contains
          ifrac           => marbl_forcing_input%ifrac,                        &
          ap_used         => marbl_forcing_input%atm_press,                    &
          dust_flux_in    => marbl_forcing_input%dust_flux,                    &
-         marbl_stf       => marbl_forcing_input%marbl_stf,                    &
+         input_forcings  => marbl_forcing_input%input_forcings,               &
          ph_prev         => marbl_forcing_output%ph_prev,                     &
          ph_prev_alt_co2 => marbl_forcing_output%ph_prev_alt_co2,             &
          iron_flux_in    => marbl_forcing_output%iron_flux,                   &
@@ -2723,12 +2897,12 @@ contains
     !-----------------------------------------------------------------------
 
     if (nox_flux_monthly%has_data) then
-       diags(ind%NOx_FLUX)%field_2d(:) = MARBL_STF(:, ind_nox_flux)
+       diags(ind%NOx_FLUX)%field_2d(:) = input_forcings(:, ind_nox_flux)
     endif
 
     if (trim(ndep_data_type) == 'shr_stream') then
        diags(ind%NOx_FLUX)%field_2d(:) = &
-            ndep_shr_stream_scale_factor * MARBL_STF(:, ind_no3_flux)
+            ndep_shr_stream_scale_factor * input_forcings(:, ind_no3_flux)
     endif
 
     !-----------------------------------------------------------------------
@@ -2736,19 +2910,19 @@ contains
     !-----------------------------------------------------------------------
 
     if (din_riv_flux%has_data) then
-       diags(ind%DIN_RIV_FLUX)%field_2d(:) = MARBL_STF(:, ind_din_riv_flux)
+       diags(ind%DIN_RIV_FLUX)%field_2d(:) = input_forcings(:, ind_din_riv_flux)
     endif
     if (dsi_riv_flux%has_data) then
-       diags(ind%DSI_RIV_FLUX)%field_2d(:) = MARBL_STF(:, ind_dsi_riv_flux)
+       diags(ind%DSI_RIV_FLUX)%field_2d(:) = input_forcings(:, ind_dsi_riv_flux)
     endif
     if (dfe_riv_flux%has_data) then
-       diags(ind%DFE_RIV_FLUX)%field_2d(:) = MARBL_STF(:, ind_dfe_riv_flux)
+       diags(ind%DFE_RIV_FLUX)%field_2d(:) = input_forcings(:, ind_dfe_riv_flux)
     endif
     if (dic_riv_flux%has_data) then
-       diags(ind%DIC_RIV_FLUX)%field_2d(:) = MARBL_STF(:, ind_dic_riv_flux)
+       diags(ind%DIC_RIV_FLUX)%field_2d(:) = input_forcings(:, ind_dic_riv_flux)
     endif
     if (alk_riv_flux%has_data) then
-       diags(ind%ALK_RIV_FLUX)%field_2d(:) = MARBL_STF(:, ind_alk_riv_flux)
+       diags(ind%ALK_RIV_FLUX)%field_2d(:) = input_forcings(:, ind_alk_riv_flux)
     endif
     diags(ind%O2_GAS_FLUX)%field_2d(:)   = STF_MODULE(:, o2_ind)
     diags(ind%NHy_FLUX)%field_2d(:)      = STF_MODULE(:, nh4_ind)
@@ -3000,6 +3174,139 @@ contains
     end associate
 
   end subroutine store_diagnostics_ciso_interior
+
+  !***********************************************************************
+
+  subroutine store_diagnostics_ciso_sflux( &
+       num_elements,   &
+       D13C,           &
+       D14C,           &
+       FLUX,           &
+       FLUX13,         &
+       FLUX14,         &
+       FLUX_as,        &
+       FLUX13_as,      &
+       FLUX14_as,      &
+       FLUX_sa,        &
+       FLUX13_sa,      &
+       FLUX14_sa,      &
+       R13C_DIC,       &
+       R14C_DIC,       &
+       R13C_atm,       &
+       R14C_atm,       &
+       di13c_riv_flux, &
+       do13c_riv_flux, &
+       di14c_riv_flux, &
+       do14c_riv_flux, &
+       eps_aq_g_surf,  &
+       eps_dic_g_surf, &
+       marbl_diags)
+
+    ! !DESCRIPTION:
+    !  Compute surface fluxes for ecosys tracer module.
+
+    use marbl_parms     , only : R13c_std, R14c_std
+    use constants       , only : c1000
+
+    implicit none
+
+    integer (int_kind), intent(in) :: num_elements
+    real (r8), dimension(num_elements), intent(in)    :: &
+         D13C,           & ! atm 13co2 value
+         D14C,           & ! atm 14co2 value
+         FLUX,           & ! gas flux of CO2 (nmol/cm^2/s)
+         FLUX13,         & ! gas flux of 13CO2 (nmol/cm^2/s)
+         FLUX14,         & ! gas flux of 14CO2 (nmol/cm^2/s)
+         FLUX_as,        & ! air-to-sea gas flux of CO2 (nmol/cm^2/s)
+         FLUX13_as,      & ! air-to-sea gas flux of 13CO2 (nmol/cm^2/s)
+         FLUX14_as,      & ! air-to-sea gas flux of 14CO2 (nmol/cm^2/s)
+         FLUX_sa,        & ! sea-to-air gas flux of CO2 (nmol/cm^2/s)
+         FLUX13_sa,      & ! sea-to-air gas flux of 13CO2 (nmol/cm^2/s)
+         FLUX14_sa,      & ! sea-to-air gas flux of 14CO2 (nmol/cm^2/s)
+         R13C_DIC,       & ! 13C/12C ratio in DIC
+         R14C_DIC,       & ! 14C/12C ratio in total DIC
+         R13C_atm,       & ! 13C/12C ratio in atmospheric CO2
+         R14C_atm,       & ! 14C/12C ratio in atmospheric CO2
+         di13c_riv_flux, & ! River input of DI13C
+         do13c_riv_flux, & ! River input of DO13C
+         di14c_riv_flux, & ! River input of DI14C
+         do14c_riv_flux, & ! River input of DO14C
+         eps_aq_g_surf,  & ! equilibrium fractionation (CO2_gaseous <-> CO2_aq)
+         eps_dic_g_surf    ! equilibrium fractionation between total DIC and gaseous CO2
+
+    type(marbl_diagnostics_type)      , intent(inout) :: marbl_diags
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(*), parameter :: subname = 'ecosys_diagnostics:store_diagnostics_ciso_sflux'
+    !-----------------------------------------------------------------------
+
+    associate(                                                                &
+         diags => marbl_diags%diags(:),                             &
+         ind   => marbl_forcing_diag_ind &
+         )
+
+    !-----------------------------------------------------------------------
+    !    Tavg variables
+    !-----------------------------------------------------------------------
+
+    diags(ind%CISO_DI13C_GAS_FLUX)%field_2d(:) = FLUX13(:)
+    diags(ind%CISO_DI14C_GAS_FLUX)%field_2d(:) = FLUX14(:)
+
+    write(6,*)'DEBUG: i am here ',diags(ind%CISO_DI13C_GAS_FLUX)%field_2d(1)
+
+    diags(ind%CISO_DI13C_AS_GAS_FLUX)%field_2d(:) = FLUX13_as(:)
+    diags(ind%CISO_DI14C_AS_GAS_FLUX)%field_2d(:) = FLUX14_as(:)
+
+    diags(ind%CISO_DI13C_SA_GAS_FLUX)%field_2d(:) = FLUX13_sa(:)
+    diags(ind%CISO_DI14C_SA_GAs_FLUX)%field_2d(:) = FLUX14_sa(:)
+
+    where ( FLUX(:) /= c0 )
+       diags(ind%CISO_D13C_GAS_FLUX)%field_2d(:) = ( FLUX13(:) / FLUX(:) / R13C_std - c1 ) * c1000
+       diags(ind%CISO_D14C_GAS_FLUX)%field_2d(:) = ( FLUX14(:) / FLUX(:) / R14C_std - c1 ) * c1000
+    elsewhere
+       diags(ind%CISO_D13C_GAS_FLUX)%field_2d(:) = c0
+       diags(ind%CISO_D14C_GAS_FLUX)%field_2d(:) = c0
+    endwhere
+
+    diags(ind%CISO_R13C_DIC_surf)%field_2d(:) = R13C_DIC(:)
+    diags(ind%CISO_R14C_DIC_surf)%field_2d(:) = R14C_DIC(:)
+
+    diags(ind%ciso_r13c_atm)%field_2d(:) = R13C_atm(:)
+    diags(ind%ciso_r14c_atm)%field_2d(:) = R14C_atm(:)
+
+    diags(ind%ciso_d13c_atm)%field_2d(:) = d13c(:)
+    diags(ind%ciso_d14c_atm)%field_2d(:) = d14c(:)        
+
+    diags(ind%CISO_eps_aq_g_surf)%field_2d(:)  = eps_aq_g_surf(:)
+    diags(ind%CISO_eps_dic_g_surf)%field_2d(:) = eps_dic_g_surf(:)
+
+    !-------------------------------------------------------------------------
+    ! River input of isotopic DIC and DOC.
+    ! River input of BGC tracers in ecosys_mod is currently constant and from file
+    ! So the isotopic carbon input is also done very simplified with one value
+    ! globally, even though data shows it should vary from river to river.
+    !
+    ! Using constant delta values of
+    ! D13C=-10 permil for DIC (Mook 1986, Raymond et al 2004)
+    ! D13C=-27.6 permil for DOC (Raymond et al 2004)
+    ! D14C=-50 permil for DOC (Raymond et al 2004), Gruber et al
+    ! D14C= atmos_D14C - 50 permil for DIC (based on very few data points and 
+    !       discussion with N. Gruber)
+    !-------------------------------------------------------------------------
+    
+    diags(ind%CISO_DI13C_RIV_FLUX)%field_2d(:) = di13c_riv_flux(:)
+    diags(ind%CISO_DO13C_RIV_FLUX)%field_2d(:) = do13c_riv_flux(:)
+
+    diags(ind%CISO_DI14C_RIV_FLUX)%field_2d(:) = di14c_riv_flux(:)
+    diags(ind%CISO_DO14C_RIV_FLUX)%field_2d(:) = do14c_riv_flux(:)
+
+!   DIAGS(ind%CISO_GLOBAL_D14C)%field_2d(:) = D14C_glo_avg(:)
+
+    end associate
+
+  end subroutine store_diagnostics_ciso_sflux
 
   !*****************************************************************************
 

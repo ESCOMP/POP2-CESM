@@ -29,8 +29,15 @@ module marbl_ciso_mod
   use marbl_parms     , only : c1000
   use marbl_parms     , only : mpercm
 
-  use exit_mod, only : exit_POP
-  use exit_mod, only : sigAbort
+  use communicate     , only : master_task     !FIXME
+  use communicate     , only : my_task         !FIXME
+  use io_types        , only : stdout          !FIXME
+  use io_tools        , only : document        !FIXME 
+  use constants       , only : blank_fmt       !FIXME
+  use constants       , only : delim_fmt       !FIXME
+  use constants       , only : ndelim_fmt      !FIXME
+  use exit_mod        , only : exit_POP        !FIXME
+  use exit_mod        , only : sigAbort        !FIXME
 
   implicit none
   private
@@ -39,15 +46,17 @@ module marbl_ciso_mod
   !  public/private declarations
   !-----------------------------------------------------------------------
 
+  public  :: marbl_ciso_init_nml
+  public  :: marbl_ciso_init_tracer_metadata
   public  :: marbl_ciso_set_interior
+  public  :: marbl_ciso_set_sflux
 
   private :: setup_cell_attributes
   private :: setup_local_column_tracers
   private :: setup_local_autotrophs
-!!$  private :: fract_keller_morel
-!!$  private :: init_particulate_terms
-!!$  private :: compute_particulate_terms
-!!$  private :: marbl_ciso_store_interior
+  private :: fract_keller_morel
+  private :: init_particulate_terms
+  private :: compute_particulate_terms
 
   type, private :: autotroph_local_type
      real (r8) :: C13     ! local copy of model autotroph C13
@@ -73,6 +82,350 @@ module marbl_ciso_mod
   !***********************************************************************
 
 contains
+
+  !*****************************************************************************
+
+  subroutine marbl_ciso_init_nml(nl_buffer, marbl_status)
+
+    use marbl_namelist_mod        , only : marbl_nl_in_size
+    use marbl_namelist_mod        , only : marbl_nl_cnt
+    use marbl_namelist_mod        , only : marbl_nl_buffer_size
+    use marbl_namelist_mod        , only : marbl_nl_split_string
+    use marbl_namelist_mod        , only : marbl_namelist
+    use marbl_interface_constants , only : marbl_status_ok
+    use marbl_interface_constants , only : marbl_status_could_not_read_namelist
+    use marbl_interface_constants , only : marbl_namelist_consistency_error
+    use marbl_interface_types     , only : marbl_status_type
+    use marbl_interface_types     , only : marbl_tracer_read_type
+    use marbl_share_mod           , only : ecosys_ciso_tracer_cnt
+    use marbl_share_mod           , only : ciso_init_ecosys_option
+    use marbl_share_mod           , only : ciso_init_ecosys_init_file
+    use marbl_share_mod           , only : ciso_init_ecosys_init_file_fmt
+    use marbl_share_mod           , only : ciso_tracer_init_ext
+    use marbl_share_mod           , only : ciso_lsource_sink
+    use marbl_share_mod           , only : ciso_atm_d13c_opt
+    use marbl_share_mod           , only : ciso_atm_d13c_const
+    use marbl_share_mod           , only : ciso_atm_d13c_filename
+    use marbl_share_mod           , only : ciso_atm_d14c_opt
+    use marbl_share_mod           , only : ciso_atm_d14c_const
+    use marbl_share_mod           , only : ciso_atm_d14c_filename
+    use marbl_share_mod           , only : ciso_fract_factors
+    use marbl_share_mod           , only : ciso_atm_model_year
+    use marbl_share_mod           , only : ciso_atm_data_year
+    use marbl_share_mod           , only : ciso_lecovars_full_depth_tavg 
+    use marbl_share_mod           , only : ciso_use_nml_surf_vals
+    use marbl_share_mod           , only : ciso_comp_surf_avg_flag
+    use marbl_share_mod           , only : ciso_comp_surf_avg_freq
+    use marbl_share_mod           , only : ciso_comp_surf_avg_freq_iopt
+    use marbl_share_mod           , only : ciso_surf_avg_di13c_const
+    use marbl_share_mod           , only : ciso_surf_avg_di14c_const
+    use marbl_parms               , only : freq_opt_never  
+    use marbl_parms               , only : freq_opt_nmonth 
+    use marbl_parms               , only : freq_opt_nyear  
+
+    implicit none
+
+    character(marbl_nl_buffer_size), intent(in)  :: nl_buffer(marbl_nl_cnt)
+    type(marbl_status_type)        , intent(out) :: marbl_status
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(*), parameter :: subname = 'marbl_ciso_mod:marbl_ciso_init_nml'
+
+    integer (int_kind) ::               &
+         n,                             & ! index
+         nml_error                        ! namelist i/o error flag
+
+    character(len=marbl_nl_buffer_size) :: &
+         tmp_nl_buffer
+
+    character(char_len) :: &
+         ciso_comp_surf_avg_freq_opt
+
+    ! ecosys_ciso_nml namelist
+    namelist /ecosys_ciso_nml/ &
+         ciso_init_ecosys_option, ciso_init_ecosys_init_file, &
+         ciso_init_ecosys_init_file_fmt, ciso_tracer_init_ext, &
+         ciso_comp_surf_avg_freq_opt, ciso_comp_surf_avg_freq,  &
+         ciso_use_nml_surf_vals, &
+         ciso_surf_avg_di13c_const, ciso_surf_avg_di14c_const, &
+         ciso_lsource_sink, &
+         ciso_lecovars_full_depth_tavg, &
+         ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename, &
+         ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename, &
+         ciso_fract_factors, ciso_atm_model_year, ciso_atm_data_year
+
+    !-----------------------------------------------------------------------
+
+    marbl_status%status = marbl_status_ok
+    marbl_status%message = ''
+
+    !-----------------------------------------------------------------------
+    !  default namelist settings
+    !-----------------------------------------------------------------------
+
+    ciso_init_ecosys_option                 = 'unknown'
+    ciso_init_ecosys_init_file              = 'unknown'
+    ciso_init_ecosys_init_file_fmt          = 'bin'
+    do n = 1,ecosys_ciso_tracer_cnt
+       ciso_tracer_init_ext(n)%mod_varname  = 'unknown'
+       ciso_tracer_init_ext(n)%filename     = 'unknown'
+       ciso_tracer_init_ext(n)%file_varname = 'unknown'
+       ciso_tracer_init_ext(n)%scale_factor = c1
+       ciso_tracer_init_ext(n)%default_val  = c0
+       ciso_tracer_init_ext(n)%file_fmt     = 'bin'
+    end do
+
+    ciso_lsource_sink                       = .true.
+
+    ciso_comp_surf_avg_freq_opt             = 'never'
+    ciso_comp_surf_avg_freq                 = 1
+    ciso_use_nml_surf_vals                  = .false.
+    ciso_surf_avg_di13c_const               = 1944.0_r8
+    ciso_surf_avg_di14c_const               = 1944.0_r8
+
+    ciso_atm_d13c_opt                       = 'const'
+    ciso_atm_d13c_const                     = -6.379_r8
+    ciso_atm_d13c_filename                  = 'unknown'
+
+    ciso_atm_d14c_opt                       = 'const'
+    ciso_atm_d14c_const                     = 0.0_r8
+    ciso_atm_d14c_filename(1)               = 'unknown'
+    ciso_atm_d14c_filename(2)               = 'unknown'
+    ciso_atm_d14c_filename(3)               = 'unknown'
+
+    ciso_fract_factors                      = 'Rau'
+
+    ciso_lecovars_full_depth_tavg           = .false.
+
+    ciso_atm_model_year                     = 1
+    ciso_atm_data_year                      = 1
+
+    !-----------------------------------------------------------------------
+    ! read the namelist buffer on every processor
+    !-----------------------------------------------------------------------
+
+    tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_ciso_nml')
+    read(tmp_nl_buffer, nml=ecosys_ciso_nml, iostat=nml_error)
+    if (nml_error /= 0) then
+       marbl_status%status = marbl_status_could_not_read_namelist
+       marbl_status%message = "ERROR: "//subname//"(): could not read ecosys_ciso_nml."
+       return
+    end if
+
+    if (my_task == master_task) then
+       write(stdout,blank_fmt)
+       write(stdout,ndelim_fmt)
+       write(stdout,blank_fmt)
+       write(stdout,*) ' ecosys_ciso:'
+       write(stdout,blank_fmt)
+       write(stdout,*) ' ecosys_ciso_nml namelist settings:'
+       write(stdout,blank_fmt)
+       write(stdout,ecosys_ciso_nml)
+       write(stdout,blank_fmt)
+       write(stdout,delim_fmt)
+    endif
+
+    !-----------------------------------------------------------------------
+    !  set variables immediately dependent on namelist variables
+    !-----------------------------------------------------------------------
+
+    select case (ciso_comp_surf_avg_freq_opt)
+    case ('never')
+       ciso_comp_surf_avg_freq_iopt = freq_opt_never
+    case ('nyear')
+       ciso_comp_surf_avg_freq_iopt = freq_opt_nyear
+    case ('nmonth')
+       ciso_comp_surf_avg_freq_iopt = freq_opt_nmonth
+    case default
+       marbl_status%status = marbl_namelist_consistency_error
+       marbl_status%message = "ERROR: "//subname//"(): unknown ciso_comp_surf_avg_freq_opt" //ciso_comp_surf_avg_freq_opt
+       return
+    end select
+
+    !-----------------------------------------------------------------------
+    !  namelist consistency checking
+    !-----------------------------------------------------------------------
+
+    if (ciso_use_nml_surf_vals .and. ciso_comp_surf_avg_freq_iopt /= freq_opt_never) then
+       call document(subname, 'ciso_use_nml_surf_vals'     , ciso_use_nml_surf_vals)
+       call document(subname, 'ciso_comp_surf_avg_freq_opt', ciso_comp_surf_avg_freq_opt)
+       call exit_POP(sigAbort, &
+            'ciso_use_nml_surf_vals can only be .true. if ciso_comp_surf_avg_freq_opt is never')
+    endif
+
+  end subroutine marbl_ciso_init_nml
+
+  !*****************************************************************************
+  
+  subroutine marbl_ciso_init_tracer_metadata(marbl_tracer_metadata)
+
+    ! !DESCRIPTION:
+    !  Set tracer and forcing metadata
+
+    use marbl_interface_types , only : marbl_tracer_metadata_type
+    use marbl_share_mod       , only : autotrophs, autotroph_cnt
+    use marbl_share_mod       , only : ecosys_ciso_tracer_cnt
+    use marbl_share_mod       , only : ciso_lecovars_full_depth_tavg 
+    use marbl_parms           , only : di13c_ind
+    use marbl_parms           , only : do13c_ind
+    use marbl_parms           , only : zoo13C_ind
+    use marbl_parms           , only : di14c_ind
+    use marbl_parms           , only : do14c_ind
+    use marbl_parms           , only : zoo14C_ind
+
+    implicit none
+
+    type (marbl_tracer_metadata_type), intent(inout) :: marbl_tracer_metadata(:)   ! descriptors for each tracer
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(*), parameter :: subname = 'marbl_ciso_mod:marbl_ciso_init_tracer_metadata'
+
+    integer (int_kind) :: n                             ! tracer index
+    integer (int_kind) :: auto_ind                      ! autotroph functional group index
+    integer (int_kind) :: non_autotroph_ciso_tracer_cnt ! number of non-autotroph ecosystem tracers
+    !-----------------------------------------------------------------------
+
+    !-----------------------------------------------------------------------
+    !  initialize non-autotroph metadata values
+    !  accumulate non_autotroph_ciso_tracer_cnt
+    !-----------------------------------------------------------------------
+
+    non_autotroph_ciso_tracer_cnt = 0
+
+    marbl_tracer_metadata(di13c_ind)%short_name='DI13C'
+    marbl_tracer_metadata(di13c_ind)%long_name='Dissolved Inorganic Carbon-13'
+    non_autotroph_ciso_tracer_cnt = non_autotroph_ciso_tracer_cnt + 1
+
+    marbl_tracer_metadata(do13c_ind)%short_name='DO13C'
+    marbl_tracer_metadata(do13c_ind)%long_name='Dissolved Organic Carbon-13'
+    non_autotroph_ciso_tracer_cnt = non_autotroph_ciso_tracer_cnt + 1
+
+    marbl_tracer_metadata(zoo13C_ind)%short_name='zoo13C'
+    marbl_tracer_metadata(zoo13C_ind)%long_name='Zooplankton Carbon-13'
+    non_autotroph_ciso_tracer_cnt = non_autotroph_ciso_tracer_cnt + 1
+
+    marbl_tracer_metadata(di14c_ind)%short_name='DI14C'
+    marbl_tracer_metadata(di14c_ind)%long_name='Dissolved Inorganic Carbon-14'
+    non_autotroph_ciso_tracer_cnt = non_autotroph_ciso_tracer_cnt + 1
+
+    marbl_tracer_metadata(do14c_ind)%short_name='DO14C'
+    marbl_tracer_metadata(do14c_ind)%long_name='Dissolved Organic Carbon-14'
+    non_autotroph_ciso_tracer_cnt = non_autotroph_ciso_tracer_cnt + 1
+
+    marbl_tracer_metadata(zoo14C_ind)%short_name='zoo14C'
+    marbl_tracer_metadata(zoo14C_ind)%long_name='Zooplankton Carbon-14'
+    non_autotroph_ciso_tracer_cnt = non_autotroph_ciso_tracer_cnt + 1
+
+    do n = 1, non_autotroph_ciso_tracer_cnt
+       marbl_tracer_metadata(n)%units      = 'mmol/m^3'
+       marbl_tracer_metadata(n)%tend_units = 'mmol/m^3/s'
+       marbl_tracer_metadata(n)%flux_units = 'mmol/m^3 cm/s'
+    end do
+
+    !-----------------------------------------------------------------------
+    !  confirm that ecosys_ciso_tracer_cnt is consistent with autotroph declarations
+    !-----------------------------------------------------------------------
+
+    n = non_autotroph_ciso_tracer_cnt
+    do auto_ind = 1, autotroph_cnt
+       n = n + 2 ! C13, C14 tracers
+       if (autotrophs(auto_ind)%imp_calcifier .or. autotrophs(auto_ind)%exp_calcifier) then
+          n = n + 2 ! Ca13CO3 & Ca14CO3 tracers
+       end if
+    end do
+
+    if (ecosys_ciso_tracer_cnt /= n) then
+       call document(subname, 'actual ecosys_ciso_tracer_cnt', ecosys_ciso_tracer_cnt)
+       call document(subname, 'computed ecosys_ciso_tracer_cnt', n)
+       call exit_POP(sigAbort, 'inconsistency between actual ecosys_ciso_tracer_cnt and computed ecosys_ciso_tracer_cnt')
+    endif
+
+    !-----------------------------------------------------------------------
+    !  initialize autotroph tracer_d values and tracer indices
+    !-----------------------------------------------------------------------
+
+    n = non_autotroph_ciso_tracer_cnt + 1
+
+    do auto_ind = 1, autotroph_cnt
+       marbl_tracer_metadata(n)%short_name = trim(autotrophs(auto_ind)%sname) // '13C'
+       marbl_tracer_metadata(n)%long_name  = trim(autotrophs(auto_ind)%lname) // ' Carbon-13'
+       marbl_tracer_metadata(n)%units      = 'mmol/m^3'
+       marbl_tracer_metadata(n)%tend_units = 'mmol/m^3/s'
+       marbl_tracer_metadata(n)%flux_units = 'mmol/m^3 cm/s'
+       autotrophs(auto_ind)%C13_ind = n
+       n = n + 1
+
+       marbl_tracer_metadata(n)%short_name = trim(autotrophs(auto_ind)%sname) // '14C'
+       marbl_tracer_metadata(n)%long_name  = trim(autotrophs(auto_ind)%lname) // ' Carbon-14'
+       marbl_tracer_metadata(n)%units      = 'mmol/m^3'
+       marbl_tracer_metadata(n)%tend_units = 'mmol/m^3/s'
+       marbl_tracer_metadata(n)%flux_units = 'mmol/m^3 cm/s'
+       autotrophs(auto_ind)%C14_ind = n
+       n = n + 1
+
+       if (autotrophs(auto_ind)%imp_calcifier .or. autotrophs(auto_ind)%exp_calcifier) then
+          marbl_tracer_metadata(n)%short_name = trim(autotrophs(auto_ind)%sname) // 'Ca13CO3'
+          marbl_tracer_metadata(n)%long_name  = trim(autotrophs(auto_ind)%lname) // ' Ca13CO3'
+          marbl_tracer_metadata(n)%units      = 'mmol/m^3'
+          marbl_tracer_metadata(n)%tend_units = 'mmol/m^3/s'
+          marbl_tracer_metadata(n)%flux_units = 'mmol/m^3 cm/s'
+          autotrophs(auto_ind)%Ca13CO3_ind = n
+          n = n + 1
+
+          marbl_tracer_metadata(n)%short_name = trim(autotrophs(auto_ind)%sname) // 'Ca14CO3'
+          marbl_tracer_metadata(n)%long_name  = trim(autotrophs(auto_ind)%lname) // ' Ca14CO3'
+          marbl_tracer_metadata(n)%units      = 'mmol/m^3'
+          marbl_tracer_metadata(n)%tend_units = 'mmol/m^3/s'
+          marbl_tracer_metadata(n)%flux_units = 'mmol/m^3 cm/s'
+          autotrophs(auto_ind)%Ca14CO3_ind = n
+          n = n + 1
+       else
+          autotrophs(auto_ind)%Ca13CO3_ind = 0
+          autotrophs(auto_ind)%Ca14CO3_ind = 0
+       endif
+    end do
+
+    if (my_task == master_task) THEN
+       write (stdout,*) '----- autotroph tracer indices -----'
+       do auto_ind = 1, autotroph_cnt
+          write (stdout,*) 'C13_ind('     , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%C13_ind
+          write (stdout,*) 'C14_ind('     , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%C14_ind
+          write (stdout,*) 'Ca13CO3_ind(' , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Ca13CO3_ind
+          write (stdout,*) 'Ca14CO3_ind(' , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Ca14CO3_ind
+          write (stdout,*) 'autotroph_cnt =',autotroph_cnt
+       end do
+       write (stdout,*) '------------------------------------'
+    endif
+
+    !-----------------------------------------------------------------------
+    !  set lfull_depth_tavg flag for short-lived ecosystem tracers
+    !-----------------------------------------------------------------------
+
+    marbl_tracer_metadata(zoo13C_ind   )%lfull_depth_tavg = ciso_lecovars_full_depth_tavg
+    marbl_tracer_metadata(zoo14C_ind   )%lfull_depth_tavg = ciso_lecovars_full_depth_tavg
+
+    do auto_ind = 1, autotroph_cnt
+       n = autotrophs(auto_ind)%C13_ind
+       marbl_tracer_metadata(n)%lfull_depth_tavg = ciso_lecovars_full_depth_tavg
+
+       n = autotrophs(auto_ind)%C14_ind
+       marbl_tracer_metadata(n)%lfull_depth_tavg = ciso_lecovars_full_depth_tavg
+
+       n = autotrophs(auto_ind)%Ca13CO3_ind
+       if (n > 0) then
+          marbl_tracer_metadata(n)%lfull_depth_tavg = ciso_lecovars_full_depth_tavg
+       endif
+       n = autotrophs(auto_ind)%Ca14CO3_ind
+       if (n > 0) then
+          marbl_tracer_metadata(n)%lfull_depth_tavg = ciso_lecovars_full_depth_tavg
+       endif
+    end do
+
+  end subroutine marbl_ciso_init_tracer_metadata
 
   !***********************************************************************
 
@@ -1568,5 +1921,267 @@ contains
     end associate
 
   end subroutine marbl_autotroph_consistency_check
+
+  !*****************************************************************************
+
+  subroutine marbl_ciso_set_sflux( &
+       num_elements        , &
+       ciso_tracer_cnt     , &
+       land_mask           , &
+       sst                 , &
+       d13c                , &
+       d14c                , &
+       d14c_glo_avg        , &
+       surface_vals        , &
+       marbl_forcing_share , &
+       stf                 , &
+       marbl_forcing_diags)
+
+    use marbl_parms            , only : R13c_std
+    use marbl_parms            , only : R14c_std
+    use marbl_parms            , only : p5
+    use marbl_parms            , only : di13c_ind
+    use marbl_parms            , only : di14c_ind
+    use marbl_parms            , only : do13c_ind
+    use marbl_parms            , only : do14c_ind
+    use marbl_share_mod        , only : marbl_forcing_share_type
+    use marbl_interface_types  , only : marbl_diagnostics_type
+    use ecosys_diagnostics_mod , only : store_diagnostics_ciso_sflux
+
+    implicit none
+
+    integer (int_kind)             , intent(in)    :: num_elements
+    integer (int_kind)             , intent(in)    :: ciso_tracer_cnt
+    logical (log_kind)             , intent(in)    :: land_mask(num_elements)
+    real(r8)                       , intent(in)    :: sst(num_elements)
+    real(r8)                       , intent(in)    :: d13c(num_elements)  ! atm 13co2 value
+    real(r8)                       , intent(in)    :: d14c(num_elements)  ! atm 14co2 value
+    real(r8)                       , intent(in)    :: d14c_glo_avg
+    real(r8)                       , intent(in)    :: surface_vals(num_elements, ciso_tracer_cnt)
+    type(marbl_forcing_share_type) , intent(in)    :: marbl_forcing_share
+    real(r8)                       , intent(inout) :: stf(num_elements, ciso_tracer_cnt)
+    type(marbl_diagnostics_type)   , intent(inout) :: marbl_forcing_diags
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(*), parameter :: subname = 'marbl_ciso_mod:marbl_ciso_set_sflux'
+
+    logical (log_kind), save :: &
+         first = .true.  ! Logical for first iteration test
+
+    integer (int_kind) :: &
+         n,            & ! loop indices
+         auto_ind,     & ! autotroph functional group index
+         mcdate,sec,   & ! date vals for shr_strdata_advance
+         errorCode       ! errorCode from HaloUpdate call
+
+    real (r8), dimension(num_elements) :: &
+         R13C_DIC,                        & ! 13C/12C ratio in DIC
+         R14C_DIC,                        & ! 14C/12C ratio in total DIC
+         R13C_atm,                        & ! 13C/12C ratio in atmospheric CO2
+         R14C_atm,                        & ! 14C/12C ratio in atmospheric CO2
+         flux,                            & ! gas flux of CO2 (nmol/cm^2/s)
+         flux13,                          & ! gas flux of 13CO2 (nmol/cm^2/s)
+         flux14,                          & ! gas flux of 14CO2 (nmol/cm^2/s)
+         flux_as,                         & ! air-to-sea gas flux of CO2 (nmol/cm^2/s)
+         flux13_as,                       & ! air-to-sea gas flux of 13CO2 (nmol/cm^2/s)
+         flux14_as,                       & ! air-to-sea gas flux of 14CO2 (nmol/cm^2/s)
+         flux_sa,                         & ! sea-to-air gas flux of CO2 (nmol/cm^2/s)
+         flux13_sa,                       & ! sea-to-air gas flux of 13CO2 (nmol/cm^2/s)
+         flux14_sa                          ! sea-to-air gas flux of 14CO2 (nmol/cm^2/s)
+
+    real (r8), dimension(num_elements) :: &
+         eps_aq_g_surf,                   & ! equilibrium fractionation (CO2_gaseous <-> CO2_aq)
+         alpha_aq_g_surf,                 & ! alpha_xxx_g_surf => eps = ( alpa -1 ) * 1000
+         eps_dic_g_surf,                  & ! equilibrium fractionation between total DIC and gaseous CO2
+         alpha_dic_g_surf,                & ! alpha_xxx_g_surf => eps = ( alpa -1 ) * 1000
+         eps_hco3_g_surf,                 & ! equilibrium fractionation between bicarbonate and gaseous CO2
+         eps_co3_g_surf,                  & ! equilibrium fractionation between carbonate and gaseous CO2
+         frac_co3,                        & ! carbonate fraction fCO3 = [CO3--]/DIC
+         alpha_aq_g_surf_14c,             & ! for 14C, with fractionation being twice as large for 14C than for 13C
+         alpha_dic_g_surf_14c               ! for 14C, with fractionation being twice as large for 14C than for 13C
+
+    real (r8), dimension(num_elements) :: &
+         di13c_riv_flux,                  & ! River input of DI13C
+         do13c_riv_flux,                  & ! River input of DO13C
+         di14c_riv_flux,                  & ! River input of DI14C
+         do14c_riv_flux                     ! River input of DO14C
+
+    ! local parameters for 13C, Zhang et al, 1995, Geochim. et Cosmochim. Acta, 59 (1), 107-114
+    real(r8) ::            &
+         alpha_k,          & ! eps = ( alpa -1 ) * 1000
+         alpha_k_14c         ! for 14C, with fractionation being twice as large for 14C than for 13C
+
+    ! kinetic fraction during gas transfert (per mil) (air-sea CO2 exchange) at 21C, Zhang et al 1995,
+    real(r8), parameter :: eps_k = -0.81_r8  ! eps_k = -0.95 at 5C
+    !-----------------------------------------------------------------------
+
+    associate(                                                             &
+         pv                  => marbl_forcing_share%pv_surf_fields       , & ! in/out
+         dic                 => marbl_forcing_share%dic_surf_fields      , & ! in/out DIC values for solver
+         co2star             => marbl_forcing_share%co2star_surf_fields  , & ! in/out CO2STAR from solver
+         dco2star            => marbl_forcing_share%dco2star_surf_fields , & ! in/out DCO2STAR from solver
+         co3_surf_fields     => marbl_forcing_share%co3_surf_fields      , & ! in/out
+         dic_riv_flux_fields => marbl_forcing_share%dic_riv_flux_fields  , & ! in/out
+         doc_riv_flux_fields => marbl_forcing_share%doc_riv_flux_fields    & ! in/out
+         )
+
+    !-----------------------------------------------------------------------
+    !  fluxes initially set to 0
+    !-----------------------------------------------------------------------
+
+    stf(:, :) = c0
+
+    !-----------------------------------------------------------------------
+    !     initialize R13C_atm  and R14C_atm
+    !-----------------------------------------------------------------------
+    
+    R13C_atm(:) = R13C_std * ( c1 + d13c(:) / c1000 )
+    R14C_atm(:) = R14C_std * ( c1 + d14c(:) / c1000 )
+
+    !-----------------------------------------------------------------------
+    !     compute 13C02 flux, based on CO2 flux calculated in ecosystem model
+    !     Zhang et al, 1995, Geochim. et Cosmochim. Acta, 59 (1), 107-114
+    !-----------------------------------------------------------------------
+
+    !-----------------------------------------------------------------------
+    !     compute R13C_DIC in surface ocean (assuming that DIC is 12C)
+    !-----------------------------------------------------------------------
+
+    where ( dic(:) /= c0 ) 
+       R13C_dic(:) = surface_vals(:,di13c_ind) / dic(:)
+       R14C_dic(:) = surface_vals(:,di14c_ind) / dic(:)
+    elsewhere
+       R13C_dic(:) = c0
+       R14C_dic(:) = c0
+    end where
+
+    !-----------------------------------------------------------------------
+    !     individal discrimination factor of each species with respect to
+    !     gaseous CO2, temperature dependent, based on Zhang et al. 95
+    !-----------------------------------------------------------------------
+    eps_aq_g_surf(:)   = 0.0049_r8 * sst(:) - 1.31_r8
+    !!         eps_hco3_g_surf(:) = -0.141_r8  * SST(:) + 10.78_r8
+    !!         eps_co3_g_surf(:)  = -0.052_r8  * SST(:) + 7.22_r8
+
+    !-----------------------------------------------------------------------
+    !     compute the equilibrium discrimination factor between dic and
+    !     gaseous CO2
+    !-----------------------------------------------------------------------
+    !     solution 1 : from individual species.
+    !     Not used as Zhang et al. 95
+    !     concluded that eps_dic_g_surf can not be calculated from the sum of
+    !     the three individual species
+    !----------------------------------------------------------------------
+    !         eps_dic_g_surf(:,j) = eps_aq_g_surf(:,j) + eps_hco3_g_surf(:,j) &
+    !                                + eps_co3_g_surf(:,j)
+    !-----------------------------------------------------------------------
+    !     solution 2: function of T and carbonate fraction (frac_co3)
+    !     Using this one, which is based on the empirical relationship from
+    !     the measured e_dic_g_surf of Zhang et al. 1995
+    !---------------------------------------------------------------------
+
+    where (.not. land_mask(:))
+       frac_co3(:) = c0
+    elsewhere
+       frac_co3(:) = CO3_SURF_fields(:) / dic(:)
+    end where
+
+    eps_dic_g_surf(:) = 0.014_r8 * sst(:) * frac_co3(:) - 0.105_r8 * sst(:) + 10.53_r8
+
+    !-----------------------------------------------------------------------
+    !     compute alpha coefficients from eps :  eps = ( alpha -1 ) * 1000
+    !     => alpha = 1 + eps / 1000
+    !-----------------------------------------------------------------------
+
+    alpha_k             = c1 + eps_k             / c1000
+    alpha_aq_g_surf(:)  = c1 + eps_aq_g_surf(:)  / c1000
+    alpha_dic_g_surf(:) = c1 + eps_dic_g_surf(:) / c1000
+
+    ! Fractionation is twice as large for 14C than for 13C, so eps needs to be multiplied by 2 for 14C
+    alpha_k_14c             = c1 + eps_k * 2.0_r8            / c1000
+    alpha_aq_g_surf_14c(:)  = c1 + eps_aq_g_surf(:) *2.0_r8  / c1000
+    alpha_dic_g_surf_14c(:) = c1 + eps_dic_g_surf(:) *2.0_r8 / c1000
+
+    !-----------------------------------------------------------------------
+    !     compute 13C flux and C flux
+    !-----------------------------------------------------------------------
+
+    flux13(:) = pv(:) * alpha_k * alpha_aq_g_surf(:) * &
+         (( co2star(:) + dco2star(:) ) * r13c_atm(:) - co2star(:) * r13c_dic(:) / alpha_dic_g_surf(:))
+
+    flux14(:) = pv(:) * alpha_k_14c * alpha_aq_g_surf_14c(:) * &
+         (( co2star(:) + dco2star(:) ) * r14c_atm(:) - co2star(:) * r14c_dic(:) / alpha_dic_g_surf_14c(:))
+
+    flux(:) = pv(:) * dco2star(:)
+
+    !-----------------------------------------------------------------------
+    !     compute fluxes in and out
+    !-----------------------------------------------------------------------
+
+    flux_as(:)   = pv(:) * ( dco2star(:) + co2star(:) )
+    flux_sa(:)   = pv(:) * co2star(:)
+
+    flux13_as(:) = pv(:) * alpha_k     * alpha_aq_g_surf(:)     * ((co2star(:) + dco2star(:)) * r13c_atm(:))
+    flux14_as(:) = pv(:) * alpha_k_14c * alpha_aq_g_surf_14c(:) * ((co2star(:) + dco2star(:)) * r14c_atm(:))
+
+    flux13_sa(:) = pv(:) * alpha_k     * alpha_aq_g_surf(:)     * (co2star(:) * r13c_dic(:) / alpha_dic_g_surf(:))
+    flux14_sa(:) = pv(:) * alpha_k_14c * alpha_aq_g_surf_14c(:) * (co2star(:) * r14c_dic(:) / alpha_dic_g_surf_14c(:))
+
+    !-----------------------------------------------------------------------
+    !     end of 13C computation for gass exchange
+    !-----------------------------------------------------------------------
+
+    stf(:,di13c_ind) = stf(:,di13c_ind) + flux13(:)
+    stf(:,di14c_ind) = stf(:,di14c_ind) + flux14(:)
+
+    !-----------------------------------------------------------------------
+    !     Adding 13C FLux to total DI13C
+    !-----------------------------------------------------------------------
+
+    di13c_riv_flux = dic_riv_flux_fields * (-10.0_r8/c1000 +c1) * R13C_std
+    di14c_riv_flux = dic_riv_flux_fields * ((D14C_glo_avg - 50.0_r8)/c1000 +c1) * R14C_std
+
+    do13c_riv_flux = doc_riv_flux_fields * (-27.6_r8/c1000 +c1) * R13C_std
+    do14c_riv_flux = doc_riv_flux_fields * (-50.0_r8/c1000 +c1) * R14C_std
+
+    stf(:,di13c_ind) = stf(:,di13c_ind) + di13c_riv_flux(:)
+    stf(:,do13c_ind) = stf(:,do13c_ind) + do13c_riv_flux(:)
+
+    stf(:,di14c_ind) = stf(:,di14c_ind) + di14c_riv_flux(:)
+    stf(:,do14c_ind) = stf(:,do14c_ind) + do14c_riv_flux(:)
+
+    end associate
+
+    ! update carbon isotope diagnostics 
+    ! FIXME (mvertens, 2015-12) the following arguments need to be group into a derived type
+
+    call store_diagnostics_ciso_sflux( &
+         num_elements,   &
+         d13c,           &
+         d14c,           &
+         flux,           &
+         flux13,         &
+         flux14,         &
+         flux_as,        &
+         flux13_as,      &
+         flux14_as,      &
+         flux_sa,        &
+         flux13_sa,      &
+         flux14_sa,      &
+         R13C_dic,       &
+         R14C_dic,       &
+         R13C_atm,       &
+         R14C_atm,       &
+         di13c_riv_flux, &
+         do13c_riv_flux, &
+         di14c_riv_flux, &
+         do14c_riv_flux, &
+         eps_aq_g_surf,  &
+         eps_dic_g_surf, &
+         marbl_forcing_diags)
+
+  end subroutine marbl_ciso_set_sflux
 
 end module marbl_ciso_mod

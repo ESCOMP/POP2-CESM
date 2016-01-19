@@ -39,7 +39,7 @@ module marbl_interface
   !      .....
   !      call marbl_set_interior(marbl_private_data, ....)
 
-  use marbl_kinds_mod           , only : int_kind
+  use marbl_kinds_mod           , only : int_kind, log_kind
   use marbl_interface_constants , only : marbl_status_ok
   
   use exit_mod, only : exit_POP
@@ -94,51 +94,138 @@ contains
 
   !-----------------------------------------------------------------------------
   
-  subroutine marbl_init(this, marbl_sizes, nl_buffer, marbl_tracer_metadata, marbl_status )
+  subroutine marbl_init(this,    &
+       ciso_on,                  &
+       nl_buffer,                &
+       num_elements_interior,    &
+       num_elements_forcing,     &
+       num_levels,               &
+       marbl_tracer_metadata,    &
+       marbl_sizes,              &
+       marbl_interior_diags,     &
+       marbl_restore_diags,      &
+       marbl_forcing_diags,      &
+       marbl_forcing_input,      &
+       marbl_forcing_output,     &
+       marbl_forcing_share,      &
+       marbl_status )
 
-    use marbl_namelist_mod        , only: marbl_nl_cnt
-    use marbl_namelist_mod        , only: marbl_nl_buffer_size
-    use marbl_interface_types     , only: marbl_status_type
-    use marbl_interface_types     , only: marbl_tracer_metadata_type
-    use marbl_share_mod           , only: autotroph_cnt, zooplankton_cnt
-    use marbl_share_mod           , only: ecosys_tracer_cnt
-    use marbl_share_mod           , only: ecosys_ciso_tracer_cnt
-    use ecosys_mod                , only: marbl_ecosys_init_nml
-    use ecosys_mod                , only: marbl_ecosys_init_tracer_metadata
+    use marbl_namelist_mod     , only : marbl_nl_cnt
+    use marbl_namelist_mod     , only : marbl_nl_buffer_size
+    use marbl_interface_types  , only : marbl_status_type
+    use marbl_interface_types  , only : marbl_tracer_metadata_type
+    use marbl_interface_types  , only : marbl_diagnostics_type
+    use marbl_interface_types  , only : marbl_forcing_input_type
+    use marbl_interface_types  , only : marbl_forcing_output_type
+    use marbl_ciso_mod         , only : marbl_ciso_init_nml
+    use marbl_ciso_mod         , only : marbl_ciso_init_tracer_metadata
+    use marbl_share_mod        , only : autotroph_cnt, zooplankton_cnt
+    use marbl_share_mod        , only : marbl_forcing_share_type
+    use marbl_share_mod        , only : ecosys_tracer_cnt
+    use marbl_share_mod        , only : ecosys_ciso_tracer_cnt
+    use marbl_share_mod        , only : ecosys_ciso_ind_begin, ecosys_ciso_ind_end
+    use marbl_share_mod        , only : ecosys_ind_end
+    use ecosys_mod             , only : marbl_init_nml
+    use ecosys_mod             , only : marbl_init_tracer_metadata
+    use ecosys_diagnostics_mod , only : marbl_diagnostics_init  
     
     implicit none
 
     class(marbl_interface_class)    , intent(inout) :: this
-    character(marbl_nl_buffer_size), dimension(marbl_nl_cnt), intent(in) :: nl_buffer
-    type(marbl_tracer_metadata_type), intent(inout) :: marbl_tracer_metadata(:)
-    type(marbl_sizes_type)          , intent(out)   :: marbl_sizes
-    type(marbl_status_type)         , intent(out)   :: marbl_status
+
+    logical(log_kind)                , intent(in)    :: ciso_on
+    character(marbl_nl_buffer_size)  , intent(in)    :: nl_buffer(marbl_nl_cnt)
+    integer                          , intent(in)    :: num_elements_interior
+    integer                          , intent(in)    :: num_elements_forcing
+    integer                          , intent(in)    :: num_levels
+    type(marbl_tracer_metadata_type) , intent(inout) :: marbl_tracer_metadata(:)
+    type(marbl_sizes_type)           , intent(out)   :: marbl_sizes
+    type(marbl_status_type)          , intent(out)   :: marbl_status
+    type(marbl_diagnostics_type)     , intent(inout) :: marbl_interior_diags
+    type(marbl_diagnostics_type)     , intent(inout) :: marbl_restore_diags
+    type(marbl_diagnostics_type)     , intent(inout) :: marbl_forcing_diags
+    type(marbl_forcing_input_type)   , intent(inout) :: marbl_forcing_input
+    type(marbl_forcing_output_type)  , intent(inout) :: marbl_forcing_output
+    type(marbl_forcing_share_type)   , intent(inout) :: marbl_forcing_share
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-
-    integer (int_kind) :: bid ! local block address for this block
-
+    integer (int_kind) :: num_marbl_stf = 13 !FIXME - this should not be hard-wired - move to marbl_share_mod
+    integer :: marbl_total_tracer_cnt  
     !-----------------------------------------------------------------------
 
-    ! now we know how many tracers marbl has, we can verify that pop
+    marbl_status%status = marbl_status_ok
+    marbl_status%message = ''
+
+    !--------------------------------------------------------------------
+    !  initialize marbl sizes
+    !--------------------------------------------------------------------
+
+    ! now we know how many tracers marbl has, we can verify that gcm
     ! has the correctly sized data.
+
     marbl_sizes%ecosys_tracer_cnt      = ecosys_tracer_cnt
     marbl_sizes%autotroph_cnt          = autotroph_cnt
     marbl_sizes%zooplankton_cnt        = zooplankton_cnt
     marbl_sizes%ecosys_ciso_tracer_cnt = ecosys_ciso_tracer_cnt
     
+    !--------------------------------------------------------------------
     ! initialize marbl namelists
-    call marbl_ecosys_init_nml(nl_buffer, marbl_status)
+    !--------------------------------------------------------------------
+
+    call marbl_init_nml(nl_buffer, marbl_status)
 
     if (marbl_status%status /= marbl_status_ok) then
        call exit_POP(sigAbort, &
-            'ERROR in marbl_init: returned status: "'//marbl_status%message//'"')
+            'ERROR in marbl_init_nml: returned status: "'//marbl_status%message//'"')
     end if
 
+    if (ciso_on) then
+       call marbl_ciso_init_nml(nl_buffer, marbl_status)
+
+       if (marbl_status%status /= marbl_status_ok) then
+          call exit_POP(sigAbort, &
+               'ERROR in marbl_ciso_init_nml: returned status: "'//marbl_status%message//'"')
+       end if
+    end if
+
+    !--------------------------------------------------------------------
     ! initialize marbl tracer metadata 
-    call marbl_ecosys_init_tracer_metadata(marbl_tracer_metadata)
+    !--------------------------------------------------------------------
+
+    call marbl_init_tracer_metadata(marbl_tracer_metadata)
+
+    if (ciso_on) then
+       call marbl_ciso_init_tracer_metadata(&
+            marbl_tracer_metadata(ecosys_ciso_ind_begin:ecosys_ciso_ind_end))
+    end if
+
+    !--------------------------------------------------------------------
+    ! Initialize marbl diagnostics
+    !--------------------------------------------------------------------
+
+    call marbl_diagnostics_init(                                  &
+         marbl_interior_diags,                                    &
+         marbl_restore_diags,                                     &
+         marbl_forcing_diags,                                     &
+         num_elements_interior=num_elements_interior,             & 
+         num_elements_forcing=num_elements_forcing,               & 
+         num_levels=num_levels,                                   & 
+         tracer_d_module=marbl_tracer_metadata(1:ecosys_ind_end), &
+         ciso_on=ciso_on)
+
+    marbl_total_tracer_cnt = ecosys_tracer_cnt + ecosys_ciso_tracer_cnt
+
+    !FIXME - remove the hardwire 13 below
+    call marbl_forcing_input%construct(num_elements_forcing,         &
+         num_surface_vals=marbl_total_tracer_cnt, num_input_forcings=13, &  
+         ciso_on=ciso_on)
+
+    call marbl_forcing_output%construct(num_elements_forcing, &
+         num_surface_vals=marbl_total_tracer_cnt)
+    
+    call marbl_forcing_share%construct(num_elements_forcing)
 
   end subroutine marbl_init
 
@@ -173,7 +260,7 @@ contains
   
   subroutine marbl_set_surface_flux(this)
 
-    use ecosys_mod     , only: marbl_ecosys_set_sflux
+    use ecosys_mod     , only: marbl_set_sflux
     
     implicit none
 

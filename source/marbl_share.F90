@@ -1,7 +1,5 @@
 module marbl_share_mod
 
-! !MODULE: marbl_share
-
 !-----------------------------------------------------------------------------
 !   This module contains definitions of variables, derived types, and
 !   functions/subroutines that are used in ecocys_mod.F90 as well as by
@@ -48,7 +46,7 @@ module marbl_share_mod
   integer (int_kind) :: ecosys_ciso_ind_begin, ecosys_ciso_ind_end
 
   !-----------------------------------------------------------------------------
-  ! namelist inputs
+  ! namelist: ecosys_nml
   !-----------------------------------------------------------------------------
 
   !  options for forcing of gas fluxes
@@ -91,6 +89,10 @@ module marbl_share_mod
   type(marbl_tracer_read_type)   :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers 
   type(marbl_tracer_read_type)   :: fesedflux_input                    ! namelist input for iron_flux
 
+  integer (int_kind) :: comp_surf_avg_flag      ! flag for computing average surface tracer values 
+  integer (int_kind) :: comp_surf_avg_freq_iopt ! choice for freq of comp_surf_avg
+  integer (int_kind) :: comp_surf_avg_freq      ! choice for freq of comp_surf_avg
+
   ! (FIXME, mvertens 2015-11, need to introduce marbl type) 
   type(forcing_monthly_every_ts) :: fesedflux        ! iron sedimentation flux
   type(forcing_monthly_every_ts) :: dust_flux        ! surface dust flux
@@ -110,60 +112,71 @@ module marbl_share_mod
   type(forcing_monthly_every_ts) :: alk_riv_flux     ! river alk flux, added to alk pool
   type(forcing_monthly_every_ts) :: doc_riv_flux     ! river doc flux, added to semi-labile DOC
 
-  integer (int_kind) :: comp_surf_avg_flag           ! time flag id for computing average surface tracer values TEMPORARY
-
   !-----------------------------------------------------------------------
-  !  namelist: ciso flag controlling which portion of code are executed
-  !  usefull for debugging  
+  !  namelist: ecosys_ciso_nml 
   !-----------------------------------------------------------------------
 
-  logical (log_kind) :: ciso_lsource_sink
+  logical (log_kind) :: &
+       ciso_lsource_sink                 ! flag controlling which portion of code are executed
 
-  !-----------------------------------------------------------------------
-  !  namelist: ciso fractionation related variable
-  !-----------------------------------------------------------------------
+  logical (log_kind) :: &
+       ciso_use_nml_surf_vals            ! do namelist surf values override values from restart file
+
   character(char_len) ::    &
-       ciso_fract_factors   ! option for which biological fractionation calculation to use
+       ciso_fract_factors                ! option for which biological fractionation calculation to use
 
-  !-----------------------------------------------------------------------
-  !  namelist: ciso init
-  !-----------------------------------------------------------------------
+  type(marbl_tracer_read_type), dimension(ecosys_ciso_tracer_cnt) :: &
+       ciso_tracer_init_ext              ! namelist variable for initializing tracers
 
   character(char_len) :: &
        ciso_init_ecosys_option,        & ! option for initialization of bgc
        ciso_init_ecosys_init_file,     & ! filename for option 'file'
-       ciso_init_ecosys_init_file_fmt, & ! file format for option 'file'
-       ciso_comp_surf_avg_freq_opt
+       ciso_init_ecosys_init_file_fmt    ! file format for option 'file'
 
-  !-----------------------------------------------------------------------
-  !  namelist: ciso forcing related variables
-  !-----------------------------------------------------------------------
+  integer (int_kind) :: &
+       ciso_comp_surf_avg_flag           ! flag for computing average surface tracer values
+
+  integer (int_kind) :: &
+       ciso_comp_surf_avg_freq_iopt,  & ! choice for freq of comp_surf_avg
+       ciso_comp_surf_avg_freq          ! choice for freq of comp_surf_avg
+
+  !  values to be used when comp_surf_avg_freq_opt==never
+  real (r8) :: &
+       ciso_surf_avg_di13c_const, &
+       ciso_surf_avg_di14c_const
+
+  logical (log_kind) :: &
+       ciso_lecovars_full_depth_tavg     ! should ecosystem vars be written full depth
+
+  !  ciso forcing related variables
 
   integer (int_kind) ::            &
-       ciso_atm_model_year,        &  ! arbitrary model year
-       ciso_atm_data_year,         &  ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
-       ciso_atm_d13c_data_nbval,   &  ! number of values in ciso_atm_d13c_filename
-       ciso_atm_d14c_data_nbval       ! number of values in ciso_atm_d14c_filename
+       ciso_atm_model_year,        &     ! arbitrary model year
+       ciso_atm_data_year,         &     ! year in atmospheric ciso data that corresponds to ciso_atm_model_year
+       ciso_atm_d13c_data_nbval,   &     ! number of values in ciso_atm_d13c_filename
+       ciso_atm_d14c_data_nbval          ! number of values in ciso_atm_d14c_filename
 
   real (r8), dimension(:) , allocatable :: &
-       ciso_atm_d13c_data,    &    !  atmospheric D13C values in datafile
-       ciso_atm_d13c_data_yr       !  date of atmospheric D13C values in datafile
+       ciso_atm_d13c_data,    &          !  atmospheric D13C values in datafile
+       ciso_atm_d13c_data_yr             !  date of atmospheric D13C values in datafile
 
   real (r8), dimension(:,:) , allocatable :: &
-       ciso_atm_d14c_data,    &    !  atmospheric D14C values in datafile (sh, eq, nh, in permil)
-       ciso_atm_d14c_data_yr       !  date of atmospheric D14C values in datafile (sh, eq, nh)
+       ciso_atm_d14c_data,    &          !  atmospheric D14C values in datafile (sh, eq, nh, in permil)
+       ciso_atm_d14c_data_yr             !  date of atmospheric D14C values in datafile (sh, eq, nh)
 
   real (r8) :: &
-       ciso_atm_d13c_const, &      !  atmospheric D13C constant [permil]
-       ciso_atm_d14c_const         !  atmospheric D14C constant [permil]
+       ciso_atm_d13c_const, &            !  atmospheric D13C constant [permil]
+       ciso_atm_d14c_const               !  atmospheric D14C constant [permil]
 
   character(char_len) ::    &
-       ciso_atm_d13c_opt,     &    ! option for CO2 and D13C varying or constant forcing
-       ciso_atm_d13c_filename,&    ! filenames for varying atm D13C
-       ciso_atm_d14c_opt           ! option for CO2 and D13C varying or constant forcing
+       ciso_atm_d13c_opt,     &          ! option for CO2 and D13C varying or constant forcing
+       ciso_atm_d13c_filename,&          ! filenames for varying atm D13C
+       ciso_atm_d14c_opt                 ! option for CO2 and D13C varying or constant forcing
 
   character (char_len), dimension(3) :: &
        ciso_atm_d14c_filename      ! filenames for varying atm D14C (one each for NH, SH, EQ)
+
+
 
   !-----------------------------------------------------------------------------
   !   derived type for grazers

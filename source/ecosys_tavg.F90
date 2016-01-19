@@ -25,7 +25,6 @@
   use blocks                , only : nx_block
   use blocks                , only : ny_block
 
-  use domain                , only : nblocks_clinic
   use domain_size           , only : km
 
   use tavg                  , only : define_tavg_field
@@ -201,7 +200,6 @@ contains
     ! Compute diagnostics for surface fluxes
 
     use ecosys_diagnostics_mod, only : ind => marbl_forcing_diag_ind
-    use domain                , only : nblocks_clinic
 
     implicit none
     real (r8)                   , intent(in) :: flux_diags (:, :, :, :)
@@ -210,9 +208,11 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-
     integer :: i, iblock
+    integer :: nblocks_clinic
     !-----------------------------------------------------------------------
+
+    nblocks_clinic = size(flux_diags,4)
 
     !$OMP PARALLEL DO PRIVATE(iblock)
     do iblock=1,nblocks_clinic

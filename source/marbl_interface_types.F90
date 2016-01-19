@@ -97,6 +97,8 @@ module marbl_interface_types
 
   !*****************************************************************************
   type, public :: marbl_forcing_input_type
+     logical (log_kind), allocatable, dimension(:)   :: land_mask
+
      real (r8), allocatable, dimension(:)   :: u10_sqr         
      real (r8), allocatable, dimension(:)   :: ifrac           ! ice fraction
      real (r8), allocatable, dimension(:)   :: atm_press
@@ -110,9 +112,11 @@ module marbl_interface_types
      real (r8), allocatable, dimension(:)   :: iron_flux    
      real (r8), allocatable, dimension(:)   :: ph_prev         
      real (r8), allocatable, dimension(:)   :: ph_prev_alt_co2 
-     real (r8), allocatable, dimension(:,:) :: marbl_stf
+     real (r8), allocatable, dimension(:)   :: d13c
+     real (r8), allocatable, dimension(:)   :: d14c
+
+     real (r8), allocatable, dimension(:,:) :: input_forcings
      real (r8), allocatable, dimension(:,:) :: surface_vals
-     logical (log_kind), allocatable, dimension(:)   :: land_mask
    contains
      procedure, public :: construct => marbl_forcing_input_constructor
   end type marbl_forcing_input_type
@@ -140,6 +144,7 @@ module marbl_interface_types
      real (r8), allocatable, dimension(:)   :: pv_co2       ! piston velocity (cm/s)
      real (r8), allocatable, dimension(:)   :: o2sat        ! used O2 saturation (mmol/m^3)
      real (r8), allocatable, dimension(:,:) :: stf_module
+     real (r8), allocatable, dimension(:,:) :: stf_ciso
    contains
      procedure, public :: construct => marbl_forcing_output_constructor
   end type marbl_forcing_output_type
@@ -282,30 +287,35 @@ contains
   !*****************************************************************************
 
   subroutine marbl_forcing_input_constructor(this, &
-       num_elements, num_surface_vals, num_marbl_stf)
-
+       num_elements, num_surface_vals, num_input_forcings, ciso_on)
+    
     class(marbl_forcing_input_type), intent(inout) :: this
     integer (int_kind), intent(in) :: num_elements
     integer (int_kind), intent(in) :: num_surface_vals
-    integer (int_kind), intent(in) :: num_marbl_stf
+    integer (int_kind), intent(in) :: num_input_forcings
+    logical(log_kind) , intent(in) :: ciso_on
 
-    allocate(this%u10_sqr(num_elements))         
-    allocate(this%ifrac(num_elements))           
-    allocate(this%land_mask(num_elements))
-    allocate(this%sst(num_elements))             
-    allocate(this%sss(num_elements))             
-    allocate(this%xco2(num_elements))            
-    allocate(this%atm_press(num_elements))         
-    allocate(this%xco2_alt_co2(num_elements))    
-    allocate(this%xkw(num_elements))        
-    allocate(this%dust_flux(num_elements))    
-    allocate(this%iron_flux(num_elements))
-    allocate(this%ph_prev(num_elements))
-    allocate(this%ph_prev_alt_co2(num_elements)) 
+    allocate(this%u10_sqr         (num_elements))         
+    allocate(this%ifrac           (num_elements))           
+    allocate(this%land_mask       (num_elements))
+    allocate(this%sst             (num_elements))             
+    allocate(this%sss             (num_elements))             
+    allocate(this%xco2            (num_elements))            
+    allocate(this%atm_press       (num_elements))         
+    allocate(this%xco2_alt_co2    (num_elements))    
+    allocate(this%xkw             (num_elements))        
+    allocate(this%dust_flux       (num_elements))    
+    allocate(this%iron_flux       (num_elements))
+    allocate(this%ph_prev         (num_elements))
+    allocate(this%ph_prev_alt_co2 (num_elements)) 
+    allocate(this%input_forcings  (num_elements, num_input_forcings))
+
+    if (ciso_on) then
+       allocate(this%d13c(num_elements))
+       allocate(this%d14c(num_elements))
+    end if
 
     allocate(this%surface_vals(num_elements, num_surface_vals))
-    allocate(this%marbl_stf(num_elements, num_marbl_stf))
-
   end subroutine marbl_forcing_input_constructor
 
   !*****************************************************************************
@@ -317,27 +327,27 @@ contains
     integer (int_kind), intent(in) :: num_elements
     integer (int_kind), intent(in) :: num_surface_vals
 
-     allocate(this%ph_prev(num_elements))
-     allocate(this%ph_prev_alt_co2(num_elements)) 
-     allocate(this%iron_flux(num_elements)) 
-     allocate(this%flux_co2(num_elements))            
-     allocate(this%flux_o2(num_elements))            
-     allocate(this%co2star(num_elements))
-     allocate(this%dco2star(num_elements))
-     allocate(this%pco2surf(num_elements))
-     allocate(this%dpco2(num_elements))
-     allocate(this%co3(num_elements))
-     allocate(this%co2star_alt(num_elements))
-     allocate(this%dco2star_alt(num_elements))
-     allocate(this%pco2surf_alt(num_elements))
-     allocate(this%dpco2_alt(num_elements))
-     allocate(this%schmidt_co2(num_elements)) 
-     allocate(this%schmidt_o2(num_elements))  
-     allocate(this%pv_o2(num_elements))       
-     allocate(this%pv_co2(num_elements))      
-     allocate(this%o2sat(num_elements))       
-     allocate(this%flux_alt_co2(num_elements))
-     allocate(this%stf_module(num_elements, num_surface_vals))
+    allocate(this%ph_prev         (num_elements))
+    allocate(this%ph_prev_alt_co2 (num_elements)) 
+    allocate(this%iron_flux       (num_elements)) 
+    allocate(this%flux_co2        (num_elements))            
+    allocate(this%flux_o2         (num_elements))            
+    allocate(this%co2star         (num_elements))
+    allocate(this%dco2star        (num_elements))
+    allocate(this%pco2surf        (num_elements))
+    allocate(this%dpco2           (num_elements))
+    allocate(this%co3             (num_elements))
+    allocate(this%co2star_alt     (num_elements))
+    allocate(this%dco2star_alt    (num_elements))
+    allocate(this%pco2surf_alt    (num_elements))
+    allocate(this%dpco2_alt       (num_elements))
+    allocate(this%schmidt_co2     (num_elements)) 
+    allocate(this%schmidt_o2      (num_elements))  
+    allocate(this%pv_o2           (num_elements))       
+    allocate(this%pv_co2          (num_elements))      
+    allocate(this%o2sat           (num_elements))       
+    allocate(this%flux_alt_co2    (num_elements))
+    allocate(this%stf_module      (num_elements, num_surface_vals))
 
   end subroutine marbl_forcing_output_constructor
 
