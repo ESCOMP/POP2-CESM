@@ -1,4 +1,4 @@
-MODULE ecosys_parms
+module marbl_parms
 
   !-----------------------------------------------------------------------------
   !   This module manages the parameter variables for the module ecosys_mod.
@@ -6,10 +6,10 @@ MODULE ecosys_parms
   !   the Fortran sense, they are vanilla module variables.
   !
   !   This modules handles initializing the variables to default values and
-  !   reading them from the namelist ecosys_parms. The values used are echoed
+  !   reading them from the namelist marbl_parms. The values used are echoed
   !   to stdout for record keeping purposes.
   !
-  !   CVS:$Id: ecosys_parms.F90 941 2006-05-12 21:36:48Z klindsay $
+  !   CVS:$Id: marbl_parms.F90 941 2006-05-12 21:36:48Z klindsay $
   !   CVS:$Name$
   !-----------------------------------------------------------------------------
   !   Modified to include parameters for diazotrophs, JKM  4/2002
@@ -20,14 +20,21 @@ MODULE ecosys_parms
   !   locally are located at the module subprogram level.
   !-----------------------------------------------------------------------------
 
-  USE exit_mod, ONLY : sigAbort, exit_POP
-  USE communicate, ONLY : my_task, master_task
-  USE constants, ONLY : c1
-  USE kinds_mod
-  USE io_tools, ONLY : document
-  USE blocks, ONLY: nx_block, ny_block
-  USE domain_size, ONLY: max_blocks_clinic
-  USE ecosys_share
+  use marbl_kinds_mod, only : r8
+  use marbl_kinds_mod, only : int_kind
+  use marbl_kinds_mod, only : log_kind
+
+  use marbl_kinds_mod, only : c1
+
+  use marbl_share_mod, only : zooplankton
+  use marbl_share_mod, only : autotrophs
+  use marbl_share_mod, only : grazing
+  use marbl_share_mod, only : sp_ind
+  use marbl_share_mod, only : diaz_ind
+  use marbl_share_mod, only : diat_ind
+  use marbl_share_mod, only : zooplankton_cnt
+  use marbl_share_mod, only : autotroph_cnt
+  use marbl_share_mod, only : grazer_prey_cnt
 
   IMPLICIT NONE
 
@@ -38,6 +45,14 @@ MODULE ecosys_parms
 
   PUBLIC
   SAVE
+
+  !-----------------------------------------------------------------------------
+  !   epsilon values
+  !-----------------------------------------------------------------------------
+
+   real(kind=r8), parameter :: &
+      epsC      = 1.00e-8, & ! small C concentration (mmol C/m^3)
+      epsTinv   = 3.17e-8    ! small inverse time scale (1/year) (1/sec)
 
   !-----------------------------------------------------------------------------
   !   floating point constants used across ecosystem module
@@ -191,13 +206,6 @@ MODULE ecosys_parms
        Q_10 = 1.5_r8     ! factor for temperature dependence (non-dim)
 
   !---------------------------------------------------------------------
-  !     Gas exchange/piston velocity parameter
-  !---------------------------------------------------------------------
-
-  real (r8), parameter :: &
-       xkw_coeff = 8.6e-9_r8 ! in s/cm, from a = 0.31 cm/hr s^2/m^2 in Wannikhof 1992
-
-  !---------------------------------------------------------------------
   !  DOM parameters for refractory components and DOP uptake
   !---------------------------------------------------------------------
 
@@ -213,51 +221,24 @@ MODULE ecosys_parms
 
   !*****************************************************************************
 
-CONTAINS
+  public :: &
+       marbl_params_init, &
+       marbl_params_print
+
+  private :: &
+       marbl_params_set_defaults
+  
+contains
 
   !*****************************************************************************
 
-  SUBROUTINE ecosys_parms_init
+  subroutine marbl_params_set_defaults()
+    ! assign default parameter values
 
-    USE io_types, ONLY: stdout, nml_in, nml_filename
-    USE broadcast, ONLY : broadcast_scalar, broadcast_array
+    implicit none
 
-    !---------------------------------------------------------------------------
-    !   local variables
-    !---------------------------------------------------------------------------
-
-    CHARACTER(LEN=*), PARAMETER :: subname = 'ecosys_parms:ecosys_parms_init'
-
-    INTEGER(KIND=int_kind) :: auto_ind
-    INTEGER(KIND=int_kind) :: zoo_ind, prey_ind
-
-    LOGICAL(KIND=log_kind) :: &
-         lnml_found             ! Was ecosys_parms_nml found ?
-
-    NAMELIST /ecosys_parms_nml/ &
-         parm_Fe_bioavail, &
-         parm_o2_min, &
-         parm_o2_min_delta, &
-         parm_kappa_nitrif, &
-         parm_nitrif_par_lim, &
-         parm_labile_ratio, &
-         parm_POMbury, &
-         parm_BSIbury, &
-         parm_fe_scavenge_rate0, &
-         parm_f_prod_sp_CaCO3, &
-         parm_POC_diss, &
-         parm_SiO2_diss, &
-         parm_CaCO3_diss, &
-         parm_scalelen_z, &
-         parm_scalelen_vals, &
-         autotrophs, & 
-         zooplankton, &
-         grazing
-
-    !---------------------------------------------------------------------------
-    !   default namelist settings
-    !---------------------------------------------------------------------------
-
+    integer :: auto_ind, zoo_ind, prey_ind
+    
     parm_Fe_bioavail       = 1.0_r8
     parm_o2_min            = 4.0_r8
     parm_o2_min_delta      = 2.0_r8
@@ -414,198 +395,154 @@ CONTAINS
     grazing(prey_ind,zoo_ind)%f_zoo_detr       = 0.15_r8
     grazing(prey_ind,zoo_ind)%grazing_function = grz_fnc_michaelis_menten
 
-
     
-    !---------------------------------------------------------------------------
-    !   read in namelist
-    !---------------------------------------------------------------------------
-
-    IF (my_task == master_task) THEN
-       lnml_found = .FALSE.
-       OPEN(UNIT=nml_in, FILE=nml_filename, STATUS='OLD')
-10     CONTINUE
-       READ(UNIT=nml_in, NML=ecosys_parms_nml, ERR=10, END=20)
-       CLOSE(UNIT=nml_in)
-       lnml_found = .TRUE.
-20     CONTINUE
-    END IF
-
-    CALL broadcast_scalar(lnml_found, master_task)
-    IF (.NOT. lnml_found) THEN
-       CALL document(subname, 'ecosys_parms_nml not found')
-       CALL exit_POP(sigAbort, 'ERROR : stopping in ' // subname)
-    END IF
-
-
-    !---------------------------------------------------------------------------
-    !   broadcast all namelist variables
-    !---------------------------------------------------------------------------
-
-    CALL broadcast_scalar(parm_Fe_bioavail, master_task)
-    CALL broadcast_scalar(parm_o2_min, master_task)
-    CALL broadcast_scalar(parm_o2_min_delta, master_task)
-    CALL broadcast_scalar(parm_kappa_nitrif, master_task)
-    CALL broadcast_scalar(parm_nitrif_par_lim, master_task)
-    CALL broadcast_scalar(parm_labile_ratio, master_task)
-    CALL broadcast_scalar(parm_POMbury, master_task)
-    CALL broadcast_scalar(parm_BSIbury, master_task)
-    CALL broadcast_scalar(parm_fe_scavenge_rate0, master_task)
-    CALL broadcast_scalar(parm_f_prod_sp_CaCO3, master_task)
-    CALL broadcast_scalar(parm_POC_diss, master_task)
-    CALL broadcast_scalar(parm_SiO2_diss, master_task)
-    CALL broadcast_scalar(parm_CaCO3_diss, master_task)
-
-    CALL broadcast_array(parm_scalelen_z, master_task)
-    CALL broadcast_array(parm_scalelen_vals, master_task)
-
-    DO zoo_ind = 1, zooplankton_cnt
-       CALL broadcast_scalar(zooplankton(zoo_ind)%sname, master_task)
-       CALL broadcast_scalar(zooplankton(zoo_ind)%lname, master_task)
-       CALL broadcast_scalar(zooplankton(zoo_ind)%z_mort_0, master_task)
-       CALL broadcast_scalar(zooplankton(zoo_ind)%z_mort2_0, master_task)
-       CALL broadcast_scalar(zooplankton(zoo_ind)%loss_thres, master_task)
-    END DO
-
-    DO auto_ind = 1, autotroph_cnt
-       CALL broadcast_scalar(autotrophs(auto_ind)%sname, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%lname, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%Nfixer, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%imp_calcifier, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%exp_calcifier, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%kFe, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%kPO4, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%kDOP, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%kNO3, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%kNH4, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%kSiO3, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%Qp, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%gQfe_0, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%gQfe_min, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%alphaPI, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%PCref, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%thetaN_max, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%loss_thres, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%loss_thres2, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%temp_thres, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%mort, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%mort2, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%agg_rate_max, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%agg_rate_min, master_task)
-       CALL broadcast_scalar(autotrophs(auto_ind)%loss_poc, master_task)
-    END DO
-
-    DO prey_ind = 1, grazer_prey_cnt
-       DO zoo_ind = 1, zooplankton_cnt
-          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%sname, master_task)
-          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%lname, master_task)
-          CALL broadcast_array(grazing(prey_ind,zoo_ind)%auto_ind, master_task)
-          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%auto_ind_cnt, master_task)
-          CALL broadcast_array(grazing(prey_ind,zoo_ind)%zoo_ind, master_task)
-          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%zoo_ind_cnt, master_task)
-          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%z_umax_0, master_task)
-          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%z_grz, master_task)
-          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%graze_zoo, master_task)
-          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%graze_poc, master_task)
-          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%graze_doc, master_task)
-          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%f_zoo_detr, master_task)
-          CALL broadcast_scalar(grazing(prey_ind,zoo_ind)%grazing_function, master_task)
-       END DO
-    END DO
-   
-
-    !---------------------------------------------------------------------------
-    !   echo all namelist variables to stdout
-    !---------------------------------------------------------------------------
-
-    IF (my_task == master_task) THEN
-       WRITE (stdout,*) '----------------------------------------'
-       WRITE (stdout,*) '----- ecosys_parms namelist values -----'
-       WRITE (stdout,*) 'parm_Fe_bioavail       = ', parm_Fe_bioavail
-       WRITE (stdout,*) 'parm_o2_min            = ', parm_o2_min
-       WRITE (stdout,*) 'parm_o2_min_delta      = ', parm_o2_min_delta
-       WRITE (stdout,*) 'parm_kappa_nitrif      = ', parm_kappa_nitrif
-       WRITE (stdout,*) 'parm_nitrif_par_lim    = ', parm_nitrif_par_lim
-       WRITE (stdout,*) 'parm_labile_ratio      = ', parm_labile_ratio
-       WRITE (stdout,*) 'parm_POMbury           = ', parm_POMbury
-       WRITE (stdout,*) 'parm_BSIbury           = ', parm_BSIbury
-       WRITE (stdout,*) 'parm_fe_scavenge_rate0 = ', parm_fe_scavenge_rate0
-       WRITE (stdout,*) 'parm_f_prod_sp_CaCO3   = ', parm_f_prod_sp_CaCO3
-       WRITE (stdout,*) 'parm_POC_diss          = ', parm_POC_diss
-       WRITE (stdout,*) 'parm_SiO2_diss         = ', parm_SiO2_diss
-       WRITE (stdout,*) 'parm_CaCO3_diss        = ', parm_CaCO3_diss
-       WRITE (stdout,*) 'parm_scalelen_z        = ', parm_scalelen_z
-       WRITE (stdout,*) 'parm_scalelen_vals     = ', parm_scalelen_vals
-
-       DO zoo_ind = 1, zooplankton_cnt
-          WRITE (stdout,*) 'lname(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%lname
-          WRITE (stdout,*) 'z_mort_0(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%z_mort_0
-          WRITE (stdout,*) 'z_mort2_0(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%z_mort2_0
-          WRITE (stdout,*) 'loss_thres(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%loss_thres
-       END DO
-    
-       DO auto_ind = 1, autotroph_cnt
-          WRITE (stdout,*) 'lname(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%lname
-          WRITE (stdout,*) 'Nfixer(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Nfixer
-          WRITE (stdout,*) 'imp_calcifier(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%imp_calcifier
-          WRITE (stdout,*) 'exp_calcifier(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%exp_calcifier
-          WRITE (stdout,*) 'kFe(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kFe
-          WRITE (stdout,*) 'kPO4(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kPO4
-          WRITE (stdout,*) 'kDOP(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kDOP
-          WRITE (stdout,*) 'kNO3(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kNO3
-          WRITE (stdout,*) 'kNH4(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kNH4
-          WRITE (stdout,*) 'kSiO3(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kSiO3
-          WRITE (stdout,*) 'Qp(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Qp
-          WRITE (stdout,*) 'gQfe_0(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%gQfe_0
-          WRITE (stdout,*) 'gQfe_min(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%gQfe_min
-          WRITE (stdout,*) 'alphaPI(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%alphaPI
-          WRITE (stdout,*) 'PCref(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%PCref
-          WRITE (stdout,*) 'thetaN_max(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%thetaN_max
-          WRITE (stdout,*) 'loss_thres(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%loss_thres
-          WRITE (stdout,*) 'loss_thres2(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%loss_thres2
-          WRITE (stdout,*) 'temp_thres(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%temp_thres
-          WRITE (stdout,*) 'mort(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%mort
-          WRITE (stdout,*) 'mort2(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%mort2
-          WRITE (stdout,*) 'agg_rate_max(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%agg_rate_max
-          WRITE (stdout,*) 'agg_rate_min(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%agg_rate_min
-          WRITE (stdout,*) 'loss_poc(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%loss_poc
-       END DO
-
-       
-       DO prey_ind = 1, grazer_prey_cnt
-          DO zoo_ind = 1, zooplankton_cnt
-             WRITE (stdout,*) 'lname(', trim(grazing(prey_ind,zoo_ind)%sname),        &
-                              ') = ', grazing(prey_ind,zoo_ind)%lname
-             WRITE (stdout,*) 'auto_ind(', trim(grazing(prey_ind,zoo_ind)%sname),     &
-                              ') = ', grazing(prey_ind,zoo_ind)%auto_ind
-             WRITE (stdout,*) 'auto_ind_cnt(', trim(grazing(prey_ind,zoo_ind)%sname), &
-                              ') = ', grazing(prey_ind,zoo_ind)%auto_ind_cnt
-             WRITE (stdout,*) 'zoo_ind(', trim(grazing(prey_ind,zoo_ind)%sname),      &
-                              ') = ', grazing(prey_ind,zoo_ind)%zoo_ind
-             WRITE (stdout,*) 'zoo_ind_cnt(', trim(grazing(prey_ind,zoo_ind)%sname),  &
-                              ') = ', grazing(prey_ind,zoo_ind)%zoo_ind_cnt
-             WRITE (stdout,*) 'z_umax_0(', trim(grazing(prey_ind,zoo_ind)%sname),     &
-                              ') = ', grazing(prey_ind,zoo_ind)%z_umax_0
-             WRITE (stdout,*) 'z_grz(', trim(grazing(prey_ind,zoo_ind)%sname),        &
-                              ') = ', grazing(prey_ind,zoo_ind)%z_grz
-             WRITE (stdout,*) 'graze_zoo(', trim(grazing(prey_ind,zoo_ind)%sname),    &
-                              ') = ', grazing(prey_ind,zoo_ind)%graze_zoo
-             WRITE (stdout,*) 'graze_poc(', trim(grazing(prey_ind,zoo_ind)%sname),    &
-                              ') = ', grazing(prey_ind,zoo_ind)%graze_poc
-             WRITE (stdout,*) 'graze_doc(', trim(grazing(prey_ind,zoo_ind)%sname),    &
-                              ') = ', grazing(prey_ind,zoo_ind)%graze_doc
-             WRITE (stdout,*) 'f_zoo_detr(', trim(grazing(prey_ind,zoo_ind)%sname),   &
-                              ') = ', grazing(prey_ind,zoo_ind)%f_zoo_detr
-             WRITE (stdout,*) 'grazing_function(',                                    &
-                              trim(grazing(prey_ind,zoo_ind)%sname),                  &
-                              ') = ', grazing(prey_ind,zoo_ind)%grazing_function
-          END DO
-       END DO
-
-       WRITE (stdout,*) '----------------------------------------'
-    END IF
-
-  END SUBROUTINE ecosys_parms_init
+  end subroutine marbl_params_set_defaults
 
   !*****************************************************************************
 
-END MODULE ecosys_parms
+  subroutine marbl_params_init(nl_buffer, marbl_status)
+
+    use marbl_interface_constants, only: marbl_nl_buffer_size
+    use marbl_interface_constants, only: marbl_status_ok, marbl_status_could_not_read_namelist
+    use marbl_interface_types, only: marbl_status_type
+
+    implicit none
+
+    character(marbl_nl_buffer_size), intent(in) :: nl_buffer
+    type(marbl_status_type), intent(inout) :: marbl_status
+
+    !---------------------------------------------------------------------------
+    !   local variables
+    !---------------------------------------------------------------------------
+
+    CHARACTER(LEN=*), PARAMETER :: subname = 'marbl_parms:marbl_parms_init'
+
+    integer(kind=int_kind) :: io_error
+
+    NAMELIST /ecosys_parms_nml/ &
+         parm_Fe_bioavail, &
+         parm_o2_min, &
+         parm_o2_min_delta, &
+         parm_kappa_nitrif, &
+         parm_nitrif_par_lim, &
+         parm_labile_ratio, &
+         parm_POMbury, &
+         parm_BSIbury, &
+         parm_fe_scavenge_rate0, &
+         parm_f_prod_sp_CaCO3, &
+         parm_POC_diss, &
+         parm_SiO2_diss, &
+         parm_CaCO3_diss, &
+         parm_scalelen_z, &
+         parm_scalelen_vals, &
+         autotrophs, & 
+         zooplankton, &
+         grazing
+
+    marbl_status%status = marbl_status_ok
+    marbl_status%message = ''
+
+    call marbl_params_set_defaults()
+
+    !---------------------------------------------------------------------------
+    ! read in namelist to override some defaults
+    !---------------------------------------------------------------------------
+    read(nl_buffer, nml=ecosys_parms_nml, iostat=io_error)
+    if (io_error /= 0) then
+       marbl_status%status = marbl_status_could_not_read_namelist
+       marbl_status%message = "ERROR: marbl_parmams_read_namelist(): could not read namelist 'ecosys_parms_nml'."
+       return
+    end if
+
+  end subroutine marbl_params_init
+
+  !*****************************************************************************
+
+  subroutine marbl_params_print(stdout)
+    ! echo all parameters to the specified output file
+
+    implicit none
+
+    integer, intent(in) :: stdout
+
+    integer :: zoo_ind, auto_ind, prey_ind
+    
+    !---------------------------------------------------------------------------
+
+    write(stdout, *) '----------------------------------------'
+    write(stdout, *) '----- marbl_parms namelist values -----'
+    write(stdout, *) 'parm_Fe_bioavail       = ', parm_Fe_bioavail
+    write(stdout, *) 'parm_o2_min            = ', parm_o2_min
+    write(stdout, *) 'parm_o2_min_delta      = ', parm_o2_min_delta
+    write(stdout, *) 'parm_kappa_nitrif      = ', parm_kappa_nitrif
+    write(stdout, *) 'parm_nitrif_par_lim    = ', parm_nitrif_par_lim
+    write(stdout, *) 'parm_labile_ratio      = ', parm_labile_ratio
+    write(stdout, *) 'parm_POMbury           = ', parm_POMbury
+    write(stdout, *) 'parm_BSIbury           = ', parm_BSIbury
+    write(stdout, *) 'parm_fe_scavenge_rate0 = ', parm_fe_scavenge_rate0
+    write(stdout, *) 'parm_f_prod_sp_CaCO3   = ', parm_f_prod_sp_CaCO3
+    write(stdout, *) 'parm_POC_diss          = ', parm_POC_diss
+    write(stdout, *) 'parm_SiO2_diss         = ', parm_SiO2_diss
+    write(stdout, *) 'parm_CaCO3_diss        = ', parm_CaCO3_diss
+    write(stdout, *) 'parm_scalelen_z        = ', parm_scalelen_z
+    write(stdout, *) 'parm_scalelen_vals     = ', parm_scalelen_vals
+
+    do zoo_ind = 1, zooplankton_cnt
+       write(stdout, *) 'lname(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%lname
+       write(stdout, *) 'z_mort_0(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%z_mort_0
+       write(stdout, *) 'z_mort2_0(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%z_mort2_0
+       write(stdout, *) 'loss_thres(', trim(zooplankton(zoo_ind)%sname), ') = ', zooplankton(zoo_ind)%loss_thres
+    end do
+    
+    do auto_ind = 1, autotroph_cnt
+       write(stdout, *) 'lname(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%lname
+       write(stdout, *) 'Nfixer(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Nfixer
+       write(stdout, *) 'imp_calcifier(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%imp_calcifier
+       write(stdout, *) 'exp_calcifier(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%exp_calcifier
+       write(stdout, *) 'kFe(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kFe
+       write(stdout, *) 'kPO4(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kPO4
+       write(stdout, *) 'kdoP(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kdoP
+       write(stdout, *) 'kNO3(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kNO3
+       write(stdout, *) 'kNH4(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kNH4
+       write(stdout, *) 'kSiO3(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%kSiO3
+       write(stdout, *) 'Qp(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Qp
+       write(stdout, *) 'gQfe_0(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%gQfe_0
+       write(stdout, *) 'gQfe_min(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%gQfe_min
+       write(stdout, *) 'alphaPI(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%alphaPI
+       write(stdout, *) 'PCref(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%PCref
+       write(stdout, *) 'thetaN_max(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%thetaN_max
+       write(stdout, *) 'loss_thres(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%loss_thres
+       write(stdout, *) 'loss_thres2(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%loss_thres2
+       write(stdout, *) 'temp_thres(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%temp_thres
+       write(stdout, *) 'mort(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%mort
+       write(stdout, *) 'mort2(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%mort2
+       write(stdout, *) 'agg_rate_max(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%agg_rate_max
+       write(stdout, *) 'agg_rate_min(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%agg_rate_min
+       write(stdout, *) 'loss_poc(', trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%loss_poc
+    end do
+
+    
+    do prey_ind = 1, grazer_prey_cnt
+       do zoo_ind = 1, zooplankton_cnt
+          write(stdout, *) 'lname(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%lname
+          write(stdout, *) 'auto_ind(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%auto_ind
+          write(stdout, *) 'auto_ind_cnt(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%auto_ind_cnt
+          write(stdout, *) 'zoo_ind(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%zoo_ind
+          write(stdout, *) 'zoo_ind_cnt(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%zoo_ind_cnt
+          write(stdout, *) 'z_umax_0(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%z_umax_0
+          write(stdout, *) 'z_grz(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%z_grz
+          write(stdout, *) 'graze_zoo(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%graze_zoo
+          write(stdout, *) 'graze_poc(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%graze_poc
+          write(stdout, *) 'graze_doc(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%graze_doc
+          write(stdout, *) 'f_zoo_detr(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%f_zoo_detr
+          write(stdout, *) 'grazing_function(', trim(grazing(prey_ind,zoo_ind)%sname), ') = ', grazing(prey_ind,zoo_ind)%grazing_function
+       end do
+    end do
+
+    write(stdout, *) '----------------------------------------'
+
+  end subroutine marbl_params_print
+
+  !*****************************************************************************
+
+end module marbl_parms

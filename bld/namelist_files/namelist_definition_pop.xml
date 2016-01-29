@@ -207,7 +207,7 @@ id="runid"
 type="char*256"
 category="timemgr"
 group="time_manager_nml" >
-An identifier for the run.
+The CESM identifier for the run.
 
 Default: $CASENAME
 </entry>
@@ -217,10 +217,22 @@ id="time_mix_opt"
 type="char*256"
 category="timemgr"
 group="time_manager_nml"
-valid_values="matsuno,avg,avgbb,avgfit" >
-Option for time mixing (Matsuno or averaging).
+valid_values="avg,avgbb,avgfit" >
+Option for time mixing: 
+   avgfit = leapfrog with occasional time-averaging timestep to control stability. 
+            The timestep is modified such that an integer number of full and half timesteps
+            fits into each coupling interval.
+   robert = leapfrog with modified Robert-Asselin time filtering to control stability.
+            The timestep is modifed such that an integer number of full timesteps 
+            fits into each coupling interval.
+   avg    = leapfrog with occasional time-averaging timestep to control stability.
+            NOT SUPPORTED in CESM, because the timesteps will not always align with
+            a coupling boundary.
+   avgbb  = DEPRECATED OPTION. leapfrog with occasional time-averaging timestep, immediately
+            followed by another time-averaging timestep ("back-to-back" avg). DO NOT USE THIS
+            OPTION in scientific experiments.
 
-Valid Values: 'matsuno', 'avg', 'avgbb', 'avgfit'
+Valid Values: 'avgfit', 'avg', 'avgbb'
 Default: 'avgfit' 
 </entry>
 
@@ -229,7 +241,7 @@ id="time_mix_freq"
 type="integer" 
 category="timemgr"
 group="time_manager_nml" >
-Frequency of mixing.
+Frequency of mixing timestep.
 
 Default: 17
 </entry>
@@ -339,10 +351,13 @@ id="dt_option"
 type="char*256" 
 category="timemgr"
 group="time_manager_nml"
-valid_values="auto_dt,steps_per_year,steps_per_day,seconds,hours" >
+valid_values="steps_per_year,steps_per_day,seconds,hours" >
 Method to determine tracer timestep size.
 
-Valid Values: 'auto_dt', 'steps_per_year', 'steps_per_day', 'seconds', 'hours'
+Not all time_mix_opt values are compatible with all dt_option values,
+so steps_per_day is the recommended CESM option.
+
+Valid Values: 'steps_per_year', 'steps_per_day', 'seconds', 'hours'
 Default: 'steps_per_day'
 </entry>
 
@@ -406,6 +421,32 @@ group="time_manager_nml" >
 Number of intervals / days into which full and half timesteps must exactly "fit".
 
 Default: 1
+</entry>
+
+<entry 
+id="robert_alpha"
+type="real"
+category="timemgr"
+group="time_manager_nml">
+Tuning parameter used in Robert filtering. 
+
+Williams, Paul D. "A proposed Modification to the Robert-Asselin Time Filter." Monthly
+Weather Review, Vol 137, 2009.
+
+Default: 0.53 
+</entry>
+
+<entry 
+id="robert_nu"
+type="real"
+category="timemgr"
+group="time_manager_nml">
+Tuning parameter used in Robert filtering. 
+
+Williams, Paul D. "A proposed Modification to the Robert-Asselin Time Filter." Monthly
+Weather Review, Vol 137, 2009. 
+
+Default: 0.20
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -1643,16 +1684,6 @@ Default: .true.
 </entry>
 
 <entry 
-id="llangmuir"
-type="logical"
-category="kpp"
-group="vmix_kpp_nml" >
-Flag for using Langmuir parameterization.
-
-Default: .false.
-</entry>
-
-<entry 
 id="linertial"
 type="logical"
 category="kpp"
@@ -1670,6 +1701,18 @@ group="vmix_kpp_nml" >
 Flag for using CVMix for mixing instead of POP routines
 
 Default: .false.
+</entry>
+
+<!--QL, 150526, Langmuir mixing options-->
+<entry 
+id="langmuir_opt"
+type="char*256"
+category="kpp"
+group="vmix_kpp_nml" >
+Langmuir mixing parameterization option.
+
+Valid Values: 'null', 'vr12-ma', 'vr12-en'
+Default: 'null'
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -1709,10 +1752,10 @@ id="hmix_tracer_choice"
 type="char*256"
 category="hmix"
 group="hmix_nml"
-valid_values="del2,del4,gent" >
+valid_values="del2,del4,gent,gmaniso" >
 Type of horizontal tracer mixing.
 
-Valid Values: 'del2','del4','gent'
+Valid Values: 'del2','del4','gent','gmaniso'
 Default: 'gent'
 </entry>
 
@@ -1875,6 +1918,166 @@ Note: You must specify both the variable name and namelist name if you change th
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: hmix_gm_aniso_nml        - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry 
+id="kdir_type_choice"
+type="char*256"
+category="hmix"
+group="hmix_gm_aniso_nml"
+valid_values="shear,east,zonal,flow,pvgrid,read" >
+choice for major axis direction
+
+Valid Values: 'shear', 'east', 'zonal', 'flow', 'pvgrid', 'read'
+Default: 'shear'
+</entry>
+
+<entry 
+id="kmin_type_choice"
+type="char*256"
+category="hmix"
+group="hmix_gm_aniso_nml"
+valid_values="simple,read" >
+choice for minor diffusivity
+
+Valid Values: 'simple', 'read'
+Default: 'simple'
+</entry>
+
+<entry 
+id="krat_type_choice"
+type="char*256"
+category="hmix"
+group="hmix_gm_aniso_nml"
+valid_values="shear,simple,read" >
+choice for diffusivity ratio (major/minor)
+
+Valid Values: 'shear', 'simple', 'read'
+Default: 'shear'
+</entry>
+
+<entry 
+id="addrandfluc"
+type="logical"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+Flag to add random fluctuation to orientation
+
+Default: .false.
+</entry>
+
+<entry 
+id="cflmajoronly"
+type="logical"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+T reduce major only for cfl violations, F reduce entire tensor for cfl violations
+
+Default: .true.
+</entry>
+
+<entry 
+id="isominoronly"
+type="logical"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+T Set isotropic diffusivity with minor: F set isotropic diffusivity with avg of major and minor
+
+Default: .true.
+</entry>
+
+<entry 
+id="isoonly"
+type="logical"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+T to do isotropic using diagnosis
+
+Default: .false.
+</entry>
+
+<entry 
+id="savenewtavgs"
+type="logical"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+Save aniso time averaged diagnostics
+
+Default: .true.
+</entry>
+
+<entry 
+id="simpsubcells"
+type="logical"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+T to use simple subcell volume = 1/8 T-cell volume, F to use HTN & HTE
+
+Default: .false.
+</entry>
+
+<entry 
+id="vertdiffhere"
+type="logical"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+T do VDC here, F to do in vertical_mix 
+
+Default: .false.
+</entry>
+
+<entry 
+id="cflmult"
+type="real"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+multiplication factor for cfl check
+
+Default: 0.175
+</entry>
+
+<entry 
+id="erat_const"
+type="real"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+constant eigenvalue ratio 
+
+Default: 5.0
+</entry>
+
+<entry 
+id="erat_factor"
+type="real"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+max negative factor of major to set minor, set to 0 to force minor to be positive 
+
+Default: 0.0
+</entry>
+
+<entry 
+id="minorfactor"
+type="real"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+minor eigenvalue multiplicative factor 
+
+Default: 1.0
+</entry>
+
+<entry 
+id="shrdispfac"
+type="real"
+category="hmix"
+group="hmix_gm_aniso_nml" >
+multiplicative coefficient for shear dispersion term: MAJOR = MINOR + shrdispfac/MINOR*<(U*dy)^2+(V*dx)^2> 
+
+Default: 0.5
+</entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: hmix_gm_nml              - -->
 <!-- - - - - - - - - - - - - - - - - - -->
 
@@ -1883,10 +2086,10 @@ id="kappa_isop_choice"
 type="char*256"
 category="hmix"
 group="hmix_gm_nml"
-valid_values="cons,dept,depth,vmhs,hdgr,drad,bfre,bfvm,bfhd,bfdr,edgr" >
+valid_values="cons,steer,dept,depth,vmhs,hdgr,drad,bfre,bfvm,bfhd,bfdr,edgr" >
 Choice for KAPPA_ISOP (isopycnal).
 
-Valid Values: 'cons', 'depth', 'vmhs', 'hdgr', 'drad', 'bfre', 'bfvm', 'bfhd', 'bfdr', 'edgr'
+Valid Values: 'cons', 'steer', 'depth', 'vmhs', 'hdgr', 'drad', 'bfre', 'bfvm', 'bfhd', 'bfdr', 'edgr'
 Default: 'bfre'
 </entry>
 
@@ -1895,10 +2098,10 @@ id="kappa_thic_choice"
 type="char*256"
 category="hmix"
 group="hmix_gm_nml"
-valid_values="cons,dept,depth,vmhs,hdgr,drad,bfre,bfvm,bfhd,bfdr,edgr" >
+valid_values="cons,steer,dept,depth,vmhs,hdgr,drad,bfre,bfvm,bfhd,bfdr,edgr" >
 Choice for KAPPA_THIC (thickness).
 
-Valid Values: 'cons', 'depth', 'vmhs', 'hdgr', 'drad', 'bfre', 'bfvm', 'bfhd', 'bfdr', 'edgr'
+Valid Values: 'cons', 'steer', 'depth', 'vmhs', 'hdgr', 'drad', 'bfre', 'bfvm', 'bfhd', 'bfdr', 'edgr'
 Default: 'bfre'
 </entry>
 
@@ -2033,6 +2236,16 @@ type="logical"
 category="hmix"
 group="hmix_gm_nml" >
 Flag for diagnostic bolus velocity computation.
+
+Default: .true.
+</entry>
+
+<entry 
+id="diag_gm_steer"
+type="logical"
+category="hmix"
+group="hmix_gm_nml" >
+Flag for diagnostic steering level eddy flux computation.
 
 Default: .true.
 </entry>
@@ -4123,6 +4336,68 @@ Default: .false. .false. .false.
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: mcog_nml                 - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry
+id="lmcog"
+type="logical"
+category="mcog"
+group="mcog_nml"
+valid_values=".true.,.false." >
+Flag for activating mcog, the multiple-column ocean grid parameterization.
+
+Default: .false., unless ecosys is turned on
+</entry>
+
+<entry
+id="lmcog_debug"
+type="logical"
+category="mcog"
+group="mcog_nml"
+valid_values=".true.,.false." >
+Flag for activating debugging statements in multiple-column ocean grid parameterization.
+
+Default: .false.
+</entry>
+
+<entry 
+id="mcog_dagg_qsw_abort_thres"
+type="real"
+category="mcog"
+group="mcog_nml" >
+call abort if abs(dagg_qsw) exceeds this threshold
+
+Default: 1.0e-10
+</entry>
+
+<entry
+id="mcog_col_to_bin"
+type="integer(100)"
+category="mcog"
+group="mcog_nml" >
+bin index for each column
+
+Default: mcog_col_to_bin(nbin) = nbin
+</entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
+<!-- Group: se_nml                   - -->
+<!-- - - - - - - - - - - - - - - - - - -->
+
+<entry 
+id="lchange_ans"
+type="logical" 
+category="software_eng"
+group="se_nml" >
+Flag used for testing when introducing answer changes that will not be
+controlled by other namelist flags. Outside of specific tags, this flag will
+not have any affect on POP.
+
+Default: .false.
+</entry>
+
+<!-- - - - - - - - - - - - - - - - - - -->
 <!-- Group: passive_tracers_on_nml   - -->
 <!-- - - - - - - - - - - - - - - - - - -->
 
@@ -5832,14 +6107,6 @@ Default: 2225.0
 </entry>
 
 <entry 
-id="ecosys_qsw_distrb_const"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: 
-</entry>
-
-<entry 
 id="lsource_sink"
 type="logical"
 category="ecosys"
@@ -5861,14 +6128,6 @@ type="logical"
 category="ecosys"
 group="ecosys_nml" >
 Default: .true.
-</entry>
-
-<entry 
-id="locmip_k1_k2_bug_fix"
-type="logical" 
-category="ecosys"
-group="ecosys_nml" >
-Default: .true. (set with OCN_CO2_FLUX_OCMPI_BUG_FIX in env_build.xml)
 </entry>
 
 <entry 
@@ -5956,12 +6215,48 @@ group="ecosys_nml" >
 Default: none provided
 </entry>
 
+<entry
+id="caco3_bury_thres_opt"
+type="char*256"
+category="ecosys"
+group="ecosys_nml"
+valid_values="fixed_depth,omega_calc" >
+option of threshold of caco3 burial
+Default: omega_calc
+</entry>
+
+<entry
+id="caco3_bury_thres_depth"
+type="real" 
+category="ecosys"
+group="ecosys_nml" >
+threshold depth for caco3_bury_thres_opt='fixed_depth'
+Default: 3300.0e2
+</entry>
+
+<entry
+id="pon_bury_coeff"
+type="real" 
+category="ecosys"
+group="ecosys_nml" >
+PON_sed_loss = PON_bury_coeff * Q * POC_sed_loss
+Default: 0.5
+</entry>
+
 <entry 
 id="lecovars_full_depth_tavg"
 type="logical" 
 category="ecosys"
 group="ecosys_nml" >
 Default: .false.
+</entry>
+
+<entry
+id="lecosys_debug"
+type="logical"
+category="ecosys"
+group="derived">
+When turned on, ocn.ecosys.tavg.csh will accumulate ALL ecosys diagnostics
 </entry>
 
 <!-- - - - - - - - - - - - - - - - - - -->
@@ -6323,6 +6618,14 @@ type="char*256"
 category="ecosys"
 group="ecosys_driver_nml" >
 Default: 'base model'
+</entry>
+
+<entry 
+id="ecosys_qsw_distrb_const"
+type="logical" 
+category="ecosys"
+group="ecosys_driver_nml" >
+Default: 
 </entry>
 
 

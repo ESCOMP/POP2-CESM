@@ -1,5 +1,3 @@
-
-
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
  MODULE overflows
@@ -91,6 +89,7 @@
              ovf_rhs_brtrpc_continuity, &   ! barotropic.F90
              ovf_solvers_9pt,           &   ! barotropic.F90
              ovf_HU,                    &
+             ovf_reg_avgs_prd,          &   ! step_mod.F90
              ovf_UV_solution                ! step_mod.F90
 
 ! !PUBLIC DATA MEMBERS:
@@ -1586,14 +1585,49 @@
 
 
 !-----------------------------------------------------------------------
+!EOC
+
+ end subroutine init_overflows5
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: ovf_reg_avgs_prd
+! !INTERFACE:
+
+ subroutine ovf_reg_avgs_prd
+
+! !DESCRIPTION:
+!  This routine computes regional aveages required at restart
+!  for overflow regions, using all available tracers, and also
+!  computes regional product values based on source and entrainment.
 !
-!  compute regional averages.
-!
+! !REVISION HISTORY:
+!  2015-10 created to allow exact restarts when using Robert Filtering.
+!          previously, this code segment resided in init_overflows5;
+!          now, it is called from step
+
+!EOP
+!BOC
 !-----------------------------------------------------------------------
+!  local variables
+!-----------------------------------------------------------------------
+   save
+
+   integer   (int_kind)  :: &
+      n         ,& ! index of overflow
+     nn            ! ovf tracer index
+
+   real (r8) ::  &
+     phi           ! entrainment parameter from actual ratio Me/Mp
+
+   integer (int_kind) ovf_id
+
 
    if( overflows_on .and. overflows_interactive ) then
       call ovf_reg_avgs(oldtime)
-! evaluate regional product values based on src,ent averages just computed
+
+      !*** evaluate regional product values based on src,ent averages just computed
 ! src
 
   do n=1,ovf_groups%numMyGroups
@@ -1609,7 +1643,7 @@
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine init_overflows5
+ end subroutine ovf_reg_avgs_prd
 
 !***********************************************************************
 !EOP
@@ -2178,16 +2212,11 @@ call release_unit(mu)
 ! ovf parameters
       read(mu,102) ovf(n)%ovf_params%lat
       102 format(2x,1PE27.18)
-      read(mu,103) ovf(n)%ovf_params%width
-      103 format(2x,1PE27.18)
-      read(mu,105) ovf(n)%ovf_params%source_thick
-      105 format(2x,1PE27.18)
-      read(mu,106) ovf(n)%ovf_params%distnc_str_ssb
-      106 format(2x,1PE27.18)
-      read(mu,107) ovf(n)%ovf_params%bottom_slope
-      107 format(2x,1PE27.18)
-      read(mu,108) ovf(n)%ovf_params%bottom_drag
-      108 format(2x,1PE27.18)
+      read(mu,102) ovf(n)%ovf_params%width
+      read(mu,102) ovf(n)%ovf_params%source_thick
+      read(mu,102) ovf(n)%ovf_params%distnc_str_ssb
+      read(mu,102) ovf(n)%ovf_params%bottom_slope
+      read(mu,102) ovf(n)%ovf_params%bottom_drag
 ! kmt changes, if any
 ! GFORTRAN Compiler complains about constants in read format
       read(mu,1090) ovf(n)%num_kmt
@@ -2203,176 +2232,102 @@ call release_unit(mu)
 !   inflow
       read(mu,110) ovf(n)%reg_inf%imin
       110 format(2x,i10,20x)
-      read(mu,111) ovf(n)%reg_inf%imax
-      111 format(2x,i10,20x)
-      read(mu,112) ovf(n)%reg_inf%jmin
-      112 format(2x,i10,20x)
-      read(mu,113) ovf(n)%reg_inf%jmax
-      113 format(2x,i10,20x)
-      read(mu,114) ovf(n)%reg_inf%kmin
-      114 format(2x,i10,20x)
-      read(mu,115) ovf(n)%reg_inf%kmax
-      115 format(2x,i10,20x)
+      read(mu,110) ovf(n)%reg_inf%imax
+      read(mu,110) ovf(n)%reg_inf%jmin
+      read(mu,110) ovf(n)%reg_inf%jmax
+      read(mu,110) ovf(n)%reg_inf%kmin
+      read(mu,110) ovf(n)%reg_inf%kmax
 !   source
-      read(mu,116) ovf(n)%reg_src%imin
-      116 format(2x,i10,20x)
-      read(mu,117) ovf(n)%reg_src%imax
-      117 format(2x,i10,20x)
-      read(mu,118) ovf(n)%reg_src%jmin
-      118 format(2x,i10,20x)
-      read(mu,119) ovf(n)%reg_src%jmax
-      119 format(2x,i10,20x)
-      read(mu,120) ovf(n)%reg_src%kmin
-      120 format(2x,i10,20x)
-      read(mu,121) ovf(n)%reg_src%kmax
-      121 format(2x,i10,20x)
+      read(mu,110) ovf(n)%reg_src%imin
+      read(mu,110) ovf(n)%reg_src%imax
+      read(mu,110) ovf(n)%reg_src%jmin
+      read(mu,110) ovf(n)%reg_src%jmax
+      read(mu,110) ovf(n)%reg_src%kmin
+      read(mu,110) ovf(n)%reg_src%kmax
 !   entrainment
-      read(mu,122) ovf(n)%reg_ent%imin
-      122 format(2x,i10,20x)
-      read(mu,123) ovf(n)%reg_ent%imax
-      123 format(2x,i10,20x)
-      read(mu,124) ovf(n)%reg_ent%jmin
-      124 format(2x,i10,20x)
-      read(mu,125) ovf(n)%reg_ent%jmax
-      125 format(2x,i10,20x)
-      read(mu,126) ovf(n)%reg_ent%kmin
-      126 format(2x,i10,20x)
-      read(mu,127) ovf(n)%reg_ent%kmax
-      127 format(2x,i10,20x)
+      read(mu,110) ovf(n)%reg_ent%imin
+      read(mu,110) ovf(n)%reg_ent%imax
+      read(mu,110) ovf(n)%reg_ent%jmin
+      read(mu,110) ovf(n)%reg_ent%jmax
+      read(mu,110) ovf(n)%reg_ent%kmin
+      read(mu,110) ovf(n)%reg_ent%kmax
 ! src locs and orientation
-      read(mu,128) ovf(n)%num_src
-      128 format(2x,i10,20x)
+      read(mu,110) ovf(n)%num_src
       do m=1,ovf(n)%num_src
-         read(mu,129) ovf(n)%loc_src(m)%i
-         129 format(2x,i10,20x)
-         read(mu,130) ovf(n)%loc_src(m)%j
-         130 format(2x,i10,20x)
-         read(mu,131) ovf(n)%loc_src(m)%i_adv
-         131 format(2x,i10,20x)
-         read(mu,132) ovf(n)%loc_src(m)%j_adv
-         132 format(2x,i10,20x)
-         read(mu,133) ovf(n)%loc_src(m)%i_u
-         133 format(2x,i10,20x)
-         read(mu,134) ovf(n)%loc_src(m)%j_u
-         134 format(2x,i10,20x)
-         read(mu,135) ovf(n)%loc_src(m)%k
-         135 format(2x,i10,20x)
-         read(mu,136) ovf(n)%loc_src(m)%orient
-         136 format(2x,i10,20x)
+         read(mu,110) ovf(n)%loc_src(m)%i
+         read(mu,110) ovf(n)%loc_src(m)%j
+         read(mu,110) ovf(n)%loc_src(m)%i_adv
+         read(mu,110) ovf(n)%loc_src(m)%j_adv
+         read(mu,110) ovf(n)%loc_src(m)%i_u
+         read(mu,110) ovf(n)%loc_src(m)%j_u
+         read(mu,110) ovf(n)%loc_src(m)%k
+         read(mu,110) ovf(n)%loc_src(m)%orient
       end do
 ! ent locs and orientation
-      read(mu,137) ovf(n)%num_ent
-      137 format(2x,i10,20x)
+      read(mu,110) ovf(n)%num_ent
       do m=1,ovf(n)%num_ent
-         read(mu,138) ovf(n)%loc_ent(m)%i
-         138 format(2x,i10,20x)
-         read(mu,139) ovf(n)%loc_ent(m)%j
-         139 format(2x,i10,20x)
-         read(mu,140) ovf(n)%loc_ent(m)%i_adv
-         140 format(2x,i10,20x)
-         read(mu,141) ovf(n)%loc_ent(m)%j_adv
-         141 format(2x,i10,20x)
-         read(mu,142) ovf(n)%loc_ent(m)%i_u
-         142 format(2x,i10,20x)
-         read(mu,143) ovf(n)%loc_ent(m)%j_u
-         143 format(2x,i10,20x)
-         read(mu,144) ovf(n)%loc_ent(m)%k
-         144 format(2x,i10,20x)
-         read(mu,145) ovf(n)%loc_ent(m)%orient
-         145 format(2x,i10,20x)
+         read(mu,110) ovf(n)%loc_ent(m)%i
+         read(mu,110) ovf(n)%loc_ent(m)%j
+         read(mu,110) ovf(n)%loc_ent(m)%i_adv
+         read(mu,110) ovf(n)%loc_ent(m)%j_adv
+         read(mu,110) ovf(n)%loc_ent(m)%i_u
+         read(mu,110) ovf(n)%loc_ent(m)%j_u
+         read(mu,110) ovf(n)%loc_ent(m)%k
+         read(mu,110) ovf(n)%loc_ent(m)%orient
       end do
 ! prd locs and orientation
-      read(mu,146) ovf(n)%num_prd_sets
-      146 format(2x,i10,20x)
+      read(mu,110) ovf(n)%num_prd_sets
       do m=1,ovf(n)%num_prd_sets
-         read(mu,147) ovf(n)%num_prd(m)
-         147 format(2x,i10,20x)
+         read(mu,110) ovf(n)%num_prd(m)
          do mp=1,ovf(n)%num_prd(m)
-            read(mu,148) ovf(n)%loc_prd(m,mp)%i
-            148 format(2x,i10,20x)
-            read(mu,149) ovf(n)%loc_prd(m,mp)%j
-            149 format(2x,i10,20x)
-            read(mu,150) ovf(n)%loc_prd(m,mp)%i_adv
-            150 format(2x,i10,20x)
-            read(mu,151) ovf(n)%loc_prd(m,mp)%j_adv
-            151 format(2x,i10,20x)
-            read(mu,152) ovf(n)%loc_prd(m,mp)%i_u
-            152 format(2x,i10,20x)
-            read(mu,153) ovf(n)%loc_prd(m,mp)%j_u
-            153 format(2x,i10,20x)
-            read(mu,154) ovf(n)%loc_prd(m,mp)%k
-            154 format(2x,i10,20x)
-            read(mu,155) ovf(n)%loc_prd(m,mp)%orient
-            155 format(2x,i10,20x)
+            read(mu,110) ovf(n)%loc_prd(m,mp)%i
+            read(mu,110) ovf(n)%loc_prd(m,mp)%j
+            read(mu,110) ovf(n)%loc_prd(m,mp)%i_adv
+            read(mu,110) ovf(n)%loc_prd(m,mp)%j_adv
+            read(mu,110) ovf(n)%loc_prd(m,mp)%i_u
+            read(mu,110) ovf(n)%loc_prd(m,mp)%j_u
+            read(mu,110) ovf(n)%loc_prd(m,mp)%k
+            read(mu,110) ovf(n)%loc_prd(m,mp)%orient
          end do
       end do
 ! adjacent boundaries
 ! src
-      read(mu,156) ovf(n)%adj_src%imin 
-      156 format(2x,i10,20x)
-      read(mu,157) ovf(n)%adj_src%imax 
-      157 format(2x,i10,20x)
-      read(mu,158) ovf(n)%adj_src%jmin 
-      158 format(2x,i10,20x)
-      read(mu,159) ovf(n)%adj_src%jmax 
-      159 format(2x,i10,20x)
-      read(mu,160) ovf(n)%adj_src%kmin 
-      160 format(2x,i10,20x)
-      read(mu,161) ovf(n)%adj_src%kmax 
-      161 format(2x,i10,20x)
+      read(mu,110) ovf(n)%adj_src%imin 
+      read(mu,110) ovf(n)%adj_src%imax 
+      read(mu,110) ovf(n)%adj_src%jmin 
+      read(mu,110) ovf(n)%adj_src%jmax 
+      read(mu,110) ovf(n)%adj_src%kmin 
+      read(mu,110) ovf(n)%adj_src%kmax 
 !ent
-      read(mu,162) ovf(n)%adj_ent%imin 
-      162 format(2x,i10,20x)
-      read(mu,163) ovf(n)%adj_ent%imax 
-      163 format(2x,i10,20x)
-      read(mu,164) ovf(n)%adj_ent%jmin 
-      164 format(2x,i10,20x)
-      read(mu,165) ovf(n)%adj_ent%jmax 
-      165 format(2x,i10,20x)
-      read(mu,166) ovf(n)%adj_ent%kmin 
-      166 format(2x,i10,20x)
-      read(mu,167) ovf(n)%adj_ent%kmax 
-      167 format(2x,i10,20x)
+      read(mu,110) ovf(n)%adj_ent%imin 
+      read(mu,110) ovf(n)%adj_ent%imax 
+      read(mu,110) ovf(n)%adj_ent%jmin 
+      read(mu,110) ovf(n)%adj_ent%jmax 
+      read(mu,110) ovf(n)%adj_ent%kmin 
+      read(mu,110) ovf(n)%adj_ent%kmax 
 !prd
       do m=1,ovf(n)%num_prd_sets
-         read(mu,168) ovf(n)%adj_prd(m)%imin 
-         168 format(2x,i10,20x)
-         read(mu,169) ovf(n)%adj_prd(m)%imax 
-         169 format(2x,i10,20x)
-         read(mu,170) ovf(n)%adj_prd(m)%jmin 
-         170 format(2x,i10,20x)
-         read(mu,171) ovf(n)%adj_prd(m)%jmax 
-         171 format(2x,i10,20x)
-         read(mu,172) ovf(n)%adj_prd(m)%kmin 
-         172 format(2x,i10,20x)
-         read(mu,173) ovf(n)%adj_prd(m)%kmax 
-         173 format(2x,i10,20x)
+         read(mu,110) ovf(n)%adj_prd(m)%imin 
+         read(mu,110) ovf(n)%adj_prd(m)%imax 
+         read(mu,110) ovf(n)%adj_prd(m)%jmin 
+         read(mu,110) ovf(n)%adj_prd(m)%jmax 
+         read(mu,110) ovf(n)%adj_prd(m)%kmin 
+         read(mu,110) ovf(n)%adj_prd(m)%kmax 
       end do
 ! transports
       read(mu,174) ovf(n)%Ms
       174 format(2x,1PE27.18)
-      read(mu,175) ovf(n)%Ms_n
-      175 format(2x,1PE27.18)
-      read(mu,176) ovf(n)%Ms_nm1
-      176 format(2x,1PE27.18)
-      read(mu,177) ovf(n)%Me
-      177 format(2x,1PE27.18)
-      read(mu,178) ovf(n)%Me_n
-      178 format(2x,1PE27.18)
-      read(mu,179) ovf(n)%Me_nm1
-      179 format(2x,1PE27.18)
-      read(mu,180) ovf(n)%phi
-      180 format(2x,1PE27.18)
-      read(mu,181) ovf(n)%Mp
-      181 format(2x,1PE27.18)
-      read(mu,182) ovf(n)%Mp_n
-      182 format(2x,1PE27.18)
-      read(mu,183) ovf(n)%Mp_nm1
-      183 format(2x,1PE27.18)
-      read(mu,184) ovf(n)%Tp
-      184 format(2x,1PE27.18)
-      read(mu,185) ovf(n)%Sp
-      185 format(2x,1PE27.18)
+      read(mu,174) ovf(n)%Ms_n
+      read(mu,174) ovf(n)%Ms_nm1
+      read(mu,174) ovf(n)%Me
+      read(mu,174) ovf(n)%Me_n
+      read(mu,174) ovf(n)%Me_nm1
+      read(mu,174) ovf(n)%phi
+      read(mu,174) ovf(n)%Mp
+      read(mu,174) ovf(n)%Mp_n
+      read(mu,174) ovf(n)%Mp_nm1
+      read(mu,174) ovf(n)%Tp
+      read(mu,174) ovf(n)%Sp
       read(mu,186) ovf(n)%prd_set_n
       read(mu,186) ovf(n)%prd_set
       186 format(2x,i10,20x)
@@ -2841,6 +2796,7 @@ call release_unit(mu)
                            TRACER_E(i,j),TRACER_E(i-1,j),TRACER_N(i,j),TRACER_N(i,j-1)
                            26 format(' In_n  ovf_advt prd   ',i5,1x,6(i3,1x),4(1pe15.8,1x))
                         endif  ! print
+                        !*** do we need a similar mod if using Robert filtering?
                         if( avg_ts_last ) then
                            if( i > 1 ) then
                               if( ovf(ovf_id)%loc_prd(m,mp)%orient .eq. 1 ) then
@@ -3523,11 +3479,12 @@ call release_unit(mu)
 
 !----------------------------------------------------------------------
 !
-!  ovf regional averages
+!  ovf regional averages was formerly called here; replaced by 
+!    call ovf_reg_avgs_prd in subroutine step
 !
 !----------------------------------------------------------------------
 
-      call ovf_reg_avgs(curtime)
+!     call ovf_reg_avgs(curtime)
 
 !----------------------------------------------------------------------
 !
@@ -4000,6 +3957,7 @@ subroutine ovf_reg_avgs(time_level)
             ! recompute phi based on actual transports
             phi = ovf(ovf_id)%Me / (ovf(ovf_id)%Mp + c1)
             ! if time averaging time step, include last time step 
+            !*** do we need a similar mod if using Robert filtering?
             if( avg_ts ) then
                phi = (ovf(ovf_id)%Me_n + ovf(ovf_id)%Me) / (ovf(ovf_id)%Mp_n + ovf(ovf_id)%Mp + c1)
             endif
@@ -4131,6 +4089,7 @@ subroutine ovf_reg_avgs(time_level)
         ! recompute phi based on actual transports
         phi = ovf(ovf_id)%Me / (ovf(ovf_id)%Mp + c1)
         ! if time averaging time step, include last time step 
+        !*** do we need a similar mod if using Robert filtering?
         if( avg_ts ) then
            phi = (ovf(ovf_id)%Me_n + ovf(ovf_id)%Me) / (ovf(ovf_id)%Mp_n + ovf(ovf_id)%Mp + c1)
         endif
@@ -5609,7 +5568,16 @@ subroutine ovf_reg_avgs(time_level)
 !     return
    endif
 
-   HUM(:,:,:) = HU(:,:,:)
+   !$OMP PARALLEL DO PRIVATE(iblock,i,j)
+   do iblock = 1,numBlocksClinic
+      do j=1,POP_nyBlock
+         do i=1,POP_nxBlock
+            HUM(i,j,iblock) = HU(i,j,iblock)
+         enddo
+      enddo
+   enddo
+   !$OMP END PARALLEL DO
+
    call ovf_HU(HU,HUM)
    call POP_HaloUpdate(HUM, POP_haloClinic, POP_gridHorzLocNECorner,&
                        POP_fieldKindScalar, errorCode,              &

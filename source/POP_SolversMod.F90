@@ -15,6 +15,7 @@
 ! !USES:
 
    use POP_KindsMod
+   use blocks, only: block, get_block
    use POP_ErrorMod
    use POP_CommMod
    use POP_ConfigMod
@@ -269,7 +270,7 @@
             call EvpPre(btropWgtCenter(2:nx1,2:ny1,bid),btropWgtNE(2:nx1,2:ny1,bid),&
                         EvpCenterWgt(:,:,:,bid),EvpNeWgt(:,:,:,bid),EvpRinv(:,:,:,bid),&
                         landIndx(:,:,bid), nx1-1,ny1-1,EvpXbs,EvpYbs,&
-                        EvpXbidx,EvpYbidx,EvpXnb,EvpYnb)
+                        EvpXbidx,EvpYbidx,EvpXnb,EvpYnb,bid)
             
 
             ! Save inverse of coefficents for efficiency
@@ -729,7 +730,7 @@
                    .or.  trim(solverChoice) == solverChoicePCSI)) then
       call POP_ErrorSet(errorCode, &
       'POP_SolversInit: Matsnuo timestep is not supported in &
-       PCSI solver or EVP preconditioning')
+       &PCSI solver or EVP preconditioning')
       return
    endif
 
@@ -2430,7 +2431,7 @@
  end subroutine btropOperator
 
 
- subroutine EvpPre(cc,ne,evpcc,evpne,rinv,landIndx,n,m,nn,mm,ndi,mdi,nb,mb)
+ subroutine EvpPre(cc,ne,evpcc,evpne,rinv,landIndx,n,m,nn,mm,ndi,mdi,nb,mb,bid)
 
 ! !DESCRIPTION:
 ! !prepare EVP preconditioning and save reshaped array for efficiency 
@@ -2448,13 +2449,19 @@
    real(POP_r8),dimension(nn+2,mm+2,nb*mb),intent(inout) :: evpcc,evpne
    real(POP_r8),dimension(nn+mm-1,nn+mm-1,nb*mb),intent(inout):: rinv
    integer(POP_i4),dimension(nb,mb),intent(inout):: landIndx
+   integer(POP_i4),intent(in):: bid  ! bartropic blocks id
 
    ! LOCAL  VARIABLES
    integer (POP_i4) :: &
       is,js,ie,je,          &! start and end index for EVP sub block
       lm,ln,l,              &! EVP sub block size
-      i,j,ib                 ! index of sub block
+      i,j,ib,               &! index of sub block
+      iland                 ! index of sub block
 
+   type (block) :: &
+      this_block   ! block information for this block
+
+   this_block = get_block(blocks_tropic(bid),bid)
    do j = 1, mb
      js = mdi(j)-1
      je = mdi(j+1) 
@@ -2468,7 +2475,18 @@
        evpcc(1:ln,1:lm,ib) =  cc(is:ie,js:je)
        evpne(1:ln,1:lm,ib) =  ne(is:ie,js:je)
 
-       if(minval(abs(ne(is+1:ie-1,js+1:je-1))) == 0.0_POP_r8 ) then 
+       iland = 0 
+       if (minval(abs(ne(is+1:ie-1,js+1:je-1))) == 0.0_POP_r8) then 
+         iland = 1
+       endif 
+       if (is+2 <this_block%ib .or. ie-1 > this_block%ie) then
+         iland = 2
+       endif 
+       if (js+2 <this_block%jb .or. je-1 > this_block%je) then
+         iland = 3
+       endif 
+
+       if( iland > 0 ) then 
          ! mark land sub-blocks
          landIndx(i,j) = 1
          rinv(:,:,ib) = 0.0_POP_r8
@@ -2590,7 +2608,7 @@
      write(POP_stdout,*) 'maxvalr ', maxvalr
      call POP_ErrorSet(errorCode, &
           'POP_EXPLICITPRE: error in computing the inverse, error > 1.0e-8 ;&
-           Check EVP sub-block size!')
+           &Check EVP sub-block size!')
      return
    endif 
 

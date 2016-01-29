@@ -44,8 +44,8 @@ module abio_dic_dic14_mod
    use netcdf
    use co2calc
    use time_management
-   use ecosys_parms, only: xkw_coeff
-   use ecosys_share, only: SCHMIDT_CO2
+   use constants, only: xkw_coeff
+   use schmidt_number, only: SCHMIDT_CO2
 
    implicit none
    save

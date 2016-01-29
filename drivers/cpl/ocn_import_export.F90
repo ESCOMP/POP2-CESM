@@ -26,6 +26,7 @@ module ocn_import_export
    use forcing_shf,       only: SHF_QSW
    use forcing_sfwf,      only: lsend_precip_fact, precip_fact
    use forcing_fields
+   use mcog,              only: lmcog, mcog_ncols, import_mcog
    use forcing_coupled,   only: ncouple_per_day,  &
                                 update_ghost_cells_coupler_fluxes, &
                                 rotate_wind_stress, pop_set_coupled_forcing, &
@@ -40,6 +41,8 @@ module ocn_import_export
    use prognostic
    use time_management
    use registry
+   ! QL, 150526, ocn<->wav
+   use vmix_kpp,          only: KPP_HBLT      ! ocn -> wav, bounadry layer depth
 
    implicit none
    public
@@ -113,13 +116,16 @@ contains
       message
  
    integer (int_kind) ::  &
-      i,j,k,n,iblock
+      i,j,k,n,ncol,iblock
 
    real (r8), dimension(nx_block,ny_block) ::  &
       WORKB
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic) ::   &
       WORK1, WORK2        ! local work space
+
+   real (r8), dimension(mcog_ncols) ::  &
+      frac_col_1pt, fracr_col_1pt, qsw_fracr_col_1pt
 
    real (r8) ::  &
       m2percm2,  &
@@ -223,6 +229,26 @@ contains
          !***  converting from m**2/s**2 to cm**2/s**2
          WORKB(i,j       ) = x2o(index_x2o_So_duu10n,n)
          U10_SQR(i,j,iblock) = cmperm * cmperm * WORKB(i,j) * RCALCT(i,j,iblock)
+         
+         ! QL, 150526, langmuir mixing variables
+         ! QL, 150908, only apply enhancement factor to ice-free region
+         if (IFRAC(i,j,iblock) <= 0.05_r8) then
+            ! import enhancement factor (unitless)
+            WORKB(i,j       ) = x2o(index_x2o_Sw_lamult,n)
+            LAMULT(i,j,iblock) = WORKB(i,j)*RCALCT(i,j,iblock)
+         else
+            LAMULT(i,j,iblock) = c1
+         endif
+         ! QL, 150706, DEBUG
+         !print*, "LAMULT = ", LAMULT(i,j,iblock)  
+         !print*, "RCALCT = ", RCALCT(i,j,iblock)  
+         !print*, "WORKB = ", WORKB(i,j)  
+         !! DEBUG
+         ! import surface Stokes drift (m/s)
+         WORKB(i,j       ) = x2o(index_x2o_Sw_ustokes,n)
+         USTOKES(i,j,iblock) = WORKB(i,j)*RCALCT(i,j,iblock)
+         WORKB(i,j       ) = x2o(index_x2o_Sw_vstokes,n)
+         VSTOKES(i,j,iblock) = WORKB(i,j)*RCALCT(i,j,iblock)
 
       enddo
       enddo
@@ -231,18 +257,60 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  incoming data quality control
+!  optional fields per mcog column
 !
 !-----------------------------------------------------------------------
-#ifdef CCSMCOUPLED
-      if ( any(IOFF_F < c0) ) then
-        write(message, "(A,1x,e10.3,A)") 'Error: incoming IOFF_F has min value', &
-                                      minval(IOFF_F), '; value can not be negative.'
-        ! call shr_sys_abort ('Error: incoming IOFF_F is negative')
-        call shr_sys_abort (trim(message))
-      endif
-#endif
 
+   if (lmcog) then
+
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+
+            ! extract fields for each column and pass to import_mcog
+
+            do ncol = 1, mcog_ncols
+               frac_col_1pt(ncol)  = max(c0, min(c1, x2o(index_x2o_frac_col(ncol), n)))
+               fracr_col_1pt(ncol) = max(c0, min(c1, x2o(index_x2o_fracr_col(ncol), n)))
+               qsw_fracr_col_1pt(ncol) = x2o(index_x2o_qsw_fracr_col(ncol), n)
+            enddo
+
+            call import_mcog(frac_col_1pt, fracr_col_1pt, qsw_fracr_col_1pt, &
+                             x2o(index_x2o_Foxx_swnet,n), iblock, i, j)
+
+         enddo ! do j
+         enddo ! do i
+      enddo ! do iblock = 1, nblocks_clinic
+
+   else ! if (lmcog) then
+
+      ! if mcog is off, fill its arrays with cpl aggregated full cell means
+
+      n = 0
+      do iblock = 1, nblocks_clinic
+         this_block = get_block(blocks_clinic(iblock),iblock)
+
+         do j=this_block%jb,this_block%je
+         do i=this_block%ib,this_block%ie
+            n = n + 1
+
+            ncol = 1
+            frac_col_1pt(ncol)  = c1
+            fracr_col_1pt(ncol) = c1
+            qsw_fracr_col_1pt(ncol) = x2o(index_x2o_Foxx_swnet,n)
+
+            call import_mcog(frac_col_1pt, fracr_col_1pt, qsw_fracr_col_1pt, &
+                             x2o(index_x2o_Foxx_swnet,n), iblock, i, j)
+
+         enddo ! do j
+         enddo ! do i
+      enddo ! do iblock = 1, nblocks_clinic
+
+   endif ! if (lmcog) then
 
 !-----------------------------------------------------------------------
 !
@@ -484,6 +552,24 @@ contains
          n = n + 1
          o2x(index_o2x_So_s,n) =   &
              SBUFF_SUM(i,j,iblock,index_o2x_So_s)*salt_to_ppt/tlast_coupled
+      enddo
+      enddo
+   enddo
+
+!-----------------------------------------------------------------------
+!
+!    QL, 150526, convert and pack boundary layer depth
+!
+!-----------------------------------------------------------------------
+
+   n = 0
+   do iblock = 1, nblocks_clinic
+      this_block = get_block(blocks_clinic(iblock),iblock)
+      do j=this_block%jb,this_block%je
+      do i=this_block%ib,this_block%ie
+         n = n + 1
+         o2x(index_o2x_So_bldepth,n) =   &
+             SBUFF_SUM(i,j,iblock,index_o2x_So_bldepth)/100./tlast_coupled
       enddo
       enddo
    enddo
@@ -733,6 +819,11 @@ contains
    SBUFF_SUM(:,:,iblock,index_o2x_So_dhdy) =   &
       SBUFF_SUM(:,:,iblock,index_o2x_So_dhdy) + delt*  &
                                    GRADPY(:,:,curtime,iblock)
+
+   ! QL, 150526, boundary layer depth
+   SBUFF_SUM(:,:,iblock,index_o2x_So_bldepth) =   &
+      SBUFF_SUM(:,:,iblock,index_o2x_So_bldepth) + delt*  &
+                                   KPP_HBLT(:,:,iblock)
 
    if (index_o2x_Faoo_fco2_ocn > 0 .and. sflux_co2_nf_ind > 0) then
       call named_field_get(sflux_co2_nf_ind, iblock, WORK(:,:,iblock))

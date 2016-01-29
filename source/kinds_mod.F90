@@ -21,8 +21,13 @@
 
 ! !DEFINED PARAMETERS:
 
+   ! Note: we want char_len to be 256 and char_len_long to be 512 but this is
+   !       a quick work-around because some of variables containing the name of
+   !       restart files, history files, and other output files are set to
+   !       char_len. A later update should change these to char_len_long and
+   !       then reset char_len to its original 256 value. (MNL; 10 Aug 2015)
    integer, parameter, public ::               &
-      char_len       = 256                    ,&
+      char_len       = 384                    ,&
       char_len_long  = 512                    ,&
       log_kind       = kind(.true.)           ,&
       int_kind       = kind(1)                ,&

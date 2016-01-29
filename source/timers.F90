@@ -20,6 +20,9 @@
    use global_reductions
    use io
    use exit_mod
+#ifdef CCSMCOUPLED
+   use perf_mod
+#endif
 
    implicit none
    private
@@ -44,11 +47,6 @@
 !  module variables
 !
 !-----------------------------------------------------------------------
-
-#ifdef CCSMCOUPLED
-   real (r8), external :: &
-      mpi_wtime
-#endif
 
    integer (int_kind), parameter :: &
       max_timers    = 60       ! max number of timers
@@ -403,9 +401,6 @@
 ! !INTERFACE:
 
  subroutine timer_start(timer_id, block_id)
-#ifdef CCSMCOUPLED
- use perf_mod
-#endif
 
 ! !DESCRIPTION:
 !  This routine starts a given node timer if it has not already
@@ -430,6 +425,17 @@
 
 !EOP
 !BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+#ifdef CCSMCOUPLED
+   real (r8) :: &
+      wall, usr, sys     ! t_stampf arguments
+#endif
+
 !-----------------------------------------------------------------------
 !
 !  if timer is defined, start it up
@@ -458,7 +464,8 @@
          all_timers(timer_id)%block_started(block_id) = .true.
 
 #ifdef CCSMCOUPLED
-         all_timers(timer_id)%block_cycles1(block_id) = mpi_wtime()
+         call t_stampf(wall, usr, sys)
+         all_timers(timer_id)%block_cycles1(block_id) = wall
 #else
          call system_clock(count= &
                    all_timers(timer_id)%block_cycles1(block_id))
@@ -477,7 +484,8 @@
             all_timers(timer_id)%num_stops    = 0
 
 #ifdef CCSMCOUPLED
-            all_timers(timer_id)%node_cycles1 = mpi_wtime()
+            call t_stampf(wall, usr, sys)
+            all_timers(timer_id)%node_cycles1 = wall
 #else
             call system_clock(count= &
                    all_timers(timer_id)%node_cycles1)
@@ -503,7 +511,8 @@
 
          all_timers(timer_id)%node_started = .true.
 #ifdef CCSMCOUPLED
-         all_timers(timer_id)%node_cycles1 = mpi_wtime()
+         call t_stampf(wall, usr, sys)
+         all_timers(timer_id)%node_cycles1 = wall
 #else
          call system_clock(count=all_timers(timer_id)%node_cycles1)
 #endif
@@ -525,9 +534,6 @@
 ! !INTERFACE:
 
  subroutine timer_stop(timer_id, block_id)
-#ifdef CCSMCOUPLED
- use perf_mod
-#endif
 
 ! !DESCRIPTION:
 !  This routine stops a given node timer if appropriate.  If block 
@@ -559,6 +565,7 @@
 
 #ifdef CCSMCOUPLED
    real (r8) :: &
+      wall, usr, sys,   &! t_stampf arguments
       cycles1, cycles2   ! temps to hold cycle info before correction
 #else
    integer (int_kind) :: &
@@ -573,7 +580,8 @@
 
 
 #ifdef CCSMCOUPLED
-   cycles2 = mpi_wtime()
+   call t_stampf(wall, usr, sys)
+   cycles2 = wall
 #else
    call system_clock(count=cycles2)
 #endif
@@ -718,6 +726,7 @@
 
 #ifdef CCSMCOUPLED
    real (r8) :: &
+      wall, usr, sys,   &! t_stampf arguments
       cycles1, cycles2   ! temps to hold cycle info before correction
 #else
    integer (int_kind) :: &
@@ -750,7 +759,8 @@
 
          if (all_timers(timer_id)%node_started) then
 #ifdef CCSMCOUPLED
-            cycles2 = mpi_wtime()
+            call t_stampf(wall, usr, sys)
+            cycles2 = wall
 #else
             call system_clock(count=cycles2)
 #endif

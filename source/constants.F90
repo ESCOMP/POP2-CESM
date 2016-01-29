@@ -104,6 +104,13 @@
    character (5), parameter, public :: &
       blank_fmt = "(' ')"
 
+  !---------------------------------------------------------------------
+  !     Gas exchange/piston velocity parameter
+  !---------------------------------------------------------------------
+
+  real (r8), parameter, public :: &
+       xkw_coeff = 8.6e-9_r8 ! in s/cm, from a = 0.31 cm/hr s^2/m^2 in Wannikhof 1992
+
 !  !PUBLIC DATA MEMBERS:
 
    character (char_len), public ::  &

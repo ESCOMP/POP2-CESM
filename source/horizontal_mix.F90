@@ -32,6 +32,7 @@
    use hmix_del2, only: init_del2u, init_del2t, hdiffu_del2, hdifft_del2
    use hmix_del4, only: init_del4u, init_del4t, hdiffu_del4, hdifft_del4
    use hmix_gm, only: init_gm, hdifft_gm
+   use hmix_gm_aniso, only: init_gm_aniso, hdifft_gm_aniso
    use hmix_aniso, only: init_aniso, hdiffu_aniso
    use topostress, only: ltopostress
    use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now, &
@@ -67,7 +68,8 @@
       hmix_momentum_type_anis = 3,  &
       hmix_tracer_type_del2 = 1,    &
       hmix_tracer_type_del4 = 2,    &
-      hmix_tracer_type_gm   = 3
+      hmix_tracer_type_gm   = 3,    &
+      hmix_tracer_type_gm_aniso = 4
 
    integer (POP_i4) ::            &
       hmix_momentum_itype,          &! users choice for type of mixing
@@ -212,6 +214,10 @@
          hmix_tracer_itype = hmix_tracer_type_gm
          write(stdout,'(a35)') &
           'Gent-McWilliams tracer mixing used.'
+      case ('gman')   ! gmaniso
+         hmix_tracer_itype = hmix_tracer_type_gm_aniso
+         write(stdout,'(a35)') &
+          'Gent-McWilliams anisotropic tracer mixing used.'
       case default
          hmix_tracer_itype = -1000
       end select
@@ -306,9 +312,15 @@
                                   nblocks_clinic, distrb_clinic%nprocs)
 
    case(hmix_tracer_type_gm)
-      call init_meso_mixing(hmix_tracer_itype,hmix_tracer_type_gm)
+      call init_meso_mixing(hmix_tracer_itype,hmix_tracer_type_gm,hmix_tracer_type_gm_aniso)
       call init_gm  ! variables used by GM parameterization
       call get_timer(timer_hdifft,'HMIX_TRACER_GM', &
+                                  nblocks_clinic, distrb_clinic%nprocs)
+
+   case(hmix_tracer_type_gm_aniso)
+      call init_meso_mixing(hmix_tracer_itype,hmix_tracer_type_gm,hmix_tracer_type_gm_aniso)
+      call init_gm_aniso  ! variables used by GM aniso parameterization
+      call get_timer(timer_hdifft,'HMIX_TRACER_GM_ANISO', &
                                   nblocks_clinic, distrb_clinic%nprocs)
 
 
@@ -324,8 +336,9 @@
         call get_timer(timer_submeso,'SUBMESO', &
                                   nblocks_clinic, distrb_clinic%nprocs)
    	call init_submeso
-   	if ( .not. hmix_tracer_itype == hmix_tracer_type_gm ) then
-     	 call init_meso_mixing(hmix_tracer_itype,hmix_tracer_type_gm)
+        if ( .not. (hmix_tracer_itype == hmix_tracer_type_gm) .and. &
+             .not. (hmix_tracer_itype == hmix_tracer_type_gm_aniso)) then
+     	 call init_meso_mixing(hmix_tracer_itype,hmix_tracer_type_gm,hmix_tracer_type_gm_aniso)
 	endif
    endif
 
@@ -539,6 +552,12 @@
       endif
       call hdifft_gm(k, HDTK, TMIX, UMIX, VMIX, tavg_HDIFE_TRACER, &
                      tavg_HDIFN_TRACER, tavg_HDIFB_TRACER, this_block)
+   case (hmix_tracer_type_gm_aniso)
+      if (k == 1) then
+	call tracer_diffs_and_isopyc_slopes(TMIX, this_block)
+      endif
+      call hdifft_gm_aniso(k, HDTK, TMIX, UMIX, VMIX, tavg_HDIFE_TRACER, &
+                     tavg_HDIFN_TRACER, tavg_HDIFB_TRACER, this_block)
    end select
    
    call timer_stop(timer_hdifft, block_id=bid)
@@ -546,7 +565,8 @@
 	
    if ( lsubmesoscale_mixing ) then
        call timer_start(timer_submeso, block_id=this_block%local_id)
-        if (.not. hmix_tracer_itype == hmix_tracer_type_gm) then
+        if ((.not. hmix_tracer_itype == hmix_tracer_type_gm) .and. &
+            (.not. hmix_tracer_itype == hmix_tracer_type_gm_aniso)) then
 	 if (k == 1) then
 	  call tracer_diffs_and_isopyc_slopes(TMIX, this_block)
 	 endif
@@ -625,7 +645,8 @@
 
 !-----------------------------------------------------------------------
 
-   if (hmix_tracer_itype /= hmix_tracer_type_gm) return
+   if (hmix_tracer_itype /= hmix_tracer_type_gm .and. &
+       hmix_tracer_itype /= hmix_tracer_type_gm_aniso) return
 
    do n = 1,nt
       if (accumulate_tavg_now(tavg_HDIFB_TRACER(n))) then

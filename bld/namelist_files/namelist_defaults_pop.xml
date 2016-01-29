@@ -58,6 +58,9 @@
 
 <fit_freq>1</fit_freq> 
 
+<robert_alpha> 0.53 </robert_alpha>
+<robert_nu>    0.20 </robert_nu>
+
 <!---------------------------->
 <!-- grid_nml -->
 <!---------------------------->
@@ -279,7 +282,6 @@
 <lcvmix>.false.</lcvmix>
 <lcvmix ocn_onedim="TRUE">.true.</lcvmix>
 <linertial>.false.</linertial>
-<llangmuir>.false.</llangmuir>
 <Prandtl>10.0</Prandtl>
 <lrich>.true.</lrich>
 <ldbl_diff>.true.</ldbl_diff>
@@ -288,6 +290,9 @@
 <larctic_bckgrnd_vdc>.false.</larctic_bckgrnd_vdc>
 <num_v_smooth_Ri>1</num_v_smooth_Ri>
 <bckgrnd_vdc_linv>4.5e-05</bckgrnd_vdc_linv>
+<!--QL, 150526, langmuir mixing parameterization option-->
+<langmuir_opt>'null'</langmuir_opt>
+
 <lhoriz_varying_bckgrnd ocn_grid="gx3v7"  >.true.</lhoriz_varying_bckgrnd>
 <lhoriz_varying_bckgrnd ocn_grid="gx3v7"  ocn_onedim="TRUE">.false.</lhoriz_varying_bckgrnd>
 <lhoriz_varying_bckgrnd ocn_grid="gx1v6"  >.true.</lhoriz_varying_bckgrnd>
@@ -370,6 +375,36 @@
 <lsubmesoscale_mixing ocn_grid="tx1v1"  >.false.</lsubmesoscale_mixing>
 <lsubmesoscale_mixing ocn_grid="tx0.1v2">.false.</lsubmesoscale_mixing>
 
+
+<!---------------------------->
+<!-- hmix_gm_aniso_nml      -->
+<!---------------------------->
+
+<isoonly                                       >.false.</isoonly>
+
+<kdir_type_choice                              >shear</kdir_type_choice>
+<kdir_type_choice isoonly="TRUE"               >flow</kdir_type_choice>
+
+<krat_type_choice                              >shear</krat_type_choice>
+<krat_type_choice isoonly="TRUE"               >simple</krat_type_choice>
+
+<kmin_type_choice                              >simple</kmin_type_choice>
+
+<savenewtavgs     isoonly="TRUE"               >.false.</savenewtavgs>
+<addrandfluc                                   >.false.</addrandfluc>
+<cflmajoronly                                  >.true.</cflmajoronly>
+<cflmult                                       >0.175</cflmult>
+<erat_const                                    >5.0</erat_const>
+<erat_const isoonly="TRUE"                     >1.0</erat_const>
+<erat_factor                                   >0.0</erat_factor>
+<erat_factor kmin_type_choice="simple"         >0.0</erat_factor>
+<isominoronly                                  >.true.</isominoronly>
+<minorfactor                                   >1.0</minorfactor>
+<savenewtavgs                                  >.true.</savenewtavgs>
+<shrdispfac                                    >0.05066</shrdispfac>
+<simpsubcells                                  >.false.</simpsubcells>
+<vertdiffhere                                  >.false.</vertdiffhere>
+
 <!---------------------------->
 <!-- hmix_gm_nml -->
 <!---------------------------->
@@ -397,22 +432,30 @@
 <ah_bolus                    kappa_isop_choice="edgr"     kappa_thic_choice="edgr"    >1.0</ah_bolus>  
 <ah_bolus ocn_grid="gx3v7"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.87e7</ah_bolus>  
 <ah_bolus ocn_grid="gx3v7"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >4.0e7</ah_bolus>  
+<ah_bolus ocn_grid="gx3v7"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >4.0e7</ah_bolus>  
 <ah_bolus ocn_grid="gx1v6"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah_bolus>  
+<ah_bolus ocn_grid="gx1v6"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah_bolus>  
 <ah_bolus ocn_grid="gx1v6"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah_bolus>  
 <ah_bolus ocn_grid="tx1v1"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah_bolus>  
 <ah_bolus ocn_grid="tx1v1"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah_bolus>  
+<ah_bolus ocn_grid="tx1v1"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah_bolus>  
 <ah_bolus ocn_grid="tx0.1v2" kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah_bolus>  
 <ah_bolus ocn_grid="tx0.1v2" kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah_bolus>  
+<ah_bolus ocn_grid="tx0.1v2" kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah_bolus>  
 
 <ah_bkg_srfbl                    kappa_isop_choice="edgr"     kappa_thic_choice="edgr"    >1.0</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="gx3v7"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.87e7</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="gx3v7"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >4.0e7</ah_bkg_srfbl>  
+<ah_bkg_srfbl ocn_grid="gx3v7"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >4.0e7</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="gx1v6"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="gx1v6"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah_bkg_srfbl>  
+<ah_bkg_srfbl ocn_grid="gx1v6"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="tx1v1"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="tx1v1"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah_bkg_srfbl>  
+<ah_bkg_srfbl ocn_grid="tx1v1"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="tx0.1v2" kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah_bkg_srfbl>  
 <ah_bkg_srfbl ocn_grid="tx0.1v2" kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah_bkg_srfbl>  
+<ah_bkg_srfbl ocn_grid="tx0.1v2" kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah_bkg_srfbl>  
 
 <kappa_freq_choice>once_a_day</kappa_freq_choice>
 <slope_control_choice>notanh</slope_control_choice>
@@ -843,6 +886,22 @@
 <niw_energy_file_fmt>'bin'</niw_energy_file_fmt>
 
 <!---------------------------->
+<!-- Group: mcog_nml        -->
+<!---------------------------->
+
+<lmcog>.false.</lmcog>
+<lmcog use_ecosys="TRUE">.true.</lmcog>
+
+<lmcog_debug>.false.</lmcog_debug>
+<mcog_dagg_qsw_abort_thres>1.0e-10</mcog_dagg_qsw_abort_thres>
+
+<!---------------------------->
+<!-- se_nml                 -->
+<!---------------------------->
+
+<lchange_ans>.false.</lchange_ans>
+
+<!---------------------------->
 <!-- passive_tracers_on_nml -->
 <!---------------------------->
 
@@ -1060,8 +1119,6 @@
 
 <surf_avg_alk_const>2225.0</surf_avg_alk_const>          
 
-<ecosys_qsw_distrb_const>.false.</ecosys_qsw_distrb_const>     
-
 <iron_dust_flx_data_type>monthly</iron_dust_flx_data_type>     
 
 <dust_flux_input%file_fmt>nc</dust_flux_input%file_fmt>    
@@ -1173,6 +1230,8 @@
 
 <lecovars_full_depth_tavg>.false.</lecovars_full_depth_tavg>    
 
+<lecosys_debug>.false.</lecosys_debug>
+
 <tracer_init_ext(1)%scale_factor&ecosys_nml ocn_grid="gx3v7">1.025</tracer_init_ext(1)%scale_factor&ecosys_nml>
 <tracer_init_ext(1)%scale_factor&ecosys_nml ocn_grid="gx1v6">1.025</tracer_init_ext(1)%scale_factor&ecosys_nml> 
  
@@ -1226,6 +1285,11 @@
 <ndep_shr_stream_file ocn_grid="gx1v6">ocn/pop/gx1v6/forcing/ndep_ocn_1850-2005_gx1v6_c100612.nc</ndep_shr_stream_file> 
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp4.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp45_gx1v6_c100816.nc</ndep_shr_stream_file> 
 <ndep_shr_stream_file ocn_grid="gx1v6" ocn_transient="rcp8.5">ocn/pop/gx1v6/forcing/ndep_ocn_rcp85_gx1v6_c100816.nc</ndep_shr_stream_file> 
+
+<caco3_bury_thres_opt>omega_calc</caco3_bury_thres_opt>
+<caco3_bury_thres_depth>3300.0e2</caco3_bury_thres_depth>
+
+<pon_bury_coeff>0.5</pon_bury_coeff>
 
 <!---------------------------->
 <!--    ecosys_parms_nml    -->
@@ -1337,6 +1401,7 @@
 
 <lmarginal_seas>.true.</lmarginal_seas>
 <ecosys_tadvect_ctype>base_model</ecosys_tadvect_ctype>
+<ecosys_qsw_distrb_const>.false.</ecosys_qsw_distrb_const>     
 
 <!---------------------------->
 <!--moby_nml -->
@@ -1474,12 +1539,16 @@
 <ah&hmix_gm_nml                    kappa_isop_choice="edgr"     kappa_thic_choice="edgr"    >1.0</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="gx3v7"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.8e7</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="gx3v7"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >4.0e7</ah&hmix_gm_nml>  
+<ah&hmix_gm_nml ocn_grid="gx3v7"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >4.0e7</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="gx1v6"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="gx1v6"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah&hmix_gm_nml>  
+<ah&hmix_gm_nml ocn_grid="gx1v6"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="tx1v1"   kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="tx1v1"   kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah&hmix_gm_nml>  
+<ah&hmix_gm_nml ocn_grid="tx1v1"   kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="tx0.1v2" kappa_isop_choice="constant" kappa_thic_choice="constant">0.6e7</ah&hmix_gm_nml>  
 <ah&hmix_gm_nml ocn_grid="tx0.1v2" kappa_isop_choice="bfre"     kappa_thic_choice="bfre"    >3.0e7</ah&hmix_gm_nml>  
+<ah&hmix_gm_nml ocn_grid="tx0.1v2" kappa_isop_choice="steer"    kappa_thic_choice="steer"   >3.0e7</ah&hmix_gm_nml>  
 
 <rich_mix&vmix_rich_nml>50.0</rich_mix&vmix_rich_nml>
 

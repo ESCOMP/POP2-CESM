@@ -34,7 +34,7 @@ module ecosys_restore_mod
    contains
      procedure, public :: init
      procedure, public :: read_restoring_fields
-     procedure, public :: restore_variable
+     procedure, public :: restore_tracers
      procedure, public :: define_tavg_fields
      procedure, public :: accumulate_tavg
      procedure, public :: initialize_restoring_timescale
@@ -140,6 +140,7 @@ subroutine read_namelist(this, nml_filename, nml_in, &
   spatial_variability_from_file = .false.
 
   if (my_task == master_task) then
+     ! FIXME(bja, 2015-07) convert to reading from the nml buffer!
      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
      if (nml_error /= 0) then
         nml_error = -1
@@ -400,8 +401,8 @@ end subroutine read_restoring_fields
 
 !*****************************************************************************
 
-subroutine restore_variable(this, tracer_index, vert_level, block_id, local_data, &
-     restore_data)
+subroutine restore_tracers(this, tracer_cnt, vert_level, x_index, y_index, &
+     block_id, local_data, restore_data)
   !
   !  restore a variable if required
   !
@@ -416,39 +417,42 @@ subroutine restore_variable(this, tracer_index, vert_level, block_id, local_data
   !  input variables
   !-----------------------------------------------------------------------
   class(ecosys_restore_type) :: this
-  integer(int_kind), intent(in) :: tracer_index
+  integer(int_kind), intent(in) :: tracer_cnt
   integer(int_kind), intent(in) :: vert_level
-  integer (int_kind), intent(in) :: block_id
-  real(r8), dimension(nx_block, ny_block), intent(in) :: local_data
-  real(r8), dimension(nx_block, ny_block), intent(out) :: restore_data
+  integer(int_kind), intent(in) :: x_index
+  integer(int_kind), intent(in) :: y_index
+  integer(int_kind), intent(in) :: block_id
+  real(r8), intent(in) :: local_data(tracer_cnt)
+  real(r8), intent(out) :: restore_data(tracer_cnt)
   !-----------------------------------------------------------------------
   !  local variables
   !-----------------------------------------------------------------------
-
+  integer(int_kind) :: n
   !-----------------------------------------------------------------------
 
   associate( &
-       tracer => this%tracers(tracer_index), &
+       tracer => this%tracers(:), &
        rtau => this%timescale_file%restore_rtau, &
        restore_max_level => this%timescale_file%restore_max_level, &
        inv_restoring_time_scale => this%timescale_interp%inv_restoring_time_scale &
        )
-
-    if (tracer%restore) then
-       if (this%spatial_variability_from_file) then
-          restore_data = rtau(:, :, block_id) * &
-               merge((tracer%data(:, :, vert_level, block_id) - local_data), &
-               c0, vert_level <= restore_max_level(:, :, block_id))
+    do n=1,tracer_cnt
+       if (tracer(n)%restore) then
+          if (this%spatial_variability_from_file) then
+             restore_data(n) = rtau(x_index, y_index, block_id) * &
+                  merge((tracer(n)%data(x_index, y_index, vert_level, block_id) - local_data(n)), &
+                  c0, vert_level <= restore_max_level(x_index, y_index, block_id))
+          else
+             restore_data(n) = (tracer(n)%data(x_index, y_index, vert_level, block_id) - local_data(n)) * &
+                  inv_restoring_time_scale(vert_level)
+          endif
        else
-          restore_data = (tracer%data(:, :, vert_level, block_id) - local_data) * inv_restoring_time_scale(vert_level)
+          restore_data(n) = c0
        endif
-    else
-       restore_data = c0
-    endif
-
+    enddo
   end associate
 
-end subroutine restore_variable
+end subroutine restore_tracers
 
 !*****************************************************************************
 

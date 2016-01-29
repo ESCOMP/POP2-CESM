@@ -1,5 +1,665 @@
-SVN $Id$
-SVN $URL$
+===============================================================================
+Tag Creator: jet
+Developers:  mlevy
+Tag Date:    23 Nov 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151123
+Tag Summary: 2 bug-fixes and a new PE layout for yellowstone
+
+1) Better balance for GECO compset and T62_g16 resolution on yellowstone
+2) Steering update wasn't compiling on mira due to a missing kind number on a
+   real variable -- calling max(var, -20.) instead of max(var, -20._r8)
+3) MCOG update wasn't compiling with gfortran because of a formatting error in
+   a print statement -- needed '1x' instead of 'x' to print whitespace.
+
+Testing: All test and comparisons to baseline pass with the exception
+           Run time failures (expected- see 9/11/2015 log entry):
+           RUN ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14
+           RUN ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14
+
+M       cime_config/config_pes.xml
+M       source/hmix_gm.F90
+M       source/mcog.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    18 Nov 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151118
+Tag Summary: 3 minor (and bit-for-bit) updates
+
+1) update svn metadata on 3 files (status "R" below) to include information
+   from ecosys_cesm2_dev branch
+2) Update default PE layout for G compset on yellowstone to better balance
+   CICE and POP (and to account for using 15 cores / node rather than 16 plus
+   turn on hyperthreading). Note that we need to come up with a better layout
+   for GECO as well, that is not balanced at all
+3) Add SMS.T62_g16.G test to the aux_pop test suite to catch future changes to
+   the pe-layout -- the update from 1023 did not change answers in the test
+   suite and it should have.
+
+Testing:
+
+aux_pop: (yellowstone, baseline comparison to baseline from 20151117 tag)
+   tests pass with following exceptions
+     * debug tests with ciso abort, as expected
+     * new SMS.T62_g16.G case gives BFAIL because there is no baseline for
+       comparison
+
+M       cime_config/config_pes.xml
+M       cime_config/testdefs/testlist_pop.xml
+R  +    cime_config/testdefs/testmods_dirs/pop/ecosys/user_nl_pop
+R  +    input_templates/ocn.mcog.tavg.csh
+R  +    source/mcog.F90
+===============================================================================
+Tag Creator: klindsay
+Developers:  K. Lindsay, B. Briegleb (MCOG), N. Norton (MCOG), M. Levy (lecosys_debug)
+Tag Date:    17 Nov 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151117
+Tag Summary: merge ecosys_cesm2_dev_n15_cesm_pop_2_1_20151116 to trunk
+
+changes ecosystem answers
+
+introduce caco3_bury_thres_opt, default=omega_calc
+introduce PON_bury_coeff, default=0.5
+introduce MCOG infrastructure, receive per column shortwave from driver
+incorporate MCOG infrastructure into ecosys/marbl
+couple MCOG forcings to ecosys/marbl (default on)
+add lecosys_debug option, include all ecosys tavg output in test runs
+
+Testing:
+aux_pop with new ecosys mods disabled: (yellowstone, baseline comparison to cesm_pop_2_1_20151116)
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+      all nlcomp tests fail because of new mcog namelist and lecosys_debug
+         changes ecosys tavg related tavg output
+      baseline comparisons in CECO and GECO compsets fail because of
+         roundoff level changes in ecosys
+
+aux_pop with new ecosys mods enabled: (yellowstone, baseline comparison to above aux_pop)
+   tests pass with following exceptions
+      debug tests with ciso abort, as expected
+      CECO and GECO nlcomp tests fail because of namelist variable changes
+      baseline comparisons in CECO and GECO compsets fail because of changed answers
+
+M       source/initial.F90
+M       source/marbl_interface_types.F90
+M       source/forcing.F90
+M       source/passive_tracers.F90
+M       source/forcing_coupled.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_driver.F90
+A       source/mcog.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+A       cime_config/testdefs/testmods_dirs/pop/ecosys/user_nl_pop
+D       cime_config/testdefs/testmods_dirs/pop/ecosys/shell_commands
+M       cime_config/testdefs/testmods_dirs/pop/ciso/include_user_mods
+M       ChangeLog
+A       input_templates/ocn.mcog.tavg.csh
+M       input_templates/ocn.ecosys.tavg.csh
+M       drivers/cpl/ocn_import_export.F90
+M       drivers/cpl/POP_CplIndices.F90
+
+===============================================================================
+Tag Creator: jet
+Developers:  K. Lindsay, B. Sacks, J. Edwards
+Tag Date:    16 Nov 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151116
+Tag Summary: Allow negative ice runnoff to Pop needed for landice
+	     Fix memory corruption issue in overflows.F90
+	     Timing mods to fix the intermittent timer errors. Adapted
+	     from cice mods for same error.
+
+Testing: Ran aux_pop on yellowstone.  This parameterization is off by default and is bfb 
+	 with baseline with the exception of the following expected failures which have
+	 been in the baseline for awhile now.
+
+	  ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+          ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+
+Files Modified/Added/Removed:
+M       overflows.F90
+M       timers.F90
+M       ocn_import_export.F90
+M       ChangeLog
+===============================================================================
+===============================================================================
+Tag Creator: jet
+Developers:  Gokhan, Matt Long, John Marshall, jet 
+Tag Date:    24 Oct 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151024
+Tag Summary: Add POP Implementation of Mesoscale eddy diffusivity (steering param) based on mixing theory
+	     New namelist options which enable the new parameterization:
+	     kappa_thic = 'steer'
+	     kappa_isop = 'steer'
+
+Testing: Ran aux_pop on yellowstone.  This parameterization is off by default and is bfb 
+	 with baseline with the exception of the following expected failures which have
+	 been in the baseline for awhile now.
+
+	  ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+          ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+
+Files Modified/Added/Removed:
+M       source/hmix_gm.F90
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       ChangeLog
+===============================================================================
+Tag Creator: jet
+Developers:  Scott Reckinger, Baylor Fox-Kemper, mvertens, jet
+Tag Date:    23 Oct 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151023
+Tag Summary: The is an update to the GM Aniso module added by Mariana.
+             It adds shear dispersion as well as a new hm_gmix_aniso_nml
+	     namelist which allows tuning the parameterization.
+
+Testing: Ran aux_pop.  Because of the new aniso namelist the nlcomp comparison tests
+	 failed against the baseline.  All of these were expected.  All bfb tests
+	 passed.
+	
+	  ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+          ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+
+
+Files Modified/Added/Removed:
+M       source/hmix_gm_aniso.F90
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_pes.xml
+	
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    20 Oct 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151020
+Tag Summary: Bug-fix; when bringing in MARBL for 20150831, I accidentally
+             reverted ecosys_mod to its 20150421 state - this dropped updates
+             from two tags: 20150701 and 20150717. This tag puts those changes
+             back in.
+
+             Also, at some point I accidentally commited a BranchChangeLog file
+
+Testing: Ran using shr_stream for ndep, ensured bit-for-bit.
+
+Files Modified/Added/Removed:
+D       BranchChangeLog
+M       source/ecosys_mod.F90
+
+===============================================================================
+Tag Creator: jet
+Developers:  njn01
+Tag Date:    15 Oct 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151015
+Tag Summary: Bring Robert filter mods to the trunk.  Since auto-dt time option
+	 and matsuno mixing option never worked correctly they were removed.
+
+Testing: 
+         Ran aux_pop tests with 20151007 tag. Although Robert filtering 
+	 is disabled, it also required mods to the overflow parameterization 
+	 which are enabled and are answer-changing. Instead of running aux_pop 
+	 compared to a baseline, I ran a 10 year branch of Dave Bailey's latest 
+	 control with the overflow changes and ran the ocean diagnostics
+	 against the last 10 years of Dave's control. 
+  	 http://webext.cgd.ucar.edu/GIAF/g.e15.GIAF.T62_g16.newoverflow.002/ocn/g.e15.GIAF.T62_g16.newoverflow.002-g.e15.GIAF.T62_g16.001_yrs_50_59/
+	 The 10 year comparison showed very minimal changes and was OK'd by Gokhan.
+
+         aux_pop testing passed except the following tests:
+          ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+          ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+
+Files Modified/Added/Removed:
+
+	M       source/overflows.F90
+	M       source/time_management.F90
+	M       source/step_mod.F90
+	M       source/budget_diagnostics.F90
+	M       source/forcing_coupled.F90
+	M       bld/build-namelist
+	M       bld/namelist_files/namelist_defaults_pop.xml
+	M       bld/namelist_files/namelist_definition_pop.xml
+	M       ChangeLog
+	
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    7 Oct 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151007
+Tag Summary: Bug-fixes - SMS_D GECO test now passes and code compiles on mira
+
+Testing: 
+         Ran aux_pop tests with 20151004 tag, created temporary baseline (the
+         20150929 baseline was made with an answer-changing bug fix in CIME
+         that has since been removed, so couldn't use old baseline and the
+         cime change is going in soon so no need to keep new baseline).
+         Everything was bfb except the following tests:
+          SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys (test now runs, failed in baseline)
+          ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+          ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+
+Files Modified/Added/Removed:
+
+M       source/ecosys_driver.F90
+M       source/passive_tracers.F90
+M       source/vmix_kpp.F90
+===============================================================================
+Tag Creator: mvertens
+Developers:  tcraig/reckinger
+Tag Date:    4 Oct 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20151004
+Tag Summary: Incorporation of anisotropic gm option
+
+Testing: 
+         Ran aux-pop pre-intel tests on yellowstone and compared to baseline
+         cesm_pop_2_1_20150929; Everything was bfb except the following tests
+         which had run time failures:
+          SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys (this failure is the same as the cesm_pop_2_1_20150923 tag)
+          ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+          ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+         Note that the wave tests listed in cesm_pop_2_1_20150929 have not been
+         incorporated yet. They will be incorporated once new features are added
+         to actually turn on wave coupling in pop
+
+Files Modified/Added/Removed:
+
+M       source/hmix_gm_submeso_share.F90
+M       source/mix_submeso.F90
+M       source/horizontal_mix.F90
+A  +    source/hmix_gm_aniso.F90
+M       source/tavg.F90
+M       bld/namelist_files/namelist_definition_pop.xml
+
+===============================================================================
+Tag Creator: mvertens
+Developers:  tcraig/qing
+Tag Date:    29 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150929
+Tag Summary: Incorporation of wave watch compatibility
+
+Testing: (ran in conjunction with tcraig/wave branch from https://github.com/mvertens/cime.git)
+         1) Ran aux_pop pre-intel tests and compared then to aux_pop_120916a
+           test failures:
+             none
+           baseline failures: 
+             none (other than in cpl.hi for one field o2x_So_bldepth)
+           run time failures:
+             SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys (this failure is the same as the cesm_pop_2_1_20150923 tag)
+             ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+             ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14 (expected)
+
+         2) Ran following new wave tests (these have not been incorporated into
+            the pop test suite yet)
+           compile time failures:
+             SMS_E.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
+             SMS_E.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default
+           test failures (none) - the following ran successfully
+             ERS.f19_g16_r05_ww3.B_WAV.yellowstone_intel.allactive-default 
+             ERS.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default 
+             ERS.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default 
+             NCK.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
+             NCK.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default 
+             SMS_D.f19_g16_rx1_ww3.C_DWAV.yellowstone_intel.pop-default
+             SMS_D.f19_g16_rx1_ww3.C_WAV.yellowstone_intel.pop-default
+           run time failures:
+             SMS_D.f19_g16_r05_ww3.B_WAV.yellowstone_intel.allactive-default
+
+         3) Ran pre-alpha intel test suite on yellowstone - and all tests were
+            bfb with cesm1_5_alpha07d
+
+Files Modified/Added/Removed:
+
+M       source/diagnostics.F90
+M       source/vmix_kpp.F90
+M       source/forcing_coupled.F90
+M       source/forcing_fields.F90  
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       cime_config/config_compsets.xml
+M       cime_config/config_pes.xml
+M       SVN_EXTERNAL_DIRECTORIES
+M       input_templates/gx1v6_tavg_contents
+M       input_templates/gx3v7_tavg_contents
+
+===============================================================================
+Tag Creator: mvertens
+Developers:  mvertens
+Tag Date:    23 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150923
+Tag Summary: Updates for compatibility with cime3.0.5 and later
+
+Testing: Ran aux_pop pre-intel tests and compared to aux_pop_120916a
+         All tests ran successfully other than the following:
+           Baseline failures (unexpected):
+             FAIL SMS_D.T62_g37.GECO.yellowstone_intel.pop-ecosys.cpl.hi.nc : baseline compare cpl.hi (baseline: compare .base file with aux_pop_120916a file) 
+
+           Run time failures (expected- see 9/11/2015 log entry):
+             RUN ERS_Ld5_D.T62_g37.GECO.yellowstone_intel.pop-ciso_abio_dic_dic14
+             RUN ERS_Ld5_D.T62_g37.CECO.yellowstone_intel.pop-ciso_abio_dic_dic14
+
+Files Modified/Added/Removed:
+
+M       source/POP_SolversMod.F90
+M       source/vmix_kpp.F90
+
+M       bld/configure
+D       bld/pop.buildlib
+D       bld/pop.buildnml
+M       bld/README.build-namelist
+D       bld/user_nl_pop
+M       bld/build-namelist
+M       bld/namelist_files/namelist_definition_pop.xml
+
+A  +    cime_config
+A  +    cime_config/config_compsets.xml
+A  +    cime_config/testdefs
+A  +    cime_config/testdefs/testmods_dirs
+A  +    cime_config/testdefs/testmods_dirs/pop
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ciso
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ciso/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/presaero
+A  +    cime_config/testdefs/testmods_dirs/pop/presaero/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/presaero/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/cice
+A  +    cime_config/testdefs/testmods_dirs/pop/cice/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/cice/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/cice/user_nl_cice
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_transient
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_transient/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_transient/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_transient
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_transient/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_transient/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/default
+A  +    cime_config/testdefs/testmods_dirs/pop/default/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/default/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_3steps
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_3steps/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_3steps/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ecosys
+A  +    cime_config/testdefs/testmods_dirs/pop/cice_ecosys/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_abio_dic_dic14
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso_abio_dic_dic14/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_presaero
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_presaero/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/abio_dic_dic14_presaero/shell_commands
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso/include_user_mods
+A  +    cime_config/testdefs/testmods_dirs/pop/ciso/shell_commands
+A  +    cime_config/testdefs/testlist_pop.xml
+A  +    cime_config/user_nl_pop
+A  +    cime_config/buildlib
+A  +    cime_config/buildnml
+A  +    cime_config/config_component.xml
+A  +    cime_config/config_pes.xml
+D       cimetest
+D       cimetest/testmods_dirs
+D       cimetest/testmods_dirs/pop
+D       cimetest/testmods_dirs/pop/cice_ciso
+D       cimetest/testmods_dirs/pop/cice_ciso/include_user_mods
+D       cimetest/testmods_dirs/pop/presaero
+D       cimetest/testmods_dirs/pop/presaero/include_user_mods
+D       cimetest/testmods_dirs/pop/presaero/shell_commands
+D       cimetest/testmods_dirs/pop/cice
+D       cimetest/testmods_dirs/pop/cice/include_user_mods
+D       cimetest/testmods_dirs/pop/cice/shell_commands
+D       cimetest/testmods_dirs/pop/cice/user_nl_cice
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_transient
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_transient/include_user_mods
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_transient/user_nl_pop
+D       cimetest/testmods_dirs/pop/ciso_transient
+D       cimetest/testmods_dirs/pop/ciso_transient/include_user_mods
+D       cimetest/testmods_dirs/pop/ciso_transient/user_nl_pop
+D       cimetest/testmods_dirs/pop/default
+D       cimetest/testmods_dirs/pop/default/user_nl_pop
+D       cimetest/testmods_dirs/pop/default/shell_commands
+D       cimetest/testmods_dirs/pop/ecosys
+D       cimetest/testmods_dirs/pop/ecosys/include_user_mods
+D       cimetest/testmods_dirs/pop/ecosys/shell_commands
+D       cimetest/testmods_dirs/pop/ecosys_3steps
+D       cimetest/testmods_dirs/pop/ecosys_3steps/user_nl_pop
+D       cimetest/testmods_dirs/pop/ecosys_3steps/shell_commands
+D       cimetest/testmods_dirs/pop/ecosys_restore_gx3v7
+D       cimetest/testmods_dirs/pop/ecosys_restore_gx3v7/include_user_mods
+D       cimetest/testmods_dirs/pop/ecosys_restore_gx3v7/user_nl_pop
+D       cimetest/testmods_dirs/pop/cice_ecosys
+D       cimetest/testmods_dirs/pop/cice_ecosys/include_user_mods
+D       cimetest/testmods_dirs/pop/ciso_abio_dic_dic14
+D       cimetest/testmods_dirs/pop/ciso_abio_dic_dic14/include_user_mods
+D       cimetest/testmods_dirs/pop/abio_dic_dic14
+D       cimetest/testmods_dirs/pop/abio_dic_dic14/include_user_mods
+D       cimetest/testmods_dirs/pop/abio_dic_dic14/shell_commands
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_presaero
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_presaero/include_user_mods
+D       cimetest/testmods_dirs/pop/abio_dic_dic14_presaero/shell_commands
+D       cimetest/testmods_dirs/pop/ciso
+D       cimetest/testmods_dirs/pop/ciso/include_user_mods
+D       cimetest/testmods_dirs/pop/ciso/shell_commands
+D       cimetest/testlist_pop.xml
+A       cimetest/testmods_dirs/pop/cice_ciso
+A       cimetest/testmods_dirs/pop/cice_ciso/include_user_mods
+
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150916a
+Tag Summary: New aux_pop_MARBL test list requires cice_ciso test mod dir
+
+Files Modified:
+A       cimetest/testmods_dirs/pop/cice_ciso
+A       cimetest/testmods_dirs/pop/cice_ciso/include_user_mods
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150916
+Tag Summary: * Refactor code to apply pressure correction in co2calc_column.F90
+             * Create new aux_pop_MARBL test list to reduce testing overhead
+               on MARBL-related branches
+
+Files Modified:
+M       cimetest/testlist_pop.xml
+M       source/co2calc_column.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  jwolfe
+Tag Date:    14 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150914
+Tag Summary: Vectorize comp_co3terms in co2calc_column for increased
+             performance
+
+Files Modified:
+M       source/co2calc_column.F90
+M       source/ecosys_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    11 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150911
+Tag Summary: performance mod for ecosys_driver_set_interior
+             * only call set_interior at active ocean cells
+               (not at ghost, halo, or land cells)
+             Note: this causes uninitialized memory errors in
+                   ecosys_ciso_set_interior, so all pop-ciso DEBUG tests fail.
+                   I've added some pop-ecosys DEBUG tests to make sure we
+                   don't introduce any other errors, and once we refactor the
+                   ciso module the original tests should pass again.
+
+Files Modified:
+M       cimetest/testlist_pop.xml
+M       source/ecosys_driver.F90
+D       source/ecosys_parms.F90
+D       source/ecosys_share.F90
+===============================================================================
+Tag Creator: klindsay
+Developers:  klindsay
+Tag Date:    10 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150910
+Tag Summary: tidy up ecosys subroutines that update from one k level to the next
+
+Make update from prior level subroutines only update fields that truly
+propagate from one level to the next. Ensure that sed_loss terms are
+always set in compute_particulate_terms.
+
+Files Modified:
+M       source/ecosys_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay, mlevy
+Tag Date:    1 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150901a
+Tag Summary: Fix CO3comp timer performance (start and stop are now both
+             outside the k-loop)
+
+Files Modified:
+M       source/ecosys_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  klindsay, mlevy
+Tag Date:    1 Sept 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150901
+Tag Summary: Fix CO3comp timer calls (start and stop inside a k-loop)
+
+Files Modified:
+M       source/ecosys_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  andre, klindsay, mclong, mlevy, mvertens
+Tag Date:    31 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150831
+Tag Summary: Merge MARBL development onto trunk (working towards
+             POP-independent biogeochemistry library)
+
+Files Modified:
+M       bld/build-namelist
+A       cimetest/testmods_dirs/pop/ecosys_3steps
+A       cimetest/testmods_dirs/pop/ecosys_3steps/shell_commands
+A       cimetest/testmods_dirs/pop/ecosys_3steps/user_nl_pop
+M       source/abio_dic_dic14_mod.F90
+M       source/co2calc.F90
+A       source/co2calc_column.F90
+M       source/constants.F90
+M       source/ecosys_ciso_mod.F90
+M       source/ecosys_constants.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_parms.F90
+M       source/ecosys_restore.F90
+M       source/ecosys_share.F90
+A       source/ecosys_tavg.F90
+A       source/marbl_interface.F90
+A       source/marbl_interface_constants.F90
+A       source/marbl_interface_types.F90
+A       source/marbl_kinds.F90
+A       source/marbl_oxygen.F90
+A       source/marbl_parms.F90
+A       source/marbl_share.F90
+M       source/passive_tracers.F90
+A       source/schmidt_number.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mmills, andre
+Tag Date:    16 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150816a
+Tag Summary: Two updates to build-namelist
+             (1) as pointed out in Bug 2181, logic to determine starting day
+                 for a run was missing digits needed for Oct, Nov, and Dec
+             (2) Starting with perl 5.18, the "given / when" construct
+                 spits out experimental warnings; Ben showed me how to
+                 suppress those.
+
+Files Modified:
+M       bld/build-namelist
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150816
+Tag Summary: Adding a 24-task decomposition for gx3v7 to close a 7 year old
+             bugzilla ticket (#730)
+
+Files Modified:
+M       bld/pop_decomp.xml
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150813b
+Tag Summary: Introduce a new module to help CSEG handle testing when answer-
+             changing branch tags are merged back to the trunk. There is now
+             a namelist variable named lchange_ans and we encourage developers
+             to use the following workflow:
+             * branch_000 should be bit-for-bit with trunk
+             * branch_001 should have code structured like
+                  if (lchange_ans) then
+                    call new_code
+                  else
+                    call old_code
+                  end if
+               Note that this makes branch_001 + lchange_ans=F bit-for-bit with
+               branch_000
+             * branch_002 should remove the lchange_ans if statement and use
+               only the new code. Note that branch_001 + lchange_ans=T should
+               be bit-for-bit with branch_002
+             * CSEG will make a trunk tag based on branch_001 first and ensure
+               it is bit-for-bit with lchange_ans=F
+             * CSEG will then follow up with a trunk tag based on branch_002
+               and ensure it is bit-for-bit with the previous trunk tag +
+               lchange_ans=T
+
+Files Modified:
+M       bld/build-namelist
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       bld/namelist_files/namelist_definition_pop.xml
+M       source/initial.F90
+A       source/software_eng_mod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  huyong
+Tag Date:    13 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150813a
+Tag Summary: Patch bug in barotropic solver that we worked around on May 20th.
+             Now the new solver should work on all decompositions, including
+             those with ghost cells => can be used with gx3v7 on yellowstone.
+             Will turn on by default for gx3v7 runs in an answer-changing tag.
+
+Files Modified:
+M       source/POP_SolversMod.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    13 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150813
+Tag Summary: Add interfaces to allow accumulate_tavg_field to be called with a
+             single column of data (keeps existing interfaces to accumulate a
+             level at a time as well); also, trimmed exit message in exit_POP()
+
+Files Modified:
+M       source/exit_mod.F90
+M       source/tavg.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    10 Aug 2015
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20150810
+Tag Summary: Increase size of char_len and POP_CharLength to account for
+             tests producing exceptionally long case names
+
+Files Modified:
+M       source/POP_KindsMod.F90
+M       source/kinds_mod.F90
 ===============================================================================
 Tag Creator: jedwards
 Developers:  jedwards

@@ -509,7 +509,7 @@
       !--- call POP_strdata_create(s_inputlist,depthflag=.true.)
  
       call get_timer(s_interior_shr_strdata_advance_timer, &
-                    's_interior_shr_strdata_advance',1, distrb_clinic%nprocs)
+                    'S_INTERIOR_SHR_STRDATA_ADVANCE',1, distrb_clinic%nprocs)
       if (my_task == master_task) then
          write(stdout,blank_fmt)
          write(stdout,'(a)') ' Interior S shr_stream option: '
