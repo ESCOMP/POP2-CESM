@@ -1,9 +1,55 @@
 ===============================================================================
+Tag Creator: jet
+Developers:  jet
+Tag Date:    01 Feb 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160201a
+Tag Summary: This tag recreates cesm_pop_2_1_20160114 since that tag was corrupted
+	     by the previous commit.  Copied below are the comments for cesm_pop_2_1_20160114
+	     which are relevant to this commit and the noncorrupted version of 
+	     cesm_pop_2_1_20160114
+
+             * Update CVMix version, arrange calls to be more in line with what
+               POP does without CVMix
+               -- Now using CVMix v0.71-beta
+               -- Running lchange_ans = .true. computes surface layer depth to
+                  be 10% of boundary layer (old code uses just the top layer)
+             * Add new test to testmod_dirs: running pop-cvmix will use CVMix
+               for computing KPP boundary layer depth & boundary layer
+               diffusivities. Also turned a G compset pop-default test into a
+               C compset pop-default test in aux_pop test list (it's an SMS
+               test and there is a corresponding pop-cvmix test as well in case
+               the test suite ever reaches the point of comparing across tests)
+
+Testing: aux_pop (compare to 20160112 trunk) was bit-for-bit before changing
+         the G.pop-default test to a C.pop-default test; generating new
+         baselines tp reflect changed test as well as the new CVMix test
+
+===============================================================================
+Tag Creator: jet
+Developers:  jet
+Tag Date:    01 Feb 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160201
+Tag Summary: This commit corrupted the previous tag cesm_pop_2_1_20160114. A new
+	     tag was created (cesm_pop_2_1_20160201a) that is a duplicate of the
+	     original cesm_pop_2_1_20160114 code.
+
+	     Unfortunately this tag modified 2 files of cesm_pop_2_1_20160114 
+
+             namelist_defaults_pop.xml had a one line change setting 
+	     lchange_ans = .true.  (set to false originally in cesm_pop_2_1_20160114)
+
+	     Information for this tag went into the ChangeLog for cesm_pop_2_1_20160114
+
+	     I'm not sure how all this happened but this tag should be ignored.
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    14 Jan 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160114
 Tag Summary: merge cvmix_kpp_roundoff_n02_cesm_pop_2_1_20160112 to trunk
+
+             * !!!!NOTE!!!!  This tag has been corrupted and cesm_pop_2_1_20160201a 
+	       should be used instead if you need the original cesm_pop_2_1_20160114 code.
 
              * Update CVMix version, arrange calls to be more in line with what
                POP does without CVMix
