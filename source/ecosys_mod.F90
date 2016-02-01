@@ -193,12 +193,16 @@ module ecosys_mod
   use marbl_share_mod, only : zooplankton, zooplankton_cnt
   use marbl_share_mod, only : grazing, grazer_prey_cnt
   use marbl_share_mod, only : ecosys_ciso_ind_begin, ecosys_ciso_ind_end
+  use marbl_share_mod, only : marbl_forcing_ind
+  use marbl_share_mod, only : max_forcing_fields
 
   use marbl_interface_types, only : carbonate_type
   use marbl_interface_types, only : zooplankton_secondary_species_type
   use marbl_interface_types, only : autotroph_secondary_species_type
   use marbl_interface_types, only : dissolved_organic_matter_type
   use marbl_interface_types, only : marbl_tracer_read_type
+  use marbl_interface_types, only : marbl_forcing_fields_type
+  use marbl_interface_types, only : forcing_monthly_every_ts
 
   implicit none
   private
@@ -208,6 +212,7 @@ module ecosys_mod
   !-----------------------------------------------------------------------
 
   public  :: marbl_init_nml
+  public  :: marbl_sflux_forcing_fields_init
   public  :: marbl_init_tracer_metadata
   public  :: marbl_ecosys_set_interior
   public  :: marbl_set_sflux
@@ -323,6 +328,23 @@ module ecosys_mod
   !-----------------------------------------------------------------------
 
   logical (log_kind)  :: lecovars_full_depth_tavg ! should ecosystem vars be written full depth
+
+  type(forcing_monthly_every_ts), target :: dust_flux_loc
+  type(forcing_monthly_every_ts), target :: iron_flux_loc
+  type(forcing_monthly_every_ts), target :: fice_file_loc
+  type(forcing_monthly_every_ts), target :: xkw_file_loc
+  type(forcing_monthly_every_ts), target :: ap_file_loc
+  type(forcing_monthly_every_ts), target :: nox_flux_monthly_loc
+  type(forcing_monthly_every_ts), target :: nhy_flux_monthly_loc
+  type(forcing_monthly_every_ts), target :: din_riv_flux_loc
+  type(forcing_monthly_every_ts), target :: dip_riv_flux_loc
+  type(forcing_monthly_every_ts), target :: don_riv_flux_loc
+  type(forcing_monthly_every_ts), target :: dop_riv_flux_loc
+  type(forcing_monthly_every_ts), target :: dsi_riv_flux_loc
+  type(forcing_monthly_every_ts), target :: dfe_riv_flux_loc
+  type(forcing_monthly_every_ts), target :: dic_riv_flux_loc
+  type(forcing_monthly_every_ts), target :: alk_riv_flux_loc
+  type(forcing_monthly_every_ts), target :: doc_riv_flux_loc
 
   !*****************************************************************************
 
@@ -460,7 +482,6 @@ contains
     !-----------------------------------------------------------------------
     !  default namelist settings
     !-----------------------------------------------------------------------
-
     init_ecosys_option = 'unknown'
     init_ecosys_init_file = 'unknown'
     init_ecosys_init_file_fmt = 'bin'
@@ -661,22 +682,22 @@ contains
        call exit_POP(sigAbort, 'unknown gas_flux_forcing_opt')
     endif
 
-    fice_file%input        = gas_flux_fice
-    xkw_file%input         = gas_flux_ws
-    ap_file%input          = gas_flux_ap
-    dust_flux%input        = dust_flux_input
-    iron_flux%input        = iron_flux_input
-    nox_flux_monthly%input = nox_flux_monthly_input
-    nhy_flux_monthly%input = nhy_flux_monthly_input
-    din_riv_flux%input     = din_riv_flux_input
-    dip_riv_flux%input     = dip_riv_flux_input
-    don_riv_flux%input     = don_riv_flux_input
-    dop_riv_flux%input     = dop_riv_flux_input
-    dsi_riv_flux%input     = dsi_riv_flux_input
-    dfe_riv_flux%input     = dfe_riv_flux_input
-    dic_riv_flux%input     = dic_riv_flux_input
-    alk_riv_flux%input     = alk_riv_flux_input
-    doc_riv_flux%input     = doc_riv_flux_input
+    fice_file_loc%input        = gas_flux_fice
+    xkw_file_loc%input         = gas_flux_ws
+    ap_file_loc%input          = gas_flux_ap
+    dust_flux_loc%input        = dust_flux_input
+    iron_flux_loc%input        = iron_flux_input
+    nox_flux_monthly_loc%input = nox_flux_monthly_input
+    nhy_flux_monthly_loc%input = nhy_flux_monthly_input
+    din_riv_flux_loc%input     = din_riv_flux_input
+    dip_riv_flux_loc%input     = dip_riv_flux_input
+    don_riv_flux_loc%input     = don_riv_flux_input
+    dop_riv_flux_loc%input     = dop_riv_flux_input
+    dsi_riv_flux_loc%input     = dsi_riv_flux_input
+    dfe_riv_flux_loc%input     = dfe_riv_flux_input
+    dic_riv_flux_loc%input     = dic_riv_flux_input
+    alk_riv_flux_loc%input     = alk_riv_flux_input
+    doc_riv_flux_loc%input     = doc_riv_flux_input
 
     !-----------------------------------------------------------------------
     !  set variables immediately dependent on namelist variables
@@ -749,7 +770,273 @@ contains
     !    call marbl_params_print(stdout)
     ! end if
 
+    dust_flux        => dust_flux_loc
+    iron_flux        => iron_flux_loc
+    fice_file        => fice_file_loc
+    xkw_file         => xkw_file_loc
+    ap_file          => ap_file_loc
+    nox_flux_monthly => nox_flux_monthly_loc
+    nhy_flux_monthly => nhy_flux_monthly_loc
+    din_riv_flux     => din_riv_flux_loc
+    dip_riv_flux     => dip_riv_flux_loc
+    don_riv_flux     => don_riv_flux_loc
+    dop_riv_flux     => dop_riv_flux_loc
+    dsi_riv_flux     => dsi_riv_flux_loc
+    dfe_riv_flux     => dfe_riv_flux_loc
+    dic_riv_flux     => dic_riv_flux_loc
+    alk_riv_flux     => alk_riv_flux_loc
+    doc_riv_flux     => doc_riv_flux_loc
+
   end subroutine marbl_init_nml
+
+  !*****************************************************************************
+
+  subroutine marbl_sflux_forcing_fields_init(num_elements, marbl_forcing_fields)
+
+    ! !DESCRIPTION:
+    !  Initialize the sflux forcing_fields datatype with information from the
+    !  namelist read
+    !
+    use marbl_share_mod, only : gas_flux_forcing_iopt_drv
+    use marbl_share_mod, only : gas_flux_forcing_iopt_file
+    use marbl_share_mod, only : gas_flux_forcing_iopt
+    use marbl_share_mod, only : gas_flux_forcing_file
+    use marbl_share_mod, only : atm_alt_co2_const
+
+    use marbl_share_mod, only : dust_flux
+    use marbl_share_mod, only : iron_flux
+    use marbl_share_mod, only : fice_file
+    use marbl_share_mod, only : xkw_file
+    use marbl_share_mod, only : ap_file
+    use marbl_share_mod, only : nox_flux_monthly
+    use marbl_share_mod, only : nhy_flux_monthly
+    use marbl_share_mod, only : din_riv_flux
+    use marbl_share_mod, only : dip_riv_flux
+    use marbl_share_mod, only : don_riv_flux
+    use marbl_share_mod, only : dop_riv_flux
+    use marbl_share_mod, only : dsi_riv_flux
+    use marbl_share_mod, only : dfe_riv_flux
+    use marbl_share_mod, only : dic_riv_flux
+    use marbl_share_mod, only : alk_riv_flux
+    use marbl_share_mod, only : doc_riv_flux
+
+    implicit none
+
+    ! !INPUT PARAMETERS:
+    integer (KIND=int_kind),         intent(in)   :: num_elements
+
+    ! !OUTPUT PARAMETERS:
+    type(marbl_forcing_fields_type), intent(out) :: marbl_forcing_fields
+
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+
+    character(*), parameter :: subname = 'ecosys_mod:marbl_sflux_forcing_fields_init'
+
+    character(char_len) :: fsource                  ! JW TODO
+    character(char_len) :: drivername               ! JW TODO
+    character(char_len) :: filename                 ! JW TODO
+    character(char_len) :: varname                  ! JW TODO
+    character(char_len) :: units                    ! JW TODO
+
+    real (KIND=r8)      :: constant
+
+    !-----------------------------------------------------------------------
+    !  load namelist output into forcing field type
+    !-----------------------------------------------------------------------
+
+     ! Allocate memory for surface forcing fields
+    call marbl_forcing_fields%construct(num_elements, max_forcing_fields)
+
+    fsource    = 'driver'
+    varname    = 'u10_sqr'
+    drivername = 'U10_SQR'
+    units      = 'unknown'
+    call marbl_forcing_fields%add_forcing_field(fsource, varname, units, marbl_driver_varname=drivername, &
+                                          id=marbl_forcing_ind%u10_sqr_id)
+
+    associate(                                   &
+         ind            => marbl_forcing_ind,    &
+         forcing_fields => marbl_forcing_fields  &
+         )
+
+    fsource    = 'driver'
+    varname    = 'ifrac'
+    drivername = 'IFRAC'
+    units      = 'dimensionless'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_driver_varname=drivername, &
+                                          id=ind%ifrac_id)
+
+    fsource    = 'driver'
+    varname    = 'sst'
+    drivername = 'SST'
+    units      = 'Temperature (C)'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_driver_varname=drivername, &
+                                          id=ind%sst_id)
+
+    fsource    = 'driver'
+    varname    = 'sss'
+    drivername = 'SSS'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_driver_varname=drivername, &
+                                          id=ind%sss_id)
+
+    fsource    = 'driver'
+    varname    = 'xco2'
+    drivername = 'XCO2'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_driver_varname=drivername, &
+                                          id=ind%xco2_id)
+
+    fsource    = 'constant'
+    varname    = 'xco2_alt_co2'
+    constant   = atm_alt_co2_const
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, field_constant=constant, &
+                                          id=ind%xco2_alt_co2_id)
+
+    fsource    = 'driver'
+    varname    = 'ph_prev'
+    drivername = 'PH_PREV'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_driver_varname=drivername, &
+                                          id=ind%ph_prev_id)
+
+    fsource    = 'driver'
+    varname    = 'ph_prev_alt_co2'
+    drivername = 'PH_PREV_ALT_CO2'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_driver_varname=drivername, &
+                                          id=ind%ph_prev_alt_co2_id)
+
+    if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
+
+       fsource    = 'driver'
+       varname    = 'fice'
+       drivername = 'FICE_USED'
+       units      = 'unknown'
+       call forcing_fields%add_forcing_field(fsource, varname, units, marbl_driver_varname=drivername, &
+                                             id=ind%fice_id)
+
+       fsource    = 'driver'
+       varname    = 'xkw'
+       drivername = 'XKW_ICE'
+       units      = 'unknown'
+       call forcing_fields%add_forcing_field(fsource, varname, units, marbl_driver_varname=drivername, &
+                                             id=ind%xkw_id)
+
+       fsource    = 'driver'
+       varname    = 'atm_pressure'
+       drivername = 'AP_FILE_INPUT'
+       units      = 'unknown'
+       call forcing_fields%add_forcing_field(fsource, varname, units, marbl_driver_varname=drivername, &
+                                             id=ind%atm_pressure_id)
+
+    elseif (gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
+
+       fsource    = 'POP monthly calendar'
+       varname    = 'fice'
+       units      = 'unknown'
+       call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=fice_file, &
+                                             id=ind%fice_id)
+
+       fsource    = 'POP monthly calendar'
+       varname    = 'xkw'
+       units      = 'unknown'
+       call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=xkw_file, &
+                                             id=ind%xkw_id)
+
+       fsource    = 'POP monthly calendar'
+       varname    = 'atm_pressure'
+       units      = 'unknown'
+       call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=ap_file, &
+                                             id=ind%atm_pressure_id)
+
+    endif 
+
+    fsource    = 'POP monthly calendar'
+    varname    = 'dust flux'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=dust_flux, &
+                                          id=ind%dust_flux_id)
+
+    fsource    = 'POP monthly calendar'
+    varname    = 'iron flux'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=iron_flux, &
+                                          id=ind%iron_flux_id)
+
+    fsource    = 'POP monthly calendar'
+    varname    = 'nox flux'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=nox_flux_monthly, &
+                                          id=ind%nox_flux_id)
+
+    fsource    = 'POP monthly calendar'
+    varname    = 'nhy flux'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=nhy_flux_monthly, &
+                                          id=ind%nhy_flux_id)
+
+    fsource    = 'POP monthly calendar'
+    varname    = 'din river flux'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=din_riv_flux, &
+                                          id=ind%din_riv_flux_id)
+
+    fsource    = 'POP monthly calendar'
+    varname    = 'dip river flux'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=dip_riv_flux, &
+                                          id=ind%dip_riv_flux_id)
+
+    fsource    = 'POP monthly calendar'
+    varname    = 'don river flux'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=don_riv_flux, &
+                                          id=ind%don_riv_flux_id)
+
+    fsource    = 'POP monthly calendar'
+    varname    = 'dop river flux'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=dop_riv_flux, &
+                                          id=ind%dop_riv_flux_id)
+
+
+    fsource    = 'POP monthly calendar'
+    varname    = 'dsi river flux'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=dsi_riv_flux, &
+                                          id=ind%dsi_riv_flux_id)
+
+    fsource    = 'POP monthly calendar'
+    varname    = 'dfe river flux'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=dfe_riv_flux, &
+                                          id=ind%dfe_riv_flux_id)
+
+    fsource    = 'POP monthly calendar'
+    varname    = 'dic river flux'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=dic_riv_flux, &
+                                          id=ind%dic_riv_flux_id)
+
+    fsource    = 'POP monthly calendar'
+    varname    = 'alk river flux'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=alk_riv_flux, &
+                                          id=ind%alk_riv_flux_id)
+
+    fsource    = 'POP monthly calendar'
+    varname    = 'doc river flux'
+    units      = 'unknown'
+    call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=doc_riv_flux, &
+                                          id=ind%doc_riv_flux_id)
+
+    end associate
+
+  end subroutine marbl_sflux_forcing_fields_init
 
   !*****************************************************************************
   
@@ -2103,8 +2390,6 @@ contains
        !  compute O2 flux
        !-----------------------------------------------------------------------
 
-       ! FIXME: JW could move the where land_mask ahead of this and assume mask in surface calls
-
        if (lflux_gas_o2) then
           schmidt_o2(:) = schmidt_o2_surf(num_elements, sst, land_mask)
 
@@ -2215,7 +2500,7 @@ contains
     !  calculate iron and dust fluxes if necessary
     !-----------------------------------------------------------------------
 
-    IRON_FLUX_IN_NEW(:) = IRON_FLUX_IN(:) * parm_Fe_bioavail
+    IRON_FLUX_IN_NEW(:) = IRON_FLUX_IN(:) * parm_Fe_bioavail  ! TODO: this gets moved up and out - a forcing field modify
 
     STF_MODULE(:, fe_ind) = STF_MODULE(:, fe_ind) + IRON_FLUX_IN_NEW(:)
 

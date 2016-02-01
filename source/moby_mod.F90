@@ -46,6 +46,9 @@
    use tavg
    use timers
    use passive_tracer_tools
+   use marbl_interface_types, only: forcing_monthly_every_ts
+! FIXME: relocate forcing_monthly_every_ts type to passive_tracer_tools once
+!        it's removed from MARBL
    use named_field_mod
    use forcing_tools
    use time_management

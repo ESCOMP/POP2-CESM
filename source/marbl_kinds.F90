@@ -5,7 +5,7 @@ module marbl_kinds_mod
   public
 
   integer, parameter, public ::                 &
-       char_len       = 256                    ,&
+       char_len       = 384                    ,&
        char_len_long  = 512                    ,&
        log_kind       = kind(.true.)           ,&
        int_kind       = kind(1)                ,&

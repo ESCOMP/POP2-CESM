@@ -24,7 +24,10 @@ module marbl_share_mod
   
   ! (FIXME, mvertens 2015-11, need to introduce marbl type) 
   use marbl_interface_types, only : marbl_tracer_read_type
-  use passive_tracer_tools , only : forcing_monthly_every_ts
+  use marbl_interface_types, only : forcing_monthly_every_ts
+! FIXME: use forcing_monthly_every_ts from passive_tracer_tools once this type
+!        is removed from MARBL
+!  use passive_tracer_tools , only : forcing_monthly_every_ts
 
   use ecosys_constants, only : ecosys_ciso_tracer_cnt
   use ecosys_constants, only : ecosys_tracer_cnt
@@ -44,6 +47,50 @@ module marbl_share_mod
 
   integer (int_kind) :: ecosys_ind_begin, ecosys_ind_end
   integer (int_kind) :: ecosys_ciso_ind_begin, ecosys_ciso_ind_end
+
+  !-----------------------------------------------------------------------
+  !  Largest possible size for number of forcing fields
+  !-----------------------------------------------------------------------
+
+  ! FIXME - the following should be counted and not be parameters
+  integer, public, parameter :: max_forcing_fields  = 40
+
+  !-----------------------------------------------------------------------
+  !  indices for forcing fields
+  !-----------------------------------------------------------------------
+
+  type, private :: marbl_forcing_indexing_type
+
+    integer(int_kind) :: land_mask_id
+    integer(int_kind) :: u10_sqr_id
+    integer(int_kind) :: ifrac_id
+    integer(int_kind) :: sst_id
+    integer(int_kind) :: sss_id
+    integer(int_kind) :: xco2_id
+    integer(int_kind) :: atm_pressure_id
+    integer(int_kind) :: xco2_alt_co2_id
+    integer(int_kind) :: xkw_id
+    integer(int_kind) :: fice_id
+    integer(int_kind) :: ph_prev_id
+    integer(int_kind) :: ph_prev_alt_co2_id
+    integer(int_kind) :: dust_flux_id
+    integer(int_kind) :: iron_flux_id
+    integer(int_kind) :: nox_flux_id
+    integer(int_kind) :: nhy_flux_id
+    integer(int_kind) :: no3_flux_id
+    integer(int_kind) :: nh4_flux_id
+    integer(int_kind) :: din_riv_flux_id
+    integer(int_kind) :: dip_riv_flux_id
+    integer(int_kind) :: don_riv_flux_id
+    integer(int_kind) :: dop_riv_flux_id
+    integer(int_kind) :: dsi_riv_flux_id
+    integer(int_kind) :: dfe_riv_flux_id
+    integer(int_kind) :: dic_riv_flux_id
+    integer(int_kind) :: alk_riv_flux_id
+    integer(int_kind) :: doc_riv_flux_id
+
+  end type marbl_forcing_indexing_type
+  type(marbl_forcing_indexing_type), public :: marbl_forcing_ind
 
   !-----------------------------------------------------------------------------
   ! namelist: ecosys_nml
@@ -94,23 +141,23 @@ module marbl_share_mod
   integer (int_kind) :: comp_surf_avg_freq      ! choice for freq of comp_surf_avg
 
   ! (FIXME, mvertens 2015-11, need to introduce marbl type) 
-  type(forcing_monthly_every_ts) :: fesedflux        ! iron sedimentation flux
-  type(forcing_monthly_every_ts) :: dust_flux        ! surface dust flux
-  type(forcing_monthly_every_ts) :: iron_flux        ! iron component of surface dust flux
-  type(forcing_monthly_every_ts) :: fice_file        ! ice fraction, if read from file
-  type(forcing_monthly_every_ts) :: xkw_file         ! a * wind-speed ** 2, if read from file
-  type(forcing_monthly_every_ts) :: ap_file          ! atmoshperic pressure, if read from file
-  type(forcing_monthly_every_ts) :: nox_flux_monthly ! surface NOx species flux, added to nitrate pool
-  type(forcing_monthly_every_ts) :: nhy_flux_monthly ! surface NHy species flux, added to ammonium pool
-  type(forcing_monthly_every_ts) :: din_riv_flux     ! river DIN species flux, added to nitrate pool
-  type(forcing_monthly_every_ts) :: dip_riv_flux     ! river DIP species flux, added to phosphate pool
-  type(forcing_monthly_every_ts) :: don_riv_flux     ! river DON flux, added to semi-lab don pool
-  type(forcing_monthly_every_ts) :: dop_riv_flux     ! river DOP flux, added to semi-lab dop pool
-  type(forcing_monthly_every_ts) :: dsi_riv_flux     ! river DSI flux, added to dsi pool
-  type(forcing_monthly_every_ts) :: dfe_riv_flux     ! river dfe flux, added to dfe pool
-  type(forcing_monthly_every_ts) :: dic_riv_flux     ! river dic flux, added to dic pool
-  type(forcing_monthly_every_ts) :: alk_riv_flux     ! river alk flux, added to alk pool
-  type(forcing_monthly_every_ts) :: doc_riv_flux     ! river doc flux, added to semi-labile DOC
+  type(forcing_monthly_every_ts)          :: fesedflux        ! iron sedimentation flux
+  type(forcing_monthly_every_ts), pointer :: dust_flux        ! surface dust flux
+  type(forcing_monthly_every_ts), pointer :: iron_flux        ! iron component of surface dust flux
+  type(forcing_monthly_every_ts), pointer :: fice_file        ! ice fraction, if read from file
+  type(forcing_monthly_every_ts), pointer :: xkw_file         ! a * wind-speed ** 2, if read from file
+  type(forcing_monthly_every_ts), pointer :: ap_file          ! atmoshperic pressure, if read from file
+  type(forcing_monthly_every_ts), pointer :: nox_flux_monthly ! surface NOx species flux, added to nitrate pool
+  type(forcing_monthly_every_ts), pointer :: nhy_flux_monthly ! surface NHy species flux, added to ammonium pool
+  type(forcing_monthly_every_ts), pointer :: din_riv_flux     ! river DIN species flux, added to nitrate pool
+  type(forcing_monthly_every_ts), pointer :: dip_riv_flux     ! river DIP species flux, added to phosphate pool
+  type(forcing_monthly_every_ts), pointer :: don_riv_flux     ! river DON flux, added to semi-lab don pool
+  type(forcing_monthly_every_ts), pointer :: dop_riv_flux     ! river DOP flux, added to semi-lab dop pool
+  type(forcing_monthly_every_ts), pointer :: dsi_riv_flux     ! river DSI flux, added to dsi pool
+  type(forcing_monthly_every_ts), pointer :: dfe_riv_flux     ! river dfe flux, added to dfe pool
+  type(forcing_monthly_every_ts), pointer :: dic_riv_flux     ! river dic flux, added to dic pool
+  type(forcing_monthly_every_ts), pointer :: alk_riv_flux     ! river alk flux, added to alk pool
+  type(forcing_monthly_every_ts), pointer :: doc_riv_flux     ! river doc flux, added to semi-labile DOC
 
   !-----------------------------------------------------------------------
   !  namelist: ecosys_ciso_nml 

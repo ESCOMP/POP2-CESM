@@ -105,6 +105,7 @@ contains
        marbl_interior_diags,     &
        marbl_restore_diags,      &
        marbl_forcing_diags,      &
+       marbl_forcing_fields,     &
        marbl_forcing_input,      &
        marbl_forcing_output,     &
        marbl_forcing_share,      &
@@ -115,6 +116,7 @@ contains
     use marbl_interface_types  , only : marbl_status_type
     use marbl_interface_types  , only : marbl_tracer_metadata_type
     use marbl_interface_types  , only : marbl_diagnostics_type
+    use marbl_interface_types  , only : marbl_forcing_fields_type
     use marbl_interface_types  , only : marbl_forcing_input_type
     use marbl_interface_types  , only : marbl_forcing_output_type
     use marbl_ciso_mod         , only : marbl_ciso_init_nml
@@ -126,6 +128,7 @@ contains
     use marbl_share_mod        , only : ecosys_ciso_ind_begin, ecosys_ciso_ind_end
     use marbl_share_mod        , only : ecosys_ind_end
     use ecosys_mod             , only : marbl_init_nml
+    use ecosys_mod             , only : marbl_sflux_forcing_fields_init
     use ecosys_mod             , only : marbl_init_tracer_metadata
     use ecosys_diagnostics_mod , only : marbl_diagnostics_init  
     
@@ -144,6 +147,7 @@ contains
     type(marbl_diagnostics_type)     , intent(inout) :: marbl_interior_diags
     type(marbl_diagnostics_type)     , intent(inout) :: marbl_restore_diags
     type(marbl_diagnostics_type)     , intent(inout) :: marbl_forcing_diags
+    type(marbl_forcing_fields_type)  , intent(inout) :: marbl_forcing_fields
     type(marbl_forcing_input_type)   , intent(inout) :: marbl_forcing_input
     type(marbl_forcing_output_type)  , intent(inout) :: marbl_forcing_output
     type(marbl_forcing_share_type)   , intent(inout) :: marbl_forcing_share
@@ -216,6 +220,8 @@ contains
          ciso_on=ciso_on)
 
     marbl_total_tracer_cnt = ecosys_tracer_cnt + ecosys_ciso_tracer_cnt
+
+    call marbl_sflux_forcing_fields_init(num_elements_forcing, marbl_forcing_fields)
 
     !FIXME - remove the hardwire 13 below
     call marbl_forcing_input%construct(num_elements_forcing,         &

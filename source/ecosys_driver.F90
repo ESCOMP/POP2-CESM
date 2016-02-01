@@ -33,6 +33,8 @@ module ecosys_driver
   use marbl_share_mod           , only : ecosys_ind_begin, ecosys_ind_end
   use marbl_share_mod           , only : ecosys_ciso_ind_begin, ecosys_ciso_ind_end
   use marbl_share_mod           , only : ecosys_surface_share_type 
+  use marbl_share_mod           , only : marbl_forcing_ind
+  use marbl_share_mod           , only : max_forcing_fields
 
   use marbl_interface           , only : marbl_interface_class
   use marbl_interface           , only : marbl_sizes_type
@@ -41,6 +43,7 @@ module ecosys_driver
   use marbl_interface_types     , only : marbl_diagnostics_type
   use marbl_interface_types     , only : photosynthetically_available_radiation_type
   use marbl_share_mod           , only : marbl_forcing_share_type
+  use marbl_interface_types     , only : marbl_forcing_fields_type
   use marbl_interface_types     , only : marbl_forcing_input_type
   use marbl_interface_types     , only : marbl_forcing_output_type
   use ecosys_mod                , only : marbl_ecosys_set_interior
@@ -127,6 +130,7 @@ module ecosys_driver
   type(marbl_diagnostics_type)    , dimension(max_blocks_clinic) :: marbl_interior_diags
   type(marbl_diagnostics_type)    , dimension(max_blocks_clinic) :: marbl_restore_diags
   type(marbl_diagnostics_type)    , dimension(max_blocks_clinic) :: marbl_forcing_diags
+  type(marbl_forcing_fields_type) , dimension(max_blocks_clinic) :: marbl_forcing_fields
   type(marbl_forcing_input_type)  , dimension(max_blocks_clinic) :: marbl_forcing_input
   type(marbl_forcing_output_type) , dimension(max_blocks_clinic) :: marbl_forcing_output
   type(marbl_forcing_share_type)  , dimension(max_blocks_clinic) :: marbl_forcing_share
@@ -477,6 +481,7 @@ contains
             marbl_interior_diags=marbl_interior_diags(iblock), &
             marbl_restore_diags=marbl_restore_diags(iblock),   &
             marbl_forcing_diags=marbl_forcing_diags(iblock),   &
+            marbl_forcing_fields=marbl_forcing_fields(iblock), &
             marbl_forcing_input=marbl_forcing_input(iblock),   &
             marbl_forcing_output=marbl_forcing_output(iblock), &
             marbl_forcing_share=marbl_forcing_share(iblock),   &
@@ -518,6 +523,7 @@ contains
     !  Initialize module variables ind_name_table and ciso_ind_name_table
     !--------------------------------------------------------------------
 
+
     ! NOTE (mvertens, 2015-11), this currently has to be a module variable 
     ! since ecosys_driver_write_restart is called by passive_tracers and 
     ! does not pass in tracer_d_module into the interface
@@ -526,12 +532,10 @@ contains
        ind_name_table(n) = ind_name_pair(n, tracer_d_module(n)%short_name)
     end do
 
-    if (ciso_on) then
-       do n = 1, ecosys_ciso_tracer_cnt
-          ciso_ind_name_table(n) = ind_name_pair(n, tracer_d_module(ecosys_ciso_ind_begin+n-1)%short_name)
-       end do
-    end if
-       
+    do n = 1, ecosys_ciso_tracer_cnt
+       ciso_ind_name_table(n) = ind_name_pair(n, tracer_d_module(ecosys_ciso_ind_begin+n-1)%short_name)
+    end do
+
     !--------------------------------------------------------------------
     !  Initialize ecosys tracers
     !--------------------------------------------------------------------
@@ -1689,23 +1693,7 @@ contains
     use marbl_share_mod       , only : gas_flux_forcing_iopt_file
     use marbl_share_mod       , only : gas_flux_forcing_iopt_drv
     use marbl_share_mod       , only : gas_flux_forcing_file
-    use marbl_share_mod       , only : fice_file
-    use marbl_share_mod       , only : xkw_file
-    use marbl_share_mod       , only : ap_file
-    use marbl_share_mod       , only : dust_flux
-    use marbl_share_mod       , only : iron_flux
     use marbl_share_mod       , only : ndep_data_type
-    use marbl_share_mod       , only : nox_flux_monthly
-    use marbl_share_mod       , only : nhy_flux_monthly
-    use marbl_share_mod       , only : din_riv_flux
-    use marbl_share_mod       , only : dip_riv_flux
-    use marbl_share_mod       , only : don_riv_flux
-    use marbl_share_mod       , only : dop_riv_flux
-    use marbl_share_mod       , only : dsi_riv_flux
-    use marbl_share_mod       , only : dfe_riv_flux
-    use marbl_share_mod       , only : dic_riv_flux
-    use marbl_share_mod       , only : doc_riv_flux
-    use marbl_share_mod       , only : alk_riv_flux
     use marbl_share_mod       , only : liron_patch  
     use marbl_share_mod       , only : iron_patch_flux_filename  
     use marbl_share_mod       , only : iron_patch_month  
@@ -1721,7 +1709,8 @@ contains
 
     integer (int_kind) :: &
          n,                 & ! index for looping over tracers
-         iblock               ! index for looping over blocks
+         iblock,            & ! index for looping over blocks
+         index
 
     real (r8), dimension (nx_block, ny_block) :: &
          WORK
@@ -1733,272 +1722,67 @@ contains
 
     !-----------------------------------------------------------------------
 
+    associate(                                   &
+         forcing_fields => marbl_forcing_fields  &
+         )
+
     luse_INTERP_WORK = .false.
 
     !-----------------------------------------------------------------------
-    !  read gas flux forcing (if required)
+    !  loop throught forcing fields and read in data for those whose source
+    !  is POP monthly calendar
     !-----------------------------------------------------------------------
 
-    if ((lflux_gas_o2 .or. lflux_gas_co2) .and. gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
+    do index = 1, max_forcing_fields
 
-       luse_INTERP_WORK = .true.
+       ! TODO: loop over max_block_clinic instead of loading up only the first
+       ! one?
+       if (forcing_fields(1)%forcing_fields(index)%field_source .eq. "POP monthly calendar") then
 
-       !-----------------------------------------------------------------------
-       !  first, read ice file
-       !-----------------------------------------------------------------------
+          file_name: associate( &
+               file => forcing_fields(1)%forcing_fields(index)%field_monthly_calendar_info%marbl_forcing_calendar_name &
+               )
 
-       allocate(fice_file%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-       if (trim(fice_file%input%filename) == 'unknown') &
-            fice_file%input%filename = gas_flux_forcing_file
+          !JW TODO: check filename
+          if (trim(file%input%filename) /= 'none' .and. &
+              trim(file%input%filename) /= 'unknown') then
 
-       call read_field(fice_file%input%file_fmt, &
-            fice_file%input%filename, &
-            fice_file%input%file_varname, &
-            WORK_READ)
+             luse_INTERP_WORK = .true.
 
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             fice_file%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  fice_file%DATA(:, :, iblock, 1, n) = c0
-             fice_file%DATA(:, :, iblock, 1, n) = &
-                  fice_file%DATA(:, :, iblock, 1, n) * fice_file%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
+             allocate(file%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
+             if (trim(file%input%filename) == 'unknown') &
+                  file%input%filename = gas_flux_forcing_file
 
-       call find_forcing_times(fice_file%data_time, &
-            fice_file%data_inc, fice_file%interp_type, &
-            fice_file%data_next, fice_file%data_time_min_loc, &
-            fice_file%data_update, fice_file%data_type)
+             call read_field(file%input%file_fmt, &
+                  file%input%filename, &
+                  file%input%file_varname, &
+                  WORK_READ)
 
-       !-----------------------------------------------------------------------
-       !  next, read piston velocity file
-       !-----------------------------------------------------------------------
+             !$OMP PARALLEL DO PRIVATE(iblock, n)
+             do iblock=1, nblocks_clinic
+                do n=1, 12
+                   file%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
+                   where (.not. land_mask(:, :, iblock)) &
+                        file%DATA(:, :, iblock, 1, n) = c0
+                   file%DATA(:, :, iblock, 1, n) = file%DATA(:, :, iblock, 1, n) * file%input%scale_factor
+                end do
+             end do
+             !$OMP END PARALLEL DO
 
-       allocate(xkw_file%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-       if (trim(xkw_file%input%filename) == 'unknown') &
-            xkw_file%input%filename = gas_flux_forcing_file
+             call find_forcing_times(file%data_time, &
+                  file%data_inc, file%interp_type, &
+                  file%data_next, file%data_time_min_loc, &
+                  file%data_update, file%data_type)
 
-       call read_field(xkw_file%input%file_fmt, &
-            xkw_file%input%filename, &
-            xkw_file%input%file_varname, &
-            WORK_READ)
+             file%has_data = .true.
+          else
+             file%has_data = .false.
+          endif
 
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             xkw_file%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  xkw_file%DATA(:, :, iblock, 1, n) = c0
-             xkw_file%DATA(:, :, iblock, 1, n) = &
-                  xkw_file%DATA(:, :, iblock, 1, n) * xkw_file%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
+          end associate file_name
 
-       call find_forcing_times(xkw_file%data_time, &
-            xkw_file%data_inc, xkw_file%interp_type, &
-            xkw_file%data_next, xkw_file%data_time_min_loc, &
-            xkw_file%data_update, xkw_file%data_type)
-
-       !-----------------------------------------------------------------------
-       !  last, read atmospheric pressure file
-       !-----------------------------------------------------------------------
-
-       allocate(ap_file%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-       if (trim(ap_file%input%filename) == 'unknown') &
-            ap_file%input%filename = gas_flux_forcing_file
-
-       call read_field(ap_file%input%file_fmt, &
-            ap_file%input%filename, &
-            ap_file%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             ap_file%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  ap_file%DATA(:, :, iblock, 1, n) = c0
-             ap_file%DATA(:, :, iblock, 1, n) = &
-                  ap_file%DATA(:, :, iblock, 1, n) * ap_file%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(ap_file%data_time, &
-            ap_file%data_inc, ap_file%interp_type, &
-            ap_file%data_next, ap_file%data_time_min_loc, &
-            ap_file%data_update, ap_file%data_type)
-
-    endif
-
-    !-----------------------------------------------------------------------
-    !  load dust flux fields (if required)
-    !-----------------------------------------------------------------------
-
-    if (trim(dust_flux%input%filename) /= 'none' .and. &
-         trim(dust_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(dust_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-       if (trim(dust_flux%input%filename) == 'unknown') &
-            dust_flux%input%filename = gas_flux_forcing_file
-
-       call read_field(dust_flux%input%file_fmt, &
-            dust_flux%input%filename, &
-            dust_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             dust_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  dust_flux%DATA(:, :, iblock, 1, n) = c0
-             dust_flux%DATA(:, :, iblock, 1, n) = &
-                  dust_flux%DATA(:, :, iblock, 1, n) * dust_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(dust_flux%data_time, &
-            dust_flux%data_inc, dust_flux%interp_type, &
-            dust_flux%data_next, dust_flux%data_time_min_loc, &
-            dust_flux%data_update, dust_flux%data_type)
-
-       dust_flux%has_data = .true.
-    else
-       dust_flux%has_data = .false.
-    endif
-
-    !-----------------------------------------------------------------------
-    !  load iron flux fields (if required)
-    !-----------------------------------------------------------------------
-
-    if (trim(iron_flux%input%filename) /= 'none' .and. &
-         trim(iron_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(iron_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-       if (trim(iron_flux%input%filename) == 'unknown') &
-            iron_flux%input%filename = gas_flux_forcing_file
-
-       call read_field(iron_flux%input%file_fmt, &
-            iron_flux%input%filename, &
-            iron_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             iron_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  iron_flux%DATA(:, :, iblock, 1, n) = c0
-             iron_flux%DATA(:, :, iblock, 1, n) = &
-                  iron_flux%DATA(:, :, iblock, 1, n) * iron_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(iron_flux%data_time, &
-            iron_flux%data_inc, iron_flux%interp_type, &
-            iron_flux%data_next, iron_flux%data_time_min_loc, &
-            iron_flux%data_update, iron_flux%data_type)
-
-       iron_flux%has_data = .true.
-    else
-       iron_flux%has_data = .false.
-    endif
-
-    !-----------------------------------------------------------------------
-    !  load nox & noy flux fields (if required)
-    !-----------------------------------------------------------------------
-
-    if (trim(ndep_data_type) /= 'none' .and. &
-         trim(ndep_data_type) /= 'monthly-calendar' .and. &
-         trim(ndep_data_type) /= 'shr_stream') then
-       call document(subname, 'ndep_data_type', ndep_data_type)
-       call exit_POP(sigAbort, 'unknown ndep_data_type')
-    endif
-
-    if (trim(ndep_data_type) == 'monthly-calendar' .and. &
-         trim(nox_flux_monthly%input%filename) /= 'none' .and. &
-         trim(nox_flux_monthly%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(nox_flux_monthly%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-       if (trim(nox_flux_monthly%input%filename) == 'unknown') &
-            nox_flux_monthly%input%filename = gas_flux_forcing_file
-
-       call read_field(nox_flux_monthly%input%file_fmt, &
-            nox_flux_monthly%input%filename, &
-            nox_flux_monthly%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             nox_flux_monthly%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  nox_flux_monthly%DATA(:, :, iblock, 1, n) = c0
-             nox_flux_monthly%DATA(:, :, iblock, 1, n) = &
-                  nox_flux_monthly%DATA(:, :, iblock, 1, n) * nox_flux_monthly%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(nox_flux_monthly%data_time, &
-            nox_flux_monthly%data_inc, nox_flux_monthly%interp_type, &
-            nox_flux_monthly%data_next, nox_flux_monthly%data_time_min_loc, &
-            nox_flux_monthly%data_update, nox_flux_monthly%data_type)
-
-       nox_flux_monthly%has_data = .true.
-    else
-       nox_flux_monthly%has_data = .false.
-    endif
-
-    if (trim(ndep_data_type) == 'monthly-calendar' .and. &
-         trim(nhy_flux_monthly%input%filename) /= 'none' .and. &
-         trim(nhy_flux_monthly%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(nhy_flux_monthly%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-       if (trim(nhy_flux_monthly%input%filename) == 'unknown') &
-            nhy_flux_monthly%input%filename = gas_flux_forcing_file
-
-       call read_field(nhy_flux_monthly%input%file_fmt, &
-            nhy_flux_monthly%input%filename, &
-            nhy_flux_monthly%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             nhy_flux_monthly%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  nhy_flux_monthly%DATA(:, :, iblock, 1, n) = c0
-             nhy_flux_monthly%DATA(:, :, iblock, 1, n) = &
-                  nhy_flux_monthly%DATA(:, :, iblock, 1, n) * nhy_flux_monthly%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(nhy_flux_monthly%data_time, &
-            nhy_flux_monthly%data_inc, nhy_flux_monthly%interp_type, &
-            nhy_flux_monthly%data_next, nhy_flux_monthly%data_time_min_loc, &
-            nhy_flux_monthly%data_update, nhy_flux_monthly%data_type)
-
-       nhy_flux_monthly%has_data = .true.
-    else
-       nhy_flux_monthly%has_data = .false.
-    endif
+       endif
+    enddo
 
     !-----------------------------------------------------------------------
 
@@ -2006,322 +1790,6 @@ contains
        call document(subname, 'ndep_data_type', ndep_data_type)
        call exit_POP(sigAbort, &
             'shr_stream option only supported when CCSMCOUPLED is defined')
-    endif
-
-    !-----------------------------------------------------------------------
-    !  load river nutrient flux fields (if required)
-    !-----------------------------------------------------------------------
-
-    if (trim(din_riv_flux%input%filename) /= 'none' .and. &
-        trim(din_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(din_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(din_riv_flux%input%file_fmt, &
-            din_riv_flux%input%filename, &
-            din_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             din_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  din_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             din_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  din_riv_flux%DATA(:, :, iblock, 1, n) * din_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(din_riv_flux%data_time, &
-            din_riv_flux%data_inc, din_riv_flux%interp_type, &
-            din_riv_flux%data_next, din_riv_flux%data_time_min_loc, &
-            din_riv_flux%data_update, din_riv_flux%data_type)
-
-       din_riv_flux%has_data = .true.
-    else
-       din_riv_flux%has_data = .false.
-    endif
-
-
-    if (trim(dip_riv_flux%input%filename) /= 'none' .and. &
-        trim(dip_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(dip_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(dip_riv_flux%input%file_fmt, &
-            dip_riv_flux%input%filename, &
-            dip_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             dip_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  dip_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             dip_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  dip_riv_flux%DATA(:, :, iblock, 1, n) * dip_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(dip_riv_flux%data_time, &
-            dip_riv_flux%data_inc, dip_riv_flux%interp_type, &
-            dip_riv_flux%data_next, dip_riv_flux%data_time_min_loc, &
-            dip_riv_flux%data_update, dip_riv_flux%data_type)
-
-       dip_riv_flux%has_data = .true.
-    else
-       dip_riv_flux%has_data = .false.
-    endif
-
-
-    if (trim(don_riv_flux%input%filename) /= 'none' .and. &
-        trim(don_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(don_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(don_riv_flux%input%file_fmt, &
-            don_riv_flux%input%filename, &
-            don_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             don_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  don_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             don_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  don_riv_flux%DATA(:, :, iblock, 1, n) * don_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(don_riv_flux%data_time, &
-            don_riv_flux%data_inc, don_riv_flux%interp_type, &
-            don_riv_flux%data_next, don_riv_flux%data_time_min_loc, &
-            don_riv_flux%data_update, don_riv_flux%data_type)
-
-       don_riv_flux%has_data = .true.
-    else
-       don_riv_flux%has_data = .false.
-    endif
-
-
-    if (trim(dop_riv_flux%input%filename) /= 'none' .and. &
-        trim(dop_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(dop_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(dop_riv_flux%input%file_fmt, &
-            dop_riv_flux%input%filename, &
-            dop_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             dop_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  dop_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             dop_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  dop_riv_flux%DATA(:, :, iblock, 1, n) * dop_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(dop_riv_flux%data_time, &
-            dop_riv_flux%data_inc, dop_riv_flux%interp_type, &
-            dop_riv_flux%data_next, dop_riv_flux%data_time_min_loc, &
-            dop_riv_flux%data_update, dop_riv_flux%data_type)
-
-       dop_riv_flux%has_data = .true.
-    else
-       dop_riv_flux%has_data = .false.
-    endif
-
-    if (trim(dsi_riv_flux%input%filename) /= 'none' .and. &
-        trim(dsi_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(dsi_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(dsi_riv_flux%input%file_fmt, &
-            dsi_riv_flux%input%filename, &
-            dsi_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             dsi_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  dsi_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             dsi_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  dsi_riv_flux%DATA(:, :, iblock, 1, n) * dsi_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(dsi_riv_flux%data_time, &
-            dsi_riv_flux%data_inc, dsi_riv_flux%interp_type, &
-            dsi_riv_flux%data_next, dsi_riv_flux%data_time_min_loc, &
-            dsi_riv_flux%data_update, dsi_riv_flux%data_type)
-
-       dsi_riv_flux%has_data = .true.
-    else
-       dsi_riv_flux%has_data = .false.
-    endif
-
-
-    if (trim(dfe_riv_flux%input%filename) /= 'none' .and. &
-        trim(dfe_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(dfe_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(dfe_riv_flux%input%file_fmt, &
-            dfe_riv_flux%input%filename, &
-            dfe_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             dfe_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  dfe_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             dfe_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  dfe_riv_flux%DATA(:, :, iblock, 1, n) * dfe_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(dfe_riv_flux%data_time, &
-            dfe_riv_flux%data_inc, dfe_riv_flux%interp_type, &
-            dfe_riv_flux%data_next, dfe_riv_flux%data_time_min_loc, &
-            dfe_riv_flux%data_update, dfe_riv_flux%data_type)
-
-       dfe_riv_flux%has_data = .true.
-    else
-       dfe_riv_flux%has_data = .false.
-    endif
-
-
-    if (trim(dic_riv_flux%input%filename) /= 'none' .and. &
-        trim(dic_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(dic_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(dic_riv_flux%input%file_fmt, &
-            dic_riv_flux%input%filename, &
-            dic_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             dic_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  dic_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             dic_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  dic_riv_flux%DATA(:, :, iblock, 1, n) * dic_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(dic_riv_flux%data_time, &
-            dic_riv_flux%data_inc, dic_riv_flux%interp_type, &
-            dic_riv_flux%data_next, dic_riv_flux%data_time_min_loc, &
-            dic_riv_flux%data_update, dic_riv_flux%data_type)
-
-       dic_riv_flux%has_data = .true.
-    else
-       dic_riv_flux%has_data = .false.
-    endif
-
-
-    if (trim(alk_riv_flux%input%filename) /= 'none' .and. &
-        trim(alk_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(alk_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(alk_riv_flux%input%file_fmt, &
-            alk_riv_flux%input%filename, &
-            alk_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             alk_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  alk_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             alk_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  alk_riv_flux%DATA(:, :, iblock, 1, n) * alk_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(alk_riv_flux%data_time, &
-            alk_riv_flux%data_inc, alk_riv_flux%interp_type, &
-            alk_riv_flux%data_next, alk_riv_flux%data_time_min_loc, &
-            alk_riv_flux%data_update, alk_riv_flux%data_type)
-
-       alk_riv_flux%has_data = .true.
-    else
-       alk_riv_flux%has_data = .false.
-    endif
-
-    if (trim(doc_riv_flux%input%filename) /= 'none' .and. &
-        trim(doc_riv_flux%input%filename) /= 'unknown') then
-
-       luse_INTERP_WORK = .true.
-
-       allocate(doc_riv_flux%DATA(nx_block, ny_block, max_blocks_clinic, 1, 12))
-
-       call read_field(doc_riv_flux%input%file_fmt, &
-            doc_riv_flux%input%filename, &
-            doc_riv_flux%input%file_varname, &
-            WORK_READ)
-
-       !$OMP PARALLEL DO PRIVATE(iblock, n)
-       do iblock=1, nblocks_clinic
-          do n=1, 12
-             doc_riv_flux%DATA(:, :, iblock, 1, n) = WORK_READ(:, :, n, iblock)
-             where (.not. land_mask(:, :, iblock)) &
-                  doc_riv_flux%DATA(:, :, iblock, 1, n) = c0
-             doc_riv_flux%DATA(:, :, iblock, 1, n) = &
-                  doc_riv_flux%DATA(:, :, iblock, 1, n) * doc_riv_flux%input%scale_factor
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-       call find_forcing_times(doc_riv_flux%data_time, &
-            doc_riv_flux%data_inc, doc_riv_flux%interp_type, &
-            doc_riv_flux%data_next, doc_riv_flux%data_time_min_loc, &
-            doc_riv_flux%data_update, doc_riv_flux%data_type)
-
-       doc_riv_flux%has_data = .true.
-    else
-       doc_riv_flux%has_data = .false.
     endif
 
     !-----------------------------------------------------------------------
@@ -2334,6 +1802,12 @@ contains
        !  assume patch file has same normalization and format as deposition file
 
        allocate(IRON_PATCH_FLUX(nx_block, ny_block, max_blocks_clinic))
+
+       iron_patch: associate( &
+!            iron_flux_field => forcing_fields(1)%forcing_fields(marbl_forcing_ind%iron_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name,     
+            iron_flux_field => forcing_fields(1)%forcing_fields(marbl_forcing_ind%iron_flux_id),       &
+            iron_flux       => iron_flux_field%field_monthly_calendar_info%marbl_forcing_calendar_name &   
+            )
 
        if (trim(iron_flux%input%filename) == 'unknown') &
             iron_flux%input%filename = gas_flux_forcing_file
@@ -2354,8 +1828,11 @@ contains
        end do
        !$OMP END PARALLEL DO
 
+       end associate iron_patch
+
     endif
 
+    !-----------------------------------------------------------------------
     !-----------------------------------------------------------------------
     !  register and set
     !     fco2, the air-sea co2 gas flux
@@ -2406,6 +1883,8 @@ contains
        endif
     endif
 
+    end associate
+
   end subroutine ecosys_driver_init_sflux
 
   !*****************************************************************************
@@ -2427,7 +1906,10 @@ contains
     use constants             , only : field_loc_center
     use constants             , only : field_type_scalar
     use constants             , only : hflux_factor
-    use passive_tracer_tools  , only : forcing_monthly_every_ts
+    use marbl_interface_types , only : forcing_monthly_every_ts
+! FIXME: relocate forcing_monthly_every_ts type to passive_tracer_tools once
+!        it's removed from MARBL
+!    use passive_tracer_tools  , only : forcing_monthly_every_ts
     use forcing_tools         , only : interpolate_forcing
     use forcing_tools         , only : update_forcing_data
     use named_field_mod       , only : named_field_get
@@ -2479,22 +1961,6 @@ contains
     use marbl_share_mod       , only : ndep_shr_stream_year_first
     use marbl_share_mod       , only : ndep_shr_stream_year_last
     use marbl_share_mod       , only : ndep_shr_stream_year_align
-    use marbl_share_mod       , only : dust_flux        
-    use marbl_share_mod       , only : iron_flux        
-    use marbl_share_mod       , only : fice_file        
-    use marbl_share_mod       , only : xkw_file         
-    use marbl_share_mod       , only : ap_file          
-    use marbl_share_mod       , only : nox_flux_monthly 
-    use marbl_share_mod       , only : nhy_flux_monthly 
-    use marbl_share_mod       , only : din_riv_flux     
-    use marbl_share_mod       , only : dip_riv_flux     
-    use marbl_share_mod       , only : don_riv_flux     
-    use marbl_share_mod       , only : dop_riv_flux     
-    use marbl_share_mod       , only : dsi_riv_flux     
-    use marbl_share_mod       , only : dfe_riv_flux     
-    use marbl_share_mod       , only : dic_riv_flux     
-    use marbl_share_mod       , only : alk_riv_flux     
-    use marbl_share_mod       , only : doc_riv_flux     
     use marbl_share_mod       , only : liron_patch  
     use marbl_share_mod       , only : iron_patch_month  
     use passive_tracer_tools  , only : comp_surf_avg
@@ -2536,6 +2002,27 @@ contains
     type(shr_strdata_type)   :: ndep_sdat               ! input data stream for ndep
     type(strdata_input_type) :: ndep_inputlist
     !-----------------------------------------------------------------------
+
+    associate(                                                                                                &
+         ind => marbl_forcing_ind,                                                                            &
+         fields => marbl_forcing_fields(1)%forcing_fields,                                                    &
+         fice_file =>            fields(ind%fice_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         xkw_file =>              fields(ind%xkw_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         ap_file =>      fields(ind%atm_pressure_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         dust_flux =>       fields(ind%dust_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         iron_flux =>       fields(ind%iron_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         nox_flux_monthly => fields(ind%nox_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         nhy_flux_monthly => fields(ind%nhy_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         din_riv_flux => fields(ind%din_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         dip_riv_flux => fields(ind%dip_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         don_riv_flux => fields(ind%don_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         dop_riv_flux => fields(ind%dop_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         dsi_riv_flux => fields(ind%dsi_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         dfe_riv_flux => fields(ind%dfe_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         dic_riv_flux => fields(ind%dic_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         doc_riv_flux => fields(ind%doc_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name, &
+         alk_riv_flux => fields(ind%alk_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name  &
+         )
 
     call timer_start(ecosys_pre_sflux_timer)
 
@@ -3093,6 +2580,8 @@ contains
             doc_riv_flux%interp_last,       0)
        input_forcing_data(:,:, ind_doc_riv_flux,:) = INTERP_WORK(:, :, :, 1)
     endif
+
+    end associate
 
     call timer_stop(ecosys_pre_sflux_timer)
 
