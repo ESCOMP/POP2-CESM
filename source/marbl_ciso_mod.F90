@@ -32,12 +32,9 @@ module marbl_ciso_mod
   use communicate     , only : master_task     !FIXME
   use communicate     , only : my_task         !FIXME
   use io_types        , only : stdout          !FIXME
-  use io_tools        , only : document        !FIXME 
   use constants       , only : blank_fmt       !FIXME
   use constants       , only : delim_fmt       !FIXME
   use constants       , only : ndelim_fmt      !FIXME
-  use exit_mod        , only : exit_POP        !FIXME
-  use exit_mod        , only : sigAbort        !FIXME
 
   implicit none
   private
@@ -85,17 +82,14 @@ contains
 
   !*****************************************************************************
 
-  subroutine marbl_ciso_init_nml(nl_buffer, marbl_status)
+  subroutine marbl_ciso_init_nml(nl_buffer, marbl_status_log)
 
     use marbl_namelist_mod        , only : marbl_nl_in_size
     use marbl_namelist_mod        , only : marbl_nl_cnt
     use marbl_namelist_mod        , only : marbl_nl_buffer_size
     use marbl_namelist_mod        , only : marbl_nl_split_string
     use marbl_namelist_mod        , only : marbl_namelist
-    use marbl_interface_constants , only : marbl_status_ok
-    use marbl_interface_constants , only : marbl_status_could_not_read_namelist
-    use marbl_interface_constants , only : marbl_namelist_consistency_error
-    use marbl_interface_types     , only : marbl_status_type
+    use marbl_logging             , only : marbl_log_type
     use marbl_interface_types     , only : marbl_tracer_read_type
     use marbl_share_mod           , only : ecosys_ciso_tracer_cnt
     use marbl_share_mod           , only : ciso_init_ecosys_option
@@ -126,7 +120,7 @@ contains
     implicit none
 
     character(marbl_nl_buffer_size), intent(in)  :: nl_buffer(marbl_nl_cnt)
-    type(marbl_status_type)        , intent(out) :: marbl_status
+    type(marbl_log_type)           , intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -157,9 +151,6 @@ contains
          ciso_fract_factors, ciso_atm_model_year, ciso_atm_data_year
 
     !-----------------------------------------------------------------------
-
-    marbl_status%status = marbl_status_ok
-    marbl_status%message = ''
 
     !-----------------------------------------------------------------------
     !  default namelist settings
@@ -209,8 +200,7 @@ contains
     tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_ciso_nml')
     read(tmp_nl_buffer, nml=ecosys_ciso_nml, iostat=nml_error)
     if (nml_error /= 0) then
-       marbl_status%status = marbl_status_could_not_read_namelist
-       marbl_status%message = "ERROR: "//subname//"(): could not read ecosys_ciso_nml."
+       ! Add error about not reading ecosys_ciso_nml to marbl_status_log
        return
     end if
 
@@ -239,8 +229,8 @@ contains
     case ('nmonth')
        ciso_comp_surf_avg_freq_iopt = freq_opt_nmonth
     case default
-       marbl_status%status = marbl_namelist_consistency_error
-       marbl_status%message = "ERROR: "//subname//"(): unknown ciso_comp_surf_avg_freq_opt" //ciso_comp_surf_avg_freq_opt
+       ! FIXME add error messge to marbl_status_log
+       ! "unknown ciso_comp_surf_avg_freq_opt"
        return
     end select
 
@@ -249,10 +239,11 @@ contains
     !-----------------------------------------------------------------------
 
     if (ciso_use_nml_surf_vals .and. ciso_comp_surf_avg_freq_iopt /= freq_opt_never) then
-       call document(subname, 'ciso_use_nml_surf_vals'     , ciso_use_nml_surf_vals)
-       call document(subname, 'ciso_comp_surf_avg_freq_opt', ciso_comp_surf_avg_freq_opt)
-       call exit_POP(sigAbort, &
-            'ciso_use_nml_surf_vals can only be .true. if ciso_comp_surf_avg_freq_opt is never')
+       ! FIXME add error messge to marbl_status_log
+!       call document(subname, 'ciso_use_nml_surf_vals'     , ciso_use_nml_surf_vals)
+!       call document(subname, 'ciso_comp_surf_avg_freq_opt', ciso_comp_surf_avg_freq_opt)
+!       call exit_POP(sigAbort, &
+!            'ciso_use_nml_surf_vals can only be .true. if ciso_comp_surf_avg_freq_opt is never')
     endif
 
   end subroutine marbl_ciso_init_nml
@@ -339,9 +330,10 @@ contains
     end do
 
     if (ecosys_ciso_tracer_cnt /= n) then
-       call document(subname, 'actual ecosys_ciso_tracer_cnt', ecosys_ciso_tracer_cnt)
-       call document(subname, 'computed ecosys_ciso_tracer_cnt', n)
-       call exit_POP(sigAbort, 'inconsistency between actual ecosys_ciso_tracer_cnt and computed ecosys_ciso_tracer_cnt')
+       ! FIXME add error messge to marbl_status_log
+!       call document(subname, 'actual ecosys_ciso_tracer_cnt', ecosys_ciso_tracer_cnt)
+!       call document(subname, 'computed ecosys_ciso_tracer_cnt', n)
+!       call exit_POP(sigAbort, 'inconsistency between actual ecosys_ciso_tracer_cnt and computed ecosys_ciso_tracer_cnt')
     endif
 
     !-----------------------------------------------------------------------
@@ -1212,7 +1204,8 @@ contains
              !   cell_eps_fix(auto_ind)         = 23.0_r8      ! fractionation effect of carbon fixation
              
           else if (autotrophs(auto_ind)%Nfixer .and. autotrophs(auto_ind)%kSiO3 > c0) then
-             call exit_POP(sigAbort, 'ciso: Currently Keller and Morel fractionation does not work for Diatoms-Diazotrophs')
+              ! FIXME add error messge to marbl_status_log
+!             call exit_POP(sigAbort, 'ciso: Currently Keller and Morel fractionation does not work for Diatoms-Diazotrophs')
 
           else
              !----------------------------------------------------------------------------------------

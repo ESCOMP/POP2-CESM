@@ -40,11 +40,8 @@ module marbl_interface
   !      call marbl_set_interior(marbl_private_data, ....)
 
   use marbl_kinds_mod           , only : int_kind, log_kind
-  use marbl_interface_constants , only : marbl_status_ok
+  use marbl_logging,              only : marbl_log_type
   
-  use exit_mod, only : exit_POP
-  use exit_mod, only : sigAbort
-
   implicit none
 
   private
@@ -76,6 +73,7 @@ module marbl_interface
   type, public :: marbl_interface_class
      ! FIXME(bja, 2015-01) needs to private when all data is isolated!
      type(marbl_sizes_type), private :: marbl_sizes
+     type(marbl_log_type), pointer, public :: StatusLog
 
    contains
      procedure, public :: init => marbl_init
@@ -107,12 +105,10 @@ contains
        marbl_forcing_diags,      &
        marbl_forcing_input,      &
        marbl_forcing_output,     &
-       marbl_forcing_share,      &
-       marbl_status )
+       marbl_forcing_share)
 
     use marbl_namelist_mod     , only : marbl_nl_cnt
     use marbl_namelist_mod     , only : marbl_nl_buffer_size
-    use marbl_interface_types  , only : marbl_status_type
     use marbl_interface_types  , only : marbl_tracer_metadata_type
     use marbl_interface_types  , only : marbl_diagnostics_type
     use marbl_interface_types  , only : marbl_forcing_input_type
@@ -140,7 +136,6 @@ contains
     integer                          , intent(in)    :: num_levels
     type(marbl_tracer_metadata_type) , intent(inout) :: marbl_tracer_metadata(:)
     type(marbl_sizes_type)           , intent(out)   :: marbl_sizes
-    type(marbl_status_type)          , intent(out)   :: marbl_status
     type(marbl_diagnostics_type)     , intent(inout) :: marbl_interior_diags
     type(marbl_diagnostics_type)     , intent(inout) :: marbl_restore_diags
     type(marbl_diagnostics_type)     , intent(inout) :: marbl_forcing_diags
@@ -155,8 +150,7 @@ contains
     integer :: marbl_total_tracer_cnt  
     !-----------------------------------------------------------------------
 
-    marbl_status%status = marbl_status_ok
-    marbl_status%message = ''
+    call this%StatusLog%construct()
 
     !--------------------------------------------------------------------
     !  initialize marbl sizes
@@ -174,20 +168,13 @@ contains
     ! initialize marbl namelists
     !--------------------------------------------------------------------
 
-    call marbl_init_nml(nl_buffer, marbl_status)
-
-    if (marbl_status%status /= marbl_status_ok) then
-       call exit_POP(sigAbort, &
-            'ERROR in marbl_init_nml: returned status: "'//marbl_status%message//'"')
-    end if
+    call marbl_init_nml(nl_buffer, this%StatusLog)
+    ! FIXME: make sure no error in StatusLog, otherwise return to driver!
 
     if (ciso_on) then
-       call marbl_ciso_init_nml(nl_buffer, marbl_status)
+       call marbl_ciso_init_nml(nl_buffer, this%StatusLog)
 
-       if (marbl_status%status /= marbl_status_ok) then
-          call exit_POP(sigAbort, &
-               'ERROR in marbl_ciso_init_nml: returned status: "'//marbl_status%message//'"')
-       end if
+       ! FIXME: make sure no error in StatusLog, otherwise return to driver!
     end if
 
     !--------------------------------------------------------------------

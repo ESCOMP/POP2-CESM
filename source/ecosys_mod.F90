@@ -90,9 +90,7 @@ module ecosys_mod
   ! marbl variables that can be put in these use statements
   use shr_sys_mod          , only : shr_sys_abort        !FIXME
   use communicate          , only : master_task, my_task !FIXME
-  use exit_mod             , only : exit_POP, sigAbort   !FIXME
   use io_types             , only : stdout               !FIXME
-  use io_tools             , only : document             !FIXME
   use time_management      , only : freq_opt_never       !FIXME
   use time_management      , only : freq_opt_nmonth      !FIXME
   use time_management      , only : freq_opt_nyear       !FIXME
@@ -330,7 +328,7 @@ contains
 
   !*****************************************************************************
 
-  subroutine marbl_init_nml(nl_buffer, marbl_status)
+  subroutine marbl_init_nml(nl_buffer, marbl_status_log)
 
     ! !DESCRIPTION:
     !  Initialize ecosys tracer module. This involves setting metadata, reading
@@ -340,9 +338,7 @@ contains
     use marbl_namelist_mod        , only : marbl_nl_cnt
     use marbl_namelist_mod        , only : marbl_nl_buffer_size
     use marbl_namelist_mod        , only : marbl_namelist
-    use marbl_interface_constants , only : marbl_status_ok
-    use marbl_interface_constants , only : marbl_status_could_not_read_namelist
-    use marbl_interface_types     , only : marbl_status_type
+    use marbl_logging             , only : marbl_log_type
     use marbl_interface_types     , only : marbl_tracer_read_type
     use marbl_share_mod           , only : surf_avg_dic_const, surf_avg_alk_const
     use marbl_share_mod           , only : use_nml_surf_vals         
@@ -393,7 +389,7 @@ contains
     implicit none
 
     character(marbl_nl_buffer_size), intent(in)  :: nl_buffer(marbl_nl_cnt)
-    type(marbl_status_type)        , intent(out) :: marbl_status
+    type(marbl_log_type)           , intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -453,9 +449,6 @@ contains
          caco3_bury_thres_opt, caco3_bury_thres_depth, &
          PON_bury_coeff, &
          lecovars_full_depth_tavg
-
-    marbl_status%status = marbl_status_ok
-    marbl_status%message = ''
 
     !-----------------------------------------------------------------------
     !  default namelist settings
@@ -630,8 +623,7 @@ contains
     tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_nml')
     read(tmp_nl_buffer, nml=ecosys_nml, iostat=nml_error)
     if (nml_error /= 0) then
-       marbl_status%status = marbl_status_could_not_read_namelist
-       marbl_status%message = "ERROR: "//subname//"(): could not read ecosys_nml."
+       ! Add error about not reading ecosys_nml to marbl_status_log
        return
     end if
 
@@ -657,8 +649,9 @@ contains
     else if (trim(gas_flux_forcing_opt) == 'file') then
        gas_flux_forcing_iopt = gas_flux_forcing_iopt_file
     else
-       call document(subname, 'gas_flux_forcing_opt', gas_flux_forcing_opt)
-       call exit_POP(sigAbort, 'unknown gas_flux_forcing_opt')
+       ! FIXME: pass error through marbl_status_log
+!       call document(subname, 'gas_flux_forcing_opt', gas_flux_forcing_opt)
+!       call exit_POP(sigAbort, 'unknown gas_flux_forcing_opt')
     endif
 
     fice_file%input        = gas_flux_fice
@@ -690,8 +683,9 @@ contains
     case ('nmonth')
        comp_surf_avg_freq_iopt = freq_opt_nmonth
     case default
-       call document(subname, 'comp_surf_avg_freq_opt', comp_surf_avg_freq_opt)
-       call exit_POP(sigAbort, 'unknown comp_surf_avg_freq_opt')
+       ! FIXME: pass error through marbl_status_log
+!       call document(subname, 'comp_surf_avg_freq_opt', comp_surf_avg_freq_opt)
+!       call exit_POP(sigAbort, 'unknown comp_surf_avg_freq_opt')
     end select
 
     select case (atm_co2_opt)
@@ -702,16 +696,18 @@ contains
     case ('drv_diag')
        atm_co2_iopt = atm_co2_iopt_drv_diag
     case default
-       call document(subname, 'atm_co2_opt', atm_co2_opt)
-       call exit_POP(sigAbort, 'unknown atm_co2_opt')
+       ! FIXME: pass error through marbl_status_log
+!       call document(subname, 'atm_co2_opt', atm_co2_opt)
+!       call exit_POP(sigAbort, 'unknown atm_co2_opt')
     end select
 
     select case (atm_alt_co2_opt)
     case ('const')
        atm_alt_co2_iopt = atm_co2_iopt_const
     case default
-       call document(subname, 'atm_alt_co2_opt', atm_alt_co2_opt)
-       call exit_POP(sigAbort, 'unknown atm_alt_co2_opt')
+       ! FIXME: pass error through marbl_status_log
+!       call document(subname, 'atm_alt_co2_opt', atm_alt_co2_opt)
+!       call exit_POP(sigAbort, 'unknown atm_alt_co2_opt')
     end select
 
     select case (caco3_bury_thres_opt)
@@ -720,8 +716,9 @@ contains
     case ('omega_calc')
        caco3_bury_thres_iopt = caco3_bury_thres_iopt_omega_calc
     case default
-       call document(subname, 'caco3_bury_thres_opt', caco3_bury_thres_opt)
-       call exit_POP(sigAbort, 'unknown caco3_bury_thres_opt')
+       ! FIXME: pass error through marbl_status_log
+!       call document(subname, 'caco3_bury_thres_opt', caco3_bury_thres_opt)
+!       call exit_POP(sigAbort, 'unknown caco3_bury_thres_opt')
     end select
 
     !-----------------------------------------------------------------------
@@ -729,10 +726,11 @@ contains
     !-----------------------------------------------------------------------
 
     if (use_nml_surf_vals .and. comp_surf_avg_freq_iopt /= freq_opt_never) then
-       call document(subname, 'use_nml_surf_vals', use_nml_surf_vals)
-       call document(subname, 'comp_surf_avg_freq_opt', comp_surf_avg_freq_opt)
-       call exit_POP(sigAbort, 'use_nml_surf_vals can only be .true. if ' /&
-            &/ ' comp_surf_avg_freq_opt is never')
+       ! FIXME: pass error through marbl_status_log
+!       call document(subname, 'use_nml_surf_vals', use_nml_surf_vals)
+!       call document(subname, 'comp_surf_avg_freq_opt', comp_surf_avg_freq_opt)
+!       call exit_POP(sigAbort, 'use_nml_surf_vals can only be .true. if ' /&
+!            &/ ' comp_surf_avg_freq_opt is never')
     endif
 
     !-----------------------------------------------------------------------
@@ -740,14 +738,10 @@ contains
     !-----------------------------------------------------------------------
 
     ! FIXME(mnl, 2016-01): eliminate marbl_parms!
-    call marbl_params_init(nl_buffer, marbl_status)
-    if (marbl_status%status /= marbl_status_ok) then
+    call marbl_params_init(nl_buffer, marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
        return
     end if
-    ! FIXME(bja, 2015-01) need to have a flag if params should be printed!
-    ! if (stdout > 0) then
-    !    call marbl_params_print(stdout)
-    ! end if
 
   end subroutine marbl_init_nml
 
@@ -758,9 +752,6 @@ contains
     ! !DESCRIPTION:
     !  Set tracer and forcing metadata
 
-    use marbl_interface_constants , only : marbl_status_ok
-    use marbl_interface_constants , only : marbl_status_could_not_read_namelist
-    use marbl_interface_types     , only : marbl_status_type
     use marbl_interface_types     , only : marbl_tracer_metadata_type
 
     implicit none
@@ -1400,7 +1391,6 @@ contains
     use marbl_share_mod       , only : column_sinking_particle_type
     use marbl_share_mod       , only : marbl_particulate_share_type
     use marbl_parms           , only : Tref
-    use shr_sys_mod           , only : shr_sys_abort
 
     ! !INPUT PARAMETERS:
     integer (int_kind)                      , intent(in)    :: k                   ! vertical model level
@@ -1921,6 +1911,7 @@ contains
     endif
 
     if (poc_error) then
+      ! FIXME: use marbl_status_log
        call shr_sys_abort(subname /&
             &/ ': mass ratio of ballast ' /&
             &/ 'production exceeds POC production')
@@ -2495,9 +2486,10 @@ contains
     end do
 
     if (ecosys_tracer_cnt /= n) then
-       call document(subname, 'actual ecosys_tracer_cnt', ecosys_tracer_cnt)
-       call document(subname, 'computed ecosys_tracer_cnt', n)
-       call exit_POP(sigAbort, 'inconsistency between actual ecosys_tracer_cnt and computed ecosys_tracer_cnt')
+       ! FIXME: pass error through marbl_status_log
+!       call document(subname, 'actual ecosys_tracer_cnt', ecosys_tracer_cnt)
+!       call document(subname, 'computed ecosys_tracer_cnt', n)
+!       call exit_POP(sigAbort, 'inconsistency between actual ecosys_tracer_cnt and computed ecosys_tracer_cnt')
     endif
 
   end subroutine marbl_check_ecosys_tracer_count_consistency

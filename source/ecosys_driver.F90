@@ -36,8 +36,6 @@ module ecosys_driver
 
   use marbl_interface           , only : marbl_interface_class
   use marbl_interface           , only : marbl_sizes_type
-  use marbl_interface_constants , only : marbl_status_ok
-  use marbl_interface_types     , only : marbl_status_type
   use marbl_interface_types     , only : marbl_diagnostics_type
   use marbl_interface_types     , only : photosynthetically_available_radiation_type
   use marbl_share_mod           , only : marbl_forcing_share_type
@@ -325,7 +323,6 @@ contains
     character (char_len)                :: init_ecosys_init_file_fmt          ! file format for option 'file'
     type(tracer_read)                   :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers
     type(marbl_sizes_type)              :: marbl_sizes
-    type(marbl_status_type)             :: marbl_status
 
     !-----------------------------------------------------------------------
     !  read in ecosys_driver namelist, to set namelist parameters that
@@ -479,13 +476,11 @@ contains
             marbl_forcing_diags=marbl_forcing_diags(iblock),   &
             marbl_forcing_input=marbl_forcing_input(iblock),   &
             marbl_forcing_output=marbl_forcing_output(iblock), &
-            marbl_forcing_share=marbl_forcing_share(iblock),   &
-            marbl_status=marbl_status)
+            marbl_forcing_share=marbl_forcing_share(iblock))
 
-       if (marbl_status%status /= marbl_status_ok) then
-          call exit_POP(sigAbort, &
-               'ERROR in ecosys_driver_init: marbl_init returned status: "'//marbl_status%message//'"')
-       end if
+       ! Check marbl(iblock)%StatusLog, abort on error
+       ! This might require a global collection of labort_marbl, abort
+       ! if any are true
     end do
 
     !--------------------------------------------------------------------
