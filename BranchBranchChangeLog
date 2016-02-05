@@ -2,6 +2,20 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    5 Feb 2016
+Tag Name:    pop2/branch_tags/marbl_logging_tags/marbl_logging_n04_marbl_ciso_n02_cesm_pop_2_1_20160114
+Tag Summary: Separate logs for init, surface forcing, and interior. Wrote out
+             marbl_log_error routine but haven't tried calling it yet. Moved
+             logic regarding whether or not to write a log entry to the
+             print_marbl_log routine (but it's just keying off my_task and
+             iblock for now).
+
+M       source/ecosys_driver.F90
+M       source/marbl_interface.F90
+M       source/marbl_logging.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    5 Feb 2016
 Tag Name:    pop2/branch_tags/marbl_logging_tags/marbl_logging_n03_marbl_ciso_n02_cesm_pop_2_1_20160114
 Tag Summary: Fixed segfault from yesterday - rogue pointer attribute in a
              variable declaration. Both namelists that are read by marbl

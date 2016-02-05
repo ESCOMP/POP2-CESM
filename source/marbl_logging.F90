@@ -39,6 +39,7 @@ module marbl_logging
   contains
     procedure, public :: construct => marbl_log_constructor
     procedure, public :: log_namelist => marbl_log_namelist
+    procedure, public :: log_error    => marbl_log_error
     procedure, public :: erase => marbl_log_erase
   end type marbl_log_type
 
@@ -100,10 +101,11 @@ contains
 
   end subroutine marbl_log_constructor
 
-  subroutine marbl_log_namelist(this, NamelistName, NamelistContents, CodeLoc)
+  subroutine marbl_log_namelist(this, NamelistName, NamelistContents, CodeLoc, ElemInd)
 
     class(marbl_log_type), intent(inout) :: this
     character(len=*),      intent(in)    :: NamelistName, NamelistContents, CodeLoc
+    integer, optional,     intent(in)    :: ElemInd
     type(marbl_status_log_entry_type), pointer :: new_entry
 
     ! Only allocate memory and add entry if we want to log full namelist!
@@ -113,7 +115,11 @@ contains
 
     allocate(new_entry)
     nullify(new_entry%next)
-    new_entry%ElementInd = 1
+    if (present(ElemInd)) then
+      new_entry%ElementInd = ElemInd
+    else
+      new_entry%ElementInd = 1
+    end if
     write(new_entry%LogMessage, "(4A)") "Contents of ", trim(NamelistName), ": ", &
                                         trim(NamelistContents)
     new_entry%CodeLocation = trim(CodeLoc)
@@ -128,6 +134,41 @@ contains
     this%LastEntry => new_entry
 
   end subroutine marbl_log_namelist
+
+  subroutine marbl_log_error(this, ErrorMsg, CodeLoc, ElemInd)
+
+    class(marbl_log_type), intent(inout) :: this
+    character(len=*),      intent(in)    :: ErrorMsg, CodeLoc
+    integer, optional,     intent(in)    :: ElemInd
+    type(marbl_status_log_entry_type), pointer :: new_entry
+
+    ! Only allocate memory and add entry if we want to log full namelist!
+    this%labort_marbl = .true.
+    if (.not.this%OutputOptions%lLogError) then
+      return
+    end if
+
+    allocate(new_entry)
+    nullify(new_entry%next)
+    if (present(ElemInd)) then
+      new_entry%ElementInd = ElemInd
+    else
+      new_entry%ElementInd = 1
+    end if
+    write(new_entry%LogMessage, "(4A)") "ERROR (", trim(CodeLoc), "): ",      &
+                                        trim(ErrorMsg)
+    new_entry%CodeLocation = trim(CodeLoc)
+
+    if (associated(this%FullLog)) then
+      ! Append new entry to last entry in the log
+      this%LastEntry%next => new_entry
+    else
+      this%FullLog => new_entry
+    end if
+    ! Update LastEntry attribute of linked list
+    this%LastEntry => new_entry
+
+  end subroutine marbl_log_error
 
   subroutine marbl_log_erase(this)
 

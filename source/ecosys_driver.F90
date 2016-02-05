@@ -26,6 +26,7 @@ module ecosys_driver
   use prognostic                , only : TRACER
   use exit_mod                  , only : sigAbort, exit_pop
   use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
+  use communicate               , only : my_task, master_task
 
   use marbl_share_mod           , only : autotroph_cnt, zooplankton_cnt
   use marbl_share_mod           , only : ecosys_tracer_cnt
@@ -287,7 +288,6 @@ contains
     use time_management       , only : init_time_flag
     use passive_tracer_tools  , only : set_tracer_indices
     use passive_tracer_tools  , only : read_field
-    use communicate           , only : my_task, master_task
     use named_field_mod       , only : named_field_register
     use named_field_mod       , only : named_field_set
     use prognostic            , only : curtime
@@ -480,17 +480,8 @@ contains
             marbl_forcing_output=marbl_forcing_output(iblock), &
             marbl_forcing_share=marbl_forcing_share(iblock))
 
-       ! FIXME (02-2016,mnl): maybe move logic of which task / iblock
-       !                      should print into print_marbl_log()
-       if ((my_task.eq.master_task).and.(iblock.eq.1)) then
-         call print_marbl_log(marbl(iblock)%StatusLog)
-       end if
-       ! Check marbl(iblock)%StatusLog, abort on error
-       if (marbl(iblock)%StatusLog%labort_marbl) then
-         call marbl(iblock)%StatusLog%erase()
-         call exit_POP(sigAbort, 'ERROR reported from MARBL library')
-       end if
-       call marbl(iblock)%StatusLog%erase()
+       call print_marbl_log(marbl(iblock)%InitStatusLog, iblock)
+       call marbl(iblock)%InitStatusLog%erase()
     end do
 
     !--------------------------------------------------------------------
@@ -3309,7 +3300,6 @@ contains
     !  Includes reading CO2 and D13C and D14C data from file if option file is used
     !---------------------------------------------------------------------
 
-    use communicate     , only : my_task, master_task
     use io_types        , only : stdout
     use constants       , only : blank_fmt      
     use constants       , only : delim_fmt      
@@ -3391,8 +3381,6 @@ contains
     use marbl_share_mod , only : ciso_atm_d13c_filename                                                         
     use broadcast       , only : broadcast_array
     use broadcast       , only : broadcast_scalar
-    use communicate     , only : master_task
-    use communicate     , only : my_task
     use constants       , only : blank_fmt
     use constants       , only : delim_fmt
     use constants       , only : ndelim_fmt
@@ -3502,8 +3490,6 @@ contains
     use marbl_share_mod , only : ciso_atm_d14c_filename                                                         
     use broadcast       , only : broadcast_array
     use broadcast       , only : broadcast_scalar
-    use communicate     , only : master_task
-    use communicate     , only : my_task
     use constants       , only : blank_fmt
     use constants       , only : delim_fmt
     use constants       , only : ndelim_fmt
@@ -3755,8 +3741,6 @@ contains
     use constants       , only : blank_fmt
     use constants       , only : delim_fmt
     use constants       , only : ndelim_fmt
-    use communicate     , only : master_task
-    use communicate     , only : my_task
 
     implicit none
 
@@ -3866,8 +3850,6 @@ contains
     use time_management, only : iday_of_year
     use time_management, only : iyear
     use grid           , only : TLATD
-    use communicate    , only : master_task
-    use communicate    , only : my_task
     
     implicit none
 
@@ -3991,17 +3973,25 @@ contains
 
   end subroutine ecosys_saved_state_constructor
 
-  subroutine print_marbl_log(log_to_print)
+  subroutine print_marbl_log(log_to_print, iblock)
 
     class(marbl_log_type), intent(in) :: log_to_print
+    integer,               intent(in) :: iblock
 
     type(marbl_status_log_entry_type), pointer :: tmp
 
-    tmp => log_to_print%FullLog
-    do while (associated(tmp))
-      write(stdout, *) trim(tmp%LogMessage)
-      tmp => tmp%next
-    end do
+       ! FIXME (02-2016,mnl): need better logic on which items to print
+    if ((my_task.eq.master_task).and.(iblock.eq.1)) then
+      tmp => log_to_print%FullLog
+      do while (associated(tmp))
+        write(stdout, *) trim(tmp%LogMessage)
+        tmp => tmp%next
+      end do
+    end if
+
+    if (log_to_print%labort_marbl) then
+      call exit_POP(sigAbort, 'ERROR reported from MARBL library')
+    end if
 
   end subroutine print_marbl_log
 

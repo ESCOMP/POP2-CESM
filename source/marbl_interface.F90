@@ -73,7 +73,9 @@ module marbl_interface
   type, public :: marbl_interface_class
      ! FIXME(bja, 2015-01) needs to private when all data is isolated!
      type(marbl_sizes_type), private :: marbl_sizes
-     type(marbl_log_type), public :: StatusLog
+     type(marbl_log_type) :: InitStatusLog
+     type(marbl_log_type), dimension(:), allocatable :: SurfaceForcingStatusLog
+     type(marbl_log_type), dimension(:), allocatable :: InteriorStatusLog
 
    contains
      procedure, public :: init => marbl_init
@@ -148,9 +150,18 @@ contains
     !-----------------------------------------------------------------------
     integer (int_kind) :: num_marbl_stf = 13 !FIXME - this should not be hard-wired - move to marbl_share_mod
     integer :: marbl_total_tracer_cnt  
+    integer :: i
     !-----------------------------------------------------------------------
 
-    call this%StatusLog%construct()
+    call this%InitStatusLog%construct()
+    allocate(this%SurfaceForcingStatusLog(num_elements_forcing))
+    do i=1,num_elements_forcing
+      call this%SurfaceForcingStatusLog(i)%construct()
+    end do
+    allocate(this%InteriorStatusLog(num_elements_interior))
+    do i=1,num_elements_interior
+      call this%InteriorStatusLog(i)%construct()
+    end do
 
     !--------------------------------------------------------------------
     !  initialize marbl sizes
@@ -168,11 +179,11 @@ contains
     ! initialize marbl namelists
     !--------------------------------------------------------------------
 
-    call marbl_init_nml(nl_buffer, this%StatusLog)
+    call marbl_init_nml(nl_buffer, this%InitStatusLog)
     ! FIXME: make sure no error in StatusLog, otherwise return to driver!
 
     if (ciso_on) then
-       call marbl_ciso_init_nml(nl_buffer, this%StatusLog)
+       call marbl_ciso_init_nml(nl_buffer, this%InitStatusLog)
 
        ! FIXME: make sure no error in StatusLog, otherwise return to driver!
     end if
