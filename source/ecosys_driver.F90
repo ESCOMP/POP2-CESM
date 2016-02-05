@@ -41,6 +41,8 @@ module ecosys_driver
   use marbl_share_mod           , only : marbl_forcing_share_type
   use marbl_interface_types     , only : marbl_forcing_input_type
   use marbl_interface_types     , only : marbl_forcing_output_type
+  use marbl_logging             , only : marbl_log_type
+  use marbl_logging             , only : marbl_status_log_entry_type
   use ecosys_mod                , only : marbl_ecosys_set_interior
   use ecosys_mod                , only : marbl_ecosys_compute_totalChl
   use ecosys_diagnostics_mod    , only : max_forcing_diags
@@ -481,6 +483,15 @@ contains
        ! Check marbl(iblock)%StatusLog, abort on error
        ! This might require a global collection of labort_marbl, abort
        ! if any are true
+       if (my_task.eq.master_task) then
+         write(stdout, "(A)") "MNL MNL MNL -- testing print_marbl_log"
+         call print_marbl_log(marbl(iblock)%StatusLog)
+       end if
+       if (marbl(iblock)%StatusLog%labort_marbl) then
+         call marbl(iblock)%StatusLog%erase()
+         call exit_POP(sigAbort, 'ERROR reported from MARBL library')
+       end if
+       call marbl(iblock)%StatusLog%erase()
     end do
 
     !--------------------------------------------------------------------
@@ -643,7 +654,6 @@ contains
     use grid                  , only : fill_points
     use grid                  , only : n_topo_smooth
     use grid                  , only : KMT
-    use exit_mod              , only : exit_POP
 
     implicit none
     
@@ -3302,7 +3312,6 @@ contains
 
     use communicate     , only : my_task, master_task
     use io_types        , only : stdout
-    use exit_mod        , only : exit_POP, sigAbort
     use constants       , only : blank_fmt      
     use constants       , only : delim_fmt      
     use constants       , only : ndelim_fmt     
@@ -3982,6 +3991,20 @@ contains
     allocate(this%ph_surf_alt_co2   (nx_block, ny_block, max_blocks_clinic) )
 
   end subroutine ecosys_saved_state_constructor
+
+  subroutine print_marbl_log(log_to_print)
+
+    class(marbl_log_type), intent(in) :: log_to_print
+
+    type(marbl_status_log_entry_type), pointer :: tmp
+
+    tmp => log_to_print%FullLog
+    do while (associated(tmp))
+      write(stdout, *) tmp%LogMessage
+      tmp => tmp%next
+    end do
+
+  end subroutine print_marbl_log
 
 end module ecosys_driver
 

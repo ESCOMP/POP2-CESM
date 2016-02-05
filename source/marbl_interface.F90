@@ -150,6 +150,7 @@ contains
     integer :: marbl_total_tracer_cnt  
     !-----------------------------------------------------------------------
 
+    print*, "MNL MNL MNL", this%StatusLog%labort_marbl
     call this%StatusLog%construct()
 
     !--------------------------------------------------------------------

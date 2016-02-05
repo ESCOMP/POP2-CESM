@@ -568,6 +568,8 @@ contains
     if (io_error /= 0) then
        ! Add error about not reading ecosys_parms_nml to marbl_status_log
        return
+    else
+      call marbl_status_log%log_namelist('ecosys_parms_nml', tmp_nl_buffer, 'marbl_parms::marbl_params_init')
     end if
 
   end subroutine marbl_params_init
