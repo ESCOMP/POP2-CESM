@@ -480,13 +480,12 @@ contains
             marbl_forcing_output=marbl_forcing_output(iblock), &
             marbl_forcing_share=marbl_forcing_share(iblock))
 
-       ! Check marbl(iblock)%StatusLog, abort on error
-       ! This might require a global collection of labort_marbl, abort
-       ! if any are true
-       if (my_task.eq.master_task) then
-         write(stdout, "(A)") "MNL MNL MNL -- testing print_marbl_log"
+       ! FIXME (02-2016,mnl): maybe move logic of which task / iblock
+       !                      should print into print_marbl_log()
+       if ((my_task.eq.master_task).and.(iblock.eq.1)) then
          call print_marbl_log(marbl(iblock)%StatusLog)
        end if
+       ! Check marbl(iblock)%StatusLog, abort on error
        if (marbl(iblock)%StatusLog%labort_marbl) then
          call marbl(iblock)%StatusLog%erase()
          call exit_POP(sigAbort, 'ERROR reported from MARBL library')
@@ -4000,7 +3999,7 @@ contains
 
     tmp => log_to_print%FullLog
     do while (associated(tmp))
-      write(stdout, *) tmp%LogMessage
+      write(stdout, *) trim(tmp%LogMessage)
       tmp => tmp%next
     end do
 

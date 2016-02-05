@@ -20,7 +20,7 @@ module marbl_logging
   end type marbl_status_log_entry_type
 
   type, private :: marbl_log_output_options_type
-!    logical :: labort_on_warning ! True => elevate Warnings to Errors
+    logical :: labort_on_warning ! True => elevate Warnings to Errors
     logical :: lLogVerbose       ! Debugging output should be given Verbose label
     logical :: lLogNamelist      ! Write namelists to log?
     logical :: lLogGeneral       ! General diagnostic output
@@ -51,11 +51,11 @@ contains
     logical, intent(in), optional :: labort_on_warning, LogVerbose, LogNamelist
     logical, intent(in), optional :: LogGeneral, LogWarning, LogError
 
-!    if (present(labort_on_warning)) then
-!      this%labort_on_warning = labort_on_warning
-!    else
-!      this%labort_on_warning = .false.
-!    end if
+    if (present(labort_on_warning)) then
+      this%labort_on_warning = labort_on_warning
+    else
+      this%labort_on_warning = .false.
+    end if
 
     if (present(LogVerbose)) then
       this%lLogVerbose = LogVerbose
@@ -96,8 +96,7 @@ contains
     this%labort_marbl = .false.
     nullify(this%FullLog)
     nullify(this%LastEntry)
-    !call this%OutputOptions%construct()
-    this%OutputOptions%lLogNamelist = .true.
+    call this%OutputOptions%construct()
 
   end subroutine marbl_log_constructor
 

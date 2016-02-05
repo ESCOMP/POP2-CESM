@@ -625,20 +625,9 @@ contains
     if (nml_error /= 0) then
        ! Add error about not reading ecosys_nml to marbl_status_log
        return
+    else
+      call marbl_status_log%log_namelist('ecosys_nml', tmp_nl_buffer, 'ecosys_mod::marbl_init_nml')
     end if
-
-    if (my_task == master_task) then
-       write(stdout, blank_fmt)
-       write(stdout, ndelim_fmt)
-       write(stdout, blank_fmt)
-       write(stdout, *) ' ecosys:'
-       write(stdout, blank_fmt)
-       write(stdout, *) ' ecosys_nml namelist settings:'
-       write(stdout, blank_fmt)
-       write(stdout, ecosys_nml)
-       write(stdout, blank_fmt)
-       write(stdout, delim_fmt)
-    endif
 
     !-----------------------------------------------------------------------
     ! reassign values temporary input values to correct arrays

@@ -73,7 +73,7 @@ module marbl_interface
   type, public :: marbl_interface_class
      ! FIXME(bja, 2015-01) needs to private when all data is isolated!
      type(marbl_sizes_type), private :: marbl_sizes
-     type(marbl_log_type), pointer, public :: StatusLog
+     type(marbl_log_type), public :: StatusLog
 
    contains
      procedure, public :: init => marbl_init
@@ -150,7 +150,6 @@ contains
     integer :: marbl_total_tracer_cnt  
     !-----------------------------------------------------------------------
 
-    print*, "MNL MNL MNL", this%StatusLog%labort_marbl
     call this%StatusLog%construct()
 
     !--------------------------------------------------------------------
