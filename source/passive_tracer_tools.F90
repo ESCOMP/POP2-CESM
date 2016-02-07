@@ -90,6 +90,7 @@
       extract_surf_avg,                      &
       comp_surf_avg,                         &
       set_tracer_indices,                    &
+      forcing_monthly_every_ts,              & ! from marbl_interface_types
       tracer_read,                           & ! from marbl_interface_types
       tracer_read_init
 

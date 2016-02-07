@@ -35,9 +35,7 @@ module cfc_mod
    use io_types, only: stdout
    use io_tools, only: document
    use tavg, only: define_tavg_field, accumulate_tavg_field
-   use marbl_interface_types, only: forcing_monthly_every_ts
-! FIXME: relocate forcing_monthly_every_ts type to passive_tracer_tools once
-!        it's removed from MARBL
+   use passive_tracer_tools, only: forcing_monthly_every_ts
    use passive_tracer_tools, only: ind_name_pair, read_field, tracer_read
    use broadcast
    use netcdf

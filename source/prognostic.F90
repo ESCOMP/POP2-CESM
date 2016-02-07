@@ -16,6 +16,7 @@
    use blocks                , only : nx_block, ny_block
    use domain_size           , only : max_blocks_clinic, km, nt
    use marbl_interface_types , only : tracer_field => marbl_tracer_metadata_type
+   use marbl_share_mod       , only : max_forcing_fields
    use constants
 
    implicit none

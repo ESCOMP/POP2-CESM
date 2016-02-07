@@ -43,11 +43,12 @@
    use io_tools, only: document
    use passive_tracer_tools, only: set_tracer_indices
 
+   use marbl_sizes, only: &
+       ecosys_used_tracer_cnt
 
    use ecosys_driver, only:               &
-       ecosys_driver_tracer_cnt_init,     &
-       ecosys_driver_tracer_cnt,          &
        ecosys_driver_init,                &
+       ecosys_driver_tracer_cnt_init,     &
        ecosys_driver_tracer_ref_val,      &
        ecosys_driver_set_sflux,           &
        ecosys_driver_tavg_forcing,        &
@@ -338,7 +339,7 @@
    cumulative_nt = 2
 
    if (ecosys_on) then
-      call set_tracer_indices('ECOSYS_DRIVER', ecosys_driver_tracer_cnt, cumulative_nt,  &
+      call set_tracer_indices('ECOSYS_DRIVER', ecosys_used_tracer_cnt, cumulative_nt,  &
                               ecosys_driver_ind_begin, ecosys_driver_ind_end)
    end if
 

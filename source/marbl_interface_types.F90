@@ -3,19 +3,37 @@ module marbl_interface_types
 
   use marbl_kinds_mod, only : c0, c1, r8, log_kind, int_kind, char_len
   use marbl_interface_constants, only : marbl_str_length
-  use ecosys_constants, only : autotroph_cnt, zooplankton_cnt, ecosys_tracer_cnt
 
   implicit none
 
   private
 
   !*****************************************************************************
+
   type, public :: marbl_status_type
      integer :: status
      character(marbl_str_length) :: message
   end type marbl_status_type
 
   !*****************************************************************************
+
+  type, public :: marbl_domain_type
+     integer(int_kind)     :: km                            ! number of vertical grid cells
+     integer(int_kind)     :: kmt                           ! index of ocean floor
+     integer(int_kind)     :: num_PAR_subcols               ! number of PAR subcols
+     integer(int_kind)     :: num_elements_surface_forcing  ! number of surface forcing columns
+     integer(int_kind)     :: num_elements_interior_forcing ! number of interior forcing columns
+     real(r8), allocatable :: zt(:)                         ! (km) vert dist from sfc to midpoint of layer
+     real(r8), allocatable :: zw(:)                         ! (km) vert dist from sfc to bottom of layer
+     real(r8), allocatable :: delta_z(:)                    ! (km) delta z - different values for partial bottom cells
+     real(r8), allocatable :: dz(:)                         ! (km) delta z - same values for partial bottom cells
+     logical(log_kind)     :: land_mask
+   contains
+     procedure, public :: construct => marbl_domain_constructor
+  end type marbl_domain_type
+
+  !*****************************************************************************
+
   type, public :: marbl_tracer_metadata_type
      character(char_len) :: short_name
      character(char_len) :: long_name
@@ -27,6 +45,7 @@ module marbl_interface_types
   end type marbl_tracer_metadata_type
 
   !*****************************************************************************
+
   type, public :: marbl_tracer_read_type
      character(char_len) :: mod_varname
      character(char_len) :: filename
@@ -37,53 +56,20 @@ module marbl_interface_types
   end type marbl_tracer_read_type
 
   !*****************************************************************************
-  type, public :: marbl_column_domain_type
-     logical(log_kind)     :: land_mask
-     integer(int_kind)     :: PAR_nsubcols      ! number of sub-column values for PAR
-     integer(int_kind)     :: km                ! number of vertical grid cells
-     integer(int_kind)     :: kmt               ! index of ocean floor
-     real(r8), allocatable :: zt(:)             ! (km) vert dist from sfc to midpoint of layer
-     real(r8), allocatable :: zw(:)             ! (km) vert dist from sfc to bottom of layer
-     real(r8), allocatable :: delta_z(:)        ! (km) delta z - different values for partial bottom cells
-     real(r8), allocatable :: dz(:)             ! (km) delta z - same values for partial bottom cells
-     real(r8), allocatable :: PAR_col_frac(:)   ! column fraction occupied by each sub-column
-     real(r8), allocatable :: surf_shortwave(:) ! surface shortwave for each sub-column (W/m^2)
-  end type marbl_column_domain_type
-
-  !*****************************************************************************
-  type, public :: forcing_monthly_every_ts
-     type(marbl_tracer_read_type)            :: input
-     logical(log_kind)                       :: has_data
-     real(r8), dimension(:,:,:,:,:), pointer :: DATA
-     character(char_len)                     :: interp_type        ! = 'linear'
-     character(char_len)                     :: data_type          ! = 'monthly-calendar'
-     character(char_len)                     :: interp_freq        ! = 'every-timestep'
-     character(char_len)                     :: filename           ! = 'not-used-for-monthly'
-     character(char_len)                     :: data_label         ! = 'not-used-for-monthly'
-     real(r8), dimension(12)                 :: data_time          ! times where DATA is given
-     real(r8), dimension(20)                 :: data_renorm        ! not used for monthly
-     real(r8)                                :: data_inc           ! not used for monthly data
-     real(r8)                                :: data_next          ! time that will be used for the next
-                                                                   ! value of forcing data that is needed
-     real(r8)                                :: data_update        ! time when the a new forcing value
-                                                                   ! needs to be added to interpolation set
-     real(r8)                                :: interp_inc         ! not used for 'every-timestep' interp
-     real(r8)                                :: interp_next        ! not used for 'every-timestep' interp
-     real(r8)                                :: interp_last        ! not used for 'every-timestep' interp
-     integer(int_kind)                       :: data_time_min_loc  ! index of the third dimension of data_time
-                                                                   ! containing the minimum forcing time
-  end type forcing_monthly_every_ts
-
-  !*****************************************************************************
   ! FIXME(mnl,2016-01) move PAR_col_frac and surf_shortwave into this datatype
   !                    and come up with better name
   type, public :: marbl_gcm_state_type
-     real(r8), allocatable :: temperature(:) ! (km)
-     real(r8), allocatable :: salinity(:)    ! (km)
+     real(r8), allocatable :: temperature(:)    ! (km)
+     real(r8), allocatable :: salinity(:)       ! (km)
+     real(r8), allocatable :: PAR_col_frac(:)   ! column fraction occupied by each sub-column
+     real(r8), allocatable :: surf_shortwave(:) ! surface shortwave for each sub-column (W/m^2)
+   contains
+     procedure, public :: construct => marbl_gcm_state_constructor
   end type marbl_gcm_state_type
 
   !*****************************************************************************
-  type :: marbl_single_diagnostic_type
+
+  type, private :: marbl_single_diagnostic_type
      ! marbl_singl_diagnostic : 
      ! a private type, this contains both the metadata
      ! and the actual diagnostic data for a single
@@ -102,7 +88,6 @@ module marbl_interface_types
      procedure :: initialize  => marbl_single_diag_init
   end type marbl_single_diagnostic_type
 
-  !*****************************************************************************
   type, public :: marbl_diagnostics_type
      ! marbl_diagnostics : 
      ! used to pass diagnostic information from marbl back to
@@ -120,8 +105,11 @@ module marbl_interface_types
   end type marbl_diagnostics_type
 
   !*****************************************************************************
+
   type, public :: marbl_forcing_input_type
      logical (log_kind), allocatable, dimension(:)   :: land_mask
+     real (r8) :: seconds_in_year  ! this is set by the gcm and can change in time if leap year
+     real (r8) :: d14c_glo_avg     ! this is computed by the gcm            
 
      real (r8), allocatable, dimension(:)   :: u10_sqr         
      real (r8), allocatable, dimension(:)   :: ifrac           ! ice fraction
@@ -146,6 +134,7 @@ module marbl_interface_types
   end type marbl_forcing_input_type
 
   !*****************************************************************************
+
   type, public :: marbl_forcing_output_type
      real (r8), allocatable, dimension(:)   :: ph_prev         
      real (r8), allocatable, dimension(:)   :: ph_prev_alt_co2 
@@ -174,121 +163,50 @@ module marbl_interface_types
   end type marbl_forcing_output_type
 
   !*****************************************************************************
-  type, public :: carbonate_type
-     ! FIXME(bja, 2015-07) remove alt_co2 variables, and just reuse
-     ! the type as type(column_carbonate_type) :: carbonate, carbonate_alt
-     real (r8) :: CO3 ! carbonate ion
-     real (r8) :: HCO3 ! bicarbonate ion
-     real (r8) :: H2CO3 ! carbonic acid
-     real (r8) :: pH
-     real (r8) :: CO3_sat_calcite
-     real (r8) :: CO3_sat_aragonite
-     real (r8) :: CO3_ALT_CO2 ! carbonate ion, alternative CO2
-     real (r8) :: HCO3_ALT_CO2 ! bicarbonate ion, alternative CO2
-     real (r8) :: H2CO3_ALT_CO2  ! carbonic acid, alternative CO2
-     real (r8) :: pH_ALT_CO2
-  end type carbonate_type
+
+  type, public :: forcing_monthly_every_ts
+     type(marbl_tracer_read_type)            :: input
+     logical(log_kind)                       :: has_data
+     real(r8), dimension(:,:,:,:,:), pointer :: DATA
+     character(char_len)                     :: interp_type        ! = 'linear'
+     character(char_len)                     :: data_type          ! = 'monthly-calendar'
+     character(char_len)                     :: interp_freq        ! = 'every-timestep'
+     character(char_len)                     :: filename           ! = 'not-used-for-monthly'
+     character(char_len)                     :: data_label         ! = 'not-used-for-monthly'
+     real(r8), dimension(12)                 :: data_time          ! times where DATA is given
+     real(r8), dimension(20)                 :: data_renorm        ! not used for monthly
+     real(r8)                                :: data_inc           ! not used for monthly data
+     real(r8)                                :: data_next          ! time that will be used for the next
+                                                                   ! value of forcing data that is needed
+     real(r8)                                :: data_update        ! time when the a new forcing value
+                                                                   ! needs to be added to interpolation set
+     real(r8)                                :: interp_inc         ! not used for 'every-timestep' interp
+     real(r8)                                :: interp_next        ! not used for 'every-timestep' interp
+     real(r8)                                :: interp_last        ! not used for 'every-timestep' interp
+     integer(int_kind)                       :: data_time_min_loc  ! index of the third dimension of data_time
+                                                                   ! containing the minimum forcing time
+  end type forcing_monthly_every_ts
 
   !*****************************************************************************
-  type, public :: autotroph_secondary_species_type
-     real (r8) :: thetaC          ! local Chl/C ratio (mg Chl/mmol C)
-     real (r8) :: QCaCO3          ! CaCO3/C ratio (mmol CaCO3/mmol C)
-     real (r8) :: Qfe             ! init fe/C ratio (mmolFe/mmolC)
-     real (r8) :: gQfe            ! fe/C for growth
-     real (r8) :: Qsi             ! initial Si/C ratio (mmol Si/mmol C)
-     real (r8) :: gQsi            ! diatom Si/C ratio for growth (new biomass)
-     real (r8) :: VNO3            ! NH4 uptake rate (non-dim)
-     real (r8) :: VNH4            ! NO3 uptake rate (non-dim)
-     real (r8) :: VNtot           ! total N uptake rate (non-dim)
-     real (r8) :: NO3_V           ! nitrate uptake (mmol NO3/m^3/sec)
-     real (r8) :: NH4_V           ! ammonium uptake (mmol NH4/m^3/sec)
-     real (r8) :: PO4_V           ! PO4 uptake (mmol PO4/m^3/sec)
-     real (r8) :: DOP_V           ! DOP uptake (mmol DOP/m^3/sec)
-     real (r8) :: VPO4            ! C-specific PO4 uptake (non-dim)
-     real (r8) :: VDOP            ! C-specific DOP uptake rate (non-dim)
-     real (r8) :: VPtot           ! total P uptake rate (non-dim)
-     real (r8) :: f_nut           ! nut limitation factor, modifies C fixation (non-dim)
-     real (r8) :: VFe             ! C-specific Fe uptake (non-dim)
-     real (r8) :: VSiO3           ! C-specific SiO3 uptake (non-dim)
-     real (r8) :: light_lim       ! light limitation factor
-     real (r8) :: PCphoto         ! C-specific rate of photosynth. (1/sec)
-     real (r8) :: photoC          ! C-fixation (mmol C/m^3/sec)
-     real (r8) :: photoFe         ! iron uptake
-     real (r8) :: photoSi         ! silicon uptake (mmol Si/m^3/sec)
-     real (r8) :: photoacc        ! Chl synth. term in photoadapt. (GD98) (mg Chl/m^3/sec)
-     real (r8) :: auto_loss       ! autotroph non-grazing mort (mmol C/m^3/sec)
-     real (r8) :: auto_loss_poc   ! auto_loss routed to poc (mmol C/m^3/sec)
-     real (r8) :: auto_loss_doc   ! auto_loss routed to doc (mmol C/m^3/sec)
-     real (r8) :: auto_loss_dic   ! auto_loss routed to dic (mmol C/m^3/sec)
-     real (r8) :: auto_agg        ! autotroph aggregation (mmol C/m^3/sec)
-     real (r8) :: auto_graze      ! autotroph grazing rate (mmol C/m^3/sec)
-     real (r8) :: auto_graze_zoo  ! auto_graze routed to zoo (mmol C/m^3/sec)
-     real (r8) :: auto_graze_poc  ! auto_graze routed to poc (mmol C/m^3/sec)
-     real (r8) :: auto_graze_doc  ! auto_graze routed to doc (mmol C/m^3/sec)
-     real (r8) :: auto_graze_dic  ! auto_graze routed to dic (mmol C/m^3/sec)
-     real (r8) :: Pprime          ! used to limit autotroph mort at low biomass (mmol C/m^3)
-     real (r8) :: CaCO3_PROD      ! prod. of CaCO3 by small phyto (mmol CaCO3/m^3/sec)
-     real (r8) :: Nfix            ! total Nitrogen fixation (mmol N/m^3/sec)
-     real (r8) :: Nexcrete        ! fixed N excretion
-     real (r8) :: remaining_P_dop ! remaining_P from mort routed to DOP pool
-     real (r8) :: remaining_P_dip ! remaining_P from mort routed to remin
-  end type autotroph_secondary_species_type
 
-  !*****************************************************************************
-  type, public :: zooplankton_secondary_species_type
-     real (r8):: f_zoo_detr       ! frac of zoo losses into large detrital pool (non-dim)
-     real (r8):: x_graze_zoo      ! {auto, zoo}_graze routed to zoo (mmol C/m^3/sec)
-     real (r8):: zoo_graze        ! zooplankton losses due to grazing (mmol C/m^3/sec)
-     real (r8):: zoo_graze_zoo    ! grazing of zooplankton routed to zoo (mmol C/m^3/sec)
-     real (r8):: zoo_graze_poc    ! grazing of zooplankton routed to poc (mmol C/m^3/sec)
-     real (r8):: zoo_graze_doc    ! grazing of zooplankton routed to doc (mmol C/m^3/sec)
-     real (r8):: zoo_graze_dic    ! grazing of zooplankton routed to dic (mmol C/m^3/sec)
-     real (r8):: zoo_loss         ! mortality & higher trophic grazing on zooplankton (mmol C/m^3/sec)
-     real (r8):: zoo_loss_poc     ! zoo_loss routed to poc (mmol C/m^3/sec)
-     real (r8):: zoo_loss_doc     ! zoo_loss routed to doc (mmol C/m^3/sec)
-     real (r8):: zoo_loss_dic     ! zoo_loss routed to dic (mmol C/m^3/sec)
-     real (r8):: Zprime           ! used to limit zoo mort at low biomass (mmol C/m^3)
-  end type zooplankton_secondary_species_type
-
-  !*****************************************************************************
-  type, public :: photosynthetically_available_radiation_type
-     real(r8), allocatable :: col_frac(:)    ! column fraction occupied by each sub-column, dimension is (PAR_nsubcols)
-     real(r8), allocatable :: interface(:,:) ! PAR at layer interfaces, dimensions are (0:km,PAR_nsubcols)
-     real(r8), allocatable :: avg(:,:)       ! PAR averaged over layer, dimensions are (km,PAR_nsubcols)
-     real(r8), allocatable :: KPARdz(:)      ! PAR adsorption coefficient times dz (cm), dimension is (km)
-  end type photosynthetically_available_radiation_type
-
-  !*****************************************************************************
-  type, public :: dissolved_organic_matter_type
-     real (r8) :: DOC_prod         ! production of DOC (mmol C/m^3/sec)
-     real (r8) :: DOC_remin        ! remineralization of DOC (mmol C/m^3/sec)
-     real (r8) :: DOCr_remin       ! remineralization of DOCr
-     real (r8) :: DON_prod         ! production of DON
-     real (r8) :: DON_remin        ! remineralization of DON
-     real (r8) :: DONr_remin       ! remineralization of DONr
-     real (r8) :: DOP_prod         ! production of DOP
-     real (r8) :: DOP_remin        ! remineralization of DOP
-     real (r8) :: DOPr_remin       ! remineralization of DOPr
-  end type dissolved_organic_matter_type
-
-  !*****************************************************************************
-  type :: marbl_forcing_constant_type
+  !-------------------------------------------------
+  type, private :: marbl_forcing_constant_type
      real(KIND=r8) :: field_constant           ! constant value for field_source
-
    contains
       procedure :: initialize  => marbl_forcing_constant_init
   end type marbl_forcing_constant_type
+  !-------------------------------------------------
 
-  !*****************************************************************************
-  type :: marbl_forcing_driver_type
+  !-------------------------------------------------
+  type, private :: marbl_forcing_driver_type
      character(char_len) :: marbl_driver_varname
-
    contains
      procedure :: initialize  => marbl_forcing_driver_init
   end type marbl_forcing_driver_type
+  !-------------------------------------------------
 
-  !*****************************************************************************
-  type :: marbl_forcing_file_type
+  !-------------------------------------------------
+  type, private :: marbl_forcing_file_type
      character(char_len)    :: filename
      character(char_len)    :: file_varname
      character(char_len)    :: temporal      ! temporarily to support current I/O routines
@@ -297,21 +215,22 @@ module marbl_interface_types
      integer(KIND=int_kind) :: year_align
      integer(KIND=int_kind) :: date
      integer(KIND=int_kind) :: time
-
    contains
      procedure :: initialize  => marbl_forcing_file_init
   end type marbl_forcing_file_type
+  !-------------------------------------------------
 
-  !*****************************************************************************
-  type :: marbl_forcing_monthly_calendar_type
+  !-------------------------------------------------
+  type, private :: marbl_forcing_monthly_calendar_type
      type (forcing_monthly_every_ts), pointer :: marbl_forcing_calendar_name
-
    contains
      procedure :: initialize  => marbl_forcing_monthly_calendar_init
   end type marbl_forcing_monthly_calendar_type
+  !-------------------------------------------------
 
-  !*****************************************************************************
-  type :: marbl_single_forcing_field_type
+  !-------------------------------------------------
+  ! single_forcing_field_type (contains the above 4 type definitions)
+  type, private :: marbl_single_forcing_field_type
      character(char_len)                        :: marbl_varname
      character(char_len)                        :: field_units          ! units represent what is in field_data,
                                                                         ! not the file (up to driver to do unit conversion)
@@ -326,26 +245,65 @@ module marbl_interface_types
      type (marbl_forcing_driver_type)           :: field_driver_info
      type (marbl_forcing_file_type)             :: field_file_info
      type (marbl_forcing_monthly_calendar_type) :: field_monthly_calendar_info
-
    contains
      procedure :: initialize  => marbl_single_forcing_field_init
   end type marbl_single_forcing_field_type
+  !-------------------------------------------------
 
-  !*****************************************************************************
+  !-------------------------------------------------
   type, public :: marbl_forcing_fields_type
      integer(KIND=int_kind) :: num_elements
      integer(KIND=int_kind) :: forcing_field_cnt
      type(marbl_single_forcing_field_type), dimension(:), allocatable :: forcing_fields
-
    contains
      procedure, public :: construct         => marbl_forcing_fields_constructor
      procedure, public :: add_forcing_field => marbl_forcing_fields_add
      procedure, public :: deconstruct       => marbl_forcing_fields_deconstructor
   end type marbl_forcing_fields_type
+  !-------------------------------------------------
 
   !*****************************************************************************
 
 contains
+
+  !*****************************************************************************
+
+  subroutine marbl_domain_constructor(this, &
+       num_levels, num_PAR_subcols, num_elements_surface_forcing, num_elements_interior_forcing)
+
+    class(marbl_domain_type), intent(inout) :: this
+    integer , intent(in)    :: num_levels
+    integer , intent(in)    :: num_PAR_subcols
+    integer , intent(in)    :: num_elements_surface_forcing
+    integer , intent(in)    :: num_elements_interior_forcing
+
+    this%km = num_levels
+    this%num_PAR_subcols = num_PAR_subcols
+    this%num_elements_surface_forcing = num_elements_surface_forcing
+    this%num_elements_interior_forcing = num_elements_interior_forcing
+
+    allocate(this%dz(num_levels))
+    allocate(this%delta_z(num_levels))
+    allocate(this%zw(num_levels))
+    allocate(this%zt(num_levels))
+
+  end subroutine marbl_domain_constructor
+  
+  !*****************************************************************************
+
+  subroutine marbl_gcm_state_constructor(this, num_levels, num_PAR_subcols)
+
+    class(marbl_gcm_state_type) , intent(inout) :: this
+    integer , intent(in)    :: num_levels
+    integer , intent(in)    :: num_PAR_subcols
+
+    allocate(this%temperature(num_levels))
+    allocate(this%salinity(num_levels))
+
+    allocate(this%PAR_col_frac(num_PAR_subcols))
+    allocate(this%surf_shortwave(num_PAR_subcols))
+
+  end subroutine marbl_gcm_state_constructor
 
   !*****************************************************************************
 

@@ -31,9 +31,7 @@ module cfc11_mod
    use io_tools, only: document
    use tavg, only: define_tavg_field, accumulate_tavg_field
    use timers, only: get_timer
-   use marbl_interface_types, only: forcing_monthly_every_ts
-! FIXME: relocate forcing_monthly_every_ts type to passive_tracer_tools once
-!        it's removed from MARBL
+   use passive_tracer_tools, only: forcing_monthly_every_ts
    use passive_tracer_tools, only: init_forcing_monthly_every_ts,      &
        ind_name_pair, rest_read_tracer_block, file_read_tracer_block,  &
        read_field, tracer_read

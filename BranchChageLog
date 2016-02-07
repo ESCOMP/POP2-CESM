@@ -1,0 +1,126 @@
+===============================================================================
+Tag Creator: mmvertens
+Developers:  mvertens
+Tag Date:    03 Feb 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160114
+Tag Summary: next steps in making marbl stand-alone
+
+Purpose of changes
+------------------
+- Make the number of maximum diagnostic fields run time rather than compile time
+- Separate interface data types and internal marbl data types 
+- Remove hard-coding of km in marbl interface and marbl internal types
+
+Code reviews and testing
+------------------------
+Code reviewed by: mlevy, klindsay
+
+Code testing: 
+
+Answer changes
+--------------
+bfb
+
+List all files eliminated:
+--------------------------
+
+ecosys_constants.F90 is now marbl_sizes.F90
+
+List all files added and what they do: 
+--------------------------------------
+
+A       source/marbl_internal_types.F90
+	- file contains marbl internal types that do not belong in 
+   	  marbl_interface_types
+        - moved the following from marbl_share_mod to marbl_internal_types
+	    column_sinking_particle_type 
+	    autotroph_type
+            zooplankton_type
+	    grazing_type
+
+A       source/marbl_sizes.F90
+	- specifies parameters sizes that are still set (at some point will
+	want to make these allocatable) as well as a few other size variables
+	that are determined at run time
+	
+List all existing files that have been modified, and describe the changes:
+--------------------------------------------------------------------------
+
+M        passive_tracer_tools.F90	
+         - added forcing_monthly_every_ts (from marbl_interface_types) 
+  	   as a public member function 
+           this way other pop modules can directly use passive_tracer_tools as before
+
+M        marbl_interface_types.F90
+         - renamed marbl_column_domain_type  => marbl_domain_type
+         - moved carbonate_type, autotroph_secondary_species_type, zooplankton_secondary_species_type, 
+	   and dissolved_organic_matter_type to marbl_internal_types
+         - *** added new constructors for derived type variables in both marbl_interface_types and
+	   marbl_internal_types that previously depended on km as a parameter ***  
+
+M        ecosys_restore.F90
+         - ecosys_constants => marbl_sizes
+
+M        marbl_interface.F90
+	 - the following are now local variables in set_interior_forcing,
+   	     marbl_interior_share(marbl_domain%km),
+             marbl_zooplankton_share(zooplankton_cnt, marbl_domain%km)
+             marbl_autotroph_share(autotroph_cnt, marbl_domain%km)
+             marbl_particulate_share (note that contructor and destructor methods are now called for this)
+	 - the following are now local variables in set_surface_forcing
+             marbl_forcing_share (note that contructor and destructor methods are now called for this)
+
+M        ecosys_diagnostics_mod.F90
+         - put in two phases for initializing diagnostics - one to count the diagnostics and the second
+           to allocate memory based on the count and initialize the diagnostics
+         - as a result, removed the parameters max_interior_diags, max_forcing_diags and max_restore_diags
+         
+M        marbl_parms.F90
+         - moved following from from marbl_share_mod.F90 to marbl_parms.F90
+             autotrophs instance, autotroph_cnt, 
+	     zoo_plankton instance and zoo_plankton_cnt
+	     grazing_instance and grazer_prey_cnt    
+         - removed usage of freq_opt_never, freq_opt_nmonth and freq_opt_nyear
+
+M        moby_mod.F90, cfc_mod.F90, cfc11_mod.F90
+         - reintroduce use of passive_tracer_tools instead of marbl_interfrace_types
+
+M        marbl_share_mod.F90
+         - removed use of mx_block, ny_block, km and max_blocks_clinic
+         - put in use of marbl_sizes rather than ecosys_constants
+	 - introduced new marbl parameters marbl_freq_opt_never, marbl_freq_opt_nyear and marbl_freq_opt_nmonth
+         - removed definition of ALL derived types previously there and associated constructors
+	     zooplankton_type, autotroph_type, grazing_type
+             marbl_forcing_field_type, column_sinking_particle_type
+             marbl_interior_share_type, marbl_particulate_share_type
+ 	     ecosys_surface_share_type (no longer needed)
+
+M        ecosys_tavg
+         - uses of marbl_share_mod and ecosys_constants modified to marbl_parms  
+         - removal of max_interior_diags and max_forcing_diags
+         - tavg_ids_interior, tavg_ids_restore and tavg_ids_forcing are now allocatable module variables rather
+          than dimension by the above parameters 
+
+
+M        passive_tracers.F90
+         - removed use of ecosys_driver_tracer_cnt
+
+
+M       ecosys_mod.F90
+        - change of use statements to accomodate above changes
+        - marbl_compute_photosynthetically_available_radiation => marbl_compute_PAR
+        - PAR is now a module variable (of type marbl_PAR_type) and PAR%construct is called at beginning of 
+          marbl_set_interior_forcing and PAR%destruct is called at the end of marbl_set_interior_forcing
+        - routine init_forcing_monthly_every_ts => marbl_init_forcing_monthly_every_ts_metadata which is now a
+          private module routine
+        - other renaming consistency changes also implemented (e.g. marbl_ecocsys_ => marbl_)
+
+M       marbl_ciso_mod.F90
+        - change to use marbl_parms, marbl_interface_types and marbl_internal_types (see above)
+        - seconds_in_year => marbl_seconds_in_year now set in marbl_share_mod
+
+M       ecosys_driver.F90
+        - changes to accomodate the above
+
+M       prognostic.F90 
+        - addition of max_forcing_fields 
