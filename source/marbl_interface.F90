@@ -62,6 +62,10 @@ module marbl_interface
   use marbl_interface_types     , only : marbl_forcing_output_type
   use marbl_interface_types     , only : marbl_diagnostics_type
 
+  use marbl_interface_types     , only : marbl_domain_type
+  use marbl_interface_types     , only : marbl_input_type
+  use marbl_interface_types     , only : marbl_output_type
+
   use exit_mod                  , only : exit_POP  !FIXME
   use exit_mod                  , only : sigAbort  !FIXME
 
@@ -105,17 +109,11 @@ contains
   subroutine init(this,       &
        ciso_on,               &
        nl_buffer,             &
-       seconds_in_year,       &   
        marbl_domain,          &
-       marbl_gcm_state,       &
        marbl_tracer_metadata, &
-       marbl_interior_diags,  &
-       marbl_restore_diags,   &
-       marbl_forcing_diags,   &
-       marbl_forcing_fields,  &
-       marbl_forcing_input,   &
-       marbl_forcing_output,  &
-       marbl_status )
+       marbl_input,           &
+       marbl_output,          &
+       marbl_status)
 
     use marbl_parms            , only : total_input_forcing_cnt
     use marbl_namelist_mod     , only : marbl_nl_cnt

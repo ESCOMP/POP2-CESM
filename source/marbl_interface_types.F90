@@ -58,14 +58,52 @@ module marbl_interface_types
   !*****************************************************************************
   ! FIXME(mnl,2016-01) move PAR_col_frac and surf_shortwave into this datatype
   !                    and come up with better name
-  type, public :: marbl_gcm_state_type
+  type, public :: marbl_interior_forcing_input_type
      real(r8), allocatable :: temperature(:)    ! (km)
      real(r8), allocatable :: salinity(:)       ! (km)
+     real(r8), allocatable :: fesedflux(:)      ! (km)
      real(r8), allocatable :: PAR_col_frac(:)   ! column fraction occupied by each sub-column
      real(r8), allocatable :: surf_shortwave(:) ! surface shortwave for each sub-column (W/m^2)
+     real(r8)              :: dust_flux           
    contains
-     procedure, public :: construct => marbl_gcm_state_constructor
-  end type marbl_gcm_state_type
+     procedure, public :: construct => interior_forcing_input_constructor
+  end type marbl_interior_forcing_input_type
+
+  !*****************************************************************************
+
+  type, public :: marbl_surface_forcing_input_type
+     logical (log_kind), allocatable, dimension(:)   :: land_mask
+     real (r8) :: seconds_in_year  ! this is set by the gcm and can change in time if leap year
+     real (r8) :: d14c_glo_avg     ! this is computed by the gcm            
+
+     real (r8), allocatable, dimension(:)   :: u10_sqr         
+     real (r8), allocatable, dimension(:)   :: ifrac           ! ice fraction
+     real (r8), allocatable, dimension(:)   :: atm_press
+     real (r8), allocatable, dimension(:)   :: sst             
+     real (r8), allocatable, dimension(:)   :: sss             
+     real (r8), allocatable, dimension(:)   :: xco2            
+     real (r8), allocatable, dimension(:)   :: xco2_alt_co2    
+     real (r8), allocatable, dimension(:)   :: ap         
+     real (r8), allocatable, dimension(:)   :: dust_flux
+     real (r8), allocatable, dimension(:)   :: xkw        
+     real (r8), allocatable, dimension(:)   :: iron_flux    
+     real (r8), allocatable, dimension(:)   :: ph_prev         
+     real (r8), allocatable, dimension(:)   :: ph_prev_alt_co2 
+     real (r8), allocatable, dimension(:)   :: d13c
+     real (r8), allocatable, dimension(:)   :: d14c
+     real (r8), allocatable, dimension(:,:) :: input_forcings
+     real (r8), allocatable, dimension(:,:) :: surface_vals
+   contains
+     procedure, public :: construct => marbl_surface_forcing_input_constructor
+  end type marbl_surface_forcing_input_type
+
+  !*****************************************************************************
+
+  type, public :: marbl_restore_forcing_input_type
+     real(r8), allocatable :: data(:,:)    ! (num_tracers, km)
+   contains
+     procedure, public :: construct => marbl_restore_forcing_input_constructor
+  end type marbl_restore_forcing_input_type
 
   !*****************************************************************************
 
@@ -106,36 +144,7 @@ module marbl_interface_types
 
   !*****************************************************************************
 
-  type, public :: marbl_forcing_input_type
-     logical (log_kind), allocatable, dimension(:)   :: land_mask
-     real (r8) :: seconds_in_year  ! this is set by the gcm and can change in time if leap year
-     real (r8) :: d14c_glo_avg     ! this is computed by the gcm            
-
-     real (r8), allocatable, dimension(:)   :: u10_sqr         
-     real (r8), allocatable, dimension(:)   :: ifrac           ! ice fraction
-     real (r8), allocatable, dimension(:)   :: atm_press
-     real (r8), allocatable, dimension(:)   :: sst             
-     real (r8), allocatable, dimension(:)   :: sss             
-     real (r8), allocatable, dimension(:)   :: xco2            
-     real (r8), allocatable, dimension(:)   :: xco2_alt_co2    
-     real (r8), allocatable, dimension(:)   :: ap         
-     real (r8), allocatable, dimension(:)   :: dust_flux
-     real (r8), allocatable, dimension(:)   :: xkw        
-     real (r8), allocatable, dimension(:)   :: iron_flux    
-     real (r8), allocatable, dimension(:)   :: ph_prev         
-     real (r8), allocatable, dimension(:)   :: ph_prev_alt_co2 
-     real (r8), allocatable, dimension(:)   :: d13c
-     real (r8), allocatable, dimension(:)   :: d14c
-
-     real (r8), allocatable, dimension(:,:) :: input_forcings
-     real (r8), allocatable, dimension(:,:) :: surface_vals
-   contains
-     procedure, public :: construct => marbl_forcing_input_constructor
-  end type marbl_forcing_input_type
-
-  !*****************************************************************************
-
-  type, public :: marbl_forcing_output_type
+  type, public :: marbl_surface_forcing_output_type
      real (r8), allocatable, dimension(:)   :: ph_prev         
      real (r8), allocatable, dimension(:)   :: ph_prev_alt_co2 
      real (r8), allocatable, dimension(:)   :: iron_flux    
@@ -156,11 +165,11 @@ module marbl_interface_types
      real (r8), allocatable, dimension(:)   :: pv_o2        ! piston velocity (cm/s)
      real (r8), allocatable, dimension(:)   :: pv_co2       ! piston velocity (cm/s)
      real (r8), allocatable, dimension(:)   :: o2sat        ! used O2 saturation (mmol/m^3)
-     real (r8), allocatable, dimension(:,:) :: stf_module
+     real (r8), allocatable, dimension(:,:) :: stf
      real (r8), allocatable, dimension(:,:) :: stf_ciso
    contains
      procedure, public :: construct => marbl_forcing_output_constructor
-  end type marbl_forcing_output_type
+  end type marbl_surface_forcing_output_type
 
   !*****************************************************************************
 
@@ -189,23 +198,18 @@ module marbl_interface_types
 
   !*****************************************************************************
 
-  !-------------------------------------------------
   type, private :: marbl_forcing_constant_type
      real(KIND=r8) :: field_constant           ! constant value for field_source
    contains
       procedure :: initialize  => marbl_forcing_constant_init
   end type marbl_forcing_constant_type
-  !-------------------------------------------------
 
-  !-------------------------------------------------
   type, private :: marbl_forcing_driver_type
      character(char_len) :: marbl_driver_varname
    contains
      procedure :: initialize  => marbl_forcing_driver_init
   end type marbl_forcing_driver_type
-  !-------------------------------------------------
 
-  !-------------------------------------------------
   type, private :: marbl_forcing_file_type
      character(char_len)    :: filename
      character(char_len)    :: file_varname
@@ -218,19 +222,15 @@ module marbl_interface_types
    contains
      procedure :: initialize  => marbl_forcing_file_init
   end type marbl_forcing_file_type
-  !-------------------------------------------------
 
-  !-------------------------------------------------
   type, private :: marbl_forcing_monthly_calendar_type
      type (forcing_monthly_every_ts), pointer :: marbl_forcing_calendar_name
    contains
      procedure :: initialize  => marbl_forcing_monthly_calendar_init
   end type marbl_forcing_monthly_calendar_type
-  !-------------------------------------------------
 
-  !-------------------------------------------------
-  ! single_forcing_field_type (contains the above 4 type definitions)
   type, private :: marbl_single_forcing_field_type
+     ! single_forcing_field_type (contains the above 4 type definitions)
      character(char_len)                        :: marbl_varname
      character(char_len)                        :: field_units          ! units represent what is in field_data,
                                                                         ! not the file (up to driver to do unit conversion)
@@ -248,9 +248,7 @@ module marbl_interface_types
    contains
      procedure :: initialize  => marbl_single_forcing_field_init
   end type marbl_single_forcing_field_type
-  !-------------------------------------------------
 
-  !-------------------------------------------------
   type, public :: marbl_forcing_fields_type
      integer(KIND=int_kind) :: num_elements
      integer(KIND=int_kind) :: forcing_field_cnt
@@ -260,7 +258,47 @@ module marbl_interface_types
      procedure, public :: add_forcing_field => marbl_forcing_fields_add
      procedure, public :: deconstruct       => marbl_forcing_fields_deconstructor
   end type marbl_forcing_fields_type
-  !-------------------------------------------------
+
+  !*****************************************************************************
+
+  type, public :: marbl_config_type
+     logical :: ciso_on
+  end type marbl_config_type
+
+  !*****************************************************************************
+
+  type, public :: marbl_saved_state_type
+     real (r8), allocatable :: ph_prev_3d(:) 
+     real (r8), allocatable :: ph_prev_alt_co2_3d(:) 
+     real (r8), allocatable :: ph_prev_surf(:)
+     real (r8), allocatable :: ph_prev_alt_co2_surf(:)
+   contains
+     procedure, public :: construct => marbl_saved_state_constructor
+  end type marbl_saved_state_type
+
+  !*****************************************************************************
+
+  type, public :: marbl_input_type
+     type(marbl_interior_forcing_input_type) :: interior_forcing
+     type(marbl_surface_forcing_input_type)  :: surface_forcing
+     type(marbl_restore_forcing_input_type)  :: restore_forcing
+     real (r8), allocatable                  :: tracers(:,:)
+   contains
+     procedure, public :: construct => marbl_input_constructor
+  end type marbl_input_type
+
+  !*****************************************************************************
+
+  type, public :: marbl_output_type
+     type(marbl_surface_forcing_output_type) :: surface_forcing
+     type(marbl_saved_state_type)            :: saved_state
+     type(marbl_diagnostics_type)            :: interior_diags
+     type(marbl_diagnostics_type)            :: forcing_diags
+     type(marbl_diagnostics_type)            :: restore_diags
+     real (r8), allocatable                  :: dtracers(:,:)
+   contains
+     procedure, public :: construct => marbl_output_constructor
+  end type marbl_output_type
 
   !*****************************************************************************
 
@@ -289,22 +327,6 @@ contains
 
   end subroutine marbl_domain_constructor
   
-  !*****************************************************************************
-
-  subroutine marbl_gcm_state_constructor(this, num_levels, num_PAR_subcols)
-
-    class(marbl_gcm_state_type) , intent(inout) :: this
-    integer , intent(in)    :: num_levels
-    integer , intent(in)    :: num_PAR_subcols
-
-    allocate(this%temperature(num_levels))
-    allocate(this%salinity(num_levels))
-
-    allocate(this%PAR_col_frac(num_PAR_subcols))
-    allocate(this%surf_shortwave(num_PAR_subcols))
-
-  end subroutine marbl_gcm_state_constructor
-
   !*****************************************************************************
 
   subroutine marbl_single_diag_init(this, lname, sname, units, vgrid,         &
@@ -340,7 +362,7 @@ contains
 
   !*****************************************************************************
 
-  subroutine marbl_forcing_input_constructor(this, &
+  subroutine marbl_surface_forcing_input_constructor(this, &
        num_elements, num_surface_vals, num_input_forcings, ciso_on)
     
     class(marbl_forcing_input_type), intent(inout) :: this
@@ -370,11 +392,11 @@ contains
     end if
 
     allocate(this%surface_vals(num_elements, num_surface_vals))
-  end subroutine marbl_forcing_input_constructor
+  end subroutine marbl_surface_forcing_input_constructor
 
   !*****************************************************************************
 
-  subroutine marbl_forcing_output_constructor(this, &
+  subroutine marbl_surface_forcing_output_constructor(this, &
        num_elements, num_surface_vals)
 
     class(marbl_forcing_output_type), intent(inout) :: this
@@ -401,9 +423,9 @@ contains
     allocate(this%pv_co2          (num_elements))      
     allocate(this%o2sat           (num_elements))       
     allocate(this%flux_alt_co2    (num_elements))
-    allocate(this%stf_module      (num_elements, num_surface_vals))
+    allocate(this%stf             (num_elements, num_surface_vals))
 
-  end subroutine marbl_forcing_output_constructor
+  end subroutine marbl_surface_forcing_output_constructor
 
   !*****************************************************************************
 
@@ -622,7 +644,7 @@ contains
       if (.NOT.present(field_constant)) has_valid_inputs = .false.
       if (has_valid_inputs) then
         write(*,*) "Adding constant forcing_field_type for ", this%marbl_varname 
-!JW        call this%field_constant_info%initialize(field_constant)
+        !JW        call this%field_constant_info%initialize(field_constant)
         call marbl_forcing_constant_init(this%field_constant_info, field_constant)
       else
         write(*,*) "ERROR: Call to MARBL does not have the correct optional arguments for ", trim(field_source)
@@ -731,16 +753,16 @@ contains
                                          year_last=year_last, year_align=year_align,     &
                                          date=date, time=time,                           &
                                          marbl_forcing_calendar_name=marbl_forcing_calendar_name)
-!JW    call this%forcing_fields(id)%initialize(num_elem, field_source, marbl_varname, &
-!JW                                            field_units, unit_conv_factor=unit_conv_factor, &
-!JW                                            temporal_interp=temporal_interp,                &
-!JW                                            field_constant=field_constant,                  &
-!JW                                            marbl_driver_varname=marbl_driver_varname,      &
-!JW                                            filename=filename, file_varname=file_varname,   &
-!JW                                            temporal=temporal, year_first=year_first,       &
-!JW                                            year_last=year_last, year_align=year_align,     &
-!JW                                            date=date, time=time,                           &
-!JW                                            marbl_forcing_calendar_name=marbl_forcing_calendar_name)
+    !JW    call this%forcing_fields(id)%initialize(num_elem, field_source, marbl_varname, &
+    !JW                                            field_units, unit_conv_factor=unit_conv_factor, &
+    !JW                                            temporal_interp=temporal_interp,                &
+    !JW                                            field_constant=field_constant,                  &
+    !JW                                            marbl_driver_varname=marbl_driver_varname,      &
+    !JW                                            filename=filename, file_varname=file_varname,   &
+    !JW                                            temporal=temporal, year_first=year_first,       &
+    !JW                                            year_last=year_last, year_align=year_align,     &
+    !JW                                            date=date, time=time,                           &
+    !JW                                            marbl_forcing_calendar_name=marbl_forcing_calendar_name)
 
   end subroutine marbl_forcing_fields_add
 
@@ -760,6 +782,70 @@ contains
     deallocate(this%forcing_fields)
 
   end subroutine marbl_forcing_fields_deconstructor
+
+  !*****************************************************************************
+
+  subroutine marbl_input_constructor(this, &
+       ciso_on, domain, num_tracers, num_tracers_restore)
+
+    use marbl_parms, only : total_input_surface_forcing_cnt
+
+    class(marbl_input_type) :: this
+    logical                 , intent(in) :: ciso_on
+    type(marbl_domain_type) , intent(in) :: domain
+    integer (int_kind)      , intent(in) :: num_tracers
+    integer (int_kind)      , intent(in) :: num_tracers_restore
+    
+    associate(                                                        &
+         num_levels           => domain%km,                           &
+         num_PAR_subcols      => domain%num_PAR_subcols,              &
+         num_elements         => domain%num_elements_surface_forcing, &
+         num_input_forcings   => total_input_surface_forcing_cnt      &
+         )
+
+    call this%interior_forcing%construct( &
+         num_levels=num_levels,           &
+         num_PAR_subcols=num_PAR_subcols)
+
+    call this%surface_forcing%construct(        &
+         num_elements=num_elements,             &
+         num_tracers= num_tracers,              &
+         num_input_forcings=num_input_forcings, &  
+         ciso_on=ciso_on)
+
+    call this%restore_forcing%construct(&
+         num_tracers_restore, num_levels)
+
+    allocate(this%tracers(num_tracers, num_levels))
+
+    end associate
+
+  end subroutine marbl_input_constructor
+
+  !*****************************************************************************
+
+  subroutine marbl_output_constructor(this, domain, num_tracers)
+
+    class(marbl_output_type)             :: this
+    type(marbl_domain_type) , intent(in) :: domain
+    integer (int_kind)      , intent(in) :: num_tracers
+
+    associate(                                                &
+         num_elements => domain%num_elements_surface_forcing, &
+         num_levels   => domain%km                            &
+         )
+
+    call this%surface_forcing%construct(&
+         num_elements=num_elements,     &
+         num_tracers=num_tracers)
+
+    call this%saved_state%construct(num_levels, num_elements) 
+
+    allocate(this%dtracers(num_tracers, num_levels))
+
+    end associate
+
+  end subroutine marbl_output_constructor
 
   !*****************************************************************************
 

@@ -101,82 +101,41 @@ module ecosys_driver
   ! module variables 
   !-----------------------------------------------------------------------
 
+  type(marbl_interface_class) , dimension(max_blocks_clinic) :: marbl
+  type(marbl_domain_type)     , dimension(max_blocks_clinic) :: marbl_domain
+  type(marbl_input_type)      , dimension(max_blocks_clinic) :: marbl_input
+  type(marbl_output_type)     , dimension(max_blocks_clinic) :: marbl_output
+
   logical(log_kind)           :: lmarginal_seas       ! Is ecosystem active in marginal seas?
   character(char_len)         :: ecosys_tadvect_ctype ! advection method for ecosys tracers
   logical (log_kind) , public :: ecosys_qsw_distrb_const
 
-  !-----------------------------------------------------------------------
-  !  data storage for interaction with the marbl bgc library
-  !-----------------------------------------------------------------------
-
-  type(marbl_interface_class)     , dimension(max_blocks_clinic) :: marbl
-  type(marbl_domain_type)         , dimension(max_blocks_clinic) :: marbl_domain
-  type(marbl_gcm_state_type)      , dimension(max_blocks_clinic) :: marbl_gcm_state
-  type(marbl_diagnostics_type)    , dimension(max_blocks_clinic) :: marbl_interior_diags
-  type(marbl_diagnostics_type)    , dimension(max_blocks_clinic) :: marbl_restore_diags
-  type(marbl_diagnostics_type)    , dimension(max_blocks_clinic) :: marbl_forcing_diags
-  type(marbl_forcing_fields_type) , dimension(max_blocks_clinic) :: marbl_forcing_fields
-  type(marbl_forcing_input_type)  , dimension(max_blocks_clinic) :: marbl_forcing_input
-  type(marbl_forcing_output_type) , dimension(max_blocks_clinic) :: marbl_forcing_output
-
-  !-----------------------------------------------------------------------
-  ! pop data storage for interaction with marbl
-  !-----------------------------------------------------------------------
-
   type(ecosys_saved_state_type) :: ecosys_saved_state 
   type(ecosys_restore_type)     :: ecosys_restore
-  logical(log_kind), dimension(:, :, :), allocatable :: land_mask
 
-  ! Computed diagnostics for surface fluxes
-  real (r8), allocatable :: flux_diags(:,:,:,:)
-
-  !-----------------------------------------------------------------------
-  !  average surface tracer value related variables
-  !  used as reference value for virtual flux computations
-  !-----------------------------------------------------------------------
-
+  !  following needed as reference value for virtual flux computations
   logical (log_kind)  :: ciso_on 
-  logical (log_kind)  :: vflux_flag(ecosys_tracer_cnt)     ! which tracers get virtual fluxes applied
-  real (r8)           :: surf_avg(ecosys_tracer_cnt)       ! average surface tracer values
+  logical (log_kind)  :: vflux_flag(ecosys_tracer_cnt)         ! which tracers get virtual fluxes applied
+  real (r8)           :: surf_avg(ecosys_tracer_cnt)           ! average surface tracer values
   logical (log_kind)  :: ciso_vflux_flag(ecosys_ciso_tracer_cnt)
-  real (r8)           :: ciso_surf_avg(ecosys_ciso_tracer_cnt)  ! average surface tracer values
+  real (r8)           :: ciso_surf_avg(ecosys_ciso_tracer_cnt) ! average surface tracer values
 
-  !-----------------------------------------------------------------------
-  ! needed as a module variable because of interface to ecosys_write_restart
-  !-----------------------------------------------------------------------
-
-  type(ind_name_pair) :: ind_name_table(ecosys_tracer_cnt) ! derived type & parameter for tracer index lookup
+  ! following two variables are needed as a module variable because of interface to ecosys_write_restart
+  type(ind_name_pair) :: ind_name_table(ecosys_tracer_cnt)     ! derived type & parameter for tracer index lookup
   type(ind_name_pair) :: ciso_ind_name_table(ecosys_ciso_tracer_cnt)
 
-  !-----------------------------------------------------------------------
-  !  named field indices
-  !-----------------------------------------------------------------------
+  integer (int_kind) :: totChl_surf_nf_ind = 0                 ! total chlorophyll in surface layer  (named field index)
+  integer (int_kind) :: sflux_co2_nf_ind   = 0                 ! air-sea co2 gas flux (named field index)
+  integer (int_kind) :: atm_co2_nf_ind     = 0                 ! atmospheric co2 (named field index)
+  integer (int_kind) :: num_elements  = nx_block               ! number of elements in surface forcing array !TODO - make this an input namelist value
 
-  integer (int_kind) :: totChl_surf_nf_ind = 0 ! total chlorophyll in surface layer 
-  integer (int_kind) :: sflux_co2_nf_ind   = 0 ! air-sea co2 gas flux 
-  integer (int_kind) :: atm_co2_nf_ind     = 0 ! atmospheric co2
-
-  !-----------------------------------------------------------------------
-  !  module variables related to ph computations
-  !-----------------------------------------------------------------------
-
-  real (r8), allocatable, target :: iron_patch_flux(:, :, :) ! localized iron patch flux
+  real (r8), allocatable, target :: iron_patch_flux(:, :, :)   ! localized iron patch flux (related to ph computations)
+  real (r8), allocatable, target :: fesedflux(:, :, :, :)      ! sedimentary Fe inputs (restoring climatologies for nutrients)
+  real (r8), allocatable         :: flux_diags(:, :, :, :)     ! Computed diagnostics for surface fluxes
+  logical(log_kind), allocatable :: land_mask(:, :, :)
 
   !-----------------------------------------------------------------------
-  !  restoring climatologies for nutrients
-  !-----------------------------------------------------------------------
-
-  real (r8), allocatable, target :: fesedflux(:, :, :, :)      !  sedimentary Fe inputs
-
-  !-----------------------------------------------------------------------
-  !  define array for holding flux-related quantities that need to be time-averaged
-  !-----------------------------------------------------------------------
-
-  integer (int_kind) :: num_elements  = nx_block !TODO - make this an input namelist value
-
-  !-----------------------------------------------------------------------
-  !  ciso_data_ind_d13c is the index for the D13C data for the
-  !  current timestep
+  !  ciso_data_ind_d13c is the index for the D13C data for the current timestep
   !  Note that ciso_data_ind_d13c is always less than ciso_atm_d13c_data_nbval.
   !  To enable OpenMP parallelism, duplicating data_ind for each block
   !-----------------------------------------------------------------------
@@ -288,6 +247,7 @@ contains
     character(char_len_long)            :: ioerror_msg
     integer (int_kind)                  :: auto_ind                           ! autotroph functional group index
     integer (int_kind)                  :: iblock                             ! index for looping over blocks
+    integer (int_kind)                  :: diag_cnt                           
     real(r8)                            :: work(nx_block, ny_block)           
     real (r8)                           :: surface_vals(ecosys_tracer_cnt)
     character (char_len)                :: ecosys_restart_filename            ! modified file name for restart file
@@ -445,20 +405,15 @@ contains
             num_elements_interior_forcing=1, & 
             num_elements_surface_forcing=num_elements)
 
-       call marbl(iblock)%init(                                &
-            ciso_on,                                           &
-            nl_buffer,                                         &
-            seconds_in_year, &
-            marbl_tracer_metadata=tracer_d_module,             &
-            marbl_domain=marbl_domain(iblock),                 &
-            marbl_gcm_state=marbl_gcm_state(iblock),           &
-            marbl_interior_diags=marbl_interior_diags(iblock), &
-            marbl_restore_diags=marbl_restore_diags(iblock),   &
-            marbl_forcing_diags=marbl_forcing_diags(iblock),   &
-            marbl_forcing_fields=marbl_forcing_fields(iblock), &
-            marbl_forcing_input=marbl_forcing_input(iblock),   &
-            marbl_forcing_output=marbl_forcing_output(iblock), &
-            marbl_status=marbl_status)
+
+       call marbl(iblock)%init(                    &
+            ciso_on,                               &
+            nl_buffer,                             &
+            marbl_domain = marbl_domain(iblock),     &
+            marbl_tracer_metadata = tracer_d_module, &
+            marbl_input = marbl_input(iblock),       &
+            marbl_output = marbl_output(iblock),     &
+            marbl_status = marbl_status)
 
        if (marbl_status%status /= marbl_status_ok) then
           call exit_POP(sigAbort, &
@@ -466,12 +421,11 @@ contains
        end if
     end do
 
-    ! Allocate module variable
-    allocate(flux_diags(nx_block, ny_block, marbl_forcing_diags(1)%diag_cnt, max_blocks_clinic))
+    !--------------------------------------------------------------------
+    !  Initialize/allocate module variables
+    !--------------------------------------------------------------------
 
-    !--------------------------------------------------------------------
-    !  Determine advection type
-    !--------------------------------------------------------------------
+    diag_cnt = marbl_output(1)%forcing_diags%diag_cnt
 
     tadvect_ctype(1:ecosys_used_tracer_cnt) = ecosys_tadvect_ctype
 
@@ -705,51 +659,39 @@ contains
                                    tracer_d_module,           &
                                    TRACER_MODULE)
        
-       if (field_exists_in_file(init_ecosys_init_file_fmt, ecosys_restart_filename, &
-            'PH_SURF')) then
-          call read_field(init_ecosys_init_file_fmt, &
-               ecosys_restart_filename,   &
-               'PH_SURF', ecosys_saved_state%ph_surf)
+       if (field_exists_in_file(init_ecosys_init_file_fmt, ecosys_restart_filename, 'PH_SURF')) then
+          call read_field(init_ecosys_init_file_fmt, ecosys_restart_filename,  'PH_SURF',  &
+               ecosys_saved_state%ph_surf)
        else
           call document(subname, 'PH_SURF does not exist in ' /&
-               &/ trim(ecosys_restart_filename) /&
-               &/ ', setting PH_SURF to 0')
+               &/ trim(ecosys_restart_filename) // ', setting PH_SURF to 0')
           ecosys_saved_state%ph_surf = c0
        endif
 
-       if (field_exists_in_file(init_ecosys_init_file_fmt, ecosys_restart_filename, &
-            'PH_SURF_ALT_CO2')) then
-          call read_field(init_ecosys_init_file_fmt, &
-               ecosys_restart_filename,   &
-               'PH_SURF_ALT_CO2', ecosys_saved_state%ph_surf_alt_co2)
+       if (field_exists_in_file(init_ecosys_init_file_fmt, ecosys_restart_filename, 'PH_SURF_ALT_CO2')) then
+          call read_field(init_ecosys_init_file_fmt, ecosys_restart_filename,  'PH_SURF_ALT_CO2',  &
+               ecosys_saved_state%ph_surf_alt_co2)
        else
           call document(subname, 'PH_SURF_ALT_CO2 does not exist in ' /&
-               &/ trim(ecosys_restart_filename) /&
-               &/ ', setting PH_PREV_ALT_CO2 to 0')
+               &/ trim(ecosys_restart_filename) // ', setting PH_PREV_ALT_CO2 to 0')
           ecosys_saved_state%ph_surf_alt_co2 = c0
        endif
 
-       if (field_exists_in_file(init_ecosys_init_file_fmt, ecosys_restart_filename, &
-            'PH_3D')) then
-          call read_field(init_ecosys_init_file_fmt, &
-               ecosys_restart_filename,   &
-               'PH_3D', ecosys_saved_state%ph_prev_3d)
+       if (field_exists_in_file(init_ecosys_init_file_fmt, ecosys_restart_filename, 'PH_3D')) then
+          call read_field(init_ecosys_init_file_fmt, ecosys_restart_filename,  'PH_3D',  &
+               ecosys_saved_state%ph_prev_3d)
        else
           call document(subname, 'PH_3D does not exist in ' /&
-               &/ trim(ecosys_restart_filename) /&
-               &/ ', setting ph_prev_3d to 0')
+               &/ trim(ecosys_restart_filename) // ', setting ph_prev_3d to 0')
           ecosys_saved_state%ph_prev_3d  = c0
        endif
 
-       if (field_exists_in_file(init_ecosys_init_file_fmt, ecosys_restart_filename, &
-            'PH_3D_ALT_CO2')) then
-          call read_field(init_ecosys_init_file_fmt, &
-               ecosys_restart_filename,   &
-               'PH_3D_ALT_CO2', ecosys_saved_state%ph_prev_alt_co2_3d)
+       if (field_exists_in_file(init_ecosys_init_file_fmt, ecosys_restart_filename, 'PH_3D_ALT_CO2')) then
+          call read_field(init_ecosys_init_file_fmt, ecosys_restart_filename,  'PH_3D_ALT_CO2',  &
+               ecosys_saved_state%ph_prev_alt_co2_3d)
        else
           call document(subname, 'PH_3D_ALT_CO2 does not exist in ' /&
-               &/ trim(ecosys_restart_filename) /&
-               &/ ', setting PH_PREV_ALT_CO2_3D to 0')
+               &/ trim(ecosys_restart_filename) // ', setting PH_PREV_ALT_CO2_3D to 0')
           ecosys_saved_state%ph_prev_alt_co2_3d = c0
        endif
 
@@ -901,14 +843,6 @@ contains
     integer (int_kind) :: k   ! vertical level index
     integer (int_kind) :: bid ! local block address for this block
     integer (int_kind) :: n, d, ncols
-
-    real (r8) :: column_tracer_module(ecosys_used_tracer_cnt, km)
-    real (r8) :: column_dtracer(ecosys_used_tracer_cnt, km)
-    real (r8) :: column_restore_local(ecosys_tracer_cnt, km) ! local restoring terms for nutrients (mmol ./m^3/sec)
-    real (r8) :: column_dust_flux_in
-    real (r8) :: column_fesedflux(km)
-    real (r8) :: column_ph_prev_3d(km)
-    real (r8) :: column_ph_prev_alt_co2_3d(km)
     !-----------------------------------------------------------------------
 
     bid = this_block%local_id
@@ -931,19 +865,19 @@ contains
              !-----------------------------------------------------------
 
              do ncols = 1,mcog_nbins
-                marbl_gcm_state(bid)%PAR_col_frac(ncols) = FRACR_BIN(i, c, ncols)
+                marbl_input(bid)%interior_forcing%PAR_col_frac(ncols) = FRACR_BIN(i, c, ncols)
                 
                 ! select short-wave forcing
                 if (ecosys_qsw_distrb_const) then
-                   marbl_gcm_state(bid)%surf_shortwave(ncols) = QSW_RAW_BIN(i, c, ncols)
+                   marbl_input(bid)%interior_forcing%surf_shortwave(ncols) = QSW_RAW_BIN(i, c, ncols)
                 else
-                   marbl_gcm_state(bid)%surf_shortwave(ncols) = QSW_BIN(i, c, ncols)
+                   marbl_input(bid)%interior_forcing%surf_shortwave(ncols) = QSW_BIN(i, c, ncols)
                 end if
              end do
 
              do k = 1, marbl_domain(bid)%km
-                marbl_gcm_state(bid)%temperature(k) = p5*(TEMP_OLD(i, c, k) + TEMP_CUR(i, c, k))
-                marbl_gcm_state(bid)%salinity(k)    = p5*(SALT_OLD(i, c, k) + SALT_CUR(i, c, k))*salt_to_ppt
+                marbl_input(bid)%interior_forcing%temperature(k) = p5*(TEMP_OLD(i, c, k) + TEMP_CUR(i, c, k))
+                marbl_input(bid)%interior_forcing%salinity(k)    = p5*(SALT_OLD(i, c, k) + SALT_CUR(i, c, k))*salt_to_ppt
 
                 marbl_domain(bid)%dz(k) = dz(k)
                 if (partial_bottom_cells) then
@@ -955,11 +889,11 @@ contains
                 marbl_domain(bid)%zt(k) = zt(k)
 
                 do n = 1, ecosys_ind_end
-                   column_tracer_module(n, k) = p5*(TRACER_MODULE_OLD(i, c, k, n) + TRACER_MODULE_CUR(i, c, k, n))
+                   marbl_input(bid)%tracers(n, k) = p5*(TRACER_MODULE_OLD(i, c, k, n) + TRACER_MODULE_CUR(i, c, k, n))
                 end do
                 if (ciso_on) then
                    do n = ecosys_ciso_ind_beg, ecosys_ciso_ind_end
-                      column_tracer_module(n, k) = p5*(TRACER_MODULE_OLD(i, c, k, n) + TRACER_MODULE_CUR(i, c, k, n))
+                      marbl_input(bid)%tracers(n, k) = p5*(TRACER_MODULE_OLD(i, c, k, n) + TRACER_MODULE_CUR(i, c, k, n))
                    end do
                 end if
              end do ! do k
@@ -974,46 +908,42 @@ contains
                         restore_data=column_restore_local(:, k))
                 end do
 
-                column_dust_flux_in  = ecosys_saved_state%dust_FLUX_IN(i, c, bid)
+                marbl_input(bid)%interior_forcing%dust_flux = ecosys_saved_state%dust_flux_in(i, c, bid)
                 do k = 1, marbl_domain(bid)%km
-                   column_ph_prev_3d(k)         = ecosys_saved_state%ph_prev_3d(i, c, k, bid)
-                   column_ph_prev_alt_co2_3d(k) = ecosys_saved_state%ph_prev_alt_co2_3d(i, c, k, bid)
-                   ! FIXME(mnl,2016-01) column_fesedflux could be in interior forcing field datatype
-                   column_fesedflux(k)          = fesedflux(i, c, k, bid)
+                   marbl_input(bid)%interior_forcing%fesedflux(k) = fesedflux(i, c, k, bid)
+                end do
+
+                ! FIXME (mvertens, 2016-02) - saved state is really an input/output array - not clear where this belons
+                do k = 1, marbl_domain(bid)%km
+                   marbl_output(bid)%saved_state%ph_prev_3d(k)         = ecosys_saved_state%ph_prev_3d(i, c, k, bid)
+                   marbl_output(bid)%saved_state%ph_prev_alt_co2_3d(k) = ecosys_saved_state%ph_prev_alt_co2_3d(i, c, k, bid)
                 end do
 
                 !-----------------------------------------------------------
                 !  compute time derivatives for ecosystem state variables
                 !-----------------------------------------------------------
 
-                call marbl(bid)%set_interior_forcing(   &
-                     ciso_on,                   &
-                     marbl_domain(bid),         &
-                     marbl_gcm_state(bid),      &
-                     column_restore_local,      &
-                     column_dust_flux_in,       &
-                     column_fesedflux,          &
-                     column_tracer_module,      &
-                     marbl_interior_diags(bid), &
-                     marbl_restore_diags(bid),  &
-                     column_ph_prev_3d,         &
-                     column_ph_prev_alt_co2_3d, &
-                     column_dtracer)
+                call marbl(bid)%set_interior( &
+                     marbl_domain(bid),       &
+                     marbl_input(bid),        &
+                     marbl_output(bid))
+
 
                 !-----------------------------------------------------------
                 ! copy marbl column data back to slab
                 !-----------------------------------------------------------
 
+
                 do k = 1, marbl_domain(bid)%km
-                   ecosys_saved_state%ph_prev_3d(i, c, k, bid)         = column_ph_prev_3d(k)
-                   ecosys_saved_state%ph_prev_alt_co2_3d(i, c, k, bid) = column_ph_prev_alt_co2_3d(k)
+                   ecosys_saved_state%ph_prev_3d(i, c, k, bid)         = marbl_output(bid)%saved_state%ph_prev_3d(k)
+                   ecosys_saved_state%ph_prev_alt_co2_3d(i, c, k, bid) = marbl_output(bid)%saved_state%ph_prev_alt_co2_3d(k)
 
                    do n = 1, ecosys_ind_end
-                      dtracer_module(i, c, k, n) = column_dtracer(n, k)
+                      dtracer_module(i, c, k, n) = marbl_output(bid)%dtracers(n, k)
                    end do 
                    if (ciso_on) then
-                      do n = ecosys_ciso_ind_beg, ecosys_ciso_ind_end
-                         dtracer_module(i, c, k, n) = column_dtracer(n, k)
+                      do n = ecosys_ciso_ind_begin, ecosys_ciso_ind_end
+                         dtracer_module(i, c, k, n) = marbl_output(bid)%dtracers(n, k)
                       end do
                    end if
                 end do ! do k
@@ -1022,9 +952,9 @@ contains
 
           end if ! end if marbl_domain(bid)%land_mask > 0
 
-          call ecosys_tavg_accumulate((/i/), (/c/), bid,                     &
-               marbl_interior_diags=marbl_interior_diags(bid),               &
-               marbl_restore_diags=marbl_restore_diags(bid))
+          call ecosys_tavg_accumulate((/i/), (/c/), bid,              &
+               marbl_interior_diags=marbl_output(bid)%interior_diags, &
+               marbl_restore_diags=marbl_output(bid)%restore_diags)
 
        end do ! do i
     end do ! do c
@@ -1181,26 +1111,22 @@ contains
     do iblock = 1, nblocks_clinic
        do j = 1, ny_block
 
-          !-----------------------------------------------------------------------
-          ! Copy data from slab data structure to column input for marbl
-          !-----------------------------------------------------------------------
-
-          marbl_forcing_input(iblock)%u10_sqr(:)         = u10_sqr(:,j,iblock)
-          marbl_forcing_input(iblock)%sst(:)             = sst(:,j,iblock)
-          marbl_forcing_input(iblock)%sss(:)             = sss(:,j,iblock)
-          marbl_forcing_input(iblock)%xco2(:)            = xco2(:,j,iblock)
-          marbl_forcing_input(iblock)%xco2_alt_co2(:)    = xco2_alt_co2(:,j,iblock)
-          marbl_forcing_input(iblock)%ifrac(:)           = ifrac_used(:,j,iblock)
-          marbl_forcing_input(iblock)%ph_prev(:)         = ecosys_saved_state%ph_surf(:,j,iblock)         
-          marbl_forcing_input(iblock)%ph_prev_alt_co2(:) = ecosys_saved_state%ph_surf_alt_co2(:,j,iblock) 
-          marbl_forcing_input(iblock)%iron_flux(:)       = iron_flux_in(:,j,iblock)
-          marbl_forcing_input(iblock)%dust_flux(:)       = ecosys_saved_state%dust_flux_in(:,j,iblock)
-          marbl_forcing_input(iblock)%land_mask(:)       = land_mask(:,j,iblock)
+          marbl_input(iblock)%surface_forcing%u10_sqr(:)         = u10_sqr(:,j,iblock)
+          marbl_input(iblock)%surface_forcing%sst(:)             = sst(:,j,iblock)
+          marbl_input(iblock)%surface_forcing%sss(:)             = sss(:,j,iblock)
+          marbl_input(iblock)%surface_forcing%xco2(:)            = xco2(:,j,iblock)
+          marbl_input(iblock)%surface_forcing%xco2_alt_co2(:)    = xco2_alt_co2(:,j,iblock)
+          marbl_input(iblock)%surface_forcing%ifrac(:)           = ifrac_used(:,j,iblock)
+          marbl_input(iblock)%surface_forcing%ph_prev(:)         = ecosys_saved_state%ph_prev_surf(:,j,iblock)         
+          marbl_input(iblock)%surface_forcing%ph_prev_alt_co2(:) = ecosys_saved_state%ph_prev_alt_co2_surf(:,j,iblock) 
+          marbl_input(iblock)%surface_forcing%dust_flux(:)       = ecosys_saved_state%dust_flux_in(:,j,iblock)
+          marbl_input(iblock)%surface_forcing%iron_flux(:)       = iron_flux_in(:,j,iblock)
+          marbl_input(iblock)%surface_forcing%land_mask(:)       = land_mask(:,j,iblock)
 
           if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
-             marbl_forcing_input(iblock)%xkw(:) = xkw_coeff * u10_sqr(:,j,iblock)
+             marbl_input(iblock)%surface_forcing%xkw(:) = xkw_coeff * u10_sqr(:,j,iblock)
           else
-             marbl_forcing_input(iblock)%xkw(:) = xkw_file_input(:,j,iblock)
+             marbl_input(iblock)%surface_forcing%xkw(:) = xkw_file_input(:,j,iblock)
           end if
 
           if (lflux_gas_o2 .or. lflux_gas_co2) then
@@ -1210,24 +1136,22 @@ contains
              !  convertion from dyne/cm**2 to Pascals is P(mks) = P(cgs)/10.
              !  convertion from Pascals to atm is P(atm) = P(Pa)/101.325e+3_r8
 
-             marbl_forcing_input(iblock)%atm_press(:) = press(:,j,iblock) / 101.325e+4_r8
+             marbl_input(iblock)%surface_forcing%atm_press(:) = press(:,j,iblock) / 101.325e+4_r8
           end if
 
-          marbl_forcing_input(iblock)%input_forcings(:,:) = input_forcing_data(:,j,:,iblock)
+          marbl_input(iblock)%surface_forcing%input_forcings(:,:) = input_forcing_data(:,j,:,iblock)
 
           if (ciso_on) then
-             marbl_forcing_input(iblock)%d13c(:) = D13C(:,j,iblock)
-             marbl_forcing_input(iblock)%d14c(:) = D14C(:,j,iblock)
-             marbl_forcing_input(iblock)%d14c_glo_avg = D14C_glo_avg
+             marbl_input(iblock)%surface_forcing%d13c(:) = D13C(:,j,iblock)
+             marbl_input(iblock)%surface_forcing%d14c(:) = D14C(:,j,iblock)
+             marbl_input(iblock)%surface_forcing%d14c_glo_avg = D14C_glo_avg
 
           end if
 
           do n = 1,ecosys_used_tracer_cnt
-             marbl_forcing_input(iblock)%surface_vals(:,n) = &
-                  p5*(surface_vals_old(:, j, n, iblock) &
-                    + surface_vals_cur(:, j, n, iblock))
+             marbl_input(iblock)%surface_forcing%surface_vals(:,n) = &
+                  p5*(surface_vals_old(:, j, n, iblock) + surface_vals_cur(:, j, n, iblock))
           end do
-
           !-----------------------------------------------------------------------
           ! Determine surface forcing flux - MARBL
           !-----------------------------------------------------------------------
@@ -1244,18 +1168,19 @@ contains
           !-----------------------------------------------------------------------
 
           ! FIXME(mnl,2016-01): should these be saved state?
-          ecosys_saved_state%ph_surf(:,j,iblock)         = marbl_forcing_output(iblock)%ph_prev(:)
-          ecosys_saved_state%ph_surf_alt_co2(:,j,iblock) = marbl_forcing_output(iblock)%ph_prev_alt_co2(:)
+          ecosys_saved_state%ph_prev_surf(:,j,iblock)         = marbl_output(iblock)%saved_state%ph_prev_surf(:)
+          ecosys_saved_state%ph_prev_alt_co2_surf(:,j,iblock) = marbl_output(iblock)%saved_state%ph_prev_alt_co2_surf(:)
 
           ! FIXME(mnl,2016-01): do we need a data structure to handle this? future might include additional fluxes...
-          flux_co2(:,j,iblock) = marbl_forcing_output(iblock)%flux_co2(:)
+          flux_co2(:,j,iblock) = marbl_output(iblock)%surface_forcing%flux_co2(:)
 
-          do n=1,marbl_forcing_diags(iblock)%diag_cnt
-            flux_diags(:,j,n,iblock) = marbl_forcing_diags(iblock)%diags(n)%field_2d(:)
+          diag_cnt = marbl_output(1)%forcing_diags%diag_cnt
+          do n = 1,diag_cnt
+            flux_diags(:,j,n,iblock) = marbl_output(iblock)%forcing_diags%diags(n)%field_2d(:)
           end do
 
           do n = 1,ecosys_used_tracer_cnt
-             stf_module(:,j,n,iblock) = marbl_forcing_output(iblock)%stf_module(:,n)  
+             stf_module(:,j,n,iblock) = marbl_output(iblock)%surface_forcing%stf(:,n)  
           end do
 
        enddo
@@ -1271,9 +1196,8 @@ contains
        do i = 1, nx_block
           do j = 1, ny_block
              surface_vals(1:ecosys_tracer_cnt) =p5*( &
-                  surface_vals_old(i,j,1:ecosys_tracer_cnt,iblock) + &
-                  surface_vals_cur(i,j,1:ecosys_tracer_cnt,iblock))
-             work1(i,j) = marbl_compute_totalChl( tracer_in=surface_vals(:), nb=1, ne=ecosys_tracer_cnt )
+                  surface_vals_old(i,j,1:ecosys_tracer_cnt,iblock) + surface_vals_cur(i,j,1:ecosys_tracer_cnt,iblock))
+             work1(i,j) = marbl_surface_compute_totalChl( tracer_in=surface_vals(:), nb=1, ne=ecosys_tracer_cnt )
           end do
        end do
        call named_field_set(totChl_surf_nf_ind, iblock, work1)
@@ -1301,8 +1225,8 @@ contains
 
     implicit none 
 
-    character(*)            , intent(in)     :: action
-    type (datafile)         , intent (inout) :: restart_file
+    character(*)    , intent(in)     :: action
+    type (datafile) , intent (inout) :: restart_file
 
     call ecosys_driver_write_ecosys_restart(restart_file, action)
     if (ciso_on) then
@@ -1657,8 +1581,7 @@ contains
 
     do index = 1, max_forcing_fields
 
-       ! TODO: loop over max_block_clinic instead of loading up only the first
-       ! one?
+       ! TODO: loop over max_block_clinic instead of loading up only the first one?
        if (forcing_fields(1)%forcing_fields(index)%field_source .eq. "POP monthly calendar") then
 
           file => forcing_fields(1)%forcing_fields(index)%field_monthly_calendar_info%marbl_forcing_calendar_name
