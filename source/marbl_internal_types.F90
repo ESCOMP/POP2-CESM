@@ -283,7 +283,7 @@ module marbl_internal_types
 
   !***********************************************************************
 
-  type, public :: marbl_surface_forcing_share_type
+  type, public :: marbl_forcing_share_type
      real(r8), allocatable :: PV_SURF_fields       (:) ! piston velocity (cm/s)
      real(r8), allocatable :: DIC_SURF_fields      (:) ! surface values of DIC for solver
      real(r8), allocatable :: CO2STAR_SURF_fields  (:) ! CO2STAR from solver
@@ -292,9 +292,9 @@ module marbl_internal_types
      real(r8), allocatable :: dic_riv_flux_fields  (:) ! River input of DIC in ecosystem (from file)
      real(r8), allocatable :: doc_riv_flux_fields  (:) ! River input of DOC in ecosystem (from file)
    contains
-     procedure, public :: construct => marbl_surface_forcing_share_constructor
-     procedure, public :: destruct => marbl_surface_forcing_share_destructor
-  end type marbl_surface_forcing_share_type
+     procedure, public :: construct => marbl_forcing_share_constructor
+     procedure, public :: destruct => marbl_forcing_share_destructor
+  end type marbl_forcing_share_type
 
   !***********************************************************************
 
@@ -381,8 +381,8 @@ contains
 
   !***********************************************************************
 
-   subroutine marbl_surface_forcing_share_constructor(this, num_elements)
-     class(marbl_surface_forcing_share_type), intent(inout) :: this
+   subroutine marbl_forcing_share_constructor(this, num_elements)
+     class(marbl_forcing_share_type), intent(inout) :: this
      integer (int_kind) , intent(in) :: num_elements
      
      allocate(this%PV_SURF_fields       (num_elements)) ! piston velocity (cm/s)
@@ -392,10 +392,10 @@ contains
      allocate(this%CO3_SURF_fields      (num_elements)) ! Surface carbonate ion
      allocate(this%dic_riv_flux_fields  (num_elements)) ! River input of DIC in ecosystem (from file)
      allocate(this%doc_riv_flux_fields  (num_elements)) ! River input of DOC in ecosystem (from file)
-   end subroutine marbl_surface_forcing_share_constructor
+   end subroutine marbl_forcing_share_constructor
 
-   subroutine marbl_surface_forcing_share_destructor(this, num_elements)
-     class(marbl_surface_forcing_share_type), intent(inout) :: this
+   subroutine marbl_forcing_share_destructor(this, num_elements)
+     class(marbl_forcing_share_type), intent(inout) :: this
      integer (int_kind) , intent(in) :: num_elements
      
      deallocate(this%PV_SURF_fields      ) ! piston velocity (cm/s)
@@ -405,7 +405,7 @@ contains
      deallocate(this%CO3_SURF_fields     ) ! Surface carbonate ion
      deallocate(this%dic_riv_flux_fields ) ! River input of DIC in ecosystem (from file)
      deallocate(this%doc_riv_flux_fields ) ! River input of DOC in ecosystem (from file)
-   end subroutine marbl_surface_forcing_share_destructor
+   end subroutine marbl_forcing_share_destructor
 
   !*****************************************************************************
 

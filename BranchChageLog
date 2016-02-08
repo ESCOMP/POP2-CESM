@@ -16,13 +16,10 @@ Code reviews and testing
 Code reviewed by: mlevy, klindsay
 
 Code testing: 
---------------
-ran aux_pop test suite with yellowstone_intel and compared to  
-  aux_pop-cime4.2.3-cice5_20151113-cesm_pop_2_1_20160114
 
 Answer changes
 --------------
-pbfb
+bfb
 
 List all files eliminated:
 --------------------------
