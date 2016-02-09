@@ -48,13 +48,15 @@ contains
 
 !*****************************************************************************
 
-subroutine init(this, nml_filename, nml_in, ind_name_table)
+subroutine init(this, nml_filename, nml_in, ind_name_table, marbl_status_log)
 
   ! initialize ecosys_restore instance to default values, then read
   ! namelist and setup tracers that need to be restored
 
   use kinds_mod             , only : char_len, int_kind, i4, log_kind
-  use constants             , only : c0, c2 
+  use constants             , only : c0, c2
+  use marbl_logging         , only : marbl_log_type
+  use marbl_logging         , only : error_msg
   use passive_tracer_tools  , only : ind_name_pair, name_to_ind
   use marbl_interface_types , only : tracer_read  => marbl_tracer_read_type
 
@@ -68,6 +70,7 @@ subroutine init(this, nml_filename, nml_in, ind_name_table)
   integer(i4)         , intent(in) :: nml_in
   type(ind_name_pair) , dimension(:), intent(in) :: ind_name_table
 
+  type(marbl_log_type), intent(inout) :: marbl_status_log
   !-----------------------------------------------------------------------
   !  local variables
   !-----------------------------------------------------------------------
@@ -75,6 +78,7 @@ subroutine init(this, nml_filename, nml_in, ind_name_table)
   character(len=char_len), dimension(ecosys_tracer_cnt) :: restore_short_names
   character(len=char_len), dimension(ecosys_tracer_cnt) :: restore_filenames
   character(len=char_len), dimension(ecosys_tracer_cnt) :: restore_file_varnames
+  character(*), parameter :: subname = 'ecosys_restore:Init'
 
   !-----------------------------------------------------------------------
 
@@ -93,7 +97,12 @@ subroutine init(this, nml_filename, nml_in, ind_name_table)
        restore_short_names, restore_filenames, restore_file_varnames)
 
   call this%initialize_restore_read_vars(restore_short_names, restore_filenames, &
-       restore_file_varnames, ind_name_table)
+       restore_file_varnames, ind_name_table, marbl_status_log)
+  if (marbl_status_log%labort_marbl) then
+    error_msg = "error code returned from this%initialize_restore_read_vars"
+    call marbl_status_log%log_error(error_msg, subname)
+    return
+   end if
 
 end subroutine Init
 
@@ -114,7 +123,7 @@ subroutine read_namelist(this, nml_filename, nml_in, &
   !-----------------------------------------------------------------------
   !  input variables
   !-----------------------------------------------------------------------
-  class(ecosys_restore_type) :: this
+  class(ecosys_restore_type), intent(inout) :: this
   character(len=*), intent(in) :: nml_filename
   integer(i4), intent(in) :: nml_in
   character(len=char_len), dimension(ecosys_tracer_cnt), intent(out) :: restore_short_names
@@ -189,7 +198,7 @@ end subroutine read_namelist
 !*****************************************************************************
 
 subroutine initialize_restore_read_vars(this, restore_short_names, restore_filenames, &
-     restore_file_varnames, ind_name_table)
+     restore_file_varnames, ind_name_table, marbl_status_log)
   !
   ! Read the ecosys_restore namelist and broadcast to all
   ! processes. Store results in the ecosys_restore_vars%tracers(i)%restore_file_info
@@ -201,6 +210,7 @@ subroutine initialize_restore_read_vars(this, restore_short_names, restore_filen
   use kinds_mod, only : char_len, int_kind, log_kind
   use passive_tracer_tools, only : ind_name_pair, name_to_ind
   use io_types, only : stdout
+  use marbl_logging, only : marbl_log_type
   use communicate, only : master_task, my_task
   use exit_mod, only : exit_POP, sigAbort
 
@@ -208,26 +218,27 @@ subroutine initialize_restore_read_vars(this, restore_short_names, restore_filen
   !-----------------------------------------------------------------------
   !  input variables
   !-----------------------------------------------------------------------
-  class(ecosys_restore_type) :: this
+  class(ecosys_restore_type), intent(inout) :: this
   character(len=char_len), dimension(ecosys_tracer_cnt), intent(in) :: restore_short_names
   character(len=char_len), dimension(ecosys_tracer_cnt), intent(in) :: restore_filenames
   character(len=char_len), dimension(ecosys_tracer_cnt), intent(in) :: restore_file_varnames
   type(ind_name_pair), dimension(:), intent(in) :: ind_name_table
 
+  type(marbl_log_type), intent(inout) :: marbl_status_log
+
   !-----------------------------------------------------------------------
   !  local variables
   !-----------------------------------------------------------------------
   integer(int_kind)       :: t, tracer_index
-  logical(log_kind)       :: unknown_user_request
   character(len=char_len) :: file_format
   character(len=char_len) :: message
+  character(*), parameter :: subname='ecosys_restore:initialize_restore_read_vars'
 
   !-----------------------------------------------------------------------
 
   file_format = 'nc'
 
   this%restore_any_tracer = .false.
-  unknown_user_request = .false.
 
   ! reinitialize any restore vars requested by the user
   do t = 1, size(restore_short_names)
@@ -250,23 +261,14 @@ subroutine initialize_restore_read_vars(this, restore_short_names, restore_filen
 
         else
 
-           unknown_user_request = .true.
-           if (my_task == master_task) then
-              write(stdout, *) "ERROR: Could not find user requested restore variable '", &
-                   trim(restore_short_names(t)), "'"
-           end if
+           write(message, *) "ERROR: Could not find user requested restore variable '", &
+                              trim(restore_short_names(t)), "'"
+           call marbl_status_log%log_error(message, subname)
+           return
 
         end if
      end if
   end do
-
-  if (unknown_user_request) then
-     write(message, *) "ecosys_restore%initialize_restore_read_vars - ",      &
-                       "encountered unknown user specified tracer names.",    &
-                       "See ocn.log for details."
-     call exit_POP(sigAbort, message)
-
-  end if
 
 end subroutine initialize_restore_read_vars
 
@@ -285,7 +287,7 @@ subroutine initialize_restoring_timescale(this, nml_filename, nml_in, zt)
   !-----------------------------------------------------------------------
   !  input variables
   !-----------------------------------------------------------------------
-  class(ecosys_restore_type) :: this
+  class(ecosys_restore_type), intent(inout) :: this
   character(len=*), intent(in) :: nml_filename
   integer(i4), intent(in) :: nml_in
   real (POP_r8), dimension(km), intent(in) :: zt
@@ -327,7 +329,7 @@ subroutine read_restoring_fields(this, LAND_MASK)
   !-----------------------------------------------------------------------
   !  input variables
   !-----------------------------------------------------------------------
-  class(ecosys_restore_type) :: this
+  class(ecosys_restore_type), intent(inout) :: this
   logical (log_kind), dimension(:,:,:), intent(in) :: LAND_MASK
 
   !-----------------------------------------------------------------------
@@ -388,7 +390,7 @@ subroutine restore_tracers(this, tracer_cnt, vert_level, x_index, y_index, &
   !-----------------------------------------------------------------------
   !  input variables
   !-----------------------------------------------------------------------
-  class(ecosys_restore_type) :: this
+  class(ecosys_restore_type), intent(inout) :: this
   integer(int_kind), intent(in) :: tracer_cnt
   integer(int_kind), intent(in) :: vert_level
   integer(int_kind), intent(in) :: x_index
@@ -440,7 +442,7 @@ subroutine set_tracer_read_metadata(this, index, &
 
   !  initialize a tracer_read type to common default values.
 
-  class(ecosys_restore_type) :: this
+  class(ecosys_restore_type), intent(inout) :: this
   integer(int_kind)              , intent(in) :: index
   character(char_len) , optional , intent(in) :: mod_varname
   character(char_len) , optional , intent(in) :: filename
