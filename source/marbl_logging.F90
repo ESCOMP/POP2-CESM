@@ -44,6 +44,8 @@ module marbl_logging
     procedure, public :: erase => marbl_log_erase
   end type marbl_log_type
 
+  character(len=char_len), public :: error_msg
+
 contains
 
   subroutine marbl_output_options_constructor(this, labort_on_warning, LogVerbose, LogNamelist, &
@@ -156,7 +158,7 @@ contains
     else
       new_entry%ElementInd = 1
     end if
-    write(new_entry%LogMessage, "(4A)") "ERROR (", trim(CodeLoc), "): ",      &
+    write(new_entry%LogMessage, "(4A)") "MARBL ERROR (", trim(CodeLoc), "): ", &
                                         trim(ErrorMsg)
     new_entry%CodeLocation = trim(CodeLoc)
 

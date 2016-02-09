@@ -2,6 +2,29 @@
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    9 Feb 2016
+Tag Name:    pop2/branch_tags/marbl_logging_tags/marbl_logging_n08_marbl_ciso_n04_cesm_pop_2_1_20160114
+Tag Summary: Started using StatusLog for interior / surface_forcing errors; also
+             brought init error logging in to CISO module. Lastly, reverted back
+             to just one StatusLog element rather than arrays for SurfaceForcing
+             and InteriorForcing because I ran into vectorization issues --
+             1) Both set_interior and set_surface_forcing call co2calc_column
+                routines, but the former vectorizes over vertical (I had thought
+                there would just be one interior forcing log instance)
+             2) Memory management -- if there is an error reported in a single
+                element, how do we clear the other logs? And if errors are
+                reported from multiple elements, how do we print them all prior
+                to calling abort?
+
+M       source/co2calc_column.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/marbl_ciso_mod.F90
+M       source/marbl_interface.F90
+M       source/marbl_logging.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    9 Feb 2016
 Tag Name:    pop2/branch_tags/marbl_logging_tags/marbl_logging_n07_marbl_ciso_n04_cesm_pop_2_1_20160114
 Tag Summary: All errors from marbl_init are properly logged and driver calls abort
 

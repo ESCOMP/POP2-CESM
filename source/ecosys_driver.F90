@@ -39,6 +39,7 @@ module ecosys_driver
   use marbl_interface_types     , only : marbl_forcing_output_type
   use marbl_logging             , only : marbl_log_type
   use marbl_logging             , only : marbl_status_log_entry_type
+  use marbl_logging             , only : error_msg
   use marbl_interface_types     , only : marbl_domain_type
   use marbl_interface_types     , only : marbl_gcm_state_type
   use ecosys_mod                , only : marbl_compute_totalChl
@@ -184,12 +185,6 @@ module ecosys_driver
 
   integer (int_kind), dimension(max_blocks_clinic) :: ciso_data_ind_d13c = -1 ! data index for D13C data
   integer (int_kind), dimension(max_blocks_clinic) :: ciso_data_ind_d14c = -1 ! data index for D14C data
-
-  !-----------------------------------------------------------------------
-  !  private module string for storing error messages
-  !-----------------------------------------------------------------------
-
-  character(len=char_len), private :: error_msg
 
   !***********************************************************************
 
@@ -464,14 +459,14 @@ contains
             marbl_forcing_input=marbl_forcing_input(iblock),   &
             marbl_forcing_output=marbl_forcing_output(iblock))
 
-       if (marbl(iblock)%InitStatusLog%labort_marbl) then
+       if (marbl(iblock)%StatusLog%labort_marbl) then
          write(error_msg,"(A,I0,A)") "error code returned from marbl(", iblock, &
                                      ")%init()"
-         call marbl(iblock)%InitStatusLog%log_error(error_msg,                &
+         call marbl(iblock)%StatusLog%log_error(error_msg,                &
                                                     "ecosys_driver::ecosys_driver_init()")
        end if
-       call print_marbl_log(marbl(iblock)%InitStatusLog, iblock)
-       call marbl(iblock)%InitStatusLog%erase()
+       call print_marbl_log(marbl(iblock)%StatusLog, iblock)
+       call marbl(iblock)%StatusLog%erase()
     end do
 
     ! Allocate module variable
@@ -1093,9 +1088,9 @@ contains
     !-----------------------------------------------------------------------
 
     integer (int_kind) :: &
-         i, j, iblock, n, & ! loop indices
-         auto_ind,        & ! autotroph functional group index
-         errorCode          ! errorCode from HaloUpdate call
+         i, j, iblock, n,        & ! loop indices
+         auto_ind,               & ! autotroph functional group index
+         errorCode                 ! errorCode from HaloUpdate call
 
     real (r8)             , dimension(nx_block, ny_block, max_blocks_clinic) :: &
          ifrac_file_input , & ! file input ice fraction (non-dimensional)
@@ -1245,6 +1240,15 @@ contains
                marbl_forcing_input(iblock),  &
                marbl_forcing_output(iblock), &
                marbl_forcing_diags(iblock))
+
+          if (marbl(iblock)%StatusLog%labort_marbl) then
+            write(error_msg,"(A,I0,A)") "error code returned from marbl(", iblock, &
+                                        ")%set_surface_forcing()"
+            call marbl(iblock)%StatusLog%log_error(error_msg,                &
+                                            "ecosys_driver::ecosys_driver_set_sflux()")
+          end if
+          call print_marbl_log(marbl(iblock)%StatusLog, iblock)
+          call marbl(iblock)%StatusLog%erase()
 
           !-----------------------------------------------------------------------
           ! Copy data from marbl output column to pop slab data structure

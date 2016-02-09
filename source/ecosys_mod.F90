@@ -79,7 +79,6 @@ module ecosys_mod
 
   ! !USES:
 
-  use shr_sys_mod          , only : shr_sys_abort        !FIXME
   use communicate          , only : master_task, my_task !FIXME
   use io_types             , only : stdout               !FIXME
   use constants            , only : T0_Kelvin            !FIXME
@@ -217,6 +216,7 @@ module ecosys_mod
   use marbl_interface_types, only : forcing_monthly_every_ts
 
   use marbl_logging             , only : marbl_log_type
+  use marbl_logging             , only : error_msg
 
   implicit none
   private
@@ -360,12 +360,6 @@ module ecosys_mod
   type(forcing_monthly_every_ts), target :: dic_riv_flux_loc
   type(forcing_monthly_every_ts), target :: alk_riv_flux_loc
   type(forcing_monthly_every_ts), target :: doc_riv_flux_loc
-
-  !-----------------------------------------------------------------------
-  !  private module string for storing error messages
-  !-----------------------------------------------------------------------
-
-  character(len=char_len), private :: error_msg
 
   !*****************************************************************************
 
@@ -668,12 +662,12 @@ contains
     tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_nml')
     read(tmp_nl_buffer, nml=ecosys_nml, iostat=nml_error)
     if (nml_error /= 0) then
-      call marbl_status_log%log_error("error reading &ecosys_nml", "ecosys_mod::marbl_init_nml()")
-       return
+      call marbl_status_log%log_error("error reading &ecosys_nml", subname)
+      return
     else
       ! FIXME(mnl,2016-02): this is printing contents of pop_in, not the entire
       !                     ecosys_nml
-      call marbl_status_log%log_namelist('ecosys_nml', tmp_nl_buffer, 'ecosys_mod::marbl_init_nml')
+      call marbl_status_log%log_namelist('ecosys_nml', tmp_nl_buffer, subname)
     end if
 
     !-----------------------------------------------------------------------
@@ -686,7 +680,7 @@ contains
        gas_flux_forcing_iopt = gas_flux_forcing_iopt_file
     else
        write(error_msg, "(2A)"), "unknown gas_flux_forcing_opt: ", trim(gas_flux_forcing_opt)
-       call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_init_nml()")
+       call marbl_status_log%log_error(error_msg, subname)
        return
     endif
 
@@ -720,7 +714,7 @@ contains
        comp_surf_avg_freq_iopt = marbl_freq_opt_nmonth
     case default
        write(error_msg, "(2A)"), "unknown comp_surf_avg_freq_opt: ", trim(comp_surf_avg_freq_opt)
-       call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_init_nml()")
+       call marbl_status_log%log_error(error_msg, subname)
        return
     end select
 
@@ -733,7 +727,7 @@ contains
        atm_co2_iopt = atm_co2_iopt_drv_diag
     case default
        write(error_msg, "(2A)"), "unknown atm_co2_opt: ", trim(atm_co2_opt)
-       call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_init_nml()")
+       call marbl_status_log%log_error(error_msg, subname)
        return
     end select
 
@@ -742,7 +736,7 @@ contains
        atm_alt_co2_iopt = atm_co2_iopt_const
     case default
        write(error_msg, "(2A)"), "unknown atm_alt_co2_opt: ", trim(atm_alt_co2_opt)
-       call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_init_nml()")
+       call marbl_status_log%log_error(error_msg, subname)
        return
     end select
 
@@ -753,7 +747,7 @@ contains
        caco3_bury_thres_iopt = caco3_bury_thres_iopt_omega_calc
     case default
        write(error_msg, "(2A)"), "unknown caco3_bury_thres_opt: ", trim(caco3_bury_thres_opt)
-       call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_init_nml()")
+       call marbl_status_log%log_error(error_msg, subname)
        return
     end select
 
@@ -763,9 +757,9 @@ contains
 
     if (use_nml_surf_vals .and. comp_surf_avg_freq_iopt /= marbl_freq_opt_never) then
        write(error_msg, "(4A)"), "use_nml_surf_vals can only be .true. if ", &
-                                 "comp_surf_avg_freq_opt is 'never', but",   &
+                                 "comp_surf_avg_freq_opt is 'never', but ",  &
                                  "comp_surf_avg_freq_opt = ", trim(comp_surf_avg_freq_opt)
-       call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_init_nml()")
+       call marbl_status_log%log_error(error_msg, subname)
        return
     endif
 
@@ -776,7 +770,9 @@ contains
     ! FIXME(mnl, 2016-01): eliminate marbl_parms!
     call marbl_params_init(nl_buffer, marbl_status_log)
     if (marbl_status_log%labort_marbl) then
-       return
+      error_msg = "error code returned from marbl_params_init"
+      call marbl_status_log%log_error(error_msg, subname)
+      return
     end if
 
     dust_flux        => dust_flux_loc
@@ -1081,7 +1077,7 @@ contains
     call marbl_check_ecosys_tracer_count_consistency(non_living_biomass_ecosys_tracer_cnt, marbl_status_log)
     if (marbl_status_log%labort_marbl) then
       error_msg = "error code returned from marbl_check_ecosys_tracer_count_consistency"
-      call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_init_tracer_metadata")
+      call marbl_status_log%log_error(error_msg, subname)
                                     
       return
     end if
@@ -1141,7 +1137,8 @@ contains
        marbl_interior_share,             &
        marbl_zooplankton_share,          &
        marbl_autotroph_share,            &
-       marbl_particulate_share)
+       marbl_particulate_share,          &
+       marbl_status_log)
     
     ! !DESCRIPTION:
     !  Compute time derivatives for ecosystem state variables
@@ -1178,6 +1175,7 @@ contains
     type    (marbl_zooplankton_share_type) , intent(inout) :: marbl_zooplankton_share(zooplankton_cnt, domain%km)
     type    (marbl_autotroph_share_type)   , intent(inout) :: marbl_autotroph_share(autotroph_cnt, domain%km)
     type    (marbl_particulate_share_type) , intent(inout) :: marbl_particulate_share
+    type(marbl_log_type),                    intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1282,7 +1280,12 @@ contains
          gcm_state%temperature(:), gcm_state%salinity(:), &
          tracer_local(:, :), carbonate(:), &
          ph_prev_3d(:), ph_prev_alt_co2_3d(:), &
-         zsat_calcite(:), zsat_aragonite(:))
+         zsat_calcite(:), zsat_aragonite(:), marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      error_msg = "error code returned from marbl_compute_carbonate_chemistry"
+      call marbl_status_log%log_error(error_msg, subname)
+      return
+    end if
 
     call marbl_autotroph_consistency_check(autotroph_cnt, &
          domain%kmt, autotrophs, autotroph_local(:,1:domain%kmt))
@@ -1352,7 +1355,12 @@ contains
             P_iron, PON_remin(k), PON_sed_loss(k), POP_remin(k),       &
             POP_sed_loss(k), QA_dust_def(k), gcm_state%temperature(k), &
             tracer_local(:, k), carbonate(k), sed_denitrif(k),         &
-            other_remin(k), fesedflux(k), ciso_on)
+            other_remin(k), fesedflux(k), ciso_on, marbl_status_log)
+       if (marbl_status_log%labort_marbl) then
+         error_msg = "error code returned from marbl_compute_particulate_terms"
+         call marbl_status_log%log_error(error_msg, subname)
+         return
+       end if
 
        call marbl_compute_nitrif(k, domain%num_PAR_subcols, domain%kmt, &
             PAR%col_frac(:), PAR%interface(k-1,:), PAR%interface(k,:),  &
@@ -1617,7 +1625,7 @@ contains
              marbl_particulate_share, POC, P_CaCO3, P_SiO2, dust, P_iron,     &
              PON_remin, PON_sed_loss, POP_remin, POP_sed_loss, QA_dust_def,   &
              temperature, tracer_local, carbonate, sed_denitrif, other_remin, &
-             fesedflux, lexport_shared_vars)
+             fesedflux, lexport_shared_vars, marbl_status_log)
 
     ! !DESCRIPTION:
     !  Compute outgoing fluxes and remineralization terms. Assumes that
@@ -1695,6 +1703,7 @@ contains
     real (r8)                               , intent(out)   :: sed_denitrif        ! sedimentary denitrification (umolN/cm^2/s)
     real (r8)                               , intent(out)   :: other_remin         ! sedimentary remin not due to oxic or denitrification
     type(marbl_particulate_share_type)      , intent(inout) :: marbl_particulate_share
+    type(marbl_log_type),                    intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -2189,10 +2198,8 @@ contains
     endif
 
     if (poc_error) then
-      ! FIXME: use marbl_status_log
-       call shr_sys_abort(subname /&
-            &/ ': mass ratio of ballast ' /&
-            &/ 'production exceeds POC production')
+      write(error_msg, "(A)") "mass ratio of ballast production exceeds POC production"
+      call marbl_status_log%log_error(error_msg, subname)
     endif
 
     end associate
@@ -2207,7 +2214,8 @@ contains
        marbl_forcing_input,   &
        marbl_forcing_output,  &
        marbl_forcing_share,   &
-       marbl_forcing_diags)
+       marbl_forcing_diags,   &
+       marbl_status_log)
 
     ! !DESCRIPTION:
     !  Compute surface forcing fluxes 
@@ -2273,6 +2281,7 @@ contains
     type(marbl_forcing_output_type) , intent(inout) :: marbl_forcing_output
     type(marbl_diagnostics_type),     intent(inout) :: marbl_forcing_diags
     type(marbl_forcing_share_type)  , intent(inout) :: marbl_forcing_share
+    type(marbl_log_type), intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -2417,7 +2426,12 @@ contains
                             surface_vals(:,dic_ind), surface_vals(:,alk_ind), &
                             surface_vals(:,po4_ind), surface_vals(:,sio3_ind), &
                             PHLO, PHHI, PH_NEW, XCO2, AP_USED, &
-                            CO2STAR, DCO2STAR, pCO2SURF, DpCO2, CO3)
+                            CO2STAR, DCO2STAR, pCO2SURF, DpCO2, CO3, marbl_status_log)
+          if (marbl_status_log%labort_marbl) then
+            error_msg = "error code returned from co2calc_surf"
+            call marbl_status_log%log_error(error_msg, subname)
+            return
+          end if
 
           PH_PREV_NEW = PH_NEW
 
@@ -2452,7 +2466,12 @@ contains
                             surface_vals(:,dic_alt_co2_ind), surface_vals(:,alk_ind), &
                             surface_vals(:,po4_ind)        , surface_vals(:,sio3_ind),&
                             PHLO, PHHI, PH_NEW, XCO2_ALT_CO2, AP_USED,          &
-                            CO2STAR_ALT, DCO2STAR_ALT, pCO2SURF_ALT, DpCO2_ALT, CO3)
+                            CO2STAR_ALT, DCO2STAR_ALT, pCO2SURF_ALT, DpCO2_ALT, CO3, marbl_status_log)
+            if (marbl_status_log%labort_marbl) then
+              error_msg = "error code returned from co2calc_surf"
+              call marbl_status_log%log_error(error_msg, subname)
+              return
+            end if
 
           PH_PREV_ALT_CO2_NEW = PH_NEW
 
@@ -2773,7 +2792,7 @@ contains
     if (ecosys_tracer_cnt /= n) then
        write(error_msg, "(4A)"), "ecosys_tracer_cnt = ", ecosys_tracer_cnt, &
                                  "but computed ecosys_tracer_cnt = ", n
-       call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_check_ecosys_tracer_count_consistency()")
+       call marbl_status_log%log_error(error_msg, subname)
         return
     endif
 
@@ -3299,7 +3318,7 @@ contains
        temperature, salinity, &
        tracer_local, carbonate, &
        ph_prev_3d, ph_prev_alt_co2_3d, &
-       zsat_calcite, zsat_aragonite)
+       zsat_calcite, zsat_aragonite, marbl_status_log)
 
     use co2calc_column        , only : comp_co3terms         
     use co2calc_column        , only : comp_co3_sat_vals     
@@ -3314,6 +3333,7 @@ contains
     real(r8)                       , intent(inout) :: ph_prev_alt_co2_3d(domain%km)
     real(r8)                       , intent(inout) :: zsat_calcite(domain%km)                   ! Calcite Saturation Depth
     real(r8)                       , intent(inout) :: zsat_aragonite(domain%km)                 ! Aragonite Saturation Depth
+    type(marbl_log_type),            intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -3330,6 +3350,8 @@ contains
     real(r8)          , dimension(domain%km) :: ALK_loc
     real(r8)          , dimension(domain%km) :: PO4_loc
     real(r8)          , dimension(domain%km) :: SiO3_loc
+
+    character(*), parameter :: subname = 'ecosys_mod:marbl_compute_carbonate_chemistry'
     !-----------------------------------------------------------------------
 
     ! make local copies instead of using associate construct because of gnu fortran bug
@@ -3376,8 +3398,14 @@ contains
 
     call comp_CO3terms(dkm, mask, pressure_correct, .true., co3_coeffs, temperature, &
                        salinity, press_bar, DIC_loc, ALK_loc, PO4_loc, SiO3_loc, &
-                       ph_lower_bound, ph_upper_bound, pH, H2CO3, HCO3, CO3)
-       
+                       ph_lower_bound, ph_upper_bound, pH, H2CO3, HCO3, CO3,     &
+                       marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      error_msg = "error code returned from conp_CO3terms"
+      call marbl_status_log%log_error(error_msg, subname)
+      return
+    end if
+
     do k=1,dkm
 
        ph_prev_3d(k) = pH(k)
@@ -3396,7 +3424,12 @@ contains
     call comp_CO3terms(dkm, mask, pressure_correct, .false., co3_coeffs, temperature,    &
                        salinity, press_bar, DIC_ALT_CO2_loc, ALK_loc, PO4_loc, SiO3_loc, &
                        ph_lower_bound, ph_upper_bound, pH_ALT_CO2, H2CO3_ALT_CO2,        &
-                       HCO3_ALT_CO2, CO3_ALT_CO2)
+                       HCO3_ALT_CO2, CO3_ALT_CO2, marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      error_msg = "error code returned from comp_CO3terms"
+      call marbl_status_log%log_error(error_msg, subname)
+      return
+    end if
        
     ph_prev_alt_co2_3d = pH_ALT_CO2
 
