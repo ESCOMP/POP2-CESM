@@ -20,6 +20,7 @@ module marbl_kinds_mod
   ! module because they are a specific kind of c0 and c1....
   real(kind=r8), parameter, public :: &
       c0     =    0.0_r8       , &
-      c1     =    1.0_r8
+      c1     =    1.0_r8       , &
+      c2     =    2.0_r8
   
 end module marbl_kinds_mod

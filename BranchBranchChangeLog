@@ -1,5 +1,21 @@
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    9 Feb 2016
+Tag Name:    pop2/branch_tags/marbl_logging_tags/marbl_logging_n09_marbl_ciso_n04_cesm_pop_2_1_20160114
+Tag Summary: Add logging support to ecosys_restore, also started to de-POPify
+             that module:
+             1) Namelist read is consistent with ecosys_nml, ecosys_parms_nml, and
+                ecosys_ciso_nml
+             2) Using kinds and constants from marbl_kinds.F90
+             Cleaned up a few small bugs (log_error should always be followed by
+             a "return" call)
+
+M       source/co2calc_column.F90
 M       source/ecosys_driver.F90
 M       source/ecosys_restore.F90
+M       source/marbl_kinds.F90
+M       source/marbl_parms.F90
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy

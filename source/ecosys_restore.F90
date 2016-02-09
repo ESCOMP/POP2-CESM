@@ -3,10 +3,9 @@ module ecosys_restore_mod
   ! Module to generalize restoring any non-autotroph tracer
   !
 
-  use kinds_mod                       , only : r8, log_kind, int_kind
-  use domain_size                     , only : km
+  use marbl_kinds_mod                 , only : r8, log_kind, int_kind
+  use domain_size                     , only : km ! FIXME
   use marbl_sizes                     , only : ecosys_tracer_cnt
-  use passive_tracer_tools            , only : tracer_read_init
   use marbl_interface_types           , only : tracer_read => marbl_tracer_read_type
   use ecosys_restore_timescale_file   , only : ecosys_restore_timescale_file_type
   use ecosys_restore_timescale_interp , only : ecosys_restore_timescale_interp_type
@@ -48,16 +47,18 @@ contains
 
 !*****************************************************************************
 
-subroutine init(this, nml_filename, nml_in, ind_name_table, marbl_status_log)
+subroutine init(this, nl_buffer, ind_name_table, marbl_status_log)
 
   ! initialize ecosys_restore instance to default values, then read
   ! namelist and setup tracers that need to be restored
 
-  use kinds_mod             , only : char_len, int_kind, i4, log_kind
-  use constants             , only : c0, c2
+  use marbl_kinds_mod       , only : char_len, int_kind, i4, log_kind
+  use marbl_kinds_mod       , only : c0, c2
   use marbl_logging         , only : marbl_log_type
   use marbl_logging         , only : error_msg
-  use passive_tracer_tools  , only : ind_name_pair, name_to_ind
+  use marbl_namelist_mod    , only : marbl_nl_cnt
+  use marbl_namelist_mod    , only : marbl_nl_buffer_size
+  use passive_tracer_tools  , only : ind_name_pair, name_to_ind ! FIXME
   use marbl_interface_types , only : tracer_read  => marbl_tracer_read_type
 
   implicit none
@@ -66,8 +67,7 @@ subroutine init(this, nml_filename, nml_in, ind_name_table, marbl_status_log)
   !  input variables
   !-----------------------------------------------------------------------
   class(ecosys_restore_type), intent(inout) :: this
-  character(len=*)    , intent(in) :: nml_filename
-  integer(i4)         , intent(in) :: nml_in
+  character(marbl_nl_buffer_size), dimension(marbl_nl_cnt), intent(in) :: nl_buffer
   type(ind_name_pair) , dimension(:), intent(in) :: ind_name_table
 
   type(marbl_log_type), intent(inout) :: marbl_status_log
@@ -93,8 +93,13 @@ subroutine init(this, nml_filename, nml_in, ind_name_table, marbl_status_log)
      call this%set_tracer_read_metadata(t)
   end do
 
-  call this%read_namelist(nml_filename, nml_in, &
-       restore_short_names, restore_filenames, restore_file_varnames)
+  call this%read_namelist(nl_buffer, restore_short_names, restore_filenames, &
+                          restore_file_varnames, marbl_status_log)
+  if (marbl_status_log%labort_marbl) then
+    error_msg = "error code returned from this%read_namelist"
+    call marbl_status_log%log_error(error_msg, subname)
+    return
+  end if
 
   call this%initialize_restore_read_vars(restore_short_names, restore_filenames, &
        restore_file_varnames, ind_name_table, marbl_status_log)
@@ -102,39 +107,45 @@ subroutine init(this, nml_filename, nml_in, ind_name_table, marbl_status_log)
     error_msg = "error code returned from this%initialize_restore_read_vars"
     call marbl_status_log%log_error(error_msg, subname)
     return
-   end if
+  end if
 
 end subroutine Init
 
 
 !*****************************************************************************
-subroutine read_namelist(this, nml_filename, nml_in, &
-     restore_short_names, restore_filenames, restore_file_varnames)
+subroutine read_namelist(this, nl_buffer, restore_short_names,                &
+                         restore_filenames, restore_file_varnames,            &
+                         marbl_status_log)
 
   ! Read the ecosys_restore namelist and broadcast to all
   ! processes. Store results in the ecosys_restore_vars
 
-  use kinds_mod, only : char_len, char_len, int_kind, i4
-  use communicate, only : master_task, my_task
-  use broadcast, only : broadcast_scalar
-  use io_types, only : stdout
+  use marbl_kinds_mod, only : char_len, char_len, int_kind, i4
+  use communicate, only : master_task, my_task ! FIXME
+  use marbl_namelist_mod    , only : marbl_nl_cnt
+  use marbl_namelist_mod    , only : marbl_nl_buffer_size
+  use marbl_namelist_mod    , only : marbl_namelist
+  use marbl_logging         , only : marbl_log_type
+  use io_types, only : stdout ! FIXME
 
   implicit none
   !-----------------------------------------------------------------------
   !  input variables
   !-----------------------------------------------------------------------
   class(ecosys_restore_type), intent(inout) :: this
-  character(len=*), intent(in) :: nml_filename
-  integer(i4), intent(in) :: nml_in
+  character(marbl_nl_buffer_size), dimension(marbl_nl_cnt), intent(in) :: nl_buffer
   character(len=char_len), dimension(ecosys_tracer_cnt), intent(out) :: restore_short_names
   character(len=char_len), dimension(ecosys_tracer_cnt), intent(out) :: restore_filenames
   character(len=char_len), dimension(ecosys_tracer_cnt), intent(out) :: restore_file_varnames
+  type(marbl_log_type), intent(inout) :: marbl_status_log
 
   !-----------------------------------------------------------------------
   !  local variables
   !-----------------------------------------------------------------------
+  character(*), parameter :: subname = "ecosys_restore:read_namelist"
   integer(int_kind) :: nml_error, t
   logical(log_kind) :: spatial_variability_from_file
+  character(len=marbl_nl_buffer_size) :: tmp_nl_buffer
 
   !-----------------------------------------------------------------------
 
@@ -150,24 +161,14 @@ subroutine read_namelist(this, nml_filename, nml_in, &
   restore_file_varnames = ''
   spatial_variability_from_file = .false.
 
-  if (my_task == master_task) then
-     ! FIXME(bja, 2015-07) convert to reading from the nml buffer!
-     open (nml_in, file=nml_filename, status='old',iostat=nml_error)
-     if (nml_error /= 0) then
-        nml_error = -1
-     else
-        nml_error =  1
-     endif
-     do while (nml_error > 0)
-        read(nml_in, nml=ecosys_restore_nml, iostat=nml_error)
-     end do
-     if (nml_error == 0) then
-        close(nml_in)
-     end if
-     
-     write(stdout, *) 'ecosys_restore_nml :'
-     write(stdout, ecosys_restore_nml)
-  endif
+  tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_restore_nml')
+  read(tmp_nl_buffer, nml=ecosys_restore_nml, iostat=nml_error)
+  if (nml_error /= 0) then
+     call marbl_status_log%log_error("Error reading ecosys_restore_nml", subname)
+     return
+  else
+    call marbl_status_log%log_namelist('ecosys_restore_nml', tmp_nl_buffer, subname)
+  end if
 
   if (my_task == master_task) then
      ! FIXME(bja, 2014-10) assert(len(restore_short_names) == len(restore_filenames))
@@ -179,16 +180,6 @@ subroutine read_namelist(this, nml_filename, nml_in, &
         end if
      end do
   end if
-
-  ! NOTE(bja, 2014-10-15) broadcast_array_char_1d looks like it
-  ! should work but corrupts the data...
-  do t = 1, size(restore_short_names)
-     call broadcast_scalar(restore_short_names(t), master_task)
-     call broadcast_scalar(restore_filenames(t), master_task)
-     call broadcast_scalar(restore_file_varnames(t), master_task)
-  end do
-
-  call broadcast_scalar(spatial_variability_from_file, master_task)
 
   ! assign namelist variables to corresponding instance variables
   this%spatial_variability_from_file = spatial_variability_from_file
@@ -207,12 +198,11 @@ subroutine initialize_restore_read_vars(this, restore_short_names, restore_filen
   ! side-effect of this function! This isn't clear and is a Bad Thing (tm)
   !
   ! NOTE(bja, 2014-10) assumes that restore file is ALWAYS netcdf!
-  use kinds_mod, only : char_len, int_kind, log_kind
-  use passive_tracer_tools, only : ind_name_pair, name_to_ind
-  use io_types, only : stdout
+  use marbl_kinds_mod, only : char_len, int_kind, log_kind
+  use passive_tracer_tools, only : ind_name_pair, name_to_ind ! FIXME
+  use io_types, only : stdout ! FIXME
   use marbl_logging, only : marbl_log_type
-  use communicate, only : master_task, my_task
-  use exit_mod, only : exit_POP, sigAbort
+  use communicate, only : master_task, my_task ! FIXME
 
   implicit none
   !-----------------------------------------------------------------------
@@ -278,10 +268,9 @@ subroutine initialize_restoring_timescale(this, nml_filename, nml_in, zt)
   !
   ! Initialize the spatially varying restoring timescale by 
   !
-  use kinds_mod, only : i4
-  use POP_KindsMod, only : POP_r8
-  use io_types, only : stdout
-  use communicate, only : master_task, my_task
+  use marbl_kinds_mod, only : i4, r8
+  use io_types, only : stdout ! FIXME
+  use communicate, only : master_task, my_task ! FIXME
 
   implicit none
   !-----------------------------------------------------------------------
@@ -290,7 +279,7 @@ subroutine initialize_restoring_timescale(this, nml_filename, nml_in, zt)
   class(ecosys_restore_type), intent(inout) :: this
   character(len=*), intent(in) :: nml_filename
   integer(i4), intent(in) :: nml_in
-  real (POP_r8), dimension(km), intent(in) :: zt
+  real (r8), dimension(km), intent(in) :: zt
 
   !-----------------------------------------------------------------------
   !  local variables
@@ -315,15 +304,14 @@ subroutine read_restoring_fields(this, LAND_MASK)
   !
   !  load restoring fields if required
   !
-  use kinds_mod, only : int_kind
-  use constants, only : c0
-  use blocks, only : nx_block, ny_block
-  use domain_size, only : km
-  use domain, only : nblocks_clinic
-  use prognostic, only : max_blocks_clinic
-  use grid, only : KMT
-  use passive_tracer_tools, only : read_field
-  use io_types, only : stdout
+  use marbl_kinds_mod, only : int_kind, c0
+  use blocks, only : nx_block, ny_block ! FIXME
+  use domain_size, only : km ! FIXME
+  use domain, only : nblocks_clinic ! FIXME
+  use prognostic, only : max_blocks_clinic ! FIXME
+  use grid, only : KMT ! FIXME
+  use passive_tracer_tools, only : read_field ! FIXME
+  use io_types, only : stdout ! FIXME
 
   implicit none
   !-----------------------------------------------------------------------
@@ -380,10 +368,9 @@ subroutine restore_tracers(this, tracer_cnt, vert_level, x_index, y_index, &
   !
   !  restore a variable if required
   !
-  use kinds_mod             , only : r8, int_kind, log_kind
-  use constants             , only : c0
-  use blocks                , only : nx_block, ny_block
-  use domain_size           , only : km
+  use marbl_kinds_mod       , only : c0, r8, int_kind, log_kind
+  use blocks                , only : nx_block, ny_block ! FIXME
+  use domain_size           , only : km ! FIXME
   use marbl_interface_types , only : tracer_read => marbl_tracer_read_type
 
   implicit none
@@ -435,8 +422,7 @@ subroutine set_tracer_read_metadata(this, index, &
      mod_varname, filename, file_varname, file_fmt, &
      scale_factor, default_val)
 
-  use kinds_mod , only : char_len, r8
-  use constants , only : c0, c1
+  use marbl_kinds_mod , only : char_len, r8, c0, c1
 
   implicit none
 

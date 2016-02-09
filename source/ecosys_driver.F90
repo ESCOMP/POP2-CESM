@@ -561,7 +561,7 @@ contains
     !  Initialize interior restoring
     !--------------------------------------------------------------------
 
-    call ecosys_restore%init(nml_filename, nml_in, ind_name_table, marbl(1)%StatusLog)
+    call ecosys_restore%init(nl_buffer, ind_name_table, marbl(1)%StatusLog)
     if (marbl(1)%StatusLog%labort_marbl) then
       write(error_msg,"(A)") "error code returned from ecosys_restore%init()"
       call marbl(1)%StatusLog%log_error(error_msg,                &

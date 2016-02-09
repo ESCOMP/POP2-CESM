@@ -573,10 +573,10 @@ contains
     tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_parms_nml')
     read(tmp_nl_buffer, nml=ecosys_parms_nml, iostat=io_error)
     if (io_error /= 0) then
-       ! Add error about not reading ecosys_parms_nml to marbl_status_log
+       call marbl_status_log%log_error("Error reading ecosys_parms_nml", subname)
        return
     else
-      call marbl_status_log%log_namelist('ecosys_parms_nml', tmp_nl_buffer, 'marbl_parms::marbl_params_init')
+      call marbl_status_log%log_namelist('ecosys_parms_nml', tmp_nl_buffer, subname)
     end if
 
   end subroutine marbl_params_init

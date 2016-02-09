@@ -1094,6 +1094,7 @@ CONTAINS
        IF (it > max_bracket_grow_it) THEN
           call marbl_status_log%log_error("bounding bracket for pH solution not found", &
                                           "co2calc_column::drtsafe_row", c)
+          return
        END IF
 
        WHERE ( mask )
@@ -1171,6 +1172,7 @@ CONTAINS
 
     call marbl_status_log%log_error("lack of convergence in drtsafe_row",   &
                                     "co2calc_column::drtsafe_row")
+    return
 
   END SUBROUTINE drtsafe_row
 
