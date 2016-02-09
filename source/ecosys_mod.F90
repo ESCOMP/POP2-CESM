@@ -626,6 +626,8 @@ contains
        ! Add error about not reading ecosys_nml to marbl_status_log
        return
     else
+      ! FIXME(mnl,2016-02): this is printing contents of pop_in, not the entire
+      !                     ecosys_nml
       call marbl_status_log%log_namelist('ecosys_nml', tmp_nl_buffer, 'ecosys_mod::marbl_init_nml')
     end if
 

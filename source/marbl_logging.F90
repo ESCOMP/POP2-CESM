@@ -1,11 +1,12 @@
 module marbl_logging
 
   use marbl_kinds_mod, only : char_len
+  use marbl_namelist_mod, only : marbl_nl_buffer_size
   implicit none
   private
   save
 
-  integer, parameter, private :: marbl_log_len = 33792
+  integer, parameter, private :: marbl_log_len = marbl_nl_buffer_size
 
   ! MNL TO-DO: do we want a wrapper class that contains a linked list of
   !            marbl_log_type? Then labort_marbl can be in the wrapped class
