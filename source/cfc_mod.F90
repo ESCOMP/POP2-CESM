@@ -35,8 +35,8 @@ module cfc_mod
    use io_types, only: stdout
    use io_tools, only: document
    use tavg, only: define_tavg_field, accumulate_tavg_field
-   use passive_tracer_tools, only: forcing_monthly_every_ts, ind_name_pair
-   use passive_tracer_tools, only : read_field, tracer_read
+   use passive_tracer_tools, only: forcing_monthly_every_ts
+   use passive_tracer_tools, only: ind_name_pair, read_field, tracer_read
    use broadcast
    use netcdf
 

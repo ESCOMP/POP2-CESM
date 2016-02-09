@@ -21,27 +21,9 @@
   use kinds_mod             , only : r8
   use kinds_mod             , only : int_kind
   use kinds_mod             , only : char_len
-
-  use blocks                , only : nx_block
-  use blocks                , only : ny_block
-
-  use domain_size           , only : km
-
   use tavg                  , only : define_tavg_field
   use tavg                  , only : accumulate_tavg_field
-
   use shr_sys_mod           , only : shr_sys_abort
-
-  use ecosys_constants      , only : ecosys_tracer_cnt
-
-  use marbl_share_mod       , only : autotrophs
-  use marbl_share_mod       , only : zooplankton
-  use marbl_share_mod       , only : autotroph_cnt
-  use marbl_share_mod       , only : zooplankton_cnt
-
-  use ecosys_diagnostics_mod, only : max_interior_diags
-  use ecosys_diagnostics_mod, only : max_forcing_diags
-
   use marbl_interface_types , only : marbl_diagnostics_type
 
   implicit none
@@ -59,9 +41,10 @@
   !  variables
   !-----------------------------------------------------------------------
 
-  integer (int_kind), dimension(max_forcing_diags ) :: tavg_ids_forcing
-  integer (int_kind), dimension(max_interior_diags) :: tavg_ids_interior
-  integer (int_kind), dimension(ecosys_tracer_cnt ) :: tavg_ids_restore
+  integer (int_kind), allocatable :: tavg_ids_interior(:)
+  integer (int_kind), allocatable :: tavg_ids_restore(:)
+  integer (int_kind), allocatable :: tavg_ids_forcing(:)
+
   integer (int_kind) ::      &
       tavg_ECOSYS_IFRAC_2,   &! ice fraction duplicate
       tavg_ECOSYS_XKW_2,     &! xkw duplicate
@@ -75,30 +58,38 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_init(marbl_interior_diags, marbl_restore_diags, marbl_forcing_diags)
+  subroutine ecosys_tavg_init( marbl_interior_diags, marbl_restore_diags, marbl_forcing_diags)
 
     ! !DESCRIPTION:
     !  call define_tavg_field for all tavg fields
     !
-    type(marbl_diagnostics_type)    , intent(in)  :: marbl_interior_diags
-    type(marbl_diagnostics_type)    , intent(in)  :: marbl_restore_diags
-    type(marbl_diagnostics_type)    , intent(in)  :: marbl_forcing_diags
+    type(marbl_diagnostics_type) , intent(in) :: marbl_interior_diags
+    type(marbl_diagnostics_type) , intent(in) :: marbl_restore_diags
+    type(marbl_diagnostics_type) , intent(in) :: marbl_forcing_diags
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-
     character(*), parameter :: subname = 'ecosys_tavg:ecosys_tavg_init'
+    !-----------------------------------------------------------------------
+
+    !-----------------------------------------------------------------------
+    !  allocate memory for module variables
+    !-----------------------------------------------------------------------
+
+    allocate(tavg_ids_interior(marbl_interior_diags%diag_cnt))
+    allocate(tavg_ids_restore(marbl_restore_diags%diag_cnt))
+    allocate(tavg_ids_forcing(marbl_forcing_diags%diag_cnt))
 
     !-----------------------------------------------------------------------
     !  Define tavg fields for MARBL diagnostics
     !-----------------------------------------------------------------------
 
-    call ecosys_tavg_define_from_diag(marbl_diags=marbl_interior_diags,       &
+    call ecosys_tavg_define_from_diag(marbl_diags=marbl_interior_diags, &
                                       tavg_ids=tavg_ids_interior)
-    call ecosys_tavg_define_from_diag(marbl_diags=marbl_restore_diags,        &
+    call ecosys_tavg_define_from_diag(marbl_diags=marbl_restore_diags,  &
                                       tavg_ids=tavg_ids_restore)
-    call ecosys_tavg_define_from_diag(marbl_diags=marbl_forcing_diags,        &
+    call ecosys_tavg_define_from_diag(marbl_diags=marbl_forcing_diags,  &
                                       tavg_ids=tavg_ids_forcing)
 
     call define_tavg_field(tavg_ECOSYS_IFRAC_2,'ECOSYS_IFRAC_2',2,      &
@@ -172,9 +163,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-
     integer :: n, ne
-
     !-----------------------------------------------------------------------
 
     associate(diags => marbl_diags%diags(:))

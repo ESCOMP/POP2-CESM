@@ -172,14 +172,16 @@ contains
     !  0 permil <= S <= 42 permil
     !  CHECK VALUE:  T = 10.0 deg C, S = 35.0 permil,
     !  O2SAT = 282.015 mmol/m^3
-    !
+    ! !REVISION HISTORY:
+    !  same as module
+    use constants, only : T0_Kelvin
+
     ! !INPUT PARAMETERS:
 
-    integer(int_kind), intent(in) :: n
-    real (r8), intent(in) :: SST(n) ! sea surface temperature (C)
-    real (r8), intent(in) :: SSS(n) ! sea surface salinity (psu)
-
-    logical (log_kind), intent(in) :: LAND_MASK(n)
+    integer(int_kind),            intent(in) :: n
+    real (r8),                    intent(in) :: SST(n) ! sea surface temperature (C)
+    real (r8),                    intent(in) :: SSS(n) ! sea surface salinity (psu)
+    logical (log_kind), optional, intent(in) :: LAND_MASK(n)
 
     ! !OUTPUT PARAMETERS:
 
@@ -189,15 +191,37 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
 
-    integer(int_kind) :: i
+    real (r8) :: TS(n)
+    real (r8) :: O2SAT(n)
 
-    do i = 1, n
-       if (LAND_MASK(i)) then
-          O2SAT_surf(i) = O2SAT_scalar(SST(i), SSS(i))
-       else
-          O2SAT_surf(i) = c0
-       end if
-    end do
+    !  coefficients in expansion
+    real (r8), parameter ::    &
+         a_0 = 2.00907_r8,     &
+         a_1 = 3.22014_r8,     &
+         a_2 = 4.05010_r8,     &
+         a_3 = 4.94457_r8,     &
+         a_4 = -2.56847E-1_r8, &
+         a_5 = 3.88767_r8,     &
+         b_0 = -6.24523E-3_r8, &
+         b_1 = -7.37614E-3_r8, &
+         b_2 = -1.03410E-2_r8, &
+         b_3 = -8.17083E-3_r8, &
+         c_0 = -4.88682E-7_r8
+
+    ! set default
+    O2SAT_surf(:) = c0
+
+    if (present(LAND_MASK)) then
+       where(LAND_MASK)
+
+          TS(:)    = log( ((T0_Kelvin + 25.0_r8) - SST(:)) / (T0_Kelvin + SST(:)) )
+          O2SAT(:) = exp(a_0+TS(:)*(a_1+TS(:)*(a_2+TS(:)*(a_3+TS(:)*(a_4+TS(:)*a_5)))) + &
+                         SSS(:)*( (b_0+TS(:)*(b_1+TS(:)*(b_2+TS(:)*b_3))) + SSS(:)*c_0 ))
+          !  Convert from ml/l to mmol/m^3
+          O2SAT_surf(:) = O2SAT(:) / 0.0223916_r8
+
+       end where
+    endif
 
   end function O2SAT_surf
 

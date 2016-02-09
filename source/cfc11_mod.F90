@@ -31,10 +31,10 @@ module cfc11_mod
    use io_tools, only: document
    use tavg, only: define_tavg_field, accumulate_tavg_field
    use timers, only: get_timer
-   use passive_tracer_tools, only: forcing_monthly_every_ts,          &
-       init_forcing_monthly_every_ts, ind_name_pair,   &
-       rest_read_tracer_block, file_read_tracer_block, read_field, &
-       tracer_read
+   use passive_tracer_tools, only: forcing_monthly_every_ts
+   use passive_tracer_tools, only: init_forcing_monthly_every_ts,      &
+       ind_name_pair, rest_read_tracer_block, file_read_tracer_block,  &
+       read_field, tracer_read
 
    implicit none
 

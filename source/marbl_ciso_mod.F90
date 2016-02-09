@@ -19,23 +19,43 @@ module marbl_ciso_mod
 
   ! !USES:
 
-  use marbl_kinds_mod , only : r8
-  use marbl_kinds_mod , only : int_kind
-  use marbl_kinds_mod , only : log_kind
-  use marbl_kinds_mod , only : char_len
-  use marbl_parms     , only : c0
-  use marbl_parms     , only : c1
-  use marbl_parms     , only : c2
-  use marbl_parms     , only : c1000
-  use marbl_parms     , only : mpercm
+  use communicate           , only : master_task, my_task             !FIXME
+  use io_types              , only : stdout                           !FIXME
+  use io_tools              , only : document                         !FIXME
+  use constants             , only : blank_fmt, delim_fmt, ndelim_fmt !FIXME
+  use exit_mod              , only : sigAbort, exit_POP               !FIXME
 
-  use communicate     , only : master_task     !FIXME
-  use communicate     , only : my_task         !FIXME
-  use io_types        , only : stdout          !FIXME
-  use constants       , only : blank_fmt       !FIXME
-  use constants       , only : delim_fmt       !FIXME
-  use constants       , only : ndelim_fmt      !FIXME
+  use marbl_kinds_mod       , only : r8
+  use marbl_kinds_mod       , only : int_kind
+  use marbl_kinds_mod       , only : log_kind
+  use marbl_kinds_mod       , only : char_len
 
+  use marbl_parms           , only : c0
+  use marbl_parms           , only : c1
+  use marbl_parms           , only : c2
+  use marbl_parms           , only : c1000
+  use marbl_parms           , only : mpercm
+  use marbl_parms           , only : autotrophs  
+  use marbl_parms           , only : zooplankton 
+  use marbl_parms           , only : grazing     
+
+  use marbl_sizes           , only : autotroph_cnt
+  use marbl_sizes           , only : zooplankton_cnt
+  use marbl_sizes           , only : grazer_prey_cnt
+
+  use marbl_interface_types , only : marbl_tracer_metadata_type
+  use marbl_interface_types , only : marbl_diagnostics_type
+  use marbl_interface_types , only : marbl_domain_type
+  use marbl_interface_types , only : marbl_gcm_state_type
+
+  use marbl_internal_types  , only : autotroph_type
+  use marbl_internal_types  , only : column_sinking_particle_type
+  use marbl_internal_types  , only : marbl_interior_share_type
+  use marbl_internal_types  , only : marbl_zooplankton_share_type
+  use marbl_internal_types  , only : marbl_autotroph_share_type
+  use marbl_internal_types  , only : marbl_particulate_share_type
+  use marbl_internal_types  , only : marbl_forcing_share_type
+  
   implicit none
   private
 
@@ -45,8 +65,8 @@ module marbl_ciso_mod
 
   public  :: marbl_ciso_init_nml
   public  :: marbl_ciso_init_tracer_metadata
-  public  :: marbl_ciso_set_interior
-  public  :: marbl_ciso_set_sflux
+  public  :: marbl_ciso_set_interior_forcing
+  public  :: marbl_ciso_set_surface_forcing
 
   private :: setup_cell_attributes
   private :: setup_local_column_tracers
@@ -90,7 +110,6 @@ contains
     use marbl_namelist_mod        , only : marbl_nl_split_string
     use marbl_namelist_mod        , only : marbl_namelist
     use marbl_logging             , only : marbl_log_type
-    use marbl_interface_types     , only : marbl_tracer_read_type
     use marbl_share_mod           , only : ecosys_ciso_tracer_cnt
     use marbl_share_mod           , only : ciso_init_ecosys_option
     use marbl_share_mod           , only : ciso_init_ecosys_init_file
@@ -113,14 +132,14 @@ contains
     use marbl_share_mod           , only : ciso_comp_surf_avg_freq_iopt
     use marbl_share_mod           , only : ciso_surf_avg_di13c_const
     use marbl_share_mod           , only : ciso_surf_avg_di14c_const
-    use marbl_parms               , only : freq_opt_never  
-    use marbl_parms               , only : freq_opt_nmonth 
-    use marbl_parms               , only : freq_opt_nyear  
+    use marbl_share_mod           , only : marbl_freq_opt_never  
+    use marbl_share_mod           , only : marbl_freq_opt_nmonth 
+    use marbl_share_mod           , only : marbl_freq_opt_nyear  
 
     implicit none
 
     character(marbl_nl_buffer_size), intent(in)  :: nl_buffer(marbl_nl_cnt)
-    type(marbl_log_type)           , intent(inout) :: marbl_status_log
+    type(marbl_log_type),            intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -223,11 +242,11 @@ contains
 
     select case (ciso_comp_surf_avg_freq_opt)
     case ('never')
-       ciso_comp_surf_avg_freq_iopt = freq_opt_never
+       ciso_comp_surf_avg_freq_iopt = marbl_freq_opt_never
     case ('nyear')
-       ciso_comp_surf_avg_freq_iopt = freq_opt_nyear
+       ciso_comp_surf_avg_freq_iopt = marbl_freq_opt_nyear
     case ('nmonth')
-       ciso_comp_surf_avg_freq_iopt = freq_opt_nmonth
+       ciso_comp_surf_avg_freq_iopt = marbl_freq_opt_nmonth
     case default
        ! FIXME add error messge to marbl_status_log
        ! "unknown ciso_comp_surf_avg_freq_opt"
@@ -238,7 +257,7 @@ contains
     !  namelist consistency checking
     !-----------------------------------------------------------------------
 
-    if (ciso_use_nml_surf_vals .and. ciso_comp_surf_avg_freq_iopt /= freq_opt_never) then
+    if (ciso_use_nml_surf_vals .and. ciso_comp_surf_avg_freq_iopt /= marbl_freq_opt_never) then
        ! FIXME add error messge to marbl_status_log
 !       call document(subname, 'ciso_use_nml_surf_vals'     , ciso_use_nml_surf_vals)
 !       call document(subname, 'ciso_comp_surf_avg_freq_opt', ciso_comp_surf_avg_freq_opt)
@@ -255,8 +274,6 @@ contains
     ! !DESCRIPTION:
     !  Set tracer and forcing metadata
 
-    use marbl_interface_types , only : marbl_tracer_metadata_type
-    use marbl_share_mod       , only : autotrophs, autotroph_cnt
     use marbl_share_mod       , only : ecosys_ciso_tracer_cnt
     use marbl_share_mod       , only : ciso_lecovars_full_depth_tavg 
     use marbl_parms           , only : di13c_ind
@@ -421,7 +438,7 @@ contains
 
   !***********************************************************************
 
-  subroutine marbl_ciso_set_interior( &
+  subroutine marbl_ciso_set_interior_forcing( &
        marbl_domain,                  &
        marbl_gcm_state,               &
        marbl_interior_share,          &
@@ -438,21 +455,10 @@ contains
     !  Adapted to pop2 and new ecosystem model code and added biotic 14C
     !  by A. Jahn, NCAR, 2012-2013
 
-    use marbl_interface_types  , only : marbl_diagnostics_type
-    use marbl_interface_types  , only : marbl_column_domain_type
-    use marbl_interface_types  , only : marbl_gcm_state_type
     use marbl_share_mod        , only : ecosys_ciso_tracer_cnt
-    use marbl_share_mod        , only : column_sinking_particle_type
-    use marbl_share_mod        , only : marbl_interior_share_type
-    use marbl_share_mod        , only : marbl_zooplankton_share_type
-    use marbl_share_mod        , only : marbl_autotroph_share_type
-    use marbl_share_mod        , only : marbl_particulate_share_type
-    use marbl_share_mod        , only : autotrophs, autotroph_cnt
-    use marbl_share_mod        , only : zooplankton, zooplankton_cnt
-    use marbl_share_mod        , only : grazing, grazer_prey_cnt
     use marbl_share_mod        , only : ciso_lsource_sink
     use marbl_share_mod        , only : ciso_fract_factors
-    use marbl_share_mod        , only : seconds_in_year
+    use marbl_share_mod        , only : marbl_seconds_in_year 
     use marbl_parms            , only : f_graze_CaCO3_REMIN
     use marbl_parms            , only : R13c_std, R14c_std
     use marbl_parms            , only : spd
@@ -466,7 +472,7 @@ contains
 
     implicit none
 
-    type(marbl_column_domain_type)     , intent(in)    :: marbl_domain                               
+    type(marbl_domain_type)            , intent(in)    :: marbl_domain                               
     type(marbl_gcm_state_type)         , intent(in)    :: marbl_gcm_state
     type(marbl_interior_share_type)    , intent(inout) :: marbl_interior_share(marbl_domain%km) !FIXME - intent is inout due to DIC_Loc
     type(marbl_zooplankton_share_type) , intent(in)    :: marbl_zooplankton_share(zooplankton_cnt, marbl_domain%km)
@@ -482,7 +488,7 @@ contains
     !-----------------------------------------------------------------------
 
     character(*), parameter :: &
-         subname = 'marbl_ciso_mod:marbl_ciso_set_interior'
+         subname = 'marbl_ciso_mod:marbl_ciso_set_interior forcing'
 
     logical (log_kind) :: zero_mask
 
@@ -629,6 +635,14 @@ contains
          )
 
     !-----------------------------------------------------------------------
+    ! Allocate memory for column_sinking_particle data types 
+    !-----------------------------------------------------------------------
+    call PO13C%construct(num_levels=column_km)
+    call PO14C%construct(num_levels=column_km)
+    call P_Ca13CO3%construct(num_levels=column_km)
+    call P_Ca14CO3%construct(num_levels=column_km)
+
+    !-----------------------------------------------------------------------
     ! Set module variables
     !-----------------------------------------------------------------------
 
@@ -638,7 +652,7 @@ contains
     pi  = 4.0_r8 * atan( 1.0_r8 )
 
     !  Define decay variable for DI14C, using earlier defined half-life of 14C
-    c14_lambda_inv_sec = log(c2) / (c14_halflife_years * seconds_in_year)
+    c14_lambda_inv_sec = log(c2) / (c14_halflife_years * marbl_seconds_in_year)
 
     !----------------------------------------------------------------------------------------
     ! Set cell attributes
@@ -1121,7 +1135,16 @@ contains
        column_dtracer,      &
        marbl_interior_diags)
 
-  end subroutine marbl_ciso_set_interior
+    !-----------------------------------------------------------------------
+    ! Deallocate memory for column_sinking_particle data types 
+    !-----------------------------------------------------------------------
+
+    call PO13C%destruct()
+    call PO14C%destruct()
+    call P_Ca13CO3%destruct()
+    call P_Ca14CO3%destruct()
+
+  end subroutine marbl_ciso_set_interior_forcing
 
   !***********************************************************************
 
@@ -1132,8 +1155,6 @@ contains
     !----------------------------------------------------------------------------------------
     ! For Keller and Morel, set cell attributes based on autotroph type (from observations)
     !----------------------------------------------------------------------------------------
-
-    use marbl_share_mod, only : autotrophs, autotroph_cnt
 
     implicit none
 
@@ -1293,8 +1314,6 @@ contains
     !-----------------------------------------------------------------------
     !  create local copies of model column_tracer, treat negative values as zero
     !-----------------------------------------------------------------------
-
-    use marbl_share_mod, only : autotrophs, autotroph_cnt
 
     implicit none
 
@@ -1475,8 +1494,6 @@ contains
     !  Set dissolution length, production fraction and mass terms.
     !---------------------------------------------------------------------
     
-    use marbl_share_mod, only: column_sinking_particle_type
-
     implicit none
 
     integer(int_kind)                 , intent(in)    :: k
@@ -1527,8 +1544,6 @@ contains
     ! Assume that k == 1 condition was handled by call to init_particulate_terms()
     !-----------------------------------------------------------------------
 
-    use marbl_share_mod       , only : column_sinking_particle_type
-
     implicit none 
 
     integer (int_kind)                 , intent(in)    :: k ! vertical model level
@@ -1546,8 +1561,6 @@ contains
   !***********************************************************************
 
   subroutine marbl_update_sinking_particle_from_prior_level(k, sinking_particle)
-
-    use marbl_share_mod, only : column_sinking_particle_type
 
     implicit none 
 
@@ -1576,27 +1589,25 @@ contains
     !  Incoming fluxes are assumed to be the outgoing fluxes from the previous level.
     !  For other comments, see compute_particulate_terms in ecosys_mod
     
-    use marbl_share_mod , only : column_sinking_particle_type
-    use marbl_share_mod , only : marbl_particulate_share_type
     use marbl_parms     , only : denitrif_C_N
     use marbl_parms     , only : parm_POMbury
     use marbl_parms     , only : spd
 
     implicit none
 
-    integer (int_kind)                 , intent(in)  :: k                 ! vertical model level
-    integer (int_kind)                 , intent(in)  :: column_km
-    integer (int_kind)                 , intent(in)  :: column_kmt
-    real (r8)                          , intent(in)  :: column_delta_z
-    real (r8)                          , intent(in)  :: column_zw      
-    real (r8)                          , intent(in)  :: O2_loc            ! dissolved oxygen used to modify POC%diss, Sed fluxes
-    real (r8)                          , intent(in)  :: NO3_loc           ! dissolved nitrate used to modify sed fluxes
-    type(column_sinking_particle_type) , intent(in)  :: POC               ! base units = nmol C
-    type(column_sinking_particle_type) , intent(in)  :: P_CaCO3           ! base units = nmol CaCO3
-    type(marbl_particulate_share_type) , intent(in)  :: marbl_particulate_share
+    integer (int_kind)                 , intent(in)    :: k                 ! vertical model level
+    integer (int_kind)                 , intent(in)    :: column_km
+    integer (int_kind)                 , intent(in)    :: column_kmt
+    real (r8)                          , intent(in)    :: column_delta_z
+    real (r8)                          , intent(in)    :: column_zw      
+    real (r8)                          , intent(in)    :: O2_loc            ! dissolved oxygen used to modify POC%diss, Sed fluxes
+    real (r8)                          , intent(in)    :: NO3_loc           ! dissolved nitrate used to modify sed fluxes
+    type(column_sinking_particle_type) , intent(in)    :: POC               ! base units = nmol C
+    type(column_sinking_particle_type) , intent(in)    :: P_CaCO3           ! base units = nmol CaCO3
+    type(marbl_particulate_share_type) , intent(in)    :: marbl_particulate_share
 
-    type(column_sinking_particle_type) , intent(out) :: POC_ciso          ! base units = nmol particulate organic Carbon isotope
-    type(column_sinking_particle_type) , intent(out) :: P_CaCO3_ciso      ! base units = nmol CaCO3 Carbon isotope
+    type(column_sinking_particle_type) , intent(inout) :: POC_ciso          ! base units = nmol particulate organic Carbon isotope
+    type(column_sinking_particle_type) , intent(inout) :: P_CaCO3_ciso      ! base units = nmol CaCO3 Carbon isotope
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1856,9 +1867,6 @@ contains
     !  If any phyto box are zero, set others to zeros.
     !-----------------------------------------------------------------------
 
-    use marbl_share_mod , only : autotroph_type
-    use marbl_share_mod , only : marbl_autotroph_share_type
-
     implicit none
 
     integer(int_kind)                , intent(in)    :: column_km                     ! number of active model layers
@@ -1917,9 +1925,9 @@ contains
 
   !*****************************************************************************
 
-  subroutine marbl_ciso_set_sflux( &
+  subroutine marbl_ciso_set_surface_forcing( &
        num_elements        , &
-       ciso_tracer_cnt     , &
+       num_tracers         , &
        land_mask           , &
        sst                 , &
        d13c                , &
@@ -1937,28 +1945,26 @@ contains
     use marbl_parms            , only : di14c_ind
     use marbl_parms            , only : do13c_ind
     use marbl_parms            , only : do14c_ind
-    use marbl_share_mod        , only : marbl_forcing_share_type
-    use marbl_interface_types  , only : marbl_diagnostics_type
-    use ecosys_diagnostics_mod , only : store_diagnostics_ciso_sflux
+    use ecosys_diagnostics_mod , only : store_diagnostics_ciso_surface_forcing
 
     implicit none
 
     integer (int_kind)             , intent(in)    :: num_elements
-    integer (int_kind)             , intent(in)    :: ciso_tracer_cnt
+    integer (int_kind)             , intent(in)    :: num_tracers
     logical (log_kind)             , intent(in)    :: land_mask(num_elements)
     real(r8)                       , intent(in)    :: sst(num_elements)
     real(r8)                       , intent(in)    :: d13c(num_elements)  ! atm 13co2 value
     real(r8)                       , intent(in)    :: d14c(num_elements)  ! atm 14co2 value
     real(r8)                       , intent(in)    :: d14c_glo_avg
-    real(r8)                       , intent(in)    :: surface_vals(num_elements, ciso_tracer_cnt)
+    real(r8)                       , intent(in)    :: surface_vals(num_elements, num_tracers)
     type(marbl_forcing_share_type) , intent(in)    :: marbl_forcing_share
-    real(r8)                       , intent(inout) :: stf(num_elements, ciso_tracer_cnt)
+    real(r8)                       , intent(inout) :: stf(num_elements, num_tracers)
     type(marbl_diagnostics_type)   , intent(inout) :: marbl_forcing_diags
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'marbl_ciso_mod:marbl_ciso_set_sflux'
+    character(*), parameter :: subname = 'marbl_ciso_mod:marbl_ciso_set_surface_forcing'
 
     logical (log_kind), save :: &
          first = .true.  ! Logical for first iteration test
@@ -2150,10 +2156,11 @@ contains
     ! update carbon isotope diagnostics 
     ! FIXME (mvertens, 2015-12) the following arguments need to be group into a derived type
 
-    call store_diagnostics_ciso_sflux( &
+    call store_diagnostics_ciso_surface_forcing( &
          num_elements,   &
          d13c,           &
          d14c,           &
+         d14c_glo_avg,   &
          flux,           &
          flux13,         &
          flux14,         &
@@ -2175,6 +2182,6 @@ contains
          eps_dic_g_surf, &
          marbl_forcing_diags)
 
-  end subroutine marbl_ciso_set_sflux
+  end subroutine marbl_ciso_set_surface_forcing
 
 end module marbl_ciso_mod

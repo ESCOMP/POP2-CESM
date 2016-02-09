@@ -4,53 +4,52 @@
 ! Will be part of MARBL library
 module ecosys_diagnostics_mod
 
-  use marbl_kinds_mod, only : r8
-  use marbl_kinds_mod, only : int_kind
-  use marbl_kinds_mod, only : log_kind
-  use marbl_kinds_mod, only : char_len
+  use marbl_kinds_mod       , only : r8
+  use marbl_kinds_mod       , only : int_kind
+  use marbl_kinds_mod       , only : log_kind
+  use marbl_kinds_mod       , only : char_len
 
-  use marbl_share_mod, only : autotrophs
-  use marbl_share_mod, only : autotroph_cnt
-  use marbl_share_mod, only : zooplankton
-  use marbl_share_mod, only : zooplankton_cnt
-  use marbl_share_mod, only : ecosys_tracer_cnt
-  use marbl_share_mod, only : ecosys_ciso_tracer_cnt
+  use marbl_sizes           , only : ecosys_tracer_cnt
+  use marbl_sizes           , only : ecosys_ciso_tracer_cnt
+  use marbl_sizes           , only : autotroph_cnt
+  use marbl_sizes           , only : zooplankton_cnt
 
-  use marbl_interface_types, only : carbonate_type
-  use marbl_interface_types, only : zooplankton_secondary_species_type
-  use marbl_interface_types, only : autotroph_secondary_species_type
-  use marbl_interface_types, only : photosynthetically_available_radiation_type
-  use marbl_interface_types, only : dissolved_organic_matter_type
-  use marbl_interface_types, only : marbl_diagnostics_type
-  use marbl_interface_types, only : marbl_column_domain_type
-  use marbl_interface_types, only : marbl_gcm_state_type
+  use marbl_parms           , only : autotrophs
+  use marbl_parms           , only : zooplankton
+  use marbl_parms           , only : c0
+  use marbl_parms           , only : c1
+  use marbl_parms           , only : po4_ind
+  use marbl_parms           , only : no3_ind
+  use marbl_parms           , only : sio3_ind
+  use marbl_parms           , only : nh4_ind
+  use marbl_parms           , only : fe_ind
+  use marbl_parms           , only : dic_ind
+  use marbl_parms           , only : doc_ind
+  use marbl_parms           , only : don_ind
+  use marbl_parms           , only : dop_ind
+  use marbl_parms           , only : dopr_ind
+  use marbl_parms           , only : donr_ind
+  use marbl_parms           , only : docr_ind
 
-  use marbl_parms, only : c0
-  use marbl_parms, only : c1
-  use marbl_parms, only : po4_ind
-  use marbl_parms, only : no3_ind
-  use marbl_parms, only : sio3_ind
-  use marbl_parms, only : nh4_ind
-  use marbl_parms, only : fe_ind
-  use marbl_parms, only : dic_ind
-  use marbl_parms, only : doc_ind
-  use marbl_parms, only : don_ind
-  use marbl_parms, only : dop_ind
-  use marbl_parms, only : dopr_ind
-  use marbl_parms, only : donr_ind
-  use marbl_parms, only : docr_ind
+  use marbl_internal_types  , only : carbonate_type
+  use marbl_internal_types  , only : zooplankton_secondary_species_type
+  use marbl_internal_types  , only : autotroph_secondary_species_type
+  use marbl_internal_types  , only : dissolved_organic_matter_type
+  use marbl_internal_types  , only : column_sinking_particle_type
 
-  Implicit None
-  Public
+  use marbl_interface_types , only : marbl_domain_type
+  use marbl_interface_types , only : marbl_tracer_metadata_type
+  use marbl_interface_types , only : marbl_forcing_input_type
+  use marbl_interface_types , only : marbl_forcing_output_type
+  use marbl_interface_types , only : marbl_gcm_state_type
+  use marbl_interface_types , only : marbl_diagnostics_type
+
+  implicit none
+  public
 
   !-----------------------------------------------------------------------
   !  Largest possible size for each class of diagnostics
   !-----------------------------------------------------------------------
-
-  ! FIXME - the following should be counted and not be parameters
-  integer, public, parameter :: max_interior_diags = 112 + (40*autotroph_cnt) + (8*zooplankton_cnt)
-  integer, public, parameter :: max_forcing_diags  = 80
-  integer, public, parameter :: max_restore_diags  = ecosys_tracer_cnt
 
   !-----------------------------------------------------------------------
   !  indices for diagnostic values written to tavg files
@@ -313,1702 +312,2590 @@ contains
   !***********************************************************************
 
   subroutine marbl_diagnostics_init( &
+       ciso_on,                      &
+       marbl_domain,                 &
+       marbl_tracer_metadata,        &
        marbl_interior_diags,         &
        marbl_restore_diags,          &
-       marbl_forcing_diags,          &
-       num_elements_interior,        &
-       num_elements_forcing,         &
-       num_levels,                   &
-       tracer_d_module,              &
-       ciso_on)
+       marbl_forcing_diags)
 
-    use marbl_interface_types , only : marbl_tracer_metadata_type
-
-    ! intent(in)s
-    integer                          , intent(in) :: num_elements_interior
-    integer                          , intent(in) :: num_elements_forcing
-    integer                          , intent(in) :: num_levels
-    type (marbl_tracer_metadata_type), intent(in) :: tracer_d_module(:) ! descriptors for each tracer
-    logical (log_kind)               , intent(in) :: ciso_on 
-
-    ! intent(inout)s
-    type(marbl_diagnostics_type), intent(inout) :: marbl_interior_diags
-    type(marbl_diagnostics_type), intent(inout) :: marbl_restore_diags
-    type(marbl_diagnostics_type), intent(inout) :: marbl_forcing_diags
+    logical (log_kind)                , intent(in)    :: ciso_on 
+    type(marbl_domain_type)           , intent(in)    :: marbl_domain
+    type(marbl_tracer_metadata_type)  , intent(in)    :: marbl_tracer_metadata(:) ! descriptors for each tracer
+    type(marbl_diagnostics_type)      , intent(inout) :: marbl_interior_diags
+    type(marbl_diagnostics_type)      , intent(inout) :: marbl_restore_diags
+    type(marbl_diagnostics_type)      , intent(inout) :: marbl_forcing_diags
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
     integer :: n, tmp_id
-    character(len=char_len) :: lname, sname, units, vgrid
+    logical :: count_only ! true => count the diagnostics, false => add the diagnostics
+    integer :: imode      ! imode = 1, count_only is true, otherwise count_only is false
     logical :: truncate
+    integer :: num_interior_diags
+    integer :: num_restore_diags
+    integer :: num_forcing_diags
+    character(len=char_len) :: lname, sname, units, vgrid
     !-----------------------------------------------------------------------
+
 
     !-----------------------------------------------------------------
     ! Surface forcing diagnostics
     !-----------------------------------------------------------------
 
-    ! Allocate memory for forcing diagnostics
-    call marbl_forcing_diags%construct(max_forcing_diags, num_elements_forcing, num_levels)
-
-    associate(                          &
-         ind => marbl_forcing_diag_ind, &
-         diags => marbl_forcing_diags   &
-         )
-
-    lname    = 'Ice Fraction for ecosys fluxes'
-    sname    = 'ECOSYS_IFRAC'
-    units    = 'fraction'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ECOSYS_IFRAC)
-
-    lname    = 'XKW for ecosys fluxes'
-    sname    = 'ECOSYS_XKW'
-    units    = 'cm/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ECOSYS_XKW)
-
-    lname    = 'Atmospheric Pressure for ecosys fluxes'
-    sname    = 'ECOSYS_ATM_PRESS'
-    units    = 'atmospheres'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ECOSYS_ATM_PRESS)
-
-    lname    = 'PV_O2'
-    sname    = 'PV_O2'
-    units    = 'cm/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%PV_O2)
-
-    lname    = 'O2 Schmidt Number'
-    sname    = 'SCHMIDT_O2'
-    units    = 'none'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%SCHMIDT_O2)
-
-    lname    = 'O2 Saturation'
-    sname    = 'O2SAT'
-    units    = 'mmol/m^3'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%O2SAT)
-
-    lname    = 'Dissolved Oxygen Surface Flux'
-    sname    = 'STF_O2'
-    units    = 'mmol/m^3 cm/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%O2_GAS_FLUX)
-
-    lname    = 'CO2 Star'
-    sname    = 'CO2STAR'
-    units    = 'mmol/m^3'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CO2STAR)
-
-    lname    = 'D CO2 Star'
-    sname    = 'DCO2STAR'
-    units    = 'mmol/m^3'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DCO2STAR)
-
-    lname    = 'surface pCO2'
-    sname    = 'pCO2SURF'
-    units    = 'ppmv'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%pCO2SURF)
-
-    lname    = 'D pCO2'
-    sname    = 'DpCO2'
-    units    = 'ppmv'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DpCO2)
-
-    lname    = 'CO2 Piston Velocity'
-    sname    = 'PV_CO2'
-    units    = 'cm/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%PV_CO2)
-
-    lname    = 'CO2 Schmidt Number'
-    sname    = 'SCHMIDT_CO2'
-    units    = 'none'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%SCHMIDT_CO2)
-
-    lname    = 'DIC Surface Gas Flux'
-    sname    = 'FG_CO2'
-    units    = 'mmol/m^3 cm/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DIC_GAS_FLUX)
-
-    lname    = 'Surface pH'
-    sname    = 'PH'
-    units    = 'none'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%PH)
-
-    lname    = 'Atmospheric CO2'
-    sname    = 'ATM_CO2'
-    units    = 'ppmv'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ATM_CO2)
-
-    lname    = 'CO2 Star, Alternative CO2'
-    sname    = 'CO2STAR_ALT_CO2'
-    units    = 'mmol/m^3'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CO2STAR_ALT_CO2)
-
-    lname    = 'D CO2 Star, Alternative CO2'
-    sname    = 'DCO2STAR_ALT_CO2'
-    units    = 'mmol/m^3'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DCO2STAR_ALT_CO2)
-
-    lname    = 'surface pCO2, Alternative CO2'
-    sname    = 'pCO2SURF_ALT_CO2'
-    units    = 'ppmv'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%pCO2SURF_ALT_CO2)
-
-    lname    = 'D pCO2, Alternative CO2'
-    sname    = 'DpCO2_ALT_CO2'
-    units    = 'ppmv'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DpCO2_ALT_CO2)
-
-    lname    = 'DIC Surface Gas Flux, Alternative CO2'
-    sname    = 'FG_ALT_CO2'
-    units    = 'mmol/m^3 cm/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DIC_GAS_FLUX_ALT_CO2)
-
-    lname    = 'Surface pH, Alternative CO2'
-    sname    = 'PH_ALT_CO2'
-    units    = 'none'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%PH_ALT_CO2)
-
-    lname    = 'Atmospheric Alternative CO2'
-    sname    = 'ATM_ALT_CO2'
-    units    = 'ppmv'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ATM_ALT_CO2)
-
-    lname    = 'Atmospheric Iron Flux'
-    sname    = 'IRON_FLUX'
-    units    = 'mmol/m^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%IRON_FLUX)
-
-    lname    = 'Dust Flux'
-    sname    = 'DUST_FLUX'
-    units    = 'g/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DUST_FLUX)
-
-    lname    = 'Flux of NOx from Atmosphere'
-    sname    = 'NOx_FLUX'
-    units    = 'nmol/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%NOx_FLUX)
-
-    lname    = 'Flux of NHy from Atmosphere'
-    sname    = 'NHy_FLUX'
-    units    = 'nmol/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%NHy_FLUX)
-
-    lname    = 'Flux of DIN from rivers'
-    sname    = 'DIN_RIV_FLUX'
-    units    = 'nmol/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DIN_RIV_FLUX)
-
-    lname    = 'Flux of DIP from rivers'
-    sname    = 'DIP_RIV_FLUX'
-    units    = 'nmol/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DIP_RIV_FLUX)
-
-    lname    = 'Flux of DON from rivers'
-    sname    = 'DON_RIV_FLUX'
-    units    = 'nmol/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DON_RIV_FLUX)
-
-    lname    = 'Flux of DONr from rivers'
-    sname    = 'DONr_RIV_FLUX'
-    units    = 'nmol/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DONr_RIV_FLUX)
-
-    lname    = 'Flux of DOP from rivers'
-    sname    = 'DOP_RIV_FLUX'
-    units    = 'nmol/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOP_RIV_FLUX)
-
-    lname    = 'Flux of DOPr from rivers'
-    sname    = 'DOPr_RIV_FLUX'
-    units    = 'nmol/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOPr_RIV_FLUX)
-
-    lname    = 'Flux of DSI from rivers'
-    sname    = 'DSI_RIV_FLUX'
-    units    = 'nmol/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DSI_RIV_FLUX)
-
-    lname    = 'Flux of DFE from rivers'
-    sname    = 'DFE_RIV_FLUX'
-    units    = 'nmol/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DFE_RIV_FLUX)
-
-    lname    = 'Flux of DIC from rivers'
-    sname    = 'DIC_RIV_FLUX'
-    units    = 'nmol/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DIC_RIV_FLUX)
-
-    lname    = 'Flux of ALK from rivers'
-    sname    = 'ALK_RIV_FLUX'
-    units    = 'alk/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ALK_RIV_FLUX)
-
-    lname    = 'Flux of DOC from rivers'
-    sname    = 'DOC_RIV_FLUX'
-    units    = 'nmol/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOC_RIV_FLUX)
-
-    lname    = 'Flux of DOCr from rivers'
-    sname    = 'DOCr_RIV_FLUX'
-    units    = 'nmol/cm^2/s'
-    vgrid    = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOCr_RIV_FLUX)
-
-    !-----------------------------------------------------------------------
-    !  2D fields related to C13/C14 surface fluxes
-    !-----------------------------------------------------------------------
-
-    if (ciso_on) then
-
-       lname    = 'DI13C Surface Gas Flux'
-       sname    = 'CISO_FG_13CO2'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI13C_GAS_FLUX)
-
-       lname    = 'DI13C Surface Air-Sea Gas Flux'
-       sname    = 'CISO_FG_as_13CO2'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI13C_AS_GAS_FLUX)
-
-       lname    = 'DI13C Surface Sea-Air Gas Flux'
-       sname    = 'CISO_FG_sa_13CO2'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI13C_SA_GAS_FLUX)
-
-       lname    = 'D13C Surface GAS FLUX'
-       sname    = 'CISO_FG_d13C'
-       units    = 'permil'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_d13C_GAS_FLUX)
-
-       lname    = 'Atmospheric Delta 13C in permil'
-       sname    = 'CISO_D13C_atm'
-       units    = 'permil'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_D13C_atm)
-
-       lname    = '13C/12C ratio in total DIC'
-       sname    = 'CISO_R13C_DIC_surf'
-       units    = 'permil'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_R13C_DIC_surf)
-
-       lname    = '13C/12C ratio in atmosphere'
-       sname    = 'CISO_R13C_atm'
-       units    = 'permil'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_R13C_atm)
-
-       lname    = 'Flux of DI13C from rivers'
-       sname    = 'CISO_DI13C_RIV_FLUX'
-       units    = 'nmol/cm^2/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI13C_RIV_FLUX)
-
-       lname    = 'Flux of DO13C from rivers'
-       sname    = 'CISO_DO13C_RIV_FLUX'
-       units    = 'nmol/cm^2/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DO13C_RIV_FLUX)
-
-       lname    = 'Surface equilibrium fractionation (CO2_gaseous <-> CO2_aq)'
-       sname    = 'CISO_eps_aq_g_surf'
-       units    = 'permil'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_eps_aq_g_surf)
-
-       lname    = 'Surface equilibrium fractionation between total DIC and gaseous CO2'
-       sname    = 'CISO_eps_dic_g_surf'
-       units    = 'permil'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_eps_dic_g_surf)
-
-       lname    = 'DI14C Surface Gas Flux'
-       sname    = 'CISO_FG_14CO2'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI14C_GAS_FLUX)
-
-       lname    = 'DI14C Surface Air-Sea Gas Flux'
-       sname    = 'CISO_FG_as_14CO2'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI14C_AS_GAS_FLUX)
-
-       lname    = 'DI14C Surface Sea-Air Gas Flux'
-       sname    = 'CISO_FG_sa_14CO2'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI14C_SA_GAS_FLUX)
-
-       lname    = 'D14C Surface GAS FLUX'
-       sname    = 'CISO_FG_d14C'
-       units    = 'permil'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_d14C_GAS_FLUX)
-
-       lname    = 'Atmospheric Delta 14C in permil'
-       sname    = 'CISO_D14C_atm'
-       units    = 'permil'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_D14C_atm)
-
-       lname    = '14C/12C ratio in total DIC'
-       sname    = 'CISO_R14C_DIC_surf'
-       units    = 'permil'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_R14C_DIC_surf)
-
-       lname    = '14C/12C ratio in atmosphere'
-       sname    = 'CISO_R14C_atm'
-       units    = 'permil'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_R14C_atm)
-
-       lname    = 'Flux of DI14C from rivers'
-       sname    = 'CISO_DI14C_RIV_FLUX'
-       units    = 'nmol/cm^2/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI14C_RIV_FLUX)
-
-       lname    = 'Flux of DO14C from rivers'
-       sname    = 'CISO_DO14C_RIV_FLUX'
-       units    = 'nmol/cm^2/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DO14C_RIV_FLUX)
-
-       lname    = 'GLOBAL_D14C'
-       sname    = 'CISO_GLOBAL_D14C'
-       units    = 'permil'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_GLOBAL_D14C)
-    end if
-
-    end associate
-
-    !-----------------------------------------------------------------
-    ! Interior diagnostics
-    !-----------------------------------------------------------------
-
-    ! Allocate memory for interior diagnostics
-    call marbl_interior_diags%construct(max_interior_diags, num_elements_interior, num_levels)
-
-    associate(                           &
-         ind => marbl_interior_diag_ind, &
-         diags => marbl_interior_diags   &
-         )
-
-    ! General 2D diags
-    lname = 'Calcite Saturation Depth'
-    sname = 'zsatcalc'
-    units = 'cm'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zsatcalc)
-
-    lname = 'Aragonite Saturation Depth'
-    sname = 'zsatarag'
-    units = 'cm'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zsatarag)
-
-    lname = 'Vertical Minimum of O2'
-    sname = 'O2_ZMIN'
-    units = 'mmol/m^3'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%O2_ZMIN)
-
-    lname = 'Depth of Vertical Minimum of O2'
-    sname = 'O2_ZMIN_DEPTH'
-    units = 'cm'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%O2_ZMIN_DEPTH)
-
-    lname = 'Total C Fixation Vertical Integral'
-    sname = 'photoC_TOT_zint'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC_TOT_zint)
-
-    lname = 'Total C Fixation from NO3 Vertical Integral'
-    sname = 'photoC_NO3_TOT_zint'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC_NO3_TOT_zint)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ctot'
-    sname = 'Jint_Ctot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_Ctot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ctot, 0-100m'
-    sname = 'Jint_100m_Ctot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_100m_Ctot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ntot'
-    sname = 'Jint_Ntot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_Ntot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ntot, 0-100m'
-    sname = 'Jint_100m_Ntot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_100m_Ntot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ptot'
-    sname = 'Jint_Ptot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_Ptot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ptot, 0-100m'
-    sname = 'Jint_100m_Ptot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_100m_Ptot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Sitot'
-    sname = 'Jint_Sitot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_Sitot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Sitot, 0-100m'
-    sname = 'Jint_100m_Sitot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_100m_Sitot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Fetot'
-    sname = 'Jint_Fetot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_Fetot)
-
-    lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Fetot, 0-100m'
-    sname = 'Jint_100m_Fetot'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_100m_Fetot)
-
-    ! Particulate 2D diags
-    lname = 'CaCO3 Flux to Sediments'
-    sname = 'calcToSed'
-    units = 'nmolC/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%calcToSed)
-
-    lname = 'POC Flux to Sediments'
-    sname = 'pocToSed'
-    units = 'nmolC/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%pocToSed)
-
-    lname = 'nitrogen burial Flux to Sediments'
-    sname = 'ponToSed'
-    units = 'nmolN/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ponToSed)
-
-    lname = 'nitrogen loss in Sediments'
-    sname = 'SedDenitrif'
-    units = 'nmolN/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%SedDenitrif)
-
-    lname = 'non-oxic,non-dentr remin in Sediments'
-    sname = 'OtherRemin'
-    units = 'nmolC/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%OtherRemin)
-
-    lname = 'phosphorus Flux to Sediments'
-    sname = 'popToSed'
-    units = 'nmolP/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%popToSed)
-
-    lname = 'biogenic Si Flux to Sediments'
-    sname = 'bsiToSed'
-    units = 'nmolSi/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%bsiToSed)
-
-    lname = 'dust Flux to Sediments'
-    sname = 'dustToSed'
-    units = 'g/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%dustToSed)
-
-    lname = 'pFe Flux to Sediments'
-    sname = 'pfeToSed'
-    units = 'nmolFe/cm^2/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%pfeToSed)
-
-    ! Autotroph 2D diags
-    do n=1,autotroph_cnt
-       lname = trim(autotrophs(n)%lname) // ' C Fixation Vertical Integral'
-       sname = 'photoC_' // trim(autotrophs(n)%sname) // '_zint'
-       units = 'mmol/m^3 cm/s'
-       vgrid = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC_zint(n))
-
-       lname = trim(autotrophs(n)%lname) // ' C Fixation from NO3 Vertical Integral'
-       sname = 'photoC_NO3_' // trim(autotrophs(n)%sname) // '_zint'
-       units = 'mmol/m^3 cm/s'
-       vgrid = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC_NO3_zint(n))
-
-       if (autotrophs(n)%CaCO3_ind.gt.0) then
-          lname = trim(autotrophs(n)%lname) //                                  &
-               ' CaCO3 Formation Vertical Integral'
-          sname = trim(autotrophs(n)%sname) // '_CaCO3_form_zint'
+    num_forcing_diags  = 0
+    num_interior_diags = 0
+    num_restore_diags  = 0
+
+    do imode = 1,2
+    
+       if (imode == 1) then
+          count_only = .true.
+       else
+          count_only = .false.
+          associate(                                                                &
+               num_elements_interior => marbl_domain%num_elements_interior_forcing, &
+               num_elements_forcing  => marbl_domain%num_elements_surface_forcing,  &
+               num_levels            => marbl_domain%km                             &
+               )
+          call marbl_forcing_diags%construct (num_forcing_diags , num_elements_forcing , num_levels)
+          call marbl_interior_diags%construct(num_interior_diags, num_elements_interior, num_levels)
+          call marbl_restore_diags%construct (num_restore_diags , num_elements_interior, num_levels)
+          end associate
+       end if
+
+       associate(                          &
+            ind => marbl_forcing_diag_ind, &
+            diags => marbl_forcing_diags   &
+            )
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Ice Fraction for ecosys fluxes'
+          sname    = 'ECOSYS_IFRAC'
+          units    = 'fraction'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ECOSYS_IFRAC)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'XKW for ecosys fluxes'
+          sname    = 'ECOSYS_XKW'
+          units    = 'cm/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ECOSYS_XKW)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Atmospheric Pressure for ecosys fluxes'
+          sname    = 'ECOSYS_ATM_PRESS'
+          units    = 'atmospheres'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ECOSYS_ATM_PRESS)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'PV_O2'
+          sname    = 'PV_O2'
+          units    = 'cm/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%PV_O2)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'O2 Schmidt Number'
+          sname    = 'SCHMIDT_O2'
+          units    = 'none'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%SCHMIDT_O2)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'O2 Saturation'
+          sname    = 'O2SAT'
+          units    = 'mmol/m^3'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%O2SAT)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Dissolved Oxygen Surface Flux'
+          sname    = 'STF_O2'
+          units    = 'mmol/m^3 cm/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%O2_GAS_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'CO2 Star'
+          sname    = 'CO2STAR'
+          units    = 'mmol/m^3'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CO2STAR)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'D CO2 Star'
+          sname    = 'DCO2STAR'
+          units    = 'mmol/m^3'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DCO2STAR)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'surface pCO2'
+          sname    = 'pCO2SURF'
+          units    = 'ppmv'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%pCO2SURF)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'D pCO2'
+          sname    = 'DpCO2'
+          units    = 'ppmv'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DpCO2)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'CO2 Piston Velocity'
+          sname    = 'PV_CO2'
+          units    = 'cm/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%PV_CO2)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'CO2 Schmidt Number'
+          sname    = 'SCHMIDT_CO2'
+          units    = 'none'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%SCHMIDT_CO2)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'DIC Surface Gas Flux'
+          sname    = 'FG_CO2'
+          units    = 'mmol/m^3 cm/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DIC_GAS_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Surface pH'
+          sname    = 'PH'
+          units    = 'none'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%PH)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Atmospheric CO2'
+          sname    = 'ATM_CO2'
+          units    = 'ppmv'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ATM_CO2)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'CO2 Star, Alternative CO2'
+          sname    = 'CO2STAR_ALT_CO2'
+          units    = 'mmol/m^3'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CO2STAR_ALT_CO2)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'D CO2 Star, Alternative CO2'
+          sname    = 'DCO2STAR_ALT_CO2'
+          units    = 'mmol/m^3'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DCO2STAR_ALT_CO2)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'surface pCO2, Alternative CO2'
+          sname    = 'pCO2SURF_ALT_CO2'
+          units    = 'ppmv'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%pCO2SURF_ALT_CO2)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'D pCO2, Alternative CO2'
+          sname    = 'DpCO2_ALT_CO2'
+          units    = 'ppmv'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DpCO2_ALT_CO2)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'DIC Surface Gas Flux, Alternative CO2'
+          sname    = 'FG_ALT_CO2'
+          units    = 'mmol/m^3 cm/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DIC_GAS_FLUX_ALT_CO2)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Surface pH, Alternative CO2'
+          sname    = 'PH_ALT_CO2'
+          units    = 'none'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%PH_ALT_CO2)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Atmospheric Alternative CO2'
+          sname    = 'ATM_ALT_CO2'
+          units    = 'ppmv'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ATM_ALT_CO2)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Atmospheric Iron Flux'
+          sname    = 'IRON_FLUX'
+          units    = 'mmol/m^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%IRON_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Dust Flux'
+          sname    = 'DUST_FLUX'
+          units    = 'g/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DUST_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Flux of NOx from Atmosphere'
+          sname    = 'NOx_FLUX'
+          units    = 'nmol/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%NOx_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Flux of NHy from Atmosphere'
+          sname    = 'NHy_FLUX'
+          units    = 'nmol/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%NHy_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Flux of DIN from rivers'
+          sname    = 'DIN_RIV_FLUX'
+          units    = 'nmol/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DIN_RIV_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Flux of DIP from rivers'
+          sname    = 'DIP_RIV_FLUX'
+          units    = 'nmol/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DIP_RIV_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Flux of DON from rivers'
+          sname    = 'DON_RIV_FLUX'
+          units    = 'nmol/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DON_RIV_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Flux of DONr from rivers'
+          sname    = 'DONr_RIV_FLUX'
+          units    = 'nmol/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DONr_RIV_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Flux of DOP from rivers'
+          sname    = 'DOP_RIV_FLUX'
+          units    = 'nmol/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOP_RIV_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Flux of DOPr from rivers'
+          sname    = 'DOPr_RIV_FLUX'
+          units    = 'nmol/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOPr_RIV_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Flux of DSI from rivers'
+          sname    = 'DSI_RIV_FLUX'
+          units    = 'nmol/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DSI_RIV_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Flux of DFE from rivers'
+          sname    = 'DFE_RIV_FLUX'
+          units    = 'nmol/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DFE_RIV_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Flux of DIC from rivers'
+          sname    = 'DIC_RIV_FLUX'
+          units    = 'nmol/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DIC_RIV_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Flux of ALK from rivers'
+          sname    = 'ALK_RIV_FLUX'
+          units    = 'alk/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ALK_RIV_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Flux of DOC from rivers'
+          sname    = 'DOC_RIV_FLUX'
+          units    = 'nmol/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOC_RIV_FLUX)
+       end if
+
+       if (count_only) then
+          num_forcing_diags = num_forcing_diags + 1
+       else
+          lname    = 'Flux of DOCr from rivers'
+          sname    = 'DOCr_RIV_FLUX'
+          units    = 'nmol/cm^2/s'
+          vgrid    = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOCr_RIV_FLUX)
+       end if
+
+       !-----------------------------------------------------------------------
+       !  2D fields related to C13/C14 surface fluxes
+       !-----------------------------------------------------------------------
+       
+       if (ciso_on) then
+          
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'DI13C Surface Gas Flux'
+             sname    = 'CISO_FG_13CO2'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI13C_GAS_FLUX)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'DI13C Surface Air-Sea Gas Flux'
+             sname    = 'CISO_FG_as_13CO2'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI13C_AS_GAS_FLUX)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'DI13C Surface Sea-Air Gas Flux'
+             sname    = 'CISO_FG_sa_13CO2'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI13C_SA_GAS_FLUX)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'D13C Surface GAS FLUX'
+             sname    = 'CISO_FG_d13C'
+             units    = 'permil'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_d13C_GAS_FLUX)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'Atmospheric Delta 13C in permil'
+             sname    = 'CISO_D13C_atm'
+             units    = 'permil'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_D13C_atm)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = '13C/12C ratio in total DIC'
+             sname    = 'CISO_R13C_DIC_surf'
+             units    = 'permil'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_R13C_DIC_surf)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = '13C/12C ratio in atmosphere'
+             sname    = 'CISO_R13C_atm'
+             units    = 'permil'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_R13C_atm)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'Flux of DI13C from rivers'
+             sname    = 'CISO_DI13C_RIV_FLUX'
+             units    = 'nmol/cm^2/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI13C_RIV_FLUX)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'Flux of DO13C from rivers'
+             sname    = 'CISO_DO13C_RIV_FLUX'
+             units    = 'nmol/cm^2/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DO13C_RIV_FLUX)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'Surface equilibrium fractionation (CO2_gaseous <-> CO2_aq)'
+             sname    = 'CISO_eps_aq_g_surf'
+             units    = 'permil'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_eps_aq_g_surf)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'Surface equilibrium fractionation between total DIC and gaseous CO2'
+             sname    = 'CISO_eps_dic_g_surf'
+             units    = 'permil'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_eps_dic_g_surf)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'DI14C Surface Gas Flux'
+             sname    = 'CISO_FG_14CO2'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI14C_GAS_FLUX)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'DI14C Surface Air-Sea Gas Flux'
+             sname    = 'CISO_FG_as_14CO2'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI14C_AS_GAS_FLUX)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'DI14C Surface Sea-Air Gas Flux'
+             sname    = 'CISO_FG_sa_14CO2'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI14C_SA_GAS_FLUX)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'D14C Surface GAS FLUX'
+             sname    = 'CISO_FG_d14C'
+             units    = 'permil'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_d14C_GAS_FLUX)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'Atmospheric Delta 14C in permil'
+             sname    = 'CISO_D14C_atm'
+             units    = 'permil'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_D14C_atm)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = '14C/12C ratio in total DIC'
+             sname    = 'CISO_R14C_DIC_surf'
+             units    = 'permil'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_R14C_DIC_surf)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = '14C/12C ratio in atmosphere'
+             sname    = 'CISO_R14C_atm'
+             units    = 'permil'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_R14C_atm)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'Flux of DI14C from rivers'
+             sname    = 'CISO_DI14C_RIV_FLUX'
+             units    = 'nmol/cm^2/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DI14C_RIV_FLUX)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'Flux of DO14C from rivers'
+             sname    = 'CISO_DO14C_RIV_FLUX'
+             units    = 'nmol/cm^2/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DO14C_RIV_FLUX)
+          end if
+
+          if (count_only) then
+             num_forcing_diags = num_forcing_diags + 1
+          else
+             lname    = 'GLOBAL_D14C'
+             sname    = 'CISO_GLOBAL_D14C'
+             units    = 'permil'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_GLOBAL_D14C)
+          end if
+       end if
+
+       end associate
+
+       !-----------------------------------------------------------------
+       ! Interior diagnostics
+       !-----------------------------------------------------------------
+       
+       associate(                           &
+            ind => marbl_interior_diag_ind, &
+            diags => marbl_interior_diags   &
+            )
+
+       ! General 2D diags
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Calcite Saturation Depth'
+          sname = 'zsatcalc'
+          units = 'cm'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zsatcalc)
+       end if
+
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Aragonite Saturation Depth'
+          sname = 'zsatarag'
+          units = 'cm'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zsatarag)
+       end if
+
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Vertical Minimum of O2'
+          sname = 'O2_ZMIN'
+          units = 'mmol/m^3'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%O2_ZMIN)
+       end if
+
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Depth of Vertical Minimum of O2'
+          sname = 'O2_ZMIN_DEPTH'
+          units = 'cm'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%O2_ZMIN_DEPTH)
+       end if
+
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Total C Fixation Vertical Integral'
+          sname = 'photoC_TOT_zint'
           units = 'mmol/m^3 cm/s'
           vgrid = 'none'
           truncate = .false.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CaCO3_form_zint(n))
-       else
-          ind%CaCO3_form_zint(n) = -1
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC_TOT_zint)
        end if
-    end do
 
-    lname = 'Total CaCO3 Formation Vertical Integral'
-    sname = 'CaCO3_form_zint'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'none'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%tot_CaCO3_form_zint)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Total C Fixation from NO3 Vertical Integral'
+          sname = 'photoC_NO3_TOT_zint'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC_NO3_TOT_zint)
+       end if
 
-    ! General 3D diags
-    lname = 'Carbonate Ion Concentration'
-    sname = 'CO3'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CO3)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ctot'
+          sname = 'Jint_Ctot'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_Ctot)
+       end if
 
-    lname = 'Bicarbonate Ion Concentration'
-    sname = 'HCO3'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%HCO3)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ctot, 0-100m'
+          sname = 'Jint_100m_Ctot'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_100m_Ctot)
+       end if
 
-    lname = 'Carbonic Acid Concentration'
-    sname = 'H2CO3'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%H2CO3)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ntot'
+          sname = 'Jint_Ntot'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_Ntot)
+       end if
 
-    lname = 'pH'
-    sname = 'pH_3D'
-    units = 'none'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ph_3D)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ntot, 0-100m'
+          sname = 'Jint_100m_Ntot'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_100m_Ntot)
+       end if
 
-    lname = 'Carbonate Ion Concentration, Alternative CO2'
-    sname = 'CO3_ALT_CO2'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CO3_ALT_CO2)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ptot'
+          sname = 'Jint_Ptot'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_Ptot)
+       end if
 
-    lname = 'Bicarbonate Ion Concentration, Alternative CO2'
-    sname = 'HCO3_ALT_CO2'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%HCO3_ALT_CO2)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Ptot, 0-100m'
+          sname = 'Jint_100m_Ptot'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_100m_Ptot)
+       end if
 
-    lname = 'Carbonic Acid Concentration, Alternative CO2'
-    sname = 'H2CO3_ALT_CO2'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%H2CO3_ALT_CO2)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Sitot'
+          sname = 'Jint_Sitot'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_Sitot)
+       end if
 
-    lname = 'pH, Alternative CO2'
-    sname = 'pH_3D_ALT_CO2'
-    units = 'none'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ph_3D_ALT_CO2)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Sitot, 0-100m'
+          sname = 'Jint_100m_Sitot'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_100m_Sitot)
+       end if
 
-    lname = 'CO3 concentration at calcite saturation'
-    sname = 'co3_sat_calc'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%co3_sat_calc)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Fetot'
+          sname = 'Jint_Fetot'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_Fetot)
+       end if
 
-    lname = 'CO3 concentration at aragonite saturation'
-    sname = 'co3_sat_arag'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%co3_sat_arag)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Vertical Integral of Conservative Subterms of Source Sink Term for Fetot, 0-100m'
+          sname = 'Jint_100m_Fetot'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Jint_100m_Fetot)
+       end if
 
-    lname = 'Nitrification'
-    sname = 'NITRIF'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%NITRIF)
+       ! Particulate 2D diags
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'CaCO3 Flux to Sediments'
+          sname = 'calcToSed'
+          units = 'nmolC/cm^2/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%calcToSed)
+       end if
 
-    lname = 'Denitrification'
-    sname = 'DENITRIF'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DENITRIF)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'POC Flux to Sediments'
+          sname = 'pocToSed'
+          units = 'nmolC/cm^2/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%pocToSed)
+       end if
 
-    lname = 'O2 Production'
-    sname = 'O2_PRODUCTION'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%O2_PRODUCTION)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'nitrogen burial Flux to Sediments'
+          sname = 'ponToSed'
+          units = 'nmolN/cm^2/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ponToSed)
+       end if
 
-    lname = 'O2 Consumption'
-    sname = 'O2_CONSUMPTION'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%O2_CONSUMPTION)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'nitrogen loss in Sediments'
+          sname = 'SedDenitrif'
+          units = 'nmolN/cm^2/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%SedDenitrif)
+       end if
 
-    lname = 'Apparent O2 Utilization'
-    sname = 'AOU'
-    units = 'mmol/m^3'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%AOU)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'non-oxic,non-dentr remin in Sediments'
+          sname = 'OtherRemin'
+          units = 'nmolC/cm^2/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%OtherRemin)
+       end if
 
-    lname = 'PAR Average over Model Cell'
-    sname = 'PAR_avg'
-    units = 'W/m^2'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%PAR_avg)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'phosphorus Flux to Sediments'
+          sname = 'popToSed'
+          units = 'nmolP/cm^2/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%popToSed)
+       end if
 
-    lname = 'Total Autotroph Grazing'
-    sname = 'graze_auto_TOT'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_graze_TOT)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'biogenic Si Flux to Sediments'
+          sname = 'bsiToSed'
+          units = 'nmolSi/cm^2/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%bsiToSed)
+       end if
 
-    lname = 'Total C Fixation'
-    sname = 'photoC_TOT'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC_TOT)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'dust Flux to Sediments'
+          sname = 'dustToSed'
+          units = 'g/cm^2/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%dustToSed)
+       end if
 
-    lname = 'Total C Fixation from NO3'
-    sname = 'photoC_NO3_TOT'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .true.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC_NO3_TOT)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'pFe Flux to Sediments'
+          sname = 'pfeToSed'
+          units = 'nmolFe/cm^2/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%pfeToSed)
+       end if
 
-    lname = 'DOC Production'
-    sname = 'DOC_prod'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOC_prod)
+       ! Autotroph 2D diags
+       do n=1,autotroph_cnt
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' C Fixation Vertical Integral'
+             sname = 'photoC_' // trim(autotrophs(n)%sname) // '_zint'
+             units = 'mmol/m^3 cm/s'
+             vgrid = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC_zint(n))
+          end if
 
-    lname = 'DOC Remineralization'
-    sname = 'DOC_remin'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOC_remin)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' C Fixation from NO3 Vertical Integral'
+             sname = 'photoC_NO3_' // trim(autotrophs(n)%sname) // '_zint'
+             units = 'mmol/m^3 cm/s'
+             vgrid = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC_NO3_zint(n))
+          end if
 
-    lname = 'DOCr Remineralization'
-    sname = 'DOCr_remin'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOCr_remin)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             if (autotrophs(n)%CaCO3_ind.gt.0) then
+                lname = trim(autotrophs(n)%lname) // ' CaCO3 Formation Vertical Integral'
+                sname = trim(autotrophs(n)%sname) // '_CaCO3_form_zint'
+                units = 'mmol/m^3 cm/s'
+                vgrid = 'none'
+                truncate = .false.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CaCO3_form_zint(n))
+             else
+                ind%CaCO3_form_zint(n) = -1
+             end if
+          end if
+       end do
 
-    lname = 'DON Production'
-    sname = 'DON_prod'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DON_prod)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Total CaCO3 Formation Vertical Integral'
+          sname = 'CaCO3_form_zint'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'none'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%tot_CaCO3_form_zint)
+       end if
 
-    lname = 'DON Remineralization'
-    sname = 'DON_remin'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DON_remin)
+       ! General 3D diags
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Carbonate Ion Concentration'
+          sname = 'CO3'
+          units = 'mmol/m^3'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CO3)
+       end if
 
-    lname = 'DONr Remineralization'
-    sname = 'DONr_remin'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DONr_remin)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Bicarbonate Ion Concentration'
+          sname = 'HCO3'
+          units = 'mmol/m^3'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%HCO3)
+       end if
 
-    lname = 'DOP Production'
-    sname = 'DOP_prod'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOP_prod)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Carbonic Acid Concentration'
+          sname = 'H2CO3'
+          units = 'mmol/m^3'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%H2CO3)
+       end if
 
-    lname = 'DOP Remineralization'
-    sname = 'DOP_remin'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOP_remin)
-
-    lname = 'DOPr Remineralization'
-    sname = 'DOPr_remin'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOPr_remin)
-
-    lname = 'Iron Scavenging'
-    sname = 'Fe_scavenge'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Fe_scavenge)
-
-    lname = 'Iron Scavenging Rate'
-    sname = 'Fe_scavenge_rate'
-    units = '1/y'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Fe_scavenge_rate)
-
-    ! Particulate 3D diags
-    lname = 'POC Flux into Cell'
-    sname = 'POC_FLUX_IN'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%POC_FLUX_IN)
-
-    lname = 'POC Production'
-    sname = 'POC_PROD'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%POC_PROD)
-
-    lname = 'POC Remineralization'
-    sname = 'POC_REMIN'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%POC_REMIN)
-
-    lname = 'POC Remineralization routed to DIC'
-    sname = 'POC_REMIN_DIC'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%POC_REMIN_DIC)
-
-    lname = 'PON Remineralization routed to NH4'
-    sname = 'PON_REMIN_NH4'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%PON_REMIN_NH4)
-
-    lname = 'POP Remineralization routed to PO4'
-    sname = 'POP_REMIN_PO4'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%POP_REMIN_PO4)
-
-    lname = 'CaCO3 Flux into Cell'
-    sname = 'CaCO3_FLUX_IN'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CaCO3_FLUX_IN)
-
-    lname = 'CaCO3 Production'
-    sname = 'CaCO3_PROD'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CaCO3_PROD)
-
-    lname = 'CaCO3 Remineralization'
-    sname = 'CaCO3_REMIN'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CaCO3_REMIN)
-
-    lname = 'SiO2 Flux into Cell'
-    sname = 'SiO2_FLUX_IN'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%SiO2_FLUX_IN)
-
-    lname = 'SiO2 Production'
-    sname = 'SiO2_PROD'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%SiO2_PROD)
-
-    lname = 'SiO2 Remineralization'
-    sname = 'SiO2_REMIN'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%SiO2_REMIN)
-
-    lname = 'Dust Flux into Cell'
-    sname = 'dust_FLUX_IN'
-    units = 'ng/s/m^2'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%dust_FLUX_IN)
-
-    lname = 'Dust Remineralization'
-    sname = 'dust_REMIN'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%dust_REMIN)
-
-    lname = 'P_iron Flux into Cell'
-    sname = 'P_iron_FLUX_IN'
-    units = 'mmol/m^3 cm/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%P_iron_FLUX_IN)
-
-    lname = 'P_iron Production'
-    sname = 'P_iron_PROD'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%P_iron_PROD)
-
-    lname = 'P_iron Remineralization'
-    sname = 'P_iron_REMIN'
-    units = 'mmol/m^3/s'
-    vgrid = 'layer_avg'
-    truncate = .false.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%P_iron_REMIN)
-
-    ! Autotroph 3D diags
-    do n=1,autotroph_cnt
-
-       lname = trim(autotrophs(n)%lname) // ' N Limitation'
-       sname = trim(autotrophs(n)%sname) // '_N_lim'
-       units = 'none'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%N_lim(n))
-
-       lname = trim(autotrophs(n)%lname) // ' P Limitation'
-       sname = trim(autotrophs(n)%sname) // '_P_lim'
-       units = 'none'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%P_lim(n))
-
-       lname = trim(autotrophs(n)%lname) // ' Fe Limitation'
-       sname = trim(autotrophs(n)%sname) // '_Fe_lim'
-       units = 'none'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Fe_lim(n))
-
-       if (autotrophs(n)%kSiO3 > c0) then
-          lname = trim(autotrophs(n)%lname) // ' SiO3 Limitation'
-          sname = trim(autotrophs(n)%sname) // '_SiO3_lim'
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'pH'
+          sname = 'pH_3D'
           units = 'none'
           vgrid = 'layer_avg'
-          truncate = .true.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%SiO3_lim(n))
-       else
-          ind%SiO3_lim(n) = -1
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ph_3D)
        end if
 
-       lname = trim(autotrophs(n)%lname) // ' Light Limitation'
-       sname = trim(autotrophs(n)%sname) // '_light_lim'
-       units = 'none'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%light_lim(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Carbonate Ion Concentration, Alternative CO2'
+          sname = 'CO3_ALT_CO2'
+          units = 'mmol/m^3'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CO3_ALT_CO2)
+       end if
 
-       lname = trim(autotrophs(n)%lname) // ' C Fixation'
-       sname = 'photoC_' // trim(autotrophs(n)%sname)
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Bicarbonate Ion Concentration, Alternative CO2'
+          sname = 'HCO3_ALT_CO2'
+          units = 'mmol/m^3'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%HCO3_ALT_CO2)
+       end if
 
-       lname = trim(autotrophs(n)%lname) // ' C Fixation from NO3'
-       sname = 'photoC_NO3_' // trim(autotrophs(n)%sname)
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC_NO3(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Carbonic Acid Concentration, Alternative CO2'
+          sname = 'H2CO3_ALT_CO2'
+          units = 'mmol/m^3'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%H2CO3_ALT_CO2)
+       end if
 
-       lname = trim(autotrophs(n)%lname) // ' Fe Uptake'
-       sname = 'photoFe_' // trim(autotrophs(n)%sname)
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoFe(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'pH, Alternative CO2'
+          sname = 'pH_3D_ALT_CO2'
+          units = 'none'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%ph_3D_ALT_CO2)
+       end if
 
-       lname = trim(autotrophs(n)%lname) // ' NO3 Uptake'
-       sname = 'photoNO3_' // trim(autotrophs(n)%sname)
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoNO3(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'CO3 concentration at calcite saturation'
+          sname = 'co3_sat_calc'
+          units = 'mmol/m^3'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%co3_sat_calc)
+       end if
 
-       lname = trim(autotrophs(n)%lname) // ' NH4 Uptake'
-       sname = 'photoNH4_' // trim(autotrophs(n)%sname)
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoNH4(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'CO3 concentration at aragonite saturation'
+          sname = 'co3_sat_arag'
+          units = 'mmol/m^3'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%co3_sat_arag)
+       end if
 
-       lname = trim(autotrophs(n)%lname) // ' DOP Uptake'
-       sname = 'DOP_' // trim(autotrophs(n)%sname) // '_uptake'
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOP_uptake(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Nitrification'
+          sname = 'NITRIF'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%NITRIF)
+       end if
 
-       lname = trim(autotrophs(n)%lname) // ' PO4 Uptake'
-       sname = 'PO4_' // trim(autotrophs(n)%sname) // '_uptake'
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%PO4_uptake(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Denitrification'
+          sname = 'DENITRIF'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DENITRIF)
+       end if
 
-       lname = trim(autotrophs(n)%lname) // ' Grazing'
-       sname = 'graze_' // trim(autotrophs(n)%sname)
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_graze(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'O2 Production'
+          sname = 'O2_PRODUCTION'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%O2_PRODUCTION)
+       end if
 
-       lname = trim(autotrophs(n)%lname) // ' Grazing to POC'
-       sname = 'graze_' // trim(autotrophs(n)%sname) // '_poc'
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_graze_poc(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'O2 Consumption'
+          sname = 'O2_CONSUMPTION'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%O2_CONSUMPTION)
+       end if
 
-       lname = trim(autotrophs(n)%lname) // ' Grazing to DOC'
-       sname = 'graze_' // trim(autotrophs(n)%sname) // '_doc'
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_graze_doc(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Apparent O2 Utilization'
+          sname = 'AOU'
+          units = 'mmol/m^3'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%AOU)
+       end if
 
-       lname = trim(autotrophs(n)%lname) // ' Grazing to ZOO'
-       sname = 'graze_' // trim(autotrophs(n)%sname) // '_zoo'
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_graze_zoo(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'PAR Average over Model Cell'
+          sname = 'PAR_avg'
+          units = 'W/m^2'
+          vgrid = 'layer_avg'
+          truncate = .true.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%PAR_avg)
+       end if
 
-       lname = trim(autotrophs(n)%lname) // ' Loss'
-       sname = trim(autotrophs(n)%sname) // '_loss'
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_loss(n))
-
-       lname = trim(autotrophs(n)%lname) // ' Loss to POC'
-       sname = trim(autotrophs(n)%sname) // '_loss_poc'
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_loss_poc(n))
-
-       lname = trim(autotrophs(n)%lname) // ' Loss to DOC'
-       sname = trim(autotrophs(n)%sname) // '_loss_doc'
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_loss_doc(n))
-
-       lname = trim(autotrophs(n)%lname) // ' Aggregate'
-       sname = trim(autotrophs(n)%sname) // '_agg'
-       units = 'mmol/m^3/s'
-       vgrid = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_agg(n))
-
-       if (autotrophs(n)%Si_ind.gt.0) then
-          lname = trim(autotrophs(n)%lname) // ' Si Uptake'
-         !sname = trim(autotrophs(n)%sname) // '_bSi_form'
-          sname = trim(autotrophs(n)%sname) // 'bSi_form' ! FIXME: eventually add _
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Total Autotroph Grazing'
+          sname = 'graze_auto_TOT'
           units = 'mmol/m^3/s'
           vgrid = 'layer_avg'
           truncate = .true.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%bSi_form(n))
-       else
-          ind%bSi_form(n) = -1
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_graze_TOT)
        end if
 
-       if (autotrophs(n)%CaCO3_ind.gt.0) then
-          lname = trim(autotrophs(n)%lname) // ' CaCO3 Formation'
-          sname = trim(autotrophs(n)%sname) // '_CaCO3_form'
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Total C Fixation'
+          sname = 'photoC_TOT'
           units = 'mmol/m^3/s'
           vgrid = 'layer_avg'
           truncate = .true.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CaCO3_form(n))
-       else
-          ind%CaCO3_form(n) = -1
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC_TOT)
        end if
 
-       if (autotrophs(n)%Nfixer) then
-          lname = trim(autotrophs(n)%lname) // ' N Fixation'
-          sname = trim(autotrophs(n)%sname) // '_Nfix'
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Total C Fixation from NO3'
+          sname = 'photoC_NO3_TOT'
           units = 'mmol/m^3/s'
           vgrid = 'layer_avg'
           truncate = .true.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Nfix(n))
-       else
-          ind%Nfix(n) = -1
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC_NO3_TOT)
        end if
-    end do
 
-    lname    = 'Total Si Uptake'
-    sname    = 'bSi_form'
-    units    = 'mmol/m^3/s'
-    vgrid    = 'layer_avg'
-    truncate = .true.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%tot_bSi_form)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'DOC Production'
+          sname = 'DOC_prod'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOC_prod)
+       end if
 
-    lname    = 'Total CaCO3 Formation'
-    sname    = 'CaCO3_form'
-    units    = 'mmol/m^3/s'
-    vgrid    = 'layer_avg'
-    truncate = .true.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%tot_CaCO3_form)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'DOC Remineralization'
+          sname = 'DOC_remin'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOC_remin)
+       end if
 
-    lname    = 'Total N Fixation'
-    sname    = 'Nfix'
-    units    = 'mmol/m^3/s'
-    vgrid    = 'layer_avg'
-    truncate = .true.
-    call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%tot_Nfix)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'DOCr Remineralization'
+          sname = 'DOCr_remin'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOCr_remin)
+       end if
 
-    ! Zooplankton 3D diags
-    do n        =1,zooplankton_cnt
-       lname    = trim(zooplankton(n)%lname) // ' Loss'
-       sname    = trim(zooplankton(n)%sname) // '_loss'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zoo_loss(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'DON Production'
+          sname = 'DON_prod'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DON_prod)
+       end if
 
-       lname    = trim(zooplankton(n)%lname) // ' Loss to POC'
-       sname    = trim(zooplankton(n)%sname) // '_loss_poc'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zoo_loss_poc(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'DON Remineralization'
+          sname = 'DON_remin'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DON_remin)
+       end if
 
-       lname    = trim(zooplankton(n)%lname) // ' Loss to DOC'
-       sname    = trim(zooplankton(n)%sname) // '_loss_doc'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zoo_loss_doc(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'DONr Remineralization'
+          sname = 'DONr_remin'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DONr_remin)
+       end if
 
-       lname    = trim(zooplankton(n)%lname) // ' grazing loss'
-       sname    = 'graze_' // trim(zooplankton(n)%sname)
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zoo_graze(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'DOP Production'
+          sname = 'DOP_prod'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOP_prod)
+       end if
 
-       lname    = trim(zooplankton(n)%lname) // ' grazing loss to POC'
-       sname    = 'graze_' // trim(zooplankton(n)%sname) // '_poc'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zoo_graze_poc(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'DOP Remineralization'
+          sname = 'DOP_remin'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOP_remin)
+       end if
 
-       lname    = trim(zooplankton(n)%lname) // ' grazing loss to DOC'
-       sname    = 'graze_' // trim(zooplankton(n)%sname) // '_doc'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zoo_graze_doc(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'DOPr Remineralization'
+          sname = 'DOPr_remin'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOPr_remin)
+       end if
 
-       lname    = trim(zooplankton(n)%lname) // ' grazing loss to ZOO'
-       sname    = 'graze_' // trim(zooplankton(n)%sname) // '_zoo'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zoo_graze_zoo(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Iron Scavenging'
+          sname = 'Fe_scavenge'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Fe_scavenge)
+       end if
 
-       lname    = trim(zooplankton(n)%lname) // ' grazing gain'
-       sname    = 'x_graze_' // trim(zooplankton(n)%sname)
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%x_graze_zoo(n))
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Iron Scavenging Rate'
+          sname = 'Fe_scavenge_rate'
+          units = '1/y'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Fe_scavenge_rate)
+       end if
 
-    end do
+       ! Particulate 3D diags
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'POC Flux into Cell'
+          sname = 'POC_FLUX_IN'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%POC_FLUX_IN)
+       end if
 
-    if (ciso_on) then
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'POC Production'
+          sname = 'POC_PROD'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%POC_PROD)
+       end if
 
-       !  nonstandard 3D fields
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'POC Remineralization'
+          sname = 'POC_REMIN'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%POC_REMIN)
+       end if
 
-       lname    = 'PO13C Flux into Cell'
-       sname    = 'CISO_PO13C_FLUX_IN'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_PO13C_FLUX_IN)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'POC Remineralization routed to DIC'
+          sname = 'POC_REMIN_DIC'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%POC_REMIN_DIC)
+       end if
 
-       lname    = 'PO13C Production'
-       sname    = 'CISO_PO13C_PROD'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_PO13C_PROD)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'PON Remineralization routed to NH4'
+          sname = 'PON_REMIN_NH4'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%PON_REMIN_NH4)
+       end if
 
-       lname    = 'PO13C Remineralization'
-       sname    = 'CISO_PO13C_REMIN'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_PO13C_REMIN)
-       
-       lname    = 'DO13C Production'
-       sname    = 'CISO_DO13C_prod'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DO13C_prod)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'POP Remineralization routed to PO4'
+          sname = 'POP_REMIN_PO4'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%POP_REMIN_PO4)
+       end if
 
-       lname    = 'DO13C Remineralization'
-       sname    = 'CISO_DO13C_remin'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DO13C_remin)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'CaCO3 Flux into Cell'
+          sname = 'CaCO3_FLUX_IN'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CaCO3_FLUX_IN)
+       end if
 
-       lname    = 'Ca13CO3 flux into cell'
-       sname    = 'CISO_Ca13CO3_FLUX_IN'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca13CO3_FLUX_IN)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'CaCO3 Production'
+          sname = 'CaCO3_PROD'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CaCO3_PROD)
+       end if
 
-       lname    = 'Ca13CO3 Production'
-       sname    = 'CISO_Ca13CO3_PROD'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca13CO3_PROD)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'CaCO3 Remineralization'
+          sname = 'CaCO3_REMIN'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CaCO3_REMIN)
+       end if
 
-       lname    = 'Ca13CO3 Remineralization'
-       sname    = 'CISO_Ca13CO3_REMIN'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca13CO3_REMIN)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'SiO2 Flux into Cell'
+          sname = 'SiO2_FLUX_IN'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%SiO2_FLUX_IN)
+       end if
 
-       lname    = 'Total 13C Fixation'
-       sname    = 'CISO_photo13C_TOT'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo13C_TOT)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'SiO2 Production'
+          sname = 'SiO2_PROD'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%SiO2_PROD)
+       end if
 
-       lname    = 'd13C of DIC'
-       sname    = 'CISO_DIC_d13C'
-       units    = 'permil'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DIC_d13C)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'SiO2 Remineralization'
+          sname = 'SiO2_REMIN'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%SiO2_REMIN)
+       end if
 
-       lname    = 'd13C of DOC'
-       sname    = 'CISO_DOC_d13C'
-       units    = 'permil'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DOC_d13C)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Dust Flux into Cell'
+          sname = 'dust_FLUX_IN'
+          units = 'ng/s/m^2'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%dust_FLUX_IN)
+       end if
 
-       lname    = 'd13C of zooC'
-       sname    = 'CISO_zooC_d13C'
-       units    = 'permil'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_zooC_d13C)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'Dust Remineralization'
+          sname = 'dust_REMIN'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%dust_REMIN)
+       end if
 
-       lname    = 'PO14C Flux into Cell'
-       sname    = 'CISO_PO14C_FLUX_IN'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_PO14C_FLUX_IN)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'P_iron Flux into Cell'
+          sname = 'P_iron_FLUX_IN'
+          units = 'mmol/m^3 cm/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%P_iron_FLUX_IN)
+       end if
 
-       lname    = 'PO14C Production'
-       sname    = 'CISO_PO14C_PROD'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_PO14C_PROD)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'P_iron Production'
+          sname = 'P_iron_PROD'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%P_iron_PROD)
+       end if
 
-       lname    = 'PO14C Remineralization'
-       sname    = 'CISO_PO14C_REMIN'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_PO14C_REMIN)
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname = 'P_iron Remineralization'
+          sname = 'P_iron_REMIN'
+          units = 'mmol/m^3/s'
+          vgrid = 'layer_avg'
+          truncate = .false.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%P_iron_REMIN)
+       end if
 
-       lname    = 'DO14C Production'
-       sname    = 'CISO_DO14C_prod'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DO14C_prod)
+       ! Autotroph 3D diags
+       do n= 1,autotroph_cnt
 
-       lname    = 'DO14C Remineralization'
-       sname    = 'CISO_DO14C_remin'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DO14C_remin)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' N Limitation'
+             sname = trim(autotrophs(n)%sname) // '_N_lim'
+             units = 'none'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%N_lim(n))
+          end if
+          
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' P Limitation'
+             sname = trim(autotrophs(n)%sname) // '_P_lim'
+             units = 'none'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%P_lim(n))
+          end if
 
-       lname    = 'Ca14CO3 flux into cell'
-       sname    = 'CISO_Ca14CO3_FLUX_IN'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca14CO3_FLUX_IN)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' Fe Limitation'
+             sname = trim(autotrophs(n)%sname) // '_Fe_lim'
+             units = 'none'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Fe_lim(n))
+          end if
 
-       lname    = 'Ca14CO3 Production'
-       sname    = 'CISO_Ca14CO3_PROD'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca14CO3_PROD)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             if (autotrophs(n)%kSiO3 > c0) then
+                lname = trim(autotrophs(n)%lname) // ' SiO3 Limitation'
+                sname = trim(autotrophs(n)%sname) // '_SiO3_lim'
+                units = 'none'
+                vgrid = 'layer_avg'
+                truncate = .true.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%SiO3_lim(n))
+             else
+                ind%SiO3_lim(n) = -1
+             end if
+          end if
 
-       lname    = 'Ca14CO3 Remineralization'
-       sname    = 'CISO_Ca14CO3_REMIN'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca14CO3_REMIN)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' Light Limitation'
+             sname = trim(autotrophs(n)%sname) // '_light_lim'
+             units = 'none'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%light_lim(n))
+          end if
 
-       lname    = 'Total 14C Fixation'
-       sname    = 'CISO_photo14C_TOT'
-       units    = 'mmol/m^3/s'
-       vgrid    = 'layer_avg'
-       truncate = .true.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo14C_TOT)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' C Fixation'
+             sname = 'photoC_' // trim(autotrophs(n)%sname)
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC(n))
+          end if
 
-       lname    = 'd14C of DIC'
-       sname    = 'CISO_DIC_d14C'
-       units    = 'permil'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DIC_d14C)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' C Fixation from NO3'
+             sname = 'photoC_NO3_' // trim(autotrophs(n)%sname)
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoC_NO3(n))
+          end if
 
-       lname    = 'd14C of DOC'
-       sname    = 'CISO_DOC_d14C'
-       units    = 'permil'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DOC_d14C)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' Fe Uptake'
+             sname = 'photoFe_' // trim(autotrophs(n)%sname)
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoFe(n))
+          end if
 
-       lname    = 'd14C of zooC'
-       sname    = 'CISO_zooC_d14C'
-       units    = 'permil'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_zooC_d14C)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' NO3 Uptake'
+             sname = 'photoNO3_' // trim(autotrophs(n)%sname)
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoNO3(n))
+          end if
 
-       !  Nonstandard 2D fields
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' NH4 Uptake'
+             sname = 'photoNH4_' // trim(autotrophs(n)%sname)
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%photoNH4(n))
+          end if
 
-       lname    = 'Total 13C Fixation Vertical Integral'
-       sname    = 'CISO_photo13C_TOT_zint'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo13C_TOT_zint)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' DOP Uptake'
+             sname = 'DOP_' // trim(autotrophs(n)%sname) // '_uptake'
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%DOP_uptake(n))
+          end if
 
-       lname    = 'Total 14C Fixation Vertical Integral'
-       sname    = 'CISO_photo14C_TOT_zint'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo14C_TOT_zint)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' PO4 Uptake'
+             sname = 'PO4_' // trim(autotrophs(n)%sname) // '_uptake'
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%PO4_uptake(n))
+          end if
 
-       lname    = '13Ctot Source Sink Term Vertical Integral'
-       sname    = 'CISO_Jint_13Ctot'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Jint_13Ctot)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' Grazing'
+             sname = 'graze_' // trim(autotrophs(n)%sname)
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_graze(n))
+          end if
 
-       lname    = '14Ctot Source Sink Term Vertical Integral'
-       sname    = 'CISO_Jint_14Ctot'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Jint_14Ctot)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' Grazing to POC'
+             sname = 'graze_' // trim(autotrophs(n)%sname) // '_poc'
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_graze_poc(n))
+          end if
 
-       lname    = '13Ctot Source Sink Term Vertical Integral, 0-100m'
-       sname    = 'CISO_Jint_100m_13Ctot'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Jint_100m_13Ctot)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' Grazing to DOC'
+             sname = 'graze_' // trim(autotrophs(n)%sname) // '_doc'
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_graze_doc(n))
+          end if
 
-       lname    = '14Ctot Source Sink Term Vertical Integral, 0-100m'
-       sname    = 'CISO_Jint_100m_14Ctot'
-       units    = 'mmol/m^3 cm/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Jint_100m_14Ctot)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' Grazing to ZOO'
+             sname = 'graze_' // trim(autotrophs(n)%sname) // '_zoo'
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_graze_zoo(n))
+          end if
 
-       !  Nonstandard autotroph 2D and 3D fields for each autotroph
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' Loss'
+             sname = trim(autotrophs(n)%sname) // '_loss'
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_loss(n))
+          end if
 
-       do n = 1, autotroph_cnt
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' Loss to POC'
+             sname = trim(autotrophs(n)%sname) // '_loss_poc'
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_loss_poc(n))
+          end if
 
-          !FIXME - the comments seem to be needed below - need to fix this
-!!$          if (autotrophs(n)%Ca13CO3_ind > 0) then
-             lname    = trim(autotrophs(n)%lname) // ' Ca13CO3 Formation'
-             sname    = 'CISO_' // trim(autotrophs(n)%sname) // '_Ca13CO3_form'
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' Loss to DOC'
+             sname = trim(autotrophs(n)%sname) // '_loss_doc'
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_loss_doc(n))
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname = trim(autotrophs(n)%lname) // ' Aggregate'
+             sname = trim(autotrophs(n)%sname) // '_agg'
+             units = 'mmol/m^3/s'
+             vgrid = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%auto_agg(n))
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             if (autotrophs(n)%Si_ind.gt.0) then
+                lname = trim(autotrophs(n)%lname) // ' Si Uptake'
+                !sname = trim(autotrophs(n)%sname) // '_bSi_form'
+                sname = trim(autotrophs(n)%sname) // 'bSi_form' ! FIXME: eventually add _
+                units = 'mmol/m^3/s'
+                vgrid = 'layer_avg'
+                truncate = .true.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%bSi_form(n))
+             else
+                ind%bSi_form(n) = -1
+             end if
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             if (autotrophs(n)%CaCO3_ind.gt.0) then
+                lname = trim(autotrophs(n)%lname) // ' CaCO3 Formation'
+                sname = trim(autotrophs(n)%sname) // '_CaCO3_form'
+                units = 'mmol/m^3/s'
+                vgrid = 'layer_avg'
+                truncate = .true.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CaCO3_form(n))
+             else
+                ind%CaCO3_form(n) = -1
+             end if
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             if (autotrophs(n)%Nfixer) then
+                lname = trim(autotrophs(n)%lname) // ' N Fixation'
+                sname = trim(autotrophs(n)%sname) // '_Nfix'
+                units = 'mmol/m^3/s'
+                vgrid = 'layer_avg'
+                truncate = .true.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%Nfix(n))
+             else
+                ind%Nfix(n) = -1
+             end if
+          end if
+
+       end do ! end do-loop for atutroph_cnt
+
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname    = 'Total Si Uptake'
+          sname    = 'bSi_form'
+          units    = 'mmol/m^3/s'
+          vgrid    = 'layer_avg'
+          truncate = .true.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%tot_bSi_form)
+       end if
+
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname    = 'Total CaCO3 Formation'
+          sname    = 'CaCO3_form'
+          units    = 'mmol/m^3/s'
+          vgrid    = 'layer_avg'
+          truncate = .true.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%tot_CaCO3_form)
+       end if
+
+       if (count_only) then
+          num_interior_diags = num_interior_diags + 1
+       else
+          lname    = 'Total N Fixation'
+          sname    = 'Nfix'
+          units    = 'mmol/m^3/s'
+          vgrid    = 'layer_avg'
+          truncate = .true.
+          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%tot_Nfix)
+       end if
+
+       ! Zooplankton 3D diags
+       do n = 1,zooplankton_cnt
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = trim(zooplankton(n)%lname) // ' Loss'
+             sname    = trim(zooplankton(n)%sname) // '_loss'
              units    = 'mmol/m^3/s'
              vgrid    = 'layer_avg'
              truncate = .true.
-             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca13CO3_form(n))
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zoo_loss(n))
+          end if
 
-             lname    = trim(autotrophs(n)%lname) // ' Ca13CO3 Formation Vertical Integral'
-             sname    = trim(sname) // '_zint'
-             units    = 'mmol/m^3 cm/s' 
-             vgrid    = 'none'
-             truncate = .false.
-             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca13CO3_form_zint(n))
-!!$          else
-!!$             ind%CISO_Ca13CO3_form(n) = -1
-!!$             ind%CISO_Ca13CO3_form_zint(n) = -1
-!!$          end if
-
-!!$          if (autotrophs(n)%Ca14CO3_ind > 0) then
-             lname    = trim(autotrophs(n)%lname) // ' Ca14CO3 Formation'
-             sname    = 'CISO_' // trim(autotrophs(n)%sname) // '_Ca14CO3_form'
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = trim(zooplankton(n)%lname) // ' Loss to POC'
+             sname    = trim(zooplankton(n)%sname) // '_loss_poc'
              units    = 'mmol/m^3/s'
              vgrid    = 'layer_avg'
              truncate = .true.
-             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca14CO3_form(n))
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zoo_loss_poc(n))
+          end if
 
-             lname    = trim(autotrophs(n)%lname) // ' Ca14CO3 Formation Vertical Integral'
-             sname    = trim(sname) // '_zint'
-             units    = 'mmol/m^3 cm/s' 
-             vgrid    = 'none'
-             truncate = .false.
-             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca14CO3_form_zint(n))
-!!$          else
-!!$             ind%CISO_Ca14CO3_form(n) = -1
-!!$             ind%CISO_Ca14CO3_form_zint(n) = -1
-!!$          endif
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = trim(zooplankton(n)%lname) // ' Loss to DOC'
+             sname    = trim(zooplankton(n)%sname) // '_loss_doc'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zoo_loss_doc(n))
+          end if
 
-          lname    = trim(autotrophs(n)%lname) // ' d13C of CaCO3'
-          sname    = 'CISO_autotrophCaCO3_d13C_' // trim(autotrophs(n)%sname)
-          units    = 'mmol/m^3/s'
-          vgrid    = 'layer_avg'
-          truncate = .false.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_autotrophCaCO3_d13C(n))
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = trim(zooplankton(n)%lname) // ' grazing loss'
+             sname    = 'graze_' // trim(zooplankton(n)%sname)
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zoo_graze(n))
+          end if
 
-          lname    = trim(autotrophs(n)%lname) // ' d14C of CaCO3'
-          sname    = 'CISO_autotrophCaCO3_d14C_' // trim(autotrophs(n)%sname)
-          units    = 'mmol/m^3/s'
-          vgrid    = 'layer_avg'
-          truncate = .false.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_autotrophCaCO3_d14C(n))
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = trim(zooplankton(n)%lname) // ' grazing loss to POC'
+             sname    = 'graze_' // trim(zooplankton(n)%sname) // '_poc'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zoo_graze_poc(n))
+          end if
 
-          lname    = trim(autotrophs(n)%lname) // ' 13C Fixation'
-          sname    = 'CISO_photo13C_' // trim(autotrophs(n)%sname)
-          units    = 'mmol/m^3/s'
-          vgrid    = 'layer_avg'
-          truncate = .true.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo13C(n))
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = trim(zooplankton(n)%lname) // ' grazing loss to DOC'
+             sname    = 'graze_' // trim(zooplankton(n)%sname) // '_doc'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zoo_graze_doc(n))
+          end if
 
-          lname    = trim(autotrophs(n)%lname) // ' 14C Fixation'
-          sname    = 'CISO_photo14C_' // trim(autotrophs(n)%sname)
-          units    = 'mmol/m^3/s'
-          vgrid    = 'layer_avg'
-          truncate = .true.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo14C(n))
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = trim(zooplankton(n)%lname) // ' grazing loss to ZOO'
+             sname    = 'graze_' // trim(zooplankton(n)%sname) // '_zoo'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%zoo_graze_zoo(n))
+          end if
 
-          lname    = trim(autotrophs(n)%lname) // ' 13C Fixation Vertical Integral'
-          sname    = 'CISO_photo13C_' // trim(autotrophs(n)%sname) // '_zint'
-          units    = 'mmol/m^3 cm/s'
-          vgrid    = 'none'
-          truncate = .false.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo13C_zint(n))
-
-          lname    = trim(autotrophs(n)%lname) // ' 14C Fixation Vertical Integral'
-          sname    = 'CISO_photo14C_' // trim(autotrophs(n)%sname) // '_zint'
-          units    = 'mmol/m^3 cm/s'
-          vgrid    = 'none'
-          truncate = .false.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo14C_zint(n))
-
-          lname    = trim(autotrophs(n)%lname) // ' discrimination factor (eps)'
-          sname    = 'CISO_eps_autotroph_' // trim(autotrophs(n)%sname)
-          units    = 'permil'
-          vgrid    = 'layer_avg'
-          truncate = .false.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_eps_autotroph(n))
-
-          lname    = trim(autotrophs(n)%lname) // ' d13C'
-          sname    = 'CISO_d13C_' // trim(autotrophs(n)%sname)
-          units    = 'permil'
-          vgrid    = 'layer_avg'
-          truncate = .false.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_d13C(n))
-
-          lname    = trim(autotrophs(n)%lname) // ' d14C'
-          sname    = 'CISO_d14C_' // trim(autotrophs(n)%sname)
-          units    = 'permil'
-          vgrid    = 'layer_avg'
-          truncate = .false.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_d14C(n))
-
-          lname    = trim(autotrophs(n)%lname) // ' instanteous growth rate over [CO2*]'
-          sname    = 'CISO_mui_to_co2star_' // trim(autotrophs(n)%sname)
-          units    = 'm^3/mmol C/s'
-          vgrid    = 'layer_avg'
-          truncate = .false.
-          call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_mui_to_co2star(n))
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = trim(zooplankton(n)%lname) // ' grazing gain'
+             sname    = 'x_graze_' // trim(zooplankton(n)%sname)
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%x_graze_zoo(n))
+          end if
 
        end do
 
-       !  More nonstandard 3D fields
+       if (ciso_on) then
 
-       lname    = 'Equilibrium fractionation (CO2_gaseous <-> CO2_aq)'
-       sname    = 'CISO_eps_aq_g'
-       units    = 'permil'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_eps_aq_g)
+          !  nonstandard 3D fields
 
-       lname    = 'Equilibrium fractionation between total DIC and gaseous CO2'
-       sname    = 'CISO_eps_dic_g'
-       units    = 'permil'
-       vgrid    = 'layer_avg'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_eps_dic_g)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'PO13C Flux into Cell'
+             sname    = 'CISO_PO13C_FLUX_IN'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_PO13C_FLUX_IN)
+          end if
 
-       !  Vars to sum up burial in sediments (2D)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'PO13C Production'
+             sname    = 'CISO_PO13C_PROD'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_PO13C_PROD)
+          end if
 
-       lname    = 'Ca13CO3 Flux to Sediments'
-       sname    = 'calcToSed_13C'
-       units    = 'nmolC/cm^2/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%calcToSed_13C)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'PO13C Remineralization'
+             sname    = 'CISO_PO13C_REMIN'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_PO13C_REMIN)
+          end if
 
-       lname    = 'PO13C Flux to Sediments'
-       sname    = 'pocToSed_13C'
-       units    = 'nmolC/cm^2/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%pocToSed_13C)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'DO13C Production'
+             sname    = 'CISO_DO13C_prod'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DO13C_prod)
+          end if
 
-       lname    = 'Ca14CO3 Flux to Sediments'
-       sname    = 'calcToSed_14C'
-       units    = 'nmolC/cm^2/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%calcToSed_14C)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'DO13C Remineralization'
+             sname    = 'CISO_DO13C_remin'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DO13C_remin)
+          end if
 
-       lname    = 'PO14C Flux to Sediments'
-       sname    = 'pocToSed_14C'
-       units    = 'nmolC/cm^2/s'
-       vgrid    = 'none'
-       truncate = .false.
-       call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%pocToSed_14C)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'Ca13CO3 flux into cell'
+             sname    = 'CISO_Ca13CO3_FLUX_IN'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca13CO3_FLUX_IN)
+          end if
 
-    end if  ! end of if ciso_on
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'Ca13CO3 Production'
+             sname    = 'CISO_Ca13CO3_PROD'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca13CO3_PROD)
+          end if
 
-    end associate
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'Ca13CO3 Remineralization'
+             sname    = 'CISO_Ca13CO3_REMIN'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca13CO3_REMIN)
+          end if
 
-    !-----------------------------------------------------------------
-    ! Restoring diagnostics
-    !-----------------------------------------------------------------
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'Total 13C Fixation'
+             sname    = 'CISO_photo13C_TOT'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo13C_TOT)
+          end if
 
-    ! Allocate memory for restore diagnostics
-    call marbl_restore_diags%construct(max_restore_diags,                     &
-         num_elements_interior, num_levels)
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'd13C of DIC'
+             sname    = 'CISO_DIC_d13C'
+             units    = 'permil'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DIC_d13C)
+          end if
 
-    associate(                        &
-         diags => marbl_restore_diags &
-         )
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'd13C of DOC'
+             sname    = 'CISO_DOC_d13C'
+             units    = 'permil'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DOC_d13C)
+          end if
 
-    do n = 1,ecosys_tracer_cnt
-       lname = trim(tracer_d_module(n)%long_name) // " Restoring"
-       sname = trim(tracer_d_module(n)%short_name) // "_RESTORE"
-       units = 'mmol/m^3'
-       vgrid = 'layer_avg'
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'd13C of zooC'
+             sname    = 'CISO_zooC_d13C'
+             units    = 'permil'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_zooC_d13C)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'PO14C Flux into Cell'
+             sname    = 'CISO_PO14C_FLUX_IN'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_PO14C_FLUX_IN)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'PO14C Production'
+             sname    = 'CISO_PO14C_PROD'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_PO14C_PROD)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'PO14C Remineralization'
+             sname    = 'CISO_PO14C_REMIN'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_PO14C_REMIN)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'DO14C Production'
+             sname    = 'CISO_DO14C_prod'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DO14C_prod)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'DO14C Remineralization'
+             sname    = 'CISO_DO14C_remin'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DO14C_remin)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'Ca14CO3 flux into cell'
+             sname    = 'CISO_Ca14CO3_FLUX_IN'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca14CO3_FLUX_IN)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'Ca14CO3 Production'
+             sname    = 'CISO_Ca14CO3_PROD'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca14CO3_PROD)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'Ca14CO3 Remineralization'
+             sname    = 'CISO_Ca14CO3_REMIN'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca14CO3_REMIN)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'Total 14C Fixation'
+             sname    = 'CISO_photo14C_TOT'
+             units    = 'mmol/m^3/s'
+             vgrid    = 'layer_avg'
+             truncate = .true.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo14C_TOT)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'd14C of DIC'
+             sname    = 'CISO_DIC_d14C'
+             units    = 'permil'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DIC_d14C)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'd14C of DOC'
+             sname    = 'CISO_DOC_d14C'
+             units    = 'permil'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_DOC_d14C)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'd14C of zooC'
+             sname    = 'CISO_zooC_d14C'
+             units    = 'permil'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_zooC_d14C)
+          end if
+
+          !  Nonstandard 2D fields
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'Total 13C Fixation Vertical Integral'
+             sname    = 'CISO_photo13C_TOT_zint'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo13C_TOT_zint)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'Total 14C Fixation Vertical Integral'
+             sname    = 'CISO_photo14C_TOT_zint'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo14C_TOT_zint)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = '13Ctot Source Sink Term Vertical Integral'
+             sname    = 'CISO_Jint_13Ctot'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Jint_13Ctot)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = '14Ctot Source Sink Term Vertical Integral'
+             sname    = 'CISO_Jint_14Ctot'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Jint_14Ctot)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = '13Ctot Source Sink Term Vertical Integral, 0-100m'
+             sname    = 'CISO_Jint_100m_13Ctot'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Jint_100m_13Ctot)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = '14Ctot Source Sink Term Vertical Integral, 0-100m'
+             sname    = 'CISO_Jint_100m_14Ctot'
+             units    = 'mmol/m^3 cm/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Jint_100m_14Ctot)
+          end if
+
+          !  Nonstandard autotroph 2D and 3D fields for each autotroph
+
+          do n = 1, autotroph_cnt
+
+             !FIXME - the comments seem to be needed below - need to fix this
+             if (count_only) then
+                num_interior_diags = num_interior_diags + 1
+             else
+                lname    = trim(autotrophs(n)%lname) // ' Ca13CO3 Formation'
+                sname    = 'CISO_' // trim(autotrophs(n)%sname) // '_Ca13CO3_form'
+                units    = 'mmol/m^3/s'
+                vgrid    = 'layer_avg'
+                truncate = .true.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca13CO3_form(n))
+             end if
+
+             if (count_only) then
+                num_interior_diags = num_interior_diags + 1
+             else
+                lname    = trim(autotrophs(n)%lname) // ' Ca13CO3 Formation Vertical Integral'
+                sname    = trim(sname) // '_zint'
+                units    = 'mmol/m^3 cm/s' 
+                vgrid    = 'none'
+                truncate = .false.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca13CO3_form_zint(n))
+             end if
+
+             if (count_only) then
+                num_interior_diags = num_interior_diags + 1
+             else
+                lname    = trim(autotrophs(n)%lname) // ' Ca14CO3 Formation'
+                sname    = 'CISO_' // trim(autotrophs(n)%sname) // '_Ca14CO3_form'
+                units    = 'mmol/m^3/s'
+                vgrid    = 'layer_avg'
+                truncate = .true.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca14CO3_form(n))
+             end if
+
+             if (count_only) then
+                num_interior_diags = num_interior_diags + 1
+             else
+                lname    = trim(autotrophs(n)%lname) // ' Ca14CO3 Formation Vertical Integral'
+                sname    = trim(sname) // '_zint'
+                units    = 'mmol/m^3 cm/s' 
+                vgrid    = 'none'
+                truncate = .false.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_Ca14CO3_form_zint(n))
+             end if
+
+             if (count_only) then
+                num_interior_diags = num_interior_diags + 1
+             else
+                lname    = trim(autotrophs(n)%lname) // ' d13C of CaCO3'
+                sname    = 'CISO_autotrophCaCO3_d13C_' // trim(autotrophs(n)%sname)
+                units    = 'mmol/m^3/s'
+                vgrid    = 'layer_avg'
+                truncate = .false.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_autotrophCaCO3_d13C(n))
+             end if
+
+             if (count_only) then
+                num_interior_diags = num_interior_diags + 1
+             else
+                lname    = trim(autotrophs(n)%lname) // ' d14C of CaCO3'
+                sname    = 'CISO_autotrophCaCO3_d14C_' // trim(autotrophs(n)%sname)
+                units    = 'mmol/m^3/s'
+                vgrid    = 'layer_avg'
+                truncate = .false.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_autotrophCaCO3_d14C(n))
+             end if
+
+             if (count_only) then
+                num_interior_diags = num_interior_diags + 1
+             else
+                lname    = trim(autotrophs(n)%lname) // ' 13C Fixation'
+                sname    = 'CISO_photo13C_' // trim(autotrophs(n)%sname)
+                units    = 'mmol/m^3/s'
+                vgrid    = 'layer_avg'
+                truncate = .true.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo13C(n))
+             end if
+
+             if (count_only) then
+                num_interior_diags = num_interior_diags + 1
+             else
+                lname    = trim(autotrophs(n)%lname) // ' 14C Fixation'
+                sname    = 'CISO_photo14C_' // trim(autotrophs(n)%sname)
+                units    = 'mmol/m^3/s'
+                vgrid    = 'layer_avg'
+                truncate = .true.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo14C(n))
+             end if
+
+             if (count_only) then
+                num_interior_diags = num_interior_diags + 1
+             else
+                lname    = trim(autotrophs(n)%lname) // ' 13C Fixation Vertical Integral'
+                sname    = 'CISO_photo13C_' // trim(autotrophs(n)%sname) // '_zint'
+                units    = 'mmol/m^3 cm/s'
+                vgrid    = 'none'
+                truncate = .false.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo13C_zint(n))
+             end if
+
+             if (count_only) then
+                num_interior_diags = num_interior_diags + 1
+             else
+                lname    = trim(autotrophs(n)%lname) // ' 14C Fixation Vertical Integral'
+                sname    = 'CISO_photo14C_' // trim(autotrophs(n)%sname) // '_zint'
+                units    = 'mmol/m^3 cm/s'
+                vgrid    = 'none'
+                truncate = .false.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_photo14C_zint(n))
+             end if
+
+             if (count_only) then
+                num_interior_diags = num_interior_diags + 1
+             else
+                lname    = trim(autotrophs(n)%lname) // ' discrimination factor (eps)'
+                sname    = 'CISO_eps_autotroph_' // trim(autotrophs(n)%sname)
+                units    = 'permil'
+                vgrid    = 'layer_avg'
+                truncate = .false.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_eps_autotroph(n))
+             end if
+
+             if (count_only) then
+                num_interior_diags = num_interior_diags + 1
+             else
+                lname    = trim(autotrophs(n)%lname) // ' d13C'
+                sname    = 'CISO_d13C_' // trim(autotrophs(n)%sname)
+                units    = 'permil'
+                vgrid    = 'layer_avg'
+                truncate = .false.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_d13C(n))
+             end if
+
+             if (count_only) then
+                num_interior_diags = num_interior_diags + 1
+             else
+                lname    = trim(autotrophs(n)%lname) // ' d14C'
+                sname    = 'CISO_d14C_' // trim(autotrophs(n)%sname)
+                units    = 'permil'
+                vgrid    = 'layer_avg'
+                truncate = .false.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_d14C(n))
+             end if
+
+             if (count_only) then
+                num_interior_diags = num_interior_diags + 1
+             else
+                lname    = trim(autotrophs(n)%lname) // ' instanteous growth rate over [CO2*]'
+                sname    = 'CISO_mui_to_co2star_' // trim(autotrophs(n)%sname)
+                units    = 'm^3/mmol C/s'
+                vgrid    = 'layer_avg'
+                truncate = .false.
+                call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_mui_to_co2star(n))
+             end if
+
+          end do
+
+          !  More nonstandard 3D fields
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'Equilibrium fractionation (CO2_gaseous <-> CO2_aq)'
+             sname    = 'CISO_eps_aq_g'
+             units    = 'permil'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_eps_aq_g)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'Equilibrium fractionation between total DIC and gaseous CO2'
+             sname    = 'CISO_eps_dic_g'
+             units    = 'permil'
+             vgrid    = 'layer_avg'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%CISO_eps_dic_g)
+          end if
+
+          !  Vars to sum up burial in sediments (2D)
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'Ca13CO3 Flux to Sediments'
+             sname    = 'calcToSed_13C'
+             units    = 'nmolC/cm^2/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%calcToSed_13C)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'PO13C Flux to Sediments'
+             sname    = 'pocToSed_13C'
+             units    = 'nmolC/cm^2/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%pocToSed_13C)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'Ca14CO3 Flux to Sediments'
+             sname    = 'calcToSed_14C'
+             units    = 'nmolC/cm^2/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%calcToSed_14C)
+          end if
+
+          if (count_only) then
+             num_interior_diags = num_interior_diags + 1
+          else
+             lname    = 'PO14C Flux to Sediments'
+             sname    = 'pocToSed_14C'
+             units    = 'nmolC/cm^2/s'
+             vgrid    = 'none'
+             truncate = .false.
+             call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%pocToSed_14C)
+          end if
+
+       end if  ! end of if ciso_on
+
+       end associate
+
+       !-----------------------------------------------------------------
+       ! Restoring diagnostics
+       !-----------------------------------------------------------------
        
-       ! Note that tmp_id is a temp variable because restoring diagnostics
-       ! have same indexing as the ecosys tracers
-       call diags%add_diagnostic(lname, sname, units, vgrid, .false., tmp_id)
-    end do
+       associate(                        &
+            diags => marbl_restore_diags &
+            )
+       
+       do n = 1,ecosys_tracer_cnt
+          ! Note that tmp_id is a temp variable because restoring diagnostics
+          ! have same indexing as the ecosys tracers
+          if (count_only) then
+             num_restore_diags = num_restore_diags + 1
+          else
+             lname = trim(marbl_tracer_metadata(n)%long_name) // " Restoring"
+             sname = trim(marbl_tracer_metadata(n)%short_name) // "_RESTORE"
+             units = 'mmol/m^3'
+             vgrid = 'layer_avg'
+             call diags%add_diagnostic(lname, sname, units, vgrid, .false., tmp_id)
+          end if
+       end do
+       
+       end associate
 
-    end associate
+    end do  ! end of imode loop
+
+    !-----------------------------------------------------------------
+    ! Initialize all diagnostics to zero
+    !-----------------------------------------------------------------
 
     call marbl_interior_diags%set_to_zero()
     call marbl_restore_diags%set_to_zero()
@@ -2020,7 +2907,7 @@ contains
 
   subroutine store_diagnostics_carbonate(marbl_domain, carbonate, marbl_diags)
 
-    type(marbl_column_domain_type)      , intent(in)    :: marbl_domain
+    type(marbl_domain_type)      , intent(in)    :: marbl_domain
     type(carbonate_type)         , intent(in)    :: carbonate(:)
     type(marbl_diagnostics_type) , intent(inout) :: marbl_diags
 
@@ -2065,7 +2952,7 @@ contains
 
   function marbl_compute_saturation_depth(marbl_domain, CO3, sat_val)
 
-    type(marbl_column_domain_type) , intent(in) :: marbl_domain
+    type(marbl_domain_type) , intent(in) :: marbl_domain
     real(r8)                , intent(in) :: CO3(:)
     real(r8)                , intent(in) :: sat_val(:)
 
@@ -2155,7 +3042,7 @@ contains
   subroutine store_diagnostics_autotrophs(marbl_domain, &
        autotroph_secondary_species, marbl_diags)
 
-    type(marbl_column_domain_type)         , intent(in)    :: marbl_domain
+    type(marbl_domain_type)         , intent(in)    :: marbl_domain
     type(autotroph_secondary_species_type) , intent(in)    :: autotroph_secondary_species(:,:) ! autotroph_cnt, km
     type(marbl_diagnostics_type)           , intent(inout) :: marbl_diags
 
@@ -2253,7 +3140,7 @@ contains
   subroutine store_diagnostics_autotroph_sums(marbl_domain, &
        autotroph_secondary_species, marbl_diags)
 
-    type(marbl_column_domain_type), intent(in) :: marbl_domain
+    type(marbl_domain_type), intent(in) :: marbl_domain
     type(autotroph_secondary_species_type), dimension(:,:), intent(in) :: autotroph_secondary_species ! autotroph_cnt, km
     type(marbl_diagnostics_type), intent(inout) :: marbl_diags
 
@@ -2296,12 +3183,11 @@ contains
     ! - Accumulte losses of BGC tracers to sediments
     !-----------------------------------------------------------------------
 
-    use marbl_share_mod , only : column_sinking_particle_type
     use marbl_parms     , only : POCremin_refract
     use marbl_parms     , only : PONremin_refract
     use marbl_parms     , only : POPremin_refract
 
-    type(marbl_column_domain_type)     , intent(in)    :: marbl_domain
+    type(marbl_domain_type)     , intent(in)    :: marbl_domain
     type(column_sinking_particle_type) , intent(in)    :: POC
     type(column_sinking_particle_type) , intent(in)    :: P_CaCO3
     type(column_sinking_particle_type) , intent(in)    :: P_SiO2
@@ -2365,7 +3251,7 @@ contains
 
     use marbl_oxygen, only : o2sat_scalar
 
-    type(marbl_column_domain_type) , intent(in)    :: marbl_domain
+    type(marbl_domain_type) , intent(in)    :: marbl_domain
     type(marbl_gcm_state_type)     , intent(in)    :: marbl_gcm_state
     real(r8)                       , intent(in)    :: column_o2(:)
     real(r8)                       , intent(in)    :: o2_production(:)
@@ -2406,10 +3292,9 @@ contains
 
   !-----------------------------------------------------------------------
 
-  subroutine store_diagnostics_photosynthetically_available_radiation( marbl_domain, &
-       PAR_col_frac, PAR_avg, marbl_diags)
+  subroutine store_diagnostics_PAR( marbl_domain, PAR_col_frac, PAR_avg, marbl_diags)
 
-    type(marbl_column_domain_type) , intent(in)    :: marbl_domain
+    type(marbl_domain_type) , intent(in)    :: marbl_domain
     real(r8)                       , intent(in)    :: PAR_col_frac(:)
     real(r8)                       , intent(in)    :: PAR_avg(:,:)
     type(marbl_diagnostics_type)   , intent(inout) :: marbl_diags
@@ -2420,11 +3305,10 @@ contains
     integer :: k
     !-----------------------------------------------------------------------
 
-    associate(                                      &
-         km           => marbl_domain%km,           &
-         PAR_nsubcols => marbl_domain%PAR_nsubcols, &
-         diags        => marbl_diags%diags(:),      &
-         ind          => marbl_interior_diag_ind    &
+    associate(                            &
+         km    => marbl_domain%km,        &
+         diags => marbl_diags%diags(:),   &
+         ind   => marbl_interior_diag_ind &
          )
 
     do k=1,km
@@ -2433,7 +3317,7 @@ contains
 
     end associate
 
-  end subroutine store_diagnostics_photosynthetically_available_radiation
+  end subroutine store_diagnostics_PAR
 
   !***********************************************************************
 
@@ -2479,7 +3363,7 @@ contains
   subroutine store_diagnostics_dissolved_organic_matter(marbl_domain, &
        dissolved_organic_matter, fe_scavenge, fe_scavenge_rate, marbl_diags)
 
-    type(marbl_column_domain_type)      , intent(in)    :: marbl_domain
+    type(marbl_domain_type)      , intent(in)    :: marbl_domain
     type(dissolved_organic_matter_type) , intent(in)    :: dissolved_organic_matter(:) ! (km)
     real(r8)                            , intent(in)    :: fe_scavenge(:)              ! (km)
     real(r8)                            , intent(in)    :: fe_scavenge_rate(:)         ! (km)
@@ -2521,9 +3405,7 @@ contains
   subroutine store_diagnostics_carbon_fluxes(marbl_domain, &
        POC, P_CaCO3, dtracer, marbl_diags)
 
-    use marbl_share_mod, only : column_sinking_particle_type
-
-    type(marbl_column_domain_type)     , intent(in)    :: marbl_domain
+    type(marbl_domain_type)     , intent(in)    :: marbl_domain
     type(column_sinking_particle_type) , intent(in)    :: POC
     type(column_sinking_particle_type) , intent(in)    :: P_CaCO3
     real(r8)                           , intent(in)    :: dtracer(:,:) ! ecosys_tracer_cnt, km
@@ -2570,7 +3452,7 @@ contains
 
     use marbl_parms, only : Q
 
-    type(marbl_column_domain_type)         , intent(in)    :: marbl_domain
+    type(marbl_domain_type)         , intent(in)    :: marbl_domain
     real(r8)                               , intent(in)    :: PON_sed_loss(:) ! km
     real(r8)                               , intent(in)    :: denitrif(:)     ! km
     real(r8)                               , intent(in)    :: sed_denitrif(:) ! km
@@ -2620,7 +3502,7 @@ contains
 
     use marbl_parms,  only : Qp_zoo_pom
 
-    type(marbl_column_domain_type) , intent(in)    :: marbl_domain
+    type(marbl_domain_type) , intent(in)    :: marbl_domain
     real(r8)                       , intent(in)    :: POP_sed_loss(:) ! km
     real(r8)                       , intent(in)    :: dtracer(:,:)    ! ecosys_tracer_cnt, km
     type(marbl_diagnostics_type)   , intent(inout) :: marbl_diags
@@ -2661,9 +3543,7 @@ contains
   subroutine store_diagnostics_silicon_fluxes(marbl_domain, &
        P_SiO2, dtracer, marbl_diags)
 
-    use marbl_share_mod, only : column_sinking_particle_type
-
-    type(marbl_column_domain_type)     , intent(in)    :: marbl_domain
+    type(marbl_domain_type)     , intent(in)    :: marbl_domain
     type(column_sinking_particle_type) , intent(in)    :: P_SiO2
     real(r8)                           , intent(in)    :: dtracer(:,:) ! ecosys_tracer_cnt, km
     type(marbl_diagnostics_type)       , intent(inout) :: marbl_diags
@@ -2704,11 +3584,10 @@ contains
   subroutine store_diagnostics_iron_fluxes(marbl_domain, &
        P_iron, dust, fesedflux, dtracer, marbl_diags)
 
-    use marbl_share_mod , only : column_sinking_particle_type
     use marbl_parms     , only : Qfe_zoo
     use marbl_parms     , only : dust_to_Fe
 
-    type(marbl_column_domain_type)            , intent(in)    :: marbl_domain
+    type(marbl_domain_type)            , intent(in)    :: marbl_domain
     type(column_sinking_particle_type) , intent(in)    :: P_iron
     type(column_sinking_particle_type) , intent(in)    :: dust
     real(r8), dimension(:)             , intent(in)    :: fesedflux  ! km
@@ -2753,8 +3632,6 @@ contains
 
     use constants, only : mpercm
 
-    use marbl_interface_types , only : marbl_forcing_input_type
-    use marbl_interface_types , only : marbl_forcing_output_type
     use marbl_share_mod       , only : ndep_data_type
     use marbl_share_mod       , only : ndep_shr_stream_scale_factor
     use marbl_share_mod       , only : lflux_gas_o2
@@ -2979,9 +3856,6 @@ contains
     !  Update marbl_interior_ciso_diags data type 
     !---------------------------------------------------------------------
 
-    use marbl_interface_types , only : marbl_diagnostics_type
-    use marbl_interface_types , only : marbl_column_domain_type
-    use marbl_share_mod       , only : column_sinking_particle_type
     use marbl_parms           , only : di13c_ind
     use marbl_parms           , only : do13c_ind
     use marbl_parms           , only : zoo13C_ind
@@ -2991,7 +3865,7 @@ contains
 
     implicit none
 
-    type(marbl_column_domain_type), intent(in)    :: marbl_domain
+    type(marbl_domain_type), intent(in)    :: marbl_domain
 
     real (r8), intent(in),  dimension(autotroph_cnt, marbl_domain%km) :: &
          autotroph_d13C      , & ! d13C of autotroph C
@@ -3177,10 +4051,11 @@ contains
 
   !***********************************************************************
 
-  subroutine store_diagnostics_ciso_sflux( &
+  subroutine store_diagnostics_ciso_surface_forcing( &
        num_elements,   &
        D13C,           &
        D14C,           &
+       D14C_glo_avg,   &
        FLUX,           &
        FLUX13,         &
        FLUX14,         &
@@ -3210,31 +4085,30 @@ contains
 
     implicit none
 
-    integer (int_kind), intent(in) :: num_elements
-    real (r8), dimension(num_elements), intent(in)    :: &
-         D13C,           & ! atm 13co2 value
-         D14C,           & ! atm 14co2 value
-         FLUX,           & ! gas flux of CO2 (nmol/cm^2/s)
-         FLUX13,         & ! gas flux of 13CO2 (nmol/cm^2/s)
-         FLUX14,         & ! gas flux of 14CO2 (nmol/cm^2/s)
-         FLUX_as,        & ! air-to-sea gas flux of CO2 (nmol/cm^2/s)
-         FLUX13_as,      & ! air-to-sea gas flux of 13CO2 (nmol/cm^2/s)
-         FLUX14_as,      & ! air-to-sea gas flux of 14CO2 (nmol/cm^2/s)
-         FLUX_sa,        & ! sea-to-air gas flux of CO2 (nmol/cm^2/s)
-         FLUX13_sa,      & ! sea-to-air gas flux of 13CO2 (nmol/cm^2/s)
-         FLUX14_sa,      & ! sea-to-air gas flux of 14CO2 (nmol/cm^2/s)
-         R13C_DIC,       & ! 13C/12C ratio in DIC
-         R14C_DIC,       & ! 14C/12C ratio in total DIC
-         R13C_atm,       & ! 13C/12C ratio in atmospheric CO2
-         R14C_atm,       & ! 14C/12C ratio in atmospheric CO2
-         di13c_riv_flux, & ! River input of DI13C
-         do13c_riv_flux, & ! River input of DO13C
-         di14c_riv_flux, & ! River input of DI14C
-         do14c_riv_flux, & ! River input of DO14C
-         eps_aq_g_surf,  & ! equilibrium fractionation (CO2_gaseous <-> CO2_aq)
-         eps_dic_g_surf    ! equilibrium fractionation between total DIC and gaseous CO2
-
-    type(marbl_diagnostics_type)      , intent(inout) :: marbl_diags
+    integer (int_kind)                 , intent(in)    :: num_elements
+    real (r8), dimension(num_elements) , intent(in)    :: D13C           ! atm 13co2 value
+    real (r8), dimension(num_elements) , intent(in)    :: D14C           ! atm 14co2 value
+    real (r8)                          , intent(in)    :: D14C_glo_avg
+    real (r8), dimension(num_elements) , intent(in)    :: FLUX           ! gas flux of CO2 (nmol/cm^2/s)
+    real (r8), dimension(num_elements) , intent(in)    :: FLUX13         ! gas flux of 13CO2 (nmol/cm^2/s)
+    real (r8), dimension(num_elements) , intent(in)    :: FLUX14         ! gas flux of 14CO2 (nmol/cm^2/s)
+    real (r8), dimension(num_elements) , intent(in)    :: FLUX_as        ! air-to-sea gas flux of CO2 (nmol/cm^2/s)
+    real (r8), dimension(num_elements) , intent(in)    :: FLUX13_as      ! air-to-sea gas flux of 13CO2 (nmol/cm^2/s)
+    real (r8), dimension(num_elements) , intent(in)    :: FLUX14_as      ! air-to-sea gas flux of 14CO2 (nmol/cm^2/s)
+    real (r8), dimension(num_elements) , intent(in)    :: FLUX_sa        ! sea-to-air gas flux of CO2 (nmol/cm^2/s)
+    real (r8), dimension(num_elements) , intent(in)    :: FLUX13_sa      ! sea-to-air gas flux of 13CO2 (nmol/cm^2/s)
+    real (r8), dimension(num_elements) , intent(in)    :: FLUX14_sa      ! sea-to-air gas flux of 14CO2 (nmol/cm^2/s)
+    real (r8), dimension(num_elements) , intent(in)    :: R13C_DIC       ! 13C/12C ratio in DIC
+    real (r8), dimension(num_elements) , intent(in)    :: R14C_DIC       ! 14C/12C ratio in total DIC
+    real (r8), dimension(num_elements) , intent(in)    :: R13C_atm       ! 13C/12C ratio in atmospheric CO2
+    real (r8), dimension(num_elements) , intent(in)    :: R14C_atm       ! 14C/12C ratio in atmospheric CO2
+    real (r8), dimension(num_elements) , intent(in)    :: di13c_riv_flux ! River input of DI13C
+    real (r8), dimension(num_elements) , intent(in)    :: do13c_riv_flux ! River input of DO13C
+    real (r8), dimension(num_elements) , intent(in)    :: di14c_riv_flux ! River input of DI14C
+    real (r8), dimension(num_elements) , intent(in)    :: do14c_riv_flux ! River input of DO14C
+    real (r8), dimension(num_elements) , intent(in)    :: eps_aq_g_surf  ! equilibrium fractionation (CO2_gaseous <-> CO2_aq)
+    real (r8), dimension(num_elements) , intent(in)    :: eps_dic_g_surf ! equilibrium fractionation between total DIC and gaseous CO2
+    type(marbl_diagnostics_type)       , intent(inout) :: marbl_diags
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -3253,8 +4127,6 @@ contains
 
     diags(ind%CISO_DI13C_GAS_FLUX)%field_2d(:) = FLUX13(:)
     diags(ind%CISO_DI14C_GAS_FLUX)%field_2d(:) = FLUX14(:)
-
-    write(6,*)'DEBUG: i am here ',diags(ind%CISO_DI13C_GAS_FLUX)%field_2d(1)
 
     diags(ind%CISO_DI13C_AS_GAS_FLUX)%field_2d(:) = FLUX13_as(:)
     diags(ind%CISO_DI14C_AS_GAS_FLUX)%field_2d(:) = FLUX14_as(:)
@@ -3302,11 +4174,11 @@ contains
     diags(ind%CISO_DI14C_RIV_FLUX)%field_2d(:) = di14c_riv_flux(:)
     diags(ind%CISO_DO14C_RIV_FLUX)%field_2d(:) = do14c_riv_flux(:)
 
-!   DIAGS(ind%CISO_GLOBAL_D14C)%field_2d(:) = D14C_glo_avg(:)
+    diags(ind%CISO_GLOBAL_D14C)%field_2d(:) = D14C_glo_avg
 
     end associate
 
-  end subroutine store_diagnostics_ciso_sflux
+  end subroutine store_diagnostics_ciso_surface_forcing
 
   !*****************************************************************************
 

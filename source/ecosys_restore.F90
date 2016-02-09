@@ -5,7 +5,7 @@ module ecosys_restore_mod
 
   use kinds_mod                       , only : r8, log_kind, int_kind
   use domain_size                     , only : km
-  use ecosys_constants                , only : ecosys_tracer_cnt
+  use marbl_sizes                     , only : ecosys_tracer_cnt
   use passive_tracer_tools            , only : tracer_read_init
   use marbl_interface_types           , only : tracer_read => marbl_tracer_read_type
   use ecosys_restore_timescale_file   , only : ecosys_restore_timescale_file_type

@@ -21,6 +21,7 @@
    use exit_mod, only: sigAbort, exit_POP
    use communicate, only: my_task, master_task
    use constants, only: char_blank, field_loc_center, field_type_scalar,delim_fmt
+   use marbl_interface_types, only : forcing_monthly_every_ts
    use marbl_interface_types, only : tracer_read  => marbl_tracer_read_type
    use io_tools, only: document
    use io, only: data_set
@@ -48,33 +49,34 @@
 !  monthly forcing variables
 !-----------------------------------------------------------------------
 
-   type, public :: forcing_monthly_every_ts
-      type(tracer_read) :: input
-      logical(log_kind) :: has_data
-      real(r8), dimension(:,:,:,:,:), pointer :: DATA
-      character(char_len) :: &
-         interp_type,          & ! = 'linear'
-         data_type,            & ! = 'monthly-calendar'
-         interp_freq,          & ! = 'every-timestep'
-         filename,             & ! = 'not-used-for-monthly'
-         data_label              ! = 'not-used-for-monthly'
-    real(r8), dimension(12) :: &
-         data_time               ! times where DATA is given
-    real(r8), dimension(20) :: &
-         data_renorm             ! not used for monthly
-    real(r8) :: &
-         data_inc,             & ! not used for monthly data
-         data_next,            & ! time that will be used for the next
-                                 ! value of forcing data that is needed
-         data_update,          & ! time when the a new forcing value
-                                 ! needs to be added to interpolation set
-         interp_inc,           & ! not used for 'every-timestep' interp
-         interp_next,          & ! not used for 'every-timestep' interp
-         interp_last             ! not used for 'every-timestep' interp
-    integer(int_kind) :: &
-         data_time_min_loc       ! index of the third dimension of data_time
-                                 ! containing the minimum forcing time
-  end type forcing_monthly_every_ts
+! FIXME: once this type is removed from MARBL, add it back here
+!   type, public :: forcing_monthly_every_ts
+!      type(tracer_read) :: input
+!      logical(log_kind) :: has_data
+!      real(r8), dimension(:,:,:,:,:), pointer :: DATA
+!      character(char_len) :: &
+!         interp_type,          & ! = 'linear'
+!         data_type,            & ! = 'monthly-calendar'
+!         interp_freq,          & ! = 'every-timestep'
+!         filename,             & ! = 'not-used-for-monthly'
+!         data_label              ! = 'not-used-for-monthly'
+!    real(r8), dimension(12) :: &
+!         data_time               ! times where DATA is given
+!    real(r8), dimension(20) :: &
+!         data_renorm             ! not used for monthly
+!    real(r8) :: &
+!         data_inc,             & ! not used for monthly data
+!         data_next,            & ! time that will be used for the next
+!                                 ! value of forcing data that is needed
+!         data_update,          & ! time when the a new forcing value
+!                                 ! needs to be added to interpolation set
+!         interp_inc,           & ! not used for 'every-timestep' interp
+!         interp_next,          & ! not used for 'every-timestep' interp
+!         interp_last             ! not used for 'every-timestep' interp
+!    integer(int_kind) :: &
+!         data_time_min_loc       ! index of the third dimension of data_time
+!                                 ! containing the minimum forcing time
+!  end type forcing_monthly_every_ts
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
@@ -88,6 +90,7 @@
       extract_surf_avg,                      &
       comp_surf_avg,                         &
       set_tracer_indices,                    &
+      forcing_monthly_every_ts,              & ! from marbl_interface_types
       tracer_read,                           & ! from marbl_interface_types
       tracer_read_init
 
