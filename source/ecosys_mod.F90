@@ -216,6 +216,8 @@ module ecosys_mod
   use marbl_interface_types, only : marbl_diagnostics_type
   use marbl_interface_types, only : forcing_monthly_every_ts
 
+  use marbl_logging             , only : marbl_log_type
+
   implicit none
   private
 
@@ -359,6 +361,12 @@ module ecosys_mod
   type(forcing_monthly_every_ts), target :: alk_riv_flux_loc
   type(forcing_monthly_every_ts), target :: doc_riv_flux_loc
 
+  !-----------------------------------------------------------------------
+  !  private module string for storing error messages
+  !-----------------------------------------------------------------------
+
+  character(len=char_len), private :: error_msg
+
   !*****************************************************************************
 
 contains
@@ -375,7 +383,6 @@ contains
     use marbl_namelist_mod        , only : marbl_nl_cnt
     use marbl_namelist_mod        , only : marbl_nl_buffer_size
     use marbl_namelist_mod        , only : marbl_namelist
-    use marbl_logging             , only : marbl_log_type
     use marbl_share_mod           , only : surf_avg_dic_const, surf_avg_alk_const
     use marbl_share_mod           , only : use_nml_surf_vals         
     use marbl_share_mod           , only : init_ecosys_option        
@@ -661,7 +668,7 @@ contains
     tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_nml')
     read(tmp_nl_buffer, nml=ecosys_nml, iostat=nml_error)
     if (nml_error /= 0) then
-       ! Add error about not reading ecosys_nml to marbl_status_log
+      call marbl_status_log%log_error("error reading &ecosys_nml", "ecosys_mod::marbl_init_nml()")
        return
     else
       ! FIXME(mnl,2016-02): this is printing contents of pop_in, not the entire
@@ -678,9 +685,9 @@ contains
     else if (trim(gas_flux_forcing_opt) == 'file') then
        gas_flux_forcing_iopt = gas_flux_forcing_iopt_file
     else
-       ! FIXME: pass error through marbl_status_log
-!       call document(subname, 'gas_flux_forcing_opt', gas_flux_forcing_opt)
-!       call exit_POP(sigAbort, 'unknown gas_flux_forcing_opt')
+       write(error_msg, "(2A)"), "unknown gas_flux_forcing_opt: ", trim(gas_flux_forcing_opt)
+       call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_init_nml()")
+       return
     endif
 
     fice_file_loc%input        = gas_flux_fice
@@ -712,9 +719,9 @@ contains
     case ('nmonth')
        comp_surf_avg_freq_iopt = marbl_freq_opt_nmonth
     case default
-       ! FIXME: pass error through marbl_status_log
-!       call document(subname, 'comp_surf_avg_freq_opt', comp_surf_avg_freq_opt)
-!       call exit_POP(sigAbort, 'unknown comp_surf_avg_freq_opt')
+       write(error_msg, "(2A)"), "unknown comp_surf_avg_freq_opt: ", trim(comp_surf_avg_freq_opt)
+       call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_init_nml()")
+       return
     end select
 
     select case (atm_co2_opt)
@@ -725,18 +732,18 @@ contains
     case ('drv_diag')
        atm_co2_iopt = atm_co2_iopt_drv_diag
     case default
-       ! FIXME: pass error through marbl_status_log
-!       call document(subname, 'atm_co2_opt', atm_co2_opt)
-!       call exit_POP(sigAbort, 'unknown atm_co2_opt')
+       write(error_msg, "(2A)"), "unknown atm_co2_opt: ", trim(atm_co2_opt)
+       call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_init_nml()")
+       return
     end select
 
     select case (atm_alt_co2_opt)
     case ('const')
        atm_alt_co2_iopt = atm_co2_iopt_const
     case default
-       ! FIXME: pass error through marbl_status_log
-!       call document(subname, 'atm_alt_co2_opt', atm_alt_co2_opt)
-!       call exit_POP(sigAbort, 'unknown atm_alt_co2_opt')
+       write(error_msg, "(2A)"), "unknown atm_alt_co2_opt: ", trim(atm_alt_co2_opt)
+       call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_init_nml()")
+       return
     end select
 
     select case (caco3_bury_thres_opt)
@@ -745,9 +752,9 @@ contains
     case ('omega_calc')
        caco3_bury_thres_iopt = caco3_bury_thres_iopt_omega_calc
     case default
-       ! FIXME: pass error through marbl_status_log
-!       call document(subname, 'caco3_bury_thres_opt', caco3_bury_thres_opt)
-!       call exit_POP(sigAbort, 'unknown caco3_bury_thres_opt')
+       write(error_msg, "(2A)"), "unknown caco3_bury_thres_opt: ", trim(caco3_bury_thres_opt)
+       call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_init_nml()")
+       return
     end select
 
     !-----------------------------------------------------------------------
@@ -755,11 +762,11 @@ contains
     !-----------------------------------------------------------------------
 
     if (use_nml_surf_vals .and. comp_surf_avg_freq_iopt /= marbl_freq_opt_never) then
-       ! FIXME: pass error through marbl_status_log
-!       call document(subname, 'use_nml_surf_vals', use_nml_surf_vals)
-!       call document(subname, 'comp_surf_avg_freq_opt', comp_surf_avg_freq_opt)
-!       call exit_POP(sigAbort, 'use_nml_surf_vals can only be .true. if ' /&
-!            &/ ' comp_surf_avg_freq_opt is never')
+       write(error_msg, "(4A)"), "use_nml_surf_vals can only be .true. if ", &
+                                 "comp_surf_avg_freq_opt is 'never', but",   &
+                                 "comp_surf_avg_freq_opt = ", trim(comp_surf_avg_freq_opt)
+       call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_init_nml()")
+       return
     endif
 
     !-----------------------------------------------------------------------
@@ -1041,7 +1048,7 @@ contains
 
   !*****************************************************************************
   
-  subroutine marbl_init_tracer_metadata(marbl_tracer_metadata)
+  subroutine marbl_init_tracer_metadata(marbl_tracer_metadata, marbl_status_log)
 
     ! !DESCRIPTION:
     !  Set tracer and forcing metadata
@@ -1050,6 +1057,7 @@ contains
 
     ! !INPUT/OUTPUT PARAMETERS:
     type (marbl_tracer_metadata_type), intent(inout) :: marbl_tracer_metadata(:)   ! descriptors for each tracer
+    type(marbl_log_type)           , intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1070,7 +1078,13 @@ contains
 
     call marbl_init_non_autotroph_tracer_metadata(marbl_tracer_metadata, non_living_biomass_ecosys_tracer_cnt)
 
-    call marbl_check_ecosys_tracer_count_consistency(non_living_biomass_ecosys_tracer_cnt)
+    call marbl_check_ecosys_tracer_count_consistency(non_living_biomass_ecosys_tracer_cnt, marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      error_msg = "error code returned from marbl_check_ecosys_tracer_count_consistency"
+      call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_init_tracer_metadata")
+                                    
+      return
+    end if
 
     call marbl_initialize_zooplankton_tracer_metadata(marbl_tracer_metadata, non_living_biomass_ecosys_tracer_cnt, n)
 
@@ -2725,12 +2739,13 @@ contains
 
   !***********************************************************************
 
-  subroutine marbl_check_ecosys_tracer_count_consistency(non_living_biomass_ecosys_tracer_cnt)
+  subroutine marbl_check_ecosys_tracer_count_consistency(non_living_biomass_ecosys_tracer_cnt, marbl_status_log)
 
     implicit none
 
     integer (int_kind), intent(in) :: &
          non_living_biomass_ecosys_tracer_cnt ! number of non-autotroph ecosystem tracers
+    type(marbl_log_type)           , intent(inout) :: marbl_status_log
 
     integer (int_kind) :: &
          n,               &
@@ -2756,10 +2771,10 @@ contains
     end do
 
     if (ecosys_tracer_cnt /= n) then
-       ! FIXME: pass error through marbl_status_log
-!       call document(subname, 'actual ecosys_tracer_cnt', ecosys_tracer_cnt)
-!       call document(subname, 'computed ecosys_tracer_cnt', n)
-!       call exit_POP(sigAbort, 'inconsistency between actual ecosys_tracer_cnt and computed ecosys_tracer_cnt')
+       write(error_msg, "(4A)"), "ecosys_tracer_cnt = ", ecosys_tracer_cnt, &
+                                 "but computed ecosys_tracer_cnt = ", n
+       call marbl_status_log%log_error(error_msg, "ecosys_mod::marbl_check_ecosys_tracer_count_consistency()")
+        return
     endif
 
   end subroutine marbl_check_ecosys_tracer_count_consistency

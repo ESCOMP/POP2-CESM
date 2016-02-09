@@ -61,9 +61,6 @@ module marbl_interface
   use marbl_interface_types     , only : marbl_forcing_output_type
   use marbl_interface_types     , only : marbl_diagnostics_type
 
-  use exit_mod                  , only : exit_POP  !FIXME
-  use exit_mod                  , only : sigAbort  !FIXME
-
   implicit none
 
   private
@@ -175,12 +172,19 @@ contains
     !--------------------------------------------------------------------
 
     call marbl_init_nml(nl_buffer, this%InitStatusLog)
-    ! FIXME: make sure no error in StatusLog, otherwise return to driver!
+    if (this%InitStatusLog%labort_marbl) then
+      call this%InitStatusLog%log_error("error code returned from marbl_init_nml", &
+                                        "marbl_interface::marbl_init()")
+      return
+    end if
 
     if (ciso_on) then
        call marbl_ciso_init_nml(nl_buffer, this%InitStatusLog)
-
-       ! FIXME: make sure no error in StatusLog, otherwise return to driver!
+       if (this%InitStatusLog%labort_marbl) then
+         call this%InitStatusLog%log_error("error code returned from marbl_ciso_init_nml", &
+                                           "marbl_interface::marbl_init()")
+         return
+       end if
     end if
 
     !--------------------------------------------------------------------
@@ -193,7 +197,12 @@ contains
     ! initialize marbl tracer metadata 
     !--------------------------------------------------------------------
 
-    call marbl_init_tracer_metadata(marbl_tracer_metadata)
+    call marbl_init_tracer_metadata(marbl_tracer_metadata,this%InitStatusLog)
+    if (this%InitStatusLog%labort_marbl) then
+      call this%InitStatusLog%log_error("error code returned from marbl_init_tracer_metadata", &
+                                        "marbl_interface::marbl_init()")
+      return
+    end if
 
     if (ciso_on) then
        call marbl_ciso_init_tracer_metadata(&

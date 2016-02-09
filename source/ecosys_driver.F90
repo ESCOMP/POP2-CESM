@@ -185,6 +185,12 @@ module ecosys_driver
   integer (int_kind), dimension(max_blocks_clinic) :: ciso_data_ind_d13c = -1 ! data index for D13C data
   integer (int_kind), dimension(max_blocks_clinic) :: ciso_data_ind_d14c = -1 ! data index for D14C data
 
+  !-----------------------------------------------------------------------
+  !  private module string for storing error messages
+  !-----------------------------------------------------------------------
+
+  character(len=char_len), private :: error_msg
+
   !***********************************************************************
 
 contains
@@ -458,6 +464,12 @@ contains
             marbl_forcing_input=marbl_forcing_input(iblock),   &
             marbl_forcing_output=marbl_forcing_output(iblock))
 
+       if (marbl(iblock)%InitStatusLog%labort_marbl) then
+         write(error_msg,"(A,I0,A)") "error code returned from marbl(", iblock, &
+                                     ")%init()"
+         call marbl(iblock)%InitStatusLog%log_error(error_msg,                &
+                                                    "ecosys_driver::ecosys_driver_init()")
+       end if
        call print_marbl_log(marbl(iblock)%InitStatusLog, iblock)
        call marbl(iblock)%InitStatusLog%erase()
     end do
