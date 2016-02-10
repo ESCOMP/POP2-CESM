@@ -10,10 +10,10 @@ MODULE co2calc_column
   USE constants, only : c0, p001, p5, c1, c2, c3, c10, c1000, T0_Kelvin, rho_sw
   USE kinds_mod, only : int_kind, r8, log_kind
   USE state_mod, ONLY : ref_pressure
-  USE io_types, ONLY : stdout
   USE time_management, ONLY : nsteps_run
   use marbl_logging, only : marbl_log_type
   use marbl_logging, only : error_msg
+  use marbl_logging, only : status_msg
 
 #ifdef CCSMCOUPLED
    !*** ccsm
@@ -1054,6 +1054,7 @@ CONTAINS
     INTEGER(KIND=int_kind) ::  c, it
     REAL(KIND=r8) :: temp
     REAL(KIND=r8), DIMENSION(num_elements) :: xlo, xhi, flo, fhi, f, df, dxold, dx
+    character(*), parameter :: subname = 'co2calc_column.F90:drtsafe_row'
 
     !---------------------------------------------------------------------------
     !   bracket root at each location and set up first iteration
@@ -1078,22 +1079,21 @@ CONTAINS
 
        do c = 1,num_elements
           IF (mask(c)) THEN
-          ! FIXME: this should go into marbl_status_log (as a warning?)
-!!$             this_block = get_block(blocks_clinic(iblock), iblock)
-!!$                'i_glob = ', this_block%i_glob(i), &
-!!$                ', j_glob = ', this_block%j_glob(j), &
-             WRITE(stdout,*) '(co2calc_column.F90:drtsafe_row) ', &
+             WRITE(status_msg,"(4A,I0,A,I0,A,I0)") '(', subname, ') ', &
                 ', c = ', c, ', nsteps_run = ', nsteps_run, ', it = ', it
-             WRITE(stdout,*) '(co2calc.F90:drtsafe_row) ', &
+             call marbl_status_log%log_noerror(status_msg, subname, c, .true.)
+             WRITE(status_msg,"(4A,2E9.5)") '(', subname, ') ', &
                 '   x1,f = ', x1(c), flo(c)
-             WRITE(stdout,*) '(co2calc.F90:drtsafe_row) ', &
+             call marbl_status_log%log_noerror(status_msg, subname, c, .true.)
+             WRITE(status_msg,"(4A,2E9.5)") '(', subname, ') ', &
                 '   x2,f = ', x2(c), fhi(c)
+             call marbl_status_log%log_noerror(status_msg, subname, c, .true.)
           END IF
        END DO
 
        IF (it > max_bracket_grow_it) THEN
-          call marbl_status_log%log_error("bounding bracket for pH solution not found", &
-                                          "co2calc_column::drtsafe_row", c)
+          error_msg = "bounding bracket for pH solution not found"
+          call marbl_status_log%log_error(error_msg, subname, c)
           return
        END IF
 

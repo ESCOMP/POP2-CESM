@@ -19,11 +19,6 @@ module marbl_ciso_mod
 
   ! !USES:
 
-  use communicate           , only : master_task, my_task             !FIXME
-  use io_types              , only : stdout                           !FIXME
-  use io_tools              , only : document                         !FIXME
-  use constants             , only : blank_fmt, delim_fmt, ndelim_fmt !FIXME
-
   use marbl_kinds_mod       , only : r8
   use marbl_kinds_mod       , only : int_kind
   use marbl_kinds_mod       , only : log_kind
@@ -43,6 +38,7 @@ module marbl_ciso_mod
   use marbl_sizes           , only : grazer_prey_cnt
 
   use marbl_logging         , only : error_msg
+  use marbl_logging         , only : status_msg
   use marbl_logging         , only : marbl_log_type
 
   use marbl_interface_types , only : marbl_tracer_metadata_type
@@ -228,19 +224,6 @@ contains
       call marbl_status_log%log_namelist('ecosys_ciso_nml', tmp_nl_buffer, subname)
     end if
 
-    if (my_task == master_task) then
-       write(stdout,blank_fmt)
-       write(stdout,ndelim_fmt)
-       write(stdout,blank_fmt)
-       write(stdout,*) ' ecosys_ciso:'
-       write(stdout,blank_fmt)
-       write(stdout,*) ' ecosys_ciso_nml namelist settings:'
-       write(stdout,blank_fmt)
-       write(stdout,ecosys_ciso_nml)
-       write(stdout,blank_fmt)
-       write(stdout,delim_fmt)
-    endif
-
     !-----------------------------------------------------------------------
     !  set variables immediately dependent on namelist variables
     !-----------------------------------------------------------------------
@@ -405,17 +388,22 @@ contains
        endif
     end do
 
-    if (my_task == master_task) THEN
-       write (stdout,*) '----- autotroph tracer indices -----'
-       do auto_ind = 1, autotroph_cnt
-          write (stdout,*) 'C13_ind('     , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%C13_ind
-          write (stdout,*) 'C14_ind('     , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%C14_ind
-          write (stdout,*) 'Ca13CO3_ind(' , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Ca13CO3_ind
-          write (stdout,*) 'Ca14CO3_ind(' , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Ca14CO3_ind
-          write (stdout,*) 'autotroph_cnt =',autotroph_cnt
-       end do
-       write (stdout,*) '------------------------------------'
-    endif
+    write (status_msg,"(A)") '----- autotroph tracer indices -----'
+    call marbl_status_log%log_noerror(status_msg, subname)
+    do auto_ind = 1, autotroph_cnt
+       write (status_msg, "(3A,I0)") 'C13_ind('     , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%C13_ind
+       call marbl_status_log%log_noerror(status_msg, subname)
+       write (status_msg, "(3A,I0)") 'C14_ind('     , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%C14_ind
+       call marbl_status_log%log_noerror(status_msg, subname)
+       write (status_msg, "(3A,I0)") 'Ca13CO3_ind(' , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Ca13CO3_ind
+       call marbl_status_log%log_noerror(status_msg, subname)
+       write (status_msg, "(3A,I0)") 'Ca14CO3_ind(' , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Ca14CO3_ind
+       call marbl_status_log%log_noerror(status_msg, subname)
+       write (status_msg, "(3A,I0)") 'autotroph_cnt =',autotroph_cnt
+       call marbl_status_log%log_noerror(status_msg, subname)
+    end do
+    write (status_msg,"(A)") '------------------------------------'
+    call marbl_status_log%log_noerror(status_msg, subname)
 
     !-----------------------------------------------------------------------
     !  set lfull_depth_tavg flag for short-lived ecosystem tracers

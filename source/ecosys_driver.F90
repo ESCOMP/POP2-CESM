@@ -569,7 +569,15 @@ contains
     end if
     call print_marbl_log(marbl(1)%StatusLog, 1)
     call marbl(1)%StatusLog%erase()
-    call ecosys_driver_init_interior_restore(ecosys_restore)
+
+    call ecosys_driver_init_interior_restore(ecosys_restore, marbl(1)%StatusLog)
+    if (marbl(1)%StatusLog%labort_marbl) then
+      write(error_msg,"(A)") "error code returned from ecosys_driver_init_interior_restore"
+      call marbl(1)%StatusLog%log_error(error_msg,                &
+                                        "ecosys_driver::ecosys_driver_init()")
+    end if
+    call print_marbl_log(marbl(1)%StatusLog, 1)
+    call marbl(1)%StatusLog%erase()
 
     !--------------------------------------------------------------------
     ! Initialize tavg ids (need only do this using first block)
@@ -1528,7 +1536,7 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_driver_init_interior_restore(ecosys_restore)
+  subroutine ecosys_driver_init_interior_restore(ecosys_restore, marbl_status_log)
 
     ! !DESCRIPTION:
     !  Initialize interior restoring computations for ecosys tracer module.
@@ -1540,11 +1548,13 @@ contains
     use blocks                , only : nx_block, ny_block
     use domain_size           , only : max_blocks_clinic, km
     use marbl_share_mod       , only : fesedflux_input
+    use marbl_logging         , only : marbl_log_type
     use passive_tracer_tools  , only : read_field
 
     implicit none
 
-    type(ecosys_restore_type)   , intent(inout) :: ecosys_restore
+    type(ecosys_restore_type), intent(inout) :: ecosys_restore
+    type(marbl_log_type),      intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1556,13 +1566,22 @@ contains
 
     real (r8) :: &
          subsurf_fesed      ! sum of subsurface fesed values
+    character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_init_interior_restore'
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
     !  initialize restoring timescale (if required)
     !-----------------------------------------------------------------------
 
-    call ecosys_restore%initialize_restoring_timescale(nml_filename, nml_in, zt)
+    call ecosys_restore%initialize_restoring_timescale(nml_filename, nml_in, zt, &
+                                                       marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      write(error_msg,"(2A)") "error code returned from ecosys_restore%", &
+                              "initialize_restoring_timescale"
+      call marbl_status_log%log_error(error_msg, subname)
+    end if
+    call print_marbl_log(marbl_status_log, 1)
+    call marbl_status_log%erase()
 
     !-----------------------------------------------------------------------
     !  load restoring fields (if required)
