@@ -52,6 +52,8 @@ module marbl_interface
   use marbl_sizes               , only : ecosys_ciso_ind_beg, ecosys_ciso_ind_end
   use marbl_sizes               , only : autotroph_cnt
   use marbl_sizes               , only : zooplankton_cnt
+  use marbl_share_mod           , only : max_forcing_fields
+  use marbl_share_mod           , only : marbl_forcing_ind
 
   use marbl_interface_types     , only : marbl_domain_type
   use marbl_interface_types     , only : marbl_gcm_state_type
@@ -117,7 +119,6 @@ contains
        marbl_forcing_output,  &
        marbl_status )
 
-    use marbl_parms            , only : total_input_forcing_cnt
     use marbl_namelist_mod     , only : marbl_nl_cnt
     use marbl_namelist_mod     , only : marbl_nl_buffer_size
     use marbl_ciso_mod         , only : marbl_ciso_init_nml
@@ -212,10 +213,10 @@ contains
     ! initialize marbl surface forcing input and output
     !--------------------------------------------------------------------
 
-    call marbl_forcing_input%construct(              &
-         num_elements_forcing,                       &
-         num_surface_vals=ecosys_used_tracer_cnt,    &
-         num_input_forcings=total_input_forcing_cnt, &  
+    call marbl_forcing_input%construct(            &
+         num_elements_forcing,                     &
+         num_surface_vals=ecosys_used_tracer_cnt,  &
+         num_input_forcings=max_forcing_fields,    &  
          ciso_on=ciso_on)
 
     call marbl_sflux_forcing_fields_init(            &
@@ -350,7 +351,7 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
     type(marbl_forcing_share_type)  :: marbl_forcing_share
-    !-----------------------------------------------------------------------
+    ! -----------------------------------------------------------------------
 
     call marbl_forcing_share%construct(num_elements)
 
@@ -367,7 +368,7 @@ contains
             num_elements,                                                                &
             ecosys_ciso_tracer_cnt,                                                      &
             marbl_forcing_input%land_mask,                                               &
-            marbl_forcing_input%sst,                                                     &
+            marbl_forcing_input%input_forcings(:,marbl_forcing_ind%sst_id),              &
             marbl_forcing_input%d13c,                                                    &
             marbl_forcing_input%d14c,                                                    &
             marbl_forcing_input%d14c_glo_avg,                                            &

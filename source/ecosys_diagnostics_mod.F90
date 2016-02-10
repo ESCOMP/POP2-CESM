@@ -3647,13 +3647,7 @@ contains
     use marbl_share_mod       , only : dfe_riv_flux     
     use marbl_share_mod       , only : dic_riv_flux     
     use marbl_share_mod       , only : alk_riv_flux     
-    use marbl_parms           , only : ind_nox_flux
-    use marbl_parms           , only : ind_no3_flux
-    use marbl_parms           , only : ind_din_riv_flux
-    use marbl_parms           , only : ind_dsi_riv_flux
-    use marbl_parms           , only : ind_dfe_riv_flux
-    use marbl_parms           , only : ind_dic_riv_flux
-    use marbl_parms           , only : ind_alk_riv_flux
+    use marbl_share_mod       , only : marbl_forcing_ind
     use marbl_parms           , only : po4_ind
     use marbl_parms           , only : no3_ind
     use marbl_parms           , only : sio3_ind
@@ -3687,12 +3681,13 @@ contains
     associate(                                                                &
          diags           => marbl_diags%diags(:),                             &
          ind             => marbl_forcing_diag_ind,                           &
-         xkw             => marbl_forcing_input%xkw,                          &
-         xco2            => marbl_forcing_input%xco2,                         &
-         xco2_alt_co2    => marbl_forcing_input%xco2_alt_co2,                 &
-         ifrac           => marbl_forcing_input%ifrac,                        &
-         ap_used         => marbl_forcing_input%atm_press,                    &
-         dust_flux_in    => marbl_forcing_input%dust_flux,                    &
+         indf            => marbl_forcing_ind,                                &
+         xkw             => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%xkw_id),          &
+         xco2            => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%xco2_id),         &
+         xco2_alt_co2    => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%xco2_alt_co2_id), &
+         ap_used         => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%atm_pressure_id), &
+         ifrac           => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%ifrac_id),        &
+         dust_flux_in    => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%dust_flux_id),    &
          input_forcings  => marbl_forcing_input%input_forcings,               &
          ph_prev         => marbl_forcing_output%ph_prev,                     &
          ph_prev_alt_co2 => marbl_forcing_output%ph_prev_alt_co2,             &
@@ -3774,12 +3769,12 @@ contains
     !-----------------------------------------------------------------------
 
     if (nox_flux_monthly%has_data) then
-       diags(ind%NOx_FLUX)%field_2d(:) = input_forcings(:, ind_nox_flux)
+       diags(ind%NOx_FLUX)%field_2d(:) = input_forcings(:, indf%nox_flux_id)
     endif
 
     if (trim(ndep_data_type) == 'shr_stream') then
        diags(ind%NOx_FLUX)%field_2d(:) = &
-            ndep_shr_stream_scale_factor * input_forcings(:, ind_no3_flux)
+            ndep_shr_stream_scale_factor * input_forcings(:, indf%no3_flux_id)
     endif
 
     !-----------------------------------------------------------------------
@@ -3787,19 +3782,19 @@ contains
     !-----------------------------------------------------------------------
 
     if (din_riv_flux%has_data) then
-       diags(ind%DIN_RIV_FLUX)%field_2d(:) = input_forcings(:, ind_din_riv_flux)
+       diags(ind%DIN_RIV_FLUX)%field_2d(:) = input_forcings(:, indf%din_riv_flux_id)
     endif
     if (dsi_riv_flux%has_data) then
-       diags(ind%DSI_RIV_FLUX)%field_2d(:) = input_forcings(:, ind_dsi_riv_flux)
+       diags(ind%DSI_RIV_FLUX)%field_2d(:) = input_forcings(:, indf%dsi_riv_flux_id)
     endif
     if (dfe_riv_flux%has_data) then
-       diags(ind%DFE_RIV_FLUX)%field_2d(:) = input_forcings(:, ind_dfe_riv_flux)
+       diags(ind%DFE_RIV_FLUX)%field_2d(:) = input_forcings(:, indf%dfe_riv_flux_id)
     endif
     if (dic_riv_flux%has_data) then
-       diags(ind%DIC_RIV_FLUX)%field_2d(:) = input_forcings(:, ind_dic_riv_flux)
+       diags(ind%DIC_RIV_FLUX)%field_2d(:) = input_forcings(:, indf%dic_riv_flux_id)
     endif
     if (alk_riv_flux%has_data) then
-       diags(ind%ALK_RIV_FLUX)%field_2d(:) = input_forcings(:, ind_alk_riv_flux)
+       diags(ind%ALK_RIV_FLUX)%field_2d(:) = input_forcings(:, indf%alk_riv_flux_id)
     endif
     diags(ind%O2_GAS_FLUX)%field_2d(:)   = STF_MODULE(:, o2_ind)
     diags(ind%NHy_FLUX)%field_2d(:)      = STF_MODULE(:, nh4_ind)
