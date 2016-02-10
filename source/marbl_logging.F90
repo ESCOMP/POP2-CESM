@@ -14,6 +14,8 @@ module marbl_logging
   !            in line with the diagnostic and forcing field types, as well
   type, public :: marbl_status_log_entry_type
     integer :: ElementInd
+    logical :: lall_tasks  ! True => message should be written to stdout by
+                           !         all tasks; False => master task only
     character(len=marbl_log_len) :: LogMessage   ! Message text
     character(len=char_len)      :: CodeLocation ! Information on where log was written
                                
@@ -41,10 +43,12 @@ module marbl_logging
     procedure, public :: construct => marbl_log_constructor
     procedure, public :: log_namelist => marbl_log_namelist
     procedure, public :: log_error    => marbl_log_error
+    procedure, public :: log_noerror  => marbl_log_noerror
     procedure, public :: erase => marbl_log_erase
   end type marbl_log_type
 
   character(len=char_len), public :: error_msg
+  character(len=char_len), public :: status_msg
 
 contains
 
@@ -126,6 +130,7 @@ contains
     write(new_entry%LogMessage, "(4A)") "Contents of ", trim(NamelistName), ": ", &
                                         trim(NamelistContents)
     new_entry%CodeLocation = trim(CodeLoc)
+    new_entry%lall_tasks = .false.
 
     if (associated(this%FullLog)) then
       ! Append new entry to last entry in the log
@@ -161,6 +166,7 @@ contains
     write(new_entry%LogMessage, "(4A)") "MARBL ERROR (", trim(CodeLoc), "): ", &
                                         trim(ErrorMsg)
     new_entry%CodeLocation = trim(CodeLoc)
+    new_entry%lall_tasks = .true.
 
     if (associated(this%FullLog)) then
       ! Append new entry to last entry in the log
@@ -172,6 +178,45 @@ contains
     this%LastEntry => new_entry
 
   end subroutine marbl_log_error
+
+  subroutine marbl_log_noerror(this, StatusMsg, CodeLoc, ElemInd, lall_tasks)
+
+    class(marbl_log_type), intent(inout) :: this
+    character(len=*),      intent(in)    :: StatusMsg, CodeLoc
+    integer, optional,     intent(in)    :: ElemInd
+    logical, optional,     intent(in)    :: lall_tasks
+    type(marbl_status_log_entry_type), pointer :: new_entry
+
+    ! Only allocate memory and add entry if we want to log full namelist!
+    if (.not.this%OutputOptions%lLogGeneral) then
+      return
+    end if
+
+    allocate(new_entry)
+    nullify(new_entry%next)
+    if (present(ElemInd)) then
+      new_entry%ElementInd = ElemInd
+    else
+      new_entry%ElementInd = 1
+    end if
+    new_entry%LogMessage   = trim(StatusMsg)
+    new_entry%CodeLocation = trim(CodeLoc)
+    if (present(lall_tasks)) then
+      new_entry%lall_tasks = lall_tasks
+    else
+      new_entry%lall_tasks = .false.
+    end if
+
+    if (associated(this%FullLog)) then
+      ! Append new entry to last entry in the log
+      this%LastEntry%next => new_entry
+    else
+      this%FullLog => new_entry
+    end if
+    ! Update LastEntry attribute of linked list
+    this%LastEntry => new_entry
+
+  end subroutine marbl_log_noerror
 
   subroutine marbl_log_erase(this)
 

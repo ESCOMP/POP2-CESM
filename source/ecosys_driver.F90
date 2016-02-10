@@ -3407,15 +3407,17 @@ contains
     integer,               intent(in) :: iblock
 
     type(marbl_status_log_entry_type), pointer :: tmp
+    logical :: iam_master
 
-       ! FIXME (02-2016,mnl): need better logic on which items to print
-    if ((my_task.eq.master_task).and.(iblock.eq.1)) then
-      tmp => log_to_print%FullLog
-      do while (associated(tmp))
+    ! FIXME (02-2016,mnl): need better logic on which items to print
+    iam_master = (my_task.eq.master_task).and.(iblock.eq.1)
+    tmp => log_to_print%FullLog
+    do while (associated(tmp))
+      if (tmp%lall_tasks.or.iam_master) then
         write(stdout, *) trim(tmp%LogMessage)
-        tmp => tmp%next
-      end do
-    end if
+      end if
+      tmp => tmp%next
+    end do
 
     if (log_to_print%labort_marbl) then
       call exit_POP(sigAbort, 'ERROR reported from MARBL library')
