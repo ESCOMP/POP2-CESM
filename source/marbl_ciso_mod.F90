@@ -236,7 +236,7 @@ contains
     case ('nmonth')
        ciso_comp_surf_avg_freq_iopt = marbl_freq_opt_nmonth
     case default
-       write(error_msg, "(2A)"), "unknown ciso_comp_surf_avg_freq_opt: ", trim(ciso_comp_surf_avg_freq_opt)
+       write(error_msg, "(2A)") "unknown ciso_comp_surf_avg_freq_opt: ", trim(ciso_comp_surf_avg_freq_opt)
        call marbl_status_log%log_error(error_msg, subname)
        return
     end select
@@ -246,10 +246,10 @@ contains
     !-----------------------------------------------------------------------
 
     if (ciso_use_nml_surf_vals .and. ciso_comp_surf_avg_freq_iopt /= marbl_freq_opt_never) then
-       write(error_msg, "(4A)"), "ciso_use_nml_surf_vals can only be .true. if ", &
-                                 "ciso_comp_surf_avg_freq_opt is 'never', but",   &
-                                 "ciso_comp_surf_avg_freq_opt = ",                &
-                                 trim(ciso_comp_surf_avg_freq_opt)
+       write(error_msg, "(4A)") "ciso_use_nml_surf_vals can only be .true. if ", &
+                                "ciso_comp_surf_avg_freq_opt is 'never', but",   &
+                                "ciso_comp_surf_avg_freq_opt = ",                &
+                                trim(ciso_comp_surf_avg_freq_opt)
        call marbl_status_log%log_error(error_msg, subname)
        return
     endif
@@ -337,8 +337,8 @@ contains
     end do
 
     if (ecosys_ciso_tracer_cnt /= n) then
-       write(error_msg, "(4A)"), "ecosys_ciso_tracer_cnt = ", ecosys_ciso_tracer_cnt, &
-                                 "but computed ecosys_ciso_tracer_cnt = ", n
+       write(error_msg, "(4A)") "ecosys_ciso_tracer_cnt = ", ecosys_ciso_tracer_cnt, &
+                                "but computed ecosys_ciso_tracer_cnt = ", n
        call marbl_status_log%log_error(error_msg, subname)
         return
     endif

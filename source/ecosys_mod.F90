@@ -678,7 +678,7 @@ contains
     else if (trim(gas_flux_forcing_opt) == 'file') then
        gas_flux_forcing_iopt = gas_flux_forcing_iopt_file
     else
-       write(error_msg, "(2A)"), "unknown gas_flux_forcing_opt: ", trim(gas_flux_forcing_opt)
+       write(error_msg, "(2A)") "unknown gas_flux_forcing_opt: ", trim(gas_flux_forcing_opt)
        call marbl_status_log%log_error(error_msg, subname)
        return
     endif
@@ -712,7 +712,7 @@ contains
     case ('nmonth')
        comp_surf_avg_freq_iopt = marbl_freq_opt_nmonth
     case default
-       write(error_msg, "(2A)"), "unknown comp_surf_avg_freq_opt: ", trim(comp_surf_avg_freq_opt)
+       write(error_msg, "(2A)") "unknown comp_surf_avg_freq_opt: ", trim(comp_surf_avg_freq_opt)
        call marbl_status_log%log_error(error_msg, subname)
        return
     end select
@@ -725,7 +725,7 @@ contains
     case ('drv_diag')
        atm_co2_iopt = atm_co2_iopt_drv_diag
     case default
-       write(error_msg, "(2A)"), "unknown atm_co2_opt: ", trim(atm_co2_opt)
+       write(error_msg, "(2A)") "unknown atm_co2_opt: ", trim(atm_co2_opt)
        call marbl_status_log%log_error(error_msg, subname)
        return
     end select
@@ -734,7 +734,7 @@ contains
     case ('const')
        atm_alt_co2_iopt = atm_co2_iopt_const
     case default
-       write(error_msg, "(2A)"), "unknown atm_alt_co2_opt: ", trim(atm_alt_co2_opt)
+       write(error_msg, "(2A)") "unknown atm_alt_co2_opt: ", trim(atm_alt_co2_opt)
        call marbl_status_log%log_error(error_msg, subname)
        return
     end select
@@ -745,7 +745,7 @@ contains
     case ('omega_calc')
        caco3_bury_thres_iopt = caco3_bury_thres_iopt_omega_calc
     case default
-       write(error_msg, "(2A)"), "unknown caco3_bury_thres_opt: ", trim(caco3_bury_thres_opt)
+       write(error_msg, "(2A)") "unknown caco3_bury_thres_opt: ", trim(caco3_bury_thres_opt)
        call marbl_status_log%log_error(error_msg, subname)
        return
     end select
@@ -755,9 +755,9 @@ contains
     !-----------------------------------------------------------------------
 
     if (use_nml_surf_vals .and. comp_surf_avg_freq_iopt /= marbl_freq_opt_never) then
-       write(error_msg, "(4A)"), "use_nml_surf_vals can only be .true. if ", &
-                                 "comp_surf_avg_freq_opt is 'never', but ",  &
-                                 "comp_surf_avg_freq_opt = ", trim(comp_surf_avg_freq_opt)
+       write(error_msg, "(4A)") "use_nml_surf_vals can only be .true. if ", &
+                                "comp_surf_avg_freq_opt is 'never', but ",  &
+                                "comp_surf_avg_freq_opt = ", trim(comp_surf_avg_freq_opt)
        call marbl_status_log%log_error(error_msg, subname)
        return
     endif
@@ -2789,8 +2789,8 @@ contains
     end do
 
     if (ecosys_tracer_cnt /= n) then
-       write(error_msg, "(4A)"), "ecosys_tracer_cnt = ", ecosys_tracer_cnt, &
-                                 "but computed ecosys_tracer_cnt = ", n
+       write(error_msg, "(4A)") "ecosys_tracer_cnt = ", ecosys_tracer_cnt, &
+                                "but computed ecosys_tracer_cnt = ", n
        call marbl_status_log%log_error(error_msg, subname)
         return
     endif
