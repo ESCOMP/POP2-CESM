@@ -916,21 +916,21 @@ contains
     if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
 
        fsource    = 'driver'
-       varname    = 'fice'
+       varname    = 'Ice Fraction'
        drivername = 'FICE_USED'
        units      = 'unknown'
        call forcing_fields%add_forcing_field(fsource, varname, units, marbl_driver_varname=drivername, &
                                              id=ind%fice_id)
 
        fsource    = 'driver'
-       varname    = 'xkw'
+       varname    = 'Piston Velocity'
        drivername = 'XKW_ICE'
        units      = 'unknown'
        call forcing_fields%add_forcing_field(fsource, varname, units, marbl_driver_varname=drivername, &
                                              id=ind%xkw_id)
 
        fsource    = 'driver'
-       varname    = 'atm_pressure'
+       varname    = 'Atmospheric Pressure'
        drivername = 'AP_FILE_INPUT'
        units      = 'unknown'
        call forcing_fields%add_forcing_field(fsource, varname, units, marbl_driver_varname=drivername, &
@@ -939,19 +939,19 @@ contains
     elseif (gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
 
        fsource    = 'POP monthly calendar'
-       varname    = 'fice'
+       varname    = 'Ice Fraction'
        units      = 'unknown'
        call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=fice_file, &
                                              id=ind%fice_id)
 
        fsource    = 'POP monthly calendar'
-       varname    = 'xkw'
+       varname    = 'Piston Velocity'
        units      = 'unknown'
        call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=xkw_file, &
                                              id=ind%xkw_id)
 
        fsource    = 'POP monthly calendar'
-       varname    = 'atm_pressure'
+       varname    = 'Atmospheric Pressure'
        units      = 'unknown'
        call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=ap_file, &
                                              id=ind%atm_pressure_id)
@@ -959,80 +959,80 @@ contains
     endif 
 
     fsource    = 'POP monthly calendar'
-    varname    = 'dust flux'
+    varname    = 'Dust Flux'
     units      = 'unknown'
     call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=dust_flux, &
                                           id=ind%dust_flux_id)
 
     fsource    = 'POP monthly calendar'
-    varname    = 'iron flux'
+    varname    = 'Iron Flux'
     units      = 'unknown'
     call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=iron_flux, &
                                           id=ind%iron_flux_id)
 
     fsource    = 'POP monthly calendar'
-    varname    = 'nox flux'
+    varname    = 'NOx Flux'
     units      = 'unknown'
     call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=nox_flux_monthly, &
                                           id=ind%nox_flux_id)
 
     fsource    = 'POP monthly calendar'
-    varname    = 'nhy flux'
+    varname    = 'NHy Flux'
     units      = 'unknown'
     call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=nhy_flux_monthly, &
                                           id=ind%nhy_flux_id)
 
     fsource    = 'POP monthly calendar'
-    varname    = 'din river flux'
+    varname    = 'DIN river flux'
     units      = 'unknown'
     call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=din_riv_flux, &
                                           id=ind%din_riv_flux_id)
 
     fsource    = 'POP monthly calendar'
-    varname    = 'dip river flux'
+    varname    = 'DIP river flux'
     units      = 'unknown'
     call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=dip_riv_flux, &
                                           id=ind%dip_riv_flux_id)
 
     fsource    = 'POP monthly calendar'
-    varname    = 'don river flux'
+    varname    = 'DON river flux'
     units      = 'unknown'
     call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=don_riv_flux, &
                                           id=ind%don_riv_flux_id)
 
     fsource    = 'POP monthly calendar'
-    varname    = 'dop river flux'
+    varname    = 'DOP river flux'
     units      = 'unknown'
     call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=dop_riv_flux, &
                                           id=ind%dop_riv_flux_id)
 
 
     fsource    = 'POP monthly calendar'
-    varname    = 'dsi river flux'
+    varname    = 'DSI river flux'
     units      = 'unknown'
     call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=dsi_riv_flux, &
                                           id=ind%dsi_riv_flux_id)
 
     fsource    = 'POP monthly calendar'
-    varname    = 'dfe river flux'
+    varname    = 'DFE river flux'
     units      = 'unknown'
     call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=dfe_riv_flux, &
                                           id=ind%dfe_riv_flux_id)
 
     fsource    = 'POP monthly calendar'
-    varname    = 'dic river flux'
+    varname    = 'DIC river flux'
     units      = 'unknown'
     call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=dic_riv_flux, &
                                           id=ind%dic_riv_flux_id)
 
     fsource    = 'POP monthly calendar'
-    varname    = 'alk river flux'
+    varname    = 'ALK river flux'
     units      = 'unknown'
     call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=alk_riv_flux, &
                                           id=ind%alk_riv_flux_id)
 
     fsource    = 'POP monthly calendar'
-    varname    = 'doc river flux'
+    varname    = 'DOC river flux'
     units      = 'unknown'
     call forcing_fields%add_forcing_field(fsource, varname, units, marbl_forcing_calendar_name=doc_riv_flux, &
                                           id=ind%doc_riv_flux_id)
@@ -2268,19 +2268,6 @@ contains
     use marbl_share_mod       , only : dic_riv_flux     
     use marbl_share_mod       , only : alk_riv_flux     
     use marbl_share_mod       , only : doc_riv_flux     
-    use marbl_parms           , only : ind_nox_flux
-    use marbl_parms           , only : ind_nhy_flux
-    use marbl_parms           , only : ind_no3_flux
-    use marbl_parms           , only : ind_nh4_flux
-    use marbl_parms           , only : ind_din_riv_flux
-    use marbl_parms           , only : ind_dip_riv_flux
-    use marbl_parms           , only : ind_don_riv_flux
-    use marbl_parms           , only : ind_dop_riv_flux
-    use marbl_parms           , only : ind_dsi_riv_flux
-    use marbl_parms           , only : ind_dfe_riv_flux
-    use marbl_parms           , only : ind_dic_riv_flux
-    use marbl_parms           , only : ind_alk_riv_flux
-    use marbl_parms           , only : ind_doc_riv_flux
     use ecosys_diagnostics_mod, only : store_diagnostics_sflux
 
     ! !INPUT PARAMETERS:
@@ -2314,21 +2301,22 @@ contains
     !-----------------------------------------------------------------------
 
     associate(                                                              &
+         ind                  => marbl_forcing_ind                        , &
          land_mask            => marbl_forcing_input%land_mask            , & 
-         ifrac                => marbl_forcing_input%ifrac                , &
-         u10_sqr              => marbl_forcing_input%u10_sqr              , &
-         sst                  => marbl_forcing_input%sst                  , & ! sea surface temperature (c)
-         sss                  => marbl_forcing_input%sss                  , & ! sea surface salinity (psu)
-         xco2                 => marbl_forcing_input%xco2                 , & ! atmospheric co2 conc. (dry-air, 1 atm)
-         xco2_alt_co2         => marbl_forcing_input%xco2_alt_co2         , & ! atmospheric alternative CO2 (dry-air, 1 atm)
-         ap_used              => marbl_forcing_input%atm_press            , & ! used atm pressure (atm)
-         xkw                  => marbl_forcing_input%xkw                  , &
-         dust_flux_in         => marbl_forcing_input%dust_flux            , &
-         iron_flux_in         => marbl_forcing_input%iron_flux            , &
+         ifrac                => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%ifrac_id)     , &
+         u10_sqr              => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%u10_sqr_id)   , &
+         sst                  => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%sst_id)       , &
+         sss                  => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%sss_id)       , &
+         xco2                 => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%xco2_id)      , &
+         xco2_alt_co2         => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%xco2_alt_co2_id) , & 
+         ap_used              => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%atm_pressure_id) , &
+         xkw                  => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%xkw_id)       , &
+         dust_flux_in         => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%dust_flux_id) , &
+         iron_flux_in         => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%iron_flux_id) , &
+         ph_prev              => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%ph_prev_id)   , &
+         ph_prev_alt_co2      => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%ph_prev_alt_co2_id) , &
          surface_vals         => marbl_forcing_input%surface_vals         , & 
-         input_forcings       => marbl_forcing_input%input_forcings            , & 
-         ph_prev              => marbl_forcing_input%ph_prev              , &
-         ph_prev_alt_co2      => marbl_forcing_input%ph_prev_alt_co2      , &
+         input_forcings       => marbl_forcing_input%input_forcings       , & 
 
          ph_prev_new          => marbl_forcing_output%ph_prev             , &
          ph_prev_alt_co2_new  => marbl_forcing_output%ph_prev_alt_co2     , &
@@ -2528,20 +2516,20 @@ contains
     !-----------------------------------------------------------------------
        
     if (nox_flux_monthly%has_data) then
-       STF_MODULE(:, no3_ind) = STF_MODULE(:, no3_ind) + input_forcings(:, ind_nox_flux)
+       STF_MODULE(:, no3_ind) = STF_MODULE(:, no3_ind) + input_forcings(:, ind%nox_flux_id)
     endif
        
     if (nhy_flux_monthly%has_data) then
-       STF_MODULE(:, nh4_ind) = STF_MODULE(:, nh4_ind) + input_forcings(:, ind_nhy_flux)
+       STF_MODULE(:, nh4_ind) = STF_MODULE(:, nh4_ind) + input_forcings(:, ind%nhy_flux_id)
     endif
        
     if (trim(ndep_data_type) == 'shr_stream') then
        where (land_mask(:))
           STF_MODULE(:, no3_ind) = STF_MODULE(:, no3_ind) &
-               + ndep_shr_stream_scale_factor * input_forcings(:, ind_no3_flux)
+               + ndep_shr_stream_scale_factor * input_forcings(:, ind%no3_flux_id)
           
           STF_MODULE(:, nh4_ind) = STF_MODULE(:, nh4_ind) &
-               + ndep_shr_stream_scale_factor * input_forcings(:, ind_nh4_flux)
+               + ndep_shr_stream_scale_factor * input_forcings(:, ind%nh4_flux_id)
        endwhere
     endif
 
@@ -2550,53 +2538,53 @@ contains
     !-----------------------------------------------------------------------
 
     if (din_riv_flux%has_data) then
-       STF_MODULE(:, no3_ind) = STF_MODULE(:, no3_ind) + input_forcings(:, ind_din_riv_flux)
+       STF_MODULE(:, no3_ind) = STF_MODULE(:, no3_ind) + input_forcings(:, ind%din_riv_flux_id)
     endif
 
     if (dip_riv_flux%has_data) then
-       STF_MODULE(:, po4_ind) = STF_MODULE(:, po4_ind) + input_forcings(:, ind_dip_riv_flux)
+       STF_MODULE(:, po4_ind) = STF_MODULE(:, po4_ind) + input_forcings(:, ind%dip_riv_flux_id)
     endif
 
     if (don_riv_flux%has_data) then
        STF_MODULE(:, don_ind)  = STF_MODULE(:, don_ind)  +                    &
-            (input_forcings(:, ind_don_riv_flux) * (c1 - DONriv_refract))
+            (input_forcings(:, ind%don_riv_flux_id) * (c1 - DONriv_refract))
        STF_MODULE(:, donr_ind) = STF_MODULE(:, donr_ind) +                    &
-            (input_forcings(:, ind_don_riv_flux) * DONriv_refract)
+            (input_forcings(:, ind%don_riv_flux_id) * DONriv_refract)
     endif
 
     if (dop_riv_flux%has_data) then
        STF_MODULE(:, dop_ind)  = STF_MODULE(:, dop_ind)  +                    &
-             (input_forcings(:, ind_dop_riv_flux) * (c1 - DOPriv_refract))
+             (input_forcings(:, ind%dop_riv_flux_id) * (c1 - DOPriv_refract))
        STF_MODULE(:, dopr_ind) = STF_MODULE(:, dopr_ind) +                    &
-             (input_forcings(:, ind_dop_riv_flux) * DOPriv_refract)
+             (input_forcings(:, ind%dop_riv_flux_id) * DOPriv_refract)
     endif
 
     if (dsi_riv_flux%has_data) then
-       STF_MODULE(:, sio3_ind) = STF_MODULE(:, sio3_ind) + input_forcings(:, ind_dsi_riv_flux)
+       STF_MODULE(:, sio3_ind) = STF_MODULE(:, sio3_ind) + input_forcings(:, ind%dsi_riv_flux_id)
     endif
 
     if (dfe_riv_flux%has_data) then
-       STF_MODULE(:, fe_ind) = STF_MODULE(:, fe_ind) + input_forcings(:, ind_dfe_riv_flux)
+       STF_MODULE(:, fe_ind) = STF_MODULE(:, fe_ind) + input_forcings(:, ind%dfe_riv_flux_id)
     endif
 
     if (dic_riv_flux%has_data) then
-       STF_MODULE(:, dic_ind)         = STF_MODULE(:, dic_ind)         + input_forcings(:, ind_dic_riv_flux)
-       STF_MODULE(:, dic_alt_co2_ind) = STF_MODULE(:, dic_alt_co2_ind) + input_forcings(:, ind_dic_riv_flux)
-       if (ciso_on) dic_riv_flux_fields = input_forcings(:, ind_dic_riv_flux)
+       STF_MODULE(:, dic_ind)         = STF_MODULE(:, dic_ind)         + input_forcings(:, ind%dic_riv_flux_id)
+       STF_MODULE(:, dic_alt_co2_ind) = STF_MODULE(:, dic_alt_co2_ind) + input_forcings(:, ind%dic_riv_flux_id)
+       if (ciso_on) dic_riv_flux_fields = input_forcings(:, ind%dic_riv_flux_id)
     endif
 
     if (alk_riv_flux%has_data) then
-       STF_MODULE(:, alk_ind) = STF_MODULE(:, alk_ind) + input_forcings(:, ind_alk_riv_flux)
+       STF_MODULE(:, alk_ind) = STF_MODULE(:, alk_ind) + input_forcings(:, ind%alk_riv_flux_id)
     endif
 
     if (doc_riv_flux%has_data) then
        STF_MODULE(:, doc_ind) = STF_MODULE(:, doc_ind) +                      &
-              (input_forcings(:, ind_doc_riv_flux) * (c1 - DOCriv_refract))
+              (input_forcings(:, ind%doc_riv_flux_id) * (c1 - DOCriv_refract))
        STF_MODULE(:, docr_ind) = STF_MODULE(:, docr_ind) +                    &
-              (input_forcings(:, ind_doc_riv_flux) * DOCriv_refract)
+              (input_forcings(:, ind%doc_riv_flux_id) * DOCriv_refract)
 
        ! FIXME(ktl) sending total doc river input to ciso for now, need to separate doc and docr
-       if (ciso_on) doc_riv_flux_fields = input_forcings(:, ind_doc_riv_flux)
+       if (ciso_on) doc_riv_flux_fields = input_forcings(:, ind%doc_riv_flux_id)
     endif
 
     !-----------------------------------------------------------------------

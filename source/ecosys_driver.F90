@@ -31,6 +31,8 @@ module ecosys_driver
   use marbl_sizes               , only : ecosys_ind_beg, ecosys_ind_end
   use marbl_sizes               , only : ecosys_ciso_ind_beg, ecosys_ciso_ind_end
   use marbl_sizes               , only : ecosys_used_tracer_cnt
+  use marbl_share_mod           , only : max_forcing_fields
+  use marbl_share_mod           , only : marbl_forcing_ind
 
   use marbl_interface           , only : marbl_interface_class
   use marbl_interface_types     , only : marbl_diagnostics_type
@@ -1073,9 +1075,12 @@ contains
     use marbl_share_mod      , only : lflux_gas_o2
     use marbl_share_mod      , only : comp_surf_avg_flag
     use marbl_share_mod      , only : ciso_comp_surf_avg_flag 
+    use marbl_share_mod      , only : liron_patch  
+    use marbl_share_mod      , only : iron_patch_month  
     use ecosys_mod           , only : marbl_set_surface_forcing
     use passive_tracer_tools , only : comp_surf_avg
     use time_management      , only : check_time_flag
+    use time_management      , only : imonth
     use domain               , only : nblocks_clinic
 
     ! !INPUT PARAMETERS:
@@ -1108,10 +1113,6 @@ contains
          errorCode                 ! errorCode from HaloUpdate call
 
     real (r8)             , dimension(nx_block, ny_block, max_blocks_clinic) :: &
-         ifrac_file_input , & ! file input ice fraction (non-dimensional)
-         xkw_file_input   , & ! file input portion of piston velocity (cm/s)
-         ap_file_input    , & ! used atm pressure (converted from dyne/cm**2 to atm)
-         iron_flux_in     , & ! iron flux
          ifrac_used       , & ! used ice fraction (non-dimensional)
          xco2             , & ! atmospheric co2 conc. (dry-air, 1 atm)
          xco2_alt_co2     , & ! atmospheric alternative CO2 (dry-air, 1 atm)
@@ -1120,8 +1121,8 @@ contains
     real (r8), dimension(nx_block, ny_block) :: &
          work1 ! temporaries for averages
 
-    real (r8), dimension(nx_block, ny_block, 13, max_blocks_clinic) :: &
-         input_forcing_data !FIXME - don't hardwire 13
+    real (r8), dimension(nx_block, ny_block, max_forcing_fields, max_blocks_clinic) :: &
+         input_forcing_data
 
     real (r8), dimension(ecosys_used_tracer_cnt) :: &
          surface_vals
@@ -1135,6 +1136,10 @@ contains
     real (r8) :: &
          D14C_glo_avg  ! global average D14C over the ocean, computed from current D14C field
     !-----------------------------------------------------------------------
+
+    associate(                                            &
+         ind    => marbl_forcing_ind                      &
+         )
 
     !-----------------------------------------------------------------------
     ! Set surf_avg (module variable)
@@ -1162,8 +1167,7 @@ contains
 
     call ecosys_driver_read_sflux(                                &
          input_forcing_data,                                      &
-         XCO2, XCO2_ALT_CO2,                                      &
-         ifrac_file_input, xkw_file_input, ap_file_input, iron_flux_in)
+         XCO2, XCO2_ALT_CO2)
 
     ! Update carbon isotope atmosphere deltas
     if (ciso_on) then
@@ -1180,7 +1184,7 @@ contains
     !                     dust_flux by 0.98 in read_sflux should also be moved
 
     if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
-       ifrac_used = ifrac_file_input
+       ifrac_used = input_forcing_data(:,:, ind%fice_id,:)
        where (ifrac_used < 0.2000_r8) ifrac_used = 0.2000_r8
        where (ifrac_used > 0.9999_r8) ifrac_used = 0.9999_r8
     else if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
@@ -1188,6 +1192,34 @@ contains
        where (ifrac_used < c0) ifrac_used = c0
        where (ifrac_used > c1) ifrac_used = c1
     endif
+
+    !-----------------------------------------------------------------------
+    !  Reduce surface dust flux due to assumed instant surface
+    !  dissolution
+    !  Can't use parm_fe_bioavail when using solFe input files
+    !-----------------------------------------------------------------------
+    !     dust_FLUX_IN = dust_FLUX_IN * (c1 - parm_Fe_bioavail)
+    input_forcing_data(:,:, ind%dust_flux_id,:) = input_forcing_data(:,:, ind%dust_flux_id,:) * 0.98_r8
+
+    if (liron_patch .and. imonth == iron_patch_month) then
+       input_forcing_data(:,:, ind%iron_flux_id,:) = input_forcing_data(:,:, ind%iron_flux_id,:) &
+                                                   + IRON_PATCH_FLUX
+    endif
+
+    if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
+       input_forcing_data(:,:,ind%xkw_id,:) = xkw_coeff * u10_sqr(:,:,:)
+    end if
+
+    if (lflux_gas_o2 .or. lflux_gas_co2) then
+       !  assume PRESS is in cgs units (dyne/cm**2) since that is what is
+       !    required for pressure forcing in barotropic
+       !  want units to be atmospheres
+       !  convertion from dyne/cm**2 to Pascals is P(mks) = P(cgs)/10.
+       !  convertion from Pascals to atm is P(atm) = P(Pa)/101.325e+3_r8
+       input_forcing_data(:,:,ind%atm_pressure_id,:) = press(:,:,:) / 101.325e+4_r8
+    end if
+
+    ecosys_saved_state%dust_FLUX_IN = input_forcing_data(:,:, ind%dust_flux_id,:)
 
     !-----------------------------------------------------------------------
     ! Set surface flux 
@@ -1202,35 +1234,17 @@ contains
           ! Copy data from slab data structure to column input for marbl
           !-----------------------------------------------------------------------
 
-          marbl_forcing_input(iblock)%u10_sqr(:)         = u10_sqr(:,j,iblock)
-          marbl_forcing_input(iblock)%sst(:)             = sst(:,j,iblock)
-          marbl_forcing_input(iblock)%sss(:)             = sss(:,j,iblock)
-          marbl_forcing_input(iblock)%xco2(:)            = xco2(:,j,iblock)
-          marbl_forcing_input(iblock)%xco2_alt_co2(:)    = xco2_alt_co2(:,j,iblock)
-          marbl_forcing_input(iblock)%ifrac(:)           = ifrac_used(:,j,iblock)
-          marbl_forcing_input(iblock)%ph_prev(:)         = ecosys_saved_state%ph_surf(:,j,iblock)         
-          marbl_forcing_input(iblock)%ph_prev_alt_co2(:) = ecosys_saved_state%ph_surf_alt_co2(:,j,iblock) 
-          marbl_forcing_input(iblock)%iron_flux(:)       = iron_flux_in(:,j,iblock)
-          marbl_forcing_input(iblock)%dust_flux(:)       = ecosys_saved_state%dust_flux_in(:,j,iblock)
-          marbl_forcing_input(iblock)%land_mask(:)       = land_mask(:,j,iblock)
-
-          if (gas_flux_forcing_iopt == gas_flux_forcing_iopt_drv) then
-             marbl_forcing_input(iblock)%xkw(:) = xkw_coeff * u10_sqr(:,j,iblock)
-          else
-             marbl_forcing_input(iblock)%xkw(:) = xkw_file_input(:,j,iblock)
-          end if
-
-          if (lflux_gas_o2 .or. lflux_gas_co2) then
-             !  assume PRESS is in cgs units (dyne/cm**2) since that is what is
-             !    required for pressure forcing in barotropic
-             !  want units to be atmospheres
-             !  convertion from dyne/cm**2 to Pascals is P(mks) = P(cgs)/10.
-             !  convertion from Pascals to atm is P(atm) = P(Pa)/101.325e+3_r8
-
-             marbl_forcing_input(iblock)%atm_press(:) = press(:,j,iblock) / 101.325e+4_r8
-          end if
-
           marbl_forcing_input(iblock)%input_forcings(:,:) = input_forcing_data(:,j,:,iblock)
+
+          marbl_forcing_input(iblock)%input_forcings(:,ind%u10_sqr_id)      = u10_sqr(:,j,iblock)
+          marbl_forcing_input(iblock)%input_forcings(:,ind%sst_id)          = sst(:,j,iblock)
+          marbl_forcing_input(iblock)%input_forcings(:,ind%sss_id)          = sss(:,j,iblock)
+          marbl_forcing_input(iblock)%input_forcings(:,ind%xco2_id)         = xco2(:,j,iblock)
+          marbl_forcing_input(iblock)%input_forcings(:,ind%xco2_alt_co2_id) = xco2_alt_co2(:,j,iblock)
+          marbl_forcing_input(iblock)%input_forcings(:,ind%ifrac_id)        = ifrac_used(:,j,iblock)
+          marbl_forcing_input(iblock)%input_forcings(:,ind%ph_prev_id)      = ecosys_saved_state%ph_surf(:,j,iblock)         
+          marbl_forcing_input(iblock)%input_forcings(:,ind%ph_prev_alt_co2_id) = ecosys_saved_state%ph_surf_alt_co2(:,j,iblock) 
+          marbl_forcing_input(iblock)%land_mask(:)                          = land_mask(:,j,iblock)
 
           if (ciso_on) then
              marbl_forcing_input(iblock)%d13c(:) = D13C(:,j,iblock)
@@ -1311,6 +1325,8 @@ contains
        end if
     end do
     
+    end associate
+
     ! Note: out of this subroutine rest of pop needs stf_module, ph_surf, named_state, diagnostics
 
   end subroutine ecosys_driver_set_sflux
@@ -1631,7 +1647,6 @@ contains
 
     ! !DESCRIPTION:
     !  Initialize surface flux computations for ecosys tracer module.
-
     use registry              , only : registry_match
     use passive_tracer_tools  , only : read_field
     use forcing_tools         , only : find_forcing_times
@@ -1653,8 +1668,6 @@ contains
     use marbl_share_mod       , only : liron_patch  
     use marbl_share_mod       , only : iron_patch_flux_filename  
     use marbl_share_mod       , only : iron_patch_month  
-    use marbl_share_mod       , only : marbl_forcing_ind
-    use marbl_share_mod       , only : max_forcing_fields
     use marbl_interface_types , only : forcing_monthly_every_ts
 
     !-----------------------------------------------------------------------
@@ -1702,7 +1715,6 @@ contains
 
           file => forcing_fields(1)%forcing_fields(index)%field_monthly_calendar_info%marbl_forcing_calendar_name
 
-          !JW TODO: check filename
           if (trim(file%input%filename) /= 'none' .and. trim(file%input%filename) /= 'unknown') then
 
              luse_INTERP_WORK = .true.
@@ -1842,8 +1854,7 @@ contains
 
   subroutine ecosys_driver_read_sflux( &
        input_forcing_data,             &
-       XCO2, XCO2_ALT_CO2,             &
-       IFRAC_FILE_INPUT, XKW_FILE_INPUT, AP_FILE_INPUT, IRON_FLUX_IN)
+       XCO2, XCO2_ALT_CO2)
 
     use shr_pio_mod           , only : shr_pio_getiotype, shr_pio_getiosys
     use POP_IOUnitsMod        , only : inst_name
@@ -1876,19 +1887,6 @@ contains
 
     use marbl_oxygen          , only : o2sat
     use marbl_parms           , only : f_qsw_par
-    use marbl_parms           , only : ind_nox_flux
-    use marbl_parms           , only : ind_nhy_flux
-    use marbl_parms           , only : ind_nh4_flux     
-    use marbl_parms           , only : ind_no3_flux     
-    use marbl_parms           , only : ind_din_riv_flux 
-    use marbl_parms           , only : ind_dip_riv_flux 
-    use marbl_parms           , only : ind_don_riv_flux 
-    use marbl_parms           , only : ind_dop_riv_flux 
-    use marbl_parms           , only : ind_dsi_riv_flux 
-    use marbl_parms           , only : ind_dfe_riv_flux
-    use marbl_parms           , only : ind_dic_riv_flux
-    use marbl_parms           , only : ind_alk_riv_flux
-    use marbl_parms           , only : ind_doc_riv_flux
 
     use marbl_share_mod       , only : lflux_gas_co2
     use marbl_share_mod       , only : lflux_gas_o2
@@ -1909,9 +1907,6 @@ contains
     use marbl_share_mod       , only : ndep_shr_stream_year_first
     use marbl_share_mod       , only : ndep_shr_stream_year_last
     use marbl_share_mod       , only : ndep_shr_stream_year_align
-    use marbl_share_mod       , only : liron_patch  
-    use marbl_share_mod       , only : iron_patch_month  
-    use marbl_share_mod       , only : marbl_forcing_ind
     use passive_tracer_tools  , only : comp_surf_avg
 
     ! !DESCRIPTION:
@@ -1919,10 +1914,6 @@ contains
 
     real (r8), dimension(:, :, :)    , intent(out) :: XCO2             ! atmospheric co2 conc. (dry-air, 1 atm)
     real (r8), dimension(:, :, :)    , intent(out) :: XCO2_ALT_CO2     ! atmospheric alternative CO2 (dry-air, 1 atm)
-    real (r8), dimension(:, :, :)    , intent(out) :: IFRAC_FILE_INPUT ! used ice fraction (non-dimensional)
-    real (r8), dimension(:, :, :)    , intent(out) :: XKW_FILE_INPUT   ! portion of piston velocity (cm/s)
-    real (r8), dimension(:, :, :)    , intent(out) :: AP_FILE_INPUT    ! used atm pressure (converted from dyne/cm**2 to atm)
-    real (r8), dimension(:, :, :)    , intent(out) :: IRON_FLUX_IN     ! iron flux
     real (r8), dimension(:, :, :, :) , intent(out) :: INPUT_FORCING_DATA
 
     !-----------------------------------------------------------------------
@@ -1938,6 +1929,7 @@ contains
     integer (int_kind) :: auto_ind        ! autotroph functional group index
     integer (int_kind) :: mcdate, sec     ! date vals for shr_strdata_advance
     integer (int_kind) :: errorCode       ! errorCode from HaloUpdate call
+    integer (int_kind) :: index           ! loop index
 
     real (r8) :: scalar_temp
     real (r8) :: INTERP_WORK(nx_block, ny_block, max_blocks_clinic, 1) ! temp array for interpolate_forcing output
@@ -1970,86 +1962,44 @@ contains
     enddo
 
     !-----------------------------------------------------------------------
-    !  Interpolate gas flux forcing data if necessary
+    !  loop throught forcing fields and read in data for those whose source
+    !  is POP monthly calendar
     !-----------------------------------------------------------------------
 
-    if ((lflux_gas_o2 .or. lflux_gas_co2) .and. &
-         gas_flux_forcing_iopt == gas_flux_forcing_iopt_file) then
+    do index = 1, max_forcing_fields
 
-       file => fields(ind%fice_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'Ice Fraction'
-          call update_forcing_data(file%data_time,            &
-               file%data_time_min_loc,  file%interp_type,     &
-               file%data_next,          file%data_update,     &
-               file%data_type,          file%data_inc,        &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm, &
-               tracer_data_label,       tracer_data_names,    &
-               tracer_bndy_loc,         tracer_bndy_type,     &
-               file%filename,           file%input%file_fmt)
+       if (fields(index)%field_source .eq. "POP monthly calendar") then
+
+          file => fields(index)%field_monthly_calendar_info%marbl_forcing_calendar_name
+
+          if (file%has_data) then
+             if (thour00 >= file%data_update) then
+                tracer_data_names = file%input%file_varname
+                tracer_bndy_loc   = field_loc_center
+                tracer_bndy_type  = field_type_scalar
+                tracer_data_label = fields(index)%marbl_varname
+                call update_forcing_data(file%data_time,            &
+                     file%data_time_min_loc,  file%interp_type,     &
+                     file%data_next,          file%data_update,     &
+                     file%data_type,          file%data_inc,        &
+                     file%DATA(:, :, :, :, 1:12), file%data_renorm, &
+                     tracer_data_label,       tracer_data_names,    &
+                     tracer_bndy_loc,         tracer_bndy_type,     &
+                     file%filename,           file%input%file_fmt)
+             endif
+             call interpolate_forcing(INTERP_WORK,                  &
+                  file%DATA(:, :, :, :, 1:12),                      &
+                  file%data_time,         file%interp_type,         &
+                  file%data_time_min_loc, file%interp_freq,         &
+                  file%interp_inc,        file%interp_next,         &
+                  file%interp_last,       0)
+
+             input_forcing_data(:,:, index,:) = INTERP_WORK(:, :, :, 1)
+
+          endif
+
        endif
-       call interpolate_forcing(INTERP_WORK,                  &
-            file%DATA(:, :, :, :, 1:12),                      &
-            file%data_time,         file%interp_type,         &
-            file%data_time_min_loc, file%interp_freq,         &
-            file%interp_inc,        file%interp_next,         &
-            file%interp_last,       0)
-       IFRAC_FILE_INPUT = INTERP_WORK(:, :, :, 1)
-
-       file => fields(ind%xkw_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'Piston Velocity'
-          call update_forcing_data(file%data_time,      &
-               file%data_time_min_loc,  file%interp_type,    &
-               file%data_next,          file%data_update,    &
-               file%data_type,          file%data_inc,       &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm,    &
-               tracer_data_label,           tracer_data_names,       &
-               tracer_bndy_loc,             tracer_bndy_type,        &
-               file%filename,           file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK,     &
-            file%DATA(:, :, :, :, 1:12), &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-       XKW_FILE_INPUT = INTERP_WORK(:, :, :, 1)
-
-       file => fields(ind%atm_pressure_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'Atmospheric Pressure'
-          call update_forcing_data(file%data_time,    &
-               file%data_time_min_loc,  file%interp_type,    &
-               file%data_next,          file%data_update,    &
-               file%data_type,          file%data_inc,       &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm,    &
-               tracer_data_label,          tracer_data_names,      &
-               tracer_bndy_loc,            tracer_bndy_type,       &
-               file%filename,           file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK, &
-            file%DATA(:, :, :, :, 1:12), &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-       AP_FILE_INPUT = INTERP_WORK(:, :, :, 1)
-
-    endif
-
-    !-----------------------------------------------------------------------
-    !  calculate gas flux quantities if necessary
-    !-----------------------------------------------------------------------
+    enddo
 
     !-----------------------------------------------------------------------
     !  compute CO2 flux, computing disequilibrium one row at a time
@@ -2076,133 +2026,6 @@ contains
        end select
 
     endif  !  lflux_gas_co2
-
-    !-----------------------------------------------------------------------
-    !  calculate iron and dust fluxes if necessary
-    !-----------------------------------------------------------------------
-
-    file  => fields(ind%iron_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-    if (file%has_data) then
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'Iron Flux'
-          call update_forcing_data(file%data_time,    &
-               file%data_time_min_loc,  file%interp_type,    &
-               file%data_next,          file%data_update,    &
-               file%data_type,          file%data_inc,       &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm,    &
-               tracer_data_label,            tracer_data_names,        &
-               tracer_bndy_loc,              tracer_bndy_type,         &
-               file%filename,           file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK,     &
-            file%DATA(:, :, :, :, 1:12), &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-       if (liron_patch .and. imonth == iron_patch_month) then
-          IRON_FLUX_IN = INTERP_WORK(:, :, :, 1) + IRON_PATCH_FLUX
-       else
-          IRON_FLUX_IN = INTERP_WORK(:, :, :, 1)
-       endif
-    else
-       IRON_FLUX_IN = c0
-    endif
-
-    file => fields(ind%dust_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-    if (file%has_data) then
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'Dust Flux'
-          call update_forcing_data(file%data_time,    &
-               file%data_time_min_loc,  file%interp_type,    &
-               file%data_next,          file%data_update,    &
-               file%data_type,          file%data_inc,       &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm,    &
-               tracer_data_label,            tracer_data_names,        &
-               tracer_bndy_loc,              tracer_bndy_type,         &
-               file%filename,           file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK, &
-            file%DATA(:, :, :, :, 1:12),    &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-
-       ecosys_saved_state%dust_FLUX_IN = INTERP_WORK(:, :, :, 1)
-
-       !-----------------------------------------------------------------------
-       !  Reduce surface dust flux due to assumed instant surface dissolution
-       !  Can't use parm_fe_bioavail when using solFe input files
-       !-----------------------------------------------------------------------
-
-       !     dust_FLUX_IN = dust_FLUX_IN * (c1 - parm_Fe_bioavail)
-       ecosys_saved_state%dust_FLUX_IN = ecosys_saved_state%dust_FLUX_IN * 0.98_r8
-    else
-       ecosys_saved_state%dust_FLUX_IN = c0
-    endif
-
-    !JW TODO: dust_FLUX_IN in through structure?
-
-    !-----------------------------------------------------------------------
-    !  calculate nox and nhy fluxes if necessary
-    !-----------------------------------------------------------------------
-
-    file => fields(ind%nox_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-    if (file%has_data) then
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'NOx Flux'
-          call update_forcing_data(file%data_time,    &
-               file%data_time_min_loc, file%interp_type, &
-               file%data_next, file%data_update, &
-               file%data_type,          file%data_inc, &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm, &
-               tracer_data_label,                   tracer_data_names, &
-               tracer_bndy_loc,                     tracer_bndy_type, &
-               file%filename, file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK,     &
-            file%DATA(:, :, :, :, 1:12), &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-        input_forcing_data(:,:, ind_nox_flux,:) = INTERP_WORK(:, :, :, 1)
-    endif
-
-    file => fields(ind%nhy_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-    if (file%has_data) then
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'NHy Flux'
-          call update_forcing_data(file%data_time,    &
-               file%data_time_min_loc, file%interp_type, &
-               file%data_next, file%data_update, &
-               file%data_type,          file%data_inc, &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm, &
-               tracer_data_label,                   tracer_data_names, &
-               tracer_bndy_loc,                     tracer_bndy_type, &
-               file%filename, file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK,     &
-            file%DATA(:, :, :, :, 1:12), &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-        input_forcing_data(:,:, ind_nhy_flux,:) = INTERP_WORK(:, :, :, 1)
-    endif
 
     if (trim(ndep_data_type) == 'shr_stream') then
        if (first_call) then
@@ -2264,7 +2087,7 @@ contains
 
        do iblock = 1, nblocks_clinic
           where (land_mask(:, :, iblock))
-             input_forcing_data(:,:, ind_no3_flux,iblock) = SHR_STREAM_WORK(:, :, iblock)
+             input_forcing_data(:,:,ind%no3_flux_id,iblock) = SHR_STREAM_WORK(:, :, iblock)
           endwhere
        enddo
 
@@ -2295,240 +2118,11 @@ contains
        !$OMP PARALLEL DO PRIVATE(iblock)
        do iblock = 1, nblocks_clinic
           where (land_mask(:, :, iblock))
-             input_forcing_data(:,:, ind_nh4_flux,iblock) = SHR_STREAM_WORK(:, :, iblock)
+             input_forcing_data(:,:, ind%nh4_flux_id,iblock) = SHR_STREAM_WORK(:, :, iblock)
           endwhere
        enddo
        !$OMP END PARALLEL DO
 
-    endif
-
-    !-----------------------------------------------------------------------
-    !  calculate river bgc fluxes if necessary
-    !-----------------------------------------------------------------------
-
-    file => fields(ind%din_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-    if (file%has_data) then
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'DIN River Flux'
-          call update_forcing_data(file%data_time,    &
-               file%data_time_min_loc,  file%interp_type,    &
-               file%data_next,          file%data_update,    &
-               file%data_type,          file%data_inc,       &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm, &
-               tracer_data_label,           tracer_data_names,       &
-               tracer_bndy_loc,             tracer_bndy_type,        &
-               file%filename,           file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK,     &
-            file%DATA(:, :, :, :, 1:12), &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-       input_forcing_data(:,:, ind_din_riv_flux,:) = INTERP_WORK(:, :, :, 1)
-    endif
-
-    file => fields(ind%dip_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-    if (file%has_data) then
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'DIP River Flux'
-          call update_forcing_data(file%data_time,    &
-               file%data_time_min_loc,  file%interp_type,    &
-               file%data_next,          file%data_update,    &
-               file%data_type,          file%data_inc,       &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm, &
-               tracer_data_label,           tracer_data_names,       &
-               tracer_bndy_loc,             tracer_bndy_type,        &
-               file%filename,           file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK,     &
-            file%DATA(:, :, :, :, 1:12), &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-       input_forcing_data(:,:, ind_dip_riv_flux,:) = INTERP_WORK(:, :, :, 1)
-    endif
-
-    file => fields(ind%don_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-    if (file%has_data) then
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'DON River Flux'
-          call update_forcing_data(file%data_time,    &
-               file%data_time_min_loc,  file%interp_type,    &
-               file%data_next,          file%data_update,    &
-               file%data_type,          file%data_inc,       &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm, &
-               tracer_data_label,           tracer_data_names,       &
-               tracer_bndy_loc,             tracer_bndy_type,        &
-               file%filename,           file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK,     &
-            file%DATA(:, :, :, :, 1:12), &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-       input_forcing_data(:,:, ind_don_riv_flux,:) = INTERP_WORK(:, :, :, 1)
-    endif
-
-    file => fields(ind%dop_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-    if (file%has_data) then
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'DOP River Flux'
-          call update_forcing_data(file%data_time,    &
-               file%data_time_min_loc,  file%interp_type,    &
-               file%data_next,          file%data_update,    &
-               file%data_type,          file%data_inc,       &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm, &
-               tracer_data_label,           tracer_data_names,       &
-               tracer_bndy_loc,             tracer_bndy_type,        &
-               file%filename,           file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK,     &
-            file%DATA(:, :, :, :, 1:12), &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-       input_forcing_data(:,:, ind_dop_riv_flux,:) = INTERP_WORK(:, :, :, 1)
-    endif
-
-    file => fields(ind%dsi_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-    if (file%has_data) then
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'DSI River Flux'
-          call update_forcing_data(file%data_time,    &
-               file%data_time_min_loc,  file%interp_type,    &
-               file%data_next,          file%data_update,    &
-               file%data_type,          file%data_inc,       &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm, &
-               tracer_data_label,           tracer_data_names,       &
-               tracer_bndy_loc,             tracer_bndy_type,        &
-               file%filename,           file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK,     &
-            file%DATA(:, :, :, :, 1:12), &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-       input_forcing_data(:,:, ind_dsi_riv_flux,:) = INTERP_WORK(:, :, :, 1)
-    endif
-
-    file => fields(ind%dfe_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-    if (file%has_data) then
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'DFE River Flux'
-          call update_forcing_data(file%data_time,    &
-               file%data_time_min_loc,  file%interp_type,    &
-               file%data_next,          file%data_update,    &
-               file%data_type,          file%data_inc,       &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm, &
-               tracer_data_label,           tracer_data_names,       &
-               tracer_bndy_loc,             tracer_bndy_type,        &
-               file%filename,           file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK,     &
-            file%DATA(:, :, :, :, 1:12), &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-       input_forcing_data(:,:, ind_dfe_riv_flux,:) = INTERP_WORK(:, :, :, 1)
-    endif
-
-    file => fields(ind%dic_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-    if (file%has_data) then
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'DIC River Flux'
-          call update_forcing_data(file%data_time,    &
-               file%data_time_min_loc,  file%interp_type,    &
-               file%data_next,          file%data_update,    &
-               file%data_type,          file%data_inc,       &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm, &
-               tracer_data_label,           tracer_data_names,       &
-               tracer_bndy_loc,             tracer_bndy_type,        &
-               file%filename,           file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK,     &
-            file%DATA(:, :, :, :, 1:12), &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-       input_forcing_data(:,:, ind_dic_riv_flux,:) = INTERP_WORK(:, :, :, 1)
-    endif
-
-    file => fields(ind%alk_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name  
-    if (file%has_data) then
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'ALK River Flux'
-          call update_forcing_data(file%data_time,    &
-               file%data_time_min_loc,  file%interp_type,    &
-               file%data_next,          file%data_update,    &
-               file%data_type,          file%data_inc,       &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm, &
-               tracer_data_label,           tracer_data_names,       &
-               tracer_bndy_loc,             tracer_bndy_type,        &
-               file%filename,           file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK,     &
-            file%DATA(:, :, :, :, 1:12), &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-       input_forcing_data(:,:, ind_alk_riv_flux,:) = INTERP_WORK(:, :, :, 1)
-    endif
-
-    file => fields(ind%doc_riv_flux_id)%field_monthly_calendar_info%marbl_forcing_calendar_name
-    if (file%has_data) then
-       if (thour00 >= file%data_update) then
-          tracer_data_names = file%input%file_varname
-          tracer_bndy_loc   = field_loc_center
-          tracer_bndy_type  = field_type_scalar
-          tracer_data_label = 'PP River Flux'
-          call update_forcing_data(file%data_time,    &
-               file%data_time_min_loc,  file%interp_type,    &
-               file%data_next,          file%data_update,    &
-               file%data_type,          file%data_inc,       &
-               file%DATA(:, :, :, :, 1:12), file%data_renorm, &
-               tracer_data_label,           tracer_data_names,       &
-               tracer_bndy_loc,             tracer_bndy_type,        &
-               file%filename,           file%input%file_fmt)
-       endif
-       call interpolate_forcing(INTERP_WORK,     &
-            file%DATA(:, :, :, :, 1:12), &
-            file%data_time,         file%interp_type, &
-            file%data_time_min_loc, file%interp_freq, &
-            file%interp_inc,        file%interp_next, &
-            file%interp_last,       0)
-       input_forcing_data(:,:, ind_doc_riv_flux,:) = INTERP_WORK(:, :, :, 1)
     endif
 
     end associate

@@ -104,19 +104,6 @@ module marbl_interface_types
      real (r8) :: seconds_in_year  ! this is set by the gcm and can change in time if leap year
      real (r8) :: d14c_glo_avg     ! this is computed by the gcm            
 
-     real (r8), allocatable, dimension(:)   :: u10_sqr         
-     real (r8), allocatable, dimension(:)   :: ifrac           ! ice fraction
-     real (r8), allocatable, dimension(:)   :: atm_press
-     real (r8), allocatable, dimension(:)   :: sst             
-     real (r8), allocatable, dimension(:)   :: sss             
-     real (r8), allocatable, dimension(:)   :: xco2            
-     real (r8), allocatable, dimension(:)   :: xco2_alt_co2    
-     real (r8), allocatable, dimension(:)   :: ap         
-     real (r8), allocatable, dimension(:)   :: dust_flux
-     real (r8), allocatable, dimension(:)   :: xkw        
-     real (r8), allocatable, dimension(:)   :: iron_flux    
-     real (r8), allocatable, dimension(:)   :: ph_prev         
-     real (r8), allocatable, dimension(:)   :: ph_prev_alt_co2 
      real (r8), allocatable, dimension(:)   :: d13c
      real (r8), allocatable, dimension(:)   :: d14c
 
@@ -342,20 +329,8 @@ contains
     integer (int_kind), intent(in) :: num_input_forcings
     logical(log_kind) , intent(in) :: ciso_on
 
-    allocate(this%u10_sqr         (num_elements))         
-    allocate(this%ifrac           (num_elements))           
-    allocate(this%land_mask       (num_elements))
-    allocate(this%sst             (num_elements))             
-    allocate(this%sss             (num_elements))             
-    allocate(this%xco2            (num_elements))            
-    allocate(this%atm_press       (num_elements))         
-    allocate(this%xco2_alt_co2    (num_elements))    
-    allocate(this%xkw             (num_elements))        
-    allocate(this%dust_flux       (num_elements))    
-    allocate(this%iron_flux       (num_elements))
-    allocate(this%ph_prev         (num_elements))
-    allocate(this%ph_prev_alt_co2 (num_elements)) 
-    allocate(this%input_forcings  (num_elements, num_input_forcings))
+    allocate(this%land_mask     (num_elements))
+    allocate(this%input_forcings(num_elements, num_input_forcings))
 
     if (ciso_on) then
        allocate(this%d13c(num_elements))

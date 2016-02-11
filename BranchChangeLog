@@ -1,4 +1,17 @@
 ===============================================================================
+Tag Creator: jwolfe
+Developers:  jwolfe
+Tag Date:    10 Feb 2016
+Tag Name:    pop2/branch_tags/marbl_ciso_tags/marbl_ciso_n05_cesm_pop_2_1_20160114
+Tag Summary: Initial step to move to forcing_fields datatype
+
+M       source/marbl_interface_types.F90
+M       source/marbl_interface.F90
+M       source/ecosys_diagnostics_mod.F90
+M       source/marbl_parms.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_driver.F90
+===============================================================================
 Tag Creator: mvertens
 Developers:  mvertens
 Tag Date:    07 Feb 2016
