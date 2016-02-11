@@ -4,9 +4,8 @@ module ecosys_restore_timescale_interp
   ! interpolation based on depth
   !
 
-  use kinds_mod, only : r8, log_kind, int_kind
-  use domain_size, only : km
-  use constants, only : c0, c2, c1000
+  use marbl_kinds_mod, only : r8, log_kind, int_kind, c0, c2, c1000
+  use domain_size, only : km ! FIXME
 
   implicit none
 
@@ -38,10 +37,13 @@ contains
 
 !*****************************************************************************
 
-subroutine init(this, nml_filename, nml_in, zt)
+subroutine init(this, nl_buffer, zt, marbl_status_log)
 
-  use kinds_mod, only : i4
-  use POP_KindsMod, only : POP_r8
+  use marbl_kinds_mod, only : i4, r8
+  use marbl_namelist_mod    , only : marbl_nl_cnt
+  use marbl_namelist_mod    , only : marbl_nl_buffer_size
+  use marbl_logging         , only : marbl_log_type
+  use marbl_logging         , only : error_msg
 
   implicit none
 
@@ -49,30 +51,36 @@ subroutine init(this, nml_filename, nml_in, zt)
   !  input variables
   !-----------------------------------------------------------------------
   class(ecosys_restore_timescale_interp_type) :: this
-  character(len=*), intent(in) :: nml_filename
-  integer(i4), intent(in) :: nml_in
-  real (POP_r8), dimension(km), intent(in) :: zt
+  character(marbl_nl_buffer_size), dimension(marbl_nl_cnt), intent(in) :: nl_buffer
+  type(marbl_log_type), intent(inout) :: marbl_status_log
+  real (r8), dimension(km), intent(in) :: zt
 
   !-----------------------------------------------------------------------
   !  local variables
   !-----------------------------------------------------------------------
+  character(*), parameter :: subname = 'ecosys_restore_timescale_interp:init'
 
   !-----------------------------------------------------------------------
-  call this%read_namelist(nml_filename, nml_in)
+  call this%read_namelist(nl_buffer, marbl_status_log)
+  if (marbl_status_log%labort_marbl) then
+    error_msg = "error code returned from this%read_namelist"
+    call marbl_status_log%log_error(error_msg, subname)
+    return
+  end if
   call this%interpolate_restoring_timescale(zt)
   
 end subroutine init
 
 !*****************************************************************************
 
-subroutine read_namelist(this, nml_filename, nml_in)
+subroutine read_namelist(this, nl_buffer, marbl_status_log)
 
-  use kinds_mod, only : r8, i4
-  use io_types, only : stdout
-  use communicate, only : master_task, my_task
-  use broadcast, only : broadcast_scalar
-  use exit_mod, only : exit_POP, sigAbort
-  use io_tools, only : document
+  use marbl_kinds_mod, only : r8, i4
+  use marbl_namelist_mod    , only : marbl_nl_cnt
+  use marbl_namelist_mod    , only : marbl_nl_buffer_size
+  use marbl_namelist_mod    , only : marbl_namelist
+  use marbl_logging         , only : marbl_log_type
+  use marbl_logging         , only : error_msg
 
   implicit none
 
@@ -80,14 +88,16 @@ subroutine read_namelist(this, nml_filename, nml_in)
   !  input variables
   !-----------------------------------------------------------------------
   class(ecosys_restore_timescale_interp_type) :: this
-  character(len=*), intent(in) :: nml_filename
-  integer(i4), intent(in) :: nml_in
+  character(marbl_nl_buffer_size), dimension(marbl_nl_cnt), intent(in) :: nl_buffer
+  type(marbl_log_type), intent(inout) :: marbl_status_log
 
   !-----------------------------------------------------------------------
   !  local variables
   !-----------------------------------------------------------------------
   integer(int_kind) :: nml_error
   real(r8) :: rest_time_inv_surf, rest_time_inv_deep, rest_z0, rest_z1
+  character(*), parameter :: subname = 'ecosys_restore_timescale_interp:read_namelist'
+  character(len=marbl_nl_buffer_size) :: tmp_nl_buffer
 
   !-----------------------------------------------------------------------
   namelist /ecosys_restore_timescale_interp_nml/ &
@@ -100,35 +110,16 @@ subroutine read_namelist(this, nml_filename, nml_in)
   rest_z0 = default_rest_z0
   rest_z1 = default_rest_z1
 
-  if (my_task == master_task) then
-     open (nml_in, file=nml_filename, status='old',iostat=nml_error)
-     if (nml_error /= 0) then
-        nml_error = -1
-     else
-        nml_error =  1
-     endif
-     do while (nml_error > 0)
-        read(nml_in, nml=ecosys_restore_timescale_interp_nml, iostat=nml_error)
-     end do
-     if (nml_error == 0) then
-        close(nml_in)
-     end if
-     
-     write(stdout, *) 'ecosys_restore_timescale_interp_nml :'
-     write(stdout, ecosys_restore_timescale_interp_nml)
-  endif
-
-  call broadcast_scalar(nml_error, master_task)
+  tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_restore_timescale_interp_nml')
+  read(tmp_nl_buffer, nml=ecosys_restore_timescale_interp_nml, iostat=nml_error)
   if (nml_error /= 0) then
-     call document("ecosys_restore_timescale_interp::read_namelist", &
-          'ecosys_restore_timescale_interp_nml not found')
-     call exit_POP(sigAbort, 'stopping in ' /&
-          &/ "ecosys_restore_timescale_interp::read_namelist")
-  endif
-  call broadcast_scalar(rest_time_inv_surf, master_task)
-  call broadcast_scalar(rest_time_inv_deep, master_task)
-  call broadcast_scalar(rest_z0, master_task)
-  call broadcast_scalar(rest_z1, master_task)
+     error_msg = "Error reading ecosys_restore_timescale_interp_nml"
+     call marbl_status_log%log_error(error_msg, subname)
+     return
+  else
+    call marbl_status_log%log_namelist('ecosys_restore_timescale_interp_nml', &
+                                       tmp_nl_buffer, subname)
+  end if
 
   this%rest_time_inv_surf = rest_time_inv_surf
   this%rest_time_inv_deep = rest_time_inv_deep
@@ -144,17 +135,15 @@ subroutine interpolate_restoring_timescale(this, zt)
   ! Initialize the spatial variability of the restoring time scale
   ! with an interpolation.
   !
-  use kinds_mod, only : int_kind
-  use POP_KindsMod, only : POP_r8
-  use constants, only : p5
-  use domain_size, only : km
+  use marbl_kinds_mod, only : int_kind, r8, p5
+  use domain_size, only : km ! FIXME
 
   implicit none
   !-----------------------------------------------------------------------
   !  input variables
   !-----------------------------------------------------------------------
   class(ecosys_restore_timescale_interp_type) :: this
-  real (POP_r8), dimension(km) :: zt
+  real (r8), dimension(km) :: zt
 
   !-----------------------------------------------------------------------
   !  local variables

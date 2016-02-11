@@ -2,7 +2,7 @@ module ecosys_restore_timescale_file
   !
   ! Control spatial variability of restoring timescale with an input file
   !
-  use kinds_mod, only : r8, int_kind
+  use marbl_kinds_mod, only : r8, int_kind
 
   implicit none
 
@@ -25,9 +25,13 @@ contains
 
 !*****************************************************************************
 
-subroutine init(this, nml_filename, nml_in)
+subroutine init(this, nl_buffer, marbl_status_log)
 
-  use kinds_mod, only : char_len, i4
+  use marbl_kinds_mod, only : char_len, i4
+  use marbl_namelist_mod    , only : marbl_nl_cnt
+  use marbl_namelist_mod    , only : marbl_nl_buffer_size
+  use marbl_logging         , only : marbl_log_type
+  use marbl_logging         , only : error_msg
 
   implicit none
 
@@ -35,29 +39,37 @@ subroutine init(this, nml_filename, nml_in)
   !  input variables
   !-----------------------------------------------------------------------
   class(ecosys_restore_timescale_file_type) :: this
-  character(len=*), intent(in) :: nml_filename
-  integer(i4), intent(in) :: nml_in
+  character(marbl_nl_buffer_size), dimension(marbl_nl_cnt), intent(in) :: nl_buffer
+  type(marbl_log_type), intent(inout) :: marbl_status_log
 
   !-----------------------------------------------------------------------
   !  local variables
   !-----------------------------------------------------------------------
   character(char_len) :: file_format
   character(char_len) :: file_name
+  character(*), parameter :: subname = 'ecosys_restore_timescale_file:init'
 
   !-----------------------------------------------------------------------
-  call this%read_namelist(nml_filename, nml_in, file_name, file_format)
+  call this%read_namelist(nl_buffer, file_name, file_format, marbl_status_log)
+  if (marbl_status_log%labort_marbl) then
+    error_msg = "error code returned from this%read_namelist"
+    call marbl_status_log%log_error(error_msg, subname)
+    return
+  end if
   call this%read_restoring_timescale_from_file(file_name, file_format)
   
 end subroutine init
 
 !*****************************************************************************
 
-subroutine read_namelist(this, nml_filename, nml_in, file_name, file_format)
+subroutine read_namelist(this, nl_buffer, file_name, file_format, marbl_status_log)
 
-  use kinds_mod, only : int_kind, i4, char_len
-  use io_types, only : stdout
-  use communicate, only : master_task, my_task
-  use broadcast, only : broadcast_scalar
+  use marbl_kinds_mod, only : int_kind, i4, char_len
+  use marbl_namelist_mod    , only : marbl_nl_cnt
+  use marbl_namelist_mod    , only : marbl_nl_buffer_size
+  use marbl_namelist_mod    , only : marbl_namelist
+  use marbl_logging         , only : marbl_log_type
+  use marbl_logging         , only : error_msg
 
   implicit none
 
@@ -65,10 +77,10 @@ subroutine read_namelist(this, nml_filename, nml_in, file_name, file_format)
   !  input variables
   !-----------------------------------------------------------------------
   class(ecosys_restore_timescale_file_type) :: this
-  character(len=*), intent(in) :: nml_filename
-  integer(i4), intent(in) :: nml_in
   character(char_len), intent(out) :: file_format
   character(char_len), intent(out) :: file_name
+  character(marbl_nl_buffer_size), dimension(marbl_nl_cnt), intent(in) :: nl_buffer
+  type(marbl_log_type), intent(inout) :: marbl_status_log
 
   !-----------------------------------------------------------------------
   !  local variables
@@ -76,6 +88,8 @@ subroutine read_namelist(this, nml_filename, nml_in, file_name, file_format)
   integer(int_kind) :: nml_error
   character(char_len) :: restore_timescale_file_format
   character(char_len) :: restore_timescale_file_name
+  character(*), parameter :: subname = 'ecosys_restore_timescale_file:read_namelist'
+  character(len=marbl_nl_buffer_size) :: tmp_nl_buffer
 
   !-----------------------------------------------------------------------
   namelist /ecosys_restore_timescale_file_nml/ &
@@ -85,26 +99,16 @@ subroutine read_namelist(this, nml_filename, nml_in, file_name, file_format)
   restore_timescale_file_format = ''
   restore_timescale_file_name = ''
 
-  if (my_task == master_task) then
-     open (nml_in, file=nml_filename, status='old',iostat=nml_error)
-     if (nml_error /= 0) then
-        nml_error = -1
-     else
-        nml_error =  1
-     endif
-     do while (nml_error > 0)
-        read(nml_in, nml=ecosys_restore_timescale_file_nml, iostat=nml_error)
-     end do
-     if (nml_error == 0) then
-        close(nml_in)
-     end if
-     
-     write(stdout, *) 'ecosys_restore_timescale_file_nml :'
-     write(stdout, ecosys_restore_timescale_file_nml)
-  endif
-
-  call broadcast_scalar(restore_timescale_file_format, master_task)
-  call broadcast_scalar(restore_timescale_file_name, master_task)
+  tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_restore_timescale_file_nml')
+  read(tmp_nl_buffer, nml=ecosys_restore_timescale_file_nml, iostat=nml_error)
+  if (nml_error /= 0) then
+     error_msg = "Error reading ecosys_restore_timescale_file_nml"
+     call marbl_status_log%log_error(error_msg, subname)
+     return
+  else
+    call marbl_status_log%log_namelist('ecosys_restore_timescale_file_nml', &
+                                       tmp_nl_buffer, subname)
+  end if
 
   file_format = restore_timescale_file_format
   file_name = restore_timescale_file_name
@@ -118,11 +122,11 @@ subroutine read_restoring_timescale_from_file(this, file_format, file_name)
   ! Initialize the spatially variable restoring timescale from the the
   ! user specified file
   !
-  use kinds_mod, only : char_len
-  use blocks, only : nx_block, ny_block
-  use prognostic, only : max_blocks_clinic
-  use time_management, only : seconds_in_day
-  use passive_tracer_tools, only : read_field
+  use marbl_kinds_mod, only : char_len
+  use blocks, only : nx_block, ny_block ! FIXME
+  use prognostic, only : max_blocks_clinic ! FIXME
+  use time_management, only : seconds_in_day ! FIXME
+  use passive_tracer_tools, only : read_field ! FIXME
 
   implicit none
   !-----------------------------------------------------------------------

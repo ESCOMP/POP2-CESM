@@ -260,22 +260,23 @@ end subroutine initialize_restore_read_vars
 
 !*****************************************************************************
 
-subroutine initialize_restoring_timescale(this, nml_filename, nml_in, zt,     &
+subroutine initialize_restoring_timescale(this, nl_buffer, zt,     &
                                           marbl_status_log)
   !
   ! Initialize the spatially varying restoring timescale by 
   !
   use marbl_kinds_mod, only : i4, r8
   use marbl_logging, only : marbl_log_type
-  use marbl_logging, only : status_msg
+  use marbl_logging, only : error_msg
+  use marbl_namelist_mod    , only : marbl_nl_cnt
+  use marbl_namelist_mod    , only : marbl_nl_buffer_size
 
   implicit none
   !-----------------------------------------------------------------------
   !  input variables
   !-----------------------------------------------------------------------
   class(ecosys_restore_type), intent(inout) :: this
-  character(len=*), intent(in) :: nml_filename
-  integer(i4), intent(in) :: nml_in
+  character(marbl_nl_buffer_size), dimension(marbl_nl_cnt), intent(in) :: nl_buffer
   real (r8), dimension(:), intent(in) :: zt
   type(marbl_log_type), intent(inout) :: marbl_status_log
 
@@ -286,9 +287,14 @@ subroutine initialize_restoring_timescale(this, nml_filename, nml_in, zt,     &
 
   if (this%restore_any_tracer) then
      if (this%spatial_variability_from_file) then
-        call this%timescale_file%init(nml_filename, nml_in)
+        call this%timescale_file%init(nl_buffer, marbl_status_log)
      else
-        call this%timescale_interp%init(nml_filename, nml_in, zt)
+        call this%timescale_interp%init(nl_buffer, zt, marbl_status_log)
+     end if
+     if (marbl_status_log%labort_marbl) then
+       error_msg = "error code returned from this%timescale_[file|interp]%init"
+       call marbl_status_log%log_error(error_msg, subname)
+       return
      end if
      call marbl_status_log%log_noerror("Restoring timescale set.", subname)
   end if

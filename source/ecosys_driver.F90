@@ -570,7 +570,7 @@ contains
     call print_marbl_log(marbl(1)%StatusLog, 1)
     call marbl(1)%StatusLog%erase()
 
-    call ecosys_driver_init_interior_restore(ecosys_restore, marbl(1)%StatusLog)
+    call ecosys_driver_init_interior_restore(ecosys_restore, nl_buffer, marbl(1)%StatusLog)
     if (marbl(1)%StatusLog%labort_marbl) then
       write(error_msg,"(A)") "error code returned from ecosys_driver_init_interior_restore"
       call marbl(1)%StatusLog%log_error(error_msg,                &
@@ -1536,7 +1536,7 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_driver_init_interior_restore(ecosys_restore, marbl_status_log)
+  subroutine ecosys_driver_init_interior_restore(ecosys_restore, nl_buffer, marbl_status_log)
 
     ! !DESCRIPTION:
     !  Initialize interior restoring computations for ecosys tracer module.
@@ -1544,16 +1544,18 @@ contains
     use ecosys_restore_mod    , only : ecosys_restore_type
     use grid                  , only : KMT
     use grid                  , only : zt
-    use io_types              , only : nml_in, nml_filename
     use blocks                , only : nx_block, ny_block
     use domain_size           , only : max_blocks_clinic, km
     use marbl_share_mod       , only : fesedflux_input
+    use marbl_namelist_mod    , only : marbl_nl_cnt
+    use marbl_namelist_mod    , only : marbl_nl_buffer_size
     use marbl_logging         , only : marbl_log_type
     use passive_tracer_tools  , only : read_field
 
     implicit none
 
     type(ecosys_restore_type), intent(inout) :: ecosys_restore
+    character(len=marbl_nl_buffer_size), intent(in) :: nl_buffer(marbl_nl_cnt)
     type(marbl_log_type),      intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
@@ -1573,7 +1575,7 @@ contains
     !  initialize restoring timescale (if required)
     !-----------------------------------------------------------------------
 
-    call ecosys_restore%initialize_restoring_timescale(nml_filename, nml_in, zt, &
+    call ecosys_restore%initialize_restoring_timescale(nl_buffer, zt, &
                                                        marbl_status_log)
     if (marbl_status_log%labort_marbl) then
       write(error_msg,"(2A)") "error code returned from ecosys_restore%", &
