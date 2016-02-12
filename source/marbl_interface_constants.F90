@@ -11,10 +11,4 @@ module marbl_interface_constants
   ! string sizes
   integer, public, parameter :: marbl_str_length = 1024
 
-  ! status codes
-  integer, public, parameter :: marbl_status_ok = 0
-  integer, public, parameter :: marbl_status_could_not_read_namelist = 1
-  integer, public, parameter :: marbl_namelist_error = 2 
-  integer, public, parameter :: marbl_namelist_consistency_error = 3
-  
 end module marbl_interface_constants

@@ -10,8 +10,10 @@ MODULE co2calc_column
   USE constants, only : c0, p001, p5, c1, c2, c3, c10, c1000, T0_Kelvin, rho_sw
   USE kinds_mod, only : int_kind, r8, log_kind
   USE state_mod, ONLY : ref_pressure
-  USE io_types, ONLY : stdout
   USE time_management, ONLY : nsteps_run
+  use marbl_logging, only : marbl_log_type
+  use marbl_logging, only : error_msg
+  use marbl_logging, only : status_msg
 
 #ifdef CCSMCOUPLED
    !*** ccsm
@@ -89,9 +91,9 @@ CONTAINS
 
   !*****************************************************************************
 
-  SUBROUTINE co2calc_surf(num_elements, mask, lcomp_co3_coeffs, co3_coeffs, &
-       temp, salt, dic_in, ta_in, pt_in, sit_in, phlo, phhi, ph, xco2_in, atmpres, &
-       co2star, dco2star, pCO2surf, dpco2, CO3)
+  SUBROUTINE co2calc_surf(num_elements, lcomp_co3_coeffs, co3_coeffs,       &
+       phlo, phhi, ph, luse_alt, marbl_forcing_input, marbl_forcing_output, &
+       marbl_status_log)
 
     !---------------------------------------------------------------------------
     !   SUBROUTINE co2calc_surf
@@ -100,22 +102,23 @@ CONTAINS
     !             temp, salinity (s), etc.
     !---------------------------------------------------------------------------
 
+    use marbl_share_mod, only : marbl_forcing_ind
+    use marbl_interface_types, only : marbl_forcing_input_type
+    use marbl_interface_types, only : marbl_forcing_output_type
+    use marbl_parms, only : dic_ind
+    use marbl_parms, only : dic_alt_co2_ind
+    use marbl_parms, only : alk_ind
+    use marbl_parms, only : po4_ind
+    use marbl_parms, only : sio3_ind
+
     !---------------------------------------------------------------------------
     !   input arguments
     !---------------------------------------------------------------------------
 
     INTEGER(KIND=int_kind), INTENT(IN) :: num_elements
-    LOGICAL(KIND=log_kind), DIMENSION(num_elements), INTENT(IN) :: mask
     LOGICAL(KIND=log_kind), INTENT(IN) :: lcomp_co3_coeffs
-    REAL(KIND=r8), DIMENSION(num_elements), INTENT(IN) :: &
-         temp,     & ! temperature (degrees C)
-         salt,     & ! salinity (PSU)
-         dic_in,   & ! total inorganic carbon (nmol/cm^3)
-         ta_in,    & ! total alkalinity (neq/cm^3)
-         pt_in,    & ! inorganic phosphate (nmol/cm^3)
-         sit_in,   & ! inorganic silicate (nmol/cm^3)
-         xco2_in,  & ! atmospheric mole fraction CO2 in dry air (ppmv)
-         atmpres     ! atmospheric pressure (atmosphere)
+    LOGICAL(KIND=log_kind), INTENT(IN) :: luse_alt
+    type(marbl_forcing_input_type)  , intent(in) :: marbl_forcing_input
 
     !---------------------------------------------------------------------------
     !   input/output arguments
@@ -128,19 +131,15 @@ CONTAINS
     ! intent(in)  if lcomp_co3_coeffs = .false.
     ! intent(out) if lcomp_co3_coeffs = .true.
     type(thermodynamic_coefficients_type), INTENT(INOUT) :: co3_coeffs(num_elements)
+    type(marbl_forcing_output_type) , intent(inout) :: marbl_forcing_output
+    type(marbl_log_type), intent(inout) :: marbl_status_log
 
     !---------------------------------------------------------------------------
     !   output arguments
     !---------------------------------------------------------------------------
 
     REAL(KIND=r8), DIMENSION(num_elements), INTENT(OUT) :: &
-         ph,       & ! computed ph values, for initial guess on next time step
-         co2star,  & ! CO2*water (nmol/cm^3)
-         dco2star, & ! delta CO2 (nmol/cm^3)
-         pco2surf, & ! oceanic pCO2 (ppmv)
-         dpco2,    & ! Delta pCO2, i.e, pCO2ocn - pCO2atm (ppmv)
-         CO3         ! Carbonate Ion Concentration
-
+         ph          ! computed ph values, for initial guess on next time step
     !---------------------------------------------------------------------------
     !   local variable declarations
     !---------------------------------------------------------------------------
@@ -160,6 +159,25 @@ CONTAINS
          press_bar
 
     LOGICAL(KIND=log_kind), DIMENSION(num_elements) :: pressure_correct
+    character(*), parameter :: subname = 'co2calc_column:co2calc_surf'
+    real(kind=r8), dimension(num_elements) :: dic_in, xco2_in, co2star
+    real(kind=r8), dimension(num_elements) :: dco2star, pco2surf, dpco2
+
+    if (luse_alt) then
+      dic_in   = marbl_forcing_input%surface_vals(:,dic_alt_co2_ind)
+      xco2_in  = marbl_forcing_input%input_forcings(:,marbl_forcing_ind%xco2_alt_co2_id)
+      co2star  = marbl_forcing_output%co2star_alt
+      dco2star = marbl_forcing_output%dco2star_alt
+      pco2surf = marbl_forcing_output%pco2surf_alt
+      dpco2    = marbl_forcing_output%dpco2_alt
+    else
+      dic_in   = marbl_forcing_input%surface_vals(:,dic_ind)
+      xco2_in  = marbl_forcing_input%input_forcings(:,marbl_forcing_ind%xco2_id)
+      co2star  = marbl_forcing_output%co2star
+      dco2star = marbl_forcing_output%dco2star
+      pco2surf = marbl_forcing_output%pco2surf
+      dpco2    = marbl_forcing_output%dpco2
+    end if
 
     associate( &
           k0 => co3_coeffs(:)%k0, &
@@ -180,7 +198,16 @@ CONTAINS
           dic => co3_coeffs(:)%dic, &
           ta => co3_coeffs(:)%ta, &
           pt => co3_coeffs(:)%pt, &
-          sit => co3_coeffs(:)%sit &
+          sit => co3_coeffs(:)%sit, &
+          ind      => marbl_forcing_ind                        , &
+          mask     => marbl_forcing_input%land_mask            , & 
+          temp     => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%sst_id), &
+          salt     => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%sss_id), &
+          atmpres  => marbl_forcing_input%input_forcings(:,marbl_forcing_ind%atm_pressure_id) , &
+          ta_in    => marbl_forcing_input%surface_vals(:,alk_ind) , & 
+          pt_in    => marbl_forcing_input%surface_vals(:,po4_ind) , & 
+          sit_in   => marbl_forcing_input%surface_vals(:,sio3_ind), & 
+          CO3      => marbl_forcing_output%co3                   &
           )
 
     !---------------------------------------------------------------------------
@@ -224,7 +251,12 @@ CONTAINS
 
     CALL comp_htotal(num_elements, mask, temp, dic_in, &
                      ta_in, pt_in, sit_in, co3_coeffs, &
-                     phlo, phhi, htotal)
+                     phlo, phhi, htotal, marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      error_msg = "error code returned from comp_htotal"
+      call marbl_status_log%log_error(error_msg, subname)
+      return
+    end if
 
     !---------------------------------------------------------------------------
     !   convert xco2 from uatm to atm
@@ -286,12 +318,24 @@ CONTAINS
     END DO
   end associate
 
+    if (luse_alt) then
+      marbl_forcing_output%co2star_alt = co2star
+      marbl_forcing_output%dco2star_alt = dco2star
+      marbl_forcing_output%pco2surf_alt = pco2surf
+      marbl_forcing_output%dpco2_alt = dpco2
+    else
+      marbl_forcing_output%co2star = co2star
+      marbl_forcing_output%dco2star = dco2star
+      marbl_forcing_output%pco2surf = pco2surf
+      marbl_forcing_output%dpco2 = dpco2
+    end if
+
   END SUBROUTINE co2calc_surf
 
 
   SUBROUTINE comp_CO3terms(num_elements, mask, pressure_correct, lcomp_co3_coeffs, co3_coeffs,  &
                            temp, salt, press_bar, dic_in, ta_in, pt_in, sit_in, phlo, phhi, ph, &
-                           H2CO3, HCO3, CO3)
+                           H2CO3, HCO3, CO3, marbl_status_log)
 
     !---------------------------------------------------------------------------
     !   SUBROUTINE comp_CO3terms
@@ -326,6 +370,8 @@ CONTAINS
     REAL(KIND=r8), DIMENSION(num_elements), INTENT(INOUT) :: &
          phlo,     & ! lower limit of pH range
          phhi        ! upper limit of pH range
+
+    type(marbl_log_type), intent(inout) :: marbl_status_log
 
     !---------------------------------------------------------------------------
     !   output arguments
@@ -407,7 +453,12 @@ CONTAINS
 
     CALL comp_htotal(num_elements, mask, temp, dic_in, &
                      ta_in, pt_in, sit_in, co3_coeffs, &
-                     phlo, phhi, htotal)
+                     phlo, phhi, htotal, marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      error_msg = "error code returned from comp_htotal"
+      call marbl_status_log%log_error(error_msg, "co2calc_column::comp_CO3terms")
+      return
+    end if
 
     !------------------------------------------------------------------------
     !   Calculate [CO2*] as defined in DOE Methods Handbook 1994 Ver.2,
@@ -861,7 +912,7 @@ CONTAINS
   !*****************************************************************************
 
   SUBROUTINE comp_htotal(num_elements, mask, temp, dic_in, ta_in, pt_in, sit_in, &
-                         co3_coeffs, phlo, phhi, htotal)
+                         co3_coeffs, phlo, phhi, htotal, marbl_status_log)
 
     !---------------------------------------------------------------------------
     !   SUBROUTINE comp_htotal
@@ -892,6 +943,7 @@ CONTAINS
     REAL(KIND=r8), DIMENSION(num_elements), INTENT(INOUT) :: &
          phlo,     & ! lower limit of pH range
          phhi        ! upper limit of pH range
+    type(marbl_log_type), intent(inout) :: marbl_status_log
 
     !---------------------------------------------------------------------------
     !   output arguments
@@ -980,13 +1032,20 @@ CONTAINS
     !   set x1 and x2 to the previous value of the pH +/- ~0.5.
     !---------------------------------------------------------------------------
 
-    CALL drtsafe_row(num_elements, mask, k1, k2, co3_coeffs, x1, x2, xacc, htotal)
+    CALL drtsafe_row(num_elements, mask, k1, k2, co3_coeffs, x1, x2, xacc, htotal,&
+                     marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      error_msg = "error code returned from drtsafe_row"
+      call marbl_status_log%log_error(error_msg, "co2calc_column::comp_htotal")
+      return
+    end if
   end associate
   END SUBROUTINE comp_htotal
 
   !*****************************************************************************
 
-  SUBROUTINE drtsafe_row(num_elements, mask_in, k1, k2, co3_coeffs, x1, x2, xacc, soln)
+  SUBROUTINE drtsafe_row(num_elements, mask_in, k1, k2, co3_coeffs, x1, x2, xacc, &
+                         soln, marbl_status_log)
 
     !---------------------------------------------------------------------------
     !   Vectorized version of drtsafe, which was a modified version of
@@ -998,10 +1057,6 @@ CONTAINS
     !      bracketing interval or the dx is > 0.5 the previous dx.
     !      In that case, bisection method is used.
     !---------------------------------------------------------------------------
-
-#ifdef CCSMCOUPLED
-    USE shr_sys_mod, ONLY : shr_sys_abort
-#endif
 
     !---------------------------------------------------------------------------
     !   input arguments
@@ -1018,6 +1073,7 @@ CONTAINS
     !---------------------------------------------------------------------------
 
     REAL(KIND=r8), DIMENSION(num_elements), INTENT(INOUT) :: x1, x2
+    type(marbl_log_type), intent(inout) :: marbl_status_log
 
     !---------------------------------------------------------------------------
     !   output arguments
@@ -1034,6 +1090,7 @@ CONTAINS
     INTEGER(KIND=int_kind) ::  c, it
     REAL(KIND=r8) :: temp
     REAL(KIND=r8), DIMENSION(num_elements) :: xlo, xhi, flo, fhi, f, df, dxold, dx
+    character(*), parameter :: subname = 'co2calc_column.F90:drtsafe_row'
 
     !---------------------------------------------------------------------------
     !   bracket root at each location and set up first iteration
@@ -1058,20 +1115,22 @@ CONTAINS
 
        do c = 1,num_elements
           IF (mask(c)) THEN
-!!$             this_block = get_block(blocks_clinic(iblock), iblock)
-!!$                'i_glob = ', this_block%i_glob(i), &
-!!$                ', j_glob = ', this_block%j_glob(j), &
-             WRITE(stdout,*) '(co2calc_column.F90:drtsafe_row) ', &
+             WRITE(status_msg,"(4A,I0,A,I0,A,I0)") '(', subname, ') ', &
                 ', c = ', c, ', nsteps_run = ', nsteps_run, ', it = ', it
-             WRITE(stdout,*) '(co2calc.F90:drtsafe_row) ', &
+             call marbl_status_log%log_noerror(status_msg, subname, c, .true.)
+             WRITE(status_msg,"(4A,2E15.7e3)") '(', subname, ') ', &
                 '   x1,f = ', x1(c), flo(c)
-             WRITE(stdout,*) '(co2calc.F90:drtsafe_row) ', &
+             call marbl_status_log%log_noerror(status_msg, subname, c, .true.)
+             WRITE(status_msg,"(4A,2E15.7e3)") '(', subname, ') ', &
                 '   x2,f = ', x2(c), fhi(c)
+             call marbl_status_log%log_noerror(status_msg, subname, c, .true.)
           END IF
        END DO
 
        IF (it > max_bracket_grow_it) THEN
-          CALL shr_sys_abort('bounding bracket for pH solution not found')
+          error_msg = "bounding bracket for pH solution not found"
+          call marbl_status_log%log_error(error_msg, subname, c)
+          return
        END IF
 
        WHERE ( mask )
@@ -1147,9 +1206,9 @@ CONTAINS
 
     END DO ! iteration loop
 
-#ifdef CCSMCOUPLED
-    CALL shr_sys_abort('lack of convergence in drtsafe_row')
-#endif
+    call marbl_status_log%log_error("lack of convergence in drtsafe_row", &
+                                    "co2calc_column::drtsafe_row")
+    return
 
   END SUBROUTINE drtsafe_row
 

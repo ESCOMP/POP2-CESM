@@ -1,4 +1,43 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    12 Feb 2016
+Tag Name:    pop2/branch_tags/marbl_ciso_tags/marbl_ciso_n06_cesm_pop_2_1_20160114
+Tag Summary: Merge marbl_logging branch back to marbl_ciso (this is
+             marbl_logging_n13). More details:
+             * replaced marbl_status_type with marbl_logging_type that
+               contains both a status code (well, logical flag to indicate
+               that the GCM should abort) and a text message to print to
+               stdout
+             * Updated a couple of ecosys_restore namelists and
+               ecosys_ciso_nml to be read in from a string rather than pop_in
+               (they were overlooked in conversion for ecosys_nml and
+               ecosys_parms_nml)
+             * Use this to log all output from initialization -- tracer
+               indices, namelists (todo - currently only prints out namelist
+               values that are read in from pop_in, need to print entire
+               namelist instead), etc -- as well as some surface forcing /
+               interior forcing messages. We no longer use stdout, my_task,
+               master_task, or document from MARBL routines.
+             The marbl_logging_type variable is part of the marbl_interface
+             class (named StatusLog), and the ecosys_driver is responsible for
+             printing the log to stdout / ocn.log as well as aborting if an
+             error was reported.
+
+M       source/co2calc_column.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_restore.F90
+M       source/ecosys_restore_timescale_file.F90
+M       source/ecosys_restore_timescale_interp.F90
+M       source/marbl_ciso_mod.F90
+M       source/marbl_interface.F90
+M       source/marbl_interface_constants.F90
+M       source/marbl_interface_types.F90
+M       source/marbl_kinds.F90
+A  +    source/marbl_logging.F90
+M       source/marbl_parms.F90
+===============================================================================
 Tag Creator: jwolfe
 Developers:  jwolfe
 Tag Date:    10 Feb 2016

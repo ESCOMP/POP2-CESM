@@ -10,13 +10,6 @@ module marbl_interface_types
 
   !*****************************************************************************
 
-  type, public :: marbl_status_type
-     integer :: status
-     character(marbl_str_length) :: message
-  end type marbl_status_type
-
-  !*****************************************************************************
-
   type, public :: marbl_domain_type
      integer(int_kind)     :: km                            ! number of vertical grid cells
      integer(int_kind)     :: kmt                           ! index of ocean floor

@@ -501,18 +501,17 @@ contains
 
   !*****************************************************************************
 
-  subroutine marbl_params_init(nl_buffer, marbl_status)
+  subroutine marbl_params_init(nl_buffer, marbl_status_log)
 
-    use marbl_namelist_mod        , only : marbl_nl_cnt
-    use marbl_namelist_mod        , only : marbl_nl_buffer_size
-    use marbl_namelist_mod        , only : marbl_namelist
-    use marbl_interface_constants , only : marbl_status_ok, marbl_status_could_not_read_namelist
-    use marbl_interface_types     , only : marbl_status_type
+    use marbl_namelist_mod, only : marbl_nl_cnt
+    use marbl_namelist_mod, only : marbl_nl_buffer_size
+    use marbl_namelist_mod, only : marbl_namelist
+    use marbl_logging     , only: marbl_log_type
 
     implicit none
 
     character(marbl_nl_buffer_size), dimension(marbl_nl_cnt), intent(in) :: nl_buffer
-    type(marbl_status_type), intent(inout) :: marbl_status
+    type(marbl_log_type), intent(inout) :: marbl_status_log
 
     !---------------------------------------------------------------------------
     !   local variables
@@ -544,11 +543,6 @@ contains
          grazing
 
     !---------------------------------------------------------------------------
-
-    marbl_status%status = marbl_status_ok
-    marbl_status%message = ''
-
-    !---------------------------------------------------------------------------
     ! set defaults for namelist variables before reading them
     !---------------------------------------------------------------------------
 
@@ -561,9 +555,10 @@ contains
     tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_parms_nml')
     read(tmp_nl_buffer, nml=ecosys_parms_nml, iostat=io_error)
     if (io_error /= 0) then
-       marbl_status%status = marbl_status_could_not_read_namelist
-       marbl_status%message = "ERROR: marbl_parmams_read_namelist(): could not read namelist 'ecosys_parms_nml'."
+       call marbl_status_log%log_error("Error reading ecosys_parms_nml", subname)
        return
+    else
+      call marbl_status_log%log_namelist('ecosys_parms_nml', tmp_nl_buffer, subname)
     end if
 
   end subroutine marbl_params_init

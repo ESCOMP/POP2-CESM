@@ -25,6 +25,7 @@ module ecosys_driver
   use io_types                  , only : stdout, nml_in, nml_filename
   use exit_mod                  , only : sigAbort, exit_pop
   use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
+  use communicate               , only : my_task, master_task
 
   use marbl_sizes               , only : ecosys_tracer_cnt, ecosys_ciso_tracer_cnt
   use marbl_sizes               , only : ecosys_ind_beg, ecosys_ind_end
@@ -34,12 +35,13 @@ module ecosys_driver
   use marbl_share_mod           , only : marbl_forcing_ind
 
   use marbl_interface           , only : marbl_interface_class
-  use marbl_interface_constants , only : marbl_status_ok
-  use marbl_interface_types     , only : marbl_status_type
   use marbl_interface_types     , only : marbl_diagnostics_type
   use marbl_interface_types     , only : marbl_forcing_fields_type
   use marbl_interface_types     , only : marbl_forcing_input_type
   use marbl_interface_types     , only : marbl_forcing_output_type
+  use marbl_logging             , only : marbl_log_type
+  use marbl_logging             , only : marbl_status_log_entry_type
+  use marbl_logging             , only : error_msg
   use marbl_interface_types     , only : marbl_domain_type
   use marbl_interface_types     , only : marbl_gcm_state_type
   use ecosys_mod                , only : marbl_compute_totalChl
@@ -260,7 +262,6 @@ contains
     use time_management       , only : init_time_flag
     use passive_tracer_tools  , only : set_tracer_indices
     use passive_tracer_tools  , only : read_field
-    use communicate           , only : my_task, master_task
     use named_field_mod       , only : named_field_register
     use named_field_mod       , only : named_field_set
     use prognostic            , only : curtime
@@ -297,7 +298,6 @@ contains
     character (char_len)                :: init_ecosys_init_file              ! filename for option 'file'
     character (char_len)                :: init_ecosys_init_file_fmt          ! file format for option 'file'
     type(tracer_read)                   :: tracer_init_ext(ecosys_tracer_cnt) ! namelist variable for initializing tracers
-    type(marbl_status_type)             :: marbl_status
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
@@ -459,13 +459,16 @@ contains
             marbl_forcing_diags=marbl_forcing_diags(iblock),   &
             marbl_forcing_fields=marbl_forcing_fields(iblock), &
             marbl_forcing_input=marbl_forcing_input(iblock),   &
-            marbl_forcing_output=marbl_forcing_output(iblock), &
-            marbl_status=marbl_status)
+            marbl_forcing_output=marbl_forcing_output(iblock))
 
-       if (marbl_status%status /= marbl_status_ok) then
-          call exit_POP(sigAbort, &
-               'ERROR in ecosys_driver_init: marbl_init returned status: "'//marbl_status%message//'"')
+       if (marbl(iblock)%StatusLog%labort_marbl) then
+         write(error_msg,"(A,I0,A)") "error code returned from marbl(", iblock, &
+                                     ")%init()"
+         call marbl(iblock)%StatusLog%log_error(error_msg,                &
+                                                    "ecosys_driver::ecosys_driver_init()")
        end if
+       call print_marbl_log(marbl(iblock)%StatusLog, iblock)
+       call marbl(iblock)%StatusLog%erase()
     end do
 
     ! Allocate module variable
@@ -560,8 +563,23 @@ contains
     !  Initialize interior restoring
     !--------------------------------------------------------------------
 
-    call ecosys_restore%init(nml_filename, nml_in, ind_name_table)
-    call ecosys_driver_init_interior_restore(ecosys_restore)
+    call ecosys_restore%init(nl_buffer, ind_name_table, marbl(1)%StatusLog)
+    if (marbl(1)%StatusLog%labort_marbl) then
+      write(error_msg,"(A)") "error code returned from ecosys_restore%init()"
+      call marbl(1)%StatusLog%log_error(error_msg,                &
+                                        "ecosys_driver::ecosys_driver_init()")
+    end if
+    call print_marbl_log(marbl(1)%StatusLog, 1)
+    call marbl(1)%StatusLog%erase()
+
+    call ecosys_driver_init_interior_restore(ecosys_restore, nl_buffer, marbl(1)%StatusLog)
+    if (marbl(1)%StatusLog%labort_marbl) then
+      write(error_msg,"(A)") "error code returned from ecosys_driver_init_interior_restore"
+      call marbl(1)%StatusLog%log_error(error_msg,                &
+                                        "ecosys_driver::ecosys_driver_init()")
+    end if
+    call print_marbl_log(marbl(1)%StatusLog, 1)
+    call marbl(1)%StatusLog%erase()
 
     !--------------------------------------------------------------------
     ! Initialize tavg ids (need only do this using first block)
@@ -631,7 +649,6 @@ contains
     use grid                  , only : fill_points
     use grid                  , only : n_topo_smooth
     use grid                  , only : KMT
-    use exit_mod              , only : exit_POP
 
     implicit none
     
@@ -1091,9 +1108,9 @@ contains
     !-----------------------------------------------------------------------
 
     integer (int_kind) :: &
-         i, j, iblock, n, & ! loop indices
-         auto_ind,        & ! autotroph functional group index
-         errorCode          ! errorCode from HaloUpdate call
+         i, j, iblock, n,        & ! loop indices
+         auto_ind,               & ! autotroph functional group index
+         errorCode                 ! errorCode from HaloUpdate call
 
     real (r8)             , dimension(nx_block, ny_block, max_blocks_clinic) :: &
          ifrac_used       , & ! used ice fraction (non-dimensional)
@@ -1252,6 +1269,15 @@ contains
                marbl_forcing_input(iblock),  &
                marbl_forcing_output(iblock), &
                marbl_forcing_diags(iblock))
+
+          if (marbl(iblock)%StatusLog%labort_marbl) then
+            write(error_msg,"(A,I0,A)") "error code returned from marbl(", iblock, &
+                                        ")%set_surface_forcing()"
+            call marbl(iblock)%StatusLog%log_error(error_msg,                &
+                                            "ecosys_driver::ecosys_driver_set_sflux()")
+          end if
+          call print_marbl_log(marbl(iblock)%StatusLog, iblock)
+          call marbl(iblock)%StatusLog%erase()
 
           !-----------------------------------------------------------------------
           ! Copy data from marbl output column to pop slab data structure
@@ -1526,7 +1552,7 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_driver_init_interior_restore(ecosys_restore)
+  subroutine ecosys_driver_init_interior_restore(ecosys_restore, nl_buffer, marbl_status_log)
 
     ! !DESCRIPTION:
     !  Initialize interior restoring computations for ecosys tracer module.
@@ -1534,15 +1560,19 @@ contains
     use ecosys_restore_mod    , only : ecosys_restore_type
     use grid                  , only : KMT
     use grid                  , only : zt
-    use io_types              , only : nml_in, nml_filename
     use blocks                , only : nx_block, ny_block
     use domain_size           , only : max_blocks_clinic, km
     use marbl_share_mod       , only : fesedflux_input
+    use marbl_namelist_mod    , only : marbl_nl_cnt
+    use marbl_namelist_mod    , only : marbl_nl_buffer_size
+    use marbl_logging         , only : marbl_log_type
     use passive_tracer_tools  , only : read_field
 
     implicit none
 
-    type(ecosys_restore_type)   , intent(inout) :: ecosys_restore
+    type(ecosys_restore_type), intent(inout) :: ecosys_restore
+    character(len=marbl_nl_buffer_size), intent(in) :: nl_buffer(marbl_nl_cnt)
+    type(marbl_log_type),      intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1554,13 +1584,22 @@ contains
 
     real (r8) :: &
          subsurf_fesed      ! sum of subsurface fesed values
+    character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_init_interior_restore'
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
     !  initialize restoring timescale (if required)
     !-----------------------------------------------------------------------
 
-    call ecosys_restore%initialize_restoring_timescale(nml_filename, nml_in, zt)
+    call ecosys_restore%initialize_restoring_timescale(nl_buffer, zt, &
+                                                       marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      write(error_msg,"(2A)") "error code returned from ecosys_restore%", &
+                              "initialize_restoring_timescale"
+      call marbl_status_log%log_error(error_msg, subname)
+    end if
+    call print_marbl_log(marbl_status_log, 1)
+    call marbl_status_log%erase()
 
     !-----------------------------------------------------------------------
     !  load restoring fields (if required)
@@ -2299,9 +2338,7 @@ contains
     !  Includes reading CO2 and D13C and D14C data from file if option file is used
     !---------------------------------------------------------------------
 
-    use communicate     , only : my_task, master_task
     use io_types        , only : stdout
-    use exit_mod        , only : exit_POP, sigAbort
     use constants       , only : blank_fmt      
     use constants       , only : delim_fmt      
     use constants       , only : ndelim_fmt     
@@ -2382,8 +2419,6 @@ contains
     use marbl_share_mod , only : ciso_atm_d13c_filename                                                         
     use broadcast       , only : broadcast_array
     use broadcast       , only : broadcast_scalar
-    use communicate     , only : master_task
-    use communicate     , only : my_task
     use constants       , only : blank_fmt
     use constants       , only : delim_fmt
     use constants       , only : ndelim_fmt
@@ -2493,8 +2528,6 @@ contains
     use marbl_share_mod , only : ciso_atm_d14c_filename                                                         
     use broadcast       , only : broadcast_array
     use broadcast       , only : broadcast_scalar
-    use communicate     , only : master_task
-    use communicate     , only : my_task
     use constants       , only : blank_fmt
     use constants       , only : delim_fmt
     use constants       , only : ndelim_fmt
@@ -2751,8 +2784,6 @@ contains
     use constants       , only : blank_fmt
     use constants       , only : delim_fmt
     use constants       , only : ndelim_fmt
-    use communicate     , only : master_task
-    use communicate     , only : my_task
 
     implicit none
 
@@ -2862,8 +2893,6 @@ contains
     use time_management, only : iday_of_year
     use time_management, only : iyear
     use grid           , only : TLATD
-    use communicate    , only : master_task
-    use communicate    , only : my_task
     
     implicit none
 
@@ -2986,6 +3015,30 @@ contains
     allocate(this%ph_surf_alt_co2   (nx_block, ny_block, max_blocks_clinic) )
 
   end subroutine ecosys_saved_state_constructor
+
+  subroutine print_marbl_log(log_to_print, iblock)
+
+    class(marbl_log_type), intent(in) :: log_to_print
+    integer,               intent(in) :: iblock
+
+    type(marbl_status_log_entry_type), pointer :: tmp
+    logical :: iam_master
+
+    ! FIXME (02-2016,mnl): need better logic on which items to print
+    iam_master = (my_task.eq.master_task).and.(iblock.eq.1)
+    tmp => log_to_print%FullLog
+    do while (associated(tmp))
+      if (tmp%lall_tasks.or.iam_master) then
+        write(stdout, *) trim(tmp%LogMessage)
+      end if
+      tmp => tmp%next
+    end do
+
+    if (log_to_print%labort_marbl) then
+      call exit_POP(sigAbort, 'ERROR reported from MARBL library')
+    end if
+
+  end subroutine print_marbl_log
 
 end module ecosys_driver
 

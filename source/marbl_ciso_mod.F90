@@ -19,12 +19,6 @@ module marbl_ciso_mod
 
   ! !USES:
 
-  use communicate           , only : master_task, my_task             !FIXME
-  use io_types              , only : stdout                           !FIXME
-  use io_tools              , only : document                         !FIXME
-  use constants             , only : blank_fmt, delim_fmt, ndelim_fmt !FIXME
-  use exit_mod              , only : sigAbort, exit_POP               !FIXME
-
   use marbl_kinds_mod       , only : r8
   use marbl_kinds_mod       , only : int_kind
   use marbl_kinds_mod       , only : log_kind
@@ -43,7 +37,10 @@ module marbl_ciso_mod
   use marbl_sizes           , only : zooplankton_cnt
   use marbl_sizes           , only : grazer_prey_cnt
 
-  use marbl_interface_types , only : marbl_status_type
+  use marbl_logging         , only : error_msg
+  use marbl_logging         , only : status_msg
+  use marbl_logging         , only : marbl_log_type
+
   use marbl_interface_types , only : marbl_tracer_metadata_type
   use marbl_interface_types , only : marbl_diagnostics_type
   use marbl_interface_types , only : marbl_domain_type
@@ -103,16 +100,13 @@ contains
 
   !*****************************************************************************
 
-  subroutine marbl_ciso_init_nml(nl_buffer, marbl_status)
+  subroutine marbl_ciso_init_nml(nl_buffer, marbl_status_log)
 
     use marbl_namelist_mod        , only : marbl_nl_in_size
     use marbl_namelist_mod        , only : marbl_nl_cnt
     use marbl_namelist_mod        , only : marbl_nl_buffer_size
     use marbl_namelist_mod        , only : marbl_nl_split_string
     use marbl_namelist_mod        , only : marbl_namelist
-    use marbl_interface_constants , only : marbl_status_ok
-    use marbl_interface_constants , only : marbl_status_could_not_read_namelist
-    use marbl_interface_constants , only : marbl_namelist_consistency_error
     use marbl_share_mod           , only : ecosys_ciso_tracer_cnt
     use marbl_share_mod           , only : ciso_init_ecosys_option
     use marbl_share_mod           , only : ciso_init_ecosys_init_file
@@ -142,7 +136,7 @@ contains
     implicit none
 
     character(marbl_nl_buffer_size), intent(in)  :: nl_buffer(marbl_nl_cnt)
-    type(marbl_status_type)        , intent(out) :: marbl_status
+    type(marbl_log_type),            intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -173,9 +167,6 @@ contains
          ciso_fract_factors, ciso_atm_model_year, ciso_atm_data_year
 
     !-----------------------------------------------------------------------
-
-    marbl_status%status = marbl_status_ok
-    marbl_status%message = ''
 
     !-----------------------------------------------------------------------
     !  default namelist settings
@@ -225,23 +216,13 @@ contains
     tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_ciso_nml')
     read(tmp_nl_buffer, nml=ecosys_ciso_nml, iostat=nml_error)
     if (nml_error /= 0) then
-       marbl_status%status = marbl_status_could_not_read_namelist
-       marbl_status%message = "ERROR: "//subname//"(): could not read ecosys_ciso_nml."
-       return
+      call marbl_status_log%log_error("error reading &ecosys_ciso_nml", subname)
+      return
+    else
+      ! FIXME(mnl,2016-02): this is printing contents of pop_in, not the entire
+      !                     ecosys_ciso_nml
+      call marbl_status_log%log_namelist('ecosys_ciso_nml', tmp_nl_buffer, subname)
     end if
-
-    if (my_task == master_task) then
-       write(stdout,blank_fmt)
-       write(stdout,ndelim_fmt)
-       write(stdout,blank_fmt)
-       write(stdout,*) ' ecosys_ciso:'
-       write(stdout,blank_fmt)
-       write(stdout,*) ' ecosys_ciso_nml namelist settings:'
-       write(stdout,blank_fmt)
-       write(stdout,ecosys_ciso_nml)
-       write(stdout,blank_fmt)
-       write(stdout,delim_fmt)
-    endif
 
     !-----------------------------------------------------------------------
     !  set variables immediately dependent on namelist variables
@@ -255,8 +236,8 @@ contains
     case ('nmonth')
        ciso_comp_surf_avg_freq_iopt = marbl_freq_opt_nmonth
     case default
-       marbl_status%status = marbl_namelist_consistency_error
-       marbl_status%message = "ERROR: "//subname//"(): unknown ciso_comp_surf_avg_freq_opt" //ciso_comp_surf_avg_freq_opt
+       write(error_msg, "(2A)") "unknown ciso_comp_surf_avg_freq_opt: ", trim(ciso_comp_surf_avg_freq_opt)
+       call marbl_status_log%log_error(error_msg, subname)
        return
     end select
 
@@ -265,17 +246,19 @@ contains
     !-----------------------------------------------------------------------
 
     if (ciso_use_nml_surf_vals .and. ciso_comp_surf_avg_freq_iopt /= marbl_freq_opt_never) then
-       call document(subname, 'ciso_use_nml_surf_vals'     , ciso_use_nml_surf_vals)
-       call document(subname, 'ciso_comp_surf_avg_freq_opt', ciso_comp_surf_avg_freq_opt)
-       call exit_POP(sigAbort, &
-            'ciso_use_nml_surf_vals can only be .true. if ciso_comp_surf_avg_freq_opt is never')
+       write(error_msg, "(4A)") "ciso_use_nml_surf_vals can only be .true. if ", &
+                                "ciso_comp_surf_avg_freq_opt is 'never', but",   &
+                                "ciso_comp_surf_avg_freq_opt = ",                &
+                                trim(ciso_comp_surf_avg_freq_opt)
+       call marbl_status_log%log_error(error_msg, subname)
+       return
     endif
 
   end subroutine marbl_ciso_init_nml
 
   !*****************************************************************************
   
-  subroutine marbl_ciso_init_tracer_metadata(marbl_tracer_metadata)
+  subroutine marbl_ciso_init_tracer_metadata(marbl_tracer_metadata, marbl_status_log)
 
     ! !DESCRIPTION:
     !  Set tracer and forcing metadata
@@ -292,6 +275,7 @@ contains
     implicit none
 
     type (marbl_tracer_metadata_type), intent(inout) :: marbl_tracer_metadata(:)   ! descriptors for each tracer
+    type(marbl_log_type),            intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -353,9 +337,10 @@ contains
     end do
 
     if (ecosys_ciso_tracer_cnt /= n) then
-       call document(subname, 'actual ecosys_ciso_tracer_cnt', ecosys_ciso_tracer_cnt)
-       call document(subname, 'computed ecosys_ciso_tracer_cnt', n)
-       call exit_POP(sigAbort, 'inconsistency between actual ecosys_ciso_tracer_cnt and computed ecosys_ciso_tracer_cnt')
+       write(error_msg, "(4A)") "ecosys_ciso_tracer_cnt = ", ecosys_ciso_tracer_cnt, &
+                                "but computed ecosys_ciso_tracer_cnt = ", n
+       call marbl_status_log%log_error(error_msg, subname)
+        return
     endif
 
     !-----------------------------------------------------------------------
@@ -403,17 +388,22 @@ contains
        endif
     end do
 
-    if (my_task == master_task) THEN
-       write (stdout,*) '----- autotroph tracer indices -----'
-       do auto_ind = 1, autotroph_cnt
-          write (stdout,*) 'C13_ind('     , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%C13_ind
-          write (stdout,*) 'C14_ind('     , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%C14_ind
-          write (stdout,*) 'Ca13CO3_ind(' , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Ca13CO3_ind
-          write (stdout,*) 'Ca14CO3_ind(' , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Ca14CO3_ind
-          write (stdout,*) 'autotroph_cnt =',autotroph_cnt
-       end do
-       write (stdout,*) '------------------------------------'
-    endif
+    write (status_msg,"(A)") '----- autotroph tracer indices -----'
+    call marbl_status_log%log_noerror(status_msg, subname)
+    do auto_ind = 1, autotroph_cnt
+       write (status_msg, "(3A,I0)") 'C13_ind('     , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%C13_ind
+       call marbl_status_log%log_noerror(status_msg, subname)
+       write (status_msg, "(3A,I0)") 'C14_ind('     , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%C14_ind
+       call marbl_status_log%log_noerror(status_msg, subname)
+       write (status_msg, "(3A,I0)") 'Ca13CO3_ind(' , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Ca13CO3_ind
+       call marbl_status_log%log_noerror(status_msg, subname)
+       write (status_msg, "(3A,I0)") 'Ca14CO3_ind(' , trim(autotrophs(auto_ind)%sname), ') = ', autotrophs(auto_ind)%Ca14CO3_ind
+       call marbl_status_log%log_noerror(status_msg, subname)
+       write (status_msg, "(3A,I0)") 'autotroph_cnt =',autotroph_cnt
+       call marbl_status_log%log_noerror(status_msg, subname)
+    end do
+    write (status_msg,"(A)") '------------------------------------'
+    call marbl_status_log%log_noerror(status_msg, subname)
 
     !-----------------------------------------------------------------------
     !  set lfull_depth_tavg flag for short-lived ecosystem tracers
@@ -452,7 +442,8 @@ contains
        marbl_particulate_share,       &
        column_tracer,                 &
        marbl_interior_diags,          &
-       column_dtracer)
+       column_dtracer,                &
+       marbl_status_log)
 
     ! !DESCRIPTION:
     !  Compute time derivatives for 13C and 14C state variables.
@@ -487,6 +478,7 @@ contains
     type(marbl_particulate_share_type) , intent(inout) :: marbl_particulate_share
     type(marbl_diagnostics_type)       , intent(inout) :: marbl_interior_diags
     real (r8)                          , intent(out)   :: column_dtracer(ecosys_ciso_tracer_cnt, marbl_domain%km)  ! computed source/sink terms
+    type(marbl_log_type),            intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -665,7 +657,12 @@ contains
 
     call setup_cell_attributes(ciso_fract_factors, &
        cell_active_C_uptake, cell_active_C, cell_surf, cell_carb_cont, &
-       cell_radius, cell_permea, cell_eps_fix)
+       cell_radius, cell_permea, cell_eps_fix, marbl_status_log)
+    if (marbl_status_log%labort_marbl) then
+      error_msg = "error code returned from setup_cell_attributes"
+      call marbl_status_log%log_error(error_msg, subname)
+      return
+    end if
 
     !-----------------------------------------------------------------------
     !  Create local copies of model column_tracer, treat negative values as zero
@@ -1155,7 +1152,7 @@ contains
 
   subroutine setup_cell_attributes(ciso_fract_factors, &
        cell_active_C_uptake, cell_active_C, cell_surf, cell_carb_cont, &
-       cell_radius, cell_permea, cell_eps_fix)
+       cell_radius, cell_permea, cell_eps_fix, marbl_status_log)
 
     !----------------------------------------------------------------------------------------
     ! For Keller and Morel, set cell attributes based on autotroph type (from observations)
@@ -1171,6 +1168,7 @@ contains
     real (r8)           , intent(out) :: cell_radius(autotroph_cnt)          ! cell radius ( um )
     real (r8)           , intent(out) :: cell_permea(autotroph_cnt)          ! cell wall permeability to CO2(aq) (m/s)
     real (r8)           , intent(out) :: cell_eps_fix(autotroph_cnt)         ! fractionation effect of carbon fixation
+    type(marbl_log_type),            intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -1178,6 +1176,7 @@ contains
     integer (int_kind) :: &
          n,               & ! index for looping over column_tracer
          auto_ind           ! autotroph functional group index
+    character(*), parameter :: subname = 'marbl_ciso_mod:setup_cell_attributes'
     !-----------------------------------------------------------------------
 
     select case (ciso_fract_factors)
@@ -1230,8 +1229,10 @@ contains
              !   cell_eps_fix(auto_ind)         = 23.0_r8      ! fractionation effect of carbon fixation
              
           else if (autotrophs(auto_ind)%Nfixer .and. autotrophs(auto_ind)%kSiO3 > c0) then
-             call exit_POP(sigAbort, 'ciso: Currently Keller and Morel fractionation does not work for Diatoms-Diazotrophs')
-
+              ! FIXME add error messge to marbl_status_log
+              error_msg = "ciso: Currently Keller and Morel fractionation does not work for Diatoms-Diazotrophs"
+              call marbl_status_log%log_error(error_msg, subname)
+              return
           else
              !----------------------------------------------------------------------------------------
              ! Small phytoplankton based on E. huxleyi ( Keller and morel, 1999; Popp et al., 1998 )

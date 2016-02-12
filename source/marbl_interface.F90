@@ -43,7 +43,8 @@ module marbl_interface
   !      call marbl_set_interior(marbl_private_data, ....)
 
   use marbl_kinds_mod           , only : r8, log_kind, int_kind, log_kind
-  use marbl_interface_constants , only : marbl_status_ok
+  use marbl_logging,              only : marbl_log_type
+  use marbl_logging,              only : error_msg
 
   use marbl_sizes               , only : ecosys_tracer_cnt
   use marbl_sizes               , only : ecosys_ciso_tracer_cnt
@@ -57,15 +58,11 @@ module marbl_interface
 
   use marbl_interface_types     , only : marbl_domain_type
   use marbl_interface_types     , only : marbl_gcm_state_type
-  use marbl_interface_types     , only : marbl_status_type
   use marbl_interface_types     , only : marbl_tracer_metadata_type
   use marbl_interface_types     , only : marbl_forcing_fields_type
   use marbl_interface_types     , only : marbl_forcing_input_type
   use marbl_interface_types     , only : marbl_forcing_output_type
   use marbl_interface_types     , only : marbl_diagnostics_type
-
-  use exit_mod                  , only : exit_POP  !FIXME
-  use exit_mod                  , only : sigAbort  !FIXME
 
   implicit none
 
@@ -86,6 +83,7 @@ module marbl_interface
   !-----------------------------------------------------------------------------
   
   type, public :: marbl_interface_class
+     type(marbl_log_type) :: StatusLog
    contains
      procedure, public :: init             
      procedure, public :: set_interior_forcing     
@@ -116,8 +114,7 @@ contains
        marbl_forcing_diags,   &
        marbl_forcing_fields,  &
        marbl_forcing_input,   &
-       marbl_forcing_output,  &
-       marbl_status )
+       marbl_forcing_output)
 
     use marbl_namelist_mod     , only : marbl_nl_cnt
     use marbl_namelist_mod     , only : marbl_nl_buffer_size
@@ -144,14 +141,10 @@ contains
     type      (marbl_forcing_fields_type)  , intent(inout) :: marbl_forcing_fields
     type      (marbl_forcing_input_type)   , intent(inout) :: marbl_forcing_input
     type      (marbl_forcing_output_type)  , intent(inout) :: marbl_forcing_output
-    type      (marbl_status_type)          , intent(out)   :: marbl_status
 
-    !-----------------------------------------------------------------------
+    integer :: i
 
     marbl_seconds_in_year = seconds_in_year
-
-    marbl_status%status = marbl_status_ok
-    marbl_status%message = ''
 
     associate(                                                                &
          num_elements_interior => marbl_domain%num_elements_interior_forcing, &
@@ -161,22 +154,28 @@ contains
          )
 
     !--------------------------------------------------------------------
+    ! initialize marbl status logs
+    !--------------------------------------------------------------------
+
+    call this%StatusLog%construct()
+
+    !--------------------------------------------------------------------
     ! initialize marbl namelists
     !--------------------------------------------------------------------
 
-    call marbl_init_nml(nl_buffer, marbl_status)
-
-    if (marbl_status%status /= marbl_status_ok) then
-       call exit_POP(sigAbort, &
-            'ERROR in marbl_init_nml: returned status: "'//marbl_status%message//'"')
+    call marbl_init_nml(nl_buffer, this%StatusLog)
+    if (this%StatusLog%labort_marbl) then
+      call this%StatusLog%log_error("error code returned from marbl_init_nml", &
+                                        "marbl_interface::marbl_init()")
+      return
     end if
 
     if (ciso_on) then
-       call marbl_ciso_init_nml(nl_buffer, marbl_status)
-
-       if (marbl_status%status /= marbl_status_ok) then
-          call exit_POP(sigAbort, &
-               'ERROR in marbl_ciso_init_nml: returned status: "'//marbl_status%message//'"')
+       call marbl_ciso_init_nml(nl_buffer, this%StatusLog)
+       if (this%StatusLog%labort_marbl) then
+         call this%StatusLog%log_error("error code returned from marbl_ciso_init_nml", &
+                                           "marbl_interface::marbl_init()")
+         return
        end if
     end if
 
@@ -190,11 +189,22 @@ contains
     ! initialize marbl tracer metadata 
     !--------------------------------------------------------------------
 
-    call marbl_init_tracer_metadata(marbl_tracer_metadata)
+    call marbl_init_tracer_metadata(marbl_tracer_metadata,this%StatusLog)
+    if (this%StatusLog%labort_marbl) then
+      call this%StatusLog%log_error("error code returned from marbl_init_tracer_metadata", &
+                                    "marbl_interface::marbl_init()")
+      return
+    end if
 
     if (ciso_on) then
        call marbl_ciso_init_tracer_metadata(&
-            marbl_tracer_metadata(ecosys_ciso_ind_beg:ecosys_ciso_ind_end))
+            marbl_tracer_metadata(ecosys_ciso_ind_beg:ecosys_ciso_ind_end),   &
+            this%StatusLog)
+       if (this%StatusLog%labort_marbl) then
+         call this%StatusLog%log_error("error code returned from marbl_ciso_init_tracer_metadata", &
+                                       "marbl_interface::marbl_init()")
+         return
+       end if
     end if
 
     !--------------------------------------------------------------------
@@ -301,7 +311,13 @@ contains
          marbl_interior_share,       &
          marbl_zooplankton_share,    &
          marbl_autotroph_share,      &
-         marbl_particulate_share)
+         marbl_particulate_share,    &
+         this%StatusLog)
+    if (this%StatusLog%labort_marbl) then
+      error_msg = "error code returned from marbl_set_interior_forcing"
+      call this%StatusLog%log_error(error_msg, "marbl_interface::set_interior_forcing")
+      return
+    end if
     
     !  compute time derivatives for ecosystem carbon isotope state variables
     if (ciso_on) then
@@ -314,7 +330,13 @@ contains
             marbl_particulate_share,                                   &
             column_tracers(ecosys_ciso_ind_beg:ecosys_ciso_ind_end,:), &
             marbl_interior_diags,                                      &
-            column_dtracers(ecosys_ciso_ind_beg:ecosys_ciso_ind_end,:))
+            column_dtracers(ecosys_ciso_ind_beg:ecosys_ciso_ind_end,:), &
+            this%StatusLog)
+       if (this%StatusLog%labort_marbl) then
+         error_msg = "error code returned from marbl_ciso_set_interior_forcing"
+         call this%StatusLog%log_error(error_msg, "marbl_interface::set_interior_forcing")
+         return
+       end if
     end if
 
     !-----------------------------------------------------------------------
@@ -361,7 +383,8 @@ contains
          marbl_forcing_input,       &
          marbl_forcing_output,      &
          marbl_forcing_share,       &
-         marbl_forcing_diags)
+         marbl_forcing_diags,       &
+         this%StatusLog)
 
     if (ciso_on) then
        call marbl_ciso_set_surface_forcing(                                              &
