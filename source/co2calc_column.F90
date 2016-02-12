@@ -1082,10 +1082,10 @@ CONTAINS
              WRITE(status_msg,"(4A,I0,A,I0,A,I0)") '(', subname, ') ', &
                 ', c = ', c, ', nsteps_run = ', nsteps_run, ', it = ', it
              call marbl_status_log%log_noerror(status_msg, subname, c, .true.)
-             WRITE(status_msg,"(4A,2E9.5)") '(', subname, ') ', &
+             WRITE(status_msg,"(4A,2E15.7e3)") '(', subname, ') ', &
                 '   x1,f = ', x1(c), flo(c)
              call marbl_status_log%log_noerror(status_msg, subname, c, .true.)
-             WRITE(status_msg,"(4A,2E9.5)") '(', subname, ') ', &
+             WRITE(status_msg,"(4A,2E15.7e3)") '(', subname, ') ', &
                 '   x2,f = ', x2(c), fhi(c)
              call marbl_status_log%log_noerror(status_msg, subname, c, .true.)
           END IF
