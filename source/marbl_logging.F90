@@ -228,6 +228,8 @@ contains
       deallocate(this%FullLog)
       this%FullLog => tmp
     end do
+    nullify(this%FullLog)
+    nullify(this%LastEntry)
 
   end subroutine marbl_log_erase
 

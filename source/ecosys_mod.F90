@@ -2421,11 +2421,10 @@ contains
              PHHI = phhi_surf_init
           end where
 
-          call co2calc_surf(num_elements, land_mask, .true., co3_coeffs, SST, SSS, &
-                            surface_vals(:,dic_ind), surface_vals(:,alk_ind), &
-                            surface_vals(:,po4_ind), surface_vals(:,sio3_ind), &
-                            PHLO, PHHI, PH_NEW, XCO2, AP_USED, &
-                            CO2STAR, DCO2STAR, pCO2SURF, DpCO2, CO3, marbl_status_log)
+          call co2calc_surf(num_elements, .true., co3_coeffs, PHLO, PHHI, PH_NEW, &
+                            .false., marbl_forcing_input, marbl_forcing_output,   &
+                            marbl_status_log)
+
           if (marbl_status_log%labort_marbl) then
             error_msg = "error code returned from co2calc_surf"
             call marbl_status_log%log_error(error_msg, subname)
@@ -2461,11 +2460,9 @@ contains
              PHHI = phhi_surf_init
           end where
 
-          call co2calc_surf(num_elements, land_mask, .false., co3_coeffs, SST, SSS,   &
-                            surface_vals(:,dic_alt_co2_ind), surface_vals(:,alk_ind), &
-                            surface_vals(:,po4_ind)        , surface_vals(:,sio3_ind),&
-                            PHLO, PHHI, PH_NEW, XCO2_ALT_CO2, AP_USED,          &
-                            CO2STAR_ALT, DCO2STAR_ALT, pCO2SURF_ALT, DpCO2_ALT, CO3, marbl_status_log)
+          call co2calc_surf(num_elements, .false., co3_coeffs, PHLO, PHHI, PH_NEW, &
+                            .true., marbl_forcing_input, marbl_forcing_output,     &
+                            marbl_status_log)
             if (marbl_status_log%labort_marbl) then
               error_msg = "error code returned from co2calc_surf"
               call marbl_status_log%log_error(error_msg, subname)

@@ -1,16 +1,22 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
-Tag Date:    10 Feb 2016
+Tag Date:    12 Feb 2016
 Tag Name:    pop2/branch_tags/marbl_logging_tags/marbl_logging_n13_marbl_ciso_n05_cesm_pop_2_1_20160114
-Tag Summary: Merge latest marbl_ciso branch tag onto marbl_logging branch
+Tag Summary: Merge latest marbl_ciso branch tag onto marbl_logging branch. Note
+             that this caused an issue with the co2calc_surf() interface
+             (intel compiler was crashing w/ stack overload memory errors) so
+             I re-wrote the routine to take marbl_forcing_input and
+             marbl_forcing_output instead of individual components.
 
 M       BranchChangeLog
+M       source/co2calc_column.F90
 M       source/ecosys_diagnostics_mod.F90
 M       source/ecosys_driver.F90
 M       source/ecosys_mod.F90
 M       source/marbl_interface.F90
 M       source/marbl_interface_types.F90
+M       source/marbl_logging.F90
 M       source/marbl_parms.F90
 ===============================================================================
 Tag Creator: mlevy
