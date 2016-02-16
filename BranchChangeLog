@@ -1,4 +1,99 @@
 ===============================================================================
+Tag Creator: mvertens
+Developers:  mvertens
+Tag Date:    15 Feb 2016
+Tag Name:    pop2/branch_tags/marbl_ciso_tags/marbl_ciso_n07_cesm_pop_2_1_20160114
+Tag Summary: more steps in making marbl stand-alone and renaming of many variables
+	     results are bfb 
+	
+M       source/passive_tracer_tools.F90
+	- alias use statement forcing_monthly_every_ts => marbl_forcing_monthly_every_ts_type
+	
+M       source/marbl_interface_types.F90
+	- added marbl_interior_forcing_saved_type (with elements ph_prev and ph_prev_alt_co2)
+	- added marbl_surface_forcing_saved_type (with elements ph_prev and ph_prev_alt_co2)
+	- renamed marbl_gcm_state_type => marbl_interior_forcing_type
+	- renamed marbl_forcing_input_type => marbl_surface_forcing_input_type
+	- renamed marbl_forcing_output_type => marbl_surface_forcing_output_type
+	- renamed forcing_monthly_every_tys => marbl_forcing_monthly_every_ts_type
+	- renamed stf_module => stf in marbl_surface_forcing_output_type
+	- removed land_mask from marbl_domain_type
+	- added fesedflux to marbl_interior_forcing_type
+	- removed ph_prev and ph_prev_alt_co2 from marbl_surface_forcing_output_type
+	
+M       source/marbl_interface_constants.F90
+	- just spacing
+	
+M       source/abio_dic_dic14_mod.F90
+	- formatting to bring this into marbl in the near future
+	
+M       source/marbl_internal_types.F90
+	- moved marbl_surface_forcing_indexing_type from marbl_share_mod to this file
+	- renamed marbl_forcing_share_type => marbl_surface_forcing_share_type
+	
+M       source/marbl_interface.F90
+	- significant changes to the input arguments of init,
+	  set_interior_forcing and set_surface_forcing as well as to the changed names
+	  mentioned above
+	
+M       source/ecosys_diagnostics_mod.F90
+	- created a new subroutine marbl_diagnostics_set_interior_forcing that encapsulates
+	  all the calls to store_diagnostics_xxx in marbl_set_interior. Now marbl_set_interior 
+	  only calls marbl_diagnostics_set_interior_forcing.
+	- moved all use statements of the form "use_diagnostics_xxx" from ecosys_mod.F90 to
+	  ecosys_diagnostics_mod.F90
+	
+M       source/moby_mod.F90
+	- removed use of co2calc (co2calc was not referenced)
+	
+M       source/marbl_share.F90
+	- removed marbl_forcing_indexing_type (now in marby_interface_tyes)
+	- removed ecsys_ind_xxx and ecosys_ciso_ind_xxx (now in marbl_sizes.F90)
+	- renamed forcing_monthly_every_ts => marbl_forcing_monthly_every_ts
+	
+A       source/marbl_schmidt_number_mod.F90
+M       source/schmidt_number.F90
+	- moved schmidt_co2_surf from schmidt_numer.F90 to marbl_schmidt_number_mod.F90
+	  this is needed for marbl to be built as a stand-alone library
+	
+M       source/ecosys_tavg.F90
+	- renamed marbl_restore_diags => marbl_interior_restore_diags
+	- renamed marbl_interior_diags => marbl_interior_forcing_diags
+	- renamed marbl_forcing_diags => marbl_surface_forcing_diags
+
+M       source/ecosys_mod.F90
+M       source/marbl_ciso_mod.F90
+	- implemented renaming mentioned above
+	- removed use of store_diagnostics_xxx and removed the calls to store_diagnostics_xxx 
+	  now only calling marbl_diagnostics_set_interior_forcing
+	- pared down the arguments to marbl_setup_local_xxx
+	- renamed STF_MODULE => stf
+	- added keyword/value pairs to call to co2calc
+	
+D       source/co2calc_column.F90
+A  +    source/marbl_co2calc_mod.F90
+	- renamed col2calc_column marbl_co2calc_mod
+	- ***removed #ifdef CCSM_COUPLED directives and added new routines
+	  vmath_sqrt, vmath_exp and vmath_log ***
+	  as a result marbl_co2calc_mod no longer depends on shr_vmath_mod
+	  and only has CPP directives for NO_SHR_VMATH and CPRINTEL
+	
+M       source/marbl_sizes.F90
+	- added max_prey_class_size and max_surface_forcing_fields
+	
+M       source/ecosys_driver.F90
+	- significant changes to be consistent with above
+	- only use the following interface types as module variables
+	type(marbl_interface_class)     , dimension(max_blocks_clinic) :: marbl_instances
+	type(marbl_diagnostics_type)    , dimension(max_blocks_clinic) :: marbl_interior_forcing_diags
+	type(marbl_diagnostics_type)    , dimension(max_blocks_clinic) :: marbl_interior_restore_diags
+	type(marbl_diagnostics_type)    , dimension(max_blocks_clinic) :: marbl_surface_forcing_diags
+	type(marbl_forcing_fields_type) , dimension(max_blocks_clinic) :: marbl_surface_forcing_fields
+	
+M       source/prognostic.F90
+	- removed use of marbl_share_mod
+	
+===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
 Tag Date:    12 Feb 2016

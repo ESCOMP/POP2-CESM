@@ -51,7 +51,6 @@
    use forcing_tools
    use time_management
    use registry
-   use co2calc
 #ifdef CCSMCOUPLED
    use POP_MCT_vars_mod
    use shr_strdata_mod

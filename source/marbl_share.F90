@@ -16,12 +16,11 @@ module marbl_share_mod
   use marbl_kinds_mod       , only : log_kind
   use marbl_kinds_mod       , only : int_kind
   use marbl_kinds_mod       , only : char_len
-  
   use marbl_sizes           , only : ecosys_tracer_cnt
   use marbl_sizes           , only : ecosys_ciso_tracer_cnt
-
   use marbl_interface_types , only : marbl_tracer_read_type
-  use marbl_interface_types , only : forcing_monthly_every_ts
+  use marbl_interface_types , only : marbl_forcing_monthly_every_ts_type
+  use marbl_internal_types  , only : marbl_surface_forcing_indexing_type
 
   implicit none
 
@@ -36,60 +35,11 @@ module marbl_share_mod
    integer (int_kind), parameter :: marbl_freq_opt_nyear    = 1
    integer (int_kind), parameter :: marbl_freq_opt_nmonth   = 2
 
-  !-----------------------------------------------------------------------------
-  ! seconds in year - will depend on calendar used by marbl driver
-  !-----------------------------------------------------------------------------
-
-   real (r8) :: marbl_seconds_in_year 
-
-  !-----------------------------------------------------------------------------
-  ! array bounds
-  !-----------------------------------------------------------------------------
-
-  integer (int_kind) :: ecosys_ind_begin, ecosys_ind_end
-  integer (int_kind) :: ecosys_ciso_ind_begin, ecosys_ciso_ind_end
-
   !-----------------------------------------------------------------------
-  !  Largest possible size for number of forcing fields
+  !  indices for forcing fields - FIXME - this belongs in ecosys_mod
   !-----------------------------------------------------------------------
 
-  ! FIXME - the following should be counted and not be parameters
-  integer, public, parameter :: max_forcing_fields  = 40
-
-  !-----------------------------------------------------------------------
-  !  indices for forcing fields
-  !-----------------------------------------------------------------------
-
-  type, private :: marbl_forcing_indexing_type
-    integer(int_kind) :: land_mask_id
-    integer(int_kind) :: u10_sqr_id
-    integer(int_kind) :: ifrac_id
-    integer(int_kind) :: sst_id
-    integer(int_kind) :: sss_id
-    integer(int_kind) :: xco2_id
-    integer(int_kind) :: atm_pressure_id
-    integer(int_kind) :: xco2_alt_co2_id
-    integer(int_kind) :: xkw_id
-    integer(int_kind) :: fice_id
-    integer(int_kind) :: ph_prev_id
-    integer(int_kind) :: ph_prev_alt_co2_id
-    integer(int_kind) :: dust_flux_id
-    integer(int_kind) :: iron_flux_id
-    integer(int_kind) :: nox_flux_id
-    integer(int_kind) :: nhy_flux_id
-    integer(int_kind) :: no3_flux_id
-    integer(int_kind) :: nh4_flux_id
-    integer(int_kind) :: din_riv_flux_id
-    integer(int_kind) :: dip_riv_flux_id
-    integer(int_kind) :: don_riv_flux_id
-    integer(int_kind) :: dop_riv_flux_id
-    integer(int_kind) :: dsi_riv_flux_id
-    integer(int_kind) :: dfe_riv_flux_id
-    integer(int_kind) :: dic_riv_flux_id
-    integer(int_kind) :: alk_riv_flux_id
-    integer(int_kind) :: doc_riv_flux_id
-  end type marbl_forcing_indexing_type
-  type(marbl_forcing_indexing_type), public :: marbl_forcing_ind
+  type(marbl_surface_forcing_indexing_type), public :: marbl_surface_forcing_ind
 
   !-----------------------------------------------------------------------------
   ! namelist: ecosys_nml
@@ -138,23 +88,23 @@ module marbl_share_mod
   integer   (int_kind) :: comp_surf_avg_freq_iopt      ! choice for freq of comp_surf_avg
   integer   (int_kind) :: comp_surf_avg_freq           ! choice for freq of comp_surf_avg
 
-  type(forcing_monthly_every_ts)          :: fesedflux        ! iron sedimentation flux
-  type(forcing_monthly_every_ts), pointer :: dust_flux        ! surface dust flux
-  type(forcing_monthly_every_ts), pointer :: iron_flux        ! iron component of surface dust flux
-  type(forcing_monthly_every_ts), pointer :: fice_file        ! ice fraction, if read from file
-  type(forcing_monthly_every_ts), pointer :: xkw_file         ! a * wind-speed ** 2, if read from file
-  type(forcing_monthly_every_ts), pointer :: ap_file          ! atmoshperic pressure, if read from file
-  type(forcing_monthly_every_ts), pointer :: nox_flux_monthly ! surface NOx species flux, added to nitrate pool
-  type(forcing_monthly_every_ts), pointer :: nhy_flux_monthly ! surface NHy species flux, added to ammonium pool
-  type(forcing_monthly_every_ts), pointer :: din_riv_flux     ! river DIN species flux, added to nitrate pool
-  type(forcing_monthly_every_ts), pointer :: dip_riv_flux     ! river DIP species flux, added to phosphate pool
-  type(forcing_monthly_every_ts), pointer :: don_riv_flux     ! river DON flux, added to semi-lab don pool
-  type(forcing_monthly_every_ts), pointer :: dop_riv_flux     ! river DOP flux, added to semi-lab dop pool
-  type(forcing_monthly_every_ts), pointer :: dsi_riv_flux     ! river DSI flux, added to dsi pool
-  type(forcing_monthly_every_ts), pointer :: dfe_riv_flux     ! river dfe flux, added to dfe pool
-  type(forcing_monthly_every_ts), pointer :: dic_riv_flux     ! river dic flux, added to dic pool
-  type(forcing_monthly_every_ts), pointer :: alk_riv_flux     ! river alk flux, added to alk pool
-  type(forcing_monthly_every_ts), pointer :: doc_riv_flux     ! river doc flux, added to semi-labile DOC
+  type(marbl_forcing_monthly_every_ts_type)          :: fesedflux        ! iron sedimentation flux
+  type(marbl_forcing_monthly_every_ts_type), pointer :: dust_flux        ! surface dust flux
+  type(marbl_forcing_monthly_every_ts_type), pointer :: iron_flux        ! iron component of surface dust flux
+  type(marbl_forcing_monthly_every_ts_type), pointer :: fice_file        ! ice fraction, if read from file
+  type(marbl_forcing_monthly_every_ts_type), pointer :: xkw_file         ! a * wind-speed ** 2, if read from file
+  type(marbl_forcing_monthly_every_ts_type), pointer :: ap_file          ! atmoshperic pressure, if read from file
+  type(marbl_forcing_monthly_every_ts_type), pointer :: nox_flux_monthly ! surface NOx species flux, added to nitrate pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: nhy_flux_monthly ! surface NHy species flux, added to ammonium pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: din_riv_flux     ! river DIN species flux, added to nitrate pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: dip_riv_flux     ! river DIP species flux, added to phosphate pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: don_riv_flux     ! river DON flux, added to semi-lab don pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: dop_riv_flux     ! river DOP flux, added to semi-lab dop pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: dsi_riv_flux     ! river DSI flux, added to dsi pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: dfe_riv_flux     ! river dfe flux, added to dfe pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: dic_riv_flux     ! river dic flux, added to dic pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: alk_riv_flux     ! river alk flux, added to alk pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: doc_riv_flux     ! river doc flux, added to semi-labile DOC
 
   !-----------------------------------------------------------------------
   !  namelist: ecosys_ciso_nml 
@@ -175,7 +125,7 @@ module marbl_share_mod
   real      (r8)              :: ciso_surf_avg_di14c_const      ! values to be used when comp_surf_avg_freq_opt==never
   logical   (log_kind)        :: ciso_lecovars_full_depth_tavg  ! should ecosystem vars be written full depth
 
-                                                                ! ciso forcing related variables
+  ! ciso forcing related variables
 
   integer   (int_kind)        :: ciso_atm_model_year            ! arbitrary model year
   integer   (int_kind)        :: ciso_atm_data_year             ! year in atmospheric ciso data that corresponds to ciso_atm_model_year

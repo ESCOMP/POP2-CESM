@@ -1,10 +1,10 @@
-module schmidt_number
+module marbl_schmidt_number_mod
 
   implicit none
 
   private
 
-  public :: schmidt_co2
+  public :: schmidt_co2_surf
 
   !*****************************************************************************
 
@@ -12,24 +12,24 @@ contains
   
   !*****************************************************************************
 
-  function schmidt_co2(SST, LAND_MASK)
-    !
+  function schmidt_co2_surf(n, sst, land_mask)
+
     !  Compute Schmidt number of CO2 in seawater as function of SST
-    !  where LAND_MASK is true. Give zero where LAND_MASK is false.
+    !  where land_mask is true. Give zero where land_mask is false.
     !
     !  ref : Wanninkhof, J. Geophys. Res, Vol. 97, No. C5,
     !  pp. 7373-7382, May 15, 1992
-    !
     
-    use kinds_mod, only: r8, log_kind
-    use constants, only: c0
-    use blocks   , only: nx_block, ny_block
+    use marbl_kinds_mod, only : r8, log_kind, int_kind
+    use marbl_parms    , only : c0
 
     implicit none
 
-    real (r8)          , dimension(nx_block, ny_block), intent(in) :: SST
-    logical (log_kind) , dimension(nx_block, ny_block), intent(in) :: LAND_MASK
-    real (r8)          , dimension(nx_block, ny_block)             :: SCHMIDT_CO2
+    integer(int_kind)  , intent(in) :: n
+    real (r8)          , intent(in) :: sst(n)
+    logical (log_kind) , intent(in) :: land_mask(n)
+
+    real (r8) :: schmidt_co2_surf(n)
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -40,12 +40,12 @@ contains
     real (r8), parameter :: d = 0.043219_r8
     !-----------------------------------------------------------------------
 
-    where (LAND_MASK)
-       SCHMIDT_CO2 = a + SST * (-b + SST * (c + SST * (-d)))
+    where (land_mask)
+       schmidt_co2_surf = a + sst * (-b + sst * (c + sst * (-d)))
     elsewhere
-       SCHMIDT_CO2 = c0
+       schmidt_co2_surf = c0
     end where
 
-  end function schmidt_co2
+  end function schmidt_co2_surf
 
-end module schmidt_number
+end module marbl_schmidt_number_mod

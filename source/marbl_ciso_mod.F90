@@ -17,8 +17,6 @@ module marbl_ciso_mod
   !  the code for the current model version, was written by Xavier Giraud 
   !-----------------------------------------------------------------------
 
-  ! !USES:
-
   use marbl_kinds_mod       , only : r8
   use marbl_kinds_mod       , only : int_kind
   use marbl_kinds_mod       , only : log_kind
@@ -44,7 +42,7 @@ module marbl_ciso_mod
   use marbl_interface_types , only : marbl_tracer_metadata_type
   use marbl_interface_types , only : marbl_diagnostics_type
   use marbl_interface_types , only : marbl_domain_type
-  use marbl_interface_types , only : marbl_gcm_state_type
+  use marbl_interface_types , only : marbl_interior_forcing_type
 
   use marbl_internal_types  , only : autotroph_type
   use marbl_internal_types  , only : column_sinking_particle_type
@@ -52,7 +50,7 @@ module marbl_ciso_mod
   use marbl_internal_types  , only : marbl_zooplankton_share_type
   use marbl_internal_types  , only : marbl_autotroph_share_type
   use marbl_internal_types  , only : marbl_particulate_share_type
-  use marbl_internal_types  , only : marbl_forcing_share_type
+  use marbl_internal_types  , only : marbl_surface_forcing_share_type
   
   implicit none
   private
@@ -135,8 +133,8 @@ contains
 
     implicit none
 
-    character(marbl_nl_buffer_size), intent(in)  :: nl_buffer(marbl_nl_cnt)
-    type(marbl_log_type),            intent(inout) :: marbl_status_log
+    character(marbl_nl_buffer_size) , intent(in)    :: nl_buffer(marbl_nl_cnt)
+    type(marbl_log_type)            , intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -165,7 +163,6 @@ contains
          ciso_atm_d13c_opt, ciso_atm_d13c_const, ciso_atm_d13c_filename, &
          ciso_atm_d14c_opt, ciso_atm_d14c_const, ciso_atm_d14c_filename, &
          ciso_fract_factors, ciso_atm_model_year, ciso_atm_data_year
-
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
@@ -216,12 +213,11 @@ contains
     tmp_nl_buffer = marbl_namelist(nl_buffer, 'ecosys_ciso_nml')
     read(tmp_nl_buffer, nml=ecosys_ciso_nml, iostat=nml_error)
     if (nml_error /= 0) then
-      call marbl_status_log%log_error("error reading &ecosys_ciso_nml", subname)
-      return
+       call marbl_status_log%log_error("error reading &ecosys_ciso_nml", subname)
+       return
     else
-      ! FIXME(mnl,2016-02): this is printing contents of pop_in, not the entire
-      !                     ecosys_ciso_nml
-      call marbl_status_log%log_namelist('ecosys_ciso_nml', tmp_nl_buffer, subname)
+       ! FIXME(mnl,2016-02): this is printing contents of pop_in, not the entire ecosys_ciso_nml
+       call marbl_status_log%log_namelist('ecosys_ciso_nml', tmp_nl_buffer, subname)
     end if
 
     !-----------------------------------------------------------------------
@@ -260,7 +256,7 @@ contains
   
   subroutine marbl_ciso_init_tracer_metadata(marbl_tracer_metadata, marbl_status_log)
 
-    ! !DESCRIPTION:
+    !  DESCRIPTION:
     !  Set tracer and forcing metadata
 
     use marbl_share_mod       , only : ecosys_ciso_tracer_cnt
@@ -274,8 +270,8 @@ contains
 
     implicit none
 
-    type (marbl_tracer_metadata_type), intent(inout) :: marbl_tracer_metadata(:)   ! descriptors for each tracer
-    type(marbl_log_type),            intent(inout) :: marbl_status_log
+    type (marbl_tracer_metadata_type) , intent(inout) :: marbl_tracer_metadata(:)   ! descriptors for each tracer
+    type(marbl_log_type)              , intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -340,7 +336,7 @@ contains
        write(error_msg, "(4A)") "ecosys_ciso_tracer_cnt = ", ecosys_ciso_tracer_cnt, &
                                 "but computed ecosys_ciso_tracer_cnt = ", n
        call marbl_status_log%log_error(error_msg, subname)
-        return
+       return
     endif
 
     !-----------------------------------------------------------------------
@@ -434,15 +430,16 @@ contains
   !***********************************************************************
 
   subroutine marbl_ciso_set_interior_forcing( &
-       marbl_domain,                  &
-       marbl_gcm_state,               &
-       marbl_interior_share,          &
-       marbl_zooplankton_share,       &
-       marbl_autotroph_share,         &
-       marbl_particulate_share,       &
-       column_tracer,                 &
-       marbl_interior_diags,          &
-       column_dtracer,                &
+       marbl_domain,                          &
+       marbl_seconds_in_year,                 & 
+       marbl_interior_forcing,                &
+       marbl_interior_share,                  &
+       marbl_zooplankton_share,               &
+       marbl_autotroph_share,                 &
+       marbl_particulate_share,               &
+       column_tracer,                         &
+       column_dtracer,                        &
+       marbl_interior_diags,                  &
        marbl_status_log)
 
     ! !DESCRIPTION:
@@ -464,21 +461,21 @@ contains
     use marbl_parms            , only : di14c_ind
     use marbl_parms            , only : do14c_ind
     use marbl_parms            , only : zoo14C_ind
-    use ecosys_diagnostics_mod , only : store_diagnostics_ciso_interior
+    use marbl_diagnostics_mod  , only : store_diagnostics_ciso_interior
 
     implicit none
 
     type(marbl_domain_type)            , intent(in)    :: marbl_domain                               
-    type(marbl_gcm_state_type)         , intent(in)    :: marbl_gcm_state
+    real (r8)                          , intent(in)    :: marbl_seconds_in_year 
+    type(marbl_interior_forcing_type)  , intent(in)    :: marbl_interior_forcing
     type(marbl_interior_share_type)    , intent(inout) :: marbl_interior_share(marbl_domain%km) !FIXME - intent is inout due to DIC_Loc
     type(marbl_zooplankton_share_type) , intent(in)    :: marbl_zooplankton_share(zooplankton_cnt, marbl_domain%km)
     type(marbl_autotroph_share_type)   , intent(in)    :: marbl_autotroph_share(autotroph_cnt, marbl_domain%km)
-    real (r8)                          , intent(in)    :: column_tracer(ecosys_ciso_tracer_cnt, marbl_domain%km)   ! tracer values
-
     type(marbl_particulate_share_type) , intent(inout) :: marbl_particulate_share
-    type(marbl_diagnostics_type)       , intent(inout) :: marbl_interior_diags
+    real (r8)                          , intent(in)    :: column_tracer(ecosys_ciso_tracer_cnt, marbl_domain%km)   ! tracer values
     real (r8)                          , intent(out)   :: column_dtracer(ecosys_ciso_tracer_cnt, marbl_domain%km)  ! computed source/sink terms
-    type(marbl_log_type),            intent(inout) :: marbl_status_log
+    type(marbl_diagnostics_type)       , intent(inout) :: marbl_interior_diags
+    type(marbl_log_type)               , intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -593,7 +590,7 @@ contains
          column_delta_z     => marbl_domain%delta_z                            , &
          column_zw          => marbl_domain%zw                                 , &
 
-         temperature        => marbl_gcm_state%temperature                     , &
+         temperature        => marbl_interior_forcing%temperature              , &
 
          DIC_loc            => marbl_interior_share%DIC_loc_fields             , & ! INPUT local copy of model DIC                                                       
          DOC_loc            => marbl_interior_share%DOC_loc_fields             , & ! INPUT local copy of model DOC                                                       
@@ -658,10 +655,11 @@ contains
     call setup_cell_attributes(ciso_fract_factors, &
        cell_active_C_uptake, cell_active_C, cell_surf, cell_carb_cont, &
        cell_radius, cell_permea, cell_eps_fix, marbl_status_log)
+
     if (marbl_status_log%labort_marbl) then
-      error_msg = "error code returned from setup_cell_attributes"
-      call marbl_status_log%log_error(error_msg, subname)
-      return
+       error_msg = "error code returned from setup_cell_attributes"
+       call marbl_status_log%log_error(error_msg, subname)
+       return
     end if
 
     !-----------------------------------------------------------------------
@@ -1168,15 +1166,15 @@ contains
     real (r8)           , intent(out) :: cell_radius(autotroph_cnt)          ! cell radius ( um )
     real (r8)           , intent(out) :: cell_permea(autotroph_cnt)          ! cell wall permeability to CO2(aq) (m/s)
     real (r8)           , intent(out) :: cell_eps_fix(autotroph_cnt)         ! fractionation effect of carbon fixation
-    type(marbl_log_type),            intent(inout) :: marbl_status_log
+    type(marbl_log_type), intent(inout) :: marbl_status_log
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
+    character(*), parameter :: subname = 'marbl_ciso_mod:setup_cell_attributes'
     integer (int_kind) :: &
          n,               & ! index for looping over column_tracer
          auto_ind           ! autotroph functional group index
-    character(*), parameter :: subname = 'marbl_ciso_mod:setup_cell_attributes'
     !-----------------------------------------------------------------------
 
     select case (ciso_fract_factors)
@@ -1233,6 +1231,7 @@ contains
               error_msg = "ciso: Currently Keller and Morel fractionation does not work for Diatoms-Diazotrophs"
               call marbl_status_log%log_error(error_msg, subname)
               return
+
           else
              !----------------------------------------------------------------------------------------
              ! Small phytoplankton based on E. huxleyi ( Keller and morel, 1999; Popp et al., 1998 )
@@ -1931,17 +1930,17 @@ contains
   !*****************************************************************************
 
   subroutine marbl_ciso_set_surface_forcing( &
-       num_elements        , &
-       num_tracers         , &
-       land_mask           , &
-       sst                 , &
-       d13c                , &
-       d14c                , &
-       d14c_glo_avg        , &
-       surface_vals        , &
-       marbl_forcing_share , &
-       stf                 , &
-       marbl_forcing_diags)
+       num_tracers         ,                 &
+       num_elements        ,                 &
+       land_mask           ,                 &
+       sst                 ,                 &
+       d13c                ,                 &
+       d14c                ,                 &
+       d14c_glo_avg        ,                 &
+       surface_vals        ,                 &
+       stf                 ,                 &
+       marbl_surface_forcing_share ,         &
+       marbl_surface_forcing_diags)
 
     use marbl_parms            , only : R13c_std
     use marbl_parms            , only : R14c_std
@@ -1950,21 +1949,21 @@ contains
     use marbl_parms            , only : di14c_ind
     use marbl_parms            , only : do13c_ind
     use marbl_parms            , only : do14c_ind
-    use ecosys_diagnostics_mod , only : store_diagnostics_ciso_surface_forcing
+    use marbl_diagnostics_mod  , only : store_diagnostics_ciso_surface_forcing
 
     implicit none
 
-    integer (int_kind)             , intent(in)    :: num_elements
-    integer (int_kind)             , intent(in)    :: num_tracers
-    logical (log_kind)             , intent(in)    :: land_mask(num_elements)
-    real(r8)                       , intent(in)    :: sst(num_elements)
-    real(r8)                       , intent(in)    :: d13c(num_elements)  ! atm 13co2 value
-    real(r8)                       , intent(in)    :: d14c(num_elements)  ! atm 14co2 value
-    real(r8)                       , intent(in)    :: d14c_glo_avg
-    real(r8)                       , intent(in)    :: surface_vals(num_elements, num_tracers)
-    type(marbl_forcing_share_type) , intent(in)    :: marbl_forcing_share
-    real(r8)                       , intent(inout) :: stf(num_elements, num_tracers)
-    type(marbl_diagnostics_type)   , intent(inout) :: marbl_forcing_diags
+    integer (int_kind)                     , intent(in)    :: num_elements
+    integer (int_kind)                     , intent(in)    :: num_tracers
+    logical (log_kind)                     , intent(in)    :: land_mask(num_elements)
+    real(r8)                               , intent(in)    :: sst(num_elements)
+    real(r8)                               , intent(in)    :: d13c(num_elements)  ! atm 13co2 value
+    real(r8)                               , intent(in)    :: d14c(num_elements)  ! atm 14co2 value
+    real(r8)                               , intent(in)    :: d14c_glo_avg
+    real(r8)                               , intent(in)    :: surface_vals(num_elements, num_tracers)
+    type(marbl_surface_forcing_share_type) , intent(in)    :: marbl_surface_forcing_share
+    real(r8)                               , intent(inout) :: stf(num_elements, num_tracers)
+    type(marbl_diagnostics_type)           , intent(inout) :: marbl_surface_forcing_diags
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -2021,14 +2020,14 @@ contains
     real(r8), parameter :: eps_k = -0.81_r8  ! eps_k = -0.95 at 5C
     !-----------------------------------------------------------------------
 
-    associate(                                                             &
-         pv                  => marbl_forcing_share%pv_surf_fields       , & ! in/out
-         dic                 => marbl_forcing_share%dic_surf_fields      , & ! in/out DIC values for solver
-         co2star             => marbl_forcing_share%co2star_surf_fields  , & ! in/out CO2STAR from solver
-         dco2star            => marbl_forcing_share%dco2star_surf_fields , & ! in/out DCO2STAR from solver
-         co3_surf_fields     => marbl_forcing_share%co3_surf_fields      , & ! in/out
-         dic_riv_flux_fields => marbl_forcing_share%dic_riv_flux_fields  , & ! in/out
-         doc_riv_flux_fields => marbl_forcing_share%doc_riv_flux_fields    & ! in/out
+    associate(                                                                     &
+         pv                  => marbl_surface_forcing_share%pv_surf_fields       , & ! in/out
+         dic                 => marbl_surface_forcing_share%dic_surf_fields      , & ! in/out DIC values for solver
+         co2star             => marbl_surface_forcing_share%co2star_surf_fields  , & ! in/out CO2STAR from solver
+         dco2star            => marbl_surface_forcing_share%dco2star_surf_fields , & ! in/out DCO2STAR from solver
+         co3_surf_fields     => marbl_surface_forcing_share%co3_surf_fields      , & ! in/out
+         dic_riv_flux_fields => marbl_surface_forcing_share%dic_riv_flux_fields  , & ! in/out
+         doc_riv_flux_fields => marbl_surface_forcing_share%doc_riv_flux_fields    & ! in/out
          )
 
     !-----------------------------------------------------------------------
@@ -2185,7 +2184,7 @@ contains
          do14c_riv_flux, &
          eps_aq_g_surf,  &
          eps_dic_g_surf, &
-         marbl_forcing_diags)
+         marbl_surface_forcing_diags)
 
   end subroutine marbl_ciso_set_surface_forcing
 

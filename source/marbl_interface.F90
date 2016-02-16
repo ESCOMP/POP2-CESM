@@ -53,16 +53,26 @@ module marbl_interface
   use marbl_sizes               , only : ecosys_ciso_ind_beg, ecosys_ciso_ind_end
   use marbl_sizes               , only : autotroph_cnt
   use marbl_sizes               , only : zooplankton_cnt
-  use marbl_share_mod           , only : max_forcing_fields
-  use marbl_share_mod           , only : marbl_forcing_ind
+  use marbl_sizes               , only : max_surface_forcing_fields
+
+  use marbl_share_mod           , only : marbl_surface_forcing_ind
 
   use marbl_interface_types     , only : marbl_domain_type
-  use marbl_interface_types     , only : marbl_gcm_state_type
   use marbl_interface_types     , only : marbl_tracer_metadata_type
-  use marbl_interface_types     , only : marbl_forcing_fields_type
-  use marbl_interface_types     , only : marbl_forcing_input_type
-  use marbl_interface_types     , only : marbl_forcing_output_type
+  use marbl_interface_types     , only : marbl_interior_forcing_type
+  use marbl_interface_types     , only : marbl_interior_forcing_saved_type
+  use marbl_interface_types     , only : marbl_surface_forcing_input_type
+  use marbl_interface_types     , only : marbl_surface_forcing_output_type
+  use marbl_interface_types     , only : marbl_surface_forcing_saved_type
   use marbl_interface_types     , only : marbl_diagnostics_type
+  use marbl_interface_types     , only : marbl_forcing_fields_type
+
+  use marbl_internal_types      , only : marbl_PAR_type
+  use marbl_internal_types      , only : marbl_interior_share_type
+  use marbl_internal_types      , only : marbl_autotroph_share_type
+  use marbl_internal_types      , only : marbl_zooplankton_share_type
+  use marbl_internal_types      , only : marbl_particulate_share_type
+  use marbl_internal_types      , only : marbl_surface_forcing_share_type
 
   implicit none
 
@@ -83,12 +93,37 @@ module marbl_interface
   !-----------------------------------------------------------------------------
   
   type, public :: marbl_interface_class
-     type(marbl_log_type) :: StatusLog
+
+     ! public data
+     type(marbl_domain_type)                 , public               :: domain
+     type(marbl_tracer_metadata_type)        , public, allocatable  :: tracer_metadata(:)
+     real (r8)                               , public, allocatable  :: column_tracers(:,:)
+     real (r8)                               , public, allocatable  :: column_dtracers(:,:)
+     real (r8)                               , public, allocatable  :: column_restore(:,:)  ! nutrients restoring (mmol ./m^3/sec)
+     type(marbl_interior_forcing_type)       , public               :: interior_forcing
+     type(marbl_interior_forcing_saved_type) , public               :: interior_forcing_saved
+     type(marbl_surface_forcing_input_type)  , public               :: surface_forcing_input
+     type(marbl_surface_forcing_output_type) , public               :: surface_forcing_output
+     type(marbl_surface_forcing_saved_type)  , public               :: surface_forcing_saved
+     type(marbl_log_type)                    , public               :: StatusLog
+
+     ! private data 
+     logical (log_kind)                      , private              :: ciso_on
+     real (r8)                               , private              :: seconds_in_year 
+     type(marbl_PAR_type)                    , private              :: PAR
+     type(marbl_particulate_share_type)      , private              :: particulate_share
+     type(marbl_interior_share_type)         , private, allocatable :: interior_share(:)
+     type(marbl_zooplankton_share_type)      , private, allocatable :: zooplankton_share(:,:)
+     type(marbl_autotroph_share_type)        , private, allocatable :: autotroph_share(:,:)
+     type(marbl_surface_forcing_share_type)  , private              :: surface_forcing_share
+
    contains
+
      procedure, public :: init             
      procedure, public :: set_interior_forcing     
      procedure, public :: set_surface_forcing
      procedure, public :: shutdown         
+
   end type marbl_interface_class
   
   private :: init
@@ -102,56 +137,52 @@ contains
 
   !***********************************************************************
   
-  subroutine init(this,       &
-       ciso_on,               &
-       nl_buffer,             &
-       seconds_in_year,       &   
-       marbl_domain,          &
-       marbl_gcm_state,       &
-       marbl_tracer_metadata, &
-       marbl_interior_diags,  &
-       marbl_restore_diags,   &
-       marbl_forcing_diags,   &
-       marbl_forcing_fields,  &
-       marbl_forcing_input,   &
-       marbl_forcing_output)
+  subroutine init(this,                   &
+       gcm_nl_buffer,                     &
+       gcm_ciso_on,                       &
+       gcm_seconds_in_year,               &   
+       gcm_num_levels,                    &
+       gcm_num_PAR_subcols,               &
+       gcm_num_elements_interior_forcing, &
+       gcm_num_elements_surface_forcing,  &
+       gcm_dz,                            &
+       gcm_zw,                            &
+       gcm_zt,                            &
+       marbl_tracer_metadata,             &
+       marbl_interior_forcing_diags,      &
+       marbl_interior_restore_diags,      &
+       marbl_surface_forcing_diags,       &
+       marbl_surface_forcing_fields)
 
-    use marbl_namelist_mod     , only : marbl_nl_cnt
-    use marbl_namelist_mod     , only : marbl_nl_buffer_size
-    use marbl_ciso_mod         , only : marbl_ciso_init_nml
-    use marbl_ciso_mod         , only : marbl_ciso_init_tracer_metadata
-    use ecosys_mod             , only : marbl_init_nml
-    use ecosys_mod             , only : marbl_sflux_forcing_fields_init
-    use ecosys_mod             , only : marbl_init_tracer_metadata
-    use ecosys_diagnostics_mod , only : marbl_diagnostics_init  
-    use marbl_share_mod        , only : marbl_seconds_in_year
+    use marbl_namelist_mod    , only : marbl_nl_cnt
+    use marbl_namelist_mod    , only : marbl_nl_buffer_size
+    use marbl_ciso_mod        , only : marbl_ciso_init_nml
+    use marbl_ciso_mod        , only : marbl_ciso_init_tracer_metadata
+    use marbl_mod             , only : marbl_init_nml
+    use marbl_mod             , only : marbl_init_surface_forcing_fields
+    use marbl_mod             , only : marbl_init_tracer_metadata
+    use marbl_diagnostics_mod , only : marbl_diagnostics_init  
     
     implicit none
 
     class     (marbl_interface_class)      , intent(inout) :: this
-    logical   (log_kind)                   , intent(in)    :: ciso_on
-    character (marbl_nl_buffer_size)       , intent(in)    :: nl_buffer(marbl_nl_cnt)
-    real      (r8)                         , intent(in)    :: seconds_in_year
-    type      (marbl_domain_type)          , intent(in)    :: marbl_domain 
-    type      (marbl_gcm_state_type)       , intent(inout) :: marbl_gcm_state
+    logical   (log_kind)                   , intent(in)    :: gcm_ciso_on
+    character (marbl_nl_buffer_size)       , intent(in)    :: gcm_nl_buffer(marbl_nl_cnt)
+    real      (r8)                         , intent(in)    :: gcm_seconds_in_year
+    integer   (int_kind)                   , intent(in)    :: gcm_num_levels
+    integer   (int_kind)                   , intent(in)    :: gcm_num_PAR_subcols
+    integer   (int_kind)                   , intent(in)    :: gcm_num_elements_surface_forcing
+    integer   (int_kind)                   , intent(in)    :: gcm_num_elements_interior_forcing
+    real      (r8)                         , intent(in)    :: gcm_dz(gcm_num_levels) ! thickness of layer k
+    real      (r8)                         , intent(in)    :: gcm_zw(gcm_num_levels) ! thickness of layer k
+    real      (r8)                         , intent(in)    :: gcm_zt(gcm_num_levels) ! thickness of layer k
     type      (marbl_tracer_metadata_type) , intent(inout) :: marbl_tracer_metadata(:)
-    type      (marbl_diagnostics_type)     , intent(inout) :: marbl_interior_diags
-    type      (marbl_diagnostics_type)     , intent(inout) :: marbl_restore_diags
-    type      (marbl_diagnostics_type)     , intent(inout) :: marbl_forcing_diags
-    type      (marbl_forcing_fields_type)  , intent(inout) :: marbl_forcing_fields
-    type      (marbl_forcing_input_type)   , intent(inout) :: marbl_forcing_input
-    type      (marbl_forcing_output_type)  , intent(inout) :: marbl_forcing_output
+    type      (marbl_diagnostics_type)     , intent(inout) :: marbl_interior_forcing_diags
+    type      (marbl_diagnostics_type)     , intent(inout) :: marbl_interior_restore_diags
+    type      (marbl_diagnostics_type)     , intent(inout) :: marbl_surface_forcing_diags
+    type      (marbl_forcing_fields_type)  , intent(inout) :: marbl_surface_forcing_fields
 
     integer :: i
-
-    marbl_seconds_in_year = seconds_in_year
-
-    associate(                                                                &
-         num_elements_interior => marbl_domain%num_elements_interior_forcing, &
-         num_elements_forcing  => marbl_domain%num_elements_surface_forcing,  &
-         num_PAR_subcols       => marbl_domain%num_PAR_subcols,               &
-         num_levels            => marbl_domain%km                             &
-         )
 
     !--------------------------------------------------------------------
     ! initialize marbl status logs
@@ -163,27 +194,72 @@ contains
     ! initialize marbl namelists
     !--------------------------------------------------------------------
 
-    call marbl_init_nml(nl_buffer, this%StatusLog)
+    call marbl_init_nml(gcm_nl_buffer, this%StatusLog)
     if (this%StatusLog%labort_marbl) then
-      call this%StatusLog%log_error("error code returned from marbl_init_nml", &
-                                        "marbl_interface::marbl_init()")
+       call this%StatusLog%log_error("error code returned from marbl_init_nml", &
+            "marbl_interface::marbl_init()")
       return
     end if
 
-    if (ciso_on) then
-       call marbl_ciso_init_nml(nl_buffer, this%StatusLog)
+    if (gcm_ciso_on) then
+       call marbl_ciso_init_nml(gcm_nl_buffer, this%StatusLog)
        if (this%StatusLog%labort_marbl) then
-         call this%StatusLog%log_error("error code returned from marbl_ciso_init_nml", &
-                                           "marbl_interface::marbl_init()")
-         return
+          call this%StatusLog%log_error("error code returned from marbl_ciso_init_nml", &
+               "marbl_interface::marbl_init()")
+          return
        end if
     end if
+    
+    !--------------------------------------------------------------------
+    ! initialize private data
+    !--------------------------------------------------------------------
+
+    this%ciso_on = gcm_ciso_on
+
+    this%seconds_in_year = gcm_seconds_in_year
+
+    call this%PAR%construct(gcm_num_levels, gcm_num_PAR_subcols)
+
+    call this%particulate_share%construct(gcm_num_levels)
+
+    call this%surface_forcing_share%construct(gcm_num_elements_surface_forcing)
+
+    allocate (this%interior_share(gcm_num_levels))
+
+    allocate (this%zooplankton_share(zooplankton_cnt, gcm_num_levels))
+
+    allocate (this%autotroph_share(autotroph_cnt, gcm_num_levels))
 
     !--------------------------------------------------------------------
-    ! initialize marbl gcm_state 
+    ! initialize public data 
     !--------------------------------------------------------------------
 
-    call marbl_gcm_state%construct(num_levels, num_PAR_subcols)
+    call this%domain%construct(                                             &
+         num_levels = gcm_num_levels,                                       &
+         num_PAR_subcols = gcm_num_PAR_subcols,                             &
+         num_elements_surface_forcing = gcm_num_elements_surface_forcing,   &
+         num_elements_interior_forcing = gcm_num_elements_interior_forcing, &
+         dz = gcm_dz,                                                       &
+         zw = gcm_zw,                                                       &
+         zt = gcm_zt)
+
+    call this%interior_forcing%construct(gcm_num_levels, gcm_num_PAR_subcols)
+
+    call this%interior_forcing_saved%construct(gcm_num_levels)
+
+    call this%surface_forcing_saved%construct(gcm_num_elements_surface_forcing) 
+
+    call this%surface_forcing_input%construct(gcm_num_elements_surface_forcing, &
+         ecosys_used_tracer_cnt, max_surface_forcing_fields, gcm_ciso_on)
+
+    call this%surface_forcing_output%construct(gcm_num_elements_surface_forcing, &
+         ecosys_used_tracer_cnt)
+    
+    allocate(this%column_tracers(ecosys_used_tracer_cnt, gcm_num_levels))
+
+    allocate(this%column_dtracers(ecosys_used_tracer_cnt, gcm_num_levels))
+
+    allocate(this%column_restore(ecosys_tracer_cnt, gcm_num_levels)) 
 
     !--------------------------------------------------------------------
     ! initialize marbl tracer metadata 
@@ -196,7 +272,7 @@ contains
       return
     end if
 
-    if (ciso_on) then
+    if (this%ciso_on) then
        call marbl_ciso_init_tracer_metadata(&
             marbl_tracer_metadata(ecosys_ciso_ind_beg:ecosys_ciso_ind_end),   &
             this%StatusLog)
@@ -208,201 +284,131 @@ contains
     end if
 
     !--------------------------------------------------------------------
+    ! initialize marbl surface forcing fields
+    !--------------------------------------------------------------------
+
+    call marbl_init_surface_forcing_fields(gcm_num_elements_surface_forcing, marbl_surface_forcing_fields)
+
+    !--------------------------------------------------------------------
     ! Initialize marbl diagnostics
     !--------------------------------------------------------------------
 
-    call marbl_diagnostics_init(                                        &
-         ciso_on=ciso_on,                                               &
-         marbl_domain=marbl_domain, &
+    call marbl_diagnostics_init(                                                     &
+         ciso_on=this%ciso_on,                                                       &
+         marbl_domain=this%domain,                                                   &
          marbl_tracer_metadata=marbl_tracer_metadata(ecosys_ind_beg:ecosys_ind_end), &
-         marbl_interior_diags=marbl_interior_diags,                     &
-         marbl_restore_diags=marbl_restore_diags,                       &
-         marbl_forcing_diags=marbl_forcing_diags)
-
-    !--------------------------------------------------------------------
-    ! initialize marbl surface forcing input and output
-    !--------------------------------------------------------------------
-
-    call marbl_forcing_input%construct(            &
-         num_elements_forcing,                     &
-         num_surface_vals=ecosys_used_tracer_cnt,  &
-         num_input_forcings=max_forcing_fields,    &  
-         ciso_on=ciso_on)
-
-    call marbl_sflux_forcing_fields_init(            &
-         num_elements_forcing,                       &
-         marbl_forcing_fields)
-
-    call marbl_forcing_output%construct(             &
-         num_elements_forcing,                       &
-         num_surface_vals=ecosys_used_tracer_cnt)
-    
-    end associate
+         marbl_interior_forcing_diags=marbl_interior_forcing_diags,                  &
+         marbl_interior_restore_diags=marbl_interior_restore_diags,                  &
+         marbl_surface_forcing_diags=marbl_surface_forcing_diags)
 
   end subroutine init
 
   !***********************************************************************
   
   subroutine set_interior_forcing(this, &
-       ciso_on,                       &
-       marbl_domain,                  &
-       marbl_gcm_state,               &
-       column_restore,                &
-       column_dust_flux_in,           &
-       column_fesedflux,              &
-       column_tracers,                &
-       marbl_interior_diags,          &
-       marbl_restore_diags,           &
-       column_ph_prev_3d,             &
-       column_ph_prev_alt_co2_3d,     &
-       column_dtracers)
+       marbl_interior_forcing_diags,    &
+       marbl_interior_restore_diags)
 
-    use ecosys_mod          , only : marbl_set_interior_forcing
-    use marbl_ciso_mod      , only : marbl_ciso_set_interior_forcing
-    use marbl_internal_types, only : marbl_interior_share_type
-    use marbl_internal_types, only : marbl_autotroph_share_type
-    use marbl_internal_types, only : marbl_zooplankton_share_type
-    use marbl_internal_types, only : marbl_particulate_share_type
+    use marbl_mod      , only : marbl_set_interior_forcing
+    use marbl_ciso_mod , only : marbl_ciso_set_interior_forcing
     
     implicit none
 
-    class   (marbl_interface_class)  , intent(inout) :: this
-    logical (log_kind)               , intent(in)    :: ciso_on   
-    type    (marbl_domain_type)      , intent(in)    :: marbl_domain                                
-    type    (marbl_gcm_state_type)   , intent(in)    :: marbl_gcm_state
-    real    (r8)                     , intent(in)    :: column_restore(ecosys_tracer_cnt, marbl_domain%km) 
-    real    (r8)                     , intent(in)    :: column_dust_flux_in
-    real    (r8)                     , intent(in)    :: column_fesedflux(marbl_domain%km)
-    real    (r8)                     , intent(in)    :: column_tracers(ecosys_used_tracer_cnt, marbl_domain%km) 
-    real    (r8)                     , intent(inout) :: column_ph_prev_3d(marbl_domain%km)         
-    real    (r8)                     , intent(inout) :: column_ph_prev_alt_co2_3d(marbl_domain%km) 
-    type    (marbl_diagnostics_type) , intent(inout) :: marbl_interior_diags
-    type    (marbl_diagnostics_type) , intent(inout) :: marbl_restore_diags
-    real    (r8)                     , intent(out)   :: column_dtracers(ecosys_used_tracer_cnt, marbl_domain%km) 
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    type(marbl_interior_share_type)     :: marbl_interior_share(marbl_domain%km)
-    type(marbl_zooplankton_share_type)  :: marbl_zooplankton_share(zooplankton_cnt, marbl_domain%km)
-    type(marbl_autotroph_share_type)    :: marbl_autotroph_share(autotroph_cnt, marbl_domain%km)
-    type(marbl_particulate_share_type)  :: marbl_particulate_share
+    class   (marbl_interface_class)       , intent(inout) :: this
+    type    (marbl_diagnostics_type)      , intent(inout) :: marbl_interior_forcing_diags
+    type    (marbl_diagnostics_type)      , intent(inout) :: marbl_interior_restore_diags
     !-----------------------------------------------------------------------
 
-    !-----------------------------------------------------------------------
-    ! first allocate memory for local derived data types containing allocatable arrays
-    !-----------------------------------------------------------------------
-
-    call marbl_particulate_share%construct(num_levels=marbl_domain%km)
-
-    call marbl_set_interior_forcing( &
-         ciso_on,                    &
-         marbl_domain,               &
-         marbl_gcm_state,            &
-         column_restore,             &
-         column_dust_flux_in,        &
-         column_fesedflux,           &
-         column_tracers,             &
-         marbl_interior_diags,       &
-         marbl_restore_diags,        &
-         column_ph_prev_3d,          &
-         column_ph_prev_alt_co2_3d,  &
-         column_dtracers,            &
-         marbl_interior_share,       &
-         marbl_zooplankton_share,    &
-         marbl_autotroph_share,      &
-         marbl_particulate_share,    &
+    call marbl_set_interior_forcing(   &
+         this%ciso_on,                 &
+         this%domain,                  &
+         this%interior_forcing,        &
+         this%interior_forcing_saved,  &
+         this%column_restore,          &
+         this%column_tracers,          &
+         this%column_dtracers,         &
+         this%PAR,                     &
+         this%interior_share,          &
+         this%zooplankton_share,       &
+         this%autotroph_share,         &
+         this%particulate_share,       &
+         marbl_interior_forcing_diags, &
+         marbl_interior_restore_diags, &
          this%StatusLog)
+
     if (this%StatusLog%labort_marbl) then
-      error_msg = "error code returned from marbl_set_interior_forcing"
-      call this%StatusLog%log_error(error_msg, "marbl_interface::set_interior_forcing")
-      return
+       error_msg = "error code returned from marbl_set_interior_forcing"
+       call this%StatusLog%log_error(error_msg, "marbl_interface::set_interior_forcing")
+       return
     end if
     
     !  compute time derivatives for ecosystem carbon isotope state variables
-    if (ciso_on) then
-       call marbl_ciso_set_interior_forcing(                           &
-            marbl_domain,                                              &
-            marbl_gcm_state,                                           &
-            marbl_interior_share,                                      &
-            marbl_zooplankton_share,                                   &
-            marbl_autotroph_share,                                     &
-            marbl_particulate_share,                                   &
-            column_tracers(ecosys_ciso_ind_beg:ecosys_ciso_ind_end,:), &
-            marbl_interior_diags,                                      &
-            column_dtracers(ecosys_ciso_ind_beg:ecosys_ciso_ind_end,:), &
+
+    if (this%ciso_on) then
+       call marbl_ciso_set_interior_forcing(                                 &
+            this%domain,                                                     &
+            this%seconds_in_year,                                            &
+            this%interior_forcing,                                           &
+            this%interior_share,                                             &
+            this%zooplankton_share,                                          &
+            this%autotroph_share,                                            &
+            this%particulate_share,                                          &
+            this%column_tracers(ecosys_ciso_ind_beg:ecosys_ciso_ind_end,:),  &
+            this%column_dtracers(ecosys_ciso_ind_beg:ecosys_ciso_ind_end,:), &
+            marbl_interior_forcing_diags,                                    & 
             this%StatusLog)
+
        if (this%StatusLog%labort_marbl) then
-         error_msg = "error code returned from marbl_ciso_set_interior_forcing"
-         call this%StatusLog%log_error(error_msg, "marbl_interface::set_interior_forcing")
-         return
+          error_msg = "error code returned from marbl_ciso_set_interior_forcing"
+          call this%StatusLog%log_error(error_msg, "marbl_interface::set_interior_forcing")
+          return
        end if
     end if
-
-    !-----------------------------------------------------------------------
-    ! deallocate memory for local derived data types containing allocatable arrays
-    !-----------------------------------------------------------------------
-
-    call marbl_particulate_share%destruct()
 
   end subroutine set_interior_forcing
   
   !***********************************************************************
   
-  subroutine set_surface_forcing(this, &
-       num_elements,                   &
-       ciso_on,                        &
-       marbl_forcing_input,            &
-       marbl_forcing_output,           &
-       marbl_forcing_diags)
+  subroutine set_surface_forcing(this, marbl_surface_forcing_diags)
 
-    use marbl_internal_types  , only : marbl_forcing_share_type
-    use marbl_ciso_mod        , only : marbl_ciso_set_surface_forcing
-    use ecosys_mod            , only : marbl_set_surface_forcing
+    use marbl_mod      , only : marbl_set_surface_forcing
+    use marbl_ciso_mod , only : marbl_ciso_set_surface_forcing
     
     implicit none
 
-    class   (marbl_interface_class)     , intent(inout) :: this
-    integer (int_kind)                  , intent(in)    :: num_elements
-    logical (log_kind)                  , intent(in)    :: ciso_on
-    type    (marbl_forcing_input_type)  , intent(in)    :: marbl_forcing_input
-    type    (marbl_forcing_output_type) , intent(inout) :: marbl_forcing_output
-    type    (marbl_diagnostics_type),     intent(inout) :: marbl_forcing_diags
-
+    class   (marbl_interface_class)  , intent(inout) :: this
+    type    (marbl_diagnostics_type) , intent(inout) :: marbl_surface_forcing_diags
     !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    type(marbl_forcing_share_type)  :: marbl_forcing_share
-    ! -----------------------------------------------------------------------
 
-    call marbl_forcing_share%construct(num_elements)
+    call marbl_set_surface_forcing(                &
+         this%ciso_on,                             &
+         this%domain%num_elements_surface_forcing, &
+         this%surface_forcing_input,               &
+         this%surface_forcing_output,              &
+         this%surface_forcing_saved,               &
+         this%surface_forcing_share,               &
+         marbl_surface_forcing_diags,              &
+         this%statuslog)
 
-    call marbl_set_surface_forcing( &
-         ciso_on,                   &
-         num_elements,              &
-         marbl_forcing_input,       &
-         marbl_forcing_output,      &
-         marbl_forcing_share,       &
-         marbl_forcing_diags,       &
-         this%StatusLog)
+    ! FIXME - all the elements are passed explitly below - since the
+    ! array sections (i.e. ecosys_ciso_ind_beg and
+    ! ecosys_ciso_ind_end) are current required for input to
+    ! marbl_ciso_set_surface_forcing
 
-    if (ciso_on) then
-       call marbl_ciso_set_surface_forcing(                                              &
-            num_elements,                                                                &
-            ecosys_ciso_tracer_cnt,                                                      &
-            marbl_forcing_input%land_mask,                                               &
-            marbl_forcing_input%input_forcings(:,marbl_forcing_ind%sst_id),              &
-            marbl_forcing_input%d13c,                                                    &
-            marbl_forcing_input%d14c,                                                    &
-            marbl_forcing_input%d14c_glo_avg,                                            &
-            marbl_forcing_input%surface_vals(:,ecosys_ciso_ind_beg:ecosys_ciso_ind_end), &
-            marbl_forcing_share,                                                         &
-            marbl_forcing_output%stf_module(:,ecosys_ciso_ind_beg:ecosys_ciso_ind_end),  &
-            marbl_forcing_diags)
+    if (this%ciso_on) then
+       call marbl_ciso_set_surface_forcing(                                                     &
+            ecosys_ciso_tracer_cnt,                                                             &
+            this%domain%num_elements_surface_forcing,                                           &
+            this%surface_forcing_input%land_mask,                                               &
+            this%surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%sst_id),      &
+            this%surface_forcing_input%d13c,                                                    &
+            this%surface_forcing_input%d14c,                                                    &
+            this%surface_forcing_input%d14c_glo_avg,                                            &
+            this%surface_forcing_input%surface_vals(:,ecosys_ciso_ind_beg:ecosys_ciso_ind_end), &
+            this%surface_forcing_output%stf(:,ecosys_ciso_ind_beg:ecosys_ciso_ind_end),         &
+            this%surface_forcing_share,                                                         &
+            marbl_surface_forcing_diags)
     end if
-
-    call marbl_forcing_share%destruct(num_elements)
-
   end subroutine set_surface_forcing
   
   !***********************************************************************

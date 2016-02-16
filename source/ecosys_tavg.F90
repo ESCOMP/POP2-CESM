@@ -41,9 +41,9 @@
   !  variables
   !-----------------------------------------------------------------------
 
-  integer (int_kind), allocatable :: tavg_ids_interior(:)
-  integer (int_kind), allocatable :: tavg_ids_restore(:)
-  integer (int_kind), allocatable :: tavg_ids_forcing(:)
+  integer (int_kind), allocatable :: tavg_ids_interior_forcing(:)
+  integer (int_kind), allocatable :: tavg_ids_interior_restore(:)
+  integer (int_kind), allocatable :: tavg_ids_surface_forcing(:)
 
   integer (int_kind) ::      &
       tavg_ECOSYS_IFRAC_2,   &! ice fraction duplicate
@@ -58,14 +58,19 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_init( marbl_interior_diags, marbl_restore_diags, marbl_forcing_diags)
+  subroutine ecosys_tavg_init(       &
+       marbl_interior_diags,         &
+       marbl_interior_restore_diags, &
+       marbl_surface_forcing_diags)
 
     ! !DESCRIPTION:
     !  call define_tavg_field for all tavg fields
-    !
+
+    implicit none
+
     type(marbl_diagnostics_type) , intent(in) :: marbl_interior_diags
-    type(marbl_diagnostics_type) , intent(in) :: marbl_restore_diags
-    type(marbl_diagnostics_type) , intent(in) :: marbl_forcing_diags
+    type(marbl_diagnostics_type) , intent(in) :: marbl_interior_restore_diags
+    type(marbl_diagnostics_type) , intent(in) :: marbl_surface_forcing_diags
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -77,20 +82,22 @@ contains
     !  allocate memory for module variables
     !-----------------------------------------------------------------------
 
-    allocate(tavg_ids_interior(marbl_interior_diags%diag_cnt))
-    allocate(tavg_ids_restore(marbl_restore_diags%diag_cnt))
-    allocate(tavg_ids_forcing(marbl_forcing_diags%diag_cnt))
+    allocate(tavg_ids_interior_forcing(marbl_interior_diags%diag_cnt))
+    allocate(tavg_ids_interior_restore(marbl_interior_restore_diags%diag_cnt))
+    allocate(tavg_ids_surface_forcing(marbl_surface_forcing_diags%diag_cnt))
 
     !-----------------------------------------------------------------------
     !  Define tavg fields for MARBL diagnostics
     !-----------------------------------------------------------------------
 
     call ecosys_tavg_define_from_diag(marbl_diags=marbl_interior_diags, &
-                                      tavg_ids=tavg_ids_interior)
-    call ecosys_tavg_define_from_diag(marbl_diags=marbl_restore_diags,  &
-                                      tavg_ids=tavg_ids_restore)
-    call ecosys_tavg_define_from_diag(marbl_diags=marbl_forcing_diags,  &
-                                      tavg_ids=tavg_ids_forcing)
+                                      tavg_ids=tavg_ids_interior_forcing)
+
+    call ecosys_tavg_define_from_diag(marbl_diags=marbl_interior_restore_diags,  &
+                                      tavg_ids=tavg_ids_interior_restore)
+
+    call ecosys_tavg_define_from_diag(marbl_diags=marbl_surface_forcing_diags,  &
+                                      tavg_ids=tavg_ids_surface_forcing)
 
     call define_tavg_field(tavg_ECOSYS_IFRAC_2,'ECOSYS_IFRAC_2',2,      &
                            long_name='Ice Fraction for ecosys fluxes',  &
@@ -122,27 +129,30 @@ contains
   !***********************************************************************
 
   subroutine ecosys_tavg_accumulate(i, c, bid, marbl_interior_diags,          &
-             marbl_restore_diags, marbl_forcing_diags)
+             marbl_interior_restore_diags, marbl_surface_forcing_diags)
+
+    implicit none
 
     integer, dimension(:),        intent(in) :: i, c ! column indices
     integer,                      intent(in) :: bid ! block index
     type(marbl_diagnostics_type), optional, intent(in) :: marbl_interior_diags
-    type(marbl_diagnostics_type), optional, intent(in) :: marbl_restore_diags
-    type(marbl_diagnostics_type), optional, intent(in) :: marbl_forcing_diags
+    type(marbl_diagnostics_type), optional, intent(in) :: marbl_interior_restore_diags
+    type(marbl_diagnostics_type), optional, intent(in) :: marbl_surface_forcing_diags
+    !-----------------------------------------------------------------------
 
     if (present(marbl_interior_diags)) then
       call ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_interior_diags,  &
-           tavg_ids_interior, marbl_interior_diags%num_elements)
+           tavg_ids_interior_forcing, marbl_interior_diags%num_elements)
     end if
 
-    if (present(marbl_restore_diags)) then
-      call ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_restore_diags,   &
-           tavg_ids_restore, marbl_restore_diags%num_elements)
+    if (present(marbl_interior_restore_diags)) then
+      call ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_interior_restore_diags,   &
+           tavg_ids_interior_restore, marbl_interior_restore_diags%num_elements)
     end if
 
-    if (present(marbl_forcing_diags)) then
-      call ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_forcing_diags,   &
-           tavg_ids_forcing, marbl_forcing_diags%num_elements)
+    if (present(marbl_surface_forcing_diags)) then
+      call ecosys_tavg_accumulate_from_diag(i, c, bid, marbl_surface_forcing_diags,   &
+           tavg_ids_surface_forcing, marbl_surface_forcing_diags%num_elements)
     end if
 
   end subroutine ecosys_tavg_accumulate
@@ -153,6 +163,8 @@ contains
              tavg_ids, num_elements)
 
     ! Accumulate diagnostics
+
+    implicit none
 
     integer, dimension(:)        , intent(in) :: i, c ! column indices
     integer                      , intent(in) :: bid ! block index
@@ -184,15 +196,16 @@ contains
 
   !***********************************************************************
 
-  subroutine ecosys_tavg_accumulate_flux(flux_diags, marbl_forcing_diags)
+  subroutine ecosys_tavg_accumulate_flux(flux_diags, marbl_surface_forcing_diags)
 
     ! Compute diagnostics for surface fluxes
 
-    use ecosys_diagnostics_mod, only : ind => marbl_forcing_diag_ind
+    use marbl_diagnostics_mod, only : ind => marbl_surface_forcing_diag_ind
 
     implicit none
+
     real (r8)                   , intent(in) :: flux_diags (:, :, :, :)
-    type(marbl_diagnostics_type), intent(in) :: marbl_forcing_diags(:)
+    type(marbl_diagnostics_type), intent(in) :: marbl_surface_forcing_diags(:)
 
     !-----------------------------------------------------------------------
     !  local variables
@@ -205,17 +218,23 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(iblock)
     do iblock=1,nblocks_clinic
-       do i = 1,marbl_forcing_diags(iblock)%diag_cnt
-          call accumulate_tavg_field(FLUX_DIAGS(:,:,i,iblock), tavg_ids_forcing(i), iblock, i)
+       do i = 1,marbl_surface_forcing_diags(iblock)%diag_cnt
+          call accumulate_tavg_field(FLUX_DIAGS(:,:,i,iblock), &
+               tavg_ids_surface_forcing(i), iblock, i)
        end do
+
        call accumulate_tavg_field(FLUX_diags(:,:,ind%ECOSYS_IFRAC,iblock),    &
             tavg_ECOSYS_IFRAC_2, iblock, i)
+
        call accumulate_tavg_field(FLUX_diags(:,:,ind%ECOSYS_XKW,iblock),      &
             tavg_ECOSYS_XKW_2, iblock, i)
+
        call accumulate_tavg_field(FLUX_diags(:,:,ind%O2_GAS_FLUX,iblock),     &
             tavg_O2_GAS_FLUX_2, iblock, i)
+
        call accumulate_tavg_field(FLUX_diags(:,:,ind%DpCO2,iblock),           &
             tavg_DpCO2_2, iblock, i)
+
        call accumulate_tavg_field(FLUX_diags(:,:,ind%DIC_GAS_FLUX,iblock),    &
             tavg_DIC_GAS_FLUX_2, iblock, i)
     end do
@@ -227,11 +246,17 @@ contains
 
   subroutine ecosys_tavg_define_from_diag(marbl_diags, tavg_ids)
 
+    implicit none
+
     type(marbl_diagnostics_type)    , intent(in)    :: marbl_diags
     integer(int_kind), dimension(:) , intent(inout) :: tavg_ids
 
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
     character(char_len) :: err_msg, gloc, coords
     integer :: n, ndims
+    !-----------------------------------------------------------------------
 
     associate(diags => marbl_diags%diags(:))
 
@@ -259,11 +284,12 @@ contains
                call shr_sys_abort(err_msg)
             end if
          end if
-         call define_tavg_field(tavg_ids(n),             &
-              trim(diags(n)%short_name),                 &
-              ndims,                                     &
-              long_name=trim(diags(n)%long_name),        &
-              units=trim(diags(n)%units), grid_loc=gloc, &
+         call define_tavg_field(tavg_ids(n),      &
+              trim(diags(n)%short_name),          &
+              ndims,                              &
+              long_name=trim(diags(n)%long_name), &
+              units=trim(diags(n)%units),         &
+              grid_loc=gloc,                      &
               coordinates=coords)
       end do
     end associate

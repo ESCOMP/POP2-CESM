@@ -7,8 +7,7 @@ module marbl_internal_types
   use marbl_kinds_mod, only : int_kind
   use marbl_kinds_mod, only : char_len
 
-  use marbl_sizes, only : autotroph_cnt
-  use marbl_sizes, only : zooplankton_cnt
+  use marbl_sizes, only : max_prey_class_size
 
   implicit none
 
@@ -72,8 +71,8 @@ module marbl_internal_types
      real    (KIND=r8)       :: graze_poc        ! routing of grazed term, remainder goes to dic
      real    (KIND=r8)       :: graze_doc        ! routing of grazed term, remainder goes to dic
      real    (KIND=r8)       :: f_zoo_detr       ! fraction of zoo losses to detrital
-     integer (KIND=int_kind) :: auto_ind(autotroph_cnt)
-     integer (KIND=int_kind) :: zoo_ind(zooplankton_cnt)
+     integer (KIND=int_kind) :: auto_ind(max_prey_class_size)
+     integer (KIND=int_kind) :: zoo_ind(max_prey_class_size)
   end type grazing_type
 
   !****************************************************************************
@@ -108,6 +107,38 @@ module marbl_internal_types
      procedure, public :: construct => column_sinking_particle_constructor
      procedure, public :: destruct => column_sinking_particle_destructor
   end type column_sinking_particle_type
+
+  !****************************************************************************
+
+  type, public :: marbl_surface_forcing_indexing_type
+     integer(int_kind) :: land_mask_id
+     integer(int_kind) :: u10_sqr_id
+     integer(int_kind) :: ifrac_id
+     integer(int_kind) :: sst_id
+     integer(int_kind) :: sss_id
+     integer(int_kind) :: xco2_id
+     integer(int_kind) :: atm_pressure_id
+     integer(int_kind) :: xco2_alt_co2_id
+     integer(int_kind) :: xkw_id
+     integer(int_kind) :: fice_id
+     integer(int_kind) :: ph_prev_id
+     integer(int_kind) :: ph_prev_alt_co2_id
+     integer(int_kind) :: dust_flux_id
+     integer(int_kind) :: iron_flux_id
+     integer(int_kind) :: nox_flux_id
+     integer(int_kind) :: nhy_flux_id
+     integer(int_kind) :: no3_flux_id
+     integer(int_kind) :: nh4_flux_id
+     integer(int_kind) :: din_riv_flux_id
+     integer(int_kind) :: dip_riv_flux_id
+     integer(int_kind) :: don_riv_flux_id
+     integer(int_kind) :: dop_riv_flux_id
+     integer(int_kind) :: dsi_riv_flux_id
+     integer(int_kind) :: dfe_riv_flux_id
+     integer(int_kind) :: dic_riv_flux_id
+     integer(int_kind) :: alk_riv_flux_id
+     integer(int_kind) :: doc_riv_flux_id
+  end type marbl_surface_forcing_indexing_type
 
   !****************************************************************************
   !
@@ -190,17 +221,15 @@ module marbl_internal_types
   !*****************************************************************************
 
   type, public :: carbonate_type
-     ! FIXME(bja, 2015-07) remove alt_co2 variables, and just reuse
-     ! the type as type(column_carbonate_type) :: carbonate, carbonate_alt
-     real (r8) :: CO3 ! carbonate ion
-     real (r8) :: HCO3 ! bicarbonate ion
-     real (r8) :: H2CO3 ! carbonic acid
+     real (r8) :: CO3           ! carbonate ion
+     real (r8) :: HCO3          ! bicarbonate ion
+     real (r8) :: H2CO3         ! carbonic acid
      real (r8) :: pH
      real (r8) :: CO3_sat_calcite
      real (r8) :: CO3_sat_aragonite
-     real (r8) :: CO3_ALT_CO2 ! carbonate ion, alternative CO2
-     real (r8) :: HCO3_ALT_CO2 ! bicarbonate ion, alternative CO2
-     real (r8) :: H2CO3_ALT_CO2  ! carbonic acid, alternative CO2
+     real (r8) :: CO3_ALT_CO2   ! carbonate ion, alternative CO2
+     real (r8) :: HCO3_ALT_CO2  ! bicarbonate ion, alternative CO2
+     real (r8) :: H2CO3_ALT_CO2 ! carbonic acid, alternative CO2
      real (r8) :: pH_ALT_CO2
   end type carbonate_type
 
@@ -283,7 +312,7 @@ module marbl_internal_types
 
   !***********************************************************************
 
-  type, public :: marbl_forcing_share_type
+  type, public :: marbl_surface_forcing_share_type
      real(r8), allocatable :: PV_SURF_fields       (:) ! piston velocity (cm/s)
      real(r8), allocatable :: DIC_SURF_fields      (:) ! surface values of DIC for solver
      real(r8), allocatable :: CO2STAR_SURF_fields  (:) ! CO2STAR from solver
@@ -292,9 +321,9 @@ module marbl_internal_types
      real(r8), allocatable :: dic_riv_flux_fields  (:) ! River input of DIC in ecosystem (from file)
      real(r8), allocatable :: doc_riv_flux_fields  (:) ! River input of DOC in ecosystem (from file)
    contains
-     procedure, public :: construct => marbl_forcing_share_constructor
-     procedure, public :: destruct => marbl_forcing_share_destructor
-  end type marbl_forcing_share_type
+     procedure, public :: construct => marbl_surface_forcing_share_constructor
+     procedure, public :: destruct => marbl_surface_forcing_share_destructor
+  end type marbl_surface_forcing_share_type
 
   !***********************************************************************
 
@@ -381,8 +410,8 @@ contains
 
   !***********************************************************************
 
-   subroutine marbl_forcing_share_constructor(this, num_elements)
-     class(marbl_forcing_share_type), intent(inout) :: this
+   subroutine marbl_surface_forcing_share_constructor(this, num_elements)
+     class(marbl_surface_forcing_share_type), intent(inout) :: this
      integer (int_kind) , intent(in) :: num_elements
      
      allocate(this%PV_SURF_fields       (num_elements)) ! piston velocity (cm/s)
@@ -392,10 +421,10 @@ contains
      allocate(this%CO3_SURF_fields      (num_elements)) ! Surface carbonate ion
      allocate(this%dic_riv_flux_fields  (num_elements)) ! River input of DIC in ecosystem (from file)
      allocate(this%doc_riv_flux_fields  (num_elements)) ! River input of DOC in ecosystem (from file)
-   end subroutine marbl_forcing_share_constructor
+   end subroutine marbl_surface_forcing_share_constructor
 
-   subroutine marbl_forcing_share_destructor(this, num_elements)
-     class(marbl_forcing_share_type), intent(inout) :: this
+   subroutine marbl_surface_forcing_share_destructor(this, num_elements)
+     class(marbl_surface_forcing_share_type), intent(inout) :: this
      integer (int_kind) , intent(in) :: num_elements
      
      deallocate(this%PV_SURF_fields      ) ! piston velocity (cm/s)
@@ -405,7 +434,7 @@ contains
      deallocate(this%CO3_SURF_fields     ) ! Surface carbonate ion
      deallocate(this%dic_riv_flux_fields ) ! River input of DIC in ecosystem (from file)
      deallocate(this%doc_riv_flux_fields ) ! River input of DOC in ecosystem (from file)
-   end subroutine marbl_forcing_share_destructor
+   end subroutine marbl_surface_forcing_share_destructor
 
   !*****************************************************************************
 

@@ -21,11 +21,18 @@ module marbl_sizes
   integer (KIND=int_kind), parameter :: autotroph_cnt   = AUTOTROPH_CNT
   integer (KIND=int_kind), parameter :: grazer_prey_cnt = GRAZER_PREY_CNT
 
+  integer (KIND=int_kind), parameter :: max_prey_class_size = 9
+
   !-----------------------------------------------------------------------------
   ! total number of tracers used by marbl
   !-----------------------------------------------------------------------------
 
   integer (int_kind) :: ecosys_used_tracer_cnt
+
+  !-----------------------------------------------------------------------------
+  ! FIXME - the following should be counted and not be parameters
+  !-----------------------------------------------------------------------------
+  integer, public, parameter :: max_surface_forcing_fields  = 40
 
   !-----------------------------------------------------------------------------
   ! array bounds 
