@@ -464,7 +464,7 @@ contains
        else
           lname    = 'O2 Saturation'
           sname    = 'O2SAT'
-          units    = 'mmol/m^3'
+          units    = 'mmol/m^3'      ! = nmol/cm^3
           vgrid    = 'none'
           truncate = .false.
           call diags%add_diagnostic(lname, sname, units, vgrid, truncate, ind%O2SAT)
@@ -4229,8 +4229,8 @@ contains
     ! !DESCRIPTION:
     !  Compute surface fluxes for ecosys tracer module.
 
-    use marbl_parms     , only : R13c_std, R14c_std
-    use constants       , only : c1000
+    use marbl_parms        , only : R13c_std, R14c_std
+    use marbl_constants_mod, only : c1000
 
     implicit none
 

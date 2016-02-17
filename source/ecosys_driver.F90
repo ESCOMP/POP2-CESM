@@ -872,6 +872,7 @@ contains
     use grid      , only : DZT
     use grid      , only : partial_bottom_cells
     use mcog      , only : mcog_nbins
+    use state_mod , only : ref_pressure
 
     implicit none
 
@@ -942,6 +943,10 @@ contains
                   p5*(TEMP_OLD(i, c, :) + TEMP_CUR(i, c, :))
              marbl_instances(bid)%interior_forcing%salinity(:)    = &
                   p5*(SALT_OLD(i, c, :) + SALT_CUR(i, c, :))*salt_to_ppt
+             do k=1,km
+               ! NOTE: ref_pressure is a function, not an array
+               marbl_instances(bid)%interior_forcing%pressure(k) = ref_pressure(k)
+             end do
              marbl_instances(bid)%interior_forcing%fesedflux(:)   = &
                   fesedflux(i, c, :, bid)
              

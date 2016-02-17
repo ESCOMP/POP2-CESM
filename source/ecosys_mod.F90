@@ -79,8 +79,7 @@ module marbl_mod
 
   ! !USES:
 
-  use constants , only : T0_Kelvin    !FIXME
-  use state_mod , only : ref_pressure !FIXME
+  use marbl_constants_mod, only : T0_Kelvin
 
   use marbl_kinds_mod, only : log_kind
   use marbl_kinds_mod, only : int_kind
@@ -1257,8 +1256,7 @@ contains
 
     !FIXME (mvertens, 2015-11), new marbl timers need to be implemented to turn on timers here
     ! around this subroutine call
-    call marbl_compute_carbonate_chemistry(domain, &
-         interior_forcing%temperature(:), interior_forcing%salinity(:), &
+    call marbl_compute_carbonate_chemistry(domain, interior_forcing, &
          tracer_local(:, :), carbonate(:), &
          ph_prev(:), ph_prev_alt_co2(:), &
          zsat_calcite(:), zsat_aragonite(:), marbl_status_log)
@@ -3270,8 +3268,7 @@ contains
 
   !***********************************************************************
 
-  subroutine marbl_compute_carbonate_chemistry(domain, &
-       temperature, salinity, &
+  subroutine marbl_compute_carbonate_chemistry(domain, interior_forcing, &
        tracer_local, carbonate, &
        ph_prev, ph_prev_alt_co2, &
        zsat_calcite, zsat_aragonite, marbl_status_log)
@@ -3281,8 +3278,7 @@ contains
     use marbl_co2calc_mod, only : thermodynamic_coefficients_type
 
     type(marbl_domain_type)        , intent(in)    :: domain
-    real (r8)                      , intent(in)    :: temperature(domain%km)                    ! old potential temperature (C)
-    real (r8)                      , intent(in)    :: salinity(domain%km)                       ! current salinity (msu)
+    type(marbl_interior_forcing_type), intent(in)  :: interior_forcing
     real (r8)                      , intent(in)    :: tracer_local(ecosys_tracer_cnt,domain%km) ! local copies of model tracer concentrations
     type(carbonate_type)           , intent(out)   :: carbonate(domain%km)
     real(r8)                       , intent(inout) :: ph_prev(domain%km)
@@ -3318,19 +3314,22 @@ contains
     PO4_loc(:)         = tracer_local(po4_ind,:)
     SiO3_loc(:)        = tracer_local(sio3_ind,:)
 
-    associate(                                                &
-         dkm               => domain%km,                      &
-         column_kmt        => domain%kmt,                     &
-         CO3               => carbonate(:)%CO3,               &
-         HCO3              => carbonate(:)%HCO3,              &
-         H2CO3             => carbonate(:)%H2CO3,             &
-         pH                => carbonate(:)%pH,                &
-         CO3_sat_calcite   => carbonate(:)%CO3_sat_calcite,   &
-         CO3_sat_aragonite => carbonate(:)%CO3_sat_aragonite, &
-         CO3_ALT_CO2       => carbonate(:)%CO3_ALT_CO2,       &
-         HCO3_ALT_CO2      => carbonate(:)%HCO3_ALT_CO2,      &
-         H2CO3_ALT_CO2     => carbonate(:)%H2CO3_ALT_CO2,     &
-         pH_ALT_CO2        => carbonate(:)%pH_ALT_CO2         &
+    associate(                                                 &
+         dkm               => domain%km,                       &
+         column_kmt        => domain%kmt,                      &
+         CO3               => carbonate(:)%CO3,                &
+         HCO3              => carbonate(:)%HCO3,               &
+         H2CO3             => carbonate(:)%H2CO3,              &
+         pH                => carbonate(:)%pH,                 &
+         CO3_sat_calcite   => carbonate(:)%CO3_sat_calcite,    &
+         CO3_sat_aragonite => carbonate(:)%CO3_sat_aragonite,  &
+         CO3_ALT_CO2       => carbonate(:)%CO3_ALT_CO2,        &
+         HCO3_ALT_CO2      => carbonate(:)%HCO3_ALT_CO2,       &
+         H2CO3_ALT_CO2     => carbonate(:)%H2CO3_ALT_CO2,      &
+         pH_ALT_CO2        => carbonate(:)%pH_ALT_CO2,         &
+         temperature       => interior_forcing%temperature(:), &
+         press_bar         => interior_forcing%pressure(:),    &
+         salinity          => interior_forcing%salinity(:)     &
          )
 
     pressure_correct = .TRUE.
@@ -3338,7 +3337,6 @@ contains
     do k=1,dkm
 
       mask(k) = (k <= column_kmt)
-      press_bar(k) = ref_pressure(k)
 
        ! -------------------
        if (ph_prev(k)  /= c0) then

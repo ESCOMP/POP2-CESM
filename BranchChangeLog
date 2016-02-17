@@ -1,4 +1,31 @@
 ===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
+Tag Date:    16 Feb 2016
+Tag Name:    pop2/branch_tags/marbl_ciso_tags/marbl_ciso_n08_cesm_pop_2_1_20160114
+Tag Summary: Removing more POP dependencies - ref_pressure is now called from
+             the driver and passed to ecosys_mod as part of
+             marbl_interior_forcing_type; T0_Kelvin and rho_sw are now in
+             marbl_constants_mod.F90 (along with several parameters that used
+             to be in marbl_kinds.F90 -- c0, c1, c2, c1000, and p5). At this
+             point, the only POP-dependencies remaining are in
+             ecosys_retore.F90 and deal with reading the tracer fields used
+             for restoring.
+
+             aux_pop_MARBL test suite was bit-for-bit with marbl_diags_n40
+             (and cesm2_1_20160114 trunk) on yellowstone_intel
+	
+M       source/ecosys_diagnostics_mod.F90
+M       source/ecosys_driver.F90
+M       source/ecosys_mod.F90
+M       source/ecosys_restore.F90
+M       source/ecosys_restore_timescale_interp.F90
+M       source/marbl_co2calc_mod.F90
+A       source/marbl_constants_mod.F90
+M       source/marbl_interface_types.F90
+M       source/marbl_kinds.F90
+M       source/marbl_oxygen.F90
+===============================================================================
 Tag Creator: mvertens
 Developers:  mvertens
 Tag Date:    15 Feb 2016

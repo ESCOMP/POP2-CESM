@@ -7,14 +7,12 @@ module marbl_co2calc_mod
   ! based upon OCMIP2 co2calc
   !-----------------------------------------------------------------------------
 
-  use constants       , only : T0_Kelvin, rho_sw !FIXME
-  use state_mod       , only : ref_pressure      !FIXME
-
   use marbl_kinds_mod , only : int_kind, r8, log_kind
   use marbl_logging   , only : marbl_log_type
   use marbl_logging   , only : error_msg
   use marbl_logging   , only : status_msg
-  use marbl_parms     , only : c0, p001, p5, c1, c2, c3, c10, c1000
+  use marbl_parms     , only : p001,c3, c10
+  use marbl_constants_mod, only : c0, p5, c1, c2, c1000, T0_Kelvin, rho_sw
 
   implicit none
 

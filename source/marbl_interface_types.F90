@@ -1,7 +1,8 @@
 module marbl_interface_types
   ! module for definitions of types that are shared between marbl interior and the driver.
 
-  use marbl_kinds_mod, only : c0, c1, r8, log_kind, int_kind, char_len
+  use marbl_kinds_mod, only : r8, log_kind, int_kind, char_len
+  use marbl_constants_mod, only : c0, c1
   use marbl_interface_constants, only : marbl_str_length
 
   implicit none
@@ -71,6 +72,7 @@ module marbl_interface_types
   type, public :: marbl_interior_forcing_type
      real(r8), allocatable :: temperature(:)    ! (km)
      real(r8), allocatable :: salinity(:)       ! (km)
+     real(r8), allocatable :: pressure(:)       ! (km)
      real(r8), allocatable :: fesedflux(:)      ! (km)
      real(r8), allocatable :: PAR_col_frac(:)   ! column fraction occupied by each sub-column
      real(r8), allocatable :: surf_shortwave(:) ! surface shortwave for each sub-column (W/m^2)
@@ -299,6 +301,8 @@ contains
 
     integer :: k
 
+    ! FIXME (2016-02,mnl): remove dz from data type, use delta_z whether POP
+    !                      has partial bottom cells or not
     allocate(this%dz(num_levels))
     allocate(this%delta_z(num_levels))
     allocate(this%zw(num_levels))
@@ -328,6 +332,7 @@ contains
 
     allocate(this%temperature(num_levels))
     allocate(this%salinity(num_levels))
+    allocate(this%pressure(num_levels))
     allocate(this%fesedflux(num_levels))
 
     allocate(this%PAR_col_frac(num_PAR_subcols))

@@ -52,7 +52,6 @@ subroutine init(this, nl_buffer, ind_name_table, marbl_status_log)
   ! namelist and setup tracers that need to be restored
 
   use marbl_kinds_mod       , only : char_len, int_kind, i4, log_kind
-  use marbl_kinds_mod       , only : c0, c2
   use marbl_logging         , only : marbl_log_type
   use marbl_logging         , only : error_msg
   use marbl_namelist_mod    , only : marbl_nl_cnt
@@ -307,7 +306,8 @@ subroutine read_restoring_fields(this, LAND_MASK)
   !
   !  load restoring fields if required
   !
-  use marbl_kinds_mod, only : int_kind, c0
+  use marbl_kinds_mod, only : int_kind
+  use marbl_constants_mod, only : c0
   use blocks, only : nx_block, ny_block ! FIXME
   use domain_size, only : km ! FIXME
   use domain, only : nblocks_clinic ! FIXME
@@ -370,7 +370,8 @@ subroutine restore_tracers(this, tracer_cnt, vert_level, x_index, y_index, &
   !
   !  restore a variable if required
   !
-  use marbl_kinds_mod       , only : c0, r8, int_kind, log_kind
+  use marbl_kinds_mod       , only : r8, int_kind, log_kind
+  use marbl_constants_mod   , only : c0
 
   implicit none
   !-----------------------------------------------------------------------
@@ -421,7 +422,8 @@ subroutine set_tracer_read_metadata(this, index, &
      mod_varname, filename, file_varname, file_fmt, &
      scale_factor, default_val)
 
-  use marbl_kinds_mod , only : char_len, r8, c0, c1
+  use marbl_kinds_mod    , only : char_len, r8
+  use marbl_constants_mod, only : c0, c1
 
   implicit none
 

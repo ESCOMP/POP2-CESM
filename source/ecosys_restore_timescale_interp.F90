@@ -4,7 +4,8 @@ module ecosys_restore_timescale_interp
   ! interpolation based on depth
   !
 
-  use marbl_kinds_mod, only : r8, log_kind, int_kind, c0, c2, c1000
+  use marbl_kinds_mod, only : r8, log_kind, int_kind
+  use marbl_constants_mod, only : c0, c2, c1000
   use domain_size, only : km ! FIXME
 
   implicit none
@@ -135,7 +136,8 @@ subroutine interpolate_restoring_timescale(this, zt)
   ! Initialize the spatial variability of the restoring time scale
   ! with an interpolation.
   !
-  use marbl_kinds_mod, only : int_kind, r8, p5
+  use marbl_kinds_mod, only : int_kind, r8
+  use marbl_constants_mod, only : p5
   use domain_size, only : km ! FIXME
 
   implicit none

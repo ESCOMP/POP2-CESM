@@ -2,11 +2,11 @@
 
 module marbl_oxygen
 
-  use kinds_mod, only : log_kind
-  use kinds_mod, only : int_kind
-  use kinds_mod, only : r8
+  use marbl_kinds_mod, only : log_kind
+  use marbl_kinds_mod, only : int_kind
+  use marbl_kinds_mod, only : r8
 
-  use constants, only : c0
+  use marbl_constants_mod, only : c0
 
   implicit none
 
@@ -174,7 +174,7 @@ contains
     !  O2SAT = 282.015 mmol/m^3
     ! !REVISION HISTORY:
     !  same as module
-    use constants, only : T0_Kelvin
+    use marbl_constants_mod, only : T0_Kelvin
 
     ! !INPUT PARAMETERS:
 
@@ -247,7 +247,7 @@ contains
     !
     ! !REVISION HISTORY:
     !  same as module
-    use constants, only : T0_Kelvin
+    use marbl_constants_mod, only : T0_Kelvin
 
     ! !INPUT PARAMETERS:
 
