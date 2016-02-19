@@ -891,7 +891,7 @@
 <!-- se_nml                 -->
 <!---------------------------->
 
-<lchange_ans>.false.</lchange_ans>
+<lchange_ans>.true.</lchange_ans>
 
 <!---------------------------->
 <!-- passive_tracers_on_nml -->

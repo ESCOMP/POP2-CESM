@@ -1,6 +1,24 @@
 ===============================================================================
 Tag Creator: jet
 Developers:  jet
+Tag Date:    19 Feb 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160219
+Tag Summary: set lchange_ans = .true. in namelist defaults 
+
+	     This tag computes surface layer depth to be 10% of boundary layer by
+	     default (old code uses just the top layer).  This change is in preparation 
+	     for full CVMIX testing.
+
+Testing:     aux_pop (compare to cesm_pop_2_1_20160114 trunk) new surface layer not bit for bit
+	     but vetted by Gokhan via a 1 cycle GIAF run.  Non baseline comparison
+	     tests all pass.
+
+M       bld/namelist_files/namelist_defaults_pop.xml
+M       ChangeLog
+
+===============================================================================
+Tag Creator: jet
+Developers:  jet
 Tag Date:    01 Feb 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160201a
 Tag Summary: This tag recreates cesm_pop_2_1_20160114 since that tag was corrupted
