@@ -32,18 +32,21 @@
    use io_types, only: stdout
    use communicate, only: my_task, master_task
    use niw_mixing
-   use tidal_mixing, only: TIDAL_COEF, tidal_mix_max, ltidal_mixing
+   use tidal_mixing, only: TIDAL_COEF, tidal_mix_max, ltidal_mixing, TIDAL_ENERGY_FLUX
    use registry
    use prognostic
    use time_management
    use cvmix_kinds_and_types
    use cvmix_put_get
+   use cvmix_convection
+   use cvmix_ddiff
+   use cvmix_tidal
+   use cvmix_shear
    use cvmix_kpp
    use cvmix_math
    use shr_sys_mod
    ! QL, 150526, forcing from wav
    use forcing_fields, only: LAMULT, USTOKES, VSTOKES
-   use software_eng_mod, only : lchange_ans
 
    implicit none
    private
@@ -223,6 +226,9 @@
       tavg_KE_BL,    &! tavg id for boundary layer kinetic energy at mix time
       tavg_En         ! tavg id for boundary layer kinetic energy En
 
+   ! Parameters for CVMix
+   type(cvmix_global_params_type) :: CVmix_params
+
 !EOC
 !***********************************************************************
 
@@ -233,13 +239,19 @@
 ! !IROUTINE: init_vmix_kpp
 ! !INTERFACE:
 
- subroutine init_vmix_kpp(CVmix_vars, VDC, VVC)
+ subroutine init_vmix_kpp(CVmix_vars, VDC, VVC, convect_diff, convect_visc)
 
 ! !DESCRIPTION:
 !  Initializes constants and reads options for the KPP parameterization.
 !
 ! !REVISION HISTORY:
 !  same as module
+
+! !INPUT PARAMETERS:
+
+   real (r8), intent(in) :: &
+      convect_diff,      &! diffusivity to mimic convection
+      convect_visc        ! viscosity   to mimic convection
 
 ! !INPUT/OUTPUT PARAMETERS:
 
@@ -644,20 +656,43 @@
 !-----------------------------------------------------------------------
 
    if ( lcvmix ) then
+     call cvmix_init_ddiff(strat_param_max=2.55_r8,                           &
+                           kappa_ddiff_s=1e-4_r8,                             &
+                           ddiff_exp1=1.0_r8,                                 &
+                           ddiff_exp2=3.0_r8,                                 &
+                           mol_diff=1.5e-6_r8,                                &
+                           kappa_ddiff_param1=0.909_r8,                       &
+                           kappa_ddiff_param2=4.6_r8,                         &
+                           kappa_ddiff_param3=-0.54_r8,                       &
+                           diff_conv_type="MC76")
+
+     call cvmix_init_conv(convect_diff=convect_diff*1e-4_r8,                  &
+                          convect_visc=convect_visc*1e-4_r8,                  &
+                          lBruntVaisala=.true.,                               &
+                          BVsqr_convect=BVSQcon)
+
+     call cvmix_init_shear(mix_scheme="KPP",                                  &
+                           KPP_nu_zero=rich_mix*1e-4_r8,                      &
+                           KPP_Ri_zero=Riinfty,                               &
+                           KPP_exp=real(3,r8))
+
      ! QL, 150611, pass llangmuir_efactor and lenhanced_entrainment to CVMix
-     call cvmix_init_kpp(lEkman=lcheckekmo,                                     &
-                         lMonOb=lcheckekmo,                                     &
-                         surf_layer_ext = epssfc,                               &
-                         minVtsqr=c0,                                           &
-                         lnoDGat1=.false.,                                      &
-                         llangmuirEF=llangmuir_efactor,                         &
-                         lenhanced_entr=lenhanced_entrainment,                  &
+     call cvmix_init_kpp(lEkman=lcheckekmo,                                   &
+                         lMonOb=lcheckekmo,                                   &
+                         surf_layer_ext = epssfc,                             &
+                         minVtsqr=c0,                                         &
+                         lnoDGat1=.false.,                                    &
+                         llangmuirEF=llangmuir_efactor,                       &
+                         lenhanced_entr=lenhanced_entrainment,                &
                          MatchTechnique="MatchBoth")
      call cvmix_put_kpp("a_m", a_m)
      call cvmix_put_kpp("a_s", a_s)
      call cvmix_put_kpp("c_m", c_m)
      call cvmix_put_kpp("c_s", c_s)
 
+     call cvmix_put(CVmix_params, 'prandtl', Prandtl)
+     ! convert rho from g/cm^3 -> kg / m^3
+     call cvmix_put(CVmix_params, 'FreshWaterDensity', rho_fw*c1000)
      do bid=1,nblocks_clinic
        do jny=1,ny_block
          do inx=1,nx_block
@@ -669,15 +704,33 @@
              call cvmix_put(CVmix_vars(ic,bid), 'Mdiff', 0._r8)
              call cvmix_put(CVmix_vars(ic,bid), 'Tdiff', 0._r8)
              call cvmix_put(CVmix_vars(ic,bid), 'Sdiff', 0._r8)
+             call cvmix_put(CVmix_vars(ic,bid), 'strat_param_num', 0._r8)
+             call cvmix_put(CVmix_vars(ic,bid), 'strat_param_denom', 0._r8)
+             call cvmix_put(CVmix_vars(ic,bid), 'Nsqr', 0._r8)
+             call cvmix_put(CVmix_vars(ic,bid), 'rho', 0._r8)
+             call cvmix_put(CVmix_vars(ic,bid), 'rho_lwr', 0._r8)
 
              allocate(tmp_array(nlev+1))
              tmp_array = 0._r8
+             ! Shear Richardson
+             call cvmix_put(CVmix_vars(ic,bid), 'Ri_iface', tmp_array)
+             ! Bulk Richardson
              call cvmix_put(CVmix_vars(ic,bid), 'Ri_bulk', tmp_array(1:nlev))
-             call cvmix_put(CVmix_vars(ic,bid), 'zw', tmp_array)
+             ! vertical levels (cell center and interfaces)
              call cvmix_put(CVmix_vars(ic,bid), 'zt', -zt(1:nlev)*1e-2_r8)
-             call cvmix_put(CVmix_vars(ic,bid), 'ocn_depth', zw(nlev)*1e-2_r8)
+             call cvmix_put(CVmix_vars(ic,bid), 'zw', tmp_array)
              CVmix_vars(ic,bid)%zw_iface(2:nlev+1) = -zw(1:nlev)*1e-2_r8
+             ! Depth at bottom of ocean
+             call cvmix_put(CVmix_vars(ic,bid), 'ocn_depth', zw(nlev)*1e-2_r8)
              deallocate(tmp_array)
+
+             ! NOTE: cvmix_init_tidal is called from tidal_mixing.F90 but we
+             !       still need to compute time-invariant tidal quantites
+             !       (requires nlev, rho, zt, and zw)
+             if (ltidal_mixing) then
+               call cvmix_compute_Simmons_invariant(CVmix_vars(ic,bid), CVmix_params, &
+                                                    TIDAL_ENERGY_FLUX(inx,jny,bid)/c1000)
+             end if
            end if
          end do
        end do
@@ -895,7 +948,8 @@
 
    integer (int_kind) :: &
       k,                 &! vertical level index 
-      i,j,               &! horizontal loop indices
+      i,j,ic,            &! horizontal loop indices
+      nlev,              &! number of levels in specific column
       n,                 &! tracer index
       mt2,               &! index for separating temp from other trcrs
       bid                 ! local block address for this block
@@ -932,6 +986,10 @@
    real (r8) ::  &
       factor
 
+   real (r8), dimension(nx_block,ny_block,0:km+1) :: &
+      CONV_VVC,     &! convective diffusivity for momentum diffusion
+      CONV_VDC       ! convective diffusivity for tracer diffusion
+   real (r8), dimension(km+1) :: VWORK ! temp array for a single column
 !-----------------------------------------------------------------------
 !
 !  initialize  and consistency checks
@@ -939,6 +997,8 @@
 !-----------------------------------------------------------------------
 
    bid = this_block%local_id
+   CONV_VVC = c0
+   CONV_VDC = c0
 
    if (.not. present(SMF) .and. .not. present(SMFT)) then
       error_string = 'ERROR KPP: must supply either SMF or SMFT'
@@ -979,13 +1039,39 @@
 
 !-----------------------------------------------------------------------
 !
+!  Update some CVMix variables needed for both shear and ddiff mixing
+!
+!-----------------------------------------------------------------------
+
+   if (lcvmix) then
+     do j=1,ny_block
+     do i=1,nx_block
+        ic = (j-1)*nx_block + i
+        nlev = CVmix_vars(ic)%nlev
+        if (nlev.gt.0) then
+          VWORK = c0
+          do k=1,nlev-1
+            if (partial_bottom_cells) then
+              VWORK(k+1) = DBLOC(i,j,k)/(p5*(DZT(i,j,k,bid) + DZT(i,j,k+1,bid)))
+            else
+              VWORK(k+1) = DBLOC(i,j,k)/(zgrid(k) - zgrid(k+1))
+            end if
+          end do
+          !call cvmix_put(CVMix_vars(ic), 'Nsqr', VWORK(1:nlev+1))
+          CVmix_vars(ic)%SqrBuoyancyFreq_iface(1:nlev+1) = VWORK(1:nlev+1)
+        end if
+     end do
+     end do
+   end if
+
+!-----------------------------------------------------------------------
+!
 !  compute mixing due to shear instability, internal waves and
 !  convection
 !
 !-----------------------------------------------------------------------
 
-   call ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, RHOMIX,&
-                 convect_diff, convect_visc, this_block)
+   call ri_iwmix(CVMix_vars, DBLOC, VISC, VDC, UUU, VVV, RHOMIX, this_block)
 
 !-----------------------------------------------------------------------
 !
@@ -993,7 +1079,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (ldbl_diff) call ddmix(VDC, TRCR, this_block)
+   if (ldbl_diff) call ddmix(CVMix_vars, VDC, TRCR, this_block)
 
 !-----------------------------------------------------------------------
 !
@@ -1043,43 +1129,58 @@
 !
 !-----------------------------------------------------------------------
 
+   if (lcvmix) then
+     do j=1,ny_block
+     do i=1,nx_block
+        ic = (j-1)*nx_block + i
+        nlev = CVmix_vars(ic)%nlev
+        if (nlev.gt.0) then
+          ! Note: buoyancy freq is stored prior to call to ri_iwmix!
+          call cvmix_coeffs_conv(CVMix_vars(ic))
+          CONV_VVC(i,j,1:nlev) = CVMix_vars(ic)%Mdiff_iface(2:nlev+1)*1e4_r8
+          CONV_VDC(i,j,1:nlev) = CVMix_vars(ic)%Tdiff_iface(2:nlev+1)*1e4_r8
+        end if
+     end do
+     end do
+   else
+     do k=1,km-1
+
+        if (partial_bottom_cells) then
+           WORK1 = DBLOC(:,:,k)/(p5*(DZT(:,:,k  ,bid) + &
+                                     DZT(:,:,k+1,bid)))
+        else
+           WORK1 = DBLOC(:,:,k)/(zgrid(k) - zgrid(k+1))
+        end if
+
+        if (BVSQcon /= c0) then
+           WORK2 = min(c1-(max(WORK1,BVSQcon))/BVSQcon, c1)
+           FCON  = (c1 - WORK2*WORK2)**3
+        else
+           where (WORK1 > c0)
+              FCON = c0
+           elsewhere
+              FCON = c1
+           end where
+        endif
+
+        where ( k >= KBL(:,:))
+          CONV_VVC(:,:,k) = convect_visc * FCON
+          CONV_VDC(:,:,k) = convect_diff * FCON
+        end where
+     enddo
+   end if
+
    do k=1,km-1           
-
-      if (partial_bottom_cells) then
-         WORK1 = DBLOC(:,:,k)/(p5*(DZT(:,:,k  ,bid) + &
-                                   DZT(:,:,k+1,bid)))
-      else
-         WORK1 = DBLOC(:,:,k)/(zgrid(k) - zgrid(k+1))
-      end if
-
-      if (BVSQcon /= c0) then
-         WORK2 = min(c1-(max(WORK1,BVSQcon))/BVSQcon, c1)
-         FCON  = (c1 - WORK2*WORK2)**3
-      else
-         where (WORK1 > c0)
-            FCON = c0
-         elsewhere
-            FCON = c1
-         end where
-      endif
-
-      !*** add convection and reset sea floor values to zero
-      
-
-      do j=1,ny_block
-      do i=1,nx_block
-         if ( k >= KBL(i,j) ) then
-            VISC(i,j,k)  = VISC(i,j,k)  + convect_visc * FCON(i,j)
-            VDC(i,j,k,1) = VDC(i,j,k,1) + convect_diff * FCON(i,j)
-            VDC(i,j,k,2) = VDC(i,j,k,2) + convect_diff * FCON(i,j)
-         endif
-         if (k >= KMT(i,j,bid)) then
-         	  VISC(i,j,k  ) = c0
-            VDC (i,j,k,1) = c0
-            VDC (i,j,k,2) = c0
-         endif
-      end do
-      end do
+     !*** add convection and reset sea floor values to zero
+     where (k < KMT(:,:,bid))
+        VISC(:,:,k  ) = VISC(:,:,k)   + CONV_VVC(:,:,k)
+        VDC (:,:,k,1) = VDC (:,:,k,1) + CONV_VDC(:,:,k)
+        VDC (:,:,k,2) = VDC (:,:,k,2) + CONV_VDC(:,:,k)
+     elsewhere
+        VISC(:,:,k  ) = c0
+        VDC (:,:,k,1) = c0
+        VDC (:,:,k,2) = c0
+     end where
 
       !*** now average visc to U grid 
       if (l1Ddyn) then
@@ -1248,8 +1349,7 @@
 ! !IROUTINE: ri_iwmix
 ! !INTERFACE:
 
- subroutine ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, RHOMIX, &
-                     convect_diff, convect_visc, this_block)
+ subroutine ri_iwmix(CVMix_vars, DBLOC, VISC, VDC, UUU, VVV, RHOMIX, this_block)
 
 ! !DESCRIPTION:
 !  Computes viscosity and diffusivity coefficients for the interior
@@ -1271,14 +1371,12 @@
    real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
       RHOMIX            ! density at mix time
 
-   real (r8), intent(in) :: &
-      convect_diff,         &! diffusivity to mimic convection
-      convect_visc           ! viscosity   to mimic convection
-
    type (block), intent(in) :: &
       this_block          ! block information for current block
 
 ! !INPUT/OUTPUT PARAMETERS:
+
+   type(cvmix_data_type), dimension(:), intent(inout) :: CVmix_vars
 
    real (r8), dimension(nx_block,ny_block,0:km+1,2), intent(inout) :: & 
       VDC        ! diffusivity for tracer diffusion
@@ -1299,21 +1397,24 @@
 
    integer (int_kind) :: &
       k,                 &! index for vertical levels
-      i,j,               &! horizontal loop indices
+      nlev,              &! number of vertical levels
+      i,j, ic,           &! horizontal loop indices
       bid,               &! local block index
       n                   ! vertical smoothing index
 
-   real (r8), dimension(nx_block,ny_block) :: &
-      KVMIX, 		 &! vertical diffusivity
-      KVMIX_M		  ! vertical viscosity
+   real (r8), dimension(0:km+1) :: VISC_COL, DIFF_COL
 
    real (r8), dimension(nx_block,ny_block,0:km+1) :: &
       WORK0               ! work array 
 
-   real (r8), dimension(nx_block,ny_block) :: &
-      VSHEAR,            &! (local velocity shear)^2
-      RI_LOC,            &! local Richardson number 
+   real (r8), dimension(nx_block,ny_block,km) :: &
+      KVMIX,             &! vertical diffusivity
+      KVMIX_M,           &! vertical viscosity
       FRI,               &! function of Ri for shear
+      VSHEAR,            &! (local velocity shear)^2
+      RI_LOC              ! local Richardson number 
+
+   real (r8), dimension(nx_block,ny_block) :: &
       FCON,              &
       WORK1,             &! local work array
       WORKN               ! local work array
@@ -1336,28 +1437,27 @@
 !
 !     compute velocity shear squared and average to T points:
 !     VSHEAR = (UUU(k)-UUU(k+1))**2+(VVV(k)-VVV(k+1))**2
-!     Use FRI here as a temporary.
 !
 !-----------------------------------------------------------------------
 
       if (k < km) then
 
-         FRI = (UUU(:,:,k)-UUU(:,:,k+1))**2 + &
+         WORK1 = (UUU(:,:,k)-UUU(:,:,k+1))**2 + &
                (VVV(:,:,k)-VVV(:,:,k+1))**2
 
          if (partial_bottom_cells) then
-            FRI = FRI/(p5*(DZU(:,:,k  ,bid) + DZU(:,:,k+1,bid)))**2
+            WORK1 = WORK1/(p5*(DZU(:,:,k  ,bid) + DZU(:,:,k+1,bid)))**2
          endif
 
          if (l1Ddyn) then
-           VSHEAR = FRI
+           VSHEAR(:,:,k) = WORK1
          else
-           call ugrid_to_tgrid(VSHEAR,FRI,bid)
+           call ugrid_to_tgrid(VSHEAR(:,:,k),WORK1,bid)
          end if
 
       else
 
-         VSHEAR = c0
+         VSHEAR(:,:,k) = c0
 
       endif
 
@@ -1369,33 +1469,33 @@
 
       if (partial_bottom_cells) then
          if (k < km) then
-            RI_LOC = DBLOC(:,:,k)/                              &
-                     (VSHEAR + eps/(p5*(DZT(:,:,k  ,bid) +      &
+            RI_LOC(:,:,k) = DBLOC(:,:,k)/                              &
+                     (VSHEAR(:,:,k) + eps/(p5*(DZT(:,:,k  ,bid) +      &
                                         DZT(:,:,k+1,bid)))**2)/ &
                      (p5*(DZT(:,:,k,bid) + DZT(:,:,k+1,bid)))
          else
-            RI_LOC = DBLOC(:,:,k)/(VSHEAR +              &
+            RI_LOC(:,:,k) = DBLOC(:,:,k)/(VSHEAR(:,:,k) +              &
                      eps/(p5*DZT(:,:,k,bid))**2)/(p5*DZT(:,:,k,bid))
          end if
       else
-         RI_LOC = DBLOC(:,:,k)*(zgrid(k)-zgrid(k+1))/(VSHEAR + eps)
+         RI_LOC(:,:,k) = DBLOC(:,:,k)*(zgrid(k)-zgrid(k+1))/(VSHEAR(:,:,k) + eps)
       end if
 
-      WORK0(:,:,k)   = merge(RI_LOC, WORK0(:,:,k-1), k <= KMT(:,:,bid))
+      WORK0(:,:,k)   = merge(RI_LOC(:,:,k), WORK0(:,:,k-1), k <= KMT(:,:,bid))
  
    enddo
 
 !-----------------------------------------------------------------------
 !
 !  vertically smooth Ri num_v_smooth_Ri times with 1-2-1 weighting
-!  result again stored in WORK0 and use RI_LOC and FRI
+!  result again stored in WORK0 and use RI_LOC and WORK1
 !  as temps
 !
 !-----------------------------------------------------------------------
  
    do n = 1,num_v_smooth_Ri
  
-      FRI            =  p25 * WORK0(:,:,1)
+      WORK1          =  p25 * WORK0(:,:,1)
       WORK0(:,:,km+1) =       WORK0(:,:,km)
  
       do k=1,km
@@ -1403,14 +1503,19 @@
          do j=1,ny_block
          !!!DIR$ NODEP
          do i=1,nx_block
-            RI_LOC(i,j) = WORK0(i,j,k)
+            RI_LOC(i,j,k) = WORK0(i,j,k)
             if (KMT(i,j,bid) >= 3) then
-               WORK0(i,j,k) = FRI(i,j) + p5*RI_LOC(i,j) + p25*WORK0(i,j,k+1)
+               WORK0(i,j,k) = WORK1(i,j) + p5*RI_LOC(i,j,k) + p25*WORK0(i,j,k+1)
             endif
-            FRI(i,j) = p25*RI_LOC(i,j)
+            WORK1(i,j) = p25*RI_LOC(i,j,k)
          enddo
          enddo
       enddo
+      if (lcvmix) then
+        FRI = WORK0(:,:,1:km)
+      else
+        FRI = min((max(WORK0(:,:,1:km),c0))/Riinfty, c1)
+      end if
 
    enddo
 
@@ -1421,9 +1526,65 @@
 !
 !-----------------------------------------------------------------------
 
-   if ( ltidal_mixing )  TIDAL_DIFF(:,:,:,bid) = c0
+   if (lcvmix) then
+     do j=1,ny_block
+       do i=1,nx_block
+          ic = (j-1)*nx_block + i
+          nlev = CVmix_vars(ic)%nlev
+          if (nlev.gt.0) then
+            ! Start interior mix calculations
+            if (lniw_mixing) then
+              VISC_COL(1:nlev) = VISC(i,j,1:nlev-1)
+              DIFF_COL(1:nlev) = VDC(i,j,1:nlev-1,2)
+            else 
+              VISC_COL(1:nlev) = bckgrnd_vvc(i,j,1,bid)
+              DIFF_COL(1:nlev) = bckgrnd_vdc(i,j,1,bid)
+            end if
 
-   do k = 1,km
+            if (ltidal_mixing) then
+              call cvmix_coeffs_tidal(CVmix_vars(ic), CVmix_params)
+              k = KMT(i,j,bid) - 2
+              if (k.gt.2) then
+                CVMix_vars(ic)%Tdiff_iface(k+1) = max(CVMix_vars(ic)%Tdiff_iface(k+1), &
+                                                      CVMix_vars(ic)%Tdiff_iface(k))
+              end if
+              k = KMT(i,j,bid) - 1
+              if (k.gt.2) then
+                CVMix_vars(ic)%Tdiff_iface(k+1) = max(CVMix_vars(ic)%Tdiff_iface(k+1), &
+                                                      CVMix_vars(ic)%Tdiff_iface(k))
+              end if
+              VISC_COL(1:nlev) = Prandtl*min(VISC_COL(1:nlev)/Prandtl +       &
+                                 CVmix_vars(ic)%Tdiff_iface(2:nlev+1)*1e4_r8, &
+                                 tidal_mix_max)
+              DIFF_COL(1:nlev) = min(DIFF_COL(1:nlev) +                       &
+                                 CVmix_vars(ic)%Tdiff_iface(2:nlev+1)*1e4_r8, &
+                                 tidal_mix_max)
+            end if
+            KVMIX(i,j,:) = DIFF_COL(1:nlev)
+            KVMIX_M(i,j,:) = VISC_COL(1:nlev)
+            KVMIX(i,j,km) = c0
+            KVMIX_M(i,j,km) = c0
+            if (lrich) then
+              ! Shear mixing
+              CVmix_vars(ic)%ShearRichardson_iface(2:nlev+1) = FRI(i,j,1:nlev)
+              call cvmix_coeffs_shear(CVmix_vars(ic))
+              VISC_COL(1:nlev) = VISC_COL(1:nlev) +                             &
+                                 CVmix_vars(ic)%Mdiff_iface(2:nlev+1)*1e4_r8
+              DIFF_COL(1:nlev) = DIFF_COL(1:nlev) +                             &
+                                 CVmix_vars(ic)%Tdiff_iface(2:nlev+1)*1e4_r8
+            end if
+            VISC_COL(nlev:km) = c0
+            DIFF_COL(nlev:km) = c0
+            VISC(i,j,:) = VISC_COL
+            VDC(i,j,:,1) = DIFF_COL
+            VDC(i,j,:,2) = DIFF_COL
+         end if
+       end do
+     end do
+   else ! not lcvmix
+     if ( ltidal_mixing )  TIDAL_DIFF(:,:,:,bid) = c0
+
+     do k = 1,km
 
 !-----------------------------------------------------------------------
 !
@@ -1440,7 +1601,7 @@
 !
 !-----------------------------------------------------------------------
 
-      if ( ltidal_mixing ) then
+        if ( ltidal_mixing ) then
 
 !-----------------------------------------------------------------------
 !
@@ -1451,154 +1612,148 @@
 !
 !-----------------------------------------------------------------------
 
-        WORK1 = DBLOC(:,:,k)/(zgrid(k) - zgrid(k+1))
+          WORK1 = DBLOC(:,:,k)/(zgrid(k) - zgrid(k+1))
 
-        where (WORK1 > c0)
-          TIDAL_DIFF(:,:,k,bid) = TIDAL_COEF(:,:,k,bid)/WORK1
-        endwhere
+          where (WORK1 > c0)
+            TIDAL_DIFF(:,:,k,bid) = TIDAL_COEF(:,:,k,bid)/WORK1
+          endwhere
 
-        ! Notes:
-        ! (1) this step breaks backwards compatibility
-        ! (2) check for k>2 was added to if statement to avoid
-        !     out of bounds access
-        if ((.not. lccsm_control_compatible).and.(k.gt.2)) then
-        where ( k == KMT(:,:,bid)-1  .or.  k == KMT(:,:,bid)-2 )
-          TIDAL_DIFF(:,:,k,bid) = max( TIDAL_DIFF(:,:,k,  bid),  &
-                                       TIDAL_DIFF(:,:,k-1,bid) )
-        endwhere 
-        endif
-
-        if (lniw_mixing) then
-         WORKN = VISC(:,:,k)
-        else
-         WORKN = bckgrnd_vvc(:,:,k,bid)
-        endif
-
-        WORK1 = Prandtl*min(WORKN(:,:)/Prandtl  &
-                            + TIDAL_DIFF(:,:,k,bid), tidal_mix_max)
-
-        if( prnt ) then
-
-! use DS product point to test, global (i,j) = (5,103)
-           do j=1,ny_block
-             if( this_block%j_glob(j) .eq. 103 ) then
-             do i=1,nx_block
-               if( this_block%i_glob(i) .eq. 5 ) then
-       if( k < KMT(i,j,bid) ) then
- write(stdout,100) this_block%i_glob(i),this_block%j_glob(j),k, &
-                         TIDAL_DIFF(i,j,k,bid)
- 100 format(' tidal  i,j,k TIDAL_DIFF =',3(i3,1x),1pe11.4,1x)
-       endif
-               endif
-             enddo ! i
-             endif
-           enddo ! j
-
-         endif
-
-
-        if ( k < km ) then
-          KVMIX_M(:,:) = WORK1(:,:)
-        endif
-
-        if ( k < km ) then
-          if (lniw_mixing) then
-            VDC(:,:,k,2) = min(VDC(:,:,k,2) + TIDAL_DIFF(:,:,k,bid),  &
-                               tidal_mix_max)
-          else
-            VDC(:,:,k,2) = min(bckgrnd_vdc(:,:,k,bid) + TIDAL_DIFF(:,:,k,bid),  &
-                               tidal_mix_max)
+          ! Notes:
+          ! (1) this step breaks backwards compatibility
+          ! (2) check for k>2 was added to if statement to avoid
+          !     out of bounds access
+          if ((.not. lccsm_control_compatible).and.(k.gt.2)) then
+          where ( k == KMT(:,:,bid)-1  .or.  k == KMT(:,:,bid)-2 )
+            TIDAL_DIFF(:,:,k,bid) = max( TIDAL_DIFF(:,:,k,  bid),  &
+                                         TIDAL_DIFF(:,:,k-1,bid) )
+          endwhere 
           endif
-          KVMIX(:,:) = VDC(:,:,k,2)
-        endif
 
-        if (lrich) then
-          FRI    = min((max(WORK0(:,:,k),c0))/Riinfty, c1)
+          if (lniw_mixing) then
+           WORKN = VISC(:,:,k)
+          else
+           WORKN = bckgrnd_vvc(:,:,k,bid)
+          endif
 
-          VISC(:,:,k) = WORK1 + rich_mix*(c1 - FRI*FRI)**3
+          WORK1 = Prandtl*min(WORKN(:,:)/Prandtl  &
+                              + TIDAL_DIFF(:,:,k,bid), tidal_mix_max)
 
           if( prnt ) then
 
 ! use DS product point to test, global (i,j) = (5,103)
-            do j=1,ny_block
-              if( this_block%j_glob(j) .eq. 103 ) then
-              do i=1,nx_block
-                if( this_block%i_glob(i) .eq. 5 ) then
-        if( k < KMT(i,j,bid) ) then
-  write(stdout,200) this_block%i_glob(i),this_block%j_glob(j),k, &
-                          rich_mix*(c1 - FRI(i,j)*FRI(i,j))**3
-  200 format(' Rich  i,j,k DIFF =',3(i3,1x),1pe11.4,1x)
-        endif
+             do j=1,ny_block
+               if( this_block%j_glob(j) .eq. 103 ) then
+               do i=1,nx_block
+                 if( this_block%i_glob(i) .eq. 5 ) then
+         if( k < KMT(i,j,bid) ) then
+   write(stdout,100) this_block%i_glob(i),this_block%j_glob(j),k, &
+                           TIDAL_DIFF(i,j,k,bid)
+   100 format(' tidal  i,j,k TIDAL_DIFF =',3(i3,1x),1pe11.4,1x)
+         endif
+                 endif
+               enddo ! i
+               endif
+             enddo ! j
+
+           endif
+
+
+          if ( k < km ) then
+            KVMIX_M(:,:,k) = WORK1(:,:)
+          endif
+
+          if ( k < km ) then
+            if (lniw_mixing) then
+              VDC(:,:,k,2) = min(VDC(:,:,k,2) + TIDAL_DIFF(:,:,k,bid),  &
+                                 tidal_mix_max)
+            else
+              VDC(:,:,k,2) = min(bckgrnd_vdc(:,:,k,bid) + TIDAL_DIFF(:,:,k,bid),  &
+                                 tidal_mix_max)
+            endif
+            KVMIX(:,:,k) = VDC(:,:,k,2)
+          endif
+
+          if (lrich) then
+            VISC(:,:,k) = WORK1 + rich_mix*(c1 - FRI(:,:,k)*FRI(:,:,k))**3
+
+            if( prnt ) then
+
+! use DS product point to test, global (i,j) = (5,103)
+              do j=1,ny_block
+                if( this_block%j_glob(j) .eq. 103 ) then
+                do i=1,nx_block
+                  if( this_block%i_glob(i) .eq. 5 ) then
+          if( k < KMT(i,j,bid) ) then
+    write(stdout,200) this_block%i_glob(i),this_block%j_glob(j),k, &
+                            rich_mix*(c1 - FRI(i,j,k)*FRI(i,j,k))**3
+    200 format(' Rich  i,j,k DIFF =',3(i3,1x),1pe11.4,1x)
+          endif
+                  endif
+                enddo ! i
                 endif
-              enddo ! i
-              endif
-            enddo ! j
+              enddo ! j
 
-          endif
+            endif
 
-          if ( k < km ) then
-            VDC(:,:,k,2) = VDC(:,:,k,2) + rich_mix*(c1 - FRI*FRI)**3
-            VDC(:,:,k,1) = VDC(:,:,k,2)
-          endif
-        else
-          VISC(:,:,k) = WORK1 
-
-          if ( k < km ) then
-            VDC(:,:,k,1) = VDC(:,:,k,2)
-          endif
-        endif
-
-      else ! .not. ltidal_mixing
-
-        if ( k < km ) then
-          if (lniw_mixing) then
-            KVMIX(:,:) = VDC(:,:,k,2)
-            KVMIX_M(:,:) = VISC(:,:,k)
+            if ( k < km ) then
+              VDC(:,:,k,2) = VDC(:,:,k,2) + rich_mix*(c1 - FRI(:,:,k)*FRI(:,:,k))**3
+              VDC(:,:,k,1) = VDC(:,:,k,2)
+            endif
           else
-            KVMIX(:,:) = bckgrnd_vdc(:,:,k,bid)
-            KVMIX_M(:,:) = bckgrnd_vvc(:,:,k,bid)
+            VISC(:,:,k) = WORK1 
+
+            if ( k < km ) then
+              VDC(:,:,k,1) = VDC(:,:,k,2)
+            endif
           endif
-        endif
+
+        else ! .not. ltidal_mixing
+
+          if ( k < km ) then
+            if (lniw_mixing) then
+              KVMIX(:,:,k) = VDC(:,:,k,2)
+              KVMIX_M(:,:,k) = VISC(:,:,k)
+            else
+              KVMIX(:,:,k) = bckgrnd_vdc(:,:,k,bid)
+              KVMIX_M(:,:,k) = bckgrnd_vvc(:,:,k,bid)
+            endif
+          endif
 
 
-        if (lniw_mixing) then
-        if (lrich) then
-           FRI    = min((max(WORK0(:,:,k),c0))/Riinfty, c1)
+          if (lniw_mixing) then
+          if (lrich) then
+             VISC(:,:,k  ) = VISC(:,:,k) + &
+                             rich_mix*(c1 - FRI(:,:,k)*FRI(:,:,k))**3
 
-           VISC(:,:,k  ) = VISC(:,:,k) + &
-                           rich_mix*(c1 - FRI*FRI)**3
+             if ( k < km ) then
+                VDC (:,:,k,2) = VDC(:,:,k,2) + &
+                                rich_mix*(c1 - FRI(:,:,k)*FRI(:,:,k))**3
+                VDC(:,:,k,1) = VDC(:,:,k,2)
+             endif
+          endif
 
-           if ( k < km ) then
-              VDC (:,:,k,2) = VDC(:,:,k,2) + &
-                              rich_mix*(c1 - FRI*FRI)**3
-              VDC(:,:,k,1) = VDC(:,:,k,2)
-           endif
-        endif
+          else 
+          if (lrich) then
+             VISC(:,:,k  ) = bckgrnd_vvc(:,:,k,bid) + &
+                             rich_mix*(c1 - FRI(:,:,k)*FRI(:,:,k))**3
 
-        else 
-        if (lrich) then
-           FRI    = min((max(WORK0(:,:,k),c0))/Riinfty, c1)
+             if ( k < km ) then
+                VDC (:,:,k,2) = bckgrnd_vdc(:,:,k,bid) + &
+                                rich_mix*(c1 - FRI(:,:,k)*FRI(:,:,k))**3
+                VDC(:,:,k,1) = VDC(:,:,k,2)
+             endif
+          else
+             VISC(:,:,k  ) = bckgrnd_vvc(:,:,k,bid)
 
-           VISC(:,:,k  ) = bckgrnd_vvc(:,:,k,bid) + &
-                           rich_mix*(c1 - FRI*FRI)**3
-
-           if ( k < km ) then
-              VDC (:,:,k,2) = bckgrnd_vdc(:,:,k,bid) + &
-                              rich_mix*(c1 - FRI*FRI)**3
-              VDC(:,:,k,1) = VDC(:,:,k,2)
-           endif
-        else
-           VISC(:,:,k  ) = bckgrnd_vvc(:,:,k,bid)
-
-           if ( k < km ) then
-              VDC (:,:,k,2) = bckgrnd_vdc(:,:,k,bid)
-              VDC(:,:,k,1) = VDC(:,:,k,2)
-           endif
-        endif
-        endif ! lniw_mixing
+             if ( k < km ) then
+                VDC (:,:,k,2) = bckgrnd_vdc(:,:,k,bid)
+                VDC(:,:,k,1) = VDC(:,:,k,2)
+             endif
+          endif
+          endif ! lniw_mixing
 
 
-      endif ! ltidal_mixing
+        endif ! ltidal_mixing
 
 !-----------------------------------------------------------------------
 !
@@ -1606,23 +1761,30 @@
 !
 !-----------------------------------------------------------------------
 
-      !!!DIR$ NODEP
-      !!!DIR$ COLLAPSE
-      do j=1,ny_block
-      !!!DIR$ NODEP
-      do i=1,nx_block
-         if ( k >= KMT(i,j,bid) ) then
-            VISC(i,j,k  ) = c0
-            VDC (i,j,k,1) = c0
-            VDC (i,j,k,2) = c0
-         endif
-      end do
-      end do
+        do j=1,ny_block
+        do i=1,nx_block
+           if ( k >= KMT(i,j,bid) ) then
+              VISC(i,j,k  ) = c0
+              VDC (i,j,k,1) = c0
+              VDC (i,j,k,2) = c0
+           endif
+        end do
+        end do
 
+!-----------------------------------------------------------------------
+!
+!     move to next level.
+!
+!-----------------------------------------------------------------------
+
+        end do ! k
+      endif ! lcvmix
+
+   do k = 1,km
       ! k index shifted because KVMIX and KVMIX_M are at cell bottom
       ! while output axis is at cell top
-      call accumulate_tavg_field(KVMIX,tavg_KVMIX,bid,k)
-      call accumulate_tavg_field(KVMIX_M,tavg_KVMIX_M,bid,k)
+      call accumulate_tavg_field(KVMIX(:,:,k),tavg_KVMIX,bid,k)
+      call accumulate_tavg_field(KVMIX_M(:,:,k),tavg_KVMIX_M,bid,k)
      
       if (lniw_mixing) then
       !*** accumulated in iw_reset
@@ -1634,16 +1796,10 @@
       endif
  
       if (accumulate_tavg_now(tavg_TPOWER)) then
-         WORK1(:,:) = KVMIX(:,:)*RHOMIX(:,:,k)*DBLOC(:,:,k)/ &
+         WORK1(:,:) = KVMIX(:,:,k)*RHOMIX(:,:,k)*DBLOC(:,:,k)/ &
             (zgrid(k) - zgrid(k+1))
          call accumulate_tavg_field(WORK1,tavg_TPOWER,bid,k)
       endif
-
-!-----------------------------------------------------------------------
-!
-!     move to next level.
-!
-!-----------------------------------------------------------------------
 
    end do
 
@@ -1993,20 +2149,15 @@
 
    do kl = 2,km
 
-      if (lchange_ans) then
-         ! Determine which layer contains surface layer (epssfc*zt(kl)) 
-         SURFTHICK = epssfc*zt(kl)
-         kref = kl
-         do ktmp = 1,kl
-            if (zw(ktmp).ge.SURFTHICK) then
-               kref=ktmp
-               exit
-            end if
-         end do
-      else
-         SURFTHICK = zt(1)
-         kref = 1
-      end if
+      ! Determine which layer contains surface layer (epssfc*zt(kl)) 
+      SURFTHICK = epssfc*zt(kl)
+      kref = kl
+      do ktmp = 1,kl
+         if (zw(ktmp).ge.SURFTHICK) then
+            kref=ktmp
+            exit
+         end if
+      end do
 
       ! Compute UREF and VREF (depth-weighted average of layers 1...kref)
       if (kref>1) then
@@ -2140,8 +2291,8 @@
       
       ! QL, 150706, calculate WS with CVMix if lcvmix is true
       if (lcvmix) then
-        do i = 1,nx_block
-          do j = 1,ny_block
+        do j = 1,ny_block
+          do i = 1,nx_block
             call cvmix_kpp_compute_turbulent_scales(SIGMA(i,j), &
                         ZKL(i,j)*1e-2_r8,                &
                         BFSFC(i,j)*1e-4_r8,        &
@@ -2178,15 +2329,11 @@
                     (zgrid(kl)-zgrid(kl+1)) )
       endif
 
-      if ((kref.eq.1).and.(.not.lchange_ans)) then
-        ZREF = zgrid(1)
-      else
-        ZREF = -SURFTHICK/real(2,r8)
-      end if
+      ZREF = -SURFTHICK/real(2,r8)
 
       if (lcvmix) then
-        do i = 1,nx_block
-          do j = 1,ny_block
+        do j = 1,ny_block
+          do i = 1,nx_block
             ic = (j-1)*nx_block + i
             if (kl.le.CVmix_vars(ic)%nlev) then
               WM(i,j:j) = cvmix_kpp_compute_unresolved_shear(                 &
@@ -2202,6 +2349,13 @@
                          stokes_drift =                                       &
                            sqrt(USTOKES(i,j,bid)**2+VSTOKES(i,j,bid)**2))
             else
+
+!-----------------------------------------------------------------------
+! 
+!     compute bulk Richardson number at new level
+!
+!-----------------------------------------------------------------------
+
               WM(i,j) = c0
               RI_BULK(i,j,kdn) = c0
             end if
@@ -2520,8 +2674,8 @@
    if (lcvmix) then
      GHAT = 0.0_r8
      GHAT2 = 0.0_r8
-     do i=1,nx_block
-       do j=1,ny_block
+     do j=1,ny_block
+       do i=1,nx_block
          k = KBL(i,j)
          CASEA(i,j)  = p5 + SIGN(p5, -zgrid(k)-p5*hwide(k)-HBLT(i,j))
          KN(i,j) = NINT(CASEA(i,j))*(k-1) + (1-NINT(CASEA(i,j)))*k
@@ -3008,7 +3162,7 @@
 ! !IROUTINE: ddmix
 ! !INTERFACE:
 
- subroutine ddmix(VDC, TRCR, this_block)
+ subroutine ddmix(CVMix_vars, VDC, TRCR, this_block)
 
 ! !DESCRIPTION:
 !  $R_\rho$ dependent interior flux parameterization.
@@ -3028,6 +3182,8 @@
 
 ! !INPUT/OUTPUT PARAMETERS:
 
+   type(cvmix_data_type), dimension(:), intent(inout) :: CVmix_vars
+
    real (r8), dimension(nx_block,ny_block,0:km+1,2),intent(inout) :: &
       VDC        ! diffusivity for tracer diffusion
 
@@ -3039,9 +3195,9 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) ::  k,kup,knxt
+   integer (int_kind) ::  k,kup,knxt, i, j, ic, nlev, bid
 
-   real (r8), dimension(nx_block,ny_block) :: &
+   real (r8), dimension(nx_block,ny_block,km) :: &
       ALPHADT,           &! alpha*DT  across interfaces
       BETADS,            &! beta *DS  across interfaces
       RRHO,              &! dd density ratio
@@ -3052,6 +3208,8 @@
       TALPHA,            &! temperature expansion coeff
       SBETA               ! salinity    expansion coeff
 
+   real (r8), dimension(nx_block,ny_block,0:km+1,2) :: &
+      DDIFF_VDC  ! diffusivity for tracer diffusion
 !-----------------------------------------------------------------------
 !
 !  compute alpha*DT and beta*DS at interfaces.  use RRHO and
@@ -3061,39 +3219,60 @@
 
    kup  = 1
    knxt = 2
+   bid = this_block%local_id
 
-   PRANDTL = merge(-c2,TRCR(:,:,1,1),TRCR(:,:,1,1) < -c2)
+   PRANDTL(:,:,1) = merge(-c2,TRCR(:,:,1,1),TRCR(:,:,1,1) < -c2)
 
-   call state(1, 1, PRANDTL, TRCR(:,:,1,2), this_block, &
-                    RHOFULL=RRHO, &
+   call state(1, 1, PRANDTL(:,:,1), TRCR(:,:,1,2), this_block, &
+                    RHOFULL=RRHO(:,:,1), &
                     DRHODT=TALPHA(:,:,kup), DRHODS=SBETA(:,:,kup))
 
    do k=1,km
+     if ( k < km ) then
+       PRANDTL(:,:,k) = merge(-c2,TRCR(:,:,k+1,1),TRCR(:,:,k+1,1) < -c2)
+       call state(k+1, k+1, PRANDTL(:,:,k), TRCR(:,:,k+1,2),              &
+                            this_block,                                   &
+                            RHOFULL=RRHO(:,:,k), DRHODT=TALPHA(:,:,knxt), &
+                                                 DRHODS= SBETA(:,:,knxt))
 
-      if ( k < km ) then
+       ALPHADT(:,:,k) = -p5*(TALPHA(:,:,kup) + TALPHA(:,:,knxt)) &
+                           *(TRCR(:,:,k,1) - TRCR(:,:,k+1,1))
 
-         PRANDTL = merge(-c2,TRCR(:,:,k+1,1),TRCR(:,:,k+1,1) < -c2)
+       BETADS(:,:,k)  = p5*( SBETA(:,:,kup) +  SBETA(:,:,knxt)) &
+                          *(TRCR(:,:,k,2) - TRCR(:,:,k+1,2))
 
-         call state(k+1, k+1, PRANDTL, TRCR(:,:,k+1,2),              &
-                              this_block,                            &
-                              RHOFULL=RRHO, DRHODT=TALPHA(:,:,knxt), &
-                                            DRHODS= SBETA(:,:,knxt))
-
-         ALPHADT = -p5*(TALPHA(:,:,kup) + TALPHA(:,:,knxt)) &
-                      *(TRCR(:,:,k,1) - TRCR(:,:,k+1,1))
-
-         BETADS  = p5*( SBETA(:,:,kup) +  SBETA(:,:,knxt)) &
-                     *(TRCR(:,:,k,2) - TRCR(:,:,k+1,2))
-
-         kup  = knxt
-         knxt = 3 - kup
+       kup  = knxt
+       knxt = 3 - kup
 
       else
 
-         ALPHADT = c0
-         BETADS  = c0
+        ALPHADT(:,:,k) = c0
+        BETADS(:,:,k)  = c0
 
-      endif       
+      end if
+    end do
+
+    if (lcvmix) then
+      do j=1,ny_block
+        do i=1,nx_block
+          ic = (j-1)*nx_block + i
+          if (KMT(i,j,bid).gt.0) then
+            nlev = CVmix_vars(ic)%nlev
+            CVMix_vars(ic)%strat_param_num(2:nlev) = ALPHADT(i,j,1:nlev-1)
+            CVMix_vars(ic)%strat_param_denom(2:nlev) = BETADS(i,j,1:nlev-1)
+
+            ! Pack into CVMix data type (convert from cgs to mks)
+            CVmix_vars(ic)%Tdiff_iface(2:nlev+1) = VDC(i,j,1:nlev,1)*1e-4_r8
+            CVmix_vars(ic)%Sdiff_iface(2:nlev+1) = VDC(i,j,1:nlev,2)*1e-4_r8
+            call cvmix_coeffs_ddiff(CVMix_vars(ic))
+            ! Unpack CVMix data type (convert from mks to cgs)
+            DDIFF_VDC(  i,j,1:nlev,1) = CVmix_vars(ic)%Tdiff_iface(2:nlev+1)*1e4_r8
+            DDIFF_VDC(  i,j,1:nlev,2) = CVmix_vars(ic)%Sdiff_iface(2:nlev+1)*1e4_r8
+          end if
+        end do
+      end do
+      VDC = VDC + DDIFF_VDC
+    else
 
 !-----------------------------------------------------------------------
 !
@@ -3102,11 +3281,10 @@
 !-----------------------------------------------------------------------
 
       where ( ALPHADT > BETADS .and. BETADS > c0 )
-
-         RRHO       = MIN(ALPHADT/BETADS, Rrho0)
-         DIFFDD     = dsfmax*(c1-(RRHO-c1)/(Rrho0-c1))**3
-         VDC(:,:,k,1) = VDC(:,:,k,1) + 0.7_r8*DIFFDD
-         VDC(:,:,k,2) = VDC(:,:,k,2) + DIFFDD
+        RRHO       = MIN(ALPHADT/BETADS, Rrho0)
+        DIFFDD     = dsfmax*(c1-(RRHO-c1)/(Rrho0-c1))**3
+        VDC(:,:,1:km,1) = VDC(:,:,1:km,1) + 0.7_r8*DIFFDD
+        VDC(:,:,1:km,2) = VDC(:,:,1:km,2) + DIFFDD
 
       endwhere
 
@@ -3129,10 +3307,10 @@
 
       where (RRHO > p5) PRANDTL = (1.85_r8 - 0.85_r8/RRHO)*RRHO
 
-      VDC(:,:,k,1) = VDC(:,:,k,1) + DIFFDD
-      VDC(:,:,k,2) = VDC(:,:,k,2) + PRANDTL*DIFFDD
+      VDC(:,:,1:km,1) = VDC(:,:,1:km,1) + DIFFDD
+      VDC(:,:,1:km,2) = VDC(:,:,1:km,2) + PRANDTL*DIFFDD
 
-   end do
+   end if
 
 !-----------------------------------------------------------------------
 !EOC
@@ -3217,23 +3395,16 @@
       call state(k, k, TEMPMASK(:,:,k),   TRCR(:,:,k  ,2), &
                        this_block, RHOFULL=RHOK)
 
-      if (lchange_ans) then
-         SURFTHICK = epssfc*zt(k)
-         kref = k
-         do ktmp = 1,k
-            call state(k, k, TEMPMASK(:,:,ktmp), TRCR(:,:,ktmp,2), &
-                 this_block, RHOFULL=RHOSUM(:,:,ktmp))
-            if (zw(ktmp).ge.SURFTHICK) then
-               kref=ktmp
-               exit
-            end if
-         end do
-      else
-         SURFTHICK = zt(1)
-         kref = 1
-         call state(k, k, TEMPMASK(:,:,kref), TRCR(:,:,kref,2), &
-              this_block, RHOFULL=RHOSUM(:,:,kref))
-      end if
+      SURFTHICK = epssfc*zt(k)
+      kref = k
+      do ktmp = 1,k
+         call state(k, k, TEMPMASK(:,:,ktmp), TRCR(:,:,ktmp,2), &
+              this_block, RHOFULL=RHOSUM(:,:,ktmp))
+         if (zw(ktmp).ge.SURFTHICK) then
+            kref=ktmp
+            exit
+         end if
+      end do
 
       if (kref.eq.1) then
         ! This is just the old RHO1

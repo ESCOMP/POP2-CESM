@@ -1,5 +1,31 @@
 ===============================================================================
 Tag Creator: jet
+Developers:  mlevy
+Tag Date:    22 Feb 2016
+Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160222
+Tag Summary: Complete CVMIX/POP integration and CVMIX bugfixes. lcvmix default is .false and
+	     run is BFB with the previous tag. When lcvmix is set to .true. CVMix is used for
+	     tidal, shear, double-diffusion, and convective mixing (as well as KPP).  This
+	     tag was updated to use CVMix v0.72-conv_bugfix.002
+
+Testing:     aux_pop (compare to cesm_pop_2_1_20160119 trunk) baseline comparisons failed for
+	     2 diagnostic fields KVMIX and KVMIX_M which were incorrect in the previous tag.  All other
+	     fields are bfb for all baseline comparisons.
+
+	     The new cvmix test failed as compared to the baseline.  This failure was expected due to
+	     the cvmix updates and bug fixes.
+
+	     The namelist comparison also failed as the previous tag set lchange_ans=.true.
+	     to allow the new surface depth calculation which is enabled by default in this tag.
+
+X       source/cvmix
+M       source/vmix_kpp.F90
+M       source/vertical_mix.F90
+M       source/tidal_mixing.F90
+M       SVN_EXTERNAL_DIRECTORIES
+M       ChangeLog
+===============================================================================
+Tag Creator: jet
 Developers:  jet
 Tag Date:    19 Feb 2016
 Tag Name:    pop2/trunk_tags/cesm_pop_2_1_20160219
