@@ -203,7 +203,10 @@ module marbl_interface_types
   end type marbl_forcing_driver_type
 
 
-  type, private :: marbl_forcing_file_type
+  ! MNL -- made public because I need it for ecosys_restore; could just
+  !        keep ecosys_single_restoring_field_type in this module instead
+  !        (or just put filename and file_varname in the restoring_field_type)
+  type, public :: marbl_forcing_file_type
      character(char_len)    :: filename
      character(char_len)    :: file_varname
      character(char_len)    :: temporal      ! temporarily to support current I/O routines
@@ -253,12 +256,6 @@ module marbl_interface_types
      procedure, public :: add_forcing_field => marbl_forcing_fields_add
      procedure, public :: deconstruct       => marbl_forcing_fields_deconstructor
   end type marbl_forcing_fields_type
-
-  type, public :: marbl_single_restoring_field_type
-    real(kind=r8), dimension(:), allocatable :: inv_tau ! 1/time_scale (s^-1)
-    real(kind=r8), dimension(:), allocatable :: climatology ! Field we restore to
-    type(marbl_forcing_file_type) :: file_metadata ! file containing climatology
-  end type marbl_single_restoring_field_type
 
   !*****************************************************************************
 

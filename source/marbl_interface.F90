@@ -298,7 +298,10 @@ contains
     ! Initialize tracer restoring
     !--------------------------------------------------------------------
 
-    call this%restoring%init(gcm_nl_buffer, this%domain, this%StatusLog)
+    call this%restoring%init(nl_buffer = gcm_nl_buffer,                                &
+               domain          = this%domain,                                          &
+               tracer_metadata = marbl_tracer_metadata(ecosys_ind_beg:ecosys_ind_end), &
+               status_log      = this%StatusLog)
     !--------------------------------------------------------------------
     ! Initialize marbl diagnostics
     !--------------------------------------------------------------------
