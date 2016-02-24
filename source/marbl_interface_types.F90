@@ -254,6 +254,11 @@ module marbl_interface_types
      procedure, public :: deconstruct       => marbl_forcing_fields_deconstructor
   end type marbl_forcing_fields_type
 
+  type, public :: marbl_single_restoring_field_type
+    real(kind=r8), dimension(:), allocatable :: inv_tau ! 1/time_scale (s^-1)
+    real(kind=r8), dimension(:), allocatable :: climatology ! Field we restore to
+    type(marbl_forcing_file_type) :: file_metadata ! file containing climatology
+  end type marbl_single_restoring_field_type
 
   !*****************************************************************************
 

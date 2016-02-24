@@ -5962,38 +5962,6 @@ Default: none provided
 </entry>
 
 <entry 
-id="rest_time_inv_surf"
-type="real"
-category="ecosys"
-group="ecosys_restore_timescale_interp_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="rest_time_inv_deep"
-type="real"
-category="ecosys"
-group="ecosys_restore_timescale_interp_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="rest_z0"
-type="real"
-category="ecosys"
-group="ecosys_restore_timescale_interp_nml" >
-Default: none provided
-</entry>
-
-<entry 
-id="rest_z1"
-type="real"
-category="ecosys"
-group="ecosys_restore_timescale_interp_nml" >
-Default: none provided
-</entry>
-
-<entry 
 id="nutr_rest_file"
 type="char*256" 
 category="ecosys"
@@ -6846,6 +6814,38 @@ type="char*256(100)"
 category="ecosys_restore"
 group="ecosys_restore_nml" >
 Default:
+</entry>
+
+<entry 
+id="rest_time_inv_surf"
+type="real"
+category="ecosys"
+group="ecosys_restore_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="rest_time_inv_deep"
+type="real"
+category="ecosys"
+group="ecosys_restore_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="rest_z0"
+type="real"
+category="ecosys"
+group="ecosys_restore_nml" >
+Default: none provided
+</entry>
+
+<entry 
+id="rest_z1"
+type="real"
+category="ecosys"
+group="ecosys_restore_nml" >
+Default: none provided
 </entry>
 
 </namelist_definition>
