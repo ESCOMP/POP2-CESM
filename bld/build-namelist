@@ -2059,8 +2059,7 @@ if ($cfc_on eq "TRUE" ) {
     push @groups, qw(cfc_nml);
 }    
 if ($ecosys_on eq "TRUE") {
-    push @groups, qw(ecosys_nml ecosys_parms_nml ecosys_driver_nml);
-    push @groups, qw(ecosys_restore_nml ecosys_restore_timescale_interp_nml);
+    push @groups, qw(ecosys_nml ecosys_parms_nml ecosys_driver_nml ecosys_restore_nml);
 }    
 if ($moby_on eq "TRUE" ) {
     push @groups, qw(moby_nml moby_parms_nml );

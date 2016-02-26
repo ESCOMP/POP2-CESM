@@ -74,6 +74,8 @@ module marbl_interface
   use marbl_internal_types      , only : marbl_particulate_share_type
   use marbl_internal_types      , only : marbl_surface_forcing_share_type
 
+  use ecosys_restore_mod        , only : marbl_restore_type
+
   implicit none
 
   private
@@ -105,6 +107,7 @@ module marbl_interface
      type(marbl_surface_forcing_input_type)  , public               :: surface_forcing_input
      type(marbl_surface_forcing_output_type) , public               :: surface_forcing_output
      type(marbl_surface_forcing_saved_type)  , public               :: surface_forcing_saved
+     type(marbl_restore_type)                , public               :: restoring
      type(marbl_log_type)                    , public               :: StatusLog
 
      ! private data 
@@ -154,6 +157,7 @@ contains
        marbl_surface_forcing_diags,       &
        marbl_surface_forcing_fields)
 
+    use marbl_constants_mod   , only : c0
     use marbl_namelist_mod    , only : marbl_nl_cnt
     use marbl_namelist_mod    , only : marbl_nl_buffer_size
     use marbl_ciso_mod        , only : marbl_ciso_init_nml
@@ -254,12 +258,12 @@ contains
 
     call this%surface_forcing_output%construct(gcm_num_elements_surface_forcing, &
          ecosys_used_tracer_cnt)
-    
+
     allocate(this%column_tracers(ecosys_used_tracer_cnt, gcm_num_levels))
 
     allocate(this%column_dtracers(ecosys_used_tracer_cnt, gcm_num_levels))
 
-    allocate(this%column_restore(ecosys_tracer_cnt, gcm_num_levels)) 
+    allocate(this%column_restore(ecosys_used_tracer_cnt, gcm_num_levels))
 
     !--------------------------------------------------------------------
     ! initialize marbl tracer metadata 
@@ -290,6 +294,14 @@ contains
     call marbl_init_surface_forcing_fields(gcm_num_elements_surface_forcing, marbl_surface_forcing_fields)
 
     !--------------------------------------------------------------------
+    ! Initialize tracer restoring
+    !--------------------------------------------------------------------
+
+    call this%restoring%init(nl_buffer = gcm_nl_buffer,                                &
+               domain          = this%domain,                                          &
+               tracer_metadata = marbl_tracer_metadata(ecosys_ind_beg:ecosys_ind_end), &
+               status_log      = this%StatusLog)
+    !--------------------------------------------------------------------
     ! Initialize marbl diagnostics
     !--------------------------------------------------------------------
 
@@ -318,6 +330,10 @@ contains
     type    (marbl_diagnostics_type)      , intent(inout) :: marbl_interior_forcing_diags
     type    (marbl_diagnostics_type)      , intent(inout) :: marbl_interior_restore_diags
     !-----------------------------------------------------------------------
+
+    call this%restoring%restore_tracers(this%column_tracers, this%domain%km,  &
+                                        ecosys_used_tracer_cnt,               &
+                                        this%column_restore)
 
     call marbl_set_interior_forcing(   &
          this%ciso_on,                 &

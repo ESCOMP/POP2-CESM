@@ -131,7 +131,6 @@ module ecosys_driver
   use ecosys_tavg               , only : ecosys_tavg_accumulate
   use ecosys_tavg               , only : ecosys_tavg_accumulate_flux
 
-  use ecosys_restore_mod        , only : ecosys_restore_type
   use passive_tracer_tools      , only : ind_name_pair
 
   use timers                    , only : timer_start
@@ -153,7 +152,7 @@ module ecosys_driver
   public :: ecosys_driver_unpack_source_sink_terms
 
   private :: ecosys_driver_init_tracers_and_saved_state
-  private :: ecosys_driver_init_interior_restore 
+  private :: ecosys_driver_read_restore_data
   private :: ecosys_driver_init_sflux
   private :: ecosys_driver_read_sflux
   private :: ecosys_driver_write_ecosys_restart
@@ -169,7 +168,15 @@ module ecosys_driver
      real (r8) :: ph_surf(nx_block, ny_block, max_blocks_clinic)                ! ph surf from previous time step
      real (r8) :: ph_surf_alt_co2(nx_block, ny_block, max_blocks_clinic)        ! ph surf from previous time step, alternative CO2
   end type ecosys_saved_state_type
-  type(ecosys_saved_state_type) :: ecosys_saved_state 
+  type(ecosys_saved_state_type) :: ecosys_saved_state
+
+  type :: ecosys_restoring_climatology_type
+    real(r8), dimension(:,:,:,:), allocatable :: climatology
+  contains
+    procedure :: init => ecosys_restoring_climatology_init
+  end type ecosys_restoring_climatology_type
+  type(ecosys_restoring_climatology_type), dimension(ecosys_tracer_cnt) ::    &
+                                                ecosys_tracer_restore_data_3D
 
   !-----------------------------------------------------------------------
   ! timers
@@ -199,8 +206,6 @@ module ecosys_driver
   logical(log_kind)             :: lmarginal_seas       ! Is ecosystem active in marginal seas?
   character(char_len)           :: ecosys_tadvect_ctype ! advection method for ecosys tracers
   logical (log_kind) , public   :: ecosys_qsw_distrb_const
-
-  type(ecosys_restore_type)     :: ecosys_restore
 
   !  average surface tracer value related variables
   !  used as reference value for virtual flux computations
@@ -589,26 +594,10 @@ contains
     call ecosys_driver_init_sflux()   
 
     !--------------------------------------------------------------------
-    !  Initialize interior restoring
+    !  If tracer restoring is enabled, read climatological tracer data
     !--------------------------------------------------------------------
 
-    call ecosys_restore%init(nl_buffer, ind_name_table, marbl_instances(1)%StatusLog)
-    if (marbl_instances(1)%StatusLog%labort_marbl) then
-      write(error_msg,"(A)") "error code returned from ecosys_restore%init()"
-      call marbl_instances(1)%StatusLog%log_error(error_msg,                &
-                                        "ecosys_driver::ecosys_driver_init()")
-    end if
-    call print_marbl_log(marbl_instances(1)%StatusLog, 1)
-    call marbl_instances(1)%StatusLog%erase()
-
-    call ecosys_driver_init_interior_restore(ecosys_restore, nl_buffer, marbl_instances(1)%StatusLog)
-    if (marbl_instances(1)%StatusLog%labort_marbl) then
-      write(error_msg,"(A)") "error code returned from ecosys_driver_init_interior_restore"
-      call marbl_instances(1)%StatusLog%log_error(error_msg,                &
-                                        "ecosys_driver::ecosys_driver_init()")
-    end if
-    call print_marbl_log(marbl_instances(1)%StatusLog, 1)
-    call marbl_instances(1)%StatusLog%erase()
+    call ecosys_driver_read_restore_data(marbl_instances(1)%restoring)
 
     !--------------------------------------------------------------------
     ! Initialize tavg ids (need only do this using first block)
@@ -965,13 +954,13 @@ contains
 
              ! --- set tracer restore fields ---
 
-             if (marbl_instances(bid)%domain%kmt > 0) then 
-                do k = 1, marbl_instances(bid)%domain%km
-                   call ecosys_restore%restore_tracers(ecosys_tracer_cnt,     &
-                        vert_level=k, x_index=i, y_index=c, block_id=bid,     &
-                        local_data=marbl_instances(bid)%column_tracers(:,k),  &
-                        restore_data=marbl_instances(bid)%column_restore(:, k))
-                end do
+             if (marbl_instances(bid)%restoring%lrestore_any) then
+               do n=1, ecosys_used_tracer_cnt
+                 if (allocated(ecosys_tracer_restore_data_3D(n)%climatology)) then
+                   marbl_instances(bid)%restoring%tracer_restore(n)%climatology(:) = &
+                     ecosys_tracer_restore_data_3D(n)%climatology(i,c,:,bid)
+                 end if
+               end do
              end if
 
              ! --- copy data from slab to column for marbl_saved_state ---
@@ -1511,59 +1500,44 @@ contains
 
   !*****************************************************************************
 
-  subroutine ecosys_driver_init_interior_restore(ecosys_restore, nl_buffer, marbl_status_log)
+  subroutine ecosys_driver_read_restore_data(ecosys_restore)
 
-    ! !DESCRIPTION:
-    !  Initialize interior restoring computations for ecosys tracer module.
-
-    use ecosys_restore_mod    , only : ecosys_restore_type
-    use grid                  , only : KMT
-    use grid                  , only : zt
-    use blocks                , only : nx_block, ny_block
-    use domain_size           , only : max_blocks_clinic, km
-    use marbl_namelist_mod    , only : marbl_nl_cnt
-    use marbl_namelist_mod    , only : marbl_nl_buffer_size
-    use marbl_logging         , only : marbl_log_type
-    use passive_tracer_tools  , only : read_field
+    use ecosys_restore_mod  , only : marbl_restore_type
+    use passive_tracer_tools, only : read_field
+    use grid                , only : KMT
 
     implicit none
 
-    type(ecosys_restore_type), intent(inout) :: ecosys_restore
-    character(len=marbl_nl_buffer_size), intent(in) :: nl_buffer(marbl_nl_cnt)
-    type(marbl_log_type),      intent(inout) :: marbl_status_log
+    type(marbl_restore_type), intent(inout) :: ecosys_restore
 
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-    integer (int_kind) :: &
-         k,               & ! index for looping over levels
-         i, j,            & ! index for looping over horiz. dims.
-         iblock             ! index for looping over blocks
-
-    real (r8) :: &
-         subsurf_fesed      ! sum of subsurface fesed values
-    character(*), parameter :: subname = 'ecosys_driver:ecosys_driver_init_interior_restore'
-    !-----------------------------------------------------------------------
-
-    !-----------------------------------------------------------------------
-    !  initialize restoring timescale (if required)
-    !-----------------------------------------------------------------------
-
-    call ecosys_restore%initialize_restoring_timescale(nl_buffer, zt, &
-                                                       marbl_status_log)
-    if (marbl_status_log%labort_marbl) then
-      write(error_msg,"(2A)") "error code returned from ecosys_restore%", &
-                              "initialize_restoring_timescale"
-      call marbl_status_log%log_error(error_msg, subname)
-    end if
-    call print_marbl_log(marbl_status_log, 1)
-    call marbl_status_log%erase()
+    integer :: i, j, iblock, k, n
+    real (r8) :: subsurf_fesed      ! sum of subsurface fesed values
 
     !-----------------------------------------------------------------------
     !  load restoring fields (if required)
     !-----------------------------------------------------------------------
 
-    call ecosys_restore%read_restoring_fields(land_mask)
+    if (ecosys_restore%lrestore_any) then
+      do n=1,ecosys_tracer_cnt
+        associate(marbl_tracer => ecosys_restore%tracer_restore(n), &
+                  global_field => ecosys_tracer_restore_data_3D(n))
+
+          if (allocated(marbl_tracer%climatology)) then
+            call global_field%init()
+            call read_field('nc', marbl_tracer%file_metadata%filename,        &
+                            marbl_tracer%file_metadata%file_varname,          &
+                            global_field%climatology)
+            do iblock=1,nblocks_clinic
+              do k=1,km
+                where (.not.LAND_MASK(:, :, iblock) .or. (k.gt.KMT(:, :, iblock)))
+                  global_field%climatology(:,:,k,iblock) = c0
+                end where
+              end do
+            end do
+          end if
+        end associate
+      end do
+    end if
 
     !-----------------------------------------------------------------------
     !  load fesedflux
@@ -1577,27 +1551,28 @@ contains
          fesedflux_input%file_varname, &
          fesedflux)
 
-    do iblock=1, nblocks_clinic
-       do j=1, ny_block
-          do i=1, nx_block
-             if (KMT(i, j, iblock) > 0 .and. KMT(i, j, iblock) < km) then
-                subsurf_fesed = c0
-                do k=KMT(i, j, iblock)+1, km
-                   subsurf_fesed = subsurf_fesed + fesedflux(i, j, k, iblock)
-                enddo
-                fesedflux(i, j, KMT(i, j, iblock), iblock) = fesedflux(i, j, KMT(i, j, iblock), iblock) + subsurf_fesed
-             endif
-          enddo
-       enddo
+    do iblock=1,nblocks_clinic
+      do j=1, ny_block
+        do i=1, nx_block
+          if (KMT(i, j, iblock) > 0 .and. KMT(i, j, iblock) < km) then
+            subsurf_fesed = c0
+            do k=KMT(i, j, iblock)+1, km
+              subsurf_fesed = subsurf_fesed + fesedflux(i, j, k, iblock)
+            enddo
+            fesedflux(i, j, KMT(i, j, iblock), iblock) = fesedflux(i, j, KMT(i, j, iblock), iblock) + subsurf_fesed
+          endif
+        enddo
+      enddo
 
-       do k = 1, km
-          where (.not. land_mask(:, :, iblock) .or. k > KMT(:, :, iblock)) &
-               fesedflux(:, :, k, iblock) = c0
-          fesedflux(:, :, k, iblock) = fesedflux(:, :, k, iblock) * fesedflux_input%scale_factor
-       enddo
-    end do
+      do k = 1, km
+        where (.not.LAND_MASK(:, :, iblock) .or. (k.gt.KMT(:, :, iblock)))
+          fesedflux(:, :, k, iblock) = c0
+        end where
+        fesedflux(:, :, k, iblock) = fesedflux(:, :, k, iblock) * fesedflux_input%scale_factor
+      enddo
+    enddo
 
-  end subroutine ecosys_driver_init_interior_restore
+  end subroutine ecosys_driver_read_restore_data
 
   !***********************************************************************
 
@@ -2917,6 +2892,14 @@ contains
     end if
 
   end subroutine print_marbl_log
+
+  subroutine ecosys_restoring_climatology_init(this)
+
+    class (ecosys_restoring_climatology_type), intent(inout) :: this
+
+    allocate(this%climatology(nx_block, ny_block, km, max_blocks_clinic))
+
+  end subroutine ecosys_restoring_climatology_init
 
 end module ecosys_driver
 
