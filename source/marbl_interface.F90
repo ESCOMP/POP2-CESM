@@ -263,8 +263,7 @@ contains
 
     allocate(this%column_dtracers(ecosys_used_tracer_cnt, gcm_num_levels))
 
-    allocate(this%column_restore(ecosys_tracer_cnt, gcm_num_levels))
-    this%column_restore = c0
+    allocate(this%column_restore(ecosys_used_tracer_cnt, gcm_num_levels))
 
     !--------------------------------------------------------------------
     ! initialize marbl tracer metadata 
@@ -331,6 +330,10 @@ contains
     type    (marbl_diagnostics_type)      , intent(inout) :: marbl_interior_forcing_diags
     type    (marbl_diagnostics_type)      , intent(inout) :: marbl_interior_restore_diags
     !-----------------------------------------------------------------------
+
+    call this%restoring%restore_tracers(this%column_tracers, this%domain%km,  &
+                                        ecosys_used_tracer_cnt,               &
+                                        this%column_restore)
 
     call marbl_set_interior_forcing(   &
          this%ciso_on,                 &

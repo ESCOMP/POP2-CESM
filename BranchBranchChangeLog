@@ -1,6 +1,16 @@
 ===============================================================================
 Tag Creator: mlevy
 Developers:  mlevy
+Tag Date:    26 Feb 2016
+Tag Name:    pop2/branch_tags/marbl_restore_tags/marbl_restore_n03_marbl_ciso_n08_cesm_pop_2_1_20160114
+Tag Summary: Finished ecosys_restore refactoring, bit-for-bit with old code
+
+M       source/ecosys_driver.F90
+M       source/ecosys_restore.F90
+M       source/marbl_interface.F90
+===============================================================================
+Tag Creator: mlevy
+Developers:  mlevy
 Tag Date:    24 Feb 2016
 Tag Name:    pop2/branch_tags/marbl_restore_tags/marbl_restore_n02_marbl_ciso_n08_cesm_pop_2_1_20160114
 Tag Summary: Finished initialization of new ecosys_restore datatype (including

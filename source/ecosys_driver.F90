@@ -952,6 +952,17 @@ contains
                 end do
              end if
 
+             ! --- set tracer restore fields ---
+
+             if (marbl_instances(bid)%restoring%lrestore_any) then
+               do n=1, ecosys_used_tracer_cnt
+                 if (allocated(ecosys_tracer_restore_data_3D(n)%climatology)) then
+                   marbl_instances(bid)%restoring%tracer_restore(n)%climatology(:) = &
+                     ecosys_tracer_restore_data_3D(n)%climatology(i,c,:,bid)
+                 end if
+               end do
+             end if
+
              ! --- copy data from slab to column for marbl_saved_state ---
 
              if (marbl_instances(bid)%domain%kmt > 0) then 

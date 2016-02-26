@@ -24,7 +24,7 @@ module ecosys_restore_mod
     type(marbl_single_restoring_field_type), allocatable, dimension(:) :: tracer_restore
   contains
      procedure, public :: init
-!     procedure, public :: restore_tracers
+     procedure, public :: restore_tracers
   end type marbl_restore_type
 
   real (r8), parameter, private :: default_rest_time_inv_surf = c0
@@ -139,6 +139,7 @@ subroutine init(this, nl_buffer, domain, tracer_metadata, status_log)
   call status_log%log_noerror(status_msg, subname)
   do t = 1, size(restore_short_names)
      if (len(trim(restore_short_names(t))) > 0) then
+        this%lrestore_any = .true.
         write(status_msg, "(6A)") trim(restore_short_names(t)), " --> ", &
              trim(restore_filenames(t)), " [ ", trim(restore_file_varnames(t)), " ]"
         call status_log%log_noerror(status_msg, subname)
@@ -164,10 +165,9 @@ subroutine init(this, nl_buffer, domain, tracer_metadata, status_log)
 
 end subroutine Init
 
-#if 0
 !*****************************************************************************
 
-subroutine restore_tracers(this)
+subroutine restore_tracers(this, interior_tracers, km, nt, interior_restore)
   !
   !  restore a variable if required
   !
@@ -175,10 +175,20 @@ subroutine restore_tracers(this)
   use marbl_constants_mod   , only : c0
 
   implicit none
+
   !-----------------------------------------------------------------------
   !  input variables
   !-----------------------------------------------------------------------
-  class(marbl_restore_type), intent(inout) :: this
+
+  class(marbl_restore_type),        intent(inout) :: this
+  real(kind=r8), dimension(nt, km), intent(in)    :: interior_tracers
+  integer,                          intent(in)    :: km, nt
+
+  !-----------------------------------------------------------------------
+  !  output variables
+  !-----------------------------------------------------------------------
+
+  real(kind=r8), dimension(nt, km), intent(out) :: interior_restore
 
   !-----------------------------------------------------------------------
   !  local variables
@@ -186,12 +196,22 @@ subroutine restore_tracers(this)
   integer(int_kind) :: n
   !-----------------------------------------------------------------------
 
-  do n=1,tracer_cnt
-  enddo
+  if (this%lrestore_any) then
+    do n=1,nt
+      associate(single_restore => this%tracer_restore(n))
+        if (allocated(single_restore%climatology)) then
+          interior_restore(n,:) = (single_restore%climatology(:)-interior_tracers(n,:))*&
+                                  single_restore%inv_tau(:)
+        else
+          interior_restore(n,:) = c0
+        end if
+      end associate
+    end do
+  else
+    interior_restore(:,:) = c0
+  end if
 
 end subroutine restore_tracers
-
-#endif
 
 !*****************************************************************************
 
