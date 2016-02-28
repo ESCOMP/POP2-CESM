@@ -3111,12 +3111,12 @@ contains
          indf            => marbl_surface_forcing_ind,                                          &
 
          input_forcings  => marbl_surface_forcing_input%input_forcings,                         &
-         xkw             => marbl_surface_forcing_input%input_forcings(:,indf%xkw_id),          &
-         xco2            => marbl_surface_forcing_input%input_forcings(:,indf%xco2_id),         &
-         xco2_alt_co2    => marbl_surface_forcing_input%input_forcings(:,indf%xco2_alt_co2_id), &
-         ap_used         => marbl_surface_forcing_input%input_forcings(:,indf%atm_pressure_id), &
-         ifrac           => marbl_surface_forcing_input%input_forcings(:,indf%ifrac_id),        &
-         dust_flux_in    => marbl_surface_forcing_input%input_forcings(:,indf%dust_flux_id),    &
+         xkw             => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%xkw_id),          &
+         xco2            => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%xco2_id),         &
+         xco2_alt_co2    => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%xco2_alt_co2_id), &
+         ap_used         => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%atm_pressure_id), &
+         ifrac           => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%ifrac_id),        &
+         dust_flux_in    => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%dust_flux_id),    &
 
          ph_prev         => marbl_surface_forcing_saved%ph_prev,                                &
          ph_prev_alt_co2 => marbl_surface_forcing_saved%ph_prev_alt_co2,                        &

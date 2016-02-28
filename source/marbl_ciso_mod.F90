@@ -451,7 +451,6 @@ contains
     use marbl_share_mod        , only : ecosys_ciso_tracer_cnt
     use marbl_share_mod        , only : ciso_lsource_sink
     use marbl_share_mod        , only : ciso_fract_factors
-    use marbl_share_mod        , only : marbl_seconds_in_year 
     use marbl_parms            , only : f_graze_CaCO3_REMIN
     use marbl_parms            , only : R13c_std, R14c_std
     use marbl_parms            , only : spd

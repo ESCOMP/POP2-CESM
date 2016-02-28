@@ -181,8 +181,8 @@ subroutine restore_tracers(this, interior_tracers, km, nt, interior_restore)
   !-----------------------------------------------------------------------
 
   class(marbl_restore_type),        intent(inout) :: this
-  real(kind=r8), dimension(nt, km), intent(in)    :: interior_tracers
   integer,                          intent(in)    :: km, nt
+  real(kind=r8), dimension(nt, km), intent(in)    :: interior_tracers
 
   !-----------------------------------------------------------------------
   !  output variables

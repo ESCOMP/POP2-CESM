@@ -183,9 +183,9 @@ contains
 
          ind     => marbl_surface_forcing_ind,                                          &
          mask    => marbl_surface_forcing_input%land_mask,                              & 
-         temp    => marbl_surface_forcing_input%input_forcings(:,ind%sst_id),           &
-         salt    => marbl_surface_forcing_input%input_forcings(:,ind%sss_id),           &
-         atmpres => marbl_surface_forcing_input%input_forcings(:,ind%atm_pressure_id) , &
+         temp    => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%sst_id),           &
+         salt    => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%sss_id),           &
+         atmpres => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%atm_pressure_id) , &
          ta_in   => marbl_surface_forcing_input%surface_vals(:,alk_ind),                & 
          pt_in   => marbl_surface_forcing_input%surface_vals(:,po4_ind),                & 
          sit_in  => marbl_surface_forcing_input%surface_vals(:,sio3_ind),               & 

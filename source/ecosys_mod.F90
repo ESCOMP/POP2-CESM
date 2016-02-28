@@ -2233,16 +2233,16 @@ contains
          ind                  => marbl_surface_forcing_ind                        ,                  &
 
          land_mask            => marbl_surface_forcing_input%land_mask            ,                  & 
-         ifrac                => marbl_surface_forcing_input%input_forcings(:,ind%ifrac_id)     ,    &
-         u10_sqr              => marbl_surface_forcing_input%input_forcings(:,ind%u10_sqr_id)   ,    &
-         sst                  => marbl_surface_forcing_input%input_forcings(:,ind%sst_id)       ,    &
-         sss                  => marbl_surface_forcing_input%input_forcings(:,ind%sss_id)       ,    &
-         xco2                 => marbl_surface_forcing_input%input_forcings(:,ind%xco2_id)      ,    &
-         xco2_alt_co2         => marbl_surface_forcing_input%input_forcings(:,ind%xco2_alt_co2_id) , & 
-         ap_used              => marbl_surface_forcing_input%input_forcings(:,ind%atm_pressure_id) , &
-         xkw                  => marbl_surface_forcing_input%input_forcings(:,ind%xkw_id)       ,    &
-         dust_flux_in         => marbl_surface_forcing_input%input_forcings(:,ind%dust_flux_id) ,    &
-         iron_flux_in         => marbl_surface_forcing_input%input_forcings(:,ind%iron_flux_id) ,    &
+         ifrac                => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%ifrac_id)     ,    &
+         u10_sqr              => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%u10_sqr_id)   ,    &
+         sst                  => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%sst_id)       ,    &
+         sss                  => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%sss_id)       ,    &
+         xco2                 => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%xco2_id)      ,    &
+         xco2_alt_co2         => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%xco2_alt_co2_id) , & 
+         ap_used              => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%atm_pressure_id) , &
+         xkw                  => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%xkw_id)       ,    &
+         dust_flux_in         => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%dust_flux_id) ,    &
+         iron_flux_in         => marbl_surface_forcing_input%input_forcings(:,marbl_surface_forcing_ind%iron_flux_id) ,    &
          input_forcings       => marbl_surface_forcing_input%input_forcings       ,                  & 
          surface_vals         => marbl_surface_forcing_input%surface_vals         ,                  & 
 
