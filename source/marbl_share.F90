@@ -20,12 +20,11 @@ module marbl_share_mod
   use marbl_sizes           , only : ecosys_ciso_tracer_cnt
   use marbl_interface_types , only : marbl_tracer_read_type
   use marbl_interface_types , only : marbl_forcing_monthly_every_ts_type
-  use marbl_internal_types  , only : marbl_surface_forcing_indexing_type
+  use marbl_interface_types , only : marbl_surface_forcing_indexing_type
 
   implicit none
 
   public
-  save
 
   !-----------------------------------------------------------------------------
   !  parameters for time frequency options
@@ -88,23 +87,22 @@ module marbl_share_mod
   integer   (int_kind) :: comp_surf_avg_freq_iopt      ! choice for freq of comp_surf_avg
   integer   (int_kind) :: comp_surf_avg_freq           ! choice for freq of comp_surf_avg
 
-  type(marbl_forcing_monthly_every_ts_type)          :: fesedflux        ! iron sedimentation flux
-  type(marbl_forcing_monthly_every_ts_type), pointer :: dust_flux        ! surface dust flux
-  type(marbl_forcing_monthly_every_ts_type), pointer :: iron_flux        ! iron component of surface dust flux
-  type(marbl_forcing_monthly_every_ts_type), pointer :: fice_file        ! ice fraction, if read from file
-  type(marbl_forcing_monthly_every_ts_type), pointer :: xkw_file         ! a * wind-speed ** 2, if read from file
-  type(marbl_forcing_monthly_every_ts_type), pointer :: ap_file          ! atmoshperic pressure, if read from file
-  type(marbl_forcing_monthly_every_ts_type), pointer :: nox_flux_monthly ! surface NOx species flux, added to nitrate pool
-  type(marbl_forcing_monthly_every_ts_type), pointer :: nhy_flux_monthly ! surface NHy species flux, added to ammonium pool
-  type(marbl_forcing_monthly_every_ts_type), pointer :: din_riv_flux     ! river DIN species flux, added to nitrate pool
-  type(marbl_forcing_monthly_every_ts_type), pointer :: dip_riv_flux     ! river DIP species flux, added to phosphate pool
-  type(marbl_forcing_monthly_every_ts_type), pointer :: don_riv_flux     ! river DON flux, added to semi-lab don pool
-  type(marbl_forcing_monthly_every_ts_type), pointer :: dop_riv_flux     ! river DOP flux, added to semi-lab dop pool
-  type(marbl_forcing_monthly_every_ts_type), pointer :: dsi_riv_flux     ! river DSI flux, added to dsi pool
-  type(marbl_forcing_monthly_every_ts_type), pointer :: dfe_riv_flux     ! river dfe flux, added to dfe pool
-  type(marbl_forcing_monthly_every_ts_type), pointer :: dic_riv_flux     ! river dic flux, added to dic pool
-  type(marbl_forcing_monthly_every_ts_type), pointer :: alk_riv_flux     ! river alk flux, added to alk pool
-  type(marbl_forcing_monthly_every_ts_type), pointer :: doc_riv_flux     ! river doc flux, added to semi-labile DOC
+  type(marbl_forcing_monthly_every_ts_type), pointer :: fice_file             ! ice fraction, if read from file
+  type(marbl_forcing_monthly_every_ts_type), pointer :: xkw_file              ! a * wind-speed ** 2, if read from file
+  type(marbl_forcing_monthly_every_ts_type), pointer :: ap_file               ! atmoshperic pressure, if read from file
+  type(marbl_forcing_monthly_every_ts_type), pointer :: dust_flux_file        ! surface dust flux
+  type(marbl_forcing_monthly_every_ts_type), pointer :: iron_flux_file        ! iron component of surface dust flux
+  type(marbl_forcing_monthly_every_ts_type), pointer :: nox_flux_monthly_file ! surface NOx species flux, added to nitrate pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: nhy_flux_monthly_file ! surface NHy species flux, added to ammonium pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: din_riv_flux_file     ! river DIN species flux, added to nitrate pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: dip_riv_flux_file     ! river DIP species flux, added to phosphate pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: don_riv_flux_file     ! river DON flux, added to semi-lab don pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: dop_riv_flux_file     ! river DOP flux, added to semi-lab dop pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: dsi_riv_flux_file     ! river DSI flux, added to dsi pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: dfe_riv_flux_file     ! river dfe flux, added to dfe pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: dic_riv_flux_file     ! river dic flux, added to dic pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: alk_riv_flux_file     ! river alk flux, added to alk pool
+  type(marbl_forcing_monthly_every_ts_type), pointer :: doc_riv_flux_file     ! river doc flux, added to semi-labile DOC
 
   !-----------------------------------------------------------------------
   !  namelist: ecosys_ciso_nml 

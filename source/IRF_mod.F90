@@ -79,15 +79,15 @@ contains
    use io_tools, only: document
    use io_types, only: stdout, nml_in, nml_filename
    use passive_tracer_tools, only: read_field
-   use prognostic, only: oldtime, curtime, tracer_field
+   use prognostic, only: oldtime, curtime, tracer_field_type
    use grid, only: KMT
 
    use netcdf
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-!   type (tracer_field), dimension(IRF_tracer_cnt), intent(inout) :: &
-   type (tracer_field), dimension(:), intent(inout) :: &
+!  type (tracer_field_type), dimension(IRF_tracer_cnt), intent(inout) :: &
+   type (tracer_field_type), dimension(:), intent(inout) :: &
       tracer_d_module   ! descriptors for each tracer
 
 !   real(r8), dimension(nx_block,ny_block,km,IRF_tracer_cnt,3,max_blocks_clinic), &

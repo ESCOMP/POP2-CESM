@@ -28,7 +28,9 @@ module iage_mod
    use io_tools, only: document
    use tavg, only: define_tavg_field, accumulate_tavg_field, accumulate_tavg_now
    use passive_tracer_tools, only: ind_name_pair, rest_read_tracer_block
-   use passive_tracer_tools, only: file_read_tracer_block, tracer_read
+   use passive_tracer_tools, only: file_read_tracer_block
+   use passive_tracer_tools, only: tracer_read_type
+
    implicit none
    private
 
@@ -93,7 +95,7 @@ contains
 ! !USES:
 
    use broadcast, only: broadcast_scalar
-   use prognostic, only: curtime, oldtime, tracer_field
+   use prognostic, only: curtime, oldtime, tracer_field_type
    use grid, only: KMT, n_topo_smooth, fill_points
 
 ! !INPUT PARAMETERS:
@@ -104,7 +106,7 @@ contains
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   type (tracer_field), dimension(iage_tracer_cnt), intent(inout) :: &
+   type (tracer_field_type), dimension(iage_tracer_cnt), intent(inout) :: &
       tracer_d_module   ! descriptors for each tracer
 
    real(r8), dimension(nx_block,ny_block,km,iage_tracer_cnt,3,max_blocks_clinic), &
@@ -139,7 +141,7 @@ contains
 
 !     l,                   & ! index for looping over time levels
 
-   type(tracer_read), dimension(iage_tracer_cnt) :: &
+   type(tracer_read_type), dimension(iage_tracer_cnt) :: &
       tracer_init_ext        ! namelist variable for initializing tracers
 
    namelist /iage_nml/ &

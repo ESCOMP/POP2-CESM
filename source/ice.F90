@@ -9,8 +9,6 @@
 !  This module currently contains routines for computing ice 
 !  formation and the heat flux associated with ice formation.
 !  This heat flux is sent to the ice model via the flux coupler.
-!  In the future, this module could contain the driver for a
-!  subroutinized ice model.
 !
 ! !REVISION HISTORY:
 !  SVN:$Id$
@@ -20,24 +18,26 @@
    use POP_KindsMod
    use POP_IOUnitsMod
 
-   use kinds_mod, only: int_kind, log_kind, char_len, r8
-   use blocks, only: nx_block, ny_block, block
+   use kinds_mod       , only: int_kind, log_kind, char_len, r8
+   use blocks          , only: nx_block, ny_block, block
    use domain_size
-   use constants, only: cp_sw, latent_heat_fusion, delim_fmt, blank_fmt,     &
-       sea_ice_salinity, ppt_to_salt, ocn_ref_salinity, c0, p5, hflux_factor,&
-       grav, eps2, ndelim_fmt
-   use broadcast, only: broadcast_scalar
-   use communicate, only: my_task, master_task
-   use io_types, only: nml_in, nml_filename, stdout
-   use time_management, only: freq_opt_never, freq_opt_nyear, freq_opt_nday, &
-       freq_opt_nhour, freq_opt_nsecond, freq_opt_nstep, init_time_flag,     &
-       max_blocks_clinic, km, nt, avg_ts, back_to_back, dtt, check_time_flag,&
-       partial_bottom_cells, KMT, DZT, DZ, freq_opt_nmonth, dt, tmix_matsuno,&
-       tmix_iopt, ice_ts, access_time_flag
-   use exit_mod, only: sigAbort, exit_pop, flushm
+   use constants       , only: cp_sw, latent_heat_fusion, delim_fmt, blank_fmt
+   use constants       , only: sea_ice_salinity, ppt_to_salt, ocn_ref_salinity, hflux_factor
+   use constants       , only: grav, eps2, ndelim_fmt
+   use constants       , only: c0, c1, p5
+   use constants       , only: rho_sw, rho_fw
+   use broadcast       , only: broadcast_scalar
+   use communicate     , only: my_task, master_task
+   use io_types        , only: nml_in, nml_filename, stdout
+   use time_management , only: freq_opt_never, freq_opt_nyear, freq_opt_nday
+   use time_management , only: freq_opt_nhour, freq_opt_nsecond, freq_opt_nstep, init_time_flag
+   use time_management , only: max_blocks_clinic, km, nt, avg_ts, back_to_back, dtt, check_time_flag
+   use time_management , only: partial_bottom_cells, KMT, DZT, DZ, freq_opt_nmonth, dt, tmix_matsuno
+   use time_management , only: tmix_iopt, ice_ts, access_time_flag
+   use exit_mod        , only: sigAbort, exit_pop, flushm
    use prognostic
-   use passive_tracers, only: tracer_ref_val
-   use grid, only: sfc_layer_varthick, sfc_layer_type
+   use passive_tracers , only: tracer_ref_val
+   use grid            , only: sfc_layer_varthick, sfc_layer_type
 
    implicit none
    private

@@ -47,6 +47,7 @@
    use timers
    use passive_tracer_tools
    use passive_tracer_tools, only: forcing_monthly_every_ts
+   use passive_tracer_tools, only: tracer_read_type 
    use named_field_mod
    use forcing_tools
    use time_management
@@ -162,7 +163,7 @@
       rest_z0,             & ! shallow end of transition regime
       rest_z1                ! deep end of transition regime
 
-   type(tracer_read) :: &
+   type(tracer_read_type) :: &
       gas_flux_fice,       & ! ice fraction for gas fluxes
       gas_flux_ws,         & ! wind speed for gas fluxes
       gas_flux_ap,         & ! atmospheric pressure for gas fluxes
@@ -442,8 +443,8 @@ contains
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-  !type (tracer_field), dimension(moby_tracer_cnt), intent(inout) :: &
-   type (tracer_field), dimension(:), intent(inout) :: &
+  !type (tracer_field_type), dimension(moby_tracer_cnt), intent(inout) :: &
+   type (tracer_field_type), dimension(:), intent(inout) :: &
       tracer_d_module   ! descriptors for each tracer
 
   !real (r8), dimension(nx_block,ny_block,km,moby_tracer_cnt,3,max_blocks_clinic), &

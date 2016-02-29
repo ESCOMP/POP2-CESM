@@ -15,26 +15,25 @@ module cfc11_mod
    use POP_KindsMod
    use POP_ErrorMod
    use POP_IOUnitsMod
-
-   use blocks, only: nx_block, ny_block, block
-   use domain_size, only: max_blocks_clinic, km, nx_global, ny_global
-   use domain, only: nblocks_clinic, distrb_clinic
-   use exit_mod, only: sigAbort, exit_POP
-   use communicate, only: my_task, master_task
    use kinds_mod
-   use constants, only: c0, c1, char_blank, delim_fmt
-   use io, only: data_set
-   use io_types, only: stdout, datafile, io_field_desc, io_dim,       &
-       nml_in, nml_filename, construct_file, construct_io_dim,        &
-       construct_io_field, rec_type_dbl, destroy_file,                &
-       destroy_io_field, get_unit, release_unit
-   use io_tools, only: document
-   use tavg, only: define_tavg_field, accumulate_tavg_field
-   use timers, only: get_timer
-   use passive_tracer_tools, only: forcing_monthly_every_ts
-   use passive_tracer_tools, only: init_forcing_monthly_every_ts,      &
-       ind_name_pair, rest_read_tracer_block, file_read_tracer_block,  &
-       read_field, tracer_read
+   use blocks               , only: nx_block, ny_block, block
+   use domain_size          , only: max_blocks_clinic, km, nx_global, ny_global
+   use domain               , only: nblocks_clinic, distrb_clinic
+   use exit_mod             , only: sigAbort, exit_POP
+   use communicate          , only: my_task, master_task
+   use constants            , only: c0, c1, char_blank, delim_fmt
+   use io                   , only: data_set
+   use io_types             , only: stdout, datafile, io_field_desc, io_dim
+   use io_types             , only: nml_in, nml_filename, construct_file, construct_io_dim
+   use io_types             , only: construct_io_field, rec_type_dbl, destroy_file
+   use io_types             , only: destroy_io_field, get_unit, release_unit
+   use io_tools             , only: document
+   use tavg                 , only: define_tavg_field, accumulate_tavg_field
+   use timers               , only: get_timer
+   use passive_tracer_tools , only: forcing_monthly_every_ts
+   use passive_tracer_tools , only: init_forcing_monthly_every_ts
+   use passive_tracer_tools , only: ind_name_pair, rest_read_tracer_block, file_read_tracer_block
+   use passive_tracer_tools , only: read_field, tracer_read_type
 
    implicit none
 
@@ -90,7 +89,7 @@ module cfc11_mod
   !   derived type for tracer initialization
   !-----------------------------------------------------------------------------
 
-    type(tracer_read) :: &
+    type(tracer_read_type) :: &
          gas_flux_fice,       & ! ice fraction for gas fluxes
          gas_flux_ws,         & ! wind speed for gas fluxes
          gas_flux_ap            ! atmospheric pressure for gas fluxes
@@ -161,14 +160,14 @@ contains
 
 ! !USES:
 
-   use broadcast, only: broadcast_scalar, broadcast_array
-   use constants, only: c0, field_loc_center, blank_fmt, &
-       field_type_scalar
-   use domain_size, only : nx_global, ny_global 
-   use prognostic, only: curtime, oldtime, tracer_field
-   use grid, only: KMT, zt, zw, n_topo_smooth, fill_points
-   use forcing_tools, only: find_forcing_times
-   use time_management, only: freq_opt_nyear, freq_opt_nmonth
+   use broadcast       , only: broadcast_scalar, broadcast_array
+   use constants       , only: c0, field_loc_center, blank_fmt
+   use constants       , only: field_type_scalar
+   use domain_size     , only: nx_global, ny_global 
+   use prognostic      , only: curtime, oldtime, tracer_field_type
+   use grid            , only: KMT, zt, zw, n_topo_smooth, fill_points
+   use forcing_tools   , only: find_forcing_times
+   use time_management , only: freq_opt_nyear, freq_opt_nmonth
 
 ! !INPUT PARAMETERS:
 
@@ -178,7 +177,7 @@ contains
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   type (tracer_field), dimension(cfc11_tracer_cnt), intent(inout) :: &
+   type (tracer_field_type), dimension(cfc11_tracer_cnt), intent(inout) :: &
       tracer_d_module   ! descriptors for each tracer
 
    real(r8), dimension(nx_block,ny_block,km,cfc11_tracer_cnt,3,max_blocks_clinic), &
@@ -210,7 +209,7 @@ contains
          iblock,              & ! index for looping over blocks
          nml_error              ! namelist i/o error flag
 
-    type(tracer_read), dimension(cfc11_tracer_cnt) :: &
+    type(tracer_read_type), dimension(cfc11_tracer_cnt) :: &
          tracer_init_int,      &! namelist variable for initializing tracers
          tracer_init_ext        ! namelist variable for initializing tracers
 
@@ -537,10 +536,10 @@ contains
 
  subroutine cfc11_init_sflux
 
-   use broadcast, only: broadcast_scalar, broadcast_array
-   use constants, only: field_loc_center, blank_fmt, field_type_scalar
-   use grid, only: KMT, zt, zw
-   use forcing_tools, only: find_forcing_times
+   use broadcast     , only: broadcast_scalar, broadcast_array
+   use constants     , only: field_loc_center, blank_fmt, field_type_scalar
+   use grid          , only: KMT, zt, zw
+   use forcing_tools , only: find_forcing_times
 
    type (datafile) ::    &
       in_file             ! data file type for init ts file
@@ -858,12 +857,12 @@ contains
 
 ! !USES:
 
-   use constants, only: field_loc_center, field_type_scalar, &
-       mpercm, eps, p5, cmperm
-   use time_management, only: thour00, check_time_flag, iyear,  &
-       seconds_this_year, seconds_in_year, tday
-   use broadcast, only: broadcast_scalar
-   use forcing_tools, only: update_forcing_data, interpolate_forcing
+   use constants       , only: field_loc_center, field_type_scalar
+   use constants       , only: mpercm, eps, p5, cmperm
+   use time_management , only: thour00, check_time_flag, iyear
+   use time_management , only: seconds_this_year, seconds_in_year, tday
+   use broadcast       , only: broadcast_scalar
+   use forcing_tools   , only: update_forcing_data, interpolate_forcing
 
 !-----------------------------------------------------------------------
 !   NOTE that variables are a mish-mash of model/non-model units

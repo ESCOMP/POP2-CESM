@@ -12,10 +12,10 @@ contains
   
   !*****************************************************************************
 
-  function schmidt_co2_surf(n, sst, land_mask)
+  function schmidt_co2_surf(n, sst, surface_mask)
 
     !  Compute Schmidt number of CO2 in seawater as function of SST
-    !  where land_mask is true. Give zero where land_mask is false.
+    !  where surface_mask is non-zero. Give zero where surface_mask is zero.
     !
     !  ref : Wanninkhof, J. Geophys. Res, Vol. 97, No. C5,
     !  pp. 7373-7382, May 15, 1992
@@ -27,7 +27,7 @@ contains
 
     integer(int_kind)  , intent(in) :: n
     real (r8)          , intent(in) :: sst(n)
-    logical (log_kind) , intent(in) :: land_mask(n)
+    real (r8)          , intent(in) :: surface_mask(n)
 
     real (r8) :: schmidt_co2_surf(n)
 
@@ -40,7 +40,7 @@ contains
     real (r8), parameter :: d = 0.043219_r8
     !-----------------------------------------------------------------------
 
-    where (land_mask)
+    where (surface_mask(:) /= c0) 
        schmidt_co2_surf = a + sst * (-b + sst * (c + sst * (-d)))
     elsewhere
        schmidt_co2_surf = c0

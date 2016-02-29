@@ -28,7 +28,7 @@ MODULE co2calc
   !-----------------------------------------------------------------------------
 
   PRIVATE
-  PUBLIC :: co2calc_row, comp_CO3terms, comp_co3_sat_vals
+  PUBLIC :: co2calc_row
 
   !-----------------------------------------------------------------------------
   !   module parameters
@@ -78,39 +78,26 @@ CONTAINS
     !   input arguments
     !---------------------------------------------------------------------------
 
-    INTEGER(KIND=int_kind), INTENT(IN) :: iblock, j
-    LOGICAL(KIND=log_kind), DIMENSION(nx_block), INTENT(IN) :: mask
-    LOGICAL(KIND=log_kind), INTENT(IN) :: locmip_k1_k2_bug_fix
-    LOGICAL(KIND=log_kind), INTENT(IN) :: lcomp_co3_coeffs
-    REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: &
-         temp,     & ! temperature (degrees C)
-         salt,     & ! salinity (PSU)
-         dic_in,   & ! total inorganic carbon (nmol/cm^3)
-         ta_in,    & ! total alkalinity (neq/cm^3)
-         pt_in,    & ! inorganic phosphate (nmol/cm^3)
-         sit_in,   & ! inorganic silicate (nmol/cm^3)
-         xco2_in,  & ! atmospheric mole fraction CO2 in dry air (ppmv)
-         atmpres     ! atmospheric pressure (atmosphere)
-
-    !---------------------------------------------------------------------------
-    !   input/output arguments
-    !---------------------------------------------------------------------------
-
-    REAL(KIND=r8), DIMENSION(nx_block), INTENT(INOUT) :: &
-         phlo,     & ! lower limit of pH range
-         phhi        ! upper limit of pH range
-
-    !---------------------------------------------------------------------------
-    !   output arguments
-    !---------------------------------------------------------------------------
-
-    REAL(KIND=r8), DIMENSION(nx_block), INTENT(OUT) :: &
-         ph,       & ! computed ph values, for initial guess on next time step
-         co2star,  & ! CO2*water (nmol/cm^3)
-         dco2star, & ! delta CO2 (nmol/cm^3)
-         pco2surf, & ! oceanic pCO2 (ppmv)
-         dpco2,    & ! Delta pCO2, i.e, pCO2ocn - pCO2atm (ppmv)
-         CO3         ! Carbonate Ion Concentration
+    integer(KIND=int_kind)                       , intent(in)    :: iblock, j
+    LOGICAL(KIND=log_kind) , dimension(nx_block) , intent(in)    :: mask
+    LOGICAL(KIND=log_kind)                       , intent(in)    :: locmip_k1_k2_bug_fix
+    LOGICAL(KIND=log_kind)                       , intent(in)    :: lcomp_co3_coeffs
+    real(KIND=r8)          , dimension(nx_block) , intent(in)    :: temp     ! temperature (degrees C)
+    real(KIND=r8)          , dimension(nx_block) , intent(in)    :: salt     ! salinity (PSU)
+    real(KIND=r8)          , dimension(nx_block) , intent(in)    :: dic_in   ! total inorganic carbon (nmol/cm^3)
+    real(KIND=r8)          , dimension(nx_block) , intent(in)    :: ta_in    ! total alkalinity (neq/cm^3)
+    real(KIND=r8)          , dimension(nx_block) , intent(in)    :: pt_in    ! inorganic phosphate (nmol/cm^3)
+    real(KIND=r8)          , dimension(nx_block) , intent(in)    :: sit_in   ! inorganic silicate (nmol/cm^3)
+    real(KIND=r8)          , dimension(nx_block) , intent(in)    :: xco2_in  ! atmospheric mole fraction CO2 in dry air (ppmv)
+    real(KIND=r8)          , dimension(nx_block) , intent(in)    :: atmpres  ! atmospheric pressure (atmosphere)
+    real(KIND=r8)          , dimension(nx_block) , intent(inout) :: phlo     ! lower limit of pH range
+    real(KIND=r8)          , dimension(nx_block) , intent(inout) :: phhi     ! upper limit of pH range
+    real(KIND=r8)          , dimension(nx_block) , intent(out)   :: ph       ! computed ph values, for initial guess on next time step
+    real(KIND=r8)          , dimension(nx_block) , intent(out)   :: co2star  ! CO2*water (nmol/cm^3)
+    real(KIND=r8)          , dimension(nx_block) , intent(out)   :: dco2star ! delta CO2 (nmol/cm^3)
+    real(KIND=r8)          , dimension(nx_block) , intent(out)   :: pco2surf ! oceanic pCO2 (ppmv)
+    real(KIND=r8)          , dimension(nx_block) , intent(out)   :: dpco2    ! Delta pCO2, i.e, pCO2ocn - pCO2atm (ppmv)
+    real(KIND=r8)          , dimension(nx_block) , intent(out)   :: CO3      ! Carbonate Ion Concentration
 
     !---------------------------------------------------------------------------
     !   local variable declarations
@@ -232,138 +219,6 @@ CONTAINS
     END DO ! i loop
 
   END SUBROUTINE co2calc_row
-
-  !*****************************************************************************
-
-  SUBROUTINE comp_CO3terms(iblock, j, k, mask, lcomp_co3_coeffs, temp, salt, &
-       dic_in, ta_in, pt_in, sit_in, phlo, phhi, ph, H2CO3, HCO3, CO3)
-
-    !---------------------------------------------------------------------------
-    !   SUBROUTINE comp_CO3terms
-    !
-    !   PURPOSE : Calculate H2CO3, HCO3, CO3 from
-    !             total alkalinity, total CO2, temp, salinity (s), etc.
-    !---------------------------------------------------------------------------
-
-    !---------------------------------------------------------------------------
-    !   input arguments
-    !---------------------------------------------------------------------------
-
-    INTEGER(KIND=int_kind), INTENT(IN) :: iblock
-    INTEGER(KIND=int_kind), INTENT(IN) :: j, k
-    LOGICAL(KIND=log_kind), DIMENSION(nx_block), INTENT(IN) :: mask
-    LOGICAL(KIND=log_kind), INTENT(IN) :: lcomp_co3_coeffs
-    REAL(KIND=r8), DIMENSION(nx_block), INTENT(IN) :: &
-         temp,     & ! temperature (degrees C)
-         salt,     & ! salinity (PSU)
-         dic_in,   & ! total inorganic carbon (nmol/cm^3)
-         ta_in,    & ! total alkalinity (neq/cm^3)
-         pt_in,    & ! inorganic phosphate (nmol/cm^3)
-         sit_in      ! inorganic silicate (nmol/cm^3)
-
-    !---------------------------------------------------------------------------
-    !   input/output arguments
-    !---------------------------------------------------------------------------
-
-    REAL(KIND=r8), DIMENSION(nx_block), INTENT(INOUT) :: &
-         phlo,     & ! lower limit of pH range
-         phhi        ! upper limit of pH range
-
-    !---------------------------------------------------------------------------
-    !   output arguments
-    !---------------------------------------------------------------------------
-
-    REAL(KIND=r8), DIMENSION(nx_block), INTENT(OUT) :: &
-         pH,         & ! computed ph values, for initial guess on next time step
-         H2CO3,      & ! Carbonic Acid Concentration
-         HCO3,       & ! Bicarbonate Ion Concentration
-         CO3           ! Carbonate Ion Concentration
-
-    !---------------------------------------------------------------------------
-    !   local variable declarations
-    !---------------------------------------------------------------------------
-
-    INTEGER(KIND=int_kind) :: i
-
-    REAL(KIND=r8) :: &
-         mass_to_vol,  & ! (mol/kg) -> (mmol/m^3)
-         vol_to_mass,  & ! (mmol/m^3) -> (mol/kg)
-         htotal2, denom
-
-    REAL(KIND=r8), DIMENSION(nx_block) :: &
-         htotal,       & ! free concentration of H ion
-         k0,k1,k2,     & ! equilibrium constants for CO2 species
-         ff              ! fugacity of CO2
-
-    !---------------------------------------------------------------------------
-    !   check for existence of ocean points
-    !---------------------------------------------------------------------------
-
-    IF (COUNT(mask) == 0) THEN
-       ph         = c0
-       H2CO3      = c0
-       HCO3       = c0
-       CO3        = c0
-       RETURN
-    END IF
-
-    !---------------------------------------------------------------------------
-    !   set unit conversion factors
-    !---------------------------------------------------------------------------
-
-    mass_to_vol = 1e6_r8 * rho_sw
-    vol_to_mass = c1 / mass_to_vol
-
-    !------------------------------------------------------------------------
-    !   compute thermodynamic CO3 coefficients
-    !------------------------------------------------------------------------
-
-    IF (lcomp_co3_coeffs) THEN
-       CALL comp_co3_coeffs(iblock, k, mask, temp, salt, k0, k1, k2, ff, k1_k2_pH_tot=.true.)
-    END IF
-
-    !------------------------------------------------------------------------
-    !   compute htotal
-    !------------------------------------------------------------------------
-
-    CALL comp_htotal(iblock, j, k, mask, temp, dic_in, &
-                     ta_in, pt_in, sit_in, k1, k2, &
-                     phlo, phhi, htotal)
-
-    !------------------------------------------------------------------------
-    !   Calculate [CO2*] as defined in DOE Methods Handbook 1994 Ver.2,
-    !   ORNL/CDIAC-74, Dickson and Goyet, eds. (Ch 2 p 10, Eq A.49-51)
-    !------------------------------------------------------------------------
-
-    DO i = 1,nx_block
-       IF (mask(i)) THEN
-
-          htotal2  = htotal(i) ** 2
-          denom    = c1 / (htotal2 + k1(i) * htotal(i) + k1(i) * k2(i))
-          H2CO3(i) = dic(i,iblock) * htotal2 * denom
-          HCO3(i)  = dic(i,iblock) * k1(i) * htotal(i) * denom
-          CO3(i)   = dic(i,iblock) * k1(i) * k2(i) * denom
-          ph(i)    = -LOG10(htotal(i))
-
-          !------------------------------------------------------------------
-          !   Convert units of output arguments
-          !------------------------------------------------------------------
-
-          H2CO3(i) = H2CO3(i) * mass_to_vol
-          HCO3(i)  = HCO3(i) * mass_to_vol
-          CO3(i)   = CO3(i) * mass_to_vol
-
-       ELSE ! if mask
-
-          ph(i)    = c0
-          H2CO3(i) = c0
-          HCO3(i)  = c0
-          CO3(i)   = c0
-
-       END IF ! if mask
-    END DO ! i loop
-
-  END SUBROUTINE comp_CO3terms
 
   !*****************************************************************************
 
@@ -1190,181 +1045,6 @@ CONTAINS
     END DO ! i loop
 
   END SUBROUTINE talk_row
-
-  !*****************************************************************************
-
-  SUBROUTINE comp_co3_sat_vals(k, mask, temp, salt, co3_sat_calc, co3_sat_arag)
-
-    !---------------------------------------------------------------------------
-    !   SUBROUTINE comp_co3_sat_vals
-    !
-    !   PURPOSE : Calculate co3 concentration at calcite and aragonite saturation
-    !             from temp, salinity (s), press
-    !---------------------------------------------------------------------------
-
-    !---------------------------------------------------------------------------
-    !   input arguments
-    !---------------------------------------------------------------------------
-
-    INTEGER(KIND=int_kind), INTENT(IN) :: k
-    LOGICAL(KIND=log_kind), DIMENSION(nx_block, ny_block), INTENT(IN) :: mask
-    REAL(KIND=r8), DIMENSION(nx_block,ny_block), INTENT(IN) :: &
-         temp,     & ! temperature (degrees C)
-         salt        ! salinity (PSU)
-
-    !---------------------------------------------------------------------------
-    !   output arguments
-    !---------------------------------------------------------------------------
-
-    REAL(KIND=r8), DIMENSION(nx_block, ny_block), INTENT(OUT) :: &
-         co3_sat_calc,&! co3 concentration at calcite saturation
-         co3_sat_arag  ! co3 concentration at aragonite saturation
-
-    !---------------------------------------------------------------------------
-    !   local variable declarations
-    !---------------------------------------------------------------------------
-
-    INTEGER(KIND=int_kind) :: i, j
-
-    REAL(KIND=r8) :: &
-         mass_to_vol,  & ! (mol/kg) -> (mmol/m^3)
-         press_bar       ! pressure at level k [bars]
-
-    REAL(KIND=r8), DIMENSION(nx_block) :: &
-         salt_lim,     & ! bounded salt
-         tk,           & ! temperature (K)
-         log10tk,invtk,sqrts,s15,invRtk,arg,&
-         K_calc,       & ! thermodynamic constant for calcite
-         K_arag,       & ! thermodynamic constant for aragonite
-         deltaV,Kappa, & ! pressure correction terms
-         lnKfac,Kfac,  & ! pressure correction terms
-         inv_Ca          ! inverse of Calcium concentration (mol/kg)
-
-    !---------------------------------------------------------------------------
-    !   check for existence of ocean points
-    !---------------------------------------------------------------------------
-
-    IF (COUNT(mask) == 0) THEN
-       co3_sat_calc = c0
-       co3_sat_arag = c0
-       RETURN
-    END IF
-
-    !---------------------------------------------------------------------------
-    !   set unit conversion factors
-    !---------------------------------------------------------------------------
-
-    mass_to_vol = 1e6_r8 * rho_sw
-
-    !---------------------------------------------------------------------------
-
-    press_bar = ref_pressure(k)
-
-    DO j = 1,ny_block
-
-       !------------------------------------------------------------------------
-       !   check for existence of ocean points on this row
-       !------------------------------------------------------------------------
-
-       IF (COUNT(mask(:,j)) == 0) THEN
-          co3_sat_calc(:,j) = c0
-          co3_sat_arag(:,j) = c0
-          CYCLE
-       END IF
-
-       salt_lim = max(salt(:,j),salt_min)
-       tk       = T0_Kelvin + temp(:,j)
-#ifdef CCSMCOUPLED
-       CALL shr_vmath_log(tk, log10tk, nx_block)
-#else
-       log10tk  = LOG(tk)
-#endif
-       log10tk  = log10tk/LOG(c10)
-       invtk    = c1 / tk
-       invRtk   = (c1 / 83.1451_r8) * invtk
-
-#ifdef CCSMCOUPLED
-       CALL shr_vmath_sqrt(salt_lim, sqrts, nx_block)
-#else
-       sqrts    = SQRT(salt_lim)
-#endif
-       s15      = sqrts * salt_lim
-
-       !------------------------------------------------------------------------
-       !   Compute K_calc, K_arag, apply pressure factor
-       !   Mucci, Amer. J. of Science 283:781-799, 1983 & Millero 1979
-       !------------------------------------------------------------------------
-
-       arg = -171.9065_r8 - 0.077993_r8 * tk + 2839.319_r8 * invtk + 71.595_r8 * log10tk + &
-             (-0.77712_r8 + 0.0028426_r8 * tk + 178.34_r8 * invtk) * sqrts - &
-             0.07711_r8 * salt_lim + 0.0041249_r8 * s15
-       arg = LOG(c10) * arg
-#ifdef CCSMCOUPLED
-       CALL shr_vmath_exp(arg, K_calc, nx_block)
-#else
-       K_calc = EXP(arg)
-#endif
-
-       IF (k > 1) THEN
-          deltaV = -48.76_r8 + 0.5304_r8 * temp(:,j)
-          Kappa  = (-11.76_r8 + 0.3692_r8 * temp(:,j)) * p001
-          lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
-#ifdef CCSMCOUPLED
-          CALL shr_vmath_exp(lnKfac, Kfac, nx_block)
-#else
-          Kfac = EXP(lnKfac)
-#endif
-          K_calc = K_calc * Kfac
-       END IF
-
-       arg = -171.945_r8 - 0.077993_r8 * tk + 2903.293_r8 * invtk + 71.595_r8 * log10tk + &
-            (-0.068393_r8 + 0.0017276_r8 * tk + 88.135_r8 * invtk) * sqrts - &
-            0.10018_r8 * salt_lim + 0.0059415_r8 * s15
-       arg = LOG(c10) * arg
-#ifdef CCSMCOUPLED
-       CALL shr_vmath_exp(arg, K_arag, nx_block)
-#else
-       K_arag = EXP(arg)
-#endif
-
-       IF (k > 1) THEN
-          deltaV = deltaV + 2.8_r8
-          lnKfac = (-deltaV + p5 * Kappa * press_bar) * press_bar * invRtk
-#ifdef CCSMCOUPLED
-          CALL shr_vmath_exp(lnKfac, Kfac, nx_block)
-#else
-          Kfac = EXP(lnKfac)
-#endif
-          K_arag = K_arag * Kfac
-       END IF
-
-       WHERE ( mask(:,j) )
-
-          !------------------------------------------------------------------
-          !   Compute CO3 concentration at calcite & aragonite saturation
-          !------------------------------------------------------------------
-
-          inv_Ca = (35.0_r8 / 0.01028_r8) / salt_lim
-          co3_sat_calc(:,j) = K_calc * inv_Ca
-          co3_sat_arag(:,j) = K_arag * inv_Ca
-
-          !------------------------------------------------------------------
-          !   Convert units of output arguments
-          !------------------------------------------------------------------
-
-          co3_sat_calc(:,j) = co3_sat_calc(:,j) * mass_to_vol
-          co3_sat_arag(:,j) = co3_sat_arag(:,j) * mass_to_vol
-
-       ELSEWHERE
-
-          co3_sat_calc(:,j) = c0
-          co3_sat_arag(:,j) = c0
-
-       END WHERE
-
-    END DO ! j loop
-
-  END SUBROUTINE comp_co3_sat_vals
 
   !*****************************************************************************
 

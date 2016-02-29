@@ -12,11 +12,12 @@
 
 ! !USES:
 
-   use kinds_mod             , only : r8, int_kind, rtavg
-   use blocks                , only : nx_block, ny_block
-   use domain_size           , only : max_blocks_clinic, km, nt
-   use marbl_interface_types , only : tracer_field => marbl_tracer_metadata_type
-   use constants
+   use kinds_mod   , only : r8, int_kind, char_len
+   use blocks      , only : nx_block, ny_block
+   use domain_size , only : km, max_blocks_clinic, nt
+   use constants   , only : c0
+
+   use marbl_interface_types , only : tracer_field_type => marbl_tracer_metadata_type
 
    implicit none
    public
@@ -24,11 +25,23 @@
 
 ! !PUBLIC DATA MEMBERS:
 
+   ! derived type for reading tracers from a file
+
+!!$   type, public :: tracer_field_type
+!!$      character(char_len) :: short_name
+!!$      character(char_len) :: long_name
+!!$      character(char_len) :: units
+!!$      character(char_len) :: tend_units
+!!$      character(char_len) :: flux_units
+!!$      real(r8)            :: scale_factor
+!!$      logical             :: lfull_depth_tavg
+!!$   end type tracer_field_type
+
    real (r8), dimension(nx_block,ny_block,km,nt,3,max_blocks_clinic), &
       target :: &
       TRACER     ! 3d tracer fields for all blocks at 3 time levels
 
-   type (tracer_field), dimension(nt) :: &
+   type (tracer_field_type), dimension(nt) :: &
       tracer_d   ! descriptors for each tracer
 
    real (r8), dimension(nx_block,ny_block,km,3,max_blocks_clinic), &
@@ -55,8 +68,6 @@
       oldtime,           &! previous time level (n-1)
       mixtime             ! set to oldtime on leafrog steps
                           ! and to curtime on matsuno steps
-
-    public :: tracer_field ! used from marbl_interface_types
 
 !EOP
 !BOC

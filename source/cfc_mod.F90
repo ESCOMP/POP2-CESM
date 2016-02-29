@@ -36,7 +36,7 @@ module cfc_mod
    use io_tools, only: document
    use tavg, only: define_tavg_field, accumulate_tavg_field
    use passive_tracer_tools, only: forcing_monthly_every_ts
-   use passive_tracer_tools, only: ind_name_pair, read_field, tracer_read
+   use passive_tracer_tools, only: ind_name_pair, read_field, tracer_read_type
    use broadcast
    use netcdf
 
@@ -184,13 +184,13 @@ contains
 ! !USES:
 
    use constants, only: char_blank, delim_fmt
-   use prognostic, only: curtime, oldtime, tracer_field
+   use prognostic, only: curtime, oldtime, tracer_field_type
    use grid, only: KMT, n_topo_smooth, fill_points
    use grid, only: REGION_MASK
    use io_types, only: nml_in, nml_filename
    use timers, only: get_timer
-   use passive_tracer_tools, only: init_forcing_monthly_every_ts, &
-       rest_read_tracer_block, file_read_tracer_block
+   use passive_tracer_tools, only: init_forcing_monthly_every_ts
+   use passive_tracer_tools, only: rest_read_tracer_block, file_read_tracer_block
 
 ! !INPUT PARAMETERS:
 
@@ -200,7 +200,7 @@ contains
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   type (tracer_field), dimension(cfc_tracer_cnt), intent(inout) :: &
+   type (tracer_field_type), dimension(cfc_tracer_cnt), intent(inout) :: &
       tracer_d_module   ! descriptors for each tracer
 
    real (r8), dimension(nx_block,ny_block,km,cfc_tracer_cnt,3,max_blocks_clinic), &
@@ -230,10 +230,10 @@ contains
       iblock,                 & ! index for looping over blocks
       nml_error                 ! namelist i/o error flag
 
-   type(tracer_read), dimension(cfc_tracer_cnt) :: &
+   type(tracer_read_type), dimension(cfc_tracer_cnt) :: &
       tracer_init_ext           ! namelist variable for initializing tracers
 
-   type(tracer_read) :: &
+   type(tracer_read_type) :: &
       gas_flux_fice,          & ! ice fraction for gas fluxes
       gas_flux_ws,            & ! wind speed for gas fluxes
       gas_flux_ap               ! atmospheric pressure for gas fluxes

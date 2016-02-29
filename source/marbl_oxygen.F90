@@ -13,9 +13,7 @@ module marbl_oxygen
   private
 
   public :: &
-       schmidt_o2,      &
        schmidt_o2_surf, &
-       o2sat,           &
        o2sat_surf,      &
        o2sat_scalar
 
@@ -23,95 +21,45 @@ contains
 
   !*****************************************************************************
 
-  function SCHMIDT_O2(nx, ny, SST, LAND_MASK)
+  function schmidt_o2_surf(n, sst, surface_mask)
 
     ! !DESCRIPTION:
     !  Compute Schmidt number of O2 in seawater as function of SST
-    !  where LAND_MASK is true. Give zero where LAND_MASK is false.
+    !  where surface_mask is non-zero. Give zero where surface_mask is 0.
     !
     !  ref : Keeling et al, Global Biogeochem. Cycles, Vol. 12,
     !        No. 1, pp. 141-163, March 1998
-    !
-    ! !REVISION HISTORY:
-    !  same as module
 
-    ! !INPUT PARAMETERS:
-    integer(int_kind), intent(in) :: nx, ny
-    real (r8), intent(in) :: SST(nx, ny)
+    integer(int_kind)  , intent(in) :: n
+    real (r8)          , intent(in) :: sst(n)
+    real (r8)          , intent(in) :: surface_mask(n)
 
-    logical (log_kind), intent(in) :: LAND_MASK(nx, ny)
-
-    ! !OUTPUT PARAMETERS:
-
-    real (r8) :: SCHMIDT_O2(nx, ny)
+    real (r8) :: schmidt_o2_surf(n)
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
+    real (r8), parameter :: a = 1638.0_r8
+    real (r8), parameter :: b = 81.83_r8
+    real (r8), parameter :: c = 1.483_r8
+    real (r8), parameter :: d = 0.008004_r8
+    !-----------------------------------------------------------------------
 
-    real (r8), parameter :: &
-         a = 1638.0_r8, &
-         b = 81.83_r8, &
-         c = 1.483_r8, &
-         d = 0.008004_r8
-
-    where (LAND_MASK)
-       SCHMIDT_O2 = a + SST * (-b + SST * (c + SST * (-d)))
+    where (surface_mask(:) /= c0) 
+       schmidt_o2_surf = a + sst * (-b + sst * (c + sst * (-d)))
     elsewhere
-       SCHMIDT_O2 = c0
+       schmidt_o2_surf = c0
     end where
 
-  end function SCHMIDT_O2
+  end function schmidt_o2_surf
 
   !*****************************************************************************
 
-  function SCHMIDT_O2_surf(n, SST, LAND_MASK)
-
-    ! !DESCRIPTION:
-    !  Compute Schmidt number of O2 in seawater as function of SST
-    !  where LAND_MASK is true. Give zero where LAND_MASK is false.
-    !
-    !  ref : Keeling et al, Global Biogeochem. Cycles, Vol. 12,
-    !        No. 1, pp. 141-163, March 1998
-    !
-    ! !REVISION HISTORY:
-    !  same as module
-
-    ! !INPUT PARAMETERS:
-    integer(int_kind), intent(in) :: n
-    real (r8), intent(in) :: SST(n)
-
-    logical (log_kind), intent(in) :: LAND_MASK(n)
-
-    ! !OUTPUT PARAMETERS:
-
-    real (r8) :: SCHMIDT_O2_surf(n)
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-
-    real (r8), parameter :: &
-         a = 1638.0_r8, &
-         b = 81.83_r8, &
-         c = 1.483_r8, &
-         d = 0.008004_r8
-
-    where (LAND_MASK)
-       SCHMIDT_O2_surf = a + SST * (-b + SST * (c + SST * (-d)))
-    elsewhere
-       SCHMIDT_O2_surf = c0
-    end where
-
-  end function SCHMIDT_O2_surf
-
-  !*****************************************************************************
-
-  function O2SAT(nx, ny, SST, SSS, LAND_MASK)
+  function o2sat_surf(n, sst, sss, surface_mask)
 
     !  Computes oxygen saturation concentration at 1 atm total pressure
     !  in mmol/m^3 given the temperature (t, in deg C) and the salinity (s,
-    !  in permil) where LAND_MASK is true. Give zero where LAND_MASK is false.
+    !  in permil) where surface_mask is non-zero. Give zero where surface_mask is 0.
     !
     !  FROM GARCIA AND GORDON (1992), LIMNOLOGY and OCEANOGRAPHY.
     !  THE FORMULA USED IS FROM PAGE 1310, EQUATION (8).
@@ -123,116 +71,63 @@ contains
     !  0 permil <= S <= 42 permil
     !  CHECK VALUE:  T = 10.0 deg C, S = 35.0 permil,
     !  O2SAT = 282.015 mmol/m^3
-    !
-    ! !INPUT PARAMETERS:
 
-    integer(int_kind), intent(in) :: nx, ny
-    real (r8), intent(in) :: SST(nx, ny) ! sea surface temperature (C)
-    real (r8), intent(in) :: SSS(nx, ny) ! sea surface salinity (psu)
-
-    logical (log_kind), intent(in) :: LAND_MASK(nx, ny)
-
-    ! !OUTPUT PARAMETERS:
-
-    real (r8) :: O2SAT(nx, ny)
-
-    !-----------------------------------------------------------------------
-    !  local variables
-    !-----------------------------------------------------------------------
-
-    integer(int_kind) :: i, j
-
-    do j = 1, ny
-       do i = 1, nx
-          if (LAND_MASK(i, j)) then
-             O2SAT(i, j) = O2SAT_scalar(SST(i, j), SSS(i, j))
-          else
-             O2SAT(i, j) = c0
-          end if
-       end do
-    end do
-
-  end function O2SAT
-
-  !*****************************************************************************
-
-  function O2SAT_surf(n, SST, SSS, LAND_MASK)
-
-    !  Computes oxygen saturation concentration at 1 atm total pressure
-    !  in mmol/m^3 given the temperature (t, in deg C) and the salinity (s,
-    !  in permil) where LAND_MASK is true. Give zero where LAND_MASK is false.
-    !
-    !  FROM GARCIA AND GORDON (1992), LIMNOLOGY and OCEANOGRAPHY.
-    !  THE FORMULA USED IS FROM PAGE 1310, EQUATION (8).
-    !
-    !  *** NOTE: THE "A_3*TS^2" TERM (IN THE PAPER) IS INCORRECT. ***
-    !  *** IT SHOULD NOT BE THERE.                                ***
-    !
-    !  O2SAT IS DEFINED BETWEEN T(freezing) <= T <= 40(deg C) AND
-    !  0 permil <= S <= 42 permil
-    !  CHECK VALUE:  T = 10.0 deg C, S = 35.0 permil,
-    !  O2SAT = 282.015 mmol/m^3
-    ! !REVISION HISTORY:
-    !  same as module
     use marbl_constants_mod, only : T0_Kelvin
-
-    ! !INPUT PARAMETERS:
 
     integer(int_kind),            intent(in) :: n
     real (r8),                    intent(in) :: SST(n) ! sea surface temperature (C)
     real (r8),                    intent(in) :: SSS(n) ! sea surface salinity (psu)
-    logical (log_kind), optional, intent(in) :: LAND_MASK(n)
-
-    ! !OUTPUT PARAMETERS:
+    real (r8)         , optional, intent(in) :: surface_mask(n)
 
     real (r8) :: O2SAT_surf(n)
 
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-
-    real (r8) :: TS(n)
-    real (r8) :: O2SAT(n)
-
+    real (r8) :: ts(n)
+    real (r8) :: o2sat(n)
     !  coefficients in expansion
-    real (r8), parameter ::    &
-         a_0 = 2.00907_r8,     &
-         a_1 = 3.22014_r8,     &
-         a_2 = 4.05010_r8,     &
-         a_3 = 4.94457_r8,     &
-         a_4 = -2.56847E-1_r8, &
-         a_5 = 3.88767_r8,     &
-         b_0 = -6.24523E-3_r8, &
-         b_1 = -7.37614E-3_r8, &
-         b_2 = -1.03410E-2_r8, &
-         b_3 = -8.17083E-3_r8, &
-         c_0 = -4.88682E-7_r8
+    real (r8), parameter :: a_0 =  2.00907_r8
+    real (r8), parameter :: a_1 =  3.22014_r8
+    real (r8), parameter :: a_2 =  4.05010_r8
+    real (r8), parameter :: a_3 =  4.94457_r8
+    real (r8), parameter :: a_4 = -2.56847E-1_r8
+    real (r8), parameter :: a_5 =  3.88767_r8    
+    real (r8), parameter :: b_0 = -6.24523E-3_r8
+    real (r8), parameter :: b_1 = -7.37614E-3_r8
+    real (r8), parameter :: b_2 = -1.03410E-2_r8
+    real (r8), parameter :: b_3 = -8.17083E-3_r8
+    real (r8), parameter :: c_0 = -4.88682E-7_r8
+    !-----------------------------------------------------------------------
 
     ! set default
-    O2SAT_surf(:) = c0
+    o2sat_surf(:) = c0
 
-    if (present(LAND_MASK)) then
-       where(LAND_MASK)
+    if (present(surface_mask)) then
 
-          TS(:)    = log( ((T0_Kelvin + 25.0_r8) - SST(:)) / (T0_Kelvin + SST(:)) )
-          O2SAT(:) = exp(a_0+TS(:)*(a_1+TS(:)*(a_2+TS(:)*(a_3+TS(:)*(a_4+TS(:)*a_5)))) + &
-                         SSS(:)*( (b_0+TS(:)*(b_1+TS(:)*(b_2+TS(:)*b_3))) + SSS(:)*c_0 ))
-          !  Convert from ml/l to mmol/m^3
-          O2SAT_surf(:) = O2SAT(:) / 0.0223916_r8
+       where (surface_mask(:) /= c0) 
+
+          ts(:)    = log( ((t0_kelvin + 25.0_r8) - sst(:)) / (t0_kelvin + sst(:)) )
+          o2sat(:) = exp(a_0+ts(:)*(a_1+ts(:)*(a_2+ts(:)*(a_3+ts(:)*(a_4+ts(:)*a_5)))) + &
+                         sss(:)*( (b_0+ts(:)*(b_1+ts(:)*(b_2+ts(:)*b_3))) + sss(:)*c_0 ))
+
+          !  convert from ml/l to mmol/m^3
+          o2sat_surf(:) = o2sat(:) / 0.0223916_r8
 
        end where
     endif
 
   end function O2SAT_surf
 
-  !-----------------------------------------------------------------------
-  function O2SAT_scalar(SST, SSS)
+  !*****************************************************************************
+
+  function o2sat_scalar(sst, sss)
 
     ! !DESCRIPTION:
     !
     !  Computes oxygen saturation concentration at 1 atm total pressure
     !  in mmol/m^3 given the temperature (t, in deg C) and the salinity (s,
-    !  in permil) where LAND_MASK is true. Give zero where LAND_MASK is false.
+    !  in permil) where surface_mask is non-zero. Give zero where surface_mask is 0.
     !
     !  FROM GARCIA AND GORDON (1992), LIMNOLOGY and OCEANOGRAPHY.
     !  THE FORMULA USED IS FROM PAGE 1310, EQUATION (8).
@@ -244,48 +139,42 @@ contains
     !  0 permil <= S <= 42 permil
     !  CHECK VALUE:  T = 10.0 deg C, S = 35.0 permil,
     !  O2SAT = 282.015 mmol/m^3
-    !
-    ! !REVISION HISTORY:
-    !  same as module
+
     use marbl_constants_mod, only : T0_Kelvin
 
-    ! !INPUT PARAMETERS:
+    real (r8), intent(in) :: sst    ! sea surface temperature (C)
+    real (r8), intent(in) :: sss    ! sea surface salinity (psu)
 
-    real (r8), intent(in) :: SST    ! sea surface temperature (C)
-    real (r8), intent(in) :: SSS    ! sea surface salinity (psu)
+    real (r8) :: o2sat_scalar
 
-    ! !OUTPUT PARAMETERS:
-
-    real (r8) :: O2SAT_scalar
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    real (r8) :: TS
-    real (r8) :: O2SAT
-
+    real (r8) :: ts
+    real (r8) :: o2sat
     !  coefficients in expansion
-    real (r8), parameter :: &
-         a_0 = 2.00907_r8, &
-         a_1 = 3.22014_r8, &
-         a_2 = 4.05010_r8, &
-         a_3 = 4.94457_r8, &
-         a_4 = -2.56847E-1_r8, &
-         a_5 = 3.88767_r8, &
-         b_0 = -6.24523E-3_r8, &
-         b_1 = -7.37614E-3_r8, &
-         b_2 = -1.03410E-2_r8, &
-         b_3 = -8.17083E-3_r8, &
-         c_0 = -4.88682E-7_r8
+    real (r8), parameter :: a_0 =  2.00907_r8
+    real (r8), parameter :: a_1 =  3.22014_r8
+    real (r8), parameter :: a_2 =  4.05010_r8
+    real (r8), parameter :: a_3 =  4.94457_r8
+    real (r8), parameter :: a_4 = -2.56847E-1_r8
+    real (r8), parameter :: a_5 =  3.88767_r8    
+    real (r8), parameter :: b_0 = -6.24523E-3_r8
+    real (r8), parameter :: b_1 = -7.37614E-3_r8
+    real (r8), parameter :: b_2 = -1.03410E-2_r8
+    real (r8), parameter :: b_3 = -8.17083E-3_r8
+    real (r8), parameter :: c_0 = -4.88682E-7_r8
+    !-----------------------------------------------------------------------
 
-    TS = log( ((T0_Kelvin + 25.0_r8) - SST) / (T0_Kelvin + SST) )
+    ts = log( ((t0_kelvin + 25.0_r8) - sst) / (t0_kelvin + sst) )
 
-    O2SAT = exp(a_0+TS*(a_1+TS*(a_2+TS*(a_3+TS*(a_4+TS*a_5)))) + &
-         SSS*( (b_0+TS*(b_1+TS*(b_2+TS*b_3))) + SSS*c_0 ))
+    o2sat = exp(a_0+ts*(a_1+ts*(a_2+ts*(a_3+ts*(a_4+ts*a_5)))) + &
+         sss*( (b_0+ts*(b_1+ts*(b_2+ts*b_3))) + sss*c_0 ))
 
 
     !  Convert from ml/l to mmol/m^3
-    O2SAT_scalar = O2SAT / 0.0223916_r8
+    o2sat_scalar = o2sat / 0.0223916_r8
 
-  end function O2SAT_scalar
+  end function o2sat_scalar
 
 end module marbl_oxygen

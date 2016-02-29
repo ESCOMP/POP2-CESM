@@ -110,35 +110,26 @@ module marbl_internal_types
 
   !****************************************************************************
 
-  type, public :: marbl_surface_forcing_indexing_type
-     integer(int_kind) :: land_mask_id
-     integer(int_kind) :: u10_sqr_id
-     integer(int_kind) :: ifrac_id
-     integer(int_kind) :: sst_id
-     integer(int_kind) :: sss_id
-     integer(int_kind) :: xco2_id
-     integer(int_kind) :: atm_pressure_id
-     integer(int_kind) :: xco2_alt_co2_id
-     integer(int_kind) :: xkw_id
-     integer(int_kind) :: fice_id
-     integer(int_kind) :: ph_prev_id
-     integer(int_kind) :: ph_prev_alt_co2_id
-     integer(int_kind) :: dust_flux_id
-     integer(int_kind) :: iron_flux_id
-     integer(int_kind) :: nox_flux_id
-     integer(int_kind) :: nhy_flux_id
-     integer(int_kind) :: no3_flux_id
-     integer(int_kind) :: nh4_flux_id
-     integer(int_kind) :: din_riv_flux_id
-     integer(int_kind) :: dip_riv_flux_id
-     integer(int_kind) :: don_riv_flux_id
-     integer(int_kind) :: dop_riv_flux_id
-     integer(int_kind) :: dsi_riv_flux_id
-     integer(int_kind) :: dfe_riv_flux_id
-     integer(int_kind) :: dic_riv_flux_id
-     integer(int_kind) :: alk_riv_flux_id
-     integer(int_kind) :: doc_riv_flux_id
-  end type marbl_surface_forcing_indexing_type
+  type, public :: marbl_surface_forcing_internal_type
+     real (r8), allocatable, dimension(:)   :: iron_flux    
+     real (r8), allocatable, dimension(:)   :: flux_alt_co2 ! tracer flux alternative CO2 (nmol/cm^2/s)
+     real (r8), allocatable, dimension(:)   :: co2star
+     real (r8), allocatable, dimension(:)   :: dco2star
+     real (r8), allocatable, dimension(:)   :: pco2surf
+     real (r8), allocatable, dimension(:)   :: dpco2
+     real (r8), allocatable, dimension(:)   :: co3
+     real (r8), allocatable, dimension(:)   :: co2star_alt
+     real (r8), allocatable, dimension(:)   :: dco2star_alt
+     real (r8), allocatable, dimension(:)   :: pco2surf_alt
+     real (r8), allocatable, dimension(:)   :: dpco2_alt
+     real (r8), allocatable, dimension(:)   :: schmidt_co2  ! Schmidt number
+     real (r8), allocatable, dimension(:)   :: schmidt_o2   ! Schmidt number
+     real (r8), allocatable, dimension(:)   :: pv_o2        ! piston velocity (cm/s)
+     real (r8), allocatable, dimension(:)   :: pv_co2       ! piston velocity (cm/s)
+     real (r8), allocatable, dimension(:)   :: o2sat        ! used O2 saturation (mmol/m^3)
+   contains
+     procedure, public :: construct => marbl_surface_forcing_internal_constructor
+  end type marbl_surface_forcing_internal_type
 
   !****************************************************************************
   !
@@ -458,7 +449,29 @@ contains
     deallocate(this%col_frac )
   end subroutine marbl_PAR_destructor
 
-   !***********************************************************************
+  !***********************************************************************
+
+  subroutine marbl_surface_forcing_internal_constructor(this, num_elements)
+    class(marbl_surface_forcing_internal_type) , intent(inout) :: this
+    integer (int_kind)                         , intent(in)    :: num_elements
+
+    allocate(this%iron_flux       (num_elements)) 
+    allocate(this%flux_alt_co2    (num_elements))
+    allocate(this%co2star         (num_elements))
+    allocate(this%dco2star        (num_elements))
+    allocate(this%pco2surf        (num_elements))
+    allocate(this%dpco2           (num_elements))
+    allocate(this%co3             (num_elements))
+    allocate(this%co2star_alt     (num_elements))
+    allocate(this%dco2star_alt    (num_elements))
+    allocate(this%pco2surf_alt    (num_elements))
+    allocate(this%dpco2_alt       (num_elements))
+    allocate(this%schmidt_co2     (num_elements)) 
+    allocate(this%schmidt_o2      (num_elements))  
+    allocate(this%pv_o2           (num_elements))       
+    allocate(this%pv_co2          (num_elements))      
+    allocate(this%o2sat           (num_elements))       
+  end subroutine marbl_surface_forcing_internal_constructor
 
 end module marbl_internal_types
 

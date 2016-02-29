@@ -27,7 +27,8 @@ module abio_dic_dic14_mod
   use tavg                 , only: define_tavg_field
   use tavg                 , only: accumulate_tavg_field
   use passive_tracer_tools , only: ind_name_pair, read_field, comp_surf_avg
-  use passive_tracer_tools , only: extract_surf_avg, tracer_read
+  use passive_tracer_tools , only: extract_surf_avg
+  use passive_tracer_tools , only: tracer_read_type 
   use broadcast            , only: broadcast_array, broadcast_scalar
   use schmidt_number       , only: SCHMIDT_CO2
   use constants            , only: xkw_coeff
@@ -224,7 +225,7 @@ contains
     !  the modules namelist and setting initial conditions.
 
     use constants            , only: char_blank
-    use prognostic           , only: curtime, oldtime, tracer_field
+    use prognostic           , only: curtime, oldtime, tracer_field_type
     use grid                 , only: KMT, n_topo_smooth, fill_points
     use timers               , only: get_timer
     use passive_tracer_tools , only: rest_read_tracer_block, file_read_tracer_block
@@ -238,7 +239,7 @@ contains
 
     ! !INPUT/OUTPUT PARAMETERS:
 
-    type (tracer_field), dimension(abio_dic_dic14_tracer_cnt), intent(inout) :: &
+    type (tracer_field_type), dimension(abio_dic_dic14_tracer_cnt), intent(inout) :: &
          tracer_d_module        ! descriptors for each tracer
 
     real (r8), dimension(nx_block,ny_block,km,abio_dic_dic14_tracer_cnt,3,max_blocks_clinic), &
@@ -268,7 +269,7 @@ contains
          iblock,                 &             ! index for looping over blocks
          nml_error                             ! namelist i/o error flag
 
-    type(tracer_read), dimension(abio_dic_dic14_tracer_cnt) :: &
+    type(tracer_read_type), dimension(abio_dic_dic14_tracer_cnt) :: &
          abio_tracer_init_ext                  ! namelist variable for initializing tracers
 
 
@@ -1022,11 +1023,12 @@ contains
        ! Make filtered Surface DIC and DIC14 variables
        !-----------------------------------------------------------------------
 
-       SURF_VALS_DIC = p5*(SURF_VALS_OLD(:,:,abio_dic_ind,iblock) + &
-            SURF_VALS_CUR(:,:,abio_dic_ind,iblock))
+       surf_vals_dic = p5*(surf_vals_old(:,:,abio_dic_ind,iblock) + &
+                           surf_vals_cur(:,:,abio_dic_ind,iblock))
 
-       SURF_VALS_DIC14 = p5*(SURF_VALS_OLD(:,:,abio_dic14_ind,iblock) + &
-            SURF_VALS_CUR(:,:,abio_dic14_ind,iblock))
+       surf_vals_dic14 = p5*(surf_vals_old(:,:,abio_dic14_ind,iblock) + &
+                             surf_vals_cur(:,:,abio_dic14_ind,iblock))
+
        !-----------------------------------------------------------------------
        ! Calculate R14C_ocn and R14C_atm
        !-----------------------------------------------------------------------
@@ -1049,16 +1051,17 @@ contains
        !--------------------------------------------------------------------------------------------------------
 
        do j = 1,ny_block
-          where (ABIO_PH_PREV(:,j,iblock) /= c0)
-             PHLO = ABIO_PH_PREV(:,j,iblock) - abio_del_ph
-             PHHI = ABIO_PH_PREV(:,j,iblock) + abio_del_ph
+
+          where (abio_ph_prev(:,j,iblock) /= c0)
+             phlo = abio_ph_prev(:,j,iblock) - abio_del_ph
+             phhi = abio_ph_prev(:,j,iblock) + abio_del_ph
           elsewhere
-             PHLO = abio_phlo_surf_init
-             PHHI = abio_phhi_surf_init
+             phlo = abio_phlo_surf_init
+             phhi = abio_phhi_surf_init
           end where
 
-          ABIO_DIC_ROW = p5*(SURF_VALS_OLD(:,j,abio_dic_ind,iblock) + &
-               SURF_VALS_CUR(:,j,abio_dic_ind,iblock))
+          abio_dic_row = p5*(surf_vals_old(:,j,abio_dic_ind,iblock) + &
+                             surf_vals_cur(:,j,abio_dic_ind,iblock))
 
           !--------------------------------------------------------------------------------------------------------
           !  Calculate Alkalinity, with different values in the marginal seas,

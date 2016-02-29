@@ -288,7 +288,6 @@
       call POP_IOUnitsFlush(POP_stdout)
    endif
 
-
    call broadcast_scalar(ecosys_on,         master_task)
    call broadcast_scalar(ciso_on,           master_task)
    call broadcast_scalar(cfc_on,            master_task)
@@ -374,18 +373,6 @@
       call exit_POP(sigAbort, &
          'ERROR in init_passive_tracers: declared nt does not match cumulative nt')
    end if
-
-!-----------------------------------------------------------------------
-!  by default, all tracers are written to tavg as full depth
-!-----------------------------------------------------------------------
-
-   tracer_d(3:nt)%lfull_depth_tavg = .true.
-
-!-----------------------------------------------------------------------
-!  by default, all tracers have scale_factor equal to one
-!-----------------------------------------------------------------------
-
-   tracer_d(3:nt)%scale_factor = 1.0_POP_r8
 
 !-----------------------------------------------------------------------
 !  ECOSYS  DRIVER block

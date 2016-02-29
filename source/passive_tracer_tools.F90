@@ -1,993 +1,752 @@
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
- module passive_tracer_tools
-
-!BOP
-! !MODULE: passive_tracer_tools
-
-! !DESCRIPTION:
-!  This module provides support for passive tracers.
-!  Subroutines in this module can be called by individual tracer modules.
-
-! !REVISION HISTORY:
-!  SVN:$Id:$
-
-! !USES:
-
-   use kinds_mod
-   use constants             , only : c0, c1, p5, char_blank, blank_fmt
-   use domain_size           , only : nx_global, ny_global, max_blocks_clinic,nt
-   use domain                , only : nblocks_clinic,distrb_clinic, blocks_clinic
-   use exit_mod              , only : sigAbort, exit_POP
-   use communicate           , only : my_task, master_task
-   use constants             , only : char_blank, field_loc_center, field_type_scalar,delim_fmt
-   use marbl_interface_types , only : forcing_monthly_every_ts => marbl_forcing_monthly_every_ts_type
-   use marbl_interface_types , only : tracer_read  => marbl_tracer_read_type
-   use io_tools              , only : document
-   use io                    , only : data_set
-   use io_types              , only : datafile, io_dim, io_field_desc, rec_type_dbl
-   use io_types              , only : construct_file, construct_io_dim, construct_io_field
-   use io_types              , only : destroy_file, destroy_io_field, stdout,add_attrib_file
-   use io_types              , only : extract_attrib_file
-   use prognostic            , only : curtime, oldtime, tracer_field
-   use grid                  , only : TAREA, RCALCT, area_t
-   use global_reductions     , only : global_sum
-   use blocks
-
-   implicit none
-   private
-   save
-
-! !PUBLIC TYPES:
-
-   type, public :: ind_name_pair
-      integer(int_kind) :: ind
-      character(char_len) :: name
-   end type ind_name_pair
-
-!-----------------------------------------------------------------------
-!  monthly forcing variables
-!-----------------------------------------------------------------------
-
-! FIXME: once this type is removed from MARBL, add it back here
-!   type, public :: forcing_monthly_every_ts
-!      type(tracer_read) :: input
-!      logical(log_kind) :: has_data
-!      real(r8), dimension(:,:,:,:,:), pointer :: DATA
-!      character(char_len) :: &
-!         interp_type,          & ! = 'linear'
-!         data_type,            & ! = 'monthly-calendar'
-!         interp_freq,          & ! = 'every-timestep'
-!         filename,             & ! = 'not-used-for-monthly'
-!         data_label              ! = 'not-used-for-monthly'
-!    real(r8), dimension(12) :: &
-!         data_time               ! times where DATA is given
-!    real(r8), dimension(20) :: &
-!         data_renorm             ! not used for monthly
-!    real(r8) :: &
-!         data_inc,             & ! not used for monthly data
-!         data_next,            & ! time that will be used for the next
-!                                 ! value of forcing data that is needed
-!         data_update,          & ! time when the a new forcing value
-!                                 ! needs to be added to interpolation set
-!         interp_inc,           & ! not used for 'every-timestep' interp
-!         interp_next,          & ! not used for 'every-timestep' interp
-!         interp_last             ! not used for 'every-timestep' interp
-!    integer(int_kind) :: &
-!         data_time_min_loc       ! index of the third dimension of data_time
-!                                 ! containing the minimum forcing time
-!  end type forcing_monthly_every_ts
-
-! !PUBLIC MEMBER FUNCTIONS:
-
-   public ::                                 &
-      init_forcing_monthly_every_ts,         &
-      field_exists_in_file,                  &
-      file_read_tracer_block,                &
-      rest_read_tracer_block,                &
-      read_field,                            &
-      name_to_ind,                           &
-      extract_surf_avg,                      &
-      comp_surf_avg,                         &
-      set_tracer_indices,                    &
-      forcing_monthly_every_ts,              & ! from marbl_interface_types
-      tracer_read,                           & ! from marbl_interface_types
-      tracer_read_init
-
-!EOP
-!BOC
-
-   interface read_field
-      module procedure read_field_2D,        &
-                       read_field_3D
-   end interface
+module passive_tracer_tools
+
+  ! !DESCRIPTION:
+  !  This module provides support for passive tracers.
+  !  Subroutines in this module can be called by individual tracer modules.
+
+  use kinds_mod
+  use constants             , only : c0, c1, p5, char_blank, blank_fmt
+  use domain_size           , only : nx_global, ny_global, max_blocks_clinic,nt
+  use domain                , only : nblocks_clinic,distrb_clinic, blocks_clinic
+  use exit_mod              , only : sigAbort, exit_POP
+  use communicate           , only : my_task, master_task
+  use constants             , only : char_blank, field_loc_center, field_type_scalar,delim_fmt
+  use io_tools              , only : document
+  use io                    , only : data_set
+  use io_types              , only : datafile, io_dim, io_field_desc, rec_type_dbl
+  use io_types              , only : construct_file, construct_io_dim, construct_io_field
+  use io_types              , only : destroy_file, destroy_io_field, stdout,add_attrib_file
+  use io_types              , only : extract_attrib_file
+  use prognostic            , only : curtime, oldtime, tracer_field_type
+  use grid                  , only : TAREA, RCALCT, area_t
+  use global_reductions     , only : global_sum
+  use blocks
+
+  use marbl_interface_types , only : forcing_monthly_every_ts => marbl_forcing_monthly_every_ts_type !FIXME
+  use marbl_interface_types , only : tracer_read_type  => marbl_tracer_read_type  !FIXME
+
+  implicit none
+  private
+
+  ! !PUBLIC TYPES:
+
+  type, public :: ind_name_pair
+     integer(int_kind) :: ind
+     character(char_len) :: name
+  end type ind_name_pair
+
+  ! type, public :: tracer_read_type
+  !    character(char_len) :: mod_varname
+  !    character(char_len) :: filename
+  !    character(char_len) :: file_varname
+  !    character(char_len) :: file_fmt
+  !    real(r8)            :: scale_factor
+  !    real(r8)            :: default_val
+  ! end type tracer_read_type
+
+  !  monthly forcing variables
+  ! FIXME: once this type is removed from MARBL, add it back here
+  !   type, public :: forcing_monthly_every_ts
+  !      type(tracer_read_type) :: input
+  !      logical(log_kind) :: has_data
+  !      real(r8), dimension(:,:,:,:,:), pointer :: DATA
+  !      character(char_len) :: &
+  !         interp_type,          & ! = 'linear'
+  !         data_type,            & ! = 'monthly-calendar'
+  !         interp_freq,          & ! = 'every-timestep'
+  !         filename,             & ! = 'not-used-for-monthly'
+  !         data_label              ! = 'not-used-for-monthly'
+  !    real(r8), dimension(12) :: &
+  !         data_time               ! times where DATA is given
+  !    real(r8), dimension(20) :: &
+  !         data_renorm             ! not used for monthly
+  !    real(r8) :: &
+  !         data_inc,             & ! not used for monthly data
+  !         data_next,            & ! time that will be used for the next
+  !                                 ! value of forcing data that is needed
+  !         data_update,          & ! time when the a new forcing value
+  !                                 ! needs to be added to interpolation set
+  !         interp_inc,           & ! not used for 'every-timestep' interp
+  !         interp_next,          & ! not used for 'every-timestep' interp
+  !         interp_last             ! not used for 'every-timestep' interp
+  !    integer(int_kind) :: &
+  !         data_time_min_loc       ! index of the third dimension of data_time
+  !                                 ! containing the minimum forcing time
+  !  end type forcing_monthly_every_ts
+
+  ! !PUBLIC MEMBER FUNCTIONS:
+
+  public :: init_forcing_monthly_every_ts
+  public :: field_exists_in_file
+  public :: file_read_tracer_block
+  public :: rest_read_tracer_block
+  public :: read_field
+  public :: name_to_ind
+  public :: extract_surf_avg
+  public :: comp_surf_avg     
+  public :: set_tracer_indices
+  public :: forcing_monthly_every_ts              
+  public :: tracer_read_type !FIXME - this will need to be removed 
+
+  interface read_field
+     module procedure read_field_2D
+     module procedure read_field_3D
+  end interface
+
+  !***********************************************************************
+
+contains
+
+  !***********************************************************************
+
+  subroutine init_forcing_monthly_every_ts(var)
 
-!EOC
-!***********************************************************************
+    ! !DESCRIPTION:
+    !  initialize fields of a variable of type forcing_monthly_every_ts
 
- contains
+    type(forcing_monthly_every_ts), intent(out) :: var
+    !-----------------------------------------------------------------------
 
-!***********************************************************************
-!BOP
-! !IROUTINE: init_forcing_monthly_every_ts(var)
-! !INTERFACE:
+    var%interp_type = 'linear'
+    var%data_type   = 'monthly-calendar'
+    var%interp_freq = 'every-timestep'
+    var%filename    = 'not-used-for-monthly'
+    var%data_label  = 'not-used-for-monthly'
 
- subroutine init_forcing_monthly_every_ts(var)
+  end subroutine init_forcing_monthly_every_ts
 
-! !DESCRIPTION:
-!  initialize fields of a variable of type forcing_monthly_every_ts
-!
-! !REVISION HISTORY:
-!  same as module
+  !***********************************************************************
 
-! !OUTPUT PARAMETERS:
+  function name_to_ind(name, ind_name_table)
 
-   type(forcing_monthly_every_ts), intent(out) :: var
+    ! !DESCRIPTION:
+    !  translate string into a tracer index
 
-!EOP
-!BOC
-!-----------------------------------------------------------------------
+    character(*)                      , intent(in) :: name
+    type(ind_name_pair), dimension(:) , intent(in) :: ind_name_table
 
-   var%interp_type = 'linear'
-   var%data_type   = 'monthly-calendar'
-   var%interp_freq = 'every-timestep'
-   var%filename    = 'not-used-for-monthly'
-   var%data_label  = 'not-used-for-monthly'
+    integer(int_kind) :: name_to_ind
 
-!-----------------------------------------------------------------------
-!EOC
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    integer(int_kind) :: i
+    !-----------------------------------------------------------------------
 
- end subroutine init_forcing_monthly_every_ts
+    do i = 1,size(ind_name_table)
+       if (trim(name) == trim(ind_name_table(i)%name)) then
+          name_to_ind = ind_name_table(i)%ind
+          return
+       end if
+    end do
 
-!***********************************************************************
-!BOP
-! !IROUTINE: name_to_ind
-! !INTERFACE:
+    name_to_ind = 0
 
- function name_to_ind(name, ind_name_table)
+  end function name_to_ind
 
-! !DESCRIPTION:
-!  translate string into a tracer index
-!
-! !REVISION HISTORY:
-!  same as module
+  !***********************************************************************
 
-! !INPUT PARAMETERS:
+  function field_exists_in_file(fmt, filename, fieldname)
 
-   character(*), intent(in) :: name
+    ! !DESCRIPTION:
+    !  This routine determines if a field exists in a file.
 
-   type(ind_name_pair), dimension(:), intent(in) :: ind_name_table
+    character (*), intent(in) :: fmt       ! format (bin or nc)
+    character (*), intent(in) :: filename  ! file to read from
+    character (*), intent(in) :: fieldname ! field to be read
 
-! !OUTPUT PARAMETERS:
+    logical (log_kind) :: field_exists_in_file
 
-   integer(int_kind) :: name_to_ind
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(*), parameter :: &
+         subname = 'passive_tracer_tools:field_exists_in_file'
 
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
+    type (datafile) :: &
+         in_file         ! data file type for init ts file
+    !-----------------------------------------------------------------------
 
-   integer(int_kind) :: i
+    in_file = construct_file(fmt, full_name=trim(filename), &
+         record_length=rec_type_dbl, &
+         recl_words=nx_global*ny_global)
 
-!-----------------------------------------------------------------------
+    call data_set(in_file, 'open_read')
 
-   do i = 1,size(ind_name_table)
-      if (trim(name) == trim(ind_name_table(i)%name)) then
-         name_to_ind = ind_name_table(i)%ind
-         return
-      end if
-   end do
+    call data_set (in_file, 'field_exists', &
+         fieldname=fieldname, field_exists=field_exists_in_file)
 
-   name_to_ind = 0
+    call data_set (in_file, 'close')
 
-!-----------------------------------------------------------------------
-!EOC
+    call destroy_file (in_file)
 
- end function name_to_ind
+  end function field_exists_in_file
 
-!***********************************************************************
-!BOP
-! !IROUTINE: field_exists_in_file
-! !INTERFACE:
+  !***********************************************************************
 
- function field_exists_in_file(fmt, filename, fieldname)
+  subroutine rest_read_tracer_block(fmt, filename, tracer_d_module, TRACER_MODULE)
 
-! !DESCRIPTION:
-!  This routine determines if a field exists in a file.
-!
-! !REVISION HISTORY:
-!  same as module
+    ! !DESCRIPTION:
+    !  read from a restart file all tracers for a tracer module
 
-! !INPUT PARAMETERS:
+    character (*)                                     , intent(in)    :: fmt             ! format (bin or nc)
+    character (*)                                     , intent(in)    :: filename        ! file name for restart file
+    type (tracer_field_type) , dimension(:)           , intent(in)    :: tracer_d_module ! descriptors for each tracer
+    real(r8)                 , dimension(:,:,:,:,:,:) , intent(inout) :: TRACER_MODULE   ! tracers to be read in
 
-   character (*), intent(in) ::  &
-      fmt,                 & ! format (bin or nc)
-      filename,            & ! file to read from
-      fieldname              ! field to be read
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(*), parameter :: subname = 'passive_tracer_tools:rest_read_tracer_block'
+    integer (int_kind)   :: n          ! tracer index
+    character (char_len) ::  fieldname ! tracer name temporaries
+    !-----------------------------------------------------------------------
 
-! !OUTPUT PARAMETERS:
+    call document(subname, 'reading tracer block from ' // trim(filename))
 
-   logical (log_kind) :: field_exists_in_file
+    do n=1,size(tracer_d_module)
 
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
+       fieldname = char_blank
+       fieldname = trim(tracer_d_module(n)%short_name) // '_CUR'
 
-   character(*), parameter :: &
-      subname = 'passive_tracer_tools:field_exists_in_file'
+       call read_field(fmt, filename, fieldname, TRACER_MODULE(:,:,:,n,curtime,:))
 
-   type (datafile) :: &
-      in_file         ! data file type for init ts file
+       fieldname = char_blank
+       fieldname = trim(tracer_d_module(n)%short_name) // '_OLD'
 
-!-----------------------------------------------------------------------
+       call read_field(fmt, filename, fieldname, TRACER_MODULE(:,:,:,n,oldtime,:))
 
-   in_file = construct_file(fmt, full_name=trim(filename), &
-                            record_length=rec_type_dbl, &
-                            recl_words=nx_global*ny_global)
+    end do
 
-   call data_set(in_file, 'open_read')
+  end subroutine rest_read_tracer_block
 
-   call data_set (in_file, 'field_exists', &
-                  fieldname=fieldname, field_exists=field_exists_in_file)
+  !***********************************************************************
 
-   call data_set (in_file, 'close')
+  subroutine file_read_tracer_block(init_filename_fmt, init_filename, &
+       tracer_d_module, ind_name_table, tracer_init_ext, TRACER_MODULE)
 
-   call destroy_file (in_file)
+    ! !DESCRIPTION:
+    !  read from a file all tracers for a tracer module
 
-!-----------------------------------------------------------------------
-!EOC
+    character (*)                                     , intent(in)    :: init_filename_fmt ! format (bin or nc)
+    character (*)                                     , intent(in)    :: init_filename     ! default filename
+    type (tracer_field_type) , dimension(:)           , intent(in)    :: tracer_d_module   ! descriptors for each tracer
+    type(ind_name_pair)      , dimension(:)           , intent(in)    :: ind_name_table
+    type(tracer_read_type)   , dimension(:)           , intent(in)    :: tracer_init_ext   ! namelist variable for initializing tracers
+    real(r8)                 , dimension(:,:,:,:,:,:) , intent(inout) :: TRACER_MODULE     ! tracers to be read in
 
- end function field_exists_in_file
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(*), parameter :: &
+         subname = 'passive_tracer_tools:file_read_tracer_block'
 
-!***********************************************************************
-!BOP
-! !IROUTINE: rest_read_tracer_block
-! !INTERFACE:
+    integer (int_kind) :: &
+         tracer_cnt,   & ! number of tracers in module
+         ind,          & ! tracer index for tracer name from namelist
+         iblock,       & ! index for looping over blocks
+         n               ! tracer index
 
- subroutine rest_read_tracer_block(fmt, filename, tracer_d_module, &
-    TRACER_MODULE)
+    type(tracer_read_type), dimension(:), allocatable :: &
+         tracer_init_int ! namelist variable for initializing tracers
 
-! !DESCRIPTION:
-!  read from a restart file all tracers for a tracer module
-!
-! !REVISION HISTORY:
-!  same as module
+    type (datafile) ::    &
+         in_file         ! data file type for init ts file
+    !-----------------------------------------------------------------------
 
-! !INPUT PARAMETERS:
+    tracer_cnt = size(tracer_d_module)
 
-   character (*), intent(in) ::  &
-      fmt,                 & ! format (bin or nc)
-      filename               ! file name for restart file
+    !-----------------------------------------------------------------------
+    !  initialize internal tracer_init array
+    !-----------------------------------------------------------------------
 
-   type (tracer_field), dimension(:), intent(in) :: &
-      tracer_d_module   ! descriptors for each tracer
+    allocate(tracer_init_int(tracer_cnt))
+    do n = 1,tracer_cnt
+       tracer_init_int(n)%mod_varname  = tracer_d_module(n)%short_name
+       tracer_init_int(n)%filename     = init_filename
+       tracer_init_int(n)%file_varname = tracer_d_module(n)%short_name
+       tracer_init_int(n)%scale_factor = c1
+       tracer_init_int(n)%default_val  = c0
+       tracer_init_int(n)%file_fmt     = init_filename_fmt
+    end do
 
-! !INPUT/OUTPUT PARAMETERS:
+    !-----------------------------------------------------------------------
+    !  copy non-default values from external tracer_init array
+    !-----------------------------------------------------------------------
 
-   real(r8), dimension(:,:,:,:,:,:), intent(inout) :: &
-      TRACER_MODULE     ! tracers to be read in
+    do n = 1,tracer_cnt
+       if (trim(tracer_init_ext(n)%mod_varname) /= 'unknown') then
 
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
+          ind = name_to_ind(tracer_init_ext(n)%mod_varname, ind_name_table)
+          if (ind == 0) then
+             call document(subname, 'unknown external varname = ', &
+                  trim(tracer_init_ext(n)%mod_varname))
+             call exit_POP(sigAbort, 'stopping in ' // subname)
+          end if
 
-   character(*), parameter :: &
-      subname = 'passive_tracer_tools:rest_read_tracer_block'
+          if (trim(tracer_init_ext(n)%filename) /= 'unknown') then
+             tracer_init_int(ind)%filename = tracer_init_ext(n)%filename
+          end if
 
-   integer (int_kind) :: &
-      n               ! tracer index
+          if (trim(tracer_init_ext(n)%file_varname) /= 'unknown') then
+             tracer_init_int(ind)%file_varname = tracer_init_ext(n)%file_varname
+          end if
 
-   character (char_len) ::  &
-      fieldname       ! tracer name temporaries
+          if (tracer_init_ext(n)%scale_factor /= c1) then
+             tracer_init_int(ind)%scale_factor = tracer_init_ext(n)%scale_factor
+          end if
 
-!-----------------------------------------------------------------------
+          if (tracer_init_ext(n)%default_val /= c1) then
+             tracer_init_int(ind)%default_val = tracer_init_ext(n)%default_val
+          end if
 
-   call document(subname, 'reading tracer block from ' /&
-                       &/ trim(filename))
+       end if
+    end do
 
-   do n=1,size(tracer_d_module)
+    !-----------------------------------------------------------------------
+    !  process internal tracer_init array
+    !-----------------------------------------------------------------------
 
-      fieldname = char_blank
-      fieldname = trim(tracer_d_module(n)%short_name) /&
-               &/ '_CUR'
+    do n = 1,tracer_cnt
+       if (trim(tracer_init_int(n)%filename) == 'none' .or. &
+            trim(tracer_init_int(n)%filename) == 'unknown') then
+          call document(subname, 'initializing ' /&
+               &/ trim(tracer_init_int(n)%mod_varname) /&
+               &/ ' to default_val')
+          do iblock = 1,nblocks_clinic
+             TRACER_MODULE(:,:,:,n,curtime,iblock) =  &
+                  tracer_init_int(n)%default_val
+          enddo
+       else
+          call document(subname, 'initializing ' /&
+               &/ trim(tracer_init_int(n)%mod_varname) /&
+               &/ ' with ' /&
+               &/ trim(tracer_init_int(n)%file_varname) /&
+               &/ ' from ' /&
+               &/ trim(tracer_init_int(n)%filename))
 
-      call read_field(fmt, filename, fieldname, TRACER_MODULE(:,:,:,n,curtime,:))
+          call read_field(tracer_init_int(n)%file_fmt,        &
+               tracer_init_int(n)%filename,        &
+               tracer_init_int(n)%file_varname,    &
+               TRACER_MODULE(:,:,:,n,curtime,:))
 
-      fieldname = char_blank
-      fieldname = trim(tracer_d_module(n)%short_name) /&
-               &/ '_OLD'
+          do iblock=1,nblocks_clinic
+             TRACER_MODULE(:,:,:,n,curtime,iblock) = &
+                  TRACER_MODULE(:,:,:,n,curtime,iblock)*tracer_init_int(n)%scale_factor
+             where (TRACER_MODULE(:,:,:,n,curtime,iblock) < c0) &
+                  TRACER_MODULE(:,:,:,n,curtime,iblock) = c0
+          end do
 
-      call read_field(fmt, filename, fieldname, TRACER_MODULE(:,:,:,n,oldtime,:))
+          if (my_task == master_task) then
+             write(stdout,blank_fmt)
+             write(stdout,'(a12,a)') ' file read: ', &
+                  trim(tracer_init_int(n)%filename)
+          endif
 
-   end do
+       end if
+       do iblock=1,nblocks_clinic
+          TRACER_MODULE(:,:,:,n,oldtime,iblock) = &
+               TRACER_MODULE(:,:,:,n,curtime,iblock)
+       enddo
+    end do
 
-!-----------------------------------------------------------------------
-!EOC
+    deallocate(tracer_init_int)
 
- end subroutine rest_read_tracer_block
+  end subroutine file_read_tracer_block
 
-!***********************************************************************
-!BOP
-! !IROUTINE: file_read_tracer_block
-! !INTERFACE:
+  !***********************************************************************
 
- subroutine file_read_tracer_block(init_filename_fmt, init_filename, &
-   tracer_d_module, ind_name_table, tracer_init_ext, TRACER_MODULE)
+  subroutine read_field_2D(fmt, filename, fieldname, FIELD, record_length)
 
-! !DESCRIPTION:
-!  read from a file all tracers for a tracer module
-!
-! !REVISION HISTORY:
-!  same as module
+    ! !DESCRIPTION:
+    !  read 2D field from a file
+    !  Assumes the field is (nx_global,ny_global), cell centered, and scalar.
+    !  For binary files, the default external precision is double precision.
+    !  This can be overridden by passing the desired precision into record_length.
 
-! !INPUT PARAMETERS:
+    character (*)              , intent(in)            :: fmt           ! format (bin or nc)
+    character (*)              , intent(in)            :: filename      ! file to read from
+    character (*)              , intent(in)            :: fieldname     ! field to be read
+    integer(int_kind)          , intent(in), optional  :: record_length ! record length type for binary files
+    real(r8), dimension(:,:,:) , intent(inout), target :: FIELD         ! field to be read in
 
-   character (*), intent(in) ::  &
-      init_filename_fmt,   & ! format (bin or nc)
-      init_filename          ! default filename
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(*), parameter :: &
+         subname = 'passive_tracer_tools:read_field_2D'
 
-   type (tracer_field), dimension(:), intent(in) :: &
-      tracer_d_module        ! descriptors for each tracer
+    integer(int_kind) :: &
+         record_length_loc    ! record length type for binary files
 
-   type(tracer_read), dimension(:), intent(in) :: &
-      tracer_init_ext        ! namelist variable for initializing tracers
+    type (io_field_desc) :: &
+         FIELD_DESC           ! IO field descriptors for FIELD
 
-   type(ind_name_pair), dimension(:) :: &
-      ind_name_table
+    type (datafile) :: &
+         restart_file         ! io file descriptor
 
-! !INPUT/OUTPUT PARAMETERS:
+    type (io_dim) :: &
+         i_dim, j_dim         ! dimension descriptors
+    !-----------------------------------------------------------------------
 
-   real(r8), dimension(:,:,:,:,:,:), intent(inout) :: &
-      TRACER_MODULE          ! tracers to be read in
+    call document(subname, 'reading ' /&
+         &/ trim(fieldname) /&
+         &/ ' from ' /&
+         &/ trim(filename))
 
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
+    if (present(record_length)) then
+       record_length_loc = record_length
+    else
+       record_length_loc = rec_type_dbl
+    endif
 
-   character(*), parameter :: &
-      subname = 'passive_tracer_tools:file_read_tracer_block'
+    restart_file =                        &
+         construct_file(fmt,              &
+         full_name=trim(filename),        &
+         record_length=record_length_loc, &
+         recl_words=nx_global*ny_global)
 
-   integer (int_kind) :: &
-      tracer_cnt,   & ! number of tracers in module
-      ind,          & ! tracer index for tracer name from namelist
-      iblock,       & ! index for looping over blocks
-      n               ! tracer index
+    call data_set(restart_file, 'open_read')
 
-   type(tracer_read), dimension(:), allocatable :: &
-      tracer_init_int ! namelist variable for initializing tracers
+    i_dim = construct_io_dim('i', nx_global)
+    j_dim = construct_io_dim('j', ny_global)
 
-   type (datafile) ::    &
-      in_file         ! data file type for init ts file
+    FIELD_DESC =                             &
+         construct_io_field(trim(fieldname), &
+         dim1=i_dim,                         &
+         dim2=j_dim,                         &
+         d2d_array = FIELD)
 
-!-----------------------------------------------------------------------
+    call data_set (restart_file, 'define', FIELD_DESC)
 
-   tracer_cnt = size(tracer_d_module)
+    call data_set (restart_file, 'read', FIELD_DESC)
 
-!-----------------------------------------------------------------------
-!  initialize internal tracer_init array
-!-----------------------------------------------------------------------
+    call destroy_io_field (FIELD_DESC)
 
-   allocate(tracer_init_int(tracer_cnt))
-   do n = 1,tracer_cnt
-      tracer_init_int(n)%mod_varname  = tracer_d_module(n)%short_name
-      tracer_init_int(n)%filename     = init_filename
-      tracer_init_int(n)%file_varname = tracer_d_module(n)%short_name
-      tracer_init_int(n)%scale_factor = c1
-      tracer_init_int(n)%default_val  = c0
-      tracer_init_int(n)%file_fmt     = init_filename_fmt
-   end do
+    call data_set (restart_file, 'close')
 
-!-----------------------------------------------------------------------
-!  copy non-default values from external tracer_init array
-!-----------------------------------------------------------------------
+    call destroy_file (restart_file)
 
-   do n = 1,tracer_cnt
-      if (trim(tracer_init_ext(n)%mod_varname) /= 'unknown') then
-         ind = name_to_ind(tracer_init_ext(n)%mod_varname, ind_name_table)
-         if (ind == 0) then
-            call document(subname, 'unknown external varname = ', &
-                          trim(tracer_init_ext(n)%mod_varname))
-            call exit_POP(sigAbort, 'stopping in ' /&
-                                 &/ subname)
-         end if
+  end subroutine read_field_2D
 
-         if (trim(tracer_init_ext(n)%filename) /= 'unknown') &
-              tracer_init_int(ind)%filename = &
-              tracer_init_ext(n)%filename
+  !***********************************************************************
 
-         if (trim(tracer_init_ext(n)%file_varname) /= 'unknown') &
-              tracer_init_int(ind)%file_varname = &
-              tracer_init_ext(n)%file_varname
+  subroutine read_field_3D(fmt, filename, fieldname, FIELD, record_length)
 
-         if (tracer_init_ext(n)%scale_factor /= c1) &
-              tracer_init_int(ind)%scale_factor = &
-              tracer_init_ext(n)%scale_factor
+    ! !DESCRIPTION:
+    !  read 3D field from a file
+    !  Assumes the field is (nx_global,ny_global), cell centered, and scalar.
+    !  The length of the 3rd dimension is determined by the dimension of FIELD.
+    !  For binary files, the default external precision is double precision.
+    !  This can be overridden by passing the desired precision into record_length.
 
-         if (tracer_init_ext(n)%default_val /= c1) &
-              tracer_init_int(ind)%default_val = &
-              tracer_init_ext(n)%default_val
-      end if
-   end do
+    character (*)                , intent(in)            :: fmt           ! format (bin or nc)
+    character (*)                , intent(in)            :: filename      ! file to read from
+    character (*)                , intent(in)            :: fieldname     ! field to be read
+    integer(int_kind), optional  , intent(in)            :: record_length ! record length type for binary files
+    real(r8), dimension(:,:,:,:) , intent(inout), target :: FIELD         ! field to be read in
 
-!-----------------------------------------------------------------------
-!  process internal tracer_init array
-!-----------------------------------------------------------------------
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(*), parameter :: &
+         subname = 'passive_tracer_tools:read_field_3D'
 
-   do n = 1,tracer_cnt
-      if (trim(tracer_init_int(n)%filename) == 'none' .or. &
-          trim(tracer_init_int(n)%filename) == 'unknown') then
-         call document(subname, 'initializing ' /&
-                             &/ trim(tracer_init_int(n)%mod_varname) /&
-                             &/ ' to default_val')
-         do iblock = 1,nblocks_clinic
-            TRACER_MODULE(:,:,:,n,curtime,iblock) =  &
-               tracer_init_int(n)%default_val
-         enddo
-      else
-         call document(subname, 'initializing ' /&
-                             &/ trim(tracer_init_int(n)%mod_varname) /&
-                             &/ ' with ' /&
-                             &/ trim(tracer_init_int(n)%file_varname) /&
-                             &/ ' from ' /&
-                             &/ trim(tracer_init_int(n)%filename))
+    integer(int_kind) :: &
+         record_length_loc    ! record length type for binary files
 
-         call read_field(tracer_init_int(n)%file_fmt,        &
-                         tracer_init_int(n)%filename,        &
-                         tracer_init_int(n)%file_varname,    &
-                         TRACER_MODULE(:,:,:,n,curtime,:))
+    type (io_field_desc) :: &
+         FIELD_DESC           ! IO field descriptors for FIELD
 
-         do iblock=1,nblocks_clinic
-            TRACER_MODULE(:,:,:,n,curtime,iblock) = &
-               TRACER_MODULE(:,:,:,n,curtime,iblock)*tracer_init_int(n)%scale_factor
-            where (TRACER_MODULE(:,:,:,n,curtime,iblock) < c0) &
-               TRACER_MODULE(:,:,:,n,curtime,iblock) = c0
-         end do
+    type (datafile) :: &
+         restart_file         ! io file descriptor
 
-         if (my_task == master_task) then
-            write(stdout,blank_fmt)
-            write(stdout,'(a12,a)') ' file read: ', &
-               trim(tracer_init_int(n)%filename)
-         endif
+    type (io_dim) :: &
+         i_dim, j_dim, k_dim  ! dimension descriptors
+    !-----------------------------------------------------------------------
 
-      end if
-      do iblock=1,nblocks_clinic
-         TRACER_MODULE(:,:,:,n,oldtime,iblock) = &
-            TRACER_MODULE(:,:,:,n,curtime,iblock)
-      enddo
-   end do
+    call document(subname, 'reading ' /&
+         &/ trim(fieldname) /&
+         &/ ' from ' /&
+         &/ trim(filename))
 
-   deallocate(tracer_init_int)
+    if (present(record_length)) then
+       record_length_loc = record_length
+    else
+       record_length_loc = rec_type_dbl
+    endif
 
-!-----------------------------------------------------------------------
-!EOC
+    restart_file =                                     &
+         construct_file(fmt,                             &
+         full_name=trim(filename),        &
+         record_length=record_length_loc, &
+         recl_words=nx_global*ny_global)
 
- end subroutine file_read_tracer_block
+    call data_set(restart_file, 'open_read')
 
-!***********************************************************************
-!BOP
-! !IROUTINE: read_field_2D
-! !INTERFACE:
+    i_dim = construct_io_dim('i', nx_global)
+    j_dim = construct_io_dim('j', ny_global)
+    k_dim = construct_io_dim('k', size(FIELD,3))
 
- subroutine read_field_2D(fmt, filename, fieldname, FIELD, record_length)
+    FIELD_DESC =                                       &
+         construct_io_field(trim(fieldname),             &
+         dim1=i_dim,                  &
+         dim2=j_dim,                  &
+         dim3=k_dim,                  &
+         d3d_array = FIELD)
 
-! !DESCRIPTION:
-!  read 2D field from a file
-!  Assumes the field is (nx_global,ny_global), cell centered, and scalar.
-!  For binary files, the default external precision is double precision.
-!  This can be overridden by passing the desired precision into record_length.
-!
-! !REVISION HISTORY:
-!  same as module
+    call data_set (restart_file, 'define', FIELD_DESC)
 
-! !INPUT PARAMETERS:
+    call data_set (restart_file, 'read', FIELD_DESC)
 
-   character (*), intent(in) ::  &
-      fmt,                 & ! format (bin or nc)
-      filename,            & ! file to read from
-      fieldname              ! field to be read
+    call destroy_io_field (FIELD_DESC)
 
-   integer(int_kind), intent(in), optional :: &
-      record_length          ! record length type for binary files
+    call data_set (restart_file, 'close')
 
-! !INPUT/OUTPUT PARAMETERS:
+    call destroy_file (restart_file)
 
-   real(r8), dimension(:,:,:), intent(inout), target :: &
-      FIELD                  ! field to be read in
+  end subroutine read_field_3D
 
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
+  !***********************************************************************
 
-   character(*), parameter :: &
-      subname = 'passive_tracer_tools:read_field_2D'
+  subroutine extract_surf_avg(init_file_fmt,restart_filename,&
+       tracer_cnt,vflux_flag,ind_name_table,&
+       surf_avg)
 
-   integer(int_kind) :: &
-      record_length_loc    ! record length type for binary files
+    ! !DESCRIPTION:
+    !  Extract average surface values from restart file.
+    ! !INPUT PARAMETERS:
 
-   type (io_field_desc) :: &
-      FIELD_DESC           ! IO field descriptors for FIELD
+    character (*), intent(in) :: &
+         init_file_fmt, & ! file format (bin or nc)
+         restart_filename ! file name for restart file
 
-   type (datafile) :: &
-      restart_file         ! io file descriptor
+    integer (int_kind),intent(in) :: &
+         tracer_cnt
 
-   type (io_dim) :: &
-      i_dim, j_dim         ! dimension descriptors
+    logical (log_kind), dimension(tracer_cnt),intent(in) :: &
+         vflux_flag                ! which tracers get virtual fluxes applied
 
-!-----------------------------------------------------------------------
+    type(ind_name_pair), dimension(tracer_cnt),intent(in) :: &
+         ind_name_table
 
-   call document(subname, 'reading ' /&
-                       &/ trim(fieldname) /&
-                       &/ ' from ' /&
-                       &/ trim(filename))
+    ! !Output PARAMETERS:
 
-   if (present(record_length)) then
-      record_length_loc = record_length
-   else
-      record_length_loc = rec_type_dbl
-   endif
+    real (r8), dimension(tracer_cnt),intent(out) :: &
+         surf_avg         ! average surface tracer values
 
-   restart_file =                                     &
-      construct_file(fmt,                             &
-                     full_name=trim(filename),        &
-                     record_length=record_length_loc, &
-                     recl_words=nx_global*ny_global)
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    type (datafile) ::&
+         restart_file    ! io file descriptor
 
-   call data_set(restart_file, 'open_read')
+    integer (int_kind) :: &
+         n               ! tracer index
 
-   i_dim = construct_io_dim('i', nx_global)
-   j_dim = construct_io_dim('j', ny_global)
+    character (char_len) :: &
+         short_name      ! tracer name temporaries
+    !-----------------------------------------------------------------------
 
-   FIELD_DESC =                                       &
-      construct_io_field(trim(fieldname),             &
-                         dim1=i_dim,                  &
-                         dim2=j_dim,                  &
-                         d2d_array = FIELD)
+    surf_avg = c0
 
-   call data_set (restart_file, 'define', FIELD_DESC)
+    restart_file = construct_file(init_file_fmt, &
+         full_name=trim(restart_filename), &
+         record_length=rec_type_dbl, &
+         recl_words=nx_global*ny_global)
 
-   call data_set (restart_file, 'read', FIELD_DESC)
+    do n = 1, tracer_cnt
+       if (vflux_flag(n)) then
+          short_name = 'surf_avg_' // ind_name_table(n)%name
+          call add_attrib_file(restart_file, trim(short_name), surf_avg(n))
+       endif
+    end do
 
-   call destroy_io_field (FIELD_DESC)
+    call data_set(restart_file, 'open_read')
 
-   call data_set (restart_file, 'close')
+    do n = 1, tracer_cnt
+       if (vflux_flag(n)) then
+          short_name = 'surf_avg_' // ind_name_table(n)%name
+          call extract_attrib_file(restart_file, trim(short_name), surf_avg(n))
+       endif
+    end do
 
-   call destroy_file (restart_file)
+    call data_set (restart_file, 'close')
 
-!-----------------------------------------------------------------------
-!EOC
+    call destroy_file (restart_file)
 
- end subroutine read_field_2D
+  end subroutine extract_surf_avg
 
-!***********************************************************************
-!BOP
-! !IROUTINE: read_field_3D
-! !INTERFACE:
+  !*****************************************************************************
 
- subroutine read_field_3D(fmt, filename, fieldname, FIELD, record_length)
+  subroutine comp_surf_avg(SURF_VALS_OLD, SURF_VALS_CUR, tracer_cnt, vflux_flag, surf_avg)
 
-! !DESCRIPTION:
-!  read 3D field from a file
-!  Assumes the field is (nx_global,ny_global), cell centered, and scalar.
-!  The length of the 3rd dimension is determined by the dimension of FIELD.
-!  For binary files, the default external precision is double precision.
-!  This can be overridden by passing the desired precision into record_length.
-!
-! !REVISION HISTORY:
-!  same as module
+    ! !DESCRIPTION:
+    !  compute average surface tracer values
+    !  avg = sum(SURF_VAL*TAREA) / sum(TAREA)
+    !  with the sum taken over ocean points only
 
-! !INPUT PARAMETERS:
+    real (r8)          , dimension(:,:,:,:)    , intent(in)  :: SURF_VALS_OLD
+    real (r8)          , dimension(:,:,:,:)    , intent(in)  :: SURF_VALS_CUR
+    integer (int_kind)                         , intent(in)  :: tracer_cnt ! number of tracers
+    logical (log_kind) , dimension(tracer_cnt) , intent(in)  :: vflux_flag ! which tracers get virtual fluxes applied
+    real (r8)          , dimension(tracer_cnt) , intent(out) :: surf_avg   ! average surface tracer values
 
-   character (*), intent(in) ::  &
-      fmt,                 & ! format (bin or nc)
-      filename,            & ! file to read from
-      fieldname              ! field to be read
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    integer (int_kind) :: &
+         n,       & ! tracer index
+         iblock,  & ! block index
+         dcount,  & ! diag counter
+         ib,ie,jb,je
 
-   integer(int_kind), intent(in), optional :: &
-      record_length          ! record length type for binary files
+    real (r8), dimension(max_blocks_clinic,tracer_cnt) :: &
+         local_sums ! array for holding block sums of each diagnostic
 
-! !INPUT/OUTPUT PARAMETERS:
+    real (r8) :: &
+         sum_tmp    ! temp for local sum
 
-   real(r8), dimension(:,:,:,:), intent(inout), target :: &
-      FIELD                  ! field to be read in
+    real (r8), dimension(nx_block,ny_block) :: &
+         WORK1, &   ! local work space
+         TFACT      ! factor for normalizing sums
 
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
+    type (block) :: &
+         this_block ! block information for current block
+    !-----------------------------------------------------------------------
 
-   character(*), parameter :: &
-      subname = 'passive_tracer_tools:read_field_3D'
+    local_sums = c0
 
-   integer(int_kind) :: &
-      record_length_loc    ! record length type for binary files
+    !jw   !$OMP PARALLEL DO PRIVATE(iblock,this_block,ib,ie,jb,je,TFACT,n,WORK1)
+    do iblock = 1,nblocks_clinic
+       this_block = get_block(blocks_clinic(iblock),iblock)
+       ib = this_block%ib
+       ie = this_block%ie
+       jb = this_block%jb
+       je = this_block%je
+       TFACT = TAREA(:,:,iblock)*RCALCT(:,:,iblock)
 
-   type (io_field_desc) :: &
-      FIELD_DESC           ! IO field descriptors for FIELD
+       do n = 1, tracer_cnt
+          if (vflux_flag(n)) then
+             WORK1 = p5*(SURF_VALS_OLD(:,:,n,iblock) + &
+                  SURF_VALS_CUR(:,:,n,iblock))*TFACT
+             local_sums(iblock,n) = sum(WORK1(ib:ie,jb:je))
+          endif
+       end do
+    end do
+    !jw   !$OMP END PARALLEL DO
 
-   type (datafile) :: &
-      restart_file         ! io file descriptor
+    do n = 1, tracer_cnt
+       if (vflux_flag(n)) then
+          sum_tmp = sum(local_sums(:,n))
+          surf_avg(n) = global_sum(sum_tmp,distrb_clinic)/area_t
+       endif
+    end do
 
-   type (io_dim) :: &
-      i_dim, j_dim, k_dim  ! dimension descriptors
+    if(my_task == master_task) then
+       write(stdout,*)' Calculating surface tracer averages'
+       do n = 1, tracer_cnt
+          if (vflux_flag(n)) then
+             write(stdout,*) n, surf_avg(n)
+          endif
+       end do
+    endif
 
-!-----------------------------------------------------------------------
+  end subroutine comp_surf_avg
 
-   call document(subname, 'reading ' /&
-                       &/ trim(fieldname) /&
-                       &/ ' from ' /&
-                       &/ trim(filename))
+  !*****************************************************************************
 
-   if (present(record_length)) then
-      record_length_loc = record_length
-   else
-      record_length_loc = rec_type_dbl
-   endif
+  subroutine set_tracer_indices(module_string, module_nt,  &
+       cumulative_nt, ind_begin, ind_end)
 
-   restart_file =                                     &
-      construct_file(fmt,                             &
-                     full_name=trim(filename),        &
-                     record_length=record_length_loc, &
-                     recl_words=nx_global*ny_global)
+    ! !DESCRIPTION:
+    !  set the index bounds of a single passive tracer module
 
-   call data_set(restart_file, 'open_read')
+    character (*)           , intent(in)  :: module_string
+    integer (kind=int_kind) , intent(in)  :: module_nt
+    integer (kind=int_kind) , intent(out) :: cumulative_nt
+    integer (kind=int_kind) , intent(out) :: ind_begin
+    integer (kind=int_kind) , intent(out) :: ind_end
 
-   i_dim = construct_io_dim('i', nx_global)
-   j_dim = construct_io_dim('j', ny_global)
-   k_dim = construct_io_dim('k', size(FIELD,3))
+    !-----------------------------------------------------------------------
+    !  local variables
+    !-----------------------------------------------------------------------
+    character(*), parameter :: subname = 'passive_tracer_tools:set_tracer_indices'
+    character (char_len) :: error_string
+    !-----------------------------------------------------------------------
 
-   FIELD_DESC =                                       &
-      construct_io_field(trim(fieldname),             &
-                         dim1=i_dim,                  &
-                         dim2=j_dim,                  &
-                         dim3=k_dim,                  &
-                         d3d_array = FIELD)
+    ind_begin = cumulative_nt + 1
+    ind_end = ind_begin + module_nt - 1
+    cumulative_nt = ind_end
 
-   call data_set (restart_file, 'define', FIELD_DESC)
+    if (my_task == master_task) then
+       write(stdout,delim_fmt)
+       write(stdout,*) module_string // ' ind_begin = ', ind_begin
+       write(stdout,*) module_string // ' ind_end   = ', ind_end
+       write(stdout,delim_fmt)
+    end if
 
-   call data_set (restart_file, 'read', FIELD_DESC)
+    if (cumulative_nt > nt) then
+       call document(subname, 'nt', nt)
+       call document(subname, 'cumulative_nt', cumulative_nt)
+       error_string = 'nt too small for module ' // module_string
+       call exit_POP(sigAbort, error_string)
+    end if
 
-   call destroy_io_field (FIELD_DESC)
+  end subroutine set_tracer_indices
 
-   call data_set (restart_file, 'close')
+  !*****************************************************************************
 
-   call destroy_file (restart_file)
+  subroutine tracer_read_init(tracer, mod_varname, filename, file_varname, file_fmt, &
+       scale_factor, default_val)
 
-!-----------------------------------------------------------------------
-!EOC
+    ! !DESCRIPTION:
+    !  initialize a tracer_read_type to common default values.
 
- end subroutine read_field_3D
+    type(tracer_read_type)        , intent(out) :: tracer
+    character(char_len) , optional, intent(in)  :: mod_varname
+    character(char_len) , optional, intent(in)  :: filename
+    character(char_len) , optional, intent(in)  :: file_varname
+    character(char_len) , optional, intent(in)  :: file_fmt
+    real(r8)            , optional, intent(in)  :: scale_factor
+    real(r8)            , optional, intent(in)  :: default_val
 
-!***********************************************************************
-!BOP
-! !IROUTINE: extract_surf_avg
-! !INTERFACE:
+    tracer%mod_varname = 'unknown'
+    if (present(mod_varname)) then
+       tracer%mod_varname = mod_varname
+    end if
 
- subroutine extract_surf_avg(init_file_fmt,restart_filename,&
-                             tracer_cnt,vflux_flag,ind_name_table,&
-                             surf_avg)
+    tracer%filename = 'unknown'
+    if (present(filename)) then
+       tracer%filename = filename
+    end if
 
-! !DESCRIPTION:
-!  Extract average surface values from restart file.
-!
-! !REVISION HISTORY:
-!  same as module
+    tracer%file_varname = 'unknown'
+    if (present(file_varname)) then
+       tracer%file_varname = file_varname
+    end if
 
-! !INPUT PARAMETERS:
+    tracer%file_fmt = 'bin'
+    if (present(file_fmt)) then
+       tracer%file_fmt = file_fmt
+    end if
 
-   character (*), intent(in) :: &
-      init_file_fmt, & ! file format (bin or nc)
-      restart_filename ! file name for restart file
+    tracer%scale_factor = c1
+    if (present(scale_factor)) then
+       tracer%scale_factor = scale_factor
+    end if
 
-   integer (int_kind),intent(in) :: &
-      tracer_cnt
+    tracer%default_val = c0
+    if (present(default_val)) then
+       tracer%default_val = default_val
+    end if
 
-   logical (log_kind), dimension(tracer_cnt),intent(in) :: &
-      vflux_flag                ! which tracers get virtual fluxes applied
+  end subroutine tracer_read_init
 
-   type(ind_name_pair), dimension(tracer_cnt),intent(in) :: &
-      ind_name_table
+  !***********************************************************************
 
-! !Output PARAMETERS:
-
-   real (r8), dimension(tracer_cnt),intent(out) :: &
-      surf_avg         ! average surface tracer values
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   type (datafile) ::&
-      restart_file    ! io file descriptor
-
-   integer (int_kind) :: &
-      n               ! tracer index
-
-   character (char_len) :: &
-      short_name      ! tracer name temporaries
-
-
-!-----------------------------------------------------------------------
-
-   surf_avg = c0
-
-   restart_file = construct_file(init_file_fmt, &
-                                 full_name=trim(restart_filename), &
-                                 record_length=rec_type_dbl, &
-                                 recl_words=nx_global*ny_global)
-
-   do n = 1, tracer_cnt
-      if (vflux_flag(n)) then
-         short_name = 'surf_avg_' /&
-                   &/ ind_name_table(n)%name
-         call add_attrib_file(restart_file, trim(short_name), surf_avg(n))
-      endif
-   end do
-
-   call data_set(restart_file, 'open_read')
-
-   do n = 1, tracer_cnt
-      if (vflux_flag(n)) then
-         short_name = 'surf_avg_' /&
-                   &/ ind_name_table(n)%name
-         call extract_attrib_file(restart_file, trim(short_name), surf_avg(n))
-      endif
-   end do
-
-   call data_set (restart_file, 'close')
-
-   call destroy_file (restart_file)
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine extract_surf_avg
-!*****************************************************************************
-!BOP
-! !IROUTINE: comp_surf_avg
-! !INTERFACE:
-
- subroutine comp_surf_avg(SURF_VALS_OLD,SURF_VALS_CUR,tracer_cnt,&
-                         vflux_flag,surf_avg)
-
-! !DESCRIPTION:
-!  compute average surface tracer values
-!
-!  avg = sum(SURF_VAL*TAREA) / sum(TAREA)
-!  with the sum taken over ocean points only
-!
-! !REVISION HISTORY:
-!  same as module
-
-
-! !INPUT PARAMETERS:
-!real (r8), dimension(nx_block,ny_block,tracer_cnt,max_blocks_clinic), &
-   real (r8), dimension(:,:,:,:), &
-      intent(in) :: SURF_VALS_OLD, SURF_VALS_CUR
-
-   integer (int_kind),intent(in) :: &
-      tracer_cnt                ! number of tracers
-
-   logical (log_kind), dimension(tracer_cnt),intent(in) :: &
-      vflux_flag                ! which tracers get virtual fluxes applied
-
-! !Output PARAMETERS:
-
-   real (r8), dimension(tracer_cnt),intent(out) :: &
-      surf_avg         ! average surface tracer values
-
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   integer (int_kind) :: &
-      n,       & ! tracer index
-      iblock,  & ! block index
-      dcount,  & ! diag counter
-      ib,ie,jb,je
-
-   real (r8), dimension(max_blocks_clinic,tracer_cnt) :: &
-      local_sums ! array for holding block sums of each diagnostic
-
-   real (r8) :: &
-      sum_tmp    ! temp for local sum
-
-   real (r8), dimension(nx_block,ny_block) :: &
-      WORK1, &   ! local work space
-      TFACT      ! factor for normalizing sums
-
-   type (block) :: &
-      this_block ! block information for current block
-
-!-----------------------------------------------------------------------
-
-   local_sums = c0
-
-!jw   !$OMP PARALLEL DO PRIVATE(iblock,this_block,ib,ie,jb,je,TFACT,n,WORK1)
-   do iblock = 1,nblocks_clinic
-      this_block = get_block(blocks_clinic(iblock),iblock)
-      ib = this_block%ib
-      ie = this_block%ie
-      jb = this_block%jb
-      je = this_block%je
-      TFACT = TAREA(:,:,iblock)*RCALCT(:,:,iblock)
-
-      do n = 1, tracer_cnt
-         if (vflux_flag(n)) then
-            WORK1 = p5*(SURF_VALS_OLD(:,:,n,iblock) + &
-                        SURF_VALS_CUR(:,:,n,iblock))*TFACT
-            local_sums(iblock,n) = sum(WORK1(ib:ie,jb:je))
-         endif
-      end do
-   end do
-!jw   !$OMP END PARALLEL DO
-
-   do n = 1, tracer_cnt
-      if (vflux_flag(n)) then
-         sum_tmp = sum(local_sums(:,n))
-         surf_avg(n) = global_sum(sum_tmp,distrb_clinic)/area_t
-      endif
-   end do
-
-   if(my_task == master_task) then
-      write(stdout,*)' Calculating surface tracer averages'
-      do n = 1, tracer_cnt
-         if (vflux_flag(n)) then
-            write(stdout,*) n, surf_avg(n)
-         endif
-      end do
-   endif
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine comp_surf_avg
-!*****************************************************************************
-!BOP
-! !IROUTINE: set_tracer_indices
-! !INTERFACE:
-
- subroutine set_tracer_indices(module_string, module_nt,  &
-        cumulative_nt, ind_begin, ind_end)
-
-! !DESCRIPTION:
-!  set the index bounds of a single passive tracer module
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT PARAMETERS:
-
-   character (*), intent(in) :: &
-      module_string
-
-   integer (kind=int_kind), intent(in) ::  &
-      module_nt
-
-! !INPUT/OUTPUT PARAMETERS:
-
-   integer (kind=int_kind), intent(inout) ::  &
-      cumulative_nt
-
-   integer (kind=int_kind), intent(out) ::  &
-      ind_begin, &
-      ind_end
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!  local variables
-!-----------------------------------------------------------------------
-
-   character(*), parameter :: subname = 'passive_tracer_tools:set_tracer_indices'
-
-   character (char_len) ::  &
-      error_string
-
-!-----------------------------------------------------------------------
-
-   ind_begin = cumulative_nt + 1
-   ind_end = ind_begin + module_nt - 1
-   cumulative_nt = ind_end
-
-   if (my_task == master_task) then
-      write(stdout,delim_fmt)
-      write(stdout,*) module_string /&
-         &/ ' ind_begin = ', ind_begin
-      write(stdout,*) module_string /&
-         &/ ' ind_end   = ', ind_end
-      write(stdout,delim_fmt)
-   end if
-
-   if (cumulative_nt > nt) then
-      call document(subname, 'nt', nt)
-      call document(subname, 'cumulative_nt', cumulative_nt)
-      error_string = 'nt too small for module ' /&
-         &/ module_string
-      call exit_POP(sigAbort, error_string)
-   end if
-
-!-----------------------------------------------------------------------
-!EOC
-
- end subroutine set_tracer_indices
-!***********************************************************************
-
-!*****************************************************************************
-!BOP
-! !IROUTINE: tracer_read_init
-! !INTERFACE:
-
- subroutine tracer_read_init(tracer, mod_varname, filename, file_varname, file_fmt, &
-      scale_factor, default_val)
-
-! !DESCRIPTION:
-!  initialize a tracer_read type to common default values.
-!
-
-! !OUTPUT PARAMETERS:
-   type(tracer_read), intent (out) :: tracer
-! !INPUT PARAMETERS:
-   character(char_len), optional, intent(in) :: mod_varname
-   character(char_len), optional,  intent(in) :: filename
-   character(char_len), optional,  intent(in) :: file_varname
-   character(char_len), optional,  intent(in) :: file_fmt
-   real(r8), optional,  intent(in) :: scale_factor
-   real(r8), optional,  intent(in) :: default_val
-
-!EOP
-!BOC
-
-   tracer%mod_varname = 'unknown'
-   if (present(mod_varname)) then
-      tracer%mod_varname = mod_varname
-   end if
-
-   tracer%filename = 'unknown'
-   if (present(filename)) then
-      tracer%filename = filename
-   end if
-
-   tracer%file_varname = 'unknown'
-   if (present(file_varname)) then
-      tracer%file_varname = file_varname
-   end if
-
-   tracer%file_fmt = 'bin'
-   if (present(file_fmt)) then
-      tracer%file_fmt = file_fmt
-   end if
-
-   tracer%scale_factor = c1
-   if (present(scale_factor)) then
-      tracer%scale_factor = scale_factor
-   end if
-
-   tracer%default_val = c0
-   if (present(default_val)) then
-      tracer%default_val = default_val
-   end if
-
-!-----------------------------------------------------------------------
-!EOC
- end subroutine tracer_read_init
-!***********************************************************************
-
-
- end module passive_tracer_tools
+end module passive_tracer_tools
 
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
