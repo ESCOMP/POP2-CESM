@@ -1,4 +1,4 @@
-module ecosys_restore_mod
+module marbl_restore_mod
   !
   ! Module to generalize restoring any non-autotroph tracer
   !
@@ -215,4 +215,4 @@ end subroutine restore_tracers
 
 !*****************************************************************************
 
-end module ecosys_restore_mod
+end module marbl_restore_mod

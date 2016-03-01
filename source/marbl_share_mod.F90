@@ -3,11 +3,11 @@ module marbl_share_mod
 !-----------------------------------------------------------------------------
 !   This module contains definitions of variables, derived types, and
 !   functions/subroutines that are used in ecocys_mod.F90 as well as by
-!   other modules that make use of the ecosys_mod.
+!   other modules that make use of the marbl_mod.
 !
 !   The variables are shared using threading with pointers, and need to be
 !   pointed to in the code.
-!   Note: So far the values of all of these fields are set in ecosys_mod
+!   Note: So far the values of all of these fields are set in marbl_mod
 !   and are NOT modified in the other modules
 !   A. Jahn, NCAR
 !-----------------------------------------------------------------------------
@@ -35,7 +35,7 @@ module marbl_share_mod
    integer (int_kind), parameter :: marbl_freq_opt_nmonth   = 2
 
   !-----------------------------------------------------------------------
-  !  indices for forcing fields - FIXME - this belongs in ecosys_mod
+  !  indices for forcing fields - FIXME - this belongs in marbl_mod
   !-----------------------------------------------------------------------
 
   type(marbl_surface_forcing_indexing_type), public :: marbl_surface_forcing_ind

@@ -429,7 +429,7 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
 
-    character(*), parameter :: subname = 'ecosys_mod:marbl_init_nml'
+    character(*), parameter :: subname = 'marbl_mod:marbl_init_nml'
     character(len=marbl_nl_buffer_size) :: tmp_nl_buffer
 
     integer (int_kind)           :: n                        ! index for looping over tracers
@@ -829,7 +829,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_mod:marbl_sflux_forcing_fields_init'
+    character(*), parameter :: subname = 'marbl_mod:marbl_sflux_forcing_fields_init'
     character(char_len) :: fsource                  
     character(char_len) :: drivername               
     character(char_len) :: filename                 
@@ -1074,7 +1074,7 @@ contains
     !  local variables
     !-----------------------------------------------------------------------
 
-    character(*), parameter :: subname = 'ecosys_mod:marbl_init_tracer_metadata'
+    character(*), parameter :: subname = 'marbl_mod:marbl_init_tracer_metadata'
 
     integer (int_kind) :: non_living_biomass_ecosys_tracer_cnt ! number of non-autotroph ecosystem tracers
     integer (int_kind) :: n        ! index for looping over tracers
@@ -1124,7 +1124,7 @@ contains
     !  set lfull_depth_tavg flag for short-lived ecosystem tracers
     !-----------------------------------------------------------------------
 
-    ! Should be done in ecosys_diagnostics, and without the _tavg name
+    ! Should be done in marbl_diagnostics, and without the _tavg name
     do zoo_ind = 1, zooplankton_cnt
        n = zooplankton(zoo_ind)%C_ind
        marbl_tracer_metadata(n)%lfull_depth_tavg = lecovars_full_depth_tavg
@@ -1196,7 +1196,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_mod:marbl_set_interior_forcing'
+    character(*), parameter :: subname = 'marbl_mod:marbl_set_interior_forcing'
 
     integer (int_kind) :: auto_ind  ! autotroph functional group index
     integer (int_kind) :: auto_ind2 ! autotroph functional group index
@@ -1694,7 +1694,7 @@ contains
          dust_diss
 
     character(*), parameter :: &
-         subname = 'ecosys_mod:compute_particulate_terms'
+         subname = 'marbl_mod:compute_particulate_terms'
 
     real (r8) :: TfuncS  ! temperature scaling from soft POM remin
 
@@ -2258,7 +2258,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_mod:marbl_set_surface_forcing'
+    character(*), parameter :: subname = 'marbl_mod:marbl_set_surface_forcing'
     integer (int_kind)      :: n                        ! loop indices
     integer (int_kind)      :: auto_ind                 ! autotroph functional group index
     real (r8)               :: phlo(num_elements)       ! lower bound for ph in solver
@@ -2795,7 +2795,7 @@ contains
          auto_ind,        & ! autotroph functional group index
          zoo_ind            ! zooplankton functional group index
 
-    character(*), parameter :: subname = 'ecosys_mod:check_ecosys_tracer_count_consistency'
+    character(*), parameter :: subname = 'marbl_mod:check_ecosys_tracer_count_consistency'
 
     !-----------------------------------------------------------------------
     !  confirm that ecosys_tracer_cnt is consistent with autotroph declarations
@@ -2841,7 +2841,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = "ecosys_mod:marbl_init_zooplankton_tracer_metadata"
+    character(*), parameter :: subname = "marbl_mod:marbl_init_zooplankton_tracer_metadata"
     integer (int_kind) :: zoo_ind            ! zooplankton functional group index
     !-----------------------------------------------------------------------
 
@@ -2885,7 +2885,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = "ecosys_mod:marbl_init_autotroph_tracer_metadata"
+    character(*), parameter :: subname = "marbl_mod:marbl_init_autotroph_tracer_metadata"
     integer (int_kind) :: auto_ind ! zooplankton functional group index
     !-----------------------------------------------------------------------
 
@@ -3371,7 +3371,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_mod:marbl_compute_carbonate_chemistry'
+    character(*), parameter :: subname = 'marbl_mod:marbl_compute_carbonate_chemistry'
     integer :: k
     type(thermodynamic_coefficients_type), dimension(domain%km) :: co3_coeffs
     logical(log_kind) , dimension(domain%km) :: mask

@@ -1586,7 +1586,7 @@ contains
     !  for Carbon 12 has already been computed.
     !
     !  Incoming fluxes are assumed to be the outgoing fluxes from the previous level.
-    !  For other comments, see compute_particulate_terms in ecosys_mod
+    !  For other comments, see compute_particulate_terms in marbl_mod
     
     use marbl_parms     , only : denitrif_C_N
     use marbl_parms     , only : parm_POMbury

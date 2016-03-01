@@ -74,7 +74,7 @@ module marbl_interface
   use marbl_internal_types  , only : marbl_surface_forcing_share_type
   use marbl_internal_types  , only : marbl_surface_forcing_internal_type
 
-  use ecosys_restore_mod    , only : marbl_restore_type
+  use marbl_restore_mod    , only : marbl_restore_type
 
   implicit none
 

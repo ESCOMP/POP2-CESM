@@ -3,8 +3,6 @@ MODULE moby_parms
   !-----------------------------------------------------------------------------
   !   This module manages the parameter variables for the module moby_mod.
   !
-  !   It is based upon ecosys_mod written by Keith Lindsay.
-  !
   !   Most of the variables are not parameters in the Fortran sense. In the
   !   the Fortran sense, they are vanilla module variables.
   !

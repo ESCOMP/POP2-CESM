@@ -7,7 +7,7 @@ module ecosys_driver
   !  This module provides support for the ecosystem module and dependend tracer modules
   !  The base model calls subroutines in passive_tracers, which then call
   !  this module if ecosys_on is true. Ecosys_driver then calls subroutines
-  !  in individual ecosystem modules (so far ecosys_mod and marbl_ciso_mod)
+  !  in individual ecosystem modules (so far marbl_mod and marbl_ciso_mod)
   !
   !  Written by: Alexandra Jahn, NCAR, Nov/Dec 2012
 
@@ -1414,7 +1414,7 @@ contains
 
   subroutine ecosys_driver_read_restore_data(ecosys_restore)
 
-    use ecosys_restore_mod  , only : marbl_restore_type
+    use marbl_restore_mod   , only : marbl_restore_type
     use passive_tracer_tools, only : read_field
     use grid                , only : KMT
 
@@ -2010,9 +2010,9 @@ contains
     ! The following is used in subroutine ecosys_driver_set_interior on the next timestep
     ecosys_saved_state%dust_flux_in(:,:,:) = input_forcing_data(:,:, ind%dust_flux_id,:)
 
-    ! FIXME(mnl,2016-01): ecosys_mod::ecosys_update_surface_forcing_fields()
-    !        applies this fix and also multiplies iron_flux_in by parm_Fe_bioavail  
-    !        similar multiplication of dust_flux by 0.98 in set_input_forcing_data should also be moved
+    ! FIXME(mnl,2016-01): marbl_mod::ecosys_update_surface_forcing_fields()
+    ! applies this fix and also multiplies iron_flux_in by parm_Fe_bioavail  
+    ! similar multiplication of dust_flux by 0.98 in set_input_forcing_data should also be moved
 
     end associate
 

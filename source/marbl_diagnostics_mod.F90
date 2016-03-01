@@ -3102,7 +3102,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_diagnostics:store_diagnostics_surface_forcing'
+    character(*), parameter :: subname = 'marbl_diagnostics:store_diagnostics_surface_forcing'
     !-----------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
@@ -4266,7 +4266,7 @@ contains
     !-----------------------------------------------------------------------
     !  local variables
     !-----------------------------------------------------------------------
-    character(*), parameter :: subname = 'ecosys_diagnostics:store_diagnostics_ciso_surface_forcing'
+    character(*), parameter :: subname = 'marbl_diagnostics:store_diagnostics_ciso_surface_forcing'
     !-----------------------------------------------------------------------
 
     associate(                                          &
@@ -4309,7 +4309,7 @@ contains
 
     !-------------------------------------------------------------------------
     ! River input of isotopic DIC and DOC.
-    ! River input of BGC tracers in ecosys_mod is currently constant and from file
+    ! River input of BGC tracers in marbl_mod is currently constant and from file
     ! So the isotopic carbon input is also done very simplified with one value
     ! globally, even though data shows it should vary from river to river.
     !

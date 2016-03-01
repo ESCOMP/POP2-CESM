@@ -1,6 +1,37 @@
 Tag Creator: mvertens
 Developers:  mvertens
 Tag Date:    29 Feb 2016
+Tag Name:    pop2/branch_tags/marbl_ciso_tags/marbl_ciso_n12_cesm_pop_2_1_20160114
+Tag Summary: renamed files in preparation for separation of marbl libraray
+	
+Renamed files:
+	
+D       ecosys_restore.F90
+A       marbl_restore_mod.F90
+	
+D       ecosys_mod.F90
+A       marbl_mod.F90
+	
+D       marbl_kinds.F90
+A       marbl_kinds_mod.F90
+	
+D       marbl_share.F90
+A       marbl_share_mod.F90
+	
+D       ecosys_diagnostics_mod.F90
+A       marbl_diagnostics_mod.F90
+	
+Modifications needed for renamed files:
+	
+M       marbl_interface.F90
+M       marbl_ciso_mod.F90
+M       ecosys_driver.F90
+M       moby_parms.F90
+	
+===============================================================================
+Tag Creator: mvertens
+Developers:  mvertens
+Tag Date:    29 Feb 2016
 Tag Name:    pop2/branch_tags/marbl_ciso_tags/marbl_ciso_n11_cesm_pop_2_1_20160114
 Tag Summary: simplification to marbl interfaces 
 	
