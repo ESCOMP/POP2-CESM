@@ -26,6 +26,7 @@ module ecosys_driver
   use prognostic                , only : TRACER
   use exit_mod                  , only : sigAbort, exit_pop
   use constants                 , only : c0, c1, p5, delim_fmt, char_blank, ndelim_fmt
+  use strdata_interface_mod     , only : strdata_input_type
 
   use marbl_share_mod           , only : autotroph_cnt, zooplankton_cnt
   use marbl_share_mod           , only : ecosys_tracer_cnt
@@ -200,6 +201,12 @@ module ecosys_driver
   integer (int_kind) :: forcing_diag_cnt
 
   type(ecosys_surface_share_type) :: surface_share
+
+  !-----------------------------------------------------------------------
+  !  needed to read ndep data from shr_stream
+  !-----------------------------------------------------------------------
+
+  type(strdata_input_type) :: ndep_inputlist
 
   !***********************************************************************
 
@@ -1861,11 +1868,13 @@ contains
 
     !-----------------------------------------------------------------------
 
+#ifndef CCSMCOUPLED
     if (trim(ndep_data_type) == 'shr_stream') then
        call document(subname, 'ndep_data_type', ndep_data_type)
        call exit_POP(sigAbort, &
             'shr_stream option only supported when CCSMCOUPLED is defined')
     endif
+#endif
 
     !-----------------------------------------------------------------------
     !  load river nutrient flux fields (if required)
@@ -2303,7 +2312,6 @@ contains
     use time_management       , only : thour00
     use shr_strdata_mod       , only : shr_strdata_type
     use shr_strdata_mod       , only : shr_strdata_advance 
-    use strdata_interface_mod , only : strdata_input_type
     use strdata_interface_mod , only : POP_strdata_create
     use strdata_interface_mod , only : POP_strdata_advance
 
@@ -2311,8 +2319,6 @@ contains
     use marbl_parms           , only : f_qsw_par
     use marbl_parms           , only : ind_nox_flux
     use marbl_parms           , only : ind_nhy_flux
-    use marbl_parms           , only : ind_nh4_flux     
-    use marbl_parms           , only : ind_no3_flux     
     use marbl_parms           , only : ind_din_riv_flux 
     use marbl_parms           , only : ind_dip_riv_flux 
     use marbl_parms           , only : ind_don_riv_flux 
@@ -2406,8 +2412,6 @@ contains
     integer (int_kind)       :: tracer_bndy_loc(1)      ! location   for ghost tracer_bndy_type cell updates
     integer (int_kind)       :: tracer_bndy_type(1)     ! field type for ghost tracer_bndy_type cell updates
     character (char_len)     :: ndep_shr_stream_fldList ! label for what is being updated
-    type(shr_strdata_type)   :: ndep_sdat               ! input data stream for ndep
-    type(strdata_input_type) :: ndep_inputlist
 
     !-----------------------------------------------------------------------
 
@@ -2688,11 +2692,11 @@ contains
           first_call = .false.
        endif
 
-       mcdate = iyear*10000 + imonth*100 + iday
-       sec = isecond + 60 * (iminute + 60 * ihour)
+       ndep_inputlist%date = iyear*10000 + imonth*100 + iday
+       ndep_inputlist%time = isecond + 60 * (iminute + 60 * ihour)
 
        call timer_start(ecosys_shr_strdata_advance_timer)
-       call shr_strdata_advance(ndep_sdat, mcdate, sec, POP_communicator, 'ndep')
+       call POP_strdata_advance(ndep_inputlist)
        call timer_stop(ecosys_shr_strdata_advance_timer)
 
        ! process NO3 flux, store results in SHR_STREAM_WORK array
@@ -2705,7 +2709,7 @@ contains
           do j=this_block%jb, this_block%je
              do i=this_block%ib, this_block%ie
                 n = n + 1
-                SHR_STREAM_WORK(i, j, iblock) = ndep_sdat%avs(1)%rAttr(ndep_shr_stream_no_ind, n)
+                SHR_STREAM_WORK(i, j, iblock) = ndep_inputlist%sdat%avs(1)%rAttr(ndep_shr_stream_no_ind, n)
              enddo
           enddo
        enddo
@@ -2721,7 +2725,7 @@ contains
 
        do iblock = 1, nblocks_clinic
           where (land_mask(:, :, iblock))
-             MARBL_STF(:,:, ind_no3_flux,iblock) = SHR_STREAM_WORK(:, :, iblock)
+             MARBL_STF(:,:, ind_nox_flux,iblock) = SHR_STREAM_WORK(:, :, iblock)
           endwhere
        enddo
 
@@ -2736,7 +2740,7 @@ contains
              do i=this_block%ib, this_block%ie
                 n = n + 1
                 SHR_STREAM_WORK(i, j, iblock) = &
-                     ndep_sdat%avs(1)%rAttr(ndep_shr_stream_nh_ind, n)
+                     ndep_inputlist%sdat%avs(1)%rAttr(ndep_shr_stream_nh_ind, n)
              enddo
           enddo
        enddo
@@ -2753,7 +2757,7 @@ contains
        !$OMP PARALLEL DO PRIVATE(iblock)
        do iblock = 1, nblocks_clinic
           where (land_mask(:, :, iblock))
-             MARBL_STF(:,:, ind_nh4_flux,iblock) = SHR_STREAM_WORK(:, :, iblock)
+             MARBL_STF(:,:, ind_nhy_flux,iblock) = SHR_STREAM_WORK(:, :, iblock)
           endwhere
        enddo
        !$OMP END PARALLEL DO

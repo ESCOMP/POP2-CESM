@@ -2595,7 +2595,7 @@ contains
     use marbl_share_mod       , only : dic_riv_flux     
     use marbl_share_mod       , only : alk_riv_flux     
     use marbl_parms           , only : ind_nox_flux
-    use marbl_parms           , only : ind_no3_flux
+    use marbl_parms           , only : ind_nhy_flux
     use marbl_parms           , only : ind_din_riv_flux
     use marbl_parms           , only : ind_dsi_riv_flux
     use marbl_parms           , only : ind_dfe_riv_flux
@@ -2726,9 +2726,15 @@ contains
        diags(ind%NOx_FLUX)%field_2d(:) = MARBL_STF(:, ind_nox_flux)
     endif
 
+    if (nhy_flux_monthly%has_data) then
+       diags(ind%NHy_FLUX)%field_2d(:) = MARBL_STF(:, ind_nhy_flux)
+    endif
+
     if (trim(ndep_data_type) == 'shr_stream') then
        diags(ind%NOx_FLUX)%field_2d(:) = &
-            ndep_shr_stream_scale_factor * MARBL_STF(:, ind_no3_flux)
+            ndep_shr_stream_scale_factor * MARBL_STF(:, ind_nox_flux)
+       diags(ind%NHy_FLUX)%field_2d(:) = &
+            ndep_shr_stream_scale_factor * MARBL_STF(:, ind_nhy_flux)
     endif
 
     !-----------------------------------------------------------------------
@@ -2751,7 +2757,6 @@ contains
        diags(ind%ALK_RIV_FLUX)%field_2d(:) = MARBL_STF(:, ind_alk_riv_flux)
     endif
     diags(ind%O2_GAS_FLUX)%field_2d(:)   = STF_MODULE(:, o2_ind)
-    diags(ind%NHy_FLUX)%field_2d(:)      = STF_MODULE(:, nh4_ind)
     diags(ind%DIP_RIV_FLUX)%field_2d(:)  = STF_MODULE(:, po4_ind)
     diags(ind%DON_RIV_FLUX)%field_2d(:)  = STF_MODULE(:, don_ind)
     diags(ind%DONr_RIV_FLUX)%field_2d(:) = STF_MODULE(:, donr_ind)

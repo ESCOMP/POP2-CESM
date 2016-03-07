@@ -99,17 +99,15 @@ module marbl_parms
   integer (int_kind), parameter :: &
        ind_nox_flux     =  1,  &
        ind_nhy_flux     =  2,  &
-       ind_no3_flux     =  3,  &
-       ind_nh4_flux     =  4,  &
-       ind_din_riv_flux =  5,  &
-       ind_dip_riv_flux =  6,  &
-       ind_don_riv_flux =  7,  &
-       ind_dop_riv_flux =  8,  &
-       ind_dsi_riv_flux =  9,  &
-       ind_dfe_riv_flux = 10,  &
-       ind_dic_riv_flux = 11,  &
-       ind_alk_riv_flux = 12,  &
-       ind_doc_riv_flux = 13
+       ind_din_riv_flux =  3,  &
+       ind_dip_riv_flux =  4,  &
+       ind_don_riv_flux =  5,  &
+       ind_dop_riv_flux =  6,  &
+       ind_dsi_riv_flux =  7,  &
+       ind_dfe_riv_flux =  8,  &
+       ind_dic_riv_flux =  9,  &
+       ind_alk_riv_flux = 10,  &
+       ind_doc_riv_flux = 11
 
   !-----------------------------------------------------------------------
   !  non-autotroph relative tracer indices

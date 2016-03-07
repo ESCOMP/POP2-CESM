@@ -1996,8 +1996,6 @@ contains
     use marbl_share_mod       , only : doc_riv_flux     
     use marbl_parms           , only : ind_nox_flux
     use marbl_parms           , only : ind_nhy_flux
-    use marbl_parms           , only : ind_no3_flux
-    use marbl_parms           , only : ind_nh4_flux
     use marbl_parms           , only : ind_din_riv_flux
     use marbl_parms           , only : ind_dip_riv_flux
     use marbl_parms           , only : ind_don_riv_flux
@@ -2258,10 +2256,10 @@ contains
     if (trim(ndep_data_type) == 'shr_stream') then
        where (land_mask(:))
           STF_MODULE(:, no3_ind) = STF_MODULE(:, no3_ind) &
-               + ndep_shr_stream_scale_factor * MARBL_STF(:, ind_no3_flux)
+               + ndep_shr_stream_scale_factor * MARBL_STF(:, ind_nox_flux)
           
           STF_MODULE(:, nh4_ind) = STF_MODULE(:, nh4_ind) &
-               + ndep_shr_stream_scale_factor * MARBL_STF(:, ind_nh4_flux)
+               + ndep_shr_stream_scale_factor * MARBL_STF(:, ind_nhy_flux)
        endwhere
     endif
 
