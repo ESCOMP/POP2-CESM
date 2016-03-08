@@ -1739,7 +1739,11 @@ contains
              ! FIXME - add an option for xco2_alt_co2_id to be more than just a constant
 
              else if (index == ind%surface_mask_id) then
-                input_forcing_data(:, :, ind%surface_mask_id, iblock) = land_mask(:,:,iblock)
+                where(land_mask(:,:,iblock))
+                  input_forcing_data(:, :, ind%surface_mask_id, iblock) = c1
+                elsewhere
+                  input_forcing_data(:, :, ind%surface_mask_id, iblock) = c0
+                end where
 
              else if (index == ind%ifrac_id) then
                 input_forcing_data(:,:,index,iblock) = ifrac(:,:,iblock)
